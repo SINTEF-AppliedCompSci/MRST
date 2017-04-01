@@ -1,4 +1,4 @@
-classdef OilWaterSolventModel < TwoPhaseOilWaterModel
+classdef OilWaterSolventModel < ThreePhaseBlackOilModel
 
     properties
         
@@ -10,7 +10,7 @@ classdef OilWaterSolventModel < TwoPhaseOilWaterModel
         
         function model = OilWaterSolventModel(G, rock, fluid, varargin)
             
-            model = model@TwoPhaseOilWaterModel(G, rock, fluid);
+            model = model@ThreePhaseBlackOilModel(G, rock, fluid);
             
             % This is the model parameters for oil/water/polymer
             model.solvent = true;
@@ -27,14 +27,12 @@ classdef OilWaterSolventModel < TwoPhaseOilWaterModel
         end
         
         function state = validateState(model, state)
-            state = validateState@TwoPhaseOilWaterModel(model, state);
-            % Polymer must be present
-            model.checkProperty(state, 'Solvent', model.G.cells.num, 1);
+            state = validateState@ThreePhaseBlackOilModel(model, state);
         end
 
         function [state, report] = updateState(model, state, problem, ...
                 dx, drivingForces)
-            [state, report] = updateState@TwoPhaseOilWaterModel(model, ...
+            [state, report] = updateState@ThreePhaseBlackOilModel(model, ...
                state, problem,  dx, drivingForces);
             
 %             if model.polymer
@@ -60,14 +58,14 @@ classdef OilWaterSolventModel < TwoPhaseOilWaterModel
             switch(lower(name))
                 case {'solvent'}
                     index = 3;
-                    fn = 's';
+                    fn = 'sS';
                 otherwise
-                    [fn, index] = getVariableField@TwoPhaseOilWaterModel(...
+                    [fn, index] = getVariableField@ThreePhaseBlackOilModel(...
                                     model, name);
             end
         end
         function names = getComponentNames(model)
-            names = getComponentNames@TwoPhaseOilWaterModel(model);
+            names = getComponentNames@ThreePhaseBlackOilModel(model);
             if model.solvent
                 names{end+1} = 'solvent';
             end

@@ -1,24 +1,26 @@
-function [krW, krO, krG, krS] = computeRelPermSolvent(sW, sO, sG, sS, sS_thres, Nc, fluid)
+function [krW, krO, krG, krS] = computeRelPermSolvent(sW, sO, sG, sS, p, fluid)
 
     %% 
     
     krW = @(sW) fluid.krW(sW);
     
-    krO = fluid.krO(sO).*(sS < sS_thres) ...
-          + sO./(sO + sG + sS).*fluid.krOW(sO + sG + sS).*(sS >= sS_thres);
+    krO_i = fluid.krO(sO);
+    krO_m = @(sO, aG, sS) sO./(sO + sG + sS).*fluid.krOW(sO + sG + sS);
     
-    krGT = @(sO, sG, sS) fluid.krG(sG + sS).*(sS < sS_thres) ...
-         + (sS + sG)./(sO + sG + sS).*fluid.krOW(sO + sG + sS).*(sS >= sS_thres);
     
-    krG = @(sO, sG, sS) krGT(sO, sG, sS).*(sG./(sS + sG));
+    krGT_i = @(sG, sS) fluid.krG(sG + sS);
+    krGT_m = @(sO, sG, sS) (sS + sG)./(sO + sG + sS).*fluid.krOW(sO + sG + sS);
     
-    krS = @(sO, sG, sS) krGT(sO, sG, sS).*(sS./(sS + sG));
+    
+    krG_i = @(sG, sS) krGT_i(sG, sS).*(sG./(sS + sG));
+    krG_m = @(sO, sG, sS) krGT_m(sO, sG, sS).*(sG./(sS + sG));
+    
+    krS_i = @(sG, sS) krGT_i(sG, sS).*(sS./(sS + sG));
+    krS_m = @(sO, sG, sS) krGT_m(sO, sG, sS).*(sS./(sS + sG));
 
     %%
     
-    
-    is_sol = sS > 0;
-    M = fluid.Msat(sG, sS);
+    M = fluid.Msat(sG, sS).*fluid.Mpres(p);
     
 %     M = 0*c;
 %     if nnz(is_sol) > 0
@@ -43,15 +45,9 @@ function [krW, krO, krG, krS] = computeRelPermSolvent(sW, sO, sG, sS, sS_thres, 
     sG_eff = (sG - sSGres)./(1 - sWres - sOres  - sSGres);
     sS_eff = (sS - sSGres)./(1 - sWres - sOres  - sSGres);
     
-    sN_eff = sO_eff + sG_eff + sS_eff;
-    
-    krOW_m = fluid.krOW_m;
-    krOW_i = fluid.krOW_i;
-    
-    krW = krW(sW);
-    krO = sO_eff./sN_eff.*(M.*krOW_m(sN_eff) + (1-M).*krOW_i(sN_eff));
-    krGT = (sS_eff + sG_eff)./sN_eff.*(M.*krOW_m(sN_eff) + (1-M).*krOW_i(sN_eff));
-    krS = krGT.*(sS_eff./(sS_eff + sG_eff));
-    krG = krGT.*(sG_eff./(sS_eff + sG_eff));
+    krW = krW(sW_eff);
+    krO = M.*krO_m(sO_eff, sG_eff, sS_eff) + (1-M).*krO_i(sO_eff);
+    krG = M.*krG_m(sO_eff, sG_eff, sS_eff) + (1-M).*krG_i(sG_eff, sS_eff);
+    krS = M.*krS_m(sO_eff, sG_eff, sS_eff) + (1-M).*krS_i(sG_eff, sS_eff);
 
 end

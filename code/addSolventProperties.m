@@ -14,7 +14,7 @@ opt = struct('mu'    , 1                      , ...
              'sSGres_i', 0                     , ...
              'sWres',    0                    , ...
              'Msat'  , @(sG, sS) sS./(sS + sG), ...
-             'Mpres' , @(sG, sS) sS./(sS + sG)     );
+             'Mpres' , @(p) ones(numel(p),1)   );
              
 
 opt = merge_options(opt, varargin{:});
@@ -52,8 +52,7 @@ if ~isempty(opt.cR)
     fluid.pvMultR = @(p)(1 + cR.*(p-opt.pRef));
 end
 
-fluid.krOW_m = kr;
-fluid.krOW_i = kr;
+fluid.krOW = kr;
 fluid.mixPar = opt.mixPar;
 fluid.sOres_m = opt.sOres_m;
 fluid.sOres_i= opt.sOres_i;
