@@ -3,12 +3,11 @@
 % multiphase flow models using automatic differentiation and the abstract
 % differentiation operators in MRST. To this end, we set up a relatively
 % simple model consisting of three layers, where the upper two layers are
-% filled with oil and the bottom layer is filled with gas. Water is
+% filled with oil and the bottom layer is filled with water. Water is
 % injected in the lower south west corner and fluids are produced from the
-% upper north east corner. To keep things simple, we do not use a well
-% model for the production well, but mimick the correct physical behavior
-% by manipulating the flow equations to ensure reasonable inflow into the
-% perforated cell. 
+% upper north east corner. To mimic the effect of injector and producer
+% wells, we manipulate the flow equations to ensure reasonable
+% inflow/outflow for the perforated cells.
 %
 % The code can be run with compressible or incompressible fluids and rock.
 % (The compressibility of oil is somewhat exaggerated for illustration
@@ -16,10 +15,10 @@
 % twice with compressible/incompressible model, the plots of pressures will
 % be added to the same figure.
 
-isCompr = true;
+%isCompr = false;
 
 %% Set up model geometry
-[nx,ny,nz] = deal(  9,   9,  3);
+[nx,ny,nz] = deal(  11,  11,  3);
 [Dx,Dy,Dz] = deal(200, 200, 50);
 G = cartGrid([nx, ny, nz], [Dx, Dy, Dz]);
 G = computeGeometry(G);
@@ -27,19 +26,17 @@ G = computeGeometry(G);
 figure(1); clf
 plotGrid(G); view(3); axis tight
 
-I=1;
-
 %% Define rock model
 rock = makeRock(G, 30*milli*darcy, 0.2);
 cr   = 1e-6/psia*double(isCompr);
 pR   = 200*barsa;
 pvR  = poreVolume(G, rock);
-pv   = @(p) pvR .* exp( -cr * (p - pR) );
+pv   = @(p) pvR .* exp(cr * (p - pR) );
 
-p = linspace(100*barsa,1000*barsa,90)';
+p = linspace(100*barsa,250*barsa,30)';
 s = linspace(0,1,50)';
 figure(1), clf
-plot(p/barsa, pvR(1).*exp(-cr*(p-pR)),'LineWidth',2);
+plot(p/barsa, pvR(1).*exp(cr*(p-pR)),'LineWidth',2);
 
 
 %% Fluid model
@@ -53,7 +50,7 @@ krW    = @(S) S.^2;
 
 % Oil phase is lighter and has a cubic relative permeability
 muO    = 5*centi*poise;
-co     = 1e-4/barsa*double(isCompr);
+co     = 1e-5/psia*double(isCompr);
 rhoOR  = 850*kilogram/meter^3;
 rhoOS  = 750*kilogram/meter^3;
 rhoO   = @(p) rhoOR .* exp( co * (p - pR) );
@@ -98,24 +95,21 @@ g     = norm(gravity);
 equil = ode23(@(z,p) g.* rhoO(p), [0, max(G.cells.centroids(:,3))], pR);
 p0    = reshape(deval(equil, G.cells.centroids(:,3)), [], 1);  clear equil
 sW0   = zeros(G.cells.num, 1);
-sW0 = reshape(sW0,G.cartDims); sW0(:,:,nz)=1; sW0 = sW0(:);
+sW0   = reshape(sW0,G.cartDims); sW0(:,:,nz)=1; sW0 = sW0(:);
 
 %% Schedule and injection/production
-nstep = 25;
-Tf = 365*day;
+nstep = 36;
+Tf = 360*day;
 dt = Tf/nstep*ones(1,nstep);
 dt = [dt(1).*sort(repmat(2.^-[1:5 5],1,1)) dt(2:end)];
 nstep = numel(dt);
 
-
 [inRate,  inIx ] = deal(.1*sum(pv(p0))/Tf, nx*ny*nz-nx*ny+1);
 [outPres, outIx] = deal(100*barsa, nx*ny);
 
-
 %% Initialize for solution loop
-[p, sW] = initVariablesADI(p0, sW0);
-pIx = 1:nc;
-sIx = (nc+1):(2*nc);
+[p, sW]    = initVariablesADI(p0, sW0);
+[pIx, sIx] = deal(1:nc, (nc+1):(2*nc));
 [tol, maxits] = deal(1e-5,15);
 pargs = {};% {'EdgeColor','k','EdgeAlpha',.1};
 
@@ -126,11 +120,12 @@ sol(1) = struct('time', 0, 'pressure', double(p),'s', double(sW));
 t = 0;
 hwb = waitbar(t,'Simulation ..');
 nits = nan(nstep,1);
+i = 1; clear cnd;
 for n=1:nstep
 
     t = t + dt(n);
     fprintf('\nTime step %d: Time %.2f -> %.2f days\n', ...
-        n, convertTo(t - dt, day), convertTo(t, day));
+        n, convertTo(t - dt(n), day), convertTo(t, day));
     
     % Newton loop
     resNorm   = 1e99;
@@ -168,8 +163,8 @@ for n=1:nstep
         
         % Producer: replace equations by new ones specifying fixed pressure
         % and zero water saturation
-        water(outIx) = p(outIx) - outPres;
-        oil(outIx)   = sW(outIx);
+        oil(outIx) = p(outIx) - outPres;
+        water(outIx)   = sW(outIx);
         
         % Collect and concatenate all equations (i.e., assemble and
         % linearize system)
@@ -178,6 +173,8 @@ for n=1:nstep
         
         % Compute Newton update and update variable
         res = eq.val;
+        cnd(i,1) = n;
+        cnd(i,2) = condest(eq.jac{1}); i = i+1;
         upd = -(eq.jac{1} \ res);
         p.val  = p.val   + upd(pIx);
         sW.val = sW.val + upd(sIx);
@@ -187,6 +184,8 @@ for n=1:nstep
         nit     = nit + 1;
         fprintf('  Iteration %3d:  Res = %.4e\n', nit, resNorm);
     end
+    cnd(i,1) = NaN;
+    cnd(i,2) = NaN; i=i+1;
     
     if nit > maxits,
         error('Newton solves did not converge')
@@ -196,7 +195,7 @@ for n=1:nstep
         figure(1); clf
         subplot(2,1,1)
         plotCellData(G, double(p)/barsa, pargs{:});
-        title('Pressure'), view(30, 40); caxis([100 280]);
+        title('Pressure'), view(30, 40); caxis([100 250]);
         
         subplot(2,1,2)
         plotCellData(G, 1-double(sW), pargs{:});
@@ -213,18 +212,45 @@ end
 close(hwb);
 
 %%
-figure(2); 
-bar(nits,1,'EdgeColor','r','FaceColor',[.6 .6 1]); axis tight
-
+figure(2),
+subplot(2,1,2-double(isCompr));
+bar(nits,1,'EdgeColor','r','FaceColor',[.6 .6 1]);
+axis tight, set(gca,'YLim',[0 10]);
+hold on, 
+plotyy(nan,nan,1:numel(dt),dt/day,@plot, ...
+    @(x,y) plot(x,y,'-o','MarkerFaceColor',[.6 .6 .6]));
 
 %%
 figure(3); hold all
-mIx = round(prod(G.cartDims)/2);
 bhp = arrayfun(@(x) x.pressure(inIx), sol)/barsa;
 t   = arrayfun(@(x) x.time, sol)/day;
-mp  = arrayfun(@(x) x.pressure(mIx), sol)/barsa;
-plot(t,bhp,'-o','MarkerFaceColor',[.6 .6 .6])
-plot(t,mp, '-s','MarkerFaceColor',[.6 .6 .6]);
+mp  = arrayfun(@(x) sum(x.pressure)/G.cells.num, sol)/barsa;
+plot(t,bhp,'-', t,mp, '--');
+
+% chl = get(gca,'Children');
+% col=flipud(lines(2));
+% for i=1:numel(chl), set(chl(i),'Color',col(ceil(i/2),:),'LineWidth',2); end
+
+%%
+%{
+g = cartGrid([1 1 1],[Dx Dy Dz]);
+figure; colormap(winter);
+for i=1:nstep+1
+    s = sol(i).s;
+    clf
+    plotCellData(G,1-s,s>1e-3,'EdgeColor','k','EdgeAlpha',.1);
+    plotGrid(g,'EdgeColor','k','FaceColor','none'); 
+    view(3); plotGrid(G,[inIx; outIx],'FaceColor',[.6 .6 .6]);
+    view(30,40); caxis([0 1]); axis tight off
+    axis([-.5 Dx+.5 -.5 Dy+.5 -.5 Dz+.5]);
+    h=colorbar('horiz');
+    pos = get(gca,'Position');
+    set(h,'Position',[.13 .15 .775 .03]); set(gca,'Position',pos);
+    title(['Time: ' num2str(t(i)) ' days']);
+    drawnow, pause(.5)
+    print('-dpng','-r0',sprintf('twoPhaseAD-%02d.png',i-1));
+end
+%}
 
 
 %{
