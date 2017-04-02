@@ -1,19 +1,32 @@
-% sensitivitiesModel2D - analyse sensitivity capabilities 
+%% sensitivitiesModel2D - analyse sensitivity capabilities 
 
 mrstModule add ad-core ad-blackoil ad-props optimization spe10 mrst-gui
 
-% setup model -> grid, rock, schedule, fluid etc
+% Setup model -> grid, rock, schedule, fluid etc
 setupModel2D
-
+%% Reset fluid to include scaling:
+% $s_w -> \frac{s_w-swcr}{swu-swcr}$
+% $s_o -> \frac{s_o-sowcr}{1-swl-sowcr}$
+fluid = initSimpleScaledADIFluid('mu',    [.3, 5, 0]*centi*poise, ...
+                                 'rho',   [1000, 700, 0]*kilogram/meter^3, ...
+                                 'n',     [2, 2, 0], ...
+                                 'swl',   0.10*ones(G.cells.num,1), ...
+                                 'swcr',  0.15*ones(G.cells.num,1), ...
+                                 'sowcr', 0.12*ones(G.cells.num,1), ...
+                                 'swu',   0.90*ones(G.cells.num,1));
+                                 
+                       
 % Create model-object of class TwoPhaseOilWaterModel
-model  = TwoPhaseOilWaterModel(G, rock, fluid);
-% Set initial state and run simulation:
-state0 = initResSol(G, 200*barsa, [0, 1]);
+model_ref  = TwoPhaseOilWaterModel(G, rock, fluid);                       
 
-% Set up a reference ("truth") model with different pv and trans:
-model_ref = model;
-model_ref.operators.pv = model.operators.pv + 50*ones(G.cells.num,1);
-model_ref.operators.T  = model.operators.T.*(1-.3*rand(numel(model.operators.T),1));
+% Set initial state and run simulation:
+state0 = initResSol(G, 200*barsa, [.15, .85]);
+
+% Set up a perturbed model with different pv and perm:
+rock1 = rock;
+rock1.perm = rock.perm*1.1;
+model = TwoPhaseOilWaterModel(G, rock1, fluid);                       
+model.operators.pv = model_ref.operators.pv.*0.8;
 
 % run ref model
 [ws_ref, states_ref, r_ref] = simulateScheduleAD(state0, model_ref, schedule);
@@ -22,61 +35,69 @@ model_ref.operators.T  = model.operators.T.*(1-.3*rand(numel(model.operators.T),
 
 % plot well solutions for the two models
 plotWellSols({ws_ref, ws}, {r_ref.ReservoirTime, r.ReservoirTime}, ...
-            'datasetnames', {'reference', 'current'})
+            'datasetnames', {'reference', 'perturbed'})
+pause
 
 
-        %% setup misfit-function and run adjoint to get parameter sensitivities
-% choose parameters (trans and pv currently only opotions)
-params      = {'transmissibility', 'porevolume'}; 
-% treat actual property value as parameter (se below for multiplyers)
-paramTypes  = {'value', 'value'};
+%% setup misfit-function and run adjoint to get parameter sensitivities
 % setup weights for matching function, empty weight uses default (will 
-% produce weighting of ~O(1)). 
+% produce function value of ~O(1) for 100% misfit). Only match rates in this example: 
 weighting =  {'WaterRateWeight',     [], ...
               'OilRateWeight',       [] , ...
-              'BHPWeight',           []};
+              'BHPWeight',           0};
    
 % compute misfit function value (first each summand corresonding to each time-step)
 misfitVals = matchObservedOW(G, ws, schedule, ws_ref, weighting{:});
 % sum values to obtiain scalar objective 
 misfitVal = sum(vertcat(misfitVals{:}));
-fprintf('Current misfit value: %6.4f\n', misfitVal)
+fprintf('Current misfit value: %6.4e\n', misfitVal)
 
 % setup (per time step) mismatch function handle for passing on to adjoint sim
 objh = @(tstep)matchObservedOW(G, ws, schedule, ws_ref, 'computePartials', true, 'tstep', tstep, weighting{:});
 
-% run adjoint to compute sensitivities of misfit wrt params, sensitivities
-% are output in same order as parameters are listed
+% run adjoint to compute sensitivities of misfit wrt params
+% choose parameters, get multiplier sensitivities except for endpoints
+params      = {'porevolume', 'permeability', 'swl',   'swcr',  'sowcr', 'swu'}; 
+paramTypes  = {'multiplier', 'multiplier',   'value', 'value', 'value', 'value'};   
+
 sens = computeSensitivitiesAdjointAD(state0, states, model, schedule, objh, ...
                                      'Parameters'    , params, ...
                                      'ParameterTypes', paramTypes);
 
-%% plot sensitivities on grid:
+%% Plot sensitivities on grid:
 figure,
-subplot(1,3,1), plotCellData(G, log(rock.perm(:,1)), 'EdgeColor', 'none'), title('log permeability')
+subplot(2,2,1), plotCellData(G, log(rock.perm(:,1)), 'EdgeColor', 'none'), title('log permeability')
 plotWellData(G, W);colorbar
-subplot(1,3,2), plotCellData(G, sens{2}, 'EdgeColor', 'none'), colorbar,title('Pore volume sensitivity');
-subplot(1,3,3), plotCellData(G,  cellAverage(G, sens{1}), 'EdgeColor', 'none'), colorbar,title('Average transmissiblity sensitivity');
+subplot(2,2,2), plotCellData(G, sens.porevolume, 'EdgeColor', 'none'), colorbar,title('PV multiplier sensitivity');
+subplot(2,2,3), plotCellData(G, sens.permx, 'EdgeColor', 'none'), colorbar,title('PermX multiplier sensitivity');
+subplot(2,2,4), plotCellData(G, sens.permy, 'EdgeColor', 'none'), colorbar,title('PermY multiplier sensitivity');
+%% Rel-perm end-point sensitivities
+figure,
+nms = {'Lower S_w', 'Critical S_w', 'Critical S_o', 'Upper S_w'};
+for k = 1:4
+    subplot(2,2,k), plotCellData(G, sens.(params{k+2}), 'EdgeColor', 'none'), colorbar,title(nms{k});
+end
 
 
-%% do the same exercise as above with multiplyers rather than values 
-% note that the gradient wrt (unit) multiplyer is equal to the gradient wrt value devided by value)
-paramTypes  = {'multiplyer', 'multiplyer'};
+%% Run new adjoint to obtain transmissibility and well connection transmissibilitiy sensitivities 
+params      = {'transmissibility', 'conntrans'};
+paramTypes  = {'multiplier', 'multiplier'};
 sens = computeSensitivitiesAdjointAD(state0, states, model, schedule, objh, ...
                                      'Parameters'    , params, ...
                                      'ParameterTypes', paramTypes);
 
-%% Same plotting as above but now sensitivities wrt multiplyers:
 figure,
-subplot(1,3,1), plotCellData(G, log(rock.perm(:,1)), 'EdgeColor', 'none'), title('log permeability')
-plotWellData(G, W);colorbar
-subplot(1,3,2), plotCellData(G, sens{2}, 'EdgeColor', 'none'), colorbar,title('Pore volume multiplyer sensitivity');
-subplot(1,3,3), plotCellData(G,  cellAverage(G, sens{1}), 'EdgeColor', 'none'), colorbar,title('Average transmissiblity multiplyer sensitivity');
+subplot(1,2,1), plotCellData(G,  cellAverage(G, sens.transmissibility), 'EdgeColor', 'none'), colorbar,title('Average trans multiplier sensitivity');
+subplot(1,2,2), plot(sens.conntrans, '--o', 'MarkerSize', 14); title('Well connection trans multiplier sensitivity')
+a = gca; a.XTick = 1:4;  a.XTickLabel = {W.name}; a.XLim; a.XLim = [.5 4.5];
 
 
-
-
-
+model.fluid = initSimpleScaledADIFluid(model.fluid, 'swl', zeros(G.cells.num,1), ...
+                                                    'swcr', zeros(G.cells.num,1), ...
+                                                    'sowcr', zeros(G.cells.num,1), ...
+                                                    'swu', ones(G.cells.num,1));
+sens = computeSensitivitiesAdjointAD(state0, states, model, schedule, objh, ...
+                                     'Parameters'    , {'swl', 'swcr', 'sowcr', 'swu'});
 
 
 
