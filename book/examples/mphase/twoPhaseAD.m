@@ -95,7 +95,7 @@ equil = ode23(@(z,p) g.* rhoO(p), [0, max(G.cells.centroids(:,3))], pR);
 p0    = reshape(deval(equil, G.cells.centroids(:,3)), [], 1);  clear equil
 sW0   = zeros(G.cells.num, 1);
 sW0   = reshape(sW0,G.cartDims); sW0(:,:,nz)=1; sW0 = sW0(:);
-ioip  = sum(pv(p0).*(1-sW0));
+ioip  = sum(pv(p0).*(1-sW0).*rhoO(p0));
 
 %% Schedule and injection/production
 nstep = 36;
@@ -233,8 +233,8 @@ plot(t,ipr,'-', t,fpr, '--');
 
 %%
 figure(4); hold all
-oip = arrayfun(@(x) sum(pv(x.pressure).*(1-x.s)), sol);
-plot(t,ioip - oip,'-o','MarkerFaceColor',[.6 .6 .6])
+oip = arrayfun(@(x) sum(pv(x.pressure).*(1-x.s).*rhoO(x.pressure)), sol);
+plot(t,(ioip - oip)./rhoOS,'-o','MarkerFaceColor',[.6 .6 .6])
 
 %%
 figure(5); hold all
