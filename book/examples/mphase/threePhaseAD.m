@@ -16,7 +16,7 @@
 % twice with or without water injection, the plots of pressures and oil and
 % gas production will be added to the same plots.
 
-% useInj = true;
+useInj = (pvi>0);
 
 %% Set up model geometry
 [nx,ny,nz] = deal(  11,  11,  3);
@@ -40,14 +40,14 @@ rhoWS  = 1000*kilogram/meter^3;
 rhoW   = @(p) rhoWR .* exp( cw * (p - pR) );
 
 % Oil phase is lighter and has a cubic relative permeability
-muO    = 5*centi*poise;
+muO    = 0.5*centi*poise;
 co     = 1e-5/psia;
 rhoOR  = 850*kilogram/meter^3;
 rhoOS  = 750*kilogram/meter^3;
 rhoO   = @(p) rhoOR .* exp( co * (p - pR) );
 
 % Gas
-muG    = 0.03*centi*poise;
+muG    = 0.015*centi*poise;
 cg     = 1e-3/psia;
 rhoGR  = 1.2;
 rhoGS  = 1;
@@ -87,22 +87,22 @@ gravity reset on,
 g     = norm(gravity);
 equil = ode23(@(z,p) g.* rhoO(p), [0, max(G.cells.centroids(:,3))], pR);
 p0    = reshape(deval(equil, G.cells.centroids(:,3)), [], 1);  clear equil
-sW0   = zeros(G.cells.num, 1);
+sW0   = f.sWcon*ones(G.cells.num, 1);
 sW0   = reshape(sW0,G.cartDims); sW0(:,:,nz)=1; sW0 = sW0(:);
 sG0   = zeros(G.cells.num, 1);
-sG0   = reshape(sG0,G.cartDims); sG0(:,:, 1)=1; sG0 = sG0(:);
+sG0   = reshape(sG0,G.cartDims); sG0(:,:, 1)=1-f.sWcon; sG0 = sG0(:);
 
 ioip  = sum(pv(p0).*(1-sW0 - sG0).*rhoO(p0));
 igip  = sum(pv(p0).*sG0.*rhoG(p0));
 
 %% Schedule and injection/production
-nstep = 36;
-Tf = 360*day;
+nstep = 108;
+Tf = 1080*day;
 dt = Tf/nstep*ones(1,nstep);
 dt = [dt(1).*sort(repmat(2.^-[1:5 5],1,1)) dt(2:end)];
 nstep = numel(dt);
 
-[inRate,  inIx ] = deal(.7*sum(pv(p0))/Tf, nx*ny*nz-nx*ny+1);
+[inRate,  inIx ] = deal(pvi*sum(pv(p0))/Tf, nx*ny*nz-nx*ny+1);
 [outPres, outIx] = deal(100*barsa, 2*nx*ny);
 
 %% Initialize for solution loop
@@ -222,9 +222,6 @@ figure(2),
 subplot(2,1,2-double(useInj));
 bar(nits,1,'EdgeColor','r','FaceColor',[.6 .6 1]);
 axis tight, set(gca,'YLim',[0 10]);
-hold on, 
-plotyy(nan,nan,1:numel(dt),dt/day,@plot, ...
-    @(x,y) plot(x,y,'-o','MarkerFaceColor',[.6 .6 .6]));
 
 %%
 figure(3); hold all
@@ -238,9 +235,9 @@ figure(4);
 oip = arrayfun(@(x) sum(pv(x.pressure).*(1-x.sW-x.sG).*rhoO(x.pressure)), sol);
 gip = arrayfun(@(x) sum(pv(x.pressure).*x.sG.*rhoG(x.pressure)), sol);
 subplot(1,2,1), hold all
-plot(t,(ioip-oip)./rhoOS,'-o','MarkerFaceColor',[.6 .6 .6])
+plot(t,(ioip-oip)./rhoOS)
 subplot(1,2,2), hold all
-plot(t,(igip-gip)./rhoGS,'-o','MarkerFaceColor',[.6 .6 .6])
+plot(t,(igip-gip)./rhoGS)
 
 
 %{
