@@ -91,17 +91,24 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     % ---------------------------- Boundary conditions ----------------------------
 
-    % @@ should capillary pressure be sent in too?
-    [bc_cells, b_fW, b_fG] = ...
-        BCFluxes(G, s, p, t, f, drivingForces.bc, krW, krG, transMult, trMult);
-    
     rho = {bW.*f.rhoWS, bG.*f.rhoGS};
     mob = {mobW, mobG};
     
-    % @@ If a cell has more than one pressure boundary condition, only one
-    % will be taken into account.
-    eqs{1}(bc_cells) = eqs{1}(bc_cells) + b_fW;
-    eqs{2}(bc_cells) = eqs{2}(bc_cells) + b_fG;
+    if isempty(drivingForces.bc.sat)
+       drivingForces.bc.sat = repmat([1 0], model.G.cells.num, 1); % default
+                                                                   % is water 
+    end
+    
+    eqs = addFluxesFromSourcesAndBC(model, eqs, {p, p+pcWG}, rho, mob, {1-sG, sG}, drivingForces);
+
+    % % @@ should capillary pressure be sent in too?
+    % [bc_cells, b_fW, b_fG] = ...
+    %     BCFluxes(G, s, p, t, f, drivingForces.bc, krW, krG, transMult, trMult);
+    
+    % % @@ If a cell has more than one pressure boundary condition, only one
+    % % will be taken into account.
+    % eqs{1}(bc_cells) = eqs{1}(bc_cells) + b_fW;
+    % eqs{2}(bc_cells) = eqs{2}(bc_cells) + b_fG;
     
     % ------------------------------ Well equations ------------------------------
 
