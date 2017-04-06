@@ -203,7 +203,7 @@ for n=1:nstep
         
         subplot(2,1,2)
         sg = double(sG); sw = double(sW);
-        plotCellData(G,[sg, 1-sg-sw, sw],pargs{:});
+        plotCellData(G,[sg, 1-sg-sw, sw]/1.001+1e-4,pargs{:});             % Avoid color artifacts
         caxis([0, 1]), view(30, 40); title('Saturation')
         drawnow
         
