@@ -10,6 +10,13 @@ function [krW , krO , krG , krS , ...
     fluid = model.fluid;
     op    = model.operators;
 
+    if isempty(sG)
+        sG = sO - sO;
+        fluid = addGhostGas(fluid);
+    end
+    
+    
+    
     [pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
     [krW, krO, krG, krS, sWres, sOres, sSGres] = computeRelPermSolvent(sW, sO, sG, sS, p, fluid, mobMult);
     
@@ -36,56 +43,59 @@ function [krW, krO, krG, krS, sWres, sOres, sSGres] = computeRelPermSolvent(sW, 
 
     %% 
     
+    % Water relperm not affected by the solvent
     krW = @(sW) fluid.krW(sW);
     
+    % Relperm of hydrocarbon to water as afunciton of total HC saturation
+%     krN = @(sO, sG, sS) sG./(sG + sO).*fluid.krOG(sO + sG + sS) + sO./(sG + sO).*fluid.krOW(sO + sG + sS);
+    krN = @(sO, sG, sS) fluid.krOW(sO + sG + sS);
+    
+    % Relperm of oil, immiscible (i) and miscible (m)
     krO_i = @(sO) fluid.krO(sO);
-    krO_m = @(sO, sG, sS) sO./(sO + sG + sS).*fluid.krOW(sO + sG + sS);
+    krO_m = @(sO, sG, sS) sO./(sO + sG + sS).*krN(sO, sG, sS);
     
-    
+    % Total relperm og gas and solvent
     krGT_i = @(sG, sS) fluid.krG(sG + sS);
-    krGT_m = @(sO, sG, sS) (sS + sG)./(sO + sG + sS).*fluid.krOW(sO + sG + sS);
+    krGT_m = @(sO, sG, sS) (sG + sS)./(sO + sG + sS).*krN(sO, sG, sS);
     
-    
+    % Relperm of gas
     krG_i = @(sG, sS) krGT_i(sG, sS).*(sG./(sS + sG));
     krG_m = @(sO, sG, sS) krGT_m(sO, sG, sS).*(sG./(sS + sG));
     
+    % Relperm of solvent
     krS_i = @(sG, sS) krGT_i(sG, sS).*(sS./(sS + sG));
     krS_m = @(sO, sG, sS) krGT_m(sO, sG, sS).*(sS./(sS + sG));
     
-    p = p.val;
     
-    sW = sW.val; sO = sO.val; sS = sS.val;
+    % Residual saturations for the immiscible and miscible extrema
+    sOres_m    = fluid.sOres_m ;
+    sOres_i    = fluid.sOres_i ;
+    sSGres_m   = fluid.sSGres_m;
+    sSGres_i   = fluid.sSGres_i;
     
-    if isempty(sG)
-        sG = zeros(numel(sW),1);
-    else
-        sG = sG.val;
-    end
-    
+    % 
     M = fluid.Msat(sG, sS).*fluid.Mpres(p);
-
-    sOres_m    = fluid.sOres_m ;    % Residual oil saturation     without solvent
-    sOres_i    = fluid.sOres_i ;    % Residual oil saturation     without solvent
-    sSGres_m   = fluid.sSGres_m;    % Residual oil saturation     without solvent
-    sSGres_i   = fluid.sSGres_i;    % Residual oil saturation     without solvent
-    sWres = fluid.sWres;
+    M.val(isnan(M.val)) = 1;
     
     % Interpolated water/oil residual saturations
+    sWres = fluid.sWres;
     sOres  = M.*sOres_m + (1 - M).*sOres_i;
     sSGres = M.*sSGres_m + (1 - M).*sSGres_i;
     
-    
-
-    
     sW_eff = (sW - sWres )./(1 - sOres - sSGres - sWres );
-    sO_eff = (sO - sOres )./(1 - sWres - sSGres - sOres );
-    sG_eff = (sG - sSGres)./(1 - sWres - sOres  - sSGres);
-    sS_eff = (sS - sSGres)./(1 - sWres - sOres  - sSGres);
+    sO_eff = max((sO - sOres )./(1 - sWres - sSGres - sOres ),0);
+    sG_eff = max((sG - sSGres)./(1 - sWres - sOres  - sSGres),0);
+    sS_eff = max((sS - sSGres)./(1 - sWres - sOres  - sSGres),0);
+    
+    
     
     krW = krW(sW_eff);
     krO = M.*krO_m(sO_eff, sG_eff, sS_eff) + (1-M).*krO_i(sO_eff);
     krG = M.*krG_m(sO_eff, sG_eff, sS_eff) + (1-M).*krG_i(sG_eff, sS_eff);
     krS = M.*krS_m(sO_eff, sG_eff, sS_eff) + (1-M).*krS_i(sG_eff, sS_eff);
+    
+    krG.val(isnan(krG.val)) = 1;
+    krS.val(isnan(krS.val)) = 1;
     
     % Modifiy relperm by mobility multiplier (if any)
     krW = mobMult.*krW;
@@ -98,35 +108,41 @@ end
 function [muW_eff, muO_eff, muG_eff, muS_eff, rhoW_eff, rhoO_eff, rhoG_eff, rhoS_eff] ...
           = computeViscositiesAndDensities(sW, sO, sG, sS, sWres, sOres, sSGres, fluid, p)
 
-    sW = sW.val;
-    sO = sO.val;
-    if isempty(sG)
-        sG = zeros(numel(sO),1);
-    else
-        sG = sG.val;
-    end
-    sS = sS.val;
+%     sW = sW.val;
+%     sO = sO.val;
+%     if isempty(sG)
+%         sG = zeros(numel(sO),1);
+%     else
+%         sG = sG.val;
+%     end
+%     sS = sS.val;
     
     
       
-    muW = fluid.muW(p); muW = muW.val;
-    muO = fluid.muO(p); muO = muO.val;
-    muG = fluid.muG(p); muG = muG.val;
-    muS = fluid.muS(p); muS = muS.val;
+    muW = fluid.muW(p);
+    muO = fluid.muO(p);
+    muG = fluid.muG(p);
+    muS = fluid.muS(p);
     
-    sOn = sO - sOres;
-    sGn = sG - sSGres;
-    sSn = sS - sSGres;
+    sOn = max(sO - sOres,0);
+%     sGn = max(0,sG - sSGres);
+%     sSn = max(0,sS - sSGres);
+    sGn = max(sG - sSGres,0);
+    sSn = max(sS - sSGres,0);
     sNn = sOn + sGn + sSn;
     sOSn = sOn + sSn;
     sSGn = sSn + sGn;
     
     a = 1/4;
-    muMOS = muO.*muS./(sSn./sOSn.*muS.^a + sSn./sOSn.*muO.^a).^4;
+    muMOS = muO.*muS./(sOn./sOSn.*muS.^a + sSn./sOSn.*muO.^a).^4;
     muMSG = muS.*muG./(sSn./sSGn.*muG.^a + sGn./sSGn.*muS.^a).^4;
     muM   = muO.*muS.*muG./(sOn./sNn.*muS.^a.*muG.^a ...
                         + sSn./sNn.*muO.^a.*muG.^a ...
                         + sGn./sNn.*muO.^a.*muS.^a).^4;
+    
+    muMOS.val(isnan(muMOS.val)) = 1;
+    muMSG.val(isnan(muMSG.val)) = 1;
+    muM.val(isnan(muM.val)) = 1;
                  
     omega = fluid.mixPar;
     muW_eff = muW;
@@ -141,16 +157,12 @@ function [muW_eff, muO_eff, muG_eff, muS_eff, rhoW_eff, rhoO_eff, rhoG_eff, rhoS
     
     rhoW_eff = rhoW;
     
-    same_visc = muO == muS | muG == muS;
-
-    [rhoO_eff, rhoG_eff, rhoS_eff] = deal(zeros(numel(sO),1));
-    
     sN = sO + sG + sS;
     
     rhoM = rhoO.*sO./sN + rhoG.*sG./sN + rhoS.*sS./sN;
-    rhoO_eff(same_visc) = (1-omega)*rhoO(same_visc) + omega*rhoM(same_visc);
-    rhoG_eff(same_visc) = (1-omega)*rhoG(same_visc) + omega*rhoM(same_visc);
-    rhoS_eff(same_visc) = (1-omega)*rhoS(same_visc) + omega*rhoM(same_visc);
+%     rhoO_eff(same_visc) = (1-omega)*rhoO(same_visc) + omega*rhoM(same_visc);
+%     rhoG_eff(same_visc) = (1-omega)*rhoG(same_visc) + omega*rhoM(same_visc);
+%     rhoS_eff(same_visc) = (1-omega)*rhoS(same_visc) + omega*rhoM(same_visc);
 
     a = 1/4;
     sOsN_oe = muO.^a.*(muO_eff.^a - muS.^a)./(muO_eff.^a.*(muO.^a - muS.^a));
@@ -161,13 +173,22 @@ function [muW_eff, muO_eff, muG_eff, muS_eff, rhoW_eff, rhoO_eff, rhoG_eff, rhoS
     sSsN_se = (muS.^a.*(sGf.*muO.^a + sOf.*muG.^a) - muO.^a.*muG.^a.*(muS./muS_eff).^a)...
             ./(muS.^a.*(sGf.*muO.^a + sOf.*muG.^a) - muO.^a.*muG.^a);
 
-    rhoO_eff = sOsN_oe(~same_visc).*rhoO(~same_visc) + (1-sOsN_oe(~same_visc)).*rhoS(~same_visc);
-    rhoG_eff = sOsN_ge(~same_visc).*rhoS(~same_visc) + (1-sOsN_ge(~same_visc)).*rhoG(~same_visc);
-    rhoS_eff = sSsN_se(~same_visc).*rhoS(~same_visc) + (1-sSsN_se(~same_visc)).*(rhoG(~same_visc).*sGf(~same_visc) + rhoO(~same_visc).*sOf(~same_visc));
+    rhoO_eff = sOsN_oe.*rhoO + (1-sOsN_oe).*rhoS;
+    rhoG_eff = sOsN_ge.*rhoS + (1-sOsN_ge).*rhoG;
+    rhoS_eff = sSsN_se.*rhoS + (1-sSsN_se).*(rhoG.*sGf + rhoO.*sOf);
 
 
 end
     
+function fluid = addGhostGas(fluid)
+    
+    fluid.rhoGS = fluid.rhoSS;
+    fluid.bG = fluid.bS;
+    fluid.muG = fluid.muS;
+    fluid.krG = fluid.krS;
+    fluid.krOG = fluid.krOS;
+    
+end
     
     
     

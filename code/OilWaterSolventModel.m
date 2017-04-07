@@ -14,7 +14,7 @@ classdef OilWaterSolventModel < ThreePhaseBlackOilModel
             
             % This is the model parameters for oil/water/polymer
             model.solvent = true;
-            model.saturationVarNames = {'sw', 'so', 'ss'};
+            model.saturationVarNames = {'sW', 'sO', 'sG'};
             
             model = merge_options(model, varargin{:});
             
@@ -43,7 +43,7 @@ classdef OilWaterSolventModel < ThreePhaseBlackOilModel
         end
         
         function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
-            [state, report] = updateAfterConvergence@TwoPhaseOilWaterModel(model, state0, state, dt, drivingForces);
+            [state, report] = updateAfterConvergence@ThreePhaseBlackOilModel(model, state0, state, dt, drivingForces);
 %             if model.polymer
 %                 c     = model.getProp(state, 'polymer');
 %                 cmax  = model.getProp(state, 'polymermax');
@@ -56,9 +56,9 @@ classdef OilWaterSolventModel < ThreePhaseBlackOilModel
             % Get the index/name mapping for the model (such as where
             % pressure or water saturation is located in state)
             switch(lower(name))
-                case {'solvent'}
+                case {'solvent', 'sS'}
                     index = 3;
-                    fn = 'sS';
+                    fn = 's';
                 otherwise
                     [fn, index] = getVariableField@ThreePhaseBlackOilModel(...
                                     model, name);
@@ -66,9 +66,6 @@ classdef OilWaterSolventModel < ThreePhaseBlackOilModel
         end
         function names = getComponentNames(model)
             names = getComponentNames@ThreePhaseBlackOilModel(model);
-            if model.solvent
-                names{end+1} = 'solvent';
-            end
         end
 
         function scaling = getScalingFactorsCPR(model, problem, names)
