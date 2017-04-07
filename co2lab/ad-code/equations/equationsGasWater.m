@@ -131,50 +131,50 @@ end
 
 % ============================= END MAIN FUNCTION =============================
 
-function [cells, fluxW, fluxG] = BCFluxes(G, s, p, t, f, bc, krW, krG, transMult, trMult)
+% function [cells, fluxW, fluxG] = BCFluxes(G, s, p, t, f, bc, krW, krG, transMult, trMult)
     
-    if isempty(bc)
-        % all boundary conditions are no-flow; nothing to do here.
-        cells = []; fluxW = []; fluxG = []; return;
-    end
+%     if isempty(bc)
+%         % all boundary conditions are no-flow; nothing to do here.
+%         cells = []; fluxW = []; fluxG = []; return;
+%     end
 
-    assert(all(strcmp(bc.type, 'pressure'))); % only supported type for now
-    cells = sum(G.faces.neighbors(bc.face, :), 2);
-    %assert(numel(unique(cells)) == numel(cells)); % multiple BC per cell not supported
+%     assert(all(strcmp(bc.type, 'pressure'))); % only supported type for now
+%     cells = sum(G.faces.neighbors(bc.face, :), 2);
+%     %assert(numel(unique(cells)) == numel(cells)); % multiple BC per cell not supported
     
-    % prepare boundary-specific values
-    bp   = p(cells); 
-    bt   = t(cells);
-    bdp  = bc.value - bp;
-    bdz  = G.faces.centroids(bc.face, 3) - G.cells.centroids(cells,3);
+%     % prepare boundary-specific values
+%     bp   = p(cells); 
+%     bt   = t(cells);
+%     bdp  = bc.value - bp;
+%     bdz  = G.faces.centroids(bc.face, 3) - G.cells.centroids(cells,3);
     
-    assert(isscalar(transMult)); % not implemented for face-wise values
-    assert(isscalar(trMult));    % not implemented for face-wise values
-    trans = s.T_all(bc.face) .* transMult; 
-    krWf = trMult * krW(cells);
-    krGf = trMult * krG(cells);
+%     assert(isscalar(transMult)); % not implemented for face-wise values
+%     assert(isscalar(trMult));    % not implemented for face-wise values
+%     trans = s.T_all(bc.face) .* transMult; 
+%     krWf = trMult * krW(cells);
+%     krGf = trMult * krG(cells);
     
-    g = norm(gravity); 
+%     g = norm(gravity); 
     
-    [bw, rhoWf, mobW] = computeRhoMobBFace(bp, bt, f.bW, f.rhoWS, krWf, f.muW);
-    [bg, rhoGf, mobG] = computeRhoMobBFace(bp, bt, f.bG, f.rhoGS, krGf, f.muG);
+%     [bw, rhoWf, mobW] = computeRhoMobBFace(bp, bt, f.bW, f.rhoWS, krWf, f.muW);
+%     [bg, rhoGf, mobG] = computeRhoMobBFace(bp, bt, f.bG, f.rhoGS, krGf, f.muG);
     
-    dptermW = bdp - rhoWf .* g .* bdz;
-    dptermG = bdp - rhoGf .* g .* bdz;
+%     dptermW = bdp - rhoWf .* g .* bdz;
+%     dptermG = bdp - rhoGf .* g .* bdz;
     
-    % Adjust upstream-weighted mobilities to prevent gas from re-entering the domain
-    ix = dptermG > 0;
-    if any(ix) 
-       mobG(ix) = 0;
-       mobW(ix) = trMult ./ f.muW(bp(ix), bt(ix));
-    end
+%     % Adjust upstream-weighted mobilities to prevent gas from re-entering the domain
+%     ix = dptermG > 0;
+%     if any(ix) 
+%        mobG(ix) = 0;
+%        mobW(ix) = trMult ./ f.muW(bp(ix), bt(ix));
+%     end
  
-    % compute fluxes
-    fluxW = - bw .* mobW .* trans .* dptermW;
-    fluxG = - bg .* mobG .* trans .* dptermG;
+%     % compute fluxes
+%     fluxW = - bw .* mobW .* trans .* dptermW;
+%     fluxG = - bg .* mobG .* trans .* dptermG;
     
-    %fprintf('%f, %f\n', max(abs(fluxW.val)), max(abs(fluxG.val)));
-end
+%     %fprintf('%f, %f\n', max(abs(fluxW.val)), max(abs(fluxG.val)));
+% end
 
 % ----------------------------------------------------------------------------
 
