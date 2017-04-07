@@ -345,12 +345,6 @@ methods
         components = model.getDissolutionMatrix(rsMax, rvMax);
     end
     
-    function rhoS = getSurfaceDensities(model)
-        active = model.getActivePhases();
-        props = {'rhoWS', 'rhoOS', 'rhoGS'};
-        rhoS = cellfun(@(x) model.fluid.(x), props(active));
-    end
-    
 end
 end
 

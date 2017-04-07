@@ -321,7 +321,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                         % FailureMsg field that tells the user what
                         % went wrong.
                         msg = [msg, 'Model step resulted in failure state. Reason: ', ...
-                               reports{end}.NonlinearReports{end}.FailureMsg];
+                               reports{end}.NonlinearReport{end}.FailureMsg];
                     else
                         msg = [msg, 'Maximum number of substeps stopped timestep reduction'];
                     end
