@@ -207,16 +207,27 @@ nNeu = sum(isNeumann(fnoGlob));
 nDir = sum(isDirichlet(fnoGlob));
 nbnd = nNeu + nDir;
 
-neuInd = find(excludeDirichlet * isNeumann(fnoGlob));
-ccNeu = sparse(neuInd,1:numel(neuInd),sgn(neuInd) .*G.faces.areas(fnoGlob(neuInd))...
-    ./nFaceNodes(fnoGlob(neuInd)),size(nK,1),nNeu+nDir);
-dirInd = find(excludeNeumann * isDirichlet(fnoGlob));
-ccDir = sparse(dirInd,nNeu+(1:numel(dirInd)),(sgn(dirInd).^1),size(pContCC,1),nNeu+nDir);
+% We need to operate with two sets of indices for Neumann and Dirichlet
+% sub-faces: One represents their global indices, while the other gives
+% their location in the local (block-diagonal) equation. The difference is
+% that the latter need to take into account that the equation numbering
+% is impacted by the removal of rows in the system on the boundaries (via
+% the mappings excludeDirichlet and excludeNeumann)
+neu_ind_eq = find(excludeDirichlet * isNeumann(fnoGlob));
+neu_ind_glob = find(isNeumann(fnoGlob));
+dir_ind_eq = find(excludeNeumann * isDirichlet(fnoGlob));
+dir_ind_glob = find(isDirichlet(fnoGlob));
+
+% The right hand sides should consider the equation based numbering
+ccNeu = sparse(neu_ind_eq, 1:numel(neu_ind_eq), sgn(neu_ind_eq) .*G.faces.areas(fnoGlob(neu_ind_eq))...
+    ./nFaceNodes(fnoGlob(neu_ind_eq)), size(nK, 1), nNeu+nDir);
+ccDir = sparse(dir_ind_eq,nNeu+(1:numel(dir_ind_eq)),(sgn(dir_ind_eq).^1), size(pContCC,1), nNeu+nDir);
 
 % The matrix [ccNeu; ccDir] have one column for each subface on the
 % boundary. Map this into one column for each face (including interior
-% ones) in the grid
-subBndFace2AllFaces = sparse(1:nbnd,[neuInd; dirInd],1,nbnd,...
+% ones) in the grid.
+% Here we need to use the global indices
+subBndFace2AllFaces = sparse(1:nbnd,[neu_ind_glob; dir_ind_glob],1,nbnd,...
                              max(subfno)) * sparse(subfno,fnoGlob,1,max(subfno),G.faces.num);
 
 % BoundFlux is here fluxes expressed through                         
