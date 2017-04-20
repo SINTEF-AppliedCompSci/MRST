@@ -219,9 +219,9 @@ dir_ind_eq = find(excludeNeumann * isDirichlet(fnoGlob));
 dir_ind_glob = find(isDirichlet(fnoGlob));
 
 % The right hand sides should consider the equation based numbering
-ccNeu = sparse(neu_ind_eq, 1:numel(neu_ind_eq), sgn(neu_ind_eq) .*G.faces.areas(fnoGlob(neu_ind_eq))...
+ccNeu = sparse(neu_ind_eq, 1:numel(neu_ind_eq), sgn(neu_ind_glob) .*G.faces.areas(fnoGlob(neu_ind_eq))...
     ./nFaceNodes(fnoGlob(neu_ind_eq)), size(nK, 1), nNeu+nDir);
-ccDir = sparse(dir_ind_eq,nNeu+(1:numel(dir_ind_eq)),(sgn(dir_ind_eq).^1), size(pContCC,1), nNeu+nDir);
+ccDir = sparse(dir_ind_eq,nNeu+(1:numel(dir_ind_eq)),(sgn(dir_ind_glob).^1), size(pContCC,1), nNeu+nDir);
 
 % The matrix [ccNeu; ccDir] have one column for each subface on the
 % boundary. Map this into one column for each face (including interior
