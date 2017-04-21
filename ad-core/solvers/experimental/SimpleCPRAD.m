@@ -88,7 +88,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             
 
             if solver.eliminateAll
-                keepNum = 3*nc;
+                keepNum = (model.water + model.gas + model.oil)*nc;
                 [reorderEq, reorderVar] = deal([]);
             else
                 eqCounts = cellfun(@(x) numel(double(x)), problem.equations)';

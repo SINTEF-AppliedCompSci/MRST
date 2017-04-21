@@ -64,7 +64,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             solver.relativeTolerance = 1e-2;
             solver.pressureScaling = 1/(200*barsa);
             solver.diagonalTol = 1e-2;
-            solver.trueIMPES = false,
+            solver.trueIMPES = false;
             solver.ellipticVarName = 'pressure';
             
             solver = merge_options(solver, varargin{:});

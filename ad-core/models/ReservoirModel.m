@@ -553,7 +553,7 @@ methods
     end
     
 % --------------------------------------------------------------------%
-    function scaling = getScalingFactorsCPR(model, problem, names)%#ok
+    function scaling = getScalingFactorsCPR(model, problem, names, solver)%#ok
         % Return cell array of scaling factors for approximate pressure
         % equation in CPR preconditioner.
         %
