@@ -1,6 +1,6 @@
 mrstModule add ad-core ad-eor ad-blackoil ad-props blackoil-sequential matlab_bgl
 
-gravity reset off
+gravity reset on
 
 n = 100;
 G = computeGeometry(cartGrid([n,1,1]));
@@ -47,7 +47,7 @@ schedule = simpleSchedule(dT, 'W', W);
 %%
 
 Twat = (1-solventPeriod)*T;
-injRate = 1*sum(pv)/Twat;
+injRate = 0.2*sum(pv)/Twat;
 
 W = [];
 W = addWell(W, G, rock, 1, 'comp_i', [1, 0, 0], 'type', 'rate', 'val', injRate);
@@ -71,7 +71,7 @@ plotToolbar(G, states, 'plot1d', true)
 
 W = [];
 
-injRate = 1*sum(pv)/T;
+injRate = 0.2*sum(pv)/Twat;
 
 W = addWell(W, G, rock, 1, 'comp_i', [1, 0, 0], 'type', 'rate', 'val', injRate);
 W = addWell(W, G, rock, G.cells.num, 'comp_i', [0, 0, 1], 'type', 'bhp' , 'val', 0      );
@@ -80,10 +80,10 @@ state0 = initResSol(G, 100*barsa, [0 1 0]);
 state0.wellSol = initWellSolAD(W, model, state0);
 
 nStep = 100;
-dT = repmat(T/nStep, 2*nStep, 1);
+dT = repmat(Twat/nStep, nStep, 1);
 schedule = simpleSchedule(dT, 'W', W);
 
-[ws, statesWW, reports] = simulateScheduleAD(state0, model, schedule);
+[wsWW, statesWW, reports] = simulateScheduleAD(state0, model, schedule);
 
 %%
 

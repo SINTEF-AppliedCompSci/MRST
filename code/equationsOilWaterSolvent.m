@@ -21,7 +21,8 @@ s = model.operators;
 [p0, sW0, sO0, wellSol0] = model.getProps(state0, 'pressure', 'water', ...
    'oil', 'wellSol');
 
-[qWell, bhp, wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
+[qWell, bhp, wellVars, wellVarNames, wellMap] = ...
+    model.FacilityModel.getAllPrimaryVariables(wellSol);
 % qWell = {vertcat(wellSol.qWs), vertcat(wellSol.qOs), vertcat(wellSol.qSs)};
 % bhp = vertcat(wellSol.bhp);
 % wellVarNames = {'qWs', 'qOs', 'qSs', 'bhp'};
