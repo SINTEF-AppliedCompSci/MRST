@@ -62,7 +62,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         fprintf(['%-', num2str(linen), '.2e '], values(i));
     end
     fprintf('|\n')
-    if all(converged)
+    if all(converged & iteration > 1)
         fprintf('%s\n', sep);
     end
 end
