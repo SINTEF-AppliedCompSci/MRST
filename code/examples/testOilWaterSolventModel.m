@@ -2,20 +2,20 @@ mrstModule add ad-core ad-eor ad-blackoil ad-props blackoil-sequential matlab_bg
 
 gravity reset on
 
-n = 100;
+n = 10;
 G = computeGeometry(cartGrid([n,1,1]));
 rock = makeRock(G, 1, 1);
 
 fluid = initSimpleADIFluid('n'     , [2, 2, 2], ...
-                           'rho'   , [1000, 800, 0.1]*kilogram/meter^3, ...
+                           'rho'   , [1000, 800, 100]*kilogram/meter^3, ...
                            'phases', 'WOG', ...
-                           'mu'    , [100, 1000, 0.01]*centi*poise);
+                           'mu'    , [1, 10, 0.1]*centi*poise);
 
 sres = 0;      
 fluid.krO = coreyPhaseRelpermAD(2, sres, 1, sres);
 fluid.sOres = sres;
 fluid.sGres = 0;
-fluid.mixPar = 0.6;
+fluid.mixPar = 0;
 
 model = OilWaterSolventModel2(G, rock, fluid);
 
@@ -38,10 +38,12 @@ state0 = initResSol(G, 100*barsa, [0 1 0]);
 state0.wellSol = initWellSolAD(W, model, state0);
 
 nStep = 100;
-dT = repmat(Tsol/nStep, nStep, 1);
+% dT = repmat(Tsol/nStep, nStep, 1);
+dT = rampupTimesteps(Tsol, Tsol/nStep);
 schedule = simpleSchedule(dT, 'W', W);
 
-[ws, statesS, reports] = simulateScheduleAD(state0, model, schedule);
+nls = NonLinearSolver('useLinesearch', false);
+[ws, statesS, reports] = simulateScheduleAD(state0, model, schedule, 'nonlinearsolver', nls);
 
 
 %%
