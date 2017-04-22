@@ -177,7 +177,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             switched = twoPhase0 ~= twoPhase;
             
 %             osc = switched & state.switched;
-            osc = switched & state.switchCount > 2;
+            osc = switched & state.switchCount > 2 & twoPhase;
             fprintf('%d gas, %d oil, %d two-phase\n', nnz(state.L == 0), nnz(state.L == 1), nnz(twoPhase));
             fprintf('%d cells are two phase, %d switched. %d of %d cells are locked\n', nnz(twoPhase), nnz(switched), nnz(osc), model.G.cells.num);
             if 1%any(strcmpi(var0, 'pressure'))
