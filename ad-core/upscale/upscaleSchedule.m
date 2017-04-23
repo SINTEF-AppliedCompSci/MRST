@@ -116,6 +116,7 @@ function Wc = handleWell(model, W, opt)
 end
 
 function bc_coarse = handleBC(model, bc, opt)
+    bc_coarse = [];
     if isempty(bc)
         return
     end
@@ -131,8 +132,6 @@ function bc_coarse = handleBC(model, bc, opt)
     coarseFaceNo(CG.faces.fconn) = connCoarse;
     
     coarseFacesBC = unique(connCoarse(isFaceBC(CG.faces.fconn)));
-    
-    bc_coarse = [];
     for i = 1:numel(coarseFacesBC)
         cf = coarseFacesBC(i);
         
