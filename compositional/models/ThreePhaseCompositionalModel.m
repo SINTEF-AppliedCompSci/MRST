@@ -42,10 +42,8 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             
             if model.water
                 model.saturationVarNames = {'sw', 'so', 'sg'};
-                model.wellVarNames = {'qWs', 'qOs', 'qGs', 'bhp'};
             else
                 model.saturationVarNames = {'so', 'sg'};
-                model.wellVarNames = {'qOs', 'qGs', 'bhp'};
             end
         end
         
@@ -178,8 +176,8 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             
 %             osc = switched & state.switched;
             osc = switched & state.switchCount > 2 & twoPhase;
-            fprintf('%d gas, %d oil, %d two-phase\n', nnz(state.L == 0), nnz(state.L == 1), nnz(twoPhase));
-            fprintf('%d cells are two phase, %d switched. %d of %d cells are locked\n', nnz(twoPhase), nnz(switched), nnz(osc), model.G.cells.num);
+            dispif(model.verbose > 1, '%d gas, %d oil, %d two-phase\n', nnz(state.L == 0), nnz(state.L == 1), nnz(twoPhase));
+            dispif(model.verbose > 1, '%d cells are two phase, %d switched. %d of %d cells are locked\n', nnz(twoPhase), nnz(switched), nnz(osc), model.G.cells.num);
             if 1%any(strcmpi(var0, 'pressure'))
                 state.L(osc) = s0.L(osc);
                 for i = 1:ncomp
@@ -211,51 +209,6 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             state.components = ensureMinimumFraction(state.components);
             state.x = ensureMinimumFraction(state.x);
             state.y = ensureMinimumFraction(state.y);
-
-            
-            if 0
-                if ishandle(1)
-                    set(0, 'CurrentFigure', 1); clf
-                else
-                    figure(1); clf
-                end
-                if 0
-                    yyaxis left
-                    if any(ok)
-                        hold on
-                        colors = lines(ncomp);
-                        for i = 1:ncomp
-                            plot(state.components{i}, '--', 'linewidth', 3, 'color', colors(i, :))
-                            plot(state0.components{i}, '-', 'linewidth', 1, 'color', colors(i, :))
-                        end
-                        plot(state.s(:, 1), '--', 'linewidth', 3, 'color', 'k')
-                        plot(state0.s(:, 1), '-', 'linewidth', 1, 'color', 'k')
-        %                 c = [state.components{:}];
-        %                 c0 = [state0.components{:}];
-        %                 plot(c, 'r');
-        %                 hold on
-        %                 plot(c0, 'b--');
-                    else
-                        plot([state.pressure, state0.pressure]/barsa);
-                    end
-                    yyaxis right
-                    plot([twoPhase0, twoPhase]);
-                    drawnow
-
-                else
-                    if ~any(ok)
-%                         pix = strcmpi(var0, 'pressure');
-                        bad = find(abs(state.dpRel) > model.incTolPressure);
-                        [tmp, badix]= sort(abs(state.dpRel(bad)));
-                        plot([state.pressure(bad), state0.pressure(bad)]/barsa, 'o');
-                        for i = 1:numel(bad)
-                            c = bad(badix(i));
-                            fprintf('%d: %g [%g bar, L=%g]\n', c, state.dpRel(c), state.dpAbs(c)/barsa, state.L(c));
-                        end
-                        drawnow
-                    end
-                end
-            end
         end
         
         function state = computeFlash(model, state, dt, iteration)
@@ -358,11 +311,14 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
 
                 values((1+offset):(ncomp+offset)) = v;
 
-                [conv_wells, ~, isWell] = checkWellConvergence(model, problem);
-                nonWellValues = values(~isWell);
-
-
-                convergence = all(nonWellValues <= model.nonlinearTolerance) && all(conv_wells);
+                [conv_wells, v_wells, namesWell, isWell] = ...
+                    model.FacilityModel.checkFacilityConvergence(problem);
+                v_cells = values(~isWell);
+                
+                conv_cells = v_cells <= model.nonlinearTolerance;
+                convergence = [conv_cells, conv_wells];
+                values = [v_cells, v_wells];
+                names = horzcat(names(~isWell), namesWell);
             else
                 [convergence, values, names] = checkConvergence@ReservoirModel(model, problem, varargin{:});
             end 
@@ -373,7 +329,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                     dp = inf;
                 end
                 values = [dp, values];
-                convergence = convergence && dp <= model.incTolPressure;
+                convergence = [dp <= model.incTolPressure, convergence];
                 names = ['deltaP', names];
             end
         end

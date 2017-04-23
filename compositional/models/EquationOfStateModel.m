@@ -197,6 +197,7 @@ classdef EquationOfStateModel < PhysicalModel
                 values = max(equilvals, [], 1);
                 conv = max(equilvals, [], 2) <= model.nonlinearTolerance;
                 conv = conv & iteration > nonlinsolve.minIterations;
+                resConv = values <= model.nonlinearTolerance & iteration > nonlinsolve.minIterations;
 
                 isConverged = all(conv);
                 % Insert back the local values into global arrays
@@ -223,6 +224,7 @@ classdef EquationOfStateModel < PhysicalModel
                 y_next = y0;
                 isConverged = true;
                 values = zeros(1, ncomp);
+                resConv = true(1, ncomp);
             end
             state.K = K_next;
             state.L = L0;
@@ -243,6 +245,7 @@ classdef EquationOfStateModel < PhysicalModel
                             'Failure',      failure, ...
                             'FailureMsg',   failureMsg, ...
                             'Converged',    isConverged, ...
+                            'ResidualsConverged', resConv, ...
                             'Residuals',    values);
             report.ActiveCells = sum(active);
         end
