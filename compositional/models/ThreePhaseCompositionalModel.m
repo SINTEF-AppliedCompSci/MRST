@@ -342,6 +342,80 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             rho = {double(rhoW), double(rhoO), double(rhoG)};
             state = model.setPhaseData(state, rho, 'rho');
         end
+
+        function [eqs, names, types, wellSol, src] = insertWellEquations(model, eqs, names, ...
+                                                         types, wellSol0, wellSol, ...
+                                                         qWell, bhp, wellVars, ...
+                                                         wellMap, p, mob, rho, ...
+                                                         dissolved, components, ...
+                                                         dt, opt)
+            fm = model.FacilityModel;
+            compFluid = model.EOSModel.fluid;
+            ncomp = compFluid.getNumberOfComponents();
+            % Store cell wise well variables in cell arrays and send to ewll
+            % model to get the fluxes and well control equations.
+
+
+            [src, wellsys, state.wellSol] = ...
+                fm.getWellContributions(wellSol0, wellSol, qWell, bhp, wellVars, ...
+                                        wellMap, p, mob, rho, {}, {}, ...
+                                        dt, opt.iteration);
+            L_ix = model.water + 1;
+            V_ix = model.water + 2;
+            W = fm.getWellStruct();
+
+            wc    = vertcat(W.cells);
+            w_comp = vertcat(W.components);
+            perf2well = getPerforationToWellMapping(W);
+            a = w_comp(perf2well, :).*repmat(compFluid.molarMass, numel(wc), 1);
+            w_comp = bsxfun(@rdivide, a, sum(a, 2));
+
+            x_comp = cellfun(@(v) v(wc), components{1}, 'UniformOutput', false);
+            y_comp = cellfun(@(v) v(wc), components{2}, 'UniformOutput', false);        
+            cqs_m = src.phaseMass;
+            injO = double(cqs_m{L_ix}) > 0;
+            injG = double(cqs_m{V_ix}) > 0;
+
+
+            offset = numel(wellsys.wellEquations);
+            eqs(end+1:end+offset) = wellsys.wellEquations;
+            names(end+1:end+offset) = wellsys.names;
+            types(end+1:end+offset) = wellsys.types;
+            eqs{end+1} = wellsys.controlEquation;
+            names{end+1} = 'closureWells';
+            types{end+1} = 'well';
+
+            if model.water
+                % Water
+                eqs{1}(wc) = eqs{1}(wc) - cqs_m{1};
+            end
+            srcTot = 0;
+            compSrc = zeros(numel(wc), ncomp);
+            for i = 1:ncomp
+                ix = i + model.water;
+                % Mixture of production and injection. Production uses cell
+                % values for components, injectors use whatever was prescribed
+                % to the well.
+                q_i = (cqs_m{L_ix}.*injO + cqs_m{V_ix}.*injG).*w_comp(perf2well, i)...
+                           + ~injO.*x_comp{i}.*cqs_m{L_ix} + ~injG.*y_comp{i}.*cqs_m{V_ix};
+
+                eqs{ix}(wc) = eqs{ix}(wc) - q_i;
+
+                compSrc(:, i) = double(q_i);
+                srcTot = srcTot + double(q_i);
+            end
+            fluxt = 0;
+            cqr = src.phaseVolume;
+            for i = 1:numel(cqr)
+                fluxt = fluxt + double(cqr{i});
+            end
+            for i = 1:numel(W)
+                wp = perf2well == i;
+                state.wellSol(i).flux = fluxt(wp);
+                state.wellSol(i).components = (compSrc(wp, :));
+            end
+        end
+
     end
 end
 
