@@ -30,10 +30,10 @@ ncomp = numel(z);
 cnames = model.EOSModel.fluid.names;
 if model.water
     [p, z{1:ncomp-1}, sW, qWell{:}, bhp, wellVars{:}] = initVariablesADI(p, z{1:ncomp-1}, sW, qWell{:}, bhp, wellVars{:});
-    primaryVars = {'pressure', cnames{1:end-1}, 'sW', 'qWs', 'qOs', 'qGs', 'bhp'};
+    primaryVars = {'pressure', cnames{1:end-1}, 'sW', wellVarNames{:}};
 else
     [p, z{1:ncomp-1}, qWell{:}, bhp, wellVars{:}] = initVariablesADI(p, z{1:ncomp-1}, qWell{:}, bhp, wellVars{:});
-    primaryVars = {'pressure', cnames{1:end-1}, 'qOs', 'qGs', 'bhp'};
+    primaryVars = {'pressure', cnames{1:end-1}, wellVarNames{:}};
 end
 
 
