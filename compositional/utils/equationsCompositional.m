@@ -120,24 +120,23 @@ end
 % water equation + n component equations
 [eqs, types, names] = deal(cell(1, ncomp + model.water));
 
-if model.water
+woffset = model.water;
+acc = cell(1, ncomp+woffset);
+if woffset
     eqs{1} = water;
     names{1} = 'water';
     types{1} = 'cell';
-    woffset = 1;
-else
-    woffset = 0;
+    acc{1} = (s.pv/dt).*( rhoW.*pvMult.*sW - rhoW0.*pvMult0.*sW0 );
 end
 
-acc = cell(1, ncomp);
 for i = 1:ncomp
     names{i+woffset} = compFluid.names{i};
     types{i+woffset} = 'cell';
 
-    acc{i} = (s.pv/dt).*( ...
+    acc{i+woffset} = (s.pv/dt).*( ...
                     rhoO.*pvMult.*sO.*xM{i} - rhoO0.*pvMult0.*sO0.*xM0{i} + ...
                     rhoG.*pvMult.*sG.*yM{i} - rhoG0.*pvMult0.*sG0.*yM0{i});
-    eqs{i+woffset} = acc{i} ...
+    eqs{i+woffset} = acc{i+woffset} ...
           + s.Div(rOvO.*s.faceUpstr(upco, xM{i}) + rGvG.*s.faceUpstr(upcg, yM{i}));
     if model.water
         pureWater = double(sW) == 1;
@@ -170,31 +169,32 @@ if ~isempty(W)
     end
 end
 
-if model.water
+if model.water && ~opt.pressure
     wscale = dt./(s.pv*mean(double(rhoW)));
     eqs{1} = eqs{1}.*wscale;
 end
 
 if opt.pressure
+    wat = model.water;
     if opt.resOnly
-        weights = cell(1, ncomp);
+        weights = cell(1, ncomp + wat);
         [weights{:}] = deal(1);
     else
         e = vertcat(acc{:});
-        e.jac = e.jac(1:ncomp);
+        e.jac = e.jac(1:ncomp+wat);
         c = cat(e);
         A = c.jac{1};
 
         ncomp = numel(state.components);
         ncell = numel(state.pressure);
-        ndof = ncell*ncomp;% + 3*numel(state.wellSol);
+        ndof = ncell*(ncomp+wat);% + 3*numel(state.wellSol);
 
         b = zeros(ndof, 1);
         b(1:ncell) = 1/barsa;
 
         Ap = A';
         w = Ap\b;
-        w = reshape(w, [], ncomp);
+        w = reshape(w, [], ncomp+woffset);
 
         if 1
             weights = cell(ncomp, 1);
@@ -202,7 +202,10 @@ if opt.pressure
             vap = state.L == 0;
             two = ~liq | ~vap;
             for i = 1:ncomp
-                weights{i} = liq.*(1./rhoO) + w(:, i).*two + vap.*(1./rhoG);
+                weights{i+wat} = liq.*(1./rhoO) + w(:, i+wat).*two + vap.*(1./rhoG);
+            end
+            if wat
+                weights{1} = two.*w(:, 1) + ~two.*1./rhoW;
             end
         end
     end
@@ -212,7 +215,7 @@ if opt.pressure
     end
     active = false(numel(primaryVars), 1);
     active(1) = true;
-    active(ncomp+1:end) = true;
+    active(ncomp+wat+1:end) = true;
 
     eqs{1} = peq;
     
@@ -230,7 +233,6 @@ if opt.pressure
 end
 
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
-
 end
 
 %{

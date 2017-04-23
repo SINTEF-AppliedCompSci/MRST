@@ -106,7 +106,14 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             var0 = problem.primaryVariables;
             vars = var0;
             removed = false(size(vars));
-
+            
+            wix = strcmpi(vars, 'sW');
+            if any(wix)
+                state = model.updateStateFromIncrement(state, dx{wix}, problem, 'sW', model.dsMaxRel, model.dsMaxAbs);
+                removed(wix) = true;
+                vars = vars(~wix);
+            end
+            
             % Components
             cnames = model.EOSModel.fluid.names;
             ncomp = numel(cnames);
@@ -293,7 +300,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                 offset = model.water;
                 ncomp = numel(model.EOSModel.fluid.names);
                 if isa(model, 'TransportCompositionalModel') 
-                    % We might be missing a 
+                    % We might be missing a component
                     ncomp = ncomp - (model.conserveWater && model.water);
                     offset = (model.conserveWater && model.water);
                 end
@@ -302,9 +309,6 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
 
                 if problem.iterationNo > 1
                     v = problem.state.dz(1:ncomp);
-                    if model.water
-                        values(1) = norm(problem.state.dsW, inf);
-                    end
                 else
                     v = inf(1, ncomp);
                 end
@@ -411,8 +415,8 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             end
             for i = 1:numel(W)
                 wp = perf2well == i;
-                state.wellSol(i).flux = fluxt(wp);
-                state.wellSol(i).components = (compSrc(wp, :));
+                wellSol(i).flux = fluxt(wp);
+                wellSol(i).components = (compSrc(wp, :));
             end
         end
 
