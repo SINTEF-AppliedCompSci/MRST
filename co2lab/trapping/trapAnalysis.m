@@ -13,7 +13,10 @@ function res = trapAnalysis(Gt, method, varargin)
 %                                        considered open, but the boundary
 %                                        edges whose indices are found in the
 %                                        vector 'closed_boundary_edges' will
-%                                        be considered closed (no flow across)
+%                                        be considered closed (no flow
+%                                        across)
+%              * closed_fault_edges    - interior edges representing closed
+%                                        fault lines
 %              * project_to_cells - when running the edge-based trapping
 %                                   implementation, all information is expressed
 %                                   in terms of nodes, but will by default be
@@ -87,6 +90,7 @@ assert(isscalar(method),...
       'Use true/false (or 1/0), not ''true''/''false''.'])
   
   opt.closed_boundary_edges = [];
+  opt.closed_fault_edges = [];
   opt.project_to_cells = true;
   opt = merge_options(opt, varargin{:});
   
@@ -97,6 +101,12 @@ assert(isscalar(method),...
                   'boundary edges.  Use edge-based algorithm instead if needed. ' ...
                   ' Currently proceeding without closed boundaries.']);
       end
+      if ~isempty(opt.closed_fault_edges)
+         warning(['Cell-based algorithm does not currently support closed ' ...
+                  'fault edges.  Use edge-based algorithm instead if needed. ' ...
+                  ' Currently proceeding without closed fault edges.']);
+      end
+      
       mlist = mrstModule();
       moduleCheck('matlab_bgl','coarsegrid');
       res = cell_based_trap_analysis(Gt);
@@ -105,19 +115,23 @@ assert(isscalar(method),...
       % we will use the edge-based method
       res = edge_based_trap_analysis(Gt, ...
                                      opt.closed_boundary_edges, ...
+                                     opt.closed_fault_edges, ...
                                      opt.project_to_cells); 
   end
 end
 
 %===============================================================================
-function res = edge_based_trap_analysis(Gt, closed_bedges, project)
+function res = edge_based_trap_analysis(Gt, closed_bedges, closed_fedges, project)
    
-    % Identifying closed boundary nodes, if any
+    % Identifying closed boundary and fault nodes, if any
     closed_bnodes = Gt.faces.nodes(mcolon(Gt.faces.nodePos(closed_bedges), ...
                                           Gt.faces.nodePos(closed_bedges+1)-1));
 
+    closed_fnodes = Gt.faces.nodes(mcolon(Gt.faces.nodePos(closed_fedges), ...
+                                          Gt.faces.nodePos(closed_fedges+1)-1));
+
     % Computing essential trap information, based on geometry of edges
-    ntraps = computeNodeTraps(Gt, closed_bnodes);
+    ntraps = computeNodeTraps(Gt, closed_bnodes, closed_fnodes);
 
     if project
        % Projecting trap information onto cells (from edges)
