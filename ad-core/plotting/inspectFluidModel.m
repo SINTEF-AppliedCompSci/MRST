@@ -315,14 +315,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         cla;
         s = subdiv(0, 1, 50);
         [x, y] = meshgrid(s);
-        [krW, krO, krG] = deal(zeros(size(x)));
+        [krW, krO, krG] = ...
+            model.relPermWOG(x(:), 1-x(:)-y(:), y(:), model.fluid);
         
-        for i = 1:size(x, 1)
-            xi = x(i, :);
-            yi = y(i, :);
-            [krW(i, :), krO(i, :), krG(i, :)] = ...
-                model.relPermWOG(xi, 1 - xi - yi, yi, model.fluid);
-        end
         % If sW and sG sum up to more than unity, pad with NaN.
         unphys = x + y > 1;
         krW(unphys) = nan;
@@ -333,13 +328,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         xx = mapx(x, 1-x-y, y);
         yy = mapy(x, 1-x-y, y);
         if ix == 1
-            contourf(xx, yy, krW)
+            contourf(xx, yy, reshape(krW, size(xx)),11)
             title('Water relative permeability')
         elseif ix == 2
-            contourf(xx, yy, krO)
+            contourf(xx, yy, reshape(krO, size(xx)),11)
             title('Oil relative permeability')
         else
-            contourf(xx, yy, krG)
+            contourf(xx, yy, reshape(krG, size(xx)),11)
             title('Gas relative permeability')
         end
         axis equal
