@@ -36,7 +36,7 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
     opt = struct('wellUpscaleMethod', 'sum', ...
-                 'bcUpscaleMethod', 'idw');
+                 'bcUpscaleMethod',   'linear');
     opt = merge_options(opt, varargin{:});
 
     for i = 1:numel(schedule.control)
@@ -116,6 +116,7 @@ function Wc = handleWell(model, W, opt)
 end
 
 function bc_coarse = handleBC(model, bc, opt)
+    bc_coarse = [];
     if isempty(bc)
         return
     end
@@ -132,7 +133,6 @@ function bc_coarse = handleBC(model, bc, opt)
     
     coarseFacesBC = unique(connCoarse(isFaceBC(CG.faces.fconn)));
     
-    bc_coarse = [];
     for i = 1:numel(coarseFacesBC)
         cf = coarseFacesBC(i);
         
