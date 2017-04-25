@@ -43,8 +43,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     opt = merge_options(opt, varargin{:});
 
     if isempty(opt.pressureRange)
-        p0 = max(model.minimumPressure, 0);
-        p1 = min(model.maximumPressure, 1000*barsa);
+        p0 = max(model.minimumPressure, 0.1*barsa);
+        p1 = min(model.maximumPressure, 600*barsa);
         opt.pressureRange = subdiv(p0, p1);
     else
         opt.pressureRange = reshape(opt.pressureRange, [], 1);

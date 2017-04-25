@@ -56,7 +56,9 @@ axis tight, view(35, 40), colorbar('SouthOutside');
 % implements fully implicit ad solvers *without* object orientation) is
 % capable of taking a well structure directly and solve for a single time
 % step in a manner similar e.g., to the incompressible MRST solvers.
-[wellSols, states, report] = simulateScheduleAD(state, model, schedule);
+% schedule.step.val(1) = 10*year;
+nls = NonLinearSolver('useLinesearch', true);
+[wellSols, states, report] = simulateScheduleAD(state, model, schedule, 'nonlinearsolver', nls);
 
 %% Plot the well solutions and simulator states
 % We setup interactive viewers for both well solutions and the reservoir
