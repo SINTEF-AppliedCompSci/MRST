@@ -170,33 +170,37 @@ function bc_coarse = handleBC(model, bc, opt)
                 end
                 xq = CG.faces.centroids(cf, :);
                 x = G.faces.centroids(faces, :);
-
-                switch lower(opt.bcUpscaleMethod)
-                    case 'idw'
-                        % Inverse distance weighted pressure
-                        val = interpolateIDW(x, values, xq, 2);
-                    case 'mean'
-                        % area weighted mean value
-                        val = mean(value.*areas)./sum(areas);
-                    case 'nearest'
-                        % Nearest neighbor interpolation
-                        dist = sqrt(sum(bsxfun(@minus, x, xq).^2, 2));
-                        [~, minIndex] = min(dist);
-                        val = value(minIndex);
-                    otherwise
-                        % We just assume that this is a valid method for
-                        % matlabs unstructured interpolation, after
-                        % reducing to the actual dimension
-                        keep = true(1, G.griddim);
-                        for j = 1:G.griddim
-                            % Remove degenerate dimensions
-                            if all(x(:, j) == xq(j))
-                                keep(j) = false;
+                if numel(faces) == 1
+                    % Single value. Coarse is equal to fine.
+                    val = values;
+                else
+                    switch lower(opt.bcUpscaleMethod)
+                        case 'idw'
+                            % Inverse distance weighted pressure
+                            val = interpolateIDW(x, values, xq, 2);
+                        case 'mean'
+                            % area weighted mean value
+                            val = mean(value.*areas)./sum(areas);
+                        case 'nearest'
+                            % Nearest neighbor interpolation
+                            dist = sqrt(sum(bsxfun(@minus, x, xq).^2, 2));
+                            [~, minIndex] = min(dist);
+                            val = value(minIndex);
+                        otherwise
+                            % We just assume that this is a valid method for
+                            % matlabs unstructured interpolation, after
+                            % reducing to the actual dimension
+                            keep = true(1, G.griddim);
+                            for j = 1:G.griddim
+                                % Remove degenerate dimensions
+                                if all(x(:, j) == xq(j))
+                                    keep(j) = false;
+                                end
                             end
-                        end
-                        I = scatteredInterpolant(x(:, keep), values,...
-                            opt.bcUpscaleMethod, opt.bcUpscaleMethod);
-                        val = I(xq(keep));
+                            I = scatteredInterpolant(x(:, keep), values,...
+                                opt.bcUpscaleMethod, opt.bcUpscaleMethod);
+                            val = I(xq(keep));
+                    end
                 end
             otherwise
                 error(['Unable to upscale boundary condition type "', type, '"']);
