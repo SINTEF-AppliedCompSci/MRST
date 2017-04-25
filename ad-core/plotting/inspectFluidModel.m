@@ -43,8 +43,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     opt = merge_options(opt, varargin{:});
 
     if isempty(opt.pressureRange)
-        p0 = max(model.minimumPressure, 0);
-        p1 = min(model.maximumPressure, 1000*barsa);
+        p0 = max(model.minimumPressure, 0.1*barsa);
+        p1 = min(model.maximumPressure, 600*barsa);
         opt.pressureRange = subdiv(p0, p1);
     else
         opt.pressureRange = reshape(opt.pressureRange, [], 1);
@@ -112,8 +112,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             names = [names, [ph, ' viscosity'], ...
                             [ph, ' b-factor']];                            %#ok<AGROW>
             functions = [functions, ...
-                {@(name) plotStuff(model, {['mu', ph(1)]}, name), ...
-                @(name) plotStuff(model, {['b', ph(1)]}, name)}];          %#ok<AGROW>
+                {@(name) plot2D_property(model, {['mu', ph(1)]}, name), ...
+                @(name) plot2D_property(model, {['b', ph(1)]}, name)}];          %#ok<AGROW>
         end
     end
     
@@ -139,7 +139,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     drawPlot([], []);
 
 
-    function plotStuff(model, fields, plottitle)
+    function plot2D_property(model, fields, plottitle)
         axis on
         f = model.fluid;
         p = opt.pressureRange;
@@ -241,12 +241,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         if nargin == 3
             title(plottitle)
         end
+        axis tight
     end
 
     function plotViscosity(model, name)
         vnames = {'muW', 'muO', 'muG'};
         act = model.getActivePhases();
-        plotStuff(model, vnames(act));
+        plot2D_property(model, vnames(act));
         title('Viscosity');
     end
 
@@ -259,20 +260,24 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             if model.water && model.gas
                 krnames = [krnames, 'krOW', 'krOG'];
             else
-                krnames = [krnames, 'krOW'];
+                if isfield(model.fluid, 'krO')
+                    krnames = [krnames, 'krO'];
+                else
+                    krnames = [krnames, 'krOW'];
+                end
             end
         end
         if model.gas
             krnames = [krnames, 'krG'];
         end
-        plotStuff(model, krnames);
+        plot2D_property(model, krnames);
         title(name);
     end
 
     function plotDensity(model, name)
         rnames = {'rhoW', 'rhoO', 'rhoG'};
         act = model.getActivePhases();
-        plotStuff(model, rnames(act));
+        plot2D_property(model, rnames(act));
         title(name);
     end
 
@@ -285,7 +290,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             end
         end
 
-        plotStuff(model, cnames);
+        plot2D_property(model, cnames);
         title('Capillary pressure');
     end
 
@@ -297,12 +302,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         if vapoil
             rnames = [rnames, 'rvSat'];
         end
-        plotStuff(model, rnames);
+        plot2D_property(model, rnames);
         title(name);
     end
 
     function plotPVMult(model, name)
-        plotStuff(model, {'pvMultR'});
+        plot2D_property(model, {'pvMultR'});
         title(name);
     end
     
@@ -325,8 +330,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         krG(unphys) = nan;
         
         [mapx, mapy] = ternaryAxis('names', {'S_w', 'S_o', 'S_g'});
-        xx = mapx(x, y, 1-x-y);
-        yy = mapy(x, y, 1-x-y);
+        xx = mapx(x, 1-x-y, y);
+        yy = mapy(x, 1-x-y, y);
         if ix == 1
             contourf(xx, yy, krW)
             title('Water relative permeability')

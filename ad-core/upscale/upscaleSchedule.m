@@ -132,7 +132,6 @@ function bc_coarse = handleBC(model, bc, opt)
     coarseFaceNo(CG.faces.fconn) = connCoarse;
     
     coarseFacesBC = unique(connCoarse(isFaceBC(CG.faces.fconn)));
-    
     for i = 1:numel(coarseFacesBC)
         cf = coarseFacesBC(i);
         
