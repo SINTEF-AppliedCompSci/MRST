@@ -151,7 +151,7 @@ end
 %--------------------------------------------------------------------------
 
 function check_input(G, rock, opt)
-   assert(~isempty(opt.wells));
+   assert(~isempty(opt.wells), 'Wells are required for computeTOFandTracer');
    assert(isempty(opt.src), 'Source terms not supported yet');
    assert(isempty(opt.bc),  'Boundary conditions not supported yet');
 
