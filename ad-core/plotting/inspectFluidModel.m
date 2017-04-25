@@ -16,7 +16,8 @@ function varargout = inspectFluidModel(model, varargin)
 % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
 %   'pressureRange'   -  An array of the pressures values to be used for
 %                        pressure-dependent properties. Defaults to
-%                        max(model.minimumPressure, 0) to min(model.maximumPressure, 1000*barsa)
+%                        max(model.minimumPressure, 0.1) to 
+%                        min(model.maximumPressure, 600*barsa)
 % RETURNS:
 %   h    - Figure handle to the plotting panel.
 %
@@ -73,7 +74,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
              'Rock compressibility', ...
              'Densities', ...
              'Capillary pressure', ...
-             'Max Rs/Rv', ...
+             'Rs and Rv', ...
              '3ph-relperm: Water', ...
              '3ph-relperm: Oil', ...
              '3ph-relperm: Gas' ...
@@ -178,10 +179,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     data = data/barsa;
                     xl = 'Saturation';
                     yl = 'Capillary pressure [bar]';
-                case {'bo', 'bg', 'bw'}
+                case {'bo'}
                     [x, data, ok] = evalSat(model, f, fn, p, rsMax, rvMax);
                     x = x/barsa;
-                    yl = 'Reciprocal formation volume factor: b(p) = 1/B(p)';
+                    yl = 'Shrinkage factor b(p) = 1/B(p)';
+                    xl = 'Pressure [bar]';
+                case {'bg', 'bw'}
+                    [x, data, ok] = evalSat(model, f, fn, p, rsMax, rvMax);
+                    x = x/barsa;
+                    yl = 'Expansion factor b(p) = 1/B(p)';
                     xl = 'Pressure [bar]';
                 case {'rhoo', 'rhog', 'rhow'}
                     phLetter = fn(end);
@@ -235,7 +241,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
         
         grid on
-        legend(legh, fields(legflag))
+        legend(legh, fields(legflag),'Location','Best')
         xlabel(xl)
         ylabel(yl);
         if nargin == 3
