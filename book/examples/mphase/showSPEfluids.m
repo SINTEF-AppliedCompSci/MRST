@@ -1,9 +1,9 @@
-%% Show fluid models from SPE 1 and SPE 9
+%% Show fluid models from SPE 1, SPE 3 and SPE 9
 % The purpose of this example is to demonstrate how to read an Eclipse
 % input file, create a fluid model, and inspect it. To this end, we will
-% consider the SPE1 and SPE9 data sets. The example assumes that you have
-% downloaded them already. If not, you should uncomment and run the
-% following line, to bring up the dataset manager that enables you to
+% consider the SPE1, SPE 3, and SPE9 data sets. The example assumes that
+% you have downloaded them already. If not, you should uncomment and run
+% the following line, to bring up the dataset manager that enables you to
 % download the data sets
 
 % mrstDatasetGUI
@@ -14,17 +14,18 @@
 % path. We read the data and convert to SI units.
 mrstModule add deckformat ad-props ad-core
 
-nr   = [1 3 9];
-f    = cell(3,1);
-col  = lines(3);
-name = cell(3,1);
+nr    = [1 3 9];
+fo    = cell(3,1);
+col   = lines(3);
+name  = cell(3,1);
+decks = cell(3,1);
 for i=1:3
-    name{i} = sprintf('spe%d',nr(i));
-    pth  = getDatasetPath(name{i});
-    fn   = fullfile(pth, sprintf('BENCH_SPE%d.DATA',nr(i)));
-    deck = readEclipseDeck(fn);
-    deck = convertDeckUnits(deck);
-    f{i} = initDeckADIFluid(deck);
+    name{i}  = sprintf('spe%d',nr(i));
+    pth      = getDatasetPath(name{i});
+    fn       = fullfile(pth, sprintf('BENCH_SPE%d.DATA',nr(i)));
+    decks{i} = readEclipseDeck(fn);
+    decks{i} = convertDeckUnits(decks{i});
+    fo{i}    = initDeckADIFluid(decks{i});
 end
 
 %% Plot two-phase relative permeability curves
@@ -36,7 +37,7 @@ for i=1:numel(name), name{i} = upper(name{i}); end
 
 figure; hold all, set(gca,'FontSize',14)
 for i=1:3
-    plot(s, f{i}.krW(s), 'linewidth', 2, 'Color',col(i,:))
+    plot(s, fo{i}.krW(s), 'linewidth', 2, 'Color',col(i,:))
 end
 grid on
 legend(name{:},2);
@@ -45,8 +46,8 @@ title('Water relative permeability curve')
 
 figure; hold all, set(gca,'FontSize',14)
 for i=1:3
-    krOW = f{i}.krOW(s); krOW(s>1-f{i}.sWcon)=nan;
-    krOG = f{i}.krOG(s); krOG(s>1-f{i}.sWcon)=nan;
+    krOW = fo{i}.krOW(s); krOW(s>1-fo{i}.sWcon)=nan;
+    krOG = fo{i}.krOG(s); krOG(s>1-fo{i}.sWcon)=nan;
     plot(s, krOW, '-','Color',col(i,:), 'linewidth',2);
     plot(s, krOG, '--', 'linewidth', 4, 'Color',col(i,:))
 end
@@ -58,7 +59,7 @@ title('Oil relative permeability curves')
 
 figure; hold all, set(gca,'FontSize',14)
 for i=1:3
-    krG = f{i}.krG(s); krG(s>1-f{i}.sWcon)=nan;
+    krG = fo{i}.krG(s); krG(s>1-fo{i}.sWcon)=nan;
     plot(s, krG, 'linewidth', 2,'Color',col(i,:))
 end
 grid on
@@ -77,7 +78,7 @@ title('Gas relative permeability curve')
 [sw, sg] = meshgrid(linspace(0,1,201));
 so=1-sw-sg;
 for i=1:3
-    [~, krO] = f{i}.relPerm(sw(:),sg(:));
+    [~, krO] = fo{i}.relPerm(sw(:),sg(:));
     krO = reshape(krO,size(sw)); krO(sw+sg>1)=nan;
     
     figure; set(gca,'FontSize',14);
@@ -89,3 +90,131 @@ for i=1:3
         'BackgroundColor','w','HorizontalAlignment','center','FontSize',14);
     caxis([0 1]);
 end
+
+% =========================================================================
+
+%% Phase behavior of live oil for the SPE 1 or SPE 9 model
+% In the following, we will briefly show the phase behavior for gas and oil
+% in the model. That is, we will show both the input data points and the
+% interpolated data obtained from the functions in the fluid object
+
+% Set input deck and fluid object
+[deck, f] = deal(decks{1}, fo{1});
+
+% Extract data from the input deck
+pvto = deck.PROPS.PVTO{1};
+rsd  = pvto.key([1:end end]);
+pbp  = pvto.data([1 pvto.pos(2:end-1)' end],1);
+Bod  = pvto.data([1 pvto.pos(2:end-1)' end],2);
+muOd = pvto.data([1 pvto.pos(2:end-1)' end],3);
+
+%% Plot Rs
+figure, set(gca,'FontSize',14)
+pargs = {'LineWidth', 2, 'MarkerSize',7,'MarkerFaceColor',[.5 .5 .5]};
+plot(pbp/barsa,rsd,'-o',pargs{:}); xlabel('Pressure [bar]');
+
+%% Plot oil formation-volume factor and viscosity for oil
+% For Bo, we plot both the tabulated data as well as interpolated data at
+% various combinations of dissolved gas and reservoir pressures. For each
+% data point, we must first determine whether the state is saturated or not
+% by comparing the actual amount of dissolved gas against the maximum
+% possible amount of solved gas for this pressure.
+[M, N]    = deal(11,51);
+[RsMax,pMax] = deal(max(rsd), max(pbp));
+[rs,p]    = meshgrid(linspace(10,RsMax-10,M), linspace(0,pMax,N));
+Rs        = reshape(f.rsSat(p(:)), N, M);
+isSat     = rs >= Rs;
+rs(isSat) = Rs(isSat);
+Bo        = reshape(f.BO (p(:), rs(:), isSat(:)),N,M);
+muO       = reshape(f.muO(p(:), rs(:), isSat(:)),N,M);
+
+% Formation-volume factor
+figure, hold on, set(gca,'FontSize',14)
+for j=1:M
+    i = isSat(:,j);
+    plot(p(i,j)/barsa, Bo(i,j),'b-',p(~i,j)/barsa,Bo(~i,j),'-r');
+end
+plot(pbp/barsa,Bod,'-bo',pargs{:});
+hold off, axis tight, xlabel('Pressure [bar]');
+title('Oil formation-volume factor [-]');
+
+% Viscosity
+figure, hold on, set(gca,'FontSize',14)
+for j=1:M
+    i = isSat(:,j);
+    plot(p(i,j)/barsa,  convertTo(muO(i,j),  centi*poise),'b-',...
+         p(~i,j)/barsa, convertTo(muO(~i,j), centi*poise),'-r');
+end
+plot(pbp/barsa, convertTo(muOd, centi*poise),'-bo',pargs{:});
+hold off, axis tight, xlabel('Pressure [bar]');
+title('Oil viscosity [cP]');
+
+%% Phase behavior for the dry gas (SPE 1 or SPE9)
+pvdg = deck.PROPS.PVDG{1};
+
+figure, set(gca,'FontSize',14);
+plot(pvdg(:,1)/barsa,pvdg(:,2),'-o',pargs{:})
+set(gca,'YScale','log')
+xlabel('Pressure [bar]'); 
+title('Gas formation-volume factor [-]');
+
+figure, set(gca,'FontSize',14);
+plot(pvdg(:,1)/barsa,convertTo(pvdg(:,3), centi*poise), '-o',pargs{:})
+xlabel('Pressure [bar]');
+title('Gas viscosity [cP]');
+
+
+% =========================================================================
+%% Dead oil and gas with vaporized oil (SPE3)
+% The SPE 3 benchmark was designed to study gas cycling in a rich‐gas
+% reservoir with retrograde condensation. The original setup was for
+% compositional simulation. The current input file describes a black-oil
+% translation of the compositional model.
+% into a 
+[deck, f] = deal(decks{2}, fo{2});
+pvdo = deck.PROPS.PVDO{1};
+
+figure, set(gca,'FontSize',14);
+pargs = {'LineWidth', 2, 'MarkerSize',7,'MarkerFaceColor',[.5 .5 .5]};
+plot(pvdo(:,1)/barsa, pvdo(:,2),'-o',pargs{:})
+xlabel('Pressure [bar]'); 
+title('Oil formation-volume factor [-]');
+
+figure, set(gca,'FontSize',14);
+plot(pvdo(:,1)/barsa, convertTo(pvdo(:,3), centi*poise), '-o',pargs{:})
+xlabel('Pressure [bar]');
+title('Oil viscosity [cP]');
+
+%% Rich gas with retrograde condensation
+% Extract data from the input deck
+pvtg = deck.PROPS.PVTG{1};
+pbp  = convertTo(pvtg.key,barsa);
+rvd  = pvtg.data([1 pvtg.pos(2:end-1)'],1);
+Bgd  = pvtg.data(:,2);
+muGd = convertTo(pvtg.data(:,3), centi*poise);
+
+%% Plot Rv
+figure, set(gca,'FontSize',14)
+plot(pbp, rvd,'-o',pargs{:}); xlabel('Pressure [bar]');
+title('Vaporized oil-gas ratio [-]');
+
+%% Plot Bg
+figure, set(gca,'FontSize',14)
+plot(pbp,Bgd([pvtg.pos(2:end-1)'-1 end]),'-r', ...
+    pbp, Bgd(pvtg.pos(1:end-1)), '-bo', pargs{:});
+xlabel('Pressure [bar]');
+title('Gas formation-volume factor [-]');
+
+
+%% Plot muG
+figure, hold on, set(gca,'FontSize',14)
+plot(pbp,muGd([pvtg.pos(2:end-1)'-1 end]),'-r', ...
+    pbp, muGd(pvtg.pos(1:end-1)), '-b');
+pargs{2} = .5;
+for i=1:numel(pbp)
+    ind = pvtg.pos(i):pvtg.pos(i+1)-1;
+    plot(pbp(i)*ones(numel(ind),1), muGd(ind), '-o', pargs{:});
+end
+hold off
+xlabel('Pressure [bar]');
+title('Gas viscosity [cP]');
