@@ -94,7 +94,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     rho = {bW.*f.rhoWS, bG.*f.rhoGS};
     mob = {mobW, mobG};
     
-    if isempty(drivingForces.bc.sat)
+    if ~isempty(drivingForces.bc) && isempty(drivingForces.bc.sat)
        drivingForces.bc.sat = repmat([1 0], model.G.cells.num, 1); % default
                                                                    % is water 
     end
