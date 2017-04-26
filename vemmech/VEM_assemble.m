@@ -208,8 +208,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             if(~opt.experimental_scaling)
                 trDNC = sum(reshape(DNC, nlin, []), 1)';  
                 alpha = rldecode((trD.*vol)./(trDNC), nlc*G.griddim); % Not properly scaled
+                if(any(alpha<0))
+                    warning('Natural scaling variable is negative');
+                end
+                alpha = abs(alpha);               
             else
-                assert(G.griddim == 2);
+                %assert(G.griddim == 2);
                 trDNCn = reshape(DNC, nlin, []);
                 trDNCn = sum(1./trDNCn, 1)';% use all
                 alpha = rldecode((1/nlin^2)*trD.*vol.*trDNCn, nlc*G.griddim); 
