@@ -159,8 +159,8 @@ classdef EquationOfStateModel < PhysicalModel
             % Only apply calculations for cells that have not converged yet
             if iteration == 1
                 [stable, x0, y0, L_stable, V_stable] = PhaseStabilityTest(model, state.components, state.pressure, state.T);
-                L0(V_stable & stable) = 1;
-                L0(L_stable & stable) = 0;
+                L0(V_stable & stable) = 0;
+                L0(L_stable & stable) = 1;
                 
                 acf = model.fluid.acentricFactors;
                 [Si_L, Si_V, A_L, A_V, B_L, B_V] = model.getMixtureFugacityCoefficients(P, T, x0, y0, acf);
