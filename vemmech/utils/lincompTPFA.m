@@ -1,4 +1,4 @@
-function state = lincompTPFA(dt, state, G, T,pv, fluid, varargin)
+function state = lincompTPFA(dt, state, G, T, pv, fluid, rock, varargin)
 % Solve weakly compressible flow problem (fluxes/pressures) using TPFA method.
 %
 % SYNOPSIS:
@@ -327,8 +327,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    nv=size(A,2);  
    state0=state;
    %pv=poreVolume(G,rock);
-   cr=fluid.cr;
-   ct=cr*pv/dt;
+   cr=(rock.cr+fluid.cf);
+   ct=cr.*pv/dt;
    rhs_c=ct.*state0.pressure;
    ct=sparse(1:G.cells.num,1:G.cells.num,ct,nv,nv);
    if opt.MatrixOutput,
