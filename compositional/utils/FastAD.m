@@ -55,7 +55,17 @@ classdef FastAD
             u.val = -u.val;
             u.jac = -u.jac;
         end
-        
+
+        function u = max(u, v)
+            if nargin == 1
+                [u.val, index] = max(u.val);
+                u.jac = u.jac(index, :);
+            else
+                uLarger = double(u) > double(v);
+                u = uLarger.*u + ~uLarger.*v;
+            end
+        end
+
         function h = log(u)
             logu = log(u.val);
             h  = FastAD(logu, bsxfun(@times, 1./u.val, u.jac));
@@ -94,8 +104,8 @@ classdef FastAD
                 jj = bsxfun(@times, vv.*log(u), v.jac);
             else % u and v are both ADI
                 vv = u.val.^v.val;
-                jj = bsxfun(@plus, bsxfun(@times, vv.*(v.val./u.val), u.jac), ...
-                                   bsxfun(@times, vv.*log(u.val), u.jac));
+                jj = bsxfun(@mtimes, vv.*(v.val./u.val), u.jac) +...
+                     bsxfun(@mtimes, vv.*log(u.val), v.jac);
             end
             h = FastAD(vv, jj);
         end

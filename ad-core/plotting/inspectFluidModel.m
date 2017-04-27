@@ -16,7 +16,8 @@ function varargout = inspectFluidModel(model, varargin)
 % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
 %   'pressureRange'   -  An array of the pressures values to be used for
 %                        pressure-dependent properties. Defaults to
-%                        max(model.minimumPressure, 0) to min(model.maximumPressure, 1000*barsa)
+%                        max(model.minimumPressure, 0.1) to 
+%                        min(model.maximumPressure, 600*barsa)
 % RETURNS:
 %   h    - Figure handle to the plotting panel.
 %
@@ -43,8 +44,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     opt = merge_options(opt, varargin{:});
 
     if isempty(opt.pressureRange)
-        p0 = max(model.minimumPressure, 0);
-        p1 = min(model.maximumPressure, 1000*barsa);
+        p0 = max(model.minimumPressure, 0.1*barsa);
+        p1 = min(model.maximumPressure, 600*barsa);
         opt.pressureRange = subdiv(p0, p1);
     else
         opt.pressureRange = reshape(opt.pressureRange, [], 1);
@@ -73,7 +74,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
              'Rock compressibility', ...
              'Densities', ...
              'Capillary pressure', ...
-             'Max Rs/Rv', ...
+             'Rs and Rv', ...
              '3ph-relperm: Water', ...
              '3ph-relperm: Oil', ...
              '3ph-relperm: Gas' ...
@@ -112,8 +113,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             names = [names, [ph, ' viscosity'], ...
                             [ph, ' b-factor']];                            %#ok<AGROW>
             functions = [functions, ...
-                {@(name) plotStuff(model, {['mu', ph(1)]}, name), ...
-                @(name) plotStuff(model, {['b', ph(1)]}, name)}];          %#ok<AGROW>
+                {@(name) plot2D_property(model, {['mu', ph(1)]}, name), ...
+                @(name) plot2D_property(model, {['b', ph(1)]}, name)}];          %#ok<AGROW>
         end
     end
     
@@ -139,7 +140,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     drawPlot([], []);
 
 
-    function plotStuff(model, fields, plottitle)
+    function plot2D_property(model, fields, plottitle)
         axis on
         f = model.fluid;
         p = opt.pressureRange;
@@ -178,10 +179,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     data = data/barsa;
                     xl = 'Saturation';
                     yl = 'Capillary pressure [bar]';
-                case {'bo', 'bg', 'bw'}
+                case {'bo'}
                     [x, data, ok] = evalSat(model, f, fn, p, rsMax, rvMax);
                     x = x/barsa;
-                    yl = 'Reciprocal formation volume factor: b(p) = 1/B(p)';
+                    yl = 'Shrinkage factor b(p) = 1/B(p)';
+                    xl = 'Pressure [bar]';
+                case {'bg', 'bw'}
+                    [x, data, ok] = evalSat(model, f, fn, p, rsMax, rvMax);
+                    x = x/barsa;
+                    yl = 'Expansion factor b(p) = 1/B(p)';
                     xl = 'Pressure [bar]';
                 case {'rhoo', 'rhog', 'rhow'}
                     phLetter = fn(end);
@@ -235,18 +241,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
         
         grid on
-        legend(legh, fields(legflag))
+        legend(legh, fields(legflag),'Location','Best')
         xlabel(xl)
         ylabel(yl);
         if nargin == 3
             title(plottitle)
         end
+        axis tight
     end
 
     function plotViscosity(model, name)
         vnames = {'muW', 'muO', 'muG'};
         act = model.getActivePhases();
-        plotStuff(model, vnames(act));
+        plot2D_property(model, vnames(act));
         title('Viscosity');
     end
 
@@ -259,20 +266,24 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             if model.water && model.gas
                 krnames = [krnames, 'krOW', 'krOG'];
             else
-                krnames = [krnames, 'krOW'];
+                if isfield(model.fluid, 'krO')
+                    krnames = [krnames, 'krO'];
+                else
+                    krnames = [krnames, 'krOW'];
+                end
             end
         end
         if model.gas
             krnames = [krnames, 'krG'];
         end
-        plotStuff(model, krnames);
+        plot2D_property(model, krnames);
         title(name);
     end
 
     function plotDensity(model, name)
         rnames = {'rhoW', 'rhoO', 'rhoG'};
         act = model.getActivePhases();
-        plotStuff(model, rnames(act));
+        plot2D_property(model, rnames(act));
         title(name);
     end
 
@@ -285,7 +296,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             end
         end
 
-        plotStuff(model, cnames);
+        plot2D_property(model, cnames);
         title('Capillary pressure');
     end
 
@@ -297,12 +308,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         if vapoil
             rnames = [rnames, 'rvSat'];
         end
-        plotStuff(model, rnames);
+        plot2D_property(model, rnames);
         title(name);
     end
 
     function plotPVMult(model, name)
-        plotStuff(model, {'pvMultR'});
+        plot2D_property(model, {'pvMultR'});
         title(name);
     end
     
@@ -310,14 +321,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         cla;
         s = subdiv(0, 1, 50);
         [x, y] = meshgrid(s);
-        [krW, krO, krG] = deal(zeros(size(x)));
+        [krW, krO, krG] = ...
+            model.relPermWOG(x(:), 1-x(:)-y(:), y(:), model.fluid);
         
-        for i = 1:size(x, 1)
-            xi = x(i, :);
-            yi = y(i, :);
-            [krW(i, :), krO(i, :), krG(i, :)] = ...
-                model.relPermWOG(xi, 1 - xi - yi, yi, model.fluid);
-        end
         % If sW and sG sum up to more than unity, pad with NaN.
         unphys = x + y > 1;
         krW(unphys) = nan;
@@ -325,16 +331,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         krG(unphys) = nan;
         
         [mapx, mapy] = ternaryAxis('names', {'S_w', 'S_o', 'S_g'});
-        xx = mapx(x, y, 1-x-y);
-        yy = mapy(x, y, 1-x-y);
+        xx = mapx(x, 1-x-y, y);
+        yy = mapy(x, 1-x-y, y);
         if ix == 1
-            contourf(xx, yy, krW)
+            contourf(xx, yy, reshape(krW, size(xx)),11)
             title('Water relative permeability')
         elseif ix == 2
-            contourf(xx, yy, krO)
+            contourf(xx, yy, reshape(krO, size(xx)),11)
             title('Oil relative permeability')
         else
-            contourf(xx, yy, krG)
+            contourf(xx, yy, reshape(krG, size(xx)),11)
             title('Gas relative permeability')
         end
         axis equal

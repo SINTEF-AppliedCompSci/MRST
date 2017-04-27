@@ -158,7 +158,7 @@ for i = 1:nPh
     if any(subs)
         % Injection
         q_s(subs) = bc.value(subs).*sat(subs, i);
-        q_r(subs) = bc.value(subs).*sat(subs, i)./bBC(subs);
+        q_r(subs) = bc.value(subs).*sat(subs, i).*rhoS(i)./rhoBC(subs);
     end
     subs = ~isP & ~injNeu;
     if any(subs)

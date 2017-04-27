@@ -68,7 +68,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     opt = merge_options(opt, varargin{:});
     
     % Handle grid
-    mrstModule add coarsegrid
+    require coarsegrid
     
     G = model.G;
     rock = model.rock;

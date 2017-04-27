@@ -176,10 +176,18 @@ methods
        if isempty(problem.A)
            % Ignore empty equations
            iseq = cellfun(@(x) ~isempty(x), problem.equations);
-           eqs = cat(problem.equations{iseq});
-           problem.A = -eqs.jac{1};
-           problem.b = eqs.val;
+           eqs = combineEquations(problem.equations{iseq});
+           if isa(eqs, 'ADI')
+               problem.A = -eqs.jac{1};
+               problem.b = eqs.val;
+           else
+               problem.b = eqs;
+           end
        end
+    end
+    % --------------------------------------------------------------------%
+    function [result, report] = processResultAfterSolve(problem, result, report)
+        % Do nothing
     end
     
     % --------------------------------------------------------------------%

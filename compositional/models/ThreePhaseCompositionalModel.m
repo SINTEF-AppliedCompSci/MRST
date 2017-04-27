@@ -42,10 +42,8 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             
             if model.water
                 model.saturationVarNames = {'sw', 'so', 'sg'};
-                model.wellVarNames = {'qWs', 'qOs', 'qGs', 'bhp'};
             else
                 model.saturationVarNames = {'so', 'sg'};
-                model.wellVarNames = {'qOs', 'qGs', 'bhp'};
             end
         end
         
@@ -108,27 +106,13 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             var0 = problem.primaryVariables;
             vars = var0;
             removed = false(size(vars));
-
-            % Saturation update
-            wIx = strcmpi(vars, 'sw');
             
-            vL = state.Z_L.*state.L;
-            vV = state.Z_V.*(1-state.L);
-            vT = vL + vV;
-            if any(wIx)
-                state = model.updateStateFromIncrement(state, dx{wIx}, problem, 'sW', model.dsMaxRel, model.dsMaxAbs);
-                state.s(:, 1) = max(min(state.s(:, 1), 1), 0);
-                void = 1 - state.s(:, 1);
-
-                [vars, ix] = model.stripVars(vars, {'sw'});
-                removed(~removed) = removed(~removed) | ix;
-                state.dsW = abs(state0.s(:, 1) - state.s(:, 1));
-            else
-                void = 1;
+            wix = strcmpi(vars, 'sW');
+            if any(wix)
+                state = model.updateStateFromIncrement(state, dx{wix}, problem, 'sW', model.dsMaxRel, model.dsMaxAbs);
+                removed(wix) = true;
+                vars = vars(~wix);
             end
-            % Liquid
-            state.s(:, 1 + model.water) = void.*vL./vT;
-            state.s(:, 2 + model.water) = void.*vV./vT;
             
             % Components
             cnames = model.EOSModel.fluid.names;
@@ -137,88 +121,41 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
 
             z = state.components;
             rm = 0;
-            
-            if 0
-                dz = cell(ncomp, 1);
-                
-                rm = 0;
-                for i = 1:ncomp
-                    name = cnames{i};
-                    cix = strcmpi(var0, name);
-                    if ~any(cix)
-                        continue
+
+            for i = 1:ncomp
+                name = lower(cnames{i});
+                cix = strcmpi(var0, name);
+                if any(cix)
+                    z0 = z{i};
+
+                    dz = dx{cix};
+                    if isfinite(model.dzMaxAbs)
+                        dz = sign(dz).*min(abs(dz), model.dzMaxAbs);
                     end
-                    
-                    dz{i}= dx{cix};
+                    z{i} = min(max(z0 + dz, 0), 1);
+
                     ok(i) = true;
-                    rm = rm - dz{i};
                     [vars, ix] = model.stripVars(vars, {name});
                     removed(~removed) = removed(~removed) | ix;
 
+                    rm = rm - (z{i} - z0);
                 end
-                
-                if any(ok)
-                    dz{~ok} = rm;
-                    w = ones(model.G.cells.num, 1);
-                    for i = 1:ncomp
-                        dzcap = (min(max(z{i} + dz{i}, 0), 1) - z{i});
-                        w = min(min(dzcap./dz{i}, 1), w);
-                        w(~isfinite(w)) = 0;
-                    end
-
-                    
-                    for i = 1:ncomp
-                        z{i} = z{i} + w.*dz{i};
-                    end
-                end
-                if any(ok)
-                    % We had components as active variables somehow
-                    assert(nnz(~ok) == 1)
-                    z{~ok} = min(max(z{~ok} + rm, 0), 1);
-                    sz = sum([z{:}], 2);
-                    z = cellfun(@(x) x./sz, z, 'UniformOutput', false);
-                    state.components = z;
-
+            end
+            
+            if any(ok)
+                % We had components as active variables somehow
+                assert(nnz(~ok) == 1)
+                z{~ok} = min(max(z{~ok} + rm, 0), 1);
+                sz = sum([z{:}], 2);
+                z = cellfun(@(x) x./sz, z, 'UniformOutput', false);
+                state.components = z;
+                if model.water
                     v  = 1 - state.s(:, 1);
                     v0 = 1 - state0.s(:, 1);
-                    state.dz = computeChange(state.components, state0.components, v, v0);
+                else
+                    [v, v0] = deal(1);
                 end
-            else
-                for i = 1:ncomp
-                    name = lower(cnames{i});
-                    cix = strcmpi(var0, name);
-                    if any(cix)
-                        z0 = z{i};
-
-                        dz = dx{cix};
-                        if isfinite(model.dzMaxAbs)
-                            dz = sign(dz).*min(abs(dz), model.dzMaxAbs);
-                        end
-                        z{i} = min(max(z0 + dz, 0), 1);
-
-                        ok(i) = true;
-                        [vars, ix] = model.stripVars(vars, {name});
-                        removed(~removed) = removed(~removed) | ix;
-
-                        rm = rm - (z{i} - z0);
-                    end
-                end
-                if any(ok)
-                    % We had components as active variables somehow
-                    assert(nnz(~ok) == 1)
-                    z{~ok} = min(max(z{~ok} + rm, 0), 1);
-                    sz = sum([z{:}], 2);
-                    z = cellfun(@(x) x./sz, z, 'UniformOutput', false);
-                    state.components = z;
-                    if model.water
-                        v  = 1 - state.s(:, 1);
-                        v0 = 1 - state0.s(:, 1);
-                    else
-                        [v, v0] = deal(1);
-                    end
-                    state.dz = computeChange(state.components, state0.components, v, v0);
-                end
-                
+                state.dz = computeChange(state.components, state0.components, v, v0);
             end
 
             % Parent class handles almost everything for us
@@ -234,7 +171,51 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             state.dpRel = (state.pressure - p0)./range;
             state.dpAbs = state.pressure - p0;
             
+            if problem.iterationNo == 1
+                state.switched = false(model.G.cells.num, 1);
+                state.switchCount = zeros(model.G.cells.num, 1);
+            end
+            twoPhase0 = state.L < 1 & state.L > 0;
+            s0 = state;
+            state = model.computeFlash(state, problem.dt, problem.iterationNo);
+            twoPhase = state.L < 1 & state.L > 0;
+            switched = twoPhase0 ~= twoPhase;
             
+%             osc = switched & state.switched;
+            osc = switched & state.switchCount > 2 & twoPhase;
+            dispif(model.verbose > 1, '%d gas, %d oil, %d two-phase\n', nnz(state.L == 0), nnz(state.L == 1), nnz(twoPhase));
+            dispif(model.verbose > 1, '%d cells are two phase, %d switched. %d of %d cells are locked\n', nnz(twoPhase), nnz(switched), nnz(osc), model.G.cells.num);
+            if 1%any(strcmpi(var0, 'pressure'))
+                state.L(osc) = s0.L(osc);
+                for i = 1:ncomp
+                    state.x{i}(osc) = s0.x{i}(osc);
+                    state.y{i}(osc) = s0.y{i}(osc);
+                end
+                state.Z_L(osc) = s0.Z_L(osc);
+                state.Z_V(osc) = s0.Z_V(osc);
+                dt = problem.dt;
+                state = model.EOSModel.updateAfterConvergence(state0, state, dt, struct());
+            end
+            state.switched = switched & ~osc;
+            state.switchCount = state.switchCount + double(switched);
+            
+            
+            % Saturation update
+            vL = state.Z_L.*state.L;
+            vV = state.Z_V.*(1-state.L);
+            vT = vL + vV;
+            if model.water
+                void = 1 - state.s(:, 1);
+            else
+                void = 1;
+            end
+            % Liquid
+            state.s(:, 1 + model.water) = void.*vL./vT;
+            state.s(:, 2 + model.water) = void.*vV./vT;
+            
+            state.components = ensureMinimumFraction(state.components);
+            state.x = ensureMinimumFraction(state.x);
+            state.y = ensureMinimumFraction(state.y);
         end
         
         function state = computeFlash(model, state, dt, iteration)
@@ -319,7 +300,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                 offset = model.water;
                 ncomp = numel(model.EOSModel.fluid.names);
                 if isa(model, 'TransportCompositionalModel') 
-                    % We might be missing a 
+                    % We might be missing a component
                     ncomp = ncomp - (model.conserveWater && model.water);
                     offset = (model.conserveWater && model.water);
                 end
@@ -328,20 +309,20 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
 
                 if problem.iterationNo > 1
                     v = problem.state.dz(1:ncomp);
-                    if model.water
-                        values(1) = norm(problem.state.dsW, inf);
-                    end
                 else
                     v = inf(1, ncomp);
                 end
 
                 values((1+offset):(ncomp+offset)) = v;
 
-                [conv_wells, ~, isWell] = checkWellConvergence(model, problem);
-                nonWellValues = values(~isWell);
-
-
-                convergence = all(nonWellValues <= model.nonlinearTolerance) && all(conv_wells);
+                [conv_wells, v_wells, namesWell, isWell] = ...
+                    model.FacilityModel.checkFacilityConvergence(problem);
+                v_cells = values(~isWell);
+                
+                conv_cells = v_cells <= model.nonlinearTolerance;
+                convergence = [conv_cells, conv_wells];
+                values = [v_cells, v_wells];
+                names = horzcat(names(~isWell), namesWell);
             else
                 [convergence, values, names] = checkConvergence@ReservoirModel(model, problem, varargin{:});
             end 
@@ -352,7 +333,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                     dp = inf;
                 end
                 values = [dp, values];
-                convergence = convergence && dp <= model.incTolPressure;
+                convergence = [dp <= model.incTolPressure, convergence];
                 names = ['deltaP', names];
             end
         end
@@ -365,6 +346,80 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             rho = {double(rhoW), double(rhoO), double(rhoG)};
             state = model.setPhaseData(state, rho, 'rho');
         end
+
+        function [eqs, names, types, wellSol, src] = insertWellEquations(model, eqs, names, ...
+                                                         types, wellSol0, wellSol, ...
+                                                         qWell, bhp, wellVars, ...
+                                                         wellMap, p, mob, rho, ...
+                                                         dissolved, components, ...
+                                                         dt, opt)
+            fm = model.FacilityModel;
+            compFluid = model.EOSModel.fluid;
+            ncomp = compFluid.getNumberOfComponents();
+            % Store cell wise well variables in cell arrays and send to ewll
+            % model to get the fluxes and well control equations.
+
+
+            [src, wellsys, state.wellSol] = ...
+                fm.getWellContributions(wellSol0, wellSol, qWell, bhp, wellVars, ...
+                                        wellMap, p, mob, rho, {}, {}, ...
+                                        dt, opt.iteration);
+            L_ix = model.water + 1;
+            V_ix = model.water + 2;
+            W = fm.getWellStruct();
+
+            wc    = vertcat(W.cells);
+            w_comp = vertcat(W.components);
+            perf2well = getPerforationToWellMapping(W);
+            a = w_comp(perf2well, :).*repmat(compFluid.molarMass, numel(wc), 1);
+            w_comp = bsxfun(@rdivide, a, sum(a, 2));
+
+            x_comp = cellfun(@(v) v(wc), components{1}, 'UniformOutput', false);
+            y_comp = cellfun(@(v) v(wc), components{2}, 'UniformOutput', false);        
+            cqs_m = src.phaseMass;
+            injO = double(cqs_m{L_ix}) > 0;
+            injG = double(cqs_m{V_ix}) > 0;
+
+
+            offset = numel(wellsys.wellEquations);
+            eqs(end+1:end+offset) = wellsys.wellEquations;
+            names(end+1:end+offset) = wellsys.names;
+            types(end+1:end+offset) = wellsys.types;
+            eqs{end+1} = wellsys.controlEquation;
+            names{end+1} = 'closureWells';
+            types{end+1} = 'well';
+
+            if model.water
+                % Water
+                eqs{1}(wc) = eqs{1}(wc) - cqs_m{1};
+            end
+            srcTot = 0;
+            compSrc = zeros(numel(wc), ncomp);
+            for i = 1:ncomp
+                ix = i + model.water;
+                % Mixture of production and injection. Production uses cell
+                % values for components, injectors use whatever was prescribed
+                % to the well.
+                q_i = (cqs_m{L_ix}.*injO + cqs_m{V_ix}.*injG).*w_comp(perf2well, i)...
+                           + ~injO.*x_comp{i}.*cqs_m{L_ix} + ~injG.*y_comp{i}.*cqs_m{V_ix};
+
+                eqs{ix}(wc) = eqs{ix}(wc) - q_i;
+
+                compSrc(:, i) = double(q_i);
+                srcTot = srcTot + double(q_i);
+            end
+            fluxt = 0;
+            cqr = src.phaseVolume;
+            for i = 1:numel(cqr)
+                fluxt = fluxt + double(cqr{i});
+            end
+            for i = 1:numel(W)
+                wp = perf2well == i;
+                wellSol(i).flux = fluxt(wp);
+                wellSol(i).components = (compSrc(wp, :));
+            end
+        end
+
     end
 end
 

@@ -81,17 +81,19 @@ classdef WaterThermalModel < ReservoirModel
             active=model.getActivePhases;
             nPh = nnz(active);
             assert(numel(eqs) == nPh+1);
-            [srcMass, srcVol, weqs, ctrleq, wnames, wtypes, wellSol] = ...
-                fm.getWellContributions(wellSol0, wellSol, qWell, bhp, wellVars, wellMap, p, mob, rho, components, dt, opt.iteration);
+            dissolved =[];
+            [eqs, names, types, wellSol, src] = insertWellEquations@ReservoirModel(model, eqs, names, ...
+                                                     types, wellSol0, wellSol, ...
+                                                     qWell, bhp, wellVars, ...
+                                                     wellMap, p, mob, rho, ...
+                                                     dissolved, components, ...
+                                                     dt, opt);
+            %[srcMass, srcVol, weqs, ctrleq, wnames, wtypes, wellSol] = ...
+            %    fm.getWellContributions(wellSol0, wellSol, qWell, bhp, wellVars, wellMap, p, mob, rho, components, dt, opt.iteration);
             rhoS = model.getSurfaceDensities();
             rhoS=rhoS(active);
             wc = fm.getWellCells();
-            
-            % NB: here it is only on phase
-            for i = 1:nPh
-                eqs{i}(wc) = eqs{i}(wc) - srcMass{i}./rhoS(i);
-            end
-            
+           
             % get the entalphy of the wells
             % should probably be moved into a separate well facility model
             nw = fm.getNumberOfWells();
@@ -109,20 +111,12 @@ classdef WaterThermalModel < ReservoirModel
             % assume no heat conduction
             % no contronling of heat conduction part
             % should be added if adjoint is needed
-            cqs=srcMass{1}./rhoS(1);
+            cqs= src.phaseMass{1}./rhoS(1);
             hFw=rhoS(1)*hW(wc);
             hFww=rhoS(1).*hWW;%Rw*vertcat(W.hW);
             hFw(cqs>0)=hFww(cqs>0);
             eqs{2}(wc)= eqs{2}(wc) - hFw.*cqs;
             
-            offset = numel(weqs);
-            eqs(end+1:end+numel(weqs)) = weqs;
-            names(end+1:end+offset) = wnames;
-            types(end+1:end+offset) = wtypes;
-            eqs{end+1} = ctrleq;
-            names{end+1} = 'closureWells';
-            types{end+1} = 'well';
-            %}
         end
         
     end
