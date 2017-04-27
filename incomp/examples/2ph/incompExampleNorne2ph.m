@@ -18,8 +18,8 @@
 % This is an independent continuation of
 % <maltab:edit('incompExampleNorne1ph.m') incompExampleNorne1ph>, in
 % which we solved the corresponding single-phase problem for the
-% <matlab:exit('showNorne.m') Norne model>, which is a synthetic, but
-% realistic model of a shallow-marine reservoir.
+% <matlab:exit('showNorne.m') Norne model>, which is a real field from the
+% Norwegian Sea.
 
 mrstModule add incomp
 linsolve = @mldivide;
