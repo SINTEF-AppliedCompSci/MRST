@@ -253,11 +253,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
             dtMin = dT/(2^solver.maxTimestepCuts);
             while ~done
-                dt = stepsel.pickTimestep(dt_prev, dt, model, solver, state_prev, state0_inner);
-
+                dt_sel = stepsel.pickTimestep(dt_prev, dt, model, solver, state_prev, state0_inner);
                 if t_local + dt >= dT
                     % Ensure that we hit report time
                     isFinalMinistep = true;
+                    dt_sel = dt;
                     dt = dT - t_local;
                 end
                 if solver.verbose && dt < dT
@@ -273,7 +273,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 tmp.LocalTime = t_local + dt;
                 reports{end+1} = tmp; %#ok
                 clear tmp
-                stepsel.storeTimestep(reports{end});
+                if isFinalMinistep && dt/dt_sel > 0.9
+                    % Avoid storing ministeps that are just due to cutting
+                    % at the end of the control step
+                    stepsel.storeTimestep(reports{end});
+                end
 
                 % Keep total itcount so we know how much time we are
                 % wasting
