@@ -192,11 +192,19 @@ pbp  = convertTo(pvtg.key,barsa);
 rvd  = pvtg.data([1 pvtg.pos(2:end-1)'],1);
 Bgd  = pvtg.data(:,2);
 muGd = convertTo(pvtg.data(:,3), centi*poise);
+p    = pvtg.key(rldecode((1:numel(pvtg.key))',diff(pvtg.pos),1))/barsa;
 
 %% Plot Rv
 figure, set(gca,'FontSize',14)
-plot(pbp, rvd,'-o',pargs{:}); xlabel('Pressure [bar]');
-title('Vaporized oil-gas ratio [-]');
+hold on
+for i=1:numel(pbp)
+    ind = pvtg.pos(i):pvtg.pos(i+1)-1;
+    plot(p(ind),pvtg.data(ind,1),'-ok',...
+        'MarkerSize',6,'MarkerFaceColor',[.5 .5 .5]);
+end
+plot(pbp,rvd,'-o',pargs{:}); xlabel('Pressure [bar]');
+title('Maximum vaporized oil-gas ratio [-]');
+hold off
 
 %% Plot Bg
 figure, set(gca,'FontSize',14)
@@ -205,16 +213,42 @@ plot(pbp,Bgd([pvtg.pos(2:end-1)'-1 end]),'-r', ...
 xlabel('Pressure [bar]');
 title('Gas formation-volume factor [-]');
 
+% Make inset
+axes('position',[.48 .45 .4 .4]);
+hold on
+for i=1:numel(pbp)
+    ind = pvtg.pos(i):pvtg.pos(i+1)-1;
+    plot(p(ind),pvtg.data(ind,2),'-ok',...
+        'MarkerSize',6,'MarkerFaceColor',[.5 .5 .5]);
+end
+plot(pbp,Bgd([pvtg.pos(2:end-1)'-1 end]),'-r', ...
+    pbp, Bgd(pvtg.pos(1:end-1)), '-bo', pargs{:});
+hold off
+axis([205 240 4.2e-3 4.8e-3]);
+
+%% Plot gas density
+bG = f.bG(p*barsa, pvtg.data(:,1), false(size(p)));
+rho = bG*f.rhoGS + bG.*pvtg.data(:,1)*f.rhoOS;
+figure, hold on, set(gca,'FontSize', 14)
+for i=1:numel(pbp),
+    ind = pvtg.pos(i):pvtg.pos(i+1)-1;
+    plot(p(ind),rho(ind),'-ok',...
+        'MarkerSize',6,'MarkerFaceColor',[.5 .5 .5]);
+end
+plot(pbp,rho([pvtg.pos(2:end-1)'-1 end]),'-or', ...
+    pbp, rho(pvtg.pos(1:end-1)), '-bo', pargs{:});
+hold off
+xlabel('Pressure [bar]'); title('Density of gaseous phase [kg/m3]');
 
 %% Plot muG
 figure, hold on, set(gca,'FontSize',14)
-plot(pbp,muGd([pvtg.pos(2:end-1)'-1 end]),'-r', ...
-    pbp, muGd(pvtg.pos(1:end-1)), '-b');
-pargs{2} = .5;
 for i=1:numel(pbp)
     ind = pvtg.pos(i):pvtg.pos(i+1)-1;
-    plot(pbp(i)*ones(numel(ind),1), muGd(ind), '-o', pargs{:});
+    plot(p(ind), muGd(ind), '-ok',...
+        'MarkerSize',6,'MarkerFaceColor',[.5 .5 .5] );
 end
+plot(pbp,muGd([pvtg.pos(2:end-1)'-1 end]),'-or', ...
+    pbp, muGd(pvtg.pos(1:end-1)), '-ob',pargs{:});
 hold off
 xlabel('Pressure [bar]');
 title('Gas viscosity [cP]');
