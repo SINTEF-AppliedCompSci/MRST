@@ -197,9 +197,14 @@ function bc_coarse = handleBC(model, bc, opt)
                                     keep(j) = false;
                                 end
                             end
-                            I = scatteredInterpolant(x(:, keep), values,...
-                                opt.bcUpscaleMethod, opt.bcUpscaleMethod);
-                            val = I(xq(keep));
+                            if nnz(keep) > 1
+                                I = scatteredInterpolant(x(:, keep), values,...
+                                    opt.bcUpscaleMethod, opt.bcUpscaleMethod);
+                                val = I(xq(keep));
+                            else
+                                val = interp1(x(:, keep), values, xq(keep), ...
+                                    opt.bcUpscaleMethod, 'extrap');
+                            end
                     end
                 end
             otherwise
