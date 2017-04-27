@@ -383,7 +383,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
           h = ADI(vertcat(vals{:}), jacs);
       end
 
-
+       function h = combineEquations(varargin)
+          h = cat(varargin{:});
+       end
       %--------------------------------------------------------------------
 
       function h = cat(varargin)
