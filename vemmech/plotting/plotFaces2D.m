@@ -2,7 +2,6 @@ function plotFaces2D(G, faces, varargin)
 
 opt=struct('col','r','uu',[],'shift',[],'linewidth',4);
 opt=merge_options(opt,varargin{:});
-error('See vemmech version')
 if(~isempty(opt.uu))
     G.nodes.coords=G.nodes.coords+opt.uu;
 end
