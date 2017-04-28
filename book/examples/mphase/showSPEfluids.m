@@ -104,9 +104,9 @@ end
 % Extract data from the input deck
 pvto = deck.PROPS.PVTO{1};
 rsd  = pvto.key([1:end end]);
-pbp  = pvto.data([1 pvto.pos(2:end-1)' end],1);
-Bod  = pvto.data([1 pvto.pos(2:end-1)' end],2);
-muOd = pvto.data([1 pvto.pos(2:end-1)' end],3);
+pbp  = pvto.data([pvto.pos(1:end-1)' end],1);
+Bod  = pvto.data([pvto.pos(1:end-1)' end],2);
+muOd = pvto.data([pvto.pos(1:end-1)' end],3);
 
 %% Plot Rs
 figure, set(gca,'FontSize',14)
