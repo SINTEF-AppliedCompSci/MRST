@@ -254,11 +254,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             dtMin = dT/(2^solver.maxTimestepCuts);
             while ~done
                 dt_sel = stepsel.pickTimestep(dt_prev, dt, model, solver, state_prev, state0_inner);
-                if t_local + dt >= dT
+                if t_local + dt_sel >= dT
                     % Ensure that we hit report time
                     isFinalMinistep = true;
-                    dt_sel = dt;
                     dt = dT - t_local;
+                else
+                    dt = dt_sel;
                 end
                 if solver.verbose && dt < dT
                     fprintf('%sSolving ministep : %s (%1.2f %% of control step, control step currently %1.2f %% complete)\n',...
