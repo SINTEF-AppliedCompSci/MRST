@@ -326,16 +326,23 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             else
                 [convergence, values, names] = checkConvergence@ReservoirModel(model, problem, varargin{:});
             end 
-            if ~isa(model, 'TransportCompositionalModel') && ~isa(model, 'PressureCompositionalModel');
+            if ~isa(model, 'TransportCompositionalModel')
                 if isfield(problem.state, 'dpRel')
                     dp = norm(problem.state.dpRel, inf);
                 else
                     dp = inf;
                 end
+                isp = strcmpi(names, 'pressure (cell)');
+                if any(isp)
+                    values(isp) = dp;
+                    convergence(isp) = dp <= model.incTolPressure;
+                    names{isp} = 'deltaP';
+                else
                 values = [dp, values];
                 convergence = [dp <= model.incTolPressure, convergence];
                 names = ['deltaP', names];
             end
+        end
         end
         
         function state = storeDensities(model, state, rhoW, rhoO, rhoG)
