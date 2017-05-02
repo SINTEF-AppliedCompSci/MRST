@@ -40,7 +40,7 @@ switch opt.psolver
 	case 'mimetic'
         if isPeriodic
             bcp = block.bcp;
-            S = computeMimeticIP(G, rock);
+            S = computeMimeticIPGp(G.parent, G, rock);
             psolver = @(state0, bcp) incompMimetic(state0, G, S, fluidPure, ...
                 'bcp', bcp);
         else
