@@ -384,6 +384,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       end
 
        function h = combineEquations(varargin)
+          isD = cellfun(@isnumeric, varargin);
+          if any(isD)
+              sampleAD = varargin(~isD);
+              sampleAD = sampleAD{1};
+              for i = 1:numel(isD)
+                  if isD(i)
+                      varargin{i} = double2ADI(varargin{i}, sampleAD);
+                  end
+              end
+          end
           h = cat(varargin{:});
        end
       %--------------------------------------------------------------------
