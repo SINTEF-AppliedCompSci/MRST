@@ -70,7 +70,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             data      = readDefaultedKW(fid, tmpl, 'NRec', ntsfun);
             prp.(kw)  = to_double(data);  clear tmpl
 
-         case {'MW', 'PCRIT', 'TCRIT', 'VCRIT'}
+         case {'MW', 'PCRIT', 'TCRIT', 'VCRIT', 'ZCRIT'}
             prp.(kw) = readVector(fid, kw, ncomp);
 
          case 'PLYADS',
