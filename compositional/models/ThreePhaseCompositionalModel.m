@@ -38,6 +38,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             model.dsMaxAbs = 0.1;
             
             model.minimumPressure = 0;
+            model.dpMaxRel = 0.25;
             model = merge_options(model, varargin{:});
             
             if model.water
@@ -144,10 +145,25 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             
             if any(ok)
                 % We had components as active variables somehow
-                assert(nnz(~ok) == 1)
-                z{~ok} = min(max(z{~ok} + rm, 0), 1);
-                sz = sum([z{:}], 2);
-                z = cellfun(@(x) x./sz, z, 'UniformOutput', false);
+                
+                if nnz(~ok) == 0
+                    state.componentsActual = z;
+                    sz = sum([z{:}], 2);
+                    z = cellfun(@(x) x./sz, z, 'UniformOutput', false);
+                    zz = state.componentsActual;
+                    if isfield(state0, 'componentsActual')
+                        zz0 = state0.componentsActual;
+                    else
+                        zz0 = state0.components;
+                    end
+                else
+                    assert(nnz(~ok) == 1)
+                    z{~ok} = min(max(z{~ok} + rm, 0), 1);
+                    sz = sum([z{:}], 2);
+                    z = cellfun(@(x) x./sz, z, 'UniformOutput', false);
+                    zz = z;
+                    zz0 = state0.components;
+                end
                 state.components = z;
                 if model.water
                     v  = 1 - state.s(:, 1);
@@ -155,7 +171,8 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                 else
                     [v, v0] = deal(1);
                 end
-                state.dz = computeChange(state.components, state0.components, v, v0);
+
+                state.dz = computeChange(zz, zz0, v, v0);
             end
 
             % Parent class handles almost everything for us
@@ -177,15 +194,16 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             end
             twoPhase0 = state.L < 1 & state.L > 0;
             s0 = state;
+            
             state = model.computeFlash(state, problem.dt, problem.iterationNo);
             twoPhase = state.L < 1 & state.L > 0;
             switched = twoPhase0 ~= twoPhase;
             
 %             osc = switched & state.switched;
-            osc = switched & state.switchCount > 2 & twoPhase;
+            osc = switched & state.switchCount > 3 & twoPhase;
             dispif(model.verbose > 1, '%d gas, %d oil, %d two-phase\n', nnz(state.L == 0), nnz(state.L == 1), nnz(twoPhase));
             dispif(model.verbose > 1, '%d cells are two phase, %d switched. %d of %d cells are locked\n', nnz(twoPhase), nnz(switched), nnz(osc), model.G.cells.num);
-            if 1%any(strcmpi(var0, 'pressure'))
+            if 1 && any(strcmpi(var0, 'pressure'))
                 state.L(osc) = s0.L(osc);
                 for i = 1:ncomp
                     state.x{i}(osc) = s0.x{i}(osc);
@@ -198,7 +216,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             end
             state.switched = switched & ~osc;
             state.switchCount = state.switchCount + double(switched);
-            
+%             state.switchCount(osc) = 0;
             
             % Saturation update
             vL = state.Z_L.*state.L;
@@ -294,14 +312,16 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
         end
 
         function [convergence, values, names] = checkConvergence(model, problem, varargin)
-            if ~isa(model, 'PressureCompositionalModel')
+            tsolver = isa(model, 'TransportCompositionalModel');
+            psolver = isa(model, 'PressureCompositionalModel');
+            if ~psolver
                 names = problem.equationNames;
 
                 offset = model.water;
                 ncomp = numel(model.EOSModel.fluid.names);
-                if isa(model, 'TransportCompositionalModel') 
+                if tsolver 
                     % We might be missing a component
-                    ncomp = ncomp - (model.conserveWater && model.water);
+                    ncomp = ncomp - 1;
                     offset = (model.conserveWater && model.water);
                 end
 
@@ -338,11 +358,11 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                     convergence(isp) = dp <= model.incTolPressure;
                     names{isp} = 'deltaP';
                 else
-                values = [dp, values];
-                convergence = [dp <= model.incTolPressure, convergence];
-                names = ['deltaP', names];
+                    values = [dp, values];
+                    convergence = [dp <= model.incTolPressure, convergence];
+                    names = ['deltaP', names];
+                end
             end
-        end
         end
         
         function state = storeDensities(model, state, rhoW, rhoO, rhoG)
@@ -409,20 +429,23 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                 % to the well.
                 q_i = (cqs_m{L_ix}.*injO + cqs_m{V_ix}.*injG).*w_comp(perf2well, i)...
                            + ~injO.*x_comp{i}.*cqs_m{L_ix} + ~injG.*y_comp{i}.*cqs_m{V_ix};
-
-                eqs{ix}(wc) = eqs{ix}(wc) - q_i;
-
+                if ~(i == ncomp && isa(model, 'TransportCompositionalModel'))
+                    eqs{ix}(wc) = eqs{ix}(wc) - q_i;
+                end
                 compSrc(:, i) = double(q_i);
                 srcTot = srcTot + double(q_i);
             end
             fluxt = 0;
+            fluxMass = 0;
             cqr = src.phaseVolume;
             for i = 1:numel(cqr)
                 fluxt = fluxt + double(cqr{i});
+                fluxMass = fluxMass + double(cqs_m{i});
             end
             for i = 1:numel(W)
                 wp = perf2well == i;
                 wellSol(i).flux = fluxt(wp);
+                wellSol(i).massFlux = fluxMass(wp);
                 wellSol(i).components = (compSrc(wp, :));
             end
         end
