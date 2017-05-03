@@ -74,10 +74,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
     opt = struct('ControlVariables', {{'well'}}, ...
-                 'LinearSolver',     []);
+                 'LinearSolver',     [], ...
+                 'Verbose', mrstVerbose());
     opt = merge_options(opt, varargin{:});
-    
-    getState = @(i) getStateFromInput(schedule, states, state0, i);
     
     if isempty(opt.LinearSolver)
         linsolve = BackslashSolverAD();
@@ -90,6 +89,20 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     else
         ncv = 1;
     end
+    dispif(opt.Verbose, 'Preparing model for simulation...\n')
+    ctrl = schedule.control(schedule.step.control(1));
+    [~, fstruct] = model.getDrivingForces(ctrl);
+    model = model.validateModel(fstruct);
+    dispif(opt.Verbose, 'Model ready for simulation...\n')
+    
+    % Check if intiial state is reasonable
+    dispif(opt.Verbose, 'Validating initial state...\n')
+    state0 = model.validateState(state0);
+    dispif(opt.Verbose, 'Initial state ready for simulation.\n')
+    
+    % Function handle to pick initial state
+    getState = @(i) getStateFromInput(schedule, states, state0, i);
+    
     nstep = numel(schedule.step.val);
     grad = [];
     gradstep = cell(nstep, ncv);
