@@ -84,6 +84,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     bW0 = f.bW(p0, t);
     bG0 = f.bG(p0 + pcWG, t);
     
+    if model.outputFluxes
+       state = model.storeFluxes(state, fluxW, [], fluxG);
+    end
+    
     % --------------------------- Continuity equations ---------------------------
     
     eqs{1} = (s.pv/dt) .* (pvMult .* bW .* (1-sG) - pvMult0 .* bW0 .* (1-sG0)) + s.Div(fluxW);
@@ -99,8 +103,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                                                    % is water 
     end
     
-    eqs = addFluxesFromSourcesAndBC(model, eqs, {p, p+pcWG}, rho, mob, {1-sG, sG}, drivingForces);
+    [eqs, ~, qRes] = addFluxesFromSourcesAndBC(model, eqs, {p, p+pcWG}, rho, ...
+                                               mob, {1-sG, sG}, drivingForces);
 
+    if model.outputFluxes
+       state = model.storeBoundaryFluxes(state, qRes{1}, [], qRes{2}, drivingForces);
+    end
+    
     % % @@ should capillary pressure be sent in too?
     % [bc_cells, b_fW, b_fG] = ...
     %     BCFluxes(G, s, p, t, f, drivingForces.bc, krW, krG, transMult, trMult);
