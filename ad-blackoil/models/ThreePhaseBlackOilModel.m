@@ -109,11 +109,6 @@ methods
 
     % --------------------------------------------------------------------%
     function [state, report] = updateState(model, state, problem, dx, drivingForces)
-        saturations = lower(model.saturationVarNames);
-        wi = strcmpi(saturations, 'sw');
-        oi = strcmpi(saturations, 'so');
-        gi = strcmpi(saturations, 'sg');
-
         vars = problem.primaryVariables;
         removed = false(size(vars));
         if model.disgas || model.vapoil
@@ -154,9 +149,16 @@ methods
             dso = -(dsg + dsw);
 
             ds = zeros(numel(so), numel(saturations));
-            ds(:, wi) = dsw;
-            ds(:, oi) = dso;
-            ds(:, gi) = dsg;
+            phIndices = model.getPhaseIndices();
+            if model.water
+                ds(:, phIndices(1)) = dsw;
+            end
+            if model.oil
+                ds(:, phIndices(2)) = dso;
+            end
+            if model.gas
+                ds(:, phIndices(3)) = dsg;
+            end
 
             state = model.updateStateFromIncrement(state, ds, problem, 's', model.dsMaxRel, model.dsMaxAbs);
             % We should *NOT* be solving for oil saturation for this to make sense
@@ -180,11 +182,6 @@ methods
 
         % Parent class handles almost everything for us
         [state, report] = updateState@ReservoirModel(model, state, problem, dx, drivingForces);
-
-        % Handle the directly assigned values (i.e. can be deduced directly from
-        % the well controls. This is black oil specific.
-        W = drivingForces.W;
-        state.wellSol = assignWellValuesFromControl(model, state.wellSol, W, wi, oi, gi);
     end
     
     % --------------------------------------------------------------------%
