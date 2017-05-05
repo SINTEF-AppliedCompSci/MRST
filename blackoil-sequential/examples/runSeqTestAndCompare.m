@@ -1,7 +1,7 @@
 mrstModule add ad-unittest
 % [G, rock, fluid, deck, state] = setupSPE1();
-% testcase = TestSPE1();
-testcase = TestEGG();
+testcase = TestSPE1();
+% testcase = TestEGG();
 
 mrstModule add ad-fi deckformat mrst-gui ad-core ad-blackoil blackoil-sequential ad-unittest
 
