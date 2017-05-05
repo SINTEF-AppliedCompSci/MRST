@@ -244,9 +244,9 @@ classdef FacilityModel < PhysicalModel
                 qw = cellfun(@(x) x(i), qWell, 'uniformoutput', false);
                 bh = bhp(i);
                 % Update pressure
-                wellSol(wellNo) = wm.updateConnectionPressureDrop(ws0, ws, resModel, qw, bh, packed, dt, iteration);
+                ws = wm.updateConnectionPressureDrop(ws0, ws, resModel, qw, bh, packed, dt, iteration);
                 % Update limits
-                [qw, bh, wellSol(wellNo), ok] = wm.updateLimits(ws0, ws, resModel, qw, bh, packed, dt, iteration);
+                [qw, bh, ws, ok] = wm.updateLimits(ws0, ws, resModel, qw, bh, packed, dt, iteration);
                 if ~ok
                     bhp(i) = bh;
                     for phNo = 1:numel(qw)
