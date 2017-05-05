@@ -147,8 +147,9 @@ methods
             end
 
             dso = -(dsg + dsw);
+            nPh = nnz(model.getActivePhases());
 
-            ds = zeros(numel(so), numel(saturations));
+            ds = zeros(numel(so), nPh);
             phIndices = model.getPhaseIndices();
             if model.water
                 ds(:, phIndices(1)) = dsw;
