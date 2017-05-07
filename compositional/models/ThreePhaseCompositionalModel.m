@@ -5,6 +5,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
         EOSNonLinearSolver
         dzMaxAbs
         incTolPressure
+        fugacityTolerance
     end
     
     methods
@@ -29,6 +30,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             
             model.nonlinearTolerance = 0.01;
             model.incTolPressure = 1e-3;
+            model.fugacityTolerance = 1e-3;
             
             model.water = true;
             model.oil = true;
@@ -337,12 +339,18 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
 
                 [conv_wells, v_wells, namesWell, isWell] = ...
                     model.FacilityModel.checkFacilityConvergence(problem);
-                v_cells = values(~isWell);
+                
+                isFugacity = strcmpi(problem.types, 'fugacity');
+                rest = ~(isWell | isFugacity);
+                v_cells = values(rest);
+                v_f = values(isFugacity);
                 
                 conv_cells = v_cells <= model.nonlinearTolerance;
-                convergence = [conv_cells, conv_wells];
-                values = [v_cells, v_wells];
-                names = horzcat(names(~isWell), namesWell);
+                conv_f = v_f <= model.fugacityTolerance;
+
+                convergence = [conv_cells, conv_f, conv_wells];
+                values = [v_cells, v_f, v_wells];
+                names = horzcat(names(rest), names(isFugacity), namesWell);
             else
                 [convergence, values, names] = checkConvergence@ReservoirModel(model, problem, varargin{:});
             end 
