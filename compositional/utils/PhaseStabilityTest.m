@@ -1,11 +1,11 @@
-function [stable, x, y, L_stable, V_stable] = PhaseStabilityTest(eos, z, p, T)
+function [stable, x, y] = PhaseStabilityTest(eos, z, p, T)
     z = ensureMinimumFraction(z);
-
     [y, S_V, isTrivialV] = checkStability(eos, z, p, T, true);
-    [x, S_L, isTrivialL] = checkStability(eos, z, p, T, false);
-    
-    L_stable = S_L <= 1 | isTrivialL;
     V_stable = S_V <= 1 | isTrivialV;
+    
+    [x, S_L, isTrivialL] = checkStability(eos, z, p, T, false, V_stable);
+    L_stable = S_L <= 1 | isTrivialL;
+    
     stable = (L_stable & V_stable);
     
     bad = ~isfinite(S_L);
@@ -22,19 +22,25 @@ function [stable, x, y, L_stable, V_stable] = PhaseStabilityTest(eos, z, p, T)
     end
 end
 
-function [xy, S, trivialSolution] = checkStability(eos, z, p, T, insidePhaseIsVapor)
+function [xy, S, trivialSolution, K] = checkStability(eos, z, p, T, insidePhaseIsVapor, active)
+    nc = numel(p);
+    if nargin < 6
+        active = true(nc, 1);
+    end
+    tol_trivial = 1e-5;
+    tol_equil = 1e-11;
+
     ncomp = numel(z);
-    f_z = getFugacity(eos, z, p, T, insidePhaseIsVapor);
+    [A_ij, Bi] = eos.getMixingParameters(p, T, eos.fluid.acentricFactors);
+    
+    f_z = getFugacity(eos, A_ij, Bi, z, p, T, insidePhaseIsVapor);
     K = EstimateEquilibriumWilson(eos, p, T);
     % xy is either x or y, depending on context for phase test
     xy_loc = cell(1, ncomp);
-    xy = cell(1, ncomp);
-    nc = numel(p);
-    [xy{:}] = deal(zeros(nc, 1));
-    active = true(nc, 1);
+    xy = z;    
     S = zeros(nc, 1);
     trivialSolution = false(nc, 1);
-    for stepNo = 1:100
+    for stepNo = 1:10000
         S_loc = 0;
         for i = 1:ncomp
             zi = z{i}(active);
@@ -49,7 +55,9 @@ function [xy, S, trivialSolution] = checkStability(eos, z, p, T, insidePhaseIsVa
         for i = 1:ncomp
             xy_loc{i} = xy_loc{i}./S_loc;
         end
-        f_xy = getFugacity(eos, xy_loc, p(active), T(active), ~insidePhaseIsVapor);
+        A_ij_loc = cellfun(@(x) x(active), A_ij, 'UniformOutput', false);
+        Bi_loc = cellfun(@(x) x(active), Bi, 'UniformOutput', false);
+        f_xy = getFugacity(eos, A_ij_loc, Bi_loc, xy_loc, p(active), T(active), ~insidePhaseIsVapor);
         
         R = cell(ncomp, 1);
         R_norm = 0;
@@ -66,8 +74,8 @@ function [xy, S, trivialSolution] = checkStability(eos, z, p, T, insidePhaseIsVa
             K_norm = K_norm + (log(K{i}(active))).^2;
         end
         
-        trivial = K_norm < 1e-5;
-        converged = R_norm < 1e-10;
+        trivial = K_norm < tol_trivial;
+        converged = R_norm < tol_equil;
         done = trivial | converged;
         S(active) = S_loc;
         trivialSolution(active) = trivial;
@@ -76,9 +84,13 @@ function [xy, S, trivialSolution] = checkStability(eos, z, p, T, insidePhaseIsVa
         end
         active(active) = ~done;
         if all(done)
+            fprintf('Stability done in %d iterations\n', stepNo);
             break
         end
         
+    end
+    if ~all(done)
+        warning('Stability test did not converge');
     end
 end
 
@@ -97,8 +109,7 @@ function K = EstimateEquilibriumWilson(eos, p, T)
     
 end
 
-function f = getFugacity(model, xy, p, T, isLiquid)
-    [A_ij, Bi] = model.getMixingParameters(p, T, model.fluid.acentricFactors);
+function f = getFugacity(model, A_ij, Bi, xy, p, T, isLiquid)
     [Si, A, B] = model.getPhaseMixCoefficients(xy, A_ij, Bi);
     if isLiquid
         Z = model.computeLiquidZ(A, B);
