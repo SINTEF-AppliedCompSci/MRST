@@ -22,7 +22,11 @@ function checkComponentMassBalance(model, state0, states, schedule, n)
     
     rhoO0 = model.EOSModel.computeDensity(state0.pressure, state0.x, state0.Z_L, state0.T);
     rhoG0 = model.EOSModel.computeDensity(state0.pressure, state0.y, state0.Z_V, state0.T);
-
+    for i = 1:numel(states)
+        if ~isfield(states{i}, 'rho')
+            states{i} = computeDensities(model, states{i});
+        end
+    end
     watOffset = model.water;
     
     [oilMass, oilMass0, gasMass, gasMass0, injMass, prodMass] = deal(0);
@@ -87,6 +91,16 @@ function d = getWellComponent(ws, compix)
     end
 end
 
+function state = computeDensities(model, state)
+    rhoO = model.EOSModel.computeDensity(state.pressure, state.x, state.Z_L, state.T);
+    rhoG = model.EOSModel.computeDensity(state.pressure, state.y, state.Z_V, state.T);
+    
+    if model.water
+        state.rho = [model.fluid.rhoWS.*model.fluid.bW(state.pressure), rhoO, rhoG];
+    else
+        state.rho = [rhoO, rhoG];
+    end
+end
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
