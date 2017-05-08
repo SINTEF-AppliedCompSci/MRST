@@ -17,7 +17,7 @@ J. M. Nordbotten: Convergence of a cell-centered finite volume discretization
    for linear elasticity - SIAM J. Numer. Anal. 53(2) 2605-2625.
 
 E. Keilegavlen, J. M. Nordbotten: Finite volume methods for elasticity with weak
-   symmetry, arXiv:1512.01042
+   symmetry - Int. J. Num. Meth. Eng, 2017, doi: 10.1002/nme.5538.
    
 The implementation of elasticity is based on the forumlation described in the latter. 
 For information on the MPFA discretizations for the flow equation, see 
