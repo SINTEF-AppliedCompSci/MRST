@@ -1,7 +1,6 @@
 function [problem, state] = equationsOilWaterSolvent(state0, state, model, dt, ...
                                                      drivingForces, varargin)
-                                                 
-                                                 
+                                              
 opt = struct('Verbose', mrstVerbose, ...
              'reverseMode', false,...
              'resOnly', false,...
@@ -15,23 +14,14 @@ s = model.operators;
 
 % Properties at current timestep
 [p, sW, sO, wellSol] = model.getProps(state, 'pressure', 'water', ...
-    'oil', 'wellSol');
+                                                         'oil', 'wellSol');
 
 % Properties at previous timestep
 [p0, sW0, sO0, wellSol0] = model.getProps(state0, 'pressure', 'water', ...
-   'oil', 'wellSol');
+                                                         'oil', 'wellSol');
 
 [qWell, bhp, wellVars, wellVarNames, wellMap] = ...
-    model.FacilityModel.getAllPrimaryVariables(wellSol);
-% qWell = {vertcat(wellSol.qWs), vertcat(wellSol.qOs), vertcat(wellSol.qSs)};
-% bhp = vertcat(wellSol.bhp);
-% wellVarNames = {'qWs', 'qOs', 'qSs', 'bhp'};
-% wellMap = zeros(2,0);
-
-
-
-
-
+                       model.FacilityModel.getAllPrimaryVariables(wellSol);
 
 if ~opt.resOnly
     if ~opt.reverseMode
@@ -56,19 +46,21 @@ sG  = 1 - sW  - sO ;
 sG0 = 1 - sW0 - sO0;
 
 % Get dynamic quantities
-[krW , krO , krG , ...
- muW , muO , muG , ...
- rhoW, rhoO, rhoG, ...
- bW  , bO  , bG  , ...
- bW0 , bO0 , bG0 , ...
- pvMult, transMult, mobMult, pvMult0, T] ...
-               = getDynamicQuantitiesOilWaterSolvent(model, p0, p, sW, sO, sG, sO0, sG0);
+[kr, mu, rho, b, b0, pvMult, pvMult0, T] ...
+    = getDynamicQuantitiesOilWaterSolvent(model, p0, p, sW, sO, sG, sO0, sG0);
+
+krW  = kr{1} ; krO  = kr{2} ; krG  = kr{3} ;
+rhoW = rho{1}; rhoO = rho{2}; rhoG = rho{3};
+muW  = mu{1} ; muO  = mu{2} ; muG  = mu{3} ;
+bW   = b{1}  ; bO   = b{2}  ; bG   = b{3}  ;
+bW0  = b0{1} ; bO0  = b0{2} ; bG0  = b0{3} ;
 
 gdz = model.getGravityGradient();
 op = model.operators;
-[vW, mobW, upcW] = getFlux_W(p, rhoW, krW, muW, T, gdz, op);
-[vO, mobO, upcO] = getFlux_W(p, rhoO, krO, muO, T, gdz, op);
-[vG, mobG, upcG] = getFlux_W(p, rhoG, krG, muG, T, gdz, op);
+
+[vW, mobW, upcW] = getFlux(p, rhoW, krW, muW, T, gdz, op);
+[vO, mobO, upcO] = getFlux(p, rhoO, krO, muO, T, gdz, op);
+[vG, mobG, upcG] = getFlux(p, rhoG, krG, muG, T, gdz, op);
 
 
 if model.outputFluxes
@@ -137,35 +129,13 @@ end
 
 %--------------------------------------------------------------------------
 
-function [v, mob, upc] = getFlux_W(p, rho, kr, mu, T, gdz, op)
+function [v, mob, upc] = getFlux(p, rho, kr, mu, T, gdz, op)
 
     rhof  = op.faceAvg(rho);
     mob   = kr./mu;
     dp    = op.Grad(p) - rhof.*gdz;
     
     upc  = (double(dp)<=0);
-    v   = - op.faceUpstr(upc, mob).*T.*dp;
-    
-end
-
-function [v, mob, upc] = getFlux_OS(p, rho, kr, mu, T, gdz, model)
-
-    op = model.operators;
-
-    rhof  = op.faceAvg(rho);
-    mob   = kr./mu;
-    dp    = op.Grad(p) - rhof.*gdz;
-    
-    upc  = (double(dp)<=0);
-
-    upCell       = op.N(:,2);
-    upCell(upc) = op.N(upc,1);
-    upCell = sparse((1:sz(1))', upCell, 1, sz(1), sz(2))*x;
-    
-    c = zeros(numel(upc),1);
-    c(upc) = op.N(upc, 1);
-    c(~upc) = op.N(~upc,2);
-    
     v   = - op.faceUpstr(upc, mob).*T.*dp;
     
 end

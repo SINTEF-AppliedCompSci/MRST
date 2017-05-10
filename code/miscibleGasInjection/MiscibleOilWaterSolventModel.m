@@ -1,11 +1,12 @@
-classdef OilWaterSolventModel2 < ThreePhaseBlackOilModel
-% Three phase with optional dissolved gas and vaporized oil
+classdef MiscibleOilWaterSolventModel < ThreePhaseBlackOilModel
+% Three phase miscible flood modeling. Gas is miscible with oil at all
+% proportions.
 properties
    
 end
 
 methods
-    function model = OilWaterSolventModel2(G, rock, fluid, varargin)
+    function model = MiscibleOilWaterSolventModel(G, rock, fluid, varargin)
         model = model@ThreePhaseBlackOilModel(G, rock, fluid, varargin{:});
     end
     
