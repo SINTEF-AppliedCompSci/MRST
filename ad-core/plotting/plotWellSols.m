@@ -77,7 +77,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         % Single input, wrap in cell
         wellsols = {wellsols};
     end
-    
+    warning('ON', 'mrst:badcumsum');
     timesteps = validateTimesteps(wellsols, timesteps);
     
     % Timesteps are either cumulative or individual timesteps. Try to
@@ -552,8 +552,9 @@ function [tit, d, yl, doCsum] = getWellUnit(d, fld, usys, isCsum, hasTimesteps)
         t_unt = 1;
         t_str = 'timestep';
         if isCsum
-            warning(['Timesteps not provided to plotWellSols,', ...
+            warning('mrst:badcumsum', ['Timesteps not provided to plotWellSols,', ...
                     ' cumulative sum will not be accurate']);
+            warning('OFF', 'mrst:badcumsum');
         end
     end
     
