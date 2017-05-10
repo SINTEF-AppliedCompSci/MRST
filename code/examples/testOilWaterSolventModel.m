@@ -9,13 +9,13 @@ rock = makeRock(G, 1, 1);
 fluid = initSimpleADIFluid('n'     , [2, 2, 2], ...
                            'rho'   , [1000, 800, 100]*kilogram/meter^3, ...
                            'phases', 'WOG', ...
-                           'mu'    , [1, 10, 0.1]*centi*poise);
+                           'mu'    , [1, 10, 1]*centi*poise);
 
 sres = 0;      
-fluid.krO = coreyPhaseRelpermAD(2, sres, 1, sres);
-fluid.sOres = sres;
+% fluid.krO = coreyPhaseRelpermAD(2, sres, 1, sres);
+fluid.sOres = 0;
 fluid.sGres = 0;
-fluid.mixPar = 0;
+fluid.mixPar = 1;
 
 model = OilWaterSolventModel2(G, rock, fluid);
 
@@ -33,6 +33,9 @@ W = [];
 
 W = addWell(W, G, rock, 1, 'comp_i', [0, 0, 1], 'type', 'rate', 'val', injRate);
 W = addWell(W, G, rock, G.cells.num, 'comp_i', [0, 0, 1], 'type', 'bhp' , 'val', 0      );
+
+% W(1).dZ = 0;
+% W(2).dZ = 0;
 
 state0 = initResSol(G, 100*barsa, [0 1 0]);
 state0.wellSol = initWellSolAD(W, model, state0);
