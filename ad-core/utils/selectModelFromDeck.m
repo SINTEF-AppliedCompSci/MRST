@@ -65,6 +65,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         model = ThreePhaseBlackOilModel(G, rock, fluid, 'inputdata', deck, varargin{:});
     elseif hasoil && haswat
         model = TwoPhaseOilWaterModel(G, rock, fluid, 'inputdata', deck, varargin{:});
+    elseif haswat && hasgas
+        require co2lab
+        model = twoPhaseGasWaterModel(G, rock, fluid, nan, nan, 'inputdata', deck, varargin{:});
     else
         error('Did not find matching model');
     end

@@ -241,13 +241,19 @@ methods
         dt_steps = schedule.step.val;
 
         current = getState(itNo);
-        before    = getState(itNo - 1);
+        before    = getState(itNo - 1);        
         dt = dt_steps(itNo);
 
         lookupCtrl = @(step) schedule.control(schedule.step.control(step));
         % get forces and merge with valid forces
         forces = model.getDrivingForces(lookupCtrl(itNo));
         forces = merge_options(validforces, forces{:});
+        model = model.validateModel(forces);
+        
+        % Initial state typically lacks wellSol-field, so add if needed
+        if itNo == 1
+            before = model.validateState(before);
+        end
         
         problem = model.getAdjointEquations(before, current, dt, forces, 'iteration', inf);
 

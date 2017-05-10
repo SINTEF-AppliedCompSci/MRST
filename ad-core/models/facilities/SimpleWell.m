@@ -190,6 +190,7 @@ classdef SimpleWell < PhysicalModel
         end
         
         function [q_s, bhp, wellSol, withinLimits] = updateLimits(well, wellSol0, wellSol, model, q_s, bhp, wellvars, p, mob, rho, dissolved, comp, dt, iteration)
+            withinLimits = true;
             if ~well.allowControlSwitching
                 % We cannot change controls, so we return
                 return
@@ -261,8 +262,6 @@ classdef SimpleWell < PhysicalModel
                 fprintf('Well %s: Control mode changed from %s to %s.\n', wellSol.name, wellSol.type, switchMode);
                 wellSol.type = switchMode;
                 wellSol.val  = lims.(switchMode);
-            else
-                withinLimits = true;
             end
             
             if ~withinLimits

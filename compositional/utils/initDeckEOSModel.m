@@ -3,7 +3,12 @@ function model = initDeckEOSModel(deck)
     names = deck.PROPS.CNAMES;
     Tcrit = deck.PROPS.TCRIT';
     Pcrit = deck.PROPS.PCRIT';
-    Vcrit = deck.PROPS.VCRIT';
+    if isfield(deck.PROPS, 'VCRIT')
+        Vcrit = deck.PROPS.VCRIT';
+    else
+        R = 8.3144598;
+        Vcrit = R*deck.PROPS.ZCRIT'.*Tcrit./Pcrit;
+    end
     acf   = deck.PROPS.ACF';
     mw    = deck.PROPS.MW';
     

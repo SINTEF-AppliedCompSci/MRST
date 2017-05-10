@@ -101,6 +101,17 @@ classdef FacilityModel < PhysicalModel
             % Compute number of wells in facility
             nwell = numel(model.WellModels);
         end
+        function actIx = getIndicesOfActiveWells(model)
+            % Compute number of wells in facility
+            act = model.getWellStatusMask();
+            actIx = (1:numel(act))';
+            actIx = actIx(act);
+        end
+
+        function act = getWellStatusMask(model)
+            % Compute number of wells in facility
+            act = cellfun(@(x) x.W.status, model.WellModels);
+        end
 
         function names = getPrimaryVariableNames(model)
             % This includes both the basic variables, and the variables
@@ -122,6 +133,10 @@ classdef FacilityModel < PhysicalModel
                 [rates, names] = deal({});
                 bhp = [];
             else
+                % Take the active wellSols
+                active = model.getWellStatusMask();
+                wellSol = wellSol(active);
+                % Get number of phases
                 actPh = model.ReservoirModel.getActivePhases();
                 bhp = vertcat(wellSol.bhp);
                 qWs = vertcat(wellSol.qWs);
@@ -138,7 +153,8 @@ classdef FacilityModel < PhysicalModel
             % Extra primary variables are variables required by more
             % advanced wells that are in addition to the basic facility
             % variables (rates + bhp).
-            nw = model.getNumberOfWells();
+            actIx = model.getIndicesOfActiveWells();
+            nw = numel(actIx);
             if nw == 0
                 [variables, names, wellmap] = deal({});
                 return
@@ -151,7 +167,8 @@ classdef FacilityModel < PhysicalModel
             if nv > 0
                 all_ix = (1:nv)';
                 for i = 1:nw
-                    [v, n] = model.WellModels{i}.getExtraPrimaryVariables(wellSol(i), model.ReservoirModel);
+                    wno = actIx(i);
+                    [v, n] = model.WellModels{wno}.getExtraPrimaryVariables(wellSol(wno), model.ReservoirModel);
 
                     for j = 1:numel(v)
                         % Map into array of added primary variables
@@ -159,7 +176,6 @@ classdef FacilityModel < PhysicalModel
                         wellmap(i, j) = all_ix(ix);
                         vars{i, ix} = v{j};
                     end
-
                 end
             end
 
@@ -183,15 +199,22 @@ classdef FacilityModel < PhysicalModel
                 warning(['Iteration number is not passed on to well model,', ...
                          'this may indicate wellbore pressure-drop will never be updated']);
             end
-
-            nw = model.getNumberOfWells();
-
+            actWellIx = model.getIndicesOfActiveWells();
+            nw = numel(actWellIx);
+            
+            % Stores base well equations describing reservoir coupling
             allBaseEqs = cell(nw, 1);
+            % Control equations ensure that we enforce constraints
             allCtrl = cell(nw, 1);
+            % Volumetric phase source terms
             allVol = cell(nw, 1);
+            % Mass phase source terms
             allMass = cell(nw, 1);
+            % Composition source terms
             allComp = cell(nw, 1);
 
+            % Get the additional equations not implemented in the minimal
+            % "SimpleWell" class.
             enames = model.addedEquationNames;
             etypes = model.addedEquationTypes;
             cnames = model.ReservoirModel.getComponentNames();
@@ -201,7 +224,7 @@ classdef FacilityModel < PhysicalModel
             assert(numel(etypes) == n_extra);
 
             allExtraEqs = cell(nw, n_extra);
-
+            resModel = model.ReservoirModel;
 
             addedVars = model.addedPrimaryVarNames;
             varmaps = cell(1, numel(addedVars));
@@ -209,18 +232,21 @@ classdef FacilityModel < PhysicalModel
                 varmaps{varNo} = model.getWellVariableMap(addedVars{varNo});
             end
 
-            [basenames, basetypes] = model.WellModels{1}.getWellEquationNames(model.ReservoirModel);
+            [basenames, basetypes] = model.WellModels{1}.getWellEquationNames(resModel);
             for i = 1:nw
-                wm = model.WellModels{i};
-
+                wellNo = actWellIx(i);
+                wm = model.WellModels{wellNo};
+                ws = wellSol(wellNo);
+                ws0 = wellSol0(wellNo);
+                
                 W = wm.W;
                 packed = packPerforationProperties(W, p, mob, rho, dissolved, comp, wellvars, addedVars, varmaps, wellMap, i);
                 qw = cellfun(@(x) x(i), qWell, 'uniformoutput', false);
                 bh = bhp(i);
                 % Update pressure
-                wellSol(i) = wm.updateConnectionPressureDrop(wellSol0(i), wellSol(i), model.ReservoirModel, qw, bh, packed, dt, iteration);
+                ws = wm.updateConnectionPressureDrop(ws0, ws, resModel, qw, bh, packed, dt, iteration);
                 % Update limits
-                [qw, bh, wellSol(i), ok] = wm.updateLimits(wellSol0(i), wellSol(i), model.ReservoirModel, qw, bh, packed, dt, iteration);
+                [qw, bh, ws, ok] = wm.updateLimits(ws0, ws, resModel, qw, bh, packed, dt, iteration);
                 if ~ok
                     bhp(i) = bh;
                     for phNo = 1:numel(qw)
@@ -228,13 +254,13 @@ classdef FacilityModel < PhysicalModel
                     end
                 end
                % Set up well equations and phase source terms
-               [allBaseEqs{i}, allCtrl{i}, extraEqs, extraNames, allMass{i}, allVol{i}, wellSol(i)] =...
-                   wm.computeWellEquations(wellSol0(i), wellSol(i), model.ReservoirModel, qw, bh, packed, dt, iteration);
+               [allBaseEqs{i}, allCtrl{i}, extraEqs, extraNames, allMass{i}, allVol{i}, ws] =...
+                   wm.computeWellEquations(ws0, ws, resModel, qw, bh, packed, dt, iteration);
 
                % Get component source terms and corresponding equations (if
                % any components are present)
-               [compEqs, allComp{i}, compNames, wellSol(i)] =...
-                   wm.computeComponentContributions(wellSol0(i), wellSol(i), model.ReservoirModel, qw, bh, packed, allMass{i}, allVol{i}, dt, iteration);
+               [compEqs, allComp{i}, compNames, ws] =...
+                   wm.computeComponentContributions(ws0, ws, resModel, qw, bh, packed, allMass{i}, allVol{i}, dt, iteration);
 
                extraEqs = {extraEqs{:}, compEqs{:}};
                extraNames = {extraNames{:}, compNames{:}};
@@ -244,11 +270,12 @@ classdef FacilityModel < PhysicalModel
                    ix = strcmpi(enames, extraNames{eqNo});
                    allExtraEqs{i, ix} = extraEqs{eqNo};
                end
+               wellSol(wellNo) = ws;
             end
             % We have assembled all equations for each well. Combine the
             % equations from the different wells into one (array) of each
             % type.
-            nPh = nnz(model.ReservoirModel.getActivePhases);
+            nPh = nnz(resModel.getActivePhases);
             [srcMass, srcVol, eqs] = deal(cell(1, nPh));
             for phNo = 1:nPh
                 srcMass{phNo} = combineCellData(allMass, phNo);
@@ -274,7 +301,7 @@ classdef FacilityModel < PhysicalModel
             eqs = {eqs{:}, extraEqs{:}};
             ctrleq = vertcat(allCtrl{:});
 
-            wc = model.getWellCells;
+            wc = model.getActiveWellCells();
             [wc, srcMass, srcVol] = model.handleRepeatedPerforatedcells(wc, srcMass, srcVol);
             wellSystem = struct('wellEquations', {eqs}, ...
                                 'names',  {names}, ...
@@ -301,10 +328,19 @@ classdef FacilityModel < PhysicalModel
             c = cellfun(@(x) x.W.cells, model.WellModels, 'UniformOutput', false);
             wc = vertcat(c{:});
         end
-
+        
+        function wc = getActiveWellCells(model)
+            c = cellfun(@(x) x.W.cells, model.WellModels, 'UniformOutput', false);
+            active = model.getWellStatusMask();
+            wc = vertcat(c{active});
+        end
+        
         function ws = setWellSolStatistics(model, ws, sources)
             % Store extra output, typically black oil-like
             p2w = getPerforationToWellMapping(model.getWellStruct());
+            % Map into active wells
+            active = model.getWellStatusMask();
+            p2w = p2w(active(p2w));
             
             gind = model.ReservoirModel.getPhaseIndex('G');
             oind = model.ReservoirModel.getPhaseIndex('O');
@@ -312,6 +348,9 @@ classdef FacilityModel < PhysicalModel
             srcRes = cellfun(@double, sources.phaseVolume, 'UniformOutput', false);
             qR = [srcRes{:}];
             for i = 1:numel(ws)
+                if ~active(i)
+                    continue
+                end
                 % Store reservoir fluxes and total fluxes
                 ws(i).qTs = 0;
                 ws(i).qTr = 0;
@@ -369,40 +408,46 @@ classdef FacilityModel < PhysicalModel
                 return
             end
             wellVars = model.getPrimaryVariableNames();
-            resModel = model.ReservoirModel;
 
             nVars = numel(wellVars);
-            nW = numel(wellSol);
+            actIx = model.getIndicesOfActiveWells();
+            nW = numel(actIx);
             activeVars = false(nW, nVars);
             dx_well = cell(nW, nVars);
+            % Loop over all possible well variables
             for varNo = 1:nVars
                 wf = wellVars{varNo};
                 if any(strcmp(restVars, wf))
                     dv = model.getIncrement(dx, problem, wf);
 
                     isVarWell = model.getWellVariableMap(wf);
-                    for wNo = 1:numel(wellSol)
-                        subs = isVarWell == wNo;
+                    for i = 1:nW
+                        % Check if this well has this specific variable as
+                        % a primary variable.
+                        subs = isVarWell == i;
                         if any(subs)
-                            activeVars(wNo, varNo) = true;
-                            dx_well{wNo, varNo} = dv(subs);
+                            activeVars(i, varNo) = true;
+                            dx_well{i, varNo} = dv(subs);
                         end
                     end
                     % Field is taken care of
                     restVars = model.stripVars(restVars, wf);
                 end
             end
-            for wNo = 1:numel(wellSol)
-                act = activeVars(wNo, :);
-                dxw = dx_well(wNo, act);
+            for i = 1:nW
+                % Finally, update the actual wellSols using the extracted
+                % increments per well.
+                wNo = actIx(i);
+                act = activeVars(i, :);
+                dxw = dx_well(i, act);
                 wellSol(wNo) = model.WellModels{wNo}.updateWellSol(wellSol(wNo), wellVars(act), dxw);
             end
         end
 
         function isVarWell = getWellVariableMap(model, wf)
-            nw = model.getNumberOfWells();
-            counts = cellfun(@(x) x.getVariableCounts(wf), model.WellModels);
-            isVarWell = rldecode((1:nw)', counts);
+            act = model.getWellStatusMask();
+            counts = cellfun(@(x) x.getVariableCounts(wf), model.WellModels(act));
+            isVarWell = rldecode((1:nnz(act))', counts);
         end
 
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
@@ -453,6 +498,11 @@ classdef FacilityModel < PhysicalModel
         function [state, report] = updateState(model, state, problem, dx, drivingForces)
             if isfield(state, 'wellSol')
                 state.wellSol = model.updateWellSol(state.wellSol, problem, dx, drivingForces);
+                % Handle the directly assigned values (i.e. can be deduced directly from
+                % the well controls.
+                W = drivingForces.W;
+                phIndices = model.ReservoirModel.getPhaseIndices();
+                state.wellSol = assignWellValuesFromControl(model.ReservoirModel, state.wellSol, W, phIndices(1), phIndices(2), phIndices(3));
             end
             report = [];
         end

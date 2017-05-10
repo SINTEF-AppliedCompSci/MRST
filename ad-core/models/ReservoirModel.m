@@ -142,7 +142,6 @@ methods
         model.toleranceCNV = 1e-3;
         model.toleranceMB = 1e-7;
 
-        model.saturationVarNames = {'sw', 'so', 'sg'};
         model.componentVarNames  = {};
 
         model.extraStateOutput = false;
@@ -160,7 +159,7 @@ methods
         
         if doSetup
             if isempty(G) || isempty(model.rock)
-                dispif(model.verbose, 'mrst:ReservoirModel', ...
+                dispif(model.verbose, ...
                     'Invalid grid/rock pair supplied. Operators have not been set up.')
             else
                 model.operators = setupOperatorsTPFA(G, model.rock, 'deck', model.inputdata);
@@ -180,6 +179,12 @@ methods
             model.checkProperty(state, 'Saturation', [nc, nPh], [1, 2]);
         end
         state = model.FacilityModel.validateState(state);
+    end
+    
+    function vars = getSaturationVarNames(model)
+        vars = {'sw', 'so', 'sg'};
+        ph = model.getActivePhases();
+        vars = vars(ph);
     end
 
     % --------------------------------------------------------------------%
@@ -329,7 +334,7 @@ methods
         % useful because the saturation variables usually are updated
         % together, and the well variables are a special case.
         wellvars = model.FacilityModel.getPrimaryVariableNames();
-        isSat   = cellfun(@(x) any(strcmpi(model.saturationVarNames, x)), vars);
+        isSat   = cellfun(@(x) any(strcmpi(model.getSaturationVarNames, x)), vars);
         isWells = cellfun(@(x) any(strcmpi(wellvars, x)), vars);
 
         wellVars = vars(isWells);
@@ -356,6 +361,15 @@ methods
         phNames = tmp(active);
     end
 
+    function phIndices = getPhaseIndices(model)
+        % Get the active phases in canonical ordering
+        w = model.water;
+        o = model.oil;
+        g = model.gas;
+        phIndices = [w, w+o, w+o+g];
+        phIndices(~model.getActivePhases) = -1;
+    end
+
     % --------------------------------------------------------------------%
     function i = getPhaseIndex(model, phasename)
         % Query the index of a phase ('W', 'O', 'G')
@@ -380,7 +394,7 @@ methods
         end
         % Solution variables should be saturations directly, find the missing
         % link
-        saturations = lower(model.saturationVarNames);
+        saturations = lower(model.getSaturationVarNames);
         fillsat = setdiff(saturations, lower(satVars));
         assert(numel(fillsat) == 1)
         fillsat = fillsat{1};
@@ -499,7 +513,7 @@ methods
     % --------------------------------------------------------------------%
     function i = satVarIndex(model, name)
         % Find the index of a saturation variable by name
-        i = find(strcmpi(model.saturationVarNames, name));
+        i = find(strcmpi(model.getSaturationVarNames, name));
     end
     
     % --------------------------------------------------------------------%

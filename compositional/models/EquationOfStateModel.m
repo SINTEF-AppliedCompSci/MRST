@@ -158,16 +158,14 @@ classdef EquationOfStateModel < PhysicalModel
             
             % Only apply calculations for cells that have not converged yet
             if iteration == 1
-                [stable, x0, y0, L_stable, V_stable] = PhaseStabilityTest(model, state.components, state.pressure, state.T);
-                L0(V_stable & stable) = 1;
-                L0(L_stable & stable) = 0;
-                
+                [stable, x0, y0] = PhaseStabilityTest(model, state.components, state.pressure, state.T);
                 acf = model.fluid.acentricFactors;
                 [Si_L, Si_V, A_L, A_V, B_L, B_V] = model.getMixtureFugacityCoefficients(P, T, x0, y0, acf);
                 % Solve EOS for each phase
                 Z0_L = model.computeLiquidZ(A_L, B_L);
                 Z0_V = model.computeVaporZ(A_V, B_V);
-
+                L0 = model.estimateSinglePhaseState(state.pressure, state.T, state.components, L0, stable);
+                
                 active = ~stable;
             else
                 active = ~state.eos.converged;
@@ -952,6 +950,24 @@ classdef EquationOfStateModel < PhysicalModel
             frac = cellfun(@(x) x./totMass, mass, 'UniformOutput', false);
         end
         
+        function L = estimateSinglePhaseState(model, p, T, z, L, stable)
+            z = cellfun(@(x) x(stable), z, 'UniformOutput', false);
+            p = p(stable);
+            T = T(stable);
+            
+            p_c = 0;
+            T_c = 0;
+            for i = 1:numel(z)
+                p_c = p_c + z{i}.*model.fluid.Pcrit(i);
+                T_c = T_c + z{i}.*model.fluid.Tcrit(i);
+            end
+            p0 = 0*atm;
+            T0 = 0;
+            dpdt = (p_c - p0)./(T_c - T0);
+            p_b = p0 + dpdt.*(T - T0);
+            L(stable) = double(p > p_b);
+        end
+
         function Z = setZDerivatives(model, Z, A, B, cellJacMap)
             % Z comes from the solution of a cubic equation of state, so
             % the derivatives are not automatically computed. By

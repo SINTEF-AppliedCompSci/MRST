@@ -77,10 +77,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         ws = initWellSolAD(schedule.control(1).W, model, state0);
         nc = numel(vertcat(W.cells));
         d = ones(nc, 1);
-        sources = {d, d, d};
+        sources.phaseVolume = {d, d, d};
+        sources.phaseVolume = sources.phaseVolume(model.getActivePhases());
         
-        model.wellmodel.W = W;
-        ws = model.wellmodel.updateWellSolStatistics(ws, sources, model);
+        model.FacilityModel = FacilityModel(model);
+        model.FacilityModel = model.FacilityModel.setupWells(W);
+        ws = model.FacilityModel.setWellSolStatistics(ws, sources);
 
         ws0 = {ws; ws};
         

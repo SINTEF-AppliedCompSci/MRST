@@ -183,11 +183,11 @@ if ~isempty(W)
     wflux_G = bGqG;
 
     if disgas
-        wflux_G = wflux_G + bOqO.*rs(wc);
+        wflux_G = wflux_G + ~isInj.*bOqO.*rs(wc);
     end
 
     if vapoil
-        wflux_O = wflux_O + bGqG.*rv(wc);
+        wflux_O = wflux_O + ~isInj.*bGqG.*rv(wc);
     end
 
     for i = 1:numel(W)

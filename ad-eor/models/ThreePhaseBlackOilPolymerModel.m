@@ -66,7 +66,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             model.usingShear = isfield(fluid, 'plyshearMult');
             model.usingShearLog = (isfield(fluid, 'plyshlog') && ~isfield(fluid, 'shrate'));
             model.usingShearLogshrate = (isfield(fluid, 'plyshlog') && isfield(fluid, 'shrate'));
-            model.wellVarNames = {'qWs', 'qOs', 'qGs', 'qWPoly', 'bhp'};
+            % model.wellVarNames = {'qWs', 'qOs', 'qGs', 'qWPoly', 'bhp'};
             model = merge_options(model, varargin{:});
         end
 
