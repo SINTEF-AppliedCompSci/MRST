@@ -1,5 +1,5 @@
 function [kr_eff, mu_eff, rho_eff, b_eff, b0_eff, pvMult, pvMult0, T] ...
-  = getDynamicQuantitiesOilWaterSolvent(model, p0, p, sW, sO, sG, sO0, sG0)
+  = getDynamicQuantitiesMiscibleOilWaterSolvent(model, p0, p, sW, sO, sG, sO0, sG0)
 
     fluid = model.fluid;
     op    = model.operators;
