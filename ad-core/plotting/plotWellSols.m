@@ -337,7 +337,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 [tit, d, yl, doCsum] ...
                     = getWellUnit(d, fld, ...
                                   getFieldString(unitsel, true), ...
-                                  get(csum,'Value'));
+                                  get(csum,'Value'), ...
+                                  hasTimesteps);
                 ylabel(yl);
                 if doCsum
                     d = cumtrapz(x*xunit, d);
@@ -524,7 +525,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 end
 
-function [tit, d, yl, doCsum] = getWellUnit(d, fld, usys, isCsum)
+function [tit, d, yl, doCsum] = getWellUnit(d, fld, usys, isCsum, hasTimesteps)
     isMetric = strcmpi(usys, 'si');
     isField = strcmpi(usys, 'field');
     
@@ -532,19 +533,28 @@ function [tit, d, yl, doCsum] = getWellUnit(d, fld, usys, isCsum)
     yl = '';
     tit = fld;
     
-    switch lower(usys)
-        case 'metric'
-            t_unt = day();
-            t_str = 'day';
-        case 'field'
-            t_unt = day();
-            t_str = 'day';
-        case 'si'
-            t_unt = second();
-            t_str = 's';
-        case 'lab'
-            t_unt = hour();
-            t_str = 'hour';
+    if hasTimesteps
+        switch lower(usys)
+            case 'metric'
+                t_unt = day();
+                t_str = 'day';
+            case 'field'
+                t_unt = day();
+                t_str = 'day';
+            case 'si'
+                t_unt = second();
+                t_str = 's';
+            case 'lab'
+                t_unt = hour();
+                t_str = 'hour';
+        end
+    else
+        t_unt = 1;
+        t_str = 'timestep';
+        if isCsum
+            warning(['Timesteps not provided to plotWellSols,', ...
+                    ' cumulative sum will not be accurate']);
+        end
     end
     
     switch lower(fld)
@@ -602,7 +612,7 @@ function [tit, d, yl, doCsum] = getWellUnit(d, fld, usys, isCsum)
                 d = convertTo(d, y_unit/t_unt);
                 yl = [y_str, '/', t_str];
             end
-            
+            doCsum = isCsum;
         case {'bhp', 'pressure'}
             tit = [fld, ': Bottom hole pressure'];
             [y_unit, yl] = getPressureUnit(usys);
