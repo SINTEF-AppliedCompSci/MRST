@@ -4,18 +4,19 @@ gravity reset on
 
 n = 10;
 G = computeGeometry(cartGrid([n,1,1]));
-rock = makeRock(G, 1, 1);
+rock = makeRock(G, 100*milli*darcy, 1);
 
 fluid = initSimpleADIFluid('n'     , [2, 2, 2], ...
+                           'c'     ,[1e-7, 1e-6, 1e-6]/barsa, ...
                            'rho'   , [1000, 800, 100]*kilogram/meter^3, ...
                            'phases', 'WOG', ...
                            'mu'    , [1, 10, 0.1]*centi*poise);
 
 sres = 0;      
-fluid.krO = coreyPhaseRelpermAD(2, sres, 1, sres);
+%fluid.krO = coreyPhaseRelpermAD(2, sres, 1, sres);
 fluid.sOres = sres;
 fluid.sGres = 0;
-fluid.mixPar = 0;
+fluid.mixPar = 1;
 
 model = OilWaterSolventModel2(G, rock, fluid);
 
@@ -64,7 +65,7 @@ state0 = statesS{end};
 [ws, statesW, reports] = simulateScheduleAD(state0, model, schedule);
 
 %%
-
+mrstModule add mrst-gui
 figure(1); clf
 states = cat(1,statesS, statesW);
 plotToolbar(G, states, 'plot1d', true)
