@@ -13,7 +13,7 @@ methods
     
     % --------------------------------------------------------------------%
     function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
-        [problem, state] = equationsOilWaterSolvent(state0, state, ...
+        [problem, state] = equationsMiscibleOilWaterSolvent(state0, state, ...
                 model, dt, drivingForces, varargin{:});
 
     end

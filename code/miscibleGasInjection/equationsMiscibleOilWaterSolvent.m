@@ -1,4 +1,4 @@
-function [problem, state] = equationsOilWaterSolvent(state0, state, model, dt, ...
+function [problem, state] = equationsMiscibleOilWaterSolvent(state0, state, model, dt, ...
                                                      drivingForces, varargin)
                                               
 opt = struct('Verbose', mrstVerbose, ...
@@ -47,7 +47,7 @@ sG0 = 1 - sW0 - sO0;
 
 % Get dynamic quantities
 [kr, mu, rho, b, b0, pvMult, pvMult0, T] ...
-    = getDynamicQuantitiesOilWaterSolvent(model, p0, p, sW, sO, sG, sO0, sG0);
+    = getDynamicQuantitiesMiscibleOilWaterSolvent(model, p0, p, sW, sO, sG, sO0, sG0);
 
 krW  = kr{1} ; krO  = kr{2} ; krG  = kr{3} ;
 rhoW = rho{1}; rhoO = rho{2}; rhoG = rho{3};
