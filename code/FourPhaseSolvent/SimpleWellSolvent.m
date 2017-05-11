@@ -2,7 +2,7 @@ classdef SimpleWellSolvent < SimpleWell
     
     methods
         function well = SimpleWellSolvent(W, varargin)
-            well = well@SimpleWell(W, 'allowControlSwitching', false, varargin{:});
+            well = well@SimpleWell(W, varargin{:});
         end
         
         function [names, types] = getWellEquationNames(well, resmodel)
@@ -75,6 +75,32 @@ classdef SimpleWellSolvent < SimpleWell
                 error(['Problem with topology for well: ', wellSol.name, '. Segments appear not to be connected'])
             end
             wellSol.cdp = cdp;
+        end
+        
+        function [wellSol, well_shut] = updateWellSolAfterStep(well, resmodel, wellSol)
+            w = well.W;
+            % Check if producers are becoming injectors and vice versa. The indexes
+            % of such wells are stored in inx.
+            wsg = w.sign;
+            ssg = sign(getTotalRate(wellSol));
+            closed = wsg ~= ssg;
+            % A well can be set to zero rate without beeing shut down. We update inx
+            % to take into account this fact.
+            closed = closed & ~strcmpi(w.type, 'bhp') & w.val ~= 0;
+            if closed && ~well.allowSignChange && well.allowControlSwitching
+                fprintf('Well %s shut down.\n', w.name);
+                wellSol.status = false;
+                well_shut = true;
+            else
+                well_shut = false;
+            end
+            
+            switched = ~strcmpi(wellSol.type, w.type);
+            if switched
+                fprintf('Well %s has switched from %s to %s.\n', w.name, ...
+                                                                 w.type, ...
+                                                                 wellSol.type);
+            end
         end
         
         
