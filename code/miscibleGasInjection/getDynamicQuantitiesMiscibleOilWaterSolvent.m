@@ -107,21 +107,20 @@ function rho_eff = calculateDensities(fluid, p, mu_eff, sO, sG, sN)
     tol = 1e-10;
     eq = abs(muO - muG) < tol;
     
-    rhoO_eff = rhoO.*sR_Oeff + rhoG.*(1 - sR_Oeff).*(~eq) ...
-                                       + (1-omega).*rhoO + omega.*rhoM.*eq;
-    rhoG_eff = rhoO.*sR_Geff + rhoG.*(1 - sR_Geff).*(~eq) ...
-                                       + (1-omega).*rhoG + omega.*rhoM.*eq;
+    rhoW_eff = fluid.bW(p).*fluid.rhoWS; 
+    rhoO_eff = (rhoO.*sR_Oeff + rhoG.*(1 - sR_Oeff)).*(~eq) ...
+                                     + ((1-omega).*rhoO + omega.*rhoM).*eq;
+    rhoG_eff = (rhoO.*sR_Geff + rhoG.*(1 - sR_Geff)).*(~eq) ...
+                                     + ((1-omega).*rhoG + omega.*rhoM).*eq;
     
-    rhoW_eff = fluid.bW(p).*fluid.rhoWS;
-
     rho_eff = {rhoW_eff, rhoO_eff, rhoG_eff};
     
 end
 
 function b_eff = calculateFormationVolumeFactors(fluid, p, rho_eff)
 
-    rhoO_eff = rho_eff{1};
-    rhoG_eff = rho_eff{2};
+    rhoO_eff = rho_eff{2};
+    rhoG_eff = rho_eff{3};
 
     bW_eff = fluid.bW(p);
     bO_eff = rhoO_eff./fluid.rhoOS;

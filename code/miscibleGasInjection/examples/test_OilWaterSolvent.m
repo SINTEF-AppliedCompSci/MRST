@@ -39,6 +39,14 @@ state0.wellSol = initWellSolAD(W, model, state0);
 
 %%
 
+mrstModule add mrst-gui
+
+figure(1); clf
+plotToolbar(G, statesS, 'plot1d', true)
+ylim([0 1]);
+
+%%
+
 W = [];
 W = addWell(W, G, rock, 1, 'comp_i', [1, 0, 0], 'type', 'rate', 'val', injRate);
 W = addWell(W, G, rock, G.cells.num, 'comp_i', [0, 0, 1], 'type', 'bhp' , 'val', 0      );
@@ -50,12 +58,6 @@ state0.wellSol = initWellSolAD(W, model, state0);
 [wsW, statesW, reportsW] = simulateScheduleAD(state0, model, schedule);
 
 %%
-
-mrstModule add mrst-gui
-
-figure(1); clf
-plotToolbar(G, statesS, 'plot1d', true)
-ylim([0 1]);
 
 figure(2); clf
 plotToolbar(G, statesW, 'plot1d', true)
