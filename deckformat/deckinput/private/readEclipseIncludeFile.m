@@ -63,27 +63,33 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    if ischar(lin),
       lin = strtrim(lin);
 
-      if any(lin == ''''),
-         if sum(lin == '''') ~= 2,
+      quotes = strfind(lin, '''');
+
+      if ~isempty(quotes)
+         % There is a quoted substring somewhere in 'lin'.  Extract that
+         % substring if possible (i.e., if correctly delimited.)
+         if numel(quotes) ~= 2
             fclose(fid);
-            error('INCLUDE argument not correctly delimited.');
+            error('INCLUDE argument (%s) not correctly delimited.', lin);
          end
 
-         % Extract path-name portion of INCLUDE argument.
-         inc_fn = regexprep(lin, '.*''([^'']+)''.*', '$1');
+         % Extract pathname portion of INCLUDE argument.
+         inc_fn = lin((quotes(1) + 1) : (quotes(2) - 1));
       else
+         % Extract first (hopefully only) non-blank portion of 'lin'.
          inc_fn = sscanf(lin, '%s');
       end
 
-      p = find(lin == '/', 1, 'last');
-      if isempty(p),
+      p = strfind(lin, '/');
+      if isempty(p)
          terminated = false;
       else
-         terminated = p == numel(lin) || isspace(lin(p + 1));
+         p = p(end);
+         terminated = (p == numel(lin)) || isspace(lin(p + 1));
       end
    end
 
-   if inc_fn(end) == '/', inc_fn = inc_fn(1 : end - 1); end
+   if strcmp(inc_fn(end), '/'), inc_fn = inc_fn(1 : end - 1); end
 
    % Gobble up keyword-closing '/' character if not already read.
    if ~terminated,
@@ -92,7 +98,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
       slash = fscanf(fid, '%s', 1);  % Possibly too weak.
 
-      if ~strcmp(slash, '/'),
+      if ~strcmp(slash, '/')
          fclose(fid);
          error(msgid('Include:WrongfulTermination'), ...
               ['INCLUDE keyword not correctly terminated at ', ...
@@ -100,8 +106,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       end
    end
 
-   inc_fn(inc_fn == '/') = filesep;  % FILESEP is always a single char.
-   if inc_fn(1) ~= filesep,
+   if ~isempty(regexp(inc_fn, regexptranslate('escape', '\'), 'once'))
+      % The filename has Windows-style directory name separators.
+      % Guarantee forward slashes only.
+      inc_fn = regexprep(inc_fn, regexptranslate('escape', '\'), '/');
+   end
+
+   % Replace forward slashes with native directory name separators (no
+   % change on Unix/Linux/MacOS X).
+   inc_fn = regexprep(inc_fn, '/', filesep);
+
+   if ~strcmp(inc_fn(1), filesep)
       % Translate relative pathname to absolute pathname.
       inc_fn = fullfile(dirname, inc_fn);
    end
