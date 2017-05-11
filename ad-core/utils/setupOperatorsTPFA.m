@@ -150,8 +150,8 @@ s.pv = pv;
 
 % C - (transpose) divergence matrix
 nf = size(N,1);
-nc=numel(s.pv);
-C  = sparse( [(1:n)'; (1:n)'], N, ones(n,1)*[1 -1], n, nc);
+nc=numel(s.pv); 
+C  = sparse( [(1:nf)'; (1:nf)'], N, ones(nf,1)*[1 -1], nf, nc);
 s.C = C;
 s.Grad = @(x) -C*x;
 s.Div  = @(x) C'*x;
