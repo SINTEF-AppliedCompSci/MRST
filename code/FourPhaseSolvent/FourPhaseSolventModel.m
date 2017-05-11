@@ -75,13 +75,19 @@ methods
         state.wellSol = assignWellValuesFromControl(model, state.wellSol, W, wi, oi, gi);
     end
     
-     function [isActive, phInd] = getActivePhases(model)
+    function [isActive, phInd] = getActivePhases(model)
         % Get active flag for the canonical phase ordering (water, oil
         % gas as on/off flags).
         isActive = [model.water, model.oil, model.gas, model.solvent];
         if nargout > 1
             phInd = find(isActive);
         end
+    end
+    
+    function rhoS = getSurfaceDensities(model)
+        active = model.getActivePhases();
+        props = {'rhoWS', 'rhoOS', 'rhoGS', 'rhoSS'};
+        rhoS = cellfun(@(x) model.fluid.(x), props(active));
     end
     
 end
