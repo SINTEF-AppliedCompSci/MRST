@@ -155,9 +155,9 @@ taken as a function of the fraction of each gas component within the gas phase:
 \end{equation}
 Typically, $k_{rfs}$ and $k_{rfg}$ are linear functions, with $k_{rf\alpha}(0) = 0$ and $k_{rf\alpha}(1) = 1$.
 
-In regions where solvent is displacing oil, the hydrocarbon displacement is miscible. However, the
-two-phase character of the water/hydrocarbon displacement needs to be taken into account. The
-relative permeabilities are the
+In regions where solvent is displacing oil, the hydrocarbon displacement is
+miscible. However, the two-phase character of the water/hydrocarbon displacement
+needs to be taken into account. The relative permeabilities are the
 \begin{equation}
   \label{eq:miscible_relperms}
   k_{ro} = \frac{S_o}{S_n}k_{rn}(S_n), \quad k_{rgt} = \frac{S_s + S_g}{S_n}k_{rn}(S_n),
@@ -173,10 +173,11 @@ miscible relperms using multipliers:
 
 \subsection*{Transition between miscible and immiscible phases}
 
-The transition between the miscible and immiscible case is handled by a miscibility function $M$,
-which is a function of the solvent fraction in the gas phase. The function is tabulated between $0$
-and $1$, where $M = 0$ and $M = 1$ implies immiscible and miscible displacement, respectively. The
-transition algorithm can be described as follows:
+The transition between the miscible and immiscible case is handled by a
+miscibility function $M$, which is a function of the solvent fraction in the gas
+phase. The function is tabulated between $0$ and $1$, where $M = 0$ and $M = 1$
+implies immiscible and miscible displacement, respectively. The transition
+algorithm can be described as follows:
 \begin{enumerate}[label=\emph{(\roman*)}]
 \item Scale the relperm endpoints using $M$:
   \begin{equation*}
@@ -201,25 +202,28 @@ where $S_{gc}$ is the critical oil-to-gas saturation.
 
 \subsection*{Effect of pressure on relative permeabilities and capillary pressure misciblity}
 
-In many miscible displacements, the solvent is only miscible with reservoir oil at high
-pressure. The solvent/oil capillary pressure typically reduce with increasing pressure, and the two
-fluids can only be considered miscible once the capillary pressure is zero. The pressure dependence
-can be modeled by introducing a pressure-dependent miscibility function $M_p$, used to interpolate
-between immiscible and miscible values of the PVT, relperm and capillary pressure data. Neglecting
-PVT behavior, we have that for the relperms and saturation end points, the effect of pressure
-miscibility is combined with the solvent saturation effects, so that the multiplier $M$ is now
-replaced by $M_T = MM_p$. The capillary pressure is interpolated as
+In many miscible displacements, the solvent is only miscible with reservoir oil
+at high pressure. The solvent/oil capillary pressure typically reduce with
+increasing pressure, and the two fluids can only be considered miscible once the
+capillary pressure is zero. The pressure dependence can be modeled by
+introducing a pressure-dependent miscibility function $M_p$, used to interpolate
+between immiscible and miscible values of the PVT, relperm and capillary
+pressure data. Neglecting PVT behavior, we have that for the relperms and
+saturation end points, the effect of pressure miscibility is combined with the
+solvent saturation effects, so that the multiplier $M$ is now replaced by
+$M_T = MM_p$. The capillary pressure is interpolated as
 \begin{equation*}
   P_{cog} = M_p P_{cog,m} + (1-M_p)P_{cog,i}, \quad \text{where} \quad P_{cog,m} = P_{cog}(S_g), \quad P_{cog,i} = P_{cog}(S_g + S_s).
 \end{equation*}
 
 \subsection*{Effect of water saturation}
 
-A feature of miscible gas injection that may be modeled is the screening effect of high water
-saturation, which reduces the contact between the miscible gas and the in-place oil. The effective
-residual oil saturation to a miscible gas drive is found to increase with increasing water
-saturation. This process is modeled by introducing an effective residual oil saturation $S_{or}(S_w)$,
-which depends on the water saturation. A mobile oil saturation is then found by
+A feature of miscible gas injection that may be modeled is the screening effect
+of high water saturation, which reduces the contact between the miscible gas and
+the in-place oil. The effective residual oil saturation to a miscible gas drive
+is found to increase with increasing water saturation. This process is modeled
+by introducing an effective residual oil saturation $S_{or}(S_w)$, which depends
+on the water saturation. A mobile oil saturation is then found by
 \begin{equation*}
   S_o^* = \max\{S_o - S_{or}, 0\}.
 \end{equation*}
@@ -233,9 +237,9 @@ effective viscosities and densities in each grid cell.
 
 \subsection*{Viscosity model}
 
-The full three hydrocarbon components mixing calculation can be thought of as two separate miscible
-displacements: Gas/solvent and solvent/oil. The effective viscosities of the hydrocarbon components
-follow by the Todd-Longstaff model:
+The full three hydrocarbon components mixing calculation can be thought of as
+two separate miscible displacements: Gas/solvent and solvent/oil. The effective
+viscosities of the hydrocarbon components follow by the Todd-Longstaff model:
 \begin{equation*}
   \mu_{o, \eff} = \mu_o^{1-\omega}\mu_{mos}^\omega, \quad
   \mu_{s, \eff} = \mu_s^{1-\omega}\mu_{m}^\omega, \quad
@@ -248,7 +252,7 @@ and are defined using the $1/4$th-power fluid mixing rule:
 \begin{align*}
   \mu_{mos} & = \frac{\mu_o \mu_s}{\left(\frac{S_o'}{S_{os}'}\mu_s^{1/4} + \frac{S_s'}{S_{os}'}\mu_o^{1/4}\right)^4} \\
   \mu_{msg} & = \frac{\mu_s \mu_g}{\left(\frac{S_s'}{S_{sg}'}\mu_g^{1/4} + \frac{S_g'}{S_{sg}'}\mu_s^{1/4}\right)^4} \\
-  \mu_{m} & = \frac{\mu_o \mu_s \mu_g}{\left(\frac{S_s'}{S_{n}'}\mu_s^{1/4}\mu_g^{1/4}
+  \mu_{m} & = \frac{\mu_o \mu_s \mu_g}{\left(\frac{S_o'}{S_{n}'}\mu_s^{1/4}\mu_g^{1/4}
             + \frac{S_s'}{S_{n}'}\mu_o^{1/4}\mu_g^{1/4}
             + \frac{S_g'}{S_{n}'}\mu_o^{1/4}\mu_s^{1/4}\right)^4},
 \end{align*}
@@ -267,7 +271,7 @@ The effective component viscosities are used to find effective saturation fracti
     \left[\frac{S_o}{S_n}\right]_{oe} &= \frac{\mu_o^{1/4}\left(\mu_{o,\eff}^{1/4} - \mu_s^{1/4}\right)}{\mu_{o,\eff}^{1/4}\left(\mu_o^{1/4} - \mu_s^{1/4}\right)} \\
     \label{eq:sat_frac_ge}
   \left[\frac{S_o}{S_n}\right]_{ge} &= \frac{\mu_s^{1/4}\left(\mu_{g,\eff}^{1/4} - \mu_g^{1/4}\right)}{\mu_{g,\eff}^{1/4}\left(\mu_s^{1/4} - \mu_g^{1/4}\right)} \\
-  \left[\frac{S_s}{S_n}\right]_{se} &= \frac{\mu_s^{1/4}\left(S_{gf}\mu_{g,\eff}^{1/4} - S_{of}\mu_g^{1/4}\right)
+  \left[\frac{S_s}{S_n}\right]_{se} &= \frac{\mu_s^{1/4}\left(S_{gf}\mu_o^{1/4} - S_{of}\mu_g^{1/4}\right)
                                       - \mu_o^{1/4}\mu_g^{1/4}\frac{\mu_s^{1/4}}{\mu_{s,\eff}^{1/4}}}{\mu_s^{1/4}\left(S_{gf}\mu_o^{1/4} - S_{of}\mu_g^{1/4}\right) - \mu_o^{1/4}\mu_g^{1/4}},
 \end{align}
 \end{subequations}
@@ -303,6 +307,43 @@ PVT data by
 where $b_{\alpha,m}$ and $b_{\alpha,i}$ are the miscible and immiscible formation volume factors,
 respectively. 
 
+
+\section{Mass balance}
+
+Alternative notation:
+
+\begin{equation*}
+  \xi_o = \frac{(\mu_o/\mu_s)^{1/4} - (\mu_o/\mu_{o,\eff})^{1/4}}{(\mu_o/\mu_s)^{1/4} - 1}
+\end{equation*}
+
+\begin{align*}
+  \mu_{o,\eff}
+  & = \frac{\mu_o^{1-\omega}\mu_o^\omega\mu_s^\omega}{\left(\frac{S_o}{S_o + S_s}\mu_s^{1/4} + \frac{S_s}{S_o + S_s}\mu_o^{1/4}\right)^{4\omega}} \\
+  & = \frac{\mu_o\mu_s^\omega}{\left(\frac{S_o}{S_o + S_s}\mu_s^{1/4} + \frac{S_s}{S_o + S_s}\mu_o^{1/4}\right)^{4\omega}} \\
+  & = \frac{\mu_o}{\left(\frac{S_o}{S_o + S_s} + \frac{S_s}{S_o + S_s}\left(\frac{\mu_o}{\mu_s}\right)^{1/4}\right)^{4\omega}} \\
+\end{align*}
+
+\begin{align*}
+  \left(\frac{\mu_o}{\mu_{o,\eff}}\right)^{1/4} = \left(\frac{S_o}{S_o + S_s} + \frac{S_s}{S_o + S_s}\left(\frac{\mu_o}{\mu_s}\right)^{1/4}\right)^{\omega}
+\end{align*}
+
+Likewise:
+
+\begin{align*}
+  \mu_{s,\eff}
+  & = \frac{\mu_s}{\left(\frac{S_o}{S_n} \left(\frac{\mu_s}{\mu_o}\right)^{1/4}+ \frac{S_s}{S_n} + \frac{S_g}{S_n}\left(\frac{\mu_s}{\mu_g}\right)^{1/4}\right)^{4\omega}} \\
+\end{align*}
+and
+\begin{align*}
+  \left(\frac{\mu_s}{\mu_{s,\eff}}\right)^{1/4} = \left(\frac{S_o}{S_n} \left(\frac{\mu_s}{\mu_o}\right)^{1/4}+ \frac{S_s}{S_n} + \frac{S_g}{S_n}\left(\frac{\mu_s}{\mu_g}\right)^{1/4}\right)^{\omega}
+\end{align*}
+
+
+
+
+\begin{align*}
+  S_o(1-\xi_o)(\rho_o - \rho_s) + S_g\xi_g(\rho_g - \rho_s) + S_s(1-\xi_s)\left(\rho_s - \rho_o \frac{S_o}{S_g + S_o} - \rho_g \frac{S_g}{S_g + S_o}\right) = 0
+\end{align*}
 
 \begin{small}
   \bibliography{refs}
