@@ -93,10 +93,23 @@ names = {'water', 'oil', 'gas'};
 types = {'cell', 'cell', 'cell'};
 
 % Add in any fluxes / source terms prescribed as boundary conditions.
+
 rho = {rhoW, rhoO, rhoG};
 mob = {mobW, mobO, mobG};
 sat = {sW, sO, sG};
 
+wc = W.cells;
+wcInj = wc([wellSol.sign] == 1);
+compi = reshape([W.compi],3, [])';
+compi = compi([wellSol.sign] == 1,:);
+
+% Get dynamic quantities
+[~, ~, rhoWell, ~, ~, ~, ~, ~] ...
+    = getDynamicQuantitiesMiscibleOilWaterSolvent(model, 0, p(wcInj), compi(:,1), compi(:,2), compi(:,3), 0,0);
+
+for i = 1:3
+    rho{i}.val(wcInj) = rhoWell{i}.val;
+end
 
 % [eqs, ~, qRes] = addFluxesFromSourcesAndBC(model, eqs, ...
 %                                        {pW, p},...
