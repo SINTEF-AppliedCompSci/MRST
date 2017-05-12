@@ -41,10 +41,14 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-
-    if(G.griddim == 3)
-        cells = [1 : G.cells.num]';   
-        [faces, ~] = boundaryFaces(G, cells);
+    opt.cells = [1 : G.cells.num]';
+    opt.uu = [];
+    [opt, extra] = merge_options(opt, varargin{:});
+    if(~isempty(opt.uu))
+        G.nodes.coords=G.nodes.coords+opt.uu;
+    end
+    if (G.griddim == 3)
+        [faces, ~] = boundaryFaces(G, opt.cells);
     else
         faces = [1 : G.cells.num]';
     end
@@ -91,7 +95,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % Build final patch for graphical output (Note: added to GCA).
     
     h = patch('Faces'          , f      , 'Vertices' , v , ...
-              'FaceVertexCData', node_data(verts, :) , 'FaceColor', fc, varargin{:});
+              'FaceVertexCData', node_data(verts, :) , 'FaceColor', fc, extra{:});
     
     set(get(h, 'Parent'), 'ZDir', 'reverse');
     if nargout > 0

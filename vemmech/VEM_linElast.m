@@ -77,7 +77,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'alpha_scaling', 1                               , ...
                  'S'            , []                              , ...
                  'experimental_scaling', false                    , ...
-                 'pressure'     , []);
+                 'pressure'     , [],...
+                 'no_solve',false);
     opt = merge_options(opt, varargin{:});
     opt.add_operators = opt.add_operators && nargout>1;
     if(opt.add_operators)
@@ -192,7 +193,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     A   = S(~isdirdofs, ~isdirdofs);
     A   = (A + A') / 2; % The matrix is theoretically symmetric, make sure that it is also symmetric
                         % numerically
-    x   = opt.linsolve(A, rhs);
+    if(opt.no_solve)
+        x=nan(sum(~isdirdofs),1);
+    else
+        x   = opt.linsolve(A, rhs);
+    end
     u   = nan(ndof, 1);
 
     u(isdirdofs)  = V_dir(isdirdofs);
@@ -202,6 +207,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if(nargout == 2)
         extra.A    = A;
         extra.S    = S;
+        extra.rhs  = rhs;
         vdiv       = VEM_div(G);
         extra.disc = struct('A'         , A                        , ...
                             'isdirdofs' , isdirdofs                , ...
