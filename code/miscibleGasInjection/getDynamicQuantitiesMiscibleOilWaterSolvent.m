@@ -18,18 +18,24 @@ function [kr_eff, mu_eff, rho_eff, b_eff, b0_eff, pvMult, pvMult0, T] ...
     
     sOn = max(sO - sOres,0);
     sGn = max(sG - sGres,0);
-    sNn = sOn + sGn;
     
     sOn0 = max(sO0 - sOres,0);
     sGn0 = max(sG0 - sGres,0);
     sNn0 = sOn0 + sGn0;
     
     % Effective relative permeabilites
-    krN = @(s) fluid.krO(s);
+    krN = fluid.krO(sO + sG);
     krW_eff = fluid.krW(sW);
 
-    krO_eff = sOn./sNn.*krN(sO + sG);
-    krG_eff = sGn./sNn.*krN(sO + sG);
+    % Add smalll value to avoid 0/0-type expressions
+    
+    tol = eps;
+    sOn = sOn + tol*(abs(sOn) < tol);
+    sGn = sGn + tol*(abs(sGn) < tol);
+    sNn = sOn + sGn;
+    
+    krO_eff = sOn./sNn.*krN;
+    krG_eff = sGn./sNn.*krN;
    
     % Multiply by mobility multiplyer
     krW_eff = mobMult.*krW_eff;
