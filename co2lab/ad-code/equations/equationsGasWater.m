@@ -107,7 +107,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                                                    % is water 
     end
     
-    eqs = addFluxesFromSourcesAndBC(model, eqs, {p, p+pcWG}, rho, mob, {1-sG, sG}, drivingForces);
+    [eqs, ~, qRes] = addFluxesFromSourcesAndBC(model, eqs, {p, p+pcWG}, rho, ...
+                                               mob, {1-sG, sG}, drivingForces);
+
+    if model.outputFluxes
+       state = model.storeBoundaryFluxes(state, qRes{1}, [], qRes{2}, drivingForces);
+    end
     
     % ------------------------------ Well equations ------------------------------
 
