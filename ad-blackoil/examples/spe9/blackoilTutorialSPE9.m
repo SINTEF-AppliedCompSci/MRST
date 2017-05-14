@@ -228,7 +228,8 @@ ylabel('k_r')
 % When all three phases are present simultaneously in a single cell, we
 % need to use some functional relationship to combine the two-phase curves
 % in a reasonable manner, resulting in a two-dimensional relative
-% permeability model. Herein, we use the Stone I model.
+% permeability model. Herein, we use a simple linear interpolation, which
+% is also the default in Eclipse
 %
 close all
 
