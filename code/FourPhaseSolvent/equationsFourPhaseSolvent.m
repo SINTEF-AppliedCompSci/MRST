@@ -11,7 +11,7 @@ opt = merge_options(opt, varargin{:});
 opt.resOnly = false;
 
 W = drivingForces.W;
-s = model.operators;
+op = model.operators;
 
 % Properties at current timestep
 [p, sW, sO, sG, wellSol] = model.getProps(state, 'pressure', 'water', ...
@@ -51,24 +51,48 @@ primaryVars = {'pressure', 'sW', 'sO', 'sG', wellVarNames{:}};
 sS  = 1 - sW  - sO  - sG ;
 sS0 = 1 - sW0 - sO0 - sG0;
 
-% Get dynamic quantities
-[kr, mu, rho, b, b0, pvMult, pvMult0, T] ...
-    = getDynamicQuantitiesFourPhaseSolvent(model, p, p0, sW, sO, sG, sS, sW0, sO0, sG0, sS0);
+% % Get dynamic quantities
+% [kr, mu, rho, b, b0, pvMult, pvMult0, T] ...
+%     = getDynamicQuantitiesFourPhaseSolvent(model, p, p0, sW, sO, sG, sS, sW0, sO0, sG0, sS0);
+% 
+% krW  = kr{1} ; krO  = kr{2} ; krG  = kr{3} ; krS  = kr{4} ;
+% rhoW = rho{1}; rhoO = rho{2}; rhoG = rho{3}; rhoS = rho{4};
+% muW  = mu{1} ; muO  = mu{2} ; muG  = mu{3} ; muS  = mu{4} ;
+% bW   = b{1}  ; bO   = b{2}  ; bG   = b{3}  ; bS   = b{4}  ;
+% bW0  = b0{1} ; bO0  = b0{2} ; bG0  = b0{3} ; bS0  = b0{4} ;
+% 
+% 
+% gdz = model.getGravityGradient();
+% op = model.operators;
+% [vW, mobW, upcW] = getFlux(p, rhoW, krW, muW, T, gdz, op);
+% [vO, mobO, upcO] = getFlux(p, rhoO, krO, muO, T, gdz, op);
+% [vG, mobG, upcG] = getFlux(p, rhoG, krG, muG, T, gdz, op);
+% [vS, mobS, upcS] = getFlux(p, rhoS, krS, muS, T, gdz, op);
 
-krW  = kr{1} ; krO  = kr{2} ; krG  = kr{3} ; krS  = kr{4} ;
-rhoW = rho{1}; rhoO = rho{2}; rhoG = rho{3}; rhoS = rho{4};
-muW  = mu{1} ; muO  = mu{2} ; muG  = mu{3} ; muS  = mu{4} ;
-bW   = b{1}  ; bO   = b{2}  ; bG   = b{3}  ; bS   = b{4}  ;
-bW0  = b0{1} ; bO0  = b0{2} ; bG0  = b0{3} ; bS0  = b0{4} ;
+fluid = model.fluid;
 
+% Get multipliers
+[pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
+T = op.T.*transMult;
+
+% Calculate residual saturations
+[sWres, sOres , sSGres ] = computeResidualSaturations(fluid, p, sG, sS);
+[~    , sO0res, sSG0res] = computeResidualSaturations(fluid, p0, sG0, sS0);
+
+ % Calculate effective relperms
+[krW, krO, krG, krS] = computeRelPermSolvent(fluid, p, sW, sO, sG, sS, sWres, sOres, sSGres, mobMult);
+
+ % Calulate effective viscosities and densities
+[muW, muO, muG, muS, rhoW , rhoO , rhoG , rhoS ] = computeViscositiesAndDensities(fluid, p , sO , sG , sS , sOres , sSGres );
+[~  , ~  , ~  , ~  , rhoW0, rhoO0, rhoG0, rhoS0] = computeViscositiesAndDensities(fluid, p0, sO0, sG0, sS0, sO0res, sSG0res);
+
+% Calulcate effective formation volume factors
+[bW , bO , bG , bS ] = computeFormationVolumeFactors(fluid, p , rhoO , rhoG , rhoS );
+[bW0, bO0, bG0, bS0] = computeFormationVolumeFactors(fluid, p0, rhoO0, rhoG0, rhoS0);
 
 gdz = model.getGravityGradient();
-op = model.operators;
-[vW, mobW, upcW] = getFlux(p, rhoW, krW, muW, T, gdz, op);
-[vO, mobO, upcO] = getFlux(p, rhoO, krO, muO, T, gdz, op);
-[vG, mobG, upcG] = getFlux(p, rhoG, krG, muG, T, gdz, op);
-[vS, mobS, upcS] = getFlux(p, rhoS, krS, muS, T, gdz, op);
 
+[vW, vO, vG, vS, mobW, mobO, mobG, mobS, upcW, upcO, upcG, upcS] = getFluxAndPropsSolvent(fluid, p, krW, krO, krG, krS, muW, muO, muG, muS, rhoW, rhoO, rhoG, rhoS, T, gdz, op);
 
 if model.outputFluxes
     state = model.storeFluxes(state, vW, vO, vS);
@@ -82,33 +106,46 @@ end
 % EQUATIONS ---------------------------------------------------------------
 % Upstream weight b factors and multiply by interface fluxes to obtain the
 % fluxes at standard conditions.
-bWvW = s.faceUpstr(upcW, bW).*vW;
-bOvO = s.faceUpstr(upcO, bO).*vO;
-bGvG = s.faceUpstr(upcG, bG).*vG;
-bSvS = s.faceUpstr(upcS, bS).*vS;
+bWvW = op.faceUpstr(upcW, bW).*vW;
+bOvO = op.faceUpstr(upcO, bO).*vO;
+bGvG = op.faceUpstr(upcG, bG).*vG;
+bSvS = op.faceUpstr(upcS, bS).*vS;
 
 % Conservation of mass for water
-water = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 ) + s.Div(bWvW);
+water = (op.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 ) + op.Div(bWvW);
 
 % Conservation of mass for oil
-oil = (s.pv/dt).*( pvMult.*bO.*sO - pvMult0.*bO0.*sO0 ) + s.Div(bOvO);
+oil = (op.pv/dt).*( pvMult.*bO.*sO - pvMult0.*bO0.*sO0 ) + op.Div(bOvO);
 
 % Conservation of mass for gas
-gas = (s.pv/dt).*( pvMult.*bG.*sG - pvMult0.*bG0.*sG0 ) + s.Div(bGvG);
+gas = (op.pv/dt).*( pvMult.*bG.*sG - pvMult0.*bG0.*sG0 ) + op.Div(bGvG);
 
 % Conservation of mass for solvent
-solvent = (s.pv/dt).*( pvMult.*bS.*sS - pvMult0.*bS0.*sS0 ) + s.Div(bSvS);
+solvent = (op.pv/dt).*( pvMult.*bS.*sS - pvMult0.*bS0.*sS0 ) + op.Div(bSvS);
 
 eqs   = {water, oil, gas, solvent};
 names = {'water', 'oil', 'gas', 'solvent'};
 types = {'cell', 'cell', 'cell', 'cell'};
 
-% Add in any fluxes / source terms prescribed as boundary conditions.
 rho = {rhoW, rhoO, rhoG, rhoS};
 mob = {mobW, mobO, mobG, mobS};
 sat = {sW, sO, sG, sS};
 
-pW = p;
+wc = W.cells;
+wcInj = wc([wellSol.sign] == 1);
+compi = reshape([W.compi],4, [])';
+compi = compi([wellSol.sign] == 1,:);
+
+% [~, ~, rhoWell, ~, ~, ~, ~, ~] ...
+%     = getDynamicQuantitiesFourPhaseSolvent(model, p(wcInj), 0, compi(:,1), compi(:,2), compi(:,3), compi(:,4), 0, 0, 0,0);
+
+rhoWell = cell(4,1);
+[~, ~, ~, ~, rhoWell{1}, rhoWell{2}, rhoWell{3}, rhoWell{4}] ...
+    = computeViscositiesAndDensities(fluid, p(wcInj), compi(:,2), compi(:,3), compi(:,4), 0, 0);
+
+for i = 1:4
+    rho{i}.val(wcInj) = rhoWell{i}.val;
+end
 
 % [eqs, ~, qRes] = addFluxesFromSourcesAndBC(model, eqs, ...
 %                                        {pW, p},...
