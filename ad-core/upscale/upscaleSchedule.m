@@ -41,20 +41,25 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     for i = 1:numel(schedule.control)
         % Treat wells
-        W = schedule.control(i).W;
-        W_coarse = [];
-        for j = 1:numel(W)
-            w = handleWell(model, W(j), opt);
-            W_coarse = [W_coarse; w]; %#ok
+        if isfield(schedule.control(i), 'W')
+            W = schedule.control(i).W;
+            W_coarse = [];
+            for j = 1:numel(W)
+                w = handleWell(model, W(j), opt);
+                W_coarse = [W_coarse; w]; %#ok
+            end
+            schedule.control(i).W = W_coarse;
         end
         % Treat boundary conditions
-        bc_coarse = handleBC(model, schedule.control(i).bc, opt);
+        if isfield(schedule.control(i), 'bc')
+            bc_coarse = handleBC(model, schedule.control(i).bc, opt);
+            schedule.control(i).bc = bc_coarse;
+        end
         % Treat source terms
-        src_coarse = handleSRC(model, schedule.control(i).src, opt);
-        
-        schedule.control(i).W = W_coarse;
-        schedule.control(i).bc = bc_coarse;
-        schedule.control(i).src = src_coarse;
+        if isfield(schedule.control(i), 'src')
+            src_coarse = handleSRC(model, schedule.control(i).src, opt);
+            schedule.control(i).src = src_coarse;
+        end
     end
 end
 
