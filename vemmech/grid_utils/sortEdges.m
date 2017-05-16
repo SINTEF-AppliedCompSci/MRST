@@ -44,6 +44,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     assert(G.griddim == 2);
     G = sortCellFaces(G);
+    if(isfield(G.cells,'volumes'))
+        G.cells = rmfield(G.cells,'volumes');
+        G.cells = rmfield(G.cells,'centroids');
+        G.faces = rmfield(G.faces,'areas');
+        G.faces = rmfield(G.faces,'normals');
+        G.faces = rmfield(G.faces,'centroids');
+    end
 
 end
 

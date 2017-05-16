@@ -1,4 +1,4 @@
-function D = C2D(C, G)
+function D = C2D(C, G,varargin)
 % Compute the matrix of normalized strain energies (D) from the elasticity
 % tensor (C) associated with grid (G).
 %
@@ -22,6 +22,9 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+opt=struct('inv',false);
+opt=merge_options(opt,varargin{:});
+
 
 
    if(G.griddim == 3)
@@ -34,7 +37,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    factor = [ones(G.griddim, G.griddim),            ones(G.griddim, nlin - G.griddim) * 2; ...
              ones(nlin - G.griddim, G.griddim) * 2, ones(nlin - G.griddim, nlin - G.griddim) * ...
              4]; 
-   factor = reshape(factor, 1, []); 
+   factor = reshape(factor, 1, []);
+   if(opt.inv)
+       factor=1./factor;
+   end
    D = bsxfun(@times, C, factor);
 end
 

@@ -30,7 +30,8 @@ else
         lstress=reshape(stresstens(i,:),G.griddim,G.griddim);
         [le,lsigm]=eig(lstress);
         lsigm=diag(lsigm);
-        %{
+      %{
+      % NEVER EVER use exept for plotting  
       if(abs(le(1,1))<abs(le(1,2)))
          le(:,[1,2])=le(:,[2,1]);
          lsigm([1:2])=lsigm([2,1]);
