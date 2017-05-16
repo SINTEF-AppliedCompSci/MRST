@@ -84,7 +84,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             handler.dataPrefix = 'state';
             handler.dataFolder = 'cache';
             handler.saveflags = '';
-            handler.cleardir = true;
+            handler.cleardir = false;
             
             handler.verbose = mrstVerbose();
             
@@ -114,7 +114,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     d = ls(fullfile(p, [handler.dataPrefix, '*.mat']));
                     if ~isempty(d)
                         if ~handler.cleardir
-                            warning('ResultHandler:FilesExist', ...
+                            dispif(handler.verbose, ...
                                 'Input directory not clean, consider calling ''resetData''');
                         else
                             handler.resetData();
