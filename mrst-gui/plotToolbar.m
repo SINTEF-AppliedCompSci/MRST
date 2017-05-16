@@ -144,7 +144,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     datasetname = inputname(2);
     cellfields = getStructFields(G, accessdata(1), datasetname);
     ni = 1;
-    if ~isempty(cellfields)
+    if isempty(cellfields)
+        error('Input dataset contains no fields with G.cells.num rows suitable for plotting.');
+    else
         if ~isempty(opt.field)
             ix = find(strcmpi(cellfields, [datasetname, '.', opt.field]));
             if isempty(ix)
@@ -154,8 +156,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             ix = 1;
         end
         selectionName = cellfields{ix};
-    else
-        selectionName = '';
     end
     data = readStructField(accessdata(ni), selectionName);
     % Constants
@@ -717,18 +717,26 @@ function replotPatch(varargin)
         vh = plotCellVectorData(G, d, subset);
     else
         if numel(ph) <= 1 && ~isempty(ph) && ishandle(ph) && all(strcmpi(get(ph, 'Type'), 'Patch'))
-            ph2 = plotCellData(G, d, subset, ...
-                                               'EdgeAlpha', get(ph, 'EdgeAlpha'),...
-                                               'EdgeColor', get(ph, 'EdgeColor'),...
-                                               'FaceAlpha', get(ph, 'FaceAlpha'),...
-                                               'FaceColor', get(ph, 'FaceColor'),...
-                                               'LineStyle', get(ph, 'LineStyle'),...
-                                               'LineWidth', get(ph, 'LineWidth'));
+            varg = {'EdgeAlpha', get(ph, 'EdgeAlpha'),...
+                    'EdgeColor', get(ph, 'EdgeColor'),...
+                    'FaceAlpha', get(ph, 'FaceAlpha'),...
+                    'FaceColor', get(ph, 'FaceColor'),...
+                    'LineStyle', get(ph, 'LineStyle'),...
+                    'LineWidth', get(ph, 'LineWidth')};
+            if size(d, 1) == G.cells.num
+                ph2 = plotCellData(G, d, subset, varg{:});
+            else
+                ph2 = plotNodeData(G, d, 'cells', find(subset), varg{:});
+            end
             deleteHandle(ph);
             ph = ph2;
         else
             deleteHandle(ph);
-            ph = plotCellData(G, d, subset, 'EdgeColor', 'none', varargin{:});
+            if size(d, 1) == G.cells.num
+                ph = plotCellData(G, d, subset, 'EdgeColor', 'none', varargin{:});
+            else
+                ph = plotNodeData(G, d, 'cells', find(subset), 'EdgeColor', 'none', varargin{:});
+            end
         end
     end
 
@@ -753,7 +761,11 @@ function replotPatch(varargin)
             ylim(yscale);
         end
     elseif min(size(d)) == 1
-        dsel = d(initialSelection);
+        if size(d, 1) == G.cells.num
+            dsel = d(initialSelection);
+        else
+            dsel = d;
+        end
         dsel = double(dsel(isfinite(dsel)));
         if any(dsel)
             lower = @(v) v - eps(v);

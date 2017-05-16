@@ -42,8 +42,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
     flds = {};
+    nc = G.cells.num;
+    nn = G.nodes.num;
     if isnumeric(s)
-        if size(s, 1) == G.cells.num
+        if size(s, 1) == nc || size(s, 1) == nn
             N = min(size(s, 2), 1000);
             if N > 1
                 nn = arrayfun(@(x) [name, ':', num2str(x)], (1:N).', ...
@@ -58,7 +60,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             end
         end
         return
-    elseif iscell(s) && all(cellfun(@numel, s) == G.cells.num)
+    elseif iscell(s) && all(cellfun(@numel, s) == nc | cellfun(@numel, s) == nn)
         flds = arrayfun(@(x) [name, ':', num2str(x)], (1:numel(s)).', ...
                     'UniformOutput', false);
         return

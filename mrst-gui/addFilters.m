@@ -91,8 +91,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 continue;
             end
             data = readStructField(datasets(1), filters{i, 1});
-            if numel(data) > G.cells.num
+            if size(data, 2) > 1
                 data = sqrt(sum(data.^2, 2));
+            end
+            if size(data, 1) == G.nodes.num
+                if ~isfield(G.cells, 'nodes');
+                    G = mrstGridWithFullMappings(G);
+                end
+                cellNo = rldecode(1:G.cells.num, diff(G.cells.nodePos), 2) .';
+                % Take average of node data to get rough approximation of
+                % filter
+                data = accumarray(cellNo, data(G.cells.nodes(:, 1)), [], @mean);
             end
             active = active & data(:,1) >= filters{i, 2} & data(:,1) <= filters{i, 3};
         end
