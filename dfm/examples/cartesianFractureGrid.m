@@ -10,7 +10,7 @@
 % care of, strange error messages will probably result
 
 mrstModule add dfm incomp
-
+gravity reset off;
 
 % Initialize a grid
 Nx = [10 10];
