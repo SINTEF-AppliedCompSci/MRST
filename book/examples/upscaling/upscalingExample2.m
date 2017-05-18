@@ -20,7 +20,7 @@
 % indicated by lines on top of those of the coarse scale.
 
 %% Set up fine-scale problem
-mrstModule add diagnostics spe10 coarsegrid upscaling AGMG incomp libgeometry
+mrstModule add diagnostics spe10 coarsegrid upscaling agmg incomp libgeometry
 
 if ~exist('agmg', 'file') || ...
       norm(agmg(speye(3), [ 1 ; 2 ; 3 ]) - [ 1 ; 2 ; 3 ]) > 1.0e-8,
@@ -60,12 +60,13 @@ WP = computeWellPairs(rS, G, rock, W, D);
 fprintf(1,'done\n');
 
 amax = -inf;
-Gc  = cartGrid(cartDims./cfac, physDims);
-Gc  = computeGeometry(Gc);
+cfac = [10 10 3];
+Gc   = cartGrid(cartDims./cfac, physDims);
+Gc   = computeGeometry(Gc);
+
 for method=1:4
    %% Upscale petrophysical data
    fprintf(1,'Upscaling ...');
-   cfac = [10 10 3];
    p  = partitionUI(G, cartDims./cfac);
    switch method
       case 1  % harmonic averaging
@@ -134,7 +135,7 @@ for method=1:4
    subplot(2,2,method); colormap(.6*jet+.4*ones(size(jet)));
    cwp = cumsum(WPc.inj(2).alloc,1); amax = max([sum(cwp,2); amax]);
    barh(WPc.inj(2).z, cwp, 'stacked', 'BarWidth', .98, 'EdgeColor','none');
-   lh=legend(W(D.prod).name,'Location','SouthWest');
+   lh=legend(W(D.prod).name,'Location','SouthEast');
    hold on
    cwp = cumsum(WP.inj(2).alloc,1);  amax = max([sum(cwp,2); amax]);
    if size(cwp,1)<20
