@@ -141,7 +141,7 @@ myview = struct(...
     'cb',      'horiz',       ...  % colorbar location
     'dolly',   [0 .3 0],      ...  % camdolly
     'wargs',   {{'height', 30, 'Color', 'k', 'FontSize', 10}},  ...  
-    'pargs',   {{'FaceColor', [1 1 .7], 'EdgeAlpha', .05}} ...
+    'pargs',   {{'FaceColor', 'none', 'EdgeAlpha', .05}} ...
     );
 plotReservoirModel(G, [], W, rmfield(myview,'cb'));
 plotGrid(G, vertcat(W(nIW).cells), 'FaceColor', 'b');
@@ -169,6 +169,7 @@ h = plotReservoirModel(G, [], W, myview);
 colormap(flipud(winter))
 set(h,'Position',[.13 .07 .77 .05]);
 [hs,ha] = deal([]); caxis([0 1]);
+drawnow
 
 %% Main loop
 % In the main loop, we alternate between solving the transport and the flow
