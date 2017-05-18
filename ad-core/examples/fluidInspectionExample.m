@@ -20,9 +20,9 @@ mrstModule add ad-blackoil ad-core ad-props deckformat
 % values. This is not always easy to see directly from the tables, but by
 % using the fluid inspector it is straightforward.
 [G, rock, fluid, deck] = setupSPE1();
-model_spe1 = selectModelFromDeck(G, rock, fluid, deck);
+spe1 = selectModelFromDeck(G, rock, fluid, deck);
 
-inspectFluidModel(model_spe1)
+inspectFluidModel(spe1, 'pressureRange', (0:10:500)*barsa)
 
 %% Inspect the SPE9 fluid model
 % Another standard black-oil test case is the SPE9 model. For more
@@ -32,9 +32,9 @@ inspectFluidModel(model_spe1)
 % Of particular interest in this case is the non-zero capillary pressure,
 % and the highly irregular relative permeability curves.
 [G, rock, fluid, deck] = setupSPE9();
-model_spe9 = selectModelFromDeck(G, rock, fluid, deck);
+spe9 = selectModelFromDeck(G, rock, fluid, deck);
 
-inspectFluidModel(model_spe9)
+inspectFluidModel(spe9)
 
 %% Set up a two-phase oil-water fluid and inspect it
 % We can use the inspection utility to get a better understanding of how
