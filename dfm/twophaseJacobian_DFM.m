@@ -354,7 +354,8 @@ function [gflux, pc_flux, pcJac, gfluxc2c]  = getFlux(G, rock, rho, fluid)
 %
 %  gflux = harmonic average of (n·K·gravity·(rho1-rho2)) in each cell-
 
-   g   = gravity() * (rho(1) - rho(2));
+   g  = gravity();
+   g  = g(1:G.griddim) * (rho(1) - rho(2));
    gflux  = zeros([G.faces.num, 1]);
 
    % for the moment no gravity flux in the hybrid cells.
