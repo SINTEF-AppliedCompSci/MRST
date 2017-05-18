@@ -5,14 +5,14 @@ function [schedule, model, state0] = getBenchmarkAD(name)
     switch name
         case 'spe1'
             % SPE1 - black oil with gas dissolved in oil.
-            [schedule, model, state0] = readAndSetup('SPE', 'SPE1', 'BENCH_SPE1.DATA');
+            [schedule, model, state0] = readAndSetup('SPE1', 'BENCH_SPE1.DATA');
         case 'spe3'
             % SPE3 - black oil with oil dissolved in gas phase.
-            [schedule, model, state0] = readAndSetup('SPE', 'SPE3', 'BENCH_SPE3.DATA');
+            [schedule, model, state0] = readAndSetup('SPE3', 'BENCH_SPE3.DATA');
         case 'spe9'
             % SPE9 - black oil with gas dissolaved in oil phase and
             % multiple wells with changing controls.
-            [schedule, model, state0] = readAndSetup('SPE', 'SPE9', 'BENCH_SPE9.DATA');
+            [schedule, model, state0] = readAndSetup('SPE9', 'BENCH_SPE9.DATA');
             model.drsMaxRel = .2;
             model.dpMaxRel  = .2;
             model.dsMaxAbs  = .05;
