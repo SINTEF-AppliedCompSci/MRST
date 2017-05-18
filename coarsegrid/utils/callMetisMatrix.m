@@ -20,14 +20,20 @@ function p = callMetisMatrix(A, n, varargin)
 %       implied by other partitioning functions such as 'partitionUI'.
 %
 % NOTE:
-%   This function is a simple wrapper around the 'kmetis' utility from the
-%   METIS package (http://glaros.dtc.umn.edu/gkhome/metis/metis/overview).
-%   The 'kmetis' utility is invoked through 'system' on a temporary file
-%   whose name is constructed by the 'tempname' function.
+%   This function is a simple wrapper around the 'kmetis' or 'gpmetis'
+%   utilities from the METIS package
+%   (http://glaros.dtc.umn.edu/gkhome/metis/metis/overview). 
+%   The 'kmetis'/ 'gpmetis' utility is invoked through 'system' on a
+%   temporary file whose name is constructed by the 'tempname' function.
 %
-%   If the 'kmetis' utility is not avilable in the search path used by the
+%   If the METIS function is not avilable in the search path used by the
 %   'system' function, then function 'callMetisMatrix' will fail and an
 %   appropriate diagnostic message will be issued to the command window.
+%   To inform the system about where to find METIS, we use a global
+%   variable 'METISPATH' that can be set in your 'startup_user' function.
+%   If you, for instance, use Linux and have installed METIS in
+%   /usr/local/bin, you add the following line to your 'startup_user' file:
+%      global METISPATH; METISPATH = fullfile('/usr','local','bin');
 %
 % EXAMPLE:
 %   % Partition a 10-by-10-by-3 Cartesian grid into 10 blocks according to
