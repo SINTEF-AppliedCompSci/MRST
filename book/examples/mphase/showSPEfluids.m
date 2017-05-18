@@ -164,6 +164,31 @@ xlabel('Pressure [bar]');
 title('Gas viscosity [cP]');
 
 
+%% Show inconsistencies for large pressures (only SPE1)
+% For sufficintly high pressure/gas-oil ratios, the interpolated shrinkage
+% factors will cross zero, which causes blowup and negative Bo values. In
+% turn, this leads to negative partial volumes.
+[M, N]    = deal(101,201);
+[rs,p]    = meshgrid(linspace(f.rsSat(100*barsa),f.rsSat(1300*barsa),M), ...
+              linspace(100,1300,N)*barsa);
+Rs        = reshape(f.rsSat(p(:)), N, M);
+isSat     = rs >= Rs;
+rs(isSat) = Rs(isSat);
+Bo        = reshape(f.BO (p(:), rs(:), isSat(:)),N,M);
+bo        = reshape(f.bO (p(:), rs(:), isSat(:)),N,M);
+muO       = reshape(f.muO(p(:), rs(:), isSat(:)),N,M);
+Bg        = reshape(f.BG (p(:)), N, M);
+bg        = reshape(f.bG (p(:)), N, M);
+
+figure
+contourf(p/barsa,rs,bo,21); axis tight
+set(gca,'FontSize',14); xlabel('Pressure [bar]'); ylabel('Gas-oil ratio');
+colorbar;
+figure
+contourf(p/barsa,rs,1./bo - rs./bg,[-inf linspace(-10,10,41) inf]); axis tight
+set(gca,'FontSize',14); xlabel('Pressure [bar]');ylabel('Gas-oil ratio');
+caxis([-10,10]); colorbar;
+
 % =========================================================================
 %% Dead oil and gas with vaporized oil (SPE3)
 % The SPE 3 benchmark was designed to study gas cycling in a rich‐gas
