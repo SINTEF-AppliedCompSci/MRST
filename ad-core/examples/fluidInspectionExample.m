@@ -49,11 +49,13 @@ fluid = initSimpleADIFluid('phases', 'WO', ...
                            'c',   [0, 1e-4/barsa]);
 srw = 0.2;
 sro = 0.3;
-% Fluid relative permeabilities
-fluid.krW = coreyPhaseRelpermAD(2, srw, 1, srw + sro);
-fluid.krO = coreyPhaseRelpermAD(4, sro, 1, srw + sro);
+
+% Fluid relative permeabilities (use name convention from SWOF keyword)
+fluid.krW  = coreyPhaseRelpermAD(2, srw, 1, srw + sro);
+fluid.krOW = coreyPhaseRelpermAD(4, sro, 1, srw + sro);
 
 model_ow = TwoPhaseOilWaterModel([], [], fluid);
+
 % Inspect model, and specify pressure range of interest
 inspectFluidModel(model_ow, 'pressureRange', (250:10:500)*barsa);
 
