@@ -161,6 +161,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 'use_trans',false);
 
    opt = merge_options(opt, varargin{:});
+   do_solve = checkDrivingForcesIncomp(G, opt);
+   if ~do_solve
+       return
+   end
 
    g_vec   = opt.gravity;
    % If gravity is overriden, we cannot say anything about the effects of
