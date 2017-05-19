@@ -6,10 +6,7 @@ f.rsSat = @(po, varargin)rsSat(po, pvto, reg, varargin{:});
 end
 
 function v = BO(po, rs, pvto, flag, reg, varargin)
-pvtinx = getRegMap(po, reg.PVTNUM, reg.PVTINX, varargin{:});
-T = pvto;
-for k = 1:numel(T), T{k}.data = T{k}.data(:,1:2); end
-v = interpRegPVT(T, po, rs, flag, pvtinx);
+v = 1./bO(po, rs, pvto, flag, reg, varargin{:});
 end
 
 function v = bO(po, rs, pvto, flag, reg, varargin)

@@ -14,13 +14,7 @@ end
 
 
 function v = BW(pw, pvtw, reg, varargin)
-pvtnum= getPVTNUM(pw, reg, varargin{:});
-
-pwr  = pvtw(pvtnum,1); % ref pres
-bwr  = pvtw(pvtnum,2); % ref fvf
-cw   = pvtw(pvtnum,3); % compress
-X = cw.*(pw-pwr);
-v = bwr./(1+X+X.^2/2);
+v = 1./bW(pw, pvtw, reg, varargin{:});
 end
 
 function v = bW(pw, pvtw, reg, varargin)

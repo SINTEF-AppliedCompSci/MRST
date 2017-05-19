@@ -6,10 +6,7 @@ f.rvSat = @(pg, varargin)rvSat(pg, pvtg, reg, varargin{:});
 end
 
 function v = BG(pg, rv, pvtg, flag, reg, varargin)
-pvtinx = getRegMap(pg, reg.PVTNUM, reg.PVTINX, varargin{:});
-T = pvtg;
-for k = 1:numel(T), T{k}.data = T{k}.data(:,1:2); end
-v = interpRegPVT(T, rv, pg, flag, pvtinx);
+v = 1./bG(pg, rv, pvtg, flag, reg, varargin{:});
 end
 
 function v = bG(pg, rv, pvtg, flag, reg, varargin)
