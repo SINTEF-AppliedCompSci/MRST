@@ -258,9 +258,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
         
         if ~isempty(opt.ReportHandler)
-            opt.ReportHandler{ind + opt.restartStep - 1} = report;
+            opt.ReportHandler{i + opt.restartStep - 1} = report;
         end
-        firstEmptyIx = firstEmptyIx + numel(report);
+        firstEmptyIx = firstEmptyIx + numel(states_step);
         
         if wantStates
             states(ind) = states_step;
