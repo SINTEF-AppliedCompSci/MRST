@@ -12,9 +12,8 @@ opt = struct('mu'    , 1                      , ...
              'sSGres_m', 0                    , ...
              'sSGres_i', 0                    , ...
              'sWres',    0                    , ...
-             'Msat'  , @(sG, sS) sS./(sS + sG), ...
-             'Mpres' , @(p) p./p   );
-             
+             'Msat'  , [], ...
+             'Mpres' , []);
 
 opt = merge_options(opt, varargin{:});
 
@@ -50,8 +49,18 @@ fluid.sOres_i  = opt.sOres_i;
 fluid.sSGres_m = opt.sSGres_m;
 fluid.sSGres_i = opt.sSGres_i;
 fluid.sWres    = opt.sWres;
-fluid.Msat     = opt.Msat;
-fluid.Mpres    = opt.Mpres;
+
+fluid.Msat = opt.Msat;
+if isempty(opt.Msat)
+    fluid.Msat = @(sG, sS) linearSaturationMiscibility(sG, sS);
+end
+
+fluid.Mpres = opt.Mpres;
+if isempty(opt.Mpres)
+    fluid.Mpres = @(p) constantPressureMiscibility(p);
+end
+
+
 
 end
 
@@ -63,3 +72,19 @@ function mu = constantViscosity(mu, p, varargin)
     mu = p*0 + mu;
 end
 
+function Msat = linearSaturationMiscibility(sG, sS)
+    
+    tol = 10*eps;
+    if all(sS < tol & sG < tol)
+        Msat = sS.*0;
+    else
+        Msat = sS./(sG + sS + (sS < tol).*tol);
+    end
+    
+end
+
+function Mpres = constantPressureMiscibility(p)
+
+    Mpres = p.*0 + 1;
+    
+end
