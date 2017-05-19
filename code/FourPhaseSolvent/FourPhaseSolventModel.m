@@ -90,6 +90,59 @@ methods
         rhoS = cellfun(@(x) model.fluid.(x), props(active));
     end
     
+    function state = storeFluxes(model, state, vW, vO, vG, vS)
+        % Utility function for storing the interface fluxes in the state
+        isActive = model.getActivePhases();
+
+        internal = model.operators.internalConn;
+        state.flux = zeros(numel(internal), sum(isActive));
+        phasefluxes = {double(vW), double(vO), double(vG), double(vS)};
+        state = model.setPhaseData(state, phasefluxes, 'flux', internal);
+    end
+    
+     % --------------------------------------------------------------------%
+    function state = storeMobilities(model, state, mobW, mobO, mobG, mobS)
+        % Utility function for storing the mobilities in the state
+        isActive = model.getActivePhases();
+
+        state.mob = zeros(model.G.cells.num, sum(isActive));
+        mob = {double(mobW), double(mobO), double(mobG), double(mobS)};
+        state = model.setPhaseData(state, mob, 'mob');
+    end
+    
+    % --------------------------------------------------------------------%
+    function state = storeUpstreamIndices(model, state, upcw, upco, upcg, upcs)
+        % Store upstream indices, so that they can be reused for other
+        % purposes.
+        isActive = model.getActivePhases();
+
+        nInterfaces = size(model.operators.N, 1);
+        state.upstreamFlag = false(nInterfaces, sum(isActive));
+        mob = {upcw, upco, upcg, upcs};
+        state = model.setPhaseData(state, mob, 'upstreamFlag');
+    end
+    
+    % --------------------------------------------------------------------%
+    function state = storeDensity(model, state, rhoW, rhoO, rhoG, rhoS)
+        % Store compressibility / surface factors for plotting and
+        % output.
+        isActive = model.getActivePhases();
+
+        state.rho = zeros(model.G.cells.num, sum(isActive));
+        rho = {double(rhoW), double(rhoO), double(rhoG), double(rhoS)};
+        state = model.setPhaseData(state, rho, 'rho');
+    end
+    % --------------------------------------------------------------------%
+    function state = storebfactors(model, state, bW, bO, bG, bS)
+        % Store compressibility / surface factors for plotting and
+        % output.
+        isActive = model.getActivePhases();
+
+        state.bfactor = zeros(model.G.cells.num, sum(isActive));
+        b = {double(bW), double(bO), double(bG), double(bS)};
+        state = model.setPhaseData(state, b, 'bfactor');
+    end
+    
 end
 end
 

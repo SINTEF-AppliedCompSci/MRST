@@ -20,13 +20,9 @@ op = model.operators;
 % Properties at previous timestep
 [p0, sW0, sO0, sG0, wellSol0] = model.getProps(state0, 'pressure', 'water', ...
    'oil', 'gas', 'wellSol');
-% 
 
+% Well variables
 [qWell, bhp, wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
-% qWell = {vertcat(wellSol.qWs), vertcat(wellSol.qOs), vertcat(wellSol.qSs)};
-% bhp = vertcat(wellSol.bhp);
-% wellVarNames = {'qWs', 'qOs', 'qSs', 'bhp'};
-% wellMap = zeros(2,0);
 
 
 if ~opt.resOnly
@@ -51,24 +47,6 @@ primaryVars = {'pressure', 'sW', 'sO', 'sG', wellVarNames{:}};
 sS  = 1 - sW  - sO  - sG ;
 sS0 = 1 - sW0 - sO0 - sG0;
 
-% % Get dynamic quantities
-% [kr, mu, rho, b, b0, pvMult, pvMult0, T] ...
-%     = getDynamicQuantitiesFourPhaseSolvent(model, p, p0, sW, sO, sG, sS, sW0, sO0, sG0, sS0);
-% 
-% krW  = kr{1} ; krO  = kr{2} ; krG  = kr{3} ; krS  = kr{4} ;
-% rhoW = rho{1}; rhoO = rho{2}; rhoG = rho{3}; rhoS = rho{4};
-% muW  = mu{1} ; muO  = mu{2} ; muG  = mu{3} ; muS  = mu{4} ;
-% bW   = b{1}  ; bO   = b{2}  ; bG   = b{3}  ; bS   = b{4}  ;
-% bW0  = b0{1} ; bO0  = b0{2} ; bG0  = b0{3} ; bS0  = b0{4} ;
-% 
-% 
-% gdz = model.getGravityGradient();
-% op = model.operators;
-% [vW, mobW, upcW] = getFlux(p, rhoW, krW, muW, T, gdz, op);
-% [vO, mobO, upcO] = getFlux(p, rhoO, krO, muO, T, gdz, op);
-% [vG, mobG, upcG] = getFlux(p, rhoG, krG, muG, T, gdz, op);
-% [vS, mobS, upcS] = getFlux(p, rhoS, krS, muS, T, gdz, op);
-
 fluid = model.fluid;
 
 % Get multipliers
@@ -76,15 +54,17 @@ fluid = model.fluid;
 T = op.T.*transMult;
 
 % Calculate residual saturations
-[sWres, sOres , sSGres ] = computeResidualSaturations(fluid, p, sG, sS);
+[sWres, sOres , sSGres ] = computeResidualSaturations(fluid, p , sG , sS );
 [~    , sO0res, sSG0res] = computeResidualSaturations(fluid, p0, sG0, sS0);
 
  % Calculate effective relperms
 [krW, krO, krG, krS] = computeRelPermSolvent(fluid, p, sW, sO, sG, sS, sWres, sOres, sSGres, mobMult);
 
  % Calulate effective viscosities and densities
-[muW, muO, muG, muS, rhoW , rhoO , rhoG , rhoS ] = computeViscositiesAndDensities(fluid, p , sO , sG , sS , sOres , sSGres );
-[~  , ~  , ~  , ~  , rhoW0, rhoO0, rhoG0, rhoS0] = computeViscositiesAndDensities(fluid, p0, sO0, sG0, sS0, sO0res, sSG0res);
+[muW, muO, muG, muS, rhoW, rhoO , rhoG , rhoS ] ...
+    = computeViscositiesAndDensities(fluid, p , sO , sG , sS , sOres , sSGres );
+[~  , ~  , ~  , ~  , ~   , rhoO0, rhoG0, rhoS0] ...
+    = computeViscositiesAndDensities(fluid, p0, sO0, sG0, sS0, sO0res, sSG0res);
 
 % Calulcate effective formation volume factors
 [bW , bO , bG , bS ] = computeFormationVolumeFactors(fluid, p , rhoO , rhoG , rhoS );
@@ -92,13 +72,15 @@ T = op.T.*transMult;
 
 gdz = model.getGravityGradient();
 
-[vW, vO, vG, vS, mobW, mobO, mobG, mobS, upcW, upcO, upcG, upcS] = getFluxAndPropsSolvent(fluid, p, krW, krO, krG, krS, muW, muO, muG, muS, rhoW, rhoO, rhoG, rhoS, T, gdz, op);
+[vW, vO, vG, vS, mobW, mobO, mobG, mobS, upcW, upcO, upcG, upcS] ...
+    = getFluxAndPropsSolvent(fluid, p, krW, krO, krG, krS, muW, muO, muG, muS, rhoW, rhoO, rhoG, rhoS, T, gdz, op);
 
 if model.outputFluxes
-    state = model.storeFluxes(state, vW, vO, vS);
+    state = model.storeFluxes(state, vW, vO, vG, vS);
 end
 if model.extraStateOutput
     state = model.storebfactors(state, bW, bO, bG, bS);
+    state = model.storeDensity(state, rhoW, rhoO, rhoG, rhoS);
     state = model.storeMobilities(state, mobW, mobO, mobG, mobS);
     state = model.storeUpstreamIndices(state, upcW, upcO, upcG, upcS);
 end
@@ -131,13 +113,12 @@ rho = {rhoW, rhoO, rhoG, rhoS};
 mob = {mobW, mobO, mobG, mobS};
 sat = {sW, sO, sG, sS};
 
+% Density of injected fluids are calculated using the 'saturations' of
+% given in compi
 wc = W.cells;
 wcInj = wc([wellSol.sign] == 1);
 compi = reshape([W.compi],4, [])';
 compi = compi([wellSol.sign] == 1,:);
-
-% [~, ~, rhoWell, ~, ~, ~, ~, ~] ...
-%     = getDynamicQuantitiesFourPhaseSolvent(model, p(wcInj), 0, compi(:,1), compi(:,2), compi(:,3), compi(:,4), 0, 0, 0,0);
 
 rhoWell = cell(4,1);
 [~, ~, ~, ~, rhoWell{1}, rhoWell{2}, rhoWell{3}, rhoWell{4}] ...
@@ -163,22 +144,12 @@ if ~isempty(W)
     if ~opt.reverseMode
         [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, qWell, bhp, wellVars, wellMap, p, mob, rho, {}, {}, dt, opt);
     else
-        [eqs(4:7), names(4:7), types(4:7)] = wm.createReverseModeWellEquations(model, state0.wellSol, p0);
+%         [eqs(4:7), names(4:7), types(4:7)] = wm.createReverseModeWellEquations(model, state0.wellSol, p0);
     end
 end
+
+eqs{4} = eqs{4}.*(dt./op.pv);
+
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
-end
 
-
-%--------------------------------------------------------------------------
-
-function [v, mob, upc] = getFlux(p, rho, kr, mu, T, gdz, op)
-
-    rhof  = op.faceAvg(rho);
-    mob   = kr./mu;
-    dp    = op.Grad(p) - rhof.*gdz;
-    
-    upc  = (double(dp)<=0);
-    v   = - op.faceUpstr(upc, mob).*T.*dp;
-    
 end
