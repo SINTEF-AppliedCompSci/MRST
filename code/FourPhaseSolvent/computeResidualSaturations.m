@@ -8,11 +8,13 @@ function [sWres, sOres, sSGres] = computeResidualSaturations(fluid, p, sG, sS)
     sSGres_i   = fluid.sSGres_i;
 
     % Add small value to avoid 0/0-type expressions
-    tol = 10*eps;
-    sS = sS + (abs(sS) < tol).*tol;
-    sG = sG + (abs(sG) < tol).*tol;
+%     tol = eps;
+%     % sS = sS + (abs(sS) < tol).*tol;
+%     sG = sG + (abs(sG) < tol).*tol;
+    % sG = sG + tol;
     
-    % Misscibility is a funciton of the solvent fraction in the total gas
+    
+    % Misscibility is a function of the solvent fraction in the total gas
     % phase
 
     M = fluid.Msat(sG, sS).*fluid.Mpres(p);
