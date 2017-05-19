@@ -118,11 +118,13 @@ function [problem, state] = equationsWGVEbasicSens(model, state0, state, dt, dri
     eqs{7}=rhofac-drivingForces.rhofac;
     eqs{8}=permfac-drivingForces.permfac;
     eqs{9}=porofac-drivingForces.porofac;
+    %{
     if(opt.reverseMode)
         for i=3:9
          eqs{i}=eqs{i}*0;
         end
     end
+    %}
    %else
        %eqs = eqs(1:2);
    %  eqs{6} = double2ADI(zeros(numel(dz),1), p0);
