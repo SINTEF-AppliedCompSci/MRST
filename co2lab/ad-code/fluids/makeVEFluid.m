@@ -17,17 +17,34 @@ function fluid = makeVEFluid(Gt, rock, relperm_model, varargin)
 %                   the 'averageRock' function in CO2lab).
 %   relperm_model - Text string used to specify one of several possible
 %                   models for computing upscaled permeabilities.  Options are:
-%                   - 'simple'
-%                   - 'integrated'
-%                   - 'sharp interface'
-%                   - 'linear cap.'
-%                   - 'S table'
-%                   - 'P-scaled table'
-%                   - 'P-K-scaled table'
+%                   - 'simple' : sharp-interface model with linear relative
+%                                permeabilities and vertically homogeneous rock
+%                   - 'integrated' : sharp-interface model with linear
+%                                    relative permeabilities.  Allows vertically
+%                                    heterogeneous rock and impact of caprock
+%                                    rugosity.
+%                   - 'sharp interface' : sharp-interface model with linear relative
+%                                         permeabilities and vertically
+%                                         hoogeneous rock.  Includes impact
+%                                         of caprock rugosity.
+%                   - 'linear cap.' : Linear capillary fringe model with
+%                                     Brooks-Corey type relative
+%                                     permeability and endpoint scaling.
+%                   - 'S table' : capillary fringe model based on sampled
+%                                 tables in the upscaled saturation parameter.
+%                   - 'P-scaled table' : capillary fringe model based on sampled
+%                                        tables in the upscaled capillary
+%                                        pressure parameter.
+%                   - 'P-K-scaled table' : capillary fringe model basd on
+%                                          sampled tables in the upscaled
+%                                          capillary pressure parameter, and
+%                                          taking varations in permeability
+%                                          into account through a Leverett
+%                                          J-function relationship.
 %                   A description of the different models can be found in the
 %                   paper "Fully-Implicit Simulation of Vertical-Equilibrium
 %                   Models with Hysteresis and Capillary Fringe" (Nilsen et
-%                   al. 2015, submitted).
+%                   al., Computational Geosciences 20, 2016).
 %
 %   varargin      - Optional arguments supplied as 'key'/value pairs
 %                   ('pn'/nv).  These can be used to specify the dissolution
@@ -92,6 +109,16 @@ function fluid = makeVEFluid(Gt, rock, relperm_model, varargin)
 %  residual    - Two component vector, where first component represent
 %                residual brine saturation and second component residual CO2
 %                saturation.  Default is [0 0] (no residual saturation).
+%  krmax       - Two component vector, representing fine-scale relative
+%                permeabilities at end point saturation for brine (first
+%                component) and CO2 (second component). Default will be set
+%                to one minus the residual saturation of the opposite phase,
+%                consistent with a fine-scale linear relative permeability
+%                curve. This value is only relevant for the 'sharp
+%                interface' relperm model (the other models are either using
+%                linear relative permeabilities by default, or a capillary
+%                fringe which requires the full CO2 relative permeability
+%                curve to be provided through the optional 'kr3D' parameter).
 %  dissolution - True or false, depending on whether or not to include CO2
 %                dissolution into brine in the model.
 %  dis_rate    - If dissolution is active, this option describes the
@@ -213,7 +240,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
      case 'integrated' 
        fluid = setup_integrated_fluid(fluid, Gt, rock, opt.residual);
      case 'sharp interface'
-       fluid = make_sharp_interface_fluid(fluid, Gt, opt.residual, opt.top_trap, opt.surf_topo);
+       fluid = make_sharp_interface_fluid(fluid, Gt, opt.residual, opt.krmax, ...
+                                          opt.top_trap, opt.surf_topo);
      case 'linear cap.'
        fluid = make_lin_cap_fluid(fluid, Gt, opt.residual);
      case 'S table'
@@ -294,6 +322,10 @@ function opt = default_options()
 
    % Residual saturations [brine, co2]
    opt.residual = [0 0]; % default is no residual saturation for either phase
+   opt.krmax = [-1 -1]; % endpoint relperms.  If negative (default), these
+                        % will be set to one minus the residual saturation of
+                        % the opposite phase.  This parameter is only
+                        % relevant for the 'sharp interface' fluid model.
 
    % Dissolution of CO2 into brine
    opt.dissolution = false; % true or false
@@ -405,6 +437,7 @@ function fluid = linear_relperms(fluid)
 
    fluid.krW = @(sw, varargin) sw;
    fluid.krG = @(sg, varargin) sg;
+   fluid.kr3D = @(s, varargin) s;
 
 end
 
@@ -424,6 +457,8 @@ function fluid = sharp_interface_cap_pressure(fluid, Gt)
    % When function is called, the following fields are needed
    require_fields(fluid, {'bW', 'bG', 'rhoWS', 'rhoGS'});
 
+   % @@ Residual saturation not yet taken into account below!
+   
    fluid.pcWG = @(sg, p, varargin)                       ...
                  norm(gravity) *                         ...
                  (fluid.rhoWS .* fluid.bW(p) -           ...
@@ -465,14 +500,20 @@ end
 
 % ----------------------------------------------------------------------------
 
-function fluid = make_sharp_interface_fluid(fluid, Gt, residual, top_trap, surf_topo)
+function fluid = make_sharp_interface_fluid(fluid, Gt, residual, krmax, top_trap, surf_topo)
 
 % Sharp interface; rock considered vertically uniform; caprock rugosity
-% influences relperm
-
+% influences relperm.  
+   for i = 1:2
+      if krmax(i) < 0
+         krmax(i) = 1 - residual(3-i);
+      end
+   end
    fluid = addVERelperm(fluid       , Gt          , ...
                         'res_water' , residual(1) , ...
                         'res_gas'   , residual(2) , ...
+                        'krw'       , krmax(1)    , ...
+                        'krg'       , krmax(2)    , ...
                         'top_trap'  , top_trap    , ...
                         'surf_topo' , surf_topo);
 end

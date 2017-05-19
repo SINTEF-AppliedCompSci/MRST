@@ -45,11 +45,12 @@ end
 %% Read data
 % First loading: to get cartDims, COORD, ZCORN, ACTNUM, PERMX, PERMZ, PORO
 try
-   sdir = fullfile('data', 'sleipner');
+   sdir = fullfile(mrstPath('co2lab'), 'data', 'sleipner');
    disp([' -> Reading data from: ' sdir]);
-   grdecl = readGRDECL(fullfile(mrstPath('co2lab'), sdir, 'SLEIPNER.DATA'));
+   grdecl = readGRDECL(fullfile(sdir, 'SLEIPNER.DATA'));
 catch
-   fprintf(1, '    Reading of SLEIPNER.DATA failed, please dowload data manually');
+
+   fprintf(1, '    Reading of SLEIPNER.DATA failed, please download data manually');
    fprintf(1, ' following instructions\n    in "%s"\n', fullfile(sdir,'README'));
    return;
 end

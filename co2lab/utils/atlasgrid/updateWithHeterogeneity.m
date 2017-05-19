@@ -54,9 +54,17 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    %% Look in co2atlas directory and load any perm, poro, or ntg data
+    %% Look in co2atlas directories and load any perm, poro, or ntg data
     % that belong to frm_name.
-    atlas_dir     = getDatasetPath('co2atlas');
+    if any(strcmpi(deck.name, getNorthSeaNames()))
+        atlas_dir     = getDatasetPath('co2atlas');
+    elseif any(strcmpi(deck.name, getNorwegianSeaNames()))
+        atlas_dir     = getDatasetPath('co2atlasnorwegiansea');
+    elseif any(strcmpi(deck.name, getBarentsSeaNames()))
+        atlas_dir     = getDatasetPath('co2atlasbarentssea');
+    else
+        error(['Could not find ' deck.name ' in any Atlas directory.']);
+    end
     dataset_info  = dir(atlas_dir);
     dataset_names = {dataset_info(~[dataset_info.isdir]).name};
     [rawdata] = deal({});

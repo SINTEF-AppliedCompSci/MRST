@@ -41,11 +41,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    opt.volumes = integrateVertically(pv_3D', inf, opt.Gt) .* opt.Gt.cells.volumes; 
    
    if(~opt.kr_pressure)
-      fake_pressure = 200 * barsa;  % @@ make the value of this constant optional?
       fluid.krG     = @(sg, varargin) krG(sg, opt, varargin{:}); 
       fluid.krW    = @(so, varargin) krW(so, opt, varargin{:}); 
       fluid.pcWG    = @(sg, p, varargin) pcWG(sg, p, fluid, opt, varargin{:}); 
-      fluid.S3D     = @(SVE, samples, H) S3D(SVE, fake_pressure, samples, H, fluid, opt); 
+      %fake_pressure = 200 * barsa;  % @@ make the value of this constant optional?
+      %fluid.S3D     = @(SVE, samples, H) S3D(SVE, fake_pressure, samples, H, fluid, opt); 
    else
       fluid.krG  = @(sg, p, varargin) krG(sg, opt, varargin{:}); 
       fluid.krW = @(so, p, varargin) krW(so, opt, varargin{:}); 
@@ -138,7 +138,7 @@ end
 % ----------------------------------------------------------------------------
 
 function [h h_max] = saturation2Height(sg, opt, loc_opt)
-% this transformation is based on the simple transormation
+% this transformation is based on the simple transformation
 % s * H = h * (1 - sr(2)) + (h_max - h) * sr(1)
 % s_max * H = h_max * (1 - sr(2))
    

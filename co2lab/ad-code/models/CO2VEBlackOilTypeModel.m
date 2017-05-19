@@ -77,7 +77,7 @@ methods
                                                % 'water', 'gas' and 'oil'
                                                % flags above. Check with
                                                % maintainer of parent class.
-      model.wellVarNames = {'qWs', 'qGs', 'bhp'};
+      %model.wellVarNames = {'qWs', 'qGs', 'bhp'};
       %model.gravity = [0 norm(gravity)];
       model.gravity = gravity;
       
@@ -169,6 +169,11 @@ methods
       end
    end
 
+% ----------------------------------------------------------------------------
+   function rhoS = getSurfaceDensities(model)
+      rhoS = [model.fluid.rhoWS, model.fluid.rhoGS];
+   end
+   
 % ----------------------------------------------------------------------------
 function [state, report] = updateState(model, state, problem, dx, drivingForces)
 

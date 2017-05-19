@@ -61,6 +61,7 @@ function [ info ] = getSeaInfo( name, rhoCref )
         info.press_deviation = 0; % pressure devation from hydrostatic (%)
         
         info.rhoCref = rhoCref;
+        info.sea = 'North';
 
         
         
@@ -88,7 +89,7 @@ function [ info ] = getSeaInfo( name, rhoCref )
         info.press_deviation = 0;
         
         info.rhoCref = rhoCref;
-
+        info.sea = 'Norwegian';
         
         
     elseif strcmpi(name,'BarentsSea') || any(strcmpi(barentsSeaNames,name))
@@ -138,7 +139,7 @@ function [ info ] = getSeaInfo( name, rhoCref )
         info.press_deviation = 0;
         
         info.rhoCref = rhoCref;
-        
+        info.sea = 'Barents';
         
         
     else

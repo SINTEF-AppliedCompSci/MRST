@@ -26,26 +26,24 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'stepOptions' , []); % compatibility only
     opt = merge_options(opt, varargin{:});
     
-    assert(isempty(drivingForces.src));  % unsupported
-    W = drivingForces.W;
-    s = model.operators;
-    f = model.fluid;
-    G = model.G;
-    t = model.t;
+    W  = drivingForces.W;
+    bc = drivingForces.bc;
+    s  = model.operators;
+    f  = model.fluid;
+    G  = model.G;
+    t  = model.t;
     
     % Extract current and previous values of all variables to solve for
     [p, sG, wellSol] = model.getProps(state, 'pressure', 'sg', 'wellsol');
-    [p0, sG0]        = model.getProps(state0, 'pressure', 'sg');
+    [p0, sG0, wellSol0]        = model.getProps(state0, 'pressure', 'sg', 'wellsol');
     
-    bhp = vertcat(state.wellSol.bhp);
-    qWs = vertcat(state.wellSol.qWs);
-    qGs = vertcat(state.wellSol.qGs);
+    [qWell, pBH, wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
 
     % ------------------ Initialization of independent variables ------------------
     
     if ~opt.resOnly
         if ~opt.reverseMode
-            [p, sG, qWs, qGs, bhp] = initVariablesADI(p, sG, qWs, qGs, bhp);
+            [p, sG, qWell{:}, pBH, wellVars{:}] = initVariablesADI(p, sG, qWell{:}, pBH, wellVars{:});
         else
             [p0, sG0, ~, ~, ~] = initVariablesADI(p0, sw0, 0*qWs, 0*qGs, 0*bhp);
         end
@@ -80,8 +78,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     [krW, krG] = deal(f.krW(1-sG), f.krG(sG));
     
     % computing densities, mobilities and upstream indices
-    [bW, mobW, fluxW] = compMFlux(p       , f.bW, f.muW, f.rhoWS, trMult, krW, s, trans, model);
-    [bG, mobG, fluxG] = compMFlux(p + pcWG, f.bG, f.muG, f.rhoGS, trMult, krG, s, trans, model);
+    [bW, mobW, fluxW, vW, upcw] = compMFlux(p       , f.bW, f.muW, f.rhoWS, trMult, krW, s, trans, model);
+    [bG, mobG, fluxG, vG, upcg] = compMFlux(p + pcWG, f.bG, f.muG, f.rhoGS, trMult, krG, s, trans, model);
 
     bW0 = f.bW(p0, t);
     bG0 = f.bG(p0 + pcWG, t);
@@ -92,131 +90,53 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     eqs{2} = (s.pv/dt) .* (pvMult .* bG .* sG     - pvMult0 .* bG0 .* sG0    ) + s.Div(fluxG);
     
     % ---------------------------- Boundary conditions ----------------------------
+    if model.outputFluxes
+        state = model.storeFluxes(state, vW, [], vG);
+    end
+    if model.extraStateOutput
+        state = model.storebfactors(state, bW, [], bG);
+        state = model.storeMobilities(state, mobW, [], mobG);
+        state = model.storeUpstreamIndices(state, upcw, [], upcg);
+    end
+    
+    rho = {bW.*f.rhoWS, bG.*f.rhoGS};
+    mob = {mobW, mobG};
+    
+    if ~isempty(bc) && isempty(bc.sat)
+       drivingForces.bc.sat = repmat([1 0], model.G.cells.num, 1); % default
+                                                                   % is water 
+    end
+    
+    [eqs, ~, qRes] = addFluxesFromSourcesAndBC(model, eqs, {p, p+pcWG}, rho, ...
+                                               mob, {1-sG, sG}, drivingForces);
 
-    % @@ should capillary pressure be sent in too?
-    [bc_cells, b_fW, b_fG] = ...
-        BCFluxes(G, s, p, t, f, drivingForces.bc, krW, krG, transMult, trMult);
-
-    % @@ If a cell has more than one pressure boundary condition, only one
-    % will be taken into account.
-    eqs{1}(bc_cells) = eqs{1}(bc_cells) + b_fW;
-    eqs{2}(bc_cells) = eqs{2}(bc_cells) + b_fG;
+    if model.outputFluxes
+       state = model.storeBoundaryFluxes(state, qRes{1}, [], qRes{2}, drivingForces);
+    end
     
     % ------------------------------ Well equations ------------------------------
 
-    primaryVars = {'pressure' , 'sG'   , 'qWs'      , 'qGs', 'bhp'};
-    types = {'cell'           , 'cell' , 'perf'       , 'perf'     , 'well'};
-    names = {'water'          , 'gas'  , 'waterWells' , 'gasWells' , 'closureWells'};
-
-    sW = 1-sG;
+    primaryVars = {'pressure' , 'sG', wellVarNames{:}};
+    types = {'cell'           , 'cell'};
+    names = {'water'          , 'gas'};
     if ~isempty(W)
-       wm = model.wellmodel;
        if ~opt.reverseMode
-          wc = vertcat(W.cells);
-          [cqs, weqs, ctrleqs, wc, state.wellSol] =                       ...
-              wm.computeWellFlux(model, W, wellSol, bhp                 , ...
-                                 {qWs, qGs}                             , ...
-                                 p(wc)                                  , ...
-                                 [model.fluid.rhoWS, model.fluid.rhoGS] , ...
-                                 {bW(wc), bG(wc)}                       , ...
-                                 {mobW(wc), mobG(wc)}                   , ...
-                                 {sW(wc), sG(wc)}                       , ...
-                                 {}                                     , ...
-                                 'allowControlSwitching', false         , ...
-                                 'nonlinearIteration', opt.iteration);
-          % Store the separate well equations (relate well bottom hole
-          % pressures to influx)
-          eqs(3:4) = weqs;
-          
-          % Store the control equations (ensuring that each well has values
-          % corresponding to the prescribed value)
-          eqs{5} = ctrleqs;
-          
-          % Add source term to equations.  Negative sign may be surprising if
-          % one is used to source terms on the right hand side, but this is
-          % the equations on residual form
-          eqs{1}(wc) = eqs{1}(wc) - cqs{1};
-          eqs{2}(wc) = eqs{2}(wc) - cqs{2};
+          [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, qWell, pBH, wellVars, wellMap, p, mob, rho, {}, {}, dt, opt);
           
        else
           [eqs(3:5), names(3:5), types(3:5)] = ...
               wm.createReverseModeWellEquations(model, state0.wellSol, p0);%#ok
        end
-    else
-       %eqs(3:5) = {bhp, bhp, bhp}; % empty ADIs
     end
 
     % ----------------------------------------------------------------------------
-
-    if isempty(W)
-       % Remove names/types associated with wells, as no well exist
-       types = types(1:2);
-      names = names(1:2);
-    end
-    
-    problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
-    
+    problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt); 
 end
 
 % ============================= END MAIN FUNCTION =============================
 
-function [cells, fluxW, fluxG] = BCFluxes(G, s, p, t, f, bc, krW, krG, transMult, trMult)
-    
-    if isempty(bc)
-        % all boundary conditions are no-flow; nothing to do here.
-        cells = []; fluxW = []; fluxG = []; return;
-    end
-
-    assert(all(strcmp(bc.type, 'pressure'))); % only supported type for now
-    cells = sum(G.faces.neighbors(bc.face, :), 2);
-    %assert(numel(unique(cells)) == numel(cells)); % multiple BC per cell not supported
-    
-    % prepare boundary-specific values
-    bp   = p(cells); 
-    bt   = t(cells);
-    bdp  = bc.value - bp;
-    bdz  = G.faces.centroids(bc.face, 3) - G.cells.centroids(cells,3);
-    
-    assert(isscalar(transMult)); % not implemented for face-wise values
-    assert(isscalar(trMult));    % not implemented for face-wise values
-    trans = s.T_all(bc.face) .* transMult; 
-    krWf = trMult * krW(cells);
-    krGf = trMult * krG(cells);
-    
-    g = norm(gravity); 
-    
-    [bw, rhoWf, mobW] = computeRhoMobBFace(bp, bt, f.bW, f.rhoWS, krWf, f.muW);
-    [bg, rhoGf, mobG] = computeRhoMobBFace(bp, bt, f.bG, f.rhoGS, krGf, f.muG);
-    
-    dptermW = bdp - rhoWf .* g .* bdz;
-    dptermG = bdp - rhoGf .* g .* bdz;
-    
-    % Adjust upstream-weighted mobilities to prevent gas from re-entering the domain
-    ix = dptermG > 0;
-    mobG(ix) = 0;
-    mobW(ix) = trMult ./ f.muW(bp(ix), bt(ix));
- 
-    % compute fluxes
-    fluxW = - bw .* mobW .* trans .* dptermW;
-    fluxG = - bg .* mobG .* trans .* dptermG;
-    
-    %fprintf('%f, %f\n', max(abs(fluxW.val)), max(abs(fluxG.val)));
-end
-
 % ----------------------------------------------------------------------------
-
-function [bb, brho, bmob] = computeRhoMobBFace(bp, bt, bfun, rhoS, krf, mufun)
-
-    bb   = bfun(bp, bt);
-    brho = bb .* rhoS;
-    bmob = krf ./ mufun(bp, bt);
-
-end
-
-% ----------------------------------------------------------------------------
-function [b, mob, flux] = compMFlux(p, bfun, mufun, rhoS, trMult, kr, s, trans, model)
-    
-    g   = norm(gravity);
+function [b, mob, fluxS, fluxR, upc] = compMFlux(p, bfun, mufun, rhoS, trMult, kr, s, trans, model)
     b   = bfun(p, model.t);
     mob = trMult .* kr ./ mufun(p, model.t);
 
@@ -224,18 +144,6 @@ function [b, mob, flux] = compMFlux(p, bfun, mufun, rhoS, trMult, kr, s, trans, 
     
     dp   = s.Grad(p) - rhoFace .* model.getGravityGradient();
     upc  = (double(dp)<=0);
-    flux = -s.faceUpstr(upc, b .* mob) .* trans .* dp;
-
-end
-
-% ----------------------------------------------------------------------------
-function [wc, cqs] = checkForRepetitions(wc, cqs)
-[c, ~, ic] = unique(wc, 'stable');
-if numel(c) ~= numel(wc)
-    A = sparse(ic, (1:numel(wc))', 1, numel(c), numel(wc));
-    wc = c;
-    for k=1:numel(cqs)
-        cqs{k} = A*cqs{k};
-    end
-end
+    fluxR = -s.faceUpstr(upc, mob) .* trans .* dp;
+    fluxS = s.faceUpstr(upc, b) .* fluxR;
 end
