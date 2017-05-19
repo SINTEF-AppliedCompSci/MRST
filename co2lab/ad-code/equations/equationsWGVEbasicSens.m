@@ -13,7 +13,7 @@ function [problem, state] = equationsWGVEbasicSens(model, state0, state, dt, dri
 
    % Extract the current and previous values of all variables to solve for
    [p, sG, sGmax, wellSol,dz,rhofac,permfac,porofac] = model.getProps(state , 'pressure', 'sg', 'sGmax', 'wellsol', 'dz','rhofac','permfac','porofac');
-   [p0, sG0]               = model.getProps(state0, 'pressure', 'sg');
+   [p0, sG0,wellSol0]               = model.getProps(state0, 'pressure', 'sg','wellSol');
 
    % Stack well-related variables of the same type together
    %bhp = vertcat(wellSol.bhp);
@@ -27,7 +27,7 @@ function [problem, state] = equationsWGVEbasicSens(model, state0, state, dt, dri
       % ADI variables needed since we are not only computing residuals
       if ~opt.reverseMode
          %[p, sG, bhp, qWs, qGs, dz, rhofac, permfac, porofac] = initVariablesADI(p, sG, bhp, qWs, qGs, dz,rhofac,permfac,porofac);
-         [p, sG, qWell{:}, bhp, dz, rhofac, permfac, porofac] = initVariablesADI(p, sG, bhp, qWs, qGs, dz,rhofac,permfac,porofac);
+         [p, sG, qWell{:}, bhp, dz, rhofac, permfac, porofac] = initVariablesADI(p, sG, qWell{:}, bhp, dz,rhofac,permfac,porofac);
       else
          zw = zeros(size(bhp)); % dummy
          dzw = zeros(size(dz));
@@ -103,27 +103,33 @@ function [problem, state] = equationsWGVEbasicSens(model, state0, state, dt, dri
    eqs = addFluxesFromSourcesAndBCSens(model, ...
            eqs, {pW, pG}, {rhoW, rhoG}, {mobW, mobG}, {bW, bG}, {sW, sG}, drivingForces,permfac, dz);
 
-
-   
-
-   [eqs, names, types, state.wellSol] = ...
-             model.insertWellEquations(eqs, names, types, wellSol0, wellSol, ...
-                                       qWell, bhp, extra, wellMap, p, ...
-                                       {mobW, mobG}, {rhoW, rhoG}, dissolved, ...
-                                       {}, dt, opt);
-   %% Setting up well equations
-  
-   if(~opt.reverseMode)
+       
+       if ~isempty(W)
+           dissolved={};
+           [eqs, names, types, state.wellSol] = ...
+               model.insertWellEquations(eqs, names, types, wellSol0, wellSol, ...
+               qWell, bhp, extra, wellMap, p, ...
+               {mobW, mobG}, {rhoW, rhoG}, dissolved, ...
+               {}, dt, opt);
+           %% Setting up well equations
+       end
+   %if(~opt.reverseMode)
     eqs{6}=dz-drivingForces.dz;
     eqs{7}=rhofac-drivingForces.rhofac;
     eqs{8}=permfac-drivingForces.permfac;
     eqs{9}=porofac-drivingForces.porofac;
-   else
-     eqs{6} = double2ADI(zeros(numel(dz),1), p0);
-     eqs{7} = double2ADI(zeros(numel(rhofac),1), p0);
-     eqs{8} = double2ADI(zeros(numel(rhofac),1), p0);
-     eqs{9} = double2ADI(zeros(numel(rhofac),1), p0);     
-   end
+    if(opt.reverseMode)
+        for i=3:9
+         eqs{i}=eqs{i}*0;
+        end
+    end
+   %else
+       %eqs = eqs(1:2);
+   %  eqs{6} = double2ADI(zeros(numel(dz),1), p0);
+   %  eqs{7} = double2ADI(zeros(numel(rhofac),1), p0);
+   %  eqs{8} = double2ADI(zeros(numel(rhofac),1), p0);
+   %  eqs{9} = double2ADI(zeros(numel(rhofac),1), p0);     
+   %end
    %% Setting up problem
    primaryVars = {primaryVars{:}, 'dz', 'rhofac','permfac','porofac'};
    types = {types{:}, 'scell','mult','mult','mult'};

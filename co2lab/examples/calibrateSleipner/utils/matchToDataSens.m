@@ -36,7 +36,8 @@ function obj = matchToDataSens(model, wellSols, states, schedule, plumes, vararg
       permfac=state.permfac;
       porofac=state.porofac;
       if opt.ComputePartials
-         [p, sG, pBHP, qWs, qGs, dz, rhofac, permfac, porofac] = initVariablesADI(p, sG, pBHP, qWs, qGs, dz, rhofac, permfac, porofac);%#ok
+         %[p, sG, pBHP, qWs, qGs, dz, rhofac, permfac, porofac] = initVariablesADI(p, sG, pBHP, qWs, qGs, dz, rhofac, permfac, porofac);%#ok
+         [p, sG, qWs, qGs,pBHP, dz, rhofac, permfac, porofac] = initVariablesADI(p, sG,qWs, qGs,pBHP, dz, rhofac, permfac, porofac);%#ok
       end
       %dt = dts(step);
       %injInx = (vertcat(sol.sign) > 0);
