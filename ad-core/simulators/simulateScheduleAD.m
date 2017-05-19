@@ -202,7 +202,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     failure = false;
     simtime = zeros(nSteps, 1);
     prevControl = nan;
-    ise=1;%used to point to next step
+    firstEmptyIx = 1;
     for i = 1:nSteps
         step_header(i);
         state0 = state;
@@ -240,15 +240,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         % Handle massaging of output to correct expectation
         if opt.OutputMinisteps
             % We have potentially several ministeps desired as output
-            nmini = numel(ministeps);
-            %{
-            ise = find(cellfun(@isempty, states), 1, 'first');
-            if isempty(ise)
-                ise = numel(states) + 1;
-            end
-            ind = ise:(ise + nmini - 1);
-            %}
-            ind=ise:(ise + nmini - 1);
+            ind = firstEmptyIx:(firstEmptyIx + numel(ministeps) - 1);
             states_step = ministeps;
         else
             % We just want the control step
@@ -268,7 +260,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         if ~isempty(opt.ReportHandler)
             opt.ReportHandler{ind + opt.restartStep - 1} = report;
         end
-        ise = ise + numel(report);
+        firstEmptyIx = firstEmptyIx + numel(report);
         
         if wantStates
             states(ind) = states_step;
