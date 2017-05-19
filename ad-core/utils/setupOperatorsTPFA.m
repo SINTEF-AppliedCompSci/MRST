@@ -152,7 +152,7 @@ s.pv = pv;
 nf = size(N,1);
 nc = numel(s.pv); 
 assert(nc == G.cells.num, ...
-    'Dimension mismatch between grid and supplied pore-volumes'.);
+    'Dimension mismatch between grid and supplied pore-volumes.');
 C  = sparse( [(1:nf)'; (1:nf)'], N, ones(nf,1)*[1 -1], nf, nc);
 s.C = C;
 s.Grad = @(x) -C*x;

@@ -274,7 +274,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 tmp.LocalTime = t_local + dt;
                 reports{end+1} = tmp; %#ok
                 clear tmp
-                if isFinalMinistep && dt/dt_sel > 0.9
+                if ~isFinalMinistep || dt/dt_sel > 0.9
                     % Avoid storing ministeps that are just due to cutting
                     % at the end of the control step
                     stepsel.storeTimestep(reports{end});
