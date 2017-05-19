@@ -84,8 +84,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     [wellSols,states] = solve(schedule0);
 
     % Set up objective function storage
-    computeObj = @(ws,states) sum(cell2mat(getObjective(ws,states)));
-    val0 = computeObj(wellSols,states);
+    computeObj = @(ws,states,schedule) sum(cell2mat(getObjective(ws,states,schedule)));
+    val0 = computeObj(wellSols,states,schedule0);
     %val0 = computeObj([]);
 
     grad = cell(1, numel(schedule0.control));
@@ -115,7 +115,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             schedule.control(cn).W(k) = w;
             
             [wellSols,states] = solve(schedule);
-            valk = sum( cell2mat(getObjective(wellSols,states)));
+            valk = sum( cell2mat(getObjective(wellSols,states,schedule)));
             grad{cn}(k) = (valk-val0)/e;
         end
     end
