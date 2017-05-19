@@ -59,7 +59,7 @@ methods
                                                % 'water', 'gas' and 'oil'
                                                % flags above. Check with
                                                % maintainer of parent class.
-      model.wellVarNames = {'qWs', 'qGs', 'bhp'};
+      %model.wellVarNames = {'qWs', 'qGs', 'bhp'};
       %model.gravity = [0 norm(gravity)];
       model.gravity = gravity;
       
@@ -70,6 +70,7 @@ methods
       else
          % use basic model equations (no dissolution)
          model.equation = @equationsWGVEbasicSens;
+         %model.adjointType=opt.adjointType;
       end
       
       model = model.setupOperators(Gt, rock2D);
