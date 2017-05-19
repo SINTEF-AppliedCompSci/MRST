@@ -26,12 +26,13 @@ fluid = addSolventProperties(fluid, 'n', 2, ...
 %'c', 1e-6/barsa, ...                                
 
 model = FourPhaseSolventModel(G, rock, fluid);
+model.extraStateOutput = true;
 
 T = 1*year;
 pv = poreVolume(G, rock);
 injRate = 1*sum(pv)/T;
 
-nStep = 200;
+nStep = 100;
 dT = T/nStep;
 %%
 
@@ -44,7 +45,6 @@ WA = verticalWell(WA, G, rock, 60, 220, [], ...
                  'comp_i', [0, 0, 0, 1], ...
                  'type', 'bhp', ...
                  'val', 0      );
-schedule = simpleSchedule(dT, 'W', WA);
 
 WB = verticalWell([], G, rock, 1, 1, [], ...
                  'comp_i', [1, 0, 0, 0], ...
@@ -81,3 +81,89 @@ state0.wellSol = initWellSolAD(WA, model, state0);
 %%
 
 plotToolbar(G, states)
+
+%%
+
+close all
+n = numel(states);
+pos = [500, 500, 2000,1000];
+fig = figure('position', pos);
+M = struct('cdata',[],'colormap',[]);
+jv = [4,1,2];
+ttl = {'S_s', 'S_w', 'S_o'};
+for i = 1:n
+    
+    clf;
+    
+    subplot(1,3,1)
+    plotCellData(G, states{i}.s(:,4), 'edgecolor', 'none');
+    colorbar;
+    colormap(jet)
+    caxis([0,1])
+    axis equal tight off
+    title('S_s');
+    
+    subplot(1,3,2)
+    plotCellData(G, states{i}.mob(:,2), 'edgecolor', 'none');
+    colorbar;
+    caxis([0,130])
+    colormap(jet)
+    axis equal tight off
+    title('\lambda_o');
+    
+    subplot(1,3,3)
+    plotCellData(G, states{i}.s(:,2), 'edgecolor', 'none');
+    colorbar;
+    colormap(jet)
+    caxis([0,1])
+    axis equal tight off
+    title('S_o');
+     
+    drawnow;
+    ax = gca;
+    ax.Units = 'pixels';
+%     pos = ax.Position;
+    
+    m = 150; n = 100;
+    rect = [m, n, 2000-2*m, 1000-2*n];
+    
+    M(i) = getframe(fig, rect);
+    
+    ax.Units = 'normalized';
+    
+end
+
+%%
+
+vo = VideoWriter('solvent.avi');
+vo.FrameRate = n/15;
+open(vo);
+
+writeVideo(vo, M);
+
+close(vo)
+
+%%
+
+close all
+pos = [500, 500, 2000,1000];
+fig = figure('position', pos);
+axis off
+
+movie(M)
+
+%%
+
+qs = 0;
+for i = 1:n
+    qs = qs + [ws{i}.qSs]*step.val(i);
+end
+
+%%
+n = numel(ws);
+qs = zeros(n,2);
+for i = 1:n
+    qs(i,:) = [ws{i}.qSs].*step.val(i).*fluid.rhoSS;
+end
+qsc = cumsum(qs,1);
+qr = sum(states{end}.s(:,4).*states{end}.rho(:,4).*pv);
