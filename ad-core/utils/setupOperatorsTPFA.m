@@ -108,7 +108,7 @@ else
    % neighbors are given
    n_if = size(N, 1);
    intInx = true(n_if, 1);
-   if isfield(G, 'faces')
+   if isfield(G, 'faces') 
        % Try to match given interfaces to actual grid.
        intInxGrid = all(G.faces.neighbors ~= 0, 2);
        if sum(intInxGrid) == n_if
@@ -149,15 +149,16 @@ end
 s.pv = pv;
 
 % C - (transpose) divergence matrix
-n = size(N,1);
-C  = sparse( [(1:n)'; (1:n)'], N, ones(n,1)*[1 -1], n, G.cells.num);
+nf = size(N,1);
+nc = numel(s.pv); 
+assert(nc == G.cells.num, ...
+    'Dimension mismatch between grid and supplied pore-volumes'.);
+C  = sparse( [(1:nf)'; (1:nf)'], N, ones(nf,1)*[1 -1], nf, nc);
 s.C = C;
 s.Grad = @(x) -C*x;
 s.Div  = @(x) C'*x;
 
 % faceAvg - as multiplication with matrix
-nc = max(max(N));
-nf = size(N,1);
 M  = sparse((1:nf)'*[1 1], N, .5*ones(nf,2), nf, nc);
 s.faceAvg = @(x)M*x;
 
@@ -167,6 +168,7 @@ s.faceUpstr = @(flag, x)faceUpstr(flag, x, N, [nf, nc]);
 % Include neighbor relations
 s.N = N;
 s.internalConn = intInx;
+
 end
 
 
