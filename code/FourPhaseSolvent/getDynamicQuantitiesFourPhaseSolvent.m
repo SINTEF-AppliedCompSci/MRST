@@ -22,8 +22,8 @@ function [kr_eff, mu_eff, rho_eff, b_eff, b0_eff, pvMult, pvMult0, T] ...
     [~     , rho0_eff] = computeViscositiesAndDensities(fluid, p0, sO0, sG0, sS0, sO0res, sSG0res);
     
     % Calulcate effective formation volume factors
-    b_eff  = calculateFormationVolumeFactors(fluid, p , rho_eff );
-    b0_eff = calculateFormationVolumeFactors(fluid, p0, rho0_eff);
+    b_eff  = computeFormationVolumeFactors(fluid, p , rho_eff );
+    b0_eff = computeFormationVolumeFactors(fluid, p0, rho0_eff);
     
 end
 
@@ -41,7 +41,7 @@ function [sWres, sOres, sSGres] = residualSaturations(fluid, p, sG, sS)
     sSGres_i   = fluid.sSGres_i;
 
     % Add small value to avoid 0/0-type expressions
-    tol = eps;
+    tol = 10*eps;
     sS = sS + (abs(sS) < tol).*tol;
     sG = sG + (abs(sG) < tol).*tol;
     
@@ -70,7 +70,7 @@ function kr_eff = computeRelPermSolvent(fluid, p, sW, sO, sG, sS, sWres, sOres, 
     krGT_i = fluid.krG(sG + sS);
     
     % Add small value to avoid 0/0-type expressions
-    tol = eps;
+    tol = 10*eps;
     sO = sO + (abs(sO) < tol).*tol;
     sG = sG + (abs(sG) < tol).*tol;
     sS = sS + (abs(sS) < tol).*tol;
@@ -122,7 +122,7 @@ function [mu_eff, rho_eff] ...
     sSn = max(sS - sSGres,0);
     
     % Add small value to avoid 0/0-type expressions
-    tol = eps;
+    tol = 10*eps;
     sOn = sOn + (abs(sOn) < tol).*tol;
     sGn = sGn + (abs(sOn) < tol).*tol;
     sSn = sSn + (abs(sSn) < tol).*tol;
@@ -184,7 +184,7 @@ end
 
 %--------------------------------------------------------------------------
     
-function b_eff = calculateFormationVolumeFactors(fluid, p, rho_eff)
+function b_eff = computeFormationVolumeFactors(fluid, p, rho_eff)
     % Calculate effective (inverse) formation volume factors due to new densities
 
     % Effective densities
