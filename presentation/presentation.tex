@@ -1,0 +1,189 @@
+\documentclass[screen, aspectratio=43]{beamer}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{tikz}
+\usetikzlibrary{tikzmark,positioning,calc}
+\usepackage{tcolorbox}
+\newtcolorbox{mybox}[2]{colback=white, colframe=ntnublue,
+  fonttitle=\large, title=#1, text height=#2, fontupper=\color{black}\footnotesize}%
+
+\DeclareMathOperator{\eff}{eff}
+
+
+% Use the NTNU-temaet for beamer 
+% \usetheme[style=ntnu|simple|vertical|horizontal, language=bm|nn|en]{ntnu2015}
+\usetheme[style=ntnu,language=en]{ntnu2015}
+ 
+\title[Short title]{Implementation of a solvent model using MRST}
+%\subtitle{Subtitle if you want}
+\author[Ø.S. Klemetsdal]{Øystein Strengehagen Klemetsdal}
+\institute[NTNU]{Department of Mathematical sciences, NTNU}
+%\date{1 January 1970}
+\date{} % To have an empty date
+
+
+\begin{document}
+
+% Special title page command to get a different background
+\ntnutitlepage
+
+\begin{frame}
+  \frametitle{Miscible flooding}
+  \begin{itemize}
+  \item Much higher recovery factor due to very little residual oil  
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Physics of miscible flooding}
+  \begin{itemize}
+  \item Miscible displacement occurs when there is no phase boundary or
+    interface between injected fluid and reservoir oil
+  \item Fully miscible displacement: injected solvent displaces \emph{all}
+    residual oil form invaded pores
+  \item Most physical gases does not form a completely miscible system and and
+    form two distinct phases over a broad range of mixtures and pressures when
+    combined with reservoir oil.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Model assumptions}
+  \begin{itemize}
+  \item Two extreme cases:
+    \begin{enumerate}
+    \item Only solvent gas and reservoir oil: Miscible in all proportions (only
+      one hydrocarbon phase)
+    \item Only reservoir gas and oil: Immiscible (traditional black-oil)
+    \end{enumerate}
+  \item Interpolate between these two in regions containing both dry gas and
+    solvent
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Relative permeabilities}
+  \begin{align*}
+    k_{r \alpha,\beta} = \underbrace{m_\alpha \left(\frac{S_\alpha}{S_g + S_s}\right)}_{\tikzmark{malpha}}
+    \underbrace{k_{rgT,\beta}(S_g, S_s)}_{\tikzmark{krgT}},
+    \quad
+    \begin{array}[h]{l}
+      \alpha \in \{g, s\} \\ \beta \in\{i,m\}
+    \end{array}
+  \end{align*}
+  \begin{tikzpicture}[remember picture,overlay]
+    \draw [bend left, <-, line width = 1pt]($({pic cs:malpha})+(0,5pt)$) |- ++(-1em,-2ex)
+    node[rectangle, anchor=east,font=\small, text width = 2.5cm, align = center, fill = ntnublue!20]
+    {\scriptsize Relperm multiplier};
+    \draw [<-, line width = 1pt]($({pic cs:krgT})+(0,5pt)$) |- ++(1em,-3.2ex)
+    node[rectangle, anchor=west,font=\small, text width = 2.5cm, align = center, fill = ntnublue!20]
+    {\scriptsize Total gas relperm};
+  \end{tikzpicture}%
+  \\\vspace{0.5cm}
+  \begin{columns}
+    \begin{column}{0.5\textwidth}
+      \begin{mybox}{\centering Immiscible case ($i$)}{0.35\textheight}
+        \vspace{0.5cm}
+        \begin{align*}
+          k_{r o,i} & = k_{ro}(S_o), \\
+          k_{rgT,i} & = k_{rg}(S_g + S_s)
+        \end{align*}
+      \end{mybox}
+    \end{column}
+    \begin{column}{0.5\textwidth}
+      \begin{mybox}{\centering Miscible case ($m$)}{0.35\textheight}
+        \begin{align*}
+          k_{r o,m} & = \frac{S_o}{S_n}k\tikzmark{krn}_{rn}, \\
+          k_{rgT,m} & = \frac{S_g + S_s}{S_n}k_{rn},
+        \end{align*}
+        $k_{rn} = k_{rn}(S_o + S_g + S_s)$: Total HC relperm
+      \end{mybox}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Transition between miscible and immiscible conditions}
+  \begin{itemize}
+  \item Determined by miscibility function
+  \begin{equation*}
+      M = M_S\left(\frac{S_s}{S_g + S_s}\right) M_p(p) \in [0,1]
+    \end{equation*}
+  \item Two-step transition:
+    \begin{enumerate}
+    \item Calculate interpolated residual saturations
+      \begin{align*}
+        S_{\alpha r} = S_{\alpha r,m}M + S_{\alpha r,i}(1-M), \quad \alpha \in \{o,s\}
+      \end{align*}
+    \item Interpolate relative permeabilities using these as new endpoints
+      \begin{align*}
+        k_{r \alpha} = k_{r\alpha,m}M + k_{r\alpha,i}(1-M), \quad \alpha \in \{o,gT\}
+      \end{align*}
+    \end{enumerate}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Viscosities}
+  \vspace{0.2cm}
+  Effective viscosities determined by Todd-Longstaff model:
+  \begin{equation*}
+    \mu_{o, \eff} = \mu_o^{1-\omega}\mu_{mos}^\omega, \quad
+    \mu_{g, \eff} = \mu_g^{1-\omega}\mu_{msg}^\omega, \quad
+    \mu_{s, \eff} = \mu_s^{1-\omega}\mu_{m}^\omega
+  \end{equation*}
+  \vspace{0.2cm}
+  \begin{mybox}{}{0.4\textheight}
+    \begin{description}
+    \item[$\omega$] Mixing parameter $\in [0,1]$,
+    \item[$\mu_{mos}$] Fully mixed $o + s$ viscosity
+      $= \frac{\mu_o \mu_s}{\left(\frac{S_o'}{S_{os}'}\mu_s^{1/4} +
+          \frac{S_s'}{S_{os}'}\mu_o^{1/4}\right)^4}$
+    \item[$\mu_{msg}$] Fully mixed $s + g$ viscosity
+      $ = \frac{\mu_s \mu_g}{\left(\frac{S_s'}{S_{sg}'}\mu_g^{1/4} +
+          \frac{S_g'}{S_{sg}'}\mu_s^{1/4}\right)^4}$
+    \item[$\mu_{msg}$] Fully mixed $o +s + g$ viscosity \\
+      \hfill $ = \frac{\mu_o \mu_s \mu_g}{\left(\frac{S_o'}{S_{n}'}(\mu_s\mu_g)^{1/4}
+          + \frac{S_s'}{S_{n}'}(\mu_o\mu_g)^{1/4}
+          + \frac{S_g'}{S_{n}'}(\mu_o\mu_s)^{1/4}\right)^4}$
+    \end{description}
+  \end{mybox}
+
+\end{frame}
+
+\begin{frame}
+  \frametitle{Densities}
+  \vspace{0.2cm}
+  Effective viscosities determined by Todd-Longstaff model:
+  \begin{equation*}
+    \mu_{o, \eff} = \mu_o^{1-\omega}\mu_{mos}^\omega, \quad
+    \mu_{g, \eff} = \mu_g^{1-\omega}\mu_{msg}^\omega, \quad
+    \mu_{s, \eff} = \mu_s^{1-\omega}\mu_{m}^\omega
+  \end{equation*}
+  \vspace{0.2cm}
+  \begin{mybox}{}{0.4\textheight}
+    \begin{description}
+    \item[$\omega$] Mixing parameter $\in [0,1]$,
+    \item[$\mu_{mos}$] Fully mixed $o + s$ viscosity
+      $= \frac{\mu_o \mu_s}{\left(\frac{S_o'}{S_{os}'}\mu_s^{1/4} +
+          \frac{S_s'}{S_{os}'}\mu_o^{1/4}\right)^4}$
+    \item[$\mu_{msg}$] Fully mixed $s + g$ viscosity
+      $ = \frac{\mu_s \mu_g}{\left(\frac{S_s'}{S_{sg}'}\mu_g^{1/4} +
+          \frac{S_g'}{S_{sg}'}\mu_s^{1/4}\right)^4}$
+    \item[$\mu_{msg}$] Fully mixed $o +s + g$ viscosity \\
+      \hfill $ = \frac{\mu_o \mu_s \mu_g}{\left(\frac{S_o'}{S_{n}'}(\mu_s\mu_g)^{1/4}
+          + \frac{S_s'}{S_{n}'}(\mu_o\mu_g)^{1/4}
+          + \frac{S_g'}{S_{n}'}(\mu_o\mu_s)^{1/4}\right)^4}$
+    \end{description}
+  \end{mybox}
+
+\end{frame}
+
+
+\end{document}
+
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:
