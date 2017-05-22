@@ -71,16 +71,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                             isempty(opt.wells), ...
                             isempty(opt.bcp)
                             ]);
+   % Assemble (and solve) system even in absence of external driving forces
+   % if the caller requested 'MatrixOutput'.
+   do_solve = do_solve || opt.MatrixOutput;
+
    if isfield(opt, 'rhs')
        do_solve = do_solve & ~isempty(opt.rhs);
    end
    if ~do_solve,
-      warning(id('DrivingForce:Missing'),                      ...
+      warning('incomp:DrivingForce:Missing',                   ...
              ['No external driving forces present in model--', ...
               'state remains unchanged.\n']);
    end
 
-   % Assemble (and solve) system even in absence of external driving forces
-   % if the caller requested 'MatrixOutput'.
-   do_solve = do_solve || opt.MatrixOutput;
 end
