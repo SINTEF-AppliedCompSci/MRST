@@ -2,7 +2,7 @@ function [vW, vO, vG, vS, mobW, mobO, mobG, mobS, upcW, upcO, upcG, upcS] = getF
     
     pcOW = 0;
     if isfield(fluid, 'pcOW') && ~isempty(sW)
-       pcOW = fluid.pcOW(sW); 
+       pcOW = fluid.pcOW(sW);
     end
     pW = pO - pcOW;
     
@@ -24,9 +24,9 @@ function [vW, vO, vG, vS, mobW, mobO, mobG, mobS, upcW, upcO, upcG, upcS] = getF
     pcOG = 0;
     if isfield(fluid, 'pcOG') && ~isempty(sG)
         M = fluid.Mpres(p);
-        pcOG_i = fluid.pcOW(sG);
-        pcOG_m = fluid.pcOW_m(sG + sS);
-        pcOG = M.*pcOG_i + M.*pcOG_m;
+        pcOG_m = fluid.pcOG(sG);
+        pcOG_i = fluid.pcOG(sG + sS);
+        pcOG = M.*pcOG_m + (1-M).*pcOG_i;
     end
     
     [pG, pS] = deal(pO + pcOG);
