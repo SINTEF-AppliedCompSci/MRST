@@ -115,17 +115,22 @@ sat = {sW, sO, sG, sS};
 
 % Density of injected fluids are calculated using the 'saturations' of
 % given in compi
-wc = W.cells;
-wcInj = wc([wellSol.sign] == 1);
-compi = reshape([W.compi],4, [])';
-compi = compi([wellSol.sign] == 1,:);
+
+nc = arrayfun(@(w) numel(w.cells), W)';
+sign = rldecode(vertcat(wellSol.sign), nc, 1);
+
+wc = vertcat(W.cells);
+wc = wc(sign>0);
+
+compi = rldecode(vertcat(W.compi), nc, 1);
+compi = compi(sign>0,:);
 
 rhoWell = cell(4,1);
 [~, ~, ~, ~, rhoWell{1}, rhoWell{2}, rhoWell{3}, rhoWell{4}] ...
-    = computeViscositiesAndDensities(fluid, p(wcInj), compi(:,2), compi(:,3), compi(:,4), 0, 0);
+    = computeViscositiesAndDensities(fluid, p(wc), compi(:,2), compi(:,3), compi(:,4), 0, 0);
 
 for i = 1:4
-    rho{i}.val(wcInj) = rhoWell{i}.val;
+    rho{i}.val(wc) = rhoWell{i}.val;
 end
 
 % [eqs, ~, qRes] = addFluxesFromSourcesAndBC(model, eqs, ...
