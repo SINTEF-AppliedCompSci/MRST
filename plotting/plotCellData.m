@@ -176,7 +176,7 @@ if (numel(c) == 1) && (size(data, 2) == 1),
 end
 
 if isCoarseGrid(G), G = G.parent; end
-h = plotPatches(G, f, data(c, :), 'EdgeColor', [0.4, 0.4, 0.4], varargin{:});
+h = plotPatches(G, f, data(c, :), varargin{:});
 if G.griddim==3 || isfield(G.cells,'z'), 
    set(get(h, 'Parent'), 'ZDir', 'reverse'),
 end;

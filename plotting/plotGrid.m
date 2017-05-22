@@ -139,7 +139,7 @@ if isCoarseGrid(G),
    h  = [h; plotFaceOutline(G, f, outline_opts{:})];
 
 else
-   h = plotPatches(G, f, 'EdgeColor', 'k', 'FaceColor', 'y', varargin{:});
+   h = plotPatches(G, f, 'FaceColor', 'y', varargin{:});
    set(get(h, 'Parent'), 'ZDir', 'reverse');
 end
 
