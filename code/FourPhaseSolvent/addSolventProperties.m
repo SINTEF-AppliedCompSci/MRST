@@ -73,14 +73,14 @@ function mu = constantViscosity(mu, p, varargin)
 end
 
 function Msat = linearSaturationMiscibility(sG, sS)
-    
+% Miscibility is dependent on fraction of solvent in the total gas
+% saturation. We add small value tol to avoid 0/0, and specifically assign
+% Msat = 0 if both sG and sS is very small.
+
     tol = 10*eps;
-    if all(sS < tol & sG < tol)
-        Msat = sS.*0;
-    else
-        Msat = sS./(sG + sS + (sS < tol).*tol);
-    end
-    
+    zz = sG < tol & sS < tol;
+    Msat = (sS./(sG + sS + (sS < tol).*tol)).*(~zz) + sS.*0.*zz;
+
 end
 
 function Mpres = constantPressureMiscibility(p)
