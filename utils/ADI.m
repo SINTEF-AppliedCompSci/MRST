@@ -328,11 +328,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                       else
                           u.jac = subsasgnJac(u.jac, subs, v.jac);
                       end
+                      u = reduceToDouble(u);
                   case '{}'
                       error('Operation not supported');
               end
           end
-          u = reduceToDouble(u);
       end
       
       %--------------------------------------------------------------------
