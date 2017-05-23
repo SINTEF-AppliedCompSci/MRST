@@ -86,7 +86,8 @@ f = model.fluid;
 
 [p, wellSol] = model.getProps(state, 'pressure', 'wellsol');
 
-[p0] = model.getProps(state0, 'pressure');
+[p0, wellSol0] = model.getProps(state0, 'pressure', 'wellSol');
+[qWell, pBH, wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
 
 pBH    = vertcat(wellSol.bhp);
 qWs    = vertcat(wellSol.qWs);
@@ -96,8 +97,8 @@ qWs    = vertcat(wellSol.qWs);
 if ~opt.resOnly,
     % ADI variables needed since we are not only computing residuals.
     if ~opt.reverseMode,
-        [p, qWs, pBH] = ...
-            initVariablesADI(p, qWs, pBH);
+        [p, qWell{:}, pBH, wellVars{:}] = ...
+            initVariablesADI(p, qWell{:}, pBH, wellVars{:});
     else
         [p0, tmp, tmp] = ...
             initVariablesADI(p0, sW0,          ...
@@ -106,7 +107,7 @@ if ~opt.resOnly,
             zeros(size(pBH)));                          %#ok
     end
 end
-primaryVars = {'pressure','qWs', 'bhp'};
+primaryVars = {'pressure', wellVarNames{:}};
 
 clear tmp
 %grav  = gravity;
@@ -158,42 +159,15 @@ eqs = addFluxesFromSourcesAndBC(model, eqs, ...
                                        {p},...
                                        {rhoW},...
                                        {mobW}, ...
-                                       {bW},  ...
-                                       {ones(numel(p0),1)}, ...
+                                       {ones(numel(p0),1)},  ...
                                        drivingForces);
 
 names = {'water'};
 types = {'cell'};
 % well equations
 if ~isempty(W)
-    if ~opt.reverseMode
-        wc    = vertcat(W.cells);
-        pw   = p(wc);
-        rhos = [f.rhoWS];
-        bw   = {bW(wc)};
-        mw   = {mobW(wc)};
-        s = {1};
-
-        wm = WellModel();
-        [cqs, weqs, ctrleqs, wc, state.wellSol]  = wm.computeWellFlux(model, W, wellSol, ...
-                                             pBH, {qWs}, pw, rhos, bw, mw, s, {},...
-                                             'nonlinearIteration', opt.iteration,'referencePressureIndex', 1);
-        eqs(2) = weqs;
-        eqs{3} = ctrleqs;
-        
-        eqs{1}(wc) = eqs{1}(wc) - cqs{1};        
-        names(2:3) = {'waterWells', 'closureWells'};
-        types(2:3) = {'perf', 'well'};
-    else
-        % in reverse mode just gather zero-eqs of correct size
-        for eqn = 2:3
-            nw = numel(state0.wellSol);
-            zw = double2ADI(zeros(nw,1), p0);
-            eqs(2:3) = {zw, zw};
-        end
-        names(2:3) = {'empty', 'empty'};
-        types(2:3) = {'none', 'none'};
-    end
+    [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, qWell, pBH, wellVars, wellMap,...
+            p, {mobW}, {rhoW}, {}, {}, dt, opt);
 end
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 end
