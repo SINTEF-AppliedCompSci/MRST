@@ -1,9 +1,9 @@
 load mrst-logo.mat;
 p = .05 + .3*(K(G.cells.indexMap)-30)/600;
-rock.perm = p.^3.*(1e-5)^2./(0.81*72*(1-p).^2);
-rock.poro = p; clear p K;
+rock = makeRock(G, p.^3.*(1e-5)^2./(0.81*72*(1-p).^2), p);
 figure('Position',[440 290 860 500]);
 plotCellData(G,rock.poro,'EdgeAlpha',.1); view(74,74);
+clear p K;
 
 %%
 mrstModule add libgeometry incomp;
