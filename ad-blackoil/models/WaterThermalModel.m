@@ -3,6 +3,7 @@ classdef WaterThermalModel < ReservoirModel
     % experimental and intentionally undocumented, as this feature is
     % subject to change in the future.
     properties
+        thermal = true;
     end
     
     methods
