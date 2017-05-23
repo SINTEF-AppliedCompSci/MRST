@@ -141,7 +141,8 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-
+    warning(['solveMSFV_TPFA_Incomp is DEPRECATED! Please use'...
+             ' incompMultiscale from the "msrsb" module instead.']);
 
     %% Merge defaults with specified arguments
     opt = struct('bc', [], 'src', [], 'wells', [], ...

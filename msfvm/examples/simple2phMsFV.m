@@ -3,11 +3,11 @@
 % regular pressure solver for incompressible transport. This example
 % demonstrates a two phase solver on a 2D grid.
 
-mrstModule add coarsegrid msfvm incomp
+mrstModule add coarsegrid msfvm incomp msrsb
 %% Construct simple 2D Cartesian test case
 nx = 50; ny = 50;
 Nx = 5; Ny = 5;
-G         = cartGrid([nx ny]);
+G         = cartGrid([nx, ny], [1000, 1000]);
 G         = computeGeometry(G);
 
 % Plot each timestep
@@ -15,40 +15,38 @@ doPlot = true;
 
 p  = partitionUI(G, [Nx, Ny]);
 CG = generateCoarseGrid(G, p);
+CG = coarsenGeometry(CG);
 %% Generate dual grid
 DG = partitionUIdual(CG, [Nx, Ny]);
-
+CG.dual = DG;
 %% Visualize
 clf;
 plotDual(G, DG)
 %% Uniform permeability
-rock.perm = repmat(100*milli*darcy, [G.cells.num, 1]);
-rock.poro = repmat(0.3            , [G.cells.num, 1]);
-
+rock = makeRock(G, 100*milli*darcy, 0.3);
 T = computeTrans(G, rock);
 
 %% Define a simple 2 phase fluid
 fluid = initSimpleFluid('mu' , [   1,  10]*centi*poise     , ...
-                            'rho', [1014, 859]*kilogram/meter^3, ...
-                            'n'  , [   2,   2]);
+                        'rho', [1014, 859]*kilogram/meter^3, ...
+                        'n'  , [   2,   2]);
 
 
 %% Setup a producer / injector pair of wells
-rate = 10*meter^3/day;
-bhp  = 1*barsa;
+rate = 0.01*meter^3/second;
+bhp  = 100*barsa;
 radius = 0.05;
 % Injector in lower left corner
-W = addWell([], G, rock, round(nx/8) + nx*round(ny/8),      ...
+W = [];
+W = verticalWell(W, G, rock, 5, 5, [],      ...
             'Type', 'rate' , 'Val', rate, ...
             'Radius', radius, 'InnerProduct', 'ip_tpf', ...
             'Comp_i', [1, 0]);
 % Producer in upper right corner
-W = addWell(W, G, rock, round(7*nx/8) + nx*round(7*ny/8),      ...
+W = verticalWell(W, G, rock, nx - 5, ny - 5, [],     ...
             'Type', 'bhp' , 'Val', bhp, ...
             'Radius', radius, 'InnerProduct', 'ip_tpf', ...
             'Comp_i', [0, 1]);
-
-
 %% Set up solution structures with only one phase
 refSol    = initState(G, W, 0, [0, 1]);
 msSol     = initState(G, W, 0, [0, 1]);
@@ -58,14 +56,15 @@ verbose = false;
 
 %% Set up pressure and transport solvers
 % We
-
+A = getIncomp1PhMatrix(G, T, refSol, fluid);
 % Reference TPFA
 r_psolve = @(state) incompTPFA(state, G, T, fluid, 'wells', W);
-% MsFV using a few iterations to improve flux error
-psolve   = @(state) solveMSFV_TPFA_Incomp(state, G, CG, T, fluid, ...
-                                                 'Reconstruct', true, 'Dual', DG, 'wells', W,...
-                                                 'Update', true, 'Iterations', 5, 'Iterator', 'msfvm',...
-                                                 'Subiterations', 10, 'Smoother', 'dms', 'Omega', 1);
+% MsFV solver. We use the more modern version of the solver found in the
+% msrsb module. From the linear system A, we construct a set of msfv basis
+% functions.
+A = getIncomp1PhMatrix(G, T, msSol, fluid);
+basis = getMultiscaleBasis(CG, A, 'type', 'msfv');
+psolve = @(state) incompMultiscale(state, CG, T, fluid, basis, 'Wells', W);
 % Implicit transport solver
 tsolve   = @(state, dT) implicitTransport(state, G, dT, rock, ...
                                                 fluid, 'wells', W, ...
@@ -94,14 +93,14 @@ caxis(cbar)
 % pressure and fluxes are computed by solving the flow equation and then
 % held fixed as the saturation is advanced according to the transport
 % equation.
-T      = 20*day();
-dT     = T/60;
+time   = 1*year;
+dT     = time/60;
 
 %% Start the main loop
 % Iterate through the time steps and plot the saturation profiles along the
 % way.
 t = 0;
-while t < T,
+while t < time,
     % Solve transport equations using the transport solver
     msSol  = tsolve(msSol , dT);
     refSol = tsolve(refSol, dT);
@@ -128,7 +127,9 @@ while t < T,
         subplot(2,2,3)
         plotCellData(G, refSol.pressure); axis tight; colorbar;
         title('Pressure Ref')
-        cbar = caxis();
+        minP = min(min(refSol.pressure), min(msSol.pressure));
+        maxP = max(max(refSol.pressure), max(msSol.pressure));
+        cbar = [minP, maxP];
         subplot(2,2,4)
         hs = plotCellData(G, msSol.pressure); axis tight; colorbar;
         title('Pressure MSFV')
