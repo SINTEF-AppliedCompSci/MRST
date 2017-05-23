@@ -14,8 +14,6 @@ function [qSurf, cells] = getSourceFluxesAD(model, mob, s, src)
 %   mob            - A cell array of cell mobility values for all active
 %                    phases.
 %
-%   b              - A cell array of b factors per cell for all active
-%                    phases.
 %
 %   s              - A cell array of saturations per cell for all active
 %                    phases.
@@ -66,7 +64,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     
     for i = 1:nPh
-        q = double2ADI(zeros(nsrc, 1), mob{i});
+        q = double2ADI(zeros(nsrc, 1), totMob);
         
         if any(inj)
             % Injection rates are given in reservoir conditions

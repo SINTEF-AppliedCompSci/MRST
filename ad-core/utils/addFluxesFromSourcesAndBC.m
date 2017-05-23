@@ -20,7 +20,6 @@ function [eqs, qBC, qRes, BCTocellMap, qSRC, srcCells, bcCells] = addFluxesFromS
 %   pressure   - Phase pressures
 %   rho        - Surface densities (one value per phase)
 %   mob        - Phase mobilities
-%   b          - Phase b-factors (volume in reservoir to standard conditions)
 %   s          - Phase saturations
 %
 %   forces     - Struct containing .src and .bc fields for sources and
