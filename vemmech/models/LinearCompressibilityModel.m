@@ -32,6 +32,9 @@ classdef LinearCompressibilityModel < ReservoirModel
             'use_trans', true);
         
         if model.thermal
+            assert(all(isfinite(model.rock.lambdaR)), ...
+                ['Thermal conductivity is not finite and thermal is enabled.'...
+                ' Aborting.']);
             rock_heat = struct('perm', model.rock.lambdaR);
             T_r = computeTrans(model.G, rock_heat);
             state = linearTransport(dt, state, model.G, T_r, model.operators.pv, model.fluid, model.rock,...
