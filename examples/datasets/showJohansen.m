@@ -26,15 +26,20 @@ G             = processGRDECL(grdecl, 'checkgrid', false);
 %%
 % Plot the results
 clf, subplot('position',[0.025 0.025 0.95 0.95]);
-plotGrid(G,'FaceColor','none','EdgeAlpha',0.1);
-plotFaces(G,find(G.faces.tag>0),'FaceColor','r');
+h = plotGrid(G,'FaceColor',.85*[1 1 1], 'FaceAlpha',.4,'EdgeColor','none');
+plotFaces(G,find(G.faces.tag>0),'FaceColor','r','EdgeColor','none');
 axis tight off; view(-145,60);
+set(gca,'ZDir','normal'), camlight headlight, set(gca,'Zdir','reverse');
 
 %%
 % Next we mark the active part of the model
+delete(h);
+plotGrid(G,find(~actnum(G.cells.indexMap)), ...
+         'FaceColor',.85*[1 1 1], 'FaceAlpha',.4,'EdgeColor','none');
 plotGrid(G,find(actnum(G.cells.indexMap)), ...
-         'FaceColor', 'b', 'FaceAlpha', 0.4, 'EdgeAlpha', 0.1);
-view(20,75);
+         'FaceColor', 'b', 'FaceAlpha', 0.4,'EdgeColor','none');
+view(15,40);
+%set(gca,'ZDir','normal'), camlight headlight, set(gca,'Zdir','reverse');
 
 %% Height map
 % It is only meaningful to show a height map of the active cells.
