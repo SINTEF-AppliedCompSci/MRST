@@ -258,17 +258,18 @@ sols{4} = incompTPFA(xtp, G, T .* m, fluid, 'Wells', Wtp);
 % unaffected by multipliers on the left and the multiplier results on the
 % right.  The top row is discretised using the mimetic method while the
 % bottom row shows the TPFA results.
-newplot
+clf
 ttxt = {'Mimetic without multipliers', 'Mimetic with multipliers', ...
     'TPFA without multipliers', 'TPFA with multipliers'};
 for i=1:4
     subplot(2,2,i)
     plotCellData(G, convertTo(sols{i}.pressure, barsa), ...
-        'EdgeColor', 'k', 'EdgeAlpha', 0.1, 'FaceAlpha', 0.825)
+        'EdgeColor', 'k', 'EdgeAlpha', 0.1)
     view(-80,24), colorbar('horiz'), axis tight off
-    set(gca, 'DataAspectRatio', daspctrat)
+    set(gca, 'DataAspectRatio', daspctrat), zoom(1.9)
     title(ttxt{i})
 end
+for i=4:-1:1, subplot(2,2,i), set(gca,'Position',get(gca,'Position')-[0 .1 0 0]); end
 
 %%
 % We notice that the results are qualitatively the same between the
