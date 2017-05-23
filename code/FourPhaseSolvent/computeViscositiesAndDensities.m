@@ -83,7 +83,8 @@ end
 
 function f = saturationFraction(sNum, sDen)
 
-    tol = eps;
-    f = sNum./(sDen + (sDen < tol).*tol);
+    tol = 10*eps;
+    zz = sNum < tol & sDen < tol;
+    f = sNum./(sDen + (sDen < tol).*tol).*(~zz) + 0.*zz;
        
 end
