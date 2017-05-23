@@ -299,7 +299,7 @@ methods
     end
     
     
-    function components = getDissolutionMatrix(model, rs, rv)
+    function dismat = getDissolutionMatrix(model, rs, rv)
         actPh = model.getActivePhases();
         nPh = nnz(actPh);
         if ~model.disgas
@@ -309,8 +309,8 @@ methods
             rv = [];
         end
         
-        components = cell(1, nPh);
-        [components{:}] = deal(cell(1, nPh));
+        dismat = cell(1, nPh);
+        [dismat{:}] = deal(cell(1, nPh));
         ix = 1;
         jx = 1;
         for i = 1:3
@@ -322,9 +322,9 @@ methods
                     continue
                 end
                 if i == 2 && j == 3
-                    components{i}{j} = rv;
+                    dismat{i}{j} = rv;
                 elseif i == 3 && j == 2
-                    components{i}{j} = rs;
+                    dismat{i}{j} = rs;
                 end
                 jx = jx + 1;
             end
