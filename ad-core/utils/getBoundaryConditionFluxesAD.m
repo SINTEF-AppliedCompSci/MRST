@@ -102,15 +102,19 @@ noSat = all(sat == 0, 2);
 hasNoSat = any(noSat);
 
 % Store total mobility
-totMob = double2ADI(zeros(nbc, 1), mob{1});
+totMob = 0;
 for i = 1:nPh
     totMob = totMob + cellToBCMap*mob{i};
 end
 
 rhoS = model.getSurfaceDensities();
 for i = 1:nPh
-    
-    [q_s, q_r] = deal(double2ADI(zeros(nbc, 1), mob{i}));
+    if isa(totMob, 'ADI')
+        sample = totMob;
+    else
+        sample = pressure{1};
+    end
+    [q_s, q_r] = deal(double2ADI(zeros(nbc, 1), sample));
     
     pBC   = cellToBCMap*pressure{i};
     rhoBC = cellToBCMap*rho{i};
