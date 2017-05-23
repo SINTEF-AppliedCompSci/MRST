@@ -69,7 +69,7 @@ set(h, 'XTick', log10(cs*milli*darcy), 'XTickLabel', num2str(round(cs)'));
 clf
 subplot('position',[0.02 0.02 0.96 0.96]);
 plotGrid(G,'FaceColor','none','EdgeAlpha',0.1);
-axis tight off, zoom(1.1), view(-5,58)
+axis tight off, view(-5,58)
 
 % Set six vertical injectors, completed in each layer.
 nz = G.cartDims(3);
