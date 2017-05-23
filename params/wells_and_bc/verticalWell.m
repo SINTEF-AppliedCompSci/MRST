@@ -131,7 +131,7 @@ else
       % G presumably a 'makeLayeredGrid'.
       layerSize = G.layerSize;
       numLayers = G.numLayers;
-   elseif isfield(G, 'cartDims') && numel(G.cartDims) == 3,
+   elseif isfield(G, 'cartDims'),
       % Logically Cartesian grid.
       layerSize = prod(G.cartDims(1:2));
       if G.griddim == 3
