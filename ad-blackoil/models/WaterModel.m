@@ -14,7 +14,6 @@ classdef WaterModel < ReservoirModel
             model.useCNVConvergence = false;
             
             model.saturationVarNames = {'sw'};
-            model.wellVarNames = {'qWs', 'bhp'};
             
             model = merge_options(model, varargin{:});
         end

@@ -1,4 +1,4 @@
-classdef WaterThermalModel < ReservoirModel
+classdef WaterThermalModel < WaterModel
     % Single phase water model with thermal effects. Should be considered
     % experimental and intentionally undocumented, as this feature is
     % subject to change in the future.
@@ -8,22 +8,10 @@ classdef WaterThermalModel < ReservoirModel
     
     methods
         function model = WaterThermalModel(G, rock, fluid, varargin)
-            model = model@ReservoirModel(G, rock, fluid);
-            
-            % This is the model parameters for oil/water
-            model.oil = false;
-            model.gas = false;
-            model.water = true;
-            
-            % Blackoil -> use CNV style convergence
-            model.useCNVConvergence = false;
-            
-            model.saturationVarNames = {'sw'};
-            %model.wellVarNames = {'qWs', 'bhp'};
-            
+            model = model@WaterModel(G, rock, fluid);
             model = merge_options(model, varargin{:});
             
-            rock_heat=struct('perm',rock.lambdaR);
+            rock_heat = struct('perm',rock.lambdaR);
             T_r=computeTrans(G,rock_heat);
             cf = G.cells.faces(:,1);
             nf = G.faces.num;
@@ -32,10 +20,6 @@ classdef WaterThermalModel < ReservoirModel
             intInx = all(G.faces.neighbors ~= 0, 2);
             model.operators.T_r = T_r(intInx);
             % Setup operators
-            %model = model.setupOperators(G, rock, 'deck', model.inputdata);
-            if isempty(model.FacilityModel)
-                model.FacilityModel = FacilityModel(model);
-            end
         end
         
         function forces = getValidDrivingForces(model)
@@ -89,8 +73,6 @@ classdef WaterThermalModel < ReservoirModel
                                                      wellMap, p, mob, rho, ...
                                                      dissolved, components, ...
                                                      dt, opt);
-            %[srcMass, srcVol, weqs, ctrleq, wnames, wtypes, wellSol] = ...
-            %    fm.getWellContributions(wellSol0, wellSol, qWell, bhp, wellVars, wellMap, p, mob, rho, components, dt, opt.iteration);
             rhoS = model.getSurfaceDensities();
             rhoS=rhoS(active);
             wc = fm.getWellCells();
