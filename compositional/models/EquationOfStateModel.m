@@ -696,8 +696,8 @@ classdef EquationOfStateModel < PhysicalModel
             eqsPrim  = model.equationsEquilibrium(pP, TP, xP, yP, zP, LP, Z_L, Z_V, K, packed);
             eqsSec = model.equationsEquilibrium(pS, TS, xS, yS, zS, LS, Z_L, Z_V, K, packed);
             
-            ep = cat(eqsPrim{:});
-            es = cat(eqsSec{:});
+            ep = combineEquations(eqsPrim{:});
+            es = combineEquations(eqsSec{:});
             
             % Let F ble the equilibrium equations (fugacity balance,
             % vapor/liquid balance etc). We can then write by the chain
