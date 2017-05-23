@@ -475,7 +475,12 @@ classdef FacilityModel < PhysicalModel
             end
 
             if ~isfield(state, 'rho') || ~isfield(state, 'mob')
-                state = resmodel.computeRhoAndMob(state);
+                resmodel.extraStateOutput = true;
+                % Trust that the base reservoir model has implemented
+                % storage of extra properties (mobility and rho included).
+                [~, state] = resmodel.getEquations(model, state0, state, dt, drivingForces, 'iteration', inf, 'resOnly', true);
+                assert(isfield(state, 'rho'), 'Density missing from state!');
+                assert(isfield(state, 'mob'), 'Density missing from state!');
             end
             p = resmodel.getProp(state, 'pressure');
 

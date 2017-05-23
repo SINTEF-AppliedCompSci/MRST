@@ -1,19 +1,28 @@
 classdef SimpleWell < PhysicalModel
     properties
+        % Struct defining the well (see addWell)
         W
+        % Boolean indicating if the well perforations allow cross-flow
         allowCrossflow
+        % Boolean indicating if BHP wells are allowed to switch between
+        % producers and injectors
         allowSignChange
+        % Boolean indicating if the well should switch to another control
+        % if the limits have been reached.
         allowControlSwitching
-        
+        % Maximum allowable relative change in well pressure
         dpMaxRel
+        % Maximum allowable absolute change in well pressure
         dpMaxAbs
+        % Maximum allowable change in well composition/saturation
         dsMaxAbs
-        
+        % Vertical lift table
         VFPTable
     end
     
     methods
         function well = SimpleWell(W, varargin)
+            % Class constructor
             well = well@PhysicalModel([]);
             well.W = W;
             well.allowCrossflow = true;
@@ -29,14 +38,23 @@ classdef SimpleWell < PhysicalModel
         end
         
         function well = updateWell(well, W)
+            % Update the well struct.
             well.W = W;
         end
         
-        function wsol = validateWellSol(well, resmodel, wsol, state)
-            
+        function wsol = validateWellSol(well, resmodel, wsol, state) %#ok
+            % Validate if wellSol is suitable for simulation. This function
+            % may modify the wellSol if the errors are fixable at runtime,
+            % otherwise it should throw an error. Note that this function
+            % is analogous to validateState in the base model class.
         end
         
         function counts = getVariableCounts(wm, fld)
+            % Should return the number of primary variables added by this
+            % well for field "fld". The simple base class only uses a
+            % single variable to represent any kind of well field, but in
+            % e.g. MultisegmentWell, this function may return values larger
+            % than 1.
             try
                 fn = wm.getVariableField(fld);
             catch
@@ -50,6 +68,10 @@ classdef SimpleWell < PhysicalModel
         end
         
         function names = getExtraPrimaryVariableNames(well, resmodel)
+            % Get additional primary variables added by this well.
+            % Additional primary variables in this context are variables
+            % that are not the default MRST values (surface rates for each
+            % pseudocomponent/phase and bottomhole pressure).
             names = {};
             if isprop(resmodel, 'polymer') && resmodel.polymer
                 names{end+1} = 'qWPoly';
@@ -57,6 +79,8 @@ classdef SimpleWell < PhysicalModel
         end
         
         function [names, types] = getExtraEquationNames(well, resmodel)
+            % Returns the names and types of the additional equation names
+            % this well model introduces.
             [names, types] = deal({});
             if isprop(resmodel, 'polymer') && resmodel.polymer
                 names{end+1} = 'polymerWells';
@@ -65,13 +89,16 @@ classdef SimpleWell < PhysicalModel
         end
         
         function [vars, names] = getExtraPrimaryVariables(well, wellSol, resmodel)
+            % Returns the values nad names of extra primary variables added
+            % by this well. See "getExtraPrimaryVariableNames" for a
+            % definition of extra variables.
             names = well.getExtraPrimaryVariableNames(resmodel);
             vars = cell(size(names));
             [vars{:}] = well.getProps(wellSol, names{:});
         end
         
         function [weqs, ctrlEq, extra, extraNames, qMass, qVol, wellSol] = computeWellEquations(well, wellSol0, wellSol, resmodel, q_s, bh, packed, dt, iteration)
-            % Compute well equations and well phase source terms
+            % Compute well equations and well phase/pseudocomponent source terms
             [weqs, qMass, mix_s, status, cstatus, qVol] = computeWellContributionsSingleWell(well, wellSol, resmodel, q_s, bh, packed);
             ctrlEq =  setupWellControlEquationsSingleWell(well, wellSol0, wellSol, bh, q_s, status, mix_s, resmodel);
             
@@ -90,6 +117,8 @@ classdef SimpleWell < PhysicalModel
             % Compute component equations and component source terms
             [compEqs, compSrc, compNames] = deal({});
             if isprop(resmodel, 'polymer') && resmodel.polymer
+                % Implementation of polymer source terms.
+                %
                 % Polymer sources are by convention divided by rhoW
                 assert(resmodel.water, 'Polymer injection requires a water phase.');
                 f = resmodel.fluid;
@@ -114,10 +143,14 @@ classdef SimpleWell < PhysicalModel
         end
         
         function isInjector = isInjector(well)
+            % Returns boolean indicating if well is specified as an
+            % injector. Wells with sign zero is in this context defined as
+            % producers.
             isInjector = well.W.sign > 0;
         end
         
         function [names, types] = getWellEquationNames(well, resmodel)
+            % Get the names and types for the well equations of the model.
             act = resmodel.getActivePhases();
             names = {'waterWells', 'oilWells', 'gasWells'};
             types = {'perf', 'perf', 'perf'};
@@ -126,14 +159,18 @@ classdef SimpleWell < PhysicalModel
         end
         
         function wellSol = updateConnectionPressureDrop(well, wellSol0, wellSol, model, q_s, bhp, packed, dt, iteration)
+            % Update the pressure drop within the well bore, according to a
+            % hydrostatic pressure distribution from the bottom-hole to the
+            % individual perforations.
+            %
+            % To avoid dense linear systems, this update only happens at
+            % the start of each nonlinear loop.
             if iteration ~= 1
                 return
             end
             [p, mob, rho, dissolved, comp, wellvars] = unpackPerforationProperties(packed);
             toDb  = @(x)cellfun(@double, x, 'UniformOutput', false);
             rho     = cell2mat(toDb(rho));
-            
-            
             active = model.getActivePhases();
             numPh = nnz(active);
 
@@ -146,8 +183,6 @@ classdef SimpleWell < PhysicalModel
                 w.topo = [(0:(nperf-1))', (1:nperf)'];
             end
             qs = wellSol.cqs; %volumetric in-flux at standard conds
-
-
             C = wb2in(w);            % mapping wb-flux to in-flux
             wbqs  = abs(C\qs);       % solve to get well-bore fluxes at surface conds
             wbqst = sum(wbqs, 2);   % total wb-flux at std conds
@@ -167,29 +202,40 @@ classdef SimpleWell < PhysicalModel
             % topo(:,1)-topo(:,2) computed by using conditions in well-cell
             % topo(:,2). This is probably sufficiently accurate.
 
-            % get dz between segment nodes and bh-node1
+            % get dz between segment nodes and bh-node1. This is a simple
+            % hydrostatic distribution.
             dpt = [0; w.dZ];
             dz  = diff(dpt);
             g   = norm(gravity);
             ddp = g*rhoMix.*dz; % p-diff between connection neighbors
-            % well topology assumes we can traverse from top down, but add a loop
-            % just in case crazy ordering.
+            % well topology assumes we can traverse from top down, but we
+            % use a loop just in case of crazy ordering. If this loop does
+            % not converge, the solver will throw an error.
             cdp    = nan(size(ddp));
             cdp(1) = ddp(1);
             its = 0; maxIts = 100;
             while and(any(isnan(cdp)), its<maxIts)
                 its = its +1;
+                % Traverse from top node and down with the pressure
+                % differentials found earlier.
                 for cnr = 2:numel(cdp)
                     cdp(w.topo(cnr,2)) = cdp(w.topo(cnr,1)) + ddp(cnr);
                 end
             end
             if its == maxIts
+                % If this loop did not converge, something is wrong with
+                % either the densities or the well itself. Regardless of
+                % reason, we throw an error.
                 error(['Problem with topology for well: ', wellSol.name, '. Segments appear not to be connected'])
             end
             wellSol.cdp = cdp;
         end
         
         function [q_s, bhp, wellSol, withinLimits] = updateLimits(well, wellSol0, wellSol, model, q_s, bhp, wellvars, p, mob, rho, dissolved, comp, dt, iteration)
+            % Update solution variables and wellSol based on the well
+            % limits. If limits have been reached, this function will
+            % attempt to re-initialize the values and change the controls
+            % so that the next step keeps within the prescribed ranges.
             withinLimits = true;
             if ~well.allowControlSwitching
                 % We cannot change controls, so we return
@@ -209,33 +255,36 @@ classdef SimpleWell < PhysicalModel
             watIx = 1;
             
             if ~isnumeric(lims)
-                lims.vrat = -inf;
-                
-                if wellSol.sign > 0
+                if well.isInjector()
+                    % Injectors have three possible limits:
+                    % bhp:  Upper limit on pressure.
+                    % rate: Upper limit on total surface rate.
+                    % vrat: Lower limit on total surface rate.
                     modes   = {'bhp', 'rate', 'rate'};
+                    lims = setMissingLimits(lims, modes, inf);
+                    
                     flags = [double(bhp) > lims.bhp, ...
-                             qs_t > lims.rate, ...
-                             qs_t < lims.vrat];
+                              qs_t >  lims.rate, ...
+                             -qs_t > -lims.vrat];
                 else
-                    modes   = {'bhp', 'orat', 'lrat', 'grat', 'wrat', 'vrat'};
+                    % Producers have several possible limits:
+                    % bhp:  Lower limit on pressure.
+                    % orat: Lower limit on surface oil rate
+                    % lrat: Lower limit on surface liquid (water + oil) rate
+                    % grat: Lower limit on surface gas rate
+                    % wrat: Lower limit on surface water rate
+                    % vrat: Upper limit on total volumetric surface rate
 
-                    % insert dummy limits for missing fields
-                    missing_fields = {modes{~cellfun(@(x) isfield(lims, x), modes)}};
-                    for f = missing_fields
-                       lims = setfield(lims, f{:}, -inf);
-                    end
-                    
-                    
+                    modes   = {'bhp', 'orat', 'lrat', 'grat', 'wrat', 'vrat'};
+                    lims = setMissingLimits(lims, modes, -inf);
                     
                     [q_w, q_o, q_g] = deal(0);
                     if model.water
                         q_w = qs_double(watIx);
                     end
-                    
                     if model.oil
                         q_o = qs_double(oilIx);
                     end
-                    
                     if model.gas
                         q_g = qs_double(gasIx);
                     end
@@ -284,6 +333,7 @@ classdef SimpleWell < PhysicalModel
         end
         
         function wellSol = updateWellSol(well, wellSol, variables, dx)
+            % Update function for the wellSol struct
             isBHP = strcmpi(variables, 'bhp');
             if any(isBHP)
                 dv = dx{isBHP};
@@ -299,6 +349,7 @@ classdef SimpleWell < PhysicalModel
         end
         
         function [wellSol, well_shut] = updateWellSolAfterStep(well, resmodel, wellSol)
+            % Updates the wellSol after a step is complete (book-keeping)
             w = well.W;
             % Check if producers are becoming injectors and vice versa. The indexes
             % of such wells are stored in inx.
@@ -309,7 +360,7 @@ classdef SimpleWell < PhysicalModel
             % to take into account this fact.
             closed = closed & ~strcmpi(w.type, 'bhp') & w.val ~= 0;
             if closed && ~well.allowSignChange && well.allowControlSwitching
-                fprintf('Well %s shut down.\n', w.name);
+                dispif(well.verbose, 'Well %s shut down.\n', w.name);
                 wellSol.status = false;
                 well_shut = true;
             else
@@ -317,16 +368,15 @@ classdef SimpleWell < PhysicalModel
             end
             
             switched = ~strcmpi(wellSol.type, w.type);
-            if switched
-                fprintf('Well %s has switched from %s to %s.\n', w.name, ...
+            if switched && well.verbose
+                fprintf('Step complete: Well %s was switched from %s to %s controls.\n',...
+                                                                 w.name, ...
                                                                  w.type, ...
                                                                  wellSol.type);
             end
         end
         
         function [fn, index] = getVariableField(model, name)
-            % Get the index/name mapping for the model (such as where
-            % pressure or water saturation is located in state)
             index = 1;
             switch(lower(name))
                 case 'bhp'
@@ -348,7 +398,7 @@ classdef SimpleWell < PhysicalModel
         end
         
         function ws = ensureWellSolConsistency(well, ws) %#ok
-            % Run after the update step to ensure consistency of variables
+            % Run after the update step to ensure consistency of wellSol
         end
     end
 end
@@ -377,7 +427,7 @@ function C = wb2in(w)
 end
 
 function volRat = compVolRat(mixs, p, b, model)
-%
+% Compute volume ratio Vr/Vs. Only complicated for blackoil.
 x = mixs;
 dg = isprop(model, 'disgas') && model.disgas;
 vo = isprop(model, 'vapoil') && model.vapoil;
@@ -440,4 +490,11 @@ function qt = getTotalRate(sol)
          end
       end
    end
+end
+
+function lims = setMissingLimits(lims, modes, val)
+    missing_fields = {modes{~cellfun(@(x) isfield(lims, x), modes)}};
+    for f = missing_fields
+       lims = setfield(lims, f{:}, val);
+    end
 end

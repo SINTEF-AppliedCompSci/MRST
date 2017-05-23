@@ -1,23 +1,9 @@
 function [eqs, cq_mass, mix_s, status, cstatus, cq_vol] = computeWellContributionsSingleWell(wellmodel, wellSol, resmodel, q_s, pBH, packed)
 [p, mob, rho, dissolved] = unpackPerforationProperties(packed);
 
-% W = wellmodel.W;
-% p = wellmodel.referencePressure;
-% b = wellmodel.bfactors;
-% r = wellmodel.components;
-% m = wellmodel.mobilities;
-
-% perf2well = wellmodel.perf2well;
-% Rw = wellmodel.Rw;
-% numPh       = numel(b); % # phases
-% Tw    = vertcat(W(:).WI);
-
 W = wellmodel.W;
-% compi = vertcat(W(:).compi);
 assert(numel(wellSol) == 1);
 assert(numel(W) == 1);
-wc = W.cells;
-nc = numel(wc);
 numPh = numel(q_s);
 
 % OBS!!
