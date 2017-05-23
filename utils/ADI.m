@@ -167,9 +167,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
               h = mtimes(v,u);
           else % special case where either u or v has single value
               if numel(u.val) == 1
-                  h = times(repmat(u, [numel(v.val), 1]), v);
+                  h = u;
+                  h.val = times(u.val, v.val);
+                  h.jac = timesJacUnit(u.val, v.val, u.jac, v.jac);
               elseif numel(v.val) == 1
-                  h = times(u, repmat(v, [numel(u.val), 1]));
+                  h = u;
+                  h.val = times(u.val, v.val);
+                  h.jac = timesJacUnit(v.val, u.val, v.jac, u.jac);
               else
                   error('Operation not supported');
               end
@@ -194,7 +198,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  h = u;
                  h.jac = timesJac(h.val, v.val, h.jac, v.jac);
                  h.val = h.val.*v.val;
-             elseif numel(v.val)==1||numel(u.val)==1
+             elseif numel(v.val)==1 || numel(u.val)==1
                  h = mtimes(u,v);
              else
                  error('Operation not supported');
@@ -567,6 +571,14 @@ end
 end
 
 %--------------------------------------------------------------------------
+
+function J = timesJacUnit(v_unit, v2, J_unit, J2)
+nj = numel(J_unit);
+J = cell(1, nj);
+for k = 1:nj
+    J{k} = v_unit*J2{k} + sparse(v2)*J_unit{k};
+end
+end
 
 function J = timesJac(v1, v2, J1, J2)
 n = numel(v1);
