@@ -166,6 +166,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
               h = v;
               h.val = u*h.val;
               h.jac = mtimesJac(u, h.jac);
+              if isempty(h.jac)
+                  h = h.val;
+              end
           elseif ~isa(v,'ADI') %v is a scalar
               h = mtimes(v,u);
           else % special case where either u or v has single value
@@ -303,6 +306,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                       error('Operation not supported');
               end
           end
+          h = reduceToDouble(h);
       end
 
       %--------------------------------------------------------------------
@@ -328,6 +332,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                       error('Operation not supported');
               end
           end
+          u = reduceToDouble(u);
       end
       
       %--------------------------------------------------------------------
@@ -369,6 +374,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
               h = u;
               h.val = value;
               h.jac = jacs;
+              h = reduceToDouble(h);
               return;
           end
           assert(nargin==2, 'Max function implemented for up to 2 variables only.');
@@ -407,12 +413,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       function u = sum(u)
           u.val = sum(u.val);
           u.jac = sumJac(u.jac);
+          u = reduceToDouble(u);
       end
 
       %--------------------------------------------------------------------
       function u = cumsum(u)
           u.val = cumsum(u.val);
           u.jac = cumsumJac(u.jac);
+          u = reduceToDouble(u);
       end
 
       %--------------------------------------------------------------------
@@ -454,7 +462,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
               end
               jacs{k} = vertcatJac(sjacs{:});
           end
-          h = ADI(vertcat(vals{:}), jacs);
+          h = varargin{1};
+          h.val = vertcat(vals{:});
+          h.jac = jacs;
       end
 
        function h = combineEquations(varargin)
@@ -574,6 +584,10 @@ end
 %--------------------------------------------------------------------------
 
 function J = mtimesJac(M, J1)
+if ~any(any(M))
+    J = {};
+    return
+end
 J = cell(1, numel(J1));
 for k = 1:numel(J)
     J{k} = M*J1{k};
@@ -656,8 +670,8 @@ end
 end
 
 %--------------------------------------------------------------------------
-function J = sumJac(J1)
-J = cellfun(@(j1) sum(j1, 1), J1, 'UniformOutput', false);
+function J = sumJac(J)
+J = cellfun(@(j1) sum(j1, 1), J, 'UniformOutput', false);
 end
 
 %--------------------------------------------------------------------------
@@ -715,6 +729,12 @@ end
 
 function J = horzcatJac(varargin)
 J = horzcat(varargin{:});
+end
+
+function u = reduceToDouble(u)
+    if isa(u, 'ADI') && sum(cellfun(@nnz, u.jac)) == 0
+        u = u.val;
+    end
 end
 
 %--------------------------------------------------------------------------
