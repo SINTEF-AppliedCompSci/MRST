@@ -140,6 +140,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  h = u;
                  h.val = u.val + v.val;
                  h.jac = plusJac(h.jac, v.jac);
+                 if isempty(h.jac)
+                     h = h.val;
+                 end
              elseif numel(u.val) == 1
                  h = plus(repmat(u, [numel(v.val), 1]), v);
              elseif numel(v.val) == 1
@@ -188,6 +191,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  h = v;
                  h.val = u.*h.val;
                  h.jac = lMultDiag(u, h.jac);
+                 if isempty(h.jac)
+                     h = h.val;
+                 end
              else
                  h = mtimes(u,v);
              end
@@ -234,16 +240,25 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
              h = u;
              h.val = h.val.^v;
              h.jac = lMultDiag(v.*u.val.^(v-1), u.jac);
+             if isempty(h.jac)
+                 h = h.val;
+             end
          elseif ~isa(u,'ADI') % u is a scalar
              h = v;
              h.val = u.^v.val;
              h.jac = lMultDiag((u.^v.val).*log(u), v.jac);
+             if isempty(h.jac)
+                 h = h.val;
+             end
          else % u and v are both ADI
              h = u;
              h.val = u.val.^v.val;
              h.jac = plusJac( ...
                lMultDiag((u.val.^v.val).*(v.val./u.val), u.jac), ...
                lMultDiag((u.val.^v.val).*log(u.val),     v.jac) );
+             if isempty(h.jac)
+                 h = h.val;
+             end
          end
       end
 
@@ -329,6 +344,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
           h = u;
           h.val = eu;
           h.jac = lMultDiag(eu, u.jac);
+          if isempty(h.jac)
+              h = h.val;
+          end
       end
       %
       function h = log(u)
@@ -336,6 +354,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
           h = u;
           h.val = logu;
           h.jac = lMultDiag(1./u.val, u.jac);
+          if isempty(h.jac)
+              h = h.val;
+          end
       end
 
       %--------------------------------------------------------------------
@@ -357,6 +378,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
               h  = v;
               h.val = value;
               h.jac = lMultDiag(inx==2, v.jac);
+             if isempty(h.jac)
+                 h = h.val;
+             end
           elseif ~isa(v,'ADI') %v is a vector
               h = max(v,u);
           else % both ADI, should have same number of values
@@ -365,6 +389,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
               h = u;
               h.val = value;
               h.jac = plusJac(lMultDiag(inx, u.jac),lMultDiag(~inx, v.jac));
+              if isempty(h.jac)
+                  h = h.val;
+              end
           end
       end
 
@@ -399,6 +426,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       function u = abs(u)
           u.jac = lMultDiag(sign(u.val), u.jac);
           u.val = abs(u.val);
+          if isempty(u.jac)
+               u = u.val;
+          end
       end
 
       %--------------------------------------------------------------------
@@ -459,6 +489,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
           [y, dydu] = interpReg(T, u.val, reginx);
           u.val = y;
           u.jac = lMultDiag(dydu, u.jac);
+         if isempty(u.jac)
+             u = u.val;
+         end
       end
 
       %--------------------------------------------------------------------
@@ -478,12 +511,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
               [h.val, dydx, dydv] = interpRegPVT(T, x.val, v.val, flag, reginx);
               h.jac = timesJac(dydx, dydv, v.jac, x.jac); % note order of input
           end
+         if isempty(h.jac)
+             h = h.val;
+         end
       end
 
       function h = interpTable(X, Y, x, varargin)
          h = x;
          h.val = interpTable(X, Y, x.val, varargin{:});
          h.jac = lMultDiag(dinterpTable(X,Y, x.val, varargin{:}), x.jac);
+         if isempty(h.jac)
+             h = h.val;
+         end
       end
 
       %--------------------------------------------------------------------
@@ -511,6 +550,10 @@ end
 %--------------------------------------------------------------------------
 
 function J = plusJac(J1, J2)
+if isempty(J1) || isempty(J2)
+    J = {};
+    return
+end
 nv1 = size(J1{1},1);
 nv2 = size(J2{1},1);
 if  nv1 == nv2
@@ -562,7 +605,8 @@ if any(d)
     ix = (1:n)';
     D = sparse(ix, ix, d, n, n);
 else
-    D = 0;
+    J = {};
+    return
 end
 J = cell(1, numel(J1));
 for k = 1:numel(J)
