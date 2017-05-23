@@ -76,7 +76,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    do_solve = do_solve || opt.MatrixOutput;
 
    if isfield(opt, 'rhs')
-       do_solve = do_solve & ~isempty(opt.rhs);
+       do_solve = do_solve || ~isempty(opt.rhs);
    end
    if ~do_solve,
       warning('incomp:DrivingForce:Missing',                   ...
