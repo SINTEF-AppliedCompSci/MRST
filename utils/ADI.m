@@ -226,7 +226,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
       function h = mldivide(u,v)% '\'
           if ~isa(u,'ADI') %u is a scalar/matrix
-              h.val = u\h.val;
+              h.val = u\v.val;
               h.jac = mldivideJac(u, h.jac);
           else
               error('Operation not supported');
