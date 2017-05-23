@@ -2,7 +2,7 @@
 % Start with pillars, add points and mark fault pillars, add stacks of
 % cells, and finally plot the grid with the fault surface marked
 
-doprint = true;
+doprint = false;
 
 %% Build data model
 grdecl  = simpleGrdecl([4, 2, 3], 0.12, 'flat', true);
@@ -78,6 +78,7 @@ plotCellData(G,(1:6)',1:2:6,'EdgeColor','k','FaceAlpha',0.8);
 set(gca,'DataA',[1 1 0.5]);
 set(gca,'zdir','reverse'), view(60,35), axis off, zoom(1.5);
 camdolly(0,-0.3,0);
+colormap(jet)
 
 %%
 % Then an irregular subdivision
