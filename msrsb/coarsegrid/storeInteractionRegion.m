@@ -75,7 +75,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     interaction = cell(CG.cells.num, 1);
     [assigned, isCenter] = deal(false(G.cells.num, 1));
     isCenter(centers) = true;
-    faceNodePos = rldecode(1 : G.faces.num, diff(G.faces.nodePos), 2) .';
+    if opt.useMultipoint
+        faceNodePos = rldecode(1 : G.faces.num, diff(G.faces.nodePos), 2) .';
+    else
+        faceNodePos = [];
+    end
     
     if ~opt.localTriangulation
         if opt.useFaces
