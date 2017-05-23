@@ -92,9 +92,7 @@ for i=1:numel(G)
            'EdgeAlpha',0.2);
    plotFaces(G(i),find(G(i).faces.tag>0),'FaceColor','red','EdgeAlpha',0.1);
 end
-axis off;
-axis auto;
-view(-10,40); zoom(1.0);
+axis off; view(-10,40); camdolly(0,-0.2,0)
 
 %%
 % Then we distinguish the active and inactive cells using the |'FaceColor'|
@@ -107,8 +105,8 @@ for i=1:numel(G)
         'FaceColor','none','EdgeColor',[0.65 0.65 0.65],'EdgeAlpha',0.2);
    ha = plotGrid(G(i),find( actnum(G(i).cells.indexMap)), ...
                 'FaceColor','y','EdgeAlpha',0.1);
-   axis auto off; view(-10,40); zoom(1.0);
 end
+axis off; view(-15,20); camdolly(0,-0.2,0); axis normal
 
 %% Inspect the active model
 % To inspect only the active model, we reset the ACTNUM field to its
