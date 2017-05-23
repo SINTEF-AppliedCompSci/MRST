@@ -347,6 +347,11 @@ classdef FacilityModel < PhysicalModel
             wind = model.ReservoirModel.getPhaseIndex('W');
             srcRes = cellfun(@double, sources.phaseVolume, 'UniformOutput', false);
             qR = [srcRes{:}];
+            if size(qR, 1) ~= numel(p2w)
+                % Multiple wells perforated in same block, etc. Output from
+                % this function is not meaningful.
+                return
+            end
             for i = 1:numel(ws)
                 if ~active(i)
                     continue
@@ -572,5 +577,15 @@ end
 
 function d = combineCellData(data, ix)
     d = cellfun(@(x) x{ix}, data, 'UniformOutput', false);
+    isAD = ~cellfun(@isnumeric, d);
+    if any(~isAD) && any(isAD)
+        s = d(isAD);
+        s = s{1};
+        for i = 1:numel(isAD)
+            if ~isAD(i)
+                d{i} = double2ADI(d{i}, s);
+            end
+        end
+    end
     d = vertcat(d{:});
 end
