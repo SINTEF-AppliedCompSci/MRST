@@ -30,7 +30,7 @@ set(gca,'Zdir','normal'); camlight headlight; set(gca,'Zdir','reverse');
 % logical 46x112x22 grid, including cells that are inactive. The number of
 % active cells within each coarse block is shown in the bar plot below.
 
-p = partitionUI(G,[6 12 3]); m=max(p);
+p = partitionUI(G,[6 12 3]);
 newplot, subplot(3,1,1)
 bar(accumarray(p,1)); set(gca,'XLim',[0 225]);
 title('Unprocessed');
