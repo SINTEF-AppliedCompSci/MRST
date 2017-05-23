@@ -182,7 +182,7 @@ while t < T,
    hs = plotCellData(G, rSol.s(:,1), find(rSol.s(:,1) > 0.01),'EdgeColor','none');
    ha = annotation('textbox', [0 0.93 0.32 0.07], ...
                    'String', ['Water saturation at ', ...
-                              num2str(convertTo(t,year)), ' years']);
+                              num2str(convertTo(t,year)), ' years'],'FontSize',8);
    drawnow
    plotNo = plotNo+1;
 end
