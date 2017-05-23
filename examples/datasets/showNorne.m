@@ -49,8 +49,8 @@ clf
 pargs = {'EdgeAlpha'; 0.1; 'EdgeColor'; 'k'};
 plotGrid(G,'FaceColor','none', pargs{:});
 plotFaces(G,find(G.faces.tag>0), ...
-   'FaceColor','red','FaceAlpha',0.2, 'EdgeColor','r','EdgeAlpha',0.1);
-axis off; view(-155,80); zoom(1.7);
+   'FaceColor','red','EdgeColor','none');
+axis off tight; view(-170,80); zoom(1.7); camdolly(0,-.05,0); 
 
 %%
 % We then distinguish the active and inactive cells
@@ -67,7 +67,7 @@ ijk        = [ijk{:}];
 cellNo = find (ismember(ijk, [I(:), J(:), K(:)], 'rows'));
 a = actnum(G.cells.indexMap); in = find(a(cellNo));
 plotGrid(G,cellNo(in),'FaceColor','m');
-view(-186,68), zoom(1.7)
+view(-186,68)
 
 [I,J,K] = meshgrid(9:11, 65:67, 1:22);
 cellNo = find (ismember(ijk, [I(:), J(:), K(:)], 'rows'));
@@ -106,7 +106,7 @@ g = processGRDECL(cut_grdecl);
 figure,
 plotGrid(g);
 plotFaces(g,find(g.faces.tag>0),'FaceColor','b','EdgeColor','b','FaceAlpha',.5);
-axis tight off, view(180,27); zoom(1.7)
+axis tight off, view(180,27); zoom(1.7); camdolly(0,-0.2,0)
 
 
 %% Extract the active part of the model
