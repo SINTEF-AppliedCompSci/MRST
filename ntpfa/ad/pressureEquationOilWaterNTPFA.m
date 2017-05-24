@@ -16,25 +16,21 @@ s = model.operators;
 f = model.fluid;
 
 [p, sW, wellSol] = model.getProps(state, 'pressure', 'water', 'wellsol');
-[p0, sW0] = model.getProps(state0, 'pressure', 'water');
-
-
-pBH    = vertcat(wellSol.bhp);
-qWs    = vertcat(wellSol.qWs);
-qOs    = vertcat(wellSol.qOs);
+[p0, sW0, wellSol0] = model.getProps(state0, 'pressure', 'water', 'wellsol');
+[qWell, bhp, wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
 
 %Initialization of independent variables ----------------------------------
 
 if ~opt.resOnly,
     % ADI variables needed since we are not only computing residuals.
     if ~opt.reverseMode,
-        [p, qWs, qOs, pBH] = ...
-            initVariablesADI(p, qWs, qOs, pBH);
+        [p, qWell{:}, bhp, wellVars{:}] = ...
+            initVariablesADI(p, qWell{:}, bhp, wellVars{:});
     else
         assert(0, 'Backwards solver not supported for splitting');
     end
 end
-primaryVars = {'pressure', 'qWs', 'qOs', 'bhp'};
+primaryVars = {'pressure', wellVarNames{:}};
 
 % -------------------------------------------------------------------------
 sO  = 1 - sW;
@@ -120,40 +116,14 @@ end
 [eqs, names, types] = deal({});
 
 % well equations
+% Finally, add in and setup well equations
 if ~isempty(W)
-    wc    = vertcat(W.cells);
-    perf2well = getPerforationToWellMapping(W);
-    if opt.staticWells
-        q = vertcat(state.wellSol.flux);
-        
-        qW = q(:, 1);
-        qO = q(:, 2);
-        
-        cqs = {bW(wc).*qW, bO(wc).*qO};
+    if ~opt.reverseMode
+        dissolved = {};
+        [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, qWell, bhp, wellVars, wellMap, p, mob, rho, dissolved, {}, dt, opt);
     else
-        pw   = p(wc);
-        rhos = [f.rhoWS, f.rhoOS];
-        bw   = {bW(wc), bO(wc)};
-        mw   = {mobW(wc), mobO(wc)};
-        sat = {sW(wc), 1 - sW(wc)};
-
-        wm = model.wellmodel;
-        [cqs, weqs, ctrleqs, wc, state.wellSol, cqr]  = wm.computeWellFlux(model, W, wellSol, ...
-                                             pBH, {qWs, qOs}, pw, rhos, bw, mw, sat, {},...
-                                             'nonlinearIteration', opt.iteration);
-        eqs(2:3) = weqs;
-        eqs{4} = ctrleqs;
-
-        qW = cqr{1};
-        qO = cqr{2};
-        
-        names(2:4) = {'oilWells', 'waterWells', 'closureWells'};
-        types(2:4) = {'perf', 'perf', 'well'};
-
+        error('Not supported')
     end
-    
-    wat(wc) = wat(wc) - cqs{1};
-    oil(wc) = oil(wc) - cqs{2};
 end
 
 eqs{1} = (oil./bO + wat./bW);
