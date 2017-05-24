@@ -43,7 +43,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     flds = {};
     nc = G.cells.num;
-    nn = G.nodes.num;
+    if isfield(G, 'nodes')
+        nn = G.nodes.num;
+    else
+        nn = 0;
+    end
     if isnumeric(s)
         if size(s, 1) == nc || size(s, 1) == nn
             N = min(size(s, 2), 1000);
