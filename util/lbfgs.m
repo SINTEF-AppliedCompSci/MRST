@@ -4,7 +4,6 @@ function [x,f,gNorm] = lbfgs(x0, F, varargin)
     % Arguments:
     %   x0          initial guess
     %   F           Objective function
-    %   dt          delaunay triangulation class of the boundary
     %
     % varargin:
     %   storedVec   Number of vectors used to approximate hessian
@@ -20,7 +19,7 @@ function [x,f,gNorm] = lbfgs(x0, F, varargin)
     %   
     % Returns:
     %   x           optimal point
-    %   f           functioin value at each step
+    %   f           function value at each step
     %   gNorm       norm of the gradient at each step
 
 %{
