@@ -260,12 +260,16 @@ classdef SimpleWell < PhysicalModel
                     % bhp:  Upper limit on pressure.
                     % rate: Upper limit on total surface rate.
                     % vrat: Lower limit on total surface rate.
-                    modes   = {'bhp', 'rate', 'rate'};
+                    modes   = {'bhp', 'rate', 'vrat'};
                     lims = setMissingLimits(lims, modes, inf);
+                    if ~isfinite(lims.vrat)
+                        % VRAT is lower limit, switch default sign
+                        lims.vrat = -inf;
+                    end
                     
                     flags = [double(bhp) > lims.bhp, ...
-                              qs_t >  lims.rate, ...
-                             -qs_t > -lims.vrat];
+                              qs_t       > lims.rate, ...
+                              qs_t       < lims.vrat];
                 else
                     % Producers have several possible limits:
                     % bhp:  Lower limit on pressure.
@@ -277,7 +281,10 @@ classdef SimpleWell < PhysicalModel
 
                     modes   = {'bhp', 'orat', 'lrat', 'grat', 'wrat', 'vrat'};
                     lims = setMissingLimits(lims, modes, -inf);
-                    
+                    if ~isfinite(lims.vrat)
+                        % VRAT is upper limit, switch default sign
+                        lims.vrat = inf;
+                    end
                     [q_w, q_o, q_g] = deal(0);
                     if model.water
                         q_w = qs_double(watIx);
@@ -294,7 +301,7 @@ classdef SimpleWell < PhysicalModel
                         q_w + q_o    < lims.lrat, ...
                         q_g          < lims.grat, ...
                         q_w          < lims.wrat, ...
-                        qs_t         > -lims.vrat];
+                        qs_t         > lims.vrat];
                 end
             else
                 modes = {};
