@@ -59,7 +59,7 @@ end
 % ============================== Public methods ===========================
 methods
    
-   %% Constructor
+   % Constructor
    function model = CO2VEBlackOilTypeModel(Gt, rock2D, fluid, varargin)
    
       opt = struct('adjointType','hyst');%valid hyst/nohyst
