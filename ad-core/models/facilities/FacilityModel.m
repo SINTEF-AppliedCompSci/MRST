@@ -398,7 +398,7 @@ classdef FacilityModel < PhysicalModel
                     ws(i).gor = ws(i).qGs/ws(i).qOs;
                 end
                 
-                ws(i).flux = qR(p2w == i, :);
+                ws(i).flux = sum(qR(p2w == i, :), 2);
             end
         end
 
