@@ -87,7 +87,7 @@ WP.pairIx = [repmat(1:ni, 1, np);...
              reshape(repmat(1:np, ni, 1), 1, [])]';
 % Compute allocation factors
 for i=1:ni
-   qik = state.wellSol(D.inj(i)).flux;
+   qik = sum(state.wellSol(D.inj(i)).flux, 2);
    if isempty(qik)
        continue;
    end
@@ -98,7 +98,7 @@ for i=1:ni
    WP.inj(i).name   = W(D.inj(i)).name;
 end 
 for i=1:np
-   qjk = state.wellSol(D.prod(i)).flux;
+   qjk = sum(state.wellSol(D.prod(i)).flux, 2);
    if isempty(qjk)
        continue;
    end
