@@ -45,6 +45,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     pvf = model.operators.pv;
     
     counts = accumarray(p, 1);
+    state_f = state;
     
     nph = size(state.s, 2);
     pvs = bsxfun(@times, state.s, pvf);
@@ -63,6 +64,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
     end
     
+    if isfield(state, 'rs')
+        sO = model.getProp(state_f, 'sO');
+        sO_c = coarsemodel.getProp(state, 'sO');
+        state.rs = accumarray(p, sO.*state.rs.*pvf)./(sO_c.*pvc);
+        state.rs(~isfinite(state.rs)) = 0;
+    end
+    if isfield(state, 'rv')
+        sG = model.getProp(state_f, 'sG');
+        sG_c = coarsemodel.getProp(state, 'sG');
+        state.rv = accumarray(p, sG.*state.rv.*pvf)./(sG_c.*pvc);
+        state.rv(~isfinite(state.rv)) = 0;
+    end
     % Average the pressure (not entirely correct for compressible systems,
     % but we won't start evaluating properties in here).
     state.pressure = accumarray(p, state.pressure)./counts;
