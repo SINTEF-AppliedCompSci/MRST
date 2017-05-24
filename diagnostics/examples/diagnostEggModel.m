@@ -5,7 +5,7 @@
 % concepts of flow diagnostics as demonstreated by the diagnostIntro
 % example.
 %
-% For details on the EggModel and the corresponding ensamble, see
+% For details on the EggModel and the corresponding ensemble, see
 % Jansen, J. D., et al. "The egg model–a geological ensemble for reservoir
 % simulation." Geoscience Data Journal 1.2 (2014): 192-195.
 %
