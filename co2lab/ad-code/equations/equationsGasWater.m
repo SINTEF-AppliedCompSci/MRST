@@ -26,12 +26,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'stepOptions' , []); % compatibility only
     opt = merge_options(opt, varargin{:});
     
-    assert(isempty(drivingForces.src));  % unsupported
-    W = drivingForces.W;
-    s = model.operators;
-    f = model.fluid;
-    G = model.G;
-    t = model.t;
+    W  = drivingForces.W;
+    bc = drivingForces.bc;
+    s  = model.operators;
+    f  = model.fluid;
+    G  = model.G;
+    t  = model.t;
     
     % Extract current and previous values of all variables to solve for
     [p, sG, wellSol] = model.getProps(state, 'pressure', 'sg', 'wellsol');
@@ -78,8 +78,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     [krW, krG] = deal(f.krW(1-sG), f.krG(sG));
     
     % computing densities, mobilities and upstream indices
-    [bW, mobW, fluxW] = compMFlux(p       , f.bW, f.muW, f.rhoWS, trMult, krW, s, trans, model);
-    [bG, mobG, fluxG] = compMFlux(p + pcWG, f.bG, f.muG, f.rhoGS, trMult, krG, s, trans, model);
+    [bW, mobW, fluxW, vW, upcw] = compMFlux(p       , f.bW, f.muW, f.rhoWS, trMult, krW, s, trans, model);
+    [bG, mobG, fluxG, vG, upcg] = compMFlux(p + pcWG, f.bG, f.muG, f.rhoGS, trMult, krG, s, trans, model);
 
     bW0 = f.bW(p0, t);
     bG0 = f.bG(p0 + pcWG, t);
@@ -90,7 +90,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     eqs{2} = (s.pv/dt) .* (pvMult .* bG .* sG     - pvMult0 .* bG0 .* sG0    ) + s.Div(fluxG);
     
     % ---------------------------- Boundary conditions ----------------------------
-
+    if model.outputFluxes
+        state = model.storeFluxes(state, vW, [], vG);
+    end
+    if model.extraStateOutput
+        state = model.storebfactors(state, bW, [], bG);
+        state = model.storeMobilities(state, mobW, [], mobG);
+        state = model.storeUpstreamIndices(state, upcw, [], upcg);
+    end
+    
     rho = {bW.*f.rhoWS, bG.*f.rhoGS};
     mob = {mobW, mobG};
     
@@ -99,16 +107,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                                                    % is water 
     end
     
-    eqs = addFluxesFromSourcesAndBC(model, eqs, {p, p+pcWG}, rho, mob, {1-sG, sG}, drivingForces);
+    [eqs, ~, qRes] = addFluxesFromSourcesAndBC(model, eqs, {p, p+pcWG}, rho, ...
+                                               mob, {1-sG, sG}, drivingForces);
 
-    % % @@ should capillary pressure be sent in too?
-    % [bc_cells, b_fW, b_fG] = ...
-    %     BCFluxes(G, s, p, t, f, drivingForces.bc, krW, krG, transMult, trMult);
-    
-    % % @@ If a cell has more than one pressure boundary condition, only one
-    % % will be taken into account.
-    % eqs{1}(bc_cells) = eqs{1}(bc_cells) + b_fW;
-    % eqs{2}(bc_cells) = eqs{2}(bc_cells) + b_fG;
+    if model.outputFluxes
+       state = model.storeBoundaryFluxes(state, qRes{1}, [], qRes{2}, drivingForces);
+    end
     
     % ------------------------------ Well equations ------------------------------
 
@@ -131,65 +135,8 @@ end
 
 % ============================= END MAIN FUNCTION =============================
 
-% function [cells, fluxW, fluxG] = BCFluxes(G, s, p, t, f, bc, krW, krG, transMult, trMult)
-    
-%     if isempty(bc)
-%         % all boundary conditions are no-flow; nothing to do here.
-%         cells = []; fluxW = []; fluxG = []; return;
-%     end
-
-%     assert(all(strcmp(bc.type, 'pressure'))); % only supported type for now
-%     cells = sum(G.faces.neighbors(bc.face, :), 2);
-%     %assert(numel(unique(cells)) == numel(cells)); % multiple BC per cell not supported
-    
-%     % prepare boundary-specific values
-%     bp   = p(cells); 
-%     bt   = t(cells);
-%     bdp  = bc.value - bp;
-%     bdz  = G.faces.centroids(bc.face, 3) - G.cells.centroids(cells,3);
-    
-%     assert(isscalar(transMult)); % not implemented for face-wise values
-%     assert(isscalar(trMult));    % not implemented for face-wise values
-%     trans = s.T_all(bc.face) .* transMult; 
-%     krWf = trMult * krW(cells);
-%     krGf = trMult * krG(cells);
-    
-%     g = norm(gravity); 
-    
-%     [bw, rhoWf, mobW] = computeRhoMobBFace(bp, bt, f.bW, f.rhoWS, krWf, f.muW);
-%     [bg, rhoGf, mobG] = computeRhoMobBFace(bp, bt, f.bG, f.rhoGS, krGf, f.muG);
-    
-%     dptermW = bdp - rhoWf .* g .* bdz;
-%     dptermG = bdp - rhoGf .* g .* bdz;
-    
-%     % Adjust upstream-weighted mobilities to prevent gas from re-entering the domain
-%     ix = dptermG > 0;
-%     if any(ix) 
-%        mobG(ix) = 0;
-%        mobW(ix) = trMult ./ f.muW(bp(ix), bt(ix));
-%     end
- 
-%     % compute fluxes
-%     fluxW = - bw .* mobW .* trans .* dptermW;
-%     fluxG = - bg .* mobG .* trans .* dptermG;
-    
-%     %fprintf('%f, %f\n', max(abs(fluxW.val)), max(abs(fluxG.val)));
-% end
-
 % ----------------------------------------------------------------------------
-
-function [bb, brho, bmob] = computeRhoMobBFace(bp, bt, bfun, rhoS, krf, mufun)
-
-    bb   = bfun(bp, bt);
-    brho = bb .* rhoS;
-    bmob = krf ./ mufun(bp, bt);
-
-end
-
-% ----------------------------------------------------------------------------
-function [b, mob, flux] = compMFlux(p, bfun, mufun, rhoS, trMult, kr, s, trans, model)
-    
-    g   = norm(gravity);
+function [b, mob, fluxS, fluxR, upc] = compMFlux(p, bfun, mufun, rhoS, trMult, kr, s, trans, model)
     b   = bfun(p, model.t);
     mob = trMult .* kr ./ mufun(p, model.t);
 
@@ -197,6 +144,6 @@ function [b, mob, flux] = compMFlux(p, bfun, mufun, rhoS, trMult, kr, s, trans, 
     
     dp   = s.Grad(p) - rhoFace .* model.getGravityGradient();
     upc  = (double(dp)<=0);
-    flux = -s.faceUpstr(upc, b .* mob) .* trans .* dp;
-
+    fluxR = -s.faceUpstr(upc, mob) .* trans .* dp;
+    fluxS = s.faceUpstr(upc, b) .* fluxR;
 end

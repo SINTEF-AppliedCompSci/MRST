@@ -41,7 +41,7 @@ idir = fullfile(mrstPath('co2lab'), 'data', 'igems');
 if ~exist(fullfile(idir,'one_of_each'),'dir')
    disp(' -> Download data from: http://www.nr.no/IGEMS')
    disp(['    Putting data in ', idir]);
-   unzip('http://www.nr.no/sites/default/files/files/one_of_each.zip', idir);
+   unzip('https://www.nr.no/sites/default/files/files/one_of_each.zip', idir);
 end
 
 
@@ -62,5 +62,5 @@ for i=1:numel(names)
    plotCellData(Gt, z, z>0,'EdgeColor','none');
    axis equal, axis([0 60000 0 30000]);
    view(-90,90);  box on, set(gca,'XTick',[],'YTick',[]); caxis([0 50]);
-   print('-dpng','-r300',[names(i).name(3:end-4) 'png']);
+   % print('-dpng','-r300',[names(i).name(3:end-4) 'png']);
 end

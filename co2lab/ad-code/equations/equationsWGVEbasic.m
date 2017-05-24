@@ -132,9 +132,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    if(opt.adjointForm)
        eqs{3}=sGmax-max(sG,sGmax0);
-       eqshift=1;
-   else
-       eqshift=0;
    end
        
 
@@ -146,79 +143,24 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    %% Setting up well equations
    if ~isempty(W) 
-      if ~opt.reverseMode
-         dissolved = {{[],[]},{[],[]}};  % two phases, no dissolution
-         %add hysteresis variable, equation and name
-         if(opt.adjointForm)
-            primaryVars = {primaryVars{:}, 'sGmax'}; %#ok
-            types = {types{:} , 'cell' };  %#ok   
-            names = {names{:} , 'gasMax'}; %#ok
-         end
-         % add names of well equations
-         %primaryVars = {primaryVars{:}  , 'qWs'      , 'qGs', 'bhp'}; %#ok
-         primaryVars = {primaryVars{:}, wellVarNames{:}}; %#ok   
-         %types = {types{:} , 'perf'       , 'perf'     , 'well'}; %#ok
-         %names = {names{:} , 'waterWells' , 'gasWells' , 'closureWells'}; %#ok
-         
-         [eqs, names, types, state.wellSol] = ...
-             model.insertWellEquations(eqs, names, types, wellSol0, wellSol, ...
-                                       qWell, bhp, extra, wellMap, p, ...
-                                       {mobW, mobG}, {rhoW, rhoG}, dissolved, ...
-                                       {}, dt, opt);
-      else
-         [eqs([3:5]+eqshift), names([3:5]+eqshift), types([3:5]+eqshift)] = ...
-             wm.createReverseModeWellEquations(model, state0.wellSol, p0);%#ok
-      end
-   % else
-   %    eqs([3:5]+eqshift) = {bhp, bhp, bhp}; %#ok empty ADIs
+     dissolved = {{[],[]},{[],[]}};  % two phases, no dissolution
+     %add hysteresis variable, equation and name
+     if(opt.adjointForm)
+        primaryVars = {primaryVars{:}, 'sGmax'}; %#ok
+        types = {types{:} , 'cell' };  %#ok   
+        names = {names{:} , 'gasMax'}; %#ok
+     end
+     % add names of well equations
+     primaryVars = {primaryVars{:}, wellVarNames{:}}; %#ok   
+
+     [eqs, names, types, state.wellSol] = ...
+         model.insertWellEquations(eqs, names, types, wellSol0, wellSol, ...
+                                   qWell, bhp, extra, wellMap, p, ...
+                                   {mobW, mobG}, {rhoW, rhoG}, dissolved, ...
+                                   {}, dt, opt);
    end
-   
-   
-   % if ~isempty(W)
-   %    wm = model.wellmodel;
-   %    if ~opt.reverseMode
-   %       wc = vertcat(W.cells);
-   %       [cqs, weqs, ctrleqs, wc, state.wellSol] =                       ...
-   %           wm.computeWellFlux(model, W, wellSol, bhp                 , ...
-   %                              {qWs, qGs}                             , ...
-   %                              p(wc)                                  , ...
-   %                              [model.fluid.rhoWS, model.fluid.rhoGS] , ...
-   %                              {bW(wc), bG(wc)}                       , ...
-   %                              {mobW(wc), mobG(wc)}                   , ...
-   %                              {sW(wc), sG(wc)}                       , ...
-   %                              {}                                     , ...
-   %                              'allowControlSwitching', false         , ...
-   %                              'nonlinearIteration', opt.iteration);
-   %       % Store the separate well equations (relate well bottom hole
-   %       % pressures to influx)
-   %       eqs([3:4]+eqshift) = weqs;%#ok
-
-   %       % Store the control equations (ensuring that each well has values
-   %       % corresponding to the prescribed value)
-   %       eqs{5+eqshift} = ctrleqs;
-
-   %       % Add source term to equations.  Negative sign may be surprising if
-   %       % one is used to source terms on the right hand side, but this is
-   %       % the equations on residual form
-   %       eqs{1}(wc) = eqs{1}(wc) - cqs{1};
-   %       eqs{2}(wc) = eqs{2}(wc) - cqs{2};
-
-   %    else
-   %       [eqs([3:5]+eqshift), names([3:5]+eqshift), types([3:5]+eqshift)] = ...
-   %           wm.createReverseModeWellEquations(model, state0.wellSol, p0);%#ok
-   %    end
-   % else
-   %    eqs([3:5]+eqshift) = {bhp, bhp, bhp}; %#ok empty ADIs
-   % end
-
 
    %% Setting up problem
-   
-   % if isempty(W)
-   %    % Remove names/types associated with wells, as no well exist
-   %    types = types(1:(2+eqshift));
-   %    names = names(1:(2+eqshift));
-   % end
 
    problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 

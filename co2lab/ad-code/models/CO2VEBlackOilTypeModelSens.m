@@ -1,4 +1,4 @@
-classdef CO2VEBlackOilTypeModel < ReservoirModel
+classdef CO2VEBlackOilTypeModelSens < ReservoirModel
 % Black-oil type model for vertically integrated gas/water flow
 % 
 % SYNOPSIS:
@@ -28,41 +28,23 @@ classdef CO2VEBlackOilTypeModel < ReservoirModel
 %
 % SEE ALSO:
 % topSurfaceGrid, averageRock, makeVEFluid, ReservoirModel
-
-%{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
-
-This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
-
-MRST is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-MRST is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with MRST.  If not, see <http://www.gnu.org/licenses/>.
-%}
+   
 % ============================= Class properties ==========================
 properties
    
    % Equation is chosen based on whether fluid object includes dissolution
    % effects or not 
    equation
-   adjointType
+   
 end
       
 % ============================== Public methods ===========================
 methods
    
-   % Constructor
-   function model = CO2VEBlackOilTypeModel(Gt, rock2D, fluid, varargin)
+   %% Constructor
+   function model = CO2VEBlackOilTypeModelSens(Gt, rock2D, fluid, varargin)
    
-      opt = struct('adjointType','hyst');%valid hyst/nohyst
+      opt = struct();
       [opt, unparsed] = merge_options(opt, varargin{:});%#ok
    
       model@ReservoirModel(Gt, varargin{:});
@@ -84,11 +66,11 @@ methods
       if isfield(fluid, 'dis_rate')
          % use model equations with dissolution
          model.equation = @equationsWGVEdisgas;
-         model.adjointType='nohyst';
+         error('sensitivites??')
       else
          % use basic model equations (no dissolution)
-         model.equation = @equationsWGVEbasic;
-         model.adjointType=opt.adjointType;
+         model.equation = @equationsWGVEbasicSens;
+         %model.adjointType=opt.adjointType;
       end
       
       model = model.setupOperators(Gt, rock2D);
@@ -133,28 +115,13 @@ methods
                                         drivingForces , ...
                                         varargin{:});
    end
-   %
-   function [problem, state] = ...
-          getAdjointEquations(model, state0, state, dt, drivingForces, varargin)
-      if(strcmp(model.adjointType,'nohyst'))
-          % do nothing
-         [problem, state] = model.equation(model         , ...
-                                        state0        , ...
-                                        state         , ...
-                                        dt            , ...
-                                        drivingForces , varargin{:}); 
-      else
-        %use extended type of equations to get hysteresis correct  
-        [problem, state] = model.equation(model         , ...
-                                        state0        , ...
-                                        state         , ...
-                                        dt            , ...
-                                        drivingForces , ...
-                                        'adjointForm',true,varargin{:});
-      end
-   end
+   
 % ------------------------------------------------------------------------
+function forces = getValidDrivingForces(model) 
+        forces = struct('W', [], 'bc', [], 'src', [],'dz',[],'rhofac',1,'permfac',1,'porofac',1);
+end
 
+% ------------------------------------------------------------------------
    function [fn, index] = getVariableField(model, name)
       
       switch(lower(name))
@@ -164,44 +131,32 @@ methods
         case {'rs'}
           index = 1;
           fn = 'rs';
+        case {'dz'}
+            index = 1;
+            fn = 'dz';
+        case {'rhofac'}
+            index = 1;
+            fn = 'rhofac';
+        case {'permfac'}
+            index = 1;
+            fn = 'permfac';
+        case {'porofac'}
+            index = 1;
+            fn = 'porofac';
         otherwise
           [fn, index] = getVariableField@ReservoirModel(model, name);
       end
    end
 
 % ----------------------------------------------------------------------------
-   function rhoS = getSurfaceDensities(model)
-      rhoS = [model.fluid.rhoWS, model.fluid.rhoGS];
-   end
-   
-% ----------------------------------------------------------------------------
 function [state, report] = updateState(model, state, problem, dx, drivingForces)
 
    [state, report] = updateState@ReservoirModel(model, state, problem, dx, ...
                                                 drivingForces);
-
-   sg          = state.s(:,2);
-   sg          = min(1, max(0, sg)); %(1-model.fluid.res_water, max(0,sg)); @@
-   state.s     = [1-sg, sg];    
-   % this should not be used befor after convergense
-   state.sGmax = min(1,state.sGmax);
-   state.sGmax = max(0,state.sGmax);
-   state.sGmax = max(state.sGmax,sg);
-   
+   %probably should limit update of dz
+                                            
    if isfield(model.fluid, 'dis_rate')
-      % The model includes dissolution
-      if model.fluid.dis_rate > 0
-         % rate-driven dissolution
-         f           = model.fluid;
-         min_rs      = minRs(state.pressure,state.s(:,2),state.sGmax,f,model.G);
-         min_rs      = min_rs./state.s(:,1);
-         state.rs    = max(min_rs,state.rs);
-         state.rs    = min(state.rs,f.rsSat(state.pressure));         
-      else
-         % instantaneous dissolution
-         diff = 1e-3; % @@  necessary for convergence in some cases
-         state.rs = min(state.rs, model.fluid.rsSat(state.pressure) + diff);
-      end
+       error('')
    end
 end
 
