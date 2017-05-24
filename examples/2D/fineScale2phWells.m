@@ -9,6 +9,7 @@
 % Load necessary modules, etc 
 mrstModule add hfm;             % hybrid fracture module
 mrstModule add mrst-gui;        % plotting routines
+mrstModule add incomp;          % Incompressible fluid models
 checkLineSegmentIntersect;      % ensure lineSegmentIntersect.m is on path
 
 %% Grid and fracture lines

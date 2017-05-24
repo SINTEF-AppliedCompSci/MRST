@@ -15,6 +15,7 @@ mrstModule add coarsegrid;      % functionality for coarse grids
 mrstModule add ad-core;         % NNC support for coarse grids
 mrstModule add msrsb;           % MsRSB solvers
 mrstModule add mrst-gui;        % plotting routines
+mrstModule add incomp;          % Incompressible fluid models
 checkLineSegmentIntersect;      % ensure lineSegmentIntersect.m is on path
 
 %% Grid and fracture lines

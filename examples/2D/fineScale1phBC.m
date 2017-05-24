@@ -10,6 +10,7 @@
 
 % Load necessary modules, etc 
 mrstModule add hfm;             % hybrid fracture module
+mrstModule add incomp;          % Incompressible fluid models
 checkLineSegmentIntersect;      % ensure lineSegmentIntersect.m is on path
 
 %% Grid and fracture lines
@@ -94,7 +95,7 @@ Gr = computeGeometry(Gr);
 Gr.rock.perm = ones(Gr.cells.num,1) * darcy;
 fractureCells = 225*112+50:225*112+175;
 Gr.rock.perm(fractureCells) = 10000*darcy;
-clf; plotCellData(Gr,Gr.rock.perm); axis equal tight
+clf; plotCellData(Gr,Gr.rock.perm,'EdgeColor', 'none'); axis equal tight
 
 %% Initialize state variables
 % Here, we initialize the solution structure for the two grids.
