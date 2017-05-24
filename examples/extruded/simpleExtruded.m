@@ -8,6 +8,7 @@ mrstModule add coarsegrid;      % functionality for coarse grids
 mrstModule add ad-core;         % NNC support for coarse grids
 mrstModule add msrsb;           % MsRSB solvers
 mrstModule add mrst-gui;        % plotting routines
+mrstModule add incomp;          % Incompressible fluid models
 checkLineSegmentIntersect;      % ensure lineSegmentIntersect.m is on path
 
 %% Grid and fracture lines
@@ -109,9 +110,9 @@ cellprod = nx:nx:nx*ny;
 
 W = [];
 W   = addWell(W, G.Matrix, G.Matrix.rock, cellinj, 'Type', 'rate',...
-    'Val', 1000/day, 'Sign',1, 'Comp_i', [1, 0], 'Name', 'Injector');
+    'Val', 1000/day, 'Sign',1, 'Comp_i', 1, 'Name', 'Injector');
 W   = addWell(W, G.Matrix, G.Matrix.rock, cellprod, ...
-    'Type', 'bhp', 'Val', 50*barsa(), 'Sign', -1, 'Comp_i', [0, 1], 'Name', 'Producer');
+    'Type', 'bhp', 'Val', 50*barsa(), 'Sign', -1, 'Comp_i', 1, 'Name', 'Producer');
 
 %% Initialize state variables
 % Once the transmissibilities are computed, we can generate the
