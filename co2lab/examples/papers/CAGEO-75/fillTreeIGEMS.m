@@ -9,7 +9,7 @@ idir = fullfile(mrstPath('co2lab'), 'data', 'igems');
 if ~exist(fullfile(idir,'one_of_each'),'dir')
    disp(' -> Download data from: http://www.nr.no/IGEMS')
    disp(['    Putting data in ', idir]);
-   unzip('http://www.nr.no/sites/default/files/files/one_of_each.zip', idir);
+   unzip('https://www.nr.no/sites/default/files/files/one_of_each.zip', idir);
 end
 
 %% Get the grid
