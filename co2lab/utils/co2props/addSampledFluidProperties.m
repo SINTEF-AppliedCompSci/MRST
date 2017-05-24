@@ -39,9 +39,9 @@ function fluid = addSampledFluidProperties(fluid, shortname, varargin)
 %               * tnum  -  number of (equidistant) samples along the
 %                          temperature dimension in the sampled table.
 %
-%               * props -  3-component logical vector (true/false) indicating
+%               * props - 4-component logical vector (true/false) indicating
 %                          which property functions to include, on the form:
-%                          [include_density, include_visc., include_enthalpy]
+%                          [density, viscosity, enthalpy, conductivity]
 %
 %               * fixedT - If empty (default), the returned properties will be
 %                          functions of pressure AND temperature.  If
@@ -90,7 +90,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    opt.tspan  = [  4, 250] + 274;           % CO2 default temperature range
    opt.pnum   = 800; % number of pressure samples
    opt.tnum   = 800; % number of temperature samples
-   opt.props  = [true false false]; % which props to include [rho, mu, h]
+   opt.props  = [true false false false]; % which props to include [rho, mu, h, lambda]
    opt.fixedT = [];
    opt.assert_in_range = false;
    opt.nan_outside_range = false;
@@ -125,6 +125,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          fluid.(['u', shortname]) = ...
              @(P, T) fluid.(['h', shortname])(P, T) - P./fluid.(['rho',shortname])(P, T);
       end
+   end
+   if (numel(opt.props) > 3 && opt.props(4))
+      fluid.(['lambda', shortname]) = load_property(opt, 'L', fluidname, opt.fixedT, ...
+                                                    opt.assert_in_range, opt.nan_outside_range);
    end
 end
 
