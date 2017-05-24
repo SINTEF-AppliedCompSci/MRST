@@ -44,9 +44,6 @@ flowfluid = initSimpleADIFluid('n', [nkr, nkr, nkr], 'rho', [1000, 800, 10]);
 
 gravity reset on
 model = ThreePhaseCompositionalModel(G, rock, flowfluid, fluid, 'water', false);
-% Reduce tolerances somewhat, as the defaults are very strict.
-model.incTolPressure = 1e-2;
-model.toleranceWellRate = 1e-2;
 
 ncomp = fluid.getNumberOfComponents();
 state0 = initResSol(G, minP + (maxP - minP)/2, 1);
