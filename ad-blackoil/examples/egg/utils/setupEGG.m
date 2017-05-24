@@ -15,7 +15,7 @@ function [G, rock, fluid, deck, state] = setupEGG(varargin)
 %   state - Initial reservoir state
 %
 % SEE ALSO:
-%   setupSPE1, SPE9
+%   setupSPE1, setupSPE9
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
