@@ -406,6 +406,10 @@ function props = convertPROPS(props, u)                                %#ok
             unt         = u.density / (u.mass*u.mol);
             props.(key) = convertFrom(props.(key), unt);
 
+         case 'ZCRIT',
+            unt         = 1;
+            props.(key) = convertFrom(props.(key), unt);
+
          case {'SOF2', 'SOF3', 'STONE', 'STONE1', 'STONE2', ...
                'SIMPLE', 'TLMIXPAR', 'PLMIXPAR', 'SHRATE', ...
                ...
