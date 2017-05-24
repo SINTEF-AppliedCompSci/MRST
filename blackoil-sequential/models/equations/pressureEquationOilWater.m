@@ -32,7 +32,7 @@ if ~opt.resOnly,
         assert(0, 'Backwards solver not supported for splitting');
     end
 end
-primaryVars = {'pressure', 'qWs', 'qOs', 'bhp'};
+primaryVars = {'pressure', wellVarNames{:}};
 
 p_prop = opt.propsPressure;
 otherPropPressure = ~isempty(p_prop);
