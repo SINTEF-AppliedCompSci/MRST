@@ -105,6 +105,16 @@ gas = (op.pv/dt).*( pvMult.*bG.*sG - pvMult0.*bG0.*sG0 ) + op.Div(bGvG);
 % Conservation of mass for solvent
 solvent = (op.pv/dt).*( pvMult.*bS.*sS - pvMult0.*bS0.*sS0 ) + op.Div(bSvS);
 
+if 1
+    acc = zeros(model.G.cells.num,4);
+    acc(:,1) = (op.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 );
+    acc(:,2) = (op.pv/dt).*( pvMult.*bO.*sO - pvMult0.*bO0.*sO0 );
+    acc(:,3) = (op.pv/dt).*( pvMult.*bG.*sG - pvMult0.*bG0.*sG0 );
+    acc(:,4) = (op.pv/dt).*( pvMult.*bS.*sS - pvMult0.*bS0.*sS0 );
+    state.acc = acc;
+end
+
+
 eqs   = {water, oil, gas, solvent};
 names = {'water', 'oil', 'gas', 'solvent'};
 types = {'cell', 'cell', 'cell', 'cell'};
@@ -125,12 +135,21 @@ wc = wc(sign>0);
 compi = rldecode(vertcat(W.compi), nc, 1);
 compi = compi(sign>0,:);
 
+muWell = cell(4,1);
 rhoWell = cell(4,1);
-[~, ~, ~, ~, rhoWell{1}, rhoWell{2}, rhoWell{3}, rhoWell{4}] ...
+[krWell{1}, krWell{2}, krWell{3}, krWell{4}] ...
+    = computeRelPermSolvent(fluid, p(wc), compi(:,1), compi(:,2), compi(:,3), compi(:,4), 0,0,0, mobMult);
+[muWell{1}, muWell{2}, muWell{3}, muWell{4}, rhoWell{1}, rhoWell{2}, rhoWell{3}, rhoWell{4}] ...
     = computeViscositiesAndDensities(fluid, p(wc), compi(:,2), compi(:,3), compi(:,4), 0, 0);
+
 
 for i = 1:4
     rho{i}.val(wc) = rhoWell{i}.val;
+    if isa(mob{i}, 'ADI')
+        mob{i}.val(wc) = krWell{i}./muWell{i}.val;
+    else
+        mob{i}(wc) = krWell{i}.val./muWell{i}.val;
+    end
 end
 
 % [eqs, ~, qRes] = addFluxesFromSourcesAndBC(model, eqs, ...

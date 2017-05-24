@@ -2,40 +2,66 @@ function [krW_eff, krO_eff, krG_eff, krS_eff] = computeRelPermSolvent(fluid, p, 
 % Calulates effective relative permeabilities.
 
     n = 2;
-    sr_tot = sWres + sOres + sSGres;
+    sres_tot = sWres + sOres + sSGres;
     
     % Relperm of hydrocarbon to water as a funciton of total HC saturation
     krN = coreyRelperm(sO + sG + sS, ...
                   n, ...
                   sOres + sSGres, ...
                   fluid.krO(1 - sWres), ...
-                  sr_tot);
+                  sres_tot);
     % Immiscible relperms for oil and total gas          
     krO_i = coreyRelperm(sO, ...
                   n, ...
                   sOres, ...
                   fluid.krO(1 - (sWres + sSGres)), ...
-                  sr_tot);
+                  sres_tot);
     krGT_i = coreyRelperm(sG + sS, ...
                   n, ...
                   sSGres, ...
                   fluid.krG(1 - (sWres + sOres)), ...
-                  sr_tot);
+                  sres_tot);
 
 
     M = fluid.Msat(sG, sS).*fluid.Mpres(p);
 
+    sO = trimSaturations(sO);
+    sG = trimSaturations(sG);
+    sS = trimSaturations(sS);
+    
     sGsGT = saturationFraction(sG, sG + sS);
+%     sSsGT = saturationFraction(sS, sG + sS);
     
     % Immiscible gas and solvent relperms
     krG_i = sGsGT.*krGT_i;
     krS_i = (1-sGsGT).*krGT_i;
     
+%     sOn = sO - sOres;
+%     sGn = sG - sSGres;
+%     sSn = sS;
+%     sNn = sOn + sGn + sSn;
+%     sGTn = sGn + sSn;
+    
     sOn = max(sO - sOres, 0);
     sGn = max(sG - sSGres,0);
-    sSn = sS;
-    sNn = max(sO + sG + sS - (sOres + sSGres), 0);
-    sGTn = max(sG + sS - sSGres,0);
+    sSn = max(sS,0);
+    sNn = sOn + sGn + sSn;
+    sGTn = sGn + sSn;
+%     sNn = max(sO + sG + sS - (sOres + sSGres), 0);
+%     sGTn = max(sG + sS - sSGres,0);
+    
+    sOn = trimSaturations(sOn);
+    sGn = trimSaturations(sGn);
+    sSn = trimSaturations(sSn);
+    sNn = trimSaturations(sNn);
+    sGTn = trimSaturations(sGTn);
+    
+%     sOn = sO - sOres;
+%     sGn = sG - sSGres;
+%     sSn = sS;
+%     sNn = sO + sG + sS - (sOres + sSGres);
+%     sGTn = sG + sS - sSGres;
+    
     
     sOnsNn  = saturationFraction(sOn, sNn);
     sGTnsNn = saturationFraction(sGTn, sNn);
@@ -74,11 +100,21 @@ function kr = coreyRelperm(s, n, sr, kwm, sr_tot)
     
     kr = kwm.*sat.^n;
 end
+% 
+% function s = trimSaturations(s)
+% 
+%     tol = eps;
+%     s = max(s + tol*(s<tol),0);
+%     
+% end
 
-function f = saturationFraction(sNum, sDen)
-
-    tol = 10*eps;
-    f = sNum./(sDen + (sDen < tol).*tol);
-    
-end
+% function f = saturationFraction(sNum, sDen)
+% 
+%     tol = 10*eps;
+%     zz = sNum < tol & sDen < tol;
+%     sNum = sNum - (sNum < tol).*sNum;
+%     sDen = sDen - (sDen < tol).*sDen;
+%     f = sNum./(sDen + (sDen < tol).*tol).*(~zz) + 0.*zz;
+%        
+% end
     

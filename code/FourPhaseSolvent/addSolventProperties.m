@@ -77,10 +77,26 @@ function Msat = linearSaturationMiscibility(sG, sS)
 % saturation. We add small value tol to avoid 0/0, and specifically assign
 % Msat = 0 if both sG and sS is very small.
 
-    tol = 10*eps;
-    zz = sG < tol & sS < tol;
-    Msat = (sS./(sG + sS + (sS < tol).*tol)).*(~zz) + sS.*0.*zz;
+%     tol = 100*eps;
+%     zz = sG < tol & sS < tol;
+%     Msat = (sS./(sG + sS + (sS < tol).*tol)).*(~zz) + 0.*zz;
 
+%     tol = eps;
+%     sS  = sS - sS.*(sS < tol);
+%     sG  = sG - sG.*(sG < tol);
+    
+    sS = trimSaturations(sS);
+    sG = trimSaturations(sG);
+    
+    Msat = saturationFraction(sS, sS + sG);
+
+%     tol = 10*eps;
+%     zz = sG < tol & sS < tol;
+%     sS  = sS - sS.*(sS < tol);
+%     sG  = sG - sG.*(sG < tol);
+%     
+%     Msat = (sS./(sG + sS + (sS < tol).*tol)).*(~zz) + 0.*zz;
+    
 end
 
 function Mpres = constantPressureMiscibility(p)
