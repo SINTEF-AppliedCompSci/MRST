@@ -9,9 +9,9 @@ function [muW_eff, muO_eff, muG_eff, muS_eff, rhoW_eff, rhoO_eff, rhoG_eff, rhoS
     muS = fluid.muS(p);
     
     % Subtract residual sturations
-    sO = trimSaturations(sO);
-    sG = trimSaturations(sG);
-    sS = trimSaturations(sS);
+%     sO = trimSaturations(sO);
+%     sG = trimSaturations(sG);
+%     sS = trimSaturations(sS);
     
 
     sOn = max(sO - sOres, 0);
@@ -23,20 +23,25 @@ function [muW_eff, muO_eff, muG_eff, muS_eff, rhoW_eff, rhoO_eff, rhoG_eff, rhoS
 %     sSn = sS - sSGres;
     
     
-    sOn = trimSaturations(sOn);
-    sGn = trimSaturations(sGn);
-    sSn = trimSaturations(sSn);
+%     sOn = trimSaturations(sOn);
+%     sGn = trimSaturations(sGn);
+%     sSn = trimSaturations(sSn);
     
     
-    sNn = sOn + sGn + sSn;
-    sOSn = sOn + sSn;
-    sSGn = sSn + sGn;
+%     sNn = sOn + sGn + sSn;
+%     sOSn = sOn + sSn;
+%     sSGn = sSn + sGn;
     
-%     sOnsOSn = saturationFraction(sOn, sOSn);
-    sSnsOSn = saturationFraction(sSn, sOSn);
-    sSnsSGn = saturationFraction(sSn, sSGn);
-    sOnsNn = saturationFraction(sOn, sNn);
-    sSnsNn = saturationFraction(sSn, sNn);
+% %     sOnsOSn = saturationFraction(sOn, sOSn);
+%     sSnsOSn = saturationFraction(sSn, sOSn);
+%     sSnsSGn = saturationFraction(sSn, sSGn);
+%     sOnsNn = saturationFraction(sOn, sNn);
+%     sSnsNn = saturationFraction(sSn, sNn);
+
+    sSnsOSn = saturationFraction(sSn, sOn);
+    sSnsSGn = saturationFraction(sSn, sGn);
+    sOnsNn = saturationFraction(sOn, sSn + sGn);
+    sSnsNn = saturationFraction(sSn, sOn + sGn);
     
 %     tol = 10*eps;
 %     sSn = sSn - sSn.*(sS<tol);
@@ -76,8 +81,10 @@ function [muW_eff, muO_eff, muG_eff, muS_eff, rhoW_eff, rhoO_eff, rhoG_eff, rhoS
     sOsN_Oeff = max((muOmuS - (muO./muO_eff).^a)./(muOmuS-1),0);
     sOsN_Geff = max((muSmuG - (muS./muG_eff).^a)./(muSmuG-1),0);
     
-    sOGn = sOn + sGn;
-    sGf = saturationFraction(sGn, sOGn);
+%     sOGn = sOn + sGn;
+%     sGf = saturationFraction(sGn, sOGn);
+
+    sGf = saturationFraction(sGn, sOn);
     
     sSsN_Seff = max((muSmuG.*sGf + muSmuO.*(1-sGf) - (muS./muS_eff).^a)...
                ./(muSmuG.*sGf + muSmuO.*(1-sGf) - 1),0);
@@ -92,9 +99,14 @@ function [muW_eff, muO_eff, muG_eff, muS_eff, rhoW_eff, rhoO_eff, rhoG_eff, rhoS
     tol = 1e-10;
     eq = abs(muO - muS) < tol | abs(muS - muG) < tol;
 
-    sN = sO + sG + sS;
-    sOsN = saturationFraction(sO, sN);
-    sGsN = saturationFraction(sG, sN);
+%     sN = sO + sG + sS;
+%     sOsN = saturationFraction(sO, sN);
+%     sGsN = saturationFraction(sG, sN);
+%     
+    sOsN = saturationFraction(sO, sG + sS);
+    sGsN = saturationFraction(sG, sO + sS);
+    
+    
     rhoM = rhoO.*sOsN + rhoG.*sGsN + rhoS.*(1 - (sOsN + sGsN));
     
     % Calulcate mixed densities

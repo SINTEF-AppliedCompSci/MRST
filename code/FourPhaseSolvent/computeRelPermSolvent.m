@@ -25,11 +25,11 @@ function [krW_eff, krO_eff, krG_eff, krS_eff] = computeRelPermSolvent(fluid, p, 
 
     M = fluid.Msat(sG, sS).*fluid.Mpres(p);
 
-    sO = trimSaturations(sO);
-    sG = trimSaturations(sG);
-    sS = trimSaturations(sS);
+%     sO = trimSaturations(sO);
+%     sG = trimSaturations(sG);
+%     sS = trimSaturations(sS);
     
-    sGsGT = saturationFraction(sG, sG + sS);
+    sGsGT = saturationFraction(sG, sS);
 %     sSsGT = saturationFraction(sS, sG + sS);
     
     % Immiscible gas and solvent relperms
@@ -50,11 +50,11 @@ function [krW_eff, krO_eff, krG_eff, krS_eff] = computeRelPermSolvent(fluid, p, 
 %     sNn = max(sO + sG + sS - (sOres + sSGres), 0);
 %     sGTn = max(sG + sS - sSGres,0);
     
-    sOn = trimSaturations(sOn);
-    sGn = trimSaturations(sGn);
-    sSn = trimSaturations(sSn);
-    sNn = trimSaturations(sNn);
-    sGTn = trimSaturations(sGTn);
+%     sOn = trimSaturations(sOn);
+%     sGn = trimSaturations(sGn);
+%     sSn = trimSaturations(sSn);
+%     sNn = trimSaturations(sNn);
+%     sGTn = trimSaturations(sGTn);
     
 %     sOn = sO - sOres;
 %     sGn = sG - sSGres;
@@ -63,12 +63,18 @@ function [krW_eff, krO_eff, krG_eff, krS_eff] = computeRelPermSolvent(fluid, p, 
 %     sGTn = sG + sS - sSGres;
     
     
-    sOnsNn  = saturationFraction(sOn, sNn);
-    sGTnsNn = saturationFraction(sGTn, sNn);
-    sGnsGTn = saturationFraction(sGn, sGTn);
-    sSnsGTn = saturationFraction(sSn, sGTn);
+%     sOnsNn  = saturationFraction(sOn, sNn);
+%     sGTnsNn = saturationFraction(sGTn, sNn);
+%     sGnsGTn = saturationFraction(sGn, sGTn);
+%     sSnsGTn = saturationFraction(sSn, sGTn);
     
-    % Miscible relperms
+    sOnsNn  = saturationFraction(sOn, sSn + sGn);
+    sGTnsNn = saturationFraction(sGTn, sOn);
+    sGnsGTn = saturationFraction(sGn, sSn);
+    sSnsGTn = saturationFraction(sSn, sGn);
+
+
+% Miscible relperms
     krO_m = sOnsNn.*krN;
     krGT_m = sGTnsNn.*krN;
     krG_m = sGnsGTn.*krGT_m;

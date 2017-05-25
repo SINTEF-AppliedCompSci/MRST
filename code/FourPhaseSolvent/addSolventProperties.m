@@ -85,10 +85,21 @@ function Msat = linearSaturationMiscibility(sG, sS)
 %     sS  = sS - sS.*(sS < tol);
 %     sG  = sG - sG.*(sG < tol);
     
-    sS = trimSaturations(sS);
-    sG = trimSaturations(sG);
     
-    Msat = saturationFraction(sS, sS + sG);
+%     sS = trimSaturations(sS);
+%     sG = trimSaturations(sG);
+
+%     sS = max(sS,0);
+
+%     tol = 1e-2;
+%     sG(sG < tol) = tol;
+%     sS(sS < tol) = tol;
+%     sS(sS < 10*eps) = 0;
+
+%     Msat = saturationFraction(sS, sS + sG);
+
+%      Msat = saturationFraction(sS, sG);
+     Msat = 1 - saturationFraction(sG, sS);
 
 %     tol = 10*eps;
 %     zz = sG < tol & sS < tol;

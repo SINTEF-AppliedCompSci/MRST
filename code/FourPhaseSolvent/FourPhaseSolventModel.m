@@ -46,6 +46,12 @@ methods
         end
     end
     
+    function vars = getSaturationVarNames(model)
+        vars = {'sw', 'so', 'sg', 'ss'};
+        ph = model.getActivePhases();
+        vars = vars(ph);
+    end
+    
     % --------------------------------------------------------------------%
     function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
         [problem, state] = equationsFourPhaseSolvent(state0, state, ...
@@ -57,6 +63,13 @@ methods
     function state = validateState(model, state)
         % Check parent class
         state = validateState@ReservoirModel(model, state);
+    end
+    
+    function phNames = getPhaseNames(model)
+        % Get the active phases in canonical ordering
+        tmp = 'WOGS';
+        active = model.getActivePhases();
+        phNames = tmp(active);
     end
 
     % --------------------------------------------------------------------%
