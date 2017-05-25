@@ -144,12 +144,16 @@ rhoWell = cell(4,1);
 
 
 for i = 1:4
-    rho{i}.val(wc) = rhoWell{i}.val;
-    if isa(mob{i}, 'ADI')
-        mob{i}.val(wc) = krWell{i}./muWell{i}.val;
+    if isa(rho{i}, 'ADI')
+        rho{i}.val(wc) = rhoWell{i};
     else
-        mob{i}(wc) = krWell{i}.val./muWell{i}.val;
+        rho{i}(wc) = rhoWell{i};
     end
+%     if isa(mob{i}, 'ADI')
+%         mob{i}.val(wc) = mobMult*krWell{i}./muWell{i};
+%     else
+%         mob{i}(wc) = mobMult*krWell{i}./muWell{i};
+%     end
 end
 
 % [eqs, ~, qRes] = addFluxesFromSourcesAndBC(model, eqs, ...
