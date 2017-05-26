@@ -205,6 +205,28 @@ classdef SimpleWellSolvent < SimpleWell
             end
         end
         
+        function [fn, index] = getVariableField(model, name)
+            index = 1;
+            switch(lower(name))
+                case 'bhp'
+                    fn = 'bhp';
+                case 'qos'
+                    fn = 'qOs';
+                case 'qgs'
+                    fn = 'qGs';
+                case 'qws'
+                    fn = 'qWs';
+                case 'qss'
+                    fn = 'qSs';
+                case 'qwpoly'
+                    fn = 'qWPoly';
+                case 'qwsft'
+                    fn = 'surfact';
+                otherwise
+                    % This will throw an error for us
+                    [fn, index] = getVariableField@PhysicalModel(model, name);
+            end
+        end
         
     end
     
