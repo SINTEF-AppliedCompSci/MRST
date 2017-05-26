@@ -61,7 +61,7 @@ opt = struct('Verbose', mrstVerbose, ...
 opt = merge_options(opt, varargin{:});
 
 W = drivingForces.W;
-s = model.operators;
+op = model.operators;
 
 % Properties at current timestep
 [p, sW, c, cmax, wellSol] = model.getProps(state, 'pressure', 'water', ...
@@ -104,7 +104,7 @@ sO0 = 1 - sW0;
 krW = mobMult.*krW; krO = mobMult.*krO;
 
 % Compute transmissibility
-T = s.T.*transMult;
+T = op.T.*transMult;
 
 % Gravity contribution
 gdz = model.getGravityGradient();
@@ -133,22 +133,22 @@ end
 % EQUATIONS ---------------------------------------------------------------
 % Upstream weight b factors and multiply by interface fluxes to obtain the
 % fluxes at standard conditions.
-bOvO = s.faceUpstr(upco, bO).*vO;
-bWvW = s.faceUpstr(upcw, bW).*vW;
-bWvP = s.faceUpstr(upcw, bW).*vP;
+bOvO = op.faceUpstr(upco, bO).*vO;
+bWvW = op.faceUpstr(upcw, bW).*vW;
+bWvP = op.faceUpstr(upcw, bW).*vP;
 
 % Conservation of mass for water
-water = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 ) + s.Div(bWvW);
+water = (op.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 ) + op.Div(bWvW);
 
 % Conservation of mass for oil
-oil = (s.pv/dt).*( pvMult.*bO.*sO - pvMult0.*bO0.*sO0 ) + s.Div(bOvO);
+oil = (op.pv/dt).*( pvMult.*bO.*sO - pvMult0.*bO0.*sO0 ) + op.Div(bOvO);
 
 % Conservation of polymer in water:
 poro = model.rock.poro;
 f    = model.fluid;
-polymer = (s.pv.*(1-f.dps)/dt).*(pvMult.*bW.*sW.*c - ...
-   pvMult0.*bW0.*sW0.*c0) + (s.pv/dt).* ...
-   ( f.rhoR.*((1-poro)./poro).*(ads-ads0) ) + s.Div(bWvP);
+polymer = (op.pv.*(1-f.dps)/dt).*(pvMult.*bW.*sW.*c - ...
+   pvMult0.*bW0.*sW0.*c0) + (op.pv/dt).* ...
+   ( f.rhoR.*((1-poro)./poro).*(ads-ads0) ) + op.Div(bWvP);
 
 eqs   = {water, oil, polymer};
 names = {'water', 'oil', 'polymer'};
