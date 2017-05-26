@@ -112,6 +112,7 @@ if 1
     acc(:,3) = (op.pv/dt).*( pvMult.*bG.*sG - pvMult0.*bG0.*sG0 );
     acc(:,4) = (op.pv/dt).*( pvMult.*bS.*sS - pvMult0.*bS0.*sS0 );
     state.acc = acc;
+    state.sOres = sOres.val;
 end
 
 
