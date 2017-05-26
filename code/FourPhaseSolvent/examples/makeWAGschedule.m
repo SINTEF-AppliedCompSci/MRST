@@ -1,9 +1,9 @@
 function [schedule, W_G, W_W] = makeWAGschedule(model, injectors, producers, nCycles, varargin)
 
-opt = struct('wag_end', 0.5, ...
-             'gas_end'  , 0.5, ...
+opt = struct('gas_end'  , 0.5, ...
              'T', 1*year, ...
              'nStep', 100, ...
+             'useRampup', false, ...
              'gRate', [], ...
              'wRate', [], ...
              'W',     []);
@@ -23,19 +23,26 @@ end
 if isempty(opt.gRate)
     wRate = sum(pv)/T;
 end
-wag_end = opt.wag_end;
-T = opt.T;
-Tc = T*wag_end/nCycles;
-dT = T/opt.nStep;
+nStep = opt.nStep;
+Tc = T/nCycles;
+dT = T/nStep;
 gas_end = opt.gas_end;
 
 dT_G = rampupTimesteps(gas_end*Tc, dT, 0);
-dT_W  = rampupTimesteps((1-gas_end)*Tc, dT, 0);
+dT_W = rampupTimesteps((1-gas_end)*Tc, dT, 0);
 
-dT_WAG = repmat([dT_G; dT_W], nCycles, 1);
-dT_Water = rampupTimesteps(T - sum(dT_WAG), dT, 0);
-dT = [dT_WAG; dT_Water];
+if opt.useRampup
+    dT_G1 = rampupTimesteps(gas_end*Tc, dT/2);
+    dT_W1 = rampupTimesteps((1-gas_end)*Tc, dT);
+    dT = [dT_G1; dT_W1; repmat([dT_G; dT_W], nCycles-1, 1)];
+    step.control = [1*ones(numel(dT_G1),1); 2*ones(numel(dT_W1),1); ...
+        repmat([1*ones(numel(dT_G),1); 2*ones(numel(dT_W),1)],nCycles-1,1)];
+else
+    dT = repmat([dT_G; dT_W], nCycles, 1);
+    step.control = [repmat([1*ones(numel(dT_G),1); 2*ones(numel(dT_W),1)],nCycles,1)];
+end
 
+step.val = dT;
 
 [W_G, W_W] = deal([]);
 
@@ -81,10 +88,6 @@ end
     
 control(1).W = W_G;
 control(2).W = W_W;
-
-step.control = [repmat([1*ones(numel(dT_G),1); 2*ones(numel(dT_W),1)],nCycles,1); ...
-                2*ones(numel(dT_Water),1)];
-step.val = dT;
 
 schedule.control = control;
 schedule.step = step;
