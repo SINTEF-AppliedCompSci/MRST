@@ -39,33 +39,29 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-    
+
     properties
         % Polymer present
         polymer
-        
+
     end
-    
+
     methods
         function model = OilWaterPolymerModel(G, rock, fluid, varargin)
-            
+
             model = model@TwoPhaseOilWaterModel(G, rock, fluid);
-            
             % This is the model parameters for oil/water/polymer
             model.polymer = true;
-            
-%             model.wellVarNames = {'qWs', 'qOs', 'qWPoly', 'bhp'};
-            
             model = merge_options(model, varargin{:});
-            
+
         end
-        
+
         function [problem, state] = getEquations(model, state0, state, ...
                 dt, drivingForces, varargin)
             [problem, state] = equationsOilWaterPolymer(state0, state, ...
                 model, dt, drivingForces, varargin{:});
         end
-        
+
         function state = validateState(model, state)
             state = validateState@TwoPhaseOilWaterModel(model, state);
             % Polymer must be present
@@ -76,14 +72,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 dx, drivingForces)
             [state, report] = updateState@TwoPhaseOilWaterModel(model, ...
                state, problem,  dx, drivingForces);
-            
+
             if model.polymer
                 c = model.getProp(state, 'polymer');
                 c = min(c, model.fluid.cmax);
                 state = model.setProp(state, 'polymer', max(c, 0) );
             end
         end
-        
+
         function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
             [state, report] = updateAfterConvergence@TwoPhaseOilWaterModel(model, state0, state, dt, drivingForces);
             if model.polymer
@@ -93,7 +89,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             end
         end
 
-        
+
         function [fn, index] = getVariableField(model, name)
             % Get the index/name mapping for the model (such as where
             % pressure or water saturation is located in state)

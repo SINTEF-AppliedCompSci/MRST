@@ -65,7 +65,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     packed.rho = getCellSubset(rho, wc);
     packed.dissolved = getComponentCellSubset(dissolved, wc);
     packed.components = getCellSubset(comp, wc);
-    
+
     % Extra variables outside of standard subset
     varw = getVariableSubsetWell(wellvars, varmaps, ix);
     renum = wellmap(ix, wellmap(ix, :) > 0);
@@ -93,9 +93,9 @@ function subset = getCellSubset(celldata, wc)
     end
 end
 
-function subset = getVariableSubsetWell(vars, wellMap, ix)
+function subset = getVariableSubsetWell(vars, varmaps, ix)
     subset = cell(size(vars));
     for i = 1:numel(subset)
-        subset{i} = vars{i}(wellMap{i} == ix);
+        subset{i} = vars{i}(varmaps{i} == ix);
     end
 end

@@ -6,7 +6,7 @@ classdef FacilityModel < PhysicalModel
         toleranceWellRate
         toleranceWellMS
         ReservoirModel
-        
+
         VFPTablesInjector
         VFPTablesProducer
     end
@@ -55,7 +55,7 @@ classdef FacilityModel < PhysicalModel
                     wm.dsMaxAbs = model.ReservoirModel.dsMaxAbs;
                     wm.dpMaxAbs = model.ReservoirModel.dpMaxAbs;
                     wm.dpMaxRel = model.ReservoirModel.dpMaxRel;
-                    
+
                     if isfield(W(i), 'vfp_index')
                         vfp_ix = W(i).vfp_index;
                         if vfp_ix > 0
@@ -150,9 +150,24 @@ classdef FacilityModel < PhysicalModel
         end
 
         function [variables, names, wellmap] = getExtraPrimaryVariables(model, wellSol)
-            % Extra primary variables are variables required by more
-            % advanced wells that are in addition to the basic facility
-            % variables (rates + bhp).
+        % Extra primary variables are variables required by more
+        % advanced wells that are in addition to the basic facility
+        % variables (rates + bhp).
+        %
+        % names     : Column of cells. Each cell is a string with the name of an extra-variable
+        % variables : Column of cells. Each element, variables{i}, is a vector given
+        %             the value corresponding to extra-variable with name
+        %             names{i}. This vector is composed of stacked values
+        %             over all the wells that contains this extra-variable.
+        % wellmap   : The facility model contains the extra-variables of all
+        %             the well models that are used. Let us consider the well
+        %             with well number wno (in the set of active wells), then
+        %             the Well model is belongs to has its own
+        %             extra-variables (a subset of those of the Facility
+        %             model). We consider the j-th extra-variable of
+        %             the Well model. Then, i = wellmap(wno, j) says that
+        %             this extra-variable corresponds to names{i}
+
             actIx = model.getIndicesOfActiveWells();
             nw = numel(actIx);
             if nw == 0
@@ -170,7 +185,7 @@ classdef FacilityModel < PhysicalModel
                     wno = actIx(i);
                     [v, n] = model.WellModels{wno}.getExtraPrimaryVariables(wellSol(wno), model.ReservoirModel);
 
-                    for j = 1:numel(v)
+                    for j = 1 : numel(v)
                         % Map into array of added primary variables
                         ix = strcmpi(names, n{j});
                         wellmap(i, j) = all_ix(ix);
@@ -186,6 +201,7 @@ classdef FacilityModel < PhysicalModel
         end
 
         function [rates, bhp, extra, allNames, wellMap] = getAllPrimaryVariables(model, wellSol)
+
             [rates, bhp, names] = model.getBasicPrimaryVariables(wellSol);
             [extra, enames, wellMap] = model.getExtraPrimaryVariables(wellSol);
             allNames = [names, enames];
@@ -201,7 +217,7 @@ classdef FacilityModel < PhysicalModel
             end
             actWellIx = model.getIndicesOfActiveWells();
             nw = numel(actWellIx);
-            
+
             % Stores base well equations describing reservoir coupling
             allBaseEqs = cell(nw, 1);
             % Control equations ensure that we enforce constraints
@@ -238,7 +254,7 @@ classdef FacilityModel < PhysicalModel
                 wm = model.WellModels{wellNo};
                 ws = wellSol(wellNo);
                 ws0 = wellSol0(wellNo);
-                
+
                 W = wm.W;
                 packed = packPerforationProperties(W, p, mob, rho, dissolved, comp, wellvars, addedVars, varmaps, wellMap, i);
                 qw = cellfun(@(x) x(i), qWell, 'uniformoutput', false);
@@ -328,20 +344,20 @@ classdef FacilityModel < PhysicalModel
             c = cellfun(@(x) x.W.cells, model.WellModels, 'UniformOutput', false);
             wc = vertcat(c{:});
         end
-        
+
         function wc = getActiveWellCells(model)
             c = cellfun(@(x) x.W.cells, model.WellModels, 'UniformOutput', false);
             active = model.getWellStatusMask();
             wc = vertcat(c{active});
         end
-        
+
         function ws = setWellSolStatistics(model, ws, sources)
             % Store extra output, typically black oil-like
             p2w = getPerforationToWellMapping(model.getWellStruct());
             % Map into active wells
             active = model.getWellStatusMask();
             p2w = p2w(active(p2w));
-            
+
             gind = model.ReservoirModel.getPhaseIndex('G');
             oind = model.ReservoirModel.getPhaseIndex('O');
             wind = model.ReservoirModel.getPhaseIndex('W');
@@ -365,39 +381,39 @@ classdef FacilityModel < PhysicalModel
                     ws(i).qTr = ws(i).qTr + tmp;
                     ws(i).qTs = ws(i).qTs + ws(i).qGs;
                 end
-                
+
                 if model.ReservoirModel.oil
                     tmp = sum(srcRes{oind}(p2w == i));
                     ws(i).qOr = tmp;
                     ws(i).qTr = ws(i).qTr + tmp;
                     ws(i).qTs = ws(i).qTs + ws(i).qOs;
                 end
-                
+
                 if model.ReservoirModel.water
                     tmp = sum(srcRes{wind}(p2w == i));
                     ws(i).qWr = tmp;
                     ws(i).qTr = ws(i).qTr + tmp;
                     ws(i).qTs = ws(i).qTs + ws(i).qWs;
                 end
-                
+
                 % Phase cuts - fraction of reservoir conditions
                 if model.ReservoirModel.water && model.ReservoirModel.oil
                     ws(i).wcut = ws(i).qWs./(ws(i).qWs + ws(i).qOs);
                 end
-                
+
                 if model.ReservoirModel.gas
                     ws(i).gcut = ws(i).qGs./ws(i).qTs;
                 end
-                
+
                 if model.ReservoirModel.oil
                     ws(i).ocut = ws(i).qOs./ws(i).qTs;
                 end
-                
+
                 % Gas/oil ratio
                 if model.ReservoirModel.gas && model.ReservoirModel.oil
                     ws(i).gor = ws(i).qGs/ws(i).qOs;
                 end
-                
+
                 ws(i).flux = sum(qR(p2w == i, :), 2);
             end
         end
@@ -548,7 +564,7 @@ classdef FacilityModel < PhysicalModel
             % facility
             [convergence, values, evaluated, names] = checkWellConvergence(model, ...
                                                               problem);
-            
+
         end
 
         function [convergence, values, names] = checkConvergence(model, problem, varargin)
