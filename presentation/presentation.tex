@@ -2,8 +2,10 @@
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
 \usepackage{tikz}
+\usepackage{subfig}
 \usetikzlibrary{tikzmark,positioning,calc}
 \usepackage{tcolorbox}
+\usepackage{multimedia}
 \definecolor{re}{rgb}{0.8500, 0.3250, 0.0980}
 \newtcolorbox{mybox}[2]{colback=white, colframe=ntnublue,
   fonttitle=\large, title=#1, text height=#2, fontupper=\color{black}\footnotesize}%
@@ -210,16 +212,60 @@
 
 \begin{frame}
   \frametitle{Example 1: 1D displacement}
-  
+  \begin{itemize}
+  \item Initial saturation: $S_o = S_{or,i} = 0.3$, $S_w = 1 - S_{or, i}$
+  \item Miscible floodingresidual saturation $S_{or,m}= 0$
+  \item Mixing: $\omega = 2/3$
+  \item 10 WAG-cycles over 10 years, 1 PV injected in each cycle
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Example 1: 1D displacement}
+  \centering
+  \begin{mybox}{}{0.6\textheight}
+    \begin{center}
+    \movie[width = 1\textwidth]{\includegraphics[width = 0.9\textwidth]{figures/displacement1D/displacement1Dplaceholder}}
+    {figures/displacement1D/displacement1D.avi}
+    \end{center}
+  \end{mybox}
 \end{frame}
 
 \begin{frame}
   \frametitle{Example 2: Layer of SPE10}
-  \begin{figure}[h]
-    \centering
-    
-  \end{figure}
+  \begin{columns}
+    \begin{column}{0.55\textwidth}
+      \begin{itemize}
+      \item Layer 10 of SPE10 model 2
+      \item Initial saturation: $S_o = S_{or,i} = 0.3$, $S_w = 1 - S_{or, i}$
+      \item Injection schedule: 1 Y waterflooding, 1 Y of 10 WAG cycles, 1 Y waterfloowing
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.45\textwidth}
+      \begin{figure}[h]
+        \centering
+        \subfloat[Permeability]{
+          \includegraphics[width = 0.7\textwidth]{figures/spe10/spe10perm}} \\
+        \subfloat[Porosity]{
+          \includegraphics[width = 0.7\textwidth]{figures/spe10/spe10poro}}
+      \end{figure}
+    \end{column}
+  \end{columns}
 \end{frame}
+
+\begin{frame}
+  \frametitle{Example 1: 1D displacement}
+  \centering
+  \begin{mybox}{}{0.6\textheight}
+    \begin{center}
+    \movie[width = 1\textwidth]{\includegraphics[width = 0.9\textwidth]{figures/spe10/spe10poro}}
+    {figures/spe10/spe10.avi}
+    \end{center}
+  \end{mybox}
+\end{frame}
+
+
+
 
 \begin{frame}
   \frametitle{Example 2: Norne field model}
