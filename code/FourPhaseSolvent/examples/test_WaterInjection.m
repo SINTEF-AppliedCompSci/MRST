@@ -8,7 +8,7 @@ rock = makeRock(G, 100*milli*darcy, 1);
 
 T = 1*year;
 pv = poreVolume(G, rock);
-injRate = 2*sum(pv)/T;
+injRate = 10*sum(pv)/T;
 nStep = 100;
 dT = rampupTimesteps(T, T/nStep);
 
