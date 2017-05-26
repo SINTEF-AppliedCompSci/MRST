@@ -140,6 +140,30 @@ classdef SimpleWell < PhysicalModel
                 compSrc{end+1} = qP;
                 compNames{end+1} = 'polymerWells';
             end
+            
+            if isprop(resmodel, 'surfactant') && resmodel.surfactant
+                % Implementation of surfactant source terms.
+                %
+                assert(resmodel.water, 'Surfactant injection requires a water phase.');
+                f = resmodel.fluid;
+                if well.isInjector
+                    concWell = well.W.surfact;
+                else
+                    pix = strcmpi(resmodel.getComponentNames(), 'surfactant');
+                    concWell = packed.components{pix};
+                end
+                qwsft = packed.extravars{strcmpi(packed.extravars_names, 'qwsft')};
+                % Water is always first
+                wix = 1;
+                cqWs = qMass{wix}./f.rhoWS; % get volume rate, at
+                                            % surface condition.
+                cqS = concWell.*cqWs;
+
+                compEqs{end+1} = qwsft - sum(cqWs);
+                compSrc{end+1} = cqS;
+                compNames{end+1} = 'surfactantWells';
+            end
+            
         end
         
         function isInjector = isInjector(well)
@@ -397,7 +421,7 @@ classdef SimpleWell < PhysicalModel
                 case 'qwpoly'
                     fn = 'qWPoly';
                 case 'qwsft'
-                    fn = 'surfact';
+                    fn = 'qWSft';
                 otherwise
                     % This will throw an error for us
                     [fn, index] = getVariableField@PhysicalModel(model, name);

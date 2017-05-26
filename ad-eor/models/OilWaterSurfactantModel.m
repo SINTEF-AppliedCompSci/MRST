@@ -53,7 +53,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             model = model@TwoPhaseOilWaterModel(G, rock, fluid, varargin{:});
             model = model.setupOperators(G, rock, varargin{:});
             model.surfactant = true;
-            model.wellVarNames = {'qWs', 'qOs', 'qWSft', 'bhp'};
             model = merge_options(model, varargin{:});
 
         end
@@ -77,7 +76,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 state = model.setProp(state, 'surfactant', max(c, 0) );
             end
         end
-        
+
         function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
             [state, report] = updateAfterConvergence@TwoPhaseOilWaterModel(model, state0, state, dt, ...
                                                               drivingForces);
@@ -85,10 +84,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                   c     = model.getProp(state, 'surfactant');
                   cmax  = model.getProp(state, 'surfactantmax');
                   state = model.setProp(state, 'surfactantmax', max(cmax, c));
-                  state = updateAdsorption(state0, state, model);
               end
         end
-        
+
         function varargout = evaluateRelPerm(model, sat, varargin)
             error('function evaluateRelPerm is not implemented for surfactant model')
         end
@@ -101,15 +99,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
 
         function [fn, index] = getVariableField(model, name)
-        % Get the index/name mapping for the model (such as where
-        % pressure or water saturation is located in state)
             switch(lower(name))
-              case {'ads'} % needed when model.explicitAdsorption
-                index = 1;
-                fn = 'ads';
-              case {'adsmax'} % needed when model.explicitAdsorption
-                index = 1;
-                fn = 'adsmax';
               case {'surfactant'}
                 index = 1;
                 fn = 'c';
@@ -122,6 +112,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             end
         end
 
+        function names = getComponentNames(model)
+            names = getComponentNames@TwoPhaseOilWaterModel(model);
+            if model.surfactant
+                names{end+1} = 'surfactant';
+            end
+        end
+
+
         function state = storeSurfData(model, state, s, c, Nc, sigma)
             state.SWAT    = double(s);
             state.SURFACT = double(c);
@@ -133,4 +131,3 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     end
 end
-

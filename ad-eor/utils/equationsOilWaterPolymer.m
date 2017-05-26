@@ -62,6 +62,7 @@ opt = merge_options(opt, varargin{:});
 
 W = drivingForces.W;
 op = model.operators;
+fluid = model.fluid;
 
 % Properties at current timestep
 [p, sW, c, cmax, wellSol] = model.getProps(state, 'pressure', 'water', ...
@@ -69,7 +70,8 @@ op = model.operators;
 
 % Properties at previous timestep
 [p0, sW0, c0, cmax0, wellSol0] = model.getProps(state0, 'pressure', 'water', ...
-   'polymer', 'polymermax', 'wellSol');
+                                                        'polymer', 'polymermax', ...
+                                                        'wellSol');
 
 [qWell, pBH, wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
 % Initialize independent variables.
@@ -98,7 +100,7 @@ sO0 = 1 - sW0;
 [krW, krO] = model.evaluateRelPerm({sW, sO});
 
 % Multipliers for properties
-[pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
+[pvMult, transMult, mobMult, pvMult0] = getMultipliers(fluid, p, p0);
 
 % Modifiy relperm by mobility multiplier (if any)
 krW = mobMult.*krW; krO = mobMult.*krO;
@@ -110,12 +112,12 @@ T = op.T.*transMult;
 gdz = model.getGravityGradient();
 
 % Evaluate water and polymer properties
-ads  = effads(c, cmax, model);
-ads0 = effads(c0, cmax0, model);
+ads  = effads(c, cmax, fluid);
+ads0 = effads(c0, cmax0, fluid);
 [vW, vP, bW, ~, mobW, mobP, rhoW, pW, upcw, a] = ...
     getFluxAndPropsWaterPolymer_BO(model, p, sW, c, ads, ...
     krW, T, gdz);
-bW0 = model.fluid.bW(p0);
+bW0 = fluid.bW(p0);
 
 % Evaluate oil properties
 [vO, bO, mobO, rhoO, p, upco] = getFluxAndPropsOil_BO(model, p, sO, krO, T, gdz);
@@ -145,10 +147,9 @@ oil = (op.pv/dt).*( pvMult.*bO.*sO - pvMult0.*bO0.*sO0 ) + op.Div(bOvO);
 
 % Conservation of polymer in water:
 poro = model.rock.poro;
-f    = model.fluid;
-polymer = (op.pv.*(1-f.dps)/dt).*(pvMult.*bW.*sW.*c - ...
+polymer = (op.pv.*(1-fluid.dps)/dt).*(pvMult.*bW.*sW.*c - ...
    pvMult0.*bW0.*sW0.*c0) + (op.pv/dt).* ...
-   ( f.rhoR.*((1-poro)./poro).*(ads-ads0) ) + op.Div(bWvP);
+   (fluid.rhoR.*((1-poro)./poro).*(ads-ads0) ) + op.Div(bWvP);
 
 eqs   = {water, oil, polymer};
 names = {'water', 'oil', 'polymer'};
@@ -158,9 +159,8 @@ types = {'cell', 'cell', 'cell'};
 rho = {rhoW, rhoO};
 mob = {mobW, mobO};
 sat = {sW, sO};
-[eqs, qBC, qRes, BCTocellMap, qSRC, srcCells] = addFluxesFromSourcesAndBC(...
-   model, eqs, {pW, p}, rho, mob,  ...
-   sat, drivingForces);
+[eqs, qBC, qRes, BCTocellMap, qSRC, srcCells] = addFluxesFromSourcesAndBC( ...
+    model, eqs, {pW, p}, rho, mob, sat, drivingForces);
 
 if model.outputFluxes
     state = model.storeBoundaryFluxes(state, qRes{1}, qRes{2}, [], drivingForces);
@@ -185,7 +185,9 @@ end
 if ~isempty(W) 
     [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, qWell, pBH, wellVars, wellMap, p, mob, rho, {}, {c}, dt, opt);
 end
+
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
+
 end
 
 
@@ -193,11 +195,11 @@ end
 
 
 % Effective adsorption, depending of desorption or not
-function y = effads(c, cmax, model)
-   if model.fluid.adsInx == 2
-      y = model.fluid.ads(max(c, cmax));
+function y = effads(c, cmax, fluid)
+   if fluid.adsInx == 2
+      y = fluid.ads(max(c, cmax));
    else
-      y = model.fluid.ads(c);
+      y = fluid.ads(c);
    end
 end
 
