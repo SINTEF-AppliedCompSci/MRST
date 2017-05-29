@@ -40,7 +40,7 @@ for i=1:3
     plot(s, fo{i}.krW(s), 'linewidth', 2, 'Color',col(i,:))
 end
 grid on
-legend(name{:},2);
+legend(name{:},'Location','NorthWest');
 xlabel('Water saturation');
 title('Water relative permeability curve')
 
@@ -53,7 +53,8 @@ for i=1:3
 end
 grid on
 h = findobj(gca,'Type','line');
-legend(h([6 5 6 4 2]),'oil/water system', 'oil/gas system', name{:},2);
+legend(h([6 5 6 4 2]),'oil/water system', 'oil/gas system', name{:}, ...
+       'Location', 'NorthWest');
 xlabel('Oil saturation');
 title('Oil relative permeability curves')
 
@@ -63,7 +64,7 @@ for i=1:3
     plot(s, krG, 'linewidth', 2,'Color',col(i,:))
 end
 grid on
-legend(name{:},4);
+legend(name{:},'Location','SouthEast');
 xlabel('Gas saturation');
 title('Gas relative permeability curve')
 
