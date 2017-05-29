@@ -13,7 +13,8 @@ function W = addWell(W, G, rock, cellInx, varargin)
 %
 %   rock    - Rock data structure.  Must contain valid field 'perm'.
 %
-%   cellInx - Perforated well cells (vector of cell indices).
+%   cellInx - Perforated well cells (vector of cell indices or a logical
+%             mask with length equal to G.cells.num).
 %
 % OPTIONAL PARAMETERS (supplied in 'key'/value pairs, ('pn'/pv)):
 %   Type   -- Well control type.  String.  Default value is 'bhp'.
@@ -136,6 +137,11 @@ if ~isempty(W) && ~isfield(W, 'WI'),
 end
 
 mrstNargInCheck(4, [], nargin);
+if islogical(cellInx)
+    assert(numel(cellInx) == G.cells.num, ...
+    'Logical mask does not match number of grid cells.');
+    cellInx = find(cellInx);
+end
 numC = numel(cellInx);
 
 
@@ -158,9 +164,13 @@ opt = merge_options(opt, varargin{:});
 
 WI = reshape(opt.WI, [], 1);
 
-assert (numel(WI)       == numC)
-assert (numel(opt.Kh)   == numC);
-assert (numel(opt.Skin) == numC || numel(opt.Skin) == 1);
+assert (numel(WI)       == numC, ...
+    'Provided WI should be one entry per perforated cell.')
+assert (numel(opt.Kh)   == numC, ...
+    'Provided Kh should be one entry per perforated cell.')
+assert (numel(opt.Skin) == numC || numel(opt.Skin) == 1, ...
+    ['Provided Skin should be one entry per perforated cell or a single', ...
+    ' entry for all perforated cells']);
 
 if numel(opt.Skin) == 1, opt.Skin = opt.Skin(ones([numC, 1]));  end
 
@@ -231,7 +241,7 @@ W  = [W; struct('cells'    , cellInx(:),           ...
                 'sign'     , opt.Sign,             ...
                 'status'   , true,                    ...
                 'vfp_index', opt.vfp_index, ...
-                'cstatus'  , true(numel(cellInx),1))];
+                'cstatus'  , true(numC,1))];
 
 if numel(W(end).dir) == 1,
    W(end).dir = repmat(W(end).dir, [numel(W(end).cells), 1]);
