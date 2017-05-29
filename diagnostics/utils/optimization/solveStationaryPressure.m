@@ -149,7 +149,6 @@ while ~converged && j < opt.maxiter
 
     % Assemble and solve the pressure
     [eq_p, faceMob] = assemblePressureEq(state, G, W, T, pressure, fluid, s, fluxes, bhp, pv, opt, [], []);
-    
     if opt.computeBasisOnly
         assert(nargout==1)
         state = computeBasis(state, eq_p, opt.linsolve);
@@ -157,7 +156,7 @@ while ~converged && j < opt.maxiter
     end
         
 
-    converged = all(cellfun(@(x) norm(x.val, inf), eq_p) < 1e-5);
+    converged = all(cellfun(@(x) norm(double(x), inf), eq_p) < 1e-5);
     % Currently this is a simple incompressible solver
     j = j + 1;
     if j > 1; break; end
@@ -237,34 +236,30 @@ if findTof
     isProd = ~isInj;
 end
 
-
-well_closure = 0*bhp;
-peaceman = 0*fluxes;
+nw = numel(W);
+well_closure = cell(nw, 1);
+peaceman = cell(nw, 1);
 wscale = getWellScaling(W);
 
 for i = 1:numel(W)
     w = W(i);
     wc = w.cells;
-    wperf = find(perf2well == i);
-    wflux = fluxes(wperf);
+    wflux = fluxes(perf2well == i);
 
     if strcmpi(w.type, 'bhp')
-        well_closure(i) = w.val - bhp(i);
+        well_closure{i} = w.val - bhp(i);
     else
         % Ensure that sum of perforation fluxes is equal to prescribed rate
         % for each well
-        well_closure(i) = w.val;
-        for j = 1:numel(wperf)
-            well_closure(i) = well_closure(i) - wflux(j);
-        end
+        well_closure{i} = w.val - sum(wflux);
     end
-    well_closure(i) = well_closure(i)*wscale(i);
+    well_closure{i} = well_closure{i}*wscale(i);
 
     % Subtract source terms from pressure equation
     pressureeq(w.cells) = pressureeq(w.cells) - wflux;
 
     % Assemble peaceman model for each perforation
-    peaceman(wperf) = wflux - w.WI.*totMob(wc).*(bhp(i) - pressure(wc));
+    peaceman{i} = wflux - w.WI.*totMob(wc).*(bhp(i) - pressure(wc));
 
     if findTof
         if isProd(i)
@@ -278,7 +273,8 @@ end
 if ~any(strcmpi({W.type}, 'bhp'))
     pressureeq(1) = pressureeq(1) + pressure(1);
 end
-
+peaceman = vertcat(peaceman{:});
+well_closure = vertcat(well_closure{:});
 if findTof
     eq = {pressureeq, peaceman, well_closure, forward_tof, backward_tof};
 else
@@ -320,14 +316,9 @@ function totMob = getTotalMobility(fluid, state, pressure)
 end
 
 function dx = solveEqs(eqs, linsolve, msbasis, transposeBasis)
-    %eqs{1} = eqs{1}(inx1);
-    %eqs{1}.jac{1} = eqs{1}.jac{1}(:, inx1);
     if nargin < 4
         transposeBasis = false;
     end
-    numVars = cellfun(@numval, eqs)';
-    cumVars = cumsum(numVars);
-    ii = [[1;cumVars(1:end-1)+1], cumVars];
 
     %eliminate rates
     [eqs, eq_r] = elimVars(eqs, 2);
@@ -350,7 +341,6 @@ function dx = solveEqs(eqs, linsolve, msbasis, transposeBasis)
             R = msbasis.B.';
             B = msbasis.R.';  
         end
-        %tmp = B*((R*J*B)\(R*eqs_c.val));
         tmp = B*linsolve(R*J*B, R*eqs_c.val);
     end
     dx{1} = tmp;
