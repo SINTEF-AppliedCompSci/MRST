@@ -59,7 +59,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
     [qBC, qSRC, qRes] = deal(cell(numel(mob), 1));
     [BCTocellMap, srcCells, bcCells] = deal([]);
-    
+    if (isprop(model, 'disgas') && model.disgas) ||...
+       (isprop(model, 'vapoil') && model.vapoil)
+        warning(['Boundary conditions and source terms do not fully support', ...
+                 ' problems with vapoil or disgas active!']);
+    end
+        
     if isempty(forces.bc) && isempty(forces.src)
         return
     end
