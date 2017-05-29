@@ -1,5 +1,4 @@
-function [HT_cg, T_cg, cgwells, report] = ...
-      upscaleTransNew(cg, T_fine, varargin)
+function [HT_cg, T_cg, cgwells, report] = upscaleTrans(cg, T_fine, varargin)
 % Calculate upscaled transmissibilities for a coarse model
 %
 % SYNOPSIS:
@@ -33,7 +32,7 @@ function [HT_cg, T_cg, cgwells, report] = ...
 %                             lsq_flux'
 %             - fix_trans     'true/false' set negative and zero
 %                             transmissibility to lowest positive found
-%             - opt_trans_alg use optimization of trans base valide values
+%             - opt_trans_alg use optimization of trans base valid values
 %                             'none','local','global'
 %          - opt_trans_method method for optimizing trans 'linear_simple','
 %                              'convecs_simple'
