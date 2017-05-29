@@ -1,6 +1,6 @@
 function reg = handleRegions(deck, G, varargin)
 
-if ~isempty(G)% == 2
+if ~isempty(G)
     an = G.cells.indexMap;    
 elseif isfield(deck.GRID, 'ACTNUM')
     an = find(deck.GRID.ACTNUM);
@@ -24,7 +24,7 @@ else
 end
 
 % SAT-REGIONS AND POSSIBLY SURF-REGIONS
-one_region = true;;
+one_region = true;
 if isfield(deck.REGIONS, 'SATNUM')
     reg.SATNUM = deck.REGIONS.SATNUM(an);
     if isfield(deck.REGIONS, 'SURFNUM')
