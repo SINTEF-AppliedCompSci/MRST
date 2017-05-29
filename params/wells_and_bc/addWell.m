@@ -400,21 +400,14 @@ n = numel(ix);
 ixc = G.cells.facePos;
 
 for k = 1 : n,
-   c = ix(k);                                     % Current cell
-   f = G.cells.faces(ixc(c) : ixc(c + 1) - 1, 1); % Faces on cell
-   assert(numel(f)==6);
-   if(true)
-      [n,ff]=sortrows(abs(G.faces.normals(f,:)));
-      f=f(ff(end:-1:1));
-      dx(k)=2*G.cells.volumes(c)/(sum(G.faces.areas(f(1:2))));
-      dy(k)=2*G.cells.volumes(c)/(sum(G.faces.areas(f(3:4))));
-      dz(k)=2*G.cells.volumes(c)/(sum(G.faces.areas(f(5:6))));
-   else
-      fa=sum(G.faces.normals(f,:),1)/2;
-      dx(k)=G.cells.volumes(c)/fa(1);
-      dy(k)=G.cells.volumes(c)/fa(2);
-      dz(k)=G.cells.volumes(c)/fa(3);
-   end
+    c = ix(k);                                     % Current cell
+    f = G.cells.faces(ixc(c) : ixc(c + 1) - 1, 1); % Faces on cell
+    assert(numel(f)==6);
+    [~, ff] = sortrows(abs(G.faces.normals(f,:)));
+    f = f(ff(end:-1:1));
+    dx(k) = 2*G.cells.volumes(c) / (sum(G.faces.areas(f(1:2))));
+    dy(k) = 2*G.cells.volumes(c) / (sum(G.faces.areas(f(3:4))));
+    dz(k) = 2*G.cells.volumes(c) / (sum(G.faces.areas(f(5:6))));
 end
 
 
