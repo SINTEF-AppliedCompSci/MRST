@@ -296,7 +296,7 @@ for i = 1 : numel(steps),
    view(-125, 20), camproj perspective
 
    caxis([115, 205])
-   axis tight off, zoom(1.4)
+   axis tight off;
 
    text(200, 170, -8, ...
         sprintf('%.1f days', convertTo(steps(i)*dt, day)), 'FontSize', 14)
