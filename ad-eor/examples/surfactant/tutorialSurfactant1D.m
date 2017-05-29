@@ -44,8 +44,6 @@ nc = G.cells.num;
 state0 = initResSol(G, 300*barsa, [ .2, .8]); % residual water saturation is 0.2
 state0.c    = zeros(G.cells.num, 1);
 state0.cmax = state0.c;
-state0.ads = computeEffAds(state0.c, 0, fluid); % adsorption
-state0.adsmax = state0.ads;
 
 %% Set up the model
 % 

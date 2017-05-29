@@ -184,8 +184,6 @@ schedule = refineSchedule(0, day*ones(10, 1), schedule);
 state0 = initResSol(G, bhp, [sWcon, 1 - sWcon]);
 state0.c      = zeros(G.cells.num, 1);
 state0.cmax   = state0.c;
-state0.ads    = computeEffAds(state0.c, 0, fluid);
-state0.adsmax = state0.ads;
 
 %% visualize the model properties
 %
