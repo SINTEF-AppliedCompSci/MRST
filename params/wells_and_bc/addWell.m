@@ -106,6 +106,20 @@ function W = addWell(W, G, rock, cellInx, varargin)
 % EXAMPLE:
 %   simpleWellExample
 %
+% NOTE:
+%   Wells in two-dimensional grids are not well defined in terms of
+%   computing well indices. However, such wells are often useful for
+%   simulation scenarios where the exact value of well indices is not of
+%   great importance. For this reason, we make the following approximations
+%   when addWell is used to compute e.g. horizontal wells in 2D:
+%
+%       - K_z is assumed to be the harmonic average of K_x and K_y:
+%         K_z = 1/(1/K_x + 1/K_y).
+%       - The depth of a grid block is assumed to be unit length (1 meter)
+%
+%   This generally produces reasonable ranges for the WI field, but it is
+%   the user's responsibility to keep these assumptions in mind.
+%
 % SEE ALSO:
 %   verticalWell, addSource, addBC.
 
@@ -237,10 +251,10 @@ W  = [W; struct('cells'    , cellInx(:),           ...
                 'name'     , opt.Name,             ...
                 'compi'    , opt.Comp_i,           ...
                 'refDepth' , opt.refDepth,         ...
-                'lims'     , opt.lims,         ...
+                'lims'     , opt.lims,             ...
                 'sign'     , opt.Sign,             ...
-                'status'   , true,                    ...
-                'vfp_index', opt.vfp_index, ...
+                'status'   , true,                 ...
+                'vfp_index', opt.vfp_index,        ...
                 'cstatus'  , true(numC,1))];
 
 if numel(W(end).dir) == 1,
@@ -263,13 +277,9 @@ end
 if G.griddim > 2,
    k = permDiag3D(rock, cells);
 else
-   if ~all(lower(welldir) == 'z') || numel(cells) > 1,
-      error(id('NotVertical:2D'), ...
-           ['Two-dimensional grids only support single-cell ', ...
-            'wells in Z direction']);
-   end
    k = permDiag2D(rock, cells);
-   k = [k, zeros([size(k,1), 1])];
+   kz = 1./(1./k(:, 1) + 1./k(:, 2));
+   k = [k, kz];
 end
 welldir = lower(welldir);
 
@@ -452,7 +462,7 @@ for k = 1 : n,
    if size(G.nodes.coords, 2) > 2,
       dz(k) = G.cells.volumes(ix(k))/(dx(k)*dy(k));
    else
-      dz(k) = 0;
+      dz(k) = 1;
    end
 end
 
