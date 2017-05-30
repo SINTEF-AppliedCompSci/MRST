@@ -15,24 +15,18 @@ function [problem, state] = equationsWGVEbasicSens(model, state0, state, dt, dri
    [p, sG, sGmax, wellSol,dz,rhofac,permfac,porofac] = model.getProps(state , 'pressure', 'sg', 'sGmax', 'wellsol', 'dz','rhofac','permfac','porofac');
    [p0, sG0,wellSol0]               = model.getProps(state0, 'pressure', 'sg','wellSol');
 
-   % Stack well-related variables of the same type together
-   %bhp = vertcat(wellSol.bhp);
-   %qWs = vertcat(wellSol.qWs);
-   %qGs = vertcat(wellSol.qGs);
-   [qWell, bhp, extra, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
-   assert(isempty(extra));
-   %% Initialization of independent variables
+   [wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
+   % Initialization of independent variables
 
    if ~opt.resOnly
       % ADI variables needed since we are not only computing residuals
       if ~opt.reverseMode
-         %[p, sG, bhp, qWs, qGs, dz, rhofac, permfac, porofac] = initVariablesADI(p, sG, bhp, qWs, qGs, dz,rhofac,permfac,porofac);
-         [p, sG, qWell{:}, bhp, dz, rhofac, permfac, porofac] = initVariablesADI(p, sG, qWell{:}, bhp, dz,rhofac,permfac,porofac);
+         [p, sG, wellVars{:}, dz, rhofac, permfac, porofac] = initVariablesADI(p, sG, wellVars{:}, dz,rhofac,permfac,porofac);
       else
-         zw = zeros(size(bhp)); % dummy
+         wellVars0 = model.FacilityModel.getAllPrimaryVariables(wellSol0);
          dzw = zeros(size(dz));
          dew = zeros(size(rhofac));
-         [p0, sG0, ~, ~, ~, ~,~,~,~] = initVariablesADI(p0, sG0, zw, zw, zw, dzw,dew,dew,dew);
+         [p0, sG0, wellVars0{:}, ~,~,~,~] = initVariablesADI(p0, sG0, wellVars0{:}, dzw,dew,dew,dew); %#ok
       end
    end
    primaryVars = {'pressure', 'sG', wellVarNames{:}};   
@@ -40,7 +34,7 @@ function [problem, state] = equationsWGVEbasicSens(model, state0, state, dt, dri
    sW  = 1 - sG;  % for ease of reading, we define an explicit variable
    sW0 = 1 - sG0; % also for water saturation
 
-   %% Preparing various necessary, intermediate values
+   % Preparing various necessary, intermediate values
 
    % multiplier for mobilities
    [pvMult, transMult, mobMult, pvMult0] = getMultipliers(f, p, p0);
@@ -90,7 +84,7 @@ function [problem, state] = equationsWGVEbasicSens(model, state0, state, dt, dri
    bGvG = s.faceUpstr(upcg, bG) .* vG;
 
 
-   %% Setting up brine and CO2 equations
+   % Setting up brine and CO2 equations
 
    % Water (Brine)
    eqs{1} = porofac*((s.pv / dt) .* (pvMult .* bW .* sW - pvMult0 .* bW0 .* sW0)) + permfac*s.Div(bWvW);
@@ -104,35 +98,17 @@ function [problem, state] = equationsWGVEbasicSens(model, state0, state, dt, dri
            eqs, {pW, pG}, {rhoW, rhoG}, {mobW, mobG}, {bW, bG}, {sW, sG}, drivingForces,permfac, dz);
 
        
-       if ~isempty(W)
-           dissolved={};
-           [eqs, names, types, state.wellSol] = ...
-               model.insertWellEquations(eqs, names, types, wellSol0, wellSol, ...
-               qWell, bhp, extra, wellMap, p, ...
-               {mobW, mobG}, {rhoW, rhoG}, dissolved, ...
-               {}, dt, opt);
-           %% Setting up well equations
-       end
-   %if(~opt.reverseMode)
+   dissolved={};
+   [eqs, names, types, state.wellSol] = ...
+       model.insertWellEquations(eqs, names, types, wellSol0, wellSol, ...
+       wellVars, wellMap, p, ...
+       {mobW, mobG}, {rhoW, rhoG}, dissolved, ...
+       {}, dt, opt);
     eqs{6}=dz-drivingForces.dz;
     eqs{7}=rhofac-drivingForces.rhofac;
     eqs{8}=permfac-drivingForces.permfac;
     eqs{9}=porofac-drivingForces.porofac;
-    %{
-    if(opt.reverseMode)
-        for i=3:9
-         eqs{i}=eqs{i}*0;
-        end
-    end
-    %}
-   %else
-       %eqs = eqs(1:2);
-   %  eqs{6} = double2ADI(zeros(numel(dz),1), p0);
-   %  eqs{7} = double2ADI(zeros(numel(rhofac),1), p0);
-   %  eqs{8} = double2ADI(zeros(numel(rhofac),1), p0);
-   %  eqs{9} = double2ADI(zeros(numel(rhofac),1), p0);     
-   %end
-   %% Setting up problem
+   % Setting up problem
    primaryVars = {primaryVars{:}, 'dz', 'rhofac','permfac','porofac'};
    types = {types{:}, 'scell','mult','mult','mult'};
    names = {names{:}, 'geometry','mrho','mperm','mporo'};

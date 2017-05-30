@@ -43,7 +43,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    [wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
 
 
-   %% Initialization of independent variables
+   % Initialization of independent variables
 
    if ~opt.resOnly
       % ADI variables needed since we are not only computing residuals
@@ -75,7 +75,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    sW  = 1 - sG;  % for ease of reading, we define an explicit variable
    sW0 = 1 - sG0; % also for water saturation
 
-   %% Preparing various necessary, intermediate values
+   % Preparing various necessary, intermediate values
 
    % multiplier for mobilities
    [pvMult, transMult, mobMult, pvMult0] = getMultipliers(f, p, p0);
@@ -111,7 +111,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    bGvG = s.faceUpstr(upcg, bG) .* vG;
 
 
-   %% Setting up brine and CO2 equations
+   % Setting up brine and CO2 equations
 
    % Water (Brine)
    eqs{1} = (s.pv / dt) .* (pvMult .* bW .* sW - pvMult0 .* bW0 .* sW0) + s.Div(bWvW);
@@ -128,13 +128,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    end
        
 
-   %% Setting names of variables and equations
+   % Setting names of variables and equations
    primaryVars = {'pressure' , 'sG'}; 
    types = {'cell' , 'cell'};
    names = {'water', 'gas'};  
 
 
-   %% Setting up well equations
+   % Setting up well equations
    if ~isempty(W) 
      dissolved = {{[],[]},{[],[]}};  % two phases, no dissolution
      %add hysteresis variable, equation and name
@@ -153,7 +153,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                    {}, dt, opt);
    end
 
-   %% Setting up problem
+   % Setting up problem
 
    problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 
