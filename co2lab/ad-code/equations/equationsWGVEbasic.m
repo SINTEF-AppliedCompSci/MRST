@@ -40,13 +40,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    [p0, sG0, sGmax0, wellSol0] = model.getProps(state0, 'pressure', 'sg','sGmax', 'wellsol');
 
    
-   [qWell, bhp, extra, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
-   assert(isempty(extra));
-   
-   % % Stack well-related variables of the same type together
-   % bhp = vertcat(wellSol.bhp);
-   % qWs = vertcat(wellSol.qWs);
-   % qGs = vertcat(wellSol.qGs);
+   [wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
+
 
    %% Initialization of independent variables
 
@@ -54,20 +49,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       % ADI variables needed since we are not only computing residuals
       if ~opt.reverseMode
          if(opt.adjointForm)
-            %[p, sG, sGmax, qWs, qGs, bhp] = initVariablesADI(p, sG, sGmax, qWs, qGs, bhp);
-            [p, sG, sGmax, qWell{:}, bhp] = initVariablesADI(p, sG, sGmax, qWell{:}, bhp);
+            [p, sG, sGmax, wellVars{:}] = initVariablesADI(p, sG, sGmax, wellVars{:});
          else
-            %[p, sG, qWs, qGs, bhp] = initVariablesADI(p, sG, qWs, qGs, bhp);
-            [p, sG, qWell{:}, bhp] = initVariablesADI(p, sG, qWell{:}, bhp);
+            [p, sG, wellVars{:}] = initVariablesADI(p, sG, wellVars{:});
             sGmax = max(sG, sGmax0);
          end
       else
-          zw = zeros(size(bhp));
+          wellVars0 = model.FacilityModel.getAllPrimaryVariables(wellSol0);
          if(opt.adjointForm)
-            [p0, sG0, sGmax0, ~, ~, ~] = initVariablesADI(p0, sG0, sGmax0, zw, zw, zw);
+            [p0, sG0, sGmax0, wellVars{:}] = initVariablesADI(p0, sG0, sGmax0, wellVars0{:});
          else
              warning('using non adjoint form for backward simulation: Hysteresis may be not properly handled')
-            [p0, sG0, ~, ~, ~] = initVariablesADI(p0, sG0, zw, zw, zw);
+            [p0, sG0, wellVars0{:}] = initVariablesADI(p0, sG0, wellVars0{:});
             sGmax = max(sG, sGmax0);
          end
       end
@@ -155,7 +148,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
      [eqs, names, types, state.wellSol] = ...
          model.insertWellEquations(eqs, names, types, wellSol0, wellSol, ...
-                                   qWell, bhp, extra, wellMap, p, ...
+                                   wellVars, wellMap, p, ...
                                    {mobW, mobG}, {rhoW, rhoG}, dissolved, ...
                                    {}, dt, opt);
    end

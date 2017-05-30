@@ -35,17 +35,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     % Extract current and previous values of all variables to solve for
     [p, sG, wellSol] = model.getProps(state, 'pressure', 'sg', 'wellsol');
-    [p0, sG0, wellSol0]        = model.getProps(state0, 'pressure', 'sg', 'wellsol');
+    [p0, sG0, wellSol0] = model.getProps(state0, 'pressure', 'sg', 'wellsol');
     
-    [qWell, pBH, wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
+    [wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
 
     % ------------------ Initialization of independent variables ------------------
     
     if ~opt.resOnly
         if ~opt.reverseMode
-            [p, sG, qWell{:}, pBH, wellVars{:}] = initVariablesADI(p, sG, qWell{:}, pBH, wellVars{:});
+            [p, sG, wellVars{:}] = initVariablesADI(p, sG, wellVars{:});
         else
-            [p0, sG0, ~, ~, ~] = initVariablesADI(p0, sw0, 0*qWs, 0*qGs, 0*bhp);
+            wellVars0 = model.FacilityModel.getAllPrimaryVariables(wellSol0);
+            [p0, sG0, wellVars0{:}] = initVariablesADI(p0, sw0, wellVars0{:}); %#ok
         end
     end
         
@@ -119,15 +120,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     primaryVars = {'pressure' , 'sG', wellVarNames{:}};
     types = {'cell'           , 'cell'};
     names = {'water'          , 'gas'};
-    if ~isempty(W)
-       if ~opt.reverseMode
-          [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, qWell, pBH, wellVars, wellMap, p, mob, rho, {}, {}, dt, opt);
-          
-       else
-          [eqs(3:5), names(3:5), types(3:5)] = ...
-              wm.createReverseModeWellEquations(model, state0.wellSol, p0);%#ok
-       end
-    end
+    [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, wellVars, wellMap, p, mob, rho, {}, {}, dt, opt);
 
     % ----------------------------------------------------------------------------
     problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt); 
