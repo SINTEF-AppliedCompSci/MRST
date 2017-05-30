@@ -9,7 +9,7 @@ opt = struct('Verbose', mrstVerbose, ...
 
 opt = merge_options(opt, varargin{:});
 
-W = drivingForces.W;
+% W = drivingForces.W;
 %assert(isempty(drivingForces.bc) && isempty(drivingForces.src))
 assert(isempty(drivingForces.src))
 
@@ -22,48 +22,18 @@ f = model.fluid;
 
 [p0 , T0, wellSol0] = model.getProps(state0, 'pressure','temperature','wellsol');
 
-pBH    = vertcat(wellSol.bhp);
-qWs    = vertcat(wellSol.qWs);
-
 %Initialization of independent variables ----------------------------------
-if ~isempty(W)
-    [qWell, bhp, basicWellNames] = model.FacilityModel.getBasicPrimaryVariables(wellSol);
-    [wellVars, wellExtraNames, wellMap] = model.FacilityModel.getExtraPrimaryVariables(wellSol);
-    wellVarNames = [basicWellNames, wellExtraNames];
-else
-    [qWell, wellVars, wellVarNames, wellMap] = deal({});
-    bhp = [];
-end
+[wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
+
 if ~opt.resOnly,
     if ~opt.reverseMode,
         % define primary varible x and initialize
-        [p, T, qWell{:}, bhp, wellVars{:}] = ...
-            initVariablesADI(p, T, qWell{:}, bhp, wellVars{:});
+        [p, T, wellVars{:}] = initVariablesADI(p, T, wellVars{:});
     else
-        zw = zeros(size(bhp));
-        [p0, T0, zw, zw] = ...
-            initVariablesADI(p0, T0, x0, zw, zw); %#ok
-        clear zw
+        wellVars0 = model.FacilityModel.getAllPrimaryVariables(wellSol0);
+        [p0, T0, wellVars0{:}] = initVariablesADI(p0, T0, wellVars0{:}); %#ok
     end
 end
-%{
-if ~opt.resOnly,
-    % ADI variables needed since we are not only computing residuals.
-    if ~opt.reverseMode,
-        [p,T, qWs, pBH] = ...
-            initVariablesADI(p, T, qWs, pBH);
-    else
-        [p0, T0, tmp, tmp] = ...
-            initVariablesADI(p0, sW0,          ...
-            zeros(size(qWs)), ...
-            zeros(size(qOs)), ...
-            zeros(size(pBH)));                          %#ok
-    end
-end
-%}
-
-clear tmp
-%grav  = gravity;
 gdz   = s.Grad(G.cells.centroids) * model.gravity';
 %--------------------
 %check for p-dependent tran mult:
@@ -162,67 +132,12 @@ names = {'water', 'temperature'};
 types = {'cell', 'cell'};
 % well equations
 %sat = {sW, sO, sG};
-if ~isempty(W)
-    if ~opt.reverseMode
-        components = [];%model.getDissolutionMatrix(rs, rv);        
-        [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, qWell, bhp, wellVars, wellMap,...
-            p, {mobW}, {rhoW}, hW, components, dt, opt);
-    else
-        [eqs(4:7), names(4:7), types(4:7)] = wm.createReverseModeWellEquations(model, wellSol0, p0);
-    end
+if ~opt.reverseMode
+    components = {};
+    [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, wellVars, wellMap,...
+        p, {mobW}, {rhoW}, hW, components, dt, opt);
 end
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
-eqs{2}=eqs{2}/1e6;
-%{
-if ~isempty(W)
-    if ~opt.reverseMode
-        wc    = vertcat(W.cells);
-        pw   = p(wc);
-        rhos = [f.rhoWS];
-        bw   = {bW(wc)};
-        mw   = {mobW(wc)};
-        s = {1};
-
-        wm = WellModel();
-        [cqs, weqs, ctrleqs, wc, state.wellSol, ~]  = wm.computeWellFlux(model, W, wellSol, ...
-                                             pBH, {qWs}, pw, rhos, bw, mw, s, {},...
-                                             'nonlinearIteration', opt.iteration,'referencePressureIndex', 1);
-        
-                               
-        eqs(3) = weqs;
-        eqs{4} = ctrleqs;
-        
-        eqs{1}(wc) = eqs{1}(wc) - cqs{1};
-        % thermal part well
-        %%{
-        hFw=f.rhoWS*hW(wc);
-        hFww=f.rhoWS*wm.Rw*vertcat(W.hW);
-        hFw(cqs{1}>0)=hFww(cqs{1}>0);
-        %}
-        %{
-        hFw=f.rhoWS*wm.Rw*vertcat(W.hW);
-        hFw(cqs{1}<0)=f.rhoWS*hW(wc(cqs{1}<0));%give wrong derivatives
-        %%}
-        eqs{2}(wc)= eqs{2}(wc) - hFw.*cqs{1};
-        names(3:4) = {'waterWells', 'closureWells'};
-        types(3:4) = {'perf', 'well'};
-    else
-        % in reverse mode just gather zero-eqs of correct size
-        [eqs(3:4), names(3:4), types(3:4)] = wm.createReverseModeWellEquations(model, state0.wellSol, p0);
-        %{
-        for eqn = 2:3
-            nw = numel(state0.wellSol);
-            zw = double2ADI(zeros(nw,1), p0);
-            eqs(2:3) = {zw, zw};
-        end
-        names(2:3) = {'empty', 'empty'};
-        types(2:3) = {'none', 'none'};
-        %}
-    end
-end
-eqs{2}=eqs{2}/1e6;
-problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
-%}
 end
 %--------------------------------------------------------------------------
 
