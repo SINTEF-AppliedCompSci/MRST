@@ -1,4 +1,4 @@
-mrstModule add ad-core ad-props ad-blackoil vemmech 
+mrstModule add ad-core ad-props ad-blackoil vemmech ad-mechanics
 
 % OPTIONS : They are set by opt, default values are given below.
 %
