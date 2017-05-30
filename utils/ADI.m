@@ -109,8 +109,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
       %--------------------------------------------------------------------
 
-      function h = uminus(u)
-         h = ADI(-u.val, uminusJac(u.jac));
+      function u = uminus(u)
+         u.val = -u.val;
+         u.jac =  uminusJac(u.jac);
       end
 
       %--------------------------------------------------------------------
@@ -118,7 +119,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       function h = plus(u,v)
          if ~isa(u,'ADI')       %u is a vector/scalar
              if numel(u) <= numel(v.val)
-                 h = ADI(u+v.val, v.jac);
+                 h = v;
+                 h.val = h.val + u;
              elseif numel(v.val) == 1
                  h = plus(u, repmat(v,[numel(u), 1]));
              else
@@ -126,7 +128,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
              end
          elseif ~isa(v,'ADI')   %v is a vector/scalar
              if numel(v) <= numel(u.val)
-                 h = ADI(u.val + v, u.jac);
+                 h = u;
+                 h.val = h.val + v;
              elseif numel(u.val) == 1
                  h = plus(repmat(u,[numel(v), 1]), v);
              else
@@ -134,7 +137,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
              end
          else
              if numel(u.val) == numel(v.val)
-                 h = ADI(u.val+v.val, plusJac(u.jac, v.jac) );
+                 h = u;
+                 h.val = u.val + v.val;
+                 h.jac = plusJac(h.jac, v.jac);
+                 if isempty(h.jac)
+                     h = h.val;
+                 end
              elseif numel(u.val) == 1
                  h = plus(repmat(u, [numel(v.val), 1]), v);
              elseif numel(v.val) == 1
@@ -155,14 +163,23 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
       function h = mtimes(u,v)% '*'
           if ~isa(u,'ADI') %u is a scalar/matrix
-              h = ADI(u*v.val, mtimesJac(u, v.jac));
+              h = v;
+              h.val = u*h.val;
+              h.jac = mtimesJac(u, h.jac);
+              if isempty(h.jac)
+                  h = h.val;
+              end
           elseif ~isa(v,'ADI') %v is a scalar
               h = mtimes(v,u);
           else % special case where either u or v has single value
               if numel(u.val) == 1
-                  h = times(repmat(u, [numel(v.val), 1]), v);
+                  h = u;
+                  h.val = times(u.val, v.val);
+                  h.jac = timesJacUnit(u.val, v.val, u.jac, v.jac);
               elseif numel(v.val) == 1
-                  h = times(u, repmat(v, [numel(u.val), 1]));
+                  h = u;
+                  h.val = times(u.val, v.val);
+                  h.jac = timesJacUnit(v.val, u.val, v.jac, u.jac);
               else
                   error('Operation not supported');
               end
@@ -174,7 +191,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       function h = times(u,v)% '.*'
          if ~isa(u,'ADI') %u is a scalar/vector
              if numel(u)==numel(v.val)
-                 h = ADI(u.*v.val, lMultDiag(u, v.jac));
+                 h = v;
+                 h.val = u.*h.val;
+                 h.jac = lMultDiag(u, h.jac);
+                 if isempty(h.jac)
+                     h = h.val;
+                 end
              else
                  h = mtimes(u,v);
              end
@@ -182,8 +204,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
              h = times(v,u);
          else
              if numel(u.val)==numel(v.val)
-                 h = ADI(u.val.*v.val, timesJac(u.val, v.val, u.jac, v.jac));
-             elseif numel(v.val)==1||numel(u.val)==1
+                 h = u;
+                 h.jac = timesJac(h.val, v.val, h.jac, v.jac);
+                 h.val = h.val.*v.val;
+             elseif numel(v.val)==1 || numel(u.val)==1
                  h = mtimes(u,v);
              else
                  error('Operation not supported');
@@ -205,7 +229,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
       function h = mldivide(u,v)% '\'
           if ~isa(u,'ADI') %u is a scalar/matrix
-              h = ADI(u\v.val, mldivideJac(u, v.jac));
+              h.val = u\v.val;
+              h.jac = mldivideJac(u, h.jac);
           else
               error('Operation not supported');
           end
@@ -215,13 +240,28 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
       function h = power(u,v)% '.^'
          if ~isa(v,'ADI') % v is a scalar
-            h = ADI(u.val.^v, lMultDiag(v.*u.val.^(v-1), u.jac));
+             h = u;
+             h.val = h.val.^v;
+             h.jac = lMultDiag(v.*u.val.^(v-1), u.jac);
+             if isempty(h.jac)
+                 h = h.val;
+             end
          elseif ~isa(u,'ADI') % u is a scalar
-            h = ADI(u.^v.val, lMultDiag((u.^v.val).*log(u), v.jac) );
+             h = v;
+             h.val = u.^v.val;
+             h.jac = lMultDiag((u.^v.val).*log(u), v.jac);
+             if isempty(h.jac)
+                 h = h.val;
+             end
          else % u and v are both ADI
-            h = ADI(u.val.^v.val, plusJac( ...
+             h = u;
+             h.val = u.val.^v.val;
+             h.jac = plusJac( ...
                lMultDiag((u.val.^v.val).*(v.val./u.val), u.jac), ...
-               lMultDiag((u.val.^v.val).*log(u.val),     v.jac) ) );
+               lMultDiag((u.val.^v.val).*log(u.val),     v.jac) );
+             if isempty(h.jac)
+                 h = h.val;
+             end
          end
       end
 
@@ -240,48 +280,57 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       %--------------------------------------------------------------------
 
       function h = subsref(u,s)
-          switch s(1).type
-              case '.'
-                  h = builtin('subsref',u,s);
-              case '()'
-                  assert(numel(s(1).subs) == 1, ...
-                      'Expected single index, got %d', numel(s(1).subs))
-                  subs  = s(1).subs{1};
-                  if ischar(s) && strcmp(subs, ':'),
-                      h = u;
-                  else
-                      if islogical(subs), subs = find(subs); end
-                      h = ADI(u.val(subs), subsrefJac(u.jac, subs));
-                  end
-                  if numel(s) > 1
-                      % Recursively handle next operation
-                      h = subsref(h, s(2:end));
-                  end
-              case '{}'
-                  error('Operation not supported');
+          if strcmp(s(1).type, '.')
+              h = builtin('subsref',u,s);
+          else
+              switch s(1).type
+                  case '()'
+                      assert(numel(s(1).subs) == 1, ...
+                          'Expected single index, got %d', numel(s(1).subs))
+                      subs  = s(1).subs{1};
+                      if ischar(s) && strcmp(subs, ':'),
+                          h = u;
+                      else
+                          if islogical(subs),
+                              subs = find(subs);
+                          end
+                          h = u;
+                          h.val = h.val(subs);
+                          h.jac = subsrefJac(h.jac, subs);
+                      end
+                      if numel(s) > 1
+                          % Recursively handle next operation
+                          h = subsref(h, s(2:end));
+                      end
+                  case '{}'
+                      error('Operation not supported');
+              end
           end
+          h = reduceToDouble(h);
       end
 
       %--------------------------------------------------------------------
 
       function u = subsasgn(u,s,v)
-          switch s(1).type
-              case '.'
-                  u = builtin('subsasgn',u,s,v);
-              case '()'
-                  subs  = s.subs{:};
-                  if ~isa(u, 'ADI') % u is a vector
-                      warning('This place in the code is not reachable!!!')
-                      u = double2AD(u, v.jac);
-                  end
-                  u.val(subs) = v;
-                  if ~isa(v, 'ADI') % v is a constant vector
-                      u.jac = subsasgnJac(u.jac, subs); % set rows to zero
-                  else
-                      u.jac = subsasgnJac(u.jac, subs, v.jac);
-                  end
-              case '{}'
-                  error('Operation not supported');
+          if strcmp(s(1).type, '.')
+              u = builtin('subsasgn',u,s,v);
+          else
+              switch s(1).type
+                  case '()'
+                      subs  = s.subs{:};
+                      if ~isa(u, 'ADI') % u is a vector
+                          warning('This place in the code is not reachable!!!')
+                          u = double2AD(u, v.jac);
+                      end
+                      u.val(subs) = v;
+                      if ~isa(v, 'ADI') % v is a constant vector
+                          u.jac = subsasgnJac(u.jac, subs); % set rows to zero
+                      else
+                          u.jac = subsasgnJac(u.jac, subs, v.jac);
+                      end
+                  case '{}'
+                      error('Operation not supported');
+              end
           end
       end
       
@@ -296,12 +345,22 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
       function h = exp(u)
           eu = exp(u.val);
-          h  = ADI(eu, lMultDiag(eu, u.jac));
+          h = u;
+          h.val = eu;
+          h.jac = lMultDiag(eu, u.jac);
+          if isempty(h.jac)
+              h = h.val;
+          end
       end
       %
       function h = log(u)
           logu = log(u.val);
-          h  = ADI(logu, lMultDiag(1./u.val, u.jac));
+          h = u;
+          h.val = logu;
+          h.jac = lMultDiag(1./u.val, u.jac);
+          if isempty(h.jac)
+              h = h.val;
+          end
       end
 
       %--------------------------------------------------------------------
@@ -311,20 +370,33 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
               assert(isa(u,'ADI'));
               [value,i] = max(u.val);
               jacs      = subsrefJac(u.jac, i);
-              h         = ADI(value,jacs);
+              h = u;
+              h.val = value;
+              h.jac = jacs;
+              h = reduceToDouble(h);
               return;
           end
           assert(nargin==2, 'Max function implemented for up to 2 variables only.');
           if ~isa(u, 'ADI'), % u is a DOUBLE
               value =  bsxfun(@max, u, v.val);
               inx   = ~bsxfun(@gt,  u, v.val) + 1; % Pick 'v' if u <= v
-              h  = ADI(value, lMultDiag(inx==2, v.jac));
+              h  = v;
+              h.val = value;
+              h.jac = lMultDiag(inx==2, v.jac);
+             if isempty(h.jac)
+                 h = h.val;
+             end
           elseif ~isa(v,'ADI') %v is a vector
               h = max(v,u);
           else % both ADI, should have same number of values
               value = max(u.val, v.val);
               inx   = u.val > v.val;
-              h = ADI(value, plusJac(lMultDiag(inx, u.jac),lMultDiag(~inx, v.jac)));
+              h = u;
+              h.val = value;
+              h.jac = plusJac(lMultDiag(inx, u.jac),lMultDiag(~inx, v.jac));
+              if isempty(h.jac)
+                  h = h.val;
+              end
           end
       end
 
@@ -337,13 +409,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
       %--------------------------------------------------------------------
 
-      function h = sum(u)
-         h = ADI(sum(u.val), sumJac(u.jac));
+      function u = sum(u)
+          u.val = sum(u.val);
+          u.jac = sumJac(u.jac);
+          u = reduceToDouble(u);
       end
 
       %--------------------------------------------------------------------
-      function h = cumsum(u)
-         h = ADI(cumsum(u.val), cumsumJac(u.jac));
+      function u = cumsum(u)
+          u.val = cumsum(u.val);
+          u.jac = cumsumJac(u.jac);
+          u = reduceToDouble(u);
       end
 
       %--------------------------------------------------------------------
@@ -354,14 +430,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
       %--------------------------------------------------------------------
 
-      function h = abs(u)
-         h = ADI(abs(u.val), lMultDiag(sign(u.val), u.jac));
+      function u = abs(u)
+          u.jac = lMultDiag(sign(u.val), u.jac);
+          u.val = abs(u.val);
+          if isempty(u.jac)
+               u = u.val;
+          end
       end
 
       %--------------------------------------------------------------------
 
-      function h = repmat(u, varargin)  % only makes sense if second dim =1
-          h = ADI(repmat(u.val, varargin{:}), repmatJac(u.jac, varargin{:}));
+      function u = repmat(u, varargin)  % only makes sense if second dim =1
+          u.val = repmat(u.val, varargin{:});
+          u.jac = repmatJac(u.jac, varargin{:});
       end
 
       %--------------------------------------------------------------------
@@ -380,7 +461,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
               end
               jacs{k} = vertcatJac(sjacs{:});
           end
-          h = ADI(vertcat(vals{:}), jacs);
+          h = varargin{1};
+          h.val = vertcat(vals{:});
+          h.jac = jacs;
       end
 
        function h = combineEquations(varargin)
@@ -400,20 +483,24 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
       function h = cat(varargin)
           h = vertcat(varargin{:});
-          h = ADI(h.val, horzcatJac(h.jac{:}));
+          h.jac = {horzcatJac(h.jac{:})};
       end
 
       %--------------------------------------------------------------------
 
       function horzcat(varargin)
-          error('horzcat doesn not make sense for class ADI')
+          error('Operation horzcat does not supported for class ADI.')
       end
 
       %--------------------------------------------------------------------
 
-      function h = interpReg(T, u, reginx)
+      function u = interpReg(T, u, reginx)
           [y, dydu] = interpReg(T, u.val, reginx);
-          h = ADI(y, lMultDiag(dydu, u.jac));
+          u.val = y;
+          u.jac = lMultDiag(dydu, u.jac);
+         if isempty(u.jac)
+             u = u.val;
+         end
       end
 
       %--------------------------------------------------------------------
@@ -421,23 +508,37 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       function h = interpRegPVT(T, x, v, flag, reginx)
 
           if ~isa(x,'ADI') %u is a scalar/matrix
-              [y, dydx, dydv] = interpRegPVT(T, x, v.val, flag, reginx);
-              h = ADI(y, lMultDiag(dydx, v.jac));
+              h = v;
+              [h.val, dydx] = interpRegPVT(T, x, v.val, flag, reginx);
+              h.jac = lMultDiag(dydx, v.jac);
           elseif ~isa(v,'ADI') %v is a scalar
-              [y, dydx, dydv] = interpRegPVT(T, x.val, v, flag, reginx);
-              h = ADI(y, lMultDiag(dydx, x.jac));
+              h = x;
+              [h.val, dydx] = interpRegPVT(T, x.val, v, flag, reginx);
+              h.jac = lMultDiag(dydx, x.jac);
           else
-              [y, dydx, dydv] = interpRegPVT(T, x.val, v.val, flag, reginx);
-              h = ADI(y, timesJac(dydx, dydv, v.jac, x.jac)); %note order of input
+              h = x;
+              [h.val, dydx, dydv] = interpRegPVT(T, x.val, v.val, flag, reginx);
+              h.jac = timesJac(dydx, dydv, v.jac, x.jac); % note order of input
           end
-
+         if isempty(h.jac)
+             h = h.val;
+         end
       end
 
       function h = interpTable(X, Y, x, varargin)
-         y = interpTable(X, Y, x.val, varargin{:});
-         dydx  = dinterpTable(X,Y, x.val, varargin{:});
-         h = ADI(y,lMultDiag(dydx, x.jac));
+         h = x;
+         h.val = interpTable(X, Y, x.val, varargin{:});
+         h.jac = lMultDiag(dinterpTable(X,Y, x.val, varargin{:}), x.jac);
+         if isempty(h.jac)
+             h = h.val;
+         end
       end
+      
+     function u = reduceToDouble(u)
+         if isa(u, 'ADI') && sum(cellfun(@nnz, u.jac)) == 0
+             u = u.val;
+         end
+     end
 
       %--------------------------------------------------------------------
 
@@ -464,6 +565,10 @@ end
 %--------------------------------------------------------------------------
 
 function J = plusJac(J1, J2)
+if isempty(J1) || isempty(J2)
+    J = {};
+    return
+end
 nv1 = size(J1{1},1);
 nv2 = size(J2{1},1);
 if  nv1 == nv2
@@ -484,6 +589,10 @@ end
 %--------------------------------------------------------------------------
 
 function J = mtimesJac(M, J1)
+if nnz(M) == 0
+    J = {};
+    return
+end
 J = cell(1, numel(J1));
 for k = 1:numel(J)
     J{k} = M*J1{k};
@@ -515,7 +624,8 @@ if any(d)
     ix = (1:n)';
     D = sparse(ix, ix, d, n, n);
 else
-    D = 0;
+    J = {};
+    return
 end
 J = cell(1, numel(J1));
 for k = 1:numel(J)
@@ -524,6 +634,14 @@ end
 end
 
 %--------------------------------------------------------------------------
+
+function J = timesJacUnit(v_unit, v2, J_unit, J2)
+nj = numel(J_unit);
+J = cell(1, nj);
+for k = 1:nj
+    J{k} = v_unit*J2{k} + sparse(v2)*J_unit{k};
+end
+end
 
 function J = timesJac(v1, v2, J1, J2)
 n = numel(v1);
@@ -557,8 +675,8 @@ end
 end
 
 %--------------------------------------------------------------------------
-function J = sumJac(J1)
-J = cellfun(@(j1) sum(j1, 1), J1, 'UniformOutput', false);
+function J = sumJac(J)
+J = cellfun(@(j1) sum(j1, 1), J, 'UniformOutput', false);
 end
 
 %--------------------------------------------------------------------------
@@ -617,6 +735,7 @@ end
 function J = horzcatJac(varargin)
 J = horzcat(varargin{:});
 end
+
 
 %--------------------------------------------------------------------------
 %--------------------------------------------------------------------------

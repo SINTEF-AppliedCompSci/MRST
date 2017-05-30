@@ -39,7 +39,7 @@ function bc = addBC(bc, f, t, v, varargin)
 %            interpreted as 1 <-> Aqua, 2 <-> Liquid, 3 <-> Vapor.
 %
 %            This field is for the benefit of transport solvers such as
-%            'blackoilUpwFE' and will be ignored for outflow faces.
+%            'implicitTransport' and will be ignored for outflow faces.
 %
 %            Default value: sat = [] (assume single-phase flow).
 %

@@ -13,7 +13,8 @@ function W = addWell(W, G, rock, cellInx, varargin)
 %
 %   rock    - Rock data structure.  Must contain valid field 'perm'.
 %
-%   cellInx - Perforated well cells (vector of cell indices).
+%   cellInx - Perforated well cells (vector of cell indices or a logical
+%             mask with length equal to G.cells.num).
 %
 % OPTIONAL PARAMETERS (supplied in 'key'/value pairs, ('pn'/pv)):
 %   Type   -- Well control type.  String.  Default value is 'bhp'.
@@ -105,6 +106,20 @@ function W = addWell(W, G, rock, cellInx, varargin)
 % EXAMPLE:
 %   simpleWellExample
 %
+% NOTE:
+%   Wells in two-dimensional grids are not well defined in terms of
+%   computing well indices. However, such wells are often useful for
+%   simulation scenarios where the exact value of well indices is not of
+%   great importance. For this reason, we make the following approximations
+%   when addWell is used to compute e.g. horizontal wells in 2D:
+%
+%       - K_z is assumed to be the harmonic average of K_x and K_y:
+%         K_z = 1/(1/K_x + 1/K_y).
+%       - The depth of a grid block is assumed to be unit length (1 meter)
+%
+%   This generally produces reasonable ranges for the WI field, but it is
+%   the user's responsibility to keep these assumptions in mind.
+%
 % SEE ALSO:
 %   verticalWell, addSource, addBC.
 
@@ -136,6 +151,11 @@ if ~isempty(W) && ~isfield(W, 'WI'),
 end
 
 mrstNargInCheck(4, [], nargin);
+if islogical(cellInx)
+    assert(numel(cellInx) == G.cells.num, ...
+    'Logical mask does not match number of grid cells.');
+    cellInx = find(cellInx);
+end
 numC = numel(cellInx);
 
 
@@ -158,9 +178,13 @@ opt = merge_options(opt, varargin{:});
 
 WI = reshape(opt.WI, [], 1);
 
-assert (numel(WI)       == numC)
-assert (numel(opt.Kh)   == numC);
-assert (numel(opt.Skin) == numC || numel(opt.Skin) == 1);
+assert (numel(WI)       == numC, ...
+    'Provided WI should be one entry per perforated cell.')
+assert (numel(opt.Kh)   == numC, ...
+    'Provided Kh should be one entry per perforated cell.')
+assert (numel(opt.Skin) == numC || numel(opt.Skin) == 1, ...
+    ['Provided Skin should be one entry per perforated cell or a single', ...
+    ' entry for all perforated cells']);
 
 if numel(opt.Skin) == 1, opt.Skin = opt.Skin(ones([numC, 1]));  end
 
@@ -227,11 +251,11 @@ W  = [W; struct('cells'    , cellInx(:),           ...
                 'name'     , opt.Name,             ...
                 'compi'    , opt.Comp_i,           ...
                 'refDepth' , opt.refDepth,         ...
-                'lims'     , opt.lims,         ...
+                'lims'     , opt.lims,             ...
                 'sign'     , opt.Sign,             ...
-                'status'   , true,                    ...
-                'vfp_index', opt.vfp_index, ...
-                'cstatus'  , true(numel(cellInx),1))];
+                'status'   , true,                 ...
+                'vfp_index', opt.vfp_index,        ...
+                'cstatus'  , true(numC,1))];
 
 if numel(W(end).dir) == 1,
    W(end).dir = repmat(W(end).dir, [numel(W(end).cells), 1]);
@@ -253,13 +277,9 @@ end
 if G.griddim > 2,
    k = permDiag3D(rock, cells);
 else
-   if ~all(lower(welldir) == 'z') || numel(cells) > 1,
-      error(id('NotVertical:2D'), ...
-           ['Two-dimensional grids only support single-cell ', ...
-            'wells in Z direction']);
-   end
    k = permDiag2D(rock, cells);
-   k = [k, zeros([size(k,1), 1])];
+   kz = 1./(1./k(:, 1) + 1./k(:, 2));
+   k = [k, kz];
 end
 welldir = lower(welldir);
 
@@ -380,21 +400,14 @@ n = numel(ix);
 ixc = G.cells.facePos;
 
 for k = 1 : n,
-   c = ix(k);                                     % Current cell
-   f = G.cells.faces(ixc(c) : ixc(c + 1) - 1, 1); % Faces on cell
-   assert(numel(f)==6);
-   if(true)
-      [n,ff]=sortrows(abs(G.faces.normals(f,:)));
-      f=f(ff(end:-1:1));
-      dx(k)=2*G.cells.volumes(c)/(sum(G.faces.areas(f(1:2))));
-      dy(k)=2*G.cells.volumes(c)/(sum(G.faces.areas(f(3:4))));
-      dz(k)=2*G.cells.volumes(c)/(sum(G.faces.areas(f(5:6))));
-   else
-      fa=sum(G.faces.normals(f,:),1)/2;
-      dx(k)=G.cells.volumes(c)/fa(1);
-      dy(k)=G.cells.volumes(c)/fa(2);
-      dz(k)=G.cells.volumes(c)/fa(3);
-   end
+    c = ix(k);                                     % Current cell
+    f = G.cells.faces(ixc(c) : ixc(c + 1) - 1, 1); % Faces on cell
+    assert(numel(f)==6);
+    [~, ff] = sortrows(abs(G.faces.normals(f,:)));
+    f = f(ff(end:-1:1));
+    dx(k) = 2*G.cells.volumes(c) / (sum(G.faces.areas(f(1:2))));
+    dy(k) = 2*G.cells.volumes(c) / (sum(G.faces.areas(f(3:4))));
+    dz(k) = 2*G.cells.volumes(c) / (sum(G.faces.areas(f(5:6))));
 end
 
 
@@ -442,7 +455,7 @@ for k = 1 : n,
    if size(G.nodes.coords, 2) > 2,
       dz(k) = G.cells.volumes(ix(k))/(dx(k)*dy(k));
    else
-      dz(k) = 0;
+      dz(k) = 1;
    end
 end
 
