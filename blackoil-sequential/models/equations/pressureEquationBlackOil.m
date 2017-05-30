@@ -25,7 +25,7 @@ vapoil = model.vapoil;
                                 'pressure', 'water', 'gas', 'rs', 'rv', 'wellSol');
 
 
-[qWell, bhp, wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
+[wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
 
 
 
@@ -39,8 +39,7 @@ if ~opt.resOnly,
         % define primary varible x and initialize
         x = st{1}.*rs + st{2}.*rv + st{3}.*sG;
 
-        [p, qWell{:}, bhp, wellVars{:}] = ...
-            initVariablesADI(p, qWell{:}, bhp, wellVars{:});
+        [p, wellVars{:}] = initVariablesADI(p, wellVars{:});
         if ~otherPropPressure
             p_prop = p;
         end
@@ -180,14 +179,9 @@ if model.outputFluxes
 end
 
 % Finally, add in and setup well equations
-if ~isempty(W)
-    if ~opt.reverseMode
-        dissolved = model.getDissolutionMatrix(rs, rv);
-        [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, qWell, bhp, wellVars, wellMap, p, mob, rho, dissolved, {}, dt, opt);
-    else
-        [eqs(4:7), names(4:7), types(4:7)] = wm.createReverseModeWellEquations(model, wellSol0, p0);
-    end
-end
+dissolved = model.getDissolutionMatrix(rs, rv);
+[eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, wellVars, wellMap, p, mob, rho, dissolved, {}, dt, opt);
+
 % Create actual pressure equation
 cfac = 1./(1 - disgas*vapoil*rs.*rv);
 
