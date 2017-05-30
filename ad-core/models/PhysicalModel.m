@@ -84,7 +84,7 @@ methods
 
     % --------------------------------------------------------------------%
     function [problem, state] = getAdjointEquations(model, state0, state, dt, drivingForces, varargin)
-        [problem, state] = model.getEquations(state0, state, dt, drivingForces, varargin{:});
+        [problem, state] = model.getEquations(state0, state, dt, drivingForces, 'reverseMode', true, varargin{:});
     end
 
     % --------------------------------------------------------------------%
@@ -255,7 +255,7 @@ methods
             before = model.validateState(before);
         end
         
-        problem = model.getAdjointEquations(before, current, dt, forces, 'iteration', inf);
+        problem = model.getEquations(before, current, dt, forces, 'iteration', inf);
 
         if itNo < numel(dt_steps)
             after    = getState(itNo + 1);
@@ -264,7 +264,7 @@ methods
             forces_p = model.getDrivingForces(lookupCtrl(itNo + 1));
             forces_p = merge_options(validforces, forces_p{:});
             problem_p = model.getAdjointEquations(current, after, dt_next, forces_p,...
-                                'iteration', inf, 'reverseMode', true);
+                                'iteration', inf);
         else
             problem_p = [];
         end

@@ -591,9 +591,11 @@ methods
         % source terms for black-oil like models. Note that this currently
         % assumes that the first nPh equations are the conservation
         % equations, according to the canonical MRST W-O-G ordering,
+        if model.FacilityModel.getNumberOfWells() == 0
+            return
+        end
         fm = model.FacilityModel;
         nPh = nnz(model.getActivePhases);
-%         assert(numel(eqs) == nPh);
         [src, wellsys, wellSol] = ...
             fm.getWellContributions(wellSol0, wellSol, wellVars, ...
                                     wellMap, p, mob, rho, dissolved, components, ...

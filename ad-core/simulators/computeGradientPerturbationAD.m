@@ -87,7 +87,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % Set up objective function storage
     computeObj = @(ws,states,schedule) sum(cell2mat(getObjective(ws,states,schedule)));
     val0 = computeObj(wellSols,states,schedule0);
-    %val0 = computeObj([]);
 
     grad = cell(1, numel(schedule0.control));
     % Run a schedule per well, for each control step, perturbing the
