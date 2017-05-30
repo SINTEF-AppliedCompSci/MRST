@@ -3,7 +3,7 @@
 % mechanics, we use the VEM discretization that is given in the vemmech module
 %
 
-mrstModule add ad-core ad-props ad-blackoil vemmech deck-format
+mrstModule add ad-mechanics ad-core ad-props ad-blackoil vemmech deckformat mrst-gui
 
 
 %% Options for this example
@@ -13,7 +13,7 @@ opt.norne_case = 'mini Norne'; % 'full' or 'mini Norne'
 % 'full'       : 7392 cells
 % 'mini Norne' :  605 cells
 
-opt.bc_case    = 'no displacement'; % 'no displacement' or 'bottom fixed'
+opt.bc_case    = 'bottom fixed'; % 'no displacement' or 'bottom fixed'
 %
 % 'no displacement' : All nodes belonging to external faces have displacement
 %                     equal to zero
@@ -82,7 +82,7 @@ rock.alpha = repmat(alpha, G.cells.num, 1);
 
 %% Setup boundary conditions for mechanics (no displacement)
 
-switch opt.bc_cases
+switch opt.bc_case
 
   case 'no displacement'
 
@@ -161,16 +161,16 @@ el_bc = struct('disp_bc' , disp_bc, ...
 loadfun = @(x) (0*x);
 
 
-%% Gravity is on - Only for fluid.
-gravity on;
-g = gravity;
-if norm(g) == 0
-    warning('Gravity off!');
-end
 
-%% Setup mechanic struct
+%% Gather all the mechanical parameters in a struct
 
 mech = struct('Ev', Ev, 'nuv', nuv, 'el_bc', el_bc, 'load', loadfun);
+
+
+%% Gravity
+% The gravity in this option affects only the fluid behavior
+gravity on;
+
 
 %% Setup model
 
@@ -180,7 +180,7 @@ model = MechBlackOilModel(G, rock, fluid, mech);
 %% Setup wells
 W = [];
 refdepth = G.cells.centroids(1, 3); % for example...
-injcell = 10; % for example
+injcell  = 10; % for example...
 W = addWell(W, G, rock, injcell, ...
             'Type'    , 'rate', ...
             'Val'     , 2.5e6/day, ...
@@ -189,7 +189,7 @@ W = addWell(W, G, rock, injcell, ...
             'Name'    , 'inj',  ...
             'refDepth', refdepth);
 
-prodcell = G.cells.num; % for example
+prodcell = G.cells.num; % for example...
 W = addWell(W, G, rock, prodcell, ...
             'Type'    ,'bhp', ...
             'Val'     , pRef, ...
@@ -203,16 +203,17 @@ model.FacilityModel = model.FacilityModel.setupWells(W);
 
 
 %% Setup schedule
-schedule.step.val = [1*day*ones(1, 1); 10*day*ones(11, 1)];
+schedule.step.val     = [1*day*ones(1, 1); 10*day*ones(11, 1)];
 schedule.step.control = ones(numel(schedule.step.val), 1);
-schedule.control = struct('W', W);
+schedule.control      = struct('W', W);
 
 %% Setup initial state
 clear initState;
 initState.pressure = pRef*ones(G.cells.num, 1);
-initState.s = ones(G.cells.num, 1)*[0, 1, 0];
-initState.rs = 0.5*fluid.rsSat(initState.pressure);
-initState = initDisplacement(model, initState, []);
+initState.s        = ones(G.cells.num, 1)*[0, 1, 0];
+initState.rs       = 0.5*fluid.rsSat(initState.pressure);
+initState          = initDisplacement(model, initState, []);
+
 
 %% Start simulation
 
@@ -221,13 +222,5 @@ initState = initDisplacement(model, initState, []);
 state = states{end};
 
 figure
-plotCellData(G, state.stress(:, 1));
-title('First stress component');
-
-figure
-plotCellData(G, state.stress(:, 2));
-title('Second stress component');
-
-figure
-plotCellData(G, state.stress(:, 3));
-title('Third stress component');
+plotToolbar(G, state, 'outline', true);
+view([7, 40]);
