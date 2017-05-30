@@ -115,12 +115,9 @@ if ~opt.resOnly,
         % define primary varible x and initialize
         [p, sW, x, wellVars{:}] = initVariablesADI(p, sW, x, wellVars{:});
     else
+        wellVars0 = model.FacilityModel.getAllPrimaryVariables(wellSol0);
         x0 = st0{1}.*rs0 + st0{2}.*rv0 + st0{3}.*sG0;
-        % Set initial gradient to zero
-        zw = zeros(size(bhp));
-        [p0, sW0, x0, zw, zw, zw, zw] = ...
-            initVariablesADI(p0, sW0, x0, zw, zw, zw, zw); %#ok
-        clear zw
+        [p0, sW0, x0, wellVars0{:}] = initVariablesADI(p0, sW0, x0, wellVars0{:}); %#ok
         [sG0, rs0, rv0] = calculateHydrocarbonsFromStatusBO(model, st0, 1-sW0, x0, rs0, rv0, p0);
     end
 end
@@ -236,10 +233,8 @@ if model.outputFluxes
 end
 
 % Finally, add in and setup well equations
-if ~isempty(W)
-    dissolved = model.getDissolutionMatrix(rs, rv);
-    [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, wellVars, wellMap, p, mob, rho, dissolved, {}, dt, opt);
-end
+dissolved = model.getDissolutionMatrix(rs, rv);
+[eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, wellVars, wellMap, p, mob, rho, dissolved, {}, dt, opt);
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 end
 

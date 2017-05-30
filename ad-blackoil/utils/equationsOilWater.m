@@ -92,14 +92,13 @@ if ~opt.resOnly,
     if ~opt.reverseMode,
         [p, sW, wellVars{:}] = initVariablesADI(p, sW, wellVars{:});
     else
-        zw = zeros(size(pBH));
-        [p0, sW0, zw, zw, zw] = initVariablesADI(p0, sW0, zw, zw, zw); %#ok
-        clear zw
+        wellVars0 = model.FacilityModel.getAllPrimaryVariables(wellSol0);
+        [p0, sW0, wellVars0{:}] = initVariablesADI(p0, sW0, wellVars0{:}); %#ok
     end
 end
+primaryVars = {'pressure', 'sW', wellVarNames{:}};
 % We will solve for pressure, water saturation (oil saturation follows via
 % the definition of saturations) and well rates + bhp.
-primaryVars = {'pressure', 'sW', wellVarNames{:}};
 
 % Evaluate relative permeability
 sO  = 1 - sW;
@@ -167,9 +166,7 @@ if model.outputFluxes
     state = model.storeBoundaryFluxes(state, qRes{1}, qRes{2}, [], drivingForces);
 end
 % Finally, add in and setup well equations
-if ~isempty(W)
-    [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, wellVars, wellMap, p, mob, rho, {}, {}, dt, opt);
-end
+[eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, wellVars, wellMap, p, mob, rho, {}, {}, dt, opt);
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 end
 

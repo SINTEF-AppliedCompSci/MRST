@@ -79,7 +79,8 @@ try
 catch
     pressureSolver = BackslashSolverAD();
 end
-linsolve = CPRSolverAD('ellipticSolver', pressureSolver);
+% linsolve = CPRSolverAD('ellipticSolver', pressureSolver);
+linsolve = SimpleCPRAD('ellipticSolver', pressureSolver);
 
 %% Plot the rock permeability
 % The SPE9 data set has an anisotropic, inhomogenous permeability field.
@@ -391,7 +392,7 @@ fn = getPlotAfterStep(state0, model, schedule, ...
     'plotWell', false, 'plotReservoir', false);
 [wellsols, states, reports] =...
     simulateScheduleAD(state0, model, schedule, ...
-                       'LinearSolver', linsolve, 'afterStepFn', fn);
+                       'LinearSolver', linsolve)%, 'afterStepFn', fn);
 
 %% Launch interactive plot tool for well curves
 % The interactive viewer can be used to visualize the wells and is the best
