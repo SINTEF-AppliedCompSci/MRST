@@ -70,7 +70,7 @@ if opt.assign_coords
    catch
        fprintf(1, '    Reading of M9X1.grdecl failed, please dowload data manually');
        fprintf(1, ' following instructions\n    in "%s"\n', fullfile(sdir,'README'));
-       return;
+       error('Did not find dataset, aborting.');
    end
 end
 
