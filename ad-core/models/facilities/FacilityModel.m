@@ -127,11 +127,11 @@ classdef FacilityModel < PhysicalModel
             names = names([actPh, true]);
         end
 
-        function [rates, bhp, names] = getBasicPrimaryVariables(model, wellSol)
+        function [variables, names, map] = getBasicPrimaryVariables(model, wellSol)
             % Get phase rates + bhp for active phases
             if model.getNumberOfWells() == 0
-                [rates, names] = deal({});
-                bhp = [];
+                [variables, names] = deal({});
+                [isBHP, isRate] = deal([]);
             else
                 % Take the active wellSols
                 active = model.getWellStatusMask();
@@ -144,9 +144,14 @@ classdef FacilityModel < PhysicalModel
                 qGs = vertcat(wellSol.qGs);
                 rates = {qWs, qOs, qGs};
                 rates = rates(actPh);
-
+                variables = [rates, bhp];
                 names = model.getBasicPrimaryVariableNames();
+                
+                isBHP = false(size(variables));
+                isBHP(end) = true;
+                isRate = ~isBHP;
             end
+            map = struct('isBHP', isBHP, 'isRate', isRate);
         end
 
         function [variables, names, wellmap] = getExtraPrimaryVariables(model, wellSol)
@@ -200,14 +205,20 @@ classdef FacilityModel < PhysicalModel
             end
         end
 
-        function [rates, bhp, extra, allNames, wellMap] = getAllPrimaryVariables(model, wellSol)
+        function [variables, names, wellMap] = getAllPrimaryVariables(model, wellSol)
 
-            [rates, bhp, names] = model.getBasicPrimaryVariables(wellSol);
-            [extra, enames, wellMap] = model.getExtraPrimaryVariables(wellSol);
-            allNames = [names, enames];
+            [basic, bnames, wellMap] = model.getBasicPrimaryVariables(wellSol);
+            [extra, enames, extraMap] = model.getExtraPrimaryVariables(wellSol);
+            
+            wellMap.isBHP = [wellMap.isBHP, false(size(extra))];
+            wellMap.isRate = [wellMap.isRate, false(size(extra))];
+            
+            wellMap.extraMap = extraMap;
+            names = [bnames, enames];
+            variables = [basic, extra];
         end
 
-        function [sources, wellSystem, wellSol] = getWellContributions(model, wellSol0, wellSol, qWell, bhp, wellvars, wellMap, p, mob, rho, dissolved, comp, dt, iteration)
+        function [sources, wellSystem, wellSol] = getWellContributions(model, wellSol0, wellSol, wellvars, wellMap, p, mob, rho, dissolved, comp, dt, iteration)
             % Get the source terms due to the wells, control and well
             % equations and updated well sol. Main gateway for adding wells
             % to a set of equations.
@@ -228,6 +239,7 @@ classdef FacilityModel < PhysicalModel
             allMass = cell(nw, 1);
             % Composition source terms
             allComp = cell(nw, 1);
+            
 
             % Get the additional equations not implemented in the minimal
             % "SimpleWell" class.
@@ -247,6 +259,14 @@ classdef FacilityModel < PhysicalModel
             for varNo = 1:numel(addedVars)
                 varmaps{varNo} = model.getWellVariableMap(addedVars{varNo});
             end
+            
+            isBH = wellMap.isBHP;
+            isQ = wellMap.isRate;
+            emap = wellMap.extraMap;
+            
+            bhp = wellvars{isBH};
+            qWell = wellvars(isQ);
+            wellvars = wellvars(~(isBH | isQ));
 
             [basenames, basetypes] = model.WellModels{1}.getWellEquationNames(resModel);
             for i = 1:nw
@@ -256,7 +276,7 @@ classdef FacilityModel < PhysicalModel
                 ws0 = wellSol0(wellNo);
 
                 W = wm.W;
-                packed = packPerforationProperties(W, p, mob, rho, dissolved, comp, wellvars, addedVars, varmaps, wellMap, i);
+                packed = packPerforationProperties(W, p, mob, rho, dissolved, comp, wellvars, addedVars, varmaps, emap, i);
                 qw = cellfun(@(x) x(i), qWell, 'uniformoutput', false);
                 bh = bhp(i);
                 % Update pressure

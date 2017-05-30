@@ -95,7 +95,7 @@ W = drivingForces.W;
 [p0, sW0, sG0, rs0, rv0, wellSol0] = model.getProps(state0, ...
     'pressure', 'water', 'gas', 'rs', 'rv', 'wellSol');
 
-[qWell, bhp, wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
+[wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
 
 
 %Initialization of primary variables ----------------------------------
@@ -113,8 +113,7 @@ end
 if ~opt.resOnly,
     if ~opt.reverseMode,
         % define primary varible x and initialize
-        [p, sW, x, qWell{:}, bhp, wellVars{:}] = ...
-            initVariablesADI(p, sW, x, qWell{:}, bhp, wellVars{:});
+        [p, sW, x, wellVars{:}] = initVariablesADI(p, sW, x, wellVars{:});
     else
         x0 = st0{1}.*rs0 + st0{2}.*rv0 + st0{3}.*sG0;
         % Set initial gradient to zero
@@ -238,12 +237,8 @@ end
 
 % Finally, add in and setup well equations
 if ~isempty(W)
-    if ~opt.reverseMode
-        dissolved = model.getDissolutionMatrix(rs, rv);
-        [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, qWell, bhp, wellVars, wellMap, p, mob, rho, dissolved, {}, dt, opt);
-    else
-        [eqs(4:7), names(4:7), types(4:7)] = wm.createReverseModeWellEquations(model, wellSol0, p0);
-    end
+    dissolved = model.getDissolutionMatrix(rs, rv);
+    [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, wellVars, wellMap, p, mob, rho, dissolved, {}, dt, opt);
 end
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 end
