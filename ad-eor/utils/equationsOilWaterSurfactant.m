@@ -73,7 +73,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                                             'surfactantmax', ...
                                                             'wellsol');
 
-    [qWell, pBH, wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
+    [wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
     % Typically the primary well variables are :
     %  - the phase well rates (qWell)
     %  - the bottom hole pressures
@@ -84,15 +84,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if ~opt.resOnly,
         % ADI variables needed since we are not only computing residuals.
         if ~opt.reverseMode,
-            [p, sW, c, qWell{:}, pBH, wellVars{:}] = initVariablesADI(p, sW, ...
-                                                              c,  qWell{:}, ...
-                                                              pBH, wellVars{:});
+            [p, sW, c, wellVars{:}] = initVariablesADI(p, sW, c, wellVars{:});
         else
-            % Not implemented yet
-            % zw = zeros(size(pBH));
-            % [p0, sW0, c0, zw, zw, zw, zw] = ...
-            %     initVariablesADI(p0, sW0, c0, zw, zw, zw, zw); %#ok
-            % clear zw
+            wellVars0 = model.FacilityModel.getAllPrimaryVariables(wellSol0);
+            [p0, sW0, c0, wellVars0{:}] = initVariablesADI(p0, sW0, c0, wellVars0{:}); %#ok
         end
     end
 
@@ -104,7 +99,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 
     % EQUATIONS ---------------------------------------------------------------
-
+    pBH = wellVars{wellMap.isBHP};
     % Compute fluxes and other properties for oil and water.
     [dp, mob, upc, b, rho, pvMult, b0, pvMult0, T] = ...
         computeFluxAndPropsOilWaterSurfactant(model, p0, p, sW, c, pBH, W);
@@ -154,14 +149,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     types = {'cell', 'cell', 'cell'};
 
     % Finally, add in and setup well equations
-    if ~isempty(W)
-        [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, ...
-                                                          names, types, wellSol0, ...
-                                                          wellSol, qWell, pBH, ...
-                                                          wellVars, wellMap, ...
-                                                          p, mob, rho, {}, ...
-                                                          {c}, dt, opt);
-    end
+    [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, ...
+                                                      names, types, wellSol0, ...
+                                                      wellSol, ...
+                                                      wellVars, wellMap, ...
+                                                      p, mob, rho, {}, ...
+                                                      {c}, dt, opt);
     problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 
 end

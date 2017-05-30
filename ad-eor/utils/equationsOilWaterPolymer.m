@@ -181,9 +181,7 @@ if ~isempty(drivingForces.src) && isfield(drivingForces.src, 'poly')
 end
 
 % Finally, add in and setup well equations
-if ~isempty(W) 
-    [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, wellVars, wellMap, p, mob, rho, {}, {c}, dt, opt);
-end
+[eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, wellVars, wellMap, p, mob, rho, {}, {c}, dt, opt);
 
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 
