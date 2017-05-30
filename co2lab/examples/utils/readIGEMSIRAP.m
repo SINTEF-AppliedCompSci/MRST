@@ -60,8 +60,8 @@ opt = merge_options(opt, varargin{:});
 coarse = opt.coarse;
 
 if isempty(opt.dir)
-   result_dir = fullfile(mrstPath('co2lab'), 'data', 'igems');
-   file_dir = fullfile(result_dir, 'surfaces');
+   %result_dir = fullfile(mrstPath('co2lab'), 'data', 'igems');
+   file_dir = fullfile(getDatasetPath('IGEMSsurfaces'), 'surfaces');
 else
    result_dir = opt.dir;
    file_dir   = opt.dir;
