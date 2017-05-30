@@ -50,16 +50,20 @@ function fluid = addSampledFluidProperties(fluid, shortname, varargin)
 %                          only, with temperature consided constant and equal
 %                          to the value(s) provided in 'fixedT'.
 %
-%                - 'assert_in_range':   If 'true', throw an error if user tried
-%                                       to extrapolate outside valid range.
-%                                       If 'false' (default), behavior in
-%                                       this case will depend on the value of
-%                                       'nan_outside_range'.
+%               * 'assert_in_range':   If 'true', throw an error if user tried
+%                                      to extrapolate outside valid range.
+%                                      If 'false' (default), behavior in
+%                                      this case will depend on the value of
+%                                      'nan_outside_range'.
 %
-%                - 'nan_outside_range': If 'true' (default), return NaN
-%                                       values outside valid range.
-%                                       Otherwise, extrapolate as constant
-%                                       function.
+%               * 'nan_outside_range': If 'true' (default), return NaN
+%                                      values outside valid range.
+%                                      Otherwise, extrapolate as constant
+%                                      function.
+%           
+%               * 'include_derivatives': include explicit functions for
+%                                        partial derivatives in pressure and 
+%                                        temperature (default: false)
 %
 % RETURNS:
 %   fluid - Fluid object endowed with the property functions (or a subset
@@ -94,6 +98,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    opt.fixedT = [];
    opt.assert_in_range = false;
    opt.nan_outside_range = false;
+   opt.include_derivatives = false;
 
    opt = merge_options(opt, varargin{:});
 
@@ -109,16 +114,37 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    % Add density, viscosity and enthalpy properties
    if opt.props(1)
-      fluid.(['rho', shortname]) = load_property(opt, 'D', fluidname, opt.fixedT, ...
-                                                 opt.assert_in_range, opt.nan_outside_range);
+      [f, fdp, fdt] = load_property(opt, 'D', fluidname, opt.fixedT, ...
+                                    opt.assert_in_range, opt.nan_outside_range);
+      fname = ['rho', shortname];
+      
+      fluid.(fname) = f;
+      if opt.include_derivatives
+         [fluid.([fname, '_dp']), fluid.([fname, '_dt'])] = deal(fdp, fdt);
+      end
    end
    if opt.props(2)
-      fluid.(['mu' , shortname]) = load_property(opt, 'V', fluidname, opt.fixedT, ...
-                                                 opt.assert_in_range, opt.nan_outside_range);
+      [f, fdp, fdt] = load_property(opt, 'V', fluidname, opt.fixedT, ...
+                                    opt.assert_in_range, opt.nan_outside_range); 
+      
+      fname = ['mu', shortname];
+      
+      fluid.(fname) = f;
+      if opt.include_derivatives
+         [fluid.([fname, '_dp']), fluid.([fname, '_dt'])] = deal(fdp, fdt);
+      end
+                                                 
    end
    if opt.props(3)
-      fluid.(['h'  , shortname]) = load_property(opt, 'H', fluidname, opt.fixedT, ...
-                                                 opt.assert_in_range, opt.nan_outside_range);
+      [f, fdp, fdt] = load_property(opt, 'H', fluidname, opt.fixedT, ...
+                                    opt.assert_in_range, opt.nan_outside_range); 
+      
+      fname = ['h', shortname];
+      
+      fluid.(fname) = f;
+      if opt.include_derivatives
+         [fluid.([fname, '_dp']), fluid.([fname, '_dt'])] = deal(fdp, fdt);
+      end
 
       if opt.props(1) % we have both enthalpy and density - we can also
                       % include internal energy
@@ -127,14 +153,20 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       end
    end
    if (numel(opt.props) > 3 && opt.props(4))
-      fluid.(['lambda', shortname]) = load_property(opt, 'L', fluidname, opt.fixedT, ...
-                                                    opt.assert_in_range, opt.nan_outside_range);
+      [f, fdp, fdt] = load_property(opt, 'L', fluidname, opt.fixedT, ...
+                                    opt.assert_in_range, opt.nan_outside_range); 
+      fname = ['lambda', shortname];
+      
+      fluid.(fname) = f;
+      if opt.include_derivatives
+         [fluid.([fname, '_dp']), fluid.([fname, '_dt'])] = deal(fdp, fdt);
+      end
    end
 end
 
 % ----------------------------------------------------------------------------
 
-function pfun = load_property(opt, pname, fluidname, fixedT, assert_in_range, nan_outside)
+function [fun, fun_dp, fun_dt] = load_property(opt, pname, fluidname, fixedT, assert_in_range, nan_outside)
 
    tabledir = [fileparts(mfilename('fullpath')) '/sampled_tables/'];
    fname = [tabledir, propFilename(opt.pspan, opt.tspan, opt.pnum, opt.tnum, fluidname, pname)];
@@ -166,12 +198,16 @@ function pfun = load_property(opt, pname, fluidname, fixedT, assert_in_range, na
                        'nan_outside_range', nan_outside);
 
    % We return the main evaluator function (which also works in an ADI-setting)
-   pfun = obj.([pname]);%#ok
+   fun = obj.([pname]);%#ok
+   fun_dp = obj.([pname, 'DP']);
+   fun_dt = obj.([pname, 'DT']);
 
    if ~isempty(fixedT)
       % Temperature should be considered fixed -> property becomes function
       % of pressure only.
-      pfun = @(p) pfun(p, fixedT);
+      fun = @(p) fun(p, fixedT);
+      fun_dp = @(p) fun_dp(p, fixedT);
+      fun_dt = []; 
    end
 
 end
