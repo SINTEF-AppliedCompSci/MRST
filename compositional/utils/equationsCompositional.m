@@ -25,15 +25,15 @@ assert(all(p>0), 'Pressure must be positive for compositional model');
 [p0, sW0, z0, temp0, wellSol0] = model.getProps(state0, ...
     'pressure', 'water', 'z', 'T', 'wellSol');
 
-[qWell, bhp, wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
+[wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
 
 ncomp = numel(z);
 cnames = model.EOSModel.fluid.names;
 if model.water
-    [p, z{1:ncomp-1}, sW, qWell{:}, bhp, wellVars{:}] = initVariablesADI(p, z{1:ncomp-1}, sW, qWell{:}, bhp, wellVars{:});
+    [p, z{1:ncomp-1}, sW, wellVars{:}] = initVariablesADI(p, z{1:ncomp-1}, sW, wellVars{:});
     primaryVars = {'pressure', cnames{1:end-1}, 'sW', wellVarNames{:}};
 else
-    [p, z{1:ncomp-1}, qWell{:}, bhp, wellVars{:}] = initVariablesADI(p, z{1:ncomp-1}, qWell{:}, bhp, wellVars{:});
+    [p, z{1:ncomp-1}, wellVars{:}] = initVariablesADI(p, z{1:ncomp-1}, wellVars{:});
     primaryVars = {'pressure', cnames{1:end-1}, wellVarNames{:}};
 end
 
@@ -156,104 +156,19 @@ end
 
 
 % Finally, add in and setup well equations
-if ~isempty(W)
-    if ~opt.reverseMode
-        if 1
-            if model.water
-                rho = {rhoW, rhoO, rhoG};
-                mob = {mobW, mobO, mobG};
-            else
-                rho = {rhoO, rhoG};
-                mob = {mobO, mobG};
-            end
-            [eqs, names, types, state.wellSol, src] = model.insertWellEquations(eqs, names, ...
-                                                             types, wellSol0, wellSol, ...
-                                                             qWell, bhp, wellVars, ...
-                                                             wellMap, p, mob, rho, ...
-                                                             {}, {xM, yM}, ...
-                                                             dt, opt);
-        else
-            wm = WellModel();
-%             woffset = model.water;
-            % Store cell wise well variables in cell arrays and send to ewll
-            % model to get the fluxes and well control equations.
-            wc    = vertcat(W.cells);
-            pw    = p(wc);
-            w_comp = vertcat(W.components);
-            perf2well = getPerforationToWellMapping(W);
-            a = w_comp(perf2well, :).*repmat(compFluid.molarMass, numel(wc), 1);
-            w_comp = bsxfun(@rdivide, a, sum(a, 2));
-
-            x_comp = cellfun(@(v) v(wc), xM, 'UniformOutput', false);
-            y_comp = cellfun(@(v) v(wc), yM, 'UniformOutput', false);
-            
-            qOs = qWell{1};
-            qGs = qWell{2};
-            
-            if model.water
-                rhows = [f.rhoWS, f.rhoOS, f.rhoGS];
-                bw    = {bW(wc), bO(wc), bG(wc)};
-                mw    = {mobW(wc), mobO(wc), mobG(wc)};
-                sat   = {sW(wc), sO(wc), sG(wc)};
-                rates = {qWs, qOs, qGs};
-            else
-                rhows = [f.rhoOS, f.rhoGS];
-                bw    = {bO(wc), bG(wc)};
-                mw    = {mobO(wc), mobG(wc)};
-                sat   = {sO(wc), sG(wc)};
-                rates = {qOs, qGs};
-            end
-
-            L_ix = woffset + 1;
-            V_ix = woffset + 2;
-
-            [cqs, weqs, ctrleq, wc, state.wellSol, cqr]  = wm.computeWellFlux(model, W, wellSol, ...
-                bhp, rates, pw, rhows, bw, mw, sat, {},...
-                'nonlinearIteration', opt.iteration);
-            offset = ncomp + model.water;
-            eqs(offset + (1:(2 + woffset))) = weqs;
-            eqs{offset + (3 + woffset)} = ctrleq;
-
-            injO = double(cqs{L_ix}) > 0;
-            injG = double(cqs{V_ix}) > 0;
-
-            if model.water
-                % Water
-                eqs{1}(wc) = eqs{1}(wc) - fluid.rhoWS.*cqs{1};
-                names(offset + (1:4)) = {'waterWells', 'oilWells', 'gasWells', 'closureWells'};
-                types(offset + (1:4)) = {'perf', 'perf', 'perf', 'well'};
-            else
-                names(offset + (1:3)) = {'oilWells', 'gasWells', 'closureWells'};
-                types(offset + (1:3)) = {'perf', 'perf', 'well'};
-            end
-
-            srcTot = 0;
-            compSrc = zeros(numel(wc), ncomp);
-            for i = 1:ncomp
-                ix = i + woffset;
-                % Mixture of production and injection. Production uses cell
-                % values for components, injectors use whatever was prescribed
-                % to the well.
-                src =       (fluid.rhoOS.*cqs{L_ix}.*injO + fluid.rhoGS.*cqs{V_ix}.*injG).*w_comp(wm.perf2well, i)...
-                           + fluid.rhoOS.*~injO.*x_comp{i}.*cqs{L_ix} + fluid.rhoGS.*~injG.*y_comp{i}.*cqs{V_ix};
-
-                eqs{ix}(wc) = eqs{ix}(wc) - src;
-
-                compSrc(:, i) = double(src);
-                srcTot = srcTot + double(src);
-            end
-            fluxt = double(cqr{1} + cqr{2});
-            fluxMass = double(srcTot);
-    %         fluxt(1) = double(srcTot(1));
-            for i = 1:numel(W)
-                wp = wm.perf2well == i;
-                state.wellSol(i).flux = fluxt(wp);
-                state.wellSol(i).massFlux = fluxMass(wp);
-                state.wellSol(i).components = (compSrc(wp, :));
-            end
-        end
-    end
+if model.water
+    rho = {rhoW, rhoO, rhoG};
+    mob = {mobW, mobO, mobG};
+else
+    rho = {rhoO, rhoG};
+    mob = {mobO, mobG};
 end
+[eqs, names, types, state.wellSol, src] = model.insertWellEquations(eqs, names, ...
+                                                 types, wellSol0, wellSol, ...
+                                                 wellVars, ...
+                                                 wellMap, p, mob, rho, ...
+                                                 {}, {xM, yM}, ...
+                                                 dt, opt);
 
 if model.water && ~opt.pressure
     wscale = dt./(s.pv*mean(double(rhoW)));
