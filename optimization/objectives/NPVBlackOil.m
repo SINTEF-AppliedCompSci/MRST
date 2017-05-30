@@ -1,4 +1,4 @@
-function obj = NPVVO(G, wellSols, schedule, varargin)
+function obj = NPVBlackOil(G, wellSols, schedule, varargin)
 % Compute net present value of a schedule with well solutions
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
