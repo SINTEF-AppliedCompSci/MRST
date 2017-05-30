@@ -87,24 +87,17 @@ f = model.fluid;
 [p, wellSol] = model.getProps(state, 'pressure', 'wellsol');
 
 [p0, wellSol0] = model.getProps(state0, 'pressure', 'wellSol');
-[qWell, pBH, wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
-
-pBH    = vertcat(wellSol.bhp);
-qWs    = vertcat(wellSol.qWs);
+[wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
 
 %Initialization of independent variables ----------------------------------
 
 if ~opt.resOnly,
     % ADI variables needed since we are not only computing residuals.
     if ~opt.reverseMode,
-        [p, qWell{:}, pBH, wellVars{:}] = ...
-            initVariablesADI(p, qWell{:}, pBH, wellVars{:});
+        [p, wellVars{:}] = initVariablesADI(p, wellVars{:});
     else
-        [p0, tmp, tmp] = ...
-            initVariablesADI(p0, sW0,          ...
-            zeros(size(qWs)), ...
-            zeros(size(qOs)), ...
-            zeros(size(pBH)));                          %#ok
+        wellVars0 = model.FacilityModel.getAllPrimaryVariables(wellSol0);
+        [p0, wellVars0{:}] = initVariablesADI(p0, sW0, wellVars0{:});  %#ok
     end
 end
 primaryVars = {'pressure', wellVarNames{:}};
@@ -166,7 +159,7 @@ names = {'water'};
 types = {'cell'};
 % well equations
 if ~isempty(W)
-    [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, qWell, pBH, wellVars, wellMap,...
+    [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, wellVars, wellMap,...
             p, {mobW}, {rhoW}, {}, {}, dt, opt);
 end
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
