@@ -73,25 +73,24 @@ fluid = model.fluid;
                                                         'polymer', 'polymermax', ...
                                                         'wellSol');
 
-[qWell, pBH, wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
+[wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
 % Initialize independent variables.
 if ~opt.resOnly,
     % ADI variables needed since we are not only computing residuals.
     if ~opt.reverseMode,
-        [p, sW, c, qWell{:}, pBH, wellVars{:}] = ...
-            initVariablesADI(p, sW, c, qWell{:}, pBH, wellVars{:});
+        [p, sW, c, wellVars{:}] = ...
+            initVariablesADI(p, sW, c, wellVars{:});
+        primaryVars = {'pressure', 'sW', 'polymer', wellVarNames{:}};
     else
-        zw = zeros(size(pBH));
-        [p0, sW0, c0, zw, zw, zw, zw] = ...
-            initVariablesADI(p0, sW0, c0, zw, zw, zw, zw); %#ok
-        clear zw
+        [p0, sW0, c0] = ...
+            initVariablesADI(p0, sW0, c0);
+        primaryVars = {'pressure', 'sW', 'polymer'};
     end
 end
 
 % We will solve for pressure, water saturation (oil saturation follows via
 % the definition of saturations), polymer concentration and well rates +
 % bhp.
-primaryVars = {'pressure', 'sW', 'polymer', wellVarNames{:}};
 
 % Evaluate relative permeability
 sO  = 1 - sW;
@@ -183,7 +182,7 @@ end
 
 % Finally, add in and setup well equations
 if ~isempty(W) 
-    [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, qWell, pBH, wellVars, wellMap, p, mob, rho, {}, {c}, dt, opt);
+    [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, wellVars, wellMap, p, mob, rho, {}, {c}, dt, opt);
 end
 
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
