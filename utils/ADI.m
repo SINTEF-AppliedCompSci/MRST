@@ -328,7 +328,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                       else
                           u.jac = subsasgnJac(u.jac, subs, v.jac);
                       end
-                      u = reduceToDouble(u);
                   case '{}'
                       error('Operation not supported');
               end
@@ -534,6 +533,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
              h = h.val;
          end
       end
+      
+     function u = reduceToDouble(u)
+         if isa(u, 'ADI') && sum(cellfun(@nnz, u.jac)) == 0
+             u = u.val;
+         end
+     end
 
       %--------------------------------------------------------------------
 
@@ -731,11 +736,6 @@ function J = horzcatJac(varargin)
 J = horzcat(varargin{:});
 end
 
-function u = reduceToDouble(u)
-    if isa(u, 'ADI') && sum(cellfun(@nnz, u.jac)) == 0
-        u = u.val;
-    end
-end
 
 %--------------------------------------------------------------------------
 %--------------------------------------------------------------------------
