@@ -17,15 +17,14 @@ f = model.fluid;
 
 [p, sW, wellSol] = model.getProps(state, 'pressure', 'water', 'wellsol');
 [p0, sW0, wellSol0] = model.getProps(state0, 'pressure', 'water', 'wellsol');
-[qWell, bhp, wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
+[wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
 
 %Initialization of independent variables ----------------------------------
 
 if ~opt.resOnly,
     % ADI variables needed since we are not only computing residuals.
     if ~opt.reverseMode,
-        [p, qWell{:}, bhp, wellVars{:}] = ...
-            initVariablesADI(p, qWell{:}, bhp, wellVars{:});
+        [p, wellVars{:}] = initVariablesADI(p, wellVars{:});
     else
         assert(0, 'Backwards solver not supported for splitting');
     end
@@ -117,14 +116,10 @@ end
 
 % well equations
 % Finally, add in and setup well equations
-if ~isempty(W)
-    if ~opt.reverseMode
-        dissolved = {};
-        [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, qWell, bhp, wellVars, wellMap, p, mob, rho, dissolved, {}, dt, opt);
-    else
-        error('Not supported')
-    end
-end
+mob = {mobW, mobO};
+rho = {rhoW, rhoO};
+dissolved = {};
+[eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, wellVars, wellMap, p, mob, rho, dissolved, {}, dt, opt);
 
 eqs{1} = (oil./bO + wat./bW);
 names{1} = 'pressure';
