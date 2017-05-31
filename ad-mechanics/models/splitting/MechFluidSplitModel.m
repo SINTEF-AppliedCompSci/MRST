@@ -39,7 +39,6 @@ classdef MechFluidSplitModel < ReservoirModel
                                                       opt.fluidModelType, ...
                                                       'extraWellSolOutput', ...
                                                       false, rest{:});
-            model.fluidModel.FacilityModel = model.FacilityModel;
 
             model.fluidfds = model.fluidModel.getListFields();
 
@@ -132,14 +131,6 @@ classdef MechFluidSplitModel < ReservoirModel
         function state = validateState(model, state)
            state = model.fluidModel.validateState(state);
            state = model.mechModel.validateState(state);
-        end
-
-        function model = validateModel(model, varargin)
-            if isempty(model.FacilityModel)
-                error(['Unvalid MechFluidSplitModel. The model requires a ' ...
-                       'Facility model ']);
-            end
-            model.fluidModel.FacilityModel = model.FacilityModel;
         end
 
         function wstate = syncWStateFromState(model, state)

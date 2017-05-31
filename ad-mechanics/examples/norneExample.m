@@ -222,9 +222,9 @@ W = addWell(W, G, rock, prodcell, ...
             'Name'    , 'prod',  ...
             'refDepth', refdepth);
 
-facilityModel = FacilityModel(model); %#ok
-model.FacilityModel = facilityModel.setupWells(W);
-model = model.validateModel();
+facilityModel = FacilityModel(model.fluidModel); %#ok
+facilityModel = facilityModel.setupWells(W);
+model.fluidModel.FacilityModel = facilityModel;
 
 
 %% Setup schedule
