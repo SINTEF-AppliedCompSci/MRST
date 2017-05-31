@@ -42,7 +42,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    isSat  = (sG > s_tol) | (rs > rsSat);
    %isSat0 = (sG0 > s_tol);
 
-   %% Initialization of independent variables
+   % Initialization of independent variables
 
    if ~opt.resOnly
       % ADI variables needed since we are not only computing residuals
@@ -58,7 +58,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    sW0 = 1 - sG0; % also for water saturation
 
 
-   %% Preparing various necessary, intermediate values
+   % Preparing various necessary, intermediate values
 
    % multiplier for mobilities
    [pvMult, transMult, mobMult, pvMult0] = getMultipliers(f, p, p0);
@@ -95,7 +95,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    bGvG   = s.faceUpstr(upcg, bG) .* vG;
    rsbWvW = s.faceUpstr(upcw, rs) .* bWvW;
 
-   %% Setting up brine and CO2 equations
+   % Setting up brine and CO2 equations
 
    % Water (Brine) conservation
    eqs{1} = (s.pv / dt) .* (pvMult .* bW .* sW - pvMult0 .* bW0 .* sW0) + s.Div(bWvW);
@@ -116,7 +116,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                        0*bG}, {sW, 0*sG}, drivingForces);
    eqs{2} = eqs{2} + eqs_rs{1};
 
-   %% Setting up well equations
+   % Setting up well equations
    if ~isempty(W)
       wm = model.wellmodel;
       if ~opt.reverseMode
@@ -156,19 +156,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       eqs(5:7) = {bhp, bhp, bhp}; % empty ADIs
    end
 
-   %% Setting up dissolution equations
+   % Setting up dissolution equations
    eqs(3:4) = compute_dissolution_equations(model, Gt, f, sG, sG0, sGmax, ...
                                             sGmax0, bG, sW, sW0, bW, bW0, p, ...
                                             rhoW, mobW, rs, rs0, rsSat, isSat, ...
                                             pvMult, pvMult0, wc, cqs{1}, s, ...
                                             rsbWvW, drivingForces, dt);
 
-   %% Rescaling non-well equations
+   % Rescaling non-well equations
    for i = 1:4
       eqs{i} = eqs{i} * dt / year;
    end
 
-   %% Setting up problem
+   % Setting up problem
    primaryVars = {'pressure' , 'sG'   , 'sGmax' , 'rs'    , 'qWs'      , 'qGs'          , 'bhp'       };
    types = {'cell'           , 'cell' , 'cell'  , 'cell'  , 'perf'     , 'well'         , 'perf'      };
    names = {'water'          , 'gas'  , 'dissol' , 'sGmax', 'gasWells' , 'closureWells' , 'waterWells'};
@@ -191,14 +191,14 @@ function eqs = compute_dissolution_equations(model, Gt, f, sG, sG0, sGmax, ...
                                              rsbWvW, drivingForces, dt)
    if f.dis_rate == 0
 
-      %% Instantaneous dissolution model
+      % Instantaneous dissolution model
       eqs{1}        = sG + 0 * sG0;
       eqs{1}(isSat) = rs(isSat) - rsSat(isSat);
       eqs{2}        = sGmax - max(sGmax0, sG);
 
    else
 
-      %% Rate-driven dissolution model
+      % Rate-driven dissolution model
 
       rate = f.dis_rate .* s.pv./Gt.cells.H; % rate per area multiplied
                                              % by CO2/brine interface area
@@ -214,7 +214,7 @@ function eqs = compute_dissolution_equations(model, Gt, f, sG, sG0, sGmax, ...
                                       % sG goes to 0, or when dissolved value
                                       % approaches maximum.
 
-      %% Conservation equation for dissolved CO2
+      % Conservation equation for dissolved CO2
       eqs{1} = (s.pv/dt) .* (pvMult  .* rs  .* bW  .* sW - pvMult0 .* rs0 .* bW0 .* sW0) + ...
                s.Div(rsbWvW) - rate;
 
@@ -230,7 +230,7 @@ function eqs = compute_dissolution_equations(model, Gt, f, sG, sG0, sGmax, ...
                                          drivingForces);
       eqs{1} = eqs{1} + eqs_rs{1};
 
-      %% Modify conservation equation to ensure dissolved CO2 remains within
+      % Modify conservation equation to ensure dissolved CO2 remains within
       % valid boundaries
 
       % Computing minimum allowed residual saturation per cell (the upper region where
@@ -263,7 +263,7 @@ function eqs = compute_dissolution_equations(model, Gt, f, sG, sG0, sGmax, ...
       eqs{1}(is_sat) = (rs(is_sat) - rsSat(is_sat)) .* s.pv(is_sat)/dt;
 
 
-      %% Equation for changes to sGmax
+      % Equation for changes to sGmax
 
       % Default equation: force 'sGmax' to equal 'sG'
       eqs{2} = (sGmax - sG) .* (s.pv / dt);
