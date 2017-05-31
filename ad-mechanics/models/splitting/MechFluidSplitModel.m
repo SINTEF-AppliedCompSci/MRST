@@ -1,4 +1,4 @@
-classdef MechFluidSplitModel < ThreePhaseBlackOilModel
+classdef MechFluidSplitModel < ReservoirModel
 % Base class for mechanics-flow splitting.
 %
     properties
@@ -28,11 +28,7 @@ classdef MechFluidSplitModel < ThreePhaseBlackOilModel
             [opt, rest] = merge_options(opt, varargin{:});
             fluidModelType = opt.fluidModelType;
 
-            model = model@ThreePhaseBlackOilModel(G, rock, fluid, ...
-                                                  'extraWellSolOutput', false, ...
-                                                  rest{:});
-
-
+            model = model@ReservoirModel(G, rest{:});
 
             model.G = createAugmentedGrid(model.G);
 
@@ -43,6 +39,7 @@ classdef MechFluidSplitModel < ThreePhaseBlackOilModel
                                                       opt.fluidModelType, ...
                                                       'extraWellSolOutput', ...
                                                       false, rest{:});
+            model.fluidModel.FacilityModel = model.FacilityModel;
 
             model.fluidfds = model.fluidModel.getListFields();
 
@@ -128,8 +125,21 @@ classdef MechFluidSplitModel < ThreePhaseBlackOilModel
                 index = ':';
               otherwise
                 % This will throw an error for us
-                [fn, index] = getVariableField@ThreePhaseBlackOilModel(model, name);
+                [fn, index] = model.fluidModel.getVariableField(name);
             end
+        end
+
+        function state = validateState(model, state)
+           state = model.fluidModel.validateState(state);
+           state = model.mechModel.validateState(state);
+        end
+
+        function model = validateModel(model, varargin)
+            if isempty(model.FacilityModel)
+                error(['Unvalid MechFluidSplitModel. The model requires a ' ...
+                       'Facility model ']);
+            end
+            model.fluidModel.FacilityModel = model.FacilityModel;
         end
 
         function wstate = syncWStateFromState(model, state)
