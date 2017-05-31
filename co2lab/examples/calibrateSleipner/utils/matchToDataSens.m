@@ -44,13 +44,17 @@ function obj = matchToDataSens(model, wellSols, states, schedule, plumes, vararg
       %obj{step} = dt * spones(ones(1, nW)) * ((1-penalty) * injInx .* qGs);
       
       if(~isempty(plumes{tSteps(step)}))
-          obj{step} = matchToCo2Surface(sG,plumes{tSteps(step)},model.G,model.fluid);
+          o = matchToCo2Surface(sG,plumes{tSteps(step)},model.G,model.fluid);
           %obj{step} = obj{step} + sum(dz.^2.*model.G.cells.volumes);
           alpha = 1/9; % tested alpha = 0, 0.1, 1 (a scaling value for dz)
-          obj{step} = obj{step} + sum(alpha * (dz.^2) .* model.G.cells.volumes);
+          o = o + sum(alpha * (dz.^2) .* model.G.cells.volumes);
       else
-         obj{step} = 0*qGs;
-      end      
+          o = 0*qGs;
+      end
+      if ~isa(o, 'ADI')
+          o = double2ADI(o, p);
+      end
+      obj{step} = o;
    end
 end
 
