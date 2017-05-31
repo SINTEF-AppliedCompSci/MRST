@@ -84,6 +84,8 @@ methods
 
     % --------------------------------------------------------------------%
     function [problem, state] = getAdjointEquations(model, state0, state, dt, drivingForces, varargin)
+        % Get the adjoint system. By default, this is simply the regular
+        % equations called with the reverseMode parameter enabled.
         [problem, state] = model.getEquations(state0, state, dt, drivingForces, 'reverseMode', true, varargin{:});
     end
 
@@ -254,8 +256,13 @@ methods
         if itNo == 1
             before = model.validateState(before);
         end
-        
-        problem = model.getEquations(before, current, dt, forces, 'iteration', inf);
+        % We get the forward equations via the reverseMode flag. This is
+        % slightly hacky (we should use the forward equations instead), but
+        % we assume that the reverseMode flag takes care of this for us.
+        % This slightly messy setup is made to support hysteresis models,
+        % where the forward and backwards equations are very different.
+        problem = model.getAdjointEquations(before, current, dt, forces, ...
+                                    'reverseMode', false, 'iteration', inf);
 
         if itNo < numel(dt_steps)
             after    = getState(itNo + 1);
