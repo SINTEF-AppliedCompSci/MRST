@@ -54,17 +54,20 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     nsrc = numel(cells);
     
     inj = src.rate > 0;
+    prod = ~inj;
     qSurf = cell(nPh, 1);
     
-    if any(~inj)
-        totMob = mob{1};
-        for i = 2:nPh
+    if any(prod)
+        totMob = 0;
+        for i = 1:nPh
             totMob = totMob + mob{i};
         end
     end
     
     for i = 1:nPh
-        q = double2ADI(zeros(nsrc, 1), totMob);
+        if any(prod)
+            q = double2ADI(zeros(nsrc, 1), totMob);
+        end
         
         if any(inj)
             % Injection rates are given in reservoir conditions

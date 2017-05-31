@@ -6,21 +6,8 @@ assert(numel(wellSol) == 1);
 assert(numel(W) == 1);
 numPh = numel(q_s);
 
-b = cell(numPh, 1);
 rhoS = resmodel.getSurfaceDensities();
-
-for i = 1:numPh
-    factor = rhoS(i);
-    if ~isempty(dissolved)
-        for j = 1:numPh
-            r_ph = dissolved{j}{i};
-            if ~isempty(r_ph)
-                factor = factor + rhoS(j).*r_ph;
-            end
-        end
-    end
-    b{i} = rho{i}./factor;
-end
+b = phaseDensitiesTobfactor(rho, rhoS, dissolved);
 
 Tw = W.WI;
 compi = W.compi;

@@ -1,4 +1,4 @@
-function [qSurf, BCTocellMap, BCcells, qRes] = getBoundaryConditionFluxesAD(model, pressure, rho, mob, s, bc)
+function [qSurf, BCTocellMap, BCcells, qRes] = getBoundaryConditionFluxesAD(model, pressure, b, mob, s, bc)
 %Get boundary condition fluxes for a given set of values
 %
 % SYNOPSIS:
@@ -18,9 +18,6 @@ function [qSurf, BCTocellMap, BCcells, qRes] = getBoundaryConditionFluxesAD(mode
 %                containing the phase pressures.
 %
 %   rho        - Surface densities of each phase, as a nph long cell array.
-%
-%   b          - Reservoir to standard condition factors per phase, as a
-%                nph long array.
 %
 %   s          - Phase saturations per cell, as a nph long array.
 %
@@ -117,7 +114,7 @@ for i = 1:nPh
     [q_s, q_r] = deal(double2ADI(zeros(nbc, 1), sample));
     
     pBC   = cellToBCMap*pressure{i};
-    rhoBC = cellToBCMap*rho{i};
+    bBC = cellToBCMap*b{i};
     mobBC = cellToBCMap*mob{i};
     sBC   = cellToBCMap*s{i};
     
@@ -129,7 +126,7 @@ for i = 1:nPh
     end
     
     % Treat pressure BC
-    dP = bc.value(isP) - pBC(isP) + rhoBC(isP).*dzbc(isP);
+    dP = bc.value(isP) - pBC(isP) + rhoS(i).*bBC(isP).*dzbc(isP);
 
     % Determine if pressure bc are injecting or producing
     injDir = dP > 0;
@@ -141,7 +138,7 @@ for i = 1:nPh
         % Write out the flux equation over the interface
         subs = isP & ~injP;
         q_res = mobBC(subs).*T(subs).*dP(~injDir);
-        q_s(subs) = rhoBC(subs).*q_res./rhoS(i);
+        q_s(subs) = bBC(subs).*q_res;
         q_r(subs) = q_res;
         clear subs
     end
@@ -151,7 +148,7 @@ for i = 1:nPh
         % determined by the sat field
         subs = isP & injP;
         q_res = totMob(subs).*T(subs).*dP(injDir).*sat(subs, i);
-        q_s(subs)  = rhoBC(subs).*q_res./rhoS(i);
+        q_s(subs)  = bBC(subs).*q_res;
         q_r(subs) = q_res;
         clear subs
     end
@@ -162,7 +159,7 @@ for i = 1:nPh
     if any(subs)
         % Injection
         q_s(subs) = bc.value(subs).*sat(subs, i);
-        q_r(subs) = bc.value(subs).*sat(subs, i).*rhoS(i)./rhoBC(subs);
+        q_r(subs) = bc.value(subs).*sat(subs, i)./bBC(subs);
     end
     subs = ~isP & ~injNeu;
     if any(subs)
@@ -171,7 +168,7 @@ for i = 1:nPh
         f = mobBC(subs)./totMob(subs);
         tmp = f.*bc.value(subs);
         q_s(subs) = tmp;
-        q_r(subs) = tmp.*rhoS(i)./rhoBC(subs);
+        q_r(subs) = tmp./bBC(subs);
     end
     qSurf{i} = q_s;
     qRes{i} = q_r;
