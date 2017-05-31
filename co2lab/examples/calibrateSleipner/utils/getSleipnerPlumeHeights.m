@@ -2,7 +2,7 @@ function FH = getSleipnerPlumeHeights(varargin)
 
     opt = struct('year', 2001);
     opt = merge_options(opt, varargin{:});
-    
+
     % We have 4 years worth of plume heights, taken from literature. The
     % heights are loaded from previously made .mat files, which are
     % available for download from the dataset manager: run "mrstDatasetGUI"
@@ -16,7 +16,7 @@ function FH = getSleipnerPlumeHeights(varargin)
                     'ChadwickNoy_2004plume',...
                     'ChadwickNoy_2006plume',...
                     'FurreEiken_2010plume'  };    
-    datafile = fullfile(ROOTDIR,'examples','data','SleipnerPlumes',[datafiles{ind},'.mat']);
+    datafile = fullfile(getDatasetPath('SleipnerPlumes'), [datafiles{ind},'.mat']);
     ok = exist(datafile,'file');
     if (ok>0)
         a   = load(datafile);
@@ -24,5 +24,4 @@ function FH = getSleipnerPlumeHeights(varargin)
     else
         error('no data avilable');
     end
-
 end
