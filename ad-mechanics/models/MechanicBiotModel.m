@@ -15,11 +15,9 @@ classdef MechanicBiotModel < PhysicalModel
 
             model = model@PhysicalModel(G, 'stepFunctionIsLinear', true, rest{:});
 
-
             % Saving enhanced grid structure within model
-            if isempty(opt.InputModel)
-                model.G = mrstGridWithFullMappings(model.G);
-                model.G = computeGeometryCalc(model.G);
+            if any(strcmpi('createAugmentedGrid', model.G.type))
+                model.G = createAugmentedGrid(model.G);
             end
 
             % Physical properties of rock and fluid
@@ -33,14 +31,13 @@ classdef MechanicBiotModel < PhysicalModel
             end
 
             if isempty(opt.InputModel)
-                alpha_scaling = 1;
-                S             = [];
-                ilu_tol       = 1e-4;
+                alpha_scaling = 1;  % default values
+                S             = []; % default values
                 operators = setupOperatorsVEM(model.G, ...
                                               model.mech.C, ...
                                               model.mech.el_bc, ...
                                               model.mech.load, ...
-                                              alpha_scaling, S, ilu_tol);
+                                              alpha_scaling, S);
 
             else
                 operators = opt.InputModel.operators;

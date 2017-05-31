@@ -21,6 +21,8 @@ opt.bc_case    = 'bottom fixed'; % 'no displacement' or 'bottom fixed'
 %                     displacement, while a given pressure is imposed on
 %                     the external faces that are not bottom faces.
 
+opt.method     = 'fixed stress splitting'; % 'fully coupled' 'fixed stress splitting'
+
 %% Load Norne grid
 
 if ~ (makeNorneSubsetAvailable() && makeNorneGRDECL()),
@@ -174,7 +176,16 @@ gravity on;
 
 %% Setup model
 
-model = MechBlackOilModel(G, rock, fluid, mech);
+switch opt.method
+  case 'fully coupled'
+    model = MechBlackOilModel(G, rock, fluid, mech);
+  case 'fixed stress splitting'
+    model = MechFluidFixedStressSplitModel(G, rock, fluid, mech, 'fluidModelType', ...
+                                           'blackoil');
+  otherwise
+    error('method not recognized.');
+end
+
 
 
 %% Setup wells
