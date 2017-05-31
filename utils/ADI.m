@@ -306,7 +306,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                       error('Operation not supported');
               end
           end
-          h = reduceToDouble(h);
       end
 
       %--------------------------------------------------------------------
@@ -373,7 +372,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
               h = u;
               h.val = value;
               h.jac = jacs;
-              h = reduceToDouble(h);
               return;
           end
           assert(nargin==2, 'Max function implemented for up to 2 variables only.');
@@ -412,14 +410,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       function u = sum(u)
           u.val = sum(u.val);
           u.jac = sumJac(u.jac);
-          u = reduceToDouble(u);
       end
 
       %--------------------------------------------------------------------
       function u = cumsum(u)
           u.val = cumsum(u.val);
           u.jac = cumsumJac(u.jac);
-          u = reduceToDouble(u);
       end
 
       %--------------------------------------------------------------------
