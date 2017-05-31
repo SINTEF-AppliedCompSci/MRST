@@ -1,11 +1,21 @@
 classdef MechFluidSplitModel < ThreePhaseBlackOilModel
+% Base class for mechanics-flow splitting.
+%
     properties
+        % Mechanical model used in the splitting
         mechModel;
-        fluidModel;
-        fluidfds;
+        % List of variable names for the mechanical part (see sync functions below)
         mechfds;
+        % Fluid model used in the splitting
+        fluidModel;
+        % List of variable names for the fluid part (see sync functions below)
+        fluidfds;
+        % Solver to be used for the mechanical part
         mech_solver;
+        % Solver to be used for the fluid part
         fluid_solver;
+
+        %
         alpha_scaling;
         S;
         ilu_tol;
@@ -17,45 +27,24 @@ classdef MechFluidSplitModel < ThreePhaseBlackOilModel
             opt = struct('fluidModelType', 'single phase');
             [opt, rest] = merge_options(opt, varargin{:});
             fluidModelType = opt.fluidModelType;
-            
+
             model = model@ThreePhaseBlackOilModel(G, rock, fluid, ...
                                                   'extraWellSolOutput', false, ...
                                                   rest{:});
 
-            switch fluidModelType
-              case 'single phase'
-                model.water = true;
-                model.oil = false;
-                model.gas = false;
-                model.saturationVarNames = {};
-                model.fluidfds = {'wellSol', 'pressure'};
-                model.mechfds = {'xd', 'uu', 'u', 'stress', 'strain', 'vdiv'};
-              case 'oil water'
-                model.water = true;
-                model.oil = true;
-                model.gas = false;
-                model.saturationVarNames = {'sw', 'so'};
-                model.fluidfds = {'wellSol', 'pressure', 's'};
-                model.mechfds = {'xd', 'uu', 'u', 'stress', 'strain', 'vdiv'};
-              case 'blackoil'
-                model.water = true;
-                model.oil = true;
-                model.gas = true;
-                model.disgas = true;
-                model.vapoil = false;
-                model.saturationVarNames = {'sw', 'so', 'sg'};
-                model.fluidfds = {'wellSol', 'pressure', 's', 'rs', 'rv'};
-                model.mechfds = {'xd', 'uu', 'u', 'stress', 'strain', 'vdiv'};
-              otherwise
-                error('fluidModelType not recognized.')
-            end
+
 
             model.G = createAugmentedGrid(model.G);
 
+            % Different fluid models may be used. This base class should be
+            % derived for each of those. See e.g. SinglephaseFixedStressFluidModel.m
+            % (fixed stress splitting with single water phase).
             model.fluidModel = setupFluidModel(model, rock, fluid, ...
                                                       opt.fluidModelType, ...
                                                       'extraWellSolOutput', ...
                                                       false, rest{:});
+
+            model.fluidfds = model.fluidModel.getListFields();
 
             model.alpha_scaling = 1;
             model.S = [];
@@ -63,9 +52,39 @@ classdef MechFluidSplitModel < ThreePhaseBlackOilModel
             model = merge_options(model, rest{:});
 
             model.mechModel = MechanicBiotModel(model.G, rock, mech_problem);
+            model.mechfds = model.mechModel.getListFields();
 
             model.mech_solver = NonLinearSolver();
             model.fluid_solver = NonLinearSolver();
+
+
+            %     switch model.fluidModelType
+            %       case 'single phase'
+            %         model.water = true;
+            %         model.oil = false;
+            %         model.gas = false;
+            %         model.saturationVarNames = {};
+            %         model.fluidfds = {'wellSol', 'pressure'};
+            %         model.mechfds = {'xd', 'uu', 'u', 'stress', 'strain', 'vdiv'};
+            %       case 'oil water'
+            %         model.water = true;
+            %         model.oil = true;
+            %         model.gas = false;
+            %         model.saturationVarNames = {'sw', 'so'};
+            %         model.fluidfds = {'wellSol', 'pressure', 's'};
+            %         model.mechfds = {'xd', 'uu', 'u', 'stress', 'strain', 'vdiv'};
+            %       case 'blackoil'
+            %         model.water = true;
+            %         model.oil = true;
+            %         model.gas = true;
+            %         model.disgas = true;
+            %         model.vapoil = false;
+            %         model.saturationVarNames = {'sw', 'so', 'sg'};
+            %         model.fluidfds = {'wellSol', 'pressure', 's', 'rs', 'rv'};
+            %         model.mechfds = {'xd', 'uu', 'u', 'stress', 'strain', 'vdiv'};
+            %       otherwise
+            %         error('fluidModelType not recognized.')
+            %     end
 
         end
 
@@ -74,13 +93,15 @@ classdef MechFluidSplitModel < ThreePhaseBlackOilModel
             error('Base class function not meant for direct use.');
         end
 
+
+
         function [state, report] = stepFunction(model, state, state0, dt, ...
                                                 drivingForces, linsolve, ...
                                                 nonlinsolve, iteration, ...
                                                 varargin)
             error('Base class function not meant for direct use.');
         end
-        
+
         function divTerm = computeMechTerm(model, state)
             error('Base class function not meant for direct use.');
         end

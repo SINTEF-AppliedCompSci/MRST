@@ -1,11 +1,11 @@
-classdef WaterFixedStressBiotModel < WaterBiotModel
+classdef SinglephaseFixedStressFluidModel < WaterBiotModel
     
     properties
         pressCoef;
     end
 
     methods
-        function model = WaterFixedStressBiotModel(G, rock, fluid, varargin)
+        function model = SinglephaseFixedStressFluidModel(G, rock, fluid, varargin)
             model = model@WaterBiotModel(G, rock, fluid);
             model = merge_options(model, varargin{:});
         end

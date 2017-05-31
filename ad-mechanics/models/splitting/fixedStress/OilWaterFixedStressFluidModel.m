@@ -1,11 +1,11 @@
-classdef OilWaterFixedStressBiotModel < OilWaterBiotModel
+classdef OilWaterFixedStressFluidModel < OilWaterBiotModel
     
     properties
         pressCoef;
     end
 
     methods
-        function model = OilWaterFixedStressBiotModel(G, rock, fluid, varargin)
+        function model = OilWaterFixedStressFluidModel(G, rock, fluid, varargin)
             model = model@OilWaterBiotModel(G, rock, fluid);
             model = merge_options(model, varargin{:});
         end

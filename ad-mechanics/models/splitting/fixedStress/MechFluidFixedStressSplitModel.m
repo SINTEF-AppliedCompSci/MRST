@@ -13,11 +13,11 @@ classdef MechFluidFixedStressSplitModel < MechFluidSplitModel
                                                      varargin)
             switch fluidModelType
               case 'single phase'
-                fluidModel = WaterFixedStressBiotModel(model.G, rock, fluid, varargin{:});
+                fluidModel = SinglephaseFixedStressFluidModel(model.G, rock, fluid, varargin{:});
               case 'oil water'
-                fluidModel = OilWaterFixedStressBiotModel(model.G, rock, fluid, varargin{:});
+                fluidModel = OilWaterFixedStressFluidModel(model.G, rock, fluid, varargin{:});
               case 'blackoil'
-                fluidModel = BlackOilFixedStressBiotModel(model.G, rock, fluid, varargin{:});
+                fluidModel = BlackOilFixedStressFluidModel(model.G, rock, fluid, varargin{:});
               otherwise
                 error('fluidModelType not recognized.');
             end
@@ -28,7 +28,7 @@ classdef MechFluidFixedStressSplitModel < MechFluidSplitModel
                                                 drivingForces, linsolve, ...
                                                 nonlinsolve, iteration, ...
                                                 varargin)
-            
+
             fluidmodel = model.fluidModel;
             mechmodel = model.mechModel;
 
@@ -75,8 +75,7 @@ classdef MechFluidFixedStressSplitModel < MechFluidSplitModel
             invCi = model.mechModel.mech.invCi;
             griddim = model.G.griddim;
 
-            pTerm = sum(invCi(:, 1 : griddim), 2); % should have been computed
-                                                   % and stored
+            pTerm = sum(invCi(:, 1 : griddim), 2); % could have been computed and stored...
 
             if griddim == 3
                 cvoigt = [1, 1, 1, 0.5, 0.5, 0.5];

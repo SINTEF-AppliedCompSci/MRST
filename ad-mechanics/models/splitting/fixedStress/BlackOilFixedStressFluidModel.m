@@ -1,12 +1,12 @@
-classdef BlackOilBiotModel < ThreePhaseBlackOilModel
+classdef BlackOilFixedStressFluidModel < ThreePhaseBlackOilModel
 
     properties
         fluidModelType;
+        pressCoef;
     end
 
-
     methods
-        function model = BlackOilBiotModel(G, rock, fluid, varargin)
+        function model = BlackOilFixedStressFluidModel(G, rock, fluid, varargin)
             model = model@ThreePhaseBlackOilModel(G, rock, fluid);
             fluidModelType = 'blackoil';
             model.disgas = true;
@@ -34,11 +34,6 @@ classdef BlackOilBiotModel < ThreePhaseBlackOilModel
                                                               'water', ...
                                                               'gas', 'rs', 'rv');
 
-            bhp    = vertcat(wellSol.bhp);
-            qWs    = vertcat(wellSol.qWs);
-            qOs    = vertcat(wellSol.qOs);
-            qGs    = vertcat(wellSol.qGs);
-            
             %Initialization of primary variables ----------------------------------
             st  = model.getCellStatusVO(state,  1-sW-sG,   sW,  sG);
             st0 = model.getCellStatusVO(state0, 1-sW0-sG0, sW0, sG0);
@@ -50,40 +45,48 @@ classdef BlackOilBiotModel < ThreePhaseBlackOilModel
                 x = sG;
                 gvar = 'sG';
             end
-            
+
+            [wellVars, wellVarNames, wellMap] = ...
+                model.FacilityModel.getAllPrimaryVariables(wellSol);
+
+
             if ~opt.resOnly,
                 % define primary varible x and initialize
-                [p, sW, x, qWs, qOs, qGs, bhp] = ...
-                    initVariablesADI(p, sW, x, qWs, qOs, qGs, bhp);
+                [p, sW, x, wellVars{:}] = ...
+                    initVariablesADI(p, sW, x, wellVars{:});
             end
 
-            mechTerm = drivingForces.divTerm;
-            otherDrivingForces = rmfield(drivingForces, 'divTerm');
+            fnew = drivingForces.fixedStressTerms.new;
+            mechTerm.new = fnew.pTerm.*p - fnew.sTerm;
+            fold = drivingForces.fixedStressTerms.old;
+            mechTerm.old = fold.pTerm.*p - fold.sTerm;
 
+            otherDrivingForces = rmfield(drivingForces, 'fixedStressTerms');
 
-            [eqs, state] = equationsBlackOilBiot(state0, st0, p, sW, ...
-                                                         x, bhp, qWs, qOs, qGs, rs, ...
-                                                         rv, st, state, model, ...
-                                                         dt, mechTerm, ...
-                                                         drivingForces, ...
-                                                         'iteration', ...
+            [eqs, state] = equationsBlackOilBiot(state0, st0, p, sW, x,  rs, ...
+                                                 rv, st, wellVars, state, ...
+                                                 model, dt, mechTerm, ...
+                                                 otherDrivingForces, 'iteration', ...
                                                          opt.iteration);
 
             primaryVars = {'pressure', 'sW', gvar, 'qWs', 'qOs', 'qGs', 'bhp'};
-            names = {'water', 'oil', 'gas' 'waterWells', 'oilWells', 'gasWells', ...
-                     'closureWells'};
+            names = {'water', 'oil', 'gas', wellVarNames{:}};
             types = {'cell', 'cell', 'cell', 'perf', 'perf', 'perf', 'well'};
 
             problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
-
         end
 
         function forces = getValidDrivingForces(model)
             forces = getValidDrivingForces@ThreePhaseBlackOilModel(model);
             % divergence term
             % struct mechTerm.new and mechTerm.old
-            forces.divTerm = [];
+            forces.fixedStressTerms = [];
         end
+
+        function fds = getListFields(model)
+            fds = {'wellSol', 'pressure', 's', 'rs', 'rv'};
+        end
+
 
     end
 

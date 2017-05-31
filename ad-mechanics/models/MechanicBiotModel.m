@@ -144,7 +144,7 @@ classdef MechanicBiotModel < PhysicalModel
             stress  = op.D * strain; % The stress will be using "pseudo Voigt's"
                                      % notation, in the sense that it gets an extra
                                      % coefficient 2 for the off-diagonal terms.
-            
+
             % computing and storing useful preconditioner (incomplete Choleski)
             if isnan(ilu_tol)
                 fprintf('Skipping ilu\n');
@@ -156,6 +156,10 @@ classdef MechanicBiotModel < PhysicalModel
             model.operators.extra = struct('vdiv', vdiv, 'stress', stress, 'strain', ...
                                            strain, 'precond', iL);
 
+        end
+
+        function fds = getListFields(model)
+            fds = {'xd', 'uu', 'u', 'stress', 'strain', 'vdiv'};
         end
 
     end
