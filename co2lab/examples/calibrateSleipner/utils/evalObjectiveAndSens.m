@@ -7,7 +7,7 @@ function [val, der, wellSols, states, extra] = evalObjectiveAndSens(u, obj, stat
 opt=struct('only_sens',false,...
            'wellSols',[],...
            'states',[]);
-opt=merge_options(opt,varargin{:})       
+opt = merge_options(opt,varargin{:});
 
 % where minimizing -> set objective to minus objective:
 
