@@ -135,23 +135,21 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 
    % Setting up well equations
-   if ~isempty(W) 
-     dissolved = {{[],[]},{[],[]}};  % two phases, no dissolution
-     %add hysteresis variable, equation and name
-     if(opt.adjointForm)
-        primaryVars = {primaryVars{:}, 'sGmax'}; %#ok
-        types = {types{:} , 'cell' };  %#ok   
-        names = {names{:} , 'gasMax'}; %#ok
-     end
-     % add names of well equations
-     primaryVars = {primaryVars{:}, wellVarNames{:}}; %#ok   
-
-     [eqs, names, types, state.wellSol] = ...
-         model.insertWellEquations(eqs, names, types, wellSol0, wellSol, ...
-                                   wellVars, wellMap, p, ...
-                                   {mobW, mobG}, {rhoW, rhoG}, dissolved, ...
-                                   {}, dt, opt);
+   dissolved = {{[],[]},{[],[]}};  % two phases, no dissolution
+   %add hysteresis variable, equation and name
+   if(opt.adjointForm)
+       primaryVars = {primaryVars{:}, 'sGmax'}; %#ok
+       types = {types{:} , 'cell' };  %#ok
+       names = {names{:} , 'gasMax'}; %#ok
    end
+   % add names of well equations
+   primaryVars = {primaryVars{:}, wellVarNames{:}}; %#ok
+   
+   [eqs, names, types, state.wellSol] = ...
+       model.insertWellEquations(eqs, names, types, wellSol0, wellSol, ...
+       wellVars, wellMap, p, ...
+       {mobW, mobG}, {rhoW, rhoG}, dissolved, ...
+       {}, dt, opt);
 
    % Setting up problem
 
