@@ -22,6 +22,18 @@ opt.bc_case    = 'bottom fixed'; % 'no displacement' or 'bottom fixed'
 %                     the external faces that are not bottom faces.
 
 opt.method     = 'fixed stress splitting'; % 'fully coupled' 'fixed stress splitting'
+%
+% 'fully coupled'          : The mechanical and flow equations are solved fully couplde.
+% 
+% 'fixed stress splitting' : The mechanical and flow equations are solved
+%                            sequentially using a fixed stress splitting
+
+opt.fluid_model = 'blackoil'; % 'blackoil' 'singlephase'
+% 
+% 'blackoil'     : blackoil model is used for the fluid (gas is injected, see
+%                  schedule below)
+% 'single phase' : single phase model is used for the fluid 
+
 
 %% Load Norne grid
 
@@ -176,14 +188,15 @@ gravity on;
 
 %% Setup model
 
-switch opt.method
-  case 'fully coupled'
+modeltype = [opt.method, ' and ', opt.fluid_model];
+switch modeltype
+  case 'fully coupled and blackoil'
     model = MechBlackOilModel(G, rock, fluid, mech);
-  case 'fixed stress splitting'
+  case 'fixed stress splitting and blackoil'
     model = MechFluidFixedStressSplitModel(G, rock, fluid, mech, 'fluidModelType', ...
                                            'blackoil');
   otherwise
-    error('method not recognized.');
+    error('modeltype not recognized.');
 end
 
 

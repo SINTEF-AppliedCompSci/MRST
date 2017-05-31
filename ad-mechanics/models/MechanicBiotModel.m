@@ -73,7 +73,7 @@ classdef MechanicBiotModel < PhysicalModel
                 xd = initVariablesADI(xd);
             end
 
-            eqs = equationsMechanicBiot(xd, fluidp, model.G, model.rock, model.operators);
+            eqs = equationsPoroMechanics(xd, fluidp, model.G, model.rock, model.operators);
 
             primaryVars = {'xd'};
             names = {'disp'};
