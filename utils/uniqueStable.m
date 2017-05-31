@@ -87,7 +87,10 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-
+   if isempty(a)
+       [c, ia, ic] = deal([]);
+       return
+   end
    if force_fallback(varargin{:}) || ...
          ~exist('verLessThan', 'file') || ...
          verLessThan('matlab', '7.14'),
