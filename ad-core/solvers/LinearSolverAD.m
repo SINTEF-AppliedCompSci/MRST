@@ -90,8 +90,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
            if iscell(objective)
                objective = objective{:};
            end
-           objective = cat(objective);
-
+           objective = combineEquations(objective);
+           assert(isa(objective, 'ADI'), 'Objective function was not of type ADI.');
            rhs = -objective.jac{1}';
            if ~isempty(adjVec)
                problemPrev = problemPrev.assembleSystem();
