@@ -116,7 +116,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    
    init.schedule = schedule;
 
-   %% Compute initial objective value (if required for scaling)
+   % Compute initial objective value (if required for scaling)
    if isempty(opt.obj_scaling)
       [init.wellSols, init.states] = ...
           simulateScheduleAD(initState, model, schedule, ...
@@ -131,14 +131,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       opt.obj_scaling = abs(init.obj_val_total);
    end
    
-   %% Return if optimization should be skipped
+   % Return if optimization should be skipped
    if opt.dryrun
       optim = init;
       history = [];
       return;
    end
    
-   %% Define limits, scaling and objective function
+   % Define limits, scaling and objective function
    
    scaling.boxLims = [min_rates(:), max_rates(:)];
    scaling.obj     = opt.obj_scaling;
@@ -146,7 +146,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    obj_evaluator = @(u) evaluate_objective(u, opt.obj_fun, model, initState, ...
                                            schedule, scaling); 
 
-   %% Define constraints
+   % Define constraints
    
    linEqS = [];
    if opt.last_control_is_migration
@@ -161,7 +161,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    end
    
    
-   %% Call optimization routine
+   % Call optimization routine
    
    u = schedule2control(schedule, scaling);
    [~, u_opt, history] = unitBoxBFGS(u, obj_evaluator, 'linEq', linEqS, ...
@@ -170,7 +170,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                      'objChangeTol',    opt.objChangeTol);
                                      %'lineSearchMaxIt', 10, 'gradTol', 2e-3);
    
-   %% Preparing solution structures
+   % Preparing solution structures
    
    optim.schedule = control2schedule(u_opt, schedule, scaling);
 
