@@ -101,7 +101,7 @@ schedule = convertDeckScheduleToMRST(modelPolymer, deck);
 
 [wellSolsPolymer, statesPolymer] = ...
     simulateScheduleAD(state0, modelPolymer, schedule);
-
+%%
 [wellSolsOW, statesOW] = simulateScheduleAD(state0, modelOW, schedule);
 
 plotWellSols({wellSolsPolymer; wellSolsOW},'datasetnames',{'Polymer','Water'});

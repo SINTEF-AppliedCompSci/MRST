@@ -41,7 +41,7 @@ timesteps = repmat(dt, nt, 1);
 % Create Dirichlet boundary condition
 bc = pside([], G, 'xmin', 500*barsa, 'sat', [1 0]);
 bc = pside(bc, G, 'xmax', 100*barsa, 'sat', [0 0]);
-bc.poly = 4.*ones(size(bc.sat,1), 1);
+bc.c = 4.*ones(size(bc.sat,1), 1);
 
 schedule = simpleSchedule(timesteps, 'bc', bc);
 

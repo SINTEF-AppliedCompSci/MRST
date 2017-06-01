@@ -2,6 +2,10 @@ function [src, bc] = computeSourcesAndBoundaryConditionsAD(model, pressure, s, m
     hasBC  = ~isempty(forces.bc);
     hasSRC = ~isempty(forces.src);
     rhoS = model.getSurfaceDensities();
+    
+    [qVolBC, qVolSRC, b] = deal(cell(1, numel(mob)));
+    [bcCells, srcCells, BCTocellMap] = deal([]);
+
     if hasBC || hasSRC
         b = phaseDensitiesTobfactor(rho, rhoS, dissolved);
         if hasBC
@@ -13,9 +17,6 @@ function [src, bc] = computeSourcesAndBoundaryConditionsAD(model, pressure, s, m
             % Fluxes from source terms
             [qVolSRC, srcCells] = getSourceFluxesAD(model, mob, s, forces.src);
         end
-    else
-        [qVolBC, qVolSRC, b] = deal(cell(1, numel(mob)));
-        [bcCells, srcCells, BCTocellMap] = deal([]);
     end
     src = getContributionsStruct(forces.src, qVolSRC, b, rhoS, srcCells, dissolved);
     bc = getContributionsStruct(forces.bc, qVolBC, b, rhoS, bcCells, dissolved, BCTocellMap);
@@ -70,6 +71,8 @@ function src = getContributionsStruct(force, q_s, b, rhoS, cells, dissolved, map
             q_s{i} = mm*q_s{i};
             q_r{i} = mm*q_r{i};
         end
+    else
+        mm = [];
     end
     
     srcMass = q_s;
@@ -79,5 +82,6 @@ function src = getContributionsStruct(force, q_s, b, rhoS, cells, dissolved, map
     src = struct('phaseMass',   {srcMass}, ...
                  'phaseVolume', {q_r}, ...
                  'components',  {[]}, ...
+                 'mapping',     mm, ...
                  'sourceCells', cells);
 end
