@@ -76,7 +76,7 @@ properties
     saturationVarNames
     % Names of components
     componentVarNames
-    
+
     % Use alternate tolerance scheme
     useCNVConvergence
 
@@ -96,10 +96,10 @@ properties
     outputFluxes
     % Upstream weighting of injection cells
     upstreamWeightInjectors
-    
+
     % Vector for the gravitational force
     gravity
-    
+
     % Well model used to compute fluxes etc from well controls
     FacilityModel
 end
@@ -118,14 +118,14 @@ methods
             % ReservoirModel(G, rock, fluid, ...)
             model.rock  = varargin{1};
             model.fluid = varargin{2};
-            
+
             % Rest of arguments should be keyword/value pairs.
             varargin = varargin(3:end);
             % We have been provided the means, so we will execute setup
             % phase after parsing other inputs and defaults.
             doSetup = true;
         end
-        
+
         model.dpMaxRel = inf;
         model.dpMaxAbs = inf;
 
@@ -156,7 +156,7 @@ methods
         model.water = false;
         model.gas = false;
         model.oil = false;
-        
+
         if doSetup
             if isempty(G) || isempty(model.rock)
                 dispif(model.verbose, ...
@@ -180,7 +180,7 @@ methods
         end
         state = model.FacilityModel.validateState(state);
     end
-    
+
     function vars = getSaturationVarNames(model)
         vars = {'sw', 'so', 'sg'};
         ph = model.getActivePhases();
@@ -220,7 +220,7 @@ methods
         if isfield(state, 'wellSol')
             state.wellSol = model.FacilityModel.updateWellSol(state.wellSol, problem, dx, drivingForces, wellVars);
         end
-        
+
         % Update saturations in one go
         state  = model.updateSaturations(state, dx, problem, satVars);
 
@@ -264,17 +264,17 @@ methods
             % equations
             values_all = norm(problem, inf);
             rest = ~(isWOG | isWell);
-            
+
             conv_rest = values_all(rest) < model.nonlinearTolerance;
             convergence = [conv_cells, conv_wells, conv_rest];
             values = [v_cells, v_wells, values_all(rest)];
             restNames = problem.equationNames(rest);
             names = horzcat(namesWOG, namesWell, restNames);
         else
-            % Use strict tolerances on the residual without any 
+            % Use strict tolerances on the residual without any
             % fingerspitzengefuhlen by calling the parent class
             [convergence, values, names] = checkConvergence@PhysicalModel(model, problem, varargin{:});
-        end            
+        end
     end
 
     % --------------------------------------------------------------------%
@@ -375,7 +375,7 @@ methods
         % Query the index of a phase ('W', 'O', 'G')
         active = model.getPhaseNames();
         i = find(active == phasename);
-    end 
+    end
 
     % --------------------------------------------------------------------%
     function state = updateSaturations(model, state, dx, problem, satVars)
@@ -447,7 +447,7 @@ methods
             end
         end
     end
-    
+
     % --------------------------------------------------------------------%
     function state = storeFluxes(model, state, vW, vO, vG)
         % Utility function for storing the interface fluxes in the state
@@ -458,7 +458,7 @@ methods
         phasefluxes = {double(vW), double(vO), double(vG)};
         state = model.setPhaseData(state, phasefluxes, 'flux', internal);
     end
-    
+
     function state = storeBoundaryFluxes(model, state, qW, qO, qG, forces)
         if isempty(forces.bc) || ~isfield(forces, 'bc')
             return
@@ -466,7 +466,7 @@ methods
         phasefluxes = {double(qW), double(qO), double(qG)};
         state = model.setPhaseData(state, phasefluxes, 'flux', forces.bc.face);
     end
-    
+
     % --------------------------------------------------------------------%
     function state = storeMobilities(model, state, mobW, mobO, mobG)
         % Utility function for storing the mobilities in the state
@@ -476,7 +476,7 @@ methods
         mob = {double(mobW), double(mobO), double(mobG)};
         state = model.setPhaseData(state, mob, 'mob');
     end
-    
+
     % --------------------------------------------------------------------%
     function state = storeUpstreamIndices(model, state, upcw, upco, upcg)
         % Store upstream indices, so that they can be reused for other
@@ -488,7 +488,7 @@ methods
         mob = {upcw, upco, upcg};
         state = model.setPhaseData(state, mob, 'upstreamFlag');
     end
-    
+
     % --------------------------------------------------------------------%
     function state = storeDensity(model, state, rhoW, rhoO, rhoG)
         % Store compressibility / surface factors for plotting and
@@ -509,19 +509,19 @@ methods
         b = {double(bW), double(bO), double(bG)};
         state = model.setPhaseData(state, b, 'bfactor');
     end
-    
+
     % --------------------------------------------------------------------%
     function i = satVarIndex(model, name)
         % Find the index of a saturation variable by name
         i = find(strcmpi(model.getSaturationVarNames, name));
     end
-    
+
     % --------------------------------------------------------------------%
     function i = compVarIndex(model, name)
         % Find the index of a component variable by name
         i = find(strcmpi(model.componentVarNames, name));
     end
-    
+
     % --------------------------------------------------------------------%
     function varargout = evaluateRelPerm(model, sat, varargin)
         % Evaluate the fluid relperm. Depending on the active phases,
@@ -543,7 +543,7 @@ methods
             varargout{1} = model.fluid.(['kr', names])(sat{:}, varargin{:});
         end
     end
-    
+
     % --------------------------------------------------------------------%
     function g = getGravityVector(model)
         % Get the gravity vector used to instantiate the model
@@ -554,18 +554,18 @@ methods
         end
         g = model.gravity(dims);
     end
-    
+
     % --------------------------------------------------------------------%
     function gdxyz = getGravityGradient(model)
         % Get gradient of gravity on the faces
         assert(isfield(model.G, 'cells'), 'Missing cell field on grid');
         assert(isfield(model.G.cells, 'centroids'),...
             'Missing centroids field on grid. Consider using computeGeometry first.');
-        
+
         g = model.getGravityVector();
         gdxyz = model.operators.Grad(model.G.cells.centroids) * g';
     end
-    
+
 % --------------------------------------------------------------------%
     function scaling = getScalingFactorsCPR(model, problem, names, solver)%#ok
         % Return cell array of scaling factors for approximate pressure
@@ -600,7 +600,7 @@ methods
             fm.getWellContributions(wellSol0, wellSol, wellVars, ...
                                     wellMap, p, mob, rho, dissolved, components, ...
                                     dt, opt.iteration);
-        
+
         rhoS = model.getSurfaceDensities();
         wc = src.sourceCells;
         for i = 1:nPh
@@ -625,18 +625,18 @@ methods
                                                                  forces)
         % Compute masses for the phase pseudocomponents
         rhoS = model.getSurfaceDensities();
-        
+
         [src_terms, bnd_cond] = computeSourcesAndBoundaryConditionsAD(model, p, s, mob, rho, dissolved, forces);
         for i = 1:numel(s)
             if ~isempty(eqs{i})
                 sc = src_terms.sourceCells;
                 eqs{i}(sc) = eqs{i}(sc) - src_terms.phaseMass{i}./rhoS(i);
-                
+
                 bc = bnd_cond.sourceCells;
                 eqs{i}(bc) = eqs{i}(bc) - bnd_cond.phaseMass{i}./rhoS(i);
             end
         end
-        
+
         if nargout > 1
             if model.outputFluxes
                 act = model.getActivePhases();
@@ -647,18 +647,18 @@ methods
         end
 
         cnames = model.getComponentNames();
-        
+
         for i = 1:numel(cnames)
             name = cnames{i};
             sub = strcmpi(name, names);
             eqs{sub} = model.addComponentContributions(name, eqs{sub}, components{i}, bnd_cond, forces.bc);
         end
-        
+
         if nargout > 2
             src = struct('src', src_terms, 'bc', bnd_cond);
         end
     end
-    
+
     function eq = addComponentContributions(model, cname, eq, component, src, force)
         c = model.getProp(force, cname);
         switch lower(cname)
@@ -679,6 +679,10 @@ methods
         active = model.getActivePhases();
         props = {'rhoWS', 'rhoOS', 'rhoGS'};
         rhoS = cellfun(@(x) model.fluid.(x), props(active));
+    end
+
+    function [compEqs, compSrc, compNames, wellSol] = getExtraWellContributions(model, well, wellSol0, wellSol, q_s, bh, packed, qMass, qVol, dt, iteration)
+        [compEqs, compSrc, compNames] = deal({});
     end
 
 end
@@ -704,7 +708,7 @@ methods (Static)
         krog = f.krOG(so,  varargin{:});
         krO  = wg.*krog + ww.*krow;
     end
-    
+
     % --------------------------------------------------------------------%
     function [krW, krO] = relPermWO(sw, so, f, varargin)
         % Two phase oil-water relperm
@@ -715,7 +719,7 @@ methods (Static)
             krO = f.krOW(so, varargin{:});
         end
     end
-    
+
     % --------------------------------------------------------------------%
     function [krO, krG] = relPermOG(so, sg, f, varargin)
         % Two phase oil-gas relperm.
@@ -726,14 +730,14 @@ methods (Static)
             krO = f.krOG(so, varargin{:});
         end
     end
-    
+
     % --------------------------------------------------------------------%
     function [krW, krG] = relPermWG(sw, sg, f, varargin)
         % Two phase water-gas relperm
         krG = f.krG(sg, varargin{:});
         krW = f.krW(sw, varargin{:});
     end
-    
+
     % --------------------------------------------------------------------%
     function ds = adjustStepFromSatBounds(s, ds)
         % Ensure that cellwise increment for each phase is done with
@@ -760,18 +764,14 @@ methods (Static)
             ds(bad, :) = bsxfun(@times, ds(bad, :), w(bad, :));
         end
     end
-    
+
     function [names, types] = getExtraWellEquationNames(model)
         [names, types] = deal({});
     end
-    
+
     function names = getExtraWellPrimaryVariableNames(model)
         names = {};
     end
 
-    function [compEqs, compSrc, compNames, wellSol] = getExtraWellContributions(model, well, wellSol0, wellSol, q_s, bh, packed, qMass, qVol, dt, iteration)
-        [compEqs, compSrc, compNames] = deal({});
-    end
 end
 end
-
