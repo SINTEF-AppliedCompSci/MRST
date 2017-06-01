@@ -1,4 +1,4 @@
-function [eqs, state] = equationsSinglephaseMech(p0, p, qWs, pBH, state, model, dt, mechTerm, ...
+function [eqs, names, types, state] = equationsSinglephaseMech(state0, p, wellVars, state, model, dt, mechTerm, ...
                                                  drivingForces, varargin)
 
     % Note that state is given only for output
@@ -6,16 +6,20 @@ function [eqs, state] = equationsSinglephaseMech(p0, p, qWs, pBH, state, model, 
                  'resOnly', false); % just to avoid warning
     opt = merge_options(opt, varargin{:});
 
-    W = drivingForces.W;
-
+    % Shorter names for some commonly used parts of the model and forces.
     s = model.operators;
-    G = model.G;
     f = model.fluid;
     rock = model.rock;
+    G = model.G;
+    W = drivingForces.W;
+
+    [p0, wellSol0] = model.getProps(state0, 'pressure', 'wellSol');
+    
 
     %grav  = gravity;
     %gdz   = s.Grad(G.cells.centroids) * model.gravity';
     gdz   = s.Grad(G.cells.centroids) * model.getGravityVector()';
+
     %--------------------
     %check for p-dependent tran mult:
     trMult = 1;
@@ -63,35 +67,20 @@ function [eqs, state] = equationsSinglephaseMech(p0, p, qWs, pBH, state, model, 
               (rock.poro .* (G.cells.volumes .* pvMult0) + rock.alpha .* mechTerm.old) .* f.bW(p0)) ...
              + s.Div(bWvW);
 
-    eqs = addFluxesFromSourcesAndBC(model, eqs, ...
-                                    {p},...
-                                    {rhoW},...
-                                    {mobW}, ...
-                                    {bW},  ...
-                                    {ones(numel(p0),1)}, ...
-                                    drivingForces);
+    names = {'water'};
+    types = {'cell'};
 
-    % well equations
+    % Finally, add in and setup well equations
     if ~isempty(W)
-        wc    = vertcat(W.cells);
-        pw   = p(wc);
-        rhos = [f.rhoWS];
-        bw   = {bW(wc)};
-        mw   = {mobW(wc)};
-        s = {1};
-
-        wm = WellModel();
-        [cqs, weqs, ctrleqs, wc, state.wellSol]  = wm.computeWellFlux(model, ...
-                                                          W, state.wellSol, ...
-                                                          pBH, {qWs}, pw, rhos, ...
-                                                          bw, mw, s, {}, ...
-                                                          'nonlinearIteration', ...
-                                                          opt.iteration, ...
-                                                          'referencePressureIndex', ...
-                                                          1);
-        eqs(2) = weqs;
-        eqs{3} = ctrleqs;
-
-        eqs{1}(wc) = eqs{1}(wc) - cqs{1};
+        wellSol = model.getProp(state, 'wellsol');
+        [~, wellVarNames, wellMap] = ...
+            model.FacilityModel.getAllPrimaryVariables(wellSol);
+        [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, ...
+                                                          names, types, wellSol0, ...
+                                                          wellSol, wellVars, ...
+                                                          wellMap, p, {mobW}, ...
+                                                          {rhoW}, {}, {}, dt, ...
+                                                          opt);
     end
+    
 end

@@ -1,7 +1,5 @@
 classdef MechFluidFixedStressSplitModel < MechFluidSplitModel
 
-    properties
-    end
 
     methods
         function model = MechFluidFixedStressSplitModel(G, rock, fluid, mech_problem, varargin)

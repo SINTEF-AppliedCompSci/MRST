@@ -1,7 +1,5 @@
 classdef MechBlackOilModel < MechFluidModel
 
-    properties
-    end
 
     methods
         function model = MechBlackOilModel(G, rock, fluid, mech_problem, varargin)

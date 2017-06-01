@@ -21,14 +21,14 @@ opt.bc_case    = 'bottom fixed'; % 'no displacement' or 'bottom fixed'
 %                     displacement, while a given pressure is imposed on
 %                     the external faces that are not bottom faces.
 
-opt.method     = 'fixed stress splitting'; % 'fully coupled' 'fixed stress splitting'
+opt.method     = 'fully coupled'; % 'fully coupled' 'fixed stress splitting'
 %
 % 'fully coupled'          : The mechanical and flow equations are solved fully couplde.
 % 
 % 'fixed stress splitting' : The mechanical and flow equations are solved
 %                            sequentially using a fixed stress splitting
 
-opt.fluid_model = 'blackoil'; % 'blackoil' 'singlephase'
+opt.fluid_model = 'single phase'; % 'blackoil' 'single phase'
 % 
 % 'blackoil'     : blackoil model is used for the fluid (gas is injected, see
 %                  schedule below)
@@ -195,6 +195,8 @@ switch modeltype
   case 'fixed stress splitting and blackoil'
     model = MechFluidFixedStressSplitModel(G, rock, fluid, mech, 'fluidModelType', ...
                                            'blackoil');
+  case 'fully coupled and single phase'
+    model = MechSinglephaseModel(G, rock, fluid, mech);
   otherwise
     error('modeltype not recognized.');
 end
@@ -205,6 +207,8 @@ end
 W = [];
 refdepth = G.cells.centroids(1, 3); % for example...
 injcell  = 10; % for example...
+prodcell = G.cells.num; % for example...
+
 W = addWell(W, G, rock, injcell, ...
             'Type'    , 'rate', ...
             'Val'     , 2.5e6/day, ...
@@ -213,7 +217,6 @@ W = addWell(W, G, rock, injcell, ...
             'Name'    , 'inj',  ...
             'refDepth', refdepth);
 
-prodcell = G.cells.num; % for example...
 W = addWell(W, G, rock, prodcell, ...
             'Type'    ,'bhp', ...
             'Val'     , pRef, ...
@@ -222,12 +225,18 @@ W = addWell(W, G, rock, prodcell, ...
             'Name'    , 'prod',  ...
             'refDepth', refdepth);
 
-if ismember('fluidModel', properties(model))
-    facilityModel = FacilityModel(model.fluidModel); 
-else
-    facilityModel = FacilityModel(model); 
+switch opt.fluid_model
+  case 'blackoil'
+    W(1).compi = [0, 0, 1];
+    W(2).compi = [0, 1, 0];
+  case 'single phase'
+    W(1).compi = [1];
+    W(2).compi = [1];
+  otherwise
+    error('fluid_model not recognized.')
 end
 
+facilityModel = FacilityModel(model.fluidModel); 
 facilityModel = facilityModel.setupWells(W);
 model.FacilityModel = facilityModel;
 

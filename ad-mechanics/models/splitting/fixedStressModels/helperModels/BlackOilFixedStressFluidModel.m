@@ -1,14 +1,12 @@
 classdef BlackOilFixedStressFluidModel < ThreePhaseBlackOilModel
 
     properties
-        fluidModelType;
         pressCoef;
     end
 
     methods
         function model = BlackOilFixedStressFluidModel(G, rock, fluid, varargin)
             model = model@ThreePhaseBlackOilModel(G, rock, fluid);
-            fluidModelType = 'blackoil';
             model.disgas = true;
             model.vapoil = false;
             model = merge_options(model, varargin{:});
