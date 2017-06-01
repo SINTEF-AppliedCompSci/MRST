@@ -128,6 +128,16 @@ classdef MechFluidSplitModel < ReservoirModel
             end
         end
 
+        function model = validateModel(model, varargin)
+            if isempty(model.FacilityModel)
+                error('The MechFluidSplitModel requires to have an iniatilized FacilityModel')
+            end
+            model.fluidModel.FacilityModel = model.FacilityModel;
+            model = validateModel@ReservoirModel(model, varargin{:});
+            return
+        end
+
+        
         function state = validateState(model, state)
            state = model.fluidModel.validateState(state);
            state = model.mechModel.validateState(state);

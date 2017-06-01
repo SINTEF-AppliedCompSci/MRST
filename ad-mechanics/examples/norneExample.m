@@ -224,7 +224,7 @@ W = addWell(W, G, rock, prodcell, ...
 
 facilityModel = FacilityModel(model.fluidModel); %#ok
 facilityModel = facilityModel.setupWells(W);
-model.fluidModel.FacilityModel = facilityModel;
+model.FacilityModel = facilityModel;
 
 
 %% Setup schedule
@@ -244,8 +244,6 @@ initState          = initDisplacement(model, initState, []);
 
 [wsols, states] = simulateScheduleAD(initState, model, schedule);
 
-state = states{end};
-
 figure
-plotToolbar(G, state, 'outline', true);
+plotToolbar(G, states, 'outline', true);
 view([7, 40]);
