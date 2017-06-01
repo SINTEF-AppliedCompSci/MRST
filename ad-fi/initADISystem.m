@@ -121,7 +121,7 @@ if isempty(opt.cprEllipticSolver)
         opt.cprEllipticSolver = @mldivide;
     end
 end
-
+fluid = assignRelPerm(fluid);
 if comp.gas
     if comp.oil && comp.water,
         if comp.disgas, ld = 'live'; else ld = 'dead';end

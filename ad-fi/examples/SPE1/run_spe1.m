@@ -75,7 +75,7 @@ clear k p0 s0 rs0;
 
 figure(1)
 clf
-W = processWellsLocal(G, rock, deck.SCHEDULE.control(1));
+W = processWells(G, rock, deck.SCHEDULE.control(1));
 plotCellData(G, convertTo(rock.perm(:,1), milli*darcy), ...
              'FaceAlpha', 0.5, 'EdgeAlpha', 0.3, 'EdgeColor', 'k');
 plotWell(G, W)
@@ -177,7 +177,7 @@ mrst = qGs(:,prod) ./ qOs(:,prod);
 hold on, set(gca, 'FontSize', 14);
 plot(T, mrst, '-','LineWidth', 2)
 plot(Tcomp, ecl, '-r', 'LineWidth', 2);
-legend('MRST', 'Eclipse', 4)
+legend('MRST', 'Eclipse')
 xlabel('Time [Years]')
 title('Gas rate / Oil rate')
 axes('position', [0.21, 0.58, 0.35, 0.31]);
@@ -198,7 +198,7 @@ mrst = bhp(:,prod);
 hold on, set(gca, 'FontSize', 14);
 plot(T,     convertTo(mrst, barsa),'-',  'LineWidth', 2)
 plot(Tcomp, convertTo(ecl, barsa), '-r', 'LineWidth', 2);
-legend('MRST', 'Eclipse', 4)
+legend('MRST', 'Eclipse')
 xlabel('Time [Years]')
 ylabel('bar')
 title('Bottom hole pressure (Producer)')
@@ -215,7 +215,7 @@ mrst = bhp(:,inj);
 hold on, set(gca,'FontSize', 14);
 plot(T,     convertTo(mrst, barsa),'-',  'LineWidth', 2)
 plot(Tcomp, convertTo(ecl, barsa), '-r', 'LineWidth', 2);
-legend({'MRST', 'Eclipse'},4)
+legend({'MRST', 'Eclipse'})
 xlabel('Time [Years]')
 ylabel('bar')
 title('Bottom hole pressure (Injector)')
