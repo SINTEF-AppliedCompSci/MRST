@@ -1,4 +1,4 @@
-function [qSurf, BCTocellMap, BCcells, qRes] = getBoundaryConditionFluxesAD(model, pressure, b, mob, s, bc)
+function [qSurf, BCTocellMap, BCcells, qRes] = getBoundaryConditionFluxesAD(model, pressure, s, mob, rho, b, bc)
 %Get boundary condition fluxes for a given set of values
 %
 % SYNOPSIS:
@@ -117,6 +117,7 @@ for i = 1:nPh
     
     pBC   = cellToBCMap*pressure{i};
     bBC = cellToBCMap*b{i};
+    rhoBC = cellToBCMap*rho{i};
     mobBC = cellToBCMap*mob{i};
     sBC   = cellToBCMap*s{i};
     
@@ -128,7 +129,7 @@ for i = 1:nPh
     end
     
     % Treat pressure BC
-    dP = bc.value(isP) - pBC(isP) + rhoS(i).*bBC(isP).*dzbc(isP);
+    dP = bc.value(isP) - pBC(isP) + rhoBC(isP).*dzbc(isP);
 
     % Determine if pressure bc are injecting or producing
     injDir = dP > 0;

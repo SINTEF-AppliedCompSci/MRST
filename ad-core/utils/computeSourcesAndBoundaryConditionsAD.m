@@ -6,7 +6,7 @@ function [src, bc] = computeSourcesAndBoundaryConditionsAD(model, pressure, s, m
         b = phaseDensitiesTobfactor(rho, rhoS, dissolved);
         if hasBC
             % Setup the fluxes from the boundary condition
-            [qVolBC, BCTocellMap, bcCells] = getBoundaryConditionFluxesAD(model, pressure, b, mob, s, forces.bc);
+            [qVolBC, BCTocellMap, bcCells] = getBoundaryConditionFluxesAD(model, pressure, s, mob, rho, b, forces.bc);
         end
 
         if hasSRC
