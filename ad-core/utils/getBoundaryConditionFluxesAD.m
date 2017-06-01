@@ -90,6 +90,8 @@ else
 end
 
 isP = reshape(strcmpi(bc.type, 'pressure'), [], 1);
+isSF = reshape(strcmpi(bc.type, 'flux'), [], 1);
+isRF = ~(isP | isSF);
 
 [qSurf, qRes] = deal(cell(nPh,1));
 
@@ -155,13 +157,14 @@ for i = 1:nPh
     % Treat flux / Neumann BC
     injNeu = bc.value > 0;
     
-    subs = ~isP &  injNeu;
+    subs = isSF &  injNeu;
     if any(subs)
         % Injection
         q_s(subs) = bc.value(subs).*sat(subs, i);
         q_r(subs) = bc.value(subs).*sat(subs, i)./bBC(subs);
     end
-    subs = ~isP & ~injNeu;
+    % Fluxes given at surface conditions
+    subs = isSF & ~injNeu;
     if any(subs)
         % Production fluxes, use fractional flow of total mobility to
         % estimate how much mass will be removed.
@@ -169,6 +172,20 @@ for i = 1:nPh
         tmp = f.*bc.value(subs);
         q_s(subs) = tmp;
         q_r(subs) = tmp./bBC(subs);
+    end
+    % Fluxes given at reservoir conditions
+    subs = isRF &  injNeu;
+    if any(subs)
+        % Injection
+        q_s(subs) = bc.value(subs).*sat(subs, i).*bBC(subs);
+        q_r(subs) = bc.value(subs).*sat(subs, i);
+    end
+    subs = isRF & ~injNeu;
+    if any(subs)
+        f = mobBC(subs)./totMob(subs);
+        tmp = f.*bc.value(subs);
+        q_s(subs) = tmp.*bBC(subs);
+        q_r(subs) = tmp;
     end
     qSurf{i} = q_s;
     qRes{i} = q_r;

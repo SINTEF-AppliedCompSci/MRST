@@ -44,6 +44,10 @@ function src = getContributionsStruct(force, q_s, b, rhoS, cells, dissolved, map
                 end
                 
                 if isfield(force, 'dissolution')
+                    % Note: If dissolution is specified for rate
+                    % sources/bc, the total injected mass will change as
+                    % the dissolved mass is not accounted for. This feature
+                    % is primarily intended for pressure bc.
                     ds_mat = force.dissolution;
                     if ndims(ds_mat) == 3
                         % One value per cell, per phase and component
