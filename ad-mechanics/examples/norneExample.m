@@ -21,7 +21,7 @@ opt.bc_case    = 'bottom fixed'; % 'no displacement' or 'bottom fixed'
 %                     displacement, while a given pressure is imposed on
 %                     the external faces that are not bottom faces.
 
-opt.method     = 'fixed stress splitting'; % 'fully coupled' 'fixed stress splitting'
+opt.method     = 'fully coupled'; % 'fully coupled' 'fixed stress splitting'
 %
 % 'fully coupled'          : The mechanical and flow equations are solved fully couplde.
 % 
@@ -222,7 +222,11 @@ W = addWell(W, G, rock, prodcell, ...
             'Name'    , 'prod',  ...
             'refDepth', refdepth);
 
-facilityModel = FacilityModel(model.fluidModel); %#ok
+if any(strcmpi('fluidModel', model))
+    facilityModel = FacilityModel(model.fluidModel); 
+else
+    facilityModel = FacilityModel(model); 
+end
 facilityModel = facilityModel.setupWells(W);
 model.FacilityModel = facilityModel;
 

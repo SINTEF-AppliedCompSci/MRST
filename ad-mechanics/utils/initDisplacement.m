@@ -9,7 +9,7 @@ function state = initDisplacement(model, state, uu, varargin)
         if isprop(model, 'mechModel')
             mechmodel = model.mechModel; 
         else
-            mechmodel = MechanicBiotModel(model.G, model.rock, model.mech, ...
+            mechmodel = MechanicModel(model.G, model.rock, model.mech, ...
                                           'InputModel', model);
         end
 

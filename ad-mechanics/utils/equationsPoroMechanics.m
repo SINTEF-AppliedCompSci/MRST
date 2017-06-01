@@ -1,4 +1,4 @@
-function eqs = equationsPoroMechanics(x, fluidp,  G, rock, operators)
+function eqs = equationsPoroMechanics(x, fluidp, G, rock, operators)
 
    s = operators.mech;
    alpha = rock.alpha;

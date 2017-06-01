@@ -1,5 +1,5 @@
-classdef MechanicBiotModel < PhysicalModel
-    % Two phase oil/water system without dissolution
+classdef MechanicModel < PhysicalModel
+    % Mechanical model
     properties
         mech;
         rock;
@@ -9,13 +9,13 @@ classdef MechanicBiotModel < PhysicalModel
     end
 
     methods
-        function model = MechanicBiotModel(G, rock, mech_problem, varargin)
+        function model = MechanicModel(G, rock, mech_problem, varargin)
             opt = struct('InputModel', []);
             [opt, rest] = merge_options(opt, varargin{:});
 
             model = model@PhysicalModel(G, 'stepFunctionIsLinear', true, rest{:});
 
-            % Saving enhanced grid structure within model
+            % Process the grid for mechanical computation
             if any(strcmpi('createAugmentedGrid', model.G.type))
                 model.G = createAugmentedGrid(model.G);
             end
@@ -158,7 +158,8 @@ classdef MechanicBiotModel < PhysicalModel
 
         end
 
-        function fds = getListFields(model)
+        function [primaryVars, fds] = getAllVarsNames(model)
+            primaryVars = {'xd'};
             fds = {'xd', 'uu', 'u', 'stress', 'strain', 'vdiv'};
         end
 

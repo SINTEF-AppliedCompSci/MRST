@@ -30,7 +30,10 @@ classdef MechFluidSplitModel < ReservoirModel
 
             model = model@ReservoirModel(G, rest{:});
 
-            model.G = createAugmentedGrid(model.G);
+            % Process the grid for mechanical computation
+            if any(strcmpi('createAugmentedGrid', model.G.type))
+                model.G = createAugmentedGrid(model.G);
+            end
 
             % Different fluid models may be used. This base class should be
             % derived for each of those. See e.g. SinglephaseFixedStressFluidModel.m
@@ -47,7 +50,7 @@ classdef MechFluidSplitModel < ReservoirModel
             model.ilu_tol = 1e-4;
             model = merge_options(model, rest{:});
 
-            model.mechModel = MechanicBiotModel(model.G, rock, mech_problem);
+            model.mechModel = MechanicModel(model.G, rock, mech_problem);
             model.mechfds = model.mechModel.getListFields();
 
             model.mech_solver = NonLinearSolver();
