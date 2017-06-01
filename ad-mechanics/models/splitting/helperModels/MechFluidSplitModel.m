@@ -43,7 +43,7 @@ classdef MechFluidSplitModel < ReservoirModel
                                                       'extraWellSolOutput', ...
                                                       false, rest{:});
 
-            model.fluidfds = model.fluidModel.getListFields();
+            model.fluidfds = model.fluidModel.getAllVarsNames();
 
             model.alpha_scaling = 1;
             model.S = [];
@@ -51,7 +51,7 @@ classdef MechFluidSplitModel < ReservoirModel
             model = merge_options(model, rest{:});
 
             model.mechModel = MechanicModel(model.G, rock, mech_problem);
-            model.mechfds = model.mechModel.getListFields();
+            model.mechfds = model.mechModel.getAllVarsNames();
 
             model.mech_solver = NonLinearSolver();
             model.fluid_solver = NonLinearSolver();

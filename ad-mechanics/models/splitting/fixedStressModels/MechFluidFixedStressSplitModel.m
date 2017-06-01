@@ -29,33 +29,32 @@ classdef MechFluidFixedStressSplitModel < MechFluidSplitModel
                                                 nonlinsolve, iteration, ...
                                                 varargin)
 
-            fluidmodel = model.fluidModel;
-            mechmodel = model.mechModel;
+            fluidModel = model.fluidModel;
+            mechModel = model.mechModel;
 
             % Solve the mechanic equations
             mstate0 = model.syncMStateFromState(state0);
             wstate0 = model.syncWStateFromState(state0);
             state = state0;
 
-            fluidp = fluidmodel.getProp(wstate0, 'pressure');
+            fluidp = fluidModel.getProp(wstate0, 'pressure');
             mechsolver = model.mech_solver;
 
-            [mstate, mreport] = mechsolver.solveTimestep(mstate0, dt, mechmodel, ...
+            [mstate, mreport] = mechsolver.solveTimestep(mstate0, dt, mechModel, ...
                                                           'fluidp', fluidp);
 
             % Solve the fluid equations
             wdrivingForces = drivingForces; % The main model gets the well controls
-            s = mechmodel.operators;
 
             state = model.syncStateFromMState(state, mstate);
 
             wdrivingForces.fixedStressTerms.new = computeMechTerm(model, state);
             wdrivingForces.fixedStressTerms.old = computeMechTerm(model, state0);
 
-            forceArg = fluidmodel.getDrivingForces(wdrivingForces);
+            forceArg = fluidModel.getDrivingForces(wdrivingForces);
 
             fluidsolver = model.fluid_solver;
-            [wstate, wreport] = fluidsolver.solveTimestep(wstate0, dt, fluidmodel, ...
+            [wstate, wreport] = fluidsolver.solveTimestep(wstate0, dt, fluidModel, ...
                                                           forceArg{:});
 
             state = model.syncStateFromMState(state, mstate);
