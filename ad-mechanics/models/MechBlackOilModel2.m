@@ -88,10 +88,9 @@ classdef MechBlackOilModel2 < MechFluidModel
             types = {bo_eqstypes{:}, mech_eqstypes{:}};
 
             primaryVars = {'pressure', 'sW', gvar, wellVarNames{:}, 'xd'};
+            % make sure that the primary variables defined here match with
+            % those of BlackOilFluidModel and MechanicalModel.
 
-            model.fluidModel.primaryVars = {'pressure', 'sW', gvar, ...
-                                wellVarNames{:}};
-            
             problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 
         end

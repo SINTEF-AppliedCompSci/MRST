@@ -4,7 +4,7 @@ function state = computeInitDisp(model, state, uu, varargin)
                  'pressure'  , []   );
     opt = merge_options(opt, varargin{:});
 
-    mechModel = model.Mechmodel,
+    mechModel = model.mechModel;
     
     if (opt.mech_equil)
 

@@ -40,7 +40,7 @@ classdef MechFluidModel < ReservoirModel
 
 
 
-            model.mechModel = MechanicModel(model.G, rock, mech_problem);
+            model.mechModel = MechanicMechModel(model.G, rock, mech_problem);
             model.mechfds = model.mechModel.getAllVarsNames();
 
             model.mechModel.alpha_scaling = 1;
@@ -75,11 +75,11 @@ classdef MechFluidModel < ReservoirModel
 
         function [state, report] = updateState(model, state, problem, dx, drivingForces)
 
-            [state, fluidReport] = model.fluidModel.updateState(state, problem, dx, []);
-            [state, mechReport]  = model.mechModel.updateState(state, problem, dx, []);
-
-            % Add extra equantities to the state
-            state = addDerivedQuantities(model,state);
+            fluidModel = model.fluidModel;
+            mechModel  = model.mechModel;
+            [state, fluidReport] = fluidModel.updateState(state, problem, dx, []);
+            [state, mechReport]  = mechModel.updateState(state, problem, dx, []);
+            report = []; 
         end
 
         function model = validateModel(model, varargin)

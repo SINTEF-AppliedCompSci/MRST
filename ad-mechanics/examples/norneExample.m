@@ -242,7 +242,7 @@ clear initState;
 initState.pressure = pRef*ones(G.cells.num, 1);
 initState.s        = ones(G.cells.num, 1)*[0, 1, 0];
 initState.rs       = 0.5*fluid.rsSat(initState.pressure);
-initState          = initDisplacement(model, initState, []);
+initState          = computeInitDisp(model, initState, []);
 
 
 %% Start simulation
