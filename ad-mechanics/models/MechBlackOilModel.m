@@ -1,41 +1,22 @@
-classdef MechBlackOilModel < ThreePhaseBlackOilModel
+classdef MechBlackOilModel < MechFluidModel
+
     properties
-        mech;
-        alpha_scaling;
-        S;
     end
 
     methods
         function model = MechBlackOilModel(G, rock, fluid, mech_problem, varargin)
 
-            model = model@ThreePhaseBlackOilModel(G, rock, fluid, varargin{:});
-            model.disgas = true;
-            
-            model.alpha_scaling = 1;
-            model.S = [];
-            model = merge_options(model, varargin{:});
-
-            model.G = createAugmentedGrid(model.G);
-            model.mech = mech_problem;
-
-            % Compute stiffness tensor C, if not given
-            if ~isfield(model.mech, 'C')
-                model.mech.C = Enu2C(model.mech.Ev, model.mech.nuv, model.G);
-            end
-            % Blackoil -> use CNV style convergence
-            model.useCNVConvergence = false;
-
-            operators = setupOperatorsVEM(model.G, ...
-                                          model.mech.C, ...
-                                          model.mech.el_bc, ...
-                                          model.mech.load, ...
-                                          model.alpha_scaling, ...
-                                          model.S);
-
-            model.operators.mech  = operators.mech;
-            model.operators.extra = operators.extra;
+            model = model@MechFluidModel(G, rock, fluid, mech_problem, ...
+                                         varargin{:});
 
         end
+
+        function fluidModel = setupFluidModel(model)
+            fluidModel = BlackOilFluidModel(model.G, model.rock, ...
+                                                 model.fluid);
+            fluidModel.disgas = true;
+        end
+
 
         function [problem, state] = getEquations(model, state0, state, dt, ...
                                                         drivingForces, varargin)
@@ -59,11 +40,15 @@ classdef MechBlackOilModel < ThreePhaseBlackOilModel
                                                                    'gas', 'rs', ...
                                                                    'rv', ...
                                                                    'xd');
-            
-            %Initialization of primary variables ----------------------------------
-            st  = model.getCellStatusVO(state,  1-sW-sG,   sW,  sG);
-            st0 = model.getCellStatusVO(state0, 1-sW0-sG0, sW0, sG0);
-            if model.disgas || model.vapoil
+
+            %Initialization of primary variables
+
+            fluidModel = model.fluidModel; % shortcuts
+            mechModel  = model.mechModel; % shortcuts
+
+            st  = fluidModel.getCellStatusVO(state,  1-sW-sG,   sW,  sG);
+            st0 = fluidModel.getCellStatusVO(state0, 1-sW0-sG0, sW0, sG0);
+            if fluidModel.disgas || fluidModel.vapoil
                 % X is either Rs, Rv or Sg, depending on each cell's saturation status
                 x = st{1}.*rs + st{2}.*rv + st{3}.*sG;
                 gvar = 'x';
@@ -73,97 +58,53 @@ classdef MechBlackOilModel < ThreePhaseBlackOilModel
             end
 
             [wellVars, wellVarNames, wellMap] = ...
-                model.FacilityModel.getAllPrimaryVariables(wellSol);
-            
+                fluidModel.FacilityModel.getAllPrimaryVariables(wellSol);
+
             if ~opt.resOnly,
                 % define primary varible x and initialize
-                [p, sW, x, wellVars{:}, xd] = initVariablesADI(p, ...
-                                                                  sW, x, ...
-                                                                  wellVars{:}, ...
-                                                                  xd);
+                [p, sW, x, wellVars{:}, xd] = initVariablesADI(p, sW, x, ...
+                                                               wellVars{:}, ...
+                                                               xd);
             end
 
             [mechTerm, fluidp] = computeCouplingTerms(model, p0, xd0, p, xd);
 
-            [blackoileqs, state] = equationsBlackOilMech(state0, st0, p, sW, ...
-                                                         x, rs, rv, st, ...
-                                                         wellVars, state, ...
-                                                         model, dt, mechTerm, ...
-                                                         drivingForces, ...
-                                                         'iteration', ...
-                                                         opt.iteration);
-            mecheqs = equationsPoroMechanics(xd, fluidp, model.G, model.rock, ...
-                                            model.operators);
+            [bo_eqs, bo_eqsnames, bo_eqstypes, state] = equationsBlackOilMech(state0, ...
+                                                              st0, p, sW, x, ...
+                                                              rs, rv, st, ...
+                                                              wellVars, state, ...
+                                                              fluidModel, dt, ...
+                                                              mechTerm, ...
+                                                              drivingForces, ...
+                                                              'iteration', ...
+                                                              opt.iteration);
 
-            eqs = horzcat(blackoileqs, mecheqs);
-            primaryVars = {'pressure', 'sW', gvar, 'qWs', 'qOs', 'qGs', 'bhp', ...
-                          'xd'};
-            names = {'water', 'oil', 'gas', wellVarNames{:}, 'disp'};
-            types = {'cell', 'cell', 'cell', 'perf', 'perf', 'perf', 'well', ...
-                     'disp_dofs'};
+            [mech_eqs, mech_eqsnames, mech_eqstypes] = equationsPoroMechanics(xd, ...
+                                                              mechModel, ...
+                                                              fluidp);
+
+            eqs = horzcat(bo_eqs, mech_eqs);
+            names = {bo_eqsnames{:}, mech_eqsnames{:}};
+            types = {bo_eqstypes{:}, mech_eqstypes{:}};
+
+            primaryVars = {'pressure', 'sW', gvar, wellVarNames{:}, 'xd'};
+            % make sure that the primary variables defined here match with
+            % those of BlackOilFluidModel and MechanicalModel.
 
             problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 
         end
 
-
-        function [fn, index] = getVariableField(model, name)
-            switch(lower(name))
-              case {'xd'}
-                fn = 'xd';
-                index = 1;
-              case {'uu'}
-                fn = 'uu';
-                index = ':';
-              case {'u'}
-                fn = 'u';
-                index = ':';
-              case {'stress'}
-                fn = 'stress';
-                index = ':';
-              case {'strain'}
-                fn = 'strain';
-                index = ':';
-              case {'vdiv'}
-                fn = 'vdiv';
-                index = ':';
-              otherwise
-                % This will throw an error for us
-                [fn, index] = getVariableField@ThreePhaseBlackOilModel(model, name);
-            end
-        end
-
         function [mechTerm, fluidp] = computeCouplingTerms(model, p0, ...
                                                               xd0, p, xd)
-            
-            s = model.operators;
+
+            opmech = model.mechModel.operators.mech;
             fluidp = p;
-            mechTerm.new = s.mech.div*xd;
-            mechTerm.old = s.mech.div*xd0;
+            mechTerm.new = opmech.div*xd;
+            mechTerm.old = opmech.div*xd0;
 
         end
 
-        function [state, report] = updateState(model, state, problem, dx, drivingForces)
-            % Parent class handles almost everything for us
-            [state, report] = updateState@ThreePhaseBlackOilModel(model, state, problem, dx, drivingForces);
-            % add extra model states things from mechanics
-            state = addDerivedQuantities(model,state);
-        end
-
-        function model = setupOperators(model, G, rock, varargin)
-
-            
-            % Set up divergence / gradient / transmissibility operators for flow
-            model = setupOperators@ReservoirModel(model, G, rock, varargin{:});
-
-            operators = setupOperatorsVEM(model.G, model.mech.el_bc, ...
-                                                   model.mech.load, ...
-                                                   model.alpha_scaling, ...
-                                                   model.S);
-            model.operators.mech = operators.mech;
-            model.operators.extra = operators.extra;
-            
-        end
 
     end
 end

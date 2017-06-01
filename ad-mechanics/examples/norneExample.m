@@ -191,7 +191,7 @@ gravity on;
 modeltype = [opt.method, ' and ', opt.fluid_model];
 switch modeltype
   case 'fully coupled and blackoil'
-    model = MechBlackOilModel2(G, rock, fluid, mech);
+    model = MechBlackOilModel(G, rock, fluid, mech);
   case 'fixed stress splitting and blackoil'
     model = MechFluidFixedStressSplitModel(G, rock, fluid, mech, 'fluidModelType', ...
                                            'blackoil');

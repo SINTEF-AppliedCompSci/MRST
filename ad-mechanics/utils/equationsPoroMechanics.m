@@ -1,11 +1,14 @@
-function eqs = equationsPoroMechanics(x, fluidp, G, rock, operators)
+function [eqs, names, types, state] = equationsPoroMechanics(x, model, fluidp)
+    
+    G = model.G;
+    s = model.operators.mech;
+    alpha = model.rock.alpha;
 
-   s = operators.mech;
-   alpha = rock.alpha;
+    eqs{1} = s.A * x - s.gradP * (alpha .* fluidp) - s.rhs;
 
-   eqs{1} = s.A * x - s.gradP * (alpha .* fluidp) - s.rhs;
-
-   fac =  1 / (1e6 * mean(G.cells.volumes));
-   eqs{1} = eqs{1} * fac;
+    fac =  1 / (1e6 * mean(G.cells.volumes));
+    eqs{1} = eqs{1} * fac;
+    names = {'disp'};
+    types = {'disp_dofs'};
 
 end

@@ -73,7 +73,7 @@ classdef MechanicModel < PhysicalModel
                 xd = initVariablesADI(xd);
             end
 
-            eqs = equationsPoroMechanics(xd, fluidp, model.G, model.rock, model.operators);
+            eqs = equationsPoroMechanics(xd, model, fluidp);
 
             primaryVars = {'xd'};
             names = {'disp'};
