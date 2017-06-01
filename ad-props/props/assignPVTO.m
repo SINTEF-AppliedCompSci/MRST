@@ -1,12 +1,7 @@
 function f = assignPVTO(f, pvto, reg)
-f.BO  = @(po, rs, flag, varargin)BO(po, rs, pvto, flag, reg, varargin{:});
 f.bO  = @(po, rs, flag, varargin)bO(po, rs, pvto, flag, reg, varargin{:});
 f.muO = @(po, rs, flag, varargin)muO(po, rs, pvto, flag, reg, varargin{:});
 f.rsSat = @(po, varargin)rsSat(po, pvto, reg, varargin{:});
-end
-
-function v = BO(po, rs, pvto, flag, reg, varargin)
-v = 1./bO(po, rs, pvto, flag, reg, varargin{:});
 end
 
 function v = bO(po, rs, pvto, flag, reg, varargin)

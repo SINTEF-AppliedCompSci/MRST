@@ -12,7 +12,6 @@ function f = assignPVDG(f, pvdg, reg)
    % Region interpolator
    ireg = @(T, pg, varargin) interpReg(T, pg, regmap(pg, varargin{:}));
 
-   f.BG  = @(pg, varargin) 1./ireg(TbG , pg, varargin{:});
    f.bG  = @(pg, varargin) ireg(TbG , pg, varargin{:});
    f.muG = @(pg, varargin) ireg(TmuG, pg, varargin{:});
 end

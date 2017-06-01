@@ -1,12 +1,7 @@
 function f = assignPVTG(f, pvtg, reg)
-f.BG  = @(pg, rv, flag, varargin)BG(pg, rv, pvtg, flag, reg, varargin{:});
 f.bG  = @(pg, rv, flag, varargin)bG(pg, rv, pvtg, flag, reg, varargin{:});
 f.muG = @(pg, rv, flag, varargin)muG(pg, rv, pvtg, flag, reg, varargin{:});
 f.rvSat = @(pg, varargin)rvSat(pg, pvtg, reg, varargin{:});
-end
-
-function v = BG(pg, rv, pvtg, flag, reg, varargin)
-v = 1./bG(pg, rv, pvtg, flag, reg, varargin{:});
 end
 
 function v = bG(pg, rv, pvtg, flag, reg, varargin)
