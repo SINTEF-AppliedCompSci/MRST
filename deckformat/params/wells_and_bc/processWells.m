@@ -62,10 +62,7 @@ function W = processWells(G, rock, control, varargin)
 %                   of limits applicable to the well (bhp, rate, orat, ...)
 %                   Injectors generally have upper limits, while producers
 %                   have lower limits.
-%       poly     -- Polymer concentration in well. Only applicable for
-%                   polymer models.
-%       surfact  -- Surfactant concentration in well. Only applicable for
-%                   surfactant models.
+%       c        -- Component concentrations. Unit convention may vary.
 %
 % SEE ALSO:
 %   readSCHEDULE, readWellKW, addWell.
@@ -279,11 +276,17 @@ end
 %--------------------------------------------------------------------------
 
 function W = process_wpolymer(W, control, G, rock, well_id, p, opt)
-   [W.poly] = deal(0); % set all wells to zero
+   if ~isfield(W, 'c')
+       [W.c] = deal([]);
+   end
+   for i = 1:numel(W)
+       % Add zeros for polymer
+       W(i).c = [W(i).c, 0];
+   end
    for i = 1 : size(control.WPOLYMER, 1)
       for j = 1:size(W,1)
          if strcmp(W(j).name, control.WPOLYMER{i,1})
-            W(j).poly = control.WPOLYMER{i,2};
+            W(j).c(end) = control.WPOLYMER{i,2};
          end
       end
    end
@@ -292,7 +295,13 @@ end
 %--------------------------------------------------------------------------
 
 function W = process_wsurfact(W, control, varargin)
-   [W.surfact] = deal(0); % set all wells to zero
+   if ~isfield(W, 'c')
+       [W.c] = deal([]);
+   end
+   for i = 1:numel(W)
+       % Add zeros for surfactant
+       W(i).c = [W(i).c, 0];
+   end
    if ~isempty(W),
       Wn = { W.name };
 
@@ -300,7 +309,7 @@ function W = process_wsurfact(W, control, varargin)
          j = find(strcmp(Wn, control.WSURFACT{i,1}));
 
          if ~isempty(j),
-            [ W(j).surfact ] = deal(control.WSURFACT{i,2});
+            [ W(j).c(end) ] = deal(control.WSURFACT{i,2});
          end
       end
    end
@@ -624,8 +633,6 @@ function W = createDefaultWell(G, rock)
 % default well will be handled as injector in checkLims
    rock.perm = ones(G.cells.num,1);
    W = addWell([], G, rock, 1, 'Val', 0, 'Type', 'rate', 'sign', 1, 'Comp_i', 1/3*[1, 1, 1], 'refDepth', G.cells.centroids(1,3));
-   W.poly = 0;
-   W.surfact = 0;
    W.lims.rate = -inf;
    W.lims.bhp  = inf;
 
