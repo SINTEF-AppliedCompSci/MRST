@@ -1,13 +1,12 @@
 classdef BlackOilFluidModel < ThreePhaseBlackOilModel
 
     properties
-        primaryVars
+        primaryVars;
     end
 
     methods
         function model = BlackOilFluidModel(G, rock, fluid, varargin)
             model = model@ThreePhaseBlackOilModel(G, rock, fluid);
-            fluidModelType = 'blackoil';
             model.disgas = true;
             model.vapoil = false;
             primaryVars = []; % updated by MechFluidModel, used by the updateState function
@@ -26,7 +25,7 @@ classdef BlackOilFluidModel < ThreePhaseBlackOilModel
             fds = {'wellSol', 'pressure', 's', 'rs', 'rv', 'sW', 'sG', 'sO', ...
                    'water', 'oil', 'gas'};
         end
-        
+
         function [state, report] = updateState(model, state, problem, dx, ...
                                                drivingForces)
             vars = problem.primaryVariables;
@@ -36,10 +35,10 @@ classdef BlackOilFluidModel < ThreePhaseBlackOilModel
             removed(loc) = false;
             problem.primaryVariables = vars(removed);
             dx   = dx(removed);
-            
+
             [state, report] = updateState@ThreePhaseBlackOilModel(model, state, ...
                                                               problem, dx, drivingForces);
-            
+
         end
 
 

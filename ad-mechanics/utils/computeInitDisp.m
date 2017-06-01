@@ -1,21 +1,18 @@
-function state = initDisplacement(model, state, uu, varargin)
+function state = computeInitDisp(model, state, uu, varargin)
 
     opt = struct('mech_equil', true, ...
                  'pressure'  , []   );
     opt = merge_options(opt, varargin{:});
 
+    mechModel = model.Mechmodel,
+    
     if (opt.mech_equil)
 
-        if isprop(model, 'mechModel')
-            mechmodel = model.mechModel; 
-        else
-            mechmodel = MechanicModel(model.G, model.rock, model.mech, ...
-                                          'InputModel', model);
-        end
+        mechmodel = MechanicModel(mechModel.G, mechModel.rock, mechModel.mech);
 
         state = mechmodel.setProp(state, 'xd', mechmodel.operators.mech.rhs); % Dummy values, just used
                                                                               % to get the correct dimension.
-
+        
         if ~isempty(opt.pressure)
             drivingForces.fluidp = opt.pressure;
         else
