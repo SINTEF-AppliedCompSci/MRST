@@ -1,4 +1,4 @@
-function [qSurf, BCTocellMap, BCcells, qRes] = getBoundaryConditionFluxesAD(model, pressure, rho, mob, s, bc)
+function [qSurf, BCTocellMap, BCcells, qRes] = getBoundaryConditionFluxesAD(model, pressure, s, mob, rho, b, bc)
 %Get boundary condition fluxes for a given set of values
 %
 % SYNOPSIS:
@@ -18,9 +18,6 @@ function [qSurf, BCTocellMap, BCcells, qRes] = getBoundaryConditionFluxesAD(mode
 %                containing the phase pressures.
 %
 %   rho        - Surface densities of each phase, as a nph long cell array.
-%
-%   b          - Reservoir to standard condition factors per phase, as a
-%                nph long array.
 %
 %   s          - Phase saturations per cell, as a nph long array.
 %
@@ -93,6 +90,8 @@ else
 end
 
 isP = reshape(strcmpi(bc.type, 'pressure'), [], 1);
+isSF = reshape(strcmpi(bc.type, 'flux'), [], 1);
+isRF = ~(isP | isSF);
 
 [qSurf, qRes] = deal(cell(nPh,1));
 
@@ -117,6 +116,7 @@ for i = 1:nPh
     [q_s, q_r] = deal(double2ADI(zeros(nbc, 1), sample));
     
     pBC   = cellToBCMap*pressure{i};
+    bBC = cellToBCMap*b{i};
     rhoBC = cellToBCMap*rho{i};
     mobBC = cellToBCMap*mob{i};
     sBC   = cellToBCMap*s{i};
@@ -141,7 +141,7 @@ for i = 1:nPh
         % Write out the flux equation over the interface
         subs = isP & ~injP;
         q_res = mobBC(subs).*T(subs).*dP(~injDir);
-        q_s(subs) = rhoBC(subs).*q_res./rhoS(i);
+        q_s(subs) = bBC(subs).*q_res;
         q_r(subs) = q_res;
         clear subs
     end
@@ -151,27 +151,42 @@ for i = 1:nPh
         % determined by the sat field
         subs = isP & injP;
         q_res = totMob(subs).*T(subs).*dP(injDir).*sat(subs, i);
-        q_s(subs)  = rhoBC(subs).*q_res./rhoS(i);
+        q_s(subs)  = bBC(subs).*q_res;
         q_r(subs) = q_res;
         clear subs
     end
     % Treat flux / Neumann BC
     injNeu = bc.value > 0;
     
-    subs = ~isP &  injNeu;
+    subs = isSF &  injNeu;
     if any(subs)
         % Injection
         q_s(subs) = bc.value(subs).*sat(subs, i);
-        q_r(subs) = bc.value(subs).*sat(subs, i).*rhoS(i)./rhoBC(subs);
+        q_r(subs) = bc.value(subs).*sat(subs, i)./bBC(subs);
     end
-    subs = ~isP & ~injNeu;
+    % Fluxes given at surface conditions
+    subs = isSF & ~injNeu;
     if any(subs)
         % Production fluxes, use fractional flow of total mobility to
         % estimate how much mass will be removed.
         f = mobBC(subs)./totMob(subs);
         tmp = f.*bc.value(subs);
         q_s(subs) = tmp;
-        q_r(subs) = tmp.*rhoS(i)./rhoBC(subs);
+        q_r(subs) = tmp./bBC(subs);
+    end
+    % Fluxes given at reservoir conditions
+    subs = isRF &  injNeu;
+    if any(subs)
+        % Injection
+        q_s(subs) = bc.value(subs).*sat(subs, i).*bBC(subs);
+        q_r(subs) = bc.value(subs).*sat(subs, i);
+    end
+    subs = isRF & ~injNeu;
+    if any(subs)
+        f = mobBC(subs)./totMob(subs);
+        tmp = f.*bc.value(subs);
+        q_s(subs) = tmp.*bBC(subs);
+        q_r(subs) = tmp;
     end
     qSurf{i} = q_s;
     qRes{i} = q_r;

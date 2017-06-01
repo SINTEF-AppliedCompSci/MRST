@@ -619,7 +619,39 @@ methods
         names{end+1} = 'closureWells';
         types{end+1} = 'well';
     end
-    
+    function [eqs, state, src] = addBoundaryConditionsAndSources(model, eqs, names, types, state, ...
+                                                                 p, s, mob, rho, ...
+                                                                 dissolved, components, ...
+                                                                 forces)
+        % Compute masses for the phase pseudocomponents
+        rhoS = model.getSurfaceDensities();
+        
+        [src_terms, bnd_cond] = computeSourcesAndBoundaryConditionsAD(model, p, s, mob, rho, dissolved, forces);
+        for i = 1:numel(s)
+            if ~isempty(eqs{i})
+                sc = src_terms.sourceCells;
+                eqs{i}(sc) = eqs{i}(sc) - src_terms.phaseMass{i}./rhoS(i);
+                
+                bc = bnd_cond.sourceCells;
+                eqs{i}(bc) = eqs{i}(bc) - bnd_cond.phaseMass{i}./rhoS(i);
+            end
+        end
+        
+        if nargout > 1
+            if model.outputFluxes
+                act = model.getActivePhases();
+                tmp = cell(numel(act), 1);
+                tmp(act) = bnd_cond.phaseVolume;
+                state = model.storeBoundaryFluxes(state, tmp{:}, forces);
+            end
+        end
+        
+        if nargout > 2
+            src = struct('src', src_terms, 'bc', bnd_cond);
+        end
+
+    end
+
     function rhoS = getSurfaceDensities(model)
         active = model.getActivePhases();
         props = {'rhoWS', 'rhoOS', 'rhoGS'};

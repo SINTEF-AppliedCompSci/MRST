@@ -13,7 +13,7 @@ function fluid = initDeckADIFluid(deck, varargin)
 %          simulation grid is different from the one defined by the deck
 %          (more specifically, the deck.GRID.ACTNUM field).
 %
-%  method - Method for defining regions. Either 'deck' (use exactly as
+%  region_method - Method for defining regions. Either 'deck' (use exactly as
 %           prescribed in the input deck [DEFAULT] or 'override' which
 %           allows individual fields to be overwritten. Since the region
 %           support in MRST is abstracted away, this option should only be
@@ -66,13 +66,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 % this only work for full deck or first region.
 opt = struct('G',              [], ...
-             'set_method',     'deck', ...
+             'region_method', 'deck', ...
              'singleRegion',   [], ...
              'regionOverride', struct());
  
 opt = merge_options(opt,varargin{:});
 reg = handleRegions(deck, opt.G);
-switch opt.set_method
+switch opt.region_method
      case 'deck'
          % Default behavior - do nothing
      case 'override'
@@ -140,7 +140,6 @@ for k = 1:numel(fns)
         end
     end
 end
-fluid = assignRelPerm(fluid);
 end
 
 function flag = doAssign(propNm)

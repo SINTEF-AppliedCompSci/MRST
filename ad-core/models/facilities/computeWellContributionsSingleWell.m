@@ -6,23 +6,8 @@ assert(numel(wellSol) == 1);
 assert(numel(W) == 1);
 numPh = numel(q_s);
 
-% OBS!!
-% b = rho;
-b = cell(numPh, 1);
 rhoS = resmodel.getSurfaceDensities();
-
-for i = 1:numPh
-    factor = rhoS(i);
-    if ~isempty(dissolved)
-        for j = 1:numPh
-            r_ph = dissolved{j}{i};
-            if ~isempty(r_ph)
-                factor = factor + rhoS(j).*r_ph;
-            end
-        end
-    end
-    b{i} = rho{i}./factor;
-end
+b = phaseDensitiesTobfactor(rho, rhoS, dissolved);
 
 Tw = W.WI;
 compi = W.compi;
@@ -79,26 +64,33 @@ cq_ps = conn2surf(cq_p, b, dissolved, resmodel);
 % Sum of phase rates from producing connections at std conds:
 q_ps = cell(1, numPh);
 for ph = 1:numPh
-    q_ps{ph} = sum(cq_ps{ph});
+    q_ps{ph} = reduceToDouble(sum(cq_ps{ph}));
 end
 
 isInj = double(qt_s)>0;
-% compute avg wellbore phase volumetric rates at std conds.
-qt_s_inj = isInj.*qt_s;
 wbq = cell(1, numPh);
-for ph = 1:numPh
-    wbq{ph} = compi(:,ph).*qt_s_inj + ~isInj.*q_s{ph}.*(q_s{ph}>0) - q_ps{ph};
+if isInj
+    % Injection given by prescribed composition
+    for ph = 1:numPh
+        wbq{ph} = compi(ph).*qt_s;
+    end
+else
+    % Determined by reservoir conditions
+    for ph = 1:numPh
+        wbq{ph} = q_s{ph}.*(q_s{ph}>0) - q_ps{ph};
+    end
 end
+
 % compute wellbore total volumetric rates at std conds.
-wbqt = wbq{1};
-for ph = 2:numPh
+wbqt = 0;
+for ph = 1:numPh
     wbqt = wbqt + wbq{ph};
 end
 % check for "dead wells":
 deadWells = double(wbqt)==0;
 if any(deadWells)
     for ph = 1:numPh
-        wbq{ph} = wbq{ph}.*(~deadWells) + compi(:, ph).*deadWells;
+        wbq{ph} = wbq{ph}.*(~deadWells) + compi(ph).*deadWells;
         % Avoid division by zero
     end
     wbqt(deadWells) = 1;
@@ -165,7 +157,7 @@ function qrho = conn2surf(v, b, r, model)
     nPh = numel(v);
     bv = cell(1,nPh);
     for ph = 1:nPh
-        bv{ph} = b{ph}.*v{ph};
+        bv{ph} = reduceToDouble(b{ph}.*v{ph});
     end
     qrho = bv;
 
@@ -193,7 +185,6 @@ function volRat  = compVolRat(cmix_s, b, r, model)
     nPh = numel(b);
     tmp = cmix_s;
 
-
     dg = isprop(model, 'disgas') && model.disgas;
     vo = isprop(model, 'vapoil') && model.vapoil;
     if vo || dg
@@ -207,21 +198,21 @@ function volRat  = compVolRat(cmix_s, b, r, model)
             rv = r{isoil}{isgas};
         end
         if (vo || dg) && isa(model, 'ThreePhaseBlackOilModel')
-            d = 1-rv.*rs;
+            d = reduceToDouble(1-rv.*rs);
             if dg
-                tmp{isgas} = (tmp{isgas} - rs.*cmix_s{isoil})./d;
+                tmp{isgas} = reduceToDouble(tmp{isgas} - rs.*cmix_s{isoil})./d;
             end
             if vo
-                tmp{isoil} = (tmp{isoil} - rv.*cmix_s{isgas})./d;
+                tmp{isoil} = reduceToDouble(tmp{isoil} - rv.*cmix_s{isgas})./d;
             end
         elseif dg
-            tmp{isgas} = tmp{isgas} - rs.*cmix_s{isoil};
+            tmp{isgas} = tmp{isgas} - reduceToDouble(rs.*cmix_s{isoil});
         end
     end
 
     volRat = 0;
     for ph = 1:nPh
-        volRat = volRat + tmp{ph}./b{ph};
+        volRat = volRat + reduceToDouble(tmp{ph}./b{ph});
     end
 end
 

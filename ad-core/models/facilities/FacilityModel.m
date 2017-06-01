@@ -498,10 +498,9 @@ classdef FacilityModel < PhysicalModel
             wellSol0 = state0.wellSol;
             resmodel = model.ReservoirModel;
             % Get variables from facility and wells
-            [qWell, bhp, basicWellNames] = model.getBasicPrimaryVariables(wellSol);
-            [wellVars, wellExtraNames, wellMap] = model.getExtraPrimaryVariables(wellSol);
+            [wellVars, primaryVars, wellMap] = model.getAllPrimaryVariables(wellSol);
             if ~opt.resOnly
-                [qWell{:}, bhp, wellVars{:}] = initVariablesADI(qWell{:}, bhp, wellVars{:});
+                [wellVars{:}] = initVariablesADI(wellVars{:});
             end
 
             if isa(resmodel, 'ThreePhaseBlackOilModel')
@@ -511,12 +510,13 @@ classdef FacilityModel < PhysicalModel
             end
 
             if ~isfield(state, 'rho') || ~isfield(state, 'mob')
+                resmodel.FacilityModel = model;
                 resmodel.extraStateOutput = true;
                 % Trust that the base reservoir model has implemented
                 % storage of extra properties (mobility and rho included).
-                [~, state] = resmodel.getEquations(model, state0, state, dt, drivingForces, 'iteration', inf, 'resOnly', true);
+                [~, state] = resmodel.getEquations(state0, state, dt, drivingForces, 'iteration', inf, 'resOnly', true);
                 assert(isfield(state, 'rho'), 'Density missing from state!');
-                assert(isfield(state, 'mob'), 'Density missing from state!');
+                assert(isfield(state, 'mob'), 'Mobility missing from state!');
             end
             p = resmodel.getProp(state, 'pressure');
 
@@ -530,14 +530,13 @@ classdef FacilityModel < PhysicalModel
             % Note! Currently not valid for polymer or compositional
             components = {};
             [src, wellsys, state.wellSol] = ...
-                model.getWellContributions(wellSol0, wellSol, qWell, bhp, wellVars, ...
+                model.getWellContributions(wellSol0, wellSol, wellVars, ...
                         wellMap, p, mob, rho, dissolution, components, dt, opt.iteration);
 
             eqs = {wellsys.wellEquations{:}, wellsys.controlEquation};
             names = {wellsys.names{:}, 'closureWells'};
             types = {wellsys.types{:}, 'well'};
 
-            primaryVars = {basicWellNames{:}, wellExtraNames{:}};
             problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
         end
 

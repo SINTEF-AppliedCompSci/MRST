@@ -78,7 +78,7 @@ function celldata = getComponentCellSubset(celldata, wc)
     for i = 1:numel(celldata)
         for j = 1:numel(celldata{i});
             if ~isempty(celldata{i}{j})
-                celldata{i}{j} = celldata{i}{j}(wc);
+                celldata{i}{j} = reduceToDouble(celldata{i}{j}(wc));
             end
         end
     end
@@ -88,7 +88,7 @@ function subset = getCellSubset(celldata, wc)
     subset = cell(size(celldata));
     for i = 1:numel(subset)
         if ~isempty(celldata{i})
-            subset{i} = celldata{i}(wc);
+            subset{i} = reduceToDouble(celldata{i}(wc));
         end
     end
 end
@@ -96,6 +96,6 @@ end
 function subset = getVariableSubsetWell(vars, varmaps, ix)
     subset = cell(size(vars));
     for i = 1:numel(subset)
-        subset{i} = vars{i}(varmaps{i} == ix);
+        subset{i} = reduceToDouble(vars{i}(varmaps{i} == ix));
     end
 end

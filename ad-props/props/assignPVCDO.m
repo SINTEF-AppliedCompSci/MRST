@@ -5,7 +5,6 @@ if ntpvt == 1
 else
     f.cO  = pvcdo(reg.PVTNUM, 3);
 end
-f.BO     = @(po, varargin)BO(po, pvcdo, reg, varargin{:});
 f.bO     = @(po, varargin)bO(po, pvcdo, reg, varargin{:});
 f.BOxmuO = @(po, varargin)BOxmuO(po, pvcdo, reg, varargin{:});
 

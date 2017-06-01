@@ -6,7 +6,7 @@ end
 
 methods
     function model = TwoPhaseOilWaterModel(G, rock, fluid, varargin)
-        model = model@ThreePhaseBlackOilModel(G, rock, fluid, varargin{:});
+        model = model@ThreePhaseBlackOilModel(G, rock, fluid);
 
         % This is the model parameters for oil/water
         model.oil = true;
