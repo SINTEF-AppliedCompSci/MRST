@@ -72,7 +72,6 @@ fn  = fullfile(pth, 'BENCH_SPE1.DATA');
 deck = readEclipseDeck(fn);
 deck = convertDeckUnits(deck);
 fluid = initDeckADIFluid(deck);
-fluid = rmfield(fluid, 'relPerm');
 fluid = rmfield(fluid, 'pcOW');
 fluid = rmfield(fluid, 'pcOG');
 
