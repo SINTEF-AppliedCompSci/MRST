@@ -645,11 +645,34 @@ methods
                 state = model.storeBoundaryFluxes(state, tmp{:}, forces);
             end
         end
+
+        cnames = model.getComponentNames();
+        
+        for i = 1:numel(cnames)
+            name = cnames{i};
+            sub = strcmpi(name, names);
+            eqs{sub} = model.addComponentContributions(name, eqs{sub}, components{i}, bnd_cond, forces.bc);
+        end
         
         if nargout > 2
             src = struct('src', src_terms, 'bc', bnd_cond);
         end
-
+    end
+    
+    function eq = addComponentContributions(model, cname, eq, component, src, force)
+        c = model.getProp(force, cname);
+        switch lower(cname)
+            case {'polymer', 'surfactant'}
+                % Water based EOR, multiply by water flux divided by
+                % density and add into corresponding equation
+                qW = src.phaseMass{1}./model.fluid.rhoWS;
+                cells = src.sourceCells;
+                isInj = qW > 0;
+                qC = (isInj.*c + ~isInj.*component(cells)).*qW;
+            otherwise
+                error(['Unknown component ''', cname, '''. BC not implemented.']);
+        end
+        eq(cells) = eq(cells) - qC;
     end
 
     function rhoS = getSurfaceDensities(model)
@@ -736,6 +759,18 @@ methods (Static)
             end
             ds(bad, :) = bsxfun(@times, ds(bad, :), w(bad, :));
         end
+    end
+    
+    function [names, types] = getExtraWellEquationNames(model)
+        [names, types] = deal({});
+    end
+    
+    function names = getExtraWellPrimaryVariableNames(model)
+        names = {};
+    end
+
+    function [compEqs, compSrc, compNames, wellSol] = getExtraWellContributions(model, well, wellSol0, wellSol, q_s, bh, packed, qMass, qVol, dt, iteration)
+        [compEqs, compSrc, compNames] = deal({});
     end
 end
 end

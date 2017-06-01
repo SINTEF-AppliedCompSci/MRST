@@ -158,27 +158,26 @@ types = {'cell', 'cell', 'cell'};
 rho = {rhoW, rhoO};
 mob = {mobW, mobO};
 sat = {sW, sO};
-[eqs, qBC, qRes, BCTocellMap, qSRC, srcCells] = addFluxesFromSourcesAndBC( ...
-    model, eqs, {pW, p}, rho, mob, sat, drivingForces);
+[eqs, state] = addBoundaryConditionsAndSources(model, eqs, names, types, state, ...
+                                                                 {pW, p}, sat, mob, rho, ...
+                                                                 {}, {c}, ...
+                                                                 drivingForces);
 
-if model.outputFluxes
-    state = model.storeBoundaryFluxes(state, qRes{1}, qRes{2}, [], drivingForces);
-end
-% Add polymer boundary conditions
-if ~isempty(drivingForces.bc) && isfield(drivingForces.bc, 'poly')
-   injInx  = qBC{1} > 0; % water inflow indices
-   cbc     = (BCTocellMap')*c; % BCTocellMap' = cellToBCMap
-   cbc(injInx) = drivingForces.bc.poly(injInx);
-   eqs{3}  = eqs{3} - BCTocellMap*(cbc.*qBC{1});
-end
-
-% Add polymer source
-if ~isempty(drivingForces.src) && isfield(drivingForces.src, 'poly')
-   injInx  = qSRC{1} > 0; % water inflow indices
-   csrc    = c(srcCells);
-   csrc(injInx) = drivingForces.src.poly(injInx);
-   eqs{3}(srcCells) = eqs{3}(srcCells) - csrc.*qSRC{1};
-end
+% % Add polymer boundary conditions
+% if ~isempty(drivingForces.bc) && isfield(drivingForces.bc, 'poly')
+%    injInx  = qBC{1} > 0; % water inflow indices
+%    cbc     = (BCTocellMap')*c; % BCTocellMap' = cellToBCMap
+%    cbc(injInx) = drivingForces.bc.poly(injInx);
+%    eqs{3}  = eqs{3} - BCTocellMap*(cbc.*qBC{1});
+% end
+% 
+% % Add polymer source
+% if ~isempty(drivingForces.src) && isfield(drivingForces.src, 'poly')
+%    injInx  = qSRC{1} > 0; % water inflow indices
+%    csrc    = c(srcCells);
+%    csrc(injInx) = drivingForces.src.poly(injInx);
+%    eqs{3}(srcCells) = eqs{3}(srcCells) - csrc.*qSRC{1};
+% end
 
 % Finally, add in and setup well equations
 [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, wellVars, wellMap, p, mob, rho, {}, {c}, dt, opt);

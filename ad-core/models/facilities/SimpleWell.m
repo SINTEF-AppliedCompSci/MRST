@@ -72,28 +72,13 @@ classdef SimpleWell < PhysicalModel
             % Additional primary variables in this context are variables
             % that are not the default MRST values (surface rates for each
             % pseudocomponent/phase and bottomhole pressure).
-            names = {};
-            if isprop(resmodel, 'polymer') && resmodel.polymer
-                names{end+1} = 'qWPoly';
-            end
-            if isprop(resmodel, 'surfactant') && resmodel.surfactant
-                names{end+1} = 'qWSft';
-            end
+            names = resmodel.getExtraWellPrimaryVariableNames();
         end
 
         function [names, types] = getExtraEquationNames(well, resmodel)
             % Returns the names and types of the additional equation names
             % this well model introduces.
-            [names, types] = deal({});
-            if isprop(resmodel, 'polymer') && resmodel.polymer
-                names{end+1} = 'polymerWells';
-                types{end+1} = 'perf';
-            end
-            if isprop(resmodel, 'surfactant') && resmodel.surfactant
-                names{end+1} = 'surfactantWells';
-                types{end+1} = 'perf';
-            end
-
+            [names, types] = resmodel.getExtraWellEquationNames();
         end
 
         function [vars, names] = getExtraPrimaryVariables(well, wellSol, resmodel)
@@ -128,64 +113,9 @@ classdef SimpleWell < PhysicalModel
         % compEqs : Mass conservation equations in the well (involves well control
         %           variables)
         % compSrc : Source term that will enter the mass conservation
-        %           equations in the reservoir
-
-            [compEqs, compSrc, compNames] = deal({});
-
-            if isprop(resmodel, 'polymer') && resmodel.polymer
-                % Implementation of polymer source terms.
-                %
-                % Polymer sources are by convention divided by rhoW
-                assert(resmodel.water, 'Polymer injection requires a water phase.');
-                f = resmodel.fluid;
-                if well.isInjector
-                    concWell = well.W.poly;
-                else
-                    pix = strcmpi(resmodel.getComponentNames(), 'polymer');
-                    concWell = packed.components{pix};
-                end
-                qwpoly = packed.extravars{strcmpi(packed.extravars_names, 'qwpoly')};
-                a = f.muWMult(f.cmax).^(1-f.mixPar);
-                cbarw     = concWell/f.cmax;
-                % Water is always first
-                wix = 1;
-                cqWs = qMass{wix}./f.rhoWS; % connection volume flux at surface condition
-
-                % the term (a + (1 - a).*cbarw) account for the
-                % todd-longstaff mixing factor, which model the fact that for
-                % not-fully mixed polymer solution the polymer does not
-                % travel at the same velocity as water. See the governing
-                % equation for polymer (e.g. equationsOilWaterPolymer.m)
-                cqP = concWell.*cqWs./(a + (1-a).*cbarw);
-
-                compEqs{end+1} = qwpoly - sum(concWell.*cqWs);
-                compSrc{end+1} = cqP;
-                compNames{end+1} = 'polymerWells';
-            end
-
-            if isprop(resmodel, 'surfactant') && resmodel.surfactant
-                % Implementation of surfactant source terms.
-                %
-                assert(resmodel.water, 'Surfactant injection requires a water phase.');
-                f = resmodel.fluid;
-                if well.isInjector
-                    concWell = well.W.surfact;
-                else
-                    pix = strcmpi(resmodel.getComponentNames(), 'surfactant');
-                    concWell = packed.components{pix};
-                end
-                qwsft = packed.extravars{strcmpi(packed.extravars_names, 'qwsft')};
-                % Water is always first
-                wix = 1;
-                cqWs = qMass{wix}./f.rhoWS; % get volume rate, at
-                                            % surface condition.
-                cqS = concWell.*cqWs;
-
-                compEqs{end+1} = qwsft - sum(cqWs);
-                compSrc{end+1} = cqS;
-                compNames{end+1} = 'surfactantWells';
-            end
-
+        %           equations in the reservoir            
+            [compEqs, compSrc, compNames, wellSol] = resmodel.getExtraWellContributions(well, wellSol0, wellSol, q_s, bh, packed, qMass, qVol, dt, iteration);
+            return
         end
 
         function isInjector = isInjector(well)
