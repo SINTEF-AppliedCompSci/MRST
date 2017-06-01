@@ -191,7 +191,7 @@ gravity on;
 modeltype = [opt.method, ' and ', opt.fluid_model];
 switch modeltype
   case 'fully coupled and blackoil'
-    model = MechBlackOilModel(G, rock, fluid, mech);
+    model = MechBlackOilModel2(G, rock, fluid, mech);
   case 'fixed stress splitting and blackoil'
     model = MechFluidFixedStressSplitModel(G, rock, fluid, mech, 'fluidModelType', ...
                                            'blackoil');
@@ -222,11 +222,12 @@ W = addWell(W, G, rock, prodcell, ...
             'Name'    , 'prod',  ...
             'refDepth', refdepth);
 
-if any(strcmpi('fluidModel', model))
+if ismember('fluidModel', properties(model))
     facilityModel = FacilityModel(model.fluidModel); 
 else
     facilityModel = FacilityModel(model); 
 end
+
 facilityModel = facilityModel.setupWells(W);
 model.FacilityModel = facilityModel;
 

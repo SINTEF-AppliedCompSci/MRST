@@ -31,7 +31,7 @@ classdef MechFluidSplitModel < ReservoirModel
             model = model@ReservoirModel(G, rest{:});
 
             % Process the grid for mechanical computation
-            if any(strcmpi('createAugmentedGrid', model.G.type))
+            if ~ismember('createAugmentedGrid', model.G.type)
                 model.G = createAugmentedGrid(model.G);
             end
 
