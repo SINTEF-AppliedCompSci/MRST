@@ -146,20 +146,22 @@ classdef MultisegmentWell < SimpleWell
         end
         
         function names = getExtraPrimaryVariableNames(well, resmodel)
+            names = getExtraPrimaryVariableNames@SimpleWell(well, resmodel);
             enames = {'rW', 'rO', 'rG'};
             enames = enames(resmodel.getActivePhases());
-            names = {'pN', enames{:}, 'vmix'};
+            names = [names, 'pN', enames, 'vmix'];
         end
         
         function [names, types] = getExtraEquationNames(well, resmodel)
+            [names, types] = getExtraEquationNames@SimpleWell(well, resmodel);
             enames = {'waterNode', 'oilNode', 'gasNode'};
             enames = enames(resmodel.getActivePhases());
-            names = {enames{:}, 'pDropSeg', 'segMassClosure'};
+            names = [names, enames, 'pDropSeg', 'segMassClosure'];
             
             if nargout > 1
                 etypes = {'node', 'node', 'node'};
                 etypes = etypes(resmodel.getActivePhases());
-                types = {etypes{:}, 'seg', 'alpha'};
+                types = [types, etypes, 'seg', 'alpha'];
             end
         end
         

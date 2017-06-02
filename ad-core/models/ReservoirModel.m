@@ -649,9 +649,12 @@ methods
         cnames = model.getComponentNames();
 
         for i = 1:numel(cnames)
+            % Iterate over individual components
             name = cnames{i};
             sub = strcmpi(name, names);
-            eqs{sub} = model.addComponentContributions(name, eqs{sub}, components{i}, bnd_cond, forces.bc);
+            % Add BC component source terms
+            [eqs{sub}, bnd_cond] = model.addComponentContributions(name, eqs{sub}, components{i}, bnd_cond, forces.bc);
+            [eqs{sub}, src_terms] = model.addComponentContributions(name, eqs{sub}, components{i}, src_terms, forces.src);
         end
 
         if nargout > 2
@@ -659,7 +662,10 @@ methods
         end
     end
 
-    function eq = addComponentContributions(model, cname, eq, component, src, force)
+    function [eq, src] = addComponentContributions(model, cname, eq, component, src, force)
+        if isempty(force)
+            return
+        end
         c = model.getProp(force, cname);
         switch lower(cname)
             case {'polymer', 'surfactant'}
@@ -673,6 +679,7 @@ methods
                 error(['Unknown component ''', cname, '''. BC not implemented.']);
         end
         eq(cells) = eq(cells) - qC;
+        src.components{end+1} = qC;
     end
 
     function rhoS = getSurfaceDensities(model)
@@ -685,6 +692,13 @@ methods
         [compEqs, compSrc, compNames] = deal({});
     end
 
+    function [names, types] = getExtraWellEquationNames(model)
+        [names, types] = deal({});
+    end
+
+    function names = getExtraWellPrimaryVariableNames(model)
+        names = {};
+    end
 end
 
 methods (Static)
@@ -764,14 +778,5 @@ methods (Static)
             ds(bad, :) = bsxfun(@times, ds(bad, :), w(bad, :));
         end
     end
-
-    function [names, types] = getExtraWellEquationNames(model)
-        [names, types] = deal({});
-    end
-
-    function names = getExtraWellPrimaryVariableNames(model)
-        names = {};
-    end
-
 end
 end
