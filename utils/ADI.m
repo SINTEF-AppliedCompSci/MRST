@@ -321,11 +321,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                           warning('This place in the code is not reachable!!!')
                           u = double2AD(u, v.jac);
                       end
-                      u.val(subs) = v;
-                      if ~isa(v, 'ADI') % v is a constant vector
-                          u.jac = subsasgnJac(u.jac, subs); % set rows to zero
-                      else
+                      
+                      if isa(v, 'ADI') % v is a ADI
                           u.jac = subsasgnJac(u.jac, subs, v.jac);
+                          u.val(subs) = v.val;
+                      else
+                          u.jac = subsasgnJac(u.jac, subs); % set rows to zero
+                          u.val(subs) = v;
                       end
                   case '{}'
                       error('Operation not supported');
