@@ -1,7 +1,8 @@
-function upscaled = localLinOptTrans(upscaled, state, CG, W_cg, fluid, opt)
-   %T_cg=upscale.trans;% transmissibilities of coarse grid
-   %W_cg=W_cg_w;% well optimization not done
-
+function upscaled = localLinOptTrans(upscaled, state, CG, W_cg, fluid, varargin)
+   % experimental code for using L1 minimization/convex programing to
+   % ensure positive trasnmissibilities
+   opt=struct('opt_trans_method','linear_simple','plot_grid',true);
+   opt=merge_options(opt,varargin{:});
    f_press  = state.pressure;% fine cale pressure
    cg_press = upscaled.pressure;% original cg_pressur
    cg_flux  = upscaled.flux;% cg_flux
