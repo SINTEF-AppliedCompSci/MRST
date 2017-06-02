@@ -338,8 +338,8 @@ classdef SimpleWell < PhysicalModel
             % of such wells are stored in inx.
             wsg = w.sign;
             ssg = sign(getTotalRate(wellSol));
-            closed = wsg ~= ssg;
-            % A well can be set to zero rate without beeing shut down. We update inx
+            closed = wsg ~= ssg && wsg ~= 0;
+            % A well can be set to zero rate without being shut down. We update inx
             % to take into account this fact.
             closed = closed & ~strcmpi(w.type, 'bhp') & w.val ~= 0;
             if closed && ~well.allowSignChange && well.allowControlSwitching

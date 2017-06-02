@@ -65,8 +65,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     
     for i = 1:nPh
+        q = zeros(nsrc, 1);
         if any(prod)
-            q = double2ADI(zeros(nsrc, 1), totMob);
+            q = double2ADI(q, totMob);
         end
         
         if any(inj)
