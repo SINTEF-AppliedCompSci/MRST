@@ -10,8 +10,8 @@ classdef MechFluidFixedStressSplitModel < MechFluidSplitModel
         function fluidModel = setupFluidModel(model, rock, fluid, fluidModelType, ...
                                                      varargin)
             switch fluidModelType
-              case 'single phase'
-                fluidModel = SinglephaseFixedStressFluidModel(model.G, rock, fluid, varargin{:});
+              case 'water'
+                fluidModel = WaterFixedStressFluidModel(model.G, rock, fluid, varargin{:});
               case 'oil water'
                 fluidModel = OilWaterFixedStressFluidModel(model.G, rock, fluid, varargin{:});
               case 'blackoil'

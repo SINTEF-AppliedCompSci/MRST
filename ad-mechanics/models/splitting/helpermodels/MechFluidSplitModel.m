@@ -24,7 +24,7 @@ classdef MechFluidSplitModel < ReservoirModel
     methods
         function model = MechFluidSplitModel(G, rock, fluid, mech_problem, varargin)
 
-            opt = struct('fluidModelType', 'single phase');
+            opt = struct('fluidModelType', 'water');
             [opt, rest] = merge_options(opt, varargin{:});
             fluidModelType = opt.fluidModelType;
 
@@ -36,8 +36,8 @@ classdef MechFluidSplitModel < ReservoirModel
             end
 
             % Different fluid models may be used. This base class should be
-            % derived for each of those. See e.g. SinglephaseFixedStressFluidModel.m
-            % (fixed stress splitting with single water phase).
+            % derived for each of those. See e.g. WaterFixedStressFluidModel.m
+            % (fixed stress splitting with water phase).
             model.fluidModel = setupFluidModel(model, rock, fluid, ...
                                                       opt.fluidModelType, ...
                                                       'extraWellSolOutput', ...
@@ -58,7 +58,7 @@ classdef MechFluidSplitModel < ReservoirModel
 
 
             %     switch model.fluidModelType
-            %       case 'single phase'
+            %       case 'water'
             %         model.water = true;
             %         model.oil = false;
             %         model.gas = false;

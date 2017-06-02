@@ -32,8 +32,8 @@ classdef MechFluidModel < ReservoirModel
             end
 
             % Different fluid models may be used. This base class should be
-            % derived for each of those. See e.g. SinglephaseFixedStressFluidModel.m
-            % (fixed stress splitting with single water phase).
+            % derived for each of those. See e.g. WaterFixedStressFluidModel.m
+            % (fixed stress splitting with water phase).
             model.fluidModel = setupFluidModel(model);
 
             model.fluidfds = model.fluidModel.getAllVarsNames();

@@ -1,11 +1,11 @@
-classdef SinglephaseFixedStressFluidModel < WaterModel
+classdef WaterFixedStressFluidModel < WaterModel
     
     properties
         pressCoef;
     end
 
     methods
-        function model = SinglephaseFixedStressFluidModel(G, rock, fluid, varargin)
+        function model = WaterFixedStressFluidModel(G, rock, fluid, varargin)
             model = model@WaterModel(G, rock, fluid);
             model = merge_options(model, varargin{:});
         end
@@ -35,7 +35,7 @@ classdef SinglephaseFixedStressFluidModel < WaterModel
             
             otherDrivingForces = rmfield(drivingForces, 'fixedStressTerms');
             
-            [eqs, names, types, state] = equationsSinglephaseMech(state0, p, ...
+            [eqs, names, types, state] = equationsWaterMech(state0, p, ...
                                                               wellVars, state, ...
                                                               model, dt, ...
                                                               mechTerm, ...

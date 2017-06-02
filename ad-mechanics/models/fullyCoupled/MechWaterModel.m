@@ -1,8 +1,8 @@
-classdef MechSinglephaseModel < MechFluidModel
+classdef MechWaterModel < MechFluidModel
 
 
     methods
-        function model = MechSinglephaseModel(G, rock, fluid, mech_problem, varargin)
+        function model = MechWaterModel(G, rock, fluid, mech_problem, varargin)
 
             model = model@MechFluidModel(G, rock, fluid, mech_problem, ...
                                          varargin{:});
@@ -10,7 +10,7 @@ classdef MechSinglephaseModel < MechFluidModel
         end
 
         function fluidModel = setupFluidModel(model)
-            fluidModel = SinglephaseFluidModel(model.G, model.rock, ...
+            fluidModel = WaterFluidModel(model.G, model.rock, ...
                                                model.fluid);
         end
 
@@ -42,7 +42,7 @@ classdef MechSinglephaseModel < MechFluidModel
 
             [mechTerm, fluidp] = computeCouplingTerms(model, p0, xd0, p, xd);
 
-            [w_eqs, w_eqsnames, w_eqstypes, state] = equationsSinglephaseMech(state0, ...
+            [w_eqs, w_eqsnames, w_eqstypes, state] = equationsWaterMech(state0, ...
                                                               p, wellVars, ...
                                                               state, fluidModel, ...
                                                               dt, mechTerm, ...
@@ -60,7 +60,7 @@ classdef MechSinglephaseModel < MechFluidModel
 
             primaryVars = {'pressure', wellVarNames{:}, 'xd'};
             % make sure that the primary variables defined here match with
-            % those of SinglephaseFluidModel and MechanicalModel.
+            % those of WaterFluidModel and MechanicalModel.
 
             problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 

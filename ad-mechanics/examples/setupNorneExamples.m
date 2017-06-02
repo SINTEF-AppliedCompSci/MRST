@@ -58,7 +58,7 @@ function [model, initState, schedule] = setupNorneExamples(opt)
                                    meter^3, 'c', 1e-10*[1, 1], 'cR', 4e-10, ...
                                    'pRef', pRef);
 
-      case {'single phase'}
+      case {'water'}
         fluid = initSimpleADIFluid('phases', 'W', 'mu', 1*centi*poise, 'rho', ...
                                    1000*kilogram/meter^3);
         cR = 4e-10;
@@ -185,11 +185,11 @@ function [model, initState, schedule] = setupNorneExamples(opt)
       case 'fixed stress splitting and oil water'
         model = MechFluidFixedStressSplitModel(G, rock, fluid, mech, 'fluidModelType', ...
                                                'oil water');
-      case 'fully coupled and single phase'
-        model = MechSinglephaseModel(G, rock, fluid, mech);
-      case 'fixed stress splitting and single phase'
+      case 'fully coupled and water'
+        model = MechWaterModel(G, rock, fluid, mech);
+      case 'fixed stress splitting and water'
         model = MechFluidFixedStressSplitModel(G, rock, fluid, mech, 'fluidModelType', ...
-                                               'single phase');
+                                               'water');
       otherwise
         error('modeltype not recognized.');
     end
@@ -226,7 +226,7 @@ function [model, initState, schedule] = setupNorneExamples(opt)
         W(1).compi = [1 0];
         W(1).val   = 1e4/day;
         W(2).compi = [0 1];
-      case 'single phase'
+      case 'water'
         W(1).compi = [1];
         W(1).rate  = 1e4/day;
         W(2).compi = [1];
@@ -253,7 +253,7 @@ function [model, initState, schedule] = setupNorneExamples(opt)
         initState.rs       = 0.5*fluid.rsSat(initState.pressure);
       case 'oil water'
         init_sat = [0, 1];
-      case 'single phase'
+      case 'water'
         init_sat = [1];
       otherwise
         error('fluid_model not recognized.')

@@ -26,12 +26,12 @@ mrstModule add ad-mechanics ad-core ad-props ad-blackoil vemmech deckformat mrst
 % 'fixed stress splitting' : The mechanical and flow equations are solved
 %                            sequentially using a fixed stress splitting
 %
-% opt.fluid_model = 'oil water'; % 'blackoil' 'single phase' 'oil water'
+% opt.fluid_model = 'oil water'; % 'blackoil' 'water' 'oil water'
 %
 % 'blackoil'     : blackoil model is used for the fluid (gas is injected, see
 %                  schedule below)
 % 'oil water'    : Two phase oil-water
-% 'single phase' : single phase model is used for the fluid
+% 'water' : water model is used for the fluid
 
 
 opt.norne_case  = 'mini Norne';
@@ -42,9 +42,9 @@ setTitle = @(opt)(sprintf('%s, %s', opt.fluid_model, opt.method));
 clear states;
 i = 1;
 
-%%  Single phase cases
+%%  water cases
 
-opt.fluid_model = 'single phase';
+opt.fluid_model = 'water';
 
 opt.method      = 'fully coupled';
 [model, initState, schedule] = setupNorneExamples(opt);

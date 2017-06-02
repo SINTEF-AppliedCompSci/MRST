@@ -1,11 +1,11 @@
-classdef SinglephaseFluidModel < WaterModel
+classdef WaterFluidModel < WaterModel
 
     properties
         primaryVarNames;
     end
 
     methods
-        function model = SinglephaseFluidModel(G, rock, fluid, varargin)
+        function model = WaterFluidModel(G, rock, fluid, varargin)
             model = model@WaterModel(G, rock, fluid);
             model.primaryVarNames = {'pressure'}; % well variables
                                                   % not included
@@ -15,7 +15,7 @@ classdef SinglephaseFluidModel < WaterModel
         function [problem, state] = getEquations(model, state0, state, dt, ...
                                                         drivingForces, ...
                                                         varargin)
-            error(['The SinglephaseFluidModel is not meant for being called directly. ' ...
+            error(['The WaterFluidModel is not meant for being called directly. ' ...
                    'It should be used coupled with a mechanical model, derived ' ...
                    'from MechFluidModel.'])
         end
