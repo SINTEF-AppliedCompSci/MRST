@@ -140,7 +140,7 @@ if opt.solveForWater
         wat(wc) = wat(wc) - bWqW;
     end
 
-    oil = [];
+    eqs = {wat};
     names = {'water'};    
 else
     f_o = mobOf./totMob;
@@ -150,28 +150,17 @@ else
     if ~isempty(W)
         oil(wc) = oil(wc) - bOqO;
     end
-    wat = [];
+    eqs = {oil};
     names = {'oil'};
 end
 types = {'cell'};
 rho = {rhoW, rhoO};
 mob = {mobW, mobO};
 sat = {sW, sO};
-
-eqs = {wat, oil};
-eqs = addFluxesFromSourcesAndBC(model, eqs, ...
-                                   {pFlow, pFlow},...
-                                   rho, ...
-                                   mob, ...
-                                   sat, ...
-                                   drivingForces);
-
-if opt.solveForWater
-    index = 1;
-else
-    index = 2;
-end
-eqs = eqs(index);
+eqs = addBoundaryConditionsAndSources(model, eqs, names, types, state, ...
+                                     {pFlow, pFlow}, sat, mob, rho, ...
+                                     {}, {}, ...
+                                     drivingForces);
 
 if ~model.useCNVConvergence
     eqs{1} = eqs{1}.*(dt./s.pv);

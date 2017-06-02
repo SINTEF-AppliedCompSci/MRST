@@ -156,8 +156,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             end
         end
         
-        function [compEqs, compSrc, compNames, wellSol] = getExtraWellContributions(model, well, wellSol0, wellSol, q_s, bh, packed, qMass, qVol, dt, iteration)
-            [compEqs, compSrc, compNames, wellSol] = getExtraWellContributions@TwoPhaseOilWaterModel(model, well, wellSol0, wellSol, q_s, bh, packed, qMass, qVol, dt, iteration);
+        function [compEqs, compSrc, eqNames, wellSol] = getExtraWellContributions(model, well, wellSol0, wellSol, q_s, bh, packed, qMass, qVol, dt, iteration)
+            [compEqs, compSrc, eqNames, wellSol] = getExtraWellContributions@TwoPhaseOilWaterModel(model, well, wellSol0, wellSol, q_s, bh, packed, qMass, qVol, dt, iteration);
             if model.polymer
                 assert(model.water, 'Polymer injection requires a water phase.');
                 f = model.fluid;
@@ -183,7 +183,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
                 compEqs{end+1} = qwpoly - sum(concWell.*cqWs);
                 compSrc{end+1} = cqP;
-                compNames{end+1} = 'polymerWells';
+                eqNames{end+1} = 'polymerWells';
             end
         end
 
