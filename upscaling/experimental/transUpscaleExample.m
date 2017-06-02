@@ -13,7 +13,7 @@ T = computeTrans(g, rock);
 %p = partitionUI(g, floor(g.cartDims/2));
 
 p = partitionUI(g, [g.cartDims(1), 1, 1]);
-p = processPartition(g, p, 'Verbose', true);
+p = processPartition(g, p);%, 'Verbose', true);
 
 %% Generate coarse grid and define wells
 cg = generateCoarseGrid(g, p);
@@ -60,6 +60,8 @@ plotGrid(g, 'FaceAlpha', 0)
 plotWell(g, W)
 
 %% Upscale transmissibility and plot the result
+utrans = @(upscaled, state, CG, W_cg, fluid) localLinOptTrans(upscaled, state, CG, W_cg, fluid);
+                                  
 [HT_cg, T_cg, Wcg, upscaled] = ...
    upscaleTrans(cg, T, 'match_method', 'lsq_flux', ...
                 'bc_method', 'wells_simple', 'wells', W);
@@ -73,7 +75,7 @@ plot_press = ...
 for i = 1 : numel(upscaled),
    subplot(numel(upscaled), 1, i)
 
-   plot_press(upscaled(i).state); colorbar, view(3)
+   plot_press(upscaled(i).states); colorbar, view(3)
    outlineCoarseGrid(cg.parent, cg.partition, 'LineWidth', 3);
 end
 
