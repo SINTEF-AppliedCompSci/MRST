@@ -21,7 +21,7 @@ opt.bc_case    = 'bottom fixed'; % 'no displacement' or 'bottom fixed'
 %                     displacement, while a given pressure is imposed on
 %                     the external faces that are not bottom faces.
 
-opt.method     = 'fixed stress splitting'; % 'fully coupled' 'fixed stress splitting'
+opt.method     = 'fully coupled'; % 'fully coupled' 'fixed stress splitting'
 %
 % 'fully coupled'          : The mechanical and flow equations are solved fully couplde.
 % 
@@ -210,14 +210,16 @@ switch modeltype
   case 'fixed stress splitting and blackoil'
     model = MechFluidFixedStressSplitModel(G, rock, fluid, mech, 'fluidModelType', ...
                                            'blackoil');
+  case 'fully coupled and oil water'
+    model = MechOilWaterModel(G, rock, fluid, mech);
+  case 'fixed stress splitting and oil water'
+    model = MechFluidFixedStressSplitModel(G, rock, fluid, mech, 'fluidModelType', ...
+                                           'oil water');
   case 'fully coupled and single phase'
     model = MechSinglephaseModel(G, rock, fluid, mech);
   case 'fixed stress splitting and single phase'
     model = MechFluidFixedStressSplitModel(G, rock, fluid, mech, 'fluidModelType', ...
                                            'single phase');
-  case 'fixed stress splitting and oil water'
-    model = MechFluidFixedStressSplitModel(G, rock, fluid, mech, 'fluidModelType', ...
-                                           'oil water');
   otherwise
     error('modeltype not recognized.');
 end
