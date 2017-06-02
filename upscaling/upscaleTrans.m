@@ -32,17 +32,15 @@ function [HT_cg, T_cg, cgwells, report] = upscaleTrans(cg, T_fine, varargin)
 %                             lsq_flux'
 %             - fix_trans     'true/false' set negative and zero
 %                             transmissibility to lowest positive found
-%             - opt_trans_alg use optimization of trans base valid values
-%                             'none','local','global'
-%          - opt_trans_method method for optimizing trans 'linear_simple','
-%                              'convecs_simple'
 %
 % RETURNS:
 %   HT_cg    - One-sided, upscaled transmissibilities
 %
 %   T_cg     - Upscaled interface transmissibilities
 %
-%   cgwells  - Coarse grid well with upscaled well indices
+%   cgwells  - Coarse grid well with upscaled well indices, the control is
+%              to the input. In case of a cell array of wells as input for
+%              more robust upscaling the first well is used.
 %
 %   upscaled - Detailed infomation from the upscaling procedure.
 %              For testing purposes.
@@ -56,19 +54,12 @@ opt = struct('verbose',              mrstVerbose,     ...
              'wells',                [],              ...
              'match_method',         'max_flux',      ...
              'fix_trans',            false,           ...
-             'opt_trans_alg',        'none',          ...
-             'opt_trans_method',     'linear_simple', ...
              'check_trans',          true,            ...
-             'plot_opt_grid',        true,            ...
              'use_average_pressure', true,            ...
-             'use_trans',            true,            ...
+             'use_trans',            false,            ...
              'LinSolve',             @mldivide);
 
 opt = merge_options(opt, varargin{:});
-
-if ~isempty(opt.opt_trans_alg) && strcmp(opt.opt_trans_alg, 'global'),
-   error('global optimization not implemented')
-end
 
 % Choose global boundary conditions to use
 [bc, well_cases, cgwells_cases] = setupCases(cg, opt);
@@ -95,13 +86,11 @@ upscale  = @(x, cgw) calculateUpscaledSolution(cg, x, cgw, opt);
 upscaled = cellfun(upscale, states, cgwells_cases, 'UniformOutput', false);
 
 % Calulate transmissibility in place in upscaled{i}.trans, upscaled{i}.WI
+% this method only use local information
 utrans = @(k) calculateUpscaledTransSimple(upscaled{k}, cg, ...
-                                           cgwells_cases{k}, fluid);
-if strcmp(opt.opt_trans_alg, 'local'),
-   utrans = @(k) localLinOptTrans(utrans(k), states{k}, ...
-                                  cgwells_cases{k}, fluid, opt);
-end
+                                                   cgwells_cases{k}, fluid);
 
+                                     
 ext = any(cg.faces.neighbors == 0, 2);
 
 for i = 1 : nr_global,
@@ -319,7 +308,9 @@ function [bc, well_cases, cgwells_cases] = setupCases(cg, opt)
             error('bc_method==wells need non empty wells option')
          end
 
-         assert (iscell(opt.wells))
+         if(~iscell(opt.wells))
+             opt.wells={opt.wells};
+         end
          assert (numel(opt.wells) == 1)
 
          nw         = numel(opt.wells{1});
@@ -603,10 +594,16 @@ function [T_cg, HT_cg, cgwells] = fixTrans(cg, T_cg, HT_cg, cgwells, opt)
       end
    end
 
-   if ~ (isempty(opt.wells) || iscell(opt.wells)),
-      assert (numel(opt.wells) == numel(cgwells));
-
+   % set the control to the original values if cell arrray use the first
+   if ~ (isempty(opt.wells)) 
+     if  iscell(opt.wells) 
+      assert(numel(cgwells)==numel(opt.wells{1}));
+      [ cgwells.type ] = opt.wells{1}.type;
+      [ cgwells.val  ] = opt.wells{1}.val;
+     else
+      assert(numel(cgwells)==numel(opt.wells));
       [ cgwells.type ] = opt.wells.type;
       [ cgwells.val  ] = opt.wells.val;
+     end
    end
 end
