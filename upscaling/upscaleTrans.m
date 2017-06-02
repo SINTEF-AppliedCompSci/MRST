@@ -33,6 +33,11 @@ function [HT_cg, T_cg, cgwells, report] = upscaleTrans(cg, T_fine, varargin)
 %             - fix_trans     'true/false' set negative and zero
 %                             transmissibility to lowest positive found
 %
+%             - use_average_pressure if false used the pressure nearest the  
+%                                    coarse cells centroid as pressure
+%
+%             - check_trans  if true check upscaled transmissibilities
+%
 % RETURNS:
 %   HT_cg    - One-sided, upscaled transmissibilities
 %
@@ -56,13 +61,19 @@ opt = struct('verbose',              mrstVerbose,     ...
              'fix_trans',            false,           ...
              'check_trans',          true,            ...
              'use_average_pressure', true,            ...
-             'use_trans',            false,            ...
              'LinSolve',             @mldivide);
 
 opt = merge_options(opt, varargin{:});
 
 % Choose global boundary conditions to use
 [bc, well_cases, cgwells_cases] = setupCases(cg, opt);
+
+if(size(cg.parent.cells.faces,1) == numel(T_fine))
+    opt.use_trans=false;
+else
+   assert(numel(T_fine)==cg.parent.faces.num);
+   opt.use_trans=true;   
+end
 
 % Number of cases
 nr_global = numel(bc);
