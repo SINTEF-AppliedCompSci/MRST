@@ -83,21 +83,6 @@ methods
         % Parent class handles almost everything for us
         [state, report] = updateState@ReservoirModel(model, state, problem, dx, drivingForces);
         
-%         sat = state.s;
-%         
-%         tol = 1e-8;
-%         
-% %         sO = sat(:,2);
-% %         sOres = state.sOres;
-% %         noO = sO - sOres < tol;
-% %         sO(noO) = sOres(noO) - tol;
-% %         sat(:,2) = sO;
-%         sat(sat(:,2) < tol,2) = tol;
-%         sat(sat(:,3) < tol,3) = tol;
-%         sat(sat(:,4) < tol,4) = tol;
-%         sat(:,1) = 1 - sum(sat(:, [2,3,4]),2);
-%         state.s = sat;
-        
         % Handle the directly assigned values (i.e. can be deduced directly from
         % the well controls. This is black oil specific.
         W = drivingForces.W;
