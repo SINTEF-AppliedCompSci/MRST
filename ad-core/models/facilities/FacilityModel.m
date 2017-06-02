@@ -24,10 +24,15 @@ classdef FacilityModel < PhysicalModel
         function model = FacilityModel(reservoirModel, varargin)
             model = model@PhysicalModel([]);
 
+            % Convergence tolerance for BHP-type controls
             model.toleranceWellBHP  = 1*barsa;
+            % Convergence tolerance for rate-type controls
             model.toleranceWellRate = 1/day;
+            % Convergence tolerance for multisegment wells
             model.toleranceWellMS   = 1e-6;
+            % VFP Tables. EXPERIMENTAL.
             model.VFPTablesInjector = {};
+            % VFP Tables. EXPERIMENTAL.
             model.VFPTablesProducer = {};
             model = merge_options(model, varargin{:});
             model.ReservoirModel = reservoirModel;
