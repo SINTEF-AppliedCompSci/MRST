@@ -112,7 +112,11 @@ if 1
     acc(:,3) = (op.pv/dt).*( pvMult.*bG.*sG - pvMult0.*bG0.*sG0 );
     acc(:,4) = (op.pv/dt).*( pvMult.*bS.*sS - pvMult0.*bS0.*sS0 );
     state.acc = acc;
-    state.sOres = sOres.val;
+    if isa(sOres, 'ADI')
+        state.sOres = sOres.val;
+    else
+        state.sOres = sOres;
+    end
 end
 
 
@@ -127,7 +131,7 @@ sat = {sW, sO, sG, sS};
 % Density of injected fluids are calculated using the 'saturations' of
 % given in compi
 
-nc = arrayfun(@(w) numel(w.cells), W)';
+nc = arrayfun(@(w) numel(w.cells), W);
 sign = rldecode(vertcat(wellSol.sign), nc, 1);
 
 wc = vertcat(W.cells);
@@ -150,11 +154,11 @@ for i = 1:4
     else
         rho{i}(wc) = rhoWell{i};
     end
-%     if isa(mob{i}, 'ADI')
-%         mob{i}.val(wc) = mobMult*krWell{i}./muWell{i};
-%     else
-%         mob{i}(wc) = mobMult*krWell{i}./muWell{i};
-%     end
+    if isa(mob{i}, 'ADI')
+        mob{i}.val(wc) = mobMult*krWell{i}./muWell{i};
+    else
+        mob{i}(wc) = mobMult*krWell{i}./muWell{i};
+    end
 end
 
 % [eqs, ~, qRes] = addFluxesFromSourcesAndBC(model, eqs, ...
