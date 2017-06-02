@@ -693,10 +693,10 @@ methods
             if any(sub)
                 assert(strcmpi(types{sub}, 'cell'), 'Unable to add source terms to equation that is not per cell.');
                 sc = src_terms.sourceCells;
-                eqs{sub}(sc) = eqs{i}(sc) - src_terms.phaseMass{i}./rhoS(i);
+                eqs{sub}(sc) = eqs{sub}(sc) - src_terms.phaseMass{i}./rhoS(i);
 
                 bc = bnd_cond.sourceCells;
-                eqs{sub}(bc) = eqs{i}(bc) - bnd_cond.phaseMass{i}./rhoS(i);
+                eqs{sub}(bc) = eqs{sub}(bc) - bnd_cond.phaseMass{i}./rhoS(i);
             end
         end
         % Get the fluxes and store them in the state.
