@@ -70,7 +70,7 @@ classdef BlackOilFixedStressFluidModel < ThreePhaseBlackOilModel
                                                               'iteration', ...
                                                               opt.iteration);
 
-            primaryVars = {'pressure', 'sW', gvar, 'qWs', 'qOs', 'qGs', 'bhp'};
+            primaryVars = {'pressure', 'sW', gvar, wellVarNames{:}};
 
             problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
         end

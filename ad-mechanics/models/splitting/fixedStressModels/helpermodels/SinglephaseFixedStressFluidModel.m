@@ -1,4 +1,4 @@
-classdef SinglephaseFixedStressFluidModel < WaterBiotModel
+classdef SinglephaseFixedStressFluidModel < WaterModel
     
     properties
         pressCoef;
@@ -6,7 +6,7 @@ classdef SinglephaseFixedStressFluidModel < WaterBiotModel
 
     methods
         function model = SinglephaseFixedStressFluidModel(G, rock, fluid, varargin)
-            model = model@WaterBiotModel(G, rock, fluid);
+            model = model@WaterModel(G, rock, fluid);
             model = merge_options(model, varargin{:});
         end
         
@@ -20,12 +20,12 @@ classdef SinglephaseFixedStressFluidModel < WaterBiotModel
             opt = merge_options(opt, varargin{:});
 
             [p, wellSol] = model.getProps(state, 'pressure', 'wellsol');
-            pBH    = vertcat(wellSol.bhp);
-            qWs    = vertcat(wellSol.qWs);
-            p0 = model.getProp(state0, 'pressure');
+
+            [wellVars, wellVarNames, wellMap] = ...
+                model.FacilityModel.getAllPrimaryVariables(wellSol);
 
             if ~opt.resOnly,
-                [p, qWs, pBH] = initVariablesADI(p, qWs, pBH);
+                [p, wellVars{:}] = initVariablesADI(p, wellVars{:});
             end
             
             fnew = drivingForces.fixedStressTerms.new;
@@ -35,17 +35,16 @@ classdef SinglephaseFixedStressFluidModel < WaterBiotModel
             
             otherDrivingForces = rmfield(drivingForces, 'fixedStressTerms');
             
-            [eqs, state] = equationsWaterBiot(p0, p, qWs, pBH, state, model, dt, ...
-                                              mechTerm, otherDrivingForces, ...
-                                              varargin{:});
-            primaryVars = {'pressure','qWs', 'bhp'};
-            names = {'water'};
-            types = {'cell'};
-            W = drivingForces.W;
-            if ~isempty(W)
-                names(2:3) = {'waterWells', 'closureWells'};
-                types(2:3) = {'perf', 'well'};
-            end
+            [eqs, names, types, state] = equationsSinglephaseMech(state0, p, ...
+                                                              wellVars, state, ...
+                                                              model, dt, ...
+                                                              mechTerm, ...
+                                                              otherDrivingForces, ...
+                                                              'iteration', ...
+                                                              opt.iteration);
+            
+            primaryVars = {'pressure', wellVarNames{:}};
+
             problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 
         end
@@ -57,7 +56,11 @@ classdef SinglephaseFixedStressFluidModel < WaterBiotModel
             forces.fixedStressTerms = [];
         end
         
-        
+        function fds = getAllVarsNames(model)
+            fds = {'wellSol', 'pressure'};
+        end
+
+    
     end
     
 end
