@@ -128,6 +128,45 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             % state.SURFADS = double(ads);
         end
 
+        function [names, types] = getExtraWellEquationNames(model)
+            [names, types] = getExtraWellEquationNames@TwoPhaseOilWaterModel(model);
+            if model.surfactant
+                names{end+1} = 'surfactantWells';
+                types{end+1} = 'perf';
+            end
+        end
 
+        function names = getExtraWellPrimaryVariableNames(model)
+            names = getExtraWellPrimaryVariableNames@TwoPhaseOilWaterModel(model);
+            if model.surfactant
+                names{end+1} = 'qWSft';
+            end
+        end
+        
+        function [compEqs, compSrc, compNames, wellSol] = getExtraWellContributions(model, well, wellSol0, wellSol, q_s, bh, packed, qMass, qVol, dt, iteration)
+            [compEqs, compSrc, compNames, wellSol] = getExtraWellContributions@TwoPhaseOilWaterModel(model, well, wellSol0, wellSol, q_s, bh, packed, qMass, qVol, dt, iteration);
+            if model.surfactant
+                % Implementation of surfactant source terms.
+                %
+                assert(model.water, 'Surfactant injection requires a water phase.');
+                f = model.fluid;
+                if well.isInjector
+                    concWell = well.W.surfact;
+                else
+                    pix = strcmpi(model.getComponentNames(), 'surfactant');
+                    concWell = packed.components{pix};
+                end
+                qwsft = packed.extravars{strcmpi(packed.extravars_names, 'qwsft')};
+                % Water is always first
+                wix = 1;
+                cqWs = qMass{wix}./f.rhoWS; % get volume rate, at
+                                            % surface condition.
+                cqS = concWell.*cqWs;
+
+                compEqs{end+1} = qwsft - sum(cqWs);
+                compSrc{end+1} = cqS;
+                compNames{end+1} = 'surfactantWells';
+            end
+        end
     end
 end

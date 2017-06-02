@@ -13,7 +13,6 @@ function f = assignPVDO(f, pvdo, reg)
    % Region interpolator
    ireg = @(T, po, varargin) interpReg(T, po, regmap(po, varargin{:}));
 
-   f.BO     = @(po, varargin) 1./ireg(TbO,     po, varargin{:});
    f.bO     = @(po, varargin) ireg(TbO,     po, varargin{:});
    f.muO    = @(po, varargin) ireg(TmuO,    po, varargin{:});
    f.BoxmuO = @(po, varargin) ireg(TBOxmuO, po, varargin{:});

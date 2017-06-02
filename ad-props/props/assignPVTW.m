@@ -7,14 +7,8 @@ else
     f.cW   = pvtw(reg.PVTNUM, 3);
     f.muWr = pvtw(reg.PVTNUM, 4);
 end
-f.BW   = @(pw, varargin)BW(pw, pvtw, reg, varargin{:});
 f.bW   = @(pw, varargin)bW(pw, pvtw, reg, varargin{:});
 f.muW  = @(pw, varargin)muW(pw, pvtw, reg, varargin{:});
-end
-
-
-function v = BW(pw, pvtw, reg, varargin)
-v = 1./bW(pw, pvtw, reg, varargin{:});
 end
 
 function v = bW(pw, pvtw, reg, varargin)

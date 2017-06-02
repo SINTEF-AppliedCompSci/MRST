@@ -159,27 +159,21 @@ if model.disgas
 else
     gas = (s.pv/dt).*( pvMult.*bG.*sG - pvMult0.*bG0.*sG0 ) + s.Div(bGvG);
 end
-rho = {rhoW, rhoO, rhoG};
-mob = {mobW, mobO, mobG};
-sat = {sW, sO, sG};
-
 eqs = {wat, oil, gas};
 names = {'water', 'oil', 'gas'};
 types = {'cell', 'cell', 'cell'};
 
-[eqs, ~, qRes] = addFluxesFromSourcesAndBC(model, eqs, ...
-                                       {pW, p, pG},...
-                                       rho,...
-                                       mob, ...
-                                       sat, ...
-                                       drivingForces);
+rho = {rhoW, rhoO, rhoG};
+mob = {mobW, mobO, mobG};
+sat = {sW, sO, sG};
+dissolved = model.getDissolutionMatrix(rs, rv);
 
-if model.outputFluxes
-    state = model.storeBoundaryFluxes(state, qRes{1}, qRes{2}, qRes{3}, drivingForces);
-end
+[eqs, state] = addBoundaryConditionsAndSources(model, eqs, names, types, state, ...
+                                             {pW, p, pG}, sat, mob, rho, ...
+                                             dissolved, {}, ...
+                                             drivingForces);
 
 % Finally, add in and setup well equations
-dissolved = model.getDissolutionMatrix(rs, rv);
 [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, wellVars, wellMap, p, mob, rho, dissolved, {}, dt, opt);
 
 % Create actual pressure equation

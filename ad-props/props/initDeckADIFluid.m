@@ -140,7 +140,6 @@ for k = 1:numel(fns)
         end
     end
 end
-fluid = assignRelPerm(fluid);
 end
 
 function flag = doAssign(propNm)

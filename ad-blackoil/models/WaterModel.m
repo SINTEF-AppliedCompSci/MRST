@@ -26,17 +26,6 @@ classdef WaterModel < ReservoirModel
             
         end
         
-        function [state, report] = updateState(model, state, problem, dx, drivingForces)
-            % Parent class handles almost everything for us
-            [state, report] = updateState@ReservoirModel(model, state, problem, dx, drivingForces);
-            saturations = model.saturationVarNames;
-            wi = strcmpi(saturations, 'sw');
-            oi = strcmpi(saturations, 'so');
-            gi = strcmpi(saturations, 'sg');
-
-            W = drivingForces.W;
-            state.wellSol = assignWellValuesFromControl(model, state.wellSol, W, wi, oi, gi);
-        end
     end
 end
 

@@ -41,7 +41,7 @@ timesteps = repmat(dt, nt, 1);
 % Create Dirichlet boundary condition
 bc = pside([], G, 'xmin', 500*barsa, 'sat', [1 0]);
 bc = pside(bc, G, 'xmax', 100*barsa, 'sat', [0 0]);
-bc.poly = 4.*ones(size(bc.sat,1), 1);
+bc.c = 4.*ones(size(bc.sat,1), 1);
 
 schedule = simpleSchedule(timesteps, 'bc', bc);
 
@@ -60,7 +60,7 @@ colorbar; caxis([0 1]);
 % Create Neumann boundary condition
 bc = fluxside([], G, 'xmin',  0.005, 'sat', [1 0]);
 bc = fluxside(bc, G, 'xmax', -0.005, 'sat', [0 0]);
-bc.poly = 4.*ones(size(bc.sat,1), 1);
+bc.c = 4.*ones(size(bc.sat,1), 1);
 schedule = simpleSchedule(timesteps, 'bc', bc);
 
 % Simulate
@@ -83,7 +83,7 @@ snkCells = find(ijk{1}==26 & ijk{2}==26 & ijk{3}==2);
 srcVals  = 0.001.*ones(numel(srcCells),1);
 src = addSource( [], srcCells,  srcVals, 'sat', [1 0]);
 src = addSource(src, snkCells, -srcVals, 'sat', [0 0]);
-src.poly = 4.*ones(size(src.sat,1), 1);
+src.c = 4.*ones(size(src.sat,1), 1);
 schedule = simpleSchedule(timesteps, 'src', src);
 
 % Simulate

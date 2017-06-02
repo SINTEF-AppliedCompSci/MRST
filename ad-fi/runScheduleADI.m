@@ -233,7 +233,7 @@ while tstep <= numel(schedule.step.val)
    proceed_to_next_step = true;
    
    if ~(conv.converged) 
-      if opt.force_step & opt.stop_if_not_converged
+      if opt.force_step && opt.stop_if_not_converged
          error(['You may try time step refinement: set ''force_step'' option equal to false in ', ...
                 'runScheduleADI.']);
       elseif ~opt.force_step

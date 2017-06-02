@@ -24,10 +24,15 @@ classdef FacilityModel < PhysicalModel
         function model = FacilityModel(reservoirModel, varargin)
             model = model@PhysicalModel([]);
 
+            % Convergence tolerance for BHP-type controls
             model.toleranceWellBHP  = 1*barsa;
+            % Convergence tolerance for rate-type controls
             model.toleranceWellRate = 1/day;
+            % Convergence tolerance for multisegment wells
             model.toleranceWellMS   = 1e-6;
+            % VFP Tables. EXPERIMENTAL.
             model.VFPTablesInjector = {};
+            % VFP Tables. EXPERIMENTAL.
             model.VFPTablesProducer = {};
             model = merge_options(model, varargin{:});
             model.ReservoirModel = reservoirModel;
@@ -35,7 +40,20 @@ classdef FacilityModel < PhysicalModel
         end
 
         function model = setupWells(model, W, wellmodels)
-            % Set up wells for changed controls or first simulation step
+            % Set up well models for changed controls or the first
+            % simulation step.
+            %
+            % INPUT:
+            % 
+            % W       - Well struct (obtained from e.g. addWell or
+            %           processWells)
+            %
+            % wellmodels (OPTIONAL ARGUMENT)
+            %          - Cell array of equal length to W, containing class
+            %          instances for each well (e.g. SimpleWell,
+            %          MultisegmentWell, or classes derived from these). 
+            %          If not provided, well models be constructed from the
+            %          input. 
             nw = numel(W);
             if model.getNumberOfWells == 0
                 % First time setup
@@ -128,7 +146,15 @@ classdef FacilityModel < PhysicalModel
         end
 
         function [variables, names, map] = getBasicPrimaryVariables(model, wellSol)
-            % Get phase rates + bhp for active phases
+            % Get phase rates for the active phases and the bhp.
+            % In addition, the map contains indicators used to
+            % find the phase rates and BHP values in "variables"
+            % since these are of special importance to many
+            % applications and are considered canonical (i.e. they
+            % are always solution variables in MRST, and functions
+            % can assume that they will always be found in the
+            % variable set for wells).
+            
             if model.getNumberOfWells() == 0
                 [variables, names] = deal({});
                 [isBHP, isRate] = deal([]);
@@ -159,19 +185,25 @@ classdef FacilityModel < PhysicalModel
         % advanced wells that are in addition to the basic facility
         % variables (rates + bhp).
         %
-        % names     : Column of cells. Each cell is a string with the name of an extra-variable
-        % variables : Column of cells. Each element, variables{i}, is a vector given
+        % OUTPUT:
+        %
+        % names     - Column of cells. Each cell is a string with the name
+        %             of an extra-variable.
+        %
+        % variables - Column of cells. Each element, variables{i}, is a vector given
         %             the value corresponding to extra-variable with name
         %             names{i}. This vector is composed of stacked values
         %             over all the wells that contains this extra-variable.
-        % wellmap   : The facility model contains the extra-variables of all
+        %
+        % wellmap   - The facility model contains the extra-variables of all
         %             the well models that are used. Let us consider the well
         %             with well number wno (in the set of active wells), then
         %             the Well model is belongs to has its own
         %             extra-variables (a subset of those of the Facility
         %             model). We consider the j-th extra-variable of
-        %             the Well model. Then, i = wellmap(wno, j) says that
-        %             this extra-variable corresponds to names{i}
+        %             the Well model. Then, i = extraMap(wno, j)
+        %             says that this extra-variable corresponds to
+        %             names{i}.
 
             actIx = model.getIndicesOfActiveWells();
             nw = numel(actIx);
