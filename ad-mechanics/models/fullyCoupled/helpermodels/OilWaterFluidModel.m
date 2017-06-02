@@ -1,4 +1,4 @@
-classdef OilWaterFluidModel < ThreePhaseBlackOilModel
+classdef OilWaterFluidModel < TwoPhaseOilWaterModel
 
     properties
         primaryVarNames;
@@ -6,12 +6,9 @@ classdef OilWaterFluidModel < ThreePhaseBlackOilModel
 
     methods
         function model = OilWaterFluidModel(G, rock, fluid, varargin)
-            model = model@ThreePhaseBlackOilModel(G, rock, fluid);
-
-            model.disgas          = true;
-            model.vapoil          = false;
-            model.primaryVarNames = {'pressure', 'sW', 'x'}; % well variables
-                                                             % not included
+            model = model@TwoPhaseOilWaterModel(G, rock, fluid);
+            model.primaryVarNames = {'pressure', 'sW'}; % well variables
+                                                        % not included
             model = merge_options(model, varargin{:});
         end
 
@@ -31,8 +28,7 @@ classdef OilWaterFluidModel < ThreePhaseBlackOilModel
         end
 
         function fds = getAllVarsNames(model)
-            fds = {'wellSol', 'pressure', 's', 'rs', 'rv', 'sW', 'sG', 'sO', ...
-                   'water', 'oil', 'gas'};
+            fds = {'wellSol', 'pressure', 's', 'sW',  'sO', 'water', 'oil'};
         end
 
         function [state, report] = updateState(model, state, problem, dx, ...
@@ -47,7 +43,7 @@ classdef OilWaterFluidModel < ThreePhaseBlackOilModel
             problem.primaryVariables = vars(ind);
             dx   = dx(ind);
 
-            [state, report] = updateState@ThreePhaseBlackOilModel(model, state, ...
+            [state, report] = updateState@TwoPhaseOilWaterModel(model, state, ...
                                                               problem, dx, ...
                                                               drivingForces);
 
