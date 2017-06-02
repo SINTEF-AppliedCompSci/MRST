@@ -37,12 +37,12 @@ function [krW_eff, krO_eff, krG_eff, krS_eff] = computeRelPermSolvent(fluid, p, 
     sOn = max(sO - sOres, 0);
     sGn = max(sG - sSGres,0);
     sSn = max(sS,0);
-    sGTn = sGn + sSn;
+    sGTn = max(sG + sS - sSGres,0);
     
     sOnsNn  = saturationFraction(sOn, sGTn);
-    sGTnsNn = 1 - sOnsNn;
+    sGTnsNn = saturationFraction(sGTn, sOn);
     sGnsGTn = saturationFraction(sGn, sSn);
-    sSnsGTn = 1 - sGnsGTn;
+    sSnsGTn = saturationFraction(sSn, sGn);
 
     % Miscible relperms
     krO_m = sOnsNn.*krN;
