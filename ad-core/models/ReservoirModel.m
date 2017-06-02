@@ -354,11 +354,15 @@ methods
     end
 
     % --------------------------------------------------------------------%
-    function phNames = getPhaseNames(model)
+    function [phNames, longNames] = getPhaseNames(model)
         % Get the active phases in canonical ordering
         tmp = 'WOG';
         active = model.getActivePhases();
         phNames = tmp(active);
+        if nargout > 1
+            tmp = {'water', 'oil', 'gas'};
+            longNames = tmp(active);
+        end
     end
 
     function phIndices = getPhaseIndices(model)
@@ -587,10 +591,27 @@ methods
                                                      p, mob, rho, ...
                                                      dissolved, components, ...
                                                      dt, opt)
-        % Utility function for setting up the well equations and adding
-        % source terms for black-oil like models. Note that this currently
-        % assumes that the first nPh equations are the conservation
-        % equations, according to the canonical MRST W-O-G ordering,
+        % Add in the effect of wells to a system of equations, by adding
+        % corresponding source terms and augmenting the ysstme with
+        % additional equations for the wells.
+        %
+        % INPUT
+        %
+        % eqs    - Cell array of equations that are to be updated.
+        %
+        % names  - The names of the equations to be updated. If
+        %          phase-pseudocomponents are to be used, the names must
+        %          correspond to some combination of "water", "oil", "gas"
+        %          if no special component treatment is to be introduced.
+        %
+        % types  - Cell array with the types of "eqs". Note that these
+        %          types must be 'cell' where source terms is to be added.
+        %
+        % src    - Struct containing all the different source terms that
+        %          were computed and added to the equations.
+        %
+        % Remaining input arguments correspond to a variety of reservoir
+        % properties with self-explanatory names.
         if model.FacilityModel.getNumberOfWells() == 0
             return
         end
@@ -603,13 +624,23 @@ methods
 
         rhoS = model.getSurfaceDensities();
         wc = src.sourceCells;
+        [~, longNames] = getPhaseNames(model);
+        % Treat phase pseudocomponent source terms from wells
         for i = 1:nPh
-            eqs{i}(wc) = eqs{i}(wc) - src.phaseMass{i}./rhoS(i);
+            sub = strcmpi(names, longNames{i});
+            if any(sub)
+                assert(strcmpi(types{sub}, 'cell'), 'Unable to add source terms to equation that is not per cell.');
+                eqs{sub}(wc) = eqs{sub}(wc) - src.phaseMass{i}./rhoS(i);
+            end
         end
+        % Treat component source terms from wells
         components = model.getComponentNames();
         for i = 1:numel(components)
-            act = strcmpi(names, components{i});
-            eqs{act}(wc) = eqs{act}(wc) - src.components{i};
+            sub = strcmpi(names, components{i});
+            if any(sub)
+                assert(strcmpi(types{sub}, 'cell'), 'Unable to add source terms to equation that is not per cell.');
+                eqs{sub}(wc) = eqs{sub}(wc) - src.components{i};
+            end
         end
         offset = numel(wellsys.wellEquations);
         eqs(end+1:end+offset) = wellsys.wellEquations;
@@ -623,56 +654,123 @@ methods
                                                                  p, s, mob, rho, ...
                                                                  dissolved, components, ...
                                                                  forces)
-        % Compute masses for the phase pseudocomponents
+        % Add in the effect of boundary conditions and source terms to a
+        % set of equations.
+        %
+        % INPUT
+        %
+        % eqs    - Cell array of equations that are to be updated.
+        %
+        % names  - The names of the equations to be updated. If
+        %          phase-pseudocomponents are to be used, the names must
+        %          correspond to some combination of "water", "oil", "gas"
+        %          if no special component treatment is to be introduced.
+        %
+        % types  - Cell array with the types of "eqs". Note that these
+        %          types must be 'cell' where source terms is to be added.
+        %
+        % src    - Struct containing all the different source terms that
+        %          were computed and added to the equations.
+        %
+        % Remaining input arguments correspond to a variety of reservoir
+        % properties with self-explanatory names. Final input is the
+        % drivingForces struct.
         rhoS = model.getSurfaceDensities();
 
         [src_terms, bnd_cond] = computeSourcesAndBoundaryConditionsAD(model, p, s, mob, rho, dissolved, forces);
+        [~, longNames] = getPhaseNames(model);
+        % We first consider pseudocomponents that correspond to phases,
+        % e.g. the black-oil model, most immiscible models and other models
+        % where the number of phases is approximately equal to the number
+        % of components. If the equations "water", "oil" and "gas" exist,
+        % these will get direct source terms added. Note that the
+        % corresponding source terms will already have added the effect of
+        % dissolution (rs/rv).
+        %
+        % For fully compositional problems, this branch will not execute.
         for i = 1:numel(s)
-            if ~isempty(eqs{i})
+            sub = strcmpi(names, longNames{i});
+            if any(sub)
+                assert(strcmpi(types{sub}, 'cell'), 'Unable to add source terms to equation that is not per cell.');
                 sc = src_terms.sourceCells;
-                eqs{i}(sc) = eqs{i}(sc) - src_terms.phaseMass{i}./rhoS(i);
+                eqs{sub}(sc) = eqs{i}(sc) - src_terms.phaseMass{i}./rhoS(i);
 
                 bc = bnd_cond.sourceCells;
-                eqs{i}(bc) = eqs{i}(bc) - bnd_cond.phaseMass{i}./rhoS(i);
+                eqs{sub}(bc) = eqs{i}(bc) - bnd_cond.phaseMass{i}./rhoS(i);
             end
         end
-
-        if nargout > 1
-            if model.outputFluxes
-                act = model.getActivePhases();
-                tmp = cell(numel(act), 1);
-                tmp(act) = bnd_cond.phaseVolume;
-                state = model.storeBoundaryFluxes(state, tmp{:}, forces);
-            end
+        % Get the fluxes and store them in the state.
+        if nargout > 1 && model.outputFluxes
+            act = model.getActivePhases();
+            tmp = cell(numel(act), 1);
+            tmp(act) = bnd_cond.phaseVolume;
+            state = model.storeBoundaryFluxes(state, tmp{:}, forces);
         end
-
+        % Finally deal with actual components that exist in the different
+        % phases to varying degrees.
         cnames = model.getComponentNames();
-
         for i = 1:numel(cnames)
             % Iterate over individual components
             name = cnames{i};
             sub = strcmpi(name, names);
+            if any(sub)
+                eq = eqs{sub};
+            else
+                eq = zeros(model.G.cells.num, 1);
+            end
+            C = components{i};
+            assert(strcmpi(types{sub}, 'cell'), 'Unable to add source terms to equation that is not per cell.');
             % Add BC component source terms
-            [eqs{sub}, bnd_cond] = model.addComponentContributions(name, eqs{sub}, components{i}, bnd_cond, forces.bc);
-            [eqs{sub}, src_terms] = model.addComponentContributions(name, eqs{sub}, components{i}, src_terms, forces.src);
+            [eq, bnd_cond] = model.addComponentContributions(name, eq, C, bnd_cond, forces.bc);
+            [eq, src_terms] = model.addComponentContributions(name, eq, C, src_terms, forces.src);
+            if any(sub)
+                eqs{sub} = eq;
+            end
         end
-
+        % If requested, provide the computed values for source and bc for
+        % further manipulations outside this function.
         if nargout > 2
             src = struct('src', src_terms, 'bc', bnd_cond);
         end
     end
 
     function [eq, src] = addComponentContributions(model, cname, eq, component, src, force)
+        % For a given component conservation equation, compute and add in
+        % source terms for a specific source/bc where the fluxes have
+        % already been computed.
+        %
+        % INPUT:
+        %
+        % model  - (Base class, automatic)
+        %
+        % cname  - Name of the component. Must be a property known to the
+        %          model itself through getProp/getVariableField.
+        %
+        % eq     - Equation where the source terms are to be added. Should
+        %          be one value per cell in the simulation grid (model.G)
+        %          so that the src.sourceCells is meaningful.
+        %
+        % component - Cell-wise values of the component in question. Used
+        %          for outflow source terms only.
+        %
+        % src    - Source struct containing fields for fluxes etc. Should
+        %          be constructed from force and the current reservoir
+        %          state by computeSourcesAndBoundaryConditionsAD.
+        %
+        % force  - Force struct used to produce src. Should contain the
+        %          field defining the component in question, so that the
+        %          inflow of the component through the boundary condition
+        %          or source terms can accurately by estimated.
         if isempty(force)
             return
         end
         c = model.getProp(force, cname);
+        cells = src.sourceCells;
         switch lower(cname)
             case {'polymer', 'surfactant'}
                 % Water based EOR, multiply by water flux divided by
                 % density and add into corresponding equation
                 qW = src.phaseMass{1}./model.fluid.rhoWS;
-                cells = src.sourceCells;
                 isInj = qW > 0;
                 qC = (isInj.*c + ~isInj.*component(cells)).*qW;
             otherwise
@@ -683,20 +781,53 @@ methods
     end
 
     function rhoS = getSurfaceDensities(model)
+        % Get the surface densities of the active phases in canonical
+        % ordering (WOG, with any inactive phases removed).
+        % RETURNS:
+        %
+        % rhoS - 1 x n double array of surface densities.
         active = model.getActivePhases();
         props = {'rhoWS', 'rhoOS', 'rhoGS'};
         rhoS = cellfun(@(x) model.fluid.(x), props(active));
     end
 
-    function [compEqs, compSrc, compNames, wellSol] = getExtraWellContributions(model, well, wellSol0, wellSol, q_s, bh, packed, qMass, qVol, dt, iteration)
-        [compEqs, compSrc, compNames] = deal({});
+    function [compEqs, compSrc, eqNames, wellSol] = getExtraWellContributions(...
+            model, well, wellSol0, wellSol, q_s, bh, packed, qMass, qVol, dt, iteration)%#ok
+        % This function is called by the well model (base class:
+        % SimpleWell) during the assembly of well equations and addition of
+        % well source terms. The purpose of this function, given the
+        % internal variables of the WellModel, is to compute the additional
+        % closure equations and source terms that the model requires. For
+        % instance, if the model contains different components that require
+        % special treatment (see for example the implementation of this
+        % function in OilWaterPolymerModel), this function should assemble
+        % any additional equations and corresponding source terms. It is
+        % also possible to add source terms without actually adding well
+        % equations.
+        %
+        % RETURNS:
+        %
+        % compEqs - A cell array of additional equations added to the
+        %           system to account for the treatment of components etc
+        %           in the well system.
+        % compSrc - Cell array of component source terms, ordered and with
+        %           the same length as the output from
+        %           model.getComponentNames.
+        % eqNames - Names of the added equations. Must correspond to the
+        %           same entries as getExtraWellEquationNames (but does not
+        %           have to maintain the same ordering).
+        [compEqs, compSrc, eqNames] = deal({});
     end
 
-    function [names, types] = getExtraWellEquationNames(model)
+    function [names, types] = getExtraWellEquationNames(model)%#ok
+        % Get the names and types of extra well equations implemented by
+        % the model instance. See getExtraWellContribution.
         [names, types] = deal({});
     end
 
-    function names = getExtraWellPrimaryVariableNames(model)
+    function names = getExtraWellPrimaryVariableNames(model) %#ok
+        % Get the names of additional well primary variables required by
+        % this model. See getExtraWellContributions.
         names = {};
     end
 end

@@ -459,7 +459,7 @@ end
 
 function qt = getTotalRate(sol)
    ns = numel(sol);
-   qt       = zeros([ns, 1]);
+   qt = zeros([ns, 1]);
    if ns == 0
        return
    end
