@@ -10,6 +10,8 @@ function [krW_eff, krO_eff, krG_eff, krS_eff] = computeRelPermSolvent(fluid, p, 
                   sOres + sSGres, ...
                   fluid.krO(1 - sWres), ...
                   sres_tot);
+
+              
     % Immiscible relperms for oil and total gas          
     krO_i = coreyRelperm(sO, ...
                   n, ...
@@ -22,59 +24,27 @@ function [krW_eff, krO_eff, krG_eff, krS_eff] = computeRelPermSolvent(fluid, p, 
                   fluid.krG(1 - (sWres + sOres)), ...
                   sres_tot);
 
-
     M = fluid.Msat(sG, sS).*fluid.Mpres(p);
 
-%     sO = trimSaturations(sO);
-%     sG = trimSaturations(sG);
-%     sS = trimSaturations(sS);
+
     
-    sGsGT = saturationFraction(sG, sS);
-%     sSsGT = saturationFraction(sS, sG + sS);
+    sSsGT = saturationFraction(sS, sG);
     
     % Immiscible gas and solvent relperms
-    krG_i = sGsGT.*krGT_i;
-    krS_i = (1-sGsGT).*krGT_i;
-    
-%     sOn = sO - sOres;
-%     sGn = sG - sSGres;
-%     sSn = sS;
-%     sNn = sOn + sGn + sSn;
-%     sGTn = sGn + sSn;
-    
+    krG_i = (1-sSsGT).*krGT_i;
+    krS_i = sSsGT.*krGT_i;
+
     sOn = max(sO - sOres, 0);
     sGn = max(sG - sSGres,0);
     sSn = max(sS,0);
-    sNn = sOn + sGn + sSn;
     sGTn = sGn + sSn;
-%     sNn = max(sO + sG + sS - (sOres + sSGres), 0);
-%     sGTn = max(sG + sS - sSGres,0);
     
-%     sOn = trimSaturations(sOn);
-%     sGn = trimSaturations(sGn);
-%     sSn = trimSaturations(sSn);
-%     sNn = trimSaturations(sNn);
-%     sGTn = trimSaturations(sGTn);
-    
-%     sOn = sO - sOres;
-%     sGn = sG - sSGres;
-%     sSn = sS;
-%     sNn = sO + sG + sS - (sOres + sSGres);
-%     sGTn = sG + sS - sSGres;
-    
-    
-%     sOnsNn  = saturationFraction(sOn, sNn);
-%     sGTnsNn = saturationFraction(sGTn, sNn);
-%     sGnsGTn = saturationFraction(sGn, sGTn);
-%     sSnsGTn = saturationFraction(sSn, sGTn);
-    
-    sOnsNn  = saturationFraction(sOn, sSn + sGn);
-    sGTnsNn = saturationFraction(sGTn, sOn);
+    sOnsNn  = saturationFraction(sOn, sGTn);
+    sGTnsNn = 1 - sOnsNn;
     sGnsGTn = saturationFraction(sGn, sSn);
-    sSnsGTn = saturationFraction(sSn, sGn);
+    sSnsGTn = 1 - sGnsGTn;
 
-
-% Miscible relperms
+    % Miscible relperms
     krO_m = sOnsNn.*krN;
     krGT_m = sGTnsNn.*krN;
     krG_m = sGnsGTn.*krGT_m;
@@ -98,11 +68,18 @@ end
 function kr = coreyRelperm(s, n, sr, kwm, sr_tot)
     den = 1 - sr_tot;
     sat = ((s - sr)./den);
-    if isa(sat, 'ADI')
-        sat.val = max(min(sat.val, 1), 0);
-    else
-        sat = max(min(sat, 1), 0);
-    end
+    
+%     sat = max(min((s - sr)./den,1),0);
+%     tol = 100*eps;
+%     tol = 1e-5;
+    tol = 0;
+    sat = max(min((s-sr)./(den + tol),1),0);
+    
+%     if isa(sat, 'ADI')
+%         sat.val = max(0,min(sat.val, 1));
+%     else
+%         sat = max(min(sat, 1), 0);
+%     end
     
     kr = kwm.*sat.^n;
 end
