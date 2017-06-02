@@ -443,6 +443,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
       %--------------------------------------------------------------------
       function h = vertcat(varargin)
+          isD = cellfun(@isnumeric, varargin);
+          if any(isD)
+              sampleAD = varargin(~isD);
+              sampleAD = sampleAD{1};
+              for i = 1:numel(isD)
+                  if isD(i)
+                      varargin{i} = double2ADI(varargin{i}, sampleAD);
+                  end
+              end
+          end
           nv    = numel(varargin);
           nj    = numel(varargin{1}.jac);
           vals  = cell(1,nv);
