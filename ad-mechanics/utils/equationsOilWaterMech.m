@@ -1,5 +1,7 @@
-function [eqs, state] = equationsOilWaterMech(p0, sW0, p, sW, pBH, qWs, qOs,  state, model, dt, mechTerm, ...
-                                           drivingForces, varargin)
+function [eqs, names, types, state] = equationsOilWaterMech(state0, p, sW, ...
+                                                      wellVars,  state, model, ...
+                                                      dt, mechTerm, drivingForces, ...
+                                                      varargin)
 
 % Equation for oil water system that also takes input from mechanics.
 
@@ -35,6 +37,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     f = model.fluid;
     rock = model.rock;
 
+    [p0, sW0, wellSol0] = model.getProps(state0, 'pressure', 'sW', 'wellSol');
+    
     % Evaluate relative permeability
     sO  = 1 - sW;
     sO0 = 1 - sW0;
@@ -89,46 +93,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     oil = (1./dt).*(effPorVol.*bO.*sO - effPorVol0.*bO0.*sO0)  + s.Div(bOvO);
 
     eqs = {water, oil};
+    names = {'water', 'oil'};
+    types = {'cell', 'cell'};
     
-    % Add in any fluxes / source terms prescribed as boundary conditions.
-    [eqs, ~, qRes] = addFluxesFromSourcesAndBC(model, eqs, ...
-                                               {pW, p},...
-                                               {rhoW,     rhoO},...
-                                               {mobW,     mobO}, ...
-                                               {bW, bO},  ...
-                                               {sW, sO}, ...
-                                               drivingForces);
-    if model.outputFluxes
-        state = model.storeBoundaryFluxes(state, qRes{1}, qRes{2}, [], drivingForces);
-    end
-
-    % Set up well equations
-    if ~isempty(W)
-        wm = model.wellmodel;
-        wc    = vertcat(W.cells);
-        pw   = p(wc);
-        rhos = [model.fluid.rhoWS, model.fluid.rhoOS];
-        bw   = {bW(wc), bO(wc)};
-        mw   = {mobW(wc), mobO(wc)};
-        s = {sW(wc), sO(wc)};
-
-        [cqs, weqs, ctrleqs, wc, state.wellSol]  = wm.computeWellFlux(model, ...
-                                                          W, state.wellSol, ...
-                                                          pBH, {qWs, qOs}, pw, ...
-                                                          rhos, bw, mw, s, ...
-                                                          {}, 'nonlinearIteration', ...
-                                                          opt.iteration);
-        % Store the well equations (relate well bottom hole pressures to
-        % influx).
-        eqs(3:4) = weqs;
-        % Store the control equations (trivial equations ensuring that each
-        % well will have values corresponding to the prescribed value)
-        eqs{5} = ctrleqs;
-        % Add source terms to the equations. Negative sign may be
-        % surprising if one is used to source terms on the right hand side,
-        % but this is the equations on residual form.
-        eqs{1}(wc) = eqs{1}(wc) - cqs{1};
-        eqs{2}(wc) = eqs{2}(wc) - cqs{2};
-    end
+    % Finally, add in and setup well equations
+    wellSol = model.getProp(state, 'wellsol');
+    [~, wellVarNames, wellMap] = ...
+        model.FacilityModel.getAllPrimaryVariables(wellSol);
+    [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, ...
+                                                      types, wellSol0, wellSol, ...
+                                                      wellVars, wellMap, p, ...
+                                                      {mobW, mobO}, {rhoW, ...
+                        rhoO}, {}, {}, dt, opt);
+    
+    
 end
 

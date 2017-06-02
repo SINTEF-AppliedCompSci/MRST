@@ -28,10 +28,11 @@ opt.method     = 'fixed stress splitting'; % 'fully coupled' 'fixed stress split
 % 'fixed stress splitting' : The mechanical and flow equations are solved
 %                            sequentially using a fixed stress splitting
 
-opt.fluid_model = 'single phase'; % 'blackoil' 'single phase'
+opt.fluid_model = 'oil water'; % 'blackoil' 'single phase' 'oil water'
 % 
 % 'blackoil'     : blackoil model is used for the fluid (gas is injected, see
 %                  schedule below)
+% 'oil water'    : Two phase oil-water
 % 'single phase' : single phase model is used for the fluid 
 
 
@@ -60,27 +61,42 @@ G = processGRDECL(grdecl);
 G = G(1);
 G = computeGeometry(G);
 
-
-%% Setup fluid parameters from SPE1
-
+%% Setup rock parameters (for flow)
 perm = [grdecl.PERMX, grdecl.PERMY, grdecl.PERMZ];
 rock.perm = perm(G.cells.indexMap, :);
 rock.poro = max(grdecl.PORO(G.cells.indexMap), 0.1);
 
-pth = getDatasetPath('spe1');
-fn  = fullfile(pth, 'BENCH_SPE1.DATA');
-deck = readEclipseDeck(fn);
-deck = convertDeckUnits(deck);
-fluid = initDeckADIFluid(deck);
-fluid = rmfield(fluid, 'pcOW');
-fluid = rmfield(fluid, 'pcOG');
 
-% Setup quadratic relative permeabilities, since SPE1 relperm are a bit rough.
-fluid.krW = @(s) s.^2;
-fluid.krG = @(s) s.^2;
-fluid.krOW = @(s) s.^2;
-fluid.krOG = @(s) s.^2;
-pRef = deck.PROPS.PVTW(1);
+%% Setup fluid parameters from SPE1
+
+switch opt.fluid_model
+  case 'blackoil'
+    pth = getDatasetPath('spe1');
+    fn  = fullfile(pth, 'BENCH_SPE1.DATA');
+    deck = readEclipseDeck(fn);
+    deck = convertDeckUnits(deck);
+    fluid = initDeckADIFluid(deck);
+    fluid = rmfield(fluid, 'pcOW');
+    fluid = rmfield(fluid, 'pcOG');
+
+    % Setup quadratic relative permeabilities, since SPE1 relperm are a bit rough.
+    fluid.krW = @(s) s.^2;
+    fluid.krG = @(s) s.^2;
+    fluid.krOW = @(s) s.^2;
+    fluid.krOG = @(s) s.^2;
+    pRef = deck.PROPS.PVTW(1);
+  
+  case 'oil water'
+    fluid = initSimpleADIFluid('phases', 'WO', ...
+                               'mu', [1, 10]*centi*poise, ...
+                               'n',  [1, 1], ...
+                               'rho', [1000, 700]*kilogram/meter^3);
+    cR = 4e-10;
+    pRef = 270*barsa;
+    fluid.pvMultR = @(p) (1 + cR*(p - pRef));
+  otherwise
+    error('fluid_model  not recognized.');
+end
 
 
 %% Setup material parameters for Biot and mechanics
@@ -199,6 +215,9 @@ switch modeltype
   case 'fixed stress splitting and single phase'
     model = MechFluidFixedStressSplitModel(G, rock, fluid, mech, 'fluidModelType', ...
                                            'single phase');
+  case 'fixed stress splitting and oil water'
+    model = MechFluidFixedStressSplitModel(G, rock, fluid, mech, 'fluidModelType', ...
+                                           'oil water');
   otherwise
     error('modeltype not recognized.');
 end
@@ -231,6 +250,9 @@ switch opt.fluid_model
   case 'blackoil'
     W(1).compi = [0, 0, 1];
     W(2).compi = [0, 1, 0];
+  case 'oil water'
+    W(1).compi = [1 0];
+    W(2).compi = [0 1];
   case 'single phase'
     W(1).compi = [1];
     W(2).compi = [1];
@@ -251,8 +273,18 @@ schedule.control      = struct('W', W);
 %% Setup initial state
 clear initState;
 initState.pressure = pRef*ones(G.cells.num, 1);
-initState.s        = ones(G.cells.num, 1)*[0, 1, 0];
-initState.rs       = 0.5*fluid.rsSat(initState.pressure);
+switch opt.fluid_model
+  case 'blackoil'
+    init_sat = [0, 1, 0];
+    initState.rs       = 0.5*fluid.rsSat(initState.pressure);
+  case 'oil water'
+    init_sat = [0, 1];
+  case 'single phase'
+    init_sat = [1];
+  otherwise
+    error('fluid_model not recognized.')
+end
+initState.s        = ones(G.cells.num, 1)*init_sat;
 initState          = computeInitDisp(model, initState, []);
 
 

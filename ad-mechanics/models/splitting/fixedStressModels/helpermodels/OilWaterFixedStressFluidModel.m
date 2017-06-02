@@ -1,4 +1,4 @@
-classdef OilWaterFixedStressFluidModel < OilWaterBiotModel
+classdef OilWaterFixedStressFluidModel < TwoPhaseOilWaterModel
     
     properties
         pressCoef;
@@ -6,7 +6,7 @@ classdef OilWaterFixedStressFluidModel < OilWaterBiotModel
 
     methods
         function model = OilWaterFixedStressFluidModel(G, rock, fluid, varargin)
-            model = model@OilWaterBiotModel(G, rock, fluid);
+            model = model@TwoPhaseOilWaterModel(G, rock, fluid);
             model = merge_options(model, varargin{:});
         end
         
@@ -19,16 +19,13 @@ classdef OilWaterFixedStressFluidModel < OilWaterBiotModel
             
             opt = merge_options(opt, varargin{:});
 
-
             [p, sW, wellSol] = model.getProps(state, 'pressure', 'sw', 'wellsol');
-            pBH    = vertcat(wellSol.bhp);
-            qOs    = vertcat(wellSol.qOs);
-            qWs    = vertcat(wellSol.qWs);
 
-            [p0, sW0] = model.getProps(state0, 'pressure', 'sw');
+            [wellVars, wellVarNames, wellMap] = ...
+                model.FacilityModel.getAllPrimaryVariables(wellSol);
 
             if ~opt.resOnly,
-                [p, sW, qWs, qOs, pBH] = initVariablesADI(p, sW, qWs, qOs, pBH);
+                [p, sW, wellVars{:}] = initVariablesADI(p, sW, wellVars{:});
             end
             
             fnew = drivingForces.fixedStressTerms.new;
@@ -38,14 +35,15 @@ classdef OilWaterFixedStressFluidModel < OilWaterBiotModel
             
             otherDrivingForces = rmfield(drivingForces, 'fixedStressTerms');
             
-            [eqs, state] = equationsOilWaterBiot(p0, sW0, p, sW, pBH, qWs, ...
-                                                 qOs, state, model, dt, mechTerm, ...
-                                                 otherDrivingForces, ...
-                                                 varargin{:});
+            [eqs, names, types, state] = equationsOilWaterMech(state0, p, sW, ...
+                                                              wellVars, state, ...
+                                                              model, dt, ...
+                                                              mechTerm, ...
+                                                              otherDrivingForces, ...
+                                                              'iteration', ...
+                                                              opt.iteration);
 
-            primaryVars = {'pressure', 'sw', 'qWs', 'qOs', 'bhp'};
-            names = {'water', 'oil' 'waterWells', 'oilWells', 'closureWells'};
-            types = {'cell', 'cell', 'perf', 'perf', 'well'};
+            primaryVars = {'pressure', 'sw', wellVarNames{:}};
             
             problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 
@@ -58,6 +56,9 @@ classdef OilWaterFixedStressFluidModel < OilWaterBiotModel
             forces.fixedStressTerms = [];
         end
         
+        function fds = getAllVarsNames(model)
+            fds = {'wellSol', 'pressure', 's'};
+        end
         
     end
     
