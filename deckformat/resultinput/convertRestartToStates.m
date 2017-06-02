@@ -109,11 +109,11 @@ for k = 1:numel(tr)
     
     % rs/rv
     if isfield(rstrt, 'RS')
-        states{k}.rs = convertFrom(rstrt.RS{k}, unit.ql/unit.qg);
+        states{k}.rs = convertFrom(rstrt.RS{k}, unit.qg/unit.ql);
     end
     
     if isfield(rstrt, 'RV')
-        states{k}.rv = convertFrom(rstrt.RV{k}, unit.qg/unit.ql);
+        states{k}.rv = convertFrom(rstrt.RV{k}, unit.ql/unit.qg);
     end
     
     % polymer stuff
