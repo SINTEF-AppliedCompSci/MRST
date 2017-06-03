@@ -1,6 +1,12 @@
-%% Vertically average simulation: comparison of h and S-formulation
-% Here, we study the use of different formulations for the vertical
-% equlibrium approximations to the two-phase flow in reservoirs.
+%% VE-incomp: Comparison of h and S-formulation
+% MRST-co2lab has two different types of vertical equilibrium solvers. What
+% we for brevity will refer to as the VE-incomp solvers assume
+% incompressible flow and are written much in the same way as the solvers
+% in the incomp module. The VE-ad solvers rely on the AD-OO frame work
+% implemented in ad-core/ad-blackoil, etc. This example will introduce you
+% to the VE-incomp solvers. To this end, we consider a simple 1D example
+% and compare the two different ways incompressible VE-models can be
+% formulated:
 %
 % # Using the height $h$ of the CO2 column as primary variable, a mimetic
 %   discretization of the pressure equation, and a transport solver based
@@ -11,7 +17,8 @@
 %   standard implicit transport solver from mrst core.
 %
 % The example also sets up a complete input deck (in Eclipse format) which
-% can be used for simulation by traditional solvers
+% can be used for simulation by traditional black-oil solvers like those
+% implemented in the AD-OO framework.
 
 mrstModule add co2lab incomp
 
