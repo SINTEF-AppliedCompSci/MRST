@@ -114,7 +114,7 @@ opt = struct('use_multipoint',false);
 opt = merge_options(opt, varargin{:});
 
 mlist = mrstModule();
-mrstModule add matlab_bgl;
+%mrstModule add matlab_bgl;
 
 % Find top cells of the surface defined such that all centroids of all
 % internal neighbors lie deeper.
@@ -264,7 +264,7 @@ trap =struct('Gtop', Gtop, ...
              'z_spill_level',{z_spill_level},...
              'z_spill_loc_level',{z_spill_loc_level});
                      
-mrstModule('reset', mlist{:})
+%mrstModule('reset', mlist{:})
 return
 end
 

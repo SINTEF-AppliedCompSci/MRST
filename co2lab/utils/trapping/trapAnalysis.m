@@ -107,10 +107,10 @@ assert(isscalar(method),...
                   ' Currently proceeding without closed fault edges.']);
       end
       
-      mlist = mrstModule();
+%      mlist = mrstModule();
       moduleCheck('matlab_bgl','coarsegrid');
       res = cell_based_trap_analysis(Gt);
-      mrstModule('reset', mlist{:})
+%      mrstModule('reset', mlist{:})
   else
       % we will use the edge-based method
       res = edge_based_trap_analysis(Gt, ...
