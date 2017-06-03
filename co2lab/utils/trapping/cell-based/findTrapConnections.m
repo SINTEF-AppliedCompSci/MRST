@@ -75,7 +75,7 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-% mlist = mrstModule();
+mlist = mrstModule();
 mrstModule add coarsegrid matlab_bgl
 
 
@@ -226,6 +226,6 @@ trap_con=struct('cell_lines',{cell_lines},...
                 'trap_matrix',trap_matrix,...
                 'leaf_lines',{leaf_lines},...
                 'leaf_traps',{leaf_traps});
-% mrstModule('reset', mlist{:})
+mrstModule('reset', mlist{:})
 return;
 end
