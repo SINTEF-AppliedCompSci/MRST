@@ -57,15 +57,32 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     hasoil  = check('oil');
     haswat  = check('water');
     haspoly = check('polymer');
+    hassurf = check('surfact');
     
     if haspoly
-        assert(~hasgas, 'Polymer model does not support gas');
-        model = OilWaterPolymerModel(G, rock, fluid, 'inputdata', deck, varargin{:});
+        % Polymer EOR
+        assert(~hassurf, 'Polymer model does not support surfactant');
+        assert(haswat, 'Polymer model requires water phase to be present');
+        if hasgas
+            model = ThreePhaseBlackOilPolymerModel(G, rock, fluid, 'inputdata', deck, varargin{:});
+        else
+            model = OilWaterPolymerModel(G, rock, fluid, 'inputdata', deck, varargin{:});
+        end
+    elseif hassurf
+        % Surfactant EOR
+        assert(~hasgas, 'Surfactant model does not support gas');
+        assert(~haspoly, 'Surfactant model does not support polymer');
+        assert(haswat, 'Surfactant model requires water phase to be present');
+        model = OilWaterSurfactantModel(G, rock, fluid, 'inputdata', deck, varargin{:});
     elseif hasgas && hasoil && haswat
+        % Blackoil three phase
         model = ThreePhaseBlackOilModel(G, rock, fluid, 'inputdata', deck, varargin{:});
     elseif hasoil && haswat
+        % Two-phase oil-water
         model = TwoPhaseOilWaterModel(G, rock, fluid, 'inputdata', deck, varargin{:});
     elseif haswat && hasgas
+        % Two-phase water-gas (Note: Model tailored for CO2 storage, uses
+        % CO2lab module).
         require co2lab
         model = twoPhaseGasWaterModel(G, rock, fluid, nan, nan, 'inputdata', deck, varargin{:});
     else
