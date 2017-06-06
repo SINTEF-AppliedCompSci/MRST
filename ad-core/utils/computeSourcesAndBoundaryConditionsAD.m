@@ -1,6 +1,85 @@
 function [src, bc] = computeSourcesAndBoundaryConditionsAD(model, pressure, s, mob, rho, dissolved, forces)
-    hasBC  = ~isempty(forces.bc);
-    hasSRC = ~isempty(forces.src);
+%Compute phase-pseudocomponent source terms (compatible with AD codes)
+%
+% SYNOPSIS:
+%   [src, bc] = computeSourcesAndBoundaryConditionsAD(model, pressure, s, mob, rho, dissolved, forces)
+%
+% REQUIRED PARAMETERS:
+%   model     - Subclass of ReservoirModel for which the source terms are
+%               to be computed.
+%
+%   The following arguments are all cell-arrays where the entries are
+%   cell-wise values of the property for that phase:
+%
+%   pressure  - Reservoir pressures.
+%   s         - Phase saturations
+%   mob       - Phase mobilities
+%   rho       - Phase densities (including contributions from dissolved
+%               phases. For a black-oil style model, this is
+%               rhoO = bO.*(rs*rhoGS + rhoOS), and not the pseudocomponent
+%               density in the phase bO.*rhoOS!
+%
+%   dissolved - Dissolution matrix for the properties. See
+%   getDissolutionMatrix in ThreePhaseBlackOilModel.
+%
+%   forces    - Struct containing standard MRST driving forces.
+%               Specifically, this routine uses the src and bc fields. All
+%               other fields are ignored. For well source terms, see the
+%               FacilityModel.
+%
+% RETURNS:
+%   src, bc - Structs for sources and boundary conditions respectively.
+%             Each struct uses the same format with the following fields:
+%                 'phaseMass'    - Cell array of mass source terms per
+%                                  phase pseudocomponent, accounting for
+%                                  dissolved fractions.
+%                 'phaseVolume'  - Cell array of volumetric source terms
+%                                  per phase at reservoir conditions.
+%                 'components'   - Empty cell array for inserting component
+%                                  source terms. Components are not the
+%                                  responsibility of this function, but we
+%                                  add the field to ensure that the
+%                                  structure is normalized.
+%                 'mapping'      - Either empty or a matrix used to map the
+%                                  source terms into aggregate per-cell
+%                                  values. This matrix is required when
+%                                  multiple source terms are defined in the
+%                                  same block (e.g. two faces for a cell)
+%                                  since Matlab overwrites repeat indices
+%                                  instead of summing them.
+%                 'sourceCells'  - List of cells the source terms should be
+%                                  added to.
+%
+% NOTE: The practical implementation of boundary conditions is normally
+% done through the gateway ReservoirModel>addBoundaryConditionsAndSources
+% routine, which uses this routine directly.
+%
+%
+% SEE ALSO:
+%   equationsOilWater, equationsBlackOil,
+%   ReservoirModel>addBoundaryConditionsAndSources 
+
+%{
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
+    hasBC  = isfield(forces, 'bc')  && ~isempty(forces.bc);
+    hasSRC = isfield(forces, 'src') && ~isempty(forces.src);
     rhoS = model.getSurfaceDensities();
     
     [qVolBC, qVolSRC, b] = deal(cell(1, numel(mob)));
@@ -26,7 +105,7 @@ function src = getContributionsStruct(force, q_s, b, rhoS, cells, dissolved, map
     nPh = numel(q_s);
     q_r = q_s;
     for i = 1:nPh
-        q_r{i} = q_r{i}./b{i}(cells);
+        q_r{i} = q_s{i}./b{i}(cells);
     end
     
     if ~isempty(dissolved) && ~isempty(force)

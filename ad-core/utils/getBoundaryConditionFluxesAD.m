@@ -2,7 +2,7 @@ function [qSurf, BCTocellMap, BCcells, qRes] = getBoundaryConditionFluxesAD(mode
 %Get boundary condition fluxes for a given set of values
 %
 % SYNOPSIS:
-%   [qSurf, BCTocellMap, BCcells] = getBoundaryConditionFluxesAD(model, pressure, rho, mob, b, s, bc)
+%   [qSurf, BCTocellMap, BCcells] = getBoundaryConditionFluxesAD(model, pressure, s, mob, rho, b, bc)
 %
 % DESCRIPTION:
 %   Given a set of boundary conditions, this function computes the fluxes
