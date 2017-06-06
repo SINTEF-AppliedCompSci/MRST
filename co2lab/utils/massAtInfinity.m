@@ -2,8 +2,8 @@ function [ will_stay, will_leak ] = massAtInfinity( Gt, rock, p, sG, sGmax, sF, 
 % Forecast amount of co2 (in kg) to remain in formation by time infinity.
 %
 % SYNOPSIS:
-%   future_mass = mass_at_infinity(Gt, rock, p, sG, sGmax, sF, rs, fluid, ta, dh)
-%   future_mass = mass_at_infinity(Gt, rock, p, sG, sGmax, sF, rs, fluid, ta, dh, ...
+%   future_mass = massAtInfinity(Gt, rock, p, sG, sGmax, sF, rs, fluid, ta, dh)
+%   future_mass = massAtInfinity(Gt, rock, p, sG, sGmax, sF, rs, fluid, ta, dh, ...
 %                  'p_future', pf, 'surface_pressure', ps, 'plotsOn', true)
 %
 % DESCRIPTION:
