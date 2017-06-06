@@ -276,6 +276,10 @@ end
 %--------------------------------------------------------------------------
 
 function W = process_wpolymer(W, control, G, rock, well_id, p, opt)
+   npoly = size(control.WPOLYMER, 1);
+   if npoly == 0
+       return;
+   end
    if ~isfield(W, 'c')
        [W.c] = deal([]);
    end
@@ -283,7 +287,7 @@ function W = process_wpolymer(W, control, G, rock, well_id, p, opt)
        % Add zeros for polymer
        W(i).c = [W(i).c, 0];
    end
-   for i = 1 : size(control.WPOLYMER, 1)
+   for i = 1 : npoly
       for j = 1:size(W,1)
          if strcmp(W(j).name, control.WPOLYMER{i,1})
             W(j).c(end) = control.WPOLYMER{i,2};
@@ -295,6 +299,10 @@ end
 %--------------------------------------------------------------------------
 
 function W = process_wsurfact(W, control, varargin)
+   nsurf = size(control.WSURFACT, 1);
+   if nsurf == 0
+       return;
+   end
    if ~isfield(W, 'c')
        [W.c] = deal([]);
    end
@@ -305,7 +313,7 @@ function W = process_wsurfact(W, control, varargin)
    if ~isempty(W),
       Wn = { W.name };
 
-      for i = 1 : size(control.WSURFACT, 1),
+      for i = 1 : nsurf
          j = find(strcmp(Wn, control.WSURFACT{i,1}));
 
          if ~isempty(j),
