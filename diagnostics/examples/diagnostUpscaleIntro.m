@@ -33,6 +33,8 @@ rock.poro = p2(:);
 rock.poro(ind) = p1(ind);
 pv = poreVolume(G, rock);
 
+gravity off
+
 W = verticalWell([], G, rock, 4, 17, 4:15, 'Comp_i', 1, ...
    'Type', 'rate', 'Val', 0.2*sum(pv)/year, 'Name', 'I');
 W = verticalWell(W,  G, rock, 35, 3, 1:10, 'Comp_i', 0, ...
