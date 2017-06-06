@@ -79,8 +79,7 @@ try
 catch
     pressureSolver = BackslashSolverAD();
 end
-% linsolve = CPRSolverAD('ellipticSolver', pressureSolver);
-linsolve = SimpleCPRAD('ellipticSolver', pressureSolver);
+linsolve = CPRSolverAD('ellipticSolver', pressureSolver);
 
 %% Plot the rock permeability
 % The SPE9 data set has an anisotropic, inhomogenous permeability field.
