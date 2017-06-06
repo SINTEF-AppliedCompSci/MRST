@@ -101,10 +101,6 @@ if ~opt.resOnly,
     end
 end
 primaryVars = {'pressure', wellVarNames{:}};
-
-clear tmp
-%grav  = gravity;
-%gdz   = s.Grad(G.cells.centroids) * model.gravity';
 gdz   = s.Grad(G.cells.centroids) * model.getGravityVector()';
 %--------------------
 %check for p-dependent tran mult:
@@ -146,22 +142,22 @@ if model.extraStateOutput
     state = model.storeUpstreamIndices(state, upcw, [], []);
 end
 % EQUATIONS ---------------------------------------------------------------
-% water:
-eqs{1} = (s.pv/dt).*( pvMult.*bW - pvMult0.*f.bW(p0) ) + s.Div(bWvW);
-eqs = addFluxesFromSourcesAndBC(model, eqs, ...
-                                       {p},...
-                                       {rhoW},...
-                                       {mobW}, ...
-                                       {ones(numel(p0),1)},  ...
-                                       drivingForces);
-
 names = {'water'};
 types = {'cell'};
+
+% water:
+eqs{1} = (s.pv/dt).*( pvMult.*bW - pvMult0.*f.bW(p0) ) + s.Div(bWvW);
+
+% Dummy saturation
+sW = ones(model.G.cells.num, 1);
+[eqs, state] = addBoundaryConditionsAndSources(model, eqs, names, types, state, ...
+                                                                 {p}, {sW}, {mobW}, {rhoW}, ...
+                                                                 {}, {}, ...
+                                                                 drivingForces);
+
 % well equations
-if ~isempty(W)
-    [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, wellVars, wellMap,...
-            p, {mobW}, {rhoW}, {}, {}, dt, opt);
-end
+[eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, wellVars, wellMap,...
+        p, {mobW}, {rhoW}, {}, {}, dt, opt);
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 end
 %--------------------------------------------------------------------------

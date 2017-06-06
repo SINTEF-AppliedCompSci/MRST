@@ -81,15 +81,11 @@ if model.extraStateOutput
 end
 % EQUATIONS ---------------------------------------------------------------
 % water:
+primaryVars = {'pressure', 'T', wellVarNames{:}};
+
+
 eqs{1} = (s.pv/dt).*( pvMult.*bW - pvMult0.*bW0 ) + s.Div(bWvW);
-[eqs, qBC, qRes, BCtocellMap, qSRC, srcCells, bcCells] = addFluxesFromSourcesAndBC(model, eqs, ...
-                                          {p},...
-                                        {rhoW},...
-                                        {mobW}, ...
-                                       {ones(G.cells.num,1)}, ...
-                                       drivingForces);
-                                   
-% accumulation of energy and conduction of heat in rock
+
 vol=model.G.cells.volumes;
 vQ = -s.T_r .* s.Grad(T);
 eqs{2} = (1./dt).*((vol-pvMult.*s.pv).*uR-(vol-pvMult0.*s.pv).*uR0) + s.Div( vQ);
@@ -97,20 +93,50 @@ eqs{2} = (1./dt).*((vol-pvMult.*s.pv).*uR-(vol-pvMult0.*s.pv).*uR0) + s.Div( vQ)
 % heat is neglected
 eqs{2}  =  eqs{2} + ((s.pv/dt).*( pvMult.*uW.*f.rhoWS.*bW - pvMult0.*uW0.*f.rhoWS.*bW0 )...
         +  s.Div( s.faceUpstr(bWvW>0, f.rhoWS.*hW) .* bWvW));
+names = {'water', 'temperature'};
+types = {'cell', 'cell'};
+
+
+sW = ones(model.G.cells.num, 1);
+[eqs, state, src] = addBoundaryConditionsAndSources(model, eqs, names, types, state, ...
+                                                                 {p}, {sW}, {mobW}, {rhoW}, ...
+                                                                 {}, {}, ...
+                                                                 drivingForces);
+
+% [eqs, qBC, qRes, BCtocellMap, qSRC, srcCells, bcCells] = addFluxesFromSourcesAndBC(model, eqs, ...
+%                                           {p},...
+%                                         {rhoW},...
+%                                         {mobW}, ...
+%                                        {ones(G.cells.num,1)}, ...
+%                                        drivingForces);
+                                   
+% accumulation of energy and conduction of heat in rock
 % add energy from pressure boundaries assume outside has sime enthapy as
 %
+% if(~isempty(bcCells))
+%     qBC=qBC{1};
+%     hWbc=hW(bcCells);%.*BCtocellMap;
+%     hWbc(qBC>0)=drivingForces.bc.hW(qBC>0);
+%     eqs{2} = eqs{2} - BCtocellMap*(hWbc.*f.rhoWS.*qBC);
+% end
+
+bcCells = src.bc.sourceCells;
 if(~isempty(bcCells))
-    qBC=qBC{1};
+    qBC=src.bc.phaseMass{1};
     hWbc=hW(bcCells);%.*BCtocellMap;
     hWbc(qBC>0)=drivingForces.bc.hW(qBC>0);
-    eqs{2} = eqs{2} - BCtocellMap*(hWbc.*f.rhoWS.*qBC);
+    
+    qtbc = src.bc.mapping*(hWbc.*qBC);
+    if isempty(src.bc.mapping)
+        qtbc = src.bc.mapping*qtbc;
+    end
+    eqs{2}(bcCells) = eqs{2}(bcCells) - qtbc;
 end
-% ensure inflow is correct
-
+srcCells = src.src.sourceCells;
 if(~isempty(srcCells))
-    qSRC=qSRC{1};
+    qSRC=src.bc.phaseMass{1};
     hWsrc=hW(srcCells);
-    hWsrc(srcCells(qSRC>0))=drivingForces.src.hW.*f.rhoWs;
+    hWsrc(srcCells(qSRC>0))=drivingForces.src.hW;
     eqs{2}(srcCells) = eqs{2}(srcCells) - qSRC.*hWsrc;
 end
 
@@ -127,16 +153,11 @@ if(~isempty(drivingForces.bcT))
 end
                                    
                                    
-primaryVars = {'pressure', 'T', wellVarNames{:}};
-names = {'water', 'temperature'};
-types = {'cell', 'cell'};
 % well equations
 %sat = {sW, sO, sG};
-if ~opt.reverseMode
-    components = {};
-    [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, wellVars, wellMap,...
-        p, {mobW}, {rhoW}, hW, components, dt, opt);
-end
+components = {};
+[eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, wellVars, wellMap,...
+    p, {mobW}, {rhoW}, hW, components, dt, opt);
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 end
 %--------------------------------------------------------------------------
