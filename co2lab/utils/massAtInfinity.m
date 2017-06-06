@@ -371,20 +371,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       % A work-around way to display with decimal point precision
       tots = will_leak_out_catch + will_leak_via_trees + ...
              double(stay_straps) + double(stay_resid);
-      strs = findobj(ph,'Type','Text');
-      strs(1).String = [num2str(will_leak_out_catch/tots*100,'%2.1f'), '%'];
+      chld = get(gca,'Children');
+      chld(7).String = [num2str(will_leak_out_catch/tots*100,'%2.1f'), '%'];
       if will_leak_via_trees/tots*100 < 0.1
-         strs(2).String = ' ';
+         chld(5).String = ' ';
       else
-         strs(2).String = [num2str(will_leak_via_trees/tots*100,'%2.1f'), '%'];
+         chld(5).String = [num2str(will_leak_via_trees/tots*100,'%2.1f'), '%'];
       end
-      strs(3).String = [num2str(double(stay_straps)/tots*100,'%2.1f'), '%'];
-      strs(4).String = [num2str(double(stay_resid)/tots*100,'%2.1f'), '%'];
-      patches = findobj(ph,'Type','Patch');
-      set(patches(1),'FaceColor','m');
-      set(patches(2),'FaceColor','r');
-      set(patches(3),'FaceColor','y');
-      set(patches(4),'FaceColor','g');
+      chld(3).String = [num2str(double(stay_straps)/tots*100,'%2.1f'), '%'];
+      chld(1).String = [num2str(double(stay_resid)/tots*100,'%2.1f'), '%'];
+      set(chld(8),'FaceColor','m');
+      set(chld(6),'FaceColor','r');
+      set(chld(4),'FaceColor','y');
+      set(chld(2),'FaceColor','g');
       lh = legend('will leak outside catchments','will leak along trees',...
                   'will remain (in straps)','will remain (residually)');
       set(lh,'Location','SouthEast')
