@@ -1,5 +1,5 @@
 function [ will_stay, will_leak ] = massAtInfinity( Gt, rock, p, sG, sGmax, sF, rs, fluid, ta, dh, varargin )
-% Forecast amount of co2 (in kg) that to remain in formation by time infinity.
+% Forecast amount of co2 (in kg) to remain in formation by time infinity.
 %
 % SYNOPSIS:
 %   future_mass = mass_at_infinity(Gt, rock, p, sG, sGmax, sF, rs, fluid, ta, dh)
@@ -35,8 +35,8 @@ function [ will_stay, will_leak ] = massAtInfinity( Gt, rock, p, sG, sGmax, sF, 
 %            - p_future (default is hydrostatic pressure)
 %
 % RETURNS   - co2 mass in terms of:
-%               1. amount remaining at time infinity (will_stay)
-%               2. amount forecast to leak (will_leak)
+%               1. amount forecast to remain at time infinity (will_stay)
+%               2. amount forecast to leak at time infinity (will_leak)
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
@@ -89,12 +89,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    %% 1. Get masses (totals and per cell)
    % NB: use current pressure, p
 
-   % NB:
-   %  - UpscaledSat2height() is used directly rather than
-   % computePlumeHeight() because the later doesn't handle ADI vars.
-   %  - MassTrappingDistributionVEADI_extras() is a modification of the
-   % original in order to pass out the masses per cell, and masses_0 may
-   % contain cells of ADI variables, otherwise cells of doubles.
    [h, h_max]         = upscaledSat2height(sG, sGmax, Gt, 'resSat', [sw sr]);  % can be ADI
    [masses, masses_0] = massTrappingDistributionVEADI(Gt, ...
                                                      p, sG, sF, h, h_max, rock, ...
@@ -124,7 +118,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    % Reports of specific catchments (and boundary catchment by default):
    if ~isempty(opt.report_trap_regions)
       treg = opt.report_trap_regions;
-      if isempty(opt.tot_inj);
+      if isempty(opt.tot_inj)
          for i=1:numel(treg)
             mass_in_region = sum( tmp(ta.trap_regions == treg(i)) )/1e9; % Mt
             fprintf('\nThere is %5.3f Mt in region %3.0f.\n', mass_in_region, treg(i) );
@@ -174,7 +168,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    num_traps            = max(unique(ta.traps));
    trapcap_vol          = cell(num_traps,1);
    for i = 1:num_traps
-      trapcap_vol{i}   = sum(strap_co2_vol(ta.traps == i));               % per trap
+       trapcap_vol{i}   = sum(strap_co2_vol(ta.traps == i));               % per trap
    end
 
    % Computing pore vol outside of straps (m3)
@@ -200,7 +194,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    spillable( ta.trap_regions == 0 ) = 0;
    spillable_per_trap   = cell(num_traps,1);
    for i = 1:num_traps
-      spillable_per_trap{i} = sum(spillable(ta.trap_regions == i));       % per trap region
+       spillable_per_trap{i} = sum(spillable(ta.trap_regions == i));       % per trap region
    end
    
    % Movable masses outside catchments/trap regions
@@ -211,8 +205,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 
    %% 3. Spill masses along trees
-   % We do this by spilling any masses a trap cannot retain down the tree, and
-   % out of the domain.
+   % We do this by spilling any masses a trap cannot retain down the tree,
+   % and out of the domain.
    
    % Get the trap index of the root trap of each tree
    
