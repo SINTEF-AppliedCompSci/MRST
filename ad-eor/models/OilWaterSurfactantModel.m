@@ -151,7 +151,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 assert(model.water, 'Surfactant injection requires a water phase.');
                 f = model.fluid;
                 if well.isInjector
-                    concWell = well.W.surfact;
+                    concWell = model.getProp(well.W, 'surfactant');
                 else
                     pix = strcmpi(model.getComponentNames(), 'surfactant');
                     concWell = packed.components{pix};
