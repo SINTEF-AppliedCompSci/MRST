@@ -153,7 +153,7 @@ fbc = addFluidContribMechVEM(G, bc_f, rock, isdirdofs);
 % Use a TPFA solver for weakly compressible flow. From the output we
 % retrieve the operators for the fluid.
 dt = day; % time step.
-state = lincompTPFA(dt, state, G, T, pv, fluid, 'MatrixOutput', true, 'wells', W, 'bc', bc_f);
+state = lincompTPFA(dt, state, G, T, pv, fluid, rock, 'MatrixOutput', true, 'wells', W, 'bc', bc_f);
 
 Af    = state.A;   % Global matrix for the flow solver
 orhsf = state.rhs; % Right-hand side for the flow equations (includes well)
