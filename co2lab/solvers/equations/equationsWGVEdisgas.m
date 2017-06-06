@@ -29,12 +29,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    % Extract the current and previous values of all variables to solve for
    [p, sG, sGmax, rs, wellSol] = model.getProps(state , 'pressure', 'sg', 'sGmax', 'rs', 'wellsol');
-   [p0, sG0, sGmax0, rs0]      = model.getProps(state0, 'pressure', 'sg', 'sGmax', 'rs');
-
-   % Stack well-related variables of the same type together
-   bhp = vertcat(wellSol.bhp);
-   qWs = vertcat(wellSol.qWs);
-   qGs = vertcat(wellSol.qGs);
+   [p0, sG0, sGmax0, rs0, wellSol0]      = model.getProps(state0, 'pressure', 'sg', 'sGmax', 'rs', 'wellSol');
+   
+   [wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
 
    % Identifying cells with CO2-saturated brine (needed for correct switching of equations)
    rsSat  = f.rsSat(p);
@@ -47,10 +44,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    if ~opt.resOnly
       % ADI variables needed since we are not only computing residuals
       if ~opt.reverseMode
-         [p, sG, sGmax, rs, qWs, qGs, bhp] = initVariablesADI(p, sG, sGmax, rs, qWs, qGs, bhp);
+         [p, sG, sGmax, rs, wellVars{:}] = initVariablesADI(p, sG, sGmax, rs, wellVars{:});
       else
-         zw = zeros(size(bhp)); % dummy
-         [p0, sG0, sGmax0, rs0, ~, ~, ~] = initVariablesADI(p0, sG0, sGmax0, rs0, zw, zw, zw);
+         wellVars0 = model.FacilityModel.getAllPrimaryVariables(wellSol0);
+         [p0, sG0, sGmax0, rs0, wellVars0{:}] = initVariablesADI(p0, sG0, sGmax0, rs0, wellVars0{:});
       end
    end
 
@@ -96,7 +93,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    rsbWvW = s.faceUpstr(upcw, rs) .* bWvW;
 
    % Setting up brine and CO2 equations
-
+   eqs = cell(1, 4);
    % Water (Brine) conservation
    eqs{1} = (s.pv / dt) .* (pvMult .* bW .* sW - pvMult0 .* bW0 .* sW0) + s.Div(bWvW);
 
@@ -105,78 +102,39 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                             pvMult0 .* (bG0 .* sG0 + rs0 .* bW0 .* sW0)) + ...
             s.Div(bGvG + rsbWvW);
 
-   % Include influence of boundary conditions (first line adds the phase
-   % fluxes, second line adds the transport of gas in the water flux)
-   eqs = addFluxesFromSourcesAndBC(model,...
-            eqs, {pW, pG}, {rhoW, rhoG}, {mobW, mobG}, {bW, bG}, {sW, sG}, drivingForces);
-   eqs_rs{1} = eqs{1} * 0;
-   eqs_rs{2} = eqs_rs{1};
-   eqs_rs = addFluxesFromSourcesAndBC(model,...
-            eqs_rs, {pW, 0*pG}, {rhoW, 0*rhoG}, {mobW, 0 * mobG}, {rs .* bW, ...
-                       0*bG}, {sW, 0*sG}, drivingForces);
-   eqs{2} = eqs{2} + eqs_rs{1};
+   
+   
+    % Add in any fluxes / source terms prescribed as boundary conditions.
+    dissolved = {{[], []}, {rs, []}};
+    rho = {rhoW, rhoG};
+    mob = {mobW, mobG};
+    sat = {sW, sG};
+    
+   primaryVars = {'pressure' , 'sG'   , 'sGmax' , 'rs', wellVarNames{:}};
+   types = {'cell'           , 'cell' , 'cell'  , 'cell'  };
+   names = {'water'          , 'gas'  , 'dissol' , 'sGmax'};
 
-   % Setting up well equations
-   if ~isempty(W)
-      wm = model.wellmodel;
-      if ~opt.reverseMode
-         wc = vertcat(W.cells);
-         [cqs, weqs, ctrleqs, wc, state.wellSol] =                       ...
-             wm.computeWellFlux(model, W, wellSol, bhp                 , ...
-                                {qWs, qGs}                             , ...
-                                p(wc)                                  , ...
-                                [model.fluid.rhoWS, model.fluid.rhoGS] , ...
-                                {bW(wc), bG(wc)}                       , ...
-                                {mobW(wc), mobG(wc)}                   , ...
-                                {sW(wc), sG(wc)}                       , ...
-                                {}                                     , ...
-                                'allowControlSwitching', false         , ...
-                                'nonlinearIteration', opt.iteration);
-         % Store the separate well equations (relate well bottom hole
-         % pressures to influx)
-         eqs(5:6) = weqs;
+    [eqs, state, src] = addBoundaryConditionsAndSources(model, eqs, names, types, state, ...
+                                                     {pW, p}, sat, mob, rho, ...
+                                                     dissolved, {}, ...
+                                                     drivingForces);
 
-         % Store the control equations (ensuring that each well has values
-         % corresponding to the prescribed value)
-          eqs{7} = ctrleqs;
-
-         % Add source term to equations.  Negative sign may be surprising if
-         % one is used to source terms on the right hand side, but this is
-         % the equations on residual form
-         eqs{1}(wc) = eqs{1}(wc) - cqs{1};
-         eqs{2}(wc) = eqs{2}(wc) - cqs{2};
-
-      else
-         cqs = {0, 0}; % no in/outflow from any well
-         wc  = [];     % no wellcells
-         [eqs(5:7), names(5:7), types(5:7)] = ...
-             wm.createReverseModeWellEquations(model, state0.wellSol, p0);%#ok
-      end
-   else
-      eqs(5:7) = {bhp, bhp, bhp}; % empty ADIs
-   end
+    % Finally, add in and setup well equations
+    [eqs, names, types, state.wellSol, qWell] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, wellVars, wellMap, p, mob, rho, dissolved, {}, dt, opt);
+    wc = vertcat(drivingForces.W.cells);
 
    % Setting up dissolution equations
    eqs(3:4) = compute_dissolution_equations(model, Gt, f, sG, sG0, sGmax, ...
                                             sGmax0, bG, sW, sW0, bW, bW0, p, ...
                                             rhoW, mobW, rs, rs0, rsSat, isSat, ...
-                                            pvMult, pvMult0, wc, cqs{1}, s, ...
-                                            rsbWvW, drivingForces, dt);
+                                            pvMult, pvMult0, wc, qWell.phaseVolume{1}, s, ...
+                                            rsbWvW, src, dt);
 
    % Rescaling non-well equations
    for i = 1:4
       eqs{i} = eqs{i} * dt / year;
    end
 
-   % Setting up problem
-   primaryVars = {'pressure' , 'sG'   , 'sGmax' , 'rs'    , 'qWs'      , 'qGs'          , 'bhp'       };
-   types = {'cell'           , 'cell' , 'cell'  , 'cell'  , 'perf'     , 'well'         , 'perf'      };
-   names = {'water'          , 'gas'  , 'dissol' , 'sGmax', 'gasWells' , 'closureWells' , 'waterWells'};
-   if isempty(W)
-      % Remove names/types associated with wells, as no well exist
-      types = types(1:4);
-      names = names(1:4);
-   end
 
    problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 
@@ -188,7 +146,7 @@ function eqs = compute_dissolution_equations(model, Gt, f, sG, sG0, sGmax, ...
                                              sGmax0, bG, sW, sW0, bW, bW0, p, ...
                                              rhoW, mobW, rs, rs0, rsSat, isSat, ...
                                              pvMult, pvMult0, wc, cqsw, s, ...
-                                             rsbWvW, drivingForces, dt)
+                                             rsbWvW, src, dt)
    if f.dis_rate == 0
 
       % Instantaneous dissolution model
@@ -224,11 +182,18 @@ function eqs = compute_dissolution_equations(model, Gt, f, sG, sG0, sGmax, ...
       eqs{1}(wc) = eqs{1}(wc) - cqsw;
 
       % Taking boundary conditions and sources into account 
-      eqs_rs = {eqs{1} * 0, eqs{1} * 0};
-      eqs_rs = addFluxesFromSourcesAndBC(model, eqs_rs, {p, 0*p}, {rhoW, 0*rhoW}, ...
-                                         {mobW, 0*mobW}, {rs .* bW, 0*bW}, {sW, 0*sW}, ...
-                                         drivingForces);
-      eqs{1} = eqs{1} + eqs_rs{1};
+      
+      flds = fieldnames(src);
+      [vals, cells] = deal(cell(1, numel(flds)));
+      for i = 1:numel(flds)
+          obj = src.(flds{i});
+          bcCells = obj.sourceCells;
+          if ~isempty(bcCells)
+              eqs{1}(bcCells) = eqs{1}(bcCells) - rs(bcCells).*obj.phaseMass{1}./model.fluid.rhoWS;
+          end
+          vals{i} = rs(bcCells).*obj.phaseMass{1}./model.fluid.rhoWS;
+          cells{i} = bcCells;
+      end
 
       % Modify conservation equation to ensure dissolved CO2 remains within
       % valid boundaries
@@ -245,7 +210,9 @@ function eqs = compute_dissolution_equations(model, Gt, f, sG, sG0, sGmax, ...
                              pvMult0 .* (rs0 .* bW0 .* sW0 ) ) + ...
             s.Div(double(rsbWvW)) - double(rate);
       tmp(wc) = tmp(wc) - double(cqsw);
-      tmp = tmp + double(eqs_rs{1});
+      for i = 1:numel(vals)
+          tmp(cells{i}) = tmp(cells{i}) - vals{i};
+      end
 
       ilow = tmp > -sqrt(eps); % If so, then min_rs is larger than the
                                % solution of eqs{1}, in other words, the
