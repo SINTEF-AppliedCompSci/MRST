@@ -327,6 +327,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    nv=size(A,2);  
    state0=state;
    %pv=poreVolume(G,rock);
+   if ~isfield(rock, 'cr')
+       rock.cr = 0;
+   end
+   
+   if ~isfield(fluid, 'cf')
+       fluid.cf = 0;
+   end
    cr=(rock.cr+fluid.cf);
    ct=cr.*pv/dt;
    rhs_c=ct.*state0.pressure;
