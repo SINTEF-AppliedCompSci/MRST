@@ -58,9 +58,42 @@
 %             This list will be passed directly on to function PATCH
 %             meaning all properties supported by PATCH are valid.
 %
+% OPTIONAL PARAMETERS:
+%   
+%   Most supported options correspond to activating buttons in the GUI
+%   at the first launch. This is useful when the user wants to specify the
+%   exact setup for the plotting window.
+%
+%   log10  - Toggle default logarithm transform of data.
+%
+%   exp    - Toggle default exponential transform of data.
+%
+%   abs    - Toggle default absolute value transform of data.
+%
+%   filterzero - Toggle filtering of near-zero values.
+%
+%   outline - Toggle default outline of grid.
+%
+%   pauseTime - Time to use between plot updates when interactive playback
+%               is used.
+%
+%   lockCaxis - Toggle locking of caxis for dynamic playback.
+%
+%   plot1d    - Toggle 1D plotting (requires grid with only one dimension
+%               with more than one cell thickness)
+%
+%   plotMarkers - Markers used for 1D plotting. Defaults to none.
+%
+%   field       - Initial field to plot. For multiple columns, the syntax 
+%                 's:3' is supported (take column 3 of matrix s). Must be a
+%                 valid plotting field.
+%
+%   startplayback - Start playback immediately with no user input.
+%
 % RETURNS:
 %   h       - Handle to underlying plot call. If used interactively, this
-%             handle will *not* remain usable.
+%             handle will *not* remain usable as this static value will not
+%             be updated when the plot changes.
 %
 % EXAMPLE:
 %    G = cartGrid([10,10,10])
@@ -110,6 +143,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'filterzero',    false, ...
                  'logical',       false, ...
                  'outline',       false, ...
+                 'pauseTime',     0.150, ...
                  'lockCaxis',     false, ...
                  'plot1d',        false, ...
                  'plotmarkers',   false, ...
@@ -382,7 +416,13 @@ function addSelector(ix)
         dsheight = .06;
         hmod = .1;
         subplot('Position', [hmod, dsheight + hmod, 1 - 2*hmod, 1-dsheight - 2*hmod]);
-        datasetSelector(G, dataset, 'Parent', gcf, 'Location', [0, 0, 1, dsheight], 'Callback', @selectdata, 'Setname', datasetname, 'active', ix);
+        datasetSelector(G, dataset, ...
+            'Parent', gcf, ...
+            'Location', [0, 0, 1, dsheight], ...
+            'Callback', @selectdata, ...
+            'Setname', datasetname, ...
+            'active', ix, ...
+            'pauseTime', opt.pauseTime);
         set(fig, 'ResizeFcn', @handleFigureResize);
         handleFigureResize(fig, []);
    end
@@ -817,7 +857,7 @@ function [d, fun, subset] = getData()
 
     if nonzeroDisplay
         tmp = sum(abs(data), 2);
-        subset = subset & tmp > sqrt(eps(max(tmp))) ;
+        subset = subset & tmp > 1e-8*max(tmp);
     end
 
     if size(data, 2) == 3

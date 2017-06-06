@@ -52,6 +52,10 @@ function varargout = datasetSelector(G, datasets, varargin)
 %   
 %   Tag       - Tag to use for the panel containing the selector
 %
+%   pauseTime - Time (in seconds) between updates to plot when used for
+%               dynamic playback. Note that this has no effect if the model
+%               is too complicated for Matlab to render at this rate.
+%
 %
 % RETURNS:
 %   (OPTIONAL) Selected dataset.
@@ -90,6 +94,7 @@ opt = struct('Location', [0 0 1 1],...
              'active',   [], ...
              'N',        1, ...
              'Nofields', false,...
+             'pauseTime',0.15, ...
              'Callback', [],...
              'Tag',      'mrst-datasetselector');
 
@@ -235,7 +240,16 @@ function incrementDataset(src, event, step)
             end
             set(ith, 'Value', NN);
             selectionCallback(ith, []);
-            pause(.1)
+            timer = tic();
+            drawnow
+            render_time = toc(timer);
+            % We know the time it took to render the new model, try to fill
+            % out the rest of the time by a explicit call to pause. If
+            % rendering is slow, do nothing.
+            pause_time = opt.pauseTime - render_time;
+            if pause_time > 0
+                pause(pause_time);
+            end
         end
         set(src, 'Value', 0)
     end
