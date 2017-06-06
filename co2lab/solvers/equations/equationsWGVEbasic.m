@@ -119,19 +119,20 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    % Gas (CO2)
    eqs{2} = (s.pv / dt) .* (pvMult .* bG .* sG - pvMult0 .* bG0 .* sG0) + s.Div(bGvG);
 
+   % Setting names of variables and equations
+   primaryVars = {'pressure' , 'sG'}; 
+   types = {'cell' , 'cell'};
+   names = {'water', 'gas'};  
    % Include influence of boundary conditions
-   eqs = addFluxesFromSourcesAndBC(model, ...
-           eqs, {pW, pG}, {rhoW, rhoG}, {mobW, mobG}, {sW, sG}, drivingForces);
+   [eqs, state] = addBoundaryConditionsAndSources(model, eqs, names, types, state, ...
+                                                  {pW, pG}, {sW, sG}, {mobW, mobG}, {rhoW, rhoG}, ...
+                                                  {}, {}, drivingForces);
 
    if(opt.adjointForm)
        eqs{3}=sGmax-max(sG,sGmax0);
    end
        
 
-   % Setting names of variables and equations
-   primaryVars = {'pressure' , 'sG'}; 
-   types = {'cell' , 'cell'};
-   names = {'water', 'gas'};  
 
 
    % Setting up well equations
