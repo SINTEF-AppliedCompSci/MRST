@@ -60,10 +60,8 @@ function [model, initState, schedule] = setupNorneExamples(opt)
 
       case {'water'}
         fluid = initSimpleADIFluid('phases', 'W', 'mu', 1*centi*poise, 'rho', ...
-                                   1000*kilogram/meter^3);
-        cR = 4e-10;
-        pRef = 270*barsa;
-        fluid.pvMultR = @(p) (1 + cR*(p - pRef));
+                                   1000*kilogram/meter^3, 'c', 1e-10*[1, 1], ...
+                                   'cR', 4e-10, 'pRef', pRef);
       otherwise
         error('fluid_model  not recognized.');
     end

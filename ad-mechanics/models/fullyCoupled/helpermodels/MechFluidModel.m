@@ -1,13 +1,13 @@
 classdef MechFluidModel < ReservoirModel
     properties
 
-        % Mechanical model used in the splitting
+        % Mechanical model
         mechModel;
         % List of primary variable names for the mechanical part
         MechPrimaryVars;
         % List of all the variable names for the mechanical part
         mechfds;
-        % Fluid model used in the splitting
+        % Fluid model
         fluidModel;
         % List of primary variable names for the fluid part
         FluidPrimaryVars;
@@ -25,7 +25,7 @@ classdef MechFluidModel < ReservoirModel
             model       = model@ReservoirModel(G, varargin{:});
             model.rock  = rock;
             model.fluid = fluid;
-            
+
             % Process the grid for mechanical computation
             if ~ismember('createAugmentedGrid', model.G.type)
                 model.G = createAugmentedGrid(model.G);
@@ -79,7 +79,7 @@ classdef MechFluidModel < ReservoirModel
             mechModel  = model.mechModel;
             [state, fluidReport] = fluidModel.updateState(state, problem, dx, []);
             [state, mechReport]  = mechModel.updateState(state, problem, dx, []);
-            report = []; 
+            report = [];
         end
 
         function model = validateModel(model, varargin)
@@ -90,12 +90,12 @@ classdef MechFluidModel < ReservoirModel
             model = validateModel@ReservoirModel(model, varargin{:});
             return
         end
-        
+
         function state = validateState(model, state)
            state = model.fluidModel.validateState(state);
            state = model.mechModel.validateState(state);
         end
-        
+
         function model = setupOperators(model, G, rock, varargin)
 
 
