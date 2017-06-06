@@ -1,6 +1,7 @@
 %% Example demonstrating use of boundary conditions for pressure support
 % We take the SPE1 fluid model to get a simple blackoil-model. We make the
 % aqueous phase mobile by manually setting the relative permeability.
+mrstModule add ad-core ad-blackoil ad-props
 [~, ~, fluid, deck, state] = setupSPE1();
 fluid.krW = @(s) s.^2;
 
