@@ -372,14 +372,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       tots = will_leak_out_catch + will_leak_via_trees + ...
              double(stay_straps) + double(stay_resid);
       chld = get(gca,'Children');
-      chld(7).String = [num2str(will_leak_out_catch/tots*100,'%2.1f'), '%'];
+      set(chld(7), 'String', [num2str(will_leak_out_catch/tots*100,'%2.1f'), '%']);
       if will_leak_via_trees/tots*100 < 0.1
-         chld(5).String = ' ';
+         set(chld(5), 'String', ' ');
       else
-         chld(5).String = [num2str(will_leak_via_trees/tots*100,'%2.1f'), '%'];
+         set(chld(5), 'String', [num2str(will_leak_via_trees/tots*100,'%2.1f'), '%']);
       end
-      chld(3).String = [num2str(double(stay_straps)/tots*100,'%2.1f'), '%'];
-      chld(1).String = [num2str(double(stay_resid)/tots*100,'%2.1f'), '%'];
+      set(chld(3), 'String', [num2str(double(stay_straps)/tots*100,'%2.1f'), '%']);
+      set(chld(1), 'String', [num2str(double(stay_resid)/tots*100,'%2.1f'), '%']);
       set(chld(8),'FaceColor','m');
       set(chld(6),'FaceColor','r');
       set(chld(4),'FaceColor','y');
