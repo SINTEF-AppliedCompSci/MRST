@@ -279,6 +279,8 @@ classdef FacilityModel < PhysicalModel
             etypes = model.addedEquationTypes;
             cnames = model.ReservoirModel.getComponentNames();
             ncomp = numel(cnames);
+            assert(ncomp == numel(comp), ...
+                'Number of input components must match length of getComponentNames!');
 
             n_extra = numel(enames);
             assert(numel(etypes) == n_extra);

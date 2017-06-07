@@ -634,9 +634,9 @@ methods
             end
         end
         % Treat component source terms from wells
-        components = model.getComponentNames();
-        for i = 1:numel(components)
-            sub = strcmpi(names, components{i});
+        cnames = model.getComponentNames();
+        for i = 1:numel(cnames)
+            sub = strcmpi(names, cnames{i});
             if any(sub)
                 assert(strcmpi(types{sub}, 'cell'), 'Unable to add source terms to equation that is not per cell.');
                 eqs{sub}(wc) = eqs{sub}(wc) - src.components{i};

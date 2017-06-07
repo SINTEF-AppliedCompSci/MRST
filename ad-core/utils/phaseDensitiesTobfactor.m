@@ -1,6 +1,6 @@
 function b = phaseDensitiesTobfactor(rho, rhoS, dissolved)
     numPh = numel(rhoS);
-    b = cell(numPh, 1);
+    b = rho;
     
     for i = 1:numPh
         factor = rhoS(i);
@@ -12,6 +12,10 @@ function b = phaseDensitiesTobfactor(rho, rhoS, dissolved)
                 end
             end
         end
-        b{i} = rho{i}./factor;
+        if iscell(b)
+            b{i} = rho{i}./factor;
+        else
+            b(:, i) = rho(:, i)./factor;
+        end
     end
 end

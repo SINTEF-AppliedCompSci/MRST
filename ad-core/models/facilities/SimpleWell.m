@@ -151,8 +151,7 @@ classdef SimpleWell < PhysicalModel
             numPh = nnz(active);
 
             rhoS = model.getSurfaceDensities();
-
-            b = bsxfun(@rdivide, rho, rhoS);
+            b = phaseDensitiesTobfactor(rho, rhoS, dissolved);
             w = well.W;
             if ~isfield(w, 'topo')
                 nperf = numel(w.cells);
