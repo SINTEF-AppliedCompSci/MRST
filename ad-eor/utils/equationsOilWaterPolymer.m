@@ -82,8 +82,9 @@ if ~opt.resOnly,
             initVariablesADI(p, sW, c, wellVars{:});
         primaryVars = {'pressure', 'sW', 'polymer', wellVarNames{:}};
     else
-        [p0, sW0, c0] = ...
-            initVariablesADI(p0, sW0, c0);
+        wellVars0 = model.FacilityModel.getAllPrimaryVariables(wellSol0);
+        [p0, sW0, c0, wellVars0{:}] = ...
+            initVariablesADI(p0, sW0, c0, wellVars0{:}); %#ok
         primaryVars = {'pressure', 'sW', 'polymer'};
     end
 end
