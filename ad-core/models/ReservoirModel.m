@@ -202,6 +202,8 @@ methods
 
     % --------------------------------------------------------------------%
     function [model, state] = updateForChangedControls(model, state, forces)
+        % Called whenever controls change. Since this model can be used
+        % with wells, we call the facility model's setup routine.
         model.FacilityModel = model.FacilityModel.setupWells(forces.W);
         state.wellSol = initWellSolAD(forces.W, model, state);
         [model, state] = updateForChangedControls@PhysicalModel(model, state, forces);
@@ -312,7 +314,9 @@ methods
     end
 
     % --------------------------------------------------------------------%
-    function names = getComponentNames(model)
+    function names = getComponentNames(model) %#ok
+        % Get a list of components in the model. Components are cell-wise
+        % variables that typically exist inside one or more phases.
         names = {};
     end
 
@@ -464,7 +468,8 @@ methods
     end
 
     function state = storeBoundaryFluxes(model, state, qW, qO, qG, forces)
-        if isempty(forces.bc) || ~isfield(forces, 'bc')
+        % Store boundary condition fluxes in state
+        if ~isfield(forces, 'bc') || isempty(forces.bc)
             return
         end
         phasefluxes = {double(qW), double(qO), double(qG)};

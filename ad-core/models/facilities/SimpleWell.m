@@ -88,14 +88,17 @@ classdef SimpleWell < PhysicalModel
 
         function [names, types] = getExtraEquationNames(well, resmodel)
             % Returns the names and types of the additional equation names
-            % this well model introduces.
+            % this well model introduces. We have two options: Either the
+            % well itself can add additional equations (modelling e.g. flow
+            % in the well-bore) or the reservoir can add additional
+            % equations (typically for additional components)
             [names, types] = resmodel.getExtraWellEquationNames();
         end
 
         function [vars, names] = getExtraPrimaryVariables(well, wellSol, resmodel)
-        % Returns the values and names of extra primary variables added
-        % by this well. See "getExtraPrimaryVariableNames" for a
-        % definition of extra variables.
+            % Returns the values and names of extra primary variables added
+            % by this well. See "getExtraPrimaryVariableNames" for a
+            % definition of extra variables.
             [names, fromResModel] = well.getExtraPrimaryVariableNames(resmodel);
             vars = cell(size(names));
             [vars{~fromResModel}] = well.getProps(wellSol, names{~fromResModel});
@@ -119,13 +122,13 @@ classdef SimpleWell < PhysicalModel
         end
 
         function [compEqs, compSrc, compNames, wellSol] = computeComponentContributions(well, wellSol0, wellSol, resmodel, q_s, bh, packed, qMass, qVol, dt, iteration)
-        % Compute component equations and component source terms
-        % qMass   : Mass flux  for each well connection and for each phase
-        % qVol    : Volume flux at reservoir condition for each connection and for each phase
-        % compEqs : Mass conservation equations in the well (involves well control
-        %           variables)
-        % compSrc : Source term that will enter the mass conservation
-        %           equations in the reservoir            
+            % Compute component equations and component source terms
+            % qMass   : Mass flux  for each well connection and for each phase
+            % qVol    : Volume flux at reservoir condition for each connection and for each phase
+            % compEqs : Mass conservation equations in the well (involves well control
+            %           variables)
+            % compSrc : Source term that will enter the mass conservation
+            %           equations in the reservoir            
             [compEqs, compSrc, compNames, wellSol] = resmodel.getExtraWellContributions(well, wellSol0, wellSol, q_s, bh, packed, qMass, qVol, dt, iteration);
             return
         end

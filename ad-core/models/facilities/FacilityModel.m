@@ -238,6 +238,9 @@ classdef FacilityModel < PhysicalModel
         end
 
         function [variables, names, wellMap] = getAllPrimaryVariables(model, wellSol)
+            % Gets all primary variables, both basic (rates, bhp) and added
+            % variables (added by different wells and from the model
+            % itself).
 
             [basic, bnames, wellMap] = model.getBasicPrimaryVariables(wellSol);
             [extra, enames, extraMap] = model.getExtraPrimaryVariables(wellSol);
@@ -395,11 +398,13 @@ classdef FacilityModel < PhysicalModel
         end
 
         function wc = getWellCells(model)
+            % Get the perforated cells of all wells, regardless of status
             c = cellfun(@(x) x.W.cells, model.WellModels, 'UniformOutput', false);
             wc = vertcat(c{:});
         end
 
         function wc = getActiveWellCells(model)
+            % Get the perforated cells of all active wells (status == true)
             c = cellfun(@(x) x.W.cells, model.WellModels, 'UniformOutput', false);
             active = model.getWellStatusMask();
             wc = vertcat(c{active});
