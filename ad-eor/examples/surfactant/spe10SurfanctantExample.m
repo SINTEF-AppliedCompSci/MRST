@@ -152,9 +152,9 @@ W = verticalWell(W, G, rock, prodIJ(1), prodIJ(2), 1:nz, ...
 % 2) water + surfactant (500 days)
 % 3) water only         (1500 days)
 
-[W.surfact] = deal(0);
+[W.c] = deal(0);
 control(1).W = W;
-[W([W.sign] > 0).surfact] = 50*kilogram/meter^3;
+[W([W.sign] > 0).c] = 50*kilogram/meter^3;
 control(2).W = W;
 
 surfinj_start_time = 1000*day;
