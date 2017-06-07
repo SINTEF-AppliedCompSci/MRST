@@ -100,15 +100,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
         function [fn, index] = getVariableField(model, name)
             switch(lower(name))
-              case {'surfactant'}
-                index = 1;
-                fn = 'c';
-              case {'surfactantmax'}
-                index = 1;
-                fn = 'cmax';
-              otherwise
-                [fn, index] = getVariableField@TwoPhaseOilWaterModel(...
-                    model, name);
+                case {'surfactant'}
+                    index = 1;
+                    fn = 'c';
+                case {'surfactantmax'}
+                    index = 1;
+                    fn = 'cmax';
+                case 'qwsft'
+                    index = 1;
+                    fn = 'qWSft';
+                otherwise
+                    [fn, index] = getVariableField@TwoPhaseOilWaterModel(...
+                        model, name);
             end
         end
 
