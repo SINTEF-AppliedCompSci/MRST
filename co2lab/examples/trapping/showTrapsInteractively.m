@@ -71,8 +71,8 @@ switch useCell
         method = 'node';
 end
 
-% Check if the script is run interactively
-isInteractive = numel(dbstack) == 0;
+% Check if the script is run interactively, or as a standalone script
+isScript = numel(dbstack) == 1;
 
 %% Explore a synthetic grid
 % We first create a simple synthetic grid to demonstrate the interactive
@@ -101,7 +101,7 @@ h = interactiveTrapping(Gt, 'method', method, 'light', true);
 view(180, 50)
 
 disp('Showing synthetic dataset... Close to continue')
-if ~isInteractive
+if isScript
     waitfor(h)
 end
 
@@ -116,7 +116,7 @@ h = interactiveTrapping('Johansenfm', 'coarsening', 2, ...
 view(-70, 80)
 
 disp('Showing CO2 Atlas dataset... Close to continue')
-if ~isInteractive
+if isScript
     waitfor(h)
 end
 
@@ -136,6 +136,6 @@ h = interactiveTrapping(Gt, 'method', method);
 view(180, 50)
 
 disp('Showing IGEMS dataset... Close to continue')
-if ~isInteractive
+if isScript
     waitfor(h)
 end
