@@ -8,7 +8,7 @@ function G = readIGEMSIRAP(name, i, varargin)
 %
 % PARAMETERS:
 %   name   - The name of the IGEMS grid. For valid names, run
-%            >>> ls(fullfile(mrstPath('co2lab'), 'data', 'igems', 'surfaces'))
+%            >>> ls(fullfile(getDatasetPath('IGEMSsurfaces'), 'surfaces'))
 %
 %   i      - The index of the realization of the grid. A value from 1 to
 %            100.
@@ -59,9 +59,16 @@ opt = struct('coarse', [1 1], ...
 opt = merge_options(opt, varargin{:});
 coarse = opt.coarse;
 
+subset = false;
 if isempty(opt.dir)
    %result_dir = fullfile(mrstPath('co2lab'), 'data', 'igems');
-   file_dir = fullfile(getDatasetPath('IGEMSsurfaces'), 'surfaces');
+   info = getDatasetInfo('IGEMSsurfaces');
+   if i == 1 && ~exist(fullfile(mrstDataDirectory(), info.name), 'dir')
+       file_dir = fullfile(getDatasetPath('IGEMSsample'), 'one_of_each');
+       subset = true;
+   else
+       file_dir = fullfile(getDatasetPath('IGEMSsurfaces'), 'surfaces');
+   end
 else
    result_dir = opt.dir;
    file_dir   = opt.dir;
@@ -88,7 +95,11 @@ catch %#ok<*CTCH>
     if(isempty(i))
        filename=[file_dir, filesep, name];
     else
-       filename=[file_dir, filesep, name, filesep, int2str(i),'_', name '.irap'];
+        if subset
+            filename=[file_dir, filesep, int2str(i),'_', name '.irap'];
+        else
+            filename=[file_dir, filesep, name, filesep, int2str(i),'_', name '.irap'];
+        end
     end
     [x, y, Z]= readIrapClassicAsciiSurf(filename);
     assert(all(diff(x)==100));
