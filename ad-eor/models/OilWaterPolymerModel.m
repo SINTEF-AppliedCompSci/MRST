@@ -186,6 +186,5 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 eqNames{end+1} = 'polymerWells';
             end
         end
-
     end
 end
