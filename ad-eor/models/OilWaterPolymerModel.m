@@ -93,6 +93,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         function [fn, index] = getVariableField(model, name)
             % Get the index/name mapping for the model (such as where
             % pressure or water saturation is located in state)
+            index = 1;
             switch(lower(name))
                 case {'polymer', 'polymermax'}
                     c = model.getComponentNames();
@@ -102,6 +103,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     else
                         fn = 'cmax';
                     end
+                case 'qwPoly'
+                    fn = 'qWPoly';
                 otherwise
                     [fn, index] = getVariableField@TwoPhaseOilWaterModel(...
                                     model, name);

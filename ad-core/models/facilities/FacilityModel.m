@@ -515,7 +515,7 @@ classdef FacilityModel < PhysicalModel
                 wNo = actIx(i);
                 act = activeVars(i, :);
                 dxw = dx_well(i, act);
-                wellSol(wNo) = model.WellModels{wNo}.updateWellSol(wellSol(wNo), wellVars(act), dxw);
+                wellSol(wNo) = model.WellModels{wNo}.updateWellSol(wellSol(wNo), wellVars(act), dxw, model.ReservoirModel);
             end
         end
 

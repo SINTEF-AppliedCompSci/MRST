@@ -145,11 +145,12 @@ classdef MultisegmentWell < SimpleWell
             ws = well.ensureWellSolConsistency(ws);
         end
         
-        function names = getExtraPrimaryVariableNames(well, resmodel)
-            names = getExtraPrimaryVariableNames@SimpleWell(well, resmodel);
+        function [names, fromResModel] = getExtraPrimaryVariableNames(well, resmodel)
+            [names, fromResModel] = getExtraPrimaryVariableNames@SimpleWell(well, resmodel);
             enames = {'rW', 'rO', 'rG'};
             enames = enames(resmodel.getActivePhases());
             names = [names, 'pN', enames, 'vmix'];
+            fromResModel = [fromResModel, false(1, numel(names) - numel(fromResModel))];
         end
         
         function [names, types] = getExtraEquationNames(well, resmodel)

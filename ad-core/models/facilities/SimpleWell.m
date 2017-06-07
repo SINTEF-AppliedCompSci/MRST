@@ -47,6 +47,22 @@ classdef SimpleWell < PhysicalModel
             % may modify the wellSol if the errors are fixable at runtime,
             % otherwise it should throw an error. Note that this function
             % is analogous to validateState in the base model class.
+            [names, fromResModel] = well.getExtraPrimaryVariableNames(resmodel);
+            for i = 1:numel(names)
+                if fromResModel(i)
+                    m = resmodel;
+                else
+                    m = well;
+                end
+                
+                fn = m.getVariableField(names{i});
+                if ~isfield(wsol, 'fn')
+                    % Just set it to zero since this usually works further
+                    % on down in the model. It is somewhat dangerous,
+                    % though.
+                    wsol = m.setProp(wsol, fn, 0);
+                end
+            end
         end
 
         function counts = getVariableCounts(wm, fld)
@@ -55,24 +71,19 @@ classdef SimpleWell < PhysicalModel
             % single variable to represent any kind of well field, but in
             % e.g. MultisegmentWell, this function may return values larger
             % than 1.
-            try
-                fn = wm.getVariableField(fld);
-            catch
-                fn = [];
-            end
-            if isempty(fn)
-                counts = 0;
-            else
-                counts = 1;
-            end
+            counts = 1;
         end
 
-        function names = getExtraPrimaryVariableNames(well, resmodel)
+        function [names, fromResModel] = getExtraPrimaryVariableNames(well, resmodel)
             % Get additional primary variables added by this well.
             % Additional primary variables in this context are variables
             % that are not the default MRST values (surface rates for each
             % pseudocomponent/phase and bottomhole pressure).
+            %
+            % In addition, this function returns a indicator per variable
+            % if it was added by the reservoir model, or the well model.
             names = resmodel.getExtraWellPrimaryVariableNames();
+            fromResModel = true(size(names));
         end
 
         function [names, types] = getExtraEquationNames(well, resmodel)
@@ -82,12 +93,13 @@ classdef SimpleWell < PhysicalModel
         end
 
         function [vars, names] = getExtraPrimaryVariables(well, wellSol, resmodel)
-        % Returns the values nad names of extra primary variables added
+        % Returns the values and names of extra primary variables added
         % by this well. See "getExtraPrimaryVariableNames" for a
         % definition of extra variables.
-            names = well.getExtraPrimaryVariableNames(resmodel);
+            [names, fromResModel] = well.getExtraPrimaryVariableNames(resmodel);
             vars = cell(size(names));
-            [vars{:}] = well.getProps(wellSol, names{:});
+            [vars{~fromResModel}] = well.getProps(wellSol, names{~fromResModel});
+            [vars{fromResModel}] = resmodel.getProps(wellSol, names{fromResModel});
         end
 
         function [weqs, ctrlEq, extra, extraNames, qMass, qVol, wellSol] = computeWellEquations(well, wellSol0, wellSol, resmodel, q_s, bh, packed, dt, iteration)
@@ -314,7 +326,7 @@ classdef SimpleWell < PhysicalModel
             end
         end
 
-        function wellSol = updateWellSol(well, wellSol, variables, dx)
+        function wellSol = updateWellSol(well, wellSol, variables, dx, resmodel)
             % Update function for the wellSol struct
             isBHP = strcmpi(variables, 'bhp');
             if any(isBHP)
@@ -325,8 +337,19 @@ classdef SimpleWell < PhysicalModel
                 variables = variables(~isBHP);
                 dx = dx(~isBHP);
             end
+            [names, fromResModel] = well.getExtraPrimaryVariableNames(resmodel);
             for i = 1:numel(dx)
-                wellSol = well.updateStateFromIncrement(wellSol, dx{i}, [], variables{i});
+                vname = variables{i};
+                esub = strcmpi(names, vname);
+                if any(esub) && fromResModel(esub)
+                    % This variable is known by the reservoir model (e.g
+                    % added polymer components)
+                    wellSol = resmodel.updateStateFromIncrement(wellSol, dx{i}, [], variables{i});
+                else
+                    % This variable is known by the well model (e.g.
+                    % multisegment pressures or fluxes)
+                    wellSol = well.updateStateFromIncrement(wellSol, dx{i}, [], variables{i});
+                end
             end
         end
 
@@ -369,10 +392,6 @@ classdef SimpleWell < PhysicalModel
                     fn = 'qGs';
                 case 'qws'
                     fn = 'qWs';
-                case 'qwpoly'
-                    fn = 'qWPoly';
-                case 'qwsft'
-                    fn = 'qWSft';
                 otherwise
                     % This will throw an error for us
                     [fn, index] = getVariableField@PhysicalModel(model, name);
