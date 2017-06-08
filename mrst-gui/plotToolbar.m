@@ -137,6 +137,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     else
         initialSelection = true(G.cells.num, 1);
     end
+    try
+        G = createAugmentedGrid(G);
+    catch
+        disp('Unable to augmented grid, node filtering not available');
+    end
+    
     opt = struct('log10',         false, ...
                  'exp',           false, ...
                  'abs',           false, ...

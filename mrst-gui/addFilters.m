@@ -95,8 +95,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 data = sqrt(sum(data.^2, 2));
             end
             if size(data, 1) == G.nodes.num
-                if ~isfield(G.cells, 'nodes');
-                    G = mrstGridWithFullMappings(G);
+                if ~isfield(G.cells, 'nodes')
+                    continue
                 end
                 cellNo = rldecode(1:G.cells.num, diff(G.cells.nodePos), 2) .';
                 % Take average of node data to get rough approximation of
