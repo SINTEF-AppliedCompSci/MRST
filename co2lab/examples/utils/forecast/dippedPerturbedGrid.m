@@ -92,6 +92,7 @@ function Gt = dippedPerturbedGrid(varargin)
 
     
     % uncomment the following to plot the grid
+    %{
     figure; set(gcf,'Position',[2817 911 560 420])
     Gt_zshifted = Gt; 
     Gt_zshifted.nodes.z = Gt_zshifted.nodes.z - 15;
@@ -99,35 +100,36 @@ function Gt = dippedPerturbedGrid(varargin)
     plotGrid(G, plot_opts{:});
     plotCellData(Gt_zshifted, Gt_zshifted.cells.z, plot_opts{:});
     view(30,25); axis tight
+    %}
     
-    
+    %{
     % uncomment the following to inspect trapping structure
-%     figure; set(gcf,'Position',[3403 846 1517 508])
-%     % Cell-based: to be used when comparing trap heights to co2 heights.
-%     subplot(1,2,1); plot(1);
-%     ta_cell = trapAnalysis(Gt, true);
-%     mapPlot(gcf, Gt, 'traps', ta_cell.traps, ...
-%         'trapcolor', [0.5 0.5 0.5], 'trapalpha', 0.7, ...
-%         'rivers', ta_cell.cell_lines, 'rivercolor', [1 0 0], 'maplines', 20);
-%     colorizeCatchmentRegions(Gt, ta_cell);
-%     axis equal
-%     title('cell-based')
-%     % Node-based:
-%     subplot(1,2,2); plot(1);
-%     ta_node = trapAnalysis(Gt, false);
-%     mapPlot(gcf, Gt, 'traps', ta_node.traps, ...
-%         'trapcolor', [0.5 0.5 0.5], 'trapalpha', 0.7, ...
-%         'rivers', ta_node.cell_lines, 'rivercolor', [1 0 0], 'maplines', 20);
-%     colorizeCatchmentRegions(Gt, ta_node);
-%     axis equal
-%     title('node-based')
-%     
-%     figure; set(gcf,'Position',[2895 170 1995 605])
-%     subplot(1,2,1)
-%     plotCellData(Gt, ta_cell.trap_regions); title('cell-based')
-%     subplot(1,2,2)
-%     plotCellData(Gt, ta_node.trap_regions); title('node-based')
-
+    figure; set(gcf,'Position',[3403 846 1517 508])
+    % Cell-based: to be used when comparing trap heights to co2 heights.
+    subplot(1,2,1); plot(1);
+    ta_cell = trapAnalysis(Gt, true);
+    mapPlot(gcf, Gt, 'traps', ta_cell.traps, ...
+        'trapcolor', [0.5 0.5 0.5], 'trapalpha', 0.7, ...
+        'rivers', ta_cell.cell_lines, 'rivercolor', [1 0 0], 'maplines', 20);
+    colorizeCatchmentRegions(Gt, ta_cell);
+    axis equal
+    title('cell-based')
+    % Node-based:
+    subplot(1,2,2); plot(1);
+    ta_node = trapAnalysis(Gt, false);
+    mapPlot(gcf, Gt, 'traps', ta_node.traps, ...
+        'trapcolor', [0.5 0.5 0.5], 'trapalpha', 0.7, ...
+        'rivers', ta_node.cell_lines, 'rivercolor', [1 0 0], 'maplines', 20);
+    colorizeCatchmentRegions(Gt, ta_node);
+    axis equal
+    title('node-based')
+    
+    figure; set(gcf,'Position',[2895 170 1995 605])
+    subplot(1,2,1)
+    plotCellData(Gt, ta_cell.trap_regions); title('cell-based')
+    subplot(1,2,2)
+    plotCellData(Gt, ta_node.trap_regions); title('node-based')
+    %}
 
 end
 
