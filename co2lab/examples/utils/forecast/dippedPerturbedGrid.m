@@ -1,4 +1,4 @@
-function Gt = dipped_perturbed_grid(varargin)
+function Gt = dippedPerturbedGrid(varargin)
 % Construct grid similar to one used in
 % /co2lab/examples/papers/CAGEO-75/trappingExample1.m, with optional
 % modifications such that trap edges to not coincide with boundary edges.
