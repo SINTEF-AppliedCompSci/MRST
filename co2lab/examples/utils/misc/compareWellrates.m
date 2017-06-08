@@ -11,9 +11,9 @@ function compareWellrates(initSchedule, optimisedSchedule, co2RefRho)
     
     figure; bar(val);
     set(gca, 'xlim', [0 size(val, 1) + 1]);
-    xlabel('Well', 'fontsize', 16);
-    ylabel('Rate (Mt/year)', 'fontsize', 16);
-    set(gca, 'fontsize', 16); % increase fontsize on axes.
+    xlabel('Well', 'fontsize', 14);
+    ylabel('Rate (Mt/year)', 'fontsize', 14);
+    set(gca, 'fontsize', 14); % increase fontsize on axes.
     box off;
 end
 

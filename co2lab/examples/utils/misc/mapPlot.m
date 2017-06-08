@@ -44,7 +44,7 @@ function h = mapPlot(h, Gt, varargin)
     
     % Setting title
     if(~isempty(opt.title))
-        title(opt.title, 'FontSize', 16);
+        title(opt.title,'FontSize', 14);
     end
     % plotting map
     drawContours(ax, Gt, Gt.cells.z, opt.maplines, 'color', 'k');
@@ -62,7 +62,7 @@ function h = mapPlot(h, Gt, varargin)
        if strcmpi(opt.colorbar, 'background')
            caxis([min(opt.background), max(opt.background)]);
            hh = colorbar('peer', ax, opt.colorbarposition);
-           set(hh, 'fontSize', 20);
+           set(hh, 'fontSize', 14);
        end
     end    
     
@@ -94,7 +94,7 @@ function h = mapPlot(h, Gt, varargin)
         xpos = Gt.cells.centroids(opt.wellcells,1);
         ypos = Gt.cells.centroids(opt.wellcells,2);
         labels = [repmat(' ', numel(xpos), 1), num2str([1:numel(xpos)]')]; %#ok
-        text(xpos, ypos, labels, 'fontsize', 24);
+        text(xpos, ypos, labels, 'fontsize', 16);
     end
     
     % Plotting traps

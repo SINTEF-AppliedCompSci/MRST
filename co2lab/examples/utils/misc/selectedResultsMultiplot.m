@@ -143,7 +143,7 @@ function selectedResultsMultiplot(Gt, reports, plot_steps, varargin)
         %colormap(h, mymap);
         %set(gcf, 'position', [1, 1, 1920, 850]);
         %set(gcf, 'position', [1, 1, 1600, 960]);
-        set(get(gca, 'title'), 'fontsize', 30);
+        %set(get(gca, 'title'), 'fontsize', 30);
         set(gcf, 'position', [30 30 660 930]);
         %colorbar off;
     end
@@ -170,10 +170,10 @@ function selectedResultsMultiplot(Gt, reports, plot_steps, varargin)
         
         % load all timesteps up to last plotted one (a bit of a hack)
         plotTrappingDistribution(ax, reports, 'legend_location', 'northwest');
-        fsize = 24;
-        set(get(gca, 'xlabel'), 'fontsize', fsize)
-        set(get(gca, 'ylabel'), 'fontsize', fsize)
-        set(gca,'fontsize', fsize);
+        %fsize = 24;
+        %set(get(gca, 'xlabel'), 'fontsize', fsize)
+        %set(get(gca, 'ylabel'), 'fontsize', fsize)
+        %set(gca,'fontsize', fsize);
         set(gcf, 'position', [1, 1, 850, 850]);
     end
 end
