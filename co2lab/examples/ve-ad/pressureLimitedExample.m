@@ -93,8 +93,7 @@ sch = schedule;
 for r = 1:numel(cP)
     cP_curr = cP(r);
 
-    %% Must re-define pressure penalizer with current penalty factor
-    
+    % Must re-define pressure penalizer with current penalty factor
     obj_funB = @(states, varargin) ...
                 pressurePenalizer(model, states, sch, cP_curr, ...
                     P_limit, varargin{:});
@@ -104,7 +103,7 @@ for r = 1:numel(cP)
                     obj_funB(states, varargin{:})   ); 
                 
                 
-    %% Optimize injection rates
+    % Optimize injection rates
     % using the BFGS optimization algorithm. Passing in 'obj_scaling' means
     % an initial simulation will not be executed by optimizeRates. The
     % initial schedule is as per 'sch'.
@@ -117,8 +116,7 @@ for r = 1:numel(cP)
                                 'objChangeTol',                 1e-3);
 
     
-    %% Decide whether to ramp up cP or whether convergence reached
-    
+    % Decide whether to ramp up cP or whether convergence reached
     [~, perc_of_Pover_reach] = ...
         findMaxPercentagePlimitReached( optim.states, P_limit, P_over );
     
