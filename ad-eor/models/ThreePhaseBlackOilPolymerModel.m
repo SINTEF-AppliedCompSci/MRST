@@ -18,7 +18,7 @@ classdef ThreePhaseBlackOilPolymerModel < ThreePhaseBlackOilModel
 % EXAMPLE:
 %
 % SEE ALSO:  equationsThreePhaseBlackOilPolymer, OilWaterPolymerModel
-%  
+%
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
@@ -160,7 +160,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 [scaling{~handled}] = other{:};
             end
         end
-        
+
         function [names, types] = getExtraWellEquationNames(model)
             [names, types] = getExtraWellEquationNames@ThreePhaseBlackOilModel(model);
             if model.polymer
@@ -175,31 +175,36 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 names{end+1} = 'qWPoly';
             end
         end
-        
+
         function [compEqs, compSrc, eqNames, wellSol] = getExtraWellContributions(model, well, wellSol0, wellSol, q_s, bh, packed, qMass, qVol, dt, iteration)
             [compEqs, compSrc, eqNames, wellSol] = getExtraWellContributions@ThreePhaseBlackOilModel(model, well, wellSol0, wellSol, q_s, bh, packed, qMass, qVol, dt, iteration);
             if model.polymer
                 assert(model.water, 'Polymer injection requires a water phase.');
                 f = model.fluid;
-                if well.isInjector
-                    concWell = model.getProp(well.W, 'polymer');
-                else
-                    pix = strcmpi(model.getComponentNames(), 'polymer');
-                    concWell = packed.components{pix};
-                end
-                qwpoly = packed.extravars{strcmpi(packed.extravars_names, 'qwpoly')};
-                a = f.muWMult(f.cmax).^(1-f.mixPar);
-                cbarw     = concWell/f.cmax;
+
                 % Water is always first
                 wix = 1;
                 cqWs = qMass{wix}./f.rhoWS; % connection volume flux at surface condition
 
-                % the term (a + (1 - a).*cbarw) account for the
-                % todd-longstaff mixing factor, which model the fact that for
-                % not-fully mixed polymer solution the polymer does not
-                % travel at the same velocity as water. See the governing
-                % equation for polymer (e.g. equationsOilWaterPolymer.m)
-                cqP = concWell.*cqWs./(a + (1-a).*cbarw);
+                if well.isInjector
+                    concWell = model.getProp(well.W, 'polymer');
+                    cqP = concWell.*cqWs;
+                else
+                    pix = strcmpi(model.getComponentNames(), 'polymer');
+                    concWell = packed.components{pix};
+
+                    a = f.muWMult(f.cmax).^(1-f.mixPar);
+                    cbarw     = concWell/f.cmax;
+
+                    % the term (a + (1 - a).*cbarw) account for the
+                    % todd-longstaff mixing factor, which model the fact that for
+                    % not-fully mixed polymer solution the polymer does not
+                    % travel at the same velocity as water. See the governing
+                    % equation for polymer (e.g. equationsOilWaterPolymer.m)
+                    cqP = concWell.*cqWs./(a + (1-a).*cbarw);
+                end
+
+                qwpoly = packed.extravars{strcmpi(packed.extravars_names, 'qwpoly')};
 
                 compEqs{end+1} = qwpoly - sum(concWell.*cqWs);
                 compSrc{end+1} = cqP;
