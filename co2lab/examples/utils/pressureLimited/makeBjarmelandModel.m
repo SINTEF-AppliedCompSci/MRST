@@ -124,8 +124,8 @@ function [ model, schedule, initState, seainfo, other ] = makeBjarmelandModel( v
     rates = [schedule.control(1).W.val].*fluid.rhoGS.*(1*year)./10^9; % Mt/yr
     subplot(2,2,[1 3]); bar(rates);
     xlim([0 numel(rates)+1]);
-    xlabel('well number', 'FontSize',16);
-    ylabel({'initial rate [Mt/yr]';['for ',num2str(opt.itime,year),' yrs inj.']}, 'FontSize',16);
+    xlabel('well number');
+    ylabel({'initial rate [Mt/yr]';['for ',num2str(opt.itime,year),' yrs inj.']});
     %}
     
     % Boundary conditions:

@@ -131,7 +131,7 @@ function postProcessExample(Gt, init, optim, other)
     for i=1:numel(axs)
        set(hfig,'CurrentAxes',axs(i)); axis equal tight
     end
-    title({'Fraction overburden';'pressure reached'}, 'fontsize',12)
+    title({'Fraction overburden';'pressure reached'}); %, 'fontsize',12)
     
 
     %% Plot well rates
@@ -163,7 +163,7 @@ function postProcessExample(Gt, init, optim, other)
     ax = get(h, 'currentaxes');  
     % load all timesteps up to last plotted one (a bit of a hack)
     plotTrappingDistribution(ax, reports_init, 'legend_location', 'northeast');
-    fsize = 20;
+    fsize = 12;
     set(get(gca, 'xlabel'), 'fontsize', fsize)
     set(get(gca, 'ylabel'), 'fontsize', fsize)
     set(gca,'fontsize', fsize);
@@ -178,7 +178,7 @@ function postProcessExample(Gt, init, optim, other)
     ax = get(h, 'currentaxes');  
     % load all timesteps up to last plotted one (a bit of a hack)
     plotTrappingDistribution(ax, reports_optim, 'legend_location', 'northeast');
-    fsize = 20;
+    fsize = 12;
     set(get(gca, 'xlabel'), 'fontsize', fsize)
     set(get(gca, 'ylabel'), 'fontsize', fsize)
     set(gca,'fontsize', fsize);
