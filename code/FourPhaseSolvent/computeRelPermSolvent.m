@@ -27,23 +27,24 @@ function [krW_eff, krO_eff, krG_eff, krS_eff] = computeRelPermSolvent(fluid, p, 
     M = fluid.Msat(sG, sS).*fluid.Mpres(p);
 
 
+    tol = eps;
     
-    sSsGT = saturationFraction(sS, sG);
+    sSsGT = saturationFraction(sS, sG, tol);
     
     % Immiscible gas and solvent relperms
     krG_i = (1-sSsGT).*krGT_i;
     krS_i = sSsGT.*krGT_i;
 
-    sOn = max(sO - sOres, 0);
+    sOn = max(sO - sOres,0);
     sGn = max(sG - sSGres,0);
     sSn = max(sS,0);
-    sGTn = max(sG + sS - sSGres,0);
+    sGTn = sGn + sSn;
+        
+    sOnsNn  = saturationFraction(sOn, sGTn, tol);
+    sGTnsNn = saturationFraction(sGTn, sOn, tol);
+    sGnsGTn = saturationFraction(sGn, sSn, tol);
+    sSnsGTn = saturationFraction(sSn, sGn, tol);
     
-    sOnsNn  = saturationFraction(sOn, sGTn);
-    sGTnsNn = saturationFraction(sGTn, sOn);
-    sGnsGTn = saturationFraction(sGn, sSn);
-    sSnsGTn = saturationFraction(sSn, sGn);
-
     % Miscible relperms
     krO_m = sOnsNn.*krN;
     krGT_m = sGTnsNn.*krN;
@@ -67,13 +68,9 @@ end
 
 function kr = coreyRelperm(s, n, sr, kwm, sr_tot)
     den = 1 - sr_tot;
-    sat = ((s - sr)./den);
+%     sat = ((s - sr)./den);
     
-%     sat = max(min((s - sr)./den,1),0);
-%     tol = 100*eps;
-%     tol = 1e-5;
-    tol = 0;
-    sat = max(min((s-sr)./(den + tol),1),0);
+    sat = max(min((s-sr)./den,1),0);
     
 %     if isa(sat, 'ADI')
 %         sat.val = max(0,min(sat.val, 1));
@@ -83,7 +80,7 @@ function kr = coreyRelperm(s, n, sr, kwm, sr_tot)
     
     kr = kwm.*sat.^n;
 end
-% 
+
 % function s = trimSaturations(s)
 % 
 %     tol = eps;

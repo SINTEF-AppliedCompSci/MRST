@@ -150,12 +150,12 @@ rhoWell = cell(4,1);
 
 for i = 1:4
     if isa(rho{i}, 'ADI')
-        rho{i}.val(wc) = rhoWell{i};
+        rho{i}(wc) = rhoWell{i};
     else
         rho{i}(wc) = rhoWell{i};
     end
     if isa(mob{i}, 'ADI')
-        mob{i}.val(wc) = mobMult*krWell{i}./muWell{i};
+        mob{i}(wc) = mobMult*krWell{i}./muWell{i};
     else
         mob{i}(wc) = mobMult*krWell{i}./muWell{i};
     end

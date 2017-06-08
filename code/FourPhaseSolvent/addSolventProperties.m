@@ -77,7 +77,10 @@ function Msat = linearSaturationMiscibility(sG, sS)
 % saturation. We add small value tol to avoid 0/0, and specifically assign
 % Msat = 0 if both sG and sS is very small.
 
-     Msat = saturationFraction(sS, sG);
+    tol = 1e-4;
+    sS = max(sS,0);
+    sG = max(sG,0);
+    Msat = saturationFraction(sS, sG, tol);
     
 end
 

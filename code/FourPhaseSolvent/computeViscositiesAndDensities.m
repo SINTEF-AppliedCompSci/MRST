@@ -12,11 +12,17 @@ function [muW_eff, muO_eff, muG_eff, muS_eff, rhoW_eff, rhoO_eff, rhoG_eff, rhoS
     sOn = max(sO - sOres, 0);
     sGn = max(sG - sSGres, 0);
     sSn = max(sS - sSGres, 0);
-
-    sSnsOSn = saturationFraction(sSn, sOn);
-    sSnsSGn = saturationFraction(sSn, sGn);
-    sSnsNn = saturationFraction(sSn, sOn + sGn);
-    sGnsNn = saturationFraction(sGn, sOn + sSn);
+    
+    tol = 1e-4;
+    
+    sSnsOSn = saturationFraction(sSn, sOn, tol);
+    sSnsSGn = saturationFraction(sSn, sGn, tol);
+    sSnsNn = saturationFraction(sSn, sOn + sGn, tol);
+    sGnsNn = saturationFraction(sGn, sOn + sSn, tol);
+    
+%     sOnsOSn = saturationFraction(sOn, sSn, tol);
+%     sGnsSGn = saturationFraction(sGn, sSn, tol);
+%     sOnsNn = saturationFraction(sOn, sGn + sSn, tol);
     
     
     % Calculate mixed viscosities
@@ -24,6 +30,17 @@ function [muW_eff, muO_eff, muG_eff, muS_eff, rhoW_eff, rhoO_eff, rhoG_eff, rhoS
     muSa = muS.^a;
     muGa = muG.^a;
     muOa = muO.^a;
+
+%     muMOS = muO.*muS./(sOnsOSn.*muSa + sSnsOSn.*muOa).^4;
+%     muMSG = muS.*muG./(sSnsSGn.*muGa + sGnsSGn.*muSa).^4;
+%     muM   = muO.*muS.*muG./(sOnsNn.*muSa.*muGa ...
+%                               + sSnsNn.*muOa.*muGa ...
+%                               + sGnsNn.*muOa.*muSa).^4;
+% 
+%     muMOS(isnan(double(muMOS))) = muS(isnan(double(muMOS)));
+%     muMSG(isnan(double(muMSG))) = muS(isnan(double(muMSG)));
+%     muM(isnan(double(muM))) = muS(isnan(double(muM)));
+    
     muMOS = muO.*muS./((1-sSnsOSn).*muSa + sSnsOSn.*muOa).^4;
     muMSG = muS.*muG./(sSnsSGn.*muGa + (1-sSnsSGn).*muSa).^4;
     muM   = muO.*muS.*muG./((1-(sGnsNn + sSnsNn)).*muSa.*muGa ...
@@ -50,18 +67,21 @@ function [muW_eff, muO_eff, muG_eff, muS_eff, rhoW_eff, rhoO_eff, rhoG_eff, rhoS
     sOsN_Oeff = max((muOmuS - (muO./muO_eff).^a)./(muOmuS-1),0);
     sOsN_Geff = max((muSmuG - (muS./muG_eff).^a)./(muSmuG-1),0);
     
-    sGf = saturationFraction(sGn, sOn);
+    sGf = saturationFraction(sGn, sOn, tol);
     
     sSsN_Seff = max((muSmuG.*sGf + muSmuO.*(1-sGf) - (muS./muS_eff).^a)...
                ./(muSmuG.*sGf + muSmuO.*(1-sGf) - 1),0);
     
     % Expressions are sinuglar if muO == muG, in which case we replace the
     % by a simple interpolation rho*(1-omega) + rhoM*omega
-    tol = 1e-10;
-    eq = abs(muO - muS) < tol | abs(muS - muG) < tol;
+    
+    eq = abs(muO - muS) < tol | abs(muS - muG) < 1e-10;
 
-    sOsN = saturationFraction(sO, sG + sS);
-    sGsN = saturationFraction(sG, sO + sS);
+    sO = max(sO,0);
+    sG = max(sG,0);
+    sS = max(sS,0);
+    sOsN = saturationFraction(sO, sG + sS, tol);
+    sGsN = saturationFraction(sG, sO + sS, tol);
     
     
     rhoM = rhoO.*sOsN + rhoG.*sGsN + rhoS.*(1 - (sOsN + sGsN));
