@@ -372,7 +372,14 @@ function plotMain(Gt, res, bf, atlasdata)
     end
     
     if showLight
-        light('position', [max(Gt.cells.centroids) 4*max(Gt.cells.z)],'Style','local');
+        % Account for lighting bug in Matlab due to reversed Z-axis
+        v = ver();
+        if str2double(v.Version) >= 9.0
+            sgn = -1;
+        else
+            sgn = 1;
+        end
+        light('position', [max(Gt.cells.centroids) sgn*4*max(Gt.cells.z)],'Style','local');
         lighting phong
     end
     if trap==0, return, end;
