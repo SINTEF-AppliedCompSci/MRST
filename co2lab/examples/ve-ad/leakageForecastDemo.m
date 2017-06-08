@@ -1,8 +1,9 @@
 %% Examples to demonstrate forecast of CO2 leakage and its application
 % By assuming a system's flow dynamics are gravity-dominated, we determine
-% the amount of co2 remaining in the domain using spill-point dynamics.
+% the amount of CO2 remaining in the domain using spill-point dynamics.
 
 mrstModule add co2lab
+
 %% 1. Synthetic grid
 % For simplicity, we first consider a synthetic grid of a sloping and
 % perturbed topsurface. Beginning with a domain that is fully saturated
@@ -15,12 +16,32 @@ mrstModule add co2lab
 % capacity.
 
 % Getting grid and rock:
-Gt = dipped_perturbed_grid();
-ta = trapAnalysis(Gt, true);
+Gt = dippedPerturbedGrid();
 rock2D.poro = ones(Gt.cells.num,1) * 0.25;
 rock2D.perm = ones(Gt.cells.num,1) * 500 * milli*darcy;
 
-% Making fluid structure:
+%%
+% Trap analysis: labeling trap and catchment numbers
+figure; hold on
+ta = trapAnalysis(Gt, true);
+plotGrid(Gt, 'facecolor','none', 'edgealpha',0.1);
+colorizeCatchmentRegions(Gt, ta);
+num_traps = numel((unique(ta.traps(ta.traps ~= 0))));
+for i = 1:num_traps
+    trapcells = find(ta.traps==i);
+    plotCellData(Gt, ones(Gt.cells.num,1).*i, trapcells, ...
+        'facecolor',[0.5 0.5 0.5], 'facealpha',0.5, 'edgecolor','none');
+end
+top = topCellOfTrap(Gt, ta);
+[x, y] = deal(Gt.cells.centroids(top,1), Gt.cells.centroids(top,2));
+data = 1:1:numel(top);
+data = data';
+text(x, y, Gt.cells.z(top)-3, cellstr(num2str(data, '%3.0f')), ...
+   'HorizontalAlignment','center', 'FontSize',16, 'FontWeight', 'bold');
+axis tight off; view([42,48])
+
+%%
+% Fluid model
 seainfo = getSeaInfo('NorthSea',760);
 %seainfo.res_sat_wat = 0; % @@ can use for testing
 %seainfo.res_sat_co2 = 0; % @@ can use for testing
@@ -43,48 +64,31 @@ fluid = makeVEFluid(Gt, rock2D, 'sharp interface'                   , ...
        'dissolution'  , false                                       , ...
        'surf_topo'    , 'smooth');
 
-% Creating a state of co2 saturation:
-% (We assume the formation is fully saturated with co2. If there is no
-% residual water, then co2 saturations will be 1, otherwise they are equal
-% to 1-sw to account for residual water occupying the pore space.)
+%%    
+% Creating a state of CO2 saturation:
+% We assume the formation is fully saturated with CO2. If there is no
+% residual water, then CO2 saturations will be 1, otherwise they are equal
+% to 1-sw to account for residual water occupying the pore space.
 sG    = ones(Gt.cells.num,1) .* (1 - fluid.res_water);
 sGmax = sG;
 sF    = ones(Gt.cells.num,1) - sG;
 
+%%
 % Using spill-point dynamics to predict future mass remaining/leaked:
 mrstVerbose on;
 [ will_stay, will_leak ] = massAtInfinity( Gt, rock2D, p, ...
     sG, sGmax, sF, 0, fluid, ta, [], 'plotsOn',true );
 
-% Labeling trap & catchment numbers:
-figure; hold on
-plotGrid(Gt, 'facecolor','none', 'edgealpha',0.1)
-colorizeCatchmentRegions(Gt, ta)
-num_traps = numel((unique(ta.traps(ta.traps ~= 0))));
-for i = 1:num_traps
-    trapcells = find(ta.traps==i);
-    plotCellData(Gt, ones(Gt.cells.num,1).*i, trapcells, ...
-        'facecolor',[0.5 0.5 0.5], 'facealpha',0.5, 'edgecolor','none')
-end
-top = top_cell_of_trap(Gt, ta);
-[x, y] = deal(Gt.cells.centroids(top,1), Gt.cells.centroids(top,2));
-data = 1:1:numel(top);
-data = data';
-text(x, y, Gt.cells.z(top)-3, cellstr(num2str(data, '%3.0f')), ...
-   'HorizontalAlignment','center', 'FontSize',16, 'FontWeight', 'bold')
-axis tight off; view([42,48])
-    
-
 
 %% 2. Injected CO2 scenario into a realistic grid
 % Here, we simulate the injection and migration of CO2 into a real
-% formation. This example helps to show the transition from pressure-driven
-% to gravity-dominated flow, and the impact it has on our forecasting
-% algorithm. That is, non-monotonic behavior is noticed in the forecast
-% curve immediately following the injection period, and several years must
-% be simulated before the forecast curve begins to converge. However, once
-% the forecast has converged, there is no need to simulate the migration
-% period any further.
+% formation using a vertical-equilibrium model. This example helps to show
+% the transition from pressure-driven to gravity-dominated flow, and the
+% impact it has on our forecasting algorithm. That is, non-monotonic
+% behavior is noticed in the forecast curve immediately following the
+% injection period, and several years must be simulated before the forecast
+% curve begins to converge. However, once the forecast has converged, there
+% is no need to simulate the migration period any further.
 
 % Setting up (cropped) model:
 [Gt, rock2D] = getFormationTopGrid('Utsirafm',3);
@@ -120,8 +124,10 @@ model = CO2VEBlackOilTypeModel(Gt, rock2D, fluid);
 initState.pressure  = computeHydrostaticPressure(Gt, fluid.rhoWS, 1*atm);
 initState.s         = repmat([1 0], Gt.cells.num, 1);
 initState.sGmax     = initState.s(:,2);
-            
-% Setting up times for schedule:
+
+%% Simulate injection and migration
+% We simulate 10 years of injection and 300 years of migration using a
+% standard VE model.
 itime  = 10 * year;
 isteps = 10;
 mtime  = 300 * year;
@@ -154,13 +160,15 @@ bdryVal = Gt.faces.z(bfaces) * fluid.rhoWS * norm(gravity) + 1*atm;
 schedule.control(1).bc = addBC( [], bfaces, 'pressure', bdryVal, 'sat', [1 0] );
 schedule.control(2).bc = addBC( [], bfaces, 'pressure', bdryVal, 'sat', [1 0] );
 
-
 % Simulating injection and migration:
 mrstVerbose off;
 [wellSols, states] = simulateScheduleAD(initState, model, schedule);
 
-
-% Using each instance of "states" to make forecast curve:
+%% Forecast
+% For each time step in the simulation, we extract the aquifer state and
+% use it to make a spill-point forecast of the mass that will be trapped at
+% time infinity. We then plot the resulting curve as a blue line on top of
+% the trapping inventory from the vertical-equilibrium simulation.
 Ma = zeros(numel(states),1);
 for i = 1:numel(states)
     Ma(i) = massAtInfinity( model.G, model.rock, states{i}.pressure, ...
@@ -169,33 +177,33 @@ for i = 1:numel(states)
 end
 
 % Plotting Ma on top of trapping inventory
-reports = makeReports(Gt, {initState, states{:}}, rock2D, fluid, ...
+reports = makeReports(Gt, [{initState}; states], rock2D, fluid, ...
                     schedule, [fluid.res_water, fluid.res_gas], ta, []);
 h = figure;
 plot(1);
 ax = get(h,'currentaxes');
 plotTrappingDistribution(ax, reports, 'legend_location', 'southeast');
-fsize = 20;
+fsize = 10;
 set(get(gca, 'xlabel'), 'fontsize', fsize)
 set(get(gca, 'ylabel'), 'fontsize', fsize)
 set(gca,'fontsize', fsize);
 hold on;
-plot([0; cumsum(convertTo(schedule.step.val,year))], [0; Ma*1e3], ...
-    ':b','LineWidth',5)
+plot([0; cumsum(convertTo(schedule.step.val,year))], [0; Ma*1e3], 'b','LineWidth',3)
 
+%% Show non-monotonicity
 % Adding stars to forecast curve corresponding to the CO2 sat. snapshots
 [x,y] = deal([0; cumsum(convertTo(schedule.step.val,year))], [0; Ma*1e3]);
 % x is in years, y is in Mt
 for i=1:5
-    plot(x(10+i), y(10+i), '*', 'MarkerSize',15, 'LineWidth',3, 'Color','k')
+    plot(x(10+i), y(10+i), '*', 'MarkerSize',10, 'LineWidth',2, 'Color','k')
 end
 
 % Zooming into curve to see non-monotonicity
 xlim([0 100])
 ylim([83 84.738])
 
-% Plotting CO2 saturation snapshots
-sts = {initState, states{:}};
+%% Plot snapshots of CO2 saturation
+sts = [{initState}; states];
 tol = 0.005;
 time_yr = [0; convertTo(cumsum(schedule.step.val),year)];
 for np = 1:5
@@ -217,7 +225,7 @@ for np = 1:5
     rivers = ta.cell_lines;
     for tr = rivers
         for r = tr{:}
-            draw_cell_connections_3d(Gt, r{:}, 'color', 'k', 'lineWidth', 2);
+            drawCellConnections3D(Gt, r{:}, 'color', 'k', 'lineWidth', 2);
         end
     end
 
