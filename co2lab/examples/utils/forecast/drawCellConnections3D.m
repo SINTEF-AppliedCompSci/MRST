@@ -1,4 +1,4 @@
-function draw_cell_connections_3d(Gt, cells, varargin)
+function drawCellConnections3D(Gt, cells, varargin)
 
     x = Gt.cells.centroids(cells, 1);
     y = Gt.cells.centroids(cells, 2);

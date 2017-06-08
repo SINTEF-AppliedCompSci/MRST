@@ -1,4 +1,4 @@
-function tops = top_cell_of_trap(Gt, ta)
+function tops = topCellOfTrap(Gt, ta)
 % explicitly get top cells of each trap region
 % (in case ta.tops is not indexed properly according to trap number)
 
