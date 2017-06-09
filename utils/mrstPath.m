@@ -329,8 +329,16 @@ function cache = register_modules(cache, mods)
 
    [I, J] = blockDiagIndex(size(mods, 1), numel(dsrc));
 
-   t = fullfile(reshape(dsrc(J)   , [], 1), ...
-                reshape(mods(I, 2), [], 1));
+   % Note: CELLFUN here is to work around a limitation of Octave's version
+   % of function FULLFILE.  We would typically use
+   %
+   %    fullfile(reshape(dsrc(J), [], 1), reshape(mods(I, 2), [], 1))
+   %
+   % to construct the list of candidate directories 't', but Octave's
+   % FULLFILE supports cellstrings in the last input argument only.
+   t = cellfun(@(r, m) fullfile(r, m),     ...
+               reshape(dsrc(J)   , [], 1), ...
+               reshape(mods(I, 2), [], 1), 'UniformOutput', false);
    t = reshape(t, size(mods, 1), []);
 
    i = cellfun(@isdir, t);
