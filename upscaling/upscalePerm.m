@@ -70,9 +70,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
    try
-      require mimetic coarsegrid
+      require mimetic incomp coarsegrid
    catch
-      mrstModule add mimetic coarsegrid
+      mrstModule add mimetic incomp coarsegrid
    end
 
    assert (isfield(g, 'cartDims'))
