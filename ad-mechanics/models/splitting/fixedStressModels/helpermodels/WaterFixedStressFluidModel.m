@@ -30,23 +30,24 @@ classdef WaterFixedStressFluidModel < WaterModel
             
             fnew = drivingForces.fixedStressTerms.new;
             mechTerm.new = fnew.pTerm.*p - fnew.sTerm;
+
             fold = drivingForces.fixedStressTerms.old;
             mechTerm.old = fold.pTerm.*p - fold.sTerm;
             
             otherDrivingForces = rmfield(drivingForces, 'fixedStressTerms');
             
             [eqs, names, types, state] = equationsWaterMech(state0, p, ...
-                                                              wellVars, state, ...
-                                                              model, dt, ...
-                                                              mechTerm, ...
-                                                              otherDrivingForces, ...
-                                                              'iteration', ...
-                                                              opt.iteration);
+                                                            wellVars, state, ...
+                                                            model, dt, ...
+                                                            mechTerm, ...
+                                                            otherDrivingForces, ...
+                                                            'iteration', ...
+                                                            opt.iteration);
             
             primaryVars = {'pressure', wellVarNames{:}};
-
+            
             problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
-
+            
         end
         
         function forces = getValidDrivingForces(model)
@@ -59,7 +60,6 @@ classdef WaterFixedStressFluidModel < WaterModel
         function fds = getAllVarsNames(model)
             fds = {'wellSol', 'pressure'};
         end
-
     
     end
     

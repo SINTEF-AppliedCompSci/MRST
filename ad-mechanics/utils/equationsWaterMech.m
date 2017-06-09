@@ -1,6 +1,6 @@
 function [eqs, names, types, state] = equationsWaterMech(state0, p, wellVars, state, model, dt, mechTerm, ...
-                                                 drivingForces, varargin)
-
+                                                      drivingForces, varargin)
+    
     % Note that state is given only for output
     opt = struct('iteration', -1, ...
                  'resOnly', false); % just to avoid warning

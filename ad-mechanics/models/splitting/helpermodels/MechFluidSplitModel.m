@@ -56,35 +56,6 @@ classdef MechFluidSplitModel < ReservoirModel
             model.mech_solver = NonLinearSolver();
             model.fluid_solver = NonLinearSolver();
 
-
-            %     switch model.fluidModelType
-            %       case 'water'
-            %         model.water = true;
-            %         model.oil = false;
-            %         model.gas = false;
-            %         model.saturationVarNames = {};
-            %         model.fluidfds = {'wellSol', 'pressure'};
-            %         model.mechfds = {'xd', 'uu', 'u', 'stress', 'strain', 'vdiv'};
-            %       case 'oil water'
-            %         model.water = true;
-            %         model.oil = true;
-            %         model.gas = false;
-            %         model.saturationVarNames = {'sw', 'so'};
-            %         model.fluidfds = {'wellSol', 'pressure', 's'};
-            %         model.mechfds = {'xd', 'uu', 'u', 'stress', 'strain', 'vdiv'};
-            %       case 'blackoil'
-            %         model.water = true;
-            %         model.oil = true;
-            %         model.gas = true;
-            %         model.disgas = true;
-            %         model.vapoil = false;
-            %         model.saturationVarNames = {'sw', 'so', 'sg'};
-            %         model.fluidfds = {'wellSol', 'pressure', 's', 'rs', 'rv'};
-            %         model.mechfds = {'xd', 'uu', 'u', 'stress', 'strain', 'vdiv'};
-            %       otherwise
-            %         error('fluidModelType not recognized.')
-            %     end
-
         end
 
         function fluidModel = setupFluidModel(model, rock, fluid, fluidModelType, ...
