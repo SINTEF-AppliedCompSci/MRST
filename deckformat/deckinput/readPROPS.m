@@ -1,5 +1,8 @@
 function deck = readPROPS(fid, dirname, deck)
 % deck = readPROPS(fid, dirname, deck)
+%
+% Otherwise intentionally undocumented.
+
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
@@ -19,7 +22,6 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
    [dims, ntsfun, ntpvt, ntmisc, ntrocc, ncomp] = get_dimensions(deck);
 
    [prp, miss_kw] = get_state(deck);
@@ -30,6 +32,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       if isfield(prp, kw),
          error('Keyword ''%s'' is already defined.', kw);
       end
+
       switch kw,
          case 'ACF',
             prp.(kw) = readVector(fid, kw, ncomp);
@@ -137,10 +140,20 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          case 'RKTRMDIR',
             prp.(kw) = true;
 
+         case 'ROCKOPTS'
+            tmpl = { 'PRESSURE', 'NOSTORE', 'PVTNUM', 'DEFLATION' };
+            prp.(kw) = readDefaultedKW(fid, tmpl, 'NRec', 1);    clear tmpl
+
          case 'ROCK',
+            nrec = ntpvt;
+
+            if isfield(prp, 'ROCKOPTS')
+               nrec = ntrocc;
+            end
+
             tmpl(1:6) = { 'NaN' };
-            data      = readDefaultedKW(fid, tmpl, 'NRec', ntrocc);
-            prp.(kw)  = to_double(data);  clear tmpl
+            data      = readDefaultedKW(fid, tmpl, 'NRec', nrec);
+            prp.(kw)  = to_double(data);  clear tmpl nrec
 
          case 'ROCKTAB'
             % Number of columns is 5 if RKTRMDIR is specified, 3 otherwise.
@@ -299,12 +312,16 @@ function [dims, ntsfun, ntpvt, ntmisc, ntrocc, ncomp] = get_dimensions(deck)
       ntpvt  = deck.RUNSPEC.TABDIMS(2);  assert (ntpvt  >= 1);
       ntrocc = deck.RUNSPEC.TABDIMS(13);
    end
+
    if isfield(deck.RUNSPEC, 'ROCKCOMP')
-      ntrocc = max(deck.RUNSPEC.ROCKCOMP{2}, ntrocc);assert (ntrocc  >= 1);
+      ntrocc = max(deck.RUNSPEC.ROCKCOMP{2}, ntrocc);
+      assert (ntrocc >= 1);
    end
+
    if isfield(deck.RUNSPEC, 'MISCIBLE'),
       ntmisc = deck.RUNSPEC.MISCIBLE{1};  assert (ntmisc >= 1);
    end
+
    if isfield(deck.RUNSPEC, 'COMPS')
       ncomp = deck.RUNSPEC.COMPS;
    end
