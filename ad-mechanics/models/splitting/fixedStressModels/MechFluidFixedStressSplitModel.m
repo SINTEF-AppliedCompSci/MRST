@@ -39,13 +39,13 @@ classdef MechFluidFixedStressSplitModel < MechFluidSplitModel
             else
                 state_prev = state;
             end
-            
+
             fluidp = fluidModel.getProp(wstate0, 'pressure');
             mechsolver = model.mech_solver;
 
             [mstate, mreport] = mechsolver.solveTimestep(mstate0, dt, mechModel, ...
                                                           'fluidp', fluidp);
-            
+
             % Solve the fluid equations
             wdrivingForces = drivingForces; % The main model gets the well controls
 
@@ -63,13 +63,18 @@ classdef MechFluidFixedStressSplitModel < MechFluidSplitModel
             state = model.syncStateFromMState(state, mstate);
             state = model.syncStateFromWState(state, wstate);
 
-            
-            
-            report = model.makeStepReport( 'Failure',         false, 'Converged', ...
-                                           true, 'FailureMsg',      '', ...
-                                           'Residuals',       0 );
+            report.Converged = false;
+            report.Failure   = false;
+            report.Residuals = [];
 
-            
+            if iteration > 1
+                [incAbs, incVarNames] = model.computeNormIncrements(state_prev, ...
+                                                                  state);
+                if norm(incAbs, inf) < model.nonlinearTolerance
+                    report.Converged = true;
+                end
+            end
+
         end
 
 
@@ -94,41 +99,67 @@ classdef MechFluidFixedStressSplitModel < MechFluidSplitModel
             fixedStressTerms.sTerm = sTerm; % Volume change due to mechanics
 
         end
-        
-        function report = checkVariableConvergence(mode, state_prev, state)
+
+        function [incAbs, incVarNames] = computeNormIncrements(model, state_prev, state)
+
             mechfds  = model.mechfds;
             fluidfds = model.fluidfds;
-            
+            fluidfds = model.stripVars(fluidfds, 'wellSol');
+
             facilitymodel =  model.FacilityModel;
+            wellSol = state.wellSol;
+            wellSol_prev = state_prev.wellSol;
             wellVars = facilitymodel.getPrimaryVariableNames();
-            nVars = numel(wellVars);
+            nwellVars = numel(wellVars);
             actIx = facilitymodel.getIndicesOfActiveWells();
             nW = numel(actIx);
 
-            for varNo = 1 : nVars
-                wf = wellVars{varNo}; %
-                isVarWell = facilitymodel.getWellVariableMap(wf); 
-                for i = 1 : nW
-                    subs = (isVarWell == i);
-                    if any(subs)
-                        d(end + 1) = 
-                        activeVars(i, varNo) = true;
-                    end
-                end
+            nInc = numel(mechfds) + numel(fluidfds) + nwellVars;
+            incAbs = zeros(nInc, 1);
+            incVarNames = cell(1, nInc);
+
+            varNo = 1;
+
+            for varMechNo = 1 : numel(mechfds)
+                incVarNames{varNo} = mechfds{varMechNo};
+                incAbs(varNo) = norm(model.mechModel.getProp(state, ...
+                                                             mechfds{varMechNo}) ...
+                                     - model.mechModel.getProp(state_prev, ...
+                                                               mechfds{varMechNo}), ...
+                                     Inf);
+                varNo = varNo + 1;
             end
 
-            for varNo = 1 : nVars
-                wf = wellVars{varNo}; %
-                isVarWell = facilitymodel.getWellVariableMap(wf); 
-                for i = 1 : nW
-                    % Finally, update the actual wellSols using the extracted increments per well.
-                    wNo = actIx(i);
-                
-                wellSol(wNo) = facilitymodel.WellModels{wNo}.getProps(wellSol(wNo), wellVars(act), );
+            for varFluidNo = 1 : numel(fluidfds)
+                incVarNames{varNo} = fluidfds{varFluidNo};
+                incAbs(varNo) = norm(model.fluidModel.getProp(state, ...
+                                                              fluidfds{varFluidNo}) ...
+                                     - model.fluidModel.getProp(state_prev, ...
+                                                                fluidfds{varFluidNo}), ...
+                                     Inf);
+                varNo = varNo + 1;
             end
-            
+
+            for varWellNo = 1 : nwellVars
+                wf = wellVars{varWellNo};
+                incVarNames{varNo} = wf;
+                isVarWell = facilitymodel.getWellVariableMap(wf);
+                for wNo = 1 : nW
+                    subs = (isVarWell == wNo);
+                    if any(subs)
+                        incAbs(varNo) = incAbs(varNo) + abs ...
+                            (facilitymodel.WellModels{wNo}.getProps(wellSol(wNo), ...
+                                                                    wf)- ...
+                             facilitymodel.WellModels{wNo}.getProps(wellSol_prev(wNo), ...
+                                                                    wf));
+                    end
+                end
+                varNo = varNo + 1;
+            end
+
+
         end
-        
+
 
     end
 end

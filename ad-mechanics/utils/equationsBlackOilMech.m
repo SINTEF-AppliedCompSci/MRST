@@ -94,10 +94,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     % Computation of "effective" porosity which take into account the changes
     % due to mechanics.
-    effPorVol = rock.poro.*(G.cells.volumes.*pvMult) + rock.alpha .* ...
-              mechTerm.new;
-    effPorVol0 = rock.poro.*(G.cells.volumes.*pvMult0) + rock.alpha .* ...
-        mechTerm.old;
+    effPorVol = G.cells.volumes.*(rock.poro.*pvMult + rock.alpha .* ...
+                                  mechTerm.new);
+    effPorVol0 = G.cells.volumes.*(rock.poro.*pvMult0 + rock.alpha .* ...
+                                  mechTerm.old);
     
     % The first equation is the conservation of the water phase. This equation is
     % straightforward, as water is assumed to remain in the aqua phase in the

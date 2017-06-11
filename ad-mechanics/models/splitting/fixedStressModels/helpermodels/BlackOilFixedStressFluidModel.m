@@ -54,10 +54,10 @@ classdef BlackOilFixedStressFluidModel < ThreePhaseBlackOilModel
                     initVariablesADI(p, sW, x, wellVars{:});
             end
 
-            fnew = drivingForces.fixedStressTerms.new;
+            fnew         = drivingForces.fixedStressTerms.new;
             mechTerm.new = fnew.pTerm.*p - fnew.sTerm;
-            fold = drivingForces.fixedStressTerms.old;
-            mechTerm.old = fold.pTerm.*p - fold.sTerm;
+            fold         = drivingForces.fixedStressTerms.old;
+            mechTerm.old = fold.pTerm.*p0 - fold.sTerm;
 
             otherDrivingForces = rmfield(drivingForces, 'fixedStressTerms');
 
