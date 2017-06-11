@@ -105,24 +105,25 @@ classdef MechFluidFixedStressSplitModel < MechFluidSplitModel
             actIx = facilitymodel.getIndicesOfActiveWells();
             nW = numel(actIx);
 
-            activeWellVars = false(nW, nVars);
-
-            for varNo = 1:nVars
+            for varNo = 1 : nVars
                 wf = wellVars{varNo}; %
                 isVarWell = facilitymodel.getWellVariableMap(wf); 
-                for i = 1:nW
-                    % Check if this well has this specific variable as a primary variable.
-                    subs = isVarWell == i;
+                for i = 1 : nW
+                    subs = (isVarWell == i);
                     if any(subs)
+                        d(end + 1) = 
                         activeVars(i, varNo) = true;
                     end
                 end
             end
 
-            for i = 1:nW
-                % Finally, update the actual wellSols using the extracted increments per well.
-                wNo = actIx(i);
-                act = activeVars(i, :);
+            for varNo = 1 : nVars
+                wf = wellVars{varNo}; %
+                isVarWell = facilitymodel.getWellVariableMap(wf); 
+                for i = 1 : nW
+                    % Finally, update the actual wellSols using the extracted increments per well.
+                    wNo = actIx(i);
+                
                 wellSol(wNo) = facilitymodel.WellModels{wNo}.getProps(wellSol(wNo), wellVars(act), );
             end
             
