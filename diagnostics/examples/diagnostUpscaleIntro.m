@@ -26,18 +26,17 @@ rad2 = .5*(G.cells.centroids(:,1)-40).^2 + 2*G.cells.centroids(:,2).^2 ...
    + 2*(G.cells.centroids(:,3)-2).^2;
 
 ind = ((rad1>600) & (rad1<1500)) | ((rad2>700) & (rad2<1400));
-rock.perm = K2(:);
+rock = makeRock(G, K2(:), p2(:));
 rock.perm(ind) = K1(ind);
 rock.perm = bsxfun(@times, rock.perm, [1 1 1]);
-rock.poro = p2(:);
 rock.poro(ind) = p1(ind);
 pv = poreVolume(G, rock);
 
 gravity off
 
-W = verticalWell([], G, rock, 4, 17, 4:15, 'Comp_i', 1, ...
+W = verticalWell([], G, rock, 4, 17, 4:15, 'Comp_i', [1, 0], ...
    'Type', 'rate', 'Val', 0.2*sum(pv)/year, 'Name', 'I');
-W = verticalWell(W,  G, rock, 35, 3, 1:10, 'Comp_i', 0, ...
+W = verticalWell(W,  G, rock, 35, 3, 1:10, 'Comp_i', [0, 1], ...
    'Type', 'rate', 'Val', -0.2*sum(pv)/year, 'Name', 'P');
 
 figure(1); clf,
@@ -56,7 +55,7 @@ dfluid = initSimpleFluid('mu' , [   1,  10]*centi*poise     , ...
                          'rho', [1014, 859]*kilogram/meter^3, ...
                          'n', [2 2]);
 % Pressure solution
-xd  = initState(G, W, 100*barsa);
+xd  = initState(G, W, 100*barsa, [1, 0]);
 nw = numel(W);
 xd  = incompTPFA(xd, G, trans, dfluid, 'wells', W, 'use_trans', true);
 
@@ -94,7 +93,7 @@ plotFaces(CG, boundaryFaces(CG),...
    'EdgeColor', [0.4 0.4 0.4],'EdgeAlpha',.5, 'FaceColor', 'none'); view(3);
 plotWell(G,W,'Color','k'); axis off tight
 
-xd    = initState(CG, WC, accumarray(p,100*barsa)./accumarray(p,1));
+xd    = initState(CG, WC, accumarray(p,100*barsa)./accumarray(p,1), [1, 0]);
 xd    = incompTPFA(xd, CG, CTrans, dfluid, 'wells', WC, 'use_trans', true);
 
 %% Flow diagnostics on the upscaled model
