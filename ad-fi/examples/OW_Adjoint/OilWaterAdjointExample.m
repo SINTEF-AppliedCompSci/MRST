@@ -12,11 +12,7 @@
 % output. This requires the deckformat module.
 
 % This requires the deckformat module.
-try
-   require deckformat ad-core ad-fi optimization
-catch
-   mrstModule add deckformat ad-core ad-fi optimization
-end
+mrstModule add deckformat ad-core ad-fi optimization ad-props
 
 current_dir = fileparts(mfilename('fullpath'));
 fn    = fullfile(current_dir, 'simple10x1x10.data');

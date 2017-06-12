@@ -3,12 +3,7 @@
 % comparative solution project: A reexamination of black-oil simulation. In
 % SPE Reservoir Simulation Symposium,  12-15 February 1995, San Antonio,
 % Texas. SPE 29110-MS, doi: 10.2118/29110-MS
-try
-   require ad-fi ad-core deckformat mrst-gui
-catch %#ok<CTCH>
-   mrstModule add ad-fi ad-core deckformat mrst-gui
-end
-
+mrstModule add ad-fi ad-core deckformat mrst-gui ad-props
 mrstVerbose true
 
 %% Read and process file.

@@ -5,11 +5,7 @@
 
 %% Setup
 % Load required modules and set random stream
-try
-   require deckformat ad-core ad-props ad-fi
-catch
-   mrstModule add deckformat ad-core ad-props ad-fi
-end
+mrstModule add deckformat ad-core ad-props ad-fi
 
 s = RandStream('mcg16807', 'Seed', 0);
 try
