@@ -15,10 +15,8 @@ function [G, Gt, rock, rock2D, bcIxVE] = makeSleipnerVEmodel(varargin)
 %   usemex          - Flag: if true, use C-accelerated routines for
 %                   processing Eclipse input and computing geometry
 %   assign_coords   - Flag: if true, will read physical coordinates from
-%                   Sleipner's M9X1.grdecl datafile, and save as 
+%                   Sleipner's M9X1.grdecl datafile, and save as
 %                   SleipnerGlobalCoords.mat, otherwise Sleipner.mat
-%
-% DESCRIPTION:
 %
 % SEE ALSO:
 %   runSleipner
@@ -42,7 +40,7 @@ catch %#ok<*CTCH>
    disp('    Data set has not yet been constructed.');
 end
 
-%% Read data
+% Read data
 % First loading: to get cartDims, COORD, ZCORN, ACTNUM, PERMX, PERMZ, PORO
 try
    sdir = fullfile(mrstPath('co2lab'), 'data', 'sleipner');
@@ -59,10 +57,10 @@ end
 if opt.assign_coords
    try
        moduleCheck('deckformat', 'mex');
-       sl_file = fullfile(mrstPath('co2lab'), 'data', 'sleipner', 'M9X1.grdecl'); % IEAGHG 
+       sl_file = fullfile(mrstPath('co2lab'), 'data', 'sleipner', 'M9X1.grdecl'); % IEAGHG
        fn      = fopen(sl_file);
        gr      = readGRID(fn, fileparts(sl_file), initializeDeck());
-       fclose(fn); 
+       fclose(fn);
        % Add MAPAXES and MAPUNITS to grdecl
        grdecl.MAPAXES = gr.GRID.MAPAXES;
        grdecl.MAPUNITS = gr.GRID.MAPUNITS;
@@ -74,11 +72,11 @@ if opt.assign_coords
    end
 end
 
-%% Process 3D grid and compute geometry 
+% Process 3D grid and compute geometry
 disp(' -> Processing grid');
 
 if ~opt.assign_coords
-    % First, we map from left-hand to right-hand coordinate system. 
+    % First, we map from left-hand to right-hand coordinate system.
     lines = reshape(grdecl.COORD,6,[]);
     lines([2 5],:) = -lines([2 5],:);
     grdecl.COORD = lines(:); clear lines
@@ -118,19 +116,19 @@ end
 G.cells.faces = [G.cells.faces, repmat((1:6).', [G.cells.num, 1])];
 
 
-%% Construct petrophysical model
+% Construct petrophysical model
 rock = grdecl2Rock(grdecl, G.cells.indexMap);
 rock.perm = convertFrom(rock.perm, milli*darcy);
 clear grdecl
 
 
-%% Construct top-surface grid
+% Construct top-surface grid
 disp(' -> Constructing top-surface grid');
 [Gt, G] = topSurfaceGrid(G);
 rock2D  = averageRock(rock, Gt);
 
 
-%% Find pressure boundary
+% Find pressure boundary
 % Setting boundary conditions is unfortunately a manual process and may
 % require some fiddling with indices, as shown in the code below. Here, we
 % need to find all outer vertical faces
@@ -149,7 +147,7 @@ set(gca, 'ydir', 'reverse');
 view([30 60]), axis tight; drawnow
 %}
 
-%% Store data
+% Store data
 if ~isdir(datadir)
     mkdir(datadir);
 end
