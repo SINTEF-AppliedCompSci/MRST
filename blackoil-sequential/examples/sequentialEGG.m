@@ -31,8 +31,6 @@ schedule = convertDeckScheduleToMRST(model, deck);
 % Set up the sequential model
 seqModel = getSequentialModelFromFI(model, 'pressureLinearSolver', psolver,....
                                            'transportLinearSolver', tsolver);
-% We set up a timestep selector that aims for timesteps where the
-% maximum saturation change is equal to a fixed value.
 % Run problem
 [wsSeq, statesSeq, repSeq] = simulateScheduleAD(state, seqModel, schedule);
 
@@ -40,10 +38,10 @@ seqModel = getSequentialModelFromFI(model, 'pressureLinearSolver', psolver,....
 % Solve the fully implicit version of the problem, with a CPR
 % preconditioner that uses the same linear solver for the pressure as the
 % sequential solver.
-solver.timeStepSelector.reset();
+solver = NonLinearSolver();
 solver.LinearSolver = CPRSolverAD('ellipticSolver', psolver);
 
-[wsFIMP, statesFIMP, repFIMP] = simulateScheduleAD(state, model, schedule);
+[wsFIMP, statesFIMP, repFIMP] = simulateScheduleAD(state, model, schedule, 'nonlinearsolver', solver);
 
 %% Plot simulation time taken
 % The sequential solver can be much faster than the fully implicit solver
