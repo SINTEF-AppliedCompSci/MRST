@@ -23,8 +23,8 @@ classdef MechFluidFixedStressSplitModel < MechFluidSplitModel
                 error('fluidModelType not recognized.');
             end
         end
-        
-        
+
+
 
         function [state, report] = stepFunction(model, state, state0, dt, ...
                                                 drivingForces, linsolve, ...
@@ -38,8 +38,8 @@ classdef MechFluidFixedStressSplitModel < MechFluidSplitModel
             mstate0 = model.syncMStateFromState(state0);
             wstate0 = model.syncWStateFromState(state0);
 
+            fluidp = fluidModel.getProp(state, 'pressure');
 
-            fluidp = fluidModel.getProp(wstate0, 'pressure');
             mechsolver = model.mech_solver;
 
             [mstate, mreport] = mechsolver.solveTimestep(mstate0, dt, mechModel, ...
@@ -62,29 +62,23 @@ classdef MechFluidFixedStressSplitModel < MechFluidSplitModel
             state = model.syncStateFromMState(state, mstate);
             state = model.syncStateFromWState(state, wstate);
 
-
-            % problemFluid = fluidModel.getEquations(state0, state, dt, ...
-            %                                                wdrivingForces, ...
-            %                                                'iteration', ...
-            %                                                iteration, 'resOnly', ...
-            %                                                true);
-            
-            fcModel = model.fullyCoupledModel;
-            problem = fcModel.getEquations(state0, state, dt, drivingForces, ...
-                                                   'resOnly', true, 'iteration', ...
-                                                   iteration);
-            
-            [convergence, values, names] = fcModel.checkConvergence(problem);            
+            fluidp = fluidModel.getProp(state, 'pressure');
+            drivingForces.fluidp = fluidp;
+            mstate = model.syncMStateFromState(state);
+            problem = mechModel.getEquations(mstate0, mstate, dt, drivingForces, ...
+                                                      'resOnly', true, ...
+                                                      'iteration', iteration);
+            [convergence, values, names] = mechModel.checkConvergence(problem);
             failureMsg = '';
             failure = false;
             isConverged = all(convergence);
 
-            report = fcModel.makeStepReport( 'Failure',      failure, ...
-                                             'FailureMsg',   failureMsg, ...
-                                             'Converged',    isConverged, ...
-                                             'Residuals',    values, ...
-                                             'ResidualsConverged', ...
-                                             convergence);
+            report = mechModel.makeStepReport('Failure',      failure, ...
+                                              'FailureMsg',   failureMsg, ...
+                                              'Converged',    isConverged, ...
+                                              'Residuals',    values, ...
+                                              'ResidualsConverged', ...
+                                              convergence);
 
         end
 
@@ -114,8 +108,8 @@ classdef MechFluidFixedStressSplitModel < MechFluidSplitModel
             end
             totalStress = stress - pI;
             totalStress = bsxfun(@times, totalStress, cvoigt);
-            
-            sTerm = sum(invCi.*totalStress, 2); 
+
+            sTerm = sum(invCi.*totalStress, 2);
 
             fixedStressTerms.pTerm = pTerm; % Compressibility due to mechanics
             fixedStressTerms.sTerm = sTerm; % Volume change due to mechanics
@@ -129,7 +123,7 @@ classdef MechFluidFixedStressSplitModel < MechFluidSplitModel
             % Note that $tr(C^{-1}\sigma_T) = I:(C^{-1}\sigma_T) = invCi:\sigma_T$
         end
 
-        
+
         function [incAbs, incVarNames] = computeNormIncrements(model, state_prev, state)
 
             mechfds  = model.mechfds;

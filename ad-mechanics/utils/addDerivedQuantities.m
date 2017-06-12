@@ -17,8 +17,8 @@ function state = addDerivedQuantities(model, state)
     else
         error('Wrong dimsension');
     end
-    stress = reshape(model.operators.stress * u, lin_dim, [])';
-    strain = reshape(model.operators.strain * u, lin_dim, [])';
+    stress = reshape(model.operators.global_stress * u, lin_dim, [])';
+    strain = reshape(model.operators.global_strain * u, lin_dim, [])';
     
     state = setProp(model, state, 'stress', stress);
     state = setProp(model, state, 'strain', strain);
