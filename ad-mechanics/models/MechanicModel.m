@@ -1,4 +1,10 @@
 classdef MechanicModel < PhysicalModel
+
+
+% OBS: 'stepFunctionIsLinear' Assume it is linear
+
+    
+    
     % Mechanical model
     properties
         mech;
@@ -6,11 +12,15 @@ classdef MechanicModel < PhysicalModel
         alpha_scaling;
         S;
         ilu_tol;
+
+        % Tolerance used in the splitting scheme
+        splittingTolerance
     end
 
     methods
         function model = MechanicModel(G, rock, mech_problem, varargin)
-            opt = struct('InputModel', []);
+            opt = struct('InputModel', [], ...
+                         'splittingTolerance', 1e-6);
             [opt, rest] = merge_options(opt, varargin{:});
 
             model = model@PhysicalModel(G, 'stepFunctionIsLinear', true, rest{:});

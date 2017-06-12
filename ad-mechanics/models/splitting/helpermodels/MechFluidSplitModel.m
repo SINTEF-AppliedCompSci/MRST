@@ -26,7 +26,6 @@ classdef MechFluidSplitModel < ReservoirModel
             [opt, rest] = merge_options(opt, varargin{:});
             fluidModelType = opt.fluidModelType;
             model = model@ReservoirModel(G, rest{:});
-            model.nonlinearTolerance = opt.splittingTolerance;
 
             % Process the grid for mechanical computation
             if ~ismember('createAugmentedGrid', model.G.type)
@@ -42,7 +41,10 @@ classdef MechFluidSplitModel < ReservoirModel
             model.fluidfds = model.fluidModel.getAllVarsNames();
             
             
-            model.mechModel = MechanicModel(model.G, rock, mech_problem, rest{:});
+            model.mechModel = MechanicModel(model.G, rock, mech_problem, ...
+                                            rest{:});
+            model.mechModel.splittingTolerance = opt.splittingTolerance;
+
             model.mechfds = model.mechModel.getAllVarsNames();
             
             model.mech_solver = NonLinearSolver();
