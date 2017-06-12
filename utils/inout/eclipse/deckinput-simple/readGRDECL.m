@@ -26,7 +26,7 @@ function [grdecl, unrec] = readGRDECL(fn, varargin)
 %                             missing INCLUDE files.  Must support the
 %                             syntax
 %
-%                                missing_include(id, msg)
+%                                missing_include(id, '%s', msg)
 %
 %                             with 'id' being a message ID and 'msg' being
 %                             a string (diagnostic message).
@@ -176,7 +176,7 @@ while ~feof(fid),
 
             if ~ exist(inc_fn, 'file')
                msg = sprintf('Include file ''%s'' missing', inc_fn);
-               opt.missing_include('INCLUDE:Missing', msg);
+               opt.missing_include('INCLUDE:Missing', '%s', msg);
                continue
             end
 
