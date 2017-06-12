@@ -14,6 +14,9 @@ classdef FacilityModel < PhysicalModel
     properties (SetAccess = protected)
         % Canonical list of all extra primary variables added by the wells
         addedPrimaryVarNames = {};
+        % Indicator, per primary variable, if it was added by the reservoir
+        % model (true) or if it is from the well itself (false)
+        addedPrimaryVarNamesIsFromResModel = [];
         % Canonical list of additional equations
         addedEquationNames = {};
         % Canonical list of the types of the added equations
@@ -57,7 +60,7 @@ classdef FacilityModel < PhysicalModel
             nw = numel(W);
             if model.getNumberOfWells == 0
                 % First time setup
-                [pvars, eqnames, eqtypes] = deal(cell(nw, 1));
+                [pvars, fromRes, eqnames, eqtypes] = deal(cell(nw, 1));
                 model.WellModels = cell(nw, 1);
                 for i = 1:nw
                     % Set up models. SimpleWell for the time being
@@ -87,13 +90,16 @@ classdef FacilityModel < PhysicalModel
                     end
                     % Get the added primary variables for this well, plus
                     % the equations and equation types it adds
-                    pvars{i} = wm.getExtraPrimaryVariableNames(model.ReservoirModel);
+                    [pvars{i}, fromRes{i}] = wm.getExtraPrimaryVariableNames(model.ReservoirModel);
                     [eqnames{i}, eqtypes{i}] = wm.getExtraEquationNames(model.ReservoirModel);
                     model.WellModels{i} = wm;
                 end
                 % Combine the different equations and types added by the
                 % different wells into a canonical ordering.
-                model.addedPrimaryVarNames = uniqueStable([pvars{:}]);
+                [model.addedPrimaryVarNames, keepix] = uniqueStable([pvars{:}]);
+                model.addedPrimaryVarNamesIsFromResModel = [fromRes{:}];
+                model.addedPrimaryVarNamesIsFromResModel = model.addedPrimaryVarNamesIsFromResModel(keepix);
+                
                 [model.addedEquationNames, keepix] = uniqueStable([eqnames{:}]);
 
                 etypes = [eqtypes{:}];
@@ -526,7 +532,13 @@ classdef FacilityModel < PhysicalModel
 
         function isVarWell = getWellVariableMap(model, wf)
             act = model.getWellStatusMask();
-            counts = cellfun(@(x) x.getVariableCounts(wf), model.WellModels(act));
+            isRes = model.addedPrimaryVarNamesIsFromResModel;
+            if isRes(strcmpi(wf, model.addedPrimaryVarNames))
+                % To be expanded.
+                counts = ones(size(act));
+            else
+                counts = cellfun(@(x) x.getVariableCounts(wf), model.WellModels(act));
+            end
             isVarWell = rldecode((1:nnz(act))', counts);
         end
 

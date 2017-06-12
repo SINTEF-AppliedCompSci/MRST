@@ -107,7 +107,7 @@ classdef MultisegmentWell < SimpleWell
             end
         end
 
-        function ws = updateWellSol(well, ws, variables, dx)
+        function ws = updateWellSol(well, ws, variables, dx, resmodel)
             act = true(size(dx));
             for i = 1:numel(dx)
                 name = variables{i};
@@ -141,7 +141,7 @@ classdef MultisegmentWell < SimpleWell
                 % We did update something
                 act(i) = false;
             end
-            ws = updateWellSol@SimpleWell(well, ws, variables(act), dx(act));
+            ws = updateWellSol@SimpleWell(well, ws, variables(act), dx(act), resmodel);
             ws = well.ensureWellSolConsistency(ws);
         end
         

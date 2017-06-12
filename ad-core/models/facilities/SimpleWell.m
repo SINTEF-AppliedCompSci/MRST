@@ -71,7 +71,19 @@ classdef SimpleWell < PhysicalModel
             % single variable to represent any kind of well field, but in
             % e.g. MultisegmentWell, this function may return values larger
             % than 1.
-            counts = 1;
+            %
+            % Note that a value of zero should be returned for a unknown
+            % field.
+            try
+                fn = wm.getVariableField(fld);
+            catch
+                fn = [];
+            end
+            if isempty(fn)
+                counts = 0;
+            else
+                counts = 1;
+            end
         end
 
         function [names, fromResModel] = getExtraPrimaryVariableNames(well, resmodel)
