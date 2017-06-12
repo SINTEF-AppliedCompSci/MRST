@@ -52,7 +52,7 @@ classdef MechFluidFixedStressSplitModel < MechFluidSplitModel
             state = model.syncStateFromMState(state, mstate);
 
             wdrivingForces.fixedStressTerms.new = computeMechTerm(model, state);
-            wdrivingForces.fixedStressTerms.old = computeMechTerm(model, state_prev);
+            wdrivingForces.fixedStressTerms.old = computeMechTerm(model, state0);
 
             forceArg = fluidModel.getDrivingForces(wdrivingForces);
 
@@ -83,23 +83,37 @@ classdef MechFluidFixedStressSplitModel < MechFluidSplitModel
             p = state.pressure;
 
             invCi = model.mechModel.mech.invCi;
+            % invCi is the tensor equal to $C^{-1}I$ where $I$ is the identity tensor.
             griddim = model.G.griddim;
 
             pTerm = sum(invCi(:, 1 : griddim), 2); % could have been computed and stored...
 
             if griddim == 3
                 cvoigt = [1, 1, 1, 0.5, 0.5, 0.5];
+                pI = bsxfun(@times, p, [1, 1, 1, 0, 0, 0]);
             else
                 cvoigt = [1, 1, 0.5];
+                pI = bsxfun(@times, p, [1, 1, 0]);
             end
-            stress = bsxfun(@times, stress, cvoigt);
-            sTerm = sum(invCi.*stress, 2);
+            totalStress = stress - pI;
+            totalStress = bsxfun(@times, totalStress, cvoigt);
+            
+            sTerm = sum(invCi.*totalStress, 2); 
 
             fixedStressTerms.pTerm = pTerm; % Compressibility due to mechanics
             fixedStressTerms.sTerm = sTerm; % Volume change due to mechanics
 
+            % We have $\sigma_T = C\epsi - p I$ where $\sigma_T$ is total
+            % stress
+            % Hence, $tr(\epsi) = tr(C^{-1}\sigma_T) + p tr(C^{-1})$ and the
+            % value sTerm and pTerm corresponds to $tr(\epsi) =
+            % tr(C^{-1}\sigma_T)$ and $tr(C^{-1})$ respectively.
+            %
+            % Note that $tr(C^{-1}\sigma_T) = I:(C^{-1}\sigma_T) = invCi:\sigma_T$
         end
 
+        
+        
         function [incAbs, incVarNames] = computeNormIncrements(model, state_prev, state)
 
             mechfds  = model.mechfds;

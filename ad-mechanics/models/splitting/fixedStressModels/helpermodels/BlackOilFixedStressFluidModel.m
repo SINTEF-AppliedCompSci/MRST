@@ -55,9 +55,9 @@ classdef BlackOilFixedStressFluidModel < ThreePhaseBlackOilModel
             end
 
             fnew         = drivingForces.fixedStressTerms.new;
-            mechTerm.new = fnew.pTerm.*p - fnew.sTerm;
+            mechTerm.new = fnew.sTerm + fnew.pTerm.*p;
             fold         = drivingForces.fixedStressTerms.old;
-            mechTerm.old = fold.pTerm.*p0 - fold.sTerm;
+            mechTerm.old = fold.sTerm + fold.pTerm.*p0;
 
             otherDrivingForces = rmfield(drivingForces, 'fixedStressTerms');
 
