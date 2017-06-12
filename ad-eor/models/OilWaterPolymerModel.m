@@ -103,7 +103,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     else
                         fn = 'cmax';
                     end
-                case 'qwPoly'
+                case 'qwpoly'
                     fn = 'qWPoly';
                 otherwise
                     [fn, index] = getVariableField@TwoPhaseOilWaterModel(...
