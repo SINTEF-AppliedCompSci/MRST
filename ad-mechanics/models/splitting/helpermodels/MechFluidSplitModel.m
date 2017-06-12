@@ -15,24 +15,18 @@ classdef MechFluidSplitModel < ReservoirModel
         mech_solver;
         % Solver to be used for the fluid part
         fluid_solver;
-        % Fully coupled model. Used to check convergence.
-        fullyCoupledModel;
-        
 
-        %
-        alpha_scaling;
-        S;
-        ilu_tol;
     end
 
     methods
         function model = MechFluidSplitModel(G, rock, fluid, mech_problem, varargin)
 
-            opt = struct('fluidModelType', 'water');
+            opt = struct('fluidModelType', 'water', ...
+                         'splittingTolerance', 1e-6);
             [opt, rest] = merge_options(opt, varargin{:});
             fluidModelType = opt.fluidModelType;
-
             model = model@ReservoirModel(G, rest{:});
+            model.nonlinearTolerance = opt.splittingTolerance;
 
             % Process the grid for mechanical computation
             if ~ismember('createAugmentedGrid', model.G.type)
@@ -45,20 +39,11 @@ classdef MechFluidSplitModel < ReservoirModel
             model.fluidModel = model.setupFluidModel(rock, fluid, opt.fluidModelType, ...
                                                            'extraWellSolOutput', ...
                                                            false, rest{:});
-
             model.fluidfds = model.fluidModel.getAllVarsNames();
             
-
-            model.alpha_scaling = 1;
-            model.S = [];
-            model.ilu_tol = 1e-4;
-            model = merge_options(model, rest{:});
-
-            model.mechModel = MechanicModel(model.G, rock, mech_problem);
-            model.mechfds = model.mechModel.getAllVarsNames();
             
-            model.fullyCoupledModel = model.setupFullyCoupledModel(rock, fluid, ...
-                                                                         mech_problem, fluidModelType, varargin{:});
+            model.mechModel = MechanicModel(model.G, rock, mech_problem, rest{:});
+            model.mechfds = model.mechModel.getAllVarsNames();
             
             model.mech_solver = NonLinearSolver();
             model.fluid_solver = NonLinearSolver();
@@ -69,23 +54,6 @@ classdef MechFluidSplitModel < ReservoirModel
                                                      varargin)
             error('Base class function not meant for direct use.');
         end
-
-        function fullyCoupledModel = setupFullyCoupledModel(model, rock, fluid, mech_problem, fluidModelType, ...
-                                                     varargin)
-        
-            switch fluidModelType
-              case 'water'
-                fullyCoupledModel = MechWaterModel(model.G, rock, fluid, mech_problem, varargin{:});
-              case 'oil water'
-                fullyCoupledModel = MechOilWaterModel(model.G, rock, fluid, mech_problem, varargin{:});
-              case 'blackoil'
-                fullyCoupledModel = MechBlackOilModel(model.G, rock, fluid, mech_problem, varargin{:});
-              otherwise
-                error('fluidModelType not recognized.');
-            end
-        end
-        
-
 
         function [state, report] = stepFunction(model, state, state0, dt, ...
                                                 drivingForces, linsolve, ...
@@ -129,9 +97,6 @@ classdef MechFluidSplitModel < ReservoirModel
                 error('The MechFluidSplitModel requires to have an iniatilized FacilityModel')
             end
             model.fluidModel.FacilityModel        = model.FacilityModel;
-            model.fullyCoupledModel.FacilityModel = model.FacilityModel;
-            model.fullyCoupledModel = ...
-                model.fullyCoupledModel.validateModel(varargin{:});
             
             model = validateModel@ReservoirModel(model, varargin{:});
             return

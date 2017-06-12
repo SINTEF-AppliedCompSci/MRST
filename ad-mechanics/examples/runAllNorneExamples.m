@@ -34,8 +34,9 @@ mrstModule add ad-mechanics ad-core ad-props ad-blackoil vemmech deckformat mrst
 % 'water' : water model is used for the fluid
 
 
-opt.norne_case  = 'mini Norne';
-opt.bc_case     = 'bottom fixed';
+opt.verbose    = true;
+opt.norne_case = 'mini Norne';
+opt.bc_case    = 'bottom fixed';
 
 
 setTitle = @(opt)(sprintf('%s, %s', opt.fluid_model, opt.method));
@@ -101,6 +102,7 @@ view([7, 40]);
 i = i + 1;
 
 opt.method      = 'fixed stress splitting';
+opt.splittingTolerance = 1e-3;
 [model, initState, schedule] = setupNorneExamples(opt);
 [wsols{i}, states{i}] = simulateScheduleAD(initState, model, schedule);
 figure

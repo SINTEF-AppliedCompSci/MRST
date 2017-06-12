@@ -5,7 +5,9 @@ classdef MechFluidFixedStressSplitModel < MechFluidSplitModel
 % from this one.
 
     methods
-        function model = MechFluidFixedStressSplitModel(G, rock, fluid, mech_problem, varargin)
+        function model = MechFluidFixedStressSplitModel(G, rock, fluid, ...
+                                                        mech_problem, varargin)
+
             model = model@MechFluidSplitModel(G, rock, fluid, mech_problem, ...
                                          varargin{:});
         end
@@ -42,6 +44,11 @@ classdef MechFluidFixedStressSplitModel < MechFluidSplitModel
 
             mechsolver = model.mech_solver;
 
+            if model.verbose
+                fprintf('****\n**** Splitting scheme: step %d\n****\n', iteration)
+                fprintf('****\n**** Solving for mechanics\n****\n');
+            end
+            
             [mstate, mreport] = mechsolver.solveTimestep(mstate0, dt, mechModel, ...
                                                           'fluidp', fluidp);
 
@@ -56,6 +63,11 @@ classdef MechFluidFixedStressSplitModel < MechFluidSplitModel
             forceArg = fluidModel.getDrivingForces(wdrivingForces);
 
             fluidsolver = model.fluid_solver;
+            
+            if model.verbose
+                fprintf('****\n Solving for fluid\n****\n');
+            end
+
             [wstate, wreport] = fluidsolver.solveTimestep(wstate0, dt, fluidModel, ...
                                                           forceArg{:});
 
@@ -73,18 +85,23 @@ classdef MechFluidFixedStressSplitModel < MechFluidSplitModel
             failure = false;
             isConverged = all(convergence);
 
+            if model.verbose
+                fprintf(['****\n**** Value of residual for mechanical part: ' ...
+                         '%g\n'], values);
+                if convergence
+                    fprintf('**** Convergence reached\n');
+                else
+                    fprintf(['**** Convergence not reached (tolerance value = ' ...
+                             '%g)\n'], model.nonlinearTolerance);
+                end
+            end
+
             report = mechModel.makeStepReport('Failure',      failure, ...
                                               'FailureMsg',   failureMsg, ...
                                               'Converged',    isConverged, ...
                                               'Residuals',    values, ...
                                               'ResidualsConverged', ...
                                               convergence);
-
-        end
-
-        function [problem] = getFullyCoupledEquations()
-        % The residual of the fully coupled equations are computed to test convergence.
-            error('Base class function not meant for direct use.');
         end
 
         function fixedStressTerms = computeMechTerm(model, state)

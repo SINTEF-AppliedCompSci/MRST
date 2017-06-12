@@ -71,10 +71,6 @@ classdef BlackOilFixedStressFluidModel < ThreePhaseBlackOilModel
             problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
         end
         
-        function [problem] = getFullyCoupledEquations()
-        % To test convergence
-        end
-
         function forces = getValidDrivingForces(model)
             forces = getValidDrivingForces@ThreePhaseBlackOilModel(model);
             % divergence term

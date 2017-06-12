@@ -1,6 +1,19 @@
 function [model, initState, schedule] = setupNorneExamples(opt)
 
+    default_opt = struct('norne_case', 'mini Norne', ...
+                 'bc_case', 'bottom_fixed', ...
+                 'fluid_model', 'water', ...
+                 'method', 'fully coupled', ...
+                 'verbose', false, ...
+                 'nonlinearTolerance', 1e-6, ...
+                 'splittingTolerance', 1e-3)
 
+    optvals = cellfun(@(x) opt.(x), fieldnames(opt), 'uniformoutput', false);
+    optlist = reshape(vertcat(fieldnames(opt)', optvals'), [], 1);
+    
+    opt = merge_options(default_opt, optlist{:});
+
+    
     %% Load Norne grid
 
     if ~ (makeNorneSubsetAvailable() && makeNorneGRDECL()),
@@ -174,10 +187,13 @@ function [model, initState, schedule] = setupNorneExamples(opt)
     modeltype = [opt.method, ' and ', opt.fluid_model];
     switch modeltype
       case 'fully coupled and blackoil'
-        model = MechBlackOilModel(G, rock, fluid, mech);
+        model = MechBlackOilModel(G, rock, fluid, mech, 'verbose', opt.verbose);
       case 'fixed stress splitting and blackoil'
-        model = MechFluidFixedStressSplitModel(G, rock, fluid, mech, 'fluidModelType', ...
-                                               'blackoil');
+        model = MechFluidFixedStressSplitModel(G, rock, fluid, mech, ...
+                                               'fluidModelType', 'blackoil', ...
+                                               'verbose', opt.verbose, ...
+                                               'splittingTolerance', ...
+                                               opt.splittingTolerance);
       case 'fully coupled and oil water'
         model = MechOilWaterModel(G, rock, fluid, mech);
       case 'fixed stress splitting and oil water'
