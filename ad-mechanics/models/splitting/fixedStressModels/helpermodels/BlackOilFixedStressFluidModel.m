@@ -1,9 +1,5 @@
 classdef BlackOilFixedStressFluidModel < ThreePhaseBlackOilModel
 
-    properties
-        pressCoef;
-    end
-
     methods
         function model = BlackOilFixedStressFluidModel(G, rock, fluid, varargin)
             model = model@ThreePhaseBlackOilModel(G, rock, fluid);
@@ -73,6 +69,10 @@ classdef BlackOilFixedStressFluidModel < ThreePhaseBlackOilModel
             primaryVars = {'pressure', 'sW', gvar, wellVarNames{:}};
 
             problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
+        end
+        
+        function [problem] = getFullyCoupledEquations()
+        % To test convergence
         end
 
         function forces = getValidDrivingForces(model)

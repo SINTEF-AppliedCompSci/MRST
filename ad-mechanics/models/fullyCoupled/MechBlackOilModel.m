@@ -97,12 +97,10 @@ classdef MechBlackOilModel < MechFluidModel
                                                               xd0, p, xd)
 
             G = model.G;
-            opmech = model.mechModel.operators.mech;
+            op = model.mechModel.operators;
             fluidp = p;
-            mechTerm.new = (opmech.div*xd)./(G.cells.volumes);
-            % Note that the opmech.div returns the divergence integrated over cells. That is
-            % why we divide by the cell's volumes.
-            mechTerm.old = (opmech.div*xd0)./(G.cells.volumes);
+            mechTerm.new = op.trace(op.strain*xd);
+            mechTerm.old = op.trace(op.strain*xd0);
 
         end
 

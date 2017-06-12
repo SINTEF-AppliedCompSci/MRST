@@ -1,8 +1,5 @@
 classdef WaterFixedStressFluidModel < WaterModel
     
-    properties
-        pressCoef;
-    end
 
     methods
         function model = WaterFixedStressFluidModel(G, rock, fluid, varargin)

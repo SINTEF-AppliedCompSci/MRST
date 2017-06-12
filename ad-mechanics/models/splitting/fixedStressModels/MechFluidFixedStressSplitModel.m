@@ -1,5 +1,8 @@
 classdef MechFluidFixedStressSplitModel < MechFluidSplitModel
-
+% Base class to implement fixed-stress splitting.
+%
+% Different fluid model can be used. Each of these will use a derived class
+% from this one.
 
     methods
         function model = MechFluidFixedStressSplitModel(G, rock, fluid, mech_problem, varargin)
@@ -20,7 +23,8 @@ classdef MechFluidFixedStressSplitModel < MechFluidSplitModel
                 error('fluidModelType not recognized.');
             end
         end
-
+        
+        
 
         function [state, report] = stepFunction(model, state, state0, dt, ...
                                                 drivingForces, linsolve, ...
@@ -34,11 +38,6 @@ classdef MechFluidFixedStressSplitModel < MechFluidSplitModel
             mstate0 = model.syncMStateFromState(state0);
             wstate0 = model.syncWStateFromState(state0);
 
-            if iteration == 1
-                state_prev = state0;
-            else
-                state_prev = state;
-            end
 
             fluidp = fluidModel.getProp(wstate0, 'pressure');
             mechsolver = model.mech_solver;
@@ -63,20 +62,36 @@ classdef MechFluidFixedStressSplitModel < MechFluidSplitModel
             state = model.syncStateFromMState(state, mstate);
             state = model.syncStateFromWState(state, wstate);
 
-            report.Converged = false;
-            report.Failure   = false;
-            report.Residuals = [];
 
-            if iteration > 1
-                [incAbs, incVarNames] = model.computeNormIncrements(state_prev, ...
-                                                                  state);
-                if norm(incAbs, inf) < model.nonlinearTolerance
-                    report.Converged = true;
-                end
-            end
+            % problemFluid = fluidModel.getEquations(state0, state, dt, ...
+            %                                                wdrivingForces, ...
+            %                                                'iteration', ...
+            %                                                iteration, 'resOnly', ...
+            %                                                true);
+            
+            fcModel = model.fullyCoupledModel;
+            problem = fcModel.getEquations(state0, state, dt, drivingForces, ...
+                                                   'resOnly', true, 'iteration', ...
+                                                   iteration);
+            
+            [convergence, values, names] = fcModel.checkConvergence(problem);            
+            failureMsg = '';
+            failure = false;
+            isConverged = all(convergence);
+
+            report = fcModel.makeStepReport( 'Failure',      failure, ...
+                                             'FailureMsg',   failureMsg, ...
+                                             'Converged',    isConverged, ...
+                                             'Residuals',    values, ...
+                                             'ResidualsConverged', ...
+                                             convergence);
 
         end
 
+        function [problem] = getFullyCoupledEquations()
+        % The residual of the fully coupled equations are computed to test convergence.
+            error('Base class function not meant for direct use.');
+        end
 
         function fixedStressTerms = computeMechTerm(model, state)
             stress = state.stress;
@@ -86,7 +101,9 @@ classdef MechFluidFixedStressSplitModel < MechFluidSplitModel
             % invCi is the tensor equal to $C^{-1}I$ where $I$ is the identity tensor.
             griddim = model.G.griddim;
 
-            pTerm = sum(invCi(:, 1 : griddim), 2); % could have been computed and stored...
+            pTerm = model.mechModel.operators.trace(invCi); % could have been
+                                                            % computed and
+                                                            % stored...
 
             if griddim == 3
                 cvoigt = [1, 1, 1, 0.5, 0.5, 0.5];
@@ -112,7 +129,6 @@ classdef MechFluidFixedStressSplitModel < MechFluidSplitModel
             % Note that $tr(C^{-1}\sigma_T) = I:(C^{-1}\sigma_T) = invCi:\sigma_T$
         end
 
-        
         
         function [incAbs, incVarNames] = computeNormIncrements(model, state_prev, state)
 

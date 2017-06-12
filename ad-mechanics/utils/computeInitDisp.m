@@ -10,7 +10,7 @@ function state = computeInitDisp(model, state, uu, varargin)
 
         mechmodel = MechanicModel(mechModel.G, mechModel.rock, mechModel.mech);
 
-        state = mechmodel.setProp(state, 'xd', mechmodel.operators.mech.rhs); % Dummy values, just used
+        state = mechmodel.setProp(state, 'xd', mechmodel.operators.rhs); % Dummy values, just used
                                                                               % to get the correct dimension.
         
         if ~isempty(opt.pressure)
@@ -28,8 +28,8 @@ function state = computeInitDisp(model, state, uu, varargin)
     else
         error('not checked')
         u = reshape(uu', [], 1);
-        state.xd = zeros(size(model.operators.mech.A, 2), 1);
-        state.xd = u(~model.operators.mech.isdirdofs);
+        state.xd = zeros(size(model.operators.A, 2), 1);
+        state.xd = u(~model.operators.isdirdofs);
     end
 
     state = addDerivedQuantities(mechmodel, state);

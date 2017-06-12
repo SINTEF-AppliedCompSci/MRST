@@ -42,8 +42,7 @@ classdef MechanicModel < PhysicalModel
             else
                 operators = opt.InputModel.operators;
             end
-            model.operators.mech  = operators.mech;
-            model.operators.extra = operators.extra;
+            model.operators = operators;
 
         end
 

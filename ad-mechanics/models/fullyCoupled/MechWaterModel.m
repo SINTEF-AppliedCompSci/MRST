@@ -69,7 +69,7 @@ classdef MechWaterModel < MechFluidModel
         function [mechTerm, fluidp] = computeCouplingTerms(model, p0, ...
                                                               xd0, p, xd)
 
-            opmech = model.mechModel.operators.mech;
+            opmech = model.mechModel.operators;
             fluidp = p;
             mechTerm.new = opmech.div*xd;
             mechTerm.old = opmech.div*xd0;

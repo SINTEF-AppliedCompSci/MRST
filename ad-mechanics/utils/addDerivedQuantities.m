@@ -1,13 +1,13 @@
 function state = addDerivedQuantities(model, state)
 
-    u = model.operators.mech.V_dir; % zeros(G.gridim * G.nodes.num, 1);
-    u(~model.operators.mech.isdirdofs) = getProp(model, state, 'xd');
+    u = model.operators.V_dir; % zeros(G.gridim * G.nodes.num, 1);
+    u(~model.operators.isdirdofs) = getProp(model, state, 'xd');
     state = setProp(model, state, 'u', u);
     uu = reshape(u, model.G.griddim, [])';
     state = setProp(model, state, 'uu', uu);
     
     % calculate div, stress, eigen values + + +
-    vdiv = model.operators.extra.vdiv * u ./ model.G.cells.volumes;
+    vdiv = model.operators.ovol_div * u ./ model.G.cells.volumes;
     state = setProp(model, state, 'vdiv', vdiv);
     
     if(model.G.griddim == 2)
@@ -17,8 +17,8 @@ function state = addDerivedQuantities(model, state)
     else
         error('Wrong dimsension');
     end
-    stress = reshape(model.operators.extra.stress * u, lin_dim, [])';
-    strain = reshape(model.operators.extra.strain * u, lin_dim, [])';
+    stress = reshape(model.operators.stress * u, lin_dim, [])';
+    strain = reshape(model.operators.strain * u, lin_dim, [])';
     
     state = setProp(model, state, 'stress', stress);
     state = setProp(model, state, 'strain', strain);

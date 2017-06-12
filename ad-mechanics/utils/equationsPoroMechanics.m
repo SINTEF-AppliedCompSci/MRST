@@ -1,7 +1,7 @@
 function [eqs, names, types, state] = equationsPoroMechanics(x, model, fluidp)
     
     G = model.G;
-    s = model.operators.mech;
+    s = model.operators;
     alpha = model.rock.alpha;
 
     eqs{1} = s.A * x - s.gradP * (alpha .* fluidp) - s.rhs;

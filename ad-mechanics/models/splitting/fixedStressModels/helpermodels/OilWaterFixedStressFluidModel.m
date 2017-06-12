@@ -1,9 +1,5 @@
 classdef OilWaterFixedStressFluidModel < TwoPhaseOilWaterModel
     
-    properties
-        pressCoef;
-    end
-
     methods
         function model = OilWaterFixedStressFluidModel(G, rock, fluid, varargin)
             model = model@TwoPhaseOilWaterModel(G, rock, fluid);

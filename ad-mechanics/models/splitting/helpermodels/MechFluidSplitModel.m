@@ -1,5 +1,6 @@
 classdef MechFluidSplitModel < ReservoirModel
-% Base class for mechanics-flow splitting.
+% Base class for mechanics-flow splitting. Possibility to implement different
+% splitting. For the moment, only fixed-stress splitting is implemented.
 %
     properties
         % Mechanical model used in the splitting
@@ -14,6 +15,9 @@ classdef MechFluidSplitModel < ReservoirModel
         mech_solver;
         % Solver to be used for the fluid part
         fluid_solver;
+        % Fully coupled model. Used to check convergence.
+        fullyCoupledModel;
+        
 
         %
         alpha_scaling;
@@ -38,12 +42,12 @@ classdef MechFluidSplitModel < ReservoirModel
             % Different fluid models may be used. This base class should be
             % derived for each of those. See e.g. WaterFixedStressFluidModel.m
             % (fixed stress splitting with water phase).
-            model.fluidModel = setupFluidModel(model, rock, fluid, ...
-                                                      opt.fluidModelType, ...
-                                                      'extraWellSolOutput', ...
-                                                      false, rest{:});
+            model.fluidModel = model.setupFluidModel(rock, fluid, opt.fluidModelType, ...
+                                                           'extraWellSolOutput', ...
+                                                           false, rest{:});
 
             model.fluidfds = model.fluidModel.getAllVarsNames();
+            
 
             model.alpha_scaling = 1;
             model.S = [];
@@ -52,7 +56,10 @@ classdef MechFluidSplitModel < ReservoirModel
 
             model.mechModel = MechanicModel(model.G, rock, mech_problem);
             model.mechfds = model.mechModel.getAllVarsNames();
-
+            
+            model.fullyCoupledModel = model.setupFullyCoupledModel(rock, fluid, ...
+                                                                         mech_problem, fluidModelType, varargin{:});
+            
             model.mech_solver = NonLinearSolver();
             model.fluid_solver = NonLinearSolver();
 
@@ -63,6 +70,21 @@ classdef MechFluidSplitModel < ReservoirModel
             error('Base class function not meant for direct use.');
         end
 
+        function fullyCoupledModel = setupFullyCoupledModel(model, rock, fluid, mech_problem, fluidModelType, ...
+                                                     varargin)
+        
+            switch fluidModelType
+              case 'water'
+                fullyCoupledModel = MechWaterModel(model.G, rock, fluid, mech_problem, varargin{:});
+              case 'oil water'
+                fullyCoupledModel = MechOilWaterModel(model.G, rock, fluid, mech_problem, varargin{:});
+              case 'blackoil'
+                fullyCoupledModel = MechBlackOilModel(model.G, rock, fluid, mech_problem, varargin{:});
+              otherwise
+                error('fluidModelType not recognized.');
+            end
+        end
+        
 
 
         function [state, report] = stepFunction(model, state, state0, dt, ...
@@ -106,7 +128,11 @@ classdef MechFluidSplitModel < ReservoirModel
             if isempty(model.FacilityModel)
                 error('The MechFluidSplitModel requires to have an iniatilized FacilityModel')
             end
-            model.fluidModel.FacilityModel = model.FacilityModel;
+            model.fluidModel.FacilityModel        = model.FacilityModel;
+            model.fullyCoupledModel.FacilityModel = model.FacilityModel;
+            model.fullyCoupledModel = ...
+                model.fullyCoupledModel.validateModel(varargin{:});
+            
             model = validateModel@ReservoirModel(model, varargin{:});
             return
         end

@@ -96,20 +96,6 @@ classdef MechFluidModel < ReservoirModel
            state = model.mechModel.validateState(state);
         end
 
-        function model = setupOperators(model, G, rock, varargin)
-
-
-            % Set up divergence / gradient / transmissibility operators for flow
-            model = setupOperators@ReservoirModel(model, G, rock, varargin{:});
-
-            operators = setupOperatorsVEM(model.G, model.mech.el_bc, ...
-                                                   model.mech.load, ...
-                                                   model.alpha_scaling, ...
-                                                   model.S);
-            model.operators.mech = operators.mech;
-            model.operators.extra = operators.extra;
-
-        end
 
     end
 end
