@@ -84,6 +84,8 @@ opt = struct('verbose',              mrstVerbose,     ...
 
 opt = merge_options(opt, varargin{:});
 
+warnstate = warning('off', 'NumPhase:Inconsistent');
+
 % Choose global boundary conditions to use
 [bc, well_cases, cgwells_cases] = setupCases(cg, opt);
 
@@ -166,6 +168,7 @@ cgwells = cgwells_cases{1};
 assert (all(isfinite(T_cg)))
 
 report = struct('cg_state', upscaled, 'states', states);
+warning(warnstate.state, warnstate.identifier);
 end
 
 %==========================================================================
