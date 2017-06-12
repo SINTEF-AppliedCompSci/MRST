@@ -1,25 +1,37 @@
 function [G, Gt, rock, rock2D, bcIxVE] = makeSleipnerVEmodel(varargin)
-%Make an VE model based upon the Sleipner data set from ieaghg.org
+%Make a VE model based upon the Sleipner data set from ieaghg.org
 %
 % SYNOPSIS:
-%  [G, Gt, bcIx, bcIxVE, rock, rock2D] = makeSleipnerVEmodel()
+%   [G, Gt, rock, rock2D, bcIxVE] = makeSleipnerVEmodel()
+%   [G, Gt, rock, rock2D, bcIxVE] = makeSleipnerVEmodel('pn1', pv1, ...)
 %
 % PARAMETERS:
+%   'pn'/pv - List of 'key'/value pairs defining optional parameters.  The
+%             supported options are:
+%
+%               usemex --
+%                   Whether or not to use C-accelerated routines for
+%                   processing ECLIPSE input and computing geometry.
+%
+%               assign_coords --
+%                   Whether or not to read physical coordinates from
+%                   Sleipner's M9X1.grdecl datafile.  If set, do read
+%                   coordinates and save as 'SleipnerGlobalCoords.mat',
+%                   otherwise save result as 'Sleipner.mat'.
+%
+% RETURNS:
 %   G      - Data structure for 3D grid
 %   Gt     - Data structure for topsurface grid
 %   rock   - Data structure for 3D rock parameters
 %   rock2D - Data structure for rock parameters for topsurface grid
 %   bcIxVE - Index for pressure boundary conditions in topsurface grid
 %
-% OPTIONS:
-%   usemex          - Flag: if true, use C-accelerated routines for
-%                   processing Eclipse input and computing geometry
-%   assign_coords   - Flag: if true, will read physical coordinates from
-%                   Sleipner's M9X1.grdecl datafile, and save as
-%                   SleipnerGlobalCoords.mat, otherwise Sleipner.mat
-%
 % SEE ALSO:
-%   runSleipner
+%   runSleipner.
+
+%{
+#COPYRIGHT#
+%}
 
 opt.usemex          = true;
 opt.assign_coords   = false;
