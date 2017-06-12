@@ -166,7 +166,7 @@ colorbarHist(grdecl.PORO, [.01 .3],'South',100);
 clf
 plotCellData(G,rock.poro, pargs{:});
 axis tight off; set(gca,'DataAspect',[1 1 0.1]); 
-view(-65,55); zoom(1.4); camdolly(0,-0.2,0)
+view(-65,55);
 colorbarHist(rock.poro, [.01 .3],'South',100);
 
 %%
@@ -174,7 +174,7 @@ colorbarHist(rock.poro, [.01 .3],'South',100);
 clf
 plotCellData(G,rock.ntg, pargs{:});
 axis tight off; set(gca,'DataAspect',[1 1 0.1]); 
-view(-65,60); zoom(1.4); camdolly(0,-0.2,0)
+view(-65,60);
 colorbarHist(rock.ntg,[.2 1],'South',100);
 
 %% 
@@ -183,7 +183,7 @@ clf
 SN = grdecl.SATNUM(G.cells.indexMap); j = jet(60);
 plotCellData(G,SN, pargs{:});
 axis tight off; set(gca,'DataAspect',[1 1 0.1]); 
-view(-65,60); zoom(1.4); camdolly(0,-0.2,0)
+view(-65,60);
 colorbarHist(SN, [.5 6.5], 'South', 0:.5:6.5);
 colormap(j(1:10:end,:))
 
@@ -192,7 +192,7 @@ colormap(j(1:10:end,:))
 clf
 plotGrid(G,'FaceColor','none', pargs{:});
 axis tight off; set(gca,'DataAspect',[1 1 0.1]);
-view(-65,60); zoom(1.4); camdolly(0,-0.2,0)
+view(-65,60);
 caxis([0.5 6.5]), colormap(j(1:10:end,:))
 
 h1 = plotCellData(G,SN, find(SN==1), pargs{:});
@@ -220,8 +220,7 @@ for i=[1,3]
     p = log10(rock.perm(:,i));
     plotCellData(G,p, pargs{:});
     axis tight off; set(gca,'DataAspect',[1 1 0.1]);
-    view(-65,55); zoom(1.4); camdolly(0,-0.2,0)
-    
+    view(-65,55); 
     % Manipulate the colorbar to get the ticks we want
     cs = [0.001 0.01 0.1 1 10 100 1000 10000];
     caxis(log10([min(cs) max(cs)]*milli*darcy));
@@ -266,7 +265,7 @@ Mz = grdecl.MULTZ(G.cells.indexMap);
 plotGrid(G,'FaceColor','none','EdgeAlpha',0.1);
 plotCellData(G,Mz,Mz<1,pargs{:});
 axis tight off; set(gca,'DataAspect',[1 1 0.1]);
-view(-65,55); zoom(1.4); camdolly(0,-0.2,0)
+view(-65,55);
 colorbarHist(Mz(Mz<1),[0 1],'South',100);
 
 %% Copyright notice
