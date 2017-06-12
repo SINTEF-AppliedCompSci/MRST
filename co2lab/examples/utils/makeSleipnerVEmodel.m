@@ -47,10 +47,10 @@ try
    disp([' -> Reading data from: ' sdir]);
    grdecl = readGRDECL(fullfile(sdir, 'SLEIPNER.DATA'));
 catch
-
-   fprintf(1, '    Reading of SLEIPNER.DATA failed, please download data manually');
-   fprintf(1, ' following instructions\n    in "%s"\n', fullfile(sdir,'README'));
-   return;
+   error('Dataset:Missing', ...
+        ['Reading of SLEIPNER.DATA failed, please download data ', ...
+         'manually following instructions in\n    ''%s'''], ...
+         fullfile(sdir,'README'));
 end
 
 % Second loading (optional): to get MAPUNITS, MAPAXES
@@ -66,9 +66,10 @@ if opt.assign_coords
        grdecl.MAPUNITS = gr.GRID.MAPUNITS;
        clear gr sl_file
    catch
-       fprintf(1, '    Reading of M9X1.grdecl failed, please dowload data manually');
-       fprintf(1, ' following instructions\n    in "%s"\n', fullfile(sdir,'README'));
-       error('Did not find dataset, aborting.');
+       error('Dataset:Missing', ...
+            ['Reading of M9X1.grdecl failed, please download data ', ...
+             'manually following instructions in\n    ''%s'''], ...
+             fullfile(sdir,'README'));
    end
 end
 
