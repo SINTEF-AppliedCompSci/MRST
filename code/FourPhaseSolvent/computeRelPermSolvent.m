@@ -1,6 +1,11 @@
 function [krW_eff, krO_eff, krG_eff, krS_eff] = computeRelPermSolvent(fluid, p, sW, sO, sG, sS, sWres, sOres, sSGres, mobMult)
 % Calulates effective relative permeabilities.
 
+    tol = 1e-10;
+    sO(sO < tol) = 0;
+    sG(sG < tol) = 0;
+    sS(sS < tol) = 0;
+    
     n = 2;
     sres_tot = sWres + sOres + sSGres;
     
@@ -23,13 +28,11 @@ function [krW_eff, krO_eff, krG_eff, krS_eff] = computeRelPermSolvent(fluid, p, 
                   sSGres, ...
                   fluid.krG(1 - (sWres + sOres)), ...
                   sres_tot);
-
+              
     M = fluid.Msat(sG, sS).*fluid.Mpres(p);
 
-
-    tol = eps;
-    
-    sSsGT = saturationFraction(sS, sG, tol);
+    sSsGT = sS./(sS + sG);
+    sSsGT(isnan(double(sSsGT))) = 0;
     
     % Immiscible gas and solvent relperms
     krG_i = (1-sSsGT).*krGT_i;
@@ -37,23 +40,28 @@ function [krW_eff, krO_eff, krG_eff, krS_eff] = computeRelPermSolvent(fluid, p, 
 
     sOn = max(sO - sOres,0);
     sGn = max(sG - sSGres,0);
-    sSn = max(sS,0);
-    sGTn = sGn + sSn;
-        
-    sOnsNn  = saturationFraction(sOn, sGTn, tol);
-    sGTnsNn = saturationFraction(sGTn, sOn, tol);
-    sGnsGTn = saturationFraction(sGn, sSn, tol);
-    sSnsGTn = saturationFraction(sSn, sGn, tol);
+    sGTn = max(sG + sS - sSGres, 0);
+    sNn = max(sO + sG + sS - (sOres + sSGres), 0);
+    
+    sOnsNn = sOn./sNn;
+    sOnsNn(isnan(double(sOnsNn))) = 0;
+    sGTnsNn = 1 - sOnsNn;
+    
+    sGnsGTn = sGn./sGTn;
+    sGnsGTn(isnan(double(sGnsGTn))) = 0;
+    sSnsGTn = 1 - sGnsGTn;
     
     % Miscible relperms
     krO_m = sOnsNn.*krN;
     krGT_m = sGTnsNn.*krN;
+    
     krG_m = sGnsGTn.*krGT_m;
     krS_m = sSnsGTn.*krGT_m;
     
     % Interpolate between miscible and immiscible cases (water relperm
     % not affected by the solvent)
     krW_eff = fluid.krW(sW);
+    
     krO_eff = M.*krO_m + (1-M).*krO_i;
     krG_eff = M.*krG_m + (1-M).*krG_i;
     krS_eff = M.*krS_m + (1-M).*krS_i;
@@ -67,34 +75,9 @@ function [krW_eff, krO_eff, krG_eff, krS_eff] = computeRelPermSolvent(fluid, p, 
 end
 
 function kr = coreyRelperm(s, n, sr, kwm, sr_tot)
+
     den = 1 - sr_tot;
-%     sat = ((s - sr)./den);
-    
-    sat = max(min((s-sr)./den,1),0);
-    
-%     if isa(sat, 'ADI')
-%         sat.val = max(0,min(sat.val, 1));
-%     else
-%         sat = max(min(sat, 1), 0);
-%     end
-    
+    sat = max(min((s-sr)./den,1),0);    
     kr = kwm.*sat.^n;
-end
-
-% function s = trimSaturations(s)
-% 
-%     tol = eps;
-%     s = max(s + tol*(s<tol),0);
-%     
-% end
-
-% function f = saturationFraction(sNum, sDen)
-% 
-%     tol = 10*eps;
-%     zz = sNum < tol & sDen < tol;
-%     sNum = sNum - (sNum < tol).*sNum;
-%     sDen = sDen - (sDen < tol).*sDen;
-%     f = sNum./(sDen + (sDen < tol).*tol).*(~zz) + 0.*zz;
-%        
-% end
     
+end
