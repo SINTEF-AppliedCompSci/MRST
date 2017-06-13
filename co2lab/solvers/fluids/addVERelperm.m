@@ -33,7 +33,7 @@ function fluid = addVERelperm(fluid, Gt, varargin)
 %   kr3D      - Dummy function, returning a rel.perm. value that is simply
 %               equal to the input saturation.
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
