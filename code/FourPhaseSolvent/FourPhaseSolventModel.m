@@ -79,14 +79,14 @@ methods
         oi = strcmpi(saturations, 'so');
         gi = strcmpi(saturations, 'sg');
         si = strcmpi(saturations, 'ss');
-
+        
         % Parent class handles almost everything for us
         [state, report] = updateState@ReservoirModel(model, state, problem, dx, drivingForces);
-        
+
         % Handle the directly assigned values (i.e. can be deduced directly from
         % the well controls. This is black oil specific.
         W = drivingForces.W;
-        state.wellSol = assignWellValuesFromControl(model, state.wellSol, W, wi, oi, gi, si);
+        state.wellSol = assignWellValuesFromControlSolvent(model, state.wellSol, W, wi, oi, gi, si);
     end
     
     function [isActive, phInd] = getActivePhases(model)
