@@ -1,8 +1,26 @@
 classdef MechFluidFixedStressSplitModel < MechFluidSplitModel
-% Base class to implement fixed-stress splitting.
 %
-% Different fluid model can be used. Each of these will use a derived class
-% from this one.
+%
+% SYNOPSIS:
+%   model = MechFluidFixedStressSplitModel(G, rock, fluid, ...
+%
+% DESCRIPTION: Model for the fixed stress splitting method. The model contains a
+% mechanic and fluid model, see MechFluidSplitModel. Different fluid models can
+% be used, see setupFluidModel member function.
+%
+% This model essentially overwrites the stepFunction member function. There, the
+% mechanic equations are solved for a given pore (fluid) pressure. Then, a
+% strain-pressure relation is established (see computeMechTerm member function)
+% assuming that the total stress is constant. Finally, the fluid equation is
+% solved.
+%
+% PARAMETERS:
+%
+% SEE ALSO: MechFluidSplitModel and the fluid models
+% BlackOilFixedStressFluidModel, OilWaterFixedStressFluidModel,
+% WaterFixedStressFluidModel
+%
+
 
     methods
         function model = MechFluidFixedStressSplitModel(G, rock, fluid, ...
@@ -36,10 +54,14 @@ classdef MechFluidFixedStressSplitModel < MechFluidSplitModel
             fluidModel = model.fluidModel;
             mechModel = model.mechModel;
 
-            % Solve the mechanic equations
+            % The state variable has two parts, the mechanical part mstate
+            % and the fluid part wstate, see the synchronization member
+            % functions in the MechFluidSplitModel.
+
             mstate0 = model.syncMStateFromState(state0);
             wstate0 = model.syncWStateFromState(state0);
 
+            % We get the fluid pressure which is an input for the mechanical system
             fluidp = fluidModel.getProp(state, 'pressure');
 
             mechsolver = model.mech_solver;
@@ -47,7 +69,8 @@ classdef MechFluidFixedStressSplitModel < MechFluidSplitModel
             if model.verbose
                 fprintf('=== Splitting scheme: step %d\n', iteration);
             end
-            
+
+            % We solve the mechanical system
             [mstate, mreport] = mechsolver.solveTimestep(mstate0, dt, mechModel, ...
                                                           'fluidp', fluidp);
 
@@ -55,19 +78,23 @@ classdef MechFluidFixedStressSplitModel < MechFluidSplitModel
                 fprintf('Solved for mechanics (%d iterations)\n', mreport.Iterations);
             end
 
-            % Solve the fluid equations
             wdrivingForces = drivingForces; % The main model gets the well controls
 
+            % We update the global (mech+fluid) state with the newly computed mechanical
+            % state
             state = model.syncStateFromMState(state, mstate);
 
+            % We compute the change of effective volume induced by the mechanical
+            % part. These are integrated in the driving force for the fluid
+            % system.
             wdrivingForces.fixedStressTerms.new = computeMechTerm(model, state);
             wdrivingForces.fixedStressTerms.old = computeMechTerm(model, state0);
 
             forceArg = fluidModel.getDrivingForces(wdrivingForces);
 
             fluidsolver = model.fluid_solver;
-            
 
+            % We solve the fluid system.
             [wstate, wreport] = fluidsolver.solveTimestep(wstate0, dt, fluidModel, ...
                                                           forceArg{:});
 
@@ -75,9 +102,11 @@ classdef MechFluidFixedStressSplitModel < MechFluidSplitModel
                 fprintf('Solved for fluid (%d iterations)\n', wreport.Iterations);
             end
 
-            state = model.syncStateFromMState(state, mstate);
+            % We update the global state with the newly computed fluid state
             state = model.syncStateFromWState(state, wstate);
 
+            % We check the convergence by looking back that the mechanical
+            % system and check the residual for these equations.
             fluidp = fluidModel.getProp(state, 'pressure');
             drivingForces.fluidp = fluidp;
             mstate = model.syncMStateFromState(state);
@@ -109,6 +138,11 @@ classdef MechFluidFixedStressSplitModel < MechFluidSplitModel
         end
 
         function fixedStressTerms = computeMechTerm(model, state)
+        % Compute the change in pore volume induced by the mechanical system. In a fixed
+        % stress splitting method, the relation between volume change and
+        % pressure is obtained by assuming that the total stress is
+        % preserved.
+
             stress = state.stress;
             p = state.pressure;
 
@@ -135,6 +169,8 @@ classdef MechFluidFixedStressSplitModel < MechFluidSplitModel
             fixedStressTerms.pTerm = pTerm; % Compressibility due to mechanics
             fixedStressTerms.sTerm = sTerm; % Volume change due to mechanics
 
+            % Short explanation about the terms computed above:
+            %
             % We have $\sigma_T = C\epsi - p I$ where $\sigma_T$ is total
             % stress
             % Hence, $tr(\epsi) = tr(C^{-1}\sigma_T) + p tr(C^{-1})$ and the
@@ -142,67 +178,6 @@ classdef MechFluidFixedStressSplitModel < MechFluidSplitModel
             % tr(C^{-1}\sigma_T)$ and $tr(C^{-1})$ respectively.
             %
             % Note that $tr(C^{-1}\sigma_T) = I:(C^{-1}\sigma_T) = invCi:\sigma_T$
-        end
-
-
-        function [incAbs, incVarNames] = computeNormIncrements(model, state_prev, state)
-
-            mechfds  = model.mechfds;
-            fluidfds = model.fluidfds;
-            fluidfds = model.stripVars(fluidfds, 'wellSol');
-
-            facilitymodel =  model.FacilityModel;
-            wellSol = state.wellSol;
-            wellSol_prev = state_prev.wellSol;
-            wellVars = facilitymodel.getPrimaryVariableNames();
-            nwellVars = numel(wellVars);
-            actIx = facilitymodel.getIndicesOfActiveWells();
-            nW = numel(actIx);
-
-            nInc = numel(mechfds) + numel(fluidfds) + nwellVars;
-            incAbs = zeros(nInc, 1);
-            incVarNames = cell(1, nInc);
-
-            varNo = 1;
-
-            for varMechNo = 1 : numel(mechfds)
-                incVarNames{varNo} = mechfds{varMechNo};
-                incAbs(varNo) = norm(model.mechModel.getProp(state, ...
-                                                             mechfds{varMechNo}) ...
-                                     - model.mechModel.getProp(state_prev, ...
-                                                               mechfds{varMechNo}), ...
-                                     Inf);
-                varNo = varNo + 1;
-            end
-
-            for varFluidNo = 1 : numel(fluidfds)
-                incVarNames{varNo} = fluidfds{varFluidNo};
-                incAbs(varNo) = norm(model.fluidModel.getProp(state, ...
-                                                              fluidfds{varFluidNo}) ...
-                                     - model.fluidModel.getProp(state_prev, ...
-                                                                fluidfds{varFluidNo}), ...
-                                     Inf);
-                varNo = varNo + 1;
-            end
-
-            for varWellNo = 1 : nwellVars
-                wf = wellVars{varWellNo};
-                incVarNames{varNo} = wf;
-                isVarWell = facilitymodel.getWellVariableMap(wf);
-                for wNo = 1 : nW
-                    subs = (isVarWell == wNo);
-                    if any(subs)
-                        incAbs(varNo) = incAbs(varNo) + abs ...
-                            (facilitymodel.WellModels{wNo}.getProps(wellSol(wNo), ...
-                                                                    wf)- ...
-                             facilitymodel.WellModels{wNo}.getProps(wellSol_prev(wNo), ...
-                                                                    wf));
-                    end
-                end
-                varNo = varNo + 1;
-            end
-
-
         end
 
 

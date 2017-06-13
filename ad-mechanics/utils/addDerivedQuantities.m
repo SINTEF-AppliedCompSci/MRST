@@ -1,4 +1,24 @@
 function state = addDerivedQuantities(model, state)
+%
+%
+% SYNOPSIS:
+%   function state = addDerivedQuantities(model, state)
+%
+% DESCRIPTION: Computes extra mechanical fields (such as strain, stress) from
+% the primary variable of the mechanical state (state.xd)
+%
+% PARAMETERS:
+%   model - Mechanical model
+%   state - State variable
+%
+% RETURNS:
+%   state - State variable
+%
+% EXAMPLE:
+%
+% SEE ALSO:
+%
+
 
     u = model.operators.V_dir; % zeros(G.gridim * G.nodes.num, 1);
     u(~model.operators.isdirdofs) = getProp(model, state, 'xd');

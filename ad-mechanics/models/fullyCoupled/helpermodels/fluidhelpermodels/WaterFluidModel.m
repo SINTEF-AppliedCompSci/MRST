@@ -1,4 +1,27 @@
 classdef WaterFluidModel < WaterModel
+%
+%
+% SYNOPSIS:
+%   model = WaterFluidModel(G, rock, fluid, varargin)
+%
+% DESCRIPTION: This model is derived from the fluid model
+% WaterModel and is added some few functionalities that are needed
+% in the coupled solver.
+%
+%
+% PARAMETERS:
+%   G        - Grid structure
+%   rock     - Rock structure
+%   fluid    - Fluid structure
+%
+% RETURNS:
+%   class instance
+%
+% EXAMPLE:
+%
+% SEE ALSO: MechFluidModel 
+%
+
 
     properties
         primaryVarNames;
@@ -6,6 +29,7 @@ classdef WaterFluidModel < WaterModel
 
     methods
         function model = WaterFluidModel(G, rock, fluid, varargin)
+        % Constructor
             model = model@WaterModel(G, rock, fluid);
             model.primaryVarNames = {'pressure'}; % well variables
                                                   % not included
@@ -21,6 +45,8 @@ classdef WaterFluidModel < WaterModel
         end
 
         function varnames = getAllPrimaryVariables(model, state)
+        % list all the primarty variables that are recognized and can be
+        % handled by the model, used by the updateState member function.
             varnames = model.primaryVarNames;
             [~, wellVarNames, ~] = ...
                 model.FacilityModel.getAllPrimaryVariables(state.wellSol);
@@ -28,11 +54,15 @@ classdef WaterFluidModel < WaterModel
         end
 
         function fds = getAllVarsNames(model)
+        % list all the variables that are recognized and can be handled by the model
             fds = {'wellSol', 'pressure'};
         end
 
         function [state, report] = updateState(model, state, problem, dx, ...
                                                drivingForces)
+            % updates the state variable that belongs to the model, that is the fluid
+            % variables. The mechanical variables in the state will be updated
+            % by the mechanical model, see MechanicMechModel.
             vars = problem.primaryVariables;
             ind = false(size(vars));
             fluidvars = model.getAllPrimaryVariables(state);

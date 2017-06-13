@@ -1,4 +1,28 @@
 classdef MechFluidModel < ReservoirModel
+%
+%
+% SYNOPSIS:
+%   model = MechFluidModel(G, rock, fluid, mech_problem, varargin)
+%
+% DESCRIPTION: Base class model to set up fully coupled mechanical-fluid
+% simulations. This class is derived for each particular fluid model that is
+% used, see MechBlackOilModel, MechOilWaterModel, MechWaterModel.
+%
+% PARAMETERS:
+%   G            - grid structure
+%   rock         - rock structure
+%   fluid        - fluid structure
+%   mech_problem - Structure that contains the mechanical parameters of the system
+%
+% RETURNS:
+%   class instance
+%
+% EXAMPLE:
+%
+% SEE ALSO:
+%
+
+
     properties
 
         % Mechanical model
@@ -14,8 +38,6 @@ classdef MechFluidModel < ReservoirModel
         % List of all the variable names for the fluid part
         fluidfds;
 
-        alpha_scaling;
-        S;
     end
 
     methods
@@ -43,9 +65,6 @@ classdef MechFluidModel < ReservoirModel
             model.mechModel = MechanicMechModel(model.G, rock, mech_problem);
             model.mechfds = model.mechModel.getAllVarsNames();
 
-            model.mechModel.alpha_scaling = 1;
-            model.mechModel.S = [];
-            model.mechModel.ilu_tol = 1e-4;
         end
 
         function fluidModel = setupFluidModel(model)

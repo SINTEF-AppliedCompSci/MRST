@@ -1,4 +1,28 @@
 function state = computeInitDisp(model, state, uu, varargin)
+%
+%
+% SYNOPSIS:
+%   function state = computeInitDisp(model, state, uu, varargin)
+%
+% DESCRIPTION: Compute the initial displacement
+%
+% PARAMETERS:
+%   model    - Model that contains a mechanical model (model.mechModel)
+%   state    - Initial state, to be modified
+%   uu       - Given initial displacement, if the initial state is not
+%              computed by solving the mechanical system
+%
+% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+%  'pressure' - fluid pressure. Used as input for mechanical system.
+%
+% RETURNS:
+%   state - State updated with computed mechanical variables.
+%
+% EXAMPLE:
+%
+% SEE ALSO:
+%
+
 
     opt = struct('mech_equil', true, ...
                  'pressure'  , []   );
@@ -11,7 +35,7 @@ function state = computeInitDisp(model, state, uu, varargin)
         mechmodel = MechanicModel(mechModel.G, mechModel.rock, mechModel.mech);
 
         state = mechmodel.setProp(state, 'xd', mechmodel.operators.rhs); % Dummy values, just used
-                                                                              % to get the correct dimension.
+                                                                         % to get the correct dimension.
         
         if ~isempty(opt.pressure)
             drivingForces.fluidp = opt.pressure;

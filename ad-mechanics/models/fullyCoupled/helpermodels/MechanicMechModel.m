@@ -1,11 +1,33 @@
 classdef MechanicMechModel < MechanicModel
-% Mechanical model to be used with fully coupled solver
+%
+%
+% SYNOPSIS:
+%   model = MechanicMechModel(G, rock, mech_problem, varargin)
+%
+% DESCRIPTION: This model is derived from MechanicModel and is added some few
+% functionalities that are needed in the coupled solver
+%
+% PARAMETERS:
+%   G            - Grid structure
+%   rock         - Rock structure
+%   mech_problem - Structure that contains the mechanical parameters of the system
+%
+% RETURNS:
+%   class instance
+%
+% EXAMPLE:
+%
+% SEE ALSO: MechFluidModel 
+%
+
     properties
+        % Primary variables that are used in the mechanic system
         primaryVarNames;
     end
 
     methods
         function model = MechanicMechModel(G, rock, mech_problem, varargin)
+        % constructor
             model = model@MechanicModel(G, rock, mech_problem, varargin{:});
             model.primaryVarNames = {'xd'};
             model = merge_options(model, varargin{:});
@@ -20,14 +42,21 @@ classdef MechanicMechModel < MechanicModel
         end
 
         function  fds = getAllVarsNames(model)
+        % list all the variables that are recognized and can be handled by the model
             fds = {'xd', 'uu', 'u', 'stress', 'strain', 'vdiv'};
         end
 
         function varnames = getAllPrimaryVariables(model)
+        % list all the primarty variables that are recognized and can be
+        % handled by the model, used by the updateState member function.
             varnames = model.primaryVarNames;
         end
 
-        function [state, report] = updateState(model, state, problem, dx, drivingForces)
+        function [state, report] = updateState(model, state, problem, dx, ...
+                                               drivingForces)
+            % updates the state variable that belongs to the model, that is
+            % the mechanical variables. The fluid variables in the state will
+            % be updated by the fluid model. 
             vars = problem.primaryVariables;
             ind = false(size(vars));
             mechvars = model.getAllPrimaryVariables();

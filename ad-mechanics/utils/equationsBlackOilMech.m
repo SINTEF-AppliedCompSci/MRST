@@ -1,9 +1,43 @@
-function [eqs, names, types, state] = equationsBlackOilMech(state0, st0, p, sW, x,  rs, rv, ...
-                                              st, wellVars, state, ...
-                                              model, dt, mechTerm, drivingForces, ...
-                                              varargin)
-    
-% Equation for black-oil system that also takes input from mechanics.
+function [eqs, names, types, state] = equationsBlackOilMech(state0, st0, p, sW, x, rs, rv, st, wellVars, state, model, dt, mechTerm, drivingForces, varargin) 
+%
+%
+% SYNOPSIS:
+%   function [eqs, names, types, state] = equationsBlackOilMech(state0, st0, p, sW, x, rs, rv, st, wellVars, state, model, dt, mechTerm, drivingForces, varargin)
+%
+% DESCRIPTION: This function is very similar to equationsBlackOil. The
+% difference here is that it also takes as input mechanical terms, and the ADI
+% initialization is not done here but by the model in the getEquations member
+% function.
+%
+% PARAMETERS:
+%   state0        - State at previous time step
+%   st0           - Status flag as defined by "getCellStatusVO" for previous
+%                   time step
+%   p             - Pressure
+%   sW            - Saturation
+%   x             - Variable that is to be decomposed into sG, sO, rs, rv, ...
+%   rs, rv        - Dissolved gas, vaporized oil
+%   st            - Status flag as defined by "getCellStatusVO" for previous
+%                   time step
+%   wellVars      - Well variables
+%   state         - State at given time step
+%   model         - Model class instance that is used.
+%   dt            - Time step
+%   mechTerm      - Mechanical input which will enter the computation of the
+%                   effective porosity
+%   drivingForces - Structure that gathers the well parameters and boundary conditions.
+%
+% RETURNS:
+%   eqs   - The residual values as ADI variables (that is with the Jacobian)
+%           if the inputs were also ADI.
+%   names - The name of each equations
+%   types - The type of each equations
+%   state - Some field related to well control of the state variables may be updated.
+%
+% EXAMPLE:
+%
+% SEE ALSO:
+%
     
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
