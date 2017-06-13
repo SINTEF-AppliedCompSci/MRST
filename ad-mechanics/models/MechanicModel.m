@@ -13,14 +13,12 @@ classdef MechanicModel < PhysicalModel
         S;
         ilu_tol;
 
-        % Tolerance used in the splitting scheme
-        splittingTolerance
     end
 
     methods
         function model = MechanicModel(G, rock, mech_problem, varargin)
-            opt = struct('InputModel', [], ...
-                         'splittingTolerance', 1e-6);
+
+            opt = struct('InputModel', []);
             [opt, rest] = merge_options(opt, varargin{:});
 
             model = model@PhysicalModel(G, 'stepFunctionIsLinear', true, rest{:});

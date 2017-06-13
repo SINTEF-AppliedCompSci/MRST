@@ -16,16 +16,26 @@ classdef MechFluidSplitModel < ReservoirModel
         % Solver to be used for the fluid part
         fluid_solver;
 
+        % Tolerance used in the splitting scheme
+        splittingTolerance
+        % Splitting verbose
+        splittingVerbose
+
     end
 
     methods
         function model = MechFluidSplitModel(G, rock, fluid, mech_problem, varargin)
 
             opt = struct('fluidModelType', 'water', ...
-                         'splittingTolerance', 1e-6);
+                         'splittingTolerance', 1e-6, ...
+                         'splittingVerbose', false);
             [opt, rest] = merge_options(opt, varargin{:});
             fluidModelType = opt.fluidModelType;
             model = model@ReservoirModel(G, rest{:});
+            if opt.splittingVerbose
+                model.verbose = true;
+            end
+
 
             % Process the grid for mechanical computation
             if ~ismember('createAugmentedGrid', model.G.type)
@@ -39,14 +49,14 @@ classdef MechFluidSplitModel < ReservoirModel
                                                            'extraWellSolOutput', ...
                                                            false, rest{:});
             model.fluidfds = model.fluidModel.getAllVarsNames();
-            
-            
+
+
             model.mechModel = MechanicModel(model.G, rock, mech_problem, ...
                                             rest{:});
-            model.mechModel.splittingTolerance = opt.splittingTolerance;
+            model.splittingTolerance = opt.splittingTolerance;
 
             model.mechfds = model.mechModel.getAllVarsNames();
-            
+
             model.mech_solver = NonLinearSolver();
             model.fluid_solver = NonLinearSolver();
 
@@ -99,12 +109,22 @@ classdef MechFluidSplitModel < ReservoirModel
                 error('The MechFluidSplitModel requires to have an iniatilized FacilityModel')
             end
             model.fluidModel.FacilityModel        = model.FacilityModel;
-            
+
             model = validateModel@ReservoirModel(model, varargin{:});
             return
         end
 
-        
+
+        function [convergence, values, names] = checkConvergence(model, problem, ...
+                                                              varargin)
+
+            mechModel = model.mechModel;
+            mechModel.nonlinearTolerance = model.splittingTolerance;
+
+            [convergence, values, names] = mechModel.checkConvergence(problem);
+        end
+
+
         function state = validateState(model, state)
            state = model.fluidModel.validateState(state);
            state = model.mechModel.validateState(state);

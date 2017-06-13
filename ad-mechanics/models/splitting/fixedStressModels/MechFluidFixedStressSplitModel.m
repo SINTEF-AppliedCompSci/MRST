@@ -45,12 +45,15 @@ classdef MechFluidFixedStressSplitModel < MechFluidSplitModel
             mechsolver = model.mech_solver;
 
             if model.verbose
-                fprintf('****\n**** Splitting scheme: step %d\n****\n', iteration)
-                fprintf('****\n**** Solving for mechanics\n****\n');
+                fprintf('=== Splitting scheme: step %d\n', iteration);
             end
             
             [mstate, mreport] = mechsolver.solveTimestep(mstate0, dt, mechModel, ...
                                                           'fluidp', fluidp);
+
+            if model.verbose
+                fprintf('Solved for mechanics (%d iterations)\n', mreport.Iterations);
+            end
 
             % Solve the fluid equations
             wdrivingForces = drivingForces; % The main model gets the well controls
@@ -64,12 +67,13 @@ classdef MechFluidFixedStressSplitModel < MechFluidSplitModel
 
             fluidsolver = model.fluid_solver;
             
-            if model.verbose
-                fprintf('****\n Solving for fluid\n****\n');
-            end
 
             [wstate, wreport] = fluidsolver.solveTimestep(wstate0, dt, fluidModel, ...
                                                           forceArg{:});
+
+            if model.verbose
+                fprintf('Solved for fluid (%d iterations)\n', wreport.Iterations);
+            end
 
             state = model.syncStateFromMState(state, mstate);
             state = model.syncStateFromWState(state, wstate);
@@ -80,19 +84,19 @@ classdef MechFluidFixedStressSplitModel < MechFluidSplitModel
             problem = mechModel.getEquations(mstate0, mstate, dt, drivingForces, ...
                                                       'resOnly', true, ...
                                                       'iteration', iteration);
-            [convergence, values, names] = mechModel.checkConvergence(problem);
+            [convergence, values, names] = model.checkConvergence(problem);
             failureMsg = '';
             failure = false;
             isConverged = all(convergence);
 
             if model.verbose
-                fprintf(['****\n**** Value of residual for mechanical part: ' ...
+                fprintf(['Value of residual for mechanical part: ' ...
                          '%g\n'], values);
                 if convergence
-                    fprintf('**** Convergence reached\n');
+                    fprintf('Convergence reached\n');
                 else
-                    fprintf(['**** Convergence not reached (tolerance value = ' ...
-                             '%g)\n'], model.nonlinearTolerance);
+                    fprintf(['Convergence not reached (tolerance value = ' ...
+                             '%g)\n'], model.splittingTolerance);
                 end
             end
 
