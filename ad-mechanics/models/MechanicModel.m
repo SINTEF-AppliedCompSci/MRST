@@ -1,19 +1,69 @@
 classdef MechanicModel < PhysicalModel
-    % Mechanical model
+% Model that can handle a mechanical system. The inputs can be standard
+% boundary conditions and body forces for mechanics, but also a fluid
+% pressure, which enters the mechanical equation as grad(pressure).
+%
+% Even if the equations are linear, we will use a standard nonlinear solver
+% (which should converge in one Newton step).
+%
+% SYNOPSIS:
+%   model = MechanicModel(G, mech_problem, varargin)
+%
+% DESCRIPTION:
+%
+% PARAMETERS:
+%   G            - Grid structure
+%   rock         - Rock structure
+%   mech_problem - Structure that contains the mechanical parameters of the system
+%
+% RETURNS:
+%   class instance
+%
+% EXAMPLE:
+%
+% SEE ALSO:
+%
+%{
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+    
     properties
-        mech;
+        % Structure that contains the mechanical parameter of the system
+        mech; 
+        % Structure that contains rock properties (Biot coefficient)
         rock;
+
+        % Parameters that are used in the VEM assembly, see setupOperatorsVEM and
+        % VEM_linElast.
         alpha_scaling;
         S;
         ilu_tol;
+
     end
 
     methods
         function model = MechanicModel(G, rock, mech_problem, varargin)
+        % Constructor for MechanicModel
+            
             opt = struct('InputModel', []);
             [opt, rest] = merge_options(opt, varargin{:});
 
-            model = model@PhysicalModel(G, 'stepFunctionIsLinear', true, rest{:});
+            model = model@PhysicalModel(G, rest{:});
 
             % Process the grid for mechanical computation
             if any(strcmpi('createAugmentedGrid', model.G.type))
@@ -42,13 +92,15 @@ classdef MechanicModel < PhysicalModel
             else
                 operators = opt.InputModel.operators;
             end
-            model.operators.mech  = operators.mech;
-            model.operators.extra = operators.extra;
+            model.operators = operators;
 
         end
 
         function [problem, state] = getEquations(model, state0, state, dt, ...
-                                                        drivingForces, varargin)
+                                                        drivingForces, ...
+                                                        varargin)
+            % Assemble the equations for the mechanical system
+            
             opt = struct('Verbose'       , mrstVerbose , ...
                          'reverseMode'   , false       , ...
                          'scaling'       , []          , ...
@@ -60,16 +112,14 @@ classdef MechanicModel < PhysicalModel
 
             opt = merge_options(opt, varargin{:});
 
+            % The fluid pressure stimulates the mechanical system. It is
+            % given as a driving force.
             fluidp = drivingForces.fluidp;
 
-            % To be fixed!
-            % fbc = drivingForces.fbc;
-            fbc = 0;
 
             xd = model.getProps(state, 'xd');
 
             if ~opt.resOnly,
-                % ADI variables needed since we are not only computing residuals.
                 xd = initVariablesADI(xd);
             end
 
@@ -85,7 +135,8 @@ classdef MechanicModel < PhysicalModel
         end
 
         function forces = getValidDrivingForces(model)
-            % fluid pressure in the volume
+            % The fluid pressure stimulates the mechanical system. It is given as a driving
+            % force.
             forces.fluidp = [];
         end
 
@@ -93,22 +144,30 @@ classdef MechanicModel < PhysicalModel
         % Get the index/name mapping for the model (such as where
         % pressure or water saturation is located in state)
             switch(lower(name))
-              case {'xd'}
-                fn = 'xd';
-                index = 1;
               case {'uu'}
+                % displacement field as a matrix (one column per Cartesian direction)
                 fn = 'uu';
                 index = ':';
               case {'u'}
+                % displacement field given as a column vector where the cartesian components are
+                % stabbed.
                 fn = 'u';
                 index = ':';
+              case {'xd'}
+                % same as 'u' but the degree of freedom where the Dirichlet conditions (fixed
+                % displacement) are removed
+                fn = 'xd';
+                index = 1;
               case {'stress'}
+                % Stress tensor (Voigt notation, one column per component)
                 fn = 'stress';
                 index = ':';
               case {'strain'}
+                % Strain tensor (Voigt notation, one column per component)
                 fn = 'strain';
                 index = ':';
               case {'vdiv'}
+                % volume weighted divergence field of displacement.
                 fn = 'vdiv';
                 index = ':';
               otherwise
@@ -120,45 +179,13 @@ classdef MechanicModel < PhysicalModel
         function [state, report] = updateState(model, state, problem, dx, drivingForces)
             % Parent class handles almost everything for us
             [state, report] = updateState@PhysicalModel(model, state, problem, dx, drivingForces);
-            % add extra model states things from mechanics
+            % add extra model states  from mechanics
             state = addDerivedQuantities(model, state);
         end
 
-
-        function model = setupOperators(model, alpha_scaling, S, ilu_tol)
-
-            [~, extra] = VEM_linElast(model.G                    , ...
-                                      model.mech.C                   , ...
-                                      model.mech.el_bc               , ...
-                                      model.mech.load                , ...
-                                      'alpha_scaling', alpha_scaling , ...
-                                      'S', S                         , ...
-                                      'linsolve', @(A, rhs) 0 * rhs);
-
-            operators = extra.disc;
-
-            vdiv    = VEM_div(model.G);
-            [C, invC, invCi]       = Enu2C(model.mech.Ev, model.mech.nuv, model.G);
-            [~, op] = VEM_mrst_vec(model.G, C);%, 'blocksize', model.GMech.cells.num/10);
-            strain  = op.WC' * op.assemb';
-            stress  = op.D * strain; % The stress will be using "pseudo Voigt's"
-                                     % notation, in the sense that it gets an extra
-                                     % coefficient 2 for the off-diagonal terms.
-
-            % computing and storing useful preconditioner (incomplete Choleski)
-            if isnan(ilu_tol)
-                fprintf('Skipping ilu\n');
-                iL = [];
-            else
-                iL = shiftedIChol(model.operators.mech.A, 0.5, 'droptol', ilu_tol, 'type', 'ict');
-            end
-
-            model.operators.extra = struct('vdiv', vdiv, 'stress', stress, 'strain', ...
-                                           strain, 'precond', iL);
-
-        end
-
         function [primaryVars, fds] = getAllVarsNames(model)
+        % list the variables that are used by the model. Used when coupling
+        % the mechanical model with a fluid model.
             primaryVars = {'xd'};
             fds = {'xd', 'uu', 'u', 'stress', 'strain', 'vdiv'};
         end

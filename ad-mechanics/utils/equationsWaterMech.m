@@ -1,6 +1,56 @@
-function [eqs, names, types, state] = equationsWaterMech(state0, p, wellVars, state, model, dt, mechTerm, ...
-                                                 drivingForces, varargin)
+function [eqs, names, types, state] = equationsWaterMech(state0, p, wellVars, state, model, dt, mechTerm, drivingForces, varargin)
+%
+%
+% SYNOPSIS:
+%   function [eqs, names, types, state] = equationsWaterMech(state0, p, wellVars, state, model, dt, mechTerm, drivingForces, varargin)
+%
+% DESCRIPTION: This function is very similar to equationsWater. The
+% difference here is that it also takes as input mechanical terms, and the ADI
+% initialization is not done here but by the model in the getEquations member
+% function.
+%
+% PARAMETERS:
+%   state0        - State at previous time step
+%   p             - Pressure
+%   wellVars      - Well variables
+%   state         - State at given time step
+%   model         - Model class instance that is used.
+%   dt            - Time step
+%   mechTerm      - Mechanical input which will enter the computation of the
+%                   effective porosity
+%   drivingForces - Structure that gathers the well parameters and boundary conditions.
+%
+% RETURNS:
+%   eqs   - The residual values as ADI variables (that is with the Jacobian)
+%           if the inputs were also ADI.
+%   names - The name of each equations
+%   types - The type of each equations
+%   state - Some field related to well control of the state variables may be updated.
+%
+% EXAMPLE:
+%
+% SEE ALSO: equationsWater
+%
+%{
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
+    
     % Note that state is given only for output
     opt = struct('iteration', -1, ...
                  'resOnly', false); % just to avoid warning

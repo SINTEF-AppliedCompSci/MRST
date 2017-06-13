@@ -1,11 +1,52 @@
 classdef BlackOilFluidModel < ThreePhaseBlackOilModel
+%
+%
+% SYNOPSIS:
+%   model = BlackOilFluidModel(G, rock, fluid, varargin)
+%
+% DESCRIPTION: This model is derived from the fluid model
+% ThreePhaseBlackOilModel and is added some few functionalities that are needed
+% in the coupled solver.
+%
+% PARAMETERS:
+%   G        - Grid structure
+%   rock     - Rock structure
+%   fluid    - Fluid structure
+%
+% RETURNS:
+%   class instance
+%
+% EXAMPLE:
+%
+% SEE ALSO: MechFluidModel 
+%
+%{
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
 
     properties
+        % Primary variables that are used in the fluid system
         primaryVarNames;
     end
 
     methods
         function model = BlackOilFluidModel(G, rock, fluid, varargin)
+        % Constructor
             model = model@ThreePhaseBlackOilModel(G, rock, fluid);
 
             model.disgas          = true;
@@ -24,6 +65,8 @@ classdef BlackOilFluidModel < ThreePhaseBlackOilModel
         end
 
         function varnames = getAllPrimaryVariables(model, state)
+        % list all the primarty variables that are recognized and can be
+        % handled by the model, used by the updateState member function.
             varnames = model.primaryVarNames;
             [~, wellVarNames, ~] = ...
                 model.FacilityModel.getAllPrimaryVariables(state.wellSol);
@@ -31,12 +74,16 @@ classdef BlackOilFluidModel < ThreePhaseBlackOilModel
         end
 
         function fds = getAllVarsNames(model)
+        % list all the variables that are recognized and can be handled by the model
             fds = {'wellSol', 'pressure', 's', 'rs', 'rv', 'sW', 'sG', 'sO', ...
                    'water', 'oil', 'gas'};
         end
 
         function [state, report] = updateState(model, state, problem, dx, ...
                                                drivingForces)
+            % updates the state variable that belongs to the model, that is the fluid
+            % variables. The mechanical variables in the state will be updated
+            % by the mechanical model, see MechanicMechModel.
             vars = problem.primaryVariables;
             ind = false(size(vars));
             fluidvars = model.getAllPrimaryVariables(state);

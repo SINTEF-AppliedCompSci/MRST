@@ -1,6 +1,47 @@
 classdef MechFluidSplitModel < ReservoirModel
-% Base class for mechanics-flow splitting.
 %
+%
+% SYNOPSIS:
+%   model = MechFluidSplitModel(G, rock, fluid, mech_problem, varargin)
+%
+% DESCRIPTION: Base class for mechanics-flow splitting. Possibility to implement
+% different splitting. For the moment, only fixed-stress splitting is
+% implemented. The model contains a mechanical and fluid model, which can
+% independently handle the mechanical and fluid system of equations.
+%
+
+%
+% PARAMETERS:
+%   G            - Grid structure
+%   rock         - Rock structure
+%   fluid        - Fluid structure
+%   mech_problem - Structure that contains the mechanical parameters of the system
+%
+% RETURNS:
+%   class instance
+%
+% EXAMPLE:
+%
+% SEE ALSO: MechFluidFixedStressSplitModel
+%
+%{
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
     properties
         % Mechanical model used in the splitting
         mechModel;
@@ -15,20 +56,26 @@ classdef MechFluidSplitModel < ReservoirModel
         % Solver to be used for the fluid part
         fluid_solver;
 
-        %
-        alpha_scaling;
-        S;
-        ilu_tol;
+        % Tolerance used in the splitting scheme
+        splittingTolerance
+        % Splitting verbose
+        splittingVerbose
+
     end
 
     methods
         function model = MechFluidSplitModel(G, rock, fluid, mech_problem, varargin)
 
-            opt = struct('fluidModelType', 'water');
+            opt = struct('fluidModelType', 'water', ...
+                         'splittingTolerance', 1e-6, ...
+                         'splittingVerbose', false);
             [opt, rest] = merge_options(opt, varargin{:});
             fluidModelType = opt.fluidModelType;
-
             model = model@ReservoirModel(G, rest{:});
+            if opt.splittingVerbose
+                model.verbose = true;
+            end
+
 
             % Process the grid for mechanical computation
             if ~ismember('createAugmentedGrid', model.G.type)
@@ -38,52 +85,20 @@ classdef MechFluidSplitModel < ReservoirModel
             % Different fluid models may be used. This base class should be
             % derived for each of those. See e.g. WaterFixedStressFluidModel.m
             % (fixed stress splitting with water phase).
-            model.fluidModel = setupFluidModel(model, rock, fluid, ...
-                                                      opt.fluidModelType, ...
-                                                      'extraWellSolOutput', ...
-                                                      false, rest{:});
-
+            model.fluidModel = model.setupFluidModel(rock, fluid, opt.fluidModelType, ...
+                                                           'extraWellSolOutput', ...
+                                                           false, rest{:});
             model.fluidfds = model.fluidModel.getAllVarsNames();
 
-            model.alpha_scaling = 1;
-            model.S = [];
-            model.ilu_tol = 1e-4;
-            model = merge_options(model, rest{:});
 
-            model.mechModel = MechanicModel(model.G, rock, mech_problem);
+            model.mechModel = MechanicModel(model.G, rock, mech_problem, ...
+                                            rest{:});
+            model.splittingTolerance = opt.splittingTolerance;
+
             model.mechfds = model.mechModel.getAllVarsNames();
 
             model.mech_solver = NonLinearSolver();
             model.fluid_solver = NonLinearSolver();
-
-
-            %     switch model.fluidModelType
-            %       case 'water'
-            %         model.water = true;
-            %         model.oil = false;
-            %         model.gas = false;
-            %         model.saturationVarNames = {};
-            %         model.fluidfds = {'wellSol', 'pressure'};
-            %         model.mechfds = {'xd', 'uu', 'u', 'stress', 'strain', 'vdiv'};
-            %       case 'oil water'
-            %         model.water = true;
-            %         model.oil = true;
-            %         model.gas = false;
-            %         model.saturationVarNames = {'sw', 'so'};
-            %         model.fluidfds = {'wellSol', 'pressure', 's'};
-            %         model.mechfds = {'xd', 'uu', 'u', 'stress', 'strain', 'vdiv'};
-            %       case 'blackoil'
-            %         model.water = true;
-            %         model.oil = true;
-            %         model.gas = true;
-            %         model.disgas = true;
-            %         model.vapoil = false;
-            %         model.saturationVarNames = {'sw', 'so', 'sg'};
-            %         model.fluidfds = {'wellSol', 'pressure', 's', 'rs', 'rv'};
-            %         model.mechfds = {'xd', 'uu', 'u', 'stress', 'strain', 'vdiv'};
-            %       otherwise
-            %         error('fluidModelType not recognized.')
-            %     end
 
         end
 
@@ -91,8 +106,6 @@ classdef MechFluidSplitModel < ReservoirModel
                                                      varargin)
             error('Base class function not meant for direct use.');
         end
-
-
 
         function [state, report] = stepFunction(model, state, state0, dt, ...
                                                 drivingForces, linsolve, ...
@@ -135,12 +148,23 @@ classdef MechFluidSplitModel < ReservoirModel
             if isempty(model.FacilityModel)
                 error('The MechFluidSplitModel requires to have an iniatilized FacilityModel')
             end
-            model.fluidModel.FacilityModel = model.FacilityModel;
+            model.fluidModel.FacilityModel        = model.FacilityModel;
+
             model = validateModel@ReservoirModel(model, varargin{:});
             return
         end
 
-        
+
+        function [convergence, values, names] = checkConvergence(model, problem, ...
+                                                              varargin)
+
+            mechModel = model.mechModel;
+            mechModel.nonlinearTolerance = model.splittingTolerance;
+
+            [convergence, values, names] = mechModel.checkConvergence(problem);
+        end
+
+
         function state = validateState(model, state)
            state = model.fluidModel.validateState(state);
            state = model.mechModel.validateState(state);
