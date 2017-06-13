@@ -791,9 +791,8 @@ methods
         % RETURNS:
         %
         % rhoS - 1 x n double array of surface densities.
-        active = model.getActivePhases();
-        props = {'rhoWS', 'rhoOS', 'rhoGS'};
-        rhoS = cellfun(@(x) model.fluid.(x), props(active));
+        names = model.getPhaseNames();
+        rhoS = arrayfun(@(x) model.fluid.(['rho', x, 'S']), names);
     end
 
     function [compEqs, compSrc, eqNames, wellSol] = getExtraWellContributions(...
