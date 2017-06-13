@@ -1,5 +1,4 @@
 % -------- Multi segment well example based on spe1-model ------------------
-% Well topology hard-coded and "standard" well converted using convert2MSWell.m
 
 % Load necessary modules
 mrstModule add ad-blackoil ad-props deckformat ad-core mrst-gui
@@ -14,14 +13,12 @@ model = selectModelFromDeck(G, rock, fluid, deck);
 % Convert the deck schedule into a MRST schedule
 schedule = convertDeckScheduleToMRST(model, deck);
 
-%% Construct multisegment well from scratch, and replace producer in original example
-% The well has 14 nodes as shown below (the top-node has index 0)
+%% Construct multisegment well, and replace producer in original example
+% The well has 13 nodes 
 % Nodes 1-7 represents the wellbore (frictional pressure drop)
-% Well segments 8-2, 9-3, ..., 13-7 will represent valves
-% Only nodes 8-13 are connected to reservoir (gridcells c1-c6)
+% Well segments 2-8, 3-9, ..., 7-13 will represent valves
+% Only nodes 8-13 are connected to reservoir (grid-cells c1-c6)
 
-% 0
-% |
 % 1 - 2 - 3 - 4 - 5 - 6 - 7
 %     |   |   |   |   |   |
 %     8   9  10  11  12  13
@@ -30,26 +27,29 @@ schedule = convertDeckScheduleToMRST(model, deck);
 
 % connection grid cells (along edge of second layer)
 c = nx*ny + (2:7)';
-% combine in initially in a "standard" well structure
+% First, initialize production well as "standard" well structure
 prod = addWell([], G, rock, c, 'name', 'prod', 'refDepth', G.cells.centroids(1,3), ...
                'type', 'bhp', 'val', 250*barsa);
 
-% well topology (node-to-node segments), ommit special top segments
+% Define additional properties needed for ms-well 
+% We have 12 node-to-node segments
 topo = [1 2 3 4 5 6 2 3  4  5  6  7
         2 3 4 5 6 7 8 9 10 11 12 13]';
 %      |   tubing  |    valves     |     
-% create sparse cell-to-node mapping
+% Create sparse cell-to-node mapping
 cell2node = sparse((8:13)', (1:6)', 1, 13, 6);
-% segment lengths/diameters and node depths/volumes
+% Segment lengths/diameters and node depths/volumes
 lengths = [300*ones(6,1); nan(6,1)];
 diam    = [.1*ones(6,1); nan(6,1)];
 depths  = G.cells.centroids(c(1), 3)*ones(13,1);
 vols    = ones(13,1);
-
+% Convert to ms-well
 prod = convert2MSWell(prod, 'cell2node', cell2node, 'topo', topo, 'G', G, 'vol', vols, ... 
                    'nodeDepth', depths, 'segLength', lengths, 'segDiam', diam);
 
-% set flow model for each segment. Friction for first six, valve for last six
+% Finally, we set flow model for each segment:
+%   segments  1-6: wellbore friction model
+%   segments 7-12: nozzle valve model 
 [wbix, vix]  = deal(1:6, 7:12);
 roughness = 1e-4;
 nozzleD   = .0025;
@@ -59,25 +59,32 @@ nValves   = 30; % number of valves per connection
 prod.segments.flowModel = @(v, rho, mu)...
     [wellBoreFriction(v(wbix), rho(wbix), mu(wbix), prod.segments.diam(wbix), ...
                       prod.segments.length(wbix), roughness, 'massRate'); ...
-     ICDFriction(v(vix)/nValves, rho(vix), nozzleD, discharge, 'massRate')];
+     nozzleValve(v(vix)/nValves, rho(vix), nozzleD, discharge, 'massRate')];
 
 % also define standard gas injector
-inj = addWell([], G, rock, 100, 'name', 'inj', 'type', 'rate', 'Comp_i', [0 0 1], 'val', 2e6/day,'refDepth', G.cells.centroids(1,3));
- 
+inj = addWell([], G, rock, 100, 'name', 'inj', 'type', 'rate', 'Comp_i', [0 0 1], ...
+              'val', 2.5e6/day,'refDepth', G.cells.centroids(1,3));
 
- W = combineMSwithRegularWells(inj, prod);
+% combine inj and prod in struct W          
+W = combineMSwithRegularWells(inj, prod);
 schedule.control.W = W;
  
-
+%% setup well-models and run simulation
 wm = {SimpleWell(W(1)), MultisegmentWell(W(2))};
 
 model.FacilityModel = model.FacilityModel.setupWells(W, wm);
 model.extraStateOutput = true;
 
-
-nSteps = 120;
-schedule.step.val       = schedule.step.val(1:min(nSteps, 120));
-schedule.step.control   = schedule.step.control(1:min(nSteps, 120));
-
 [wellSols, states, report] = simulateScheduleAD(state, model, schedule);
+
+%% plotting
+plotWellSols({wellSols}, report.ReservoirTime);
+% plot pressure along wellbore for step 1 and step 120
+figure, hold on
+for k =  [1 120]
+    plot([wellSols{k}(2).bhp; wellSols{k}(2).nodePressure(1:6)]/barsa, ...
+         '-o', 'LineWidth', 2);
+end
+legend('Step 1', 'Step 120', 'Location', 'northwest')
+set(gca, 'Fontsize', 14), xlabel('Well node'), ylabel('Pressure [bar]')
 
