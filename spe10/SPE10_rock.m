@@ -48,7 +48,7 @@ function rock = SPE10_rock(varargin)
 %   getSPE10rock, SPE10_setup, convertFrom, milli, darcy.
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
