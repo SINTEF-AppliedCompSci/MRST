@@ -338,7 +338,9 @@ function press = equilibrate_OWG(Zc, bdry, fluid, pix, Rs, Rv, equil)
    G_up = [Zgoc, Zmin];  G_down = [Zgoc, Zmax];
 
    norm_g = norm(gravity());
-
+   if norm_g == 0
+       warning('Gravity is zero. Initialization results may not be what you expect.');
+   end
    %- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    % 1a) Oil pressure.
    %
