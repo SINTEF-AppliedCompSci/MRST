@@ -102,24 +102,22 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     rho = {bW.*f.rhoWS, bG.*f.rhoGS};
     mob = {mobW, mobG};
-    
+    sat = {1-sG, sG};
     if ~isempty(drivingForces.bc) && isempty(drivingForces.bc.sat)
        drivingForces.bc.sat = repmat([1 0], model.G.cells.num, 1); % default
                                                                    % is water 
     end
-    
-    [eqs, ~, qRes] = addFluxesFromSourcesAndBC(model, eqs, {p, p+pcWG}, rho, ...
-                                               mob, {1-sG, sG}, drivingForces);
-
-    if model.outputFluxes
-       state = model.storeBoundaryFluxes(state, qRes{1}, [], qRes{2}, drivingForces);
-    end
-    
-    % ------------------------------ Well equations ------------------------------
-
     primaryVars = {'pressure' , 'sG', wellVarNames{:}};
     types = {'cell'           , 'cell'};
     names = {'water'          , 'gas'};
+
+    [eqs, state] = addBoundaryConditionsAndSources(model, eqs, names, types, state, ...
+                                                                     {p, p + pcWG}, sat, mob, rho, ...
+                                                                     {}, {}, ...
+                                                                     drivingForces);
+    
+    % ------------------------------ Well equations ------------------------------
+
     [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, wellVars, wellMap, p, mob, rho, {}, {}, dt, opt);
 
     % ----------------------------------------------------------------------------
