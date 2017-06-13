@@ -1,4 +1,25 @@
 classdef MechOilWaterModel < MechFluidModel
+%
+%
+% SYNOPSIS:
+%   model = MechOilWaterModel(G, rock, fluid, mech_problem, ...
+%
+% DESCRIPTION: Model for coupled mechanical fluid simulation. The fluid model
+% is a two phase oil water model.
+%
+% PARAMETERS:
+%   G            - grid structure
+%   rock         - rock structure
+%   fluid        - fluid structure
+%   mech_problem - Structure that contains the mechanical parameters of the system
+%
+% RETURNS:
+%   class instance
+%
+% EXAMPLE:
+%
+% SEE ALSO:
+%
 
 
     methods

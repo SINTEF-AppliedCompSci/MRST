@@ -1,4 +1,4 @@
-function [eqs, names, types, state] = equationsBlackOilMech(state0, st0, p, sW, x, rs, rv, st, wellVars, state, model, dt, mechTerm, drivingForces, varargin) 
+function [eqs, names, types, state] = equationsBlackOilMech(state0, st0, p, sW, x, rs, rv, st, wellVars, state, model, dt, mechTerm, drivingForces, varargin)
 %
 %
 % SYNOPSIS:
@@ -38,9 +38,9 @@ function [eqs, names, types, state] = equationsBlackOilMech(state0, st0, p, sW, 
 %
 % SEE ALSO:
 %
-    
+
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -74,10 +74,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     [p0, sW0, sG0, rs0, rv0, wellSol0] = model.getProps(state0, 'pressure', ...
                                                                 'water', 'gas', ...
                                                                 'rs', 'rv', 'wellsol');
-    
+
     [sG, rs, rv, rsSat, rvSat] = calculateHydrocarbonsFromStatusBO(model, st, ...
                                                       1-sW, x, rs, rv, p);
-    
+
     % Evaluate relative permeability
     sO  = 1 - sW  - sG;
     sO0 = 1 - sW0 - sG0;
@@ -132,7 +132,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                   mechTerm.new);
     effPorVol0 = G.cells.volumes.*(rock.poro.*pvMult0 + rock.alpha .* ...
                                   mechTerm.old);
-    
+
     % The first equation is the conservation of the water phase. This equation is
     % straightforward, as water is assumed to remain in the aqua phase in the
     % black oil model.
@@ -160,7 +160,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if model.disgas
         % The gas transported in the oil phase.
         rsbOvO = s.faceUpstr(upco, rs).*bOvO;
-        
+
         gas = (1./dt).*( effPorVol.* (bG.* sG  + rs.* bO.* sO) - ...
                            effPorVol0.*(bG0.*sG0 + rs0.*bO0.*sO0 ) ) + ...
               s.Div(bGvG + rsbOvO);
@@ -195,6 +195,5 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                                       wellVars, wellMap, ...
                                                       p, {mobW, mobO, ...
                         mobG}, {rhoW, rhoO, rhoG}, dissolved, {}, dt, opt);
-    
-end
 
+end
