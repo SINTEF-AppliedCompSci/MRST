@@ -1,8 +1,8 @@
 mrstModule add ad-core ad-eor ad-blackoil ad-props blackoil-sequential matlab_bgl
 
-gravity reset on
+gravity reset off
 
-n = 100;
+n = 10;
 G = computeGeometry(cartGrid([n,1,1], [100,1,1]));
 rock = makeRock(G, 100*milli*darcy, 1);
 
@@ -13,7 +13,7 @@ fluid = initSimpleADIFluid('n'     , [2, 2, 2], ...
                            'phases', 'WOG', ...
                            'mu'    , [1, 10, 2]*centi*poise);
 
-sOres_i= 0.2;
+sOres_i= 0.3;
 fluid = addSolventProperties(fluid, 'n', 2, ...
                                     'rho', 100*kilogram/meter^3, ...
                                     'mixPar', 2/3, ...
@@ -24,13 +24,25 @@ fluid = addSolventProperties(fluid, 'n', 2, ...
 model = FourPhaseSolventModel(G, rock, fluid);
 model.extraStateOutput = true;
 
-T =4*year;
-rate = 1*sum(poreVolume(G, rock))/T;
-[schedule, W_G, W_W] = makeWAGschedule(model, {1}, {G.cells.num}, 10, 'T', T, 'nStep', 100, 'wRate', rate, 'gRate', rate);
+T = 1*year;
+rate = sum(poreVolume(G, rock))/T;
 
-s = sOres_i + 0.0;
-state0 = initResSol(G, 100*barsa, [1-s s 0 0]);
-state0.wellSol = initWellSolAD(W_G, model, state0);
+W = addWell([], G, rock, 1, 'type', 'rate', 'val', rate, 'comp_i', [0,0,0,1]);
+W = addWell(W, G, rock, G.cells.num, 'type', 'bhp', 'val', 0, 'comp_i', [1,0,0,0]);
+
+dT = T/100;
+dT = rampupTimesteps(T, dT, 0);
+step.val = dT;
+step.control = ones(numel(dT),1);
+schedule.step = step;
+schedule.control(1).W = W;
+
+sO = sOres_i;% sOres_i + 0*1e-5;
+% sO = 1;
+sG = 0.1;
+sG = 0;
+state0 = initResSol(G, 100*barsa, [1-sO-sG sO sG 0]);
+state0.wellSol = initWellSolAD(W, model, state0);
 
 nls = NonLinearSolver('useLineSearch', true);
 nls = NonLinearSolver('useLineSearch', false);
@@ -41,84 +53,9 @@ nls = NonLinearSolver('useLineSearch', false);
 
 %%
 
-mrstModule add mrst-gui
-
-figure(1); clf
-plotToolbar(G, states, 'plot1d', true)
-ylim([0 1]);
+plotToolbar(G, states, 'plot1d', true);
 
 %%
-
-x = 1:n;
-for i = 1:numel(states)
-    s = states{i}.s;
-    plot(x, s(:,1), x, s(:,2), x, s(:,3), x, s(:,4))
-    ylim([0,1]);
-    pause(0.01);
-end
-
-%%
-
-close all
-n = numel(states);
-pos = [500, 500, 2000,1000];
-fig = figure('position', pos);
-M = struct('cdata',[],'colormap',[]);
-ttl = {'S_o', 'S_s'};
-x = linspace(0,100,n);
-
-for i = 1:n
-    
-    clf;
-    ll = lines(3);
-    clr = [ll(1,:); [0,0,0]; ll(2:end,:)];
-    
-    lw = 5;
-    hold on
-    ph = [2,4];
-    for j = 1:numel(ph)
-        plot(x, states{i}.s(:,ph(j)), 'color', clr(ph(j),:), 'linewidth', lw)
-    end
-    box on
-    ylim([0,1])
-    xlabel('x [m]');
-    ylabel('S [-]');
-    ax = gca;
-    ax.FontSize = 20;
-    ax.XLabel.FontSize = 45;
-    ax.YLabel.FontSize = 45;
-    legend({'Oil', 'Solvent'}, 'fontSize', 45);
-    
-    drawnow;
-    
-    ax.Units = 'pixels';
-    
-    
-    m = 0; n = 0;
-    rect = [m, n, 2000-2*m, 1000-2*n];
-    
-    M(i) = getframe(fig, rect);
-    
-    ax.Units = 'normalized';
-    
-end
-
-%%
-
-n = numel(states);
-% n = 4;
-pth = [mrstPath('mrst-solvent'), '/presentation/figures/displacement1D/'];
-vo = VideoWriter([pth, 'displacement1D.avi']);
-vo.FrameRate = n/30;
-open(vo);
-
-writeVideo(vo, M);
-
-close(vo)
-
-%%
-
-clc
 
 pv = poreVolume(G, rock);
 n = numel(ws);
@@ -173,23 +110,11 @@ errTotRel = (resMtot(1) + sum(wellMtotCum,2) - resMtot)./resMtot;
 errTot = abs(resMtot(1) + sum(wellMtotCum(end,:)) - resMtot(end));
 
 err = cell(4,1);
+
 for phNo = 1:4
-    err{phNo} = (resM(1, phNo) + sum(wellM{phNo},2) - resM(:,phNo))./resMtot;
+    err{phNo} = (resM(1, phNo) + sum(wellMcum{phNo},2) - resM(:,phNo))./resMtot;
 end
 
 
 fprintf(['Absolute error: \t %.2d \n'], ...
          errTot);
-         
-%%
-
-W_G(1).name = 'I';
-W_G(2).name = 'P';
-
-figure(1); clf
-plotGrid(G, 'edgecolor', 'none'); axis equal off
-plotWell(G, W_G, 'height', 0.5)
-w = [-17,14];
-view([-20,10])
-light('Position', [2,-3,0])
-

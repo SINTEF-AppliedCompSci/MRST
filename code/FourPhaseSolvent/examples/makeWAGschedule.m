@@ -17,10 +17,10 @@ pv = poreVolume(G, rock);
 gRate = opt.gRate;
 wRate = opt.wRate;
 T = opt.T;
-if isempty(opt.gRate)
+if isempty(gRate)
     gRate = sum(pv)/T;
 end
-if isempty(opt.gRate)
+if isempty(wRate)
     wRate = sum(pv)/T;
 end
 nStep = opt.nStep;

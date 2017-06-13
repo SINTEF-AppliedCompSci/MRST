@@ -27,20 +27,20 @@ fluid = addSolventProperties(fluid, 'n', 2, ...
 model = FourPhaseSolventModel(G, rock, fluid);
 model.extraStateOutput = true;
 
-injectors = {round(G.cartDims(1)*G.cartDims(2)/2 + G.cartDims(1)/2)};
+
 producers = {1, G.cartDims(1), G.cartDims(1)*G.cartDims(2) - G.cartDims(1) + 1, G.cartDims(1)*G.cartDims(2)};
+injectors = {round(G.cartDims(1)*G.cartDims(2)/2 + G.cartDims(1)/2)};
 
 % injectors = {1};
 % producers = {G.cells.num};
 
 T = 1*year;
-pv = sum(poreVolume(G, rock));
-rate = pv/T;
+rate = 0.5*sum(poreVolume(G, rock))/(T*numel(injectors));
 nStep = 100;
 
-[scheduleWAG, W_G, W_W] = makeWAGschedule(model, injectors, producers, 10, 'T', 2*T, 'gRate', 2*rate, 'wRate', 2*rate, 'nStep', 2*nStep);
+[scheduleWAG, W_G, W_W] = makeWAGschedule(model, injectors, producers, 10, 'T', 2*T, 'gRate', rate, 'wRate', rate, 'nStep', 2*nStep);
 
-dT = rampupTimesteps(T, T/nStep);
+dT = rampupTimesteps(T, T/nStep,0);
 step.val = [dT; scheduleWAG.step.val; dT];
 step.control = [2*ones(numel(dT),1); scheduleWAG.step.control; 2*ones(numel(dT),1)];
 
