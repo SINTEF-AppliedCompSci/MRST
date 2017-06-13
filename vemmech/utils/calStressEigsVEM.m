@@ -2,9 +2,11 @@ function [sigm,evec]=calStressEigsVEM(G,stress,varargin)
 % calculate eigen values of stress tensor and the basis
 % 
 % transform to traditional voits notation (for stress this has no factors)
-%{ 
-Copyright 2009-2014 SINTEF ICT, Applied Mathematics
-%} 
+
+%{
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+%}
+
 opt=struct('use_c',false);
 opt = merge_options(opt,varargin{:}); 
 if(G.griddim==2)
