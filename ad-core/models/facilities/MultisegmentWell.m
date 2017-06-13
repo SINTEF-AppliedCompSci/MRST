@@ -34,22 +34,21 @@ classdef MultisegmentWell < SimpleWell
             end
         end
         
-        function [weqs, ctrlEq, weqsMS, extraNames, qMass, qSurf, wellSol] = computeWellEquations(well, wellSol0, wellSol, resmodel, q_s, bh, varw, pw, mobw, rhow, dissolved, compw, dt, iteration)
+        function [weqs, ctrlEq, weqsMS, extraNames, qMass, qSurf, wellSol] = computeWellEquations(well, wellSol0, wellSol, resmodel, q_s, bh, packed, dt, iteration)
             % Node pressures for the well
-            pN = varw{1};
+             pN = packed.extravars{strcmpi(packed.extravars_names, 'pN')};
             % Mass fraction for the phases
-            alpha = varw(2:4);
+            wN = packed.extravars(strncmpi(packed.extravars_names, 'r', 1));
             % Mixture mass flux in segments
-            vmix = varw{5};
+            vmS = packed.extravars{strcmpi(packed.extravars_names, 'vmix')};
             
             % Create struct with the reservoir quantities
             resProps = struct();
-            resProps.pressure = pw;
-            resProps.mob = mobw;
-            resProps.rho = rhow;
-            resProps.dissolved = dissolved;
-            resProps.components = compw;
-            resProps.b = rhow;
+            resProps.pressure = packed.pressure;
+            resProps.mob = packed.mob;
+            resProps.rho = packed.rho;
+            resProps.dissolved = packed.dissolved;
+            resProps.b = packed.rho;
             rhoS = resmodel.getSurfaceDensities();
             for i = 1:numel(resProps.b)
                 % We store both b-factors and the density. This is a bit
@@ -57,15 +56,16 @@ classdef MultisegmentWell < SimpleWell
                 % in terms of mass and surface volumes.
                 den = rhoS(i);
                 for j = 1:numel(resProps.b)
-                    if ~isempty(dissolved{j}{i})
-                        den = den + rhoS(j)*dissolved{j}{i};
+                    if ~isempty(resProps.dissolved{j}{i})
+                        den = den + rhoS(j)*resProps.dissolved{j}{i};
                     end
                 end
                 resProps.b{i} = resProps.b{i}./den;
             end
             
-            [weqs, weqsMS, qSurf, wellSol, mix_s, status, cstatus, qRes] = ...
-                setupMSWellEquationSingleWell(well, resmodel, wellSol0, wellSol, q_s, bh, pN, alpha, vmix, resProps, dt, iteration);
+            % setup all well equations
+            [weqs, weqsMS, qSurf, wellSol, alpha_s, status, cstatus, qRes] = ...
+                setupMSWellEquationSingleWell(well, resmodel, wellSol0, wellSol, q_s, bh, pN, wN, vmS, resProps, dt, iteration);
             
             extraNames = well.getExtraEquationNames(resmodel);
             qMass = qSurf;
@@ -73,7 +73,10 @@ classdef MultisegmentWell < SimpleWell
                 % Mass source terms
                 qMass{i} = qSurf{i}.*rhoS(i);
             end
-            ctrlEq =  setupWellControlEquationsSingleWell(wellSol, bh, q_s, status, mix_s, resmodel);
+            
+            % finally setup single well control equation
+            ctrlEq =  setupWellControlEquationsSingleWell(well, wellSol0, wellSol, bh, q_s, status, alpha_s, resmodel);
+            
             % Update well properties which are not primary variables
             toDouble = @(x)cellfun(@double, x, 'UniformOutput', false);
             cq_sDb = cell2mat(toDouble(qSurf));
@@ -82,6 +85,7 @@ classdef MultisegmentWell < SimpleWell
             wellSol.cstatus = cstatus;
             wellSol.status  = status;
         end
+        
 
         function [fn, index] = getVariableField(model, name)
             % Get the index/name mapping for the model (such as where
