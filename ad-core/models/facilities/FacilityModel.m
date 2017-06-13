@@ -146,9 +146,9 @@ classdef FacilityModel < PhysicalModel
         function names = getBasicPrimaryVariableNames(model)
             % Basic primary variables are phase rates + bhp for active
             % phases in the model.
-            actPh = model.ReservoirModel.getActivePhases();
-            names = {'qWs', 'qOs', 'qGs', 'bhp'};
-            names = names([actPh, true]);
+            phNames = model.ReservoirModel.getPhaseNames();
+            names = arrayfun(@(x) ['q', x, 's'], phNames, 'UniformOutput', false);
+            names = [names, 'bhp'];
         end
 
         function [variables, names, map] = getBasicPrimaryVariables(model, wellSol)
@@ -168,16 +168,11 @@ classdef FacilityModel < PhysicalModel
                 % Take the active wellSols
                 active = model.getWellStatusMask();
                 wellSol = wellSol(active);
-                % Get number of phases
-                actPh = model.ReservoirModel.getActivePhases();
-                bhp = vertcat(wellSol.bhp);
-                qWs = vertcat(wellSol.qWs);
-                qOs = vertcat(wellSol.qOs);
-                qGs = vertcat(wellSol.qGs);
-                rates = {qWs, qOs, qGs};
-                rates = rates(actPh);
-                variables = [rates, bhp];
                 names = model.getBasicPrimaryVariableNames();
+                variables = cell(size(names));
+                for i = 1:numel(variables)
+                    variables{i} = vertcat(wellSol.(names{i}));
+                end
                 
                 isBHP = false(size(variables));
                 isBHP(end) = true;
@@ -604,8 +599,8 @@ classdef FacilityModel < PhysicalModel
         end
 
         function state = validateState(model, state)
-            if ~isfield(state, 'wellSol') || isempty(state.wellSol),
-                if isfield(state, 'wellSol'),
+            if ~isfield(state, 'wellSol') || isempty(state.wellSol)
+                if isfield(state, 'wellSol')
                     state = rmfield(state, 'wellSol');
                 end
                 W = model.getWellStruct();

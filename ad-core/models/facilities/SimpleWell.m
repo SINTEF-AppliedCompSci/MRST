@@ -154,11 +154,10 @@ classdef SimpleWell < PhysicalModel
 
         function [names, types] = getWellEquationNames(well, resmodel)
             % Get the names and types for the well equations of the model.
-            act = resmodel.getActivePhases();
-            names = {'waterWells', 'oilWells', 'gasWells'};
-            types = {'perf', 'perf', 'perf'};
-            names = names(act);
-            types = types(act);
+            [~, longnames] = resmodel.getPhaseNames();
+            names = cellfun(@(x) [x, 'Wells'], longnames, 'UniformOutput', false);
+            types = cell(size(names));
+            [types{:}] = deal('perf');
         end
 
         function wellSol = updateConnectionPressureDrop(well, wellSol0, wellSol, model, q_s, bhp, packed, dt, iteration)
