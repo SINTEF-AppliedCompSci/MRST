@@ -137,12 +137,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     else
         initialSelection = true(G.cells.num, 1);
     end
-    try
-        G = createAugmentedGrid(G);
-    catch
-        disp('Unable to augmented grid, node filtering not available');
-    end
-    
     opt = struct('log10',         false, ...
                  'exp',           false, ...
                  'abs',           false, ...
@@ -153,6 +147,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'lockCaxis',     false, ...
                  'plot1d',        false, ...
                  'plotmarkers',   false, ...
+                 'skipAugmented', false, ...
                  'field',         '',    ...
                  'startplayback', false  ...
                  );
@@ -182,7 +177,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 
     datasetname = inputname(2);
-    cellfields = getStructFields(G, accessdata(1), datasetname);
+    [cellfields, hasCell, hasNode] = getStructFields(G, accessdata(1), datasetname);
+    if hasNode && ~isfield(G.nodes, 'cells') && ~opt.skipAugmented
+        try
+            G = createAugmentedGrid(G);
+        catch
+            disp('Unable to augmented grid, node filtering not available');
+        end
+    end
     ni = 1;
     if isempty(cellfields)
         error('Input dataset contains no fields with G.cells.num rows suitable for plotting.');

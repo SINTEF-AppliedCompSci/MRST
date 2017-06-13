@@ -1,4 +1,4 @@
-function flds = getStructFields(G, s, name)
+function [flds, hasCell, hasNode] = getStructFields(G, s, name)
 %Dump possible plotting fields of a struct into human readable format.
 %
 % SYNOPSIS:
@@ -43,13 +43,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     flds = {};
     nc = G.cells.num;
+    [hasCell, hasNode] = deal(false);
     if isfield(G, 'nodes')
-        nn = G.nodes.num;
+        nodeNum = G.nodes.num;
     else
-        nn = 0;
+        nodeNum = 0;
     end
     if isnumeric(s)
-        if size(s, 1) == nc || size(s, 1) == nn
+        if size(s, 1) == nc || size(s, 1) == nodeNum
             N = min(size(s, 2), 1000);
             if N > 1
                 nn = arrayfun(@(x) [name, ':', num2str(x)], (1:N).', ...
@@ -62,11 +63,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 % special case true color or single dataset
                 flds = [flds; name];
             end
+            hasNode = size(s, 1) == nodeNum;
         end
         return
     elseif iscell(s) && all(cellfun(@numel, s) == nc | cellfun(@numel, s) == nn)
         flds = arrayfun(@(x) [name, ':', num2str(x)], (1:numel(s)).', ...
                     'UniformOutput', false);
+        hasCell = true;
         return
     end
     if isstruct(s)
@@ -78,7 +81,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if ~isempty(s)
         for i = 1:numel(f)
             subs = s.(f{i});
-            next = getStructFields(G, subs, f{i});
+            [next, hC, hN] = getStructFields(G, subs, f{i});
+            hasCell = hasCell || hC;
+            hasNode = hasNode || hN;
             if ~isempty(next)
                 if ischar(next{1})
                     flds = [flds; strcat([name '.'], next)];
