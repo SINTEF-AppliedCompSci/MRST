@@ -11,10 +11,10 @@ function [model, initState, schedule] = setupNorneExamples(opt)
 
     optvals = cellfun(@(x) opt.(x), fieldnames(opt), 'uniformoutput', false);
     optlist = reshape(vertcat(fieldnames(opt)', optvals'), [], 1);
-    
+
     opt = merge_options(default_opt, optlist{:});
 
-    
+
     %% Load Norne grid
 
     if ~ (makeNorneSubsetAvailable() && makeNorneGRDECL()),
@@ -186,27 +186,37 @@ function [model, initState, schedule] = setupNorneExamples(opt)
     %% Setup model
 
     modeltype = [opt.method, ' and ', opt.fluid_model];
+    fullycoupledOptions = {'verbose', true};
+    splittingOptions = {'splittingTolerance', opt.splittingTolerance, ...
+                        'splittingVerbose', opt.splittingVerbose};
     switch modeltype
+
       case 'fully coupled and blackoil'
-        model = MechBlackOilModel(G, rock, fluid, mech, 'verbose', opt.verbose);
+        model = MechBlackOilModel(G, rock, fluid, mech, fullycoupledOptions{: ...
+                   });
+
       case 'fixed stress splitting and blackoil'
         model = MechFluidFixedStressSplitModel(G, rock, fluid, mech, ...
                                                'fluidModelType', 'blackoil', ...
-                                               'verbose', opt.verbose, ...
-                                               'splittingTolerance', ...
-                                               opt.splittingTolerance, ...
-                                               'splittingVerbose', ...
-                                               opt.splittingVerbose);
+                                               splittingOptions{:});
+
       case 'fully coupled and oil water'
-        model = MechOilWaterModel(G, rock, fluid, mech);
+        model = MechOilWaterModel(G, rock, fluid, mech, fullycoupledOptions{: ...
+                   });
+
       case 'fixed stress splitting and oil water'
-        model = MechFluidFixedStressSplitModel(G, rock, fluid, mech, 'fluidModelType', ...
-                                               'oil water');
+        model = MechFluidFixedStressSplitModel(G, rock, fluid, mech, ...
+                                               'fluidModelType', 'oil water', ...
+                                               splittingOptions{:});
+
       case 'fully coupled and water'
-        model = MechWaterModel(G, rock, fluid, mech);
+        model = MechWaterModel(G, rock, fluid, mech, fullycoupledOptions{: });
+
       case 'fixed stress splitting and water'
-        model = MechFluidFixedStressSplitModel(G, rock, fluid, mech, 'fluidModelType', ...
-                                               'water');
+        model = MechFluidFixedStressSplitModel(G, rock, fluid, mech, ...
+                                               'fluidModelType', 'water', ...
+                                               splittingOptions{:});
+
       otherwise
         error('modeltype not recognized.');
     end
@@ -257,7 +267,7 @@ function [model, initState, schedule] = setupNorneExamples(opt)
 
 
     %% Setup schedule
-    schedule.step.val     = [1*day*ones(1, 1); 10*day*ones(11, 1)];
+    schedule.step.val     = [1*day*ones(1, 1); 5*day*ones(20, 1)];
     schedule.step.control = ones(numel(schedule.step.val), 1);
     schedule.control      = struct('W', W);
 
