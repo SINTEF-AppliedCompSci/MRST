@@ -18,7 +18,7 @@ function [flag_v, flag_g] = getSaturationUpwind(upwtype, state, G, vT, T, K, ups
 end
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

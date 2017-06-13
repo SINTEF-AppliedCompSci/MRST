@@ -2,7 +2,7 @@ function f = assignTLMIXPAR(f, tlmixpar, reg)
 f.mixPar = tlmixpar(1);
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

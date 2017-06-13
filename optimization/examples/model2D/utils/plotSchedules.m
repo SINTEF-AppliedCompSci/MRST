@@ -2,7 +2,7 @@ function [] = plotSchedules(schedule, varargin)
 % utility-function for analyseModel2D.m
 % plot schedule, possibliy with gradient info
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

@@ -22,7 +22,7 @@ function eq = setupWellControlEquationsSingleWell(well, sol0, sol, pBH, q_s, sta
 %   WellModel, computeWellContributionsNew.
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

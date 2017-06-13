@@ -41,7 +41,7 @@ function [eqs, eqsMS, cq_s, wellSol, mix_s, status, cstatus, cq_r] = setupMSWell
 %   WellModel, setupWellControlEquation
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

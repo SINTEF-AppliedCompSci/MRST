@@ -8,7 +8,7 @@
 %   sequentialSPE10       - Solve layers of SPE10 with sequential and fully implicit solver
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

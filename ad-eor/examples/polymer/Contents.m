@@ -7,7 +7,7 @@
 %   spe10PolymerExample       - Black-Oil Polymer System for a Layer of the SPE10 Model
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

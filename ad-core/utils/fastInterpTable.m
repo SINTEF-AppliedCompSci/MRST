@@ -21,7 +21,7 @@ function yi = fastInterpTable(X, Y, xi)
 %   yi - Linear function interpolating (x, y) evaluated at xi.
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
