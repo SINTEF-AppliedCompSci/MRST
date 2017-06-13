@@ -105,7 +105,7 @@ gas = (op.pv/dt).*( pvMult.*bG.*sG - pvMult0.*bG0.*sG0 ) + op.Div(bGvG);
 % Conservation of mass for solvent
 solvent = (op.pv/dt).*( pvMult.*bS.*sS - pvMult0.*bS0.*sS0 ) + op.Div(bSvS);
 
-if 1
+if 0
     acc = zeros(model.G.cells.num,4);
     acc(:,1) = (op.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 );
     acc(:,2) = (op.pv/dt).*( pvMult.*bO.*sO - pvMult0.*bO0.*sO0 );
@@ -149,16 +149,8 @@ rhoWell = cell(4,1);
 
 
 for i = 1:4
-    if isa(rho{i}, 'ADI')
-        rho{i}(wc) = rhoWell{i};
-    else
-        rho{i}(wc) = rhoWell{i};
-    end
-    if isa(mob{i}, 'ADI')
-        mob{i}(wc) = mobMult*krWell{i}./muWell{i};
-    else
-        mob{i}(wc) = mobMult*krWell{i}./muWell{i};
-    end
+    rho{i}(wc) = rhoWell{i};
+    mob{i}(wc) = mobMult*krWell{i}./muWell{i};
 end
 
 % [eqs, ~, qRes] = addFluxesFromSourcesAndBC(model, eqs, ...
