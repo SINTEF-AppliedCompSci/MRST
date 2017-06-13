@@ -7,7 +7,7 @@
 %   makeSPE10DataAvailable   - Ensure availability of Models 1 and 2 from tenth SPE Comparative Solution Project
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

@@ -11,7 +11,7 @@ function ltr = litre()
 %   ltr - Numerical value of one liter, in units of m^3 (== 1 dm^3)
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

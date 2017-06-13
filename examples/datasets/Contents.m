@@ -9,7 +9,7 @@
 %   showSPE10    - Modle 2 of the 10th SPE Comparative Solution Project
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
