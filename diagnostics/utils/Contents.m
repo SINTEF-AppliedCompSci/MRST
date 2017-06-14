@@ -9,7 +9,7 @@
 %   expandCoarseWellCompletions  - Pseudo-wells for computing flow diagnostics in an upscaled model
 %   expandWellCompletions        - Pseudo-wells for computation of flow diagnostics for completions
 %   interactiveDiagnostics       - Launch an interactive diagnostics session
-%   plotTOFArrival               -
+%   plotTOFArrival               - 
 %   plotTracerBlend              - Visualise tracer partitions: gray regions are affected by multiple tracers
 %   plotWellAllocationComparison - Plot a panel comparing well-allocation from models with different resolution
 %   plotWellAllocationPanel      - Plot a panel comparing well-allocation from models with different resolution

@@ -2,13 +2,13 @@
 %
 % Files
 %   argmaxCubic                      - find max of cubic polynom through p1, p2
-%   computeDefaultBasis              -
+%   computeDefaultBasis              - 
 %   control2well                     - Update val-fields of W from controls u
-%   evalObjectiveDiagnostics         -
+%   evalObjectiveDiagnostics         - 
 %   getObjectiveDiagnostics          - Get an objective function for the diagnostics optimization routines
 %   lineSearch                       - lineSearch -- helper function which performs line search based on
-%   linsolveWithTimings              -
-%   optimizeDiagnosticsBFGS          - Optimize well rates/bhps to minimize/maximize objective
+%   linsolveWithTimings              - 
+%   optimizeDiagnosticsBFGS          - Optimize well rates/bhps to minimize/maximize objective 
 %   optimizeTOF                      - Optimize well rates based on diagnostics-based objective function
 %   optimizeWellPlacementDiagnostics - Optimize the placement of wells using flow diagnostics
 %   plotWellRates                    - Simple utility for plotting well rates. Used by optimizeTOF.
@@ -16,7 +16,7 @@
 %   solveStationaryPressure          - Solve incompressible, stationary pressure without gravity with optional TOF output
 %   SolveTOFEqsADI                   - Solve the time of flight equations for solveStationaryPressure.
 %   tofRobustFix                     - Presently does nothing. Can be overriden if needed.
-%   unitBoxBFGS                      -
+%   unitBoxBFGS                      - 
 %   well2control                     - Produce control vector u from target-wells
 
 %{
