@@ -22,6 +22,7 @@
 %   kilo          - One thousand prefix.
 %   kilogram      - Mass of one kilogram, in units of kilogram.
 %   lbf           - Force excerted by a mass of one avoirdupois pound at Tellus equator.
+%   litre         - Numerical value of one liter, in units of m^3
 %   mega          - One million prefix.
 %   meter         - Distance of one meter (in units of meters).
 %   micro         - One millionth prefix.

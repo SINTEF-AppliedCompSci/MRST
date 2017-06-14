@@ -13,6 +13,7 @@
 %   plotFaults            - Plot faults in model
 %   plotGrid              - plots exterior grid faces to current axes.
 %   plotGridVolumes       - Plot partially transparent isosurfaces for a set of values
+%   plotNodeData          - SYNOPSIS:
 %   plotSlice             - Plot Cartesian slices of cell data on faces
 %   plotWell              - Plot well trajectories into current axes.
 

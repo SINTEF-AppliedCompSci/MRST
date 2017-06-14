@@ -6,7 +6,7 @@
 %   showJohansen - Visualizing the Johansen Data Set
 %   showNorne    - Introduction to the Norne Model
 %   showSAIGUP   - Introduction to the SAIGUP Model
-%   showSPE10    - Modle 2 of the 10th SPE Comparative Solution Project
+%   showSPE10    - Model 2 of the 10th SPE Comparative Solution Project
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

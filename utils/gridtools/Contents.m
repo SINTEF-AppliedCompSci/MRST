@@ -5,6 +5,8 @@
 %   checkGrid             - Apply Basic Consistency Checks to MRST Grid Geometry
 %   compareGrids          - Determine if two grid structures are the same.
 %   connectedCells        - Compute connected components of grid cell subsets.
+%   createAugmentedGrid   - Extend grid with mappings needed for the virtual element solver
+%   createGridMappings    - Add preliminary mappings to be used in createAugmentedGrid
 %   findEnclosingCell     - Find cells with closest centroid (in Euclidian norm) in a 2D grid.
 %   getCellNoFaces        - Get a list over all half faces, accounting for possible NNC
 %   getConnectivityMatrix - Derive global, undirected connectivity matrix from neighbourship relation.
@@ -18,8 +20,10 @@
 %   indirectionSub        - Index map of the type G.cells.facePos, G.faces.nodePos...
 %   makePlanarGrid        - Construct 2D surface grid from faces of 3D grid.
 %   neighboursByNodes     - Derive neighbourship from common node (vertex) relationship
+%   refineGrdeclLayers    - Refine a GRDECL structure in the vertical direction
 %   removeNodes           - {
 %   sampleFromBox         - Sample from data on a uniform Cartesian grid that covers the bounding box
+%   sortEdges             - Sort edges in G.faces.edges counter-clockwise to face orientation
 %   sortGrid              - Permute nodes, faces and cells to sorted form
 %   transform3Dto2Dgrid   - Transforms a 3D grid into a 2D grid.
 %   translateGrid         - Move all grid coordinates according to particular translation
@@ -43,3 +47,4 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+

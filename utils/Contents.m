@@ -28,7 +28,7 @@
 %   moduleGUI             - Interactive user interface for activation/deactivation of known mrst modules
 %   mrstDataDirectory     - Set or retrieve the current canonical data directory for MRST
 %   mrstDebug             - Globally control default settings for MRST debugging information.
-%   mrstExamples          - PLOTGRID plots exterior grid faces to current axes.
+%   mrstExamples          - Discover Example M-Files Pertaining to One or More MRST Modules
 %   mrstModule            - Query or modify list of activated add-on MRST modules
 %   mrstNargInCheck       - Check number of input arguments to function
 %   mrstPath              - Establish and maintain mapping from module names to system directory paths
@@ -38,10 +38,13 @@
 %   msgid                 - Construct Error/Warning message ID by prepending function name.
 %   multiEig              - Solve sequence of general (unsymmetric) eigenvalue problems using LAPACK
 %   multiSymmEig          - Solve sequence of symmetric eigenvalue problems using LAPACK
+%   reduceToDouble        - Do nothing
 %   require               - Announce and enforce module dependency.
 %   rldecode              - Decompress run length encoding of array A along dimension dim.
 %   rlencode              - Compute run length encoding of array A along dimension dim.
 %   ROOTDIR               - Retrieve full path of Toolbox installation directory.
+%   ternaryAxis           - Create a ternary axis and mappings to ternary space
+%   tetrahedralAxis       - Create a ternary axis and mappings to ternary space
 %   ticif                 - Evaluate function TIC if input is true.
 %   tocif                 - Evaluate function TOC if input is true.
 %   uniqueStable          - Support UNIQUE(A, 'stable') in all versions of MATLAB
