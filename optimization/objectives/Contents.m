@@ -1,8 +1,8 @@
 % Files
-%   NPVBlackOil  - Compute net present value of a schedule with well solutions
-%   NPVOW        - Compute net present value of a schedule with well solutions
-%   NPVOWPolymer - Compute net present value of a schedule with well solutions
-%   NPVVO        - Compute net present value of a schedule with well solutions
+%   matchObservedOW - Compute mismatch-function 
+%   NPVBlackOil     - Compute net present value of a schedule with well solutions
+%   NPVOW           - Compute net present value of a schedule with well solutions
+%   NPVOWPolymer    - Compute net present value of a schedule with well solutions
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

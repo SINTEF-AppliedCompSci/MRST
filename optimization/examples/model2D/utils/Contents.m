@@ -1,6 +1,7 @@
 % EX-UTILS
 %
 % Files
+%   cellAverage      - compute cell-average vc of field vf as average of adjecent faces
 %   fracFlowContours - utility-function for analyseModel2D.m
 %   plotSchedules    - utility-function for analyseModel2D.m
 %   setupModel2D     - setupModel:  construct model for example analyseModel2D

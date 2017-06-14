@@ -1,10 +1,12 @@
 % EXAMPLES
 %
 % Files
-%   blackoilTutorialGravSeg  - Gravity segregation using two phase AD solvers
-%   blackoilTutorialOnePhase - Example: Single-Phase Water Flow
-%   blackoilTutorialPlotHook - Example demonstrating in-situ plotting capabilities in MRST-AD
-%   simulatorWorkflowExample - Workflow example for MRST-AD
+%   blackoilSectorModelExample - Example demonstrating use of boundary conditions for pressure support
+%   blackoilTutorialGravSeg    - Gravity segregation using two phase AD solvers
+%   blackoilTutorialOnePhase   - Example: Single-Phase Water Flow
+%   blackoilTutorialPlotHook   - Example demonstrating in-situ plotting capabilities in MRST-AD
+%   multisegmentWellExample    - Multi-segment well example based on SPE 1 benchmark model
+%   simulatorWorkflowExample   - Workflow example for MRST-AD
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
@@ -24,3 +26,4 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+
