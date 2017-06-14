@@ -94,7 +94,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             if size(data, 2) > 1
                 data = sqrt(sum(data.^2, 2));
             end
-            if size(data, 1) == G.nodes.num
+            if isfield(G, 'nodes') && size(data, 1) == G.nodes.num
                 if ~isfield(G.cells, 'nodes')
                     continue
                 end
