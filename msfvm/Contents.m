@@ -2,7 +2,7 @@
 %
 % Files
 %   createPermutationMatrix - Create permutation matrices for the coarse orderings in the MsFV
-%   find_clusters           -
+%   find_clusters           - 
 %   findCenter              - indices of blocks in the current cell
 %   mldivide_update         - A,b linear system
 %   partitionUIdual         - Create coarse dual partition/grid

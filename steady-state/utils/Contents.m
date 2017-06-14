@@ -5,7 +5,7 @@
 %   addPcOWInvADIFluid           - Add a fluid function for computing the inverse of the capillary pressure.
 %   cartBlockMap                 - Find identical coarse blocks in a partition of a Cartesian grid. This
 %   createBlockFluid             - Extracting the fluid for the current coarse cell only.
-%   createFracFlowTablesFromDeck -
+%   createFracFlowTablesFromDeck - 
 %   initADIFluidOW               - Make a structure representing an oil-water fluid. This is might be a
 %   initADIFluidOWPolymer        - Make a structure representing a three-component fluid (water, oil,
 %   makePeriodicCartesianGrid    - Uses the MRST module 'upscaling'

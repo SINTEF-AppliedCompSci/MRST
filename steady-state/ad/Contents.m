@@ -2,8 +2,8 @@
 %
 % Files
 %   equationsOilWater_BCP       - Get linearized problem for oil/water system with black oil-style
-%   getFluxAndPropsOil_BO_BCP   -
-%   getFluxAndPropsWater_BO_BCP -
+%   getFluxAndPropsOil_BO_BCP   - 
+%   getFluxAndPropsWater_BO_BCP - 
 %   TwoPhaseOilWaterModel_BCP   - Two phase oil/water system without dissolution
 
 %{

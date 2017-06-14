@@ -1,7 +1,7 @@
 % COARSEGRID
 %
 % Files
-%   basisToCoarseGrid          -
+%   basisToCoarseGrid          - 
 %   coarseNeighbors            - Determine coarse neighbors for a given coarse cell (MPFA or TPFA-like).
 %   partitionUniformPadded     - Equivialent to partitionUI from the coarsegrid module, with a small
 %   storeInteractionRegion     - Store interaction region for coarse grid

@@ -1,9 +1,9 @@
 % MRST-BOOK
 %
 % Files
-%   addDefaultWellFields -
+%   addDefaultWellFields - 
 %   coarsenWells         - Generate well structure according to coarse grid Gc
-%   hT2T                 -
+%   hT2T                 - 
 %   upscaleTransGlobal   - Calculate upscaled transmissibilities for a coarse model
 
 %{
