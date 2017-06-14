@@ -2,6 +2,7 @@
 %
 % Files
 %   capPressureRHS                - Compute capillary pressure contribution to system RHS
+%   checkDrivingForcesIncomp      - Check if a solution is necessary for incompressible solvers. 
 %   computeFacePressure           - Compute face pressure using two-point flux approximation.
 %   computeIncompWellPressureDrop - Compute incompressible connection pressure drop for a single well
 %   computePressureRHS            - Compute right-hand side contributions to pressure linear system.

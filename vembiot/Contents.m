@@ -1,14 +1,10 @@
-% One-phase flow examples.
+% VEMBIOT
 %
 % Files
-%   incompExampleNorne1ph     - Norne: Single-Phase Pressure Solver
-%   incompExampleSAIGUP1ph    - SAIGUP: Solving One-Phase Flow on a Realistic Corner-Point Model
-%   incompIntro               - Basic Flow-Solver Tutorial
-%   incompTutorialCornerPoint - Pressure Solver: Simple Corner-Point Grid with Linear Pressure Drop
-%   incompTutorialMillionCell - Simulation of a Mega-cell Model
-%   incompTutorialSRCandBC    - How to Specify Sources and Boundary Conditions
-%   incompTutorialTOF         - Time-of-flight
-%   incompTutorialWells       - Using Peacemann Well Models
+%   computeDEMC                  - [CC,op] = computeDEMC(G,C,varargin)
+%   poroElastisityLinear         - function states = poroElastisityLinear(G, disc, rock, fluid, schedule, varargin)%bc_f, bc_s)
+%   poroElastisityLinearFrac     - function states = poroElastisityLinear(G, disc, rock, fluid, schedule, varargin)%bc_f, bc_s)
+%   poroElastisityLinearFracMDEM - function states = poroElastisityLinear(G, disc, rock, fluid, schedule, varargin)%bc_f, bc_s)
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
