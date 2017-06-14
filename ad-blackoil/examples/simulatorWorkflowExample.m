@@ -204,7 +204,7 @@ title('Splitting over fault lines');
 % and observe that the time taken is greatly reduced. For instance, on a
 % Intel Core i7 desktop computer, the fine model takes little under a
 % minute to run, while the upscaled model takes 4 seconds.
-clear CG; close(figp);
+clear CG; if ishandle(figp); close(figp); end;
 model_c = upscaleModelTPFA(model, p);
 G_c    = model_c.G;
 rock_c = model_c.rock;
@@ -213,17 +213,39 @@ schedule_c = upscaleSchedule(model_c, schedule);
 state0_c = upscaleState(model_c, model, state0);
 
 [wellSols_c, states_c] = simulateScheduleAD(state0_c, model_c, schedule_c);
+%% Create a second upscaled model with flow-based upscaling
+% We use the upscaling module to create a tailored upscaled model. This
+% upscaling routine uses a incompressible flow field with the wells of the
+% problem to perform a global upscaling.
+mrstModule add incomp agglom upscaling
+
+[~, T_c, W_c] = upscaleTrans(G_c, model.operators.T_all, ...
+    'Wells', W, 'bc_method', 'wells', 'fix_trans', true);
+
+model_c2 = upscaleModelTPFA(model, p, 'transCoarse', T_c);
+schedule_c2 = schedule;
+for i = 1:numel(schedule_c2.control)
+    schedule_c2.control(i).W = W_c;
+end
+[wellSols_c2, states_c2] = simulateScheduleAD(state0_c, model_c2, schedule_c2);
+
 
 %% Plot the coarse results, and compare the well solutions
 % We plot the coarse solutions and compare the well solutions. Note that
 % the upscaling will result in only 70 cells, which is unlikely to give
-% good results with only simple harmonic averaging of permeabilities.
+% good results with only simple harmonic averaging of permeabilities as
+% used in the first upscaling. The flow-based upscaling gives much better
+% result, but is dependent on having access to the well configuration.
 figure(2); clf
 plotToolbar(G_c, states_c); plotWell(G, W)
 view(50, 50);
 
-plotWellSols({wellSols, wellSols_c}, cumsum(schedule.step.val), ...
-   'DatasetNames', {'Fine scale', 'Upscaled'}, 'Field', 'qOs');
+figure(3); clf
+plotToolbar(G_c, states_c2); plotWell(G, W)
+view(50, 50);
+
+plotWellSols({wellSols, wellSols_c, wellSols_c2}, cumsum(schedule.step.val), ...
+   'DatasetNames', {'Fine scale', 'Simple upscaling', 'Flow upscaling'}, 'Field', 'qOs');
 
 %% Compute flow diagnostics
 % As an alternative to looking at well curves, we can also look at the flow
@@ -236,6 +258,7 @@ mrstModule add diagnostics
 close(3)
 D   = computeTOFandTracer(states{end},   G,   rock,   'Wells', schedule.control.W);
 D_c = computeTOFandTracer(states_c{end}, G_c, rock_c, 'Wells', schedule_c.control.W);
+D_c2 = computeTOFandTracer(states_c2{end}, G_c, rock_c, 'Wells', schedule_c.control.W);
 
 %% Plot total arrival times
 % We plot the residence time from injector to producer to separate
@@ -257,6 +280,13 @@ view(50, 50); colormap(hot.^.5);
 title('Log of total travel time, coarse model');
 caxis(c)
 
+figure(3); clf
+hc2 = plotCellData(G_c, log10(sum(D_c2.tof, 2))); plotWell(G,W)
+view(50, 50); colormap(hot.^.5);
+title('Log of total travel time, coarse model');
+caxis(c)
+
+
 %% Plot tracer partitioning
 % We can also look at the tracer partitioning for the producers, showing
 % the drainage regions for the different wells.
@@ -269,14 +299,19 @@ title('Drainage regions, fine model');
 
 figure(2); delete(hc), colormap(cmap), caxis auto
 plotCellData(G_c, D_c.ppart);
-title('Drainage regions, coarse model');
+title('Drainage regions, simple upscaled model');
+
+figure(3); delete(hc2), colormap(cmap), caxis auto
+plotCellData(G_c, D_c2.ppart);
+title('Drainage regions, flow upscaled model');
 
 %% Launch interactive diagnostics tools
 % We can also examine the diagnostics interactively using the diagnostics
 % viewer.
 close all;
 interactiveDiagnostics(G, rock, schedule.control.W, 'state', states{end}, 'computeFlux', false, 'name', 'Fine model');
-interactiveDiagnostics(G_c, rock_c, schedule_c.control.W, 'state', states_c{end}, 'computeFlux', false, 'name', 'Coarse model');
+interactiveDiagnostics(G_c, rock_c, schedule_c.control.W, 'state', states_c{end}, 'computeFlux', false, 'name', 'Simple upscaled model');
+interactiveDiagnostics(G_c, rock_c, schedule_c.control.W, 'state', states_c2{end}, 'computeFlux', false, 'name', 'Flow upscaled model');
 
 %% Copyright notice
 
