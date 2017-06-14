@@ -51,10 +51,10 @@ fluid      = initSingleFluid('mu' ,    1*centi*poise     , ...
 clf,
 K = log10(rock.perm);
 plotCellData(G,K,'EdgeColor','k','EdgeAlpha',.1);
-axis off, view(15,60), 
+axis tight off, view(15,60), 
 cs = [200 400 700 1000 1500 2000];
 caxis(log10([min(cs) max(cs)]*milli*darcy));
-h=colorbarHist(K,caxis,'South',100); zoom(2.5),
+h=colorbarHist(K,caxis,'South',100);
 set(h, 'XTick', log10(cs*milli*darcy), 'XTickLabel', num2str(round(cs)'));
 
 
@@ -116,7 +116,7 @@ plotCellData(G, sqrt(accumarray(cellNo,  ...
    'EdgeColor', 'k','EdgeAlpha',.1);
 plotWell(G,W,'height',200,'color','c');
 h=colorbar('horiz'); axis tight off; view(20,80)
-zoom(1.9), camdolly(0,.15,0);
+camdolly(0,.15,0);
 set(h,'Position',get(h,'Position')+[.18 -.08 -.1 0]);
 
 %%
@@ -126,7 +126,7 @@ plotCellData(G, convertTo(rSol.pressure(1:G.cells.num), barsa), ...
              'EdgeColor','k','EdgeAlpha',.1);
 plotWell(G, W, 'height', 200, 'color', 'b');
 h=colorbar('horiz'); axis tight off; view(20,80)
-zoom(1.9), camdolly(0,.15,0);
+camdolly(0,.15,0);
 set(h,'Position',get(h,'Position')+[.18 -.08 -.1 0]);
 
 %%

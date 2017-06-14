@@ -62,8 +62,8 @@ rock.perm(~is_pos, 3) = min(rock.perm(is_pos, 3));
 % a large number of very small permeabilities (shown in dark blue), and in
 % the histogram we have only included permeability values that are larger
 % than 1 micro darcy.
-myview = struct('vw',   [-110,18],  ...  % view angla
-                'zoom', 1.6,        ...  % zoom
+myview = struct('vw',   [-110,18],  ...  % view angle
+                'zoom', 1.0,        ...  % zoom
                 'asp',  [15 15 2],  ...  % data aspect ratio
                 'wh',   50,         ...  % well height above reservoir
                 'cb',   'horiz'     ...  % colorbar location
@@ -72,7 +72,7 @@ K   = rock.perm(:,3);  idx = K>1e-3*milli*darcy;
 clf,
 plotCellData(G,log10(K),'EdgeColor','k','EdgeAlpha',0.1);
 set(gca,'dataasp',myview.asp);
-axis off, view(myview.vw); zoom(myview.zoom*1.2), colormap(jet)
+axis off, view(myview.vw); zoom(myview.zoom), colormap(jet)
 
 cs = [0.001 0.01 0.1 1 10 100 1000];
 caxis(log10([min(cs) max(cs)]*milli*darcy));

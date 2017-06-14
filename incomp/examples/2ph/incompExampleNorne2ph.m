@@ -60,9 +60,9 @@ fluid      = initSimpleFluid('mu' , [   1,   5]*centi*poise     , ...
 
 %% Visualize the model
 % Set various visualization parameters
-myview = struct('vw',   [30,50],    ...  % view angla
-                'zoom', 2.5,        ...  % zoom
-                'asp',  [15 15 2],  ...  % data aspect ratio
+myview = struct('vw',   [90, 20],    ...  % view angle
+                'zoom', 1,        ...  % zoom
+                'asp',  [1 1 0.2],  ...  % data aspect ratio
                 'wh',   30,         ...  % well height above reservoir
                 'cb',   'horiz'     ...  % colorbar location
                 );
@@ -71,7 +71,7 @@ myview = struct('vw',   [30,50],    ...  % view angla
 clf, title('Log_{10} of x-permeability [mD]');
 plotCellData(G,log10(rock.perm),'EdgeColor','k','EdgeAlpha',0.1);
 set(gca,'dataasp',myview.asp);
-axis off, view(myview.vw); zoom(myview.zoom), colormap(jet)
+axis off, view(myview.vw); zoom(myview.zoom), colormap(jet), axis tight
 
 cs = [200 400 700 1000 1500 2000];
 caxis(log10([min(cs) max(cs)]*milli*darcy));

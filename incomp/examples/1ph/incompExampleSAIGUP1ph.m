@@ -61,7 +61,7 @@ clf,
 K = log10(rock.perm(:,1));
 plotCellData(G,K,'EdgeColor','k','EdgeAlpha',0.1);
 set(gca,'dataasp',[15 15 2]);
-axis off, view(-110,18); zoom(2),
+axis off, view(-110,18);
 cs = [0.1 1 10 100 1000 4000];
 caxis(log10([min(cs) max(cs)]*milli*darcy));
 h=colorbarHist(K,caxis,'South',100); camdolly(.2, 0, 0);
@@ -131,7 +131,6 @@ plotCellData(G, sqrt(accumarray(cellNo,  ...
    'EdgeColor', 'k','EdgeAlpha',0.1);
 plotWell(G,W,'height',100,'color','c');
 colorbar, axis tight off; view(-80,36)
-zoom(1.3);
 %%
 % Plot the pressure distribution
 clf
@@ -139,7 +138,6 @@ plotCellData(G, convertTo(rSol.pressure(1:G.cells.num), barsa), ...
    'EdgeColor','k','EdgeAlpha',0.1);
 plotWell(G, W, 'height', 100, 'color', 'k');
 colorbar, axis tight off; view(-80,36)
-zoom(1.3);
 
 %%
 
