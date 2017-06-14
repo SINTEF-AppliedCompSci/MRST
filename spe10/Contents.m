@@ -5,7 +5,7 @@
 %   getSPE10setup   - Initialise properties for Model 2 of tenth SPE Comparative Solution Project
 %   grdeclBox       - Make a GRDECL structure for simple corner-point grid, possibly faulted.
 %   make_spe10_data - Create on-disk (MAT file) representation of SPE 10 'rock' data.
-%   setupSPE10_AD   -
+%   setupSPE10_AD   - 
 %   SPE10_rock      - Define rock properties for Model 2 of tenth SPE CSP
 %   SPE10_setup     - Initialise properties for Model 2 of tenth SPE Comparative Solution Project
 
@@ -27,3 +27,4 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+

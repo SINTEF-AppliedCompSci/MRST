@@ -3,8 +3,8 @@
 % Files
 %   convertRestartToStates           - states = convertRestartToStates(fn, G, varargin)
 %   convertSummaryToWellSols         - [wellSols, time] = convertSummaryToWellSols(fn, unit)
-%   eclOut2mrst                      -
-%   processEclipseRestartSpec        - Read unformatted (binary) ECLIPSE restart specification file (*RSSPEC) and
+%   eclOut2mrst                      - 
+%   processEclipseRestartSpec        - Read unformatted (binary) ECLIPSE restart specification file (*RSSPEC) and 
 %   readEclipseOutputFileFmt         - Read formatted (ASCII) ECLIPSE output/result file
 %   readEclipseOutputFileUnFmt       - Read unformatted (binary) ECLIPSE output/result file
 %   readEclipseRestartFmt            - Read formatted (text/ASCII) ECLIPSE restart data
