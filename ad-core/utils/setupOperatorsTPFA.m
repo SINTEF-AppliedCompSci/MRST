@@ -130,7 +130,9 @@ else
    s.T_all = T;
    T = T(intInx);
 end
-
+if any(T<0)
+    warning('Negative transmissibilities detected.')
+end
 s.T = T;
 
 pv = opt.porv;
