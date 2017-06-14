@@ -67,10 +67,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 [p, sW, wellVars{:}] = initVariablesADI(p, sW, wellVars{:});
             end
 
-            fnew = drivingForces.fixedStressTerms.new;
-            mechTerm.new = fnew.pTerm.*p - fnew.sTerm;
-            fold = drivingForces.fixedStressTerms.old;
-            mechTerm.old = fold.pTerm.*p - fold.sTerm;
+            fnew         = drivingForces.fixedStressTerms.new;
+            mechTerm.new = fnew.sTerm + fnew.pTerm.*p;
+            fold         = drivingForces.fixedStressTerms.old;
+            mechTerm.old = fold.sTerm + fold.pTerm.*p;
 
             otherDrivingForces = rmfield(drivingForces, 'fixedStressTerms');
 

@@ -50,7 +50,7 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    
+
     % Note that state is given only for output
     opt = struct('iteration', -1, ...
                  'resOnly', false); % just to avoid warning
@@ -64,7 +64,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     W = drivingForces.W;
 
     [p0, wellSol0] = model.getProps(state0, 'pressure', 'wellSol');
-    
+
 
     %grav  = gravity;
     %gdz   = s.Grad(G.cells.centroids) * model.gravity';
@@ -130,5 +130,5 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                                       wellMap, p, {mobW}, ...
                                                       {rhoW}, {}, {}, dt, ...
                                                       opt);
-    
+
 end

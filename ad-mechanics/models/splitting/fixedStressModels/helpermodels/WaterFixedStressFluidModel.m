@@ -58,6 +58,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             opt = merge_options(opt, varargin{:});
 
             [p, wellSol] = model.getProps(state, 'pressure', 'wellsol');
+            p0           = model.getProp(state, 'pressure');
 
             [wellVars, wellVarNames, wellMap] = ...
                 model.FacilityModel.getAllPrimaryVariables(wellSol);
@@ -66,11 +67,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 [p, wellVars{:}] = initVariablesADI(p, wellVars{:});
             end
 
-            fnew = drivingForces.fixedStressTerms.new;
-            mechTerm.new = fnew.pTerm.*p - fnew.sTerm;
-
-            fold = drivingForces.fixedStressTerms.old;
-            mechTerm.old = fold.pTerm.*p - fold.sTerm;
+            fnew         = drivingForces.fixedStressTerms.new;
+            mechTerm.new = fnew.sTerm + fnew.pTerm.*p;
+            fold         = drivingForces.fixedStressTerms.old;
+            mechTerm.old = fold.sTerm + fold.pTerm.*p0;
 
             otherDrivingForces = rmfield(drivingForces, 'fixedStressTerms');
 

@@ -107,10 +107,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         function [mechTerm, fluidp] = computeCouplingTerms(model, p0, ...
                                                               xd0, p, xd)
 
-            opmech = model.mechModel.operators;
+            G = model.G;
+            op = model.mechModel.operators;
             fluidp = p;
-            mechTerm.new = opmech.div*xd;
-            mechTerm.old = opmech.div*xd0;
+            mechTerm.new = (op.div*xd)./(G.cells.volumes);;
+            mechTerm.old = (op.div*xd)./(G.cells.volumes);
+            % Note that the opmech.div returns the divergence integrated over cells. That is
+            % why we divide by the cell's volumes
 
         end
 
