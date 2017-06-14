@@ -178,7 +178,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     datasetname = inputname(2);
     [cellfields, hasCell, hasNode] = getStructFields(G, accessdata(1), datasetname);
-    if hasNode && ~isfield(G.nodes, 'cells') && ~opt.skipAugmented
+    if (hasNode && isfield(G, 'nodes')) && ~isfield(G.nodes, 'cells') && ~opt.skipAugmented
         try
             G = createAugmentedGrid(G);
         catch
