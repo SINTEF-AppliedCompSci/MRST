@@ -170,6 +170,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
            state = model.mechModel.validateState(state);
         end
 
+
+        function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
+            [state, report] = updateAfterConvergence@ReservoirModel(model, ...
+                                                              state0, state, dt, drivingForces);
+            state = addDerivedQuantities(model.mechModel, state);
+        end
+
         function wstate = syncWStateFromState(model, state)
             wstate = updateFields(model.fluidModel, [], model, state, model.fluidfds);
         end
