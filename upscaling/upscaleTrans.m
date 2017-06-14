@@ -72,6 +72,7 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
+require incomp agglom
 opt = struct('verbose',              mrstVerbose,     ...
              'bc_method',            'bc_simple',     ...
              'bc',                   [],              ...
@@ -100,6 +101,7 @@ end
 nr_global = numel(bc);
 
 % Use simple, single phase fluid
+
 fluid = initSingleFluid('mu' , 1*centi*poise, ...
                         'rho', 0*kilogram/meter^3);
 
@@ -373,7 +375,7 @@ function [bc, well_cases, cgwells_cases] = setupCases(cg, opt)
          end
 
          if ~iscell(opt.wells),
-            error('wells option must be cell array for bc_method=wells')
+            opt.wells={opt.wells};
          end
 
          bc            = cell([numel(opt.wells), 1]);
@@ -628,15 +630,14 @@ function [T_cg, HT_cg, cgwells] = fixTrans(cg, T_cg, HT_cg, cgwells, opt)
    end
 
    % set the control to the original values if cell arrray use the first
-   if ~ (isempty(opt.wells)) 
+   if ~ (isempty(opt.wells))
      if  iscell(opt.wells) 
-      assert(numel(cgwells)==numel(opt.wells{1}));
-      [ cgwells.type ] = opt.wells{1}.type;
-      [ cgwells.val  ] = opt.wells{1}.val;
+         w = opt.wells{1};
      else
-      assert(numel(cgwells)==numel(opt.wells));
-      [ cgwells.type ] = opt.wells.type;
-      [ cgwells.val  ] = opt.wells.val;
+         w = opt.wells;
      end
+      assert(numel(cgwells)==numel(w) || numel(cgwells) == 0);
+      [ cgwells.type ] = w.type;
+      [ cgwells.val  ] = w.val;
    end
 end
