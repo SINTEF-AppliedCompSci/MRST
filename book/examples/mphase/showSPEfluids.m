@@ -26,6 +26,7 @@ for i=1:3
     decks{i} = readEclipseDeck(fn);
     decks{i} = convertDeckUnits(decks{i});
     fo{i}    = initDeckADIFluid(decks{i});
+    fo{i} = assignRelPerm(fo{i});
 end
 
 %% Plot two-phase relative permeability curves
@@ -175,11 +176,11 @@ title('Gas viscosity [cP]');
 Rs        = reshape(f.rsSat(p(:)), N, M);
 isSat     = rs >= Rs;
 rs(isSat) = Rs(isSat);
-Bo        = reshape(f.BO (p(:), rs(:), isSat(:)),N,M);
 bo        = reshape(f.bO (p(:), rs(:), isSat(:)),N,M);
+Bo        = 1./bo;
 muO       = reshape(f.muO(p(:), rs(:), isSat(:)),N,M);
-Bg        = reshape(f.BG (p(:)), N, M);
 bg        = reshape(f.bG (p(:)), N, M);
+Bg        = 1./bg;
 
 figure
 contourf(p/barsa,rs,bo,21); axis tight
