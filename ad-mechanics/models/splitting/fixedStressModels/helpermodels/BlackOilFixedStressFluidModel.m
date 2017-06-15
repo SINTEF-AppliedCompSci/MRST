@@ -1,8 +1,26 @@
 classdef BlackOilFixedStressFluidModel < ThreePhaseBlackOilModel
+%
+%
+% SYNOPSIS:
+%   model = BlackOilFixedStressFluidModel(G, rock, fluid, varargin)
+%
+% DESCRIPTION: Blackoil fluid model to be used with fixed stress splitting
+% method. The model handles the fluid equations of the splitting scheme
+%
+% PARAMETERS:
+%   G        - Grid
+%   rock     - rock structure
+%   fluid    - fluid structure
+%   varargin -
+%
+% RETURNS:
+%   class instance
+%
+% EXAMPLE:
+%
+% SEE ALSO: ThreePhaseBlackOilModel, MechFluidFixedStressSplitModel, MechFluidSplitModel
+%
 
-    properties
-        pressCoef;
-    end
 
     methods
         function model = BlackOilFixedStressFluidModel(G, rock, fluid, varargin)
@@ -13,7 +31,11 @@ classdef BlackOilFixedStressFluidModel < ThreePhaseBlackOilModel
         end
 
         function [problem, state] = getEquations(model, state0, state, dt, ...
-                                                        drivingForces, varargin)
+                                                        drivingForces, ...
+                                                        varargin)
+            % Setup the equations for the fluid. The drivingForce contains
+            % the volumetric changes computed from the mechanical equations.
+
             opt = struct('Verbose', mrstVerbose, ...
                          'reverseMode', false,...
                          'resOnly', false,...
@@ -54,10 +76,10 @@ classdef BlackOilFixedStressFluidModel < ThreePhaseBlackOilModel
                     initVariablesADI(p, sW, x, wellVars{:});
             end
 
-            fnew = drivingForces.fixedStressTerms.new;
-            mechTerm.new = fnew.pTerm.*p - fnew.sTerm;
-            fold = drivingForces.fixedStressTerms.old;
-            mechTerm.old = fold.pTerm.*p - fold.sTerm;
+            fnew         = drivingForces.fixedStressTerms.new;
+            mechTerm.new = fnew.sTerm + fnew.pTerm.*p;
+            fold         = drivingForces.fixedStressTerms.old;
+            mechTerm.old = fold.sTerm + fold.pTerm.*p0;
 
             otherDrivingForces = rmfield(drivingForces, 'fixedStressTerms');
 
@@ -83,6 +105,7 @@ classdef BlackOilFixedStressFluidModel < ThreePhaseBlackOilModel
         end
 
         function fds = getAllVarsNames(model)
+        % list of all the variable names that are used by this fluid model.
             fds = {'wellSol', 'pressure', 's', 'rs', 'rv'};
         end
 

@@ -1,4 +1,45 @@
 classdef MechFluidModel < ReservoirModel
+%
+%
+% SYNOPSIS:
+%   model = MechFluidModel(G, rock, fluid, mech_problem, varargin)
+%
+% DESCRIPTION: Base class model to set up fully coupled mechanical-fluid
+% simulations. This class is derived for each particular fluid model that is
+% used, see MechBlackOilModel, MechOilWaterModel, MechWaterModel.
+%
+% PARAMETERS:
+%   G            - grid structure
+%   rock         - rock structure
+%   fluid        - fluid structure
+%   mech_problem - Structure that contains the mechanical parameters of the system
+%
+% RETURNS:
+%   class instance
+%
+% EXAMPLE:
+%
+% SEE ALSO:
+%
+%{
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
     properties
 
         % Mechanical model
@@ -14,8 +55,6 @@ classdef MechFluidModel < ReservoirModel
         % List of all the variable names for the fluid part
         fluidfds;
 
-        alpha_scaling;
-        S;
     end
 
     methods
@@ -43,9 +82,6 @@ classdef MechFluidModel < ReservoirModel
             model.mechModel = MechanicMechModel(model.G, rock, mech_problem);
             model.mechfds = model.mechModel.getAllVarsNames();
 
-            model.mechModel.alpha_scaling = 1;
-            model.mechModel.S = [];
-            model.mechModel.ilu_tol = 1e-4;
         end
 
         function fluidModel = setupFluidModel(model)
@@ -96,20 +132,6 @@ classdef MechFluidModel < ReservoirModel
            state = model.mechModel.validateState(state);
         end
 
-        function model = setupOperators(model, G, rock, varargin)
-
-
-            % Set up divergence / gradient / transmissibility operators for flow
-            model = setupOperators@ReservoirModel(model, G, rock, varargin{:});
-
-            operators = setupOperatorsVEM(model.G, model.mech.el_bc, ...
-                                                   model.mech.load, ...
-                                                   model.alpha_scaling, ...
-                                                   model.S);
-            model.operators.mech = operators.mech;
-            model.operators.extra = operators.extra;
-
-        end
 
     end
 end

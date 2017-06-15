@@ -2,7 +2,7 @@ function [xOpt, poly] = argmaxCubic(p1, p2)
 % find max of cubic polynomial through p1, p2
 % shift values:
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

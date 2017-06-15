@@ -1,8 +1,31 @@
 classdef MechFluidFixedStressSplitModel < MechFluidSplitModel
+%
+%
+% SYNOPSIS:
+%   model = MechFluidFixedStressSplitModel(G, rock, fluid, ...
+%
+% DESCRIPTION: Model for the fixed stress splitting method. The model contains a
+% mechanic and fluid model, see MechFluidSplitModel. Different fluid models can
+% be used, see setupFluidModel member function.
+%
+% This model essentially overwrites the stepFunction member function. There, the
+% mechanic equations are solved for a given pore (fluid) pressure. Then, a
+% strain-pressure relation is established (see computeMechTerm member function)
+% assuming that the total stress is constant. Finally, the fluid equation is
+% solved.
+%
+% PARAMETERS:
+%
+% SEE ALSO: MechFluidSplitModel and the fluid models
+% BlackOilFixedStressFluidModel, OilWaterFixedStressFluidModel,
+% WaterFixedStressFluidModel
+%
 
 
     methods
-        function model = MechFluidFixedStressSplitModel(G, rock, fluid, mech_problem, varargin)
+        function model = MechFluidFixedStressSplitModel(G, rock, fluid, ...
+                                                        mech_problem, varargin)
+
             model = model@MechFluidSplitModel(G, rock, fluid, mech_problem, ...
                                          varargin{:});
         end
@@ -22,6 +45,7 @@ classdef MechFluidFixedStressSplitModel < MechFluidSplitModel
         end
 
 
+
         function [state, report] = stepFunction(model, state, state0, dt, ...
                                                 drivingForces, linsolve, ...
                                                 nonlinsolve, iteration, ...
@@ -30,62 +54,132 @@ classdef MechFluidFixedStressSplitModel < MechFluidSplitModel
             fluidModel = model.fluidModel;
             mechModel = model.mechModel;
 
-            % Solve the mechanic equations
+            % The state variable has two parts, the mechanical part mstate
+            % and the fluid part wstate, see the synchronization member
+            % functions in the MechFluidSplitModel.
+
             mstate0 = model.syncMStateFromState(state0);
             wstate0 = model.syncWStateFromState(state0);
-            state = state0;
 
-            fluidp = fluidModel.getProp(wstate0, 'pressure');
+            % We get the fluid pressure which is an input for the mechanical system
+            fluidp = fluidModel.getProp(state, 'pressure');
+
             mechsolver = model.mech_solver;
 
+            if model.verbose
+                fprintf('=== Splitting scheme: step %d\n', iteration);
+            end
+
+            % We solve the mechanical system
             [mstate, mreport] = mechsolver.solveTimestep(mstate0, dt, mechModel, ...
                                                           'fluidp', fluidp);
 
-            % Solve the fluid equations
+            if model.verbose
+                fprintf('Solved for mechanics (%d iterations)\n', mreport.Iterations);
+            end
+
             wdrivingForces = drivingForces; % The main model gets the well controls
 
+            % We update the global (mech+fluid) state with the newly computed mechanical
+            % state
             state = model.syncStateFromMState(state, mstate);
 
+            % We compute the change of effective volume induced by the mechanical
+            % part. These are integrated in the driving force for the fluid
+            % system.
             wdrivingForces.fixedStressTerms.new = computeMechTerm(model, state);
             wdrivingForces.fixedStressTerms.old = computeMechTerm(model, state0);
 
             forceArg = fluidModel.getDrivingForces(wdrivingForces);
 
             fluidsolver = model.fluid_solver;
+
+            % We solve the fluid system.
             [wstate, wreport] = fluidsolver.solveTimestep(wstate0, dt, fluidModel, ...
                                                           forceArg{:});
 
-            state = model.syncStateFromMState(state, mstate);
+            if model.verbose
+                fprintf('Solved for fluid (%d iterations)\n', wreport.Iterations);
+            end
+
+            % We update the global state with the newly computed fluid state
             state = model.syncStateFromWState(state, wstate);
 
-            report = model.makeStepReport( 'Failure',         false, 'Converged', ...
-                                           true, 'FailureMsg',      '', ...
-                                           'Residuals',       0 );
+            % We check the convergence by looking back that the mechanical
+            % system and check the residual for these equations.
+            fluidp = fluidModel.getProp(state, 'pressure');
+            drivingForces.fluidp = fluidp;
+            mstate = model.syncMStateFromState(state);
+            problem = mechModel.getEquations(mstate0, mstate, dt, drivingForces, ...
+                                                      'resOnly', true, ...
+                                                      'iteration', iteration);
+            [convergence, values, names] = model.checkConvergence(problem);
+            failureMsg = '';
+            failure = false;
+            isConverged = all(convergence);
 
+            if model.verbose
+                fprintf(['Value of residual for mechanical part: ' ...
+                         '%g\n'], values);
+                if convergence
+                    fprintf('Convergence reached\n');
+                else
+                    fprintf(['Convergence not reached (tolerance value = ' ...
+                             '%g)\n'], model.splittingTolerance);
+                end
+            end
+
+            report = mechModel.makeStepReport('Failure',      failure, ...
+                                              'FailureMsg',   failureMsg, ...
+                                              'Converged',    isConverged, ...
+                                              'Residuals',    values, ...
+                                              'ResidualsConverged', ...
+                                              convergence);
         end
 
-
         function fixedStressTerms = computeMechTerm(model, state)
+        % Compute the change in pore volume induced by the mechanical system. In a fixed
+        % stress splitting method, the relation between volume change and
+        % pressure is obtained by assuming that the total stress is
+        % preserved.
+
             stress = state.stress;
             p = state.pressure;
 
             invCi = model.mechModel.mech.invCi;
+            % invCi is the tensor equal to $C^{-1}I$ where $I$ is the identity tensor.
             griddim = model.G.griddim;
 
-            pTerm = sum(invCi(:, 1 : griddim), 2); % could have been computed and stored...
+            pTerm = model.mechModel.operators.trace(invCi); % could have been
+                                                            % computed and
+                                                            % stored...
 
             if griddim == 3
                 cvoigt = [1, 1, 1, 0.5, 0.5, 0.5];
+                pI = bsxfun(@times, p, [1, 1, 1, 0, 0, 0]);
             else
                 cvoigt = [1, 1, 0.5];
+                pI = bsxfun(@times, p, [1, 1, 0]);
             end
-            stress = bsxfun(@times, stress, cvoigt);
-            sTerm = sum(invCi.*stress, 2);
+            totalStress = stress - pI;
+            totalStress = bsxfun(@times, totalStress, cvoigt);
+
+            sTerm = sum(invCi.*totalStress, 2);
 
             fixedStressTerms.pTerm = pTerm; % Compressibility due to mechanics
             fixedStressTerms.sTerm = sTerm; % Volume change due to mechanics
 
+            % Short explanation about the terms computed above:
+            %
+            % We have $\sigma_T = C\epsi - p I$ where $\sigma_T$ is total
+            % stress
+            % Hence, $tr(\epsi) = tr(C^{-1}\sigma_T) + p tr(C^{-1})$ and the
+            % value sTerm and pTerm corresponds to $tr(\epsi) =
+            % tr(C^{-1}\sigma_T)$ and $tr(C^{-1})$ respectively.
+            %
+            % Note that $tr(C^{-1}\sigma_T) = I:(C^{-1}\sigma_T) = invCi:\sigma_T$
         end
+
 
     end
 end

@@ -45,7 +45,7 @@ function fluid = initDeckADIFluid(deck, varargin)
 %   ThreePhaseBlackOilModel, TwoPhaseOilWaterModel, initEclipseDeck
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -177,7 +177,7 @@ function v = expandValue(v, nc)
 end
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

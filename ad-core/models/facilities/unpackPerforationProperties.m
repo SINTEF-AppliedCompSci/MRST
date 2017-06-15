@@ -2,7 +2,7 @@ function [p, mob, rho, dissolved, comp, wellvars] = unpackPerforationProperties(
 % Unpack the properties extracted by packPerforationProperties. Internal function.
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

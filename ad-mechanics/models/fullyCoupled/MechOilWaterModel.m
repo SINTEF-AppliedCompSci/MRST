@@ -1,4 +1,25 @@
 classdef MechOilWaterModel < MechFluidModel
+%
+%
+% SYNOPSIS:
+%   model = MechOilWaterModel(G, rock, fluid, mech_problem, ...
+%
+% DESCRIPTION: Model for coupled mechanical fluid simulation. The fluid model
+% is a two phase oil water model.
+%
+% PARAMETERS:
+%   G            - grid structure
+%   rock         - rock structure
+%   fluid        - fluid structure
+%   mech_problem - Structure that contains the mechanical parameters of the system
+%
+% RETURNS:
+%   class instance
+%
+% EXAMPLE:
+%
+% SEE ALSO:
+%
 
 
     methods
@@ -76,10 +97,13 @@ classdef MechOilWaterModel < MechFluidModel
         function [mechTerm, fluidp] = computeCouplingTerms(model, p0, ...
                                                            xd0, p, xd)
 
-            opmech = model.mechModel.operators.mech;
+            G = model.G;
+            op = model.mechModel.operators;
             fluidp = p;
-            mechTerm.new = opmech.div*xd;
-            mechTerm.old = opmech.div*xd0;
+            mechTerm.new = (op.div*xd)./(G.cells.volumes);;
+            mechTerm.old = (op.div*xd)./(G.cells.volumes);
+            % Note that the opmech.div returns the divergence integrated over cells. That is
+            % why we divide by the cell's volumes
 
         end
 

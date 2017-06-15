@@ -1,12 +1,46 @@
-function [eqs, names, types, state] = equationsBlackOilMech(state0, st0, p, sW, x,  rs, rv, ...
-                                              st, wellVars, state, ...
-                                              model, dt, mechTerm, drivingForces, ...
-                                              varargin)
-    
-% Equation for black-oil system that also takes input from mechanics.
-    
+function [eqs, names, types, state] = equationsBlackOilMech(state0, st0, p, sW, x, rs, rv, st, wellVars, state, model, dt, mechTerm, drivingForces, varargin)
+%
+%
+% SYNOPSIS:
+%   function [eqs, names, types, state] = equationsBlackOilMech(state0, st0, p, sW, x, rs, rv, st, wellVars, state, model, dt, mechTerm, drivingForces, varargin)
+%
+% DESCRIPTION: This function is very similar to equationsBlackOil. The
+% difference here is that it also takes as input mechanical terms, and the ADI
+% initialization is not done here but by the model in the getEquations member
+% function.
+%
+% PARAMETERS:
+%   state0        - State at previous time step
+%   st0           - Status flag as defined by "getCellStatusVO" for previous
+%                   time step
+%   p             - Pressure
+%   sW            - Saturation
+%   x             - Variable that is to be decomposed into sG, sO, rs, rv, ...
+%   rs, rv        - Dissolved gas, vaporized oil
+%   st            - Status flag as defined by "getCellStatusVO" for previous
+%                   time step
+%   wellVars      - Well variables
+%   state         - State at given time step
+%   model         - Model class instance that is used.
+%   dt            - Time step
+%   mechTerm      - Mechanical input which will enter the computation of the
+%                   effective porosity
+%   drivingForces - Structure that gathers the well parameters and boundary conditions.
+%
+% RETURNS:
+%   eqs   - The residual values as ADI variables (that is with the Jacobian)
+%           if the inputs were also ADI.
+%   names - The name of each equations
+%   types - The type of each equations
+%   state - Some field related to well control of the state variables may be updated.
+%
+% EXAMPLE:
+%
+% SEE ALSO:
+%
+
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -40,10 +74,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     [p0, sW0, sG0, rs0, rv0, wellSol0] = model.getProps(state0, 'pressure', ...
                                                                 'water', 'gas', ...
                                                                 'rs', 'rv', 'wellsol');
-    
+
     [sG, rs, rv, rsSat, rvSat] = calculateHydrocarbonsFromStatusBO(model, st, ...
                                                       1-sW, x, rs, rv, p);
-    
+
     % Evaluate relative permeability
     sO  = 1 - sW  - sG;
     sO0 = 1 - sW0 - sG0;
@@ -94,11 +128,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     % Computation of "effective" porosity which take into account the changes
     % due to mechanics.
-    effPorVol = rock.poro.*(G.cells.volumes.*pvMult) + rock.alpha .* ...
-              mechTerm.new;
-    effPorVol0 = rock.poro.*(G.cells.volumes.*pvMult0) + rock.alpha .* ...
-        mechTerm.old;
-    
+    effPorVol = G.cells.volumes.*(rock.poro.*pvMult + rock.alpha .* ...
+                                  mechTerm.new);
+    effPorVol0 = G.cells.volumes.*(rock.poro.*pvMult0 + rock.alpha .* ...
+                                  mechTerm.old);
+
     % The first equation is the conservation of the water phase. This equation is
     % straightforward, as water is assumed to remain in the aqua phase in the
     % black oil model.
@@ -126,7 +160,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if model.disgas
         % The gas transported in the oil phase.
         rsbOvO = s.faceUpstr(upco, rs).*bOvO;
-        
+
         gas = (1./dt).*( effPorVol.* (bG.* sG  + rs.* bO.* sO) - ...
                            effPorVol0.*(bG0.*sG0 + rs0.*bO0.*sO0 ) ) + ...
               s.Div(bGvG + rsbOvO);
@@ -161,6 +195,5 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                                       wellVars, wellMap, ...
                                                       p, {mobW, mobO, ...
                         mobG}, {rhoW, rhoO, rhoG}, dissolved, {}, dt, opt);
-    
-end
 
+end

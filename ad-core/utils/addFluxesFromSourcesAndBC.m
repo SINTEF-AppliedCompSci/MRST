@@ -40,7 +40,7 @@ function [eqs, qBC, qRes, BCTocellMap, qSRC, srcCells, bcCells] = addFluxesFromS
 %   getBoundaryConditionFluxesAD, getSourceFluxesAD, addSource, addBC
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
