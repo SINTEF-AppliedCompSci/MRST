@@ -586,7 +586,7 @@ function [tit, d, yl, doCsum] = getWellUnit(d, fld, usys, isCsum, hasTimesteps)
             switch lower(usys)
                 case 'metric'
                     y_str = 'm^3';
-                    y_unit = meter;
+                    y_unit = meter^3;
                 case 'field'
                     if isRes
                         y_str = 'stb';
@@ -601,7 +601,7 @@ function [tit, d, yl, doCsum] = getWellUnit(d, fld, usys, isCsum, hasTimesteps)
                     end
                 case 'si'
                     y_str = 'm^3';
-                    y_unit = meter;
+                    y_unit = meter^3;
                 case 'lab'
                     y_str = 'cm^3';
                     y_unit = (centi*meter)^3;
