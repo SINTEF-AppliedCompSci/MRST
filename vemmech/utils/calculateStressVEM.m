@@ -13,6 +13,7 @@ if(opt.do_patch)
 end
 if(G.griddim==3)
  stress=bsxfun(@rdivide,stress(:,[1:3,5,6,4]),[ones(1,3),2*ones(1,3)]);
+ stress(:,[4,6]) = stress(:,[6,4]);
 else
     assert(G.griddim==2)
   stress=bsxfun(@rdivide,stress,[ones(1,2),2]);  
