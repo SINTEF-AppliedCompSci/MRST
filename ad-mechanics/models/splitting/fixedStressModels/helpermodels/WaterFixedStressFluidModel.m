@@ -58,7 +58,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             opt = merge_options(opt, varargin{:});
 
             [p, wellSol] = model.getProps(state, 'pressure', 'wellsol');
-            p0           = model.getProp(state, 'pressure');
+            p0           = model.getProp(state0, 'pressure');
 
             [wellVars, wellVarNames, wellMap] = ...
                 model.FacilityModel.getAllPrimaryVariables(wellSol);

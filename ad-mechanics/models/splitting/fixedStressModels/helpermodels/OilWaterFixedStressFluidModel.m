@@ -59,7 +59,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             opt = merge_options(opt, varargin{:});
 
             [p, sW, wellSol] = model.getProps(state, 'pressure', 'sw', 'wellsol');
-
+            p0 = model.getProp(state0, 'pressure');
             [wellVars, wellVarNames, wellMap] = ...
                 model.FacilityModel.getAllPrimaryVariables(wellSol);
 
@@ -70,7 +70,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             fnew         = drivingForces.fixedStressTerms.new;
             mechTerm.new = fnew.sTerm + fnew.pTerm.*p;
             fold         = drivingForces.fixedStressTerms.old;
-            mechTerm.old = fold.sTerm + fold.pTerm.*p;
+            mechTerm.old = fold.sTerm + fold.pTerm.*p0;
 
             otherDrivingForces = rmfield(drivingForces, 'fixedStressTerms');
 
