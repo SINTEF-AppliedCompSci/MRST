@@ -593,7 +593,8 @@ function [tit, d, yl, doCsum] = getWellUnit(d, fld, usys, isCsum, hasTimesteps)
                         y_unit = stb;
                     else
                         if strcmpi(ph, 'gas')
-                            y_str = ft^3;
+                            y_str = 'scf';
+                            y_unit = ft^3;
                         else
                             y_str = 'stb';
                             y_unit = stb;
