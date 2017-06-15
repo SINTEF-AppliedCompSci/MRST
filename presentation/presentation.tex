@@ -1,51 +1,27 @@
 \documentclass[screen, aspectratio=43]{beamer}
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
+\usepackage{natbib}
+\bibliographystyle{plain}
 \usepackage{tikz}
+\usepackage{graphicx}
 \usepackage{subfig}
+\captionsetup[subfigure]{labelformat=empty}
+\captionsetup[figure]{labelformat=empty}
 \usetikzlibrary{tikzmark,positioning,calc}
 \usepackage{tcolorbox}
+\usepackage[absolute,overlay]{textpos}
 \usepackage{multimedia}
 \definecolor{re}{rgb}{0.8500, 0.3250, 0.0980}
+\definecolor{ye}{rgb}{    0.9290    0.6940    0.1250}
 \newtcolorbox{mybox}[2]{colback=white, colframe=ntnublue,
   fonttitle=\large, title=#1, text height=#2, fontupper=\color{black}\footnotesize}%
 \newtcolorbox{myboxRed}[2]{colback=white, colframe=re,
   fonttitle=\large, title=#1, text height=#2, fontupper=\color{black}\footnotesize}%
-\usepackage{listings}
-\usepackage{color}
-\definecolor{mygreen}{rgb}{0,0.6,0}
-\definecolor{mygray}{rgb}{0.5,0.5,0.5}
-\definecolor{mymauve}{rgb}{0.58,0,0.82}
-\lstset{ %
-  backgroundcolor=\color{white},   % choose the background color; you must add \usepackage{color} or \usepackage{xcolor}; should come as last argument
-  basicstyle=\tiny\ttfamily,        % the size of the fonts that are used for the code
-  breakatwhitespace=false,         % sets if automatic breaks should only happen at whitespace
-  breaklines=true,                 % sets automatic line breaking
-  %captionpos=t,                    % sets the caption-position to bottom
-  commentstyle=\color{mygreen},    % comment style
-  deletekeywords={...},            % if you want to delete keywords from the given language
-  escapeinside={\%*}{*)},          % if you want to add LaTeX within your code
-  extendedchars=true,              % lets you use non-ASCII characters; for 8-bits encodings only, does not work with UTF-8
-  frame=single,	                   % adds a frame around the code
-  keepspaces=true,                 % keeps spaces in text, useful for keeping indentation of code (possibly needs columns=flexible)
-  keywordstyle=\color{blue},       % keyword style
-  language=Matlab,                 % the language of the code
-  morekeywords={*,...},           % if you want to add more keywords to the set
-  numbers=left,                    % where to put the line-numbers; possible values are (none, left, right)
-  numbersep=5pt,                   % how far the line-numbers are from the code
-  numberstyle=\tiny\color{mygray}\ttfamily, % the style that is used for the line-numbers
-  rulecolor=\color{black},         % if not set, the frame-color may be changed on line-breaks within not-black text (e.g. comments (green here))
-  showspaces=false,                % show spaces everywhere adding particular underscores; it overrides 'showstringspaces'
-  showstringspaces=false,          % underline spaces within strings only
-  showtabs=false,                  % show tabs within strings adding particular underscores
-  stepnumber=2,                    % the step between two line-numbers. If it's 1, each line will be numbered
-  stringstyle=\color{mymauve},     % string literal style
-  tabsize=2,	                   % sets default tabsize to 2 spaces
-  title=\lstname                   % show the filename of files included with \lstinputlisting; also try caption instead of title
-}
-
 
 \DeclareMathOperator{\eff}{eff}
+\DeclareMathOperator{\dd}{d}
+\newcommand{\mat}[1]{\boldsymbol{#1}}
 
 
 % Use the NTNU-temaet for beamer 
@@ -59,43 +35,164 @@
 %\date{1 January 1970}
 \date{} % To have an empty date
 
-
 \begin{document}
 
 % Special title page command to get a different background
 \ntnutitlepage
 
 \begin{frame}
+  \frametitle{Outline}
+  \tableofcontents
+\end{frame}
+
+\section{Introduction}
+
+\begin{frame}
+  \frametitle{Outline}
+  \tableofcontents[currentsection]
+\end{frame}
+
+
+\begin{frame}
   \frametitle{Miscible flooding}
+  Miscible flooding is a proven, economically viable recovery technique \cite{petroWiki2017Misc}
   \begin{itemize}
-  \item Much higher recovery factor due to very little residual oil  
+  \item Recovers much of the trapped oil after a waterflood
+  \item Displaces oil in the upper regions of the reservoir poorly swept by water due
+    to gravity
+  \item Three main injection strategies: Slug injection, Water-alternating-gas (WAG) and
+    Gravity-stable injection
   \end{itemize}
+  \begin{figure}[h]
+    \centering
+    \subfloat[$S_o$ after waterflood]{\includegraphics[width = 0.4\textwidth]{figures/misc/wagEx1}}\hspace{1em}
+    \subfloat[$S_o$ after waterflood + WAG]{\includegraphics[width = 0.4\textwidth]{figures/misc/wagEx2}}
+  \end{figure}
 \end{frame}
 
 \begin{frame}
   \frametitle{Physics of miscible flooding}
+  \only<1>{
+    \begin{columns}
+      \begin{column}{0.65\textwidth}
+        \begin{itemize}
+        \item Miscible displacement: no phase boundary or interface between injected
+          fluid and reservoir oil
+        \item Fully miscible displacement: injected solvent displaces \emph{all}
+          residual oil form invaded pores
+        \item Most physical gases does not form a completely miscible when combined
+          with reservoir oil
+        \end{itemize}
+      \end{column}
+      \begin{column}{0.3\textwidth}
+        \begin{figure}[h]
+          \centering
+          \includegraphics[height=0.85\textheight]{figures/misc/miscible}
+        \end{figure}
+      \end{column}
+    \end{columns}
+  }
+  \only<2->{
+    \begin{columns}
+      \begin{column}{0.7\textwidth}
+        Key physical phenomena \cite{geoquest2002eclipse}
+        \begin{itemize}
+        \item High adverse \textcolor{re}{mobility ratio} \\ \hspace{0.5cm} $\Rightarrow$ Unstable flow, viscous fingers
+        \item Large \textcolor{re}{density differences} \\ \hspace{0.5cm} $\Rightarrow$ Gravitational fingers
+        \item The growth of both types of fingers are dampened by \textcolor{re}{mixing}
+        \item A good solvent model should account for \textcolor{re}{all these effects}
+        \end{itemize}
+      \end{column}
+      \begin{column}{0.25\textwidth}
+        \begin{figure}[h]
+          \centering
+          \includegraphics[trim={0 0 5cm 0}, clip, width = \textwidth]{figures/misc/mf}
+          \caption{\scriptsize Viscous fingers in a Hele-Shaw cell}
+%          \includegraphics[width = \textwidth]{figures/misc/mf}
+        \end{figure}
+      \end{column}
+    \end{columns}
+  }
+  % In a miscible gas injection process, we typically have a high adverse mobility
+  % ratio. This results in an unstable flow, which eventually leads to viscous
+  % fingers. In addition, gravitational fingering may occur if the density
+  % differences are large. This means that the total displacement of the oil in the
+  % swept regions may not lead to a high overall efficiency. On the other hand,
+  % mixing of miscible fluids exerts a considerable damping effect on the growth of
+  % viscous and gravity fingers. Thus, a good solvent simulation model must thus
+  % account both these effects.
+\end{frame}
+
+\section{Model formulation}
+
+\begin{frame}
+  \frametitle{Outline}
+  \tableofcontents[currentsection]
+\end{frame}
+
+\begin{frame}
+  \frametitle{Compositional formulation}
+  First attempts based on direct solution of convection-diffusion equations
+  \begin{equation*}
+    \partial_t (\phi S c) + \nabla \cdot (\vec v c)  = \nabla \cdot (D\nabla \phi S c )
+% @article{ghorayeb2000modeling,
+%   title={Modeling multicomponent diffusion and convection in porous media},
+%   author={Ghorayeb, Kassem and Firoozabadi, Abbas and others},
+%   journal={SPE Journal},
+%   volume={5},
+%   number={02},
+%   pages={158--171},
+%   year={2000},
+%   publisher={Society of Petroleum Engineers}
+% }
+  \end{equation*}
+  On coarse grids:
   \begin{itemize}
-  \item Miscible displacement occurs when there is no phase boundary or
-    interface between injected fluid and reservoir oil
-  \item Fully miscible displacement: injected solvent displaces \emph{all}
-    residual oil form invaded pores
-  \item Most physical gases does not form a completely miscible system and and
-    form two distinct phases over a broad range of mixtures and pressures when
-    combined with reservoir oil.
+  \item Fails to capture the fine-scale structure of the fingers
+  \item True mixing masked by numerical diffusion
   \end{itemize}
+  $\Rightarrow$ Unacceptably high grid resolution
 \end{frame}
 
 \begin{frame}
   \frametitle{Model assumptions}
+  \vspace{1cm}
+  We consider the model used by ECLIPSE \cite{geoquest2002eclipse}
   \begin{itemize}
-  \item Two extreme cases:
-    \begin{enumerate}
-    \item Only solvent gas and reservoir oil: Miscible in all proportions (only
-      one hydrocarbon phase)
-    \item Only reservoir gas and oil: Immiscible (traditional black-oil)
-    \end{enumerate}
-  \item Interpolate between these two in regions containing both dry gas and
-    solvent
+  \item Separate solvent phase $\Rightarrow$ avoid compositional formulation
+  \end{itemize}
+  % \begin{itemize}
+  % \item Two extreme cases:
+  %   \begin{enumerate}
+  %   \item Only reservoir gas and oil: Immiscible
+  %   \item Only solvent gas and reservoir oil: Miscible in all proportions
+  %   \end{enumerate}
+  % \item Interpolate in regions containing both dry gas and
+  %   solvent
+  % \end{itemize}
+  \begin{figure}[h]
+    \centering
+    \includegraphics[width=\textwidth]{figures/misc/miscible2}
+  \end{figure}
+  
+\end{frame}
+
+\begin{frame}
+  \frametitle{Governing equations}
+  \begin{itemize}
+  \item \textcolor{re}{One extra} phase $\Rightarrow$ \textcolor{re}{One extra} conservation equation
+  \begin{align*}
+    \begin{aligned}
+      \partial_t(\phi \only<2>{\textcolor{ye}}{\rho_\alpha} S_\alpha)
+      + \nabla \cdot (\only<2>{\textcolor{ye}}{\rho_\alpha} \vec v_\alpha) = \only<2>{\textcolor{ye}}{\rho_\alpha} q_\alpha \\
+    \vec v_\alpha = -\frac{\only<2>{\textcolor{ye}}{k_{r\alpha}}}{\only<2>{\textcolor{ye}}{\mu_\alpha}}K
+    \left(\nabla p - \only<2>{\textcolor{ye}}{\rho_\alpha} g \nabla z\right)
+  \end{aligned} \quad \quad  \alpha \in \{w, o, g, \textcolor{re}{s}\}
+  \end{align*}
+\item Solvent affects the \only<2>{\textcolor{ye}}{relative permeabilities}, \only<2>{\textcolor{ye}}{viscosities} and
+  \only<2>{\textcolor{ye}}{densities}
+\item Effects on oil and gas are derived from the Todd-Longstaff model \cite{todd1972development} for miscible
+  flooding
   \end{itemize}
 \end{frame}
 
@@ -103,7 +200,7 @@
   \frametitle{Relative permeabilities}
   \begin{align*}
     k_{r \alpha,\textcolor{re}{\only<1>{i}\only<2>{m}}} = \underbrace{m_\alpha \left(\frac{S_\alpha}{S_g + S_s}\right)}_{\tikzmark{malpha}}
-    \underbrace{k_{rgT,\textcolor{re}{\only<1>{i}\only<2>{m}}}(S_g, S_s)}_{\tikzmark{krgT}},
+    \underbrace{k_{rgT,\textcolor{re}{\only<1>{i}\only<2>{m}}}(S_o, S_g, S_s)}_{\tikzmark{krgT}},
     \quad \alpha \in \{g, s\}
   \end{align*}
   \begin{tikzpicture}[remember picture,overlay]
@@ -117,8 +214,9 @@
   \\\vspace{0.5cm}
   \begin{columns}
     \begin{column}{0.5\textwidth}
-      \only<1>{\begin{myboxRed}{\centering Immiscible case ($i$)}{0.25\textheight}}
-      \only<2>{\begin{mybox}{\centering Immiscible case ($i$)}{0.25\textheight}}
+      \only<1>{\begin{myboxRed}{\centering Immiscible case ($i$)}{0.3\textheight}}
+        \only<2>{\begin{mybox}{\centering Immiscible case ($i$)}{0.3\textheight}}
+          \vspace{0.4cm}
         \begin{align*}
           k_{r o,i} & = k_{ro}(S_o) \\
           k_{rgT,i} & = k_{rg}(S_g + S_s)
@@ -127,11 +225,12 @@
       \only<2>{\end{mybox}}
     \end{column}
     \begin{column}{0.5\textwidth}
-      \only<1>{\begin{mybox}{\centering Miscible case ($m$)}{0.25\textheight}}
-      \only<2>{\begin{myboxRed}{\centering Miscible case ($m$)}{0.25\textheight}}
+      \only<1>{\begin{mybox}{\centering Miscible case ($m$)}{0.3\textheight}}
+      \only<2>{\begin{myboxRed}{\centering Miscible case ($m$)}{0.3\textheight}}
         \begin{align*}
-          k_{r o,m} & = \frac{S_o}{S_n}k_{ro}(S_o + S_g + S_s) \\
-          k_{rgT,m} & = \frac{S_g + S_s}{S_n}k_{ro}(S_o + S_g + S_s)
+          k_{r o,m} & = \frac{S_o}{S_n}k_{rn}(S_n) \\
+          k_{rgT,m} & = \frac{S_g + S_s}{S_n}k_{rn}(S_n) \\
+          S_n & = S_o + S_g + S_s
         \end{align*}
       \only<1>{\end{mybox}}
       \only<2>{\end{myboxRed}}
@@ -141,127 +240,316 @@
 
 \begin{frame}
   \frametitle{Transition between miscible and immiscible conditions}
-  \begin{itemize}
-  \item Determined by miscibility function
-  \begin{equation*}
-      M = M_S\left(\frac{S_s}{S_g + S_s}\right) M_p(p) \in [0,1]
-    \end{equation*}
-  \item Two-step transition:
-    \begin{enumerate}
-    \item Interpolate residual saturations
-      \begin{align*}
-        S_{\alpha r} = S_{\alpha r,m}M + S_{\alpha r,i}(1-M), \quad \alpha \in \{o,s\}
-      \end{align*}
-    \item Interpolate relative permeabilities using these as new endpoints
-      \begin{align*}
-        k_{r \alpha} = k_{r\alpha,m}M + k_{r\alpha,i}(1-M), \quad \alpha \in \{o,gT\}
-      \end{align*}
-    \end{enumerate}
-  \end{itemize}
+  \only<1>{
+    \begin{itemize}
+    \item Determined by miscibility function
+      \begin{equation*}
+        \textcolor{re}{M} = \underbrace{M_S\left(\frac{S_s}{S_g + S_s}\right)}_{\tikzmark{Ms}} M_p\tikzmark{Mp}(p) \in [0,1]
+      \end{equation*}
+      \begin{tikzpicture}[remember picture,overlay]
+        \draw [bend left, <-, line width = 1pt]($({pic cs:Ms})+(0,7pt)$) |- ++(-1em,-2ex)
+        node[rectangle, anchor=east,font=\small, text width = 3cm, align = center, fill = ntnublue!20]
+        {\scriptsize Saturation dependence};
+        \draw [bend left, <-, line width = 1pt]($({pic cs:Mp})-(0,5pt)$) |- ++(1em,-4.3ex)
+        node[rectangle, anchor=west,font=\small, text width = 3cm, align = center, fill = ntnublue!20]
+        {\scriptsize Pressure dependence};
+      \end{tikzpicture}%
+      \\\vspace{0.3cm}
+    \item Two-step transition:
+      \begin{enumerate}
+      \item Interpolate residual saturations, and use these as new endpoints in the relative permeabilities
+        \begin{align*}
+          S_{\alpha r} = S_{\alpha r,m}\textcolor{re}{M} + S_{\alpha r,i}(1-\textcolor{re}{M}), \quad \alpha \in \{o,g\}
+        \end{align*}
+      \item Interpolate relative permeabilities
+        \begin{align*}
+          k_{r \alpha} = k_{r\alpha,m}\textcolor{re}{M} + k_{r\alpha,i}(1-\textcolor{re}{M}), \quad \alpha \in \{o,gT\}
+        \end{align*}
+      \end{enumerate}
+    \end{itemize}
+  }
+  \only<2>{
+    \begin{figure}[h]
+      \vspace{0.5cm}
+      \centering
+      \begin{tikzpicture}
+        \node[anchor=south west,inner sep=0] at (0,0) {
+          \includegraphics[width = 0.6\textwidth]{figures/misc/krO.png}};
+        \node[rotate = 60] at (1,3.5) {Immiscible regime};
+        \node[rotate = -60] at (5.8,3.5) {Miscible regime};
+        \node[rotate = -20, color = white] at (3.2,1.3) {Residual oil saturation};
+      \end{tikzpicture}
+      \caption{Oil relperm}
+    \end{figure}
+  }
+  \only<3>{
+    \vspace{0.5cm}
+    \begin{figure}[h]
+      \centering
+      \includegraphics[width = 0.9\textwidth]{figures/misc/ternearyAll}
+    \end{figure}
+  }
 \end{frame}
+
 
 \begin{frame}
   \frametitle{Viscosities}
-  \vspace{0.2cm}
-  Effective viscosities determined by Todd-Longstaff model:
-  \begin{equation*}
-    \mu_{o, \eff} = \mu_o^{1-\omega}\mu_{mos}^\omega, \quad
-    \mu_{g, \eff} = \mu_g^{1-\omega}\mu_{msg}^\omega, \quad
-    \mu_{s, \eff} = \mu_s^{1-\omega}\mu_{m}^\omega
-  \end{equation*}
-  \vspace{0.2cm}
-  \begin{mybox}{}{0.4\textheight}
-    \begin{description}
-    \item[$\omega$] Mixing parameter $\in [0,1]$,
-    \item[$\mu_{mos}$] Fully mixed $o + s$ viscosity
-      $= \frac{\mu_o \mu_s}{\left(\frac{S_o'}{S_{os}'}\mu_s^{1/4} +
-          \frac{S_s'}{S_{os}'}\mu_o^{1/4}\right)^4}$
-    \item[$\mu_{msg}$] Fully mixed $s + g$ viscosity
-      $ = \frac{\mu_s \mu_g}{\left(\frac{S_s'}{S_{sg}'}\mu_g^{1/4} +
-          \frac{S_g'}{S_{sg}'}\mu_s^{1/4}\right)^4}$
-    \item[$\mu_{m}$] Fully mixed $o +s + g$ viscosity \\
-      \hfill $ = \frac{\mu_o \mu_s \mu_g}{\left(\frac{S_o'}{S_{n}'}(\mu_s\mu_g)^{1/4}
-          + \frac{S_s'}{S_{n}'}(\mu_o\mu_g)^{1/4}
-          + \frac{S_g'}{S_{n}'}(\mu_o\mu_s)^{1/4}\right)^4}$
-    \end{description}
-  \end{mybox}
+  \vfill
+  Effective viscosities are defined as
+  \begin{align*}
+    \mu_{o, \eff} = \mu\tikzmark{muo}_o^{1-\only<2>{\textcolor{re}}{\omega}}\only<3>{\textcolor{re}}{\mu\tikzmark{mumos}_{mos}}^{\only<2>{\textcolor{re}}{\omega}}
+  \end{align*}
+  \begin{tikzpicture}[remember picture,overlay]
+    \draw [bend left, <-, line width = 1pt]($({pic cs:muo})-(0,5pt)$) |- ++(-1em,-3ex)
+    node[rectangle, anchor=east,font=\small, text width = 3.6cm, align = center, fill = ntnublue!20]
+    {\scriptsize Pure oil viscosity};
+    \draw [bend left, <-, line width = 1pt]($({pic cs:mumos})-(0,5pt)$) |- ++(1em,-3ex)
+    node[rectangle, anchor=west,font=\small, text width = 3.6cm, align = center, fill = ntnublue!20]
+    {\scriptsize Fully mixed $o+s$ viscosity};
+  \end{tikzpicture}%
+  \\\vspace{0.5cm}
+  % Effective viscosities determined by Todd-Longstaff model:
+  % \begin{equation*}
+  %   \mu_{o, \eff} = \mu_o^{1-\omega}\mu_{mos}^\omega
+  % \end{equation*}
+  % \vspace{0.2cm}
+  \begin{itemize}
+  \item Degree of mixing controlled by mixing parameter:
+    \begin{equation*}
+      \text{no mixing} \leftrightarrow 0 \leq \only<2>{\textcolor{re}}{\omega} \leq 1 \leftrightarrow \text{full mixing}
+    \end{equation*}
+  \item Fully mixed viscosities determined by $1/4$th power mixing rule:
+    \begin{align*}
+      \only<3>{\textcolor{re}}{\mu_{mos}} = \frac{\mu_o \mu_s}{\left(\frac{S_o}{S_o + S_s}\mu_s^{1/4} +
+      \frac{S_s}{S_o + S_s}\mu_o^{1/4}\right)^4}
+    \end{align*}
+  \end{itemize}
+      
+  % \begin{mybox}{Todd-Longstaff model}{0.3\textheight}
+  %   \vspace{0.1cm}
+  %   \begin{description}
+  %   \item[$\omega$] Mixing parameter $\in [0\leftrightarrow$ no mixing, $1 \leftrightarrow$ full mixing$]$
+  %   \item[$\mu_{mos}$] Determined by 4th power mixing rule:
+  %     \begin{align*}
+  %       \mu_{mos} = \frac{\mu_o \mu_s}{\left(\frac{S_o}{S_o + S_s}\mu_s^{1/4} +
+  %       \frac{S_s}{S_o + S_s}\mu_o^{1/4}\right)^4}
+  %     \end{align*}
+  %   %   $ = \frac{\mu_s \mu_g}{\left(\frac{S_s'}{S_{sg}'}\mu_g^{1/4} +
+  %   %       \frac{S_g'}{S_{sg}'}\mu_s^{1/4}\right)^4}$
+  %   % \item[$\mu_{m}$] Fully mixed $o +s + g$ viscosity \\
+  %   %   \hfill $ = \frac{\mu_o \mu_s \mu_g}{\left(\frac{S_o'}{S_{n}'}(\mu_s\mu_g)^{1/4}
+  %   %       + \frac{S_s'}{S_{n}'}(\mu_o\mu_g)^{1/4}
+  %   %       + \frac{S_g'}{S_{n}'}(\mu_o\mu_s)^{1/4}\right)^4}$
+  %   \end{description}
+  % \end{mybox}
 
 \end{frame}
 
 \begin{frame}
   \frametitle{Densities}
-  \vspace{0.2cm}
-
- 
-  Effective viscosities are used to calculate effective saturation fractions
-  $[S_\alpha/S_n]_{\beta,\eff}$
-
+  \vfill
+  Mixed densities are interpolated using the saturation fractions
   \begin{align*}
-    \rho_{o,\eff} & = \rho_o\left[\frac{S_o}{S_n}\right]_{o,\eff} + \rho_s\left(1 - \left[\frac{S_o}{S_n}\right]_{o,\eff}\right) \\
-    \rho_{g,\eff} & = \rho_s\left[\frac{S_o}{S_n}\right]_{g,\eff} + \rho_g\left(1 - \left[\frac{S_o}{S_n}\right]_{g,\eff}\right) \\
-    \rho_{s,\eff} & = \rho_s\left[\frac{S_s}{S_n}\right]_{s,\eff}
-                    + \left(\rho_g\frac{S_g}{S_o + S_g} + \rho_o\frac{S_o}{S_o + S_g}\right)\left(1 - \left[\frac{S_s}{S_n}\right]_{s,\eff}\right)
+    \rho_{o,\eff} & = \rho_o\only<1>{\frac{S_o}{S_o + S_s}}
+                    \only<2>{\textcolor{re}{\left[\frac{S_o}{S_o + S_s}\right]_{\eff}}}
+                    + \rho_s\left(1 - \only<1>{\frac{S_o}{S_o + S_s}}
+                    \only<2>{\textcolor{re}{\left[\frac{S_o}{S_o + S_s}\right]_{\eff}}}\right)
   \end{align*}
+  \begin{itemize}
+  \item To be consistent with the viscosity model, we use \emph{effective} saturation fractions
+  \begin{align*}
+    \only<1>{\mu_{mos}}\only<2>{\textcolor{re}{\mu_{o,\eff}}}
+    = \frac{\mu_o \mu_s}{\left(\only<1>{\frac{S_o}{S_o + S_s}}
+    \only<2>{\textcolor{re}{\left[\frac{S_o}{S_o + S_s}\right]_{\eff}}}\mu_s^{1/4} +
+    \left(1-\only<1>{\frac{S_o}{S_o + S_s}}
+    \only<2>{\textcolor{re}{\left[\frac{S_o}{S_o + S_s}\right]_{\eff}}}\right)\mu_o^{1/4}\right)^4}
+    % \left[\frac{S_o}{S_o + S_s}\right]_{\eff} = \frac{(\mu_o/\mu_s)^{1/4} - (\mu_o/\mu_{o,\eff})^{1/4}}{(\mu_o/\mu_s)^{1/4} - 1}
+    % \mu_{mos} = \frac{\mu_o \mu_s}{\left(\        {S_o}{S_o + S_s}\mu_s^{1/4} +
+    % \frac{S_s}{S_o + S_s}\mu_o^{1/4}\right)^4}
+  \end{align*}
+\end{itemize}
   
 \end{frame}
 
+% \begin{frame}
+%   \lstinputlisting[caption = ,firstline =  5, lastline = 10]{../code/FourPhaseSolvent/computeRelPermSolvent.m}
+%   \lstinputlisting[caption = ,firstline = 5, lastline = 10]{../code/FourPhaseSolvent/computeViscositiesAndDensities.m}
+% \end{frame}
+
+
+\section{Implementation}
+
 \begin{frame}
-  \lstinputlisting[caption = ,firstline = 5, lastline = 10]{../code/FourPhaseSolvent/computeRelPermSolvent.m}
-  \lstinputlisting[caption = ,firstline = 5, lastline = 10]{../code/FourPhaseSolvent/computeViscositiesAndDensities.m}
+  \frametitle{Outline}
+  \tableofcontents[currentsection]
 \end{frame}
 
 \begin{frame}
-  \frametitle{Example 1: 1D displacement}
-  \begin{itemize}
-  \item Initial saturation: $S_o = S_{or,i} = 0.3$, $S_w = 1 - S_{or, i}$
-  \item Miscible floodingresidual saturation $S_{or,m}= 0$
-  \item Mixing: $\omega = 2/3$
-  \item 10 WAG-cycles over 10 years, 1 PV injected in each cycle
-  \end{itemize}
+  \frametitle{Finite volume discretization}
+
+  \begin{columns}
+    \begin{column}{0.6\textwidth}
+        Introduce grid of cells $C_i$, and integrate over each cell in space:
+      \begin{align*}
+        & \bigl[(\phi b_\alpha S_\alpha)_i^{n+1} - (\phi b_\alpha
+          S_\alpha)_i^n\bigr] \\
+        & + \frac{\Delta t}{V_i}\sum\nolimits_j \only<2>{\textcolor{re}}{|F_{ij}| (b_\alpha
+          \vec{v}_\alpha\cdot\vec{n})_{ij}}^{n+1} = \frac{\Delta t}{V_i} (b_\alpha q_\alpha)_i^{n+1}
+      \end{align*}
+    \end{column}
+    \begin{column}{0.3\textwidth}
+      \begin{figure}[h]
+        \centering
+        \includegraphics[width = \textwidth]{figures/misc/tpfa}
+      \end{figure}
+    \end{column}
+  \end{columns}
+
+  \begin{overlayarea}{\textwidth}{0.4\textheight}
+    \only<1>{
+      \vspace{0.5cm}
+      \begin{itemize}
+      \item Forward differences in time
+      \item Inverse formation volume factor $b_\alpha = \frac{\rho_\alpha}{\rho_\alpha^s}$ 
+      \end{itemize}
+    }
+    \only<2>{
+      \begin{itemize}
+      \item Mass fluxes approximated using two-point approximation
+      \end{itemize}
+      \begin{equation*}
+        \textcolor{re}{|F_{ij}|(b_\alpha \vec v_\alpha\cdot\vec n)_{ij}} \approx
+        \underbrace{(b_\alpha\lambda_\alpha)_{ij}}_{\tikzmark{up}}
+        \Bigl[ T_{ij}(p_i - p_j) -
+        \underbrace{(b_\alpha)_{ij}}_{\tikzmark{av}}
+        \rho_\alpha^s g T_{ij}(z_i - z_j)\Bigr]
+      \end{equation*}%
+      \begin{tikzpicture}[remember picture,overlay]
+        \draw [bend left, <-, line width = 1pt]($({pic cs:up})+(0,7pt)$) |- ++(-1em,-2ex)
+        node[rectangle, anchor=east,font=\small, text width = 2.9cm, align = center, fill = ntnublue!20]
+        {\scriptsize Upstream evaluation};
+        \draw [<-, line width = 1pt]($({pic cs:av})+(0,7pt)$) |- ++(1em,-2ex)
+        node[rectangle, anchor=west,font=\small, text width = 2.5cm, align = center, fill = ntnublue!20]
+        {\scriptsize Arithmetic average};
+      \end{tikzpicture}%
+      \\\vspace{0.0cm}
+      \begin{equation*}
+        \lambda_\alpha = \frac{k_{r\alpha}}{\mu_\alpha}, \quad T_{ij} = \bigl[T_{i,j}^{-1} + T_{j,i}^{-1}\bigr]^{-1}, \quad
+        T_{i,j} = |F_{ij}| \mat{K}_i\frac{\vec{c}_{i,j}\cdot\vec{n}_{i,j}}{|\vec{c}_{i,j}|^2},
+      \end{equation*}
+    }
+  \end{overlayarea}
+
 \end{frame}
+
+{
+\usebackgroundtemplate{\includegraphics[width = \textwidth, trim={-70 0 0 -140}, clip]{figures/misc/code}}
+\begin{frame}
+  \frametitle{MATLAB Reservoir Simulation Toolbox (MRST)}
+  
+  \begin{textblock}{10}(6,7.5)
+    MRST: Rapid prototyping of reservoir simulators \cite{krogstad2015mrst}
+    \begin{itemize}
+    \item \texttt{G}: Geometric reservoir representation
+    \item \texttt{rock}: Geological properties
+    \item \texttt{fluid}: Phase properties
+    \item \texttt{model}: Class defining fluid interactions
+    \end{itemize}
+  \end{textblock}
+
+\end{frame}
+}
+
+{
+\usebackgroundtemplate{\includegraphics[width = \textwidth, trim={-70 0 0 -140}, clip]{figures/misc/code2}}
+\begin{frame}
+  
+ \frametitle{MATLAB Reservoir Simulation Toolbox (MRST)}
+
+  \begin{textblock}{10}(6,7.5)
+    \begin{itemize}
+    \item Automatic differentiation
+    \item Discrete versions of e.g. \texttt{Div} and \texttt{Grad}
+    \item Write discrete equations on a form very similar to the continuous
+    \end{itemize}
+  \end{textblock}
+    
+\end{frame}
+}
+
+
+\section{Examples}
+
+\begin{frame}
+  \frametitle{Outline}
+  \tableofcontents[currentsection]
+\end{frame}
+
 
 \begin{frame}
   \frametitle{Example 1: 1D displacement}
-  \centering
-  \begin{mybox}{}{0.6\textheight}
+  \only<1>{
+    \begin{itemize}
+    \item Initial saturation: $S_o = S_{or,i} = 0.3$, $S_w = 1 - S_{or, i}$
+    \item Miscible residual saturation $S_{or,m}= 0$
+    \item Mixing: Moderate ($\omega = 2/3$), and full ($\omega = 1$)
+    \item 10 WAG-cycles over 4 years, 1 PV injected in each cycle
+    \end{itemize}
+  }
+  \only<2>{
     \begin{center}
-    \movie[width = 1\textwidth]{\includegraphics[width = 0.9\textwidth]{figures/displacement1D/displacement1Dplaceholder}}
-    {figures/displacement1D/displacement1D.avi}
+      \begin{mybox}{Moderate mixing ($\omega \doteq 2/3$)}{0.63\textheight}
+        \begin{center}
+          \movie[showcontrols, width = 1\textwidth]{\includegraphics[width = \textwidth]{figures/placeholder}}
+          {figures/displacement1D/displacement1D.avi}
+        \end{center}
+      \end{mybox}
     \end{center}
-  \end{mybox}
+  }
+  \only<3>{
+    \centering
+    \begin{mybox}{Full mixing ($\omega \doteq 1$)}{0.63\textheight}
+      \begin{center}
+        \movie[showcontrols, width = 1\textwidth]{\includegraphics[width = \textwidth]{figures/placeholder}}
+        {figures/displacement1D/displacement1D_1.avi}
+      \end{center}
+    \end{mybox}
+  }
 \end{frame}
 
 \begin{frame}
   \frametitle{Example 2: Layer of SPE10}
-  \begin{columns}
-    \begin{column}{0.55\textwidth}
-      \begin{itemize}
-      \item Layer 10 of SPE10 model 2
-      \item Initial saturation: $S_o = S_{or,i} = 0.3$, $S_w = 1 - S_{or, i}$
-      \item Injection schedule: 1 Y waterflooding, 1 Y of 10 WAG cycles, 1 Y waterfloowing
-      \end{itemize}
-    \end{column}
-    \begin{column}{0.45\textwidth}
-      \begin{figure}[h]
-        \centering
-        \subfloat[Permeability]{
-          \includegraphics[width = 0.7\textwidth]{figures/spe10/spe10perm}} \\
-        \subfloat[Porosity]{
-          \includegraphics[width = 0.7\textwidth]{figures/spe10/spe10poro}}
-      \end{figure}
-    \end{column}
-  \end{columns}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Example 1: 1D displacement}
-  \centering
-  \begin{mybox}{}{0.6\textheight}
+  \only<1>{
+    \begin{figure}[h]
+      \centering
+      \subfloat[Permeability]{
+        \includegraphics[height = 0.6\textheight]{figures/spe10/spe10perm}}\hspace{1em}
+      \subfloat[Porosity]{
+        \includegraphics[height = 0.6\textheight]{figures/spe10/spe10poro}}
+    \end{figure}
+  }
+  \only<2>{
+    \begin{itemize}
+    \item Layer 10 of SPE10 model 2, initially filled with oil
+    \item Residual oil saturations: $S_{or,i} = 0.3$, $S_{or,m} = 0.0$
+    \item Injection schedule:
+    \end{itemize}
+    \begin{figure}[h]
+      \centering
+      \includegraphics[width = 0.9\textwidth]{figures/spe10/schedule}
+    \end{figure}
+  }
+  \only<3>{
     \begin{center}
-    \movie[width = 1\textwidth]{\includegraphics[width = 0.9\textwidth]{figures/spe10/spe10poro}}
-    {figures/spe10/spe10.avi}
+      \begin{mybox}{}{0.63\textheight}
+        \vspace{0.2cm}
+        \begin{center}
+          \movie[showcontrols, width = 1\textwidth]{\includegraphics[width = \textwidth]{figures/spe10/placeholder}}
+          {figures/spe10/spe10_1.avi}
+        \end{center}
+      \end{mybox}
     \end{center}
-  \end{mybox}
+  }
 \end{frame}
 
 
@@ -269,9 +557,38 @@
 
 \begin{frame}
   \frametitle{Example 2: Norne field model}
-  
+   \only<1>{
+    \begin{figure}[h]
+      \centering
+      \subfloat[Permeability]{
+        \includegraphics[width = 0.45\textwidth]{figures/norne/perm}}
+      \subfloat[Porosity]{
+        \includegraphics[width = 0.45\textwidth]{figures/norne/poro}}
+    \end{figure}
+    \begin{itemize}
+    \item Realistic field model with $44,000$ cells, initially filled with oil
+    \item Residual oil saturations: $S_{or,i} = 0.38$, $S_{or,m} = 0.05$
+    \end{itemize}
+  }
 \end{frame}
 
+\section{Conclusion}
+
+\begin{frame}
+  \frametitle{Conclusion}
+  \begin{itemize}
+  \item Implementation of a four-phase solvent model in MRST
+  \item Able to simulate solvent injection on field-scale reservoir models
+  \item Further work: Validate model with ECLIPSE
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{References}
+  \begin{small}
+  \bibliography{refs}
+\end{small}
+\end{frame}
 
 \end{document}
 

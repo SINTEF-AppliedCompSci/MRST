@@ -36,9 +36,9 @@
   }
 
 % Define block styles
-  \tikzstyle{water} = [rectangle, draw, fill=bl!60,minimum height=1em, inner sep = 0]
-\tikzstyle{solvent} = [rectangle, draw, fill=ye!60, minimum height=1em, inner sep = 0]
-\tikzstyle{line} = [draw, -latex', line width = 1pt]
+\tikzstyle{water} = [rectangle, draw, fill=bl!60,minimum height=2em, inner sep = 0]
+\tikzstyle{solvent} = [rectangle, draw, fill=ye!60, minimum height=2em, inner sep = 0]
+\tikzstyle{line} = [draw, -latex', line width = 2pt]
 % \tikzstyle{cloud} = [draw, ellipse,fill=re!20, node distance=3cm,
 % minimum height=2em]
 % \tikzstyle{primitive} = [draw, isosceles triangle, line width = 1pt,rotate = 20]
@@ -47,22 +47,28 @@
 \begin{tikzpicture}[node distance = 2cm, auto]
 
 
+  \node [water, text width = 7em, align = center] at (3.5em,2.5em) {\huge Water};
+  \node [solvent, text width = 7em, align = center] at (10.5em,2.5em) {\huge Solvent};
+  
   \node [water, text width = 10em] at (5em,0em) {};
   \foreach \x in {10, ..., 29}
   {\node [solvent, text width = 0.5em] at (\x*1em + 0.25em,0) {};
     \node [water, text width = 0.5em] at (\x*1em + 0.75em,0) {};}
   \node [water, text width = 10em] at (35em,0em) {};
 
-  \path [line] (0,-1em) --
-  node[pos = 0.25, below] {\scriptsize 1}
-  node[pos = 0.5, below] {\scriptsize 2}
-  node[pos = 0.75, below] {\scriptsize 3}
-  node[pos = 1, below] {\scriptsize PVI} (40em,-1em)
+  \path [line] (0,-1.5em) --
+  node[pos = 40/44*0.25, below] {\huge 1}
+  node[pos = 40/44*0.5, below] {\huge 2}
+  node[pos = 40/44*0.75, below] {\huge 3}
+  node[pos = 40/44*1, below] {\huge 4}
+  node[pos = 1, below] {\huge PVI} (44em,-1.5em);
+
+  
 
 
     % Place nodes
   % \node [inout] (in) {Input};
-  % \node [block1, right = 0.8cm of in] (vertex_proc) {Vertex processor (programmable)};
+  % \node [block1, right = 0.8cm of in] (vertex_proc)2 {Vertex processor (programmable)};
   % \node [block2, right = 0.8cm of vertex_proc] (rast) {Rasterizer};
   % \node [block1, right = 0.8cm of rast] (fragment_proc) {Fragment processor (programmable)};
   % \node [block2, right = 0.8cm of fragment_proc] (out) {Output merging};
