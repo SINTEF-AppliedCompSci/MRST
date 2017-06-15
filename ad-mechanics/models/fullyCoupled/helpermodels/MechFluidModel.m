@@ -120,7 +120,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
         function model = validateModel(model, varargin)
             if isempty(model.FacilityModel)
-                error('The MechFluidModel requires to have an iniatilized FacilityModel')
+                warning('The MechFluidModel has an empty FacilityModel');
             end
             model.fluidModel.FacilityModel = model.FacilityModel;
             model = validateModel@ReservoirModel(model, varargin{:});

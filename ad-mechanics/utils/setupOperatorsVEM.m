@@ -65,7 +65,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     else
         vtrace = [1; 1;  0];
     end
+    operators.trace = @(tensor) (tensor*vtrace);
 
-    operators.trace = @(tensor) (tensor*[1; 1; 1; 0; 0; 0]);
 
 end
