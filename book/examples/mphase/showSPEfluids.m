@@ -127,7 +127,7 @@ plot(pbp/barsa,rsd,'-o',pargs{:}); xlabel('Pressure [bar]');
 Rs        = reshape(f.rsSat(p(:)), N, M);
 isSat     = rs >= Rs;
 rs(isSat) = Rs(isSat);
-Bo        = reshape(f.BO (p(:), rs(:), isSat(:)),N,M);
+Bo        = 1./reshape(f.bO(p(:), rs(:), isSat(:)),N,M);
 muO       = reshape(f.muO(p(:), rs(:), isSat(:)),N,M);
 
 % Formation-volume factor
