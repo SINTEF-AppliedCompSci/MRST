@@ -24,7 +24,6 @@ op = model.operators;
 % Well variables
 [qWell, bhp, wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
 
-
 if ~opt.resOnly
     if ~opt.reverseMode
         % define primary varible x and initialize
@@ -128,44 +127,45 @@ rho = {rhoW, rhoO, rhoG, rhoS};
 mob = {mobW, mobO, mobG, mobS};
 sat = {sW, sO, sG, sS};
 
-% Density of injected fluids are calculated using the 'saturations' of
-% given in compi
 
-nc = arrayfun(@(w) numel(w.cells), W);
-sign = rldecode(vertcat(wellSol.sign), nc, 1);
-
-wc = vertcat(W.cells);
-wc = wc(sign>0);
-
-compi = rldecode(vertcat(W.compi), nc, 1);
-compi = compi(sign>0,:);
-
-muWell = cell(4,1);
-rhoWell = cell(4,1);
-[krWell{1}, krWell{2}, krWell{3}, krWell{4}] ...
-    = computeRelPermSolvent(fluid, p(wc), compi(:,1), compi(:,2), compi(:,3), compi(:,4), 0,0,0, mobMult);
-[muWell{1}, muWell{2}, muWell{3}, muWell{4}, rhoWell{1}, rhoWell{2}, rhoWell{3}, rhoWell{4}] ...
-    = computeViscositiesAndDensities(fluid, p(wc), compi(:,2), compi(:,3), compi(:,4), 0, 0);
-
-
-for i = 1:4
-    rho{i}(wc) = rhoWell{i};
-    mob{i}(wc) = mobMult*krWell{i}./muWell{i};
+pW = p;
+[eqs, ~, qRes] = addFluxesFromSourcesAndBC(model, eqs, ...
+                                       {pW, p},...
+                                       rho, ...
+                                       mob, ...
+                                       sat, ...
+                                       drivingForces);
+if model.outputFluxes
+    state = model.storeBoundaryFluxes(state, qRes{1}, qRes{2}, [], drivingForces);
 end
 
-% [eqs, ~, qRes] = addFluxesFromSourcesAndBC(model, eqs, ...
-%                                        {pW, p},...
-%                                        rho, ...
-%                                        mob, ...
-%                                        sat, ...
-%                                        drivingForces);
-% if model.outputFluxes
-%     state = model.storeBoundaryFluxes(state, qRes{1}, qRes{2}, [], drivingForces);
-% end
 % Finally, add in and setup well equations
-
 if ~isempty(W)
-    wm = model.FacilityModel;
+    
+    % Density of injected fluids are calculated using the 'saturations'
+    % given in compi
+    nc = arrayfun(@(w) numel(w.cells), W);
+    sign = rldecode(vertcat(wellSol.sign), nc, 1);
+
+    wc = vertcat(W.cells);
+    wc = wc(sign>0);
+
+    compi = rldecode(vertcat(W.compi), nc, 1);
+    compi = compi(sign>0,:);
+
+    muWell = cell(4,1);
+    rhoWell = cell(4,1);
+    [krWell{1}, krWell{2}, krWell{3}, krWell{4}] ...
+        = computeRelPermSolvent(fluid, p(wc), compi(:,1), compi(:,2), compi(:,3), compi(:,4), 0,0,0, mobMult);
+    [muWell{1}, muWell{2}, muWell{3}, muWell{4}, rhoWell{1}, rhoWell{2}, rhoWell{3}, rhoWell{4}] ...
+        = computeViscositiesAndDensities(fluid, p(wc), compi(:,2), compi(:,3), compi(:,4), 0, 0);
+
+    for i = 1:4
+        rho{i}(wc) = rhoWell{i};
+        mob{i}(wc) = mobMult*krWell{i}./muWell{i};
+    end 
+    
+%     wm = model.FacilityModel;
     if ~opt.reverseMode
         [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, qWell, bhp, wellVars, wellMap, p, mob, rho, {}, {}, dt, opt);
     else
