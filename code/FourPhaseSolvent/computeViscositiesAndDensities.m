@@ -57,14 +57,17 @@ function [muW_eff, muO_eff, muG_eff, muS_eff, rhoW_eff, rhoO_eff, rhoG_eff, rhoS
     muOmuS = (muO./muS).^a;
     muSmuO = 1./muOmuS;
     muSmuG = (muS./muG).^a;
-    sOsN_Oeff = max((muOmuS - (muO./muO_eff).^a)./(muOmuS-1),0);
-    sOsN_Geff = max((muSmuG - (muS./muG_eff).^a)./(muSmuG-1),0);
-
+    sOsN_Oeff = (muOmuS - (muO./muO_eff).^a)./(muOmuS-1);
+    sOsN_Oeff(~isfinite(double(sOsN_Oeff))) = 0; 
+    sOsN_Geff = (muSmuG - (muS./muG_eff).^a)./(muSmuG-1);
+    sOsN_Geff(~isfinite(double(sOsN_Geff))) = 0; 
+    
     sGf = sGn./(sOn + sGn);
     sGf(isnan(double(sGf))) = 0;
 
-    sSsN_Seff = max((muSmuG.*sGf + muSmuO.*(1-sGf) - (muS./muS_eff).^a)...
-               ./(muSmuG.*sGf + muSmuO.*(1-sGf) - 1),0);
+    sSsN_Seff = (muSmuG.*sGf + muSmuO.*(1-sGf) - (muS./muS_eff).^a)...
+               ./(muSmuG.*sGf + muSmuO.*(1-sGf) - 1);
+    sSsN_Seff(~isfinite(double(sSsN_Seff))) = 0; 
            
     % Expressions are sinuglar if muO == muG, in which case we replace the
     % by a simple interpolation rho*(1-omega) + rhoM*omega
@@ -85,9 +88,6 @@ function [muW_eff, muO_eff, muG_eff, muS_eff, rhoW_eff, rhoO_eff, rhoG_eff, rhoS
                                    
     rhoG_eff = (sOsN_Geff.*rhoS + (1-sOsN_Geff).*rhoG).*(~eq) ...
                                        + ((1-omega)*rhoG + omega*rhoM).*eq;
-    
-    sGf = sGn./(sOn + sGn);
-    sGf(isnan(double(sGf))) = 0;
     
     rhoS_eff = (sSsN_Seff.*rhoS + (1-sSsN_Seff).*(rhoG.*sGf + rhoO.*(1-sGf))).*(~eq) ...
                                        + ((1-omega)*rhoS + omega*rhoM).*eq;
