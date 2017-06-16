@@ -2,6 +2,7 @@ function results = runTestsAD(varargin)
     opt = struct(...
         'runUnit', true, ...
         'runIntegration', true, ...
+        'runExamples', true, ...
         'writeToDisk',  false ...
         );
     opt = merge_options(opt, varargin{:});
@@ -18,6 +19,11 @@ function results = runTestsAD(varargin)
     if opt.runIntegration
         suites{end+1} = getIntegrationTestSuiteMRST();
         names{end+1} = 'integration';
+    end
+    
+    if opt.runExamples
+        suites{end+1} = getExampleIntegrationTestSuiteMRST();
+        names{end+1} = 'examples';
     end
     
     results = [];
