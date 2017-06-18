@@ -56,16 +56,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'isoy', true,...
                  'isoz', true...
                  );
-    opt = merge_options(opt, varargin{:});
+    [opt, extra] = merge_options(opt, varargin{:});
     hold on
     
     mapx = @(x, y, z) (1/2)*(2*y + z)./(x + y+ z);
     mapy = @(x, y, z) (sqrt(3)/2)*z./(x + y+ z);
 
     if ~isempty(opt.names)
-        text(mapx(1, 0, 0), mapy(1, 0, 0), [opt.names{1},'=1'], 'verticalalignment', 'top', 'horizontalalignment', 'center')
-        text(mapx(0, 1, 0), mapy(0, 1, 0), [opt.names{2},'=1'], 'verticalalignment', 'top', 'horizontalalignment', 'center')
-        text(mapx(0, 0, 1), mapy(0, 0, 1), [opt.names{3},'=1'], 'verticalalignment', 'bottom', 'horizontalalignment', 'center')
+        text(mapx(1, 0, 0), mapy(1, 0, 0), [opt.names{1},'=1'], 'verticalalignment', 'top', 'horizontalalignment', 'center', extra{:})
+        text(mapx(0, 1, 0), mapy(0, 1, 0), [opt.names{2},'=1'], 'verticalalignment', 'top', 'horizontalalignment', 'center', extra{:})
+        text(mapx(0, 0, 1), mapy(0, 0, 1), [opt.names{3},'=1'], 'verticalalignment', 'bottom', 'horizontalalignment', 'center', extra{:})
     end
     plot([0, 0.5, 1, 0], [0, sqrt(3)/2, 0, 0], 'k')
 
@@ -77,11 +77,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             if opt.tickLabels
                 txt = num2str(ti);
                 text(mapx(1-ti, ti, 0), mapy(1-ti, ti, 0), txt, ...
-                    'verticalalignment', 'top', 'horizontalalignment', 'center')
+                    'verticalalignment', 'top', 'horizontalalignment', 'center', extra{:})
                 text(mapx(0, 1-ti, ti), mapy(0, 1-ti, ti), txt, ...
-                    'verticalalignment', 'bottom', 'horizontalalignment', 'left')
+                    'verticalalignment', 'bottom', 'horizontalalignment', 'left', extra{:})
                 text(mapx(ti, 0.0, 1-ti), mapy(ti, 0.0, 1-ti), txt, ...
-                    'verticalalignment', 'bottom', 'horizontalalignment', 'right')
+                    'verticalalignment', 'bottom', 'horizontalalignment', 'right', extra{:})
             end
             seg = 0:0.01:1;
             if opt.isox
