@@ -8,7 +8,8 @@
 \usepackage{subfig}
 \captionsetup[subfigure]{labelformat=empty}
 \captionsetup[figure]{labelformat=empty}
-\usetikzlibrary{tikzmark,positioning,calc}
+\usetikzlibrary{tikzmark,positioning,calc,arrows}
+%\usetikzlibrary{shapes,arrows,calc,positioning,shadows,fillbetween}
 \usepackage{tcolorbox}
 \usepackage[absolute,overlay]{textpos}
 \usepackage{multimedia}
@@ -60,6 +61,7 @@
   \item Recovers much of the trapped oil after a waterflood
   \item Displaces oil in the upper regions of the reservoir poorly swept by water due
     to gravity
+  \item May be used in combination with CO$_2$ storage
   \item Three main injection strategies: Slug injection, Water-alternating-gas (WAG) and
     Gravity-stable injection
   \end{itemize}
@@ -191,7 +193,7 @@
   \end{align*}
 \item Solvent affects the \only<2>{\textcolor{ye}}{relative permeabilities}, \only<2>{\textcolor{ye}}{viscosities} and
   \only<2>{\textcolor{ye}}{densities}
-\item Effects on oil and gas are derived from the Todd-Longstaff model \cite{todd1972development} for miscible
+\item Effective quantities are derived from the Todd-Longstaff model \cite{todd1972development} for fully miscible
   flooding
   \end{itemize}
 \end{frame}
@@ -277,9 +279,8 @@
           \includegraphics[width = 0.6\textwidth]{figures/misc/krO.png}};
         \node[rotate = 60] at (1,3.5) {Immiscible regime};
         \node[rotate = -60] at (5.8,3.5) {Miscible regime};
-        \node[rotate = -20, color = white] at (3.2,1.3) {Residual oil saturation};
+        \node[rotate = -20, color = white] at (3.2,1.3) { Residual oil saturation};
       \end{tikzpicture}
-      \caption{Oil relperm}
     \end{figure}
   }
   \only<3>{
@@ -443,17 +444,32 @@
 \end{frame}
 
 {
+\usebackgroundtemplate{\includegraphics[width = \textwidth, trim={-70 0 0 -140}, clip]{figures/misc/code0}}
+\begin{frame}
+  \frametitle{MATLAB Reservoir Simulation Toolbox (MRST)}
+  
+    \begin{figure}[h]
+      \centering
+      \vspace{-4em}\hspace{8em}\includegraphics[width = 0.6\textwidth]{figures/mrstlogo}
+    \end{figure}
+     \begin{textblock}{9.5}(6,10)
+    MRST: Rapid prototyping of reservoir simulators \cite{krogstad2015mrst}
+  \end{textblock}
+
+\end{frame}
+}
+
+{
 \usebackgroundtemplate{\includegraphics[width = \textwidth, trim={-70 0 0 -140}, clip]{figures/misc/code}}
 \begin{frame}
   \frametitle{MATLAB Reservoir Simulation Toolbox (MRST)}
   
-  \begin{textblock}{10}(6,7.5)
-    MRST: Rapid prototyping of reservoir simulators \cite{krogstad2015mrst}
+  \begin{textblock}{9.5}(6,7.5)
     \begin{itemize}
     \item \texttt{G}: Geometric reservoir representation
     \item \texttt{rock}: Geological properties
     \item \texttt{fluid}: Phase properties
-    \item \texttt{model}: Class defining fluid interactions
+    \item \texttt{model}: Class defining fluid interactions etc.
     \end{itemize}
   \end{textblock}
 
@@ -466,7 +482,7 @@
   
  \frametitle{MATLAB Reservoir Simulation Toolbox (MRST)}
 
-  \begin{textblock}{10}(6,7.5)
+ \begin{textblock}{10}(6,7.5)
     \begin{itemize}
     \item Automatic differentiation
     \item Discrete versions of e.g. \texttt{Div} and \texttt{Grad}
@@ -490,30 +506,34 @@
   \frametitle{Example 1: 1D displacement}
   \only<1>{
     \begin{itemize}
-    \item Initial saturation: $S_o = S_{or,i} = 0.3$, $S_w = 1 - S_{or, i}$
+    \item Initial saturation: $S_o = S_{or,i} = 0.2$, $S_w = 1 - S_{or, i}$
     \item Miscible residual saturation $S_{or,m}= 0$
-    \item Mixing: Moderate ($\omega = 2/3$), and full ($\omega = 1$)
-    \item 10 WAG-cycles over 4 years, 1 PV injected in each cycle
+    \item Mixing: Moderate ($\omega = 2/3$) and full ($\omega = 1$)
+    \item 10 WAG-cycles over 4 years, 1 PV injected per year
     \end{itemize}
   }
-  \only<2>{
-    \begin{center}
-      \begin{mybox}{Moderate mixing ($\omega \doteq 2/3$)}{0.63\textheight}
+  \only<2->{
+    \begin{overlayarea}{\textwidth}{0.7\textheight}
+      \only<2>{
         \begin{center}
-          \movie[showcontrols, width = 1\textwidth]{\includegraphics[width = \textwidth]{figures/placeholder}}
-          {figures/displacement1D/displacement1D.avi}
+          \begin{mybox}{Moderate mixing}{0.63\textheight}
+            \begin{center}
+              \movie[showcontrols, width = 1\textwidth]{\includegraphics[width = \textwidth]{figures/placeholder}}
+              {figures/displacement1D/displacement1D.avi}
+            \end{center}
+          \end{mybox}
         \end{center}
-      \end{mybox}
-    \end{center}
-  }
-  \only<3>{
-    \centering
-    \begin{mybox}{Full mixing ($\omega \doteq 1$)}{0.63\textheight}
-      \begin{center}
-        \movie[showcontrols, width = 1\textwidth]{\includegraphics[width = \textwidth]{figures/placeholder}}
-        {figures/displacement1D/displacement1D_1.avi}
-      \end{center}
-    \end{mybox}
+      }
+      \only<3>{
+        \centering
+        \begin{mybox}{Full mixing}{0.63\textheight}
+          \begin{center}
+            \movie[showcontrols, width = 1\textwidth]{\includegraphics[width = \textwidth]{figures/placeholder}}
+            {figures/displacement1D/displacement1D_1.avi}
+          \end{center}
+        \end{mybox}
+      }
+    \end{overlayarea}
   }
 \end{frame}
 
@@ -530,7 +550,7 @@
   }
   \only<2>{
     \begin{itemize}
-    \item Layer 10 of SPE10 model 2, initially filled with oil
+    \item Layer 10 of the SPE10 model \cite{spe10}, initially filled with oil
     \item Residual oil saturations: $S_{or,i} = 0.3$, $S_{or,m} = 0.0$
     \item Injection schedule:
     \end{itemize}
@@ -566,27 +586,38 @@
         \includegraphics[width = 0.45\textwidth]{figures/norne/poro}}
     \end{figure}
     \begin{itemize}
-    \item Realistic field model with $44,000$ cells, initially filled with oil
+    \item Realistic field model \cite{norne-data} with $44,420$ cells , initially filled with oil
     \item Residual oil saturations: $S_{or,i} = 0.38$, $S_{or,m} = 0.05$
     \end{itemize}
   }
   \only<2>{
     \begin{center}
-      \begin{mybox}{}{0.63\textheight}
+      \begin{mybox}{}{0.65\textheight}
         \vspace{0.2cm}
         \begin{center}
-          \movie[showcontrols, width = 1\textwidth]{\includegraphics[width = \textwidth]{figures/spe10/placeholder}}
-          {figures/spe10/spe10_1.avi}
+          \movie[showcontrols, width = 1\textwidth]{\includegraphics[width = \textwidth]{figures/norne/placeholder}}
+          {figures/norne/norne.avi}
         \end{center}
       \end{mybox}
     \end{center}
+  }
+  \only<3>{
+    \begin{figure}[h]
+      \centering
+      \begin{tikzpicture}
+        \node[anchor=south west,inner sep=0] at (0,0) {
+      \includegraphics[width = 0.8\textwidth]{figures/norne/norneProduction}};
+    \node[anchor = south, rectangle, draw, rounded corners, color = black, fill = white] (ir) at (4,3) {Increased recovery: };
+    \draw[-latex', line width = 1.5pt ] (ir.south) to[out = -90, in = 120] (5.3,1.5);
+      \end{tikzpicture}
+    \end{figure}
   }
 \end{frame}
 
 \section{Conclusion and further work}
 
 \begin{frame}
-  \frametitle{Conclusion}
+  \frametitle{Conclusion and further work}
   Conclusion
   \begin{itemize}
   \item Implementation of a four-phase solvent model in MRST
@@ -601,9 +632,9 @@
 
 \begin{frame}
   \frametitle{References}
-  \begin{small}
-  \bibliography{refs}
-\end{small}
+  \begin{scriptsize}
+    \bibliography{refs}
+  \end{scriptsize}
 \end{frame}
 
 \end{document}

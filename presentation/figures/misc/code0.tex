@@ -53,28 +53,7 @@ text width=50em, rounded corners, minimum height=3em, font = \ttfamily\Large]
   % Place nodes
   \begin{scope}[shift = {(0,0)}]
     \node [block] (init) at (0,0) {Initialize model and reservoir state};
-
-    \node [code, right = 3cm of init, anchor = north west] (initCode) {
-      % Calculate residual saturations \\
-      [sWres, sOres , sSGres] = computeResidualSaturations(fluid, p , sG , sS );\\\vspace{1em}
-      % \% Calculate effective relperms
-      [krW, krO, krG, krS] \hspace{2.8ex} = computeRelPermSolvent(fluid, ...);\\\vspace{1em}
-
-      % Calulate effective viscosities and densities
-      [muW, muO, muG, muS, rhoW, rhoO , rhoG , rhoS ] ... \\
-      \hspace{26.5ex} = computeViscositiesAndDensities(fluid, ...);\\\vspace{1em}
-
-      % Conservation of mass for water
-      water \hspace{2.2ex}= (op.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 ) + op.Div(bWvW);
-
-      % Conservation of mass for oil
-      oil \hspace{4.7ex}= (op.pv/dt).*( pvMult.*bO.*sO - pvMult0.*bO0.*sO0 ) + op.Div(bOvO);
-
-      % Conservation of mass for gas
-      gas \hspace{3.9ex} = (op.pv/dt).*( pvMult.*bG.*sG - pvMult0.*bG0.*sG0 ) + op.Div(bGvG);
-
-      % Conservation of mass for solvent
-      solvent = (op.pv/dt).*( pvMult.*bS.*sS - pvMult0.*bS0.*sS0 ) + op.Div(bSvS);
+    \node [code, right = 3cm of init, anchor = north west, fill = white, color = white] (initCode) {
     };
   \end{scope}
   \def\y{-2.8}
@@ -84,7 +63,7 @@ text width=50em, rounded corners, minimum height=3em, font = \ttfamily\Large]
     \node [block] (dtm) at (0,0) {$\Delta t_m = \Delta t/2^m$};
   \end{scope}
   \begin{scope}[shift = {(0,\y + \dy)}]
-    \node [block2] (prop) at (0,0) {Compute properties and assemble equations};
+    \node [block] (prop) at (0,0) {Compute properties and assemble equations};
   \end{scope}
   \begin{scope}[shift = {(0,\y + \dy +\dy)}]
     \node [block] (solve) at (0,0) {Solve at $t + \Delta t_m$ using Newton-Raphson};
@@ -143,8 +122,6 @@ text width=50em, rounded corners, minimum height=3em, font = \ttfamily\Large]
   \path [line] (next_n) -- (dtm);
   \path [line] (fin) -- node[right, pos = 0.5]{ no}(end);
   \path [line] (end) -- node[right, pos = 0.5]{ no}(comp);
-  \path [line2] (prop.east) -- (initCode.north west);
-  \path [line2] (prop.east) -- (initCode.south west);
   
   % \draw [line width = 1pt] (pres_check) -- node[below]{no}(no_pres);
   % \path [line] (no_pres) |- (pres);
@@ -162,7 +139,6 @@ text width=50em, rounded corners, minimum height=3em, font = \ttfamily\Large]
 \end{tikzpicture}
  
 \end{document}
-
 
 %%% Local Variables:
 %%% mode: latex

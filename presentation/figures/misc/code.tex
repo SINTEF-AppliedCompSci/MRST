@@ -54,12 +54,15 @@ text width=50em, rounded corners, minimum height=3em, font = \ttfamily\Large]
   \begin{scope}[shift = {(0,0)}]
     \node [block2] (init) at (0,0) {Initialize model and reservoir state};
     \node [code, right = 3cm of init, anchor = north west] (initCode) {
-      G = computeGeometry(cartGrid([10,10,10])); \\
-      rock = makeRock(G, 100*milli*darcy, 1); \\
+      G \hspace{3.8ex} = computeGeometry(cartGrid([10,10,10])); \\
+      rock \hspace{1.1ex}= makeRock(G, 100*milli*darcy, 1); \\
       fluid = initSimpleADIFluid(...); \\
-      fluid = addSolventProperties(fluid, ...); \\\vspace{0.5cm}
+      fluid = addSolventProperties(fluid, ...); \\
+      model = FourPhaseSolventModel(G, rock, fluid); \\\vspace{0.5cm}
       
-      model = FourPhaseSolventModel(G, rock, fluid);
+      state0 = initResSol(G, 100*barsa, [sW, sO, sG, sS]); \\\vspace{0.5cm}
+
+      states = simulateScheduleAD(state0, model, ...)
     };
   \end{scope}
   \def\y{-2.8}
@@ -114,7 +117,7 @@ text width=50em, rounded corners, minimum height=3em, font = \ttfamily\Large]
   \coordinate [left = 1.4cm of dtm] (next_it) {};
   \coordinate [right = 0.5cm of dtm] (next_n) {};
   % Draw edges
-  \path [line] (init) -- node[pos = 0.5, anchor = west]{$n = 0, \, m = 0$}(dtm);
+  \path [line] (init) -- node[pos = 0.5, anchor = west]{$t = 0, \, n = 0, \, m = 0$}(dtm);
   \path [line] (dtm) -- (prop);%
   \path [line] (prop) -- (solve);
   \path [line] (solve) -- (conv);
