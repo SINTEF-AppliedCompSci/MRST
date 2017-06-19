@@ -194,7 +194,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     model = model.validateModel(fstruct);
     dispif(opt.Verbose, 'Model ready for simulation...\n')
     
-    % Check if intiial state is reasonable
+    % Check if initial state is reasonable
     dispif(opt.Verbose, 'Validating initial state...\n')
     state = model.validateState(initState);
     dispif(opt.Verbose, 'Initial state ready for simulation.\n')
