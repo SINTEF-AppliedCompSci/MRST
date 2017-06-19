@@ -21,17 +21,17 @@ Tw(~perfStatus) = 0;
 
 % Well total volume rate at std conds:
 qt_s = 0;
-for ph = 1:numPh
-    qt_s = qt_s + q_s{ph};
+if wellStatus
+    for ph = 1:numPh
+        qt_s = qt_s + q_s{ph};
+    end
 end
-qt_s = qt_s*wellStatus;
-
 % Get well signs, default should be that wells are not allowed to change sign
 % (i.e., prod <-> inj)
-if ~wellmodel.allowSignChange % injector <=> w.sign>0, prod <=> w.sign<0
-    isInj = W.sign>0;
-else
+if wellmodel.allowSignChange 
     isInj = double(qt_s)>0;   % sign determined from solution
+else % injector <=> w.sign>0, prod <=> w.sign<0
+    isInj = W.sign>0;
 end
 
 %--------------------------------------------------------------------------
@@ -53,6 +53,10 @@ Tw(closedConns) = 0;
 connInjInx      = and(connInjInx, ~closedConns);
 
 % ------------------ HANDLE FLOW INTO WELLBORE -------------------------
+anyInjPerf  = any(connInjInx) || isInj;
+anyProdPerf = any(~connInjInx) || ~isInj;
+
+
 % producing connections phase volumerates:
 cq_p = cell(1, numPh);
 conEff = ~connInjInx.*Tw;
@@ -90,7 +94,7 @@ end
 deadWells = double(wbqt)==0;
 if any(deadWells)
     for ph = 1:numPh
-        wbq{ph} = wbq{ph}.*(~deadWells) + compi(ph).*deadWells;
+        wbq{ph} = ~deadWells.*wbq{ph} + compi(ph).*deadWells;
         % Avoid division by zero
     end
     wbqt(deadWells) = 1;
@@ -102,8 +106,8 @@ for ph = 1:numPh
 end
 % ------------------ HANDLE FLOW OUT FROM WELLBORE -----------------------
 % total mobilities:
-mt = mob{1};
-for ph = 2:numPh
+mt = 0;
+for ph = 1:numPh
     mt = mt + mob{ph};
 end
 % injecting connections total volumerates
