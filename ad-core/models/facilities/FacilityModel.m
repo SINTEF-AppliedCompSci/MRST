@@ -390,11 +390,11 @@ classdef FacilityModel < PhysicalModel
             end
         end
 
-        function wellSol = updateWellSolAfterStep(model, wellSol)
+        function wellSol = updateWellSolAfterStep(model, wellSol, wellSol0)
             % Figure out if wells are shut, or changed ontrols
             for wno = 1:numel(wellSol)
                 wm = model.WellModels{wno};
-                wellSol(wno) = wm.updateWellSolAfterStep(model.ReservoirModel, wellSol(wno));
+                wellSol(wno) = wm.updateWellSolAfterStep(model.ReservoirModel, wellSol(wno), wellSol0(wno));
             end
         end
 

@@ -244,7 +244,7 @@ methods
     function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
         [state, report] = updateAfterConvergence@PhysicalModel(model, state0, state, dt, drivingForces);
         if ~isempty(model.FacilityModel)
-            state.wellSol = model.FacilityModel.updateWellSolAfterStep(state.wellSol);
+            state.wellSol = model.FacilityModel.updateWellSolAfterStep(state.wellSol, state0.wellSol);
         end
     end
 
