@@ -110,8 +110,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             G = model.G;
             op = model.mechModel.operators;
             fluidp = p;
-            mechTerm.new = (op.div*xd)./(G.cells.volumes);;
+            mechTerm.new = (op.div*xd)./(G.cells.volumes);
             mechTerm.old = (op.div*xd0)./(G.cells.volumes);
+            
             % Note that the opmech.div returns the divergence integrated over cells. That is
             % why we divide by the cell's volumes
 
