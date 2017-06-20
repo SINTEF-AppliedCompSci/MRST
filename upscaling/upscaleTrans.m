@@ -76,7 +76,9 @@ require incomp agglom
 opt = struct('verbose',              mrstVerbose,     ...
              'bc_method',            'bc_simple',     ...
              'bc',                   [],              ...
+             'dt',                   1*year,          ...
              'wells',                [],              ...
+             'state',                [],              ...
              'match_method',         'max_flux',      ...
              'fix_trans',            false,           ...
              'check_trans',          true,            ...
@@ -90,29 +92,11 @@ warnstate = warning('off', 'NumPhase:Inconsistent');
 % Choose global boundary conditions to use
 [bc, well_cases, cgwells_cases] = setupCases(cg, opt);
 
-if(size(cg.parent.cells.faces,1) == numel(T_fine))
-    opt.use_trans=false;
-else
-   assert(numel(T_fine)==cg.parent.faces.num);
-   opt.use_trans=true;   
-end
-
 % Number of cases
 nr_global = numel(bc);
 
-% Use simple, single phase fluid
+[psolve, fluid, isAD] = getPressureSolver(cg, T_fine, opt);
 
-fluid = initSingleFluid('mu' , 1*centi*poise, ...
-                        'rho', 0*kilogram/meter^3);
-
-% Initialise structures for global solve
-init_state = initState(cg.parent, [], 100*barsa);
-
-% Loop over global boundary conditions and wells
-psolve = @(bcase, wcase) ...
-   incompTPFA(init_state, cg.parent, T_fine, fluid, 'bc', bcase, ...
-              'wells', wcase, 'use_trans', opt.use_trans, ...
-              'LinSolve', opt.LinSolve);
 states = cellfun(psolve, bc, well_cases, 'UniformOutput', false);
 
 % Calculate upscaled properties
@@ -121,8 +105,7 @@ upscaled = cellfun(upscale, states, cgwells_cases, 'UniformOutput', false);
 
 % Calulate transmissibility in place in upscaled{i}.trans, upscaled{i}.WI
 % this method only use local information
-utrans = @(k) calculateUpscaledTransSimple(upscaled{k}, cg, ...
-                                                   cgwells_cases{k}, fluid);
+utrans = @(k) calculateUpscaledTransSimple(upscaled{k}, cg, cgwells_cases{k}, fluid);
 
                                      
 ext = any(cg.faces.neighbors == 0, 2);
@@ -145,7 +128,7 @@ for i = 1 : nr_global,
    upscaled{i}.trans(~ isfinite(upscaled{i}.trans))  = min_trans * 1e-6;
    upscaled{i}.trans(~ (abs(upscaled{i}.trans) > 0)) = min_trans * 1e-6;
 
-   if opt.check_trans,
+   if opt.check_trans && ~isAD
       [upscaled{i}, ok] = checkUpscaledTrans(upscaled{i}, cg, bc{i}, ...
                                              cgwells_cases{i}, fluid);
 
@@ -178,6 +161,46 @@ end
 %==========================================================================
 
 %--------------------------------------------------------------------------
+
+function [psolve, obj, isAD] = getPressureSolver(cg, input, opt)
+    % Initialise structures for global solve
+    init_state = opt.state;
+    isAD = isa(input, 'PhysicalModel');
+    if isAD
+        if isempty(init_state)
+            error(['Valid initial state must be passed as optional'...
+                   ' argument when solver is AD']);
+        end
+        model = input;
+        model.extraStateOutput = true;
+        model.gravity = [0, 0, 0];
+        psolve = @(bcase, wcase) standaloneSolveAD(...
+            init_state, model, opt.dt, 'bc', bcase, 'W', wcase);
+        obj = model;
+    else
+        if isempty(init_state)
+            init_state = initState(cg.parent, [], 100*barsa);
+        end
+        T_fine = input;
+        if(size(cg.parent.cells.faces,1) == numel(T_fine))
+            opt.use_trans=false;
+        else
+            assert(numel(T_fine)==cg.parent.faces.num);
+            opt.use_trans=true;
+        end
+
+        % Use simple, single phase fluid
+        fluid = initSingleFluid('mu' , 1*centi*poise, ...
+            'rho', 0*kilogram/meter^3);
+
+        % Loop over global boundary conditions and wells
+        psolve = @(bcase, wcase) ...
+            incompTPFA(init_state, cg.parent, T_fine, fluid, 'bc', bcase, ...
+            'wells', wcase, 'use_trans', opt.use_trans, ...
+            'LinSolve', opt.LinSolve);
+        obj = fluid;
+    end
+end
 
 % make initial CG well structure
 function cgwells = makeCGWells(cg, wells)
@@ -233,7 +256,8 @@ function upscaled = calculateUpscaledSolution(cg, state, cgwells, opt)
 
        % calculate total flux over coarse face
        cfsign = fineToCoarseSign(cg);
-       flux   = accumarray(cfacesno, state.flux(cg.faces.fconn) .* cfsign);
+       ff = sum(state.flux(cg.faces.fconn, :), 2);
+       flux   = accumarray(cfacesno, ff .* cfsign);
 
        if isfield(state, 'facePressure'),
           fp = state.facePressure   (cg.faces.fconn);
@@ -263,7 +287,8 @@ function upscaled = calculateUpscaledSolution(cg, state, cgwells, opt)
 
        % Accumulate total flux over coarse face
        cfsign = fineToCoarseSign(cg);
-       flux   = accumarray(cfacesno, state.flux(cg.faces.fconn) .* cfsign);
+       ff = sum(state.flux(cg.faces.fconn, :), 2);
+       flux   = accumarray(cfacesno, ff .* cfsign);
 
        if isfield(state, 'facePressure'),
           % Define coarse interface pressure as the fine-scale interface
@@ -289,18 +314,42 @@ function upscaled = calculateUpscaledSolution(cg, state, cgwells, opt)
           % need more refinement
           pno = rldecode(1 : numel(cgwells(i).cells), ...
                          diff(cgwells(i).fcellspos), 2) .';
-
+          wf = sum(state.wellSol(i).flux(cgwells(i).fperf, :), 2);
           wellSol(i).flux = ...
-             accumarray(pno, state.wellSol(i).flux(cgwells(i).fperf));
+             accumarray(pno, wf);
        end
     else
        wellSol = [];
     end
-
-    upscaled = struct('pressure',     pressure,     ...
-                      'flux',         flux,         ...
-                      'facePressure', facePressure, ...
-                      'wellSol',      wellSol);
+    
+    if isempty(facePressure)
+        upscaled = struct('pressure',     pressure,     ...
+                          'flux',         flux,         ...
+                          'wellSol',      wellSol);
+    else
+        upscaled = struct('pressure',     pressure,     ...
+                          'facePressure', facePressure, ...
+                          'flux',         flux,         ...
+                          'wellSol',      wellSol);
+    end
+    
+    fnames = fieldnames(state);
+    bnames = fieldnames(upscaled);
+    
+    vols = cg.parent.cells.volumes;
+    vt = accumarray(cg.partition, vols);
+    for i = 1:numel(fnames)
+        name = fnames{i};
+        d = state.(name);
+        if ~any(strcmpi(name, bnames)) && size(d, 1) == cg.parent.cells.num
+            % Some added quantity
+            d_c = zeros(cg.cells.num, size(d, 2));
+            for j = 1:size(d, 2)
+                d_c(:, j) = accumarray(cg.partition, d(:, j).*vols)./vt;
+            end
+            upscaled.(name) = d_c;
+        end
+    end
 end
 
 %--------------------------------------------------------------------------
@@ -407,20 +456,23 @@ function [T_cg, HT_cg, cgwells] = ...
    alloc  = @(nrows) NaN([nrows, nr_global]);
 
    flux   = alloc(cg.faces.num);
-   dpf    = alloc(cg.faces.num);
+   dpfmob    = alloc(cg.faces.num);
    trans  = alloc(cg.faces.num);
    htrans = alloc(numel(cg.cells.faces(:,1)));
-   dphf   = alloc(numel(cg.cells.faces(:,1)));
 
    for i = 1 : nr_global,
       trans(:,i)      = upscaled{i}.trans;
       flux(:,i)       = upscaled{i}.flux;
-      htrans(:,i)     = upscaled{i}.htrans;
-      dpf(internal,i) = dpress(upscaled{i});
+      [cmob, fmob] = getMobility(cg, fluid, upscaled{i});
+      
+      if isfield(upscaled{i}, 'facePressure')
+          htrans(:,i)     = upscaled{i}.htrans;
+      end
+      dpfmob(internal,i) = dpress(upscaled{i}).*fmob;
 
       for j = 1 : numel(cgwells),
          fluxwells{j}(:,i) = upscaled{i}.fluxwells{j}; %#ok
-         dpwells{j}(:,i)   = upscaled{i}.dpwells{j};   %#ok
+         dpmobwells{j}(:,i) = upscaled{i}.dpwells{j}.*cmob(cgwells(j).cells); %#ok
       end
    end
 
@@ -456,28 +508,18 @@ function [T_cg, HT_cg, cgwells] = ...
 
       case 'lsq_flux'
          % minimize least square flux error over the set of cases
-         mu    = fluid.properties();
-         HT_cg = - mu * sum(flux(cg.cells.faces(:,1),:), 2) ./ sum(dphf, 2);
-         T_cg  = - mu * sum(flux, 2) ./ sum(dpf, 2);
+         T_cg  = - sum(flux, 2) ./ sum(dpfmob, 2);
 
          if ~isempty(cgwells),
             for j = 1 : numel(cgwells),
-               cgwells(j).WI = sum(fluxwells{j}, 2) ./ sum(dpwells{j}, 2);
-               cgwells(j).WI = cgwells(j).WI * mu;
+               cgwells(j).WI = sum(fluxwells{j}, 2) ./ sum(dpmobwells{j}, 2);
             end
          end
 
-         T_tmp = 1 ./ accumarray(cg.cells.faces(:,1), ...
-                                 1 ./ HT_cg, [cg.faces.num, 1]);
-         T_cg(~internal) = T_tmp(~internal);
-
-         if any(~isfinite(HT_cg)) || any(~isfinite(T_cg)),
-            warning(msgid(''), ...
-                    'Some transmisibilities undecided set to zero');
-            HT_cg(~ isfinite(HT_cg)) = 0;
+         if any(~isfinite(T_cg)),
             T_cg (~ isfinite(T_cg))  = 0;
          end
-
+         HT_cg = T_cg(cg.cells.faces(:, 1));
       otherwise
          error('This match method is not implemented')
    end
@@ -551,15 +593,16 @@ end
 
 % Calulate effective transmissibility from cg fluxes and pressures
 function upscaled = ...
-      calculateUpscaledTransSimple(upscaled, cg, cgwells, fluid)
+      calculateUpscaledTransSimple(upscaled, cg, cgwells, obj)
 
-   mu = fluid.properties();  % Used throughout function.
+   [mob, fmob] = getMobility(cg, obj, upscaled);
+   flux = sum(upscaled.flux, 2);
 
    int = ~ any(cg.faces.neighbors == 0, 2);
    dp  = diff(upscaled.pressure(cg.faces.neighbors(int, :)), [], 2);
 
    upscaled.trans      = nan([cg.faces.num, 1]);
-   upscaled.trans(int) = - mu .* (upscaled.flux(int) ./ dp);
+   upscaled.trans(int) = -(flux(int) ./ (dp.*fmob));
 
    clear dp int
 
@@ -570,9 +613,9 @@ function upscaled = ...
 
       dp    = upscaled.facePressure(cf) - upscaled.pressure(cellno);
       sgn   = 2*(cg.faces.neighbors(cf, 1) == cellno) - 1;
-      hflux = sgn .* upscaled.flux (cf);
+      hflux = sgn .* flux (cf);
 
-      upscaled.htrans = - mu .* (hflux ./ dp);
+      upscaled.htrans = - (hflux ./ (dp.*fmob));
 
       clear cellno cf dp sgn hflux
    end
@@ -585,16 +628,23 @@ function upscaled = ...
       nperf = cellfun('prodofsize', { cgwells.cells });
       pos   = cumsum([ 1 ; reshape(nperf, [], 1) ]);
 
-      press = rldecode(vertcat(upscaled.wellSol.pressure), nperf);
+      if isfield(upscaled.wellSol, 'bhp')
+         press = rldecode(vertcat(upscaled.wellSol.bhp), nperf);
+      else
+         press = rldecode(vertcat(upscaled.wellSol.pressure), nperf);
+      end
       dp    = press - upscaled.pressure(vertcat(cgwells.cells));
-      flux  = vertcat(upscaled.wellSol.flux);
+      wflux  = sum(vertcat(upscaled.wellSol.flux), 2);
+      
+      wc = vertcat(cgwells.cells);
+      mobw = mob(wc);
 
-      WI    = mu .* (flux ./ dp);
+      WI    = (wflux ./ (dp.*mobw));
 
       for j = 1 : numel(cgwells),
          ix = pos(j) : pos(j + 1) - 1;
 
-         upscaled.fluxwells{j} = flux(ix);
+         upscaled.fluxwells{j} = wflux(ix);
          upscaled.dpwells{j}   = dp  (ix);
          upscaled.WI{j}        = WI  (ix);
       end
@@ -619,6 +669,9 @@ function [T_cg, HT_cg, cgwells] = fixTrans(cg, T_cg, HT_cg, cgwells, opt)
       % Set negative and zero transmissibility to the minimum positive
       % (one-sided) transmissibility.
       HT_min = min(HT_cg(HT_cg > 0));
+      if isempty(HT_min)
+          HT_min = 0;
+      end
       HT_cg  = max(HT_cg, HT_min);
       T_cg   = max(T_cg , HT_min);
 
@@ -639,5 +692,20 @@ function [T_cg, HT_cg, cgwells] = fixTrans(cg, T_cg, HT_cg, cgwells, opt)
       assert(numel(cgwells)==numel(w) || numel(cgwells) == 0);
       [ cgwells.type ] = w.type;
       [ cgwells.val  ] = w.val;
+   end
+end
+
+function [cmob, fmob] = getMobility(cg, obj, state)
+   if isa(obj, 'PhysicalModel')
+       assert(isfield(state, 'mob'));
+       cmob = sum(state.mob, 2);
+       internal = all(cg.faces.neighbors > 0, 2);
+       flag = sum(state.flux(internal, :), 2) > 0;
+       n = getNeighbourship(cg);
+       fmob = faceUpstr(flag, cmob, n, [size(n, 1), cg.cells.num]);
+   else
+       mu = obj.properties();
+       cmob = repmat(1./mu, size(state.pressure));
+       fmob = 1./mu;
    end
 end
