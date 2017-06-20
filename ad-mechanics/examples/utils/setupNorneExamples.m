@@ -41,6 +41,7 @@ function [model, initState, schedule] = setupNorneExamples(opt)
     G = computeGeometry(G);
 
     %% Setup rock parameters (for flow)
+
     perm = [grdecl.PERMX, grdecl.PERMY, grdecl.PERMZ];
     rock.perm = perm(G.cells.indexMap, :);
     rock.poro = max(grdecl.PORO(G.cells.indexMap), 0.1);
@@ -74,7 +75,7 @@ function [model, initState, schedule] = setupNorneExamples(opt)
 
       case {'water'}
         fluid = initSimpleADIFluid('phases', 'W', 'mu', 1*centi*poise, 'rho', ...
-                                   1000*kilogram/meter^3, 'c', 1e-10*[1, 1], ...
+                                   1000*kilogram/meter^3, 'c', 1e-10, ...
                                    'cR', 4e-10, 'pRef', pRef);
       otherwise
         error('fluid_model  not recognized.');
@@ -255,7 +256,7 @@ function [model, initState, schedule] = setupNorneExamples(opt)
         W(2).compi = [0 1];
       case 'water'
         W(1).compi = [1];
-        W(1).rate  = 1e4/day;
+        W(1).val   = 1e4/day;
         W(2).compi = [1];
       otherwise
         error('fluid_model not recognized.')
@@ -277,7 +278,7 @@ function [model, initState, schedule] = setupNorneExamples(opt)
     switch opt.fluid_model
       case 'blackoil'
         init_sat = [0, 1, 0];
-        initState.rs       = 0.5*fluid.rsSat(initState.pressure);
+        initState.rs  = 0.5*fluid.rsSat(initState.pressure);
       case 'oil water'
         init_sat = [0, 1];
       case 'water'

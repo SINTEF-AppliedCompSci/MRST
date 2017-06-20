@@ -143,26 +143,28 @@ classdef MechFluidFixedStressSplitModel < MechFluidSplitModel
         % pressure is obtained by assuming that the total stress is
         % preserved.
 
-            stress = state.stress;
+            mechModel = model.mechModel;
+            stress = mechModel.operators.stress*(state.xd);
             p = state.pressure;
 
-            invCi = model.mechModel.mech.invCi;
+            invCi = mechModel.mech.invCi;
             % invCi is the tensor equal to $C^{-1}I$ where $I$ is the identity tensor.
             griddim = model.G.griddim;
 
-            pTerm = model.mechModel.operators.trace(invCi); % could have been
+            pTerm = mechModel.operators.trace(invCi); % could have been
                                                             % computed and
                                                             % stored...
 
             if griddim == 3
-                cvoigt = [1, 1, 1, 0.5, 0.5, 0.5];
                 pI = bsxfun(@times, p, [1, 1, 1, 0, 0, 0]);
+                nlin = 6;
             else
-                cvoigt = [1, 1, 0.5];
                 pI = bsxfun(@times, p, [1, 1, 0]);
+                nlin = 3;
             end
+            stress = reshape(stress, nlin, []);
+            stress = stress';
             totalStress = stress - pI;
-            totalStress = bsxfun(@times, totalStress, cvoigt);
 
             sTerm = sum(invCi.*totalStress, 2);
 
