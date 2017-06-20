@@ -56,12 +56,11 @@
 
 \begin{frame}
   \frametitle{Miscible flooding}
-  Miscible flooding is a proven, economically viable recovery technique \cite{petroWiki2017Misc}
+  Proven, economically viable recovery technique \cite{petroWiki2017Misc}
   \begin{itemize}
   \item Recovers much of the trapped oil after a waterflood
-  \item Displaces oil in the upper regions of the reservoir poorly swept by water due
-    to gravity
-  \item May be used in combination with CO$_2$ storage
+  \item Displaces oil in regions poorly swept by water due to gravity
+  \item May be used in combination with CO$_2$ storage \cite{}
   \item Three main injection strategies: Slug injection, Water-alternating-gas (WAG) and
     Gravity-stable injection
   \end{itemize}
@@ -109,7 +108,8 @@
         \begin{figure}[h]
           \centering
           \includegraphics[trim={0 0 5cm 0}, clip, width = \textwidth]{figures/misc/mf}
-          \caption{\scriptsize Viscous fingers in a Hele-Shaw cell}
+          \caption{\scriptsize Viscous fingers in a Hele-Shaw cell
+            {\tiny \url{http://n-e-r-v-o-u-s.com}}}
 %          \includegraphics[width = \textwidth]{figures/misc/mf}
         \end{figure}
       \end{column}
@@ -588,6 +588,7 @@
     \begin{itemize}
     \item Realistic field model \cite{norne-data} with $44,420$ cells , initially filled with oil
     \item Residual oil saturations: $S_{or,i} = 0.38$, $S_{or,m} = 0.05$
+    \item Injection schedule: Large water slug 5 WAG cycles - small water slug
     \end{itemize}
   }
   \only<2>{
@@ -607,8 +608,13 @@
       \begin{tikzpicture}
         \node[anchor=south west,inner sep=0] at (0,0) {
       \includegraphics[width = 0.8\textwidth]{figures/norne/norneProduction}};
-    \node[anchor = south, rectangle, draw, rounded corners, color = black, fill = white] (ir) at (4,3) {Increased recovery: };
+    \node[anchor = south, rectangle, draw, rounded corners, color = black, fill = white] (ir) at (4.5,3) {Increased recovery: 22 \%};
     \draw[-latex', line width = 1.5pt ] (ir.south) to[out = -90, in = 120] (5.3,1.5);
+    \node at (3.8,5.3) {\tiny WAG 1};
+    \node at (4.85,5.3) {\tiny WAG 2};
+    \node at (5.9,5.3) {\tiny WAG 3};
+    \node at (6.95,5.3) {\tiny WAG 4};
+    \node at (8.0,5.3) {\tiny WAG 5};
       \end{tikzpicture}
     \end{figure}
   }
