@@ -46,9 +46,9 @@ mrstModule add ad-blackoil ad-core mrst-gui ad-props deckformat
 % three-phase black oil model with gas dissoluton.
 model = selectModelFromDeck(G, rock, fluid, deck);
 % Set maximum limits on saturation, Rs and pressure changes
-model.drsMaxRel = .2;
-model.dpMaxRel  = .2;
-model.dsMaxAbs  = .05;
+model.drsMaxRel = inf;
+model.dpMaxRel  = .1;
+model.dsMaxAbs  = .1;
 
 % Show the model
 model %#ok, intentional display
@@ -79,7 +79,7 @@ try
 catch
     pressureSolver = BackslashSolverAD();
 end
-linsolve = CPRSolverAD('ellipticSolver', pressureSolver);
+linsolve = CPRSolverAD('ellipticSolver', pressureSolver, 'relativeTolerance', 1e-3);
 
 %% Plot the rock permeability
 % The SPE9 data set has an anisotropic, inhomogenous permeability field.
