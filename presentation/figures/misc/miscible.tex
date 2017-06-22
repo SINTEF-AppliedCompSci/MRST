@@ -47,20 +47,20 @@
 \begin{tikzpicture}[node distance = 2cm, auto]
 
   \begin{scope}[shift = {(0,0)}]
-    \def\y{0.5}
-    \draw[fill = black] (-1,\y) to[out=0, in=130] (0,\y) to[out=-50, in=180](1,\y) -- (1,1) -- (-1,1) -- (-1,\y);
-    \draw[fill = ye] (-1,\y) to[out=0, in=130] (0,\y) to[out=-50, in=180](1,\y) -- (1,-1) -- (-1,-1) -- (-1,\y);
-    \node[color = white] at (0,0.8) {\tiny oil};
-    \node[color = white] at (0,-0.3) {\tiny solvent};
+    \def\y{-0.4}
+    \draw[fill = ye] (-1,\y) to[out=0, in=130] (0,\y) to[out=-50, in=180](1,\y) -- (1,1) -- (-1,1) -- (-1,\y);
+    \draw[fill = black] (-1,\y) to[out=0, in=130] (0,\y) to[out=-50, in=180](1,\y) -- (1,-1) -- (-1,-1) -- (-1,\y);
+    \node[color = white] at (0,0.3) {\tiny solvent};
+    \node[color = white] at (0,-0.75) {\tiny oil};
     \node[rotate = 90, anchor = south] at (-1,0) {\tiny Immiscible};
   \end{scope}
   
   \begin{scope}[shift = {(0,-2.5)}]
     \def\y{0}
-    \draw[fill = black!80!ye] (-1,\y) to[out=0, in=130] (0,\y) to[out=-50, in=180](1,\y) -- (1,1) -- (-1,1) -- (-1,\y);
-    \draw[fill = ye!80!black] (-1,\y) to[out=0, in=130] (0,\y) to[out=-50, in=180](1,\y) -- (1,-1) -- (-1,-1) -- (-1,\y);
-    \node[color = white] at (0,0.5) {\tiny oil + solvent};
-    \node[color = white] at (0,-0.5) {\tiny solvent + oil};
+    \draw[fill = ye!80!black] (-1,\y) to[out=0, in=130] (0,\y) to[out=-50, in=180](1,\y) -- (1,1) -- (-1,1) -- (-1,\y);
+    \draw[fill = black!80!ye] (-1,\y) to[out=0, in=130] (0,\y) to[out=-50, in=180](1,\y) -- (1,-1) -- (-1,-1) -- (-1,\y);
+    \node[color = white] at (0,0.5) {\tiny solvent + oil};
+    \node[color = white] at (0,-0.5) {\tiny oil + solvent};
     \node[rotate = 90, anchor = south] at (-1,0) {\tiny Partially miscible};
   \end{scope}
 
