@@ -86,29 +86,79 @@
 
 \section{Introduction}
 
-An injected fluid sets up a miscible displacement if there is no phase boundary or interface between
-the injected fluid and the reservoir oil. The advantage of this is a much higher recovery factor
-than for a conventional immiscible displacement such water flooding; an area swept by a miscible
-fluid typically leaves very little residual oil.
+Miscible flooding is a proven, economically viable process that significantly
+increases the oil recovery factor for a wide range of reservoir types. The main
+purpose of miscible gas injection is to recover as as much as possible of the
+trapped residual oil after a waterflood. In addition, solvent may also displace
+oil in the upper regions of the reservoir poorly swept by the water due to
+gravity.
 
-In a miscible gas injection process, we typically have a high adverse mobility ratio. This results
-in an unstable flow, which eventually leads to viscous fingers. In addition, gravitational fingering
-may occur if the density differences are large. This means that the total displacement of the oil in
-the swept regions may not lead to a high overall efficiency. On the other hand, mixing of miscible
-fluids exerts a considerable damping effect on the growth of viscous and gravity fingers. Thus, a
-good solvent simulation model must thus account both these effects.
+There are three main solvent-injection strategies:
+\begin{enumerate}[label=\emph{(\roman*)}]
+\item Slug injection: Usually 0.2-0.4 hydrocarbon pore-volumes (HCPV) of solvent
+  that, in turn, is displaced by water or dry solvent.
+\item Water-alternating-gas (WAG): Alternating injection of small volumes
+  (0.01-0.04 HCPV) of water and solvent. The total amount usually ranges from
+  0.2 to 0.6 HCPV. The final drive fluid is usually water. The small water slugs
+  decreases solvent mobility and leads to increased solvent sweep efficiency
+\item Gravity-stable injection: For some pinnacle reefs and stepply dipping
+  reservoirs with high vertical communication, it is advantageous to inject
+  less-dense solvent at the top of the reservoir in a gravity-stable
+  displacement process.
+\end{enumerate}
 
-The first simulation attempts of incompressible miscible displacement was based on a direct solution
-of the convection-diffusion equations for the local concentration of each miscible
-component. However, unless the grid is sufficiently fine, such models fails to capture the
-fine-scale structure of the fingers, resulting in overly optimistic recovery forecasts. Moreover,
-the numerical diffusion of finite-difference models will mask the true mixing of miscible components
-in a coarse grid. Altogether, this imposes an unacceptably high grid resolution.
+\paragraph{Solvent mechanisms}
 
-The ECLIPSE implementation we will attempt to match in this work uses intermediate configurations of
-a four-component system (water, oil, reservoir gas and injected solvent), or a three-component
-system (water, oil and solvent gas) or a two-component system (oil and solvent). The following
-miscibility assumptions are made:
+There are several mechanisms involved in solvent displacement process. The most
+obvious is the direct miscible displacement of oil by solvent along
+high-permeability paths. Additionally, part of the oil initially bypassed by
+solvent may later be recovered by oil swelling, which occurs as the solvent
+dissolves the oil, or by extraction of oil into solvent. This takes place as the
+solvent continues to flow past the previously bypassed oil. On a field scale,
+the single most important factor affecting the performance of a miscible flood
+is usually the sweep efficiency.
+
+\paragraph{Determining miscibility}
+
+In a true miscible displacement, injected and displaced phases mix in all
+proportions, without forming interfaces. This implies that injected solvent
+would eventually displace all residual oil form the pores it invades. However,
+most solvents does not fulfill this single-phase definition, and form two
+distinct phases over a broad range of mixtures and pressures when combined with
+reservoir oil. 
+
+
+
+An injected fluid sets up a miscible displacement if there is no phase boundary
+or interface between the injected fluid and the reservoir oil. The advantage of
+this is a much higher recovery factor than for a conventional immiscible
+displacement such water flooding; an area swept by a miscible fluid typically
+leaves very little residual oil.
+
+In a miscible gas injection process, we typically have a high adverse mobility
+ratio. This results in an unstable flow, which eventually leads to viscous
+fingers. In addition, gravitational fingering may occur if the density
+differences are large. This means that the total displacement of the oil in the
+swept regions may not lead to a high overall efficiency. On the other hand,
+mixing of miscible fluids exerts a considerable damping effect on the growth of
+viscous and gravity fingers. Thus, a good solvent simulation model must thus
+account both these effects.
+
+The first simulation attempts of incompressible miscible displacement was based
+on a direct solution of the convection-diffusion equations for the local
+concentration of each miscible component. However, unless the grid is
+sufficiently fine, such models fails to capture the fine-scale structure of the
+fingers, resulting in overly optimistic recovery forecasts. Moreover, the
+numerical diffusion of finite-difference models will mask the true mixing of
+miscible components in a coarse grid. Altogether, this imposes an unacceptably
+high grid resolution.
+
+The ECLIPSE implementation we will attempt to match in this work uses
+intermediate configurations of a four-component system (water, oil, reservoir
+
+gas and injected solvent), or a three-component system (water, oil and solvent
+gas) or a two-component system (oil and solvent). The following miscibility
+assumptions are made:
 
 \begin{enumerate}[label=\emph{(\roman*)}]
 \item In the regions containing only solvent and reservoir oil (possibly containing dissolved gas),
@@ -312,9 +362,25 @@ respectively.
 
 Alternative notation:
 
-\begin{equation*}
-  \xi_o = \frac{(\mu_o/\mu_s)^{1/4} - (\mu_o/\mu_{o,\eff})^{1/4}}{(\mu_o/\mu_s)^{1/4} - 1}
-\end{equation*}
+\begin{align*}
+  \left[\frac{S_o}{S_n}\right]_{oe} & = \frac{(\mu_o/\mu_s)^{1/4} - (\mu_o/\mu_{o,\eff})^{1/4}}{(\mu_o/\mu_s)^{1/4} - 1} = \xi_o \\
+  \left[\frac{S_o}{S_n}\right]_{ge} & = \frac{(\mu_s/\mu_g)^{1/4} - (\mu_s/\mu_{g,\eff})^{1/4}}{(\mu_s/\mu_g)^{1/4} - 1} = 1-\xi_g, \\
+  \left[\frac{S_s}{S_n}\right]_{se} &= \frac{(\mu_s/\mu_g)^{1/4}\frac{S_g}{S_o + S_g} + (\mu_s/\mu_o)^{1/4}\frac{S_o}{S_o + S_g} - (\mu_s/\mu_{s,\eff})^{1/4}}
+{(\mu_s/\mu_g)^{1/4}\frac{S_g}{S_o + S_g} + (\mu_s/\mu_o)^{1/4}\frac{S_o}{S_o + S_g} - 1} = \xi_s.
+\end{align*}
+In this notation, mass balance requires
+\begin{align*}
+  \rho_w S_w +& \rho_o S_o + \rho_g S_g + \rho_s S_s = \rho_{w, \eff} S_w + \rho_{o, \eff} S_o + \rho_{g, \eff} S_g + \rho_{s, \eff} S_s \\
+             = & S_w \rho_w + S_o \left(\rho_o \xi_o + (1-\xi_o)\rho_s\right)
+               + S_g \left(\rho_g \xi_g + (1-\xi_g)\rho_s\right) \\
+             & + S_s \left(\rho_s \xi_s + (1-\xi_s)\left[\rho_o \frac{S_o}{S_o + S_g} + \rho_g \frac{S_g}{S_o + S_g}\right]\right),
+\end{align*}
+which may be rewritten
+\begin{align*}
+  S_o(1-\xi_o)(\rho_o - \rho_s) + S_g(1-\xi_g)(\rho_g - \rho_s) +
+  S_s(1-\xi_s)\left(\rho_s - \rho_o \frac{S_o}{S_g + S_o} - \rho_g \frac{S_g}{S_g + S_o}\right) = 0
+\end{align*}
+ 
 
 \begin{align*}
   \mu_{o,\eff}
