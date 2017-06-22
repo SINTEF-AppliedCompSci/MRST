@@ -38,10 +38,10 @@
 % \usetheme[style=ntnu|simple|vertical|horizontal, language=bm|nn|en]{ntnu2015}
 \usetheme[style=ntnu,language=en]{ntnu2015}
  
-\title[Short title]{Implementation of a solvent model using MRST}
+\title[Short title]{Implementation of a Solvent Model Using MRST}
 %\subtitle{Subtitle if you want}
 \author[Ø.S. Klemetsdal]{Øystein Strengehagen Klemetsdal}
-\institute[NTNU]{Department of Mathematical sciences, NTNU}
+\institute[NTNU]{Department of Mathematical Sciences, NTNU}
 %\date{1 January 1970}
 \date{} % To have an empty date
 
@@ -65,6 +65,7 @@
 
 \begin{frame}
   \frametitle{Miscible flooding}
+  \vspace{0.5cm}
   Proven, economically viable recovery technique \cite{petroWiki2017Misc}
   \begin{prettyList}
   \item Recovers much of the trapped oil after a waterflood
@@ -86,11 +87,10 @@
     \begin{columns}
       \begin{column}{0.65\textwidth}
         \begin{prettyList}
-        \item Miscible displacement: no phase boundary or interface between injected
-          fluid and reservoir oil
-        \item Fully miscible displacement: injected solvent displaces \emph{all}
+        \item Miscible displacement: No interface between injected fluid and reservoir oil
+        \item Fully miscible displacement: Injected solvent displaces \emph{all}
           residual oil form invaded pores
-        \item Most physical gases does not form a completely miscible when combined
+        \item Most physical gases does not form a completely miscible system when combined
           with reservoir oil
         \end{prettyList}
       \end{column}
@@ -179,13 +179,12 @@
       \partial_t(\phi \only<2>{\textcolor{ye}}{\rho_\alpha} S_\alpha)
       + \nabla \cdot (\only<2>{\textcolor{ye}}{\rho_\alpha} \vec v_\alpha) = \only<2>{\textcolor{ye}}{\rho_\alpha} q_\alpha \\
     \vec v_\alpha = -\frac{\only<2>{\textcolor{ye}}{k_{r\alpha}}}{\only<2>{\textcolor{ye}}{\mu_\alpha}}K
-    \left(\nabla p - \only<2>{\textcolor{ye}}{\rho_\alpha} g \nabla z\right)
+    \left(\nabla p_\alpha - \only<2>{\textcolor{ye}}{\rho_\alpha} g \nabla z\right)
   \end{aligned} \quad \quad  \alpha \in \{w, o, g, \textcolor{re}{s}\}
   \end{align*}
 \item Solvent affects the \only<2>{\textcolor{ye}}{relative permeabilities}, \only<2>{\textcolor{ye}}{viscosities} and
   \only<2>{\textcolor{ye}}{densities}
-\item Effective quantities are derived from the Todd-Longstaff model \cite{todd1972development} for fully miscible
-  flooding
+\item Effective quantities are derived from the Todd-Longstaff model for miscible flooding \cite{todd1972development}
   \end{prettyList}
 \end{frame}
 
@@ -293,7 +292,7 @@
   \end{align*}
   \begin{tikzpicture}[remember picture,overlay]
     \draw [bend left, <-, line width = 1pt]($({pic cs:muo})-(0,5pt)$) |- ++(-1em,-3ex)
-    node[rectangle, anchor=east,font=\small, text width = 3.6cm, align = center, fill = ntnublue!20]
+    node[rectangle, anchor=east,font=\small, text width = 2.4cm, align = center, fill = ntnublue!20]
     {\scriptsize Pure oil viscosity};
     \draw [bend left, <-, line width = 1pt]($({pic cs:mumos})-(0,5pt)$) |- ++(1em,-3ex)
     node[rectangle, anchor=west,font=\small, text width = 3.6cm, align = center, fill = ntnublue!20]
@@ -444,7 +443,7 @@
       \vspace{-4em}\hspace{8em}\includegraphics[width = 0.6\textwidth]{figures/misc/mrstlogo}
     \end{figure}
      \begin{textblock}{9.5}(6,10)
-    MRST: Rapid prototyping of reservoir simulators \cite{krogstad2015mrst}
+    MRST: Rapid prototyping of reservoir simulation models \cite{krogstad2015mrst}
   \end{textblock}
 
 \end{frame}
