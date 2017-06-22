@@ -9,15 +9,16 @@ G = computeGeometry(cartGrid([n,n,n]));
 rock = makeRock(G, 100*milli*darcy, 1);
 
 fluid = initSimpleADIFluid('n'     , [2, 2, 2], ...
-                           'c'     , [1e-7, 1e-6, 1e-6]/barsa, ...
                            'rho'   , [1000, 800, 100]*kilogram/meter^3, ...
                            'phases', 'WOG', ...
                            'mu'    , [1, 10, 1]*centi*poise);
+                       
+%'c'     , [1e-7, 1e-6, 1e-6]/barsa, ...
 
 sres = 0;      
 fluid.sOres = sres;
 fluid.sGres = 0;
-fluid.mixPar = 2/3;
+fluid.mixPar = 1;
 
 model = MiscibleOilWaterSolventModel(G, rock, fluid);
 
