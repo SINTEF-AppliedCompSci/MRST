@@ -64,13 +64,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
     end
     
-    if isfield(state, 'rs')
+    if model.disgas && isfield(state, 'rs')
         sO = model.getProp(state_f, 'sO');
         sO_c = coarsemodel.getProp(state, 'sO');
         state.rs = accumarray(p, sO.*state.rs.*pvf)./(sO_c.*pvc);
         state.rs(~isfinite(state.rs)) = 0;
     end
-    if isfield(state, 'rv')
+    if model.vapoil && isfield(state, 'rv')
         sG = model.getProp(state_f, 'sG');
         sG_c = coarsemodel.getProp(state, 'sG');
         state.rv = accumarray(p, sG.*state.rv.*pvf)./(sG_c.*pvc);
@@ -82,6 +82,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if isfield(state, 'T')
         state.T = accumarray(p, state.T)./counts;
     end
-    
-    state.flux = zeros(CG.faces.num, nph);
+    if isfield(state, 'flux')
+        cfsign = fineToCoarseSign(CG);
+        cfacesno = rldecode(1:CG.faces.num, diff(CG.faces.connPos), 2) .';
+        newflux = zeros(CG.faces.num, size(state.flux, 2));
+        for i = 1:size(state.flux, 2)
+            newflux(:, i)   = accumarray(cfacesno, state.flux(CG.faces.fconn, i) .* cfsign);
+        end
+        state.flux = newflux;
+    end
 end
