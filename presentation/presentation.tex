@@ -20,6 +20,15 @@
 \newtcolorbox{myboxRed}[2]{colback=white, colframe=re,
   fonttitle=\large, title=#1, text height=#2, fontupper=\color{black}\footnotesize}%
 
+\newcommand{\myitemmark}{\raisebox{.75ex}{\scalebox{.6}{\protect\colorbox{ntnublue}{\protect}}}}
+\newenvironment{prettyList}
+{
+  \begin{list}{\myitemmark}{\leftmargin=1.5em \itemindent=0em} 
+}
+{
+  \end{list}
+}
+
 \DeclareMathOperator{\eff}{eff}
 \DeclareMathOperator{\dd}{d}
 \newcommand{\mat}[1]{\boldsymbol{#1}}
@@ -57,13 +66,13 @@
 \begin{frame}
   \frametitle{Miscible flooding}
   Proven, economically viable recovery technique \cite{petroWiki2017Misc}
-  \begin{itemize}
+  \begin{prettyList}
   \item Recovers much of the trapped oil after a waterflood
   \item Displaces oil in regions poorly swept by water due to gravity
-  \item May be used in combination with CO$_2$ storage \cite{}
+  \item May be used in combination with CO$_2$ storage
   \item Three main injection strategies: Slug injection, Water-alternating-gas (WAG) and
     Gravity-stable injection
-  \end{itemize}
+  \end{prettyList}
   \begin{figure}[h]
     \centering
     \subfloat[$S_o$ after waterflood]{\includegraphics[width = 0.4\textwidth]{figures/misc/wagEx1}}\hspace{1em}
@@ -76,14 +85,14 @@
   \only<1>{
     \begin{columns}
       \begin{column}{0.65\textwidth}
-        \begin{itemize}
+        \begin{prettyList}
         \item Miscible displacement: no phase boundary or interface between injected
           fluid and reservoir oil
         \item Fully miscible displacement: injected solvent displaces \emph{all}
           residual oil form invaded pores
         \item Most physical gases does not form a completely miscible when combined
           with reservoir oil
-        \end{itemize}
+        \end{prettyList}
       \end{column}
       \begin{column}{0.3\textwidth}
         \begin{figure}[h]
@@ -96,13 +105,13 @@
   \only<2->{
     \begin{columns}
       \begin{column}{0.7\textwidth}
-        Key physical phenomena \cite{geoquest2002eclipse}
-        \begin{itemize}
+        Key physical phenomena \cite{schlumberger2013eclipse}
+        \begin{prettyList}
         \item High adverse \textcolor{re}{mobility ratio} \\ \hspace{0.5cm} $\Rightarrow$ Unstable flow, viscous fingers
         \item Large \textcolor{re}{density differences} \\ \hspace{0.5cm} $\Rightarrow$ Gravitational fingers
         \item The growth of both types of fingers are dampened by \textcolor{re}{mixing}
         \item A good solvent model should account for \textcolor{re}{all these effects}
-        \end{itemize}
+        \end{prettyList}
       \end{column}
       \begin{column}{0.25\textwidth}
         \begin{figure}[h]
@@ -115,14 +124,6 @@
       \end{column}
     \end{columns}
   }
-  % In a miscible gas injection process, we typically have a high adverse mobility
-  % ratio. This results in an unstable flow, which eventually leads to viscous
-  % fingers. In addition, gravitational fingering may occur if the density
-  % differences are large. This means that the total displacement of the oil in the
-  % swept regions may not lead to a high overall efficiency. On the other hand,
-  % mixing of miscible fluids exerts a considerable damping effect on the growth of
-  % viscous and gravity fingers. Thus, a good solvent simulation model must thus
-  % account both these effects.
 \end{frame}
 
 \section{Model formulation}
@@ -133,37 +134,27 @@
 \end{frame}
 
 \begin{frame}
-  \frametitle{Compositional formulation}
-  First attempts based on direct solution of convection-diffusion equations
+  \frametitle{First attempts}
+  Based on direct solution of convection-diffusion equations \cite{peaceman1962numerical}
   \begin{equation*}
-    \partial_t (\phi S c) + \nabla \cdot (\vec v c)  = \nabla \cdot (D\nabla \phi S c )
-% @article{ghorayeb2000modeling,
-%   title={Modeling multicomponent diffusion and convection in porous media},
-%   author={Ghorayeb, Kassem and Firoozabadi, Abbas and others},
-%   journal={SPE Journal},
-%   volume={5},
-%   number={02},
-%   pages={158--171},
-%   year={2000},
-%   publisher={Society of Petroleum Engineers}
-% }
+    c_t + \nabla \cdot (\vec v c)  = \nabla \cdot (D\nabla c )
   \end{equation*}
   On coarse grids:
-  \begin{itemize}
+  \begin{list}{\myitemmark}{\leftmargin=1.5em \itemindent=0em} 
   \item Fails to capture the fine-scale structure of the fingers
   \item True mixing masked by numerical diffusion
-  \end{itemize}
+  \end{list}
   $\Rightarrow$ Unacceptably high grid resolution
 \end{frame}
 
 \begin{frame}
   \frametitle{Model assumptions}
-  \vspace{1cm}
-  We consider the model used by ECLIPSE \cite{geoquest2002eclipse}
-  \begin{itemize}
-  \item Separate solvent phase $\Rightarrow$ avoid compositional formulation
-  \end{itemize}
-  % \begin{itemize}
+  \vspace{0.5cm}
+  We consider the model implemented in ECLIPSE \cite{geoquest2002eclipse}
+  \begin{prettyList}
+  \item Separate solvent phase $\Rightarrow$ avoid fully compositional formulation
+  \end{prettyList}
+  % \begin{prettyList}
   % \item Two extreme cases:
   %   \begin{enumerate}
   %   \item Only reservoir gas and oil: Immiscible
@@ -171,7 +162,7 @@
   %   \end{enumerate}
   % \item Interpolate in regions containing both dry gas and
   %   solvent
-  % \end{itemize}
+  % \end{prettyList}
   \begin{figure}[h]
     \centering
     \includegraphics[width=\textwidth]{figures/misc/miscible2}
@@ -181,8 +172,8 @@
 
 \begin{frame}
   \frametitle{Governing equations}
-  \begin{itemize}
-  \item \textcolor{re}{One extra} phase $\Rightarrow$ \textcolor{re}{One extra} conservation equation
+  \begin{prettyList}
+  \item \textcolor{re}{One extra} pseudo-component $\Rightarrow$ \textcolor{re}{One extra} conservation equation
   \begin{align*}
     \begin{aligned}
       \partial_t(\phi \only<2>{\textcolor{ye}}{\rho_\alpha} S_\alpha)
@@ -195,7 +186,7 @@
   \only<2>{\textcolor{ye}}{densities}
 \item Effective quantities are derived from the Todd-Longstaff model \cite{todd1972development} for fully miscible
   flooding
-  \end{itemize}
+  \end{prettyList}
 \end{frame}
 
 \begin{frame}
@@ -206,10 +197,10 @@
     \quad \alpha \in \{g, s\}
   \end{align*}
   \begin{tikzpicture}[remember picture,overlay]
-    \draw [bend left, <-, line width = 1pt]($({pic cs:malpha})+(0,5pt)$) |- ++(-1em,-2ex)
+    \draw [bend left, <-, line width = 1pt]($({pic cs:malpha})+(0,6pt)$) |- ++(-1em,-2ex)
     node[rectangle, anchor=east,font=\small, text width = 2.5cm, align = center, fill = ntnublue!20]
     {\scriptsize Relperm multiplier};
-    \draw [<-, line width = 1pt]($({pic cs:krgT})+(0,5pt)$) |- ++(1em,-3.3ex)
+    \draw [<-, line width = 1pt]($({pic cs:krgT})+(0,6pt)$) |- ++(1em,-3.3ex)
     node[rectangle, anchor=west,font=\small, text width = 2.5cm, align = center, fill = ntnublue!20]
     {\scriptsize Total gas relperm};
   \end{tikzpicture}%
@@ -243,7 +234,7 @@
 \begin{frame}
   \frametitle{Transition between miscible and immiscible conditions}
   \only<1>{
-    \begin{itemize}
+    \begin{prettyList}
     \item Determined by miscibility function
       \begin{equation*}
         \textcolor{re}{M} = \underbrace{M_S\left(\frac{S_s}{S_g + S_s}\right)}_{\tikzmark{Ms}} M_p\tikzmark{Mp}(p) \in [0,1]
@@ -268,7 +259,7 @@
           k_{r \alpha} = k_{r\alpha,m}\textcolor{re}{M} + k_{r\alpha,i}(1-\textcolor{re}{M}), \quad \alpha \in \{o,gT\}
         \end{align*}
       \end{enumerate}
-    \end{itemize}
+    \end{prettyList}
   }
   \only<2>{
     \begin{figure}[h]
@@ -314,7 +305,7 @@
   %   \mu_{o, \eff} = \mu_o^{1-\omega}\mu_{mos}^\omega
   % \end{equation*}
   % \vspace{0.2cm}
-  \begin{itemize}
+  \begin{prettyList}
   \item Degree of mixing controlled by mixing parameter:
     \begin{equation*}
       \text{no mixing} \leftrightarrow 0 \leq \only<2>{\textcolor{re}}{\omega} \leq 1 \leftrightarrow \text{full mixing}
@@ -324,7 +315,7 @@
       \only<3>{\textcolor{re}}{\mu_{mos}} = \frac{\mu_o \mu_s}{\left(\frac{S_o}{S_o + S_s}\mu_s^{1/4} +
       \frac{S_s}{S_o + S_s}\mu_o^{1/4}\right)^4}
     \end{align*}
-  \end{itemize}
+  \end{prettyList}
       
   % \begin{mybox}{Todd-Longstaff model}{0.3\textheight}
   %   \vspace{0.1cm}
@@ -356,7 +347,7 @@
                     + \rho_s\left(1 - \only<1>{\frac{S_o}{S_o + S_s}}
                     \only<2>{\textcolor{re}{\left[\frac{S_o}{S_o + S_s}\right]_{\eff}}}\right)
   \end{align*}
-  \begin{itemize}
+  \begin{prettyList}
   \item To be consistent with the viscosity model, we use \emph{effective} saturation fractions
   \begin{align*}
     \only<1>{\mu_{mos}}\only<2>{\textcolor{re}{\mu_{o,\eff}}}
@@ -368,7 +359,7 @@
     % \mu_{mos} = \frac{\mu_o \mu_s}{\left(\        {S_o}{S_o + S_s}\mu_s^{1/4} +
     % \frac{S_s}{S_o + S_s}\mu_o^{1/4}\right)^4}
   \end{align*}
-\end{itemize}
+\end{prettyList}
   
 \end{frame}
 
@@ -409,15 +400,15 @@
   \begin{overlayarea}{\textwidth}{0.4\textheight}
     \only<1>{
       \vspace{0.5cm}
-      \begin{itemize}
+      \begin{prettyList}
       \item Forward differences in time
       \item Inverse formation volume factor $b_\alpha = \frac{\rho_\alpha}{\rho_\alpha^s}$ 
-      \end{itemize}
+      \end{prettyList}
     }
     \only<2>{
-      \begin{itemize}
+      \begin{prettyList}
       \item Mass fluxes approximated using two-point approximation
-      \end{itemize}
+      \end{prettyList}
       \begin{equation*}
         \textcolor{re}{|F_{ij}|(b_\alpha \vec v_\alpha\cdot\vec n)_{ij}} \approx
         \underbrace{(b_\alpha\lambda_\alpha)_{ij}}_{\tikzmark{up}}
@@ -465,12 +456,13 @@
   \frametitle{MATLAB Reservoir Simulation Toolbox (MRST)}
   
   \begin{textblock}{9.5}(6,7.5)
-    \begin{itemize}
+    \begin{prettyList}
     \item \texttt{G}: Geometric reservoir representation
     \item \texttt{rock}: Geological properties
     \item \texttt{fluid}: Phase properties
-    \item \texttt{model}: Class defining fluid interactions etc.
-    \end{itemize}
+    \item \texttt{model}: Class defining residual equations, Jacobians, etc.
+    \item \texttt{states}: Reservoir properties at each time step
+    \end{prettyList}
   \end{textblock}
 
 \end{frame}
@@ -483,11 +475,32 @@
  \frametitle{MATLAB Reservoir Simulation Toolbox (MRST)}
 
  \begin{textblock}{10}(6,7.5)
-    \begin{itemize}
+    \begin{prettyList}
     \item Automatic differentiation
-    \item Discrete versions of e.g. \texttt{Div} and \texttt{Grad}
-    \item Write discrete equations on a form very similar to the continuous
-    \end{itemize}
+    \item No need to calculate Jacobians explicitly
+%    \item Discrete versions of e.g. \texttt{Div} and \texttt{Grad}
+    \item Write discrete equations on a form very similar to the semi-discrete:
+      \begin{small}
+        \begin{align*}
+          \underbrace{\frac{1}{\Delta t} \big[(\phi b_o S_o)^{n+1}}_{\tikzmark{accum}} - (\phi b_o S_o)^{n}\big] + \underbrace{\nabla \cdot (b_o \vec v_o)}_{\tikzmark{flux}}
+        \end{align*}
+        \begin{tikzpicture}[remember picture,overlay]
+          \draw [bend left, <-, line width = 1pt]($({pic cs:accum})+(0,6pt)$) - ++(-0em,-1.5ex)
+          node[rectangle, draw, rounded corners, ultra thin, anchor=north,font=\small, align = center, fill = ye!10]
+          {\scriptsize \texttt{(op.pv/dt).*pvMult.*bO.*sO}};
+          \draw [bend left, <-, line width = 1pt]($({pic cs:flux})+(0,6pt)$) - ++(-0em,-2.4ex)
+          node[rectangle, draw, rounded corners, ultra thin, anchor=north,font=\small, align = center, fill = ye!10]
+          {\scriptsize \texttt{op.Div(bOvO)}};
+          % \draw [<-, line width = 1pt]($({pic cs:krgT})+(0,6pt)$) |- ++(1em,-3.3ex)
+          % node[rectangle, anchor=west,font=\small, text width = 2.5cm, align = center, fill = ntnublue!20]
+          % {\scriptsize Total gas relperm};
+        \end{tikzpicture}%
+      %   \begin{align*}
+      %   & \frac{1}{\Delta t} \left[(\phi b_o S_o)^{n+1} - (\phi b_o S_o)^{n}\right] + \nabla \cdot (b_o \vec v_o)
+      %   & \text{\texttt{(op.pv/dt).*(pvMult.*bO.*sO }} \\ & \text{\texttt{- pvMult0.*bO0.*sO0) + op.Div(bOvO)}}
+      % \end{align*}
+    \end{small}
+    \end{prettyList}
   \end{textblock}
     
 \end{frame}
@@ -505,12 +518,12 @@
 \begin{frame}
   \frametitle{Example 1: 1D displacement}
   \only<1>{
-    \begin{itemize}
+    \begin{prettyList}
     \item Initial saturation: $S_o = S_{or,i} = 0.2$, $S_w = 1 - S_{or, i}$
     \item Miscible residual saturation $S_{or,m}= 0$
     \item Mixing: Moderate ($\omega = 2/3$) and full ($\omega = 1$)
     \item 10 WAG-cycles over 4 years, 1 PV injected per year
-    \end{itemize}
+    \end{prettyList}
   }
   \only<2->{
     \begin{overlayarea}{\textwidth}{0.7\textheight}
@@ -549,11 +562,11 @@
     \end{figure}
   }
   \only<2>{
-    \begin{itemize}
+    \begin{prettyList}
     \item Layer 10 of the SPE10 model \cite{spe10}, initially filled with oil
     \item Residual oil saturations: $S_{or,i} = 0.3$, $S_{or,m} = 0.0$
     \item Injection schedule:
-    \end{itemize}
+    \end{prettyList}
     \begin{figure}[h]
       \centering
       \includegraphics[width = 0.9\textwidth]{figures/spe10/schedule}
@@ -585,11 +598,11 @@
       \subfloat[Porosity]{
         \includegraphics[width = 0.45\textwidth]{figures/norne/poro}}
     \end{figure}
-    \begin{itemize}
+    \begin{prettyList}
     \item Realistic field model \cite{norne-data} with $44,420$ cells , initially filled with oil
-    \item Residual oil saturations: $S_{or,i} = 0.38$, $S_{or,m} = 0.05$
-    \item Injection schedule: Large water slug 5 WAG cycles - small water slug
-    \end{itemize}
+    \item Residual oil saturations: $S_{or,i} = 0.38$, $S_{or,m} = 0.08$
+    \item Injection schedule:\\ \hspace{5ex}Large water slug -- 5 WAG cycles -- Small water slug
+    \end{prettyList}
   }
   \only<2>{
     \begin{center}
@@ -625,15 +638,15 @@
 \begin{frame}
   \frametitle{Conclusion and further work}
   Conclusion
-  \begin{itemize}
+  \begin{prettyList}
   \item Implementation of a four-phase solvent model in MRST
   \item Able to simulate solvent injection on field-scale reservoir models
-  \end{itemize}
+  \end{prettyList}
   Further work
-  \begin{itemize}
+  \begin{prettyList}
   \item Validate model with ECLIPSE
-  \item Implementation of higher-order FV methods for the transport equations
-  \end{itemize}
+  \item Implementation of higher-order FV methods
+  \end{prettyList}
 \end{frame}
 
 \begin{frame}
