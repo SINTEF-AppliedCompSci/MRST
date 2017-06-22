@@ -663,15 +663,5 @@ end
 
 function d = combineCellData(data, ix)
     d = cellfun(@(x) x{ix}, data, 'UniformOutput', false);
-    isAD = ~cellfun(@isnumeric, d);
-    if any(~isAD) && any(isAD)
-        s = d(isAD);
-        s = s{1};
-        for i = 1:numel(isAD)
-            if ~isAD(i)
-                d{i} = double2ADI(d{i}, s);
-            end
-        end
-    end
     d = vertcat(d{:});
 end

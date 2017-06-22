@@ -76,7 +76,7 @@ end
 
 function celldata = getComponentCellSubset(celldata, wc)
     for i = 1:numel(celldata)
-        for j = 1:numel(celldata{i});
+        for j = 1:numel(celldata{i})
             if ~isempty(celldata{i}{j})
                 celldata{i}{j} = reduceToDouble(celldata{i}{j}(wc));
             end
