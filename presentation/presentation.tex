@@ -71,8 +71,8 @@
   \item Recovers much of the trapped oil after a waterflood
   \item Displaces oil in regions poorly swept by water due to gravity
   \item May be used in combination with CO$_2$ storage
-  \item Three main injection strategies: Slug injection, Water-alternating-gas (WAG) and
-    Gravity-stable injection
+  \item Three main injection strategies: slug injection, water-alternating-gas (WAG) and
+    gravity-stable injection
   \end{prettyList}
   \begin{figure}[h]
     \centering
@@ -89,8 +89,8 @@
         \begin{prettyList}
         \item Miscible displacement: No interface between injected fluid and reservoir oil
         \item Fully miscible displacement: Injected solvent displaces \emph{all}
-          residual oil form invaded pores
-        \item Most physical gases does not form a completely miscible system when combined
+          residual oil from invaded pores
+        \item Most physical gases do not form a completely miscible system when combined
           with reservoir oil
         \end{prettyList}
       \end{column}
@@ -109,7 +109,7 @@
         \begin{prettyList}
         \item High adverse \textcolor{re}{mobility ratio} \\ \hspace{0.5cm} $\Rightarrow$ Unstable flow, viscous fingers
         \item Large \textcolor{re}{density differences} \\ \hspace{0.5cm} $\Rightarrow$ Gravitational fingers
-        \item The growth of both types of fingers are dampened by \textcolor{re}{mixing}
+        \item The growth of both types of fingers is dampened by \textcolor{re}{mixing}
         \item A good solvent model should account for \textcolor{re}{all these effects}
         \end{prettyList}
       \end{column}
@@ -400,7 +400,7 @@
     \only<1>{
       \vspace{0.5cm}
       \begin{prettyList}
-      \item Forward differences in time
+      \item Backward differences in time
       \item Inverse formation volume factor $b_\alpha = \frac{\rho_\alpha}{\rho_\alpha^s}$ 
       \end{prettyList}
     }
@@ -454,13 +454,13 @@
 \begin{frame}
   \frametitle{MATLAB Reservoir Simulation Toolbox (MRST)}
   
-  \begin{textblock}{9.5}(6,7.5)
+  \begin{textblock}{9.5}(6,7)
     \begin{prettyList}
-    \item \texttt{G}: Geometric reservoir representation
-    \item \texttt{rock}: Geological properties
-    \item \texttt{fluid}: Phase properties
-    \item \texttt{model}: Class defining residual equations, Jacobians, etc.
-    \item \texttt{states}: Reservoir properties at each time step
+    \item \texttt{G}: geometric reservoir representation
+    \item \texttt{rock}: petrophysical properties
+    \item \texttt{fluid}: phase properties
+    \item \texttt{model}: class defining residual equations, Jacobians, etc.
+    \item \texttt{states}: reservoir properties at each time step
     \end{prettyList}
   \end{textblock}
 
@@ -473,11 +473,10 @@
   
  \frametitle{MATLAB Reservoir Simulation Toolbox (MRST)}
 
- \begin{textblock}{10}(6,7.5)
+ \begin{textblock}{10}(6,7)
     \begin{prettyList}
     \item Automatic differentiation
-    \item No need to calculate Jacobians explicitly
-%    \item Discrete versions of e.g. \texttt{Div} and \texttt{Grad}
+    \item Discrete versions of \texttt{Div}/\texttt{Grad}, no need to calculate Jacobians explicitly
     \item Write discrete equations on a form very similar to the semi-discrete:
       \begin{small}
         \begin{align*}
@@ -519,8 +518,8 @@
   \only<1>{
     \begin{prettyList}
     \item Initial saturation: $S_o = S_{or,i} = 0.2$, $S_w = 1 - S_{or, i}$
-    \item Miscible residual saturation $S_{or,m}= 0$
-    \item Mixing: Moderate ($\omega = 2/3$) and full ($\omega = 1$)
+    \item Miscible residual saturation: $S_{or,m}= 0$
+    \item Mixing: moderate ($\omega = 2/3$) and full ($\omega = 1$)
     \item 10 WAG-cycles over 4 years, 1 PV injected per year
     \end{prettyList}
   }
@@ -598,7 +597,7 @@
         \includegraphics[width = 0.45\textwidth]{figures/norne/poro}}
     \end{figure}
     \begin{prettyList}
-    \item Realistic field model \cite{norne-data} with $44,420$ cells , initially filled with oil
+    \item Realistic field model \cite{norne-data} with $44,420$ cells, initially filled with oil
     \item Residual oil saturations: $S_{or,i} = 0.38$, $S_{or,m} = 0.08$
     \item Injection schedule:\\ \hspace{5ex}Large water slug -- 5 WAG cycles -- Small water slug
     \end{prettyList}
@@ -640,7 +639,7 @@
   \begin{prettyList}
   \item Implementation of a four-phase solvent model in MRST
   \item Able to simulate solvent injection on field-scale reservoir models
-  \end{prettyList}
+  \end{prettyList}\vspace{0.5cm}
   Further work
   \begin{prettyList}
   \item Validate model with ECLIPSE
