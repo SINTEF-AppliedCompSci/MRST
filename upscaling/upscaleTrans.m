@@ -173,6 +173,7 @@ function [psolve, obj, isAD] = getPressureSolver(cg, input, opt)
         end
         model = input;
         model.extraStateOutput = true;
+        model.outputFluxes = true;
         model.gravity = [0, 0, 0];
         psolve = @(bcase, wcase) standaloneSolveAD(...
             init_state, model, opt.dt, 'bc', bcase, 'W', wcase);
