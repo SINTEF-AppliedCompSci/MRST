@@ -35,8 +35,8 @@ injectors = {round(G.cartDims(1)*G.cartDims(2)/2 + G.cartDims(1)/2)};
 % producers = {G.cells.num};
 
 T = 1*year;
-rate = 0.5*sum(poreVolume(G, rock))/(T*numel(injectors));
-nStep = 100;
+rate = sum(poreVolume(G, rock))/(T*numel(injectors));
+nStep = 200;
 
 [scheduleWAG, W_G, W_W] = makeWAGschedule(model, injectors, producers, 10, 'T', 2*T, 'gRate', rate, 'wRate', rate, 'nStep', 2*nStep);
 
@@ -91,47 +91,53 @@ colorbar
 %%
 
 close all
-n = numel(states);
+ns = numel(states);
 pos = [500, 500, 2000,1000];
 fig = figure('position', pos);
 M = struct('cdata',[],'colormap',[]);
 jv = [4,1,2];
-% n = 4;
-for i = 1:n
+% ns = 4;
+for i = 1:ns
     
     clf;
     
     subplot(1,3,1)
-    plotCellData(G, states{i}.s(:,4), 'edgecolor', 'none');
-    colorbar;
+    plotCellData(G, states{i}.s(:,1), 'edgecolor', 'none');
+    colorbar('fontsize', 20);
     colormap(jet)
     caxis([0,1])
     axis equal tight off
-    title('S_s');
+    title('S_w');
+    ax = gca;
+    ax.FontSize = 20;
     
     subplot(1,3,2)
-    plotCellData(G, states{i}.mob(:,2), 'edgecolor', 'none');
-    colorbar;
-    caxis([0,130])
+    plotCellData(G, states{i}.s(:,4), 'edgecolor', 'none');
+    colorbar('fontSize', 20);
+    caxis([0,1])
     colormap(jet)
     axis equal tight off
-    title('\lambda_o');
+    title('S_s');
+    ax = gca;
+    ax.FontSize = 20;
     
     subplot(1,3,3)
     plotCellData(G, states{i}.s(:,2), 'edgecolor', 'none');
-    colorbar;
+    colorbar('fontSize', 20);
     colormap(jet)
     caxis([0,1])
     axis equal tight off
     title('S_o');
-     
+    ax = gca;
+    ax.FontSize = 20;
+    
     drawnow;
     ax = gca;
     ax.Units = 'pixels';
 %     pos = ax.Position;
     
-    m = 150; n = 100;
-    rect = [m, n, 2000-2*m, 1000-2*n];
+    m = 150; n = 150;
+    rect = [m, n, 2000-m-20, 1000-n-40];
     
     M(i) = getframe(fig, rect);
     
@@ -141,7 +147,7 @@ end
 
 %%
 
-pth = [mrstPath('mrst-solvent'), '/presentation/figures/spe10/spe10'];
+pth = [mrstPath('mrst-solvent'), '/presentation/figures/spe10/spe10_1'];
 vo = VideoWriter(pth);
 n = numel(states);
 vo.FrameRate = n/30;
@@ -240,19 +246,19 @@ figure(1); clf;
 perm = rock.perm(:,1);
 plotCellData(G, log10(perm), 'edgecolor', 'none');
 axis equal tight off
-view([90,90])
+% view([90,90])
 ax = gca;
 pos = ax.Position;
-logColorbar('southoutside', 'position', [pos(1), pos(2)+0.07, pos(3), 0.05*pos(4)]);
+logColorbar%('southoutside', 'position', [pos(1), pos(2)+0.07, pos(3), 0.05*pos(4)]);
 
 savepng('spe10perm');
 
 figure(2); clf;
 plotCellData(G, rock.poro, 'edgecolor', 'none');
 axis equal tight off
-view([90,90])
+% view([90,90])
 ax = gca;
 pos = ax.Position;
-colorbar('southoutside', 'position', [pos(1), pos(2)+0.07, pos(3), 0.05*pos(4)]);
+colorbar%('southoutside', 'position', [pos(1), pos(2)+0.07, pos(3), 0.05*pos(4)]);
 
 savepng('spe10poro');

@@ -2,7 +2,7 @@ mrstModule add ad-core ad-eor ad-blackoil ad-props blackoil-sequential matlab_bg
 
 gravity reset on
 
-n = 100;
+n = 1000;
 G = computeGeometry(cartGrid([n,1,1], [100,1,1]));
 rock = makeRock(G, 100*milli*darcy, 1);
 
@@ -16,7 +16,7 @@ fluid = initSimpleADIFluid('n'     , [2, 2, 2], ...
 sOres_i= 0.2;
 fluid = addSolventProperties(fluid, 'n', 2, ...
                                     'rho', 100*kilogram/meter^3, ...
-                                    'mixPar', 2/3, ...
+                                    'mixPar', 0, ...
                                     'mu'    , 1*centi*poise, ...
                                     'sOres_i', sOres_i, ...
                                     'sOres_m', 0.0);
@@ -25,8 +25,8 @@ model = FourPhaseSolventModel(G, rock, fluid);
 model.extraStateOutput = true;
 
 T =4*year;
-rate = 1*sum(poreVolume(G, rock))/T;
-[schedule, W_G, W_W] = makeWAGschedule(model, {1}, {G.cells.num}, 10, 'T', T, 'nStep', 100, 'wRate', rate, 'gRate', rate);
+rate = 1*sum(poreVolume(G, rock))/year;
+[schedule, W_G, W_W] = makeWAGschedule(model, {1}, {G.cells.num}, 10, 'T', T, 'nStep', 1000, 'wRate', rate, 'gRate', rate);
 
 s = sOres_i + 0.0;
 state0 = initResSol(G, 100*barsa, [1-s s 0 0]);
@@ -60,14 +60,16 @@ end
 %%
 
 close all
-n = numel(states);
+ns = numel(states);
+ns = 400;
 pos = [500, 500, 2000,1000];
 fig = figure('position', pos);
 M = struct('cdata',[],'colormap',[]);
 ttl = {'S_o', 'S_s'};
-x = linspace(0,100,n);
+nx = 1000;
+x = linspace(0,100,nx);
 
-for i = 1:n
+for i = 1:ns
     
     clf;
     ll = lines(3);
@@ -105,11 +107,12 @@ end
 
 %%
 
-n = numel(states);
+% n = numel(states);
+n = 400;
 % n = 4;
 pth = [mrstPath('mrst-solvent'), '/presentation/figures/displacement1D/'];
-vo = VideoWriter([pth, 'displacement1D.avi']);
-vo.FrameRate = n/30;
+vo = VideoWriter([pth, 'displacement1D_1.avi']);
+vo.FrameRate = 1000/30;
 open(vo);
 
 writeVideo(vo, M);

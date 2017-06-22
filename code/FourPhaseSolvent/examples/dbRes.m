@@ -1,9 +1,10 @@
 mrstModule add ad-core ad-eor ad-blackoil ad-props blackoil-sequential matlab_bgl
 
-gravity reset off
+gravity reset on
 
-n = 10;
-G = computeGeometry(cartGrid([n,1,1], [100,1,1]));
+n = 100;
+% G = computeGeometry(cartGrid([n,1,1], [100,1,1]));
+G = computeGeometry(cartGrid([1,1,n], [1,1,100]));
 rock = makeRock(G, 100*milli*darcy, 1);
 
 %%
@@ -11,37 +12,39 @@ rock = makeRock(G, 100*milli*darcy, 1);
 fluid = initSimpleADIFluid('n'     , [2, 2, 2], ...
                            'rho'   , [1000, 800, 100]*kilogram/meter^3, ...
                            'phases', 'WOG', ...
-                           'mu'    , [1, 10, 2]*centi*poise);
+                           'mu'    , [1, 10, 2]*centi*poise, ...
+                           'c'     , [1e-6, 1e-6, 1e-5]/barsa);
 
 sOres_i= 0.3;
 fluid = addSolventProperties(fluid, 'n', 2, ...
                                     'rho', 100*kilogram/meter^3, ...
                                     'mixPar', 2/3, ...
-                                    'mu'    , 1*centi*poise, ...
+                                    'mu'    , 2*centi*poise, ...
                                     'sOres_i', sOres_i, ...
-                                    'sOres_m', 0.0);
+                                    'sOres_m', 0.0, ...
+                                    'c'      , 1e-5/barsa);
                                 
 model = FourPhaseSolventModel(G, rock, fluid);
-model.extraStateOutput = true;
+% model.extraStateOutput = true;
 
 T = 1*year;
+nStep = 100;
 rate = sum(poreVolume(G, rock))/T;
 
 W = addWell([], G, rock, 1, 'type', 'rate', 'val', rate, 'comp_i', [0,0,0,1]);
 W = addWell(W, G, rock, G.cells.num, 'type', 'bhp', 'val', 0, 'comp_i', [1,0,0,0]);
-
-dT = T/100;
+% 
+dT = T/nStep;
 dT = rampupTimesteps(T, dT, 0);
 step.val = dT;
 step.control = ones(numel(dT),1);
 schedule.step = step;
 schedule.control(1).W = W;
 
-sO = sOres_i;% sOres_i + 0*1e-5;
-% sO = 1;
-sG = 0.1;
-sG = 0;
-state0 = initResSol(G, 100*barsa, [1-sO-sG sO sG 0]);
+sO = sOres_i;
+sW = 1 - sOres_i;
+
+state0 = initResSol(G, 100*barsa, [sW, sO, 0, 0]);
 state0.wellSol = initWellSolAD(W, model, state0);
 
 nls = NonLinearSolver('useLineSearch', true);
@@ -54,6 +57,7 @@ nls = NonLinearSolver('useLineSearch', false);
 %%
 
 plotToolbar(G, states, 'plot1d', true);
+
 
 %%
 
