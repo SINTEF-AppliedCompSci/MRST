@@ -73,7 +73,7 @@ function [ p, t ] = distmesh_nd ( fdist, fh, h, box, fix, varargin )
 %
   p = p ( feval(fdist,p,varargin{:})<geps, : );
   r0 = feval ( fh, p );
-  p = [ fix; p ( rand(size(p,1),1)<min(r0)^dim./r0.^dim, : ) ];
+  p = [ fix; (p ( rand(size(p,1),1)<min(r0)^dim./r0.^dim, : )) ];
   N = size ( p, 1 );
 
   count = 0;
