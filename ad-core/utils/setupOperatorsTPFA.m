@@ -165,7 +165,10 @@ M  = sparse((1:nf)'*[1 1], N, .5*ones(nf,2), nf, nc);
 s.faceAvg = @(x)M*x;
 
 % faceUpstr - as multiplication with matrix
-s.faceUpstr = @(flag, x)faceUpstr(flag, x, N, [nf, nc]);
+upw = @(flag, x)faceUpstr(flag, x, N, [nf, nc]);
+s.faceUpstr = upw;
+
+s.splitFaceCellValue = @(flag, x) splitFaceCellValue(flag, x, N, [nf, nc], upw);
 
 % Include neighbor relations
 s.N = N;

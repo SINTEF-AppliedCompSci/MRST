@@ -71,16 +71,20 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         pcOW  = fluid.pcOW(sW);
     end
     pW = pO - pcOW;
+    muW = fluid.muW(pO);
     
     bW     = fluid.bW(pO);
     rhoW   = bW.*fluid.rhoWS;
     % rhoW on face, average of neighboring cells
     rhoWf  = s.faceAvg(rhoW);
-    mobW   = krW./fluid.muW(pO);
     dpW    = s.Grad(pW) - rhoWf.*gdz;
     % water upstream-index
     upcw  = (double(dpW)<=0);
-    vW = -s.faceUpstr(upcw, mobW).*T.*dpW;
+    [krWf, krW] = s.splitFaceCellValue(upcw, krW);
+    [muWf, muW] = s.splitFaceCellValue(upcw, muW);
+    mobW   = krW./muW;
+    
+    vW = -(krWf./muWf).*T.*dpW;
     if any(bW < 0)
         warning('Negative water compressibility present!')
     end

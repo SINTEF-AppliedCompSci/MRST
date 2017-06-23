@@ -100,10 +100,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     
     rhoOf  = s.faceAvg(rhoO);
-    mobO   = krO./muO;
     dpO    = s.Grad(p) - rhoOf.*gdz;
     % oil upstream-index
     upco = (double(dpO)<=0);
-    vO   = - s.faceUpstr(upco, mobO).*T.*dpO;
+    
+    [krOf, krO] = s.splitFaceCellValue(upco, krO);
+    [muOf, muO] = s.splitFaceCellValue(upco, muO);
+    mobO   = krO./muO;
+    
+    vO   = -(krOf./muOf).*T.*dpO;
 end
 

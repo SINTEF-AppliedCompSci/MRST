@@ -1,4 +1,4 @@
-function xu = faceUpstr(flag, x, N, sz)
+function [xu, xc] = faceUpstr(flag, x, N, sz)
     if numel(flag) == 1
         flag = repmat(flag, size(N, 1), 1);
     end
@@ -12,5 +12,8 @@ function xu = faceUpstr(flag, x, N, sz)
     else
         % x is likely AD, construct a matrix to achieve upstream weighting
         xu = sparse((1:sz(1))', upCell, 1, sz(1), sz(2))*x;
+    end
+    if nargout > 1
+        xc = x;
     end
 end
