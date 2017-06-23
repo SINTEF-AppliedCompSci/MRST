@@ -82,7 +82,7 @@ xyp = xyp(:,1:2);
 
 % Rotate axis to align 1 edge of the planar polygon with the x-axis 
 diffp = diff(xyp);
-theta = atan(diffp(1,2)/diffp(1,1));
+theta = abs(atan(diffp(1,2)/diffp(1,1)));
 R = [cos(theta) -sin(theta); sin(theta) cos(theta)];
 xyp = transpose(R*xyp');
 
@@ -170,7 +170,7 @@ if opt.gridType == 3
         try
             Gf = pebi(Gf);
             close gcf
-            assert(size(t,1)>opt.minTriangles*5,'');     
+            assert(size(t,1)>opt.minTriangles*5,'');         
             computeGeometry(Gf);
             break;
         catch
@@ -242,10 +242,7 @@ unitNormal = scaledplane.normal/norm(scaledplane.normal);
 tdist = fracplane.aperture/2;
 
 % Rotate points about the origin back to their original position
-use_points = rotatePlane(nc,+unitNormal,'useNormal',[0 0 1]);
-if any(use_points(:,3)<0)
-    use_points = rotatePlane(nc,-unitNormal,'useNormal',[0 0 1]);
-end
+use_points = rotatePlane(nc,unitNormal,'useNormal',[0 0 1]);
 
 % Scale back to dimensional space
 dims = max(G.nodes.coords);

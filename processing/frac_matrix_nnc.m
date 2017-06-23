@@ -156,11 +156,11 @@ for i = 1:numel(F)
                 flag = 1;
                 node_new = [node(1)-1;node]; % fracture grid cell numbers 
                 node = node_new; clear node_new
-            elseif any(node == numel(in)) && numel(node)>1 % Fracture ends in this cell with >1 nodes in cell
+            elseif any(node == numel(in)) && numel(node)>1 % Fracture ends "inside" this cell with >1 nodes in cell
                 flag = 3;
                 node_new = [node(1)-1;node];
                 node = node_new; clear node_new 
-            elseif node(1) == 1 && numel(node)>1 % Fracture starts in this cell with >1 nodes in cell
+            elseif node(1) == 1 && numel(node)>1 % Fracture starts "inside" this cell with >1 nodes in cell
                 flag = 2;
                 node_new = [node;node(end)+1];
                 node = node_new; clear node_new
@@ -168,7 +168,7 @@ for i = 1:numel(F)
                 node = node-1;
             end
             node = unique(node); % because of 2nd elseif
-            %-------------------------------------------------------------%
+            %----Make the NNC list --> [Matrix cell ind, Frac cell ind]---%
             if flag == 3
                 G.nnc.cells(count:count+numel(node)-2,:) = ...
                     [repmat(mcells(j),numel(node)-1,1),node(1:end-1)+F(i).cells.start-1];
@@ -227,7 +227,7 @@ for i = 1:numel(F)
                     end
                 elseif flag ==2
                     ratio = zeros(numel(node)-1,1);
-                    for k = 1:numel(node)-1
+                    for k = 1:numel(node)-2
                         ratio(k) = pdist_euclid(points(k:k+1,:))/fA;
                     end
                 else
