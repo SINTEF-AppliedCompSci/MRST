@@ -6,8 +6,8 @@
 % is quite small, but contains a few features that will still pose
 % challenges for black-oil simulators. The 25 producers initially operate
 % at a maximum rate of 1500 STBO/D, which is lowered to 100 STBO/D from day
-% 300 to 360, and the raised up again to its initial value until the end of
-% simulation at 900 days. The single water injector is set to a maximum
+% 300 to 360, and then raised up again to its initial value until the end
+% of simulation at 900 days. The single water injector is set to a maximum
 % rate of 5000 STBW/D with a maximum bottom-hole pressure of 4000 psi at
 % reference depth. This setup will cause free gas to form after ~100 days
 % when the reservoir pressure is reduced below the original saturation
