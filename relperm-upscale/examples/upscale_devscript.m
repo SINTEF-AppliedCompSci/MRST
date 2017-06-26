@@ -44,7 +44,7 @@ if 0
     rock = makeRock(G, perm, 0.3);
 else
     mrstModule add spe10
-    [G, ~, rock] = getSPE10setup(34);
+    [G, ~, rock] = getSPE10setup(1);
     rock.poro(rock.poro < 0.01) = 0.01;
 end
 figure(1); clf
@@ -139,11 +139,6 @@ CG = generateCoarseGrid(G, p);
 
 %% Upscale the model and run the coarser problem
 mrstModule add incomp agglom upscaling
-mrstModule add blackoil-sequential
-f2 = initSimpleADIFluid('mu', [1, 1, 1]*centi*poise);
-pmodel = PressureOilWaterModel(G, rock, f2);
-[hf, T_c, W_c, rep2] = upscaleTrans(CG, pmodel, ...
-    'Wells', W, 'bc_method', 'wells', 'fix_trans', true, 'state', state0, 'dt', 1*day, 'match_method', 'max_flux');
 
 %%
 model_c0 = upscaleModelTPFA(model, p);
@@ -152,18 +147,33 @@ schedule_c0 = upscaleSchedule(model_c0, schedule);
 [wellSols_c0, states_c0, rep_c0] = simulateScheduleAD(state0_c, model_c0, schedule_c0);
 
 %%
-model_c = upscaleModelTPFA(model, p, 'transCoarse', T_c);
+mrstModule add upscaling relperm-upscale
 
-schedule_c = schedule;
-for i = 1:numel(schedule_c.control)
-    schedule_c.control(i).W = W_c;
+
+if 0
+    mrstModule add blackoil-sequential
+    f2 = initSimpleADIFluid('mu', [1, 1, 1]*centi*poise);
+    pmodel = PressureOilWaterModel(G, rock, f2);
+    [hf, T_c, W_c, rep2] = upscaleTrans(CG, pmodel, ...
+        'Wells', W, 'bc_method', 'wells', 'fix_trans', true, 'state', state0, 'dt', 1*day, 'match_method', 'max_flux');
+    model_c = upscaleModelTPFA(model, p, 'transCoarse', T_c);
+
+
+    schedule_c = schedule;
+    for i = 1:numel(schedule_c.control)
+        schedule_c.control(i).W = W_c;
+    end
+else
+    ts = computeTransmissibilityFromStates(p, states, model, schedule);
+    [model_c, schedule_c] = assignCoarseTransmissibility(p, model, schedule, ts);
 end
+
 [wellSols_c, states_c, rep_c] = simulateScheduleAD(state0_c, model_c, schedule_c);
 %%
 kr0 = computeRelpermFromStates(states, model_c, model, schedule_c, schedule);
 
 kr = kr0;
-[model_kr, kr] = assignUpscaledRelperm(model_c, kr, 'extrapolateend', true, 'monotoneMethod', 'slope', 'setWells', false);
+[model_kr, kr] = assignUpscaledRelperm(model_c, kr, 'extrapolateend', true, 'monotoneMethod', 'remove', 'setWells', false);
 
 [wellSols_kr, states_kr, rep_kr] = simulateScheduleAD(state0_c, model_kr, schedule_c);
 %%
@@ -175,6 +185,7 @@ kr = kr0;
 
 %%
 plotWellSols({wellSols, wellSols_c0, wellSols_c, wellSols_kr, wellSols_krf}, report.ReservoirTime, 'datasetnames', {'Fine', 'Harmonic', 'T upscale', 'T + kr upscale', 'T + kr upscale (with wells)'})
+%%
 %%
 kr = kr0
 close all
@@ -205,20 +216,3 @@ for i = 1:2
     end
     plot(s, k, 'b', 'linewidth', 2);
 end
-
-%%
-% 167
-d = kr0{1}.reservoir{85, 1};
-
-s = d.S;
-k = d.kr;
-
-figure(1); clf
-plot(s, k, 'o-')
-
-[x, f] = regularizeSaturationFunction(s, k, 'extrapolateEnd', true, 'monotone', true, 'monotoneMethod', 'slope');
-hold on
-plot(x, f);
-
-ylim([0, 1])
-xlim([0, 1])

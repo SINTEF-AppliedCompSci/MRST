@@ -39,7 +39,7 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    states = computeProps(model_c, model, states, schedule_c, schedule);
+    states = computeCoarseProps(model_c, model, states, schedule_c, schedule);
     
     n_ph = model.water + model.oil + model.gas;
     
@@ -110,9 +110,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     mu = state.mu(wc, ph);
                     sw = state.s(wc, ph);
                     wf = state.wellSol(wno).flux(:, ph);
-                    
-                    pw = state.wellSol(wno).cdp + state.wellSol(wno).bhp;
-                    dp = (state.pressure(wc) - pw);
+                    dp = state.wellSol(wno).pot;
                     krw = -mu.*wf./(WI.*dp);
                     
                     ok = isfinite(krw) & krw >= 0;
@@ -160,77 +158,3 @@ function s = defaultRelPermStruct(n_step)
                'kr', nan(n_step, 1));
 end
 
-function states = computeProps(model, model_f, states, schedule, schedule_f)
-    fluid = model.fluid;
-    gdz = model.getGravityGradient();
-    for k = 1:numel(states)
-        state = upscaleState(model, model_f, states{k});
-        
-        
-        [pressure, sw, so, sg] = model.getProps(state, 'pressure', 'sw', 'so', 'sg');
-        sat = {sw, so, sg};
-        act = model.getActivePhases();
-        sat = sat(act);
-        
-        [kr_all, pot, mu, mob, rho, pressures] = deal(cell(1, 3));
-        kr = cell(1, numel(sat));
-        [kr{:}] = model.evaluateRelPerm(sat);
-        
-        
-        
-        index = 1;
-        if model.water
-            [~, ~, mob{1}, rho{1}, pressures{1}, upcw, pot{1}] = getFluxAndPropsWater_BO(model, pressure, sat{index}, kr{index}, 1, gdz);
-            index = index + 1; 
-        end
-        
-        if model.oil
-            if isfield(fluid, 'rsSat')
-                isSatO = state.s(:,3)>0;
-            else
-                isSatO = false;
-            end
-            [~, ~, mob{2}, rho{2}, pressures{2}, upco, pot{2}]  = getFluxAndPropsOil_BO(model, pressure, sat{index}, kr{index}, 1, gdz, state.rs, isSatO);
-            index = index + 1; 
-        end
-        
-        if model.gas
-            if isfield(fluid, 'rvSat')
-                isSatG = state.s(:,2)>0;
-            else
-                isSatG = false;
-            end
-            [~, ~, mob{3}, rho{3}, pressures{3}, upcg, pot{3}] = getFluxAndPropsGas_BO(model, pressure, sat{index}, kr{index}, 1, gdz, state.rv, isSatG);
-        end
-        
-        
-        for i = 1:numel(kr)
-            mu{i} = kr{i}./mob{i};
-        end
-        
-        [kr_all{act}] = kr{:};
-        state = model.setPhaseData(state, kr_all, 'kr');
-        state = model.setPhaseData(state, pot, 'pot');
-        state = model.setPhaseData(state, mu, 'mu');
-        state = model.setPhaseData(state, mob, 'mob');
-        state = model.setPhaseData(state, rho, 'rho');
-        state = model.setPhaseData(state, pressures, 'pressures');
-        state.iflux = state.flux(model.operators.internalConn,:);
-        
-        if isfield(state, 'wellSol')
-            % Assume that well was upscaled using upscaleTrans...
-            W = schedule.control(schedule.step.control(k)).W;
-            Wf = schedule_f.control(schedule_f.step.control(k)).W;
-            for wno = 1:numel(W)
-                ws0 = state.wellSol(wno);
-                for ph = size(state.wellSol(i).flux, 2)
-                    state.wellSol(wno).flux(:, ph) = accumarray(W(wno).fperf, ws0.flux(:, ph));
-                end
-                WI = Wf(wno).WI;
-                state.wellSol(wno).cdp = accumarray(W(wno).fperf, ws0.cdp.*WI)./accumarray(W(wno).fperf, WI);
-            end
-        end
-        
-        states{k} = state;
-    end
-end
