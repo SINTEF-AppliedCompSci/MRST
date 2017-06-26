@@ -480,7 +480,7 @@
     \item Write discrete equations on a form very similar to the semi-discrete:
       \begin{small}
         \begin{align*}
-          \underbrace{\frac{1}{\Delta t} \big[(\phi b_o S_o)^{n+1}}_{\tikzmark{accum}} - (\phi b_o S_o)^{n}\big] + \underbrace{\nabla \cdot (b_o \vec v_o)}_{\tikzmark{flux}}
+          \underbrace{\frac{1}{\Delta t} \big[(\phi b_o S_o)^{n+1}}_{\tikzmark{accum}} - (\phi b_o S_o)^{n}\big] + \underbrace{\nabla \cdot (b_o \vec v_o)^{n+1}}_{\tikzmark{flux}}
         \end{align*}
         \begin{tikzpicture}[remember picture,overlay]
           \draw [bend left, <-, line width = 1pt]($({pic cs:accum})+(0,6pt)$) - ++(-0em,-1.5ex)
