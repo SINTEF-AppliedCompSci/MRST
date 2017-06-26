@@ -134,7 +134,7 @@ function [Tc, N_int] = getTransmissibility(CG, rock_c, opt)
     % No. half faces
     nHf = size(CG.cells.faces, 1);
     % Number of faces
-    nF  = CG.faces.num;
+    nF  = size(N, 1);
     % No. interfaces
     intx = all(N ~= 0, 2);
     nIF = sum(intx);

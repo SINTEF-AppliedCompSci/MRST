@@ -10,7 +10,7 @@ function s = setupOperatorsTPFA(G, rock, varargin)
 %   reservoir quantities such as transmissibility and pore volume. The
 %   purpose of this function is to assemble all such quantities using a
 %   standard two-point finite volume approxiation (TPFA).
-% 
+%
 % PARAMETERS:
 %
 %   G       - MRST grid given as a struct. See grid_structure.m for more
@@ -52,8 +52,8 @@ function s = setupOperatorsTPFA(G, rock, varargin)
 %
 %      Grad    : (Function)  Discrete gradient. Computes the gradient on
 %      each interface via a first order finite difference approximation
-%      using the values of the cells connected to the face.  
-%                
+%      using the values of the cells connected to the face.
+%
 %      Div     : (Function) Discrete divergence. Integrates / sums up
 %      values on the interfaces for all cells to give the (integrated)
 %      divergence per cell.
@@ -100,35 +100,44 @@ T = opt.trans;
 N = opt.neighbors;
 
 if isempty(N)
-   % Get neighbors for internal faces from grid.
-   N  = double(G.faces.neighbors);
-   intInx = all(N ~= 0, 2);
-   N  = N(intInx, :);
+    % Get neighbors for internal faces from grid.
+    N  = double(G.faces.neighbors);
+    intInx = all(N ~= 0, 2);
+    N  = N(intInx, :);
 else
-   % neighbors are given
-   n_if = size(N, 1);
-   intInx = true(n_if, 1);
-   if isfield(G, 'faces') 
-       % Try to match given interfaces to actual grid.
-       intInxGrid = all(G.faces.neighbors ~= 0, 2);
-       if sum(intInxGrid) == n_if
-           % Given neighbors correspond to internal interfaces
-           intInx = intInxGrid;
-       elseif n_if == G.faces.num
-           % Given neighbors correspond to *all* interfaces
-           intInx = all(N ~= 0, 2);
-       end
-   end
+    % neighbors are given
+    n_if = size(N, 1);
+    intInx = true(n_if, 1);
+    if isfield(G, 'faces')
+        % Try to match given interfaces to actual grid.
+        intInxGrid = all(G.faces.neighbors ~= 0, 2);
+        if sum(intInxGrid) == n_if
+            % Given neighbors correspond to internal interfaces
+            intInx = intInxGrid;
+        elseif n_if == G.faces.num
+            % Given neighbors correspond to *all* interfaces
+            intInx = all(N ~= 0, 2);
+        end
+    end
 end
 
 if isempty(T)
-   % half-trans -> trans and reduce to interior
-   T = getFaceTransmissibility(G, rock, opt.deck);
-   s.T_all = T;
-   T = T(intInx);
+    % half-trans -> trans and reduce to interior
+    T = getFaceTransmissibility(G, rock, opt.deck);
+    s.T_all = T;
+    T = T(intInx);
 else
-   s.T_all = T;
-   T = T(intInx);
+    if numel(T) == n_if
+        % Internal interface transmissibility
+        s.T_all = zeros(size(intInx));
+        s.T_all(intInx) = T;
+        s.T = T;
+    else
+        % All transmissibilities given
+        assert(numel(T) == numel(intInx));
+        s.T_all = T;
+        T = T(intInx);
+    end
 end
 if any(T<0)
     warning('Negative transmissibilities detected.')
@@ -145,14 +154,14 @@ if isempty(pv)
     zeropv = find(pv == 0);
     if ~isempty(zeropv)
         warning(['I computed zero pore volumes in ', num2str(numel(zeropv)), ...
-                 ' cells. Consider adjusting poro / ntg fields or grid.']);
+            ' cells. Consider adjusting poro / ntg fields or grid.']);
     end
 end
 s.pv = pv;
 
 % C - (transpose) divergence matrix
 nf = size(N,1);
-nc = numel(s.pv); 
+nc = numel(s.pv);
 assert(nc == G.cells.num, ...
     'Dimension mismatch between grid and supplied pore-volumes.');
 C  = sparse( [(1:nf)'; (1:nf)'], N, ones(nf,1)*[1 -1], nf, nc);

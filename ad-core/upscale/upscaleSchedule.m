@@ -102,6 +102,8 @@ function Wc = handleWell(model, W, opt)
     
     % cstatus
     Wc.cstatus = true(nc, 1);
+    % Mapping -> coarse to fine
+    Wc.fperf = newMap;
     
     if isfield(W, 'topo')
         % Extract topology.
