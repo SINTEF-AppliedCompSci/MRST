@@ -118,7 +118,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
 
 
-        function scaling = getScalingFactorsCPR(model, problem, names)
+        function scaling = getScalingFactorsCPR(model, problem, names, solver)
             nNames = numel(names);
 
             scaling = cell(nNames, 1);
