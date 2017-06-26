@@ -61,6 +61,13 @@ function states = computeCoarseProps(model, model_f, states, schedule, schedule_
             mu{i} = kr{i}./mob{i};
         end
         
+        flds = {'kr', 'pot', 'mu', 'mob', 'rho'};
+        for i = 1:numel(flds)
+            if isfield(state, flds{i})
+                state = rmfield(state, flds{i});
+            end
+        end
+        
         [kr_all{act}] = kr{:};
         state = model.setPhaseData(state, kr_all, 'kr');
         state = model.setPhaseData(state, pot, 'pot');
