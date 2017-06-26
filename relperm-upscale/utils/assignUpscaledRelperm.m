@@ -39,7 +39,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     opt = struct('resamplePoints', 25,... % Either explicit point list or number of points to resample
                  'minPoints', 3, ... % Minimum number of points for a relperm to be included
                  'setWells', true, ... % Set well relperm
-                 'minCoverage', 0.25); % Points must cover this fraction of the [0, 1] saturation interval
+                 'minCoverage', 0.0); % Points must cover this fraction of the [0, 1] saturation interval
     [opt, regopt] = merge_options(opt, varargin{:});
     
     numPh = numel(kr);
@@ -179,7 +179,8 @@ function [kr, bad] = processMissing(kr, replacefn, opt, regopt)
     
     [kr.S, kr.kr] = regularizeSaturationFunction(kr.S, kr.kr, regopt{:});
     % Re-check after processing
-    bad = ~ok || ~checkCoverage(kr, opt);
+    ok = ok && checkCoverage(kr, opt);
+    bad = ~ok;
     if bad
         kr.S = (0:0.01:1)';
         kr.kr = replacefn(kr.S);
