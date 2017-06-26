@@ -139,7 +139,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             end
             if ~all(handled)
                 % Get rest of scaling factors
-                other = getScalingFactorsCPR@ThreePhaseBlackOilModel(model, problem, names(~handled));
+                other = getScalingFactorsCPR@ThreePhaseBlackOilModel(model, problem, names(~handled), solver);
                 [scaling{~handled}] = other{:};
             end
         end
