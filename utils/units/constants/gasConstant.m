@@ -1,4 +1,4 @@
-function R = gasconstant()
+function R = gasConstant()
 % Gas constant (in kg m^2 s^-2 K^-1 mol^-1)
 %
 % SYNOPSIS:
@@ -33,5 +33,5 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    gasconstant = 8.3144598;
+    R = 8.3144598;
 end
