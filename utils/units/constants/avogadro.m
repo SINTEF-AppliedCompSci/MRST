@@ -2,7 +2,7 @@ function T = avogadro()
 % Avogadro constant (in mol^-1)
 %
 % SYNOPSIS:
-%   An = Kelvin()
+%   An = avogadro()
 %
 % PARMETERS:
 %   None.
