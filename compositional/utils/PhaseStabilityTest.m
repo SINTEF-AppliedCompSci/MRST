@@ -84,7 +84,7 @@ function [xy, S, trivialSolution, K] = checkStability(eos, z, p, T, insidePhaseI
         end
         active(active) = ~done;
         if all(done)
-            fprintf('Stability done in %d iterations\n', stepNo);
+            dispif(mrstVerbose() > 1, 'Stability done in %d iterations\n', stepNo);
             break
         end
         
