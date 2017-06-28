@@ -120,8 +120,8 @@ if mod(nargin, 2) == 0,
    J = varargin{1}; varargin = varargin(2 : end);
    assert (isnumeric(J) && numel(J) == 1);
 
-   assert ((1 <= I) && (I <= G.cartDims(1)));
-   assert ((1 <= J) && (J <= G.cartDims(2)));
+   assert ((1 <= I) && (I <= G.cartDims(1)), 'I-position out of bounds');
+   assert ((1 <= J) && (J <= G.cartDims(2)), 'J-position out of bounds');
 
    I = I + (J - 1)*G.cartDims(1);    clear J
 else
