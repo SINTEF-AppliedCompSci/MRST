@@ -33,5 +33,5 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    An = 6.022140857e-23;
+    An = 6.022140857e23;
 end
