@@ -34,7 +34,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             break
         end
         
-        if it > 1 && resvec(it-1) < res
+        if it > 1 && 2*resvec(it-1) < res
             flag = 3;
             warning('Convergence issues, aborting')
             break
