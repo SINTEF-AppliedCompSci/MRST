@@ -69,5 +69,5 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     obj= CO2props('rhofile', opt.rho_datafile, ...
                   'sharp_phase_boundary', opt.sharp_phase_boundary);
     rhoCO2 =@(p) obj.rho(p, T_ref);
-    bG =@(p) rhoCO2(p)/rhoG;
+    bG =@(p, varargin) rhoCO2(p)/rhoG;
 end

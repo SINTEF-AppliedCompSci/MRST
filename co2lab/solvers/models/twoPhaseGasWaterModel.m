@@ -11,7 +11,7 @@ classdef twoPhaseGasWaterModel < ReservoirModel
         % ------------------------------------------------------------------------
         function model = twoPhaseGasWaterModel(G, rock, fluid, tsurf, tgrad, varargin)
            
-            model = model@ReservoirModel(G, varargin{:}); 
+            model = model@ReservoirModel(G, rock, fluid, varargin{:}); 
            
             %model.G     = G;
             model.fluid = fluid;
@@ -28,7 +28,6 @@ classdef twoPhaseGasWaterModel < ReservoirModel
                                                % flags above. Check with
                                                % maintainer of parent class.
             model.gravity = gravity;
-            model       = model.setupOperators(G, rock);
         end
 
     end
