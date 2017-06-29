@@ -1,0 +1,45 @@
+function [eqs, names, types] = equationsCompositionReactionGuess(logcomps, logmasterComps, model)
+    
+%             comps = cellfun(@(x) x*litre/mol, comps,'UniformOutput', false);
+%             masterComps = cellfun(@(x) x*litre/mol, masterComps,'UniformOutput', false);
+%             
+% begin solving equation
+
+    CM = model.CompositionMatrix;
+    RM = model.ReactionMatrix;
+
+    nC = size(CM,2);
+    
+    comps = cellfun(@(x) exp(x), logcomps, 'UniformOutput', false);
+    
+    logK = model.LogReactionConstants;
+    
+    eqs   = cell(1, model.nMC + model.nR);
+    names = cell(1, model.nMC + model.nR);
+    types = cell(1, model.nMC + model.nR);
+
+    % reaction matrix, activities only apply to laws of mass action
+    for i = 1 : model.nR
+
+
+        eqs{i} = -logK(i);
+        for k = 1 : nC
+            eqs{i} = eqs{i} + RM(i, k).*logcomps{k};
+        end
+        names{i} = model.rxns{i};
+    end
+    
+    for i = 1 : model.nMC
+        j = model.nR + i;
+        masssum = 0;
+        for k = 1 : nC
+            masssum = masssum + CM(i,k).*comps{k};
+        end
+        eqs{j} = log(masssum) - logmasterComps{i};
+        names{j} = ['Conservation of ', model.MasterCompNames{i}] ;
+    end
+
+    [types{:}] = deal('cell');
+    
+end
+
