@@ -17,6 +17,11 @@ chem = ChemicalModel(elementNames, speciesNames, reactions, surfaces)
 
 Constructs includes the specified surfaces in the chemical system.
 
+## OUTPUT
+
+### chem
+A ChemicalModel object containing information regarding the chmical system.
+
 ## EXAMPLE 
 
 Purely aqueous chemistry:
@@ -29,7 +34,7 @@ chem = ChemModel( elementNames, speciesNames, reactions)
 ~~~~
 
 Including surface chemistry:
-Purely aqueous chemistry:
+
 ~~~~
 elementNames = {'H', 'O'};
 speciesNames = {'H+', 'OH-', 'H2O'};
