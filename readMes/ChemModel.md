@@ -5,11 +5,17 @@ arbitrary aqueous geochemical system including surface chemistry
 all under the assumption of local chemical equilibrium. 
 
 ## SYNOPSIS
+~~~~
 chem = ChemicalModel(elementNames, speciesNames, reactions)
-   Constructs the aqueous chemical system based on the specified elements, species and chemical reactions. 
-   
+~~~~
+
+Constructs the aqueous chemical system based on the specified elements, species and chemical reactions. 
+
+~~~~
 chem = ChemicalModel(elementNames, speciesNames, reactions, surfaces)
-   Constructs includes the specified surfaces in the chemical system.
+~~~~
+
+Constructs includes the specified surfaces in the chemical system.
 
 ## EXAMPLE 
 
