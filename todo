@@ -1,0 +1,5 @@
+move fluidPart functionality inside of ChemicalTransportModel
+    - make work for injected solutions with differing amount of elements
+    
+if the transport solver creates nan/inf solutions send back to initial guess calculator
+    - may require a change to physicalModel
