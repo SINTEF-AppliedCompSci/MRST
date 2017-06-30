@@ -1,4 +1,4 @@
-function [ states ] = change_units( states, unit_conv )
+function [ states ] = changeUnits( states, unit_conv )
 %UNTITLED Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -10,6 +10,9 @@ if numel(states) == 1
         if isfield(states, 'activities')
            states.activities = states.activities*unit_conv;
         end
+        
+        states.logcomponents = log(states.components);
+        states.logmasterComponents = log(states.masterComponents);
 else
 
     for i = 1 : numel(states)
@@ -19,6 +22,9 @@ else
         if isfield(states, 'activities')
            states.activities{i} = states.activities{i}*unit_conv;
         end
+        states{i}.logcomponents = log(states{i}.components);
+        states{i}.logmasterComponents = log(states{i}.masterComponents);
+        
     end
 end
 
