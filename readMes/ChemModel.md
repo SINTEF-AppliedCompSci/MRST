@@ -62,6 +62,7 @@ The total number of surface sites is calculated from geometry.
 ~~~~
 elementNames = {'H', 'O'};
 ~~~~
+
 A cell array of strings containing all
 elements to be considered in the chemical system. 
 Elements do not have to correspond to actual element names,
@@ -73,6 +74,7 @@ can be chosen as an input parameter by including an "*" in the element name.
 ~~~~
 speciesNames = {'H+', 'OH-', 'H2O'};
 ~~~~
+
 A cell array of strings of the chemical
 species to be considered in the chemical system. Each 
 entry in speciesNames must be a combination of
