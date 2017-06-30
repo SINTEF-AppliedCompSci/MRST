@@ -33,4 +33,5 @@ this will make the contents of the geochemistry directory available in the works
 ## Functionality ##
 
 [ChemModel.m](readMes/ChemModel.md)
-   [ChemModel/initState](readMes/ChemModel_initState.md)
+
+  [ChemModel/initState](readMes/chemModel_initState.md)
