@@ -32,4 +32,4 @@ this will make the contents of the geochemistry directory available in the works
 
 ## Functionality ##
 
-ChemModel.m
+[ChemModel.m](readMes/ChemModel.md)
