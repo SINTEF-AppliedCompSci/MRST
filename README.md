@@ -7,16 +7,18 @@ The matlab-geoChemistry repository contains tools for the solution of equilibriu
 The main function of this repository, ChemicalModel.m, allows the creation and solution of arbitrarily complex aqueous chemistry systems including a number of surface chemistry models assuming local chemical equilibrium. The function leverages the tools developed by the SINTEF [MRST team](http://www.sintef.no/projectweb/mrst/) including [automatic differentiation](https://en.wikipedia.org/wiki/Automatic_differentiation). The chemical model created can be used to calculate batch reaction or can be coupled to flow within MRST.
 
 Models supported:
--aqueous speciation
--activity
--triple layer model
--diffuse layer model
--basic stern model
--constant capacitance model
+
+* aqueous speciation
+* activity
+* triple layer model
+* diffuse layer model
+* basic stern model
+* constant capacitance model
 
 Supported soon:
--dissolution/precipitation
--ion exchange
+
+* dissolution/precipitation
+* ion exchange
 
 ### Installation ###
 
