@@ -48,9 +48,9 @@ reactions = {'H2O <-> H+ + OH-', 1e-14*mol/litre};
 
 chem = ChemModel( elementNames, speciesNames, reactions)
 
-userInput = [1e-7, 1]*mol/litre;
+constraint = [1e-7, 1]*mol/litre;
 
-state = chem.initState(userInput)
+state = chem.initState(constraint)
 ~~~~
 
 Here the system is solved given a H+ concentration of 1e-7 mol/litre.
