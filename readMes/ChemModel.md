@@ -20,24 +20,30 @@ Constructs includes the specified surfaces in the chemical system.
 ## OUTPUT
 
 ### chem
-A ChemicalModel object containing information regarding the chmical system.
+A ChemicalModel object containing information regarding the chemical system.
 
 ## EXAMPLE 
 
 Purely aqueous chemistry:
 ~~~~
 elementNames = {'H', 'O'};
-speciesNames = {'H+', 'OH-', 'H2O'};
+speciesNames = {'H+*', 'OH-', 'H2O*'};
 reactions = {'H2O <-> H+ + OH-', 1e-14*mol/litre};
 
 chem = ChemModel( elementNames, speciesNames, reactions)
 ~~~~
+Here the concentrations of H+ and H2O are chosen as inputs. The user must
+define as many inputs as there are elementNames. By choosing an element
+as an input the user is specifying the total concentration of that element
+in the chemical system. By choosing a species, the user is providing the
+concentration of that spcies in the chemical syste. Any combination of
+elements or species can be used as inputs
+
 
 Including surface chemistry:
-
 ~~~~
 elementNames = {'H', 'O'};
-speciesNames = {'H+', 'OH-', 'H2O'};
+speciesNames = {'H+*', 'OH-', 'H2O*'};
 reactions = {'H2O <-> H+ + OH-', 1e-14*mol/litre,...
              '>SiO- + H+ <-> SiOH', 1e7/(mol/litre)};
 
@@ -47,7 +53,7 @@ surfaces = {'>FeO', {geometry, 'langmuir'}
 
 chem = ChemModel( elementNames, speciesNames, reactions, surfaces)
 ~~~~
-
+The total number of surface sites is calculated from geometry.
 
 ## REQUIRED PARAMETERS
 
@@ -56,24 +62,25 @@ chem = ChemModel( elementNames, speciesNames, reactions, surfaces)
 ~~~~
 elementNames = {'H', 'O'};
 ~~~~
-
 A cell array of strings containing all
 elements to be considered in the chemical system. 
 Elements do not have to correspond to actual element names,
-but it is reccomened that they do.
+but it is reccomened that they do. The total concentration of an element
+can be chosen as an input parameter by including an "*" in the element name.
 
 ### speciesNames
 
 ~~~~
 speciesNames = {'H+', 'OH-', 'H2O'};
 ~~~~
-
 A cell array of strings of the chemical
 species to be considered in the chemical system. Each 
 entry in speciesNames must be a combination of
 entries found in elementNames, or surfaces. The species
 charge can be desginated with a +/- at the end of the
-name followed by the charge number (i.e. Ca+2, Cl-).
+name followed by the charge number (i.e. Ca+2, Cl-).The concentration
+of a species can be chosen as an input parameter by including an "*" 
+in the species name.
 
 
 ### reactions
@@ -81,7 +88,6 @@ name followed by the charge number (i.e. Ca+2, Cl-).
 ~~~~
 reactions = {'H2O <-> H+ + OH-', 1e-14*mol/litre};
 ~~~~
-
 A cell array listing the chemical
 reactions of the chemical system as strings, followed
 by the equilibrium constant of the reaction as a scalar
