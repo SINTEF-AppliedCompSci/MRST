@@ -13,7 +13,7 @@ The main function of this repository, ChemicalModel.m, allows the creation and s
 3. Create a file named startup_user.m within the MRST folder, at the same level as startup.m.
 4. In startup_user.m add then line
 ~~~~
-    mrstPath('register', 'geochemistry', 'path/to/repo/matlab-geochemistry')
+mrstPath('register', 'geochemistry', 'path/to/repo/matlab-geochemistry')
 ~~~~
 
 ### Use ###
