@@ -3,3 +3,6 @@ move fluidPart functionality inside of ChemicalTransportModel
     
 if the transport solver creates nan/inf solutions send back to initial guess calculator
     - may require a change to physicalModel
+    
+give an error if chemical solver does not converge
+    - currently if max iterations is exceeded it will just terminate and give no warning
