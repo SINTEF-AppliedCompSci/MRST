@@ -1,28 +1,61 @@
 # ChemicalModel
 
-A model for solving equilibrium geochemistry.
-            
-## SYNOPSIS
-chem = ChemicalModel(varargin)
-            
-## DESCRIPTION
 A class of PhysicalModel which can construct and solve
 arbitrary aqueous geochemical system including surface chemistry
 all under the assumption of local chemical equilibrium. 
 
+## SYNOPSIS
+chem = ChemicalModel(elementNames, speciesNames, reactions)
+   Constructs the aqueous chemical system based on the specified elements, species and chemical reactions. 
+   
+chem = ChemicalModel(elementNames, speciesNames, reactions, surfaces)
+   Constructs includes the specified surfaces in the chemical system.
+
+## EXAMPLE 
+
+Purely aqueous chemistry:
+~~~~
+elementNames = {'H', 'O'};
+speciesNames = {'H+', 'OH-', 'H2O'};
+reactions = {'H2O <-> H+ + OH-', 1e-14*mol/litre};
+
+chem = ChemModel( elementNames, speciesNames, reactions)
+~~~~
+
+Including surface chemistry:
+Purely aqueous chemistry:
+~~~~
+elementNames = {'H', 'O'};
+speciesNames = {'H+', 'OH-', 'H2O'};
+reactions = {'H2O <-> H+ + OH-', 1e-14*mol/litre,...
+             '>SiO- + H+ <-> SiOH', 1e7/(mol/litre)};
+
+geometry = [1/(nano*meter)^2 50*meter^2/gram 1000*grams/litre];
+
+surfaces = {'>FeO', {geometry, 'langmuir'}
+
+chem = ChemModel( elementNames, speciesNames, reactions, surfaces)
+~~~~
+
+
 ## REQUIRED PARAMETERS
 
-### elementNames   
-A cell array of strings containing all
-elements to be considered in the chemical system. 
-Elements do not have to correspond to actual element names,
-but it is reccomened that they do.
+### elementNames  
 
 ~~~~
 elementNames = {'H', 'O'};
 ~~~~
 
-### speciesNames ###
+A cell array of strings containing all
+elements to be considered in the chemical system. 
+Elements do not have to correspond to actual element names,
+but it is reccomened that they do.
+
+### speciesNames
+
+~~~~
+speciesNames = {'H+', 'OH-', 'H2O'};
+~~~~
 
 A cell array of strings of the chemical
 species to be considered in the chemical system. Each 
@@ -31,11 +64,13 @@ entries found in elementNames, or surfaces. The species
 charge can be desginated with a +/- at the end of the
 name followed by the charge number (i.e. Ca+2, Cl-).
 
+
+### reactions
+
 ~~~~
-speciesNames = {'H+', 'OH-', 'H2O'};
+reactions = {'H2O <-> H+ + OH-', 1e-14*mol/litre};
 ~~~~
 
-### reactions ###          
 A cell array listing the chemical
 reactions of the chemical system as strings, followed
 by the equilibrium constant of the reaction as a scalar
@@ -43,13 +78,9 @@ quantity. Entries in reactions must be given as a
 string in the form 'reactants <-> products'. 
 Equuilibrium constant must be given in SI units.
 
-~~~~
-reactions = {'H2O <-> H+ + OH-', 1e-14*mol/litre};
-~~~~
+## OPTIONAL PARAMETERS
 
-## OPTIONAL PARAMETERS ##
-
-### surfaces ###            
+### surfaces            
 A cell structure containing the names
 of surface functional groups, followed by information
 regarding the specific surface. The first entry of
