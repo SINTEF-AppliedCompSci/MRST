@@ -1,18 +1,18 @@
-# ChemicalModel #
+# ChemicalModel
 
 A model for solving equilibrium geochemistry.
             
-## SYNOPSIS ##
+## SYNOPSIS
 chem = ChemicalModel(varargin)
             
-## DESCRIPTION ##
+## DESCRIPTION
 A class of PhysicalModel which can construct and solve
 arbitrary aqueous geochemical system including surface chemistry
 all under the assumption of local chemical equilibrium. 
 
-## REQUIRED PARAMETERS ##
+## REQUIRED PARAMETERS
 
-### elementNames  ###      
+### elementNames   
 A cell array of strings containing all
 elements to be considered in the chemical system. 
 Elements do not have to correspond to actual element names,
