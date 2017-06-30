@@ -1,6 +1,6 @@
 function [s, pc, kr, SH, krH, s_max, fval] = veRelpermTester(hs, p, fluid, H, varargin)
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
