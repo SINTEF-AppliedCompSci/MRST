@@ -22,13 +22,12 @@ Once MRST is installed and made aware of the location of matlab-geoChemistry the
 
 Before any script that relies on the repository is run, MRST must be started. This is done by running the file startup.m inside of your MRST directory.
 
-To use the geochemistry module in a matlab script include the command
+To use the geochemistry module in a Matlab script include the command
 
 ~~~~~
 mrstModule add geochemistry
 ~~~~~
 
-this will make the contents of the directory available in the workspace.
+this will make the contents of the geochemistry directory available in the workspace.
 
-Level 2 markup uses - (dashes) 
--------------
+## Functionality ##
