@@ -81,9 +81,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % computing densities, mobilities and upstream indices
     [bW, mobW, fluxW, vW, upcw] = compMFlux(p       , f.bW, f.muW, f.rhoWS, trMult, krW, s, trans, model);
     [bG, mobG, fluxG, vG, upcg] = compMFlux(p + pcWG, f.bG, f.muG, f.rhoGS, trMult, krG, s, trans, model);
-
-    bW0 = f.bW(p0, t);
-    bG0 = f.bG(p0 + pcWG, t);
+    
+    if all(isfinite(t))
+        bW0 = f.bW(p0, t);
+        bG0 = f.bG(p0 + pcWG, t);
+    else
+        bW0 = f.bW(p0);
+        bG0 = f.bG(p0 + pcWG);
+    end
     
     % --------------------------- Continuity equations ---------------------------
     
@@ -128,8 +133,13 @@ end
 
 % ----------------------------------------------------------------------------
 function [b, mob, fluxS, fluxR, upc] = compMFlux(p, bfun, mufun, rhoS, trMult, kr, s, trans, model)
-    b   = bfun(p, model.t);
-    mob = trMult .* kr ./ mufun(p, model.t);
+    if all(isfinite(model.t))
+        b   = bfun(p, model.t);
+        mob = trMult .* kr ./ mufun(p, model.t);
+    else
+        b   = bfun(p);
+        mob = trMult .* kr ./ mufun(p);
+    end
 
     rhoFace = s.faceAvg(b*rhoS);
     
