@@ -1,26 +1,57 @@
-function G = makeLayeredGrid (G, nlayers)
-%Extrude 2D grid to layered 3D grid with n layers.
+function G = makeLayeredGrid(G, layerSpec)
+%Extrude 2D Grid to Layered 3D Grid With Specified Layering Structure
 %
 % SYNOPSIS:
-%   G = makeLayeredGrid(G, n)
+%   G = makeLayeredGrid(G, layerSpec)
 %
 % PARAMETERS:
-%   G      - Valid 2D areal grid.
+%   G         - Valid 2D areal grid.
 %
-%   n      - Number of layers.  Each layer is 1 meter thick.  (TODO HERE!)
-%
-%  'pn'/pv - List of 'key'/value pairs defining optional parameters.  The
-%            supported options are:
-%
-%              Verbose -- Whether or not to display progress information
-%                         Logical.  Default value: Verbose = false.
+%   layerSpec - Layering structure.  Interpreted as the number of layers in
+%               an extruded grid (uniform thickness of 1 meter) if positive
+%               scalar, otherwise as vector of layer thicknesses if array.
+%               Elements should be positive numbers in the latter case.
 %
 % RETURNS:
-%   G      - Valid 3D grid as described in grid_structure.
+%   G - Valid 3D grid as described in grid_structure.
 %
 % EXAMPLE:
-%   G = makeLayeredGrid(cartGrid([2,2]), 3);
-%   plotGrid(G); view(10,45);
+%   % 1) Create three layers of uniform thickness (1 meter).
+%   Gu = makeLayeredGrid(cartGrid([2, 2]), 3);
+%   figure, plotGrid(Gu), view(10, 45)
+%
+%   % 2) Create five layers of increasing thickness.
+%   Gi = makeLayeredGrid(cartGrid([2, 2]), convertFrom(1:5, ft));
+%   figure, plotGrid(Gi), view(10, 45)
+%
+%   % 3) Add extra layers to a 'topSurfaceGrid' from the co2lab module.
+%   %    Probably not too useful in practice.
+%   G = tensorGrid(0 : 10, 0 : 10, [0, 1], ...
+%                  'depthz', repmat(linspace(0, 1, 10 + 1), [1, 11]));
+%   [Gt, G] = topSurfaceGrid(G);
+%   Gt_extra = Gt;
+%   Gt_extra.nodes.coords = [ Gt_extra.nodes.coords, Gt_extra.nodes.z ];
+%   Gt_extra.nodes = rmfield(Gt_extra.nodes, 'z');
+%
+%   thickness = repmat(convertFrom(1:5, ft), [1, 3]);
+%   thickness(6:10) = thickness(10:-1:6);  % Because 'why not?'
+%   Gt_extra = makeLayeredGrid(Gt_extra, thickness);
+%   figure, plotGrid(Gt_extra), view(10, 45)
+%
+%   % 4) Create a single layer of non-unit thickness.  This requires extra
+%   %    manual steps due to a quirk of the calling interface of function
+%   %    'makeLayeredGrid'.
+%   G1 = makeLayeredGrid(cartGrid([2, 2]), 1);
+%   k  = G1.nodes.coords(:, 3) > 0;
+%   G1.nodes.coords(k, 3) = 1234*milli*meter;
+%   figure, plotGrid(G1), view(10, 45)
+%
+% NOTE:
+%   The special treatment of a *scalar* 'layerSpec' parameter, to preserve
+%   backwards compatibility with the original semantics of this function,
+%   means that it is not possible to specify a single layer of non-unit
+%   thickness.  If you need a single layer of non-unit thickness then you
+%   need to manually update the third column of 'G.nodes.coords'.
 %
 % SEE ALSO:
 %   grid_structure.
@@ -50,6 +81,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 assert(G.griddim == 2, ...
    'Areal grid must be 2D.  Field ''griddim'' says otherwise...');
 G.type = [G.type, { mfilename }];
+
+% Determine layering structure of the final extruded grid.
+%-----------------------------
+if numel(layerSpec) == 1
+   % User passed number of layers.
+   nlayers   = fix(layerSpec);
+   thickness = ones([nlayers, 1]);
+else
+   % User passed vector of layer thicknesses.
+   nlayers   = numel(layerSpec);
+   thickness = reshape(layerSpec, [], 1);
+end
 
 % Faces with horizontal normal
 %-----------------------------
@@ -88,8 +131,8 @@ vNeighbors(cells+G.cells.num,1) = cells;
 
 % Build grid structure
 %---------------------------
-G.nodes.coords    = [repmat(G.nodes.coords, [nlayers+1,1]), ...
-                    kron((0:nlayers)', ones(G.nodes.num,1))];
+G.nodes.coords    = extrude_coordinates(G.nodes.coords, thickness);
+
 G.nodes.num       = (nlayers + 1) * G.nodes.num;
 G.cells.num       = nlayers * G.cells.num;
 
@@ -119,6 +162,25 @@ if isfield(G, 'cartDims'),
    G = rmfield(G, 'cartDims');
 end
 G.griddim = 3;
+
+%--------------------------------------------------------------------------
+
+function coords = extrude_coordinates(coords, thickness)
+   nlayers  = numel(thickness);
+   numnodes = size(coords, 1);
+
+   zcoord = reshape(rldecode(cumsum([0 ; thickness]), numnodes), ...
+                    [], nlayers + 1);
+
+   if size(coords, 2) == 3
+      % Possibly a topSurfaceGrid from the co2lab module.  Grid possibly
+      % has non-constant surface depth.  Adjust 'zcoord' accordingly.
+      zcoord = bsxfun(@plus, coords(:,3), zcoord);
+   end
+
+   coords = ...
+      [repmat(coords(:, [1, 2]), [nlayers + 1, 1]), reshape(zcoord, [], 1)];
+
 %--------------------------------------------------------------------------
 
 % For 2d only.
