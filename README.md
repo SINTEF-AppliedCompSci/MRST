@@ -4,7 +4,7 @@ The matlab-geoChemistry repository contains tools for the solution of equilibriu
 
 ### Summary ###
 
-The main function of this repository, ChemicalModel.m, allows the creation and solution of arbitrarily complex aqueous chemistry systems including a number of surface chemistry models assuming local chemical equilibrium. The function leverages the tools developed by the SINTEF [MRST team](http://www.sintef.no/projectweb/mrst/) including [automatic differentiation](https://en.wikipedia.org/wiki/Automatic_differentiation). The chemical model created can be used to calculate batch reaction calculations or be coupled to flow within MRST.
+The main function of this repository, ChemicalModel.m, allows the creation and solution of arbitrarily complex aqueous chemistry systems including a number of surface chemistry models assuming local chemical equilibrium. The function leverages the tools developed by the SINTEF [MRST team](http://www.sintef.no/projectweb/mrst/) including [automatic differentiation](https://en.wikipedia.org/wiki/Automatic_differentiation). The chemical model created can be used to calculate batch reaction or can be coupled to flow within MRST.
 
 ### Installation ###
 
@@ -29,3 +29,6 @@ mrstModule add geochemistry
 ~~~~~
 
 this will make the contents of the directory available in the workspace.
+
+Level 2 markup uses - (dashes) 
+-------------
