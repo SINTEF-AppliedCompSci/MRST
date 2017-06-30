@@ -31,3 +31,5 @@ mrstModule add geochemistry
 this will make the contents of the geochemistry directory available in the workspace.
 
 ## Functionality ##
+
+ChemModel.m
