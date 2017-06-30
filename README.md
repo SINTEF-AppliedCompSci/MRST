@@ -14,3 +14,7 @@ The main function of this repository ChemicalModel.m allows the creation and sol
 4. In startup_user.m add then line:
 
      mrstPath('register', 'geochemistry', 'path/to/repo/matlab-geochemistry')
+
+~~~~
+This is a code block, fenced-style
+~~~~
