@@ -51,8 +51,7 @@ H = logspace(-4, -10, n)';
 userInput = [Na Cl H H2O]*mol/litre;
 
 tic
-state.temperature = 250*ones(n,1);
-[state, report, model] = chem.initState(state, userInput);
+[state, report, model] = chem.initState(userInput, 'chargeBalance', 'Na');
 toc;
 
 [state, chem] = chem.computeActivities(state);

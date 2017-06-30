@@ -13,6 +13,7 @@ classdef ChemicalTransportLogModel < WaterModel
         % Matrix to compute, for a given component, the amount that is
         % attached to the surface
         surfMat;
+        plotIter %to plot or not to plot
 
     end
 
@@ -43,6 +44,7 @@ classdef ChemicalTransportLogModel < WaterModel
             fluidMat = zeros(nMC, nC);
             fluidMat(~surfMatFlag) = CM(~surfMatFlag);
             model.fluidMat = fluidMat;
+            model.plotIter = false;
 
 
         end
@@ -134,20 +136,22 @@ classdef ChemicalTransportLogModel < WaterModel
                                                            fluid_dx, ...
                                                            drivingForces);
             report = []; % no report for the moment.
-
-            h = findobj('tag', 'updatefig');
-            if isempty(h)
-                figure
-                set(gcf, 'tag', 'updatefig');
+            
+            if model.plotIter
                 h = findobj('tag', 'updatefig');
-            end
-            set(0, 'currentfigure', h)
-            clf
-            plot(log10(state.components*litre/mol));
-            title('components');
-            legend(model.chemicalModel.CompNames);
+                if isempty(h)
+                    figure
+                    set(gcf, 'tag', 'updatefig');
+                    h = findobj('tag', 'updatefig');
+                end
+                set(0, 'currentfigure', h)
+                clf
+                plot(log10(state.components*litre/mol));
+                title('components');
+                legend(model.chemicalModel.CompNames);
 
-            drawnow;
+                drawnow;
+            end
 
         end
 
