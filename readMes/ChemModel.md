@@ -137,7 +137,7 @@ The triple layer model requires additional work.
 ~~~~
 capacitances = [1 0.2]*Farad/meter^2;
 
-surfaces = {'>SiO', {geometry, 'tlm', capacitances, '>SiO-', [-1 0 0]}
+surfaces = {'>SiO', {geometry, 'tlm', capacitances, '>SiO-', [-1 0 0],'>SiOH',[0 0 0]}
 ~~~~
 
 In this example geometry is defined as before, but now
@@ -159,7 +159,7 @@ defined.
 ~~~~
 capacitances = 1*Farad/meter^2;
 
-surfaces = {'>SiO', {geometry, 'ccm', capacitance, '>SiO-', -1}
+surfaces = {'>SiO', {geometry, 'ccm', capacitance, '>SiO-', -1,'>SiOH', 0}
 ~~~~
 
 In this example geometry is defined as before, but now
