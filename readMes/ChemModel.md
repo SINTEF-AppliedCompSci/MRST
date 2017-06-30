@@ -43,13 +43,13 @@ elements or species can be used as inputs
 Including surface chemistry:
 ~~~~
 elementNames = {'H', 'O'};
-speciesNames = {'H+*', 'OH-', 'H2O*'};
+speciesNames = {'H+*', 'OH-', 'H2O*', '>SiO-','>SiOH'};
 reactions = {'H2O <-> H+ + OH-', 1e-14*mol/litre,...
              '>SiO- + H+ <-> SiOH', 1e7/(mol/litre)};
 
 geometry = [1/(nano*meter)^2 50*meter^2/gram 1000*grams/litre];
 
-surfaces = {'>FeO', {geometry, 'langmuir'}
+surfaces = {'>SiO', {geometry, 'langmuir'}
 
 chem = ChemModel( elementNames, speciesNames, reactions, surfaces)
 ~~~~
@@ -58,11 +58,9 @@ The total number of surface sites is calculated from geometry.
 ## REQUIRED PARAMETERS
 
 ### elementNames  
-
 ~~~~
 elementNames = {'H', 'O'};
 ~~~~
-
 A cell array of strings containing all
 elements to be considered in the chemical system. 
 Elements do not have to correspond to actual element names,
@@ -70,11 +68,9 @@ but it is reccomened that they do. The total concentration of an element
 can be chosen as an input parameter by including an "*" in the element name.
 
 ### speciesNames
-
 ~~~~
 speciesNames = {'H+', 'OH-', 'H2O'};
 ~~~~
-
 A cell array of strings of the chemical
 species to be considered in the chemical system. Each 
 entry in speciesNames must be a combination of
@@ -121,7 +117,7 @@ The Langmuir model is the most simplistic case.
 ~~~~
 geometry = [1/(nano*meter)^2 50*meter^2/gram 1000*grams/litre];
 
-surfaces = {'>FeO', {geometry, 'langmuir'}
+surfaces = {'>SiO', {geometry, 'langmuir'}
 ~~~~
 
 In this example the surface functional group is
@@ -141,8 +137,7 @@ The triple layer model requires additional work.
 ~~~~
 capacitances = [1 0.2]*Farad/meter^2;
 
-surfaces = {'>FeO', {geometry, 'tlm', capacitance,...
-                               '>FeO-', [-1 0 0]}
+surfaces = {'>SiO', {geometry, 'tlm', capacitances, '>SiO-', [-1 0 0]}
 ~~~~
 
 In this example geometry is defined as before, but now
@@ -164,7 +159,7 @@ defined.
 ~~~~
 capacitances = 1*Farad/meter^2;
 
-surfaces = {'>FeO', {geometry, 'ccm', capacitance, '>FeO-', -1}
+surfaces = {'>SiO', {geometry, 'ccm', capacitance, '>SiO-', -1}
 ~~~~
 
 In this example geometry is defined as before, but now
