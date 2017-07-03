@@ -49,7 +49,7 @@ userInput = [Na Cl B H H2O]*mol/litre;
 
 tic
 state = [];
-[state, report, model] = chem.initState(state, userInput);
+[state, report, model] = chem.initState(userInput);
 toc;
 
 [state, chem] = chem.computeActivities(state);

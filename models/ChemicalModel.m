@@ -466,15 +466,15 @@ classdef ChemicalModel < PhysicalModel
             valInd = cellfun(@(x) isempty(x), regexpi(model.MasterCompNames, '>'));
             
             valFun = @(x) any(validatestring(x, model.MasterCompNames(valInd)));
-            p.addOptional('chargeBalance', '', valFun);
+            p.addOptional('chargeBalance', 'nochargebalance', valFun);
             p.addOptional('state',struct,@isstruct)
             
             p.parse(varargin{:})
             
-            givenTest = any(strcmpi(p.Results.chargeBalance, model.chemicalInputModel.inputNames));
+            givenTest = any(strcmpi(p.Results.chargeBalance, horzcat(model.chemicalInputModel.inputNames,'nochargebalance')));
             assert(givenTest, ['Only elements whos values are given (marked with "*") can be used for charge balance.']);
             
-            chargeBalance = ~strcmpi(p.Results.chargeBalance,'');
+            chargeBalance = ~strcmpi(p.Results.chargeBalance,'nochargebalance');
 
             model.chemicalInputModel = model.chemicalInputModel.validateModel();
             model.chemicalInputModel.plotIter = model.plotIter;
@@ -987,7 +987,6 @@ classdef ChemicalModel < PhysicalModel
                         model.CompNames{end+1} = [ m '_ePsi'];
                         model.surfaceChargeNames{end+1} = [m '_sig'];
                         model.surfacePotentialNames{end+1} = [m '_Psi'];
-                        model.surf
                         n = 1;
                     case 'tlm'
                         model.CompNames =  horzcat( model.CompNames, [m '_ePsi_0'], [m '_ePsi_1'], [m '_ePsi_2']);

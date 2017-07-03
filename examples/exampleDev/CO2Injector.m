@@ -2,7 +2,7 @@ close all;
 clear;
 
 mrstModule add ad-core ad-props ad-blackoil geochemistry mrst-gui
-mrstVerbose off
+mrstVerbose on
 
 %% Define the grid
 nx = 100;
@@ -128,26 +128,31 @@ schedule.control = struct('bc', bc, 'src', src, 'W', []);
 
 [~, states, scheduleReport] = simulateScheduleAD(initState, model, schedule);
 
-save CO2Injector_run
+save CO2Injector_run.mat -v7.3
 
 [ states ] = changeUnits( states, mol/litre );
+
 % 
-plotToolbar(G, states,'log10', true);
-% 
-% v = VideoWriter('transport.avi');
-% open(v);
-% 
-% figure(1); box on;
-% xlabel('position')
-% ylabel('pH');
-% set(gca,'nextplot','replacechildren'); 
-% x = G.cells.centroids(:,1);
-% ylim([8.9 10]);
-% drawnow;
-% for i = 1 : numel(states)
-%     plot(x, -log10(states{i}.components(:,1)))
-%    frame = getframe(gcf);
-%    writeVideo(v,frame);
-% end
-% 
-% close(v);
+v = VideoWriter('transport.avi');
+open(v);
+
+figure(1); box on;
+xlabel('position')
+ylabel('H+');
+set(gca,'nextplot','replacechildren'); 
+x = G.cells.centroids(:,1);
+drawnow;
+for i = 1 :10: numel(states)
+    plot(x, -log10(states{i}.components(:,1)))
+   frame = getframe(gcf);
+   writeVideo(v,frame);
+end
+
+close(v);
+
+x = 1:nx;
+y = 1:nz;
+
+pHmat = -log10(reshape(states{end}.components(:,1), nx,nz));
+
+contourf(x,y, pHmat);

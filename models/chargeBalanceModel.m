@@ -135,7 +135,7 @@ classdef chargeBalanceModel < ChemicalInputModel
             end
             
             state = model.setProp(state, model.CVC, MCval + CVC);
-            assert((MCval + CVC) > 0, ['Charge balance could not be acheived with given constraint on ' model.CVC ' increase the value if reasonable. Or decrease the concentration of other charged species in the system.']);
+            assert(all((MCval + CVC) > 0), ['Charge balance could not be acheived with given constraint on ' model.CVC ' increase the value if reasonable. Or decrease the concentration of other charged species in the system.']);
 
             state.components(:,end) = [];
            

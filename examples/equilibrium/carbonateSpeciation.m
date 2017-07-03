@@ -5,20 +5,23 @@ close all;
 mrstModule add ad-core geochemistry
 mrstVerbose on
 
+fromLoad = true;
 %% generate chemical system 
 
 % define master component names
-elements = {'O', 'H', 'Ca*', 'C'};
+elements = {'O', 'H', 'Ca*', 'C','Na*','Cl*'};
 
 species = {'H+*', 'OH-','H2O*',...
             'Ca+2', 'CaCO3','CaHCO3+'...
-            'CO3-2','HCO3-','CO2*'};
+            'CO3-2','HCO3-','CO2*',...
+            'Na+', 'Cl-','NaCl'};
 
 reactions ={'H2O  <-> H+  + OH- ',          10^-14*mol/litre,...
             'CO3-2 + 2*H+ <-> CO2 + H2O',   10^16.681/(mol/litre),...
             'HCO3- <-> H+ + CO3-2',      	10^-10.329*mol/litre,...
             'CaCO3 <-> Ca+2 + CO3-2',       10^3.224*mol/litre,...
-            'Ca+2 + CO3-2 + H+ <-> CaHCO3+' 10^11.435/(mol/litre)^2};
+            'Ca+2 + CO3-2 + H+ <-> CaHCO3+' 10^11.435/(mol/litre)^2,...
+            'NaCl <-> Na+ + Cl-',           10^1*mol/litre};
                                                         
 % instantiate chemical model
 chem = ChemicalModel(elements, species, reactions);
@@ -29,16 +32,17 @@ chem.printChemicalSystem;
 %% solve the chemical system given inputs
 n = 600;
 
-Ca = 1e-3;
+Ca = 1e-6.*ones(n,1);
+Na = 1e-1.*ones(n,1);
+Cl = 1e-1.*ones(n,1);
 H = logspace(-1,-10, n)';
-H2O = 1;
-CO2 = 10^-1.468*10^-3.5;
+H2O = ones(n,1);
+CO2 = 10^-1.468*10^-3.5.*ones(n,1);
 
-userInput = [Ca.*ones(n,1) H H2O.*ones(n,1) CO2.*ones(n,1)]*mol/litre;
+userInput = [Ca Na Cl H H2O CO2]*mol/litre;
 
 tic
-state = [];
-[state, report, model] = chem.initState(state, userInput);
+[state, report, model] = chem.initState(userInput, 'charge', 'Cl');
 toc;
 
 [state, chem] = chem.computeActivities(state);
@@ -68,12 +72,12 @@ DBpath = '/Users/cmcneece/GoogleDrive/phreeqc/database/';
 shellname =[PHpath filename];
 
 
-
-cd(progpath);
-eval(['! sh ' shellname '.sh ' shellname]);
-eval(['! ./bin/phreeqc ' shellname '.txt ' shellname '.log ' DBpath DBname ]);
-cd(current)
-
+if ~fromLoad
+    cd(progpath);
+    eval(['! sh ' shellname '.sh ' shellname]);
+    eval(['! ./bin/phreeqc ' shellname '.txt ' shellname '.log ' DBpath DBname ]);
+    cd(current)
+end
 D = importdata([shellname '.sel']);
 
 
@@ -90,9 +94,9 @@ p.HCO3 = D.data(:,6);
 p.CO2 = D.data(:,7);
 
 
-figure; hold on; box on;
-
-set(gca, 'yscale','log')
+% figure; hold on; box on;
+% 
+% set(gca, 'yscale','log')
 % %% plot it
 % figure; hold on; box on;
 % plot(pH, state.chargebalance,'-k')
@@ -101,31 +105,31 @@ set(gca, 'yscale','log')
 % ylabel('charge [% of total ion concentration]');
 % legend('mrst', 'phreeqc');
 
-% surface components
-figure; hold on; box on;
-
-for i = 1 : numel(chem.CompNames)
-    v = getProps(chem, state, chem.CompNames{i});
-    plot(pH, v)
-    
-end
-xlabel('pH')
-ylabel('concentration [mol/L]');
-set(gca, 'yscale', 'log');
-legend(chem.CompNames)
-
-figure; hold on; box on;
-for i = 1 : numel(chem.MasterCompNames)
-    v = getProps(chem, state, chem.MasterCompNames{i});
-    plot(pH, v)
-    
-end
-xlabel('pH')
-ylabel('concentration [mol/L]');
-set(gca, 'yscale', 'log');
-legend(chem.MasterCompNames)
-
-names = {'H+', 'C', 'CO2', 'HCO3-', 'CO3-2'};
+% % surface components
+% figure; hold on; box on;
+% 
+% for i = 1 : numel(chem.CompNames)
+%     v = getProps(chem, state, chem.CompNames{i});
+%     plot(pH, v)
+%     
+% end
+% xlabel('pH')
+% ylabel('concentration [mol/L]');
+% set(gca, 'yscale', 'log');
+% legend(chem.CompNames)
+% 
+% figure; hold on; box on;
+% for i = 1 : numel(chem.MasterCompNames)
+%     v = getProps(chem, state, chem.MasterCompNames{i});
+%     plot(pH, v)
+%     
+% end
+% xlabel('pH')
+% ylabel('concentration [mol/L]');
+% set(gca, 'yscale', 'log');
+% legend(chem.MasterCompNames)
+% 
+ names = {'H+', 'C', 'CO2', 'HCO3-', 'CO3-2'};
 
 figure; hold on; box on;
 for i = 1 : numel(names)
@@ -141,5 +145,5 @@ xlabel('pH')
 ylabel('concentration [mol/L]');
 set(gca, 'yscale', 'log');
 legend(names)
-ylim([1e-8 1e2]);
+ylim([1e-10 1e0]);
 xlim([1 10]);

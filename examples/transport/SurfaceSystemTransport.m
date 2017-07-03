@@ -3,6 +3,7 @@ clear;
 
 mrstModule add ad-core ad-props ad-blackoil geochemistry mrst-gui
 
+mrstVerbose off
 
 %% Define the grid
 
@@ -44,11 +45,11 @@ chemModel.printChemicalSystem;
 
 % initial chemistry
 
-inputConstraints = [1e-3 1e-3 1e-5 1]*mol/litre;
+inputConstraints = [1e-1 1e-1 1e-5 1]*mol/litre;
 [initchemstate, initreport]= chemModel.initState(inputConstraints, 'charge', 'Cl');
 
 % injected chemistry
-inputConstraints = [1e-1 1e-1 1e-9 1]*mol/litre;
+inputConstraints = [1e-3 1e-3 1e-9 1]*mol/litre;
 [injchemstate, injreport] = chemModel.initState(inputConstraints, 'charge', 'Cl');
 
 %% Define the initial state
@@ -71,7 +72,7 @@ model.nonlinearTolerance = 1e-13;
 fluidpart = model.fluidMat*((injchemstate.components)');
 fluidpart = fluidpart';
 
-model.plotIter = true;
+model.plotIter = false;
 %% Define the boundary conditions
 
 src                  = [];
@@ -87,7 +88,7 @@ bc.logmasterComponents= [initchemstate.logmasterComponents];  % (will not used i
 
 %% Define the schedule
 
-schedule.step.val = [0.01*day*ones(200, 1); 1*day*ones(100, 1)];
+schedule.step.val = [1*day*ones(200, 1); 1*day*ones(100, 1)];
 schedule.step.control = ones(numel(schedule.step.val), 1);
 schedule.control = struct('bc', bc, 'src', src, 'W', []);
 

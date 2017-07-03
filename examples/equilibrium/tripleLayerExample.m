@@ -5,6 +5,8 @@ close all;
 mrstModule add ad-core geochemistry
 mrstVerbose off
 
+fromLoad = true;
+
 %% generate chemical system 
 
 % define elements names
@@ -44,7 +46,7 @@ n = 500;
 
 Na = 1e-1.*ones(n,1);
 Cl = 1e-1*ones(n,1);
-B = 4.63e-4;
+% B = 4.63e-4;
 H2O = ones(n,1);
 H = logspace(-4, -10, n)';
 
@@ -93,15 +95,14 @@ DBpath = '/Users/cmcneece/GoogleDrive/phreeqc/database/';
 shellname =[PHpath filename];
 
 
-
-cd(progpath);
-eval(['! sh ' shellname '.sh ' shellname]);
-eval(['! ./bin/phreeqc ' shellname '.txt ' shellname '.log ' DBpath DBname  '&>/dev/null']);
-cd(current)
+if ~fromLoad
+    cd(progpath);
+    eval(['! sh ' shellname '.sh ' shellname]);
+    eval(['! ./bin/phreeqc ' shellname '.txt ' shellname '.log ' DBpath DBname  '&>/dev/null']);
+    cd(current)
+end
 
 D = importdata([shellname '.sel']);
-
-
 
 p.pH = D.data(:,1);
 p.e = D.data(:,2); 
