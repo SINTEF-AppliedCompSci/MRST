@@ -68,9 +68,7 @@ function Wc = handleWell(model, W, opt)
     p = model.G.partition;
     Wc = W;
     
-    s = W.cstatus;
     pc = p(W.cells);
-    pc = pc(s);
     
     % cells
     [Wc.cells, firstInd, newMap] = uniqueStable(pc);
@@ -80,7 +78,7 @@ function Wc = handleWell(model, W, opt)
     
     % Take first direction uncritically (it shouldn't really matter when
     % the well index has been upscaled).
-    dr = W.dir(s);
+    dr = W.dir;
     Wc.dir = dr(firstInd);
     
     % Upscale well index using harmonic average...
@@ -88,13 +86,13 @@ function Wc = handleWell(model, W, opt)
         case 'sum'
             fn = @(WI, map, counts) accumarray(map, WI);
         case 'harmonic'
-            fn = @(WI, map, counts) 1./(accumarray(map, 1./WI(s))./counts);
+            fn = @(WI, map, counts) 1./(accumarray(map, 1./WI)./counts);
         case 'mean'
             fn = @(WI, map, counts)accumarray(map, WI)./counts;
             otherwise
         error(['Unknown upscale mode: "', opt.wellUpscaleMethod, '"'])
     end
-    Wc.WI = fn(W.WI(s), newMap, counts);
+    Wc.WI = fn(W.WI, newMap, counts);
 
     % dZ
     z = model.G.cells.centroids(Wc.cells, 3);

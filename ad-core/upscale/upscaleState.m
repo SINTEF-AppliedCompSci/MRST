@@ -64,13 +64,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
     end
     
-    if model.disgas && isfield(state, 'rs')
+    if isprop(model, 'disgas') && model.disgas && isfield(state, 'rs')
         sO = model.getProp(state_f, 'sO');
         sO_c = coarsemodel.getProp(state, 'sO');
         state.rs = accumarray(p, sO.*state.rs.*pvf)./(sO_c.*pvc);
         state.rs(~isfinite(state.rs)) = 0;
     end
-    if model.vapoil && isfield(state, 'rv')
+    if isprop(model, 'vapoil') && model.vapoil && isfield(state, 'rv')
         sG = model.getProp(state_f, 'sG');
         sG_c = coarsemodel.getProp(state, 'sG');
         state.rv = accumarray(p, sG.*state.rv.*pvf)./(sG_c.*pvc);

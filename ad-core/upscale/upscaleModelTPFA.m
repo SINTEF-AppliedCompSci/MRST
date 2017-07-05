@@ -60,6 +60,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
     opt = struct('validatePartition', true,...
+                 'transFromRock',     true,...
                  'transCoarse',       [], ...
                  'permCoarse',        [], ...
                  'neighborship',      [], ...
@@ -78,7 +79,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     rock_c = getRock(rock, CG, opt);
     
     [Tc, Nc] = getTransmissibility(CG, rock_c, opt);
-    
+    if ~opt.transFromRock
+        cts = rldecode((1:CG.faces.num)', diff(CG.faces.connPos));
+        Tc = accumarray(cts, model.operators.T_all(CG.faces.fconn));
+    end
     model.G = CG;
     model.rock = rock_c;
     model = model.setupOperators(CG, rock_c, 'neighbors', Nc, 'trans', Tc);
@@ -99,15 +103,17 @@ function rock_c = getRock(rock, CG, opt)
     perm_c = opt.permCoarse;
     
     p = CG.partition;
-    cellcount  = accumarray(p, 1);
+    vol = CG.parent.cells.volumes;
+    coarsevol = accumarray(p, vol);
+    counts = accumarray(p, 1);
     if isfield(rock, 'poro') && isempty(poro_c)
         poro = rock.poro;
         % Include NTG directly into porosity for the time being...
-        if isfield(rock, 'ntg');
+        if isfield(rock, 'ntg')
             poro = poro.*rock.ntg;
         end
         % Sum up pore volumes - we want upscaled model to have same porosity.
-        poro_c = accumarray(p, poro)./cellcount;
+        poro_c = accumarray(p, poro.*vol)./coarsevol;
     end
     
     if isfield(rock, 'perm') && isempty(perm_c)
@@ -116,7 +122,7 @@ function rock_c = getRock(rock, CG, opt)
         for i = 1:nK
             perm_c = accumarray(p, 1./rock.perm(:, i));
         end
-        perm_c = 1./bsxfun(@rdivide, perm_c, cellcount);
+        perm_c = 1./bsxfun(@rdivide, perm_c, counts);
     end
     rock_c = makeRock(CG, perm_c, poro_c);
 end
