@@ -1,6 +1,24 @@
-function [problem, state] = equationsFourPhaseSolvent(state0, state, model, dt, ...
-                                                     drivingForces, varargin)
-                                                 
+function [problem, state] = equationsFourPhaseSolvent(state0, state, model, dt, drivingForces, varargin)
+% Equations for the four-phase solvent model
+
+%{
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
                                                  
 opt = struct('Verbose', mrstVerbose, ...
              'reverseMode', false,...
@@ -22,13 +40,13 @@ op = model.operators;
    'oil', 'gas', 'wellSol');
 
 % Well variables
-[qWell, bhp, wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
+[wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
 
 if ~opt.resOnly
     if ~opt.reverseMode
         % define primary varible x and initialize
-        [p, sW, sO, sG, qWell{:}, bhp] = ...
-            initVariablesADI(p, sW, sO, sG, qWell{:}, bhp);
+        [p, sW, sO, sG, wellVars{:}] = ...
+            initVariablesADI(p, sW, sO, sG, wellVars{:});
     else
         % Set initial gradient to zero
         zw = zeros(size(bhp));
@@ -38,8 +56,8 @@ if ~opt.resOnly
     end
 end
 
-% We will solve for pressure, water saturation and oil saturation (solvent
-% saturation follows via the definition of saturations),  and well rates +
+% We will solve for pressure, and water/oil/gas saturations (solvent
+% saturation follows via the definition of saturations), and well rates +
 % bhp.
 primaryVars = {'pressure', 'sW', 'sO', 'sG', wellVarNames{:}};
 
@@ -167,12 +185,13 @@ if ~isempty(W)
     
 %     wm = model.FacilityModel;
     if ~opt.reverseMode
-        [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, qWell, bhp, wellVars, wellMap, p, mob, rho, {}, {}, dt, opt);
+        [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, wellVars, wellMap, p, mob, rho, {}, {}, dt, opt);
     else
 %         [eqs(4:7), names(4:7), types(4:7)] = wm.createReverseModeWellEquations(model, state0.wellSol, p0);
     end
 end
 
+% Scale solvent equations (this should be changed to CNV/MB convergence...)
 eqs{4} = eqs{4}.*(dt./op.pv);
 
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);

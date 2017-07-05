@@ -2,7 +2,7 @@ mrstModule add ad-core ad-eor ad-blackoil ad-props blackoil-sequential matlab_bg
 
 gravity reset on
 
-n = 1000;
+n = 100;
 G = computeGeometry(cartGrid([n,1,1], [100,1,1]));
 rock = makeRock(G, 100*milli*darcy, 1);
 
@@ -16,7 +16,7 @@ fluid = initSimpleADIFluid('n'     , [2, 2, 2], ...
 sOres_i= 0.2;
 fluid = addSolventProperties(fluid, 'n', 2, ...
                                     'rho', 100*kilogram/meter^3, ...
-                                    'mixPar', 0, ...
+                                    'mixPar', 2/3, ...
                                     'mu'    , 1*centi*poise, ...
                                     'sOres_i', sOres_i, ...
                                     'sOres_m', 0.0);
@@ -26,11 +26,11 @@ model.extraStateOutput = true;
 
 T =4*year;
 rate = 1*sum(poreVolume(G, rock))/year;
-[schedule, W_G, W_W] = makeWAGschedule(model, {1}, {G.cells.num}, 10, 'T', T, 'nStep', 1000, 'wRate', rate, 'gRate', rate);
+[schedule, W_G, W_W] = makeWAGschedule(model, {1}, {G.cells.num}, 10, 'T', T, 'nStep', 100, 'wRate', rate, 'gRate', rate);
 
 s = sOres_i + 0.0;
 state0 = initResSol(G, 100*barsa, [1-s s 0 0]);
-state0.wellSol = initWellSolAD(W_G, model, state0);
+state0.wellSol = initWellSolSolventAD(W_G, model, state0);
 
 nls = NonLinearSolver('useLineSearch', true);
 nls = NonLinearSolver('useLineSearch', false);

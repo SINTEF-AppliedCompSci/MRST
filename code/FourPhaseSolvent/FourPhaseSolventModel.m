@@ -1,5 +1,25 @@
 classdef FourPhaseSolventModel < ReservoirModel
-% Three phase with optional dissolved gas and vaporized oil
+% Four-phase solvent model
+
+%{
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
 properties
    solvent
 end
@@ -8,7 +28,7 @@ methods
     function model = FourPhaseSolventModel(G, rock, fluid, varargin)
         model = model@ReservoirModel(G, rock, fluid, varargin{:});
 
-        % Blackoil -> use CNV style convergence 
+        % Use CNV style convergence 
         model.useCNVConvergence = true;
 
         % All phases are present
@@ -22,9 +42,10 @@ methods
 
     end
     
+    % --------------------------------------------------------------------%
     function model = validateModel(model, varargin)
         if isempty(model.FacilityModel)
-            model.FacilityModel = FacilityModelSolvent(model); %#ok
+            model.FacilityModel = FacilityModel(model);
         end
         if nargin > 1
             W = varargin{1}.W;
@@ -46,6 +67,7 @@ methods
         end
     end
     
+    % --------------------------------------------------------------------%
     function vars = getSaturationVarNames(model)
         vars = {'sw', 'so', 'sg', 'ss'};
         ph = model.getActivePhases();
@@ -65,11 +87,15 @@ methods
         state = validateState@ReservoirModel(model, state);
     end
     
-    function phNames = getPhaseNames(model)
+    function [phNames, longNames] = getPhaseNames(model)
         % Get the active phases in canonical ordering
         tmp = 'WOGS';
         active = model.getActivePhases();
         phNames = tmp(active);
+        if nargout > 1
+            tmp = {'water', 'oil', 'gas', 'solvent'};
+            longNames = tmp(active);
+        end
     end
 
     % --------------------------------------------------------------------%
@@ -98,12 +124,14 @@ methods
         end
     end
     
+    % --------------------------------------------------------------------%
     function rhoS = getSurfaceDensities(model)
         active = model.getActivePhases();
         props = {'rhoWS', 'rhoOS', 'rhoGS', 'rhoSS'};
         rhoS = cellfun(@(x) model.fluid.(x), props(active));
     end
     
+    % --------------------------------------------------------------------%
     function state = storeFluxes(model, state, vW, vO, vG, vS)
         % Utility function for storing the interface fluxes in the state
         isActive = model.getActivePhases();
@@ -146,6 +174,7 @@ methods
         rho = {double(rhoW), double(rhoO), double(rhoG), double(rhoS)};
         state = model.setPhaseData(state, rho, 'rho');
     end
+    
     % --------------------------------------------------------------------%
     function state = storebfactors(model, state, bW, bO, bG, bS)
         % Store compressibility / surface factors for plotting and
@@ -159,22 +188,3 @@ methods
     
 end
 end
-
-%{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
-
-This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
-
-MRST is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-MRST is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with MRST.  If not, see <http://www.gnu.org/licenses/>.
-%}

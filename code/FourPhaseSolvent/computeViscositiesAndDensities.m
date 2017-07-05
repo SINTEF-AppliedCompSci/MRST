@@ -1,6 +1,25 @@
 function [muW_eff, muO_eff, muG_eff, muS_eff, rhoW_eff, rhoO_eff, rhoG_eff, rhoS_eff] = computeViscositiesAndDensities(fluid, p , sO , sG , sS , sOres , sSGres )
-    % Calculates effective viscosities and densities using Todd-Longstaff
-    % model + 1/4th-power mixing rule
+% Calculates effective viscosities and densities using Todd-Longstaff
+% model + 1/4th-power mixing rule
+
+%{
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
 
     % Unmixed viscosities at reservoir conditions
     muW = fluid.muW(p);
@@ -93,109 +112,3 @@ function [muW_eff, muO_eff, muG_eff, muS_eff, rhoW_eff, rhoO_eff, rhoG_eff, rhoS
                                        + ((1-omega)*rhoS + omega*rhoM).*eq;
     
 end
-% 
-% function s = trimSaturations(s)
-% 
-%     tol = eps;
-%     s = max(s + tol*(s<tol),0);
-%     
-% end
-
-% function f = saturationFraction(sNum, sDen)
-% 
-% %     tol = 10*eps;
-% %     zz = sNum < tol & sDen < tol;
-% %     f = sNum./(sDen + (sDen < tol).*tol).*(~zz) + 0.*zz;
-% 
-%     tol = 10*eps;
-%     zz = sNum < tol & sDen < tol;
-%     sNum = sNum - (sNum < tol).*sNum;
-%     sDen = sDen - (sDen < tol).*sDen;
-%     f = sNum./(sDen + (sDen < tol).*tol).*(~zz) + 0.*zz;
-%        
-% end
-
-%     tol = 10*eps;
-%     sOn(sOn < tol) = 0;
-%     sGn(sGn < tol) = 0;
-%     sSn(sSn < tol) = 0;
-    
-%     tol = 1e-2;
-% % %     tol = eps;
-%     sSnsOSn = saturationFraction(sSn, sOn, tol);
-%     sSnsSGn = saturationFraction(sSn, sGn, tol);
-%     sSnsNn = saturationFraction(sSn, sOn + sGn, tol);
-%     sGnsNn = saturationFraction(sGn, sOn + sSn, tol);
-%     
-%     sOnsOSn = saturationFraction(sOn, sSn, tol);
-%     sGnsSGn = saturationFraction(sGn, sSn, tol);
-%     sOnsNn = saturationFraction(sOn, sGn + sSn, tol);
-
-
-%     muMOS = muO.*muS./(sOnsOSn.*muSa + sSnsOSn.*muOa).^4;
-%     muMSG = muS.*muG./(sSnsSGn.*muGa + sGnsSGn.*muSa).^4;
-%     muM   = muO.*muS.*muG./(sOnsNn.*muSa.*muGa ...
-%                               + sSnsNn.*muOa.*muGa ...
-%                               + sGnsNn.*muOa.*muSa).^4;
-% 
-%     muMOS(isnan(double(muMOS))) = muS(isnan(double(muMOS)));
-%     muMSG(isnan(double(muMSG))) = muS(isnan(double(muMSG)));
-%     muM(isnan(double(muM))) = muS(isnan(double(muM)));
-   
-%     muMOS = muO.*muS./((1-sSnsOSn).*muSa + sSnsOSn.*muOa).^4;
-%     muMSG = muS.*muG./(sSnsSGn.*muGa + (1-sSnsSGn).*muSa).^4;
-%     muM   = muO.*muS.*muG./((1-(sGnsNn + sSnsNn)).*muSa.*muGa ...
-%                           + sSnsNn.*muOa.*muGa ...
-%                           + sGnsNn.*muOa.*muSa).^4;
-
-
-%     tol = 1e-5;
-%     sGf = saturationFraction(sGn, sOn, tol);
-    
-%     sSsN_Seff = max((muSmuG.*sGf + muSmuO.*(1-sGf) - (muS./muS_eff).^a)...
-%                ./(muSmuG.*sGf + muSmuO.*(1-sGf) - 1),0);
-
-%     sO = max(sO,0);
-%     sG = max(sG,0);
-%     sS = max(sS,0);
-
-%     tol = 10*eps;
-%     sO(sO < tol) = 0;
-%     sG(sG < tol) = 0;
-%     sS(sS < tol) = 0;
-           
-                
-% %         tol = 1e-2;
-% %         tol = eps;
-%         sSnsOSn = saturationFraction(sSn, sOn, tol);
-%         sSnsSGn = saturationFraction(sSn, sGn, tol);
-%         sOnsNn = saturationFraction(sSn, sOn + sGn, tol);
-%         sGnsNn = saturationFraction(sGn, sOn + sSn, tol);
-% 
-%         muMOS = muO.*muS./((1-sSnsOSn).*muSa + sSnsOSn.*muOa).^4;
-%         muMSG = muS.*muG./(sSnsSGn.*muGa + (1-sSnsSGn).*muSa).^4;
-%         muM   = muO.*muS.*muG./((1-(sGnsNn + sOnsNn)).*muSa.*muGa ...
-%                               + sOnsNn.*muOa.*muGa ...
-%                               + sGnsNn.*muOa.*muSa).^4;
-%     tol = 1e-5;
-%     sOsN = saturationFraction(sO, sG + sS, tol);
-%     sGsN = saturationFraction(sG, sO + sS, tol);
-
-%         muMOS = muO.*muS.*((sOn + sSn)./(sOn.*muSa + sSn.*muOa)).^4;
-%         muMSG = muS.*muG.*((sSn + sGn)./(sSn.*muGa + sGn.*muSa)).^4;
-%         muM   = muO.*muG.*muS.*((sOn + sGn + sSn)./...
-%                      (sOn.*muSa.*muGa + sGn.*muOa.*muSa + sSn.*muOa.*muGa)).^4;
-% 
-%         % In the case of sOn = 0 and sSn = 0 etc., we set mixed viscosities to
-%         % the unmixed.
-%         muMOS(isnan(double(muMOS))) = muO(isnan(double(muMOS)));
-%         muMSG(isnan(double(muMSG))) = muG(isnan(double(muMSG)));
-%         muM(isnan(double(muM)))     = muS(isnan(double(muM)));
-%         sSsN_Seff = max((muSmuG.*sGn + muSmuO.*sOn - (sOn + sGn).*(muS./muS_eff).^a)...
-% %                   ./(muSmuG.*sGn + muSmuO.*sOn - (sOn + sGn)),0);
-%     if useFrac
-%         
-%         sGf = saturationFraction(sGn, sOn, tol);
-% 
-%         sSsN_Seff = max((muSmuG.*sGf + muSmuO.*(1-sGf) - (muS./muS_eff).^a)...
-%                    ./(muSmuG.*sGf + muSmuO.*(1-sGf) - 1),0);
