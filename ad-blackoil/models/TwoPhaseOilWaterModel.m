@@ -6,19 +6,16 @@ end
 
 methods
     function model = TwoPhaseOilWaterModel(G, rock, fluid, varargin)
-        model = model@ThreePhaseBlackOilModel(G, rock, fluid);
+        model = model@ThreePhaseBlackOilModel(G, rock, fluid, varargin{:});
 
         % This is the model parameters for oil/water
         model.oil = true;
         model.gas = false;
         model.water = true;
 
-        % Blackoil -> use CNV style convergence 
-        model.useCNVConvergence = true;
-
         model.saturationVarNames = {'sw', 'so'};
 
-        model = merge_options(model, varargin{:});
+        model = merge_options(model);
     end
     
     % --------------------------------------------------------------------%
