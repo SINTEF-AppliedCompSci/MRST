@@ -79,7 +79,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     rock_c = getRock(rock, CG, opt);
     
     [Tc, Nc] = getTransmissibility(CG, rock_c, opt);
-    if ~opt.transFromRock
+    if ~opt.transFromRock && isempty(opt.transCoarse)
         cts = rldecode((1:CG.faces.num)', diff(CG.faces.connPos));
         Tc = accumarray(cts, model.operators.T_all(CG.faces.fconn));
     end

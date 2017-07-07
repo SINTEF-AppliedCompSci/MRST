@@ -173,8 +173,10 @@ function bc_coarse = handleBC(model, bc, opt)
                     sat = sum(sat, 1);
                     sat = sat./sum(sat, 2);
                 end
-                xq = CG.faces.centroids(cf, :);
-                x = G.faces.centroids(faces, :);
+                
+                rescale = @(x) bsxfun(@rdivide, bsxfun(@minus, x, min(G.nodes.coords)), max(G.nodes.coords) - min(G.nodes.coords));
+                xq = rescale(CG.faces.centroids(cf, :));
+                x = rescale(G.faces.centroids(faces, :));
                 if numel(faces) == 1
                     % Single value. Coarse is equal to fine.
                     val = values;
@@ -185,12 +187,10 @@ function bc_coarse = handleBC(model, bc, opt)
                             val = interpolateIDW(x, values, xq, 2);
                         case 'mean'
                             % area weighted mean value
-                            val = mean(value.*areas)./sum(areas);
+                            val = mean(values.*areas)./sum(areas);
                         case 'nearest'
                             % Nearest neighbor interpolation
-                            dist = sqrt(sum(bsxfun(@minus, x, xq).^2, 2));
-                            [~, minIndex] = min(dist);
-                            val = value(minIndex);
+                            val = nearestNeighbor(x, values, xq);
                         otherwise
                             % We just assume that this is a valid method for
                             % matlabs unstructured interpolation, after
@@ -198,7 +198,7 @@ function bc_coarse = handleBC(model, bc, opt)
                             keep = true(1, G.griddim);
                             for j = 1:G.griddim
                                 % Remove degenerate dimensions
-                                if all(x(:, j) == xq(j))
+                                if all(abs(x(:, j) - xq(j)) <= 2*max(eps(x(:, j)), eps(xq(j))))
                                     keep(j) = false;
                                 end
                             end
@@ -210,6 +210,10 @@ function bc_coarse = handleBC(model, bc, opt)
                                 val = interp1(x(:, keep), values, xq(keep), ...
                                     opt.bcUpscaleMethod, 'extrap');
                             end
+                    end
+                    if isempty(val) || any(~isfinite(val))
+                        % Always works
+                        val = nearestNeighbor(x, values, xq);
                     end
                 end
             otherwise
@@ -247,4 +251,11 @@ function src_coarse = handleSRC(model, src, opt)
         % Add coarse source
         src_coarse = addSource(src_coarse, cc, val, 'sat', sat);
     end
+end
+
+
+function val = nearestNeighbor(x, value, xq)
+    dist = sqrt(sum(bsxfun(@minus, x, xq).^2, 2));
+    [~, minIndex] = min(dist);
+    val = value(minIndex);
 end
