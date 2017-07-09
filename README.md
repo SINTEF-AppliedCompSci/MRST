@@ -47,11 +47,16 @@ this will make the contents of the geochemistry directory available in the works
 ## Functionality ##
 
 [ChemModel.m](readMes/ChemModel.md)
-Used for the instatiation of the chmical object, making all embedded functions available. 
+Used for the instatiation of the chemical object, making all embedded functions available. 
+
 * [ChemModel/initState](readMes/chemModel_initState.md) Used to solve the chemical system based on specified user inputs
+
 * [ChemModel/computeActivities](readMes/chemModel_computeActivities.md) adds the acitivities of aqueous species to state
+
 * [ChemModel/computeChargeBalance](readMes/chemModel_computeChargeBalance.md) adds the residual of the charge balance to state
+
 * [ChemModel/computeSurfacePotential](readMes/chemModel_computeSurfacePotential.md) adds the potential of each surface and layer to state
+
 * [ChemModel/computeSurfaceCharge](readMes/chemModel_computeSurfaceCharge.md) adds the charge of each surface and layer to state
 
 [mergeChemicalModels.m](readMes/mergeChemicalModels.md) combine two or more chemical models
