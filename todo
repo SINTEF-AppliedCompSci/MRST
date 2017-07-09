@@ -6,3 +6,6 @@ if the transport solver creates nan/inf solutions send back to initial guess cal
     
 give an error if chemical solver does not converge
     - currently if max iterations is exceeded it will just terminate and give no warning
+    - perferably a warning should be given
+    
+create examples of visualization and informaiton retreval using getProps. 
