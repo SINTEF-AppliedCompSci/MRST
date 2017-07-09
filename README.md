@@ -55,7 +55,7 @@ Used for the instatiation of the chemical object, making all embedded functions 
 
 * [ChemModel/computeChargeBalance](readMes/chemModel_computeChargeBalance.md) adds the residual of the charge balance to state
 
-* [ChemModel/chemModel_computeSurfacePotentials](readMes/chemModel_computeSurfacePotentials.md) adds the potential of each surface and layer to state
+* [ChemModel/computeSurfacePotentials](readMes/chemModel_computeSurfacePotentials.md) adds the potential of each surface and layer to state
 
 * [ChemModel/computeSurfaceCharges](readMes/chemModel_computeSurfaceCharges.md) adds the charge of each surface and layer to state
 
