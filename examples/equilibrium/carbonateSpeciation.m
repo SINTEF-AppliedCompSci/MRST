@@ -42,7 +42,7 @@ CO2 = 10^-1.468*10^-3.5.*ones(n,1);
 userInput = [Ca Na Cl H H2O CO2]*mol/litre;
 
 tic
-[state, report, model] = chem.initState(userInput, 'charge','Cl');
+[state, report, model] = chem.initState(userInput, 'charge','Ca');
 toc;
 
 [state, chem] = chem.computeActivities(state);
