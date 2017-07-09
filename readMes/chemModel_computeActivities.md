@@ -7,7 +7,7 @@ Computes the acitivities of aqueous species from state using the extended Davies
 [state] = chem.computeActivities(state)
 ~~~~
 
-Add the field "activities" to state. Activity values can be retrieved using
+adds the field "activities" to state. Activity values can be retrieved using
 chem.getProps with 'a' prepended to the speices name.
 
 ## OUTPUT

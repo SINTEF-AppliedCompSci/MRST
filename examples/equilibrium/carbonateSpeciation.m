@@ -32,17 +32,17 @@ chem.printChemicalSystem;
 %% solve the chemical system given inputs
 n = 600;
 
-Ca = 1e-6.*ones(n,1);
-Na = 1e-1.*ones(n,1);
+Ca = 1e-1.*ones(n,1);
+Na = eps.*ones(n,1);
 Cl = 1e-1.*ones(n,1);
-H = logspace(-1,-10, n)';
+H = logspace(-4,-10, n)';
 H2O = ones(n,1);
 CO2 = 10^-1.468*10^-3.5.*ones(n,1);
 
 userInput = [Ca Na Cl H H2O CO2]*mol/litre;
 
 tic
-[state, report, model] = chem.initState(userInput, 'charge', 'Cl');
+[state, report, model] = chem.initState(userInput, 'charge','Cl');
 toc;
 
 [state, chem] = chem.computeActivities(state);

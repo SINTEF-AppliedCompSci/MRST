@@ -99,7 +99,7 @@ classdef chargeBalanceModel < ChemicalInputModel
             model.unknownNames = unknownNames(~ind);
             model.CompNames = horzcat(model.CompNames, 'CVC');
             
-            solver = NonLinearSolver();
+            solver = NonLinearSolver('maxIterations', 10);
             model.nonlinearTolerance = 1e-12;
             dt = 0; % dummy timestep
             drivingForces = []; % drivingForces;
@@ -115,13 +115,38 @@ classdef chargeBalanceModel < ChemicalInputModel
         % Update state based on Newton increments
             [state, report] = updateState@PhysicalModel(model, state, problem, ...
                                                         dx, drivingForces);
-                                                    
-            for i = 1 : numel(problem.primaryVariables)
-                p = problem.primaryVariables{i};
-                if ~strcmpi(p, 'CVC')
-                    state = model.capProperty(state, p, eps);
-                end
+        
+            surfParam = sum(cellfun(@(x) ~isempty(x) , regexpi(model.CompNames, 'psi'))); 
+            
+            if surfParam > 0
+            	[names, maxs, mins] = computeMaxPotential(model, state); 
             end
+            
+            for i = 1 : model.nC+1
+                
+                p = problem.primaryVariables{i};
+                compInd = strcmpi(p, model.CompNames(1:end-1));
+                
+                if any(strcmpi(p, model.MasterCompNames))
+                     state = model.capProperty(state, p, eps,2.5*mol/litre);
+                elseif ~isempty(regexpi(p, 'psi'))
+                	ind = strcmpi(p, names);
+                    state = model.capProperty(state, p, mins{ind}, maxs{ind});
+                elseif strcmpi(p, 'CVC') 
+                    cvcInd = strcmpi(model.CVC, model.MasterCompNames);
+                    cvcVal = state.masterComponents(:,cvcInd);
+                    state = model.capProperty(state, p, -cvcVal, cvcVal);
+                else
+                    maxvals = model.maxMatrices{compInd}*((state.masterComponents)');
+                    maxvals = (min(maxvals))';             
+                    state = model.capProperty(state, p, eps, maxvals); 
+                end
+                
+            end
+                                    
+            state = model.syncLog(state);
+             
+                                                   
         end
         
         function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces) %#ok

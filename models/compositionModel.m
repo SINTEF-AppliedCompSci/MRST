@@ -98,8 +98,7 @@ classdef compositionModel < ChemicalModel
                                                           % updates the log
                                                           % variables if necessary.
 
-            solver = NonLinearSolver();
-            model.nonlinearTolerance = 1e-12;
+            solver = NonLinearSolver('maxIterations', 10);
             dt = 0; % dummy timestep
             drivingForces = []; % drivingForces;
             inputstate0 = inputstate;
@@ -114,10 +113,15 @@ classdef compositionModel < ChemicalModel
         % Update state based on Newton increments
             [state, report] = updateState@PhysicalModel(model, state, problem, ...
                                                         dx, drivingForces);
-                                                    
+            
+            Ox = model.getProp(state, 'O');
+            Hy = model.getProp(state, 'H');
+            
+            maxVal = max(Ox,Hy);
+            
             for i = 1 : numel(problem.primaryVariables)
                 p = problem.primaryVariables{i};
-                    state = model.capProperty(state, p, eps);
+                state = model.capProperty(state, p, eps);
             end
             state = model.syncLog(state);
         end

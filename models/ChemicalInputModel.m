@@ -106,7 +106,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                                           % updates the log
                                                           % variables if necessary.
 
-            solver = NonLinearSolver('maxIterations', 100);
+            solver = NonLinearSolver('maxIterations', 10);
             dt = 0; % dummy timestep
             drivingForces = []; % drivingForces;
             inputstate0 = inputstate;

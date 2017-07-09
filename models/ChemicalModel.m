@@ -208,7 +208,7 @@ classdef ChemicalModel < PhysicalModel
             %}
             
             model = model@PhysicalModel([]);
-            model.maxIterations = 50;
+%             model.maxIterations = 50;
             if nargin >= 3
                 % Creating ChemicalModel
                 MasterCompNames = varargin{1};
@@ -283,9 +283,9 @@ classdef ChemicalModel < PhysicalModel
                     break
                 end
 
-                if strcmpi(name, 'chargebalance')
+                if strcmpi(name, 'chargeBalance')
                     varfound = true;
-                    fn = 'chargebalance';
+                    fn = 'chargeBalance';
                     index = ':';
                     break
                 end
@@ -1023,46 +1023,36 @@ classdef ChemicalModel < PhysicalModel
             [state, report] = updateState@PhysicalModel(model, state, problem, ...
                                                         dx, drivingForces);
 
-
-            % for i = 1 : numel(problem.primaryVariables)
-            %     p = problem.primaryVariables{i};
-            %     test = ~isempty(regexpi(p, 'psi'));
-            %     if test
-            %         state = model.capProperty(state, p, -6, 6);
-            %     end
-            % end
-            
             state = model.syncFromLog(state);
             surfParam = sum(cellfun(@(x) ~isempty(x) , regexpi(model.CompNames, 'psi'))); 
-            
-
-            
-            for i = 1 : model.nC-surfParam
-                maxvals = model.maxMatrices{i}*((state.masterComponents)');
-                maxvals = (min(maxvals))';
-                state.components(:, i) = min(state.components(:, i), maxvals);
-                state.components(:, i) = max(state.components(:, i), 1e-30);
-
-                compname = model.CompNames{i};
-                if regexpi(compname, 'psi')
-                    state.components(:, i) = min(state.components(:, i), 1e30);
-                    state.components(:, i) = max(state.components(:, i), 1e-30);
-                end
-
-            end
-            
-            if surfParam > 0
-                
-                [names, maxs, mins] = computeMaxPotential(model, state);
-                
-                for i = 1 : surfParam
-                    p = names{i};
-                    state = model.capProperty(state, p, mins{i}, maxs{i});
-                end
-            end
                         
+            
+            nonLogVariables = regexprep(problem.primaryVariables, 'log', '');
 
+            if surfParam > 0
+            	[names, maxs, mins] = computeMaxPotential(model, state); 
+            end
+            
+            for i = 1 : model.nC
+                
+                p = nonLogVariables{i};
+                compInd = strcmpi(p, model.CompNames);
+                
+                if any(strcmpi(p, model.MasterCompNames))
+                    state = model.capProperty(state, p, eps, 2.5*mol/litre);
+                elseif ~isempty(regexpi(p, 'psi'))
+                	ind = strcmpi(p, names);
+                    state = model.capProperty(state, p, mins{ind}, maxs{ind});
+                else
+                    maxvals = model.maxMatrices{compInd}*((state.masterComponents)');
+                    maxvals = (min(maxvals))';             
+                    state = model.capProperty(state, p, eps, maxvals); 
+                end
+                
+            end
+            
             state = model.syncLog(state);
+            
 
             if model.plotIter 
                 h = findobj('tag', 'updatechemfig');
@@ -1153,8 +1143,32 @@ classdef ChemicalModel < PhysicalModel
 
         %%
         function [state, model] = computeActivities(model, state)
-        % computeActivities adds the activities of aqueous components to
-        % state
+        %computeAcitivities computes the acitivity of each aqueous species
+        %using the extended Davies equaiton. 
+        %
+        % SYNOPSIS:
+        %  [state] = computeActivities(model, state)
+        %
+        %
+        % REQUIRED PARAMETERS:
+        %   state        - the state variable produced by model.initState.
+        %       Must at least include the field state.components. 
+        %          
+        %
+        % OUTPUTS:
+        %   state           - A structure containing the acitivity of each
+        %   aqueous species in units of mol/meter^3. Activities can be
+        %   retrieved using the getProp command by calling for the species
+        %   name prepended by 'a.'
+        %
+        % EXAMPLE:
+        %
+        %   state = chem.computeSurfaceCharges(state);
+        %   aH2O = chem.getProp(state, 'aH2O');
+        %
+        %
+        % SEE ALSO:
+        %   computeChargeBalance
         
             [state, model] = activity(model, state);
             
@@ -1162,23 +1176,105 @@ classdef ChemicalModel < PhysicalModel
         
         %%
         function [state, model] = computeChargeBalance(model, state)
-        % computeChargeBalance adds the residual of the charge balance
-        % equaiton to state
+        %computeChargeBalance computes the residual of the aqueous charge
+        %balance equation.
+        %
+        % SYNOPSIS:
+        %  [state] = computeChargeBalance(model, state)
+        %
+        %
+        % REQUIRED PARAMETERS:
+        %   state        - the state variable produced by model.initState.
+        %       Must at least include the field state.components. 
+        %          
+        %
+        % OUTPUTS:
+        %   state           - A structure containing the value of the
+        %   aqueous charge balance residual in units of percent of total
+        %   charge. The charge balance can be retrieved using the getProps
+        %   command by calling for the variables 'chargeBalance'.
+        %
+        % EXAMPLE:
+        %
+        %   state = chem.computeSurfaceCharges(state);
+        %   charge = chem.getProp(state, 'chargeBalance');
+        %
+        %
+        % SEE ALSO:
+        %   computeActivities
 
             [state, model] = chargeBalance(model, state);
             
         end
         
         %%
-        function [state, model] = computeSurfacePotential(model, state)
-            
+        function [state, model] = computeSurfacePotentials(model, state)
+        %computeSurfacePotentials computes the potential of each layer of each
+        %surface and adds the values to the field state.surfacePotentials.
+        %
+        % SYNOPSIS:
+        %  [state] = computeSurfacePotentials(model, state)
+        %
+        %
+        % REQUIRED PARAMETERS:
+        %   state        - the state variable produced by model.initState.
+        %       Must at least include the field state.components. 
+        %          
+        %
+        % OUTPUTS:
+        %   state           - A structure containing the potential of each layer of
+        %       each surface in Volts. Values can be retrieved using
+        %       the getProps command by calling for the surface functional
+        %       group name, followed by '_Psi_' followed by the layer
+        %       number (0, 1, 2) or for the constant capacitance model just
+        %       use '_Psi'.
+        %
+        % EXAMPLE:
+        %
+        %   state = chem.computeSurfaceCharges(state);
+        %   potential0 = chem.getProp(state, '>SiO_Psi_0');
+        %   potential1 = chem.getProp(state, '>SiO_Psi_1');
+        %
+        %
+        % SEE ALSO:
+        %   computeSurfaceCharges
+        
             state = surfacePotential(model, state);
             
         end
         
         %%
-        function [state, model] = computeSurfaceCharge(model, state)
-            
+        function [state, model] = computeSurfaceCharges(model, state)
+        %computeSurfaceCharges computes the charge of each layer of each
+        %surface and adds the values to the field state.surfaceCharges.
+        %
+        % SYNOPSIS:
+        %  [state] = computeSurfaceCharges(model, state)
+        %
+        %
+        % REQUIRED PARAMETERS:
+        %   state        - the state variable produced by model.initState.
+        %       Must at least include the field state.components. 
+        %          
+        %
+        % OUTPUTS:
+        %   state           - A structure containing the charge of each laye of
+        %       each surface in C/meter^2. Values can be retrieved using
+        %       the getProps command by calling for the surface functional
+        %       group name, followed by '_sig_' followed by the layer
+        %       number (0, 1, 2) or for the constant capacitance model just
+        %       use '_sig'.
+        %
+        % EXAMPLE:
+        %
+        %   state = chem.computeSurfaceCharges(state);
+        %   charge0 = chem.getProp(state, '>SiO_sig_0');
+        %   charge1 = chem.getProp(state, '>SiO_sig_1');
+        %
+        %
+        % SEE ALSO:
+        %   computeSurfacePotentials
+                
             state = surfaceCharge(model, state);
         end
     end
