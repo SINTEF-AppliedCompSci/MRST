@@ -49,15 +49,15 @@ this will make the contents of the geochemistry directory available in the works
 [ChemModel.m](readMes/ChemModel.md)
 Used for the instatiation of the chemical object, making all embedded functions available. 
 
-* [ChemModel/chemModel_initState](readMes/chemModel_initState.md) Used to solve the chemical system based on specified user inputs
+* [ChemModel/initState](readMes/chemModel_initState.md) Used to solve the chemical system based on specified user inputs
 
-* [ChemModel/chemModel_computeActivities](readMes/chemModel_computeActivities.md) adds the acitivities of aqueous species to state
+* [ChemModel/computeActivities](readMes/chemModel_computeActivities.md) adds the acitivities of aqueous species to state
 
-* [ChemModel/chemModel_computeChargeBalance](readMes/chemModel_computeChargeBalance.md) adds the residual of the charge balance to state
+* [ChemModel/computeChargeBalance](readMes/chemModel_computeChargeBalance.md) adds the residual of the charge balance to state
 
-* [ChemModel/chemModel_computeSurfacePotentials](readMes/chemModel_computeSurfacePotential.md) adds the potential of each surface and layer to state
+* [ChemModel/chemModel_computeSurfacePotentials](readMes/chemModel_computeSurfacePotentials.md) adds the potential of each surface and layer to state
 
-* [ChemModel/chemModel_computeSurfaceCharges](readMes/chemModel_computeSurfaceCharge.md) adds the charge of each surface and layer to state
+* [ChemModel/computeSurfaceCharges](readMes/chemModel_computeSurfaceCharges.md) adds the charge of each surface and layer to state
 
 [mergeChemicalModels.m](readMes/mergeChemicalModels.md) combine two or more chemical models
 
