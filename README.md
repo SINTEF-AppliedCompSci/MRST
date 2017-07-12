@@ -11,12 +11,11 @@ Models supported:
 * aqueous speciation
 * aqueous activity
 * surface chemistry
-
-  * triple layer model
-  * diffuse layer model
-  * basic stern model
-  * constant capacitance model
-  * ion exchange
+    * triple layer model
+    * diffuse layer model
+    * basic stern model
+    * constant capacitance model
+    * ion exchange
 
 Supported soon:
 
