@@ -9,5 +9,3 @@ give an error if chemical solver does not converge
     - perferably a warning should be given
     
 create examples of visualization and informaiton retreval using getProps. 
-
-add ion exchange with active fraction as acitivity to surface chemistry models

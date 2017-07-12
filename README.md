@@ -11,12 +11,11 @@ Models supported:
 * aqueous speciation
 * aqueous activity
 * surface chemistry
-
-  * triple layer model
-  * diffuse layer model
-  * basic stern model
-  * constant capacitance model
-  * ion exchange
+    * triple layer model
+    * diffuse layer model
+    * basic stern model
+    * constant capacitance model
+    * ion exchange
 
 Supported soon:
 
@@ -36,7 +35,7 @@ mrstPath('register', 'geochemistry', 'path/to/repo/matlab-geochemistry')
 
 Once MRST is installed and made aware of the location of matlab-geoChemistry the module can be used like any other MRST module. 
 
-Before any script that relies on the repository is run, MRST must be started. This is done by running the file startup.m inside of your MRST directory.
+Before any script that relies on the repository is run, MRST must be started. This is done by running the file startup.m which is loacted inside of your MRST directory.
 
 To use the geochemistry module in a Matlab script include the command
 
@@ -61,6 +60,6 @@ Used for the instatiation of the chemical object, making all embedded functions 
 
 * [ChemModel/computeSurfaceCharges](readMes/chemModel_computeSurfaceCharges.md) adds the charge of each surface and layer to state
 
-[mergeChemicalModels.m](readMes/mergeChemicalModels.md) combine two or more chemical models
+* [ChemModel/getProp and getProps](readMes/chemModel_getProps.md) allows the retreval of values from the state variable created by the solution of the chemical system
 
 [changeUnits.m](readMes/changeUnits.md) changes the units of the specified quantity whatever you want
