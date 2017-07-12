@@ -9,16 +9,18 @@ The main function of this repository, ChemicalModel.m, allows the creation and s
 Models supported:
 
 * aqueous speciation
-* activity
-* triple layer model
-* diffuse layer model
-* basic stern model
-* constant capacitance model
+* aqueous activity
+* surface chemistry
+
+  * triple layer model
+  * diffuse layer model
+  * basic stern model
+  * constant capacitance model
+  * ion exchange
 
 Supported soon:
 
 * dissolution/precipitation
-* ion exchange
 
 ### Installation ###
 
