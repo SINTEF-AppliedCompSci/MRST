@@ -3,7 +3,7 @@ close all;
 
 % load adi and geochemistry module
 mrstModule add ad-core geochemistry
-mrstVerbose off
+mrstVerbose on
 
 fromLoad = true;
 
@@ -26,11 +26,8 @@ reactions ={'H2O  <-> H+  + OH- ',          10^-14*mol/litre, ...
         
 % define the surface
 geometry = [2*site/(nano*meter)^2 50e-3*meter^2/(gram) 5e3*gram/litre];
-sioInfo = {geometry, 'tlm', [1 0.2]*Farad/meter^2,      '>SO-',    [-1 0 0],...
-                                                        '>SOH',    [0 0 0],...
-                                                        '>SOH2+'   [1 0 0],...
-                                                        '>SONa',   [-1 1 0],...
-                                                        '>SOH2Cl', [1 -1 0]};
+sioInfo = {geometry, 'tlm', [1 0.2]*Farad/meter^2,      '>SONa',   [-1 1],...
+                                                        '>SOH2Cl',[1 -1]};
 surfaces ={ '>SO', sioInfo };
                                                         
 % instantiate the chemical model
@@ -58,8 +55,8 @@ toc;
 
 [state, chem] = chem.computeActivities(state);
 [state, chem] = chem.computeChargeBalance(state);
-[state, chem] = chem.computeSurfaceCharge(state);
-[state, chem] = chem.computeSurfacePotential(state);
+[state, chem] = chem.computeSurfaceCharges(state);
+[state, chem] = chem.computeSurfacePotentials(state);
 
 
 %% take out relevant values from state
@@ -117,7 +114,7 @@ p.SOH2Cl = D.data(:,7);
 
 %% plot it
 figure; hold on; box on;
-plot(pH, state.chargebalance,'-k')
+plot(pH, state.chargeBalance,'-k')
 plot(p.pH, p.e, '--r')
 xlabel('pH')
 ylabel('charge [% of total ion concentration]');

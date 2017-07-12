@@ -22,7 +22,7 @@ function [names, mins, maxs] = computeMaxPotential(model, state)
     ChargeVector = [ChargeVector, zeros(1, nC-numel(ChargeVector))];
     
     comps = cell(1, nC);
-    [comps{:}] = model.chemicalInputModel.getProps(state,model.CompNames{:}); 
+    [comps{:}] = model.getProps(state,model.CompNames{:}); 
     
     ionDum = 0;
     for i = 1 : nC

@@ -74,6 +74,8 @@ classdef ChemicalModel < PhysicalModel
         surfaceChargeNames         % name of surface charge variables
         surfacePotentialNames         % name of potentials
         
+        allCharge           % vector for ensuring each reaciton is charge balanced
+        
     end
 
 
@@ -690,6 +692,7 @@ classdef ChemicalModel < PhysicalModel
                 end
             end
 
+            model.allCharge = tmpvec;
             model.ChargeVector = tmpvec;
             surfInd = cellfun(@(x) ~isempty(x), regexpi(namesO,'>'));
             model.ChargeVector(surfInd) = 0;
@@ -733,8 +736,6 @@ classdef ChemicalModel < PhysicalModel
 
             model.logCompNames = cellfun(@(name) ['log', name], model.CompNames, ...
                                          'uniformoutput', false);
-
-            assert(nI == model.nMC , ['For the defined chemical system ' num2str(model.nMC) ' components, elements or species, must be designated as inputs. Use an "*" to designated a component as an input.']);
 
             model.nC = numel(model.CompNames);
             
@@ -798,7 +799,7 @@ classdef ChemicalModel < PhysicalModel
                 try
                     tmp{i} = eval(['-(' rxn{i} ,';'])';
                 catch
-                    error(['The reaction "' rxnsO{i} '" appears to contain a string combination that does not correspond to species names. Make sure to add all relevant chemical species to the species list.']);
+                    error(['The reaction "' rxnsO{i} '" appears to contain a string combination that does not correspond to species names. Make sure to add all relevant chemical species to the species list. If a reaction involves more than one species use "*" to designate this (i.e. 2*Na+ rather than 2Na+). ']);
                 end
             end
 
@@ -814,10 +815,17 @@ classdef ChemicalModel < PhysicalModel
                 mCind = model.ReactionMatrix(i,:) ~= 0;
                 mCcomp = repmat(model.ReactionMatrix(i,mCind),nM,1).*model.CompositionMatrix(:,mCind);
                 balance = sum(sum(mCcomp,2));
-                assert(balance == 0, ['The chemical reaction "' rxnsO{i} '" does not balance elements or functional groups.'])
+                assert(balance == 0, ['The chemical reaction "' rxnsO{i} '" does not balance elements and/or surface functional groups.'])
             end
-
-
+            
+            % check for charge balance within each reaction
+            for i = 1 : nRx
+                mCind = model.ReactionMatrix(i,:) ~= 0;
+                mCcomp = model.ReactionMatrix(i,mCind).*model.allCharge(:,mCind);
+                balance = sum(sum(mCcomp,2));
+                assert(balance == 0, ['The chemical reaction "' rxnsO{i} '" does not balance charge.'])
+            end
+            
             model.nR = nRx;
             model.rxns = rxnsO;
 
@@ -854,17 +862,13 @@ classdef ChemicalModel < PhysicalModel
                 end
             end
 
-            %                 model.ReactionMatrix = [model.ReactionMatrix, zeros(nRx,1)];
-            %                 surfind = sum(model.CompositionMatrix(model.surfMaster ~= 0,:),1) & model.ChargeVector(1,:) ~= 0;
-            %
-            %                 chargeind = model.ReactionMatrix(:,surfind) ~= 0;
-            %                 model.ReactionMatrix(logical(sum(chargeind,2)),end) = model.ChargeVector(1,surfind');
-            %
-            %                 model.surfChargeMatrix = model.CompositionMatrix(model.surfMaster ~= 0,:).*repmat(surfind,model.nSurf,1).*repmat(model.ChargeVector(1,:),model.nSurf,1);
-            %                 model.ChargeVector(1,surfind) = 0;
             
             nPsi = sum(cellfun(@(x) ~isempty(x), regexpi(model.CompNames, 'psi')));
             assert(model.nR + model.nMC == model.nC - nPsi, ['The given chemical system is rank deficient. The number of species must be equal to the sum of the number elements, surface functional groups, and reactions.'])
+            
+            nI = numel(model.chemicalInputModel.inputNames);
+            
+            assert(nI == model.nMC , ['For the defined chemical system ' num2str(model.nMC) ' components, elements or species, must be designated as inputs. Use an "*" to designated a component as an input.']);
             model.ReactionMatrix = RM;
 
 
@@ -892,11 +896,7 @@ classdef ChemicalModel < PhysicalModel
 
             % some checks to get the input format correct
             assert(iscell(addInfo), 'Surface information must be a cell');
-
-            % grab names, make sure they match functional groups
-%             funcNames = model.MasterCompNames(logical(model.surfMaster));
-%             indTest = cellfun(@(x) strcmpi(x, funcNames), funcGroup,'UniformOutput', false);
-%             assert(~any(sum(vertcat(indTest{:}),1) == 0), 'Functional group names given to initElectrostaticModel must match those found in master component names.');
+                        
             surfInfo.master = funcGroup;
 
             % grab surface area and slurry density inputs
@@ -910,10 +910,30 @@ classdef ChemicalModel < PhysicalModel
             end
 
             % identify electrostatic model
-            options = {'tlm', 'ccm', 'langmuir'};
+            options = {'tlm', 'ccm', 'langmuir','ie'};
             modNames = cellfun(@(x) x{2}, addInfo,'UniformOutput', false);
             surfInfo.scm = cellfun(@(x) validatestring(x,options,'initElectrostaticModel','electrostatic model'), modNames, 'UniformOutput',false);
 
+            % make sure correct input size is provided for the surface model
+            chargeString = 'The charge of each surface species for this type of model is taken from the species names.';
+            for i = 1 : numel(surfInfo.master) 
+               	t = numel(addInfo{i}(3:end));
+                
+                switch surfInfo.scm{i}
+                	case {'langmuir', 'ie'}
+                        assert(t == 0, ['Too many input arguments have been given to the ' surfInfo.master{i} ' informtion cell. For the ' surfInfo.scm{i} ' model only the surface geometry and the designation "' surfInfo.scm{i} '" are needed. ' chargeString]);
+                    case 'ccm'
+                        if t == 0
+                            error(['Too few arguments have been given to the ' surfInfo.master{i} ' informtion cell. As a constant capacitance surface the geometry, "ccm" tag, and capacitance value must be provided.']);
+                        elseif t > 1
+                            error(['Too many arguments have been given to the ' surfInfo.master{i} ' informtion cell. As a constant capacitance surface only the geometry, "ccm" tag, and capacitance value must be provided. ' chargeString]);   
+                        end
+                    case 'tlm'
+                      	assert(t >= 1, ['Too few arguments have been given to the ' surfInfo.master{i} ' informtion cell. As a triple layer surface the geometry, "tlm" designation, and capacitance values must be provided.']);
+                           
+                end
+            end                
+            
             % grab capacitance vales
             for i = 1 : numel(surfInfo.scm)
                 switch surfInfo.scm{i}
@@ -922,59 +942,77 @@ classdef ChemicalModel < PhysicalModel
                         assert(size(surfInfo.c{i},2) == 1, 'If the constant capacitance model is specified only one value for capacitance is expected.')
                     case 'tlm' 
                         surfInfo.c{i} = addInfo{i}{3};
-                        assert(size(surfInfo.c{i},2) == 2, 'If the triple layer model is specified 2 values for capacitance are expected. To simulate the diffuse layer model provide a high capacitance to both entries. To simulate the basic stern model provide a high capacitance value to the second layer.')
-                    case 'langmuir'
-                                    
+                        assert(size(surfInfo.c{i},2) == 2, 'If the triple layer model is specified 2 values for capacitance are expected. To simulate the diffuse layer model provide a high capacitance to both entries. To simulate the basic stern model provide a high capacitance value to the second layer.');
                 end
             end
     
             for i = 1 : numel(surfInfo.master)
                 MName = surfInfo.master{i};
+                
                 % make sure given species are correct
                 ind = regexp(model.CompNames,MName);
                 ind = cellfun(@(x) ~isempty(x), ind);
-                speciesNames = model.CompNames(ind);
+                speciesNames{i} = model.CompNames(ind);
                 
-                iterNames = addInfo{i}(4:2:end);
-                switch surfInfo.scm{i}
-                    case {'tlm', 'ccm'}
-                        assert(numel(iterNames) == numel(speciesNames), ['An innappriate number of surface species has been given for the surface ', MName '.']);
-                        
-                        for j = 1 : numel(speciesNames)
-                            assert(logical(sum(strcmpi(speciesNames{j}, iterNames))), ['Details of the charge behavior of the surface species ' speciesNames{i} ' are missing.']);
-                            assert(logical(sum(strcmpi(iterNames{j}, speciesNames))), ['The surface species ' iterNames{j} ' is not tabulated in species.']);
+                
+                % grab the charge from the species name
+                nS = numel(speciesNames{i});
+                tmpvec = zeros(1, nS);
+                tmp = regexpi(speciesNames{i}, '+([1-9])*', 'tokens');
+                for k = 1 : numel(tmp)
+                    if ~isempty(tmp{k})
+                        if strcmp('', tmp{k}{1})
+                            tmpvec(k) = 1;
+                        else
+                            tmpvec(k) = str2double(tmp{k}{1}{1});
                         end
-                
-                    case 'langmuir'
-                end
-                
-                givenNames{i} = iterNames;
-%                 givenSpecies = horzcat(givenSpecies{:});
-
-%                 indTest = cellfun(@(x) strcmpi(x, speciesNames), givenSpecies,'UniformOutput', false);
-
-            end
-            surfInfo.species = givenNames;
-
-
-            % grab charge contributions of species
-            charge = cellfun(@(x) x(5:2:end), addInfo, 'UniformOutput',false);
-            for i = 1 : numel(charge)
-                for j = 1 : numel(charge{i})
-                    switch surfInfo.scm{i}
-                        case 'ccm'
-                            assert(size(charge{i}{j},2) == 1, ['Surface species belonging to a constant capacitance model can only contribute to surface charge and therefore should only have one entry in the charge contribution array. Yet the species ' surfInfo.species{i}{j} ' has more than 1 entry.']);
-                        case 'tlm'
-                            assert(size(charge{i}{j},2) == 3, ['The surface species ' surfInfo.species{i}{j}  ' belongs to a triple layer model and therefore must have three entries in the charge contribution array. If no charge is contributed to a layer use a zero.']);
-                        case 'langmuir'
-                            warning(isempty(charge{i}), ['The surface species ' surfInfo.species{i}{j}   ' is a langmuir type surface and therefore plays no role in surface charge. Ignoring data for charge contribution.']);
-                            charge{i}{j} = 0;
                     end
                 end
+                tmp = regexpi(speciesNames{i}, '-([1-9])*', 'tokens');
+                for k = 1 : numel(tmp)
+                    if ~isempty(tmp{k})
+                        if strcmp('', tmp{k}{1})
+                            tmpvec(k) = -1;
+                        else
+                            tmpvec(k) = -str2double(tmp{k}{1}{1});
+                        end
+                    end
+                end
+
+                for j = 1 : nS
+                    charge{i}{j} = tmpvec(j); 
+                end
+                
+                givenNames = addInfo{i}(4:2:end);
+                givenCharge = addInfo{i}(5:2:end);
+                
+                assert(numel(givenNames) == numel(givenCharge), 'If a name of a species is given to the surfaces cell, a charge value is expected.');
+                
+                % make sure ion exchange surfaces make sense
+                if strcmpi(surfInfo.scm{i}, 'ie')
+                    assert(all(cellfun(@(x) x == 0, charge{i})), 'A charge has been assigned to an ion exchange surface species. This is contradictory to the chemical model. Consider using a different model, or remove the charge designation.')
+                end
+                
+                switch surfInfo.scm{i}
+                    case 'tlm'
+                        for j = 1 : nS
+                            spInd = strcmpi(speciesNames{i}{j},givenNames);
+                            if any(spInd)
+                                charge{i}{j} = givenCharge{spInd}(:)';
+                            end
+                            charge{i}{j} = horzcat( charge{i}{j}, zeros(1, 3 - numel(charge{i}{j})));
+                        end  
+
+                        for j = 1 : numel(givenNames)
+                            assert(logical(sum(strcmpi(givenNames{j}, speciesNames{i}))), ['The surface species ' givenNames{j} ' is not tabulated in species.']);
+                        end
+                end
+                
+                
             end
-
-
+            surfInfo.species = speciesNames;
             surfInfo.charge = charge;
+            
             model.surfInfo = surfInfo;
 
             % add surface activities to composition matrix
@@ -982,6 +1020,7 @@ classdef ChemicalModel < PhysicalModel
                 model.surfaceChargeNames = {};
                 model.surfacePotentialNames = {};
                 m = surfInfo.master{i};
+                n = 0;
                 switch surfInfo.scm{i}
                     case 'ccm'
                         model.CompNames{end+1} = [ m '_ePsi'];
@@ -993,8 +1032,6 @@ classdef ChemicalModel < PhysicalModel
                         model.surfaceChargeNames= horzcat(model.surfaceChargeNames, [m '_sig_0'],[m '_sig_1'],[m '_sig_2']);
                         model.surfacePotentialNames = horzcat(model.surfacePotentialNames, [m '_Psi_0'],[m '_Psi_1'],[m '_Psi_2']);
                         n = 3;
-                    case 'langmuir'
-                        n = 0;
                 end
                 model.CompositionMatrix = [model.CompositionMatrix, zeros(model.nMC, n)];
             end

@@ -124,8 +124,9 @@ classdef compositionReactionModel < ChemicalModel
             state = model.syncFromLog(state);
             
             nonLogVariables = regexprep(problem.primaryVariables, 'log', '');
+            nC = numel(nonLogVariables);
             
-            for i = 1 : model.nC
+            for i = 1 : nC
                 
                 p = nonLogVariables{i};
                 compInd = strcmpi(p, model.CompNames);

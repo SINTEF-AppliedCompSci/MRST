@@ -18,11 +18,6 @@ function [eqs, names, types] = equationsChemicalLog(logcomps, logmasterComps, mo
     RM = model.ReactionMatrix;
     CM = model.CompositionMatrix;
 
-    % Pi = cellfun(@(x) ~isempty(x), regexpi(model.CompNames, 'psi'));
-    % RMp = RM(:,Pi');
-    % lcp = cell(sum(Pi),1);
-    % [lcp{:}] = logcomps{Pi'};
-
     comps = cellfun(@(x) exp(x), logcomps, 'UniformOutput', false);
 
     logK = model.LogReactionConstants;
@@ -31,7 +26,7 @@ function [eqs, names, types] = equationsChemicalLog(logcomps, logmasterComps, mo
     names = cell(1, model.nR + model.nMC);
     types = cell(1, model.nR + model.nMC);
 
-    % calculate activity
+    % calculate ionic strength
     ionDum = 0;
     nP = sum(cellfun(@(x) ~isempty(x), regexpi(model.CompNames, 'psi')));
     model.ChargeVector = [model.ChargeVector, zeros(1,nP)];
@@ -40,34 +35,42 @@ function [eqs, names, types] = equationsChemicalLog(logcomps, logmasterComps, mo
     end
     ion = cell(1,model.nC);
     [ion{:}] = deal((1/2)*ionDum);
-
+    
+    % calculate acitivity coefficient by davies equation
     pg = cell(1,model.nC);
     for i = 1 : model.nC
         pg{i} = log(10).*-A.*model.ChargeVector(1,i)'.^2 .* (ion{i}.^(1/2)./(1 + ion{i}.^(1/2)) - 0.3.*ion{i});
-        
-%         try 
-%             doub = pg{i}.val;
-%         catch
-%             doub = pg{i};
-%         end
-%         
-%         if sum(doub) == 0 && ~strcmpi(model.CompNames{i}, 'H2O')
-%             pg{i} = log(10^0.010)*ones(size(pg{i},1),1);
-%         end
     end
-
-    % Reaction matrix, activities only apply to laws of mass action
+    
+    % calculate the active fraction for ion exchange surfaces
+    af = cell(1,model.nC);
+    [af{:}] = deal(0);
+    if ~isempty(model.surfInfo)
+        for i = 1 : numel(model.surfInfo.master)
+            mcName = model.surfInfo.master{i};
+            if strcmpi(model.surfInfo.scm{i}, 'ie')
+                Sind = strcmpi(mcName, model.MasterCompNames);
+                for j = 1 : numel(model.surfInfo.species{i})
+                    p = model.surfInfo.species{i}(j);
+                    ind = strcmpi(p, model.CompNames);
+                    af{ind} = log(comps{ind}/exp(logmasterComps{Sind}));
+                end
+            end  
+        end
+    end
+    
+    % calculate the reaction matrix
     for i = 1 : model.nR  
         eqs{i} = -logK(i);
         for k = 1 : model.nC
-            eqs{i} = eqs{i} + RM(i, k).*(pg{i} + logcomps{k});
+            eqs{i} = eqs{i} + RM(i, k).*(pg{i} + af{i} + logcomps{k});
         end
         names{i} = model.rxns{i};
     end
 
     assert(all(all(CM>=0)), ['this implementation only supports positive ' ...
                         'master components values']);
-
+    % composition matrix
     for i = 1 : model.nMC
         j = model.nR + i;
         masssum = 0;
@@ -78,14 +81,13 @@ function [eqs, names, types] = equationsChemicalLog(logcomps, logmasterComps, mo
         names{j} = ['Conservation of ', model.MasterCompNames{i}] ;
     end
 
+    % surface potentials
     if ~isempty(model.surfInfo)
 
-        % figure out what to do with ccm and generally, how to handle all
-        % of this
         call = 0;
         for i = 1 : numel(model.surfInfo.master)
 
-            if strcmpi(model.surfInfo.scm{i},'langmuir')
+            if any(strcmpi(model.surfInfo.scm{i},{'langmuir','ie'}))
                 call = call + 1;
                 continue
             end

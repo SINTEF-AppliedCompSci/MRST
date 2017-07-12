@@ -80,7 +80,7 @@ function [state] = surfaceCharge(model, state)
                                         
 
 
-                case 'ccm'
+                case {'ccm','langmuir'}
 
                     % calculate surface charge
                     sig = 0;
@@ -99,7 +99,8 @@ function [state] = surfaceCharge(model, state)
 
                     state = model.chemicalInputModel.setProp(state, ['log' surfName '_Psi'], logPo);
 
-                case 'langmuir'
+                case 'ie'
+                    error('Ion exchange surfaces inherently have no charge, and therefore the surface charge is 0.')
 
             end
         end
