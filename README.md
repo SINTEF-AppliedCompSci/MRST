@@ -60,6 +60,10 @@ Used for the instatiation of the chemical object, making all embedded functions 
 
 * [ChemModel/computeSurfaceCharges](readMes/chemModel_computeSurfaceCharges.md) adds the charge of each surface and layer to state
 
+* [ChemModel/getProp and getProps](readMes/chemModel_getProps.md) allows the retreval of values from the state variable created by the solution of the chemical system
+
+<!---
 [mergeChemicalModels.m](readMes/mergeChemicalModels.md) combine two or more chemical models
+-->
 
 [changeUnits.m](readMes/changeUnits.md) changes the units of the specified quantity whatever you want
