@@ -35,7 +35,7 @@ mrstPath('register', 'geochemistry', 'path/to/repo/matlab-geochemistry')
 
 Once MRST is installed and made aware of the location of matlab-geoChemistry the module can be used like any other MRST module. 
 
-Before any script that relies on the repository is run, MRST must be started. This is done by running the file startup.m inside of your MRST directory.
+Before any script that relies on the repository is run, MRST must be started. This is done by running the file startup.m which is loacted inside of your MRST directory.
 
 To use the geochemistry module in a Matlab script include the command
 
