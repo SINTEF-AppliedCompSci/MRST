@@ -76,6 +76,8 @@ classdef ChemicalModel < PhysicalModel
         
         allCharge           % vector for ensuring each reaciton is charge balanced
         
+        inputs              % names of inputs the user must provide
+        
     end
 
 
@@ -244,6 +246,14 @@ classdef ChemicalModel < PhysicalModel
                     if (~strcmpi('compositionModel', props{i})) && (~strcmpi('compositionReactionModel', props{i}))
                         model.chemicalInputModel.(props{i}) = model.(props{i});
                     end
+                end
+                model.inputs = model.chemicalInputModel.inputNames;
+                if model.surfFlag
+                    inInd = zeros(1,numel(model.inputs));
+                    for i = 1 : numel(model.surfInfo.master)
+                        inInd = inInd + strcmpi(model.chemicalInputModel.inputNames, model.surfInfo.master{i});
+                    end
+                    model.inputs = model.chemicalInputModel.inputNames(~inInd);
                 end
             elseif nargin == 0
                 % Used when creating instance of
@@ -512,8 +522,9 @@ classdef ChemicalModel < PhysicalModel
                                 num2str(model.nMC-k) ' columns.']);
 
             
-            state.masterComponents = zeros(size(userInput,1), model.nMC);
-            state.components = zeros(size(userInput,1), model.nC);
+            state.masterComponents = eps*ones(size(userInput,1), model.nMC);
+            state.components = eps*ones(size(userInput,1), model.nC);
+            
             call = 0;
             for i = 1 : model.nMC
                 
@@ -546,6 +557,7 @@ classdef ChemicalModel < PhysicalModel
             fprintf('Computing initial guess...\n')
             [state, ~, report_c] = model.compositionModel.solveChemicalState(state);
             [state, ~, report_cr] = model.compositionReactionModel.solveChemicalState(state);
+            
             % solve chemical system
             fprintf('Solving chemical system...\n')
             [state, ~, report] = model.chemicalInputModel.solveChemicalState(state);
@@ -660,7 +672,7 @@ classdef ChemicalModel < PhysicalModel
             % others and master components
             for i = 1 : nM
                 assert(~(sum(strcmpi(names{i},names)) > 1), 'Species names must be unique.');
-                assert(~(sum(strcmpi(names{i}, model.MasterCompNames)) > 0), ['The chemical species' '"' names{i} '" is a repeat of an element or surface functional group.']);
+                assert(~(sum(strcmpi(names{i}, model.MasterCompNames)) > 0), ['The chemical species ' '"' names{i} '" is a repeat of an element or surface functional group.']);
             end
 
             % length of master component string
@@ -671,23 +683,31 @@ classdef ChemicalModel < PhysicalModel
 
             % capture the charge
             tmpvec = zeros(1, nS);
-            tmp = regexp(names, '+([1-9])*', 'tokens');
+            tmp = regexp(names, '+(\d*([./]\d*)?)*', 'tokens'); 
             for i = 1 : numel(tmp)
                 if ~isempty(tmp{i})
                     if strcmp('', tmp{i}{1})
                         tmpvec(i) = 1;
                     else
-                        tmpvec(i) = str2double(tmp{i}{1}{1});
+                        try
+                            tmpvec(i) = str2num(tmp{i}{1}{1});
+                        catch
+                            error(['Unrecognized charge for species ' names{i} '.']);
+                        end
                     end
                 end
             end
-            tmp = regexp(names, '-([1-9])*', 'tokens');
+           tmp = regexp(names, '-(\d*([./]\d*)?)*', 'tokens'); 
             for i = 1 : numel(tmp)
                 if ~isempty(tmp{i})
                     if strcmp('', tmp{i}{1})
                         tmpvec(i) = -1;
                     else
-                        tmpvec(i) = -str2double(tmp{i}{1}{1});
+                        try
+                            tmpvec(i) = -str2num(tmp{i}{1}{1});
+                        catch
+                            error(['Unrecognized charge for species ' names{i} '.']);
+                        end
                     end
                 end
             end
@@ -699,7 +719,7 @@ classdef ChemicalModel < PhysicalModel
 
             % replace master component names with index vectors
             for i = 1 : nS;
-                names{i} = regexprep(names{i}, '[+-]([1-9])*','','ignorecase');
+                names{i} = regexprep(names{i}, '[-+](\d*([./]\d*)?)*','','ignorecase');
                 for j = 1 : nM
                     ind = I(j);
                     [match,nomatch] = regexpi(names{i}, '(model\.MCind{\d})','match','split');

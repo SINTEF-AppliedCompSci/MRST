@@ -43,7 +43,8 @@ function [ states ] = changeUnits( states, field, unit_conv )
 %   of unit conversions within the release. 
 % 
 
-assert(~isnumeric(unit_conv), 'The variable "unit_conv" must be numeric.');
+assert(isnumeric(unit_conv), 'The variable "unit_conv" must be numeric.');
+unit_conv = unit_conv.^-1;
 
 if numel(states) == 1
     
