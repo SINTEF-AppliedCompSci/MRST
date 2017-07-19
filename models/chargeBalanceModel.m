@@ -34,8 +34,12 @@ classdef chargeBalanceModel < ChemicalInputModel
             [comps, masterComps] = prepStateForEquations(model, state);
 
             [eqs, names, types] = equationsChargeBalance(model, comps, masterComps);
-            
             primaryVariables =model.unknownNames;
+
+                        
+%             [eqs, names, types] = equationsChargeBalance_log(model, logcomps, logmasterComps);
+%             primaryVariables =model.unknownNames;
+%             
             problem = LinearizedProblem(eqs, types, names, primaryVariables, state, dt);
 
         end
@@ -119,16 +123,20 @@ classdef chargeBalanceModel < ChemicalInputModel
             surfParam = sum(cellfun(@(x) ~isempty(x) , regexpi(model.CompNames, 'psi'))); 
             
             if surfParam > 0
-            	[names, maxs, mins] = computeMaxPotential(model, state); 
+            	[names, mins, maxs] = computeMaxPotential(model, state); 
             end
             
+            len = cellfun(@(x) length(x), problem.primaryVariables);
+            [~,sortInd] = sort(len(:),1, 'ascend');
+            pVar = problem.primaryVariables(sortInd);
+
             for i = 1 : model.nC+1
                 
-                p = problem.primaryVariables{i};
+                p = pVar{i};
                 compInd = strcmpi(p, model.CompNames(1:end-1));
                 
                 if any(strcmpi(p, model.MasterCompNames))
-                     state = model.capProperty(state, p, eps,2.5*mol/litre);
+                     state = model.capProperty(state, p, eps, 2.5*mol/litre);
                 elseif ~isempty(regexpi(p, 'psi'))
                 	ind = strcmpi(p, names);
                     state = model.capProperty(state, p, mins{ind}, maxs{ind});

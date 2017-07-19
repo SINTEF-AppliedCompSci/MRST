@@ -126,10 +126,15 @@ classdef compositionReactionModel < ChemicalModel
             nonLogVariables = regexprep(problem.primaryVariables, 'log', '');
             nC = numel(nonLogVariables);
             
+            len = cellfun(@(x) length(x), nonLogVariables);
+            [~,sortInd] = sort(len(:),1, 'ascend');
+            pVar = nonLogVariables(sortInd);
+            
             for i = 1 : nC
                 
-                p = nonLogVariables{i};
+                p = pVar{i};
                 compInd = strcmpi(p, model.CompNames);
+                
                 if any(strcmpi(p, model.MasterCompNames))
                     state = model.capProperty(state, p, eps, 2.5*mol/litre); 
                 else

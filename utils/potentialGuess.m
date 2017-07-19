@@ -25,83 +25,83 @@ function [state] = potentialGuess(model, state)
         ionDum = ionDum + (model.ChargeVector(1,i).^2.*comps{i}).*litre/mol;
     end
     ion = cell(1,model.nC);
-    [ion{:}] = deal((1/2)*ionDum);
+    [ion{:}] = deal((1/2)*abs(ionDum));
+    
     if ~isempty(model.surfInfo)
         
-        call = 0;
-        for i = 1 : numel(model.surfInfo.master)
+        for i = 1 : numel(model.surfaces.groupNames)
+            
+            surfName = model.surfaces.groupNames{i};
+            
+            mNames = model.surfaces.speciesNames(i,:);
+            mNames = mNames(cellfun(@(x) ~isempty(x), mNames));
+            
+            sig_0 = 0;
+            sig_1 = 0;
+            sig_2 = 0;
+                        
+            for j = 1 : numel(mNames)
+                mInd = strcmpi(mNames{j}, model.surfInfo.master);
+                                        
+                % grab the correct info
+                S = model.surfInfo.s{mInd}*gram/(meter)^2;
+                a = model.surfInfo.a{mInd}*litre/gram;
+                C = model.surfaces.c{i};
 
-            if strcmpi(model.surfInfo.scm{i},'langmuir')
-                call = call + 1;
-                continue
+                % number of species associated with surface
+                nSp = numel(model.surfInfo.species{mInd});
+                SpNames = model.surfInfo.species{mInd};
+                charge = model.surfInfo.charge{mInd};
+
+                switch model.surfaces.scm{i}
+                    case 'tlm'
+
+                        % calculate surface charges
+
+                        for k = 1 : nSp
+                            SpInd = strcmpi(SpNames{k}, model.CompNames);
+                            sig_0 = sig_0 + (F./(S.*a)).*charge{k}(1).*comps{SpInd}.*litre/mol;
+                            sig_1 = sig_1 + (F./(S.*a)).*charge{k}(2).*comps{SpInd}.*litre/mol;
+                            sig_2 = sig_2 + (F./(S.*a)).*charge{k}(3).*comps{SpInd}.*litre/mol;
+                        end
+
+                    case 'ccm'
+
+                        % calculate surface charge
+                        for k = 1 : nSp
+                            SpInd = strcmpi(SpNames{k}, model.CompNames);
+                            sig_0 = sig_0 + (F./(S.*a)).*charge{k}(1).*comps{SpInd}.*litre/mol;
+                        end
+
+                end
             end
             
-            % grab the correct info
-            S = model.surfInfo.s{i}*gram/(meter)^2;
-            a = model.surfInfo.a{i}*litre/gram;
-            C = model.surfInfo.c{i-call};
-
-            % surface funcitonal group name
-            surfName = model.surfInfo.master{i}; 
-
-            % number of species associated with surface
-            nSp = numel(model.surfInfo.species{i});
-            SpNames = model.surfInfo.species{i};
-            charge = model.surfInfo.charge{i};
-
-
-            switch model.surfInfo.scm{i}
+            switch model.surfaces.scm{i}
                 case 'tlm'
-
-                    % calculate surface and IHP charge
-                    sig_0 = 0;
-                    sig_1 = 0;
-                    sig_2 = 0;
-                    for j = 1 : nSp
-                        SpInd = strcmpi(SpNames{j}, model.CompNames);
-                        sig_0 = sig_0 + charge{j}(1).*comps{SpInd}.*litre/mol;
-                        sig_1 = sig_1 + charge{j}(2).*comps{SpInd}.*litre/mol;
-                        sig_2 = sig_2 + charge{j}(3).*comps{SpInd}.*litre/mol;
-                    end
-                    sig_0 = (F./(S.*a)).*sig_0;
-                    sig_1 = (F./(S.*a)).*sig_1;
-                    sig_2 = (F./(S.*a)).*sig_2;
                     
-                    % diffuse layer charge
-                    mysinh = @(x) exp(x)./2 - exp(-x)./2;
-                    myarcsinh = @(x) log(x + (x.^2 + 1).^(1/2));
+                        % diffuse layer charge
+                        mysinh = @(x) exp(x)./2 - exp(-x)./2;
+                        myarcsinh = @(x) log(x + (x.^2 + 1).^(1/2));
 
-                    sig_2d = -sig_1 - sig_0 - sig_2;
+                        sig_2d = -sig_1 - sig_0 - sig_2;
 
-                    P2 = myarcsinh(-sig_2d./(8*10^3*R.*T.*ion{end}.*e_o.*e_w).^(0.5)).*2;
-                    state = model.chemicalInputModel.setProp(state, ['log' surfName '_ePsi_2'], P2);
+                        P2 = myarcsinh(-sig_2d./(8*10^3*R.*T.*ion{end}.*e_o.*e_w).^(0.5)).*2;
+                        state = model.chemicalInputModel.setProp(state, ['log' surfName '_ePsi_2'], P2);
 
-                    P1 = F./(R.*T).*(-(sig_2+ sig_2d)./C(:,2) + R.*T.*P2./F);
-                    state = model.chemicalInputModel.setProp(state, ['log' surfName '_ePsi_1'], P1);
+                        P1 = F./(R.*T).*(-(sig_2+ sig_2d)./C(:,2) + R.*T.*P2./F);
+                        state = model.chemicalInputModel.setProp(state, ['log' surfName '_ePsi_1'], P1);
 
-                    P0 = F./(R.*T).*(sig_0./C(:,1) + R.*T.*P1./F);
-                    state = model.chemicalInputModel.setProp(state, ['log' surfName '_ePsi_0'], P0);
-
-
+                        P0 = F./(R.*T).*(sig_0./C(:,1) + R.*T.*P1./F);
+                        state = model.chemicalInputModel.setProp(state, ['log' surfName '_ePsi_0'], P0);
+                        
                 case 'ccm'
+                        % explicitly calculate what the potential should be
+                        Po = sig_0./C(:,1);
+                        logPo = F.*Po./(R.*T);
 
-                    % calculate surface charge
-                    sig = 0;
-                    for j = 1 : nSp
-                        SpInd = strcmpi(model.surfInfo.species{i}{j}, model.CompNames);
-                        sig = sig + model.surfInfo.charge{i}{j}.*comps{SpInd}.*litre/mol;
-                    end
-                    sig = (F./(S.*a)).*sig;
-
-                    % explicitly calculate what the potential should be
-                    Po = sig./C(:,1);
-                    logPo = F.*Po./(R.*T);
-
-                    state = model.chemicalInputModel.setProp(state, ['log' surfName '_ePsi'], logPo);
-
-                case 'langmuir'
-
+                        state = model.chemicalInputModel.setProp(state, ['log' surfName '_ePsi'], logPo);
             end
+            
         end
     end
         

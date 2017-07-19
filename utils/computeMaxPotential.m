@@ -39,28 +39,54 @@ function [names, mins, maxs] = computeMaxPotential(model, state)
 %     myarcsinh = @(x) x;
     
     if ~isempty(model.surfInfo)
-        
-        call = 0;
-        for i = 1 : numel(model.surfInfo.master)
+              
+        for i = 1 : numel(model.surfaces.groupNames)
+            
+            surfName = model.surfaces.groupNames{i};
+            
+            mNames = model.surfaces.speciesNames(i,:);
+            mNames = mNames(cellfun(@(x) ~isempty(x), mNames));
+            
+            sig_0 = 0;
+            sig_1 = 0;
+            sig_2 = 0;
+                        
+            for j = 1 : numel(mNames)
+                mInd = strcmpi(mNames{j}, model.surfInfo.master);
+                                        
+                % grab the correct info
+                S = model.surfInfo.s{mInd}*gram/(meter)^2;
+                a = model.surfInfo.a{mInd}*litre/gram;
+                C = model.surfaces.c{i};
 
-            if strcmpi(model.surfInfo.scm{i},'langmuir')
-                call = call + 1;
-                continue
+                % number of species associated with surface
+                nSp = numel(model.surfInfo.species{mInd});
+                SpNames = model.surfInfo.species{mInd};
+                charge = model.surfInfo.charge{mInd};
+
+                switch model.surfaces.scm{i}
+                    case 'tlm'
+
+                        % calculate surface charges
+                        sig_2 = sig_2 + (F./(S.*a)).*model.getProp(state, mNames{i})*litre/mol;
+
+                    case 'ccm'
+
+                        % calculate surface charges
+                        sig_0 = sig_0 + (F./(S.*a)).*model.getProp(state, mNames{i})*litre/mol;
+                end
             end
             
-            % grab the correct info
-            S = model.surfInfo.s{i}*gram/(meter)^2;
-            a = model.surfInfo.a{i}*litre/gram;
-            C = model.surfInfo.c{i-call};
 
-            % surface funcitonal group name
-            surfName = model.surfInfo.master{i}; 
-
-            switch model.surfInfo.scm{i}
+            lim = log(realmax)-10;
+            
+            switch model.surfaces.scm{i}
                 case 'tlm'
-
                     
-                    sig_2 = (F./(S.*a)).*model.getProp(state, surfName)*litre/mol;
+                    % diffuse layer charge
+                    mysinh = @(x) exp(x)./2 - exp(-x)./2;
+                    myarcsinh = @(x) log(x + (x.^2 + 1).^(1/2));
+                    
                     sig_0 = -sig_2;
                     
                     P2 = R.*T./F.*myarcsinh(-sig_2./(8*10^3*R.*T.*ion{end}.*e_o.*e_w).^(0.5)).*2;
@@ -68,26 +94,42 @@ function [names, mins, maxs] = computeMaxPotential(model, state)
                     P1 = -(sig_2)./C(:,2) + P2;
                     
                     P0 = sig_0./C(:,1) + P1;
-                                        
+                    
+                    upLim = exp(lim.*ones(numel(P0),1));
+                    loLim = exp(-lim.*ones(numel(P0),1));
+            
                     names{end+1} = [surfName '_ePsi_0'];
                     names{end+1} = [surfName '_ePsi_1'];
                     names{end+1} = [surfName '_ePsi_2'];
                     
-                    maxs{end+1} = exp(F.*P0./(R.*T));
-                    maxs{end+1} = exp(F.*P1./(R.*T));
-                    maxs{end+1} = exp(F.*P2./(R.*T));
-                    
-                    mins{end+1} = exp(F.*-P0./(R.*T));
-                    mins{end+1} = exp(F.*-P1./(R.*T));
-                    mins{end+1} = exp(F.*-P2./(R.*T));
-                    
 
-
+                    
+                    maxs{end+1} = max([exp(F.*-P0./(R.*T)), exp(F.*P0./(R.*T))], [], 2);
+                    maxs{end} = min([maxs{end}, upLim],[],2 );
+                    
+                    mins{end+1} = min([exp(F.*-P0./(R.*T)), exp(F.*P0./(R.*T))], [], 2);
+                    mins{end} = max([mins{end}, loLim],[], 2);
+                    
+                    maxs{end+1} = max([exp(F.*-P1./(R.*T)), exp(F.*P1./(R.*T))], [], 2);
+                    maxs{end} = min([maxs{end}, upLim],[],2 );
+                    
+                    mins{end+1} = min([exp(F.*-P1./(R.*T)), exp(F.*P1./(R.*T))], [], 2);
+                    mins{end} = max([mins{end}, loLim],[], 2);
+                    
+                    maxs{end+1} = max([exp(F.*-P2./(R.*T)), exp(F.*P2./(R.*T))], [], 2);
+                    maxs{end} = min([maxs{end}, upLim],[],2 );
+                    
+                    mins{end+1} = min([exp(F.*-P2./(R.*T)), exp(F.*P2./(R.*T))], [], 2);
+                    mins{end} = max([mins{end}, loLim],[], 2); 
+                    
                 case 'ccm'
 
                     % calculate surface charge
-                    max_sig = (F./(S.*a)).*model.getProp(state, surfName)*litre/mol;
+                    max_sig = sig_0;
                     min_sig = -max_sig;
+                    
+                    upLim = exp(lim.*ones(numel(sig_0),1));
+                    loLim = exp(-lim.*ones(numel(sig_0),1));
                     
                     % explicitly calculate what the potential should be
                     max_P0 = max_sig./C(:,1);
@@ -96,15 +138,84 @@ function [names, mins, maxs] = computeMaxPotential(model, state)
 
                     names{end+1} = ['log' surfName '_ePsi'];
                     
-                    maxs{end+1} = exp(F.*max_P0./(R*T));
-                 
-                    mins{end+1} = exp(F.*min_P0./(R*T));
+                    maxs{end+1} = max([exp(F.*max_P0./(R.*T)), exp(F.*min_P0./(R.*T))], [], 2);
+                    maxs{end} = min([maxs{end}, upLim], [],2 );
 
-                    
-                case 'langmuir'
+                    mins{end+1} = min([exp(F.*max_P0./(R.*T)), exp(F.*min_P0./(R.*T))], [], 2);
+                    mins{end} = max([mins{end}, loLim], [], 2); 
 
             end
+            
         end
+        
+        
+        
+        
+%         call = 0;
+%         for i = 1 : numel(model.surfInfo.master)
+% 
+%             if strcmpi(model.surfInfo.scm{i},'langmuir')
+%                 call = call + 1;
+%                 continue
+%             end
+%             
+%             % grab the correct info
+%             S = model.surfInfo.s{i}*gram/(meter)^2;
+%             a = model.surfInfo.a{i}*litre/gram;
+%             C = model.surfInfo.c{i-call};
+% 
+%             % surface funcitonal group name
+%             surfName = model.surfInfo.master{i}; 
+% 
+%             switch model.surfInfo.scm{i}
+%                 case 'tlm'
+% 
+%                     
+%                     sig_2 = (F./(S.*a)).*model.getProp(state, surfName)*litre/mol;
+%                     sig_0 = -sig_2;
+%                     
+%                     P2 = R.*T./F.*myarcsinh(-sig_2./(8*10^3*R.*T.*ion{end}.*e_o.*e_w).^(0.5)).*2;
+% 
+%                     P1 = -(sig_2)./C(:,2) + P2;
+%                     
+%                     P0 = sig_0./C(:,1) + P1;
+%                                         
+%                     names{end+1} = [surfName '_ePsi_0'];
+%                     names{end+1} = [surfName '_ePsi_1'];
+%                     names{end+1} = [surfName '_ePsi_2'];
+%                     
+%                     maxs{end+1} = exp(F.*P0./(R.*T));
+%                     maxs{end+1} = exp(F.*P1./(R.*T));
+%                     maxs{end+1} = exp(F.*P2./(R.*T));
+%                     
+%                     mins{end+1} = exp(F.*-P0./(R.*T));
+%                     mins{end+1} = exp(F.*-P1./(R.*T));
+%                     mins{end+1} = exp(F.*-P2./(R.*T));
+%                     
+% 
+% 
+%                 case 'ccm'
+% 
+%                     % calculate surface charge
+%                     max_sig = (F./(S.*a)).*model.getProp(state, surfName)*litre/mol;
+%                     min_sig = -max_sig;
+%                     
+%                     % explicitly calculate what the potential should be
+%                     max_P0 = max_sig./C(:,1);
+%                     min_P0 = min_sig./C(:,1);
+% 
+% 
+%                     names{end+1} = ['log' surfName '_ePsi'];
+%                     
+%                     maxs{end+1} = exp(F.*max_P0./(R*T));
+%                  
+%                     mins{end+1} = exp(F.*min_P0./(R*T));
+% 
+%                     
+%                 case 'langmuir'
+% 
+%             end
+%         end
     end
         
 

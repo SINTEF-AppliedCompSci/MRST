@@ -34,7 +34,7 @@ function [eqs, names, types] = equationsChemicalLog(logcomps, logmasterComps, mo
         ionDum = ionDum + (model.ChargeVector(1,i).^2.*comps{i}).*litre/mol;
     end
     ion = cell(1,model.nC);
-    [ion{:}] = deal((1/2)*ionDum);
+    [ion{:}] = deal((1/2)*abs(ionDum));
     
     % calculate acitivity coefficient by davies equation
     pg = cell(1,model.nC);
@@ -83,54 +83,62 @@ function [eqs, names, types] = equationsChemicalLog(logcomps, logmasterComps, mo
 
     % surface potentials
     if ~isempty(model.surfInfo)
+        for i = 1 : numel(model.surfaces.groupNames)
 
-        call = 0;
-        for i = 1 : numel(model.surfInfo.master)
+            surfName = model.surfaces.groupNames{i};
 
-            if any(strcmpi(model.surfInfo.scm{i},{'langmuir','ie'}))
+            if strcmpi(model.surfaces.scm{i},'langmuir')
                 call = call + 1;
                 continue
             end
-        
-            % grab the correct info
-            S = model.surfInfo.s{i}*gram/(meter)^2;
-            a = model.surfInfo.a{i}*litre/gram;
-            C = model.surfInfo.c{i-call};
 
-            % surface funcitonal group name
-            surfName = model.surfInfo.master{i};
+            mNames = model.surfaces.speciesNames(i,:);
+            mNames = mNames(cellfun(@(x) ~isempty(x), mNames));
 
-            % number of species associated with surface
-            nSp = numel(model.surfInfo.species{i});
-            SpNames = model.surfInfo.species{i};
-            charge = model.surfInfo.charge{i};
+            sig_0 = 0;
+            sig_1 = 0;
+            sig_2 = 0;
 
+            for j = 1 : numel(mNames)
+                mInd = strcmpi(mNames{j}, model.surfInfo.master);
 
-            switch model.surfInfo.scm{i}
+                % grab the correct info
+                S = model.surfInfo.s{mInd}*gram/(meter)^2;
+                a = model.surfInfo.a{mInd}*litre/gram;
+                C = model.surfaces.c{i};
+
+                % number of species associated with surface
+                nSp = numel(model.surfInfo.species{mInd});
+                SpNames = model.surfInfo.species{mInd};
+                charge = model.surfInfo.charge{mInd};
+
+                switch model.surfaces.scm{i}
+                    case 'tlm'
+
+                        % calculate surface charges
+
+                        for k = 1 : nSp
+                            SpInd = strcmpi(SpNames{k}, model.CompNames);
+                            sig_0 = sig_0 + (F./(S.*a)).*charge{k}(1).*comps{SpInd}.*litre/mol;
+                            sig_1 = sig_1 + (F./(S.*a)).*charge{k}(2).*comps{SpInd}.*litre/mol;
+                            sig_2 = sig_2 + (F./(S.*a)).*charge{k}(3).*comps{SpInd}.*litre/mol;
+                        end
+
+                    case 'ccm'
+
+                        % calculate surface charge
+                        for k = 1 : nSp
+                            SpInd = strcmpi(SpNames{k}, model.CompNames);
+                            sig_0 = sig_0 + (F./(S.*a)).*charge{k}(1).*comps{SpInd}.*litre/mol;
+                        end
+
+                end
+            end
+
+            switch model.surfaces.scm{i}
                 case 'tlm'
-
-                    % calculate surface and IHP charge
-                    sig_0 = 0;
-                    sig_1 = 0;
-                    sig_2 = 0;
-                    for j = 1 : nSp
-                        SpInd = strcmpi(SpNames{j}, model.CompNames);
-                            sig_0 = sig_0 + charge{j}(1).*comps{SpInd}.*litre/ ...
-                                     mol;
-    
-                            sig_1 = sig_1 + charge{j}(2).*comps{SpInd}.*litre/ ...
-                                     mol;
-                                 
-                            sig_2 = sig_2 + charge{j}(3).*comps{SpInd}.*litre/ ...
-                                     mol;
-                    end
-                    sig_0 = (F./(S.*a)).*sig_0;
-                    sig_1 = (F./(S.*a)).*sig_1;
-                    sig_2 = (F./(S.*a)).*sig_2;
-                    
-                    % diffuse layer charge
                     mysinh = @(x) exp(x)./2 - exp(-x)./2;
-%           
+                    
                     P2Ind = strcmpi([surfName '_ePsi_2'], model.CompNames);
                     P1Ind = strcmpi([surfName '_ePsi_1'], model.CompNames);
                     P0Ind = strcmpi([surfName '_ePsi_0'], model.CompNames);
@@ -153,27 +161,15 @@ function [eqs, names, types] = equationsChemicalLog(logcomps, logmasterComps, mo
                     types{end+1} = [];
 
                 case 'ccm'
-
-                    % calculate surface charge
-                    sig = 0;
-                    for j = 1 : nSp
-                        SpInd = strcmpi(model.surfInfo.species{i}{j}, model.CompNames);
-                        
-                            sig = sig + charge{j}.*comps{SpInd}.*litre/ ...
-                                     mol;
-                        
-                    end
-                    sig = (F./(S.*a)).*sig;
                     
                     % explicitly calculate what the potential should be
-
                     Pind = cellfun(@(x) ~isempty(x), regexpi(model.CompNames, [surfName '_']));
-                    eqs{end+1} = -sig + (R*T/F).*logcomps{Pind}.*C(:,1);
+                    eqs{end+1} = -sig_0 + (R*T/F).*logcomps{Pind}.*C(:,1);
                     names{end+1} = ['-s + Psi*C ,' surfName];
                     types{end+1} = [];
             end
-        end
 
+        end
 
     end
 

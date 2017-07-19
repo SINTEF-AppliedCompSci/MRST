@@ -55,7 +55,8 @@ classdef ChemicalModel < PhysicalModel
         surfMaster           % index vector of master components that are surfaces
 
         surfFlag             % are there surface species 1 or 0
-
+        surfaces             % surface groups for electrostatic calculations
+        
         nSurf                % number of surface components
         
         compositionModel     % model for computing the mass conservation solution
@@ -219,9 +220,76 @@ classdef ChemicalModel < PhysicalModel
                 CompNames       = varargin{2};
                 Reactions       = varargin{3};
                 
-                % add surface funcaitonal group to master component list
+                % add surface functional groups to master component list
                 if nargin == 4
+                    
+                    assert(rem(numel(varargin{4}),2)==0, 'A key/value pair must be provided for surfaces, yet the number of inputs is odd.');
+                    
                     surfNames = varargin{4}(1:2:end);
+                    ind = cellfun(@(x) ~isempty(x), regexpi(surfNames,'g[roup]'));
+                    surfNames = surfNames(~ind);
+                    
+                    if sum(ind) > 0
+                        tmp = find(ind);
+                        groups = varargin{4}{2*tmp};
+                        groupNames = groups(:,1);
+                        speciesNames = groups(:,2:end);
+                        
+                        varargin{4}(2*tmp) =[];
+                        varargin{4}(2*tmp-1) = [];
+                        
+                        % make sure group names are unique
+                        for i = 1 : numel(groupNames)
+                            ind = zeros(size(groupNames));
+                            ind(i) = 1;
+                            test = true;
+                            if numel(groupNames) == 2
+                                test = sum(strcmpi(groupNames{i}, groupNames{i+1}));
+                                test = test == 0;
+                            elseif numel(groupNames) > 2
+                                test = all(isempty(strcmpi(groupNames{i}, groupNames{~ind})));
+                            end
+                            assert(test, 'Surface group names must be unique.');
+                        end
+                        
+                        % make sure species do not appear in more than one
+                        % group
+                        for i = 1 : numel(speciesNames)
+                            ind = zeros(size(groupNames));
+                            ind(i) = 1;
+                            test = true;
+                            
+                            if numel(groupNames) == 2
+                                test = sum(strcmpi(speciesNames{i}, speciesNames{i+1}));
+                                test = test == 0;
+                            elseif numel(speciesNames) > 2
+                             	test = all(isempty(strcmpi(speciesNames{i}, speciesNames{~ind})));
+                            end
+                            
+                            validatestring(speciesNames{i}, surfNames, 'ChemicalModel', 'entries to share');
+                            assert(test, ['The surface specie ' speciesNames{i} ' is repeated or appears in more than one group.']);
+                        end
+                        
+                        % add functional groups not listed in groups to
+                        % groupNames
+                        % may need to change cell indexing for when there
+                        % arent the same number of surfac emaster
+                        % components in  a group
+                        for i = 1 : numel(surfNames);
+                            if ~any(strcmpi(surfNames{i}, speciesNames))
+                                groupNames{end+1} = surfNames{i};
+                                speciesNames{end+1,1} = surfNames{i};
+                            end
+                        end
+                    else
+                        
+                        groupNames = surfNames';
+                        speciesNames = surfNames';
+                    end
+                    
+                    model.surfaces.groupNames = groupNames;
+                    model.surfaces.speciesNames = speciesNames;
+                    
                     surfNames = cellfun(@(name) [name '*'], ...
                                                surfNames, ...
                                                'uniformoutput', false);
@@ -860,24 +928,32 @@ classdef ChemicalModel < PhysicalModel
             % Add surface activities to reaction matrix and remove
             % contribution to aqueous charge conservation
             if model.surfFlag && ~isempty(model.surfInfo)
-                for i = 1 : numel(surfInfo.master)
-                    switch surfInfo.scm{i}
-                        case {'tlm','ccm'}
-                            % find the number of layers
-                            nL = numel(surfInfo.charge{i}{1});
-                            layerInd = cellfun(@(x) ~isempty(x), regexpi(model.CompNames,[surfInfo.master{i} '_']));
-                            for j = 1 : numel(surfInfo.species{i})
-                                % find the columns of the reaction matrix that contain
-                                % the species
-                                sp = surfInfo.species{i}{j};
-                                spInd = strcmpi(sp, model.CompNames);
-                                rmVec = RM(:,spInd);
+                
+                gNames = model.surfaces.groupNames;
+                mNames = model.surfaces.speciesNames;
+                
+                for i = 1 : numel(gNames)
+                    for j = 1 : numel(mNames(i,:));
+                        iterNames = mNames(cellfun(@(x) ~isempty(x), mNames(i,:)));
+                        iterInd = strcmpi(iterNames{j}, model.surfInfo.master);
+                        sNames = surfInfo.species{iterInd};
+                        switch model.surfaces.scm{i}
+                            case {'tlm','ccm'}
+                                % find the number of layers
+                                nL = numel(surfInfo.charge{iterInd}{1});
+                                layerInd = cellfun(@(x) ~isempty(x), regexpi(model.CompNames,[gNames{i} '_']));
+                                for k = 1 : numel(sNames)
+                                    % find the columns of the reaction matrix that contain
+                                    % the species
+                                    sp = sNames{k};
+                                    spInd = strcmpi(sp, model.CompNames);
+                                    rmVec = RM(:,spInd);
 
-                                % replace the correct column and row with the
-                                % contribution
-                                RM(logical(rmVec),layerInd) = RM(logical(rmVec),layerInd) + repmat(rmVec(rmVec ~= 0),1,nL).*repmat(surfInfo.charge{i}{j},sum(logical(rmVec)),1);
-                            end
-                        case 'langmuir'
+                                    % replace the correct column and row with the
+                                    % contribution
+                                    RM(logical(rmVec),layerInd) = RM(logical(rmVec),layerInd) + repmat(rmVec(rmVec ~= 0),1,nL).*repmat(surfInfo.charge{iterInd}{k},sum(logical(rmVec)),1);
+                                end
+                        end
                     end
                 end
             end
@@ -908,14 +984,14 @@ classdef ChemicalModel < PhysicalModel
 
 
         %%
-        function model = initElectrostaticModel(model, givenSurfaceInformation)
+        function model = initElectrostaticModel(model, givenSurfaceInformation, varargin)
             %initElectrostaticModel parses the surface chemistry inputs 
             
             funcGroup = givenSurfaceInformation(1:2:end);
             addInfo = givenSurfaceInformation(2:2:end);
-
+            
             % some checks to get the input format correct
-            assert(iscell(addInfo), 'Surface information must be a cell');
+            assert(iscell(addInfo), 'Surface information must be a cell.');
                         
             surfInfo.master = funcGroup;
 
@@ -1036,12 +1112,32 @@ classdef ChemicalModel < PhysicalModel
             model.surfInfo = surfInfo;
 
             % add surface activities to composition matrix
-            for i = 1 : numel(surfInfo.scm)
+            for i = 1 : numel(model.surfaces.groupNames)
                 model.surfaceChargeNames = {};
                 model.surfacePotentialNames = {};
-                m = surfInfo.master{i};
+                m = model.surfaces.groupNames{i};
                 n = 0;
-                switch surfInfo.scm{i}
+                
+                mastNames = model.surfaces.speciesNames(i,:);
+                
+                % make sure model type and capacitances are the same for
+                % all surfaces in a group
+                for j = 1 : numel(mastNames)
+                    testInd = strcmpi(mastNames{j},model.surfInfo.master);
+                    mTest{j} = model.surfInfo.scm{testInd};
+                    cTest{j} = 0;
+                    switch mTest{j}
+                        case {'ccm','tlm'}
+                            cTest{j} = model.surfInfo.c{testInd};
+                    end
+                end
+                assert(isequal(mTest{:},mTest{:}), 'Surface functional groups that are combined into a surface must use the same electrostatic model.');
+                assert(isequal(cTest{:},cTest{:}), 'Surface functional groups that are combined into a surface must use the same values for capacitance.');
+                
+                model.surfaces.scm{i} = mTest{1};
+                model.surfaces.c{i} = cTest{1};                
+
+                switch mTest{1}
                     case 'ccm'
                         model.CompNames{end+1} = [ m '_ePsi'];
                         model.surfaceChargeNames{end+1} = [m '_sig'];
@@ -1081,24 +1177,29 @@ classdef ChemicalModel < PhysicalModel
                                                         dx, drivingForces);
 
             state = model.syncFromLog(state);
+            
             surfParam = sum(cellfun(@(x) ~isempty(x) , regexpi(model.CompNames, 'psi'))); 
                         
             
             nonLogVariables = regexprep(problem.primaryVariables, 'log', '');
 
             if surfParam > 0
-            	[names, maxs, mins] = computeMaxPotential(model, state); 
+            	[names, mins, maxs] = computeMaxPotential(model, state); 
             end
+            
+            len = cellfun(@(x) length(x), nonLogVariables);
+            [~,sortInd] = sort(len(:),1, 'ascend');
+            pVar = nonLogVariables(sortInd);
             
             for i = 1 : model.nC
                 
-                p = nonLogVariables{i};
+                p = pVar{i};
                 compInd = strcmpi(p, model.CompNames);
                 
                 if any(strcmpi(p, model.MasterCompNames))
                     state = model.capProperty(state, p, eps, 2.5*mol/litre);
                 elseif ~isempty(regexpi(p, 'psi'))
-                	ind = strcmpi(p, names);
+                	ind = find(strcmpi(p, names));
                     state = model.capProperty(state, p, mins{ind}, maxs{ind});
                 else
                     maxvals = model.maxMatrices{compInd}*((state.masterComponents)');

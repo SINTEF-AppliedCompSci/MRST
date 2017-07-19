@@ -114,14 +114,13 @@ classdef compositionModel < ChemicalModel
             [state, report] = updateState@PhysicalModel(model, state, problem, ...
                                                         dx, drivingForces);
             
-            Ox = model.getProp(state, 'O');
-            Hy = model.getProp(state, 'H');
+            len = cellfun(@(x) length(x), problem.primaryVariables);
+            [~,sortInd] = sort(len(:),1, 'ascend');
+            pVar = problem.primaryVariables(sortInd);
             
-            maxVal = max(Ox,Hy);
-            
-            for i = 1 : numel(problem.primaryVariables)
-                p = problem.primaryVariables{i};
-                state = model.capProperty(state, p, eps);
+            for i = 1 : numel(pVar)
+                p = pVar{i};
+                state = model.capProperty(state, p, eps, 2.5*mol/litre);
             end
             state = model.syncLog(state);
         end
