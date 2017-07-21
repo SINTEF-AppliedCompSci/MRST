@@ -1,8 +1,5 @@
 function [eqs, names, types] = equationsChemicalLog(logcomps, logmasterComps, model)
 
-%             comps = cellfun(@(x) x*litre/mol, comps,'UniformOutput', false);
-%             masterComps = cellfun(@(x) x*litre/mol, masterComps,'UniformOutput', false);
-
     try 
         T = model.getProp(state, 'temperature');
     catch
@@ -39,7 +36,7 @@ function [eqs, names, types] = equationsChemicalLog(logcomps, logmasterComps, mo
     % calculate acitivity coefficient by davies equation
     pg = cell(1,model.nC);
     for i = 1 : model.nC
-        pg{i} = log(10).*-A.*model.ChargeVector(1,i)'.^2 .* (ion{i}.^(1/2)./(1 + ion{i}.^(1/2)) - 0.3.*ion{i});
+        pg{i} = log(10).*-A.*model.ChargeVector(1,i).^2 .* (ion{i}.^(1/2)./(1 + ion{i}.^(1/2)) - 0.3.*ion{i});
     end
     
     % calculate the active fraction for ion exchange surfaces
@@ -63,7 +60,7 @@ function [eqs, names, types] = equationsChemicalLog(logcomps, logmasterComps, mo
     for i = 1 : model.nR  
         eqs{i} = -logK(i);
         for k = 1 : model.nC
-            eqs{i} = eqs{i} + RM(i, k).*(pg{i} + af{i} + logcomps{k});
+            eqs{i} = eqs{i} + RM(i, k).*(pg{k} + af{k} + logcomps{k});
         end
         names{i} = model.rxns{i};
     end

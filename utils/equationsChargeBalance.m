@@ -34,28 +34,43 @@ function [eqs, names, types] = equationsChargeBalance(model, comps, masterComps)
     names = cell(1, model.nR + model.nMC + 1);
     types = cell(1, model.nR + model.nMC + 1);
 
-
-    
     % calculate ionic strength
     ionDum = 0;
-    for i = 1 : nC
+    for i = 1 : model.nC
         ionDum = ionDum + (ChargeVector(1,i).^2.*comps{i}).*litre/mol;
     end
-    ion = cell(1,model.nC);
-    [ion{:}] = deal((1/2)*abs(ionDum));
+    ion = (1/2)*abs(ionDum);
     
-    % activity coefficients
+   % calculate acitivity coefficient by davies equation
     pg = cell(1,model.nC);
+    preI = ion.^(1/2)./(1 + ion.^(1/2)) - 0.3.*ion;
     
-    for i = 1 : nC-1
-        pg{i} = log(10).*-A.*ChargeVector(1,i)'.^2 .* (ion{i}.^(1/2)./(1 + ion{i}.^(1/2)) - 0.3.*ion{i});
+    for i = 1 : model.nC
+        pg{i} = log(10).*-A.*ChargeVector(1,i).^2 .* preI;
     end
-
+    
+    % calculate the active fraction for ion exchange surfaces
+    af = cell(1,model.nC);
+    [af{:}] = deal(0);
+    if ~isempty(model.surfInfo)
+        for i = 1 : numel(model.surfInfo.master)
+            mcName = model.surfInfo.master{i};
+            if strcmpi(model.surfInfo.scm{i}, 'ie')
+                Sind = strcmpi(mcName, model.MasterCompNames);
+                for j = 1 : numel(model.surfInfo.species{i})
+                    p = model.surfInfo.species{i}(j);
+                    ind = strcmpi(p, model.CompNames);
+                    af{ind} = log(comps{ind}/(masterComps{Sind}));
+                end
+            end  
+        end
+    end
+    
     % reaction matrix,
     for i = 1 : model.nR
         eqs{i} = - logK(i);
-        for k = 1 : model.nC-1
-            eqs{i} = eqs{i} + RM(i, k).*(pg{k} + logcomps{k});
+        for k = 1 : nC - 1
+            eqs{i} = eqs{i} + RM(i, k).*(pg{k} + af{k} + logcomps{k});
         end
         names{i} = model.rxns{i};
     end
@@ -138,7 +153,7 @@ function [eqs, names, types] = equationsChargeBalance(model, comps, masterComps)
                     P1Ind = strcmpi([surfName '_ePsi_1'], model.CompNames);
                     P0Ind = strcmpi([surfName '_ePsi_0'], model.CompNames);
 
-                    sig_2 = sig_2 + -(8*10^3*R*T.*ion{end}.*e_o*e_w).^(0.5).*mysinh(logcomps{P2Ind}./2);
+                    sig_2 = sig_2 + -(8*10^3*R*T.*ion.*e_o*e_w).^(0.5).*mysinh(logcomps{P2Ind}./2);
                     
                     
                     eqs{end+1} = sig_0 + sig_1 + sig_2;

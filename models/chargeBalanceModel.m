@@ -103,8 +103,10 @@ classdef chargeBalanceModel < ChemicalInputModel
             model.unknownNames = unknownNames(~ind);
             model.CompNames = horzcat(model.CompNames, 'CVC');
             
-            solver = NonLinearSolver('maxIterations', 10);
-            model.nonlinearTolerance = 1e-12;
+            solver = NonLinearSolver();
+            solver.maxIterations = 10;
+%             
+%             model.nonlinearTolerance = 1;
             dt = 0; % dummy timestep
             drivingForces = []; % drivingForces;
             inputstate0 = inputstate;

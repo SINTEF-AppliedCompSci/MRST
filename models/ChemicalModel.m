@@ -640,7 +640,16 @@ classdef ChemicalModel < PhysicalModel
                 end
                 model.chargeBalanceModel.CVC = p.Results.chargeBalance;
                 [state, ~, report] = model.chargeBalanceModel.solveChemicalState(state);
+                
+                if size(state.components,2) ~= numel(model.CompNames)
+                    warning('Convergence not acheived for charge balance with given inputs.');
+                    state.components(:,end) =[];
+                    state.logcomponents(:,end)=[];
+                end
+                
             end
+            
+            
         end
 
         %%
@@ -798,6 +807,13 @@ classdef ChemicalModel < PhysicalModel
                 names{i} = regexprep(names{i}, '}(\d+)$' , '}*$1','ignorecase');
                 names{i} = regexprep(names{i}, '}m' , '}+m' , 'ignorecase');
                 names{i} = regexprep(names{i}, '}(\d+)+' , '}*$1','ignorecase');
+                names{i} = regexprep(names{i}, '}(' , '}+(','ignorecase');
+                
+                names{i} = regexprep(names{i}, ')(\d+)m' , ')*$1+m','ignorecase');
+                names{i} = regexprep(names{i}, ')(\d+)$' , ')*$1','ignorecase');
+                names{i} = regexprep(names{i}, ')m' ,       ')+m' , 'ignorecase');
+                names{i} = regexprep(names{i}, ')(\d+)+' , ')*$1','ignorecase');
+                names{i} = regexprep(names{i}, ')(' , ')+(','ignorecase');
             end
 
             tmpvec = zeros(nS, 1);
@@ -816,6 +832,7 @@ classdef ChemicalModel < PhysicalModel
                 indsum = cell(1, numel(names));
                 for i = 1 : numel(names)
                     indsum{i} = eval([names{i} ,';']);
+                    assert(isnumeric(indsum{i}),['The chemical species "' namesO{i} '" appears to contain a string combination that does not correspond to an element or surface functional group. Make sure surface species contain ">" at the begining and are consistent with the surface name in surfaces.']);
                 end
             catch
                error(['The chemical species "' namesO{i} '" appears to contain a string combination that does not correspond to an element or surface functional group. Make sure surface species contain ">" at the begining and are consistent with the surface name in surfaces.']);
