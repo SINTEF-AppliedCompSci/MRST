@@ -116,7 +116,8 @@ classdef ChemicalTransportLogModel < WaterModel
             chem_problem                  = problem;
             chem_problem.primaryVariables = vars(ind);
             chem_dx                       = dx(ind);
-
+            
+%             state = chemModel.synclog(state);
             [state, chem_report] = chemModel.updateState(state, chem_problem, ...
                                                     chem_dx, drivingForces);
 

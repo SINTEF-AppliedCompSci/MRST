@@ -267,7 +267,7 @@ classdef ChemicalModel < PhysicalModel
                             end
                             
                             validatestring(speciesNames{i}, surfNames, 'ChemicalModel', 'entries to share');
-                            assert(test, ['The surface specie ' speciesNames{i} ' is repeated or appears in more than one group.']);
+                            assert(test, ['The surface species ' speciesNames{i} ' is repeated or appears in more than one group.']);
                         end
                         
                         % add functional groups not listed in groups to
@@ -642,7 +642,7 @@ classdef ChemicalModel < PhysicalModel
                 [state, ~, report] = model.chargeBalanceModel.solveChemicalState(state);
                 
                 if size(state.components,2) ~= numel(model.CompNames)
-                    warning('Convergence not acheived for charge balance with given inputs.');
+                    warning('Convergence not acheived for charge balance with given inputs. Try a different element for charge compensation, or increase salt content.');
                     state.components(:,end) =[];
                     state.logcomponents(:,end)=[];
                 end
@@ -893,7 +893,7 @@ classdef ChemicalModel < PhysicalModel
                 end
                 rxn{i} = strrep(rxn{i}, 'cind', 'Cind');
                 remain = regexpi(rxn{i}, '[^(model\.Cind{\d})+-/*\.\d(<->)]','once');
-                assert(isempty(remain),['The chemical reaction "' rxnsO{i} '" appears to contain a string combination that does not correspond to secondary components. Ensure the specie names contained in the reaction are consistent with those listed in secondarycomponents.']);
+                assert(isempty(remain),['The chemical reaction "' rxnsO{i} '" appears to contain a string combination that does not correspond to secondary components. Ensure the species names contained in the reaction are consistent with those listed in secondarycomponents.']);
             end
 
             % check for <-> and handle it appropriately
@@ -1007,6 +1007,8 @@ classdef ChemicalModel < PhysicalModel
             funcGroup = givenSurfaceInformation(1:2:end);
             addInfo = givenSurfaceInformation(2:2:end);
             
+            funcGroup = regexprep(funcGroup,'[\s]','','ignorecase');
+
             % some checks to get the input format correct
             assert(iscell(addInfo), 'Surface information must be a cell.');
                         
@@ -1071,32 +1073,17 @@ classdef ChemicalModel < PhysicalModel
                 % grab the charge from the species name
                 nS = numel(speciesNames{i});
                 tmpvec = zeros(1, nS);
-                tmp = regexpi(speciesNames{i}, '+([1-9])*', 'tokens');
-                for k = 1 : numel(tmp)
-                    if ~isempty(tmp{k})
-                        if strcmp('', tmp{k}{1})
-                            tmpvec(k) = 1;
-                        else
-                            tmpvec(k) = str2double(tmp{k}{1}{1});
-                        end
-                    end
-                end
-                tmp = regexpi(speciesNames{i}, '-([1-9])*', 'tokens');
-                for k = 1 : numel(tmp)
-                    if ~isempty(tmp{k})
-                        if strcmp('', tmp{k}{1})
-                            tmpvec(k) = -1;
-                        else
-                            tmpvec(k) = -str2double(tmp{k}{1}{1});
-                        end
-                    end
-                end
-
+                
                 for j = 1 : nS
-                    charge{i}{j} = tmpvec(j); 
+                    sInd = strcmpi(speciesNames{i}{j}, model.CompNames);
+                    tmp = model.allCharge(sInd);
+                    charge{i}{j} = tmp;
+                    namedCharge{i}{j} = tmp;
                 end
                 
                 givenNames = addInfo{i}(4:2:end);
+                givenNames = regexprep(givenNames,'[\s]','','ignorecase');
+
                 givenCharge = addInfo{i}(5:2:end);
                 
                 assert(numel(givenNames) == numel(givenCharge), 'If a name of a species is given to the surfaces cell, a charge value is expected.');
@@ -1114,13 +1101,14 @@ classdef ChemicalModel < PhysicalModel
                                 charge{i}{j} = givenCharge{spInd}(:)';
                             end
                             charge{i}{j} = horzcat( charge{i}{j}, zeros(1, 3 - numel(charge{i}{j})));
+                            assert(sum(charge{i}{j}) == namedCharge{i}{j}, ['The charge distribution of the surface species ' speciesNames{i}{j} ' does not sum to the total species charge as determined by the species name.']);
+
                         end  
 
                         for j = 1 : numel(givenNames)
                             assert(logical(sum(strcmpi(givenNames{j}, speciesNames{i}))), ['The surface species ' givenNames{j} ' is not tabulated in species.']);
                         end
                 end
-                
                 
             end
             surfInfo.species = speciesNames;
@@ -1208,7 +1196,7 @@ classdef ChemicalModel < PhysicalModel
             [~,sortInd] = sort(len(:),1, 'ascend');
             pVar = nonLogVariables(sortInd);
             
-            for i = 1 : model.nC
+            for i = 1 : numel(pVar)
                 
                 p = pVar{i};
                 compInd = strcmpi(p, model.CompNames);
