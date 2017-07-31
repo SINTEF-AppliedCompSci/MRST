@@ -128,7 +128,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
            % Find first index corresponding to ADI equation
            ix = find(cellfun(@(x) isa(x, 'ADI'), problem.equations), 1);
            % Calculate positions in newton increment
-           numVars = cellfun(@(x) size(x, 2), problem.equations{ix}.jac)';
+           numVars = problem.equations{ix}.getNumVars();
            cumVars = cumsum(numVars);
            ii = [[1;cumVars(1:end-1)+1], cumVars];
            
