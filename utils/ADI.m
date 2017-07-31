@@ -278,6 +278,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       end
 
       %--------------------------------------------------------------------
+      function numVars = getNumVars(ad)
+          numVars = cellfun(@(x) size(x, 2), ad.jac)';
+      end
 
       function h = subsref(u,s)
           if strcmp(s(1).type, '.')
@@ -573,10 +576,15 @@ end
 %--------------------------------------------------------------------------
 
 function J = plusJac(J1, J2)
-if isempty(J1) || isempty(J2)
-    J = {};
+if isempty(J1)
+    J = J2;
     return
 end
+if isempty(J2)
+    J = J1;
+    return
+end
+
 nv1 = size(J1{1},1);
 nv2 = size(J2{1},1);
 if  nv1 == nv2
