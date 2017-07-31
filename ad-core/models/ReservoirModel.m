@@ -680,10 +680,9 @@ methods
         % Remaining input arguments correspond to a variety of reservoir
         % properties with self-explanatory names. Final input is the
         % drivingForces struct.
-        rhoS = model.getSurfaceDensities();
-
         [src_terms, bnd_cond] = computeSourcesAndBoundaryConditionsAD(model, p, s, mob, rho, dissolved, forces);
         [~, longNames] = getPhaseNames(model);
+        rhoS = model.getSurfaceDensities();
         % We first consider pseudocomponents that correspond to phases,
         % e.g. the black-oil model, most immiscible models and other models
         % where the number of phases is approximately equal to the number
@@ -698,11 +697,15 @@ methods
             if any(sub)
                 assert(strcmpi(types{sub}, 'cell'), 'Unable to add source terms to equation that is not per cell.');
                 sc = src_terms.sourceCells;
+                if ~isempty(sc)
                 eqs{sub}(sc) = eqs{sub}(sc) - src_terms.phaseMass{i}./rhoS(i);
+                end
 
                 bc = bnd_cond.sourceCells;
+                if ~isempty(bc)
                 eqs{sub}(bc) = eqs{sub}(bc) - bnd_cond.phaseMass{i}./rhoS(i);
             end
+        end
         end
         % Get the fluxes and store them in the state.
         if nargout > 1 && model.outputFluxes
