@@ -174,7 +174,13 @@ function bc_coarse = handleBC(model, bc, opt)
                     sat = sat./sum(sat, 2);
                 end
                 
-                rescale = @(x) bsxfun(@rdivide, bsxfun(@minus, x, min(G.nodes.coords)), max(G.nodes.coords) - min(G.nodes.coords));
+                if isfield(G, 'nodes')
+                    C = G.nodes.coords;
+                else
+                    C = G.faces.centroids;
+                end
+                
+                rescale = @(x) bsxfun(@rdivide, bsxfun(@minus, x, min(C)), max(C) - min(C));
                 xq = rescale(CG.faces.centroids(cf, :));
                 x = rescale(G.faces.centroids(faces, :));
                 if numel(faces) == 1
