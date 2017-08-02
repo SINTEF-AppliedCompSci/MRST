@@ -1,4 +1,4 @@
-function [stable, x, y] = PhaseStabilityTest(eos, z, p, T)
+function [stable, x, y] = phaseStabilityTest(eos, z, p, T)
     z = ensureMinimumFraction(z);
     [y, S_V, isTrivialV] = checkStability(eos, z, p, T, true);
     V_stable = S_V <= 1 | isTrivialV;
