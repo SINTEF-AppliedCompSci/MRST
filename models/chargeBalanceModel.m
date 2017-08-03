@@ -104,9 +104,10 @@ classdef chargeBalanceModel < ChemicalInputModel
             model.CompNames = horzcat(model.CompNames, 'CVC');
             
             solver = NonLinearSolver();
-            solver.maxIterations = 10;
 %             
-%             model.nonlinearTolerance = 1;
+            solver.LinearSolver.tolerance = 1e-12;
+            model.nonlinearTolerance = 1e-12;
+            
             dt = 0; % dummy timestep
             drivingForces = []; % drivingForces;
             inputstate0 = inputstate;
@@ -138,7 +139,7 @@ classdef chargeBalanceModel < ChemicalInputModel
                 compInd = strcmpi(p, model.CompNames(1:end-1));
                 
                 if any(strcmpi(p, model.MasterCompNames))
-                     state = model.capProperty(state, p, eps, 2.5*mol/litre);
+                     state = model.capProperty(state, p, 1e-50, 2.5*mol/litre);
                 elseif ~isempty(regexpi(p, 'psi'))
                 	ind = strcmpi(p, names);
                     state = model.capProperty(state, p, mins{ind}, maxs{ind});
@@ -149,7 +150,7 @@ classdef chargeBalanceModel < ChemicalInputModel
                 else
                     maxvals = model.maxMatrices{compInd}*((state.masterComponents)');
                     maxvals = (min(maxvals))';             
-                    state = model.capProperty(state, p, eps, maxvals); 
+                    state = model.capProperty(state, p, 1e-50, maxvals); 
                 end
                 
             end

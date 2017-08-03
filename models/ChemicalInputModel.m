@@ -108,6 +108,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
             solver = NonLinearSolver();
 %             solver.maxIterations= 25;
+
+            solver.LinearSolver.tolerance = 1e-14;
+            model.nonlinearTolerance = 1e-14;
             dt = 0; % dummy timestep
             drivingForces = []; % drivingForces;
             inputstate0 = inputstate;

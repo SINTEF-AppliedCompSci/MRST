@@ -1202,14 +1202,14 @@ classdef ChemicalModel < PhysicalModel
                 compInd = strcmpi(p, model.CompNames);
                 
                 if any(strcmpi(p, model.MasterCompNames))
-                    state = model.capProperty(state, p, eps, 2.5*mol/litre);
+                    state = model.capProperty(state, p, 1e-50, 2.5*mol/litre);
                 elseif ~isempty(regexpi(p, 'psi'))
                 	ind = find(strcmpi(p, names));
                     state = model.capProperty(state, p, mins{ind}, maxs{ind});
                 else
                     maxvals = model.maxMatrices{compInd}*((state.masterComponents)');
                     maxvals = (min(maxvals))';             
-                    state = model.capProperty(state, p, eps, maxvals); 
+                    state = model.capProperty(state, p, 1e-50, maxvals); 
                 end
                 
             end

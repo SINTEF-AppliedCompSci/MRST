@@ -105,8 +105,8 @@ classdef compositionReactionModel < ChemicalModel
                                                           % updates the log
                                                           % variables if necessary.
 
-            solver = NonLinearSolver('maxIterations', 5);
-%             model.nonlinearTolerance = 1e-12;
+            solver = NonLinearSolver();
+            model.nonlinearTolerance = 1e-12;
             dt = 0; % dummy timestep
             drivingForces = []; % drivingForces;
             inputstate0 = inputstate;
