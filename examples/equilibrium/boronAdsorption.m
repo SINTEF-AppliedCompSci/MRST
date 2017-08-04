@@ -31,7 +31,7 @@ sInfo = {geometry, 'ccm', 1.06,     '>SO-',     -1,...
 surfaces ={ '>SO', sInfo};
 
 % instantiate chemical model
-chem = ChemicalModel(elements, species, reactions, surfaces);
+chem = ChemicalModel(elements, species, reactions, 'surf', surfaces);
 
 % print the chemical system
 chem.printChemicalSystem;

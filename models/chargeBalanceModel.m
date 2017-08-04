@@ -26,30 +26,28 @@ classdef chargeBalanceModel < ChemicalInputModel
 
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
             
-            if size(state.components,2) ~= numel(model.unknownNames)
+            if size(state.components,2) ~= numel(model.unknownNames)-model.nLC
             	nCells = size(state.components,1);
                 state.components(:,end+1) = zeros(nCells,1);
             end
             
-            [comps, masterComps] = prepStateForEquations(model, state);
+            [comps, masterComps, comboComps] = prepStateForEquations(model, state);
 
-            [eqs, names, types] = equationsChargeBalance(model, comps, masterComps);
+            [eqs, names, types] = equationsChargeBalance(model, comps, masterComps, comboComps);
+            
             primaryVariables =model.unknownNames;
-
-                        
-%             [eqs, names, types] = equationsChargeBalance_log(model, logcomps, logmasterComps);
-%             primaryVariables =model.unknownNames;
-%             
             problem = LinearizedProblem(eqs, types, names, primaryVariables, state, dt);
 
         end
         
         
-        function [comps, masterComps] = prepStateForEquations(model, ...
+        function [comps, masterComps, comboComps] = prepStateForEquations(model, ...
                                                               state)
             
             CNames = horzcat(model.CompNames);
             MCNames = model.MasterCompNames;
+            LCNames = model.CombinationNames;
+            
             unknowns = horzcat(model.unknownNames);
             knowns = model.inputNames;
             
@@ -86,14 +84,27 @@ classdef chargeBalanceModel < ChemicalInputModel
                     masterComps{i} = knownVal{mcInd};
                 end
             end
+            
+            comboComps = cell(1,model.nLC);
+            for i = 1 : model.nLC
+                mcInd = strcmpi(unknowns, LCNames{i});
+                if any(mcInd)
+                    comboComps{i} = unknownVal{mcInd};
+                end
+                mcInd = strcmpi(knowns, LCNames{i});
+                if any(mcInd)
+                    comboComps{i} = knownVal{mcInd};
+                end
+            end
 
+            
         end
         
         function [state, failure, report] = solveChemicalState(model, inputstate)
         % inputstate contains the input and the initial guess.
 
             % grab the names of unknowns                                              
-            unknownNames = horzcat(model.CompNames, model.MasterCompNames, 'CVC');
+            unknownNames = horzcat(model.CompNames, model.MasterCompNames,model.CombinationNames, 'CVC');
             ind = cellfun(@(name) strcmpi(name, model.inputNames), unknownNames, ...
                           'Uniformoutput', false);
                       
@@ -147,6 +158,8 @@ classdef chargeBalanceModel < ChemicalInputModel
                     cvcInd = strcmpi(model.CVC, model.MasterCompNames);
                     cvcVal = state.masterComponents(:,cvcInd);
                     state = model.capProperty(state, p, -cvcVal, cvcVal);
+                elseif ismember(p, model.CombinationNames)
+                    state = model.capProperty(state, p, -2.5*mol/litre, 2.5*mol/litre);
                 else
                     maxvals = model.maxMatrices{compInd}*((state.masterComponents)');
                     maxvals = (min(maxvals))';             
@@ -166,13 +179,14 @@ classdef chargeBalanceModel < ChemicalInputModel
             CVC = model.getProp(state, 'CVC');
             MCval = model.getProp(state, model.CVC);
             
+            warningText = ['Charge balance could not be acheived with given constraint on ' model.CVC ' increase the value if reasonable.'];
+            
             if ~all(abs(CVC) <= 2*MCval),
-                warning(['Charge balance could not be acheived with given constraint on ' model.CVC ' increase the value if reasonable.']);
+                warning(warningText);
             end
             
             state = model.setProp(state, model.CVC, MCval + CVC);
-            assert(all((MCval + CVC) > 0), ['Charge balance could not be acheived with given constraint on ' model.CVC ' increase the value if reasonable. Or decrease the concentration of other charged species in the system.']);
-
+            assert(all((MCval + CVC) > 0), warningText);
             state.components(:,end) = [];
            
             

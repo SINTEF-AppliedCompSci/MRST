@@ -28,7 +28,7 @@ xInfo = {geometry, 'ie'};
 surfaces ={ '>X', xInfo };
                                                         
 % instantiate the chemical model
-chem = ChemicalModel(elements, species, reactions, surfaces);
+chem = ChemicalModel(elements, species, reactions, 'surf', surfaces);
 
 chem.plotIter = false;
 

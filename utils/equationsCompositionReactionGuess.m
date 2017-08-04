@@ -1,4 +1,4 @@
-function [eqs, names, types] = equationsCompositionReactionGuess(logcomps, logmasterComps, model)
+function [eqs, names, types] = equationsCompositionReactionGuess(logcomps, logmasterComps, comboComps, model)
     
 %             comps = cellfun(@(x) x*litre/mol, comps,'UniformOutput', false);
 %             masterComps = cellfun(@(x) x*litre/mol, masterComps,'UniformOutput', false);
@@ -14,9 +14,9 @@ function [eqs, names, types] = equationsCompositionReactionGuess(logcomps, logma
     
     logK = model.LogReactionConstants;
     
-    eqs   = cell(1, model.nMC + model.nR);
-    names = cell(1, model.nMC + model.nR);
-    types = cell(1, model.nMC + model.nR);
+    eqs   = cell(1, model.nMC + model.nR + model.nLC);
+    names = cell(1, model.nMC + model.nR + model.nLC);
+    types = cell(1, model.nMC + model.nR + model.nLC);
 
     % reaction matrix, activities only apply to laws of mass action
     for i = 1 : model.nR
@@ -29,6 +29,7 @@ function [eqs, names, types] = equationsCompositionReactionGuess(logcomps, logma
         names{i} = model.rxns{i};
     end
     
+    %% composition matrix
     for i = 1 : model.nMC
         j = model.nR + i;
         masssum = 0;
@@ -39,6 +40,17 @@ function [eqs, names, types] = equationsCompositionReactionGuess(logcomps, logma
         names{j} = ['Conservation of ', model.MasterCompNames{i}] ;
     end
 
+    %% combination matrix
+    for i = 1 : model.nLC
+        j = model.nR + model.nMC + i;
+        combSum = 0;
+        for k = 1 : model.nC
+            combSum = combSum + model.CombinationMatrix(i,k).*comps{k};
+        end
+        eqs{j} = combSum - comboComps{i};
+        names{j} = [model.CombinationNames{i}] ;
+    end
+            
     [types{:}] = deal('cell');
     
 end

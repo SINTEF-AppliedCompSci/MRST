@@ -18,7 +18,7 @@ classdef compositionReactionModel < ChemicalModel
         function model = validateModel(model)
             model = validateModel@ChemicalModel(model);
             % setup unknownNames
-            unknownNames = horzcat(model.CompNames, model.MasterCompNames);
+            unknownNames = horzcat(model.CompNames, model.MasterCompNames, model.CombinationNames);
             ind = cellfun(@(name)(strcmpi(name, model.inputNames)), unknownNames, ...
                           'Uniformoutput', false);
             Pind = cellfun(@(x) ~isempty(x) , regexpi(unknownNames, 'psi'), 'Uniformoutput', false);
@@ -44,27 +44,34 @@ classdef compositionReactionModel < ChemicalModel
 
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
 
-            [logComps, logMasterComps] = prepStateForEquations(model, state);
+            [pVars, logComps, logMasterComps, comboComps] = prepStateForEquations(model, state);
 
-            [eqs, names, types] = equationsCompositionReactionGuess(logComps, logMasterComps, model);
+            [eqs, names, types] = equationsCompositionReactionGuess(logComps, logMasterComps, comboComps, model);
             
-            primaryVariables = model.logUnknownNames;
-            problem = LinearizedProblem(eqs, types, names, primaryVariables, state, dt);
+            problem = LinearizedProblem(eqs, types, names, pVars, state, dt);
 
         end
         
         
-        function [logComps, logMasterComps] = prepStateForEquations(model, ...
+        function [logUnknowns, logComps, logMasterComps, combinationComps] = prepStateForEquations(model, ...
                                                               state)
             
             CNames = model.logCompNames;
             MCNames = model.logMasterCompNames;
+            LCNames = model.CombinationNames;
             
             nC = numel(CNames);
             
             logUnknowns = model.logUnknownNames;
             logKnowns = model.logInputNames;
 
+            % actually, we want the non log form of the linear combination
+            % variables
+            for i = 1 : model.nLC
+                logUnknowns = regexprep(logUnknowns, ['log'  LCNames{i}],  LCNames{i});
+                logKnowns = regexprep(logKnowns, ['log'  LCNames{i}],  LCNames{i});
+            end
+            
             logUnknownVal = cell(1,numel(logUnknowns));
             [logUnknownVal{:}] = model.getProps(state, logUnknowns{:});
             [logUnknownVal{:}] = initVariablesADI(logUnknownVal{:});
@@ -95,6 +102,19 @@ classdef compositionReactionModel < ChemicalModel
                     logMasterComps{i} = logKnownVal{mcInd};
                 end
             end
+            
+            combinationComps = cell(1,model.nLC);
+            for i = 1 : model.nLC
+                mcInd = strcmpi(logUnknowns, LCNames{i});
+                if any(mcInd)
+                    combinationComps{i} = logUnknownVal{mcInd};
+                end
+                mcInd = strcmpi(logKnowns, LCNames{i});
+                if any(mcInd)
+                    combinationComps{i} = logKnownVal{mcInd};
+                end
+            end
+            
             
         end
         
@@ -136,13 +156,14 @@ classdef compositionReactionModel < ChemicalModel
                 compInd = strcmpi(p, model.CompNames);
                 
                 if any(strcmpi(p, model.MasterCompNames))
-                    state = model.capProperty(state, p, eps, 2.5*mol/litre); 
+                    state = model.capProperty(state, p, eps, 2.5*mol/litre);
+                elseif ismember(p, model.CombinationNames)
+                    state = model.capProperty(state, p, -2.5*mol/litre, 2.5*mol/litre);
                 else
                     maxvals = model.maxMatrices{compInd}*((state.masterComponents)');
                     maxvals = (min(maxvals))';             
                     state = model.capProperty(state, p, eps, maxvals); 
                 end
-                
             end
             
             state = model.syncLog(state);

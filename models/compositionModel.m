@@ -17,7 +17,7 @@ classdef compositionModel < ChemicalModel
         function model = validateModel(model)
             model = validateModel@ChemicalModel(model);
             % setup unknownNames
-            unknownNames = horzcat(model.CompNames, model.MasterCompNames);
+            unknownNames = horzcat(model.CompNames, model.MasterCompNames,model.CombinationNames);
             ind = cellfun(@(name)(strcmpi(name, model.inputNames)), unknownNames, ...
                           'Uniformoutput', false);
             Pind = cellfun(@(x) ~isempty(x) , regexpi(unknownNames, 'psi'), 'Uniformoutput', false);
@@ -33,9 +33,9 @@ classdef compositionModel < ChemicalModel
 
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
 
-            [comps, masterComps] = prepStateForEquations(model, state);
+            [comps, masterComps, comboComps] = prepStateForEquations(model, state);
 
-            [eqs, names, types] = equationsCompositionGuess(comps, masterComps, model);
+            [eqs, names, types] = equationsCompositionGuess(comps, masterComps, comboComps, model);
             
             primaryVariables = model.unknownNames;
             problem = LinearizedProblem(eqs, types, names, primaryVariables, state, dt);
@@ -43,11 +43,12 @@ classdef compositionModel < ChemicalModel
         end
         
         
-        function [comps, masterComps] = prepStateForEquations(model, ...
+        function [comps, masterComps, combinationComps] = prepStateForEquations(model, ...
                                                               state)
             
             CNames = model.CompNames;
             MCNames = model.MasterCompNames;
+            LCNames = model.CombinationNames;
             unknowns = model.unknownNames;
             knowns = model.inputNames;
             
@@ -88,6 +89,19 @@ classdef compositionModel < ChemicalModel
                     masterComps{i} = knownVal{mcInd};
                 end
             end
+            
+           combinationComps = cell(1,model.nLC);
+            for i = 1 : model.nLC
+                mcInd = strcmpi(unknowns, LCNames{i});
+                if any(mcInd)
+                    combinationComps{i} = unknownVal{mcInd};
+                end
+                mcInd = strcmpi(knowns, LCNames{i});
+                if any(mcInd)
+                    combinationComps{i} = knownVal{mcInd};
+                end
+            end
+            
 
         end
         
@@ -120,7 +134,11 @@ classdef compositionModel < ChemicalModel
             
             for i = 1 : numel(pVar)
                 p = pVar{i};
-                state = model.capProperty(state, p, eps, 2.5*mol/litre);
+                if ismember(p, model.CombinationNames)
+                    state = model.capProperty(state, p, -2.5*mol/litre, 2.5*mol/litre);
+                else
+                    state = model.capProperty(state, p, eps, 2.5*mol/litre);
+                end
             end
             state = model.syncLog(state);
         end

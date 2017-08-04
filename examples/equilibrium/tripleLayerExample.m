@@ -26,12 +26,14 @@ reactions ={'H2O  <-> H+  + OH- ',          10^-14*mol/litre, ...
         
 % define the surface
 geometry = [2*site/(nano*meter)^2 50e-3*meter^2/(gram) 5e3*gram/litre];
-sioInfo = {geometry, 'tlm', [1 0.2]*Farad/meter^2,      '>SONa',   [-1 1],...
+sioInfo = {geometry, 'tlm', [1 0.2]/meter^2,      '>SONa',   [-1 1],...
                                                         '>SOH2Cl',[1 -1]};
 surfaces ={ '>SO', sioInfo };
-                                                        
+
+% define any linear combinations
+
 % instantiate the chemical model
-chem = ChemicalModel(elements, species, reactions, surfaces);
+chem = ChemicalModel(elements, species, reactions, 'surf', surfaces);
 
 chem.plotIter = false;
 
@@ -61,7 +63,6 @@ toc;
 
 %% take out relevant values from state
 
-state = changeUnits(state, mol/litre );
 
 SO      = getProp(chem, state, '>SO-');
 SOH     = getProp(chem, state, '>SOH');

@@ -1,10 +1,5 @@
-function [eqs, names, types] = equationsCompositionGuess(comps, masterComps, model)
+function [eqs, names, types] = equationsCompositionGuess(comps, masterComps, comboComps, model)
     
-%             comps = cellfun(@(x) x*litre/mol, comps,'UniformOutput', false);
-%             masterComps = cellfun(@(x) x*litre/mol, masterComps,'UniformOutput', false);
-%             
-% begin solving equation
-
     CNames = model.CompNames;
 
     compInd = cellfun(@(x) isempty(x), regexpi(CNames, 'psi'));
@@ -14,9 +9,9 @@ function [eqs, names, types] = equationsCompositionGuess(comps, masterComps, mod
     CM = model.CompositionMatrix;
     CM(:,~compInd) = [];
             
-    eqs   = cell(1, model.nMC);
-    names = cell(1, model.nMC);
-    types = cell(1, model.nMC);
+    eqs   = cell(1, model.nMC + model.nLC);
+    names = cell(1, model.nMC + model.nLC);
+    types = cell(1, model.nMC + model.nLC);
 
 
     for i = 1 : model.nMC
@@ -27,6 +22,17 @@ function [eqs, names, types] = equationsCompositionGuess(comps, masterComps, mod
         names{i} = ['Conservation of ', model.MasterCompNames{i}] ;
     end
 
+    %% combination matrix
+    for i = 1 : model.nLC
+        j = model.nMC + i;
+        combSum = 0;
+        for k = 1 : model.nC
+            combSum = combSum + model.CombinationMatrix(i,k).*comps{k};
+        end
+        eqs{j} = combSum - comboComps{i};
+        names{j} = [model.CombinationNames{i}] ;
+    end
+    
     [types{:}] = deal('cell');
     
 end

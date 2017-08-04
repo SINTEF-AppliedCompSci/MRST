@@ -1,4 +1,4 @@
-function [eqs, names, types] = equationsChargeBalance(model, comps, masterComps)
+function [eqs, names, types] = equationsChargeBalance(model, comps, masterComps, comboComps)
     
 
     try 
@@ -29,10 +29,12 @@ function [eqs, names, types] = equationsChargeBalance(model, comps, masterComps)
     logcomps = cellfun(@(x)log(x), comps(1:end-1),'UniformOutput', false);
     
     logK = model.LogReactionConstants;
-
-    eqs   = cell(1, model.nR + model.nMC + 1);
-    names = cell(1, model.nR + model.nMC + 1);
-    types = cell(1, model.nR + model.nMC + 1);
+    
+    nEqs = model.nR + model.nMC + model.nLC + 1;
+    
+    eqs   = cell(1, nEqs);
+    names = cell(1, nEqs);
+    types = cell(1, nEqs);
 
     % calculate ionic strength
     ionDum = 0;
@@ -66,7 +68,7 @@ function [eqs, names, types] = equationsChargeBalance(model, comps, masterComps)
         end
     end
     
-    % reaction matrix,
+    %% reaction matrix,
     for i = 1 : model.nR
         eqs{i} = - logK(i);
         for k = 1 : nC - 1
@@ -75,7 +77,7 @@ function [eqs, names, types] = equationsChargeBalance(model, comps, masterComps)
         names{i} = model.rxns{i};
     end
     
-    % composition matrix
+    %% composition matrix
     for i = 1 : model.nMC
         j = model.nR + i;
         eqs{j} = - masterComps{i};
@@ -85,7 +87,18 @@ function [eqs, names, types] = equationsChargeBalance(model, comps, masterComps)
         names{j} = ['Conservation of ', model.MasterCompNames{i}] ;
     end
     
-
+    %% combination matrix
+    for i = 1 : model.nLC
+        j = model.nR + model.nMC + i;
+        combSum = 0;
+        for k = 1 : model.nC
+            combSum = combSum + model.CombinationMatrix(i,k).*comps{k};
+        end
+        eqs{j} = combSum - comboComps{i};
+        names{j} = [model.CombinationNames{i}] ;
+    end
+    
+    %% charge balance
     eqs{end} = 0;
     for k = 1 : nC
         eqs{end} = eqs{end} + ChargeVector(1,k).*comps{k};

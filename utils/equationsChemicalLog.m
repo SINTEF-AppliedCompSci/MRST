@@ -1,10 +1,12 @@
-function [eqs, names, types] = equationsChemicalLog(logcomps, logmasterComps, model)
+function [eqs, names, types] = equationsChemicalLog(logcomps, logmasterComps, comboComps, model)
 
     try 
         T = model.getProp(state, 'temperature');
     catch
         T = 298;
     end
+    
+    
     An  = 6.0221413*10^23;       	% avagadros number [#/mol]
     F   = 9.64853399e4;             % Faraday's Constant [C/mol]
     R   = 8.3144621;             	% Gas Constant [J/(K mol)]
@@ -19,9 +21,9 @@ function [eqs, names, types] = equationsChemicalLog(logcomps, logmasterComps, mo
 
     logK = model.LogReactionConstants;
 
-    eqs   = cell(1, model.nR + model.nMC);
-    names = cell(1, model.nR + model.nMC);
-    types = cell(1, model.nR + model.nMC);
+    eqs   = cell(1, model.nR + model.nMC + model.nLC);
+    names = cell(1, model.nR + model.nMC + model.nLC);
+    types = cell(1, model.nR + model.nMC + model.nLC);
 
     % calculate ionic strength
     ionDum = 0;
@@ -78,7 +80,19 @@ function [eqs, names, types] = equationsChemicalLog(logcomps, logmasterComps, mo
         names{j} = ['Conservation of ', model.MasterCompNames{i}] ;
     end
 
-    % surface potentials
+    %% combination matrix
+    for i = 1 : model.nLC
+        j = model.nR + model.nMC + i;
+        combSum = 0;
+        for k = 1 : model.nC
+            combSum = combSum + model.CombinationMatrix(i,k).*comps{k};
+        end
+        eqs{j} = combSum - comboComps{i};
+        names{j} = [model.CombinationNames{i}] ;
+    end
+            
+    
+    %% surface potentials
     if ~isempty(model.surfInfo)
         for i = 1 : numel(model.surfaces.groupNames)
 

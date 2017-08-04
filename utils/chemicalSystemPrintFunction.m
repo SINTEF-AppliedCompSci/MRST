@@ -49,6 +49,27 @@ function chemicalSystemPrintFunction(model, varargin )
                 massnamestr ='';
             end
             fprintf('%s\n', sep);
+            
+            % linear combinations
+            massnamestr ='';
+            for i = 1 : model.nLC
+                for j = 1 : model.nC + 1
+                    if j == 1
+                        fl = ['|%-' num2str(l1) 's'];
+                    else
+                        fl = ['|%' num2str(l2) 'g'];
+                    end
+
+                    massnamestr = [massnamestr '' fl ''];
+                end
+                in = mat2cell(model.CombinationMatrix(i,:), 1, ones(1,model.nC) );
+                fprintf([massnamestr, '|\n'], model.CombinationNames{i}, in{:});
+                massnamestr ='';
+            end
+            if model.nLC >0
+                fprintf('%s\n', sep);
+            end
+            
             fprintf('\n');
 
 
