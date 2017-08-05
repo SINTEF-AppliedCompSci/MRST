@@ -9,14 +9,13 @@ mrstVerbose on
 %% generate chemical system 
 
 % define elements names
-elements = {'H', 'C*', 'O'};
+elements = {'H', 'CO3*'};
 
 % define chemical species
-species = {'H+','H2CO3','HCO3-','CO3-2','OH-','H2O*'};
+species = {'H+','H2CO3','HCO3-','CO3-2'};
 
 % list chemical reactions         
-reactions ={'H2O <-> H+ + OH-',             10^-14*mol/litre,...
-            'H2CO3  <-> H+ + HCO3- ',       10^2*mol/litre,...
+reactions ={'H2CO3  <-> H+ + HCO3- ',       10^2*mol/litre,...
             'HCO3- <-> H+ + CO3-2',         10^-1*mol/litre};
         
 % define any linear combinations
@@ -37,7 +36,7 @@ C = 1e-3.*ones(n,1);
 H2O = ones(n,1);
 Alk = logspace(-5, -4,n)';
 
-userInput = [C H2O Alk]*mol/litre;
+userInput = [C Alk]*mol/litre;
 
 tic
 [state, report, model] = chem.initState(userInput);
