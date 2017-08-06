@@ -2,7 +2,10 @@ classdef LinearizedProblem
 % A linearized problem within a non-linear iteration
 %
 % SYNOPSIS:
-%   model = PhysicalModel(G)
+%   problem = LinearizedProblem(primvars, state)
+%   problem = LinearizedProblem(primvars, state, dt)
+%   problem = LinearizedProblem(eqs, eqtypes, eqnames, primvars, state)
+%   problem = LinearizedProblem(eqs, eqtypes, eqnames, primvars, state, dt)
 %
 % DESCRIPTION:
 %   A class that implements storage of an instance of a linearized problem
@@ -155,7 +158,7 @@ methods
     end
     
     % --------------------------------------------------------------------%
-    function [equations, types, names] = checkInputs(problem, equations, types, names)
+    function [equations, types, names] = checkInputs(problem, equations, types, names) %#ok
         if iscell(equations)
             % For multiple inputs, we want them to be of the same
             % length
@@ -186,7 +189,7 @@ methods
        end
     end
     % --------------------------------------------------------------------%
-    function [result, report] = processResultAfterSolve(problem, result, report)
+    function [result, report] = processResultAfterSolve(problem, result, report) %#ok
         % Do nothing
     end
     
