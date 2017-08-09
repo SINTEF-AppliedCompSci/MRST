@@ -87,7 +87,10 @@ function [eqs, names, types] = equationsChemicalLog(logcomps, logmasterComps, co
         for k = 1 : model.nC
             combSum = combSum + model.CombinationMatrix(i,k).*comps{k};
         end
-        eqs{j} = combSum - comboComps{i};
+        % log version
+        eqs{j} = log(combSum) - log(comboComps{i});
+        % plain version
+        % eqs{j} = combSum) - comboComps{i};
         names{j} = [model.CombinationNames{i}] ;
     end
             
