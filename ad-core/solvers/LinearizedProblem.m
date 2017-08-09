@@ -2,7 +2,10 @@ classdef LinearizedProblem
 % A linearized problem within a non-linear iteration
 %
 % SYNOPSIS:
-%   model = PhysicalModel(G)
+%   problem = LinearizedProblem(primvars, state)
+%   problem = LinearizedProblem(primvars, state, dt)
+%   problem = LinearizedProblem(eqs, eqtypes, eqnames, primvars, state)
+%   problem = LinearizedProblem(eqs, eqtypes, eqnames, primvars, state, dt)
 %
 % DESCRIPTION:
 %   A class that implements storage of an instance of a linearized problem
@@ -14,6 +17,18 @@ classdef LinearizedProblem
 %   A linearized problem can be transformed into a linear system and solved
 %   using LinearSolverAD-derived subclasses, given that the number of
 %   equations match the number of primary variables.
+%
+%   In particular, the class contains member functions for:
+%     - assembling a linear system from the Jacobian block matrices stored
+%       for each individual (continuous) equation
+%     - appending/prepending additional equations
+%     - using a block-Gaussian method to eliminate individual variables or
+%       all variables that are not of a specified type
+%     - recovering increments corresponding to variables that have
+%       previously been eliminated
+%     - computing the norm of each residual equation
+%   as well as a number of utility functions for sanity checks, quering of
+%   indices and the number of equations, clearing the linear system, etc.
 %
 % PROPERTIES:
 %   See the class definition for details about each property.
@@ -155,7 +170,7 @@ methods
     end
     
     % --------------------------------------------------------------------%
-    function [equations, types, names] = checkInputs(problem, equations, types, names)
+    function [equations, types, names] = checkInputs(problem, equations, types, names) %#ok
         if iscell(equations)
             % For multiple inputs, we want them to be of the same
             % length
@@ -186,7 +201,7 @@ methods
        end
     end
     % --------------------------------------------------------------------%
-    function [result, report] = processResultAfterSolve(problem, result, report)
+    function [result, report] = processResultAfterSolve(problem, result, report) %#ok
         % Do nothing
     end
     
