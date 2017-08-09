@@ -61,7 +61,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
             [pVars, logcomps, logmasterComps, comboComps] = prepStateForEquations(model, state);
 
-            [eqs, names, types] = equationsChemicalLog(logcomps, logmasterComps, comboComps, ...
+            [eqs, names, types] = equationsChemicalInit(logcomps, logmasterComps, comboComps, ...
                                                         model);
             
             problem = LinearizedProblem(eqs, types, names, pVars, state, dt);

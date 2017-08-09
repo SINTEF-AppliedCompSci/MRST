@@ -1,4 +1,4 @@
-function [eqs, names, types] = equationsChemicalLog(logcomps, logmasterComps, comboComps, model)
+function [eqs, names, types] = equationsChemicalLog(logcomps, logmasterComps, model)
 
     try 
         T = model.getProp(state, 'temperature');
@@ -21,9 +21,9 @@ function [eqs, names, types] = equationsChemicalLog(logcomps, logmasterComps, co
 
     logK = model.LogReactionConstants;
 
-    eqs   = cell(1, model.nR + model.nMC + model.nLC);
-    names = cell(1, model.nR + model.nMC + model.nLC);
-    types = cell(1, model.nR + model.nMC + model.nLC);
+    eqs   = cell(1, model.nR + model.nMC);
+    names = cell(1, model.nR + model.nMC);
+    types = cell(1, model.nR + model.nMC);
 
     % calculate ionic strength
     ionDum = 0;
@@ -79,21 +79,6 @@ function [eqs, names, types] = equationsChemicalLog(logcomps, logmasterComps, co
         eqs{j} = log(masssum) - logmasterComps{i};
         names{j} = ['Conservation of ', model.MasterCompNames{i}] ;
     end
-
-    %% combination matrix
-    for i = 1 : model.nLC
-        j = model.nR + model.nMC + i;
-        combSum = 0;
-        for k = 1 : model.nC
-            combSum = combSum + model.CombinationMatrix(i,k).*comps{k};
-        end
-        % log version
-        eqs{j} = log(combSum) - log(comboComps{i});
-        % plain version
-        % eqs{j} = combSum) - comboComps{i};
-        names{j} = [model.CombinationNames{i}] ;
-    end
-            
     
     %% surface potentials
     if ~isempty(model.surfInfo)
