@@ -654,9 +654,9 @@ classdef ChemicalModel < PhysicalModel
             state = model.syncLog(state);
             
             % create initial guess
-            fprintf('Computing initial guess...\n')
-            [state, ~, report_c] = model.compositionModel.solveChemicalState(state);
-            [state, ~, report_cr] = model.compositionReactionModel.solveChemicalState(state);
+            % fprintf('Computing initial guess...\n')
+            % [state, ~, report_c] = model.compositionModel.solveChemicalState(state);
+            % [state, ~, report_cr] = model.compositionReactionModel.solveChemicalState(state);
             
             % solve chemical system
             fprintf('Solving chemical system...\n')
