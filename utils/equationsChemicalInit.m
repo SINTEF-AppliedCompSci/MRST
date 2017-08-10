@@ -14,7 +14,7 @@ function [eqs, names, types] = equationsChemicalInit(logcomps, logmasterComps, c
         % log version
         eqs{end + 1} = log(combSum) - log(comboComps{i});
         % plain version
-        % eqs{j} = combSum) - comboComps{i};
+        % eqs{end + 1} = combSum - comboComps{i};
         names{end + 1} = [model.CombinationNames{i}] ;
         types{end + 1} = 'cell';
     end
