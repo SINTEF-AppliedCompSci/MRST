@@ -597,7 +597,7 @@ methods
                                                      dissolved, components, ...
                                                      dt, opt)
         % Add in the effect of wells to a system of equations, by adding
-        % corresponding source terms and augmenting the ysstme with
+        % corresponding source terms and augmenting the system with
         % additional equations for the wells.
         %
         % INPUT
@@ -698,14 +698,14 @@ methods
                 assert(strcmpi(types{sub}, 'cell'), 'Unable to add source terms to equation that is not per cell.');
                 sc = src_terms.sourceCells;
                 if ~isempty(sc)
-                eqs{sub}(sc) = eqs{sub}(sc) - src_terms.phaseMass{i}./rhoS(i);
+                    eqs{sub}(sc) = eqs{sub}(sc) - src_terms.phaseMass{i}./rhoS(i);
                 end
 
                 bc = bnd_cond.sourceCells;
                 if ~isempty(bc)
-                eqs{sub}(bc) = eqs{sub}(bc) - bnd_cond.phaseMass{i}./rhoS(i);
+                    eqs{sub}(bc) = eqs{sub}(bc) - bnd_cond.phaseMass{i}./rhoS(i);
+                end
             end
-        end
         end
         % Get the fluxes and store them in the state.
         if nargout > 1 && model.outputFluxes
