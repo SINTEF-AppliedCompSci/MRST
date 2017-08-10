@@ -19,21 +19,21 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-    
+
     properties
         inputNames   % Names of variables that are used as inputs
         unknownNames % Names of variables that are used as inputs
         logUnknownNames % names with log attached
         logInputNames % input names with log attached
     end
-    
+
     methods
 
         function model = ChemicalInputModel()
             model = model@ChemicalModel();
             model.inputNames = {};
         end
-        
+
         function model = validateModel(model)
             model = validateModel@ChemicalModel(model);
             % setup unknownNames
@@ -43,18 +43,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             ind = cell2mat(ind');
             ind = sum(ind, 2);
             model.unknownNames = unknownNames(~ind);
-            
+
             model.logUnknownNames = cellfun(@(name) ['log', name], ...
                                             model.unknownNames, 'uniformoutput', ...
                                             false);
-                                        
+
             model.logInputNames = cellfun(@(name) ['log', name], ...
                                             model.inputNames, 'uniformoutput', ...
-                                            false);                         
-            
+                                            false);
+
             nPsi = sum(cellfun(@(x) ~isempty(x), regexpi( model.unknownNames, 'psi')));
             assert(numel(model.unknownNames)-nPsi == model.nR + model.nMC + model.nLC, 'well..., not as we are thinking...');
-            
+
         end
 
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
@@ -63,19 +63,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
             [eqs, names, types] = equationsChemicalInit(logcomps, logmasterComps, comboComps, ...
                                                         model);
-            
+
             problem = LinearizedProblem(eqs, types, names, pVars, state, dt);
 
         end
-        
+
         function [logUnknowns, logComps, logMasterComps, combinationComps] = prepStateForEquations(model, ...
                                                               state)
             CNames = model.logCompNames;
             MCNames = model.logMasterCompNames;
             LCNames = model.CombinationNames;
-            
+
             nC = numel(CNames);
-            
+
             logUnknowns = model.logUnknownNames;
             logKnowns = model.logInputNames;
 
@@ -85,14 +85,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 logUnknowns = regexprep(logUnknowns, ['log'  LCNames{i}],  LCNames{i});
                 logKnowns = regexprep(logKnowns, ['log'  LCNames{i}],  LCNames{i});
             end
-            
+
             logUnknownVal = cell(1,numel(logUnknowns));
             [logUnknownVal{:}] = model.getProps(state, logUnknowns{:});
             [logUnknownVal{:}] = initVariablesADI(logUnknownVal{:});
-            
+
             logKnownVal = cell(1,numel(logKnowns));
             [logKnownVal{:}] = model.getProps(state, logKnowns{:});
-            
+
             logComps = cell(1,nC);
             for i = 1 : nC
                 cInd = strcmpi(logUnknowns, CNames{i});
@@ -104,7 +104,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     logComps{i} = logKnownVal{cInd};
                 end
             end
-            
+
             logMasterComps = cell(1,model.nMC);
             for i = 1 : model.nMC
                 mcInd = strcmpi(logUnknowns, MCNames{i});
@@ -116,7 +116,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     logMasterComps{i} = logKnownVal{mcInd};
                 end
             end
-            
+
             combinationComps = cell(1,model.nLC);
             for i = 1 : model.nLC
                 mcInd = strcmpi(logUnknowns, LCNames{i});
@@ -128,10 +128,29 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     combinationComps{i} = logKnownVal{mcInd};
                 end
             end
-            
+
 
         end
-        
+
+        function [state, report] = updateState(model, state, problem, dx, ...
+                                               drivingForces)
+
+            [state, report] = updateState@ChemicalModel(model, state, problem, ...
+                                                        dx, drivingForces);
+
+            nC = model.nC;
+            LC = model.CombinationMatrix;
+
+            for i = 1 : nC
+                combMaxMatrix = diag(1./LC(:, i));
+                maxvals = combMaxMatrix*((state.combinationComponents)');
+                maxvals = (min(maxvals))';
+                state = model.capProperty(state, model.CompNames{i}, 1e-50, ...
+                                          maxvals);
+            end
+
+        end
+
         function [state, failure, report] = solveChemicalState(model, inputstate)
         % inputstate contains the input and the initial guess.
 
@@ -159,10 +178,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             [tmp{:}] = model.getProps(state, model.CompNames{:});
             state.components        =  horzcat(tmp{:});
         end
-        
-       
-    
+
+
+
     end
 
 end
-    
