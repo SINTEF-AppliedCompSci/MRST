@@ -83,6 +83,11 @@ classdef ChemicalModel < PhysicalModel
         CombinationMatrix   % combination for each linear combination in terms of secondary components
         nLC                 % number of linear combinations
         
+        AqueousConcentrationNames % name of total aqueous concentration variables
+        SurfaceConcentrationNames % name of total surface concentration variables
+        
+        SolidNames          % name of species in the solid phase
+        GasNames            % name of species in the gas phase
     end
 
 
@@ -248,9 +253,10 @@ classdef ChemicalModel < PhysicalModel
                         groupNames = groups(:,1);
                         speciesNames = groups(:,2:end);
                         
-                        varargin{4}(2*tmp) =[];
-                        varargin{4}(2*tmp-1) = [];
-                        
+                        toPass = p.Results.surfaces;
+                        toPass(2*tmp) =[];
+                        toPass(2*tmp-1) = [];
+%                         
                         % make sure group names are unique
                         for i = 1 : numel(groupNames)
                             ind = zeros(size(groupNames));
@@ -286,7 +292,7 @@ classdef ChemicalModel < PhysicalModel
                         % add functional groups not listed in groups to
                         % groupNames
                         % may need to change cell indexing for when there
-                        % arent the same number of surfac emaster
+                        % arent the same number of surface master
                         % components in  a group
                         for i = 1 : numel(surfNames);
                             if ~any(strcmpi(surfNames{i}, speciesNames))
@@ -313,7 +319,7 @@ classdef ChemicalModel < PhysicalModel
                 model = initSecondaryComponents(model,  CompNames);
                 
                 if ~isempty(p.Results.surfaces)
-                    model = initElectrostaticModel(model, p.Results.surfaces);
+                    model = initElectrostaticModel(model, toPass);
                 end
                 
                 if ~isempty(p.Results.combinations)
@@ -437,7 +443,37 @@ classdef ChemicalModel < PhysicalModel
                     index = find(ind);
                     break
                 end
+                
+                if strcmpi(name, 'aqueousConcentrations')
+                    varfound = true;
+                    fn = 'aqueousConcentrations';
+                    index = ':';
+                    break
+                end
 
+                ind = strcmpi(name, model.AqueousConcentrationNames);
+                if any(ind)
+                    varfound = true;
+                    fn = 'aqueousConcentrations';
+                    index = find(ind);
+                    break
+                end
+                
+                if strcmpi(name, 'surfaceConcentrations')
+                    varfound = true;
+                    fn = 'surfaceConcentrations';
+                    index = ':';
+                    break
+                end
+
+                ind = strcmpi(name, model.SurfaceConcentrationNames);
+                if any(ind)
+                    varfound = true;
+                    fn = 'surfaceConcentrations';
+                    index = find(ind);
+                    break
+                end
+                
                 ind = strcmpi(name, model.CompActivityNames);
                 if any(ind)
                     varfound = true;
@@ -654,10 +690,10 @@ classdef ChemicalModel < PhysicalModel
             state = model.syncLog(state);
             
             % create initial guess
-            % fprintf('Computing initial guess...\n')
-            % [state, ~, report_c] = model.compositionModel.solveChemicalState(state);
-            % [state, ~, report_cr] = model.compositionReactionModel.solveChemicalState(state);
-            
+%             fprintf('Computing initial guess...\n')
+%             [state, ~, report_c] = model.compositionModel.solveChemicalState(state);
+%             [state, ~, report_cr] = model.compositionReactionModel.solveChemicalState(state);
+%             
             % solve chemical system
             fprintf('Solving chemical system...\n')
             [state, ~, report] = model.chemicalInputModel.solveChemicalState(state);
@@ -754,15 +790,15 @@ classdef ChemicalModel < PhysicalModel
 
             names = regexprep(secondarycomponents,'[\s]','','ignorecase');
 
-            test = cellfun(@(x) ~isempty(x), regexpi(secondarycomponents, '(psi)(sig)'));
-            assert(sum(test) == 0, 'The use of "sig" and "psi" are reserved for use within ChemicalModel, please remove them from the species cell');
+            test = cellfun(@(x) ~isempty(x), regexpi(secondarycomponents, '(psi)(sig)(_aq)(_surf)'));
+            assert(sum(test) == 0, 'The use of "sig", "psi", "_aq", and "_surf" are reserved for use within ChemicalModel, please remove them from the species names.');
             
             % find input components and remove the asterik from the name
             InInd = cellfun(@(x) ~isempty(x), regexp(names, '*'));
             names = regexprep(names, '*','');
 
-
-
+            solidInd = cellfun(@(x) ~isempty(x), regexp(names, '(s)'));
+            
             if isempty(model.chemicalInputModel)
                 model.ChemicalInputModel = ChemicalInputModel();
             end
@@ -772,6 +808,7 @@ classdef ChemicalModel < PhysicalModel
 
             nI = numel(model.chemicalInputModel.inputNames);
             namesO = names;
+            names = regexprep(names, '(s)','');
 
             % unwrap master component vectors
             nS = numel(names);
@@ -871,6 +908,9 @@ classdef ChemicalModel < PhysicalModel
             end
             model.CompositionMatrix = horzcat(indsum{:});
 
+            % remove contribution of solid to composition matrix
+            model.CompositionMatrix(:,solidInd) = 0;
+            
             model.logCompNames = cellfun(@(name) ['log', name], model.CompNames, ...
                                          'uniformoutput', false);
 
@@ -1426,6 +1466,10 @@ classdef ChemicalModel < PhysicalModel
         %   retrieved using the getProp command by calling for the species
         %   name prepended by 'a.'
         %
+        %
+        %   chem            - updated chemical object now includes the names 
+        %       for calling the activities using getProps 
+        %
         % EXAMPLE:
         %
         %   state = chem.computeSurfaceCharges(state);
@@ -1459,6 +1503,10 @@ classdef ChemicalModel < PhysicalModel
         %   charge. The charge balance can be retrieved using the getProps
         %   command by calling for the variables 'chargeBalance'.
         %
+        %
+        %   chem            - updated chemical object now includes the names 
+        %       for calling the charge balance using getProps 
+        %
         % EXAMPLE:
         %
         %   state = chem.computeSurfaceCharges(state);
@@ -1468,6 +1516,7 @@ classdef ChemicalModel < PhysicalModel
         % SEE ALSO:
         %   computeActivities
 
+            assert( nargout == 2, ['Output argument to computeChargeBalance must include the state variable and the chemical model object']);
             [state, model] = chargeBalance(model, state);
             
         end
@@ -1494,6 +1543,10 @@ classdef ChemicalModel < PhysicalModel
         %       number (0, 1, 2) or for the constant capacitance model just
         %       use '_Psi'.
         %
+        %
+        %   chem            - updated chemical object now includes the names 
+        %       for calling the surface potentials using getProps 
+        %
         % EXAMPLE:
         %
         %   state = chem.computeSurfaceCharges(state);
@@ -1504,7 +1557,8 @@ classdef ChemicalModel < PhysicalModel
         % SEE ALSO:
         %   computeSurfaceCharges
         
-            state = surfacePotential(model, state);
+            assert( nargout == 2, ['Output argument to computeSurfacePotentials must include the state variable and the chemical model object']);
+            [state, model] = surfacePotential(model, state);
             
         end
         
@@ -1530,6 +1584,10 @@ classdef ChemicalModel < PhysicalModel
         %       number (0, 1, 2) or for the constant capacitance model just
         %       use '_sig'.
         %
+        %
+        %   chem            - updated chemical object now includes the names 
+        %       for calling the surface charges using getProps 
+        %
         % EXAMPLE:
         %
         %   state = chem.computeSurfaceCharges(state);
@@ -1539,8 +1597,87 @@ classdef ChemicalModel < PhysicalModel
         %
         % SEE ALSO:
         %   computeSurfacePotentials
-                
-            state = surfaceCharge(model, state);
+        
+            assert( nargout == 2, ['Output argument to computeSurfaceCharges must include the state variable and the chemical model object']);                
+            [state, model] = surfaceCharge(model, state);
+        end
+        
+        %%
+        function [state, model] = computeAqueousConcentrations(model, state)
+        %computeAqueousConcentrations computes the total concentration of each 
+        % element in the aqueous phase.
+        %
+        % SYNOPSIS:
+        %  [state] = computeAqueousConcentrations(model, state)
+        %
+        %
+        % REQUIRED PARAMETERS:
+        %   state        - the state variable produced by model.initState.
+        %       Must at least include the field state.components. 
+        %          
+        %
+        % OUTPUTS:
+        %   state           - A structure containing the total aqueous
+        %   concentration of each element in the field
+        %   aqueousConcentrations. The values can be retrieved using the
+        %   getProps function by asking for the element name followed
+        %   by '_aq'.
+        %
+        %   chem            - updated chemical object now includes the names 
+        %       for calling the aqueous concetrations using getProps 
+        %
+        % EXAMPLE:
+        %
+        %   state = chem.computeAqueousConcentrations(state);
+        %   Na = chem.getProp(state, 'Na_aq');
+        %   H = chem.getProp(state, 'H_aq');
+        %
+        %
+        % SEE ALSO:
+        %   computeSurfaceConcentrations
+        
+            assert( nargout == 2, ['Output argument to computeAqueousConcentrations must include the state variable and the chemical model object']);
+            [state, model] = aqueousConcentrations(model, state);
+            
+        end
+        
+        %%
+        function [state, model] = computeSurfaceConcentrations(model, state)
+        %computeSurfaceConcentrations computes the total concentration of each 
+        % element on the surface.
+        %
+        % SYNOPSIS:
+        %  [state] = computeAqueousConcentrations(model, state)
+        %
+        %
+        % REQUIRED PARAMETERS:
+        %   state        - the state variable produced by model.initState.
+        %       Must at least include the field state.components. 
+        %          
+        %
+        % OUTPUTS:
+        %   state           - A structure containing the total surface
+        %       concentration of each element in the field
+        %       surfaceConcentrations. The values can be retrieved using the
+        %       getProps function by asking for the element name followed
+        %       by '_surf'.
+        %
+        %   chem            - updated chemical object now includes the names 
+        %       for calling the surface concetrations using getProps 
+        %
+        % EXAMPLE:
+        %
+        %   [state chem] = chem.computeAqueousConcentrations(state);
+        %   Na = chem.getProp(state, 'Na_surf');
+        %   H = chem.getProp(state, 'H_aq');
+        %
+        %
+        % SEE ALSO:
+        %   computeSurfaceConcentrations
+        
+            assert( nargout == 2, ['Output argument to computeSurfaceConcentrations must include the state variable and the chemical model object']);
+            [state, model] = surfaceConcentrations(model, state);
+            
         end
     end
 
