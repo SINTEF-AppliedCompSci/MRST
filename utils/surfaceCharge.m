@@ -1,4 +1,4 @@
-function [state] = surfaceCharge(model, state)
+function [state, model] = surfaceCharge(model, state)
 
     try 
         T = model.getProp(state, 'temperature');

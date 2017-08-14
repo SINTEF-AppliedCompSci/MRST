@@ -34,7 +34,7 @@ n = 100;
 
 C = 1e-3.*ones(n,1);
 H2O = ones(n,1);
-Alk = logspace(-5, -4,n)';
+Alk = logspace(-10, -4,n)';
 
 userInput = [C Alk]*mol/litre;
 
@@ -47,6 +47,6 @@ toc;
 [state, chem] = chem.computeSurfaceCharges(state);
 [state, chem] = chem.computeSurfacePotentials(state);
 
-plot(log10(Alk*litre/mol), log10(state.components*litre/mol));
+plot(log10(Alk), log10(state.components*litre/mol));
 xlabel('Alkalinity')
 legend(chem.CompNames)
