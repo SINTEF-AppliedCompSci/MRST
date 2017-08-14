@@ -141,7 +141,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             nC = model.nC;
             LC = model.CombinationMatrix;
 
-            for i = 1 : nC
+            for i = 1 : model.nLC
                 combMaxMatrix = diag(1./LC(:, i));
                 maxvals = combMaxMatrix*((state.combinationComponents)');
                 maxvals = (min(maxvals))';
