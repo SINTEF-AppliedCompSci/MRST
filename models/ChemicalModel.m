@@ -256,7 +256,7 @@ classdef ChemicalModel < PhysicalModel
                         toPass = p.Results.surfaces;
                         toPass(2*tmp) =[];
                         toPass(2*tmp-1) = [];
-%                         
+
                         % make sure group names are unique
                         for i = 1 : numel(groupNames)
                             ind = zeros(size(groupNames));
@@ -690,10 +690,11 @@ classdef ChemicalModel < PhysicalModel
             state = model.syncLog(state);
             
             % create initial guess
-%             fprintf('Computing initial guess...\n')
-%             [state, ~, report_c] = model.compositionModel.solveChemicalState(state);
-%             [state, ~, report_cr] = model.compositionReactionModel.solveChemicalState(state);
-%             
+
+            fprintf('Computing initial guess...\n')
+            [state, ~, report_c] = model.compositionModel.solveChemicalState(state);
+            [state, ~, report_cr] = model.compositionReactionModel.solveChemicalState(state);
+            
             % solve chemical system
             fprintf('Solving chemical system...\n')
             [state, ~, report] = model.chemicalInputModel.solveChemicalState(state);
@@ -1479,6 +1480,7 @@ classdef ChemicalModel < PhysicalModel
         % SEE ALSO:
         %   computeChargeBalance
         
+            assert( nargout == 2, ['Output argument to computeActivities must include the state variable and the chemical model object']);
             [state, model] = activity(model, state);
             
         end
