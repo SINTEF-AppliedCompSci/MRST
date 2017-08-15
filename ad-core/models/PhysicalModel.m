@@ -97,9 +97,13 @@ methods
 
     % --------------------------------------------------------------------%
     function [problem, state] = getAdjointEquations(model, state0, state, dt, drivingForces, varargin)
-        % Get the adjoint system. By default, this is simply the regular
-        % equations called with the reverseMode parameter enabled.
-        [problem, state] = model.getEquations(state0, state, dt, drivingForces, 'reverseMode', true, varargin{:});
+        % Function to get equation when using adjoint to calculate
+        % gradients. This make it possible to use different equations to
+        % calculate the solution in the forward mode forexample if
+        % equations are solved explicitely like for hysteretic models.
+        % it is assumed that the solution of the system in forward fot the
+        % two diffent equations are equal i.e problem.val == 0 .
+        [problem, state] = model.getEquations(state0, state, dt, drivingForces, varargin{:});
     end
 
     % --------------------------------------------------------------------%
@@ -287,7 +291,7 @@ methods
             forces_p = model.getDrivingForces(lookupCtrl(itNo + 1));
             forces_p = merge_options(validforces, forces_p{:});
             problem_p = model.getAdjointEquations(current, after, dt_next, forces_p,...
-                                'iteration', inf);
+                                'iteration', inf, 'reverseMode', true);
         else
             problem_p = [];
         end
