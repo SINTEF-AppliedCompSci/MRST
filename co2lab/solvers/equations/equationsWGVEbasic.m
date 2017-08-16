@@ -57,7 +57,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       else
           wellVars0 = model.FacilityModel.getAllPrimaryVariables(wellSol0);
          if(opt.adjointForm)
-            [p0, sG0, sGmax0, wellVars{:}] = initVariablesADI(p0, sG0, sGmax0, wellVars0{:});
+            [p0, sG0, sGmax0, wellVars0{:}] = initVariablesADI(p0, sG0, sGmax0, wellVars0{:});
          else
              warning('using non adjoint form for backward simulation: Hysteresis may be not properly handled')
             [p0, sG0, wellVars0{:}] = initVariablesADI(p0, sG0, wellVars0{:});
