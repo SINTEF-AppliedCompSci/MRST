@@ -106,6 +106,8 @@ if isempty(T)
     N=G.faces.neighbors;
     intInx = all(N ~= 0, 2);
     N  = N(intInx, :);
+    s.T_all = T;
+    T = T(intInx);
 else
     % transmissibility is given    
     if isempty(N)
