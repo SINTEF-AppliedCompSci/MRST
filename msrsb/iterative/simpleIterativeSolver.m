@@ -1,4 +1,4 @@
-function [x, flag, res, it, resvec] = simpleIterativeSolver(A, q, tol, it, prec, x)
+function [x, flag, res, itNo, resvec] = simpleIterativeSolver(A, q, tol, it, prec, x)
 % Simple preconditioned iterative solver with same syntax as GMRES
 
 %{
@@ -27,7 +27,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     d = q - A*x;
     flag = 1;
     
-    for it = 1:it
+    for itNo = 1:it
         res = norm(d, 2)/norm(q, 2);
         if res <= tol
             flag = 0;
@@ -41,7 +41,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
         x = x + prec(d);
         d = q - A*x;
-        resvec(it) = res;
+        resvec(itNo) = res;
     end
     resvec = resvec(~isnan(resvec));
 end
