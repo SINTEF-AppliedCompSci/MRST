@@ -99,34 +99,41 @@ opt = merge_options(opt, varargin{:});
 T = opt.trans;
 N = opt.neighbors;
 
-if isempty(N)
-    % Get neighbors for internal faces from grid.
-    N  = double(G.faces.neighbors);
-    intInx = all(N ~= 0, 2);
-    N  = N(intInx, :);
-else
-    % neighbors are given
-    n_if = size(N, 1);
-    intInx = true(n_if, 1);
-    if isfield(G, 'faces')
-        % Try to match given interfaces to actual grid.
-        intInxGrid = all(G.faces.neighbors ~= 0, 2);
-        if sum(intInxGrid) == n_if
-            % Given neighbors correspond to internal interfaces
-            intInx = intInxGrid;
-        elseif n_if == G.faces.num
-            % Given neighbors correspond to *all* interfaces
-            intInx = all(N ~= 0, 2);
-        end
-    end
-end
-
 if isempty(T)
     % half-trans -> trans and reduce to interior
     T = getFaceTransmissibility(G, rock, opt.deck);
+    assert(isempty(N))
+    N=G.faces.neighbors;
+    intInx = all(N ~= 0, 2);
+    N  = N(intInx, :);
     s.T_all = T;
     T = T(intInx);
 else
+    % transmissibility is given    
+    if isempty(N)
+        % Get neighbors for internal faces from grid.
+        N  = double(G.faces.neighbors);
+        intInx = all(N ~= 0, 2);
+        N  = N(intInx, :);
+        n_if = sum(intInx);
+     else
+        % neighbors are given        
+        intInx = all(N ~= 0, 2);
+        n_if = sum(intInx);
+        if isfield(G, 'faces')
+            % Try to match given interfaces to actual grid.
+            intInxGrid = all(G.faces.neighbors ~= 0, 2);
+            if sum(intInxGrid) == n_if
+                % Given neighbors correspond to internal interfaces
+                intInx = intInxGrid;
+            elseif n_if == G.faces.num
+                % Given neighbors correspond to *all* interfaces
+                intInx = all(N ~= 0, 2);
+            end
+        end
+    end 
+    
+   
     if numel(T) == n_if
         % Internal interface transmissibility
         s.T_all = zeros(size(intInx));
@@ -138,6 +145,7 @@ else
         s.T_all = T;
         T = T(intInx);
     end
+        
 end
 if any(T<0)
     warning('Negative transmissibilities detected.')

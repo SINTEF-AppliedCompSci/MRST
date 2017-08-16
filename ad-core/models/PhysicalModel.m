@@ -8,11 +8,13 @@ classdef PhysicalModel
 %   Base class for implementing physical models for use with automatic
 %   differentiation. This class cannot be used directly.
 %
-%   A physical model consists of a grid and an accompanying set of discrete
-%   operators that can be used to define the model equations. In addition,
-%   the class contains the tolerance to which the residual equations must
-%   be solved, a flag informing if the model equations are linear, and
-%   a flag determining verbosity of class functions.
+%   A physical model consists of a set of discrete operators that can be
+%   used to define the model equations and a nonlinear tolerance that
+%   defines how close the values must be to zero before the equations can
+%   be considered to be fulfilled. In most cases, the operators are defined
+%   over a grid, which is an optional property in this class. In addition,
+%   the class contains a flag informing if the model equations are linear,
+%   and a flag determining verbosity of class functions.
 %  
 %   The class contains member functions for:
 %     - evaluating residual equations and Jacobians
@@ -95,9 +97,13 @@ methods
 
     % --------------------------------------------------------------------%
     function [problem, state] = getAdjointEquations(model, state0, state, dt, drivingForces, varargin)
-        % Get the adjoint system. By default, this is simply the regular
-        % equations called with the reverseMode parameter enabled.
-        [problem, state] = model.getEquations(state0, state, dt, drivingForces, 'reverseMode', true, varargin{:});
+        % Function to get equation when using adjoint to calculate
+        % gradients. This make it possible to use different equations to
+        % calculate the solution in the forward mode forexample if
+        % equations are solved explicitely like for hysteretic models.
+        % it is assumed that the solution of the system in forward fot the
+        % two diffent equations are equal i.e problem.val == 0 .
+        [problem, state] = model.getEquations(state0, state, dt, drivingForces, varargin{:});
     end
 
     % --------------------------------------------------------------------%
@@ -285,7 +291,7 @@ methods
             forces_p = model.getDrivingForces(lookupCtrl(itNo + 1));
             forces_p = merge_options(validforces, forces_p{:});
             problem_p = model.getAdjointEquations(current, after, dt_next, forces_p,...
-                                'iteration', inf);
+                                'iteration', inf, 'reverseMode', true);
         else
             problem_p = [];
         end
@@ -350,7 +356,7 @@ methods
     function state = setProp(model, state, name, value)
         % Set property to given value based on name. E.g.,
         %   state = struct('pressure', 0);
-        %   state = model.setProp(model, state, 'pressure', 5);
+        %   state = model.setProp(state, 'pressure', 5);
         % will set state.pressure to 5, unless it is not a valid field for
         % the specific model.
         
@@ -377,7 +383,7 @@ methods
     % --------------------------------------------------------------------%
     function [state, val, val0] = updateStateFromIncrement(model, state, dx, problem, name, relchangemax, abschangemax)
         % Update a state, with optionally maximum changes (relative and
-        % absolute. E.g., 
+        % absolute). E.g., 
         %
         %   state = struct('pressure', 10);
         %   state = model.updateStateFromIncrement(state, 100, problem, 'pressure')

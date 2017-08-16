@@ -45,7 +45,7 @@ schedule = convertDeckScheduleToMRST(model, deck);
 figure;
 plotCellData(G, convertTo(rock.perm(:,1), milli*darcy), ...
              'FaceAlpha', 0.5, 'EdgeAlpha', 0.3, 'EdgeColor', 'k');
-plotWell(G, schedule.control(1).W);    % Pick the only well control present
+plotWell(G, schedule.control(1).W, 'radius',.5); % Pick the only well control present
 title('Permeability (mD)')
 axis tight, view(35, 40), colorbar('SouthOutside');
 
@@ -80,7 +80,7 @@ prod = find([wellSols{1}.sign] == -1);
 
 % Since there are zero values in the first step of the summary, we ignore
 % the first entry to get better plot axes.
-ind = 2:118;
+ind = 2:size(smry.data,2);
 
 % Put the well solution data into a format more suitable for plotting
 [qWs, qOs, qGs, bhp] = wellSolToVector(wellSols);
