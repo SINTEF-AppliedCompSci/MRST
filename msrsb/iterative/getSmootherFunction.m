@@ -14,10 +14,14 @@ function fn = getSmootherFunction(varargin)
 %   None
 %
 % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
-%   Type     - Type of smoother. Can be 'jacobi', or 'ilu', for ilu(0).
+%   Type     - Type of smoother. Can be 'jacobi', 'sor', for successive
+%              over-relaxation (SOR), or  'ilu' for ilu(0).
 %
 %   Iterations - How many iterations the smoother should apply. Default 5
-%                for Jacobi and 1 for ILU(0).
+%                for Jacobi and SOR, and 1 for ILU(0).
+%
+%   Omega - If type = 'sor', parapeter for successive over-relaxation.
+%           0 < omega < 2, omega = 1 gives the Gauss-Seidel method.
 %
 % RETURNS:
 %  fn  - Function handle for setting up smoother (see description).
@@ -46,7 +50,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-    opt = struct('type', 'jacobi', 'iterations', nan);
+    opt = struct('type', 'jacobi', 'iterations', nan, 'omega', 1);
     opt = merge_options(opt, varargin{:});
     
     switch lower(opt.type)
@@ -60,6 +64,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 opt.iterations = 1;
             end
             fn = @(A, b) getILU0(A, b, opt.iterations);
+        case 'sor'
+            if isnan(opt.iterations)
+                opt.iterations = 5;
+            end
+            fn = @(A, b) getSOR(A, b, opt.omega, opt.iterations);
         otherwise
             error('Unknown smoother')
     end
@@ -83,6 +92,18 @@ function smoother = getILU0(A, ~, its)
     % Apply a single pass of jacobi
     jac = @(d, x) x + U\(L\(d - A*x));
     smoother = @(d) loopfun(d, jac, its);
+end
+
+function smoother = getSOR(A, ~, omega, its)
+    
+    n = size(A, 1);
+    U = -triu(A, 1);
+    L = -tril(A,-1);
+    D = spdiags(diag(A), 0, n, n);
+    
+    sor = @(d,x) (D - omega*L)\(omega*d + (omega*U + (1-omega)*D)*x);
+    smoother = @(d) loopfun(d, sor, its);
+    
 end
 
 function y = loopfun(d, smooth, its)
