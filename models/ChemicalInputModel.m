@@ -37,7 +37,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         function model = validateModel(model)
             model = validateModel@ChemicalModel(model);
             % setup unknownNames
-            unknownNames = horzcat(model.CompNames, model.MasterCompNames, model.CombinationNames);
+            unknownNames = horzcat(model.CompNames, model.MasterCompNames, model.CombinationNames, model.SolidNames, model.GasNames);
             ind = cellfun(@(name)(strcmpi(name, model.inputNames)), unknownNames, ...
                           'Uniformoutput', false);
             ind = cell2mat(ind');
@@ -59,20 +59,24 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
 
-            [pVars, logcomps, logmasterComps, comboComps] = prepStateForEquations(model, state);
+            [pVars, logcomps, logmasterComps, comboComps, logGasComps, logSolidComps]...
+                = prepStateForEquations(model, state);
 
             [eqs, names, types] = equationsChemicalInit(logcomps, logmasterComps, comboComps, ...
-                                                        model);
+                                                       logGasComps, logSolidComps, model);
 
             problem = LinearizedProblem(eqs, types, names, pVars, state, dt);
 
         end
 
-        function [logUnknowns, logComps, logMasterComps, combinationComps] = prepStateForEquations(model, ...
+        function [logUnknowns, logComps, logMasterComps, combinationComps,...
+                 logGasComps, logSolidComps] = prepStateForEquations(model, ...
                                                               state)
             CNames = model.logCompNames;
             MCNames = model.logMasterCompNames;
             LCNames = model.CombinationNames;
+            GNames = model.logGasNames;
+            SNames = model.logSolidNames;
 
             nC = numel(CNames);
 
@@ -129,7 +133,30 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 end
             end
 
-
+            logGasComps = cell(1,model.nG);
+            for i = 1 : model.nG
+                mcInd = strcmpi(logUnknowns, GNames{i});
+                if any(mcInd)
+                    logGasComps{i} = logUnknownVal{mcInd};
+                end
+                mcInd = strcmpi(logKnowns, GNames{i});
+                if any(mcInd)
+                    logGasComps{i} = logKnownVal{mcInd};
+                end
+            end
+            
+            logSolidComps = cell(1,model.nS);
+            for i = 1 : model.nS
+                mcInd = strcmpi(logUnknowns, SNames{i});
+                if any(mcInd)
+                    logSolidComps{i} = logUnknownVal{mcInd};
+                end
+                mcInd = strcmpi(logKnowns, SNames{i});
+                if any(mcInd)
+                    logSolidComps{i} = logKnownVal{mcInd};
+                end
+            end
+            
         end
 
         function [state, report] = updateState(model, state, problem, dx, ...
@@ -137,18 +164,29 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
             [state, report] = updateState@ChemicalModel(model, state, problem, ...
                                                         dx, drivingForces);
-
-            nC = model.nC;
+            state = model.syncFromLog(state);
+            
             LC = model.CombinationMatrix;
+            CM = model.CompositionMatrix;
 
             for i = 1 : model.nLC
                 combMaxMatrix = diag(1./LC(:, i));
                 maxvals = combMaxMatrix*((state.combinationComponents)');
                 maxvals = (min(maxvals))';
-                state = model.capProperty(state, model.CompNames{i}, 1e-50, ...
+                state = model.capProperty(state, model.CombinationNames{i}, 1e-50, ...
                                           maxvals);
             end
 
+%             for i = 1 : model.nC
+%                 maxMatrix = diag(1./CM(:, i));
+%                 maxvals = maxMatrix*((state.components)');
+%                 maxvals = (min(maxvals))';
+%                 state = model.capProperty(state, model.CompNames{i}, 1e-50, ...
+%                                           maxvals);
+%             end
+           
+            state = model.syncLog(state);
+            
         end
 
         function [state, failure, report] = solveChemicalState(model, inputstate)

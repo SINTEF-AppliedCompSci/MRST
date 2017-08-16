@@ -1,4 +1,4 @@
-function [eqs, names, types] = equationsChemicalLog(logcomps, logmasterComps, model)
+function [eqs, names, types] = equationsChemicalLog(logcomps, logmasterComps, logGasComps, logSolidComps, model)
 
     try 
         T = model.getProp(state, 'temperature');
@@ -18,7 +18,10 @@ function [eqs, names, types] = equationsChemicalLog(logcomps, logmasterComps, mo
     CM = model.CompositionMatrix;
 
     comps = cellfun(@(x) exp(x), logcomps, 'UniformOutput', false);
-
+    gasComps = cellfun(@(x) exp(x), logGasComps, 'UniformOutput', false);
+    solidComps = cellfun(@(x) exp(x), logSolidComps, 'UniformOutput', false);
+    masterComps = cellfun(@(x) exp(x), logmasterComps, 'UniformOutput', false);
+    
     logK = model.LogReactionConstants;
 
     eqs   = cell(1, model.nR + model.nMC);
@@ -64,11 +67,18 @@ function [eqs, names, types] = equationsChemicalLog(logcomps, logmasterComps, mo
         for k = 1 : model.nC
             eqs{i} = eqs{i} + RM(i, k).*(pg{k} + af{k} + logcomps{k});
         end
+%         for k = 1 : model.nG
+%             eqs{i} = eqs{i} + model.GasReactionMatrix(i,k).*logGasComps{k};
+%         end
+%         for k = 1 : model.nS
+%             eqs{i} = eqs{i} + model.SolidReactionMatrix(i,k).*logSolidComps{k};
+%         end
         names{i} = model.rxns{i};
     end
 
     assert(all(all(CM>=0)), ['this implementation only supports positive ' ...
                         'master components values']);
+                    
     % composition matrix
     for i = 1 : model.nMC
         j = model.nR + i;
@@ -76,7 +86,14 @@ function [eqs, names, types] = equationsChemicalLog(logcomps, logmasterComps, mo
         for k = 1 : model.nC
             masssum = masssum + CM(i,k).*comps{k};
         end
+        for k = 1 : model.nG
+            masssum = masssum + model.GasCompMatrix(i,k).*gasComps{k};
+        end
+        for k = 1 : model.nS
+            masssum = masssum + model.SolidCompMatrix(i,k).*solidComps{k};
+        end
         eqs{j} = log(masssum) - logmasterComps{i};
+
         names{j} = ['Conservation of ', model.MasterCompNames{i}] ;
     end
     
