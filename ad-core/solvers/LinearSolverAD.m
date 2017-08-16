@@ -92,7 +92,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
            end
            objective = combineEquations(objective);
            assert(isa(objective, 'ADI'), 'Objective function was not of type ADI.');
-           rhs = -objective.jac{1}';
+           if isnumeric(objective)
+              % assumes that the reason for objective is numerics is that
+              % all derivatives are zeros.
+              error('Objectives have to be ADI: change result to val+0*ADIvariable');
+              rhs = 0;
+           else
+              rhs = -objective.jac{1}';
+           end
            if ~isempty(adjVec)
                problemPrev = problemPrev.assembleSystem();
                rhs = rhs - problemPrev.A'*adjVec;
