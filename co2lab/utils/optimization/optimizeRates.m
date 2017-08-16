@@ -1,12 +1,12 @@
 function [optim, init, history] = optimizeRates(initState, model, schedule, ...
-                                                min_rates, max_rates, varargin)
+                                                min_wvals, max_wvals, varargin)
 %
-% Compute an optimal set of injection rates for a proposed
+% Compute an optimal set of well controls ('rate' or 'bhp') for a proposed
 % injection/migration scenario.
 % 
 % SYNOPSIS:
 %   function [optim, init, history] = ...
-%      optimizeRates(initState, model, schedule, min_rates, max_rates, varargin)
+%      optimizeRates(initState, model, schedule, min_wvals, max_wvals, varargin)
 %
 % DESCRIPTION:
 %
@@ -15,8 +15,8 @@ function [optim, init, history] = optimizeRates(initState, model, schedule, ...
 %   model     - simulation model (instance of CO2VEBlackOilTypeModel)
 %   schedule  - initial proposed injection schedule (which also includes
 %               information on the placement of wells)
-%   min_rates - minimum allowed rates 
-%   max_rates - maximum allowed rates
+%   min_wvals - minimum allowed well control values during injection period
+%   max_wvals - maximum allowed well control values during injection period
 %   varargin  - An optional number of paired arguments on the form: 
 %               'option', value.   Possible options are:
 %               - dryrun:       if 'true', no optimization will take place (only
@@ -111,8 +111,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    opt = merge_options(opt, varargin{:});
    
    num_wells = numel(schedule.control(1).W);
-   assert(numel(max_rates) == num_wells);
-   assert(numel(min_rates) == num_wells);
+   assert(numel(max_wvals) == num_wells);
+   assert(numel(min_wvals) == num_wells);
    
    init.schedule = schedule;
 
@@ -139,20 +139,53 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    end
    
    % Define limits, scaling and objective function
-   
-   scaling.boxLims = [min_rates(:), max_rates(:)];
+   % NB: if well control types for the injection and migration periods are
+   % the same, the same boxLims will be applied to the well controls during
+   % both control periods. However, if the well control types are different
+   % (e.g., 'bhp' during injection/production, then 'rate' during
+   % migration), we require two separate scalings. We assume the well
+   % controls during the migration period are type 'rate'.
+
+   scaling.boxLims = [min_wvals(:), max_wvals(:)];
    scaling.obj     = opt.obj_scaling;
    
+   assert( numel(schedule.control)==2 , 'Expected two control periods.' )
+   assert( all(strcmpi({schedule.control(2).W.type},'rate')), ...
+       'Expected well controls during migration period to be type "rate".' )
+   
+   % Flag for whether or not control types are the same in both periods.
+   sameControlTypes = all(strcmpi({schedule.control(1).W.type}, ...
+       {schedule.control(2).W.type}));
+
+   if sameControlTypes
+       scaling_mig = [];
+   else
+       scaling_mig.boxLims = scaling.boxLims;
+       bhpTypeInx = strcmpi({schedule.control(1).W.type},'bhp');
+       scaling_mig.boxLims( bhpTypeInx, 1 ) = -sqrt(eps);
+       scaling_mig.boxLims( bhpTypeInx, 2 ) = -2*sqrt(eps);
+   end
+   
    obj_evaluator = @(u) evaluate_objective(u, opt.obj_fun, model, initState, ...
-                                           schedule, scaling); 
+                                           schedule, scaling, scaling_mig); 
 
    % Define constraints
    
    linEqS = [];
    if opt.last_control_is_migration
       % Constrain rates of last step to zero
+      if sameControlTypes
+          min_rates = scaling.boxLims(:,1);
+      else
+          min_rates = scaling_mig.boxLims(:,1);
+      end
       linEq = struct('A', eye(num_wells), 'b', min_rates(:));
-      linEqS = setupConstraints(linEq, schedule, scaling);
+      if sameControlTypes
+          linEqS = setupConstraints(linEq, schedule, scaling);
+      else
+          linEqS = setupConstraints(linEq, schedule, scaling_mig);
+      end
+      
       
       % keep only the relations pertaining to the last control step
       last_step_ix = num_wells * (numel(schedule.control) - 1) + 1;
@@ -163,7 +196,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    
    % Call optimization routine
    
-   u = schedule2control(schedule, scaling);
+   if sameControlTypes
+       u = schedule2control(schedule, scaling);
+   else
+       sch1.control = schedule.control(1);
+       sch2.control = schedule.control(2);
+       u_1 = schedule2control(sch1, scaling);
+       u_2 = schedule2control(sch2, scaling_mig);
+       u = [u_1; u_2];
+   end
    [~, u_opt, history] = unitBoxBFGS(u, obj_evaluator, 'linEq', linEqS, ...
                                      'lineSearchMaxIt', opt.lineSearchMaxIt, ...
                                      'gradTol',         opt.gradTol, ...
@@ -172,8 +213,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    
    % Preparing solution structures
    
-   optim.schedule = control2schedule(u_opt, schedule, scaling);
-
+   if sameControlTypes
+       optim.schedule = control2schedule(u_opt, schedule, scaling);
+   else
+       sch1 = control2schedule(u_opt(1:end/2), sch1, scaling);
+       sch2 = control2schedule(u_opt(end/2+1:end), sch2, scaling_mig);
+       optim.schedule.control(1) = sch1.control;
+       optim.schedule.control(2) = sch2.control;
+       optim.schedule.step = schedule.step;
+   end
+   
+   
    [optim.wellSols, optim.states] = ...
        simulateScheduleAD(initState, ...
                           model, ...
@@ -247,15 +297,48 @@ end
 % ----------------------------------------------------------------------------
 
 function [val, der, wellSols, states] = ...
-       evaluate_objective(u, obj_fun, model, initState, schedule, scaling) 
+       evaluate_objective(u, obj_fun, model, initState, schedule, scaling, scaling_mig) 
    
+% With possiblity of separate scalings applied to two different control
+% periods. This is required when a well is bhp-controlled during the
+% injection period, and is rate-controlled during the migration period.
+
+   if numel(schedule.control)==1
+       % Since there is only one control period, there is no difference
+       % between control types.
+       sameControlTypes = true;
+   
+   elseif numel(schedule.control)==2
+       % We check whether there is a difference between well control types
+       % between the first (injection) and second (migration) control
+       % periods.
+       sameControlTypes = all(strcmpi({schedule.control(1).W.type}, {schedule.control(2).W.type}));
+       assert( ~isempty(scaling_mig), 'Need non-empty separate scaling for migration period.' )
+       
+   else
+       error( 'Not yet implemented for more than 2 control periods.' )
+   end
+   
+   if ~sameControlTypes
+       % separate the two controls
+       sch1.control = schedule.control(1);
+       sch2.control = schedule.control(2);
+       % where u = [u1; u2]
+   end
+
    minu = min(u);
    maxu = max(u);
    if or(minu < -eps , maxu > 1+eps)
       warning('Controls are expected to lie in [0 1]\n')
    end
+   
+   if sameControlTypes
+       boxLims = scaling.boxLims;
+   else
+       boxLims1 = scaling.boxLims;
+       boxLims2 = scaling_mig.boxLims;
+   end
 
-   boxLims = scaling.boxLims;
    if isfield(scaling, 'obj')
       objScaling = abs(scaling.obj);
    else
@@ -263,7 +346,17 @@ function [val, der, wellSols, states] = ...
    end
    
    % update schedule:
-   schedule = control2schedule(u, schedule, scaling);
+   if sameControlTypes
+       schedule = control2schedule(u, schedule, scaling);
+   else
+       % the first half of the well controls u belongs to the first control
+       % period, and the second half belongs to the second control period.
+       % We scale these well controls separately.
+       sch1 = control2schedule(u(1:end/2), sch1, scaling);
+       sch2 = control2schedule(u(end/2+1:end), sch2, scaling_mig);
+       schedule.control(1) = sch1.control;
+       schedule.control(2) = sch2.control;
+   end
    
    % run simulation:
    [wellSols, states] = ...
@@ -279,8 +372,14 @@ function [val, der, wellSols, states] = ...
       objh = @(tstep)obj_fun(wellSols, states, schedule, 'ComputePartials', true, 'tStep', tstep);
       g    = computeGradientAdjointAD(initState, states, model, schedule, objh);
       % scale gradient:
-      der = scaleGradient(g, schedule, boxLims, objScaling);
-      der = vertcat(der{:});
+      if sameControlTypes
+          der = scaleGradient(g, schedule, boxLims, objScaling);
+          der = vertcat(der{:});
+      else
+          der1 = scaleGradient({g{1}}, sch1, boxLims1, objScaling);
+          der2 = scaleGradient({g{2}}, sch2, boxLims2, objScaling);
+          der = vertcat(der1{:}, der2{:});
+      end
    end
 end
 
