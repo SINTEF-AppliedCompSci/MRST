@@ -80,7 +80,7 @@ classdef MultiscaleVolumeSolverAD < LinearSolverAD
            
            timer = tic();
            [result, report] = solver.solveLinearSystem(problem.A, problem.b);
-           % [result, report] = problem.processResultAfterSolve(result, report);
+           [result, report] = problem.processResultAfterSolve(result, report);
            report.SolverTime = toc(timer);
            
            dxCell = solver.storeIncrements(problem, result);
