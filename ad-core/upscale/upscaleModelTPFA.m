@@ -145,9 +145,12 @@ function [Tc, N_int] = getTransmissibility(CG, rock_c, opt)
     intx = all(N ~= 0, 2);
     nIF = sum(intx);
     
-    if nT == 0 || nT == nF
-        % We either have no transmissibility given, or it is in the format
-        % one entry per face. Either case is fine for setupOperators.
+    if nT == 0 
+        % We have no upscaled transmissibility given we calculated them from the upscaled permeability    
+        Tc = getFaceTransmissibility(CG, rock_c);
+    elseif  nT == nF 
+        % We have transmissibility in the format
+        % one entry per face. This case is fine for setupOperators.
     elseif nT == nHf
         Tc  = 1 ./ accumarray(CG.cells.faces(:,1), 1./Tc, [nF, 1]);
     elseif nT == nIF
