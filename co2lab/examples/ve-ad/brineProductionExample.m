@@ -3,8 +3,7 @@
 % formation (Barents Sea) to demonstrate the use of brine production for
 % enhancing storage capacity. Injection and production controls are
 % optimized according to an objective function which penalizes leakage and
-% pressure-buildup. See 'pressureLimitedExample.m' for more details on this
-% objective function.
+% pressure-buildup (as done in 'pressureLimitedExample.m').
 
 mrstModule add ad-core ad-props optimization
 gravity on;
@@ -25,15 +24,22 @@ init.schedule = schedule;
 %sameControlTypes = all(strcmpi({schedule.control(1).W.type}, {schedule.control(2).W.type}));
 
 
-%% Set up
-P_over = computeOverburdenPressure(model.G, model.rock, seainfo.seafloor_depth, model.fluid.rhoWS);
+%% Define some parameters
+% We use a leakage penalty factor of 5. We set the pressure limit to be 90%
+% of the overburden pressure, and the pressure penalty factors will be
+% gradually ramped up until the optimal solution is one in which the
+% pressure limit is surpassed within a tolerance of 2%.
+P_over      = computeOverburdenPressure(model.G, model.rock, seainfo.seafloor_depth, model.fluid.rhoWS);
 p_lim_fac   = 0.9;
 P_limit     = P_over * p_lim_fac;
-cP = [1e-9, 1e-8, 1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1]; % pressure penalty factor
-cL = 5; % leakage penalty factor
+cP          = [1e-9, 1e-8, 1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1]; % pressure penalty factor
+cL          = 5; % leakage penalty factor
 
 
 %% Evaluate initial objective (using lowest cP):
+% Our objective is to maximize CO2 storage while minimizing long-term
+% leakage and pressure buildup. See 'pressureLimitedExample.m' for more
+% details on this objective function.
 obj_funA = @(wellSols, states, schedule, varargin) ...
             leakPenalizerAtInfinity(model, wellSols, states, ...
                 schedule, cL, other.surface_pressure, ...
@@ -42,7 +48,9 @@ obj_funB = @(states, varargin) ...
             pressurePenalizer(model, states, schedule, cP(1), ...
                 P_limit, varargin{:});
            
-% Scale initial objective using obj_funA since obj_funB can be very large
+% We scale the initial objective using obj_funA since obj_funB can be very
+% large if the initial guess caused the pressure limit to be greately
+% surpassed.
 init.obj_val_steps_A = cell2mat( obj_funA(init.wellSols, init.states, init.schedule) );
 init.obj_val_steps_B = cell2mat( obj_funB(init.states) );
 init.obj_val_steps = init.obj_val_steps_A - init.obj_val_steps_B;
@@ -54,7 +62,12 @@ init0 = init; % keep the initial simulation results
 
 
 %% Define min and max well control values (used to set up box limits)
+% Here, we set the limits for the injector wells to be "zero" and some
+% multiple of the highest injector rate. The producer wells are limited to
+% operate between 50 bars and the initial hydrostatic pressure near the
+% well.
 
+% schedule indexes for 'rate' (injector) and 'bhp' (producer) control wells
 injWinx = find(strcmpi({schedule.control(1).W.type},'rate'));
 prdWinx = find(strcmpi({schedule.control(1).W.type},'bhp'));
 prdWcel = [schedule.control(1).W(prdWinx).cells];
@@ -83,10 +96,9 @@ for r = 1:numel(cP)
                     obj_funB(states, varargin{:})   ); 
                 
                 
-    % Optimize injection rates
-    % using the BFGS optimization algorithm. Passing in 'obj_scaling' means
-    % an initial simulation will not be executed by optimizeRates. The
-    % initial schedule is as per 'sch'.
+    % Optimize injection rates using the BFGS optimization algorithm.
+    % Passing in 'obj_scaling' means an initial simulation will not be
+    % executed by optimizeRates. The initial schedule is as per 'sch'.
     [optim, init, history] = optimizeRates(initState, model, sch, min_wvals, max_wvals, ...
                                 'obj_fun',                      obj_fun, ...
                                 'last_control_is_migration',    true, ...

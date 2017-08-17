@@ -5,9 +5,9 @@ function [model, schedule, initState, seainfo, other] = setupProdExModel( vararg
     
     opt.surface_pressure = 1 * atm;
     opt.btype           = 'pressure';   % 'pressure' for hydrostatic or 'flux' for no-flow
-    opt.itime           = 50 * year;           % injection period (years)
+    opt.itime           = 50 * year;    % injection period (years)
     opt.isteps          = 50;
-    opt.mtime           = 1000 * year;         % migration period (years)
+    opt.mtime           = 1000 * year;  % migration period (years)
     opt.msteps          = 100;
 
     opt = merge_options(opt, varargin{:});
