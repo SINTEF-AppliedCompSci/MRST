@@ -1,22 +1,30 @@
-function [optim, init, history] = optimizeRates(initState, model, schedule, ...
-                                                min_rates, max_rates, varargin)
+function [optim, init, history] = optimizeControls(initState, model, schedule, ...
+                                                min_wvals, max_wvals, varargin)
 %
-% Compute an optimal set of injection rates for a proposed
+% Compute an optimal set of well controls ('rate' or 'bhp') for a proposed
 % injection/migration scenario.
 % 
 % SYNOPSIS:
 %   function [optim, init, history] = ...
-%      optimizeRates(initState, model, schedule, min_rates, max_rates, varargin)
+%      optimizeControls(initState, model, schedule, min_wvals, max_wvals, varargin)
 %
 % DESCRIPTION:
+%   The injection phase can consist of multiple control periods. If a
+%   migration phase is included, it must be only one control period, and it
+%   must be the last control period. Individual wells must be of the same
+%   well type (either 'rate' or 'bhp') during the entire injection phase.
+%   If there's a migration phase, all wells must be of well type 'rate'.
+%   Individual well signs must remain fixed over all periods (+1 for
+%   injector, -1 for producer).
+%
 %
 % PARAMETERS:
 %   initState - initial state
 %   model     - simulation model (instance of CO2VEBlackOilTypeModel)
 %   schedule  - initial proposed injection schedule (which also includes
 %               information on the placement of wells)
-%   min_rates - minimum allowed rates 
-%   max_rates - maximum allowed rates
+%   min_wvals - minimum allowed well control values during injection phase
+%   max_wvals - maximum allowed well control values during injection phase
 %   varargin  - An optional number of paired arguments on the form: 
 %               'option', value.   Possible options are:
 %               - dryrun:       if 'true', no optimization will take place (only
@@ -111,10 +119,25 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    opt = merge_options(opt, varargin{:});
    
    num_wells = numel(schedule.control(1).W);
-   assert(numel(max_rates) == num_wells);
-   assert(numel(min_rates) == num_wells);
+   assert(numel(max_wvals) == num_wells);
+   assert(numel(min_wvals) == num_wells);
    
    init.schedule = schedule;
+   
+   % Check that schedule is in line with assumptions regarding well
+   % control signs and types.
+   assert( sameControlSigns( schedule, 1:numel(schedule.control) ), ...
+       'Each well control SIGN must remain constant over all control periods.' )
+   
+   if opt.last_control_is_migration
+       assert( all(strcmpi({schedule.control(end).W.type},'rate')), ...
+            'All well control TYPES must be "rate" during the migration period.' )
+       inj_control_periods = 1:numel(schedule.control)-1;
+   else
+       inj_control_periods = 1:numel(schedule.control);
+   end
+   assert( sameControlTypes( schedule, inj_control_periods ), ...
+            'A well control TYPE cannot change during the injection phase.' )
 
    % Compute initial objective value (if required for scaling)
    if isempty(opt.obj_scaling)
@@ -139,21 +162,39 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    end
    
    % Define limits, scaling and objective function
-   
-   scaling.boxLims = [min_rates(:), max_rates(:)];
+
+   scaling.boxLims = [min_wvals(:), max_wvals(:)];
    scaling.obj     = opt.obj_scaling;
+   scaling_mig     = [];
+   
+   if opt.last_control_is_migration
+       % We ensure the min box limit applied to the well controls during
+       % this last control period is "zero". As such, any wells that were
+       % 'bhp' controlled during the injection period(s) are assigned a
+       % "zero" min rate. (The max box limit could in theory be any value,
+       % since rates will be constrained to their min values anyways.) Any
+       % wells that are producers are assigned with negative rate limits.
+       scaling_mig.boxLims = scaling.boxLims;
+       scaling_mig.boxLims(:,1) = sqrt(eps); % @@ required?
+       bhpTypeInx = strcmpi({schedule.control(1).W.type},'bhp');
+       scaling_mig.boxLims( bhpTypeInx, 1 ) = sqrt(eps);
+       scaling_mig.boxLims( bhpTypeInx, 2 ) = 2*sqrt(eps);
+       scaling_mig.boxLims = [schedule.control(1).W.sign]' .* scaling_mig.boxLims;
+   end
    
    obj_evaluator = @(u) evaluate_objective(u, opt.obj_fun, model, initState, ...
-                                           schedule, scaling); 
+                                           schedule, scaling, scaling_mig, ...
+                                           opt.last_control_is_migration ); 
 
    % Define constraints
    
    linEqS = [];
    if opt.last_control_is_migration
-      % Constrain rates of last step to zero
+      % Constrain rates of last step to "zero" (i.e., their minimum values)
+      min_rates = scaling_mig.boxLims(:,1);
       linEq = struct('A', eye(num_wells), 'b', min_rates(:));
-      linEqS = setupConstraints(linEq, schedule, scaling);
-      
+      linEqS = setupConstraints(linEq, schedule, scaling_mig);
+
       % keep only the relations pertaining to the last control step
       last_step_ix = num_wells * (numel(schedule.control) - 1) + 1;
       linEqS.A = linEqS.A(last_step_ix:end, :);
@@ -164,6 +205,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    % Call optimization routine
    
    u = schedule2control(schedule, scaling);
+   if opt.last_control_is_migration
+       % We scale the well control values that correspond to the migration
+       % period using scaling_mig.
+       sch_mig.control = schedule.control(end);
+       u(end-num_wells+1:end) = schedule2control(sch_mig, scaling_mig);
+   end
    [~, u_opt, history] = unitBoxBFGS(u, obj_evaluator, 'linEq', linEqS, ...
                                      'lineSearchMaxIt', opt.lineSearchMaxIt, ...
                                      'gradTol',         opt.gradTol, ...
@@ -173,7 +220,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    % Preparing solution structures
    
    optim.schedule = control2schedule(u_opt, schedule, scaling);
-
+   if opt.last_control_is_migration
+       % We scale the well control values that correspond to the migration
+       % period using scaling_mig.
+       sch_mig.control = schedule.control(end);
+       sch_mig = control2schedule(u_opt(end-num_wells+1:end), sch_mig, scaling_mig);
+       optim.schedule.control(end) = sch_mig.control;
+   end
+   
    [optim.wellSols, optim.states] = ...
        simulateScheduleAD(initState, ...
                           model, ...
@@ -240,21 +294,34 @@ function obj = leak_penalizer(model, wellSols, states, schedule, penalty, vararg
             fprintf('Score: %f\n\n', double(tot_inj) - penalty * double(tot_inj-vol));
          end
       end
-      obj{step} = obj{step} * model.fluid.rhoGS/1e12; %@@
+      obj{step} = obj{step} * model.fluid.rhoGS/1e12; % Gt CO2
    end
 end
 
 % ----------------------------------------------------------------------------
 
 function [val, der, wellSols, states] = ...
-       evaluate_objective(u, obj_fun, model, initState, schedule, scaling) 
+       evaluate_objective(u, obj_fun, model, initState, schedule, scaling, ...
+                          scaling_mig, last_control_is_migration) 
    
+% With possiblity of separate scalings applied to the injection period(s)
+% and the migration period. This is required when a well is bhp-controlled
+% during the injection period(s), and then rate-controlled during the
+% migration period.
+
+   if last_control_is_migration
+       assert( ~isempty(scaling_mig), ...
+           'Need to supply separate scaling for migration period.' )
+       num_wells            = numel(schedule.control(1).W);
+       schedule_mig.control = schedule.control(end);
+   end
+
    minu = min(u);
    maxu = max(u);
    if or(minu < -eps , maxu > 1+eps)
       warning('Controls are expected to lie in [0 1]\n')
    end
-
+   
    boxLims = scaling.boxLims;
    if isfield(scaling, 'obj')
       objScaling = abs(scaling.obj);
@@ -264,6 +331,13 @@ function [val, der, wellSols, states] = ...
    
    % update schedule:
    schedule = control2schedule(u, schedule, scaling);
+   if last_control_is_migration
+       % We scale the well control values that correspond to the migration
+       % period using scaling_mig.
+       sch_mig = control2schedule(u(end-num_wells+1:end), schedule_mig, scaling_mig);
+       schedule.control(end) = sch_mig.control;
+       clear sch_mig
+   end
    
    % run simulation:
    [wellSols, states] = ...
@@ -281,6 +355,12 @@ function [val, der, wellSols, states] = ...
       % scale gradient:
       der = scaleGradient(g, schedule, boxLims, objScaling);
       der = vertcat(der{:});
+      if last_control_is_migration
+          schedule_mig.control  = schedule.control(end);
+          boxLims_mig           = scaling_mig.boxLims;
+          der_mig     = scaleGradient({g{end}}, schedule_mig, boxLims_mig, objScaling);
+          der         = vertcat(der(1:end-num_wells), der_mig{:});
+      end
    end
 end
 
@@ -292,5 +372,52 @@ function grd = scaleGradient(grd, schedule, boxLims, objScaling)
       grd{k} = (dBox / objScaling) .* grd{k}; 
    end
 end
+
+% ----------------------------------------------------------------------------
+
+function flag = sameControlTypes( schedule, control_periods )
+
+    % Output is true/false depending on whether or not an individual well
+    % is of the same control type (i.e., 'bhp' or 'rate') over the
+    % specified control periods.
     
+    % Example: control_period = [1 2], or [1 2 3], or [2 3], etc.
+    
+    assert( max(control_periods) <= numel(schedule.control), ...
+        'The schedule does not contain control period %d.', max(control_periods) ) 
+    
+    nc = numel(control_periods);
+    tmp = [];
+    for i=1:nc-1
+        a = { schedule.control( control_periods(i) ).W.type };
+        b = { schedule.control( control_periods(i+1) ).W.type };
+        tmp = [tmp, isequal(a, b)];
+    end
+    flag = all(tmp); % for flag to be true, all values of tmp must be 1 (true).
+
+end
+
+% ----------------------------------------------------------------------------
+
+function flag = sameControlSigns( schedule, control_periods )
+
+    % Output is true/false depending on whether or not an individual well
+    % is of the same control sign (i.e., +1 or -1) over the specified
+    % control periods.
+    
+    % Example: control_period = [1 2], or [1 2 3], or [2 3], etc.
+
+    assert( max(control_periods) <= numel(schedule.control), ...
+        'The schedule does not contain control period %d.', max(control_periods) ) 
+
+    nc = numel(control_periods);
+    tmp = [];
+    for i=1:nc-1
+        a = { schedule.control( control_periods(i) ).W.sign };
+        b = { schedule.control( control_periods(i+1) ).W.sign };
+        tmp = [tmp, isequal(a, b)];
+    end
+    flag = all(tmp); % for flag to be true, all values of tmp must be 1 (true).
+
+end
 

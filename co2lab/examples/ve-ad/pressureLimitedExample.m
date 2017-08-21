@@ -9,7 +9,7 @@
 % to makeBjarmelandModel().
 
 mrstModule add ad-core optimization
-saveResults = true;
+saveResults = false;
 
 %% Set up simple example
 % The Bjarmeland model is set up with two wells, placed downstream from
@@ -107,7 +107,7 @@ for r = 1:numel(cP)
     % using the BFGS optimization algorithm. Passing in 'obj_scaling' means
     % an initial simulation will not be executed by optimizeRates. The
     % initial schedule is as per 'sch'.
-    [optim, init, history] = optimizeRates(initState, model, sch, min_wvals, max_wvals, ...
+    [optim, init, history] = optimizeControls(initState, model, sch, min_wvals, max_wvals, ...
                                 'obj_fun',                      obj_fun, ...
                                 'last_control_is_migration',    true, ...
                                 'obj_scaling',                  obj_scaling, ...
