@@ -196,7 +196,7 @@ methods
         % Take averaged pressure for scaling factors
         state = problem.state;
         fluid = model.fluid;
-        if isprop(solver, 'trueIMPES') && solver.trueIMPES
+        if (isprop(solver, 'trueIMPES') || isfield(solver, 'trueIMPES')) && solver.trueIMPES
             % Rigorous pressure equation (requires lots of evaluations)
             p = state.pressure;
             rs = state.rs;
@@ -211,6 +211,7 @@ methods
                         else
                            bO = fluid.bO(p);
                         end
+                        bG = 1;
                         if model.vapoil
                             bG = fluid.bG(p, rv, rv >= fluid.rvSat(p));
                         elseif model.gas

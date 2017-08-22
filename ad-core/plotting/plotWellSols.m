@@ -525,11 +525,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 end
 
-function [tit, d, yl, doCsum] = getWellUnit(d, fld, usys, isCsum, hasTimesteps)
-    isMetric = strcmpi(usys, 'si');
-    isField = strcmpi(usys, 'field');
-    
-    doCsum = false;
+function [tit, d, yl, doCsum] = getWellUnit(d, fld, usys, isCsum, hasTimesteps)    
+    doCsum = isCsum;
     yl = '';
     tit = fld;
     

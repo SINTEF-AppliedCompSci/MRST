@@ -137,12 +137,10 @@ classdef SequentialPressureTransportModel < ReservoirModel
                 % Need to have some value
                 values = pressureReport.StepReports{end}.NonlinearReport{end}.Residuals(1);
             end
+            failure = false;
+            FailureMsg = '';
             if ~pressure_ok
-                FailureMsg = 'Pressure failed to converge.';
-                failure = true;
-            else
-                failure = false;
-                FailureMsg = '';
+                converged = converged && false;
             end
             report = model.makeStepReport(...
                                     'Failure',         failure, ...

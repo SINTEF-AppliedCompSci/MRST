@@ -63,7 +63,7 @@ classdef FacilityModel < PhysicalModel
                 [pvars, fromRes, eqnames, eqtypes] = deal(cell(nw, 1));
                 model.WellModels = cell(nw, 1);
                 for i = 1:nw
-                    % Set up models. SimpleWell for the time being
+                    % Set up models: SimpleWell or MultisegmentWell
                     if nargin < 3
                         if isfield(W(i), 'isMS') && W(i).isMS
                             wm = MultisegmentWell(W(i));

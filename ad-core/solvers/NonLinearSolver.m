@@ -326,9 +326,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                         % FailureMsg field that tells the user what
                         % went wrong.
                         msg = [msg, 'Model step resulted in failure state. Reason: ', ...
-                               reports{end}.NonlinearReport{end}.FailureMsg];
+                               reports{end}.NonlinearReport{end}.FailureMsg]; %#ok<AGROW>
                     else
-                        msg = [msg, 'Maximum number of substeps stopped timestep reduction'];
+                        msg = [msg, 'Maximum number of substeps stopped timestep reduction']; %#ok<AGROW>
                     end
 
                     if stopNow
@@ -465,7 +465,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                             'Iterations',      its);
         end
 
-        function [dx, report] = stabilizeNewtonIncrements(solver, model, problem, dx)
+        function [dx, report] = stabilizeNewtonIncrements(solver, model, problem, dx) %#ok<INUSL>
             % Attempt to stabilize newton increment by changing the values
             % of the increments.
             dx_prev = solver.previousIncrement;
