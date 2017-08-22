@@ -87,6 +87,8 @@ if ~opt.resOnly,
             initVariablesADI(p0, sW0, c0, wellVars0{:}); %#ok
         primaryVars = {'pressure', 'sW', 'polymer'};
     end
+else
+    primaryVars = {'pressure', 'sW', 'polymer'};
 end
 
 % We will solve for pressure, water saturation (oil saturation follows via
