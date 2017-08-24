@@ -42,17 +42,17 @@ function [names, mins, maxs] = computeMaxPotential(model, state)
               
         for i = 1 : numel(model.surfaces.groupNames)
             
-            surfName = model.surfaces.groupNames{i};
+            groupName = model.surfaces.groupNames{i};
             
-            mNames = model.surfaces.speciesNames(i,:);
-            mNames = mNames(cellfun(@(x) ~isempty(x), mNames));
+            GMNames = model.surfaces.groupMasterNames(i,:);
+            GMNames = GMNames(cellfun(@(x) ~isempty(x), GMNames));
             
             sig_0 = 0;
             sig_1 = 0;
             sig_2 = 0;
                         
-            for j = 1 : numel(mNames)
-                mInd = strcmpi(mNames{j}, model.surfInfo.master);
+            for j = 1 : numel(GMNames)
+                mInd = strcmpi(GMNames{j}, model.surfInfo.master);
                                         
                 % grab the correct info
                 S = model.surfInfo.s{mInd}*gram/(meter)^2;
@@ -68,12 +68,13 @@ function [names, mins, maxs] = computeMaxPotential(model, state)
                     case 'tlm'
 
                         % calculate surface charges
-                        sig_2 = sig_2 + (F./(S.*a)).*model.getProp(state, mNames{i})*litre/mol;
+                        sig_2 = sig_2 + (F./(S.*a)).*model.getProp(state, GMNames{j})*litre/mol;
 
+                        
                     case 'ccm'
 
                         % calculate surface charges
-                        sig_0 = sig_0 + (F./(S.*a)).*model.getProp(state, mNames{i})*litre/mol;
+                        sig_0 = sig_0 + (F./(S.*a)).*model.getProp(state, GMNames{j})*litre/mol;
                 end
             end
             
@@ -98,9 +99,9 @@ function [names, mins, maxs] = computeMaxPotential(model, state)
                     upLim = exp(lim.*ones(numel(P0),1));
                     loLim = exp(-lim.*ones(numel(P0),1));
             
-                    names{end+1} = [surfName '_ePsi_0'];
-                    names{end+1} = [surfName '_ePsi_1'];
-                    names{end+1} = [surfName '_ePsi_2'];
+                    names{end+1} = [groupName '_ePsi_0'];
+                    names{end+1} = [groupName '_ePsi_1'];
+                    names{end+1} = [groupName '_ePsi_2'];
                     
 
                     
@@ -136,7 +137,7 @@ function [names, mins, maxs] = computeMaxPotential(model, state)
                     min_P0 = min_sig./C(:,1);
 
 
-                    names{end+1} = ['log' surfName '_ePsi'];
+                    names{end+1} = ['log' groupName '_ePsi'];
                     
                     maxs{end+1} = max([exp(F.*max_P0./(R.*T)), exp(F.*min_P0./(R.*T))], [], 2);
                     maxs{end} = min([maxs{end}, upLim], [],2 );

@@ -84,22 +84,22 @@ function [eqs, names, types] = equationsChemicalLog(logcomps, logmasterComps, mo
     if ~isempty(model.surfInfo)
         for i = 1 : numel(model.surfaces.groupNames)
 
-            surfName = model.surfaces.groupNames{i};
+            groupName = model.surfaces.groupNames{i};
 
             if strcmpi(model.surfaces.scm{i},'langmuir')
                 call = call + 1;
                 continue
             end
 
-            mNames = model.surfaces.speciesNames(i,:);
-            mNames = mNames(cellfun(@(x) ~isempty(x), mNames));
+            GMNames = model.surfaces.groupMasterNames(i,:);
+            GMNames = GMNames(cellfun(@(x) ~isempty(x), GMNames));
 
             sig_0 = 0;
             sig_1 = 0;
             sig_2 = 0;
 
-            for j = 1 : numel(mNames)
-                mInd = strcmpi(mNames{j}, model.surfInfo.master);
+            for j = 1 : numel(GMNames)
+                mInd = strcmpi(GMNames{j}, model.surfInfo.master);
 
                 % grab the correct info
                 S = model.surfInfo.s{mInd}*gram/(meter)^2;
@@ -138,33 +138,33 @@ function [eqs, names, types] = equationsChemicalLog(logcomps, logmasterComps, mo
                 case 'tlm'
                     mysinh = @(x) exp(x)./2 - exp(-x)./2;
                     
-                    P2Ind = strcmpi([surfName '_ePsi_2'], model.CompNames);
-                    P1Ind = strcmpi([surfName '_ePsi_1'], model.CompNames);
-                    P0Ind = strcmpi([surfName '_ePsi_0'], model.CompNames);
+                    P2Ind = strcmpi([groupName '_ePsi_2'], model.CompNames);
+                    P1Ind = strcmpi([groupName '_ePsi_1'], model.CompNames);
+                    P0Ind = strcmpi([groupName '_ePsi_0'], model.CompNames);
 
                     sig_2 = sig_2 + -(8*10^3*R*T.*ion{end}.*e_o*e_w).^(0.5).*mysinh(logcomps{P2Ind}./2);
                     
                     
                     eqs{end+1} = sig_0 + sig_1 + sig_2;
-                    names{end+1} = ['charge balance of ' surfName];
+                    names{end+1} = ['charge balance of ' groupName];
                     types{end+1} = [];
                     
                     
                     eqs{end+1} = -sig_0 + C(:,1).*(R*T)./F.*(logcomps{P0Ind} - logcomps{P1Ind});
-                    names{end+1} = ['-s0 + C1*(P0 - P1), ' surfName];
+                    names{end+1} = ['-s0 + C1*(P0 - P1), ' groupName];
                     types{end+1} = [];
                     
                     
                     eqs{end+1} = -sig_2 - C(:,2).*(R*T)./F.*(logcomps{P1Ind} - logcomps{P2Ind});
-                    names{end+1} = ['-s2 - C2*(P1 - P2), ' surfName];
+                    names{end+1} = ['-s2 - C2*(P1 - P2), ' groupName];
                     types{end+1} = [];
 
                 case 'ccm'
                     
                     % explicitly calculate what the potential should be
-                    Pind = cellfun(@(x) ~isempty(x), regexpi(model.CompNames, [surfName '_']));
+                    Pind = cellfun(@(x) ~isempty(x), regexpi(model.CompNames, [groupName '_']));
                     eqs{end+1} = -sig_0 + (R*T/F).*logcomps{Pind}.*C(:,1);
-                    names{end+1} = ['-s + Psi*C ,' surfName];
+                    names{end+1} = ['-s + Psi*C ,' groupName];
                     types{end+1} = [];
             end
 
