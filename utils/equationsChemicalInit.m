@@ -1,7 +1,7 @@
-function [eqs, names, types] = equationsChemicalInit(logcomps, logmasterComps, comboComps, logGasComps, logSolidComps, model)
+function [eqs, names, types] = equationsChemicalInit(logcomps, logmasterComps, comboComps, logGasComps, logSolidComps, state, model)
 
 
-    [eqs, names, types] = equationsChemicalLog(logcomps, logmasterComps, logGasComps, logSolidComps,model);
+    [eqs, names, types] = equationsChemicalLog(logcomps, logmasterComps, logGasComps, logSolidComps, state, model);
 
     comps = cellfun(@(x) exp(x), logcomps, 'UniformOutput', false);
 

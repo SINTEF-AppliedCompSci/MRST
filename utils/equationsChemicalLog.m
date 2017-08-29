@@ -1,10 +1,8 @@
-function [eqs, names, types] = equationsChemicalLog(logcomps, logmasterComps, logGasComps, logSolidComps, model)
+function [eqs, names, types] = equationsChemicalLog(logcomps, logmasterComps, logGasComps, logSolidComps, state, model)
 
-    try 
-        T = model.getProp(state, 'temperature');
-    catch
-        T = 298;
-    end
+    T = model.getProp(state, 'temp');
+    poro = model.getProp(state, 'poro');
+
     
     
     An  = 6.0221413*10^23;       	% avagadros number [#/mol]
@@ -28,7 +26,7 @@ function [eqs, names, types] = equationsChemicalLog(logcomps, logmasterComps, lo
     names = cell(1, model.nR + model.nMC);
     types = cell(1, model.nR + model.nMC);
 
-    % calculate ionic strength
+    %% calculate ionic strength
     ionDum = 0;
     nP = sum(cellfun(@(x) ~isempty(x), regexpi(model.CompNames, 'psi')));
     model.ChargeVector = [model.ChargeVector, zeros(1,nP)];
@@ -38,13 +36,13 @@ function [eqs, names, types] = equationsChemicalLog(logcomps, logmasterComps, lo
     ion = cell(1,model.nC);
     [ion{:}] = deal((1/2)*abs(ionDum));
     
-    % calculate acitivity coefficient by davies equation
+    %% calculate acitivity coefficient by davies equation
     pg = cell(1,model.nC);
     for i = 1 : model.nC
         pg{i} = log(10).*-A.*model.ChargeVector(1,i).^2 .* (ion{i}.^(1/2)./(1 + ion{i}.^(1/2)) - 0.3.*ion{i});
     end
     
-    % calculate the active fraction for ion exchange surfaces
+    %% active fraction for ion exchange surfaces
     af = cell(1,model.nC);
     [af{:}] = deal(0);
     if ~isempty(model.surfInfo)
@@ -61,41 +59,69 @@ function [eqs, names, types] = equationsChemicalLog(logcomps, logmasterComps, lo
         end
     end
     
-    % calculate the reaction matrix
+    %% reaction matrix
     for i = 1 : model.nR  
+        
         eqs{i} = -logK(i);
+        
+        %%%%%%%%%%%%%%%%%%%%%%%%% put switch here %%%%%%%%%%%%%%%%%%%%%%%%%
+        %
+        % solid and gas phase contributions have been removed from RM, but
+        % will still be enforced as if at local chemical equilibrium. need
+        % a vector of alphas to switch the phase reactions off
+        %
+        % now logcomps is actually comp*porosity so need to divide by porosity
+        % poro = 1 if not defined
         for k = 1 : model.nC
-            eqs{i} = eqs{i} + RM(i, k).*(pg{k} + af{k} + logcomps{k});
+            eqs{i} = eqs{i} + RM(i, k).*(pg{k} + af{k} + logcomps{k})./poro;
         end
-%         for k = 1 : model.nG
-%             eqs{i} = eqs{i} + model.GasReactionMatrix(i,k).*logGasComps{k};
-%         end
-%         for k = 1 : model.nS
-%             eqs{i} = eqs{i} + model.SolidReactionMatrix(i,k).*logSolidComps{k};
-%         end
+        %
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        
         names{i} = model.rxns{i};
     end
 
     assert(all(all(CM>=0)), ['this implementation only supports positive ' ...
                         'master components values']);
                     
-    % composition matrix
+    %% composition matrix
     for i = 1 : model.nMC
         j = model.nR + i;
         masssum = 0;
+        
+        % now using units of moles
         for k = 1 : model.nC
             masssum = masssum + CM(i,k).*comps{k};
         end
+        
+        % solidComps and gasComps has units of volume (m^3)
+        % need to implement ideal gas law here for the gasses
         for k = 1 : model.nG
             masssum = masssum + model.GasCompMatrix(i,k).*gasComps{k};
         end
         for k = 1 : model.nS
-            masssum = masssum + model.SolidCompMatrix(i,k).*solidComps{k};
+            masssum = masssum + model.SolidCompMatrix(i,k).*solidComps{k}.*model.solidDensities(k);
         end
-        eqs{j} = log(masssum) - logmasterComps{i};
+        
+        eqs{j} = log(masssum) - logmasterComps{i}.*poro;
 
         names{j} = ['Conservation of ', model.MasterCompNames{i}] ;
     end
+    
+    
+    %% conservation of volume
+    
+    vol = 1 - poro;
+    for i = 1 : model.nS
+        vol = vol - solidComps{i};
+    end
+    for i = 1 : model.nG
+        vol = vol - gasComps{i};
+    end    
+    
+    eqs{end+1} = vol;
+    names{end+1} = 'Conservation of volume';
+    types{end+1} = [];
     
     %% surface potentials
     if ~isempty(model.surfInfo)

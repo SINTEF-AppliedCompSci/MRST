@@ -109,6 +109,8 @@ classdef ChemicalModel < PhysicalModel
         
         GasReactionMatrix   % reaction matrix of gas phase
         SolidReactionMatrix % reaction matrix of solid phase
+        
+        solidDensities      % density of solid phases, same order of solidNames
     end
 
 
@@ -256,9 +258,10 @@ classdef ChemicalModel < PhysicalModel
                 valFun = @(x) iscell(x);
                 p.addOptional('surfaces', '', valFun);                
                 p.addOptional('combinations', '', valFun);
-                p.addOptional('solids', '', valFun);
-                p.addOptional('gasses', '', valFun);
-
+%                 p.addOptional('solids', '', valFun);
+%                 p.addOptional('gasses', '', valFun);
+                p.addOptional('solidDensities', '', valFun)
+                
                 p.parse(varargin{4:end})
             
                 % add surface functional groups to master component list
@@ -333,6 +336,7 @@ classdef ChemicalModel < PhysicalModel
                     surfNames = cellfun(@(name) [name '*'], ...
                                                surfNames, ...
                                                'uniformoutput', false);
+                                           
                     MasterCompNames = horzcat(MasterCompNames, surfNames);
                 end
                 
@@ -343,14 +347,18 @@ classdef ChemicalModel < PhysicalModel
                     model = initElectrostaticModel(model, toPass);
                 end
                 
-%                 if ~isempty(p.Results.solids)
-%                     model = initSolidPhaseMass(model, p.Results.solids);
-%                 end
-%                 
-%                 if isempty(p.Results.gasses)
-%                     model = initGasePhaseMass(model, p.Results.gasses);
-%                 end
-            
+                if ~isempty(p.Results.solidDensities)
+                    if size(model.SolidNames,2) == 0
+                        warning('Ignoring solidDensity input to ChemicalModel as no solids were found.');
+                    end
+                     
+                    model = initSolidPhaseDensities(model, p.Results.solidDensities);
+                end
+                
+                if size(model.SolidNames, 2) > 0 && isempty(p.Results.solidDensities)
+                    error('Solid densities must be provided if there are solid phases in the system.');
+                end
+                 
                 if ~isempty(p.Results.combinations)
                     model = initLinearCombinations(model, p.Results.combinations);
                 else
@@ -374,6 +382,8 @@ classdef ChemicalModel < PhysicalModel
                     end
                     model.inputs = model.chemicalInputModel.inputNames(~inInd);
                 end
+                
+                
             elseif nargin == 0
                 % Used when creating instance of
                 % chemicalInputModel. Nothing is initiated at this stage.
@@ -595,14 +605,21 @@ classdef ChemicalModel < PhysicalModel
                     break
                 end
 
-                ind = strcmpi(name, 'temperature');
+                ind = strcmpi(name, 'temp');
                 if any(ind)
                     varfound = true;
-                    fn = 'temperature';
+                    fn = 'temp';
                     index = find(ind);
                     break
                 end
-                
+
+                ind = strcmpi(name, 'poro');
+                if any(ind)
+                    varfound = true;
+                    fn = 'poro';
+                    index = find(ind);
+                    break
+                end                
                 
                 ind = strcmpi(name, model.surfaceChargeNames);
                 if any(ind)
@@ -657,11 +674,11 @@ classdef ChemicalModel < PhysicalModel
         % OPTIONAL PARAMETERS:
         %   state            - A structure containg information about the
         %       physical model. Currently the only relevant information for 
-        %       the chemical system is state.temperature. This is an
-        %       optional parameter, when not provided temperature is
+        %       the chemical system is state.temp. This is an
+        %       optional parameter, when not provided temp is
         %       assumed to be 298 K. Should be given as a 'key'/value pair.
         %
-        %           state.temperature = 170*Kelvin;
+        %           state.temp = 170*Kelvin;
         %           
         %           state = model.initState(userInput, 'state', state)
         %
@@ -696,7 +713,7 @@ classdef ChemicalModel < PhysicalModel
         % SEE ALSO:
         %   ChemicalModel
             
-            
+            % parse inputs to initState
             p = inputParser;
             
             valInd = cellfun(@(x) isempty(x), regexpi(model.MasterCompNames, '>'));
@@ -704,12 +721,39 @@ classdef ChemicalModel < PhysicalModel
             valFun = @(x) any(validatestring(x, model.MasterCompNames(valInd)));
             p.addOptional('chargeBalance', 'nochargebalance', valFun);
             p.addOptional('state',struct, @isstruct)
-            
+
             p.parse(varargin{:})
+            
+            % grab some optional inputs from state if it is given
+            state = p.Results.state;
+            if ~isempty(state) && isfield(state, 'poro')
+                nRock = size(state.poro, 1);
+                if nRock == 1
+                    state.poro = repmat(state.poro, size(userInput,1), 1);
+                else
+                    assert(nRock == size(userInput,1), 'The number of cells in state.poro do not correspond to the size of userInput.');
+                    state.poro = state.poro(:);
+                end
+            else
+                state.poro = ones(size(userInput,1),1);
+            end
+            
+            if ~isempty(state) && isfield(state, 'temp')
+                nRock = size(state.temp, 1);
+                if nRock == 1
+                    state.temp = repmat(state.temp, size(userInput,1), 1);
+                else
+                    assert(nRock == size(userInput,1), 'The number of cells in state.poro do not correspond to the size of userInput.');
+                    state.temp = rock.temp(:);
+                end
+            else
+                state.temp = 298.*ones(size(userInput,1),1);
+            end
+
             
             givenTest = any(strcmpi(p.Results.chargeBalance, horzcat(model.chemicalInputModel.inputNames,'nochargebalance')));
             assert(givenTest, ['Only elements whos values are given (marked with "*") can be used for charge balance.']);
-            
+                        
             chargeBalance = ~strcmpi(p.Results.chargeBalance,'nochargebalance');
 
             model.chemicalInputModel = model.chemicalInputModel.validateModel();
@@ -746,13 +790,17 @@ classdef ChemicalModel < PhysicalModel
                                 num2str(model.nMC-k) ' columns.']);
 
             
-            state.masterComponents = eps*ones(size(userInput,1), model.nMC);
-            state.components = eps*ones(size(userInput,1), model.nC);
+            state.masterComponents      = eps*ones(size(userInput,1), model.nMC);
+            state.components            = eps*ones(size(userInput,1), model.nC);
+            
             state.combinationComponents = eps*ones(size(userInput,1), model.nLC);
-            state.gasComponents = eps*ones(size(userInput,1), model.nG);
-            state.logGasComponents = eps*ones(size(userInput,1), model.nG);
-            state.solidComponents = eps*ones(size(userInput,1), model.nS);            state.gasComponents = eps*ones(size(userInput,1), model.nG);
-            state.logSolidComponents = eps*ones(size(userInput,1), model.nS);
+            
+            state.gasComponents         = eps*ones(size(userInput,1), model.nG);
+            state.logGasComponents      = eps*ones(size(userInput,1), model.nG);
+            
+            state.solidComponents       = eps*ones(size(userInput,1), model.nS);            
+            state.logSolidComponents    = eps*ones(size(userInput,1), model.nS);
+    
             
             call = 0;
             for i = 1 : model.nMC
@@ -783,7 +831,6 @@ classdef ChemicalModel < PhysicalModel
             state = model.syncLog(state);
             
             % create initial guess
-
             fprintf('Computing initial guess...\n')
             [state, ~, report_c] = model.compositionModel.solveChemicalState(state);
             [state, ~, report_cr] = model.compositionReactionModel.solveChemicalState(state);
@@ -1037,11 +1084,15 @@ classdef ChemicalModel < PhysicalModel
 
             % remove contribution of solid to composition matrix
             model.AllContributionMatrix = model.CompositionMatrix;
+            
+            model.GasCompMatrix = model.CompositionMatrix;
+            model.GasCompMatrix(:,~gasInd) = [];
+
+            model.SolidCompMatrix = model.CompositionMatrix;
+            model.SolidCompMatrix(:,~solidInd) = [];
+            
             model.CompositionMatrix(:,phaseInd) = [];
             
-            model.GasCompMatrix = model.AllContributionMatrix(:,gasInd);
-            model.SolidCompMatrix = model.AllContributionMatrix(:,solidInd);
-
             model.logCompNames = cellfun(@(name) ['log', name], model.CompNames, ...
                                          'uniformoutput', false);
                                      
@@ -1127,8 +1178,11 @@ classdef ChemicalModel < PhysicalModel
             model.ReactionMatrix = model.AllReactionMatrix;
             model.ReactionMatrix(:,model.phaseInd) = [];
             
-            model.GasReactionMatrix = model.AllReactionMatrix(:,model.gasInd);
-            model.SolidReactionMatrix = model.AllReactionMatrix(:,model.solidInd);            
+            model.GasReactionMatrix = model.AllReactionMatrix;
+            model.GasReactionMatrix(:,~model.gasInd) = [];
+
+            model.SolidReactionMatrix = model.AllReactionMatrix;
+            model.SolidReactionMatrix(:,~model.solidInd) = [];
             
             % assemble reaction constants
             model.ReactionConstants = [rxnK{:}]';

@@ -28,18 +28,22 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 
     methods
-
+        
+        %%
         function model = ChemicalInputModel()
             model = model@ChemicalModel();
             model.inputNames = {};
         end
-
+        
+        %%
         function model = validateModel(model)
             model = validateModel@ChemicalModel(model);
             % setup unknownNames
             unknownNames = horzcat(model.CompNames, model.MasterCompNames, model.CombinationNames, model.SolidNames, model.GasNames);
+            
             ind = cellfun(@(name)(strcmpi(name, model.inputNames)), unknownNames, ...
                           'Uniformoutput', false);
+                      
             ind = cell2mat(ind');
             ind = sum(ind, 2);
             model.unknownNames = unknownNames(~ind);
@@ -56,19 +60,21 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             assert(numel(model.unknownNames)-nPsi == model.nR + model.nMC + model.nLC, 'well..., not as we are thinking...');
 
         end
-
+        
+        %%
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
 
             [pVars, logcomps, logmasterComps, comboComps, logGasComps, logSolidComps]...
                 = prepStateForEquations(model, state);
 
             [eqs, names, types] = equationsChemicalInit(logcomps, logmasterComps, comboComps, ...
-                                                       logGasComps, logSolidComps, model);
+                                                       logGasComps, logSolidComps, state, model);
 
             problem = LinearizedProblem(eqs, types, names, pVars, state, dt);
 
         end
 
+        %%
         function [logUnknowns, logComps, logMasterComps, combinationComps,...
                  logGasComps, logSolidComps] = prepStateForEquations(model, ...
                                                               state)
@@ -83,8 +89,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             logUnknowns = model.logUnknownNames;
             logKnowns = model.logInputNames;
 
-            % actually, we want the non log form of the linear combination
-            % variables
             for i = 1 : model.nLC
                 logUnknowns = regexprep(logUnknowns, ['log'  LCNames{i}],  LCNames{i});
                 logKnowns = regexprep(logKnowns, ['log'  LCNames{i}],  LCNames{i});
@@ -158,7 +162,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             end
             
         end
-
+        
+        %%
         function [state, report] = updateState(model, state, problem, dx, ...
                                                drivingForces)
 
@@ -189,6 +194,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             
         end
 
+        %%
         function [state, failure, report] = solveChemicalState(model, inputstate)
         % inputstate contains the input and the initial guess.
 
@@ -215,6 +221,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             tmp = cell(1,model.nC);
             [tmp{:}] = model.getProps(state, model.CompNames{:});
             state.components        =  horzcat(tmp{:});
+            
         end
 
 
