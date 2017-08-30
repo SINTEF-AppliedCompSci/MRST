@@ -18,7 +18,7 @@ classdef compositionReactionModel < ChemicalModel
         function model = validateModel(model)
             model = validateModel@ChemicalModel(model);
             % setup unknownNames
-            unknownNames = horzcat(model.CompNames, model.MasterCompNames, model.CombinationNames, model.GasNames, model.SolidNames);
+            unknownNames = horzcat(model.CompNames, model.MasterCompNames, model.CombinationNames, model.GasNames, model.SolidNames, 'poro');
             ind = cellfun(@(name)(strcmpi(name, model.inputNames)), unknownNames, ...
                           'Uniformoutput', false);
             Pind = cellfun(@(x) ~isempty(x) , regexpi(unknownNames, 'psi'), 'Uniformoutput', false);
@@ -44,16 +44,16 @@ classdef compositionReactionModel < ChemicalModel
 
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
 
-            [pVars, logComps, logMasterComps, comboComps, logGasComps, logSolidComps] = prepStateForEquations(model, state);
+            [pVars, logComps, logMasterComps, comboComps, logGasComps, logSolidComps, logPorosity] = prepStateForEquations(model, state);
 
-            [eqs, names, types] = equationsCompositionReactionGuess(state, logComps, logMasterComps, comboComps, logGasComps, logSolidComps, model);
+            [eqs, names, types] = equationsCompositionReactionGuess(logPorosity, logComps, logMasterComps, comboComps, logGasComps, logSolidComps, model);
             
             problem = LinearizedProblem(eqs, types, names, pVars, state, dt);
 
         end
         
         
-        function [logUnknowns, logComps, logMasterComps, combinationComps, logGasComps, logSolidComps] = prepStateForEquations(model, ...
+        function [logUnknowns, logComps, logMasterComps, combinationComps, logGasComps, logSolidComps, logPorosity] = prepStateForEquations(model, ...
                                                               state)
             
             CNames = model.logCompNames;
@@ -141,7 +141,8 @@ classdef compositionReactionModel < ChemicalModel
                 end
             end
          
-            
+            pInd = strcmpi(logUnknowns, 'logporo');
+            logPorosity = logUnknownVal{pInd};   
             
         end
         
@@ -154,6 +155,7 @@ classdef compositionReactionModel < ChemicalModel
 
             solver = NonLinearSolver();
             solver.maxIterations = 10;
+            solver.minIterations = 5;
             model.nonlinearTolerance = 1e-12;
             dt = 0; % dummy timestep
             drivingForces = []; % drivingForces;
@@ -187,6 +189,8 @@ classdef compositionReactionModel < ChemicalModel
                     state = model.capProperty(state, p, eps, 2.5*mol/litre);
                 elseif ismember(p, model.CombinationNames)
                     state = model.capProperty(state, p, -2.5*mol/litre, 2.5*mol/litre);
+                elseif ismember(p, [model.GasNames, model.SolidNames, 'poro'])
+                    state = model.capProperty(state, p, 1e-50, 1);
                 else
                     maxvals = model.maxMatrices{compInd}*((state.masterComponents)');
                     maxvals = (min(maxvals))';             

@@ -1,6 +1,4 @@
-function [eqs, names, types] = equationsCompositionGuess(state, comps, masterComps, comboComps, gasComps, solidComps, model)
-    T = model.getProp(state, 'temp');
-    poro = model.getProp(state, 'poro');
+function [eqs, names, types] = equationsCompositionGuess(poro, comps, masterComps, comboComps, gasComps, solidComps, model)
     
     CNames = model.CompNames;
 

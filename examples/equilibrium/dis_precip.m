@@ -9,10 +9,10 @@ mrstVerbose on
 %% generate chemical system 
 
 % define elements names
-elements = {'Ba','Ca','SO4'};
+elements = {'Ba*','Ca*','SO4*'};
 
 % define species names
-species = {'Ba+2*','Ca+2*','SO4-2*',...
+species = {'Ba+2','Ca+2','SO4-2',...
             'BaSO4(s)','CaSO4(s)'};
         
 

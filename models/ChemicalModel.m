@@ -417,6 +417,20 @@ classdef ChemicalModel < PhysicalModel
 
             while ~varfound
 
+                if strcmpi(name, 'poro')
+                    varfound = true;
+                    fn = 'poro';
+                    index = ':';
+                    break
+                end
+                
+                if strcmpi(name, 'logporo')
+                    varfound = true;
+                    fn = 'logporo';
+                    index = ':';
+                    break
+                end
+                
                 if strcmpi(name, 'components')
                     varfound = true;
                     fn = 'components';
@@ -612,14 +626,7 @@ classdef ChemicalModel < PhysicalModel
                     index = find(ind);
                     break
                 end
-
-                ind = strcmpi(name, 'poro');
-                if any(ind)
-                    varfound = true;
-                    fn = 'poro';
-                    index = find(ind);
-                    break
-                end                
+              
                 
                 ind = strcmpi(name, model.surfaceChargeNames);
                 if any(ind)
@@ -726,17 +733,6 @@ classdef ChemicalModel < PhysicalModel
             
             % grab some optional inputs from state if it is given
             state = p.Results.state;
-            if ~isempty(state) && isfield(state, 'poro')
-                nRock = size(state.poro, 1);
-                if nRock == 1
-                    state.poro = repmat(state.poro, size(userInput,1), 1);
-                else
-                    assert(nRock == size(userInput,1), 'The number of cells in state.poro do not correspond to the size of userInput.');
-                    state.poro = state.poro(:);
-                end
-            else
-                state.poro = ones(size(userInput,1),1);
-            end
             
             if ~isempty(state) && isfield(state, 'temp')
                 nRock = size(state.temp, 1);
@@ -744,7 +740,7 @@ classdef ChemicalModel < PhysicalModel
                     state.temp = repmat(state.temp, size(userInput,1), 1);
                 else
                     assert(nRock == size(userInput,1), 'The number of cells in state.poro do not correspond to the size of userInput.');
-                    state.temp = rock.temp(:);
+                    state.temp = state.temp(:);
                 end
             else
                 state.temp = 298.*ones(size(userInput,1),1);
@@ -801,6 +797,8 @@ classdef ChemicalModel < PhysicalModel
             state.solidComponents       = eps*ones(size(userInput,1), model.nS);            
             state.logSolidComponents    = eps*ones(size(userInput,1), model.nS);
     
+            state.poro                  = ones(size(userInput,1),1);
+            state.logporo               = log(state.poro);
             
             call = 0;
             for i = 1 : model.nMC
@@ -1559,6 +1557,8 @@ classdef ChemicalModel < PhysicalModel
                     state = model.capProperty(state, p, -2.5*mol/litre, 2.5*mol/litre);
                 elseif ismember(p, [model.GasNames, model.SolidNames]);
                     state = model.capProperty(state, p, 1e-50);
+                elseif strcmpi(p, 'poro');
+                    state = model.capProperty(state, p, 1e-50, 1);
                 else
                     maxvals = model.maxMatrices{compInd}*((state.masterComponents)');
                     maxvals = (min(maxvals))';             
@@ -1606,7 +1606,7 @@ classdef ChemicalModel < PhysicalModel
         %%
         function state = validateState(model, state)
             state = validateState@PhysicalModel(model, state);
-            if (~isfield(state, 'logcomponents') || ~isfield(state, 'logmastercomponents') )
+            if (~isfield(state, 'logcomponents') || ~isfield(state, 'logmastercomponents')|| ~isfield(state, 'logporo') )
                 state = model.syncLog(state);
             end
             state = model.syncLog(state);
@@ -1616,6 +1616,7 @@ classdef ChemicalModel < PhysicalModel
         function state = syncLog(model, state)
             state.logmasterComponents = log(state.masterComponents);
             state.logcomponents       = log(state.components);
+            state.logporo             = log(state.poro);
             
             try
                 state.logSolidComponents     = log(state.solidComponents);
@@ -1628,7 +1629,7 @@ classdef ChemicalModel < PhysicalModel
         function state = syncFromLog(model, state)
             state.masterComponents = exp(state.logmasterComponents);
             state.components       = exp(state.logcomponents);
-            
+            state.poro              = exp(state.logporo);
             try
                 state.gasComponents = exp(state.logGasComponents);
                 state.solidComponents       = exp(state.logSolidComponents);
@@ -1638,7 +1639,7 @@ classdef ChemicalModel < PhysicalModel
 
 
         %%
-        function [logComps, logMasterComps] = prepStateForEquations(model, state)
+        function [logComps, logMasterComps, logporo] = prepStateForEquations(model, state)
 
             logComps = cell(model.nC, 1);
             [logComps{:}] = model.getProps(state, model.logCompNames{:});
@@ -1647,6 +1648,9 @@ classdef ChemicalModel < PhysicalModel
             [logMasterComps{:}] = model.getProps(state, model.logMasterCompNames{:});
 
             [logComps{:}] = initVariablesADI(logComps{:});
+
+            logporo = cell(1, 1);
+            [logporo{:}] = model.getProps(state, 'logporo');
 
         end
 

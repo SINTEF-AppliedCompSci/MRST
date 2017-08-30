@@ -17,7 +17,7 @@ classdef compositionModel < ChemicalModel
         function model = validateModel(model)
             model = validateModel@ChemicalModel(model);
             % setup unknownNames
-            unknownNames = horzcat(model.CompNames, model.MasterCompNames,model.CombinationNames, model.GasNames, model.SolidNames);
+            unknownNames = horzcat(model.CompNames, model.MasterCompNames,model.CombinationNames, model.GasNames, model.SolidNames, 'poro');
             ind = cellfun(@(name)(strcmpi(name, model.inputNames)), unknownNames, ...
                           'Uniformoutput', false);
             Pind = cellfun(@(x) ~isempty(x) , regexpi(unknownNames, 'psi'), 'Uniformoutput', false);
@@ -33,9 +33,9 @@ classdef compositionModel < ChemicalModel
 
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
 
-            [comps, masterComps, comboComps, gasComps, solidComps] = prepStateForEquations(model, state);
+            [comps, masterComps, comboComps, gasComps, solidComps, porosity] = prepStateForEquations(model, state);
 
-            [eqs, names, types] = equationsCompositionGuess(state, comps, masterComps, comboComps,gasComps, solidComps, model);
+            [eqs, names, types] = equationsCompositionGuess(porosity, comps, masterComps, comboComps, gasComps, solidComps, model);
             
             primaryVariables = model.unknownNames;
             problem = LinearizedProblem(eqs, types, names, primaryVariables, state, dt);
@@ -43,7 +43,7 @@ classdef compositionModel < ChemicalModel
         end
         
         
-        function [comps, masterComps, combinationComps, gasComps, solidComps] = prepStateForEquations(model, ...
+        function [comps, masterComps, combinationComps, gasComps, solidComps, porosity] = prepStateForEquations(model, ...
                                                               state)
             
             CNames = model.CompNames;
@@ -51,6 +51,7 @@ classdef compositionModel < ChemicalModel
             LCNames = model.CombinationNames;
             GNames = model.GasNames;
             SNames = model.SolidNames;
+
             unknowns = model.unknownNames;
             knowns = model.inputNames;
             
@@ -128,7 +129,15 @@ classdef compositionModel < ChemicalModel
                     solidComps{i} = knownVal{sInd};
                 end
             end
+            
+            pInd = strcmpi(unknowns, 'poro');
+            porosity = unknownVal{pInd};
+
+            
+         
         end
+        
+        
         
         function [state, failure, report] = solveChemicalState(model, inputstate)
         % inputstate contains the input and the initial guess.
@@ -137,7 +146,7 @@ classdef compositionModel < ChemicalModel
                                                           % updates the log
                                                           % variables if necessary.
 
-            solver = NonLinearSolver('maxIterations', 2);
+            solver = NonLinearSolver('maxIterations', 5);
             dt = 0; % dummy timestep
             drivingForces = []; % drivingForces;
             inputstate0 = inputstate;
@@ -161,7 +170,7 @@ classdef compositionModel < ChemicalModel
                 p = pVar{i};
                 if ismember(p, model.CombinationNames)
                     state = model.capProperty(state, p, -2.5*mol/litre, 2.5*mol/litre);
-                elseif ismember(p, [model.GasNames model.SolidNames])
+                elseif ismember(p, [model.GasNames, model.SolidNames, 'poro'])
                     state = model.capProperty(state, p, 1e-30, 1);
                 else
                     state = model.capProperty(state, p, eps, 2.5*mol/litre);
