@@ -9,16 +9,18 @@ mrstVerbose on
 %% generate chemical system 
 
 % define elements names
-elements = {'Ba*','Ca*','SO4*'};
-        
-species = {'Ba+2','Ca+2','SO4-2',...
+elements = {'Ba','Ca','SO4'};
+
+% define species names
+species = {'Ba+2*','Ca+2*','SO4-2*',...
             'BaSO4(s)','CaSO4(s)'};
         
 
- % list chemical reactions         
-reactions ={'CaSO4(s)  <-> Ca+2 + SO4-2 ',       (1*mol/litre)^-1,...
-            'BaSO4(s)  <-> Ba+2 + SO4-2',        (0.67*mol/litre)^-1};       
+% list chemical reactions         
+reactions ={'CaSO4(s)  <-> Ca+2 + SO4-2 ',       1*mol/litre,...
+            'BaSO4(s)  <-> Ba+2 + SO4-2',        0.67*mol/litre};       
 
+% list solid densities
 solidDensities = {'CaSO4(s)', 3*mol/litre, 'BaSO4(s)',  2*mol/litre};
 
 % instantiate the chemical model
@@ -30,15 +32,16 @@ chem.plotIter = false;
 chem.printChemicalSystem;
 
 %% rock properties
-n = 100;
+n = 10;
 rock.perm = 1*darcy*ones(n, 1);
 rock.poro = 0.4.*ones(n, 1);
 
 %% solve the chemical system given inputs
 
-SO4 = logspace(-5,-3,n)';
-Ba  = 10^-3*ones(n,1);
-Ca  = 10^-3*ones(n,1);
+
+Ba  =logspace(-3, -1,n)';
+Ca  = logspace(-1, -3,n)';
+SO4 = Ba + Ca;
 
 userInput = [Ba Ca SO4]*mol/litre;
 % userInput = [Ba Ca C H H2O]*mol/litre;

@@ -1,9 +1,7 @@
-function [eqs, names, types] = equationsCompositionReactionGuess(logcomps, logmasterComps, comboComps, model)
+function [eqs, names, types] = equationsCompositionReactionGuess(state, logcomps, logmasterComps, comboComps, logGasComps, logSolidComps, model)
     
-%             comps = cellfun(@(x) x*litre/mol, comps,'UniformOutput', false);
-%             masterComps = cellfun(@(x) x*litre/mol, masterComps,'UniformOutput', false);
-%             
-% begin solving equation
+    T = model.getProp(state, 'temp');
+    poro = model.getProp(state, 'poro');
 
     CM = model.CompositionMatrix;
     RM = model.ReactionMatrix;
@@ -11,7 +9,9 @@ function [eqs, names, types] = equationsCompositionReactionGuess(logcomps, logma
     nC = size(CM,2);
     
     comps = cellfun(@(x) exp(x), logcomps, 'UniformOutput', false);
-    
+    gasComps = cellfun(@(x) exp(x), logGasComps, 'UniformOutput', false);
+    solidComps = cellfun(@(x) exp(x), logSolidComps, 'UniformOutput', false);
+
     logK = model.LogReactionConstants;
     
     eqs   = cell(1, model.nMC + model.nR + model.nLC);
@@ -21,16 +21,18 @@ function [eqs, names, types] = equationsCompositionReactionGuess(logcomps, logma
     %% reaction matrix
     for i = 1 : model.nR
 
-
         eqs{i} = -logK(i);
+        
         for k = 1 : nC
             eqs{i} = eqs{i} + RM(i, k).*logcomps{k};
         end
+        
         names{i} = model.rxns{i};
     end
     
     %% composition matrix
     for i = 1 : model.nMC
+        
         j = model.nR + i;
         masssum = 0;
         
@@ -38,8 +40,15 @@ function [eqs, names, types] = equationsCompositionReactionGuess(logcomps, logma
             masssum = masssum + CM(i,k).*comps{k};
         end
         
-        eqs{j} = log(masssum) - logmasterComps{i};
+        for k = 1 : model.nG
+            masssum = masssum + model.GasCompMatrix(i,k).*gasComps{k};
+        end
+        for k = 1 : model.nS
+            masssum = masssum + model.SolidCompMatrix(i,k).*solidComps{k}.*model.solidDensities(k);
+        end
         
+        eqs{j} = log(masssum) - logmasterComps{i} + log(poro);
+                
         names{j} = ['Conservation of ', model.MasterCompNames{i}] ;
     end
 
@@ -53,7 +62,21 @@ function [eqs, names, types] = equationsCompositionReactionGuess(logcomps, logma
         eqs{j} = combSum - comboComps{i};
         names{j} = [model.CombinationNames{i}] ;
     end
-            
+    
+    %% conservation of volume
+    
+    vol = 1 - poro;
+    for i = 1 : model.nS
+        vol = vol - solidComps{i};
+    end
+    for i = 1 : model.nG
+        vol = vol - gasComps{i};
+    end    
+    
+    eqs{end+1} = vol;
+    names{end+1} = 'Conservation of volume';
+    types{end+1} = [];
+    
     [types{:}] = deal('cell');
     
 end

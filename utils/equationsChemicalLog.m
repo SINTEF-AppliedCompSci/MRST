@@ -73,7 +73,7 @@ function [eqs, names, types] = equationsChemicalLog(logcomps, logmasterComps, lo
         % now logcomps is actually comp*porosity so need to divide by porosity
         % poro = 1 if not defined
         for k = 1 : model.nC
-            eqs{i} = eqs{i} + RM(i, k).*(pg{k} + af{k} + logcomps{k})./poro;
+            eqs{i} = eqs{i} + RM(i, k).*(pg{k} + af{k} + logcomps{k}./poro);
         end
         %
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -91,7 +91,7 @@ function [eqs, names, types] = equationsChemicalLog(logcomps, logmasterComps, lo
         
         % now using units of moles
         for k = 1 : model.nC
-            masssum = masssum + CM(i,k).*comps{k};
+            masssum = masssum + CM(i,k).*comps{k}.*poro;
         end
         
         % solidComps and gasComps has units of volume (m^3)
@@ -103,7 +103,7 @@ function [eqs, names, types] = equationsChemicalLog(logcomps, logmasterComps, lo
             masssum = masssum + model.SolidCompMatrix(i,k).*solidComps{k}.*model.solidDensities(k);
         end
         
-        eqs{j} = log(masssum) - logmasterComps{i}.*poro;
+        eqs{j} = log(masssum) - logmasterComps{i} + log(poro);
 
         names{j} = ['Conservation of ', model.MasterCompNames{i}] ;
     end
