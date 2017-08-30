@@ -256,11 +256,11 @@ classdef ChemicalModel < PhysicalModel
             	p = inputParser;
             
                 valFun = @(x) iscell(x);
-                p.addOptional('surfaces', '', valFun);                
-                p.addOptional('combinations', '', valFun);
+                p.addParameter('surfaces', '', valFun);                
+                p.addParameter('combinations', '', valFun);
 %                 p.addOptional('solids', '', valFun);
 %                 p.addOptional('gasses', '', valFun);
-                p.addOptional('solidDensities', '', valFun)
+                p.addParameter('solidDensities', '', valFun)
                 
                 p.parse(varargin{4:end})
             
@@ -1618,7 +1618,7 @@ classdef ChemicalModel < PhysicalModel
             state.logcomponents       = log(state.components);
             
             try
-                state.logSolidComponents = log(state.solidComponents);
+                state.logSolidComponents     = log(state.solidComponents);
                 state.logGasComponents       = log(state.gasComponents);
             catch
             end

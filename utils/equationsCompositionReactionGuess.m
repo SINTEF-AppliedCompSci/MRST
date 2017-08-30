@@ -18,7 +18,7 @@ function [eqs, names, types] = equationsCompositionReactionGuess(logcomps, logma
     names = cell(1, model.nMC + model.nR + model.nLC);
     types = cell(1, model.nMC + model.nR + model.nLC);
 
-    % reaction matrix, activities only apply to laws of mass action
+    %% reaction matrix
     for i = 1 : model.nR
 
 
@@ -33,10 +33,13 @@ function [eqs, names, types] = equationsCompositionReactionGuess(logcomps, logma
     for i = 1 : model.nMC
         j = model.nR + i;
         masssum = 0;
+        
         for k = 1 : nC
             masssum = masssum + CM(i,k).*comps{k};
         end
+        
         eqs{j} = log(masssum) - logmasterComps{i};
+        
         names{j} = ['Conservation of ', model.MasterCompNames{i}] ;
     end
 

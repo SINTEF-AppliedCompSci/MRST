@@ -14,6 +14,7 @@ function [eqs, names, types] = equationsCompositionGuess(comps, masterComps, com
     types = cell(1, model.nMC + model.nLC);
 
 
+    %% composition matrix
     for i = 1 : model.nMC
         eqs{i} = - masterComps{i};
         for k = 1 : nC
