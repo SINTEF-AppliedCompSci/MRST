@@ -169,9 +169,9 @@ function values = read_char_record(fid, header)
       prec   = header.prec;
       a      = reshape(fread(fid, n * header.size, prec, 8), 1, []);
       values = { cellstr(char(reshape(a, 8, []) .')) };
-      % skip to start of next header unless n is muliplum of 840 in which 
+      % skip to start of next header unless n*size is muliplum of 840 in which 
       % case the skip has already been performed 
-      if ~feof(fid) && mod(n, 840)~=0, fseek(fid, 8, 'cof');end
+      if ~feof(fid) && mod(n*header.size, 840)~=0, fseek(fid, 8, 'cof');end
    else
       values = { [] };
    end
