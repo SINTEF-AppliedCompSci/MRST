@@ -21,7 +21,7 @@ reactions ={'CaSO4(s)  <-> Ca+2 + SO4-2 ',       1*mol/litre,...
             'BaSO4(s)  <-> Ba+2 + SO4-2',        0.67*mol/litre};       
 
 % list solid densities
-solidDensities = {'CaSO4(s)', 30*mol/litre, 'BaSO4(s)',  20*mol/litre};
+solidDensities = {'CaSO4(s)', 3*mol/litre, 'BaSO4(s)',  2*mol/litre};
 
 % instantiate the chemical model
 chem = ChemicalModel(elements, species, reactions, 'solid', solidDensities);
