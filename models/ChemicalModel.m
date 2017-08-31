@@ -794,10 +794,10 @@ classdef ChemicalModel < PhysicalModel
             state.gasComponents         = eps*ones(size(userInput,1), model.nG);
             state.logGasComponents      = eps*ones(size(userInput,1), model.nG);
             
-            state.solidComponents       = eps*ones(size(userInput,1), model.nS);            
-            state.logSolidComponents    = eps*ones(size(userInput,1), model.nS);
+            state.solidComponents       = 0.1*ones(size(userInput,1), model.nS);            
+            state.logSolidComponents    = 0.1*ones(size(userInput,1), model.nS);
     
-            state.poro                  = ones(size(userInput,1),1);
+            state.poro                  = 0.1*ones(size(userInput,1),1);
             state.logporo               = log(state.poro);
             
             call = 0;
@@ -830,7 +830,7 @@ classdef ChemicalModel < PhysicalModel
             
             % create initial guess
             fprintf('Computing initial guess...\n')
-            [state, ~, report_c] = model.compositionModel.solveChemicalState(state);
+%             [state, ~, report_c] = model.compositionModel.solveChemicalState(state);
             [state, ~, report_cr] = model.compositionReactionModel.solveChemicalState(state);
             
             % solve chemical system
@@ -1555,8 +1555,8 @@ classdef ChemicalModel < PhysicalModel
                     state = model.capProperty(state, p, mins{ind}, maxs{ind});
                 elseif ismember(p, model.CombinationNames)
                     state = model.capProperty(state, p, -2.5*mol/litre, 2.5*mol/litre);
-                elseif ismember(p, [model.GasNames, model.SolidNames]);
-                    state = model.capProperty(state, p, 1e-50);
+                elseif ismember(p, [model.GasNames, model.SolidNames, 'poro']);
+                    state = model.capProperty(state, p, 1e-50, 1);
                 elseif strcmpi(p, 'poro');
                     state = model.capProperty(state, p, 1e-50, 1);
                 else

@@ -39,7 +39,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         function model = validateModel(model)
             model = validateModel@ChemicalModel(model);
             % setup unknownNames
-            unknownNames = horzcat(model.CompNames, model.MasterCompNames, model.CombinationNames, model.SolidNames, model.GasNames);
+            unknownNames = horzcat(model.CompNames, model.MasterCompNames, model.CombinationNames, model.SolidNames, model.GasNames, 'poro');
             
             ind = cellfun(@(name)(strcmpi(name, model.inputNames)), unknownNames, ...
                           'Uniformoutput', false);
@@ -57,17 +57,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                             false);
 
             nPsi = sum(cellfun(@(x) ~isempty(x), regexpi( model.unknownNames, 'psi')));
-            assert(numel(model.unknownNames)-nPsi == model.nR + model.nMC + model.nLC, 'well..., not as we are thinking...');
+            assert(numel(model.unknownNames)-nPsi == model.nR + model.nMC + model.nLC + 1, 'well..., not as we are thinking...');
 
         end
         
         %%
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
 
-            [pVars, logcomps, logmasterComps, comboComps, logGasComps, logSolidComps]...
+            [pVars, logcomps, logmasterComps, comboComps, logGasComps, logSolidComps, logPoro]...
                 = prepStateForEquations(model, state);
 
-            [eqs, names, types] = equationsChemicalInit(logcomps, logmasterComps, comboComps, ...
+            [eqs, names, types] = equationsChemicalInit(logPoro, logcomps, logmasterComps, comboComps, ...
                                                        logGasComps, logSolidComps, state, model);
 
             problem = LinearizedProblem(eqs, types, names, pVars, state, dt);
@@ -76,7 +76,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
         %%
         function [logUnknowns, logComps, logMasterComps, combinationComps,...
-                 logGasComps, logSolidComps] = prepStateForEquations(model, ...
+                 logGasComps, logSolidComps, logPorosity] = prepStateForEquations(model, ...
                                                               state)
             CNames = model.logCompNames;
             MCNames = model.logMasterCompNames;
@@ -160,6 +160,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     logSolidComps{i} = logKnownVal{mcInd};
                 end
             end
+            
+            pInd = strcmpi(logUnknowns, 'logporo');
+            logPorosity = logUnknownVal{pInd}; 
             
         end
         

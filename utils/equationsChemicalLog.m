@@ -1,7 +1,6 @@
-function [eqs, names, types] = equationsChemicalLog(logcomps, logmasterComps, logGasComps, logSolidComps, state, model)
+function [eqs, names, types] = equationsChemicalLog(logporo, logcomps, logmasterComps, logGasComps, logSolidComps, state, model)
 
     T = model.getProp(state, 'temp');
-    poro = model.getProp(state, 'poro');
 
     
     
@@ -19,6 +18,7 @@ function [eqs, names, types] = equationsChemicalLog(logcomps, logmasterComps, lo
     gasComps = cellfun(@(x) exp(x), logGasComps, 'UniformOutput', false);
     solidComps = cellfun(@(x) exp(x), logSolidComps, 'UniformOutput', false);
     masterComps = cellfun(@(x) exp(x), logmasterComps, 'UniformOutput', false);
+    poro = exp(logporo);
     
     logK = model.LogReactionConstants;
 
@@ -70,10 +70,8 @@ function [eqs, names, types] = equationsChemicalLog(logcomps, logmasterComps, lo
         % will still be enforced as if at local chemical equilibrium. need
         % a vector of alphas to switch the phase reactions off
         %
-        % now logcomps is actually comp*porosity so need to divide by porosity
-        % poro = 1 if not defined
         for k = 1 : model.nC
-            eqs{i} = eqs{i} + RM(i, k).*(pg{k} + af{k} + logcomps{k}./poro);
+            eqs{i} = eqs{i} + RM(i, k).*(pg{k} + af{k} + logcomps{k});
         end
         %
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -103,7 +101,7 @@ function [eqs, names, types] = equationsChemicalLog(logcomps, logmasterComps, lo
             masssum = masssum + model.SolidCompMatrix(i,k).*solidComps{k}.*model.solidDensities(k);
         end
         
-        eqs{j} = log(masssum) - logmasterComps{i} + log(poro);
+        eqs{j} = log(masssum) - (logmasterComps{i} + logporo);
 
         names{j} = ['Conservation of ', model.MasterCompNames{i}] ;
     end

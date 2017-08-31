@@ -47,7 +47,7 @@ function [eqs, names, types] = equationsCompositionReactionGuess(logporo, logcom
             masssum = masssum + model.SolidCompMatrix(i,k).*solidComps{k}.*model.solidDensities(k);
         end
         
-        eqs{j} = log(masssum) - logmasterComps{i} + logporo;
+        eqs{j} = log(masssum) - (logmasterComps{i} + logporo);
                 
         names{j} = ['Conservation of ', model.MasterCompNames{i}] ;
     end
