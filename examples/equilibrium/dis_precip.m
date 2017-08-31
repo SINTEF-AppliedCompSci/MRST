@@ -39,8 +39,8 @@ rock.poro = 0.4.*ones(n, 1);
 %% solve the chemical system given inputs
 
 
-Ba  =logspace(-3, -1,n)';
-Ca  = logspace(-1, -3,n)';
+Ba  =logspace(-1, 1,n)';
+Ca  = logspace(-1, 1,n)';
 SO4 = Ba + Ca;
 
 userInput = [Ba Ca SO4]*mol/litre;
