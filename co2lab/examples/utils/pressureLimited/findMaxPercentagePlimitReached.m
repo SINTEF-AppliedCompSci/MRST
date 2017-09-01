@@ -1,4 +1,4 @@
-function [perc_of_plim_reach, perc_of_Pover_reach, cinxMax] = ...
+function [perc_of_plim_reach, perc_of_Pover_reach, cinxMax, cinxViolated] = ...
     findMaxPercentagePlimitReached( states, plim, P_over, varargin )
 % Determine maximum percentage of pressure limit (or overburden pressure)
 % that was reached at some time and location during the simulation
@@ -31,6 +31,8 @@ function [perc_of_plim_reach, perc_of_Pover_reach, cinxMax] = ...
     % fraction is 1 or above, plim has been reached or surpassed.
     % Otherwise, plim has not been reached.
     [~, cinxMax] = max(frac);
+    
+    cinxViolated = find(frac > 1);
     
     if opt.outputOn
         fprintf('Pressure reached %4.3f percent of plim, in cell %d, ... \n', ...
