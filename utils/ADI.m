@@ -407,6 +407,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
       function h = min(u, v)
           % Use def. of maximum to handle this
+          if(nargin==1)
+              h = -max(-u);
+              return;
+          end
           h = -max(-u, -v);
       end
 
