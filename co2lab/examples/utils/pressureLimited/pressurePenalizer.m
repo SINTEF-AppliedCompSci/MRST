@@ -71,38 +71,57 @@ function obj = pressurePenalizer(model, states, schedule, penalty, plim, varargi
    max_amount_surp_cinx = zeros(numSteps, 1);
    min_amount_under     = zeros(numSteps, 1);
    min_amount_under_cinx= zeros(numSteps, 1);
-   for step = 1:numSteps     
+   for step = 1:numSteps   
+
+      % Evaluate objective function at current time step:
       state = states{tSteps(step)}; %@@ +1?      
-      p = state.pressure(cells);
-      % keep track of amount over or amount under plim at each time step
-      max_amount_surp(step) = max(0,max(p-plim));
+      p = state.pressure; % all cells in grid
+      if opt.ComputePartials
+        sG = state.s(:,2);   % place holders
+        sGmax = state.sGmax; % place holders
+        nW = numel(schedule.control(1).W);
+        pBHP = zeros(nW, 1); % place holders
+        qGs = pBHP;          % place holders
+        qWs = pBHP;          % place holders
+        [p, ~, ~, ~, ~, ~] = initVariablesADI(p, sG, sGmax, qWs, qGs, pBHP); % this is for all cells in grid
+      end
+      A = sparse(1:numel(cells), cells, 1, numel(cells), model.G.cells.num);
+      p = A * p; % p.val is now for specified cells, and the size of the
+                 % jacobians (if we are computing partials) is num
+                 % specified cells x number of grid cells
+      dt = dts(step);
+      tmp = max(0, sign(p - plim)) .* penalty .* (p - plim).^k/1e12; % scaling to MPa
+      % tmp will be numeric if all values of tmp are computed to be 0 (tmp
+      % will still be an adi if at least one value of tmp is computed to be
+      % non-zero). Thus, we ensure tmp gets converted to an adi with zero
+      % its expected zero derivatives.
+      if opt.ComputePartials && isnumeric(tmp)
+         tmp = double2ADI(tmp, p);
+      end
+      tmp = tmp .* model.G.cells.volumes(cells);
+      obj{step} = sum( tmp )./sum(model.G.cells.volumes(cells));
+      obj{step} = obj{step} * dt; % obj jacobians correspond to the grid size.
+
+      
+      % Keep track of amount over or amount under plim at each time step:
+      pd = double(p); % to avoid error when taking min of an ADI, min(plim-p)
+      max_amount_surp(step) = max(0,max(pd-plim));
       if max_amount_surp(step) > 0
-          [~,cinx] = max(p-plim);
+          [~,cinx] = max(pd-plim);
           max_amount_surp_cinx(step) = cinx; % this cinx does not correspond
                                              % to the grid's cell index,
                                              % rather it is the index of p
                                              % that surpassed its plim the
                                              % most
       end
-      min_amount_under(step) = max(0,min(plim-p));
+      min_amount_under(step) = max(0,min(plim-pd));
       if min_amount_under(step) > 0
-         [~,cinx] = min(max(0,(plim-p)));
+         [~,cinx] = min(max(0,(plim-pd)));
          min_amount_under_cinx(step) = cinx; % same as note above
       end
-      if opt.ComputePartials
-        sG = state.s(cells,2);      % place holders
-        sGmax = state.sGmax(cells); % place holders
-        nW = numel(schedule.control(1).W);
-        pBHP = zeros(nW, 1); % place holders
-        qGs = pBHP;          % place holders
-        qWs = pBHP;          % place holders
-        [p, ~, ~, ~, ~, ~] = initVariablesADI(p, sG, sGmax, qWs, qGs, pBHP); 
-      end
-      dt = dts(step);
-      tmp = max(0, sign(p - plim)) .* penalty .* (p - plim).^k/1e12; % scaling to MPa
-      tmp = tmp .* model.G.cells.volumes(cells);
-      obj{step} = sum( tmp )./sum(model.G.cells.volumes(cells));
-      obj{step} = obj{step} * dt;
+      
+      
+      % Reporting:
       if (tSteps(step) == num_timesteps)
       % no need to compute another portion of the obj fun here
          if ~opt.ComputePartials
