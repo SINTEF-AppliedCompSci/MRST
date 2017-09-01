@@ -850,6 +850,7 @@ classdef ChemicalModel < PhysicalModel
     
             state.poro                  = 0.1*ones(size(userInput,1),1);
             state.logPoro               = log(state.poro);
+
             
             call = 0;
             for i = 1 : model.nMC
