@@ -46,7 +46,7 @@ classdef compositionReactionModel < ChemicalModel
 
             [pVars, logComps, logMasterComps, comboComps, logGasComps, logSolidComps, logPorosity] = prepStateForEquations(model, state);
 
-            [eqs, names, types] = equationsCompositionReactionGuess(logPorosity, logComps, logMasterComps, comboComps, logGasComps, logSolidComps, model);
+            [eqs, names, types] = equationsCompositionReactionGuess(state, logPorosity, logComps, logMasterComps, comboComps, logGasComps, logSolidComps, model);
             
             problem = LinearizedProblem(eqs, types, names, pVars, state, dt);
 
@@ -140,7 +140,8 @@ classdef compositionReactionModel < ChemicalModel
                     logSolidComps{i} = logKnownVal{sInd};
                 end
             end
-         
+
+            
             pInd = strcmpi(logUnknowns, 'logporo');
             logPorosity = logUnknownVal{pInd};   
             

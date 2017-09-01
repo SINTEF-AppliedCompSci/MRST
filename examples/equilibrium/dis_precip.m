@@ -32,7 +32,7 @@ chem.plotIter = false;
 chem.printChemicalSystem;
 
 %% rock properties
-n = 10;
+n = 100;
 rock.perm = 1*darcy*ones(n, 1);
 rock.poro = 0.4.*ones(n, 1);
 
@@ -40,8 +40,8 @@ rock.poro = 0.4.*ones(n, 1);
 
 
 Ba  =logspace(-1, 1,n)';
-Ca  = logspace(-1, 1,n)';
-SO4 = Ba + Ca;
+Ca  = logspace(1, -1,n)';
+SO4 = Ba+Ca;
 
 userInput = [Ba Ca SO4]*mol/litre;
 % userInput = [Ba Ca C H H2O]*mol/litre;
@@ -51,43 +51,13 @@ tic
 [state, report, model] = chem.initState(userInput, 'state', state);
 toc;
 
-[state, chem] = chem.computeActivities(state);
-[state, chem] = chem.computeChargeBalance(state);
 
 figure;hold on;
-plot(log10(CaCO3), log10(state.components*litre/mol),'linewidth',2);
+plot(log10(state.components*litre/mol),'linewidth',2);
 legend(chem.CompNames)
 
+figure;hold on;
+plot([state.solidComponents state.poro],'linewidth',2);
+legend([chem.SolidNames,'porosity'])
 
-
-%% call and run phreeqc
-folderName = 'mrstExamples';
-filename ='pure_phase_eq';
-
-current = pwd;
-
-DBname = 'dis_precip.dat';
-progpath = '/Users/cmcneece/GoogleDrive/phreeqc/';
-
-PHpath = ['/Users/cmcneece/GoogleDrive/phreeqc/myfiles/' folderName '/'];
-DBpath = '/Users/cmcneece/GoogleDrive/phreeqc/database/';
-shellname =[PHpath filename];
-
-
-
-    cd(progpath);
-%     eval(['! sh ' shellname '.sh ' shellname]);
-    eval(['! ./bin/phreeqc ' shellname '.txt ' shellname '.log ' DBpath DBname ]);
-    cd(current)
-
-D = importdata([shellname '.sel']);
-
-
-for i = 2 : 7
-    plot((D.data(:,end-1)), log10(D.data(:,i)),'.k')
-end
-
-% for i = 3 : size(D.data,2)
-%     plot(log10(D.data(:,2)), log10(D.data(:,i)),'.k')
-% end
 

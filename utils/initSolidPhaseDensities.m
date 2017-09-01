@@ -1,4 +1,4 @@
-function model = initSolidPhaseDensities(model, solidDensities);
+function state = initSolidPhaseDensities(model, state, solidDensities,nI);
 
 
 givenNames = solidDensities(1:2:end);
@@ -28,11 +28,17 @@ if nMN > 0
     error( ['The solid densities of ' iwant ' are missing from solidDensities.'] );
 end
 
-model.solidDensities = zeros(1, model.nS);
+state.solidDensities = zeros(1, model.nS);
 
 for i = 1 : model.nS
     ind = strcmpi(model.SolidNames{i}, givenNames);
-    model.solidDensities(i) = givenValues{ind};
+    state.solidDensities(i) = givenValues{ind};
+end
+
+if size(state.solidDensities,1) == 1
+    state.solidDensities = repmat(state.solidDensities,nI,1);
+elseif size(state.solidDensities,1) ~= nI
+    error('Size of solidDensities is not one and does not match the size of userInput.');
 end
 
 end
