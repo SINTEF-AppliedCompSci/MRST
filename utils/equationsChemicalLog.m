@@ -2,6 +2,15 @@ function [eqs, names, types] = equationsChemicalLog(logporo, logcomps, logmaster
 
     T = model.getProp(state, 'temp');
 
+    if model.nG > 0
+        partialPressures = cell(1,model.nG);
+        [partialPressures{:}] = deal(model.getProps(state, model.partialPressureNames{:}));
+    end
+
+    if model.nS > 0
+        solidDensities = cell(1,model.nS);
+        [solidDensities{:}] = deal(model.getProps(state,  model.solidDensityNames{:}));
+    end
     
     
     An  = 6.0221413*10^23;       	% avagadros number [#/mol]
@@ -98,7 +107,7 @@ function [eqs, names, types] = equationsChemicalLog(logporo, logcomps, logmaster
             masssum = masssum + model.GasCompMatrix(i,k).*gasComps{k};
         end
         for k = 1 : model.nS
-            masssum = masssum + model.SolidCompMatrix(i,k).*solidComps{k}.*model.solidDensities(k);
+            masssum = masssum + model.SolidCompMatrix(i,k).*solidComps{k}.*solidDensities{k};
         end
         
         eqs{j} = log(masssum) - (logmasterComps{i} + logporo);

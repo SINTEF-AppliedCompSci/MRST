@@ -24,7 +24,7 @@ reactions ={'CaSO4(s)  <-> Ca+2 + SO4-2 ',       1*mol/litre,...
 solidDensities = {'CaSO4(s)', 3*mol/litre, 'BaSO4(s)',  2*mol/litre};
 
 % instantiate the chemical model
-chem = ChemicalModel(elements, species, reactions, 'solid', solidDensities);
+chem = ChemicalModel(elements, species, reactions);
 
 chem.plotIter = false;
 
@@ -48,7 +48,7 @@ userInput = [Ba Ca SO4]*mol/litre;
 
 state.poro = rock.poro;
 tic
-[state, report, model] = chem.initState(userInput, 'state', state);
+[state, report, model] = chem.initState(userInput, 'state', state, 'solid', solidDensities);
 toc;
 
 

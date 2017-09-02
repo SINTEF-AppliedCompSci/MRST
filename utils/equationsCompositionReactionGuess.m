@@ -1,10 +1,14 @@
 function [eqs, names, types] = equationsCompositionReactionGuess(state, logporo, logcomps, logmasterComps, comboComps, logGasComps, logSolidComps, model)
     
-    partialPressures = cell(model.nG,1);
-    [partialPressures{:}] = deal(model.getProps(state, 'partialPressures'));
-    
-    solidDensities = cell(model.nS,1);
-    [solidDensities{:}] = deal(model.getProps(state, 'solidDensities'));
+    if model.nG > 0
+        partialPressures = cell(1,model.nG);
+        [partialPressures{:}] = deal(model.getProps(state, model.partialPressureNames{:}));
+    end
+
+    if model.nS > 0
+        solidDensities = cell(1,model.nS);
+        [solidDensities{:}] = deal(model.getProps(state,  model.solidDensityNames{:}));
+    end
     
     T = model.getProps(state, 'temp');
     
