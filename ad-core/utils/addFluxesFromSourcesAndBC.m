@@ -71,8 +71,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     if ~isempty(forces.bc)
         % Setup the fluxes from the boundary condition
-        [qBC, BCTocellMap, bcCells, qRes] = getBoundaryConditionFluxesAD(model, pressure, rho, mob, s, forces.bc);
-
+        %[qBC, BCTocellMap, bcCells, qRes] = getBoundaryConditionFluxesAD(model, pressure, rho, mob, s, forces.bc);
+        b = cellfun(@(c1, c2) c1./c2, ...
+                    rho, ...
+                    mat2cell(model.getSurfaceDensities(),1, repmat(1, 1, sum(model.getActivePhases))), ...
+                    'uniformoutput', false);
+        [qBC, BCTocellMap, bcCells, qRes] = getBoundaryConditionFluxesAD(model, pressure, s, mob, rho, b, forces.bc);
+        
         for i = 1:numel(qBC)
             % Subtract fluxes
             if isempty(eqs{i})

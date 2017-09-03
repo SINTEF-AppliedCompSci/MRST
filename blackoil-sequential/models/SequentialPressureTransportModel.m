@@ -64,6 +64,8 @@ classdef SequentialPressureTransportModel < ReservoirModel
             if ~isempty(model.pressureLinearSolver)
                 model.pressureNonLinearSolver.LinearSolver = ...
                                 model.pressureLinearSolver;
+                model.pressureNonLinearSolver.maxTimestepCuts = 0;
+                model.pressureNonLinearSolver.errorOnFailure = false;
             end
             
             if ~isempty(model.transportLinearSolver)
@@ -92,6 +94,8 @@ classdef SequentialPressureTransportModel < ReservoirModel
             pressure_ok = pressureReport.Converged || psolver.continueOnFailure;
             
             if pressure_ok
+                state.timestep = dt;
+                state.pressure_full = state.pressure;
                 % If pressure converged, we proceed to solve the transport
                 [state, transportReport] = ...
                     tsolver.solveTimestep(state0, dt, model.transportModel,...
@@ -111,11 +115,15 @@ classdef SequentialPressureTransportModel < ReservoirModel
                 % converged after the transport step. This check ensures
                 % that the assumption of fixed total velocity is reasonable
                 % up to some tolerance.
-                problem = model.pressureModel.getEquations(state0, state, dt, drivingForces, 'resOnly', true, 'iteration', inf);
-                % Is the pressure still converged when accounting for the
-                % updated quantities after transport (mobility, density
-                % and so on?)
-                [~, values] = model.pressureModel.checkConvergence(problem);
+                if isa(model.pressureModel, 'PressureNaturalVariablesModel')
+                    values = max(abs(sum(state.s, 2) - 1));
+                else
+                    problem = model.pressureModel.getEquations(state0, state, dt, drivingForces, 'resOnly', true, 'iteration', inf);
+                    % Is the pressure still converged when accounting for the
+                    % updated quantities after transport (mobility, density
+                    % and so on?)
+                    [~, values] = model.pressureModel.checkConvergence(problem);
+                end
                 if model.outerCheckWellConvergence
                     lv = max(values);
                 else
