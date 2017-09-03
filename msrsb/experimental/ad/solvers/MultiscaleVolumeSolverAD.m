@@ -77,9 +77,20 @@ classdef MultiscaleVolumeSolverAD < LinearSolverAD
                [problem, eliminated] = problem0.reduceToSingleVariableType('cell');
            end
            problem = problem.assembleSystem();
+           [A, b]= problem.getLinearSystem;
            
+           nc = solver.coarsegrid.parent.cells.num;
+           doReduce = size(b, 1) > nc;
+           if doReduce
+               [A, b, B, C, D, E, f, h] = reduceSystem(A, b, nc);
+           end
            timer = tic();
-           [result, report] = solver.solveLinearSystem(problem.A, problem.b);
+           [result, report] = solver.solveLinearSystem(A, b);
+           if doReduce
+               s = E\(h - D*result);
+               result = [result; s];
+           end
+           
            [result, report] = problem.processResultAfterSolve(result, report);
            report.SolverTime = toc(timer);
            
@@ -131,4 +142,32 @@ classdef MultiscaleVolumeSolverAD < LinearSolverAD
            end
        end
    end
+end
+
+function  [A, b, B, C, D, E, f, h] = reduceSystem(A, b, keepNum)
+   [ix, jx, vx] = find(A);
+   n = size(A, 2);
+   keep = false(n, 1);
+   keep(1:keepNum) = true;
+   nk = keepNum;
+
+   keepRow = keep(ix);
+   keepCol = keep(jx);
+   kb = keepRow & keepCol;
+   B = sparse(ix(kb), jx(kb), vx(kb), nk, nk);
+
+   kc = keepRow & ~keepCol;
+   C = sparse(ix(kc), jx(kc) - nk, vx(kc), nk, n - nk);
+
+   kd = ~keepRow & keepCol;
+   D = sparse(ix(kd) - nk, jx(kd), vx(kd), n - nk, nk);
+
+   ke = ~keepRow & ~keepCol;
+   E = sparse(ix(ke) - nk, jx(ke) - nk, vx(ke), n - nk, n - nk);
+   f = b(keep);
+   h = b(~keep);
+   
+   [L, U] = lu(E);
+   A = B - C*(U\(L\D));
+   b = f - C*(U\(L\h));
 end
