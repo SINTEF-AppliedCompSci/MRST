@@ -418,7 +418,7 @@ classdef ChemicalModel < PhysicalModel
                 ind = strcmpi(name, model.partialPressureNames);
                 if any(ind)
                     varfound = true;
-                    fn = 'partialPressureNames';
+                    fn = 'partialPressures';
                     index = find(ind);
                     break
                 end
@@ -1609,7 +1609,7 @@ classdef ChemicalModel < PhysicalModel
             for i = 1 : numel(pVar)
                 
                 p = pVar{i};
-                compInd = strcmpi(p, model.AllCompNames);
+                compInd = strcmpi(p, model.CompNames);
                 
                 if any(strcmpi(p, model.MasterCompNames))
                     state = model.capProperty(state, p, 1e-50, 2.5*mol/litre);

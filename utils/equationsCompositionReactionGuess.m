@@ -46,7 +46,6 @@ function [eqs, names, types] = equationsCompositionReactionGuess(state, logporo,
             eqs{i} = eqs{i} + model.GasReactionMatrix(i,k).*partialPressures{k};
         end
         
-        
         names{i} = model.rxns{i};
     end
     
