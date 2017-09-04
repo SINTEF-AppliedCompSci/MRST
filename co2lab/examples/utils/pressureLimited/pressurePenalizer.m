@@ -104,7 +104,7 @@ function obj = pressurePenalizer(model, states, schedule, penalty, plim, varargi
 
       
       % Keep track of amount over or amount under plim at each time step:
-      pd = double(p); % to avoid error when taking min of an ADI, min(plim-p)
+      pd = double(p); % we take double here to get cinx of possible ADI
       max_amount_surp(step) = max(0,max(pd-plim));
       if max_amount_surp(step) > 0
           [~,cinx] = max(pd-plim);
