@@ -41,6 +41,9 @@ rock.poro = 0.4.*ones(n, 1);
 
 Ba  =logspace(-1, 1,n)';
 Ca  = logspace(1, -1,n)';
+
+% Ba  =logspace(-2, 2,n)';
+% Ca  = logspace(2, -2,n)';
 SO4 = Ba+Ca;
 
 userInput = [Ba Ca SO4]*mol/litre;

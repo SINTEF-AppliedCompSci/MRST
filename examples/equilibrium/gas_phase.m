@@ -49,7 +49,7 @@ Ca = 1e1.*ones(n,1);
 solidDensities = {'CaCO3(s)', 3*mol/litre};
 
 % list partial pressures
-partialPressure = {'CO2(g)', 0.1*atm};
+partialPressure = {'CO2(g)', 1*atm};
 
 userInput = [Ca H2O H CT]*mol/litre;
 % userInput = [C O H Ca]*mol/litre;

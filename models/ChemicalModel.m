@@ -262,7 +262,7 @@ classdef ChemicalModel < PhysicalModel
                 valFun = @(x) iscell(x);
                 p.addParameter('surfaces', '', valFun);                
                 p.addParameter('combinations', '', valFun);
-
+                
                 
                 p.parse(varargin{4:end})
             
@@ -272,7 +272,7 @@ classdef ChemicalModel < PhysicalModel
                     assert(rem(numel(p.Results.surfaces),2)==0, 'A key/value pair must be provided for surfaces, yet the number of inputs is odd.');
                     
                     surfNames = p.Results.surfaces(1:2:end);
-                    ind = cellfun(@(x) ~isempty(x), regexpi(surfNames,'g[roup]'));
+                    ind = cellfun(@(x) ~isempty(x), regexpi(surfNames,'g[roups]'));
                     surfNames = surfNames(~ind);
                     
                     if sum(ind) > 0
@@ -301,27 +301,22 @@ classdef ChemicalModel < PhysicalModel
                         
                         % make sure species do not appear in more than one
                         % group
-                        for i = 1 : numel(speciesNames)
-                            ind = zeros(size(groupNames));
+                        spnames = speciesNames(:);
+                        for i = 1 : numel(spnames)
+                            ind = zeros(size(spnames));
                             ind(i) = 1;
-                            test = true;
                             
-                            if numel(groupNames) == 2
-                                test = sum(strcmpi(speciesNames{i}, speciesNames{i+1}));
-                                test = test == 0;
-                            elseif numel(speciesNames) > 2
-                             	test = all(isempty(strcmpi(speciesNames{i}, speciesNames{~ind})));
-                            end
+                            test = all(~strcmpi(spnames{i}, spnames(~ind)));
                             
-                            validatestring(speciesNames{i}, surfNames, 'ChemicalModel', 'entries to share');
-                            assert(test, ['The surface species ' speciesNames{i} ' is repeated or appears in more than one group.']);
+                            validatestring(spnames{i}, surfNames, 'ChemicalModel', 'entries to share');
+                            assert(test, ['The surface species ' spnames{i} ' is repeated or appears in more than one group.']);
                         end
                         
                         % add functional groups not listed in groups to
                         % groupNames may need to change cell indexing for when there
                         % arent the same number of surface master components in  a group
                         for i = 1 : numel(surfNames);
-                            if ~any(strcmpi(surfNames{i}, speciesNames))
+                            if ~any(strcmpi(surfNames{i}, spnames))
                                 groupNames{end+1} = surfNames{i};
                                 speciesNames{end+1,1} = surfNames{i};
                             end
@@ -1018,8 +1013,8 @@ classdef ChemicalModel < PhysicalModel
                 assert(~(sum(strcmpi(names{i}, model.MasterCompNames)) > 0), ['The chemical species ' '"' names{i} '" is a repeat of an element or surface functional group.']);
             end
 
-            names = regexprep(names, '[(s)]','');
-            names = regexprep(names, '[(g)]','');
+            names = strrep(names, '(s)','');
+            names = strrep(names, '(g)','');
             
             % length of master component string
             strlen = cellfun(@length,model.MasterCompNames);
@@ -1195,6 +1190,7 @@ classdef ChemicalModel < PhysicalModel
             nM = model.nMC;
             nG = model.nG;
             nS = model.nS;
+            nP = numel(model.surfacePotentialNames);
             
             % check that an appropriate number of inputs have been
             % designated
@@ -1230,17 +1226,8 @@ classdef ChemicalModel < PhysicalModel
                 end
             end
 
-            % create reaction matrix
-            model.AllReactionMatrix = vertcat(tmp{:});
-    
-            model.ReactionMatrix = model.AllReactionMatrix;
-            model.ReactionMatrix(:,model.phaseInd) = [];
-            
-            model.GasReactionMatrix = model.AllReactionMatrix;
-            model.GasReactionMatrix(:,~model.gasInd) = [];
-
-            model.SolidReactionMatrix = model.AllReactionMatrix;
-            model.SolidReactionMatrix(:,~model.solidInd) = [];
+            % assemble reaction matrix
+            RM = vertcat(tmp{:});
             
             % assemble reaction constants
             model.ReactionConstants = [rxnK{:}]';
@@ -1248,16 +1235,16 @@ classdef ChemicalModel < PhysicalModel
 
             % check that there are an equal number of each master component on both sides of the chemical reacitons.
             for i = 1 : nRx
-                mCind = model.AllReactionMatrix(i,:) ~= 0;
-                mCcomp = repmat(model.AllReactionMatrix(i,mCind),nM,1).*model.AllContributionMatrix(:,mCind);
+                mCind = RM(i,:) ~= 0;
+                mCcomp = repmat(RM(i,mCind),nM,1).*model.AllContributionMatrix(:,mCind);
                 balance = sum(sum(mCcomp,2));
                 assert(balance == 0, ['The chemical reaction "' rxnsO{i} '" does not balance elements and/or surface functional groups.'])
             end
             
             % check for charge balance within each reaction
             for i = 1 : nRx
-                mCind = model.AllReactionMatrix(i,:) ~= 0;
-                mCcomp = model.AllReactionMatrix(i,mCind).*model.allCharge(:,mCind);
+                mCind = RM(i,:) ~= 0;
+                mCcomp = RM(i,mCind).*model.allCharge(:,mCind);
                 balance = sum(sum(mCcomp,2));
                 assert(balance == 0, ['The chemical reaction "' rxnsO{i} '" does not balance charge.'])
             end
@@ -1266,11 +1253,10 @@ classdef ChemicalModel < PhysicalModel
             model.rxns = rxnsO;
 
             surfInfo = model.surfInfo;
-
-
-            RM = model.ReactionMatrix;
-
+            
+            % add potential terms
             nP = sum(cellfun(@(x) ~isempty(x), regexpi(model.CompNames,'psi')));
+            
             RM = horzcat(RM, zeros(model.nR, nP));
 
             % Add surface activities to reaction matrix and remove
@@ -1306,6 +1292,19 @@ classdef ChemicalModel < PhysicalModel
                 end
             end
 
+            % create reaction matrix
+
+            model.AllReactionMatrix = RM;
+    
+            model.ReactionMatrix = model.AllReactionMatrix;
+            model.ReactionMatrix(:,model.phaseInd) = [];
+            
+            model.GasReactionMatrix = model.AllReactionMatrix;
+            model.GasReactionMatrix(:,~model.gasInd) = [];
+
+            model.SolidReactionMatrix = model.AllReactionMatrix;
+            model.SolidReactionMatrix(:,~model.solidInd) = [];
+            
             
             nPsi = sum(cellfun(@(x) ~isempty(x), regexpi(model.CompNames, 'psi')));
             assert(model.nR + model.nMC == model.nC - nPsi + model.nG + model.nS, ['The given chemical system is rank deficient. The number of species must be equal to the sum of the number elements, surface functional groups, and reactions.'])
@@ -1313,9 +1312,10 @@ classdef ChemicalModel < PhysicalModel
             nI = numel(model.chemicalInputModel.inputNames);
             
             assert(nI == model.nMC , ['For the defined chemical system ' num2str(model.nMC) ' components, elements or species, must be designated as inputs. Use an "*" to designated a component as an input.']);
-            model.ReactionMatrix = RM;
 
 
+            model.AllContributionMatrix = [model.AllContributionMatrix zeros(model.nMC, nP)];
+            
         end
 
         %%
@@ -1553,11 +1553,13 @@ classdef ChemicalModel < PhysicalModel
 
                 switch mTest{1}
                     case 'ccm'
+                        model.AllCompNames{end+1} = [ m '_ePsi'];
                         model.CompNames{end+1} = [ m '_ePsi'];
                         model.surfaceChargeNames{end+1} = [m '_sig'];
                         model.surfacePotentialNames{end+1} = [m '_Psi'];
                         n = 1;
                     case 'tlm'
+                        model.AllCompNames =  horzcat( model.AllCompNames, [m '_ePsi_0'], [m '_ePsi_1'], [m '_ePsi_2']);
                         model.CompNames =  horzcat( model.CompNames, [m '_ePsi_0'], [m '_ePsi_1'], [m '_ePsi_2']);
                         model.surfaceChargeNames= horzcat(model.surfaceChargeNames, [m '_sig_0'],[m '_sig_1'],[m '_sig_2']);
                         model.surfacePotentialNames = horzcat(model.surfacePotentialNames, [m '_Psi_0'],[m '_Psi_1'],[m '_Psi_2']);

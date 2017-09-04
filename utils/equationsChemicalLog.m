@@ -5,6 +5,7 @@ function [eqs, names, types] = equationsChemicalLog(logporo, logcomps, logmaster
     if model.nG > 0
         partialPressures = cell(1,model.nG);
         [partialPressures{:}] = deal(model.getProps(state, model.partialPressureNames{:}));
+        logPartialPressures = cellfun(@(x) log(x), partialPressures, 'UniformOutput', false);    
     end
 
     if model.nS > 0
@@ -82,6 +83,10 @@ function [eqs, names, types] = equationsChemicalLog(logporo, logcomps, logmaster
         for k = 1 : model.nC
             eqs{i} = eqs{i} + RM(i, k).*(pg{k} + af{k} + logcomps{k});
         end
+        
+        for k = 1 : model.nG
+            eqs{i} = eqs{i} + model.GasReactionMatrix(i,k).*logPartialPressures{k};
+        end
         %
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         
@@ -118,15 +123,15 @@ function [eqs, names, types] = equationsChemicalLog(logporo, logcomps, logmaster
     
     %% conservation of volume
     
-    vol = 1 - poro;
+    vol = poro;
     for i = 1 : model.nS
-        vol = vol - solidComps{i};
+        vol = vol + solidComps{i};
     end
     for i = 1 : model.nG
-        vol = vol - gasComps{i};
+        vol = vol + gasComps{i};
     end    
     
-    eqs{end+1} = vol;
+    eqs{end+1} = log(1) - log(vol);
     names{end+1} = 'Conservation of volume';
     types{end+1} = [];
     
