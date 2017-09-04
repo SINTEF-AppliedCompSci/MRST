@@ -340,22 +340,30 @@ nbnd = nNeuBnd + nDirBnd;
 
 fnoLoc = repmat(fnoGlob,Nd,1);
 
-neuCol = find(excludeDirichlet * isNeumann(fnoGlob));
-neuCol2 = neuCol;
-neuCol = reshape(bsxfun(@plus,neuCol * ones(1,Nd),nNeuCond/Nd*((1:Nd)-1))',[],1);
-neuVal = reshape(repmat(sgn(neuCol2),1,Nd)',[],1) .*G.faces.areas(fnoLoc(neuCol))...
-    ./nFaceNodes(fnoLoc(neuCol));
-ccNeu = sparse(neuCol,1:numel(neuCol),neuVal,nNeuCond,nbnd);
-dirCol = find(excludeNeumann * isDirichlet(fnoGlob));
-dirCol2 = dirCol;
-dirCol = reshape(bsxfun(@plus,dirCol * ones(1,Nd),nDirCond/Nd*((1:Nd)-1))',[],1);
-dirVal = reshape(repmat(sgn(dirCol2),1,Nd)',[],1);
-ccDir = sparse(dirCol,nNeuBnd+(1:numel(dirCol)),dirVal,nDirCond,nNeuBnd+nDirBnd);
+% Neumann BC in terms of the block diagonal system (e.g. faces with
+% Dirichlet conditions are removed)
+neuCol_eq = find(excludeDirichlet * isNeumann(fnoGlob));
+% Neumann BC in terms of global numebering of unknowns
+neuCol_glob = find(isNeumann(fnoGlob));
+
+neuCol_eq = reshape(bsxfun(@plus,neuCol_eq * ones(1,Nd),nNeuCond/Nd*((1:Nd)-1))',[],1);
+
+% Values for implementation of Neumann boundary conditions. Refers to
+% global field to get the signs correct
+neuVal = reshape(repmat(sgn(neuCol_glob),1,Nd)',[],1) .*G.faces.areas(fnoLoc(neuCol_eq))...
+    ./nFaceNodes(fnoLoc(neuCol_eq));
+ccNeu = sparse(neuCol_eq, 1:numel(neuCol_eq), neuVal, nNeuCond, nbnd);
+dirCol_eq = find(excludeNeumann * isDirichlet(fnoGlob));
+dirCol_glob = find(isDirichlet(fnoGlob));
+
+dirCol_eq = reshape(bsxfun(@plus,dirCol_eq * ones(1,Nd),nDirCond/Nd*((1:Nd)-1))',[],1);
+dirVal = reshape(repmat(sgn(dirCol_glob),1,Nd)',[],1);
+ccDir = sparse(dirCol_eq,nNeuBnd+(1:numel(dirCol_eq)),dirVal,nDirCond,nNeuBnd+nDirBnd);
 
 clear neuCol neuCol2 neuVal dirCol dirCol2 dirVal
 
-
-tmp = [find(excludeDirichlet * isNeumann(fnoGlob)); find(excludeNeumann * isDirichlet(fnoGlob))];
+% Mapping from boundary counting to global counting. Uses global indices.
+tmp = [neuCol_glob; dirCol_glob];
 cols = reshape(bsxfun(@minus,repmat(tmp * Nd,1,Nd),fliplr(1:Nd)-1)',[],1);
 allFace2boundFace = sparse(1:nbnd,cols,1,nbnd,max(subfnoAll)*Nd);
 map = @(i) reshape(bsxfun(@minus,repmat(i*Nd,1,Nd),fliplr(1:Nd)-1)',[],1);
