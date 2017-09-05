@@ -302,7 +302,7 @@ classdef ChemicalModel < PhysicalModel
                         for i = 1 : numel(speciesNames);
                             spnames = [spnames speciesNames{i}];
                         end
-                        
+
                         for i = 1 : numel(spnames)
                             ind = zeros(size(spnames));
                             ind(i) = 1;
