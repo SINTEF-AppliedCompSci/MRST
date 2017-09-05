@@ -3,9 +3,9 @@ function chemicalSystemPrintFunction(model, varargin )
             fprintf('\n');
             
             l1 = max(cellfun(@length, model.rxns))+1;
-            l2 = max(cellfun(@length, model.CompNames))+1;
+            l2 = max(cellfun(@length, model.AllCompNames))+1;
 
-            sep = repmat('=', 1, l2*model.nC + l1 + model.nC + 2);
+            sep = repmat('=', 1, l2*numel(model.AllCompNames) + l1 + numel(model.AllCompNames) + 2);
             fprintf('%s\n', sep);
             
             % get the names right
@@ -18,17 +18,17 @@ function chemicalSystemPrintFunction(model, varargin )
 
             % make column header
             compnamestr =['|%-' num2str(l1) 's|'];
-            for i = 1 : model.nC
+            for i = 1 : numel(model.AllCompNames)
                 compnamestr = [compnamestr '%' num2str(l2) 's|'];
             end
-            fprintf([compnamestr '\n'], 'Equations', model.CompNames{:});
+            fprintf([compnamestr '\n'], 'Equations', model.AllCompNames{:});
 
             fprintf('%s\n', sep);
             % make the rows of the print
             
             massnamestr ='';
             for i = 1 : model.nMC + model.nR
-                for j = 1 : model.nC + 1
+                for j = 1 : numel(model.AllCompNames) + 1
                     if j == 1
                         fl = ['|%-' num2str(l1) 's'];
                     else
@@ -38,9 +38,9 @@ function chemicalSystemPrintFunction(model, varargin )
                     massnamestr = [massnamestr '' fl ''];
                 end
                 if i <= model.nMC
-                    in = mat2cell(model.CompositionMatrix(i,:), 1, ones(1,model.nC) );
+                    in = mat2cell(model.AllContributionMatrix(i,:), 1, ones(1,model.nC+model.nG+model.nS) );
                 else
-                    in = mat2cell(model.ReactionMatrix(i-model.nMC,:), 1, ones(1,model.nC) );
+                    in = mat2cell(model.AllReactionMatrix(i-model.nMC,:), 1, ones(1,model.nC+model.nG+model.nS) );
                 end
                 if i == model.nMC+1
                     fprintf('%s\n', sep);
@@ -53,7 +53,7 @@ function chemicalSystemPrintFunction(model, varargin )
             % linear combinations
             massnamestr ='';
             for i = 1 : model.nLC
-                for j = 1 : model.nC + 1
+                for j = 1 : numel(model.AllCompNames) + 1
                     if j == 1
                         fl = ['|%-' num2str(l1) 's'];
                     else
@@ -62,7 +62,7 @@ function chemicalSystemPrintFunction(model, varargin )
 
                     massnamestr = [massnamestr '' fl ''];
                 end
-                in = mat2cell(model.CombinationMatrix(i,:), 1, ones(1,model.nC) );
+                in = mat2cell(model.AllCombinationMatrix(i,:), 1, ones(1,model.nC+model.nG+model.nS) );
                 fprintf([massnamestr, '|\n'], model.CombinationNames{i}, in{:});
                 massnamestr ='';
             end

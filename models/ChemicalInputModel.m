@@ -28,18 +28,22 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 
     methods
-
+        
+        %%
         function model = ChemicalInputModel()
             model = model@ChemicalModel();
             model.inputNames = {};
         end
-
+        
+        %%
         function model = validateModel(model)
             model = validateModel@ChemicalModel(model);
             % setup unknownNames
-            unknownNames = horzcat(model.CompNames, model.MasterCompNames, model.CombinationNames);
+            unknownNames = horzcat(model.CompNames, model.MasterCompNames, model.CombinationNames, model.SolidNames, model.GasNames, 'poro');
+            
             ind = cellfun(@(name)(strcmpi(name, model.inputNames)), unknownNames, ...
                           'Uniformoutput', false);
+                      
             ind = cell2mat(ind');
             ind = sum(ind, 2);
             model.unknownNames = unknownNames(~ind);
@@ -53,34 +57,38 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                             false);
 
             nPsi = sum(cellfun(@(x) ~isempty(x), regexpi( model.unknownNames, 'psi')));
-            assert(numel(model.unknownNames)-nPsi == model.nR + model.nMC + model.nLC, 'well..., not as we are thinking...');
+            assert(numel(model.unknownNames)-nPsi == model.nR + model.nMC + model.nLC + 1, 'well..., not as we are thinking...');
 
         end
-
+        
+        %%
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
 
-            [pVars, logcomps, logmasterComps, comboComps] = prepStateForEquations(model, state);
+            [pVars, logcomps, logmasterComps, comboComps, logGasComps, logSolidComps, logPoro]...
+                = prepStateForEquations(model, state);
 
-            [eqs, names, types] = equationsChemicalInit(logcomps, logmasterComps, comboComps, ...
-                                                        model);
+            [eqs, names, types] = equationsChemicalInit(logPoro, logcomps, logmasterComps, comboComps, ...
+                                                       logGasComps, logSolidComps, state, model);
 
             problem = LinearizedProblem(eqs, types, names, pVars, state, dt);
 
         end
 
-        function [logUnknowns, logComps, logMasterComps, combinationComps] = prepStateForEquations(model, ...
+        %%
+        function [logUnknowns, logComps, logMasterComps, combinationComps,...
+                 logGasComps, logSolidComps, logPorosity] = prepStateForEquations(model, ...
                                                               state)
             CNames = model.logCompNames;
             MCNames = model.logMasterCompNames;
             LCNames = model.CombinationNames;
+            GNames = model.logGasNames;
+            SNames = model.logSolidNames;
 
             nC = numel(CNames);
 
             logUnknowns = model.logUnknownNames;
             logKnowns = model.logInputNames;
 
-            % actually, we want the non log form of the linear combination
-            % variables
             for i = 1 : model.nLC
                 logUnknowns = regexprep(logUnknowns, ['log'  LCNames{i}],  LCNames{i});
                 logKnowns = regexprep(logKnowns, ['log'  LCNames{i}],  LCNames{i});
@@ -129,28 +137,67 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 end
             end
 
-
+            logGasComps = cell(1,model.nG);
+            for i = 1 : model.nG
+                mcInd = strcmpi(logUnknowns, GNames{i});
+                if any(mcInd)
+                    logGasComps{i} = logUnknownVal{mcInd};
+                end
+                mcInd = strcmpi(logKnowns, GNames{i});
+                if any(mcInd)
+                    logGasComps{i} = logKnownVal{mcInd};
+                end
+            end
+            
+            logSolidComps = cell(1,model.nS);
+            for i = 1 : model.nS
+                mcInd = strcmpi(logUnknowns, SNames{i});
+                if any(mcInd)
+                    logSolidComps{i} = logUnknownVal{mcInd};
+                end
+                mcInd = strcmpi(logKnowns, SNames{i});
+                if any(mcInd)
+                    logSolidComps{i} = logKnownVal{mcInd};
+                end
+            end
+            
+            pInd = strcmpi(logUnknowns, 'logporo');
+            logPorosity = logUnknownVal{pInd}; 
+            
         end
-
+        
+        %%
         function [state, report] = updateState(model, state, problem, dx, ...
                                                drivingForces)
 
             [state, report] = updateState@ChemicalModel(model, state, problem, ...
                                                         dx, drivingForces);
-
-            nC = model.nC;
+            state = model.syncFromLog(state);
+            
             LC = model.CombinationMatrix;
+            CM = model.CompositionMatrix;
 
             for i = 1 : model.nLC
                 combMaxMatrix = diag(1./LC(:, i));
                 maxvals = combMaxMatrix*((state.combinationComponents)');
                 maxvals = (min(maxvals))';
-                state = model.capProperty(state, model.CompNames{i}, 1e-50, ...
+                state = model.capProperty(state, model.CombinationNames{i}, 1e-50, ...
                                           maxvals);
             end
 
+%             for i = 1 : model.nC
+%                 maxMatrix = diag(1./CM(:, i));
+%                 maxvals = maxMatrix*((state.components)');
+%                 maxvals = (min(maxvals))';
+%                 state = model.capProperty(state, model.CompNames{i}, 1e-50, ...
+%                                           maxvals);
+%             end
+           
+            state = model.syncLog(state);
+            
         end
 
+        %%
         function [state, failure, report] = solveChemicalState(model, inputstate)
         % inputstate contains the input and the initial guess.
 
@@ -177,6 +224,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             tmp = cell(1,model.nC);
             [tmp{:}] = model.getProps(state, model.CompNames{:});
             state.components        =  horzcat(tmp{:});
+            
         end
 
 

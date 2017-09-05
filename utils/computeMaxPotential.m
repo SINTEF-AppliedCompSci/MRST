@@ -44,37 +44,36 @@ function [names, mins, maxs] = computeMaxPotential(model, state)
             
             groupName = model.surfaces.groupNames{i};
             
-            GMNames = model.surfaces.groupMasterNames(i,:);
-            GMNames = GMNames(cellfun(@(x) ~isempty(x), GMNames));
+            SPNames = model.surfaces.speciesNames{i};
             
             sig_0 = 0;
             sig_1 = 0;
             sig_2 = 0;
                         
-            for j = 1 : numel(GMNames)
-                mInd = strcmpi(GMNames{j}, model.surfInfo.master);
+            for j = 1 : numel(SPNames)
+                mInd = strcmpi(SPNames{j}, model.surfInfo.master);
                                         
                 % grab the correct info
                 S = model.surfInfo.s{mInd}*gram/(meter)^2;
                 a = model.surfInfo.a{mInd}*litre/gram;
                 C = model.surfaces.c{i};
 
-                % number of species associated with surface
-                nSp = numel(model.surfInfo.species{mInd});
-                SpNames = model.surfInfo.species{mInd};
-                charge = model.surfInfo.charge{mInd};
+%                 % number of species associated with surface
+%                 nSp = numel(model.surfInfo.species{mInd});
+%                 SpNames = model.surfInfo.species{mInd};
+%                 charge = model.surfInfo.charge{mInd};
 
                 switch model.surfaces.scm{i}
                     case 'tlm'
 
                         % calculate surface charges
-                        sig_2 = sig_2 + (F./(S.*a)).*model.getProp(state, GMNames{j})*litre/mol;
+                        sig_2 = sig_2 + (F./(S.*a)).*model.getProp(state, SPNames{j})*litre/mol;
 
                         
                     case 'ccm'
 
                         % calculate surface charges
-                        sig_0 = sig_0 + (F./(S.*a)).*model.getProp(state, GMNames{j})*litre/mol;
+                        sig_0 = sig_0 + (F./(S.*a)).*model.getProp(state, SPNames{j})*litre/mol;
                 end
             end
             
