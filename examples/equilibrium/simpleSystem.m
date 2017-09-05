@@ -20,8 +20,7 @@ chem.printChemicalSystem;
 n = 500;
 userInput = [1e-2.*ones(n,1) 1e-2.*ones(n,1) logspace(-5,-9, n)' 1.*ones(n,1)]*mol/litre;
 
-state = [];
-[state, report, model] = chem.initState(state, userInput);
+[state, report, model] = chem.initState(userInput);
 
 %% process
 
@@ -29,7 +28,7 @@ state = [];
 
 % take out relevant values from state
 
-state = changeUnits(state, mol/litre );
+state = changeUnits(state, {'masterComponents','components'}, mol/litre );
 
 pH = -log10(getProp(chem, state, 'aH+'));
 

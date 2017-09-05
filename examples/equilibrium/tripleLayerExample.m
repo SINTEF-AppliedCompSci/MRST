@@ -61,7 +61,7 @@ toc;
 
 
 %% take out relevant values from state
-state = changeUnits(state, {'masterComponents', 'components'}, mol/litre);
+state = changeUnits(state, {'masterComponents', 'components', 'activities'}, mol/litre);
 
 SO      = getProp(chem, state, '>SO-');
 SOH     = getProp(chem, state, '>SOH');

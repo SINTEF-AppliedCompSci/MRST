@@ -1291,6 +1291,8 @@ classdef ChemicalModel < PhysicalModel
                                     % contribution
                                     RM(logical(rmVec),layerInd) = RM(logical(rmVec),layerInd) + repmat(rmVec(rmVec ~= 0),1,nL).*repmat(surfInfo.charge{mInd}{k},sum(logical(rmVec)),1);
                                 end
+                            case {'ie','langmuir'}
+                                nL = 0;
                         end
                     end
                     numLay(i) = nL;
