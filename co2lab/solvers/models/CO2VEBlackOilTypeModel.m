@@ -210,6 +210,9 @@ end
    function [state, report] = ...
        updateAfterConvergence(model, state0, state, dt, drivingForces)%#ok
       
+      [state, report] = updateAfterConvergence@ReservoirModel(model, ...
+                                        state0, state, dt, drivingForces);%#ok
+      
       % Here, we update the hysteresis variable 'sGmax'.  If the residual
       % saturation of gas is 0 (i.e. model.fluid.residuals(2) == 0),
       % keeping track of 'sGmax' is not strictly necessary for
