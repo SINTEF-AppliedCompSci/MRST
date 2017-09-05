@@ -1322,17 +1322,19 @@ classdef ChemicalModel < PhysicalModel
             model.AllContributionMatrix = [model.AllContributionMatrix zeros(model.nMC, nP)];
             
             % make sure multidentate species do not span multiple surfaces
-            first = numel(model.CompNames) - nPsi + 1;
-            for i = 1 : numel(gNames)
-                nL = numLay(i);
-                psiPack = model.ReactionMatrix(:,first:first+nL-1);
-                first = first + nL;
-                stack(:,i) = logical(sum(psiPack,2));
-            end
-            
-            mdInd = sum(stack,2) > 1;
-            if any(mdInd)
-                error('Multidentate species may not span multiple surface groups.') 
+            if model.surfFlag && ~isempty(model.surfInfo)
+                first = numel(model.CompNames) - nPsi + 1;
+                for i = 1 : numel(gNames)
+                    nL = numLay(i);
+                    psiPack = model.ReactionMatrix(:,first:first+nL-1);
+                    first = first + nL;
+                    stack(:,i) = logical(sum(psiPack,2));
+                end
+
+                mdInd = sum(stack,2) > 1;
+                if any(mdInd)
+                    error('Multidentate species may not span multiple surface groups.') 
+                end
             end
         end
 
