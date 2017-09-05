@@ -37,7 +37,7 @@ function obj = pressurePenalizer(model, states, schedule, penalty, plim, varargi
 %   
 
 % Format of objective function:
-%   obj = max(0, sign(p - plim)) * penalty * (p - plim)^2
+%   obj = max(0, sign(p - plim)) * penalty * (p - plim)^k
 % obj is computed for each or for a specific time step
 
 
@@ -52,6 +52,9 @@ function obj = pressurePenalizer(model, states, schedule, penalty, plim, varargi
       cells = opt.cells;
       plim  = plim(cells);
    end
+   
+   assert( all(isfinite(plim(cells))), ...
+       'Pressure limit of specific or all cells must be finite values.' )
    
    num_timesteps = numel(schedule.step.val);
    tSteps = opt.tStep;
