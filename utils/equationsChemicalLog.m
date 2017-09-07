@@ -1,12 +1,12 @@
 function [eqs, names, types] = equationsChemicalLog(logporo, logcomps, logmasterComps, logGasComps, logSolidComps, state, model)
 
     T = model.getProp(state, 'temp');
-
-    if model.nG > 0
-        partialPressures = cell(1,model.nG);
-        [partialPressures{:}] = deal(model.getProps(state, model.partialPressureNames{:}));
-        logPartialPressures = cellfun(@(x) log(x), partialPressures, 'UniformOutput', false);    
-    end
+% 
+%     if model.nG > 0
+%         partialPressures = cell(1,model.nG);
+%         [partialPressures{:}] = deal(model.getProps(state, model.partialPressureNames{:}));
+%         logPartialPressures = cellfun(@(x) log(x), partialPressures, 'UniformOutput', false);    
+%     end
 
     if model.nS > 0
         solidDensities = cell(1,model.nS);
@@ -86,7 +86,7 @@ function [eqs, names, types] = equationsChemicalLog(logporo, logcomps, logmaster
         end
         
         for k = 1 : model.nG
-            eqs{i} = eqs{i} + model.GasReactionMatrix(i,k).*logPartialPressures{k};
+            eqs{i} = eqs{i} + model.GasReactionMatrix(i,k).*logGasComps{k};
         end
         %
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -109,9 +109,9 @@ function [eqs, names, types] = equationsChemicalLog(logporo, logcomps, logmaster
         
         % solidComps and gasComps has units of volume (m^3)
         % need to implement ideal gas law here for the gasses
-        for k = 1 : model.nG
-            masssum = masssum + model.GasCompMatrix(i,k).*gasComps{k};
-        end
+%         for k = 1 : model.nG
+%             masssum = masssum + model.GasCompMatrix(i,k).*gasComps{k};
+%         end
         for k = 1 : model.nS
             masssum = masssum + model.SolidCompMatrix(i,k).*solidComps{k}.*solidDensities{k};
         end
@@ -128,9 +128,9 @@ function [eqs, names, types] = equationsChemicalLog(logporo, logcomps, logmaster
     for i = 1 : model.nS
         vol = vol + solidComps{i};
     end
-    for i = 1 : model.nG
-        vol = vol + gasComps{i};
-    end    
+%     for i = 1 : model.nG
+%         vol = vol + gasComps{i};
+%     end    
     
     eqs{end+1} = log(1) - log(vol);
     names{end+1} = 'Conservation of volume';
