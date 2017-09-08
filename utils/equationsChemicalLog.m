@@ -124,7 +124,7 @@ function [eqs, names, types] = equationsChemicalLog(logporo, logcomps, logmaster
     
     %% conservation of volume
     
-    vol = poro;
+    vol = poro + 0.4;
     for i = 1 : model.nS
         vol = vol + solidComps{i};
     end

@@ -745,11 +745,15 @@ classdef ChemicalModel < PhysicalModel
             
             valInd = cellfun(@(x) isempty(x), regexpi(model.MasterCompNames, '>'));
             
+            rockDefault = struct();
+            rockDefault.poro = 1;
+            
             valFun = @(x) any(validatestring(x, model.MasterCompNames(valInd)));
             p.addParameter('chargeBalance', 'nochargebalance', valFun);
             p.addParameter('state',struct, @isstruct)
             p.addParameter('solidDensities', '', @iscell);
             p.addParameter('partialPressures', '', @iscell);
+            p.addParameter('rock', rockDefault, @isstruct);
             
             p.parse(varargin{:})
             
@@ -758,16 +762,22 @@ classdef ChemicalModel < PhysicalModel
             nI = size(userInput,1);
             
             if ~isempty(state) && isfield(state, 'temp')
-                nRock = size(state.temp, 1);
-                if nRock == 1
+                nTemp = size(state.temp, 1);
+                if nTemp == 1
                     state.temp = repmat(state.temp, nI, 1);
                 else
-                    assert(nRock == nI, 'The number of cells in state.temp do not correspond to the size of userInput.');
+                    assert(nTemp == nI, 'The number of cells in state.temp do not correspond to the size of userInput.');
                     state.temp = state.temp(:);
                 end
             else
                 state.temp = 298.*ones(nI,1);
             end
+            
+            nPoro = size(p.Results.poro, 1);
+            if nPoro ~= 1
+                assert(nPoro == nI, 'The number of cells in rock.poro do not correspond to the size of userInput.');
+            end
+            
 
             % check for solid densities
             if ~isempty(p.Results.solidDensities)
@@ -836,10 +846,10 @@ classdef ChemicalModel < PhysicalModel
                                 num2str(model.nMC-k) ' columns.']);
 
             
-            state.masterComponents      = eps*ones(size(userInput,1), model.nMC);
-            state.components            = eps*ones(size(userInput,1), model.nC);
+            state.masterComponents      = 0.1*ones(size(userInput,1), model.nMC);
+            state.components            = 0.1*ones(size(userInput,1), model.nC);
             
-            state.combinationComponents = eps*ones(size(userInput,1), model.nLC);
+            state.combinationComponents = 0.1*ones(size(userInput,1), model.nLC);
             
             state.gasComponents         = 0.1*ones(size(userInput,1), model.nG);
             state.logGasComponents      = log(state.gasComponents);

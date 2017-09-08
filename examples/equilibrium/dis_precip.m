@@ -2,7 +2,7 @@ clear;
 close all;
 
 % load adi and geochemistry module
-mrstModule add ad-core geochemistry
+mrstModule add geochemistry ad-core 
 mrstVerbose on
 
 
@@ -49,9 +49,8 @@ SO4 = Ba+Ca;
 userInput = [Ba Ca SO4]*mol/litre;
 % userInput = [Ba Ca C H H2O]*mol/litre;
 
-state.poro = rock.poro;
 tic
-[state, report, model] = chem.initState(userInput, 'state', state, 'solid', solidDensities);
+[state, report, model] = chem.initState(userInput, 'solid', solidDensities, 'rock', rock);
 toc;
 
 
