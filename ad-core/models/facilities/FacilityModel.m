@@ -125,16 +125,23 @@ classdef FacilityModel < PhysicalModel
             % Compute number of wells in facility
             nwell = numel(model.WellModels);
         end
-        function actIx = getIndicesOfActiveWells(model)
-            % Compute number of wells in facility
-            act = model.getWellStatusMask();
+        function actIx = getIndicesOfActiveWells(model, wellSol)
+            % Get indices of active wells (open & present)
+            act = model.getWellStatusMask(wellSol);
             actIx = (1:numel(act))';
             actIx = actIx(act);
         end
 
-        function act = getWellStatusMask(model)
-            % Compute number of wells in facility
-            act = cellfun(@(x) x.W.status, model.WellModels);
+        function act = getWellStatusMask(model, wellSol)
+            % Get the well status of all wells. The status is true if the
+            % well is present and active. Wells can be disabled in two
+            % ways: Their status flag can be set to false in the well
+            % struct, or the wellSol.status flag can be set to false by the
+            % simulator itself.
+            actModel = cellfun(@(x) x.W.status, model.WellModels);
+            actWellSol = arrayfun(@(x) x.status, wellSol);
+            
+            act = reshape(actModel, [], 1) & reshape(actWellSol, [], 1);
         end
 
         function names = getPrimaryVariableNames(model)
@@ -166,7 +173,7 @@ classdef FacilityModel < PhysicalModel
                 [isBHP, isRate] = deal([]);
             else
                 % Take the active wellSols
-                active = model.getWellStatusMask();
+                active = model.getWellStatusMask(wellSol);
                 wellSol = wellSol(active);
                 names = model.getBasicPrimaryVariableNames();
                 variables = cell(size(names));
@@ -206,7 +213,7 @@ classdef FacilityModel < PhysicalModel
         %             says that this extra-variable corresponds to
         %             names{i}.
 
-            actIx = model.getIndicesOfActiveWells();
+            actIx = model.getIndicesOfActiveWells(wellSol);
             nw = numel(actIx);
             if nw == 0
                 [variables, names, wellmap] = deal({});
@@ -262,7 +269,7 @@ classdef FacilityModel < PhysicalModel
                 warning(['Iteration number is not passed on to well model,', ...
                          'this may indicate wellbore pressure-drop will never be updated']);
             end
-            actWellIx = model.getIndicesOfActiveWells();
+            actWellIx = model.getIndicesOfActiveWells(wellSol);
             nw = numel(actWellIx);
 
             % Stores base well equations describing reservoir coupling
@@ -295,7 +302,7 @@ classdef FacilityModel < PhysicalModel
             addedVars = model.addedPrimaryVarNames;
             varmaps = cell(1, numel(addedVars));
             for varNo = 1:numel(addedVars)
-                varmaps{varNo} = model.getWellVariableMap(addedVars{varNo});
+                varmaps{varNo} = model.getWellVariableMap(addedVars{varNo}, wellSol);
             end
             
             isBH = wellMap.isBHP;
@@ -375,7 +382,7 @@ classdef FacilityModel < PhysicalModel
             eqs = {eqs{:}, extraEqs{:}};
             ctrleq = vertcat(allCtrl{:});
 
-            wc = model.getActiveWellCells();
+            wc = model.getActiveWellCells(wellSol);
             [wc, srcMass, srcVol] = model.handleRepeatedPerforatedcells(wc, srcMass, srcVol);
             wellSystem = struct('wellEquations', {eqs}, ...
                                 'names',  {names}, ...
@@ -404,10 +411,10 @@ classdef FacilityModel < PhysicalModel
             wc = vertcat(c{:});
         end
 
-        function wc = getActiveWellCells(model)
+        function wc = getActiveWellCells(model, wellSol)
             % Get the perforated cells of all active wells (status == true)
             c = cellfun(@(x) x.W.cells, model.WellModels, 'UniformOutput', false);
-            active = model.getWellStatusMask();
+            active = model.getWellStatusMask(wellSol);
             wc = vertcat(c{active});
         end
 
@@ -415,7 +422,7 @@ classdef FacilityModel < PhysicalModel
             % Store extra output, typically black oil-like
             p2w = getPerforationToWellMapping(model.getWellStruct());
             % Map into active wells
-            active = model.getWellStatusMask();
+            active = model.getWellStatusMask(ws);
             p2w = p2w(active(p2w));
 
             gind = model.ReservoirModel.getPhaseIndex('G');
@@ -491,7 +498,7 @@ classdef FacilityModel < PhysicalModel
             wellVars = model.getPrimaryVariableNames();
 
             nVars = numel(wellVars);
-            actIx = model.getIndicesOfActiveWells();
+            actIx = model.getIndicesOfActiveWells(wellSol);
             nW = numel(actIx);
             activeVars = false(nW, nVars);
             dx_well = cell(nW, nVars);
@@ -501,7 +508,7 @@ classdef FacilityModel < PhysicalModel
                 if any(strcmp(restVars, wf))
                     dv = model.getIncrement(dx, problem, wf);
 
-                    isVarWell = model.getWellVariableMap(wf);
+                    isVarWell = model.getWellVariableMap(wf, wellSol);
                     for i = 1:nW
                         % Check if this well has this specific variable as
                         % a primary variable.
@@ -525,8 +532,8 @@ classdef FacilityModel < PhysicalModel
             end
         end
 
-        function isVarWell = getWellVariableMap(model, wf)
-            act = model.getWellStatusMask();
+        function isVarWell = getWellVariableMap(model, wf, ws)
+            act = model.getWellStatusMask(ws);
             isRes = model.addedPrimaryVarNamesIsFromResModel;
             if isRes(strcmpi(wf, model.addedPrimaryVarNames))
                 % To be expanded.
