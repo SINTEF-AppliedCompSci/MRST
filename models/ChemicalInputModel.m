@@ -39,7 +39,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         function model = validateModel(model)
             model = validateModel@ChemicalModel(model);
             % setup unknownNames
-            unknownNames = horzcat(model.CompNames, model.MasterCompNames, model.CombinationNames, model.SolidNames, model.GasNames, 'poro');
+            unknownNames = horzcat(model.CompNames, model.MasterCompNames, model.CombinationNames, model.SolidNames, 'poro'); % model.GasNames
             
             ind = cellfun(@(name)(strcmpi(name, model.inputNames)), unknownNames, ...
                           'Uniformoutput', false);
@@ -57,7 +57,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                             false);
 
             nPsi = sum(cellfun(@(x) ~isempty(x), regexpi( model.unknownNames, 'psi')));
-            assert(numel(model.unknownNames)-nPsi == model.nR + model.nMC + model.nLC + 1, 'well..., not as we are thinking...');
+%             assert(numel(model.unknownNames)-nPsi == model.nR + model.nMC + model.nLC + 1, 'well..., not as we are thinking...');
 
         end
         

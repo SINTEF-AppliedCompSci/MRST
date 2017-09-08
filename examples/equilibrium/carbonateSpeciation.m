@@ -51,7 +51,7 @@ toc;
 
 %% take out relevant values from state
 
-state = changeUnits(state, mol/litre );
+state = changeUnits(state, {'masterComponents', 'components', 'activities'}, mol/litre );
 
 pH = -log10(getProp(chem, state, 'aH+'));
 

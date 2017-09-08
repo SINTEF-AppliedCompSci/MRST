@@ -58,7 +58,7 @@ toc;
 
 
 
-% %% phreeqc
+%% phreeqc
 % 
 % folderName = 'mrstExamples';
 % filename ='tripleLayerModelExample';
@@ -95,7 +95,7 @@ toc;
 
 %% plot
 
-state = changeUnits(state, mol/litre );
+state = changeUnits(state, {'masterComponents', 'components'}, mol/litre );
 
 
 pH = (getProp(chem, state, 'Ca+2'));

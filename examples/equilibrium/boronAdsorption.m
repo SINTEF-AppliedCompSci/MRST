@@ -24,10 +24,7 @@ reactions ={'H2O  <-> H+  + OH- ',              10^-14*mol/litre, ...
             '>SOH + H3BO3 <-> >SOH3BO3- + H+'    10^-8.2};
         
 geometry = [2.31*site/(nano*meter)^2 59*meter^2/gram 200*gram/litre];
-sInfo = {geometry, 'ccm', 1.06,     '>SO-',     -1,...
-                                                       '>SOH',    0,...
-                                                       '>SOH2+',   1,...
-                                                       '>SOH3BO3-'  -1};
+sInfo = {geometry, 'ccm', 1.06};
 surfaces ={ '>SO', sInfo};
 
 % instantiate chemical model
@@ -77,7 +74,7 @@ GB =   [7.145895	0.2151590
 
 %% take out relevant values from state
 
-state = changeUnits(state, mol/litre );
+state = changeUnits(state, {'masterComponents', 'components', 'activities'}, mol/litre );
 
 SO      = getProp(chem, state, '>SO-');
 SOH     = getProp(chem, state, '>SOH');
@@ -132,7 +129,7 @@ addpath('/Users/cmcneece/GoogleDrive/phreeqc/');
 
 %% plot it
 figure; hold on; box on;
-plot(pH, state.chargebalance,'-k')
+plot(pH, state.chargeBalance,'-k')
 xlabel('pH')
 ylabel('charge [% of total ion concentration]');
 

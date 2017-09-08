@@ -136,7 +136,7 @@ function [names, mins, maxs] = computeMaxPotential(model, state)
                     min_P0 = min_sig./C(:,1);
 
 
-                    names{end+1} = ['log' groupName '_ePsi'];
+                    names{end+1} = [groupName '_ePsi'];
                     
                     maxs{end+1} = max([exp(F.*max_P0./(R.*T)), exp(F.*min_P0./(R.*T))], [], 2);
                     maxs{end} = min([maxs{end}, upLim], [],2 );

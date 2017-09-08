@@ -724,7 +724,7 @@ classdef ChemicalModel < PhysicalModel
         %
         % OUTPUTS:
         %   state           - A structure containing the solution to the
-        %       chemical system. This includes state.masterCompoents and
+        %       chemical system. This includes state.masterComponents and
         %       state.components. masterComponents contains the total
         %       element concentrations and surface functional group
         %       concentrations. components contains the species
@@ -752,8 +752,7 @@ classdef ChemicalModel < PhysicalModel
             p.addParameter('chargeBalance', 'nochargebalance', valFun);
             p.addParameter('state',struct, @isstruct)
             p.addParameter('solidDensities', '', @iscell);
-            p.addParameter('partialPressures', '', @iscell);
-            p.addParameter('rock', rockDefault, @isstruct);
+
             
             p.parse(varargin{:})
             
@@ -792,18 +791,18 @@ classdef ChemicalModel < PhysicalModel
                 error('Solid densities must be provided if there are solid phases in the system.');
             end
 
-            % check for partial pressures
-            if ~isempty(p.Results.partialPressures)
-                if size(model.GasNames,2) == 0
-                    warning('Ignoring partialPressure input to ChemicalModel as no gasses were found.');
-                end
-
-                state = initGasPhasePressures(model, state, p.Results.partialPressures,nI);
-            end
-
-            if size(model.GasNames, 2) > 0 && isempty(p.Results.partialPressures)
-                error('The partial pressure of gasses must be provided if there are gas phases in the system.');
-            end
+%             % check for partial pressures
+%             if ~isempty(p.Results.partialPressures)
+%                 if size(model.GasNames,2) == 0
+%                     warning('Ignoring partialPressure input to ChemicalModel as no gasses were found.');
+%                 end
+% 
+%                 state = initGasPhasePressures(model, state, p.Results.partialPressures,nI);
+%             end
+% 
+%             if size(model.GasNames, 2) > 0 && isempty(p.Results.partialPressures)
+%                 error('The partial pressure of gasses must be provided if there are gas phases in the system.');
+%             end
                 
             givenTest = any(strcmpi(p.Results.chargeBalance, horzcat(model.chemicalInputModel.inputNames,'nochargebalance')));
             assert(givenTest, ['Only elements whos values are given (marked with "*") can be used for charge balance.']);
@@ -1301,6 +1300,8 @@ classdef ChemicalModel < PhysicalModel
                                     % contribution
                                     RM(logical(rmVec),layerInd) = RM(logical(rmVec),layerInd) + repmat(rmVec(rmVec ~= 0),1,nL).*repmat(surfInfo.charge{mInd}{k},sum(logical(rmVec)),1);
                                 end
+                            case {'ie','langmuir'}
+                                nL = 0;
                         end
                     end
                     numLay(i) = nL;
