@@ -40,7 +40,7 @@ sioInfo = {geometry, 'tlm', [1 1e3], '>SiO-', [-1 0 0], '>SiOH', [0 0 0]};
 surfaces = {'>SiO', sioInfo};
 
 % instantiate chemical model
-chemModel = ChemicalModel(elements, species, reactions, surfaces);
+chemModel = ChemicalModel(elements, species, reactions, 'surf', surfaces);
 chemModel.printChemicalSystem;
 
 % initial chemistry
@@ -57,8 +57,8 @@ inputConstraints = [1e-3 1e-3 1e-9 1]*mol/litre;
 nc = G.cells.num;
 initState.components          = repmat(initchemstate.components, nc, 1);
 initState.masterComponents    = repmat(initchemstate.masterComponents, nc, 1);
-initState.logcomponents       = repmat(initchemstate.logcomponents, nc, 1);
-initState.logmasterComponents = repmat(initchemstate.logmasterComponents, nc, 1);
+initState.logcomponents       = repmat(initchemstate.logComponents, nc, 1);
+initState.logmasterComponents = repmat(initchemstate.logMasterComponents, nc, 1);
 
 initState.pressure          = pRef*ones(nc,1);
 

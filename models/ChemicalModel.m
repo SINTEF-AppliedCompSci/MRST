@@ -745,8 +745,6 @@ classdef ChemicalModel < PhysicalModel
             
             valInd = cellfun(@(x) isempty(x), regexpi(model.MasterCompNames, '>'));
             
-            rockDefault = struct();
-            rockDefault.poro = 1;
             
             valFun = @(x) any(validatestring(x, model.MasterCompNames(valInd)));
             p.addParameter('chargeBalance', 'nochargebalance', valFun);
@@ -772,12 +770,6 @@ classdef ChemicalModel < PhysicalModel
                 state.temp = 298.*ones(nI,1);
             end
             
-            nPoro = size(p.Results.poro, 1);
-            if nPoro ~= 1
-                assert(nPoro == nI, 'The number of cells in rock.poro do not correspond to the size of userInput.');
-            end
-            
-
             % check for solid densities
             if ~isempty(p.Results.solidDensities)
                 if size(model.SolidNames,2) == 0
