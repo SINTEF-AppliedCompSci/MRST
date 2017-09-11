@@ -39,7 +39,7 @@ rock.poro = 0.4.*ones(n, 1);
 %% solve the chemical system given inputs
 
 
-Ba  =logspace(-1, 1,n)';
+Ba  = logspace(-1, 1,n)';
 Ca  = logspace(1, -1,n)';
 
 % Ba  =logspace(-2, 2,n)';
@@ -50,7 +50,7 @@ userInput = [Ba Ca SO4]*mol/litre;
 % userInput = [Ba Ca C H H2O]*mol/litre;
 
 tic
-[state, report, model] = chem.initState(userInput, 'solid', solidDensities, 'rock', rock);
+[state, report, model] = chem.initState(userInput, 'solid', solidDensities);
 toc;
 
 
@@ -58,8 +58,13 @@ figure;hold on;
 plot(log10(state.components*litre/mol),'linewidth',2);
 legend(chem.CompNames)
 
+poros = [state.solidComponents state.poro];
+for i = 1 : size(poros,2);
+    poros(:,i) = poros(:,i).*rock.poro;
+end
+
 figure;hold on;
-plot([state.solidComponents state.poro],'linewidth',2);
-legend([chem.SolidNames,'porosity'])
+plot([rock.poro poros],'linewidth',2);
+legend(['rock porosity', chem.SolidNames,'fluid porosity'])
 
 
