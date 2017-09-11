@@ -66,9 +66,7 @@ classdef compositionReactionModel < ChemicalModel
             
             logUnknowns = model.logUnknownNames;
             logKnowns = model.logInputNames;
-
-            % actually, we want the non log form of the linear combination
-            % variables
+            
             for i = 1 : model.nLC
                 logUnknowns = regexprep(logUnknowns, ['log'  LCNames{i}],  LCNames{i});
                 logKnowns = regexprep(logKnowns, ['log'  LCNames{i}],  LCNames{i});
@@ -141,7 +139,6 @@ classdef compositionReactionModel < ChemicalModel
                 end
             end
 
-            
             pInd = strcmpi(logUnknowns, 'logporo');
             logPorosity = logUnknownVal{pInd};   
             

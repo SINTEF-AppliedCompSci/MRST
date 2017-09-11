@@ -50,7 +50,7 @@ userInput = [Ba Ca SO4]*mol/litre;
 % userInput = [Ba Ca C H H2O]*mol/litre;
 
 tic
-[state, report, model] = chem.initState(userInput, 'solid', solidDensities, 'rock', rock);
+[state, report, model] = chem.initState(userInput, 'solid', solidDensities);
 toc;
 
 

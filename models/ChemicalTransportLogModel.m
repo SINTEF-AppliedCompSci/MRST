@@ -52,45 +52,70 @@ classdef ChemicalTransportLogModel < WaterModel
         function [problem, state] = getEquations(model, state0, state, dt, ...
                                                         drivingForces, ...
                                                         varargin)
-            [p, wellSol] = model.getProps(state, 'pressure', 'wellSol');
 
 
             chemModel = model.chemicalModel;
             % chemical equations
 
-            compNames = chemModel.CompNames;
-            masterCompNames = chemModel.MasterCompNames;
             logCompNames = chemModel.logCompNames;
             logMasterCompNames = chemModel.logMasterCompNames;
-
-            comps = cell(1, numel(compNames));
-            mastercomps = cell(1, numel(masterCompNames));
-
-            logComps = cell(1, numel(logCompNames));
-            logMasterComps = cell(1, numel(logMasterCompNames));
-
-            [logComps{:}] = model.getProps(state, logCompNames{:});
-            [logMasterComps{:}] = model.getProps(state, logMasterCompNames{:});
-
-            [p, logComps{:}, logMasterComps{:}] = initVariablesADI(p, logComps{:}, ...
-                                                             logMasterComps{:});
+            logSolidCompNames = chemModel.logSolidNames;
+            logGasCompNames = chemModel.logGasNames;
+            
+            variableNames = ['pressure', logCompNames, logMasterCompNames, logGasCompNames, logSolidCompNames, 'logPoro'];
+            variableValues = cell(1, numel(variableNames));
+            variableValues{1} = model.getProps(state, 'pressure');
+            [variableValues{2:end}] = chemModel.getProps(state, variableNames{2:end});
+            
+            [variableValues{:}] = initVariablesADI(variableValues{:});
+            
+            logComps        = cell(1, numel(logCompNames));
+            logMasterComps  = cell(1, numel(logMasterCompNames));
+            logGasComps     = cell(1, numel(logGasCompNames));
+            logSolidComps   = cell(1, numel(logSolidCompNames));
+            
+            for i = 1 : numel(logCompNames)
+                ind = strcmpi(logCompNames{i}, variableNames);
+                logComps{i} = variableValues{ind};
+            end
+            
+            for i = 1 : numel(logMasterCompNames)
+                ind = strcmpi(logMasterCompNames{i}, variableNames);
+                logMasterComps{i} = variableValues{ind};
+            end
+            
+            for i = 1 : numel(logGasCompNames)
+                ind = strcmpi(logGasCompNames{i}, variableNames);
+                logGasComps{i} = variableValues{ind};
+            end
+            
+            for i = 1 : numel(logSolidCompNames)
+                ind = strcmpi(logSolidCompNames{i}, variableNames);
+                logSolidComps{i} = variableValues{ind};
+            end
+            
+            ind = strcmpi('logPoro', variableNames);
+            logPoro = variableValues{ind};
+            
+            ind = strcmpi('pressure', variableNames);
+            p = variableValues{ind};
 
             comps = cellfun(@(x) exp(x), logComps, 'UniformOutput',false);
             masterComps = cellfun(@(x) exp(x), logMasterComps, 'UniformOutput',false);
 
-            [chem_eqs, chem_names, chem_types] = equationsChemicalLog(logComps, ...
-                                                              logMasterComps, ...
-                                                              chemModel);
+            [chem_eqs, chem_names, chem_types] = equationsChemicalLog(logPoro, logComps,...
+                                                    logMasterComps, logGasComps,...
+                                                    logSolidComps, state, chemModel);
 
 
             [tr_eqs, tr_names, tr_types] = equationsTransportComponents(state0, ...
                                                               p, masterComps, ...
-                                                              comps,...
+                                                              comps,logPoro,...
                                                               state, model, ...
                                                               dt, ...
                                                               drivingForces);
 
-            primaryVars = {'pressure', chemModel.logCompNames{:}, chemModel.logMasterCompNames{:}};
+            primaryVars = {'pressure', logCompNames{:}, logMasterCompNames{:}, logSolidCompNames{:}, logGasCompNames{:}, 'logPoro'};
             eqs = horzcat(tr_eqs, chem_eqs );
             names = { tr_names{:},chem_names{:}};
             types = { tr_types{:},chem_types{:}};
@@ -108,7 +133,7 @@ classdef ChemicalTransportLogModel < WaterModel
             vars = problem.primaryVariables;
 
             ind = false(size(vars));
-            chemvars = {chemModel.logCompNames{:}, chemModel.logMasterCompNames{:}}; % the chemical primary variables, see getEquations
+            chemvars = {chemModel.logCompNames{:}, chemModel.logMasterCompNames{:}, chemModel.logGasNames{:}, chemModel.logSolidNames{:}, 'logPoro'}; % the chemical primary variables, see getEquations
             [lia, loc] = ismember(chemvars, vars);
             assert(all(lia), 'The primary variables are not set correctly.');
             ind(loc) = true;
@@ -160,7 +185,26 @@ classdef ChemicalTransportLogModel < WaterModel
                                                           dt, drivingForces) %#ok
             [state, report] = updateAfterConvergence@WaterModel(model, state0, ...
                                                               state, dt, drivingForces);
-
+           
+            rPoro = model.rock.poro;      
+            stepPoro = [state.poro state.solidComponents];
+            for i = 1 : size(stepPoro,2);
+                stepPoro(:,i) = stepPoro(:,i).*rPoro;
+            end
+            
+            h = findobj('tag', 'convergedPorofig');
+            if isempty(h)
+                figure
+                set(gcf, 'tag', 'convergedPorofig');
+                h = findobj('tag', 'convergedPorofig');
+            end
+            set(0, 'currentfigure', h)
+            clf
+            plot(stepPoro);
+            title('porosities - converged');
+            legend(['porosity' model.chemicalModel.SolidNames]);
+            
+            
             h = findobj('tag', 'convergedfig');
             if isempty(h)
                 figure

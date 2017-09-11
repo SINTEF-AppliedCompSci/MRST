@@ -1,4 +1,4 @@
-function [eqs, names, types] = equationsTransportComponents(state0, p, mastercomps, comps, state, ...
+function [eqs, names, types] = equationsTransportComponents(state0, p, mastercomps, comps,logPoro, state, ...
                                                       model, dt, drivingForces, ...
                                                       varargin)
 
@@ -9,9 +9,12 @@ function [eqs, names, types] = equationsTransportComponents(state0, p, mastercom
 
     opt = merge_options(opt, varargin{:});
 
-
-    s = model.operators;
     G = model.G;
+    
+    model.rock.poro = model.rock.poro.*exp(logPoro);
+    model.operators = setupOperatorsTPFA(G, model.rock);
+    
+    s = model.operators;
     f = model.fluid;
 
     chemModel = model.chemicalModel;
