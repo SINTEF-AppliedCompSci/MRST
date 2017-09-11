@@ -58,8 +58,13 @@ figure;hold on;
 plot(log10(state.components*litre/mol),'linewidth',2);
 legend(chem.CompNames)
 
-figure;hold on;
-plot([state.solidComponents state.poro],'linewidth',2);
-legend([chem.SolidNames,'porosity'])
 
+poros = [state.solidComponents state.poro];
+for i = 1 : size(poros,2);
+    poros(:,i) = poros(:,i).*rock.poro;
+end
+
+figure;hold on;
+plot([rock.poro poros],'linewidth',2);
+legend(['rock porosity', chem.SolidNames,'fluid porosity'])
 
