@@ -7,7 +7,7 @@ mrstVerbose on
 
 %% Define the grid
 
-G = cartGrid([100, 1, 1], [10, 1, 1]);
+G = cartGrid([300, 1, 1], [10, 1, 1]);
 G = computeGeometry(G);
 
 plotGrid(G), view(3), axis tight
@@ -37,11 +37,11 @@ species = {'Ba+2','Ca+2','SO4-2',...
         
 
 % list chemical reactions         
-reactions ={'CaSO4(s)  <-> Ca+2 + SO4-2 ',       1*mol/litre,...
-            'BaSO4(s)  <-> Ba+2 + SO4-2',        0.67*mol/litre};       
+reactions ={'CaSO4(s)  <-> Ca+2 + SO4-2 ',       0.67*mol/litre,...
+            'BaSO4(s)  <-> Ba+2 + SO4-2',        1*mol/litre};       
 
 % list solid densities
-solidDensities = {'CaSO4(s)', 3*mol/litre, 'BaSO4(s)',  2*mol/litre};
+solidDensities = {'CaSO4(s)', 2*mol/litre, 'BaSO4(s)',  3*mol/litre};
 
 % instantiate the chemical model
 chemModel = ChemicalModel(elements, species, reactions);
@@ -54,21 +54,19 @@ chemModel.printChemicalSystem;
 %% solve the chemical system given inputs
 n =1;
 
-Ba  = 0.5;
-Ca  = 0.5;
-SO4 = 1;
-H = 10^-7;
-H2O = 1;
+Ba  = 0.8;
+Ca  = 0.2;
+SO4 = 0.6;
 
-injInput = [Ba Ca SO4]*mol/litre;
-
-Ba  = 0.5;
-Ca  = 0.5;
-SO4 = 0.5;
-H = 10^-4;
-H2O = 1;
 
 initInput = [Ba Ca SO4]*mol/litre;
+
+Ba  = 0.2;
+Ca  = 0.15;
+SO4 = 1;
+
+
+injInput = [Ba Ca SO4]*mol/litre;
 
 
 % initial chemistry
@@ -115,7 +113,7 @@ bc.logmasterComponents= [initchemstate.logMasterComponents];  % (will not used i
 
 %% Define the schedule
 
-schedule.step.val = [0.001*day*ones(4, 1); 0.1*day*ones(5, 1);1*day*ones(50, 1)];
+schedule.step.val = [0.1*day*ones(300, 1);];
 schedule.step.control = ones(numel(schedule.step.val), 1);
 schedule.control = struct('bc', bc, 'src', src, 'W', []);
 
