@@ -1,5 +1,5 @@
 clear;
-close all;
+% close all;
 
 % load adi and geochemistry module
 mrstModule add geochemistry ad-core 
@@ -7,6 +7,7 @@ mrstVerbose on
 
 
 %% generate chemical system 
+k_B = 1.; k_C = 0.67; omeg_B = 3.; omeg_C = 2.; phi_P = .4;
 
 % define elements names
 elements = {'Ba*','Ca*','SO4*'};
@@ -39,8 +40,8 @@ rock.poro = 0.4.*ones(n, 1);
 %% solve the chemical system given inputs
 
 
-Ba  =logspace(-1, 1,n)';
-Ca  = logspace(1, -1,n)';
+Ba = linspace(.2 ,0.8, n)';
+Ca = linspace(0.6, 0.2,n)';
 
 % Ba  =logspace(-2, 2,n)';
 % Ca  = logspace(2, -2,n)';
@@ -65,6 +66,6 @@ for i = 1 : size(poros,2);
 end
 
 figure;hold on;
-plot([rock.poro poros],'linewidth',2);
+plot(Ba.*100./SO4, [rock.poro poros],'linewidth',2);
 legend(['rock porosity', chem.SolidNames,'fluid porosity'])
 
