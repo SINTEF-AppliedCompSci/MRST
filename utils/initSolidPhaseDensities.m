@@ -25,7 +25,7 @@ if nMN > 0
         end
     end
     
-    error( ['The solid densities of ' iwant ' are missing from solidDensities.'] );
+    error( ['The solid densities of ' iwant{:} ' are missing from solidDensities.'] );
 end
 
 state.solidDensities = zeros(1, model.nS);

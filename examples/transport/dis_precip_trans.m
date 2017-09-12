@@ -29,21 +29,19 @@ fluid = initSimpleADIFluid('phases', 'W', 'mu', 1*centi*poise, 'rho', ...
 %% generate chemical system 
 
 % define elements names
-elements = {'Ba*','Ca*','S*','H','O'};
+elements = {'Ba*','Ca*','SO4*'};
 
 % define species names
-species = {'Ba+2','Ca+2','S-2',...
-            'BaS(s)','CaS(s)',...
-            'H+*', 'OH-', 'H2O*'};
+species = {'Ba+2','Ca+2','SO4-2',...
+            'BaSO4(s)','CaSO4(s)'};
         
 
 % list chemical reactions         
-reactions ={'H2O <-> OH- + H+',                  10^-14*mol/litre,...
-            'CaS(s)  <-> Ca+2 + S-2 ',       1*mol/litre,...
-            'BaS(s)  <-> Ba+2 + S-2',        0.67*mol/litre};       
+reactions ={'CaSO4(s)  <-> Ca+2 + SO4-2 ',       1*mol/litre,...
+            'BaSO4(s)  <-> Ba+2 + SO4-2',        0.67*mol/litre};       
 
 % list solid densities
-solidDensities = {'CaS(s)', 3*mol/litre, 'BaS(s)',  2*mol/litre};
+solidDensities = {'CaSO4(s)', 3*mol/litre, 'BaSO4(s)',  2*mol/litre};
 
 % instantiate the chemical model
 chemModel = ChemicalModel(elements, species, reactions);
@@ -56,21 +54,21 @@ chemModel.printChemicalSystem;
 %% solve the chemical system given inputs
 n =1;
 
-Ba  = 0.1;
+Ba  = 0.5;
 Ca  = 0.5;
-SO4 = Ba+Ca;
+SO4 = 1;
 H = 10^-7;
 H2O = 1;
 
-injInput = [Ba Ca SO4 H H2O]*mol/litre;
+injInput = [Ba Ca SO4]*mol/litre;
 
 Ba  = 0.5;
-Ca  = 0.1;
-SO4 = Ba+Ca;
+Ca  = 0.5;
+SO4 = 0.5;
 H = 10^-4;
 H2O = 1;
 
-initInput = [Ba Ca SO4 H H2O]*mol/litre;
+initInput = [Ba Ca SO4]*mol/litre;
 
 
 % initial chemistry
@@ -90,6 +88,7 @@ end
 
 initState.pressure          = pRef*ones(nc,1);
 
+% initState.solidDensities(1:2:end,:) = initState.solidDensities(1:2:end,:)*1.5;
 %% Define the model
 
 set(groot, 'defaultLineLineWidth', 3);
@@ -116,7 +115,7 @@ bc.logmasterComponents= [initchemstate.logMasterComponents];  % (will not used i
 
 %% Define the schedule
 
-schedule.step.val = [0.001*day*ones(4, 1); 0.1*day*ones(5, 1);1*day*ones(20, 1)];
+schedule.step.val = [0.001*day*ones(4, 1); 0.1*day*ones(5, 1);1*day*ones(50, 1)];
 schedule.step.control = ones(numel(schedule.step.val), 1);
 schedule.control = struct('bc', bc, 'src', src, 'W', []);
 

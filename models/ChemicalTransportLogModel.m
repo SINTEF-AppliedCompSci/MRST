@@ -200,7 +200,7 @@ classdef ChemicalTransportLogModel < WaterModel
             end
             set(0, 'currentfigure', h)
             clf
-            plot(stepPoro);
+            plot(log(stepPoro));
             title('porosities - converged');
             legend(['porosity' model.chemicalModel.SolidNames]);
             
