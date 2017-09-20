@@ -92,6 +92,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             wells = {wells};
         end
         subs = cellfun(@(x) find(strcmpi(wnames, x)), wells);
+    elseif islogical(wells)
+        assert(numel(wells) == nw);
+        subs = find(wells);
     else
         error('Unknown format for well subset, provide either a list of names or indices');
     end
