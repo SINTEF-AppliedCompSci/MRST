@@ -1,6 +1,5 @@
 function int = polygon_intersection(poly_1, poly_2)
     tol = 1e-6;
-    normal = normal_from_points(poly_1);
     center_1 = mean(poly_1, 1);
     poly_1 = bsxfun(@minus, poly_1, center_1);
     poly_2 = bsxfun(@minus, poly_2, center_1);
@@ -44,9 +43,9 @@ function int = polygon_intersection(poly_1, poly_2)
     elseif A_innside && ~B_innside
         int = [AB(1,:); X(segInt), Y(segInt)];
     elseif ~A_innside && B_innside 
-        int = [AB(2,:); X(segInt), Y(segInt)];
+        int = [AB(2,:); X(segInt)', Y(segInt)'];
     elseif ~A_innside && ~B_innside
-        int = [X(segInt), Y(segInt)];
+        int = [X(segInt)', Y(segInt)'];
     else
         assert False
     end
@@ -100,37 +99,5 @@ function I = edge_intersecting_plane(normal, x0, v1, v2)
     I = v1 + (v2 - v1) * t;    
 end
 
-function mat = rotation_matrix_from_plane(poly)
-    normal = normal_from_points(poly);
-    z_basis = [0,0,1];
-    theta = acos(dot(normal, z_basis));
-    v = cross(normal, z_basis);
-    if sum(abs(v))<1e-8
-        mat = eye(3);
-        return
-    end
-    v = v/sqrt(sum(v.^2));
-    mat_x = [     0, -v(3),  v(2);...
-               v(3),     0, -v(1);...
-              -v(2),  v(1),     0];
-   mat_t = [v(1)^2, v(1)*v(2), v(1)*v(3); ...
-            v(1)*v(2), v(2)^2, v(2)*v(3); ...
-            v(1)*v(3), v(2)*v(3), v(3)^3];
-   mat = cos(theta) * eye(3) + sin(theta) * mat_x + (1-cos(theta))*mat_t;
-end
 
-function normal = normal_from_points(p)
-    assert(size(p,1)>=3)
-    p1 = p(1, :);
-    p2 = p(2,:);
-    p_mean = mean(p, 1);
-    v1 = p2 - p1;
-    v2 = p_mean - p1;
-    
-    normal = cross(v1, v2);
-    if sum(abs(normal))<1e-8
-        normal = normal_from_points(p(:, 2:end));
-        return
-    end
-    normal = normal / sqrt(sum(normal.^2));
-end
+
