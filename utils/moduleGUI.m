@@ -62,7 +62,7 @@ Nc = numel(modules);
 nrow = 4;
 
 wdth = 1/nrow;
-hght = 0.1;
+hght = min(0.8*nrow/Nc, 0.8);
 
 perRow = ceil(Nc/nrow);
 dy = 1/perRow;
