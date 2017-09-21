@@ -114,8 +114,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     d = ls(fullfile(p, [handler.dataPrefix, '*.mat']));
                     if ~isempty(d)
                         if ~handler.cleardir
-                            dispif(handler.verbose, ...
-                                'Input directory not clean, consider calling ''resetData''');
+                            dispif(handler.verbose > 1, ...
+                                ['Input directory not clean, consider calling', ...
+                                ' ''resetData'' to remove pre-existing results.\n']);
                         else
                             handler.resetData();
                         end
