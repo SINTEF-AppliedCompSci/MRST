@@ -53,14 +53,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    if all(isfield(deck.GRID, {'COORD', 'ZCORN'})) && ...
          isfield(deck.RUNSPEC, 'DIMENS')
 
-      if isfield(deck.GRID, 'ACTNUM') && ...
-            ~isa(deck.GRID.ACTNUM, 'int32'),
-
-         % Required by the 'processgrid' accelerator.
-         deck.GRID.ACTNUM = int32(deck.GRID.ACTNUM);
-      end
-
-      %G = processgrid(deck.GRID);
       G = processGRDECL(deck.GRID, 'RepairZCORN', true, extra{:});
 
    % -- Tensor product grid -----------------------------------------------
