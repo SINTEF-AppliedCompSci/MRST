@@ -31,7 +31,7 @@ classdef ChemicalTransportLogModel < WaterModel
             chemModel = model.chemicalModel;
             nC        = chemModel.nC;
             nMC       = chemModel.nMC;
-            CM        = chemModel.CompositionMatrix;
+            CM        = chemModel.compositionMatrix;
 
             surfMaster  = logical(model.chemicalModel.surfMaster);
             surfComp    = sum(logical(CM(surfMaster, :)), 1);
@@ -57,65 +57,76 @@ classdef ChemicalTransportLogModel < WaterModel
             chemModel = model.chemicalModel;
             % chemical equations
 
-            logCompNames = chemModel.logCompNames;
-            logMasterCompNames = chemModel.logMasterCompNames;
-            logSolidCompNames = chemModel.logSolidNames;
-            logGasCompNames = chemModel.logGasNames;
+            logComponentNames = chemModel.logComponentNames;
+            logMasterComponentNames = chemModel.logMasterComponentNames;
+            logSolidNames = chemModel.logSolidNames;
+            logGasNames = chemModel.logGasNames;
+            combinationNames = chemModel.combinationNames;
             
-            variableNames = ['pressure', logCompNames, logMasterCompNames, logGasCompNames, logSolidCompNames, 'logPoro'];
+            variableNames = ['pressure', logComponentNames, logMasterComponentNames, logGasNames, logSolidNames, 'logFluidVolumeFraction'];
             variableValues = cell(1, numel(variableNames));
             variableValues{1} = model.getProps(state, 'pressure');
             [variableValues{2:end}] = chemModel.getProps(state, variableNames{2:end});
             
             [variableValues{:}] = initVariablesADI(variableValues{:});
             
-            logComps        = cell(1, numel(logCompNames));
-            logMasterComps  = cell(1, numel(logMasterCompNames));
-            logGasComps     = cell(1, numel(logGasCompNames));
-            logSolidComps   = cell(1, numel(logSolidCompNames));
-            
-            for i = 1 : numel(logCompNames)
-                ind = strcmpi(logCompNames{i}, variableNames);
-                logComps{i} = variableValues{ind};
+            logComponents        = cell(1, numel(logComponentNames));
+            logMasterComponents  = cell(1, numel(logMasterComponentNames));
+            logGasVolumeFractions     = cell(1, numel(logGasNames));
+            logSolidVolumeFractions   = cell(1, numel(logSolidNames));
+            combinationComponents   = cell(1, numel(combinationNames));
+
+            for i = 1 : numel(combinationNames)
+                ind = strcmpi(combinationNames{i}, variableNames);
+                combinationComponents{i} = variableValues{ind};
+            end
+
+            for i = 1 : numel(logComponentNames)
+                ind = strcmpi(logComponentNames{i}, variableNames);
+                logComponents{i} = variableValues{ind};
+            end
+
+            for i = 1 : numel(logComponentNames)
+                ind = strcmpi(logComponentNames{i}, variableNames);
+                logComponents{i} = variableValues{ind};
             end
             
-            for i = 1 : numel(logMasterCompNames)
-                ind = strcmpi(logMasterCompNames{i}, variableNames);
-                logMasterComps{i} = variableValues{ind};
+            for i = 1 : numel(logMasterComponentNames)
+                ind = strcmpi(logMasterComponentNames{i}, variableNames);
+                logMasterComponents{i} = variableValues{ind};
             end
             
-            for i = 1 : numel(logGasCompNames)
-                ind = strcmpi(logGasCompNames{i}, variableNames);
-                logGasComps{i} = variableValues{ind};
+            for i = 1 : numel(logGasNames)
+                ind = strcmpi(logGasNames{i}, variableNames);
+                logGasVolumeFractions{i} = variableValues{ind};
             end
             
-            for i = 1 : numel(logSolidCompNames)
-                ind = strcmpi(logSolidCompNames{i}, variableNames);
-                logSolidComps{i} = variableValues{ind};
+            for i = 1 : numel(logSolidNames)
+                ind = strcmpi(logSolidNames{i}, variableNames);
+                logSolidVolumeFractions{i} = variableValues{ind};
             end
             
-            ind = strcmpi('logPoro', variableNames);
-            logPoro = variableValues{ind};
+            ind = strcmpi('logFluidVolumeFraction', variableNames);
+            logFluidVolumeFraction = variableValues{ind};
             
             ind = strcmpi('pressure', variableNames);
             p = variableValues{ind};
 
-            comps = cellfun(@(x) exp(x), logComps, 'UniformOutput',false);
-            masterComps = cellfun(@(x) exp(x), logMasterComps, 'UniformOutput',false);
+            components = cellfun(@(x) exp(x), logComponents, 'UniformOutput',false);
+            masterComponentss = cellfun(@(x) exp(x), logMasterComponents, 'UniformOutput',false);
 
-            [chem_eqs, chem_names, chem_types] = equationsChemicalLog(logPoro, logComps,...
-                                                    logMasterComps, logGasComps,...
-                                                    logSolidComps, state, chemModel);
+            [chem_eqs, chem_names, chem_types] = equationsChemicalLog(chemModel, state, logFluidVolumeFraction, logComponents, logMasterComponents, combinationComponents, ...
+                                                       logGasVolumeFractions, logSolidVolumeFractions);
 
 
             [tr_eqs, tr_names, tr_types] = equationsTransportComponents(state0, ...
-                                                              p, masterComps, ...
-                                                              comps,logPoro,...
+                                                              p, masterComponentss, ...
+                                                              components,logFluidVolumeFraction,...
                                                               state, model, ...
                                                               dt, ...
                                                               drivingForces);
 
-            primaryVars = {'pressure', logCompNames{:}, logMasterCompNames{:}, logSolidCompNames{:}, logGasCompNames{:}, 'logPoro'};
+            primaryVars = {'pressure', logComponentNames{:}, logMasterComponentNames{:}, logSolidNames{:}, logGasNames{:}, 'logFluidVolumeFraction'};
             eqs = horzcat(tr_eqs, chem_eqs );
             names = { tr_names{:},chem_names{:}};
             types = { tr_types{:},chem_types{:}};
@@ -133,7 +144,7 @@ classdef ChemicalTransportLogModel < WaterModel
             vars = problem.primaryVariables;
 
             ind = false(size(vars));
-            chemvars = {chemModel.logCompNames{:}, chemModel.logMasterCompNames{:}, chemModel.logGasNames{:}, chemModel.logSolidNames{:}, 'logPoro'}; % the chemical primary variables, see getEquations
+            chemvars = {chemModel.logComponentNames{:}, chemModel.logMasterComponentNames{:}, chemModel.logGasNames{:}, chemModel.logSolidNames{:}, 'logFluidVolumeFraction'}; % the chemical primary variables, see getEquations
             [lia, loc] = ismember(chemvars, vars);
             assert(all(lia), 'The primary variables are not set correctly.');
             ind(loc) = true;
@@ -174,7 +185,7 @@ classdef ChemicalTransportLogModel < WaterModel
                 clf
                 plot(log10(state.components*litre/mol));
                 title('components');
-                legend(model.chemicalModel.CompNames);
+                legend(model.chemicalModel.componentNames);
 
                 drawnow;
             end
@@ -186,11 +197,7 @@ classdef ChemicalTransportLogModel < WaterModel
             [state, report] = updateAfterConvergence@WaterModel(model, state0, ...
                                                               state, dt, drivingForces);
            
-            rPoro = model.rock.poro;      
-            stepPoro = [state.poro state.solidComponents];
-            for i = 1 : size(stepPoro,2);
-                stepPoro(:,i) = stepPoro(:,i).*rPoro;
-            end
+            stepPoro = [state.fluidVolumeFraction state.solidVolumeFractions];
             
             h = findobj('tag', 'convergedPorofig');
             if isempty(h)
@@ -202,7 +209,7 @@ classdef ChemicalTransportLogModel < WaterModel
             clf
             plot(log(stepPoro));
             title('porosities - converged');
-            legend(['porosity' model.chemicalModel.SolidNames]);
+            legend(['porosity' model.chemicalModel.solidNames]);
             
             
             h = findobj('tag', 'convergedfig');
@@ -215,7 +222,7 @@ classdef ChemicalTransportLogModel < WaterModel
             clf
             plot(log10(state.components*litre/mol));
             title('components - converged');
-            legend(model.chemicalModel.CompNames);
+            legend(model.chemicalModel.componentNames);
 
             h = findobj('tag', 'convergedmasterfig');
             if isempty(h)
@@ -227,7 +234,7 @@ classdef ChemicalTransportLogModel < WaterModel
             clf
             plot(log10(state.masterComponents*litre/mol));
             title('master components - converged');
-            legend(model.chemicalModel.MasterCompNames);
+            legend(model.chemicalModel.masterComponentNames);
             drawnow;
 
         end
@@ -241,7 +248,7 @@ classdef ChemicalTransportLogModel < WaterModel
             end
 
             chemModel = model.chemicalModel;
-            ind = strcmpi(cname, chemModel.MasterCompNames);
+            ind = strcmpi(cname, chemModel.masterComponentNames);
             if chemModel.surfMaster(ind)
                 return
             end
@@ -260,7 +267,7 @@ classdef ChemicalTransportLogModel < WaterModel
         end
 
         function names = getComponentNames(model)
-            names = model.chemicalModel.MasterCompNames;
+            names = model.chemicalModel.masterComponentNames;
         end
 
         function [fn, index] = getVariableField(model, name)

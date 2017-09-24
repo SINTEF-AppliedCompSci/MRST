@@ -3,10 +3,11 @@ close all;
 
 % load adi and geochemistry module
 mrstModule add ad-core geochemistry
-mrstVerbose off
-%% generate chemical system 
+mrstVerbose on
+%% generate chemical system
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%% Goldberg et al. Soil Sci. Soc. Am. J. 64:1356?1363 (2000) %%%%%%%%
+%%%%%%%% Goldberg et al. Soil Sci. Soc. Am. J. 64:1356-1363 (2000) %%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % define master component names
@@ -16,12 +17,12 @@ species = {'H+*', 'OH-', 'Na+', 'Cl-', 'NaCl', 'H2O*',...
              'H3BO3', 'H4BO4-',...
              '>SO-' '>SOH', '>SOH2+','>SOH3BO3-'};
 
-reactions ={'H2O  <-> H+  + OH- ',              10^-14*mol/litre, ...
-            'NaCl <-> Na+ + Cl-',               10^1*mol/litre,...
-            'H3BO3 + H2O <-> H4BO4- + H+',      10^-9.2,...
-            '>SOH + H+ <-> >SOH2+',             10^8.31/(mol/litre),...
-            '>SOH <-> >SO- + H+',               10^-11.82*mol/litre,...
-            '>SOH + H3BO3 <-> >SOH3BO3- + H+'    10^-8.2};
+reactions ={'H2O  = H+  + OH- ',              10^-14*mol/litre, ...
+            'NaCl = Na+ + Cl-',               10^1*mol/litre,...
+            'H3BO3 + H2O = H4BO4- + H+',      10^-9.2,...
+            '>SOH + H+ = >SOH2+',             10^8.31/(mol/litre),...
+            '>SOH = >SO- + H+',               10^-11.82*mol/litre,...
+            '>SOH + H3BO3 = >SOH3BO3- + H+'    10^-8.2};
         
 geometry = [2.31*site/(nano*meter)^2 59*meter^2/gram 200*gram/litre];
 sInfo = {geometry, 'ccm', 1.06};
@@ -45,8 +46,7 @@ H = logspace(-7,-11, n)';
 userInput = [Na Cl B H H2O]*mol/litre;
 
 tic
-state = [];
-[state, report, model] = chem.initState(userInput);
+[state, report, model] = chem.initState(userInput, 'charge', 'Cl');
 toc;
 
 [state, chem] = chem.computeActivities(state);

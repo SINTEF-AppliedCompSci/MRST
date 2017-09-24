@@ -8,11 +8,11 @@ assert(numel(givenNames) == model.nG, 'Number of gas phase pressures given does 
 
 ind = zeros(1, model.nG);
 for i = 1 : model.nG
-    ind = ind + strcmpi(model.GasNames{i}, givenNames);
+    ind = ind + strcmpi(model.gasNames{i}, givenNames);
 end
 ind = logical(ind);
 
-missingNames = model.GasNames(~ind);
+missingNames = model.gasNames(~ind);
 nMN = numel(missingNames);
 
 if nMN > 0
@@ -31,7 +31,7 @@ end
 state.partialPressures = zeros(1, model.nS);
 
 for i = 1 : model.nG
-    ind = strcmpi(model.GasNames{i}, givenNames);
+    ind = strcmpi(model.gasNames{i}, givenNames);
     state.partialPressures(i) = givenValues{ind};
 end
 

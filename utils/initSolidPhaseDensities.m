@@ -1,4 +1,4 @@
-function state = initSolidPhaseDensities(model, state, solidDensities,nI);
+function state = initSolidPhaseDensities(model, state, solidDensities,nI)
 
 
 givenNames = solidDensities(1:2:end);
@@ -8,11 +8,11 @@ assert(numel(givenNames) == model.nS, 'Number of solid phase densities given doe
 
 ind = zeros(1, model.nS);
 for i = 1 : model.nS
-    ind = ind + strcmpi(model.SolidNames{i}, givenNames);
+    ind = ind + strcmpi(model.solidNames{i}, givenNames);
 end
 ind = logical(ind);
 
-missingNames = model.SolidNames(~ind);
+missingNames = model.solidNames(~ind);
 nMN = numel(missingNames);
 
 if nMN > 0
@@ -31,7 +31,7 @@ end
 state.solidDensities = zeros(1, model.nS);
 
 for i = 1 : model.nS
-    ind = strcmpi(model.SolidNames{i}, givenNames);
+    ind = strcmpi(model.solidNames{i}, givenNames);
     state.solidDensities(i) = givenValues{ind};
 end
 

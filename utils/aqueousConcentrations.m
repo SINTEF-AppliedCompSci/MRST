@@ -2,11 +2,11 @@ function [state, model] = aqueousConcentrations(model, state)
 
     comps = cell(1, model.nC);
 
-    [comps{:}] = model.getProps(state, model.CompNames{:});
+    [comps{:}] = model.getProps(state, model.componentNames{:});
     
-    CM = model.CompositionMatrix;
+    CM = model.compositionMatrix;
     
-    surfInd = cellfun(@(x) ~isempty(x), regexpi(model.CompNames, '>'));
+    surfInd = cellfun(@(x) ~isempty(x), regexpi(model.componentNames, '>'));
     
     CM(:,surfInd) = 0;
     
@@ -16,10 +16,10 @@ function [state, model] = aqueousConcentrations(model, state)
                                      
 
     % calculate activity
-    indS = cellfun(@(x) isempty(x), regexpi(model.MasterCompNames, '>'));
+    indS = cellfun(@(x) isempty(x), regexpi(model.masterComponentNames, '>'));
     nC = sum(indS);    
     
-    model.AqueousConcentrationNames  = cellfun(@(name) [name '_aq'], model.MasterCompNames(indS), ...
+    model.aqueousConcentrationNames  = cellfun(@(name) [name '_aq'], model.masterComponentNames(indS), ...
                                          'uniformoutput', false);
 
     totals = cell(1, nC);
@@ -32,7 +32,7 @@ function [state, model] = aqueousConcentrations(model, state)
     end
 
     for i = 1 : nC
-        state = model.setProp(state, model.AqueousConcentrationNames{i}, totals{i});
+        state = model.setProp(state, model.aqueousConcentrationNames{i}, totals{i});
     end
 
 end

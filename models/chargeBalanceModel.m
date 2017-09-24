@@ -12,47 +12,46 @@ classdef chargeBalanceModel < ChemicalInputModel
             model.CVC = [];
         end
         
-%         function model = validateModel(model)
-% %             model = validateModel@ChemicalInputModel(model);
-%             % setup unknownNames
-%             unknownNames = horzcat(model.CompNames, model.MasterCompNames, 'CVC');
-%             ind = cellfun(@(name)(strcmpi(name, model.inputNames)), unknownNames, ...
-%                           'Uniformoutput', false);
-% 
-%             model.unknownNames = unknownNames(~ind);
-%             
-%             
-%         end
 
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
             
-            if size(state.components,2) ~= numel(model.unknownNames)-model.nLC
+            if ~isfield(state, 'CVC')
             	nCells = size(state.components,1);
-                state.components(:,end+1) = zeros(nCells,1);
+                state.CVC = zeros(nCells,1);
             end
             
-            [comps, masterComps, comboComps] = prepStateForEquations(model, state);
+            [unknowns, components, masterComponents, combinationComponents,...
+                 gasVolumeFractions, solidVolumeFractions, fluidVolumeFraction, surfaceAcitivityCoefficients,CVC] = prepStateForEquations(model, state);
 
-            [eqs, names, types] = equationsChargeBalance(model, comps, masterComps, comboComps);
+            [eqs, names, types] = equationsChargeBalance(model, state, components, masterComponents, combinationComponents,...
+                 gasVolumeFractions, solidVolumeFractions, fluidVolumeFraction, surfaceAcitivityCoefficients, CVC);
             
-            primaryVariables =model.unknownNames;
-            problem = LinearizedProblem(eqs, types, names, primaryVariables, state, dt);
+            problem = LinearizedProblem(eqs, types, names, unknowns, state, dt);
 
         end
         
         
-        function [comps, masterComps, comboComps] = prepStateForEquations(model, ...
+        function [unknowns, components, masterComponents, combinationComponents,...
+                 gasVolumeFractions, solidVolumeFractions, fluidVolumeFraction, surfaceAcitivityCoefficients,CVC] = prepStateForEquations(model, ...
                                                               state)
             
-            CNames = horzcat(model.CompNames);
-            MCNames = model.MasterCompNames;
-            LCNames = model.CombinationNames;
+            CNames = model.logComponentNames;
+            MCNames = model.logMasterComponentNames;
+            LCNames = model.combinationNames;
+            GNames = model.logGasNames;
+            SNames = model.logSolidNames;
+            SPNames = model.logSurfaceActivityCoefficientNames;
             
-            unknowns = horzcat(model.unknownNames);
+            unknowns = model.unknownNames;
             knowns = model.inputNames;
             
-            nC = numel(CNames);
+            unknowns = addLogToNames(unknowns);
+            knowns = addLogToNames(knowns);
             
+            for i = 1 : model.nLC
+                unknowns = regexprep(unknowns, ['log'  LCNames{i}],  LCNames{i});
+                knowns = regexprep(knowns, ['log'  LCNames{i}],  LCNames{i});
+            end
             
             unknownVal = cell(1,numel(unknowns));
             [unknownVal{:}] = model.getProps(state, unknowns{:});
@@ -61,42 +60,19 @@ classdef chargeBalanceModel < ChemicalInputModel
             knownVal = cell(1,numel(knowns));
             [knownVal{:}] = model.getProps(state, knowns{:});
             
-            comps = cell(1,nC);
-            for i = 1 : nC
-                cInd = strcmpi(unknowns, CNames{i});
-                if any(cInd)
-                    comps{i} = unknownVal{cInd};
-                end
-                cInd = strcmpi(knowns, CNames{i});
-                if any(cInd)
-                    comps{i} = knownVal{cInd};
-                end
-            end
-            
-            masterComps = cell(1,model.nMC);
-            for i = 1 : model.nMC
-                mcInd = strcmpi(unknowns, MCNames{i});
-                if any(mcInd)
-                    masterComps{i} = unknownVal{mcInd};
-                end
-                mcInd = strcmpi(knowns, MCNames{i});
-                if any(mcInd)
-                    masterComps{i} = knownVal{mcInd};
-                end
-            end
-            
-            comboComps = cell(1,model.nLC);
-            for i = 1 : model.nLC
-                mcInd = strcmpi(unknowns, LCNames{i});
-                if any(mcInd)
-                    comboComps{i} = unknownVal{mcInd};
-                end
-                mcInd = strcmpi(knowns, LCNames{i});
-                if any(mcInd)
-                    comboComps{i} = knownVal{mcInd};
-                end
-            end
 
+            components           = distributeVariable( CNames, knowns, unknowns, knownVal, unknownVal );
+            masterComponents     = distributeVariable( MCNames, knowns, unknowns, knownVal, unknownVal );
+            combinationComponents   = distributeVariable( LCNames, knowns, unknowns, knownVal, unknownVal );
+            gasVolumeFractions   = distributeVariable( GNames, knowns, unknowns, knownVal, unknownVal );
+            solidVolumeFractions = distributeVariable( SNames, knowns, unknowns, knownVal, unknownVal );
+            surfaceAcitivityCoefficients = distributeVariable( SPNames, knowns, unknowns, knownVal, unknownVal );
+
+            pInd = strcmpi(unknowns, 'logFluidVolumeFraction');
+            fluidVolumeFraction = unknownVal{pInd}; 
+
+            cvcInd = strcmpi(unknowns, 'CVC');
+            CVC = unknownVal{cvcInd}; 
             
         end
         
@@ -104,18 +80,11 @@ classdef chargeBalanceModel < ChemicalInputModel
         % inputstate contains the input and the initial guess.
 
             % grab the names of unknowns                                              
-            unknownNames = horzcat(model.CompNames, model.MasterCompNames,model.CombinationNames, 'CVC');
-            ind = cellfun(@(name) strcmpi(name, model.inputNames), unknownNames, ...
-                          'Uniformoutput', false);
-                      
-            ind = cell2mat(ind');
-            ind = sum(ind, 2);
-
+            unknownNames = horzcat(model.componentNames, model.masterComponentNames,model.combinationNames, 'CVC', 'fluidVolumeFraction', model.solidNames, model.gasNames, model.surfaceActivityCoefficientNames);
+            ind = ismember(unknownNames, model.inputNames);
             model.unknownNames = unknownNames(~ind);
-            model.CompNames = horzcat(model.CompNames, 'CVC');
             
-            solver = NonLinearSolver();
-%             
+            solver = NonLinearSolver();   
             solver.LinearSolver.tolerance = 1e-12;
             model.nonlinearTolerance = 1e-12;
             
@@ -123,6 +92,7 @@ classdef chargeBalanceModel < ChemicalInputModel
             drivingForces = []; % drivingForces;
             inputstate0 = inputstate;
 
+            
             [state, failure, report] = solveMinistep(solver, model, inputstate, ...
                                                      inputstate0, dt, ...
                                                      drivingForces);
@@ -131,43 +101,12 @@ classdef chargeBalanceModel < ChemicalInputModel
         
         function [state, report] = updateState(model, state, problem, dx, drivingForces) %#ok
         % Update state based on Newton increments
+            state0 = state;
             [state, report] = updateState@PhysicalModel(model, state, problem, ...
                                                         dx, drivingForces);
         
-            surfParam = sum(cellfun(@(x) ~isempty(x) , regexpi(model.CompNames, 'psi'))); 
-            
-            if surfParam > 0
-            	[names, mins, maxs] = computeMaxPotential(model, state); 
-            end
-            
-            len = cellfun(@(x) length(x), problem.primaryVariables);
-            [~,sortInd] = sort(len(:),1, 'ascend');
-            pVar = problem.primaryVariables(sortInd);
-
-            for i = 1 : model.nC+1
-                
-                p = pVar{i};
-                compInd = strcmpi(p, model.CompNames(1:end-1));
-                
-                if any(strcmpi(p, model.MasterCompNames))
-                     state = model.capProperty(state, p, 1e-50, 2.5*mol/litre);
-                elseif ~isempty(regexpi(p, 'psi'))
-                	ind = strcmpi(p, names);
-                    state = model.capProperty(state, p, mins{ind}, maxs{ind});
-                elseif strcmpi(p, 'CVC') 
-                    cvcInd = strcmpi(model.CVC, model.MasterCompNames);
-                    cvcVal = state.masterComponents(:,cvcInd);
-                    state = model.capProperty(state, p, -cvcVal, cvcVal);
-                elseif ismember(p, model.CombinationNames)
-                    state = model.capProperty(state, p, -2.5*mol/litre, 2.5*mol/litre);
-                else
-                    maxvals = model.maxMatrices{compInd}*((state.masterComponents)');
-                    maxvals = (min(maxvals))';             
-                    state = model.capProperty(state, p, 1e-50, maxvals); 
-                end
-                
-            end
-                                    
+            state = model.syncFromLog(state);                                       
+            state = updateChemicalModel(model, problem, state, state0 );
             state = model.syncLog(state);
              
                                                    
@@ -187,7 +126,6 @@ classdef chargeBalanceModel < ChemicalInputModel
             
             state = model.setProp(state, model.CVC, MCval + CVC);
             assert(all((MCval + CVC) > 0), warningText);
-            state.components(:,end) = [];
            
             
             state = model.syncLog(state);

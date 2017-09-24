@@ -2,18 +2,18 @@ function [state, model] = surfaceConcentrations(model, state)
 
     comps = cell(1, model.nC);
 
-    [comps{:}] = model.getProps(state, model.CompNames{:});
+    [comps{:}] = model.getProps(state, model.componentNames{:});
     
-    CM = model.CompositionMatrix;
+    CM = model.compositionMatrix;
     
-    surfInd = cellfun(@(x) isempty(x), regexpi(model.CompNames, '>'));
+    surfInd = cellfun(@(x) isempty(x), regexpi(model.componentNames, '>'));
     
     CM(:,surfInd) = 0;
                                          
-    indS = cellfun(@(x) isempty(x), regexpi(model.MasterCompNames, '>'));
+    indS = cellfun(@(x) isempty(x), regexpi(model.masterComponentNames, '>'));
     nC = sum(indS);    
     
-    model.SurfaceConcentrationNames  = cellfun(@(name) [name '_surf'], model.MasterCompNames(indS), ...
+    model.surfaceConcentrationNames  = cellfun(@(name) [name '_surf'], model.masterComponentNames(indS), ...
                                          'uniformoutput', false);
 
     totals = cell(1, nC);
@@ -26,7 +26,7 @@ function [state, model] = surfaceConcentrations(model, state)
     end
 
     for i = 1 : nC
-        state = model.setProp(state, model.SurfaceConcentrationNames{i}, totals{i});
+        state = model.setProp(state, model.surfaceConcentrationNames{i}, totals{i});
     end
 
 end

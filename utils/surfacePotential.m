@@ -1,10 +1,7 @@
 function [state, model] = surfacePotential(model, state)
 
-    try 
-        T = model.getProp(state, 'temperature');
-    catch
-        T = 298;
-    end
+    T = model.getProp(state, 'temperature');
+
     F   = 9.64853399e4;             % Faraday's Constant [C/mol]
     R   = 8.3144621;             	% Gas Constant [J/(K mol)]
     
@@ -18,9 +15,6 @@ function [state, model] = surfacePotential(model, state)
             if strcmpi(model.surfInfo.scm{i},'langmuir')
                 continue
             end
-            
-
-
 
             switch model.surfInfo.scm{i}
                 case 'tlm'

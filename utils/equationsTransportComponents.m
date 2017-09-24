@@ -1,4 +1,4 @@
-function [eqs, names, types] = equationsTransportComponents(state0, p, mastercomps, comps,logPoro, state, ...
+function [eqs, names, types] = equationsTransportComponents(state0, p, masterComponents, components,logFluidVolumeFraction, state, ...
                                                       model, dt, drivingForces, ...
                                                       varargin)
 
@@ -11,7 +11,7 @@ function [eqs, names, types] = equationsTransportComponents(state0, p, mastercom
 
     G = model.G;
     
-    model.rock.poro = model.rock.poro.*exp(logPoro);
+    model.rock.poro = exp(logFluidVolumeFraction);
     model.operators = setupOperatorsTPFA(G, model.rock);
     
     s = model.operators;
@@ -22,7 +22,7 @@ function [eqs, names, types] = equationsTransportComponents(state0, p, mastercom
     nC = chemModel.nC;
     mastercomps0 = cell(1, nMC);
     comps0 = cell(1, nC);
-    [p0, mastercomps0{:}, comps0{:}] = model.getProps(state0, 'pressure', chemModel.MasterCompNames{:}, chemModel.CompNames{:});
+    [p0, mastercomps0{:}, comps0{:}] = model.getProps(state0, 'pressure', chemModel.masterComponentNames{:}, chemModel.componentNames{:});
 
     %Initialization of independent variables ----------------------------------
 
@@ -85,18 +85,18 @@ function [eqs, names, types] = equationsTransportComponents(state0, p, mastercom
     
     for i = 1 : nMC
         if surfMaster(i)
-            eqs{end + 1} = (s.pv/dt).*(mastercomps{i} - mastercomps0{i});
+            eqs{end + 1} = (s.pv/dt).*(masterComponents{i} - mastercomps0{i});
         else
             fluidConc{i} = 0;
             for j = 1 : nC
-                fluidConc{i} = fluidConc{i} + fluidMat(i,j)*comps{j};
+                fluidConc{i} = fluidConc{i} + fluidMat(i,j)*components{j};
             end
-            eqs{end + 1} = (s.pv/dt).*(mastercomps{i}.*pvMult.*bW - mastercomps0{i}.* ...
+            eqs{end + 1} = (s.pv/dt).*(masterComponents{i}.*pvMult.*bW - mastercomps0{i}.* ...
                                        pvMult0.*f.bW(p0)) + s.Div(s.faceUpstr(upcw, fluidConc{i}).* bWvW);
         end
     end
                    
-    names = {'water', chemModel.MasterCompNames{:}};
+    names = {'water', chemModel.masterComponentNames{:}};
 
     types = cell(1, nMC + 1);
     [types{:}] = deal('cell');

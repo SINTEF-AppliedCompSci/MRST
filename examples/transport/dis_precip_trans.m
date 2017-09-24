@@ -27,6 +27,7 @@ fluid = initSimpleADIFluid('phases', 'W', 'mu', 1*centi*poise, 'rho', ...
 %% Define the chemistry
 
 %% generate chemical system 
+k_B = 1; k_C = 0.67; omeg_B = 3; omeg_C = 2; phi_P = .4;
 
 % define elements names
 elements = {'Ba*','Ca*','SO4*'};
@@ -37,11 +38,11 @@ species = {'Ba+2','Ca+2','SO4-2',...
         
 
 % list chemical reactions         
-reactions ={'CaSO4(s)  <-> Ca+2 + SO4-2 ',       0.67*mol/litre,...
-            'BaSO4(s)  <-> Ba+2 + SO4-2',        1*mol/litre};       
+reactions ={'CaSO4(s) = Ca+2 + SO4-2',       (k_C*(mol/litre)^2),...
+            'BaSO4(s) = Ba+2 + SO4-2',       (k_B*(mol/litre)^2)};       
 
 % list solid densities
-solidDensities = {'CaSO4(s)', 2*mol/litre, 'BaSO4(s)',  3*mol/litre};
+solidDensities = {'CaSO4(s)', omeg_C*(mol/litre), 'BaSO4(s)',  omeg_B*(mol/litre)};
 
 % instantiate the chemical model
 chemModel = ChemicalModel(elements, species, reactions);
@@ -54,26 +55,28 @@ chemModel.printChemicalSystem;
 %% solve the chemical system given inputs
 n =1;
 
-Ba  = 0.8;
-Ca  = 0.2;
-SO4 = 0.6;
+dumbrock.poro = 0.4;
+
+Ba  = 0.2;
+Ca  = 0.6;
+SO4 = Ba+Ca;
 
 
 initInput = [Ba Ca SO4]*mol/litre;
 
-Ba  = 0.2;
-Ca  = 0.15;
-SO4 = 1;
+Ba  = 0.8;
+Ca  = 0.2;
+SO4 = Ba + Ca;
 
 
 injInput = [Ba Ca SO4]*mol/litre;
 
 
 % initial chemistry
-[initchemstate, initreport]= chemModel.initState(initInput, 'solid', solidDensities);
+[initchemstate, initreport]= chemModel.initState(initInput, 'solid', solidDensities, 'rock', dumbrock);
 
 % injected chemistry
-[injchemstate, injreport] = chemModel.initState(injInput, 'solid', solidDensities);
+[injchemstate, injreport] = chemModel.initState(injInput, 'solid', solidDensities, 'rock', dumbrock);
 
 %% Define the initial state
 
@@ -113,7 +116,7 @@ bc.logmasterComponents= [initchemstate.logMasterComponents];  % (will not used i
 
 %% Define the schedule
 
-schedule.step.val = [0.1*day*ones(300, 1);];
+schedule.step.val = [0.1*day*ones(3, 1);1*day*ones(20, 1);];
 schedule.step.control = ones(numel(schedule.step.val), 1);
 schedule.control = struct('bc', bc, 'src', src, 'W', []);
 
