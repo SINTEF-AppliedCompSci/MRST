@@ -5,8 +5,6 @@ close all;
 mrstModule add ad-core geochemistry
 mrstVerbose on
 
-fromLoad = false;
-
 %% generate chemical system 
 
 % define elements names
@@ -75,50 +73,11 @@ OH     	= getProp(chem, state, 'OH-');
 
 pH = -log10(getProp(chem, state, 'aH+'));
 
-%% phreeqc
-
-folderName = 'mrstExamples';
-filename ='tripleLayerModelExample';
-
-% call and run phreeqc
-
-current = pwd;
-
-DBname = 'phreeqc.dat';
-progpath = '/Users/cmcneece/GoogleDrive/phreeqc/';
-
-PHpath = ['/Users/cmcneece/GoogleDrive/phreeqc/myfiles/' folderName '/'];
-DBpath = '/Users/cmcneece/GoogleDrive/phreeqc/database/';
-shellname =[PHpath filename];
-
-
-if ~fromLoad
-    cd(progpath);
-    eval(['! sh ' shellname '.sh ' shellname]);
-    eval(['! ./bin/phreeqc ' shellname '.txt ' shellname '.log ' DBpath DBname  '&>/dev/null']);
-    cd(current)
-end
-
-D = importdata([shellname '.sel']);
-
-p.pH = D.data(:,1);
-p.e = D.data(:,2); 
-p.SO = D.data(:,3);
-p.SOH = D.data(:,4);
-p.SOH2 = D.data(:,5);
-p.SONa = D.data(:,6);
-p.SOH2Cl = D.data(:,7);
-
-
-
-
 %% plot it
 figure; hold on; box on;
 plot(pH, state.chargeBalance,'-k')
-plot(p.pH, p.e, '--r')
 xlabel('pH')
 ylabel('charge [% of total ion concentration]');
-legend('mrst', 'phreeqc');
 
 % surface components
 figure; hold on; box on;
@@ -127,11 +86,7 @@ plot(pH, SOH)
 plot(pH, SOH2)
 plot(pH, SONa)
 plot(pH, SOH2Cl)
-plot(p.pH, p.SO, '--k')
-plot(p.pH, p.SOH, '--k')
-plot(p.pH, p.SOH2, '--k')
-plot(p.pH, p.SONa, '--k')
-plot(p.pH, p.SOH2Cl, '--k') 
+
 
 xlim([4 10])
 xlabel('pH')

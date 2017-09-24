@@ -89,43 +89,6 @@ H4BO4	= getProp(chem, state, 'H4BO4-');
 
 pH = -log10(getProp(chem, state, 'aH+'));
 
-%% phreeqc
-
-chem = 'boron';
-
-%% before stuff
-addpath('/Users/cmcneece/GoogleDrive/phreeqc/');
-
-% %% call and run phreeqc
-% 
-% current = pwd;
-% 
-% DBname = 'phreeqc.dat';
-% filename = [chem '_sorption'];
-% progpath = '/Users/cmcneece/GoogleDrive/phreeqc/';
-% 
-% PHpath = ['/Users/cmcneece/GoogleDrive/phreeqc/myfiles/' chem '/'];
-% DBpath = '/Users/cmcneece/GoogleDrive/phreeqc/database/';
-% shellname =[PHpath filename];
-% 
-% 
-% 
-% cd(progpath);
-% eval(['! sh ' shellname '.sh ' shellname]);
-% eval(['! ./bin/phreeqc ' shellname '.txt ' shellname '.log ' DBpath DBname ]);
-% cd(current)
-% 
-% D = importdata([shellname '.sel']);
-% 
-% 
-% 
-% p.pH = D.data(:,1);
-% p.S_B = D.data(:,5);
-% p.H3BO3 = D.data(:,3);
-% p.H4BO4 = D.data(:,4);
-% p.H = D.data(:,6);
-% p.OH = D.data(:,7);
-% p.e = D.data(:,2); 
 
 %% plot it
 figure; hold on; box on;
@@ -137,8 +100,6 @@ ylabel('charge [% of total ion concentration]');
 figure; hold on; box on;
 plot(pH, H3BO3, '-');
 plot(pH, H4BO4, '-');
-% plot(p.pH, p.H3BO3, '--r');
-% plot(p.pH, p.H4BO4, '--r');
 legend('H_3BO_3(aq)','4_3BO_4^-(aq)');
 
 xlabel('pH');
@@ -147,12 +108,10 @@ ylabel('aqueous concentration [mol/L]');
 % surface components
 figure; hold on; box on;
 plot(pH, SOH3BO3/200*1e6, '-k')
-% plot(p.pH, p.S_B/200*1e6, '--r')
 plot(GB(:,1), GB(:,2), 'ok');
 legend('mrst', 'data')
    
 xlabel('pH')
 ylabel('adsorbed B [\mu mol/g]');
 
-%%
 

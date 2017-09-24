@@ -1,15 +1,7 @@
 clear;
 close all;
 
-%% masoud example
-current = pwd;
-cd('/Users/cmcneece/Downloads/redisspreciptransportupdate/')
-run example.m
-cd(current)
-
-
 %% load adi and geochemistry module
-run /Users/cmcneece/Documents/MATLAB/mrst-core/startup.m
 mrstModule add geochemistry ad-core 
 mrstVerbose on
 

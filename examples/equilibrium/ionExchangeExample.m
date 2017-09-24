@@ -54,47 +54,9 @@ toc;
 [state, chem] = chem.computeChargeBalance(state);
 
 
-
-
-%% phreeqc
-% 
-% folderName = 'mrstExamples';
-% filename ='tripleLayerModelExample';
-% 
-% % call and run phreeqc
-% 
-% current = pwd;
-% 
-% DBname = 'phreeqc.dat';
-% progpath = '/Users/cmcneece/GoogleDrive/phreeqc/';
-% 
-% PHpath = ['/Users/cmcneece/GoogleDrive/phreeqc/myfiles/' folderName '/'];
-% DBpath = '/Users/cmcneece/GoogleDrive/phreeqc/database/';
-% shellname =[PHpath filename];
-% 
-% 
-% if ~fromLoad
-%     cd(progpath);
-%     eval(['! sh ' shellname '.sh ' shellname]);
-%     eval(['! ./bin/phreeqc ' shellname '.txt ' shellname '.log ' DBpath DBname  '&>/dev/null']);
-%     cd(current)
-% end
-% 
-% D = importdata([shellname '.sel']);
-% 
-% p.pH = D.data(:,1);
-% p.e = D.data(:,2); 
-% p.SO = D.data(:,3);
-% p.SOH = D.data(:,4);
-% p.SOH2 = D.data(:,5);
-% p.SONa = D.data(:,6);
-% p.SOH2Cl = D.data(:,7);
-
-
 %% plot
 
 state = changeUnits(state, {'masterComponents', 'components'}, mol/litre );
-
 
 Ca = getProp(chem, state, 'Ca+2');
 

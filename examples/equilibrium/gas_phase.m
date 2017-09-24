@@ -60,12 +60,11 @@ solidDensities = {'CaCO3(s)', 3*mol/litre};
 partialPressure = {'CO2(g)', 1*atm};
 
 userInput = [Ca CO2 H2O H];
-% userInput = [C O H Ca]*mol/litre;
 
 tic
 [state, report, model] = chem.initState(userInput, 'solid', solidDensities);
-% [state, report, model] = chem.initState(userInput, 'partial', partialPressure);
 toc;
+
 [state, chem] = computeActivities(chem, state);
 state = changeUnits(state, {'activities','masterComponents', 'components'}, mol/litre);
 

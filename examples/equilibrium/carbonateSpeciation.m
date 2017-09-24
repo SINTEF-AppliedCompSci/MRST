@@ -56,57 +56,13 @@ state = changeUnits(state, {'masterComponents', 'components', 'activities'}, mol
 
 pH = -log10(getProp(chem, state, 'aH+'));
 
-%% phreeqc
-
-folderName = 'mrstExamples';
-filename ='carbonateSpeciation';
-
-% call and run phreeqc
-
-current = pwd;
-
-DBname = 'phreeqc_simp.dat';
-progpath = '/Users/cmcneece/GoogleDrive/phreeqc/';
-
-PHpath = ['/Users/cmcneece/GoogleDrive/phreeqc/myfiles/' folderName '/'];
-DBpath = '/Users/cmcneece/GoogleDrive/phreeqc/database/';
-shellname =[PHpath filename];
-
-
-if ~fromLoad
-    cd(progpath);
-    eval(['! sh ' shellname '.sh ' shellname]);
-    eval(['! ./bin/phreeqc ' shellname '.txt ' shellname '.log ' DBpath DBname ]);
-    cd(current)
-end
-D = importdata([shellname '.sel']);
-
-
-
-p.pH = D.data(:,1);
-p.H = D.data(:,4);
-p.e = D.data(:,2); 
-p.C = D.data(:,3);
-p.Ca = D.data(:,8);
-p.CaCO3 = D.data(:,9);
-
-p.CO3 = D.data(:,5);
-p.HCO3 = D.data(:,6);
-p.CO2 = D.data(:,7);
-
- 
- names = {'H+', 'C', 'CO2', 'HCO3-', 'CO3-2'};
+names = {'H+', 'C', 'CO2', 'HCO3-', 'CO3-2'};
+v = cell(1, numel(names));
+[v{:}] = getProps(chem, state, names{:});
 
 figure; hold on; box on;
-for i = 1 : numel(names)
-    v = getProps(chem, state, names{i});
-    plot(pH, v, '-')
-end
-plot(p.pH, p.H,'--k');
-plot(p.pH, p.C,'--k');
-plot(p.pH, p.CO3,'--k');
-plot(p.pH, p.HCO3,'--k');
-plot(p.pH, p.CO2,'--k');
+plot(pH, horzcat(v{:}), '-')
+
 xlabel('pH')
 ylabel('concentration [mol/L]');
 set(gca, 'yscale', 'log');
