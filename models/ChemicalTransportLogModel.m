@@ -53,17 +53,46 @@ classdef ChemicalTransportLogModel < WaterModel
                                                         drivingForces, ...
                                                         varargin)
 
+            [pVars, pressure, logComponents, logMasterComponents, combinations,...
+                   logSolidVolumeFractions, logGasVolumeFractions, logFluidVolumeFraction,...
+                   logSurfaceAcitivityCoefficients] = prepStateForEquations(model, state);
+               
+            components = cellfun(@(x) exp(x), logComponents, 'UniformOutput',false);
+            masterComponentss = cellfun(@(x) exp(x), logMasterComponents, 'UniformOutput',false);
 
+            [chem_eqs, chem_names, chem_types] = equationsChemicalLog(model.chemicalModel, state, logFluidVolumeFraction, logComponents, logMasterComponents, combinations, ...
+                                                       logGasVolumeFractions, logSolidVolumeFractions,logSurfaceAcitivityCoefficients);
+
+
+            [tr_eqs, tr_names, tr_types] = equationsTransportComponents(state0, ...
+                                                              pressure, masterComponentss, ...
+                                                              components,logFluidVolumeFraction,...
+                                                              state, model, ...
+                                                              dt, ...
+                                                              drivingForces);
+            eqs = horzcat(tr_eqs, chem_eqs );
+            names = { tr_names{:},chem_names{:}};
+            types = { tr_types{:},chem_types{:}};
+
+            problem = LinearizedProblem(eqs, types, names, pVars, state, dt);
+
+        end
+
+        function [variableNames, pressure, logComponents, logMasterComponents, combinations,...
+                   logSolidVolumeFractions, logGasVolumeFractions, logFluidVolumeFraction,...
+                   logSurfaceActivityCoefficients] = prepStateForEquations(model, state);
+            
             chemModel = model.chemicalModel;
-            % chemical equations
 
             logComponentNames = chemModel.logComponentNames;
             logMasterComponentNames = chemModel.logMasterComponentNames;
             logSolidNames = chemModel.logSolidNames;
             logGasNames = chemModel.logGasNames;
             combinationNames = chemModel.combinationNames;
+            logSurfActNames = chemModel.logSurfaceActivityCoefficientNames;
             
-            variableNames = ['pressure', logComponentNames, logMasterComponentNames, logGasNames, logSolidNames, 'logFluidVolumeFraction'];
+            
+            variableNames = ['pressure', logComponentNames, logMasterComponentNames, logGasNames, logSolidNames, 'logFluidVolumeFraction', logSurfActNames];
             variableValues = cell(1, numel(variableNames));
             variableValues{1} = model.getProps(state, 'pressure');
             [variableValues{2:end}] = chemModel.getProps(state, variableNames{2:end});
@@ -74,11 +103,12 @@ classdef ChemicalTransportLogModel < WaterModel
             logMasterComponents  = cell(1, numel(logMasterComponentNames));
             logGasVolumeFractions     = cell(1, numel(logGasNames));
             logSolidVolumeFractions   = cell(1, numel(logSolidNames));
-            combinationComponents   = cell(1, numel(combinationNames));
-
+            combinations   = cell(1, numel(combinationNames));
+            logSurfaceActivityCoefficients = cell(1, numel(logSurfActNames));
+            
             for i = 1 : numel(combinationNames)
                 ind = strcmpi(combinationNames{i}, variableNames);
-                combinationComponents{i} = variableValues{ind};
+                combinations{i} = variableValues{ind};
             end
 
             for i = 1 : numel(logComponentNames)
@@ -106,36 +136,22 @@ classdef ChemicalTransportLogModel < WaterModel
                 logSolidVolumeFractions{i} = variableValues{ind};
             end
             
+            for i = 1 : numel(logSurfActNames)
+                ind = strcmpi(logSurfActNames{i}, variableNames);
+                logSurfaceActivityCoefficients{i} = variableValues{ind};
+            end
+            
+            
             ind = strcmpi('logFluidVolumeFraction', variableNames);
             logFluidVolumeFraction = variableValues{ind};
             
             ind = strcmpi('pressure', variableNames);
-            p = variableValues{ind};
-
-            components = cellfun(@(x) exp(x), logComponents, 'UniformOutput',false);
-            masterComponentss = cellfun(@(x) exp(x), logMasterComponents, 'UniformOutput',false);
-
-            [chem_eqs, chem_names, chem_types] = equationsChemicalLog(chemModel, state, logFluidVolumeFraction, logComponents, logMasterComponents, combinationComponents, ...
-                                                       logGasVolumeFractions, logSolidVolumeFractions);
-
-
-            [tr_eqs, tr_names, tr_types] = equationsTransportComponents(state0, ...
-                                                              p, masterComponentss, ...
-                                                              components,logFluidVolumeFraction,...
-                                                              state, model, ...
-                                                              dt, ...
-                                                              drivingForces);
-
-            primaryVars = {'pressure', logComponentNames{:}, logMasterComponentNames{:}, logSolidNames{:}, logGasNames{:}, 'logFluidVolumeFraction'};
-            eqs = horzcat(tr_eqs, chem_eqs );
-            names = { tr_names{:},chem_names{:}};
-            types = { tr_types{:},chem_types{:}};
-
-            problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
-
+            pressure = variableValues{ind};
+      
+               
+               
         end
-
-
+        
         function [state, report] = updateState(model, state, problem, dx, drivingForces) %#ok
         % Update state based on Newton increments
 
@@ -144,7 +160,7 @@ classdef ChemicalTransportLogModel < WaterModel
             vars = problem.primaryVariables;
 
             ind = false(size(vars));
-            chemvars = {chemModel.logComponentNames{:}, chemModel.logMasterComponentNames{:}, chemModel.logGasNames{:}, chemModel.logSolidNames{:}, 'logFluidVolumeFraction'}; % the chemical primary variables, see getEquations
+            chemvars = {chemModel.logComponentNames{:}, chemModel.logMasterComponentNames{:}, chemModel.logGasNames{:}, chemModel.logSolidNames{:}, 'logFluidVolumeFraction', chemModel.logSurfaceActivityCoefficientNames{:}}; % the chemical primary variables, see getEquations
             [lia, loc] = ismember(chemvars, vars);
             assert(all(lia), 'The primary variables are not set correctly.');
             ind(loc) = true;

@@ -3,13 +3,13 @@ clear;
 
 mrstModule add ad-core ad-props ad-blackoil geochemistry mrst-gui
 
-mrstVerbose off
+mrstVerbose on
 
 %% Define the grid
 
 G = cartGrid([100, 1, 1], [10, 1, 1]);
 G = computeGeometry(G);
-
+nc = G.cells.num;
 plotGrid(G), view(3), axis tight
 
 %% Define the rock
@@ -28,11 +28,11 @@ fluid = initSimpleADIFluid('phases', 'W', 'mu', 1*centi*poise, 'rho', ...
 
 elements = {'O', 'H', 'Na*','Cl*'};
 
-species = {'H+*', 'OH-', 'Na+', 'H2O*', '>SiO-', '>SiOH','NaCl','Cl-'};
+species = {'H+*', 'OH-', 'Na+', 'H2O*', '>SiO-', '>SiOH', 'NaCl','Cl-'};
 
-reactions ={'H2O  <-> H+  + OH- ',      10^-14*mol/litre, ... 
-            'NaCl <-> Na+ + Cl-',       10^1*mol/litre,...
-            '>SiOH <-> >SiO- + H+',     10^-8*mol/litre};
+reactions ={'H2O  = H+  + OH- ',      10^-14*mol/litre, ... 
+            'NaCl = Na+ + Cl-',       10^1*mol/litre,...
+            '>SiOH = >SiO- + H+',     10^-8*mol/litre};
 
 geometry = [2*site/(nano*meter)^2 50e-3*meter^2/(gram) 5e3*gram/litre];
 sioInfo = {geometry, 'tlm', [1 1e3], '>SiO-', [-1 0 0], '>SiOH', [0 0 0]};
@@ -46,7 +46,7 @@ chemModel.printChemicalSystem;
 % initial chemistry
 
 inputConstraints = [1e-1 1e-1 1e-5 1]*mol/litre;
-[initchemstate, initreport]= chemModel.initState(inputConstraints, 'charge', 'Cl');
+[initchemstate, initreport]= chemModel.initState(repmat(inputConstraints, nc,1), 'charge', 'Cl');
 
 % injected chemistry
 inputConstraints = [1e-3 1e-3 1e-9 1]*mol/litre;
@@ -54,20 +54,14 @@ inputConstraints = [1e-3 1e-3 1e-9 1]*mol/litre;
 
 %% Define the initial state
 
-nc = G.cells.num;
-initState.components          = repmat(initchemstate.components, nc, 1);
-initState.masterComponents    = repmat(initchemstate.masterComponents, nc, 1);
-initState.logcomponents       = repmat(initchemstate.logComponents, nc, 1);
-initState.logmasterComponents = repmat(initchemstate.logMasterComponents, nc, 1);
 
+initState = initchemstate;
 initState.pressure          = pRef*ones(nc,1);
 
 %% Define the model
 
 set(groot, 'defaultLineLineWidth', 3);
 model = ChemicalTransportLogModel(G, rock, fluid, chemModel);
-model.chemicalModel.nonlinearTolerance = 1e-12;
-model.nonlinearTolerance = 1e-13;
 
 fluidpart = model.fluidMat*((injchemstate.components)');
 fluidpart = fluidpart';
@@ -82,13 +76,13 @@ src.logmasterComponents = log(fluidpart);
 
 bc                  = [];
 bc                  = pside(bc, G, 'east', 0*barsa, 'sat', 1);
-bc.masterComponents= [initchemstate.masterComponents];        % (will not used if outflow)
-bc.logmasterComponents= [initchemstate.logmasterComponents];  % (will not used if outflow)
+bc.masterComponents= [initchemstate.masterComponents(end,:)];        % (will not used if outflow)
+bc.logMasterComponents= [initchemstate.logMasterComponents(end,:)];  % (will not used if outflow)
 
 
 %% Define the schedule
 
-schedule.step.val = [1*day*ones(200, 1); 1*day*ones(100, 1)];
+schedule.step.val = [0.1*day*ones(5, 1); 1*day*ones(5, 1); 10*day*ones(50, 1)];
 schedule.step.control = ones(numel(schedule.step.val), 1);
 schedule.control = struct('bc', bc, 'src', src, 'W', []);
 
@@ -97,7 +91,7 @@ schedule.control = struct('bc', bc, 'src', src, 'W', []);
 
 [~, states, scheduleReport] = simulateScheduleAD(initState, model, schedule);
 
-[ states ] = changeUnits( states, mol/litre );
+[ states ] = changeUnits( states, {'components', 'masterComponents'}, mol/litre );
 % 
 % plotToolbar(G, states,'plot1d', true, 'log10', true);
 % 

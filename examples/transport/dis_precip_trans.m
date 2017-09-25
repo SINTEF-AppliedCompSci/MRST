@@ -94,8 +94,6 @@ initState.pressure          = pRef*ones(nc,1);
 
 set(groot, 'defaultLineLineWidth', 3);
 model = ChemicalTransportLogModel(G, rock, fluid, chemModel);
-model.chemicalModel.nonlinearTolerance = 1e-12;
-model.nonlinearTolerance = 1e-13;
 
 fluidpart = model.fluidMat*((injchemstate.components)');
 fluidpart = fluidpart';

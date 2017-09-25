@@ -744,7 +744,7 @@ classdef ChemicalModel < PhysicalModel
             fds = {'components', 'masterComponents', 'logComponents', ...
                    'logMasterComponents', model.componentNames{:}, ...
                    model.masterComponentNames{:}, model.logComponentNames{:}, ...
-                   model.logMasterComponentNames{:}};
+                   model.logMasterComponentNames{:}, 'logFluidVolumeFraction', model.logSurfaceActivityCoefficientNames{:}, model.logGasNames{:}, model.logSolidNames{:}};
         end
 
         %%
@@ -1520,6 +1520,8 @@ classdef ChemicalModel < PhysicalModel
             
             if isempty(givenSurfaceInformation)
                 model.nP = 0;
+                model.surfaceActivityCoefficientNames = cell(1,0);
+                model.logSurfaceActivityCoefficientNames = cell(1,0);
                 return
             end
             model.surfaceActivityCoefficientNames = {};
