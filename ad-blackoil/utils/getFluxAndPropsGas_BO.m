@@ -89,11 +89,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     % Gas props (calculated at oil pressure)
     if model.vapoil
-        bG  = fluid.bG(pO, rv, isSat);
-        muG = fluid.muG(pO, rv, isSat);
+        bG  = fluid.bG(pG, rv, isSat);
+        muG = fluid.muG(pG, rv, isSat);
     else
-        bG  = fluid.bG(pO);
-        muG = fluid.muG(pO);
+        bG  = fluid.bG(pG);
+        muG = fluid.muG(pG);
     end
     
     if any(bG < 0)
@@ -102,7 +102,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     rhoG   = bG.*(rv*fluid.rhoOS + fluid.rhoGS);
     rhoGf  = s.faceAvg(rhoG);
     mobG   = krG./muG;
-    dpG    = s.Grad(pO+pcOG) - rhoGf.*gdz;
+    dpG    = s.Grad(pG) - rhoGf.*gdz;
     % gas upstream-index
     upcg    = (double(dpG)<=0);
     vG = - s.faceUpstr(upcg, mobG).*T.*dpG;

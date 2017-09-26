@@ -71,9 +71,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         pcOW  = fluid.pcOW(sW);
     end
     pW = pO - pcOW;
-    muW = fluid.muW(pO);
+    muW = fluid.muW(pW);
     
-    bW     = fluid.bW(pO);
+    bW     = fluid.bW(pW);
     rhoW   = bW.*fluid.rhoWS;
     % rhoW on face, average of neighboring cells
     rhoWf  = s.faceAvg(rhoW);
