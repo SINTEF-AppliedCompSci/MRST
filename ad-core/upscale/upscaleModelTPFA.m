@@ -120,7 +120,7 @@ function rock_c = getRock(rock, CG, opt)
         nK = size(rock.perm, 2);
         perm_c = zeros(CG.cells.num, nK);
         for i = 1:nK
-            perm_c = accumarray(p, 1./rock.perm(:, i));
+            perm_c(:, i) = accumarray(p, 1./rock.perm(:, i));
         end
         perm_c = 1./bsxfun(@rdivide, perm_c, counts);
     end
