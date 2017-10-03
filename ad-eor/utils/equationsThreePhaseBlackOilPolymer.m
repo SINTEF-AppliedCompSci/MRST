@@ -36,7 +36,7 @@ function [problem, state] = equationsThreePhaseBlackOilPolymer(state0, state, ..
 % properties
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -74,14 +74,10 @@ assert(isempty(drivingForces.bc) && isempty(drivingForces.src));
    'pressure', 'water', 'gas', 'rs', 'rv', 'polymer', 'polymermax', 'wellsol');
 
 % Properties at previous timestep
-[p0, sW0, sG0, rs0, rv0, c0, cmax0] = model.getProps(state0, ...
-   'pressure', 'water', 'gas', 'rs', 'rv', 'polymer', 'polymermax');
+[p0, sW0, sG0, rs0, rv0, c0, cmax0, wellSol0] = model.getProps(state0, ...
+   'pressure', 'water', 'gas', 'rs', 'rv', 'polymer', 'polymermax', 'wellsol');
 
-bhp    = vertcat(wellSol.bhp);
-qWs    = vertcat(wellSol.qWs);
-qOs    = vertcat(wellSol.qOs);
-qGs    = vertcat(wellSol.qGs);
-qWPoly = vertcat(wellSol.qWPoly);
+[wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
 
 %Initialization of primary variables ----------------------------------
 st  = model.getCellStatusVO(state,  1-sW-sG,   sW,  sG);
@@ -99,14 +95,14 @@ end
 if ~opt.resOnly
     if ~opt.reverseMode
         % define primary varible x and initialize
-        [p, sW, x, c, qWs, qOs, qGs, qWPoly, bhp] = ...
-            initVariablesADI(p, sW, x, c, qWs, qOs, qGs, qWPoly, bhp);
+        [p, sW, x, c, wellVars{:}] = ...
+            initVariablesADI(p, sW, x, c, wellVars{:});
     else
         x0 = st0{1}.*rs0 + st0{2}.*rv0 + st0{3}.*sG0;
         % Set initial gradient to zero
-        zw = zeros(size(bhp));
-        [p0, sW0, x0, c0, zw, zw, zw, zw, zw] = ...
-            initVariablesADI(p0, sW0, x0, c0, zw, zw, zw, zw, zw); %#ok
+        wellVars0 = model.FacilityModel.getAllPrimaryVariables(wellSol0);
+        [p0, sW0, x0, c0, wellVars0{:}] = ...
+            initVariablesADI(p0, sW0, x0, c0, wellVars0{:}); %#ok
         clear zw;
         [sG0, rs0, rv0] = calculateHydrocarbonsFromStatusBO(model, st0, 1-sW, x0, rs0, rv0, p0);
     end
@@ -120,7 +116,7 @@ end
 
 % We will solve for pressure, water and gas saturation (oil saturation
 % follows via the definition of saturations), polymer concentration and well rates + bhp.
-primaryVars = {'pressure', 'sW', gvar, 'polymer', 'qWs', 'qOs', 'qGs', 'qWPoly', 'bhp'};
+primaryVars = {'pressure', 'sW', gvar, 'polymer', wellVarNames{:}};
 
 % Evaluate relative permeability
 sO  = 1 - sW  - sG;
@@ -159,42 +155,34 @@ bG0 = getbG_BO(model, p0, rv0, ~st0{2});
 if model.usingShear || model.usingShearLog || model.usingShearLogshrate
     % calculate well perforation rates :
     if ~isempty(W)
-        wm = WellModel();
         if ~opt.reverseMode
-            % Store cell wise well variables in cell arrays and send to well
-            % model to get the fluxes and well control equations.
             wc    = vertcat(W.cells);
-            pw    = p(wc);
-            rhows = [f.rhoWS, f.rhoOS, f.rhoGS];
-            bw    = {bW(wc), bO(wc), bG(wc)};
-
-            [rw, rSatw] = wm.getResSatWell(model, wc, rs, rv, rsSat, rvSat);
-            sat = {sW(wc), sO(wc), sG(wc)};
-
-
-            mw    = {mobW(wc), mobO(wc), mobG(wc)};
-
-            % We assume the polymer in the wellbore is always fully mixed,
-            % we need to re-calculate injection mobility
-
-            [~, wciPoly, iInxW] = getWellPolymer(W);
-            cw        = c(wc);
-
-            % remove the old viscosity and applying the fully mixed viscosity
-            muWMultW = muWMult(wc);
+            perf2well = getPerforationToWellMapping(W);
+            sgn = vertcat(W.sign);
+            
+            wc_inj = wc(sgn(perf2well) > 0);
+            cw        = c(wc_inj);
+            
+            mob    = {mobW, mobO, mobG};
+            muWMultW = muWMult(wc_inj);
             muWFullyMixed = model.fluid.muWMult(cw);
 
-            mw{1}(iInxW) = mw{1}(iInxW) ./ muWFullyMixed(iInxW) .* muWMultW(iInxW);
+            mob{1}(wc_inj) = mob{1}(wc_inj) ./ muWFullyMixed .* muWMultW;
+            rho = {rhoW, rhoO, rhoG};
+            
+            dissolved = model.getDissolutionMatrix(rs, rv);
 
-            [cqs, weqs, ctrleqs, wc, state.wellSol]  = wm.computeWellFlux(model, W, wellSol, ...
-                bhp, {qWs, qOs, qGs}, pw, rhows, bw, mw, sat, rw,...
-                'maxComponents', rSatw, ...
-                'nonlinearIteration', opt.iteration);
+            
+            [src, wellsys, state.wellSol] = ...
+            model.FacilityModel.getWellContributions(wellSol0, wellSol, wellVars, ...
+                                    wellMap, p, mob, rho, dissolved, {c}, ...
+                                    dt, opt.iteration);
+
         else
             error('not supported yet!');
         end
     else
-        error('The polymer model does not support senarios without wells now!');
+        error('The polymer model does not support scenarios without wells now!');
     end
 
     % s = model.operators;  % The previous s was overwritten with saturations.
@@ -224,9 +212,9 @@ if model.usingShear || model.usingShearLog || model.usingShearLogshrate
 
 
     % The water flux for the wells.
-    fluxWaterWell = double(cqs{1});
+    cqs = vertcat(state.wellSol.cqs);
+    fluxWaterWell = double(cqs(:, 1));
 
-    bwW = bW(wc);
     poroW = poro(wc);
 
     % the thickness of the well perforations in the cell
@@ -247,14 +235,12 @@ if model.usingShear || model.usingShearLog || model.usingShearLogshrate
     end
     rR = vertcat(W.rR);
 
-    VwW = bwW.*fluxWaterWell./(poroW .* rR .* thicknessWell * 2 * pi);
+    VwW = bW(wc).*fluxWaterWell./(poroW .* rR .* thicknessWell * 2 * pi);
 
-    if ~opt.resOnly
-        muWMultW = muWMultW.val;
-        VwW = VwW.val;
-        muWMultf = muWMultf.val;
-        Vw = Vw.val;
-    end
+    muWMultW = double(muWMultW);
+    VwW = double(VwW);
+    muWMultf = double(muWMultf);
+    Vw = double(Vw);
 
 
     if model.usingShearLogshrate
@@ -371,98 +357,37 @@ eqs = {water, oil, gas, polymer};
 names = {'water', 'oil', 'gas', 'polymer'};
 types = {'cell', 'cell', 'cell', 'cell'};
 
+rho = {rhoW, rhoO, rhoG};
+mob = {mobW, mobO, mobG};
+sat = {sW, sO, sG};
+dissolved = model.getDissolutionMatrix(rs, rv);
+
+[eqs, state] = addBoundaryConditionsAndSources(model, eqs, names, types, state, ...
+                                                 {pW, p, pG}, sat, mob, rho, ...
+                                                 dissolved, {c}, ...
+                                                 drivingForces);
 
 % Finally, add in and setup well equations
-if ~isempty(W)
-    wm = WellModel();
-    if ~opt.reverseMode
-        % Store cell wise well variables in cell arrays and send to ewll
-        % model to get the fluxes and well control equations.
-        wc    = vertcat(W.cells);
-        pw    = p(wc);
-        rhows = [f.rhoWS, f.rhoOS, f.rhoGS];
-        bw    = {bW(wc), bO(wc), bG(wc)};
+wc    = vertcat(W.cells);
+perf2well = getPerforationToWellMapping(W);
+sgn = vertcat(W.sign);
 
-        [rw, rSatw] = wm.getResSatWell(model, wc, rs, rv, rsSat, rvSat);
+wc_inj = wc(sgn(perf2well) > 0);
+cw     = c(wc_inj);
 
-        mw = {mobW(wc), mobO(wc), mobG(wc)};
-        % We assume the polymer in the wellbore is always fully mixed,
-        % we need to re-calculate injection mobility
+% remove the old viscosity and applying the fully mixed viscosity
+muWMultW = muWMult(wc_inj);
+muWFullyMixed = model.fluid.muWMult(cw);
 
-        [~, wciPoly, iInxW] = getWellPolymer(W);
-        cw        = c(wc);
-
-        % remove the old viscosity and applying the fully mixed viscosity
-        muWMultW = muWMult(wc);
-        muWFullyMixed = model.fluid.muWMult(cw);
-
-        mw{1}(iInxW) = mw{1}(iInxW) ./ muWFullyMixed(iInxW) .* muWMultW(iInxW);
+mob{1}(wc_inj) = mob{1}(wc_inj) ./ muWFullyMixed .* muWMultW;
 
 
-        if model.usingShear || model.usingShearLog || model.usingShearLogshrate
-            % applying the shear effects
-            mw{1}    = mw{1}./shearMultW;
-        end
-
-        s = {sW(wc), sO(wc), sG(wc)};
-
-        [cqs, weqs, ctrleqs, wc, state.wellSol]  = wm.computeWellFlux(model, W, wellSol, ...
-            bhp, {qWs, qOs, qGs}, pw, rhows, bw, mw, s, rw,...
-            'maxComponents', rSatw, ...
-            'nonlinearIteration', opt.iteration);
-        % Store the well equations (relate well bottom hole pressures to
-        % influx).
-        eqs(5:7) = weqs;
-
-        % Polymer well equations
-        % For production well, we need to consider the viscosity ratio
-        cbarw     = cw/f.cmax;
-        cw = cw ./ (a + (1-a).*cbarw);
-
-        % For injection well, it should be the injection concentration
-        cw(iInxW) = wciPoly;
-
-        bWqP = cw.*cqs{1};
-        eqs{4}(wc) = eqs{4}(wc) - bWqP;
-
-        % Well polymer rate for each well is water rate in each perforation
-        % multiplied with polymer concentration in that perforated cell.
-        perf2well = getPerforationToWellMapping(W);
-        Rw = sparse(perf2well, (1:numel(perf2well))', 1, ...
-           numel(W), numel(perf2well));
-        eqs{8} = qWPoly - Rw*(cqs{1}.*cw);
-
-        % Store the control equations (trivial equations ensuring that each
-        % well will have values corresponding to the prescribed value)
-        eqs{9} = ctrleqs;
-
-        % Add source terms to the equations. Negative sign may be
-        % surprising if one is used to source terms on the right hand side,
-        % but this is the equations on residual form.
-        for i = 1:3
-            eqs{i}(wc) = eqs{i}(wc) - cqs{i};
-        end
-        names(5:9) = {'waterWells', 'oilWells', 'gasWells', ...
-                      'polymerWells','closureWells'};
-        types(5:9) = {'perf', 'perf', 'perf', 'perf', 'well'};
-    else
-
-        % Force wells to be ADI variables.
-        nw = numel(state0.wellSol);
-        zw = double2ADI(zeros(nw,1), p0);
-        eqs(5:9) = {zw, zw, zw, zw, zw};
-        names(5:9) = {'empty', 'empty', 'empty', 'empty', 'empty'};
-        types(5:9) = {'none', 'none', 'none', 'none', 'none'};
-
-        [eq, n, typ] = ...
-            wm.createReverseModeWellEquations(model, state0.wellSol, p0);
-        % Add another equation for polymer well rates
-        [eqs{5:9}] = deal(eq{1});
-        [names{5:9}] = deal(n{1});
-        [types{5:9}] = deal(typ{1});
-
-    end
+if model.usingShear || model.usingShearLog || model.usingShearLogshrate
+    % applying the shear effects
+    mob{1}(wc) = mob{1}(wc)./shearMultW;
 end
+
+[eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, wellVars, wellMap, p, mob, rho, dissolved, {c}, dt, opt);
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 
 end
@@ -477,10 +402,10 @@ function [wPoly, wciPoly, iInxW] = getWellPolymer(W)
         return
     end
     inj   = vertcat(W.sign)==1;
-    polInj = cellfun(@(x)~isempty(x), {W(inj).poly});
+    polInj = cellfun(@(x)~isempty(x), {W(inj).c});
     wPoly = zeros(nnz(inj), 1);
     W_inj = W(inj);
-    wPoly(polInj) = vertcat(W_inj(polInj).poly);
+    wPoly(polInj) = vertcat(W_inj(polInj).c);
     wciPoly = rldecode(wPoly, cellfun(@numel, {W_inj.cells}));
 
     % Injection cells

@@ -18,7 +18,7 @@ function schedule = upscaleSchedule(model, schedule, varargin)
 %   DOES CURRENTLY ONLY SUPPORT WELLS, NOT BC OR SRC
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -35,26 +35,31 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-    opt = struct('wellUpscaleMethod', 'sum');
+    opt = struct('wellUpscaleMethod', 'sum', ...
+                 'bcUpscaleMethod',   'linear');
     opt = merge_options(opt, varargin{:});
 
     for i = 1:numel(schedule.control)
-        % Sources
-        if isfield(schedule.control(i), 'src')
-            assert(isempty(schedule.control(i).src), 'SRC is not supported yet');
+        % Treat wells
+        if isfield(schedule.control(i), 'W')
+            W = schedule.control(i).W;
+            W_coarse = [];
+            for j = 1:numel(W)
+                w = handleWell(model, W(j), opt);
+                W_coarse = [W_coarse; w]; %#ok
+            end
+            schedule.control(i).W = W_coarse;
         end
-        % Boundary conditions
+        % Treat boundary conditions
         if isfield(schedule.control(i), 'bc')
-            assert(isempty(schedule.control(i).bc), 'BC is not supported yet');
+            bc_coarse = handleBC(model, schedule.control(i).bc, opt);
+            schedule.control(i).bc = bc_coarse;
         end
-        % Wells
-        W = schedule.control(i).W;
-        W_coarse = [];
-        for j = 1:numel(W)
-            w = handleWell(model, W(j), opt);
-            W_coarse = [W_coarse; w]; %#ok
+        % Treat source terms
+        if isfield(schedule.control(i), 'src')
+            src_coarse = handleSRC(model, schedule.control(i).src, opt);
+            schedule.control(i).src = src_coarse;
         end
-        schedule.control(i).W = W_coarse;
     end
 end
 
@@ -63,9 +68,7 @@ function Wc = handleWell(model, W, opt)
     p = model.G.partition;
     Wc = W;
     
-    s = W.cstatus;
     pc = p(W.cells);
-    pc = pc(s);
     
     % cells
     [Wc.cells, firstInd, newMap] = uniqueStable(pc);
@@ -75,7 +78,7 @@ function Wc = handleWell(model, W, opt)
     
     % Take first direction uncritically (it shouldn't really matter when
     % the well index has been upscaled).
-    dr = W.dir(s);
+    dr = W.dir;
     Wc.dir = dr(firstInd);
     
     % Upscale well index using harmonic average...
@@ -83,13 +86,13 @@ function Wc = handleWell(model, W, opt)
         case 'sum'
             fn = @(WI, map, counts) accumarray(map, WI);
         case 'harmonic'
-            fn = @(WI, map, counts) 1./(accumarray(map, 1./WI(s))./counts);
+            fn = @(WI, map, counts) 1./(accumarray(map, 1./WI)./counts);
         case 'mean'
             fn = @(WI, map, counts)accumarray(map, WI)./counts;
             otherwise
-        error('Unknown')
+        error(['Unknown upscale mode: "', opt.wellUpscaleMethod, '"'])
     end
-    Wc.WI = fn(W.WI(s), newMap, counts);
+    Wc.WI = fn(W.WI, newMap, counts);
 
     % dZ
     z = model.G.cells.centroids(Wc.cells, 3);
@@ -97,6 +100,8 @@ function Wc = handleWell(model, W, opt)
     
     % cstatus
     Wc.cstatus = true(nc, 1);
+    % Mapping -> coarse to fine
+    Wc.fperf = newMap;
     
     if isfield(W, 'topo')
         % Extract topology.
@@ -115,22 +120,148 @@ function Wc = handleWell(model, W, opt)
     Wc.parentIndices = firstInd;
 end
 
-function bc = handleBC(model, bc)
+function bc_coarse = handleBC(model, bc, opt)
+    bc_coarse = [];
     if isempty(bc)
         return
     end
-    error('NotImplemented');
+    CG = model.G;
+    G = CG.parent;    
     % Coarse face -> fine face map
-    coarseFaceIx = rldecode(1:CG.faces.num, diff(CG.faces.connPos), 2) .';
-
-    isPressure = strcmpi(bc.type, 'pressure');
+    connCoarse = rldecode(1:CG.faces.num, diff(CG.faces.connPos), 2) .';
     
-    cf = unique(coarseFaceIx(bc.face));
+    isFaceBC = false(G.faces.num, 1);
+    isFaceBC(bc.face) = true;
+    
+    coarseFaceNo = zeros(G.faces.num, 1);
+    coarseFaceNo(CG.faces.fconn) = connCoarse;
+    
+    coarseFacesBC = unique(connCoarse(isFaceBC(CG.faces.fconn)));
+    for i = 1:numel(coarseFacesBC)
+        cf = coarseFacesBC(i);
+        
+        isCurrentCoarse = false(G.faces.num, 1);
+        isCurrentCoarse(coarseFaceNo == cf) = true;
+        
+        % subset of boundary condition corresponding to current face
+        act = isCurrentCoarse(bc.face);
+        faces = bc.face(act);
+        areas = G.faces.areas(faces);
+        
+        types = bc.type(act);
+        type = types{1};
+        values = bc.value(act);
+        
+        sat = [];
+        assert(all(strcmpi(type, types)), ...
+            ['Mixture of boundary condition types on the same coarse face.',...
+            ' Not possible to upscale.']);
+        
+        switch lower(type)
+            case 'flux'
+                if ~isempty(bc.sat)
+                    % Flux-weight saturations
+                    sat = bsxfun(@times, bc.sat(act, :), values);
+                    sat = sum(sat, 1);
+                    sat = sat./sum(sat, 2);
+                end
+                val = sum(values);
+            case 'pressure'
+                if ~isempty(bc.sat)
+                    % Area weight saturations
+                    sat = bsxfun(@times, bc.sat(act, :), areas);
+                    sat = sum(sat, 1);
+                    sat = sat./sum(sat, 2);
+                end
+                
+                if isfield(G, 'nodes')
+                    C = G.nodes.coords;
+                else
+                    C = G.faces.centroids;
+                end
+                
+                rescale = @(x) bsxfun(@rdivide, bsxfun(@minus, x, min(C)), max(C) - min(C));
+                xq = rescale(CG.faces.centroids(cf, :));
+                x = rescale(G.faces.centroids(faces, :));
+                if numel(faces) == 1
+                    % Single value. Coarse is equal to fine.
+                    val = values;
+                else
+                    switch lower(opt.bcUpscaleMethod)
+                        case 'idw'
+                            % Inverse distance weighted pressure
+                            val = interpolateIDW(x, values, xq, 2);
+                        case 'mean'
+                            % area weighted mean value
+                            val = mean(values.*areas)./sum(areas);
+                        case 'nearest'
+                            % Nearest neighbor interpolation
+                            val = nearestNeighbor(x, values, xq);
+                        otherwise
+                            % We just assume that this is a valid method for
+                            % matlabs unstructured interpolation, after
+                            % reducing to the actual dimension
+                            keep = true(1, G.griddim);
+                            for j = 1:G.griddim
+                                % Remove degenerate dimensions
+                                if all(abs(x(:, j) - xq(j)) <= 2*max(eps(x(:, j)), eps(xq(j))))
+                                    keep(j) = false;
+                                end
+                            end
+                            if nnz(keep) > 1
+                                I = scatteredInterpolant(x(:, keep), values,...
+                                    opt.bcUpscaleMethod, opt.bcUpscaleMethod);
+                                val = I(xq(keep));
+                            else
+                                val = interp1(x(:, keep), values, xq(keep), ...
+                                    opt.bcUpscaleMethod, 'extrap');
+                            end
+                    end
+                    if isempty(val) || any(~isfinite(val))
+                        % Always works
+                        val = nearestNeighbor(x, values, xq);
+                    end
+                end
+            otherwise
+                error(['Unable to upscale boundary condition type "', type, '"']);
+        end
+        
+        bc_coarse = addBC(bc_coarse, cf, type, val, 'sat', sat);
+    end
 end
 
-function src = handleSRC(model, src)
+function src_coarse = handleSRC(model, src, opt)
+    src_coarse = [];
     if isempty(src)
         return
     end
-    error('NotImplemented');
+    CG = model.G;
+
+    cells = src.cell;
+    cpart = CG.partition(cells);
+    coarsecells = unique(cpart);
+    for i = 1:numel(coarsecells)
+        cc = coarsecells(i);
+        act = cpart == cc;
+        values = src.rate(act);
+        assert(all(values < 0) || all(values >= 0), ...
+            ['Producing and injecting source terms in same coarse block.',...
+            ' Unable to upscale.']);
+        val = sum(values);
+        if isempty(src.sat)
+            sat = [];
+        else
+            sat = sum(bsxfun(@times, src.sat(act, :), values), 1);
+            sat = sat./sum(values);
+        end
+        % Add coarse source
+        src_coarse = addSource(src_coarse, cc, val, 'sat', sat);
+    end
+end
+
+
+function val = nearestNeighbor(x, value, xq)
+    dist = sqrt(sum(bsxfun(@minus, x, xq).^2, 2));
+    [~, minIndex] = min(dist);
+    val = value(minIndex);
 end

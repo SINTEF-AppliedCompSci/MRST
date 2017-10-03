@@ -2,7 +2,6 @@ function f = assignPVDG(f, pvdg, reg)
    cfun = @(f) cellfun(f, pvdg, 'UniformOutput', false);
 
    % Compute tables (static data)
-   TBG  = cfun(@(x) x(:, [1, 2]));
    TbG  = cfun(@(x) [x(:,1), 1 ./ x(:,2)]);
    TmuG = cfun(@(x) x(:, [1, 3]));
 
@@ -13,13 +12,12 @@ function f = assignPVDG(f, pvdg, reg)
    % Region interpolator
    ireg = @(T, pg, varargin) interpReg(T, pg, regmap(pg, varargin{:}));
 
-   f.BG  = @(pg, varargin) ireg(TBG , pg, varargin{:});
    f.bG  = @(pg, varargin) ireg(TbG , pg, varargin{:});
    f.muG = @(pg, varargin) ireg(TmuG, pg, varargin{:});
 end
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

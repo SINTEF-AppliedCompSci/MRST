@@ -31,7 +31,7 @@ function wellSol = initWellSolAD(W, model, state0, wellSolInit)
 %
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -119,13 +119,17 @@ for k = 1:nw
     if model.gas
         ws(k).qGs  = W(k).sign*irate;
     end
-    if isprop(model, 'polymer') && model.polymer
-       ws(k).qWPoly = W(k).poly*ws(k).qWs;
+    cnames = model.getComponentNames();
+    for i = 1:numel(cnames)
+        switch lower(cnames{i})
+            case {'polymer', 'surfactant'};
+                % Water based EOR
+                ws(k).c(i) = W(k).c(i)*ws(k).qWs;
+            otherwise
+                % No good guess.
+        end
     end
-    if isprop(model, 'surfactant') && model.surfactant
-       ws(k).qWSft = W(k).surfact*ws(k).qWs;
-    end
-    
+
     ws(k).mixs = W(k).compi;
     ws(k).qs   = W(k).sign*ones(1, nPh)*irate;
     ws(k).cdp  = zeros(nConn,1);
@@ -160,11 +164,15 @@ for k = 1:numel(W)
                 ix = 1 + model.water + model.oil;
                 ws(k).qGs = v*W(k).compi(ix);
             end
-            if isprop(model, 'polymer') && model.polymer
-                ws(k).qWPoly = W(k).poly*ws(k).qWs;
-            end
-            if isprop(model, 'surfactant') && model.surfactant
-               ws(k).qWSft = W(k).surfact*ws(k).qWs;
+            cnames = model.getComponentNames();
+            for i = 1:numel(cnames)
+                switch lower(cnames{i})
+                    case {'polymer', 'surfactant'};
+                        % Water based EOR
+                        ws(k).c(i) = W(k).c(i)*ws(k).qWs;
+                    otherwise
+                        % No good guess.
+                end
             end
         case 'orat'
             ws(k).qOs = v;

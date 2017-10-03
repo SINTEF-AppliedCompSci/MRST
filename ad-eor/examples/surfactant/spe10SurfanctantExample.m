@@ -152,9 +152,9 @@ W = verticalWell(W, G, rock, prodIJ(1), prodIJ(2), 1:nz, ...
 % 2) water + surfactant (500 days)
 % 3) water only         (1500 days)
 
-[W.surfact] = deal(0);
+[W.c] = deal(0);
 control(1).W = W;
-[W([W.sign] > 0).surfact] = 50*kilogram/meter^3;
+[W([W.sign] > 0).c] = 50*kilogram/meter^3;
 control(2).W = W;
 
 surfinj_start_time = 1000*day;
@@ -184,8 +184,6 @@ schedule = refineSchedule(0, day*ones(10, 1), schedule);
 state0 = initResSol(G, bhp, [sWcon, 1 - sWcon]);
 state0.c      = zeros(G.cells.num, 1);
 state0.cmax   = state0.c;
-state0.ads    = computeEffAds(state0.c, 0, fluid);
-state0.adsmax = state0.ads;
 
 %% visualize the model properties
 %
@@ -208,7 +206,7 @@ view(-10,40); axis tight
 
 % <html>
 % <p><font size="-1">
-% Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+% Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 % </font></p>
 % <p><font size="-1">
 % This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).

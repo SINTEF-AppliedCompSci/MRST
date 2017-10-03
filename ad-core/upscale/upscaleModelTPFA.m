@@ -41,7 +41,7 @@ function model = upscaleModelTPFA(model, partition, varargin)
 %   upscaleSchedule, generateCoarseGrid
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -60,6 +60,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
     opt = struct('validatePartition', true,...
+                 'transFromRock',     true,...
                  'transCoarse',       [], ...
                  'permCoarse',        [], ...
                  'neighborship',      [], ...
@@ -68,7 +69,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     opt = merge_options(opt, varargin{:});
     
     % Handle grid
-    mrstModule add coarsegrid
+    require coarsegrid
     
     G = model.G;
     rock = model.rock;
@@ -78,7 +79,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     rock_c = getRock(rock, CG, opt);
     
     [Tc, Nc] = getTransmissibility(CG, rock_c, opt);
-    
+    if ~opt.transFromRock && isempty(opt.transCoarse)
+        cts = rldecode((1:CG.faces.num)', diff(CG.faces.connPos));
+        Tc = accumarray(cts, model.operators.T_all(CG.faces.fconn));
+    end
     model.G = CG;
     model.rock = rock_c;
     model = model.setupOperators(CG, rock_c, 'neighbors', Nc, 'trans', Tc);
@@ -99,24 +103,26 @@ function rock_c = getRock(rock, CG, opt)
     perm_c = opt.permCoarse;
     
     p = CG.partition;
-    cellcount  = accumarray(p, 1);
+    vol = CG.parent.cells.volumes;
+    coarsevol = accumarray(p, vol);
+    counts = accumarray(p, 1);
     if isfield(rock, 'poro') && isempty(poro_c)
         poro = rock.poro;
         % Include NTG directly into porosity for the time being...
-        if isfield(rock, 'ntg');
+        if isfield(rock, 'ntg')
             poro = poro.*rock.ntg;
         end
         % Sum up pore volumes - we want upscaled model to have same porosity.
-        poro_c = accumarray(p, poro)./cellcount;
+        poro_c = accumarray(p, poro.*vol)./coarsevol;
     end
     
     if isfield(rock, 'perm') && isempty(perm_c)
         nK = size(rock.perm, 2);
         perm_c = zeros(CG.cells.num, nK);
         for i = 1:nK
-            perm_c = accumarray(p, 1./rock.perm(:, i));
+            perm_c(:, i) = accumarray(p, 1./rock.perm(:, i));
         end
-        perm_c = 1./bsxfun(@rdivide, perm_c, cellcount);
+        perm_c = 1./bsxfun(@rdivide, perm_c, counts);
     end
     rock_c = makeRock(CG, perm_c, poro_c);
 end
@@ -134,14 +140,17 @@ function [Tc, N_int] = getTransmissibility(CG, rock_c, opt)
     % No. half faces
     nHf = size(CG.cells.faces, 1);
     % Number of faces
-    nF  = CG.faces.num;
+    nF  = size(N, 1);
     % No. interfaces
     intx = all(N ~= 0, 2);
     nIF = sum(intx);
     
-    if nT == 0 || nT == nF
-        % We either have no transmissibility given, or it is in the format
-        % one entry per face. Either case is fine for setupOperators.
+    if nT == 0 
+        % We have no upscaled transmissibility given we calculated them from the upscaled permeability    
+        Tc = getFaceTransmissibility(CG, rock_c);
+    elseif  nT == nF 
+        % We have transmissibility in the format
+        % one entry per face. This case is fine for setupOperators.
     elseif nT == nHf
         Tc  = 1 ./ accumarray(CG.cells.faces(:,1), 1./Tc, [nF, 1]);
     elseif nT == nIF

@@ -23,7 +23,7 @@ classdef LinearSolverAD < handle
 %   BackslashSolverAD, CPRSolverAD, LinearizedProblem
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -90,9 +90,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
            if iscell(objective)
                objective = objective{:};
            end
-           objective = cat(objective);
-
-           rhs = -objective.jac{1}';
+           objective = combineEquations(objective);
+           assert(isa(objective, 'ADI'), 'Objective function was not of type ADI.');
+           if isnumeric(objective)
+              % assumes that the reason for objective is numerics is that
+              % all derivatives are zeros.
+              error('Objectives have to be ADI: change result to val+0*ADIvariable');
+              rhs = 0;
+           else
+              rhs = -objective.jac{1}';
+           end
            if ~isempty(adjVec)
                problemPrev = problemPrev.assembleSystem();
                rhs = rhs - problemPrev.A'*adjVec;
@@ -110,6 +117,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
            
            timer = tic();
            [result, report] = solver.solveLinearSystem(problem.A, problem.b); 
+           [result, report] = problem.processResultAfterSolve(result, report);
            report.SolverTime = toc(timer);
            if solver.replaceNaN
                result(isnan(result)) = solver.replacementNaN;
@@ -127,7 +135,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
            % Find first index corresponding to ADI equation
            ix = find(cellfun(@(x) isa(x, 'ADI'), problem.equations), 1);
            % Calculate positions in newton increment
-           numVars = cellfun(@(x) size(x, 2), problem.equations{ix}.jac)';
+           numVars = problem.equations{ix}.getNumVars();
            cumVars = cumsum(numVars);
            ii = [[1;cumVars(1:end-1)+1], cumVars];
            

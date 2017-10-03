@@ -21,7 +21,7 @@
 % |Egg_Model_ECL.DATA|. The next two lines correspond to the setup where the whole
 % dataset has been downloaded under the same directory as |run_egg.m|.
 
-require ad-fi deckformat
+require ad-fi deckformat ad-props
 
 currentdir = fileparts(mfilename('fullpath'));
 fn = fullfile(currentdir, 'data', 'Egg_Model_Data_Files_v2', 'MRST', 'Egg_Model_ECL.DATA');

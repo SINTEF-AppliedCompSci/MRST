@@ -47,8 +47,6 @@ state0.s(:,1) = 1 - state0.s(:,2);
 
 state0.c    = zeros(G.cells.num, 1);
 state0.cmax = state0.c;
-state0.ads = computeEffAds(state0.c, 0, fluid);
-state0.adsmax = state0.ads;
 
 clf
 plotCellData(G, state0.s(:,2));
@@ -96,14 +94,15 @@ resulthandler = ResultHandler('dataDirectory', pwd, 'dataFolder', 'cache', 'clea
 [wellSolsSurfactant, statesSurfactant] = simulateScheduleAD(state0, model, ...
                                                   schedule, 'OutputHandler', ...
                                                   resulthandler);
-plotToolbar(G,statesSurfactant,'field','s:1')
-view(70,30), plotWell(G,W), axis tight off
+plotToolbar(G,statesSurfactant,'field','s:1');
+W = schedule.control(1).W
+view(70,30), plotWell(G, W), axis tight off
 
 %% Copyright notice
 
 % <html>
 % <p><font size="-1">
-% Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+% Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 % </font></p>
 % <p><font size="-1">
 % This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
@@ -126,4 +125,3 @@ view(70,30), plotWell(G,W), axis tight off
 % <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses</a>.
 % </font></p>
 % </html>
-

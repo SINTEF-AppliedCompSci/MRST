@@ -3,7 +3,12 @@ function model = initDeckEOSModel(deck)
     names = deck.PROPS.CNAMES;
     Tcrit = deck.PROPS.TCRIT';
     Pcrit = deck.PROPS.PCRIT';
-    Vcrit = deck.PROPS.VCRIT';
+    if isfield(deck.PROPS, 'VCRIT')
+        Vcrit = deck.PROPS.VCRIT';
+    else
+        R = 8.3144598;
+        Vcrit = R*deck.PROPS.ZCRIT'.*Tcrit./Pcrit;
+    end
     acf   = deck.PROPS.ACF';
     mw    = deck.PROPS.MW';
     
@@ -15,7 +20,7 @@ function model = initDeckEOSModel(deck)
 end
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

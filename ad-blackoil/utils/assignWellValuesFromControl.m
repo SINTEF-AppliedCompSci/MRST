@@ -27,7 +27,7 @@ function wellSol = assignWellValuesFromControl(model, wellSol, W, wi, oi, gi)
 %   WellModel
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -74,6 +74,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             case 'grat'
                 ws.qGs = v;
             case 'lrat'
+                % Do nothing
+            case 'thp'
                 % Do nothing
             otherwise
                 error('Unknown well control mode');

@@ -1,12 +1,13 @@
 % SIMULATORS
 %
 % Files
+%   computeSensitivitiesAdjointAD - Compute parameter sensitivities using adjoint simulation 
 %   computeGradientAdjointAD      - Compute gradients using an adjoint/backward simulation that is linear in each step
 %   computeGradientPerturbationAD - Compute gradients using finite difference approximation by perturbing controls
 %   simulateScheduleAD            - Run a schedule for a non-linear physical model using an automatic differention
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -23,3 +24,4 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+

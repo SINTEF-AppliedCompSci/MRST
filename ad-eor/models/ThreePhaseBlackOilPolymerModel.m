@@ -18,9 +18,9 @@ classdef ThreePhaseBlackOilPolymerModel < ThreePhaseBlackOilModel
 % EXAMPLE:
 %
 % SEE ALSO:  equationsThreePhaseBlackOilPolymer, OilWaterPolymerModel
-%  
+%
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -66,7 +66,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             model.usingShear = isfield(fluid, 'plyshearMult');
             model.usingShearLog = (isfield(fluid, 'plyshlog') && ~isfield(fluid, 'shrate'));
             model.usingShearLogshrate = (isfield(fluid, 'plyshlog') && isfield(fluid, 'shrate'));
-            model.wellVarNames = {'qWs', 'qOs', 'qGs', 'qWPoly', 'bhp'};
+            % model.wellVarNames = {'qWs', 'qOs', 'qGs', 'qWPoly', 'bhp'};
             model = merge_options(model, varargin{:});
         end
 
@@ -109,13 +109,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         function [fn, index] = getVariableField(model, name)
             % Get the index/name mapping for the model (such as where
             % pressure or water saturation is located in state)
+            index = 1;
             switch(lower(name))
-                case {'polymer'}
-                    index = 1;
-                    fn = 'c';
-                case {'polymermax'}
-                    index = 1;
-                    fn = 'cmax';
+                case {'polymer', 'polymermax'}
+                    c = model.getComponentNames();
+                    index = find(strcmpi(c, 'polymer'));
+                    if strcmpi(name, 'polymer')
+                        fn = 'c';
+                    else
+                        fn = 'cmax';
+                    end
+                case 'qwpoly'
+                    fn = 'qWPoly';
                 otherwise
                     [fn, index] = getVariableField@ThreePhaseBlackOilModel(...
                                     model, name);
@@ -123,7 +128,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
 
         % --------------------------------------------------------------------%
-        function scaling = getScalingFactorsCPR(model, problem, names)
+        function names = getComponentNames(model)
+            names = getComponentNames@ThreePhaseBlackOilModel(model);
+            if model.polymer
+                names{end+1} = 'polymer';
+            end
+        end
+        % --------------------------------------------------------------------%
+        function scaling = getScalingFactorsCPR(model, problem, names, solver)
             nNames = numel(names);
 
             scaling = cell(nNames, 1);
@@ -144,8 +156,59 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             end
             if ~all(handled)
                 % Get rest of scaling factors
-                other = getScalingFactorsCPR@ThreePhaseBlackOilModel(model, problem, names(~handled));
+                other = getScalingFactorsCPR@ThreePhaseBlackOilModel(model, problem, names(~handled), solver);
                 [scaling{~handled}] = other{:};
+            end
+        end
+
+        function [names, types] = getExtraWellEquationNames(model)
+            [names, types] = getExtraWellEquationNames@ThreePhaseBlackOilModel(model);
+            if model.polymer
+                names{end+1} = 'polymerWells';
+                types{end+1} = 'perf';
+            end
+        end
+
+        function names = getExtraWellPrimaryVariableNames(model)
+            names = getExtraWellPrimaryVariableNames@ThreePhaseBlackOilModel(model);
+            if model.polymer
+                names{end+1} = 'qWPoly';
+            end
+        end
+
+        function [compEqs, compSrc, eqNames, wellSol] = getExtraWellContributions(model, well, wellSol0, wellSol, q_s, bh, packed, qMass, qVol, dt, iteration)
+            [compEqs, compSrc, eqNames, wellSol] = getExtraWellContributions@ThreePhaseBlackOilModel(model, well, wellSol0, wellSol, q_s, bh, packed, qMass, qVol, dt, iteration);
+            if model.polymer
+                assert(model.water, 'Polymer injection requires a water phase.');
+                f = model.fluid;
+
+                % Water is always first
+                wix = 1;
+                cqWs = qMass{wix}./f.rhoWS; % connection volume flux at surface condition
+
+                if well.isInjector
+                    concWell = model.getProp(well.W, 'polymer');
+                    cqP = concWell.*cqWs;
+                else
+                    pix = strcmpi(model.getComponentNames(), 'polymer');
+                    concWell = packed.components{pix};
+
+                    a = f.muWMult(f.cmax).^(1-f.mixPar);
+                    cbarw     = concWell/f.cmax;
+
+                    % the term (a + (1 - a).*cbarw) account for the
+                    % todd-longstaff mixing factor, which model the fact that for
+                    % not-fully mixed polymer solution the polymer does not
+                    % travel at the same velocity as water. See the governing
+                    % equation for polymer (e.g. equationsOilWaterPolymer.m)
+                    cqP = concWell.*cqWs./(a + (1-a).*cbarw);
+                end
+
+                qwpoly = packed.extravars{strcmpi(packed.extravars_names, 'qwpoly')};
+
+                compEqs{end+1} = qwpoly - sum(concWell.*cqWs);
+                compSrc{end+1} = cqP;
+                eqNames{end+1} = 'polymerWells';
             end
         end
     end

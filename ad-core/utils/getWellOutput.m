@@ -33,7 +33,7 @@ function [welldata, wellnames, fldnames] = getWellOutput(wellsols, fldnames, wel
 %   plotWellSols
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -92,6 +92,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             wells = {wells};
         end
         subs = cellfun(@(x) find(strcmpi(wnames, x)), wells);
+    elseif islogical(wells)
+        assert(numel(wells) == nw);
+        subs = find(wells);
     else
         error('Unknown format for well subset, provide either a list of names or indices');
     end

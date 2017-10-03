@@ -41,7 +41,8 @@ classdef EquationOfStateModel < PhysicalModel
             [E2, E1, E0] = model.getCubicCoefficients(A, B);
             if 1
                 % Use vectorized cubic solver
-                Z = mrstCubic(1, E2, E1, E0);
+                Z = cubicPositive(E2, E1, E0);
+%                 Z = mrstCubic(1, E2, E1, E0);
             else
                 % Fallback to Matlab's root solver
                 n = numel(A);
@@ -113,14 +114,18 @@ classdef EquationOfStateModel < PhysicalModel
         function Z = computeLiquidZ(model, A, B)
             % Pick smallest Z factors for liquid phase (least energy)
             Z = model.solveCubicEOS(A, B);
-            Z = min(Z, [], 2); 
-            assert(all(isfinite(Z) & Z > 0));
+            bad = bsxfun(@lt, Z, B);
+            Z(bad) = nan;
+            Z = min(Z, [], 2);
+            checkZ(Z);
         end
         function Z = computeVaporZ(model, A, B)
             % Pick largest Z factors for vapor phase (most energy)
             Z = model.solveCubicEOS(A, B);
-            Z = max(Z, [], 2); 
-            assert(all(isfinite(Z) & Z > 0));
+            bad = bsxfun(@lt, Z, B);
+            Z(bad) = nan;
+            Z = max(Z, [], 2);
+            checkZ(Z);
         end
         
         function [state, report] = stepFunction(model, state, state0, dt, drivingForces, linsolve, nonlinsolve, iteration, varargin)%#ok
@@ -152,49 +157,72 @@ classdef EquationOfStateModel < PhysicalModel
             y0 = state.y;
             
             % Only apply calculations for cells that have not converged yet
-            active = ~state.eos.converged;
-            state.eos.itCount(active) = state.eos.itCount(active) + 1;
-            L = L0(active);
-            subset = @(x, active) cellfun(@(y) y(active, :), x, 'UniformOutput', false);
+            if iteration == 1
+                [stable, x0, y0] = PhaseStabilityTest(model, state.components, state.pressure, state.T);
+                acf = model.fluid.acentricFactors;
+                [Si_L, Si_V, A_L, A_V, B_L, B_V] = model.getMixtureFugacityCoefficients(P, T, x0, y0, acf);
+                % Solve EOS for each phase
+                Z0_L = model.computeLiquidZ(A_L, B_L);
+                Z0_V = model.computeVaporZ(A_V, B_V);
+                L0 = model.estimateSinglePhaseState(state.pressure, state.T, state.components, L0, stable);
+                
+                active = ~stable;
+            else
+                active = ~state.eos.converged;
+            end
             
-            z = subset(z, active);
-            K = subset(K0, active);
-            P = P(active);
-            T = T(active);
-            
-            if model.performFlash
-                if model.useNewton
-                    % Newton-based solver for equilibrium
-                    [x, y, K, Z_L, Z_V, L, equilvals] = model.newtonCompositionUpdate(P, T, z, K, L);
+            if any(active)
+                state.eos.itCount(active) = state.eos.itCount(active) + 1;
+                L = L0(active);
+                subset = @(x, active) cellfun(@(y) y(active, :), x, 'UniformOutput', false);
+
+                z = subset(z, active);
+                K = subset(K0, active);
+                P = P(active);
+                T = T(active);
+
+                if model.performFlash
+                    if model.useNewton
+                        % Newton-based solver for equilibrium
+                        [x, y, K, Z_L, Z_V, L, equilvals] = model.newtonCompositionUpdate(P, T, z, K, L);
+                    else
+                        % Successive substitution solver for equilibrium
+                        [x, y, K, Z_L, Z_V, L, equilvals] = model.substitutionCompositionUpdate(P, T, z, K, L);
+                    end
                 else
-                    % Successive substitution solver for equilibrium
-                    [x, y, K, Z_L, Z_V, L, equilvals] = model.substitutionCompositionUpdate(P, T, z, K, L);
+                    [x, y, K, Z_L, Z_V, L, equilvals] = model.updateWithoutFlash(P, T, z, K, L);
+                end
+                values = max(equilvals, [], 1);
+                conv = max(equilvals, [], 2) <= model.nonlinearTolerance;
+                conv = conv & iteration > nonlinsolve.minIterations;
+                resConv = values <= model.nonlinearTolerance & iteration > nonlinsolve.minIterations;
+
+                isConverged = all(conv);
+                % Insert back the local values into global arrays
+                state.eos.converged(active) = conv;
+                % Insert updated values in active cells
+                [K_next, x_next, y_next] = deal(cell(1, ncomp));
+                for i = 1:ncomp
+                    K_next{i} = K0{i};
+                    x_next{i} = x0{i};
+                    y_next{i} = y0{i};
+
+                    K_next{i}(active) = K{i};
+                    x_next{i}(active) = x{i};
+                    y_next{i}(active) = y{i};
+                    L0(active) = L;
+
+                    Z0_L(active ) = Z_L;
+                    Z0_V(active ) = Z_V;
+
                 end
             else
-                [x, y, K, Z_L, Z_V, L, equilvals] = model.updateWithoutFlash(P, T, z, K, L);
-            end
-            values = max(equilvals, [], 1);
-            conv = max(equilvals, [], 2) <= model.nonlinearTolerance;
-            conv = conv & iteration > nonlinsolve.minIterations;
-
-            isConverged = all(conv);
-            % Insert back the local values into global arrays
-            state.eos.converged(active) = conv;
-            % Insert updated values in active cells
-            [K_next, x_next, y_next] = deal(cell(1, ncomp));
-            for i = 1:ncomp
-                K_next{i} = K0{i};
-                x_next{i} = x0{i};
-                y_next{i} = y0{i};
-
-                K_next{i}(active) = K{i};
-                x_next{i}(active) = x{i};
-                y_next{i}(active) = y{i};
-                L0(active) = L;
-
-                Z0_L(active ) = Z_L;
-                Z0_V(active ) = Z_V;
-
+                K_next = K0;
+                x_next = x0;
+                y_next = y0;
+                isConverged = true;
+                values = zeros(1, ncomp);
+                resConv = true(1, ncomp);
             end
             state.K = K_next;
             state.L = L0;
@@ -215,6 +243,7 @@ classdef EquationOfStateModel < PhysicalModel
                             'Failure',      failure, ...
                             'FailureMsg',   failureMsg, ...
                             'Converged',    isConverged, ...
+                            'ResidualsConverged', resConv, ...
                             'Residuals',    values);
             report.ActiveCells = sum(active);
         end
@@ -577,7 +606,7 @@ classdef EquationOfStateModel < PhysicalModel
             [m1, m2] = model.getEOSCoefficients();
             ncomp = model.fluid.getNumberOfComponents();
             f = cell(1, ncomp);
-            a1 = -log(Z - B);
+            a1 = -log(Z-B);
             b1 = log((Z + m2.*B)./(Z + m1.*B)).*(A./((m1-m2).*B));
             b2 = (Z-1)./B;
             for i = 1:ncomp
@@ -667,8 +696,8 @@ classdef EquationOfStateModel < PhysicalModel
             eqsPrim  = model.equationsEquilibrium(pP, TP, xP, yP, zP, LP, Z_L, Z_V, K, packed);
             eqsSec = model.equationsEquilibrium(pS, TS, xS, yS, zS, LS, Z_L, Z_V, K, packed);
             
-            ep = cat(eqsPrim{:});
-            es = cat(eqsSec{:});
+            ep = combineEquations(eqsPrim{:});
+            es = combineEquations(eqsSec{:});
             
             % Let F ble the equilibrium equations (fugacity balance,
             % vapor/liquid balance etc). We can then write by the chain
@@ -921,32 +950,76 @@ classdef EquationOfStateModel < PhysicalModel
             frac = cellfun(@(x) x./totMass, mass, 'UniformOutput', false);
         end
         
-        function Z = setZDerivatives(model, Z, A, B)
+        function L = estimateSinglePhaseState(model, p, T, z, L, stable)
+            z = cellfun(@(x) x(stable), z, 'UniformOutput', false);
+            p = p(stable);
+            T = T(stable);
+            
+            p_c = 0;
+            T_c = 0;
+            for i = 1:numel(z)
+                p_c = p_c + z{i}.*model.fluid.Pcrit(i);
+                T_c = T_c + z{i}.*model.fluid.Tcrit(i);
+            end
+            p0 = 0*atm;
+            T0 = 0;
+            dpdt = (p_c - p0)./(T_c - T0);
+            p_b = p0 + dpdt.*(T - T0);
+            L(stable) = double(p > p_b);
+        end
+
+        function Z = setZDerivatives(model, Z, A, B, cellJacMap)
             % Z comes from the solution of a cubic equation of state, so
             % the derivatives are not automatically computed. By
             % differentiating the cubic EOS manually and solving for dZ/du
             % where u is some primary variable, we can still obtain
             % derivatives without making any assumptions other than the EOS
             % being a cubic polynomial
+            if nargin < 5
+                if isa(Z, 'ADI')
+                cellJacMap = cell(numel(Z.jac), 1);
+                else
+                    cellJacMap = {};
+                end
+            end
             [E2, E1, E0] = model.getCubicCoefficients(A, B);
             e2 = double(E2);
             e1 = double(E1);
             z = double(Z);
             if isa(Z, 'ADI')
                 for i = 1:numel(Z.jac)
+                    if isempty(cellJacMap{i})
+                        [n, m] = size(Z.jac{i});
+                        if n == 0 || m ~= numel(z);
+                            % There are either no derivatives present or the
+                            % derivatives are not of the right dimension
+                            continue
+                        end
+                        dE2 = getJac(E2, i);
+                        dE1 = getJac(E1, i);
+                        dE0 = getJac(E0, i);
 
-                    [n, m] = size(Z.jac{i});
-                    if n == 0 || m ~= numel(z);
-                        % There are either no derivatives present or the
-                        % derivatives are not of the right dimension
-                        continue
+                        d = -(dE2.*z.^2 + dE1.*z + dE0)./(3*z.^2 + 2*z.*e2 + e1);
+                        Z.jac{i} = sparse((1:n)', (1:m)', d, n, m);
+                    else
+                        map = cellJacMap{i};
+                        zi = z(map);
+                        e2i = e2(map);
+                        e1i = e1(map);
+                        
+                        [n, m] = size(Z.jac{i});
+                        if n == 0 || m ~= numel(zi);
+                            % There are either no derivatives present or the
+                            % derivatives are not of the right dimension
+                            continue
+                        end
+                        dE2 = getJacSub(E2, i, map);
+                        dE1 = getJacSub(E1, i, map);
+                        dE0 = getJacSub(E0, i, map);
+
+                        d = -(dE2.*zi.^2 + dE1.*zi + dE0)./(3*zi.^2 + 2*zi.*e2i + e1i);
+                        Z.jac{i} = sparse(map, (1:m)', d, n, m);
                     end
-                    dE2 = getJac(E2, i);
-                    dE1 = getJac(E1, i);
-                    dE0 = getJac(E0, i);
-
-                    d = -(dE2.*z.^2 + dE1.*z + dE0)./(3*z.^2 + 2*z.*e2 + e1);
-                    Z.jac{i} = sparse((1:n)', (1:m)', d, n, m);
                 end
             elseif isa(Z, 'FastAD')
                 for i = 1:size(Z.jac, 2)
@@ -1006,12 +1079,46 @@ function dx = getJac(x, ix)
     end
 end
 
+function dx = getJacSub(x, ix, map)
+    if isa(x, 'ADI')
+        [ii, jj, vv] = find(x.jac{ix});
+        if isempty(vv)
+            dx = 0;
+        else
+            keep = ii == map(jj);
+            dx = zeros(size(map));
+            dx(jj(keep)) = vv(keep);
+%             dx = vv;
+        end
+    else
+        dx = 0;
+    end
+end
+
 function D = makeDiagonal(x, vx, ncell)
     D = sparse(vx, vx, x, ncell, ncell);
 end
 
+function checkZ(Z)
+   % Give warning if bad values 
+   if any(Z < 0)
+       warning([num2str(nnz(Z<0)), ' negative Z-factors detected...']);
+   end
+   if any(~isfinite(Z))
+       warning([num2str(nnz(~isfinite(Z))), ' non-finite Z-factors detected...']);
+   end
+end
+
+function Z = fallbackCubic(A, E2, E1, E0)
+    n = numel(A);
+    Z = zeros(n, 3);
+    for i = 1:n
+        Z(i, :) = roots([1, E2(i), E1(i), E0(i)]);
+    end
+end
+
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

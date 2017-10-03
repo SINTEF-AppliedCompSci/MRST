@@ -94,13 +94,14 @@ schedule = convertDeckScheduleToMRST(modelPolymer, deck);
 
 
 %% Run the schedule
-% Once a system has been created it is trivial to run the schedule. Any
+% Once a model has been created it is trivial to run the schedule. Any
 % options such as maximum non-linear iterations and tolerance can be set in
-% the system struct.
+% the model and the NonLinearSolver class (optional argument to
+% simulateScheduleAD).
 
 [wellSolsPolymer, statesPolymer] = ...
     simulateScheduleAD(state0, modelPolymer, schedule);
-
+%%
 [wellSolsOW, statesOW] = simulateScheduleAD(state0, modelOW, schedule);
 
 plotWellSols({wellSolsPolymer; wellSolsOW},'datasetnames',{'Polymer','Water'});
@@ -203,6 +204,7 @@ end
 % chart that shows the oil/water ratio in the producer with and
 % without polymer injection in a single chart. 
 W = schedule.control(1).W;
+ph = nan;
 figure(gcf); clf
 nDigits = floor(log10(numel(statesPolymer) - 1)) + 1;
 subplot(1,3,[1 2])
@@ -215,12 +217,17 @@ for i = 1 : numel(statesPolymer) - 1,
 
     subplot(1, 3, 3), cla
     rates = injp.sign .* [injow.qWs, injow.qOs injp.qWs, injp.qOs];
-    pie(rates./sum(rates))
-    legend('Water (No polymer)', 'Oil (No polymer)', ...
-           'Water (With polymer', 'Oil (Polymer)',   ...
-           'Location', 'SouthOutside')
-    title('Producer OW ratio'), drawnow,
     
+    if ishandle(ph)
+        delete(ph)
+        ph = pie(rates./sum(rates));
+    else
+        ph = pie(rates./sum(rates));
+        legend('Water (No polymer)', 'Oil (No polymer)', ...
+               'Water (With polymer', 'Oil (Polymer)',   ...
+               'Location', 'SouthOutside')
+        title('Producer OW ratio'),
+    end
     subplot(1, 3, [1 2]), delete(hs);
     hs = plotCellData(G,state.s(:,1),state.s(:,1)>.101);
     title(sprintf('Step %0*d (%s)', nDigits, i, formatTimeRange(cumt(i))));
@@ -272,7 +279,7 @@ xlabel('Years');
 
 % <html>
 % <p><font size="-1">
-% Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+% Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 % </font></p>
 % <p><font size="-1">
 % This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).

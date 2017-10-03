@@ -6,7 +6,7 @@ function [v, u, history] = unitBoxBFGS(u0, f, varargin)
 % [v, u, history] = unitBoxBFGS(u0, f, opt)
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

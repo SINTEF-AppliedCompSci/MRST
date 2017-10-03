@@ -18,7 +18,7 @@
 %
 
 % Required modules
-mrstModule add deckformat ad-core ad-fi optimization
+mrstModule add deckformat ad-core ad-fi optimization ad-props
 
 current_dir = fileparts(mfilename('fullpath'));
 fn    = fullfile(current_dir, 'polymer.data');

@@ -1,15 +1,7 @@
 function f = assignPVTO(f, pvto, reg)
-f.BO  = @(po, rs, flag, varargin)BO(po, rs, pvto, flag, reg, varargin{:});
 f.bO  = @(po, rs, flag, varargin)bO(po, rs, pvto, flag, reg, varargin{:});
 f.muO = @(po, rs, flag, varargin)muO(po, rs, pvto, flag, reg, varargin{:});
 f.rsSat = @(po, varargin)rsSat(po, pvto, reg, varargin{:});
-end
-
-function v = BO(po, rs, pvto, flag, reg, varargin)
-pvtinx = getRegMap(po, reg.PVTNUM, reg.PVTINX, varargin{:});
-T = pvto;
-for k = 1:numel(T), T{k}.data = T{k}.data(:,1:2); end
-v = interpRegPVT(T, po, rs, flag, pvtinx);
 end
 
 function v = bO(po, rs, pvto, flag, reg, varargin)
@@ -33,7 +25,7 @@ v = interpReg(T, po, pvtinx);
 end
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

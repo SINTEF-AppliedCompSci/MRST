@@ -6,8 +6,8 @@
 % is quite small, but contains a few features that will still pose
 % challenges for black-oil simulators. The 25 producers initially operate
 % at a maximum rate of 1500 STBO/D, which is lowered to 100 STBO/D from day
-% 300 to 360, and the raised up again to its initial value until the end of
-% simulation at 900 days. The single water injector is set to a maximum
+% 300 to 360, and then raised up again to its initial value until the end
+% of simulation at 900 days. The single water injector is set to a maximum
 % rate of 5000 STBW/D with a maximum bottom-hole pressure of 4000 psi at
 % reference depth. This setup will cause free gas to form after ~100 days
 % when the reservoir pressure is reduced below the original saturation
@@ -46,9 +46,9 @@ mrstModule add ad-blackoil ad-core mrst-gui ad-props deckformat
 % three-phase black oil model with gas dissoluton.
 model = selectModelFromDeck(G, rock, fluid, deck);
 % Set maximum limits on saturation, Rs and pressure changes
-model.drsMaxRel = .2;
-model.dpMaxRel  = .2;
-model.dsMaxAbs  = .05;
+model.drsMaxRel = inf;
+model.dpMaxRel  = .1;
+model.dsMaxAbs  = .1;
 
 % Show the model
 model %#ok, intentional display
@@ -79,7 +79,7 @@ try
 catch
     pressureSolver = BackslashSolverAD();
 end
-linsolve = CPRSolverAD('ellipticSolver', pressureSolver);
+linsolve = CPRSolverAD('ellipticSolver', pressureSolver, 'relativeTolerance', 1e-3);
 
 %% Plot the rock permeability
 % The SPE9 data set has an anisotropic, inhomogenous permeability field.
@@ -200,7 +200,7 @@ disp(schedule.control(1).W(wno).lims)
 % we can see from the following plot, this gives a number of kinks that
 % will tend to pose challenges for the Newton solver.
 f = model.fluid;
-s = (0:0.05:1)';
+s = (0:0.01:1)';
 
 figure;
 plot(s, f.krW(s), 'linewidth', 2)
@@ -228,7 +228,8 @@ ylabel('k_r')
 % When all three phases are present simultaneously in a single cell, we
 % need to use some functional relationship to combine the two-phase curves
 % in a reasonable manner, resulting in a two-dimensional relative
-% permeability model. Herein, we use the Stone I model.
+% permeability model. Herein, we use a simple linear interpolation, which
+% is also the default in Eclipse
 %
 close all
 
@@ -241,11 +242,12 @@ for i = 1:size(x, 1)
     [~, krO(i, :), ~] = model.relPermWOG(xi, 1 - xi - yi, yi, f);
 end
 figure;
-surf(x, y, krO)
+krO(x+y>1)=nan;
+surfl(x, y, krO), shading interp
 xlabel('sW')
 ylabel('sG')
 title('Oil relative permeability')
-view(150, 50); axis tight
+view(150, 50); axis tight, camlight headlight
 
 %% Plot capillary pressure curves
 % SPE9 contains significant capillary pressure, making the problem more
@@ -337,7 +339,7 @@ saturated = rs_g >= rssat;
 rs_g0 = rs_g;
 rs_g(saturated) = rssat(saturated);
 
-figure;
+figure
 plot(p_g'/barsa, 1./f.bO(p_g, rs_g, saturated)', 'LineWidth', 2)
 grid on
 title('Oil formation volume factor')
@@ -357,7 +359,7 @@ xlabel('Pressure [bar]')
 % gas in oil ($R_v$) and oil in gas ($R_v$) can be included.
 close all
 figure;
-plot(pressure, f.muW(pressure), 'LineWidth', 2);
+plot(pressure/barsa, f.muW(pressure), 'LineWidth', 2);
 grid on
 title('Water viscosity')
 ylabel('\mu_w')
@@ -365,7 +367,7 @@ xlabel('Pressure');
 ylim([0, 1.5e-3])
 
 figure; 
-plot(pressure, f.muG(pressure), 'LineWidth', 2);
+plot(pressure/barsa, f.muG(pressure), 'LineWidth', 2);
 grid on
 title('Gas viscosity')
 ylabel('\mu_g')
@@ -580,7 +582,7 @@ title('Phase distribution after final timstep')
 
 % <html>
 % <p><font size="-1">
-% Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+% Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 % </font></p>
 % <p><font size="-1">
 % This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).

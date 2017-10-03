@@ -5,7 +5,6 @@ if ntpvt == 1
 else
     f.cO  = pvcdo(reg.PVTNUM, 3);
 end
-f.BO     = @(po, varargin)BO(po, pvcdo, reg, varargin{:});
 f.bO     = @(po, varargin)bO(po, pvcdo, reg, varargin{:});
 f.BOxmuO = @(po, varargin)BOxmuO(po, pvcdo, reg, varargin{:});
 
@@ -14,13 +13,7 @@ f.muO = @(po, varargin) bO(po, pvcdo, reg, varargin{:}).*...
 end
 
 function v = BO(po, pvcdo, reg, varargin)
-pvtnum = getPVTNUM(po, reg, varargin{:});
-
-por  = pvcdo(pvtnum,1); % ref pres
-bor  = pvcdo(pvtnum,2); % ref fvf
-co   = pvcdo(pvtnum,3); % compress
-X = co.*(po-por);
-v = bor.*exp(-X);
+v = 1./bO(po, pvcdo, reg, varargin{:});
 end
 
 function v = bO(po, pvcdo, reg, varargin)
@@ -61,7 +54,7 @@ end
 end
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

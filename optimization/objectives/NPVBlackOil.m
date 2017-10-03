@@ -1,8 +1,7 @@
 function obj = NPVBlackOil(G, wellSols, schedule, varargin)
 % Compute net present value of a schedule with well solutions
-
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -19,7 +18,6 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-
 opt     = struct('OilPrice',             1.0 , ...
                  'GasPrice',             0.1 , ...
                  'GasInjectionCost',     0.1 , ...
@@ -43,8 +41,7 @@ d   = opt.DiscountFactor;
 % pressure and saturaton vectors just used for place-holding
 p  = zeros(G.cells.num, 1);
 sW = zeros(G.cells.num, 1);
-sG = zeros(G.cells.num, 1);
-rs = zeros(G.cells.num, 1);
+x  = zeros(G.cells.num, 1);
 
 dts   = schedule.step.val;
 
@@ -63,15 +60,25 @@ obj = repmat({[]}, numSteps, 1);
 
 for step = 1:numSteps
     sol = wellSols{tSteps(step)};
-    nW  = numel(sol);
-    pBHP = zeros(nW, 1); %place-holder
     qWs  = vertcat(sol.qWs);
     qOs  = vertcat(sol.qOs);
     qGs  = vertcat(sol.qGs);
+    injInx  = (vertcat(sol.sign) > 0);
+    status = vertcat(sol.status);
+
+    % Remove closed well.
+    qWs = qWs(status);
+    qOs = qOs(status);
+    qGs = qGs(status);
+    injInx = injInx(status);
+    nW  = numel(qWs);
+    pBHP = zeros(nW, 1); %place-holder
+  
+    
 
     if opt.ComputePartials
-        [qWs, qWs, qWs, qWs, qWs, qOs, qGs, ignore] = ...
-           initVariablesADI(p, sW, sG, rs, qWs, qOs, qGs, pBHP);       %#ok
+        [qWs, qWs, qWs, qWs, qOs, qGs, ignore] = ...
+           initVariablesADI(p, sW, x, qWs, qOs, qGs, pBHP);       %#ok
 
         clear ignore
     end
@@ -79,7 +86,6 @@ for step = 1:numSteps
     dt = dts(step);
     time = time + dt;
 
-    injInx  = (vertcat(sol.sign) > 0);
     prodInx = ~injInx;
     obj{step} = ( dt*(1+d)^(-time/year) )*...
                 spones(ones(1, nW))*( (-ro*prodInx).*qOs +....

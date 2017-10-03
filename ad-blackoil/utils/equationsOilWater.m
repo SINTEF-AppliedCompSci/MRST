@@ -52,7 +52,7 @@ function [problem, state] = equationsOilWater(state0, state, model, dt, drivingF
 %   equationsBlackOil, TwoPhaseOilWaterModel
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -82,26 +82,23 @@ s = model.operators;
 % Properties at current timestep
 [p, sW, wellSol] = model.getProps(state, 'pressure', 'water', 'wellsol');
 % Properties at previous timestep
-[p0, sW0] = model.getProps(state0, 'pressure', 'water');
+[p0, sW0, wellSol0] = model.getProps(state0, 'pressure', 'water', 'wellSol');
 
-pBH    = vertcat(wellSol.bhp);
-qWs    = vertcat(wellSol.qWs);
-qOs    = vertcat(wellSol.qOs);
+[wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
 
 % Initialize independent variables.
 if ~opt.resOnly,
     % ADI variables needed since we are not only computing residuals.
     if ~opt.reverseMode,
-        [p, sW, qWs, qOs, pBH] = initVariablesADI(p, sW, qWs, qOs, pBH);
+        [p, sW, wellVars{:}] = initVariablesADI(p, sW, wellVars{:});
     else
-        zw = zeros(size(pBH));
-        [p0, sW0, zw, zw, zw] = initVariablesADI(p0, sW0, zw, zw, zw); %#ok
-        clear zw
+        wellVars0 = model.FacilityModel.getAllPrimaryVariables(wellSol0);
+        [p0, sW0, wellVars0{:}] = initVariablesADI(p0, sW0, wellVars0{:}); %#ok
     end
 end
+primaryVars = {'pressure', 'sW', wellVarNames{:}};
 % We will solve for pressure, water saturation (oil saturation follows via
 % the definition of saturations) and well rates + bhp.
-primaryVars = {'pressure', 'sW', 'qWs', 'qOs', 'bhp'};
 
 % Evaluate relative permeability
 sO  = 1 - sW;
@@ -155,53 +152,21 @@ names = {'water', 'oil'};
 types = {'cell', 'cell'};
 
 % Add in any fluxes / source terms prescribed as boundary conditions.
-[eqs, ~, qRes] = addFluxesFromSourcesAndBC(model, eqs, ...
-                                       {pW, p},...
-                                       {rhoW,     rhoO},...
-                                       {mobW,     mobO}, ...
-                                       {bW, bO},  ...
-                                       {sW, sO}, ...
-                                       drivingForces);
-if model.outputFluxes
-    state = model.storeBoundaryFluxes(state, qRes{1}, qRes{2}, [], drivingForces);
-end
-% Finally, add in and setup well equations
-if ~isempty(W)
-    wm = model.wellmodel;
-    if ~opt.reverseMode
-        wc    = vertcat(W.cells);
-        pw   = p(wc);
-        rhos = [model.fluid.rhoWS, model.fluid.rhoOS];
-        bw   = {bW(wc), bO(wc)};
-        mw   = {mobW(wc), mobO(wc)};
-        s = {sW(wc), sO(wc)};
+rho = {rhoW, rhoO};
+mob = {mobW, mobO};
+sat = {sW, sO};
 
-        [cqs, weqs, ctrleqs, wc, state.wellSol]  = wm.computeWellFlux(model, W, wellSol, ...
-                                             pBH, {qWs, qOs}, pw, rhos, bw, mw, s, {},...
-                                             'nonlinearIteration', opt.iteration);
-        % Store the well equations (relate well bottom hole pressures to
-        % influx).
-        eqs(3:4) = weqs;
-        % Store the control equations (trivial equations ensuring that each
-        % well will have values corresponding to the prescribed value)
-        eqs{5} = ctrleqs;
-        % Add source terms to the equations. Negative sign may be
-        % surprising if one is used to source terms on the right hand side,
-        % but this is the equations on residual form.
-        eqs{1}(wc) = eqs{1}(wc) - cqs{1};
-        eqs{2}(wc) = eqs{2}(wc) - cqs{2};
-        
-        names(3:5) = {'waterWells', 'oilWells', 'closureWells'};
-        types(3:5) = {'perf', 'perf', 'well'};
-    else
-        [eqs(3:5), names(3:5), types(3:5)] = wm.createReverseModeWellEquations(model, state0.wellSol, p0);
-    end
-end
+[eqs, state] = addBoundaryConditionsAndSources(model, eqs, names, types, state, ...
+                                                                 {pW, p}, sat, mob, rho, ...
+                                                                 {}, {}, ...
+                                                                 drivingForces);
+% Finally, add in and setup well equations
+[eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, wellVars, wellMap, p, mob, rho, {}, {}, dt, opt);
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 end
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

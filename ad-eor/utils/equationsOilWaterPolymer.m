@@ -32,7 +32,7 @@ function [problem, state] = equationsOilWaterPolymer(state0, state, model, dt, .
 %
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -61,43 +61,47 @@ opt = struct('Verbose', mrstVerbose, ...
 opt = merge_options(opt, varargin{:});
 
 W = drivingForces.W;
-s = model.operators;
-f = model.fluid;
-
-% Shear thinning/thickening
-usingShear = isfield(f, 'plyshearMult');
+% <<<<<<< HEAD
+% s = model.operators;
+% f = model.fluid;
+% 
+% % Shear thinning/thickening
+% usingShear = isfield(f, 'plyshearMult');
+% =======
+op = model.operators;
+fluid = model.fluid;
+% >>>>>>> master
 
 % Properties at current timestep
 [p, sW, c, cmax, wellSol] = model.getProps(state, 'pressure', 'water', ...
-    'polymer', 'polymermax', 'wellsol');
+    'polymer', 'polymermax', 'wellSol');
 
 % Properties at previous timestep
-[p0, sW0, c0, cmax0] = model.getProps(state0, 'pressure', 'water', ...
-   'polymer', 'polymermax');
+[p0, sW0, c0, cmax0, wellSol0] = model.getProps(state0, 'pressure', 'water', ...
+                                                        'polymer', 'polymermax', ...
+                                                        'wellSol');
 
-pBH    = vertcat(wellSol.bhp);
-qWs    = vertcat(wellSol.qWs);
-qOs    = vertcat(wellSol.qOs);
-qWPoly = vertcat(wellSol.qWPoly);
-
+[wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
 % Initialize independent variables.
 if ~opt.resOnly,
     % ADI variables needed since we are not only computing residuals.
     if ~opt.reverseMode,
-        [p, sW, c, qWs, qOs, qWPoly, pBH] = ...
-            initVariablesADI(p, sW, c, qWs, qOs, qWPoly, pBH);
+        [p, sW, c, wellVars{:}] = ...
+            initVariablesADI(p, sW, c, wellVars{:});
+        primaryVars = {'pressure', 'sW', 'polymer', wellVarNames{:}};
     else
-        zw = zeros(size(pBH));
-        [p0, sW0, c0, zw, zw, zw, zw] = ...
-            initVariablesADI(p0, sW0, c0, zw, zw, zw, zw); %#ok
-        clear zw
+        wellVars0 = model.FacilityModel.getAllPrimaryVariables(wellSol0);
+        [p0, sW0, c0, wellVars0{:}] = ...
+            initVariablesADI(p0, sW0, c0, wellVars0{:}); %#ok
+        primaryVars = {'pressure', 'sW', 'polymer'};
     end
+else
+    primaryVars = {'pressure', 'sW', 'polymer'};
 end
 
 % We will solve for pressure, water saturation (oil saturation follows via
 % the definition of saturations), polymer concentration and well rates +
 % bhp.
-primaryVars = {'pressure', 'sW', 'polymer', 'qWs', 'qOs', 'qWPoly', 'bhp'};
 
 % Evaluate relative permeability
 sO  = 1 - sW;
@@ -106,24 +110,30 @@ sO0 = 1 - sW0;
 [krW, krO] = model.evaluateRelPerm({sW, sO});
 
 % Multipliers for properties
-[pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
+[pvMult, transMult, mobMult, pvMult0] = getMultipliers(fluid, p, p0);
 
 % Modifiy relperm by mobility multiplier (if any)
 krW = mobMult.*krW; krO = mobMult.*krO;
 
 % Compute transmissibility
-T = s.T.*transMult;
+T = op.T.*transMult;
 
 % Gravity contribution
 gdz = model.getGravityGradient();
 
 % Evaluate water and polymer properties
-ads  = effads(c, cmax, model);
-ads0 = effads(c0, cmax0, model);
-[vW, vP, bW, muWMult, mobW, mobP, rhoW, pW, upcw] = ...
+% <<<<<<< HEAD
+% ads  = effads(c, cmax, model);
+% ads0 = effads(c0, cmax0, model);
+% [vW, vP, bW, muWMult, mobW, mobP, rhoW, pW, upcw] = ...
+% =======
+ads  = effads(c, cmax, fluid);
+ads0 = effads(c0, cmax0, fluid);
+[vW, vP, bW, ~, mobW, mobP, rhoW, pW, upcw, a] = ...
+% >>>>>>> master
     getFluxAndPropsWaterPolymer_BO(model, p, sW, c, ads, ...
     krW, T, gdz);
-bW0 = model.fluid.bW(p0);
+bW0 = fluid.bW(p0);
 
 % Evaluate oil properties
 [vO, bO, mobO, rhoO, p, upco] = getFluxAndPropsOil_BO(model, p, sO, krO, T, gdz);
@@ -154,22 +164,21 @@ end
 % EQUATIONS ---------------------------------------------------------------
 % Upstream weight b factors and multiply by interface fluxes to obtain the
 % fluxes at standard conditions.
-bOvO = s.faceUpstr(upco, bO).*vO;
-bWvW = s.faceUpstr(upcw, bW).*vW;
-bWvP = s.faceUpstr(upcw, bW).*vP;
+bOvO = op.faceUpstr(upco, bO).*vO;
+bWvW = op.faceUpstr(upcw, bW).*vW;
+bWvP = op.faceUpstr(upcw, bW).*vP;
 
 % Conservation of mass for water
-water = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 ) + s.Div(bWvW);
+water = (op.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 ) + op.Div(bWvW);
 
 % Conservation of mass for oil
-oil = (s.pv/dt).*( pvMult.*bO.*sO - pvMult0.*bO0.*sO0 ) + s.Div(bOvO);
+oil = (op.pv/dt).*( pvMult.*bO.*sO - pvMult0.*bO0.*sO0 ) + op.Div(bOvO);
 
 % Conservation of polymer in water:
 poro = model.rock.poro;
-f    = model.fluid;
-polymer = (s.pv.*(1-f.dps)/dt).*(pvMult.*bW.*sW.*c - ...
-   pvMult0.*bW0.*sW0.*c0) + (s.pv/dt).* ...
-   ( f.rhoR.*((1-poro)./poro).*(ads-ads0) ) + s.Div(bWvP);
+polymer = (op.pv.*(1-fluid.dps)/dt).*(pvMult.*bW.*sW.*c - ...
+   pvMult0.*bW0.*sW0.*c0) + (op.pv/dt).* ...
+   (fluid.rhoR.*((1-poro)./poro).*(ads-ads0) ) + op.Div(bWvP);
 
 if ~opt.resOnly
     epsilon = 1.e-8;
@@ -187,163 +196,202 @@ types = {'cell', 'cell', 'cell'};
 
 
 % Add in any fluxes / source terms prescribed as boundary conditions.
-[eqs, qBC, ~, BCTocellMap, qSRC, srcCells] = addFluxesFromSourcesAndBC(...
-   model, eqs, {pW, p}, {rhoW, rhoO}, {mobW, mobO}, {bW, bO},  ...
-   {sW, sO}, drivingForces);
+% <<<<<<< HEAD
+% [eqs, qBC, ~, BCTocellMap, qSRC, srcCells] = addFluxesFromSourcesAndBC(...
+%    model, eqs, {pW, p}, {rhoW, rhoO}, {mobW, mobO}, {bW, bO},  ...
+%    {sW, sO}, drivingForces);
+% 
+% % Add polymer boundary conditions
+% if ~isempty(drivingForces.bc) && isfield(drivingForces.bc, 'poly')
+%    injInx  = qBC{1} > 0; % water inflow indecies
+%    cbc     = (BCTocellMap')*c; % BCTocellMap' = cellToBCMap
+%    cbc(injInx) = drivingForces.bc.poly(injInx);
+%    eqs{3}  = eqs{3} - BCTocellMap*(cbc.*qBC{1});
+% end
+% 
+% % Add polymer source
+% if ~isempty(drivingForces.src) && isfield(drivingForces.src, 'poly')
+%    injInx  = qSRC{1} > 0; % water inflow indecies
+%    csrc    = c(srcCells);
+%    csrc(injInx) = drivingForces.src.poly(injInx);
+%    eqs{3}(srcCells) = eqs{3}(srcCells) - csrc.*qSRC{1};
+% end
+% 
+% % Finally, add in and setup well equations
+% if ~isempty(W)
+%     wm = model.wellmodel;
+%     if ~opt.reverseMode
+%         wc   = vertcat(W.cells);
+%         pw   = p(wc);
+%         rhos = [f.rhoWS, f.rhoOS];
+%         bw   = {bW(wc), bO(wc)};
+%         mw   = {mobW(wc), mobO(wc)};
+%         s    = {sW(wc), sO(wc)};
+%         
+%         % Polymer well equations
+%         [~, wciPoly, iInxW] = getWellPolymer(W);        
+%         if usingShear
+%             % Compute shear rate multiplier for wells
+%             % The water velocity is computed using a the reprensentative 
+%             % radius rR.
+%             % rR = sqrt(rW * rA)
+%             % rW is the well bore radius.
+%             % rA is the equivalent radius of the grid block in which the 
+%             %    wellis completed.
+%             
+%             assert(isfield(W, 'rR'), ...
+%                 'The representative radius needs to be suppplied.');
+%             
+%             muWMultW = muWMult(wc);
+%             % Maybe should also apply this for PRODUCTION wells.
+%             muWMultW((iInxW(wciPoly==0))) = 1;
+%             
+%             cqs = wm.computeWellFlux(model, W, wellSol, pBH, ...
+%                 {qWs, qOs}, pw, rhos, bw, mw, s, {},...
+%                 'nonlinearIteration', opt.iteration);
+%             
+%             % The following formulations assume that the wells are always
+%             % in the z direction 
+%             % IMPROVED HERE LATER
+%             [~, ~, dz] = cellDims(model.G, wc);
+%             
+%             % HACK FOR 2D MODELS
+%             if all(dz==0)
+%                 dz(:) = 1;
+%             end
+%             
+%             if model.extraPolymerOutput
+%                 cqsW0 = double(cqs{1});
+%                 mobW0 = double(mw{1});
+%             end
+%             
+%             rR = vertcat(W.rR);
+%             A  = rR.*dz*2*pi; % representative area of each well cell
+%             VW0W = double(bW(wc)).*double(cqs{1})./(poro(wc).*A);
+%             [shearMultW, VW1W] = getPolymerShearMultiplier(model, ...
+%                 VW0W, muWMultW);
+%             
+%             % Apply shear velocity multiplier
+%             mw{1} = mw{1}.*shearMultW;
+%         end
+%         
+%         
+%         [cqs, weqs, ctrleqs, wc, state.wellSol] = ...
+%             wm.computeWellFlux(model, W, wellSol, ...
+%             pBH, {qWs, qOs}, pw, rhos, bw, mw, s, {},...
+%             'nonlinearIteration', opt.iteration);
+% 
+%         % Store the well equations (relate well bottom hole pressures to
+%         % influx).
+%         eqs(4:5) = weqs;
+%         % Store the control equations (trivial equations ensuring that each
+%         % well will have values corresponding to the prescribed value)
+%         eqs{7} = ctrleqs;
+%         % Add source terms to the equations. Negative sign may be
+%         % surprising if one is used to source terms on the right hand side,
+%         % but this is the equations on residual form.
+%         eqs{1}(wc) = eqs{1}(wc) - cqs{1};
+%         eqs{2}(wc) = eqs{2}(wc) - cqs{2};
+% 
+%         % Polymer well equations
+%         [~, wciPoly, iInxW] = getWellPolymer(W);
+%         cw        = c(wc);
+%         cw(iInxW) = wciPoly;
+%         cbarw     = cw/f.cmax;
+% 
+%         % Divide away water mobility and add in polymer
+%         %bWqP = cw.*cqs{1}./(a + (1-a).*cbarw);
+%         bWqP = cw.*cqs{1};
+%         eqs{3}(wc) = eqs{3}(wc) - bWqP;
+% 
+%         % Well polymer rate for each well is water rate in each perforation
+%         % multiplied with polymer concentration in that perforated cell.
+%         perf2well = getPerforationToWellMapping(W);
+%         Rw = sparse(perf2well, (1:numel(perf2well))', 1, ...
+%            numel(W), numel(perf2well));
+%         cqsPoly = Rw*(cqs{1}.*cw);
+%         eqs{6}  = qWPoly - cqsPoly;
+%         
+%         % Save extra polymer welldata if requested
+%         if model.extraPolymerOutput
+%             cqsPoly    = double(cqsPoly);
+%             if usingShear
+%                 shearMultW = double(shearMultW);
+%             end
+%             for wnr = 1:numel(state.wellSol)
+%                 ix = perf2well == wnr;
+%                 state.wellSol(wnr).cqsPoly = cqsPoly(wnr);
+%                 if usingShear
+%                     state.wellSol(wnr).shearMult = shearMultW(ix);
+%                 end
+%             end
+%         end
+%         
+%         names(4:7) = {'waterWells', 'oilWells', 'polymerWells', ...
+%             'closureWells'};
+%         types(4:7) = {'perf', 'perf', 'perf', 'well'};
+%     else
+%         [eq, n, typ] = ...
+%             wm.createReverseModeWellEquations(model, state0.wellSol, p0);
+%         % Add another equation for polymer well rates
+%         [eqs{4:7}] = deal(eq{1});
+%         [names{4:7}] = deal(n{1});
+%         [types{4:7}] = deal(typ{1});
+%     end
+% end
+% =======
+rho = {rhoW, rhoO};
+mob = {mobW, mobO};
+sat = {sW, sO};
+[eqs, state] = addBoundaryConditionsAndSources(model, eqs, names, types, state, ...
+                                                                 {pW, p}, sat, mob, rho, ...
+                                                                 {}, {c}, ...
+                                                                 drivingForces);
 
-% Add polymer boundary conditions
-if ~isempty(drivingForces.bc) && isfield(drivingForces.bc, 'poly')
-   injInx  = qBC{1} > 0; % water inflow indecies
-   cbc     = (BCTocellMap')*c; % BCTocellMap' = cellToBCMap
-   cbc(injInx) = drivingForces.bc.poly(injInx);
-   eqs{3}  = eqs{3} - BCTocellMap*(cbc.*qBC{1});
-end
-
-% Add polymer source
-if ~isempty(drivingForces.src) && isfield(drivingForces.src, 'poly')
-   injInx  = qSRC{1} > 0; % water inflow indecies
-   csrc    = c(srcCells);
-   csrc(injInx) = drivingForces.src.poly(injInx);
-   eqs{3}(srcCells) = eqs{3}(srcCells) - csrc.*qSRC{1};
-end
+% % Add polymer boundary conditions
+% if ~isempty(drivingForces.bc) && isfield(drivingForces.bc, 'poly')
+%    injInx  = qBC{1} > 0; % water inflow indices
+%    cbc     = (BCTocellMap')*c; % BCTocellMap' = cellToBCMap
+%    cbc(injInx) = drivingForces.bc.poly(injInx);
+%    eqs{3}  = eqs{3} - BCTocellMap*(cbc.*qBC{1});
+% end
+% 
+% % Add polymer source
+% if ~isempty(drivingForces.src) && isfield(drivingForces.src, 'poly')
+%    injInx  = qSRC{1} > 0; % water inflow indices
+%    csrc    = c(srcCells);
+%    csrc(injInx) = drivingForces.src.poly(injInx);
+%    eqs{3}(srcCells) = eqs{3}(srcCells) - csrc.*qSRC{1};
+% end
 
 % Finally, add in and setup well equations
-if ~isempty(W)
-    wm = model.wellmodel;
-    if ~opt.reverseMode
-        wc   = vertcat(W.cells);
-        pw   = p(wc);
-        rhos = [f.rhoWS, f.rhoOS];
-        bw   = {bW(wc), bO(wc)};
-        mw   = {mobW(wc), mobO(wc)};
-        s    = {sW(wc), sO(wc)};
-        
-        % Polymer well equations
-        [~, wciPoly, iInxW] = getWellPolymer(W);        
-        if usingShear
-            % Compute shear rate multiplier for wells
-            % The water velocity is computed using a the reprensentative 
-            % radius rR.
-            % rR = sqrt(rW * rA)
-            % rW is the well bore radius.
-            % rA is the equivalent radius of the grid block in which the 
-            %    wellis completed.
-            
-            assert(isfield(W, 'rR'), ...
-                'The representative radius needs to be suppplied.');
-            
-            muWMultW = muWMult(wc);
-            % Maybe should also apply this for PRODUCTION wells.
-            muWMultW((iInxW(wciPoly==0))) = 1;
-            
-            cqs = wm.computeWellFlux(model, W, wellSol, pBH, ...
-                {qWs, qOs}, pw, rhos, bw, mw, s, {},...
-                'nonlinearIteration', opt.iteration);
-            
-            % The following formulations assume that the wells are always
-            % in the z direction 
-            % IMPROVED HERE LATER
-            [~, ~, dz] = cellDims(model.G, wc);
-            
-            % HACK FOR 2D MODELS
-            if all(dz==0)
-                dz(:) = 1;
-            end
-            
-            if model.extraPolymerOutput
-                cqsW0 = double(cqs{1});
-                mobW0 = double(mw{1});
-            end
-            
-            rR = vertcat(W.rR);
-            A  = rR.*dz*2*pi; % representative area of each well cell
-            VW0W = double(bW(wc)).*double(cqs{1})./(poro(wc).*A);
-            [shearMultW, VW1W] = getPolymerShearMultiplier(model, ...
-                VW0W, muWMultW);
-            
-            % Apply shear velocity multiplier
-            mw{1} = mw{1}.*shearMultW;
-        end
-        
-        
-        [cqs, weqs, ctrleqs, wc, state.wellSol] = ...
-            wm.computeWellFlux(model, W, wellSol, ...
-            pBH, {qWs, qOs}, pw, rhos, bw, mw, s, {},...
-            'nonlinearIteration', opt.iteration);
+[eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, wellVars, wellMap, p, mob, rho, {}, {c}, dt, opt);
 
-        % Store the well equations (relate well bottom hole pressures to
-        % influx).
-        eqs(4:5) = weqs;
-        % Store the control equations (trivial equations ensuring that each
-        % well will have values corresponding to the prescribed value)
-        eqs{7} = ctrleqs;
-        % Add source terms to the equations. Negative sign may be
-        % surprising if one is used to source terms on the right hand side,
-        % but this is the equations on residual form.
-        eqs{1}(wc) = eqs{1}(wc) - cqs{1};
-        eqs{2}(wc) = eqs{2}(wc) - cqs{2};
-
-        % Polymer well equations
-        [~, wciPoly, iInxW] = getWellPolymer(W);
-        cw        = c(wc);
-        cw(iInxW) = wciPoly;
-        cbarw     = cw/f.cmax;
-
-        % Divide away water mobility and add in polymer
-        %bWqP = cw.*cqs{1}./(a + (1-a).*cbarw);
-        bWqP = cw.*cqs{1};
-        eqs{3}(wc) = eqs{3}(wc) - bWqP;
-
-        % Well polymer rate for each well is water rate in each perforation
-        % multiplied with polymer concentration in that perforated cell.
-        perf2well = getPerforationToWellMapping(W);
-        Rw = sparse(perf2well, (1:numel(perf2well))', 1, ...
-           numel(W), numel(perf2well));
-        cqsPoly = Rw*(cqs{1}.*cw);
-        eqs{6}  = qWPoly - cqsPoly;
-        
-        % Save extra polymer welldata if requested
-        if model.extraPolymerOutput
-            cqsPoly    = double(cqsPoly);
-            if usingShear
-                shearMultW = double(shearMultW);
-            end
-            for wnr = 1:numel(state.wellSol)
-                ix = perf2well == wnr;
-                state.wellSol(wnr).cqsPoly = cqsPoly(wnr);
-                if usingShear
-                    state.wellSol(wnr).shearMult = shearMultW(ix);
-                end
-            end
-        end
-        
-        names(4:7) = {'waterWells', 'oilWells', 'polymerWells', ...
-            'closureWells'};
-        types(4:7) = {'perf', 'perf', 'perf', 'well'};
-    else
-        [eq, n, typ] = ...
-            wm.createReverseModeWellEquations(model, state0.wellSol, p0);
-        % Add another equation for polymer well rates
-        [eqs{4:7}] = deal(eq{1});
-        [names{4:7}] = deal(n{1});
-        [types{4:7}] = deal(typ{1});
-    end
-end
+% >>>>>>> master
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
+
 end
 
 
 %--------------------------------------------------------------------------
 
+% <<<<<<< HEAD
+% % Effective adsorption, depending of desorption or not
+% % adsInx=1: The polymer adsorption isotherm is retraced whenever the local 
+% %           polymer concentration in the solution decreases.
+% % adsInx=2: No polymer desorption may occur.
+% function y = effads(c, cmax, model)
+%    if model.fluid.adsInx == 2
+%       y = model.fluid.ads(max(c, cmax));
+% =======
+
 % Effective adsorption, depending of desorption or not
-% adsInx=1: The polymer adsorption isotherm is retraced whenever the local 
-%           polymer concentration in the solution decreases.
-% adsInx=2: No polymer desorption may occur.
-function y = effads(c, cmax, model)
-   if model.fluid.adsInx == 2
-      y = model.fluid.ads(max(c, cmax));
+function y = effads(c, cmax, fluid)
+   if fluid.adsInx == 2
+      y = fluid.ads(max(c, cmax));
+% >>>>>>> master
    else
-      y = model.fluid.ads(c);
+      y = fluid.ads(c);
    end
 end
 

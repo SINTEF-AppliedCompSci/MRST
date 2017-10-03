@@ -41,6 +41,7 @@ if ~all(e)
     msg = [msg, sprintf('  * %s\n', fname{~e})];
     error('Dataset:Incomplete', msg);
 end
+gravity reset on;
 
 % Parsing the data file with shear-thinning effect.
 deck = readEclipseDeck(files{1});
@@ -64,7 +65,6 @@ fluid          = initDeckADIFluid(deck);
 model = ThreePhaseBlackOilPolymerModel(G, rock, fluid, 'inputdata', deck);
 
 % Set initial equilibrium saturation and polymer related two variables
-gravity on;
 state0         = initEclipseState(G, deck, initEclipseFluid(deck));
 % polymer concentration
 state0.c       = zeros([G.cells.num, 1]);
@@ -115,7 +115,6 @@ close all
 fn = getPlotAfterStep(state0, model, schedule, ...
     'plotWell', true, 'plotReservoir', true, 'view', [20, 8], ...
     'field', 's:2');
-
 [wellSols, states, reports] = ...
     simulateScheduleAD(state0, model, schedule, ...
                     'NonLinearSolver', nonlinearsolver, 'afterStepFn', fn);
@@ -227,7 +226,6 @@ model.usingShear = false;
 fn = getPlotAfterStep(state0, model, schedule, ...
     'plotWell', true, 'plotReservoir', true, 'view', [20, 8], ...
     'field', 's:2');
-
 [wellSolsNoShear, statesNoShear, reportsNoShear] = ...
     simulateScheduleAD(state0, model, schedule, ...
                     'NonLinearSolver', nonlinearsolver, 'afterStepFn', fn);
@@ -353,7 +351,7 @@ fprintf('The simulation has been finished! \n');
 
 % <html>
 % <p><font size="-1">
-% Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+% Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 % </font></p>
 % <p><font size="-1">
 % This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).

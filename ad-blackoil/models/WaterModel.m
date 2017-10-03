@@ -14,7 +14,6 @@ classdef WaterModel < ReservoirModel
             model.useCNVConvergence = false;
             
             model.saturationVarNames = {'sw'};
-            model.wellVarNames = {'qWs', 'bhp'};
             
             model = merge_options(model, varargin{:});
         end
@@ -27,22 +26,11 @@ classdef WaterModel < ReservoirModel
             
         end
         
-        function [state, report] = updateState(model, state, problem, dx, drivingForces)
-            % Parent class handles almost everything for us
-            [state, report] = updateState@ReservoirModel(model, state, problem, dx, drivingForces);
-            saturations = model.saturationVarNames;
-            wi = strcmpi(saturations, 'sw');
-            oi = strcmpi(saturations, 'so');
-            gi = strcmpi(saturations, 'sg');
-
-            W = drivingForces.W;
-            state.wellSol = assignWellValuesFromControl(model, state.wellSol, W, wi, oi, gi);
-        end
     end
 end
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

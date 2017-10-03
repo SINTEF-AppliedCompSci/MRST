@@ -135,6 +135,7 @@ for step = 1:n
     ylim([0, 1]);
     pause(0.05);
 end
+
 %% Set up interactive plotting
 % Finally we set up interactive plots to make it easy to look at the
 % results from the different simulators.
@@ -150,7 +151,7 @@ end
 
 % <html>
 % <p><font size="-1">
-% Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+% Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 % </font></p>
 % <p><font size="-1">
 % This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
@@ -173,3 +174,67 @@ end
 % <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses</a>.
 % </font></p>
 % </html>
+%%
+figure; hold on
+colors = parula(numel(states));
+for i = 1:5:numel(states);
+    C = states{i}.components;
+    plot3(C{1}, C{2}, C{3}, '.', 'color', colors(i, :), 'markersize', 2)
+end
+% plot3([0, 0], [0, 1], [0, 0], 'k')
+% plot3([0, 0], [0, 0], [0, 1], 'k')
+%%
+figure; hold on
+plot([0, 0.5, 1, 0], [0, sqrt(3)/2, 0, 0], 'k')
+
+
+mapx = @(x, y, z) (1/2)*(2*y + z)./(x + y+ z);
+mapy = @(x, y, z) (sqrt(3)/2)*z./(x + y+ z);
+
+colors = parula(numel(states));
+for i = 1:1:numel(states)
+    C = states{i}.components;
+    plot(mapx(C{1}, C{2}, C{3}), mapy(C{1}, C{2}, C{3}), '-', 'color', colors(i, :))
+    
+end
+axis off
+
+text(0, 0, model.EOSModel.fluid.names{1}, 'verticalalignment', 'top', 'horizontalalignment', 'right')
+text(1, 0, model.EOSModel.fluid.names{2}, 'verticalalignment', 'top', 'horizontalalignment', 'left')
+text(0.5, sqrt(3)/2, model.EOSModel.fluid.names{3}, 'verticalalignment', 'bottom', 'horizontalalignment', 'center')
+
+
+text(mapx(0.5, 0.5, 0), mapy(0.5, 0.5, 0), '0.5', 'verticalalignment', 'top', 'horizontalalignment', 'center')
+text(mapx(0, 0.5, 0.5), mapy(0, 0.5, 0.5), '0.5', 'verticalalignment', 'bottom', 'horizontalalignment', 'left')
+text(mapx(0.5, 0.0, 0.5), mapy(0.5, 0.0, 0.5), '0.5', 'verticalalignment', 'bottom', 'horizontalalignment', 'right')
+
+
+
+
+
+
+
+
+
+
+
+
+%%
+close all
+figure;
+[mapx, mapy] = ternaryAxis('names', model.EOSModel.fluid.names);
+
+
+
+% C = states{100}.components;
+% plot(mapx(C{1}, C{2}, C{3}), mapy(C{1}, C{2}, C{3}), '-k', 'linewidth', 2);
+
+colors = parula(numel(states));
+for i = 50:10:numel(states)
+    C = states{i}.components;
+    plot(mapx(C{1}, C{2}, C{3}), mapy(C{1}, C{2}, C{3}), '-', 'color', colors(i, :))
+    
+end
+%%
+
+

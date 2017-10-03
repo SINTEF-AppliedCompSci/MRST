@@ -7,20 +7,8 @@ else
     f.cW   = pvtw(reg.PVTNUM, 3);
     f.muWr = pvtw(reg.PVTNUM, 4);
 end
-f.BW   = @(pw, varargin)BW(pw, pvtw, reg, varargin{:});
 f.bW   = @(pw, varargin)bW(pw, pvtw, reg, varargin{:});
 f.muW  = @(pw, varargin)muW(pw, pvtw, reg, varargin{:});
-end
-
-
-function v = BW(pw, pvtw, reg, varargin)
-pvtnum= getPVTNUM(pw, reg, varargin{:});
-
-pwr  = pvtw(pvtnum,1); % ref pres
-bwr  = pvtw(pvtnum,2); % ref fvf
-cw   = pvtw(pvtnum,3); % compress
-X = cw.*(pw-pwr);
-v = bwr./(1+X+X.^2/2);
 end
 
 function v = bW(pw, pvtw, reg, varargin)
@@ -59,7 +47,7 @@ end
 end
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

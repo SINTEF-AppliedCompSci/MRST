@@ -10,7 +10,7 @@ function s = setupOperatorsTPFA(G, rock, varargin)
 %   reservoir quantities such as transmissibility and pore volume. The
 %   purpose of this function is to assemble all such quantities using a
 %   standard two-point finite volume approxiation (TPFA).
-% 
+%
 % PARAMETERS:
 %
 %   G       - MRST grid given as a struct. See grid_structure.m for more
@@ -52,8 +52,8 @@ function s = setupOperatorsTPFA(G, rock, varargin)
 %
 %      Grad    : (Function)  Discrete gradient. Computes the gradient on
 %      each interface via a first order finite difference approximation
-%      using the values of the cells connected to the face.  
-%                
+%      using the values of the cells connected to the face.
+%
 %      Div     : (Function) Discrete divergence. Integrates / sums up
 %      values on the interfaces for all cells to give the (integrated)
 %      divergence per cell.
@@ -74,7 +74,7 @@ function s = setupOperatorsTPFA(G, rock, varargin)
 %
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -99,38 +99,57 @@ opt = merge_options(opt, varargin{:});
 T = opt.trans;
 N = opt.neighbors;
 
-if isempty(N)
-   % Get neighbors for internal faces from grid.
-   N  = double(G.faces.neighbors);
-   intInx = all(N ~= 0, 2);
-   N  = N(intInx, :);
-else
-   % neighbors are given
-   n_if = size(N, 1);
-   intInx = true(n_if, 1);
-   if isfield(G, 'faces')
-       % Try to match given interfaces to actual grid.
-       intInxGrid = all(G.faces.neighbors ~= 0, 2);
-       if sum(intInxGrid) == n_if
-           % Given neighbors correspond to internal interfaces
-           intInx = intInxGrid;
-       elseif n_if == G.faces.num
-           % Given neighbors correspond to *all* interfaces
-           intInx = all(N ~= 0, 2);
-       end
-   end
-end
-
 if isempty(T)
-   % half-trans -> trans and reduce to interior
-   T = getFaceTransmissibility(G, rock, opt.deck);
-   s.T_all = T;
-   T = T(intInx);
+    % half-trans -> trans and reduce to interior
+    T = getFaceTransmissibility(G, rock, opt.deck);
+    assert(isempty(N))
+    N=G.faces.neighbors;
+    intInx = all(N ~= 0, 2);
+    N  = N(intInx, :);
+    s.T_all = T;
+    T = T(intInx);
 else
-   s.T_all = T;
-   T = T(intInx);
+    % transmissibility is given    
+    if isempty(N)
+        % Get neighbors for internal faces from grid.
+        N  = double(G.faces.neighbors);
+        intInx = all(N ~= 0, 2);
+        N  = N(intInx, :);
+        n_if = sum(intInx);
+     else
+        % neighbors are given        
+        intInx = all(N ~= 0, 2);
+        n_if = sum(intInx);
+        if isfield(G, 'faces')
+            % Try to match given interfaces to actual grid.
+            intInxGrid = all(G.faces.neighbors ~= 0, 2);
+            if sum(intInxGrid) == n_if
+                % Given neighbors correspond to internal interfaces
+                intInx = intInxGrid;
+            elseif n_if == G.faces.num
+                % Given neighbors correspond to *all* interfaces
+                intInx = all(N ~= 0, 2);
+            end
+        end
+    end 
+    
+   
+    if numel(T) == n_if
+        % Internal interface transmissibility
+        s.T_all = zeros(size(intInx));
+        s.T_all(intInx) = T;
+        s.T = T;
+    else
+        % All transmissibilities given
+        assert(numel(T) == numel(intInx));
+        s.T_all = T;
+        T = T(intInx);
+    end
+        
 end
-
+if any(T<0)
+    warning('Negative transmissibilities detected.')
+end
 s.T = T;
 
 pv = opt.porv;
@@ -143,47 +162,36 @@ if isempty(pv)
     zeropv = find(pv == 0);
     if ~isempty(zeropv)
         warning(['I computed zero pore volumes in ', num2str(numel(zeropv)), ...
-                 ' cells. Consider adjusting poro / ntg fields or grid.']);
+            ' cells. Consider adjusting poro / ntg fields or grid.']);
     end
 end
 s.pv = pv;
 
 % C - (transpose) divergence matrix
-n = size(N,1);
-C  = sparse( [(1:n)'; (1:n)'], N, ones(n,1)*[1 -1], n, G.cells.num);
+nf = size(N,1);
+nc = numel(s.pv);
+assert(nc == G.cells.num, ...
+    'Dimension mismatch between grid and supplied pore-volumes.');
+C  = sparse( [(1:nf)'; (1:nf)'], N, ones(nf,1)*[1 -1], nf, nc);
 s.C = C;
 s.Grad = @(x) -C*x;
 s.Div  = @(x) C'*x;
 
 % faceAvg - as multiplication with matrix
-nc = max(max(N));
-nf = size(N,1);
 M  = sparse((1:nf)'*[1 1], N, .5*ones(nf,2), nf, nc);
 s.faceAvg = @(x)M*x;
 
 % faceUpstr - as multiplication with matrix
-s.faceUpstr = @(flag, x)faceUpstr(flag, x, N, [nf, nc]);
+upw = @(flag, x)faceUpstr(flag, x, N, [nf, nc]);
+s.faceUpstr = upw;
+
+s.splitFaceCellValue = @(flag, x) splitFaceCellValue(flag, x, N, [nf, nc], upw);
 
 % Include neighbor relations
 s.N = N;
 s.internalConn = intInx;
+
 end
 
-function xu = faceUpstr(flag, x, N, sz)
-    if numel(flag) == 1
-        flag = repmat(flag, size(N, 1), 1);
-    end
-    assert(numel(flag) == size(N, 1) && islogical(flag), ...
-        'One logical upstream flag must'' be supplied per interface.');
-    upCell       = N(:,2);
-    upCell(flag) = N(flag,1);
-    if isnumeric(x)
-        % x is a simple matrix, we just extract values using the cells
-        xu = x(upCell, :);
-    else
-        % x is likely AD, construct a matrix to achieve upstream weighting
-        xu = sparse((1:sz(1))', upCell, 1, sz(1), sz(2))*x;
-    end
-end
 
 

@@ -12,11 +12,7 @@
 % output. This requires the deckformat module.
 
 % This requires the deckformat module.
-try
-   require deckformat ad-core ad-fi optimization
-catch
-   mrstModule add deckformat ad-core ad-fi optimization
-end
+mrstModule add deckformat ad-core ad-fi optimization ad-props
 
 current_dir = fileparts(mfilename('fullpath'));
 fn    = fullfile(current_dir, 'simple10x1x10.data');
@@ -95,12 +91,12 @@ p = reshape(0.1*barsa : 10*milli*barsa : 1*barsa, [], 1);
 
 clf;
 subplot(2,1,1)
-plot(p, fluid.BW(p))
+plot(p, 1./fluid.bW(p))
 title('B_W')
 xlabel('Pressure (Pascal)')
 
 subplot(2,1,2)
-plot(p, fluid.BO(p))
+plot(p, 1./fluid.bO(p))
 title('B_O')
 xlabel('Pressure (Pascal)')
 

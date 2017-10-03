@@ -1,11 +1,14 @@
-function reg = handleRegions(deck, G)
-if nargin == 2
-    an = G.cells.indexMap;
+function reg = handleRegions(deck, G, varargin)
+
+if ~isempty(G)
+    an = G.cells.indexMap;    
 elseif isfield(deck.GRID, 'ACTNUM')
     an = find(deck.GRID.ACTNUM);
 else
     an = ':';
 end
+  
+  
 % also need actnum/G.cells.indexmap
 % PVT-REGIONS
 ntpvt = 1;
@@ -21,7 +24,7 @@ else
 end
 
 % SAT-REGIONS AND POSSIBLY SURF-REGIONS
-one_region = true;;
+one_region = true;
 if isfield(deck.REGIONS, 'SATNUM')
     reg.SATNUM = deck.REGIONS.SATNUM(an);
     if isfield(deck.REGIONS, 'SURFNUM')
@@ -76,7 +79,7 @@ else
 end
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

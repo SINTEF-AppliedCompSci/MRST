@@ -109,11 +109,6 @@ methods
 
     % --------------------------------------------------------------------%
     function [state, report] = updateState(model, state, problem, dx, drivingForces)
-        saturations = lower(model.saturationVarNames);
-        wi = strcmpi(saturations, 'sw');
-        oi = strcmpi(saturations, 'so');
-        gi = strcmpi(saturations, 'sg');
-
         vars = problem.primaryVariables;
         removed = false(size(vars));
         if model.disgas || model.vapoil
@@ -152,11 +147,19 @@ methods
             end
 
             dso = -(dsg + dsw);
+            nPh = nnz(model.getActivePhases());
 
-            ds = zeros(numel(so), numel(saturations));
-            ds(:, wi) = dsw;
-            ds(:, oi) = dso;
-            ds(:, gi) = dsg;
+            ds = zeros(numel(so), nPh);
+            phIndices = model.getPhaseIndices();
+            if model.water
+                ds(:, phIndices(1)) = dsw;
+            end
+            if model.oil
+                ds(:, phIndices(2)) = dso;
+            end
+            if model.gas
+                ds(:, phIndices(3)) = dsg;
+            end
 
             state = model.updateStateFromIncrement(state, ds, problem, 's', model.dsMaxRel, model.dsMaxAbs);
             % We should *NOT* be solving for oil saturation for this to make sense
@@ -180,15 +183,10 @@ methods
 
         % Parent class handles almost everything for us
         [state, report] = updateState@ReservoirModel(model, state, problem, dx, drivingForces);
-
-        % Handle the directly assigned values (i.e. can be deduced directly from
-        % the well controls. This is black oil specific.
-        W = drivingForces.W;
-        state.wellSol = assignWellValuesFromControl(model, state.wellSol, W, wi, oi, gi);
     end
     
     % --------------------------------------------------------------------%
-    function scaling = getScalingFactorsCPR(model, problem, names)
+    function scaling = getScalingFactorsCPR(model, problem, names, solver)
         % Get approximate, impes-like pressure scaling factors
         nNames = numel(names);
         
@@ -198,37 +196,84 @@ methods
         % Take averaged pressure for scaling factors
         state = problem.state;
         fluid = model.fluid;
-        p = mean(state.pressure);
-        
-        for iter = 1:nNames
-            name = lower(names{iter});
-            switch name
-                case 'oil'
-                    if model.disgas
-                       rs = fluid.rsSat(p);
-                       bO = fluid.bO(p, rs, true);
-                    else
-                       bO = fluid.bO(p);
-                    end
-                    s = 1./bO;
-                case 'water'
-                    bW = fluid.bW(p);
-                    s = 1./bW;
-                case 'gas'
-                    if model.vapoil
-                        rv = fluid.rvSat(p);
-                        bG = fluid.bG(p, rv, true);
-                    elseif model.gas
-                        bG = fluid.bG(p);
-                    end
-                    s = 1./bG;
-                otherwise
-                    continue
+        if (isprop(solver, 'trueIMPES') || isfield(solver, 'trueIMPES')) && solver.trueIMPES
+            % Rigorous pressure equation (requires lots of evaluations)
+            p = state.pressure;
+            rs = state.rs;
+            rv = state.rv;
+            cfac = 1./(1 - model.disgas*model.vapoil*rs.*rv);
+            for iter = 1:nNames
+                name = lower(names{iter});
+                switch name
+                    case 'oil'
+                        if model.disgas
+                           bO = fluid.bO(p, rs, rs >= fluid.rsSat(p));
+                        else
+                           bO = fluid.bO(p);
+                        end
+                        bG = 1;
+                        if model.vapoil
+                            bG = fluid.bG(p, rv, rv >= fluid.rvSat(p));
+                        elseif model.gas
+                            bG = fluid.bG(p);
+                        end
+                        s = cfac.*(1./bO - model.disgas*rs./bG);
+                    case 'water'
+                        bW = fluid.bW(p);
+                        s = 1./bW;
+                    case 'gas'
+                        if model.disgas
+                           bO = fluid.bO(p, rs, rs >= fluid.rsSat(p));
+                        else
+                           bO = fluid.bO(p);
+                        end
+                        if model.vapoil
+                            bG = fluid.bG(p, rv, rv >= fluid.rvSat(p));
+                        elseif model.gas
+                            bG = fluid.bG(p);
+                        end
+                        s = cfac.*(1./bG - model.vapoil*rv./bO);
+                    otherwise
+                        continue
+                end
+                sub = strcmpi(problem.equationNames, name);
+
+                scaling{iter} = s;
+                handled(sub) = true;
             end
-            sub = strcmpi(problem.equationNames, name);
-            
-            scaling{iter} = s;
-            handled(sub) = true;
+        else
+            % Very simple scaling factors, uniform over grid
+            p = mean(state.pressure);
+            for iter = 1:nNames
+                name = lower(names{iter});
+                switch name
+                    case 'oil'
+                        if model.disgas
+                           rs = fluid.rsSat(p);
+                           bO = fluid.bO(p, rs, true);
+                        else
+                           bO = fluid.bO(p);
+                        end
+                        s = 1./bO;
+                    case 'water'
+                        bW = fluid.bW(p);
+                        s = 1./bW;
+                    case 'gas'
+                        if model.vapoil
+                            rv = fluid.rvSat(p);
+                            bG = fluid.bG(p, rv, true);
+                        elseif model.gas
+                            bG = fluid.bG(p);
+                        end
+                        s = 1./bG;
+                    otherwise
+                        continue
+                end
+                sub = strcmpi(problem.equationNames, name);
+
+                scaling{iter} = s;
+                handled(sub) = true;
+            end
         end
         if ~all(handled)
             % Get rest of scaling factors from parent class
@@ -254,11 +299,56 @@ methods
                                                           rv, pressure, model.disgas, model.vapoil);
     end
     
+    
+    function dismat = getDissolutionMatrix(model, rs, rv)
+        actPh = model.getActivePhases();
+        nPh = nnz(actPh);
+        if ~model.disgas
+            rs = [];
+        end
+        if ~model.vapoil
+            rv = [];
+        end
+        
+        dismat = cell(1, nPh);
+        [dismat{:}] = deal(cell(1, nPh));
+        ix = 1;
+        jx = 1;
+        for i = 1:3
+            if ~actPh(i)
+                continue
+            end
+            for j = 1:3
+                if ~actPh(j)
+                    continue
+                end
+                if i == 2 && j == 3
+                    dismat{i}{j} = rv;
+                elseif i == 3 && j == 2
+                    dismat{i}{j} = rs;
+                end
+                jx = jx + 1;
+            end
+            ix = ix + 1;
+        end
+    end
+    
+    function components = getDissolutionMatrixMax(model, pressure)
+        [rsMax, rvMax] = deal([]);
+        if model.disgas
+            rsMax = model.fluid.rsSat(pressure);
+        end
+        if model.vapoil
+            rvMax = model.fluid.rvSat(pressure);
+        end
+        components = model.getDissolutionMatrix(rsMax, rvMax);
+    end
+    
 end
 end
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

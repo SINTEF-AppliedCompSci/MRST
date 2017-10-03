@@ -9,7 +9,7 @@ opt = struct('Verbose', mrstVerbose, ...
 
 opt = merge_options(opt, varargin{:});
 
-W = drivingForces.W;
+% W = drivingForces.W;
 %assert(isempty(drivingForces.bc) && isempty(drivingForces.src))
 assert(isempty(drivingForces.src))
 
@@ -20,30 +20,20 @@ f = model.fluid;
 
 [p, T, wellSol] = model.getProps(state, 'pressure','temperature', 'wellsol');
 
-[p0 , T0] = model.getProps(state0, 'pressure','temperature');
-
-pBH    = vertcat(wellSol.bhp);
-qWs    = vertcat(wellSol.qWs);
+[p0 , T0, wellSol0] = model.getProps(state0, 'pressure','temperature','wellsol');
 
 %Initialization of independent variables ----------------------------------
+[wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
 
 if ~opt.resOnly,
-    % ADI variables needed since we are not only computing residuals.
     if ~opt.reverseMode,
-        [p,T, qWs, pBH] = ...
-            initVariablesADI(p, T, qWs, pBH);
+        % define primary varible x and initialize
+        [p, T, wellVars{:}] = initVariablesADI(p, T, wellVars{:});
     else
-        [p0, T0, tmp, tmp] = ...
-            initVariablesADI(p0, sW0,          ...
-            zeros(size(qWs)), ...
-            zeros(size(qOs)), ...
-            zeros(size(pBH)));                          %#ok
+        wellVars0 = model.FacilityModel.getAllPrimaryVariables(wellSol0);
+        [p0, T0, wellVars0{:}] = initVariablesADI(p0, T0, wellVars0{:}); %#ok
     end
 end
-
-
-clear tmp
-%grav  = gravity;
 gdz   = s.Grad(G.cells.centroids) * model.gravity';
 %--------------------
 %check for p-dependent tran mult:
@@ -91,16 +81,11 @@ if model.extraStateOutput
 end
 % EQUATIONS ---------------------------------------------------------------
 % water:
+primaryVars = {'pressure', 'T', wellVarNames{:}};
+
+
 eqs{1} = (s.pv/dt).*( pvMult.*bW - pvMult0.*bW0 ) + s.Div(bWvW);
-[eqs, qBC, qRes, BCtocellMap, qSRC, srcCells, bcCells] = addFluxesFromSourcesAndBC(model, eqs, ...
-                                          {p},...
-                                        {rhoW},...
-                                        {mobW}, ...
-                                        {bW},  ...
-                                       {ones(G.cells.num,1)}, ...
-                                       drivingForces);
-                                   
-% accumulation of energy and conduction of heat in rock
+
 vol=model.G.cells.volumes;
 vQ = -s.T_r .* s.Grad(T);
 eqs{2} = (1./dt).*((vol-pvMult.*s.pv).*uR-(vol-pvMult0.*s.pv).*uR0) + s.Div( vQ);
@@ -108,20 +93,50 @@ eqs{2} = (1./dt).*((vol-pvMult.*s.pv).*uR-(vol-pvMult0.*s.pv).*uR0) + s.Div( vQ)
 % heat is neglected
 eqs{2}  =  eqs{2} + ((s.pv/dt).*( pvMult.*uW.*f.rhoWS.*bW - pvMult0.*uW0.*f.rhoWS.*bW0 )...
         +  s.Div( s.faceUpstr(bWvW>0, f.rhoWS.*hW) .* bWvW));
+names = {'water', 'temperature'};
+types = {'cell', 'cell'};
+
+
+sW = ones(model.G.cells.num, 1);
+[eqs, state, src] = addBoundaryConditionsAndSources(model, eqs, names, types, state, ...
+                                                                 {p}, {sW}, {mobW}, {rhoW}, ...
+                                                                 {}, {}, ...
+                                                                 drivingForces);
+
+% [eqs, qBC, qRes, BCtocellMap, qSRC, srcCells, bcCells] = addFluxesFromSourcesAndBC(model, eqs, ...
+%                                           {p},...
+%                                         {rhoW},...
+%                                         {mobW}, ...
+%                                        {ones(G.cells.num,1)}, ...
+%                                        drivingForces);
+                                   
+% accumulation of energy and conduction of heat in rock
 % add energy from pressure boundaries assume outside has sime enthapy as
 %
+% if(~isempty(bcCells))
+%     qBC=qBC{1};
+%     hWbc=hW(bcCells);%.*BCtocellMap;
+%     hWbc(qBC>0)=drivingForces.bc.hW(qBC>0);
+%     eqs{2} = eqs{2} - BCtocellMap*(hWbc.*f.rhoWS.*qBC);
+% end
+
+bcCells = src.bc.sourceCells;
 if(~isempty(bcCells))
-    qBC=qBC{1};
+    qBC=src.bc.phaseMass{1};
     hWbc=hW(bcCells);%.*BCtocellMap;
     hWbc(qBC>0)=drivingForces.bc.hW(qBC>0);
-    eqs{2} = eqs{2} - BCtocellMap*(hWbc.*f.rhoWS.*qBC);
+    
+    qtbc = src.bc.mapping*(hWbc.*qBC);
+    if isempty(src.bc.mapping)
+        qtbc = src.bc.mapping*qtbc;
+    end
+    eqs{2}(bcCells) = eqs{2}(bcCells) - qtbc;
 end
-% ensure inflow is correct
-
+srcCells = src.src.sourceCells;
 if(~isempty(srcCells))
-    qSRC=qSRC{1};
+    qSRC=src.bc.phaseMass{1};
     hWsrc=hW(srcCells);
-    hWsrc(srcCells(qSRC>0))=drivingForces.src.hW.*f.rhoWs;
+    hWsrc(srcCells(qSRC>0))=drivingForces.src.hW;
     eqs{2}(srcCells) = eqs{2}(srcCells) - qSRC.*hWsrc;
 end
 
@@ -138,57 +153,11 @@ if(~isempty(drivingForces.bcT))
 end
                                    
                                    
-primaryVars = {'pressure', 'T', 'qWs', 'bhp'};
-names = {'water', 'temperature'};
-types = {'cell', 'cell'};
 % well equations
-if ~isempty(W)
-    if ~opt.reverseMode
-        wc    = vertcat(W.cells);
-        pw   = p(wc);
-        rhos = [f.rhoWS];
-        bw   = {bW(wc)};
-        mw   = {mobW(wc)};
-        s = {1};
-
-        wm = WellModel();
-        [cqs, weqs, ctrleqs, wc, state.wellSol, ~]  = wm.computeWellFlux(model, W, wellSol, ...
-                                             pBH, {qWs}, pw, rhos, bw, mw, s, {},...
-                                             'nonlinearIteration', opt.iteration,'referencePressureIndex', 1);
-        
-                               
-        eqs(3) = weqs;
-        eqs{4} = ctrleqs;
-        
-        eqs{1}(wc) = eqs{1}(wc) - cqs{1};
-        % thermal part well
-        %%{
-        hFw=f.rhoWS*hW(wc);
-        hFww=f.rhoWS*wm.Rw*vertcat(W.hW);
-        hFw(cqs{1}>0)=hFww(cqs{1}>0);
-        %}
-        %{
-        hFw=f.rhoWS*wm.Rw*vertcat(W.hW);
-        hFw(cqs{1}<0)=f.rhoWS*hW(wc(cqs{1}<0));%give wrong derivatives
-        %}
-        eqs{2}(wc)= eqs{2}(wc) - hFw.*cqs{1};
-        names(3:4) = {'waterWells', 'closureWells'};
-        types(3:4) = {'perf', 'well'};
-    else
-        % in reverse mode just gather zero-eqs of correct size
-        [eqs(3:4), names(3:4), types(3:4)] = wm.createReverseModeWellEquations(model, state0.wellSol, p0);
-        %{
-        for eqn = 2:3
-            nw = numel(state0.wellSol);
-            zw = double2ADI(zeros(nw,1), p0);
-            eqs(2:3) = {zw, zw};
-        end
-        names(2:3) = {'empty', 'empty'};
-        types(2:3) = {'none', 'none'};
-        %}
-    end
-end
-eqs{2}=eqs{2}/1e6;
+%sat = {sW, sO, sG};
+components = {};
+[eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, wellVars, wellMap,...
+    p, {mobW}, {rhoW}, hW, components, dt, opt);
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 end
 %--------------------------------------------------------------------------
@@ -204,7 +173,7 @@ function  [bQqQbc,bc_cell] = temperatureBCContrib(G,s,T,bc)
 end
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

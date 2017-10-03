@@ -140,10 +140,8 @@ if opt.solveForWater
         wat(wc) = wat(wc) - bWqW;
     end
 
-    eqs{1} = wat;
-    oil = [];
-    names = {'water'};
-    types = {'cell'};
+    eqs = {wat};
+    names = {'water'};    
 else
     f_o = mobOf./totMob;
     bOvO   = s.faceUpstr(upco, bO).*f_o.*vT + s.faceUpstr(upco_g, bO).*f_g.*s.T.*(Go - Gw);
@@ -152,25 +150,18 @@ else
     if ~isempty(W)
         oil(wc) = oil(wc) - bOqO;
     end
-    wat = [];
-    eqs{1} = oil;
+    eqs = {oil};
     names = {'oil'};
-    types = {'cell'};
 end
+types = {'cell'};
+rho = {rhoW, rhoO};
+mob = {mobW, mobO};
+sat = {sW, sO};
+eqs = addBoundaryConditionsAndSources(model, eqs, names, types, state, ...
+                                     {pFlow, pFlow}, sat, mob, rho, ...
+                                     {}, {}, ...
+                                     drivingForces);
 
-tmpEqs = {wat, oil};
-tmpEqs = addFluxesFromSourcesAndBC(model, tmpEqs, ...
-                                   {pFlow, pFlow},...
-                                   {rhoW, rhoO},...
-                                   {mobW, mobO}, ...
-                                   {bW, bO},  ...
-                                   {sW, sO}, ...
-                                   drivingForces);
-if opt.solveForWater
-    eqs{1} = tmpEqs{1};
-else
-    eqs{1} = tmpEqs{2};
-end
 if ~model.useCNVConvergence
     eqs{1} = eqs{1}.*(dt./s.pv);
 end
@@ -178,7 +169,7 @@ problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 end
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

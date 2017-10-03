@@ -3,12 +3,7 @@
 % comparative solution project: A reexamination of black-oil simulation. In
 % SPE Reservoir Simulation Symposium,  12-15 February 1995, San Antonio,
 % Texas. SPE 29110-MS, doi: 10.2118/29110-MS
-try
-   require ad-fi ad-core deckformat mrst-gui
-catch %#ok<CTCH>
-   mrstModule add ad-fi ad-core deckformat mrst-gui
-end
-
+mrstModule add ad-fi ad-core deckformat mrst-gui ad-props
 mrstVerbose true
 
 %% Read and process file.
@@ -78,7 +73,7 @@ set(h, 'XTickLabel', num2str(10 .^ (get(h, 'XTick') .')), ...
     'YTick', 0.5, 'YTickLabel', '[mD]', ...
     'Position', [0.13, 0.05, 0.77, 0.03]);
 
-W = processWellsLocal(G,rock, schedule.control(1));
+W = processWells(G,rock, schedule.control(1));
 nm = [ { 'I' }, ...
        arrayfun(@(w) sprintf('P-%02d', w - 1), 2 : numel(W), ...
                 'UniformOutput', false) ];

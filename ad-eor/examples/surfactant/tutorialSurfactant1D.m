@@ -44,8 +44,6 @@ nc = G.cells.num;
 state0 = initResSol(G, 300*barsa, [ .2, .8]); % residual water saturation is 0.2
 state0.c    = zeros(G.cells.num, 1);
 state0.cmax = state0.c;
-state0.ads = computeEffAds(state0.c, 0, fluid); % adsorption
-state0.adsmax = state0.ads;
 
 %% Set up the model
 % 
@@ -89,7 +87,7 @@ plotToolbar(G, statesSurfactant, 'startplayback', true, 'plot1d', true, 'field',
 
 % <html>
 % <p><font size="-1">
-% Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+% Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 % </font></p>
 % <p><font size="-1">
 % This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).

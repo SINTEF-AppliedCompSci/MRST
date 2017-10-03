@@ -34,7 +34,7 @@ function system = initADISystem(input, G, rock, fluid, varargin)
 %
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -121,7 +121,7 @@ if isempty(opt.cprEllipticSolver)
         opt.cprEllipticSolver = @mldivide;
     end
 end
-
+fluid = assignRelPerm(fluid);
 if comp.gas
     if comp.oil && comp.water,
         if comp.disgas, ld = 'live'; else ld = 'dead';end

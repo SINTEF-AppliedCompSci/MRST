@@ -13,13 +13,9 @@ methods
         model.gas = false;
         model.water = true;
 
-        % Blackoil -> use CNV style convergence 
-        model.useCNVConvergence = true;
-
         model.saturationVarNames = {'sw', 'so'};
-        model.wellVarNames = {'qWs', 'qOs', 'bhp'};
 
-        model = merge_options(model, varargin{:});
+        model = merge_options(model);
     end
     
     % --------------------------------------------------------------------%
@@ -34,7 +30,7 @@ end
 end
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

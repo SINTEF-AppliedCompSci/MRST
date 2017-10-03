@@ -112,7 +112,7 @@ function [wellSols, states, schedulereport] = ...
 %   computeGradientAdjointAD, PhysicalModel
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -187,39 +187,34 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     wantStates = nargout > 1;
     wantReport = nargout > 2 || ~isempty(opt.afterStepFn);
 
-    getWell = @(index) schedule.control(schedule.step.control(index)).W;
-    state = initState;
-    if ~isfield(state, 'wellSol') || isempty(state.wellSol),
-       if isfield(state, 'wellSol'),
-          state = rmfield(state, 'wellSol');
-       end
-
-       state.wellSol = initWellSolAD(getWell(1), model, state);
-    end
-
+    % Check if model is self-consistent and set up for current BC type
+    dispif(opt.Verbose, 'Preparing model for simulation...\n')
+    ctrl = schedule.control(schedule.step.control(1));
+    [forces, fstruct] = model.getDrivingForces(ctrl);
+    model = model.validateModel(fstruct);
+    dispif(opt.Verbose, 'Model ready for simulation...\n')
+    
+    % Check if initial state is reasonable
     dispif(opt.Verbose, 'Validating initial state...\n')
-    state = model.validateState(state);
+    state = model.validateState(initState);
     dispif(opt.Verbose, 'Initial state ready for simulation.\n')
 
     failure = false;
     simtime = zeros(nSteps, 1);
     prevControl = nan;
-
+    firstEmptyIx = 1;
     for i = 1:nSteps
         step_header(i);
-
+        state0 = state;
+        
         currControl = schedule.step.control(i);
         if prevControl ~= currControl
             [forces, fstruct] = model.getDrivingForces(schedule.control(currControl));
-            W = fstruct.W;
+            [model, state0]= model.updateForChangedControls(state, fstruct);
             prevControl = currControl;
         end
 
         timer = tic();
-
-        state0 = state;
-        state0.wellSol = initWellSolAD(W, model, state);
-
         if opt.OutputMinisteps
             [state, report, ministeps] = solver.solveTimestep(state0, dt(i), model, ...
                                             forces{:}, 'controlId', currControl);
@@ -242,20 +237,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         if opt.Verbose,
            disp_step_convergence(report.Iterations, t);
         end
-
-        W = updateSwitchedControls(state.wellSol, W, ...
-                'allowWellSignChange',   model.wellmodel.allowWellSignChange, ...
-                'allowControlSwitching', model.wellmodel.allowControlSwitching);
-
         % Handle massaging of output to correct expectation
         if opt.OutputMinisteps
             % We have potentially several ministeps desired as output
-            nmini = numel(ministeps);
-            ise = find(cellfun(@isempty, states), 1, 'first');
-            if isempty(ise)
-                ise = numel(states) + 1;
-            end
-            ind = ise:(ise + nmini - 1);
+            ind = firstEmptyIx:(firstEmptyIx + numel(ministeps) - 1);
             states_step = ministeps;
         else
             % We just want the control step
@@ -273,8 +258,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
         
         if ~isempty(opt.ReportHandler)
-            opt.ReportHandler{ind + opt.restartStep - 1} = report;
+            opt.ReportHandler{i + opt.restartStep - 1} = report;
         end
+        firstEmptyIx = firstEmptyIx + numel(states_step);
         
         if wantStates
             states(ind) = states_step;

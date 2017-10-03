@@ -54,7 +54,7 @@ function [vO, bO, mobO, rhoO, p, upco, dpO] = getFluxAndPropsOil_BO(model, p, sO
 %   getFluxAndPropsGas_BO, getFluxAndPropsWater_BO
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -100,10 +100,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     
     rhoOf  = s.faceAvg(rhoO);
-    mobO   = krO./muO;
     dpO    = s.Grad(p) - rhoOf.*gdz;
     % oil upstream-index
     upco = (double(dpO)<=0);
-    vO   = - s.faceUpstr(upco, mobO).*T.*dpO;
+    
+    [krOf, krO] = s.splitFaceCellValue(upco, krO);
+    [muOf, muO] = s.splitFaceCellValue(upco, muO);
+    mobO   = krO./muO;
+    
+    vO   = -(krOf./muOf).*T.*dpO;
 end
 

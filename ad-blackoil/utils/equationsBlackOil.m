@@ -50,7 +50,7 @@ function [problem, state] = equationsBlackOil(state0, state, model, dt, drivingF
 % RETURNS:
 %   problem - LinearizedProblemAD class instance, containing the water, oil
 %             and gas conservation equations, as well as well equations
-%             specified by the WellModel class.
+%             specified by the FacilityModel class.
 %
 %   state   - Updated state. Primarily returned to handle changing well
 %             controls from the well model.
@@ -59,7 +59,7 @@ function [problem, state] = equationsBlackOil(state0, state, model, dt, drivingF
 %   equationsOilWater, ThreePhaseBlackOilModel
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -92,13 +92,11 @@ W = drivingForces.W;
 [p, sW, sG, rs, rv, wellSol] = model.getProps(state, ...
     'pressure', 'water', 'gas', 'rs', 'rv', 'wellSol');
 % Properties at previous timestep
-[p0, sW0, sG0, rs0, rv0] = model.getProps(state0, ...
-    'pressure', 'water', 'gas', 'rs', 'rv');
+[p0, sW0, sG0, rs0, rv0, wellSol0] = model.getProps(state0, ...
+    'pressure', 'water', 'gas', 'rs', 'rv', 'wellSol');
 
-bhp    = vertcat(wellSol.bhp);
-qWs    = vertcat(wellSol.qWs);
-qOs    = vertcat(wellSol.qOs);
-qGs    = vertcat(wellSol.qGs);
+[wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
+
 
 %Initialization of primary variables ----------------------------------
 st  = model.getCellStatusVO(state,  1-sW-sG,   sW,  sG);
@@ -115,15 +113,11 @@ end
 if ~opt.resOnly,
     if ~opt.reverseMode,
         % define primary varible x and initialize
-        [p, sW, x, qWs, qOs, qGs, bhp] = ...
-            initVariablesADI(p, sW, x, qWs, qOs, qGs, bhp);
+        [p, sW, x, wellVars{:}] = initVariablesADI(p, sW, x, wellVars{:});
     else
+        wellVars0 = model.FacilityModel.getAllPrimaryVariables(wellSol0);
         x0 = st0{1}.*rs0 + st0{2}.*rv0 + st0{3}.*sG0;
-        % Set initial gradient to zero
-        zw = zeros(size(bhp));
-        [p0, sW0, x0, zw, zw, zw, zw] = ...
-            initVariablesADI(p0, sW0, x0, zw, zw, zw, zw); %#ok
-        clear zw
+        [p0, sW0, x0, wellVars0{:}] = initVariablesADI(p0, sW0, x0, wellVars0{:}); %#ok
         [sG0, rs0, rv0] = calculateHydrocarbonsFromStatusBO(model, st0, 1-sW0, x0, rs0, rv0, p0);
     end
 end
@@ -135,7 +129,7 @@ if ~opt.reverseMode
 end
 % We will solve for pressure, water and gas saturation (oil saturation
 % follows via the definition of saturations) and well rates + bhp.
-primaryVars = {'pressure', 'sW', gvar, 'qWs', 'qOs', 'qGs', 'bhp'};
+primaryVars = {'pressure', 'sW', gvar, wellVarNames{:}};
 
 % Evaluate relative permeability
 sO  = 1 - sW  - sG;
@@ -172,6 +166,7 @@ if model.outputFluxes
 end
 if model.extraStateOutput
     state = model.storebfactors(state, bW, bO, bG);
+    state = model.storeDensity(state, bW.*f.rhoWS, bO.*f.rhoOS, bG.*f.rhoGS);
     state = model.storeMobilities(state, mobW, mobO, mobG);
     state = model.storeUpstreamIndices(state, upcw, upco, upcg);
 end
@@ -224,55 +219,18 @@ names = {'water', 'oil', 'gas'};
 types = {'cell', 'cell', 'cell'};
 
 % Add in any fluxes / source terms prescribed as boundary conditions.
-[eqs, ~, qRes] = addFluxesFromSourcesAndBC(model, eqs, ...
-                                       {pW, p, pG},...
-                                       {rhoW,     rhoO, rhoG},...
-                                       {mobW,     mobO, mobG}, ...
-                                       {bW, bO, bG},  ...
-                                       {sW, sO, sG}, ...
-                                       drivingForces);
-if model.outputFluxes
-    state = model.storeBoundaryFluxes(state, qRes{1}, qRes{2}, qRes{3}, drivingForces);
-end
+rho = {rhoW, rhoO, rhoG};
+mob = {mobW, mobO, mobG};
+sat = {sW, sO, sG};
+dissolved = model.getDissolutionMatrix(rs, rv);
+
+[eqs, state] = addBoundaryConditionsAndSources(model, eqs, names, types, state, ...
+                                                 {pW, p, pG}, sat, mob, rho, ...
+                                                 dissolved, {}, ...
+                                                 drivingForces);
 
 % Finally, add in and setup well equations
-if ~isempty(W)
-    wm = model.wellmodel;
-    if ~opt.reverseMode
-        % Store cell wise well variables in cell arrays and send to ewll
-        % model to get the fluxes and well control equations.
-        wc    = vertcat(W.cells);
-        pw    = p(wc);
-        rhows = [f.rhoWS, f.rhoOS, f.rhoGS];
-        bw    = {bW(wc), bO(wc), bG(wc)};
-        
-        [rw, rSatw] = wm.getResSatWell(model, wc, rs, rv, rsSat, rvSat);
-        mw    = {mobW(wc), mobO(wc), mobG(wc)};
-        s = {sW(wc), sO(wc), sG(wc)};
-        
-        [cqs, weqs, ctrleqs, wc, state.wellSol]  = wm.computeWellFlux(model, W, wellSol, ...
-            bhp, {qWs, qOs, qGs}, pw, rhows, bw, mw, s, rw,...
-            'maxComponents', rSatw, ...
-            'nonlinearIteration', opt.iteration);
-        % Store the well equations (relate well bottom hole pressures to
-        % influx).
-        eqs(4:6) = weqs;
-        % Store the control equations (trivial equations ensuring that each
-        % well will have values corresponding to the prescribed value)
-        eqs{7} = ctrleqs;
-        
-        % Add source terms to the equations. Negative sign may be
-        % surprising if one is used to source terms on the right hand side,
-        % but this is the equations on residual form.
-        for i = 1:3
-            eqs{i}(wc) = eqs{i}(wc) - cqs{i};
-        end
-        names(4:7) = {'waterWells', 'oilWells', 'gasWells', 'closureWells'};
-        types(4:7) = {'perf', 'perf', 'perf', 'well'};
-    else
-        [eqs(4:7), names(4:7), types(4:7)] = wm.createReverseModeWellEquations(model, state0.wellSol, p0);
-    end
-end
+[eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, wellVars, wellMap, p, mob, rho, dissolved, {}, dt, opt);
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 end
 

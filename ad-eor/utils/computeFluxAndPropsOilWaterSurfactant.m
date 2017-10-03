@@ -1,5 +1,4 @@
-function [dpO, dpW, mobO, mobW, upco, upcw, bO, bW, pvMult, bO0, bW0, pvMult0, ...
-          T] =  computeFluxAndPropsOilWaterSurfactant(model, p0, p, sW, c, ...
+function [dp, mob, upc, b, rho, pvMult, b0, pvMult0, T] =  computeFluxAndPropsOilWaterSurfactant(model, p0, p, sW, c, ...
                                                       pBH, W, varargin)
 %
 %
@@ -13,11 +12,11 @@ function [dpO, dpW, mobO, mobW, upco, upcw, bO, bW, pvMult, bO0, bW0, pvMult0, .
 %   model    - Model instance
 %   p0       - Pressure at previous time step
 %   p        - Pressure at current time step
-%   sW       - Saturation 
+%   sW       - Saturation
 %   c        - Surfactant concentration
 %   pBH      - bottom hole pressure
 %   W        - Well structure
-%   varargin - 
+%   varargin -
 %
 % RETURNS:
 %   dpO     - Oil pressure gradient (face-valued)
@@ -40,7 +39,7 @@ function [dpO, dpW, mobO, mobW, upco, upcw, bO, bW, pvMult, bO0, bW0, pvMult0, .
 %
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -58,14 +57,14 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    
+
     opt = struct('velocCompMethod', 'square');
     opt = merge_options(opt, varargin{:});
 
     G     = model.G;
     fluid = model.fluid;
     op    = model.operators;
-    
+
     Nc = computeCapillaryNumber(p, c, pBH, W, fluid, G, op, 'velocCompMethod', opt.velocCompMethod);
     [krW, krO] = computeRelPermSft(sW, c, Nc, fluid);
 
@@ -104,7 +103,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     multmuW = fluid.muW(p)/fluid.muWr;
     mobW    = krW./(muW.*multmuW);
     dpW     = op.Grad(pW) - rhoWf.*gdz;
-    upcw    = (double(dpW)<=0);
+    upcW    = (double(dpW)<=0);
 
     % Oil flux and properties
     bO    = fluid.bO(pO);
@@ -117,6 +116,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     mobO = krO./muO;
     dpO  = op.Grad(pO) - rhoOf.*gdz;
-    upco = (double(dpO)<=0);
-    
+    upcO = (double(dpO)<=0);
+
+    dp  = {dpW, dpO};
+    mob = {mobW, mobO};
+    rho = {rhoW, rhoO};
+    upc = {upcW, upcO};
+    b   = {bW, bO};
+    b0  = {bW0, bO0};
+
 end

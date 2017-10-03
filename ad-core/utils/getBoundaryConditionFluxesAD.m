@@ -1,8 +1,8 @@
-function [qSurf, BCTocellMap, BCcells, qRes] = getBoundaryConditionFluxesAD(model, pressure, rho, mob, b, s, bc)
+function [qSurf, BCTocellMap, BCcells, qRes] = getBoundaryConditionFluxesAD(model, pressure, s, mob, rho, b, bc)
 %Get boundary condition fluxes for a given set of values
 %
 % SYNOPSIS:
-%   [qSurf, BCTocellMap, BCcells] = getBoundaryConditionFluxesAD(model, pressure, rho, mob, b, s, bc)
+%   [qSurf, BCTocellMap, BCcells] = getBoundaryConditionFluxesAD(model, pressure, s, mob, rho, b, bc)
 %
 % DESCRIPTION:
 %   Given a set of boundary conditions, this function computes the fluxes
@@ -18,9 +18,6 @@ function [qSurf, BCTocellMap, BCcells, qRes] = getBoundaryConditionFluxesAD(mode
 %                containing the phase pressures.
 %
 %   rho        - Surface densities of each phase, as a nph long cell array.
-%
-%   b          - Reservoir to standard condition factors per phase, as a
-%                nph long array.
 %
 %   s          - Phase saturations per cell, as a nph long array.
 %
@@ -40,7 +37,7 @@ function [qSurf, BCTocellMap, BCcells, qRes] = getBoundaryConditionFluxesAD(mode
 %   addBC, pside, fluxside
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -93,6 +90,8 @@ else
 end
 
 isP = reshape(strcmpi(bc.type, 'pressure'), [], 1);
+isSF = reshape(strcmpi(bc.type, 'flux'), [], 1);
+isRF = ~(isP | isSF);
 
 [qSurf, qRes] = deal(cell(nPh,1));
 
@@ -102,18 +101,23 @@ noSat = all(sat == 0, 2);
 hasNoSat = any(noSat);
 
 % Store total mobility
-totMob = double2ADI(zeros(nbc, 1), mob{1});
+totMob = 0;
 for i = 1:nPh
     totMob = totMob + cellToBCMap*mob{i};
 end
 
+rhoS = model.getSurfaceDensities();
 for i = 1:nPh
-    
-    [q_s, q_r] = deal(double2ADI(zeros(nbc, 1), mob{i}));
+    if isa(totMob, 'ADI')
+        sample = totMob;
+    else
+        sample = pressure{1};
+    end
+    [q_s, q_r] = deal(double2ADI(zeros(nbc, 1), sample));
     
     pBC   = cellToBCMap*pressure{i};
+    bBC = cellToBCMap*b{i};
     rhoBC = cellToBCMap*rho{i};
-    bBC   = cellToBCMap*b{i};
     mobBC = cellToBCMap*mob{i};
     sBC   = cellToBCMap*s{i};
     
@@ -154,13 +158,14 @@ for i = 1:nPh
     % Treat flux / Neumann BC
     injNeu = bc.value > 0;
     
-    subs = ~isP &  injNeu;
+    subs = isSF &  injNeu;
     if any(subs)
         % Injection
         q_s(subs) = bc.value(subs).*sat(subs, i);
         q_r(subs) = bc.value(subs).*sat(subs, i)./bBC(subs);
     end
-    subs = ~isP & ~injNeu;
+    % Fluxes given at surface conditions
+    subs = isSF & ~injNeu;
     if any(subs)
         % Production fluxes, use fractional flow of total mobility to
         % estimate how much mass will be removed.
@@ -168,6 +173,20 @@ for i = 1:nPh
         tmp = f.*bc.value(subs);
         q_s(subs) = tmp;
         q_r(subs) = tmp./bBC(subs);
+    end
+    % Fluxes given at reservoir conditions
+    subs = isRF &  injNeu;
+    if any(subs)
+        % Injection
+        q_s(subs) = bc.value(subs).*sat(subs, i).*bBC(subs);
+        q_r(subs) = bc.value(subs).*sat(subs, i);
+    end
+    subs = isRF & ~injNeu;
+    if any(subs)
+        f = mobBC(subs)./totMob(subs);
+        tmp = f.*bc.value(subs);
+        q_s(subs) = tmp.*bBC(subs);
+        q_r(subs) = tmp;
     end
     qSurf{i} = q_s;
     qRes{i} = q_r;

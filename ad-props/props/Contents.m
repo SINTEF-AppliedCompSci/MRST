@@ -1,14 +1,40 @@
 % Files
-%   assignDENSITY.m    - dens of size ntpvtx3
-%   assignPVCDO.m      - por  = pvcdo(pvtnum,1);  ref pres
-%   assignPVDO.m       - f.muO = @(po, varargin)muO(po, pvdo, reg, varargin{:});
-%   assignPVTW.m       - pwr  = pvtw(pvtnum,1);  ref pres
-%   assignRelPerm.m    - if ~isfield(f, 'krOG')       two-phase water/oil
-%   assignSOF3.m       - f.relperm3ph = @(sw, sg, varargin)relperm3ph(sw, sg, f, varargin);
-%   initDeckADIFluid.m - props
+%   assignDENSITY     - dens of size ntpvtx3
+%   assignPLMIXPAR    - 
+%   assignPLYADS      - 
+%   assignPLYMAX      - 
+%   assignPLYROCK     - 
+%   assignPLYSHEAR    - 
+%   assignPLYSHLOG    - 
+%   assignPLYVISC     - 
+%   assignPVCDO       - 
+%   assignPVDG        - 
+%   assignPVDO        - 
+%   assignPVTG        - 
+%   assignPVTO        - 
+%   assignPVTW        - 
+%   assignROCK        - 
+%   assignROCKTAB     - 
+%   assignRSCONSTT    - 
+%   assignRelPerm     - 
+%   assignRelPermScal - 
+%   assignSGFN        - 
+%   assignSGOF        - 
+%   assignSHRATE      - 
+%   assignSOF2        - 
+%   assignSOF3        - 
+%   assignSURFADS     - 
+%   assignSURFCAPD    - 
+%   assignSURFROCK    - 
+%   assignSURFST      - 
+%   assignSURFVISC    - 
+%   assignSWFN        - 
+%   assignSWOF        - 
+%   assignTLMIXPAR    - 
+%   initDeckADIFluid  - Initialize AD-solver fluid from ECLIPSE-style input deck
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

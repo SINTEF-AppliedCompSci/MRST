@@ -27,7 +27,7 @@ classdef ResultHandler < handle
 %   Class instance that in some limited aspects acts like a cell array
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -84,7 +84,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             handler.dataPrefix = 'state';
             handler.dataFolder = 'cache';
             handler.saveflags = '';
-            handler.cleardir = true;
+            handler.cleardir = false;
             
             handler.verbose = mrstVerbose();
             
@@ -114,8 +114,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     d = ls(fullfile(p, [handler.dataPrefix, '*.mat']));
                     if ~isempty(d)
                         if ~handler.cleardir
-                            warning('ResultHandler:FilesExist', ...
-                                'Input directory not clean, consider calling ''resetData''');
+                            dispif(handler.verbose > 1, ...
+                                ['Input directory not clean, consider calling', ...
+                                ' ''resetData'' to remove pre-existing results.\n']);
                         else
                             handler.resetData();
                         end

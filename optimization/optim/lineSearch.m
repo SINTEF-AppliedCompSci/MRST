@@ -27,7 +27,7 @@ function [u, v, g, info] = lineSearch(u0, v0, g0, d, f, c, opt)
 %   nits : number of iterations used
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

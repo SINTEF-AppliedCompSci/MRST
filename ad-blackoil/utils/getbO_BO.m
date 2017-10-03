@@ -1,14 +1,14 @@
-function bG = getbO_BO(model, p, rs, isSaturated)
+function bO = getbO_BO(model, p, rs, isSaturated)
 % Utility function for evaluating the reciprocal oil formation volume
 % factor function.
     if isprop(model, 'disgas') && model.disgas
-        bG = model.fluid.bO(p, rs, isSaturated);
+        bO = model.fluid.bO(p, rs, isSaturated);
     else
-        bG = model.fluid.bO(p);
+        bO = model.fluid.bO(p);
     end
 end
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

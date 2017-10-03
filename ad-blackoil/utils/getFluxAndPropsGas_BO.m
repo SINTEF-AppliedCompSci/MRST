@@ -55,7 +55,7 @@ function [vG, bG, mobG, rhoG, pG, upcg, dpG] = getFluxAndPropsGas_BO(model, pO, 
 %   getFluxAndPropsOil_BO, getFluxAndPropsWater_BO
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -109,7 +109,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 end
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

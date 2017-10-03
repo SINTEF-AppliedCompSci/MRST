@@ -47,7 +47,7 @@ function varargout = plotWellSols(wellsols, varargin)
 %   simulateScheduleAD
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -77,7 +77,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         % Single input, wrap in cell
         wellsols = {wellsols};
     end
-    
+    warning('ON', 'mrst:badcumsum');
     timesteps = validateTimesteps(wellsols, timesteps);
     
     % Timesteps are either cumulative or individual timesteps. Try to
@@ -93,7 +93,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'linewidth',    2, ...
                  'field',       'bhp', ...
                  'linestyles', {{'-', '--', '-.', ':'}}, ...
-                 'markerstyles', {{'o', '.', 'd', '*'}}, ...
+                 'markerstyles', {{'o', 'x', 'd', 's', 'd', '^', 'v', '>', '<', '*'}}, ...
                  'timescale',   'days', ...
                  'figure',      [], ...
                  'datasetnames', {{}});
@@ -161,7 +161,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     unitsel = uicontrol('Units', 'normalized', 'Parent', ctrlpanel,...
               'Style', 'popup',...
-              'String', {'SI', 'Field', 'Lab'}, 'Callback', @drawPlot, ...
+              'String', {'Metric', 'SI', 'Field', 'Lab'}, 'Callback', @drawPlot, ...
               'Position',[leftOffset, .85, blocksz/2, .1]);
     timechoices = {'Years', 'Days', 'Hours', 'Minutes', 'Seconds'};
     timescales = [year(), day(), hour(), minute(), second()];
@@ -337,7 +337,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 [tit, d, yl, doCsum] ...
                     = getWellUnit(d, fld, ...
                                   getFieldString(unitsel, true), ...
-                                  get(csum,'Value'));
+                                  get(csum,'Value'), ...
+                                  hasTimesteps);
                 ylabel(yl);
                 if doCsum
                     d = cumtrapz(x*xunit, d);
@@ -524,13 +525,36 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 end
 
-function [tit, d, yl, doCsum] = getWellUnit(d, fld, usys, isCsum)
-    isMetric = strcmpi(usys, 'si');
-    isField = strcmpi(usys, 'field');
-    
-    doCsum = false;
+function [tit, d, yl, doCsum] = getWellUnit(d, fld, usys, isCsum, hasTimesteps)    
+    doCsum = isCsum;
     yl = '';
     tit = fld;
+    
+    if hasTimesteps
+        switch lower(usys)
+            case 'metric'
+                t_unt = day();
+                t_str = 'day';
+            case 'field'
+                t_unt = day();
+                t_str = 'day';
+            case 'si'
+                t_unt = second();
+                t_str = 's';
+            case 'lab'
+                t_unt = hour();
+                t_str = 'hour';
+        end
+    else
+        t_unt = 1;
+        t_str = 'timestep';
+        if isCsum
+            warning('mrst:badcumsum', ['Timesteps not provided to plotWellSols,', ...
+                    ' cumulative sum will not be accurate']);
+            warning('OFF', 'mrst:badcumsum');
+        end
+    end
+    
     switch lower(fld)
         case {'qws', 'qos', 'qgs', 'rate', 'qts', 'qwr', 'qgr', 'qor', 'qtr'}
             switch lower(fld)
@@ -544,11 +568,11 @@ function [tit, d, yl, doCsum] = getWellUnit(d, fld, usys, isCsum)
                     ph = 'total';
             end
             
-            doCsum = isCsum;
-            
             if numel(fld) == 3 && lower(fld(3)) == 'r'
+                isRes = true;
                 tmp = 'reservoir';
             else
+                isRes = false;
                 tmp = 'surface';
             end
             if isCsum
@@ -556,43 +580,42 @@ function [tit, d, yl, doCsum] = getWellUnit(d, fld, usys, isCsum)
             else
                 tit = [fld, ': Well ', tmp, ' rate (', ph, ')'];
             end
-            if isMetric
-                % Metric
-                if isCsum,
-                    yl = 'm^3';
-                else
-                    yl = 'm^3/s';
-                end
-            elseif isField
-                % Field units
-                if isCsum
-                    yl = 'stb';
-                    d  = convertTo(d, stb);
-                else
-                    yl = 'stb/day';
-                    d = convertTo(d, stb/day);
-                end
-            else
-                % Lab units
-                if isCsum
-                    yl = 'cm^3';
-                    d  = convertTo(d, (centi*meter)^3);
-                else
-                    yl = 'cm^3/hour';
-                    d = convertTo(d, (centi*meter)^3/hour);
-                end
+            switch lower(usys)
+                case 'metric'
+                    y_str = 'm^3';
+                    y_unit = meter^3;
+                case 'field'
+                    if isRes
+                        y_str = 'stb';
+                        y_unit = stb;
+                    else
+                        if strcmpi(ph, 'gas')
+                            y_str = 'scf';
+                            y_unit = ft^3;
+                        else
+                            y_str = 'stb';
+                            y_unit = stb;
+                        end
+                    end
+                case 'si'
+                    y_str = 'm^3';
+                    y_unit = meter^3;
+                case 'lab'
+                    y_str = 'cm^3';
+                    y_unit = (centi*meter)^3;
             end
+            if isCsum
+                d = convertTo(d, y_unit);
+                yl = y_str;
+            else
+                d = convertTo(d, y_unit/t_unt);
+                yl = [y_str, '/', t_str];
+            end
+            doCsum = isCsum;
         case {'bhp', 'pressure'}
             tit = [fld, ': Bottom hole pressure'];
-            if isMetric
-                yl = 'Pascal';
-            elseif isField
-                yl = 'Barsa';
-                d = convertTo(d, barsa);
-            else
-                yl = 'atm';
-                d = convertTo(d, atm());
-            end
+            [y_unit, yl] = getPressureUnit(usys);
+            d = convertTo(d, y_unit);
         case 'gor'
             tit = [fld, ': Gas/oil ratio at surface conditions'];
             doCsum = isCsum;
@@ -605,22 +628,15 @@ function [tit, d, yl, doCsum] = getWellUnit(d, fld, usys, isCsum)
                 case 'w'
                     t = 'Water';
             end
-            tit = [fld, ': ', t, ' fraction at reservoir conditions'];
+            tit = [fld, ': ', t, ' volume fraction at reservoir conditions'];
         case 'sign'
             tit = [fld, ': Well sign (+1 for injector, -1 for producer)'];
         case 'val'
             tit = [fld, ': Well control value'];
         case 'cdp'
             tit = [fld, ': Pressure drop from reference depth to first perforation'];
-            if isMetric
-                yl = 'Pascal';
-            elseif isField
-                yl = 'Barsa';
-                d = convertTo(d, barsa);
-            else
-                yl = 'atm';
-                d = convertTo(d, atm());
-            end
+            [y_unit, yl] = getPressureUnit(usys);
+            d = convertTo(d, y_unit);
         otherwise
             disp('Unknown well field - no unit found');
     end
@@ -662,5 +678,22 @@ function timesteps = validateTimesteps(wellsols, timesteps)
         tmp = cell(size(wellsols));
         [tmp{:}] = deal(timesteps{1});
         timesteps = tmp; clear tmp
+    end
+end
+
+function [unit, str] = getPressureUnit(usys)
+    switch lower(usys)
+        case 'metric'
+            str = 'barsa';
+            unit = barsa;
+        case 'field'
+            str = 'psia';
+            unit = psia;
+        case 'si'
+            str = 'Pascal';
+            unit = Pascal;
+        case 'lab'
+            str = 'atm';
+            unit = atm;
     end
 end

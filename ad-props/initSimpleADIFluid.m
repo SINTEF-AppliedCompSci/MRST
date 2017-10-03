@@ -100,7 +100,7 @@ function fluid = initSimpleADIFluid(varargin)
 %                            'c',       [1e-5, 0]/barsa);
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -170,9 +170,9 @@ end
 end
 
 function B = constantReciprocalFVF(p, varargin)
-B = p*0 + 1;
+B = p.*0 + 1;
 end
 
 function mu = constantViscosity(mu, p, varargin)
-mu = p*0 + mu;
+mu = p.*0 + mu;
 end

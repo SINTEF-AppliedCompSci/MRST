@@ -1,11 +1,12 @@
 % MODEL2D
 %
 % Files
-%   analyseModel2D  - NPV - analysis for a simple 2D model  
-%   optimizeModel2D - optimizeModel2D - optimize NPV for example-model of this folder
+%   analyseModel2D       - NPV - analysis for a simple 2D model  
+%   optimizeModel2D      - optimizeModel2D - optimize NPV for example-model of this folder
+%   sensitivitiesModel2D - sensitivitiesModel2D - analyse sensitivity capabilities 
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

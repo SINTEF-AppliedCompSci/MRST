@@ -20,9 +20,9 @@ mrstModule add ad-blackoil ad-core ad-props deckformat
 % values. This is not always easy to see directly from the tables, but by
 % using the fluid inspector it is straightforward.
 [G, rock, fluid, deck] = setupSPE1();
-model_spe1 = selectModelFromDeck(G, rock, fluid, deck);
+spe1 = selectModelFromDeck(G, rock, fluid, deck);
 
-inspectFluidModel(model_spe1)
+inspectFluidModel(spe1, 'pressureRange', (0:10:500)*barsa)
 
 %% Inspect the SPE9 fluid model
 % Another standard black-oil test case is the SPE9 model. For more
@@ -32,9 +32,9 @@ inspectFluidModel(model_spe1)
 % Of particular interest in this case is the non-zero capillary pressure,
 % and the highly irregular relative permeability curves.
 [G, rock, fluid, deck] = setupSPE9();
-model_spe9 = selectModelFromDeck(G, rock, fluid, deck);
+spe9 = selectModelFromDeck(G, rock, fluid, deck);
 
-inspectFluidModel(model_spe9)
+inspectFluidModel(spe9)
 
 %% Set up a two-phase oil-water fluid and inspect it
 % We can use the inspection utility to get a better understanding of how
@@ -49,11 +49,13 @@ fluid = initSimpleADIFluid('phases', 'WO', ...
                            'c',   [0, 1e-4/barsa]);
 srw = 0.2;
 sro = 0.3;
-% Fluid relative permeabilities
-fluid.krW = coreyPhaseRelpermAD(2, srw, 1, srw + sro);
-fluid.krO = coreyPhaseRelpermAD(4, sro, 1, srw + sro);
+
+% Fluid relative permeabilities (use name convention from SWOF keyword)
+fluid.krW  = coreyPhaseRelpermAD(2, srw, 1, srw + sro);
+fluid.krOW = coreyPhaseRelpermAD(4, sro, 1, srw + sro);
 
 model_ow = TwoPhaseOilWaterModel([], [], fluid);
+
 % Inspect model, and specify pressure range of interest
 inspectFluidModel(model_ow, 'pressureRange', (250:10:500)*barsa);
 
@@ -61,7 +63,7 @@ inspectFluidModel(model_ow, 'pressureRange', (250:10:500)*barsa);
 
 % <html>
 % <p><font size="-1">
-% Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+% Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 % </font></p>
 % <p><font size="-1">
 % This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).

@@ -28,7 +28,8 @@ function grad = computeGradientPerturbationAD(state0, model, schedule, getObject
 %   schedule     - Schedule suitable for simulateScheduleAD.
 %
 %   getObjective - Function handle for getting objective function value 
-%                  from a set of wellSols. Format: @(wellSols)
+%                  from a set of wellSols. 
+%                  Function handle format: @(wellSols, states, schedule)
 %
 % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
 %   
@@ -48,7 +49,7 @@ function grad = computeGradientPerturbationAD(state0, model, schedule, getObject
 %   computeGradientAdjointAD, simulateScheduleAD
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -84,9 +85,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     [wellSols,states] = solve(schedule0);
 
     % Set up objective function storage
-    computeObj = @(ws,states) sum(cell2mat(getObjective(ws,states)));
-    val0 = computeObj(wellSols,states);
-    %val0 = computeObj([]);
+    computeObj = @(ws,states,schedule) sum(cell2mat(getObjective(ws,states,schedule)));
+    val0 = computeObj(wellSols,states,schedule0);
 
     grad = cell(1, numel(schedule0.control));
     % Run a schedule per well, for each control step, perturbing the
@@ -115,7 +115,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             schedule.control(cn).W(k) = w;
             
             [wellSols,states] = solve(schedule);
-            valk = sum( cell2mat(getObjective(wellSols,states)));
+            valk = sum( cell2mat(getObjective(wellSols,states,schedule)));
             grad{cn}(k) = (valk-val0)/e;
         end
     end

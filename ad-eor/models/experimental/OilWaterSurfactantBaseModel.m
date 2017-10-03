@@ -84,6 +84,5 @@ classdef OilWaterSurfactantBaseModel < TwoPhaseOilWaterModel
             state.SURFST  = double(sigma);
             % state.SURFADS = double(ads);
         end
-
     end
 end

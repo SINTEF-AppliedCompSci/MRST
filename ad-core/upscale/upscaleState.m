@@ -21,7 +21,7 @@ function state = upscaleState(coarsemodel, model, state)
 %
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -45,6 +45,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     pvf = model.operators.pv;
     
     counts = accumarray(p, 1);
+    state_f = state;
     
     nph = size(state.s, 2);
     pvs = bsxfun(@times, state.s, pvf);
@@ -63,12 +64,31 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
     end
     
+    if isprop(model, 'disgas') && model.disgas && isfield(state, 'rs')
+        sO = model.getProp(state_f, 'sO');
+        sO_c = coarsemodel.getProp(state, 'sO');
+        state.rs = accumarray(p, sO.*state.rs.*pvf)./(sO_c.*pvc);
+        state.rs(~isfinite(state.rs)) = 0;
+    end
+    if isprop(model, 'vapoil') && model.vapoil && isfield(state, 'rv')
+        sG = model.getProp(state_f, 'sG');
+        sG_c = coarsemodel.getProp(state, 'sG');
+        state.rv = accumarray(p, sG.*state.rv.*pvf)./(sG_c.*pvc);
+        state.rv(~isfinite(state.rv)) = 0;
+    end
     % Average the pressure (not entirely correct for compressible systems,
     % but we won't start evaluating properties in here).
     state.pressure = accumarray(p, state.pressure)./counts;
     if isfield(state, 'T')
         state.T = accumarray(p, state.T)./counts;
     end
-    
-    state.flux = zeros(CG.faces.num, nph);
+    if isfield(state, 'flux')
+        cfsign = fineToCoarseSign(CG);
+        cfacesno = rldecode(1:CG.faces.num, diff(CG.faces.connPos), 2) .';
+        newflux = zeros(CG.faces.num, size(state.flux, 2));
+        for i = 1:size(state.flux, 2)
+            newflux(:, i)   = accumarray(cfacesno, state.flux(CG.faces.fconn, i) .* cfsign);
+        end
+        state.flux = newflux;
+    end
 end

@@ -13,6 +13,7 @@ rock.perm  = 100*milli*ones(G.cells.num,1)*darcy;
 rock.poro  = ones(G.cells.num,1)*0.1;
 rock.lambdaR=ones(G.cells.num,1)*4;
 % Create fluid
+p_res=200*barsa;
 fluid = initSimpleADIFluid('mu', 1*centi*poise, 'rho', 1000,'phases','W');
 fluid.pvMultR  =@(p) 1+1e-5*(p-p_res)/barsa; %to avoid well closing due to incomp.
 fluid.bW=@(p) 1+(p-p_res)*1e-4/barsa;
@@ -46,7 +47,9 @@ else
         'Type', 'bhp', 'Val', 100*barsa+p_res, ...
         'Radius', 0.3, 'Name', 'P1','Comp_i',[0 1],'sign',1);
 end
-    
+for i=1:numel(W)
+	W(i).lims=inf;
+end
 dt=diff(linspace(0,100,20)*day);
 W_c={W};
 step=struct('control',ones(numel(dt),1),'val',dt);
@@ -117,7 +120,7 @@ end
 
 % <html>
 % <p><font size="-1">
-% Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+% Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 % </font></p>
 % <p><font size="-1">
 % This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).

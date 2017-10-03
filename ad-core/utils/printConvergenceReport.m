@@ -16,14 +16,15 @@ function printConvergenceReport(names, values, converged, iteration)
 %   values    - Double array of length N, where each entry corresponds to 
 %               the current value of the different named measures.
 %
-%   converged - Boolean indicating if convergence has been achieved.
+%   converged - Boolean for each value indicating if convergence has been
+%               achieved for that value.
 %
 % RETURNS:
 %   Nothing.
 %
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -52,10 +53,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     fprintf('| %4d ', iteration);
     for i = 1:numel(values)
         linen = max(nl(i), 8);
-        fprintf(['| %-', num2str(linen), '.2e '], values(i));
+        fprintf('|');
+        if converged(i)
+            fprintf('*');
+        else
+            fprintf(' ');
+        end
+        fprintf(['%-', num2str(linen), '.2e '], values(i));
     end
     fprintf('|\n')
-    if converged
+    if all(converged & iteration > 1)
         fprintf('%s\n', sep);
     end
 end

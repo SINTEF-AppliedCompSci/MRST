@@ -142,7 +142,7 @@ if model.extraStateOutput
 end
 % well equations
 if ~isempty(W)
-    wflux = vertcat(wellSol.flux);
+    wflux = sum(vertcat(wellSol.flux), 2);
     cqs = vertcat(wellSol.cqs);
 
     perf2well = getPerforationToWellMapping(W);
@@ -183,11 +183,11 @@ if ~isempty(W)
     wflux_G = bGqG;
 
     if disgas
-        wflux_G = wflux_G + bOqO.*rs(wc);
+        wflux_G = wflux_G + ~isInj.*bOqO.*rs(wc);
     end
 
     if vapoil
-        wflux_O = wflux_O + bGqG.*rv(wc);
+        wflux_O = wflux_O + ~isInj.*bGqG.*rv(wc);
     end
 
     for i = 1:numel(W)
@@ -199,30 +199,17 @@ if ~isempty(W)
 end
 
 [eqs, names, types] = deal(cell(1,2));
+[types{:}] = deal('cell');
+ix = 1;
 if opt.solveForWater
     % water eq:
     wat = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 ) + s.Div(bWvW);
     if ~isempty(W)
         wat(wc) = wat(wc) - wflux_W;
     end
-else
-    wat = [];
-end
-
-if opt.solveForGas
-    % gas eq:
-    if disgas
-        gas = (s.pv/dt).*( pvMult.* (bG.* sG  + rs.* bO.*sO) - ...
-                              pvMult0.*(bG0.*sG0 + rs0.*bO0.*sO0 ) ) + ...
-                 s.Div(bGvG + rsbOvO);
-    else
-        gas = (s.pv/dt).*( pvMult.*bG.*sG - pvMult0.*bG0.*sG0 ) + s.Div(bGvG);
-    end
-    if ~isempty(W)
-        gas(wc) = gas(wc) - wflux_G;
-    end
-else
-    gas = [];
+    eqs{ix} = wat;
+    names{ix} = 'water';
+    ix = ix + 1;
 end
 
 if opt.solveForOil
@@ -237,38 +224,47 @@ if opt.solveForOil
     if ~isempty(W)
         oil(wc) = oil(wc) - wflux_O;
     end
-else
-    oil = [];
+    eqs{ix} = oil;
+    names{ix} = 'oil';
+    ix = ix + 1;
 end
 
-phaseEqs = {wat, oil, gas};
-% Add in any fluxes / source terms prescribed as boundary conditions.
-phaseEqs = addFluxesFromSourcesAndBC(model, phaseEqs, ...
-                                       {pFlow, pFlow, pFlow},...
-                                       {rhoW, rhoO, rhoG},...
-                                       {mobW, mobO, mobG}, ...
-                                       {bW, bO, bG},  ...
-                                       {sW, sO, sG}, ...
-                                       drivingForces);
-ix = 1;
-active = [opt.solveForWater, opt.solveForOil, opt.solveForGas];
-enames = {'water', 'oil', 'gas'};
-for i = 1:numel(active)
-    if active(i)
-        names{ix} = enames{i};
-        types{ix} = 'cell';
-        eqs{ix} = phaseEqs{i};
-        if ~model.useCNVConvergence
-            eqs{ix} = eqs{ix}.*(dt./s.pv);
-        end
-        ix = ix + 1;
+if opt.solveForGas
+    % gas eq:
+    if disgas
+        gas = (s.pv/dt).*( pvMult.* (bG.* sG  + rs.* bO.*sO) - ...
+                              pvMult0.*(bG0.*sG0 + rs0.*bO0.*sO0 ) ) + ...
+                 s.Div(bGvG + rsbOvO);
+    else
+        gas = (s.pv/dt).*( pvMult.*bG.*sG - pvMult0.*bG0.*sG0 ) + s.Div(bGvG);
+    end
+    if ~isempty(W)
+        gas(wc) = gas(wc) - wflux_G;
+    end
+    eqs{ix} = gas;
+    names{ix} = 'gas';
+end
+
+rho = {rhoW, rhoO, rhoG};
+mob = {mobW, mobO, mobG};
+sat = {sW, sO, sG};
+dissolved = model.getDissolutionMatrix(rs, rv);
+
+eqs = addBoundaryConditionsAndSources(model, eqs, names, types, state, ...
+                                     {pW, p, pG}, sat, mob, rho, ...
+                                     dissolved, {}, ...
+                                     drivingForces);
+
+if ~model.useCNVConvergence
+    for i = 1:numel(eqs)
+        eqs{i} = eqs{i}.*(dt./s.pv);
     end
 end
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 end
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

@@ -17,25 +17,21 @@ s = model.operators;
 f = model.fluid;
 
 [p, sW, wellSol] = model.getProps(state, 'pressure', 'water', 'wellsol');
-[p0, sW0] = model.getProps(state0, 'pressure', 'water');
+[p0, sW0, wellSol0] = model.getProps(state0, 'pressure', 'water', 'wellsol');
 
-
-pBH    = vertcat(wellSol.bhp);
-qWs    = vertcat(wellSol.qWs);
-qOs    = vertcat(wellSol.qOs);
+[wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
 
 %Initialization of independent variables ----------------------------------
 
 if ~opt.resOnly,
     % ADI variables needed since we are not only computing residuals.
     if ~opt.reverseMode,
-        [p, qWs, qOs, pBH] = ...
-            initVariablesADI(p, qWs, qOs, pBH);
+        [p, wellVars{:}] = initVariablesADI(p, wellVars{:});
     else
         assert(0, 'Backwards solver not supported for splitting');
     end
 end
-primaryVars = {'pressure', 'qWs', 'qOs', 'bhp'};
+primaryVars = {'pressure', wellVarNames{:}};
 
 p_prop = opt.propsPressure;
 otherPropPressure = ~isempty(p_prop);
@@ -96,77 +92,37 @@ bWvW = s.faceUpstr(upcw, bW).*vW;
 
 oil = (s.pv/dt).*( pvMult.*bO.*sO - pvMult0.*bO0.*sO0) + s.Div(bOvO);
 % water:
-wat = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 ) + s.Div(bWvW);
+water = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 ) + s.Div(bWvW);
 
-eqTmp = {wat, oil};
-[eqTmp, ~, qRes] = addFluxesFromSourcesAndBC(model, eqTmp, ...
-                                       {pW, p},...
-                                       {rhoW,     rhoO},...
-                                       {mobW,     mobO}, ...
-                                       {bW, bO},  ...
-                                       {sW, sO}, ...
-                                       drivingForces);
-wat = eqTmp{1};
-oil = eqTmp{2};
+eqs = {water, oil};
 
-if model.outputFluxes
-    state = model.storeBoundaryFluxes(state, qRes{1}, qRes{2}, [], drivingForces);
-end
-[eqs, names, types] = deal({});
+rho = {rhoW, rhoO};
+mob = {mobW, mobO};
+sat = {sW, sO};
 
-% well equations
-if ~isempty(W)
-    wc    = vertcat(W.cells);
-    perf2well = getPerforationToWellMapping(W);
-    if opt.staticWells
-        q = vertcat(state.wellSol.flux);
-        
-        qW = q(:, 1);
-        qO = q(:, 2);
-        
-        cqs = {bW(wc).*qW, bO(wc).*qO};
-    else
-        pw   = p(wc);
-        rhos = [f.rhoWS, f.rhoOS];
-        bw   = {bW(wc), bO(wc)};
-        mw   = {mobW(wc), mobO(wc)};
-        sat = {sW(wc), 1 - sW(wc)};
+names = {'water', 'oil'};
+types = {'cell', 'cell'};
+[eqs, state] = addBoundaryConditionsAndSources(model, eqs, names, types, state, ...
+                                                                 {pW, p}, sat, mob, rho, ...
+                                                                 {}, {}, ...
+                                                                 drivingForces);
+% Finally, add in and setup well equations
+dissolved = {};
+[eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, wellVars, wellMap, p, mob, rho, dissolved, {}, dt, opt);
 
-        wm = model.wellmodel;
-        [cqs, weqs, ctrleqs, wc, state.wellSol, cqr]  = wm.computeWellFlux(model, W, wellSol, ...
-                                             pBH, {qWs, qOs}, pw, rhos, bw, mw, sat, {},...
-                                             'nonlinearIteration', opt.iteration);
-        eqs(2:3) = weqs;
-        eqs{4} = ctrleqs;
-
-        qW = cqr{1};
-        qO = cqr{2};
-        
-        names(2:4) = {'oilWells', 'waterWells', 'closureWells'};
-        types(2:4) = {'perf', 'perf', 'well'};
-
-    end
-    
-    wat(wc) = wat(wc) - cqs{1};
-    oil(wc) = oil(wc) - cqs{2};
-end
-
-eqs{1} = (dt./s.pv).*(oil./bO + wat./bW);
+eqs{1} = (dt./s.pv).*(eqs{1}./bW + eqs{2}./bO);
 names{1} = 'pressure';
 types{1} = 'cell';
+eqs = eqs([1, 3:end]);
+names = names([1, 3:end]);
+types = types([1, 3:end]);
 
 state.timestep = dt;
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
-
-for i = 1:numel(W)
-    wp = perf2well == i;
-    state.wellSol(i).flux = [double(qW(wp)), double(qO(wp))];
-end
-
 end
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

@@ -47,11 +47,10 @@ classdef PressureBlackOilModel < ThreePhaseBlackOilModel
             if ~isnan(problem.iterationNo) && model.useIncTol
                 if problem.iterationNo  > 1
                     values(1) = norm(problem.state.dpRel, inf);
-                    convergence = all([values(1) < model.incTolPressure, values(2:end) < model.nonlinearTolerance]);
                 else
                     values(1) = inf;
-                    convergence = false;
                 end
+                convergence = [values(1) < model.incTolPressure, values(2:end) < model.nonlinearTolerance];
                 names{1} = 'Delta P';
             end
         end
@@ -59,7 +58,7 @@ classdef PressureBlackOilModel < ThreePhaseBlackOilModel
 end
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

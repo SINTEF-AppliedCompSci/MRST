@@ -14,10 +14,31 @@ classdef FastAD
             h = times(u, power(v, -1));
         end
         
+        function u = sum(u)
+            u.val = sum(u.val);
+            u.jac = sum(u.jac, 1);
+        end
+        
+      function h = gt(u, v)
+          h = gt(double(u), double(v));
+      end
+
+      %--------------------------------------------------------------------
+
+      function h = le(u, v)
+          h = le(double(u), double(v));
+      end
+
+      %--------------------------------------------------------------------
+
+      function h = lt(u, v)
+          h = lt(double(u), double(v));
+      end
+        
         function u = plus(u, v)
             if isa(u, 'FastAD') && isa(v, 'FastAD')
                 u.val = u.val + v.val;
-                u.jac = u.jac + v.jac;
+                u.jac = bsxfun(@plus, u.jac, v.jac);
             elseif isa(u, 'FastAD')
                 u.val = u.val + v;
             else
@@ -34,7 +55,17 @@ classdef FastAD
             u.val = -u.val;
             u.jac = -u.jac;
         end
-        
+
+        function u = max(u, v)
+            if nargin == 1
+                [u.val, index] = max(u.val);
+                u.jac = u.jac(index, :);
+            else
+                uLarger = double(u) > double(v);
+                u = uLarger.*u + ~uLarger.*v;
+            end
+        end
+
         function h = log(u)
             logu = log(u.val);
             h  = FastAD(logu, bsxfun(@times, 1./u.val, u.jac));
@@ -73,8 +104,8 @@ classdef FastAD
                 jj = bsxfun(@times, vv.*log(u), v.jac);
             else % u and v are both ADI
                 vv = u.val.^v.val;
-                jj = bsxfun(@plus, bsxfun(@times, vv.*(v.val./u.val), u.jac), ...
-                                   bsxfun(@times, vv.*log(u.val), u.jac));
+                jj = bsxfun(@mtimes, vv.*(v.val./u.val), u.jac) +...
+                     bsxfun(@mtimes, vv.*log(u.val), v.jac);
             end
             h = FastAD(vv, jj);
         end
@@ -82,7 +113,7 @@ classdef FastAD
 end
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

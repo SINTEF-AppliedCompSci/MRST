@@ -64,6 +64,8 @@ classdef SequentialPressureTransportModel < ReservoirModel
             if ~isempty(model.pressureLinearSolver)
                 model.pressureNonLinearSolver.LinearSolver = ...
                                 model.pressureLinearSolver;
+                model.pressureNonLinearSolver.maxTimestepCuts = 0;
+                model.pressureNonLinearSolver.errorOnFailure = false;
             end
             
             if ~isempty(model.transportLinearSolver)
@@ -89,9 +91,11 @@ classdef SequentialPressureTransportModel < ReservoirModel
                 psolver.solveTimestep(state0, dt, model.pressureModel,...
                             'initialGuess', state, ...
                             forceArg{:});
-            pressure_ok = pressureReport.Converged;
+            pressure_ok = pressureReport.Converged || psolver.continueOnFailure;
             
             if pressure_ok
+                state.timestep = dt;
+                state.pressure_full = state.pressure;
                 % If pressure converged, we proceed to solve the transport
                 [state, transportReport] = ...
                     tsolver.solveTimestep(state0, dt, model.transportModel,...
@@ -102,7 +106,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
                 transport_ok = false;
                 transportReport = [];
             end
-            values = pressureReport.StepReports{end}.NonlinearReport{end}.Residuals;
+            
 
             converged = pressure_ok && transport_ok;
             if converged && ~model.stepFunctionIsLinear
@@ -111,18 +115,22 @@ classdef SequentialPressureTransportModel < ReservoirModel
                 % converged after the transport step. This check ensures
                 % that the assumption of fixed total velocity is reasonable
                 % up to some tolerance.
-                problem = model.pressureModel.getEquations(state0, state, dt, drivingForces, 'resOnly', true, 'iteration', inf);
-                % Is the pressure still converged when accounting for the
-                % updated quantities after transport (mobility, density
-                % and so on?)
-                [~, values] = model.pressureModel.checkConvergence(problem);
+                if isa(model.pressureModel, 'PressureNaturalVariablesModel')
+                    values = max(abs(sum(state.s, 2) - 1));
+                else
+                    problem = model.pressureModel.getEquations(state0, state, dt, drivingForces, 'resOnly', true, 'iteration', inf);
+                    % Is the pressure still converged when accounting for the
+                    % updated quantities after transport (mobility, density
+                    % and so on?)
+                    [~, values] = model.pressureModel.checkConvergence(problem);
+                end
                 if model.outerCheckWellConvergence
-                    converged = all(values < model.outerTolerance);
                     lv = max(values);
                 else
-                    converged = values(1) < model.outerTolerance;
+                    values = values(1);
                     lv = values(1);
                 end
+                converged = all(values < model.outerTolerance);
                 converged = converged || iteration > model.maxOuterIterations;
                 if model.verbose
                     if converged
@@ -133,18 +141,20 @@ classdef SequentialPressureTransportModel < ReservoirModel
                     fprintf('OUTER LOOP step #%d with tolerance %1.4e: Largest value %1.4e -> %s \n', ...
                                                             iteration, model.outerTolerance, lv, s);
                 end
-            end
-            if ~pressure_ok
-                FailureMsg = 'Pressure failed to converge.';
-                failure = true;
             else
-                failure = false;
-                FailureMsg = '';
+                % Need to have some value
+                values = pressureReport.StepReports{end}.NonlinearReport{end}.Residuals(1);
+            end
+            failure = false;
+            FailureMsg = '';
+            if ~pressure_ok
+                converged = converged && false;
             end
             report = model.makeStepReport(...
                                     'Failure',         failure, ...
                                     'Converged',       converged, ...
                                     'FailureMsg',      FailureMsg, ...
+                                    'ResidualsConverged', converged, ...
                                     'Residuals',       values ...
                                     );
                                 
@@ -171,7 +181,17 @@ classdef SequentialPressureTransportModel < ReservoirModel
             % Pressure comes first, so validate that.
             state = model.pressureModel.validateState(state);
         end
-        
+
+        function [model, state] = updateForChangedControls(model, state, forces)
+            [model.pressureModel, state] = model.pressureModel.updateForChangedControls@PhysicalModel(state, forces);
+        end
+
+        function model = validateModel(model, varargin)
+            model.pressureModel = model.pressureModel.validateModel(varargin{:});
+            model.transportModel = model.transportModel.validateModel(varargin{:});
+            return
+        end
+
         function [fn, index] = getVariableField(model, name)
             [fn, index] = model.pressureModel.getVariableField(name);
         end
@@ -179,7 +199,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
 end
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

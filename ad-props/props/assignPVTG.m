@@ -1,15 +1,7 @@
 function f = assignPVTG(f, pvtg, reg)
-f.BG  = @(pg, rv, flag, varargin)BG(pg, rv, pvtg, flag, reg, varargin{:});
 f.bG  = @(pg, rv, flag, varargin)bG(pg, rv, pvtg, flag, reg, varargin{:});
 f.muG = @(pg, rv, flag, varargin)muG(pg, rv, pvtg, flag, reg, varargin{:});
 f.rvSat = @(pg, varargin)rvSat(pg, pvtg, reg, varargin{:});
-end
-
-function v = BG(pg, rv, pvtg, flag, reg, varargin)
-pvtinx = getRegMap(pg, reg.PVTNUM, reg.PVTINX, varargin{:});
-T = pvtg;
-for k = 1:numel(T), T{k}.data = T{k}.data(:,1:2); end
-v = interpRegPVT(T, rv, pg, flag, pvtinx);
 end
 
 function v = bG(pg, rv, pvtg, flag, reg, varargin)
@@ -33,7 +25,7 @@ v = interpReg(T, pg, pvtinx);
 end
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

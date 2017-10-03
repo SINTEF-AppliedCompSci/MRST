@@ -23,7 +23,7 @@ classdef OilWaterSurfactantModel < TwoPhaseOilWaterModel
 %
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -53,7 +53,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             model = model@TwoPhaseOilWaterModel(G, rock, fluid, varargin{:});
             model = model.setupOperators(G, rock, varargin{:});
             model.surfactant = true;
-            model.wellVarNames = {'qWs', 'qOs', 'qWSft', 'bhp'};
             model = merge_options(model, varargin{:});
 
         end
@@ -77,7 +76,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 state = model.setProp(state, 'surfactant', max(c, 0) );
             end
         end
-        
+
         function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
             [state, report] = updateAfterConvergence@TwoPhaseOilWaterModel(model, state0, state, dt, ...
                                                               drivingForces);
@@ -85,10 +84,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                   c     = model.getProp(state, 'surfactant');
                   cmax  = model.getProp(state, 'surfactantmax');
                   state = model.setProp(state, 'surfactantmax', max(cmax, c));
-                  state = updateAdsorption(state0, state, model);
               end
         end
-        
+
         function varargout = evaluateRelPerm(model, sat, varargin)
             error('function evaluateRelPerm is not implemented for surfactant model')
         end
@@ -101,26 +99,29 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
 
         function [fn, index] = getVariableField(model, name)
-        % Get the index/name mapping for the model (such as where
-        % pressure or water saturation is located in state)
             switch(lower(name))
-              case {'ads'} % needed when model.explicitAdsorption
-                index = 1;
-                fn = 'ads';
-              case {'adsmax'} % needed when model.explicitAdsorption
-                index = 1;
-                fn = 'adsmax';
-              case {'surfactant'}
-                index = 1;
-                fn = 'c';
-              case {'surfactantmax'}
-                index = 1;
-                fn = 'cmax';
-              otherwise
-                [fn, index] = getVariableField@TwoPhaseOilWaterModel(...
-                    model, name);
+                case {'surfactant'}
+                    index = 1;
+                    fn = 'c';
+                case {'surfactantmax'}
+                    index = 1;
+                    fn = 'cmax';
+                case 'qwsft'
+                    index = 1;
+                    fn = 'qWSft';
+                otherwise
+                    [fn, index] = getVariableField@TwoPhaseOilWaterModel(...
+                        model, name);
             end
         end
+
+        function names = getComponentNames(model)
+            names = getComponentNames@TwoPhaseOilWaterModel(model);
+            if model.surfactant
+                names{end+1} = 'surfactant';
+            end
+        end
+
 
         function state = storeSurfData(model, state, s, c, Nc, sigma)
             state.SWAT    = double(s);
@@ -130,7 +131,45 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             % state.SURFADS = double(ads);
         end
 
+        function [names, types] = getExtraWellEquationNames(model)
+            [names, types] = getExtraWellEquationNames@TwoPhaseOilWaterModel(model);
+            if model.surfactant
+                names{end+1} = 'surfactantWells';
+                types{end+1} = 'perf';
+            end
+        end
 
+        function names = getExtraWellPrimaryVariableNames(model)
+            names = getExtraWellPrimaryVariableNames@TwoPhaseOilWaterModel(model);
+            if model.surfactant
+                names{end+1} = 'qWSft';
+            end
+        end
+        
+        function [compEqs, compSrc, compNames, wellSol] = getExtraWellContributions(model, well, wellSol0, wellSol, q_s, bh, packed, qMass, qVol, dt, iteration)
+            [compEqs, compSrc, compNames, wellSol] = getExtraWellContributions@TwoPhaseOilWaterModel(model, well, wellSol0, wellSol, q_s, bh, packed, qMass, qVol, dt, iteration);
+            if model.surfactant
+                % Implementation of surfactant source terms.
+                %
+                assert(model.water, 'Surfactant injection requires a water phase.');
+                f = model.fluid;
+                if well.isInjector
+                    concWell = model.getProp(well.W, 'surfactant');
+                else
+                    pix = strcmpi(model.getComponentNames(), 'surfactant');
+                    concWell = packed.components{pix};
+                end
+                qwsft = packed.extravars{strcmpi(packed.extravars_names, 'qwsft')};
+                % Water is always first
+                wix = 1;
+                cqWs = qMass{wix}./f.rhoWS; % get volume rate, at
+                                            % surface condition.
+                cqS = concWell.*cqWs;
+
+                compEqs{end+1} = qwsft - sum(cqWs);
+                compSrc{end+1} = cqS;
+                compNames{end+1} = 'surfactantWells';
+            end
+        end
     end
 end
-

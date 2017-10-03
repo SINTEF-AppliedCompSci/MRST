@@ -64,7 +64,7 @@ function varargout = ...
 %   solvefiADI
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -233,7 +233,7 @@ while tstep <= numel(schedule.step.val)
    proceed_to_next_step = true;
    
    if ~(conv.converged) 
-      if opt.force_step & opt.stop_if_not_converged
+      if opt.force_step && opt.stop_if_not_converged
          error(['You may try time step refinement: set ''force_step'' option equal to false in ', ...
                 'runScheduleADI.']);
       elseif ~opt.force_step

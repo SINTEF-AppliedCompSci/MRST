@@ -2,13 +2,12 @@
 %
 % Files
 %   ThreePhaseBlackOilModel - Three phase with optional dissolved gas and vaporized oil
-%   TwoPhaseOilGasModel     - Two phase oil/gas system
 %   TwoPhaseOilWaterModel   - Two phase oil/water system without dissolution
 %   WaterModel              - Single phase water model. 
 %   WaterThermalModel       - Single phase water model with thermal effects. Should be considered
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -25,3 +24,4 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+

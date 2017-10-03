@@ -2,17 +2,20 @@
 %
 % Files
 %   checkComponentMassBalance - Check mass balance of a simulator run and print to screen
+%   cubicPositive             - Straightforward implementation of a cubic root solver for vectorized
 %   equationsCompositional    - 
+%   ensureMinimumFraction     - 
 %   FastAD                    - 
 %   getSampleAD               - Utility for getting a AD value if it exists from a list of possible
 %   initDeckEOSModel          - Set up a EOS model from a parsed deck
 %   initVariablesFastAD       - 
 %   mrstCubic                 - Straightforward implementation of a cubic root solver for vectorized
 %   newtonFugacityEquilibrium - Single step of the newton update based on fugacity
+%   PhaseStabilityTest        - 
 %   standaloneFlash           - Utility for flashing without explicitly forming a state
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

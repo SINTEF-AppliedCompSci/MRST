@@ -2,6 +2,7 @@ function [problem, state] = equationsCompositional(state0, state, model, dt, dri
 opt = struct('Verbose',     mrstVerbose,...
             'reverseMode', false,...
             'resOnly',     false,...
+            'pressure',    false, ...
             'iteration',   -1);
 
 opt = merge_options(opt, varargin{:});
@@ -10,33 +11,33 @@ opt = merge_options(opt, varargin{:});
 s = model.operators;
 f = model.fluid;
 W = drivingForces.W;
+state.eos.packed = model.EOSModel.getPropertiesFastAD(state.pressure, state.T, state.x, state.y);
 
 fluid = model.fluid;
 compFluid = model.EOSModel.fluid;
 
-state = model.computeFlash(state, dt, opt.iteration);
+% state = model.computeFlash(state, dt, opt.iteration);
 % Properties at current timestep
 [p, sW, z, temp, wellSol] = model.getProps(state, ...
     'pressure', 'water', 'z', 'T', 'wellSol');
 assert(all(p>0), 'Pressure must be positive for compositional model');
 
-[p0, sW0, z0, temp0] = model.getProps(state0, ...
-    'pressure', 'water', 'z', 'T');
+[p0, sW0, z0, temp0, wellSol0] = model.getProps(state0, ...
+    'pressure', 'water', 'z', 'T', 'wellSol');
 
-bhp    = vertcat(wellSol.bhp);
-qWs    = vertcat(wellSol.qWs);
-qOs    = vertcat(wellSol.qOs);
-qGs    = vertcat(wellSol.qGs);
+[wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
 
 ncomp = numel(z);
 cnames = model.EOSModel.fluid.names;
 if model.water
-    [p, z{1:ncomp-1}, sW, qWs, qOs, qGs, bhp] = initVariablesADI(p, z{1:ncomp-1}, sW, qWs, qOs, qGs, bhp);
-    primaryVars = {'pressure', cnames{1:end-1}, 'sW', 'qWs', 'qOs', 'qGs', 'bhp'};
+    [p, z{1:ncomp-1}, sW, wellVars{:}] = initVariablesADI(p, z{1:ncomp-1}, sW, wellVars{:});
+    primaryVars = {'pressure', cnames{1:end-1}, 'sW', wellVarNames{:}};
 else
-    [p, z{1:ncomp-1}, qOs, qGs, bhp] = initVariablesADI(p, z{1:ncomp-1}, qOs, qGs, bhp);
-    primaryVars = {'pressure', cnames{1:end-1}, 'qOs', 'qGs', 'bhp'};
+    [p, z{1:ncomp-1}, wellVars{:}] = initVariablesADI(p, z{1:ncomp-1}, wellVars{:});
+    primaryVars = {'pressure', cnames{1:end-1}, wellVarNames{:}};
 end
+
+
 z{end} = 1;
 for i = 1:(ncomp-1)
     z{end} = z{end} - z{i};
@@ -86,6 +87,10 @@ vG = -s.faceUpstr(upcg, mobG).*T.*dpG;
 rOvO = s.faceUpstr(upco, rhoO).*vO;
 rGvG = s.faceUpstr(upcg, rhoG).*vG;
 
+% state.massFlux = double(rOvO + rGvG);
+state.massesFlux = double(rOvO + rGvG);
+state.volFlux = double(vO + vG);
+
 bO = rhoO./fluid.rhoOS;
 bG = rhoG./fluid.rhoGS;
 % EQUATIONS -----------------------------------------------------------
@@ -104,10 +109,10 @@ if model.water
     rWvW = s.faceUpstr(upcw, rhoW).*vW;
     water = (s.pv/dt).*( rhoW.*pvMult.*sW - rhoW0.*pvMult0.*sW0 ) + s.Div(rWvW);
 else
-    [rWvW, mobW, upcw, bW, rhoW] = deal([]);
+    [vW, mobW, upcw, bW, rhoW] = deal([]);
 end
 if model.outputFluxes
-    state = model.storeFluxes(state, rWvW, rOvO, rGvG);
+    state = model.storeFluxes(state, vW, vO, vG);
 end
 if model.extraStateOutput
     state = model.storebfactors(state, bW, bO, bG);
@@ -120,22 +125,23 @@ end
 % water equation + n component equations
 [eqs, types, names] = deal(cell(1, ncomp + model.water));
 
-if model.water
+woffset = model.water;
+acc = cell(1, ncomp+woffset);
+if woffset
     eqs{1} = water;
     names{1} = 'water';
     types{1} = 'cell';
-    woffset = 1;
-else
-    woffset = 0;
+    acc{1} = (s.pv/dt).*( rhoW.*pvMult.*sW - rhoW0.*pvMult0.*sW0 );
 end
 
 for i = 1:ncomp
     names{i+woffset} = compFluid.names{i};
     types{i+woffset} = 'cell';
 
-    eqs{i+woffset} = (s.pv/dt).*( ...
+    acc{i+woffset} = (s.pv/dt).*( ...
                     rhoO.*pvMult.*sO.*xM{i} - rhoO0.*pvMult0.*sO0.*xM0{i} + ...
-                    rhoG.*pvMult.*sG.*yM{i} - rhoG0.*pvMult0.*sG0.*yM0{i}) ...
+                    rhoG.*pvMult.*sG.*yM{i} - rhoG0.*pvMult0.*sG0.*yM0{i});
+    eqs{i+woffset} = acc{i+woffset} ...
           + s.Div(rOvO.*s.faceUpstr(upco, xM{i}) + rGvG.*s.faceUpstr(upcg, yM{i}));
     if model.water
         pureWater = double(sW) == 1;
@@ -150,93 +156,92 @@ end
 
 
 % Finally, add in and setup well equations
-if ~isempty(W)
-    wm = model.wellmodel;
-    
-    offset = ncomp + woffset;
-    if ~opt.reverseMode
-        % Store cell wise well variables in cell arrays and send to ewll
-        % model to get the fluxes and well control equations.
-        wc    = vertcat(W.cells);
-        pw    = p(wc);
-        w_comp = vertcat(W.components);
-        perf2well = getPerforationToWellMapping(W);
-        a = w_comp(perf2well, :).*repmat(compFluid.molarMass, numel(wc), 1);
-        w_comp = bsxfun(@rdivide, a, sum(a, 2));
-        
-        x_comp = cellfun(@(v) v(wc), xM, 'UniformOutput', false);
-        y_comp = cellfun(@(v) v(wc), yM, 'UniformOutput', false);
-        
-        if model.water
-            rhows = [f.rhoWS, f.rhoOS, f.rhoGS];
-            bw    = {bW(wc), bO(wc), bG(wc)};
-            mw    = {mobW(wc), mobO(wc), mobG(wc)};
-            sat   = {sW(wc), sO(wc), sG(wc)};
-            rates = {qWs, qOs, qGs};
-        else
-            rhows = [f.rhoOS, f.rhoGS];
-            bw    = {bO(wc), bG(wc)};
-            mw    = {mobO(wc), mobG(wc)};
-            sat   = {sO(wc), sG(wc)};
-            rates = {qOs, qGs};
-        end
-        
-        L_ix = woffset + 1;
-        V_ix = woffset + 2;
-        
-        [cqs, weqs, ctrleq, wc, state.wellSol]  = wm.computeWellFlux(model, W, wellSol, ...
-            bhp, rates, pw, rhows, bw, mw, sat, {},...
-            'nonlinearIteration', opt.iteration);
-        
-        eqs(offset + (1:(2 + woffset))) = weqs;
-        eqs{offset + (3 + woffset)} = ctrleq;
-        
-        injO = double(cqs{L_ix}) > 0;
-        injG = double(cqs{V_ix}) > 0;
-        
-        if model.water
-            % Water
-            eqs{1}(wc) = eqs{1}(wc) - fluid.rhoWS.*cqs{1};
-            names(offset + (1:4)) = {'waterWells', 'oilWells', 'gasWells', 'closureWells'};
-            types(offset + (1:4)) = {'perf', 'perf', 'perf', 'well'};
-        else
-            names(offset + (1:3)) = {'oilWells', 'gasWells', 'closureWells'};
-            types(offset + (1:3)) = {'perf', 'perf', 'well'};
-        end
-        
-        srcTot = 0;
-        compSrc = zeros(numel(wc), ncomp);
-        for i = 1:ncomp
-            ix = i + woffset;
-            % Mixture of production and injection. Production uses cell
-            % values for components, injectors use whatever was prescribed
-            % to the well.
-            src =       (fluid.rhoOS.*cqs{L_ix}.*injO + fluid.rhoGS.*cqs{V_ix}.*injG).*w_comp(wm.perf2well, i)...
-                       + fluid.rhoOS.*~injO.*x_comp{i}.*cqs{L_ix} + fluid.rhoGS.*~injG.*y_comp{i}.*cqs{V_ix};
-            
-            eqs{ix}(wc) = eqs{ix}(wc) - src;
-
-            compSrc(:, i) = double(src);
-            srcTot = srcTot + double(src);
-        end
-        fluxt = double(srcTot);
-        for i = 1:numel(W)
-            wp = wm.perf2well == i;
-            state.wellSol(i).flux = fluxt(wp);
-            state.wellSol(i).components = (compSrc(wp, :));
-        end
-    end
-end
-
 if model.water
+    rho = {rhoW, rhoO, rhoG};
+    mob = {mobW, mobO, mobG};
+else
+    rho = {rhoO, rhoG};
+    mob = {mobO, mobG};
+end
+[eqs, names, types, state.wellSol, src] = model.insertWellEquations(eqs, names, ...
+                                                 types, wellSol0, wellSol, ...
+                                                 wellVars, ...
+                                                 wellMap, p, mob, rho, ...
+                                                 {}, {xM, yM}, ...
+                                                 dt, opt);
+
+if model.water && ~opt.pressure
     wscale = dt./(s.pv*mean(double(rhoW)));
     eqs{1} = eqs{1}.*wscale;
 end
+
+if opt.pressure
+    wat = model.water;
+    if opt.resOnly
+        weights = cell(1, ncomp + wat);
+        [weights{:}] = deal(1);
+    else
+        e = vertcat(acc{:});
+        e.jac = e.jac(1:ncomp+wat);
+        c = cat(e);
+        A = c.jac{1};
+
+        ncomp = numel(state.components);
+        ncell = numel(state.pressure);
+        ndof = ncell*(ncomp+wat);% + 3*numel(state.wellSol);
+
+        b = zeros(ndof, 1);
+        b(1:ncell) = 1/barsa;
+
+        Ap = A';
+        w = Ap\b;
+        w = reshape(w, [], ncomp+woffset);
+        
+        weights = cell(ncomp, 1);
+        if 0
+            liq = state.L == 1;
+            vap = state.L == 0;
+            two = ~liq | ~vap;
+            for i = 1:ncomp
+                weights{i+wat} = liq.*(1./rhoO) + w(:, i+wat).*two + vap.*(1./rhoG);
+            end
+            if wat
+                weights{1} = two.*w(:, 1) + ~two.*1./rhoW;
+            end
+        else
+            for i = 1:ncomp+wat
+                weights{i} = w(:, i);
+            end
+        end
+    end
+    peq = 0;
+    for i = 1:ncomp
+        peq = peq + weights{i}.*eqs{i};
+    end
+    active = false(numel(primaryVars), 1);
+    active(1) = true;
+    active(ncomp+wat+1:end) = true;
+
+    eqs{1} = peq;
+    
+    eqs = eqs(active);
+    for i = 1:numel(eqs)
+        eqs{i}.jac = eqs{i}.jac(active);
+    end
+    
+    names{1} = 'pressure';
+
+
+    primaryVars = primaryVars(active);
+    names = names(active);
+    types = types(active);
+end
+
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 end
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

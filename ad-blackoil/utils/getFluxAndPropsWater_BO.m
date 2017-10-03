@@ -46,7 +46,7 @@ function [vW, bW, mobW, rhoW, pW, upcw, dpW] = getFluxAndPropsWater_BO(model, pO
 %   getFluxAndPropsGas_BO, getFluxAndPropsOil_BO
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -71,16 +71,20 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         pcOW  = fluid.pcOW(sW);
     end
     pW = pO - pcOW;
+    muW = fluid.muW(pO);
     
     bW     = fluid.bW(pO);
     rhoW   = bW.*fluid.rhoWS;
     % rhoW on face, average of neighboring cells
     rhoWf  = s.faceAvg(rhoW);
-    mobW   = krW./fluid.muW(pO);
     dpW    = s.Grad(pW) - rhoWf.*gdz;
     % water upstream-index
     upcw  = (double(dpW)<=0);
-    vW = -s.faceUpstr(upcw, mobW).*T.*dpW;
+    [krWf, krW] = s.splitFaceCellValue(upcw, krW);
+    [muWf, muW] = s.splitFaceCellValue(upcw, muW);
+    mobW   = krW./muW;
+    
+    vW = -(krWf./muWf).*T.*dpW;
     if any(bW < 0)
         warning('Negative water compressibility present!')
     end

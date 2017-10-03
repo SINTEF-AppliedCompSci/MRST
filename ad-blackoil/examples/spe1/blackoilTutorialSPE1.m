@@ -45,7 +45,7 @@ schedule = convertDeckScheduleToMRST(model, deck);
 figure;
 plotCellData(G, convertTo(rock.perm(:,1), milli*darcy), ...
              'FaceAlpha', 0.5, 'EdgeAlpha', 0.3, 'EdgeColor', 'k');
-plotWell(G, schedule.control(1).W);    % Pick the only well control present
+plotWell(G, schedule.control(1).W, 'radius',.5); % Pick the only well control present
 title('Permeability (mD)')
 axis tight, view(35, 40), colorbar('SouthOutside');
 
@@ -56,7 +56,9 @@ axis tight, view(35, 40), colorbar('SouthOutside');
 % implements fully implicit ad solvers *without* object orientation) is
 % capable of taking a well structure directly and solve for a single time
 % step in a manner similar e.g., to the incompressible MRST solvers.
-[wellSols, states, report] = simulateScheduleAD(state, model, schedule);
+% schedule.step.val(1) = 10*year;
+nls = NonLinearSolver('useLinesearch', true);
+[wellSols, states, report] = simulateScheduleAD(state, model, schedule, 'nonlinearsolver', nls);
 
 %% Plot the well solutions and simulator states
 % We setup interactive viewers for both well solutions and the reservoir
@@ -78,7 +80,7 @@ prod = find([wellSols{1}.sign] == -1);
 
 % Since there are zero values in the first step of the summary, we ignore
 % the first entry to get better plot axes.
-ind = 2:118;
+ind = 2:size(smry.data,2);
 
 % Put the well solution data into a format more suitable for plotting
 [qWs, qOs, qGs, bhp] = wellSolToVector(wellSols);
@@ -139,7 +141,7 @@ title('Bottom-hole pressure (injector)')
 
 % <html>
 % <p><font size="-1">
-% Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+% Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 % </font></p>
 % <p><font size="-1">
 % This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).

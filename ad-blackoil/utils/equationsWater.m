@@ -53,7 +53,7 @@ function [problem, state] = equationsWater(state0, state, model, dt, drivingForc
 %   equationsBlackOil, ThreePhaseBlackOilModel
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -86,31 +86,21 @@ f = model.fluid;
 
 [p, wellSol] = model.getProps(state, 'pressure', 'wellsol');
 
-[p0] = model.getProps(state0, 'pressure');
-
-pBH    = vertcat(wellSol.bhp);
-qWs    = vertcat(wellSol.qWs);
+[p0, wellSol0] = model.getProps(state0, 'pressure', 'wellSol');
+[wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
 
 %Initialization of independent variables ----------------------------------
 
 if ~opt.resOnly,
     % ADI variables needed since we are not only computing residuals.
     if ~opt.reverseMode,
-        [p, qWs, pBH] = ...
-            initVariablesADI(p, qWs, pBH);
+        [p, wellVars{:}] = initVariablesADI(p, wellVars{:});
     else
-        [p0, tmp, tmp] = ...
-            initVariablesADI(p0, sW0,          ...
-            zeros(size(qWs)), ...
-            zeros(size(qOs)), ...
-            zeros(size(pBH)));                          %#ok
+        wellVars0 = model.FacilityModel.getAllPrimaryVariables(wellSol0);
+        [p0, wellVars0{:}] = initVariablesADI(p0, sW0, wellVars0{:});  %#ok
     end
 end
-primaryVars = {'pressure','qWs', 'bhp'};
-
-clear tmp
-%grav  = gravity;
-%gdz   = s.Grad(G.cells.centroids) * model.gravity';
+primaryVars = {'pressure', wellVarNames{:}};
 gdz   = s.Grad(G.cells.centroids) * model.getGravityVector()';
 %--------------------
 %check for p-dependent tran mult:
@@ -152,55 +142,28 @@ if model.extraStateOutput
     state = model.storeUpstreamIndices(state, upcw, [], []);
 end
 % EQUATIONS ---------------------------------------------------------------
-% water:
-eqs{1} = (s.pv/dt).*( pvMult.*bW - pvMult0.*f.bW(p0) ) + s.Div(bWvW);
-eqs = addFluxesFromSourcesAndBC(model, eqs, ...
-                                       {p},...
-                                       {rhoW},...
-                                       {mobW}, ...
-                                       {bW},  ...
-                                       {ones(numel(p0),1)}, ...
-                                       drivingForces);
-
 names = {'water'};
 types = {'cell'};
-% well equations
-if ~isempty(W)
-    if ~opt.reverseMode
-        wc    = vertcat(W.cells);
-        pw   = p(wc);
-        rhos = [f.rhoWS];
-        bw   = {bW(wc)};
-        mw   = {mobW(wc)};
-        s = {1};
 
-        wm = WellModel();
-        [cqs, weqs, ctrleqs, wc, state.wellSol]  = wm.computeWellFlux(model, W, wellSol, ...
-                                             pBH, {qWs}, pw, rhos, bw, mw, s, {},...
-                                             'nonlinearIteration', opt.iteration,'referencePressureIndex', 1);
-        eqs(2) = weqs;
-        eqs{3} = ctrleqs;
-        
-        eqs{1}(wc) = eqs{1}(wc) - cqs{1};        
-        names(2:3) = {'waterWells', 'closureWells'};
-        types(2:3) = {'perf', 'well'};
-    else
-        % in reverse mode just gather zero-eqs of correct size
-        for eqn = 2:3
-            nw = numel(state0.wellSol);
-            zw = double2ADI(zeros(nw,1), p0);
-            eqs(2:3) = {zw, zw};
-        end
-        names(2:3) = {'empty', 'empty'};
-        types(2:3) = {'none', 'none'};
-    end
-end
+% water:
+eqs{1} = (s.pv/dt).*( pvMult.*bW - pvMult0.*f.bW(p0) ) + s.Div(bWvW);
+
+% Dummy saturation
+sW = ones(model.G.cells.num, 1);
+[eqs, state] = addBoundaryConditionsAndSources(model, eqs, names, types, state, ...
+                                                                 {p}, {sW}, {mobW}, {rhoW}, ...
+                                                                 {}, {}, ...
+                                                                 drivingForces);
+
+% well equations
+[eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, wellVars, wellMap,...
+        p, {mobW}, {rhoW}, {}, {}, dt, opt);
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 end
 %--------------------------------------------------------------------------
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

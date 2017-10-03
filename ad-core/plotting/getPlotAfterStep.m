@@ -43,10 +43,10 @@ function fn = getPlotAfterStep(state0, model, schedule, varargin)
 %        simulateScheduleAD.
 %
 % SEE ALSO:
-%   simulateScheduleAD, howtoAddPlotHook (example)
+%   simulateScheduleAD, blackoilTutorialPlotHook (example)
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -77,10 +77,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         ws = initWellSolAD(schedule.control(1).W, model, state0);
         nc = numel(vertcat(W.cells));
         d = ones(nc, 1);
-        sources = {d, d, d};
+        sources.phaseVolume = {d, d, d};
+        sources.phaseVolume = sources.phaseVolume(model.getActivePhases());
         
-        model.wellmodel.W = W;
-        ws = model.wellmodel.updateWellSolStatistics(ws, sources, model);
+        model.FacilityModel = FacilityModel(model);
+        model.FacilityModel = model.FacilityModel.setupWells(W);
+        ws = model.FacilityModel.setWellSolStatistics(ws, sources);
 
         ws0 = {ws; ws};
         

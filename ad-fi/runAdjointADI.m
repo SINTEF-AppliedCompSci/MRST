@@ -71,7 +71,7 @@ function varargout = runAdjointADI(G, rock, fluid, schedule, objective, system, 
 %
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -165,7 +165,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
            W = processWellsLocal(G, rock, [], 'createDefaultWell', true);
         else
             if ~useMrstSchedule
-                W = processWellsLocal(G, rock, schedule.control(control), 'Verbose', opt.Verbose, ...
+                W = processWells(G, rock, schedule.control(control), 'Verbose', opt.Verbose, ...
                                       'DepthReorder', true);
             else
                 W = schedule.control(control).W;

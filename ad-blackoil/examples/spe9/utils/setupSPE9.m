@@ -18,7 +18,7 @@ function [G, rock, fluid, deck, state] = setupSPE9()
 %   setupSPE1
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -35,7 +35,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-
+    mrstModule add deckformat ad-props
     % Read and process file.
     pth = getDatasetPath('spe9');
     fn  = fullfile(pth, 'BENCH_SPE9.DATA');
