@@ -14,10 +14,15 @@ function obj = maxPressureViolation(model, states, schedule, plim, varargin)
 % dp can be negative (indicating plim was not surpassed)
 
    
-   opt.ComputePartials = false;
-   opt.tStep = [];
-   opt.cells = [1:model.G.cells.num]';
-   opt.tsteps= ones(numel(states),1);
+   opt.ComputePartials  = false;
+   opt.tStep            = [];
+   opt.cells            = [1:model.G.cells.num]';
+   opt.hfig             = [];  % figure handle (a scalar numeric value) for
+                               % plotting location of max pressure
+                               % violation. If empty, no plot generated.
+                               % Default is empty.
+   opt.tsteps           = ones(numel(states),1);
+   
    opt = merge_options(opt, varargin{:});
    
    num_timesteps = numel(schedule.step.val);
@@ -96,11 +101,29 @@ function obj = maxPressureViolation(model, states, schedule, plim, varargin)
              fprintf('Surpassed Plimit by %f (percent) of Plimit.\n', msg1)
              fprintf('Approached Plimit by %f (percent) of Plimit.\n', msg2)
              fprintf('   in cell %d    at timestep %d \n', cinx, dmaxstep)
-             figure(min(opt.cells)), clf
-             plotGrid(model.G, 'facecolor','none', 'edgealpha',0.1),
-             plotCellData(model.G, model.G.cells.z, opt.cells, 'facecolor','y', 'edgealpha',0.1) % the cells being checked
-             plotCellData(model.G, model.G.cells.z, cinx, 'facecolor','r')
-             title(['cell ',num2str(cinx),', timestep ',num2str(dmaxstep)])
+             
+             % plot grid location where max pressure violation occurred
+             % (optional)
+             if ~isempty(opt.hfig)
+                 if ~ishandle(opt.hfig)
+                    figure(opt.hfig)
+                 else
+                    % Avoid stealing focus if figure already exists
+                    set(0, 'CurrentFigure', opt.hfig);
+                    clf
+                 end
+                 %figure(min(opt.cells)), clf
+                 plotGrid(model.G, 'facecolor','none', 'edgealpha',0.1),
+                 plotCellData(model.G, model.G.cells.z, opt.cells, ...
+                     'facecolor','y', 'edgealpha',0.1) % the cells being checked
+                 if any(max_amount_surp > 0)
+                    plotCellData(model.G, model.G.cells.z, cinx, 'facecolor','r')
+                    title(['cell ',num2str(cinx),', timestep ',num2str(dmaxstep)])
+                 else
+                    title('pressure limit not violated in highlighted region')
+                 end
+             end
+             
          end
       end
 
