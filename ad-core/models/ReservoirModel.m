@@ -617,7 +617,7 @@ methods
         %
         % Remaining input arguments correspond to a variety of reservoir
         % properties with self-explanatory names.
-        if model.FacilityModel.getNumberOfWells() == 0
+        if model.FacilityModel.getNumberOfActiveWells(wellSol) == 0
             return
         end
         fm = model.FacilityModel;

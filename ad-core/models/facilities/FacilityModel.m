@@ -120,6 +120,11 @@ classdef FacilityModel < PhysicalModel
             W = cellfun(@(x) x.W, model.WellModels, 'UniformOutput', false);
             W = vertcat(W{:});
         end
+        function nwell = getNumberOfActiveWells(model, wellSol)
+            % Compute number of active wells in facility
+            mask = model.getWellStatusMask(wellSol);
+            nwell = nnz(mask);
+        end
 
         function nwell = getNumberOfWells(model)
             % Compute number of wells in facility
@@ -168,7 +173,7 @@ classdef FacilityModel < PhysicalModel
             % can assume that they will always be found in the
             % variable set for wells).
             
-            if model.getNumberOfWells() == 0
+            if model.getNumberOfActiveWells(wellSol) == 0
                 [variables, names] = deal({});
                 [isBHP, isRate] = deal([]);
             else
