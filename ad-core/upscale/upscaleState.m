@@ -57,10 +57,20 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     state.s = s;
     if isfield(state, 'components')
-        z = [state.components{:}];
-        pvz = bsxfun(@times, z, pvf);
-        for i = 1:numel(state.components)
-            state.components{i} = accumarray(p, pvz(:, i))./pvc;
+        if iscell(state.components)
+            z = [state.components{:}];
+            pvz = bsxfun(@times, z, pvf);
+            for i = 1:numel(state.components)
+                state.components{i} = accumarray(p, pvz(:, i))./pvc;
+            end
+        else
+            z = state.components;
+            pvz = bsxfun(@times, z, pvf);
+            ncomp = size(state.components, 2);
+            state.components = zeros(CG.cells.num, ncomp);
+            for i = 1:ncomp
+                state.components(:, i) = accumarray(p, pvz(:, i))./pvc;
+            end
         end
     end
     
