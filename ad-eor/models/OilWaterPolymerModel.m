@@ -44,18 +44,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     properties
         % Polymer present
         polymer
-% <<<<<<< HEAD
-%         
-%         % Polymer differene tolerance
-%         useIncPolymerConvergence
-%         toleranceIncPolymer
-%         
-%         % Add extra output to wellsol/states for polymer quantities
-%         extraPolymerOutput
-%         
-% =======
-% 
-% >>>>>>> master
+        
+        % Polymer differene tolerance
+        useIncPolymerConvergence
+        toleranceIncPolymer
+        
+        % Add extra output to wellsol/states for polymer quantities
+        extraPolymerOutput
+        
     end
 
     methods
@@ -64,18 +60,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             model = model@TwoPhaseOilWaterModel(G, rock, fluid);
             % This is the model parameters for oil/water/polymer
             model.polymer = true;
-% <<<<<<< HEAD
-%             
-%             % Tolerance for the change in polymer concentration
-%             model.useIncPolymerConvergence = true;
-%             model.toleranceIncPolymer = 1e-3;
-%             
-%             model.extraPolymerOutput = false;
-%             
-%             model.wellVarNames = {'qWs', 'qOs', 'qWPoly', 'bhp'};
-%             
-% =======
-% >>>>>>> master
             model = merge_options(model, varargin{:});
 
         end
@@ -126,64 +110,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 end
             end
         end
-% <<<<<<< HEAD
-%         
-%         function [convergence, values, names] = checkConvergence(model, ...
-%                 problem, varargin)
-%             
-%             if model.useIncPolymerConvergence
-%                 polyEqnInx = find(problem.indexOfEquationName('polymer'));
-%                 if polyEqnInx
-%                     % The convergence of polymer equation is checked below. In
-%                     % order to check the remaining equations, the polymer is
-%                     % removed from the problem before the parent is called.
-%                     problem_org = problem;
-%                     problem.equations(polyEqnInx) = [];
-%                     problem.types(polyEqnInx) = [];
-%                     problem.equationNames(polyEqnInx) = [];
-%                     problem.primaryVariables(polyEqnInx) = [];
-%                 end
-%             end
-%             
-%             % Check convergence of all equations except the polymer eqn
-%             [convergence, values, names] = ...
-%                 checkConvergence@TwoPhaseOilWaterModel(model, ...
-%                 problem, varargin{:});
-%             
-%             if model.useIncPolymerConvergence
-%                 if polyEqnInx
-%                     problem = problem_org;
-% 
-%                     % Compute the convergence norm for polymer
-%                     polyNorm = Inf;
-%                     if problem.iterationNo > 1
-%                         % Check polymer change from previous iteration
-%                         polyNorm = norm(problem.state.c - ...
-%                             problem.state.c_prev, Inf) / model.fluid.cmax;
-%                         convergence = convergence && ...
-%                             polyNorm < model.toleranceIncPolymer;
-%                     end
-% 
-%                     % In the printed convergence information (in verbose mode),
-%                     % we insert the polymer residual after oil and water.
-%                     nwo = sum([model.water model.oil]);
-%                     if model.useCNVConvergence
-%                         inx = 2*nwo + 1; % after water and oil, both CNV and MB
-%                     else
-%                         inx = nwo + 1; % after water and oil
-%                     end
-% 
-%                     % Insert polymer data into values
-%                     values = [values(1:inx-1)  polyNorm   values(inx:end)];
-%                     names  = [ names(1:inx-1) {'dPolymer'}  names(inx:end)];
-%                 end
-%             end
-%             
-%         end
-%         
-% =======
 
-% >>>>>>> master
         function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
             [state, report] = updateAfterConvergence@TwoPhaseOilWaterModel(model, state0, state, dt, drivingForces);
             if model.polymer
@@ -204,17 +131,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             % pressure or water saturation is located in state)
             index = 1;
             switch(lower(name))
-% <<<<<<< HEAD
-%                 case {'polymer'}
-%                     % The current polymer concentration in a cell
-%                     index = 1;
-%                     fn = 'c';
-%                 case {'polymermax'}
-%                     % The maximum polymer conctration throughout the
-%                     % simulation for each cell
-%                     index = 1;
-%                     fn = 'cmax';
-% =======
                 case {'polymer', 'polymermax'}
                     c = model.getComponentNames();
                     index = find(strcmpi(c, 'polymer'));
@@ -225,7 +141,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     end
                 case 'qwpoly'
                     fn = 'qWPoly';
-% >>>>>>> master
                 otherwise
                     [fn, index] = getVariableField@TwoPhaseOilWaterModel(...
                                     model, name);
@@ -237,7 +152,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 names{end+1} = 'polymer';
             end
         end
-
 
         function scaling = getScalingFactorsCPR(model, problem, names, solver)
             nNames = numel(names);
@@ -264,62 +178,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 [scaling{~handled}] = other{:};
             end
         end
-        
-% <<<<<<< HEAD
-%         
-%         %------------------------------------------------------------------
-%         % FUNCTIONS FOR STORING STATE DATA
-%         %------------------------------------------------------------------
-%         
-%         function state = storeFluxes(model, state, vW, vO, vP)
-%             % Utility function for storing the interface fluxes in the
-%             % state
-%             internal = model.operators.internalConn;
-%             state.flux = zeros(numel(internal), 3);
-%             state.flux(internal,:) = [double(vW), double(vO), double(vP)];
-%         end
-%         
-%         function state = storeMobilities(model, state, mobW, mobO, mobP) %#ok<INUSL>
-%             % Utility function for storing the mobilities in the state
-%             state.mob = [double(mobW), double(mobO), double(mobP)];
-%         end
-%         
-%         function state = storeShearMultiplier(model, state, ...
-%                 shearMult) %#ok<INUSL>
-%             % Utility function for storing the polymer shear thinning /
-%             % thickening velocity multiplier in the state. Note that this
-%             % is the reciprocal of the viscosity multiplier.
-%             state.shearMult = double(shearMult);
-%         end
-%         
-%         function state = storeEffectiveWaterVisc(model, state, ...
-%                 muWeff) %#ok<INUSL>
-%             % Utility function for storing the effective water viscosity
-%             % due to the presence of polymer.
-%             state.muWeff = double(muWeff);
-%         end
-%         
-%         function state = storeEffectivePolymerVisc(model, state, ...
-%                 muPeff) %#ok<INUSL>
-%             % Utility function for storing the effective water viscosity
-%             % due to the presence of polymer.
-%             state.muPeff = double(muPeff);
-%         end
-%         
-%         function state = storePolymerAdsorption(model, state, ...
-%                 ads) %#ok<INUSL>
-%             % Utility function for storing the polymer adsorption.
-%             state.ads = double(ads);
-%         end
-%         
-%         function state = storeRelpermReductionFactor(model, state, ...
-%                 Rk) %#ok<INUSL>
-%             % Utility function for storing the relative permeability
-%             % reduction factor due to the presence of polymer.
-%             state.Rk = double(Rk);
-%         end
-%         
-% =======
+
         function [names, types] = getExtraWellEquationNames(model)
             [names, types] = getExtraWellEquationNames@TwoPhaseOilWaterModel(model);
             if model.polymer
@@ -365,7 +224,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 eqNames{end+1} = 'polymerWells';
             end
         end
-% >>>>>>> master
     end
 end
 
