@@ -266,23 +266,12 @@ methods
             % equations
             values_all = norm(problem, inf);
             rest = ~(isWOG | isWell);
-% <<<<<<< HEAD
-%             
-%             tol = model.nonlinearTolerance;
-%             convergence = all(conv_cells) && ...
-%                           all(conv_wells) && ...
-%                           all(values_all(rest) < tol);
-%                       
-%             values = [v_cells, v_wells, values_all(rest)];
-%             names = horzcat(namesWOG, namesWell, problem.equationNames{rest});
-% =======
 
             conv_rest = values_all(rest) < model.nonlinearTolerance;
             convergence = [conv_cells, conv_wells, conv_rest];
             values = [v_cells, v_wells, values_all(rest)];
             restNames = problem.equationNames(rest);
             names = horzcat(namesWOG, namesWell, restNames);
-% >>>>>>> master
         else
             % Use strict tolerances on the residual without any
             % fingerspitzengefuhlen by calling the parent class
