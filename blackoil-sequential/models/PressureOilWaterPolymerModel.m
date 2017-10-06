@@ -39,31 +39,20 @@ classdef PressureOilWaterPolymerModel < OilWaterPolymerModel
             state.dpRel = (state.pressure - p0)./range;
         end
         
-        function [convergence, values, names] = checkConvergence(model, ...
-                problem, varargin)
-            [convergence, values, names] = ...
-                checkConvergence@OilWaterPolymerModel(model, problem, ...
-                varargin{:});
-            
-            % Always make at least one update so that the problem actually 
-            % changes.
-            convergence = convergence && problem.iterationNo > 1;
-            
-            % Check pressure
+        function  [convergence, values, names] = checkConvergence(model, problem)
+            [convergence, values, names] = checkConvergence@PhysicalModel(model, problem);
             if ~isnan(problem.iterationNo) && model.useIncTol
                 if problem.iterationNo  > 1
                     values(1) = norm(problem.state.dpRel, inf);
-                    convergence = all(...
-                        [values(1)     < model.incTolPressure, ...
-                         values(2:end) < model.nonlinearTolerance]);
                 else
-                    values(1)   = inf;
-                    convergence = false;
+                    values(1) = inf;
                 end
+                convergence = [values(1) < model.incTolPressure, values(2:end) < model.nonlinearTolerance];
                 names{1} = 'Delta P';
             end
         end
         
+        % Not sure if this is still needed?
         function [state, report] = updateAfterConvergence(model, ...
                 state0, state, dt, drivingForces)
             [state, report] = ...
@@ -73,8 +62,8 @@ classdef PressureOilWaterPolymerModel < OilWaterPolymerModel
                 % Special hack for the sequential solver with shear
                 % thinning. See equations for details.
                 for w=1:numel(state.wellSol)
-                    state.wellSol(w).poly_prev = ...
-                        drivingForces.W(w).poly;
+                    state.wellSol(w).c_prev = ...
+                        drivingForces.W(w).c;
                 end
             end
         end

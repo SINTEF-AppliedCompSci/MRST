@@ -1,5 +1,5 @@
-function [vW, vP, bW, muWeffMult, mobW, mobP, rhoW, pW, upcw, a, dpW, extraOutput] = getFluxAndPropsWaterPolymer_BO(model, pO, sW, c, ads, krW, T, gdz, varargin)
-%
+function [vW, vP, bW, muWeffMult, mobW, mobP, rhoW, pW, upcw, a, dpW] = getFluxAndPropsWaterPolymer_BO(model, pO, sW, c, ads, krW, T, gdz, varargin)
+%dpW, extraOutput
 %
 % SYNOPSIS:
 %   function [vW, vP, bW, muWeffMult, mobW, mobP, rhoW, pW, upcw, a] = getFluxAndPropsWaterPolymer_BO(model, pO, sW, c, ads, krW, T, gdz)
@@ -65,6 +65,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         pcOW  = fluid.pcOW(sW);
     end
     pW = pO - pcOW;
+    muW    = fluid.muW(pO);
 
     % Multipliers due to polymer
     mixpar = fluid.mixPar;
@@ -79,22 +80,29 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % Water props
     bW     = fluid.bW(pO);
     rhoW   = bW.*fluid.rhoWS;
+    muWeff = muWMult.*muW;
     % rhoW on face, average of neighboring cells
     rhoWf  = s.faceAvg(rhoW);
-    muW    = fluid.muW(pO);
-    muWeff = muWMult.*muW;
-    mobW   = krW./muWeff;
     dpW    = s.Grad(pW) - rhoWf.*gdz;
+    
     % water upstream-index
-    upcw = (double(dpW)<=0);
-    vW   = -s.faceUpstr(upcw, mobW).*T.*dpW;
+    upcw  = (double(dpW)<=0);
+    [krWf, krW   ] = s.splitFaceCellValue(upcw, krW);
+    [muWf, muWeff] = s.splitFaceCellValue(upcw, muWeff);
+    mobW   = krW./muWeff;
+    
+    vW = -(krWf./muWf).*T.*dpW;
     if any(bW < 0)
         warning('Negative water compressibility present!')
     end
 
     % Polymer
-    mobP = mobW./(a + (1-a)*cbar);
-    vP   = - s.faceUpstr(upcw, mobP.*c).*s.T.*dpW;
+    muPeff = muWeff.*(a + (1-a)*cbar);
+    [muPf, muPeff] = s.splitFaceCellValue(upcw, muPeff);
+    [cf  , ~     ] = s.splitFaceCellValue(upcw, c     );
+    mobP = krW./muPeff;
+    
+    vP = -(krWf./muPf).*cf.*T.*dpW;
 
 end
 

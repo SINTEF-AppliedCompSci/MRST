@@ -1,26 +1,24 @@
-function [problem, state] = transportEquationOilWaterPolymer(state0, ...
-    state, model, dt, drivingForces, varargin)
+function [problem, state] = transportEquationOilWaterPolymer(state0, state, model, dt, drivingForces, varargin)
 
-opt = struct('Verbose', mrstVerbose, ...
-             'reverseMode', false,...
-             'scaling', [],...
-             'resOnly', false,...
-             'history', [],...
-             'solveForWater', false, ...
-             'solveForOil', true, ...
-             'iteration', -1, ...
-             'stepOptions', []);  % Compatibility only
+opt = struct('Verbose'      , mrstVerbose, ...
+             'reverseMode'  , false      , ...
+             'scaling'      , []         , ...
+             'resOnly'      , false      , ...
+             'history'      , []         , ...
+             'solveForWater', true       , ...
+             'solveForOil'  , false      , ...
+             'iteration'    , -1         , ...
+             'stepOptions'  , []           );  % Compatibility only
 
 opt = merge_options(opt, varargin{:});
-
 assert(isempty(drivingForces.bc) && isempty(drivingForces.src))
 
-W = drivingForces.W;
-s = model.operators;
-f = model.fluid;
+W     = drivingForces.W;
+op    = model.operators;
+fluid = model.fluid;
 
 % Polymer shear thinning/thickening
-usingShear = isfield(f, 'plyshearMult');
+usingShear = isfield(fluid, 'plyshearMult');
 
 assert(~(opt.solveForWater && opt.solveForOil));
 
@@ -31,6 +29,14 @@ assert(~(opt.solveForWater && opt.solveForOil));
 % Properties at previous timestep
 [p0, sW0, c0, cmax0] = model.getProps(state0, 'pressure', 'water', ...
    'polymer', 'polymermax');
+
+% If timestep has been split relative to pressure, linearly interpolate in
+% pressure.
+pFlow = p;
+if isfield(state, 'timestep')
+    dt_frac = dt/state.timestep;
+    p = p.*dt_frac + p0.*(1-dt_frac);
+end
 
 %Initialization of independent variables ----------------------------------
 
@@ -57,7 +63,7 @@ sO = 1 - sW;
 krW = mobMult.*krW; krO = mobMult.*krO;
 
 % Compute transmissibility
-T = s.T.*transMult;
+T = op.T.*transMult;
 
 % Gravity gradient per face
 gdz = model.getGravityGradient();
@@ -65,15 +71,15 @@ gdz = model.getGravityGradient();
 % Evaluate water and polymer properties
 ads  = effads(c, cmax, model);
 ads0 = effads(c0, cmax0, model);
-[vW, vP, bW, muWMult, mobW, mobP, rhoW, pW, upcw, a, dpW, extraOutput] = ...
-    getFluxAndPropsWaterPolymer_BO(model, p, sW, c, ads, krW, T, ...
-    gdz, 'shear', false); % shear effect is not used in transport
+[vW, vP, bW, muWMult, mobW, mobP, rhoW, pW, upcw, a, dpW] = ...
+           getFluxAndPropsWaterPolymer_BO(model, p, sW, c, ads, krW, T, ...
+           gdz, 'shear', false); % shear effect is not used in transport
+
 
 % Evaluate oil properties
-[vO, bO, mobO, rhoO, pO, upco, dpO] = getFluxAndPropsOil_BO(model, p, ...
-    sO, krO, T, gdz);
+[vO, bO, mobO, rhoO, pO, upco, dpO] = getFluxAndPropsOil_BO(model, p, sO, krO, T, gdz);
 
-gp = s.Grad(p);
+gp = op.Grad(p);
 Gw = gp - dpW;
 Go = gp - dpO;
 
@@ -133,21 +139,23 @@ if ~isempty(W)
 end
 
 % Get total flux from state
-assert(size(state.flux,2)==3, 'Not the flux expected');
 flux = sum(state.flux(:,1:2), 2);
 vT = flux(model.operators.internalConn);
 
 % Stored upstream indices
-[flag_v, flag_g] = getSaturationUpwind(model.upwindType, state, {Gw, Go}, vT, s.T, {mobW, mobO}, s.faceUpstr);
+[flag_v, flag_g] = getSaturationUpwind(model.upwindType, state, {Gw, Go}, vT, op.T, {mobW, mobO}, op.faceUpstr);
 flag = flag_v;
 
 
 upcw  = flag(:, 1);
 upco  = flag(:, 2);
 
-mobOf = s.faceUpstr(upco, mobO);
-mobWf = s.faceUpstr(upcw, mobW);
-mobPf = s.faceUpstr(upcw, mobP);
+upcw_g = flag_g(:, 1);
+upco_g = flag_g(:, 2);
+
+mobOf = op.faceUpstr(upco, mobO);
+mobWf = op.faceUpstr(upcw, mobW);
+mobPf = op.faceUpstr(upcw, c.*mobP);
 
 if usingShear
     % The shear multipliers from the pressure solver are used
@@ -155,33 +163,30 @@ if usingShear
     mobPf = mobPf.*state.shearMult;
 end
 
-if model.extraPolymerOutput
-    state = model.storeEffectiveWaterVisc(state, extraOutput.muWeff);
-    state = model.storeEffectivePolymerVisc(state, extraOutput.muPeff);
-    state = model.storePolymerAdsorption(state, ads);
-    state = model.storeRelpermReductionFactor(state, extraOutput.Rk);
-end
-
 totMob = (mobOf + mobWf);
 totMob = max(totMob, sqrt(eps));
 
+mobWf_G = op.faceUpstr(upcw_g, mobW);
+mobOf_G = op.faceUpstr(upco_g, mobO);
+mobTf_G = mobWf_G + mobOf_G;
+f_g = mobWf_G.*mobOf_G./mobTf_G;
 % Use concervation equation either for water or for oil
 if opt.solveForWater
     f_w = mobWf./totMob;
-    bWvW   = s.faceUpstr(upcw, bW).*f_w.*(vT + s.T.*mobOf.*(Gw - Go));
+    bWvW   = op.faceUpstr(upcw, bW).*f_w.*vT + op.faceUpstr(upcw_g, bO).*f_g.*op.T.*(Gw - Go);
 
-    wat = (s.pv/dt).*(pvMult.*bW.*sW - pvMult0.*f.bW(p0).*sW0) + ...
-        s.Div(bWvW);
+    wat = (op.pv/dt).*(pvMult.*bW.*sW - pvMult0.*fluid.bW(p0).*sW0) + ...
+        op.Div(bWvW);
     wat(wc) = wat(wc) - bWqW;
     
     eqs{1} = wat;
     name1  = 'water';
 else
     f_o = mobOf./totMob;
-    bOvO   = s.faceUpstr(upco, bO).*f_o.*(vT + s.T.*mobWf.*(Go - Gw));
+    bOvO   = op.faceUpstr(upco, bO).*f_o.*vT + op.faceUpstr(upco_g, bO).*f_g.*op.T.*(Go - Gw);
     
-    oil = (s.pv/dt).*( pvMult.*bO.*(1-sW) - ...
-        pvMult0.*f.bO(p0).*(1-sW0) ) + s.Div(bOvO);
+    oil = (op.pv/dt).*( pvMult.*bO.*(1-sW) - ...
+        pvMult0.*fluid.bO(p0).*(1-sW0) ) + op.Div(bOvO);
     oil(wc) = oil(wc) - bOqO;
     
     eqs{1} = oil;
@@ -190,12 +195,12 @@ end
 
 % Polymer equations
 f_p = mobPf./totMob;
-bWvP   = s.faceUpstr(upcw, bW).*f_p.*(vT + s.T.*mobOf.*(Gw - Go));
+bWvP   = op.faceUpstr(upco, bW).*f_p.*vT + op.faceUpstr(upco_g, bW).*f_g.*op.T.*(Gw - Go);
 
 poro = model.rock.poro;
-poly = (s.pv.*(1-f.dps)/dt).*(pvMult.*bW.*sW.*c - ...
-    pvMult0.*f.bW(p0).*sW0.*c0) + (s.pv/dt).* ...
-    ( f.rhoR.*((1-poro)./poro).*(ads-ads0) ) + s.Div(bWvP);
+poly = (op.pv.*(1-fluid.dps)/dt).*(pvMult.*bW.*sW.*c - ...
+    pvMult0.*fluid.bW(p0).*sW0.*c0) + (op.pv/dt).* ...
+    ( fluid.rhoR.*((1-poro)./poro).*(ads-ads0) ) + op.Div(bWvP);
 poly(wc) = poly(wc) - bWqP;
 
 % Fix for (almost) zero water in the well
@@ -205,16 +210,30 @@ if isa(poly, 'ADI')
    bad     = abs(diag(poly.jac{2})) < epsilon;
    poly(bad) = c(bad);
 end
+bad = double(sW) == 0;
+poly(bad) = c(bad);
 
-eqs{2} = poly./f.cmax; % scale with cmax
-names  = {name1 'polymer'};
+eqs{2} = poly;
+names  = {name1, 'polymer'};
 types  = {'cell',  'cell'};
+% rho = {rhoW, rhoO};
+% mob = {mobW, mobO};
+% sat = {sW, sO};
+% eqs = addBoundaryConditionsAndSources(model, eqs, names, types, state, ...
+%                                      {pFlow, pFlow}, sat, mob, rho, ...
+%                                      {}, {c}, ...
+%                                      drivingForces);
 
-problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
+eqs{2} = eqs{2}/fluid.cmax;
+if ~model.useCNVConvergence
+    for i = 1:numel(eqs)
+        eqs{i} = eqs{i}.*(dt./op.pv);
+    end
 end
 
-
-
+state.cmax0 = cmax0;    
+problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
+end
 
 %--------------------------------------------------------------------------
 % Helper functions
@@ -229,5 +248,21 @@ function y = effads(c, cmax, model)
    end
 end
 
+%{
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}

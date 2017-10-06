@@ -45,13 +45,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         % Polymer present
         polymer
         
-        % Polymer differene tolerance
-        useIncPolymerConvergence
-        toleranceIncPolymer
-        
-        % Add extra output to wellsol/states for polymer quantities
-        extraPolymerOutput
-        
     end
 
     methods
