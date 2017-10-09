@@ -83,7 +83,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     rhoS = model.getSurfaceDensities();
     
     [qVolBC, qVolSRC, b] = deal(cell(1, numel(mob)));
-    [bcCells, srcCells, BCTocellMap] = deal([]);
+    [bcCells, srcCells, BCTocellMap, BCToSourceMap] = deal([]);
 
     if hasBC || hasSRC
         b = phaseDensitiesTobfactor(rho, rhoS, dissolved);
@@ -94,10 +94,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
         if hasSRC
             % Fluxes from source terms
-            [qVolSRC, srcCells] = getSourceFluxesAD(model, mob, s, forces.src);
+            [qVolSRC, BCToSourceMap, srcCells] = getSourceFluxesAD(model, mob, s, forces.src);
         end
     end
-    src = getContributionsStruct(forces.src, qVolSRC, b, rhoS, srcCells, dissolved);
+    src = getContributionsStruct(forces.src, qVolSRC, b, rhoS, srcCells, dissolved, BCToSourceMap);
     bc = getContributionsStruct(forces.bc, qVolBC, b, rhoS, bcCells, dissolved, BCTocellMap);
 end
 

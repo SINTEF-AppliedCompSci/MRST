@@ -1,4 +1,4 @@
-function [qSurf, cells] = getSourceFluxesAD(model, mob, s, src)
+function [qSurf, BCTocellMap, cells] = getSourceFluxesAD(model, mob, s, src)
 %Short description
 %
 % SYNOPSIS:
@@ -77,12 +77,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         
         if any(~inj)
             c = cells(~inj);
-            sc = s{i}(c);
             % Use mobilities ratios to ensure that immobile fluids are not
             % removed from the reservoir.
             f = mob{i}(c)./totMob(c);
-            q(~inj) = f.*src.rate(~inj).*sc;
+            q(~inj) = q(~inj) + f.*src.rate(~inj);
         end
         qSurf{i} = q;
     end
+    cellToBCMap = sparse((1:nsrc)', cells, 1, nsrc, model.G.cells.num);
+    BCTocellMap = cellToBCMap';
 end
