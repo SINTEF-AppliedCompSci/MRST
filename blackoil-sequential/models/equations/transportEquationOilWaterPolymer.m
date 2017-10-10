@@ -75,7 +75,6 @@ ads0 = effads(c0, cmax0, model);
            getFluxAndPropsWaterPolymer_BO(model, p, sW, c, ads, krW, T, ...
            gdz, 'shear', false); % shear effect is not used in transport
 
-
 % Evaluate oil properties
 [vO, bO, mobO, rhoO, pO, upco, dpO] = getFluxAndPropsOil_BO(model, p, sO, krO, T, gdz);
 
@@ -150,9 +149,6 @@ flag = flag_v;
 upcw  = flag(:, 1);
 upco  = flag(:, 2);
 
-upcw_g = flag_g(:, 1);
-upco_g = flag_g(:, 2);
-
 mobOf = op.faceUpstr(upco, mobO);
 mobWf = op.faceUpstr(upcw, mobW);
 mobPf = op.faceUpstr(upcw, c.*mobP);
@@ -166,14 +162,10 @@ end
 totMob = (mobOf + mobWf);
 totMob = max(totMob, sqrt(eps));
 
-mobWf_G = op.faceUpstr(upcw_g, mobW);
-mobOf_G = op.faceUpstr(upco_g, mobO);
-mobTf_G = mobWf_G + mobOf_G;
-f_g = mobWf_G.*mobOf_G./mobTf_G;
 % Use concervation equation either for water or for oil
 if opt.solveForWater
     f_w = mobWf./totMob;
-    bWvW   = op.faceUpstr(upcw, bW).*f_w.*vT + op.faceUpstr(upcw_g, bO).*f_g.*op.T.*(Gw - Go);
+    bWvW   = op.faceUpstr(upcw, bW).*f_w.*(vT + op.T.*mobOf.*(Gw - Go));
 
     wat = (op.pv/dt).*(pvMult.*bW.*sW - pvMult0.*fluid.bW(p0).*sW0) + ...
         op.Div(bWvW);
@@ -183,7 +175,7 @@ if opt.solveForWater
     name1  = 'water';
 else
     f_o = mobOf./totMob;
-    bOvO   = op.faceUpstr(upco, bO).*f_o.*vT + op.faceUpstr(upco_g, bO).*f_g.*op.T.*(Go - Gw);
+    bOvO   = op.faceUpstr(upco, bO).*f_o.*(vT + op.T.*mobWf.*(Go - Gw));
     
     oil = (op.pv/dt).*( pvMult.*bO.*(1-sW) - ...
         pvMult0.*fluid.bO(p0).*(1-sW0) ) + op.Div(bOvO);
@@ -195,27 +187,28 @@ end
 
 % Polymer equations
 f_p = mobPf./totMob;
-bWvP   = op.faceUpstr(upco, bW).*f_p.*vT + op.faceUpstr(upco_g, bW).*f_g.*op.T.*(Gw - Go);
+bWvP   = op.faceUpstr(upcw, bW).*f_p.*(vT + op.T.*mobOf.*(Gw - Go));
 
 poro = model.rock.poro;
-poly = (op.pv.*(1-fluid.dps)/dt).*(pvMult.*bW.*sW.*c - ...
+polymer = (op.pv.*(1-fluid.dps)/dt).*(pvMult.*bW.*sW.*c - ...
     pvMult0.*fluid.bW(p0).*sW0.*c0) + (op.pv/dt).* ...
     ( fluid.rhoR.*((1-poro)./poro).*(ads-ads0) ) + op.Div(bWvP);
-poly(wc) = poly(wc) - bWqP;
+polymer(wc) = polymer(wc) - bWqP;
 
 % Fix for (almost) zero water in the well
-if isa(poly, 'ADI')
-   epsilon = 1.e-8;
-   epsilon = sqrt(epsilon)*mean(abs(diag(poly.jac{2})));
-   bad     = abs(diag(poly.jac{2})) < epsilon;
-   poly(bad) = c(bad);
+if isa(polymer, 'ADI')
+    is_polymer = strcmpi(primaryVars, 'polymer');
+    epsilon = 1.e-8;
+    epsilon = sqrt(epsilon)*mean(abs(diag(polymer.jac{is_polymer})));
+    bad     = abs(diag(polymer.jac{is_polymer})) < epsilon;
+    polymer(bad) = c(bad);
 end
 bad = double(sW) == 0;
-poly(bad) = c(bad);
+polymer(bad) = c(bad);
 
-eqs{2} = poly;
 names  = {name1, 'polymer'};
 types  = {'cell',  'cell'};
+eqs{2} = polymer;
 % rho = {rhoW, rhoO};
 % mob = {mobW, mobO};
 % sat = {sW, sO};
@@ -233,6 +226,7 @@ end
 
 state.cmax0 = cmax0;    
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
+
 end
 
 %--------------------------------------------------------------------------
