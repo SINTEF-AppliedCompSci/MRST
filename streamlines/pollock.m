@@ -99,6 +99,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    opt = struct('substeps', 5, 'maxsteps', 1000, 'reverse', false);
    opt = merge_options(opt, varargin{:});
 
+   if size(state.flux, 2) > 1
+       state.flux = sum(state.flux, 2);
+   end
    if opt.reverse,
       state.flux = -state.flux;
    end
@@ -169,7 +172,7 @@ function varargout = trace(G, state, pos, opt)
       if i > opt.maxsteps, break;end
    end
 
-   %% Pack coordinates in list with streamlines separated by NaN.
+   % Pack coordinates in list with streamlines separated by NaN.
    p = reshape(permute(XYZ, [3,1,2]), [], d);
 
    i = ~isnan(p(:,1));
@@ -222,7 +225,7 @@ end
 
 
 
-%% ========================================================================
+% ========================================================================
 function [pos, tof, xyz] = step(pos, flux, neighbors, nsubsteps)
 % Update pos array by computing new local coordinate and new cell.
 % In addition, compute curve within cell.
