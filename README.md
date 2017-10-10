@@ -61,3 +61,12 @@ Used for the instatiation of the chemical object, making all embedded functions 
 * [ChemModel/getProp and getProps](readMes/chemModel_getProps.md) allows the retreval of values from the state variable created by the solution of the chemical system
 
 [changeUnits.m](readMes/changeUnits.md) changes the units of the specified quantity whatever you want
+
+## Examples ##
+
+* ion exchange
+* surface complexation
+* aqueous speciation
+* linear combinations
+* dissolution/precipitation
+* gas phase equilibrium
