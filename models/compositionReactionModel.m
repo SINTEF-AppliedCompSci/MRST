@@ -92,7 +92,11 @@ classdef compositionReactionModel < ChemicalModel
             [state, failure, report] = solveMinistep(solver, model, inputstate, ...
                                                      inputstate0, dt, ...
                                                      drivingForces);
+            if ~isempty(model.surfInfo)
 
+                [state] = potentialGuess(model, state);
+                state = model.syncFromLog(state);
+            end
         end
         
         %%
@@ -108,11 +112,7 @@ classdef compositionReactionModel < ChemicalModel
         function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces) %#ok
         % solve for the electrostatics
         
-        if ~isempty(model.surfInfo)
-            
-            [state] = potentialGuess(model, state);
-            state = model.syncFromLog(state);
-        end
+
         
         report = [];
         end

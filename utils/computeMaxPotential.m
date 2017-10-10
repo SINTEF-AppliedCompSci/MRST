@@ -10,16 +10,16 @@ function [names, mins, maxs] = computeMaxPotential(model, state)
     
     nC = numel(model.componentNames);
     
-    chargeVector = model.chargeVector;
-    
-    chargeVector = [chargeVector, zeros(1, nC-numel(chargeVector))];
+    CV = model.chargeVector;
+    eInd = strcmpi('e-', model.componentNames);
+    CV(1,eInd) = 0;
     
     comps = cell(1, nC);
     [comps{:}] = model.getProps(state,model.componentNames{:}); 
     
     ionDum = 0;
     for i = 1 : nC
-        ionDum = ionDum + (chargeVector(1,i).^2.*comps{i}).*litre/mol;
+        ionDum = ionDum + (CV(1,i).^2.*comps{i}).*litre/mol;
     end
     ion = cell(1,model.nC);
     [ion{:}] = deal((1/2)*ionDum);
@@ -46,8 +46,8 @@ function [names, mins, maxs] = computeMaxPotential(model, state)
                 mInd = strcmpi(SPNames{j}, model.surfInfo.master);
                                         
                 % grab the correct info
-                S = model.surfInfo.s{mInd}*gram/(meter)^2;
-                a = model.surfInfo.a{mInd}*litre/gram;
+                S = model.surfInfo.s{mInd};
+                a = model.surfInfo.a{mInd};
                 C = model.surfaces.c{i};
 
 
@@ -55,13 +55,13 @@ function [names, mins, maxs] = computeMaxPotential(model, state)
                     case 'tlm'
 
                         % calculate surface charges
-                        sig_2 = sig_2 + (F./(S.*a)).*model.getProp(state, SPNames{j})*litre/mol;
+                        sig_2 = sig_2 + (F./(S.*a)).*model.getProp(state, SPNames{j});
 
                         
                     case 'ccm'
 
                         % calculate surface charges
-                        sig_0 = sig_0 + (F./(S.*a)).*model.getProp(state, SPNames{j})*litre/mol;
+                        sig_0 = sig_0 + (F./(S.*a)).*model.getProp(state, SPNames{j});
                 end
             end
             
