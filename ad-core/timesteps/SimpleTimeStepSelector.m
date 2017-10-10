@@ -7,7 +7,7 @@ classdef SimpleTimeStepSelector < handle
 %   selector = SimpleTimeStepSelector('maxTimestep', 5*day);
 %
 % DESCRIPTION:
-%   The timestpe selector base class is called by the NonLinearSolver to
+%   The timestep selector base class is called by the NonLinearSolver to
 %   determine timesteps, based on hard limits such as the min/max timesteps
 %   as well as possibly more advanced features via the computeTimestep
 %   method that can account for iteration count, residual reduction etc.

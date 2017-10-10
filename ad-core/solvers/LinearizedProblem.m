@@ -16,7 +16,7 @@ classdef LinearizedProblem
 %
 %   A linearized problem can be transformed into a linear system and solved
 %   using LinearSolverAD-derived subclasses, given that the number of
-%   equations match the number of primary variables.
+%   equations matches the number of primary variables.
 %
 %   In particular, the class contains member functions for:
 %     - assembling a linear system from the Jacobian block matrices stored
@@ -65,7 +65,7 @@ properties
     % linear solver, which may use them to construct appropriate solver
     % strategies or preconditioners.
     types
-    % Cell array of equal length to number of equations, giving them unique names for
+    % Cell array of equal length to number of equations, giving them unique
     % names that are used when printing when convergence reports or solving
     % the linear system.
     equationNames
