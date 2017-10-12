@@ -113,7 +113,6 @@ T = op.T.*transMult;
 % Gravity contribution
 gdz = model.getGravityGradient();
 
-% Evaluate water and polymer properties
 ads  = effads(c, cmax, fluid);
 ads0 = effads(c0, cmax0, fluid);
 [vW, vP, bW, ~, mobW, mobP, rhoW, pW, upcw, a] = ...
@@ -128,6 +127,7 @@ bO0 = getbO_BO(model, p0);
 if model.outputFluxes
     state = model.storeFluxes(state, vW, vO, vP);
 end
+
 if model.extraStateOutput
     state = model.storebfactors(state, bW, bO, []);
     state = model.storeMobilities(state, mobW, mobO, mobP);
@@ -153,11 +153,20 @@ polymer = (op.pv.*(1-fluid.dps)/dt).*(pvMult.*bW.*sW.*c - ...
    pvMult0.*bW0.*sW0.*c0) + (op.pv/dt).* ...
    (fluid.rhoR.*((1-poro)./poro).*(ads-ads0) ) + op.Div(bWvP);
 
+if ~opt.resOnly
+    epsilon = 1.e-8;
+    % the first way is based on the diagonal values of the resulting
+    % Jacobian matrix
+    eps = sqrt(epsilon)*mean(abs(diag(polymer.jac{3})));
+    % bad marks the cells prolematic in evaluating Jacobian
+    bad = abs(diag(polymer.jac{3})) < eps;
+    % the other way is to choose based on the water saturation
+    polymer(bad) = c(bad);
+end
 eqs   = {water, oil, polymer};
 names = {'water', 'oil', 'polymer'};
 types = {'cell', 'cell', 'cell'};
 
-% Add in any fluxes / source terms prescribed as boundary conditions.
 rho = {rhoW, rhoO};
 mob = {mobW, mobO};
 sat = {sW, sO};
@@ -165,22 +174,6 @@ sat = {sW, sO};
                                                                  {pW, p}, sat, mob, rho, ...
                                                                  {}, {c}, ...
                                                                  drivingForces);
-
-% % Add polymer boundary conditions
-% if ~isempty(drivingForces.bc) && isfield(drivingForces.bc, 'poly')
-%    injInx  = qBC{1} > 0; % water inflow indices
-%    cbc     = (BCTocellMap')*c; % BCTocellMap' = cellToBCMap
-%    cbc(injInx) = drivingForces.bc.poly(injInx);
-%    eqs{3}  = eqs{3} - BCTocellMap*(cbc.*qBC{1});
-% end
-% 
-% % Add polymer source
-% if ~isempty(drivingForces.src) && isfield(drivingForces.src, 'poly')
-%    injInx  = qSRC{1} > 0; % water inflow indices
-%    csrc    = c(srcCells);
-%    csrc(injInx) = drivingForces.src.poly(injInx);
-%    eqs{3}(srcCells) = eqs{3}(srcCells) - csrc.*qSRC{1};
-% end
 
 % Finally, add in and setup well equations
 [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, wellVars, wellMap, p, mob, rho, {}, {c}, dt, opt);
@@ -192,7 +185,6 @@ end
 
 %--------------------------------------------------------------------------
 
-
 % Effective adsorption, depending of desorption or not
 function y = effads(c, cmax, fluid)
    if fluid.adsInx == 2
@@ -201,6 +193,3 @@ function y = effads(c, cmax, fluid)
       y = fluid.ads(c);
    end
 end
-
-
-

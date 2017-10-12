@@ -1,4 +1,5 @@
 classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
+% Oil/water/polymer system
 %
 %
 % SYNOPSIS:
@@ -43,7 +44,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     properties
         % Polymer present
         polymer
-
+        
     end
 
     methods
@@ -66,17 +67,40 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             state = validateState@TwoPhaseOilWaterModel(model, state);
             % Polymer must be present
             model.checkProperty(state, 'Polymer', model.G.cells.num, 1);
+            fn = model.getVariableField('polymermax');
+            if ~isfield(state, fn)
+                state.(fn) = model.getProp(state, 'Polymer');
+            end
         end
 
         function [state, report] = updateState(model, state, problem, ...
                 dx, drivingForces)
+            
+            if model.polymer
+                % Store the polymer from previous iteration temporarily to
+                % use in convergence criteria
+                c_prev = model.getProp(state, 'polymer');
+            end
+            
             [state, report] = updateState@TwoPhaseOilWaterModel(model, ...
                state, problem,  dx, drivingForces);
 
             if model.polymer
+                % Limit polymer concentration to [0, fluid.cmax]
                 c = model.getProp(state, 'polymer');
                 c = min(c, model.fluid.cmax);
                 state = model.setProp(state, 'polymer', max(c, 0) );
+                state.c_prev = c_prev;
+                
+                % Shear Thinning Report               
+                % We (may) have stored the shear thinning report
+                % temporarily in the state structure. We move this over to
+                % the report structure instead. The reason for this is that
+                % there is no report returned from the equations.
+                if isfield(state, 'ShearThinningReport')
+                    report.ShearThinning = state.ShearThinningReport;
+                    state = rmfield(state, 'ShearThinningReport');
+                end
             end
         end
 
@@ -86,6 +110,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 c     = model.getProp(state, 'polymer');
                 cmax  = model.getProp(state, 'polymermax');
                 state = model.setProp(state, 'polymermax', max(cmax, c));
+                
+                if isfield(state, 'c_prev')
+                    % Remove the temporary field used for convergence
+                    state = rmfield(state, 'c_prev');
+                end
             end
         end
 
@@ -117,7 +146,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             end
         end
 
-
         function scaling = getScalingFactorsCPR(model, problem, names, solver)
             nNames = numel(names);
 
@@ -143,7 +171,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 [scaling{~handled}] = other{:};
             end
         end
-        
+
         function [names, types] = getExtraWellEquationNames(model)
             [names, types] = getExtraWellEquationNames@TwoPhaseOilWaterModel(model);
             if model.polymer
@@ -191,3 +219,4 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
     end
 end
+

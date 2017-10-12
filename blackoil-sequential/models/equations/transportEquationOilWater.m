@@ -135,7 +135,7 @@ if opt.solveForWater
     f_w = mobWf./totMob;
     bWvW   = s.faceUpstr(upcw, bW).*f_w.*vT + s.faceUpstr(upcw_g, bO).*f_g.*s.T.*(Gw - Go);
 
-    wat = (s.pv/dt).*(pvMult.*bW.*sW       - pvMult0.*f.bW(p0).*sW0    ) + s.Div(bWvW);
+    wat = (s.pv/dt).*(pvMult.*bW.*sW - pvMult0.*f.bW(p0).*sW0) + s.Div(bWvW);
     if ~isempty(W)
         wat(wc) = wat(wc) - bWqW;
     end
@@ -165,6 +165,7 @@ eqs = addBoundaryConditionsAndSources(model, eqs, names, types, state, ...
 if ~model.useCNVConvergence
     eqs{1} = eqs{1}.*(dt./s.pv);
 end
+
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 end
 

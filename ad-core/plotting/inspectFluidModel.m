@@ -69,6 +69,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     ctrlpanel = uipanel('Position', [lm+pw, .25*lm, 1-1.25*lm-pw, 1-1.25*lm], ...
                         'Title',  'Property');
     true3ph = model.water && model.oil && model.gas;
+    hasPolymer = isprop(model, 'polymer') && model.polymer;
     names = {'Viscosity',...
              'Relative permeability', ...
              'Rock compressibility', ...
@@ -77,7 +78,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
              'Rs and Rv', ...
              '3ph-relperm: Water', ...
              '3ph-relperm: Oil', ...
-             '3ph-relperm: Gas' ...
+             '3ph-relperm: Gas', ...
+             'Polymer adsorption', ...
+             'Polymer Water viscosity multiplier'...
              };
     functions = {@(name) plotViscosity(model, name), ...
                  @(name) plotRelperm(model, name),...
@@ -87,7 +90,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  @(name) plotMaxR(model, name), ...
                  @(name) plot3phRelPerm(model, name, 1), ...
                  @(name) plot3phRelPerm(model, name, 2), ...
-                 @(name) plot3phRelPerm(model, name, 3) ...
+                 @(name) plot3phRelPerm(model, name, 3), ...
+                 @(name) plotPolyAdsorption(model, name), ...
+                 @(name) plotPolyViscMult(model, name)...
                 };
     
     disgas = isprop(model, 'disgas') && model.disgas;
@@ -100,7 +105,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
               disgas || vapoil; ...
               true3ph;
               true3ph;
-              true3ph];
+              true3ph;
+              hasPolymer && isfield(model.fluid, 'ads');
+              hasPolymer && isfield(model.fluid, 'muWMult')];
               
               
     names = names(active);
@@ -225,6 +232,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     x = p/barsa;
                     xl = 'Pressure [bar]';
                     yl = 'Pore volume multiplier';
+                case 'ads'
+                    x = (0:0.01:f.cmax)';
+                    data = f.(fn)(x);
+                    yl = 'Adsorption';
+                    xl = 'Polymer concentration';
+                case 'muwmult'
+                    x = (0:0.01:f.cmax)';
+                    data = f.(fn)(x);
+                    yl = 'Viscosity multiplier';
+                    xl = 'Polymer concentration';
             end
             if size(data, 2) > 1
                 for j = 1:size(data, 2)
@@ -403,6 +420,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         else
             y = f.(fn)(x);
         end
+    end
+
+    function plotPolyAdsorption(model, name)
+        plotStuff(model, {'ads'});
+        title(name);
+    end
+
+    function plotPolyViscMult(model, name)
+        plotStuff(model, {'muWMult'});
+        title(name);
     end
 
     function ind = checkBO(model)

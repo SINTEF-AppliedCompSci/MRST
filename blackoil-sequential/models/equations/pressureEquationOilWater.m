@@ -108,7 +108,8 @@ types = {'cell', 'cell'};
                                                                  drivingForces);
 % Finally, add in and setup well equations
 dissolved = {};
-[eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, wellVars, wellMap, p, mob, rho, dissolved, {}, dt, opt);
+[eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, ...
+    wellSol0, wellSol, wellVars, wellMap, p, mob, rho, dissolved, {}, dt, opt);
 
 eqs{1} = (dt./s.pv).*(eqs{1}./bW + eqs{2}./bO);
 names{1} = 'pressure';

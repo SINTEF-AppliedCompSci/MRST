@@ -89,7 +89,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     its = cellfun(@(x) x.Iterations, ctrl_reports);
     tmp(1:stepNo) = its;
     stairs(1:stepTotal, tmp);
-    ylim([1, max(tmp) + 0.1])
+    ylim([1, max(max(tmp) + 0.1, 1.01)])
     xlim([1, stepTotal])
     grid on
     

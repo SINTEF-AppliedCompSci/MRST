@@ -1,11 +1,13 @@
 function f = assignPLYSHEAR(f, plyshear, reg)
-    f.plyshearMult = @(c, varargin)plyshearMult(c, plyshear, reg, varargin{:});
+% Polymer shear thinning/thickening
+    f.plyshearMult = @(VW, varargin) plyshearMult(VW, plyshear, reg, ...
+        varargin{:});
 end
 
-function v = plyshearMult(c, plyshear, reg, varargin)
-    satinx = getRegMap(c, reg.PVTNUM, reg.PVTINX, varargin{:});
+function v = plyshearMult(VW, plyshear, reg, varargin)
+    satinx = getRegMap(VW, reg.PVTNUM, reg.PVTINX, varargin{:});
     plyshear = extendTab(plyshear);
-    v = interpReg(plyshear, c, satinx);
+    v = interpReg(plyshear, VW, satinx);
 end
 
 %{

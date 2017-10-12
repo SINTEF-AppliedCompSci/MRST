@@ -11,8 +11,8 @@ classdef TransportOilWaterModel < TwoPhaseOilWaterModel
             
             model = model@TwoPhaseOilWaterModel(G, rock, fluid);
             
-            model.conserveWater = false;
-            model.conserveOil   = true;
+            model.conserveWater = true;
+            model.conserveOil   = false;
             
             model.upwindType = 'potential';
             model.useCNVConvergence = false;
