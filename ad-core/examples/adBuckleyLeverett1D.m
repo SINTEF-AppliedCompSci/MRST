@@ -90,6 +90,43 @@ fn = getPlotAfterStep(state0, model, schedule, ...
 [~,sstates,report] = ...
    simulateScheduleAD(state0, model, schedule,'afterStepFn', fn);
 
+%% Repeat simulation with a storage handler
+% The solver also has a hook that enables you to control how the computed
+% states are stored. To control the storage, we use a so-called storage
+% handler, which behaves almost like a cell array, whose content can either
+% be stored in memory, on disk, or both places. Here, we set it up to store
+% on disk
+handler = ResultHandler('writeToDisk', true, 'dataFolder', 'AD-BL1D');
+simulateScheduleAD(state0, model, schedule, 'outputHandler', handler);
+disp(handler)
+
+%%
+% The simulation above stored each state as a separate *.mat file in a
+% subdirectory 'AD-BL1D' somewhere on a standard path relative to MRST's
+% root directory. The time steps can now be accessed in the usual way as if
+% they were in memory. We can, for instance, pass the handler to the
+% visualization GUI:
+figure
+plotToolbar(G, handler, 'field', 's:1','lockCaxis', true, 'plot1d', true);
+
+%%
+% At a later stage, we can go back and retrieve the data from disk by
+% constructing a new handler pointing to the same folder
+clear handler
+
+handler = ResultHandler('dataFolder', 'AD-BL1D');
+m = handler.numelData();
+states = cell(m, 1);
+for i = 1:2:m
+    states{i} = handler{i};
+end
+
+%%
+% If we do not want to keep the data, they can be removed by a call to the
+% reset function: 
+
+handler.resetData()
+
 %% Copyright notice
 
 % <html>
