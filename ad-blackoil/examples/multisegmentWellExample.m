@@ -118,7 +118,7 @@ disp(model.FacilityModel.WellModels{2})
 [wellSols, states, report] = simulateScheduleAD(state, model, schedule);
 %% Plot the well-bore pressure in the multisegment well
 % Plot pressure along wellbore for step 1 and step 120 (final step)
-figure, hold on
+figure, hold all
 for k =  [1 120]
     plot([wellSols{k}(2).bhp; wellSols{k}(2).nodePressure(1:6)]/barsa, ...
          '-o', 'LineWidth', 2);
