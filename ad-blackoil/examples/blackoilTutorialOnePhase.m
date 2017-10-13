@@ -17,8 +17,7 @@ G = cartGrid([50 50],[1000 100]);
 G = computeGeometry(G);
 
 % Permeability and porosity
-rock.perm  = 100*milli*ones(G.cells.num,1)*darcy;
-rock.poro  = ones(G.cells.num,1)*0.3;
+rock = makeRock(G, 100*milli*darcy, 0.3);
 
 % Transmissibility
 T  = computeTrans(G, rock);
@@ -63,16 +62,19 @@ W = addWell([], G, rock,  wc,     ...
 bc=pside([],G,'North',200*barsa,'sat',1);
 
 % Schedule: describing time intervals and corresponding drive mechanisms
-dt = diff(linspace(0,1*day,20));
-schedule = struct(...
-    'control', struct('W',{W}), ...
-    'step',    struct('control', ones(numel(dt),1), 'val', dt));
-for i=1:numel(schedule.control)
-    schedule.control(i).bc = bc;
-    for j=1:numel(schedule.control.W)
-        schedule.control(i).W(j).compi=1;        % Saturation in wellbore
-    end
-end
+schedule = simpleSchedule(diff(linspace(0,1*day,20)), 'bc', bc, 'W', W);
+
+% Alternatively, you can do this explicitly to have full control
+%dt = diff(linspace(0,1*day,20));
+%schedule = struct(...
+%    'control', struct('W',{W}), ...
+%    'step',    struct('control', ones(numel(dt),1), 'val', dt));
+%for i=1:numel(schedule.control)
+%    schedule.control(i).bc = bc;
+%    for j=1:numel(schedule.control.W)
+%        schedule.control(i).W(j).compi=1;        % Saturation in wellbore
+%    end
+%end
 
 %% Reservoir state
 % The last component we need in order to specify our reservoir model is the
@@ -92,7 +94,7 @@ clf,
 plotCellData(G,state.pressure/barsa,'EdgeColor','none');
 colorbar
 
-%% Run Simulations and Plot Results
+%% Run simulations and plot results
 % To make the case a bit more interesting, we compute the flow problem
 % twice. The first simulation uses the prescribed boundary conditions,
 % which will enable fluids to pass out of the north boundary. In the second
