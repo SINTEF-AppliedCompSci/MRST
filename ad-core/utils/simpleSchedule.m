@@ -3,7 +3,7 @@ function schedule = simpleSchedule(dt, varargin)
 %
 % SYNOPSIS:
 %   schedule = simpleSchedule(timesteps);
-%   schedule = simpleSchedule(timesteps, 'Wells', W, 'src', src, 'bc', bc);
+%   schedule = simpleSchedule(timesteps, 'W', W, 'src', src, 'bc', bc);
 %
 % PARAMETERS:
 %   
@@ -11,8 +11,8 @@ function schedule = simpleSchedule(dt, varargin)
 %
 % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
 %
-%   Wells - Wells to be used in the schedule. The wells will be active in
-%           all timesteps.
+%   W -  Wells to be used in the schedule. The wells will be active in
+%        all timesteps.
 %   
 %   BC - Boundary conditions to be used in the schedule. The boundary
 %        conditions will be active in all timesteps. 
