@@ -52,7 +52,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         return
     end
     % Initial geometric series
-    dt_init = (dt./2.^(n:-1:1))';
+    dt_init = (dt./2.^[n n:-1:1])';
     cs_time = cumsum(dt_init);
     if any(cs_time > time)
         dt_init = dt_init(cs_time < time);
