@@ -1,9 +1,12 @@
-%% Example: Single-Phase Water Flow
+%% Example: Depletion of a closed or open reservoir compartment
 % In this tutorial, we will show how to set up a simulator from scratch in
 % the automatic differentiation, object-oriented (AD-OO) framework without
 % the use of input files. As an example we consider a 2D rectangular
-% reservoir with homogeneous properties, with a single well at the midpoint
-% of the south edge and fixed pressure prescribed along the north edge.
+% reservoir compartment with homogeneous properties, drained by a single
+% producer at the midpoint of the top edge. The compartment is either
+% closed (i.e., sealed by no-flow boundary conditions along all edges), or
+% open with constant pressure support from an underlying, infinite aquifer,
+% which we model as a constant-pressure boundary condition.
 
 mrstModule add ad-props  ad-core ad-blackoil
 
@@ -12,15 +15,9 @@ mrstModule add ad-props  ad-core ad-blackoil
 % need to define three standard MRST structures representing the grid and
 % the rock and fluid properties
 
-% The grid
-G = cartGrid([50 50],[1000 100]);
-G = computeGeometry(G);
-
-% Permeability and porosity
+% The grid and rock model
+G    = computeGeometry(cartGrid([50 50],[1000 100]));
 rock = makeRock(G, 100*milli*darcy, 0.3);
-
-% Transmissibility
-T  = computeTrans(G, rock);
 
 % Fluid properties
 pR  = 200*barsa;
@@ -39,8 +36,7 @@ fluid = initSimpleADIFluid('phases','W',           ... % Fluid phase: water
 % direction. By default, the gravity in MRST is a 3-component vector that
 % points in the positive z-direction. Here, we set it to a 2-component
 % vector pointing in the negative y-direction.
-g = norm(gravity);
-wModel = WaterModel(G, rock, fluid,'gravity',[0 -g]);
+wModel = WaterModel(G, rock, fluid,'gravity',[0 -norm(gravity)]);
 
 %% Drive mechansims and schedule
 % The second thing we need to specify is the mechanisms that will drive
@@ -53,34 +49,23 @@ wModel = WaterModel(G, rock, fluid,'gravity',[0 -g]);
 % the time step).
 
 % Well: at the midpoint of the south edge
-wc = sub2ind( G.cartDims, floor(G.cartDims(1)/2), 1);
+wc = sub2ind(G.cartDims, floor(G.cartDims(1)/2), G.cartDims(2));
 W = addWell([], G, rock,  wc,     ...
-        'Type', 'bhp', 'Val', 100*barsa+pR, ...
+        'Type', 'bhp', 'Val', pR-50*barsa, ...
         'Radius', 0.1, 'Name', 'P1','Comp_i',1,'sign',1);
 
-% Boundary conditions: fixed pressure at top and no-flow elsewhere
-bc=pside([],G,'North',200*barsa,'sat',1);
+% Boundary conditions: fixed pressure at bottom and no-flow elsewhere
+bc=pside([],G,'South',200*barsa,'sat',1);
 
 % Schedule: describing time intervals and corresponding drive mechanisms
-schedule = simpleSchedule(diff(linspace(0,1*day,20)), 'bc', bc, 'W', W);
-
-% Alternatively, you can do this explicitly to have full control
-%dt = diff(linspace(0,1*day,20));
-%schedule = struct(...
-%    'control', struct('W',{W}), ...
-%    'step',    struct('control', ones(numel(dt),1), 'val', dt));
-%for i=1:numel(schedule.control)
-%    schedule.control(i).bc = bc;
-%    for j=1:numel(schedule.control.W)
-%        schedule.control(i).W(j).compi=1;        % Saturation in wellbore
-%    end
-%end
+schedule1 = simpleSchedule(diff(linspace(0,5*day,41)), 'bc', bc, 'W', W);
+schedule2 = simpleSchedule(diff(linspace(0,5*day,41)), 'W', W);
 
 %% Reservoir state
 % The last component we need in order to specify our reservoir model is the
 % reservoir state, i.e., the fluid pressure. For multiphase models, the
 % state also includes the phase saturations and compositions. In our case,
-% we first set a constant pressure, and call on a solver form |ad-core| to
+% we first set a constant pressure, and call on a solver from |ad-core| to
 % compute vertical equilibrium.
 state.pressure = ones(G.cells.num,1)*pR;                % Constant pressure
 state.wellSol  = initWellSolAD([], wModel, state);      % No well initially
@@ -94,7 +79,7 @@ clf,
 plotCellData(G,state.pressure/barsa,'EdgeColor','none');
 colorbar
 
-%% Run simulations and plot results
+%% Run simulations
 % To make the case a bit more interesting, we compute the flow problem
 % twice. The first simulation uses the prescribed boundary conditions,
 % which will enable fluids to pass out of the north boundary. In the second
@@ -102,41 +87,36 @@ colorbar
 % the north boundary
 
 % Simulation pressure 200 bar at top
-[wellSols1, states1] = simulateScheduleAD(state, wModel, schedule);
+[wellSols1, states1] = simulateScheduleAD(state, wModel, schedule1);
 
 % Simulation with no-flow at top
-schedule2 = schedule;
-for i=1:numel(schedule2.control), schedule2.control(i).bc = []; end
 [wellSols2, states2] = simulateScheduleAD(state, wModel, schedule2);
 
+%% Plot results
 % Prepare animation
 wpos = G.cells.centroids(wc,:); clf
-set(gcf,'Position',[600 400 800 400]); colormap(jet(32));
-h1 = subplot('Position',[.1 .11 .34 .815]);
-title('With pressure b.c'); caxis([200 300]); hp1 = [];
-h2 = subplot('Position',[.54 .11 .4213 .815]);
-title('With no-flow b.c.'); caxis([200 300]); hp2 = [];
-colorbar
+set(gcf,'Position',[600 400 800 400])
 
-% Animate solutions
+h1 = subplot('Position',[.1 .11 .34 .815]);
+hp1 = plotCellData(G,state.pressure/barsa,'EdgeColor','none');
+title('Open compartment w/aquifer'); caxis([pR/barsa-50 pR/barsa]);
+
+h2 = subplot('Position',[.54 .11 .4213 .815]);
+hp2 = plotCellData(G,state.pressure/barsa,'EdgeColor','none');
+title('Closed compartment'); caxis([pR/barsa-50 pR/barsa]);
+
+colormap(jet(32)); colorbar
+
+% Animate solutions by resetting CData property of graphics handle
 for i=1:numel(states1)
-    subplot(h1); delete(hp1);
-    hp1 = plotCellData(G,states1{i}.pressure/barsa,'EdgeColor','none');
-    %hold on, plot(wpos(1),wpos(2),'o','Color','r','MarkerSize',10), hold off
-    % caxis([200 300])
-    
-    subplot(h2); delete(hp2);
-    plotCellData(G,states2{i}.pressure/barsa,'EdgeColor','none');
-    %hold on, plot(wpos(1),wpos(2),'o','Color','r','MarkerSize',10), hold off
-    % caxis([200 300])
-    % colorbar
-    
-    drawnow;
+    set(hp1,'CData', states1{i}.pressure/barsa);
+    set(hp2,'CData', states2{i}.pressure/barsa);
+    drawnow, pause
 end
 
 % Launch plotting of well responses
 plotWellSols({wellSols1,wellSols2}, ...
-    'Datasetnames',{'Pressure','No-flow'}, 'field','qWr');
+    'Datasetnames',{'Aquifer','Closed'}, 'field','qWr');
 
 %% Copyright notice
 
