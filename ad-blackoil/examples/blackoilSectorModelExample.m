@@ -2,7 +2,7 @@
 % We take the SPE1 fluid model to get a simple blackoil-model. We make the
 % aqueous phase mobile by manually setting the relative permeability.
 mrstModule add ad-core ad-blackoil ad-props
-[~, ~, fluid, deck, state] = setupSPE1();
+[~, ~, fluid, deck] = setupSPE1();
 fluid.krW = @(s) s.^2;
 
 %% Set up a simple grid with an initial state
@@ -21,6 +21,7 @@ state0 = initResSol(G, p0, s0);
 state0.rs = repmat(200, G.cells.num, 1);
 % Black oil with disgas
 model = ThreePhaseBlackOilModel(G, rock, fluid, 'disgas', true);
+
 %% Set up driving forces
 % We will operate a single producer well at a fixed rate. In addition, we
 % define a set of boundary conditions at the vertical boundary of the
@@ -29,14 +30,10 @@ model = ThreePhaseBlackOilModel(G, rock, fluid, 'disgas', true);
 
 % Time horizon
 T = 10*year;
-% Produce 1/4 PV at surface conditions
-prate = -0.25*sum(model.operators.pv)/T;
-% Oil-rate controlled producer
-I = ceil(G.cartDims(1)/2);
-J = ceil(G.cartDims(1)/2);
-W = [];
-W = verticalWell(W, G, rock, I, J, [], ...
-    'val',      prate, ...
+% Produce 1/4 PV at surface conditions controlled by oil rate
+ij = ceil(G.cartDims./2);
+W = verticalWell([], G, rock, ij(1), ij(2), [], ...
+    'val',      -0.25*sum(model.operators.pv)/T, ...
     'type',     'orat',...
     'comp_i',   [1, 1, 1]/3, ...
     'sign',     -1, ...
@@ -48,7 +45,7 @@ W.lims.bhp = 100*barsa;
 % Define boundary conditions
 bc = [];
 sides = {'xmin', 'xmax', 'ymin', 'ymax'};
-for side = 1:numel(sides);
+for side = 1:numel(sides)
     bc = pside(bc, G, sides{side}, p0, 'sat', s0);
 end
 % We define initial Rs value for the BC. We can either supply a single
@@ -58,28 +55,28 @@ end
 %
 % To define dissolution per face, a matrix of dimensions numel(bc.face)x3x3
 % would have to be set.
-bc.dissolution = [1, 0,   0;... % Water fractions in phases 
+bc.dissolution = [1, 0,   0;... % Water fractions in phases
                   0, 1,   0; ...% Oil fractions in phases
                   0, 200, 1];   % Gas fractions in phases
 % Simple uniform schedule with initial rampup
 dt = rampupTimesteps(T, 30*day);
-% Define schedule with well and bc
+
+% Define schedule with well and constant pressure boundary conditions
 schedule = simpleSchedule(dt, 'W', W, 'bc', bc);
-% Define schedle with only well and no bc
-schedule_closed = simpleSchedule(dt, 'W', W, 'bc', []);
-%% Simulate case with open boundaries
 [ws, states] = simulateScheduleAD(state0, model, schedule);
 
-%% Simulate case with closed boundaries
-[ws_c, states_c] = simulateScheduleAD(state0, model, schedule_closed);
+% Define schedule with well and closed boundaries
+schedule2 = simpleSchedule(dt, 'W', W, 'bc', []);
+[ws_c, states_c] = simulateScheduleAD(state0, model, schedule2);
 
 %% Compare the two results
-% We observe that the simulation with open boundary has a very different
-% pressure build up than the same problem with closed boundaries. Note also
-% that once the bhp limit is reached, the well switches controls in the
-% closed model, and the oil production rate changes.
+% We observe that the simulation with constant boundary pressure has a very
+% different pressure build up than the same problem with closed boundaries.
+% Note also that once the bhp limit is reached, the well switches controls
+% in the closed model, and the oil production rate changes.
 plotWellSols({ws, ws_c}, cumsum(schedule.step.val), ...
-    'datasetnames', {'Open boundaries', 'Closed boundaries'})
+    'datasetnames', {'Constant pressure', 'Closed boundaries'})
+
 %% Plot the gas in the well cells
 % If we do not have open boundaries, the pressure will eventually drop as a
 % result of the large removed volumes of oil and dissolved gas. For the
@@ -91,4 +88,4 @@ clf;
 plot([gas_open, gas_closed], 'linewidth', 2)
 ylabel('S_g')
 xlabel('Step #');
-legend('Open boundaries', 'Closed boundaries');
+legend('Constant pressure', 'Closed boundaries');
