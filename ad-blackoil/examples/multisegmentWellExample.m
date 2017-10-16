@@ -2,7 +2,7 @@
 % This example demonstrates the use of multisegment wells in MRST. The
 % default wells in MRST assume flow in the well happens on a very short
 % time-scale compared to the reservoir and can thus be accurately modelled
-% by a instantaneous model. 
+% by an instantaneous model.
 %
 % For some problems, however, more sophisticated well models may be
 % required. The multisegment well class in MRST supports transient
@@ -17,10 +17,10 @@ mrstModule add ad-blackoil ad-props deckformat ad-core mrst-gui
 % We use the SPE 1 example to get a simple black-oil case to modify. For
 % more details on this model, see the the example blackoilTutorialSPE1.m.
 [G, rock, fluid, deck, state] = setupSPE1();
-[nx, ny] = deal(10);
+[nx, ny] = deal(G.cartDims(1),G.cartDims(2));
 
 model = selectModelFromDeck(G, rock, fluid, deck);
-% Add extra output 
+% Add extra output
 model.extraStateOutput = true;
 
 % Convert the deck schedule into a MRST schedule
@@ -30,9 +30,9 @@ schedule = convertDeckScheduleToMRST(model, deck);
 % The well has 13 nodes. Nodes correspond to volumes in the well and are
 % analogous to the grid cells used when the reservoir itself is
 % discretized. The well is perforated in six grid blocks and we add nodes
-% both for the well bore and the reservoir contacts. By modelling the nodes
-% in the reservoir contacts and the well bore separately, we can introduce
-% a valve between the reservoir and the well bore. 
+% both for the wellbore and the reservoir contacts. By modelling the nodes
+% in the reservoir contacts and the wellbore separately, we can introduce
+% a valve between the reservoir and the wellbore.
 %
 % Nodes 1-7 represents the wellbore (frictional pressure drop)
 % Well segments 2-8, 3-9, ..., 7-13 will represent valves
@@ -49,38 +49,55 @@ schedule = convertDeckScheduleToMRST(model, deck);
 
 % connection grid cells (along edge of second layer)
 c = nx*ny + (2:7)';
+
+% Make a conceptual illustration of the multisegment horizontal well
+clf
+flag=true(G.cells.num,1); flag([2; c])=false;
+plotGrid(G,flag,'FaceColor',[1 1 .7]);
+plotGrid(G,c,'FaceColor','r','FaceAlpha',.3,'EdgeColor','r','LineWidth',1);
+x = G.cells.centroids(c,[1 1 1]); x(:,2) = NaN;
+y = G.cells.centroids(c,[2 2 2]); y(:,2) = NaN;
+z = G.cells.centroids(c,[3 3 3]); z(:,2) = NaN;
+z(:,1) = z(:,1)+1.5; z(:,3) = z(:,3)-1.5;
+hold on
+plot3(x(1,[1 1]), y(1,[1 1]), z(1,1) - [0 15], '-r', 'LineWidth',3);
+plot3(x, y, z,'-or','MarkerSize',7,'MarkerFaceColor',[.6 .6 .6],'LineWidth',2);
+plot3(x(:,[1 3 2])',y(:,[1 3 2])',z(:,[1 3 2])','-r','LineWidth',2);
+hold off, view(-30,25), axis tight off
+
+%%
 % First, initialize production well as "standard" well structure
-prod0 = addWell([], G, rock, c, 'name', 'prod', 'refDepth', G.cells.centroids(1,3), ...
+prodS = addWell([], G, rock, c, 'name', 'prod', ...
+                'refDepth', G.cells.centroids(1,3), ...
                'type', 'bhp', 'val', 250*barsa);
-prod = prod0;
-% Define additional properties needed for ms-well 
+
+% Define additional properties needed for ms-well
 % We have 12 node-to-node segments
 topo = [1 2 3 4 5 6 2 3  4  5  6  7
         2 3 4 5 6 7 8 9 10 11 12 13]';
-%      |   tubing  |    valves     |     
+%      |   tubing  |    valves     |
 % Create sparse cell-to-node mapping
 cell2node = sparse((8:13)', (1:6)', 1, 13, 6);
 % Segment lengths/diameters and node depths/volumes
 lengths = [300*ones(6,1); nan(6,1)];
 diam    = [.1*ones(6,1); nan(6,1)];
-depths  = G.cells.centroids(c(1), 3)*ones(13,1);
+depths  = G.cells.centroids(c([1 1:end 1:end]), 3);
 vols    = ones(13,1);
 % Convert to ms-well
-prod = convert2MSWell(prod, 'cell2node', cell2node, 'topo', topo, 'G', G, 'vol', vols, ... 
+prodMS = convert2MSWell(prodS, 'cell2node', cell2node, 'topo', topo, 'G', G, 'vol', vols, ...
                    'nodeDepth', depths, 'segLength', lengths, 'segDiam', diam);
 
 % Finally, we set flow model for each segment:
 %   segments  1-6: wellbore friction model
-%   segments 7-12: nozzle valve model 
+%   segments 7-12: nozzle valve model
+% The valves have 30 openings per connection
 [wbix, vix]  = deal(1:6, 7:12);
-roughness = 1e-4;
-nozzleD   = .0025;
-discharge = .7;
-nValves   = 30; % number of valves per connection
+[roughness, nozzleD, discharge, nValves] = deal(1e-4, .0025, .7, 30);
+
 % Set up flow model as a function of velocity, density and viscosity
-prod.segments.flowModel = @(v, rho, mu)...
-    [wellBoreFriction(v(wbix), rho(wbix), mu(wbix), prod.segments.diam(wbix), ...
-                      prod.segments.length(wbix), roughness, 'massRate'); ...
+prodMS.segments.flowModel = @(v, rho, mu)...
+    [wellBoreFriction(v(wbix), rho(wbix), mu(wbix), prodMS.segments.diam(wbix), ...
+                      prodMS.segments.length(wbix), roughness, 'massRate'); ...
      nozzleValve(v(vix)/nValves, rho(vix), nozzleD, discharge, 'massRate')];
 
 % In addition, we define a standard gas injector. Different well types can
@@ -92,14 +109,14 @@ inj = addWell([], G, rock, 100, 'name', 'inj', 'type', 'rate', 'Comp_i', [0 0 1]
 %% Run schedule with simple wells
 % We first simulate a baseline where the producer is treated as a simple
 % well with instantaneous flow and one node per well-reservoir contact.
-W_simple = [inj; prod0];
+W_simple = [inj; prodS];
 schedule.control.W = W_simple;
 
 [wellSolsSimple, statesSimple] = simulateScheduleAD(state, model, schedule);
 
 %% Set up well models
 % We combine the simple and multisegment well together
-W = combineMSwithRegularWells(inj, prod);
+W = combineMSwithRegularWells(inj, prodMS);
 schedule.control.W = W;
 % Initialize the facility model. This is normally done automatically by the
 % simulator, but we do it explicitly on the outside to view the output
@@ -116,6 +133,7 @@ disp(model.FacilityModel.WellModels{2})
 % Note that if verbose output is enabled, the convergence reports will
 % include additional fields corresponding to the well itself.
 [wellSols, states, report] = simulateScheduleAD(state, model, schedule);
+
 %% Plot the well-bore pressure in the multisegment well
 % Plot pressure along wellbore for step 1 and step 120 (final step)
 figure, hold all
@@ -130,4 +148,4 @@ set(gca, 'Fontsize', 14), xlabel('Well node'), ylabel('Pressure [bar]')
 % We can compare the two different well models interactively and observe
 % the difference between the two modelling approaches.
 plotWellSols({wellSols, wellSolsSimple}, report.ReservoirTime, ...
-            'datasetnames', {'Complex wells', 'Standard wells'});
+            'datasetnames', {'Multisegment', 'Standard'});
