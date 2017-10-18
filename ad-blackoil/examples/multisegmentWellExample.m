@@ -69,7 +69,7 @@ hold off, view(-30,25), axis tight off
 % First, initialize production well as "standard" well structure
 prodS = addWell([], G, rock, c, 'name', 'prod', ...
                 'refDepth', G.cells.centroids(1,3), ...
-               'type', 'bhp', 'val', 250*barsa);
+               'type', 'rate', 'val', -8e5/day);
 
 % Define additional properties needed for ms-well
 % We have 12 node-to-node segments
@@ -149,3 +149,50 @@ set(gca, 'Fontsize', 14), xlabel('Well node'), ylabel('Pressure [bar]')
 % the difference between the two modelling approaches.
 plotWellSols({wellSols, wellSolsSimple}, report.ReservoirTime, ...
             'datasetnames', {'Multisegment', 'Standard'});
+        
+%% Show the advancing displacement front
+mrstModule add coarsegrid
+pg = generateCoarseGrid(G,ones(G.cells.num,1));
+figure, h = [];
+plotGrid(pg,'FaceColor','none');
+plotGrid(G,c,'FaceColor','none','EdgeColor','r');
+plotWell(G,[inj; prodS]);
+caxis([0 .5]); view(37.5,34); caxis([0 .5]); axis(ax); colorbar, drawnow;
+for i=1:numel(states)
+    sg = states{i}.s(:,3); inx = sg>1e-5;
+    if sum(inx)>0
+        delete(h)
+        h=plotCellData(G,sg,sg>1e-4,'EdgeAlpha',.01);
+        colorbar
+    drawnow;
+    end
+end
+
+%% Visualize drawdown in well as function of time
+% We extract the pressure in all the nodes and visualize this, together
+% with the pressure in the completed reservoir cells as function of time
+[xx,tt]=meshgrid(1:6,report.ReservoirTime/day);
+pr = cellfun(@(x) x.pressure(c)', states, 'UniformOutput',false);
+pa = cellfun(@(x) x(2).nodePressure(7:12)', wellSols, 'UniformOutput',false);
+pw = cellfun(@(x) x(2).nodePressure(1:6)', wellSols, 'UniformOutput',false);
+figure
+hold on
+surfWithOutline(xx, tt, vertcat(pr{:})/barsa);
+surfWithOutline(xx, tt, vertcat(pa{:})/barsa);
+surfWithOutline(xx, tt, vertcat(pw{:})/barsa);
+hold off, box on, axis tight
+view(50,10), shading interp
+set(gca,'Projection','Perspective');
+akse = axis();
+cax = caxis();
+
+%%
+pr = cellfun(@(x) x.pressure(c)', statesSimple, 'UniformOutput',false);
+pw = cellfun(@(x) x(2).bhp + x(2).cdp', wellSolsSimple, 'UniformOutput',false);
+figure
+hold on
+surfWithOutline(xx, tt, vertcat(pr{:})/barsa);
+surfWithOutline(xx, tt, vertcat(pw{:})/barsa);
+hold off, box on, axis tight, axis(akse), caxis(cax)
+view(50,10), shading interp
+set(gca,'Projection','Perspective');
