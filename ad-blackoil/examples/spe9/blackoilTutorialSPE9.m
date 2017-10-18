@@ -45,10 +45,6 @@ mrstModule add ad-blackoil ad-core mrst-gui ad-props deckformat
 % Determine the model automatically from the deck. It should be a
 % three-phase black oil model with gas dissoluton.
 model = selectModelFromDeck(G, rock, fluid, deck);
-% Set maximum limits on saturation, Rs and pressure changes
-model.drsMaxRel = inf;
-model.dpMaxRel  = .1;
-model.dsMaxAbs  = .1;
 
 % Show the model
 model %#ok, intentional display
@@ -56,7 +52,14 @@ model %#ok, intentional display
 % Convert the deck schedule into a MRST schedule by parsing the wells
 schedule = convertDeckScheduleToMRST(model, deck);
 
-%% Set up linear solver
+%% Adjust time-step control
+% To ensure more stable time stepping, we set limits on changes in Rs,
+% pressure, and saturation
+model.drsMaxRel = inf;
+model.dpMaxRel  = .1;
+model.dsMaxAbs  = .1;
+
+%% Configure linear solver
 % We proceed to setup a CPR-type solver, using the AGMG linear solver as
 % the multigrid preconditioner. The CPR preconditioner attempts to decouple
 % the fully implicit equation set into a pressure component and a transport
@@ -89,14 +92,17 @@ v = [15, 30];
 [G, rock] = deal(model.G, model.rock);
 
 clf
-plotCellData(G, log10(rock.perm(:, 1)))
-logColorbar(); axis tight, view(v)
+K = convertTo(rock.perm(:,1), milli*darcy);
+plotCellData(G, log10(K)); view(v), axis tight, box on
+set(gca,'Projection','Perspective');
+colorbarHist(K, [.01 1e4], 'South', 51, true);
 title('SPE9 Horizontal permeability');
 
 %% Plot the grid porosity
-cla
-plotCellData(G, rock.poro)
-colorbar()
+clf
+plotCellData(G, rock.poro), view(v), axis tight, box on
+set(gca,'Projection','Perspective');
+colorbarHist(rock.poro, [.06 .18], 'South',31);
 title('SPE9 Porosity');
 
 %% Plot a single vertical set of cells
@@ -106,10 +112,12 @@ title('SPE9 Porosity');
 % subset corresponding to the first column (upper left corner of the grid).
 %
 % By using axis equal we see the actual aspect ratio of the cells.
-clf
 [ii, jj] = gridLogicalIndices(G);
+plotGrid(G, ii==1 & jj==1, 'FaceColor','none','EdgeColor','w');
+set(gca,'Position',[.05 .2 .8 .73]); axis off, title('');
+axes('Position',[.7 .6 .3 .4]);
 plotCellData(G, rock.poro, ii == 1 & jj == 1)
-colorbar, axis equal tight, view(v)
+axis equal tight off, view(v)
 
 %% Plot initial saturation of oil and water
 % Initially, the reservoir does not contain free gas. We plot the initial
@@ -121,7 +129,17 @@ colorbar, axis equal tight, view(v)
 s = state0.s(:, [2, 3, 1]);
 clf
 plotCellData(G, s)
-axis tight; view(v)
+axis tight off; view(v)
+set(gca,'Projection','Perspective');
+
+% Add ternary colorbar
+axes('Position',[.15 .12 .15 .15]);
+patch('Vertices', [0 0; 2 0; 1 2*sin(pi/3)], 'Faces',1:3, ...
+    'FaceVertexCData', [0 0 1; 1 0 0; 0 1 0],'FaceColor','interp');
+text(0,0,'W','HorizontalAlignment','right'); 
+text(2,0,'O','HorizontalAlignment','left');
+text(1,2*sin(pi/3)+.1,'G','HorizontalAlignment','center');
+axis tight off
 
 %% Examine gas dissolved in oil phase
 % Even though there is no free gas initially, there is significant amounts
@@ -145,7 +163,8 @@ Rs = state0.rs;
 
 clf
 plotCellData(G, Rs./Rs_sat)
-axis tight; colorbar, view(v)
+axis tight off; colorbar, view(v)
+set(gca,'Projection','Perspective');
 title('Fraction of maximum gas saturation in oil phase - g(p)');
 
 %% Plot the wells
@@ -156,9 +175,10 @@ W = schedule.control(1).W;
 sgn = [W.sign];
 clf
 plotGrid(G, 'FaceColor', 'none')
-plotWell(G, W(sgn>0), 'fontsize', 0, 'color', 'b') 
-plotWell(G, W(sgn<0), 'fontsize', 0, 'color', 'r') 
-axis tight; view(v)
+plotWell(G, W(sgn>0), 'fontsize', 0, 'color', 'b')
+plotWell(G, W(sgn<0), 'fontsize', 0, 'color', 'r')
+axis tight off; view(v)
+set(gca,'Projection','Perspective');
 
 %% Examine the schedule
 % The simulation schedule consists of three control periods. All 26 wells
@@ -174,18 +194,19 @@ wno = find(strcmp({schedule.control(1).W.name}, 'PROD2'));
 % Extract controls for all timesteps
 P = arrayfun(@(ctrl) schedule.control(ctrl).W(wno).val, schedule.step.control);
 T = cumsum(schedule.step.val);
-stairs(T/year, P, '.-k')
+stairs(T/year, convertTo(-P, stb/day), 'o-k','MarkerSize',6,'MarkerFaceColor',[.6 .6 .6])
+set(gca,'FontSize',12)
 xlabel('Time (years)')
-ylabel('Oil rate (m^3/s)')
-title('Controls for PROD2')
+title('Controls for PROD2: oil rate [stb/day]')
+set(gca,'YLim',[0 1600]);
 
 %% Examine well limits
 % Note that the well controls are not the only way of controlling a well.
 % Limits can be imposed on wells, either due to physical or mathematical
 % considerations. In this case, fixed oil rate is the default setting,
 % but the well will switch controls if the pressure drops below a
-% threshold. This is found in the lims field for each well. 
-% 
+% threshold. This is found in the lims field for each well.
+%
 % Since this is a producer, the bhp limit is considered a lower limit,
 % whereas a bhp limit for an injector would be interpreted as a maximum
 % limit to avoid either equipment failure or formation of rock fractures.
@@ -299,14 +320,14 @@ title('Water formation volume factor')
 ylabel('B_w')
 xlabel('Pressure [bar]');
 
-figure; 
+figure;
 plot(pressure/barsa, 1./f.bG(pressure), 'LineWidth', 2);
 grid on
 title('Gas formation volume factor')
 ylabel('B_g')
 xlabel('Pressure [bar]');
 
-figure; 
+figure;
 plot(pressure/barsa, f.pvMultR(pressure), 'LineWidth', 2);
 grid on
 title('Rock compressibility')
@@ -366,7 +387,7 @@ ylabel('\mu_w')
 xlabel('Pressure');
 ylim([0, 1.5e-3])
 
-figure; 
+figure;
 plot(pressure/barsa, f.muG(pressure), 'LineWidth', 2);
 grid on
 title('Gas viscosity')
@@ -421,7 +442,7 @@ T = convertTo(cumsum(schedule.step.val), year);
 mrstplot = @(data) plot(T, data, '-b', 'linewidth', 2);
 compplot = @(data) plot(Tcomp, data, 'ro', 'linewidth', 2);
 
-%% Plot two different producers 
+%% Plot two different producers
 % We plot the bottom-hole pressures for two somewhat arbitrarily chosen
 % producers to show the accuracy of the pressure.
 clf
@@ -430,10 +451,10 @@ nn = numel(names);
 for i = 1:nn
 
     name = names{i};
-    
+
     comp = convertFrom(smry.get(name, 'WBHP', compd), psia)';
     mrst = getWellOutput(wellsols, 'bhp', name);
-    
+
     subplot(nn, 1, i)
     hold on
     mrstplot(mrst);
@@ -441,11 +462,11 @@ for i = 1:nn
     title(name)
     axis tight
     grid on
-    
+
     xlabel('Time (years)')
     ylabel('Pressure (Pa)')
 end
-legend({'MRST', 'ECL'})
+legend({'MRST', 'ECLIPSE'})
 
 %% Plot the gas production rate
 % We plot the gas production rate (at surface conditions).
@@ -454,7 +475,7 @@ for i = 1:nn
     name = names{i};
     comp = convertFrom(smry.get(name, 'WGPR', compd), 1000*ft^3/day);
     mrst = abs(getWellOutput(wellsols, 'qGs', name));
-    
+
     subplot(nn, 1, i)
     hold on
     mrstplot(mrst);
@@ -462,11 +483,11 @@ for i = 1:nn
     title(name)
     axis tight
     grid on
-    
+
     xlabel('Time (years)')
     ylabel('Gas rate (m^3/s)')
 end
-legend({'MRST', 'ECL'})
+legend({'MRST', 'ECLIPSE'})
 
 %% Changing controls
 % We saw earlier that all wells are initially rate controlled, but in
@@ -489,15 +510,17 @@ ctrls = vertcat(ctrls{:});
 nw = numel(wellsols{1});
 nstep = numel(wellsols);
 
-X = repmat(1:nw, nstep, 1);
-Y = repmat(T, 1, nw);
+X = repmat(0:nw, nstep, 1)+.5;
+Y = repmat(T/day, 1, nw+1);
+C = double(ctrls); C=C(:,[1:end end]);
 clf
-surf(X, Y, double(ctrls))
-view(90, 90); colormap jet
-ylabel('Time (years)')
-xlabel('Well #');
-title('Dark red color indicate BHP controls')
-axis tight
+pcolor(X, Y, C); view(90, 90); axis tight
+set(gca,'XTick',[],'FontSize',12);
+ylabel('Time (days)')
+text((X(1,2:end)+X(1,1:end-1))/2, Y(1,2:end)-5, {wellsols{1}.name},...
+    'HorizontalAlignment','right','FontSize',8);
+colormap(.55*lines(2)+.45*ones(2,3))
+set(colorbar,'Ytick',[.25 .75],'YTickLabel',{'rate','bhp'})
 
 %% Plot pressure before and after schedule
 % We plot the pressure after the very first timestep alongside the pressure
@@ -524,16 +547,16 @@ title('Pressure after final timestep')
 %% Plot free gas
 % Since the pressure has dropped significantly and we know that gas is
 % being produced from the initially nearly saturated reservoir, we will
-% look at the free gas. Again we consider both the first and the last state
+% look at the free gas. We consider the initial and the last state
 % and use the same coloring.
 
-sg0 = states{1}.s(:, 3);
+sg0 = state0.s(:, 3);
 sg = states{end}.s(:, 3);
 cscale = [0, max(sg)];
 
 figure(h1); clf;
 plotCellData(G, sg0)
-axis tight; colorbar; view(v); caxis(cscale);
+axis tight off; colorbar; view(v); caxis(cscale);
 title('Free gas after first timestep')
 
 figure(h2); clf;
