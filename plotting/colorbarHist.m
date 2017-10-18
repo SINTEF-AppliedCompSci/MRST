@@ -5,6 +5,7 @@ function [hcb, hax] = colorbarHist(q, lim, varargin)
 %   colorbarHist(q, lim)
 %   [hc,hh] = colorbarHist(q, lim, loc)
 %   [hc,hh] = colorbarHist(q, lim, loc, n)
+%   [hc,hh] = colorbarHist(q, lim, loc, n, islog)
 %
 % PARAMETERS:
 %    q   - vector for which histogram is to be defined
@@ -13,6 +14,7 @@ function [hcb, hax] = colorbarHist(q, lim, varargin)
 %    loc - location of colorbar: 'East','West', or 'South' (default)
 %    n   - number of bins in histogram (default: 50). See the documentation
 %          of hist for the interpretation of this parameter.
+%    islog - flag indicating that we should visualize q on a logarithmic scale
 %
 % RETURNS:
 %    hc  - graphics handle to colorbar
@@ -40,19 +42,27 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-mrstNargInCheck(2,4,nargin);
+mrstNargInCheck(2,5,nargin);
 
 if nargin==4,
    nbins = varargin{2}+1;
 else
    nbins = 51;
 end
+logflag = false;
+if nargin==5 && varargin{3}
+    q   = log10(q);
+    lim = log10(lim);
+    logflag = true;
+end
+
 if numel(nbins)==1
     [counts,bins] = hist(q, linspace(min(lim),max(lim),nbins));
 else
     [counts,bins] = hist(q, nbins);
 end
 
+cbTick = 'YTick'; cbTickLabel = 'YTickLabel';
 if nargin==2 || ((nargin>2) && strcmpi(varargin{1},'South'))
    cbPos = 'SouthOutside';
    cbAdd = -[0 0.09 0 0.03];
@@ -61,6 +71,7 @@ if nargin==2 || ((nargin>2) && strcmpi(varargin{1},'South'))
    else
       cbLoc = 'bottom';
    end
+   cbTick = 'XTick'; cbTickLabel = 'XTickLabel';
    axAdd = [0 -.03 0 .03];
    axLim = [min(lim)-eps, max(lim)+eps, -1-eps, max(1,1.1*max(counts))+eps];
    hbar  = @(x,y) bar(x,y,'hist');
@@ -88,6 +99,11 @@ hcb = colorbar(cbPos); drawnow;
 apos = get(ha,'Position');
 pos=get(hcb,'Position');
 set(hcb,'Position',max(pos + cbAdd,.01), 'YAxisLocation', cbLoc); drawnow;
+if logflag
+    ticks = get(hcb, cbTick);
+    newticks = arrayfun(@(x) ['1e', num2str(x)], ticks, 'UniformOutput', false);
+    set(hcb, cbTickLabel, newticks)
+end
 
 set(ha,'Position',apos); drawnow;
 hax = axes('Position',max(pos + axAdd,.01));
