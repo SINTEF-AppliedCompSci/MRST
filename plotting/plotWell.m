@@ -40,7 +40,7 @@ function varargout = plotWell(G, W, varargin)
 %   hline - Graphics handles to all lines between well head and names
 %
 % EXAMPLE:
-%   See simpleWellExample.m.
+%   See incompTutorialWells
 %
 % SEE ALSO:
 %   addWell, delete, patch.

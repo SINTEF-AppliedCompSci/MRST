@@ -407,6 +407,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
       function h = min(u, v)
           % Use def. of maximum to handle this
+          if(nargin==1)
+              h = -max(-u);
+              return;
+          end
           h = -max(-u, -v);
       end
 
@@ -478,6 +482,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       end
 
        function h = combineEquations(varargin)
+          % Combine a set of equations of either ADI or double type to a
+          % single equation with ADI type. The resulting equation will have
+          % a single assembled sparse Jacobian containing all derivatives.
           isD = cellfun(@isnumeric, varargin);
           if any(isD)
               sampleAD = varargin(~isD);

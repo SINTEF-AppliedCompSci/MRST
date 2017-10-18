@@ -104,7 +104,7 @@ function W = addWell(W, G, rock, cellInx, varargin)
 %                    Injectors generally have upper limits, while producers
 %                    have lower limits.
 % EXAMPLE:
-%   simpleWellExample
+%   incompTutorialWells
 %
 % NOTE:
 %   Wells in two-dimensional grids are not well defined in terms of
