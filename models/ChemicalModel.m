@@ -1,40 +1,209 @@
 classdef ChemicalModel < PhysicalModel
- %ChemicalModel A model for solving equilibrium geochemistry.
- 
- %{
-            Copyright 2009-2017 SINTEF DIGITAL, Applied Mathematics and Cybernetics and The University of Texas at Austin.
-
-            This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
-
-            MRST is free software: you can redistribute it and/or modify
-            it under the terms of the GNU General Public License as published by
-            the Free Software Foundation, either version 3 of the License, or
-            (at your option) any later version.
-
-            MRST is distributed in the hope that it will be useful,
-            but WITHOUT ANY WARRANTY; without even the implied warranty of
-            MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-            GNU General Public License for more details.
-
-            You should have received a copy of the GNU General Public License
-            along with MRST.  If not, see <http://www.gnu.org/licenses/>.
-            %}
+%ChemicalModel A tool for solving equilibrium geochemistry.
+%
+% SYNOPSIS:
+%  chem = ChemicalModel(elementNames, speciesNames, reactions)
+%
+% DESCRIPTION:
+%   A class of PhysicalModel which can construct and solve
+%   arbitrary aqueous geochemical system including nonisothermal
+%   aqueous and surface speciation, redox chemistry, equilibrium 
+%   with solid and gas phases, and surface complexation.
+%
+% REQUIRED PARAMETERS:
+%   elementNames        - A cell array of strings containing all
+%       elements to be considered in the chemical system. 
+%       Elements do not have to correspond to actual element names,
+%       but it is reccomened that they do.
+%            
+%           elementNames = {'H', 'O'};
+%
+%   speciesNames        - A cell array of strings of the chemical
+%       species to be considered in the chemical system. Each 
+%       entry in speciesNames must be a combination of
+%       entries found in elementNames, or surfaces. The species
+%       charge can be desginated with a +/- at the end of the
+%       name followed by the charge number (i.e. Ca+2, Cl-, >FeO-1/2).
+%
+%           speciesNames = {'H+', 'OH-', 'H2O'};
+%
+%   reactions           - A cell array listing the chemical
+%       reactions of the system as strings, followed
+%       by the equilibrium constant of the reaction as a scalar
+%       quantity. Entries in reactions must be given as a
+%       string in the form 'reactants = products'. 
+%       Equilibrium constant must be given in SI units.
+%
+%           reactions = {'H2O = H+ + OH-', 1e-14*mol/litre};
+%
+% OPTIONAL PARAMETERS:
+%   surfaces            - A cell structure containing the names
+%       of surface functional groups, followed by information
+%       regarding the specific surface. The first entry of
+%       surfaces is the name of the surface functional group.
+%       Surface functional group names must begin with the ">"
+%       symbol (i.e. '>FeO'). There are three different surface
+%       chemistry models implemented in ChemicalModel: the
+%       langmuir model, the triple layer model, and the
+%       constant capacitance model. The diffuse layer and basic
+%       stern models can be constructed by an adjustment of the
+%       parameters of the triple layer model. A chemical system
+%       can have any number of surfaces with different surface
+%       complexation models.
+%
+%
+%       The Langmuir model is the most simplistic case.
+%
+%           geometry = [1/(nano*meter)^2 50*meter^2/gram 1000*grams/litre];
+%
+%           surfaces = {'>FeO', {geometry, 'langmuir'}};
+%
+%           chem = ChemicalModel(elementNames, speciesNames, reactions,...
+%                       'surf', surfaces);
+%
+%       In this example the surface functional group is
+%    	'>FeO'. The second entry is a cell containing the
+%     	surface parameters. The variable geometry must
+%   	always be the first entry in this parameter cell.
+%     	The entries of geometry must correspond to the
+%      	surface site density, the specific surface area, and
+%      	the slurry density in that specific order. Values
+%     	must be given in SI units. The second entry of the
+%     	parameters cell must be the type of surface model to
+%     	use. In the case of 'langmuir' as above
+%     	no other entries are needed. 
+%
+%
+%       The triple layer model requires additional information.
+%
+%           capacitances = [1 0.2]*Farad/meter^2;
+%
+%           surfaces = {'>FeO', {geometry, 'tlm', capacitance,...
+%                                           '>FeO-', [-1 0 0]}
+%
+%           chem = ChemicalModel(elementNames, speciesNames, reactions,...
+%                       'surf', surfaces);
+%
+%       In this example geometry is defined as before, but now
+%       the '>FeO' is a triple layer model surface, as is
+%       indicated by 'tlm.' Additional parameters are needed in
+%       this case. The capacitance density of each of the
+%       Helmholtz layers must be given after the model type.
+%       The basic stern model can be simulated by increasing
+%       the capacitance of the second layer (i.e. [1 1e3]) and
+%       the diffuse layer model can be simulated by increasing
+%       the capacitance of both layers (i.e. [1e3 1e3]). If a
+%       surface species charge is distributed between multiple surfaces
+%       or contributes to a surface other than the mineral surface
+%       the charging behavior can be listed after capacitance values
+%
+%           surfaces = {'>FeO', {geometry, 'tlm', capacitance,...
+%                                           '>FeONa', [-1 +1 0]}
+%
+%       in the above example the species >FeONa contributes -1 charge to
+%       the surface and +1 charge to the inner Helmholtz plane. 
+%
+%
+%       The constant capacitance model can be similarly defined.
+%
+%           capacitances = 1*Farad/meter^2;
+%
+%           surfaces = {'>FeO', {geometry, 'ccm', capacitance, '>FeO-', -1}
+%
+%           chem = ChemicalModel(elementNames, speciesNames, reactions,...
+%                       'surf', surfaces);
+%
+%       In this example geometry is defined as before, but now
+%       the '>FeO' is a constant capacitance surface, as is
+%       indicated by 'ccm.' The capacitance density of the
+%       Helmholtz layers must be given after the model type.
+%       The capacitance is followed by the name of each surface
+%       species associated with '>FeO' and the species charge
+%       contribution to the surface. 
+%
+%
+%   combinations      - a cell containing name value pairs of user defined
+%       linear combinations of species. This is how one would define 
+%       alkalinity or other such parameters. 
+%
+%           combos = {'alk', 'HCO3- + 2*CO3-2 + OH- - H+',...
+%                     'pot', 'PO4-2 + HPO4-2'};
+%
+% SOLVING THE SYSTEM:
+%   specifying inputs       - MATLAB geoChemistry leverages the automatic
+%       differentiation capabilities of MRST. This means that any variable
+%       can be an unknown or an input. This makes the tool incredibly
+%       flexible and especially well suited for the utilization of 
+%       labortaory data. Inputs are chosen when the chemical system is
+%       initiated with ChemicalModel by putting an asterisk (*) in the
+%       component name. If an element is chosen as an input, the user
+%       provides the total concentration of that element as an input.
+%       Aqueous and surface pecies as well as combination components can
+%       can all be chosen as inputs. 
+%
+%           elementNames = {'H', 'O'};
+%
+%           speciesNames = {'H+*', 'OH-', 'H2O*'};
+%
+%           reactions = {'H2O = H+ + OH-', 1e-14*mol/litre};
+%
+%           chem = ChemicalModel(elementNames, speciesNames, reactions);
+%
+%       In the above example the aqueous concentration of H+ and H2O as
+%       been specified as an input. 
+%
+%       The system is solved by passing the input values to ChemicalModel.initState
+%       The order of the inputs can be found by 
+%
+%           chem.inputs
+%
+%       Any number of input scenarios can be passed to initState
+%
+%           n = 100;
+%
+%           H = logspace(-2, -10, n)'
+%
+%           H2O = ones(n,1);
+%
+%           inputs = [H H2O]*mol/litre;
+%
+%           state = chem.initState(inputs)
+%
+% SEE ALSO:
+%   initState, printChemicalSystem
+%
+%Copyright 2009-2017 SINTEF DIGITAL, Applied Mathematics and Cybernetics and The University of Texas at Austin.
+% 
+% This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+% 
+% MRST is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% 
+% MRST is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+% 
+% You should have received a copy of the GNU General Public License
+% along with MRST.  If not, see <http://www.gnu.org/licenses/>.
  
     properties
-        masterComponentNames      % Names of the master components as first master component.
-        logMasterComponentNames   % Names of the log master components (= 'log' in
-                             % front of masterComponentNames).
+        elementNames      % Names of the master components as first master component.
+        logElementNames   % Names of the log master components (= 'log' in
+                             % front of elementNames).
 
         MCind                % index vector of each master component
         nMC                  % number of master components
 
-        componentNames            % Names of the components.
-        logComponentNames         % Names of the log components (= 'log' in
-                             % front of componentNames).
+        speciesNames            % Names of the components.
+        logSpeciesNames         % Names of the log components (= 'log' in
+                             % front of speciesNames).
 
         compositionMatrix    % Composition for each components, in term of the
                              % master components.
-        Cind                 % index vector of secondary components
+        Cind                 % index vector of species
         nC                   % Number of components
         
         maxMatrices          % cells of matrices, one per components. Used to
@@ -49,7 +218,6 @@ classdef ChemicalModel < PhysicalModel
         nR                   % Number of reactions
         rxns                 % string of reactions
 
-        maxIterations        % max nonlinear iterations for solveChemicalState
 
         surfChargeMatrix     % matrix of surface charge contributions
         surfMaster           % index vector of master components that are surfaces
@@ -68,10 +236,8 @@ classdef ChemicalModel < PhysicalModel
                               % is initialized in initSecondaryComponents.
 
         surfInfo            % information regarding the surfaces
-        componentActivityNames   % name of activity of species
-        
-        plotIter            % toggle plotting of iteration information true or false
-        
+        activityNames   % name of activity of species
+
         surfaceChargeNames         % name of surface charge variables
         surfacePotentialNames         % name of potentials
         
@@ -83,7 +249,7 @@ classdef ChemicalModel < PhysicalModel
         inputs              % names of inputs the user must provide
         
         combinationNames    % names of linear combinations
-        combinationMatrix   % combination for each linear combination in terms of secondary components
+        combinationMatrix   % combination for each linear combination in terms of species
         nLC                 % number of linear combinations
         
         aqueousConcentrationNames % name of total aqueous concentration variables
@@ -120,141 +286,23 @@ classdef ChemicalModel < PhysicalModel
         solidDensityNames   % names of solid densities
         
         surfacePotentialMatrix  % matrix for surface potential contributions to reactions
+        
+        plotIterations            % toggle plotting of iteration information true or false
+        nonLinearMinIterations    % minimum number of iterations for the nonlinear solver
+        nonLinearMaxIterations    % maximum number of iterations for the nonlinear solver  
+        nonLinearTolerance        % tolerance of the residual of the nonlinear system
+        linearTolerance           % tolerance of the residual of the linear system, for backslash
+        linearMaxIterations       % maximum number of iterations for the linear solver
+        
+        
     end
 
 
     methods
 
-        %%
         function model = ChemicalModel(varargin)
-        %ChemicalModel A model for solving equilibrium geochemistry.
-            %
-            % SYNOPSIS:
-            %  chem = ChemicalModel(varargin)
-            %
-            % DESCRIPTION:
-            %   A class of PhysicalModel which can construct and solve
-            %   arbitrary aqueous geochemical system including surface chemistry
-            %   all under the assumption of local chemical equilibrium. 
-            %
-            % REQUIRED PARAMETERS:
-            %   elementNames        - A cell array of strings containing all
-            %       elements to be considered in the chemical system. 
-            %       Elements do not have to correspond to actual element names,
-            %       but it is reccomened that they do.
-            %            
-            %           elementNames = {'H', 'O'};
-            %
-            %   speciesNames        - A cell array of strings of the chemical
-            %       species to be considered in the chemical system. Each 
-            %       entry in speciesNames must be a combination of
-            %       entries found in elementNames, or surfaces. The species
-            %       charge can be desginated with a +/- at the end of the
-            %       name followed by the charge number (i.e. Ca+2, Cl-).
-            %
-            %           speciesNames = {'H+', 'OH-', 'H2O'};
-            %
-            %   reactions           - A cell array listing the chemical
-            %       reactions of the chemical system as strings, followed
-            %       by the equilibrium constant of the reaction as a scalar
-            %       quantity. Entries in reactions must be given as a
-            %       string in the form 'reactants <-> products'. 
-            %       Equuilibrium constant must be given in SI units.
-            %
-            %           reactions = {'H2O <-> H+ + OH-', 1e-14*mol/litre};
-            %
-            % OPTIONAL PARAMETERS:
-            %   surfaces            - A cell structure containing the names
-            %       of surface functional groups, followed by information
-            %       regarding the specific surface. The first entry of
-            %       surfaces is the name of the surface functional group.
-            %       Surface functional group names must begin with the ">"
-            %       symbol (i.e. '>FeO'). These names shoudl be used in the same
-            %       way an entries in elementNames for the construction of
-            %       speciesNames. There are three different surface
-            %       chemistry models implemented in this ChemicalModel: the
-            %       langmuir model, the triple layer model, and the
-            %       constant capacitance model. The diffuse layer and basic
-            %       stern models can be constructed by an adjustment of the
-            %       parameters of the triple layer model. A chemical system
-            %       can have any number of surfaces with different surface
-            %       complexation models.
-            %
-            %       The Langmuir model is the most simplistic case.
-            %
-            %           geometry = [1/(nano*meter)^2 50*meter^2/gram 1000*grams/litre];
-            %
-            %           surfaces = {'>FeO', {geometry, 'langmuir'}
-            %
-            %       In this example the surface functional group is
-            %    	'>FeO'. The second entry is a cell containing the
-            %     	surface parameters. The variable geometry must
-            %   	always be the first entry in this parameters cell.
-            %     	The entries of geometry must correspond to the
-            %      	surface site density, the specific surface area, and
-            %      	the slurry density in that specific order. Values
-            %     	must be given in SI units. The second entry of the
-            %     	parameters cell must be the type of surface model to
-            %     	use for the surface. In the case of 'langmuir' as above
-            %     	no other entries are needed. 
-            %
-            %       The triple layer model requires additional work.
-            %
-            %           capacitances = [1 0.2]*Farad/meter^2;
-            %
-            %           surfaces = {'>FeO', {geometry, 'tlm', capacitance,...
-            %                                           '>FeO-', [-1 0 0]}
-            %
-            %       In this example geometry is defined as before, but now
-            %       the '>FeO' is a triple layer model surface, as is
-            %       indicated by 'tlm.' Additional parameters are need in
-            %       this case. The capacitance density of each of the
-            %       Helmholtz layers must be given after the model type.
-            %       The basic stern model can be simulated by increasing
-            %       the capacitance of the second layer (i.e. [1 1e3]) and
-            %       the diffuse layer model can be simulated by increasing
-            %       the capacitance of both layers (i.e. [1e3 1e3]). The
-            %       capacitance is followed by the name of each surface
-            %       species associated with '>FeO' and the species charge
-            %       contribution to each plane. 
-            %
-            %       The constant capacitance model can be similarly
-            %       defined.
-            %
-            %           capacitances = 1*Farad/meter^2;
-            %
-            %           surfaces = {'>FeO', {geometry, 'ccm', capacitance, '>FeO-', -1}
-            %
-            %       In this example geometry is defined as before, but now
-            %       the '>FeO' is a constant capacitance surface, as is
-            %       indicated by 'ccm.' Additional parameters are need in
-            %       this case. The capacitance density of the
-            %       Helmholtz layers must be given after the model type.
-            %       The capacitance is followed by the name of each surface
-            %       species associated with '>FeO' and the species charge
-            %       contribution to the surface.       
-            
-            %{
-            Copyright 2009-2017 SINTEF DIGITAL, Applied Mathematics and Cybernetics and The University of Texas at Austin.
-
-            This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
-
-            MRST is free software: you can redistribute it and/or modify
-            it under the terms of the GNU General Public License as published by
-            the Free Software Foundation, either version 3 of the License, or
-            (at your option) any later version.
-
-            MRST is distributed in the hope that it will be useful,
-            but WITHOUT ANY WARRANTY; without even the implied warranty of
-            MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-            GNU General Public License for more details.
-
-            You should have received a copy of the GNU General Public License
-            along with MRST.  If not, see <http://www.gnu.org/licenses/>.
-            %}
             
             model = model@PhysicalModel([]);
-%             model.maxIterations = 50;
             if nargin >= 3
                 
                 % parse inputs to chemical model
@@ -276,7 +324,7 @@ classdef ChemicalModel < PhysicalModel
                 
                 % initiate master components
                 model = initMasterComponents(model, masterComponentNames);
-                % initiate secondary components
+                % initiate species
                 model = initSecondaryComponents(model,  componentNames);
                 % initiate electrostatic model and components
                 model = initElectrostaticModel(model, toPass );
@@ -318,7 +366,12 @@ classdef ChemicalModel < PhysicalModel
                        'appropriate number of input parameters']);
             end
 
-                model.plotIter = false;
+            model.plotIterations            = false;
+            model.nonLinearMinIterations    = 1; 
+            model.nonLinearMaxIterations    = 25;  
+            model.nonLinearTolerance        = 1e-12;
+            model.linearMaxIterations       = 25;
+            model.linearTolerance           = 1e-8;
         end
 
         %% 
@@ -411,7 +464,7 @@ classdef ChemicalModel < PhysicalModel
             [eqs, names, types] = equationsChemicalLog(logcomps, logmasterComps, ...
                                                        model);
 
-            primaryVariables = model.logComponentNames;
+            primaryVariables = model.logSpeciesNames;
             problem = LinearizedProblem(eqs, types, names, primaryVariables, state, dt);
 
         end
@@ -475,9 +528,9 @@ classdef ChemicalModel < PhysicalModel
                     break
                 end
                 
-                if strcmpi(name, 'components')
+                if strcmpi(name, 'species')
                     varfound = true;
-                    fn = 'components';
+                    fn = 'species';
                     index = ':';
                     break
                 end
@@ -489,16 +542,16 @@ classdef ChemicalModel < PhysicalModel
                     break
                 end
                 
-                if strcmpi(name, 'masterComponents')
+                if strcmpi(name, 'elements')
                     varfound = true;
-                    fn = 'masterComponents';
+                    fn = 'elements';
                     index = ':';
                     break
                 end
 
-                if strcmpi(name, 'logComponents')
+                if strcmpi(name, 'logSpecies')
                     varfound = true;
-                    fn = 'logComponents';
+                    fn = 'logSpecies';
                     index = ':';
                     break
                 end
@@ -510,9 +563,9 @@ classdef ChemicalModel < PhysicalModel
                     break
                 end
 
-                if strcmpi(name, 'logMasterComponents')
+                if strcmpi(name, 'logElements')
                     varfound = true;
-                    fn = 'logMasterComponents';
+                    fn = 'logElements';
                     index = ':';
                     break
                 end
@@ -533,10 +586,10 @@ classdef ChemicalModel < PhysicalModel
                 end
               
                 
-                ind = strcmpi(name, model.componentNames);
+                ind = strcmpi(name, model.speciesNames);
                 if any(ind)
                     varfound = true;
-                    fn = 'components';
+                    fn = 'species';
                     index = find(ind);
                     break
                 end
@@ -571,9 +624,9 @@ classdef ChemicalModel < PhysicalModel
                     break
                 end
 
-               if strcmpi(name, 'gasVolumeFractions')
+               if strcmpi(name, 'partialPressures')
                     varfound = true;
-                    fn = 'gasVolumeFractions';
+                    fn = 'partialPressures';
                     index = ':';
                     break
                 end
@@ -581,14 +634,14 @@ classdef ChemicalModel < PhysicalModel
                 ind = strcmpi(name, model.gasNames);
                 if any(ind)
                     varfound = true;
-                    fn = 'gasVolumeFractions';
+                    fn = 'partialPressures';
                     index = find(ind);
                     break
                 end
 
-                if strcmpi(name, 'solidVolumeFractions')
+                if strcmpi(name, 'saturationIndicies')
                     varfound = true;
-                    fn = 'solidVolumeFractions';
+                    fn = 'saturationIndicies';
                     index = ':';
                     break
                 end
@@ -596,7 +649,7 @@ classdef ChemicalModel < PhysicalModel
                 ind = strcmpi(name, model.solidNames);
                 if any(ind)
                     varfound = true;
-                    fn = 'solidVolumeFractions';
+                    fn = 'saturationIndicies';
                     index = find(ind);
                     break
                 end
@@ -616,9 +669,9 @@ classdef ChemicalModel < PhysicalModel
                     break
                 end
                 
-                if strcmpi(name, 'logGasVolumeFractions')
+                if strcmpi(name, 'logPartialPressures')
                     varfound = true;
-                    fn = 'logGasVolumeFractions';
+                    fn = 'logPartialPressures';
                     index = ':';
                     break
                 end
@@ -626,14 +679,14 @@ classdef ChemicalModel < PhysicalModel
                 ind = strcmpi(name, model.logGasNames);
                 if any(ind)
                     varfound = true;
-                    fn = 'logGasVolumeFractions';
+                    fn = 'logPartialPressures';
                     index = find(ind);
                     break
                 end
 
-                if strcmpi(name, 'logSolidVolumeFractions')
+                if strcmpi(name, 'logSaturationIndicies')
                     varfound = true;
-                    fn = 'logSolidVolumeFractions';
+                    fn = 'logSaturationIndicies';
                     index = ':';
                     break
                 end
@@ -641,12 +694,12 @@ classdef ChemicalModel < PhysicalModel
                 ind = strcmpi(name, model.logSolidNames);
                 if any(ind)
                     varfound = true;
-                    fn = 'logSolidVolumeFractions';
+                    fn = 'logSaturationIndicies';
                     index = find(ind);
                     break
                 end
                 
-                ind = strcmpi(name, model.componentActivityNames);
+                ind = strcmpi(name, model.activityNames);
                 if any(ind)
                     varfound = true;
                     fn = 'activities';
@@ -654,26 +707,26 @@ classdef ChemicalModel < PhysicalModel
                     break
                 end
                 
-                ind = strcmpi(name, model.logComponentNames);
+                ind = strcmpi(name, model.logSpeciesNames);
                 if any(ind)
                     varfound = true;
-                    fn = 'logComponents';
+                    fn = 'logSpecies';
                     index = find(ind);
                     break
                 end
                 
-                ind = strcmpi(name, model.masterComponentNames);
+                ind = strcmpi(name, model.elementNames);
                 if any(ind)
                     varfound = true;
-                    fn = 'masterComponents';
+                    fn = 'elements';
                     index = find(ind);
                     break
                 end
 
-                ind = strcmpi(name, model.logMasterComponentNames);
+                ind = strcmpi(name, model.logElementNames);
                 if any(ind)
                     varfound = true;
-                    fn = 'logMasterComponents';
+                    fn = 'logElements';
                     index = find(ind);
                     break
                 end
@@ -741,65 +794,62 @@ classdef ChemicalModel < PhysicalModel
 
         %%
         function fds = getAllVarsNames(model)
-            fds = {'components', 'masterComponents', 'logComponents', ...
-                   'logMasterComponents', model.componentNames{:}, ...
-                   model.masterComponentNames{:}, model.logComponentNames{:}, ...
-                   model.logMasterComponentNames{:}, 'logFluidVolumeFraction', model.logSurfaceActivityCoefficientNames{:}, model.logGasNames{:}, model.logSolidNames{:}};
+            fds = {'species', 'elements', 'logSpecies', ...
+                   'logElements', model.speciesNames{:}, ...
+                   model.elementNames{:}, model.logSpeciesNames{:}, ...
+                   model.logElementNames{:}, 'logFluidVolumeFraction', model.logSurfaceActivityCoefficientNames{:}, model.logGasNames{:}, model.logSolidNames{:}};
         end
 
         %%
         function [state, report, model] = initState(model, userInput, varargin)
-        %initState solves the chemical system using the specified input and
-        % information inside of the already defined state.
+        %initState solves the chemical system using the specified input
         %
         % SYNOPSIS:
         %  [state, report, model] = initState(model, userInput, varargin)
         %
         % DESCRIPTION:
         %   A function used to solve the chemical system generated by
-        %   ChemModel according to constraints given in userInput. 
+        %   ChemicalModel according to constraints given in userInput. 
         %
         % REQUIRED PARAMETERS:
-        %   userInput        - A matrix containing the values of elements
+        %   userInput           - A matrix containing the values of elements
         %       or species specified as inputs during the generation of the
         %       chemical system using ChemModel. userInput must have as
-        %       mnay columns as there are specified knowns, which is equal
+        %       mnay columns as there are specified knowns, which is also equal
         %       to the number of entries in elements. 
         %           
         %
         % OPTIONAL PARAMETERS:
-        %   state            - A structure containg information about the
-        %       physical model. Currently the only relevant information for 
-        %       the chemical system is state.temperature. This is an
-        %       optional parameter, when not provided temperature is
-        %       assumed to be 298 K. Should be given as a 'key'/value pair.
+        %   temperature         - 'key'/value pair representing the
+        %   	temperature of the chemical system. Can be a scalar, or a
+        %   	vector with the same length as userInput. If temperature is
+        %   	not provided 298 K is used. 
+        %          
+        %           state = model.initState(userInput, 'temp', 305)
         %
-        %           state.temperature = 170*Kelvin;
-        %           
-        %           state = model.initState(userInput, 'state', state)
-        %
-        %   chargeBalance   - This input toggles the enforcment of strict
-        %       charge balance. A master component must be specified. If
-        %       charge balance is not satisfied with the given constraint
-        %       the solver will adjust the total concentration of the
-        %       specified element to enforce charge balance. chargeBalance
-        %       must be given as a 'key'/value pair. The specified element
-        %       must be one of the elements provided as an input. By
-        %       defualt charge balance is not strictly enforced. This make
-        %       the chemical solver more robust. 
+        %   chargeBalance       - This input toggles the enforcment of strict
+        %       charge balance. A master component must be specified as a 
+        %       'key'/value pair. If charge balance is not satisfied with the
+        %       given constraint the solver will adjust the total concentration
+        %       of the specified element to enforce charge balance. The 
+        %       specified element must be one of the elements provided as an
+        %       input. By defualt charge balance is not strictly enforced. 
+        %       This make the chemical solver more robust. 
         %
         %           state = model.initState(userInput, 'chargeBalance', 'Cl')
         %
         %
         % OUTPUTS:
         %   state           - A structure containing the solution to the
-        %       chemical system. This includes state.masterComponents and
-        %       state.components. masterComponents contains the total
+        %       chemical system. This includes state.elements and
+        %       state.species. elements contains the total
         %       element concentrations and surface functional group
-        %       concentrations. components contains the species
-        %       concentrations as well as the surface acitivity
-        %       multipliers. Values can be retreived from state using the
+        %       concentrations. species contains the species
+        %       concentrations. Values can be retreived from state using the
         %       model.getProp() function.
+        %
+        %           OH = chem.getProp(state, 'OH-');
+        %
         %
         %   report          - The nonlinear solver report for the chemical
         %       system. 
@@ -807,18 +857,16 @@ classdef ChemicalModel < PhysicalModel
         %   model           - The updated chemical model object.
         %
         % SEE ALSO:
-        %   ChemicalModel
+        %   ChemicalModel, getProps
             
             % parse inputs to initState
             p = inputParser;
             
-            valInd = cellfun(@(x) isempty(x), regexpi(model.masterComponentNames, '>'));
+            valInd = cellfun(@(x) isempty(x), regexpi(model.elementNames, '>'));
             
             
-            valFun = @(x) any(validatestring(x, model.masterComponentNames(valInd)));
+            valFun = @(x) any(validatestring(x, model.elementNames(valInd)));
             p.addParameter('chargeBalance', 'nochargebalance', valFun);
-            p.addParameter('solidDensities', '', @iscell);
-            p.addParameter('rock', struct, @isstruct);
             p.addParameter('temperature', 298, @isnumeric);
 
             
@@ -836,52 +884,18 @@ classdef ChemicalModel < PhysicalModel
             end
 
             
-            % grab solid densities
-            if ~isempty(p.Results.solidDensities)
-                if size(model.solidNames,2) == 0
-                    warning('Ignoring solidDensity input to ChemicalModel as no solids were found.');
-                end
-                state = initSolidPhaseDensities(model, state,  p.Results.solidDensities,nI);
-            end
-            if size(model.solidNames, 2) > 0 && isempty(p.Results.solidDensities)
-                error('Solid densities must be provided if there are solid phases in the system.');
-            end   
-            
-            % check for rock
-            if ~isempty(p.Results.rock) && isfield(p.Results.rock, 'poro')
-                nPoro = size(p.Results.rock.poro, 1);
-                if nPoro == 1
-                    state.matrixVolumeFraction = repmat(1-p.Results.rock.poro, nI, 1);
-                else
-                    assert(nPoro == nI, 'The number of entries in rock.poro do not correspond to the size of userInput.');
-                    state.matrixVolumeFraction = 1-p.Results.rock.poro(:);
-                end
-            else
-                state.matrixVolumeFraction = eps.*ones(nI,1);
-            end
-
-
-
-%             % check for partial pressures
-%             if ~isempty(p.Results.partialPressures)
-%                 if size(model.gasNames,2) == 0
-%                     warning('Ignoring partialPressure input to ChemicalModel as no gasses were found.');
-%                 end
-% 
-%                 state = initGasPhasePressures(model, state, p.Results.partialPressures,nI);
-%             end
-% 
-%             if size(model.gasNames, 2) > 0 && isempty(p.Results.partialPressures)
-%                 error('The partial pressure of gasses must be provided if there are gas phases in the system.');
-%             end
-                
             givenTest = any(strcmpi(p.Results.chargeBalance, horzcat(model.chemicalInputModel.inputNames,'nochargebalance')));
             assert(givenTest, ['Only elements whos values are given (marked with "*") can be used for charge balance.']);
                         
             chargeBalance = ~strcmpi(p.Results.chargeBalance,'nochargebalance');
 
             model.chemicalInputModel = model.chemicalInputModel.validateModel();
-            model.chemicalInputModel.plotIter = model.plotIter;
+            
+            props = properties(model);
+            for i = 1 : numel(props);
+                model.chemicalInputModel.(props{i}) = model.(props{i});
+            end
+            
             
             if isempty(model.compositionReactionModel)
                 model.compositionReactionModel = compositionReactionModel();
@@ -896,7 +910,6 @@ classdef ChemicalModel < PhysicalModel
 
             cheminput = model.chemicalInputModel;
             inputNames = cheminput.inputNames;
-            unknownNames = cheminput.unknownNames;
 
             inSize = size(userInput);
             if ~isempty(model.surfInfo);
@@ -908,21 +921,18 @@ classdef ChemicalModel < PhysicalModel
             assert(inSize(2) == model.nMC-k, ['For the specified chemical system the input constraint must have ' ...
                                 num2str(model.nMC-k) ' columns.']);
             
-            state.masterComponents      = mol/litre*ones(size(userInput,1), model.nMC);
-            state.components            = mol/litre*ones(size(userInput,1), model.nC);
+            state.elements      = mol/litre*ones(size(userInput,1), model.nMC);
+            state.species            = mol/litre*ones(size(userInput,1), model.nC);
             
             state.combinationComponents = ones(size(userInput,1), model.nLC);
             
-            state.gasVolumeFractions         = 0.1*ones(size(userInput,1), model.nG);
-            state.logGasVolumeFractions      = log(state.gasVolumeFractions);
+            state.partialPressures         = 0.1*ones(size(userInput,1), model.nG);
+            state.logPartialPressures      = log(state.partialPressures);
             
-            state.solidVolumeFractions       = 0.1*ones(size(userInput,1), model.nS);            
-            state.logSolidVolumeFractions    = log(state.solidVolumeFractions);
+            state.saturationIndicies       = 0.1*ones(size(userInput,1), model.nS);            
+            state.logSaturationIndicies    = log(state.saturationIndicies);
     
-            state.fluidVolumeFraction                  = 0.1*ones(size(userInput,1),1);
-            state.logFluidVolumeFraction               = log(state.fluidVolumeFraction);
-
-            
+ 
             % put the value of the surface functional groups into the input
             % vector
             call = 0;
@@ -998,7 +1008,7 @@ classdef ChemicalModel < PhysicalModel
             
             test = cellfun(@(x) ~isempty(x), regexpi(names, '(psi)(sig)'));
             assert(sum(test) == 0, 'The use of "sig" and "psi" are reserved for use within ChemicalModel, please remove them from the element cell');
-            % find mass input components and remove the asterik from the name
+            % find mass input species and remove the asterik from the name
             InInd = cellfun(@(x) ~isempty(x), regexp(names, '*'));
             names = regexprep(names, '*','');
 
@@ -1021,7 +1031,7 @@ classdef ChemicalModel < PhysicalModel
                                     'names must be unique. Surface functional groups should not be included in surfaces, not elements.']);
             end
 
-            % create the index matricies for construction of secondary components
+            % create the index matricies for construction of secondary species
             tmpvec = zeros(nM, 1);
             for i = 1 : nM
                 model.MCind{i} = tmpvec;
@@ -1029,11 +1039,11 @@ classdef ChemicalModel < PhysicalModel
             end
 
             % make a list of the component names
-            model.masterComponentNames = cell(1,nM);
-            [model.masterComponentNames{:}] = deal(names{:});
+            model.elementNames = cell(1,nM);
+            [model.elementNames{:}] = deal(names{:});
 
-            model.logMasterComponentNames = cellfun(@(name) ['log', name], ...
-                                               model.masterComponentNames, ...
+            model.logElementNames = cellfun(@(name) ['log', name], ...
+                                               model.elementNames, ...
                                                'uniformoutput', false);
 
             % write number of master components
@@ -1043,11 +1053,11 @@ classdef ChemicalModel < PhysicalModel
 
         %%
         function [model] = initSecondaryComponents(model, secondaryComponents )
-            %initSecondarySpecies computes secondary components as linear combinations
+            %initSecondarySpecies computes species as linear combinations
             %of master components
          
 
-            assert(~isempty(model.masterComponentNames),'The function initSecondaryComponents can only be called after initMasterComponents.');
+            assert(~isempty(model.elementNames),'The function initSecondaryComponents can only be called after initMasterComponents.');
 
             % make sure input is a name value pair of the correct size
             assert(iscell(secondaryComponents),'input must be a cell array of strings');
@@ -1088,14 +1098,14 @@ classdef ChemicalModel < PhysicalModel
             % others and master components
             for i = 1 : nM
                 assert(~(sum(strcmpi(names{i},names)) > 1), 'Species names must be unique.');
-                assert(~(sum(strcmpi(names{i}, model.masterComponentNames)) > 0), ['The chemical species ' '"' names{i} '" is a repeat of an element or surface functional group.']);
+                assert(~(sum(strcmpi(names{i}, model.elementNames)) > 0), ['The chemical species ' '"' names{i} '" is a repeat of an element or surface functional group.']);
             end
 
             names = strrep(names, '(s)','');
             names = strrep(names, '(g)','');
             
             % length of master component string
-            strlen = cellfun(@length,model.masterComponentNames);
+            strlen = cellfun(@length,model.elementNames);
 
             % sort strings by length to avoid partial overwrites
             [~, I] = sort(strlen, 2, 'descend');
@@ -1149,7 +1159,7 @@ classdef ChemicalModel < PhysicalModel
                 for j = 1 : nM
                     ind = I(j);
                     [match,nomatch] = regexpi(names{i}, '(model\.MCind{\d})','match','split');
-                    nomatch = strrep(lower(nomatch), lower(model.masterComponentNames{ind}), ['model.MCind{' num2str(ind) '}']);
+                    nomatch = strrep(lower(nomatch), lower(model.elementNames{ind}), ['model.MCind{' num2str(ind) '}']);
                     names{i} = strjoin(nomatch,match);
                 end
                 names{i} = regexprep(names{i}, '}(\d+)m' , '}*$1+m','ignorecase');
@@ -1182,8 +1192,8 @@ classdef ChemicalModel < PhysicalModel
             nS = nS - sum(phaseInd);
              
              % store cell array of secondary component names
-            model.componentNames = cell(1,nS);
-            [model.componentNames{:}] = deal(namesO{~phaseInd});
+            model.speciesNames = cell(1,nS);
+            [model.speciesNames{:}] = deal(namesO{~phaseInd});
 
             % store cell array of gas component names
             model.gasNames = cell(1,sum(gasInd));
@@ -1224,7 +1234,7 @@ classdef ChemicalModel < PhysicalModel
             
             model.compositionMatrix(:,phaseInd) = [];
             
-            model.logComponentNames = cellfun(@(name) ['log', name], model.componentNames, ...
+            model.logSpeciesNames = cellfun(@(name) ['log', name], model.speciesNames, ...
                                          'uniformoutput', false);
                                      
             model.logGasNames = cellfun(@(name) ['log', name], model.gasNames, ...
@@ -1233,13 +1243,13 @@ classdef ChemicalModel < PhysicalModel
             model.logSolidNames = cellfun(@(name) ['log', name], model.solidNames, ...
                                          'uniformoutput', false);
                                      
-            model.nC = numel(model.componentNames);
+            model.nC = numel(model.speciesNames);
             model.nG = sum(gasInd);
             model.nS = sum(solidInd);
             
-            for i = 1 : numel(model.masterComponentNames)
-                MCName = model.masterComponentNames{i};
-                ind = cellfun(@(x) ~isempty(x), regexpi(model.componentNames,MCName));
+            for i = 1 : numel(model.elementNames)
+                MCName = model.elementNames{i};
+                ind = cellfun(@(x) ~isempty(x), regexpi(model.speciesNames,MCName));
                 assert(sum(ind) > 0, ['The element ' MCName ' appears to make no contribution to a chemical species. Verify species and element names and/or remove the element if it is not needed.']); 
             end
             
@@ -1250,13 +1260,13 @@ classdef ChemicalModel < PhysicalModel
         %%
         function [model] = initChemicalReactions(model, reactions)
             %initChemicalReactions computes rection matrix as linear combinations of
-            %secondary components, must be called after initMasterComponents and
+            %species, must be called after initMasterComponents and
             %initSecondaryComponents
            
-            assert(~isempty(model.componentNames),'The function initChemicalReactions can only be called after initMasterComponents and initSecondaryComponents');
+            assert(~isempty(model.speciesNames),'The function initChemicalReactions can only be called after initMasterComponents and initSecondaryComponents');
 
             % make sure input is a name value pair
-            assert(rem(numel(reactions),2) == 0, 'Reaction and reaction constant must be given as a name/value pair.');
+            assert(rem(numel(reactions),2) == 0, 'Reaction and reaction constant must be given as a "key"/value pair.');
 
             rxn = regexprep(reactions(1:2:end),'[\s]','');
 
@@ -1289,7 +1299,7 @@ classdef ChemicalModel < PhysicalModel
                 end
                 rxn{i} = strrep(rxn{i}, 'cind', 'Cind');
                 remain = regexpi(rxn{i}, '[^(model\.Cind{\d})+-/*\.\d(<->)]','once');
-                assert(isempty(remain),['The chemical reaction "' rxnsO{i} '" appears to contain a string combination that does not correspond to secondary components. Ensure the species names contained in the reaction are consistent with those listed in secondaryComponents.']);
+                assert(isempty(remain),['The chemical reaction "' rxnsO{i} '" appears to contain a string combination that does not correspond to species. Ensure the species names contained in the reaction are consistent with those listed in secondaryComponents.']);
             end
             
             % check for <-> and handle it appropriately
@@ -1315,11 +1325,11 @@ classdef ChemicalModel < PhysicalModel
             for i = 1 : nRx
                 mCind = RM(i,:) ~= 0;
                 mCcomp = repmat(RM(i,mCind),nM,1).*model.allContributionMatrix(:,mCind);
-                mCcomp(strcmpi('e', model.masterComponentNames),:) = 0;
+                mCcomp(strcmpi('e', model.elementNames),:) = 0;
                 balance = sum(mCcomp,2);
                 imbalanceInd = find(balance);
                 for j = 1 : numel(imbalanceInd)
-                    error(['The chemical reaction "' rxnsO{i} '" does not balance ' model.masterComponentNames{imbalanceInd(j)} '.'])
+                    error(['The chemical reaction "' rxnsO{i} '" does not balance ' model.elementNames{imbalanceInd(j)} '.'])
                 end
             end
             
@@ -1358,7 +1368,7 @@ classdef ChemicalModel < PhysicalModel
                                     % find the columns of the reaction matrix that contain
                                     % the species
                                     sp = sNames{k};
-                                    spInd = strcmpi(sp, model.componentNames);
+                                    spInd = strcmpi(sp, model.speciesNames);
                                     rmVec = RM(:,spInd);
 
                                     % replace the correct column and row with the
@@ -1392,7 +1402,7 @@ classdef ChemicalModel < PhysicalModel
             
             nI = numel(model.chemicalInputModel.inputNames);
             
-            assert(nI == model.nMC , ['For the defined chemical system ' num2str(model.nMC) ' components, elements or species, must be designated as inputs. Use an "*" to designated a component as an input.']);
+            assert(nI == model.nMC , ['For the defined chemical system ' num2str(model.nMC) ' species, elements or species, must be designated as inputs. Use an "*" to designated a component as an input.']);
 
 
             model.allContributionMatrix = [model.allContributionMatrix zeros(model.nMC, nP)];
@@ -1586,10 +1596,10 @@ classdef ChemicalModel < PhysicalModel
             for i = 1 : numel(surfInfo.master)
                 MName = surfInfo.master{i};
                 
-                mInd = strcmpi(MName, model.masterComponentNames);
+                mInd = strcmpi(MName, model.elementNames);
                 assert(any(mInd), ['Given surface master species ', MName ' does not match known master species']);
                 ind = logical(model.compositionMatrix(mInd,:));
-                speciesNames{i} = model.componentNames(ind);
+                speciesNames{i} = model.speciesNames(ind);
                 
                 
                 % grab the charge from the species name
@@ -1597,7 +1607,7 @@ classdef ChemicalModel < PhysicalModel
                 tmpvec = zeros(1, nS);
                 
                 for j = 1 : nS
-                    sInd = strcmpi(speciesNames{i}{j}, model.componentNames);
+                    sInd = strcmpi(speciesNames{i}{j}, model.speciesNames);
                     tmp = model.allCharge(sInd);
                     charge{i}{j} = tmp;
                     namedCharge{i}{j} = tmp;
@@ -1712,7 +1722,7 @@ classdef ChemicalModel < PhysicalModel
             state = model.syncLog(state);
             
 
-            if model.plotIter 
+            if model.plotIterations
                 h = findobj('tag', 'updatechemfig');
                 if isempty(h)
                     figure
@@ -1721,10 +1731,10 @@ classdef ChemicalModel < PhysicalModel
                 end
                 set(0, 'currentfigure', h)
                 clf
-                if size(state.components, 1) ~= 1
-                    plot(log10(state.components*litre/mol));
-                    title('components (chemistry step)');
-                    legend(model.componentNames);
+                if size(state.species, 1) ~= 1
+                    plot(log10(state.species*litre/mol));
+                    title('species (chemistry step)');
+                    legend(model.speciesNames);
                 end
 
                 h = findobj('tag', 'chemmastercomp');
@@ -1735,10 +1745,10 @@ classdef ChemicalModel < PhysicalModel
                 end
                 set(0, 'currentfigure', h)
                 clf
-                if size(state.components, 1) ~= 1
-                    plot(log10(state.masterComponents*litre/mol));
-                    title('master components (chemistry step)');
-                    legend(model.masterComponentNames);
+                if size(state.species, 1) ~= 1
+                    plot(log10(state.elements*litre/mol));
+                    title('master species (chemistry step)');
+                    legend(model.elementNames);
                 end
                 drawnow;
             end
@@ -1753,15 +1763,14 @@ classdef ChemicalModel < PhysicalModel
 
         %%
         function state = syncLog(model, state)
-            state.logMasterComponents = log(state.masterComponents);
-            state.logComponents       = log(state.components);
-            state.logFluidVolumeFraction             = log(state.fluidVolumeFraction);
+            state.logElements = log(state.elements);
+            state.logSpecies       = log(state.species);
             
-            if isfield(state, 'solidVolumeFractions');
-                state.logSolidVolumeFractions     = log(state.solidVolumeFractions);
+            if isfield(state, 'saturationIndicies');
+                state.logSaturationIndicies     = log(state.saturationIndicies);
             end
-            if isfield(state, 'gasVolumeFractions');
-                state.logGasVolumeFractions       = log(state.gasVolumeFractions);
+            if isfield(state, 'partialPressures');
+                state.logPartialPressures       = log(state.partialPressures);
             end
             if isfield(state, 'surfaceActivityCoefficients');
                 state.logSurfaceActivityCoefficients       = log(state.surfaceActivityCoefficients);
@@ -1770,15 +1779,14 @@ classdef ChemicalModel < PhysicalModel
 
         %%
         function state = syncFromLog(model, state)
-            state.masterComponents = exp(state.logMasterComponents);
-            state.components       = exp(state.logComponents);
-            state.fluidVolumeFraction              = exp(state.logFluidVolumeFraction);
+            state.elements = exp(state.logElements);
+            state.species       = exp(state.logSpecies);
             
-            if isfield(state, 'logSolidVolumeFractions');
-                state.solidVolumeFractions     = exp(state.logSolidVolumeFractions);
+            if isfield(state, 'logSaturationIndicies');
+                state.saturationIndicies     = exp(state.logSaturationIndicies);
             end
-            if isfield(state, 'logGasVolumeFractions');
-                state.gasVolumeFractions       = exp(state.logGasVolumeFractions);
+            if isfield(state, 'logPartialPressures');
+                state.partialPressures       = exp(state.logPartialPressures);
             end
             if isfield(state, 'logSurfaceActivityCoefficients');
                 state.surfaceActivityCoefficients       = exp(state.logSurfaceActivityCoefficients);
@@ -1787,18 +1795,15 @@ classdef ChemicalModel < PhysicalModel
 
 
         %%
-        function [logComps, logMasterComps, logPoro] = prepStateForEquations(model, state)
+        function [logComps, logMasterComps] = prepStateForEquations(model, state)
 
             logComps = cell(model.nC, 1);
-            [logComps{:}] = model.getProps(state, model.logComponentNames{:});
+            [logComps{:}] = model.getProps(state, model.logSpeciesNames{:});
 
             logMasterComps = cell(model.nMC, 1);
-            [logMasterComps{:}] = model.getProps(state, model.logMasterComponentNames{:});
+            [logMasterComps{:}] = model.getProps(state, model.logElementNames{:});
 
             [logComps{:}] = initVariablesADI(logComps{:});
-
-            logPoro = cell(1, 1);
-            [logPoro{:}] = model.getProps(state, 'logFluidVolumeFraction');
 
         end
 
@@ -1824,15 +1829,15 @@ classdef ChemicalModel < PhysicalModel
         %%
         function [state, model] = computeActivities(model, state)
         %computeAcitivities computes the acitivity of each aqueous species
-        %using the extended Davies equaiton. 
+        %using the extended Davies equaiton and adds the values to the 
+        %field state.activities.
         %
         % SYNOPSIS:
-        %  [state] = computeActivities(model, state)
+        %  [state, chem] = computeActivities(chem, state)
         %
         %
         % REQUIRED PARAMETERS:
-        %   state        - the state variable produced by model.initState.
-        %       Must at least include the field state.components. 
+        %   state        - the state variable produced by chem.initState. 
         %          
         %
         % OUTPUTS:
@@ -1843,12 +1848,13 @@ classdef ChemicalModel < PhysicalModel
         %
         %
         %   chem            - updated chemical object now includes the names 
-        %       for calling the activities using getProps 
+        %       for calling the activities using getProp/s
         %
         % EXAMPLE:
         %
-        %   state = chem.computeSurfaceCharges(state);
+        %   [state, chem] = chem.computeSurfaceCharges(state);
         %   aH2O = chem.getProp(state, 'aH2O');
+        %   pH = -log10(chem.getProp, 'aH+');
         %
         %
         % SEE ALSO:
@@ -1862,15 +1868,14 @@ classdef ChemicalModel < PhysicalModel
         %%
         function [state, model] = computeChargeBalance(model, state)
         %computeChargeBalance computes the residual of the aqueous charge
-        %balance equation.
+        %balance equation and adds the values to the field state.chargeBalance.
         %
         % SYNOPSIS:
-        %  [state] = computeChargeBalance(model, state)
+        %  [state, chem] = computeChargeBalance(chem, state)
         %
         %
         % REQUIRED PARAMETERS:
-        %   state        - the state variable produced by model.initState.
-        %       Must at least include the field state.components. 
+        %   state        - the state variable produced by chem.initState.
         %          
         %
         % OUTPUTS:
@@ -1881,11 +1886,11 @@ classdef ChemicalModel < PhysicalModel
         %
         %
         %   chem            - updated chemical object now includes the names 
-        %       for calling the charge balance using getProps 
+        %       for calling the charge balance using getProp/s
         %
         % EXAMPLE:
         %
-        %   state = chem.computeSurfaceCharges(state);
+        %   [state, chem] = chem.computeSurfaceCharges(state);
         %   charge = chem.getProp(state, 'chargeBalance');
         %
         %
@@ -1903,12 +1908,11 @@ classdef ChemicalModel < PhysicalModel
         %surface and adds the values to the field state.surfacePotentials.
         %
         % SYNOPSIS:
-        %  [state] = computeSurfacePotentials(model, state)
+        %  [state, chem] = computeSurfacePotentials(chem, state)
         %
         %
         % REQUIRED PARAMETERS:
         %   state        - the state variable produced by model.initState.
-        %       Must at least include the field state.components. 
         %          
         %
         % OUTPUTS:
@@ -1921,13 +1925,12 @@ classdef ChemicalModel < PhysicalModel
         %
         %
         %   chem            - updated chemical object now includes the names 
-        %       for calling the surface potentials using getProps 
+        %       for calling the surface potentials using getProp/s
         %
         % EXAMPLE:
         %
-        %   state = chem.computeSurfaceCharges(state);
-        %   potential0 = chem.getProp(state, '>SiO_Psi_0');
-        %   potential1 = chem.getProp(state, '>SiO_Psi_1');
+        %   [state, chem] = chem.computeSurfacePotentials(state);
+        %   [pot1, pot2] = chem.getProps(state, '>SiO_Psi_0', '>SiO_Psi_1');
         %
         %
         % SEE ALSO:
@@ -1944,12 +1947,11 @@ classdef ChemicalModel < PhysicalModel
         %surface and adds the values to the field state.surfaceCharges.
         %
         % SYNOPSIS:
-        %  [state] = computeSurfaceCharges(model, state)
+        %  [state, chem] = computeSurfaceCharges(chem, state)
         %
         %
         % REQUIRED PARAMETERS:
-        %   state        - the state variable produced by model.initState.
-        %       Must at least include the field state.components. 
+        %   state        - the state variable produced by chem.initState.
         %          
         %
         % OUTPUTS:
@@ -1962,13 +1964,12 @@ classdef ChemicalModel < PhysicalModel
         %
         %
         %   chem            - updated chemical object now includes the names 
-        %       for calling the surface charges using getProps 
+        %       for calling the surface charges using getProp/s
         %
         % EXAMPLE:
         %
-        %   state = chem.computeSurfaceCharges(state);
+        %   [state, chem] = chem.computeSurfaceCharges(state);
         %   charge0 = chem.getProp(state, '>SiO_sig_0');
-        %   charge1 = chem.getProp(state, '>SiO_sig_1');
         %
         %
         % SEE ALSO:
@@ -1981,15 +1982,14 @@ classdef ChemicalModel < PhysicalModel
         %%
         function [state, model] = computeAqueousConcentrations(model, state)
         %computeAqueousConcentrations computes the total concentration of each 
-        % element in the aqueous phase.
+        %element in the aqueous phase.
         %
         % SYNOPSIS:
-        %  [state] = computeAqueousConcentrations(model, state)
+        %  [state, chem] = computeAqueousConcentrations(chem, state)
         %
         %
         % REQUIRED PARAMETERS:
-        %   state        - the state variable produced by model.initState.
-        %       Must at least include the field state.components. 
+        %   state        - the state variable produced by chem.initState.
         %          
         %
         % OUTPUTS:
@@ -2000,11 +2000,11 @@ classdef ChemicalModel < PhysicalModel
         %   by '_aq'.
         %
         %   chem            - updated chemical object now includes the names 
-        %       for calling the aqueous concetrations using getProps 
+        %       for calling the aqueous concetrations using getProp/s
         %
         % EXAMPLE:
         %
-        %   state = chem.computeAqueousConcentrations(state);
+        %   [state, chem] = chem.computeAqueousConcentrations(state);
         %   Na = chem.getProp(state, 'Na_aq');
         %   H = chem.getProp(state, 'H_aq');
         %
@@ -2023,12 +2023,11 @@ classdef ChemicalModel < PhysicalModel
         % element on the surface.
         %
         % SYNOPSIS:
-        %  [state] = computeAqueousConcentrations(model, state)
+        %  [state, chem] = computeAqueousConcentrations(chem, state)
         %
         %
         % REQUIRED PARAMETERS:
         %   state        - the state variable produced by model.initState.
-        %       Must at least include the field state.components. 
         %          
         %
         % OUTPUTS:
@@ -2043,9 +2042,8 @@ classdef ChemicalModel < PhysicalModel
         %
         % EXAMPLE:
         %
-        %   [state chem] = chem.computeAqueousConcentrations(state);
-        %   Na = chem.getProp(state, 'Na_surf');
-        %   H = chem.getProp(state, 'H_aq');
+        %   [state, chem] = chem.computeAqueousConcentrations(state);
+        %   [Na, H] = chem.getProps(state, 'Na_surf', 'H_surf');
         %
         %
         % SEE ALSO:

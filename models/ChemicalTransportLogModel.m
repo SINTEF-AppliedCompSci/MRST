@@ -54,14 +54,14 @@ classdef ChemicalTransportLogModel < WaterModel
                                                         varargin)
 
             [pVars, pressure, logComponents, logMasterComponents, combinations,...
-                   logSolidVolumeFractions, logGasVolumeFractions, logFluidVolumeFraction,...
+                   logSaturationIndicies, logPartialPressures,...
                    logSurfaceAcitivityCoefficients] = prepStateForEquations(model, state);
                
             components = cellfun(@(x) exp(x), logComponents, 'UniformOutput',false);
             masterComponentss = cellfun(@(x) exp(x), logMasterComponents, 'UniformOutput',false);
 
-            [chem_eqs, chem_names, chem_types] = equationsChemicalLog(model.chemicalModel, state, logFluidVolumeFraction, logComponents, logMasterComponents, combinations, ...
-                                                       logGasVolumeFractions, logSolidVolumeFractions,logSurfaceAcitivityCoefficients);
+            [chem_eqs, chem_names, chem_types] = equationsChemicalLog(model.chemicalModel, state, logComponents, logMasterComponents, combinations, ...
+                                                       logPartialPressures, logSaturationIndicies,logSurfaceAcitivityCoefficients);
 
 
             [tr_eqs, tr_names, tr_types] = equationsTransportComponents(state0, ...
@@ -79,13 +79,13 @@ classdef ChemicalTransportLogModel < WaterModel
         end
 
         function [variableNames, pressure, logComponents, logMasterComponents, combinations,...
-                   logSolidVolumeFractions, logGasVolumeFractions, logFluidVolumeFraction,...
+                   logSaturationIndicies, logPartialPressures,...
                    logSurfaceActivityCoefficients] = prepStateForEquations(model, state);
             
             chemModel = model.chemicalModel;
 
-            logComponentNames = chemModel.logComponentNames;
-            logMasterComponentNames = chemModel.logMasterComponentNames;
+            logComponentNames = chemModel.logSpeciesNames;
+            logMasterComponentNames = chemModel.logElementNames;
             logSolidNames = chemModel.logSolidNames;
             logGasNames = chemModel.logGasNames;
             combinationNames = chemModel.combinationNames;
@@ -101,8 +101,8 @@ classdef ChemicalTransportLogModel < WaterModel
             
             logComponents        = cell(1, numel(logComponentNames));
             logMasterComponents  = cell(1, numel(logMasterComponentNames));
-            logGasVolumeFractions     = cell(1, numel(logGasNames));
-            logSolidVolumeFractions   = cell(1, numel(logSolidNames));
+            logPartialPressures     = cell(1, numel(logGasNames));
+            logSaturationIndicies   = cell(1, numel(logSolidNames));
             combinations   = cell(1, numel(combinationNames));
             logSurfaceActivityCoefficients = cell(1, numel(logSurfActNames));
             
@@ -128,12 +128,12 @@ classdef ChemicalTransportLogModel < WaterModel
             
             for i = 1 : numel(logGasNames)
                 ind = strcmpi(logGasNames{i}, variableNames);
-                logGasVolumeFractions{i} = variableValues{ind};
+                logPartialPressures{i} = variableValues{ind};
             end
             
             for i = 1 : numel(logSolidNames)
                 ind = strcmpi(logSolidNames{i}, variableNames);
-                logSolidVolumeFractions{i} = variableValues{ind};
+                logSaturationIndicies{i} = variableValues{ind};
             end
             
             for i = 1 : numel(logSurfActNames)
@@ -160,7 +160,7 @@ classdef ChemicalTransportLogModel < WaterModel
             vars = problem.primaryVariables;
 
             ind = false(size(vars));
-            chemvars = {chemModel.logComponentNames{:}, chemModel.logMasterComponentNames{:}, chemModel.logGasNames{:}, chemModel.logSolidNames{:}, 'logFluidVolumeFraction', chemModel.logSurfaceActivityCoefficientNames{:}}; % the chemical primary variables, see getEquations
+            chemvars = {chemModel.logSpeciesNames{:}, chemModel.logElementNames{:}, chemModel.logGasNames{:}, chemModel.logSolidNames{:}, chemModel.logSurfaceActivityCoefficientNames{:}}; % the chemical primary variables, see getEquations
             [lia, loc] = ismember(chemvars, vars);
             assert(all(lia), 'The primary variables are not set correctly.');
             ind(loc) = true;
@@ -201,7 +201,7 @@ classdef ChemicalTransportLogModel < WaterModel
                 clf
                 plot(log10(state.components*litre/mol));
                 title('components');
-                legend(model.chemicalModel.componentNames);
+                legend(model.chemicalModel.speciesNames);
 
                 drawnow;
             end
@@ -238,7 +238,7 @@ classdef ChemicalTransportLogModel < WaterModel
             clf
             plot(log10(state.components*litre/mol));
             title('components - converged');
-            legend(model.chemicalModel.componentNames);
+            legend(model.chemicalModel.speciesNames);
 
             h = findobj('tag', 'convergedmasterfig');
             if isempty(h)
@@ -250,7 +250,7 @@ classdef ChemicalTransportLogModel < WaterModel
             clf
             plot(log10(state.masterComponents*litre/mol));
             title('master components - converged');
-            legend(model.chemicalModel.masterComponentNames);
+            legend(model.chemicalModel.elementNames);
             drawnow;
 
         end
@@ -264,7 +264,7 @@ classdef ChemicalTransportLogModel < WaterModel
             end
 
             chemModel = model.chemicalModel;
-            ind = strcmpi(cname, chemModel.masterComponentNames);
+            ind = strcmpi(cname, chemModel.elementNames);
             if chemModel.surfMaster(ind)
                 return
             end
@@ -283,7 +283,7 @@ classdef ChemicalTransportLogModel < WaterModel
         end
 
         function names = getComponentNames(model)
-            names = model.chemicalModel.masterComponentNames;
+            names = model.chemicalModel.elementNames;
         end
 
         function [fn, index] = getVariableField(model, name)

@@ -9,12 +9,12 @@ function [state] = potentialGuess(model, state)
     e_w = 87.740 - 0.4008.*(T-273.15) + 9.398e-4.*(T-273.15).^2 - 1.410e-6.*(T-273.15).^3;% Dielectric constant of water
     A   = 1.82e6*(e_w.*T).^(-3/2);
     
-    nC = numel(model.componentNames);
+    nC = model.nC;
     components = cell(1, nC);
-    [components{:}] = model.chemicalInputModel.getProps(state,model.componentNames{:}); 
+    [components{:}] = model.chemicalInputModel.getProps(state,model.speciesNames{:}); 
     
     CV = model.chargeVector;
-    eInd = strcmpi('e-', model.componentNames);
+    eInd = strcmpi('e-', model.speciesNames);
     CV(1,eInd) = 0;
     
     ionDum = 0;
@@ -24,28 +24,33 @@ function [state] = potentialGuess(model, state)
     ion = cell(1,model.nC);
     [ion{:}] = deal((1/2)*abs(ionDum));
     
+    %%
     if ~isempty(model.surfInfo)
-        
+        call = 0;
         for i = 1 : numel(model.surfaces.groupNames)
             
-            surfName = model.surfaces.groupNames{i};
+            groupName = model.surfaces.groupNames{i};
             
-            mNames = model.surfaces.speciesNames(i,:);
-            mNames = mNames(cellfun(@(x) ~isempty(x), mNames));
+            if ismember(model.surfaces.scm{i},{'langmuir','ie'})
+                call = call + 1;
+                continue
+            end
+            
+            funcNames = model.surfaces.speciesNames{i};
             
             sig_0 = 0;
             sig_1 = 0;
             sig_2 = 0;
                         
-            for j = 1 : numel(mNames)
-                mInd = strcmpi(mNames{j}, model.surfInfo.master);
+            for j = 1 : numel(funcNames)
+                mInd = ismember(funcNames{j}, model.surfInfo.master);
                                         
                 % grab the correct info
                 S = model.surfInfo.s{mInd};
                 a = model.surfInfo.a{mInd};
-                C = model.surfaces.c{i};
+                C = model.surfaces.c{i-call};
 
-                % number of species associated with surface
+                % number of species associated with the surface
                 nSp = numel(model.surfInfo.species{mInd});
                 SpNames = model.surfInfo.species{mInd};
                 charge = model.surfInfo.charge{mInd};
@@ -53,10 +58,8 @@ function [state] = potentialGuess(model, state)
                 switch model.surfaces.scm{i}
                     case 'tlm'
 
-                        % calculate surface charges
-
                         for k = 1 : nSp
-                            SpInd = strcmpi(SpNames{k}, model.componentNames);
+                            SpInd = strcmpi(SpNames{k}, model.speciesNames);
                             sig_0 = sig_0 + (F./(S.*a)).*charge{k}(1).*components{SpInd};
                             sig_1 = sig_1 + (F./(S.*a)).*charge{k}(2).*components{SpInd};
                             sig_2 = sig_2 + (F./(S.*a)).*charge{k}(3).*components{SpInd};
@@ -64,9 +67,8 @@ function [state] = potentialGuess(model, state)
 
                     case 'ccm'
 
-                        % calculate surface charge
                         for k = 1 : nSp
-                            SpInd = strcmpi(SpNames{k}, model.componentNames);
+                            SpInd = strcmpi(SpNames{k}, model.speciesNames);
                             sig_0 = sig_0 + (F./(S.*a)).*charge{k}(1).*components{SpInd};
                         end
 
@@ -83,20 +85,20 @@ function [state] = potentialGuess(model, state)
                         sig_2d = -sig_1 - sig_0 - sig_2;
 
                         P2 = myarcsinh(-sig_2d./(8*10^3*R.*T.*ion{end}.*e_o.*e_w).^(0.5)).*2;
-                        state = model.setProp(state, ['log' surfName '_ePsi_2'], P2);
+                        state = model.setProp(state, ['log' groupName '_ePsi_2'], P2);
 
                         P1 = F./(R.*T).*(-(sig_2+ sig_2d)./C(:,2) + R.*T.*P2./F);
-                        state = model.setProp(state, ['log' surfName '_ePsi_1'], P1);
+                        state = model.setProp(state, ['log' groupName '_ePsi_1'], P1);
 
                         P0 = F./(R.*T).*(sig_0./C(:,1) + R.*T.*P1./F);
-                        state = model.setProp(state, ['log' surfName '_ePsi_0'], P0);
+                        state = model.setProp(state, ['log' groupName '_ePsi_0'], P0);
                         
                 case 'ccm'
                         % explicitly calculate what the potential should be
                         Po = sig_0./C(:,1);
                         logPo = F.*Po./(R.*T);
 
-                        state = model.setProp(state, ['log' surfName '_ePsi'], logPo);
+                        state = model.setProp(state, ['log' groupName '_ePsi'], logPo);
             end
             
         end

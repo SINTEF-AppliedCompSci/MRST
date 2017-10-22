@@ -51,6 +51,9 @@ toc;
 
 [state, chem] = chem.computeActivities(state);
 [state, chem] = chem.computeChargeBalance(state);
+[state, chem] = chem.computeSurfacePotentials(state);
+[state, chem] = chem.computeAqueousConcentrations(state);
+[state, chem] = chem.computeSurfaceConcentrations(state);
 
 
 %% data from Goldberg
@@ -74,7 +77,7 @@ GB =   [7.145895	0.2151590
 
 %% take out relevant values from state
 
-state = changeUnits(state, {'masterComponents', 'components', 'activities'}, mol/litre );
+state = changeUnits(state, {'elements', 'species', 'activities'}, mol/litre );
 
 SO      = getProp(chem, state, '>SO-');
 SOH     = getProp(chem, state, '>SOH');

@@ -16,15 +16,15 @@ classdef chargeBalanceModel < ChemicalInputModel
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
             
             if ~isfield(state, 'CVC')
-            	nCells = size(state.components,1);
-                state.CVC = zeros(nCells,1);
+            	nCells = size(state.elements,1);
+                state.CVC = eps*ones(nCells,1);
             end
             
             [unknowns, components, masterComponents, combinationComponents,...
-                 gasVolumeFractions, solidVolumeFractions, fluidVolumeFraction, surfaceAcitivityCoefficients,CVC] = prepStateForEquations(model, state);
+                 partialPressures, saturationIndiciess, surfaceAcitivityCoefficients, CVC] = prepStateForEquations(model, state);
 
             [eqs, names, types] = equationsChargeBalance(model, state, components, masterComponents, combinationComponents,...
-                 gasVolumeFractions, solidVolumeFractions, fluidVolumeFraction, surfaceAcitivityCoefficients, CVC);
+                 partialPressures, saturationIndiciess, surfaceAcitivityCoefficients, CVC);
             
             problem = LinearizedProblem(eqs, types, names, unknowns, state, dt);
 
@@ -32,11 +32,11 @@ classdef chargeBalanceModel < ChemicalInputModel
         
         
         function [unknowns, components, masterComponents, combinationComponents,...
-                 gasVolumeFractions, solidVolumeFractions, fluidVolumeFraction, surfaceAcitivityCoefficients,CVC] = prepStateForEquations(model, ...
+                 partialPressures, saturationIndiciess, surfaceAcitivityCoefficients,CVC] = prepStateForEquations(model, ...
                                                               state)
             
-            CNames = model.logComponentNames;
-            MCNames = model.logMasterComponentNames;
+            CNames = model.logSpeciesNames;
+            MCNames = model.logElementNames;
             LCNames = model.combinationNames;
             GNames = model.logGasNames;
             SNames = model.logSolidNames;
@@ -64,12 +64,9 @@ classdef chargeBalanceModel < ChemicalInputModel
             components           = distributeVariable( CNames, knowns, unknowns, knownVal, unknownVal );
             masterComponents     = distributeVariable( MCNames, knowns, unknowns, knownVal, unknownVal );
             combinationComponents   = distributeVariable( LCNames, knowns, unknowns, knownVal, unknownVal );
-            gasVolumeFractions   = distributeVariable( GNames, knowns, unknowns, knownVal, unknownVal );
-            solidVolumeFractions = distributeVariable( SNames, knowns, unknowns, knownVal, unknownVal );
+            partialPressures   = distributeVariable( GNames, knowns, unknowns, knownVal, unknownVal );
+            saturationIndiciess = distributeVariable( SNames, knowns, unknowns, knownVal, unknownVal );
             surfaceAcitivityCoefficients = distributeVariable( SPNames, knowns, unknowns, knownVal, unknownVal );
-
-            pInd = strcmpi(unknowns, 'logFluidVolumeFraction');
-            fluidVolumeFraction = unknownVal{pInd}; 
 
             cvcInd = strcmpi(unknowns, 'CVC');
             CVC = unknownVal{cvcInd}; 
@@ -80,13 +77,16 @@ classdef chargeBalanceModel < ChemicalInputModel
         % inputstate contains the input and the initial guess.
 
             % grab the names of unknowns                                              
-            unknownNames = horzcat(model.componentNames, model.masterComponentNames,model.combinationNames, 'CVC', 'fluidVolumeFraction', model.solidNames, model.gasNames, model.surfaceActivityCoefficientNames);
+            unknownNames = horzcat(model.speciesNames, model.elementNames,model.combinationNames, 'CVC', model.solidNames, model.gasNames, model.surfaceActivityCoefficientNames);
             ind = ismember(unknownNames, model.inputNames);
             model.unknownNames = unknownNames(~ind);
             
-            solver = NonLinearSolver();   
-            solver.LinearSolver.tolerance = 1e-12;
-            model.nonlinearTolerance = 1e-12;
+            solver = NonLinearSolver(); 
+            
+            solver.maxIterations= model.nonLinearMaxIterations;
+            solver.minIterations= model.nonLinearMinIterations;
+            solver.LinearSolver.tolerance = model.linearTolerance;
+            solver.LinearSolver.maxIterations = model.linearMaxIterations;
             
             dt = 0; % dummy timestep
             drivingForces = []; % drivingForces;

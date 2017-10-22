@@ -8,14 +8,14 @@ function [names, mins, maxs] = computeMaxPotential(model, state)
     e_o = 8.854187817620e-12;       % permitivity of free space [C/Vm]
     e_w = 87.740 - 0.4008.*(T-273.15) + 9.398e-4.*(T-273.15).^2 - 1.410e-6.*(T-273.15).^3;% Dielectric constant of water
     
-    nC = numel(model.componentNames);
+    nC = numel(model.speciesNames);
     
     CV = model.chargeVector;
-    eInd = strcmpi('e-', model.componentNames);
+    eInd = strcmpi('e-', model.speciesNames);
     CV(1,eInd) = 0;
     
     comps = cell(1, nC);
-    [comps{:}] = model.getProps(state,model.componentNames{:}); 
+    [comps{:}] = model.getProps(state,model.speciesNames{:}); 
     
     ionDum = 0;
     for i = 1 : nC

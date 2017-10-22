@@ -1,13 +1,13 @@
-function [ states ] = changeUnits( states, field, unit_conv )
-%changeUnits converts the specified field in states to the specified units. 
+function [ states ] = changeUnits( states, fields, unit_conv )
+%changeUnits converts the specified fields in states to the specified units. 
 % 
 % SYNOPSIS:
 % 
-%         [state] = changeUnits(state, field, unit)
+%         [state] = changeUnits(state, fields, unit)
 % 
 % OUTPUT:
 %  
-%	state           -a field with the values of state.field changed to the specified units
+%	state           -a fields with the values of state.fields changed to the specified units
 % 
 % REQUIRED PARAMETERS:
 %
@@ -15,27 +15,27 @@ function [ states ] = changeUnits( states, field, unit_conv )
 %                       State must be populated by the named variable before
 %                       it can be retrived.
 %
-%	field           -Name of the field for which the unit change is to occur. 
+%	fields           -Name of the fields for which the unit change is to occur. 
 %                       Can be a string or cell array of strings.
 %
 %	unit            -Numeric value of unit conversion. If numel(unit) == 1 
-%                       and field has multple entries then the one value of 
-%                       unit will be applied to all fields. Otherwise if field
-%                       is a cell with multple entries then field and unit must 
-%                       have the same size, numel(unit) == numel(field).unit_conv = unit_conv.^-1;
+%                       and fields has multple entries then the one value of 
+%                       unit will be applied to all fieldss. Otherwise if fields
+%                       is a cell with multple entries then fields and unit must 
+%                       have the same size, numel(unit) == numel(fields).unit_conv = unit_conv.^-1;
 %
 % EXAMPLE:
 % 
-%   change the units of a single field
+%   change the units of a single fields
 % 
 %         [state] = changeUnits(state, 'activities', mol/litre)
 % 
-%   change the units of a multiple fields
+%   change the units of a multiple fieldss
 % 
-%         fields = {'acitivities', 'surfaceCharges'}
+%         fieldss = {'acitivities', 'surfaceCharges'}
 %         units = [mol/litre, mili*Coulumb/(nano*meter)^2];
 % 
-%         state = chem.getProps(state, fields, units);
+%         state = chem.getProps(state, fieldss, units);
 % 
 %   If state is a cell array of structures the function will loop over each cell. 
 % 
@@ -48,17 +48,17 @@ unit_conv = unit_conv.^-1;
 
 if numel(states) == 1
     
-    if ~iscell(field)
-        states.(field) = states.(field)*unit_conv;
+    if ~iscell(fields)
+        states.(fields) = states.(fields)*unit_conv;
     else
-        assert(numel(field) == numel(unit_conv) | numel(unit_conv) == 1, 'The number of elements in unit_conv must be 1 or equal to the number of cells in field.');
-        if numel(unit_conv) == numel(field)
-            for i = 1 : numel(field)
-                states.(field{i}) = states.(field{i})*unit_conv(i);
+        assert(numel(fields) == numel(unit_conv) | numel(unit_conv) == 1, 'The number of elements in unit_conv must be 1 or equal to the number of cells in fieldss.');
+        if numel(unit_conv) == numel(fields)
+            for i = 1 : numel(fields)
+                states.(fields{i}) = states.(fields{i})*unit_conv(i);
             end
         else
-            for i = 1 : numel(field)
-                states.(field{i}) = states.(field{i})*unit_conv;
+            for i = 1 : numel(fields)
+                states.(fields{i}) = states.(fields{i})*unit_conv;
             end
         end
     end
@@ -67,17 +67,17 @@ else
 
     for i = 1 : numel(states)
     
-        if ~iscell(field)
-            states{i}.(field) = states{i}.(field)*unit_conv;
+        if ~iscell(fields)
+            states{i}.(fields) = states{i}.(fields)*unit_conv;
         else
-            assert(numel(field) == numel(unit_conv) | numel(unit_conv) == 1, 'The number of elements in unit_conv must be 1 or equal to the number of cells in field.');
-            if numel(unit_conv) == numel(field)
-                for j = 1 : numel(field)
-                    states{i}.(field{j}) = states{i}.(field{j})*unit_conv(j);
+            assert(numel(fields) == numel(unit_conv) | numel(unit_conv) == 1, 'The number of elements in unit_conv must be 1 or equal to the number of cells in fieldss.');
+            if numel(unit_conv) == numel(fields)
+                for j = 1 : numel(fields)
+                    states{i}.(fields{j}) = states{i}.(fields{j})*unit_conv(j);
                 end
             else
-                for j = 1 : numel(field)
-                    states{i}.(field{j}) = states{i}.(field{j})*unit_conv;
+                for j = 1 : numel(fields)
+                    states{i}.(fields{j}) = states{i}.(fields{j})*unit_conv;
                 end
             end
         end

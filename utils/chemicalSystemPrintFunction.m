@@ -10,7 +10,7 @@ function chemicalSystemPrintFunction(model, varargin )
             
             % get the names right
             for i = 1 : model.nMC
-            	mcnames{i} = ['sum(' model.masterComponentNames{i} ')'];
+            	mcnames{i} = ['sum(' model.elementNames{i} ')'];
             end
             for i = 1 : model.nR
                 mcnames{model.nMC+i} = model.rxns{i};

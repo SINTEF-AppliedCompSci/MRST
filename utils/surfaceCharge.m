@@ -9,24 +9,17 @@ function [state, model] = surfaceCharge(model, state)
     e_w = 87.740 - 0.4008.*(T-273.15) + 9.398e-4.*(T-273.15).^2 - 1.410e-6.*(T-273.15).^3;% Dielectric constant of water
     A   = 1.82e6*(e_w.*T).^(-3/2);
     
-    nC = numel(model.componentNames);
+    nC =model.nC;
     components = cell(1, nC);
-    [components{:}] = model.chemicalInputModel.getProps(state,model.componentNames{:}); 
+    [components{:}] = model.chemicalInputModel.getProps(state,model.speciesNames{:}); 
     
     if ~isempty(model.surfInfo)
         
-        call = 0;
         for i = 1 : numel(model.surfInfo.master)
 
-            if strcmpi(model.surfInfo.scm{i},'langmuir')
-                call = call + 1;
-                continue
-            end
-            
             % grab the correct info
             S = model.surfInfo.s{i};
             a = model.surfInfo.a{i};
-            C = model.surfInfo.c{i-call};
 
             % surface funcitonal group name
             surfName = model.surfInfo.master{i}; 
@@ -45,7 +38,7 @@ function [state, model] = surfaceCharge(model, state)
                     sig_1 = 0;
                     sig_2 = 0;
                     for j = 1 : nSp
-                        SpInd = strcmpi(SpNames{j}, model.componentNames);
+                        SpInd = strcmpi(SpNames{j}, model.speciesNames);
                         sig_0 = sig_0 + charge{j}(1).*components{SpInd};
                         sig_1 = sig_1 + charge{j}(2).*components{SpInd};
                         sig_2 = sig_2 + charge{j}(3).*components{SpInd};
@@ -70,7 +63,7 @@ function [state, model] = surfaceCharge(model, state)
                     % calculate surface charge
                     sig = 0;
                     for j = 1 : nSp
-                        SpInd = strcmpi(model.surfInfo.species{i}{j}, model.componentNames);
+                        SpInd = strcmpi(model.surfInfo.species{i}{j}, model.speciesNames);
                         sig = sig + model.surfInfo.charge{i}{j}.*components{SpInd};
                     end
                     sig = (F./(S.*a)).*sig;

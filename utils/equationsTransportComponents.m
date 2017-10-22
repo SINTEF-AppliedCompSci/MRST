@@ -1,4 +1,4 @@
-function [eqs, names, types] = equationsTransportComponents(state0, p, masterComponents, components,logFluidVolumeFraction, state, ...
+function [eqs, names, types] = equationsTransportComponents(state0, p, masterComponents, components, state, ...
                                                       model, dt, drivingForces, ...
                                                       varargin)
 
@@ -11,7 +11,6 @@ function [eqs, names, types] = equationsTransportComponents(state0, p, masterCom
 
     G = model.G;
     
-    model.rock.poro = exp(logFluidVolumeFraction);
     model.operators = setupOperatorsTPFA(G, model.rock);
     
     s = model.operators;
@@ -22,7 +21,7 @@ function [eqs, names, types] = equationsTransportComponents(state0, p, masterCom
     nC = chemModel.nC;
     mastercomps0 = cell(1, nMC);
     comps0 = cell(1, nC);
-    [p0, mastercomps0{:}, comps0{:}] = model.getProps(state0, 'pressure', chemModel.masterComponentNames{:}, chemModel.componentNames{:});
+    [p0, mastercomps0{:}, comps0{:}] = model.getProps(state0, 'pressure', chemicalModel.elementNames{:}, chemicalModel.speciesNames{:});
 
     %Initialization of independent variables ----------------------------------
 
@@ -96,7 +95,7 @@ function [eqs, names, types] = equationsTransportComponents(state0, p, masterCom
         end
     end
                    
-    names = {'water', chemModel.masterComponentNames{:}};
+    names = {'water', chemicalModel.elementNames{:}};
 
     types = cell(1, nMC + 1);
     [types{:}] = deal('cell');

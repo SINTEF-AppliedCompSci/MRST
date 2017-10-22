@@ -1,20 +1,7 @@
-function [eqs, names, types] = equationsChemicalLog(model, state, logFluidVolumeFraction, logComponents, logMasterComponents, combinationComponents, ...
-                                                       logGasVolumeFractions, logSolidVolumeFractions,logSurfaceAcitivityCoefficients)
+function [eqs, names, types] = equationsChemicalLog(model, state, logComponents, logMasterComponents, combinationComponents, ...
+                                                       logPartialPressures, logSaturationIndicies,logSurfaceAcitivityCoefficients)
 
 
-% 
-%     if model.nG > 0
-%         partialPressures = cell(1,model.nG);
-%         [partialPressures{:}] = deal(model.getProps(state, model.partialPressureNames{:}));
-%         logPartialPressures = cellfun(@(x) log(x), partialPressures, 'UniformOutput', false);    
-%     end
-
-    if model.nS > 0
-        solidDensities = cell(1,model.nS);
-        [solidDensities{:}] = model.getProps(state,  model.solidDensityNames{:});
-    end
-    
-    matrixVolumeFraction = model.getProp(state, 'matrixVolumeFraction');
     T = model.getProp(state, 'temperature');
     
     
@@ -25,17 +12,15 @@ function [eqs, names, types] = equationsChemicalLog(model, state, logFluidVolume
     e_w = 87.740 - 0.4008.*(T-273.15) + 9.398e-4.*(T-273.15).^2 - 1.410e-6*(T-273.15).^3;% Dielectric constant of water
     A   = 1.82e6*(e_w.*T).^(-3/2);
 
-    RM = model.reactionMatrix;
     CM = model.compositionMatrix;
+    RM = model.reactionMatrix;
+    GM =  model.gasReactionMatrix;
+    SM = model.solidReactionMatrix;
     SPM = model.surfacePotentialMatrix;
     
     logSurfAct = logSurfaceAcitivityCoefficients;
     
     components = cellfun(@(x) exp(x), logComponents, 'UniformOutput', false);
-    gasVolumeFractions = cellfun(@(x) exp(x), logGasVolumeFractions, 'UniformOutput', false);
-    solidVolumeFractions = cellfun(@(x) exp(x), logSolidVolumeFractions, 'UniformOutput', false);
-    masterComponents = cellfun(@(x) exp(x), logMasterComponents, 'UniformOutput', false);
-    fluidVolumeFraction = exp(logFluidVolumeFraction);
     
     logK = model.logReactionConstants;
 
@@ -48,7 +33,7 @@ function [eqs, names, types] = equationsChemicalLog(model, state, logFluidVolume
     nP = model.nP;
 
     CV = model.chargeVector;
-    eInd = strcmpi('e-', model.componentNames);
+    eInd = strcmpi('e-', model.speciesNames);
     CV(1,eInd) = 0;
     
     for i = 1 : model.nC
@@ -70,10 +55,10 @@ function [eqs, names, types] = equationsChemicalLog(model, state, logFluidVolume
         for i = 1 : numel(model.surfInfo.master)
             mcName = model.surfInfo.master{i};
             if strcmpi(model.surfInfo.scm{i}, 'ie')
-                Sind = strcmpi(mcName, model.masterComponentNames);
+                Sind = strcmpi(mcName, model.elementNames);
                 for j = 1 : numel(model.surfInfo.species{i})
                     p = model.surfInfo.species{i}(j);
-                    ind = strcmpi(p, model.componentNames);
+                    ind = strcmpi(p, model.speciesNames);
                     af{ind} = log(components{ind}/exp(logMasterComponents{Sind}));
                 end
             end  
@@ -84,28 +69,26 @@ function [eqs, names, types] = equationsChemicalLog(model, state, logFluidVolume
     for i = 1 : model.nR  
         
         eqs{i} = -logK(i);
-        
-        %%%%%%%%%%%%%%%%%%%%%%%%% put switch here %%%%%%%%%%%%%%%%%%%%%%%%%
-        %
-        % solid and gas phase contributions have been removed from RM, but
-        % will still be enforced as if at local chemical equilibrium. need
-        % a vector of alphas to switch the solid phase reactions off
 
         % component contribution
         for k = 1 : model.nC
             eqs{i} = eqs{i} + RM(i, k).*(pg{k} + af{k} + logComponents{k});
-%             eqs{i} = eqs{i} + RM(i, k).*(logComponents{k});
         end
+        
         % potential contribution
         for k = 1 : model.nP
             eqs{i} = eqs{i} + SPM(i, k).*logSurfAct{k};
         end
-        % gas contribution
-%         for k = 1 : model.nG
-%             eqs{i} = eqs{i} + model.gasReactionMatrix(i,k).*logGasVolumeFractions{k};
-%         end
-
-        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        
+        % gas reactions
+        for k = 1 : model.nG
+            eqs{i} = eqs{i} + GM(i,k).*logPartialPressures{k};
+        end
+        
+        % solid reactions
+        for k = 1 : model.nS
+            eqs{i} = eqs{i} + SM(i,k).*logSaturationIndicies{k};
+        end
         
         names{i} = model.rxns{i};
     end
@@ -120,62 +103,41 @@ function [eqs, names, types] = equationsChemicalLog(model, state, logFluidVolume
         
         % now using units of moles
         for k = 1 : model.nC
-            masssum = masssum + CM(i,k).*components{k}.*fluidVolumeFraction;
+            masssum = masssum + CM(i,k).*components{k};
         end
-        
-%         solidVolumeFractions and gasVolumeFractions has units of porosity [-]
-%         need to implement ideal gas law here for the gasses
-        for k = 1 : model.nG
-            masssum = masssum + model.gasContributionMatrix(i,k).*gasVolumeFractions{k};
-        end
-        for k = 1 : model.nS
-            masssum = masssum + model.solidContributionMatrix(i,k).*solidVolumeFractions{k}.*solidDensities{k};
-        end
+     
         
         eqs{j} = log(masssum) - logMasterComponents{i};
 
-        names{j} = ['Conservation of ', model.masterComponentNames{i}] ;
+        names{j} = ['Conservation of ', model.elementNames{i}] ;
     end
     
-    
-    %% conservation of volume
-    
-    vol = fluidVolumeFraction + matrixVolumeFraction;
-    for i = 1 : model.nS
-        vol = vol + solidVolumeFractions{i};
-    end
-    for i = 1 : model.nG
-        vol = vol + gasVolumeFractions{i};
-    end    
-    
-    eqs{end+1} = log(1) - log(vol);
-    names{end+1} = 'Conservation of volume';
-    types{end+1} = [];
     
     %% surface potentials
     if ~isempty(model.surfInfo)
+        call = 0;
         for i = 1 : numel(model.surfaces.groupNames)
 
-            surfName = model.surfaces.groupNames{i};
+            groupNames = model.surfaces.groupNames{i};
 
-            if strcmpi(model.surfaces.scm{i},'langmuir')
+            if ismember(model.surfaces.scm{i},{'langmuir','ie'})
                 call = call + 1;
                 continue
             end
 
-            mNames = model.surfaces.speciesNames{i};
+            funcNames = model.surfaces.speciesNames{i};
 
             sig_0 = 0;
             sig_1 = 0;
             sig_2 = 0;
 
-            for j = 1 : numel(mNames)
-                mInd = strcmpi(mNames{j}, model.surfInfo.master);
+            for j = 1 : numel(funcNames)
+                mInd = strcmpi(funcNames{j}, model.surfInfo.master);
 
                 % grab the correct info
                 S = model.surfInfo.s{mInd};
                 a = model.surfInfo.a{mInd};
-                C = model.surfaces.c{i};
+                C = model.surfaces.c{i-call};
 
                 % number of species associated with surface
                 nSp = numel(model.surfInfo.species{mInd});
@@ -188,7 +150,7 @@ function [eqs, names, types] = equationsChemicalLog(model, state, logFluidVolume
                         % calculate surface charges
 
                         for k = 1 : nSp
-                            SpInd = strcmpi(SpNames{k}, model.componentNames);
+                            SpInd = strcmpi(SpNames{k}, model.speciesNames);
                             sig_0 = sig_0 + (F./(S.*a)).*charge{k}(1).*components{SpInd};
                             sig_1 = sig_1 + (F./(S.*a)).*charge{k}(2).*components{SpInd};
                             sig_2 = sig_2 + (F./(S.*a)).*charge{k}(3).*components{SpInd};
@@ -198,7 +160,7 @@ function [eqs, names, types] = equationsChemicalLog(model, state, logFluidVolume
 
                         % calculate surface charge
                         for k = 1 : nSp
-                            SpInd = strcmpi(SpNames{k}, model.componentNames);
+                            SpInd = strcmpi(SpNames{k}, model.speciesNames);
                             sig_0 = sig_0 + (F./(S.*a)).*charge{k}(1).*components{SpInd};
                         end
 
@@ -209,30 +171,30 @@ function [eqs, names, types] = equationsChemicalLog(model, state, logFluidVolume
                 case 'tlm'
                     mysinh = @(x) exp(x)./2 - exp(-x)./2;
                     
-                    P2Ind = strcmpi([surfName '_ePsi_2'], model.surfaceActivityCoefficientNames);
-                    P1Ind = strcmpi([surfName '_ePsi_1'], model.surfaceActivityCoefficientNames);
-                    P0Ind = strcmpi([surfName '_ePsi_0'], model.surfaceActivityCoefficientNames);
+                    P2Ind = strcmpi([groupNames '_ePsi_2'], model.surfaceActivityCoefficientNames);
+                    P1Ind = strcmpi([groupNames '_ePsi_1'], model.surfaceActivityCoefficientNames);
+                    P0Ind = strcmpi([groupNames '_ePsi_0'], model.surfaceActivityCoefficientNames);
 
                     sig_2 = sig_2 + -(8.*10.^3.*R.*T.*ion{end}.*e_o.*e_w).^(0.5).*mysinh(logSurfAct{P2Ind}./2);
                     
                     eqs{end+1} = sig_0 + sig_1 + sig_2;
-                    names{end+1} = ['charge balance of ' surfName];
+                    names{end+1} = ['charge balance of ' groupNames];
                     types{end+1} = [];
                     
                     eqs{end+1} = -sig_0 + C(:,1).*(R*T)./F.*(logSurfAct{P0Ind} - logSurfAct{P1Ind});
-                    names{end+1} = ['-s0 + C1*(P0 - P1), ' surfName];
+                    names{end+1} = ['-s0 + C1*(P0 - P1), ' groupNames];
                     types{end+1} = [];
                     
                     eqs{end+1} = -sig_2 - C(:,2).*(R*T)./F.*(logSurfAct{P1Ind} - logSurfAct{P2Ind});
-                    names{end+1} = ['-s2 - C2*(P1 - P2), ' surfName];
+                    names{end+1} = ['-s2 - C2*(P1 - P2), ' groupNames];
                     types{end+1} = [];
 
                 case 'ccm'
                     
                     % explicitly calculate what the potential should be
-                    Pind = cellfun(@(x) ~isempty(x), regexpi(model.surfaceActivityCoefficientNames, surfName));
+                    Pind = cellfun(@(x) ~isempty(x), regexpi(model.surfaceActivityCoefficientNames, groupNames));
                     eqs{end+1} = -sig_0 + (R*T/F).*logSurfAct{Pind}.*C(:,1);
-                    names{end+1} = ['-s + Psi*C ,' surfName];
+                    names{end+1} = ['-s + Psi*C ,' groupNames];
                     types{end+1} = [];
             end
 
@@ -241,5 +203,16 @@ function [eqs, names, types] = equationsChemicalLog(model, state, logFluidVolume
     end
 
     [types{:}] = deal('cell');
+    
+    %% combination matrix
+    for i = 1 : model.nLC
+        combSum = 0;
+        for k = 1 : model.nC
+            combSum = combSum + model.combinationMatrix(i,k).*components{k};
+        end
+        eqs{end + 1} = log(combSum) - log(combinationComponents{i});
+        names{end + 1} = [model.combinationNames{i}] ;
+        types{end + 1} = 'cell';
+    end
 
 end

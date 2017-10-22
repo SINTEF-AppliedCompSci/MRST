@@ -24,8 +24,6 @@ combinations = {'Alk*', 'HCO3- + 2*H2CO3' };
 % instantiate the chemical model
 chem = ChemicalModel(elements, species, reactions, 'comb', combinations);
 
-chem.plotIter = false;
-
 % print the chemical system
 chem.printChemicalSystem;
 

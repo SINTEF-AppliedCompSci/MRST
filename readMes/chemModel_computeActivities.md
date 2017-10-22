@@ -1,6 +1,6 @@
 # computeActivities 
 
-Computes the acitivities of aqueous species from state using the extended Davies equaiton. 
+Computes the activities of aqueous species from state using the extended Davies equation. 
 
 ## SYNOPSIS
 ~~~~
@@ -8,13 +8,19 @@ Computes the acitivities of aqueous species from state using the extended Davies
 ~~~~
 
 adds the field "activities" to state. Activity values can be retrieved using
-chem.getProps with 'a' prepended to the speices name.
+chem.getProps with 'a' prepended to the species name.
+
+## REQUIRED PARAMETERS
+   
+### state        
+
+The state structure produced by chem.initstate. Must have the field "components." 
 
 ## OUTPUT
  
 ### state
 
-state.activities includes the activites of aqueous species in units of mol/meter^3.
+state.activities includes the activities of aqueous species in units of mol/meter^3.
 
 ## EXAMPLE
 
@@ -22,9 +28,3 @@ state.activities includes the activites of aqueous species in units of mol/meter
 state = chem.computeActivities(state);
 aH2O = chem.getProp(state, 'aH2O');
 ~~~~
-
-## REQUIRED PARAMETERS
-   
-### state        
-
-The state structure produced by chem.initstate. Must have the field "components." 

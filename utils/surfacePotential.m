@@ -34,7 +34,9 @@ function [state, model] = surfacePotential(model, state)
                     state = model.setProp(state, [surfName '_Psi'], R.*T./F.*preP0);
                     
 
-                case 'langmuir'
+                case {'langmuir','ie'}
+                    
+                    warning('The Langmuir and ion exchnage surface chemistry models do not have potentials.');
 
             end
         end

@@ -32,7 +32,7 @@ surfaces ={ '>SO', sioInfo };
 % instantiate the chemical model
 chem = ChemicalModel(elements, species, reactions, 'surf', surfaces);
 
-chem.plotIter = false;
+chem.plotIterations = false;
 
 % print the chemical system
 chem.printChemicalSystem;
@@ -59,7 +59,7 @@ toc;
 
 
 %% take out relevant values from state
-state = changeUnits(state, {'masterComponents', 'components', 'activities'}, mol/litre);
+state = changeUnits(state, {'elements', 'species', 'activities'}, mol/litre);
 
 SO      = getProp(chem, state, '>SO-');
 SOH     = getProp(chem, state, '>SOH');

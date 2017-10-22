@@ -2,7 +2,7 @@ function [state, model] = activity(model, state)
 
     components = cell(1, model.nC);
 
-    [components{:}] = model.getProps(state, model.componentNames{:});
+    [components{:}] = model.getProps(state, model.speciesNames{:});
             
     T = model.getProp(state, 'temperature');
     e_w = 87.740 - 0.4008*(T-273.15) + 9.398e-4*(T-273.15).^2 - 1.410e-6*(T-273.15).^3;% Dielectric constant of water
@@ -11,14 +11,14 @@ function [state, model] = activity(model, state)
 
     % calculate activity
     ionDum = 0;
-    indS = cellfun(@(x) isempty(x), regexpi(model.componentNames, '>'));
+    indS = cellfun(@(x) isempty(x), regexpi(model.speciesNames, '>'));
     nC = sum(indS);    
 
-    model.componentActivityNames  = cellfun(@(name) ['a', name], model.componentNames(indS), ...
+    model.activityNames  = cellfun(@(name) ['a', name], model.speciesNames(indS), ...
                                          'uniformoutput', false);
     
     CV = model.chargeVector;
-    eInd = strcmpi('e-', model.componentNames);
+    eInd = strcmpi('e-', model.speciesNames);
     CV(1,eInd) = 0;
     
     for i = 1 : nC
@@ -36,7 +36,7 @@ function [state, model] = activity(model, state)
 
     for k = 1 : nC
         activities{k} =  (exp(pg{k}) .* components{k});
-        state = model.setProp(state, model.componentActivityNames{k}, activities{k});
+        state = model.setProp(state, model.activityNames{k}, activities{k});
     end
 
 

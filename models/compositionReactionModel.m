@@ -16,7 +16,7 @@ classdef compositionReactionModel < ChemicalModel
         %%
         function model = validateModel(model)
             model = validateModel@ChemicalModel(model);
-            unknownNames = horzcat(model.componentNames, model.masterComponentNames, model.combinationNames, model.solidNames, model.gasNames, 'fluidVolumeFraction');
+            unknownNames = horzcat(model.speciesNames, model.elementNames, model.combinationNames, model.solidNames, model.gasNames);
             ind = ismember(unknownNames, model.inputNames);
             model.unknownNames = unknownNames(~ind);
 
@@ -25,20 +25,20 @@ classdef compositionReactionModel < ChemicalModel
         %%
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
 
-            [pVars, logComponents, logMasterComponents, combinationComponents, logGasVolumeFractions, logSolidVolumeFractions, logFluidVolumeFraction] = prepStateForEquations(model, state);
+            [pVars, logComponents, logMasterComponents, combinationComponents, logPartialPressures, logSaturationIndicies] = prepStateForEquations(model, state);
 
-            [eqs, names, types] = equationsCompositionReactionGuess(model, state, logFluidVolumeFraction, logComponents, logMasterComponents, combinationComponents, logGasVolumeFractions, logSolidVolumeFractions);
+            [eqs, names, types] = equationsCompositionReactionGuess(model, state, logComponents, logMasterComponents, combinationComponents, logPartialPressures, logSaturationIndicies);
             
             problem = LinearizedProblem(eqs, types, names, pVars, state, dt);
 
         end
         
         %%
-        function [unknowns, logComponents, logMasterComponents, combinationComponents, logGasVolumeFractions, logSolidVolumeFractions, logFluidVolumeFraction] = prepStateForEquations(model, ...
+        function [unknowns, logComponents, logMasterComponents, combinationComponents, logPartialPressures, logSaturationIndicies] = prepStateForEquations(model, ...
                                                               state)
             
-            CNames = model.logComponentNames;
-            MCNames = model.logMasterComponentNames;
+            CNames = model.logSpeciesNames;
+            MCNames = model.logElementNames;
             LCNames = model.combinationNames;
             GNames = model.logGasNames;
             SNames = model.logSolidNames;
@@ -65,11 +65,8 @@ classdef compositionReactionModel < ChemicalModel
             logComponents           = distributeVariable( CNames, knowns, unknowns, knownVal, unknownVal );
             logMasterComponents     = distributeVariable( MCNames, knowns, unknowns, knownVal, unknownVal );
             combinationComponents   = distributeVariable( LCNames, knowns, unknowns, knownVal, unknownVal );
-            logGasVolumeFractions   = distributeVariable( GNames, knowns, unknowns, knownVal, unknownVal );
-            logSolidVolumeFractions = distributeVariable( SNames, knowns, unknowns, knownVal, unknownVal );
-
-            pInd = strcmpi(unknowns, 'logFluidVolumeFraction');
-            logFluidVolumeFraction = unknownVal{pInd};   
+            logPartialPressures   = distributeVariable( GNames, knowns, unknowns, knownVal, unknownVal );
+            logSaturationIndicies = distributeVariable( SNames, knowns, unknowns, knownVal, unknownVal );
             
         end
         
@@ -82,9 +79,6 @@ classdef compositionReactionModel < ChemicalModel
                                                           % variables if necessary.
 
             solver = NonLinearSolver();
-%             solver.maxIterations = 10;
-%             solver.minIterations = 5;
-            model.nonlinearTolerance = 1e-12;
             dt = 0; % dummy timestep
             drivingForces = []; % drivingForces;
             inputstate0 = inputstate;

@@ -36,7 +36,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         %%
         function model = validateModel(model)
             model = validateModel@ChemicalModel(model);
-            unknownNames = horzcat(model.componentNames, model.masterComponentNames, model.combinationNames, model.solidNames, model.gasNames, model.surfaceActivityCoefficientNames, 'fluidVolumeFraction');
+            unknownNames = horzcat(model.speciesNames, model.elementNames, model.combinationNames, model.solidNames, model.gasNames, model.surfaceActivityCoefficientNames);
             ind = ismember(unknownNames, model.inputNames);
             model.unknownNames = unknownNames(~ind);
 
@@ -46,12 +46,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
 
             [pVars, logComponents, logMasterComponents, combinationComponents,...
-                 logGasVolumeFractions, logSolidVolumeFractions,...
-                 logFluidVolumeFraction, logSurfaceActivityCoefficients]...
+                 logPartialPressures, logSaturationIndicies,...
+                  logSurfaceActivityCoefficients]...
                 = prepStateForEquations(model, state);
 
-            [eqs, names, types] = equationsChemicalInit(model, state, logFluidVolumeFraction, logComponents, logMasterComponents, combinationComponents, ...
-                                                       logGasVolumeFractions, logSolidVolumeFractions,logSurfaceActivityCoefficients);
+            [eqs, names, types] = equationsChemicalLog(model, state, logComponents, logMasterComponents, combinationComponents, ...
+                                                       logPartialPressures, logSaturationIndicies,logSurfaceActivityCoefficients);
 
             problem = LinearizedProblem(eqs, types, names, pVars, state, dt);
 
@@ -59,11 +59,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
         %%
         function [unknowns, logComponents, logMasterComponents, combinationComponents,...
-                 logGasVolumeFractions, logSolidVolumeFractions,...
-                 logFluidVolumeFraction,logSurfaceAcitivityCoefficients] = prepStateForEquations(model, ...
+                 logPartialPressures, logSaturationIndicies,...
+                 logSurfaceAcitivityCoefficients] = prepStateForEquations(model, ...
                                                               state)
-            CNames = model.logComponentNames;
-            MCNames = model.logMasterComponentNames;
+            CNames = model.logSpeciesNames;
+            MCNames = model.logElementNames;
             LCNames = model.combinationNames;
             GNames = model.logGasNames;
             SNames = model.logSolidNames;
@@ -91,12 +91,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             logComponents           = distributeVariable( CNames, knowns, unknowns, knownVal, unknownVal );
             logMasterComponents     = distributeVariable( MCNames, knowns, unknowns, knownVal, unknownVal );
             combinationComponents   = distributeVariable( LCNames, knowns, unknowns, knownVal, unknownVal );
-            logGasVolumeFractions   = distributeVariable( GNames, knowns, unknowns, knownVal, unknownVal );
-            logSolidVolumeFractions = distributeVariable( SNames, knowns, unknowns, knownVal, unknownVal );
+            logPartialPressures   = distributeVariable( GNames, knowns, unknowns, knownVal, unknownVal );
+            logSaturationIndicies = distributeVariable( SNames, knowns, unknowns, knownVal, unknownVal );
             logSurfaceAcitivityCoefficients = distributeVariable( SPNames, knowns, unknowns, knownVal, unknownVal );
 
-            pInd = strcmpi(unknowns, 'logFluidVolumeFraction');
-            logFluidVolumeFraction = unknownVal{pInd};  
             
         end
         
@@ -118,10 +116,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                                           % variables if necessary.
 
             solver = NonLinearSolver();
-%             solver.maxIterations= 25;
-
-            solver.LinearSolver.tolerance = 1e-13;
-            model.nonlinearTolerance = 1e-13;
+            
+            solver.maxIterations= model.nonLinearMaxIterations;
+            solver.minIterations= model.nonLinearMinIterations;
+            solver.LinearSolver.tolerance = model.linearTolerance;
+            solver.LinearSolver.maxIterations = model.linearMaxIterations;
+            
             dt = 0; % dummy timestep
             drivingForces = []; % drivingForces;
             inputstate0 = inputstate;
