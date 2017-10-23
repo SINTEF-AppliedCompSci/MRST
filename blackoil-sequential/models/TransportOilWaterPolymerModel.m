@@ -11,8 +11,8 @@ classdef TransportOilWaterPolymerModel < OilWaterPolymerModel
             
             model = model@OilWaterPolymerModel(G, rock, fluid);
             
-            model.conserveWater = true;
-            model.conserveOil   = false;
+            model.conserveWater = false;
+            model.conserveOil   = true;
             
             model.upwindType  = 'potential';
             model.useCNVConvergence = false;

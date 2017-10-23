@@ -139,21 +139,6 @@ polymer = (op.pv.*(1-fluid.dps)/dt).*(pvMult.*bW.*sW.*c - ...
    pvMult0.*bW0.*sW0.*c0) + (op.pv/dt).* ...
    (fluid.rhoR.*((1-poro)./poro).*(ads-ads0) ) + op.Div(bWvP);
 
-if ~opt.resOnly
-    epsilon = 1.e-8;
-    % the first way is based on the diagonal values of the resulting
-    % Jacobian matrix
-    if isa(polymer, 'ADI')     
-        eps = sqrt(epsilon)*mean(abs(diag(polymer.jac{3})));
-        % bad marks the cells prolematic in evaluating Jacobian
-        bad = abs(diag(polymer.jac{3})) < eps;
-        % the other way is to choose based on the water saturation
-        polymer(bad) = c(bad);
-    end
-else
-    assert(0, 'Backwards solver not supported for splitting');
-end
-
 eqs   = {water, oil, polymer};
 names = {'water', 'oil', 'polymer'};
 types = {'cell', 'cell', 'cell'};
