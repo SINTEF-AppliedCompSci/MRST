@@ -56,6 +56,11 @@ function [wellSols, states, schedulereport] = ...
 %                      be used to construct a new schedule from these
 %                      timesteps.
 %
+%  'initialGuess'   - A cell array with one entry per control-step. If
+%                     provided, the state from this cell array is passed as
+%                     initial guess for the NonLinearSolver. See:
+%                     NonLinearSolver>solveTimestep, optional arguments.
+%
 % 'NonLinearSolver' - An instance of the NonLinearSolver class. Consider
 %                     using this if you for example want a special timestep
 %                     selection algorithm. See the NonLinear Solver class
@@ -137,6 +142,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     opt = struct('Verbose',         mrstVerbose(),...
                  'OutputMinisteps', false, ...
+                 'initialGuess',    {{}}, ...
                  'NonLinearSolver', [], ...
                  'OutputHandler',   [], ...
                  'ReportHandler',   [], ...
@@ -213,14 +219,21 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             [model, state0]= model.updateForChangedControls(state, fstruct);
             prevControl = currControl;
         end
+        
+        if isempty(opt.initialGuess)
+            extraArg = {};
+        else
+            guess = model.validateState(opt.initialGuess{i});
+            extraArg = {'initialGuess', guess};
+        end
 
         timer = tic();
         if opt.OutputMinisteps
             [state, report, ministeps] = solver.solveTimestep(state0, dt(i), model, ...
-                                            forces{:}, 'controlId', currControl);
+                                            forces{:}, 'controlId', currControl, extraArg{:});
         else
             [state, report] = solver.solveTimestep(state0, dt(i), model,...
-                                            forces{:}, 'controlId', currControl);
+                                            forces{:}, 'controlId', currControl, extraArg{:});
         end
 
         t = toc(timer);
