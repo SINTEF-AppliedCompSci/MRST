@@ -4,7 +4,7 @@ The matlab-geoChemistry repository contains tools for the solution of equilibriu
 
 ### Summary ###
 
-The main function of this repository, ChemicalModel, allows the creation and solution of arbitrarily complex chemistry systems including equilibrium aqueous speciation, surface complexation, ion exchange, redox chemistry, dissolution/precipitation and equilbrium with gas phases. The function leverages the tools developed by the SINTEF [MRST team](http://www.sintef.no/projectweb/mrst/) including [automatic differentiation](https://en.wikipedia.org/wiki/Automatic_differentiation). The chemical model created can be used to calculate batch reaction or can be coupled to flow within MRST.
+The main function of this repository, ChemicalModel, allows the creation and solution of arbitrarily complex chemistry systems including equilibrium aqueous speciation, surface complexation, ion exchange, redox chemistry, dissolution/precipitation and equilbrium with gas phases. The function leverages the tools developed by the SINTEF [MRST team](http://www.sintef.no/projectweb/mrst/) including [automatic differentiation](https://en.wikipedia.org/wiki/Automatic_differentiation). The chemical model created can be used to calculate batch reaction or can be coupled to flow within MRST. See the user guide pdf for details on use, equations, examples, and benchmarks. 
 
 Models supported:
 
@@ -38,35 +38,7 @@ Before any script that relies on the repository is run, MRST must be started. Th
 To use the geochemistry module in a Matlab script include the command
 
 ~~~~~
-mrstModule add geochemistry
+mrstModule add geochemistry ad-core
 ~~~~~
 
 this will make the contents of the geochemistry directory available in the workspace.
-
-## Functionality ##
-
-[ChemModel.m](readMes/ChemModel.md)
-Used for the instatiation of the chemical object, making all embedded functions available. 
-
-* [ChemModel/initState](readMes/chemModel_initState.md) Used to solve the chemical system based on specified user inputs
-
-* [ChemModel/computeActivities](readMes/chemModel_computeActivities.md) adds the acitivities of aqueous species to state
-
-* [ChemModel/computeChargeBalance](readMes/chemModel_computeChargeBalance.md) adds the residual of the charge balance to state
-
-* [ChemModel/computeSurfacePotentials](readMes/chemModel_computeSurfacePotentials.md) adds the potential of each surface and layer to state
-
-* [ChemModel/computeSurfaceCharges](readMes/chemModel_computeSurfaceCharges.md) adds the charge of each surface and layer to state
-
-* [ChemModel/getProp and getProps](readMes/chemModel_getProps.md) allows the retreval of values from the state variable created by the solution of the chemical system
-
-[changeUnits.m](readMes/changeUnits.md) changes the units of the specified quantity whatever you want
-
-## Examples ##
-
-* ion exchange
-* surface complexation
-* aqueous speciation
-* linear combinations
-* dissolution/precipitation
-* gas phase equilibrium
