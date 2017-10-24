@@ -42,3 +42,7 @@ mrstModule add geochemistry ad-core
 ~~~~~
 
 this will make the contents of the geochemistry directory available in the workspace.
+
+### in progress ###
+* address slight mismatch between phreeqc and match for saturation index
+* release transport examples
