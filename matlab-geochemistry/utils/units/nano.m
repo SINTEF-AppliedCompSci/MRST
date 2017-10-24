@@ -34,5 +34,5 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-   d = 1e9;
+   d = 1e-9;
 end

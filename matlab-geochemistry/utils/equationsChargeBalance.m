@@ -15,7 +15,7 @@ function [eqs, names, types] = equationsChargeBalance(model, state, logComponent
     for k = 1 : model.nC
         masssum = masssum + model.compositionMatrix(CVCind,k).*components{k};
     end
-    masssum = masssum + CVC;
+    masssum = masssum - CVC;
 
     eqs{eqInd} = log(masssum) - logMasterComponents{CVCind};
 
@@ -37,7 +37,7 @@ function [eqs, names, types] = equationsChargeBalance(model, state, logComponent
         neg = neg + CVn(1,k).*components{k};
     end
 
-    eqs{end+1} = (log(pos) - log(neg))./log(exp(pos) + exp(neg));
+    eqs{end+1} = log(pos) - log(neg);
     names{end+1} = 'charge balance equation';
     types{end+1} = 'cell';
 end

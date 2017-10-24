@@ -120,14 +120,14 @@ classdef chargeBalanceModel < ChemicalInputModel
             
             warningText = ['Charge balance could not be acheived with given constraint on ' model.CVC ' increase the value if reasonable.'];
             
-            if ~all(abs(CVC) <= 2*MCval),
+            if ~all(abs(CVC) <= 10*MCval),
                 warning(warningText);
             end
             
             state = model.setProp(state, model.CVC, MCval + CVC);
             assert(all((MCval + CVC) > 0), warningText);
            
-            
+            state= rmfield(state, 'CVC');
             state = model.syncLog(state);
         
         

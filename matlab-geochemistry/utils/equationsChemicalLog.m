@@ -48,23 +48,6 @@ function [eqs, names, types] = equationsChemicalLog(model, state, logComponents,
         pg{i} = log(10).*-A.*CV(1,i).^2 .* (ion{i}.^(1/2)./(1 + ion{i}.^(1/2)) - 0.3.*ion{i});
     end
     
-    %% active fraction for ion exchange surfaces
-    af = cell(1,model.nC);
-    [af{:}] = deal(0);
-    if ~isempty(model.surfInfo)
-        for i = 1 : numel(model.surfInfo.master)
-            mcName = model.surfInfo.master{i};
-            if strcmpi(model.surfInfo.scm{i}, 'ie')
-                Sind = strcmpi(mcName, model.elementNames);
-                for j = 1 : numel(model.surfInfo.species{i})
-                    p = model.surfInfo.species{i}(j);
-                    ind = strcmpi(p, model.speciesNames);
-                    af{ind} = log(components{ind}/exp(logMasterComponents{Sind}));
-                end
-            end  
-        end
-    end
-    
     %% reaction matrix
     for i = 1 : model.nR  
         
@@ -72,7 +55,7 @@ function [eqs, names, types] = equationsChemicalLog(model, state, logComponents,
 
         % component contribution
         for k = 1 : model.nC
-            eqs{i} = eqs{i} + RM(i, k).*(pg{k} + af{k} + logComponents{k});
+            eqs{i} = eqs{i} + RM(i, k).*(pg{k} + logComponents{k});
         end
         
         % potential contribution

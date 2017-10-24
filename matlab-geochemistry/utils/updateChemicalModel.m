@@ -19,7 +19,7 @@ CM = model.compositionMatrix;
 
 mult = 1;
 if isfield(state, 'CVC')
-    mult = 2;
+    mult = 10;
 end
 
 for i = 1 : numel(pVar)
@@ -47,7 +47,7 @@ for i = 1 : numel(pVar)
    elseif strcmpi(p, 'CVC') 
         cvcInd = strcmpi(model.CVC, model.elementNames);
         cvcVal = state.elements(:,cvcInd);
-        state = model.capProperty(state, p, -0.99*cvcVal, 1.99*cvcVal);
+        state = model.capProperty(state, p, -0.99*cvcVal, 10*cvcVal);
         
     elseif any(strcmpi(p, model.speciesNames))
         maxvals = model.maxMatrices{compInd}*((state.elements)');
@@ -57,6 +57,8 @@ for i = 1 : numel(pVar)
 
 end
 
+if true
+end
 
 end
 
