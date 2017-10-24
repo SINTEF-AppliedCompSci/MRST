@@ -2,7 +2,7 @@
 % clear;
 close all;
 
-mrstModule add geochemistry
+mrstModule add geochemistry ad-core
 mrstVerbose on
 %% generate chemical system object
 
@@ -13,11 +13,11 @@ species = {'H+*', 'OH-', 'Na+', 'Cl-', 'NaCl', 'H2O*'};
 reactions = {'H2O  = H+  + OH- ', 10^-14*mol/litre, ...
              'NaCl = Na+ + Cl-',  10^1*mol/litre};
 
-chem = ChemicalModel(elements, species, reactions); %, 'combinations', comboComps);
+chem = ChemicalModel(elements, species, reactions);
 
 chem.printChemicalSystem;
-chem.plotIterations = true;
-chem.nonlinearTolerance = 1e-14;
+
+%%
 
 n = 100;
 

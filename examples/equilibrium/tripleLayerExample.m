@@ -32,44 +32,31 @@ surfaces ={ '>SO', sioInfo };
 % instantiate the chemical model
 chem = ChemicalModel(elements, species, reactions, 'surf', surfaces);
 
-chem.plotIterations = false;
-
 % print the chemical system
 chem.printChemicalSystem;
 
 %% solve the chemical system given inputs
 n = 500;
 
-Na = 1e-1.*ones(n,1);
-Cl = 1e-1*ones(n,1);
-% B = 4.63e-4;
+Na = 1e-2.*ones(n,1);
+Cl = 1e-2*ones(n,1);
 H2O = ones(n,1);
 H = logspace(-4, -10, n)';
 
 userInput = [Na Cl H H2O]*mol/litre;
 
-tic
-[state, report, model] = chem.initState(userInput, 'chargeBalance', 'Na');
-toc;
 
+[state, report, model] = chem.initState(userInput, 'chargeBalance', 'Na');
+
+%% post processing
 [state, chem] = chem.computeActivities(state);
 [state, chem] = chem.computeChargeBalance(state);
 [state, chem] = chem.computeSurfaceCharges(state);
 [state, chem] = chem.computeSurfacePotentials(state);
+[state, chem] = chem.computeAqueousConcentrations(state);
+[state, chem] = chem.computeSurfaceConcentrations(state);
 
-
-%% take out relevant values from state
 state = changeUnits(state, {'elements', 'species', 'activities'}, mol/litre);
-
-SO      = getProp(chem, state, '>SO-');
-SOH     = getProp(chem, state, '>SOH');
-SOH2    = getProp(chem, state, '>SOH2+');
-
-SOH2Cl     = getProp(chem, state, '>SOH2Cl');
-SONa     = getProp(chem, state, '>SONa');
-
-H      	= getProp(chem, state, 'H+');
-OH     	= getProp(chem, state, 'OH-');
 
 pH = -log10(getProp(chem, state, 'aH+'));
 
@@ -79,17 +66,21 @@ plot(pH, state.chargeBalance,'-k')
 xlabel('pH')
 ylabel('charge [% of total ion concentration]');
 
-% surface components
 figure; hold on; box on;
-plot(pH, SO)
-plot(pH, SOH)
-plot(pH, SOH2)
-plot(pH, SONa)
-plot(pH, SOH2Cl)
-
-
-xlim([4 10])
+plot(pH, state.surfaceConcentrations, 'linewidth',2)
 xlabel('pH')
 ylabel('concentration [mol/L]');
 set(gca, 'yscale', 'log');
-legend('>SiO^-','>SiOH','>SiOH2^+','>SiONa','>SiOH_2Cl', 'location','southwest');
+legend(chem.surfaceConcentrationNames);
+
+figure; hold on; box on;
+plot(pH, state.surfacePotentials, 'linewidth',2)
+xlabel('pH')
+ylabel('potential [volts]');
+legend(chem.surfacePotentialNames);
+
+figure; hold on; box on;
+plot(pH, state.surfaceCharges, 'linewidth',2)
+xlabel('pH')
+ylabel('charge density [C/m^2]');
+legend(chem.surfaceChargeNames);

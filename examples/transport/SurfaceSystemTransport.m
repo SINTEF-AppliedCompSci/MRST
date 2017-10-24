@@ -44,7 +44,6 @@ chemModel = ChemicalModel(elements, species, reactions, 'surf', surfaces);
 chemModel.printChemicalSystem;
 
 % initial chemistry
-
 inputConstraints = [1e-1 1e-1 1e-5 1]*mol/litre;
 [initchemstate, initreport]= chemModel.initState(repmat(inputConstraints, nc,1), 'charge', 'Cl');
 
@@ -54,7 +53,6 @@ inputConstraints = [1e-3 1e-3 1e-9 1]*mol/litre;
 
 %% Define the initial state
 
-
 initState = initchemstate;
 initState.pressure          = pRef*ones(nc,1);
 
@@ -63,7 +61,7 @@ initState.pressure          = pRef*ones(nc,1);
 set(groot, 'defaultLineLineWidth', 3);
 model = ChemicalTransportLogModel(G, rock, fluid, chemModel);
 
-fluidpart = model.fluidMat*((injchemstate.components)');
+fluidpart = model.fluidMat*((injchemstate.species)');
 fluidpart = fluidpart';
 
 model.plotIter = false;
@@ -71,13 +69,13 @@ model.plotIter = false;
 
 src                  = [];
 src                  = addSource(src, [1], [1/10].*meter^3/day, 'sat', 1);
-src.masterComponents = fluidpart;
-src.logmasterComponents = log(fluidpart);
+src.elements = fluidpart;
+src.logElements = log(fluidpart);
 
 bc                  = [];
 bc                  = pside(bc, G, 'east', 0*barsa, 'sat', 1);
-bc.masterComponents= [initchemstate.masterComponents(end,:)];        % (will not used if outflow)
-bc.logMasterComponents= [initchemstate.logMasterComponents(end,:)];  % (will not used if outflow)
+bc.elements= [initchemstate.elements(end,:)];        % (will not be used if outflow)
+bc.logElements= [initchemstate.logElements(end,:)];  % (will not be used if outflow)
 
 
 %% Define the schedule
@@ -92,23 +90,3 @@ schedule.control = struct('bc', bc, 'src', src, 'W', []);
 [~, states, scheduleReport] = simulateScheduleAD(initState, model, schedule);
 
 [ states ] = changeUnits( states, {'components', 'masterComponents'}, mol/litre );
-% 
-% plotToolbar(G, states,'plot1d', true, 'log10', true);
-% 
-% v = VideoWriter('transport.avi');
-% open(v);
-% 
-% figure(1); box on;
-% xlabel('position')
-% ylabel('pH');
-% set(gca,'nextplot','replacechildren'); 
-% x = G.cells.centroids(:,1);
-% ylim([8.9 10]);
-% drawnow;
-% for i = 1 : numel(states)
-%     plot(x, -log10(states{i}.components(:,1)))
-%    frame = getframe(gcf);
-%    writeVideo(v,frame);
-% end
-% 
-% close(v);
