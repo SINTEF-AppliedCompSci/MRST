@@ -2,45 +2,46 @@
 % clear;
 close all;
 
-% add autodiff core module
-mrstModule add ad-core geochemistry
-mrstVerbose off
+mrstModule add geochemistry ad-core
+mrstVerbose on
 %% generate chemical system object
 
 elements = {'O', 'H', 'Na*', 'Cl*'};
-species = {'H+*', 'OH-', 'Na+', 'Cl-', 'NaCl', 'H2O*'};
-reactions = {'H2O  <-> H+  + OH- ', 10^-14*mol/litre, ...
-             'NaCl <-> Na+ + Cl-',  10^1*mol/litre};
 
-% instantiate chemical model
+species = {'H+*', 'OH-', 'Na+', 'Cl-', 'NaCl', 'H2O*'};
+
+reactions = {'H2O  = H+  + OH- ', 10^-14*mol/litre, ...
+             'NaCl = Na+ + Cl-',  10^1*mol/litre};
+
 chem = ChemicalModel(elements, species, reactions);
 
 chem.printChemicalSystem;
 
-n = 500;
-userInput = [1e-2.*ones(n,1) 1e-2.*ones(n,1) logspace(-5,-9, n)' 1.*ones(n,1)]*mol/litre;
+%%
 
-[state, report, model] = chem.initState(userInput);
+n = 100;
+
+Na  = ones(n,1)*milli*mol/litre;
+Cl  = ones(n,1)*milli*mol/litre;
+H2O = ones(n,1)*mol/litre;
+H   = logspace(-6, -8,n)'*mol/litre;
+
+inputs = [Na, Cl, H, H2O];
+
+[state, report, chem] = chem.initState(inputs, 'chargeBalance', 'Na');
 
 %% process
+state = changeUnits(state, {'elements','species'}, mol/litre );
 
 [state, chem] = chem.computeActivities(state);
-
-% take out relevant values from state
-
-state = changeUnits(state, {'masterComponents','components'}, mol/litre );
 
 pH = -log10(getProp(chem, state, 'aH+'));
 
 figure; hold on; box on;
+plot(pH, state.species, 'linewidth',2)
 
-for i = 1 : numel(chem.CompNames)
-    v = getProps(chem, state, chem.CompNames{i});
-    plot(pH, v)
-    
-end
 xlabel('pH')
 ylabel('concentration [mol/L]');
 set(gca, 'yscale', 'log');
-legend(chem.CompNames)
+legend(chem.speciesNames)
 
