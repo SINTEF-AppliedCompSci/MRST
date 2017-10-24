@@ -38,7 +38,7 @@ state = changeUnits(state, {'elements','species'}, mol/litre );
 pH = -log10(getProp(chem, state, 'aH+'));
 
 figure; hold on; box on;
-plot(pH, state.species)
+plot(pH, state.species, 'linewidth',2)
 
 xlabel('pH')
 ylabel('concentration [mol/L]');
