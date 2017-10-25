@@ -39,6 +39,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        % with the same matrix system. However, some systems report
        % segfaults with this option enabled.
        reuseSetup
+       reduceToCell
    end
    methods
        function solver = AGMGSolverAD(varargin)
@@ -46,21 +47,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             solver = solver@LinearSolverAD();
             solver.setupDone = false;
             solver.reuseSetup = false;
+            solver.reduceToCell = true;
             solver = merge_options(solver, varargin{:});
        end
        
        function [dx, result, report] = solveLinearProblem(solver, problem, model)
-           hasMixedVar = ~all(strcmpi(problem.types, 'cell'));
-           if hasMixedVar
-               % Eliminate non-cell equations
-               problem0 = problem;
-               [problem, eliminated] = problem.reduceToSingleVariableType('cell');
-           end
-           
-           [dx, result, report] = solveLinearProblem@LinearSolverAD(solver, problem, model);
-           if hasMixedVar
-               % Recover increments from eliminated variables
-               dx = problem.recoverFromSingleVariableType(problem0, dx, eliminated);
+           if solver.reduceToCell
+               [dx, result, report] = solver.solveCellReducedLinearProblem(problem, model);
+           else
+               [dx, result, report] = solveLinearProblem@LinearSolverAD(solver, problem, model);
            end
        end
        
