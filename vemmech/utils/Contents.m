@@ -3,10 +3,12 @@
 % Files
 %   addFluidContribMechVEM - SYNOPSIS:
 %   C2D                    - Compute the matrix of normalized strain energies (D) from the elasticity
+%   calStressEigsVEM       - calculate eigen values of stress tensor and the basis
 %   calculateQC            - SYNOPSIS:
 %   calculateQF            - SYNOPSIS:
+%   calculateStressVEM     - 
 %   complex3DGrid          - SYNOPSIS:
-%   Enu2C                  - SYNOPSIS:
+%   Enu2C                  - For each cell, construct the 3x3 (in 2D) or 6x6 (in 3D) matrix representing
 %   ENu2LMu_3D             - SYNOPSIS:
 %   exploreSquareGrid      - Explore the different types of grids that can be set up using the function squareGrid
 %   lincompTPFA            - Solve weakly compressible flow problem (fluxes/pressures) using TPFA method.

@@ -6,7 +6,7 @@
 %
 % for a Cartesian grid with isotropic, homogeneous permeability and two
 % wells. The problem solved in this example is the same as in the tutorial
-% <simpleWellExample.html "Using Peacemann Well Models">, and a more
+% <incompTutorialWells.html "Using Peacemann Well Models">, and a more
 % detailed description of the model setup is shown there.
 %
 % The main idea of the TPFA method is to approximate the flux v over a face

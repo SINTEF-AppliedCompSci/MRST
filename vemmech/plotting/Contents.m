@@ -3,7 +3,6 @@
 % Files
 %   plotCellDataDeformed - SYNOPSIS:
 %   plotGridDeformed     - SYNOPSIS:
-%   plotNodeData         - SYNOPSIS:
 %   plotNodeDataDeformed - SYNOPSIS:
 
 %{
