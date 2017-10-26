@@ -7,6 +7,7 @@ classdef TracerModel < ReservoirModel
         function model = TracerModel(G, rock, fluid, varargin)
             model = model@ReservoirModel(G, rock, fluid);
             model = merge_options(model, varargin{:});
+            model.stepFunctionIsLinear = true;
         end
         
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
