@@ -442,7 +442,7 @@ classdef ChemicalModel < PhysicalModel
                 end
             else
                 for i = 1:numel(surfNames)
-                    groupNames{i} = surfNames(i);
+                    groupNames = surfNames;
                     masterNames{i} = surfNames(i);
                 end
             end
@@ -1377,7 +1377,7 @@ classdef ChemicalModel < PhysicalModel
                             case {'tlm','ccm'}
                                 % find the number of layers
                                 nL = numel(surfInfo.charge{mInd}{1});
-                                layerInd = cellfun(@(x) ~isempty(x), regexpi(model.surfaceActivityCoefficientNames, gNames{i}));
+                                layerInd = cellfun(@(x) ~isempty(x), regexpi(model.surfaceActivityCoefficientNames, [gNames{i} '_ePsi']));
                                 for k = 1 : numel(sNames)
                                     % find the columns of the reaction matrix that contain
                                     % the species
@@ -1432,9 +1432,9 @@ classdef ChemicalModel < PhysicalModel
                 end
 
                 mdInd = sum(stack,2) > 1;
-                if any(mdInd)
-                    error('Multidentate species may not span multiple surface groups.') 
-                end
+%                 if any(mdInd)
+%                     error('Multidentate species may not span multiple surface groups.') 
+%                 end
             end
         end
 
