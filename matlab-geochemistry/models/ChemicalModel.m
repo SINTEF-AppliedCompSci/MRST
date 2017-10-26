@@ -389,32 +389,34 @@ classdef ChemicalModel < PhysicalModel
             ind = cellfun(@(x) ~isempty(x), regexpi(surfNames,'g[roups]'));
             surfNames = surfNames(~ind);
 
+            %%% check which surface masters are in the defined groups and
+            %%% then remove them from groups as above
             if sum(ind) > 0
                 tmp = find(ind);
-                groups = p.Results.surfaces{2*tmp};
-                groupNames = groups(:,1);
-                speciesNames = groups(:,2:end);
+                defGroups = p.Results.surfaces{2*tmp};
+                defGroupNames = defGroups(1:2:end);
+                defGroupMast = defGroups(2:2:end);
 
                 toPass = p.Results.surfaces;
                 toPass(2*tmp) =[];
                 toPass(2*tmp-1) = [];
 
                 % make sure group names are unique
-                for i = 1 : numel(groupNames)
-                    ind = zeros(size(groupNames));
+                for i = 1 : numel(defGroupNames)
+                    ind = zeros(size(defGroupNames));
                     ind(i) = 1;
                     test = true;
-                    if numel(groupNames) > 1
-                        test = ~all(strcmpi(groupNames{i}, groupNames(~ind)));
+                    if numel(defGroupNames) > 1
+                        test = ~all(strcmpi(defGroupNames{i}, defGroupNames(~ind)));
                     end
                     assert(test, 'Surface group names must be unique.');
                 end
 
-                % make sure species do not appear in more than one
-                % group
+                % make sure surface functional groups do not appear in more than one
+                % user defined group
                 spnames = {};
-                for i = 1 : numel(speciesNames);
-                    spnames = [spnames speciesNames{i}];
+                for i = 1 : numel(defGroupMast);
+                    spnames = [spnames defGroupMast{i}];
                 end
 
                 for i = 1 : numel(spnames)
@@ -430,20 +432,23 @@ classdef ChemicalModel < PhysicalModel
                 % add functional groups not listed in groups to
                 % groupNames may need to change cell indexing for when there
                 % arent the same number of surface master components in  a group
+                groupNames = defGroupNames;
+                masterNames = defGroupMast;
                 for i = 1 : numel(surfNames);
                     if ~any(strcmpi(surfNames{i}, spnames))
                         groupNames{end+1} = surfNames{i};
-                        speciesNames{end+1,1} = surfNames{i};
+                        masterNames{end+1,1} = surfNames{i};
                     end
                 end
             else
-
-                groupNames = surfNames';
-                speciesNames = {surfNames'};
+                for i = 1:numel(surfNames)
+                    groupNames{i} = surfNames(i);
+                    masterNames{i} = surfNames(i);
+                end
             end
 
             model.surfaces.groupNames = groupNames;
-            model.surfaces.speciesNames = speciesNames;
+            model.surfaces.masterNames = masterNames;
 
             surfNames = cellfun(@(name) [name '*'], ...
                                        surfNames, ...
@@ -1361,7 +1366,7 @@ classdef ChemicalModel < PhysicalModel
             if model.surfFlag && ~isempty(model.surfInfo)
                 
                 gNames = model.surfaces.groupNames;
-                mNames = model.surfaces.speciesNames;
+                mNames = model.surfaces.masterNames;
                 
                 for i = 1 : numel(gNames)
                     for j = 1 : numel(mNames{i});
@@ -1662,9 +1667,8 @@ classdef ChemicalModel < PhysicalModel
                 model.surfaceChargeNames = {};
                 model.surfacePotentialNames = {};
                 m = model.surfaces.groupNames{i};
-                n = 0;
                 
-                mastNames = model.surfaces.speciesNames{i};
+                mastNames = model.surfaces.masterNames{i};
 
                 
                 % make sure model type and capacitances are the same for
@@ -1677,10 +1681,12 @@ classdef ChemicalModel < PhysicalModel
                         case {'ccm','tlm'}
                             cTest{j} = model.surfInfo.c{testInd};
                     end
+                    
                 end
+                
                 assert(isequal(mTest{:},mTest{:}), 'Surface functional groups that are combined into a single surface must use the same electrostatic model.');
                 assert(isequal(cTest{:},cTest{:}), 'Surface functional groups that are combined into a single surface must use the same values for capacitance.');
-                
+
                 model.surfaces.scm{i} = mTest{1};
                 model.surfaces.c{i} = cTest{1};                
 
@@ -1690,13 +1696,11 @@ classdef ChemicalModel < PhysicalModel
                         model.surfaceActivityCoefficientNames{end+1} = [ m '_ePsi'];
                         model.surfaceChargeNames{end+1} = [m '_sig'];
                         model.surfacePotentialNames{end+1} = [m '_Psi'];
-                        n = 1;
                     case 'tlm'
                         model.allComponentNames =  horzcat( model.allComponentNames, [m '_ePsi_0'], [m '_ePsi_1'], [m '_ePsi_2']);
                         model.surfaceActivityCoefficientNames =  horzcat( model.surfaceActivityCoefficientNames, [m '_ePsi_0'], [m '_ePsi_1'], [m '_ePsi_2']);
                         model.surfaceChargeNames = horzcat(model.surfaceChargeNames, [m '_sig_0'],[m '_sig_1'],[m '_sig_2']);
                         model.surfacePotentialNames = horzcat(model.surfacePotentialNames, [m '_Psi_0'],[m '_Psi_1'],[m '_Psi_2']);
-                        n = 3;
                 end
             end
 

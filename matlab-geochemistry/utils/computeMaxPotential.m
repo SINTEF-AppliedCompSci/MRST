@@ -36,7 +36,7 @@ function [names, mins, maxs] = computeMaxPotential(model, state)
             
             groupName = model.surfaces.groupNames{i};
             
-            SPNames = model.surfaces.speciesNames{i};
+            SPNames = model.surfaces.masterNames{i};
             
             sig_0 = 0;
             sig_1 = 0;

@@ -108,7 +108,7 @@ function [eqs, names, types] = equationsChemicalLog(model, state, logComponents,
                 continue
             end
 
-            funcNames = model.surfaces.speciesNames{i};
+            funcNames = model.surfaces.masterNames{i};
 
             sig_0 = 0;
             sig_1 = 0;
