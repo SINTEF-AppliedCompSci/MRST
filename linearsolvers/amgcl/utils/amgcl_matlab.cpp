@@ -8,12 +8,17 @@
 #include <amgcl/amg.hpp>
 #include <amgcl/coarsening/smoothed_aggregation.hpp>
 #include <amgcl/relaxation/spai0.hpp>
+#include <amgcl/relaxation/runtime.hpp>
+
+
 #include <amgcl/adapter/crs_tuple.hpp>
 #include <amgcl/adapter/zero_copy.hpp>
 
 #include <amgcl/backend/builtin.hpp>
 #include <amgcl/runtime.hpp>
 
+#include <amgcl/preconditioner/dummy.hpp>
+#include <amgcl/preconditioner/runtime.hpp>
 
 void mexFunction( int nlhs, mxArray *plhs[], 
 		  int nrhs, const mxArray *prhs[] )
@@ -26,7 +31,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     mwIndex * rows;
     double * entries;
     
-    if (nrhs != 7) { 
+    if (nrhs != 8) { 
 	    mexErrMsgTxt("6 input arguments required."); 
     } else if (nlhs > 1) {
 	    mexErrMsgTxt("Wrong number of output arguments."); 
@@ -58,7 +63,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     int coarsen_id = mxGetScalar(prhs[4]);
     int relax_id = mxGetScalar(prhs[5]);
     int solver_id = mxGetScalar(prhs[6]);
-    
+    int precond_id = mxGetScalar(prhs[7]);
     
     std::vector<double> b(n);
     for(int ix = 0; ix < n; ix++){
@@ -71,50 +76,65 @@ void mexFunction( int nlhs, mxArray *plhs[],
     typedef amgcl::backend::builtin<double> Backend;
     
     boost::property_tree::ptree prm;
-    
-    /* Select coarsening strategy */
-    switch(coarsen_id) {
+    /* Select preconditioning strategy */
+    switch(precond_id) {
         case 1: 
-            prm.put("precond.coarsening.type",  amgcl::runtime::coarsening::smoothed_aggregation);
+            prm.put("precond.class", amgcl::runtime::precond_class::amg);
             break;
         case 2: 
-            prm.put("precond.coarsening.type",  amgcl::runtime::coarsening::ruge_stuben);
+            prm.put("precond.class", amgcl::runtime::precond_class::relaxation);
             break;
         case 3: 
-            prm.put("precond.coarsening.type",  amgcl::runtime::coarsening::aggregation);
+            prm.put("precond.class", amgcl::runtime::precond_class::dummy);
             break;
-        case 4: 
-            prm.put("precond.coarsening.type",  amgcl::runtime::coarsening::smoothed_aggr_emin);
-            break;
-        default : mexErrMsgTxt("Unknown coarsen_id."); 
+        default : mexErrMsgTxt("Unknown precond_id."); 
     }
-    /* Select relaxation strategy */
-    switch(relax_id) {
-        case 1: 
-            prm.put("precond.relax.type",  amgcl::runtime::relaxation::spai0);
-            break;
-        case 2: 
-            prm.put("precond.relax.type",  amgcl::runtime::relaxation::gauss_seidel);
-            break;
-        case 3: 
-            prm.put("precond.relax.type",  amgcl::runtime::relaxation::ilu0);
-            break;
-        case 4: 
-            prm.put("precond.relax.type",  amgcl::runtime::relaxation::iluk);
-            break;
-        case 5: 
-            prm.put("precond.relax.type",  amgcl::runtime::relaxation::ilut);
-            break;
-        case 6: 
-            prm.put("precond.relax.type",  amgcl::runtime::relaxation::damped_jacobi);
-            break;
-        case 7: 
-            prm.put("precond.relax.type",  amgcl::runtime::relaxation::spai1);
-            break;
-        case 8: 
-            prm.put("precond.relax.type",  amgcl::runtime::relaxation::chebyshev);
-            break;
-        default : mexErrMsgTxt("Unknown relax_id."); 
+    /* AMG specific options */
+    if(precond_id == 1){
+        /* Select coarsening strategy */
+        switch(coarsen_id) {
+            case 1: 
+                prm.put("precond.coarsening.type",  amgcl::runtime::coarsening::smoothed_aggregation);
+                break;
+            case 2: 
+                prm.put("precond.coarsening.type",  amgcl::runtime::coarsening::ruge_stuben);
+                break;
+            case 3: 
+                prm.put("precond.coarsening.type",  amgcl::runtime::coarsening::aggregation);
+                break;
+            case 4: 
+                prm.put("precond.coarsening.type",  amgcl::runtime::coarsening::smoothed_aggr_emin);
+                break;
+            default : mexErrMsgTxt("Unknown coarsen_id."); 
+        }
+        /* Select relaxation strategy */
+        switch(relax_id) {
+            case 1: 
+                prm.put("precond.relax.type",  amgcl::runtime::relaxation::spai0);
+                break;
+            case 2: 
+                prm.put("precond.relax.type",  amgcl::runtime::relaxation::gauss_seidel);
+                break;
+            case 3: 
+                prm.put("precond.relax.type",  amgcl::runtime::relaxation::ilu0);
+                break;
+            case 4: 
+                prm.put("precond.relax.type",  amgcl::runtime::relaxation::iluk);
+                break;
+            case 5: 
+                prm.put("precond.relax.type",  amgcl::runtime::relaxation::ilut);
+                break;
+            case 6: 
+                prm.put("precond.relax.type",  amgcl::runtime::relaxation::damped_jacobi);
+                break;
+            case 7: 
+                prm.put("precond.relax.type",  amgcl::runtime::relaxation::spai1);
+                break;
+            case 8: 
+                prm.put("precond.relax.type",  amgcl::runtime::relaxation::chebyshev);
+                break;
+            default : mexErrMsgTxt("Unknown relax_id."); 
+        }
     }
     /* Select solver */
     switch(solver_id) {
@@ -149,7 +169,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     // TODO: Expose more parameters through generic cell-array style interface?
     
     amgcl::make_solver<
-        amgcl::runtime::amg<Backend>,
+        amgcl::runtime::preconditioner<Backend>,
         amgcl::runtime::iterative_solver<Backend>
     > solve(amgcl::adapter::zero_copy(n, &cols[0], &rows[0], &entries[0]), prm);
     

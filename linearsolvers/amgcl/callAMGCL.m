@@ -1,10 +1,21 @@
 function x = callAMGCL(A, b, varargin)
     opt = struct('coarsening',   'smoothed_aggregation', ...
+                 'preconditioner', 'amg', ...
                  'relaxation',   'spai0', ....
                  'solver',       'bicgstab',...
                  'maxIterations', 0, ...
                  'tolerance',     1e-6);
     opt = merge_options(opt, varargin{:});
+    switch(opt.preconditioner)
+        case 'amg'
+            precond = 1;
+        case 'relaxation'
+            precond = 2;
+        case 'dummy'
+            precond = 3;
+        otherwise
+            error('Unknown preconditioner option.')
+    end
     
     switch(opt.coarsening)
         case 'smoothed_aggregation'
@@ -59,5 +70,5 @@ function x = callAMGCL(A, b, varargin)
             error('Unknown solver option.')
     end
     % Note the transpose...
-    x = amgcl_matlab(A', b, 1e-6, opt.maxIterations, coarse, relax, solver);
+    x = amgcl_matlab(A', b, 1e-6, opt.maxIterations, coarse, relax, solver, precond);
 end

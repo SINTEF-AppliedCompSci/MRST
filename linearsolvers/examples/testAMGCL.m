@@ -32,12 +32,20 @@ catch
     t_agmg = nan;
 end
 
-%%
+%% Call AMG version
 tic();
-x = callAMGCL(A, b);
-t_amgcl = toc();
-
+x = callAMGCL(A, b, 'coarsening', 'smoothed_aggregation',...
+                    'relaxation', 'spai0', ...
+                    'preconditioner', 'amg');
+t_amg = toc();
 %%
-bar([t_amgcl, t_agmg])
-set(gca, 'XTicklabel', {'AMGCL', 'AGMG'});
+
+tic();
+x = callAMGCL(A, b, 'relaxation', 'ilu0',...
+                    'preconditioner', 'relaxation');
+t_relax = toc();
+%%
+bar([t_amg, t_relax, t_agmg])
+set(gca, 'XTicklabel', {'AMGCL-amg', 'AMGCL-relax' 'AGMG'});
 ylabel('Solution time [s]');
+%%
