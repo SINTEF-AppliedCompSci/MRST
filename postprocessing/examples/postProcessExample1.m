@@ -38,7 +38,8 @@ verifyModel = CheckConvergenceModel(model);
 [ws2, states2, report2] = simulateScheduleAD(state0, verifyModel, schedule, 'initialGuess', states);
 %% Create and solve tracers
 tmodel = TracerModel(G, rock, fluid, 'tracerNames', {'T1', 'T2', 'T3', 'T4'});
-postModel = PostProcessModel(verifyModel, {tmodel});
+dmodel = DiagnosticsPostProcessModel(G, rock, fluid);
+postModel = PostProcessModel(verifyModel, {tmodel, dmodel});
 [ws3, states3, report3] = simulateScheduleAD(state0, postModel, schedule, 'initialGuess', states);
 %% Plot tracer
 figure; plotToolbar(G, states3, 'field', 'tracer:1')
