@@ -437,7 +437,7 @@ classdef ChemicalModel < PhysicalModel
                 for i = 1 : numel(surfNames);
                     if ~any(strcmpi(surfNames{i}, spnames))
                         groupNames{end+1} = surfNames{i};
-                        masterNames{end+1,1} = surfNames{i};
+                        masterNames{end+1} = surfNames(i);
                     end
                 end
             else
