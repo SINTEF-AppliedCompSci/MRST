@@ -60,7 +60,18 @@ if opt.includeFluxes
                 grdFile = [fn,'.GRID'];
             end
             grd = readEclipseOutputFileUnFmt(grdFile);
-            NNC = [grd.NNC1.values, grd.NNC2.values];
+            if isfield(grd, 'NNC1')
+                NNC = [grd.NNC1.values, grd.NNC2.values];
+            else
+                % check if NNC is given in INIT-file
+                initFile = [fn,'.INIT'];
+                init  = readEclipseOutputFileUnFmt(initFile);
+                if isfield(init, 'NNC1')
+                    NNC = [init.NNC1.values, init.NNC2.values];
+                else
+                    error('NNC fluxes given in restart, but indices for NNC cells neither found in GRID or INIT files')
+                end
+            end 
         end
         ix = eclFaceToFace(G, NNC, 'neighbors', opt.neighbors);
     end    
