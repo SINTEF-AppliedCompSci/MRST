@@ -1,4 +1,4 @@
-function states = convertRestartToStates(fn, G, varargin)
+function [states, rstrt] = convertRestartToStates(fn, G, varargin)
 % states = convertRestartToStates(fn, G, varargin)
 % Produce MRST-compatible states from eclipse restart (and maybe summary) data
 % given by prefix fn. 
