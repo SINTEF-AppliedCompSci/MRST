@@ -56,5 +56,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    i = boxIndices;
 
-   sect.(fld)(i) = readVector(fid, kw, numel(i));
+   values = readVector(fid, kw, numel(i));
+
+   if numel(values) == numel(i)
+      sect.(fld)(i) = values;
+   else
+      % assume values which are not field are defaulted
+      ind = i(1:numel(values));
+      sect.(fld)(ind) = values;
+   end
 end
