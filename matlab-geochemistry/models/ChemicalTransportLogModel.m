@@ -53,20 +53,20 @@ classdef ChemicalTransportLogModel < WaterModel
                                                         drivingForces, ...
                                                         varargin)
 
-            [pVars, pressure, logComponents, logMasterComponents, combinations,...
+            [pVars, pressure, logComponents, logMasterComponents, combinationComponents,...
                    logSaturationIndicies, logPartialPressures,...
                    logSurfaceAcitivityCoefficients] = prepStateForEquations(model, state);
                
             components = cellfun(@(x) exp(x), logComponents, 'UniformOutput',false);
             masterComponentss = cellfun(@(x) exp(x), logMasterComponents, 'UniformOutput',false);
 
-            [chem_eqs, chem_names, chem_types] = equationsChemicalLog(model.chemicalModel, state, logComponents, logMasterComponents, combinations, ...
+            [chem_eqs, chem_names, chem_types] = equationsChemicalLog(model.chemicalModel, state, logComponents, logMasterComponents, combinationComponents, ...
                                                        logPartialPressures, logSaturationIndicies,logSurfaceAcitivityCoefficients);
 
 
             [tr_eqs, tr_names, tr_types] = equationsTransportComponents(state0, ...
                                                               pressure, masterComponentss, ...
-                                                              components,logFluidVolumeFraction,...
+                                                              components,...
                                                               state, model, ...
                                                               dt, ...
                                                               drivingForces);
@@ -78,7 +78,7 @@ classdef ChemicalTransportLogModel < WaterModel
 
         end
 
-        function [variableNames, pressure, logComponents, logMasterComponents, combinations,...
+        function [variableNames, pressure, logComponents, logMasterComponents, combinationComponents,...
                    logSaturationIndicies, logPartialPressures,...
                    logSurfaceActivityCoefficients] = prepStateForEquations(model, state);
             
@@ -92,7 +92,7 @@ classdef ChemicalTransportLogModel < WaterModel
             logSurfActNames = chemModel.logSurfaceActivityCoefficientNames;
             
             
-            variableNames = ['pressure', logComponentNames, logMasterComponentNames, logGasNames, logSolidNames, 'logFluidVolumeFraction', logSurfActNames];
+            variableNames = ['pressure', logComponentNames, logMasterComponentNames, logGasNames, logSolidNames, logSurfActNames];
             variableValues = cell(1, numel(variableNames));
             variableValues{1} = model.getProps(state, 'pressure');
             [variableValues{2:end}] = chemModel.getProps(state, variableNames{2:end});
@@ -103,12 +103,12 @@ classdef ChemicalTransportLogModel < WaterModel
             logMasterComponents  = cell(1, numel(logMasterComponentNames));
             logPartialPressures     = cell(1, numel(logGasNames));
             logSaturationIndicies   = cell(1, numel(logSolidNames));
-            combinations   = cell(1, numel(combinationNames));
+            combinationComponents   = cell(1, numel(combinationNames));
             logSurfaceActivityCoefficients = cell(1, numel(logSurfActNames));
             
             for i = 1 : numel(combinationNames)
                 ind = strcmpi(combinationNames{i}, variableNames);
-                combinations{i} = variableValues{ind};
+                combinationComponents{i} = variableValues{ind};
             end
 
             for i = 1 : numel(logComponentNames)
@@ -141,10 +141,7 @@ classdef ChemicalTransportLogModel < WaterModel
                 logSurfaceActivityCoefficients{i} = variableValues{ind};
             end
             
-            
-            ind = strcmpi('logFluidVolumeFraction', variableNames);
-            logFluidVolumeFraction = variableValues{ind};
-            
+           
             ind = strcmpi('pressure', variableNames);
             pressure = variableValues{ind};
       
@@ -212,21 +209,7 @@ classdef ChemicalTransportLogModel < WaterModel
                                                           dt, drivingForces) %#ok
             [state, report] = updateAfterConvergence@WaterModel(model, state0, ...
                                                               state, dt, drivingForces);
-           
-            stepPoro = [state.fluidVolumeFraction state.solidVolumeFractions];
-            
-            h = findobj('tag', 'convergedPorofig');
-            if isempty(h)
-                figure
-                set(gcf, 'tag', 'convergedPorofig');
-                h = findobj('tag', 'convergedPorofig');
-            end
-            set(0, 'currentfigure', h)
-            clf
-            plot(log(stepPoro));
-            title('porosities - converged');
-            legend(['porosity' model.chemicalModel.solidNames]);
-            
+                                  
             
             h = findobj('tag', 'convergedfig');
             if isempty(h)
@@ -236,7 +219,7 @@ classdef ChemicalTransportLogModel < WaterModel
             end
             set(0, 'currentfigure', h)
             clf
-            plot(log10(state.components*litre/mol));
+            plot(log10(state.species*litre/mol));
             title('components - converged');
             legend(model.chemicalModel.speciesNames);
 
@@ -248,7 +231,7 @@ classdef ChemicalTransportLogModel < WaterModel
             end
             set(0, 'currentfigure', h)
             clf
-            plot(log10(state.masterComponents*litre/mol));
+            plot(log10(state.elements*litre/mol));
             title('master components - converged');
             legend(model.chemicalModel.elementNames);
             drawnow;
