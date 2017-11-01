@@ -156,6 +156,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             data      = readDefaultedKW(fid, tmpl, 'NRec', nrec);
             prp.(kw)  = to_double(data);  clear tmpl nrec
 
+         case 'SPECHEAT',
+            prp.(kw) = readRelPermTable(fid, kw, ntsfun, 4);
+
+         case 'SPECROCK',
+            prp.(kw) = readRelPermTable(fid, kw, ntsfun, 2);
+
          case 'ROCKTAB'
             % Number of columns is 5 if RKTRMDIR is specified, 3 otherwise.
             ncol     = 3 + 2*isfield(prp, 'RKTRMDIR');

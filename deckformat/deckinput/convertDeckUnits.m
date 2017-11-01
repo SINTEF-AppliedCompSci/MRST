@@ -106,7 +106,10 @@ function u = unit_system(rspec)
                  'gasvol_s'    , meter^3             , ... % Gas vol    , surf
                  'gasvol_r'    , meter^3             , ... % Gas vol    , res
                  'volume'      , meter^3             , ... % Geometric vol
-                 'trans'       , centi*poise * meter^3 / (day * barsa));
+                 'trans'       , centi*poise * meter^3 / (day * barsa), ...
+                 'rockcond'    , kilo*joule / (meter*day*Kelvin),       ...
+                 'volumheatcapacity', kilo*joule / (meter^3*Kelvin),    ...
+                 'massheatcapacity' , kilo*joule / (kilogram*Kelvin));
 
    elseif field
       u = struct('length'      , ft          , ...
@@ -128,7 +131,10 @@ function u = unit_system(rspec)
                  'gasvol_s'    , 1000 * ft^3 , ... % Mscf
                  'gasvol_r'    , stb         , ...
                  'volume'      , ft^3        , ... % Geometric vol
-                 'trans'       , centi*poise * stb / (day * psia));
+                 'trans'       , centi*poise * stb / (day * psia), ...
+                 'rockcond'    , btu / (ft*day*Rankine),           ...
+                 'volumheatcapacity', btu / (ft^3*Rankine),        ...
+                 'massheatcapacity' , btu / (pound*Rankine));
 
    elseif lab,
       u = struct('length'      , centi*meter           , ...
@@ -150,7 +156,10 @@ function u = unit_system(rspec)
                  'gasvol_s'    , (centi*meter)^3       , ...
                  'gasvol_r'    , (centi*meter)^3       , ...
                  'volume'      , (centi*meter)^3       , ... % Geometric vol
-                 'trans'       , centi*poise * (centi*meter)^3 / (hour * atm));
+                 'trans'       , centi*poise * (centi*meter)^3 / (hour * atm), ...
+                 'rockcond'    , joule / (centi*meter*hour*Kelvin),            ...
+                 'volumheatcapacity', joule / ((centi*meter)^3*Kelvin),        ...
+                 'massheatcapacity' , joule / (gram*Kelvin));
 
    elseif pvt_m
       u = struct('length'      , meter               , ...
@@ -171,7 +180,10 @@ function u = unit_system(rspec)
                  'gasvol_s'    , meter^3             , ...
                  'gasvol_r'    , meter^3             , ...
                  'volume'      , meter^3             , ... % Geometric vol
-                 'trans'       , centi*poise * meter^3 / (day * atm));
+                 'trans'       , centi*poise * meter^3 / (day * atm), ...
+                 'rockcond'    , kilo*joule / (meter*day*Kelvin),     ...
+                 'volumheatcapacity', kilo*joule / (meter^3*Kelvin),  ...
+                 'massheatcapacity' , kilo*joule / (kilogram*Kelvin));
 
    else
       % SI units.  MRST extension.  Idempotency.
@@ -191,7 +203,10 @@ function u = unit_system(rspec)
                  'liqvol_r'    , 1, ...
                  'gasvol_s'    , 1, ...
                  'gasvol_r'    , 1, ...
-                 'trans'       , 1);
+                 'trans'       , 1, ...
+                 'rockcond'    , 1, ...
+                 'volumheatcapacity', 1, ...
+                 'massheatcapacity' , 1);
    end
 end
 
@@ -228,6 +243,7 @@ function grid = convertGRID(grid, u)
 
          case 'MAPAXES',
             unt = u.length;
+
             if isfield(grid, 'MAPUNITS'),
                switch grid.MAPUNITS,
                   case 'METRES', unt = meter;
@@ -238,6 +254,7 @@ function grid = convertGRID(grid, u)
                              grid.MAPUNITS);
                end
             end
+
             grid.(key) = convertFrom(grid.(key), unt);
 
          case 'MAPUNITS',
@@ -252,15 +269,18 @@ function grid = convertGRID(grid, u)
          case {'TRANX', 'TRANY', 'TRANZ'},
             grid.(key) = convertFrom(grid.(key), u.trans);
 
+         case {'THCONR'}
+            grid.(key) = convertFrom(grid.(key), u.rockcond);
+
          case 'PINCH',
             i    = [1, 3];
             data = convertFrom([ grid.(key){i} ], u.length);
 
             grid.(key)(i) = num2cell(data);   clear i data
-            
+
          case {'SIGMAV', 'SIGMA'},
               grid.(key) = convertFrom(grid.(key), u.invarea);
-              
+
          case {'DZMTRXV', 'DZMTRX'},
               grid.(key) = convertFrom(grid.(key), u.length);
 
@@ -320,6 +340,30 @@ function props = convertPROPS(props, u)
 
          case 'SURFVISC',
             unt         = [u.concentr, u.viscosity];
+            for t = 1 : numel(props.(key)),
+                props.(key){t} = convertFrom(props.(key){t}, unt);
+            end
+
+        case {'SPECHEAT'},
+            unt         = [u.temp, repmat(u.massheatcapacity,1,3)];
+            for t = 1 : numel(props.(key)),
+                props.(key){t} = convertFrom(props.(key){t}, unt);
+            end
+
+         case {'VISCREF'}
+             unt         = [u.press, u.gasvol_s/u.liqvol_s];
+            for t = 1 : numel(props.(key)),
+                props.(key){t} = convertFrom(props.(key){t}, unt);
+            end
+
+         case {'OILVISCT', 'WATERVICT'},
+            unt         = [u.temp, u.viscosity];
+            for t = 1 : numel(props.(key)),
+                props.(key){t} = convertFrom(props.(key){t}, unt);
+            end
+
+        case {'SPECROCK'} ,
+            unt         = [u.temp, u.volumheatcapacity];
             for t = 1 : numel(props.(key)),
                 props.(key){t} = convertFrom(props.(key){t}, unt);
             end
@@ -433,7 +477,7 @@ function props = convertPROPS(props, u)
          case 'TCRIT',
             unt         = u.temp;
             props.(key) = convertFrom(props.(key), unt);
- 
+
          case 'VCRIT',
             unt         = u.density / (u.mass*u.mol);
             props.(key) = convertFrom(props.(key), unt);
@@ -665,6 +709,11 @@ function ctrl = convertControl(ctrl, u)
          case 'GRUPNET',
             if ~isempty(ctrl.(key)),
                ctrl.(key) = convertGrupNet(ctrl.(key), u);
+            end
+
+         case 'WTEMP',
+            if ~isempty(ctrl.(key)),
+               ctrl.(key) = convertWTemp(ctrl.(key), u);
             end
 
          case 'DRSDT',
