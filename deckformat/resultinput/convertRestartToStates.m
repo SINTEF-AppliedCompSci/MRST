@@ -1,23 +1,27 @@
 function [states, rstrt] = convertRestartToStates(fn, G, varargin)
 % states = convertRestartToStates(fn, G, varargin)
 % Produce MRST-compatible states from eclipse restart (and maybe summary) data
-% given by prefix fn. 
+% given by prefix fn.
 % Optional input:
 %         'additionalFields'    : not yet supported
-%         'includeWellSols'     : (true)  
-%         'includeFluxes'       : (true) include wellSols if corresponding 
-%                                 fields are present in restart 
-%         'neighbors',          : ([]) use if other than G.faces.neighbors 
+%         'includeWellSols'     : (true)
+%         'includeFluxes'       : (true) include wellSols if corresponding
+%                                 fields are present in restart
+%         'neighbors',          : ([]) use if other than G.faces.neighbors
 %         'wellSolsFromRestart' : (true) read from restart rather than
 %                                  summary
 %         'consistentWellSols'  : (false) loop through to make number of
-%                                 wells and perforations uniform 
-%         
-%         'steps',              : ([]) restart step numbers to read (1:n), if 
-%                                 empty, read all. should be used with 
-%                                 non-unified ouput. NOTE: Step number may 
-%                                 not correspond to file extension.   
+%                                 wells and perforations uniform
 %
+%         'steps',              : ([]) restart step numbers to read (1:n), if
+%                                 empty, read all. should be used with
+%                                 non-unified ouput. NOTE: Step number may
+%                                 not correspond to file extension.
+
+%{
+#COPYRIGHT#
+%}
+
 opt     = struct('additionalFields',    {{}}, ...
                  'includeWellSols',     true, ...
                  'includeFluxes',       true, ...
@@ -31,7 +35,7 @@ opt     = struct('additionalFields',    {{}}, ...
                  'removeClosedWells',   true, ...
                  'removeCrossflow',     true, ...
                  'setToClosedTol',      0*meter^3/day,...
-                 'use_opm',false);                  
+                 'use_opm',false);
 opt     = merge_options(opt, varargin{:});
 
 N    = opt.neighbors;
@@ -49,44 +53,73 @@ if(~opt.use_opm)
 else
     % hack to do do reading from OPM which do not have RSTR
     out = [fn,'.UNRST'];
-    opm=readEclipseOutputFileUnFmt(out);
-    ns=numel(opm.SEQNUM.values);
+    opm = readEclipseOutputFileUnFmt(out);
+    ns  = numel(opm.SEQNUM.values);
+
     %{
-    fnames={'SEQNUM',...
-        'INTEHEAD',...
-        'LOGIHEAD',...
-        'DOUBHEAD',...
-        'IWEL',...
-        'SWEL',...
-        'XWEL',...
-        'ZWEL',...
-        'ICON',...
-        'SCON',...
-        'XCON',...
-        'PRESSURE',...
-        'SWAT',...
-        'SGAS',...
-        'RS',...
-        'RV'}
+    fnames = {'SEQNUM'  , ...
+              'INTEHEAD', ...
+              'LOGIHEAD', ...
+              'DOUBHEAD', ...
+              'IWEL'    , ...
+              'SWEL'    , ...
+              'XWEL'    , ...
+              'ZWEL'    , ...
+              'ICON'    , ...
+              'SCON'    , ...
+              'XCON'    , ...
+              'PRESSURE', ...
+              'SWAT'    , ...
+              'SGAS'    , ...
+              'RS'      , ...
+              'RV' };
     %}
-    warning('Using opm restrat files some wll infor is not pressent')
-    opt.wellSolsFromRestart=false;
-    opt.includeWellSols=false;
-    opt.consistentWellSols=false;
+
+    %{
+    fnames = {'INTEHEAD', ...
+              'LOGIHEAD', ...
+              'DOUBHEAD', ...
+              'IWEL'    , ...
+              'SWEL'    , ...
+              'XWEL'    , ...
+              'ZWEL'    , ...
+              'ICON'    , ...
+              'SCON'    , ...
+              'XCON'    , ...
+              'PRESSURE', ...
+              'SWAT'    , ...
+              'SGAS'    , ...
+              'RS'      , ...
+              'RV' };
+    %}
+
+    warning('Using OPM restart files some will infor is not pressent')
+
+    %opt.wellSolsFromRestart=false;
+    %opt.includeWellSols=false;
+    %opt.consistentWellSols=false;
     opt.addTrajectory=false;
-    
-    fnames=fields(opm);
-    opm_s=[];
-    for i=1:numel(fnames)
-        if(~(strcmp(opm.(fnames{i}).type,'MESS')))
-            tmp= reshape(opm.(fnames{i}).values,[],ns);
-            nsl=numel(opt.steps);
-            tmp=tmp(:,opt.steps);
-            tmpc=mat2cell(tmp,repmat(size(tmp,1),1,nsl),ones(1,nsl));
-            opm_s.(fnames{i})=reshape(tmpc,[],1);
+
+    fnames = fieldnams(opm);
+    opm_s  = [];
+
+    for i = 1 : numel(fnames)
+        if ~strcmp(opm.(fnames{i}).type, 'MESS')
+            tmp = reshape(opm.(fnames{i}).values,[],ns);
+
+            if isempty(opt.steps)
+                opt.steps=1:ns;
+            end
+
+            nsl = numel(opt.steps);
+            tmp = tmp(:,opt.steps);
+
+            tmpc = mat2cell(tmp, size(tmp,1), ones([1, nsl]));
+            opm_s.(fnames{i}) = reshape(tmpc,[],1);
         end
     end
-    rstrt=opm_s;
+
+    rstrt = opm_s;
 end
 
 [opt, phn, unit, tr, na] = checkAndProcessInput(fn, rstrt, opt);
@@ -116,10 +149,10 @@ if opt.includeFluxes
                 else
                     error('NNC fluxes given in restart, but indices for NNC cells neither found in GRID or INIT files')
                 end
-            end 
+            end
         end
         ix = eclFaceToFace(G, NNC, 'neighbors', opt.neighbors);
-    end    
+    end
     % Get all reservoir flux fieldnames in rstrt
     fluxNms = getResFluxNms(phn);
 end
@@ -137,15 +170,19 @@ if opt.includeWellSols
     end
 end
 
-% Set up default states     
-states = repmat({struct('pressure', zeros(na, 1), 's', zeros(na, numel(phn)), ...
-                 'flux', [], 'wellSol', [], 'time', '-1', 'date', [])}, [numel(tr), 1]);
+% Set up default states
+states = repmat({struct('pressure', zeros(na, 1),   ...
+                        's', zeros(na, numel(phn)), ...
+                        'flux', [], 'wellSol', [],  ...
+                        'time', '-1', 'date', [])}, [numel(tr), 1]);
 
 % Setup saturation names for current config
 satnms = cellfun(@(x)['S',x], phn, 'UniformOutput', false);
 satix  = isfield(rstrt, satnms); % occuring fields
+
 % If not all saturation fields are present, assert only one is missing
 assert(nnz(~satix)<=1, 'Saturation output found for less than nPh-1 phases');
+
 for k = 1:numel(tr)
     % pressure
     p = rstrt.PRESSURE{k};
@@ -159,30 +196,30 @@ for k = 1:numel(tr)
     end
     % time
     states{k}.time = convertFrom(tr(k), unit.t);
-    
+
     % date
     states{k}.date = rstrt.INTEHEAD{k}(65:67)';
-    
+
     % rs/rv
     if isfield(rstrt, 'RS')
         states{k}.rs = convertFrom(rstrt.RS{k}, unit.qg/unit.ql);
     end
-    
+
     if isfield(rstrt, 'RV')
         states{k}.rv = convertFrom(rstrt.RV{k}, unit.ql/unit.qg);
     end
-    
+
     % polymer stuff
     if isfield(rstrt, 'POLYMER')
         states{k}.c = rstrt.POLYMER{k};
     end
-    
+
     if isfield(rstrt, 'PADS')
         states{k}.ads = rstrt.PADS{k};
     end
-        
-    
-    
+
+
+
     % fluxes
     if opt.includeFluxes
         f = zeros(size(N,1), numel(phn));
@@ -206,7 +243,7 @@ for k = 1:numel(tr)
         end
         states{k}.flux = convertFrom(f, unit.qr);
     end
-    
+
     % wellSols
     if opt.includeWellSols
         if opt.wellSolsFromRestart
@@ -217,10 +254,11 @@ for k = 1:numel(tr)
             %end
         else
             states{k}.wellSol = wellSols{k};
-        end 
+        end
     end
 end
 % check for eMap-field, and if present, reduce data
+
 if isfield(G.cells, 'eMap')
     fns = {'pressure', 's'};
     for k1 = 1:numel(states)
@@ -228,24 +266,24 @@ if isfield(G.cells, 'eMap')
             fn = fns{k2};
             states{k1}.(fn) = states{k1}.(fn)(G.cells.eMap, :);
         end
-    end 
+    end
 end
-% make consistent wellSols 
+
+% make consistent wellSols
 if opt.consistentWellSols
     states = makeWellSolsConsistent(states);
     % handle closing of wells and crossflow
     states = processWellStates(states, opt);
 end
-             
-             
+
 % if opt.addTrajectory
 %     for k = 1:numel(states)
 %         states{k}.wellSol = addTrajectories(states{k}.wellSol, G, 10);
 %     end
 % end
 
-% Compute cell frac-flows as avg over cell influx + outflux and incorrectly 
-% "mob".  
+% Compute cell frac-flows as avg over cell influx + outflux and incorrectly
+% "mob".
 if opt.includeMobilities
     ie = ~any(N==0,2);
     n  = double(N(ie,:));
@@ -267,7 +305,8 @@ if opt.includeMobilities
 end
 end
 
-%% ------------------------------------------------------------------------
+%--------------------------------------------------------------------------
+
 function u = getUnits(unit)
 switch unit
     case 'metric'
@@ -275,7 +314,7 @@ switch unit
         u.p   = barsa;
         u.ql  = meter^3/day;
         u.qg  = meter^3/day;
-        u.qr  = meter^3/day; 
+        u.qr  = meter^3/day;
         u.t   = day;
     case 'field'
         u.p  = psia;
@@ -288,30 +327,33 @@ switch unit
 end
 end
 
-%% ------------------------------------------------------------------------
+%--------------------------------------------------------------------------
+
 function fluxNms = getResFluxNms(phns)
 nph  = numel(phns);
 fluxNms = repmat( struct('I', '', 'J', '', 'K', '', 'N', ''), [nph, 1] );
 for phi = 1:nph
-    fluxNms(phi).I = fixVarName( ['FLR', phns{phi}, 'I+'] ); 
+    fluxNms(phi).I = fixVarName( ['FLR', phns{phi}, 'I+'] );
     fluxNms(phi).J = fixVarName( ['FLR', phns{phi}, 'J+'] );
     fluxNms(phi).K = fixVarName( ['FLR', phns{phi}, 'K+'] );
-    fluxNms(phi).N = fixVarName( ['FLR', phns{phi}, 'N+'] ); 
+    fluxNms(phi).N = fixVarName( ['FLR', phns{phi}, 'N+'] );
 end
 end
-%% ------------------------------------------------------------------------
+
+%--------------------------------------------------------------------------
+
 function [opt, phn, unit, tr, na] = checkAndProcessInput(fn, rstrt, opt)
 % Get first non-empty intehead-data for general info
 ix = find(cellfun(@isempty, rstrt.INTEHEAD)==false, 1);
 ih = rstrt.INTEHEAD{ix};
 
 % number active gridcells
-na  = ih(12); 
+na  = ih(12);
 
 % Units:
 un  = {'metric', 'field', 'lab'};
 ii  = ih(3);
-if ~any(ii == 1:3) 
+if ~any(ii == 1:3)
     warning('Unknown unit indicator %d, assuming metric', ii);
     ii = 1;
 end
@@ -320,12 +362,12 @@ unit = getUnits(un);
 
 % Valid phase-configurations (w,o,g):
 Mp = logical([0 1 0; 1 0 0; 1 1 0; 0 0 1; 1 0 1; 0 1 1; 1 1 1]);
-ii = ih(15); 
+ii = ih(15);
 if ~any(ii == 1:7)
     warning('Unknown phase indicator %d, assuming three-phase', ii);
     ii = 7;
 end
-phns = {'WAT', 'OIL', 'GAS'};    % phase names 
+phns = {'WAT', 'OIL', 'GAS'};    % phase names
 phn  = phns(logical(Mp(ii,:)));  % current phase names
 
 % Get times
@@ -385,7 +427,9 @@ if ~isempty(opt.additionalFields)
     warning('Including addtional fields is not yet implemented')
 end
 end
-%% ------------------------------------------------------------------------
+
+%--------------------------------------------------------------------------
+
 function ii = ms2rs(tm, tr)
 % assumes numel(tm) >= numel(tr) and that tr is 'almost' subset of tm
 % set threshold to 1/10 of smallest time-step
@@ -404,6 +448,7 @@ if max(abs(tr-tm(ii))) > thr
 end
 end
 
+%--------------------------------------------------------------------------
 
 function    states = processWellStates(states, opt)
 nw = numel(states{1}.wellSol);
@@ -433,7 +478,6 @@ if opt.removeClosedWells
 end
 end
 
-
 %--------------------------------------------------------------------------
 
 function name = fixVarName(name)
@@ -442,6 +486,3 @@ function name = fixVarName(name)
         name = genvarname(regexprep(name, '\W', '_'));
     end
 end
-
-
-
