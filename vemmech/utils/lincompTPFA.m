@@ -129,7 +129,7 @@ function state = lincompTPFA(dt, state, G, T, pv, fluid, rock, varargin)
 %   initWellSol.
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -327,6 +327,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    nv=size(A,2);  
    state0=state;
    %pv=poreVolume(G,rock);
+   if ~isfield(rock, 'cr')
+       rock.cr = 0;
+   end
+   
+   if ~isfield(fluid, 'cf')
+       fluid.cf = 0;
+   end
    cr=(rock.cr+fluid.cf);
    ct=cr.*pv/dt;
    rhs_c=ct.*state0.pressure;

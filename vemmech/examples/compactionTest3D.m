@@ -34,9 +34,14 @@ opt.gtol         = 0.1e-1; % Grid tolerance parameter (used when calling
                            % processGRDECL, see documentation there)
 opt.ref          = 10;     % Refinement parameter, only used for Norne
 opt.flipgrid     = false;  % Rotate the grid (z->x, x->y, y->z) (see paper [Andersen et al: http://arxiv.org/abs/1606.09508v1])
-
-grid_case_number = input(['Choose a grid (type corresponding number): box [1], ' ...
-                    'sbed [2], Norne [3]\n']);
+if isempty(mfilename)
+    % Running example interactively
+    grid_case_number = input(['Choose a grid (type corresponding number): box [1], ' ...
+                              'sbed [2], Norne [3]\n']);
+else
+    % Running example as a function
+    grid_case_number = 1;
+end
 switch grid_case_number
   case 1
     grid_case = 'box';

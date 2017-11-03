@@ -135,7 +135,7 @@ rock = struct('perm', reshape(perm, [], 1),     ...
               'poro', 0.1*ones(G.cells.num, 1), ...
               'alpha', ones(G.cells.num, 1)); % Rock parameters
 fluid = initSingleFluid('mu', 1*centi*poise, 'rho', 1000); % Fluid parameters
-fluid.cr = 1e-4/barsa; % Fluid compressibility
+rock.cr = 1e-4/barsa; % Fluid compressibility
 T = computeTrans(G, rock); % Compute the transmissibilities
 pv = poreVolume(G, rock); % Compute the pore volume
 pressure = 100*barsa*ones(G.cells.num, 1); % Initial pressure
@@ -153,7 +153,7 @@ fbc = addFluidContribMechVEM(G, bc_f, rock, isdirdofs);
 % Use a TPFA solver for weakly compressible flow. From the output we
 % retrieve the operators for the fluid.
 dt = day; % time step.
-state = lincompTPFA(dt, state, G, T, pv, fluid, 'MatrixOutput', true, 'wells', W, 'bc', bc_f);
+state = lincompTPFA(dt, state, G, T, pv, fluid, rock, 'MatrixOutput', true, 'wells', W, 'bc', bc_f);
 
 Af    = state.A;   % Global matrix for the flow solver
 orhsf = state.rhs; % Right-hand side for the flow equations (includes well)

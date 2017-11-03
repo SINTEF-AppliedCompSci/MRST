@@ -1,17 +1,13 @@
 % GRID_UTILS
 %
 % Files
-%   createAugmentedGrid - Extend grid with mappings needed for the virtual element solver
-%   createGridMappings  - Add preliminary mappings to be used in createAugmentedGrid
 %   flipGrid            - Flip a grid (z->x, x->y, y->z)
 %   full_grid_structure - Extended grid structure used in the vemmech module
 %   padGrdecl           - Add padding to corner-point grid so it is embedded in a box
-%   refineGrdeclLayers  - Refine a GRDECL structure in the vertical direction
-%   sortEdges           - Sort edges in G.faces.edges counter-clockwise to face orientation
 %   verticalGrdecl      - Transform GRDECL pillars into vertical pillars
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

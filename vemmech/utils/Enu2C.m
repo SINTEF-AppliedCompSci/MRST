@@ -51,25 +51,26 @@ function [C, invC, invCi] = Enu2C(E, nus, G)
    if(G.griddim == 2)
       z = zeros(numel(nus), 1);
       o = ones(numel(nus), 1);
-      C = [reshape([1 - nus, nus    , z          ]', [], 1), ...
-           reshape([nus    , 1 - nus, z          ]', [], 1), ...
-           reshape([z      , z      , 1 - 2 * nus]', [], 1) / 2];
+      C = [reshape([1 - nus, nus    , z        ]', [], 1), ...
+           reshape([nus    , 1 - nus, z        ]', [], 1), ...
+           reshape([z      , z      , 1 - 2*nus]', [], 1) / 2];
 
-      invC = [reshape([1 - nus, -nus    , z          ]', [], 1), ...
-              reshape([nus    , 1 - nus, z          ]', [], 1), ...
+      invC = [reshape([1 - nus, -nus, z ]', [], 1), ...
+              reshape([-nus, 1 - nus   , z             ]', [], 1), ...
               reshape([z      , z      , 2*o]', [], 1) ];
 
       id = [1; 1; 0];
+
       invCi = invC*id;
 
       nlin = 3;
-      invfac =  (1 + nus)./E;
 
-      invC   = reshape(invC', nlin * nlin, [])';
-      invC   = bsxfun(@times, invC, invfac);
+      invfac = (1 + nus)./E;
+      invC  = reshape(invC', nlin*nlin, [])';
+      invC = bsxfun(@times, invC, invfac);
 
-      invCi   = reshape(invCi, nlin , [])';
-      invCi   = bsxfun(@times, invCi, invfac);
+      invCi = reshape(invCi, nlin , [])';
+      invCi = bsxfun(@times, invCi, invfac);
 
    else
       assert(G.griddim == 3);
@@ -92,9 +93,10 @@ function [C, invC, invCi] = Enu2C(E, nus, G)
               reshape([zzz, zz                            , 2*(1 + nus)./E  ]', [], 1)];
 
       id = [1; 1; 1; 0; 0; 0];
+
       invCi = invC*id;
-      invCi   = reshape(invCi, nlin , [])';
-      invC   = reshape(invC', nlin * nlin, [])';
+      invCi = reshape(invCi, nlin , [])';
+      invC  = reshape(invC', nlin*nlin, [])';
 
    end
    fac = (E ./ ((1 + nus) .* (1 - 2 * nus)));

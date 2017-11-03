@@ -6,7 +6,7 @@
 %
 % for a Cartesian grid with isotropic, homogeneous permeability and two
 % wells. The problem solved in this example is the same as in the tutorial
-% <simpleWellExample.html "Using Peacemann Well Models">, and a more
+% <incompTutorialWells.html "Using Peacemann Well Models">, and a more
 % detailed description of the model setup is shown there.
 %
 % The main idea of the TPFA method is to approximate the flux v over a face
@@ -160,7 +160,7 @@ displayEndOfDemoMessage(mfilename)
 
 % <html>
 % <p><font size="-1">
-% Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+% Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 % </font></p>
 % <p><font size="-1">
 % This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
