@@ -974,12 +974,12 @@ classdef ChemicalModel < PhysicalModel
             [state, ~, report] = model.compositionReactionModel.solveChemicalState(state);
             
             % solve chemical system
-            fprintf('Solving chemical system...\n')
-            [state, ~, report] = model.chemicalInputModel.solveChemicalState(state);
+                 fprintf('Solving chemical system...\n')
+                [state, ~, report] = model.chemicalInputModel.solveChemicalState(state);
             
-            % see if charge balance should be enforced
+                
             if chargeBalance
-                fprintf('Enforcing strict charge balance...\n');
+                fprintf('Solving the chemical system with strict charge balance...\n');
                 [state, ~] = model.computeChargeBalance(state);
                 if all(abs(state.chargeBalance)<=model.chargeBalanceTolerance)
                     fprintf('System is charge balanced to tolerance of %f%%...\n', model.chargeBalanceTolerance*100);
@@ -987,7 +987,7 @@ classdef ChemicalModel < PhysicalModel
                 end
                 state0 = state;
                 if isempty(model.chargeBalanceModel)
-                    model.chargeBalanceModel = chargeBalanceModel();
+                    model.chargeBalanceModel = chargeBalanceModel_nonLog();
                 end
                 for i = 1 : numel(props);
                     model.chargeBalanceModel.(props{i}) = model.chemicalInputModel.(props{i});
@@ -999,7 +999,7 @@ classdef ChemicalModel < PhysicalModel
                     state = state0;
                     warning('Charge balance not acheived with given inputs, abandoning solution from attempt. Try a different element for charge compensation, or increase salt content.');
                 end
-                
+
             end
             
             
@@ -1169,7 +1169,7 @@ classdef ChemicalModel < PhysicalModel
                 names{i} = regexprep(names{i}, '[-+](\d*([./]\d*)?)*','','ignorecase');
                 for j = 1 : nM
                     ind = I(j);
-                    [match,nomatch] = regexpi(names{i}, '(model\.MCind{\d})','match','split');
+                    [match,nomatch] = regexpi(names{i}, '(model\.MCind{\d*})','match','split');
                     nomatch = strrep(lower(nomatch), lower(model.elementNames{ind}), ['model.MCind{' num2str(ind) '}']);
                     names{i} = strjoin(nomatch,match);
                 end

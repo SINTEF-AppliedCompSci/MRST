@@ -1,10 +1,15 @@
-function [eqs, names, types] = equationsChargeBalance(model, state, logComponents, logMasterComponents, combinationComponents,...
-                 logPartialPressures, logSaturationIndicies, logSurfaceAcitivityCoefficients, CVC)
+function [eqs, names, types] = equationsChargeBalance_nonLog(model, state, components, masterComponents, combinationComponents,...
+                 partialPressures, saturationIndicies, surfaceAcitivityCoefficients, CVC)
+
+     logComponents = cellfun(@(x) log(x), components, 'UniformOutput', false);
+     logMasterComponents = cellfun(@(x) log(x), masterComponents, 'UniformOutput', false);
+     logPartialPressures = cellfun(@(x) log(x), partialPressures, 'UniformOutput', false);
+     logSaturationIndicies = cellfun(@(x) log(x), saturationIndicies, 'UniformOutput', false);
+     logSurfaceAcitivityCoefficients = cellfun(@(x) log(x), surfaceAcitivityCoefficients, 'UniformOutput', false);
 
     [eqs, names, types] = equationsChemicalLog(model, state, logComponents, logMasterComponents, combinationComponents, ...
                                                        logPartialPressures, logSaturationIndicies,logSurfaceAcitivityCoefficients);
 
-    components = cellfun(@(x) exp(x), logComponents, 'UniformOutput', false);
     
     CVCind = strcmpi(model.CVC, model.elementNames)';
 
