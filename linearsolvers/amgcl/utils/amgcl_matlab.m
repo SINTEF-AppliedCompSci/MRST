@@ -9,7 +9,7 @@ function varargout = amgcl_matlab(varargin)
    global AMGCLPATH
    global BOOSTPATH
    
-   CFLAGS = {'CXXFLAGS="$CXXFLAGS', '-std=c++11', '-O3', '-fopenmp"'};
+   CFLAGS = {};
    LDFLAGS = {'LDFLAGS="$LDFLAGS', '-fopenmp"'};
 
    INCLUDE = {['-I', BOOSTPATH], ['-I', AMGCLPATH]};
@@ -48,8 +48,8 @@ function [CXXFLAGS, LINK, LIBS] = setup_machdep_build_params
        mwlib = @(lib) ['-lmw', lib];
 
        CXXFLAGS = ...
-          {'CXXFLAGS="-D_GNU_SOURCE', '-fPIC', '-O3', '-std=c++0x',  ...
-           '-fopenmp"'};
+          {'CXXFLAGS="-D_GNU_SOURCE', '-fPIC', '-O3', '-std=c++11', ...
+           '-ffast-math', '-march=native', '-fopenmp"'};
 
        LINK = { ['-L', fullfile(matlabroot, 'sys', 'os', a)] };
 
