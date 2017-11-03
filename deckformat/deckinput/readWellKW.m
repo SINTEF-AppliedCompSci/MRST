@@ -71,6 +71,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       case 'WELSPECS', w = readWellSpec(fid, w);
       case 'WPOLYMER', w = readWPolymer(fid, w);
       case 'WSURFACT', w = readWSurfact(fid, w);
+      case 'WTEMP'   , w = readWTemp   (fid, w);
       case {'WELTARG', 'WELLTARG'},
          w = readWelTarg(fid, w);
 
@@ -83,6 +84,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       case 'GRUPNET' , w = readGrupNet (fid, w);
       case 'GRUPTREE', w = readGrupTree(fid, w);
       case 'WGRUPCON', w = readWGrupCon(fid, w);
+
 
       % -------------------------------------------------------------------
 
@@ -604,6 +606,19 @@ function w = readWSurfact(fid, w)
    data = toDouble(data, numeric);
 
    w.WSURFACT = appendSpec(w.WSURFACT, data, w.WELSPECS(:,1));
+end
+
+%--------------------------------------------------------------------------
+
+function w = readWTemp(fid, w)
+   %            1         2
+   template = {'Default', '0.0'};
+   numeric  = 2;
+
+   data = readDefaultedKW(fid, template);
+   data = toDouble(data, numeric);
+
+   w.WTEMP = appendSpec(w.WTEMP, data, w.WELSPECS(:,1));
 end
 
 %--------------------------------------------------------------------------

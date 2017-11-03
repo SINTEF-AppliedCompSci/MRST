@@ -84,8 +84,7 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
-   %}
-
+%}
 
    opt = struct('InnerProduct',     'ip_tpf', ...
                 'Verbose',           mrstVerbose(), ...
@@ -96,9 +95,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    if opt.createDefaultWell
       W = createDefaultWell(G, rock);
-      return;
+      return
    end
-
 
    well_id      = enumerateWells(control);
    control      = insertDefaults(control, well_id, G.cartDims(3));
@@ -112,7 +110,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'WCONPROD', @process_wconprod);
 
    post = struct('WPOLYMER', @process_wpolymer, ...
-                 'WSURFACT', @process_wsurfact);
+                 'WSURFACT', @process_wsurfact, ...
+                 'WTEMP',    @process_wtemp);
 
    % ----------------------------------------------------------------------
    % Well processing stages
@@ -121,29 +120,32 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    W = [];
 
-   for stage = reshape(stages, 1, []),
+   for stage = reshape(stages, 1, [])
       fn = reshape(sort(fieldnames(stage{1})), 1, []);
 
-      for kw = fn(isfield(control, fn)),
+      for kw = fn(isfield(control, fn))
          W = stage{1}.(kw{1}) (W, control, G, rock, well_id, p, opt);
       end
    end
 
    if isempty(W)
       W = createDefaultWell(G, rock);
-      return;
+      return
    end
 
    if opt.DepthReorder
       W = reorderWellPerforationsByDepth(W);
    end
-   
-   % for now, connection status can only be true if well status is true  
-   for k = 1:numel(W)
-       W(k).cstatus = and(W(k).status, W(k).cstatus);
-       % if all completions are closed, well must be off
-       W(k).status = and(W(k).status, any(W(k).cstatus));
-   end
+
+   % Close all completions if well inactive (W.status == false).
+   cstat = arrayfun(@(w) w.status & w.cstatus, ...
+                    W, 'UniformOutput', false);
+   [W.cstatus] = cstat{:};
+
+   % Close all wells for which all completions are inactive.
+   stat = arrayfun(@(w) w.status && any(w.cstatus), ...
+                   W, 'UniformOutput', false);
+   [W.status] = stat{:};
 end
 
 %--------------------------------------------------------------------------
@@ -224,8 +226,9 @@ function W = process_wconinje(W, control, G, rock, well_id, p, opt)
         case 'o', compi = [0, 1, 0];  % Oil, 2nd phase
         case 'g', compi = [0, 0, 1];  % Gas, 3rd phase
         otherwise,
-          dispif(opt.Verbose, ['Injection phase ''%s'' is unknown.  ', 'Well ignored.\n'], ...
-                 control.WCONINJE{i,2});
+          dispif(opt.Verbose, ...
+                ['Injection phase ''%s'' is unknown.  ', ...
+                 'Well ignored.\n'], control.WCONINJE{i,2});
           continue
       end
 
@@ -266,9 +269,12 @@ function W = process_wconinjh(W, control, G, rock, well_id, p, opt)
       sizeW = numel(W);
       W = buildWell(W, G, rock, control, well_id(nm), p, type, val, ...
                     compi, opt.InnerProduct, 1);
+
       if numel(W) > sizeW
+         % lims.bhp is \approx 100e3 psia, as for default wconinje.
+
          W(end).lims.rate = control.WCONINJH{i, 4};
-         W(end).lims.bhp  = 6895 * barsa;  % \approx 1e5 psia, as for default wconinj
+         W(end).lims.bhp  = 6895 * barsa;
          W(end).status    = status;
       end
    end
@@ -276,18 +282,20 @@ end
 
 %--------------------------------------------------------------------------
 
-function W = process_wpolymer(W, control, G, rock, well_id, p, opt)
+function W = process_wpolymer(W, control, varargin)
    npoly = size(control.WPOLYMER, 1);
-   if npoly == 0
-       return;
-   end
+
+   if npoly == 0, return, end
+
    if ~isfield(W, 'c')
        [W.c] = deal([]);
    end
+
    for i = 1:numel(W)
        % Add zeros for polymer
        W(i).c = [W(i).c, 0];
    end
+
    for i = 1 : npoly
       for j = 1:size(W,1)
          if strcmp(W(j).name, control.WPOLYMER{i,1})
@@ -301,16 +309,18 @@ end
 
 function W = process_wsurfact(W, control, varargin)
    nsurf = size(control.WSURFACT, 1);
-   if nsurf == 0
-       return;
-   end
+
+   if nsurf == 0, return, end
+
    if ~isfield(W, 'c')
        [W.c] = deal([]);
    end
+
    for i = 1:numel(W)
        % Add zeros for surfactant
        W(i).c = [W(i).c, 0];
    end
+
    if ~isempty(W),
       Wn = { W.name };
 
@@ -319,6 +329,35 @@ function W = process_wsurfact(W, control, varargin)
 
          if ~isempty(j),
             [ W(j).c(end) ] = deal(control.WSURFACT{i,2});
+         end
+      end
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function W = process_wtemp(W, control, varargin)
+   nsurf = size(control.WTEMP, 1);
+
+   if nsurf == 0, return, end
+
+   if ~isfield(W, 'T')
+       [W.T] = deal([]);
+   end
+
+   for i = 1:numel(W)
+       % Add zeros for surfactant
+       W(i).T = [W(i).T, 0];
+   end
+
+   if ~isempty(W),
+      Wn = { W.name };
+
+      for i = 1 : nsurf
+         j = find(strcmp(Wn, control.WTEMP{i,1}));
+
+         if ~isempty(j),
+            [ W(j).T(end) ] = deal(control.WTEMP{i,2});
          end
       end
    end
@@ -483,17 +522,23 @@ function wid = enumerateWells(control)
    try
       % Java's O(1) hash table string search support.
       ht = java.util.Hashtable;
-      for n = 1 : numel(wn),
+
+      for n = 1 : numel(wn)
          ht.put(wn{n}, i(n));
       end
+
       wid = @(s) ht.get(s);
+
    catch %#ok
-         % Fall back to (probably) linear structure field name search if Java
-         % is unavailable.
+      % Fall back to (probably) linear structure field name search if Java
+      % is unavailable (e.g., -nojvm or a different interpreter).
+
       ht = struct();
-      for n = 1 : numel(wn),
+
+      for n = 1 : numel(wn)
          ht.(regexprep(wn{n}, '\W', '_')) = i(n);
       end
+
       wid = @(s) ht.(regexprep(s, '\W', '_'));
    end
 end
@@ -641,11 +686,16 @@ function perf = active_perf(G, comp)
    perf = cart2active(G, i);
 end
 
+%--------------------------------------------------------------------------
+
 function W = createDefaultWell(G, rock)
 % default well will be handled as injector in checkLims
-   rock.perm = ones(G.cells.num,1);
-   W = addWell([], G, rock, 1, 'Val', 0, 'Type', 'rate', 'sign', 1, 'Comp_i', 1/3*[1, 1, 1], 'refDepth', G.cells.centroids(1,3));
-   W.lims.rate = -inf;
-   W.lims.bhp  = inf;
+   rock.perm = ones([G.cells.num, 1]);
 
+   W = addWell([], G, rock, 1, 'Val', 0, 'Type', 'rate', ...
+               'sign', 1, 'Comp_i', 1/3*[1, 1, 1], ...
+               'refDepth', G.cells.centroids(1,3));
+
+   W.lims.rate = -inf;
+   W.lims.bhp  =  inf;
 end

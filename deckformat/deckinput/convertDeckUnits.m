@@ -934,6 +934,14 @@ end
 
 %--------------------------------------------------------------------------
 
+function wcp = convertWTemp(wcp, u)
+
+   wcp(:, 2) = cellfun(@(c) convertFrom(c, u.temp), ...
+                       wcp(:, 2), 'UniformOutput', false);
+end
+
+%--------------------------------------------------------------------------
+
 function wcp = convertGConProd(wcp, u)
    resv = u.liqvol_r / u.time;
    lrat = u.liqvol_s / u.time;
