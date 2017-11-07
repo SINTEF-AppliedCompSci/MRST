@@ -21,7 +21,7 @@ function [eqs, names, types] = equationsTransportComponents(state0, p, masterCom
     nC = chemModel.nC;
     mastercomps0 = cell(1, nMC);
     comps0 = cell(1, nC);
-    [p0, mastercomps0{:}, comps0{:}] = model.getProps(state0, 'pressure', chemicalModel.elementNames{:}, chemicalModel.speciesNames{:});
+    [p0, mastercomps0{:}, comps0{:}] = model.getProps(state0, 'pressure', chemModel.elementNames{:}, chemModel.speciesNames{:});
 
     %Initialization of independent variables ----------------------------------
 
@@ -95,7 +95,7 @@ function [eqs, names, types] = equationsTransportComponents(state0, p, masterCom
         end
     end
                    
-    names = {'water', chemicalModel.elementNames{:}};
+    names = {'water', chemModel.elementNames{:}};
 
     types = cell(1, nMC + 1);
     [types{:}] = deal('cell');
