@@ -18,10 +18,12 @@ function [eqs, names, types] = equationsChemicalLog(model, state, logComponents,
     SM = model.solidReactionMatrix;
     SPM = model.surfacePotentialMatrix;
     
+    
     logSurfAct = logSurfaceAcitivityCoefficients;
     
     components = cellfun(@(x) exp(x), logComponents, 'UniformOutput', false);
-    
+    masterComponents = cellfun(@(x) exp(x), logMasterComponents,'UniformOutput', false);
+
     logK = model.logReactionConstants;
 
     eqs   = cell(1, model.nR + model.nMC);
@@ -48,6 +50,27 @@ function [eqs, names, types] = equationsChemicalLog(model, state, logComponents,
         pg{i} = log(10).*-A.*CV(1,i).^2 .* (ion{i}.^(1/2)./(1 + ion{i}.^(1/2)) - 0.3.*ion{i});
     end
     
+    %% mol fractions
+    surfMat = repmat(model.surfMaster, 1, model.nC).*CM;
+    surfTest = logical(sum(surfMat));
+    
+    moleFraction = components;
+    
+    for i = 1 : model.nC
+        if surfTest(i)
+            surfDen = 0;
+            surfNum = 0;
+            for j = 1 : model.nMC
+                surfNum = surfNum + CM(j,i).*model.surfMaster(j);
+                surfDen = surfDen + double(logical(CM(j,i).*model.surfMaster(j)))*masterComponents{j};
+            end
+            moleFraction{i} = (surfNum./surfDen).*components{i};
+        end
+
+    end
+    logMoleFraction = cellfun(@(x) log(x), moleFraction, 'UniformOutput', false);
+    
+    
     %% reaction matrix
     for i = 1 : model.nR  
         
@@ -55,7 +78,7 @@ function [eqs, names, types] = equationsChemicalLog(model, state, logComponents,
 
         % component contribution
         for k = 1 : model.nC
-            eqs{i} = eqs{i} + RM(i, k).*(pg{k} + logComponents{k});
+            eqs{i} = eqs{i} + RM(i, k).*(pg{k} + logMoleFraction{k});
         end
         
         % potential contribution

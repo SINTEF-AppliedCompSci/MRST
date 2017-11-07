@@ -52,7 +52,7 @@ for i = 1 : numel(pVar)
     elseif any(strcmpi(p, model.speciesNames))
         maxvals = model.maxMatrices{compInd}*((state.elements)');
         maxvals = (min(maxvals))';         
-        state = model.capProperty(state, p, realmin, mult*maxvals); 
+        state = model.capProperty(state, p, 1e-100, mult*maxvals); 
     end
 
 end

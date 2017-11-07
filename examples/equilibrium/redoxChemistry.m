@@ -22,7 +22,7 @@ chem.printChemicalSystem;
 n = 100;
 
 N = 1e-3*ones(n,1);
-e = logspace(-15, 10, n)';
+e = logspace(-15, 5, n)';
 H = 1e-7*ones(n,1);
 H2O = ones(n,1);
 Na = 1e-2*ones(n,1);
