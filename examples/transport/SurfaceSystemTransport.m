@@ -44,11 +44,11 @@ chemModel = ChemicalModel(elements, species, reactions, 'surf', surfaces);
 chemModel.printChemicalSystem;
 
 % initial chemistry
-inputConstraints = [1e-1 1e-1 1e-5 1]*mol/litre;
+inputConstraints = [1e-3 1e-3 1e-9 1]*mol/litre;
 [initchemstate, initreport]= chemModel.initState(repmat(inputConstraints, nc,1), 'charge', 'Cl');
 
 % injected chemistry
-inputConstraints = [1e-3 1e-3 1e-9 1]*mol/litre;
+inputConstraints = [1e-1 1e-1 1e-9 1]*mol/litre;
 [injchemstate, injreport] = chemModel.initState(inputConstraints, 'charge', 'Cl');
 
 %% Define the initial state
@@ -57,31 +57,29 @@ initState = initchemstate;
 initState.pressure          = pRef*ones(nc,1);
 
 %% Define the model
+model = ChemicalTransportModel(G, rock, fluid, chemModel);
 
-set(groot, 'defaultLineLineWidth', 3);
-model = ChemicalTransportLogModel(G, rock, fluid, chemModel);
+%% Define the boundary conditions
 
 fluidpart = model.fluidMat*((injchemstate.species)');
 fluidpart = fluidpart';
 
-model.plotIter = false;
-%% Define the boundary conditions
-pv = sum(poreVolume(G,rock));
+pv = poreVolume(G,rock);
 
-src                  = [];
-src                  = addSource(src, [1], pv/day, 'sat', 1);
-src.elements = fluidpart;
-src.logElements = log(fluidpart);
+src                	= [];
+src               	= addSource(src, [1], pv(1)/day, 'sat', 1);
+src.elements        = fluidpart;
+src.logElements   	= log(fluidpart);
 
 bc                  = [];
 bc                  = pside(bc, G, 'east', 0*barsa, 'sat', 1);
-bc.elements= [initchemstate.elements(end,:)];        % (will not be used if outflow)
-bc.logElements= [initchemstate.logElements(end,:)];  % (will not be used if outflow)
+bc.elements         = initchemstate.elements(end,:);        % (will not be used if outflow)
+bc.logElements      = initchemstate.logElements(end,:);  % (will not be used if outflow)
 
 
 %% Define the schedule
 
-schedule.step.val = [0.01*day*ones(10, 1); 0.1*day*ones(10, 1);];
+schedule.step.val = [0.01*day*ones(10, 1); 0.1*day*ones(100, 1);];
 schedule.step.control = ones(numel(schedule.step.val), 1);
 schedule.control = struct('bc', bc, 'src', src, 'W', []);
 
