@@ -23,16 +23,19 @@ classdef FluxAddModel < PhysicalModel
             [problem, state] = model.parentModel.getEquations(state0, state, dt, tmpforces, 'resOnly', true, 'iteration', inf);            
             
             state.wellSol=wellSol;
-            for i=1:numel(drivingForces.W)
-                assert(strcmp(drivingForces.W(i).name,wellSol(i).name))
-                if( drivingForces.W(i).sign < 0)
-                    wc = vertcat(drivingForces.W(i).cells);
+            for i=1:numel(wellSol)
+                %assert(strcmp(drivingForces.W(i).name,wellSol(i).name))
+                if( wellSol(i).sign < 0)
+                    %wc = vertcat(drivingForces.W(i).cells);
+                    wc = wellSol(i).cells;
                     mob = state.mob(wc,:);
                     fm = bsxfun(@rdivide,mob,sum(mob,2));
                     wellSol(i).flux = bsxfun(@times,state.wellSol(i).flux,fm);
                 else
-                    assert(nnz(state.wellSol(i).compi)==1)
-                    wellSol(i).flux=bsxfun(@times,state.wellSol(i).flux,drivingForces.W(i).compi);
+                    if(state.wellSol(i).status==1)
+                        assert(nnz(state.wellSol(i).compi)==1)
+                        wellSol(i).flux=bsxfun(@times,state.wellSol(i).flux,wellSol(i).compi);
+                    end
                 end
             end
             state.wellSol = wellSol;
@@ -50,6 +53,14 @@ classdef FluxAddModel < PhysicalModel
             %}
         end
         
+        function [model, state] = updateForChangedControls(model, state, forces)
+            % Called whenever controls change. Since this model can be used
+            % with wells, we call the facility model's setup routine.
+            %model.FacilityModel = model.FacilityModel.setupWells(forces.W);
+            %[model.parentModel, state] = model.parentModel.updateForChangedControls(state, forces);
+            state.wellSol = initWellSolAD(forces.W, model.parentModel, state);
+            [model, state] = updateForChangedControls@PhysicalModel(model, state, forces);
+        end
                                     
         function varargout = getActivePhases(model)
             varargout = cell(1, nargout);
@@ -62,12 +73,10 @@ classdef FluxAddModel < PhysicalModel
             state = model.parentModel.validateState(state);
         end
 
-        function [model, state] = updateForChangedControls(model, state, forces)
-            [model.parentModel, state] = model.parentModel.updateForChangedControls(state, forces);
-        end
+        
 
         function model = validateModel(model, varargin)
-            model.parentModel = model.parentModel.validateModel(varargin{:});
+            %model.parentModel = model.parentModel.validateModel(varargin{:});
             return
         end
 
