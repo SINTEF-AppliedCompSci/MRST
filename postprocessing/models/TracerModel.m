@@ -19,7 +19,12 @@ classdef TracerModel < ReservoirModel
         function n = getNumberOfTracers(model)
             n = numel(model.tracerNames);
         end
-        
+        function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
+            [state, report] = updateAfterConvergence@PhysicalModel(model, state0, state, dt, drivingForces);
+            if ~isempty(model.FacilityModel)
+                %state.wellSol = model.FacilityModel.updateWellSolAfterStep(state.wellSol, state0.wellSol);
+            end
+        end
         function [model, state] = updateForChangedControls(model, state, forces)
             % Called whenever controls change. Since this model can be used
             % with wells, we call the facility model's setup routine.

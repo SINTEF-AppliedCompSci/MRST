@@ -8,20 +8,24 @@ function [problem, state] = equationsTracer(state0, state, model, dt, drivingFor
     [tracers0{:}] = model.getProps(state0, primaryVars{:});
     
     [tracers{:}] = initVariablesADI(tracers{:});
-    
-    [vT, qT] = getFlux(model, state); 
+    W = drivingForces.W;
+    aw=find([W.status]);
+    %[vT, qT] = getFlux(model, state); 
+    vT = sum(state.flux(model.operators.internalConn, :), 2);
+    qT = sum(vertcat(state.wellSol(aw).flux), 2);
     
     [eqs, types] = deal(cell(1, nt));
     names = primaryVars;
     op = model.operators;
     flag = vT > 0;
     
-    W = drivingForces.W;
-    wc = vertcat(W.cells);
-    p2w = getPerforationToWellMapping(W);
-    comp = vertcat(W.tracer);
+    
+    wc = vertcat(W(aw).cells);
+    p2w = getPerforationToWellMapping(W(aw));
+    comp = vertcat(W(aw).tracer);
     comp = comp(p2w, :);
     
+    cmap=sparse(wc,[1:numel(wc)]',1,model.G.cells.num,numel(wc));
     inj = qT > 0;
     for i = 1:nt
         t = tracers{i};
@@ -32,7 +36,7 @@ function [problem, state] = equationsTracer(state0, state, model, dt, drivingFor
         
         % Composition source terms
         qi = (inj.*comp(:, i) + ~inj.*t(wc)).*qT;
-        eqs{i}(wc) = eqs{i}(wc) - qi;
+        eqs{i} = eqs{i} - cmap*qi;
         
         types{i} = 'cell';
     end
@@ -40,7 +44,7 @@ function [problem, state] = equationsTracer(state0, state, model, dt, drivingFor
     problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 end
 
-function [vT, qT] = getFlux(model, state)
-    vT = sum(state.flux(model.operators.internalConn, :), 2);
-    qT = sum(vertcat(state.wellSol.flux), 2);
-end
+%function [vT, qT] = getFlux(model, state)
+%    vT = sum(state.flux(model.operators.internalConn, :), 2);
+%    qT = sum(vertcat(state.wellSol.flux), 2);
+%end
