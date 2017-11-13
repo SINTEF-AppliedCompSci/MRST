@@ -41,11 +41,22 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-    
+
     properties
         % Structure that contains the mechanical parameter of the system
-        mech; 
-        % Structure that contains rock properties (Biot coefficient)
+        % This structure should contain the fields:
+        %
+        % E     - Young's modulus (one entry per cell)
+        % nu    - Poisson ratio (one entry per cell)
+        % el_bc - Structure describing the boundary condition (see VEM_linElast)
+        % load  - Structure giving the volumetric forces (see VEM_linElast)
+        %
+        mech;
+        % Structure that contains the rock properties. The structure must
+        % contain the Biot coefficient
+        %
+        % alpha - Biot coefficient (one entry per cell)
+        %
         rock;
 
         % Parameters that are used in the VEM assembly, see setupOperatorsVEM and
@@ -59,7 +70,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     methods
         function model = MechanicModel(G, rock, mech_problem, varargin)
         % Constructor for MechanicModel
-            
+
             opt = struct('InputModel', []);
             [opt, rest] = merge_options(opt, varargin{:});
 
@@ -77,7 +88,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             % Compute stiffness tensor C, if not given
             if ~isfield(model.mech, 'C')
                 [model.mech.C, model.mech.invC, model.mech.invCi] = ...
-                    Enu2C(model.mech.Ev, model.mech.nuv, model.G);
+                    Enu2C(model.mech.E, model.mech.nu, model.G);
             end
 
             if isempty(opt.InputModel)
@@ -100,7 +111,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                                         drivingForces, ...
                                                         varargin)
             % Assemble the equations for the mechanical system
-            
+
             opt = struct('Verbose'       , mrstVerbose , ...
                          'reverseMode'   , false       , ...
                          'scaling'       , []          , ...
