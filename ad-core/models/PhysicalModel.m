@@ -101,7 +101,7 @@ methods
         % gradients. This make it possible to use different equations to
         % calculate the solution in the forward mode forexample if
         % equations are solved explicitely like for hysteretic models.
-        % it is assumed that the solution of the system in forward fot the
+        % it is assumed that the solution of the system in forward for the
         % two diffent equations are equal i.e problem.val == 0 .
         [problem, state] = model.getEquations(state0, state, dt, drivingForces, varargin{:});
     end
