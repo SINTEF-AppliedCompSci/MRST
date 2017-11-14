@@ -1,78 +1,53 @@
 classdef PhysicalModel
-%Base class for physical models
-%
-% SYNOPSIS:
-%   model = PhysicalModel(G)
-%
-% DESCRIPTION:
-%   Base class for implementing physical models for use with automatic
-%   differentiation. This class cannot be used directly.
-%
-%   A physical model consists of a set of discrete operators that can be
-%   used to define the model equations and a nonlinear tolerance that
-%   defines how close the values must be to zero before the equations can
-%   be considered to be fulfilled. In most cases, the operators are defined
-%   over a grid, which is an optional property in this class. In addition,
-%   the class contains a flag informing if the model equations are linear,
-%   and a flag determining verbosity of class functions.
-%  
-%   The class contains member functions for:
-%     - evaluating residual equations and Jacobians
-%     - querying and setting individual variables in the physical state
-%     - executing a single nonlinear step (i.e., a linear solve with a
-%       possible subsequent stabilization step), verifying convergence, and
-%       reporting the status of the step
-%     - verifying the model, associated physical states, or individual
-%       physical properties
-%   as well as a number of utility functions for updating the physical
-%   state with increments from the linear solve, etc. See the
-%   implementation of the class for more details.
-%
-% REQUIRED PARAMETERS:
-%
-%   G  - Simulation grid.
-%
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
-%   See class properties.
-%
-% RETURNS:
-%   Class instance.
-%
-% SEE ALSO:
-%   ReservoirModel, ThreePhaseBlackOilModel, TwoPhaseOilWaterModel
-
-%{
-Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
-
-This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
-
-MRST is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-MRST is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with MRST.  If not, see <http://www.gnu.org/licenses/>.
-%}
-
+    %Base class for physical models
+    %
+    % SYNOPSIS:
+    %   model = PhysicalModel(G)
+    %
+    % DESCRIPTION:
+    %   Base class for implementing physical models for use with automatic
+    %   differentiation. This class cannot be used directly.
+    %
+    %   A physical model consists of a set of discrete operators that can be
+    %   used to define the model equations and a nonlinear tolerance that
+    %   defines how close the values must be to zero before the equations can
+    %   be considered to be fulfilled. In most cases, the operators are defined
+    %   over a grid, which is an optional property in this class. In addition,
+    %   the class contains a flag informing if the model equations are linear,
+    %   and a flag determining verbosity of class functions.
+    %  
+    %   The class contains member functions for:
+    %     - evaluating residual equations and Jacobians
+    %     - querying and setting individual variables in the physical state
+    %     - executing a single nonlinear step (i.e., a linear solve with a
+    %       possible subsequent stabilization step), verifying convergence, and
+    %       reporting the status of the step
+    %     - verifying the model, associated physical states, or individual
+    %       physical properties
+    %   as well as a number of utility functions for updating the physical
+    %   state with increments from the linear solve, etc. See the
+    %   implementation of the class for more details.
+    %
+    % REQUIRED PARAMETERS:
+    %
+    %   G  - Simulation grid.
+    %
+    % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+    %   See class properties.
+    %
+    % RETURNS:
+    %   Class instance.
+    %
+    % SEE ALSO:
+    %   ReservoirModel, ThreePhaseBlackOilModel, TwoPhaseOilWaterModel
+    
 properties
-    % Operators used for construction of systems
-    operators
-    % Inf norm tolerance for nonlinear iterations
-    nonlinearTolerance
-    % Grid. Can be empty.
-    G
-    % Verbosity from model routines
-    verbose
-    % Model step function is guaranteed to converge in a single step.
-    % Do not enable this unless you are very certain that it is the
-    % case!
-    stepFunctionIsLinear
+    operators % Operators used for construction of systems
+    nonlinearTolerance % Inf norm tolerance for nonlinear iterations
+    G % Grid. Can be empty.
+    verbose % Verbosity from model routines
+    
+    stepFunctionIsLinear % Model step function is guaranteed to converge in a single step.  Do not enable this unless you are very certain that it is the case!
 end
 
 methods
@@ -85,7 +60,7 @@ methods
         model.stepFunctionIsLinear = false;
     end
 
-    % --------------------------------------------------------------------%
+    
     function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin) %#ok
         % Get the set of linearized equations governing the system; this
         % should be an instance of the LinearizedProblem class containing
@@ -95,7 +70,7 @@ methods
         error('Base class not meant for direct use')
     end
 
-    % --------------------------------------------------------------------%
+    
     function [problem, state] = getAdjointEquations(model, state0, state, dt, drivingForces, varargin)
         % Function to get equation when using adjoint to calculate
         % gradients. This make it possible to use different equations to
@@ -106,7 +81,7 @@ methods
         [problem, state] = model.getEquations(state0, state, dt, drivingForces, varargin{:});
     end
 
-    % --------------------------------------------------------------------%
+    
     function state = validateState(model, state) %#ok
         % Validate the state for use with the model. Should check that
         % required fields are present and of the right dimensions. If
@@ -119,7 +94,7 @@ methods
         return
     end
 
-    % --------------------------------------------------------------------%
+    
     function model = validateModel(model, varargin)
         % Validate that a model is suitable for simulation. If the missing
         % or inconsistent parameters can be fixed automatically, an updated
@@ -132,7 +107,7 @@ methods
         return
     end
 
-    % --------------------------------------------------------------------%
+    
     function [state, report] = updateState(model, state, problem, dx, drivingForces) %#ok
     % Update state based on Newton increments
         for i = 1:numel(problem.primaryVariables);
@@ -143,13 +118,13 @@ methods
         report = [];
     end
 
-    % --------------------------------------------------------------------%
+    
     function [model, state] = updateForChangedControls(model, state, drivingForces) %#ok
         % Whenever controls change, this function should ensure that both
         % model and state are up to date with the present set of driving
         % forces.
     end
-    % --------------------------------------------------------------------%
+    
     function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces) %#ok
         % Update state based on nonlinear increment after timestep has
         % converged. Defaults to doing nothing since not all models
@@ -157,7 +132,7 @@ methods
         report = [];
     end
 
-    % --------------------------------------------------------------------%
+    
     function [convergence, values, names] = checkConvergence(model, problem, n)
         % Check and report convergence based on residual tolerances
         if nargin == 2
@@ -169,7 +144,7 @@ methods
         names = strcat(problem.equationNames, ' (', problem.types, ')');
     end
 
-    % --------------------------------------------------------------------%
+    
     function [state, report] = stepFunction(model, state, state0, dt, drivingForces, linsolver, nonlinsolver, iteration, varargin)
         % Execute a single linearized timestep. Models with linear flow
         % equations are given special treatment.
@@ -239,7 +214,7 @@ methods
                         'ResidualsConverged', convergence);
     end
 
-    % --------------------------------------------------------------------%
+    
     function report = makeStepReport(model, varargin) %#ok
         % Get the standardized step report that all models produce.
         report = struct('LinearSolver', [], ...
@@ -254,7 +229,7 @@ methods
         report = merge_options(report, varargin{:});
     end
 
-    % --------------------------------------------------------------------%
+    
     function [gradient, result, report] = solveAdjoint(model, solver, getState,...
                                 getObjective, schedule, gradient, itNo)
         % Solve the adjoint equations for a given step.
@@ -302,7 +277,7 @@ methods
         report.LinearSolverReport = rep;
     end
 
-    % --------------------------------------------------------------------%
+    
     function [fn, index] = getVariableField(model, name)                   %#ok
         % Get the index/name mapping for the model (such as where
         % pressure or water saturation is located in state). This
@@ -318,7 +293,7 @@ methods
         end
     end
 
-    % --------------------------------------------------------------------%
+    
     function p = getProp(model, state, name)
         % Get a property based on the name. Uses getVariableField to
         % determine how to obtain the data for the name, e.g.,
@@ -328,7 +303,7 @@ methods
         p = state.(fn)(:, index);
     end
 
-    % --------------------------------------------------------------------%
+    
     function varargout = getProps(model, state, varargin)
         % Get multiple properties based on their name(s). Multiple
         % names can be sent in as variable arguments, e.g.,
@@ -338,7 +313,7 @@ methods
                             varargin, 'UniformOutput', false);
     end
 
-    % --------------------------------------------------------------------%
+    
     function state = incrementProp(model, state, name, increment)
         % Increment property based on the name for the field. The
         % returned state contains incremented values. E.g., 
@@ -352,7 +327,7 @@ methods
         state.(fn)(:, index) = p;
     end
 
-    % --------------------------------------------------------------------%
+    
     function state = setProp(model, state, name, value)
         % Set property to given value based on name. E.g.,
         %   state = struct('pressure', 0);
@@ -364,7 +339,7 @@ methods
         state.(fn)(:, index) = value;
     end
 
-    % --------------------------------------------------------------------%
+    
     function dv = getIncrement(model, dx, problem, name)                   %#ok
         % Find increment in linearized problem with given name, or
         % output zero if not found. A linearized problem can give
@@ -380,7 +355,7 @@ methods
         end
     end
 
-    % --------------------------------------------------------------------%
+    
     function [state, val, val0] = updateStateFromIncrement(model, state, dx, problem, name, relchangemax, abschangemax)
         % Update a state, with optionally maximum changes (relative and
         % absolute). E.g., 
@@ -428,7 +403,7 @@ methods
         val   = val0 + dv.*repmat(change, 1, size(dv, 2));
         state = model.setProp(state, name, val);
     end
-    % --------------------------------------------------------------------%
+    
     function state = capProperty(model, state, name, minvalue, maxvalue)
         % Cap values to min/max values
         v = model.getProp(state, name);
@@ -439,7 +414,7 @@ methods
         state = model.setProp(state, name, v);
     end
     
-    % --------------------------------------------------------------------%
+    
     function [vararg, control] = getDrivingForces(model, control) %#ok
         % Setup and pass on driving forces. Outputs both a cell array
         % suitable for parsing by merge_options and the control struct.
@@ -447,14 +422,14 @@ methods
         vararg = reshape(vrg', 1, []);
     end
     
-    % --------------------------------------------------------------------%
+    
     function forces = getValidDrivingForces(model) %#ok
         % Get struct with valid forces for model, with reasonable default
         % values.
         forces = struct();
     end
     
-    % --------------------------------------------------------------------%
+    
     function checkProperty(model, state, property, n_el, dim)
         % model    - model to be checked
         % state    - state to be checked
@@ -490,25 +465,44 @@ methods
 end
 
 methods (Static)
-    % --------------------------------------------------------------------%
+    
     function [dv, change] = limitUpdateRelative(dv, val, maxRelCh)
         % Limit a update by relative limit
         biggestChange = max(abs(dv./val), [], 2);
         change = min(maxRelCh./biggestChange, 1);
         dv = dv.*repmat(change, 1, size(dv, 2));
     end
-    % --------------------------------------------------------------------%
+    
     function [dv, change] = limitUpdateAbsolute(dv, maxAbsCh)
         % Limit a update by absolute limit
         biggestChange = max(abs(dv), [], 2);
         change = min(maxAbsCh./biggestChange, 1);
         dv = dv.*repmat(change, 1, size(dv, 2));
     end
-    % --------------------------------------------------------------------%
+    
     function [vars, isRemoved] = stripVars(vars, names)
         isRemoved = cellfun(@(x) any(strcmpi(names, x)), vars);
         vars(isRemoved) = [];
     end
 end
 end
+
+%{
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
 

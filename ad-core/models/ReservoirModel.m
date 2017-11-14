@@ -1,49 +1,30 @@
 classdef ReservoirModel < PhysicalModel
-%Base class for physical models
-%
-% SYNOPSIS:
-%   model = ReservoirModel(G, rock, fluid)
-%
-% DESCRIPTION:
-%   Extension of PhysicalModel class to accomodate reservoir-specific
-%   features such as fluid and rock as well as commonly used phases and
-%   variables.
-%
-% REQUIRED PARAMETERS:
-%   G     - Simulation grid.
-%
-%   rock  - Valid rock used for the model.
-%
-%   fluid - Fluid model used for the model.
-%
-%
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
-%   See class properties.
-%
-% RETURNS:
-%   Class instance.
-%
-% SEE ALSO:
-%   ThreePhaseBlackOilModel, TwoPhaseOilWaterModel, PhysicalModel
-
-%{
-Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
-
-This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
-
-MRST is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-MRST is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with MRST.  If not, see <http://www.gnu.org/licenses/>.
-%}
+    %Base class for physical models
+    %
+    % SYNOPSIS:
+    %   model = ReservoirModel(G, rock, fluid)
+    %
+    % DESCRIPTION:
+    %   Extension of PhysicalModel class to accomodate reservoir-specific
+    %   features such as fluid and rock as well as commonly used phases and
+    %   variables.
+    %
+    % REQUIRED PARAMETERS:
+    %   G     - Simulation grid.
+    %
+    %   rock  - Valid rock used for the model.
+    %
+    %   fluid - Fluid model used for the model.
+    %
+    %
+    % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+    %   See class properties.
+    %
+    % RETURNS:
+    %   Class instance.
+    %
+    % SEE ALSO:
+    %   ThreePhaseBlackOilModel, TwoPhaseOilWaterModel, PhysicalModel
 
 properties
     % The fluid model
@@ -576,7 +557,7 @@ methods
     end
 
 % --------------------------------------------------------------------%
-    function scaling = getScalingFactorsCPR(model, problem, names, solver)%#ok
+    function scaling = getScalingFactorsCPR(model, problem, names, solver) %#ok
         % Return cell array of scaling factors for approximate pressure
         % equation in CPR preconditioner.
         %
@@ -798,8 +779,7 @@ methods
         rhoS = arrayfun(@(x) model.fluid.(['rho', x, 'S']), names);
     end
 
-    function [compEqs, compSrc, eqNames, wellSol] = getExtraWellContributions(...
-            model, well, wellSol0, wellSol, q_s, bh, packed, qMass, qVol, dt, iteration)%#ok
+    function [compEqs, compSrc, eqNames, wellSol] = getExtraWellContributions(model, well, wellSol0, wellSol, q_s, bh, packed, qMass, qVol, dt, iteration) %#ok
         % This function is called by the well model (base class:
         % SimpleWell) during the assembly of well equations and addition of
         % well source terms. The purpose of this function, given the
@@ -826,7 +806,7 @@ methods
         [compEqs, compSrc, eqNames] = deal({});
     end
 
-    function [names, types] = getExtraWellEquationNames(model)%#ok
+    function [names, types] = getExtraWellEquationNames(model) %#ok
         % Get the names and types of extra well equations implemented by
         % the model instance. See getExtraWellContribution.
         [names, types] = deal({});
@@ -918,3 +898,23 @@ methods (Static)
     end
 end
 end
+
+%{
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
