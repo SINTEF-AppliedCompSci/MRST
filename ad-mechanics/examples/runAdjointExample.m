@@ -14,8 +14,8 @@ mrstModule add ad-mechanics ad-core ad-props ad-blackoil vemmech deckformat mrst
 % 2D cartesian domain
 % todo: try some irregular geometry
 
-cartDim = [100, 10];
-L       = [100, 10];
+cartDim = [31, 30];
+L       = [30, 30];
 G = cartGrid(cartDim, L);
 G = computeGeometry(G);
 
@@ -33,7 +33,7 @@ end
 
 fluid = initSimpleADIFluid('phases', 'WO', 'mu', [1, 10]*centi*poise, 'n', ...
                            [1, 1], 'rho', [1000, 700]*kilogram/ meter^2, 'c', ...
-                           1e-10*[1, 1], 'cR', 4e-10, 'pRef', pRef);
+                           1e-10*[1, 1e5], 'cR', 1e-10, 'pRef', pRef);
 
 
 %% Setup rock parameters (for flow)
@@ -150,17 +150,18 @@ ny = G.cartDims(2);
 W = [];
 % injection wells
 wellopt = {'type', 'rate', 'val', 1*meter^3/day, 'Sign', 1, 'comp_i', [1, 0]};
-W = addWell(W, G, rock, floor(nx/4)   + floor(1/4*ny)*nx, wellopt{:});
-W = addWell(W, G, rock, floor(3*nx/4) + floor(1/4*ny)*nx, wellopt{:});
+W = addWell(W, G, rock, round(nx/4)   + floor(1/4*ny)*nx, wellopt{:});
+W = addWell(W, G, rock, nx + 1 - round(nx/4) + floor(1/4*ny)*nx, wellopt{:});
 % production well in the center
 wellopt = {'type', 'bhp', 'val', pRef, 'Sign', -1, 'comp_i', [0, 1]};
-W = addWell(W, G, rock, floor(nx/2)   + floor(1/4*ny)*nx, wellopt{:});
+W = addWell(W, G, rock, round(nx/2)   + floor(1/4*ny)*nx, wellopt{:});
 
 wellcells = zeros(G.cells.num, 1);
 for i = 1 : 3
     wellcells(W(i).cells) = 1;
 end
-figure
+figure(1)
+clf
 plotCellData(G, wellcells);
 
 facilityModel = FacilityModel(model.fluidModel);
@@ -173,13 +174,17 @@ model = model.validateModel(); % setup consistent fields for model (in
 %% Setup a schedule
 
 clear schedule
-schedule.step.val     = [1*day*ones(1, 1); 5*day*ones(2, 1)];
+schedule.step.val     = [1*day*ones(1, 1); 5*day*ones(40, 1)];
 schedule.step.control = (1 : numel(schedule.step.val))';
 ratemax = 1*meter^2/day;
 currenttime = cumsum(schedule.step.val);
-totaltime   = currenttime(end);
+flattentime   = 20*day;
 for i = 1 : numel(schedule.step.control)
-    newrate = ratemax*currenttime(i)/totaltime;
+    if currenttime(i) < flattentime
+        newrate = ratemax*currenttime(i)/flattentime;
+    else
+        newrate = ratemax;
+    end
     W(1).val = newrate;
     W(2).val = newrate;
     schedule.control(i) = struct('W', W);
@@ -190,7 +195,7 @@ end
 
 [wellSols, states] = simulateScheduleAD(initState, model, schedule);
 
-figure(1); clf
+figure(2); clf
 plotToolbar(G, states);
 
 
@@ -232,3 +237,20 @@ end
 laststep = numel(states);
 uplift = @(step) (computeUpliftForState(model, states{step}, topnode));
 uplifts = @()(arrayfun(uplift, (1 : laststep)'));
+figure(4)
+clf
+plot(uplifts());
+title('uplift values');
+xlabel('time step');
+
+wellsols = cellfun(@(state) (state.wellSol), states, 'uniformoutput', false);
+plotWellSols(wellsols);
+
+grads = cell2mat(adjointGradient);
+figure(6)
+clf
+for i = 1 : numel(W)
+    subplot(1, numel(W), i)
+    plot(grads(i, :));
+    title(sprintf('gradient value for well %g', i))
+end
