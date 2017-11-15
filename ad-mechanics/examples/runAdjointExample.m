@@ -22,18 +22,23 @@ G = computeGeometry(G);
 
 %% Setup fluid
 
-opt.fluid_model = 'oil water';
+opt.fluid_model = 'single phase';
 pRef = 100*barsa;
 switch opt.fluid_model
+  case 'blackoil'
+    error('not yet implemented')
   case 'oil water'
-    init_sat = [0, 1];
+    fluid = initSimpleADIFluid('phases', 'WO', 'mu', [1, 100]*centi*poise, 'n', ...
+                               [1, 1], 'rho', [1000, 700]*kilogram/ meter^2, 'c', ...
+                               1e-10*[1, 1], 'cR', 1e-10, 'pRef', pRef);
+  case 'single phase'
+    fluid = initSimpleADIFluid('phases', 'W', 'mu', 1*centi*poise, 'rho', ...
+                               1000*kilogram/meter^3, 'c', 1e-10, 'cR', ...
+                               4e-10, 'pRef', pRef);
   otherwise
     error('fluid_model not recognized.')
 end
 
-fluid = initSimpleADIFluid('phases', 'WO', 'mu', [1, 10]*centi*poise, 'n', ...
-                           [1, 1], 'rho', [1000, 700]*kilogram/ meter^2, 'c', ...
-                           1e-10*[1, 1e5], 'cR', 1e-10, 'pRef', pRef);
 
 
 %% Setup rock parameters (for flow)
@@ -114,7 +119,8 @@ switch opt.fluid_model
     error('not yet implemented')
   case 'oil water'
     model = MechOilWaterModel(G, rock, fluid, mech, 'verbose', true);
-  case 'water'
+  case 'single phase'
+    model = MechWaterModel(G, rock, fluid, mech, 'verbose', true);
   otherwise
     error('fluid_model not recognized.')
 end
@@ -130,8 +136,7 @@ switch opt.fluid_model
     initState.rs  = 0.5*fluid.rsSat(initState.pressure);
   case 'oil water'
     init_sat = [0, 1];
-  case 'water'
-    error('not yet implemented')
+  case 'single phase'
     init_sat = [1];
   otherwise
     error('fluid_model not recognized.')
@@ -147,13 +152,26 @@ initState    = addDerivedQuantities(model.mechModel, initState);
 
 nx = G.cartDims(1);
 ny = G.cartDims(2);
+switch opt.fluid_model
+  case 'blackoil'
+    error('not yet implemented')
+  case 'oil water'
+    comp_inj  = [1, 0];
+    comp_prod = [0, 1];
+  case 'single phase'
+    comp_inj  = [1];
+    comp_prod = [1];
+  otherwise
+    error('fluid_model not recognized.')
+end
+    
 W = [];
 % injection wells
-wellopt = {'type', 'rate', 'val', 1*meter^3/day, 'Sign', 1, 'comp_i', [1, 0]};
+wellopt = {'type', 'rate', 'val', 1*meter^3/day, 'Sign', 1, 'comp_i', comp_inj};
 W = addWell(W, G, rock, round(nx/4)   + floor(1/4*ny)*nx, wellopt{:});
 W = addWell(W, G, rock, nx + 1 - round(nx/4) + floor(1/4*ny)*nx, wellopt{:});
 % production well in the center
-wellopt = {'type', 'bhp', 'val', pRef, 'Sign', -1, 'comp_i', [0, 1]};
+wellopt = {'type', 'bhp', 'val', pRef, 'Sign', -1, 'comp_i', comp_prod};
 W = addWell(W, G, rock, round(nx/2)   + floor(1/4*ny)*nx, wellopt{:});
 
 wellcells = zeros(G.cells.num, 1);
@@ -174,11 +192,15 @@ model = model.validateModel(); % setup consistent fields for model (in
 %% Setup a schedule
 
 clear schedule
-schedule.step.val     = [1*day*ones(1, 1); 5*day*ones(40, 1)];
+schedule.step.val     = [1e-2*day*ones(1, 1); 1e-1*day*ones(10, 1)];
 schedule.step.control = (1 : numel(schedule.step.val))';
 ratemax = 1*meter^2/day;
 currenttime = cumsum(schedule.step.val);
-flattentime   = 20*day;
+flattentime   = 1*day;
+use_rampup = false;
+if ~use_rampup
+    flattentime = schedule.step.val(1);
+end
 for i = 1 : numel(schedule.step.control)
     if currenttime(i) < flattentime
         newrate = ratemax*currenttime(i)/flattentime;

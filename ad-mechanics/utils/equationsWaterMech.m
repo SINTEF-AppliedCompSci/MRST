@@ -1,4 +1,6 @@
-function [eqs, names, types, state] = equationsWaterMech(state0, p, wellVars, state, model, dt, mechTerm, drivingForces, varargin)
+function [eqs, names, types, state] = equationsWaterMech(p0, state0, p, wellVars, ...
+                                                      state, model, dt, mechTerm, ...
+                                                      drivingForces, varargin)
 %
 %
 % SYNOPSIS:
