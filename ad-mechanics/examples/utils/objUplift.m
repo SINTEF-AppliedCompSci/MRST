@@ -1,4 +1,4 @@
-function obj = computeUplift(model, states, schedule, topnode, varargin)
+function obj = objUplift(model, states, schedule, topnode, varargin)
 % Compute the average of the vertical displacement at the top of the domain 
 % This function is used in runAdjointExample
 

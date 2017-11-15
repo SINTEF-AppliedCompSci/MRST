@@ -206,12 +206,12 @@ topface = topface(topface(:, 2) == 4, 1);
 topnode = G.faces.nodes(G.faces.nodePos(topface)); % takes one node from the
                                                    % top face (the first listed)
 
-finalUpliftFunc = @(tstep) computeUplift(model, states, schedule, topnode, 'tStep', ...
+objUpliftFunc = @(tstep) objUplift(model, states, schedule, topnode, 'tStep', ...
                                      tstep, 'computePartials', true);
 
 %% Compute gradients using the adjoint formulation
 
-adjointGradient = computeGradientAdjointAD(initState, states, model, schedule, finalUpliftFunc);
+adjointGradient = computeGradientAdjointAD(initState, states, model, schedule, objUpliftFunc);
 
 
 %% There is a routine to check the code using finite difference
@@ -220,14 +220,14 @@ adjointGradient = computeGradientAdjointAD(initState, states, model, schedule, f
 % very long.
 compute_numerical_derivative = false;
 if compute_numerical_derivative
-    finalUpliftFunc2 = @(wellSols, states, schedule) computeUplift(model, states, ...
+    objUpliftFunc2 = @(wellSols, states, schedule) computeUplift(model, states, ...
                                                       schedule, topnode, ...
                                                       'computePartials', false);
 
-    fdgrad = computeGradientPerturbationAD(initState, model, schedule, finalUpliftFunc2, ...
+    fdgrad = computeGradientPerturbationAD(initState, model, schedule, objUpliftFunc2, ...
                                            perturbation);
 end
 
-laststep = numel(states);
-uplift = computeUplift(model, states, schedule, topnode, 'tStep', laststep);
-uplift = uplift{1};
+% laststep = numel(states);
+% uplift = computeUplift(model, states, schedule, topnode, 'tStep', laststep);
+% uplift = uplift{1};
