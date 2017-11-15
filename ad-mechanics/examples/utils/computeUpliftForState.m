@@ -1,6 +1,9 @@
-function uplift = computeUpliftForState(model, state, topnode, ComputePartials)
+function uplift = computeUpliftForState(model, state, topnode, varargin)
 % Compute the vertical displacement at the node given by topnode. This function
 % is used in runAdjointExample
+
+    opt = struct('ComputePartials', false);
+    opt = merge_options(opt, varargin{:});
 
     
     % get index in the mechanical displacement field xd where the vertical
@@ -26,7 +29,7 @@ function uplift = computeUpliftForState(model, state, topnode, ComputePartials)
     [wellVars, wellVarNames, wellMap] = ...
         model.fluidModel.FacilityModel.getAllPrimaryVariables(wellSol);
     
-    if ComputePartials
+    if opt.ComputePartials
         [p, sW, wellVars{:}, xd] = initVariablesADI(p, sW, wellVars{:}, xd);
     end
     uplift = xd(indlift);

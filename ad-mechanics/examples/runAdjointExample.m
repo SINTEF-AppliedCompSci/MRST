@@ -220,14 +220,15 @@ adjointGradient = computeGradientAdjointAD(initState, states, model, schedule, o
 % very long.
 compute_numerical_derivative = false;
 if compute_numerical_derivative
-    objUpliftFunc2 = @(wellSols, states, schedule) computeUplift(model, states, ...
+    objUpliftFunc2 = @(wellSols, states, schedule) objUplift(model, states, ...
                                                       schedule, topnode, ...
-                                                      'computePartials', false);
-
-    fdgrad = computeGradientPerturbationAD(initState, model, schedule, objUpliftFunc2, ...
-                                           perturbation);
+                                                      'computePartials', ...
+                                                      false);
+    fdgrad = computeGradientPerturbationAD(initState, model, schedule, ...
+                                           objUpliftFunc2, 'perturbation', ...
+                                           1e-7);
 end
 
-% laststep = numel(states);
-% uplift = computeUplift(model, states, schedule, topnode, 'tStep', laststep);
-% uplift = uplift{1};
+laststep = numel(states);
+uplift = @(step) (computeUpliftForState(model, states{step}, topnode));
+uplifts = @()(arrayfun(uplift, (1 : laststep)'));

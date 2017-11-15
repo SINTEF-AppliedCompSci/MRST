@@ -19,6 +19,7 @@ function obj = objUplift(model, states, schedule, topnode, varargin)
 
     for step = 1 : numSteps
         obj{step} = computeUpliftForState(model, states{tSteps(step)}, topnode, ...
+                                          'ComputePartials', ...
                                           opt.ComputePartials);
         if tSteps(step) ~= lastStep
             obj{step} = double2ADI(0, obj{step});
