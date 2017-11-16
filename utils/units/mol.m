@@ -1,14 +1,14 @@
 function m = mol()
-% Value of a mol.
+%Amount of Chemical Substance of One Mole in Units of Moles
 %
 % SYNOPSIS:
-%  m = mol()
+%   m = mol()
 %
 % PARAMETERS:
 %   None.
 %
 % RETURNS:
-%   m - Value of a mol.
+%   m - Numerical value of a mole in units of mole (== 1).
 
 %{
 Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
@@ -29,6 +29,5 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-  m = 1;
-  
+   m = 1;
 end
