@@ -1,4 +1,4 @@
-function [Xq, w, V, vol] = tetrahedronQuadRule(k)
+function [Xq, w, V, vol] = tetrahedronQuadRule_upr(k)
 %   Returns quadrature rule for the reference terahedron with vertices V.
 %
 %   SYNOPSIS:
