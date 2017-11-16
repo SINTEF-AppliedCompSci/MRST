@@ -1,5 +1,4 @@
-classdef SequentialPressureTransportModelPolymer < ...
-        SequentialPressureTransportModel
+classdef SequentialPressureTransportModelPolymer < SequentialPressureTransportModel
     properties
         polymer
     end

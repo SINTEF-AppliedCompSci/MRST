@@ -1,6 +1,6 @@
 classdef SequentialPressureTransportModel < ReservoirModel
-% Sequential meta-model which solves pressure and transport using a fixed
-% flux splitting
+    % Sequential meta-model which solves pressure and transport using a fixed
+    % flux splitting
     properties
         % Model for computing the pressure
         pressureModel
@@ -94,6 +94,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
             pressure_ok = pressureReport.Converged || psolver.continueOnFailure;
             
             if pressure_ok
+                state_p = state;
                 state.timestep = dt;
                 state.pressure_full = state.pressure;
                 % If pressure converged, we proceed to solve the transport

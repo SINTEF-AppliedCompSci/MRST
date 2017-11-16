@@ -1,5 +1,5 @@
 classdef PressureBlackOilModel < ThreePhaseBlackOilModel
-% Pressure model for three-phase, blackoil equations
+    % Pressure model for three-phase, blackoil equations
     properties
         % Increment tolerance for pressure. Computes convergence in
         % pressure as the reduction in increments (scaled by the min/max
