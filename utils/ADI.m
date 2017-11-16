@@ -1,43 +1,24 @@
 classdef ADI
-% ADI class: simple implementation of automatic differentiation for easy construction of jacobian matrices.
-%
-% SYNOPSIS:
-%   x = ADI(value, jacobian)
-%
-% PARAMETERS:
-%   value    - The numerical value of the object
-%
-%   jacobian - The Jacobian of the object.
-%
-% RETURNS:
-%   ADI object.
-%
-% COMMENTS:
-%  This class is typically instansiated for a set of different variables
-%  using initVariablesADI. The file contains a worked example demonstrating
-%  the usage for several variables.
-%
-% SEE ALSO:
-%   initVariablesADI
-
-%{
-Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
-
-This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
-
-MRST is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-MRST is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with MRST.  If not, see <http://www.gnu.org/licenses/>.
-%}
+    % ADI class: simple implementation of automatic differentiation for easy construction of jacobian matrices.
+    %
+    % SYNOPSIS:
+    %   x = ADI(value, jacobian)
+    %
+    % PARAMETERS:
+    %   value    - The numerical value of the object
+    %
+    %   jacobian - The Jacobian of the object.
+    %
+    % RETURNS:
+    %   ADI object.
+    %
+    % COMMENTS:
+    %  This class is typically instansiated for a set of different variables
+    %  using initVariablesADI. The file contains a worked example demonstrating
+    %  the usage for several variables.
+    %
+    % SEE ALSO:
+    %   initVariablesADI
 
 
    properties
@@ -161,7 +142,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
       %--------------------------------------------------------------------
 
-      function h = mtimes(u,v)% '*'
+      function h = mtimes(u,v)
+          % '*' operation
           if ~isa(u,'ADI') %u is a scalar/matrix
               h = v;
               h.val = u*h.val;
@@ -188,7 +170,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
       %--------------------------------------------------------------------
 
-      function h = times(u,v)% '.*'
+      function h = times(u,v)
+          % '.*' operation
          if ~isa(u,'ADI') %u is a scalar/vector
              if numel(u)==numel(v.val)
                  h = v;
@@ -217,7 +200,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
       %--------------------------------------------------------------------
 
-      function h = mrdivide(u,v)% '/'
+      function h = mrdivide(u,v)
+          % '/'
          if ~isa(v,'ADI') %v is a scalar
             h = mtimes(u, 1/v);
          else
@@ -227,7 +211,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
       %--------------------------------------------------------------------
 
-      function h = mldivide(u,v)% '\'
+      function h = mldivide(u,v)
+          % '\'
           if ~isa(u,'ADI') %u is a scalar/matrix
               h.val = u\v.val;
               h.jac = mldivideJac(u, h.jac);
@@ -238,7 +223,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
       %--------------------------------------------------------------------
 
-      function h = power(u,v)% '.^'
+      function h = power(u,v)
+          % '.^'
          if ~isa(v,'ADI') % v is a scalar
              h = u;
              h.val = h.val.^v;
@@ -267,13 +253,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
       %--------------------------------------------------------------------
 
-      function h = rdivide(u,v)% './'
+      function h = rdivide(u,v)
+          % './'
           h = times(u, power(v, -1));
       end
 
       %--------------------------------------------------------------------
 
-      function h = ldivide(u,v)% '.\'
+      function h = ldivide(u,v)
+          % '.\'
           h = rdivide(v,u);
       end
 
@@ -340,7 +328,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       
       %--------------------------------------------------------------------
 
-      function ix = end(u, k, n) %#ok
+      function ix = end(u, k, n)
           assert(k == 1, 'ADI objects only support vector indexing.');
           ix = numel(u.val);
       end
@@ -369,7 +357,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
       %--------------------------------------------------------------------
 
-      function h = max(u,v) % this function should be expanded
+      function h = max(u,v)
+          % this function should be expanded
           if(nargin==1)
               assert(isa(u,'ADI'));
               [value,i] = max(u.val);
@@ -445,7 +434,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
       %--------------------------------------------------------------------
 
-      function u = repmat(u, varargin)  % only makes sense if second dim =1
+      function u = repmat(u, varargin)
+          % only makes sense if second dim =1
           u.val = repmat(u.val, varargin{:});
           u.jac = repmatJac(u.jac, varargin{:});
       end
@@ -755,6 +745,26 @@ end
 function J = horzcatJac(varargin)
 J = horzcat(varargin{:});
 end
+
+%{
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
 
 
 %--------------------------------------------------------------------------

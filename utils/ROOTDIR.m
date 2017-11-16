@@ -1,4 +1,4 @@
-function root = ROOTDIR
+function root = ROOTDIR()
 %Retrieve full path of Toolbox installation directory.
 %
 % SYNOPSIS:

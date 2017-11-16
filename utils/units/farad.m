@@ -1,4 +1,4 @@
-function d = Farad()
+function d = farad()
 %Electrical capacitance of 1 Farad (in units of Farads)
 %
 % SYNOPSIS:

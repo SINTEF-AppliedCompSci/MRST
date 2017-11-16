@@ -1,4 +1,4 @@
-function paper = paper_co2_VEmodel()
+function paper = paper_msmfem()
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
