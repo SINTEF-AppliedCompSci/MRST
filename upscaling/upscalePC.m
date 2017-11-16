@@ -1,4 +1,4 @@
-function [pc_upsc, pc_max, pc_min, sat_min, sat_max] = upscalePcCaplimit(G, fluid, pv)
+function [pc_upsc, pc_max, pc_min, sat_min, sat_max] = upscalePC(G, fluid, pv)
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
