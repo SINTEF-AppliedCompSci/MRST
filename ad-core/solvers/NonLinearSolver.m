@@ -1,51 +1,32 @@
 classdef NonLinearSolver < handle
-%Generalized Newton-like nonlinear solver
-%
-% SYNOPSIS:
-%   solver = NonLinearSolver()
-%
-%   solver = NonLinearSolver('maxIterations', 5)
-%
-% DESCRIPTION:
-%   The NonLinearSolver class is a general non-linear solver based on
-%   Newton's method. It is capable of timestep selection and cutting based
-%   on convergence rates and can be extended via subclassing or modular
-%   linear solvers and timestep classes.
-%
-%   Convergence is handled by the PhysicalModel class. The NonLinearSolver
-%   simply responds based on what the model reports in terms of convergence
-%   to ensure some level of encapsulation.
-%
-% REQUIRED PARAMETERS:
-%   None.
-%
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
-%   Documented in methods section.
-%
-% RETURNS:
-%   A NonLinearSolver class instance ready for use.
-%
-% SEE ALSO:
-%   simulateScheduleAD, LinearSolverAD, SimpleTimeStepSelector
-
-%{
-Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
-
-This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
-
-MRST is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-MRST is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with MRST.  If not, see <http://www.gnu.org/licenses/>.
-%}
+    %Generalized Newton-like nonlinear solver
+    %
+    % SYNOPSIS:
+    %   solver = NonLinearSolver()
+    %
+    %   solver = NonLinearSolver('maxIterations', 5)
+    %
+    % DESCRIPTION:
+    %   The NonLinearSolver class is a general non-linear solver based on
+    %   Newton's method. It is capable of timestep selection and cutting based
+    %   on convergence rates and can be extended via subclassing or modular
+    %   linear solvers and timestep classes.
+    %
+    %   Convergence is handled by the PhysicalModel class. The NonLinearSolver
+    %   simply responds based on what the model reports in terms of convergence
+    %   to ensure some level of encapsulation.
+    %
+    % REQUIRED PARAMETERS:
+    %   None.
+    %
+    % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+    %   Documented in methods section.
+    %
+    % RETURNS:
+    %   A NonLinearSolver class instance ready for use.
+    %
+    % SEE ALSO:
+    %   simulateScheduleAD, LinearSolverAD, SimpleTimeStepSelector
 
     properties
         % The max number of iterations during a ministep.
@@ -596,3 +577,22 @@ function activeNames = getActiveNames(solver, names)
         activeNames = ismember(names, solver.linesearchConvergenceNames);
     end
 end
+%{
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+

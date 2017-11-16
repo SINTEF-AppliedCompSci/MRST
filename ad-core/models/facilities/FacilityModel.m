@@ -1,4 +1,5 @@
 classdef FacilityModel < PhysicalModel
+    % Class implementing a set of facilities coupled to a reservoir
     properties
         WellModels
 

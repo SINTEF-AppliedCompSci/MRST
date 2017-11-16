@@ -1,12 +1,12 @@
 classdef StateChangeTimeStepSelector < IterationCountTimeStepSelector
-% The StateChangeTimeStepSelector is a time-step selector that attempts to
-% ensure that certain properties of the state change at target rates during
-% the simulation. This can often be a good way of controlling timesteps and
-% minimizing numerical error if good estimates of the error are known.
-%
-% See the doctoral dissertation of H. Cao "Development of techniques for
-% general purpose simulators", Stanford, 2002.
-%
+    % The StateChangeTimeStepSelector is a time-step selector that attempts to
+    % ensure that certain properties of the state change at target rates during
+    % the simulation. This can often be a good way of controlling timesteps and
+    % minimizing numerical error if good estimates of the error are known.
+    %
+    % See the doctoral dissertation of H. Cao "Development of techniques for
+    % general purpose simulators", Stanford, 2002.
+    %
     properties
         % The target properties to time control. Cell array of N strings,
         % each of which are suitable for the simulation model's getProp

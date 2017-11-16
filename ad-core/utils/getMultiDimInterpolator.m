@@ -1,4 +1,5 @@
 function fn = getMultiDimInterpolator(x, Y)
+% Get a multidimensional interpolator (with support for ADI varibles)
     sz = size(Y);
     assert(iscell(x));
     if numel(x) > 1

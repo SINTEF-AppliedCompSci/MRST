@@ -1,59 +1,40 @@
 classdef LinearizedProblem
-% A linearized problem within a non-linear iteration
-%
-% SYNOPSIS:
-%   problem = LinearizedProblem(primvars, state)
-%   problem = LinearizedProblem(primvars, state, dt)
-%   problem = LinearizedProblem(eqs, eqtypes, eqnames, primvars, state)
-%   problem = LinearizedProblem(eqs, eqtypes, eqnames, primvars, state, dt)
-%
-% DESCRIPTION:
-%   A class that implements storage of an instance of a linearized problem
-%   discretized using AD. This class contains the residual equations
-%   evaluated for a single state along with meta-information about the
-%   equations and the primary variables they are differentiated with
-%   respect to.
-%
-%   A linearized problem can be transformed into a linear system and solved
-%   using LinearSolverAD-derived subclasses, given that the number of
-%   equations matches the number of primary variables.
-%
-%   In particular, the class contains member functions for:
-%     - assembling a linear system from the Jacobian block matrices stored
-%       for each individual (continuous) equation
-%     - appending/prepending additional equations
-%     - using a block-Gaussian method to eliminate individual variables or
-%       all variables that are not of a specified type
-%     - recovering increments corresponding to variables that have
-%       previously been eliminated
-%     - computing the norm of each residual equation
-%   as well as a number of utility functions for sanity checks, quering of
-%   indices and the number of equations, clearing the linear system, etc.
-%
-% PROPERTIES:
-%   See the class definition for details about each property.
-%
-% SEE ALSO:
-%   LinearSolverAD, PhysicalModel
-
-%{
-Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
-
-This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
-
-MRST is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-MRST is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with MRST.  If not, see <http://www.gnu.org/licenses/>.
-%}
+    % A linearized problem within a non-linear iteration
+    %
+    % SYNOPSIS:
+    %   problem = LinearizedProblem(primvars, state)
+    %   problem = LinearizedProblem(primvars, state, dt)
+    %   problem = LinearizedProblem(eqs, eqtypes, eqnames, primvars, state)
+    %   problem = LinearizedProblem(eqs, eqtypes, eqnames, primvars, state, dt)
+    %
+    % DESCRIPTION:
+    %   A class that implements storage of an instance of a linearized problem
+    %   discretized using AD. This class contains the residual equations
+    %   evaluated for a single state along with meta-information about the
+    %   equations and the primary variables they are differentiated with
+    %   respect to.
+    %
+    %   A linearized problem can be transformed into a linear system and solved
+    %   using LinearSolverAD-derived subclasses, given that the number of
+    %   equations matches the number of primary variables.
+    %
+    %   In particular, the class contains member functions for:
+    %     - assembling a linear system from the Jacobian block matrices stored
+    %       for each individual (continuous) equation
+    %     - appending/prepending additional equations
+    %     - using a block-Gaussian method to eliminate individual variables or
+    %       all variables that are not of a specified type
+    %     - recovering increments corresponding to variables that have
+    %       previously been eliminated
+    %     - computing the norm of each residual equation
+    %   as well as a number of utility functions for sanity checks, quering of
+    %   indices and the number of equations, clearing the linear system, etc.
+    %
+    % PROPERTIES:
+    %   See the class definition for details about each property.
+    %
+    % SEE ALSO:
+    %   LinearSolverAD, PhysicalModel
 
 properties
     % Cell array of the equations. Can be either doubles, or more typically
@@ -429,4 +410,23 @@ methods
     end
 end
 end
+
+%{
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
 

@@ -1,4 +1,5 @@
 function [eqs, cq_mass, mix_s, status, cstatus, cq_vol] = computeWellContributionsSingleWell(wellmodel, wellSol, resmodel, q_s, pBH, packed)
+% Main internal function for computing well equations and source terms
 [p, mob, rho, dissolved] = unpackPerforationProperties(packed);
 
 W = wellmodel.W;

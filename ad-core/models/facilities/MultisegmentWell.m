@@ -1,4 +1,6 @@
 classdef MultisegmentWell < SimpleWell
+    % Derived class implementign multisegment wells with full wellbore
+    % modelling
     properties
         signChangeChop
     end

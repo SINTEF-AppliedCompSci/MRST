@@ -179,6 +179,7 @@ s.Div  = @(x) C'*x;
 
 % faceAvg - as multiplication with matrix
 M  = sparse((1:nf)'*[1 1], N, .5*ones(nf,2), nf, nc);
+s.M = M;
 s.faceAvg = @(x)M*x;
 
 % faceUpstr - as multiplication with matrix

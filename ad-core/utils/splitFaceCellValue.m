@@ -1,4 +1,5 @@
 function [fx, cx] = splitFaceCellValue(flag, x, N, sz, upstr)
+% Evaluate multi-valued function into cell and face values
     nf = sz(1);
     nc = sz(2);
     

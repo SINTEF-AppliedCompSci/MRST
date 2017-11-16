@@ -1,4 +1,5 @@
 function dp = wellBoreFriction(v, rho, mu, D, L, roughness, flowtype, assumeTurbulent)
+% Empricial model for well-bore friction
 if nargin < 8
     assumeTurbulent = false;
 end

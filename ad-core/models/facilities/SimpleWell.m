@@ -1,4 +1,5 @@
 classdef SimpleWell < PhysicalModel
+    % Base class implementing a single, instataneous equilibrium well model
     properties
         % Struct defining the well (see addWell)
         W

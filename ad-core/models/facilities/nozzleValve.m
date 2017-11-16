@@ -1,5 +1,5 @@
 function dp = nozzleValve(v, rho, D, dischargeCoeff, flowtype)
-
+% Nozzle valve model
 A = pi*(D/2).^2;
 if nargin < 5
     flowtype = 'massRate';

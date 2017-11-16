@@ -22,8 +22,8 @@ function fn = getPlotAfterStep(state0, model, schedule, varargin)
 %
 % Keyword Arguments:
 %
-%  'plotWell' (bool):  Launch interactive plotting for well quantities
-%                      using "plotWellSols"
+%  'plotWell':       Launch interactive plotting for well quantities
+%                    using `plotWellSols`
 %
 %  'plotReservoir':  Add an interactive plotting window for reservoir
 %                    quantities during the simulation. Note that, due to
@@ -48,7 +48,7 @@ function fn = getPlotAfterStep(state0, model, schedule, varargin)
 %  simulateScheduleAD(state0, model, schedule, 'afterStepFn', fn);
 %
 % SEE ALSO:
-%   simulateScheduleAD, blackoilTutorialPlotHook (example)
+%   `simulateScheduleAD`, `blackoilTutorialPlotHook` (example)
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
