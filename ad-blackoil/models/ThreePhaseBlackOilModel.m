@@ -1,5 +1,5 @@
 classdef ThreePhaseBlackOilModel < ReservoirModel
-% Three phase with optional dissolved gas and vaporized oil
+    % Three phase with optional dissolved gas and vaporized oil
 properties
     % Flag deciding if gas can be dissolved into the oil phase
     disgas
