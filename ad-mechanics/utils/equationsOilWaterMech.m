@@ -1,8 +1,11 @@
-function [eqs, names, types, state] = equationsOilWaterMech(state0, p, sW, wellVars, state, model, dt, mechTerm, drivingForces, varargin)
+function [eqs, names, types, state] = equationsOilWaterMech(p0, sW0, state0, ...
+                                                            p, sW, wellVars, state, ...
+                                                            model, dt, mechTerm, ...
+                                                            drivingForces, varargin)
 %
 %
-% SYNOPSIS:
-%   function [eqs, names, types, state] = equationsOilWaterMech(state0, p, sW, wellVars, state, model, dt, mechTerm, drivingForces, varargin)
+% SYNOPSIS: function [eqs, names, types, state] = equationsOilWaterMech(p0, sW0,
+%   state0, p, sW, wellVars, state, model, dt, mechTerm, drivingForces, varargin)
 %
 % DESCRIPTION: This function is very similar to equationsOilWater. The
 % difference here is that it also takes as input mechanical terms, and the ADI
@@ -10,11 +13,13 @@ function [eqs, names, types, state] = equationsOilWaterMech(state0, p, sW, wellV
 % function.
 %
 % PARAMETERS:
-%   state0        - State at previous time step
 %   p             - Pressure
 %   sW            - Saturation
 %   wellVars      - Well variables
 %   state         - State at given time step
+%   p0            - Pressure (for previous time step)
+%   sW0           - Saturation (for previous time step)
+%   state0         - State at given time step (for previous time step)
 %   model         - Model class instance that is used.
 %   dt            - Time step
 %   mechTerm      - Mechanical input which will enter the computation of the
@@ -67,8 +72,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     f = model.fluid;
     rock = model.rock;
 
-    [p0, sW0, wellSol0] = model.getProps(state0, 'pressure', 'sW', 'wellSol');
-    
     % Evaluate relative permeability
     sO  = 1 - sW;
     sO0 = 1 - sW0;
@@ -130,6 +133,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     wellSol = model.getProp(state, 'wellsol');
     [~, wellVarNames, wellMap] = ...
         model.FacilityModel.getAllPrimaryVariables(wellSol);
+    wellSol0 = model.getProp(state0, 'wellsol');
     [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, ...
                                                       types, wellSol0, wellSol, ...
                                                       wellVars, wellMap, p, ...

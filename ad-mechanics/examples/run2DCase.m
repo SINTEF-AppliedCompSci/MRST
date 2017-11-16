@@ -65,8 +65,9 @@ end
 E          = 1 * giga * Pascal; % Young's module
 nu         = 0.3;               % Poisson's ratio
 alpha      = 1;                 % Biot's coefficient
-Ev         = repmat(E, G.cells.num, 1);
-nuv        = repmat(nu, G.cells.num, 1);
+% Transform these global properties (uniform) to cell values.
+E          = repmat(E, G.cells.num, 1);
+nu         = repmat(nu, G.cells.num, 1);
 rock.alpha = repmat(alpha, G.cells.num, 1);
 
 
@@ -84,8 +85,8 @@ switch opt.bc_case
     bcnodes(nodes) = 1;
     bcnodes = find(bcnodes == 1);
     nn = numel(bcnodes);
-    u = zeros(nn, 3);
-    m = ones(nn, 3);
+    u = zeros(nn, 2);
+    m = ones(nn, 2);
     disp_bc = struct('nodes', bcnodes, 'uu', u, 'mask', m);
     force_bc = [];
 
@@ -144,7 +145,7 @@ loadfun = @(x) (0*x);
 
 %% Gather all the mechanical parameters in a struct
 
-mech = struct('Ev', Ev, 'nuv', nuv, 'el_bc', el_bc, 'load', loadfun);
+mech = struct('E', E, 'nu', nu, 'el_bc', el_bc, 'load', loadfun);
 
 
 %% Gravity

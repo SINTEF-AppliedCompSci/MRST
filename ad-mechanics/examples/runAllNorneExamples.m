@@ -35,8 +35,9 @@ mrstModule add ad-mechanics ad-core ad-props ad-blackoil vemmech deckformat mrst
 % 'water' : water model is used for the fluid
 
 
-opt.verbose          = true;
-opt.splittingVerbose = true;
+clear opt
+opt.verbose          = false;
+opt.splittingVerbose = false;
 opt.norne_case       = 'mini Norne';
 opt.bc_case          = 'bottom fixed';
 

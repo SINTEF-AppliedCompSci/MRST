@@ -131,7 +131,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 
         end
-
+        
         function [mechTerm, fluidp] = computeCouplingTerms(model, p0, ...
                                                               xd0, p, xd)
 
