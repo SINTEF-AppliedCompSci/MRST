@@ -158,7 +158,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     N = numel(dataset);
     accessdata = @(x) dataset(x);
-    if isnumeric(dataset) && max(size(dataset)) == G.cells.num
+    if isPlottable(dataset) && max(size(dataset)) == G.cells.num
         if size(dataset, 2) == 1
             isscalar = true;
         end
@@ -166,7 +166,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         N = 1;
         accessdata = @(x) dataset;
     elseif iscell(dataset)
-        if all(cellfun(@isnumeric, dataset))
+        if all(cellfun(@isPlottable, dataset))
             % Transform into structs
             dataset = cellfun(@(x) struct('data', x), dataset, 'UniformOutput', false);
         end
@@ -928,4 +928,8 @@ end
 function f = boolToOnOff(status)
     v = {'off', 'on'};
     f = v{status + 1};
+end
+
+function v = isPlottable(x)
+    v = islogical(x) || isnumeric(x);
 end

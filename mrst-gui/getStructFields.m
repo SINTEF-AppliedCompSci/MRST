@@ -49,7 +49,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     else
         nodeNum = 0;
     end
-    if isnumeric(s)
+    if isnumeric(s) || islogical(s)
         if size(s, 1) == nc || size(s, 1) == nodeNum
             N = min(size(s, 2), 1000);
             if N > 1
