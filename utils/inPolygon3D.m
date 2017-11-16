@@ -1,4 +1,4 @@
-function [in,on] = inPolygon3D (q, p, varargin)
+function [in,on] = inPolygon3D(q, p, varargin)
 % Indicates if a set of query points 'q' in 3D lie inside or on a polygon
 % defined by coplanar points 'p'.
 
