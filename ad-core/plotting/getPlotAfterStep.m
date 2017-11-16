@@ -1,6 +1,6 @@
 function fn = getPlotAfterStep(state0, model, schedule, varargin)
-% Get a function that allows for dynamic plotting using simulateScheduleAD
-% ::
+% Get a function that allows for dynamic plotting using simulateScheduleAD.
+% Synopsis::
 %   fn = getPlotAfterStep(state0, model, schedule, 'plotWell', true);
 %
 % **Description**:
@@ -39,7 +39,7 @@ function fn = getPlotAfterStep(state0, model, schedule, varargin)
 %
 %  'wells'         : Wells for the reservoir plotting (using plotWell) 
 %
-% RETURNS:
+% Returns:
 %  fn (function_handle): Function handle suitable for the "afterStepFn"
 %  input in simulateScheduleAD. 
 % Example:
