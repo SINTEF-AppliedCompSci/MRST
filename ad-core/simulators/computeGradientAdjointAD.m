@@ -5,17 +5,7 @@ function gradients = computeGradientAdjointAD(state0, states, model, schedule, g
 %   grad = computeGradientAdjointAD(state0, states, model, schedule, getObjective
 %
 % DESCRIPTION:
-%   For a given schedule, compute gradients with regards to well controls
-%   by perturbing all controls ever so slightly and re-running the
-%   simulation.
-%  
-%   As the cost of this routine grows is approximately
-%
-%        (# wells)x(# ctrl step) x cost of schedule
-%
-%   it can be potentially extremely expensive. It is better to use the
-%   'computeGradientAdjointAD' routine for most practical purposes. This
-%   routine is primarily designed for validation of said routine.
+%   Compute gradient using adjoint simulations.
 %
 % REQUIRED PARAMETERS:
 %
