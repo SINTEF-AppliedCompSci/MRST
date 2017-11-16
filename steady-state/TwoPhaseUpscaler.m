@@ -1,5 +1,5 @@
 classdef TwoPhaseUpscaler < OnePhaseUpscaler
-%Two phase upscaling
+    %Two phase upscaling
 
 properties
     RelpermMethod     % Relperm upscaling method

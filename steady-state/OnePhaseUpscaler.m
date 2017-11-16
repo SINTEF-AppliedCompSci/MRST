@@ -1,5 +1,5 @@
 classdef OnePhaseUpscaler < Upscaler
-%One phase upscaling
+    %One phase upscaling
 
 properties
     dp

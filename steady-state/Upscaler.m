@@ -1,5 +1,5 @@
 classdef Upscaler
-%Base class for upscaling classes
+    %Base class for upscaling classes
 
 properties
     

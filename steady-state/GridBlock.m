@@ -1,5 +1,5 @@
 classdef GridBlock
-%Base class for upscaling a single block
+    %Base class for upscaling a single block
 
 properties
     verbose

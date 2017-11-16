@@ -1,5 +1,5 @@
 classdef TwoPhaseOilWaterModel_BCP < TwoPhaseOilWaterModel
-% Two phase oil/water system without dissolution
+    % Two phase oil/water system without dissolution
 properties
     
 end
