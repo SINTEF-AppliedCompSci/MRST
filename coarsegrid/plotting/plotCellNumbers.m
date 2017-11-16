@@ -1,3 +1,4 @@
+function h = plotCellNumbers(g, varargin)
 % Debug function which plots cell numbers on a (subset) of cells
 
 %{
@@ -19,7 +20,6 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-function h = plotCellNumbers(g, varargin)
    if mod(nargin, 2),
       c = 1:g.cells.num;
    else

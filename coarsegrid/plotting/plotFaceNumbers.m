@@ -1,4 +1,6 @@
+function h = plotFaceNumbers(g, varargin)
 % Debug utility which plots face numbers on a (subset) of faces.
+
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
@@ -18,8 +20,6 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
-function h = plotFaceNumbers(g, varargin)
    if mod(nargin, 2),
       f = 1:g.faces.num;
    else
