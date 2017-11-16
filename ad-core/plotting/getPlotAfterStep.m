@@ -1,9 +1,11 @@
 function fn = getPlotAfterStep(state0, model, schedule, varargin)
 % Get a function that allows for dynamic plotting using simulateScheduleAD.
-% Synopsis::
+%
+% |Synopsis|::
+%
 %   fn = getPlotAfterStep(state0, model, schedule, 'plotWell', true);
 %
-% **Description**:
+% |Description|:
 % The simulateScheduleAD function has a optional input argument
 % "afterStepFn" that allows for dynamic plotting after each step in the
 % simulation, for instance to show how the well curves progress during the
@@ -42,10 +44,11 @@ function fn = getPlotAfterStep(state0, model, schedule, varargin)
 % Returns:
 %  fn (function_handle): Function handle suitable for the "afterStepFn"
 %  input in simulateScheduleAD. 
-% Example:
-% :: 
-%  fn = getPlotAfterStep(state0, model, schedule, 'plotWell', true);
-%  simulateScheduleAD(state0, model, schedule, 'afterStepFn', fn);
+%
+% Example::
+%
+%   fn = getPlotAfterStep(state0, model, schedule, 'plotWell', true);
+%   simulateScheduleAD(state0, model, schedule, 'afterStepFn', fn);
 %
 % SEE ALSO:
 %   `simulateScheduleAD`, `blackoilTutorialPlotHook` (example)
