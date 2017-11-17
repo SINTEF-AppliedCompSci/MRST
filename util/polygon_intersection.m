@@ -19,6 +19,7 @@ function int = polygon_intersection(poly_1, poly_2)
     end
     ind = [1:size(poly_2,1), 1];
     AB = [];
+    % Calculate the intersection of each line segment and the plane
     for e = 1:numel(ind) - 1
         v1 = poly_2(ind(e),:);
         v2 = poly_2(ind(e + 1),:);
@@ -28,9 +29,18 @@ function int = polygon_intersection(poly_1, poly_2)
         end
         AB = [AB; I];
     end
+    % If a polygon node lies exactly at the plane both edges connected to
+    % the node will create an intersection. Remove duplicates
+    AB = round(AB * 1e10)/1e10;
+    AB = unique(AB, 'rows');
+    % The if statement above ensures that the polygon crosses the plane.
+    % Our convex polygon should therefore have exactly two intersections
+    % with this plane.
     assert(size(AB,1)==2)
     assert(all(abs(AB(:,3))<tol))
     AB = AB(:, 1:2);
+    
+    % Now test if the two intersections are innside the first polygon
     A_innside = in_polygon(poly_1, AB(1,:));
     B_innside = in_polygon(poly_1, AB(2,:));
     AB_line = reshape(AB', 1,4);
@@ -49,8 +59,10 @@ function int = polygon_intersection(poly_1, poly_2)
     else
         assert False
     end
-        
-    assert(size(int, 1) == 2)
+    % remove duplicates
+    int = round(int * 1e10)/1e10;
+    int = unique(int, 'rows');   
+    assert(size(int, 1) == 2 | size(int, 1) == 0)
     
     int = [int, zeros(size(int,1),1)];
     
@@ -58,28 +70,6 @@ function int = polygon_intersection(poly_1, poly_2)
     
 end
    
-function inside = in_polygon(poly, ptn)
-    tol = 1e-6;
-    poly = poly - ptn;
-    ind = [1:size(poly,1), 1];
-    prev_side = 0;
-    for e = 1:numel(ind) - 1
-        v1 = poly(ind(e), :);
-        v2 = poly(ind(e + 1), :);
-        v1Xv2 = v2(1)*v1(2) - v1(1)*v2(2);
-        current_side = sign(v1Xv2);
-        if abs(v1Xv2) <= tol
-            inside = false;
-            return
-        elseif prev_side == 0
-            prev_side = current_side;
-        elseif prev_side ~= current_side
-            inside = false;
-            return
-        end
-    end
-    inside = true;
-end
 
 function val = x_product(p1, p2)
     val= p1(1)*p2(2) - p1(2)*p2(1);

@@ -52,7 +52,7 @@ for s = 1:size(p,1)
 
     [newVertex, ~] = clipPolygon(bnd, n, x0, symT, bisect,'noSym',true);
 
-    newVertex = round(newVertex*1e10)/1e10;
+    newVertex = round(newVertex*1e6)/1e6;
     newVertex = unique(newVertex,'rows','stable');
     %keep = inpolygon(newVertex(:,1), newVertex(:,2), bnd(:,1), bnd(:,2));
     %newVertex = newVertex(keep,:); % The clipPolygon routine might return
@@ -65,7 +65,7 @@ for s = 1:size(p,1)
     
 
 end
-V = round(V*10^9)/10^9;
+V = round(V*10^6)/10^6;
 [V,~,IC] = unique(V,'rows');
 
 G.cells.num = numel(C);

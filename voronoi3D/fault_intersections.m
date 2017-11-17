@@ -24,7 +24,11 @@ for f = 1:numel(faults)
     internal_pts_xy = zeros(0, 2);
     int_in_plane = false(numel(intersections),1);
     for j = 1:numel(intersections)
-        if intersections{j}{2}==f || intersections{j}{3}==f 
+        if intersections{j}{2}==f || intersections{j}{3}==f
+%              if intersections{j}{2} < f || intersections{j}{3} < f
+%                  % did already calculate this intersection
+%                  continue
+%              end
             int_in_plane(j) = true;
             pts_i = intersections{j}{1};
             pts_i_center = bsxfun(@minus, pts_i, center);
@@ -37,13 +41,17 @@ for f = 1:numel(faults)
     end
     num_lines = size(internal_pts_xy,1)/2;
     internal_pts_xy = mat2cell(internal_pts_xy, 2 * ones(num_lines,1), 2)';
-    [split_pts_xy, ~, ~, ic] = splitAtInt(internal_pts_xy, internal_pts_xy);
+    [split_pts_xy, ~, ~, ic] = splitAtInt(internal_pts_xy, {});
     %split_pts_xy = cell2mat(split_pts_xy)';
     split_pts = cellfun(@(c) [c, zeros(2, 1)], split_pts_xy, 'un',0);
     split_pts = cellfun(@(c) c * R + center, split_pts, 'un', 0);
     
     % remove old intersection lines and add new
-    new_intersections = intersections(ic);
+    int_vals_in_plane = intersections(int_in_plane);
+    new_intersections = int_vals_in_plane(ic);
+    if numel(new_intersections) == 0
+        continue
+    end
     new_intersections = cellfun(@(c1,c2) [c1, c2(2:3)], split_pts, new_intersections, 'un', 0);
     intersections = [intersections(~int_in_plane), new_intersections];
 

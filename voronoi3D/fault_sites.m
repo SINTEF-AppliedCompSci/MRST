@@ -1,4 +1,5 @@
-function grids_2 = fault_sites(faults, grids_1, intersections, ds)
+function [grids_2] = fault_sites(faults, grids_1, intersections, ds, gamma)
+%sites_2 = {};
 grids_2 = {};
 for f = 1:numel(faults)
     f_pts = faults{f};
@@ -10,29 +11,63 @@ for f = 1:numel(faults)
     f_xy = f_xy(:,1:2);
         
     internal_pts = [];
+    tip_sites = [];
+    grids_1_projected = {};
     for j = 1:numel(intersections)
         if intersections{j}{2}==f || intersections{j}{3}==f 
-            pts_1 = grids_1{j};
+            pts_1 = grids_1{j}{1};
+            vert_1 = grids_1{j}{2};
+            if size(pts_1,1) == 0
+                continue
+            end
             pts_1_center = bsxfun(@minus, pts_1, center);
             pts_1_xy = pts_1_center * R';
+            vert_1_center = bsxfun(@minus, vert_1, center);
+            vert_1_xy = vert_1_center * R';
             assert(all(abs(pts_1_xy(:,3))<1e-6))
+            assert(all(abs(vert_1_xy(:,3))<1e-6))
+            
             pts_1_xy = pts_1_xy(:, 1:2);
-            tangent = pts_1_xy(1,:) - pts_1_xy(end, :);
+            vert_1_xy = vert_1_xy(:, 1:2);
+            grids_1_projected = {grids_1_projected{:}, {pts_1_xy, vert_1_xy}};
+            
+            tangent = pts_1_xy(end,:) - pts_1_xy(1, :);            
+            tangent = tangent / sqrt(sum(tangent.^2));
             normal = [tangent(2), -tangent(1)];
-            normal = normal / sqrt(sum(normal.^2));
-            pts_2_xy = bsxfun(@plus, pts_1_xy, normal * ds / 2);
-            pts_2_xy_neg = bsxfun(@minus, pts_1_xy, normal * ds / 2);
+            
+            pts_2_xy = bsxfun(@plus, pts_1_xy, normal * gamma);
+            pts_2_xy_neg = bsxfun(@minus, pts_1_xy, normal * gamma);
 
             internal_pts = [internal_pts; pts_2_xy; pts_2_xy_neg];
-       end
+            
+            % Now add an extra point at each end
+            vert_s = vert_1_xy(1,:);
+            vert_e= vert_1_xy(end,:);
+            kappa_s = sum((vert_s - pts_1_xy(1,:)).^2, 2);
+            kappa_e = sum((vert_e - pts_1_xy(end,:)).^2, 2);
+            R_s = sqrt(kappa_s + gamma^2);
+            R_e = sqrt(kappa_e + gamma^2);
+            
+            start_pts = vert_s - tangent*R_s;
+            end_pts = vert_e + tangent*R_e;
+            tip_sites = [tip_sites; start_pts; end_pts];
+
+        end
     end
 
+    % throw out tip sites otside fracture domain
+    is_innside = true(1, size(tip_sites, 1));
+    for i = 1:size(tip_sites, 1)
+        is_innside(i) = in_polygon(f_xy, tip_sites(i,:));    
+    end
+    tip_sites = tip_sites(is_innside, :);
+    tip_sites = faultSufCondFrom1D(tip_sites, grids_1_projected, gamma - 1e-6);
     rectangle = [min(f_xy); max(f_xy)];
 	corners   = f_xy;
 	fd        = @dpoly;
 	vararg    = [f_xy; f_xy(1,:)];
     h = @(p, varargin) ds * ones(size(p, 1), 1);
-    fixedPts = [internal_pts; corners];  
+    fixedPts = [internal_pts; tip_sites; corners];  
     [pts, ~, sorting] = distmesh2d(fd, h, ds, rectangle, fixedPts, vararg);
     % Distmesh change the order of all points. We undo this sorting.
     isInt = false(max(sorting),1); isInt(1:size(internal_pts,1)) = true;
@@ -43,12 +78,14 @@ for f = 1:numel(faults)
     fPts = pts(isInt,:);
     fPts = fPts(If,:);
         
-    radius = 0.8 * ds * ones(size(fPts,1),1);
-    pts = removeConflictPoints2(pts(isRes, :), fPts, radius);
+    pts = faultSufCondFrom1D(pts(isRes, :), grids_1_projected, gamma-1e-6);
+    %radius = 0.8 * ds * ones(size(fPts,1),1);
     pts = [fPts; pts];
     
 %     %% Debugging
-%     G = clippedPebi2D(pts, f_xy);
+     G = clippedPebi2D(pts, f_xy);
+     G.nodes.coords = [G.nodes.coords, zeros(size(G.nodes.coords,1),1)];
+     G.nodes.coords = G.nodes.coords*R + center;
 %     figure()
 %     hold on
 %     plotGrid(G)
@@ -56,7 +93,21 @@ for f = 1:numel(faults)
 %     axis equal
 %     %% Debugging end
     pts = [pts, zeros(size(pts,1),1)];
-    grids_2 = [grids_2; {pts * R + center, f}];
+    %sites_2 = [sites_2; {pts * R + center, f}];
+    G.cells.sites = pts * R + center;
+    grids_2 = [grids_2, G];
 end
 
+end
+
+
+function [pts] = faultSufCondFrom1D(pts, grids_1, gamma)
+for i = 1:numel(grids_1)
+    c = grids_1{i}{1};
+    c = [c; c(end,:)];
+    v = grids_1{i}{2};
+    kappaSqr = sum((c - v).^2, 2);
+    R = sqrt(kappaSqr + gamma^2);
+    pts = removeConflictPoints2(pts, v, R);
+end
 end

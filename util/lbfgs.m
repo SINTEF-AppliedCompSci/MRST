@@ -42,7 +42,7 @@ function [x,f,gNorm] = lbfgs(x0, F, varargin)
     x      = x0;
     [f,g]  = F(x0);
     gNorm  = norm(g,2);
-    H      = eye(size(x,1));
+    H      = speye(size(x,1));
     s      = zeros(size(x,1),m);
     y      = zeros(size(x,1),m);
 
@@ -72,7 +72,7 @@ function [x,f,gNorm] = lbfgs(x0, F, varargin)
         else
             % Precondition hessian
             gamma  = s(:,m)'*y(:,m)/(y(:,m)'*y(:,m));
-            H      = gamma*eye(size(x,1));
+            H      = gamma*speye(size(x,1));
         end
         x0     = x;
         g      = gNew;
