@@ -80,16 +80,16 @@ classdef ChemicalTransportLogModel < WaterModel
 
         function [variableNames, pressure, logComponents, logMasterComponents, combinationComponents,...
                    logSaturationIndicies, logPartialPressures,...
-                   logSurfaceActivityCoefficients] = prepStateForEquations(model, state);
+                   logSurfaceActivityCoefficients] = prepStateForEquations(model, state)
             
             chemModel = model.chemicalModel;
 
-            logComponentNames = chemModel.logSpeciesNames;
+            logComponentNames       = chemModel.logSpeciesNames;
             logMasterComponentNames = chemModel.logElementNames;
-            logSolidNames = chemModel.logSolidNames;
-            logGasNames = chemModel.logGasNames;
-            combinationNames = chemModel.combinationNames;
-            logSurfActNames = chemModel.logSurfaceActivityCoefficientNames;
+            logSolidNames           = chemModel.logSolidNames;
+            logGasNames             = chemModel.logGasNames;
+            combinationNames        = chemModel.combinationNames;
+            logSurfActNames         = chemModel.logSurfaceActivityCoefficientNames;
             
             
             variableNames = ['pressure', logComponentNames, logMasterComponentNames, logGasNames, logSolidNames, logSurfActNames];
@@ -141,7 +141,6 @@ classdef ChemicalTransportLogModel < WaterModel
                 logSurfaceActivityCoefficients{i} = variableValues{ind};
             end
             
-           
             ind = strcmpi('pressure', variableNames);
             pressure = variableValues{ind};
       
@@ -209,7 +208,7 @@ classdef ChemicalTransportLogModel < WaterModel
                                                           dt, drivingForces) %#ok
             [state, report] = updateAfterConvergence@WaterModel(model, state0, ...
                                                               state, dt, drivingForces);
-                                  
+
             
             h = findobj('tag', 'convergedfig');
             if isempty(h)
@@ -219,7 +218,8 @@ classdef ChemicalTransportLogModel < WaterModel
             end
             set(0, 'currentfigure', h)
             clf
-            plot(log10(state.species*litre/mol));
+
+            plot(log(state.species));
             title('components - converged');
             legend(model.chemicalModel.speciesNames);
 
@@ -231,7 +231,7 @@ classdef ChemicalTransportLogModel < WaterModel
             end
             set(0, 'currentfigure', h)
             clf
-            plot(log10(state.elements*litre/mol));
+            plot(log(state.elements));
             title('master components - converged');
             legend(model.chemicalModel.elementNames);
             drawnow;
