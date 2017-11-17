@@ -1,0 +1,14 @@
+The objective functions to measure the uplift have the form
+          \Sigma_iy_i^p dt_i
+where y_i is the displacement at top node at time step i and p is a given exponent value.
+
+We want to decrease the uplift by modifying the values of q_i, which are the water injection rates at time step i. We use the gradients computed using the adjoint formulation. To compare the exponents, we impose that the cumulative change, given \Sigma_i\delta q_i dt_{i} is the same in all cases.  
+
+{\bfObservations:} High exponents will naturally target the maximum value. Indeed, we have formally that
+          max_i(y_i) = lim_{p\rightarrow\infty}(\Sigma_{i}y_{i}^{p} dt_i)^{1/p}
+
+\bullet We see that the largest exponent p=50 decreases dramatically the value at the point where the maximum was, but the overall maximum is not significantly decreased. 
+
+\bullet The exponent p=1 yields a decrease of the time average of the uplift but do not target the maximum especially. 
+
+\bullet The intermediate value p=10 manages the best decrease of the maximum.

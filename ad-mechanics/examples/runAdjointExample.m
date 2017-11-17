@@ -275,9 +275,9 @@ topnode = G.faces.nodes(G.faces.nodePos(topface)); % takes one node from the
 
 laststep = numel(states);
 uplift = @(step) (computeUpliftForState(model, states{step}, topnode));
-uplifts = @()(arrayfun(uplift, (1 : laststep)'));
+uplifts = arrayfun(uplift, (1 : laststep)');
 figure
-plot(ctime/day, uplifts(), 'o-');
+plot(ctime/day, uplifts, 'o-');
 title('uplift values');
 xlabel('time (in days)');
 
@@ -304,72 +304,24 @@ xlabel('time (in days)');
 
 
 
-%% Compute gradients using the adjoint formulation for different exponent
+%% Compute gradients using the adjoint formulation for two different exponents
 
-exponent = 1; % corresponds to the classical average
-C = 1e3; % For large exponent we need to scale the values to avoid very large
-         % or very small objective function
-objUpliftFunc = @(tstep) objUpliftAver(model, states, schedule, topnode, ...
-                                       'tStep', tstep, 'computePartials', true, ...
-                                       'exponent', exponent, ...
-                                       'normalizationConstant', C);
-adjointGradient1 = computeGradientAdjointAD(initState, states, model, schedule, objUpliftFunc);
+np               = 3;
+exponents        = cell(np, 1);
+adjointGradients = cell(np, 1);
 
+exponents = {1; 10; 50};
 
-%% We choose a large exponent values
-%
-% For the injection values we have chosen, the uplift is first increasing and
-% then decreasing.
-%
-% Let us imagine that we want to control this uplift and find injection rates
-% which will, for example, reduce this uplift.  We need to run an optimization
-% algorithm and we are interested to get the derivative of the uplift
-% function. By choosing a large exponent in the average sum of the uplift values
-% (see comments above), we increase the sensitivity of the objective function
-% with respect to the maximal values.
-
-exponent = 100; % Large exponent value
-
-C = 1e3; % For large exponent we need to scale the values to avoid very large
-         % or very small objective function
-objUpliftFunc = @(tstep) objUpliftAver(model, states, schedule, topnode, ...
-                                       'tStep', tstep, 'computePartials', true, ...
-                                       'exponent', exponent, ...
-                                       'normalizationConstant', C);
-adjointGradient2 = computeGradientAdjointAD(initState, states, model, schedule, objUpliftFunc);
-
-% Note that we can change the objective function and compute the derivative
-% *without* run the simulation again.
-
-figure
-clf
-plot(ctime/day, uplifts(), 'o-');
-ylabel('uplift values');
-xlabel('time (in days)');
-hold on
-yyaxis right
-
-grads1 = cell2mat(adjointGradient1);
-qWgrad1 = grads1(1, :);
-% we renormalize the gradients to compare the two series of values (p=1, p=100)
-qWgrad1 = 1/max(qWgrad1)*qWgrad1;
-plot(ctime/day, qWgrad1, '*-');
-
-grads2 = cell2mat(adjointGradient2);
-qWgrad2 = grads2(2, :);
-qWgrad2 = 2/max(qWgrad2)*qWgrad2;
-plot(ctime/day, qWgrad2, '*-');
-
-ylabel('gradient value')
-legend('uplift value', 'exponent = 1', 'exponent = 100');
-
-%% Comparison between the two exponents
-%
-%
-% The derivatives of the objective function computed for p=100 have a peak in
-% the region where the uplift is maximum. In an optimization framework, by
-% modifying correspondingly the injection values, we can expect to reduce the
-% amplitude of this maximum uplift.
+for p = 1 : np
+    C = 1e3; % For large exponents we need to scale the values to avoid very large
+             % or very small objective function
+    objUpliftFunc = @(tstep) objUpliftAver(model, states, schedule, topnode, ...
+                                           'tStep', tstep, 'computePartials', true, ...
+                                           'exponent', exponents{p}, ...
+                                           'normalizationConstant', C);
+    adjointGradients{p} = computeGradientAdjointAD(initState, states, model, ...
+                                                   schedule, objUpliftFunc);
+end
 
 
 %% We can check the results from the adjoint computation by using finite difference
@@ -389,3 +341,129 @@ if compute_numerical_derivative
                                            objUpliftFunc2, 'perturbation', ...
                                            1e-7);
 end
+
+
+%% We choose a large exponent value
+%
+% For the injection values we have chosen, the uplift is first increasing and
+% then decreasing.
+%
+% Let us imagine that we want to control this uplift and find injection rates
+% which will, for example, reduce this uplift.  We need to run an optimization
+% algorithm and we are interested to get the derivative of the uplift
+% function. By choosing a large exponents in the average sum of the uplift values
+% (see comments above), we increase the sensitivity of the objective function
+% with respect to the maximal values.
+
+
+% Note that we can change the objective function and compute the derivative
+% *without* run the simulation again.
+
+figure
+clf
+plot(ctime/day, uplifts(), 'o-');
+ylabel('uplift values');
+xlabel('time (in days)');
+hold on
+yyaxis right
+
+legendtext = {'uplift value'};
+for p = 1 : np
+    grads = cell2mat(adjointGradients{p});
+    qWgrad = grads(1, :);
+    % we renormalize the gradients to compare the two series of values
+    qWgrad = 1/max(qWgrad)*qWgrad;
+    plot(ctime/day, qWgrad, '*-');
+    legendtext{end + 1} = sprintf('exponents = %g', exponents{p});
+end
+
+ylabel('gradient value')
+legend(legendtext);
+
+
+
+
+%% Comparison between the two exponents
+%
+
+inituplifts = uplifts;
+initschedule = schedule;
+dts = schedule.step.val;
+nsteps = numel(dts);
+ctime = cumsum(schedule.step.val);
+tottime = ctime(end);
+
+np      = numel(adjointGradients);
+uplifts = cell(np, 1);
+qWs     = cell(np, 1);
+
+dcqW = 3e-2*meter^3/day*tottime; % this is the total amount of injected fluid we
+                                 % are willing to decrease.
+
+for p = 1 : np
+
+    grads = cell2mat(adjointGradients{p});
+
+    qW = zeros(nsteps, 1);
+    dqW = cell(2, 1);
+    for i = 1 : 2
+        dqW{i} = grads(i, :);
+        dqW{i} = dcqW/(dqW{i}*dts)*dqW{i};
+    end
+
+    schedule = initschedule;
+    for i = 1 : numel(schedule.step.control)
+        W = schedule.control(i).W;
+        W(1).val = W(1).val - dqW{1}(i);
+        W(2).val = W(2).val - dqW{2}(i);
+        schedule.control(i) = struct('W', W);
+        qW(i) = W(1).val;
+    end
+
+    qWs{p} = qW;
+
+    figure(p)
+    clf
+    plot(ctime/day, qW*day);
+    title(sprintf('Injection rate (m^3/day) - schedule number %g', p));
+    xlabel('time (day)')
+
+
+    [wellSols, states] = simulateScheduleAD(initState, model, schedule);
+
+    nsteps = numel(states);
+    uplift = @(step) (computeUpliftForState(model, states{step}, topnode));
+    uplifts{p} = arrayfun(uplift, (1 : nsteps)');
+
+end
+
+figure(np + 1)
+set(gcf, 'position', [100, 100, 1500, 600]);
+clf
+subplot(1, 2, 2)
+hold on
+plot(ctime/day, inituplifts);
+legendtext = {'original uplift value'};
+for p = 1 : np
+    plot(ctime/day, uplifts{p});
+    legendtext{end + 1} = sprintf('updated uplift (p=%g)', exponents{p});
+end
+xlabel('time (in days)');
+legend(legendtext);
+
+% Add some comments to the plot
+[y, ind] = max(inituplifts);
+x        = ctime(ind)/day;
+set(gca, 'position', [0.5, 0.1, 0.4, 0.8], 'units', 'normalized')
+xlim     = get(gca, 'xlim');
+ylim     = get(gca, 'ylim');
+apos  = get(gca, 'position');
+xn = apos(1) + (x - xlim(1))/(xlim(2) - xlim(1))*apos(3);
+yn = apos(2) + (y - ylim(1))/(ylim(2) - ylim(1))*apos(4);
+annotation('textarrow', [xn, xn], [0.5, yn], 'string', 'maximum uplift');
+
+subplot(1, 2, 1)
+axis off
+comments =  fileread('commentsToPlot.tex');
+annotation('textbox', 'units', 'normalized', 'position', [0.05 0.1 0.4 0.8], ...
+            'interpreter', 'tex', 'string', comments)
