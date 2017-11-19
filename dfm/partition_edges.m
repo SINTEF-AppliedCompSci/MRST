@@ -1,3 +1,5 @@
+function [vertices, new_edges, map] = ...
+                        partition_edges(vertices, old_edges, space, box, opts)
 % [vertices, new_edges, num_added] = ...
 %                      partition_edges (vertices, old_edges, space, box, opts)
 %
@@ -10,8 +12,6 @@
 % Portions Copyright (C) 2006-2007 Uni Research AS
 % This file is licensed under the GNU General Public License v3.0.
 
-function [vertices, new_edges, map] = ...
-                        partition_edges (vertices, old_edges, space, box, opts)
    new_edges = [];
    map = [];
 

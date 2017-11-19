@@ -1,4 +1,4 @@
-function [vertices, edges] = removeFractureIntersections (vertices, edges, box, opts)
+function [vertices, edges] = removeFractureIntersections(vertices, edges, box, opts)
 % Partition intersecting edges by adding a point in the intersection.
 %
 % Copyright 2011-2012 University of Bergen

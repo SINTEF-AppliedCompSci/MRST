@@ -1,4 +1,4 @@
-function [G]=addhybrid(G,hybrids,apertures,varargin)
+function [G] = addhybrid(G, hybrids, apertures, varargin)
 % Add hybrid cells to the grid structure.
 %
 % A hybrid cell can be considered a lower-dimensional object in the

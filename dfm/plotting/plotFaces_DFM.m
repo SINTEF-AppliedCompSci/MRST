@@ -1,4 +1,4 @@
-function varargout = plotFaces(G, faces, varargin)
+function varargout = plotFaces_DFM(G, faces, varargin)
 %Plot selection of coloured grid faces to current axes (reversed Z axis).
 %
 % This function has been modified from the original plotGrid to account for

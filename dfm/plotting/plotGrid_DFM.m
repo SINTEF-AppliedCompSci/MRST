@@ -1,4 +1,4 @@
-function varargout = plotGrid(G, varargin)
+function varargout = plotGrid_DFM(G, varargin)
 %Plot exterior grid faces to current axes (reversed Z axis).
 %
 % This function has been modified from the original plotGrid to account for

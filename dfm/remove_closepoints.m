@@ -1,5 +1,5 @@
 function [new_points] = ...
-    remove_closepoints (vertices, edges, old_points, tol)
+    remove_closepoints(vertices, edges, old_points, tol)
 % Remove all points that are too close to the lines, since these will only
 % cause slivers.
 

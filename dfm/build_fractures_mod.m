@@ -1,4 +1,4 @@
-function [vertices, edges, box] = build_fractures_mod (opts)
+function [vertices, edges, box] = build_fractures_mod(opts)
 % Build fracture network that serves as constraints in the triangulation.
 %
 % Currently only odp-files are read, but other user-specified formats can

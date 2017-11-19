@@ -1,3 +1,4 @@
+function [pt] = lines_intersect(x_a_1,y_a_1,x_b_1,y_b_1,x_a_2,y_a_2,x_b_2,y_b_2)
 % [pt] = lines_intersect (vertices, edge1, edge2)
 %
 % Determine the intersection between two lines, if any. t will either be
@@ -9,7 +10,6 @@
 % Portions Copyright (C) 2006-2007 Uni Research AS
 % This file is licensed under the GNU General Public License v3.0.
 
-function [pt] = lines_intersect (x_a_1,y_a_1,x_b_1,y_b_1,x_a_2,y_a_2,x_b_2,y_b_2)
   % dissect the input into individual coordinates. index into edgeX array
   % is the point (a or b) on line X. second index into vertices is the
   % coordinate (x or y) for that point. read the names of these variables

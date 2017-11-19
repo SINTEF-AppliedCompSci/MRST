@@ -1,4 +1,4 @@
-function [vertices, edges, box] = read_openoffice (filename, ext, opts)
+function [vertices, edges, box] = read_openoffice(filename, ext, opts)
 % Read fractures drawn in Libreoffice, and represent them as points and
 % edges.
 %

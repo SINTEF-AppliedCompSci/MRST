@@ -1,4 +1,4 @@
-function [vertices, i, new_point] = add_point (vertices, pt, box, opts)
+function [vertices, i, new_point] = add_point(vertices, pt, box, opts)
 % Add a new point to the cloud.
 %
 % Ensure the existence of a point in the vertex set if it is not already

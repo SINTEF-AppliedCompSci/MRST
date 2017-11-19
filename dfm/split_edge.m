@@ -1,5 +1,5 @@
 function [vertices, edges, new_line] = ...
-    split_edge (vertices, edges, i, pt, box, opts)
+    split_edge(vertices, edges, i, pt, box, opts)
 % Split an edge into two parts
 %
 % Create two new edges from one old. Split an edge at index i into two

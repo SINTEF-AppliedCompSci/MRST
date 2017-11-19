@@ -1,3 +1,4 @@
+function plotDual_DFM(G, dual)
 % Plot an implicitly defined dual grid for the multiscale finite volume method
 %
 % SYNOPSIS:
@@ -12,8 +13,6 @@
 %  Copyright 2013 IRIS AS
 %
 %  This file is licensed under the GNU General Public License v3.0.
-
-function plotDual_DFM(G, dual)
 
 RGB = @(r,g,b,i) [r/(i*255) g/(i*255) b/(i*255)];
 plot(G.cells.centroids(dual.nn,1),G.cells.centroids(dual.nn,2),'*');

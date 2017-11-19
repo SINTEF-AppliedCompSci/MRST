@@ -1,4 +1,4 @@
-function [T, A, q] = computeTimeOfFlight(state, G, rock,  varargin)
+function [T, A, q] = computeTimeOfFlight_DFM(state, G, rock,  varargin)
 %Compute time of flight using finite-volume scheme.
 %
 % MODIFIED FROM computeTimeOfFlight.m to allow for cell 2 cell connections

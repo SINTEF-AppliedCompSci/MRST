@@ -1,4 +1,4 @@
-function [vertices] = snap_to_grid (vertices, box, opts)
+function [vertices] = snap_to_grid(vertices, box, opts)
 %
 % Move vertices to the closest (structured) grid point.
 %
