@@ -1,4 +1,5 @@
 function deck = readRUNSPEC(fid, dirname, deck)
+% Read runspec
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

@@ -1,4 +1,5 @@
 function deck = readEDIT(fid, dirname, deck)
+% Read edit
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

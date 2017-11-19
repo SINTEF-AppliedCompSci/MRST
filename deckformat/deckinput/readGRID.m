@@ -1,5 +1,6 @@
 function deck = readGRID(fid, dirname, deck)
 % deck = readGRID(fid, dirname, deck)
+
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 

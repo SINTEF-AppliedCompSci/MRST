@@ -1,5 +1,6 @@
 function deck = readPROPS(fid, dirname, deck)
 % deck = readPROPS(fid, dirname, deck)
+
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 

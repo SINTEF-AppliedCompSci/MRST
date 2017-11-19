@@ -1,4 +1,4 @@
-function endboxKeyword
+function endboxKeyword()
 %Uniform handling of ENDBOX keyword
 %
 % SYNOPSIS:

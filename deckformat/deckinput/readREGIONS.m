@@ -1,4 +1,5 @@
 function deck = readREGIONS(fid, dirname, deck)
+% Read regions
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
