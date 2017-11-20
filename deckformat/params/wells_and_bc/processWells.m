@@ -213,7 +213,8 @@ function W = process_wconinje(W, control, G, rock, well_id, p, opt)
           dispif(opt.Verbose, ...
                  ['Control mode ''%s'' unsupported for injector ', ...
                   '''%s''.  Ignored.\n'], upper(type), nm);
-          continue
+          %continue
+          val = 0;
       end
 
 
@@ -360,7 +361,8 @@ function W = process_wconhist(W, control, G, rock, well_id, p, opt)
           dispif(opt.Verbose, ...
                  ['Control mode ''%s'' unsupported for producer ', ...
                   '''%s''.  Ignored.\n'], upper(type), nm);
-          continue
+          %continue
+          val = 0;
       end
 
       sizeW = numel(W);
@@ -451,7 +453,9 @@ function W = process_wconprod(W, control, G, rock, well_id, p, opt)
           dispif(opt.Verbose, ...
                  ['Control mode ''%s'' unsupported for producer ', ...
                   '''%s''.  Ignored.\n'], upper(type), nm);
-          continue
+          %continue
+          val = [];
+          compi = [0 1 0]; 
       end
 
       sizeW = numel(W);
