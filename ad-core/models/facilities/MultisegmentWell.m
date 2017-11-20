@@ -182,7 +182,7 @@ classdef MultisegmentWell < SimpleWell
                 sc = state.s(wc,:);
                 pc = state.pressure(wc);
                 % compute connecting cells props:
-                [krw, kro, krg] = resmodel.relPermWOG(sc(:,1), sc(:,2), sc(:,3), resmodel.fluid);
+                [krw, kro, krg] = resmodel.relPermWOG(sc(:,1), sc(:,2), sc(:,3), resmodel.fluid, 'cellInx', wc);
                 muw = resmodel.fluid.muW(pc);
                 bw = resmodel.fluid.bW(pc);
                 if resmodel.disgas
