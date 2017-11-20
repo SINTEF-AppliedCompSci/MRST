@@ -21,7 +21,7 @@ classdef MechanicModel < PhysicalModel
 % RETURNS:
 %   class instance
 %
-% EXAMPLE: run2DCase, runAllNorneExamples
+% EXAMPLE: run2DCase, runNorneExample
 %
 % SEE ALSO: MechBlackOilModel.m, MechOilWaterModel.m, MechWaterModel.m, MechFluidFixedStressSplitModel.m
 %

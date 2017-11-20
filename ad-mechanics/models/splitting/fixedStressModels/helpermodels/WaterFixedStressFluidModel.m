@@ -17,7 +17,7 @@ classdef WaterFixedStressFluidModel < WaterModel
 % RETURNS:
 %   class instance
 %
-% EXAMPLE: run2DCase, runAllNorneExamples
+% EXAMPLE: run2DCase, runNorneExample
 %
 % SEE ALSO: WaterModel, MechFluidFixedStressSplitModel, MechFluidSplitModel
 %

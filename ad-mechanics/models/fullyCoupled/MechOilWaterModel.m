@@ -16,7 +16,7 @@ classdef MechOilWaterModel < MechFluidModel
 % RETURNS:
 %   class instance
 %
-% EXAMPLE: run2DCase, runAllNorneExamples
+% EXAMPLE: run2DCase, runNorneExample
 %
 %
 % SEE ALSO: MechBlackOilModel.m, MechWaterModel, MechFluidModel

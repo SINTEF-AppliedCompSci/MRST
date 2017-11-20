@@ -16,7 +16,7 @@ classdef BlackOilFluidModel < ThreePhaseBlackOilModel
 % RETURNS:
 %   class instance
 %
-% EXAMPLE: run2DCase, runAllNorneExamples
+% EXAMPLE: run2DCase, runNorneExample
 %
 % SEE ALSO: MechFluidModel 
 %

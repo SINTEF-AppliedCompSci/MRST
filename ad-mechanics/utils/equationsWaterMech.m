@@ -28,7 +28,7 @@ function [eqs, names, types, state] = equationsWaterMech(p0, state0, p, wellVars
 %   types - The type of each equations
 %   state - Some field related to well control of the state variables may be updated.
 %
-% EXAMPLE: run2DCase, runAllNorneExamples
+% EXAMPLE: run2DCase, runNorneExample
 %
 % SEE ALSO: equationsWater
 %

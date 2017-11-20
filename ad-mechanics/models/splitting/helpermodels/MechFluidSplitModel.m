@@ -21,7 +21,7 @@ classdef MechFluidSplitModel < ReservoirModel
 % RETURNS:
 %   class instance
 %
-% EXAMPLE: run2DCase, runAllNorneExamples
+% EXAMPLE: run2DCase, runNorneExample
 %
 % SEE ALSO: MechFluidFixedStressSplitModel
 %
