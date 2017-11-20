@@ -21,7 +21,8 @@ if nargin < 2
     NNC = [];
 end
 
-opt     = struct('neighbors', []);
+opt     = struct('neighbors', [], ...
+                 'checkConsistency', true);
 opt     = merge_options(opt, varargin{:});
 
 nc   = G.cells.num;
@@ -77,7 +78,9 @@ if ~isempty(NNC)
     ix.sN = s1.*s2;
 end
 % Perfrom some consistency-checks:
-checkConsistency(ix, NNC, ie)
+if opt.checkConsistency
+    checkConsistency(ix, NNC, ie)
+end
 end
 
 %% ------------------------------------------------------------------------
@@ -89,13 +92,13 @@ if ~isempty(NNC)
     if n_fail~=0
         warning('Non compatible grid! Found %d NNCs not occuring in grid.', n_fail);
     end
-end
-% Check for non-assigend grid-faces
-ii = ix.iI + ix.iJ + ix.iK;
-ii(ix.iN) = true;
-n_fail = nnz(~ii(ie));
-if n_fail > 0
-    warning('Non compatible grid! Found %d interior grid-faces not occuring in output.', n_fail)
+    % Check for non-assigend grid-faces
+    ii = ix.iI + ix.iJ + ix.iK;
+    ii(ix.iN) = true;
+    n_fail = nnz(~ii(ie));
+    if n_fail > 0
+        warning('Non compatible grid! Found %d interior grid-faces not occuring in output.', n_fail)
+    end
 end
 end
 
