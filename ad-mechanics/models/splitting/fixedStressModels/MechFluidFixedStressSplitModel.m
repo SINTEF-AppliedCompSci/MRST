@@ -2,24 +2,54 @@ classdef MechFluidFixedStressSplitModel < MechFluidSplitModel
 %
 %
 % SYNOPSIS:
-%   model = MechFluidFixedStressSplitModel(G, rock, fluid, ...
+%   MechFluidFixedStressSplitModel(G, rock, fluid, mech_problem, varargin)
 %
 % DESCRIPTION: Model for the fixed stress splitting method. The model contains a
 % mechanic and fluid model, see MechFluidSplitModel. Different fluid models can
 % be used, see setupFluidModel member function.
 %
-% This model essentially overwrites the stepFunction member function. There, the
+% This model essentially overwrites the member function stepFunction. There, the
 % mechanic equations are solved for a given pore (fluid) pressure. Then, a
 % strain-pressure relation is established (see computeMechTerm member function)
 % assuming that the total stress is constant. Finally, the fluid equation is
 % solved.
 %
+%
 % PARAMETERS:
+%   G            - grid structure
+%   rock         - rock structure
+%   fluid        - fluid structure
+%   mech_problem - structure containing mechanical parameters
+%   varargin     - 
+%
+% RETURNS:
+%   class instance
+%
+% EXAMPLE: run2DCase, runAllNorneExamples 
 %
 % SEE ALSO: MechFluidSplitModel and the fluid models
 % BlackOilFixedStressFluidModel, OilWaterFixedStressFluidModel,
 % WaterFixedStressFluidModel
 %
+%{
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
 
 
     methods

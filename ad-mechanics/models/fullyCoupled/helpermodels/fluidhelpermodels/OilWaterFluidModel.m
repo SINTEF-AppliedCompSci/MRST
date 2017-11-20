@@ -4,8 +4,9 @@ classdef OilWaterFluidModel < TwoPhaseOilWaterModel
 % SYNOPSIS:
 %   model = OilWaterFluidModel(G, rock, fluid, varargin)
 %
-% DESCRIPTION: This model is derived from the fluid model TwoPhaseOilWaterModel
-% and is added some few functionalities that are needed in the coupled solver.
+% DESCRIPTION: This model is for the fluid part of a fully coupled poroelastic
+% simulation. It is is derived from the fluid model TwoPhaseOilWaterModel and
+% some few functionalities that are needed for the coupled solver are added.
 %
 % PARAMETERS:
 %   G        - Grid structure
@@ -15,7 +16,7 @@ classdef OilWaterFluidModel < TwoPhaseOilWaterModel
 % RETURNS:
 %   class instance
 %
-% EXAMPLE:
+% EXAMPLE: run2DCase, runAllNorneExamples
 %
 % SEE ALSO: MechFluidModel 
 %

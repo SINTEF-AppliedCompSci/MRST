@@ -4,9 +4,9 @@ classdef WaterFluidModel < WaterModel
 % SYNOPSIS:
 %   model = WaterFluidModel(G, rock, fluid, varargin)
 %
-% DESCRIPTION: This model is derived from the fluid model
-% WaterModel and is added some few functionalities that are needed
-% in the coupled solver.
+% DESCRIPTION: This model is for the fluid part of a fully coupled poroelastic
+% simulation. It is derived from the fluid model WaterFluidModel and some few
+% functionalities that are needed for the coupled solver are added.
 %
 %
 % PARAMETERS:
@@ -17,7 +17,7 @@ classdef WaterFluidModel < WaterModel
 % RETURNS:
 %   class instance
 %
-% EXAMPLE:
+% EXAMPLE: run2DCase, runAllNorneExamples
 %
 % SEE ALSO: MechFluidModel 
 %

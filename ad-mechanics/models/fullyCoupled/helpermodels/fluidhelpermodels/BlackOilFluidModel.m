@@ -4,9 +4,9 @@ classdef BlackOilFluidModel < ThreePhaseBlackOilModel
 % SYNOPSIS:
 %   model = BlackOilFluidModel(G, rock, fluid, varargin)
 %
-% DESCRIPTION: This model is derived from the fluid model
-% ThreePhaseBlackOilModel and is added some few functionalities that are needed
-% in the coupled solver.
+% DESCRIPTION: This model is for the fluid part of a fully coupled poroelastic
+% simulation. It is derived from the fluid model ThreePhaseBlackOilModel and
+% some few functionalities that are needed for the coupled solver are added.
 %
 % PARAMETERS:
 %   G        - Grid structure
@@ -16,7 +16,7 @@ classdef BlackOilFluidModel < ThreePhaseBlackOilModel
 % RETURNS:
 %   class instance
 %
-% EXAMPLE:
+% EXAMPLE: run2DCase, runAllNorneExamples
 %
 % SEE ALSO: MechFluidModel 
 %

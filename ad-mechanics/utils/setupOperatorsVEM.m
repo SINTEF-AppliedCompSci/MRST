@@ -21,7 +21,7 @@ function operators = setupOperatorsVEM(G, C, el_bc, load, alpha_scaling, S)
 %
 % EXAMPLE:
 %
-% SEE ALSO: VEM_linElast
+% SEE ALSO: VEM_linElast, MechanicalModel 
 %
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

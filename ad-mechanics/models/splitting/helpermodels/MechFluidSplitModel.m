@@ -4,10 +4,11 @@ classdef MechFluidSplitModel < ReservoirModel
 % SYNOPSIS:
 %   model = MechFluidSplitModel(G, rock, fluid, mech_problem, varargin)
 %
-% DESCRIPTION: Base class for mechanics-flow splitting. Possibility to implement
-% different splitting. For the moment, only fixed-stress splitting is
-% implemented. The model contains a mechanical and fluid model, which can
-% independently handle the mechanical and fluid system of equations.
+% DESCRIPTION: Base class for mechanics-flow splitting models. It offers the
+% Possibility to implement different splitting. For the moment, only
+% fixed-stress splitting is implemented. The model contains a mechanical and
+% fluid model, which can independently handle the mechanical and fluid systems
+% of equations.
 %
 
 %
@@ -20,7 +21,7 @@ classdef MechFluidSplitModel < ReservoirModel
 % RETURNS:
 %   class instance
 %
-% EXAMPLE:
+% EXAMPLE: run2DCase, runAllNorneExamples
 %
 % SEE ALSO: MechFluidFixedStressSplitModel
 %

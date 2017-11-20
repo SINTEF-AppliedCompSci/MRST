@@ -4,8 +4,9 @@ classdef BlackOilFixedStressFluidModel < ThreePhaseBlackOilModel
 % SYNOPSIS:
 %   model = BlackOilFixedStressFluidModel(G, rock, fluid, varargin)
 %
-% DESCRIPTION: Blackoil fluid model to be used with fixed stress splitting
-% method. The model handles the fluid equations of the splitting scheme
+% DESCRIPTION: This model handles the fluid equations of the splitting scheme
+% and setup a blackoil fluid model. The model is used in the fixed stress splitting
+% model.
 %
 % PARAMETERS:
 %   G        - Grid
@@ -16,10 +17,28 @@ classdef BlackOilFixedStressFluidModel < ThreePhaseBlackOilModel
 % RETURNS:
 %   class instance
 %
-% EXAMPLE:
+% EXAMPLE: run2DCase, runAllNorneExamples
 %
 % SEE ALSO: ThreePhaseBlackOilModel, MechFluidFixedStressSplitModel, MechFluidSplitModel
 %
+%{
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
 
 
     methods

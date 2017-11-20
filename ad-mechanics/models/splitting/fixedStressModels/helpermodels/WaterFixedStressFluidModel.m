@@ -4,8 +4,9 @@ classdef WaterFixedStressFluidModel < WaterModel
 % SYNOPSIS:
 %   model = WaterFixedStressFluidModel(G, rock, fluid, varargin)
 %
-% DESCRIPTION: Single phase fluid model to be used with fixed stress splitting
-% method. The model handles the fluid equations of the splitting scheme
+% DESCRIPTION: This model handles the fluid equations of the splitting scheme
+% and setup a single phase water fluid model. The model is used in the fixed
+% stress splitting model.
 %
 % PARAMETERS:
 %   G        - Grid
@@ -16,7 +17,7 @@ classdef WaterFixedStressFluidModel < WaterModel
 % RETURNS:
 %   class instance
 %
-% EXAMPLE:
+% EXAMPLE: run2DCase, runAllNorneExamples
 %
 % SEE ALSO: WaterModel, MechFluidFixedStressSplitModel, MechFluidSplitModel
 %
@@ -74,7 +75,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
             otherDrivingForces = rmfield(drivingForces, 'fixedStressTerms');
 
-            [eqs, names, types, state] = equationsWaterMech(state0, p, ...
+            [eqs, names, types, state] = equationsWaterMech(p0, state0, p, ...
                                                             wellVars, state, ...
                                                             model, dt, ...
                                                             mechTerm, ...

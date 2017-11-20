@@ -4,8 +4,9 @@ classdef MechanicMechModel < MechanicModel
 % SYNOPSIS:
 %   model = MechanicMechModel(G, rock, mech_problem, varargin)
 %
-% DESCRIPTION: This model is derived from MechanicModel and is added some few
-% functionalities that are needed in the coupled solver
+% DESCRIPTION: This model is for the mechanical part of a fully coupled
+% model. It adds some few functionalities that are needed to couple the solver
+% with a fluid model.
 %
 % PARAMETERS:
 %   G            - Grid structure
@@ -15,10 +16,28 @@ classdef MechanicMechModel < MechanicModel
 % RETURNS:
 %   class instance
 %
-% EXAMPLE:
+% EXAMPLE: run2DCase, runAllNorneExamples
 %
-% SEE ALSO: MechFluidModel 
+% SEE ALSO: MechBlackOilModel, MechOilWaterModel, MechWaterModel  
 %
+%{
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
 
     properties
         % Primary variables that are used in the mechanic system

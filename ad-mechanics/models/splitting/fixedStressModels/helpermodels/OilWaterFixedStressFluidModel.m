@@ -4,8 +4,9 @@ classdef OilWaterFixedStressFluidModel < TwoPhaseOilWaterModel
 % SYNOPSIS:
 %   model = OilWaterFixedStressFluidModel(G, rock, fluid, varargin)
 %
-% DESCRIPTION: Two phase oil-water model to be used with fixed stress splitting
-% method. The model handles the fluid equations of the splitting scheme
+% DESCRIPTION: This model handles the fluid equations of the splitting scheme
+% and setup a two phase oil water fluid model. The model is used in the fixed stress splitting
+% model.
 %
 % PARAMETERS:
 %   G        - Grid
@@ -16,7 +17,7 @@ classdef OilWaterFixedStressFluidModel < TwoPhaseOilWaterModel
 % RETURNS:
 %   class instance
 %
-% EXAMPLE:
+% EXAMPLE: run2DCase, runAllNorneExamples
 %
 % SEE ALSO: TwoPhaseOilWaterModel, MechFluidFixedStressSplitModel, MechFluidSplitModel
 %
@@ -59,7 +60,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             opt = merge_options(opt, varargin{:});
 
             [p, sW, wellSol] = model.getProps(state, 'pressure', 'sw', 'wellsol');
-            p0 = model.getProp(state0, 'pressure');
+            [p0, sW0] = model.getProps(state0, 'pressure', 'sw');
             [wellVars, wellVarNames, wellMap] = ...
                 model.FacilityModel.getAllPrimaryVariables(wellSol);
 
@@ -74,10 +75,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
             otherDrivingForces = rmfield(drivingForces, 'fixedStressTerms');
 
-            [eqs, names, types, state] = equationsOilWaterMech(state0, p, sW, ...
-                                                              wellVars, state, ...
-                                                              model, dt, ...
-                                                              mechTerm, ...
+            [eqs, names, types, state] = equationsOilWaterMech(p0, sW0, state0, ...
+                                                              p, sW, wellVars, ...
+                                                              state, model, ...
+                                                              dt, mechTerm, ...
                                                               otherDrivingForces, ...
                                                               'iteration', ...
                                                               opt.iteration);

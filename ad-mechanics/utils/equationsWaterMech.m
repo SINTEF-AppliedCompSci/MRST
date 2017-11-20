@@ -4,23 +4,22 @@ function [eqs, names, types, state] = equationsWaterMech(p0, state0, p, wellVars
 %
 %
 % SYNOPSIS:
-%   function [eqs, names, types, state] = equationsWaterMech(state0, p, wellVars, state, model, dt, mechTerm, drivingForces, varargin)
+%   function [eqs, names, types, state] = equationsWaterMech(p0, state0, p, wellVars, state, model, dt, mechTerm, drivingForces, varargin)
 %
-% DESCRIPTION: This function is very similar to equationsWater. The
-% difference here is that it also takes as input mechanical terms, and the ADI
-% initialization is not done here but by the model in the getEquations member
-% function.
+% DESCRIPTION:
 %
 % PARAMETERS:
-%   state0        - State at previous time step
-%   p             - Pressure
+%   p0            - pressure (previous time step)
+%   state0        - state    (previous time step)
+%   p             - pressure
 %   wellVars      - Well variables
-%   state         - State at given time step
-%   model         - Model class instance that is used.
-%   dt            - Time step
-%   mechTerm      - Mechanical input which will enter the computation of the
+%   state         - state (current time step)
+%   model         - model class instance that is used.
+%   dt            - time step
+%   mechTerm      - mechanical input which will enter the computation of the
 %                   effective porosity
-%   drivingForces - Structure that gathers the well parameters and boundary conditions.
+%   drivingForces - structure that gathers the well parameters and boundary conditions.
+%   varargin      - 
 %
 % RETURNS:
 %   eqs   - The residual values as ADI variables (that is with the Jacobian)
@@ -29,7 +28,7 @@ function [eqs, names, types, state] = equationsWaterMech(p0, state0, p, wellVars
 %   types - The type of each equations
 %   state - Some field related to well control of the state variables may be updated.
 %
-% EXAMPLE:
+% EXAMPLE: run2DCase, runAllNorneExamples
 %
 % SEE ALSO: equationsWater
 %

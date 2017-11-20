@@ -4,13 +4,40 @@ function [eqs, names, types, state] = equationsOilWaterMech(p0, sW0, state0, ...
                                                             drivingForces, varargin)
 %
 %
-% SYNOPSIS: function [eqs, names, types, state] = equationsOilWaterMech(p0, sW0,
-%   state0, p, sW, wellVars, state, model, dt, mechTerm, drivingForces, varargin)
+% SYNOPSIS:
+%   function [eqs, names, types, state] = equationsOilWaterMech(p0, sW0, state0, p, sW, wellVars, state, model, dt, mechTerm, drivingForces, varargin)
 %
-% DESCRIPTION: This function is very similar to equationsOilWater. The
-% difference here is that it also takes as input mechanical terms, and the ADI
-% initialization is not done here but by the model in the getEquations member
-% function.
+% DESCRIPTION:
+%
+% PARAMETERS:
+%   p0            - pressure   (for previous time step)  
+%   sW0           - saturation (for previous time step)
+%   state0        - state      (for previous time step)
+%   p             - pressure
+%   sW            - saturation
+%   wellVars      - well variables
+%   state         - current state
+%   model         - model class instance that is used
+%   dt            - time step size
+%   mechTerm      - mechanical input which will enter the computation of the
+%                   effective porosity
+%   drivingForces - structure that gathers the well parameters and boundary conditions.
+%   varargin      - 
+%
+% RETURNS:
+%   eqs   - The residual values as ADI variables (that is with the Jacobian)
+%           if the inputs were also ADI.
+%   names - The name of each equations
+%   types - The type of each equations
+%   state - Some field related to well control of the state variables may be updated.
+%
+% EXAMPLE: run2DCase, runAllNorneExamples
+%
+% SEE ALSO: equationOilWater
+%
+
+%
+%
 %
 % PARAMETERS:
 %   p             - Pressure
@@ -19,7 +46,7 @@ function [eqs, names, types, state] = equationsOilWaterMech(p0, sW0, state0, ...
 %   state         - State at given time step
 %   p0            - Pressure (for previous time step)
 %   sW0           - Saturation (for previous time step)
-%   state0         - State at given time step (for previous time step)
+%   state0        - State at given time step (for previous time step)
 %   model         - Model class instance that is used.
 %   dt            - Time step
 %   mechTerm      - Mechanical input which will enter the computation of the

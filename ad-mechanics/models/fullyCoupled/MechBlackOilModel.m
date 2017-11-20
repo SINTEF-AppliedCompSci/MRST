@@ -4,8 +4,8 @@ classdef MechBlackOilModel < MechFluidModel
 % SYNOPSIS:
 %   model = MechBlackOilModel(G, rock, fluid, mech_problem, varargin)
 %
-% DESCRIPTION: Model for coupled mechanical fluid simulation. The fluid model
-% is a black oil model.
+% DESCRIPTION: Model for fully coupled mechanical fluid simulation. The fluid model
+% is a blackoil model.
 %
 % PARAMETERS:
 %   G            - grid structure
@@ -16,9 +16,9 @@ classdef MechBlackOilModel < MechFluidModel
 % RETURNS:
 %   class instance
 %
-% EXAMPLE:
+% EXAMPLE: run2DCase, runAllNorneExamples
 %
-% SEE ALSO:
+% SEE ALSO: MechOilWaterModel, MechWaterModel, MechFluidModel
 %
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

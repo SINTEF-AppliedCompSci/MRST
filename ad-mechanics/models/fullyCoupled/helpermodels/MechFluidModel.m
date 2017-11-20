@@ -17,9 +17,9 @@ classdef MechFluidModel < ReservoirModel
 % RETURNS:
 %   class instance
 %
-% EXAMPLE:
+% EXAMPLE: run2DCase, runAllNorneExamples
 %
-% SEE ALSO:
+% SEE ALSO: MechBlackOilModel, MechOilWaterModel, MechWaterModel
 %
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

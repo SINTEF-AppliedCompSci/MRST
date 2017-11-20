@@ -18,9 +18,9 @@ function [eqs, names, types] = equationsPoroMechanics(x, model, fluidp)
 %   names - The name of each equations
 %   types - The type of each equations
 %
-% EXAMPLE:
+% EXAMPLE: 
 %
-% SEE ALSO:
+% SEE ALSO: MechBlackOilModel, MechOilWaterModel, MechWaterModel
 %
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -1,13 +1,15 @@
 classdef MechanicModel < PhysicalModel
+%
 % Model that can handle a mechanical system. The inputs can be standard
 % boundary conditions and body forces for mechanics, but also a fluid
 % pressure, which enters the mechanical equation as grad(pressure).
 %
-% Even if the equations are linear, we will use a standard nonlinear solver
-% (which should converge in one Newton step).
+% Even if the equations are linear, we will use the standard nonlinear solver
+% to solve the system. It does not make any significant difference as the the
+% solver will converge in one Newton step.
 %
 % SYNOPSIS:
-%   model = MechanicModel(G, mech_problem, varargin)
+%   model = MechanicModel(G, rock, mech_problem, varargin)
 %
 % DESCRIPTION:
 %
@@ -19,9 +21,9 @@ classdef MechanicModel < PhysicalModel
 % RETURNS:
 %   class instance
 %
-% EXAMPLE:
+% EXAMPLE: run2DCase, runAllNorneExamples
 %
-% SEE ALSO:
+% SEE ALSO: MechBlackOilModel.m, MechOilWaterModel.m, MechWaterModel.m, MechFluidFixedStressSplitModel.m
 %
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

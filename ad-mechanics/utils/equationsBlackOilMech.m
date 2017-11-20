@@ -1,6 +1,5 @@
 function [eqs, names, types, state] = equationsBlackOilMech(state0, st0, p, sW, x, rs, rv, st, wellVars, state, model, dt, mechTerm, drivingForces, varargin)
 %
-%
 % SYNOPSIS:
 %   function [eqs, names, types, state] = equationsBlackOilMech(state0, st0, p, sW, x, rs, rv, st, wellVars, state, model, dt, mechTerm, drivingForces, varargin)
 %
