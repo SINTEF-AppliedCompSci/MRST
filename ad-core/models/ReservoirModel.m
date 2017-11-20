@@ -845,7 +845,12 @@ methods (Static)
         % Three phase, water / oil / gas relperm.
         swcon = 0;
         if isfield(f, 'sWcon')
-            swcon = f.sWcon;
+            if isempty(varargin) || numel(f.sWcon) == 1
+                swcon = f.sWcon;
+            else
+                assert(strcmp(varargin{1}, 'cellInx'))
+                swcon = f.sWcon(varargin{2});
+            end
         end
         swcon = min(swcon, double(sw)-1e-5);
 
