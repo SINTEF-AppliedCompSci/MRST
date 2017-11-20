@@ -158,6 +158,10 @@ if ~opt.resOnly
     % the first way is based on the diagonal values of the resulting
     % Jacobian matrix
     eps = sqrt(epsilon)*mean(abs(diag(polymer.jac{3})));
+    % sometimes there is no water in the whole domain
+    if (eps == 0.)
+        eps = epsilon;
+    end
     % bad marks the cells prolematic in evaluating Jacobian
     bad = abs(diag(polymer.jac{3})) < eps;
     % the other way is to choose based on the water saturation
