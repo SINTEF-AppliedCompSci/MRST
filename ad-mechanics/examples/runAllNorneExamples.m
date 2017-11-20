@@ -1,7 +1,11 @@
-
-%% Example: Coupling between fluid flow (blackoil model) and rock mechanics (elasticity)
+%% Example: Simulation of poroelasticity on a subset of the Norne case
 % 
+% Same setting as in runAll2Dcases but now for a subset of the Norne
+% case
 %
+% See: runNorneExample and setupNorneExamples
+%
+
 
 mrstModule add ad-mechanics ad-core ad-props ad-blackoil vemmech deckformat mrst-gui
 
@@ -34,81 +38,56 @@ mrstModule add ad-mechanics ad-core ad-props ad-blackoil vemmech deckformat mrst
 % 'oil water'    : Two phase oil-water
 % 'water' : water model is used for the fluid
 
-
 clear opt
 opt.verbose          = false;
 opt.splittingVerbose = false;
 opt.norne_case       = 'mini Norne';
 opt.bc_case          = 'bottom fixed';
 
-
-setTitle = @(opt)(sprintf('%s, %s', opt.fluid_model, opt.method));
-clear states;
-i = 1;
+% write intro text for each case
+writeIntroText = @(opt)(fprintf('\n*** New Norne poroelasticity simulation\n* fluid model : %s\n* method : %s\n\n', opt.fluid_model, opt.method));
 
 %%  water cases
 
 opt.fluid_model = 'water';
 
-opt.method      = 'fully coupled';
-[model, initState, schedule] = setupNorneExamples(opt);
-[wsols{i}, states{i}] = simulateScheduleAD(initState, model, schedule);
-figure
-plotToolbar(model.G, states{i}, 'outline', true);
-title(setTitle(opt));
-view([7, 40]);
-i = i + 1;
+opt.method = 'fully coupled';
+writeIntroText(opt);
+[model, states] = runNorneExample(opt);
+plotNornePoroExample(model, states, opt);
 
-opt.method      = 'fixed stress splitting';
-[model, initState, schedule] = setupNorneExamples(opt);
-[wsols{i}, states{i}] = simulateScheduleAD(initState, model, schedule);
-figure
-plotToolbar(model.G, states{i}, 'outline', true);
-title(setTitle(opt));
-view([7, 40]);
-i = i + 1;
+opt.method = 'fixed stress splitting';
+writeIntroText(opt);
+[model, states] = runNorneExample(opt);
+plotNornePoroExample(model, states, opt);
 
 
 %%  Two phase oil water phases cases
 
 opt.fluid_model = 'oil water';
 
-opt.method      = 'fully coupled';
-[model, initState, schedule] = setupNorneExamples(opt);
-[wsols{i}, states{i}] = simulateScheduleAD(initState, model, schedule);
-figure
-plotToolbar(model.G, states{i}, 'outline', true);
-view([7, 40]);
-i = i + 1;
+opt.method = 'fully coupled';
+writeIntroText(opt);
+[model, states] = runNorneExample(opt);
+plotNornePoroExample(model, states, opt);
 
-opt.method      = 'fixed stress splitting';
-[model, initState, schedule] = setupNorneExamples(opt);
-[wsols{i}, states{i}] = simulateScheduleAD(initState, model, schedule);
-figure
-plotToolbar(model.G, states{i}, 'outline', true);
-title(setTitle(opt));
-view([7, 40]);
-i = i + 1;
+opt.method = 'fixed stress splitting';
+writeIntroText(opt);
+[model, states] = runNorneExample(opt);
+plotNornePoroExample(model, states, opt);
 
 
 %%  Three phases Black-Oil phases cases
 
 opt.fluid_model = 'blackoil';
 
-opt.method      = 'fully coupled';
-[model, initState, schedule] = setupNorneExamples(opt);
-[wsols{i}, states{i}] = simulateScheduleAD(initState, model, schedule);
-figure
-plotToolbar(model.G, states{i}, 'outline', true);
-title(setTitle(opt));
-view([7, 40]);
-i = i + 1;
+opt.method = 'fully coupled';
+writeIntroText(opt);
+[model, states] = runNorneExample(opt);
+plotNornePoroExample(model, states, opt);
 
-opt.method      = 'fixed stress splitting';
+opt.method = 'fixed stress splitting';
+writeIntroText(opt);
 opt.splittingTolerance = 1e-3;
-[model, initState, schedule] = setupNorneExamples(opt);
-[wsols{i}, states{i}] = simulateScheduleAD(initState, model, schedule);
-figure
-plotToolbar(model.G, states{i}, 'outline', true);
-title(setTitle(opt));
-view([7, 40]);
+[model, states] = runNorneExample(opt);
+plotNornePoroExample(model, states, opt);

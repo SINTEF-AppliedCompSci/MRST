@@ -1,12 +1,19 @@
 %% Computation of Adjoints for Lift values
 %
-%
 % In this example, we setup a poroelastic simulation and demonstrate how one can
 % setup adjoint simulations to compute gradients (sensitivities) of a given
 % quantity.
 %
-% In this case, we look at the uplift (vertical displacement) at the
-% top of the domain.
+% We have a 2D domain, with two injection wells on the sides and one production
+% well in the middle.
+%
+% The injection rate is given by a schedule (see below). At the production
+% well, we impose a constant bhp
+%
+% We compute the gradient of the uplift (vertical displacement) at the top of
+% the domain with respect to the injection rates at every time step.
+%
+% We use this gradient information to update the schedule and reduce the uplift.
 %
 
 mrstModule add ad-mechanics ad-core ad-props ad-blackoil vemmech deckformat mrst-gui

@@ -1,6 +1,31 @@
 function obj = objUpliftAver(model, states, schedule, topnode, varargin)
-% Compute the average of the vertical displacement at the top of the domain
-% This function is used in runAdjointExample
+%
+%
+% SYNOPSIS:
+%   function obj = objUpliftAver(model, states, schedule, topnode, varargin)
+%
+% DESCRIPTION: Compute a time average of the vertical displacement at the
+% node index by topnode. This function is used in runAdjointExample
+%
+% PARAMETERS:
+%   model    - poroelastic model (fully coupled type e.g. MechWaterModel or MechOilWaterModel)
+%   states   - cell array of state, as returned by simulateScheduleAD
+%   schedule - schedule which was used as argument in simulateScheduleAD
+%   topnode  - index of the node where the uplift will be computed
+%   varargin - 
+%
+% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+%   computePartials  - if true, the derivatives are computed
+%   exponent         - We use the l^p norm as an average where p=exponent
+%
+% RETURNS:
+%   obj - 
+%
+% EXAMPLE: runAdjointExample
+%
+% SEE ALSO: computeUpliftForState
+%
+
 
     opt = struct('tStep', [], ...
                  'ComputePartials', false, ...

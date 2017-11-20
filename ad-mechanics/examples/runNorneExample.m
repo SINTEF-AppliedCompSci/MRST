@@ -1,59 +1,87 @@
-function [model, states] = run2DCase(opt)
+function [model, states] = runNorneExample(opt)
+
+%% Example: Poroelasticity simulation applied to the Norne case.
+% 
+% The simulation options are gathered in the opt structure. If opt=[] the
+% simulation is run with the default options defined below
 %
+% **  Summary of the options ** 
 %
-% SYNOPSIS:
-%   function run2DCase(varargin)
+% option 'norne_case' :
 %
-% DESCRIPTION: 
-%    Example which setups poroelasticity computations for a two dimensional domain.
+%     * 'full'       : 7392 cells
+%     * 'mini Norne' :  605 cells
 %
-%    Simple well setup: One injection well in the middle.
+% option 'bc_case' :
 %
+%     * 'no displacement' : All nodes belonging to external faces have displacement
+%                           equal to zero
+%     * 'bottom fixed'    : The nodes that belong to the bottom have zero
+%                           displacement, while a given pressure is imposed on
+%                           the external faces that are not bottom faces.
 %
-% PARAMETERS:
-%   varargin - see options below
+% option 'method' :
 %
-% SEE ALSO: runAllNorneExamples
+%     * 'fully coupled'          : The mechanical and flow equations are solved fully couplde.
+%     * 'fixed stress splitting' : The mechanical and flow equations are solved
+%                                  sequentially using a fixed stress splitting
 %
+% option 'fluid_model' :
+%
+%     * 'blackoil'  : blackoil model is used for the fluid (gas is injected, see
+%                     schedule below)
+%     * 'oil water' : Two phase oil-water
+%     * 'water'     : water model is used for the fluid
 
 
-%% 2D example for poroelasticity
-% Options that can be chosen in this example (see opt structure below)
-%
-% - fluid model : 
-%
-%   * 'water'     : single phase model
-%   * 'oil water' : two phases model
-%   * 'blackoil'  : Three phases, blackoil model
-%
-% - solver : 
-%
-%   * 'fully coupled'          : fully coupled solver
-%   * 'fixed stress splitting' : solver using fixed stress splitting 
-%
-%
-% - Cartesian grid :
-%
-%   * 'cartDim' : number of cells in x and y directions
-%   * 'L'       : Physical length in x and y directions
-%
-% - boundary conditions for the mechanics (only one choice here)
-%
-%   * 'bottom fixed' : Fixed bottom 
-
-    %% Load required modules
-        
     mrstModule add ad-mechanics ad-core ad-props ad-blackoil vemmech deckformat mrst-gui
 
-    %% Setup grid
+    % setup default option vakues
+    default_opt = struct('norne_case'         , 'full'          , ...
+                         'bc_case'            , 'bottom_fixed'  , ...
+                         'method'             , 'fully coupled' , ...
+                         'fluid_model'        , 'water'         , ...
+                         'nonlinearTolerance' , 1e-6            , ...
+                         'splittingTolerance' , 1e-3            , ...
+                         'verbose'            , false           , ...
+                         'splittingVerbose'   , false);
 
-    G = cartGrid(opt.cartDim, opt.L);
+    % overwrite the default options by the given option
+    optvals = cellfun(@(x) opt.(x), fieldnames(opt), 'uniformoutput', false);
+    optlist = reshape(vertcat(fieldnames(opt)', optvals'), [], 1);
+    opt = merge_options(default_opt, optlist{:});
+
+
+    %% Load Norne grid
+
+    if ~ (makeNorneSubsetAvailable() && makeNorneGRDECL()),
+        error('Unable to obtain simulation model subset');
+    end
+
+
+    grdecl = fullfile(getDatasetPath('norne'), 'NORNE.GRDECL');
+    grdecl = readGRDECL(grdecl);
+    fullCartDims = grdecl.cartDims;
+    usys   = getUnitSystem('METRIC');
+    grdecl = convertInputUnits(grdecl, usys);
+    switch opt.norne_case
+      case 'full'
+        grdecl = cutGrdecl(grdecl, [10 25; 35 55; 1 22]);
+      case 'mini Norne'
+        grdecl = cutGrdecl(grdecl, [10 20; 35 45; 1 5]);
+      otherwise
+        error('norne_case not recognized');
+    end
+    grdecl.ACTNUM = ones(size(grdecl.ACTNUM));
+    G = processGRDECL(grdecl);
+    G = G(1);
     G = computeGeometry(G);
 
     %% Setup rock parameters (for flow)
 
-    rock.perm = darcy*ones(G.cells.num, 1);
-    rock.poro = 0.3*ones(G.cells.num, 1);
+    perm = [grdecl.PERMX, grdecl.PERMY, grdecl.PERMZ];
+    rock.perm = perm(G.cells.indexMap, :);
+    rock.poro = max(grdecl.PORO(G.cells.indexMap), 0.1);
 
 
     %% Setup fluid parameters from SPE1
@@ -84,8 +112,8 @@ function [model, states] = run2DCase(opt)
 
       case {'water'}
         fluid = initSimpleADIFluid('phases', 'W', 'mu', 1*centi*poise, 'rho', ...
-                                   1000*kilogram/meter^3, 'c', 1e-10, 'cR', ...
-                                   4e-10, 'pRef', pRef);
+                                   1000*kilogram/meter^3, 'c', 1e-10, ...
+                                   'cR', 4e-10, 'pRef', pRef);
       otherwise
         error('fluid_model  not recognized.');
     end
@@ -96,7 +124,7 @@ function [model, states] = run2DCase(opt)
     E          = 1 * giga * Pascal; % Young's module
     nu         = 0.3;               % Poisson's ratio
     alpha      = 1;                 % Biot's coefficient
-
+    
     % Transform these global properties (uniform) to cell values.
     E          = repmat(E, G.cells.num, 1);
     nu         = repmat(nu, G.cells.num, 1);
@@ -108,7 +136,7 @@ function [model, states] = run2DCase(opt)
     switch opt.bc_case
 
       case 'no displacement'
-        error('not implemented yet');
+
         ind = (G.faces.neighbors(:, 1) == 0 | G.faces.neighbors(:, 2) == 0);
         ind = find(ind);
         nodesind = mcolon(G.faces.nodePos(ind), G.faces.nodePos(ind + 1) - 1);
@@ -117,8 +145,8 @@ function [model, states] = run2DCase(opt)
         bcnodes(nodes) = 1;
         bcnodes = find(bcnodes == 1);
         nn = numel(bcnodes);
-        u = zeros(nn, 2);
-        m = ones(nn, 2);
+        u = zeros(nn, 3);
+        m = ones(nn, 3);
         disp_bc = struct('nodes', bcnodes, 'uu', u, 'mask', m);
         force_bc = [];
 
@@ -126,39 +154,48 @@ function [model, states] = run2DCase(opt)
 
         nx = G.cartDims(1);
         ny = G.cartDims(2);
+        nz = G.cartDims(3);
 
         % Find the bottom nodes. On these nodes, we impose zero displacement
 
-        c = zeros(prod(G.cartDims), 1);
+        c = zeros(nx*ny*nz, 1);
         c(G.cells.indexMap) = (1 : numel(G.cells.indexMap))';
-
-        bc = pside([], G, 'Ymin', 100);
-        bottomfaces = bc.face;
-        indbottom_nodes = mcolon(G.faces.nodePos(bottomfaces), ...
-                                 G.faces.nodePos(bottomfaces + 1) - 1);
+        bottomcells = c(nx*ny*(nz - 1) +  (1 : (nx*ny))');
+        faces = G.cells.faces(mcolon(G.cells.facePos(bottomcells), G.cells.facePos(bottomcells ...
+                                                          + 1) - 1), :);
+        bottomfaces = faces( faces(:, 2) == 6  , 1);
+        indbottom_nodes = mcolon(G.faces.nodePos(bottomfaces), G.faces.nodePos(bottomfaces ...
+                                                          + 1) - 1);
         bottom_nodes = G.faces.nodes(indbottom_nodes);
-        bottom_nodes = unique(bottom_nodes);
+        isbottom_node = false(G.nodes.num, 1);
+        isbottom_node(bottom_nodes) = true;
+        bcnodes = find(isbottom_node);
 
-        nn = numel(bottom_nodes);
-        u = zeros(nn, G.griddim);
-        m = ones(nn, G.griddim);
-        disp_bc = struct('nodes', bottom_nodes, 'uu', u, 'mask', m);
+        nn = numel(bcnodes);
+        u = zeros(nn, 3);
+        m = ones(nn, 3);
+        disp_bc = struct('nodes', bcnodes, 'uu', u, 'mask', m);
 
         % Find outer faces that are not at the bottom. On these faces, we impose
         % a given pressure.
 
-        bc = pside([], G, 'Xmin', 100);
-        bc = pside(bc, G, 'Xmax', 100);
-        bc = pside(bc, G, 'Ymax', 100);
-        sidefaces = bc.face;
-        
-        signcoef = (G.faces.neighbors(sidefaces, 1) == 0) - (G.faces.neighbors(sidefaces, ...
-                                                          2) == 0);
-        n = bsxfun(@times, G.faces.normals(sidefaces, :), signcoef./ ...
-                   G.faces.areas(sidefaces));
-        force = bsxfun(@times, n, pRef);
+        is_outerface1 = (G.faces.neighbors(:, 1) == 0);
+        is_outerface1(bottomfaces) = false;
+        is_outerface2 = G.faces.neighbors(:, 2) == 0;
+        is_outerface2(bottomfaces) = false;
 
-        force_bc = struct('faces', sidefaces, 'force', force);
+        is_outerface = is_outerface1 | is_outerface2;
+
+        outer_faces = find(is_outerface);
+
+        outer_pressure = pRef;
+        signcoef = (G.faces.neighbors(outer_faces, 1) == 0) - ...
+            (G.faces.neighbors(outer_faces, 2) == 0);
+        n = bsxfun(@times, G.faces.normals(outer_faces, :), signcoef./ ...
+                   G.faces.areas(outer_faces));
+        force = bsxfun(@times, n, outer_pressure);
+
+        force_bc = struct('faces', outer_faces, 'force', force);
 
 
       otherwise
@@ -175,6 +212,7 @@ function [model, states] = run2DCase(opt)
     loadfun = @(x) (0*x);
 
 
+
     %% Gather all the mechanical parameters in a struct
 
     mech = struct('E', E, 'nu', nu, 'el_bc', el_bc, 'load', loadfun);
@@ -182,7 +220,7 @@ function [model, states] = run2DCase(opt)
 
     %% Gravity
     % The gravity in this option affects only the fluid behavior
-    gravity off;
+    gravity on;
 
 
     %% Setup model
@@ -227,38 +265,38 @@ function [model, states] = run2DCase(opt)
 
     %% Setup wells
     W = [];
-    refdepth = G.cells.centroids(1, G.griddim); % for example...
-                                                % injcell  = 1; % for example...
-                                                % prodcell = G.cells.num; % for example...
-
-    ind = ceil(G.cartDims/2);
-    injcell = sub2ind(G.cartDims, ind(1), ind(2));
+    refdepth = G.cells.centroids(1, 3); % for example...
+    injcell  = 10; % for example...
+    prodcell = G.cells.num; % for example...
 
     W = addWell(W, G, rock, injcell, ...
                 'Type'    , 'rate', ...
-                'Val'     , 1e2/day, ...
+                'Val'     , 2.5e6/day, ...
                 'Sign'    , 1,  ...
-                'Comp_i'  , [0, 0, 1], ... % inject gas
+                'Comp_i'   , [0, 0, 1], ... % inject gas
                 'Name'    , 'inj',  ...
                 'refDepth', refdepth);
 
-    % W = addWell(W, G, rock, prodcell, ...
-    %             'Type'    ,'bhp', ...
-    %             'Val'     , pRef, ...
-    %             'Sign'    , -1,  ...
-    %             'Comp_i'  , [0, 1, 0], ... % one-phase test case
-    %             'Name'    , 'prod',  ...
-    %             'refDepth', refdepth);
+    W = addWell(W, G, rock, prodcell, ...
+                'Type'    ,'bhp', ...
+                'Val'     , pRef, ...
+                'Sign'    , -1,  ...
+                'Comp_i'   , [0, 1, 0], ... % one-phase test case
+                'Name'    , 'prod',  ...
+                'refDepth', refdepth);
 
     switch opt.fluid_model
       case 'blackoil'
         W(1).compi = [0, 0, 1];
+        W(2).compi = [0, 1, 0];
       case 'oil water'
         W(1).compi = [1 0];
         W(1).val   = 1e4/day;
+        W(2).compi = [0 1];
       case 'water'
         W(1).compi = [1];
-        W(1).val  = 1e-3/day;
+        W(1).val   = 1e4/day;
+        W(2).compi = [1];
       otherwise
         error('fluid_model not recognized.')
     end
@@ -266,7 +304,6 @@ function [model, states] = run2DCase(opt)
     facilityModel = FacilityModel(model.fluidModel);
     facilityModel = facilityModel.setupWells(W);
     model.FacilityModel = facilityModel;
-
 
 
     %% Setup schedule
@@ -289,12 +326,8 @@ function [model, states] = run2DCase(opt)
         error('fluid_model not recognized.')
     end
     initState.s = ones(G.cells.num, 1)*init_sat;
-    initState.xd = zeros(nnz(~model.mechModel.operators.isdirdofs), 1);
-    initState = addDerivedQuantities(model.mechModel, initState);
+    initState   = computeInitDisp(model, initState, []);
 
-    solver = NonLinearSolver('maxIterations', 100);
-    [wsol, states] = simulateScheduleAD(initState, model, schedule, 'nonlinearsolver', ...
-                                        solver);
-
+    [wellSols, states, schedulereport] = simulateScheduleAD(initState, model, schedule);
 
 end
