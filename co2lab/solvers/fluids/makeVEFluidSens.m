@@ -1,4 +1,4 @@
-function fluid = makeVEFluid(Gt, rock, relperm_model, varargin)
+function fluid = makeVEFluidSens(Gt, rock, relperm_model, varargin)
 %
 % Construct a VE fluid with properties specific to a chosen model
 %

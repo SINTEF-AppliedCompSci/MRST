@@ -1,5 +1,5 @@
-classdef twoPhaseGasWaterModel < ReservoirModel
-
+classdef twoPhaseGasWaterModel < ThreePhaseBlackOilModel
+    % Two-phase gas and water model
     properties
         % (constant) temperature field
         t
@@ -11,7 +11,7 @@ classdef twoPhaseGasWaterModel < ReservoirModel
         % ------------------------------------------------------------------------
         function model = twoPhaseGasWaterModel(G, rock, fluid, tsurf, tgrad, varargin)
            
-            model = model@ReservoirModel(G, rock, fluid, varargin{:}); 
+            model = model@ThreePhaseBlackOilModel(G, rock, fluid, varargin{:}); 
            
             %model.G     = G;
             model.fluid = fluid;
@@ -32,7 +32,7 @@ classdef twoPhaseGasWaterModel < ReservoirModel
 
     end
     
-    methods %(Access = protected)
+    methods
 
         % ------------------------------------------------------------------------
         
@@ -46,9 +46,9 @@ classdef twoPhaseGasWaterModel < ReservoirModel
 
         % ------------------------------------------------------------------------
         
-        function [state, report] = updateState(model, state, problem, dx, drivingForces) %#ok
+        function [state, report] = updateState(model, state, problem, dx, drivingForces)
             
-           [state, report] = updateState@ReservoirModel(model, state, problem, dx, ...
+           [state, report] = updateState@ThreePhaseBlackOilModel(model, state, problem, dx, ...
                                                         drivingForces);
            sG = model.getProp(state, 'sG');
            if isfield(state, 'sGmax')

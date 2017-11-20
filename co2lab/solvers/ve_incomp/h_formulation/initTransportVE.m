@@ -1,4 +1,4 @@
-function preComp = initTransportVE(G_top, rock2D, varargin)% ...
+function preComp = initTransportVE(G_top, rock2D, varargin)
 % Precompute values needed in explicitTransportVE.
 %
 % SYNOPSIS:

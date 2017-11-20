@@ -1,53 +1,35 @@
 classdef CO2VEBlackOilTypeModel < ReservoirModel
-% Black-oil type model for vertically integrated gas/water flow
-% 
-% SYNOPSIS:
-%    model = CO2VEBlackOilTypeModel(Gt, rock2D, fluid, varargin)
-%
-% DESCRIPTION:
-%   Class representing a model with vertically-integrated two-phase flow (CO2
-%   and brine), based on the s-formulation where upscaled saturation is a
-%   primary variable), and with optional support for dissolution of gas into
-%   the water phase.
-%
-% REQUIRED PARAMETERS:
-%   Gt     - Top surface grid, generated from a regular 3D simulation grid
-%            using the 'topSurfaceGrid' function in MRST-co2lab
-%   
-%   rock2D - Vertically averaged rock structure, generated from regular 3D
-%            rock structure using the 'averageRock' function in MRST-co2lab.
-% 
-%   fluid  - Fluid object, representing the properties of the water and gas
-%            phases.  The fluid object can be constructed using the
-%            'makeVEFluid' function in MRST-co2lab.  This object also
-%            specifies whether or not gas dissolves into water, and if so,
-%            whether to model dissolution as an instantaneous or rate-driven
-%            process. 
-% RETURNS:
-%   Class instance.
-%
-% SEE ALSO:
-% topSurfaceGrid, averageRock, makeVEFluid, ReservoirModel
+    % Black-oil type model for vertically integrated gas/water flow
+    % 
+    % SYNOPSIS:
+    %    model = CO2VEBlackOilTypeModel(Gt, rock2D, fluid, varargin)
+    %
+    % DESCRIPTION:
+    %   Class representing a model with vertically-integrated two-phase flow (CO2
+    %   and brine), based on the s-formulation where upscaled saturation is a
+    %   primary variable), and with optional support for dissolution of gas into
+    %   the water phase.
+    %
+    % REQUIRED PARAMETERS:
+    %   Gt     - Top surface grid, generated from a regular 3D simulation grid
+    %            using the 'topSurfaceGrid' function in MRST-co2lab
+    %   
+    %   rock2D - Vertically averaged rock structure, generated from regular 3D
+    %            rock structure using the 'averageRock' function in MRST-co2lab.
+    % 
+    %   fluid  - Fluid object, representing the properties of the water and gas
+    %            phases.  The fluid object can be constructed using the
+    %            'makeVEFluid' function in MRST-co2lab.  This object also
+    %            specifies whether or not gas dissolves into water, and if so,
+    %            whether to model dissolution as an instantaneous or rate-driven
+    %            process. 
+    % RETURNS:
+    %   Class instance.
+    %
+    % SEE ALSO:
+    % topSurfaceGrid, averageRock, makeVEFluid, ReservoirModel
 
-%{
-Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
-
-This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
-
-MRST is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-MRST is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with MRST.  If not, see <http://www.gnu.org/licenses/>.
-%}
-% ============================= Class properties ==========================
+    % ============================= Class properties ==========================
 properties
    
    % Equation is chosen based on whether fluid object includes dissolution
@@ -208,7 +190,7 @@ end
 % ------------------------------------------------------------------------
    
    function [state, report] = ...
-       updateAfterConvergence(model, state0, state, dt, drivingForces)%#ok
+       updateAfterConvergence(model, state0, state, dt, drivingForces)
       
       [state, report] = updateAfterConvergence@ReservoirModel(model, ...
                                         state0, state, dt, drivingForces);%#ok
@@ -241,3 +223,23 @@ end
 
 end
 end   
+
+%{
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+

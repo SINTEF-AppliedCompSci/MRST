@@ -210,7 +210,7 @@ end
 % Helpers follow.
 %--------------------------------------------------------------------------
 
-function do_solve = check_input(g, opt)                                    %#ok
+function do_solve = check_input(g, opt)
    pressure_bc = ~isempty(opt.bc) && ...
                  any(strcmpi('pressure', opt.bc.type));
    well_bhp    = ~isempty(opt.wells) && ...
@@ -373,7 +373,7 @@ function solver = pick_solver(g, s, dF, dC, opt)
       x{3}     = lam;
    end
 
-   function x = solve_mixed(A, b, solver)                                  %#ok
+   function x = solve_mixed(A, b, solver)
       nF = neumann_faces(g, dF, opt);
       cellNo = rldecode(1 : g.cells.num, diff(g.cells.facePos), 2) .';
       sgn = 2*double(g.faces.neighbors(g.cells.faces(:,1), 1) == cellNo) - 1;

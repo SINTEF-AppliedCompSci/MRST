@@ -1,4 +1,6 @@
 function fluid = addVERelpermCapLinear(fluid, cap_scale, varargin)
+% VE relperm with linear capillary pressure
+
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 

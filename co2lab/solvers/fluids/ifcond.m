@@ -1,4 +1,5 @@
-function u = ifcond(u,v,cond) % this function should be expanded
+function u = ifcond(u,v,cond) 
+% this function should be expanded
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
