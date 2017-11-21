@@ -34,8 +34,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
          case {'EQLNUM', 'FIPNUM' , 'IMBNUM', 'PVTNUM', 'SATNUM', 'SURFNUM', ...
                'ENDNUM', 'ROCKNUM', 'FIPFAC'},
-            rgn = readGridBoxArray(rgn, fid, kw, ...
-                                   prod(deck.RUNSPEC.cartDims));
+%             rgn = readGridBoxArray(rgn, fid, kw, ...
+%                                    prod(deck.RUNSPEC.cartDims));
+                         nc=prod(deck.RUNSPEC.cartDims);      
+           if deck.RUNSPEC.DUALPORO
+                rgn  = readGridBoxArrayDP(rgn, fid, kw, nc);
+           else      
+                rgn  = readGridBoxArray(rgn, fid, kw, nc);
+           end
 
          case {'ADD', 'COPY', 'EQUALS', 'MAXVALUE', ...
                'MINVALUE', 'MULTIPLY'},

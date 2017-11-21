@@ -1,5 +1,8 @@
 function deck = readRUNSPEC(fid, dirname, deck)
 
+%Modiefied by VES for reading dual porosity eclipse decks
+
+
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
@@ -44,6 +47,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             rspec.cartDims = reshape(sscanf(s, '%f', 3), 1, []);
             rspec.DIMENS   = rspec.cartDims;
 
+              if rspec.DUALPORO % if dual porosity then half the z cartdimes
+                
+                rspec.cartDims(3)=rspec.cartDims(3)/2;
+                rspec.DIMENS   = rspec.cartDims;
+              end
             % Set default input box corresponding to entire model.
             defaultBox(rspec.DIMENS);
 
@@ -156,6 +164,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          case {'ECHO', 'NOECHO'},
             kw = getEclipseKeyword(fid);
             continue;  % Ignore.  Not handled in MRST
+            
+       % --------------- DP Keywords -------------- 
+          case {'DUALPORO', 'DUALPERM',        ...
+               'NODPPM'},
+            rspec.(kw) = true;
 
          %-----------------------------------------------------------------
          % Sectioning keywords below.  Modifies flow of control.

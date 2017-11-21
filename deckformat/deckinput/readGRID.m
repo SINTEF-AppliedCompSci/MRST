@@ -1,4 +1,8 @@
 function deck = readGRID(fid, dirname, deck)
+
+%Modiefied by VES for reading dual porosity eclipse decks
+
+
 % deck = readGRID(fid, dirname, deck)
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
@@ -19,8 +23,13 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
-   [dims, nc, np, nv] = get_dimensions(deck);
+    
+    if deck.RUNSPEC.DUALPORO
+       [dims, nc, np, nv,ncdp] = get_dimensions(deck);
+    else
+        [dims, nc, np, nv,~] = get_dimensions(deck);
+    end 
+    
    [grd, miss_kw]     = get_state(deck);
 
    kw = getEclipseKeyword(fid);
@@ -36,15 +45,32 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          case 'SPECGRID',
             s = removeQuotes(readRecordString(fid));
             cartDims = reshape(sscanf(s, '%f', 3), 1, []);
+            
+            if deck.RUNSPEC.DUALPORO % if dual porosity then half the z cartdimes
+                
+                cartDims(3)=cartDims(3)/2;
+                
+                defaultBox(cartDims);
+                gridBox(defaultBox);
 
-            defaultBox(cartDims);
-            gridBox(defaultBox);
+                dims = reshape(cartDims, 1, []);
+                nc   = prod(dims);                 % Number of cells
+                np   = prod(dims(1 : end-1) + 1);  % Number of pillars
+                nv   = prod(dims + 1);             % Number of vertices
+                grd.cartDims = cartDims;
+                ncdp = 2*nc;                       % Number of fracture and matric cells for dp properties
+            else
 
-            dims = reshape(cartDims, 1, []);
-            nc   = prod(dims);                 % Number of cells
-            np   = prod(dims(1 : end-1) + 1);  % Number of pillars
-            nv   = prod(dims + 1);             % Number of vertices
-            grd.cartDims = cartDims;
+                defaultBox(cartDims);
+                gridBox(defaultBox);
+
+                dims = reshape(cartDims, 1, []);
+                nc   = prod(dims);                 % Number of cells
+                np   = prod(dims(1 : end-1) + 1);  % Number of pillars
+                nv   = prod(dims + 1);             % Number of vertices
+                grd.cartDims = cartDims;
+                
+            end
 
          case {'DXV', 'DYV', 'DZV'},
             ix       = strcmp(kw, {'DXV', 'DYV', 'DZV'});
@@ -107,7 +133,35 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             data([1, 3]) = to_double(data([1, 3]));  clear tmpl
             grd.(kw)     = data;
 
-         case {'ACTNUM', 'NTG'   , 'PORO' ,  ...
+         case {'ACTNUM'},
+           
+           if deck.RUNSPEC.DUALPORO
+                %grd = readGridBoxArrayDP(grd, fid, kw, nc);
+                grd = readGridBoxArray(grd, fid, kw, ncdp);
+           else      
+                grd = readGridBoxArray(grd, fid, kw, nc);
+           end
+           
+        case {'SIGMAV' , 'SIGMADV', 'DZMTRXV'},
+           
+           if deck.RUNSPEC.DUALPORO
+                
+                grd = readGridBoxArray(grd, fid, kw, nc);
+           else      
+                
+           end
+           
+         case {'SIGMA'},
+           
+           if deck.RUNSPEC.DUALPORO
+                
+                %Not handled yet
+           else      
+                
+           end
+           
+           
+         case { 'NTG'   , 'PORO' ,  ...
                'MULTPV',                     ...
                'MULTX' , 'MULTX-',           ...
                'MULTY' , 'MULTY-',           ...
@@ -116,7 +170,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                'PERMYX', 'PERMY' , 'PERMYZ', ...
                'PERMZX', 'PERMZY', 'PERMZ' , ...
                },
-            grd = readGridBoxArray(grd, fid, kw, nc);
+           
+           if deck.RUNSPEC.DUALPORO
+                grd = readGridBoxArrayDP(grd, fid, kw, nc);
+           else      
+                grd = readGridBoxArray(grd, fid, kw, nc);
+           end
+
 
          case {'ADD', 'COPY', 'EQUALS', 'MAXVALUE', ...
                'MINVALUE', 'MULTIPLY'},
@@ -134,13 +194,31 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             tmpl = { '1.0e-6' };  % In all unit systems
             data = readDefaultedRecord(fid, tmpl);
             grd.(kw) = to_double(data{1});
+            
+           if deck.RUNSPEC.DUALPORO
+                grd = readGridBoxArrayDP(grd, fid, kw, nc);
+           else      
+                grd = readGridBoxArray(grd, fid, kw, nc);
+           end
 
          case 'MINPVV',
             if ~isfield(grd, kw), grd.(kw) = repmat(1.0e-6, [nc, 1]); end
-            grd = readGridBoxArray(grd, fid, kw, nc);
+            %grd = readGridBoxArray(grd, fid, kw, nc);
+            
+           if deck.RUNSPEC.DUALPORO
+                grd = readGridBoxArrayDP(grd, fid, kw, nc);
+           else      
+                grd = readGridBoxArray(grd, fid, kw, nc);
+           end
 
          case 'FLUXNUM',
-            grd.(kw) = readVector(fid, kw, nc);
+            %grd.(kw) = readVector(fid, kw, nc);
+            
+           if deck.RUNSPEC.DUALPORO
+                grd = readGridBoxArrayDP(grd, fid, kw, nc);
+           else      
+                grd = readGridBoxArray(grd, fid, kw, nc);
+           end
 
          case {'ECHO', 'NOECHO'},
             kw = getEclipseKeyword(fid);
@@ -207,7 +285,7 @@ end
 
 %--------------------------------------------------------------------------
 
-function [dims, nc, np, nv] = get_dimensions(deck)
+function [dims, nc, np, nv,ncdp] = get_dimensions(deck)
    assert (isstruct(deck)         && isfield(deck, 'RUNSPEC') && ...
            isstruct(deck.RUNSPEC) && isfield(deck.RUNSPEC, 'cartDims'));
 
@@ -215,6 +293,7 @@ function [dims, nc, np, nv] = get_dimensions(deck)
    nc   = prod(dims);                 % Number of cells
    np   = prod(dims(1 : end-1) + 1);  % Number of pillars
    nv   = prod(dims + 1);             % Number of vertices
+   ncdp = 2*nc;                         %Number of entries for DP model 2*nc
 end
 
 %--------------------------------------------------------------------------
