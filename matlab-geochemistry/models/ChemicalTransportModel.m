@@ -193,19 +193,37 @@ classdef ChemicalTransportModel < WaterModel
             report = []; % no report for the moment.
             
             if model.plotIter
-                h = findobj('tag', 'updatefig');
+                h = findobj('tag', 'updateSpeciesfig');
                 if isempty(h)
                     figure
-                    set(gcf, 'tag', 'updatefig');
-                    h = findobj('tag', 'updatefig');
+                    set(gcf, 'tag', 'updateSpeciesfig');
+                    h = findobj('tag', 'updateSpeciesfig');
                 end
                 set(0, 'currentfigure', h)
                 clf
-                plot(log10(state.components*litre/mol));
-                title('components');
+                plot(state.logSpecies);
+                title('species - iteration');
+                xlabel('cell index');
+                ylabel('log_e species concentrations')
                 legend(model.chemicalModel.speciesNames);
-
                 drawnow;
+                
+                h = findobj('tag', 'updateMasterfig');
+                if isempty(h)
+                    figure
+                    set(gcf, 'tag', 'updateMasterfig');
+                    h = findobj('tag', 'updateMasterfig');
+                end
+                set(0, 'currentfigure', h)
+                clf
+                plot(state.logElements);
+                title('elements - iteration');
+                xlabel('cell index');
+                ylabel('log_e element concentrations')
+                legend(model.chemicalModel.elementNames);
+                drawnow;
+                
+                
             end
 
         end
@@ -225,8 +243,10 @@ classdef ChemicalTransportModel < WaterModel
                 end
                 set(0, 'currentfigure', h)
                 clf
-                plot(log(state.species));
+                plot(state.logSpecies);
                 title('components - converged');
+                xlabel('cell index');
+                ylabel('log_e species concentrations')
                 legend(model.chemicalModel.speciesNames);
 
                 h = findobj('tag', 'convergedmasterfig');
@@ -237,7 +257,9 @@ classdef ChemicalTransportModel < WaterModel
                 end
                 set(0, 'currentfigure', h)
                 clf
-                plot(log(state.elements));
+                plot(state.logElements);
+                xlabel('cell index');
+                ylabel('log_e element concentrations')
                 title('master components - converged');
                 legend(model.chemicalModel.elementNames);
                 drawnow;

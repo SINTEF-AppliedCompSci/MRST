@@ -356,7 +356,7 @@ classdef ChemicalModel < PhysicalModel
                     end
                     model.inputs = model.chemicalInputModel.inputNames(~inInd);
                 end
-                
+                                
                 
             elseif nargin == 0
                 % Used when creating instance of
@@ -375,7 +375,8 @@ classdef ChemicalModel < PhysicalModel
             model.chargeBalanceTolerance        = 0.05;
         end
 
-        %% 
+
+        %%
         function [model, toPass, masterComponentNames] = parseSurfaceComponents(model, masterComponentNames, p)
             
             if isempty(p.Results.surfaces)

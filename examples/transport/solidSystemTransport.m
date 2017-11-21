@@ -24,41 +24,44 @@ fluid = initSimpleADIFluid('phases', 'W', 'mu', 1*centi*poise, 'rho', ...
 
 %% Define the chemistry
 
-elements = {'O', 'H', 'Na*','Cl*'};
+elements = {'O', 'H', 'Na*', 'Cl*', 'Ca*', 'C*'};
 
-species = {'H+*', 'OH-', 'Na+', 'H2O*', '>SiO-', '>SiOH', 'NaCl','Cl-'};
+species = {'H+*', 'OH-', 'Na+', 'Cl-', 'NaOH', 'H2O*',...
+             'Ca+2', 'CO3-2', 'HCO3-', 'CO2',...
+             'CaCO3(s)'};
 
-reactions ={'H2O  = H+  + OH- ',      10^-14*mol/litre, ... 
-            'NaCl = Na+ + Cl-',       10^1*mol/litre,...
-            '>SiOH = >SiO- + H+',     10^-8*mol/litre};
-
-geometry = [2*site/(nano*meter)^2 50e-3*meter^2/(gram) 5e3*gram/litre];
-sioInfo = {geometry, 'tlm', [1 1e3], '>SiO-', [-1 0 0], '>SiOH', [0 0 0]};
-
-surfaces = {'>SiO', sioInfo};
+reactions ={'H2O  = H+  + OH- ',            10^-14*mol/litre, ...
+            'NaOH = Na+ + OH-',             10^10*mol/litre,...
+            'CaCO3(s) = CO3-2 + Ca+2',      10^-8.48*(mol/litre)^2,...
+            'CO3-2 + H+ = HCO3-',           10^10.329/(mol/litre),...
+            'CO3-2 + 2*H+ = CO2 + H2O',     10^16.681/(mol/litre)};
 
 % instantiate chemical model object
-chemModel = ChemicalModel(elements, species, reactions, 'surf', surfaces);
+chemModel = ChemicalModel(elements, species, reactions);
 
 % print the chemical model to the screen
 chemModel.printChemicalSystem;
 
 % initial chemistry
-Nai = 1e-3;
+Nai = 1e-1;
 Cli = Nai;
+Cai = 1e-2;
+Ci = 1e-3;
 Hi = 1e-9;
 H2Oi = 1;
 
-inputConstraints = [Nai Cli Hi H2Oi]*mol/litre;
+inputConstraints = [Nai Cli Cai Ci Hi H2Oi]*mol/litre;
 [initchemstate, initreport]= chemModel.initState(repmat(inputConstraints, nc,1), 'charge', 'Cl');
 
 % injected chemistry
 Naf = 1e-1;
-Clf = Nai;
+Clf = Naf;
+Caf = 1e-3;
+Cf = 1e-3;
 Hf = 1e-9;
 H2Of = 1;
 
-inputConstraints = [Naf Clf Hf H2Of]*mol/litre;
+inputConstraints = [Naf Clf Caf Cf Hf H2Of]*mol/litre;
 [injchemstate, injreport] = chemModel.initState(inputConstraints, 'charge', 'Cl');
 
 %% Define the initial state
@@ -71,7 +74,7 @@ model = ChemicalTransportModel(G, rock, fluid, chemModel);
 
 % plot the species and element distribution at the end of each time step
 model.plotFinal = false;
-model.plotIter = true;
+model.plotIter = false;
 
 % plotting during the simulation slows the solver down quite a bit
 
@@ -110,3 +113,5 @@ schedule.control = struct('bc', bc, 'src', src, 'W', []);
 %% Run the simulation
 
 [~, states, scheduleReport] = simulateScheduleAD(initState, model, schedule);
+
+plotToolbar(G, states)
