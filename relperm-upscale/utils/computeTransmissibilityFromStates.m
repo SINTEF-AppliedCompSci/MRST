@@ -1,11 +1,16 @@
 function T_struct = computeTransmissibilityFromStates(p, states, model, schedule, varargin)
-    opt = struct('reduction', [] ...
-                 );
+    opt = struct('reduction', [], ...
+                 'relPotentialTol', sqrt(eps), ...
+                 'fracFlowTol', 0.02);
     [opt, extra] = merge_options(opt, varargin{:});
-    
+         
     model_c = upscaleModelTPFA(model, p);
     schedule_c = upscaleSchedule(model_c, schedule);
     states_c = computeCoarseProps(model_c, model, states, schedule_c, schedule, extra{:});
+    
+    % compute potential tollerance relative to max reservoir pressure drop
+    maxResDp = max(cellfun(@(x)max(vertcat(x.wellSol.bhp))-min(vertcat(x.wellSol.bhp)), states));
+    potentialTol = opt.relPotentialTol*maxResDp;
     
     N = model_c.operators.N;
     if isfield(schedule_c.control, 'W')
@@ -39,7 +44,7 @@ function T_struct = computeTransmissibilityFromStates(p, states, model, schedule
         
         % Cell values
         [v, mob, pot] = deal(0);
-        
+        mobT = sum(state.mob, 2);
         for ph = 1:n_ph
             v_ph = state.iflux(:, ph);
             mob_ph = state.mob(:, ph);
@@ -48,14 +53,15 @@ function T_struct = computeTransmissibilityFromStates(p, states, model, schedule
             upc  = pot_ph <= 0;
             mob_ph = model_c.operators.faceUpstr(upc, mob_ph);
             
-            T_ph{ph}(:, stepNo) = computeTrans(v_ph, mob_ph, pot_ph);
+            T_ph{ph}(:, stepNo) = computeTrans(v_ph, mob_ph, pot_ph, ...
+                                  or(abs(pot_ph) < potentialTol, mob_ph./model_c.operators.faceUpstr(upc, mobT) < opt.fracFlowTol) );
             
             v = v + v_ph;
             mob = mob + mob_ph;
             pot = pot + pot_ph;
         end
         pot = pot/n_ph;
-        T(:, stepNo) = computeTrans(v, mob, pot);
+        T(:, stepNo) = computeTrans(v, mob, pot, abs(pot) < potentialTol);
         
         % Well values
         if nw > 0
@@ -80,9 +86,10 @@ function T_struct = computeTransmissibilityFromStates(p, states, model, schedule
                 
                 mob_ph(isInj) = mobT(isInj).*ci(isInj);
                 
-                WI_ph{ph}(:, stepNo) = computeTrans(v_ph, mob_ph, pot);
+                WI_ph{ph}(:, stepNo) = computeTrans(v_ph, mob_ph, pot,...
+                                  or(abs(pot) < potentialTol, mob_ph./mobT < opt.fracFlowTol) );
             end
-            WI(:, stepNo) = computeTrans(vT, mobT, pot);
+            WI(:, stepNo) = computeTrans(vT, mobT, pot, abs(pot) < potentialTol);
         end
     end
     
@@ -97,6 +104,7 @@ function T_struct = computeTransmissibilityFromStates(p, states, model, schedule
                       'wells',      W_struct);
 end
 
-function t = computeTrans(v, mob, pot)
+function t = computeTrans(v, mob, pot, nanflag)
     t = -v./(mob.*pot);
+    t(nanflag) = nan;
 end
