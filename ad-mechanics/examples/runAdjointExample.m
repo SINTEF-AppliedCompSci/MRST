@@ -1,19 +1,25 @@
-%% Computation of Adjoints for Lift values
+%% Computation of Gradients using Adjoint simulations
 %
-% In this example, we setup a poroelastic simulation and demonstrate how one can
-% setup adjoint simulations to compute gradients (sensitivities) of a given
-% quantity.
+% In this example, we demonstrate how one can setup adjoint simulations in a
+% poroelastic simulation in order to compute gradients (or sensitivities) of a
+% given quantity. Here, we will compute the gradient of the vertical
+% displacement (uplift) at a node with respect to the injection rates.
 %
-% We have a 2D domain, with two injection wells on the sides and one production
-% well in the middle.
+% We consider a 2D domain, with two injection wells located on the sides and one
+% production well in the middle.
 %
 % The injection rate is given by a schedule (see below). At the production
-% well, we impose a constant bhp
+% well, we impose a constant pressure.
 %
 % We compute the gradient of the uplift (vertical displacement) at the top of
 % the domain with respect to the injection rates at every time step.
 %
-% We use this gradient information to update the schedule and reduce the uplift.
+% We use this gradient information to update the schedule so that the uplift is
+% reduced. Different measures of the time average for the uplift are considered,
+% and they produce different result, see the last plot in this script.
+%
+% Different fluid model can be used (two phases or single phase).
+%
 %
 
 mrstModule add ad-mechanics ad-core ad-props ad-blackoil vemmech deckformat mrst-gui
@@ -138,9 +144,9 @@ gravity off
 
 switch opt.fluid_model
   case 'single phase'
-    model = MechWaterModel(G, rock, fluid, mech, 'verbose', true);
+    model = MechWaterModel(G, rock, fluid, mech);
   case 'oil water'
-    model = MechOilWaterModel(G, rock, fluid, mech, 'verbose', true);
+    model = MechOilWaterModel(G, rock, fluid, mech);
   case 'blackoil'
     error('not yet implemented')
   otherwise
@@ -150,9 +156,11 @@ end
 
 %% Set up initial reservoir state
 %
+% The initial fluid pressure is set to a constant. We have zero displacement
+% initially.
+%
 
 clear initState;
-% The initial fluid pressure is set to a constant;
 initState.pressure = pRef*ones(G.cells.num, 1);
 switch opt.fluid_model
   case 'single phase'
@@ -170,12 +178,14 @@ end
 initState.s  = ones(G.cells.num, 1)*init_sat;
 initState.xd = zeros(nnz(~model.mechModel.operators.isdirdofs), 1);
 % We compute the corresponding displacement field using the dedicated
-% function computeInitDisp
+% function computeInitDisp (actually not necessary as the solution should be zero).
 initState    = computeInitDisp(model, initState, [], 'pressure', initState.pressure);
 initState    = addDerivedQuantities(model.mechModel, initState);
 
 
 %% Setup the wells
+%
+% Two injection wells on the sides and one production well in the middle.
 %
 
 nx = G.cartDims(1);
@@ -229,7 +239,8 @@ model = model.validateModel(); % setup consistent fields for model (in
 %
 %
 % We set up a schedule where we gradually decrease from a maximum to a minimum
-% injection rate value. Then, we keep the injection rate constant
+% injection rate value. Then, we keep the injection rate constant. See plot below.
+%
 
 clear schedule
 schedule.step.val     = [1*day*ones(1, 1); 10*day*ones(30, 1)];
@@ -254,16 +265,19 @@ end
 figure
 plot(ctime/day, qW*day);
 axis([0, ctime(end)/day, 0, 1])
-title('Injection rate (m^3/day)');
+title('Initial schedule');
 xlabel('time (day)')
+ylabel('Injection rate (m^3/day)');
 
 
 %% Run the schedule
 %
+% We run the simulation for the given model, initial state and schedule.
+%
 
 [wellSols, states] = simulateScheduleAD(initState, model, schedule);
 
-% We start visualization tool to inspect the result of the simulation
+% We start a visualization tool to inspect the result of the simulation
 figure
 plotToolbar(G, states);
 colorbar
@@ -308,10 +322,10 @@ xlabel('time (in days)');
 %
 % See function objUpliftAver.
 %
+% We consider three values for the exponent p.
 
 
-
-%% Compute gradients using the adjoint formulation for two different exponents
+%% Compute gradients using the adjoint formulation for three different exponents
 
 np               = 3;
 exponents        = cell(np, 1);
@@ -326,6 +340,7 @@ for p = 1 : np
                                            'tStep', tstep, 'computePartials', true, ...
                                            'exponent', exponents{p}, ...
                                            'normalizationConstant', C);
+    fprintf('\n***\n*  Start adjoint simulation for exponent p=%g\n*\n', exponents{p});
     adjointGradients{p} = computeGradientAdjointAD(initState, states, model, ...
                                                    schedule, objUpliftFunc);
 end
@@ -334,8 +349,8 @@ end
 %% We can check the results from the adjoint computation by using finite difference
 %
 %
-% The function computeGradientAdjointAD sets up this computation for us.  It
-% should be used with a smaller schedule, otherwise the computation is very
+% The function computeGradientAdjointAD sets up this computation check for us.
+% It should be used with a smaller schedule, otherwise the computation is very
 % long.
 
 compute_numerical_derivative = false;
@@ -350,48 +365,41 @@ if compute_numerical_derivative
 end
 
 
-%% We choose a large exponent value
+%% Plots of the results.
 %
-% For the injection values we have chosen, the uplift is first increasing and
-% then decreasing.
-%
-% Let us imagine that we want to control this uplift and find injection rates
-% which will, for example, reduce this uplift.  We need to run an optimization
-% algorithm and we are interested to get the derivative of the uplift
-% function. By choosing a large exponents in the average sum of the uplift values
-% (see comments above), we increase the sensitivity of the objective function
-% with respect to the maximal values.
-
-
-% Note that we can change the objective function and compute the derivative
-% *without* run the simulation again.
+% We plot the uplift values with the gradients (normalized for comparison).
 
 figure
 clf
-plot(ctime/day, uplifts(), 'o-');
+plot(ctime/day, uplifts, 'o-');
 ylabel('uplift values');
 xlabel('time (in days)');
 hold on
 yyaxis right
 
 legendtext = {'uplift value'};
+set(gca,'ColorOrder',hsv(3));
 for p = 1 : np
     grads = cell2mat(adjointGradients{p});
     qWgrad = grads(1, :);
     % we renormalize the gradients to compare the two series of values
     qWgrad = 1/max(qWgrad)*qWgrad;
     plot(ctime/day, qWgrad, '*-');
-    legendtext{end + 1} = sprintf('exponents = %g', exponents{p});
+    legendtext{end + 1} = sprintf('p = %g', exponents{p});
 end
 
 ylabel('gradient value')
 legend(legendtext);
 
 
-
-
-%% Comparison between the two exponents
+%% Update of the schedule based on gradient values
 %
+% We use the gradient values computed above to update the schedule so that the
+% uplift, as measured with the three different values of the exponents, is
+% decreased. The absolute minimum uplift is of course zero and it is obtained
+% when we do not inject anything. To avoid this trivial case, we impose the
+% extra requirement that, in all cases, we will have the same decrease in the total
+% injection.
 
 inituplifts = uplifts;
 initschedule = schedule;
@@ -421,6 +429,8 @@ for p = 1 : np
     schedule = initschedule;
     for i = 1 : numel(schedule.step.control)
         W = schedule.control(i).W;
+        % we update the values of the injection rate at each time step using
+        % the gradient values.
         W(1).val = W(1).val - dqW{1}(i);
         W(2).val = W(2).val - dqW{2}(i);
         schedule.control(i) = struct('W', W);
@@ -429,13 +439,14 @@ for p = 1 : np
 
     qWs{p} = qW;
 
-    figure(p)
+    figure
     clf
     plot(ctime/day, qW*day);
-    title(sprintf('Injection rate (m^3/day) - schedule number %g', p));
-    xlabel('time (day)')
-
-
+    title(sprintf(' Schedule obtained using p=%g', exponents{p}));
+    xlabel('time (day)');
+    ylabel('Injection rate (m^3/day)');
+    
+    fprintf('\n***\n*  Start simulation and compute uplift for updated schedule using exponent p=%g\n*\n', exponents{p});
     [wellSols, states] = simulateScheduleAD(initState, model, schedule);
 
     nsteps = numel(states);
@@ -444,7 +455,8 @@ for p = 1 : np
 
 end
 
-figure(np + 1)
+% plot of the results.
+figure
 set(gcf, 'position', [100, 100, 1500, 600]);
 clf
 subplot(1, 2, 2)
