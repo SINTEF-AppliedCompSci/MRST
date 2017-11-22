@@ -35,11 +35,9 @@ function varargout = plotBlockAndNeighbors(CG, block, varargin)
 %                DEFAULT: `Alpha = ONES([1,4])` (no transparency in any of
 %                the final objects--all objects drawn opaquely).
 %
-% KEYWORD ARGUMENTS:
-%
-%   'Any'   - Additional keyword arguments will be passed directly on to
-%             function `patch` meaning all properties supported by `patch`
-%             are valid.
+%   'Any'   -    Additional keyword arguments will be passed directly on to
+%                function `patch` meaning all properties supported by
+%                `patch` are valid.
 %
 %
 % RETURNS:

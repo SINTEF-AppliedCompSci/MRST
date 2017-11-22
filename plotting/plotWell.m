@@ -51,7 +51,7 @@ function varargout = plotWell(G, W, varargin)
 %   W = addWell([], G, rock, 1)
 %   plotWell(G, W, 'color', 'k');
 %
-% WARNING:
+% NOTE:
 %   Currently, this function only supports three-dimensional grids.
 %
 % SEE ALSO:
