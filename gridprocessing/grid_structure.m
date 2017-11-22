@@ -21,7 +21,7 @@ function grid_structure()
 %    fields:
 %
 %    - cells: A structure specifying properties for each individual cell
-%    in the grid. See `cells` below for details.
+%      in the grid. See `cells` below for details.
 %
 %    - faces: A structure specifying properties for each individual
 %      face in the grid. See `faces` below for details. 
@@ -42,18 +42,18 @@ function grid_structure()
 %
 %    - facePos: Indirection map of size [num+1,1] into the `cells.faces`
 %      array. Specifically, the face information of cell `i` is found in
-%      the submatrix
+%      the submatrix::
 %
-%            `G.cells.faces(facePos(i) : facePos(i+1)-1, :)`
+%            G.cells.faces(facePos(i) : facePos(i+1)-1, :)
 %
 %      The number of faces of each cell may be computed using the
 %      statement `diff(facePos)`.
 %
 %    - faces: A (G.cells.facePos(end)-1)-by-1 array of global faces
 %      connected to a given cell. A common construction derived from this
-%      structure is the `cellNo` mapping from global face to cells,
+%      structure is the `cellNo` mapping from global face to cells,::
 %
-%         `cellNo = rldecode(1 : G.cells.num, diff(G.cells.facePos), 2) .'
+%         cellNo = rldecode(1 : G.cells.num, diff(G.cells.facePos), 2) .'
 %
 %      Specifically, if `cellNo(i) == j`, then global face
 %      `cells.faces(i,1)` is connected to global cell `j`.
@@ -143,9 +143,9 @@ function grid_structure()
 %
 % SEE ALSO:
 %   In case the description scrolled off screen too quickly, you may access
-%   the information at your own pace using the command
+%   the information at your own pace using the command::
 %
-%             more on, help grid_structure, more off
+%      more on, help grid_structure, more off
 
 help grid_structure
 
