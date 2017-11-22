@@ -25,36 +25,38 @@ function varargout = plotCellData(G, data, varargin)
 %             If unspecified, function 'plotCellData' will behave as if the
 %             user defined
 %
-%                 cells = 1 : G.cells.num
+%                 `cells = 1 : G.cells.num`
 %
 %             meaning graphical output will be produced for all cells in
-%             the grid model 'G'.  If 'cells' is empty (i.e., if
-%             ISEMPTY(cells)), then no graphical output will be produced.
+%             the grid model `G`.  If `cells` is empty (i.e., if
+%             `isempty(cells))`, then no graphical output will be produced.
 %
-%   'pn'/pv - List of property names/property values.  OPTIONAL.
-%             This list will be passed directly on to function PATCH
-%             meaning all properties supported by PATCH are valid.
+% KEYWORD ARGUMENTS:
+%
+%   'Any' -   Additional keyword arguments will be passed directly on to
+%             function `patch` meaning all properties supported by `patch`
+%             are valid.
 %
 % RETURNS:
 %   h  - Handle to resulting patch object.  The patch object is added
-%        directly to the current AXES object (GCA).
+%        directly to the current `axes` object (`gca`).
 %        OPTIONAL.  Only returned if specifically requested.  If
-%        ISEMPTY(cells), then h==-1.
+%        `isempty(cells)`, then `h==-1`.
 %
 % NOTES:
-%   Function 'plotCellData' is implemented directly in terms of the
-%   low-level function PATCH.  If a separate axes is needed for the
-%   graphical output, callers should employ function newplot prior to
-%   calling 'plotCellData'.
+%   Function `plotCellData` is implemented directly in terms of the
+%   low-level function `patch`.  If a separate axes is needed for the
+%   graphical output, callers should employ function `newplot` prior to
+%   calling `plotCellData`.
 %
 % EXAMPLE:
-%   Given a grid 'G' and a reservoir solution structure 'resSol' returned
-%   from, e.g., function 'solveIncompFlow', plot the cell pressure in bar:
+%   % Given a grid 'G' and a reservoir solution structure 'resSol' returned
+%   % from, e.g., function 'solveIncompFlow', plot the cell pressure in bar:
 %
 %      figure, plotCellData(G, convertTo(resSol.pressure, barsa()));
 %
 % SEE ALSO:
-%   plotFaces, boundaryFaces, patch, newplot.
+%   `plotFaces`, `boundaryFaces`, `patch`, `newplot`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

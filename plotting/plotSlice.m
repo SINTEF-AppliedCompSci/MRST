@@ -1,17 +1,17 @@
 function h=plotSlice(g,data_inn,slice_ind,dim)
-%Plot Cartesian slices of cell data on faces
+% Plot Cartesian slices of cell data on faces
 %
 % SYNOPSIS:
-%    h=plotSlice(g,data_inn,slice_ind,dim)
+%    h = plotSlice(g,data_inn,slice_ind,dim)
 %
 % PARAMETERS:
-%   G       - Grid data structure.
+%   G         - Grid data structure.
 %
-%   data   - cell data to be plotted
+%   data      - cell data to be plotted
 %
 %   slice_ind - index of slice
 %
-%   dim - dimension of slice
+%   dim       - dimension of slice
 %
 %  RETURNS:
 %    h - Handle to resulting PATCH object.  The patch object is added to the

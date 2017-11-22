@@ -1,25 +1,25 @@
 function varargout = plotFaults(G, faults, varargin)
-%Plot faults in model
+% Plot faults in model
 %
 % SYNOPSIS:
-%       plotFaults(G, faults)
+%   plotFaults(G, faults)
 %   h = plotFaults(G, faults)
 %
 % PARAMETERS:
 %   G      - Valid grid structure.
 %
-%   faults - Valid fault structure as defined by function 'processFaults'.
+%   faults - Valid fault structure as defined by function `processFaults`.
 %
 % RETURNS:
-%   h - Two-element cell array of handles suitable for passing to GET or
-%       SET.  Specifically, h{1} is a PATCH handle to the set of graphics
-%       containing the fault faces while h{2} is a set of TEXT handles to
-%       the corresponding fault names.
+%   h - Two-element cell array of handles suitable for passing to `get` or
+%       `set`.  Specifically, `h{1}` is a `patch` handle to the set of
+%       graphics containing the fault faces while `h{2}` is a set of `text`
+%       handles to the corresponding fault names.
 %
 %       OPTIONAL.  Only returned if specifically requested.
 %
 % SEE ALSO:
-%   plotFaces, patch, text.
+%   `plotFaces`, `patch`, `text`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

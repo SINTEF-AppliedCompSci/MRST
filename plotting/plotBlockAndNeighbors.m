@@ -16,37 +16,35 @@ function varargout = plotBlockAndNeighbors(CG, block, varargin)
 %
 %   block   - The coarse block to be plotted.
 %
-%   'pn'/pv - List of property names/property values.  OPTIONAL.
-%             All properties supported by function PATCH are supported.
-%             This list can be used to control the appearance and other
-%             properties of the final graphic output.
+% KEYWORD ARGUMENTS:
 %
-%             Moreover, function 'plotBlockAndNeighbors' supports the
-%             following list of additional options that control object
-%             selection and appearance.
+%   PlotFaults - Two-element `logical` vector, the entries of which specify
+%                whether or not fault faces should be added to the
+%                graphical output of the 'block' and its neighbours,
+%                respectively.
 %
-%               - PlotFaults --
-%                   Two-element LOGICAL vector, the entries of which
-%                   specify whether or not fault faces should be added to
-%                   the graphical output of the 'block' and its neighbours,
-%                   respectively.
+%                DEFAULT: `PlotFaults = TRUE([1,2])` (attach fault faces
+%                to both the 'block' and all of its neighbours).
 %
-%                   DEFAULT: PlotFaults = TRUE([1,2]) (attach fault faces
-%                   to both the 'block' and all of its neighbours).
+%   Alpha      - `(2 + max(find(PlotFaults)))`-element numeric vector,
+%                values in [0,1], specifying scalar transparency
+%                (`AlphaData`) values for the `block`, its neighbours, and
+%                the fault faces of the 'block' and its neighbours,
+%                respectively.
 %
-%               - Alpha --
-%                   (2 + MAX(FIND(PlotFaults)))-element numeric vector,
-%                   values in [0,1], specifying scalar transparency
-%                   ("AlphaData") values for the 'block', its neighbours,
-%                   and the fault faces of the 'block' and its neighbours,
-%                   respectively.
+%                DEFAULT: `Alpha = ONES([1,4])` (no transparency in any of
+%                the final objects--all objects drawn opaquely).
 %
-%                   DEFAULT: Alpha = ONES([1,4]) (no transparency in any of
-%                   the final objects--all objects drawn opaquely).
+% KEYWORD ARGUMENTS:
+%
+%   'Any'   - Additional keyword arguments will be passed directly on to
+%             function `patch` meaning all properties supported by `patch`
+%             are valid.
+%
 %
 % RETURNS:
 %   h - Handle to resulting patch objects.  The patch objects are added
-%       directly to the current AXES object (GCA).
+%       directly to the current `axes` object (`gca`).
 %       OPTIONAL.  Only returned if specifically requested.
 %
 % EXAMPLE:
@@ -69,15 +67,15 @@ function varargout = plotBlockAndNeighbors(CG, block, varargin)
 %   view(-145, 26)
 %
 % NOTES:
-%   Function 'plotBlockAndNeighbors' is implemented in terms of plotting
-%   function 'plotFaces' which in turn uses the built-in function PATCH.
+%   Function `plotBlockAndNeighbors` is implemented in terms of plotting
+%   function `plotFaces` which in turn uses the built-in function `patch`.
 %   If a separate axes is needed for the graphical output, callers should
-%   employ function NEWPLOT prior to calling 'plotBlockAndNeighbors'.  This
+%   employ function `newplot` prior to calling `plotBlockAndNeighbors`.  This
 %   function relies on a specific set of values for the properties
-%   'FaceColor' and 'FaceAlpha'.
+%   `FaceColor` and `FaceAlpha`.
 %
 % SEE ALSO:
-%   plotFaces, patch, newplot.
+%   `plotFaces`, `patch`, `newplot`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
