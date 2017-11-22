@@ -4,7 +4,7 @@ function T = Kelvin()
 % SYNOPSIS:
 %   T = Kelvin()
 %
-% PARMETERS:
+% PARAMETERS:
 %   None.
 %
 % RETURNS:

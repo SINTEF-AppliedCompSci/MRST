@@ -4,7 +4,7 @@ function m = mega()
 % SYNOPSIS:
 %   m = mega()
 %
-% PARMETERS:
+% PARAMETERS:
 %   None.
 %
 % RETURNS:

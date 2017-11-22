@@ -4,7 +4,7 @@ function m = gram()
 % SYNOPSIS:
 %   m = gram()
 %
-% PARMETERS:
+% PARAMETERS:
 %   None.
 %
 % RETURNS:

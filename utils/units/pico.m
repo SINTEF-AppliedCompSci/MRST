@@ -4,7 +4,7 @@ function mu = pico()
 % SYNOPSIS:
 %   mu = pico()
 %
-% PARMETERS:
+% PARAMETERS:
 %   None.
 %
 % RETURNS:

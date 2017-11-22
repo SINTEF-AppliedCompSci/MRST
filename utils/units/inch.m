@@ -4,7 +4,7 @@ function d = inch()
 % SYNOPSIS:
 %   d = inch()
 %
-% PARMETERS:
+% PARAMETERS:
 %   None.
 %
 % RETURNS:

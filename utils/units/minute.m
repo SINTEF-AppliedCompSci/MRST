@@ -4,7 +4,7 @@ function t = minute()
 % SYNOPSIS:
 %   t = minute()
 %
-% PARMETERS:
+% PARAMETERS:
 %   None.
 %
 % RETURNS:

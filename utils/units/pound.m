@@ -4,7 +4,7 @@ function m = pound()
 % SYNOPSIS:
 %   m = pound()
 %
-% PARMETERS:
+% PARAMETERS:
 %   None.
 %
 % RETURNS:

@@ -4,7 +4,7 @@ function t = hour()
 % SYNOPSIS:
 %   t = hour()
 %
-% PARMETERS:
+% PARAMETERS:
 %   None.
 %
 % RETURNS:

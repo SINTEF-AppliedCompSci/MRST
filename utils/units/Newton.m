@@ -4,7 +4,7 @@ function n = Newton()
 % SYNOPSIS:
 %   n = Newton()
 %
-% PARMETERS:
+% PARAMETERS:
 %   None.
 %
 % RETURNS:

@@ -4,7 +4,7 @@ function d = farad()
 % SYNOPSIS:
 %   d = Farad()
 %
-% PARMETERS:
+% PARAMETERS:
 %   None.
 %
 % RETURNS:

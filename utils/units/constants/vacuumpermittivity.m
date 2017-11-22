@@ -4,7 +4,7 @@ function epsi = vacuumpermittivity()
 % SYNOPSIS:
 %   epsi = vacuumpermittivity()
 %
-% PARMETERS:
+% PARAMETERS:
 %   None.
 %
 % RETURNS:

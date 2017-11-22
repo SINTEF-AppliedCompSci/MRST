@@ -4,7 +4,7 @@ function d = ampere()
 % SYNOPSIS:
 %   d = Amepere()
 %
-% PARMETERS:
+% PARAMETERS:
 %   None.
 %
 % RETURNS:
