@@ -173,7 +173,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                C U S T O M I S E   B E L O W                  %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+\definecolor{light-gray}{gray}{0.97}
 % ---------------------------------------------------------------------------------
 % default font
 \def\lstbasicfont{\fontfamily{pcr}\selectfont\footnotesize}
@@ -202,7 +202,8 @@
   mathescape=false,escapechar=§,              % escape to latex with §...§
   upquote=true,                               % upright quotes
   aboveskip={1.5\baselineskip},               % a bit of space above listings
-  columns=fixed                               % nice spacing
+  columns=fixed,                               % nice spacing
+  backgroundcolor = \color{light-gray}
 }
 
 % ---------------------------------------------------------------------------------
