@@ -5,19 +5,19 @@ function activeCells = cart2active(G, cartCells)
 %   activeCells = cart2active(G, c)
 %
 % PARAMETERS:
-%   G - Grid data structure as described by 'grid_structure'.
+%   G - Grid data structure as described by `grid_structure`.
 %   c - List of linear Cartesian cell indices.
 %
 % RETURNS:
 %   activeCells - Active cell numbers corresponding to the individual
-%                 Cartesian cell numbers in 'c'.
+%                 Cartesian cell numbers in `c`.
 %
 % NOTE:
-%   This function provides the inverse mapping of the 'G.cells.indexMap'
+%   This function provides the inverse mapping of the `G.cells.indexMap`
 %   field in the grid data structure.
 %
 % SEE ALSO:
-%   grid_structure.
+%   `grid_structure`, `gridLogicalIndices`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -20,15 +20,15 @@ function [H, gcells, gfaces, gnodes] = extractSubgrid(G, c)
 %
 %   gc, gf, gn
 %         - Global cells, faces, and nodes referenced by sub-grid 'subG'.
-%           Specifically,
+%           Specifically::
 %
 %              gc(i) == global cell index (from 'G') of subG cell 'i'.
 %              gf(i) == global face index (from 'G') of subG face 'i'.
 %              gn(i) == global node index (from 'G') of subG node 'i'.
 %
-% NOTE.
-%   The return value 'gcells' is equal to 'unique(cells(:))'.  Repeated
-%   values in 'cells' are silently ignored.
+% NOTE:
+%   The return value `gcells` is equal to `unique(cells(:))`.  Repeated
+%   values in `cells` are silently ignored.
 %
 % EXAMPLE:
 %   G    = cartGrid([3, 5, 7]);     [I, J, K] = ndgrid(2, 2:4, 3:5);
@@ -37,7 +37,7 @@ function [H, gcells, gfaces, gnodes] = extractSubgrid(G, c)
 %   view(-35,20), camlight
 %
 % SEE ALSO:
-%   grid_structure.
+%   `grid_structure`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -62,7 +62,7 @@ function G = hexahedralGrid(P, H)
 %
 %
 % SEE ALSO:
-%   delaunay, tetrahedralGrid, grid_structure.
+%   `delaunay`, `tetrahedralGrid`, `grid_structure`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

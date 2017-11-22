@@ -2,33 +2,31 @@ function [X, Y, Z, lineIx] = buildCornerPtNodes(grdecl, varargin)
 %Construct physical nodal coordinates for CP grid.
 %
 % SYNOPSIS:
-%   [X, Y, Z] = buildCornerPtNodes(grdecl)
-%   [X, Y, Z] = buildCornerPtNodes(grdecl, 'pn1', pv1, ...)
+%   [X, Y, Z, lineIx] = buildCornerPtNodes(grdecl)
+%   [X, Y, Z, lineIx] = buildCornerPtNodes(grdecl, 'pn1', pv1, ...)
 %
 % PARAMETERS:
-%   grdecl  - Eclipse file output structure as defined by readGRDECL.
-%             Must contain at least the fields 'cartDims', 'COORD' and
-%             'ZCORN'.
+%   grdecl  - Eclipse file output structure as defined by `readGRDECL`.
+%             Must contain at least the fields `cartDims`, `COORD` and
+%             `ZCORN`.
 %
-%   'pn'/pv - List of 'key'/value pairs defining optional paramters.  The
-%             supported options are:
-%               - Verbose --
-%                   Whether or not to emit informational messages.
-%                   Default value: Verbose = mrstVerbose.
+% KEYWORD ARGUMENTS:
 %
-%               - CoincidenceTolerance --
-%                   Absolute tolerance used to detect collapsed pillars
-%                   where the top pillar point coincides with the bottom
-%                   pillar point.  Such pillars are treated as is they were
-%                   vertical.
-%                   Default value: CoincidenceTolerance = 100*EPS.
+%  'Verbose'              - Whether or not to emit informational messages.
+%                           Default value: Verbose = mrstVerbose.
+%
+%  'CoincidenceTolerance' - Absolute tolerance used to detect collapsed
+%                           pillars where the top pillar point coincides
+%                           with the bottom pillar point.  Such pillars are
+%                           treated as is they were vertical.
+%                           Default value: CoincidenceTolerance = `100*eps`.
 %
 % RETURNS:
-%   X, Y, Z - Size 2*grdecl.cartDims arrays of 'x', 'y' and 'z' physical
+%   X, Y, Z - Size `2*grdecl.cartDims` arrays of `x`, `y` and `z` physical
 %             nodal coordinates, respectively.
 %
 %   lineIx  - Index of pillar line. There are (nx+1)x(ny+1) pillar lines
-%             along which node coordinates are defined by their ZCORN
+%             along which node coordinates are defined by their `ZCORN`
 %             value.
 % EXAMPLE:
 %   gridfile  = [DATADIR, filesep, 'case.grdecl'];
@@ -36,7 +34,7 @@ function [X, Y, Z, lineIx] = buildCornerPtNodes(grdecl, varargin)
 %   [X, Y, Z] = buildCornerPtNodes(grdecl);
 %
 % SEE ALSO:
-%   readGRDECL, processGRDECL.
+%   `readGRDECL`, `processGRDECL`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
@@ -61,12 +59,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    opt = struct('Verbose', mrstVerbose, 'CoincidenceTolerance', 100*eps);
    opt = merge_options(opt, varargin{:});
 
-   %% Recover logical (cell) dimension of grid
+   % Recover logical (cell) dimension of grid
    nx = grdecl.cartDims(1);
    ny = grdecl.cartDims(2);
    nz = grdecl.cartDims(3);
 
-   %% Enumerate individual pillars in grid
+   % Enumerate individual pillars in grid
    % Pillars 'p1', 'p2', 'p3' and 'p4' bound individual cells in grid.
    pillarIx = reshape(1 : (nx+1)*(ny+1), [nx+1, ny+1]);
 
@@ -88,7 +86,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    lines = lines(lineIx(:), :);
    %clear lineIx
 
-   %% Recover physical nodal coordinates along pillars
+   % Recover physical nodal coordinates along pillars
    %
    % We assume that all pillars are straight lines so linear interpolation
    % is sufficient.

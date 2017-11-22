@@ -5,8 +5,8 @@ function zcorn = checkAndRepairZCORN(zcorn, cartDims, varargin)
 %   zcorn = checkAndRepairZCORN(zcorn, dims)
 %   zcorn = checkAndRepairZCORN(zcorn, dims, 'pn1', pv1, ...)
 %
-% DESCRIPTIONS:
-%   Function checkAndRepairZCORN detects and repairs the following, rare,
+% DESCRIPTION:
+%   Function `checkAndRepairZCORN` detects and repairs the following, rare,
 %   conditions
 %
 %      - Upper corners of a cell below lower corners of that same cell
@@ -16,7 +16,8 @@ function zcorn = checkAndRepairZCORN(zcorn, cartDims, varargin)
 %   These will typically arise as a result of finite precision output from
 %   a corner-point grid generator.
 %
-%   The repair strategy, if applicable, is as follows:
+%   The repair strategy, if applicable, is as follows,
+%
 %     - If an upper corner is below the corresponding lower corner on the
 %       same pillar, then the upper corner depth is assigned to be equal to
 %       the lower corner depth.
@@ -36,19 +37,17 @@ function zcorn = checkAndRepairZCORN(zcorn, cartDims, varargin)
 %             Typically corresponds to the field 'cartDims' of a 'grdecl'
 %             structure created by function 'readGRDECL'.
 %
-%   'pn'/pv - List of 'key'/value pairs defining optional parameters.  The
-%             supported options are:
+% KEYWORD ARGUMENTS:
 %
-%               Active  -- A PROD(dims)-element vector of active cell
-%                          mappings.  Zero/false signifies inactive cells
-%                          while non-zero/true signifies active cells.
-%                          Typically corresponds to the field 'ACTNUM' of a
-%                          'grdecl' structure.
-%                          Default value: Active=[] (-> All cells active).
+%   Active  - A `prod(dims)`-element vector of active cell mappings.
+%              Zero/false signifies inactive cells while non-zero/true
+%              signifies active cells. Typically corresponds to the field
+%              `ACTNUM` of a 'grdecl' structure.
+%                          Default value: `Active=[]` (-> All cells active).
 %
-%               Verbose -- Whether or not to emit informational messages
-%                          during the computational process.
-%                          Default value: Verbose = mrstVerbose.
+%   Verbose - Whether or not to emit informational messages during the
+%             computational process. 
+%             Default value: `Verbose = mrstVerbose()`.
 %
 % RETURNS:
 %   zcorn   - Corner-point depth specification for which identified
@@ -56,11 +55,11 @@ function zcorn = checkAndRepairZCORN(zcorn, cartDims, varargin)
 %             this is the same as input array 'zcorn'.
 %
 % NOTE:
-%   This function is used to implement option 'RepairZCORN' of the
-%   corner-point processor, 'processGRDECL'.
+%   This function is used to implement option `RepairZCORN` of the
+%   corner-point processor, `processGRDECL`.
 %
 % SEE ALSO:
-%   readGRDECL, processGRDECL, mrstVerbose.
+%   `readGRDECL`, `processGRDECL`, `mrstVerbose`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
