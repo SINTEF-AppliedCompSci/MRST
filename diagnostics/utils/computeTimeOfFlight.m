@@ -111,7 +111,7 @@ function [T, A, q] = computeTimeOfFlight(state, G, rock, varargin)
 %       OPTIONAL.  Only returned if specifically requested.
 %
 % SEE ALSO:
-%   simpleTimeOfFlight, solveIncompFlow.
+%   `simpleTimeOfFlight`, `solveIncompFlow`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

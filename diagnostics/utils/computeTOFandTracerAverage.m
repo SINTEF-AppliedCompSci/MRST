@@ -46,7 +46,7 @@ function D = computeTOFandTracerAverage(state, G, rock, varargin)
 % EXAMPLE:
 %
 % SEE ALSO:
-%   computeTOFandTracer
+%   `computeTOFandTracer`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -15,7 +15,7 @@ function Lc = computeLorenz(F,Phi)
 %         heterogeneous displacement).
 %
 % SEE ALSO:
-%   computeFandPhi, computeSweep
+%   `computeFandPhi`, `computeSweep`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

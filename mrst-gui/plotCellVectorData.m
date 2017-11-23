@@ -57,7 +57,7 @@ function handles = plotCellVectorData(G, data, varargin)
 %    plotCellVectorData(G, cellFlux);
 %
 % SEE ALSO:
-%   plotCellData, plotToolbar, quiver3, quiver
+%   `plotCellData`, `plotToolbar`, `quiver3`, `quiver`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

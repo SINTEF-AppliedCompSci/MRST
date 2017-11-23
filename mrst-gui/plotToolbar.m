@@ -102,7 +102,7 @@
 %    plotToolbar(G, G)
 %
 % SEE ALSO:
-%   plotCellData, plotFaces
+%   `plotCellData`, `plotFaces`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

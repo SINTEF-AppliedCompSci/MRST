@@ -27,7 +27,7 @@ function fastRotateButton(varargin)
 %    fastRotateButton();
 %
 % SEE ALSO:
-%   altRotate, plotToolbar
+%   `altRotate`, `plotToolbar`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

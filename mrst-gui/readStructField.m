@@ -20,7 +20,7 @@ function data = readStructField(s, name)
 %
 %
 % SEE ALSO:
-%   getStructFields, datasetSelector
+%   `getStructFields`, `datasetSelector`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -64,7 +64,7 @@ function varargout = plotTracerBlend(G, partition, maxconc, varargin)
 %   axis equal tight off, set(gca, 'DataAspectRatio', [ 1, 1, 0.1 ])
 %
 % SEE ALSO:
-%   computeTOFandTracer, plotCellData.
+%   `computeTOFandTracer`, `plotCellData`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

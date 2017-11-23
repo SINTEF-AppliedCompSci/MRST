@@ -9,7 +9,7 @@ function h = logColorbar(varargin)
 %   labels indicating that the data is log10-transformed.
 %
 % SEE ALSO:
-%   colorbar
+%   `colorbar`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

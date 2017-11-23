@@ -66,7 +66,7 @@ function varargout = datasetSelector(G, datasets, varargin)
 %   otherwise it will simply execute (possibly empty) callbback.
 %
 % SEE ALSO:
-%   plotToolbar
+%   `plotToolbar`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -24,7 +24,7 @@ function [F,Phi] = computeFandPhi(pv, tof)
 %         time-of-flight values
 %
 % SEE ALSO:
-%   computeTOFandTracer, computeLorenz, computeSweep
+%   `computeTOFandTracer`, `computeLorenz`, `computeSweep`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

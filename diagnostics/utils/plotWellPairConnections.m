@@ -26,7 +26,7 @@ function varargout = plotWellPairConnections(G, WP, D, W, pv, minAlloc)
 %   for this pair.
 %
 % SEE ALSO:
-%   computeTOFandTracer, computeWellPairs
+%   `computeTOFandTracer`, `computeWellPairs`
 
 if nargin<6
     minAlloc = 0.01;

@@ -40,7 +40,7 @@ function [xc,Wc]=expandWellCompletions(state, W, expansion, split)
 %   xn  - Reservoir and solution structure corresponding
 %
 % SEE ALSO:
-%   computeTOFandTracer, computeWellPairs
+%   `computeTOFandTracer`, `computeWellPairs`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

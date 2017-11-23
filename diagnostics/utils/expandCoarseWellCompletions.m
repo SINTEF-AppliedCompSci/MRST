@@ -26,7 +26,7 @@ function [exc, eWC] = expandCoarseWellCompletions(xc, WC, Wdf, p)
 %   xn  - Reservoir and solution structure corresponding
 %
 % SEE ALSO:
-%   expandWellCompletions, computeTOFandTracer, computeWellPairs
+%   `expandWellCompletions`, `computeTOFandTracer`, `computeWellPairs`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

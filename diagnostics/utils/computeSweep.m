@@ -14,7 +14,7 @@ function [Ev,tD] = computeSweep(F,Phi)
 %         as flux funcion
 %
 % SEE ALSO:
-%   computeFandPhi, computeLorenz
+%   `computeFandPhi`, `computeLorenz`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

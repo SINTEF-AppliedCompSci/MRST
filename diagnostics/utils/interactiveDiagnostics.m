@@ -104,7 +104,7 @@ function interactiveDiagnostics(G, rock, W, varargin)
 %     interactiveDiagnostics(G, rock, W);
 %
 % SEE ALSO:
-%   Diagnostics examples
+%   `Diagnostics` `examples`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

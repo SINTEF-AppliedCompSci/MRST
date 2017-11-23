@@ -20,7 +20,7 @@ function [flds, hasCell, hasNode] = getStructFields(G, s, name)
 %          'rock.poro', 'rock.perm:1', 'rock.perm:2' etc.
 %
 % SEE ALSO:
-%   readStructFields, datasetSelector
+%   `readStructFields`, `datasetSelector`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

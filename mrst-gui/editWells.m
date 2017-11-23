@@ -40,7 +40,7 @@ function varargout = editWells(G, W, rock, varargin)
 %   crashing most, if not all, the solvers in MRST.
 %
 % SEE ALSO:
-%   interactiveSelection
+%   `interactiveSelection`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

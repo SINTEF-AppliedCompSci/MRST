@@ -26,7 +26,7 @@ function filter = addFilters(G, filters, datasets, callback)
 %   Internal function for use by plotToolbar. Subject to change.
 %
 % SEE ALSO:
-%   plotToolbar
+%   `plotToolbar`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

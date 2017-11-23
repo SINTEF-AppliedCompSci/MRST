@@ -28,7 +28,7 @@ function plotWellAllocationComparison(D1, WP1, D2, WP2, varargin)
 %   allocation for the wells in WP1.
 %
 % SEE ALSO:
-%   computeTOFandTracer, computeWellParis, expandWellCompletions
+%   `computeTOFandTracer`, `computeWellParis`, `expandWellCompletions`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

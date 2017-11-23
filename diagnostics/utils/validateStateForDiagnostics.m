@@ -21,7 +21,7 @@ function state = validateStateForDiagnostics(state)
 %   produce the correct fields.
 %
 % SEE ALSO:
-%   computeTOFandTracer.
+%   `computeTOFandTracer`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
