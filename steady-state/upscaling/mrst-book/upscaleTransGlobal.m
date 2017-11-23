@@ -381,6 +381,3 @@ else
 end
 opt.mobility = {mobf, mobc};
 end
-
-
-
