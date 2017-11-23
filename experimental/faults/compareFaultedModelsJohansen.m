@@ -2,7 +2,7 @@ function compareFaultedModelsJohansen( varargin )
 % Compare un-faulted to faulted model of Johansen
 
 % SEE ALSO:
-%   showJohansen.m --> sector model is loaded with different faces.tag
+%   `showJohansen` --> sector model is loaded with different `faces.tag`
 
 
 moduleCheck('ad-core','mrst-gui')

@@ -17,7 +17,7 @@ function plotTrappingDistribution(ax, report, varargin)
 %              orientation of the legend. 
 %
 % SEE ALSO:
-% makeReports
+% `makeReports`
 
     opt.legend_location = 'eastoutside';
     opt.legend_orientation = 'vertical';

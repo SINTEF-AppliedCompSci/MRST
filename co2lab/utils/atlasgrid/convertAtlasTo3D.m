@@ -31,7 +31,7 @@ function grdecl = convertAtlasTo3D(meta_thick, meta_top, data_thick, data_top, n
 %   routine directly.
 %
 % SEE ALSO:
-%   getAlasGrid
+%   `getAlasGrid`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

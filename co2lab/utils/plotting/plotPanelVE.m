@@ -74,7 +74,7 @@ function varargout = plotPanelVE(G, Gt, W, sol, t, vol, varargin)
 %   set to true.
 %
 % SEE ALSO:
-%   runIGEMS, volumesVE
+%   `runIGEMS`, `volumesVE`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

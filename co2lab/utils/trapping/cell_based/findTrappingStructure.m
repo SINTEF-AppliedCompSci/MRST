@@ -89,7 +89,7 @@ function trap=findTrappingStructure(Gt, varargin)
 %   colormap(col); cbh=colorbar; caxis([0 nt]+.5);set(cbh,'YTick',1:nt);
 %
 % SEE ALSO:
-%   topSurfaceGrid, trapAnalysis, findCellLines, findTrapConnections
+%   `topSurfaceGrid`, `trapAnalysis`, `findCellLines`, `findTrapConnections`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

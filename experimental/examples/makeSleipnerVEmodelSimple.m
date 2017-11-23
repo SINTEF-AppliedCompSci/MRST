@@ -16,7 +16,7 @@ function [Gt, rock, rock2D, bcIxVE] = makeSleipnerVEmodelSimple(usemex)
 % DESCRIPTION:
 %
 % SEE ALSO:
-%   runSleipner
+%   `runSleipner`
 
 if nargin<1, usemex = true; end
 

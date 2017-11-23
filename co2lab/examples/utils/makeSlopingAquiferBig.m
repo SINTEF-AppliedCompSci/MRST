@@ -14,7 +14,7 @@ function [G, Gt, rock, rock2D, bcIxVE] = makeSlopingAquiferBig(usemex)
 %            Eclipse input and computing geometry
 %
 % SEE ALSO:
-%   runIGEMS
+%   `runIGEMS`
 
 if nargin<1, usemex=true; end
 

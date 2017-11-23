@@ -15,7 +15,7 @@ function Gt = flattenTraps(Gt, res)
 %   function also adds the sortedCellNodes field to Gt if not present.
 %
 % SEE ALSO:
-%   interactiveTrapping.
+%   `interactiveTrapping`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -49,7 +49,7 @@ function res = computeNodeTraps(Gt, closed_bnodes, closed_fnodes)
 %                            in another trap or at the boundary of the
 %                            domain. 
 % SEE ALSO:
-% n2cTraps
+% `n2cTraps`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
@@ -287,7 +287,7 @@ function [res_mat, z_heights, spillpoint_edge] = ...
 %                   vector. 
 % 
 % SEE ALSO:
-% nodeSpillField, computeNodeTraps
+% `nodeSpillField`, `computeNodeTraps`
 
     num_clusters = size(reg_groupings, 2);
     res_mat = sparse(num_clusters, num_clusters);
@@ -395,7 +395,7 @@ function [neigh_traps, highest_spill_z_value, highest_spill_edge_ixs] ...
 %                          (typically one, but can theoretically be more)
 %
 % SEE ALSO:
-% computeNodeTraps, assemble_connectivity_matrix, nodeSpillField 
+% `computeNodeTraps`, `assemble_connectivity_matrix`, `nodeSpillField` 
 
     num_regions = size(all_traps, 1);
     member_regions = find(all_traps(:, trap_ix));

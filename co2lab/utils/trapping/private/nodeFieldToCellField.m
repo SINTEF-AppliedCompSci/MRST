@@ -18,7 +18,8 @@ function cell_field = nodeFieldToCellField(Gt, node_field)
 %              to the associated grid cells.
 % 
 % SEE ALSO: 
-% computeNodeTraps
+% `computeNodeTraps`
+
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
@@ -46,6 +47,4 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % Choosing the node_field value of the chosen (i.e. 'highest') corner of each cell 
     % to represent the value for that cell
     cell_field = node_field(cnodes(sub2ind(size(cnodes),min_z_ix, 1:num_cells)));
-
 end
-

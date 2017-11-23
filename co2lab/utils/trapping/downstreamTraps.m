@@ -20,7 +20,8 @@ function [trap_ixs, vols] = downstreamTraps(Gt, poro, tstruct, trap_ix)
 %              entry in 'trap_ixs')
 %
 % SEE ALSO:
-% trapAnalysis
+% `trapAnalysis`
+
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 

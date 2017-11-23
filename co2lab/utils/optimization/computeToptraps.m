@@ -19,7 +19,8 @@ function dh = computeToptraps(trapfun, Gt, recenter)
 %        potential for each cell.
 %
 % SEE ALSO:
-%   resTiltUtsira
+%   `resTiltUtsira`
+
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
@@ -39,7 +40,6 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-   
     TVol = @(theta_x, theta_y) interp2(trapfun.theta_x_vec, ...
                                        trapfun.theta_y_vec, ...
                                        trapfun.tv_per_area', ...

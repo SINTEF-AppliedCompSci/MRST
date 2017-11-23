@@ -34,7 +34,7 @@ function fluid = initSimpleVEFluid_s(varargin)
 %   plot(s, kr), legend('kr_1', 'kr_2')
 %
 % SEE ALSO:
-%   fluid_structure, solveIncompFlow.
+%   `fluid_structure`, `solveIncompFlow`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

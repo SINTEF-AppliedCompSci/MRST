@@ -16,7 +16,7 @@ function moduleCheck(varargin)
 %   contained in a variable.
 %
 % SEE ALSO:
-%   mrstPath, mrstModule.
+%   `mrstPath`, `mrstModule`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

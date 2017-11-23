@@ -43,7 +43,8 @@ function [ctraps, ctrap_zvals, ctrap_regions, csommets, ctrap_connectivity, criv
 %                      boundary of the domain.
 %
 % SEE ALSO:
-%   computeNodeTraps
+%   `computeNodeTraps`
+
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 

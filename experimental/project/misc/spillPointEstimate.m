@@ -21,17 +21,9 @@ function [down_cells,rest_volume,down_cells_prev, Gtop]=spillPointEstimate(Gtop,
 %   Gtop - the flat surface corresponding to the spillpoint which will be
 %           past with more volume injected
 %
-%
-%  NOTE:
-%    
-%
-%  Example:
-%    
-%    
-%
 % SEE ALSO:
-%    findTrappingStructure
-% 
+%    `findTrappingStructure`
+
 opt = struct('use_multipoint',false,'include_bc',false);
 opt = merge_options(opt, varargin{:});
 Gtop_new=Gtop;
@@ -42,8 +34,7 @@ down_cells_prev=[];
 while rest_volume>0,
     % find component of cell
     comp_cells=bfs(C'+C,cell);
-    
-    
+
     comp_cells=find(comp_cells>-1);
     % find max of boundary of component         
     if(opt.use_multipoint)

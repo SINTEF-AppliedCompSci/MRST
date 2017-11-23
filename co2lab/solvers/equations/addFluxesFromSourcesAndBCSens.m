@@ -38,7 +38,7 @@ function [eqs, qBC, qRes, BCTocellMap, qSRC, srcCells, bcCells] = addFluxesFromS
 %   srcCells    - List of cells, mapping qSRC to cells.
 %
 % SEE ALSO:
-%   getBoundaryConditionFluxesAD, getSourceFluxesAD, addSource, addBC
+%   `getBoundaryConditionFluxesAD`, `getSourceFluxesAD`, `addSource`, `addBC`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

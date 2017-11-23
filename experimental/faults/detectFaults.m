@@ -23,9 +23,8 @@ function [ Gt_faults, faultFaces, faultCells, s, rock2D_faults ] = detectFaults(
 %   pressure bdrys being applied at some fault faces?
 
 % SEE ALSO:
-%    makeInternalBoundary.m
+%    `makeInternalBoundary`
 %    topSurfaceGrid(...,'add_faults',true)
-%
 
 
 moduleCheck('ad-core')

@@ -13,7 +13,7 @@ function writeMRSTWells(W, fn)
 %   Nothing.
 %
 % SEE ALSO:
-%   writeDeck, fopen.
+%   `writeDeck`, `fopen`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

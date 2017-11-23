@@ -64,7 +64,7 @@ function fluid = initVEFluidHForm(g_top, varargin)
 %                                 'kwm', [   1,   1]);
 %
 % SEE ALSO:
-%   initFluid, initResSol, initWellSol, solveIncompFlow.
+%   `initFluid`, `initResSol`, `initWellSol`, `solveIncompFlow`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

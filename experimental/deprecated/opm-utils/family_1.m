@@ -19,7 +19,7 @@ function f1 = family_1(family_2)
 %        "family I" keywords (i.e., SWOF and/or SGOF).
 %
 % SEE ALSO:
-%   readEclipseDeck, writeDeck.
+%   `readEclipseDeck`, `writeDeck`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

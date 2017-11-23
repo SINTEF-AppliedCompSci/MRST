@@ -47,7 +47,7 @@ function varargout = getAtlasGrid(varargin)
 %             to calculate.
 %
 % SEE ALSO:
-%   convertAtlasTo3D, downloadDataSets
+%   `convertAtlasTo3D`, `downloadDataSets`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

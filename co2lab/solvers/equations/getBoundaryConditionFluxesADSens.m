@@ -37,7 +37,7 @@ function [qSurf, BCTocellMap, BCcells, qRes] = getBoundaryConditionFluxesADSens(
 %   cells       - The cells affected by boundary conditions.
 %
 % SEE ALSO:
-%   addBC, pside, fluxside
+%   `addBC`, `pside`, `fluxside`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

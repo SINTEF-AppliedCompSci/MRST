@@ -27,7 +27,7 @@ classdef CO2VEBlackOilTypeModel < ReservoirModel
     %   Class instance.
     %
     % SEE ALSO:
-    % topSurfaceGrid, averageRock, makeVEFluid, ReservoirModel
+    % `topSurfaceGrid`, `averageRock`, `makeVEFluid`, `ReservoirModel`
 
     % ============================= Class properties ==========================
 properties

@@ -50,7 +50,7 @@ function opmres = getOpmResults(output_dir, steps, deck)
 %   view(3)
 %
 % SEE ALSO:
-%   numberOfSteps.
+%   `numberOfSteps`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

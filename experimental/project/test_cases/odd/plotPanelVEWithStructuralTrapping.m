@@ -45,7 +45,7 @@ function plotPanelVEWithStructuralTrapping(G, Gt, W, sol, t, vol, varargin)
 %
 %
 % SEE ALSO:
-%   runIGEMS
+%   `runIGEMS`
 
 persistent G_x G_y;      % Grids for 2D slices
 persistent h h1 h2;      % Figure and graphics handles

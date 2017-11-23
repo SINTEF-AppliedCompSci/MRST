@@ -14,7 +14,7 @@ function vol = computeTrapVolume(Gt, tstruct, poro, trap_ixs)
 %   vol - total pore volumes of the requested traps
 %
 % SEE ALSO:
-% trapAnalysis
+% `trapAnalysis`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

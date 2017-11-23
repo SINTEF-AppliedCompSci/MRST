@@ -23,7 +23,7 @@ function c = getInventoryColors(ind)
 %   image(repmat(1:7,2,1)); colormap(getInventoryColors(1:7))
 %
 % SEE ALSO:
-%   interactiveTrapping, getVEColors
+%   `interactiveTrapping`, `getVEColors`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

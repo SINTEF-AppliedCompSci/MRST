@@ -27,7 +27,7 @@ function [deck,G] = sinusDeckAdiVE(cartDims, physDims, nsteps, dt, theta,...
 %           the deck, we add the optional possibility of reusing it.
 
 % SEE ALSO:
-%   compareMethods
+%   `compareMethods`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

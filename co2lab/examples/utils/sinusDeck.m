@@ -25,7 +25,7 @@ function deck = sinusDeck(cartDims, physDims, nsteps, dt, theta, depth, ...
 %           functions like 'initEclipseGrid'
 %
 % SEE ALSO:
-%   compareMethods
+%   `compareMethods`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

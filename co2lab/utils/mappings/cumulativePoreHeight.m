@@ -25,7 +25,7 @@ function ph = cumulativePoreHeight(g, rock)
 %   to the incremental depth, G.columns.dz.
 %
 % SEE ALSO:
-%   topSurfaceGrid, cumulativeHeight, accumulateVertically.
+%   `topSurfaceGrid`, `cumulativeHeight`, `accumulateVertically`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

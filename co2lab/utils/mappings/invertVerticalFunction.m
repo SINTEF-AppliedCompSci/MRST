@@ -47,7 +47,7 @@ function h = invertVerticalFunction(f, g, z, y)
 %   increasing function (per column) satisfying y(0)=0.
 %
 % SEE ALSO:
-%   cumulativePoreHeight, cumulativeHeight, topSurfaceGrid.
+%   `cumulativePoreHeight`, `cumulativeHeight`, `topSurfaceGrid`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

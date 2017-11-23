@@ -33,7 +33,7 @@ function [ deck, petroinfo ] = updateWithHeterogeneity( deck, petroinfo, meta_to
 %               petroinfo is returned unmodified.
 %
 % SEE ALSO:
-%   getAtlasGrid, convertAtlasTo3D
+%   `getAtlasGrid`, `convertAtlasTo3D`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

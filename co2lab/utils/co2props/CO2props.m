@@ -55,7 +55,7 @@ function obj = CO2props(varargin)
 %   obj - Object containing a full set of CO2 property functions.
 %
 % SEE ALSO:
-%   SampledProp2D
+%   `SampledProp2D`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

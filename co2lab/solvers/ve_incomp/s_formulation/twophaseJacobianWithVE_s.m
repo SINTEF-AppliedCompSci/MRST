@@ -72,7 +72,7 @@ function [Res, Jac] = twophaseJacobianWithVE_s(G, state, rock, fluid, varargin)
 %
 %
 % SEE ALSO:
-%   implicitTransport, explicitTransport.
+%   `implicitTransport`, `explicitTransport`.
 
 % TODO:
 %   - implement gravity effects for pressure boundary and wells
@@ -841,7 +841,7 @@ function q = computeTransportSourceTerm(state, G, wells, src, bc)
 %           for passing to a transport solver.  Measured in units of m^3/s.
 %
 % SEE ALSO:
-%   twophaseJacobian, computeTimeOfFlight.
+%   `twophaseJacobian`, `computeTimeOfFlight`.
 
 % TODO:
 %   - implement gravity effects for pressure boundary and wells

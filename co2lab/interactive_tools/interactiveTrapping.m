@@ -49,7 +49,7 @@ function varargout = interactiveTrapping(inp, varargin)
 %
 %
 % SEE ALSO:
-%   trapAnalysis, showTrapsInteractively
+%   `trapAnalysis`, `showTrapsInteractively`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

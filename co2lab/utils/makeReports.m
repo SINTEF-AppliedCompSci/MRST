@@ -28,7 +28,7 @@ function reports = makeReports(Gt, states, rock, fluid, schedule, residual, trap
 %   'plotTrappingDistribution' function.
 %
 % SEE ALSO:
-% plotTrappingDistribution
+% `plotTrappingDistribution`
    
    assert( numel(states) == numel(schedule.step.val)+1 , ...
        'Ensure the initial state has been included in the varargin ''states''.')

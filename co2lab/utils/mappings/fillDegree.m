@@ -32,7 +32,7 @@ function [n, t] = fillDegree(h, G)
 %   N(i) - (n(i) + 1) cells below the single, partially filled cell.
 %
 % SEE ALSO:
-%   integrateVertically, cumulativeHeight.
+%   `integrateVertically`, `cumulativeHeight`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

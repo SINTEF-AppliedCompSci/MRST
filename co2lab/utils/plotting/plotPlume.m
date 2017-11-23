@@ -31,7 +31,7 @@ function varargout = plotPlume(G, Gt, h, varargin)
 %   callers should employ function newplot prior to calling 'plotPlume'.
 %
 % SEE ALSO:
-%   plotCellData, plotGrid, newplot, patch, shading.
+%   `plotCellData`, `plotGrid`, `newplot`, `patch`, `shading`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

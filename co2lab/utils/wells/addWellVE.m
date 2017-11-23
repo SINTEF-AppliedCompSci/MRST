@@ -18,7 +18,8 @@ function W = addWellVE(W, Gt, rock2D, cell, varargin)
 %   W - Updated (or freshly created) well structure.
 %
 % SEE ALSO:
-% convertwellsVE
+% `convertwellsVE`
+
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
@@ -37,6 +38,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}   
+
    opt = struct('innerProduct', 'ip_tpf',                     ...
                 'name'        , sprintf('W%d', numel(W) + 1), ...
                 'radius'      , 0.1,                          ...

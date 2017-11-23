@@ -26,8 +26,8 @@ function [fill_heights, sat_field, escaped_vol] = ...
 % EXAMPLE:
 %
 % SEE ALSO:
-% trapAnalysis
-% 
+% `trapAnalysis`
+
   num_traps = numel(tstruct.trap_z);
   fill_heights = zeros(num_traps, 1); % initially, no trap has received any CO2
 

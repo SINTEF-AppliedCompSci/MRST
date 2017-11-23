@@ -13,7 +13,7 @@ function plotVelocityVE(g, state)
 %   Nothing, but displays a QUIVER plot of the lateral velocity components.
 %
 % SEE ALSO:
-%   quiver, grid_structure.
+%   `quiver`, `grid_structure`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

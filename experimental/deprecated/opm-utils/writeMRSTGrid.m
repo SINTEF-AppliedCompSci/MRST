@@ -13,7 +13,7 @@ function writeMRSTGrid(G, fn)
 %   Nothing.
 %
 % SEE ALSO:
-%   writeDeck, fopen.
+%   `writeDeck`, `fopen`.
 
 % $Date: 2012-10-10 20:45:49 +0200 (Wed, 10 Oct 2012) $
 % $Revision: 10060 $

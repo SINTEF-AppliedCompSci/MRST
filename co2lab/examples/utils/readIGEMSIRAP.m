@@ -32,7 +32,7 @@ function G = readIGEMSIRAP(name, i, varargin)
 %
 %
 % SEE ALSO:
-%   readIrapClassicAsciiSurf
+%   `readIrapClassicAsciiSurf`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

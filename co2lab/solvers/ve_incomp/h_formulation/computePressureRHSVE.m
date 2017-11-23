@@ -42,7 +42,7 @@ function [ff, gg, hh, gp, dF, dC] = computePressureRHSVE(g, omega, pc,  ...
 %             solver (e.g., 'schurComplementSymm').
 %
 % SEE ALSO:
-%   addBC, addSource, computeMimeticIP, schurComplementSymm.
+%   `addBC`, `addSource`, `computeMimeticIP`, `schurComplementSymm`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

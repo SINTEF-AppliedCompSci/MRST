@@ -31,7 +31,7 @@ function sqform = convertAtlasToStruct(meta_thick, meta_top, data_thick, data_to
 %       routine directly.
 %
 % SEE ALSO:
-%   getAlasGrid
+%   `getAlasGrid`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

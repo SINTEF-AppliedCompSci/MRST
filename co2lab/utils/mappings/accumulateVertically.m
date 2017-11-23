@@ -19,7 +19,7 @@ function q = accumulateVertically(q, p)
 %        column such that ALL(cq(pos(1 : end-1)) == 0).
 %
 % SEE ALSO:
-%   topSurfaceGrid, cumsum.
+%   `topSurfaceGrid`, `cumsum`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

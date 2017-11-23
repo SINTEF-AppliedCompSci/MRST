@@ -42,7 +42,8 @@ function bG = boCO2(T_ref, rhoG, varargin)
 %   bG - CO2 formation volume factor (a function of pressure)
 %
 % SEE ALSO:
-%  CO2props, SampledProp2D
+%  `CO2props`, `SampledProp2D`
+
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 

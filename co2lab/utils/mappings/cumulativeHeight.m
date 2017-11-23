@@ -25,7 +25,7 @@ function z = cumulativeHeight(g)
 %       modulo arithmetic error (round-off).
 %
 % SEE ALSO:
-%   topSurfaceGrid, accumulateVertically.
+%   `topSurfaceGrid`, `accumulateVertically`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

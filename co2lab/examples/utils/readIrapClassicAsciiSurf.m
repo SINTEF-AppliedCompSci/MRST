@@ -25,7 +25,7 @@ function [x, y, Z, angle] = readIrapClassicAsciiSurf(filename)
 %    set(gca, 'ZDir', 'reverse')
 %
 % SEE ALSO:
-%   readIGEMSIRAP
+%   `readIGEMSIRAP`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

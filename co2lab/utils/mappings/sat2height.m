@@ -17,7 +17,7 @@ function h = sat2height(s, g, rock)
 %       grid.
 %
 % SEE ALSO:
-%   accumulateVertically, integrateVertically
+%   `accumulateVertically`, `integrateVertically`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

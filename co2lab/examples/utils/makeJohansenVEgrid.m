@@ -36,7 +36,7 @@ function [G, rock, bcIx, Gt, rock2D, bcIxVE] = makeJohansenVEgrid(varargin)
 %  website>.
 %
 % SEE ALSO:
-%   runJohansenVE
+%   `runJohansenVE`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

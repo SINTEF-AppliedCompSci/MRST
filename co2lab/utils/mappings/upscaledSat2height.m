@@ -43,11 +43,7 @@ function [h, h_max] = upscaledSat2height(S, S_max, Gt, varargin)
 %           caprock and the deepest point for which there is still nonzero
 %           CO2 flow.
 %   h_max - The historically maximum height
-%
-% EXAMPLE:
-%
-% SEE ALSO:
-%
+
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
@@ -66,6 +62,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+
     opt = struct('rock2D', [], 'resSat', [], 'pcWG', [], 'p', [], 'rhoW', [], ...
                  'rhoG', []);
     opt = merge_options(opt, varargin{:});

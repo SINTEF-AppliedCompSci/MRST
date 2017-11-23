@@ -43,7 +43,7 @@ function g = grdeclSloping(dims, physDims, varargin)
 % EXAMPLE:
 %
 % SEE ALSO:
-%   processGRDECL, writeGRDECL.
+%   `processGRDECL`, `writeGRDECL`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

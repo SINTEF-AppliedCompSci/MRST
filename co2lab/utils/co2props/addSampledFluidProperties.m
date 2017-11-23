@@ -70,7 +70,7 @@ function fluid = addSampledFluidProperties(fluid, shortname, varargin)
 %   thereof): rhoG, rhoW, muG, muW, hG, hW.
 %
 % SEE ALSO:
-%  makeVEFluid, SampledProp2D, CO2props
+%  `makeVEFluid`, `SampledProp2D`, `CO2props`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

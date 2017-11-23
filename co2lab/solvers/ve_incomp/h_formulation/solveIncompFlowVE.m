@@ -146,8 +146,8 @@ function state = solveIncompFlowVE(state, g, s, rock, fluid, varargin)
 %           'solveIncompFlow:DrivingForce:Missing'
 %
 % SEE ALSO:
-%   computeMimeticIP, addBC, addSource, addWell, initSimpleFluid
-%   initResSol, initWellSol, solveIncompFlowMS.
+%   `computeMimeticIP`, `addBC`, `addSource`, `addWell`, `initSimpleFluid`
+%   `initResSol`, `initWellSol`, `solveIncompFlowMS`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

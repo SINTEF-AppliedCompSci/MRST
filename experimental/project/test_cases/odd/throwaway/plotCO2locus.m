@@ -13,11 +13,7 @@ function h = plotCO2locus(P, T, CO2, varargin)
 %
 % RETURNS:
 %   h - handle to graphic
-%
-% EXAMPLE:
-%
-% SEE ALSO:
-%
+
     if (nargin >= 5) 
         pspan = varargin{1};
         tspan = varargin{2};
@@ -25,27 +21,27 @@ function h = plotCO2locus(P, T, CO2, varargin)
         pspan = [min(P(:)), max(P(:))];
         tspan = [min(T(:)), max(T(:))];
     end
-    
+
     resolution = 300;
-    
+
     pvals = linspace(pspan(1), pspan(2), resolution);
     tvals = linspace(tspan(1), tspan(2), resolution);
-    
+
     [tgrid, pgrid] = meshgrid(tvals, pvals);
-    
+
     rho = reshape(CO2.rho(pgrid(:), tgrid(:)), resolution, resolution);
-    
+
     % drawing density color values
     h = pcolor(tvals, pvals, rho);
     set(h, 'edgeAlpha', 0);
     view(0, 90);
     hold on;
-    
-    % adding liquid-vapor-boundary line    
+
+    % adding liquid-vapor-boundary line
     [pc, tc] = CO2CriticalPoint();
     lvb_t = linspace(tspan(1), tc, 100)';
     lvb_p = CO2VaporPressure(lvb_t);
-    
+
     line(lvb_t, lvb_p, 'lineWidth', 2, 'color', [0 0 0]);
 
     % Drawing locus
@@ -54,4 +50,3 @@ function h = plotCO2locus(P, T, CO2, varargin)
     end
     hold off;
 end
-

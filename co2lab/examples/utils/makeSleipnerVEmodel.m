@@ -27,7 +27,7 @@ function [G, Gt, rock, rock2D, bcIxVE] = makeSleipnerVEmodel(varargin)
 %   bcIxVE - Index for pressure boundary conditions in topsurface grid
 %
 % SEE ALSO:
-%   runSleipner.
+%   `runSleipner`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

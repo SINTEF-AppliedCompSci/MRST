@@ -19,8 +19,8 @@ function v = volumesOfTraps(Gt, res, traps, varargin)
 %       NB: The volumes computes are total volumes, not pore volumes!
 %
 % SEE ALSO:
-%   trapAnalysis    
-%
+%   `trapAnalysis`    
+
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 

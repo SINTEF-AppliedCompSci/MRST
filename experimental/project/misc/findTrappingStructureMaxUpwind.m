@@ -43,8 +43,8 @@ function trap_struct=findTrappingStructure(Gt,varargin)
 %     plotGrid(trap_str.Gtop, trap_str.z_spill_loc>0),axis off;axis tight;view(3)
 %
 % SEE ALSO:
-%    topSurfaceGrid, findCellLines
-% 
+%    `topSurfaceGrid`, `findCellLines`
+
 opt = struct('use_multipoint',false,'include_bc',true);
 opt = merge_options(opt, varargin{:});
 Gtop=Gt;

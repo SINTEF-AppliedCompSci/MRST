@@ -28,7 +28,7 @@ function [ G, Gt, rock, rock2D ] = makeSleipnerModelGrid( varargin )
 
 
 % SEE ALSO:
-%   makeSleipnerVEmodel 
+%   `makeSleipnerVEmodel` 
 
 
 opt = struct(   'modelName'     ,   'IEAGHGmodel'   , ...

@@ -50,7 +50,7 @@ function varargout = plotPanelVESimple(G, Gt, W, sol, t, vol, fluid, fluidADI, v
 %   set to true.
 %
 % SEE ALSO:
-%   runIGEMS
+%   `runIGEMS`
 
 persistent G_x G_y;      % Grids for 2D slices
 persistent h h1 h2 h3 h_area;   % Figure and graphics handles

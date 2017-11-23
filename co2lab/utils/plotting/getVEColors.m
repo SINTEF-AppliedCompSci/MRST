@@ -21,7 +21,7 @@ function c = getVEColors(ind)
 %   image(repmat(1:5,2,1)); colormap(getVEColors(1:5))
 %
 % SEE ALSO:
-%   getInventoryColors
+%   `getInventoryColors`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

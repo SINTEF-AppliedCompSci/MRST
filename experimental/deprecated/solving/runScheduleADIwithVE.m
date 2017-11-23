@@ -51,7 +51,7 @@ function varargout = runScheduleADIwithVE(initState, G, rock, system, schedule, 
 %
 %
 % SEE ALSO:
-%   solvefiADI
+%   `solvefiADI`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

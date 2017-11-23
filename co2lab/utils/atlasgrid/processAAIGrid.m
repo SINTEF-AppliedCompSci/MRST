@@ -17,13 +17,7 @@ function G = processAAIGrid(meta, data, topgrid, cstrids)
 % RETURNS:
 %   G - valid MRST grid. If 'topgrid' is true, G has the format of
 %       a top-surface grid. If not, G is a 2D grid embedded in 3D
-% 
-% NOTES:
-%
-% EXAMPLE:
-%
-% SEE ALSO:
-%
+
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
@@ -42,6 +36,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+
     mlist = mrstModule();
     
     dims = [meta.ncols, meta.nrows];

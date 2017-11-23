@@ -23,8 +23,8 @@ function [Ieta, varargout] = etaIntegrals(EOS, P, T, Gct, gct)
 %               Nug     - (non -integrated) Nu_G function (dP/dT)
 % EXAMPLE:
 %
-% SEE ALSO: eta, 
-%
+% SEE ALSO: `eta`, 
+
     is_full = (strcmpi(EOS.compressible, 'full'));
     
     if ~is_full
@@ -153,4 +153,3 @@ function IEta2 = approximateIEta2(rho_g, beta, gamma, beta2, gamma2, chi, Gct)
     
     IEta2 = taylorDev(1, 1/2 * d, 1/3 * dd);
 end
-

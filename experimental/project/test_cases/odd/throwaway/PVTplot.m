@@ -13,14 +13,10 @@ function h = PVTplot(Prange, Trange, CO2)
 %
 % RETURNS:
 %   h - handle to graphic
-%
-% EXAMPLE:
-%
-% SEE ALSO:
-%
+
     h = figure;
     axis([Trange, Prange]);
-    hold on;
+    hold on
 
     %% getting values for critical point
     [Pc, Tc] = CO2CriticalPoint; % CO2 critical point    
@@ -57,5 +53,4 @@ function h = PVTplot(Prange, Trange, CO2)
     % th1 = text(290, 11e6, 'liquid');
     % th2 = text(320,  6e6, 'gas');
     % th3 = text(320,  9e6, 'supercritical');
-    
 end

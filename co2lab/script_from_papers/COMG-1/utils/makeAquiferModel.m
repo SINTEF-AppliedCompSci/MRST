@@ -33,7 +33,7 @@ function aquifer = makeAquiferModel(varargin)
 %   at 300 bar at the shallowest cell (using an artificial producing well).
 %
 % SEE ALSO:
-%   makeFluidModel
+%   `makeFluidModel`
 
    opt = struct(...
        'Lx', 30e3, 'Ly', 10e3, 'H', 50, 'nx', 1000, 'nz', 1, ...

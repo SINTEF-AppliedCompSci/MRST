@@ -54,7 +54,7 @@ function trap_con = findTrapConnections(Gnew,z_spill_loc)
 %     axis tight; axis off;view(2);
 % 
 % SEE ALSO:
-%   topSurfaceGrid, trapAnalysis, findTrappingStructure
+%   `topSurfaceGrid`, `trapAnalysis`, `findTrappingStructure`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

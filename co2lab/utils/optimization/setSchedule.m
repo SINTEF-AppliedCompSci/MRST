@@ -29,7 +29,8 @@ function schedule = setSchedule(Gt, rock, wcells, qtot, isteps, itime, ...
 %   schedule - the constructed schedule
 %
 % SEE ALSO:
-%  optimizeFormation
+%  `optimizeFormation`
+
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
@@ -49,7 +50,6 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-                                    
    opt.minval = 0;
    opt = merge_options(opt, varargin{:});
    

@@ -20,7 +20,7 @@ function s = height2Sat(sol, Gt, fluid)
 %   Corresponds to state.s for the 3D problem.
 %
 % SEE ALSO:
-%   accumulateVertically, integrateVertically
+%   `accumulateVertically`, `integrateVertically`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

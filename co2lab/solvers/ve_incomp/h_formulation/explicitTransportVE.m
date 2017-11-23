@@ -95,7 +95,7 @@ function [state, report] = explicitTransportVE(state, G_top, tf, rock,...
 %   report - Structure reporting timesteps: report.dt
 %
 % SEE ALSO:
-%   twophaseUpwFE, initTransport, explicitTransport, implicitTransport.
+%   `twophaseUpwFE`, `initTransport`, `explicitTransport`, `implicitTransport`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

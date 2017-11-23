@@ -14,7 +14,7 @@ function [meta, data] = readAAIGrid(filename)
 %
 %
 % SEE ALSO:
-%   trapAnalysis, showTrappingStructure
+%   `trapAnalysis`, `showTrappingStructure`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

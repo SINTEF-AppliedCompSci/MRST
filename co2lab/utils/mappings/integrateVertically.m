@@ -27,7 +27,7 @@ function [f,df] = integrateVertically(fun, h, g)
 %       each column in the top-surface grid 'G'.
 %
 % SEE ALSO:
-%   topSurfaceGrid, cumulativeHeight.
+%   `topSurfaceGrid`, `cumulativeHeight`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

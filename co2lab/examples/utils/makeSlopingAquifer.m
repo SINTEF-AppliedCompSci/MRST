@@ -12,7 +12,7 @@ function [G, Gt, rock, rock2D, bcIxVE] = makeSlopingAquifer()
 %   bcIxVE - Index for pressure boundary conditions in topsurface grid
 %
 % SEE ALSO:
-%   runSlopingAquifer
+%   `runSlopingAquifer`
 
 try
    disp(' -> Reading SlopingAquifer.mat');

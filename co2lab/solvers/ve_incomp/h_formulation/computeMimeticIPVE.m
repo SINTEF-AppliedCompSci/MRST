@@ -86,7 +86,7 @@ function S = computeMimeticIPVE(G, rock, varargin)
 %       [  D'  O  O  ]
 %
 % SEE ALSO:
-%   solveIncompFlowVE, darcy, permTensor.
+%   `solveIncompFlowVE`, `darcy`, `permTensor`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
