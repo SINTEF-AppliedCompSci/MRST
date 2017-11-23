@@ -17,7 +17,7 @@ function varargout = mex_partition_ui(varargin)
 %   p - Partition vector of SIZE(ix).
 %
 % SEE ALSO:
-%   partitionUI.
+%   `partitionUI`.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

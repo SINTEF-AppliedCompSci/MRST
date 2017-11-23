@@ -51,7 +51,7 @@ function [G, rock, fluid, state, wells, ...
 %           SCHEDULE information pertaining to switching well controls.
 %
 % SEE ALSO:
-%   initEclipseGrid, initEclipseState, processWells.
+%   `initEclipseGrid`, `initEclipseState`, `processWells`.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

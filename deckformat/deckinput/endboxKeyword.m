@@ -11,7 +11,7 @@ function endboxKeyword()
 %   Nothing, but resets the global input box to encompass entire model.
 %
 % SEE ALSO:
-%   private/gridBox.
+%   `private/gridBox`.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

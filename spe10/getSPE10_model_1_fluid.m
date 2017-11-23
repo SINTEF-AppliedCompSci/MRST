@@ -16,7 +16,7 @@ function fluid = getSPE10_model_1_fluid()
 %           relation between the oil and gas phases.
 %
 % SEE ALSO:
-%   getSPE10_model_1_relperm, initSimpleADIFluid, initDeckADIFluid.
+%   `getSPE10_model_1_relperm`, `initSimpleADIFluid`, `initDeckADIFluid`.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

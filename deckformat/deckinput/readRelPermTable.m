@@ -25,7 +25,7 @@ function T = readRelPermTable(fid, kw, ntab, ncol)
 %           from the non-default values in the corresponding column.
 %
 % SEE ALSO:
-%   swof, sgof, swfn, sgfn.
+%   `swof`, `sgof`, `swfn`, `sgfn`.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

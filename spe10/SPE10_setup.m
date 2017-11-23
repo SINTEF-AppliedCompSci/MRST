@@ -36,7 +36,7 @@ function [G, W, rock] = SPE10_setup(varargin)
 %   [G, W, rock] = SPE10_setup(85)
 %
 % SEE ALSO:
-%   SPE10_rock, computeGeometry.
+%   `SPE10_rock`, `computeGeometry`.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

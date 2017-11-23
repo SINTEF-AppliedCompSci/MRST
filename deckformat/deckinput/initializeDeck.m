@@ -18,8 +18,8 @@ function deck = initializeDeck()
 %              SCHEDULE - Time step and well controls (&c).
 %
 % SEE ALSO:
-%   readEclipseDeck, convertDeckUnits, initEclipseGrid,
-%   initEclipseRock, initEclipseFluid.
+%   `readEclipseDeck`, `convertDeckUnits`, `initEclipseGrid`,
+%   `initEclipseRock`, `initEclipseFluid`.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

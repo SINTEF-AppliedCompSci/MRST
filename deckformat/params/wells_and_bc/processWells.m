@@ -68,7 +68,7 @@ function W = processWells(G, rock, control, varargin)
 %                   surfactant models.
 %
 % SEE ALSO:
-%   readSCHEDULE, readWellKW, addWell.
+%   `readSCHEDULE`, `readWellKW`, `addWell`.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

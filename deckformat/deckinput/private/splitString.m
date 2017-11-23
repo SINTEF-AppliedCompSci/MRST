@@ -12,7 +12,7 @@ function a = splitString(s)
 %       the string 's'.
 %
 % SEE ALSO:
-%   regexp.
+%   `regexp`.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

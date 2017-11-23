@@ -55,7 +55,7 @@ function m = computeTranMult(G, rockprop)
 %                           [G.faces.num, 1]);
 %
 % SEE ALSO:
-%   readEclipseDeck, grid_structure.
+%   `readEclipseDeck`, `grid_structure`.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

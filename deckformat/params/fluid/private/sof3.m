@@ -53,7 +53,7 @@ function [krow, krog, Soco, Socr, Sorw, Sorg, Somax, krsmax] = ...
 %             corresponding maximum oil saturations, Somax.
 %
 % SEE ALSO:
-%   readRelPermTable, swfn, sgfn, sof2, swof, sgof.
+%   `readRelPermTable`, `swfn`, `sgfn`, `sof2`, `swof`, `sgof`.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

@@ -25,7 +25,7 @@ function varargout = mex_compute_fs_flux(varargin)
 %          fine-scale model 'G'.
 %
 % SEE ALSO:
-%   mex_generate_coarsesystem, mex_compute_press_flux.
+%   `mex_generate_coarsesystem`, `mex_compute_press_flux`.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

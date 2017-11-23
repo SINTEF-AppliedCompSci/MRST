@@ -25,7 +25,7 @@ function varargout = mex_partition_process(varargin)
 %   grid_structure, 'G'.
 %
 % SEE ALSO:
-%   processPartition.
+%   `processPartition`.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

@@ -30,7 +30,7 @@ function rock = initEclipseRock(deck)
 %   rock = compressRock(rock, G.cells.indexMap)
 %
 % SEE ALSO:
-%   readEclipseDeck, convertDeckUnits, permTensor, compressRock
+%   `readEclipseDeck`, `convertDeckUnits`, `permTensor`, `compressRock`
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

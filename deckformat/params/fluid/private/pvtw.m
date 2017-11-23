@@ -18,7 +18,7 @@ function [B, dB, R, dR, mu, P] = pvtw(tab, p)
 %   P     - Predicate for identifying which cells are in a saturated state.
 %
 % SEE ALSO:
-%   pvtg, pvto.
+%   `pvtg`, `pvto`.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

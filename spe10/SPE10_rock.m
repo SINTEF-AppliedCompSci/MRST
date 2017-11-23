@@ -45,7 +45,7 @@ function rock = SPE10_rock(varargin)
 %   rock = SPE10_rock(85)
 %
 % SEE ALSO:
-%   getSPE10rock, SPE10_setup, convertFrom, milli, darcy.
+%   `getSPE10rock`, `SPE10_setup`, `convertFrom`, `milli`, `darcy`.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

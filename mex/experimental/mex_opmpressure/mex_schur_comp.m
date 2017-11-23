@@ -34,7 +34,7 @@ function varargout = mex_schur_comp(varargin)
 %   L  - A G.cells.num-by-1 array of C'*inv(B)*C values, ordered by cells.
 %
 % SEE ALSO:
-%   mex_ip_simple, mex_compute_press_flux.
+%   `mex_ip_simple`, `mex_compute_press_flux`.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

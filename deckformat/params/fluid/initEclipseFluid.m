@@ -43,7 +43,7 @@ function fluid = initEclipseFluid(deck, varargin)
 %   fluid = initEclipseFluid(deck);
 %
 % SEE ALSO:
-%   initCompresibleFluid.
+%   `initCompresibleFluid`.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

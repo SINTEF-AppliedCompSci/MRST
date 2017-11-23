@@ -52,7 +52,7 @@ function T = readMisciblePVTTable(fid, ntab, ncol, kw)
 %         Table = [ Table{:} ] .'  % or:  Table = vertcat(Table{:})
 %
 % SEE ALSO:
-%   readRelPermTable, readImmisciblePVTTable.
+%   `readRelPermTable`, `readImmisciblePVTTable`.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

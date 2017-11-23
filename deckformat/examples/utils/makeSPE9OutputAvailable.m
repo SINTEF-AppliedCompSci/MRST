@@ -21,7 +21,7 @@ function ok = makeSPE9OutputAvailable
 %        in the SPE-9 dataset directory.
 %
 % SEE ALSO:
-%   getDatasetPath, githubDownload.
+%   `getDatasetPath`, `githubDownload`.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

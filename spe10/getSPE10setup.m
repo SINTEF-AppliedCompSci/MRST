@@ -34,7 +34,7 @@ function [G, W, rock] = getSPE10setup(varargin)
 %   [G, W, rock] = getSPE10setup(85)
 %
 % SEE ALSO:
-%   getSPE10rock, makeSPE10DataAvailable.
+%   `getSPE10rock`, `makeSPE10DataAvailable`.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

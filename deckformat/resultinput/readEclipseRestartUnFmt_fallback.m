@@ -24,7 +24,7 @@ function [rstrt, rsspec] = readEclipseRestartUnFmt(prefix, varargin)
 %   rsspec  - Restart specifiction obtained from the '.RSSPEC' file.
 %
 % SEE ALSO:
-%   readEclipseSummaryUnFmt, readEclipseRestartFmt.
+%   `readEclipseSummaryUnFmt`, `readEclipseRestartFmt`.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

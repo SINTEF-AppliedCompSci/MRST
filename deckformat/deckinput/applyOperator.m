@@ -31,7 +31,7 @@ function sect = applyOperator(sect, fid, kw)
 %   sect - Updated deck section structure array.
 %
 % SEE ALSO:
-%   readGRID, readEDIT, readPROPS, readREGIONS, readSOLUTION.
+%   `readGRID`, `readEDIT`, `readPROPS`, `readREGIONS`, `readSOLUTION`.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

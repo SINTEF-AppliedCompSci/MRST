@@ -26,7 +26,7 @@ function wellpath = combineWellPaths(wellpaths)
 %
 %
 % SEE ALSO:
-%   makeSingleWellpath
+%   `makeSingleWellpath`
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

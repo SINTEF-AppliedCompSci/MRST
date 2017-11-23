@@ -13,7 +13,7 @@ function data = readRecordString(fid)
 %             terminator (i.e., '/' character).
 %
 % SEE ALSO:
-%   fopen, fgetl.
+%   `fopen`, `fgetl`.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

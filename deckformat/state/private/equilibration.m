@@ -4,7 +4,7 @@ function [press, s, rs, rv] = equilibration(G, deck, fluid, pix)
 % Internal helper function.  Interface subject to change.
 %
 % SEE ALSO:
-%   initEclipseState.
+%   `initEclipseState`.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

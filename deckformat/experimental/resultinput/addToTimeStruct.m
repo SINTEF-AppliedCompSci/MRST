@@ -19,7 +19,7 @@ function mt_struct = addToTimeStruct(mt_struct, t_struct)
 %   'allsteps' will be created in the output 'allsteps'.
 %
 % SEE ALSO:
-%   wellCalculateProduction, horzcat.
+%   `wellCalculateProduction`, `horzcat`.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

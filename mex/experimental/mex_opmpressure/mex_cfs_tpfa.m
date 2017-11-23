@@ -39,7 +39,7 @@ function varargout = mex_cfs_tpfa(varargin)
 %   Gf - Gravity flux contributions.  T .* (R/B)_c\(R/B)_f * [Zf].
 %
 % SEE ALSO:
-%   matrixBlocksFromSparse.
+%   `matrixBlocksFromSparse`.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

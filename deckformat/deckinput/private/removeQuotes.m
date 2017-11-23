@@ -15,7 +15,7 @@ function data = removeQuotes(data)
 %          trimming using function 'strtrim'.
 %
 % SEE ALSO:
-%   strtrim, private/readRecordString.
+%   `strtrim`, `private/readRecordString`.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

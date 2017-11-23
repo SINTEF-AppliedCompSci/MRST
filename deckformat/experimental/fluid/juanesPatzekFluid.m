@@ -47,7 +47,7 @@ function fluid = initSimpleThreephaseCompressibleFluid(rho0, p0, c0, mu0, vararg
 % EXAMPLE:
 %
 % SEE ALSO:
-%   initBlackoilFluid.
+%   `initBlackoilFluid`.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

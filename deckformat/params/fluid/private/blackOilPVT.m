@@ -36,7 +36,7 @@ function [c, rho, mu, u, R, B, A, dA, dB, dR] = ...
 %
 %
 % SEE ALSO:
-%   pvtg, pvto.
+%   `pvtg`, `pvto`.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

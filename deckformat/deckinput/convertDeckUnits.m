@@ -21,7 +21,7 @@ function deck = convertDeckUnits(deck, varargin)
 %          strict, SI only, conventions.
 %
 % SEE ALSO:
-%   readEclipseDeck, mrstVerbose.
+%   `readEclipseDeck`, `mrstVerbose`.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

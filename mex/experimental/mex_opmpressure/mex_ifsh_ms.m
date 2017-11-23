@@ -18,7 +18,7 @@ function varargout = mex_ifsh_ms(varargin)
 %             'state.pressure' and 'state.flux'.
 %
 % SEE ALSO:
-%   mex_ifsh, mex_generate_coarsegrid, mex_generate_coarsesystem.
+%   `mex_ifsh`, `mex_generate_coarsegrid`, `mex_generate_coarsesystem`.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

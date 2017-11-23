@@ -13,7 +13,7 @@ function rock = compressRock(rock, active)
 %            equal to the 'cells.indexMap' field of a grid_structure.
 %
 % SEE ALSO:
-%   grid_structure, initEclipseRock.
+%   `grid_structure`, `initEclipseRock`.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

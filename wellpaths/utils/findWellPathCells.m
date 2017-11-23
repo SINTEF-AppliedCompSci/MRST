@@ -42,7 +42,7 @@ function [cells, segment, param, ptsind, DT] = findWellPathCells(G, wellpath, va
 %
 %
 % SEE ALSO:
-%   makeSingleWellpath, combineWellPaths, getWellFromPath
+%   `makeSingleWellpath`, `combineWellPaths`, `getWellFromPath`
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

@@ -28,7 +28,7 @@ function deck = readEclipseDeck(fn, varargin)
 %   that the input deck is properly formed.
 %
 % SEE ALSO:
-%   convertDeckUnits, initEclipseGrid, initEclipseRock, initEclipseFluid.
+%   `convertDeckUnits`, `initEclipseGrid`, `initEclipseRock`, `initEclipseFluid`.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

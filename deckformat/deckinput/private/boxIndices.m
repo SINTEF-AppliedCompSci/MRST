@@ -16,7 +16,7 @@ function [ix, varargout] = boxIndices
 %       than MAX(i)).
 %
 % SEE ALSO:
-%   private/gridBox, private/defaultBox.
+%   `private/gridBox`, `private/defaultBox`.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

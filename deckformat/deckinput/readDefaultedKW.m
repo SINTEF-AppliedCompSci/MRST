@@ -41,7 +41,7 @@ function data = readDefaultedKW(fid, template, varargin)
 %   Data reading terminates when the input reader detects an empty record.
 %
 % SEE ALSO:
-%   readDefaultedRecord.
+%   `readDefaultedRecord`.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

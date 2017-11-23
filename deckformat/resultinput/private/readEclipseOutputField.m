@@ -41,7 +41,7 @@ function [name, output] = readEclipseOutputField(fid, varargin)
 %   invoked directly from user code.
 %
 % SEE ALSO:
-%   readEclipseOutput.
+%   `readEclipseOutput`.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

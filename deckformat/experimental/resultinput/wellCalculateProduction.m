@@ -32,7 +32,7 @@ function report = wellCalculateProduction(state, W, fluid, time)
 %   concatenated using the 'addToTimeStruct' function.
 %
 % SEE ALSO:
-%   incompTPFA, explicitTransport, addWell, addToTimeStruct.
+%   `incompTPFA`, `explicitTransport`, `addWell`, `addToTimeStruct`.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

@@ -21,7 +21,7 @@ function tokens = tokenizeRecord(data)
 %   assert (isequal(tokens, expect))
 %
 % SEE ALSO:
-%   private/splitString, private/removeQuotes.
+%   `private/splitString`, `private/removeQuotes`.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

@@ -11,7 +11,7 @@ function varargout = implicitTransportReorder(varargin)
 %  This is only a wrapper.  Implementation resides in implicitupwind.m.
 %
 % SEE ALSO:
-%  implicitupwind.m
+%   `implicitupwind`.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

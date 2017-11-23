@@ -34,7 +34,7 @@ function [relperm, pcap, info] = eclipseRelperm(deck, varargin)
 %             saturations.
 %
 % SEE ALSO:
-%   readEclipseDeck, convertDeckUnits.
+%   `readEclipseDeck`, `convertDeckUnits`.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

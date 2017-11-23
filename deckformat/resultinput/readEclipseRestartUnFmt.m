@@ -20,7 +20,7 @@ function output = readEclipseRestartUnFmt(prefix, spec, steps)
 %            fields/steps. 
 %
 % SEE ALSO:
-%   readEclipseOutputFileFmt, readEclipseRestartSpec.
+%   `readEclipseOutputFileFmt`, `readEclipseRestartSpec`.
 
 if nargin < 2 || isempty(spec)
     spec = processEclipseRestartSpec(prefix);

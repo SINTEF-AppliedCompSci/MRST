@@ -38,7 +38,7 @@ function rock = getSPE10rock(varargin)
 %   rock = getSPE10rock(85)
 %
 % SEE ALSO:
-%   getSPE10setup, make_spe10_data.
+%   `getSPE10setup`, `make_spe10_data`.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

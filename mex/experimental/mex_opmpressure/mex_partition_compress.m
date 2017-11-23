@@ -11,12 +11,12 @@ function varargout = mex_partition_compress(varargin)
 %   p - Updated partition vector.
 %       Renumbered so as to remove empty coarse blocks.
 %
-% SEE ALSO:
-%   compressPartition, partitionUI, mex_partition_ui.
-%
 % EXAMPLE:
 %   p = partitionCartGrid([4, 4, 1], [2, 2, 2]);
 %   [p, compressPartition(p), mex_partition_compress(p)]
+%
+% SEE ALSO:
+%   `compressPartition`, `partitionUI`, `mex_partition_ui`.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

@@ -51,7 +51,7 @@ function tof = opmcoreComputeTof(state, G, rock, src)
 %   libstdc++ first.
 %
 % SEE ALSO:
-%   solveIncompFlow.
+%   `solveIncompFlow`.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

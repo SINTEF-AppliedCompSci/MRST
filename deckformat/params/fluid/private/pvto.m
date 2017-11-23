@@ -18,7 +18,7 @@ function [B, dB, R, dR, mu, P] = pvto(tab, p, volratio, varargin)
 %   P     - Predicate for identifying which cells are in a saturated state.
 %
 % SEE ALSO:
-%   pvtg, pvdx.
+%   `pvtg`, `pvdx`.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

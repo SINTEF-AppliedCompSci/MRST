@@ -29,7 +29,7 @@ function rstrt = readEclipseRestart(files, rstReader, opt)
 %             array.
 %
 % SEE ALSO:
-%   private/readEclipseSummary, readEclipseOutputFileFmt.
+%   `private/readEclipseSummary`, `readEclipseOutputFileFmt`.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

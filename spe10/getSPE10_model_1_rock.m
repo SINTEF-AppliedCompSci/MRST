@@ -19,7 +19,7 @@ function rock = getSPE10_model_1_rock()
 %   The permeability data is returned in strict SI units (metres squared).
 %
 % SEE ALSO:
-%   getSPE10rock, make_spe10_data.
+%   `getSPE10rock`, `make_spe10_data`.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

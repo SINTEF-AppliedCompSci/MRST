@@ -17,7 +17,7 @@ function varargout = processgrid_mex(varargin)
 %   plotGrid(G); view(10,45);
 %
 % SEE ALSO:
-%   processGRDECL, readGRDECL, deactivateZeroPoro, removeCells.
+%   `processGRDECL`, `readGRDECL`, `deactivateZeroPoro`, `removeCells`.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

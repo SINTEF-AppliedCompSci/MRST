@@ -21,7 +21,7 @@ function pvto = completePVTO(pvto)
 %   to user code.
 %
 % SEE ALSO:
-%   readMisciblePVTTable, private/completePVTG.
+%   `readMisciblePVTTable`, `private/completePVTG`.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

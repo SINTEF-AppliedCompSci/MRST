@@ -10,7 +10,7 @@ function writeBinaryEclipseFile(filename, eclipse_struct)
 %                    data file. One structure field for each data field.
 %
 % SEE ALSO:
-%   writeBinaryEclipseField
+%   `writeBinaryEclipseField`
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

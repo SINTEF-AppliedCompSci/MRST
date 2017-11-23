@@ -29,7 +29,7 @@ function report = convertUnitsOfReport(report, metric)
 %            the caller's request.
 %
 % SEE ALSO:
-%   wellCalculateProduction, addToTimeStruct.
+%   `wellCalculateProduction`, `addToTimeStruct`.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
