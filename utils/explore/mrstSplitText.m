@@ -6,18 +6,18 @@ function h = mrstSplitText(intro)
 %
 % PARAMETERS:
 %   intro - Introductory text of example, typically obtained through the
-%           expression
+%           expression ::
 %
 %               help('ExampleName')
-%
-% NOTE:
-%   This function is mainly intended to support the MRST module explorer
-%   GUI, mrstExploreModules.
 %
 % RETURNS:
 %   h - Cell array of strings.  The H1 line is the first element and the
 %       remaining elements represent one paragraph each of the input text,
 %       in order of appearance.
+%
+% NOTE:
+%   This function is mainly intended to support the MRST module explorer
+%   GUI, `mrstExploreModules`.
 %
 % SEE ALSO:
 %   `help`, `mrstExploreModules`, `normaliseTextBox`.

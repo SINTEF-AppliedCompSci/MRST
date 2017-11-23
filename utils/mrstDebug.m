@@ -16,32 +16,25 @@ function debug = mrstDebug(varargin)
 %   per-function basis.
 %
 % PARAMETERS:
-%   Mode 1)
-%     arg - Control mode for debugging support.  Must be one of
-%           - String, {'off', 'on'}, for globally disabling or enabling
-%             MRST debugging support.  Actual effects depends on specific
-%             setting in individual functions and may usually be controlled
-%             more targetly.  The default state is 'off'.
+%     arg - Control mode for debugging support. OPTIONAL.  Must be one of
+%             - String, `{'off', 'on'}`, for globally disabling or enabling
+%               MRST debugging support.  Actual effects depends on specific
+%               setting in individual functions and may usually be controlled
+%               more targetly.  The default state is 'off'.
 %
-%           - String, 'reset', for restoring debugging setting to the
-%             default state: mrstDebug off
+%             - String, 'reset', for restoring debugging setting to the
+%               default state: mrstDebug off
 %
-%           - Logical, { false, true }, for disabling or enabling MRST
-%             debugging support.
+%             - Logical, `{false, true}`, for disabling or enabling MRST
+%               debugging support.
 %
-%           - Numeric (Real) scalar value.  Specifically set debugging
-%             level.  A debugging level exceeding zero enables debugging.
-%             Whether or not higher values produce more output is at the
-%             discretion of individual MRST functions.
+%             - Numeric (Real) scalar value.  Specifically set debugging
+%               level.  A debugging level exceeding zero enables debugging.
+%               Whether or not higher values produce more output is at the
+%               discretion of individual MRST functions.
 %
-%   Mode 2)
-%     None.
 %
 % RETURNS:
-%   Mode 1)
-%     Nothing.
-%
-%   Mode 2)
 %     d - A numeric scalar value.  D==0 turns default state of debugging
 %         support off, while d>0 signifies different levels of debugging
 %         support.  Individual callers of 'mrstDebug' (typically other
@@ -49,7 +42,7 @@ function debug = mrstDebug(varargin)
 %         optionally, support a notion of debugging levels where higher
 %         levels signify more invasive (and expensive) checks.
 %
-% EXAMPLES
+% EXAMPLES:
 %   % 1) Demonstrate 'String' form (Command and Function syntax).
 %   mrstDebug  on    % Enable debugging support.
 %   mrstDebug('off') % Disable debugging (default state).

@@ -8,20 +8,20 @@ function A = getConnectivityMatrix(N, varargin)
 %
 % PARAMETERS:
 %   N       - Neighbourship relation as defined by function
-%             'getNeighbourship'.  Must consist entirely of internal
+%             `getNeighbourship`.  Must consist entirely of internal
 %             connections (i.e., no boundary connections must be included).
 %
 %   incDiag - Flag to indicate whether or not to include the "self"
 %             connections (i.e., the diagonal entries) in the connectivity
-%             matrix.  LOGICAL.  Default value: incDiag = FALSE (don't
+%             matrix.  LOGICAL.  Default value: `incDiag = false` (don't
 %             include "self" connections, in which case the resulting
 %             matrix is the same as the graph's adjacency matrix).
 %
 %   nRows   - Size (number of rows) of the resulting connectivity matrix.
 %             Used to create the diagonal entries of the connectivity
-%             matrix when 'incDiag' is TRUE.  Scalar integer.  Default
+%             matrix when `incDiag` is `true`.  Scalar integer.  Default
 %             value: nRows = -1 (determine matrix size from maximum index
-%             in the neighbourship relation, 'N').
+%             in the neighbourship relation, `N`).
 %
 % RETURNS:
 %   A - Undirected connectivity matrix that represents all cell's

@@ -10,17 +10,17 @@ function dyidx = dinterpq1(x, y, xi)
 %         increasing or monotonically decreasing.
 %
 %   y   - Function values of piecewise linear function at points x.  Must
-%         be a vector containing NUMEL(x) elements.
+%         be a vector containing `numel(x)` elements.
 %
-%   xi  - Points at which to compute derivative values of function y(x).
+%   xi  - Points at which to compute derivative values of function `y(x)`.
 %
 % RETURNS:
 %   dyi - Column vector containing derivative values of function y(x).
-%         One scalar value for each point in the input vector 'xi'.
+%         One scalar value for each point in the input vector `xi`.
 %
 % NOTE:
 %   Function dinterpq1 assumes that all input arrays contain only finite
-%   values.  That is, we assume that
+%   values.  That is, we assume that ::
 %
 %       ~(any(isinf(x)) || any(isinf(y)) || any(isinf(xi)))
 %

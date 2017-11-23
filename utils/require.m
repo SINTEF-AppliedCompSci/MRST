@@ -8,6 +8,10 @@ function require(varargin)
 % PARAMETERS:
 %   modulename - string.
 %
+% NOTE:
+%   This function will throw an error if the module does not exist, or
+%   exists, but is not loaded.
+%
 % SEE ALSO:
 %   `mrstModule`
 

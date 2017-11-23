@@ -8,9 +8,6 @@ function varargout = mrstExploreModules()
 %   Launches an interactive graphical user interface for examining MRST
 %   modules, their examples and relevant papers.
 %
-% REQUIRED PARAMETERS:
-%   None.
-%
 % RETURNS:
 %   h  - Figure handle for the window (if requested).
 %

@@ -14,13 +14,14 @@ function varargout = dispif(bool, varargin)
 %
 % RETURNS:
 %   nc     - Number of characters printed to output device.  If 'bool' is
-%            FALSE, then nc=0.  Only returned if specifcially requested.
+%            `false`, then `nc=0`.  Only returned if specifcially
+%            requested. 
 %
-% COMMENTS:
-%   Function used for making code cleaner where 'verbose' option is used.
+% NOTE:
+%   Function used for making code cleaner where `verbose` option is used.
 %
 % SEE ALSO:
-%   `SPRINTF`, `tocif`.
+%   `sprintf`, `tocif`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

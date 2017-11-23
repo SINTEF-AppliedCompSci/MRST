@@ -7,30 +7,31 @@ function varargout = blockDiagIndex(m, n)
 %    i     = blockDiagIndex(...)
 %
 % PARAMETERS:
-%   m, n   - Vectors of dimensions/block sizes of each diagonal block.
-%            Input 'm' is interpreted as the row dimension of each block
-%            while 'n' is interpreted as the column dimension of each
+%   m,n    - Vectors of dimensions/block sizes of each diagonal block.
+%            Input `m` is interpreted as the row dimension of each block
+%            while `n` is interpreted as the column dimension of each
 %            block.
 %
-%            Vector 'n' must have the same number of entries as vector 'm',
+%            Vector `n` must have the same number of entries as vector `m`,
 %            i.e., the number of blocks.
 %
-%            If 'n' is not supplied, function 'blockDiagIndex' will behave
-%            as if it were called as
+%            If `n` is not supplied, function `blockDiagIndex` will behave
+%            as if it were called as::
 %
 %                [i, j] = blockDiagIndex(m, m)
 %
 %            In other words, using square blocks.
 %
 % RETURNS:
-%   i, j   - Index vectors that may be used to form sparse block-diagonal
+%   i,j    - Index vectors that may be used to form sparse block-diagonal
 %            matrix.  This process is demonstrated in the example below.
 %
-%            The return values are of type DOUBLE irrespective of the class
-%            of the dimension vectors 'm' and 'n'.
+%            The return values are of type `double` irrespective of the
+%            class of the dimension vectors `m` and `n`.
 %
 %            If called using a single output value, that value is the
-%            linear index, computed using SUB2IND, of the index pair (i,j).
+%            linear index, computed using `sub2ind`, of the index pair
+%            (i,j).
 %
 % EXAMPLE:
 %   m      = [ 1 ; 2 ; 3 ];

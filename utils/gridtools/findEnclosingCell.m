@@ -7,11 +7,11 @@ function c = findEnclosingCell(G, pt)
 % PARAMETERS:
 %   G  - Valid grid structure.  Must represent a two-dimensional geometry.
 %
-%   pt - Set of point coordinates, represented as an n-by-2 DOUBLE array.
+%   pt - Set of point coordinates, represented as an n-by-2 `double` array.
 %
 % RETURNS:
 %   c  - Set of grid cells.  Specifically, c(i) for i=1:n, is the global
-%        grid cell from 'G' for which
+%        grid cell from 'G' for which ::
 %
 %           sum(bsxfun(@minus, G.cells.centroids, pt(i,:)) .^ 2, 2)
 %

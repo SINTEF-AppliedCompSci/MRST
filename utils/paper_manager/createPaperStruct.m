@@ -11,7 +11,7 @@ function paper = createPaperStruct(id, title, varargin)
 %
 %   title - A string containing the title of the paper.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %   'authors'   - A string containing the names of the authors.
 %
 %   'published' - Publication avenue (name of conference, journal name with

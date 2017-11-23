@@ -18,16 +18,13 @@ function varargout = listDatasetExamples(name)
 %   name   - Either a string containing a valid dataset name, or a info
 %            struct for a given dataset.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
-%   None
-%
 % RETURNS:
 %   examples - (OPTIONAL) A array of structs, each representing an example
 %              where the dataset is used. Contains fields name, path and
 %              module.
 %
 % NOTE:
-%    This function relies on the dataset_*.m functions being up to date
+%    This function relies on the `dataset_*.m` functions being up to date
 %    with the examples included in MRST. Although we strive to do so, it
 %    may happen that examples are not listed.
 %

@@ -4,21 +4,23 @@ function G = createAugmentedGrid(G)
 % SYNOPSIS:
 %   function G = createAugmentedGrid(G)
 %
-% DESCRIPTION: The grid structure as described by grid_structure lacks some
-% mappings and structures that are needed for the assembly of the VEM
-% method. Those are added by calling the function createAugmentedGrid.
+% DESCRIPTION:
+%   The grid structure as described by `grid_structure` lacks some
+%   mappings and structures that are needed for the assembly of the VEM
+%   method. Those are added by calling the function `createAugmentedGrid`.
 %
 % PARAMETERS:
-%   G - Grid structure as described by grid_structure.
+%   G - Grid structure as described by `grid_structure`.
 %
 % RETURNS:
-%   G - Grid structure as described by full_grid_structure (call the
-%   function full_grid_structure to display the documentation).
+%   G - Grid structure as described by `full_grid_structure` (call the
+%       function full_grid_structure to display the documentation).
 %
+% NOTE:
 %   The method assumes that the edges are sorted. The sorting rule can be
-%   found found the documentation displayed by calling full_grid_structure.
-%   The function sortEdges outputs a grid for which the edges are
-%   guaranted to be sorted.
+%   found found the documentation displayed by calling
+%   `full_grid_structure`. The function `sortEdges` outputs a grid for
+%   which the edges are guaranted to be sorted.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -7,24 +7,24 @@ function [n, pos] = gridCellNodes(G, c, varargin)
 %
 % PARAMETERS:
 %   G       - Grid structure.
+%
 %   c       - Cells for which to extract unique nodes.  Array of numeric
 %             cell indices.
-%   'pn'/pv - List of 'key'/value pairs defining optional parameters.  The
-%             supported options are:
-%               - 'unique' -- Whether or not to compute *unique* nodes per
-%                             cell.  Boolean flag (Logical).  Default
-%                             value: unique = true (do compute uniqe
-%                             nodes without repetitions per cell).
+%
+% OPTIONAL PARAMETERS:
+%   'unique' - Whether or not to compute *unique* nodes per cell. Boolean
+%             flag (Logical).  Default value: unique = true (do compute
+%             uniuqe nodes without repetitions per cell).
 %
 % NOTE:
-%   Computing unique nodes (i.e., setting option 'unique' to TRUE)
-%   increases the computational complexity of function 'gridCellNodes'
-%   because this leads to invoking function SORTROWS.
+%   Computing unique nodes (i.e., setting option 'unique' to `true`)
+%   increases the computational complexity of function `gridCellNodes`
+%   because this leads to invoking function `sortrows`.
 %
 % RETURNS:
-%   n   - Nodes per cell.  Unique nodes if option 'uniqe' is true.
-%   pos - Indirection map into n.  The nodes of cell c(i) are in positions
-%         p(i) : p(i+1) - 1.
+%   n   - Nodes per cell.  Unique nodes if option `unique` is `true`.
+%   pos - Indirection map into n.  The nodes of cell `c(i)` are in positions
+%         `p(i) : p(i+1) - 1`.
 %
 % EXAMPLE:
 %   g = cartGrid([2, 2, 2])

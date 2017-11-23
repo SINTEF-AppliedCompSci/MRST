@@ -9,17 +9,19 @@ function varargout = gridLogicalIndices(G, varargin)
 % PARAMETERS:
 %   G    - Grid structure
 %
-% OPTIONAL PARAMETERS
+% OPTIONAL PARAMETERS:
 %   c    - cells for which logical indices are to be computed. Defaults to
-%          all cells (1:G.cells.num);
+%          all cells `1:G.cells.num`;
 %
 % RETURNS:
-%   If one output paramter is requested:
-%   ijk  - cell array of size G.cartDims where ijk{1} contains logical
-%          indices corresponding to G.cartDims(1) and so on.
+%  
+%   ijk   - If one output paramter is requested: Cell array of size
+%           `numel(G.cartDims)` where `ijk{1}` contains logical indices
+%           corresponding to `G.cartDims(1)` and so on.
 %
-%   If multiple outputs are requested:
-%   i, j, k corresponding to logical indices for different cartDims
+%  
+%   i,j,k - If multiple outputs are requested: Corresponding to logical
+%           indices for different `cartDims`.
 %
 % EXAMPLE:
 %   G = cartGrid([2, 3]);

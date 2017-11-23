@@ -10,7 +10,13 @@ function varargout = mrstPath(varargin)
 %         paths = mrstPath(module list)
 %         paths = mrstPath
 %
-% PARAMETERS:
+% DESCRIPTION:
+%  `mrstPath` manages the mapping between the local file system and the
+%  abstract modules used by the `mrstModule` function. This function can
+%  add and remove modules as well as query the file-system mapping of
+%  existing modules. For this reason, a number of different calling
+%  syntaxes are available:
+%
 %   Mode 1)
 %     Register (insert) new mappings of module names to system paths
 %     (directories) into the current list.  In this case, the 'list' must
@@ -21,7 +27,7 @@ function varargout = mrstPath(varargin)
 %
 %     The pathname resolution algorithm is as follows (note: DIRARG is one
 %     of the directory arguments in the above list while MODNAME is the
-%     corresponding module name):
+%     corresponding module name)::
 %
 %        if ISDIR(fullfile(pwd, DIRARG)),
 %
@@ -49,75 +55,74 @@ function varargout = mrstPath(varargin)
 %        'reregister' or 'reset'.  The semantics of the command verbs are
 %        as follows:
 %
-%           o) addroot -- Register a module root directory.  The input is
-%                         interpreted as a list of directories in which the
-%                         immediate subdirectories will be treated as
-%                         individual modules and entered into the module
-%                         mapping as if manually registered using 'register'.
+%          * addroot - Register a module root directory.  The input is
+%            interpreted as a list of directories in which the immediate
+%            subdirectories will be treated as individual modules and
+%            entered into the module mapping as if manually registered
+%            using 'register'.
 %
-%                         EXCEPTION: Immediate subdirectories named
+%            EXCEPTION: Immediate subdirectories named
 %
-%                            - data
-%                            - deprecated
-%                            - experimental
+%              - data
+%              - deprecated
+%              - experimental
 %
-%                         (subject to platform specific conventions) WILL
-%                         NOT be put into the module mapping when using
-%                         'addroot'.  Modules with these names must be
-%                         manually entered using the 'register' verb.
+%            (subject to platform specific conventions) WILL NOT be put
+%            into the module mapping when using 'addroot'.  Modules with
+%            these names must be manually entered using the 'register'
+%            verb.
 %
-%           o) clear   -- Deactivate all modules.  An explicit module list,
-%                         if present, is ignored.
+%          * clear - Deactivate all modules.  An explicit module list, if
+%            present, is ignored.
 %
-%           o) list    -- Display list of currently registered modules in
-%                         command window.  An explicit module list, if
-%                         present, is ignored.
+%          * list - Display list of currently registered modules in command
+%            window.  An explicit module list, if present, is ignored.
 %
-%           o) remove  -- Deregister selected modules.  List interpreted as
-%                         module names.  No action if empty.  Unknown
-%                         modules ignored.
+%          * remove - Deregister selected modules.  List interpreted as
+%            module names.  No action if empty.  Unknown modules ignored. 
 %
-%           o) reregister --
-%                         Convenience verb to reestablish certain module
-%                         mappings.  Equivalent to the verb sequence:
+%          * reregister - Convenience verb to reestablish certain module
+%            mappings.  Equivalent to the verb sequence::
 %
-%                            mrstPath('remove', list{1:2:end})
-%                            mrstPath register list
+%              mrstPath('remove', list{1:2:end})
+%              mrstPath register list
 %
-%           o) reset   -- Convenience verb.  Equivalent to the verb
-%                         sequence:
+%          * reset - Convenience verb.  Equivalent to the verb sequence::
 %
-%                            mrstPath clear
-%                            mrstPath register [list]
+%              mrstPath clear
+%              mrstPath register [list]
 %
 %   Mode 3)
 %     Query module register.  Input is list of modules for which to
 %     retrieve the current module directory.
 %
-% RETURNS:
-%   Modes 1) and 2)
-%     Nothing.
+% PARAMETERS:
+%   varargin - A variable number of arguments and interpretation. Please
+%              see the description for possible calling syntaxes.
 %
-%   Mode 3)
-%     modules - List, represented as a cell array of strings, of the
-%               currently active add-on modules.  If called without output
-%               arguments, function 'mrstPath' will display the known
-%               mapping of the requested modules (all modules if module
-%               list is empty) in the Command Window.
+% RETURNS:
+%   
+%     Nothing - If called in modes 1) and 2)
+%
+%     modules - In mode 3) List, represented as a cell array of strings, of 
+%               the currently active add-on modules.  If called without 
+%               output arguments, function 'mrstPath' will display the 
+%               known mapping of the requested modules (all modules if 
+%               module list is empty) in the Command Window.
 %
 %               If called with a single output argument and no input
 %               arguments, then the output will be a cell array of strings
 %               containing the currently registered modules.
 %
 %               NOTE: As a special case the return value will be a string
-%               (not a cell array of strings) if function 'mrstPath' is
+%               (not a cell array of strings) if function `mrstPath` is
 %               called with a single input module name and a single output
-%               parameter, e.g., as
+%               parameter, e.g., as ::
 %
 %                   pth = mrstPath('search', 'deckformat')
 %
 %               Callers needing the "cell array of strings" semantics must
-%               be prepared to use ISCHAR on the return value and behave
+%               be prepared to use `ischar` on the return value and behave
 %               accordingly.
 %
 % SEE ALSO:

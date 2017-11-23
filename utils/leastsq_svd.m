@@ -5,25 +5,25 @@ function varargout = leastsq_svd(varargin)
 %   x = leastsq_svd(A, b, rsz, csz)
 %
 % PARAMETERS:
-%   A   - Array (type DOUBLE) containing the elements/entries of a sequence
+%   A   - Array (type `double`) containing the elements/entries of a sequence
 %         of coefficient matrices--ordered consequtively.  Each matrix is
 %         expected to be fairly small.
 %
-%   b   - Array (type DOUBLE) containing the elements of all LLS
+%   b   - Array (type `double`) containing the elements of all LLS
 %         right-hand sides.
 %
 %   rsz - Sequence of matrix block row sizes.  The number of matrix blocks
-%         contained in 'A' is implicitly assumed to be NUMEL(rsz).
+%         contained in 'A' is implicitly assumed to be `numel(rsz)`.
 %
 %   csz - Sequence of matrix block column sizes.  The number of
-%         elements must match NUMEL(rsz).
+%         elements must match `numel(rsz)`.
 %
 % RETURNS:
-%   x - Array (type DOUBLE) containing the elements/entries of the
+%   x - Array (type `double`) containing the elements/entries of the
 %       solutions to the sequence of linear least squares problems.
 %
 % NOTE:
-%   The output is algorithmically equivalent to the loop
+%   The output is algorithmically equivalent to the loop ::
 %
 %       pA = cumsum([1, rsz .* csz]);
 %       pb = cumsum([1, rsz]);

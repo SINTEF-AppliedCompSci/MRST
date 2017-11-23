@@ -7,26 +7,26 @@ function varargout = multiEig(varargin)
 %   [d, v, w] = multiEig(A, sz)
 %
 % PARAMETERS:
-%   A  - Array (type DOUBLE) containing the elements/entries of a sequence
+%   A  - Array (type `double`) containing the elements/entries of a sequence
 %        of coefficient matrices--ordered consequtively.  Each matrix is
 %        expected to be square and fairly small.
 %
 %   sz - Sequence of matrix block sizes.  The number of matrix blocks
-%        contained in 'A' is implicitly assumed to be NUMEL(rsz).
+%        contained in `A` is implicitly assumed to be `numel(rsz)`.
 %
 % RETURNS:
-%   d - Array (type DOUBLE, possibly complex) containing the eigenvalues of
+%   d - Array (type `double`, possibly complex) containing the eigenvalues of
 %       the individual eigenvalue problems.
 %
-%   v - Array (type DOUBLE) of right eigenvectors.  Optional.  Only returned
+%   v - Array (type `double`) of right eigenvectors.  Optional.  Only returned
 %       if requested.
 %
-%   w - Array (type DOUBLE) of left eigenvectors.  Optional.  Only returned
+%   w - Array (type `double`) of left eigenvectors.  Optional.  Only returned
 %       if requested.
 %
 % NOTE:
 %   The output in the single return value case is algorithmically equivalent
-%   to the loop
+%   to the loop ::
 %
 %       pA = cumsum([1, sz .^ 2]);
 %       pd = cumsum([1, sz]);

@@ -4,7 +4,8 @@ function ngrdecl = refineGrdeclLayers(grdecl, layers, ref)
 % SYNOPSIS:
 %   function ngrdecl = refineGrdeclLayers(grdecl, layers, ref)
 %
-% DESCRIPTION: Refine grid in vertical direction
+% DESCRIPTION:
+%   Refine corner-point grid in vertical direction
 %
 % PARAMETERS:
 %   grdecl   - Grid in Eclipse format
@@ -14,10 +15,9 @@ function ngrdecl = refineGrdeclLayers(grdecl, layers, ref)
 % RETURNS:
 %   ngrdecl - Refined grid in eclipse format.
 %
-% EXAMPLE:
 %
 % SEE ALSO:
-%
+%   `refineGrdecl`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

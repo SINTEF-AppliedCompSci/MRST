@@ -20,11 +20,11 @@ function G = readSimData(caseName)
 %   G - Grid structure as detailed in grid_structure.
 %
 % EXAMPLE:
-%   Assume that the input files for case 'example' are stored in
-%   directory 'data' in the parent directory of the current working
-%   directory (CD).  Assume furthermore that maximum extents of the
-%   cell logical cartesian indices are 60, 220, and 85, respectively.
-%   Then the case grid may be input as
+%   % Assume that the input files for case 'example' are stored in
+%   % directory 'data' in the parent directory of the current working
+%   % directory (CD).  Assume furthermore that maximum extents of the
+%   % cell logical cartesian indices are 60, 220, and 85, respectively.
+%   % Then the case grid may be input as
 %
 %      caseName = ['..', filesep, 'data', filesep, 'example'];
 %      G = readSimData(caseName);
@@ -54,7 +54,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 mrstNargInCheck(1, 1, nargin);
 
 %-------------------------------------------------------------
-%% Read grid topology specification --------------------------
+% Read grid topology specification --------------------------
 %
 % File format is
 %   [header -- inconsequential in MATLAB]
@@ -81,7 +81,7 @@ numCellFaces = fscanf(fid, '%d', 1);
 numFaces     = fscanf(fid, '%d', 1);
 numNodes     = fscanf(fid, '%d', 1);
 
-%% cellFaces
+% cellFaces
 
 cellFaces       = zeros([numCellFaces, 3]);
 numCellFacesVec = zeros([numCells, 1]);
@@ -99,7 +99,7 @@ orientations  = [-1, 1];
 cellFaces(:,2) = locF2F(:,1) + 1;
 cellFaces(:,3) = orientations(locF2F(:,2) + 1);
 
-%% faceNodes
+% faceNodes
 faceNodes       = zeros([6*numFaces, 3]);
 numFaceEdgesVec = zeros([1*numFaces, 1]);
 count = 0;
@@ -121,7 +121,7 @@ fclose(fid);
 
 
 %-------------------------------------------------------------
-%% Read grid geometry specification --------------------------
+% Read grid geometry specification --------------------------
 %
 % File format is
 %   [header -- inconsequential in MATLAB]
@@ -173,7 +173,7 @@ volumes       = fscanf(fid, '%f', [1, numCells]) .';
 fclose(fid);
 
 %-------------------------------------------------------------
-%% Read grid cell IJK map specification ----------------------
+% Read grid cell IJK map specification ----------------------
 %
 % File format is
 %   [numCell]
@@ -205,7 +205,7 @@ else
 end
 
 
-%% Find face-based neighbors (potentially SLOW)
+% Find face-based neighbors (potentially SLOW)
 neighbors = zeros(numFaces, 2);
 for k = 1:numCellFaces,
    v = cellFaces(k,:);
@@ -219,7 +219,7 @@ end
 
 
 %-------------------------------------------------------------
-%% Assemble structure ----------------------------------------
+% Assemble structure ----------------------------------------
 G.cells.num       = numCells;
 G.cells.facePos  = int32(cumsum([1;numCellFacesVec]));
 G.cells.volumes   = volumes;

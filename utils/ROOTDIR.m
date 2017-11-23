@@ -4,9 +4,6 @@ function root = ROOTDIR()
 % SYNOPSIS:
 %   root = ROOTDIR
 %
-% PARAMETERS:
-%   none.
-%
 % RETURNS:
 %   root - Full path to MRST installation directory.
 

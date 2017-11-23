@@ -10,9 +10,6 @@ function papers = getAvailablePapers()
 %   in the 'papers' subdirectory of the directory hosting function
 %   getAvailablePapers.
 %
-% PARAMETERS:
-%   None.
-%
 % RETURNS:
 %   papers - List of all papers known to MRST, as an array of structures.
 %

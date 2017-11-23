@@ -8,19 +8,18 @@ function yi = interpTable(X, Y, xi, varargin)
 % PARAMETERS:
 %   X       - Nodes at which underlying function y=y(x) is sampled.
 %
-%   Y       - Values of the underlying function y=y(x) at the nodes, X.
+%   Y       - Values of the underlying function y=y(x) at the nodes, `X`.
 %
 %   xi      - Evaluation points for new, interpolated, function values.
 %
-%   'pn'/pv - List of 'key'/value pairs defining optional parameters.  The
-%             supported options are:
-%                - spline -- Whether or not to use spline interpolation.
-%                            Logical.  Default value: spline=false (use
-%                            linear interpolation/extrapolation).
+% OPTIONAL PARAMETERS:
+%   'spline' - Whether or not to use spline interpolation.
+%              Logical.  Default value: `spline=false` (use linear
+%              interpolation/extrapolation).
 %
 % RETURNS:
 %   yi - Approximate (interpolated/extrapolated) values of the function
-%        y=y(x) at the points xi.
+%        y=y(x) at the points `xi`.
 %
 % SEE ALSO:
 %   `dinterpTable`, `interp1`, `spline`.

@@ -5,20 +5,20 @@ function mrstNargInCheck(low, high, nargIn)
 %   mrstNargInCheck(low, high, nargIn)
 %
 % DESCRIPTION:
-%   Fails execution (calls ERROR) unless actual number of input arguments
+%   Fails execution (calls `error`) unless actual number of input arguments
 %   to calling function is between lower and upper limits inclusive.  This
 %   function should usually not be called within a loop as it is
-%   implemented in terms of DBSTACK.
+%   implemented in terms of `dbstack`.
 %
 % PARAMETERS:
 %   low    - Minumum number of input arguments needed by calling function.
-%            If empty (i.e., if ISEMPTY(low)), this limit is not checked.
+%            If empty (i.e., if `isempty(low))`, this limit is not checked.
 %
 %   high   - Maximum number of input arguments allowed by calling function.
-%            If empty (i.e., if ISEMPTY(high)), this limit is not checked.
+%            If empty (i.e., if `isempty(high))`, this limit is not checked.
 %
 %   nargIn - Actual number of input arguments.  Must be scalar, integral
-%            and non-negative.  Should be NARGIN unless there are special
+%            and non-negative.  Should be `nargin` unless there are special
 %            circumstances.
 %
 % SEE ALSO:

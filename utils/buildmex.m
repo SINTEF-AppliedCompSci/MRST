@@ -4,23 +4,28 @@ function buildmex(varargin)
 % SYNOPSIS:
 %   buildmex [options ...] file [files ...]
 %
-% PARAMETERS:
-%   BUILDMEX accepts the same file and option parameters as MEX, with the
-%   additional provision that filenames which do not start with FILESEP are
-%   interpreted as pathnames relative to the directory containing the M
-%   file which calls BUILDMEX.  Absolute pathnames (those starting with
-%   FILESEP) are left untouched.
+% DESCRIPTION:
+%   `buildmex` accepts the same file and option parameters as `mex`, with
+%   the additional provision that filenames which do not start with
+%   `filesep` are interpreted as pathnames relative to the directory
+%   containing the M file which calls `buildmex`. Absolute pathnames (those
+%   starting with `filesep`) are left untouched.
 %
-%   Note: All parameters must be character strings.
-%   Note: Function BUILDMEX requests -largeArrayDims from MEX.
+%   This function has no return values, but a compiled mex-function with
+%   the same name as the caller is produced in the directory containing the
+%   M file which calls `buildmex`.
+%
+% PARAMETERS:
+%   Various - Same parameters as `mex`. See description for more details.
 %
 % RETURNS:
-%   Nothing, but a compiled mex-function with the same name as the caller
-%   is produced in the directory containing the M file which calls BUILDMEX.
+%   Nothing - No return values.
 %
-% CAVEAT:
-%   Function BUILDMEX must be called from an M file only; it cannot be
-%   invoked from the base workspace.
+% NOTES:
+%   - All parameters must be character strings.
+%   - Function `buildmex` requests `-largeArrayDims` from `mex`.
+%   - Function `buildmex` must be called from an M file only; it cannot be
+%     invoked from the base workspace.
 %
 % SEE ALSO:
 %   `filesep`, `mex`.

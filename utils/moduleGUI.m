@@ -4,11 +4,11 @@ function moduleGUI()
 % SYNOPSIS:
 %  moduleGUI();
 %  
-% PARAMETERS:
-%   None
-%
-% RETURNS:
-%   Nothing.
+% DESCRIPTION:
+%   No input or output arguments. `moduleGUI` launches an interactive user
+%   interface for activation and de-activation of models. In addition, some
+%   rudimentary features for listing files by right-clicking a module is
+%   included.
 %
 % SEE ALSO:
 %   `mrstModule`, `mrstPath`

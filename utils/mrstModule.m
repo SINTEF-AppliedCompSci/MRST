@@ -6,50 +6,44 @@ function varargout = mrstModule(varargin)
 %      1) mrstModule <command> [module list]
 %      2) modules = mrstModule
 %
+% 
 % PARAMETERS:
-%   Mode 1)
-%     <Command>     - One of the explicit verbs 'add', 'clear', 'list' or
-%                     'reset'. The semantics of the command verbs are as
-%                     follows:
+%     command     - *Mode 1 only*: One of the explicit verbs 'add', 'clear',
+%                   'list' or 'reset'. The semantics of the command verbs
+%                   are as follows:
 %
-%                       o) add   -- Activate specified modules from the
-%                                   [module list].  Modules already
-%                                   activated are moved to the beginning of
-%                                   MATLAB's search path and remain active.
+%                       * add - Activate specified modules from the
+%                         [module list].  Modules already activated are
+%                         moved to the beginning of MATLAB's search path
+%                         and remain active.
 %
-%                       o) clear -- Deactivate all modules.  An explicit
-%                                   module list, if present, is ignored.
+%                       * clear - Deactivate all modules.  An explicit
+%                         module list, if present, is ignored.
 %
-%                       o) list  -- Display list of currently active
-%                                   modules in command window.  An explicit
-%                                   module list, if present, is ignored.
+%                       * list - Display list of currently active modules
+%                         in command window.  An explicit module list, if
+%                         present, is ignored.
 %
-%                       o) reset -- Convenience verb.  Equivalent to the
-%                                   verb sequence:
-%                                      mrstModule clear
-%                                      mrstModule add [module list]
+%                       * reset - Convenience verb.  Equivalent to the
+%                         verb sequence::
+%                           mrstModule clear
+%                           mrstModule add [module list]
 %
-%                       o) gui   -- Launch user interface for loading and
-%                                   unloading modules. Equivialent to
-%                                   calling moduleGUI() directly.
+%                       * gui - Launch user interface for loading and
+%                         unloading modules. Equivialent to calling
+%                         `moduleGUI()` directly.
 %
-%     [module list] - A sequence of strings naming individual add-on
-%                     modules for MRST.  The mapping of module names to
-%                     system paths is performed by function 'mrstPath'.
+%     module_list - *Mode 1 only*: A sequence of strings naming individual add-on
+%                   modules for MRST.  The mapping of module names to
+%                   system paths is performed by function `mrstPath`.
 %
-%   Mode 2)
-%     None.
 %
 % RETURNS:
-%   Mode 1)
-%     Nothing.
-%
-%   Mode 2)
-%     modules - List, represented as a cell array of strings, of the
+%     modules - *Mode 2 only*: List, represented as a cell array of strings, of the
 %               currently active add-on modules.
 %
 % EXAMPLES:
-%    mrstModule add deckformat ad-fi spe10
+%    mrstModule add deckformat ad-core spe10
 %
 %    mrstModule list
 %    mrstModule clear

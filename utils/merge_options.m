@@ -13,26 +13,26 @@ function [prm, varargout] = merge_options(prm, varargin)
 %   'pn'/pv -
 %      List of 'key'/value pairs overriding default options in 'prm'.
 %
-%      A warning is issued, and no assignment made, if a particular 'key'
-%      is not already present in FIELDNAMES(prm).  The message identifier
+%      A warning is issued, and no assignment made, if a particular `key`
+%      is not already present in `fieldnames(prm)`.  The message identifier
 %      of this warning is
 %
 %          [<FUNCTIONNAME>, ':Option:Unsupported']
 %
-%      with <FUNCTIONNAME> being the name of function MERGE_OPTIONS' caller
-%      or the string 'BASE' if MERGE_OPTIONS is used directly from the base
+%      with <FUNCTIONNAME> being the name of function `merge_options`' caller
+%      or the string 'BASE' if `merge_options` is used directly from the base
 %      workspace (i.e., the Command Window).
 %
-%      Function MERGE_OPTIONS will fail (and call ERROR) if the new value's
+%      Function `merge_options` will fail (and call ERROR) if the new value's
 %      class is different from the class of the existing value.
 %
 %      In the interest of convenience for the typical case of using MRST
-%      interactively from the Command Window, MERGE_OPTIONS matches keys
+%      interactively from the Command Window, `merge_options` matches keys
 %      (option names) using case insensitive search (i.e., using function
-%      STRCMPI).  If multiple option fields match a given name, such as in
-%      the case of several fields differing only by capitalisation, the
-%      MERGE_OPTIONS function resorts to exact and case sensitive string
-%      matching (STRCMP) to disambiguate options.
+%      `strcmpi`).  If multiple option fields match a given name, such as 
+%      in the case of several fields differing only by capitalisation, the
+%      `merge_options` function resorts to exact and case sensitive string
+%      matching (`strcmp`) to disambiguate options.
 %
 % RETURNS:
 %   prm -
@@ -41,7 +41,7 @@ function [prm, varargout] = merge_options(prm, varargin)
 %   extra -
 %      Cell array of 'key'/value pairs from the 'pn'/pv list that were not
 %      matched by any option in the control structure 'prm'.  This allows
-%      using function MERGE_OPTIONS in an intermediate layer to define a
+%      using function `merge_options` in an intermediate layer to define a
 %      set of options and to pass other options unchanged on to lower-level
 %      implementation functions--for instance to wrap a pressure solver in
 %      a higher-level structure.
@@ -53,14 +53,14 @@ function [prm, varargout] = merge_options(prm, varargin)
 %      If there are no unsupported options in the input list then 'extra'
 %      is an empty cell array.
 %
-% SPECIAL CASE:
-%   If the value of a field of the input parameters ('prm') is a CELL
+% NOTE:
+%   If the value of a field of the input parameters ('prm') is a `cell`
 %   array, then the overriding value of that field can be anything.  If the
-%   new value is another CELL array (i.e., if ISCELL returns true) it will
+%   new value is another `cell` array (i.e., if `iscell` returns true) it will
 %   simply be assigned.  Otherwise, we wrap the overriding value in a cell
-%   array so that the field value is always a CELL array.
+%   array so that the field value is always a `cell` array.
 %
-%   This behaviour allows the user of function MERGE_OPTIONS to implement
+%   This behaviour allows the user of function `merge_options` to implement
 %   uniform support for both single elements and heterogeneous collections
 %   of data in a single option.  That in turn is useful in, for instance, a
 %   visualisation application.
@@ -70,12 +70,12 @@ function [prm, varargout] = merge_options(prm, varargin)
 %   prm = struct('foo', 1, 'bar', pi, 'baz', true)
 %   prm = merge_options(prm, 'foo', 0, 'bar', rand(10), 'FimFoo', @exp)
 %
-%   % 2) Heterogeneous collection in a CELL array
+%   % 2) Heterogeneous collection in a `cell` array
 %   prm = struct('f', {{ (@(x) x.^2) }}) % 'f' is cell array of f-handles
 %   prm = merge_options(prm, 'f', @exp)  % Pass a simple function handle
 %   fplot(prm.f{1}, [0, 3])              % Reference cell array result
 %
-%   % 3) Heterogeneous collection in a CELL array
+%   % 3) Heterogeneous collection in a `cell` array
 %   prm = struct('d', {{ rand(10) }})   % 'd' is cell array of data points
 %
 %   % Pass multiple data sets
@@ -85,7 +85,7 @@ function [prm, varargout] = merge_options(prm, varargin)
 %   plot(prm.d{end}, '.-')
 %
 % SEE ALSO:
-%   `FIELDNAMES`, `WARNING`, `STRCMPI`, `STRCMP`.
+%   `fieldnames`, `warning`, `strcmpi`, `strcmp`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

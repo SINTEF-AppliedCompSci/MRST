@@ -8,12 +8,12 @@ function tocif(bool, varargin)
 % PARAMETERS:
 %   bool   - Boolean variable (true/false).
 %
-%   tstart - Saved start time as defined by functions 'tic' or 'ticif'.  In
-%            this case, function 'tocif' measures the elapsed time since
-%            'tstart'.  Otherwise, the global 'tic'/'toc' timer object is
+%   tstart - Saved start time as defined by functions `tic` or `ticif`.  In
+%            this case, function `tocif` measures the elapsed time since
+%            `tstart`.  Otherwise, the global `tic`/`toc` timer object is
 %            used.
 %
-% COMMENTS:
+% NOTE:
 %   Function used for making code cleaner where verbose option is used.
 %
 % SEE ALSO:

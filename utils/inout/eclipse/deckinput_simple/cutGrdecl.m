@@ -1,7 +1,7 @@
 function grdecl_new = cutGrdecl(grdecl, ind, varargin)
 %Extract logically Cartesian subset of a corner-point description
 %
-% SYNOPIS:
+% SYNOPSIS:
 %   grdecl = cutGrdecl(grdecl, ind)
 %   grdecl = cutGrdecl(grdecl, ind, 'pn1', pv1, ...)
 %
@@ -14,13 +14,11 @@ function grdecl_new = cutGrdecl(grdecl, ind, varargin)
 %             column being upper bounds, on the logically Cartesian subset.
 %             Interpreted in tensor product reference of uncompressed cells.
 %
-%   'pn'/pv - List of 'key'/value pairs defining optional parameters.  The
-%             supported options are:
-%               'lefthanded_numbering' --
-%                    Whether or not the corner-point description assumes a
-%                    left-handed coordinate system.
-%                    Default value: lefthanded_numbering = false (assume
-%                    right-handed coordinate system).
+% OPTIONAL ARGUMENTS:
+%   'lefthanded_numbering' - Whether or not the corner-point description
+%                            assumes a left-handed coordinate system. 
+%                            Default value: lefthanded_numbering = false
+%                            (assume right-handed coordinate system).
 %
 % RETURNS:
 %   grdecl - Corner-point description corresponding to the uncompressed

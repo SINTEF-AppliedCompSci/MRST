@@ -9,16 +9,16 @@ function [mapx, mapy, mapz] = tetrahedralAxis(varargin)
 %
 %   'names' - Names of the x, y, z coordinates (to be plotted on axis)
 %
-%   'isox', 'ixoy', 'isoz' - Booleans indicating if isolines are to be
-%   drawn for x, y and z axes. Isolines are drawn at the same positions as
-%   the ticks.
+%   'isox','ixoy','isoz' - Booleans indicating if isolines are to be drawn
+%                          for x, y and z axes. Isolines are drawn at the
+%                          same positions as the ticks.
 %
 % RETURNS:
 %   mapx  - Mapping on the form f(x, y, z) -> X where X is the new
-%   coordinates inside the ternary diagram.
+%           coordinates inside the ternary diagram.
 %
 %   mapy  - Mapping on the form g(x, y, z) -> Y where Y is the new
-%   coordinates inside the ternary diagram.
+%           coordinates inside the ternary diagram.
 %
 % EXAMPLE:
 % figure; 
@@ -28,6 +28,8 @@ function [mapx, mapy, mapz] = tetrahedralAxis(varargin)
 % z = 1 - x - y; 
 % plot(mapx(x, y, z), mapy(x, y, z), 'k', 'linewidth', 2)
 %
+% SEE ALSO:
+%   `ternaryAxis`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

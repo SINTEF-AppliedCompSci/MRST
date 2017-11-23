@@ -7,13 +7,13 @@ function [A,n] = rlencode(A, dim)
 %
 % PARAMETERS:
 %   A         - Array
-%   dim       - dimension of A where run length encoding is done.
-%               dim > 0, dim <= ndims(A).
-%               OPTIONAL.  Default value: dim=1.
+%   dim       - dimension of `A` where run length encoding is done.
+%               `dim > 0`, `dim <= ndims(A)`.
+%               OPTIONAL.  Default value: `dim=1`.
 %
 % RETURNS:
-%   A         - Compressed A where repeated layers are removed.
-%   n         - repetition count of repeated layers in original A.
+%   A         - Compressed `A` where repeated layers are removed.
+%   n         - repetition count of repeated layers in original `A`.
 %
 % EXAMPLE:
 %

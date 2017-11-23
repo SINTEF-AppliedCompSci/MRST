@@ -16,13 +16,13 @@ function compareGrids(G1, G2)
 %   Otherwise, the grids are not equivalent in any sense.
 %
 % PARAMETERS:
-%   G1, G2 - Two grid structures as defined in 'grid_structure'.
+%   G1,G2 - Two grid structures as defined in 'grid_structure'.
 %
 % RETURNS:
-%   Nothing.  Diagnostic messages are printed to standard output stream.
+%   Nothing - Diagnostic messages are printed to standard output stream.
 %
 % NOTE:
-%   Function 'compareGrids' is mainly a grid processing debugging tool.
+%   Function `compareGrids` is mainly a grid processing debugging tool.
 %
 % SEE ALSO:
 %   `grid_structure`.

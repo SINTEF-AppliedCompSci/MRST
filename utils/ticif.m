@@ -10,12 +10,12 @@ function varargout = ticif(bool)
 %
 % RETURNS:
 %   tstart - Save start time to output argument.  The numeric value of
-%            'tstart' is only useful as an input argument for a subsequent
-%            call to functions 'toc' or 'tocif'.
+%            `tstart` is only useful as an input argument for a subsequent
+%            call to functions `toc` or `tocif`.
 %
-%            If 'bool' is FALSE, then 'tstart' is the emtpy array ([]).
+%            If `bool` is `false`, then `tstart` is the emtpy array (`[]`).
 %
-% COMMENTS:
+% NOTE:
 %   Function used for making code cleaner where verbose option is used.
 %
 % SEE ALSO:

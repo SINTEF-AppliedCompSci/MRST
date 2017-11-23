@@ -49,14 +49,14 @@ function s = simpleEquilibrium(G, contacts, vector)
 %           Cartesian or the fluids physics include capillary forces.
 %
 % EXAMPLE:
-% G = cartGrid([10, 1, 10], [1, 1, 1]);
-% G = computeGeometry(G);
+%   G = cartGrid([10, 1, 10], [1, 1, 1]);
+%   G = computeGeometry(G);
 % 
-% % First contact at .37, second at .8 for a total of three phases present
-% contacts = [.37, .8];
+%   % First contact at .37, second at .8 for a total of three phases present
+%   contacts = [.37, .8];
 % 
-% % Compute equilibrium saturations
-% s = simpleEquilibrium(G, contacts);
+%   % Compute equilibrium saturations
+%   s = simpleEquilibrium(G, contacts);
 %
 % SEE ALSO:
 %   `initEclipseState`, `test_simpleEquilibrium`

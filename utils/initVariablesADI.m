@@ -6,16 +6,18 @@ function varargout = initVariablesADI(varargin)
 %  [a, b, c, d] = initVariablesADI(a, b, c, d);
 %
 % PARAMETERS:
-%   Any number of variables in either column vector format or as scalars.
-%   These variables will be instantiate as ADI objects containing both a
-%   .val field and a .jac jacobian. These variables will start with
-%   identity jacobians with regards to themselves and zero jacobians with
-%   regards to the other variables (implicitly defined by the ordering of
-%   input and output).
+%   varargin - Any number of variables in either column vector format or as
+%              scalars. These variables will be instantiate as ADI objects
+%              containing both a .val field and a .jac jacobian. These
+%              variables will start with identity jacobians with regards to
+%              themselves and zero jacobians with regards to the other
+%              variables (implicitly defined by the ordering of input and
+%              output).
 %
-%   These variables can then be used to create more complex expressions,
-%   resulting in automatic compuation of the first order derivatives
-%   leading to easy implementation of Newton-like nonlinear solvers.
+%              These variables can then be used to create more complex
+%              expressions, resulting in automatic compuation of the first
+%              order derivatives leading to easy implementation of
+%              Newton-like nonlinear solvers.
 %
 % EXAMPLE:
 %        x = 1;
@@ -35,7 +37,7 @@ function varargout = initVariablesADI(varargin)
 %        dealing with scalars.
 %
 % RETURNS:
-%   The same variables as inputted, as ADI objects.
+%   varargout - The same variables as inputted, as ADI objects.
 %
 % SEE ALSO:
 %   `ADI`

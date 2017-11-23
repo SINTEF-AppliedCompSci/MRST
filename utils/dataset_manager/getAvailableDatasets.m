@@ -12,14 +12,14 @@ function [info, present] = getAvailableDatasets()
 %   phases, common simulation scenarios), online location (URL) from which
 %   to download the data, any MRST examples using that dataset and so on.
 %
-%   Function getAvailableDatasets relies on dedicated helper functions
-%   named 'dataset_*' (lower-case) located in the sudirectory 'datasets' of
+%   Function `getAvailableDatasets` relies on dedicated helper functions
+%   named `dataset_*` (lower-case) located in the sudirectory `datasets` of
 %   this function's location.  Each helper function produces a single
 %   collection of metadata about a particular dataset and determines if the
 %   associated dataset is already present (i.e., downloaded).
 %
-%   Creating a new dataset consequently means implementing a new dataset_*
-%   function.
+%   Creating a new dataset consequently means implementing a new
+%   `dataset_*` function.
 %
 % PARAMETERS:
 %   None.
@@ -29,17 +29,17 @@ function [info, present] = getAvailableDatasets()
 %             information about a separate dataset.  See datasetInfoStruct
 %             for possible fields, along with their meanings.
 % 
-%   present - Logical array of the same size as 'info'.  If 'present(i)' is
-%             true, the dataset named 'info(i).name' is already downloaded
-%             and exists in the directory returned by function
+%   present - Logical array of the same size as `info`.  If `present(i)` is
+%             true, the dataset named `info(i).name` is already downloaded
+%             and exists in the directory returned by function ::
 %
 %                 mrstDataDirectory
 %
 %             This dataset is therefore directly available for use by MRST.
 %             Otherwise, the dataset may be retrieved interactively through
-%             a graphical user interface (function 'mrstDatasetGUI') or
-%             programmatically by means of function 'downloadDataset' or
-%             'downloadAllDatasets'.
+%             a graphical user interface (function `mrstDatasetGUI`) or
+%             programmatically by means of function `downloadDataset` or
+%             `downloadAllDatasets`.
 %
 % SEE ALSO:
 %   `mrstDatasetGUI`, `mrstDataDirectory`, `datasetInfoStruct`, `downloadDataset`.

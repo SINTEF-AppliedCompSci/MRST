@@ -5,12 +5,12 @@ function s = msgid(s)
 %   s = msgid(s)
 %
 % PARAMETERS:
-%   s - A string of the form '[<component>]:<mnemonic>' suitable as an
+%   s - A string of the form `[<component>]:<mnemonic>` suitable as an
 %       ERROR or WARNING-type message identifier.
 %
 % RETURNS:
 %   s - The same string, though with the name of the function calling
-%       'msgid' prepended to 's' (or the string 'BASE' if function 'msgid'
+%       `msgid` prepended to `s` (or the string 'BASE' if function `msgid`
 %       is called from the base workspace).
 %
 % SEE ALSO:
