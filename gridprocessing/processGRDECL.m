@@ -5,6 +5,7 @@ function G = processGRDECL(grdecl, varargin)
 %   G = processGRDECL(grdecl)
 %   G = processGRDECL(grdecl, 'pn1', pv1, ...)
 %
+% DESCRIPTION:
 %
 %  This code is designed to compute connectivity of fairly general
 %  cornerpoint grids described in Eclipse `SPECGRID/COORDS/ZCORN` format.
