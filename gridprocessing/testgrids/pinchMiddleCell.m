@@ -10,12 +10,12 @@ function grdecl = pinchMiddleCell(k)
 %
 % RETURNS:
 %   grdecl - Cell array of corner-point descriptions suitable for
-%            subsequent processing using function processGRDECL.  Array
-%            size is NCHOOSEK(4,n), one element for each combination of
-%            selecting 'n' elements from four possibilities.
+%            subsequent processing using function `processGRDECL`.  Array
+%            size is `nchoosek(4,n)`, one element for each combination of
+%            selecting `n` elements from four possibilities.
 %
 % NOTE:
-%   This is an extension of the test case defined by function pinchedNode.
+%   This is an extension of the test case defined by function `pinchedNode`
 %
 % SEE ALSO:
 %   `pinchedNode`, `processGRDECL`, `nchoosek`.

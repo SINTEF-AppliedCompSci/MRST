@@ -12,7 +12,7 @@ function g = simpleGrdecl(dims, drop, varargin)
 %
 %      [0,1] x [0,1] x [0,0.5].
 %
-%   which is deformed by adding sin(x) and sin(x*y) perturbations.  In
+%   which is deformed by adding `sin(x)` and `sin(x*y)` perturbations.  In
 %   addition, the pillars are skewed.  If a second input parameter is
 %   provided, a single fault of given drop size is added in the model at
 %   approximately x=0.5.
@@ -28,22 +28,21 @@ function g = simpleGrdecl(dims, drop, varargin)
 %          of a spatial coordinate along the fault.
 %          OPTIONAL.  Default value: drop = 0 (no fault).
 %
-%   'pn'/pv - List of 'key'/value pairs defining optional paramters.  The
-%             supported options are:
-%               - flat --
-%                  Flag indicating if the sine perturbations should *NOT*
-%                  be added.  Default: FALSE (add perturbations).
-%               - undisturbed --
-%                  Flag indicating that skew pillars should not be created.
-%                  Default: FALSE (make skew pillars)
-%               - physDims --
-%                  A three element vector corresponding to the physical
-%                  dimensions of the domain. Defaults to [1,1,0.5].
+% KEYWORD ARGUMENTS:
+%
+%  flat -        Flag indicating if the sine perturbations should *NOT*
+%                be added.  Default: FALSE (add perturbations).
+%
+%  undisturbed - Flag indicating that skew pillars should not be created.
+%                Default: FALSE (make skew pillars)
+%
+%  physDims -    A three element vector corresponding to the physical
+%                dimensions of the domain. Defaults to [1,1,0.5].
 %
 % RETURNS:
-%   grdecl - A GRDECL structure suitable for further processing by
-%            function 'processGRDECL' or for permanent storage on disk by
-%            function 'writeGRDECL'.
+%   grdecl - A `GRDECL` structure suitable for further processing by
+%            function `processGRDECL` or for permanent storage on disk by
+%            function `writeGRDECL`.
 %
 % EXAMPLE:
 %   % 1) Create a 20-by-20-by-5 faulted grid with a fault drop of 0.15 (m).

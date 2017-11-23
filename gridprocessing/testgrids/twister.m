@@ -13,10 +13,10 @@ function pt = twister(pt, varargin)
 %   pt - Modified coordinates.
 %
 % NOTE:
-%   If 'pt' is the nodes.coords field of a 'grid_structure', then function
-%   'twister' invalidates any pre-computed face areas and cell volues (and
-%   other fields).  Consequently, function 'computeGeometry' must be called
-%   *after* a call to function 'twister'.
+%   If `pt` is the `nodes.coords` field of a `grid_structure`, then
+%   function `twister` invalidates any pre-computed face areas and cell
+%   volues (and other fields).  Consequently, function `computeGeometry`
+%   must be called *after* a call to function `twister`.
 %
 % EXAMPLE:
 %   G = cartGrid([30, 20]);
