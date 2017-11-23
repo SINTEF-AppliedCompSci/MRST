@@ -15,11 +15,11 @@ function [G, cellmap, facemap, nodemap] = removeCells(G, cells)
 %                In addition, any unreferenced faces or nodes are
 %                subsequently removed.
 %
-%   cellmap    - cell numbers in G for each cell in H.
+%   cellmap    - cell numbers in `G` for each cell in `H`.
 %
-%   facemap    - face numbers in G for each face in H.
+%   facemap    - face numbers in `G` for each face in `H`.
 %
-%   nodemapmap - node numbers in G for each node in H.
+%   nodemapmap - node numbers in `G` for each node in `H`.
 %
 %
 % EXAMPLE:
@@ -31,7 +31,7 @@ function [G, cellmap, facemap, nodemap] = removeCells(G, cells)
 %   The process of removing cells is irreversible.
 %
 % SEE ALSO:
-%   `readGRDECL`, `deactivateZeroPoro`.
+%   `readGRDECL`, `makeInternalBoundary`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

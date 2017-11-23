@@ -10,49 +10,49 @@ function nnc = processPINCH(grdecl, G)
 %   other words, this function creates connections that do not otherwise
 %   correspond to geometric interfaces.
 %
-%   This function is used within function 'processGRDECL' to implement the
-%   processing of keyword 'PINCH' in an ECLIPSE input deck.  Note that we
+%   This function is used within function `processGRDECL` to implement the
+%   processing of keyword `PINCH` in an `ECLIPSE` input deck.  Note that we
 %   currently do not support the complete feature set that may be input
-%   through 'PINCH'.  Specifically, we only support the 'TOPBOT'
+%   through `PINCH`.  Specifically, we only support the `TOPBOT`
 %   transmissibility option for item 4 of the keyword.  Any other setting
-%   will be reset to 'TOPBOT' and a warning will be issued.
+%   will be reset to `TOPBOT` and a warning will be issued.
 %
 % PARAMETERS:
 %   grdecl - Raw pillar grid structure, as defined (e.g.,) by function
-%            'readGRDECL', with fields COORDS, ZCORN and, possibly, ACTNUM.
+%            `readGRDECL`, with fields `COORDS`, `ZCORN` and, possibly,
+%            `ACTNUM`.
 %
-%   G      - Grid structure--typically created by function 'processGRDECL'.
+%   G      - Grid structure--typically created by function `processGRDECL`.
 %
 % RETURNS:
 %   nnc - Structure describing explicit, additional non-neighbouring
 %         connections.  Contains the following fields.
 %
-%           - cells -- Active cells connected across an NNC.  An m-by-2
-%                      array of active cell numbers in the format of
-%                      G.faces.neighbors.  Each row of nnc.cells represents
-%                      a single non-neighbouring connection.
+%           cells - Active cells connected across an NNC.  An m-by-2 array
+%           of active cell numbers in the format of `G.faces.neighbors`.
+%           Each row of `nnc.cells` represents a single non-neighbouring
+%           connection.
 %
-%           - faces -- Partially redundant connection information.  An
-%                      m-by-2 array of interface numbers that represent
-%                      those interfaces that would otherwise be
-%                      geometrically connected if the NNC were in fact a
-%                      geometric connection (single interface).
+%           faces - Partially redundant connection information.  An m-by-2
+%           array of interface numbers that represent those interfaces that
+%           would otherwise be geometrically connected if the NNC were in
+%           fact a geometric connection (single interface).
 %
 %         If the pillar grid contains transmissibility multipliers in the
-%         field 'MULTZ', the 'nnc' structure will furthermore contain a
-%         field 'mult' of multipliers defined by item '5' of the 'PINCH'
-%         keyword.  The 'mult' field is an m-by-1 array of non-negative
+%         field `MULTZ`, the `nnc` structure will furthermore contain a
+%         field `mult` of multipliers defined by item `5` of the `PINCH`
+%         keyword.  The `mult` field is an m-by-1 array of non-negative
 %         scalars, the i'th of which is the multiplier of the i'th explicit
-%         non-neighbouring connection (i.e., row 'i' of 'nnc.cells').
+%         non-neighbouring connection (i.e., row `i` of `nnc.cells`).
 %
 % NOTE:
 %   At present, we only support generating NNCs across explicitly
-%   deactivated layers--i.e., layers/cells for which ACTNUM==0.  Therefore,
-%   function 'processPINCH' will fail unless the raw pillar grid structure
-%   contains an 'ACTNUM' field.
+%   deactivated layers--i.e., layers/cells for which `ACTNUM==0`.  Therefore,
+%   function `processPINCH` will fail unless the raw pillar grid structure
+%   contains an `ACTNUM` field.
 %
 % SEE ALSO:
-%   `processGRDECL`.
+%   `processGRDECL`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -6,11 +6,11 @@ function nnc = processNNC(G, NNC, varargin)
 %   nnc = processNNC(G, NNC, excludeExisting)
 %
 % PARAMETERS:
-%   G   - MRST grid as defined by 'grid_structure'.
+%   G   - MRST grid as defined by `grid_structure`.
 %
 %   NNC - Explicit list of non-neighbouring (according to Cartesian cell
-%         indices) as defined by function 'readEclipseDeck' from ECLIPSE
-%         keyword 'NNC'.  Must be an m-by-7 array in which the first six
+%         indices) as defined by function `readEclipseDeck` from ECLIPSE
+%         keyword `NNC`.  Must be an m-by-7 array in which the first six
 %         columns are (I,J,K) Cartesian indices of the first and second
 %         connecting cells, respectively, and the seventh column is the
 %         transmissibility of the corresponding connection.
@@ -23,19 +23,19 @@ function nnc = processNNC(G, NNC, varargin)
 %
 % RETURNS:
 %   nnc - Structure describing explicit, additional non-neighbouring
-%         connections.  Contains the following fields.
+%         connections.  Contains the following fields,
 %
-%           - cells -- Active cells connected across an NNC.  An m-by-2
-%                      array of active cell numbers in the format of
-%                      G.faces.neighbors.  Each row of nnc.cells represents
-%                      a single non-neighbouring connection.
+%           cells - Active cells connected across an NNC.  An m-by-2 array
+%           of active cell numbers in the format of `G.faces.neighbors`.
+%           Each row of nnc.cells represents a single non-neighbouring
+%           connection.
 %
-%           - trans -- Transmissibility of the corresponding connections.
+%           trans - Transmissibility of the corresponding connections.
 %
 % NOTE:
-%   Option excludeExisting=TRUE is implemented in terms of function
-%   ISMEMBER(...,'rows') which uses function SORTROWS.  This is potentially
-%   very costly.
+%   Option `excludeExisting=true` is implemented in terms of function
+%   `ismember(...,'rows')` which uses function `sortrows`.  This is
+%   potentially very costly.
 %
 % SEE ALSO:
 %   `readEclipseDeck`, `ismember`, `sortrows`.

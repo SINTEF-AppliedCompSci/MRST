@@ -6,7 +6,7 @@ function [flt, keep] = removeFaultBdryFaces(flt, G)
 %   [flt, msk] = removeFaultBdryFaces(flt, G)
 %
 % PARAMETERS:
-%   flt - A fault structure as defined by function 'processFaults'.
+%   flt - A fault structure as defined by function `processFaults`.
 %
 %   G   - A grid structure representing a discretised reservoir geometry.
 %
@@ -14,15 +14,15 @@ function [flt, keep] = removeFaultBdryFaces(flt, G)
 %   flt - An updated fault structure.  Faults that no longer have any
 %         constituent faces from the grid are removed.
 %
-%   msk - Logical mask into original 'flt' that indicates whether or not
+%   msk - Logical mask into original `flt` that indicates whether or not
 %         the corresponding fault structure was still active after removing
-%         its boundary faces.  Specifically, msk(i)==TRUE if fault 'i'
+%         its boundary faces.  Specifically, `msk(i)==true` if fault `i`
 %         still has active faces after removing boundary contributions.
-%         Moreover, its position in the updated 'flt' structure is pos(i)
-%         where pos=CUMSUM(DOUBLE(msk)).
+%         Moreover, its position in the updated `flt` structure is `pos(i)`
+%         where `pos=cumsum(double(msk))`.
 %
 % SEE ALSO:
-%   `processFaults`.
+%   `processFaults`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

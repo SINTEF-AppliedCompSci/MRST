@@ -8,26 +8,25 @@ function G = splitDisconnectedGrid(G, varargin)
 % PARAMETERS:
 %   G - Grid structure.
 %
-%  'pn'/pv - List of 'key'/value pairs defining optional parameters.  The
-%            supported options are:
+% KEYWORD ARGUMENTS:
 %
-%              Verbose -- Whether or not to display progress information
-%                         Logical.  Default value: Verbose = mrstVerbose.
+%   Verbose - Whether or not to display progress information
+%             Logical.  Default value: `Verbose = mrstVerbose()`.
 %
 % RETURNS:
 %   G - Array of grid structures, one element for each disconnected grid
 %       component, sorted in order of decreasing number of cells.  If the
 %       grid consists of a single component (i.e., if there are no
-%       disconnected grid components), then the return value 'G' is equal
-%       to the input parameter 'G'.
+%       disconnected grid components), then the return value `G` is equal
+%       to the input parameter `G`.
 %
-%       Function 'splitDisconnectedGrid' will also consider any explicit
-%       non-neighbouring connections represented in a field 'nnc' stored in
-%       the top-level structure of 'G' when determining whether or not any
+%       Function `splitDisconnectedGrid` will also consider any explicit
+%       non-neighbouring connections represented in a field `nnc` stored in
+%       the top-level structure of `G` when determining whether or not any
 %       disconnected components exist.
 %
 % SEE ALSO:
-%   `processGRDECL`, `processPINCH`, `extractSubgrid`.
+%   `processGRDECL`, `processPINCH`, `extractSubgrid`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

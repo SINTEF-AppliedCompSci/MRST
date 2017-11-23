@@ -131,6 +131,7 @@ function grid_structure()
 %    - centroids: A `G.faces.num` by `d` array of face centroids in R^d.
 %
 %    NODES - Node (vertex) structure G.nodes:
+%
 %    - num: Number of global nodes (vertices) in grid.
 %
 %    - coords:  A `G.nodes.num` by `d` array of physical nodal coordinates
