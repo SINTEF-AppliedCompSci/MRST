@@ -27,7 +27,7 @@ function grdecl_new = cutGrdecl(grdecl, ind, varargin)
 %            subset of cell indices represented by 'ind'.
 %
 % SEE ALSO:
-%   readGRDECL, simpleGrdecl.
+%   `readGRDECL`, `simpleGrdecl`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

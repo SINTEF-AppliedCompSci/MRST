@@ -70,7 +70,7 @@ function [grdecl, unrec] = readGRDECL(fn, varargin)
 %   unrec -  Cell array with unrecognized keywords
 %
 % SEE ALSO:
-%   processGRDECL.
+%   `processGRDECL`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

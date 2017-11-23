@@ -29,7 +29,7 @@ function x = geomspace(a, b, n, x0)
 %   should be carefully considered in every instance.
 %
 % SEE ALSO:
-%   linspace, logspace, roots.
+%   `linspace`, `logspace`, `roots`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

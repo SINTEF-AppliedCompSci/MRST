@@ -15,7 +15,7 @@ function varargout = mrstExploreModules()
 %   h  - Figure handle for the window (if requested).
 %
 % SEE ALSO:
-%   mrstReferencesGUI, moduleGUI, mrstModule, mrstExamples
+%   `mrstReferencesGUI`, `moduleGUI`, `mrstModule`, `mrstExamples`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

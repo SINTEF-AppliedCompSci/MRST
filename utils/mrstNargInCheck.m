@@ -22,7 +22,7 @@ function mrstNargInCheck(low, high, nargIn)
 %            circumstances.
 %
 % SEE ALSO:
-%   nargin, nargchk, narginchk, error, dbstack.
+%   `nargin`, `nargchk`, `narginchk`, `error`, `dbstack`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

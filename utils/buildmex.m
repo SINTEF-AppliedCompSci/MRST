@@ -23,7 +23,7 @@ function buildmex(varargin)
 %   invoked from the base workspace.
 %
 % SEE ALSO:
-%   filesep, mex.
+%   `filesep`, `mex`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

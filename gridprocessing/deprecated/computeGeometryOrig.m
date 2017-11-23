@@ -54,7 +54,7 @@ function G = computeGeometryOrig(G, varargin)
 %   G.faces.neighbors(f,1) to cell G.faces.neighbors(f,2).
 %
 % SEE ALSO:
-%   grid_structure.
+%   `grid_structure`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

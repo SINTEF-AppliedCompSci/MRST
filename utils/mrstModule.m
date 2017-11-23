@@ -55,7 +55,7 @@ function varargout = mrstModule(varargin)
 %    mrstModule clear
 %
 % SEE ALSO:
-%   mrstPath.
+%   `mrstPath`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

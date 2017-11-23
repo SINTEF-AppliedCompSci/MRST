@@ -38,7 +38,7 @@ function nnc = processNNC(G, NNC, varargin)
 %   very costly.
 %
 % SEE ALSO:
-%   readEclipseDeck, ismember, sortrows.
+%   `readEclipseDeck`, `ismember`, `sortrows`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

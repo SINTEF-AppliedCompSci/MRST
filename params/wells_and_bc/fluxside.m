@@ -68,7 +68,7 @@ function bc = fluxside(bc, G, side, flux, varargin)
 %   See simpleBC.
 %
 % SEE ALSO:
-%   pside, addBC, grid_structure.
+%   `pside`, `addBC`, `grid_structure`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

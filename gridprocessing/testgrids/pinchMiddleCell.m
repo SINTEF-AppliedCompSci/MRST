@@ -18,7 +18,7 @@ function grdecl = pinchMiddleCell(k)
 %   This is an extension of the test case defined by function pinchedNode.
 %
 % SEE ALSO:
-%   pinchedNode, processGRDECL, nchoosek.
+%   `pinchedNode`, `processGRDECL`, `nchoosek`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

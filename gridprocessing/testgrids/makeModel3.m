@@ -25,7 +25,7 @@ function g = makeModel3(dims, varargin)
 %   plotGrid(processGRDECL(makeModel3([100, 60, 15])));
 %
 % SEE ALSO:
-%   processGRDECL.
+%   `processGRDECL`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

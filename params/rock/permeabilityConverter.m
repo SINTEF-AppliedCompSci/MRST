@@ -1,6 +1,5 @@
 function grdecl = permeabilityConverter(grdecl,varargin)
-%
-%  add tensor permeability to the grdecl.permtensor
+%Add tensor permeability to the grdecl.permtensor
 %
 % SYNOPSIS:
 %  grdecl = permeabilityConverter(grdecl,varargin)
@@ -26,8 +25,8 @@ function grdecl = permeabilityConverter(grdecl,varargin)
 % COMMENTS:
 %
 % SEE ALSO:
-%   grdecl2rock
-%
+%   `grdecl2rock`
+
 opt = struct('K_system','xyz');
 opt = merge_options(opt, varargin{:});
 if(strcmp(opt.K_system,'xyz'))

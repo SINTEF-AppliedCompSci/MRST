@@ -50,7 +50,7 @@ function G = tensorGrid(x, y, varargin)
 %        W, E, S, N, T, B.
 %
 % SEE ALSO:
-%   grid_structure, computeGeometry
+%   `grid_structure`, `computeGeometry`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

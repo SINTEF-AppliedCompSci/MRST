@@ -19,7 +19,7 @@ function c = findEnclosingCell(G, pt)
 %        the function returns the smallest index.
 %
 % SEE ALSO:
-%   pebi.
+%   `pebi`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

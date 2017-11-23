@@ -20,7 +20,7 @@ function h = mrstSplitText(intro)
 %       in order of appearance.
 %
 % SEE ALSO:
-%   help, mrstExploreModules, normaliseTextBox.
+%   `help`, `mrstExploreModules`, `normaliseTextBox`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

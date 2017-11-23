@@ -57,7 +57,7 @@ function bc = addBC(bc, f, t, v, varargin)
 %                      faces.
 %
 % SEE ALSO:
-%   pside, fluxside, addSource, addWell, solveIncompFlow, grid_structure.
+%   `pside`, `fluxside`, `addSource`, `addWell`, `solveIncompFlow`, `grid_structure`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

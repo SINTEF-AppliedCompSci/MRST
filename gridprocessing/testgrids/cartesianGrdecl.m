@@ -39,7 +39,7 @@ function grdecl = cartesianGrdecl(xi, yi, zi, varargin)
 %   view(3), grid on, axis tight
 %
 % SEE ALSO:
-%   processGRDECL, writeGRDECL, simpleGrdecl
+%   `processGRDECL`, `writeGRDECL`, `simpleGrdecl`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

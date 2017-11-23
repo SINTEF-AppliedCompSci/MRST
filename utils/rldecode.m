@@ -27,7 +27,7 @@ function A = rldecode(A, n, dim)
 %   disp(['CellFace nr. 10 belongs to cell nr: ', num2str(cellNo(10))]);
 %
 % SEE ALSO:
-%   rlencode
+%   `rlencode`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

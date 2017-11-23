@@ -54,7 +54,7 @@ function [info, present] = datasetInfoStruct(varargin)
 %  present          - Boolean indicator if the directory 
 %                     fullfile(mrstDataDirectory(), info.name) exists.
 % SEE ALSO:
-%   mrstDatasetGUI
+%   `mrstDatasetGUI`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -17,7 +17,7 @@ function tocif(bool, varargin)
 %   Function used for making code cleaner where verbose option is used.
 %
 % SEE ALSO:
-%   toc, ticif, dispif.
+%   `toc`, `ticif`, `dispif`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

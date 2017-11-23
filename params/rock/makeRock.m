@@ -53,7 +53,7 @@ function rock = makeRock(G, perm, poro, varargin)
 %   plotCellData(G, poreVolume(G, r3)), view(3), axis tight
 %
 % SEE ALSO:
-%   computeTrans, poreVolume, permTensor.
+%   `computeTrans`, `poreVolume`, `permTensor`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

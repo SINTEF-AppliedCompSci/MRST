@@ -39,7 +39,7 @@ function g = oneSlopingFault(dims, drop)
 %   view(3), grid on, axis tight
 %
 % SEE ALSO:
-%   processGRDECl, writeGRDECL.
+%   `processGRDECl`, `writeGRDECL`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

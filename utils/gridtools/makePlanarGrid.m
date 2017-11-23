@@ -26,7 +26,7 @@ function G = makePlanarGrid(H, faces, sgn)
 %   G.faces.nodes refer to this numbering of nodes.
 %
 % SEE ALSO:
-%   makePlanarGrid
+%   `makePlanarGrid`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

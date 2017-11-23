@@ -40,7 +40,7 @@ function varargout = blockDiagIndex(m, n)
 %   full(A), spy(A)
 %
 % SEE ALSO:
-%   rldecode, mcolon, sub2ind.
+%   `rldecode`, `mcolon`, `sub2ind`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

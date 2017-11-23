@@ -68,7 +68,7 @@ function g = simpleGrdecl(dims, drop, varargin)
 %   view(3), grid on, axis tight
 %
 % SEE ALSO:
-%   processGRDECL, writeGRDECL.
+%   `processGRDECL`, `writeGRDECL`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

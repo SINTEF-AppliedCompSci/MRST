@@ -53,7 +53,7 @@ function [N, varargout] = getNeighbourship(G, varargin)
 %   must be FALSE.
 %
 % SEE ALSO:
-%   processGRDECL, processPINCH, getConnectivityMatrix.
+%   `processGRDECL`, `processPINCH`, `getConnectivityMatrix`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -13,7 +13,7 @@ function writeCache(arg, varargin)
 %   none
 %
 % SEE ALSO:
-%   readCache.
+%   `readCache`.
 
 %
 % save -append

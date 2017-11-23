@@ -15,7 +15,7 @@ function grdecl = raisedColumn
 %   edge-conforming corner-point processing routine.
 %
 % SEE ALSO:
-%   simpleGrdecl, processGRDECL.
+%   `simpleGrdecl`, `processGRDECL`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

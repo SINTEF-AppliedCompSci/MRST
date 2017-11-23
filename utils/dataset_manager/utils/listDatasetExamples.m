@@ -32,7 +32,7 @@ function varargout = listDatasetExamples(name)
 %    may happen that examples are not listed.
 %
 % SEE ALSO:
-%   mrstDatasetGUI
+%   `mrstDatasetGUI`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -37,7 +37,7 @@ function pth = getDatasetPath(name, varargin)
 %   circumstances so dictate.
 % 
 % SEE ALSO:
-%   mrstdatasetGUI, downloadDataset.
+%   `mrstdatasetGUI`, `downloadDataset`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

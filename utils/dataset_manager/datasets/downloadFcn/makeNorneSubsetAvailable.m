@@ -23,7 +23,7 @@ function ok = makeNorneSubsetAvailable
 %        the Norne dataset directory.
 %
 % SEE ALSO:
-%   getDatasetPath, githubDownload.
+%   `getDatasetPath`, `githubDownload`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

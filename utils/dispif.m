@@ -20,7 +20,7 @@ function varargout = dispif(bool, varargin)
 %   Function used for making code cleaner where 'verbose' option is used.
 %
 % SEE ALSO:
-%   SPRINTF, tocif.
+%   `SPRINTF`, `tocif`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

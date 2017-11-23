@@ -31,7 +31,7 @@ function [G, cellmap, facemap, nodemap] = removeCells(G, cells)
 %   The process of removing cells is irreversible.
 %
 % SEE ALSO:
-%   readGRDECL, deactivateZeroPoro.
+%   `readGRDECL`, `deactivateZeroPoro`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

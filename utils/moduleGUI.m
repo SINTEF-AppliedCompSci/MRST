@@ -11,7 +11,7 @@ function moduleGUI()
 %   Nothing.
 %
 % SEE ALSO:
-%   mrstModule, mrstPath
+%   `mrstModule`, `mrstPath`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -9,7 +9,7 @@ function require(varargin)
 %   modulename - string.
 %
 % SEE ALSO:
-%   mrstModule
+%   `mrstModule`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

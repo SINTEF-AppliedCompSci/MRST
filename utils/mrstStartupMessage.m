@@ -19,7 +19,7 @@ function mrstStartupMessage()
 %    MRST was successfully loaded and is ready for use.
 %
 % SEE ALSO:
-%   startup.m, mrstExamples, mrstModule, mrstPath
+%   `startup`.`m`, `mrstExamples`, `mrstModule`, `mrstPath`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

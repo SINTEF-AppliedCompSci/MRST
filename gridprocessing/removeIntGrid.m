@@ -15,7 +15,7 @@ function G = removeIntGrid(G)
 %   This routine converts grids of the old type to the new one.
 %
 % SEE ALSO:
-%   grid_structure
+%   `grid_structure`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

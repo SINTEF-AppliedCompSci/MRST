@@ -16,7 +16,7 @@ function s = connectedCells(G, varargin)
 %       grid cell indices of component 'i'.
 %
 % SEE ALSO:
-%   grid_structure, dmperm.
+%   `grid_structure`, `dmperm`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

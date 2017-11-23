@@ -15,7 +15,7 @@ function downloadAllDatasets(askFirst)
 %   to download.
 %
 % SEE ALSO:
-%   mrstDatasetGUI, downloadDataset
+%   `mrstDatasetGUI`, `downloadDataset`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

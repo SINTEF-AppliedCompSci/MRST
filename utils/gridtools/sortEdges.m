@@ -20,7 +20,7 @@ function G = sortEdges(G)
 %
 % EXAMPLE:
 %
-% SEE ALSO: full_grid_structure
+% SEE ALSO: `full_grid_structure`
 %
 
 %{

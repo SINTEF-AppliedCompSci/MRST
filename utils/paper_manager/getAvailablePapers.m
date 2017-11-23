@@ -17,7 +17,7 @@ function papers = getAvailablePapers()
 %   papers - List of all papers known to MRST, as an array of structures.
 %
 % SEE ALSO:
-%   createPaperStruct, mrstExploreModules, mrstReferencesGUI.
+%   `createPaperStruct`, `mrstExploreModules`, `mrstReferencesGUI`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

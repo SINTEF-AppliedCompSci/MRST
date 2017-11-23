@@ -39,7 +39,7 @@ function rock = grdecl2Rock(grdecl, varargin)
 %   non-empty) will be used in place of the 'actmap' array described above.
 %
 % SEE ALSO:
-%   grid_structure, permTensor, convertInputUnits, convertFrom.
+%   `grid_structure`, `permTensor`, `convertInputUnits`, `convertFrom`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

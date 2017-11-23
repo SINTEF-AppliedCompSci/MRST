@@ -13,7 +13,7 @@ function v = faceFlux2cellVelocity(G, faceFlux)
 %   velocity - G.cells.num-by-d matrix of cell velocities.
 %
 % SEE ALSO:
-%   cellFlux2faceFlux, faceFlux2cellFlux.
+%   `cellFlux2faceFlux`, `faceFlux2cellFlux`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

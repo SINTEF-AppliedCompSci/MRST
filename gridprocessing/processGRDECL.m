@@ -62,7 +62,7 @@ function G = processGRDECL(grdecl, varargin)
 %   plotGrid(G); view(10,45);
 %
 % SEE ALSO:
-%   readGRDECL, processPINCH, removeCells, checkAndRepairZCORN.
+%   `readGRDECL`, `processPINCH`, `removeCells`, `checkAndRepairZCORN`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
@@ -599,7 +599,7 @@ function G = findFaces(G, P, B, actnum, tags, opt)
 %
 %
 % SEE ALSO:
-%   findFaults
+%   `findFaults`
 
 %  Layout of point number k
 %     ----> i
@@ -793,7 +793,7 @@ function G = findFaults(G, P, B, actnum, tags, opt)
 %
 %
 % SEE ALSO:
-%   findFaces.
+%   `findFaces`.
 
 % Vectorized version of findFaults.
 %

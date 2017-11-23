@@ -54,7 +54,7 @@ function src = addSource(src, c, r, varargin)
 %   See simpleSRCandBC.m
 %
 % SEE ALSO:
-%   addWell, addBC, solveIncompFlow.
+%   `addWell`, `addBC`, `solveIncompFlow`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

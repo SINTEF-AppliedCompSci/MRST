@@ -19,7 +19,7 @@ function H = pebi(G, varargin)
 %   do not preserve the original outer boundary of the triangulation.
 %
 % SEE ALSO:
-%   triangleGrid
+%   `triangleGrid`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

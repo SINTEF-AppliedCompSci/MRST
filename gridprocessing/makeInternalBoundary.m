@@ -42,7 +42,7 @@ function [G, N] = makeInternalBoundary(G, faces, varargin)
 %       boundary or to remove the internal boundary at some later point.
 %
 % SEE ALSO:
-%   removeInternalBoundary, mrstVerbose.
+%   `removeInternalBoundary`, `mrstVerbose`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

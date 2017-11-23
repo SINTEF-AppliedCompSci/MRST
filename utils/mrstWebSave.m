@@ -39,7 +39,7 @@ function downloadFcn = mrstWebSave()
 %             download failure.
 %
 % SEE ALSO:
-%   githubDownload.
+%   `githubDownload`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -32,7 +32,7 @@ function [n, pos] = gridCellNodes(G, c, varargin)
 %   [n, pn] = gridCellNodes(g, 1, 'unique', false)
 %
 % SEE ALSO:
-%   sortrows.
+%   `sortrows`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

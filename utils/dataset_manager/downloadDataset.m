@@ -32,7 +32,7 @@ function varargout = downloadDataset(name, askFirst)
 %   interfaces like function mrstDatasetGUI for interactive work.
 %
 % SEE ALSO:
-%   getAvailableDatasets, mrstDatasetGUI.
+%   `getAvailableDatasets`, `mrstDatasetGUI`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

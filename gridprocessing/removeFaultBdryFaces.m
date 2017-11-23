@@ -22,7 +22,7 @@ function [flt, keep] = removeFaultBdryFaces(flt, G)
 %         where pos=CUMSUM(DOUBLE(msk)).
 %
 % SEE ALSO:
-%   processFaults.
+%   `processFaults`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

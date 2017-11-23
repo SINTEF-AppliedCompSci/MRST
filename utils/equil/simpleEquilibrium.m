@@ -59,7 +59,7 @@ function s = simpleEquilibrium(G, contacts, vector)
 % s = simpleEquilibrium(G, contacts);
 %
 % SEE ALSO:
-%   initEclipseState, test_simpleEquilibrium
+%   `initEclipseState`, `test_simpleEquilibrium`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

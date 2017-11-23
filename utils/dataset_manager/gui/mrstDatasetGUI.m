@@ -20,7 +20,7 @@ function varargout = mrstDatasetGUI()
 %
 %
 % SEE ALSO:
-%   getDatasetInfo, getDatasetPath, listDatasetExamples
+%   `getDatasetInfo`, `getDatasetPath`, `listDatasetExamples`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

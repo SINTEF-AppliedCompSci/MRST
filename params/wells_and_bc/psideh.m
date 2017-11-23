@@ -64,7 +64,7 @@ function bc = psideh(bc, G, side, fluid, varargin)
 %   simpleBC, simpleSRCandBC.
 %
 % SEE ALSO:
-%   pside, fluxside, addBC, solveIncompFlow, grid_structure.
+%   `pside`, `fluxside`, `addBC`, `solveIncompFlow`, `grid_structure`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

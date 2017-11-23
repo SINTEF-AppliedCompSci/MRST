@@ -23,7 +23,7 @@ function G = triangulateFaces(G, f)
 %   G        - Grid.
 %
 % SEE ALSO:
-%   grid_structure, computeGeometry
+%   `grid_structure`, `computeGeometry`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

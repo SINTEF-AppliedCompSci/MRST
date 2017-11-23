@@ -23,7 +23,7 @@ function yi = interpTable(X, Y, xi, varargin)
 %        y=y(x) at the points xi.
 %
 % SEE ALSO:
-%   dinterpTable, interp1, spline.
+%   `dinterpTable`, `interp1`, `spline`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

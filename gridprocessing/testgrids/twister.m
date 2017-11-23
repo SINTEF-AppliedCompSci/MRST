@@ -25,7 +25,7 @@ function pt = twister(pt, varargin)
 %   plotCellData(G, G.cells.volumes, 'EdgeColor', 'k'), colorbar
 %
 % SEE ALSO:
-%   grid_structure, cartGrid.
+%   `grid_structure`, `cartGrid`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

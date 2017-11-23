@@ -17,7 +17,7 @@ function G = removeShortEdges(G, tol)
 %   PEBI/Voronoi grids and on faults in cornerpoint grids.
 %
 % SEE ALSO:
-%   pebi, processGRDECL
+%   `pebi`, `processGRDECL`
 
 % r9
 

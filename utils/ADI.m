@@ -18,7 +18,7 @@ classdef ADI
     %  the usage for several variables.
     %
     % SEE ALSO:
-    %   initVariablesADI
+    %   `initVariablesADI`
 
 
    properties

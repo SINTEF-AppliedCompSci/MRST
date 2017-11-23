@@ -35,7 +35,7 @@ function paper = createPaperStruct(id, title, varargin)
 %   paper - Structure with defaulted values for keywords not specified.
 %
 % SEE ALSO:
-%   getAvailablePapers, mrstReferencesGUI
+%   `getAvailablePapers`, `mrstReferencesGUI`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -32,7 +32,7 @@ function resSol = initResSol(G, p0, s0, varargin)
 %   The initial Darcy flux is zero throughout the reservoir.
 %
 % SEE ALSO:
-%   initWellSol, incompTPFA.
+%   `initWellSol`, `incompTPFA`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

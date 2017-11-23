@@ -24,7 +24,7 @@ function dyidx = dinterpTable(x, y, xi, varargin)
 %         of the function y=y(x) at the points xi.
 %
 % SEE ALSO:
-%   dinterpq1, interpTable, interp1, spline.
+%   `dinterpq1`, `interpTable`, `interp1`, `spline`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

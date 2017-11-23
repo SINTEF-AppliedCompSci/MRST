@@ -54,7 +54,7 @@ function G = makeLayeredGrid(G, layerSpec)
 %   need to manually update the third column of 'G.nodes.coords'.
 %
 % SEE ALSO:
-%   grid_structure.
+%   `grid_structure`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

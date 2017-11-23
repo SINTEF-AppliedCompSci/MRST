@@ -121,7 +121,7 @@ function varargout = mrstPath(varargin)
 %               accordingly.
 %
 % SEE ALSO:
-%   ROOTDIR, isdir, filesep, fullfile.
+%   `ROOTDIR`, `isdir`, `filesep`, `fullfile`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -45,7 +45,7 @@ function varargout = mrstExamples(varargin)
 %   searched recursively.
 %
 % SEE ALSO:
-%   mrstModule, mrstPath.
+%   `mrstModule`, `mrstPath`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

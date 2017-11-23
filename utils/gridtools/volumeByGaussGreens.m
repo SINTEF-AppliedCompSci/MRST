@@ -15,7 +15,7 @@ function V = volumeByGaussGreens(G)
 %       computed by the 'computeGeometry' function.
 %
 % SEE ALSO:
-%   computeGeometry.
+%   `computeGeometry`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

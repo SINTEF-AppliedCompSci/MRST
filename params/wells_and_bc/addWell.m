@@ -121,7 +121,7 @@ function W = addWell(W, G, rock, cellInx, varargin)
 %   the user's responsibility to keep these assumptions in mind.
 %
 % SEE ALSO:
-%   verticalWell, addSource, addBC.
+%   `verticalWell`, `addSource`, `addBC`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -16,7 +16,7 @@ function varargout = writeGRDECL(grdecl, filename)
 %   Nothing.
 %
 % SEE ALSO:
-%   fopen, readGRDECL, processGRDECL.
+%   `fopen`, `readGRDECL`, `processGRDECL`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

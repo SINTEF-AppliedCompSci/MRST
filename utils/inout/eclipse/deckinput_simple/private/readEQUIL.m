@@ -29,7 +29,7 @@ function equil = readEQUIL(fid, metric, varargin)
 %   of the EQUIL keyword.
 %
 % SEE ALSO:
-%   readDefaultedKW.
+%   `readDefaultedKW`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

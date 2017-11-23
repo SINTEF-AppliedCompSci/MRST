@@ -13,7 +13,7 @@ function isCoarse = isCoarseGrid(G)
 %              finer grid.
 %
 % SEE ALSO:
-%   plotGrid, generateCoarseGrid
+%   `plotGrid`, `generateCoarseGrid`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

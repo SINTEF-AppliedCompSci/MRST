@@ -67,7 +67,7 @@ function [c, ia, ic] = uniqueStable(a, varargin)
 %           '''IC'' Regression in ''uniqueStable/rows''.')
 %
 % SEE ALSO:
-%   unique, sortrows.
+%   `unique`, `sortrows`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

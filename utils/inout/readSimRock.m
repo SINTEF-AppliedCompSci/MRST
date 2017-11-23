@@ -18,7 +18,7 @@ function rock = readSimRock(casename)
 %          (standard SI units).
 %
 % SEE ALSO:
-%   readSimData.
+%   `readSimData`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

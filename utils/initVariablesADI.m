@@ -38,7 +38,7 @@ function varargout = initVariablesADI(varargin)
 %   The same variables as inputted, as ADI objects.
 %
 % SEE ALSO:
-%   ADI
+%   `ADI`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

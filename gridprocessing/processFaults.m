@@ -46,7 +46,7 @@ function [flt, flt_id] = processFaults(G, geomspec)
 %            pertaining to the 'name'd fault.
 %
 % SEE ALSO:
-%   readEclipseDeck.
+%   `readEclipseDeck`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

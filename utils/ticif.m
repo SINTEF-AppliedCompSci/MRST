@@ -19,7 +19,7 @@ function varargout = ticif(bool)
 %   Function used for making code cleaner where verbose option is used.
 %
 % SEE ALSO:
-%   tic, tocif, dispif.
+%   `tic`, `tocif`, `dispif`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -25,7 +25,7 @@ function compareGrids(G1, G2)
 %   Function 'compareGrids' is mainly a grid processing debugging tool.
 %
 % SEE ALSO:
-%   grid_structure.
+%   `grid_structure`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

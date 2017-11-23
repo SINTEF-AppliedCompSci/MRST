@@ -22,7 +22,7 @@ function [A,n] = rlencode(A, dim)
 %
 %
 % SEE ALSO:
-%   rldecode
+%   `rldecode`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

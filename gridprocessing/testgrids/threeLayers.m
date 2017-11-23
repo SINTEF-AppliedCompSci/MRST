@@ -46,7 +46,7 @@ function grdecl = threeLayers(nx, ny, nz, varargin)
 %            function 'writeGRDECL'.
 %
 % SEE ALSO:
-%   processGRDECL, writeGRDECL, simpleGrdecl, makeModel3.
+%   `processGRDECL`, `writeGRDECL`, `simpleGrdecl`, `makeModel3`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

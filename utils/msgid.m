@@ -14,7 +14,7 @@ function s = msgid(s)
 %       is called from the base workspace).
 %
 % SEE ALSO:
-%   error, warning.
+%   `error`, `warning`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

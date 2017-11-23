@@ -52,7 +52,7 @@ function [K, r, c] = permTensor(rock, dim)
 %   nKg = sum(cfn(:,r) .* bsxfun(@times, K(cellNo,:), g(c)), 2);
 %
 % SEE ALSO:
-%   computeMimeticIP, computeTrans.
+%   `computeMimeticIP`, `computeTrans`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

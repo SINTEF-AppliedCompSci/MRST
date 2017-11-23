@@ -52,7 +52,7 @@ function nnc = processPINCH(grdecl, G)
 %   contains an 'ACTNUM' field.
 %
 % SEE ALSO:
-%   processGRDECL.
+%   `processGRDECL`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -31,7 +31,7 @@ function N = neighboursByNodes(G, varargin)
 %   workstation from the autumn of 2009.
 %
 % SEE ALSO:
-%   getConnectivityMatrix, sortrows.
+%   `getConnectivityMatrix`, `sortrows`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

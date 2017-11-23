@@ -14,7 +14,7 @@ function success = readCache(arg, varargin)
 %             workspace.
 %
 % SEE ALSO:
-%   writeCache.
+%   `writeCache`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

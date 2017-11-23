@@ -39,7 +39,7 @@ function A = getConnectivityMatrix(N, varargin)
 %   spy(A)
 %
 % SEE ALSO:
-%   getNeighbourship.
+%   `getNeighbourship`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

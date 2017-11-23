@@ -12,7 +12,7 @@ function grdecl = createPinchedColumn
 %            constructor 'processGRDECL'.
 %
 % SEE ALSO:
-%   processGRDECL.
+%   `processGRDECL`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

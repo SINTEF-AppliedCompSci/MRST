@@ -27,7 +27,7 @@ function G = splitDisconnectedGrid(G, varargin)
 %       disconnected components exist.
 %
 % SEE ALSO:
-%   processGRDECL, processPINCH, extractSubgrid.
+%   `processGRDECL`, `processPINCH`, `extractSubgrid`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

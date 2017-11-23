@@ -21,7 +21,7 @@ function sched = readSCHEDULE_orig(fid, dirname, start, varargin)
 %   sched -
 %
 % SEE ALSO:
-%   datenum, readGRDECL.
+%   `datenum`, `readGRDECL`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

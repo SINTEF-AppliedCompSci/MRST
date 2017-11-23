@@ -30,7 +30,7 @@ function G = readSimData(caseName)
 %      G = readSimData(caseName);
 %
 % SEE ALSO:
-%   cartGrid, filesep, fopen, fscanf, textscan.
+%   `cartGrid`, `filesep`, `fopen`, `fscanf`, `textscan`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

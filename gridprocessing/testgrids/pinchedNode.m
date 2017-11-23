@@ -27,7 +27,7 @@ function grdecl = pinchedNode
 %   view(3), colorbar
 %
 % SEE ALSO:
-%   processGRDECL, refineGrdecl, writeGRDECL.
+%   `processGRDECL`, `refineGrdecl`, `writeGRDECL`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

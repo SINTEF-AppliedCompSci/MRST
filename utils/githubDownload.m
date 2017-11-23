@@ -67,7 +67,7 @@ function files = githubDownload(repository, varargin)
 %                          'File', strcat(filebase, '/', files));
 %
 % SEE ALSO:
-%   websave, unzip, mrstDataDirectory.
+%   `websave`, `unzip`, `mrstDataDirectory`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

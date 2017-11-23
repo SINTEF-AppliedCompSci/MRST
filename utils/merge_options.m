@@ -85,7 +85,7 @@ function [prm, varargout] = merge_options(prm, varargin)
 %   plot(prm.d{end}, '.-')
 %
 % SEE ALSO:
-%   FIELDNAMES, WARNING, STRCMPI, STRCMP.
+%   `FIELDNAMES`, `WARNING`, `STRCMPI`, `STRCMP`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

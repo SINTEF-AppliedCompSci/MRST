@@ -79,7 +79,7 @@ function W = verticalWell(W, G, rock, I, varargin)
 %                    'Comp_i', [0.5, 0.5, 0]);
 %
 % SEE ALSO:
-%   grid_structure, makeLayeredGrid, addWell.
+%   `grid_structure`, `makeLayeredGrid`, `addWell`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

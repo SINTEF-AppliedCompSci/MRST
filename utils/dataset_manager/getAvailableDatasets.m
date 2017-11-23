@@ -42,7 +42,7 @@ function [info, present] = getAvailableDatasets()
 %             'downloadAllDatasets'.
 %
 % SEE ALSO:
-%   mrstDatasetGUI, mrstDataDirectory, datasetInfoStruct, downloadDataset.
+%   `mrstDatasetGUI`, `mrstDataDirectory`, `datasetInfoStruct`, `downloadDataset`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

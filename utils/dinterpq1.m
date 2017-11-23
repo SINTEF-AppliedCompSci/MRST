@@ -34,7 +34,7 @@ function dyidx = dinterpq1(x, y, xi)
 %   dinterpq1(x, y, [-10, 0.1, pi, 100])
 %
 % SEE ALSO:
-%   interp1q.
+%   `interp1q`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
