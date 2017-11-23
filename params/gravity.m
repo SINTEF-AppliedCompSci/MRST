@@ -9,12 +9,12 @@ function g = gravity(varargin)
 %     4) g = gravity( )
 %
 % PARAMETERS:
-%   Mode 1)
-%     v - Control mode for effect of gravity.  Must be one of
-%           - String, {'off', 'on'}, for disabling or enabling effects
+%     v - Control mode for effect of gravity.  OPTIONAL. Must be one of
+%
+%           - String, `{'off', 'on'}`, for disabling or enabling effects
 %             of gravity.  The default state is 'off'.
 %
-%           - String {'x', 'y', 'z'}.  The string '<p>' sets the gravity
+%           - String `{'x', 'y', 'z'}`.  The string '<p>' sets the gravity
 %             direction to point along the positive physical coordinate
 %             direction '<p>' of the underlying grid model.
 %
@@ -22,14 +22,14 @@ function g = gravity(varargin)
 %             words, the gravity by default field points along the positive
 %             Z axis of the underlying grid model.
 %
-%           - String, 'reset', for restoring effects of gravity to the
+%           - String, `'reset'`, for restoring effects of gravity to the
 %             default state: gravity off, but acceleration strength
 %             nevertheless as at the Tellus equator, in the direction
 %             'z'.  Note that the gravity vector returned in call mode 2)
 %             will be the zero vector unless effects of gravity are
 %             specifically enabled.
 %
-%           - Logical, { false, true }, for disabling or enabling effects
+%           - Logical, `{ false, true }`, for disabling or enabling effects
 %             of gravity.
 %
 %           - Numeric (Real) scalar value.  Specifically set acceleration
@@ -42,25 +42,19 @@ function g = gravity(varargin)
 %             explicit gravity vector.  In this case, the acceleration
 %             strength is NORM(v) in units of m/s^2.
 %
-%   Mode 2)
-%     None.
 %
 % RETURNS:
-%   Mode 1)
-%     Nothing.
-%
-%   Mode 2)
 %     g - A three-component *ROW* vector defining the current gravity field.
-%         The Euclidian norm of 'g' is the acceleration strength, in units
+%         The Euclidian norm of `g` is the acceleration strength, in units
 %         of m/s^2, of the gravity field.
 %
 % NOTE:
-%   String arguments may be combined as in mode 3).  Later control modes
+%   String arguments may be combined together.  Later control modes
 %   override former. The default state, unless changed using a call from
-%   'Mode 1)', is to disable all effects of gravity.  In other words,
-%   'gravity off' is the default state of gravity effects.
+%   `gravity on`, is to disable all effects of gravity.  In other words,
+%   `gravity off` is the default state of gravity effects.
 %
-% EXAMPLES
+% EXAMPLES:
 %   % 1) Demonstrate 'String' form (Command and Function syntax).
 %   gravity x on   % Enable gravity (of default strength).
 %   gravity('off') % Disable gravity (default state).
@@ -164,12 +158,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       end
    end
 
-   if nargin == 0,
-      if gravityOn,
-         g = G * g_vec;
-      else
-         g = zeros([1, 3]);
-      end
+   if gravityOn,
+      g = G * g_vec;
+   else
+      g = zeros([1, 3]);
    end
 end
 

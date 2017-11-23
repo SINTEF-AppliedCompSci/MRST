@@ -4,17 +4,17 @@ function pv = poreVolume(G, rock, varargin)
 % SYNOPSIS:
 %   pv = poreVolume(G, rock)
 %
-% PARAMETER:
+% PARAMETERS:
 %   G    - Grid data structure.
-%          Must contain valid field 'G.cells.volumes'.
+%          Must contain valid field `G.cells.volumes`.
 %
 %   rock - Rock data structure.
-%          Must contain valid field 'rock.poro'.
+%          Must contain valid field `rock.poro`.
 %
 % RETURNS:
-%   pv   - Vector of size (G.cells.num)-by-1 of pore volumes for each
+%   pv   - Vector of size `G.cells.num` by `1` of pore volumes for each
 %          individual cell in the grid.  This typically amounts to the
-%          expression rock.poro .* G.cells.volumes, but the function
+%          expression `rock.poro .* G.cells.volumes`, but the function
 %          handles non-unit net-to-gross factors as well.
 %
 % SEE ALSO:

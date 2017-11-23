@@ -16,42 +16,42 @@ function W = verticalWell(W, G, rock, I, varargin)
 %          structure is updated on output.
 %
 %   G    - Grid data structure.  Must contain valid field
-%          'G.cells.centroids'.  Call function 'computeGeometry' to obtain
+%          `G.cells.centroids`.  Call function `computeGeometry` to obtain
 %          these values.
 %
-%   rock - Rock data structure.  Must contain valid field 'rock.perm'.
+%   rock - Rock data structure.  Must contain valid field `rock.perm`.
 %
-%   I, J - Horizontal location of well heel.
-%          Mode 1)
-%            'I' and 'J' are Cartesian indices.  Specifically,
-%            'I' is the index along the first logical direction while
-%            'J' is the index along the second logical direction.
+%   I,J  - Horizontal location of well heel. Two possible modes,
 %
-%          This mode is only supported in grids which have an underlying
-%          Cartesian (logical) structure such as purely Cartesian grids or
-%          corner-point grids.
+%          Mode 1:
+%            `I` and `J` are Cartesian indices.  Specifically,
+%            `I` is the index along the first logical direction while
+%            `J` is the index along the second logical direction.
 %
-%          Mode 2)
-%            'I' is the cell index (1 <= I <= G.cells.num) of the
+%            This mode is only supported in grids which have an underlying
+%            Cartesian (logical) structure such as purely Cartesian grids or
+%            corner-point grids.
+%
+%          Mode 2:
+%            `I` is the cell index `(1 <= I <= G.cells.num)` of the
 %            *top-most* cell in the column through which the vertical well
-%            will be completed.  'J' must not be present.
+%            will be completed.  `J` must not be present.
 %
-%          This mode is supported for logically Cartesian grids containing
-%          a three-component field 'G.cartDims' or for otherwise layered
-%          grids which contain the fields 'G.numLayers' and 'G.layerSize'.
+%            This mode is supported for logically Cartesian grids containing
+%            a three-component field `G.cartDims` or for otherwise layered
+%            grids which contain the fields `G.numLayers` and `G.layerSize`.
 %
 %   K    - A vector of layers in which this well should be completed.
-%          An empty layer vector (i.e., ISEMPTY(K)), is replaced by
+%          An empty layer vector (i.e., `isempty(K)`), is replaced by::
 %
 %               K = 1 : num_layers
 %
-%          In other words, ISEMPTY(K) implies completion in ALL layers.
+%          In other words, `isempty(K)` implies completion in ALL layers.
 %
-%   'pn'/pv -
-%          List of 'key'/value pairs defining optional parameters.  All
-%          options supported by function 'addWell' are supported in
-%          'verticalWell'.  Any direction specifications (i.e., option
-%          'Dir') are ignored and replaced by 'z'.
+% OPTIONAL PARAMETERS:
+%   'Any' - All options supported by function `addWell` are supported in
+%           `verticalWell`.  Any direction specifications (i.e., option
+%           'Dir') are ignored and replaced by 'z'.
 %
 % RETURNS:
 %   W - Updated well structure.

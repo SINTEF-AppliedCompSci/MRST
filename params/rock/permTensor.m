@@ -6,15 +6,15 @@ function [K, r, c] = permTensor(rock, dim)
 %   [K, r, c] = permTensor(rock, dim)
 %
 % PARAMETERS:
-%   rock - Rock data structure with valid field 'perm'--one value of the
+%   rock - Rock data structure with valid field `perm`--one value of the
 %          permeability tensor for each cell (nc) in the discretised model.
 %
-%          The field 'rock.perm' may have ONE column for a scalar
+%          The field `rock.perm` may have ONE column for a scalar
 %          (isotropic) permeability in each cell, TWO or THREE columns for
 %          a diagonal permeability in each cell (in two or three space
 %          dimensions, respectively) and THREE or SIX columns for a
 %          symmetric, full tensor permeability.  In the latter case, each
-%          cell gets the permeability tensor
+%          cell gets the permeability tensor::
 %
 %                 K_i = [ k1  k2 ]      in two space dimensions
 %                       [ k2  k3 ]
@@ -27,7 +27,7 @@ function [K, r, c] = permTensor(rock, dim)
 %          two or three.
 %
 % RETURNS:
-%   K    - Expanded permeability tensor.  An nc-by-(dim^2) array of
+%   K    - Expanded permeability tensor.  An `nc` by `dim^2` array of
 %          permeability values as described above.
 %
 %   r, c - Row- and column indices from which the two-form

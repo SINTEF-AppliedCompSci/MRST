@@ -10,8 +10,8 @@ function src = addSource(src, c, r, varargin)
 %
 % PARAMETERS:
 %   src    - Source structure from a prior call to 'addSource' which will
-%            be updated on output or an empty array (src==[]) in which case
-%            a new source structure is created.
+%            be updated on output or an empty array (`src==[]`) in which 
+%            case a new source structure is created.
 %
 %   cells  - Indices in external model for which this source should be
 %            applied.
@@ -26,7 +26,7 @@ function src = addSource(src, c, r, varargin)
 %            In the special case that a single value is provided, it will
 %            be assumed valid for all cells in the input.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %   sat    - Fluid composition of injected fluid in injection cells.
 %            An n-by-m array of fluid compositions with 'n' being the
 %            number of cells in 'cells' and 'm' the number of components in
@@ -34,24 +34,24 @@ function src = addSource(src, c, r, varargin)
 %              1 <-> Aqua, 2 <-> Liquid, 3 <-> Vapor.
 %
 %            This field is for the benefit of transport solvers such as
-%            'blackoilUpwFE' and will be ignored for production source
+%            `implicitTransport` and will be ignored for production source
 %            cells (i.e. when values < 0).
 %
 %            Default value: sat = [] (assume single-phase flow).
 %
-%            As a special case, if SIZE(sat,1)==1, then the saturation
+%            As a special case, if `size(sat,1)==1`, then the saturation
 %            value will be repeated for all affected cells defined by the
 %            'cells' parameter.
 %
 % RETURNS:
 %   src - New or updated source structure having the following fields:
-%           - cell -- Cells for which explicit sources are provided
-%           - rate -- Rates or values of these explicit sources
-%           - sat  -- Fluid composition of injected fluids in injection
-%                     cells.
+%          - cell: Cells for which explicit sources are provided
+%          - rate: Rates or values of these explicit sources
+%          - sat:  Fluid composition of injected fluids in injection cells.
+%              
 %
 % EXAMPLE:
-%   See simpleSRCandBC.m
+%   simpleSRCandBC.m
 %
 % SEE ALSO:
 %   `addWell`, `addBC`, `solveIncompFlow`.

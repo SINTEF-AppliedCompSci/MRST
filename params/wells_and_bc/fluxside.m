@@ -10,25 +10,26 @@ function bc = fluxside(bc, G, side, flux, varargin)
 % PARAMETERS:
 %   bc     - boundary condition structure as defined by function 'addBC'.
 %
-%   G      - Grid structure as described by grid_structure.  Currently
-%            restricted to grids produced by functions cartGrid and
-%            tensorGrid.
+%   G      - Grid structure as described by `grid_structure`.  Currently
+%            restricted to grids produced by functions `cartGrid` and
+%            `tensorGrid` and other grids that add cardinal directions to
+%            `G.cells.faces(:, 2) in the same format.
 %
 %   side   - Global side from which to extract face indices.  String.  Must
 %            (case insensitively) match one of six alias groups:
 %
-%               1) {'West' , 'XMin', 'Left'  }
-%               2) {'East' , 'XMax', 'Right' }
-%               3) {'South', 'YMin', 'Back'  }
-%               4) {'North', 'YMax', 'Front' }
-%               5) {'Upper', 'ZMin', 'Top'   }
-%               6) {'Lower', 'ZMax', 'Bottom'}
+%               1) `{'West' , 'XMin', 'Left'  }`
+%               2) `{'East' , 'XMax', 'Right' }`
+%               3) `{'South', 'YMin', 'Back'  }`
+%               4) `{'North', 'YMax', 'Front' }`
+%               5) `{'Upper', 'ZMin', 'Top'   }`
+%               6) `{'Lower', 'ZMax', 'Bottom'}`
 %
 %            These groups correspond to the cardinal directions mentioned
 %            as the first alternative in each group.
 %
 %   flux   - Total flux, in units of m^3/s, (scalar) accounted for by
-%            faces on side in ranges I1 and I2.
+%            faces on side in ranges `I1` and `I2`.
 %
 %            Note: The 'flux' value is interpreted by the pressure and
 %            transport solvers as an injection flux (into the reservoir).
@@ -37,21 +38,21 @@ function bc = fluxside(bc, G, side, flux, varargin)
 %            reservoir), the caller should provide a negative value in
 %            'flux'.
 %
-%   I1, I2 - Cell index ranges for local (in-plane) axes one and two,
+%   I1,I2 -  Cell index ranges for local (in-plane) axes one and two,
 %            respectively.  An empty index range ([]) is interpreted as
 %            covering the entire corresponding local axis of 'side' in the
 %            grid 'G'.  The local axes on a 'side' in 'G' are ordered
 %            according to 'X' before 'Y', and 'Y' before 'Z'.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %   sat    - Fluid composition of fluid injected across inflow faces.
 %            An n-by-m array of fluid compositions with 'n' being the
-%            number of individual faces specified by (I1,I2) (i.e.,
-%            n==NUMEL(I1)*NUMEL(I2)) or one.  If m=3, the columns of 'sat'
+%            number of individual faces specified by (`I1,I2`) (i.e.,
+%            `n==numel(I1)*numel(I2))` or one.  If m=3, the columns of 'sat'
 %            are interpreted as 1 <-> Aqua, 2 <-> Liquid, 3 <-> Vapor.
 %
 %            This field is for the benefit of transport solvers such as
-%            'blackoilUpwFE' and will be ignored for outflow faces.
+%            `implicitTransport` and will be ignored for outflow faces.
 %
 %            Default value: sat = [] (assume single-phase flow).
 %
@@ -59,7 +60,7 @@ function bc = fluxside(bc, G, side, flux, varargin)
 %            in the direction perpendicular to that of the face. Example:
 %            if side='LEFT', one will only search for outer faces in the
 %            cells with logical indexes [range,:,:].
-%            Default value: range = [] (do not restrict search).
+%            Default value: `range = []` (do not restrict search).
 %
 % RETURNS:
 %   bc     - Updated boundary condition structure.
