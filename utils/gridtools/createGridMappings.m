@@ -13,10 +13,9 @@ function w  = createGridMappings(G)
 %
 % RETURNS:
 %   w - preliminary structure to be used in `createAugmentedGrid`
-%
 
 %{
-`Copyright` `2009`-`2017` `SINTEF` `ICT`, `Applied` `Mathematics`.
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -45,5 +44,4 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     i        = cells~=0;
     w        = [cells(i), nodes(i), hfaces(i), faces(i)];
     w        = double(sortrows(w));
-    
 end
