@@ -95,7 +95,7 @@ function [CS, varargout] = updateBasisFunc(S, CS, G, CG, rock, mob, varargin)
 %   faces - List of updated faces.
 %
 % SEE ALSO:
-%   computeMimeticIP, generateCoarseGrid, evalBasisFunc, mrstVerbose.
+%   `computeMimeticIP`, `generateCoarseGrid`, `evalBasisFunc`, `mrstVerbose`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

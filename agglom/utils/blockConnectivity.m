@@ -14,7 +14,7 @@ function conn = blockConnectivity(N)
 %          of block 'b' are found in conn{b}.
 %
 % SEE ALSO:
-%   blockNeighbours, blockNeighbourship.
+%   `blockNeighbours`, `blockNeighbourship`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -44,7 +44,7 @@ function bf = extractBF(basis, sz, cg, varargin)
 %   basis function values.
 %
 % SEE ALSO:
-%   generateCoarseSystem, evalBasisFunc, generateCoarseGrid.
+%   `generateCoarseSystem`, `evalBasisFunc`, `generateCoarseGrid`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

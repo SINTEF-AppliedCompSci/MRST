@@ -27,7 +27,7 @@ function blockIx = partitionLayers(G, coarseDim, L)
 %   See simpleCornerPointExampleMS
 %
 % SEE ALSO:
-%   processPartition, partitionUI.
+%   `processPartition`, `partitionUI`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

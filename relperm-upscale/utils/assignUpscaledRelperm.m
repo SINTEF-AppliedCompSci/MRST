@@ -14,8 +14,8 @@ function [model, kr] = assignUpscaledRelperm(model, kr, varargin)
 %   kr    - Regularized relperm object (equal sample points and unphysical
 %           values removed.)
 % SEE ALSO:
-%   regularizeSaturationFunction, computeRelpermFromStates,
-%   mergeHalfFaceRelPerm
+%   `regularizeSaturationFunction`, `computeRelpermFromStates`,
+%   `mergeHalfFaceRelPerm`
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

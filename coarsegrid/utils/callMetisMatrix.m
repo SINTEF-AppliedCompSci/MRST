@@ -53,7 +53,7 @@ function p = callMetisMatrix(A, n, varargin)
 %   p = callMetisMatrix(A, 10);
 %
 % SEE ALSO:
-%   callMetis, partitionUI, processPartition, system, tempname.
+%   `callMetis`, `partitionUI`, `processPartition`, `system`, `tempname`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

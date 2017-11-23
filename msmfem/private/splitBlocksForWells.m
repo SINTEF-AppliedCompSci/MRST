@@ -24,7 +24,7 @@ function p = splitBlocksForWells(p, splitFact, G, W)
 %   grid on which the multiscale pressure solver is employed.
 %
 % SEE ALSO:
-%   splitBlocks, refinePartitionForWells.
+%   `splitBlocks`, `refinePartitionForWells`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

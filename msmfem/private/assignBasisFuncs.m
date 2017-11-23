@@ -16,7 +16,7 @@ function CS = assignBasisFuncs(CS, V, P)
 %        and pressure basis functions.
 %
 % SEE ALSO:
-%   generateCoarseSystem, evalBasisFunc.
+%   `generateCoarseSystem`, `evalBasisFunc`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -32,7 +32,7 @@ function pf = cellPartitionToFacePartition(g, p, varargin)
 %             blocks are assigned a partition ID number of zero.
 %
 % SEE ALSO:
-%   processFacePartition
+%   `processFacePartition`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

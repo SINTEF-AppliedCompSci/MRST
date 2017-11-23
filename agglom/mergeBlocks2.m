@@ -51,7 +51,7 @@ function p = mergeBlocks2(p, G, IVol, IFlw, NL, NU, varargin)
 %            violate the criteria (**) and (***).
 %
 % SEE ALSO:
-%   mergeBlocks, refineBlocks, processPartition.
+%   `mergeBlocks`, `refineBlocks`, `processPartition`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -55,7 +55,7 @@ function p = refineGreedy2(p, G, IFlw, NU, varargin)
 %            should violate the criterion (*).
 %
 % SEE ALSO:
-%   refineGreedy, refineGreedy3, mergeBlocks, refineBlocks, processPartition
+%   `refineGreedy`, `refineGreedy3`, `mergeBlocks`, `refineBlocks`, `processPartition`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

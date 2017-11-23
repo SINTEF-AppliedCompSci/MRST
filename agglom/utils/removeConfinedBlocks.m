@@ -48,7 +48,7 @@ function pn = removeConfinedBlocks(G, p)
 %   not available then function 'removeConfinedBlocks' will fail.
 %
 % SEE ALSO:
-%   biconnected_components, processPartition.
+%   `biconnected_components`, `processPartition`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

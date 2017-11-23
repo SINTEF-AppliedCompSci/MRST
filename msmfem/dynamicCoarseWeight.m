@@ -38,7 +38,7 @@ function t = dynamicCoarseWeight(cellno, BI, ct, phi, v, dpdt)
 %           ('BasisWeighting',theta) to function generateCoarseSystem.
 %
 % SEE ALSO:
-%   computeMimeticIP, generateCoarseSystem, pvt, rldecode.
+%   `computeMimeticIP`, `generateCoarseSystem`, `pvt`, `rldecode`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

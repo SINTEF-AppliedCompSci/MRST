@@ -35,7 +35,7 @@ function [nsub, sub] = subFaces(g, cg)
 %   cf7 = f2c(7)
 %
 % SEE ALSO:
-%   grid_structure, generateCoarseGrid.
+%   `grid_structure`, `generateCoarseGrid`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

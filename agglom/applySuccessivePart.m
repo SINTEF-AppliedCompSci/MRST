@@ -52,7 +52,7 @@ function p = applySuccessivePart(p, G, indicator, NU, pfixed)
 %   plotCellData(G,p,'EdgeColor','k');
 %
 % SEE ALSO:
-%   compressPartition, processPartition
+%   `compressPartition`, `processPartition`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

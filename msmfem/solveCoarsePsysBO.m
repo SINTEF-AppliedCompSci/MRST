@@ -65,7 +65,7 @@ function state = solveCoarsePsysBO(state, G, CG, p, rock, ...
 %            block fluxes, respectively.
 %
 % SEE ALSO:
-%   solveBlackOilWellSystem.
+%   `solveBlackOilWellSystem`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
@@ -600,7 +600,7 @@ function [ff, gg, hh, dF, dC] = sys_rhs(g, gc, omega, Psi, I, J, src, bc)
 %             calling a system solver (e.g., 'schurComplement').
 %
 % SEE ALSO:
-%   computePressureRHS.
+%   `computePressureRHS`.
 
    % Evaluate fine-scale system right hand side contributions.
    %

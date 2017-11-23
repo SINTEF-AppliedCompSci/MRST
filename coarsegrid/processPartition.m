@@ -21,7 +21,7 @@ function partition2 = processPartition(G, partition, facelist)
 %   q        - Updated partition with only connected coarse blocks.
 %
 % SEE ALSO:
-%   processFacePartition, partitionUI, partitionCartGrid 
+%   `processFacePartition`, `partitionUI`, `partitionCartGrid`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

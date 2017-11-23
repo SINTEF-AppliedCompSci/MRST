@@ -37,7 +37,7 @@ function [b2c_pos, b2c, locno] = invertPartition(p)
 %   plotCellData(G, locno), colorbar
 %
 % SEE ALSO:
-%   partitionUI, compressPartition, processPartition, sortrows.
+%   `partitionUI`, `compressPartition`, `processPartition`, `sortrows`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

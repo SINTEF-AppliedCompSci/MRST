@@ -20,7 +20,7 @@ function p = compressPartition(p)
 %   [p, compressPartition(p)]
 %
 % SEE ALSO:
-%   partitionCartGrid, partitionUI, processPartition, generateCoarseGrid.
+%   `partitionCartGrid`, `partitionUI`, `processPartition`, `generateCoarseGrid`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

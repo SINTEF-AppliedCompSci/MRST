@@ -15,7 +15,7 @@ function n = blockNeighbours(conn, b)
 %       coarse block 'b'.
 %
 % SEE ALSO:
-%   blockConnectivity.
+%   `blockConnectivity`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

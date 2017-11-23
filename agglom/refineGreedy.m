@@ -52,7 +52,7 @@ function p = refineGreedy(p, G, IFlw, NU, varargin)
 %            one ring of neighbors at the time when growing new blocks.
 %
 % SEE ALSO:
-%   refineGreedy2, refineGreedy3, refineBlocks, segmentIndicator, processPartition
+%   `refineGreedy2`, `refineGreedy3`, `refineBlocks`, `segmentIndicator`, `processPartition`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

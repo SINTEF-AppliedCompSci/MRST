@@ -17,8 +17,8 @@ function upscaled_kr = computeRelpermFromStates(states, model_c, model, schedule
 %                 to ensure monotonicity or finite values.
 %
 % SEE ALSO:
-%   regularizeSaturationFunction, assignUpscaledRelPerm,
-%   mergeHalfFaceRelPerm
+%   `regularizeSaturationFunction`, `assignUpscaledRelPerm`,
+%   `mergeHalfFaceRelPerm`
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

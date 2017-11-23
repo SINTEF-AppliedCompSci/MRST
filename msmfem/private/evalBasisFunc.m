@@ -102,7 +102,7 @@ function [V, P] = evalBasisFunc(faces, g, cg, BI, C, D, w, mob, varargin)
 %                          rock.perm, ones([G.cells.num, 1]));
 %
 % SEE ALSO:
-%   generateCoarseGrid, assignBasisFuncs, computeMimeticIP.
+%   `generateCoarseGrid`, `assignBasisFuncs`, `computeMimeticIP`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

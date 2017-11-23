@@ -13,7 +13,7 @@ function src_cg = convertSource2Coarse(CG, src)
 %   src_cg - Source data structure defined on coarse grid.
 %
 % SEE ALSO:
-%   convertBC2Coarse, addSource.
+%   `convertBC2Coarse`, `addSource`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

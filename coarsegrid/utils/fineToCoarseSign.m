@@ -11,7 +11,7 @@ function sgn = fineToCoarseSign(cg)
 %   sgn - fine-to-coarse sign for fine faces in cg.faces.fconn.
 %
 % SEE ALSO:
-%   coarsenGeometry, coarsenBC, coarsenFlux.
+%   `coarsenGeometry`, `coarsenBC`, `coarsenFlux`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

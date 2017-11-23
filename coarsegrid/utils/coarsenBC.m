@@ -21,7 +21,7 @@ function bc = coarsenBC(cg, bc)
 %             computed.  Mixed conditions are not supported.
 %
 % SEE ALSO:
-%   coarsenGeometry, coarsenFlux, fineToCoarseSign, ...
+%   `coarsenGeometry`, `coarsenFlux`, `fineToCoarseSign`, ...
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -43,7 +43,7 @@ function [basis, CG] = getMultiscaleBasis(CG, A, varargin)
 %            the name of the method in .type.
 %
 % SEE ALSO:
-%   incompMultiscale
+%   `incompMultiscale`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

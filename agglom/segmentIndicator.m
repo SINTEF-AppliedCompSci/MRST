@@ -41,7 +41,7 @@ function [partition, edges] = segmentIndicator(G, indicator, bins, varargin)
 %               edges = LINSPACE(MIN(indicator), MAX(indicator), bins + 1)
 %
 % SEE ALSO:
-%   mergeBlocks, refineBlocks
+%   `mergeBlocks`, `refineBlocks`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

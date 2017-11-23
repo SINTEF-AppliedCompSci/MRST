@@ -22,7 +22,7 @@ function checkBoundaryBasis(G, CG, CS, bc)
 %   existence, syntax and semantics may change without prior notice.
 %
 % SEE ALSO:
-%   solveIncompFlowMS, solveIncompFlowMSSpeedUp.
+%   `solveIncompFlowMS`, `solveIncompFlowMSSpeedUp`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

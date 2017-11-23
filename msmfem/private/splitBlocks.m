@@ -22,7 +22,7 @@ function p = splitBlocks(blocks, p, splitFact, G)
 %       original 'blocks' get (potentially) new block numbers.
 %
 % SEE ALSO:
-%   partitionCartGrid, refinePartitionForWells, compressPartition.
+%   `partitionCartGrid`, `refinePartitionForWells`, `compressPartition`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

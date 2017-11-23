@@ -29,7 +29,7 @@ function A = msMatrixStructure(G, CG, varargin)
 %   This function does not at present support well connections.
 %
 % SEE ALSO:
-%   generateCoarseSystem, solveIncompFlowMS, spy.
+%   `generateCoarseSystem`, `solveIncompFlowMS`, `spy`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

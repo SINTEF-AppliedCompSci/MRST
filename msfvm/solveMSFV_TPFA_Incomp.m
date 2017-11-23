@@ -120,8 +120,12 @@ function state = solveMSFV_TPFA_Incomp(state, G, CG, T, fluid, varargin)
 %                                            production/extraction out of
 %                                            reservoir.
 %                              - pressure -- Well bottom-hole pressure.
+%
+% NOTE:
+%   The multiscale solver is based on function incompTPFA.
+%
 % SEE ALSO:
-%   incompTPFA on which the multiscale solver is based
+%   `incompTPFA`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

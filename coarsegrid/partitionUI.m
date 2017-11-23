@@ -20,7 +20,7 @@ function blockIx = partitionUI(G, coarseDim)
 %   blockIx   - A G.cells.num-by-1 vector mapping cells to coarse blocks.
 %
 % SEE ALSO:
-%   processPartition, partitionLayers.
+%   `processPartition`, `partitionLayers`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

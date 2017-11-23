@@ -39,7 +39,7 @@ function [p, A] = partitionMETIS(G, T, n, varargin)
 %   A - Matrix used for partitioning.
 %
 % SEE ALSO:
-%   incompTPFA, callMetisMatrix, compressPartition, processPartition.
+%   `incompTPFA`, `callMetisMatrix`, `compressPartition`, `processPartition`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

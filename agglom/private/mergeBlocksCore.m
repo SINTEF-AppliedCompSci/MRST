@@ -41,7 +41,7 @@ function mrg = mergeBlocksCore(bN, bIVol, bIFlw, bINum, lbnd, ubnd, NB, cfac)
 %           this block defintion.
 %
 % SEE ALSO:
-%   mergeBlocks2, blockNeighbourship, compressPartition.
+%   `mergeBlocks2`, `blockNeighbourship`, `compressPartition`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

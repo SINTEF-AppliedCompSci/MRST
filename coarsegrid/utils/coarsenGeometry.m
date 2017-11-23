@@ -15,7 +15,7 @@ function cg = coarsenGeometry(cg)
 % REMARK:
 %
 % SEE ALSO:
-%   generateCoarseGrid, computeGeometry
+%   `generateCoarseGrid`, `computeGeometry`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

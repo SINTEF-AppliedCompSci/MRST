@@ -56,7 +56,7 @@ function [krw, kro, krocw, Swco, Swcr, Sowcr, Swmax, pc, pcinv] = swof(T)
 %           'pcinv(sw)' computes the inverse of the capillary pressure.
 %
 % SEE ALSO:
-%   readRelPermTable, sgof.
+%   `readRelPermTable`, `sgof`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

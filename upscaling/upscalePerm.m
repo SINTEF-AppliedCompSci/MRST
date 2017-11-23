@@ -48,7 +48,7 @@ function perm = upscalePerm(g, cg, rock, varargin)
 %   the grid is Cartesian.
 %
 % SEE ALSO:
-%   extractSubgrid, computeTrans, computeMimeticIP, mrstVerbose.
+%   `extractSubgrid`, `computeTrans`, `computeMimeticIP`, `mrstVerbose`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

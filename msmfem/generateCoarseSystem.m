@@ -78,7 +78,7 @@ function CS = generateCoarseSystem(G, rock, S, CG, mob, varargin)
 %          - sizeD   - size of D (== size(CS.D))
 %
 % SEE ALSO:
-%   computeMimeticIP, generateCoarseGrid, evalBasisFunc, mrstVerbose.
+%   `computeMimeticIP`, `generateCoarseGrid`, `evalBasisFunc`, `mrstVerbose`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

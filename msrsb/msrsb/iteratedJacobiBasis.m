@@ -19,7 +19,7 @@ function [I, interactionMap, res] = iteratedJacobiBasis(A, CG, varargin)
 %   I   - Basis function interpolator
 %
 % SEE ALSO:
-%   getMultiscaleBasis
+%   `getMultiscaleBasis`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

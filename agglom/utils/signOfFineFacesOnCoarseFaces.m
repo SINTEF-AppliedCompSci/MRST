@@ -29,7 +29,7 @@ function [sgn, coarse_f] = signOfFineFacesOnCoarseFaces(G, CG, nsub, sub)
 %   coarse_f - The coarse face number for each fine-grid subface.
 %
 % SEE ALSO:
-%   subFaces
+%   `subFaces`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

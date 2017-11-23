@@ -28,7 +28,7 @@ function [CG, CS] = speedUpMS(G, CG, CS, type)
 %   'solver' parameter.
 %
 % SEE ALSO:
-%   generateCoarseGrid, generateCoarseSystem, solveIncompFlowMSSpeedUp.
+%   `generateCoarseGrid`, `generateCoarseSystem`, `solveIncompFlowMSSpeedUp`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
