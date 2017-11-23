@@ -103,7 +103,7 @@ function [state, report] = implicitTransport(state, G, tf, ...
 %   See simple2phWellExample.m
 %
 % SEE ALSO:
-%   twophaseJacobian, implicitTransport, explicitTransport.
+%   `twophaseJacobian`, `implicitTransport`, `explicitTransport`.
 
 %{
 Copyright 2009, 2010, 2011 SINTEF ICT, Applied Mathematics.

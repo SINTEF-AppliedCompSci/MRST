@@ -58,7 +58,7 @@ function [T,T_noflow] = computeMultiPointTrans(g, rock, varargin)
 %   PLEASE NOTE: Face normals have length equal to face areas.
 %
 % SEE ALSO:
-%   incompMPFA, mrstVerbose.
+%   `incompMPFA`, `mrstVerbose`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

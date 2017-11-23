@@ -30,7 +30,7 @@ function OP = tpfaConnectionOperators(G, W, np)
 %   'OP' structure in absence of a TPFA discretisation.
 %
 % SEE ALSO:
-%   impesTPFA, addWell.
+%   `impesTPFA`, `addWell`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -35,7 +35,7 @@ function [G, cellmap, facemap, nodemap] = removeCells_mod(G, cells,faces)
 %   The process of removing cells is irreversible.
 %
 % SEE ALSO:
-%   readGRDECL, deactivateZeroPoro.
+%   `readGRDECL`, `deactivateZeroPoro`.
 
 %{
 Copyright 2009, 2010, 2011 SINTEF ICT, Applied Mathematics.

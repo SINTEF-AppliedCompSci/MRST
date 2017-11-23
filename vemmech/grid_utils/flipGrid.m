@@ -11,11 +11,7 @@ function G_new = flipGrid(G)
 %
 % RETURNS:
 %   G_new - Grid structure afte flipping
-%
-% EXAMPLE:
-%
-% SEE ALSO:
-%
+
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 

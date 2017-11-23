@@ -30,7 +30,7 @@ function q = assembleTransportSource(q, nc, varargin)
 %       source terms.
 %
 % SEE ALSO:
-%   private/computeTransportSourceTerm.
+%   `private/computeTransportSourceTerm`.
 
    opt = struct('use_compi', true);
    opt = merge_options(opt, varargin{:});

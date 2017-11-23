@@ -27,7 +27,7 @@ function [p, z, fp] = impesAssembleStateVars(state, bc, wells, wdp)
 %           approaches may be employed too.
 %
 % SEE ALSO:
-%   impesComputeMobility, tpfaUpwindStateVars, impesTPFADefaultWellModel.
+%   `impesComputeMobility`, `tpfaUpwindStateVars`, `impesTPFADefaultWellModel`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

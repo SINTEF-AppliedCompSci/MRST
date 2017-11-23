@@ -72,7 +72,7 @@ function [Res, Jac, gflux, q] = twophaseJacobian(G, state, rock, fluid, varargin
 %
 %
 % SEE ALSO:
-%   implicitTransport, explicitTransport.
+%   `implicitTransport`, `explicitTransport`.
 
 % TODO:
 %   - implement gravity effects for pressure boundary and wells

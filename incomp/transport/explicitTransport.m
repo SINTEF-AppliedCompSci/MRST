@@ -85,7 +85,7 @@ function state = explicitTransport(state, G, tf, rock, fluid, varargin)
 %   See simple2phWellExample.m
 %
 % SEE ALSO:
-%   twophaseJacobian, implicitTransport.
+%   `twophaseJacobian`, `implicitTransport`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

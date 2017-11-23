@@ -28,7 +28,7 @@ function dp = computeIncompWellPressureDrop(W, mob, rho, g)
 %   proportional to the well indices.
 %
 % SEE ALSO:
-%   addWell, incompTPFA, incompMimetic, incompMPFA
+%   `addWell`, `incompTPFA`, `incompMimetic`, `incompMPFA`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

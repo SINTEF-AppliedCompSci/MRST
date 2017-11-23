@@ -60,7 +60,7 @@ function varargout = plotFaces_DFM(G, faces, varargin)
 %   plotFaces(G, faces, 'r');
 %
 % SEE ALSO:
-%   plotCellData, plotGrid, newplot, patch, shading.
+%   `plotCellData`, `plotGrid`, `newplot`, `patch`, `shading`.
 
 %{
 Copyright 2009, 2010, 2011 SINTEF ICT, Applied Mathematics.

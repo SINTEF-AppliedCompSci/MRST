@@ -84,7 +84,7 @@ function q = computeTransportSourceTerm(state, G, wells, src, bc, varargin)
 %     restriction is deferred to function assembleTransportSource.
 %
 % SEE ALSO:
-%   computeTimeOfFlight, explicitTransport, private/assembleTransportSource
+%   `computeTimeOfFlight`, `explicitTransport`, `private/assembleTransportSource`
 
 % TODO:
 %   - implement gravity effects for pressure boundary and wells

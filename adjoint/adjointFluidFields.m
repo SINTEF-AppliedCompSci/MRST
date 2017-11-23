@@ -14,7 +14,7 @@ function fluid = adjointFluidFields(fluid)
 %             - d2fw   (state) -- d^2/ds^2 f_w(state)
 %
 % SEE ALSO:
-%   fluid_structure.
+%   `fluid_structure`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

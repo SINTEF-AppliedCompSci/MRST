@@ -35,8 +35,8 @@ function xr = computeFacePressure(xr, G, T, fluid, varargin)
 %
 %
 % SEE ALSO:
-%   computeTrans, addBC, addSource, initSingleFluid, initResSol,
-%   incompTPFA.
+%   `computeTrans`, `addBC`, `addSource`, `initSingleFluid`, `initResSol`,
+%   `incompTPFA`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

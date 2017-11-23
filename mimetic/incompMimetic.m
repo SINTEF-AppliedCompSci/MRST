@@ -133,8 +133,8 @@ function state = incompMimetic(state, g, s, fluid, varargin)
 %           'incompMimetic:DrivingForce:Missing'
 %
 % SEE ALSO:
-%   computeMimeticIP, addBC, addSource, addWell, initSimpleFluid
-%   initState, solveIncompFlowMS.
+%   `computeMimeticIP`, `addBC`, `addSource`, `addWell`, `initSimpleFluid`
+%   `initState`, `solveIncompFlowMS`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

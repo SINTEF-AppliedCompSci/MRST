@@ -68,7 +68,7 @@ function varargout = mixedSymm(B, C, D, f, g, h, Do, varargin)
 %              OPTIONAL.  Only returned if specifically requested.
 %
 % SEE ALSO:
-%   tpfSymm, schurComplementSymm, solveIncompFlow, solveIncompFlowMS.
+%   `tpfSymm`, `schurComplementSymm`, `solveIncompFlow`, `solveIncompFlowMS`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -35,7 +35,7 @@ function W = assembleWellSystem(G, W, varargin)
 %          S.RHS    -- Well hybrid linear system right hand side.
 %
 % SEE ALSO:
-%   computeMimeticIP, addWell.
+%   `computeMimeticIP`, `addWell`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

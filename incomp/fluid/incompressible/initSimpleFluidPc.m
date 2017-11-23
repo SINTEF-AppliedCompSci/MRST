@@ -31,7 +31,7 @@ function fluid = initSimpleFluidPc(varargin)
 %   subplot(1,2,2), plot(s, pc); legend('P_c(S)');
 %
 % SEE ALSO:
-%   fluid_structure, initSimpleFluid, solveIncompFlow.
+%   `fluid_structure`, `initSimpleFluid`, `solveIncompFlow`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

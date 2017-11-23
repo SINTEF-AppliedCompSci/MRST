@@ -63,7 +63,7 @@ function [flux, press, lam, varargout] = schurComplementSymmFault(BI, C, D, E,..
 %           OPTIONAL.  Only returned if specifically requested.
 %
 % SEE ALSO:
-%   tpfSymm, mixedSymm, solveIncompFlow, solveIncompFlowMS.
+%   `tpfSymm`, `mixedSymm`, `solveIncompFlow`, `solveIncompFlowMS`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

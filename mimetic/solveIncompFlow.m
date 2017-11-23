@@ -137,8 +137,8 @@ function varargout = solveIncompFlow(varargin)
 %           'incompMimetic:DrivingForce:Missing'
 %
 % SEE ALSO:
-%   computeMimeticIP, addBC, addSource, addWell, initSimpleFluid
-%   initState, solveIncompFlowMS, incompMimetic.
+%   `computeMimeticIP`, `addBC`, `addSource`, `addWell`, `initSimpleFluid`
+%   `initState`, `solveIncompFlowMS`, `incompMimetic`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

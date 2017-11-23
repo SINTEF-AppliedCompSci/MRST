@@ -114,8 +114,8 @@ function state = incompMPFA(state, g, T, fluid, varargin)
 %    plotCellData(G, xr.pressure);
 %
 % SEE ALSO:
-%   computeMultiPointTrans, addBC, addSource, addWell, initSingleFluid,
-%   initResSol, initWellSol, mrstVerbose.
+%   `computeMultiPointTrans`, `addBC`, `addSource`, `addWell`, `initSingleFluid`,
+%   `initResSol`, `initWellSol`, `mrstVerbose`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

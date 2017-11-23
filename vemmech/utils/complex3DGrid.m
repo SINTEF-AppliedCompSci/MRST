@@ -36,9 +36,7 @@ function [G, G_org] = complex3DGrid(opt, grid_case)
 %    G=complex3DGrid(struct('triangulate',false,'gtol',1e-3),'sbed');clf,plotGrid(flipGrid(G)),view(3)
 %    G=complex3DGrid(struct('cartDims',[3,3,3],'L',[3 3 3],'disturb',0.04,'triangulate',false),'box');clf,plotGrid(G),view(3)
 %    G=complex3DGrid([],'grdecl'); clf, plotGrid(G), view(3)
-%
-% SEE ALSO:
-%
+
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
@@ -57,10 +55,6 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-
-
-
-
 
     G_org = [];
     switch grid_case

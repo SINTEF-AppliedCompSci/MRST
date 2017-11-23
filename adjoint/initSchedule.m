@@ -26,7 +26,7 @@ function [schedule] = initSchedule(W, varargin)
 %
 %
 % SEE ALSO:
-%              dispSchedule
+%              `dispSchedule`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
