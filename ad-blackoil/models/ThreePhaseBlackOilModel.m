@@ -161,7 +161,7 @@ methods
                 ds(:, phIndices(3)) = dsg;
             end
 
-            state = model.updateStateFromIncrement(state, ds, problem, 's', model.dsMaxRel, model.dsMaxAbs);
+            state = model.updateStateFromIncrement(state, ds, problem, 's', inf, model.dsMaxAbs);
             % We should *NOT* be solving for oil saturation for this to make sense
             assert(~any(strcmpi(vars, 'so')));
             state = computeFlashBlackOil(state, state0, model, st);

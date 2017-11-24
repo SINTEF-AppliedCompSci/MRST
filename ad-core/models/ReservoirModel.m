@@ -5,7 +5,7 @@ classdef ReservoirModel < PhysicalModel
     %   model = ReservoirModel(G, rock, fluid)
     %
     % DESCRIPTION:
-    %   Extension of PhysicalModel class to accomodate reservoir-specific
+    %   Extension of `PhysicalModel` class to accomodate reservoir-specific
     %   features such as fluid and rock as well as commonly used phases and
     %   variables.
     %
@@ -17,72 +17,43 @@ classdef ReservoirModel < PhysicalModel
     %   fluid - Fluid model used for the model.
     %
     %
-    % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
-    %   See class properties.
+    % OPTIONAL PARAMETERS:
+    %   'property' - Set property to the specified value.
     %
     % RETURNS:
     %   Class instance.
     %
     % SEE ALSO:
-    %   ThreePhaseBlackOilModel, TwoPhaseOilWaterModel, PhysicalModel
+    %   `ThreePhaseBlackOilModel`, `TwoPhaseOilWaterModel`, `PhysicalModel`
 
 properties
-    % The fluid model
-    fluid
-    % The rock (perm/poro/ntg)
-    rock
-
-    % Maximum relative pressure change
-    dpMaxRel
-    % Maximum absolute pressure change
-    dpMaxAbs
-    % Maximum Relative saturation change
-    dsMaxRel
-    % Maximum absolute saturation change
-    dsMaxAbs
-
-    % Maximum pressure allowed in reservoir
-    maximumPressure
-    % Minimum pressure allowed in reservoir
-    minimumPressure
-
-    % Indicator showing if the aqua/water phase is present
-    water
-    % Indicator showing if the gas phase is present
-    gas
-    % Indicator showing if the oil phase is present
-    oil
-    % Names of primary variables interpreted as saturations, i.e. so
-    % that they will sum to one when updated.
-    saturationVarNames
-    % Names of components
-    componentVarNames
-
-    % Use alternate tolerance scheme
-    useCNVConvergence
-
-    % CNV tolerance (inf-norm-like)
-    toleranceCNV;
-
-    % MB tolerance values (2-norm-like)
-    toleranceMB;
-
-    % Input data used to instantiate the model
-    inputdata
-    % Add extra output to wellsol/states for derived quantities
-    extraStateOutput
-    % Output extra information for wells
-    extraWellSolOutput
-    % Output fluxes
-    outputFluxes
-    % Upstream weighting of injection cells
-    upstreamWeightInjectors
-
-    % Vector for the gravitational force
-    gravity
-
-    % Well model used to compute fluxes etc from well controls
-    FacilityModel
+    % Required arguments
+    fluid % The fluid model. See `initSimpleADIFluid`, `initDeckADIFluid`
+    rock % The rock structure (perm/poro/ntg). See `makeRock`.
+    % Limits
+    dpMaxRel % Maximum relative pressure change
+    dpMaxAbs % Maximum absolute pressure change
+    dsMaxAbs % Maximum absolute saturation change
+    maximumPressure % Maximum pressure allowed in reservoir
+    minimumPressure % Minimum pressure allowed in reservoir
+    % Phases and components
+    water % Indicator showing if the aqueous/water phase is present
+    gas % Indicator showing if the vapor/gas phase is present
+    oil % Indicator showing if the liquid/oil phase is present
+    saturationVarNames % Names of saturation variables
+    componentVarNames % Names of components
+    % Tolerances
+    useCNVConvergence % Use volume-scaled tolerance scheme
+    toleranceCNV; % CNV tolerance (similar to inf-norm over saturation error)
+    toleranceMB; % MB tolerance values (sum of mass-balance error)
+    % Input/output
+    inputdata % Input data used to instantiate the model
+    extraStateOutput % Write extra data to states. Depends on submodel type.
+    extraWellSolOutput % Output extra data to wellSols: GOR, WOR, ...
+    outputFluxes % Store integrated fluxes in state.
+    % Coupling to forces and other models
+    gravity % Vector for the gravitational force
+    FacilityModel % Facility model used to represent wells
 end
 
 methods
@@ -114,7 +85,6 @@ methods
         model.maximumPressure =  inf;
 
         model.dsMaxAbs = .2;
-        model.dsMaxRel = inf;
 
         model.nonlinearTolerance = 1e-6;
         model.inputdata = [];
@@ -128,7 +98,6 @@ methods
         model.extraStateOutput = false;
         model.extraWellSolOutput = true;
         model.outputFluxes = true;
-        model.upstreamWeightInjectors = false;
         % Gravity defaults to the global variable
         model.gravity = gravity(); %#ok
         [model, unparsed] = merge_options(model, varargin{:}); %#ok
@@ -407,7 +376,7 @@ methods
         ds(:, ~solvedFor) = tmp;
         % We update all saturations simultanously, since this does not bias the
         % increment towards one phase in particular.
-        state = model.updateStateFromIncrement(state, ds, problem, 's', model.dsMaxRel, model.dsMaxAbs);
+        state = model.updateStateFromIncrement(state, ds, problem, 's', inf, model.dsMaxAbs);
 
         % Ensure that values are within zero->one interval, and
         % re-normalize if any values were capped
