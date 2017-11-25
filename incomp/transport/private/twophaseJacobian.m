@@ -116,7 +116,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    compi = { 'use_compi', true };
    q = computeTransportSourceTerm(state, G, opt.wells, ...
                                   opt.src, opt.bc, compi{:});
-   q = assembleTransportSource(q, G.cells.num, compi{:});
+   q = assembleTransportSource(state, fluid, q, G.cells.num, compi{:});
    assert(all(isfinite(q)))
    % Extract (constant) fluid densities.
    [rho, rho] = fluid.properties(state); %#ok<ASGLU>

@@ -142,7 +142,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       compi = { 'use_compi', true };
       vsrc = computeTransportSourceTerm(state, G, opt.wells, ...
                                         opt.src, opt.bc, compi{:});
-      vsrc = assembleTransportSource(vsrc, G.cells.num, compi{:});
+      vsrc = assembleTransportSource(state, fluid, vsrc, G.cells.num, compi{:});
 
       gflux = getFlux(G, rock,opt);
       getdt = @(state) min([...
