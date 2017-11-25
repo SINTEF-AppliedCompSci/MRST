@@ -12,6 +12,7 @@ classdef MultiscaleVolumeSolverAD < LinearSolverAD
        useMEX
        mexGrid
        basisIterations
+       basisTolerance
        
        getSmoother
        useGMRES
@@ -31,6 +32,7 @@ classdef MultiscaleVolumeSolverAD < LinearSolverAD
            solver.maxIterations = 0;
            solver.getSmoother = [];
            solver.useGMRES = false;
+           solver.basisTolerance = 5e-3;
            solver.useMEX = true;
            solver.mexGrid = [];
            solver.resetBasis = false;
@@ -113,10 +115,29 @@ classdef MultiscaleVolumeSolverAD < LinearSolverAD
                    end
                end
                timer = tic();
+               [ii, jj, vv] = find(A);
+               keep = ii ~= jj;
+               n = size(A, 1);
+               
+               
+               ii = ii(keep);
+               jj = jj(keep);
+               vv = vv(keep);
+               vv = abs(vv);
+               
+               dd = accumarray(jj, vv);
+               
+               ii = [ii; (1:n)'];
+               jj = [jj; (1:n)'];
+               vv = [vv; -dd];
+               
+               A = sparse(ii, jj, vv, n, n);
+               
                [solver.basis, solver.coarsegrid] =...
                    getMultiscaleBasis(solver.coarsegrid, A, 'useMEX', solver.useMEX, ...
                                                             'mexGrid', solver.mexGrid, ...
                                                             'iterations', solver.basisIterations, ...
+                                                            'tolerance', solver.basisTolerance, ...
                                                             'type',   solver.prolongationType, ...
                                                             'useControlVolume', solver.controlVolumeRestriction, ...
                                                             'regularizeSys', true);
