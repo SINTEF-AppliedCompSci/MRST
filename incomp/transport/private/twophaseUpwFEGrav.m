@@ -81,7 +81,7 @@ function [resSol, report] = twophaseUpwFEGrav(resSol, G, tf, q, flux, grav, ...
 %   resSol - Reservoir solution with updated saturations, resSol.s.
 %
 % SEE ALSO:
-%   twophaseUpwFE, initTransport, explicitTransport, implicitTransport.
+%   `twophaseUpwFE`, `initTransport`, `explicitTransport`, `implicitTransport`.
 
 % TODO:
 %   - implement gravity effects for pressure boundary and wells
@@ -240,7 +240,7 @@ function [w_inx, o_inx] = findFaceMobIx( ...
 %               mobility for oil-phase (or secondary phase).
 %
 % SEE ALSO:
-%   initFaceMob, twophaseUpwFEGrav, twophaseUpwBEGrav.
+%   `initFaceMob`, `twophaseUpwFEGrav`, `twophaseUpwBEGrav`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

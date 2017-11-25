@@ -102,7 +102,7 @@ function [state, report] = implicitTransport_DFM(state, G, tf, ...
 %   See simple2phWellExample.
 %
 % SEE ALSO:
-%   explicitTransport, private/twophaseJacobian, private/newtonRaphson2ph.
+%   `explicitTransport`, `private/twophaseJacobian`, `private/newtonRaphson2ph`.
 
 %{
 Copyright 2009, 2010, 2011, 2012 SINTEF ICT, Applied Mathematics.

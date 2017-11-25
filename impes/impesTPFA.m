@@ -112,7 +112,7 @@ function [state, dt, report, sreport] = ...
 %                            cell.
 %
 % SEE ALSO:
-%   compTPFA, poreVolume.
+%   `compTPFA`, `poreVolume`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

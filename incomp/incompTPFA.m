@@ -127,8 +127,8 @@ function state = incompTPFA(state, G, T, fluid, varargin)
 %    plotCellData(G, state.pressure)
 %
 % SEE ALSO:
-%   computeTrans, addBC, addSource, addWell, initSingleFluid, initResSol,
-%   initWellSol.
+%   `computeTrans`, `addBC`, `addSource`, `addWell`, `initSingleFluid`, `initResSol`,
+%   `initWellSol`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -52,7 +52,7 @@ function varargout = plotGrid_DFM(G, varargin)
 %   figure, plotGrid(G, 'FaceColor', 'none'); view(3)
 %
 % SEE ALSO:
-%   plotCellData, plotFaces, patch, newplot.
+%   `plotCellData`, `plotFaces`, `patch`, `newplot`.
 
 %{
 Copyright 2009, 2010, 2011 SINTEF ICT, Applied Mathematics.

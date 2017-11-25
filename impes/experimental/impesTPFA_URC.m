@@ -147,7 +147,7 @@ function [state,dt,report,sreport] = impesTPFA_URC(state0, G, T, fluid, dt, pv, 
 %
 %
 % SEE ALSO:
-%   compTPFA, poreVolume.
+%   `compTPFA`, `poreVolume`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

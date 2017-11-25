@@ -31,11 +31,7 @@ function [G, bc, test_cases] = squareTest(varargin)
 %   G          - Grid structure
 %   bc         - Boundary conditions
 %   test_cases - Cell structure with the test cases
-%
-% EXAMPLE:
-%
-% SEE ALSO:
-%
+
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
@@ -54,7 +50,6 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-
    
    opt = struct('L', [1 1], ...
                 'cartDims', [20 20], ...

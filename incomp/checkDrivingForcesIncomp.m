@@ -19,7 +19,7 @@ function do_solve = checkDrivingForcesIncomp(g, opt)
 %              be solved. This check verifies that the problem is
 %              meaningful for incompressible flow.
 % SEE ALSO:
-%   incompMimetic, incompTPFA
+%   `incompMimetic`, `incompTPFA`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -30,7 +30,7 @@ function fluid = initCoreyFluid(varargin)
 %   plot(s, kr), legend('kr_1', 'kr_2')
 %
 % SEE ALSO:
-%   fluid_structure, initSimpleFluid, solveIncompFlow.
+%   `fluid_structure`, `initSimpleFluid`, `solveIncompFlow`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -14,7 +14,7 @@ function dt = spe1_dt
 %        MRST's internal units of time measurement (second).
 %
 % SEE ALSO:
-%   convertFrom, day.
+%   `convertFrom`, `day`.
 
 
 dt = [

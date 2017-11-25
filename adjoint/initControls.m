@@ -39,7 +39,7 @@ function [controls] = initControls(schedule, varargin)
 %                       - b
 %
 % SEE ALSO:
-%              initSchedule
+%              `initSchedule`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

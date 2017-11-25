@@ -112,7 +112,7 @@ function [state,dt,report,sreport] = impesTPFA2(state0, G, T, fluid, dt, pv, var
 %                            cell.
 %
 % SEE ALSO:
-%   compTPFA, poreVolume.
+%   `compTPFA`, `poreVolume`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

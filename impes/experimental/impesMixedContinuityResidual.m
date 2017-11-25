@@ -73,7 +73,7 @@ function [F, Fp, Fv] = impesMixedContinuityResidual(pv, dt, fluid, mob, ...
 %        point (v,press,mass).  Sparse matrix of size nc-by-NUMEL(v).
 %
 % SEE ALSO:
-%   impesTPFA, tpfaConnectionOperators, tpfaUpwindStateVars, poreVolume.
+%   `impesTPFA`, `tpfaConnectionOperators`, `tpfaUpwindStateVars`, `poreVolume`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

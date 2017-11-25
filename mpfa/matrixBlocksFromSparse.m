@@ -39,7 +39,7 @@ function varargout = matrixBlocksFromSparse(varargin)
 %   equivalent to nonzeros(S).
 %
 % SEE ALSO:
-%   nonzeros, computeMultiPointTrans, incompMPFA.
+%   `nonzeros`, `computeMultiPointTrans`, `incompMPFA`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

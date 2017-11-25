@@ -76,7 +76,7 @@ function [state,report] = explicitTransport_DFM(state, G, tf, rock, fluid, varar
 %   See simple2phWellExample.m
 %
 % SEE ALSO:
-%   twophaseJacobian, implicitTransport.
+%   `twophaseJacobian`, `implicitTransport`.
 
 %{
 Copyright 2009, 2010, 2011 SINTEF ICT, Applied Mathematics.

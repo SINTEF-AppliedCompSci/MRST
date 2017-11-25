@@ -43,7 +43,7 @@ function varargout = interpRelPermTable(s, kr, si)
 %   Using this utility function as a general interpolator is not advised.
 %
 % SEE ALSO:
-%   interpTable, dinterpTable, interp1q, dinterpq1.
+%   `interpTable`, `dinterpTable`, `interp1q`, `dinterpq1`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

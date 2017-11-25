@@ -18,7 +18,7 @@ function h = plotCellDataDeformed(G, data, u, varargin)
 %
 % EXAMPLE:
 %
-% SEE ALSO: plotCellData
+% SEE ALSO: `plotCellData`
 %
 
 %{

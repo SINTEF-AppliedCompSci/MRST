@@ -19,7 +19,7 @@ function x = initResSolComp(G, W, fluid, initP, massfraction)
 %   state - Fully initialised reservoir/well solution structure.
 %
 % SEE ALSO:
-%   initSingleCompFluid.
+%   `initSingleCompFluid`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

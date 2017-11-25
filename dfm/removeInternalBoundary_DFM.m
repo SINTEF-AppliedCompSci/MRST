@@ -28,7 +28,7 @@ function G = removeInternalBoundary_DFM(G, N)
 %  warped.
 %
 % SEE ALSO:
-%  makeInteralBoundary
+%  `makeInteralBoundary`
 
 
 %{

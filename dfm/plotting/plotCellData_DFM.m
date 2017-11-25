@@ -57,7 +57,7 @@ function varargout = plotCellData_DFM(G, data, varargin)
 %      figure, plotCellData(G, convertTo(resSol.pressure, barsa()));
 %
 % SEE ALSO:
-%   plotFaces, boundaryFaces, patch, newplot.
+%   `plotFaces`, `boundaryFaces`, `patch`, `newplot`.
 
 %{
 Copyright 2009, 2010, 2011 SINTEF ICT, Applied Mathematics.
