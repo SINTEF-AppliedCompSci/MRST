@@ -12,7 +12,7 @@ nc = G.cells.num;
 plotGrid(G), view(3), axis tight
 outInd = [G.faces.num-G.cells.num-sideLength+1; G.faces.num-G.cells.num-sideLength^2+sideLength];
 
-plotFace(G, outInd, 'r');
+plotFaces(G, outInd, 'r');
 
 %% Define the rock
 
@@ -66,9 +66,12 @@ model.plotIter = false;
 
 pv = poreVolume(G,rock);
 
+srcFun = @(t) pv(1)*sin(t)/day;
 
 src                	= [];
-src               	= addSource(src, [1; nc], pv(1:2)/day, 'sat', 1);
+% src               	= addSource(src, [1; nc], pv(1:2)/day, 'sat', 1);
+src               	= addSource_TD(src, [1; nc], srcFun, 'sat', 1);
+
 src.elements        = injChemState.elements(end,:);
 src.logElements     = injChemState.logElements(end,:);
 

@@ -15,7 +15,7 @@ classdef ChemicalTransportModel < WaterModel
         surfMat;
         plotIter % plot each iteration of the netwon solver
         plotFinal % plot final iteration of the newton solver
-
+        currentTime
 
     end
 
