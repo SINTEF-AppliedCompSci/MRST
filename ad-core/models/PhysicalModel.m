@@ -170,12 +170,13 @@ methods
         %   state = model.validateState(state);
         %
         % DESCRIPTION:
-        % Validate the state for use with `model`. Should check that
-        % required fields are present and of the right dimensions. If
-        % missing fields can be assigned default values, state is return
-        % with the required fields added. If reasonable default values
-        % cannot be assigned, a descriptive error should be thrown telling
-        % the user what is missing or wrong (and ideally how to fix it).
+        %   Validate the state for use with `model`. Should check that
+        %   required fields are present and of the right dimensions. If
+        %   missing fields can be assigned default values, state is return
+        %   with the required fields added. If reasonable default values
+        %   cannot be assigned, a descriptive error should be thrown
+        %   telling the user what is missing or wrong (and ideally how to
+        %   fix it).
         %
         % PARAMETERS:
         %   model  - Class instance for which `state` is intended as a
