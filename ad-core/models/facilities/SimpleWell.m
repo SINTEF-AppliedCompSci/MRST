@@ -1,24 +1,37 @@
 classdef SimpleWell < PhysicalModel
-    % Base class implementing a single, instataneous equilibrium well model
+    % Base class implementing a single, instantaneous equilibrium well model
+    %
+    % SYNOPSIS:
+    %   wm = SimpleWell(W)
+    %
+    % DESCRIPTION:
+    %   Base class for wells in the AD-OO framework. The base class is also
+    %   the default well implementation. For this will model, the
+    %   assumptions are that the well-bore flow is rapid compared to the
+    %   time-steps taken by the reservoir simulator, making instantaneous
+    %   equilibrium and mixing in the well-bore a reasonable assumption.
+    %
+    % PARAMETERS:
+    %   W - Well struct. See `addWell` and `processWells`.
+    %
+    % OPTIONAL PARAMETERS:
+    %   'property' - Set property to the specified value.
+    %
+    % RETURNS:
+    %   model - Class instance of `SimpleWell`.
+    %
+    % SEE ALSO:
+    %   `FacilityModel`, `MultisegmentWell`,
+
     properties
-        % Struct defining the well (see addWell)
-        W
-        % Boolean indicating if the well perforations allow cross-flow
-        allowCrossflow
-        % Boolean indicating if BHP wells are allowed to switch between
-        % producers and injectors
-        allowSignChange
-        % Boolean indicating if the well should switch to another control
-        % if the limits have been reached.
-        allowControlSwitching
-        % Maximum allowable relative change in well pressure
-        dpMaxRel
-        % Maximum allowable absolute change in well pressure
-        dpMaxAbs
-        % Maximum allowable change in well composition/saturation
-        dsMaxAbs
-        % Vertical lift table
-        VFPTable
+        W % Struct defining the well (see `addWell`)
+        allowCrossflow % Boolean indicating if the well perforations allow cross-flow
+        allowSignChange % BHP-controlled well is allowed to switch between production and injection
+        allowControlSwitching % Limit reached results in well switching to another control 
+        dpMaxRel % Maximum allowable relative change in well pressure
+        dpMaxAbs % Maximum allowable absolute change in well pressure
+        dsMaxAbs % Maximum allowable change in well composition/saturation
+        VFPTable % Vertical lift table. EXPERIMENTAL.
     end
 
     methods
@@ -39,15 +52,43 @@ classdef SimpleWell < PhysicalModel
         end
 
         function well = updateWell(well, W)
-            % Update the well struct.
+            % Update well with a new control struct.
+            %
+            % SYNOPSIS:
+            %   well = well.updateWell(W);
+            %
+            % PARAMETERS:
+            %   model - Well model.
+            %   W     - Well struct representing the same wells, but with
+            %           changed controls, active perforations and so on.
+            %
+            % RETURNS:
+            %   model - Updated well model.
+            %
             well.W = W;
         end
 
         function wsol = validateWellSol(well, resmodel, wsol, state) %#ok
-            % Validate if wellSol is suitable for simulation. This function
-            % may modify the wellSol if the errors are fixable at runtime,
-            % otherwise it should throw an error. Note that this function
-            % is analogous to validateState in the base model class.
+            % Validate wellSol for simulation
+            %
+            % SYNOPSIS:
+            %   wellSol = well.validateWellSol(model, wellSol, resSol)
+            %
+            % DESCRIPTION:
+            %   Validate if wellSol is suitable for simulation. This function
+            %   may modify the wellSol if the errors are fixable at runtime,
+            %   otherwise it should throw an error. Note that this function
+            %   is analogous to validateState in the base model class.
+            %
+            % PARAMETERS:
+            %   well    - Well model class instance.
+            %   model   - `ReservoirModel` class instance.
+            %   wellSol - Well solution to be updated.
+            %   resSol  - Reservoir state
+            %
+            % RETURNS:
+            %   wellSol - Updated well solution struct.
+
             [names, fromResModel] = well.getExtraPrimaryVariableNames(resmodel);
             for i = 1:numel(names)
                 if fromResModel(i)
@@ -67,14 +108,29 @@ classdef SimpleWell < PhysicalModel
         end
 
         function counts = getVariableCounts(wm, fld)
-            % Should return the number of primary variables added by this
-            % well for field "fld". The simple base class only uses a
-            % single variable to represent any kind of well field, but in
-            % e.g. MultisegmentWell, this function may return values larger
-            % than 1.
+            % Get number of primary variables of a specific type for well
             %
-            % Note that a value of zero should be returned for a unknown
-            % field.
+            % SYNOPSIS:
+            %   counts = wellmodel.getVariableCounts('bhp')
+            %
+            % DESCRIPTION:
+            %   Should return the number of primary variables added by this
+            %   well for field "fld". The simple base class only uses a
+            %   single variable to represent any kind of well field, but in
+            %   e.g. `MultisegmentWell`, this function may return values
+            %   larger than 1.
+            %
+            % NOTE:
+            %   A value of zero should be returned for a unknown field.
+            %
+            % PARAMETERS:
+            %   wellmodel - Well model class instance.
+            %   fld       - Primary variable name.
+            %
+            % RETURNS:
+            %   counts - Number of variables of this type required by the
+            %            well model.
+
             try
                 fn = wm.getVariableField(fld);
             catch
@@ -89,29 +145,73 @@ classdef SimpleWell < PhysicalModel
 
         function [names, fromResModel] = getExtraPrimaryVariableNames(well, resmodel)
             % Get additional primary variables added by this well.
-            % Additional primary variables in this context are variables
-            % that are not the default MRST values (surface rates for each
-            % pseudocomponent/phase and bottomhole pressure).
             %
-            % In addition, this function returns a indicator per variable
-            % if it was added by the reservoir model, or the well model.
+            % SYNOPSIS:
+            %   [names, fromRes] = well.getExtraPrimaryVariableNames(model)
+            %
+            % DESCRIPTION:
+            %   Additional primary variables in this context are variables
+            %   that are not the default MRST values (surface rates for each
+            %   pseudocomponent/phase and bottomhole pressure).
+            %
+            %   In addition, this function returns a indicator per variable
+            %   if it was added by the reservoir model, or the well model.
+            %
+            % PARAMETERS:
+            %   well     - Well class instance
+            %   resmodel - `ReservoirModel` class instance.
+            %
+            % RETURNS:
+            %   names   - Names of additional primary variables.
+            %   fromRes - Boolean array indicating if the added variables
+            %             originate from the well, or the reservoir.
+
             names = resmodel.getExtraWellPrimaryVariableNames();
             fromResModel = true(size(names));
         end
 
         function [names, types] = getExtraEquationNames(well, resmodel)
             % Returns the names and types of the additional equation names
-            % this well model introduces. We have two options: Either the
-            % well itself can add additional equations (modelling e.g. flow
-            % in the well-bore) or the reservoir can add additional
-            % equations (typically for additional components)
+            % this well model introduces.
+            %
+            % SYNOPSIS:
+            %   [names, types] = well.getExtraEquationNames(model)
+            %
+            % DESCRIPTION:
+            %   We have two options: Either the
+            %   well itself can add additional equations (modelling e.g. flow
+            %   in the well-bore) or the reservoir can add additional
+            %   equations (typically for additional components)
+            %
+            % PARAMETERS:
+            %   well     - Well class instance
+            %   resmodel - `ReservoirModel` class instance.
+            %
+            % RETURNS:
+            %   names   - Names of additional equations.
+            %   types   - Type hints for the additional equations.
+            %
+
             [names, types] = resmodel.getExtraWellEquationNames();
         end
 
         function [vars, names] = getExtraPrimaryVariables(well, wellSol, resmodel)
             % Returns the values and names of extra primary variables added
-            % by this well. See "getExtraPrimaryVariableNames" for a
-            % definition of extra variables.
+            % by this well.
+            %
+            % SYNOPSIS:
+            %   [names, types] = well.getExtraEquationNames(model)
+            %
+            % PARAMETERS:
+            %   well     - Well class instance
+            %   resmodel - `ReservoirModel` class instance.
+            %
+            % RETURNS:
+            %   vars    - Cell array of extra primary variables
+            %   names   - Cell array with names of extra primary variables
+            % 
+            % SEE ALSO:
+            %   `getExtraPrimaryVariableNames`
             [names, fromResModel] = well.getExtraPrimaryVariableNames(resmodel);
             vars = cell(size(names));
             [vars{~fromResModel}] = well.getProps(wellSol, names{~fromResModel});
@@ -136,20 +236,26 @@ classdef SimpleWell < PhysicalModel
 
         function [compEqs, compSrc, compNames, wellSol] = computeComponentContributions(well, wellSol0, wellSol, resmodel, q_s, bh, packed, qMass, qVol, dt, iteration)
             % Compute component equations and component source terms
-            % qMass   : Mass flux  for each well connection and for each phase
-            % qVol    : Volume flux at reservoir condition for each connection and for each phase
-            % compEqs : Mass conservation equations in the well (involves well control
-            %           variables)
-            % compSrc : Source term that will enter the mass conservation
-            %           equations in the reservoir            
+            % 
+            % SEE ALSO:
+            %   `ad_core.models.ReservoirModel.getExtraWellContributions`
             [compEqs, compSrc, compNames, wellSol] = resmodel.getExtraWellContributions(well, wellSol0, wellSol, q_s, bh, packed, qMass, qVol, dt, iteration);
             return
         end
 
         function isInjector = isInjector(well)
-            % Returns boolean indicating if well is specified as an
-            % injector. Wells with sign zero is in this context defined as
-            % producers.
+            % Check if well is an injector
+            %
+            % SYNOPSIS:
+            %   isInj = well.isInjector();
+            %
+            % PARAMETERS:
+            %   well - Well class instance
+            %
+            % RETURNS:
+            %   isInjector - boolean indicating if well is specified as an
+            %                injector. Wells with sign zero is in this
+            %                context defined as producers.
             isInjector = well.W.sign > 0;
         end
 

@@ -19,14 +19,11 @@ classdef NonLinearSolver < handle
     % REQUIRED PARAMETERS:
     %   None.
     %
-    % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
-    %   Documented in methods section.
-    %
     % RETURNS:
     %   A NonLinearSolver class instance ready for use.
     %
     % SEE ALSO:
-    %   simulateScheduleAD, LinearSolverAD, SimpleTimeStepSelector
+    %   `simulateScheduleAD`, `LinearSolverAD`, `SimpleTimeStepSelector`
 
     properties
         % The max number of iterations during a ministep.

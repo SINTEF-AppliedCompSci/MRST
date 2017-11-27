@@ -15,10 +15,11 @@ classdef LinearizedProblem
     %   respect to.
     %
     %   A linearized problem can be transformed into a linear system and solved
-    %   using LinearSolverAD-derived subclasses, given that the number of
+    %   using `LinearSolverAD`-derived subclasses, given that the number of
     %   equations matches the number of primary variables.
     %
     %   In particular, the class contains member functions for:
+    %
     %     - assembling a linear system from the Jacobian block matrices stored
     %       for each individual (continuous) equation
     %     - appending/prepending additional equations
@@ -27,46 +28,32 @@ classdef LinearizedProblem
     %     - recovering increments corresponding to variables that have
     %       previously been eliminated
     %     - computing the norm of each residual equation
+    %
     %   as well as a number of utility functions for sanity checks, quering of
     %   indices and the number of equations, clearing the linear system, etc.
     %
-    % PROPERTIES:
-    %   See the class definition for details about each property.
-    %
     % SEE ALSO:
-    %   LinearSolverAD, PhysicalModel
+    %   `LinearSolverAD`, `PhysicalModel`
 
 properties
-    % Cell array of the equations. Can be either doubles, or more typically
-    % ADI objects.
-    equations
-    % Cell array of equal length to number of equations, with strings
-    % indicating their types (common types: cell for cell variables, well
+    equations % Cell array of the equations. Can be doubles, or more typically ADI objects.
+    types % Cell array of equal length to number of equations, with strings indicating their types 
+    % (common types: cell for cell variables, well
     % for well equations etc). Note that these types are available to any
     % linear solver, which may use them to construct appropriate solver
     % strategies or preconditioners.
-    types
-    % Cell array of equal length to number of equations, giving them unique
-    % names that are used when printing when convergence reports or solving
+    equationNames% Cell array of equal length to number of equations, giving them unique names
+    % that are used e.g. when printing when convergence reports or solving
     % the linear system.
-    equationNames
-    % Cell array containing the names of the primary variables.
-    primaryVariables
-    % Linear system after assembling Jacobians. Will be empty until the
-    % member function assembleSystem has been called.
-    A
-    % Right hand side for linearized system. See A.
-    b
-    % The problem state used to produce the equations
-    state
-    % The time step length (Not relevant for all problems)
-    dt
-    % Optionally, the nonlinear iteration number corresponding to this
-    % problem.
-    iterationNo
-    % The driving forces struct used to generate the equations. Possible
-    % fields depend on the model from which the problem was derived.
-    drivingForces
+    primaryVariables % Cell array containing the names of the primary variables.
+   
+    A % Linear system after assembling Jacobians. 
+    % Will be empty until the member function assembleSystem has been called.
+    b % Right hand side for linearized system. See A.
+    state % The problem state used to produce the equations
+    dt % The time step length (Not relevant for all problems)
+    iterationNo % Nonlinear iteration number corresponding to problem.
+    drivingForces % The driving forces struct used to generate the equations.
 end
 
 methods
@@ -226,7 +213,7 @@ methods
     % --------------------------------------------------------------------%
     function problem = reorderEquations(problem, newIndices)
         % Reorder equations based on a set of indices.
-        % INPUT:
+        % ARGUMENTS:
         % - newIndices: numel(problem) long array of new indices into the
         %               equations.
         % OUTPUT:
@@ -247,13 +234,14 @@ methods
         % Get number of subequations for one or more equations. A single
         % equation is a collection of a number of equations grouped by the
         % constructor. Typically, all subequations should be of the same
-        % INPUT:
-        % n     : (OPTIONAL) Indices of the equations for which the number
+        % ARGUMENTS:
+        %   n -   (OPTIONAL) Indices of the equations for which the number
         %         of subequations is desired. If omitted, the function
         %         returns the number for all equations.
-        % OUTPUT
-        % varnum: Array with the number of subequations for the requested
-        %         equations.
+        %
+        % RETURNS:
+        %   varnum - Array with the number of subequations for the requested
+        %            equations.
         if nargin == 1
             n = ':';
         end
@@ -289,17 +277,17 @@ methods
         % Eliminate a variable from the problem using the equation with
         % the same index.
         %
-        % INPUT: 
-        % variable: The name of the variable (corresponding to an entry in
-        %           problem.names) that is to be eliminated.
+        % ARGUMENTS: 
+        %   variable - The name of the variable (corresponding to an entry in
+        %              problem.names) that is to be eliminated.
         %
-        % OUTPUT:
-        % problem: Modified problem.
-        % eliminatedEquation: The equation that was eliminated.
+        % RETURNS:
+        %   problem - Modified problem.
+        %   eliminatedEquation - The equation that was eliminated.
         %
         % NOTE:
-        % For non-diagonal matrices, the cost of the equation elimination
-        % can be large.
+        %   For non-diagonal matrices, the cost of the equation elimination
+        %   can be large.
         if isa(variable, 'char')
             n = find(problem.indexOfEquationName(variable));
         elseif isnumeric(variable)
@@ -338,19 +326,19 @@ methods
     function [problem, eliminated] = reduceToSingleVariableType(problem, type)
         % Eliminate all equations that are not of a given type
         %
-        % INPUT: 
-        % type: String matching one of problem.types. Equations that DO NOT
-        %       have that type will be eliminated.
+        % ARGUMENTS: 
+        %   type - String matching one of problem.types. Equations that DO NOT
+        %          have that type will be eliminated.
         %
-        % OUTPUT:
-        % problem   : Modified problem.
-        % eliminated: Eliminated equations. Can be used to recover the
-        %             eliminated values later.
+        % RETURNS:
+        %   problem    - Modified problem.
+        %   eliminated - Eliminated equations. Can be used to recover the
+        %                eliminated values later.
         %
         % NOTE:
-        % Can have a severe cost depending on the sparsity patterns
-        % involved in the different equations. Typical usage is to
-        % eliminate non-cell equations (wells, control equations).
+        %   Can have a severe cost depending on the sparsity patterns
+        %   involved in the different equations. Typical usage is to
+        %   eliminate non-cell equations (wells, control equations).
         isCurrent = problem.indexOfType(type);
 
         % Eliminate all equations that are not of that type
@@ -371,15 +359,15 @@ methods
         % Recover the increments in primary variables corresponding to
         % equations that have previously been eliminated by for instance
         % "reduceToSingleVariableType".
-        % INPUT:
-        % originalProblem  : The problem before elimination.
-        % incrementsReduced: Increments from the solution of the reduced
-        %                    problem.
-        % eliminated       : The eliminated equations.
+        % ARGUMENTS:
+        %   originalProblem   - The problem before elimination.
+        %   incrementsReduced - Increments from the solution of the reduced
+        %                       problem.
+        %   eliminated        - The eliminated equations.
         %
-        % OUTPUT:
-        % dx: All increments, as if the originalProblem was solved
-        %     directly.
+        % RETURNS:
+        %   dx - All increments, as if the `originalProblem` was solved
+        %        directly.
 
         nP = numel(originalProblem);
 

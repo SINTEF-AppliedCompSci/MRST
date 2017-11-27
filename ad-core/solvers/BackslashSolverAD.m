@@ -8,10 +8,10 @@ classdef BackslashSolverAD < LinearSolverAD
     %   This solver solves linearized problems using matlab builtin mldivide.
     %
     % SEE ALSO:
-    %   LinearSolverAD
+    %   `LinearSolverAD`
 
    methods
-       function [result, report] = solveLinearSystem(solver, A, b) %#ok
+       function [result, report] = solveLinearSystem(solver, A, b)
           result = A\b;
            % Nothing to report
            report = struct();

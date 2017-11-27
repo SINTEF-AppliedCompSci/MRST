@@ -11,7 +11,7 @@ classdef AMGCLSolverAD < LinearSolverAD
     %    This solver requires AMGCL to be installed and working.
     %
     % SEE ALSO:
-    %   BackslashSolverAD
+    %   `BackslashSolverAD`
 
    properties
        coarsening

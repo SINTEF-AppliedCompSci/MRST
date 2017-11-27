@@ -6,43 +6,43 @@ function sens = computeSensitivitiesAdjointAD(state0, states, model, schedule, g
 %
 % DESCRIPTION:
 %   For a given schedule, compute senistivities with regards to parameters
-%  
 %
 % REQUIRED PARAMETERS:
 %
-%   state0       - Physical model state at t = 0
+%   state0       - Physical model state at `t = 0`
 %
 %   states       - All previous states. Must support the syntax 
-%                  state = states{i}. If the problem is too large to fit in
-%                  memory, it can use ResultHandler class to retrieve files
+%                  `state = states{i}`. If the problem is too large to fit in
+%                  memory, it can use `ResultHandler` class to retrieve files
 %                  from the disk.
 %                  
 %   model        - Subclass of PhysicalModel class such as
-%                 ThreePhaseBlackOilModel that models the physical effects
-%                 we want to study.
+%                  `ThreePhaseBlackOilModel` that models the physical 
+%                  effects we want to study.
 %
-%   schedule     - Schedule suitable for simulateScheduleAD.
+%   schedule     - Schedule suitable for `simulateScheduleAD`.
 %
 %   getObjective - Function handle for getting objective function value 
 %                  for a given timestep with derivatives. Format: @(tstep)
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
-%   
+% OPTIONAL PARAMETERS:
+%
+%   'Parameters'     - Defaults to `{'transmissibility', 'porevolumes'}`. 
 % 
+%   'ParameterTypes' - Defaults to 'value' for all. The other option is
+%                      'multiplier'
+%
+%   'Regularization' - One (sparse) matrix for each parameter-set, requires
+%                      also modelBase
+%
+%   'LinearSolver'   - Subclass of `LinearSolverAD` suitable for solving the
+%                      adjoint systems.
 %
 % RETURNS:
-%
-%  'Parameters'     - Defaults to {'transmissibility', 'porevolumes'}. 
-% 
-%  'ParameterTypes' - Defaults to 'value' for all. The other option is 'multiplier'
-%
-%  'Regularization' - One (sparse) matrix for each parameter-set, requires also modelBase 
-%
-%  'LinearSolver'   - Subclass of 'LinearSolverAD' suitable for solving the
-%                     adjoint systems.
+%   sens - Sensitivites.
 %
 % SEE ALSO:
-%   computeGradientAD
+%   `computeGradientAD`
 
 %{
 Copyright 2009-2017 SINTEF Digital, Applied Mathematics.
