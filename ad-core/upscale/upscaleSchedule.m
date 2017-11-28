@@ -95,7 +95,11 @@ function Wc = handleWell(model, W, opt)
     Wc.WI = fn(W.WI, newMap, counts);
 
     % dZ
-    z = model.G.cells.centroids(Wc.cells, 3);
+    if model.G.griddim > 2
+        z = model.G.cells.centroids(Wc.cells, 3);
+    else
+        z = zeros(numel(Wc.cells), 1);
+    end
     Wc.dZ = z - W.refDepth;
     
     % cstatus
