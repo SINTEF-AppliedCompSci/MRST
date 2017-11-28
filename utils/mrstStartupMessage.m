@@ -4,22 +4,21 @@ function mrstStartupMessage()
 % SYNOPSIS:
 %   mrstStartupMessage
 %
-% PARAMETERS:
-%   None.
-%
-% RETURNS:
-%   Nothing. All output is printed to the command window.
+% DESCRIPTION:
+%   Display the welcome message in the command window, indicating that MRST
+%   is activated and ready for use. Some helpful links functions are also
+%   provided to help new users getting started.
 %
 % EXAMPLES:
 %    mrstStartupMessage()
 %
 % NOTE:
-%    mrstStartupMessage is normally automatically run during the startup
-%    process. Seeing the output from mrstStartupMesssage indicates that
+%    `mrstStartupMessage` is normally automatically run during the startup
+%    process. Seeing the output from `mrstStartupMesssage` indicates that
 %    MRST was successfully loaded and is ready for use.
 %
 % SEE ALSO:
-%   startup.m, mrstExamples, mrstModule, mrstPath
+%   `startup`, `mrstExamples`, `mrstModule`, `mrstPath`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

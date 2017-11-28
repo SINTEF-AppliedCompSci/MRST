@@ -6,12 +6,12 @@ function plotContours(g, value, n)
 %
 % DESCRIPTION:
 %   Function 'plotContours' is a poor-man's implementation of the
-%   contour-level drawing function 'contourf' designed to work with MRST's
+%   contour-level drawing function `contourf` designed to work with MRST's
 %   grid structure and cell-based values rather than the pure Cartesian
-%   (tensor product) nodal values of 'contourf'.  The contour lines follow
+%   (tensor product) nodal values of `contourf`.  The contour lines follow
 %   the grid lines and are, typically, not smooth.
 %
-%   The MRST function 'plotGridVolumes', which interpolates the data field
+%   The MRST function `plotGridVolumes`, which interpolates the data field
 %   onto a structured grid, is an alternative option for visualising levels
 %   and iso-surfaces.
 %
@@ -22,7 +22,7 @@ function plotContours(g, value, n)
 %           determining the contour locations.  One scalar value for each
 %           cell in 'G'.
 %
-%   n     - Number of (equidistant) contour lines/levels for 'field'.
+%   n     - Number of (equidistant) contour lines/levels for `field`.
 %           Positive integer.
 %
 % RETURNS:
@@ -44,11 +44,11 @@ function plotContours(g, value, n)
 %   plotContours(G, x.pressure, 20), axis equal tight
 %
 % NOTE:
-%   Function 'plotContours' is only supported in three space dimensions
-%   i.e., if G.griddim == 3.
+%   Function `plotContours` is only supported in three space dimensions
+%   i.e., if `G.griddim == 3`.
 %
 % SEE ALSO:
-%   plotGridVolumes, plotCellData, plotFaces, contourf.
+%   `plotGridVolumes`, `plotCellData`, `plotFaces`, `contourf`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

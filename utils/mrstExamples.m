@@ -7,9 +7,9 @@ function varargout = mrstExamples(varargin)
 %   exList = mrstExamples(...)
 %
 % PARAMETERS:
-%   [module list] -
+%   varargin -
 %           Sequence of strings that are treated as names of registered
-%           MRST modules (see functions 'mrstPath' and 'mrstModule').  The
+%           MRST modules (see functions `mrstPath` and `mrstModule`).  The
 %           special module name 'core', although not a module in a strict
 %           sense, represents those examples that are available in the base
 %           MRST package--i.e., without activating any modules at all.
@@ -22,30 +22,30 @@ function varargout = mrstExamples(varargin)
 %   exList - A cell array of same length as the number of input arguments,
 %            where each entry itself is a list (cell array of strings) of
 %            the paths to the examples of the corresponding module.  For
-%            instance, if called as
+%            instance, if called as ::
 %
 %                exList = mrstExamples('ad-blackoil', 'diagnostics')
 %
-%            then 'exList{1}' will be a cell array of the examples relating
-%            to module 'ad-blackoil' while 'exList{2}' is a cell array of
-%            the examples of module 'diagnostics'.
+%            then `exList{1}` will be a cell array of the examples relating
+%            to module `ad-blackoil` while `exList{2}` is a cell array of
+%            the examples of module `diagnostics`.
 %
-%            If called using the special string 'all', then 'exList'
+%            If called using the special string 'all', then `exList`
 %            contains one element for each known module and one additional
-%            element, specifically 'exList{1}', corresponding to the 'core'
+%            element, specifically `exList{1}`, corresponding to the `core`
 %            (i.e., base) MRST package.
 %
 % NOTES:
 %   If no output argument is given, the routine instead prints clickable
 %   editor links of all examples to the command window.
 %
-%   Examples are defined as all M files found in the 'examples' directory
-%   of a module--excluding any M files in a subdirectory called 'utils'.
-%   Subdirectories of the 'examples' directory other than 'utils' are
+%   Examples are defined as all M files found in the `examples` directory
+%   of a module--excluding any M files in a subdirectory called `utils`.
+%   Subdirectories of the `examples` directory other than `utils` are
 %   searched recursively.
 %
 % SEE ALSO:
-%   mrstModule, mrstPath.
+%   `mrstModule`, `mrstPath`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

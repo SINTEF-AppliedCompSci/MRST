@@ -4,7 +4,7 @@ function d = site()
 % SYNOPSIS:
 %   d = site()
 %
-% PARMETERS:
+% PARAMETERS:
 %   None.
 %
 % RETURNS:

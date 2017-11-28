@@ -4,7 +4,7 @@ function F = lbf()
 % SYNOPSIS:
 %   F = lbf()
 %
-% PARMETERS:
+% PARAMETERS:
 %   None.
 %
 % RETURNS:

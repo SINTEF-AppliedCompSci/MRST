@@ -10,17 +10,16 @@ function [f, varargout] = boundaryFaces(g, varargin)
 %   G     - Grid data structure.
 %
 %   cells - Non-empty subset of cells from which to extract boundary faces.
-%           OPTIONAL.  Default value: cells = 1 : G.cells.num, meaning all
-%           external faces for all grid cells will be extracted.  This
+%           OPTIONAL.  Default value: `cells = 1 : G.cells.num`, meaning
+%           all external faces for all grid cells will be extracted. This
 %           amounts to extracting the entire boundary of 'G'.
 %
 % RETURNS:
-%   f - List of faces bounding the sub domain given by 'cells'.
+%   f - List of faces bounding the sub domain given by `cells`.
 %
 %   c - List of specific grid cells connected to the individual faces in
-%       'f'.  This may be useful for plotting cell data (e.g., the cell
-%       pressure) on the sub domain faces by means of function 'plotFaces'.
-%       OPTIONAL.  Only returned if specifically requested.
+%       `f`.  This may be useful for plotting cell data (e.g., the cell
+%       pressure) on the sub domain faces by means of function `plotFaces`.
 %
 % EXAMPLE:
 %   G    = cartGrid([40, 40, 5]);
@@ -35,7 +34,7 @@ function [f, varargout] = boundaryFaces(g, varargin)
 %   hd     = plotFaces(G, f, log10(rock.perm(c,1)), 'FaceAlpha', 0.625);
 %
 % SEE ALSO:
-%   plotFaces.
+%   `plotFaces`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

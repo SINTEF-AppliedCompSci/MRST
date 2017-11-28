@@ -2,25 +2,19 @@ function varargout = mrstDatasetGUI()
 %Open dataset management user interface
 %
 % SYNOPSIS:
-%   mrstDatasetGUI()
+%   h = mrstDatasetGUI()
 %
 % DESCRIPTION:
 %   The dataset GUI is a user interface, allowing the user to see which
 %   datasets are known to MRST, visit their webpages, download and manage
 %   them. The function is built upon the dataset library.
 %
-% REQUIRED PARAMETERS:
-%   None.
-%
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
-%   None.
-%
 % RETURNS:
 %   h   - Handle to panel figure.
 %
 %
 % SEE ALSO:
-%   getDatasetInfo, getDatasetPath, listDatasetExamples
+%   `getDatasetInfo`, `getDatasetPath`, `listDatasetExamples`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

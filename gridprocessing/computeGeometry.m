@@ -1,73 +1,73 @@
 function G = computeGeometry(G, varargin)
-%Compute geometry of grid.
+%Add geometry information (centroids, volumes, areas) to a grid
 %
 % SYNOPSIS:
 %   G = computeGeometry(G)
 %   G = computeGeometry(G, 'pn1', pv1, ...)
 %
 % PARAMETERS:
+%
 %   G       - Grid structure as described by grid_structure.
 %
-%   'pn'/pv - List of 'key'/value pairs for supplying optional parameters.
-%             The supported options are
-%               - verbose --
-%                   Whether or not to display informational messages during
-%                   the computational process.
-%                   Logical.  Default value: Verbose = false (don't display
-%                   any informational messages).
+% KEYWORD ARGUMENTS:
+%   'verbose'      - Whether or not to display informational messages
+%                    during the computational process.
+%                    Logical.  Default value: `Verbose = mrstVerbose()`
 %
-%               - hingenodes --
-%                   Structure with fields 'faces' and 'nodes'.  A hinge
-%                   node is an extra center node for a face, that is used
-%                   to triangulate the face geometry.  For each face number
-%                   F in 'faces' there is a row in 'nodes' which holds the
-%                   node coordinate for the hinge node belonging to face F.
+%   'hingenodes'   - Structure with fields 'faces' and 'nodes'.  A hinge
+%                    node is an extra center node for a face, that is used
+%                    to triangulate the face geometry.  For each face
+%                    number F in 'faces' there is a row in 'nodes' which
+%                    holds the node coordinate for the hinge node belonging
+%                    to face F.
 %
-%                   Default value: hingenodes = [] (no additional center
-%                   nodes).
+%                    Default value: hingenodes = [] (no additional center
+%                    nodes).
 %
-%               - MaxBlockSize --
-%                   Maximum number of grid cells to process in a single
-%                   pass.  Increasing this number may reduce overall
-%                   computational time, but will increase total memory use.
-%                   If empty (i.e., if ISEMPTY(MaxBlockSize) is TRUE) or
-%                   negative, process all grid cells in a single pass.
+%   'MaxBlockSize' - Maximum number of grid cells to process in a single
+%                    pass.  Increasing this number may reduce overall
+%                    computational time, but will increase total memory
+%                    use. If empty (i.e., if `isempty(MaxBlockSize)` is
+%                    `true`) or negative, process all grid cells in a
+%                    single pass.
 %
-%                   Numeric scalar.  Default value: MaxBlockSize = 20e3.
+%                    Numeric scalar.  Default value: MaxBlockSize = 20e3.
 %
 % RETURNS:
 %   G - Grid structure with added fields:
-%         - cells
-%             - volumes   -- A G.cells.num-by-1 array of cell volumes.
 %
-%             - centroids -- A G.cells.num-by-SIZE(G.nodes.coords, 2) array
-%                            of (approximate) cell centroids.
+%         * cells
 %
-%         - faces
-%             - areas     -- A G.faces.num-by-1 array of face areas.
+%             - volumes :  A `G.cells.num` by `1` array of cell volumes.
 %
-%             - normals   -- A G.faces.num-by-G.griddim array
-%                            of face normals.
+%             - centroids: A `G.cells.num` by `size(G.nodes.coords, 2)`
+%               array of (approximate) cell centroids. 
 %
-%             - centroids -- A G.faces.num-by-SIZE(G.nodes.coords, 2) array
-%                            of (approximate) face centroids.
+%         * faces
 %
-% COMMENTS:
+%             - areas:     A `G.faces.num` by `1` array of face areas.
+%
+%             - normals:   A `G.faces.num` by `G.griddim` array of normals.
+%
+%             - centroids: A `G.faces.num` by `size(G.nodes.coords, 2)`
+%               array of (approximate) face centroids. 
+%
+% NOTE:
 %   Individual face normals have length (i.e., Euclidian norm) equal to
 %   the corresponding face areas.  In other words, subject to numerical
 %   round-off, the identity
 %
-%         NORM(G.faces.normals(i,:), 2) == G.faces.areas(i)
+%         `norm(G.faces.normals(i,:), 2) == G.faces.areas(i)`
 %
-%   holds for all faces i=1:G.faces.num .
+%   holds for all faces `i=1:G.faces.num`.
 %
-%   In three space dimensions, i.e., when G.griddim == 3,
-%   function 'computeGeometry' assumes that the nodes on a given face, f,
-%   are ordered such that the face normal on f is directed from cell
-%   G.faces.neighbors(f,1) to cell G.faces.neighbors(f,2).
+%   In three space dimensions, i.e., when `G.griddim == 3`,
+%   function 'computeGeometry' assumes that the nodes on a given face, `f`,
+%   are ordered such that the face normal on `f` is directed from cell
+%   `G.faces.neighbors(f,1)` to cell `G.faces.neighbors(f,2)`.
 %
 % SEE ALSO:
-%   grid_structure.
+%   `grid_structure`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

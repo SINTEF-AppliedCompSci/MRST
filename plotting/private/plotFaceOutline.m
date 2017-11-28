@@ -34,7 +34,7 @@ function h = plotFaceOutline(G, f, varargin)
 %   plotFaceOutline(G, faces, 'r');
 %
 % SEE ALSO:
-%   plotCellData, plotGrid, plotFaces, newplot, patch.
+%   `plotCellData`, `plotGrid`, `plotFaces`, `newplot`, `patch`.
 
 
 %{

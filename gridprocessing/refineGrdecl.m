@@ -1,41 +1,68 @@
 function grdecl = refineGrdecl(grdecl, dim, varargin)
+% Refine a corner-point grid in `GRDECL` format
 %
 % SYNOPSIS:
 %   function grdecl = refineGrdecl(grdecl, dim, varargin)
 %
-% DESCRIPTION: function to refine a grdecl grid (Eclipse format)
+% DESCRIPTION: 
+%   This function attempts to refine a `GRDECL` file. It is somewhat
+%   limited in scope and user caution is advised.
 %
-%   - Refines the grid
-%   - Correct cell data keywords,
-%     keyword = {'ACTNUM', 'PERMX', 'PERMY', 'PERMZ', 'PORO'...
-%     , 'MULTZ', 'MULTX', 'MULTY', 'EQLNUM'};
-%   - Correct the FAULTS keyword, multipliers are not changed
-%     which is only correct for refinement in z direction
-%   - Add the keywords which do not change,
-%     keyword = {'OIL', 'METRIC', 'WATER', 'EQUIL', 'ROCK', 'FLUID', 'START'}
-%   - for wells (SHEDULING.control)
-%       - change cell number in of wells
-%       - NB !! do not remove perforations
-%       - KH and well index not changed
-%   - NB! not handle flowbased upscaling 'MULTZ','MULTX','MULTY'
+%   Currently, the function
+%
+%     - Refines the grid by subdividing each cell according to input
+%     parameter `dim`.
+%
+%     - Updates the major cell keywords (`ACTNUM`, `PERMX`, `PERMY`,
+%     `PERMZ`, `PORO`, `MULTZ`, `MULTX`, `MULTY` and `EQLNUM`).
+%
+%     - Updates the `FAULTS` keyword, multipliers are not changed
+%     which is only mathematically correct for refinement in z direction.
+%
+%     - Copy keywords which are not affected by refinement (`OIL`,
+%     `METRIC`, `WATER`, `EQUIL`, `ROCK`, `FLUID`, `START`).
+%
+%    - Well features (`SCHEDULE.control`),
+%
+%       * Cell numbering in wells is updated
+%
+%       * KH and well index not changed
+%
+%     - Function does not handle flow-based upscaling keywords (e.g.
+%     `MULTZ`, `MULTX`, `MULTY`) for which there is no natural automated
+%     refinement process.
 %
 %
-% IMPORTANT NOTICE : This function is not fully tested. To be used with care.
+% NOTE:
+%   This function is not fully tested and has only been used on a limited
+%   subset of models. While potentially useful, it should be used with care
+%   and results should be carefully examined.
 %
 % PARAMETERS:
-%   grdecl   - grid in eclipse format
-%   dim      - [nx, ny, nz] defines ho much one should refine in each direction
-%   varargin - optional parameters
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+%   grdecl   - Corner-point grid in grdecl format, from e.g. `readGRDECL`.
+%
+%   dim      - [ni, nj, nk] defines degree of refiment each cardinal
+%              direction (I, J, K). %
 %
 % RETURNS:
 %   grdecl - refined grid in eclipse format
 %
 % EXAMPLE:
+%    grdecl0 = makeModel3([10, 5, 5]);
+%    grdecl = refineGrdecl(grdecl0, [2, 2, 2]);
+%
+%    figure;
+%    subplot(1, 2, 1);
+%    plotGrid(processGRDECL(grdecl0))
+%    view(50, 40);
+%
+%    subplot(1, 2, 2);
+%    plotGrid(processGRDECL(grdecl))
+%    view(50, 40);
 %
 % SEE ALSO:
-%
+% `processGRDECL`
 
 
 %{
@@ -63,7 +90,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     nx = dim(1); ny = dim(2); nz = dim(3);
     % if(nz>1)
 
-    %% refining in z direction
+    % refining in z direction
     dz = zcorn(:, :, 2:2:end) - zcorn(:, :, 1:2:end);
     zcorn_new = zeros(size(zcorn, 1), size(zcorn, 2), size(zcorn, 3) * nz);
     if(nz>1)
@@ -75,7 +102,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         zcorn_new = zcorn;
     end
 
-    %% refining in x direction
+    % refining in x direction
     xyz_new = xyz;
     if(nx>1)
         zcorn = zcorn_new;
@@ -97,7 +124,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
     end
 
-    %% refining in y direction
+    % refining in y direction
     zcorn = zcorn_new;
     xyz = xyz_new;
     dj = xyz(:, :, 2:end) - xyz(:, :, 1:end - 1);
@@ -126,7 +153,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     cartDims = grdecl.cartDims;
 
-    %% cell based fields
+    % cell based fields
     keyword = {'ACTNUM', 'PERMX', 'PERMY', 'PERMZ', 'PORO'...
                , 'MULTZ', 'MULTX', 'MULTY', 'EQLNUM'};
 
@@ -144,7 +171,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
     end
 
-    %% not changed fields
+    % not changed fields
     keyword = {'OIL', 'METRIC', 'WATER', 'EQUIL', 'ROCK', 'FLUID', 'START'};
     for i = 1:numel(keyword)
         if(isfield(grdecl, keyword{i}))
@@ -152,7 +179,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
     end
 
-    %% fault
+    % fault
     if(isfield(grdecl, 'FAULTS'))
         faults = fields(grdecl.FAULTS);
         grdecl_new.FAULTS = grdecl.FAULTS;
@@ -180,7 +207,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     end
                     grdecl_new.SCHEDULE.control.COMPDAT(:, 1 + i) = cellfun(@(x) fac .* (x - 1) + 1, E, 'unif', false);
                 end
-                %% repeat perforation in the right direction and change fields
+                % repeat perforation in the right direction and change fields
                 compdat_old = grdecl_new.SCHEDULE.control(j).COMPDAT;
                 grdecl_new.SCHEDULE.control(j).COMPDAT = [];
                 for i = 1:size(compdat_old, 1)
@@ -192,7 +219,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     for d = 1:size(gg, 1)
                         if(mydim<3)
                             gg(d, 1 + mydim) = {cell2mat(gg(d, 1 + mydim)) + d - 1};
-                            %%
                             if(mydim == 1)
                                 gg(d, 3) = {cell2mat(gg(d, 3)) + floor(dim(2) / 2)};
                             else

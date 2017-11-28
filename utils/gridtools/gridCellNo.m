@@ -11,7 +11,8 @@ function cellno = gridCellNo(G, varargin)
 %   c - Cells for which to construct mapping.  Array of numeric cell
 %       indices in the range 1:G.cells.num .
 %
-%       OPTIONAL.  If unspecified, function 'gridCellNo' will behave as if
+%       OPTIONAL.  If unspecified, function `gridCellNo` will behave as
+%       if ::
 %
 %           c = 1 : G.cells.num
 %
@@ -19,14 +20,15 @@ function cellno = gridCellNo(G, varargin)
 %
 % RETURNS:
 %   cellno -
-%       Map from half-faces to cell or cell subset indices.  The expression
+%       Map from half-faces to cell or cell subset indices.  The
+%       expression::
 %
 %           c(cellno(hf))
 %
-%       derives the cell in 'G' to which half-face 'hf' belongs.  This, in
-%       turn, means that if 'c' is unspecified, then 'cellno(hf)' is that
-%       cell directly.  The half-face 'hf' must be relative to the cell
-%       subset identified by 'c' or global if 'c' is not specified.
+%       derives the cell in `G` to which half-face `hf` belongs.  This, in
+%       turn, means that if `c` is unspecified, then `cellno(hf)` is that
+%       cell directly.  The half-face `hf` must be relative to the cell
+%       subset identified by `c` or global if `c` is not specified.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

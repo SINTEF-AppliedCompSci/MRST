@@ -1,5 +1,5 @@
 function v = indirectionSub(i, valuePos, values)
-% Index map of the type G.cells.facePos, G.faces.nodePos...
+% Look-up in index map of the type G.cells.facePos, G.faces.nodePos, etc
 %
 % SYNOPSIS:
 %   v = indirectionSub(i, valuePos, values)

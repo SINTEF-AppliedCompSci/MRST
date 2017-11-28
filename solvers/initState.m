@@ -21,7 +21,7 @@ function state = initState(G, W, p0, varargin)
 %   state - Initial reservoir (and well) state object.
 %
 % SEE ALSO:
-%   grid_structure, addWell.
+%   `grid_structure`, `addWell`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

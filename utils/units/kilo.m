@@ -4,7 +4,7 @@ function k = kilo()
 % SYNOPSIS:
 %   k = kilo()
 %
-% PARMETERS:
+% PARAMETERS:
 %   None.
 %
 % RETURNS:

@@ -2,7 +2,7 @@ function downloadFcn = mrstWebSave()
 %Get Call-Back for Downloading Online Resources Specified by URLs
 %
 % SYNOPSIS:
-%   downloadFcn = mrstWebSave
+%   downloadFcn = mrstWebSave()
 %
 % PARAMETERS:
 %   None.
@@ -10,13 +10,13 @@ function downloadFcn = mrstWebSave()
 % RETURNS:
 %   downloadFcn - Call-Back function (function handle) for downloading
 %                 online resources specified through a URL.  In recent
-%                 versions of MATLAB this is just function WEBSAVE.  We
-%                 wrap function URLWRITE as a backwards compatbility
+%                 versions of MATLAB this is just function `websave`. We
+%                 wrap function `urlwrite` as a backwards compatbility
 %                 measure in earlier versions of MATLAB.
 %
 % NOTE:
 %   This function is mainly intended to support an encompassing download
-%   manager such as function githubDownload.
+%   manager such as function `githubDownload`.
 %
 %   The call-back function supports the following syntax
 %
@@ -24,22 +24,23 @@ function downloadFcn = mrstWebSave()
 %      file = downloadFcn(file, url, 'p1', v1, ...)
 %
 %   in which the parameters are interpreted as follows
+%
 %      file - Name of local file into which contents of remote resource
-%             will be saved.
+%      will be saved.
 %
 %      url  - Uniform resource locator of remote resource (file contents).
 %
-%      'pn'/pv -
-%             List of key/value pairs that will be passed through to the
-%             underlying GET request of the URL.  Numeric arguments
-%             converted to strings using function NUM2STR.
+%      'pn'/pv - List of key/value pairs that will be passed through to the
+%      underlying GET request of the URL.  Numeric arguments converted to
+%      strings using function `num2str`.
 %
 %   and the return value is
+%
 %      file - Unmodified input file name if successful, empty in case of
-%             download failure.
+%      download failure.
 %
 % SEE ALSO:
-%   githubDownload.
+%   `githubDownload`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

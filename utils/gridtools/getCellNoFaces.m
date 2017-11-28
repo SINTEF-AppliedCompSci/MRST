@@ -27,7 +27,7 @@ function [cellNo, cellFaces, isNNC] = getCellNoFaces(G)
 %               containing a boolean indicating if that specific connection
 %               originates from a geometric face or a NNC connection
 % SEE ALSO:
-%   rldecode
+%   `rldecode`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

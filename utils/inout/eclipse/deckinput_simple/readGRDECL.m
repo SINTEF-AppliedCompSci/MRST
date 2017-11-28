@@ -12,55 +12,52 @@ function [grdecl, unrec] = readGRDECL(fn, varargin)
 %             (seekable) file on disk, not to be read in through (e.g.) a
 %             POSIX pipe.
 %
-%   'pn'/pv - List of 'key'/value pairs designating optional parameters.
-%             Currently supported values are
-%               - verbose  -- Emit messages to screen while processing.
-%                             Default value: FALSE.
-%               - keywords -- Cell array of strings that should be
-%                             recognized outside the predefined set of
-%                             keywords. NB! Are interpreted as one value
-%                             per cell. Default value: {}
+% OPTIONAL PARAMETERS:
+%   'verbose'        - Emit messages to screen while processing.
+%                      Default value: FALSE.
 %
-%               - missing_include --
-%                             Callback function through which to handle
-%                             missing INCLUDE files.  Must support the
-%                             syntax
+%   'keywords'       - Cell array of strings that should be recognized
+%                      outside the predefined set of keywords. NB! Are
+%                      interpreted as one value per cell. Default value: {}
 %
-%                                missing_include(id, '%s', msg)
+%   'missing_include - Callback function through which to handle missing
+%                      `INCLUDE` files.  Must support the syntax ::
 %
-%                             with 'id' being a message ID and 'msg' being
-%                             a string (diagnostic message).
+%                          missing_include(id, '%s', msg)
 %
-%                             Default value: missing_include = @error (end
-%                             input reading with an error/failure if we
-%                             encounter a missing INCLUDE file).
+%                      with 'id' being a message ID and 'msg' being a
+%                      string (diagnostic message).
 %
-%                             Other possible values are @warning (report
-%                             warning), @(varargin) [] (ignore everything)
-%                             and similar.
+%                      Default value: missing_include = @error (end input
+%                      reading with an error/failure if we encounter a
+%                      missing `INCLUDE` file).
+%
+%                      Other possible values are @warning (report warning),
+%                      @(varargin) [] (ignore everything) and similar.
 %
 % RETURNS:
 %   grdecl - Output structure containing the known, though mostly
 %            unprocessed, fields of the GRDECL specification, i.e., the
-%            'GRID' section of an ECLIPSE input deck.
+%            `GRID` section of an ECLIPSE input deck.
 %
-%            With the exception of 'SPECGRID' whose first three arguments
-%            (grid cell dimensions NX, NY, NZ) are stored in 'grdecl'
-%            structure field 'cartDims', all currently recognized keywords
-%            are stored in equally named 'grdecl' structure fields.
-%            Specifically, GRDECL keyword 'COORD' is stored 'grdecl'
-%            structure field 'COORD' and so forth.
+%            With the exception of `SPECGRID` whose first three arguments
+%            (grid cell dimensions NX, NY, NZ) are stored in `grdecl`
+%            structure field `cartDims`, all currently recognized keywords
+%            are stored in equally named `grdecl` structure fields.
+%            Specifically, GRDECL keyword `COORD` is stored `grdecl`
+%            structure field `COORD` and so forth.
 %
-%            The pillar description 'COORD' is stored in a 6*nPillar
+%            The pillar description `COORD` is stored in a 6*nPillar
 %            array (number of pillars, nPillar == (NX+1)*(NY+1)) of
-%            bottom/top coordinate pairs.  Specifically,
+%            bottom/top coordinate pairs.  Specifically, ::
 %
 %              grdecl.COORD((i-1)*6+(1:3)) -- (x,y,z)-coordinates of
 %                                             pillar 'i' top point.
 %              grdecl.COORD((i-1)*6+(4:6)) -- (x,y,z)-coordinates of
 %                                             pillar 'i' bottom point.
 %
-%            The currently recognized keywords are:
+%            The currently recognized keywords are::
+%
 %            'ACTNUM', 'COORD', 'DXV', 'DYV', 'DZV', 'DEPTHZ',
 %            'DIMENS', 'INCLUDE', 'MULTX', 'MULTX-', 'MULTY', 'MULTY-',
 %            'MULTZ', 'MULTZ-', 'NOGRAV', 'NTG', 'PERMX', 'PERMXY',
@@ -70,7 +67,7 @@ function [grdecl, unrec] = readGRDECL(fn, varargin)
 %   unrec -  Cell array with unrecognized keywords
 %
 % SEE ALSO:
-%   processGRDECL.
+%   `processGRDECL`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -10,35 +10,36 @@ classdef ADI
     %   jacobian - The Jacobian of the object.
     %
     % RETURNS:
-    %   ADI object.
+    %   u - ADI object.
     %
-    % COMMENTS:
+    % NOTE:
     %  This class is typically instansiated for a set of different variables
-    %  using initVariablesADI. The file contains a worked example demonstrating
-    %  the usage for several variables.
+    %  using `initVariablesADI`. The file contains a worked example
+    %  demonstrating the usage for several variables.
     %
     % SEE ALSO:
-    %   initVariablesADI
+    %   `initVariablesADI`, `PhysicalModel`
 
 
    properties
-      val  %function value
-      jac  %list of sparse jacobian matrices
+      val  % function value as a column vector of doubles
+      jac  % cell array of sparse jacobian matrices
    end
 
    methods
       function obj = ADI(a,b)
-         %ADI class constructor
+         % ADI class constructor
          if nargin == 0 % empty constructor
             obj.val     = [];
             obj.jac     = {};
-         elseif nargin == 1 %
+         elseif nargin == 1
+             % Only allowed for values that are already ADI.
              if isa(a, 'ADI')
                  obj = a;
              else
                  error('Contructor requires 2 inputs')
              end
-         elseif nargin == 2 % values + jacobians
+         elseif nargin == 2 % values + jacobians are supplied
              obj.val = a; % value
              if ~iscell(b)
                  b = {b};
@@ -51,46 +52,56 @@ classdef ADI
 
       %--------------------------------------------------------------------
       function h = numval(u)
+          % Get number of values. Equivalent of `numel` for doubles. We do
+          % not overload numel directly as it is not recommended by
+          % Mathworks.
           h = numel(u.val);
       end
 
       %--------------------------------------------------------------------
       function h = double(u)
+          % Cast to double and thereby remove derivatives:
           h = u.val;
       end
 
       %--------------------------------------------------------------------
 
       function h = ge(u, v)
+          % Greater than or equal: `u>=v`
           h = ge(double(u), double(v));
       end
 
       %--------------------------------------------------------------------
 
       function h = gt(u, v)
+          % Greater than: `u>v`
           h = gt(double(u), double(v));
       end
 
       %--------------------------------------------------------------------
 
       function h = le(u, v)
+          % Less than or equal: `u<=v`
           h = le(double(u), double(v));
       end
 
       %--------------------------------------------------------------------
 
       function h = lt(u, v)
+          % Less than: `u < v`
           h = lt(double(u), double(v));
       end
       %--------------------------------------------------------------------
 
       function h = uplus(u)
+          % Unitary plus: `h = +u`
           h = u;
       end
 
       %--------------------------------------------------------------------
 
       function u = uminus(u)
+          % Unitary minus: `h = -u`
          u.val = -u.val;
          u.jac =  ADI.uminusJac(u.jac);
       end
@@ -98,7 +109,9 @@ classdef ADI
       %--------------------------------------------------------------------
 
       function h = plus(u,v)
-         if ~isa(u,'ADI')       %u is a vector/scalar
+          % Addition ot two values, where either value can be ADI of
+          % appropriate dimensions: `h = u + v`
+         if ~isa(u,'ADI') %u is a vector/scalar and v is ADI
              if numel(u) <= numel(v.val)
                  h = v;
                  h.val = h.val + u;
@@ -107,7 +120,7 @@ classdef ADI
              else
                  error('Vectors have different lengths')
              end
-         elseif ~isa(v,'ADI')   %v is a vector/scalar
+         elseif ~isa(v,'ADI')   %v is a vector/scalar and u is ADI
              if numel(v) <= numel(u.val)
                  h = u;
                  h.val = h.val + v;
@@ -117,6 +130,7 @@ classdef ADI
                  error('Vectors have different lengths')
              end
          else
+             % Both variables are ADI
              if numel(u.val) == numel(v.val)
                  h = u;
                  h.val = u.val + v.val;
@@ -137,13 +151,14 @@ classdef ADI
       %--------------------------------------------------------------------
 
       function h = minus(u,v)
+          % Subtraction with two elements: `h = u - v`
          h = plus(u, uminus(v));
       end
 
       %--------------------------------------------------------------------
 
       function h = mtimes(u,v)
-          % '*' operation
+          % Multiplication with matrix or scalar: `h = u*v`
           if ~isa(u,'ADI') %u is a scalar/matrix
               h = v;
               h.val = u*h.val;
@@ -171,8 +186,8 @@ classdef ADI
       %--------------------------------------------------------------------
 
       function h = times(u,v)
-          % '.*' operation
-         if ~isa(u,'ADI') %u is a scalar/vector
+          % Element-wise multiplication: h = u.*v
+         if ~isa(u,'ADI') %u is a scalar/vector and v is ADI.
              if numel(u)==numel(v.val)
                  h = v;
                  h.val = u.*h.val;
@@ -183,9 +198,10 @@ classdef ADI
              else
                  h = mtimes(u,v);
              end
-         elseif ~isa(v,'ADI') %v is a scalar/vector
+         elseif ~isa(v,'ADI') %v is a scalar/vector and u is ADI.
              h = times(v,u);
          else
+             % Both u and v are ADI
              if numel(u.val)==numel(v.val)
                  h = u;
                  h.jac = ADI.timesJac(h.val, v.val, h.jac, v.jac);
@@ -201,7 +217,7 @@ classdef ADI
       %--------------------------------------------------------------------
 
       function h = mrdivide(u,v)
-          % '/'
+          % Right matrix divide: `h=u/v`
          if ~isa(v,'ADI') %v is a scalar
             h = mtimes(u, 1/v);
          else
@@ -212,7 +228,7 @@ classdef ADI
       %--------------------------------------------------------------------
 
       function h = mldivide(u,v)
-          % '\'
+          % Left matrix divide: `h=u\v`
           if ~isa(u,'ADI') %u is a scalar/matrix
               h.val = u\v.val;
               h.jac = mldivideJac(u, h.jac);
@@ -224,15 +240,15 @@ classdef ADI
       %--------------------------------------------------------------------
 
       function h = power(u,v)
-          % '.^'
-         if ~isa(v,'ADI') % v is a scalar
+          % Element-wise poewr. `h=u.^v`
+         if ~isa(v,'ADI') % v is a scalar and u is ADI
              h = u;
              h.val = h.val.^v;
              h.jac = ADI.lMultDiag(v.*u.val.^(v-1), u.jac);
              if isempty(h.jac)
                  h = h.val;
              end
-         elseif ~isa(u,'ADI') % u is a scalar
+         elseif ~isa(u,'ADI') % u is a scalar and v is ADI
              h = v;
              h.val = u.^v.val;
              h.jac = ADI.lMultDiag((u.^v.val).*log(u), v.jac);
@@ -254,23 +270,25 @@ classdef ADI
       %--------------------------------------------------------------------
 
       function h = rdivide(u,v)
-          % './'
+          % Right element-wise division: `h = u./v`
           h = times(u, power(v, -1));
       end
 
       %--------------------------------------------------------------------
 
       function h = ldivide(u,v)
-          % '.\'
+          % Left element-wise division: `h = u.\v`
           h = rdivide(v,u);
       end
 
       %--------------------------------------------------------------------
       function numVars = getNumVars(ad)
+          % Get number of derivatives in each Jacobian block.
           numVars = cellfun(@(x) size(x, 2), ad.jac)';
       end
 
       function h = subsref(u,s)
+          % Subscripted reference. Called for `h = u(v)`.
           if strcmp(s(1).type, '.')
               h = builtin('subsref',u,s);
           else
@@ -302,6 +320,7 @@ classdef ADI
       %--------------------------------------------------------------------
 
       function u = subsasgn(u,s,v)
+          % Subscripted reference. Called for `u(s) = v`
           if strcmp(s(1).type, '.')
               u = builtin('subsasgn',u,s,v);
           else
@@ -336,6 +355,7 @@ classdef ADI
       %--------------------------------------------------------------------
 
       function h = exp(u)
+          % Element-wise exponential: `h=exp(u)`.
           eu = exp(u.val);
           h = u;
           h.val = eu;
@@ -344,8 +364,9 @@ classdef ADI
               h = h.val;
           end
       end
-      %
+      %--------------------------------------------------------------------
       function h = log(u)
+          % Element-wise natural logarithm: `h=log(u)`
           logu = log(u.val);
           h = u;
           h.val = logu;
@@ -358,7 +379,7 @@ classdef ADI
       %--------------------------------------------------------------------
 
       function h = max(u,v)
-          % this function should be expanded
+          % Take the element-wise maximum value of two objects
           if(nargin==1)
               assert(isa(u,'ADI'));
               [value,i] = max(u.val);
@@ -395,8 +416,10 @@ classdef ADI
       %--------------------------------------------------------------------
 
       function h = min(u, v)
-          % Use def. of maximum to handle this
+          % Element-wise minimum value of two objects.
+          
           if(nargin==1)
+              % Use def. of maximum to handle this
               h = -max(-u);
               return;
           end
@@ -406,12 +429,14 @@ classdef ADI
       %--------------------------------------------------------------------
 
       function u = sum(u)
+          % Sum of vector
           u.val = sum(u.val);
           u.jac = sumJac(u.jac);
       end
 
       %--------------------------------------------------------------------
       function u = cumsum(u)
+          % Cumulative sum of vector
           u.val = cumsum(u.val);
           u.jac = cumsumJac(u.jac);
       end
@@ -419,12 +444,14 @@ classdef ADI
       %--------------------------------------------------------------------
 
       function h = sign(u)
+         % Element-wise sign of vector
          h = sign(u.val);
       end
 
       %--------------------------------------------------------------------
 
       function u = abs(u)
+          % Absolute value
           u.jac = ADI.lMultDiag(sign(u.val), u.jac);
           u.val = abs(u.val);
           if isempty(u.jac)
@@ -435,13 +462,16 @@ classdef ADI
       %--------------------------------------------------------------------
 
       function u = repmat(u, varargin)
-          % only makes sense if second dim =1
+          % Replicate and tile array of values.
+          % NOTE:
+          %   Only allowed in the first (column) dimension for ADI objects.
           u.val = repmat(u.val, varargin{:});
           u.jac = repmatJac(u.jac, varargin{:});
       end
 
       %--------------------------------------------------------------------
       function h = vertcat(varargin)
+          % Vertical concatentation of both ADI and double types.
           isD = cellfun(@isnumeric, varargin);
           if any(isD)
               sampleAD = varargin(~isD);
@@ -503,6 +533,7 @@ classdef ADI
       %--------------------------------------------------------------------
 
       function u = interpReg(T, u, reginx)
+          % Interpolate property with region support
           [y, dydu] = interpReg(T, u.val, reginx);
           u.val = y;
           u.jac = ADI.lMultDiag(dydu, u.jac);
@@ -514,7 +545,7 @@ classdef ADI
       %--------------------------------------------------------------------
 
       function h = interpRegPVT(T, x, v, flag, reginx)
-
+          % Interpolate special PVT table with region support
           if ~isa(x,'ADI') %u is a scalar/matrix
               h = v;
               [h.val, dydx] = interpRegPVT(T, x, v.val, flag, reginx);
@@ -534,6 +565,7 @@ classdef ADI
       end
 
       function h = interpTable(X, Y, x, varargin)
+         % Interpolate in a table
          h = x;
          h.val = interpTable(X, Y, x.val, varargin{:});
          h.jac = ADI.lMultDiag(dinterpTable(X,Y, x.val, varargin{:}), x.jac);
@@ -543,6 +575,7 @@ classdef ADI
       end
       
      function u = reduceToDouble(u)
+         % Switch to double representation if no derivatives are present.
          if isa(u, 'ADI') && sum(cellfun(@nnz, u.jac)) == 0
              u = u.val;
          end

@@ -4,7 +4,7 @@ function mu = nano()
 % SYNOPSIS:
 %   mu = nano()
 %
-% PARMETERS:
+% PARAMETERS:
 %   None.
 %
 % RETURNS:

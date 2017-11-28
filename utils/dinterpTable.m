@@ -8,23 +8,22 @@ function dyidx = dinterpTable(x, y, xi, varargin)
 % PARAMETERS:
 %   X       - Nodes at which underlying function y=y(x) is sampled.
 %
-%   Y       - Values of the underlying function y=y(x) at the nodes, X.
+%   Y       - Values of the underlying function y=y(x) at the nodes, `X`.
 %
 %   xi      - Evaluation points for new, interpolated, values of the
 %             derivative y'(x).
 %
-%   'pn'/pv - List of 'key'/value pairs defining optional parameters.  The
-%             supported options are:
-%                - spline -- Whether or not to use spline interpolation.
-%                            Logical.  Default value: spline=false (use
-%                            linear interpolation/extrapolation).
+% OPTIONAL PARAMETERS:
+%   'spline' - Whether or not to use spline interpolation.
+%              Logical.  Default value: `spline=false` (use linear
+%              interpolation/extrapolation).
 %
 % RETURNS:
 %   dyi - Approximate (interpolated/extrapolated) values of the derivative
-%         of the function y=y(x) at the points xi.
+%         of the function y=y(x) at the points `xi`.
 %
 % SEE ALSO:
-%   dinterpq1, interpTable, interp1, spline.
+%   `dinterpq1`, `interpTable`, `interp1`, `spline`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

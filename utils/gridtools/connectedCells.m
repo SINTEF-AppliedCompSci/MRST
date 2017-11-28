@@ -11,12 +11,12 @@ function s = connectedCells(G, varargin)
 %       into the cells of 'G'.
 %
 % RETURNS:
-%   s - Connected component set.  An n-element CELL array, one element for
+%   s - Connected component set.  An n-element `cell` array, one element for
 %       each component, of grid cells.  Specifically, s{i} contains the
 %       grid cell indices of component 'i'.
 %
 % SEE ALSO:
-%   grid_structure, dmperm.
+%   `grid_structure`, `dmperm`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

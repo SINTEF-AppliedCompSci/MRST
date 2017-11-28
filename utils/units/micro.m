@@ -4,7 +4,7 @@ function mu = micro()
 % SYNOPSIS:
 %   mu = micro()
 %
-% PARMETERS:
+% PARAMETERS:
 %   None.
 %
 % RETURNS:

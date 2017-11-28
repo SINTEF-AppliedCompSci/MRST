@@ -1,27 +1,27 @@
 function [xyz, zcorn] = grdeclXYZ(grdecl, varargin)
+% Get corner-point pillars and coordinates in alternate format
 %
 % SYNOPSIS:
-%   [xyz, zcorn] = grdeclXYZ(grdecl,varargin)
+%   [xyz, zcorn] = grdeclXYZ(grdecl, varargin)
 %
-% DESCROPTION: grdeclXYZ get the pillar and zcorn coordinates of the cornerpoint
-% format in a more useful format.
 %
 % PARAMETERS:
 %   grdecl   - Grid in Eclipse format
 %
 %
-% RETURN:
+% KEYWORD ARGUMENTS:
 %
-% xy z  - The pillar coordinates such that xyz(1:3,i,j) and xyz(4:6,i,j)
-%         corresponds to the top and bottom coordinates of the pilar i,j,
-%         respectively.
-% zcorn - Vertical cordinates (z-value) for each corner for each cell, ordered in
-%         increasing Cartesian coordinates (x -> y -> z).
+%   'lefthanded_numbering' - If set to true, the numbering of cells in the
+%                           y-direction starts with the largest values.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% RETURNS:
 %
-% 'lefthanded_numbering' - should be put true if numbering of cells for the
-%                          y-axis is in decresing order
+%   x,y,z  - The pillar coordinates such that xyz(1:3,i,j) and xyz(4:6,i,j)
+%            corresponds to the top and bottom coordinates of the pilar i,j,
+%            respectively.
+%
+%   zcorn  - Vertical cordinates (z-value) for each corner for each cell, ordered in
+%            increasing Cartesian coordinates (x -> y -> z).
 %
 % SEE ALSO:
 %

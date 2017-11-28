@@ -4,7 +4,7 @@ function m = dalton()
 % SYNOPSIS:
 %   m = dalton()
 %
-% PARMETERS:
+% PARAMETERS:
 %   None.
 %
 % RETURNS:

@@ -19,22 +19,21 @@ function rock = makeRock(G, perm, poro, varargin)
 %                 therefore interpreted as a uniform (i.e., a homogeneous),
 %                 possibly anisotropic, permeability field.
 %
-%               - A matrix with column count as above, but with G.cells.num
-%                 rows in total.  This input will be treated as per-cell
-%                 values, resulting in heterogeneous permeability.
+%               - A matrix with column count as above, but with
+%                 `G.cells.num` rows in total.  This input will be treated
+%                 as per-cell values, resulting in heterogeneous
+%                 permeability.
 %
 %   poro    - Porosity field.  Can be either a single, scalar value or a
 %             column vector with one entry per cell.  Non-positive values
 %             will result in a warning.
 %
-%   'pn'/pv - List of 'key'/value pairs defining optional parameters.  The
-%             supported options are:
-%               - ntg --
-%                  Net-to-gross factor.  Either a single scalar value that
-%                  is repeated for all active cells, or a column vector
-%                  with one entry per cell.  NTG acts as a multiplicative
-%                  factor on porosity when calculating pore volumes.
-%                  Typically in the range [0 .. 1].
+% OPTIONAL PARAMETERS:
+%   'ntg' - Net-to-gross factor.  Either a single scalar value that is
+%           repeated for all active cells, or a column vector with one
+%           entry per cell.  `ntg` acts as a multiplicative factor on
+%           porosity when calculating pore volumes. Typically in the range
+%           [0 .. 1].    
 %
 % RETURNS:
 %   rock - Valid rock with properties for each active cell in the grid.
@@ -53,7 +52,7 @@ function rock = makeRock(G, perm, poro, varargin)
 %   plotCellData(G, poreVolume(G, r3)), view(3), axis tight
 %
 % SEE ALSO:
-%   computeTrans, poreVolume, permTensor.
+%   `computeTrans`, `poreVolume`, `permTensor`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

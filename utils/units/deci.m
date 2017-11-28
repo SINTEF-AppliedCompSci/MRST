@@ -4,7 +4,7 @@ function d = deci()
 % SYNOPSIS:
 %   d = deci()
 %
-% PARMETERS:
+% PARAMETERS:
 %   None.
 %
 % RETURNS:

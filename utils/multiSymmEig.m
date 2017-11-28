@@ -6,23 +6,23 @@ function varargout = multiSymmEig(varargin)
 %   [d, v] = multiSymmEig(A, sz)
 %
 % PARAMETERS:
-%   A  - Array (type DOUBLE) containing the elements/entries of a sequence
+%   A  - Array (type `double`) containing the elements/entries of a sequence
 %        of coefficient matrices--ordered consequtively.  Each matrix is
 %        expected to be square, symmetric and fairly small.
 %
 %   sz - Sequence of matrix block sizes.  The number of matrix blocks
-%        contained in 'A' is implicitly assumed to be NUMEL(rsz).
+%        contained in `A` is implicitly assumed to be `numel(rsz)`.
 %
 % RETURNS:
-%   d - Array (type DOUBLE) containing the eigenvalues of the individual
+%   d - Array (type `double`) containing the eigenvalues of the individual
 %       eigenvalue problems.
 %
-%   v - Array (type DOUBLE) of eigenvectors.  Optional.  Only returned if
+%   v - Array (type `double`) of eigenvectors.  Optional.  Only returned if
 %       specifically requested.
 %
 % NOTE:
 %   The output in the single return value case is algorithmically equivalent
-%   to the loop
+%   to the loop ::
 %
 %       pA = cumsum([1, sz .^ 2]);
 %       pd = cumsum([1, sz]);

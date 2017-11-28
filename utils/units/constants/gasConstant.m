@@ -4,7 +4,7 @@ function R = gasConstant()
 % SYNOPSIS:
 %   R = gasconstant()
 %
-% PARMETERS:
+% PARAMETERS:
 %   None.
 %
 % RETURNS:

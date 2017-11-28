@@ -10,33 +10,34 @@ function bc = pside(bc, G, side, pressure, varargin)
 % PARAMETERS:
 %   bc     - Boundary condition structure as defined by function 'addBC'.
 %
-%   G      - Grid structure as described by grid_structure.  Currently
-%            restricted to grids produced by functions cartGrid and
-%            tensorGrid.
+%   G      - Grid structure as described by `grid_structure`.  Currently
+%            restricted to grids produced by functions `cartGrid` and
+%            `tensorGrid` and other grids that add cardinal directions to
+%            `G.cells.faces(:, 2) in the same format.
 %
 %   side   - Global side from which to extract face indices.  String.  Must
 %            (case insensitively) match one of six alias groups:
 %
-%               1) {'West' , 'XMin', 'Left'  }
-%               2) {'East' , 'XMax', 'Right' }
-%               3) {'South', 'YMin', 'Back'  }
-%               4) {'North', 'YMax', 'Front' }
-%               5) {'Upper', 'ZMin', 'Top'   }
-%               6) {'Lower', 'ZMax', 'Bottom'}
+%               1) `{'West' , 'XMin', 'Left'  }`
+%               2) `{'East' , 'XMax', 'Right' }`
+%               3) `{'South', 'YMin', 'Back'  }`
+%               4) `{'North', 'YMax', 'Front' }`
+%               5) `{'Upper', 'ZMin', 'Top'   }`
+%               6) `{'Lower', 'ZMax', 'Bottom'}`
 %
 %            These groups correspond to the cardinal directions mentioned
 %            as the first alternative in each group.
 %
 %   p      - Pressure value, in units of Pascal, to be applied to the face.
-%            Either a scalar or a vector of NUMEL(I1)*NUMEL(I2) values.
+%            Either a scalar or a vector of `numel(I1)*numel(I2)` values.
 %
-%   I1, I2 - Cell index ranges for local (in-plane) axes one and two,
+%   I1,I2  - Cell index ranges for local (in-plane) axes one and two,
 %            respectively.  An empty index range ([]) is interpreted as
 %            covering the entire corresponding local axis of 'side' in the
 %            grid 'G'.  The local axes on a 'side' in 'G' are ordered
 %            according to 'X' before 'Y', and 'Y' before 'Z'.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %   sat    - Fluid composition of fluid injected across inflow faces.
 %            An n-by-m array of fluid compositions with 'n' being the
 %            number of individual faces specified by (I1,I2) (i.e.,
@@ -46,13 +47,13 @@ function bc = pside(bc, G, side, pressure, varargin)
 %            This field is for the benefit of transport solvers such as
 %            'blackoilUpwFE' and will be ignored for outflow faces.
 %
-%            Default value: sat = [] (assume single-phase flow).
+%            Default value: `sat = []` (assume single-phase flow).
 %
 %   range  - Restricts the search for outer faces to a subset of the cells
 %            in the direction perpendicular to that of the face. Example:
 %            if side='LEFT', one will only search for outer faces in the
 %            cells with logical indexes [range,:,:].
-%            Default value: range = [] (do not restrict search).
+%            Default value: `range = []` (do not restrict search).
 %
 % RETURNS:
 %   bc     - Updated boundary condition structure.
@@ -61,7 +62,7 @@ function bc = pside(bc, G, side, pressure, varargin)
 %   See simpleBC, simpleSRCandBC.
 %
 % SEE ALSO:
-%   fluxside, addBC, grid_structure.
+%   `fluxside`, `addBC`, `grid_structure`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

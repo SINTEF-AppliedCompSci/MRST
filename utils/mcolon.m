@@ -12,21 +12,24 @@ function x = mcolon(lo, hi, s)
 %         Optional.  Default value: s = ones([numel(lo), 1]) (unit stride).
 %
 % RETURNS:
-%   ind - [lo(1):hi(1)     , lo(2):hi(2)     , ..., lo(end):hi(end)       ]
-%   ind - [lo(1):s(1):hi(1), lo(2):s(2):hi(2), ..., lo(end):s(end):hi(end)]
+%   ind - `[lo(1):hi(1)     , lo(2):hi(2)     ,..., lo(end):hi(end)]`
+%   ind - `[lo(1):s(1):hi(1), lo(2):s(2):hi(2),...,lo(end):s(end):hi(end)]`
 %
-%   Note that 'ind' has type DOUBLE irrespective of the type of its input
-%   parameters.
 %
 % EXAMPLE:
 %   lo  = [1 1 1 1]; hi = [2 3 4 5];
 %   ind = mcolon(lo, hi)
 %
-% NOTE:
-%   MCOLON may be implemented in terms of ARRAYFUN and HORZCAT, e.g.,
+% NOTES:
+%   Note that `ind` has type `double` irrespective of the type of its input
+%   parameters.
+%
+%   `mcolon` may be implemented in terms of `arrayfun` and `horzcat`, e.g., ::
+%
 %      ind = arrayfun(@colon, lo, hi, 'UniformOutput', false);
 %      ind = [ind{:}];
-%   or
+%   or ::
+%
 %      ind = arrayfun(@colon, lo, s, hi, 'UniformOutput', false);
 %      ind = [ind{:}];
 %   but the current implementation is faster.

@@ -9,10 +9,10 @@ function grdecl = createPinchedColumn
 %
 % RETURNS:
 %   grdecl - Corner-point specification suitable for passing to grid
-%            constructor 'processGRDECL'.
+%            constructor `processGRDECL`.
 %
 % SEE ALSO:
-%   processGRDECL.
+%   `processGRDECL`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

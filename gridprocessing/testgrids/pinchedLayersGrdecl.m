@@ -11,14 +11,14 @@ function g = pinchedLayersGrdecl(dims, drop)
 %
 %      [0,1] x [0,1] x [0,0.5].
 %
-%   which is deformed by adding sin(x) and sin(x*y) perturbations.  In
+%   which is deformed by adding `sin(x)` and `sin(x*y)` perturbations.  In
 %   addition, the pillars are skewed.  If a second input parameter is
 %   provided, a single fault of given drop size is added in the model at
 %   approximately x=0.5.
 %
 % PARAMETERS:
-%   n    - Three-element vector, [nx, ny, nz], specifying the number of
-%          cells in the 'x', 'y', and 'z' coordinate directions
+%   n    - Three-element vector, `[nx, ny, nz]`, specifying the number of
+%          cells in the `x`, `y`, and `z` coordinate directions
 %          respectively.
 %
 %   drop - Length of fault drop (i.e., the physical length (in metres) by
@@ -28,9 +28,9 @@ function g = pinchedLayersGrdecl(dims, drop)
 %          OPTIONAL.  Default value: drop = 0 (no fault).
 %
 % RETURNS:
-%   grdecl - A GRDECL structure suitable for further processing by
-%            function 'processGRDECL' or for permanent storage on disk by
-%            function 'writeGRDECL'.
+%   grdecl - A `GRDECL` structure suitable for further processing by
+%            function `processGRDECL` or for permanent storage on disk by
+%            function `writeGRDECL`.
 %
 % EXAMPLE:
 %   % Create a 50-by-50-by-10 fault grid file with a linear fault drop.
@@ -44,7 +44,7 @@ function g = pinchedLayersGrdecl(dims, drop)
 %   view(3), grid on, axis tight
 %
 % SEE ALSO:
-%   processGRDECL, writeGRDECL, simpleGrdecl.
+%   `processGRDECL`, `writeGRDECL`, `simpleGrdecl`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
@@ -70,7 +70,7 @@ physDims   = [1, 1, 0.5];
 g.cartDims = reshape(dims, 1, []);
 
 
-%% Preprocess input data to make the underlying logical Cartesian grid
+% Preprocess input data to make the underlying logical Cartesian grid
 
 layer_thickness = @(x, y) 0.2+0.5*rand*sin(3*rand*pi*(x)).*sin(2*rand*pi*(y));
 
@@ -90,7 +90,7 @@ for k = 2 : dims(3) + 1,
 end
 
 
-%% Make pillars
+% Make pillars
 n = prod(dims(1:2) + 1);
 
 lines = zeros([n, 6]);
@@ -100,12 +100,12 @@ lines(:, [3, 6]) = reshape(Z(:,:,[1, end]), [n, 2]);
 g.COORD = reshape(lines.', [], 1);
 
 
-%% Assign z-coordinates
+% Assign z-coordinates
 % ind(d) == [1, 2, 2, 3, 3, ..., dims(d), dims(d), dims(d)+1]
 ind = @(d) 1 + fix((1 : 2*dims(d)) ./ 2);
 z   = Z(ind(1), ind(2), ind(3));
 
-%% Add fault
+% Add fault
 if nargin > 1,
    if isnumeric(drop),
       z(end/2+1:end,:,:) = z(end/2+1:end,:,:) + drop;
@@ -121,5 +121,5 @@ end
 
 g.ZCORN = reshape(z, [], 1);
 
-%% Assign active cells
+% Assign active cells
 g.ACTNUM = reshape(ones(dims, 'int32'), [], 1);

@@ -9,9 +9,10 @@ function G2 = gridAddHelpers(G)
 %
 % RETURNS:
 %   G    - Grid structure with added fields:
+%
 %             - plot contains handles to plotting functions
 %             - helpers contains various helper functions commonly used
-%             when plotting/debugging grid structures.
+%               when plotting/debugging grid structures.
 %
 
 %{

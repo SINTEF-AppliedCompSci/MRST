@@ -1,4 +1,4 @@
-function varargout = mrstDataDirectory(varargin)
+ function varargout = mrstDataDirectory(varargin)
 %Set or retrieve the current canonical data directory for MRST
 %
 % SYNOPSIS:
@@ -27,7 +27,7 @@ function varargout = mrstDataDirectory(varargin)
 %   under the mrst root directory (see ROOTDIR())
 %
 % SEE ALSO:
-%   mrstModule, mrstDatasetGUI, mrstPath, getDatasetPath
+%   `mrstModule`, `mrstDatasetGUI`, `mrstPath`, `getDatasetPath`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

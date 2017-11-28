@@ -16,9 +16,9 @@ function verbose = mrstVerbose(varargin)
 %   an individual, per-function basis.
 %
 % PARAMETERS:
-%   Mode 1)
-%     arg - Control mode for verbose output.  Must be one of
-%           - String, {'off', 'on'}, for globally disabling or enabling
+%   arg - (Mode 1 only) Control mode for verbose output.  Must be one of
+%         the following possibilities:
+%           - String, `{'off', 'on'}`, for globally disabling or enabling
 %             MRST verbose output.  Actual effects depends on specific
 %             setting in individual functions and may usually be controlled
 %             more targetly.  The default state is 'off'.
@@ -26,7 +26,7 @@ function verbose = mrstVerbose(varargin)
 %           - String, 'reset', for restoring verbose output setting to the
 %             default state: mrstVerbose off
 %
-%           - Logical, { false, true }, for disabling or enabling MRST
+%           - Logical, `{false, true}`, for disabling or enabling MRST
 %             verbose output.
 %
 %           - Numeric (Real) scalar value.  Specifically set verbosity
@@ -34,22 +34,16 @@ function verbose = mrstVerbose(varargin)
 %             output. Whether or not higher values produce more output is
 %             at the discretion of individual MRST functions.
 %
-%   Mode 2)
-%     None.
 %
 % RETURNS:
-%   Mode 1)
-%     Nothing.
+%     v - (Mode 2 only) A numeric scalar value. `V==0` turns default state
+%         of verbose output off, while `v>0` signifies different levels of
+%         verbose output.  Individual callers of 'mrstVerbose' (typically
+%         other MRST functions) must support a Boolean on/off state, but
+%         may, optionally, support a notion of verbosity levels where
+%         higher levels signify more extensive output.
 %
-%   Mode 2)
-%     v - A numeric scalar value.  V==0 turns default state of verbose
-%         output off, while v>0 signifies different levels of verbose
-%         output.  Individual callers of 'mrstVerbose' (typically other
-%         MRST functions) must support a Boolean on/off state, but may,
-%         optionally, support a notion of verbosity levels where higher
-%         levels signify more extensive output.
-%
-% EXAMPLES
+% EXAMPLES:
 %   % 1) Demonstrate 'String' form (Command and Function syntax).
 %   mrstVerbose  on    % Enable verbose output.
 %   mrstVerbose('off') % Disable verbose ouput (default state).

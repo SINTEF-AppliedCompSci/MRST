@@ -5,12 +5,12 @@ function G = translateGrid(G, dx)
 %   G = translateGrid(G, dx)
 %
 % PARAMETERS:
-%   G  - MRST grid as outlined in 'grid_structure'.
+%   G  - MRST grid as outlined in `grid_structure`.
 %
 %   dx - User-specified constant translation vector.  Must be a single
 %        vector that will applied to all grid coordinates (i.e., nodes and
 %        centroids).  Number of vector components must be equal to the
-%        number of vertex coordinates (i.e., SIZE(G.nodes.coords, 2)).
+%        number of vertex coordinates (i.e., `size(G.nodes.coords, 2)`).
 %
 % RETURNS:
 %   G - Updated grid structure.

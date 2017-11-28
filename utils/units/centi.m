@@ -4,7 +4,7 @@ function c = centi()
 % SYNOPSIS:
 %   c = centi()
 %
-% PARMETERS:
+% PARAMETERS:
 %   None.
 %
 % RETURNS:

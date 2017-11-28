@@ -11,7 +11,7 @@ function d = day()
 %   d - Numerical value, in units of s, of one day.
 %
 % SEE ALSO:
-%   darcy.
+%   `darcy`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

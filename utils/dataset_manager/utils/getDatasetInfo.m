@@ -13,7 +13,7 @@ function [info, present] = getDatasetInfo(name)
 %             metadata about the dataset with the supplied name.
 %
 % SEE ALSO:
-%   datasetInfoStruct, getDatasetPath, listDatasetExamples
+%   `datasetInfoStruct`, `getDatasetPath`, `listDatasetExamples`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -1,33 +1,34 @@
 function grdecl = permeabilityConverter(grdecl,varargin)
-%
-%  add tensor permeability to the grdecl.permtensor
+%Add tensor permeability to GRDECL struct
 %
 % SYNOPSIS:
-%  grdecl = permeabilityConverter(grdecl,varargin)
+%   grdecl = permeabilityConverter(grdecl, varargin)
 %
 % PARAMETERS:
-%   grdecl  - struct representing the grdecl file with
-%             permeability modified or possibly new extra
-%             fields PERMXY PERMZX PERMYZ
+%   grdecl - struct representing the grdecl file with permeability modified or possibly new extra fields `PERMXY`, `PERMZX` and `PERMYZ`.
 %
-%  OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
-%  'K_system' - which define the system the PERM tesor is defiend valid values are
-%                   - 'xyz' the coordinate system DEFAULT
-%                   - 'cell' the cell system defined by direction between centroids of the logical cell
+% OPTIONAL PARAMETERS:
+%   'K_system' - String defining the interpretation of the permeability
+%                tensor. Broadly speaking, this has to do with the
+%                interpretation as a tensor either in coordinate space or
+%                some other transformed space such as logical indices.
+%                Possible choices:
+%                   - 'xyz' the coordinate system (DEFAULT)
+%                   - 'cell' the cell system defined by direction between
+%                     centroids of the logical cell.
 %                   - 'bedding_plane' the same above for xy direction but
-%                   use the cross product of these direction for z
-%                   direction
+%                     use the cross product of these direction for z
+%                     direction
 %                   - 'bedding_plane_normal' the same as above but now the
-%                   xy system is made orthogonal
+%                     xy system is made orthogonal
 %
 % RETURNS:
-%   grdecl - retrun grdecl with modified  PERM*
+%   grdecl - Updated grdecl with modified `PERM*` fields
 %
-% COMMENTS:
 %
 % SEE ALSO:
-%   grdecl2rock
-%
+%   `grdecl2rock`
+
 opt = struct('K_system','xyz');
 opt = merge_options(opt, varargin{:});
 if(strcmp(opt.K_system,'xyz'))
@@ -40,6 +41,7 @@ end
 CCOORD = {X,Y,Z};
 PERM =[grdecl.PERMX,grdecl.PERMY,grdecl.PERMZ];
 numcells = prod(grdecl.cartDims);
+COORD = cell(3, 8);
 for i = 1:3
     COORD{i}{1} = CCOORD{i}(1:2:end,1:2:end,1:2:end);
     COORD{i}{2} = CCOORD{i}(2:2:end,1:2:end,1:2:end);
@@ -55,6 +57,7 @@ for i=1:3
         COORD{i}{j} = reshape(COORD{i}{j},prod(grdecl.cartDims),1);
     end
 end
+dir = cell(1, 3);
 for i=1:3
     dir{i} = zeros(prod(grdecl.cartDims),3);
 end
@@ -76,7 +79,7 @@ else
 end
 
 
-for i = 1:3;
+for i = 1:3
     dir{i} = dir{i}./repmat(sqrt(sum(dir{i}.*dir{i},2)),1,3);
 end
 

@@ -9,10 +9,10 @@ function s = cellNodes(g)
 %
 % RETURNS:
 %   cn - An m-by-3 array mapping cell numbers to vertex numbers.
-%        Specifically, if cn(i,1)==j and cn(i,3)==k, then global vertex 'k'
-%        is one of the corners of cell 'j'.  The local vertex number of
-%        global node 'k' within cell 'j' may be computed using the
-%        statements
+%        Specifically, if `cn(i,1)==j` and `cn(i,3)==k`, then global vertex
+%        `k` is one of the corners of cell `j`.  The local vertex number of
+%        global node `k` within cell `j` may be computed using the
+%        following statements::
 %
 %           n_vert = accumarray(cn(:,1), 1, [G.cells.num, 1]);
 %           offset = rldecode(cumsum([0; n_vert(1:end-1)]), n_vert);
@@ -22,12 +22,12 @@ function s = cellNodes(g)
 %        that the local vertex number will be implicitly available in most
 %        applications (e.g., finite element methods).
 %
-%        Alternatively, the local vertex number is found in cn(i,2). ;). In
-%        a cornerpoint grid, local vertex number of zero indicates that the
-%        vertex is not part of the original 8 vertices.
+%        Alternatively, the local vertex number is found in `cn(i,2). ;)`.
+%        In a corner-point grid, local vertex number of zero indicates that
+%        the vertex is not part of the original 8 vertices.
 %
 % SEE ALSO:
-%   grid_structure.
+%   `grid_structure`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

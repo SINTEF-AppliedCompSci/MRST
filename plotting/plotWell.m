@@ -8,30 +8,36 @@ function varargout = plotWell(G, W, varargin)
 % PARAMETERS:
 %   G       - Grid data structure
 %   W       - Well data structure
-%   'pn'/pv - List of 'key'/value pairs defining optional parameters.
-%             Supported options are:
-%               'radius' -- Scaling factor for the width of the well path.
-%                           Default value: 1.0
-%               'height' -- Height above top reservoir contact at which the
-%                           well should stop and symbol be drawn.
-%                           Default value: height = 5
-%               'color'  -- Colour with which the well path should be
-%                           drawn.  Possible values described in PLOT.
-%                           Default value: color = 'r'
-%               'color2' -- Second color. Will be used for producer wells.
-%                           If not specified, all wells will have the same
-%                           color.
-%               'cylpts' -- Number of segments to use about the well bore.
-%                           A higher value produces more smoothly looking
-%                           well trajectories at the expense of more costly
-%                           plotting.
-%                           Default value: cylpts = 10
-%             'fontsize' -- The size of the font used for the label texts.
-%                           Default value: fontsize = 16
-%               'ambstr' -- The ambient strength of the well cylinder.
-%                           Default value: ambstr = 0.8
-%             linewidth' -- The width of the line above the well.
-%                           Default value: linewidth = 2
+%
+% KEYWORD ARGUMENTS:
+%  'radius' - Scaling factor for the width of the well path. 
+%             Default value: 1.0
+%
+%  'height' - Height above top reservoir contact at which the well should
+%             stop and symbol be drawn. 
+%             Default value: height = 5
+%
+%  'color'  - Colour with which the well path should be drawn.  Possible
+%             values described in `plot`.
+%             Default value: color = 'r'
+%
+%  'color2' - Second color. Will be used for producer wells. If not
+%             specified, all wells will have the same color and the `color`
+%             argument will be used.
+%
+%  'cylpts' - Number of segments to use about the well bore. A higher value
+%             produces more smoothly looking well trajectories at the
+%             expense of more costly plotting.
+%             Default value: cylpts = 10
+%
+%  'fontsize' - The size of the font used for the label texts.
+%               Default value: fontsize = 16
+%
+%  'ambstr' - The ambient strength of the well cylinder.
+%             Default value: ambstr = 0.8
+%
+%  'linewidth' - The width of the line above the well.
+%                Default value: linewidth = 2
 %
 % RETURNS:
 %   htop  - Graphics handles to all well heads and heels.
@@ -40,10 +46,16 @@ function varargout = plotWell(G, W, varargin)
 %   hline - Graphics handles to all lines between well head and names
 %
 % EXAMPLE:
-%   See incompTutorialWells
+%   G = computeGeometry(cartGrid([10, 1, 1]));
+%   rock = makeRock(G, 1, 1);
+%   W = addWell([], G, rock, 1)
+%   plotWell(G, W, 'color', 'k');
+%
+% NOTE:
+%   Currently, this function only supports three-dimensional grids.
 %
 % SEE ALSO:
-%   addWell, delete, patch.
+%   `addWell`, `delete`, `patch`, `incompTutorialWells`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

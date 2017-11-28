@@ -42,7 +42,7 @@ function ix = boundaryFaceIndices(G, direction, i1, i2, i3)
 %   of the *side functions.
 %
 % SEE ALSO:
-%   fluxside, pside.
+%   `fluxside`, `pside`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

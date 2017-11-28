@@ -4,7 +4,7 @@ function d = ft()
 % SYNOPSIS:
 %   d = ft()
 %
-% PARMETERS:
+% PARAMETERS:
 %   None.
 %
 % RETURNS:

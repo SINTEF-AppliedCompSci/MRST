@@ -11,98 +11,96 @@ function W = addWell(W, G, rock, cellInx, varargin)
 %
 %   G       - Grid data structure.
 %
-%   rock    - Rock data structure.  Must contain valid field 'perm'.
+%   rock    - Rock data structure.  Must contain valid field `perm`.
 %
 %   cellInx - Perforated well cells (vector of cell indices or a logical
 %             mask with length equal to G.cells.num).
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs, ('pn'/pv)):
-%   Type   -- Well control type.  String.  Default value is 'bhp'.
-%             Supported values are:
-%                - 'bhp'  - Well is controlled by bottom hole pressure.
-%                - 'rate' - Well is controlled by total rate.
+% OPTIONAL PARAMETERS:
+%   Type -   Well control type. String. Supported values depend on the
+%            solver in question. Most solvers support at least two options: 
+%              - 'bhp': Controlled by bottom hole pressure (DEFAULT)
+%              - 'rate': Controlled by total rate.
 %
-%   Val    -- Well control target value.  Interpretation of this value is
-%             dependent upon 'Type'.  Default value is 0.  If the well
-%             'Type' is 'bhp', then 'Val' is given in unit Pascal and if
-%             the 'Type' is 'rate', then 'Val' is given in unit m^3/second.
+%   Val    - Well control target value.  Interpretation of this value is
+%            dependent upon `Type`.  Default value is 0.  If the well
+%            `Type` is 'bhp', then `Val` is given in unit Pascal and if
+%            the `Type` is 'rate', then `Val` is given in unit m^3/second.
 %
-%   Radius -- Well bore radius (in unit of meters).  Either a single,
-%             scalar value which applies to all perforations or a vector of
-%             radii (one radius value for each perforation).
-%             Default value: Radius = 0.1 (i.e., 10 cm).
+%   Radius - Well bore radius (in unit of meters).  Either a single,
+%            scalar value which applies to all perforations or a vector of
+%            radii (one radius value for each perforation).
+%            Default value: Radius = 0.1 (i.e., 10 cm).
 %
-%   Dir    -- Well direction.  Single CHAR or CHAR array.  A single CHAR
-%             applies to all perforations while a CHAR array defines the
-%             direction of the corresponding perforation.  In other words,
-%             Dir(i) is the direction in perforation cellInx(i) in the CHAR
-%             array case.
+%   Dir    - Well direction.  Single CHAR or CHAR array.  A single CHAR
+%            applies to all perforations while a CHAR array defines the
+%            direction of the corresponding perforation.  In other words,
+%            Dir(i) is the direction in perforation cellInx(i) in the CHAR
+%            array case.
 %
-%             Supported values for a single perforation are 'x', 'y', or
-%             'z' (case insensitive) meaning the corresponding cell is
-%             perforated in the X, Y, or Z direction, respectively.
-%             Default value: Dir = 'z' (vertical well).
+%            Supported values for a single perforation are 'x', 'y', or
+%            'z' (case insensitive) meaning the corresponding cell is
+%            perforated in the X, Y, or Z direction, respectively.
+%            Default value: Dir = 'z' (vertical well).
 %
-%   InnerProduct --
-%             The inner product with which to define the mass matrix.
-%             String.  Default value = 'ip_tpf'.
-%             Supported values are 'ip_simple', 'ip_tpf', 'ip_quasitpf',
-%             and 'ip_rt'.
+%   InnerProduct - The inner product with which to define the mass matrix.
+%            String.  Default value = 'ip_tpf'.
+%            Supported values are 'ip_simple', 'ip_tpf', 'ip_quasitpf',
+%            and 'ip_rt'.
 %
-%   rR     -- The representative radius for the wells, which is used in the
-%             shear thinning calculation when polymer is involved in the
-%             simulation.
+%   rR     - The representative radius for the wells, which is used in the
+%            shear thinning calculation when polymer is involved in the
+%            simulation.
 %
-%   WI     -- Well productivity index.  Vector of length nc=NUMEL(cellInx).
-%             Default value: WI = REPMAT(-1, [nc, 1]), whence the
-%             productivity index will be computed from available grid block
-%             data in grid blocks containing well completions.
+%   WI     - Well productivity index. Vector of length `nc=numel(cellInx)`.
+%            Default value: `WI = repmat(-1, [nc, 1])`, whence the
+%            productivity index will be computed from available grid block
+%            data in grid blocks containing well completions.
 %
-%   Kh     -- Permeability thickness.  Vector of length nc=NUMEL(cellInx).
-%             Default value: Kh = REPMAT(-1, [nc, 1]), whence the thickness
-%             will be computed from available grid block data in grid
-%             blocks containing well completions.
+%   Kh     - Permeability thickness.  Vector of length `nc=numel(cellInx)`.
+%            Default value: `Kh = repmat(-1, [nc, 1])`, whence the thickness
+%            will be computed from available grid block data in grid
+%            blocks containing well completions.
 %
-%   Skin   -- Skin factor for computing effective well bore radius.  Scalar
-%             value or vector of length nc=NUMEL(cellInx).
-%             Default value: 0.0 (no skin effect).
+%   Skin   - Skin factor for computing effective well bore radius.  Scalar
+%            value or vector of length `nc=numel(cellInx)`.
+%            Default value: 0.0 (no skin effect).
 %
-%   Comp_i -- Fluid composition for injection wells.  Vector of saturations.
-%             Default value:  Comp_i = [1, 0, 0] (water injection)
+%   Comp_i - Fluid composition for injection wells.  Vector of saturations.
+%            Default value:  `Comp_i = [1, 0, 0]` (water injection)
 %
-%   Sign   -- Well type: Production (Sign = -1) or Injection (Sign = 1).
-%             Default value: 0 (Undetermined sign. Will be derived from
-%             rates if possible).
+%   Sign   - Well type: Production (Sign = -1) or Injection (Sign = 1).
+%            Default value: 0 (Undetermined sign. Will be derived from
+%            rates if possible).
 %
-%   Name   -- Well name (string).
-%             Default value: SPRINTF('W%d', numel(W) + 1)
+%   Name   - Well name (string).
+%            Default value: `sprintf('W%d', numel(W) + 1)`
 %
-%  refDepth -- Reference depth for the well, i.e. the value for which
-%              bottom hole pressures are defined.
+%   refDepth - Reference depth for the well, i.e. the value for which
+%            bottom hole pressures are defined.
 %
 % RETURNS:
 %   W - Updated (or freshly created) well structure, each element of which
 %       has the following fields:
-%         cells   -- Grid cells perforated by this well (== cellInx).
-%         type    -- Well control type (== Type).
-%         val     -- Target control value (== Val).
-%         r       -- Well bore radius (== Radius).
-%         dir     -- Well direction (== Dir).
-%         WI      -- Well productivity index.
-%         dZ      -- Displacement of each well perforation measured from
-%                   'highest' horizontal contact (i.e., the 'TOP' contact
-%                   with the minimum 'Z' value counted amongst all cells
-%                   perforated by this well).
-%         name    -- Well name (== Name).
-%         compi   -- Fluid composition--only used for injectors (== Comp_i).
-%         sign    -- injection (+) or production (-) flag.
-%         status  -- Boolean indicating if the well is open or shut.
-%         cstatus -- One entry per cell, indicating if the completion is
-%                   open.
-%         lims    -- Limits for the well. Contains subfields for the types
-%                    of limits applicable to the well (bhp, rate, orat, ...)
-%                    Injectors generally have upper limits, while producers
-%                    have lower limits.
+%         - cells:   Grid cells perforated by this well (== cellInx).
+%         - type:    Well control type (== Type).
+%         - val:     Target control value (== Val).
+%         - r:       Well bore radius (== Radius).
+%         - dir:     Well direction (== Dir).
+%         - WI:      Well productivity index.
+%         - dZ: Displacement of each well perforation measured from
+%           'highest' horizontal contact (i.e., the 'TOP' contact with the
+%           minimum 'Z' value counted amongst all cells perforated by this
+%           well).
+%         - name:    Well name (== Name).
+%         - compi:   Fluid composition--only used for injectors (== Comp_i).
+%         - sign:    Injection (+) or production (-) flag.
+%         - status:  Boolean indicating if the well is open or shut.
+%         - cstatus: One entry per perforation, indicating if the completion is open.
+%         - lims:    Limits for the well. Contains subfields for the types
+%           of limits applicable to the well (bhp, rate, orat, ...)
+%           Injectors generally have upper limits, while producers have
+%           lower limits.
 % EXAMPLE:
 %   incompTutorialWells
 %
@@ -121,7 +119,7 @@ function W = addWell(W, G, rock, cellInx, varargin)
 %   the user's responsibility to keep these assumptions in mind.
 %
 % SEE ALSO:
-%   verticalWell, addSource, addBC.
+%   `verticalWell`, `addSource`, `addBC`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

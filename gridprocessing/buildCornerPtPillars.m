@@ -10,22 +10,20 @@ function [X, Y, Z] = buildCornerPtPillars(grdecl, varargin)
 %             Must contain at least the fields 'cartDims', 'COORD' and
 %             'ZCORN'.
 %
-%   'pn'/pv - List of 'key'/value pairs defining optional paramters.  The
-%             supported options are:
-%               - Verbose --
-%                   Whether or not to emit informational messages.
-%                   Default value: Verbose = FALSE.
+% KEYWORD ARGUMENTS:
 %
-%               - CoincidenceTolerance --
-%                   Absolute tolerance used to detect collapsed pillars
-%                   where the top pillar point coincides with the bottom
-%                   pillar point.  Such pillars are treated as is they were
-%                   vertical.
-%                   Default value: CoincidenceTolerance = 100*EPS.
+%  'Verbose'              - Whether or not to emit informational messages.
+%                           Default value: Verbose = mrstVerbose.
 %
-%               - Scale --
-%                   Scale the pillars so that the extend from the top to
-%                   the bottom of the model. Default: FALSE
+%  'CoincidenceTolerance' - Absolute tolerance used to detect collapsed
+%                           pillars where the top pillar point coincides
+%                           with the bottom pillar point.  Such pillars are
+%                           treated as is they were vertical.
+%                           Default value: CoincidenceTolerance = `100*eps`.
+%
+%  'Scale'                - Scale the pillars so that the extend from the
+%                           top to the bottom of the model.
+%                           Default: FALSE 
 %
 % RETURNS:
 %   X, Y, Z - Matrices with (nx+1)*(ny+1) rows with the start and end point
@@ -37,7 +35,7 @@ function [X, Y, Z] = buildCornerPtPillars(grdecl, varargin)
 %   [X, Y, Z] = buildCornerPtPillars(grdecl);
 %
 % SEE ALSO:
-%   readGRDECL, processGRDECL.
+%   `readGRDECL`, `processGRDECL`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

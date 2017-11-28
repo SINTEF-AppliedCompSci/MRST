@@ -15,7 +15,7 @@ function faceFlux = cellFlux2faceFlux(G, cellFlux)
 %              input flux vectors.
 %
 % SEE ALSO:
-%   faceFlux2cellFlux.
+%   `faceFlux2cellFlux`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

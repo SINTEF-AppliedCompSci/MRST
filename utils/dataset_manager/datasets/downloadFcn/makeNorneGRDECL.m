@@ -19,7 +19,7 @@ function ok = makeNorneGRDECL
 %   ok - Whether or not we were able to create the datafile.
 %
 % SEE ALSO:
-%   getDatasetPath.
+%   `getDatasetPath`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

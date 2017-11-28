@@ -21,12 +21,12 @@ function G = makePlanarGrid(H, faces, sgn)
 %   plotGrid(G); plotGrid(H, 'facecolor','none');view(3);
 %
 %
-% REMARK:
-%   All node coordinates in H.nodes are copied to G.nodes, and
-%   G.faces.nodes refer to this numbering of nodes.
+% NOTE:
+%   All node coordinates in `H.nodes` are copied to `G.nodes`, and
+%   `G.faces.nodes` refer to this numbering of nodes.
 %
 % SEE ALSO:
-%   makePlanarGrid
+%   `makePlanarGrid`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
@@ -86,7 +86,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    G.griddim          = 2;
 end
 
-%% Useful operation on position vectors: Rotation modulo section size
+% Useful operation on position vectors: Rotation modulo section size
 function ix= rot(pos, offset)
    num    = diff(pos);
    offset = mod(offset, num); % net offset

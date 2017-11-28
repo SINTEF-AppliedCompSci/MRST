@@ -1,19 +1,19 @@
 function A = rldecode(A, n, dim)
-%Decompress run length encoding of array A along dimension dim.
+%Decompress run length encoding of array `A` along dimension `dim`.
 %
 % SYNOPSIS:
 %   B = rldecode(A, n, dim)
-%   B = rldecode(A, n)       dim assumed to be 1
+%   B = rldecode(A, n) % dim assumed to be 1
 %
 % PARAMETERS:
 %   A         - encoded array
-%   n         - repetition of each layer along dimension dim.  n can be
+%   n         - repetition of each layer along dimension `dim`. `n` can be
 %               either a scalar or one repetition number for each layer.
-%   dim       - dimension of A where run length encoding is done.
+%   dim       - dimension of `A` where run length encoding is done.
 %               dim > 0.
 %
 % RETURNS:
-%   B         - uncompressed A
+%   B         - uncompressed `A`
 %
 % EXAMPLE:
 %   % 1) Numerical example:
@@ -27,7 +27,7 @@ function A = rldecode(A, n, dim)
 %   disp(['CellFace nr. 10 belongs to cell nr: ', num2str(cellNo(10))]);
 %
 % SEE ALSO:
-%   rlencode
+%   `rlencode`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

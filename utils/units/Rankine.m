@@ -4,7 +4,7 @@ function T = Rankine()
 % SYNOPSIS:
 %   T = Rankine()
 %
-% PARMETERS:
+% PARAMETERS:
 %   None.
 %
 % RETURNS:

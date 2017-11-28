@@ -20,19 +20,19 @@ function resSol = initResSol(G, p0, s0, varargin)
 %             - flux     -- One Darcy flux value for each face in 'G'.
 %             - s        -- Phase saturations for all phases in each cell.
 %
-% REMARKS:
-%   In the case of a (G.cells.num)-by-3 array of fluid saturations,
+% NOTE:
+%   In the case of a `G.cells.num` by `3` array of fluid saturations,
 %   state.s, the columns are generally interpreted as
 %
 %          1 <-> Aqua, 2 <-> Liquid, 3 <-> Vapour
 %
-%   Single pressures (p0) and initial phase saturations (s0) are repeated
+%   Single pressures (`p0`) and initial phase saturations (`s0`) are repeated
 %   uniformly for all grid cells.
 %
 %   The initial Darcy flux is zero throughout the reservoir.
 %
 % SEE ALSO:
-%   initWellSol, incompTPFA.
+%   `initWellSol`, `incompTPFA`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

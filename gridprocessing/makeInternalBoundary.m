@@ -15,34 +15,33 @@ function [G, N] = makeInternalBoundary(G, faces, varargin)
 %             the output grid for each unique face in 'faces' provided the
 %             identified face is not located on the boundary of 'G'.
 %
-%   'pn'/pv - List of 'key'/value pairs defining optional parameters.
-%             Supported options are:
+% KEYWORD ARGUMENTS:
 %
-%               'tag'   - Tag inserted into 'G.faces.tag' (if present) for
-%                         faces on the internal boundary.  Integral scalar.
-%                         Default value: tag = -1.
+%  'tag'   - Tag inserted into 'G.faces.tag' (if present) for faces on the
+%            internal boundary.  Integer scalar. 
+%            Default value: tag = -1.
 %
-%               'check' - Whether or not to check for repeated face indices
-%                         in input 'faces'.  Emit diagnostic when set and
-%                         in presence of repeated indices.  Logical scalar.
-%                         Default value: check = LOGICAL(mrstVerbose).
+%  'check' - Whether or not to check for repeated face indices in input
+%            `faces`.  Emit diagnostic when set and in presence of repeated
+%            indices.  Logical scalar.
+%            Default value: check = LOGICAL(mrstVerbose).
 %
 % RETURNS:
 %   H - Modified grid structure.
 %
 %   N - An n-by-2 array of face indices. Each pair in the array corresponds
-%       to a face in 'faces'.  In particular, 'faces(i)' in the input grid
-%       'G' is replaced by the pair of faces [N(i,1), N(i,2)] in the result
-%       grid 'H'.
+%       to a face in `faces`.  In particular, `faces(i)` in the input grid
+%       `G` is replaced by the pair of faces `[N(i,1), N(i,2)]` in the
+%       result grid `H`.
 %
-%       If any of the faces in 'faces' are on the boundary, then the
-%       corresponding rows in 'N' is 'NaN' in both columns.
+%       If any of the faces in `faces` are on the boundary, then the
+%       corresponding rows in `N` is `NaN` in both columns.
 %
-%       The quantity 'N' is sufficient to create flow over the internal
+%       The quantity `N` is sufficient to create flow over the internal
 %       boundary or to remove the internal boundary at some later point.
 %
 % SEE ALSO:
-%   removeInternalBoundary, mrstVerbose.
+%   `removeInternalBoundary`, `mrstVerbose`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

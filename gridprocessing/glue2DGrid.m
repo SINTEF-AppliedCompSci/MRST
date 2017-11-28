@@ -6,14 +6,19 @@ function [G, order, f] = glue2DGrid(G1, G2)
 %   [G, iMap] = glue2DGrid(G1, G2)
 %
 % PARAMETERS:
-%   G1, G2 - Grids as represented by 'grid_structure'.  Both input grids
-%            must be strictly two-dimensional both in terms of 'griddim'
-%            and in terms of size(nodes.coords, 2).
+%   G1    - First grid to be combined.
+%
+%   G2    - Second grid to be combined.
+%
+% DESCRIPTION:
+%           Grids must follow definition from 'grid_structure'.  Both input
+%           grids must be strictly two-dimensional both in terms of
+%           `griddim` and in terms of size(nodes.coords, 2).
 %
 % RETURNS:
 %   G    - Resulting grid structure.  Does not contain any Cartesian
-%          information.  In particular, neither the 'cells.indexMap' nor
-%          the 'cartDims' fields are returned--even when present in both
+%          information.  In particular, neither the `cells.indexMap` nor
+%          the `cartDims` fields are returned--even when present in both
 %          input grids.
 %
 %          Empty array ([]) if the input grids do not have a common
@@ -26,29 +31,29 @@ function [G, order, f] = glue2DGrid(G1, G2)
 %          [G1, G2].  Otherwise, the grids are geometrically concatenated
 %          as [G2, G1].
 %
-%          One possible application of 'iMap' is to determine the order in
-%          which to extrat the input grids' 'indexMap' arrays for purpose
-%          of creating an 'indexMap' property for the grid 'G'.
+%          One possible application of `iMap` is to determine the order in
+%          which to extract the input grid` `indexMap` arrays for purpose
+%          of creating the `indexMap` property for the combined grid `G`.
 %
 %          Empty array ([]) if the input grids do not have a common
 %          (non-empty) intersecting edge.
 %
 % NOTE:
-%   The result grid ('G') does not provide derived geometric primitives
+%   The result grid (`G`) does not provide derived geometric primitives
 %   (e.g., cell volumes).  Such information must be explicitly computed
-%   through a subsequent call to function 'computeGeometry'.
+%   through a subsequent call to function `computeGeometry`.
 %
 %   To that end, the final step of function glue2DGrid is to order the
 %   faces of all cells in a counter-clockwise cycle.  This sorting process
 %   guarantees that face areas will be positive and that all face normals
-%   will point from the first to the second cell in 'G.faces.neighbors'.
+%   will point from the first to the second cell in `G.faces.neighbors`.
 %
 %   This sorting step however is typically quite expensive and there are,
 %   consequently, practical restrictions on the size of the input grids
-%   (i.e., in terms of the number of cells) to function 'glue2DGrid'.
+%   (i.e., in terms of the number of cells) to function `glue2DGrid`.
 %
 % SEE ALSO:
-%   computeGeometry.
+%   `computeGeometry`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

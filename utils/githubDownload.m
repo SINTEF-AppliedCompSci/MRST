@@ -7,41 +7,33 @@ function files = githubDownload(repository, varargin)
 % PARAMETERS:
 %   repository - Name of repository from which to construct object URLs.
 %
-%   'pn'/pv    - List of 'key'/value pairs defining optional parameters.
-%                The supported options are:
+% OPTIONAL PARAMETERS:
+%  'Revision' - Git revision of objects.  String.  Subject to expansion
+%               through the equivalent of 'rev-parse'.
+%               Default value: Revision = 'master'.
 %
-%                  - Revision --
-%                      Git revision of objects.  String.  Subject to
-%                      expansion through the equivalent of 'rev-parse'.
-%                      Default value: Revision = 'master'.
+%  'File' -     Name of file or files to download from GitHub. String or
+%               cell array of strings respectively.
+%               Default value: File = {} (No specific filename).
 %
-%                  - File --
-%                      Name of file or files to download from GitHub.
-%                      String or cell array of strings respectively.
-%                      Default value: File = {} (No specific filename).
+%  'All' -      Whether or not to download the entire contents of the
+%               GitHub repository (at specified revision).
+%               Logical.  Default value All=false.
 %
-%                  - All --
-%                      Whether or not to download the entire contents of
-%                      the GitHub repository (at specified revision).
-%                      Logical.  Default value All=false.
+%  'Base' -     Base directory in which a subdirectory named after the
+%               repository will be created to host the requisite contents
+%               of the GitHub repository.
+%               String.  Default value: Base = mrstDataDirectory().
 %
-%                  - Base --
-%                      Base directory in which a subdirectory named after
-%                      the repository will be created to host the requisite
-%                      contents of the GitHub repository.
-%                      String.  Default value: Base = mrstDataDirectory().
+%  'Dest' -     Directory into which the downloaded file set will be moved.
+%               Only taken into account if non-empty. 
+%               String.  Default value: Dest = '' (leave downloaded files
+%               in original download location).
 %
-%                  - Dest --
-%                      Directory into which the downloaded file set will be
-%                      moved.  Only taken into account if non-empty.
-%                      String.  Default value: Dest = '' (leave downloaded
-%                      files in original download location).
-%
-%                  - Pause --
-%                      Amount of time to wait between successive requests
-%                      to GitHub web services.  Only relevant when explicit
-%                      file list has more than one entry.
-%                      Non-negative scalar.  Default value: Pause = 5 sec.
+%  'Pause' -    Amount of time to wait between successive requests to
+%               GitHub web services.  Only relevant when explicit file list
+%               has more than one entry.
+%               Non-negative scalar.  Default value: Pause = 5 sec.
 %
 % NOTES:
 %   The user must specify either an explicit list of files or option 'All'.
@@ -67,7 +59,7 @@ function files = githubDownload(repository, varargin)
 %                          'File', strcat(filebase, '/', files));
 %
 % SEE ALSO:
-%   websave, unzip, mrstDataDirectory.
+%   `websave`, `unzip`, `mrstDataDirectory`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

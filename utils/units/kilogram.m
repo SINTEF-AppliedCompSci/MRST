@@ -4,7 +4,7 @@ function m = kilogram()
 % SYNOPSIS:
 %   m = kilogram()
 %
-% PARMETERS:
+% PARAMETERS:
 %   None.
 %
 % RETURNS:

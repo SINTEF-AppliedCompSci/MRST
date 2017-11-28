@@ -25,7 +25,7 @@ function u = getUnitSystem(s)
 %           trans     - Input unit of measurement for transmissibilitities
 %
 % SEE ALSO:
-%   readGRDECL, convertInputUnits, convertFrom.
+%   `readGRDECL`, `convertInputUnits`, `convertFrom`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
