@@ -92,7 +92,7 @@ classdef ADI
 
       function u = uminus(u)
          u.val = -u.val;
-         u.jac =  uminusJac(u.jac);
+         u.jac =  ADI.uminusJac(u.jac);
       end
 
       %--------------------------------------------------------------------
@@ -120,7 +120,7 @@ classdef ADI
              if numel(u.val) == numel(v.val)
                  h = u;
                  h.val = u.val + v.val;
-                 h.jac = plusJac(h.jac, v.jac);
+                 h.jac = ADI.plusJac(h.jac, v.jac);
                  if isempty(h.jac)
                      h = h.val;
                  end
@@ -147,7 +147,7 @@ classdef ADI
           if ~isa(u,'ADI') %u is a scalar/matrix
               h = v;
               h.val = u*h.val;
-              h.jac = mtimesJac(u, h.jac);
+              h.jac = ADI.mtimesJac(u, h.jac);
               if isempty(h.jac)
                   h = h.val;
               end
@@ -176,7 +176,7 @@ classdef ADI
              if numel(u)==numel(v.val)
                  h = v;
                  h.val = u.*h.val;
-                 h.jac = lMultDiag(u, h.jac);
+                 h.jac = ADI.lMultDiag(u, h.jac);
                  if isempty(h.jac)
                      h = h.val;
                  end
@@ -188,7 +188,7 @@ classdef ADI
          else
              if numel(u.val)==numel(v.val)
                  h = u;
-                 h.jac = timesJac(h.val, v.val, h.jac, v.jac);
+                 h.jac = ADI.timesJac(h.val, v.val, h.jac, v.jac);
                  h.val = h.val.*v.val;
              elseif numel(v.val)==1 || numel(u.val)==1
                  h = mtimes(u,v);
@@ -228,23 +228,23 @@ classdef ADI
          if ~isa(v,'ADI') % v is a scalar
              h = u;
              h.val = h.val.^v;
-             h.jac = lMultDiag(v.*u.val.^(v-1), u.jac);
+             h.jac = ADI.lMultDiag(v.*u.val.^(v-1), u.jac);
              if isempty(h.jac)
                  h = h.val;
              end
          elseif ~isa(u,'ADI') % u is a scalar
              h = v;
              h.val = u.^v.val;
-             h.jac = lMultDiag((u.^v.val).*log(u), v.jac);
+             h.jac = ADI.lMultDiag((u.^v.val).*log(u), v.jac);
              if isempty(h.jac)
                  h = h.val;
              end
          else % u and v are both ADI
              h = u;
              h.val = u.val.^v.val;
-             h.jac = plusJac( ...
-               lMultDiag((u.val.^v.val).*(v.val./u.val), u.jac), ...
-               lMultDiag((u.val.^v.val).*log(u.val),     v.jac) );
+             h.jac = ADI.plusJac( ...
+               ADI.lMultDiag((u.val.^v.val).*(v.val./u.val), u.jac), ...
+               ADI.lMultDiag((u.val.^v.val).*log(u.val),     v.jac) );
              if isempty(h.jac)
                  h = h.val;
              end
@@ -287,7 +287,7 @@ classdef ADI
                           end
                           h = u;
                           h.val = h.val(subs);
-                          h.jac = subsrefJac(h.jac, subs);
+                          h.jac = ADI.subsrefJac(h.jac, subs);
                       end
                       if numel(s) > 1
                           % Recursively handle next operation
@@ -314,10 +314,10 @@ classdef ADI
                       end
                       
                       if isa(v, 'ADI') % v is a ADI
-                          u.jac = subsasgnJac(u.jac, subs, v.jac);
+                          u.jac = ADI.subsasgnJac(u.jac, subs, v.jac);
                           u.val(subs) = v.val;
                       else
-                          u.jac = subsasgnJac(u.jac, subs); % set rows to zero
+                          u.jac = ADI.subsasgnJac(u.jac, subs); % set rows to zero
                           u.val(subs) = v;
                       end
                   case '{}'
@@ -339,7 +339,7 @@ classdef ADI
           eu = exp(u.val);
           h = u;
           h.val = eu;
-          h.jac = lMultDiag(eu, u.jac);
+          h.jac = ADI.lMultDiag(eu, u.jac);
           if isempty(h.jac)
               h = h.val;
           end
@@ -349,7 +349,7 @@ classdef ADI
           logu = log(u.val);
           h = u;
           h.val = logu;
-          h.jac = lMultDiag(1./u.val, u.jac);
+          h.jac = ADI.lMultDiag(1./u.val, u.jac);
           if isempty(h.jac)
               h = h.val;
           end
@@ -362,7 +362,7 @@ classdef ADI
           if(nargin==1)
               assert(isa(u,'ADI'));
               [value,i] = max(u.val);
-              jacs      = subsrefJac(u.jac, i);
+              jacs      = ADI.subsrefJac(u.jac, i);
               h = u;
               h.val = value;
               h.jac = jacs;
@@ -374,7 +374,7 @@ classdef ADI
               inx   = ~bsxfun(@gt,  u, v.val) + 1; % Pick 'v' if u <= v
               h  = v;
               h.val = value;
-              h.jac = lMultDiag(inx==2, v.jac);
+              h.jac = ADI.lMultDiag(inx==2, v.jac);
              if isempty(h.jac)
                  h = h.val;
              end
@@ -385,7 +385,7 @@ classdef ADI
               inx   = u.val > v.val;
               h = u;
               h.val = value;
-              h.jac = plusJac(lMultDiag(inx, u.jac),lMultDiag(~inx, v.jac));
+              h.jac = ADI.plusJac(ADI.lMultDiag(inx, u.jac),ADI.lMultDiag(~inx, v.jac));
               if isempty(h.jac)
                   h = h.val;
               end
@@ -425,7 +425,7 @@ classdef ADI
       %--------------------------------------------------------------------
 
       function u = abs(u)
-          u.jac = lMultDiag(sign(u.val), u.jac);
+          u.jac = ADI.lMultDiag(sign(u.val), u.jac);
           u.val = abs(u.val);
           if isempty(u.jac)
                u = u.val;
@@ -464,7 +464,7 @@ classdef ADI
               for k1 = 1:nv
                   sjacs{k1} = varargin{k1}.jac{k};
               end
-              jacs{k} = vertcatJac(sjacs{:});
+              jacs{k} = ADI.vertcatJac(sjacs{:});
           end
           h = varargin{1};
           h.val = vertcat(vals{:});
@@ -491,7 +491,7 @@ classdef ADI
 
       function h = cat(varargin)
           h = vertcat(varargin{:});
-          h.jac = {horzcatJac(h.jac{:})};
+          h.jac = {ADI.horzcatJac(h.jac{:})};
       end
 
       %--------------------------------------------------------------------
@@ -505,7 +505,7 @@ classdef ADI
       function u = interpReg(T, u, reginx)
           [y, dydu] = interpReg(T, u.val, reginx);
           u.val = y;
-          u.jac = lMultDiag(dydu, u.jac);
+          u.jac = ADI.lMultDiag(dydu, u.jac);
          if isempty(u.jac)
              u = u.val;
          end
@@ -518,15 +518,15 @@ classdef ADI
           if ~isa(x,'ADI') %u is a scalar/matrix
               h = v;
               [h.val, dydx] = interpRegPVT(T, x, v.val, flag, reginx);
-              h.jac = lMultDiag(dydx, v.jac);
+              h.jac = ADI.lMultDiag(dydx, v.jac);
           elseif ~isa(v,'ADI') %v is a scalar
               h = x;
               [h.val, dydx] = interpRegPVT(T, x.val, v, flag, reginx);
-              h.jac = lMultDiag(dydx, x.jac);
+              h.jac = ADI.lMultDiag(dydx, x.jac);
           else
               h = x;
               [h.val, dydx, dydv] = interpRegPVT(T, x.val, v.val, flag, reginx);
-              h.jac = timesJac(dydx, dydv, v.jac, x.jac); % note order of input
+              h.jac = ADI.timesJac(dydx, dydv, v.jac, x.jac); % note order of input
           end
          if isempty(h.jac)
              h = h.val;
@@ -536,7 +536,7 @@ classdef ADI
       function h = interpTable(X, Y, x, varargin)
          h = x;
          h.val = interpTable(X, Y, x.val, varargin{:});
-         h.jac = lMultDiag(dinterpTable(X,Y, x.val, varargin{:}), x.jac);
+         h.jac = ADI.lMultDiag(dinterpTable(X,Y, x.val, varargin{:}), x.jac);
          if isempty(h.jac)
              h = h.val;
          end
@@ -560,194 +560,197 @@ classdef ADI
 %       end
       %--------------------------------------------------------------------
    end
-end
+   
+   methods (Access=private, Static)
+        %**************************************************************************
+        %-------- Helper functions involving Jacobians  ---------------------------
+        %**************************************************************************
 
-%**************************************************************************
-%-------- Helper functions involving Jacobians  ---------------------------
-%**************************************************************************
+        function J = uminusJac(J1)
+        J = cellfun(@uminus, J1, 'UniformOutput', false);
+        end
 
-function J = uminusJac(J1)
-J = cellfun(@uminus, J1, 'UniformOutput', false);
-end
+        %--------------------------------------------------------------------------
 
-%--------------------------------------------------------------------------
+        function J = plusJac(J1, J2)
+        if isempty(J1)
+            J = J2;
+            return
+        end
+        if isempty(J2)
+            J = J1;
+            return
+        end
 
-function J = plusJac(J1, J2)
-if isempty(J1)
-    J = J2;
-    return
-end
-if isempty(J2)
-    J = J1;
-    return
-end
+        nv1 = size(J1{1},1);
+        nv2 = size(J2{1},1);
+        if  nv1 == nv2
+            J = cellfun(@plus, J1, J2, 'UniformOutput', false);
+        else     % only other legal option is that nv1 = 1 or nv2 =1
+            if nv1 == 1
+                J = cell(1, numel(J1));
+                for k = 1:numel(J)
+                    J{k} = repmat(J1{k}, [nv2, 1]) + J2{k};
+                end
+            else % nv2 = 1
+                J = plusJac(J2, J1);
+            end
+        end
+        end
 
-nv1 = size(J1{1},1);
-nv2 = size(J2{1},1);
-if  nv1 == nv2
-    J = cellfun(@plus, J1, J2, 'UniformOutput', false);
-else     % only other legal option is that nv1 = 1 or nv2 =1
-    if nv1 == 1
+
+        %--------------------------------------------------------------------------
+
+        function J = mtimesJac(M, J1)
+        if nnz(M) == 0
+            J = {};
+            return
+        end
         J = cell(1, numel(J1));
         for k = 1:numel(J)
-            J{k} = repmat(J1{k}, [nv2, 1]) + J2{k};
+            J{k} = M*J1{k};
         end
-    else % nv2 = 1
-        J = plusJac(J2, J1);
-    end
-end
+        end
+
+        %--------------------------------------------------------------------------
+
+        function J = mtimesScalarJac(J1, J2)
+        nv1 = size(J1{1},1);
+        nv2 = size(J2{1},1);
+        if nv1 == 1
+            J = cell(1, numel(J1));
+            for k = 1:numel(J)
+                J{k} = repmat(J1{k}, [nv2, 1])*J2{k};
+            end
+        elseif nv2 == 1
+            J = mtimesScalarJac(J2, J1);
+        else
+            error('Not supported')
+        end
+        end
+
+        %--------------------------------------------------------------------------
+
+        function J = lMultDiag(d, J1)
+        n = numel(d);
+        if any(d)
+            ix = (1:n)';
+            D = sparse(ix, ix, d, n, n);
+        else
+            J = {};
+            return
+        end
+        J = cell(1, numel(J1));
+        for k = 1:numel(J)
+            J{k} = D*J1{k};
+        end
+        end
+
+        %--------------------------------------------------------------------------
+
+        function J = timesJacUnit(v_unit, v2, J_unit, J2)
+        nj = numel(J_unit);
+        J = cell(1, nj);
+        for k = 1:nj
+            J{k} = v_unit*J2{k} + sparse(v2)*J_unit{k};
+        end
+        end
+
+        function J = timesJac(v1, v2, J1, J2)
+        n = numel(v1);
+        ix = (1:n)';
+        D1 = sparse(ix, ix, v1, n, n);
+        D2 = sparse(ix, ix, v2, n, n);
+
+        nj = numel(J1);
+        J = cell(1, nj);
+        for k = 1:nj
+            J{k} = D1*J2{k} + D2*J1{k};
+        end
+        end
+
+        %--------------------------------------------------------------------------
+
+        function J = mldivideJac(M, J1)
+        J = cell(1, numel(J1));
+        for k = 1:numel(J)
+            J{k} = M\J1{k};
+        end
+        end
+
+        %--------------------------------------------------------------------------
+
+        function J = subsrefJac(J1, subs)
+        J = cell(1, numel(J1));
+        for k = 1:numel(J)
+            J{k} = J1{k}(subs,:);
+        end
+        end
+
+        %--------------------------------------------------------------------------
+        function J = sumJac(J)
+        J = cellfun(@(j1) sum(j1, 1), J, 'UniformOutput', false);
+        end
+
+        %--------------------------------------------------------------------------
+        function J = cumsumJac(J1)
+        J = cellfun(@(j1) cumsum(j1, 1), J1, 'UniformOutput', false);
+        end
+
+        %--------------------------------------------------------------------------
+
+        function J = repmatJac(J1, varargin)
+        J   = cell(1, numel(J1));
+        if (varargin{end}(end)==1)
+            for k = 1:numel(J)
+                J{k} = repmat(J1{k}, varargin{:});
+            end
+        else
+            error('Only vertical concatenation allowed for class ADI objects');
+        end
+        end
+
+        %--------------------------------------------------------------------------
+
+        function u = double2AD(u, J1)
+        % u is vector, J reference jacobian
+        nr = numel(u);
+        J  = cell(1, numel(J1));
+        for k = 1:numel(J)
+            nc   = size(J1{k}, 2);
+            J{k} = sparse(nr, nc);
+        end
+        u = ADI(u, J);
+        end
+
+        %--------------------------------------------------------------------------
+
+        function J = subsasgnJac(J, subs, J1)
+        if nargin == 3
+            for k = 1:numel(J)
+                J{k}(subs,:) = J1{k};
+            end
+        else
+            for k = 1:numel(J)
+                J{k}(subs,:) = 0;
+            end
+        end
+        end
+
+        %--------------------------------------------------------------------------
+
+        function J = vertcatJac(varargin)
+        J = vertcat(varargin{:});
+        end
+
+        %--------------------------------------------------------------------------
+
+        function J = horzcatJac(varargin)
+        J = horzcat(varargin{:});
+        end
+   end
 end
 
-
-%--------------------------------------------------------------------------
-
-function J = mtimesJac(M, J1)
-if nnz(M) == 0
-    J = {};
-    return
-end
-J = cell(1, numel(J1));
-for k = 1:numel(J)
-    J{k} = M*J1{k};
-end
-end
-
-%--------------------------------------------------------------------------
-
-function J = mtimesScalarJac(J1, J2)
-nv1 = size(J1{1},1);
-nv2 = size(J2{1},1);
-if nv1 == 1
-    J = cell(1, numel(J1));
-    for k = 1:numel(J)
-        J{k} = repmat(J1{k}, [nv2, 1])*J2{k};
-    end
-elseif nv2 == 1
-    J = mtimesScalarJac(J2, J1);
-else
-    error('Not supported')
-end
-end
-
-%--------------------------------------------------------------------------
-
-function J = lMultDiag(d, J1)
-n = numel(d);
-if any(d)
-    ix = (1:n)';
-    D = sparse(ix, ix, d, n, n);
-else
-    J = {};
-    return
-end
-J = cell(1, numel(J1));
-for k = 1:numel(J)
-    J{k} = D*J1{k};
-end
-end
-
-%--------------------------------------------------------------------------
-
-function J = timesJacUnit(v_unit, v2, J_unit, J2)
-nj = numel(J_unit);
-J = cell(1, nj);
-for k = 1:nj
-    J{k} = v_unit*J2{k} + sparse(v2)*J_unit{k};
-end
-end
-
-function J = timesJac(v1, v2, J1, J2)
-n = numel(v1);
-ix = (1:n)';
-D1 = sparse(ix, ix, v1, n, n);
-D2 = sparse(ix, ix, v2, n, n);
-
-nj = numel(J1);
-J = cell(1, nj);
-for k = 1:nj
-    J{k} = D1*J2{k} + D2*J1{k};
-end
-end
-
-%--------------------------------------------------------------------------
-
-function J = mldivideJac(M, J1)
-J = cell(1, numel(J1));
-for k = 1:numel(J)
-    J{k} = M\J1{k};
-end
-end
-
-%--------------------------------------------------------------------------
-
-function J = subsrefJac(J1, subs)
-J = cell(1, numel(J1));
-for k = 1:numel(J)
-    J{k} = J1{k}(subs,:);
-end
-end
-
-%--------------------------------------------------------------------------
-function J = sumJac(J)
-J = cellfun(@(j1) sum(j1, 1), J, 'UniformOutput', false);
-end
-
-%--------------------------------------------------------------------------
-function J = cumsumJac(J1)
-J = cellfun(@(j1) cumsum(j1, 1), J1, 'UniformOutput', false);
-end
-
-%--------------------------------------------------------------------------
-
-function J = repmatJac(J1, varargin)
-J   = cell(1, numel(J1));
-if (varargin{end}(end)==1)
-    for k = 1:numel(J)
-        J{k} = repmat(J1{k}, varargin{:});
-    end
-else
-    error('Only vertical concatenation allowed for class ADI objects');
-end
-end
-
-%--------------------------------------------------------------------------
-
-function u = double2AD(u, J1)
-% u is vector, J reference jacobian
-nr = numel(u);
-J  = cell(1, numel(J1));
-for k = 1:numel(J)
-    nc   = size(J1{k}, 2);
-    J{k} = sparse(nr, nc);
-end
-u = ADI(u, J);
-end
-
-%--------------------------------------------------------------------------
-
-function J = subsasgnJac(J, subs, J1)
-if nargin == 3
-    for k = 1:numel(J)
-        J{k}(subs,:) = J1{k};
-    end
-else
-    for k = 1:numel(J)
-        J{k}(subs,:) = 0;
-    end
-end
-end
-
-%--------------------------------------------------------------------------
-
-function J = vertcatJac(varargin)
-J = vertcat(varargin{:});
-end
-
-%--------------------------------------------------------------------------
-
-function J = horzcatJac(varargin)
-J = horzcat(varargin{:});
-end
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
