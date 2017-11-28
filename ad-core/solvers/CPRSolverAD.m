@@ -12,30 +12,21 @@ classdef CPRSolverAD < LinearSolverAD
     %
     %   For second stage, ILU(0) is used.
     %
-    % REQUIRED PARAMETERS:
-    %   None
     %
-    % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
-    %   See class properties.
+    % OPTIONAL PARAMETERS:
+    %   'property' - Set property to value.
     %
     %
     % SEE ALSO:
-    %   BackslashSolverAD, LinearSolverAD, LinearizedProblem
+    %   `BackslashSolverAD`, `LinearSolverAD`, `LinearizedProblem`
 
     properties
-        % Relative tolerance for elliptic solver
-        relativeTolerance
-        % Scaling factor applied to pressure equations
-        pressureScaling
-        % LinearSolverAD subclass suitable for the elliptic submatrix.
-        ellipticSolver
-        % Diagonal tolerance in [0,1].
-        diagonalTol
-        % Name of elliptic-like variable which will be solved using
-        % elliptic solver.
-        ellipticVarName
-        % Use true impes decoupling strategy (if supported by model)
-        trueIMPES
+        relativeTolerance % Relative tolerance for elliptic solver
+        pressureScaling % Scaling factor applied to pressure equations
+        ellipticSolver % LinearSolverAD subclass suitable for the elliptic submatrix.
+        diagonalTol % Diagonal tolerance in [0,1].
+        ellipticVarName % Name of elliptic-like variable which will be solved using elliptic solver
+        trueIMPES % Use true impes decoupling strategy (if supported by model)
     end
     methods
         function solver = CPRSolverAD(varargin)

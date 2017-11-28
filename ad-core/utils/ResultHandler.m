@@ -7,21 +7,18 @@ classdef ResultHandler < handle
     %   handler = ResultHandler('dataPrefix', 'mydata', 'writeToDisk', true);
     % 
     % DESCRIPTION:
-    %   This class can be used to store and retrieve simulation results. It is
-    %   somewhat similar to a cell array in use, if more limited.
+    %   This class can be used to store and retrieve simulation results. It 
+    %   is somewhat similar to a cell array in use, although more limited.
     %  
     %   Take a look at the class declaration to get more information.
     %
     % EXAMPLE:
-    %
-    % % Setup handler
-    % handler = ResultHandler('dataprefix', 'mydata', 'writeToDisk', true);
-    % 
-    % % Write result
-    % handler{1} = {'hello'};
-    % 
-    % % Read result from disk and print
-    % disp(handler{1})
+    %   % Setup handler
+    %   handler = ResultHandler('dataprefix', 'mydata', 'writeToDisk', true);
+    %   % Write result
+    %   handler{1} = {'hello'};
+    %   % Read result from disk and print
+    %   disp(handler{1})
     %
     % RETURNS:
     %   Class instance that in some limited aspects acts like a cell array

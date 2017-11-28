@@ -11,12 +11,13 @@ classdef GMRES_ILUSolverAD < LinearSolverAD
     % REQUIRED PARAMETERS:
     %   None
     %
-    % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
-    %   See class properties.
+    % OPTIONAL PARAMETERS:
+    %   'property' - Set property to value.
     %
     %
     % SEE ALSO:
-    %   BackslashSolverAD, CPRSolverAD, LinearizedProblem, LinearSolverAD
+    %   `BackslashSolverAD`, `CPRSolverAD`, `LinearizedProblem`,
+    %   `LinearSolverAD`
 
     properties
         % Type: {'nofill'}, 'crout', 'ilutp'

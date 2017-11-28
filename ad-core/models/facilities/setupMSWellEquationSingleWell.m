@@ -3,7 +3,7 @@ function [eqs, eqsMS, cq_s, wellSol, mix_s, status, cstatus, cq_r] = setupMSWell
 %
 % SYNOPSIS:
 %
-% function [eqs, eqsMS, cq_s, mix_s, status, cstatus, cq_r] = setupMSWellEquations(wm, ...
+%   function [eqs, eqsMS, cq_s, mix_s, status, cstatus, cq_r] = setupMSWellEquations(wm, ...
 %                                                   model, wellSol0, dt, bhp, q_s, pN, vmix, alpha, wellNo)
 %
 % PARAMETERS:
@@ -38,7 +38,7 @@ function [eqs, eqsMS, cq_s, wellSol, mix_s, status, cstatus, cq_r] = setupMSWell
 %                 source-terms (reservoir conds).
 %
 % SEE ALSO:
-%   WellModel, setupWellControlEquation
+%   `FacilityModel`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

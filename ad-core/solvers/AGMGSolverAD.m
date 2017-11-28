@@ -12,16 +12,14 @@ classdef AGMGSolverAD < LinearSolverAD
     %    This solver requires AGMG to be installed and working.
     %
     % SEE ALSO:
-    %   BackslashSolverAD
+    %   `BackslashSolverAD`
 
    properties
-       % Internal book-keeping variable
-       setupDone
-       % Will reuse the setup phase to improve speed for e.g. a GMRES loop
+       setupDone % Internal book-keeping variable
+       reuseSetup % Will reuse the setup phase to improve speed for e.g. a GMRES loop
        % with the same matrix system. However, some systems report
        % segfaults with this option enabled.
-       reuseSetup
-       reduceToCell
+       reduceToCell % Reduce to per-cell system before solving
    end
    methods
        function solver = AGMGSolverAD(varargin)
@@ -68,7 +66,7 @@ classdef AGMGSolverAD < LinearSolverAD
             end
        end
        
-       function solver = setupSolver(solver, A, b, varargin) %#ok 
+       function solver = setupSolver(solver, A, b, varargin)
            % Run setup on a solver for a given system
            if solver.reuseSetup
                agmg(A,[],[],[],[],[],[], 1);
@@ -76,7 +74,7 @@ classdef AGMGSolverAD < LinearSolverAD
            end
        end
        
-       function  solver = cleanupSolver(solver, A, b, varargin) %#ok 
+       function  solver = cleanupSolver(solver, A, b, varargin)
            % Clean up solver after use (if needed)
            if solver.reuseSetup
                agmg(A,[],[],[],[],[],[], -1);

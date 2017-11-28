@@ -11,11 +11,35 @@ function schedule = upscaleSchedule(model, schedule, varargin)
 %
 %   schedule   - Schedule to be upscaled.
 %
+% OPTIONAL PARAMETERS:
+%   'wellUpscaleMethod' - Upscaling method for well indices. The default is
+%                         to sum the well indices in the same block. Other
+%                         options are 'harmonic' and 'mean'. We recommend
+%                         applying a dedicated upscaling routine and
+%                         replacing these values if well-bore flow
+%                         performance is important.
+%
+%   'bcUpscaleMethod'   - Interpolation strategy used for boundary
+%                         conditions. Possible options:
+%                           - linear: Default.
+%                           - idw:    Inverse distance weighting
+%                           - mean:   Mean value.
+%                           - nearest: Nearest neighbor.
+%                         In addition, any unknown arguments will be passed
+%                         onto the interpolation routine used. Depending on
+%                         the dimensionality and the boundary conditions,
+%                         this is either `interp1` or `scatteredInterp`.
+%
 % RETURNS:
 %   schedule   - Schedule upscaled for the coarse model.
 %
 % NOTE:
-%   DOES CURRENTLY ONLY SUPPORT WELLS, NOT BC OR SRC
+%   Support for boundary conditions relies on interpolation. Results should
+%   be examined before use for complex grids.
+%
+% SEE ALSO:
+%   `upscaleModelTPFA`, `upscaleState`, `generateCoarseGrid`
+
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

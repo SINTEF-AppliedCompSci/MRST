@@ -1,5 +1,5 @@
 classdef LinearSolverAD < handle
-    %Base class for linear solvers in the AD framework
+    % Base class for linear solvers in the AD framework
     %
     % SYNOPSIS:
     %   solver = LinearSolverAD()
@@ -12,34 +12,26 @@ classdef LinearSolverAD < handle
     % REQUIRED PARAMETERS:
     %   None
     %
-    % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
-    %   See class properties.
+    % OPTIONAL PARAMETERS:
+    %   'property' - Set property to value.
     %
     % NOTE:
     %   This class is intended as superclass. It cannot actually solve
     %   problems.
     %
     % SEE ALSO:
-    %   BackslashSolverAD, CPRSolverAD, LinearizedProblem
+    %   `BackslashSolverAD`, `CPRSolverAD`, `LinearizedProblem`
 
    properties
-       % Convergence tolerance
-       tolerance
-       % Max number of iterations used
-       maxIterations
-       % Enable this to produce additional report output. May use a lot of
-       % memory for large problems
-       extraReport
-       % Verbose output enabler
-       verbose
-       % Boolean indicating if the solver should replace NaN in the results
-       replaceNaN
-       % Boolean indicating if the solver should replace Inf in the results
-       replaceInf
-       % If replaceNaN is enabled, this is the value that will be inserted
-       replacementNaN
-       % If replaceInf is enabled, this is the value that will be inserted
-       replacementInf
+       tolerance % Linear solver tolerance
+       maxIterations % Max number of iterations used
+       extraReport % Enable this to produce additional report output
+       % May use a lot of memory for large problems
+       verbose % Verbose output enabler
+       replaceNaN % Boolean indicating if the solver should replace NaN in the results
+       replaceInf % Boolean indicating if the solver should replace Inf in the results
+       replacementNaN % If replaceNaN is enabled, this is the value that will be inserted
+       replacementInf % If replaceInf is enabled, this is the value that will be inserted
    end
    methods
        function solver = LinearSolverAD(varargin)

@@ -9,44 +9,44 @@ function grad = computeGradientPerturbationAD(state0, model, schedule, getObject
 %   by perturbing all controls ever so slightly and re-running the
 %   simulation.
 %  
-%   As the cost of this routine grows is approximately
+%   As the cost of this routine grows is approximately ::
 %
 %        (# wells)x(# ctrl step) x cost of schedule
 %
 %   it can be potentially extremely expensive. It is better to use the
-%   'computeGradientAdjointAD' routine for most practical purposes. This
+%   `computeGradientAdjointAD` routine for most practical purposes. This
 %   routine is primarily designed for validation of said routine.
 %
 % REQUIRED PARAMETERS:
 %
-%   state0       - Physical model state at t = 0
+%   state0       - Physical model state at `t = 0`
 %
-%   model        - Subclass of PhysicalModel class such as
-%                 ThreePhaseBlackOilModel that models the physical effects
-%                 we want to study.
+%   model        - Subclass of `PhysicalModel` class such as
+%                  `ThreePhaseBlackOilModel` that models the physical 
+%                  effects we want to study.
 %
-%   schedule     - Schedule suitable for simulateScheduleAD.
+%   schedule     - Schedule suitable for `simulateScheduleAD`.
 %
 %   getObjective - Function handle for getting objective function value 
 %                  from a set of wellSols. 
-%                  Function handle format: @(wellSols, states, schedule)
+%                  Function handle format: `@(wellSols, states, schedule)`
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %   
-% 
-%
-% RETURNS:
-%
 %  'Verbose'        - Indicate if extra output is to be printed such as
 %                     detailed convergence reports and so on. 
 % 
-%  'scaling'        - Struct with fields 'rate' and 'pressure' used to
+%  'scaling'        - Struct with fields `rate` and `pressure` used to
 %                     scale the numerical perturbation.
 %
-%  'perturbation'   - Magnitude of perturbation. Default 1e-7.
+%  'perturbation'   - Magnitude of perturbation. Default `1e-7`.
+%
+%
+% RETURNS:
+%   grad - Gradients for each step.
 %
 % SEE ALSO:
-%   computeGradientAdjointAD, simulateScheduleAD
+%   `computeGradientAdjointAD`, `simulateScheduleAD`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
