@@ -64,10 +64,10 @@ classdef SequentialPressureTransportModel < ReservoirModel
             if ~isempty(model.pressureLinearSolver)
                 model.pressureNonLinearSolver.LinearSolver = ...
                                 model.pressureLinearSolver;
-                model.pressureNonLinearSolver.maxTimestepCuts = 0;
-                model.pressureNonLinearSolver.errorOnFailure = false;
             end
-            
+            model.pressureNonLinearSolver.maxTimestepCuts = 0;
+            model.pressureNonLinearSolver.errorOnFailure = false;
+
             if ~isempty(model.transportLinearSolver)
                 model.transportNonLinearSolver.LinearSolver = ...
                                 model.transportLinearSolver;
@@ -83,7 +83,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
             psolver = model.pressureNonLinearSolver;
             tsolver = model.transportNonLinearSolver;
             % Get the forces used in the step
-            forceArg = getDrivingForces(model.pressureModel, drivingForces);
+            forceArg = model.pressureModel.getDrivingForces(drivingForces);
             
             % First, solve the pressure using the pressure nonlinear
             % solver.
@@ -94,7 +94,18 @@ classdef SequentialPressureTransportModel < ReservoirModel
             pressure_ok = pressureReport.Converged || psolver.continueOnFailure;
             
             if pressure_ok
-                state_p = state;
+                if ~isempty(drivingForces.bc)
+                    isDir = strcmpi(drivingForces.bc.type, 'pressure');
+                    if any(isDir)
+                        % Convert Dirichlet boundary conditions to flux
+                        % boundary conditions for the transport
+                        transportForces = drivingForces;
+                        dirFace = transportForces.bc.face(isDir);
+                        transportForces.bc.value(isDir) = sum(state.flux(dirFace, :), 2);
+                        [transportForces.bc.type{isDir}] = deal('flux');
+                        forceArg = model.transportModel.getDrivingForces(transportForces);
+                    end
+                end
                 state.timestep = dt;
                 state.pressure_full = state.pressure;
                 % If pressure converged, we proceed to solve the transport
