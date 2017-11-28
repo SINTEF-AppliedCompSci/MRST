@@ -104,7 +104,11 @@ classdef SimpleTimeStepSelector < handle
         end
         
         function storeTimestep(selector, report)
-            selector.history = vertcat(selector.history, report);
+            if isempty(selector.history)
+                selector.history = report;
+            else
+                selector.history = vertcat(selector.history, report);
+            end
             
             n = selector.maxHistoryLength;
             if numel(selector.history) > n

@@ -1059,10 +1059,11 @@ classdef FacilityModel < PhysicalModel
                 end
             end
         end
+        
+        function d = combineCellData(data, ix)
+            d = cellfun(@(x) x{ix}, data, 'UniformOutput', false);
+            d = vertcat(d{:});
+        end
     end
 end
 
-function d = combineCellData(data, ix)
-    d = cellfun(@(x) x{ix}, data, 'UniformOutput', false);
-    d = vertcat(d{:});
-end

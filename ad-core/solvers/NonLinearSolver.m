@@ -255,7 +255,8 @@ classdef NonLinearSolver < handle
                 if ~isFinalMinistep || dt/dt_sel > 0.9
                     % Avoid storing ministeps that are just due to cutting
                     % at the end of the control step
-                    stepsel.storeTimestep(reports{end});
+                    rep = reports{end};
+                    stepsel.storeTimestep(rep);
                 end
 
                 % Keep total itcount so we know how much time we are
@@ -550,30 +551,32 @@ classdef NonLinearSolver < handle
                 str = [solver.identifier, ': '];
             end
         end
+        
+        function v = linesearchApplyUpdate(solver, v, ok, active)
+            v = v./solver.linesearchResidualScaling;
+            v = v(active);
+            ok = ok(active);
+
+            if ~isempty(solver.linesearchReductionFn)
+                % Apply function
+                v = solver.linesearchReductionFn(v);
+            else
+                % Set converged value to zero
+                v = v.*~ok;
+            end
+        end
+
+        function activeNames = getActiveNames(solver, names)
+            if isempty(solver.linesearchConvergenceNames)
+                activeNames = true(size(names));
+            else
+                activeNames = ismember(names, solver.linesearchConvergenceNames);
+            end
+        end
+
     end
 end
 
-function v = linesearchApplyUpdate(solver, v, ok, active)
-    v = v./solver.linesearchResidualScaling;
-    v = v(active);
-    ok = ok(active);
-
-    if ~isempty(solver.linesearchReductionFn)
-        % Apply function
-        v = solver.linesearchReductionFn(v);
-    else
-        % Set converged value to zero
-        v = v.*~ok;
-    end
-end
-
-function activeNames = getActiveNames(solver, names)
-    if isempty(solver.linesearchConvergenceNames)
-        activeNames = true(size(names));
-    else
-        activeNames = ismember(names, solver.linesearchConvergenceNames);
-    end
-end
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
