@@ -102,7 +102,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
                         transportForces = drivingForces;
                         dirFace = transportForces.bc.face(isDir);
                         transportForces.bc.value(isDir) = sum(state.flux(dirFace, :), 2);
-                        [transportForces.bc.type{isDir}] = deal('flux');
+                        [transportForces.bc.type{isDir}] = deal('resflux');
                         forceArg = model.transportModel.getDrivingForces(transportForces);
                     end
                 end
