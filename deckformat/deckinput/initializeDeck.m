@@ -61,6 +61,7 @@ end
 function runspec = initRunSpec
    runspec.cartDims = repmat(-1, [1, 3]);
    runspec.START    = datenum('01 JAN 1983');  % E100 default value.
+   runspec.DUALPORO = false;
 
    satopts = { 'DIRECT', 'HYSTER', 'IRREVERS' };
    runspec.SATOPTS = ...

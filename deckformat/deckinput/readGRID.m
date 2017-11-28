@@ -45,11 +45,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          case 'SPECGRID',
             s = removeQuotes(readRecordString(fid));
             cartDims = reshape(sscanf(s, '%f', 3), 1, []);
-            
+
             if deck.RUNSPEC.DUALPORO % if dual porosity then half the z cartdimes
-                
-                cartDims(3)=cartDims(3)/2;
-                
+                cartDims(3) = cartDims(3) / 2;
+
                 defaultBox(cartDims);
                 gridBox(defaultBox);
 
@@ -60,7 +59,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 grd.cartDims = cartDims;
                 ncdp = 2*nc;                       % Number of fracture and matric cells for dp properties
             else
-
                 defaultBox(cartDims);
                 gridBox(defaultBox);
 
@@ -69,7 +67,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 np   = prod(dims(1 : end-1) + 1);  % Number of pillars
                 nv   = prod(dims + 1);             % Number of vertices
                 grd.cartDims = cartDims;
-                
             end
 
          case {'DXV', 'DYV', 'DZV'},
