@@ -952,6 +952,7 @@ methods
         %             reservoir-well coupling found in `FacilityModel.
         
         if model.FacilityModel.getNumberOfActiveWells(wellSol) == 0
+            src = [];
             return
         end
         fm = model.FacilityModel;
