@@ -281,8 +281,15 @@ classdef SimpleWell < PhysicalModel
                 return
             end
             [p, mob, rho, dissolved, comp, wellvars] = unpackPerforationProperties(packed);
-            toDb  = @(x)cellfun(@double, x, 'UniformOutput', false);
-            rho     = cell2mat(toDb(rho));
+            for i = 1:numel(rho)
+                rho{i} = double(rho{i});
+                if ~isempty(dissolved)
+                    for j = 1:numel(dissolved{i})
+                        dissolved{i}{j} = double(dissolved{i}{j});
+                    end
+                end
+            end
+            rho     = cell2mat(rho);
             active = model.getActivePhases();
             numPh = nnz(active);
 
