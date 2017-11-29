@@ -124,7 +124,7 @@ function [model, relPermStruct]= assignPhaseRelPerm(model, relPermStruct, index,
         % Cell relperm is base relperm
         f = [f; fn(S)'];
         
-        if sz_kr > 1
+        if sz_kr(2) > 1
             % Half-face values
             % First region for each half face, then for all cells
             reg = [(1:offset), cell_region]';

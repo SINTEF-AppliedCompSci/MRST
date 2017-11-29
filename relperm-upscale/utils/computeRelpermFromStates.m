@@ -1,4 +1,4 @@
-function upscaled_kr = computeRelpermFromStates(states, model_c, model, schedule_c, schedule)
+function upscaled_kr = computeRelpermFromStates(states, model_c, model, schedule_c, schedule, varargin)
 %Compute relative permeability from a fine-scale simulation
 %
 % SYNOPSIS:
@@ -38,8 +38,14 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-
-    states = computeCoarseProps(model_c, model, states, schedule_c, schedule);
+    opt = struct('relPotentialTol', sqrt(eps));
+    [opt, extra] = merge_options(opt, varargin{:});
+    
+    % compute potential tollerance relative to max reservoir pressure drop
+    maxResDp = max(cellfun(@(x)max(vertcat(x.wellSol.bhp))-min(vertcat(x.wellSol.bhp)), states));
+    potentialTol = opt.relPotentialTol*maxResDp;
+    
+    states = computeCoarseProps(model_c, model, states, schedule_c, schedule, extra{:});
     
     n_ph = model.water + model.oil + model.gas;
     
@@ -88,7 +94,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             kr = -muf.*flux./(T.*pot);
             
             % Reduce to meaningful values
-            ok = isfinite(kr) & kr >= 0;
+            ok = isfinite(kr) & kr >= 0 & abs(pot) > potentialTol;
             
             faces = find(ok);
             flag = flag(ok);

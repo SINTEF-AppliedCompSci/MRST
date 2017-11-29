@@ -13,7 +13,7 @@ function states = computeCoarseProps(model, model_f, states, schedule, schedule_
         act = model.getActivePhases();
         sat = sat(act);
         
-        [kr_all, pot, mu, mob, rho, pressures] = deal(cell(1, 3));
+        [kr_all, pot, mu, mob, rho, pressures, mu] = deal(cell(1, 3));
         kr = cell(1, numel(sat));
         [kr{:}] = model.evaluateRelPerm(sat);
         
@@ -21,7 +21,7 @@ function states = computeCoarseProps(model, model_f, states, schedule, schedule_
         
         index = 1;
         if model.water
-            [~, ~, mob{1}, rho{1}, pressures{1}, upcw, pot{1}] = getFluxAndPropsWater_BO(model, pressure, sat{index}, kr{index}, 1, gdz);
+            [~, ~, mob{1}, rho{1}, pressures{1}, upcw, pot{1}, mu{1}] = getFluxAndPropsWater_BO(model, pressure, sat{index}, kr{index}, 1, gdz);
             index = index + 1; 
         end
         
@@ -31,7 +31,7 @@ function states = computeCoarseProps(model, model_f, states, schedule, schedule_
             else
                 isSatO = false;
             end
-            [~, ~, mob{2}, rho{2}, pressures{2}, upco, pot{2}]  = getFluxAndPropsOil_BO(model, pressure, sat{index}, kr{index}, 1, gdz, state.rs, isSatO);
+            [~, ~, mob{2}, rho{2}, pressures{2}, upco, pot{2}, mu{2}]  = getFluxAndPropsOil_BO(model, pressure, sat{index}, kr{index}, 1, gdz, state.rs, isSatO);
             index = index + 1; 
         end
         
@@ -41,7 +41,7 @@ function states = computeCoarseProps(model, model_f, states, schedule, schedule_
             else
                 isSatG = false;
             end
-            [~, ~, mob{3}, rho{3}, pressures{3}, upcg, pot{3}] = getFluxAndPropsGas_BO(model, pressure, sat{index}, kr{index}, 1, gdz, state.rv, isSatG);
+            [~, ~, mob{3}, rho{3}, pressures{3}, upcg, pot{3}, mu{3}] = getFluxAndPropsGas_BO(model, pressure, sat{index}, kr{index}, 1, gdz, state.rv, isSatG);
         end
         
         
@@ -56,10 +56,10 @@ function states = computeCoarseProps(model, model_f, states, schedule, schedule_
                 end
             end
         end
-        
-        for i = 1:numel(kr)
-            mu{i} = kr{i}./mob{i};
-        end
+
+        %for i = 1:numel(kr)
+        %    mu{i} = kr{i}./mob{i};
+        %end
         
         flds = {'kr', 'pot', 'mu', 'mob', 'rho'};
         for i = 1:numel(flds)
@@ -91,6 +91,7 @@ function states = computeCoarseProps(model, model_f, states, schedule, schedule_
                 state.wellSol(wno).cdp = accumarray(W(wno).fperf, ws0.cdp.*WI)./accumarray(W(wno).fperf, WI);
                 pw = state.wellSol(wno).cdp + state.wellSol(wno).bhp;
                 state.wellSol(wno).pot = (state.pressure(wc) - pw);
+                % treat injector mobilities later ...
                 state.wellSol(wno).mob = state.mob(wc, :);
             end
         end
