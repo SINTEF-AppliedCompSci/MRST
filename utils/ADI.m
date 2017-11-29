@@ -172,11 +172,11 @@ classdef ADI
               if numel(u.val) == 1
                   h = u;
                   h.val = times(u.val, v.val);
-                  h.jac = timesJacUnit(u.val, v.val, u.jac, v.jac);
+                  h.jac = ADI.timesJacUnit(u.val, v.val, u.jac, v.jac);
               elseif numel(v.val) == 1
                   h = u;
                   h.val = times(u.val, v.val);
-                  h.jac = timesJacUnit(v.val, u.val, v.jac, u.jac);
+                  h.jac = ADI.timesJacUnit(v.val, u.val, v.jac, u.jac);
               else
                   error('Operation not supported');
               end
@@ -431,14 +431,14 @@ classdef ADI
       function u = sum(u)
           % Sum of vector
           u.val = sum(u.val);
-          u.jac = sumJac(u.jac);
+          u.jac = ADI.sumJac(u.jac);
       end
 
       %--------------------------------------------------------------------
       function u = cumsum(u)
           % Cumulative sum of vector
           u.val = cumsum(u.val);
-          u.jac = cumsumJac(u.jac);
+          u.jac = ADI.cumsumJac(u.jac);
       end
 
       %--------------------------------------------------------------------
@@ -466,7 +466,7 @@ classdef ADI
           % NOTE:
           %   Only allowed in the first (column) dimension for ADI objects.
           u.val = repmat(u.val, varargin{:});
-          u.jac = repmatJac(u.jac, varargin{:});
+          u.jac = ADI.repmatJac(u.jac, varargin{:});
       end
 
       %--------------------------------------------------------------------
@@ -600,7 +600,7 @@ classdef ADI
         %**************************************************************************
 
         function J = uminusJac(J1)
-        J = cellfun(@uminus, J1, 'UniformOutput', false);
+            J = cellfun(@uminus, J1, 'UniformOutput', false);
         end
 
         %--------------------------------------------------------------------------
@@ -626,7 +626,7 @@ classdef ADI
                     J{k} = repmat(J1{k}, [nv2, 1]) + J2{k};
                 end
             else % nv2 = 1
-                J = plusJac(J2, J1);
+                J = ADI.plusJac(J2, J1);
             end
         end
         end
@@ -656,7 +656,7 @@ classdef ADI
                 J{k} = repmat(J1{k}, [nv2, 1])*J2{k};
             end
         elseif nv2 == 1
-            J = mtimesScalarJac(J2, J1);
+            J = ADI.mtimesScalarJac(J2, J1);
         else
             error('Not supported')
         end
@@ -722,12 +722,12 @@ classdef ADI
 
         %--------------------------------------------------------------------------
         function J = sumJac(J)
-        J = cellfun(@(j1) sum(j1, 1), J, 'UniformOutput', false);
+            J = cellfun(@(j1) sum(j1, 1), J, 'UniformOutput', false);
         end
 
         %--------------------------------------------------------------------------
         function J = cumsumJac(J1)
-        J = cellfun(@(j1) cumsum(j1, 1), J1, 'UniformOutput', false);
+            J = cellfun(@(j1) cumsum(j1, 1), J1, 'UniformOutput', false);
         end
 
         %--------------------------------------------------------------------------
