@@ -32,7 +32,7 @@ function [blks, pn] = findConfinedBlocks(G, p)
 %   [b, pn] = findConfinedBlocks(G,p(:));
 %
 % SEE ALSO:
-%   processPartition, blockNeighbourship
+%   `processPartition`, `blockNeighbourship`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -69,7 +69,7 @@ function W = generateCoarseWellSystem(G, S, CG, CS, mob, rock, W, varargin)
 %       W(i).CS.RHS.h :  /
 %
 % SEE ALSO:
-%   computeMimeticIP, generateCoarseSystem.
+%   `computeMimeticIP`, `generateCoarseSystem`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

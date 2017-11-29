@@ -21,7 +21,7 @@ function pf = processFacePartition(g, p, pf)
 %   Currently only implemented for 2D grids.
 %
 % SEE ALSO:
-%   processPartition, cellPartitionToFacePartition
+%   `processPartition`, `cellPartitionToFacePartition`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

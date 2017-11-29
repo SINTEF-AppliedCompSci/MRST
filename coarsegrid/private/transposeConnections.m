@@ -32,7 +32,7 @@ function [connPos, conns] = transposeConnections(N)
 %   This function uses SORTROWS.
 %
 % SEE ALSO:
-%   coarseConnections, sortrows, grid_structure.
+%   `coarseConnections`, `sortrows`, `grid_structure`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -58,8 +58,8 @@ function [B, C, D, f, h, Psi, Phi] = ...
 %   and no columns).
 %
 % SEE ALSO:
-%   solveIncompFlowMS, gravity, generateCoarseWellSystem, evalWellBasis,
-%   unpackWellSystemComponents.
+%   `solveIncompFlowMS`, `gravity`, `generateCoarseWellSystem`, `evalWellBasis`,
+%   `unpackWellSystemComponents`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

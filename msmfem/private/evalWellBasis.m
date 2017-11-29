@@ -76,7 +76,7 @@ function [V, P, Q] = evalWellBasis(well, g, cg, BI, C, D, w, mob, varargin)
 %       cells intersected by) the well 'w'.
 %
 % SEE ALSO:
-%   evalBasisFunc, generateCoarseWellSystem.
+%   `evalBasisFunc`, `generateCoarseWellSystem`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

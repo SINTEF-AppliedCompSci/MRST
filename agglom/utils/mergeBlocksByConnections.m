@@ -22,7 +22,7 @@ function p = mergeBlocksByConnections(G, p, T, minBlockSize)
 %   p    - Modified partition vector.
 %
 % SEE ALSO:
-%   mergeBlocks, mergeBlocks2
+%   `mergeBlocks`, `mergeBlocks2`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

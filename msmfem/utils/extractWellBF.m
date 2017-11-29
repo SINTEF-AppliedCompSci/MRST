@@ -33,7 +33,7 @@ function bf = extractWellBF(basis, sz)
 %   basis function values.
 %
 % SEE ALSO:
-%   extractBF.
+%   `extractBF`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

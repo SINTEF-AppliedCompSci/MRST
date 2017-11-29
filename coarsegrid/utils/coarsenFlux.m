@@ -15,7 +15,7 @@ function cflux = coarsenFlux(cg, flux)
 % REMARK:
 %
 % SEE ALSO:
-%   coarsenGeometry, coarseConnections
+%   `coarsenGeometry`, `coarseConnections`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

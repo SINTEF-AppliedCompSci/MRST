@@ -14,7 +14,7 @@ function [Bv, Phi] = basisMatrixHybrid(G, CG, CS)
 %   Phi - Pressure-basis function matrix, \Phi.
 %
 % SEE ALSO:
-%   basisMatrixMixed, evalBasisFunc, solveIncompFlowMS.
+%   `basisMatrixMixed`, `evalBasisFunc`, `solveIncompFlowMS`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

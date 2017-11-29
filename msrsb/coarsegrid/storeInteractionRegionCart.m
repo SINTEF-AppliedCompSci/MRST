@@ -21,7 +21,7 @@ function CG = storeInteractionRegionCart(CG, varargin)
 %        j.
 %
 % SEE ALSO:
-%   storeInteractionRegion
+%   `storeInteractionRegion`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

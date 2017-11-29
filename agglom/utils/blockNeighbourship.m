@@ -23,7 +23,7 @@ function bN = blockNeighbourship(N, p, varargin)
 %   This function uses SORTROWS.
 %
 % SEE ALSO:
-%   grid_structure, generateCoarseGrid, sortrows.
+%   `grid_structure`, `generateCoarseGrid`, `sortrows`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

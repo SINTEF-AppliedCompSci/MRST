@@ -122,8 +122,8 @@ function state = solveIncompFlowMS(state, G, CG, p, S, CS, fluid, varargin)
 %           'solveIncompFlowMS:DrivingForce:Missing'
 %
 % SEE ALSO:
-%   generateCoarseSystem, computeMimeticIP, addBC, addSource, addWell,
-%   initSimpleFluid, initResSol, initWellSol, solveIncompFlow.
+%   `generateCoarseSystem`, `computeMimeticIP`, `addBC`, `addSource`, `addWell`,
+%   `initSimpleFluid`, `initResSol`, `initWellSol`, `solveIncompFlow`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
@@ -465,7 +465,7 @@ function [ff, gg, hh, dF, dC] = sys_rhs(G, omega, Psi, I, J, src, bc)
 %             calling a system solver (e.g., 'schurComplement').
 %
 % SEE ALSO:
-%   computePressureRHS.
+%   `computePressureRHS`.
 
    % Evaluate fine-scale system right hand side contributions.
    %

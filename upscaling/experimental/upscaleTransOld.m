@@ -42,7 +42,7 @@ function [HT_cg,T_cg,cgwells,report]=upscaleTrans(cg,T_fine,varargin)
 %
 %
 % SEE ALSO:
-%       coarsegrid module, grid_structure
+%       `coarsegrid` `module`, `grid_structure`
 %
 
 %{

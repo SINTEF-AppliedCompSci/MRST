@@ -32,7 +32,7 @@ function bc_cg = convertBC2Coarse(bc, G, CG, nsub, sub, coarse_f, sgn)
 %   This function is presently restricted to flux boundary conditions.
 %
 % SEE ALSO:
-%   convertSource2Coarse, signOfFineFacesOnCoarseFaces, subFaces.
+%   `convertSource2Coarse`, `signOfFineFacesOnCoarseFaces`, `subFaces`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

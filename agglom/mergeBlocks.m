@@ -45,7 +45,7 @@ function p = mergeBlocks(p, G, IVol, IFlw, NL, varargin)
 %   p     - Partition vector after merging.
 %
 % SEE ALSO:
-%   segmentPartition, refineBlocks
+%   `segmentPartition`, `refineBlocks`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

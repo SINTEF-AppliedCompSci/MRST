@@ -107,7 +107,7 @@ function cg = generateCoarseGrid(G, p, varargin)
 %   fine-scale grid.
 %
 % SEE ALSO:
-%   grid_structure, cellPartitionToFacePartition, processFacePartition
+%   `grid_structure`, `cellPartitionToFacePartition`, `processFacePartition`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

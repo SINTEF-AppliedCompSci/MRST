@@ -42,7 +42,7 @@ function [conn, ind, cpos, fconn] = coarseConnections(G, p, varargin)
 %   This function uses SORTROWS.
 %
 % SEE ALSO:
-%   generateCoarseGrid, rlencode, sortrows.
+%   `generateCoarseGrid`, `rlencode`, `sortrows`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

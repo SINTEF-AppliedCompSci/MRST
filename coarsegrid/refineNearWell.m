@@ -44,7 +44,7 @@ function [p, binAngle, binRadius, dist] = refineNearWell(pts, wellpt, varargin)
 %  
 %
 % SEE ALSO:
-% partitionUI
+% `partitionUI`
 %   
 
 %{

@@ -55,7 +55,7 @@ function [T, W, auxiliaries] = upscaleTransGlobal(G, W, Tf, varargin)
 %   aux    - optional info/variables 
 %
 % SEE ALSO:
-%   coarsegrid module, grid_structure
+%   coarsegrid module, `grid_structure`.
 
 opt = struct('verbose',              mrstVerbose,     ...
              'globalFieldCases',        'single',     ...
@@ -381,6 +381,3 @@ else
 end
 opt.mobility = {mobf, mobc};
 end
-
-
-

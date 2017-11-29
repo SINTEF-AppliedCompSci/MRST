@@ -28,7 +28,7 @@ function fn = getSmootherFunction(varargin)
 %
 %
 % SEE ALSO:
-%   incompTPFA, solveMultiscaleIteratively, twoStepMultiscalePreconditioner
+%   `incompTPFA`, `solveMultiscaleIteratively`, `twoStepMultiscalePreconditioner`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

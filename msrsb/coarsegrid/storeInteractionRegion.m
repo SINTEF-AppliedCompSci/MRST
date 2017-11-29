@@ -22,7 +22,7 @@ function [CG, interaction, triangulations] = storeInteractionRegion(CG, varargin
 % EXAMPLE:
 %
 % SEE ALSO:
-%   storeIteractionRegionCart
+%   `storeIteractionRegionCart`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

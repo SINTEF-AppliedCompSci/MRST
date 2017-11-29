@@ -29,7 +29,7 @@ function src = evalBasisSource(G, weighting, rock)
 %          functions 'evalBasisFunc' and 'evalWellBasis'.
 %
 % SEE ALSO:
-%   generateCoarseSystem, generateCoarseWellSystem.
+%   `generateCoarseSystem`, `generateCoarseWellSystem`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

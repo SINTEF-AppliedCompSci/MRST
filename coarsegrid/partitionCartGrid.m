@@ -14,7 +14,7 @@ function p = partitionCartGrid(cartDims, partDims)
 %               coarse block index.
 %
 % SEE ALSO:
-%   processPartition.
+%   `processPartition`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -31,7 +31,7 @@ function p = partitionTensor(G, di, dj, dk)
 %   p - Partition vector.  Contains no empty or multiply connected blocks.
 %
 % SEE ALSO:
-%   partitionUI, partitionLayers, mat2cell.
+%   `partitionUI`, `partitionLayers`, `mat2cell`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
