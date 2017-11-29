@@ -575,27 +575,32 @@ classdef FacilityModel < PhysicalModel
             nPh = nnz(resModel.getActivePhases);
             [srcMass, srcVol, eqs] = deal(cell(1, nPh));
             for phNo = 1:nPh
-                srcMass{phNo} = combineCellData(allMass, phNo);
-                srcVol{phNo} = combineCellData(allVol, phNo);
-                eqs{phNo} = combineCellData(allBaseEqs, phNo);
+                srcMass{phNo} = model.combineCellData(allMass, phNo);
+                srcVol{phNo} = model.combineCellData(allVol, phNo);
+                eqs{phNo} = model.combineCellData(allBaseEqs, phNo);
             end
             % Components are ordered canonically by reservoir model
             srcComp = cell(1, ncomp);
             for cNo = 1:ncomp
-                srcComp{cNo} = combineCellData(allComp, cNo);
+                srcComp{cNo} = model.combineCellData(allComp, cNo);
             end
             % If we have extra equations, add them in
-            extraEqs = cell(1, n_extra);
-            for i = 1:n_extra
-                ok = ~cellfun(@isempty, allExtraEqs(:, i));
-                extraEqs{i} = vertcat(allExtraEqs{ok, i});
-            end
-            % Equations are the base, common variables as well as any extra
-            % equations added due to complex wells.
-            names = horzcat(basenames, enames);
-            types = horzcat(basetypes, etypes);
+            if n_extra > 0
+                extraEqs = cell(1, n_extra);
+                for i = 1:n_extra
+                    ok = ~cellfun(@isempty, allExtraEqs(:, i));
+                    extraEqs{i} = vertcat(allExtraEqs{ok, i});
+                end
+                % Equations are the base, common variables as well as any extra
+                % equations added due to complex wells.
+                names = horzcat(basenames, enames);
+                types = horzcat(basetypes, etypes);
 
-            eqs = {eqs{:}, extraEqs{:}};
+                eqs = {eqs{:}, extraEqs{:}};
+            else
+                names = basenames;
+                types = basetypes;
+            end
             ctrleq = vertcat(allCtrl{:});
 
             wc = model.getActiveWellCells(wellSol);
@@ -691,7 +696,10 @@ classdef FacilityModel < PhysicalModel
             gind = model.ReservoirModel.getPhaseIndex('G');
             oind = model.ReservoirModel.getPhaseIndex('O');
             wind = model.ReservoirModel.getPhaseIndex('W');
-            srcRes = cellfun(@double, sources.phaseVolume, 'UniformOutput', false);
+            srcRes = sources.phaseVolume;
+            for i = 1:numel(srcRes)
+                srcRes{i} = double(srcRes{i});
+            end
             qR = [srcRes{:}];
             if size(qR, 1) ~= numel(p2w)
                 % Multiple wells perforated in same block, etc. Output from

@@ -982,13 +982,9 @@ methods
                 eqs{sub}(wc) = eqs{sub}(wc) - src.components{i};
             end
         end
-        offset = numel(wellsys.wellEquations);
-        eqs(end+1:end+offset) = wellsys.wellEquations;
-        names(end+1:end+offset) = wellsys.names;
-        types(end+1:end+offset) = wellsys.types;
-        eqs{end+1} = wellsys.controlEquation;
-        names{end+1} = 'closureWells';
-        types{end+1} = 'well';
+        eqs = horzcat(eqs, wellsys.wellEquations, {wellsys.controlEquation});
+        names = horzcat(names, wellsys.names, 'closureWells');
+        types = horzcat(types, wellsys.types, 'well');
     end
     function [eqs, state, src] = addBoundaryConditionsAndSources(model, eqs, names, types, state, ...
                                                                  p, s, mob, rho, ...

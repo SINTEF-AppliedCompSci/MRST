@@ -224,8 +224,11 @@ classdef SimpleWell < PhysicalModel
             ctrlEq =  setupWellControlEquationsSingleWell(well, wellSol0, wellSol, bh, q_s, status, mix_s, resmodel);
 
             % Update well properties which are not primary variables
-            toDouble = @(x)cellfun(@double, x, 'UniformOutput', false);
-            cq_sDb = cell2mat(toDouble(qMass));
+            cq_sDb = qMass;
+            for i = 1:numel(qMass)
+                cq_sDb{i} = double(qMass{i});
+            end
+            cq_sDb = cell2mat(cq_sDb);
 
             wellSol.cqs     = bsxfun(@rdivide, cq_sDb, resmodel.getSurfaceDensities);
             wellSol.cstatus = cstatus;
@@ -291,7 +294,7 @@ classdef SimpleWell < PhysicalModel
                 w.topo = [(0:(nperf-1))', (1:nperf)'];
             end
             qs = wellSol.cqs; %volumetric in-flux at standard conds
-            C = wb2in(w);            % mapping wb-flux to in-flux
+            C = well.wb2in(w);            % mapping wb-flux to in-flux
             wbqs  = abs(C\qs);       % solve to get well-bore fluxes at surface conds
             wbqst = sum(wbqs, 2);   % total wb-flux at std conds
             % if flux is zero - just use compi
@@ -303,7 +306,7 @@ classdef SimpleWell < PhysicalModel
             % Compute mixture at std conds:
             mixs = wbqs ./ (wbqst*ones(1,numPh));
             % compute volume ratio Vr/Vs
-            volRat = compVolRat(mixs, p, b, model);
+            volRat = well.compVolRat(mixs, p, b, model);
             % Mixture density at connection conds (by using static b's)
             rhoMix = (mixs*rhoS')./volRat;
             % rhoMix is now density between neighboring segments given by
@@ -354,7 +357,10 @@ classdef SimpleWell < PhysicalModel
                 return
             end
             lims = well.W.lims;
-            qs_double = cellfun(@double, q_s);
+            qs_double = zeros(size(q_s));
+            for i = 1:numel(qs_double)
+                qs_double(i) = double(q_s{i});
+            end
             qs_t = sum(qs_double);
 
             actPh = model.getActivePhases();
@@ -369,7 +375,7 @@ classdef SimpleWell < PhysicalModel
                     % rate: Upper limit on total surface rate.
                     % vrat: Lower limit on total surface rate.
                     modes   = {'bhp', 'rate', 'vrat'};
-                    lims = setMissingLimits(lims, modes, inf);
+                    lims = well.setMissingLimits(lims, modes, inf);
                     if ~isfinite(lims.vrat)
                         % VRAT is lower limit, switch default sign
                         lims.vrat = -inf;
@@ -388,7 +394,7 @@ classdef SimpleWell < PhysicalModel
                     % vrat: Upper limit on total volumetric surface rate
 
                     modes   = {'bhp', 'orat', 'lrat', 'grat', 'wrat', 'vrat'};
-                    lims = setMissingLimits(lims, modes, -inf);
+                    lims = well.setMissingLimits(lims, modes, -inf);
                     if ~isfinite(lims.vrat)
                         % VRAT is upper limit, switch default sign
                         lims.vrat = inf;
@@ -480,7 +486,7 @@ classdef SimpleWell < PhysicalModel
             % Check if producers are becoming injectors and vice versa. The indexes
             % of such wells are stored in inx.
             wsg = w.sign;
-            ssg = sign(getTotalRate(wellSol));
+            ssg = sign(well.getTotalRate(wellSol));
             closed = wsg ~= ssg && wsg ~= 0;
             % A well can be set to zero rate without being shut down. We update inx
             % to take into account this fact.
@@ -523,100 +529,103 @@ classdef SimpleWell < PhysicalModel
             % Run after the update step to ensure consistency of wellSol
         end
     end
-end
+    
+    methods (Static, Access = private)
+        function C = wb2in(w)
+            conn = w.topo(2:end, :);
+            % Number of connections between perforations
+            nconn = size(conn, 1);
+            % Number of perforations
+            nperf = numel(w.cells);
 
+            if nconn + 1 ~= nperf
+                warning(['Mismatch between connection count (', num2str(nconn+1),...
+                        ') and perforation count (', num2str(nperf), '). Well model', ...
+                        'Does not appear to be a tree.']);
+            end
 
-function C = wb2in(w)
-    conn = w.topo(2:end, :);
-    % Number of connections between perforations
-    nconn = size(conn, 1);
-    % Number of perforations
-    nperf = numel(w.cells);
+            id = (1:nperf)';
+            % First identity, then honor topology.
+            ii = [id; conn(:, 1)];
+            jj = [id; conn(:, 2)];
+            vv = [ones(nperf, 1); -ones(nconn, 1)];
 
-    if nconn + 1 ~= nperf
-        warning(['Mismatch between connection count (', num2str(nconn+1),...
-                ') and perforation count (', num2str(nperf), '). Well model', ...
-                'Does not appear to be a tree.']);
-    end
-
-    id = (1:nperf)';
-    % First identity, then honor topology.
-    ii = [id; conn(:, 1)];
-    jj = [id; conn(:, 2)];
-    vv = [ones(nperf, 1); -ones(nconn, 1)];
-
-    C = sparse(ii, jj, vv, nperf, nperf);
-end
-
-function volRat = compVolRat(mixs, p, b, model)
-% Compute volume ratio Vr/Vs. Only complicated for blackoil.
-x = mixs;
-dg = isprop(model, 'disgas') && model.disgas;
-vo = isprop(model, 'vapoil') && model.vapoil;
-
-if dg || vo
-    [~, isgas] = model.getVariableField('sg');
-    [~, isoil] = model.getVariableField('so');
-
-    both = find(isgas | isoil);
-
-    g = mixs(:, isgas);
-    o = mixs(:, isoil);
-
-    if dg
-        rsMax = model.fluid.rsSat(double(p));
-    else
-        rsMax = 0;
-    end
-    if isa(model, 'ThreePhaseBlackOilModel')
-        % Vapoil/disgas
-        if vo
-            rvMax = model.fluid.rvSat(double(p));
-        else
-            rvMax = 0;
+            C = sparse(ii, jj, vv, nperf, nperf);
         end
 
-        gor = abs(g./o);
-        gor(isnan(gor)) = inf;
-        rs = min(rsMax, gor);
-        ogr = abs(o./g);
-        ogr(isnan(gor)) = inf;
-        rv = min(rvMax, ogr);
-        d = 1-rs.*rv;
-        x(:,isgas) = (x(:,isgas) - rs.*o)./d;
-        x(:,isoil) = (x(:,isoil) - rv.*g)./d;
-        x(:,both) = x(:,both).*(x(:,both)>0);
-    else
-        % Only gas dissolution
-        x(:,isgas) = x(:,isgas) - rsMax.*o;
-        x(:,isgas) = x(:,isgas).*(x(:,isgas)>0);
+        function volRat = compVolRat(mixs, p, b, model)
+        % Compute volume ratio Vr/Vs. Only complicated for blackoil.
+        x = mixs;
+        dg = isprop(model, 'disgas') && model.disgas;
+        vo = isprop(model, 'vapoil') && model.vapoil;
+
+        if dg || vo
+            [~, isgas] = model.getVariableField('sg');
+            [~, isoil] = model.getVariableField('so');
+
+            both = find(isgas | isoil);
+
+            g = mixs(:, isgas);
+            o = mixs(:, isoil);
+
+            if dg
+                rsMax = model.fluid.rsSat(double(p));
+            else
+                rsMax = 0;
+            end
+            if isa(model, 'ThreePhaseBlackOilModel')
+                % Vapoil/disgas
+                if vo
+                    rvMax = model.fluid.rvSat(double(p));
+                else
+                    rvMax = 0;
+                end
+
+                gor = abs(g./o);
+                gor(isnan(gor)) = inf;
+                rs = min(rsMax, gor);
+                ogr = abs(o./g);
+                ogr(isnan(gor)) = inf;
+                rv = min(rvMax, ogr);
+                d = 1-rs.*rv;
+                x(:,isgas) = (x(:,isgas) - rs.*o)./d;
+                x(:,isoil) = (x(:,isoil) - rv.*g)./d;
+                x(:,both) = x(:,both).*(x(:,both)>0);
+            else
+                % Only gas dissolution
+                x(:,isgas) = x(:,isgas) - rsMax.*o;
+                x(:,isgas) = x(:,isgas).*(x(:,isgas)>0);
+            end
+        end
+
+        volRat = sum(x./b ,2);
+        end
+
+        function qt = getTotalRate(sol)
+           ns = numel(sol);
+           qt = zeros([ns, 1]);
+           if ns == 0
+               return
+           end
+           typelist = {'qWs', 'qOs', 'qGs'};
+           types    = typelist(isfield(sol(1), typelist));
+           for w = 1:ns
+              for t = reshape(types, 1, []),
+                 x = sol(w).(t{1});
+                 if ~isempty(x),
+                    qt(w) = qt(w) + x;
+                 end
+              end
+           end
+        end
+
+        function lims = setMissingLimits(lims, modes, val)
+            missing_fields = {modes{~cellfun(@(x) isfield(lims, x), modes)}};
+            for f = missing_fields
+               lims = setfield(lims, f{:}, val);
+            end
+        end
     end
 end
 
-volRat = sum(x./b ,2);
-end
 
-function qt = getTotalRate(sol)
-   ns = numel(sol);
-   qt = zeros([ns, 1]);
-   if ns == 0
-       return
-   end
-   typelist = {'qWs', 'qOs', 'qGs'};
-   types    = typelist(isfield(sol(1), typelist));
-   for w = 1:ns
-      for t = reshape(types, 1, []),
-         x = sol(w).(t{1});
-         if ~isempty(x),
-            qt(w) = qt(w) + x;
-         end
-      end
-   end
-end
-
-function lims = setMissingLimits(lims, modes, val)
-    missing_fields = {modes{~cellfun(@(x) isfield(lims, x), modes)}};
-    for f = missing_fields
-       lims = setfield(lims, f{:}, val);
-    end
-end
