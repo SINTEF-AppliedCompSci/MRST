@@ -1,4 +1,4 @@
-function [vW, bW, mobW, rhoW, pW, upcw, dpW] = getFluxAndPropsWater_BO(model, pO, sW, krW, T, gdz)
+function [vW, bW, mobW, rhoW, pW, upcw, dpW, muW] = getFluxAndPropsWater_BO(model, pO, sW, krW, T, gdz)
 %Get flux and properties for the water phase for a black-oil problem
 %
 % SYNOPSIS:

@@ -1,4 +1,4 @@
-function [vO, bO, mobO, rhoO, p, upco, dpO] = getFluxAndPropsOil_BO(model, p, sO, krO, T, gdz, rs, isSat)
+function [vO, bO, mobO, rhoO, p, upco, dpO, muO] = getFluxAndPropsOil_BO(model, p, sO, krO, T, gdz, rs, isSat)
 %Get flux and properties for the oil phase for a black-oil problem
 %
 % SYNOPSIS:
