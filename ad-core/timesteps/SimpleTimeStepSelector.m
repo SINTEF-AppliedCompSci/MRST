@@ -1,49 +1,30 @@
 classdef SimpleTimeStepSelector < handle
-%Time step selector base class
-%
-% SYNOPSIS:
-%   selector = SimpleTimeStepSelector();
-%
-%   selector = SimpleTimeStepSelector('maxTimestep', 5*day);
-%
-% DESCRIPTION:
-%   The timestep selector base class is called by the NonLinearSolver to
-%   determine timesteps, based on hard limits such as the min/max timesteps
-%   as well as possibly more advanced features via the computeTimestep
-%   method that can account for iteration count, residual reduction etc.
-%
-% REQUIRED PARAMETERS:
-%   None
-%
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
-%   See properties
-%
-% RETURNS:
-%   selector suitable for passing to the NonLinearSolver class.
-%
-%
-% SEE ALSO:
-%   IterationCountTimeStepSelector, NonLinearSolver, 
-%   StateChangeTimeStepSelector
-
-%{
-Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
-
-This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
-
-MRST is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-MRST is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with MRST.  If not, see <http://www.gnu.org/licenses/>.
-%}
+    %Time step selector base class
+    %
+    % SYNOPSIS:
+    %   selector = SimpleTimeStepSelector();
+    %
+    %   selector = SimpleTimeStepSelector('maxTimestep', 5*day);
+    %
+    % DESCRIPTION:
+    %   The timestep selector base class is called by the NonLinearSolver to
+    %   determine timesteps, based on hard limits such as the min/max timesteps
+    %   as well as possibly more advanced features via the computeTimestep
+    %   method that can account for iteration count, residual reduction etc.
+    %
+    % REQUIRED PARAMETERS:
+    %   None
+    %
+    % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+    %   See properties
+    %
+    % RETURNS:
+    %   selector suitable for passing to the NonLinearSolver class.
+    %
+    %
+    % SEE ALSO:
+    %   IterationCountTimeStepSelector, NonLinearSolver, 
+    %   StateChangeTimeStepSelector
 
     properties
         % Stored history of iterations/residuals during simulation that may
@@ -123,7 +104,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
         
         function storeTimestep(selector, report)
-            selector.history = vertcat(selector.history, report);
+            if isempty(selector.history)
+                selector.history = report;
+            else
+                selector.history = vertcat(selector.history, report);
+            end
             
             n = selector.maxHistoryLength;
             if numel(selector.history) > n
@@ -202,3 +187,23 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
     end
 end
+
+%{
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+

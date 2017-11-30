@@ -1,5 +1,5 @@
 classdef PressureBlackOilPolymerModel < ThreePhaseBlackOilPolymerModel
-    
+    % Polymer pressure model for blackoil
     properties
         incTolPressure
         useIncTol

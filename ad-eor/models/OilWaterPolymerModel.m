@@ -1,45 +1,26 @@
 classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
-% Oil/water/polymer system
-%
-%
-% SYNOPSIS:
-%   model = OilWaterPolymerModel(G, rock, fluid, varargin)
-%
-% DESCRIPTION: Two phase model with polymer. A description of the polymer model
-% that is implemented here can be found in the directory ad-eor/docs .
-%
-% PARAMETERS:
-%   G        - Grid
-%   rock     - Rock structure
-%   fluid    - Fluid structure
-%   varargin - optional parameter
-%
-% RETURNS:
-%   class instance
-%
-% EXAMPLE:
-%
-% SEE ALSO: ThreePhaseBlackOilPolymerModel
-%
-
-%{
-Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
-
-This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
-
-MRST is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-MRST is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with MRST.  If not, see <http://www.gnu.org/licenses/>.
-%}
+    % Oil/water/polymer system
+    %
+    %
+    % SYNOPSIS:
+    %   model = OilWaterPolymerModel(G, rock, fluid, varargin)
+    %
+    % DESCRIPTION: Two phase model with polymer. A description of the polymer model
+    % that is implemented here can be found in the directory ad-eor/docs .
+    %
+    % PARAMETERS:
+    %   G        - Grid
+    %   rock     - Rock structure
+    %   fluid    - Fluid structure
+    %   varargin - optional parameter
+    %
+    % RETURNS:
+    %   class instance
+    %
+    % EXAMPLE:
+    %
+    % SEE ALSO: ThreePhaseBlackOilPolymerModel
+    %
 
     properties
         % Polymer present
@@ -220,3 +201,22 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 end
 
+
+%{
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}

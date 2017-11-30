@@ -1,53 +1,32 @@
 classdef IterationCountTimeStepSelector < SimpleTimeStepSelector
-% Adjust timesteps based with target iteration count, based on history
-%
-% SYNOPSIS:
-%   selector = IterationCountTimeStepSelector();
-%   selector = IterationCountTimeStepSelector('targetIterationCount', 5);
-%
-% DESCRIPTION:
-%   Routine used for dynamic timestepping 
-%
-% REQUIRED PARAMETERS:
-%   None.
-%
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
-%   targetIterationCount  - Desired number of iterations.
-%
-%   iterationOffset       - Uses [actual + iterationOffset] to calculate
-%                           the parameter. Larger values makes the step
-%                           selector less aggressive for iteration targets
-%                           near zero.
-%
-%   (Other options)       - Inherited from SimpleTimeStepSelector.
-%
-% RETURNS:
-%   Time step selector.
-%
-%
-% SEE ALSO:
-%   SimpleTimeStepSelector, NonLinearSolver
-
-%{
-Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
-
-This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
-
-MRST is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-MRST is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with MRST.  If not, see <http://www.gnu.org/licenses/>.
-%}
-
-
+    % Adjust timesteps based with target iteration count, based on history
+    %
+    % SYNOPSIS:
+    %   selector = IterationCountTimeStepSelector();
+    %   selector = IterationCountTimeStepSelector('targetIterationCount', 5);
+    %
+    % DESCRIPTION:
+    %   Routine used for dynamic timestepping 
+    %
+    % REQUIRED PARAMETERS:
+    %   None.
+    %
+    % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+    %   targetIterationCount  - Desired number of iterations.
+    %
+    %   iterationOffset       - Uses [actual + iterationOffset] to calculate
+    %                           the parameter. Larger values makes the step
+    %                           selector less aggressive for iteration targets
+    %                           near zero.
+    %
+    %   (Other options)       - Inherited from SimpleTimeStepSelector.
+    %
+    % RETURNS:
+    %   Time step selector.
+    %
+    %
+    % SEE ALSO:
+    %   SimpleTimeStepSelector, NonLinearSolver
 
     properties
         % Desired number of nonlinear iterations per timestep.
@@ -118,3 +97,24 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
     end
 end
+
+
+%{
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+

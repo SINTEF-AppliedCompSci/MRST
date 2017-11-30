@@ -63,7 +63,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     packed.pressure = p(wc);
     packed.mob = getCellSubset(mob, wc);
     packed.rho = getCellSubset(rho, wc);
-    packed.dissolved = getComponentCellSubset(dissolved, wc);
+    packed.dissolved = getCellSubset(dissolved, wc);
     packed.components = getCellSubset(comp, wc);
 
     % Extra variables outside of standard subset
@@ -74,21 +74,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     packed.extravars_names = wellvarnames;
 end
 
-function celldata = getComponentCellSubset(celldata, wc)
-    for i = 1:numel(celldata)
-        for j = 1:numel(celldata{i})
-            if ~isempty(celldata{i}{j})
-                celldata{i}{j} = reduceToDouble(celldata{i}{j}(wc));
-            end
-        end
-    end
-end
-
 function subset = getCellSubset(celldata, wc)
     subset = cell(size(celldata));
     for i = 1:numel(subset)
-        if ~isempty(celldata{i})
-            subset{i} = reduceToDouble(celldata{i}(wc));
+        if iscell(celldata{i})
+            % Data is a cell array of e.g. components in phases.
+            % Recursively call own routine.
+            subset{i} = getCellSubset(celldata{i}, wc);
+        else
+            if ~isempty(celldata{i})
+                subset{i} = reduceToDouble(celldata{i}(wc));
+            end
         end
     end
 end

@@ -1,28 +1,30 @@
 function fn = getPlotAfterStep(state0, model, schedule, varargin)
-% Get a function that allows for dynamic plotting using simulateScheduleAD
+% Get a function that allows for dynamic plotting in `simulateScheduleAD`.
 %
 % SYNOPSIS:
-% fn = getPlotAfterStep(state0, model, schedule, 'plotWell', true,...
-%                                                'plotReservoir', false);
+%   fn = getPlotAfterStep(state0, model, schedule, 'plotWell', true);
 %
 % DESCRIPTION:
-% The simulateScheduleAD function has a optional input argument
-% "afterStepFn" that allows for dynamic plotting after each step in the
-% simulation, for instance to show how the well curves progress during the
-% simulation, or to print out extra information to the command window. This
-% function is an implementation of one such function, that can add both a
-% panel showing the simulation progress, as well as interactive plots for
-% well and reservoir quantities.
+%   The `simulateScheduleAD` function has a optional input argument
+%   `afterStepFn` that allows for dynamic plotting after each step in the
+%   simulation, for instance to show how the well curves progress during the
+%   simulation, or to print out extra information to the command window. This
+%   function is an implementation of one such function, that can add both a
+%   panel showing the simulation progress, as well as interactive plots for
+%   well and reservoir quantities.
 %
+% PARAMETERS:
+%   state0 -   Initial state for simulateScheduleAD
 %
-% REQUIRED PARAMETERS:
-%  state0, model, schedule - The input arguments to simulateScheduleAD that
-%                            will be used.
+%   model -    Simulation model which will be passed to simulateScheduleAD.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+%   schedule - The simulation schedule containing wells, driving forces
+%              and time-steps that will be passed to simulateScheduleAD.
 %
-%  'plotWell'      - Launch interactive plotting for well quantities using
-%                    "plotWellSols"
+% KEYWORD ARGUMENTS:
+%
+%  'plotWell' -      Launch interactive plotting for well quantities
+%                    using `plotWellSols`
 %
 %  'plotReservoir' - Add an interactive plotting window for reservoir
 %                    quantities during the simulation. Note that, due to
@@ -32,18 +34,22 @@ function fn = getPlotAfterStep(state0, model, schedule, varargin)
 %                    plotting, locked color axis and so on) before
 %                    initiating the simulation itself.
 %
-%  'view'          - View angle for the reservoir plotting. Se Matlab
-%                    builtin "view()" for more information. Defaults to
+%  'view' -          View angle for the reservoir plotting. See Matlab
+%                    builtin `view` for more information. Defaults to
 %                    empty for no modification to the default.
 %
-%  'wells'         - Wells for the reservoir plotting (using plotWell) 
+%  'wells' -         Wells for the reservoir plotting (using `plotWell`) 
 %
 % RETURNS:
-%  fn -  Function handle suitable for the "afterStepFn" input in
-%        simulateScheduleAD.
+%  fn -              Function handle suitable for the `afterStepFn`
+%                    input in `simulateScheduleAD`. 
+%
+% EXAMPLE: 
+%  fn = getPlotAfterStep(state0, model, schedule, 'plotWell', true);
+%  simulateScheduleAD(state0, model, schedule, 'afterStepFn', fn);
 %
 % SEE ALSO:
-%   simulateScheduleAD, blackoilTutorialPlotHook (example)
+%   `simulateScheduleAD`, `plotWellSols`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

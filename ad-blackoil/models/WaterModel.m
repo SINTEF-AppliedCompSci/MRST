@@ -29,7 +29,7 @@ classdef WaterModel < ReservoirModel
     end
 end
 
-%{
+    %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).

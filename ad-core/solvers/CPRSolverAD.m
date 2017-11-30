@@ -1,59 +1,32 @@
 classdef CPRSolverAD < LinearSolverAD
-% Solve a problem with a pressure component using constrained a pressure residual method
-%
-% SYNOPSIS:
-%   solver = CPRSolverAD()
-%
-% DESCRIPTION:
-%   Solve a linearized problem with a significant elliptic/pressure
-%   component via a two stage preconditioner for GMRES. By exposing the
-%   elliptic component as a seperate system, a special elliptic solver can
-%   be used to handle the highly connected components.
-%
-%   For second stage, ILU(0) is used.
-%
-% REQUIRED PARAMETERS:
-%   None
-%
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
-%   See class properties.
-%
-%
-% SEE ALSO:
-%   BackslashSolverAD, LinearSolverAD, LinearizedProblem
+    % Solve a problem with a pressure component using constrained a pressure residual method
+    %
+    % SYNOPSIS:
+    %   solver = CPRSolverAD()
+    %
+    % DESCRIPTION:
+    %   Solve a linearized problem with a significant elliptic/pressure
+    %   component via a two stage preconditioner for GMRES. By exposing the
+    %   elliptic component as a seperate system, a special elliptic solver can
+    %   be used to handle the highly connected components.
+    %
+    %   For second stage, ILU(0) is used.
+    %
+    %
+    % OPTIONAL PARAMETERS:
+    %   'property' - Set property to value.
+    %
+    %
+    % SEE ALSO:
+    %   `BackslashSolverAD`, `LinearSolverAD`, `LinearizedProblem`
 
-%{
-Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
-
-This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
-
-MRST is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-MRST is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with MRST.  If not, see <http://www.gnu.org/licenses/>.
-%}
     properties
-        % Relative tolerance for elliptic solver
-        relativeTolerance
-        % Scaling factor applied to pressure equations
-        pressureScaling
-        % LinearSolverAD subclass suitable for the elliptic submatrix.
-        ellipticSolver
-        % Diagonal tolerance in [0,1].
-        diagonalTol
-        % Name of elliptic-like variable which will be solved using
-        % elliptic solver.
-        ellipticVarName
-        % Use true impes decoupling strategy (if supported by model)
-        trueIMPES
+        relativeTolerance % Relative tolerance for elliptic solver
+        pressureScaling % Scaling factor applied to pressure equations
+        ellipticSolver % LinearSolverAD subclass suitable for the elliptic submatrix.
+        diagonalTol % Diagonal tolerance in [0,1].
+        ellipticVarName % Name of elliptic-like variable which will be solved using elliptic solver
+        trueIMPES % Use true impes decoupling strategy (if supported by model)
     end
     methods
         function solver = CPRSolverAD(varargin)
@@ -203,7 +176,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             solver.ellipticSolver = solver.ellipticSolver.setupSolver(Ap, b(pInx));
             ellipSolve = @(b) solver.ellipticSolver.solveLinearSystem(Ap, b);
 
-            prec = @(r) applyTwoStagePreconditioner(r, A, L, U, pInx, ellipSolve);
+            prec = @(r) solver.applyTwoStagePreconditioner(r, A, L, U, pInx, ellipSolve);
             assert(all(isfinite(b)), 'Linear system rhs must have finite entries.');
             try
                 [cprSol, fl, relres, its, resvec] = gmres(A, b, [], solver.relativeTolerance,...
@@ -257,14 +230,34 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 end
             end
         end
-        
+    end
+    methods(Static)
+        function x = applyTwoStagePreconditioner(r, A, L, U, pInx, ellipticSolver)
+           x = zeros(size(r));
+           x(pInx) = ellipticSolver(r(pInx));
+
+           r = r - A*x;
+           x = x + U\(L\r);
+        end
     end
 end
 
-function x = applyTwoStagePreconditioner(r, A, L, U, pInx, ellipticSolver)
-   x = zeros(size(r));
-   x(pInx) = ellipticSolver(r(pInx));
 
-   r = r - A*x;
-   x = x + U\(L\r);
-end
+%{
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}

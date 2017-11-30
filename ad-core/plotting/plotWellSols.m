@@ -9,22 +9,22 @@ function varargout = plotWellSols(wellsols, varargin)
 %   Open interactive plotting interface for well solutions.
 %
 % REQUIRED PARAMETERS:
-%   wellSols - Cell array of NSTEP by 1, each containing a uniform struct
+%   wellSols - Cell array of `nstep` by 1, each containing a uniform struct
 %              array of well solution structures. For example, the first
-%              output from simulateScheduleAD. Can also be a cell array of
-%              such cell arrays, for comparing multiple simulation
+%              output from `simulateScheduleAD`. Can also be a cell array 
+%              of such cell arrays, for comparing multiple simulation
 %              scenarios.
 %
-%  time     - (OPTIONAL) The time for each timestep. If not provided, the
-%             plotter will use step number as the x axis intead. If
-%             wellSols is a cell array of multiple datasets, time should
-%             also be a cell array, provided not all datasets use the same
-%             timesteps.
+%   time     - (OPTIONAL) The time for each timestep. If not provided, the
+%              plotter will use step number as the x axis intead. If
+%              wellSols is a cell array of multiple datasets, time should
+%              also be a cell array, provided not all datasets use the same
+%              timesteps.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
-%   'field'   -  Initial field for plotting (default: 'bhp').
+% OPTIONAL PARAMETERS:
+%   'field'        -  Initial field for plotting (default: 'bhp').
 %
-%   'linestyles' - Cell array of line styles used for different datasets.
+%   'linestyles'   - Cell array of line styles used for different datasets.
 %
 %   'markerstyles' - Marker array of line styles used for different
 %                    datasets. 
@@ -44,7 +44,7 @@ function varargout = plotWellSols(wellsols, varargin)
 %            varargin.
 %
 % SEE ALSO:
-%   simulateScheduleAD
+%   `simulateScheduleAD`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

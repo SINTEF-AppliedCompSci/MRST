@@ -1,5 +1,4 @@
-function [problem, state] = equationsThreePhaseBlackOilPolymer(state0, state, ...
-   model, dt, drivingForces, varargin)
+function [problem, state] = equationsThreePhaseBlackOilPolymer(state0, state, model, dt, drivingForces, varargin)
 
 %
 %

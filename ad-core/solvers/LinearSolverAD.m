@@ -1,63 +1,37 @@
 classdef LinearSolverAD < handle
-%Base class for linear solvers in the AD framework
-%
-% SYNOPSIS:
-%   solver = LinearSolverAD()
-%
-% DESCRIPTION:
-%   Base class for linear solvers. Implement methods for solving linearized
-%   problems and adjoints. Also supports setup/cleanup functions
-%   before/after use for initialize once-type usage.
-%
-% REQUIRED PARAMETERS:
-%   None
-%
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
-%   See class properties.
-%
-% NOTE:
-%   This class is intended as superclass. It cannot actually solve
-%   problems.
-%
-% SEE ALSO:
-%   BackslashSolverAD, CPRSolverAD, LinearizedProblem
+    % Base class for linear solvers in the AD framework
+    %
+    % SYNOPSIS:
+    %   solver = LinearSolverAD()
+    %
+    % DESCRIPTION:
+    %   Base class for linear solvers. Implement methods for solving linearized
+    %   problems and adjoints. Also supports setup/cleanup functions
+    %   before/after use for initialize once-type usage.
+    %
+    % REQUIRED PARAMETERS:
+    %   None
+    %
+    % OPTIONAL PARAMETERS:
+    %   'property' - Set property to value.
+    %
+    % NOTE:
+    %   This class is intended as superclass. It cannot actually solve
+    %   problems.
+    %
+    % SEE ALSO:
+    %   `BackslashSolverAD`, `CPRSolverAD`, `LinearizedProblem`
 
-%{
-Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
-
-This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
-
-MRST is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-MRST is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with MRST.  If not, see <http://www.gnu.org/licenses/>.
-%}
    properties
-       % Convergence tolerance
-       tolerance
-       % Max number of iterations used
-       maxIterations
-       % Enable this to produce additional report output. May use a lot of
-       % memory for large problems
-       extraReport
-       % Verbose output enabler
-       verbose
-       % Boolean indicating if the solver should replace NaN in the results
-       replaceNaN
-       % Boolean indicating if the solver should replace Inf in the results
-       replaceInf
-       % If replaceNaN is enabled, this is the value that will be inserted
-       replacementNaN
-       % If replaceInf is enabled, this is the value that will be inserted
-       replacementInf
+       tolerance % Linear solver tolerance
+       maxIterations % Max number of iterations used
+       extraReport % Enable this to produce additional report output
+       % May use a lot of memory for large problems
+       verbose % Verbose output enabler
+       replaceNaN % Boolean indicating if the solver should replace NaN in the results
+       replaceInf % Boolean indicating if the solver should replace Inf in the results
+       replacementNaN % If replaceNaN is enabled, this is the value that will be inserted
+       replacementInf % If replaceInf is enabled, this is the value that will be inserted
    end
    methods
        function solver = LinearSolverAD(varargin)
@@ -225,3 +199,22 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
    end
 end
+
+%{
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}

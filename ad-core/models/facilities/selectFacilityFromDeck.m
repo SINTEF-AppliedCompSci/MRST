@@ -1,4 +1,5 @@
 function facility = selectFacilityFromDeck(deck, model)
+    % Pick FacilityModel from input deck
     if isempty(model.FacilityModel)
         facility = FacilityModel(model);
     else

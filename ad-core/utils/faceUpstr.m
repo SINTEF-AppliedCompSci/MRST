@@ -1,4 +1,5 @@
 function [xu, xc] = faceUpstr(flag, x, N, sz)
+% Perform single-point upwinding of cell values to face
     if numel(flag) == 1
         flag = repmat(flag, size(N, 1), 1);
     end

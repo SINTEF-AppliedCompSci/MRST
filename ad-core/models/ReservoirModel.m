@@ -1,107 +1,59 @@
 classdef ReservoirModel < PhysicalModel
-%Base class for physical models
-%
-% SYNOPSIS:
-%   model = ReservoirModel(G, rock, fluid)
-%
-% DESCRIPTION:
-%   Extension of PhysicalModel class to accomodate reservoir-specific
-%   features such as fluid and rock as well as commonly used phases and
-%   variables.
-%
-% REQUIRED PARAMETERS:
-%   G     - Simulation grid.
-%
-%   rock  - Valid rock used for the model.
-%
-%   fluid - Fluid model used for the model.
-%
-%
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
-%   See class properties.
-%
-% RETURNS:
-%   Class instance.
-%
-% SEE ALSO:
-%   ThreePhaseBlackOilModel, TwoPhaseOilWaterModel, PhysicalModel
-
-%{
-Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
-
-This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
-
-MRST is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-MRST is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with MRST.  If not, see <http://www.gnu.org/licenses/>.
-%}
+    %Base class for physical models
+    %
+    % SYNOPSIS:
+    %   model = ReservoirModel(G, rock, fluid)
+    %
+    % DESCRIPTION:
+    %   Extension of `PhysicalModel` class to accomodate reservoir-specific
+    %   features such as fluid and rock as well as commonly used phases and
+    %   variables.
+    %
+    % REQUIRED PARAMETERS:
+    %   G     - Simulation grid.
+    %
+    %   rock  - Valid rock used for the model.
+    %
+    %   fluid - Fluid model used for the model.
+    %
+    %
+    % OPTIONAL PARAMETERS:
+    %   'property' - Set property to the specified value.
+    %
+    % RETURNS:
+    %   Class instance.
+    %
+    % SEE ALSO:
+    %   `ThreePhaseBlackOilModel`, `TwoPhaseOilWaterModel`, `PhysicalModel`
 
 properties
-    % The fluid model
-    fluid
-    % The rock (perm/poro/ntg)
-    rock
-
-    % Maximum relative pressure change
-    dpMaxRel
-    % Maximum absolute pressure change
-    dpMaxAbs
-    % Maximum Relative saturation change
-    dsMaxRel
-    % Maximum absolute saturation change
-    dsMaxAbs
-
-    % Maximum pressure allowed in reservoir
-    maximumPressure
-    % Minimum pressure allowed in reservoir
-    minimumPressure
-
-    % Indicator showing if the aqua/water phase is present
-    water
-    % Indicator showing if the gas phase is present
-    gas
-    % Indicator showing if the oil phase is present
-    oil
-    % Names of primary variables interpreted as saturations, i.e. so
-    % that they will sum to one when updated.
-    saturationVarNames
-    % Names of components
-    componentVarNames
-
-    % Use alternate tolerance scheme
-    useCNVConvergence
-
-    % CNV tolerance (inf-norm-like)
-    toleranceCNV;
-
-    % MB tolerance values (2-norm-like)
-    toleranceMB;
-
-    % Input data used to instantiate the model
-    inputdata
-    % Add extra output to wellsol/states for derived quantities
-    extraStateOutput
-    % Output extra information for wells
-    extraWellSolOutput
-    % Output fluxes
-    outputFluxes
-    % Upstream weighting of injection cells
-    upstreamWeightInjectors
-
-    % Vector for the gravitational force
-    gravity
-
-    % Well model used to compute fluxes etc from well controls
-    FacilityModel
+    % Required arguments
+    fluid % The fluid model. See `initSimpleADIFluid`, `initDeckADIFluid`
+    rock % The rock structure (perm/poro/ntg). See `makeRock`.
+    % Limits
+    dpMaxRel % Maximum relative pressure change
+    dpMaxAbs % Maximum absolute pressure change
+    dsMaxAbs % Maximum absolute saturation change
+    maximumPressure % Maximum pressure allowed in reservoir
+    minimumPressure % Minimum pressure allowed in reservoir
+    % Phases and components
+    water % Indicator showing if the aqueous/water phase is present
+    gas % Indicator showing if the vapor/gas phase is present
+    oil % Indicator showing if the liquid/oil phase is present
+    saturationVarNames % Names of saturation variables
+    componentVarNames % Names of components
+    % Tolerances
+    useCNVConvergence % Use volume-scaled tolerance scheme
+    toleranceCNV; % CNV tolerance (similar to inf-norm over saturation error)
+    toleranceMB; % MB tolerance values (sum of mass-balance error)
+    % Input/output
+    inputdata % Input data used to instantiate the model
+    extraStateOutput % Write extra data to states. Depends on submodel type.
+    extraWellSolOutput % Output extra data to wellSols: GOR, WOR, ...
+    outputFluxes % Store integrated fluxes in state.
+    % Coupling to forces and other models
+    gravity % Vector for the gravitational force
+    FacilityModel % Facility model used to represent wells
 end
 
 methods
@@ -133,7 +85,6 @@ methods
         model.maximumPressure =  inf;
 
         model.dsMaxAbs = .2;
-        model.dsMaxRel = inf;
 
         model.nonlinearTolerance = 1e-6;
         model.inputdata = [];
@@ -147,7 +98,6 @@ methods
         model.extraStateOutput = false;
         model.extraWellSolOutput = true;
         model.outputFluxes = true;
-        model.upstreamWeightInjectors = false;
         % Gravity defaults to the global variable
         model.gravity = gravity(); %#ok
         [model, unparsed] = merge_options(model, varargin{:}); %#ok
@@ -169,7 +119,10 @@ methods
 
     % --------------------------------------------------------------------%
     function state = validateState(model, state)
-        % Check parent class
+        % Validate initial state. 
+        %
+        % SEE ALSO:
+        %   :meth:`ad_core.models.PhysicalModel.validateState`
         state = validateState@PhysicalModel(model, state);
         active = model.getActivePhases();
         nPh = nnz(active);
@@ -189,6 +142,11 @@ methods
 
     % --------------------------------------------------------------------%
     function model = validateModel(model, varargin)
+        % Validate model.
+        %
+        % SEE ALSO:
+        %   :meth:`ad_core.models.PhysicalModel.validateModel`
+
         if isempty(model.FacilityModel)
             model.FacilityModel = FacilityModel(model); %#ok
         end
@@ -202,6 +160,15 @@ methods
 
     % --------------------------------------------------------------------%
     function [model, state] = updateForChangedControls(model, state, forces)
+        % Called whenever controls change.
+        %
+        % NOTE:
+        %   The addition this class makes is also updating the well
+        %   solution and the underlying `FacilityModel` class instance.
+        %
+        % SEE ALSO:
+        %   :meth:`ad_core.models.PhysicalModel.updateForChangedControls`
+        
         % Called whenever controls change. Since this model can be used
         % with wells, we call the facility model's setup routine.
         model.FacilityModel = model.FacilityModel.setupWells(forces.W);
@@ -211,7 +178,10 @@ methods
 
     % --------------------------------------------------------------------%
     function [state, report] = updateState(model, state, problem, dx, drivingForces)
-        % Generic update function for reservoir models containing wells
+        % Generic update function for reservoir models containing wells.
+        %
+        % SEE ALSO:
+        %   :meth:`ad_core.models.PhysicalModel.updateState`
 
         % Split variables into three categories: Regular/rest variables, saturation
         % variables (which sum to 1 after updates) and well variables (which live
@@ -233,7 +203,7 @@ methods
             restVars = model.stripVars(restVars, 'pressure');
 
             % Update remaining variables (tracers, temperature etc)
-            for i = 1:numel(restVars);
+            for i = 1:numel(restVars)
                  state = model.updateStateFromIncrement(state, dx, problem, restVars{i});
             end
         end
@@ -242,6 +212,11 @@ methods
     end
     % --------------------------------------------------------------------%
     function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
+        % Generic update function for reservoir models containing wells.
+        %
+        % SEE ALSO:
+        %   :meth:`ad_core.models.PhysicalModel.updateAfterConvergence`
+
         [state, report] = updateAfterConvergence@PhysicalModel(model, state0, state, dt, drivingForces);
         if ~isempty(model.FacilityModel)
             state.wellSol = model.FacilityModel.updateWellSolAfterStep(state.wellSol, state0.wellSol);
@@ -250,12 +225,43 @@ methods
 
     % --------------------------------------------------------------------%
     function model = setupOperators(model, G, rock, varargin)
-        % Set up divergence/gradient/transmissibility operators
+        % Set up default discretization operators and other static props
+        %
+        % SYNOPSIS:
+        %   model = model.setupOperators(G, rock)
+        %
+        % DESCRIPTION:
+        %   This function calls the default set of discrete operators as
+        %   implemented by `setupOperatorsTPFA`. The default operators use
+        %   standard choices for reservoir simulation similar to what is
+        %   found in commercial simulators: Single-point potential upwind
+        %   and two-point flux approximation.
+        %
+        % PARAMETERS:
+        %   model - Class instance.
+        %   G     - The grid used for computing the operators. Must have
+        %           geometry information added (typically from
+        %           `computeGeometry`). Although this is a property on the
+        %           model, we allow for passing of a different grid for the
+        %           operator setup since this is useful in some workflows.
+        %   rock  - Rock structure. See `makeRock`.
+        %
+        % RETURNS:
+        %   model - Model with updated `operators` property.
+        %
+        % NOTE:
+        %   This function is called automatically during class
+        %   construction.
         model.operators = setupOperatorsTPFA(G, rock, varargin{:});
     end
 
     % --------------------------------------------------------------------%
     function [convergence, values, names] = checkConvergence(model, problem, varargin)
+        % Check convergence criterion. Relies on `FacilityModel` to check
+        % wells.
+        %
+        % SEE ALSO:
+        %   :meth:`ad_core.models.PhysicalModel.checkConvergence`
         if model.useCNVConvergence
             % Use convergence model similar to commercial simulator
             [conv_cells, v_cells, isWOG, namesWOG] = CNV_MBConvergence(model, problem);
@@ -276,13 +282,22 @@ methods
             % Use strict tolerances on the residual without any
             % fingerspitzengefuhlen by calling the parent class
             [convergence, values, names] = checkConvergence@PhysicalModel(model, problem, varargin{:});
+            [conv_wells, v_wells, namesWell, isWell] = ...
+                model.FacilityModel.checkFacilityConvergence(problem);
+            if any(isWell)
+                convergence(isWell) = conv_wells;
+                values(isWell) = v_wells;
+                names(isWell) = namesWell;
+            end
         end
     end
 
     % --------------------------------------------------------------------%
     function [fn, index] = getVariableField(model, name)
-        % Get the index/name mapping for the model (such as where
-        % pressure or water saturation is located in state)
+        % Map variables to state field.
+        %
+        % SEE ALSO:
+        %   :meth:`ad_core.models.PhysicalModel.getVariableField`
         switch(lower(name))
             case {'t', 'temperature'}
                 fn = 'T';
@@ -315,13 +330,26 @@ methods
 
     % --------------------------------------------------------------------%
     function names = getComponentNames(model) %#ok
-        % Get a list of components in the model. Components are cell-wise
-        % variables that typically exist inside one or more phases.
+        % Get the names of components for the model
+        % SYNOPSIS:
+        %   names = model.getComponentNames();
+        %
+        % PARAMETERS:
+        %   model - Class instance.
+        %
+        % RETURNS:
+        %   names - Cell array of component names in no particular order.
+        %
         names = {};
     end
 
     % --------------------------------------------------------------------%
     function forces = getValidDrivingForces(model)
+        % Get valid forces. This class adds support for wells, bc and src.
+        %
+        % SEE ALSO:
+        %   :meth:`ad_core.models.PhysicalModel.getValidDrivingForces`
+
         forces = getValidDrivingForces@PhysicalModel(model);
         % Support for wells
         forces.W   = [];
@@ -333,10 +361,25 @@ methods
 
     % --------------------------------------------------------------------%
     function [restVars, satVars, wellVars] = splitPrimaryVariables(model, vars)
-        % Split a set of primary variables into three groups:
-        % Well variables, saturation variables and the rest. This is
-        % useful because the saturation variables usually are updated
-        % together, and the well variables are a special case.
+        % Split cell array of primary variables into grouping
+        % SYNOPSIS:
+        %   [restVars, satVars, wellVars] = model.splitPrimaryVariables(vars)
+        %
+        % DESCRIPTION:
+        %   Split a set of primary variables into three groups:
+        %   Well variables, saturation variables and the rest. This is
+        %   useful because the saturation variables usually are updated
+        %   together, and the well variables are a special case.
+        %
+        % PARAMETERS:
+        %   model - Class instance.
+        %   vars  - Cell array with names of primary variables
+        %
+        % RETURNS:
+        %   restVars - Names of variables that are not saturations or
+        %              belong to the wells.
+        %   satVars  - Names of the saturation variables present in `vars`.
+        %   wellVars - Names of the well variables present in `vars`
         wellvars = model.FacilityModel.getPrimaryVariableNames();
         isSat   = cellfun(@(x) any(strcmpi(model.getSaturationVarNames, x)), vars);
         isWells = cellfun(@(x) any(strcmpi(wellvars, x)), vars);
@@ -349,8 +392,23 @@ methods
 
     % --------------------------------------------------------------------%
     function [isActive, phInd] = getActivePhases(model)
-        % Get active flag for the canonical phase ordering (water, oil
-        % gas as on/off flags).
+        % Get active flag for MRST's canonical phase ordering (WOG)
+        %
+        % SYNOPSIS:
+        %   [act, indices] = model.getActivePhases();
+        %
+        % PARAMETERS:
+        %   model    - Class instance
+        %
+        % RETURNS:
+        %   isActive - Total number of known phases array with booleans
+        %              indicating if that phase is present. MRST uses a
+        %              ordering of water, oil and then gas.
+        %   
+        %   phInd    - Indices of the phases present. For instance, if
+        %              water and gas are the only ones present, 
+        %              `phInd = [1, 3]`
+
         isActive = [model.water, model.oil, model.gas];
         if nargout > 1
             phInd = find(isActive);
@@ -359,7 +417,20 @@ methods
 
     % --------------------------------------------------------------------%
     function [phNames, longNames] = getPhaseNames(model)
-        % Get the active phases in canonical ordering
+        % Get short and long names of the present phases.
+        %
+        % SYNOPSIS:
+        %   [phNames, longNames] = model.getPhaseNames();
+        %
+        % PARAMETERS:
+        %   model    - Class instance
+        %
+        % RETURNS:
+        %   phNames   - Cell array containing the short hanes ('W', 'O',
+        %               G') of the phases present
+        %   
+        %   longNames - Longer names ('water', 'oil', 'gas') of the phases
+        %               present.
         tmp = 'WOG';
         active = model.getActivePhases();
         phNames = tmp(active);
@@ -379,18 +450,51 @@ methods
     end
 
     % --------------------------------------------------------------------%
-    function i = getPhaseIndex(model, phasename)
-        % Query the index of a phase ('W', 'O', 'G')
+    function index = getPhaseIndex(model, phasename)
+        % Query the index of a phase in the model's ordering
+        %
+        % SYNOPSIS:
+        %   index = model.getPhaseNames();
+        %
+        % PARAMETERS:
+        %   model     - Class instance
+        %   phasename - The name of the phase to be found.
+        % RETURNS:
+        %   index   - Index of phase `phasename`
         active = model.getPhaseNames();
-        i = find(active == phasename);
+        index = find(active == phasename);
     end
 
     % --------------------------------------------------------------------%
     function state = updateSaturations(model, state, dx, problem, satVars)
-        % Update saturations (likely state.s) under the constraint that
-        % the sum of volume fractions is always equal to 1. This
-        % assumes that we have solved for n - 1 phases when n phases
-        % are present.
+        % Update of phase-saturations
+        %
+        % SYNOPSIS:
+        %   state = model.updateSaturations(state, dx, problem, satVars)
+        %
+        % DESCRIPTION:
+        %   Update saturations (likely state.s) under the constraint that
+        %   the sum of volume fractions is always equal to 1. This
+        %   assumes that we have solved for n - 1 phases when n phases
+        %   are present.
+        %
+        % PARAMETERS:
+        %   model   - Class instance
+        %   state   - State to be updated
+        %   dx      - Cell array of increments, some of which correspond 
+        %             to saturations
+        %   problem - `LinearizedProblemAD` class instance from which `dx`
+        %             was obtained.
+        %   satVars - Cell array with the names of the saturation
+        %             variables.
+        %
+        % RETURNS:
+        %   state - Updated state with saturations within physical
+        %           constraints.
+        %
+        % SEE ALSO:
+        %   `splitPrimaryVariables`
+
         if nargin < 5
             % Get the saturation names directly from the problem
             [~, satVars] = ...
@@ -426,7 +530,7 @@ methods
         ds(:, ~solvedFor) = tmp;
         % We update all saturations simultanously, since this does not bias the
         % increment towards one phase in particular.
-        state = model.updateStateFromIncrement(state, ds, problem, 's', model.dsMaxRel, model.dsMaxAbs);
+        state = model.updateStateFromIncrement(state, ds, problem, 's', inf, model.dsMaxAbs);
 
         % Ensure that values are within zero->one interval, and
         % re-normalize if any values were capped
@@ -440,8 +544,30 @@ methods
 
     % --------------------------------------------------------------------%
     function state = setPhaseData(model, state, data, fld, subs)
-        % Given a structure field name and a cell array of data for
-        % each phase, store them as columns with the given field name
+        % Store phase data in state for further output.
+        %
+        % SYNOPSIS:
+        %   state = model.setPhaseData(state, data, 'someField')
+        %   state = model.setPhaseData(state, data, 'someField', indices)
+        %
+        % DESCRIPTION:
+        %   Utility function for storing phase data in the state. This is
+        %   used for densities, fluxes, mobilities and so on when requested
+        %   from the simulator.
+        %
+        % PARAMETERS:
+        %   model - Class instance
+        %   data  - Cell array of data to be stored. One entry per active
+        %           phase in `model`.
+        %   fld   - The field to be stored.
+        %   subs  - OPTIONAL. The subset for which phase data is to be
+        %           stored. Must be a valid index of the type ::
+        %             data.(fld)(subs, someIndex) = data{i}
+        %           for all i. Defaults to all indices.
+        %
+        % RETURNS:
+        %   state - state with updated `.fld`.
+        %
         if nargin == 4
             subs = ':';
         end
@@ -458,7 +584,27 @@ methods
 
     % --------------------------------------------------------------------%
     function state = storeFluxes(model, state, vW, vO, vG)
-        % Utility function for storing the interface fluxes in the state
+        % Store integrated internal phase fluxes in state.
+        %
+        % SYNOPSIS:
+        %   Three-phase case
+        %   state = model.storeFluxes(state, vW, vO, vG);
+        %   % Only water and gas in model:
+        %   state = model.storeFluxes(state, vW, [], vG);
+        %   
+        %
+        % PARAMETERS:
+        %   model - Class instance
+        %   vW    - Water fluxes, one value per internal interface.
+        %   vO    - Oil fluxes, one value per internal interface.
+        %   vG    - Gas fluxes, one value per internal interface.
+        %
+        % RETURNS:
+        %   state - State with stored values
+        %
+        % SEE ALSO:
+        %   `storeBoundaryFluxes`
+
         isActive = model.getActivePhases();
 
         internal = model.operators.internalConn;
@@ -468,7 +614,29 @@ methods
     end
 
     function state = storeBoundaryFluxes(model, state, qW, qO, qG, forces)
-        % Store boundary condition fluxes in state
+        % Store integrated phase fluxes on boundary in state.
+        %
+        % SYNOPSIS:
+        %   Three-phase case
+        %   state = model.storeBoundaryFluxes(state, vW, vO, vG, forces);
+        %   % Only water and gas in model:
+        %   state = model.storeBoundaryFluxes(state, vW, [], vG, forces);
+        %   
+        %
+        % PARAMETERS:
+        %   model  - Class instance
+        %   vW     - Water fluxes, one value per BC interface.
+        %   vO     - Oil fluxes, one value per BC interface.
+        %   vG     - Gas fluxes, one value per BC interface.
+        %   forces - `drivingForces` struct containing any boundary
+        %            conditions used to obtain fluxes.
+        %
+        % RETURNS:
+        %   state - State with stored values
+        %
+        % SEE ALSO:
+        %   `storeFluxes`
+
         if ~isfield(forces, 'bc') || isempty(forces.bc)
             return
         end
@@ -478,7 +646,26 @@ methods
 
     % --------------------------------------------------------------------%
     function state = storeMobilities(model, state, mobW, mobO, mobG)
-        % Utility function for storing the mobilities in the state
+        % Store phase mobility per-cell in state.
+        %
+        % SYNOPSIS:
+        %   Three-phase case
+        %   state = model.storebfactors(state, mobW, mobO, mobG);
+        %   % Only water and gas in model:
+        %   state = model.storebfactors(state, mobW, [], mobG);
+        %   
+        %
+        % PARAMETERS:
+        %   model - Class instance
+        %   mobW  - Water mobilities, one value per internal interface.
+        %   mobO  - Oil mobilities, one value per internal interface.
+        %   mobG  - Gas mobilities, one value per internal interface.
+        %
+        % RETURNS:
+        %   state - State with stored values
+        %
+        % SEE ALSO:
+        %   `storeMobilities`
         isActive = model.getActivePhases();
 
         state.mob = zeros(model.G.cells.num, sum(isActive));
@@ -488,8 +675,29 @@ methods
 
     % --------------------------------------------------------------------%
     function state = storeUpstreamIndices(model, state, upcw, upco, upcg)
-        % Store upstream indices, so that they can be reused for other
-        % purposes.
+        % Store upstream indices for each phase in state.
+        %
+        % SYNOPSIS:
+        %   Three-phase case
+        %   state = model.storeUpstreamIndices(state, upcw, upco, upcg);
+        %   % Only water and gas in model:
+        %   state = model.storeUpstreamIndices(state, upcw, [], upcg);
+        %   
+        %
+        % PARAMETERS:
+        %   model  - Class instance
+        %   upcw   - Water upwind indicator, one value per internal
+        %            interface.
+        %   upco   - Oil upwind indicator, one value per internal
+        %            interface.
+        %   upcg   - Gas upwind indicator, one value per internal
+        %            interface.
+        %
+        % RETURNS:
+        %   state - State with stored values
+        %
+        % SEE ALSO:
+        %   `storeBoundaryFluxes`, `storeFluxes`
         isActive = model.getActivePhases();
 
         nInterfaces = size(model.operators.N, 1);
@@ -500,8 +708,27 @@ methods
 
     % --------------------------------------------------------------------%
     function state = storeDensity(model, state, rhoW, rhoO, rhoG)
-        % Store compressibility / surface factors for plotting and
-        % output.
+        % Store phase densities per-cell in state.
+        %
+        % SYNOPSIS:
+        %   Three-phase case
+        %   state = model.storeDensity(state, rhoW, rhoO, rhoG);
+        %   % Only water and gas in model:
+        %   state = model.storeDensity(state, rhoW, [], rhoG);
+        %   
+        %
+        % PARAMETERS:
+        %   model - Class instance
+        %   rhoW  - Water densities, one value per internal interface.
+        %   rhoO  - Oil densities, one value per internal interface.
+        %   rhoG  - Gas densities, one value per internal interface.
+        %
+        % RETURNS:
+        %   state - State with stored values
+        %
+        % SEE ALSO:
+        %   `storeMobilities`
+
         isActive = model.getActivePhases();
 
         state.rho = zeros(model.G.cells.num, sum(isActive));
@@ -510,8 +737,27 @@ methods
     end
     % --------------------------------------------------------------------%
     function state = storebfactors(model, state, bW, bO, bG)
-        % Store compressibility / surface factors for plotting and
-        % output.
+        % Store phase reciprocal FVF per-cell in state.
+        %
+        % SYNOPSIS:
+        %   Three-phase case
+        %   state = model.storebfactors(state, bW, bO, bG);
+        %   % Only water and gas in model:
+        %   state = model.storebfactors(state, bW, [], bG);
+        %   
+        %
+        % PARAMETERS:
+        %   model - Class instance
+        %   bW  - Water reciprocal FVF, one value per internal interface.
+        %   bO  - Oil reciprocal FVF, one value per internal interface.
+        %   bG  - Gas reciprocal FVF, one value per internal interface.
+        %
+        % RETURNS:
+        %   state - State with stored values
+        %
+        % SEE ALSO:
+        %   `storeDensities`
+        
         isActive = model.getActivePhases();
 
         state.bfactor = zeros(model.G.cells.num, sum(isActive));
@@ -520,23 +766,68 @@ methods
     end
 
     % --------------------------------------------------------------------%
-    function i = satVarIndex(model, name)
+    function index = satVarIndex(model, name)
         % Find the index of a saturation variable by name
-        i = find(strcmpi(model.getSaturationVarNames, name));
+        %
+        % SYNOPSIS:
+        %   index = model.satVarIndex('water')
+        %
+        % PARAMETERS:
+        %   model - Class instance
+        %   name  - Name of phase.
+        %
+        % RETURNS:
+        %   index - Index of the phase for this model. Empty if saturation
+        %           was not found.
+
+        index = find(strcmpi(model.getSaturationVarNames, name));
     end
 
     % --------------------------------------------------------------------%
     function i = compVarIndex(model, name)
         % Find the index of a component variable by name
+        %
+        % SYNOPSIS:
+        %   index = model.compVarIndex('co2')
+        %
+        % PARAMETERS:
+        %   model - Class instance
+        %   name  - Name of component.
+        %
+        % RETURNS:
+        %   index - Index of the component for this model. Empty if 
+        %           saturation was not known to model.
+        %
         i = find(strcmpi(model.componentVarNames, name));
     end
 
     % --------------------------------------------------------------------%
     function varargout = evaluateRelPerm(model, sat, varargin)
-        % Evaluate the fluid relperm. Depending on the active phases,
-        % we must evaluate the right fluid relperm functions and
-        % combine the results. This function calls the appropriate
-        % static functions.
+        % Evaluate relative permeability corresponding to active phases
+        %
+        % SYNOPSIS:
+        %   % Single-phase water model
+        %   krW = model.evaluateRelPerm({sW});
+        %   % Two-phase oil-water model
+        %   [krW, krO] = model.evaluateRelPerm({sW, sO});
+        %   % Two-phase water-gas model
+        %   [krW, krG] = model.evaluateRelPerm({sW, sG});
+        %   % Three-phase oil-water-gas model
+        %   [krW, krO, krG] = model.evaluateRelPerm({sW, sO, sG});
+        %
+        % PARAMETERS:
+        %   model - The model
+        %   sat   - Cell array containing the saturations for all active
+        %           phases.
+        %
+        % RETURNS:
+        %   varargout - One output argument per phase present,
+        %               corresponding to evaluated relative permeability
+        %               functions for each phase in the canonical ordering.
+        %
+        % SEE ALSO:
+        %   `relPermWOG`, `relPermWO`, `relPermOG`, `relPermWG`
+
         active = model.getActivePhases();
         nph = sum(active);
         assert(nph == numel(sat), ...
@@ -556,6 +847,21 @@ methods
     % --------------------------------------------------------------------%
     function g = getGravityVector(model)
         % Get the gravity vector used to instantiate the model
+        %
+        % SYNOPSIS:
+        %   g = model.getGravityVector();
+        %
+        %
+        % PARAMETERS:
+        %   model - Class instance
+        %
+        % RETURNS:
+        %   g     - `model.G.griddim` long vector representing the gravity
+        %           accleration constant along increasing depth.
+        %
+        % SEE ALSO:
+        %   `gravity`
+
         if isfield(model.G, 'griddim')
             dims = 1:model.G.griddim;
         else
@@ -566,7 +872,23 @@ methods
 
     % --------------------------------------------------------------------%
     function gdxyz = getGravityGradient(model)
-        % Get gradient of gravity on the faces
+        % Get the discretized gravity contribution on faces
+        %
+        % SYNOPSIS:
+        %   gdz = model.getGravityGradient();
+        %
+        %
+        % PARAMETERS:
+        %   model - Class instance
+        %
+        % RETURNS:
+        %   g     - One entry of the gravity contribution per face in the
+        %           grid. Does not necessarily assume that gravity is
+        %           aligned with one specific direction.
+        %
+        % SEE ALSO:
+        %   `gravity`
+        
         assert(isfield(model.G, 'cells'), 'Missing cell field on grid');
         assert(isfield(model.G.cells, 'centroids'),...
             'Missing centroids field on grid. Consider using computeGeometry first.');
@@ -576,14 +898,25 @@ methods
     end
 
 % --------------------------------------------------------------------%
-    function scaling = getScalingFactorsCPR(model, problem, names, solver)%#ok
-        % Return cell array of scaling factors for approximate pressure
-        % equation in CPR preconditioner.
+    function scaling = getScalingFactorsCPR(model, problem, names, solver) %#ok
+        % Get scaling factors for CPR reduction in `CPRSolverAD`
         %
-        % Either one value per equation, or one cell wise value per
-        % equation.
+        % PARAMETERS:
+        %   model   - Class instance
+        %   problem - `LinearizedProblemAD` which is intended for CPR
+        %             preconditioning.
+        %   names   - The names of the equations for which the factors are
+        %             to be obtained.
+        %   solver  - The `LinearSolverAD` class requesting the scaling
+        %             factors.
         %
-        % Scaling should be the size of the names sent in.
+        % RETURNS:
+        %   scaling - Cell array with either a scalar scaling factor for
+        %             each equation, or a vector of equal length to that 
+        %             equation.
+        %
+        % SEE ALSO
+        %   `CPRSolverAD`
         scaling = cell(numel(names), 1);
         [scaling{:}] = deal(1);
     end
@@ -600,24 +933,26 @@ methods
         % corresponding source terms and augmenting the system with
         % additional equations for the wells.
         %
-        % INPUT
+        % PARAMETERS:
         %
-        % eqs    - Cell array of equations that are to be updated.
+        %   eqs    - Cell array of equations that are to be updated.
         %
-        % names  - The names of the equations to be updated. If
-        %          phase-pseudocomponents are to be used, the names must
-        %          correspond to some combination of "water", "oil", "gas"
-        %          if no special component treatment is to be introduced.
+        %   names  - The names of the equations to be updated. If
+        %            phase-pseudocomponents are to be used, the names must
+        %            correspond to some combination of "water", "oil", "gas"
+        %            if no special component treatment is to be introduced.
         %
-        % types  - Cell array with the types of "eqs". Note that these
-        %          types must be 'cell' where source terms is to be added.
+        %   types  - Cell array with the types of "eqs". Note that these
+        %            types must be 'cell' where source terms is to be added.
         %
-        % src    - Struct containing all the different source terms that
-        %          were computed and added to the equations.
+        %   src    - Struct containing all the different source terms that
+        %            were computed and added to the equations.
         %
-        % Remaining input arguments correspond to a variety of reservoir
-        % properties with self-explanatory names.
+        %   various - Additional input arguments correspond to standard
+        %             reservoir-well coupling found in `FacilityModel.
+        
         if model.FacilityModel.getNumberOfActiveWells(wellSol) == 0
+            src = [];
             return
         end
         fm = model.FacilityModel;
@@ -647,39 +982,69 @@ methods
                 eqs{sub}(wc) = eqs{sub}(wc) - src.components{i};
             end
         end
-        offset = numel(wellsys.wellEquations);
-        eqs(end+1:end+offset) = wellsys.wellEquations;
-        names(end+1:end+offset) = wellsys.names;
-        types(end+1:end+offset) = wellsys.types;
-        eqs{end+1} = wellsys.controlEquation;
-        names{end+1} = 'closureWells';
-        types{end+1} = 'well';
+        eqs = horzcat(eqs, wellsys.wellEquations, {wellsys.controlEquation});
+        names = horzcat(names, wellsys.names, 'closureWells');
+        types = horzcat(types, wellsys.types, 'well');
     end
     function [eqs, state, src] = addBoundaryConditionsAndSources(model, eqs, names, types, state, ...
                                                                  p, s, mob, rho, ...
                                                                  dissolved, components, ...
                                                                  forces)
-        % Add in the effect of boundary conditions and source terms to a
-        % set of equations.
+        % Add in the boundary conditions and source terms to equations
         %
-        % INPUT
+        % SYNOPSIS:
+        %   [eqs, state] = addBoundaryConditionsAndSources(model, eqs, names, types, state, ...
+        %                                                        p, sat, mob, rho, ...
+        %                                                        rs, components, ...
+        %                                                        drivingForces);
         %
-        % eqs    - Cell array of equations that are to be updated.
+        % PARAMETERS:
+        %   model  - Class instance.
+        %   eqs    - Cell array of equations that are to be updated.
         %
-        % names  - The names of the equations to be updated. If
-        %          phase-pseudocomponents are to be used, the names must
-        %          correspond to some combination of "water", "oil", "gas"
-        %          if no special component treatment is to be introduced.
+        %   names  - The names of the equations to be updated. If
+        %            phase-pseudocomponents are to be used, the names must
+        %            correspond to some combination of "water", "oil", "gas"
+        %            if no special component treatment is to be introduced.
         %
-        % types  - Cell array with the types of "eqs". Note that these
-        %          types must be 'cell' where source terms is to be added.
+        %   types  - Cell array with the types of "eqs". Note that these
+        %            types must be 'cell' where source terms is to be added.
         %
-        % src    - Struct containing all the different source terms that
-        %          were computed and added to the equations.
+        %   src    - Struct containing all the different source terms that
+        %            were computed and added to the equations.
         %
-        % Remaining input arguments correspond to a variety of reservoir
-        % properties with self-explanatory names. Final input is the
-        % drivingForces struct.
+        %   p      - Cell array of phase pressures.
+        %
+        %   s      - Cell array of phase saturations.
+        %
+        %   mob    - Cell array of phase mobilities
+        %
+        %   rho    - Cell array of phase densities
+        %
+        %   dissolved - Cell array of dissolved components for black-oil
+        %               style pseudocompositional models.
+        %
+        %   components - Cell array of equal length to the number of
+        %                components. The exact representation may vary
+        %                based on the model, but the respective
+        %                sub-component is passed onto
+        %                `addComponentContributions`.
+        %
+        %   forces - DrivingForces struct (see `getValidDrivingForces`)
+        %            containing (possibily empty) `src` and `bc` fields.
+        %
+        % RETURNS:
+        %   eqs   - Equations with corresponding source terms added.
+        %   state - Reservoir state. Can be modified to store e.g. boundary
+        %           fluxes due to boundary conditions.
+        %   src   - Normalized struct containing the source terms used.
+        %
+        % NOTE:
+        %  This function accomodates both the option of black-oil
+        %  pseudocomponents (if the model equations are named "oil", "gas"
+        %  or water) and true components existing in multiple phases.
+        %  Mixing the two behaviors can lead to unexpected source terms.
+        
         [src_terms, bnd_cond] = computeSourcesAndBoundaryConditionsAD(model, p, s, mob, rho, dissolved, forces);
         [~, longNames] = getPhaseNames(model);
         rhoS = model.getSurfaceDensities();
@@ -747,28 +1112,28 @@ methods
         % source terms for a specific source/bc where the fluxes have
         % already been computed.
         %
-        % INPUT:
+        % PARAMETERS:
         %
-        % model  - (Base class, automatic)
+        %   model  - (Base class, automatic)
         %
-        % cname  - Name of the component. Must be a property known to the
-        %          model itself through getProp/getVariableField.
+        %   cname  - Name of the component. Must be a property known to the
+        %            model itself through `getProp` and `getVariableField`.
         %
-        % eq     - Equation where the source terms are to be added. Should
-        %          be one value per cell in the simulation grid (model.G)
-        %          so that the src.sourceCells is meaningful.
+        %   eq     - Equation where the source terms are to be added. Should
+        %            be one value per cell in the simulation grid (model.G)
+        %            so that the src.sourceCells is meaningful.
         %
-        % component - Cell-wise values of the component in question. Used
-        %          for outflow source terms only.
+        %   component - Cell-wise values of the component in question. Used
+        %               for outflow source terms only.
         %
-        % src    - Source struct containing fields for fluxes etc. Should
-        %          be constructed from force and the current reservoir
-        %          state by computeSourcesAndBoundaryConditionsAD.
+        %   src    - Source struct containing fields for fluxes etc. Should
+        %            be constructed from force and the current reservoir
+        %            state by `computeSourcesAndBoundaryConditionsAD`.
         %
-        % force  - Force struct used to produce src. Should contain the
-        %          field defining the component in question, so that the
-        %          inflow of the component through the boundary condition
-        %          or source terms can accurately by estimated.
+        %   force  - Force struct used to produce src. Should contain the
+        %            field defining the component in question, so that the
+        %            inflow of the component through the boundary condition
+        %            or source terms can accurately by estimated.
         if isempty(force)
             return
         end
@@ -791,50 +1156,78 @@ methods
     function rhoS = getSurfaceDensities(model)
         % Get the surface densities of the active phases in canonical
         % ordering (WOG, with any inactive phases removed).
-        % RETURNS:
         %
-        % rhoS - 1 x n double array of surface densities.
+        % RETURNS:
+        %   rhoS - 1 x n double array of surface densities.
         names = model.getPhaseNames();
         rhoS = arrayfun(@(x) model.fluid.(['rho', x, 'S']), names);
     end
 
-    function [compEqs, compSrc, eqNames, wellSol] = getExtraWellContributions(...
-            model, well, wellSol0, wellSol, q_s, bh, packed, qMass, qVol, dt, iteration)%#ok
+    function [compEqs, compSrc, eqNames, wellSol] = getExtraWellContributions(model, well, wellSol0, wellSol, q_s, bh, packed, qMass, qVol, dt, iteration)
         % This function is called by the well model (base class:
         % SimpleWell) during the assembly of well equations and addition of
         % well source terms. The purpose of this function, given the
-        % internal variables of the WellModel, is to compute the additional
+        % internal variables of the well model, is to compute the additional
         % closure equations and source terms that the model requires. For
         % instance, if the model contains different components that require
         % special treatment (see for example the implementation of this
-        % function in OilWaterPolymerModel), this function should assemble
-        % any additional equations and corresponding source terms. It is
-        % also possible to add source terms without actually adding well
-        % equations.
+        % function in :class:`ad_eor.models.OilWaterPolymerModel` in the
+        % `ad-eor` module), this function should assemble any additional
+        % equations and corresponding source terms. It is also possible to
+        % add source terms without actually adding well equations. 
         %
         % RETURNS:
         %
-        % compEqs - A cell array of additional equations added to the
-        %           system to account for the treatment of components etc
-        %           in the well system.
-        % compSrc - Cell array of component source terms, ordered and with
-        %           the same length as the output from
-        %           model.getComponentNames.
-        % eqNames - Names of the added equations. Must correspond to the
-        %           same entries as getExtraWellEquationNames (but does not
-        %           have to maintain the same ordering).
+        %   compEqs - A cell array of additional equations added to the
+        %             system to account for the treatment of components etc
+        %             in the well system.
+        %   compSrc - Cell array of component source terms, ordered and with
+        %             the same length as the output from
+        %             `ReservoirModel.getComponentNames`.
+        %   eqNames - Names of the added equations. Must correspond to the
+        %             same entries as `getExtraWellEquationNames` (but does 
+        %             not have to maintain the same ordering).
+        %
+        % NOTE:
+        %   Input arguments are intentionally undocumented and subject to
+        %   change. Please see `SimpleWell` for details.
         [compEqs, compSrc, eqNames] = deal({});
     end
 
-    function [names, types] = getExtraWellEquationNames(model)%#ok
-        % Get the names and types of extra well equations implemented by
-        % the model instance. See getExtraWellContribution.
+    function [names, types] = getExtraWellEquationNames(model)
+        % Get the names and types of extra well equations in model
+        %
+        % SYNOPSIS:
+        %   [names, types] = model.getExtraWellEquationNames();
+        %
+        %
+        % PARAMETERS:
+        %   model - Base class.
+        %
+        % RETURNS:
+        %   names - Cell array of additional well equations.
+        %   types - Cell array of corresponding types to `names`.
+        % 
+        % SEE ALSO:
+        %   `getExtraWellContributions`
+        
         [names, types] = deal({});
     end
 
-    function names = getExtraWellPrimaryVariableNames(model) %#ok
-        % Get the names of additional well primary variables required by
-        % this model. See getExtraWellContributions.
+    function names = getExtraWellPrimaryVariableNames(model)
+        % Get the names of extra well primary variables required by model.
+        %
+        % SYNOPSIS:
+        %   names = model.getExtraWellPrimaryVariableNames();
+        %
+        % PARAMETERS:
+        %   model - Class instance
+        %
+        % RETURNS:
+        %   names - Cell array of named primary variables.
+        %
+        % SEE ALSO:
+        %   `getExtraWellContributions`
         names = {};
     end
 end
@@ -842,7 +1235,31 @@ end
 methods (Static)
     % --------------------------------------------------------------------%
     function [krW, krO, krG] = relPermWOG(sw, so, sg, f, varargin)
-        % Three phase, water / oil / gas relperm.
+        % Three-phase water-oil-gas relative permeability function
+        %
+        % SYNOPSIS:
+        %   [krW, krO, krG] = model.relPermWOG(sw, so, sg, f);
+        %
+        %
+        % PARAMETERS:
+        %   sw  - Water saturation
+        %   so  - Oil saturation
+        %   sg  - Gas saturation
+        %   f   - Struct representing the field. Fields that are used:
+        %
+        %           - `krW`:  Water relperm function of water saturation.
+        %           - `krOW`: Oil-water relperm function of oil saturation.
+        %           - `krOG`: Oil-gas relperm function of oil saturation.
+        %           - `krG`:   Gas relperm function of gas saturation.
+        %           - `sWcon`: Connate water saturation. OPTIONAL.
+        % RETURNS:
+        %   krW - Water relative permeability.
+        %   krO - Oil relative permeability.
+        %   krG - Gas relative permeability
+        %
+        % NOTE:
+        %   This function should typically not be called directly as its
+        %   interface is subject to change. Instead, use `evaluateRelPerm`.
         swcon = 0;
         if isfield(f, 'sWcon')
             if isempty(varargin) || numel(f.sWcon) == 1
@@ -868,7 +1285,28 @@ methods (Static)
 
     % --------------------------------------------------------------------%
     function [krW, krO] = relPermWO(sw, so, f, varargin)
-        % Two phase oil-water relperm
+        % Two-phase water-oil relative permeability function
+        %
+        % SYNOPSIS:
+        %   [krW, krO] = model.relPermWO(sw, so, f);
+        %
+        %
+        % PARAMETERS:
+        %   sw  - Water saturation
+        %   so  - Oil saturation
+        %   f   - Struct representing the field. Fields that are used:
+        %
+        %            - `krW`: Water relperm function of water saturation.
+        %            - `krO`: Oil relperm function of oil saturation.
+        %            - `krOW`: Oil-water relperm function of oil saturation.
+        %              Only used if `krO` is not found.
+        % RETURNS:
+        %   krW - Water relative permeability.
+        %   krO - Oil relative permeability.
+        %
+        % NOTE:
+        %   This function should typically not be called directly as its
+        %   interface is subject to change. Instead, use `evaluateRelPerm`.
         krW = f.krW(sw, varargin{:});
         if isfield(f, 'krO')
             krO = f.krO(so, varargin{:});
@@ -879,7 +1317,29 @@ methods (Static)
 
     % --------------------------------------------------------------------%
     function [krO, krG] = relPermOG(so, sg, f, varargin)
-        % Two phase oil-gas relperm.
+        % Two-phase oil-gas relative permeability function
+        %
+        % SYNOPSIS:
+        %   [krO, krG] = model.relPermOG(so, sg, f);
+        %
+        %
+        % PARAMETERS:
+        %   sw  - Water saturation
+        %   sg  - Gas saturation
+        %   f   - Struct representing the field. Fields that are used:
+        %
+        %           - `krO`: Oil relperm function of oil saturation.
+        %           - `krOG`: Oil-gas relperm function of gas saturation.
+        %             This function is only used if `krO` is not found.
+        %           - `krG`: Gas relperm function of gas saturation.
+        %
+        % RETURNS:
+        %   krO - Oil relative permeability.
+        %   krG - Gas relative permeability
+        %
+        % NOTE:
+        %   This function should typically not be called directly as its
+        %   interface is subject to change. Instead, use `evaluateRelPerm`.
         krG = f.krG(sg, varargin{:});
         if isfield(f, 'krO')
             krO = f.krO(so, varargin{:});
@@ -890,7 +1350,27 @@ methods (Static)
 
     % --------------------------------------------------------------------%
     function [krW, krG] = relPermWG(sw, sg, f, varargin)
-        % Two phase water-gas relperm
+        % Two-phase water-gas relative permeability function
+        %
+        % SYNOPSIS:
+        %   [krW, krG] = model.relPermWG(sw, sg, f);
+        %
+        %
+        % PARAMETERS:
+        %   sw  - Water saturation
+        %   sg  - Gas saturation
+        %   f   - Struct representing the field. Fields that are used:
+        %
+        %           - `krW`: Water relperm function of water saturation.
+        %           - `krG`: Gas relperm function of gas saturation.
+        %
+        % RETURNS:
+        %   krW - Water relative permeability.
+        %   krG - Gas relative permeability
+        %
+        % NOTE:
+        %   This function should typically not be called directly as its
+        %   interface is subject to change. Instead, use `evaluateRelPerm`.
         krG = f.krG(sg, varargin{:});
         krW = f.krW(sw, varargin{:});
     end
@@ -923,3 +1403,23 @@ methods (Static)
     end
 end
 end
+
+%{
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+

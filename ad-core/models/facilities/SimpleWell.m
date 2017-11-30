@@ -1,23 +1,37 @@
 classdef SimpleWell < PhysicalModel
+    % Base class implementing a single, instantaneous equilibrium well model
+    %
+    % SYNOPSIS:
+    %   wm = SimpleWell(W)
+    %
+    % DESCRIPTION:
+    %   Base class for wells in the AD-OO framework. The base class is also
+    %   the default well implementation. For this will model, the
+    %   assumptions are that the well-bore flow is rapid compared to the
+    %   time-steps taken by the reservoir simulator, making instantaneous
+    %   equilibrium and mixing in the well-bore a reasonable assumption.
+    %
+    % PARAMETERS:
+    %   W - Well struct. See `addWell` and `processWells`.
+    %
+    % OPTIONAL PARAMETERS:
+    %   'property' - Set property to the specified value.
+    %
+    % RETURNS:
+    %   model - Class instance of `SimpleWell`.
+    %
+    % SEE ALSO:
+    %   `FacilityModel`, `MultisegmentWell`,
+
     properties
-        % Struct defining the well (see addWell)
-        W
-        % Boolean indicating if the well perforations allow cross-flow
-        allowCrossflow
-        % Boolean indicating if BHP wells are allowed to switch between
-        % producers and injectors
-        allowSignChange
-        % Boolean indicating if the well should switch to another control
-        % if the limits have been reached.
-        allowControlSwitching
-        % Maximum allowable relative change in well pressure
-        dpMaxRel
-        % Maximum allowable absolute change in well pressure
-        dpMaxAbs
-        % Maximum allowable change in well composition/saturation
-        dsMaxAbs
-        % Vertical lift table
-        VFPTable
+        W % Struct defining the well (see `addWell`)
+        allowCrossflow % Boolean indicating if the well perforations allow cross-flow
+        allowSignChange % BHP-controlled well is allowed to switch between production and injection
+        allowControlSwitching % Limit reached results in well switching to another control 
+        dpMaxRel % Maximum allowable relative change in well pressure
+        dpMaxAbs % Maximum allowable absolute change in well pressure
+        dsMaxAbs % Maximum allowable change in well composition/saturation
+        VFPTable % Vertical lift table. EXPERIMENTAL.
     end
 
     methods
@@ -38,15 +52,43 @@ classdef SimpleWell < PhysicalModel
         end
 
         function well = updateWell(well, W)
-            % Update the well struct.
+            % Update well with a new control struct.
+            %
+            % SYNOPSIS:
+            %   well = well.updateWell(W);
+            %
+            % PARAMETERS:
+            %   model - Well model.
+            %   W     - Well struct representing the same wells, but with
+            %           changed controls, active perforations and so on.
+            %
+            % RETURNS:
+            %   model - Updated well model.
+            %
             well.W = W;
         end
 
         function wsol = validateWellSol(well, resmodel, wsol, state) %#ok
-            % Validate if wellSol is suitable for simulation. This function
-            % may modify the wellSol if the errors are fixable at runtime,
-            % otherwise it should throw an error. Note that this function
-            % is analogous to validateState in the base model class.
+            % Validate wellSol for simulation
+            %
+            % SYNOPSIS:
+            %   wellSol = well.validateWellSol(model, wellSol, resSol)
+            %
+            % DESCRIPTION:
+            %   Validate if wellSol is suitable for simulation. This function
+            %   may modify the wellSol if the errors are fixable at runtime,
+            %   otherwise it should throw an error. Note that this function
+            %   is analogous to validateState in the base model class.
+            %
+            % PARAMETERS:
+            %   well    - Well model class instance.
+            %   model   - `ReservoirModel` class instance.
+            %   wellSol - Well solution to be updated.
+            %   resSol  - Reservoir state
+            %
+            % RETURNS:
+            %   wellSol - Updated well solution struct.
+
             [names, fromResModel] = well.getExtraPrimaryVariableNames(resmodel);
             for i = 1:numel(names)
                 if fromResModel(i)
@@ -66,14 +108,29 @@ classdef SimpleWell < PhysicalModel
         end
 
         function counts = getVariableCounts(wm, fld)
-            % Should return the number of primary variables added by this
-            % well for field "fld". The simple base class only uses a
-            % single variable to represent any kind of well field, but in
-            % e.g. MultisegmentWell, this function may return values larger
-            % than 1.
+            % Get number of primary variables of a specific type for well
             %
-            % Note that a value of zero should be returned for a unknown
-            % field.
+            % SYNOPSIS:
+            %   counts = wellmodel.getVariableCounts('bhp')
+            %
+            % DESCRIPTION:
+            %   Should return the number of primary variables added by this
+            %   well for field "fld". The simple base class only uses a
+            %   single variable to represent any kind of well field, but in
+            %   e.g. `MultisegmentWell`, this function may return values
+            %   larger than 1.
+            %
+            % NOTE:
+            %   A value of zero should be returned for a unknown field.
+            %
+            % PARAMETERS:
+            %   wellmodel - Well model class instance.
+            %   fld       - Primary variable name.
+            %
+            % RETURNS:
+            %   counts - Number of variables of this type required by the
+            %            well model.
+
             try
                 fn = wm.getVariableField(fld);
             catch
@@ -88,29 +145,73 @@ classdef SimpleWell < PhysicalModel
 
         function [names, fromResModel] = getExtraPrimaryVariableNames(well, resmodel)
             % Get additional primary variables added by this well.
-            % Additional primary variables in this context are variables
-            % that are not the default MRST values (surface rates for each
-            % pseudocomponent/phase and bottomhole pressure).
             %
-            % In addition, this function returns a indicator per variable
-            % if it was added by the reservoir model, or the well model.
+            % SYNOPSIS:
+            %   [names, fromRes] = well.getExtraPrimaryVariableNames(model)
+            %
+            % DESCRIPTION:
+            %   Additional primary variables in this context are variables
+            %   that are not the default MRST values (surface rates for each
+            %   pseudocomponent/phase and bottomhole pressure).
+            %
+            %   In addition, this function returns a indicator per variable
+            %   if it was added by the reservoir model, or the well model.
+            %
+            % PARAMETERS:
+            %   well     - Well class instance
+            %   resmodel - `ReservoirModel` class instance.
+            %
+            % RETURNS:
+            %   names   - Names of additional primary variables.
+            %   fromRes - Boolean array indicating if the added variables
+            %             originate from the well, or the reservoir.
+
             names = resmodel.getExtraWellPrimaryVariableNames();
             fromResModel = true(size(names));
         end
 
         function [names, types] = getExtraEquationNames(well, resmodel)
             % Returns the names and types of the additional equation names
-            % this well model introduces. We have two options: Either the
-            % well itself can add additional equations (modelling e.g. flow
-            % in the well-bore) or the reservoir can add additional
-            % equations (typically for additional components)
+            % this well model introduces.
+            %
+            % SYNOPSIS:
+            %   [names, types] = well.getExtraEquationNames(model)
+            %
+            % DESCRIPTION:
+            %   We have two options: Either the
+            %   well itself can add additional equations (modelling e.g. flow
+            %   in the well-bore) or the reservoir can add additional
+            %   equations (typically for additional components)
+            %
+            % PARAMETERS:
+            %   well     - Well class instance
+            %   resmodel - `ReservoirModel` class instance.
+            %
+            % RETURNS:
+            %   names   - Names of additional equations.
+            %   types   - Type hints for the additional equations.
+            %
+
             [names, types] = resmodel.getExtraWellEquationNames();
         end
 
         function [vars, names] = getExtraPrimaryVariables(well, wellSol, resmodel)
             % Returns the values and names of extra primary variables added
-            % by this well. See "getExtraPrimaryVariableNames" for a
-            % definition of extra variables.
+            % by this well.
+            %
+            % SYNOPSIS:
+            %   [names, types] = well.getExtraEquationNames(model)
+            %
+            % PARAMETERS:
+            %   well     - Well class instance
+            %   resmodel - `ReservoirModel` class instance.
+            %
+            % RETURNS:
+            %   vars    - Cell array of extra primary variables
+            %   names   - Cell array with names of extra primary variables
+            % 
+            % SEE ALSO:
+            %   `getExtraPrimaryVariableNames`
             [names, fromResModel] = well.getExtraPrimaryVariableNames(resmodel);
             vars = cell(size(names));
             [vars{~fromResModel}] = well.getProps(wellSol, names{~fromResModel});
@@ -123,8 +224,11 @@ classdef SimpleWell < PhysicalModel
             ctrlEq =  setupWellControlEquationsSingleWell(well, wellSol0, wellSol, bh, q_s, status, mix_s, resmodel);
 
             % Update well properties which are not primary variables
-            toDouble = @(x)cellfun(@double, x, 'UniformOutput', false);
-            cq_sDb = cell2mat(toDouble(qMass));
+            cq_sDb = qMass;
+            for i = 1:numel(qMass)
+                cq_sDb{i} = double(qMass{i});
+            end
+            cq_sDb = cell2mat(cq_sDb);
 
             wellSol.cqs     = bsxfun(@rdivide, cq_sDb, resmodel.getSurfaceDensities);
             wellSol.cstatus = cstatus;
@@ -135,20 +239,26 @@ classdef SimpleWell < PhysicalModel
 
         function [compEqs, compSrc, compNames, wellSol] = computeComponentContributions(well, wellSol0, wellSol, resmodel, q_s, bh, packed, qMass, qVol, dt, iteration)
             % Compute component equations and component source terms
-            % qMass   : Mass flux  for each well connection and for each phase
-            % qVol    : Volume flux at reservoir condition for each connection and for each phase
-            % compEqs : Mass conservation equations in the well (involves well control
-            %           variables)
-            % compSrc : Source term that will enter the mass conservation
-            %           equations in the reservoir            
+            % 
+            % SEE ALSO:
+            %   `ad_core.models.ReservoirModel.getExtraWellContributions`
             [compEqs, compSrc, compNames, wellSol] = resmodel.getExtraWellContributions(well, wellSol0, wellSol, q_s, bh, packed, qMass, qVol, dt, iteration);
             return
         end
 
         function isInjector = isInjector(well)
-            % Returns boolean indicating if well is specified as an
-            % injector. Wells with sign zero is in this context defined as
-            % producers.
+            % Check if well is an injector
+            %
+            % SYNOPSIS:
+            %   isInj = well.isInjector();
+            %
+            % PARAMETERS:
+            %   well - Well class instance
+            %
+            % RETURNS:
+            %   isInjector - boolean indicating if well is specified as an
+            %                injector. Wells with sign zero is in this
+            %                context defined as producers.
             isInjector = well.W.sign > 0;
         end
 
@@ -171,8 +281,15 @@ classdef SimpleWell < PhysicalModel
                 return
             end
             [p, mob, rho, dissolved, comp, wellvars] = unpackPerforationProperties(packed);
-            toDb  = @(x)cellfun(@double, x, 'UniformOutput', false);
-            rho     = cell2mat(toDb(rho));
+            for i = 1:numel(rho)
+                rho{i} = double(rho{i});
+                if ~isempty(dissolved)
+                    for j = 1:numel(dissolved{i})
+                        dissolved{i}{j} = double(dissolved{i}{j});
+                    end
+                end
+            end
+            rho     = cell2mat(rho);
             active = model.getActivePhases();
             numPh = nnz(active);
 
@@ -184,7 +301,7 @@ classdef SimpleWell < PhysicalModel
                 w.topo = [(0:(nperf-1))', (1:nperf)'];
             end
             qs = wellSol.cqs; %volumetric in-flux at standard conds
-            C = wb2in(w);            % mapping wb-flux to in-flux
+            C = well.wb2in(w);            % mapping wb-flux to in-flux
             wbqs  = abs(C\qs);       % solve to get well-bore fluxes at surface conds
             wbqst = sum(wbqs, 2);   % total wb-flux at std conds
             % if flux is zero - just use compi
@@ -196,7 +313,7 @@ classdef SimpleWell < PhysicalModel
             % Compute mixture at std conds:
             mixs = wbqs ./ (wbqst*ones(1,numPh));
             % compute volume ratio Vr/Vs
-            volRat = compVolRat(mixs, p, b, model);
+            volRat = well.compVolRat(mixs, p, b, model);
             % Mixture density at connection conds (by using static b's)
             rhoMix = (mixs*rhoS')./volRat;
             % rhoMix is now density between neighboring segments given by
@@ -247,7 +364,10 @@ classdef SimpleWell < PhysicalModel
                 return
             end
             lims = well.W.lims;
-            qs_double = cellfun(@double, q_s);
+            qs_double = zeros(size(q_s));
+            for i = 1:numel(qs_double)
+                qs_double(i) = double(q_s{i});
+            end
             qs_t = sum(qs_double);
 
             actPh = model.getActivePhases();
@@ -262,7 +382,7 @@ classdef SimpleWell < PhysicalModel
                     % rate: Upper limit on total surface rate.
                     % vrat: Lower limit on total surface rate.
                     modes   = {'bhp', 'rate', 'vrat'};
-                    lims = setMissingLimits(lims, modes, inf);
+                    lims = well.setMissingLimits(lims, modes, inf);
                     if ~isfinite(lims.vrat)
                         % VRAT is lower limit, switch default sign
                         lims.vrat = -inf;
@@ -281,7 +401,7 @@ classdef SimpleWell < PhysicalModel
                     % vrat: Upper limit on total volumetric surface rate
 
                     modes   = {'bhp', 'orat', 'lrat', 'grat', 'wrat', 'vrat'};
-                    lims = setMissingLimits(lims, modes, -inf);
+                    lims = well.setMissingLimits(lims, modes, -inf);
                     if ~isfinite(lims.vrat)
                         % VRAT is upper limit, switch default sign
                         lims.vrat = inf;
@@ -373,7 +493,7 @@ classdef SimpleWell < PhysicalModel
             % Check if producers are becoming injectors and vice versa. The indexes
             % of such wells are stored in inx.
             wsg = w.sign;
-            ssg = sign(getTotalRate(wellSol));
+            ssg = sign(well.getTotalRate(wellSol));
             closed = wsg ~= ssg && wsg ~= 0;
             % A well can be set to zero rate without being shut down. We update inx
             % to take into account this fact.
@@ -416,100 +536,103 @@ classdef SimpleWell < PhysicalModel
             % Run after the update step to ensure consistency of wellSol
         end
     end
-end
+    
+    methods (Static, Access = private)
+        function C = wb2in(w)
+            conn = w.topo(2:end, :);
+            % Number of connections between perforations
+            nconn = size(conn, 1);
+            % Number of perforations
+            nperf = numel(w.cells);
 
+            if nconn + 1 ~= nperf
+                warning(['Mismatch between connection count (', num2str(nconn+1),...
+                        ') and perforation count (', num2str(nperf), '). Well model', ...
+                        'Does not appear to be a tree.']);
+            end
 
-function C = wb2in(w)
-    conn = w.topo(2:end, :);
-    % Number of connections between perforations
-    nconn = size(conn, 1);
-    % Number of perforations
-    nperf = numel(w.cells);
+            id = (1:nperf)';
+            % First identity, then honor topology.
+            ii = [id; conn(:, 1)];
+            jj = [id; conn(:, 2)];
+            vv = [ones(nperf, 1); -ones(nconn, 1)];
 
-    if nconn + 1 ~= nperf
-        warning(['Mismatch between connection count (', num2str(nconn+1),...
-                ') and perforation count (', num2str(nperf), '). Well model', ...
-                'Does not appear to be a tree.']);
-    end
-
-    id = (1:nperf)';
-    % First identity, then honor topology.
-    ii = [id; conn(:, 1)];
-    jj = [id; conn(:, 2)];
-    vv = [ones(nperf, 1); -ones(nconn, 1)];
-
-    C = sparse(ii, jj, vv, nperf, nperf);
-end
-
-function volRat = compVolRat(mixs, p, b, model)
-% Compute volume ratio Vr/Vs. Only complicated for blackoil.
-x = mixs;
-dg = isprop(model, 'disgas') && model.disgas;
-vo = isprop(model, 'vapoil') && model.vapoil;
-
-if dg || vo
-    [~, isgas] = model.getVariableField('sg');
-    [~, isoil] = model.getVariableField('so');
-
-    both = find(isgas | isoil);
-
-    g = mixs(:, isgas);
-    o = mixs(:, isoil);
-
-    if dg
-        rsMax = model.fluid.rsSat(double(p));
-    else
-        rsMax = 0;
-    end
-    if isa(model, 'ThreePhaseBlackOilModel')
-        % Vapoil/disgas
-        if vo
-            rvMax = model.fluid.rvSat(double(p));
-        else
-            rvMax = 0;
+            C = sparse(ii, jj, vv, nperf, nperf);
         end
 
-        gor = abs(g./o);
-        gor(isnan(gor)) = inf;
-        rs = min(rsMax, gor);
-        ogr = abs(o./g);
-        ogr(isnan(gor)) = inf;
-        rv = min(rvMax, ogr);
-        d = 1-rs.*rv;
-        x(:,isgas) = (x(:,isgas) - rs.*o)./d;
-        x(:,isoil) = (x(:,isoil) - rv.*g)./d;
-        x(:,both) = x(:,both).*(x(:,both)>0);
-    else
-        % Only gas dissolution
-        x(:,isgas) = x(:,isgas) - rsMax.*o;
-        x(:,isgas) = x(:,isgas).*(x(:,isgas)>0);
+        function volRat = compVolRat(mixs, p, b, model)
+        % Compute volume ratio Vr/Vs. Only complicated for blackoil.
+        x = mixs;
+        dg = isprop(model, 'disgas') && model.disgas;
+        vo = isprop(model, 'vapoil') && model.vapoil;
+
+        if dg || vo
+            [~, isgas] = model.getVariableField('sg');
+            [~, isoil] = model.getVariableField('so');
+
+            both = find(isgas | isoil);
+
+            g = mixs(:, isgas);
+            o = mixs(:, isoil);
+
+            if dg
+                rsMax = model.fluid.rsSat(double(p));
+            else
+                rsMax = 0;
+            end
+            if isa(model, 'ThreePhaseBlackOilModel')
+                % Vapoil/disgas
+                if vo
+                    rvMax = model.fluid.rvSat(double(p));
+                else
+                    rvMax = 0;
+                end
+
+                gor = abs(g./o);
+                gor(isnan(gor)) = inf;
+                rs = min(rsMax, gor);
+                ogr = abs(o./g);
+                ogr(isnan(gor)) = inf;
+                rv = min(rvMax, ogr);
+                d = 1-rs.*rv;
+                x(:,isgas) = (x(:,isgas) - rs.*o)./d;
+                x(:,isoil) = (x(:,isoil) - rv.*g)./d;
+                x(:,both) = x(:,both).*(x(:,both)>0);
+            else
+                % Only gas dissolution
+                x(:,isgas) = x(:,isgas) - rsMax.*o;
+                x(:,isgas) = x(:,isgas).*(x(:,isgas)>0);
+            end
+        end
+
+        volRat = sum(x./b ,2);
+        end
+
+        function qt = getTotalRate(sol)
+           ns = numel(sol);
+           qt = zeros([ns, 1]);
+           if ns == 0
+               return
+           end
+           typelist = {'qWs', 'qOs', 'qGs'};
+           types    = typelist(isfield(sol(1), typelist));
+           for w = 1:ns
+              for t = reshape(types, 1, []),
+                 x = sol(w).(t{1});
+                 if ~isempty(x),
+                    qt(w) = qt(w) + x;
+                 end
+              end
+           end
+        end
+
+        function lims = setMissingLimits(lims, modes, val)
+            missing_fields = {modes{~cellfun(@(x) isfield(lims, x), modes)}};
+            for f = missing_fields
+               lims = setfield(lims, f{:}, val);
+            end
+        end
     end
 end
 
-volRat = sum(x./b ,2);
-end
 
-function qt = getTotalRate(sol)
-   ns = numel(sol);
-   qt = zeros([ns, 1]);
-   if ns == 0
-       return
-   end
-   typelist = {'qWs', 'qOs', 'qGs'};
-   types    = typelist(isfield(sol(1), typelist));
-   for w = 1:ns
-      for t = reshape(types, 1, []),
-         x = sol(w).(t{1});
-         if ~isempty(x),
-            qt(w) = qt(w) + x;
-         end
-      end
-   end
-end
-
-function lims = setMissingLimits(lims, modes, val)
-    missing_fields = {modes{~cellfun(@(x) isfield(lims, x), modes)}};
-    for f = missing_fields
-       lims = setfield(lims, f{:}, val);
-    end
-end

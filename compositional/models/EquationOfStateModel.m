@@ -158,7 +158,7 @@ classdef EquationOfStateModel < PhysicalModel
             
             % Only apply calculations for cells that have not converged yet
             if iteration == 1
-                [stable, x0, y0] = PhaseStabilityTest(model, state.components, state.pressure, state.T);
+                [stable, x0, y0] = phaseStabilityTest(model, state.components, state.pressure, state.T);
                 acf = model.fluid.acentricFactors;
                 [Si_L, Si_V, A_L, A_V, B_L, B_V] = model.getMixtureFugacityCoefficients(P, T, x0, y0, acf);
                 % Solve EOS for each phase

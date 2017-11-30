@@ -1,41 +1,60 @@
 classdef FacilityModel < PhysicalModel
+    % A model coupling facilities and wells to the reservoir
+    %
+    % SYNOPSIS:
+    %
+    %   model = FacilityModel(reservoirModel)
+    %
+    % DESCRIPTION:
+    %   The `FacilityModel` is the layer between a `ReservoirModel` and the
+    %   facilities. The facilities consist of a number of different wells
+    %   that are implemented in their own subclasses.
+    %
+    %   Different wells have different governing equations, primary
+    %   variables and convergence criterions. This class seamlessly handles
+    %   wells appearing and disappearing, controls changing and even well
+    %   type changing.
+    %
+    % PARAMETERS:
+    %   resModel - `ReservoirModel` derived class the facilities are
+    %               coupled to.
+    %
+    % OPTIONAL PARAMETERS:
+    %   'property' - Set property to the specified value.
+    %
+    % RETURNS:
+    %   model - Class instance of `FacilityModel`.
+    %
+    %
+    % SEE ALSO:
+    %   `ReservoirModel`, `PhysicalModel`, `SimpleWell`
+
     properties
-        WellModels
+        WellModels % Cell array of instansiated wells
 
-        toleranceWellBHP
-        toleranceWellRate
-        toleranceWellMS
-        ReservoirModel
+        toleranceWellBHP % Convergence tolerance for BHP-type controls
+        toleranceWellRate % Convergence tolerance for rate-type controls
+        toleranceWellMS % Convergence tolerance for multisegment wells
+        ReservoirModel % The model instance the FacilityModel is coupled to
 
-        VFPTablesInjector
-        VFPTablesProducer
+        VFPTablesInjector % Injector VFP Tables. EXPERIMENTAL.
+        VFPTablesProducer % Producer VFP Tables. EXPERIMENTAL.
     end
 
     properties (SetAccess = protected)
-        % Canonical list of all extra primary variables added by the wells
-        addedPrimaryVarNames = {};
-        % Indicator, per primary variable, if it was added by the reservoir
-        % model (true) or if it is from the well itself (false)
-        addedPrimaryVarNamesIsFromResModel = [];
-        % Canonical list of additional equations
-        addedEquationNames = {};
-        % Canonical list of the types of the added equations
-        addedEquationTypes = {};
+        addedPrimaryVarNames = {}; % Canonical list of all extra primary variables added by the wells
+        addedPrimaryVarNamesIsFromResModel = [];  % Indicator, per primary variable, if it was added by the reservoir model (true) or if it is from the well itself (false)
+        addedEquationNames = {}; % Canonical list of additional equations
+        addedEquationTypes = {}; % Canonical list of the types of the added equations
     end
 
     methods
         function model = FacilityModel(reservoirModel, varargin)
             model = model@PhysicalModel([]);
-
-            % Convergence tolerance for BHP-type controls
             model.toleranceWellBHP  = 1*barsa;
-            % Convergence tolerance for rate-type controls
             model.toleranceWellRate = 1/day;
-            % Convergence tolerance for multisegment wells
             model.toleranceWellMS   = 1e-6;
-            % VFP Tables. EXPERIMENTAL.
             model.VFPTablesInjector = {};
-            % VFP Tables. EXPERIMENTAL.
             model.VFPTablesProducer = {};
             model = merge_options(model, varargin{:});
             model.ReservoirModel = reservoirModel;
@@ -46,17 +65,21 @@ classdef FacilityModel < PhysicalModel
             % Set up well models for changed controls or the first
             % simulation step.
             %
-            % INPUT:
+            % PARAMETERS:
             % 
-            % W       - Well struct (obtained from e.g. addWell or
-            %           processWells)
+            %   W       - Well struct (obtained from e.g. `addWell` or
+            %             `processWells`)
             %
-            % wellmodels (OPTIONAL ARGUMENT)
-            %          - Cell array of equal length to W, containing class
-            %          instances for each well (e.g. SimpleWell,
-            %          MultisegmentWell, or classes derived from these). 
-            %          If not provided, well models be constructed from the
-            %          input. 
+            % OPTIONAL PARAMETERS:
+            %   wellmodels - Cell array of equal length to W, containing class
+            %                instances for each well (e.g. `SimpleWell`,
+            %                `MultisegmentWell`, or classes derived from
+            %                these).  If not provided, well models be
+            %                constructed from the input.
+            %
+            % RETURNS:
+            %   model - Updated `FacilityModel` instance ready for use with
+            %           wells of type `W`.
             nw = numel(W);
             if model.getNumberOfWells == 0
                 % First time setup
@@ -116,33 +139,93 @@ classdef FacilityModel < PhysicalModel
         end
 
         function W = getWellStruct(model)
-            % Compute number of wells in facility
+            % Get the well struct representing the current set of wells
+            %
+            % SYNOPSIS:
+            %   W = model.getWellStruct();
+            %
+            % PARAMETERS:
+            %   model - `FacilityModel` class instance
+            %
+            % RETURNS:
+            %   W - Standard well struct.
+            %
             W = cellfun(@(x) x.W, model.WellModels, 'UniformOutput', false);
             W = vertcat(W{:});
         end
+        
         function nwell = getNumberOfActiveWells(model, wellSol)
-            % Compute number of active wells in facility
+            % Get number of wells active initialized in facility
+            %
+            % SYNOPSIS:
+            %   W = model.getNumberOfActiveWells();
+            %
+            % PARAMETERS:
+            %   model - `FacilityModel` class instance
+            %
+            % RETURNS:
+            %   nwell - Number of active wells
+            %
             mask = model.getWellStatusMask(wellSol);
             nwell = nnz(mask);
         end
 
         function nwell = getNumberOfWells(model)
-            % Compute number of wells in facility
+            % Get number of wells initialized in facility
+            %
+            % SYNOPSIS:
+            %   W = model.getNumberOfWells();
+            %
+            % PARAMETERS:
+            %   model - `FacilityModel` class instance
+            %
+            % RETURNS:
+            %   nwell - Number of wells
+            %
             nwell = numel(model.WellModels);
         end
+        
         function actIx = getIndicesOfActiveWells(model, wellSol)
-            % Get indices of active wells (open & present)
+            % Get indices of active wells
+            %
+            % SYNOPSIS:
+            %   actIx = model.getIndicesOfActiveWells(wellSol);
+            %
+            % PARAMETERS:
+            %   model   - `FacilityModel` class instance
+            %   wellSol - The wellSol struct
+            %
+            % RETURNS:
+            %   actIx - The indices of the active wells in the global list
+            %           of all wells (active & inactive)
+            %
             act = model.getWellStatusMask(wellSol);
             actIx = (1:numel(act))';
             actIx = actIx(act);
         end
 
         function act = getWellStatusMask(model, wellSol)
-            % Get the well status of all wells. The status is true if the
-            % well is present and active. Wells can be disabled in two
-            % ways: Their status flag can be set to false in the well
-            % struct, or the wellSol.status flag can be set to false by the
-            % simulator itself.
+            % Get status mask for active wells
+            %
+            % SYNOPSIS:
+            %   act = model.getWellStatusMask(wellSol);
+            %
+            % DESCRIPTION:
+            %   Get the well status of all wells. The status is true if the
+            %   well is present and active. Wells can be disabled in two
+            %   ways: Their status flag can be set to false in the well
+            %   struct, or the wellSol.status flag can be set to false by 
+            %   the simulator itself.
+            %
+            % PARAMETERS:
+            %   model   - `FacilityModel` class instance
+            %   wellSol - The wellSol struct
+            %
+            % RETURNS:
+            %   act   - Array with equal length to the total number of
+            %           wells, with booleans indicating if a specific well
+            %           is currently active.
+            %
             actModel = cellfun(@(x) x.W.status, model.WellModels);
             actWellSol = arrayfun(@(x) x.status, wellSol);
             
@@ -150,28 +233,78 @@ classdef FacilityModel < PhysicalModel
         end
 
         function names = getPrimaryVariableNames(model)
-            % This includes both the basic variables, and the variables
-            % added by complex wells (if any)
+            % Get the names of primary variables present in all wells
+            %
+            % SYNOPSIS:
+            %   names = model.getPrimaryVariableNames();
+            %
+            % DESCRIPTION:
+            %   Get a list of the names of primary variables that will be
+            %   required to solve a problem with the current set of wells.
+            %
+            % PARAMETERS:
+            %   model  - `FacilityModel` class instance
+            %
+            % RETURNS:
+            %   names  - Cell array of the names of the primary variables.
+            %
             names = [model.getBasicPrimaryVariableNames(), model.addedPrimaryVarNames];
         end
 
         function names = getBasicPrimaryVariableNames(model)
-            % Basic primary variables are phase rates + bhp for active
-            % phases in the model.
+            % Get the names of the basic primary variables present in all wells
+            %
+            % SYNOPSIS:
+            %   names = model.getBasicPrimaryVariableNames();
+            %
+            % DESCRIPTION:
+            %   Get a list of the basic names of primary variables that will 
+            %   be required to solve a problem with the current set of wells.
+            %   The basic primary variables are always present in MRST, and
+            %   correspond to the phase rates for each phase present, as
+            %   well as the bottom-hole pressures. This ensures that all
+            %   solvers have a minimum feature set for well controls.
+            %
+            % PARAMETERS:
+            %   model  - `FacilityModel` class instance
+            %
+            % RETURNS:
+            %   names  - Cell array of the names of the basic primary
+            %            variables.
+            %
             phNames = model.ReservoirModel.getPhaseNames();
             names = arrayfun(@(x) ['q', x, 's'], phNames, 'UniformOutput', false);
             names = [names, 'bhp'];
         end
 
         function [variables, names, map] = getBasicPrimaryVariables(model, wellSol)
-            % Get phase rates for the active phases and the bhp.
-            % In addition, the map contains indicators used to
-            % find the phase rates and BHP values in "variables"
-            % since these are of special importance to many
-            % applications and are considered canonical (i.e. they
-            % are always solution variables in MRST, and functions
-            % can assume that they will always be found in the
-            % variable set for wells).
+            % Get the basic primary variables common to all well models.
+            %
+            % SYNOPSIS:
+            %   [vars, names, map] = model.getBasicPrimaryVariables(wellSol)
+            %
+            % DESCRIPTION:
+            %   Get phase rates for the active phases and the bhp.
+            %   In addition, the map contains indicators used to
+            %   find the phase rates and BHP values in "variables"
+            %   since these are of special importance to many
+            %   applications and are considered canonical (i.e. they
+            %   are always solution variables in MRST, and functions
+            %   can assume that they will always be found in the
+            %   variable set for wells).
+            %
+            % PARAMETERS:
+            %   model - `FacilityModel` class instance
+            %
+            % RETURNS:
+            %   variables - Cell array of the primary variables.
+            %   names     - Cell array with the names of the primary
+            %               variables.
+            %   map       - Struct with details on which variables
+            %               correspond to ordered phase rates and the
+            %               bottom hole pressures.
+            %
+
             
             if model.getNumberOfActiveWells(wellSol) == 0
                 [variables, names] = deal({});
@@ -194,30 +327,42 @@ classdef FacilityModel < PhysicalModel
         end
 
         function [variables, names, wellmap] = getExtraPrimaryVariables(model, wellSol)
-        % Extra primary variables are variables required by more
-        % advanced wells that are in addition to the basic facility
-        % variables (rates + bhp).
-        %
-        % OUTPUT:
-        %
-        % names     - Column of cells. Each cell is a string with the name
-        %             of an extra-variable.
-        %
-        % variables - Column of cells. Each element, variables{i}, is a vector given
-        %             the value corresponding to extra-variable with name
-        %             names{i}. This vector is composed of stacked values
-        %             over all the wells that contains this extra-variable.
-        %
-        % wellmap   - The facility model contains the extra-variables of all
-        %             the well models that are used. Let us consider the well
-        %             with well number wno (in the set of active wells), then
-        %             the Well model is belongs to has its own
-        %             extra-variables (a subset of those of the Facility
-        %             model). We consider the j-th extra-variable of
-        %             the Well model. Then, i = extraMap(wno, j)
-        %             says that this extra-variable corresponds to
-        %             names{i}.
-
+            % Get additional primary variables (not in the basic set)
+            %
+            % SYNOPSIS:
+            %   [variables, names, wellmap] = model.getExtraPrimaryVariables(wellSol)
+            %
+            % DESCRIPTION:
+            %   Get extra primary variables are variables required by more
+            %   advanced wells that are in addition to the basic facility
+            %   variables (rates + bhp).
+            %
+            % PARAMETERS:
+            %   model   - `FacilityModel` class instance
+            %   wellSol - The wellSol struct
+            %
+            %
+            % RETURNS:
+            %   names     - Column of cells. Each cell is a string with the name
+            %               of an extra-variable.
+            %
+            %   variables - Column of cells. Each element, variables{i}, is a vector given
+            %               the value corresponding to extra-variable with name
+            %               names{i}. This vector is composed of stacked values
+            %               over all the wells that contains this extra-variable.
+            %
+            %   wellmap   - The facility model contains the extra-variables of all
+            %               the well models that are used. Let us consider the well
+            %               with well number wno (in the set of active wells), then
+            %               the Well model is belongs to has its own
+            %               extra-variables (a subset of those of the Facility
+            %               model). We consider the j-th extra-variable of
+            %               the Well model. Then, `i = extraMap(wno, j)`
+            %               says that this extra-variable corresponds to
+            %               `names{i}`.
+            %
+            % SEE ALSO:
+            %   `getBasicPrimaryVariables`
             actIx = model.getIndicesOfActiveWells(wellSol);
             nw = numel(actIx);
             if nw == 0
@@ -251,9 +396,36 @@ classdef FacilityModel < PhysicalModel
         end
 
         function [variables, names, wellMap] = getAllPrimaryVariables(model, wellSol)
-            % Gets all primary variables, both basic (rates, bhp) and added
-            % variables (added by different wells and from the model
-            % itself).
+            % Get all primary variables (basic + extra)
+            %
+            % SYNOPSIS:
+            %   [variables, names, wellmap] = model.getAllPrimaryVariables(wellSol)
+            %
+            % DESCRIPTION:
+            %   Gets all primary variables, both basic (rates, bhp) and added
+            %   variables (added by different wells and from the model
+            %   itself).
+            %
+            % PARAMETERS:
+            %   model   - `FacilityModel` class instance
+            %   wellSol - The wellSol struct
+            %
+            % RETURNS:
+            %   names     - Cell array. Each cell is a string with the name
+            %               of an variable.
+            %
+            %   variables - Column of cells. Each element, variables{i}, is a vector given
+            %               the value corresponding to variable with name
+            %               names{i}. This vector is composed of stacked values
+            %               over all the wells that contains this variable.
+            %
+            %   wellmap   - A combined struct containing mappings for both
+            %               the standard and extra primary variables.
+            %
+            % SEE ALSO:
+            %   `getBasicPrimaryVariables`, `getExtraPrimaryVariables`
+
+
 
             [basic, bnames, wellMap] = model.getBasicPrimaryVariables(wellSol);
             [extra, enames, extraMap] = model.getExtraPrimaryVariables(wellSol);
@@ -267,9 +439,48 @@ classdef FacilityModel < PhysicalModel
         end
 
         function [sources, wellSystem, wellSol] = getWellContributions(model, wellSol0, wellSol, wellvars, wellMap, p, mob, rho, dissolved, comp, dt, iteration)
-            % Get the source terms due to the wells, control and well
-            % equations and updated well sol. Main gateway for adding wells
-            % to a set of equations.
+            % Get sources, well equations and updated wellSol
+            %
+            % SYNOPSIS:
+            %   [sources, wellSystem, wellSol] = fm.getWellContributions(...
+            %   wellSol0, wellSol, wellvars, wellMap, p, mob, rho, dissolved, comp, dt, iteration)
+            %
+            % DESCRIPTION:
+            %   Get the source terms due to the wells, control and well
+            %   equations and updated well sol. Main gateway for adding wells
+            %   to a set of equations.
+            %
+            % PARAMETERS:
+            %   model     - Facility model class instance.
+            %   wellSol0  - wellSol struct at previous time-step.
+            %   wellSol   - wellSol struct at current time-step.
+            %   wellvars  - Well variables. Output from
+            %               `getAllPrimaryVariables`.
+            %   wellMap   - Well mapping. Output from
+            %               `getAllPrimaryVariables`.
+            %   p         - Pressure defined in all cells of the underlying
+            %               `ReservoirModel`. Normally, this is the oil
+            %               pressure.
+            %   mob       - Cell array of phase mobilities defined in all
+            %               cells of the reservoir.
+            %   rho       - Cell array of phase densities defined in all
+            %               cells of the reservoir.
+            %   dissolved - Black-oil style dissolution. See
+            %               :meth:`ad_blackoil.models.ThreePhaseBlackoilModel.getDissolutionMatrix`.
+            %   comp      - Cell array of components in the reservoir.
+            %   dt        - The time-step.
+            %   iteration - The current nonlinear iteration for which the
+            %               sources are to be computed.
+            %
+            % RETURNS:
+            %   sources    - Struct containing source terms for phases,
+            %                components and the corresponding cells.
+            %   wellSystem - Struct containing the well equations
+            %                (reservoir to wellbore, and
+            %                control-equations).
+            %   wellSol    - Updated wellSol struct.
+            %
+
             if isnan(iteration) || iteration < 0
                 warning(['Iteration number is not passed on to well model,', ...
                          'this may indicate wellbore pressure-drop will never be updated']);
@@ -364,27 +575,32 @@ classdef FacilityModel < PhysicalModel
             nPh = nnz(resModel.getActivePhases);
             [srcMass, srcVol, eqs] = deal(cell(1, nPh));
             for phNo = 1:nPh
-                srcMass{phNo} = combineCellData(allMass, phNo);
-                srcVol{phNo} = combineCellData(allVol, phNo);
-                eqs{phNo} = combineCellData(allBaseEqs, phNo);
+                srcMass{phNo} = model.combineCellData(allMass, phNo);
+                srcVol{phNo} = model.combineCellData(allVol, phNo);
+                eqs{phNo} = model.combineCellData(allBaseEqs, phNo);
             end
             % Components are ordered canonically by reservoir model
             srcComp = cell(1, ncomp);
             for cNo = 1:ncomp
-                srcComp{cNo} = combineCellData(allComp, cNo);
+                srcComp{cNo} = model.combineCellData(allComp, cNo);
             end
             % If we have extra equations, add them in
-            extraEqs = cell(1, n_extra);
-            for i = 1:n_extra
-                ok = ~cellfun(@isempty, allExtraEqs(:, i));
-                extraEqs{i} = vertcat(allExtraEqs{ok, i});
-            end
-            % Equations are the base, common variables as well as any extra
-            % equations added due to complex wells.
-            names = horzcat(basenames, enames);
-            types = horzcat(basetypes, etypes);
+            if n_extra > 0
+                extraEqs = cell(1, n_extra);
+                for i = 1:n_extra
+                    ok = ~cellfun(@isempty, allExtraEqs(:, i));
+                    extraEqs{i} = vertcat(allExtraEqs{ok, i});
+                end
+                % Equations are the base, common variables as well as any extra
+                % equations added due to complex wells.
+                names = horzcat(basenames, enames);
+                types = horzcat(basetypes, etypes);
 
-            eqs = {eqs{:}, extraEqs{:}};
+                eqs = {eqs{:}, extraEqs{:}};
+            else
+                names = basenames;
+                types = basetypes;
+            end
             ctrleq = vertcat(allCtrl{:});
 
             wc = model.getActiveWellCells(wellSol);
@@ -403,7 +619,19 @@ classdef FacilityModel < PhysicalModel
         end
 
         function wellSol = updateWellSolAfterStep(model, wellSol, wellSol0)
-            % Figure out if wells are shut, or changed ontrols
+            % Update wellSol after step (check for closed wells, etc)
+            %
+            % SYNOPSIS:
+            %   wellSol = model.updateWellSolAfterStep(wellSol, wellSol0)
+            %
+            % PARAMETERS:
+            %   model     - Facility model class instance.
+            %   wellSol0  - wellSol struct at previous time-step.
+            %   wellSol   - wellSol struct at current time-step.
+            %
+            % RETURNS:
+            %   wellSol   - Updated wellSol struct.
+            %
             for wno = 1:numel(wellSol)
                 wm = model.WellModels{wno};
                 wellSol(wno) = wm.updateWellSolAfterStep(model.ReservoirModel, wellSol(wno), wellSol0(wno));
@@ -412,19 +640,54 @@ classdef FacilityModel < PhysicalModel
 
         function wc = getWellCells(model)
             % Get the perforated cells of all wells, regardless of status
+            %
+            % SYNOPSIS:
+            %   wc = model.getWellCells()
+            %
+            % PARAMETERS:
+            %   model     - Facility model class instance.
+            %
+            % RETURNS:
+            %   wc   - Array of well cells
+            %
             c = cellfun(@(x) x.W.cells, model.WellModels, 'UniformOutput', false);
             wc = vertcat(c{:});
         end
 
         function wc = getActiveWellCells(model, wellSol)
-            % Get the perforated cells of all active wells (status == true)
-            c = cellfun(@(x) x.W.cells, model.WellModels, 'UniformOutput', false);
+            % Get the perforated cells in active wells and perforations
+            %
+            % SYNOPSIS:
+            %   wc = model.getActiveWellCells()
+            %
+            % PARAMETERS:
+            %   model - Facility model class instance.
+            %
+            % RETURNS:
+            %   wc   - Array of well cells that are active, and belong to
+            %          active wells.
+            %
+
+            c = cellfun(@(x) x.W.cells(x.W.cstatus > 0), model.WellModels, 'UniformOutput', false);
             active = model.getWellStatusMask(wellSol);
             wc = vertcat(c{active});
         end
 
         function ws = setWellSolStatistics(model, ws, sources)
-            % Store extra output, typically black oil-like
+            % Add statistics to wellSol (wcut, gor, ...)
+            %
+            % SYNOPSIS:
+            %   wellSol = model.setWellSolStatistics(wellSol, sources)
+            %
+            % PARAMETERS:
+            %   model     - Facility model class instance.
+            %   wellSol   - wellSol struct at current time-step.
+            %   sources   - Source struct from `getWellContributions`.
+            %
+            % RETURNS:
+            %   wellSol   - Updated wellSol struct where additional useful
+            %               information has been added
+            %
             p2w = getPerforationToWellMapping(model.getWellStruct());
             % Map into active wells
             active = model.getWellStatusMask(ws);
@@ -433,7 +696,10 @@ classdef FacilityModel < PhysicalModel
             gind = model.ReservoirModel.getPhaseIndex('G');
             oind = model.ReservoirModel.getPhaseIndex('O');
             wind = model.ReservoirModel.getPhaseIndex('W');
-            srcRes = cellfun(@double, sources.phaseVolume, 'UniformOutput', false);
+            srcRes = sources.phaseVolume;
+            for i = 1:numel(srcRes)
+                srcRes{i} = double(srcRes{i});
+            end
             qR = [srcRes{:}];
             if size(qR, 1) ~= numel(p2w)
                 % Multiple wells perforated in same block, etc. Output from
@@ -491,7 +757,25 @@ classdef FacilityModel < PhysicalModel
         end
 
         % Implementation details for stand-alone model
-        function [wellSol, restVars] = updateWellSol(model, wellSol, problem, dx, drivingForces, restVars) %#ok
+        function [wellSol, restVars] = updateWellSol(model, wellSol, problem, dx, drivingForces, restVars)
+            % Update the wellSol based on increments
+            %
+            % SYNOPSIS:
+            %   [wellSol, restVars] = model.updateWellSol(wellSol, problem, dx, forces, restVars)
+            %
+            % PARAMETERS:
+            %   model    - Facility model class instance
+            %   wellSol  - Well solution struct
+            %   problem  - Linearized problem used to produce dx.
+            %   dx       - Increments corresponding to
+            %             `problem.primaryVariables`
+            %   forces   - Boundary condition struct
+            %   restVars - Variables that have not yet been updated.
+            %
+            % RETURNS:
+            %   state    - Updated Well solution struct
+            %   restVars - Variables that have not yet been updated.
+
             if nargin < 6
                 restVars = problem.primaryVariables;
             end
@@ -538,6 +822,27 @@ classdef FacilityModel < PhysicalModel
         end
 
         function isVarWell = getWellVariableMap(model, wf, ws)
+            % Get mapping indicating which variable belong to each well
+            %
+            % SYNOPSIS:
+            %   isVarWell = model.getWellVariableMap('someVar', wellSol)
+            %
+            %
+            % PARAMETERS:
+            %   model - Class instance of `FacilityModel`
+            %   wf    - String of variable for which the mapping will be
+            %           generated.
+            %   ws    - Current wellSol.
+            %
+            % RETURNS:
+            %   isVarWell - Array equal in length to the total number of
+            %               variables with name `wf`. The entries
+            %               correspond to which well owns that specific
+            %               variable number. This allows multiple wells to
+            %               have for example bottom-hole pressures as a
+            %               variable, without having to split them up by
+            %               name in the reservoir equations.
+
             act = model.getWellStatusMask(ws);
             isRes = model.addedPrimaryVarNamesIsFromResModel;
             if isRes(strcmpi(wf, model.addedPrimaryVarNames))
@@ -550,6 +855,44 @@ classdef FacilityModel < PhysicalModel
         end
 
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
+            % Get stand-alone equations for the wells
+            %
+            % SYNOPSIS:
+            %   [problem, state] = model.getEquations(state0, state, dt, drivingForces, varargin)
+            %
+            % DESCRIPTION:
+            %   The well equations can be solved as a separate nonlinear
+            %   system with the reservoir as a fixed quantity. This is
+            %   useful for debugging.
+            %
+            % PARAMETERS:
+            %   model     - `FacilityModel` instance.
+            %   wellSol0  - wellSol struct at previous time-step.
+            %   wellSol   - wellSol struct at current time-step.
+            %   dt        - Time-step.
+            %   forces    - Forces struct for the wells.
+            %
+            % OPTIONAL PARAMETERS:
+            %   'resOnly'  -  If supported by the equations, this flag will
+            %                 result in only the values of the equations being
+            %                 computed, omitting any Jacobians.
+            %
+            %   'iteration' - The nonlinear iteration number. This can be
+            %                 provided so that the underlying equations can
+            %                 account for the progress of the nonlinear
+            %                 solution process in a limited degree, for example
+            %                 by updating some quantities only at the first
+            %                 iteration.
+            % RETURNS:
+            %   problem - Instance of the wrapper class `LinearizedProblemAD`
+            %             containing the residual equations as well as
+            %             other useful information.
+            %
+            %   state   - The equations are allowed to modify the system
+            %             state, allowing a limited caching of expensive
+            %             calculations only performed when necessary.
+
+
             opt = struct('iteration', nan, 'resOnly', false);
             opt = merge_options(opt, varargin{:});
             wellSol = state.wellSol;
@@ -599,6 +942,11 @@ classdef FacilityModel < PhysicalModel
         end
 
         function [state, report] = updateState(model, state, problem, dx, drivingForces)
+            % Update state.
+            %
+            % SEE ALSO:
+            %   :meth:`ad_core.models.PhysicalModel.updateState`
+
             if isfield(state, 'wellSol')
                 state.wellSol = model.updateWellSol(state.wellSol, problem, dx, drivingForces);
                 % Handle the directly assigned values (i.e. can be deduced directly from
@@ -611,6 +959,10 @@ classdef FacilityModel < PhysicalModel
         end
 
         function state = validateState(model, state)
+            % Validate state.
+            %
+            % SEE ALSO:
+            %   :meth:`ad_core.models.PhysicalModel.validateState`
             if ~isfield(state, 'wellSol') || isempty(state.wellSol)
                 if isfield(state, 'wellSol')
                     state = rmfield(state, 'wellSol');
@@ -630,6 +982,11 @@ classdef FacilityModel < PhysicalModel
         end
 
         function forces = getValidDrivingForces(model)
+            % Get valid driving forces.
+            %
+            % SEE ALSO:
+            %   :meth:`ad_core.models.PhysicalModel.getValidDrivingForces`
+
             forces = getValidDrivingForces@PhysicalModel(model);
             forces.W   = [];
             forces.bc  = [];
@@ -637,8 +994,26 @@ classdef FacilityModel < PhysicalModel
         end
 
         function [convergence, values, names, evaluated] = checkFacilityConvergence(model, problem)
-            % For checking on the subset of variables specific to the
-            % facility
+            % Check if facility and submodels has converged
+            %
+            % SYNOPSIS:
+            %   [convergence, values, names, evaluated] = model. checkFacilityConvergence(problem)
+            %
+            %
+            % PARAMETERS:
+            %   model   - Class instance.
+            %   problem - `LinearizedProblemAD` to be checked for
+            %             convergence.
+            %
+            % RETURNS:
+            %   conv  - Array of convergence flags for all tests.
+            %   vals  - Values checked to obtain `conv`.
+            %   names - The names of the convergence checks/equations.
+            %   eval  - Logical array into problem.equations indicating which
+            %           residual equations we have actually checked 
+            %           convergence for.
+            %   
+
             [convergence, values, evaluated, names] = checkWellConvergence(model, ...
                                                               problem);
 
@@ -646,6 +1021,10 @@ classdef FacilityModel < PhysicalModel
 
         function [convergence, values, names] = checkConvergence(model, problem, varargin)
             % Used when facility is run as a stand-alone model
+            %
+            % SEE ALSO:
+            %   :meth:`ad_core.models.PhysicalModel.checkConvergence`
+
             [convergence, values, names] = ...
                 model.checkFacilityConvergence(problem);
         end
@@ -653,9 +1032,27 @@ classdef FacilityModel < PhysicalModel
 
     methods (Static)
         function [wc, varargout] = handleRepeatedPerforatedcells(wc, varargin)
-            % This function treats repeated indices in wc (typically due to
-            % multiple wells intersecting a single cell). The output will
-            % have no repeats in wc, and add together any terms in cqs.
+            % Handle multiple wells perforated in the same cells 
+            %
+            % SYNOPSIS:
+            %   [wc, src1, src2] = handleRepeatedPerforatedcells(wc, src1, src2);
+            %
+            % DESCRIPTION:
+            %   This function treats repeated indices in wc (typically due to
+            %   multiple wells intersecting a single cell). The output will
+            %   have no repeats in wc, and add together any terms in cqs.
+            %
+            % PARAMETERS:
+            %   wc       - Well cells with possible repeats.
+            %   varargin - Any number of arrays that should be processed
+            %              to account for repeated entries.
+            %
+            % RETURNS:
+            %   wc        - Well cells with repeats removed.
+            %   varargout - Variable inputs processed to fix repeated
+            %               indices.
+            %
+
             varargout = varargin;
             [c, ic, ic] = uniqueStable(wc);                     %#ok<ASGLU>
             if numel(c) ~= numel(wc)
@@ -670,10 +1067,11 @@ classdef FacilityModel < PhysicalModel
                 end
             end
         end
+        
+        function d = combineCellData(data, ix)
+            d = cellfun(@(x) x{ix}, data, 'UniformOutput', false);
+            d = vertcat(d{:});
+        end
     end
 end
 
-function d = combineCellData(data, ix)
-    d = cellfun(@(x) x{ix}, data, 'UniformOutput', false);
-    d = vertcat(d{:});
-end

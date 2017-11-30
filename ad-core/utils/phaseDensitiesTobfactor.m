@@ -1,4 +1,5 @@
 function b = phaseDensitiesTobfactor(rho, rhoS, dissolved)
+% Convert densities to b-facctors, accounting for dissolution
     numPh = numel(rhoS);
     b = rho;
     

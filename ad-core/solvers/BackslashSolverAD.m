@@ -1,14 +1,23 @@
 classdef BackslashSolverAD < LinearSolverAD
-% Linear solver that calls standard MATLAB direct solver mldivide "\"
-%
-% SYNOPSIS:
-%   solver = BackslashSolverAD()
-%
-% DESCRIPTION:
-%   This solver solves linearized problems using matlab builtin mldivide.
-%
-% SEE ALSO:
-%   LinearSolverAD
+    % Linear solver that calls standard MATLAB direct solver mldivide "\"
+    %
+    % SYNOPSIS:
+    %   solver = BackslashSolverAD()
+    %
+    % DESCRIPTION:
+    %   This solver solves linearized problems using matlab builtin mldivide.
+    %
+    % SEE ALSO:
+    %   `LinearSolverAD`
+
+   methods
+       function [result, report] = solveLinearSystem(solver, A, b)
+          result = A\b;
+           % Nothing to report
+           report = struct();
+       end
+   end
+end
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
@@ -28,11 +37,3 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-   methods
-       function [result, report] = solveLinearSystem(solver, A, b) %#ok
-          result = A\b;
-           % Nothing to report
-           report = struct();
-       end
-   end
-end

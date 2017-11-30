@@ -40,7 +40,8 @@ state0.wellSol = initWellSolAD([], model, state0);
 pv = poreVolume(G, rock);
 injRate = -sum(pv)/(500*day);
 bc = fluxside([], G, 'xmin', -injRate, 'sat', [1, 0]);
-bc = pside(bc, G, 'xmax', 0*barsa, 'sat', [0, 1]);
+% bc = pside(bc, G, 'xmax', 0*barsa, 'sat', [0, 1]);
+W = addWell([], G, rock, G.cells.num, 'val', 0*barsa, 'comp_i', [0, 1])
 
 %% Simulate 1 PVI using a manual loop
 % There are several ways to run a simulation. A simple approach is to use a
@@ -71,7 +72,7 @@ plotToolbar(G, states, 'field', 's:1', 'plot1d', true, ...
 % conditions, and source terms) that are active in each time step. In
 % addition, one can specify various forms of time-step control. Here,
 % however, we simply rely on the default setup
-schedule = simpleSchedule(repmat(dT,1,25), 'bc', bc);
+schedule = simpleSchedule(repmat(dT,1,25), 'bc', bc, 'W' ,W);
 [~,sstates] = simulateScheduleAD(state0, model, schedule);
 
 close all
