@@ -49,7 +49,7 @@ function T = computeMultiPointTrans_DFM(g, rock, varargin)
 %   PLEASE NOTE: Face normals have length equal to face areas.
 %
 % SEE ALSO:
-%   incompMPFA, mrstVerbose.
+%   `incompMPFA`, `mrstVerbose`.
 
 %{
 Copyright 2009, 2010, 2011 SINTEF ICT, Applied Mathematics.

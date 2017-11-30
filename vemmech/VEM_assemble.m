@@ -34,7 +34,7 @@ function [S, operators] = VEM_assemble(G, C, varargin)
 %
 % EXAMPLE:
 %
-% SEE ALSO: VEM_linElast
+% SEE ALSO: `VEM_linElast`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

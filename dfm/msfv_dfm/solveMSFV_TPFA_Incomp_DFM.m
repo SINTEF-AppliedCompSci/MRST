@@ -136,8 +136,12 @@ function state = solveMSFV_TPFA_Incomp_DFM(state, G, CG, T, fluid, varargin)
 %               - c2cTrans  -- cell to cell transmissibilities see
 %                              computeHybridTrans.m, used as input in
 %                              incompTPFA_DFM
+%
+% NOTE:
+%   This solver is based on the core MRST function incompTPFA.
+%
 % SEE ALSO:
-%   incompTPFA on which the multiscale solver is based
+%   `incompTPFA`.
 
 %{
 Copyright 2009, 2010, 2011, 2012 SINTEF ICT, Applied Mathematics.

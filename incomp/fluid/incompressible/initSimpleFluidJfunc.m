@@ -35,7 +35,7 @@ function fluid = initSimpleFluidJfunc(varargin)
 %     plot(state.s, fluid.pc(state)/barsa,'o');
 %
 % SEE ALSO:
-%   fluid_structure, initSimpleFluid, initSimpleFluidPc, solveIncompFlow.
+%   `fluid_structure`, `initSimpleFluid`, `initSimpleFluidPc`, `solveIncompFlow`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

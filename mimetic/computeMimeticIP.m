@@ -82,7 +82,7 @@ function S = computeMimeticIP(G, rock, varargin)
 %         - ip     : inner product name
 %
 % SEE ALSO:
-%   solveIncompFlow, darcy, permTensor, mrstVerbose.
+%   `solveIncompFlow`, `darcy`, `permTensor`, `mrstVerbose`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

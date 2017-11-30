@@ -19,7 +19,7 @@ function wdp = impesTPFADefaultWellModel(state, wells, fluid)
 %         Peaceman's connection flux model.
 %
 % SEE ALSO:
-%   impesTPFA.
+%   `impesTPFA`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

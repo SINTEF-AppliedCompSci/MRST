@@ -23,7 +23,7 @@ function fluid = initSingleFluid(varargin)
 %   plot(s, kr), legend('kr')
 %
 % SEE ALSO:
-%   fluid_structure, initSimpleFluid, solveIncompFlow.
+%   `fluid_structure`, `initSimpleFluid`, `solveIncompFlow`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

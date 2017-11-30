@@ -54,7 +54,7 @@ function varargout = impesComputeMobility(state, fluid, bc, wells, wdp)
 %   'impesTPFA' solver and related functions.
 %
 % SEE ALSO:
-%   impesAssembleStateVars, tpfaUpwindStateVars, impesTPFADefaultWellModel.
+%   `impesAssembleStateVars`, `tpfaUpwindStateVars`, `impesTPFADefaultWellModel`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

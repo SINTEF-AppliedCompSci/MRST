@@ -22,7 +22,7 @@ function varargout = plotNodeDataDeformed(G, node_data, uu, varargin)
 % EXAMPLE:
 %
 % SEE ALSO:
-%   plotCellData, plotGrid, newplot, patch, shading.
+%   `plotCellData`, `plotGrid`, `newplot`, `patch`, `shading`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

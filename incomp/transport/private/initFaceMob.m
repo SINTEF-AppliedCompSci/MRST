@@ -38,7 +38,7 @@ function [v_darcy, neighbors, ...
 %               for each face, where n_z is the z-component of the normal.
 %
 % SEE ALSO:
-%   findFaceMobMat, twophaseUpwFEGrav, twophaseUpwBEGrav, initTransport.
+%   `findFaceMobMat`, `twophaseUpwFEGrav`, `twophaseUpwBEGrav`, `initTransport`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

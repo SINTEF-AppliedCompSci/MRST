@@ -83,7 +83,7 @@ function [T, A, q] = computeTimeOfFlight_DFM(state, G, rock,  varargin)
 %       OPTIONAL.  Only returned if specifically requested.
 %
 % SEE ALSO:
-%   simpleTimeOfFlight, solveIncompFlow.
+%   `simpleTimeOfFlight`, `solveIncompFlow`.
 
 %{
 Copyright 2009, 2010, 2011, 2012 SINTEF ICT, Applied Mathematics.

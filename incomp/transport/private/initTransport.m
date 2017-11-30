@@ -89,7 +89,7 @@ function [gravmat, flux, q, pv, dt] = initTransport(G, state, ...
 %   dt      - Timestep (in units of seconds) for use in explicit solver.
 %
 % SEE ALSO:
-%   explicitTransport, implicitTransport, solveIncompFlow, gravity.
+%   `explicitTransport`, `implicitTransport`, `solveIncompFlow`, `gravity`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -17,11 +17,7 @@ function grdecl_new = padGrdecl(grdecl, dirs, box, varargin)
 %
 % RETURNS:
 %   grdecl_new - Grid in eclipse format, with padding.
-%
-% EXAMPLE:
-%
-% SEE ALSO:
-%
+
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 

@@ -57,7 +57,7 @@ function [resSol, report] = twophaseUpwFE(resSol, tf, q, F, pv, fluid, varargin)
 %   resSol  - Reservoir solution structure with updated resSol.s(:,1).
 %
 % SEE ALSO:
-%   twophaseUpwFEGrav, initTransport, explicitTransport, implicitTransport.
+%   `twophaseUpwFEGrav`, `initTransport`, `explicitTransport`, `implicitTransport`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

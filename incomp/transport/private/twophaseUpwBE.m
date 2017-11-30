@@ -83,8 +83,8 @@ function [state, report] = twophaseUpwBE(state, tf, q, gm, pv, fluid, ...
 %   resSol   - Reservoir solution with updated resSol.s.
 %
 % SEE ALSO:
-%   newtonRaphson2ph, twophaseUpwBEGrav, initTransport, implicitTransport,
-%   explicitTransport.
+%   `newtonRaphson2ph`, `twophaseUpwBEGrav`, `initTransport`, `implicitTransport`,
+%   `explicitTransport`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -79,7 +79,7 @@ function [resSol,report] = twophaseUpwBEGrav(resSol, G, tf, q, flux, grav, ...
 %   resSol   - Reservoir solution with updated resSol.s.
 %
 % SEE ALSO:
-%   twophaseUpwBE, initTransport, implicitTransport, explicitTransport.
+%   `twophaseUpwBE`, `initTransport`, `implicitTransport`, `explicitTransport`.
 
 % TODO:
 %   - implement gravity effects for pressure boundary and wells
@@ -441,7 +441,7 @@ function [A_w, A_o] = ...
 %               mobility for oil-phase (or secondary phase).
 %
 % SEE ALSO:
-%   initFaceMob, twophaseUpwFEGrav, twophaseUpwBEGrav.
+%   `initFaceMob`, `twophaseUpwFEGrav`, `twophaseUpwBEGrav`.
 
 % -------------------------------------------------------------------------
 %
