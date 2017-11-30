@@ -25,15 +25,16 @@ void mexFunction( int nlhs, mxArray *plhs[],
      
 { 
     double *result; 
-    double *rhs; 
-    mwSize m,n, nnz;
+    double *rhs;
+    double *err;
+    mwSize m,n,nnz;
     mwIndex * cols;
     mwIndex * rows;
     double * entries;
     
     if (nrhs != 8) { 
 	    mexErrMsgTxt("6 input arguments required."); 
-    } else if (nlhs > 1) {
+    } else if (nlhs > 2) {
 	    mexErrMsgTxt("Wrong number of output arguments."); 
     } 
 
@@ -49,8 +50,10 @@ void mexFunction( int nlhs, mxArray *plhs[],
     } 
     // main();
     plhs[0] = mxCreateDoubleMatrix(m, 1, mxREAL);
+    plhs[1] = mxCreateDoubleMatrix(1, 1, mxREAL);
     
     result = mxGetPr(plhs[0]);
+    err = mxGetPr(plhs[1]);
     
     cols    = mxGetJc(prhs[0]);
     rows    = mxGetIr(prhs[0]);
@@ -181,10 +184,10 @@ void mexFunction( int nlhs, mxArray *plhs[],
     double error;
     boost::tie(iters, error) = solve(b, x);
     
-
     for(int ix=0; ix < M; ix++){
         result[ix] = x[ix];
     }
+    err[0] = error;
 
     return;
 }
