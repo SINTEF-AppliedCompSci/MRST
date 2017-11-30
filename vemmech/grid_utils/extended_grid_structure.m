@@ -1,10 +1,11 @@
-%Extended grid structure used in the vemmech module
+% Extended grid structure 
 %
-% SYNOPSIS:
-%   Description of the grid structure with augmented mappings and structures
-%   used for the VEM assembly. Here, we describe the full structure. The
-%   structure that are added with respect to grid_structure are marked as
-%   "(added structure)" or "(added mapping)".
+% SYNOPSIS: Description of the grid structure with augmented mappings and
+%   structures. In particular, topological description and geometrical
+%   properties of the edges are included.  Such information is used in the VEM
+%   assembly. Here, we describe the full structure. The structure that are added
+%   with respect to grid_structure are marked as "(added structure)" or "(added
+%   mapping)".
 %
 % RETURNS:
 %   G - representation of grids on an unstructured format.  A master

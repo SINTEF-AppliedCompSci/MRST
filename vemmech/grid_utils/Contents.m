@@ -2,7 +2,6 @@
 %
 % Files
 %   flipGrid            - Flip a grid (z->x, x->y, y->z)
-%   full_grid_structure - Extended grid structure used in the vemmech module
 %   padGrdecl           - Add padding to corner-point grid so it is embedded in a box
 %   verticalGrdecl      - Transform GRDECL pillars into vertical pillars
 
