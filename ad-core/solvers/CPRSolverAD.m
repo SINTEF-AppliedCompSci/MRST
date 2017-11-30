@@ -176,7 +176,7 @@ classdef CPRSolverAD < LinearSolverAD
             solver.ellipticSolver = solver.ellipticSolver.setupSolver(Ap, b(pInx));
             ellipSolve = @(b) solver.ellipticSolver.solveLinearSystem(Ap, b);
 
-            prec = @(r) applyTwoStagePreconditioner(r, A, L, U, pInx, ellipSolve);
+            prec = @(r) solver.applyTwoStagePreconditioner(r, A, L, U, pInx, ellipSolve);
             assert(all(isfinite(b)), 'Linear system rhs must have finite entries.');
             try
                 [cprSol, fl, relres, its, resvec] = gmres(A, b, [], solver.relativeTolerance,...
@@ -230,17 +230,18 @@ classdef CPRSolverAD < LinearSolverAD
                 end
             end
         end
-        
+    end
+    methods(Static)
+        function x = applyTwoStagePreconditioner(r, A, L, U, pInx, ellipticSolver)
+           x = zeros(size(r));
+           x(pInx) = ellipticSolver(r(pInx));
+
+           r = r - A*x;
+           x = x + U\(L\r);
+        end
     end
 end
 
-function x = applyTwoStagePreconditioner(r, A, L, U, pInx, ellipticSolver)
-   x = zeros(size(r));
-   x(pInx) = ellipticSolver(r(pInx));
-
-   r = r - A*x;
-   x = x + U\(L\r);
-end
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
