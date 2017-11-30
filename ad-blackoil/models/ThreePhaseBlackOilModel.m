@@ -14,7 +14,7 @@ end
 
 methods
     function model = ThreePhaseBlackOilModel(G, rock, fluid, varargin)
-        model = model@ReservoirModel(G, rock, fluid, varargin{:});
+        model = model@ReservoirModel(G, rock, fluid);
 
         % Typical black oil is disgas / dead oil, but all combinations
         % are supported

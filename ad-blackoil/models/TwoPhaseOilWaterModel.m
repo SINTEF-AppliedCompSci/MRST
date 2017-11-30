@@ -6,7 +6,7 @@ classdef TwoPhaseOilWaterModel < ThreePhaseBlackOilModel
 
     methods
         function model = TwoPhaseOilWaterModel(G, rock, fluid, varargin)
-            model = model@ThreePhaseBlackOilModel(G, rock, fluid, varargin{:});
+            model = model@ThreePhaseBlackOilModel(G, rock, fluid);
 
             % This is the model parameters for oil/water
             model.oil = true;
@@ -15,7 +15,7 @@ classdef TwoPhaseOilWaterModel < ThreePhaseBlackOilModel
 
             model.saturationVarNames = {'sw', 'so'};
 
-            model = merge_options(model);
+            model = merge_options(model, varargin{:});
         end
 
         % --------------------------------------------------------------------%
