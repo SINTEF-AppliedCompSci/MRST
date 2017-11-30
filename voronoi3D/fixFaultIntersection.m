@@ -48,7 +48,7 @@ function F = fixFaultIntersection(F)
 % 
 %   F   = createFaultGridPoints3D({fDt1,fDt2},{rho,rho});
 %   Fh  = fixFaultIntersection(F);
-%   figure; hold on; axis eqaul
+%   figure; hold on; axis equal
 %   plot3(F.f.pts(:,1), F.f.pts(:,2), F.f.pts(:,3),'bo','markersize',5); 
 %   plot3(Fh.f.pts(:,1), Fh.f.pts(:,2), Fh.f.pts(:,3),'r.','markersize',15);
 %

@@ -66,7 +66,7 @@ for s = 1:size(p,1)
 
 end
 V = round(V*10^9)/10^9;
-[V,IA,IC] = unique(V,'rows');
+[V,~,IC] = unique(V,'rows');
 
 G.cells.num = numel(C);
 G.cells.facePos = cumsum([1; cellfun(@numel, C)]);
@@ -102,6 +102,6 @@ for i = 1:G.faces.num
 end
 
 G.griddim = 2;
-G.type = {'ClippedPebiGrid2D'};
+G.type = {mfilename};
 G = sortEdges(G);
 end
