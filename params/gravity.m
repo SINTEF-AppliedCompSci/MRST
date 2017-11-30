@@ -158,10 +158,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       end
    end
 
-   if gravityOn,
-      g = G * g_vec;
-   else
-      g = zeros([1, 3]);
+   if nargout
+       if gravityOn,
+          g = G * g_vec;
+       else
+          g = zeros([1, 3]);
+       end
    end
 end
 
