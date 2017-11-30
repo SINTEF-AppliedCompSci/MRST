@@ -135,9 +135,6 @@ classdef ADI
                  h = u;
                  h.val = u.val + v.val;
                  h.jac = ADI.plusJac(h.jac, v.jac);
-                 if isempty(h.jac)
-                     h = h.val;
-                 end
              elseif numel(u.val) == 1
                  h = plus(repmat(u, [numel(v.val), 1]), v);
              elseif numel(v.val) == 1
@@ -163,9 +160,6 @@ classdef ADI
               h = v;
               h.val = u*h.val;
               h.jac = ADI.mtimesJac(u, h.jac);
-              if isempty(h.jac)
-                  h = h.val;
-              end
           elseif ~isa(v,'ADI') %v is a scalar
               h = mtimes(v,u);
           else % special case where either u or v has single value
@@ -192,9 +186,6 @@ classdef ADI
                  h = v;
                  h.val = u.*h.val;
                  h.jac = ADI.lMultDiag(u, h.jac);
-                 if isempty(h.jac)
-                     h = h.val;
-                 end
              else
                  h = mtimes(u,v);
              end
@@ -245,25 +236,16 @@ classdef ADI
              h = u;
              h.val = h.val.^v;
              h.jac = ADI.lMultDiag(v.*u.val.^(v-1), u.jac);
-             if isempty(h.jac)
-                 h = h.val;
-             end
          elseif ~isa(u,'ADI') % u is a scalar and v is ADI
              h = v;
              h.val = u.^v.val;
              h.jac = ADI.lMultDiag((u.^v.val).*log(u), v.jac);
-             if isempty(h.jac)
-                 h = h.val;
-             end
          else % u and v are both ADI
              h = u;
              h.val = u.val.^v.val;
              h.jac = ADI.plusJac( ...
                ADI.lMultDiag((u.val.^v.val).*(v.val./u.val), u.jac), ...
                ADI.lMultDiag((u.val.^v.val).*log(u.val),     v.jac) );
-             if isempty(h.jac)
-                 h = h.val;
-             end
          end
       end
 
@@ -360,9 +342,6 @@ classdef ADI
           h = u;
           h.val = eu;
           h.jac = ADI.lMultDiag(eu, u.jac);
-          if isempty(h.jac)
-              h = h.val;
-          end
       end
       %--------------------------------------------------------------------
       function h = log(u)
@@ -371,9 +350,6 @@ classdef ADI
           h = u;
           h.val = logu;
           h.jac = ADI.lMultDiag(1./u.val, u.jac);
-          if isempty(h.jac)
-              h = h.val;
-          end
       end
 
       %--------------------------------------------------------------------
@@ -396,9 +372,6 @@ classdef ADI
               h  = v;
               h.val = value;
               h.jac = ADI.lMultDiag(inx==2, v.jac);
-             if isempty(h.jac)
-                 h = h.val;
-             end
           elseif ~isa(v,'ADI') %v is a vector
               h = max(v,u);
           else % both ADI, should have same number of values
@@ -407,9 +380,6 @@ classdef ADI
               h = u;
               h.val = value;
               h.jac = ADI.plusJac(ADI.lMultDiag(inx, u.jac),ADI.lMultDiag(~inx, v.jac));
-              if isempty(h.jac)
-                  h = h.val;
-              end
           end
       end
 
@@ -454,9 +424,6 @@ classdef ADI
           % Absolute value
           u.jac = ADI.lMultDiag(sign(u.val), u.jac);
           u.val = abs(u.val);
-          if isempty(u.jac)
-               u = u.val;
-          end
       end
 
       %--------------------------------------------------------------------
@@ -537,9 +504,6 @@ classdef ADI
           [y, dydu] = interpReg(T, u.val, reginx);
           u.val = y;
           u.jac = ADI.lMultDiag(dydu, u.jac);
-         if isempty(u.jac)
-             u = u.val;
-         end
       end
 
       %--------------------------------------------------------------------
@@ -559,9 +523,6 @@ classdef ADI
               [h.val, dydx, dydv] = interpRegPVT(T, x.val, v.val, flag, reginx);
               h.jac = ADI.timesJac(dydx, dydv, v.jac, x.jac); % note order of input
           end
-         if isempty(h.jac)
-             h = h.val;
-         end
       end
 
       function h = interpTable(X, Y, x, varargin)
@@ -569,9 +530,6 @@ classdef ADI
          h = x;
          h.val = interpTable(X, Y, x.val, varargin{:});
          h.jac = ADI.lMultDiag(dinterpTable(X,Y, x.val, varargin{:}), x.jac);
-         if isempty(h.jac)
-             h = h.val;
-         end
       end
       
      function u = reduceToDouble(u)
@@ -635,10 +593,6 @@ classdef ADI
         %--------------------------------------------------------------------------
 
         function J = mtimesJac(M, J1)
-        if nnz(M) == 0
-            J = {};
-            return
-        end
         J = cell(1, numel(J1));
         for k = 1:numel(J)
             J{k} = M*J1{k};
@@ -670,8 +624,7 @@ classdef ADI
             ix = (1:n)';
             D = sparse(ix, ix, d, n, n);
         else
-            J = {};
-            return
+            D = 0;
         end
         J = cell(1, numel(J1));
         for k = 1:numel(J)
