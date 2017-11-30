@@ -526,30 +526,39 @@ classdef ADI
       end
 
       function h = interpTable(X, Y, x, varargin)
-         % Interpolate in a table
-         h = x;
-         h.val = interpTable(X, Y, x.val, varargin{:});
-         h.jac = ADI.lMultDiag(dinterpTable(X,Y, x.val, varargin{:}), x.jac);
+          % Interpolate in a table
+          h = x;
+          h.val = interpTable(X, Y, x.val, varargin{:});
+          h.jac = ADI.lMultDiag(dinterpTable(X,Y, x.val, varargin{:}), x.jac);
       end
       
-     function u = reduceToDouble(u)
-         % Switch to double representation if no derivatives are present.
-         if isa(u, 'ADI') && sum(cellfun(@nnz, u.jac)) == 0
-             u = u.val;
-         end
-     end
-
-      %--------------------------------------------------------------------
-
-%       function u = addToVals(u, inx, v)
-%           % adds v to u(inx)
-%           assert(numel(inx)==numel(v.val));
-%           u.val(inx) = u.val(inx) + v.val;
-%           for k = 1:numel(u.jac)
-%               u.jac{k} = addToRows(u.jac{k}, inx, v.jac{k});
-%           end
-%       end
-      %--------------------------------------------------------------------
+      function u = reduceToDouble(u)
+          % Switch to double representation if no derivatives are present.
+          if isa(u, 'ADI') && sum(cellfun(@nnz, u.jac)) == 0
+              u = u.val;
+          end
+      end
+      
+      function u = subsetPlus(u, v, subs)
+          if isa(u, 'ADI')
+              u.val(subs) = u.val(subs) + double(v);
+              if isa(v, 'ADI')
+                  % Both are ADI. We need to update Jacobians
+                  for i = 1:numel(u.jac)
+                      u.jac{i}(subs, :) = u.jac{i}(subs, :) + v.jac{i};
+                  end
+              end
+          else
+              % Adding ADI into double subset
+              u = double2ADI(u, v);
+              % Recursively handle this case
+              u = subsetPlus(u, v, subs);
+          end
+      end
+      
+      function u = subsetMinus(u, v, subs)
+          u = subsetPlus(u, -v, subs);
+      end
    end
    
    methods (Access=private, Static)
