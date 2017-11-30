@@ -1,6 +1,7 @@
 % Extended grid structure 
 %
-% SYNOPSIS: Description of the grid structure with augmented mappings and
+% SYNOPSIS: 
+%   Description of the grid structure with augmented mappings and
 %   structures. In particular, topological description and geometrical
 %   properties of the edges are included.  Such information is used in the VEM
 %   assembly. Here, we describe the full structure. The structure that are added
