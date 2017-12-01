@@ -31,6 +31,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     mwIndex * cols;
     mwIndex * rows;
     double * entries;
+    std::string relaxParam;
     
     if (nrhs != 8) { 
 	    mexErrMsgTxt("6 input arguments required."); 
@@ -60,7 +61,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     entries = mxGetPr(prhs[0]);
     nnz  = mxGetNzmax(prhs[0]);
     rhs     = mxGetPr(prhs[1]);
-    
+
     double tolerance = mxGetScalar(prhs[2]);
     int maxiter = mxGetScalar(prhs[3]);
     int coarsen_id = mxGetScalar(prhs[4]);
@@ -81,13 +82,16 @@ void mexFunction( int nlhs, mxArray *plhs[],
     boost::property_tree::ptree prm;
     /* Select preconditioning strategy */
     switch(precond_id) {
-        case 1: 
+        case 1:
+            relaxParam = "precond.relax.type";
             prm.put("precond.class", amgcl::runtime::precond_class::amg);
             break;
         case 2: 
+            relaxParam = "precond.type";
             prm.put("precond.class", amgcl::runtime::precond_class::relaxation);
             break;
-        case 3: 
+        case 3:
+            relaxParam = "precond.relax.type";
             prm.put("precond.class", amgcl::runtime::precond_class::dummy);
             break;
         default : mexErrMsgTxt("Unknown precond_id."); 
@@ -110,35 +114,36 @@ void mexFunction( int nlhs, mxArray *plhs[],
                 break;
             default : mexErrMsgTxt("Unknown coarsen_id."); 
         }
-        /* Select relaxation strategy */
-        switch(relax_id) {
-            case 1: 
-                prm.put("precond.relax.type",  amgcl::runtime::relaxation::spai0);
-                break;
-            case 2: 
-                prm.put("precond.relax.type",  amgcl::runtime::relaxation::gauss_seidel);
-                break;
-            case 3: 
-                prm.put("precond.relax.type",  amgcl::runtime::relaxation::ilu0);
-                break;
-            case 4: 
-                prm.put("precond.relax.type",  amgcl::runtime::relaxation::iluk);
-                break;
-            case 5: 
-                prm.put("precond.relax.type",  amgcl::runtime::relaxation::ilut);
-                break;
-            case 6: 
-                prm.put("precond.relax.type",  amgcl::runtime::relaxation::damped_jacobi);
-                break;
-            case 7: 
-                prm.put("precond.relax.type",  amgcl::runtime::relaxation::spai1);
-                break;
-            case 8: 
-                prm.put("precond.relax.type",  amgcl::runtime::relaxation::chebyshev);
-                break;
-            default : mexErrMsgTxt("Unknown relax_id."); 
-        }
     }
+    /* Select relaxation strategy */
+    switch(relax_id) {
+        case 1: 
+            prm.put(relaxParam,  amgcl::runtime::relaxation::spai0);
+            break;
+        case 2: 
+            prm.put(relaxParam,  amgcl::runtime::relaxation::gauss_seidel);
+            break;
+        case 3: 
+            prm.put(relaxParam,  amgcl::runtime::relaxation::ilu0);
+            break;
+        case 4: 
+            prm.put(relaxParam,  amgcl::runtime::relaxation::iluk);
+            break;
+        case 5: 
+            prm.put(relaxParam,  amgcl::runtime::relaxation::ilut);
+            break;
+        case 6: 
+            prm.put(relaxParam,  amgcl::runtime::relaxation::damped_jacobi);
+            break;
+        case 7: 
+            prm.put(relaxParam,  amgcl::runtime::relaxation::spai1);
+            break;
+        case 8: 
+            prm.put(relaxParam,  amgcl::runtime::relaxation::chebyshev);
+            break;
+        default : mexErrMsgTxt("Unknown relax_id."); 
+    }
+
     /* Select solver */
     switch(solver_id) {
         case 1: 
