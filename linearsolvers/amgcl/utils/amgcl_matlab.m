@@ -12,7 +12,17 @@ function varargout = amgcl_matlab(varargin)
    CFLAGS = {};
    LDFLAGS = {'LDFLAGS="$LDFLAGS', '-fopenmp"'};
 
-   INCLUDE = {['-I', BOOSTPATH], ['-I', AMGCLPATH]};
+   if ~valid_global_path(AMGCLPATH)
+      error(['Cannot Build AMGCL MEX Gateway Unless GLOBAL ', ...
+             '''AMGCLPATH'' Variable is Set in Current MATLAB Session']);
+   end
+
+   if ~valid_global_path(BOOSTPATH)
+      error(['Cannot Build AMGCL MEX Gateway Unless GLOBAL ', ...
+             '''BOOSTPATH'' Variable is Set in Current MATLAB Session']);
+   end
+
+   INCLUDE = strcat('-I', { BOOSTPATH, AMGCLPATH });
 
    OPTS = {};
 
@@ -58,4 +68,10 @@ function [CXXFLAGS, LINK, LIBS] = setup_machdep_build_params
    end
 
    LIBS = [ iomp5, { mwlib('lapack'), mwlib('blas') }, libstdcpp ];
+end
+
+%--------------------------------------------------------------------------
+
+function tf = valid_global_path(p)
+   tf = ~isempty(p) && ischar(p) && isdir(p);
 end
