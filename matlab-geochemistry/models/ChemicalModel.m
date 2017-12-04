@@ -1,193 +1,245 @@
 classdef ChemicalModel < PhysicalModel
-%ChemicalModel A tool for solving equilibrium geochemistry.
-%
-% SYNOPSIS:
-%  chem = ChemicalModel(elementNames, speciesNames, reactions)
-%
-% DESCRIPTION:
-%   A class of PhysicalModel which can construct and solve
-%   arbitrary aqueous geochemical system including nonisothermal
-%   aqueous and surface speciation, redox chemistry, equilibrium 
-%   with solid and gas phases, and surface complexation.
-%
-% REQUIRED PARAMETERS:
-%   elementNames        - A cell array of strings containing all
-%       elements to be considered in the chemical system. 
-%       Elements do not have to correspond to actual element names,
-%       but it is reccomened that they do.
-%            
-%           elementNames = {'H', 'O'};
-%
-%   speciesNames        - A cell array of strings of the chemical
-%       species to be considered in the chemical system. Each 
-%       entry in speciesNames must be a combination of
-%       entries found in elementNames, or surfaces. The species
-%       charge can be desginated with a +/- at the end of the
-%       name followed by the charge number (i.e. Ca+2, Cl-, >FeO-1/2).
-%
-%           speciesNames = {'H+', 'OH-', 'H2O'};
-%
-%   reactions           - A cell array listing the chemical
-%       reactions of the system as strings, followed
-%       by the equilibrium constant of the reaction as a scalar
-%       quantity. Entries in reactions must be given as a
-%       string in the form 'reactants = products'. 
-%       Equilibrium constant must be given in SI units.
-%
-%           reactions = {'H2O = H+ + OH-', 1e-14*mol/litre};
-%
-% OPTIONAL PARAMETERS:
-%   surfaces            - A cell structure containing the names
-%       of surface functional groups, followed by information
-%       regarding the specific surface. The first entry of
-%       surfaces is the name of the surface functional group.
-%       Surface functional group names must begin with the ">"
-%       symbol (i.e. '>FeO'). There are three different surface
-%       chemistry models implemented in ChemicalModel: the
-%       langmuir model, the triple layer model, and the
-%       constant capacitance model. The diffuse layer and basic
-%       stern models can be constructed by an adjustment of the
-%       parameters of the triple layer model. A chemical system
-%       can have any number of surfaces with different surface
-%       complexation models.
-%
-%
-%       The Langmuir model is the most simplistic case.
-%
-%           geometry = [1/(nano*meter)^2 50*meter^2/gram 1000*grams/litre];
-%
-%           surfaces = {'>FeO', {geometry, 'langmuir'}};
-%
-%           chem = ChemicalModel(elementNames, speciesNames, reactions,...
-%                       'surf', surfaces);
-%
-%       In this example the surface functional group is
-%    	'>FeO'. The second entry is a cell containing the
-%     	surface parameters. The variable geometry must
-%   	always be the first entry in this parameter cell.
-%     	The entries of geometry must correspond to the
-%      	surface site density, the specific surface area, and
-%      	the slurry density in that specific order. Values
-%     	must be given in SI units. The second entry of the
-%     	parameters cell must be the type of surface model to
-%     	use. In the case of 'langmuir' as above
-%     	no other entries are needed. 
-%
-%
-%       The triple layer model requires additional information.
-%
-%           capacitances = [1 0.2]*Farad/meter^2;
-%
-%           surfaces = {'>FeO', {geometry, 'tlm', capacitance,...
-%                                           '>FeO-', [-1 0 0]}
-%
-%           chem = ChemicalModel(elementNames, speciesNames, reactions,...
-%                       'surf', surfaces);
-%
-%       In this example geometry is defined as before, but now
-%       the '>FeO' is a triple layer model surface, as is
-%       indicated by 'tlm.' Additional parameters are needed in
-%       this case. The capacitance density of each of the
-%       Helmholtz layers must be given after the model type.
-%       The basic stern model can be simulated by increasing
-%       the capacitance of the second layer (i.e. [1 1e3]) and
-%       the diffuse layer model can be simulated by increasing
-%       the capacitance of both layers (i.e. [1e3 1e3]). If a
-%       surface species charge is distributed between multiple surfaces
-%       or contributes to a surface other than the mineral surface
-%       the charging behavior can be listed after capacitance values
-%
-%           surfaces = {'>FeO', {geometry, 'tlm', capacitance,...
-%                                           '>FeONa', [-1 +1 0]}
-%
-%       in the above example the species >FeONa contributes -1 charge to
-%       the surface and +1 charge to the inner Helmholtz plane. 
-%
-%
-%       The constant capacitance model can be similarly defined.
-%
-%           capacitances = 1*Farad/meter^2;
-%
-%           surfaces = {'>FeO', {geometry, 'ccm', capacitance, '>FeO-', -1}
-%
-%           chem = ChemicalModel(elementNames, speciesNames, reactions,...
-%                       'surf', surfaces);
-%
-%       In this example geometry is defined as before, but now
-%       the '>FeO' is a constant capacitance surface, as is
-%       indicated by 'ccm.' The capacitance density of the
-%       Helmholtz layers must be given after the model type.
-%       The capacitance is followed by the name of each surface
-%       species associated with '>FeO' and the species charge
-%       contribution to the surface. 
-%
-%
-%   combinations      - a cell containing name value pairs of user defined
-%       linear combinations of species. This is how one would define 
-%       alkalinity or other such parameters. 
-%
-%           combos = {'alk', 'HCO3- + 2*CO3-2 + OH- - H+',...
-%                     'pot', 'PO4-2 + HPO4-2'};
-%
-% SOLVING THE SYSTEM:
-%   specifying inputs       - MATLAB geoChemistry leverages the automatic
-%       differentiation capabilities of MRST. This means that any variable
-%       can be an unknown or an input. This makes the tool incredibly
-%       flexible and especially well suited for the utilization of 
-%       labortaory data. Inputs are chosen when the chemical system is
-%       initiated with ChemicalModel by putting an asterisk (*) in the
-%       component name. If an element is chosen as an input, the user
-%       provides the total concentration of that element as an input.
-%       Aqueous and surface pecies as well as combination components can
-%       can all be chosen as inputs. 
-%
-%           elementNames = {'H', 'O'};
-%
-%           speciesNames = {'H+*', 'OH-', 'H2O*'};
-%
-%           reactions = {'H2O = H+ + OH-', 1e-14*mol/litre};
-%
-%           chem = ChemicalModel(elementNames, speciesNames, reactions);
-%
-%       In the above example the aqueous concentration of H+ and H2O as
-%       been specified as an input. 
-%
-%       The system is solved by passing the input values to ChemicalModel.initState
-%       The order of the inputs can be found by 
-%
-%           chem.inputs
-%
-%       Any number of input scenarios can be passed to initState
-%
-%           n = 100;
-%
-%           H = logspace(-2, -10, n)'
-%
-%           H2O = ones(n,1);
-%
-%           inputs = [H H2O]*mol/litre;
-%
-%           state = chem.initState(inputs)
-%
-% SEE ALSO:
-%   initState, printChemicalSystem
-%
-%Copyright 2009-2017 SINTEF DIGITAL, Applied Mathematics and Cybernetics and The University of Texas at Austin.
-% 
-% This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
-% 
-% MRST is free software: you can redistribute it and/or modify
-% it under the terms of the GNU General Public License as published by
-% the Free Software Foundation, either version 3 of the License, or
-% (at your option) any later version.
-% 
-% MRST is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU General Public License for more details.
-% 
-% You should have received a copy of the GNU General Public License
-% along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+    % ChemicalModel An object for the instantiation and solution of chemical
+    % systems. 
+    %
+    % SYNOPSIS:
+    %  chem = ChemicalModel(elementNames, speciesNames, reactions)
+    %
+    % DESCRIPTION:
+    %   A class of PhysicalModel which can construct and solve
+    %   arbitrary aqueous geochemical system including nonisothermal
+    %   aqueous and surface speciation, redox chemistry, equilibrium 
+    %   with solid and gas phases, and surface complexation.
+    %
+    % PARAMETERS:
+    %   elementNames - A cell array of strings containing all
+    %       elements to be considered in the chemical system. 
+    %       Elements do not have to correspond to actual element names,
+    %       but it is reccomened that they do. To specify a total element
+    %       concentration as an input to the system append an asterisk, '*', to
+    %       the element name.
+    %            
+    %           elementNames = {'H', 'O*'};
+    %
+    %   speciesNames - A cell array of strings of the chemical
+    %       species to be considered in the chemical system. Each 
+    %       entry in speciesNames must be a combination of
+    %       entries found in elementNames, or surfaces. The species
+    %       charge can be desginated with a +/- at the end of the
+    %       name followed by the charge number (i.e. Ca+2, Cl-, >FeO-1/2).To 
+    %       specify a species concentration as an input to the system append 
+    %       an asterisk, '*', to the species name.
+    %
+    %           speciesNames = {'H+*', 'OH-', 'H2O'};
+    %
+    %   reactions - A cell array listing the chemical
+    %       reactions of the system as strings, followed
+    %       by the equilibrium constant of the reaction as a scalar
+    %       quantity. Entries in reactions must be given as a
+    %       string in the form 'reactants = products'. 
+    %       Equilibrium constant must be given in SI units (mol/m^3).
+    %
+    %           reactions = {'H2O = H+ + OH-', 1e-14*mol/litre};
+    %
+    % KEYWORD ARGUMENT:
+    %   'surfaces' - A cell structure containing the names
+    %       of surface functional groups, followed by information
+    %       regarding the specific surface. The first entry of
+    %       surfaces is the name of the surface functional group.
+    %       Surface functional group names must begin with the ">"
+    %       symbol (i.e. '>FeO'). There are three different surface
+    %       chemistry models implemented in ChemicalModel: the
+    %       langmuir, the triple layer, and the
+    %       constant capacitance models. The diffuse layer and basic
+    %       stern models can be constructed by an adjustment of the
+    %       capacitance parameters of the triple layer model. A chemical system
+    %       can have any number of surfaces with different surface
+    %       complexation models. The total concentration of surface sites will
+    %       be calulated from the speciric surface area, site density and
+    %       slurry density. 
+    %
+    %       The Langmuir model is the most simplistic case.
+    %
+    %           geometry = [1/(nano*meter)^2 50*meter^2/gram 1000*grams/litre];
+    %
+    %           surfaces = {'>FeO', {geometry, 'langmuir'}};
+    %
+    %           chem = ChemicalModel(elementNames, speciesNames, reactions,...
+    %                       'surf', surfaces);
+    %
+    %       In this example the surface functional group is
+    %    	'>FeO'. The second entry is a cell containing the
+    %     	surface parameters. The variable geometry must
+    %   	always be the first entry in this parameter cell.
+    %     	The entries of geometry must correspond to the
+    %      	surface site density, the specific surface area, and
+    %      	the slurry density in that specific order. Values
+    %     	must be given in SI units. The second entry of the
+    %     	parameters cell must be the type of surface model to
+    %     	used. In the case of 'langmuir' as above
+    %     	no other entries are needed. 
+    %
+    %       The triple layer model requires additional information.
+    %
+    %           capacitances = [1 0.2]*Farad/meter^2;
+    %
+    %           surfaces = {'>FeO', {geometry, 'tlm', capacitance}
+    %
+    %           chem = ChemicalModel(elementNames, speciesNames, reactions,...
+    %                       'surf', surfaces);
+    %
+    %       In this example geometry is defined as before, but now
+    %       the '>FeO' is a triple layer model surface, as is
+    %       indicated by 'tlm.' Additional parameters are needed in
+    %       this case. The capacitance density of each of the
+    %       Helmholtz layers must be given after the model type.
+    %       The basic stern model can be simulated by increasing
+    %       the capacitance of the second layer (i.e. [1 1e3]) and
+    %       the diffuse layer model can be simulated by increasing
+    %       the capacitance of both layers (i.e. [1e3 1e3]). If a
+    %       surface species charge is distributed between multiple surfaces
+    %       or contributes to a surface other than the mineral surface
+    %       the charging behavior can be listed after capacitance values
+    %
+    %           surfaces = {'>FeO', {geometry, 'tlm', capacitance,...
+    %                                           '>FeONa', [-1 +1 0]}
+    %
+    %       in the above example the species >FeONa contributes -1 charge to
+    %       the surface and +1 charge to the inner Helmholtz plane. 
+    %
+    %       The constant capacitance model can be similarly defined.
+    %
+    %           capacitances = 1*Farad/meter^2;
+    %
+    %           surfaces = {'>FeO', {geometry, 'ccm', capacitance, '>FeO-'}
+    %
+    %           chem = ChemicalModel(elementNames, speciesNames, reactions,...
+    %                       'surf', surfaces);
+    %
+    %       In this example geometry is defined as before, but now
+    %       the '>FeO' is a constant capacitance surface, as is
+    %       indicated by 'ccm.' The capacitance density of the
+    %       Helmholtz layers must be given after the model type.
+    %
+    %       If surface funcational groups reside on the same surface they can be
+    %       combined into a surface group, meaning all species will contribute
+    %       to the charge conservation equations and share the same
+    %       electrostatic properties of the group.
+    %
+    %           surfaces = {'>FeO', {FeOgeo, 'ccm', capacitance, '>FeO-'},...
+    %                       '>Fe3O' {Fe3Ogeo, 'ccm', capacitance, '>FeO-'},...
+    %                       'groups', {'iron', {'>FeO', '>Fe3O'});
+    %
+    %           chem = ChemicalModel(elementNames, speciesNames, reactions,...
+    %                       'surf', surfaces);
+    %
+    %       Here the surface functional groups belong to the surface group
+    %       'iron.' The name of the surface group can be any string. Multiple
+    %       groups can be defined in this way. The electrostatic properties
+    %       (capacitance) must be the same among surface functional groups that
+    %       reside on the same surface group. 
+    %
+    %   'combinations' - a cell containing name value pairs of user defined
+    %       linear combinations of species. This is how one would define 
+    %       alkalinity or other such parameters. To specify a linear combination 
+    %       concentration as an input to the system append an asterisk, '*', 
+    %       to the combination's name.
+    %
+    %           combos = {'alk*', 'HCO3- + 2*CO3-2 + OH- - H+',...
+    %                     'pot', 'PO4-2 + HPO4-2'};
+    %
+    % RETURNS:
+    %   chem - the chemical model object containing tools used internally for
+    %   the solution of the chemical system, and some other information which
+    %   is useful for the user in plotting and data manipulation. Some useful
+    %   fields include:
+    %       chem.speciesNames - names of the species names in the system 
+    %       chem.elementNames - names of the elements names in the system
+    %       chem.reacionConstants - the equilibrium constants of the chemical
+    %           reactions in the same order the reactions were defined
+    %       chem.combinationNames - a cell array of strings of the linear
+    %           combination names
+    %       chem.inputs - a cell array of strings containing the inputs in the
+    %           order which they are to be provided to chem.initState
+    %       chem.solidNames - name of the solid phases in the system
+    %       chem.gasNames - names of the gas phases in the system
+    %
+    %   editable fields include:
+    %       chem.plotIterations - toggle plotting of concentration values at
+    %           each iteration, true or [false]
+    %       chem.nonLinearMinIterations - minimum number of iterations for the
+    %           nonlinear solver, [1]
+    %       chem.nonLinearMaxIterations - maximum number of iterations for the nonlinear solver, [25] 
+    %       chem.nonLinearTolerance - tolerance of the residual of the
+    %           nonlinear system, [1e-12]
+    %       chem.linearTolerance - tolerance of the residual of the linear
+    %           system, for backslash, [1e-8]
+    %       chem.linearMaxIterations - maximum number of iterations for the
+    %           linear solver, [25]
+    %       chem.chargeBalanceTolerance - tolerance of charge balance equation
+    %           as fraction of total ion concentration, [0.05]
+    %        
+    %   
+    % EXAMPLES:
+    %   specifying inputs - MATLAB geoChemistry leverages the automatic
+    %       differentiation capabilities of MRST. This means that any variable
+    %       can be an unknown or an input. This makes the tool incredibly
+    %       flexible and especially well suited for the utilization of 
+    %       labortaory data. Inputs are chosen when the chemical system is
+    %       initiated with ChemicalModel by appending an asterisk (*) in the
+    %       component name. If an element is chosen as an input, the user
+    %       provides the total concentration of that element as an input.
+    %       Aqueous and surface species as well as combination components can
+    %       can all be chosen as inputs. 
+    %
+    %           elementNames = {'H', 'O'};
+    %
+    %           speciesNames = {'H+*', 'OH-', 'H2O*'};
+    %
+    %           reactions = {'H2O = H+ + OH-', 1e-14*mol/litre};
+    %
+    %           chem = ChemicalModel(elementNames, speciesNames, reactions);
+    %
+    %       In the above example the aqueous concentration of H+ and H2O has
+    %       been specified as an input. 
+    %
+    %       The system is solved by passing the input values to ChemicalModel.initState
+    %       The order of the inputs can be found by 
+    %
+    %           chem.inputs
+    %
+    %       initState accepts arrays or vectors, meaning that variable sweeps
+    %       can be easily done
+    %
+    %           n = 100;
+    %           H = logspace(-2, -10, n)'
+    %           H2O = ones(n,1);
+    %           inputs = [H H2O]*mol/litre;
+    %
+    %           state = chem.initState(inputs)
+    %
+    % SEE ALSO:
+    %   'initState', 'printChemicalSystem'
+
+    %{
+    Copyright 2009-2017 SINTEF Digital, Mathematics & Cybernetics.
+
+    This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+    MRST is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    MRST is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+    %}
+
  
     properties
         elementNames      % Names of the master components as first master component.
@@ -272,6 +324,8 @@ classdef ChemicalModel < PhysicalModel
         solidInd            % indexof solid phase in comp names
         
         allReactionMatrix   % matrix of contribution of all components in all phases in a reaction
+        partialPressureNames % names of partial pressures of gasses
+        solidDensityNames % names of solid densities
         
         allCombinationMatrix   % combination matrix for printing the chemical system
 
@@ -280,11 +334,7 @@ classdef ChemicalModel < PhysicalModel
         
         gasReactionMatrix   % reaction matrix of gas phase
         solidReactionMatrix % reaction matrix of solid phase
-        
-        partialPressureNames    % partial pressure names
-
-        solidDensityNames   % names of solid densities
-        
+                
         surfacePotentialMatrix  % matrix for surface potential contributions to reactions
         
         plotIterations            % toggle plotting of iteration information true or false
@@ -301,7 +351,9 @@ classdef ChemicalModel < PhysicalModel
     methods
 
         function model = ChemicalModel(varargin)
+ 
             
+    
             model = model@PhysicalModel([]);
             if nargin >= 3
                 
@@ -809,7 +861,7 @@ classdef ChemicalModel < PhysicalModel
 
         %%
         function [state, report, model] = initState(model, userInput, varargin)
-        %initState solves the chemical system using the specified input
+        % initState solves the chemical system using the specified input
         %
         % SYNOPSIS:
         %  [state, report, model] = initState(model, userInput, varargin)
@@ -819,53 +871,70 @@ classdef ChemicalModel < PhysicalModel
         %   ChemicalModel according to constraints given in userInput. 
         %
         % REQUIRED PARAMETERS:
-        %   userInput           - A matrix containing the values of elements
-        %       or species specified as inputs during the generation of the
-        %       chemical system using ChemModel. userInput must have as
-        %       mnay columns as there are specified knowns, which is also equal
-        %       to the number of entries in elements. 
+        %   userInput - A matrix containing the values of elements
+        %               or species specified as inputs during the generation of the
+        %               chemical system using ChemicalModel. userInput must have as
+        %               many columns as there are specified knowns, which is also equal
+        %               to the number of entries in elements. 
         %           
         %
-        % OPTIONAL PARAMETERS:
-        %   temperature         - 'key'/value pair representing the
-        %   	temperature of the chemical system. Can be a scalar, or a
-        %   	vector with the same length as userInput. If temperature is
-        %   	not provided 298 K is used. 
+        % KEYWORD ARGUMENTS:
+        %   'temperature' - 'key'/value pair representing the
+        %                   temperature of the chemical system. Can be a scalar, or a
+        %                   vector with the same length as userInput. If temperature is
+        %                   not provided 298 K is used. 
         %          
-        %           state = model.initState(userInput, 'temp', 305)
+        %    	state = model.initState(userInput, 'temp', 305)
         %
-        %   chargeBalance       - This input toggles the enforcment of strict
-        %       charge balance. A master component must be specified as a 
-        %       'key'/value pair. If charge balance is not satisfied with the
-        %       given constraint the solver will adjust the total concentration
-        %       of the specified element to enforce charge balance. The 
-        %       specified element must be one of the elements provided as an
-        %       input. By defualt charge balance is not strictly enforced. 
-        %       This make the chemical solver more robust. 
+        %   'chargeBalance' - Toggles the enforcment of strict
+        %                     charge balance. A master component must be specified as a 
+        %                     'key'/value pair. If charge balance is not satisfied with the
+        %                     given constraint the solver will adjust the total concentration
+        %                     of the specified element to enforce charge balance. The 
+        %                     specified element must be one of the elements provided as an
+        %                     input. By defualt charge balance is not strictly enforced. 
+        %                     This make the chemical solver more robust. 
         %
-        %           state = model.initState(userInput, 'chargeBalance', 'Cl')
-        %
-        %
-        % OUTPUTS:
-        %   state           - A structure containing the solution to the
-        %       chemical system. This includes state.elements and
-        %       state.species. elements contains the total
-        %       element concentrations and surface functional group
-        %       concentrations. species contains the species
-        %       concentrations. Values can be retreived from state using the
-        %       model.getProp() function.
-        %
-        %           OH = chem.getProp(state, 'OH-');
+        %    	state = model.initState(userInput, 'chargeBalance', 'Cl')
         %
         %
-        %   report          - The nonlinear solver report for the chemical
-        %       system. 
+        % RETURNS:
+        %   state - A structure containing the solution to the
+        %           chemical system. This includes state.elements and
+        %           state.species. state.elements contains the total
+        %           element concentrations and surface functional group
+        %           concentrations. state.species contains the species
+        %           concentrations. Values can be retreived from state using the
+        %           model.getProp() function.
         %
-        %   model           - The updated chemical model object.
+        %   	OH = chem.getProp(state, 'OH-');
+        %
+        %
+        %   report - The nonlinear solver report for the chemical system. 
+        %
+        %   model - The updated chemical model object.
         %
         % SEE ALSO:
-        %   ChemicalModel, getProps
-            
+        %   'ChemicalModel', 'getProps'
+        
+        %{
+        Copyright 2009-2017 SINTEF Digital, Mathematics & Cybernetics.
+
+        This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+        MRST is free software: you can redistribute it and/or modify
+        it under the terms of the GNU General Public License as published by
+        the Free Software Foundation, either version 3 of the License, or
+        (at your option) any later version.
+
+        MRST is distributed in the hope that it will be useful,
+        but WITHOUT ANY WARRANTY; without even the implied warranty of
+        MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+        GNU General Public License for more details.
+
+        You should have received a copy of the GNU General Public License
+        along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+        %}
             % parse inputs to initState
             p = inputParser;
             
@@ -988,7 +1057,8 @@ classdef ChemicalModel < PhysicalModel
                 end
                 state0 = state;
                 if isempty(model.chargeBalanceModel)
-                    model.chargeBalanceModel = chargeBalanceModel_nonLog();
+%                     model.chargeBalanceModel = chargeBalanceModel_nonLog();
+                    model.chargeBalanceModel = chargeBalanceModel();
                 end
                 for i = 1 : numel(props);
                     model.chargeBalanceModel.(props{i}) = model.chemicalInputModel.(props{i});
@@ -1185,6 +1255,7 @@ classdef ChemicalModel < PhysicalModel
                 names{i} = regexprep(names{i}, ')m' ,       ')+m' , 'ignorecase');
                 names{i} = regexprep(names{i}, ')(\d+)+' , ')*$1','ignorecase');
                 names{i} = regexprep(names{i}, ')(' , ')+(','ignorecase');
+                names{i} = regexprep(names{i}, '(\d+)(' , '$1+(','ignorecase');
             end
             
 
@@ -1716,11 +1787,11 @@ classdef ChemicalModel < PhysicalModel
         
         %%
         function printChemicalSystem(model, varargin)
-            %printchemicalSystem outputs the chemical system tableua
+            % printChemicalSystem prints the mass conservation, law of mass
+            % action, and linear combination equations to the workspace 
             
             chemicalSystemPrintFunction(model, varargin{:});
           
-
         end
 
 
@@ -1842,37 +1913,53 @@ classdef ChemicalModel < PhysicalModel
 
         %%
         function [state, model] = computeActivities(model, state)
-        %computeAcitivities computes the acitivity of each aqueous species
-        %using the extended Davies equaiton and adds the values to the 
-        %field state.activities.
+        % computeAcitivities computes the acitivity of each aqueous species
+        % using the extended Davies equaiton and adds the values to the 
+        % field state.activities.
         %
         % SYNOPSIS:
         %  [state, chem] = computeActivities(chem, state)
         %
         %
         % REQUIRED PARAMETERS:
-        %   state        - the state variable produced by chem.initState. 
+        %   state - the state variable produced by chem.initState. 
         %          
         %
-        % OUTPUTS:
-        %   state           - A structure containing the acitivity of each
-        %   aqueous species in units of mol/meter^3. Activities can be
-        %   retrieved using the getProp command by calling for the species
-        %   name prepended by 'a.'
+        % RETURNS:
+        %   state - The state structure containing the additional field 
+        %           state.acitivities which holds the acitivity of each aqueous species 
+        %           in units of mol/meter^3. Activities can be retrieved using the 
+        %           getProp command by calling for the species name prepended by 'a.'
         %
-        %
-        %   chem            - updated chemical object now includes the names 
-        %       for calling the activities using getProp/s
+        %   chem - updated chemical object including the field chem.activityNames 
+        %          for use in calling the activities using getProp/s.
         %
         % EXAMPLE:
-        %
         %   [state, chem] = chem.computeActivities(state);
         %   aH2O = chem.getProp(state, 'aH2O');
         %   pH = -log10(chem.getProp, 'aH+');
         %
-        %
         % SEE ALSO:
-        %   computeChargeBalance
+        %   'computeChargeBalance'
+        
+        %{
+        Copyright 2009-2017 SINTEF Digital, Mathematics & Cybernetics.
+
+        This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+        MRST is free software: you can redistribute it and/or modify
+        it under the terms of the GNU General Public License as published by
+        the Free Software Foundation, either version 3 of the License, or
+        (at your option) any later version.
+
+        MRST is distributed in the hope that it will be useful,
+        but WITHOUT ANY WARRANTY; without even the implied warranty of
+        MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+        GNU General Public License for more details.
+
+        You should have received a copy of the GNU General Public License
+        along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+        %}
         
             assert( nargout == 2, ['Output argument to computeActivities must include the state variable and the chemical model object']);
             [state, model] = activity(model, state);
@@ -1881,35 +1968,50 @@ classdef ChemicalModel < PhysicalModel
         
         %%
         function [state, model] = computeChargeBalance(model, state)
-        %computeChargeBalance computes the residual of the aqueous charge
-        %balance equation and adds the values to the field state.chargeBalance.
+        % computeChargeBalance computes the residual of the aqueous charge
+        % balance equation and adds the values to the field state.chargeBalance.
         %
         % SYNOPSIS:
         %  [state, chem] = computeChargeBalance(chem, state)
         %
         %
         % REQUIRED PARAMETERS:
-        %   state        - the state variable produced by chem.initState.
-        %          
+        %   state - the state variable produced by chem.initState.
         %
-        % OUTPUTS:
-        %   state           - A structure containing the value of the
-        %   aqueous charge balance residual in units of percent of total
-        %   charge. The charge balance can be retrieved using the getProps
-        %   command by calling for the variables 'chargeBalance'.
+        % RETURNS:
+        %   state - The state structure containing additional field state.chargeBalance
+        %           which holds the aqueous charge balance residual in units of fraction of total
+        %           charge. The charge balance can be retrieved using the getProps
+        %           command by calling for the variables 'chargeBalance'.
         %
-        %
-        %   chem            - updated chemical object now includes the names 
-        %       for calling the charge balance using getProp/s
+        %   chem  - updated chemical object including for use in calling the
+        %           charge balance residual using getProp/s.
         %
         % EXAMPLE:
-        %
         %   [state, chem] = chem.computeChargeBalance(state);
         %   charge = chem.getProp(state, 'chargeBalance');
         %
-        %
         % SEE ALSO:
-        %   computeActivities
+        %   'computeActivities'
+        
+        %{
+        Copyright 2009-2017 SINTEF Digital, Mathematics & Cybernetics.
+
+        This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+        MRST is free software: you can redistribute it and/or modify
+        it under the terms of the GNU General Public License as published by
+        the Free Software Foundation, either version 3 of the License, or
+        (at your option) any later version.
+
+        MRST is distributed in the hope that it will be useful,
+        but WITHOUT ANY WARRANTY; without even the implied warranty of
+        MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+        GNU General Public License for more details.
+
+        You should have received a copy of the GNU General Public License
+        along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+        %}
 
             assert( nargout == 2, ['Output argument to computeChargeBalance must include the state variable and the chemical model object']);
             [state, model] = chargeBalance(model, state);
@@ -1918,37 +2020,52 @@ classdef ChemicalModel < PhysicalModel
         
         %%
         function [state, model] = computeSurfacePotentials(model, state)
-        %computeSurfacePotentials computes the potential of each layer of each
-        %surface and adds the values to the field state.surfacePotentials.
+        % computeSurfacePotentials computes the potential of each layer of each
+        % surface and adds the values to the field state.surfacePotentials.
         %
         % SYNOPSIS:
         %  [state, chem] = computeSurfacePotentials(chem, state)
         %
-        %
         % REQUIRED PARAMETERS:
-        %   state        - the state variable produced by model.initState.
+        %   state - the state variable produced by model.initState.
         %          
+        % RETURNS:
+        %   state - The state structure containing the additional field state.surfacePotentials of
+        %           which holds the potential of each layer of
+        %           each surface in Volts. Values can be retrieved using
+        %           the getProps command by calling for the surface functional
+        %           group name, followed by '_Psi_' followed by the layer
+        %           number (0, 1, 2) or for the constant capacitance model just
+        %           use '_Psi'.
         %
-        % OUTPUTS:
-        %   state           - A structure containing the potential of each layer of
-        %       each surface in Volts. Values can be retrieved using
-        %       the getProps command by calling for the surface functional
-        %       group name, followed by '_Psi_' followed by the layer
-        %       number (0, 1, 2) or for the constant capacitance model just
-        %       use '_Psi'.
-        %
-        %
-        %   chem            - updated chemical object now includes the names 
-        %       for calling the surface potentials using getProp/s
+        %   chem - updated chemical object including the field chem.surfacePotentialNames 
+        %           for use in calling the surface potentials using getProp/s.
         %
         % EXAMPLE:
-        %
         %   [state, chem] = chem.computeSurfacePotentials(state);
         %   [pot1, pot2] = chem.getProps(state, '>SiO_Psi_0', '>SiO_Psi_1');
         %
-        %
         % SEE ALSO:
-        %   computeSurfaceCharges
+        %   'computeSurfaceCharges'
+        
+        %{
+        Copyright 2009-2017 SINTEF Digital, Mathematics & Cybernetics.
+
+        This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+        MRST is free software: you can redistribute it and/or modify
+        it under the terms of the GNU General Public License as published by
+        the Free Software Foundation, either version 3 of the License, or
+        (at your option) any later version.
+
+        MRST is distributed in the hope that it will be useful,
+        but WITHOUT ANY WARRANTY; without even the implied warranty of
+        MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+        GNU General Public License for more details.
+
+        You should have received a copy of the GNU General Public License
+        along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+        %}
         
             assert( nargout == 2, ['Output argument to computeSurfacePotentials must include the state variable and the chemical model object']);
             [state, model] = surfacePotential(model, state);
@@ -1957,74 +2074,104 @@ classdef ChemicalModel < PhysicalModel
         
         %%
         function [state, model] = computeSurfaceCharges(model, state)
-        %computeSurfaceCharges computes the charge of each layer of each
-        %surface and adds the values to the field state.surfaceCharges.
+        % computeSurfaceCharges computes the charge of each layer of each
+        % surface and adds the values to the field state.surfaceCharges.
         %
         % SYNOPSIS:
         %  [state, chem] = computeSurfaceCharges(chem, state)
         %
-        %
         % REQUIRED PARAMETERS:
-        %   state        - the state variable produced by chem.initState.
+        %   state - the state variable produced by chem.initState.
         %          
+        % RETURNS:
+        %   state - The state structure with the additional field 
+        %           state.surfaceCharges containing the charge of each layer of
+        %           each surface in C/meter^2. Values can be retrieved using
+        %           the getProps command by calling for the surface functional
+        %           group name, followed by '_sig_' followed by the layer
+        %           number (0, 1, 2) or for the constant capacitance model just
+        %           use '_sig'.
         %
-        % OUTPUTS:
-        %   state           - A structure containing the charge of each laye of
-        %       each surface in C/meter^2. Values can be retrieved using
-        %       the getProps command by calling for the surface functional
-        %       group name, followed by '_sig_' followed by the layer
-        %       number (0, 1, 2) or for the constant capacitance model just
-        %       use '_sig'.
-        %
-        %
-        %   chem            - updated chemical object now includes the names 
-        %       for calling the surface charges using getProp/s
+        %   chem - updated chemical object including the field chem.surfaceChargeNames 
+        %           for use in calling the surface charges using getProp/s.
         %
         % EXAMPLE:
-        %
         %   [state, chem] = chem.computeSurfaceCharges(state);
         %   charge0 = chem.getProp(state, '>SiO_sig_0');
         %
-        %
         % SEE ALSO:
-        %   computeSurfacePotentials
+        %   'computeSurfacePotentials'
         
+        %{
+        Copyright 2009-2017 SINTEF Digital, Mathematics & Cybernetics.
+
+        This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+        MRST is free software: you can redistribute it and/or modify
+        it under the terms of the GNU General Public License as published by
+        the Free Software Foundation, either version 3 of the License, or
+        (at your option) any later version.
+
+        MRST is distributed in the hope that it will be useful,
+        but WITHOUT ANY WARRANTY; without even the implied warranty of
+        MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+        GNU General Public License for more details.
+
+        You should have received a copy of the GNU General Public License
+        along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+        %}
             assert( nargout == 2, ['Output argument to computeSurfaceCharges must include the state variable and the chemical model object']);                
             [state, model] = surfaceCharge(model, state);
         end
         
         %%
         function [state, model] = computeAqueousConcentrations(model, state)
-        %computeAqueousConcentrations computes the total concentration of each 
-        %element in the aqueous phase.
+        % computeAqueousConcentrations computes the total concentration of each 
+        % element in the aqueous phase. This excludes, gas, solid and
+        % surface bound species. 
         %
         % SYNOPSIS:
         %  [state, chem] = computeAqueousConcentrations(chem, state)
         %
-        %
         % REQUIRED PARAMETERS:
-        %   state        - the state variable produced by chem.initState.
+        %   state - the state variable produced by chem.initState.
         %          
-        %
         % OUTPUTS:
-        %   state           - A structure containing the total aqueous
-        %   concentration of each element in the field
-        %   aqueousConcentrations. The values can be retrieved using the
-        %   getProps function by asking for the element name followed
-        %   by '(aq)'.
+        %   state - The state structure containing the additional field 
+        %           state.aqueousConcentrations which hold the total aqueous
+        %           concentration of each element in the aqueous phase. The values can be retrieved using the
+        %           getProps function by asking for the element name followed
+        %           by '(aq)'.
         %
-        %   chem            - updated chemical object now includes the names 
-        %       for calling the aqueous concetrations using getProp/s
+        %   chem - updated chemical object including the field chem.surfaceChargeNames 
+        %          for use in calling the surface charges using getProp/s.
         %
         % EXAMPLE:
-        %
         %   [state, chem] = chem.computeAqueousConcentrations(state);
         %   Na = chem.getProp(state, 'Na(aq)');
         %   H = chem.getProp(state, 'H(aq)');
         %
-        %
         % SEE ALSO:
-        %   computeSurfaceConcentrations
+        %   'computeSurfaceConcentrations'
+        
+        %{
+        Copyright 2009-2017 SINTEF Digital, Mathematics & Cybernetics.
+
+        This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+        MRST is free software: you can redistribute it and/or modify
+        it under the terms of the GNU General Public License as published by
+        the Free Software Foundation, either version 3 of the License, or
+        (at your option) any later version.
+
+        MRST is distributed in the hope that it will be useful,
+        but WITHOUT ANY WARRANTY; without even the implied warranty of
+        MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+        GNU General Public License for more details.
+
+        You should have received a copy of the GNU General Public License
+        along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+        %}
         
             assert( nargout == 2, ['Output argument to computeAqueousConcentrations must include the state variable and the chemical model object']);
             [state, model] = aqueousConcentrations(model, state);
@@ -2033,35 +2180,51 @@ classdef ChemicalModel < PhysicalModel
         
         %%
         function [state, model] = computeSurfaceConcentrations(model, state)
-        %computeSurfaceConcentrations computes the total concentration of each 
-        % element on the surface.
+        % computeSurfaceConcentrations computes the total concentration of each 
+        % element bound to surfaces.
         %
         % SYNOPSIS:
         %  [state, chem] = computeAqueousConcentrations(chem, state)
         %
-        %
         % REQUIRED PARAMETERS:
-        %   state        - the state variable produced by model.initState.
+        %   state - the state variable produced by model.initState.
         %          
-        %
         % OUTPUTS:
-        %   state           - A structure containing the total surface
-        %       concentration of each element in the field
-        %       surfaceConcentrations. The values can be retrieved using the
-        %       getProps function by asking for the element name followed
-        %       by '_surf'.
+        %   state - The state structure containing the additional field 
+        %           state.surfaceConcentrations which holds the surface
+        %           concentration of each element. The values can be retrieved using the
+        %           getProps function by asking for the element name followed
+        %           by '_surf'.
         %
-        %   chem            - updated chemical object now includes the names 
-        %       for calling the surface concetrations using getProps 
+        %   chem - updated chemical object now includes the field 
+        %           chem.surfaceConcentractionNames for use in  calling the 
+        %           surface concetrations using getProp/s. 
         %
         % EXAMPLE:
-        %
         %   [state, chem] = chem.computeSurfaceConcentrations(state);
         %   [Na, H] = chem.getProps(state, 'Na(surf)', 'H(surf)');
         %
-        %
         % SEE ALSO:
-        %   computeSurfaceConcentrations
+        %   'computeSurfaceConcentrations'
+        
+        %{
+        Copyright 2009-2017 SINTEF Digital, Mathematics & Cybernetics.
+
+        This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+        MRST is free software: you can redistribute it and/or modify
+        it under the terms of the GNU General Public License as published by
+        the Free Software Foundation, either version 3 of the License, or
+        (at your option) any later version.
+
+        MRST is distributed in the hope that it will be useful,
+        but WITHOUT ANY WARRANTY; without even the implied warranty of
+        MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+        GNU General Public License for more details.
+
+        You should have received a copy of the GNU General Public License
+        along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+        %}
         
             assert( nargout == 2, ['Output argument to computeSurfaceConcentrations must include the state variable and the chemical model object']);
             [state, model] = surfaceConcentrations(model, state);
