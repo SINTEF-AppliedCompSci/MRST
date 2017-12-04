@@ -30,7 +30,7 @@ function varargout = amgcl_matlab(varargin)
 
    SRC = {'amgcl_matlab.cpp'};
 
-   [CXXFLAGS, LINK, LIBS] = setup_machdep_build_params;
+   [CXXFLAGS, LINK, LIBS] = setup_machdep_build_params();
 
    buildmex(OPTS{:}, INCLUDE{:}, CXXFLAGS{:}, SRC{:}, LINK{:}, LIBS{:});
 
@@ -41,19 +41,20 @@ end
 %--------------------------------------------------------------------------
 
 function [CXXFLAGS, LINK, LIBS] = setup_machdep_build_params
-   e = mexext('all');
-   a = e(strcmp({ e.ext }, mexext)).arch;
+   a = computer('arch');
 
    if ispc
 
       mwlib = @(lib) ...
-      fullfile(matlabroot, 'extern', 'lib', a, 'microsoft', ...
-               ['libmw', lib, '.lib']);
+      fullfile(matlabroot, 'extern', 'lib', a, ...
+               'microsoft', ['libmw', lib, '.lib']);
 
-      CXXFLAGS  = { };
-      LINK      = { };
-      iomp5     = { };
-      libstdcpp = { };
+      % Note explicit /EHsc to enable C++ exception handling
+      CXXFLAGS  = { 'COMPFLAGS=/EHsc /MD /openmp' };
+      LINK      = { ['-L', fullfile(matlabroot, 'bin', a) ]};
+      iomp5     = { ['LINKFLAGS=$LINKFLAGS ', ...
+                     '/nodefaultlib:vcomp libiomp5md.lib' ]};
+      libstdcpp = {};
 
    elseif isunix
 
