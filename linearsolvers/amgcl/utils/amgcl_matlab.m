@@ -6,11 +6,13 @@ function varargout = amgcl_matlab(varargin)
 %
 % Tested with commit c1c1fc565f96c1bb3adc0a1bf92429ad744036b4.
 
+   if ~exist('verLessThan', 'file') || verLessThan('matlab', '8.3.0')
+      error(['Automated Build Script for ''amgcl_matlab'' is not ', ...
+             'Supported in MATLABs prior to 8.3.0 (R2014a)']);
+   end
+
    global AMGCLPATH
    global BOOSTPATH
-   
-   CFLAGS = {};
-   LDFLAGS = {'LDFLAGS="$LDFLAGS', '-fopenmp"'};
 
    if ~valid_global_path(AMGCLPATH)
       error(['Cannot Build AMGCL MEX Gateway Unless GLOBAL ', ...
@@ -24,19 +26,19 @@ function varargout = amgcl_matlab(varargin)
 
    INCLUDE = strcat('-I', { BOOSTPATH, AMGCLPATH });
 
-   OPTS = {};
+   OPTS = { '-O' };
 
    SRC = {'amgcl_matlab.cpp'};
 
    [CXXFLAGS, LINK, LIBS] = setup_machdep_build_params;
 
-   
-   buildmex(CFLAGS{:}, CXXFLAGS{:}, LDFLAGS{:}, ...
-            INCLUDE{:}, LINK{:}, OPTS{:}, SRC{:}, LIBS{:});
-        
+   buildmex(OPTS{:}, INCLUDE{:}, CXXFLAGS{:}, SRC{:}, LINK{:}, LIBS{:});
+
    % Call MEX'ed edition.
    [varargout{1:nargout}] = amgcl_matlab(varargin{:});
 end
+
+%--------------------------------------------------------------------------
 
 function [CXXFLAGS, LINK, LIBS] = setup_machdep_build_params
    e = mexext('all');
@@ -58,12 +60,12 @@ function [CXXFLAGS, LINK, LIBS] = setup_machdep_build_params
        mwlib = @(lib) ['-lmw', lib];
 
        CXXFLAGS = ...
-          {'CXXFLAGS="-D_GNU_SOURCE', '-fPIC', '-O3', '-std=c++11', ...
-           '-ffast-math', '-march=native', '-fopenmp"'};
+          { ['CXXFLAGS=$CXXFLAGS -D_GNU_SOURCE -fPIC -O3 ', ...
+             '-std=c++11 -ffast-math -march=native -fopenmp'] };
 
        LINK = { ['-L', fullfile(matlabroot, 'sys', 'os', a)] };
 
-       iomp5     = { '-liomp5' };
+       iomp5     = { '-liomp5', 'LDFLAGS=$LDFLAGS -fopenmp' };
        libstdcpp = { '-lstdc++' };
    end
 
