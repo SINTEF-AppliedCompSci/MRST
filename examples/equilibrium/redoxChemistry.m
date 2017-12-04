@@ -1,8 +1,13 @@
 clear; 
 close all;
 
+%% Add geochemistry and automatic differentiation modules
 mrstModule add ad-core geochemistry
 mrstVerbose on
+
+%% instantiate chemical model
+% here we look at the pe dependent speciation of nitrogen. We are choosing
+% total nitrogen, electron, sodium, H+ and H2O concentrations as inputs. 
 
 elements = {'O', 'H', 'N*', 'e*','Na*'};
 
@@ -16,9 +21,12 @@ reactions ={'H2O  = H+  + OH-',                       10^-14*mol/litre,...
         
 chem = ChemicalModel(elements, species, reactions);
 
+% print the system to the workspace
 chem.printChemicalSystem;
 
-%%
+%% define input values
+% here we look at the speciation as a function of a range in electron
+% concentration
 n = 100;
 
 N = 1e-3*ones(n,1);
@@ -27,9 +35,10 @@ H = 1e-7*ones(n,1);
 H2O = ones(n,1);
 Na = 1e-2*ones(n,1);
 
+%% solve the chemical system
 [state, report] = chem.initState([N e Na H H2O]*mol/litre);
 
-%%
+%% calculate acitivities and charge balance
 [state, chem] = chem.computeActivities(state);
 [state, chem] = chem.computeChargeBalance(state);
 
@@ -37,10 +46,43 @@ state = changeUnits(state, {'species', 'activities'}, mol/litre);
 
 pe = -log10(chem.getProp(state, 'ae-'));
 
+%% visualize the results
 figure;
 plot(pe, state.species, 'linewidth', 2);
 set(gca, 'yscale', 'log');
 ylabel('concentration [mol/litre]');
 xlabel('pe');
-legend(chem.speciesNames);
+legend(chem.speciesNames, 'location', 'southeast');
 
+figure;
+plot(pe, state.chargeBalance, 'linewidth', 2);
+ylabel('charge balance ');
+xlabel('pe');
+
+%% Copyright notice
+%
+% <html>
+% <p><font size="-1">
+% Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+% </font></p>
+% <p><font size="-1">
+% This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+% </font></p>
+% <p><font size="-1">
+% MRST is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% </font></p>
+% <p><font size="-1">
+% MRST is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+% </font></p>
+% <p><font size="-1">
+% You should have received a copy of the GNU General Public License
+% along with MRST.  If not, see
+% <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses</a>.
+% </font></p>
+% </html>

@@ -1,10 +1,13 @@
-%% create and solve chemical system
 clear;
 close all;
 
+%% add adi and geochemistry modules
 mrstModule add geochemistry ad-core
 mrstVerbose on
-%% generate chemical system object
+%% instantiate the chemical model
+% here we look at the competetive sorption of sodium and protons for an
+% ionexhcnage surface. ChemicalModel will verify that surfaces that are
+% designated as ion exchange surfaces do not contain species with a charge
 
 elements = {'O', 'H', 'Na*', 'Cl*'};
 
@@ -18,7 +21,8 @@ surfInfo = {'>Y', {[1*site/(nano*meter)^2 1*meter^2/gram 1*gram/litre], 'ie'}};
 
 chem = ChemicalModel(elements, species, reactions, 'surfaces', surfInfo);
 
-%%
+%% specify inputs
+% here we vary pH
 n = 100;
 
 H2O = ones(n,1);
@@ -28,15 +32,21 @@ Cl  = Na;
 
 inputs = [Na, Cl, H, H2O]*mol/litre;
 
+%% solve the chemical system
+% here we specify that charge balance should be enforced by giving the
+% name/value pair. The total amount of sodium will be varied in order for
+% the charge balance equation to be satisfied
+
 [state, report, chem] = chem.initState(inputs, 'chargeBalance', 'Na');
 
-%% process
+%% process the data
 state = changeUnits(state, {'elements','species'}, mol/litre );
 
 [state, chem] = chem.computeActivities(state);
 
 pH = -log10(getProp(chem, state, 'aH+'));
 
+%% plot the results
 figure; hold on; box on;
 plot(pH, state.species, 'linewidth', 2)
 
@@ -45,3 +55,31 @@ ylabel('concentration [mol/L]');
 set(gca, 'yscale', 'log');
 legend(chem.speciesNames)
 xlim([3 11])
+
+%% Copyright notice
+%
+% <html>
+% <p><font size="-1">
+% Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+% </font></p>
+% <p><font size="-1">
+% This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+% </font></p>
+% <p><font size="-1">
+% MRST is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% </font></p>
+% <p><font size="-1">
+% MRST is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+% </font></p>
+% <p><font size="-1">
+% You should have received a copy of the GNU General Public License
+% along with MRST.  If not, see
+% <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses</a>.
+% </font></p>
+% </html>

@@ -1,0 +1,277 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>alkalinity</title><meta name="generator" content="MATLAB 8.2"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2017-12-04"><meta name="DC.source" content="alkalinity.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img { margin-bottom:0px; } 
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, tt, code { font-size:12px; }
+pre { margin:0px 0px 20px; }
+pre.error { color:red; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h2>Contents</h2><div><ul><li><a href="#2">load adi and geochemistry module</a></li><li><a href="#3">define the chemical model</a></li><li><a href="#4">solve the chemical system given inputs</a></li><li><a href="#5">Copyright notice</a></li></ul></div><pre class="codeinput">clear;
+close <span class="string">all</span>;
+</pre><h2>load adi and geochemistry module<a name="2"></a></h2><pre class="codeinput">mrstModule <span class="string">add</span> <span class="string">ad-core</span> <span class="string">geochemistry</span>
+mrstVerbose <span class="string">on</span>
+</pre><h2>define the chemical model<a name="3"></a></h2><p>here we choose CO3, H2O and alkalaninity as inputs</p><pre class="codeinput"><span class="comment">% define elements names</span>
+elements = {<span class="string">'H'</span>, <span class="string">'CO3*'</span>,<span class="string">'O'</span>};
+
+<span class="comment">% define chemical species</span>
+species = {<span class="string">'H+'</span>,<span class="string">'H2CO3'</span>,<span class="string">'HCO3-'</span>,<span class="string">'CO3-2'</span>,<span class="string">'H2O*'</span>,<span class="string">'OH-'</span>};
+
+<span class="comment">% list chemical reactions</span>
+reactions ={<span class="string">'H2CO3  = H+ + HCO3- '</span>,         10^2*mol/litre,<span class="keyword">...</span>
+            <span class="string">'HCO3- = H+ + CO3-2'</span>,           10^-1*mol/litre,<span class="keyword">...</span>
+            <span class="string">'H2O = H+ + OH-'</span>,               10^-14*mol/litre};
+
+<span class="comment">% define any linear combinations</span>
+combinations = {<span class="string">'Alk*'</span>, <span class="string">'HCO3- + 2*CO3-2 + OH- - H+'</span> };
+
+<span class="comment">% instantiate the chemical model</span>
+chem = ChemicalModel(elements, species, reactions, <span class="string">'comb'</span>, combinations);
+
+<span class="comment">% print the chemical system</span>
+chem.printChemicalSystem;
+</pre><pre class="codeoutput">
+===========================================================
+|Equations      |    H+| H2CO3| HCO3-| CO3-2|   H2O|   OH-|
+===========================================================
+|sum(H)         |     1|     2|     1|     0|     2|     1|
+|sum(CO3)       |     0|     1|     1|     1|     0|     0|
+|sum(O)         |     0|     0|     0|     0|     1|     1|
+===========================================================
+|H2CO3=H++HCO3- |     1|    -1|     1|     0|     0|     0|
+|HCO3-=H++CO3-2 |     1|     0|    -1|     1|     0|     0|
+|H2O=H++OH-     |     1|     0|     0|     0|    -1|     1|
+===========================================================
+|Alk            |    -1|     0|     1|     2|     0|     1|
+===========================================================
+
+</pre><h2>solve the chemical system given inputs<a name="4"></a></h2><p>here we vary alkalinity and keep carbon and water content constant</p><pre class="codeinput">n = 1000;
+
+C = 1e-4.*ones(n,1);
+H2O = ones(n,1);
+Alk = linspace(-10^-3, 10^-3,n)';
+
+userInput = [C H2O Alk]*mol/litre;
+
+tic
+[state, report, model] = chem.initState(userInput);
+toc;
+
+state = changeUnits(state, {<span class="string">'species'</span>}, mol/litre);
+
+<span class="comment">% plot the results</span>
+figure; hold <span class="string">on</span>;
+plot(Alk, state.species, <span class="string">'linewidth'</span>, 2);
+set(gca,<span class="string">'yscale'</span>, <span class="string">'log'</span>)
+xlabel(<span class="string">'Alkalinity [mol/litre]'</span>);
+ylabel(<span class="string">'concentration [mol/litre]'</span>);
+
+legend(chem.speciesNames)
+</pre><pre class="codeoutput">Computing initial guess...
+============================================================================================================================================================================
+| It # | H2CO3=H++HCO3- (cell) | HCO3-=H++CO3-2 (cell) | H2O=H++OH- (cell) | Conservation of H (cell) | Conservation of CO3 (cell) | Conservation of O (cell) | Alk (cell) |
+============================================================================================================================================================================
+|    1 | 4.61e+00              | 2.30e+00              | 3.22e+01          | 1.95e+00                 | 1.03e+01                   | 6.93e-01                 | 3.00e+03   |
+|    2 | 3.53e+00              | 9.83e+00              |*3.55e-15          | 1.22e+01                 | 9.30e-02                   | 8.19e+00                 | 1.21e+00   |
+|    3 | 3.91e+00              | 8.26e+00              | 1.20e+02          | 6.93e-01                 | 9.25e-01                   | 6.93e-01                 | 2.00e+03   |
+|    4 | 2.42e+02              | 6.91e+00              | 2.05e+02          | 4.06e-01                 | 6.06e-01                   | 6.93e-01                 | 1.00e+03   |
+|    5 | 2.42e+02              | 6.91e+00              | 2.05e+02          | 4.05e-01                 | 1.24e-01                   | 6.93e-01                 | 1.00e+03   |
+|    6 | 7.65e+01              | 3.07e-04              | 1.19e+02          | 4.05e-01                 | 1.24e-01                   | 6.93e-01                 | 1.00e+03   |
+|    7 | 5.75e+01              | 2.25e-04              | 1.09e+02          | 4.05e-01                 | 1.20e-01                   | 6.93e-01                 | 1.00e+03   |
+|    8 |*1.42e-14              | 1.50e-04              | 4.81e+01          | 4.05e-01                 | 8.23e-02                   | 6.93e-01                 | 1.00e+03   |
+|    9 |*1.42e-14              | 9.08e-05              | 2.94e+01          | 4.05e-01                 | 4.05e-02                   | 6.93e-01                 | 1.00e+03   |
+|   10 |*7.11e-15              | 4.98e-05              | 1.16e+01          | 4.05e-01                 | 1.66e-02                   | 6.93e-01                 | 1.00e+03   |
+|   11 |*7.11e-15              | 1.42e-05              |*3.55e-15          | 3.64e-01                 | 6.25e-03                   | 6.30e-01                 | 8.77e+02   |
+|   12 |*7.11e-15              | 4.13e-06              |*3.55e-15          | 9.08e-02                 | 2.18e-03                   | 1.17e-01                 | 3.23e+02   |
+|   13 |*7.11e-15              |*3.55e-15              |*3.55e-15          | 4.70e-02                 | 6.61e-04                   | 7.65e-02                 | 1.19e+02   |
+|   14 |*7.11e-15              |*3.55e-15              |*3.55e-15          | 2.00e-02                 | 1.41e-04                   | 3.67e-02                 | 4.37e+01   |
+|   15 |*7.11e-15              |*3.55e-15              |*3.55e-15          | 7.77e-03                 | 1.16e-05                   | 1.50e-02                 | 1.61e+01   |
+|   16 |*7.11e-15              |*3.11e-15              |*3.55e-15          | 2.92e-03                 |*9.87e-08                   | 5.76e-03                 | 5.91e+00   |
+|   17 |*7.11e-15              |*3.11e-15              |*3.55e-15          | 1.08e-03                 |*1.52e-09                   | 2.15e-03                 | 2.17e+00   |
+|   18 |*7.11e-15              |*3.11e-15              |*3.55e-15          | 3.98e-04                 |*3.88e-10                   | 7.96e-04                 | 7.98e-01   |
+|   19 |*7.11e-15              |*4.00e-15              |*3.55e-15          | 1.46e-04                 |*5.47e-10                   | 2.92e-04                 | 2.93e-01   |
+|   20 |*7.11e-15              |*3.11e-15              |*3.55e-15          | 5.34e-05                 |*7.81e-10                   | 1.07e-04                 | 1.07e-01   |
+|   21 |*7.11e-15              |*3.11e-15              |*3.55e-15          | 1.92e-05                 |*9.99e-10                   | 3.85e-05                 | 3.85e-02   |
+|   22 |*7.11e-15              |*3.55e-15              |*3.55e-15          | 6.68e-06                 |*1.42e-09                   | 1.34e-05                 | 1.34e-02   |
+|   23 |*7.11e-15              |*3.11e-15              |*3.55e-15          | 2.09e-06                 |*2.62e-09                   | 4.19e-06                 | 4.19e-03   |
+|   24 |*7.11e-15              |*3.11e-15              |*3.55e-15          |*4.95e-07                 |*2.65e-09                   |*9.91e-07                 | 9.90e-04   |
+|   25 |*7.11e-15              |*3.11e-15              |*3.55e-15          |*5.41e-08                 |*7.19e-10                   |*1.08e-07                 | 1.08e-04   |
+|   26 |*7.11e-15              |*3.55e-15              |*3.55e-15          |*8.70e-10                 |*1.62e-11                   |*1.74e-09                 | 1.74e-06   |
+Solving chemical system...
+============================================================================================================================================================================
+| It # | H2CO3=H++HCO3- (cell) | HCO3-=H++CO3-2 (cell) | H2O=H++OH- (cell) | Conservation of H (cell) | Conservation of CO3 (cell) | Conservation of O (cell) | Alk (cell) |
+============================================================================================================================================================================
+|    1 | 6.40e-02              | 1.28e-01              | 6.40e-02          |*8.70e-10                 |*1.62e-11                   |*1.74e-09                 | 8.55e-06   |
+|    2 |*1.83e-07              |*3.66e-07              |*1.83e-07          |*4.54e-09                 | 9.18e-05                   |*6.41e-12                 | 6.16e-04   |
+|    3 |*2.62e-11              |*5.25e-11              |*2.62e-11          |*1.95e-14                 |*1.92e-13                   |*8.88e-16                 |*1.93e-07   |
+============================================================================================================================================================================
+Elapsed time is 1.422976 seconds.
+</pre><img vspace="5" hspace="5" src="alkalinity_01.png" alt=""> <h2>Copyright notice<a name="5"></a></h2><p>
+<p><font size="-1">
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+</font></p>
+<p><font size="-1">
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+</font></p>
+<p><font size="-1">
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+</font></p>
+<p><font size="-1">
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+</font></p>
+<p><font size="-1">
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see
+<a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses</a>.
+</font></p>
+</p><p class="footer"><br><a href="http://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2013b</a><br></p></div><!--
+##### SOURCE BEGIN #####
+clear;
+close all;
+
+%% load adi and geochemistry module
+mrstModule add ad-core geochemistry
+mrstVerbose on
+
+%% define the chemical model
+% here we choose CO3, H2O and alkalaninity as inputs
+
+% define elements names
+elements = {'H', 'CO3*','O'};
+
+% define chemical species
+species = {'H+','H2CO3','HCO3-','CO3-2','H2O*','OH-'};
+
+% list chemical reactions         
+reactions ={'H2CO3  = H+ + HCO3- ',         10^2*mol/litre,...
+            'HCO3- = H+ + CO3-2',           10^-1*mol/litre,...
+            'H2O = H+ + OH-',               10^-14*mol/litre};
+        
+% define any linear combinations
+combinations = {'Alk*', 'HCO3- + 2*CO3-2 + OH- - H+' };
+
+% instantiate the chemical model
+chem = ChemicalModel(elements, species, reactions, 'comb', combinations);
+
+% print the chemical system
+chem.printChemicalSystem;
+
+%% solve the chemical system given inputs
+% here we vary alkalinity and keep carbon and water content constant
+n = 1000;
+
+C = 1e-4.*ones(n,1);
+H2O = ones(n,1);
+Alk = linspace(-10^-3, 10^-3,n)';
+
+userInput = [C H2O Alk]*mol/litre;
+
+tic
+[state, report, model] = chem.initState(userInput);
+toc;
+
+state = changeUnits(state, {'species'}, mol/litre);
+
+% plot the results
+figure; hold on;
+plot(Alk, state.species, 'linewidth', 2);
+set(gca,'yscale', 'log')
+xlabel('Alkalinity [mol/litre]');
+ylabel('concentration [mol/litre]');
+
+legend(chem.speciesNames)
+
+%% Copyright notice
+%
+% <html>
+% <p><font size="-1">
+% Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+% </font></p>
+% <p><font size="-1">
+% This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+% </font></p>
+% <p><font size="-1">
+% MRST is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% </font></p>
+% <p><font size="-1">
+% MRST is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+% </font></p>
+% <p><font size="-1">
+% You should have received a copy of the GNU General Public License
+% along with MRST.  If not, see
+% <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses</a>.
+% </font></p>
+% </html>
+
+##### SOURCE END #####
+--></body></html>

@@ -1,20 +1,20 @@
 close all;
 clear;
 
+%% load appropriate modules
 mrstModule add ad-core ad-props ad-blackoil geochemistry
-
 mrstVerbose off
 
-%% Define the grid
-
-G = cartGrid([100, 1, 1], [10, 1, 1]);
+%% Define the domain
+% simple 1D cartesian domain 
+G = cartGrid([10, 1, 1], [100, 1, 1]);
 G = computeGeometry(G);
 nc = G.cells.num;
 
 %% Define the rock
 
 rock.perm = 1*darcy*ones(G.cells.num, 1);
-rock.poro = ones(G.cells.num, 1);
+rock.poro = 0.3*ones(G.cells.num, 1);
 
 %% Define the fluid
 pRef = 0*barsa;
@@ -23,6 +23,7 @@ fluid = initSimpleADIFluid('phases', 'W', 'mu', 1*centi*poise, 'rho', ...
                            'pRef', pRef);
 
 %% Define the chemistry
+% here we have the carbonate system with calcite precipitation
 
 elements = {'O', 'H', 'Na*', 'Cl*', 'Ca*', 'C*'};
 
@@ -36,7 +37,7 @@ reactions ={'H2O  = H+  + OH- ',            10^-14*mol/litre, ...
             'CO3-2 + H+ = HCO3-',           10^10.329/(mol/litre),...
             'CO3-2 + 2*H+ = CO2 + H2O',     10^16.681/(mol/litre)};
 
-% instantiate chemical model object
+% instantiate chemical model
 chemModel = ChemicalModel(elements, species, reactions);
 
 % print the chemical model to the screen
@@ -53,7 +54,7 @@ H2Oi = 1;
 inputConstraints = [Nai Cli Cai Ci Hi H2Oi]*mol/litre;
 [initchemstate, initreport]= chemModel.initState(repmat(inputConstraints, nc,1), 'charge', 'Cl');
 
-% injected chemistry
+% injected chemistry, we are injecting less Ca into the system
 Naf = 1e-1;
 Clf = Naf;
 Caf = 1e-3;
@@ -69,22 +70,16 @@ inputConstraints = [Naf Clf Caf Cf Hf H2Of]*mol/litre;
 initState = initchemstate;
 initState.pressure = pRef*ones(nc,1);
 
-%% Define the transport model
+%% instantiate the transport model
 model = ChemicalTransportModel(G, rock, fluid, chemModel);
-
-% plot the species and element distribution at the end of each time step
-model.plotFinal = false;
-model.plotIter = false;
-
-% plotting during the simulation slows the solver down quite a bit
 
 %% Define the boundary conditions
 
-% use model.fluidMat to pull the fluid concentrations from the injected
-% state
-injfluidpart = injchemstate.species*model.fluidMat';
-initfluidpart = initchemstate.species(end,:)*model.fluidMat';
+% define the initial and injected fluid composition states
+injfluidpart = injchemstate.elements;
+initfluidpart = initchemstate.elements(end,:);
 
+% sxtract the pore volumes from the domain
 pv = poreVolume(G,rock);
 
 % define source term at cell 1 for inflow boundary condition
@@ -103,9 +98,10 @@ bc.logElements      = log(initfluidpart);  % (will not be used if outflow)
 
 
 %% Define the schedule
+% it is recommended to ramp up the time steps
 
 % ten time steps of 0.01 days followed by 100 steps of 1 day
-schedule.step.val = [0.01*day*ones(10, 1); 1*day*ones(100, 1);];
+schedule.step.val = [0.01*day*ones(10, 1); 1*day*ones(10, 1);];
 schedule.step.control = ones(numel(schedule.step.val), 1);
 schedule.control = struct('bc', bc, 'src', src, 'W', []);
 
@@ -114,4 +110,33 @@ schedule.control = struct('bc', bc, 'src', src, 'W', []);
 
 [~, states, scheduleReport] = simulateScheduleAD(initState, model, schedule);
 
-plotToolbar(G, states)
+plotToolbar(G, states, 'field', 'elements:5', 'plot1d', true,'startplayback',true)
+ylabel('Ca / mol/m^3')
+
+%% Copyright notice
+%
+% <html>
+% <p><font size="-1">
+% Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+% </font></p>
+% <p><font size="-1">
+% This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+% </font></p>
+% <p><font size="-1">
+% MRST is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% </font></p>
+% <p><font size="-1">
+% MRST is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+% </font></p>
+% <p><font size="-1">
+% You should have received a copy of the GNU General Public License
+% along with MRST.  If not, see
+% <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses</a>.
+% </font></p>
+% </html>

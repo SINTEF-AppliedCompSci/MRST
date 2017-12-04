@@ -1,0 +1,337 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>tripleLayerExample</title><meta name="generator" content="MATLAB 8.2"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2017-12-04"><meta name="DC.source" content="tripleLayerExample.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img { margin-bottom:0px; } 
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, tt, code { font-size:12px; }
+pre { margin:0px 0px 20px; }
+pre.error { color:red; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h2>Contents</h2><div><ul><li><a href="#2">load adi and geochemistry module</a></li><li><a href="#3">generate chemical system</a></li><li><a href="#4">define the inputs</a></li><li><a href="#5">post processing</a></li><li><a href="#6">plot the results</a></li><li><a href="#7">Copyright notice</a></li></ul></div><pre class="codeinput">clear;
+close <span class="string">all</span>;
+</pre><h2>load adi and geochemistry module<a name="2"></a></h2><pre class="codeinput">mrstModule <span class="string">add</span> <span class="string">ad-core</span> <span class="string">geochemistry</span>
+mrstVerbose <span class="string">on</span>
+</pre><h2>generate chemical system<a name="3"></a></h2><p>here we look at an amphoteric surface with the sorption of Na and Cl</p><pre class="codeinput"><span class="comment">% define elements names</span>
+elements = {<span class="string">'O'</span>, <span class="string">'H'</span>, <span class="string">'Na*'</span>, <span class="string">'Cl*'</span>};
+
+<span class="comment">% define chemical species</span>
+species = {<span class="string">'H+*'</span>, <span class="string">'OH-'</span>, <span class="string">'Na+'</span>, <span class="string">'Cl-'</span>, <span class="string">'NaCl'</span>, <span class="string">'H2O*'</span>,<span class="keyword">...</span>
+             <span class="string">'&gt;SO-'</span>, <span class="string">'&gt;SOH'</span>, <span class="string">'&gt;SOH2+'</span>, <span class="string">'&gt;SONa'</span>, <span class="string">'&gt;SOH2Cl'</span>};
+
+<span class="comment">% list chemical reactions</span>
+reactions ={<span class="string">'H2O  = H+  + OH- '</span>,          10^-14*mol/litre, <span class="keyword">...</span>
+            <span class="string">'NaCl = Na+ + Cl-'</span>,           10^1*mol/litre,<span class="keyword">...</span>
+            <span class="string">'&gt;SOH = &gt;SO- + H+'</span>,           10^-7.5*mol/litre,<span class="keyword">...</span>
+            <span class="string">'&gt;SOH + H+ = &gt;SOH2+'</span>,         10^2/(mol/litre),<span class="keyword">...</span>
+            <span class="string">'&gt;SO- + Na+ = &gt;SONa'</span>,         10^-1.9/(mol/litre),<span class="keyword">...</span>
+            <span class="string">'&gt;SOH2+ + Cl- = &gt;SOH2Cl'</span>,     10^-1.9/(mol/litre)};
+
+<span class="comment">% define the surface, here we choose a triple layer model to describe the</span>
+<span class="comment">% surface. Outersphere complext like &gt;SONa and &gt;SOH2Cl are defined by</span>
+<span class="comment">% giving their charge contributions to the inner and outer helmholtz plane</span>
+
+geometry = [2*site/(nano*meter)^2 50e-3*meter^2/gram 5e3*gram/litre];
+sioInfo = {geometry, <span class="string">'tlm'</span>, [1 0.2]/meter^2,      <span class="string">'&gt;SONa'</span>,   [-1 1], <span class="string">'&gt;SOH2Cl'</span>,[1 -1]};
+surfaces ={ <span class="string">'&gt;SO'</span>, sioInfo };
+
+<span class="comment">% instantiate the chemical model</span>
+chem = ChemicalModel(elements, species, reactions, <span class="string">'surf'</span>, surfaces);
+
+<span class="comment">% print the chemical system</span>
+chem.printChemicalSystem;
+</pre><pre class="codeoutput">
+=============================================================================================================================================================================================
+|Equations          |         H+|        OH-|        Na+|        Cl-|       NaCl|        H2O|       &gt;SO-|       &gt;SOH|     &gt;SOH2+|      &gt;SONa|    &gt;SOH2Cl| &gt;SO_ePsi_0| &gt;SO_ePsi_1| &gt;SO_ePsi_2|
+=============================================================================================================================================================================================
+|sum(O)             |          0|          1|          0|          0|          0|          1|          0|          0|          0|          0|          0|          0|          0|          0|
+|sum(H)             |          1|          1|          0|          0|          0|          2|          0|          1|          2|          0|          2|          0|          0|          0|
+|sum(Na)            |          0|          0|          1|          0|          1|          0|          0|          0|          0|          1|          0|          0|          0|          0|
+|sum(Cl)            |          0|          0|          0|          1|          1|          0|          0|          0|          0|          0|          1|          0|          0|          0|
+|sum(&gt;SO)           |          0|          0|          0|          0|          0|          0|          1|          1|          1|          1|          1|          0|          0|          0|
+=============================================================================================================================================================================================
+|H2O=H++OH-         |          1|          1|          0|          0|          0|         -1|          0|          0|          0|          0|          0|          0|          0|          0|
+|NaCl=Na++Cl-       |          0|          0|          1|          1|         -1|          0|          0|          0|          0|          0|          0|          0|          0|          0|
+|&gt;SOH=&gt;SO-+H+       |          1|          0|          0|          0|          0|          0|          1|         -1|          0|          0|          0|         -1|          0|          0|
+|&gt;SOH+H+=&gt;SOH2+     |         -1|          0|          0|          0|          0|          0|          0|         -1|          1|          0|          0|          1|          0|          0|
+|&gt;SO-+Na+=&gt;SONa     |          0|          0|         -1|          0|          0|          0|         -1|          0|          0|          1|          0|          0|          1|          0|
+|&gt;SOH2++Cl-=&gt;SOH2Cl |          0|          0|          0|         -1|          0|          0|          0|          0|         -1|          0|          1|          0|         -1|          0|
+=============================================================================================================================================================================================
+
+</pre><h2>define the inputs<a name="4"></a></h2><p>here we vary pH from 4 to 10</p><pre class="codeinput">n = 500;
+
+Na = 1e-2.*ones(n,1);
+Cl = 1e-2*ones(n,1);
+H2O = ones(n,1);
+H = logspace(-4, -10, n)';
+
+userInput = [Na Cl H H2O]*mol/litre;
+
+
+[state, report, model] = chem.initState(userInput, <span class="string">'chargeBalance'</span>, <span class="string">'Na'</span>);
+</pre><pre class="codeoutput">Computing initial guess...
+===============================================================================================================================================================================================================================================================================================
+| It # | H2O=H++OH- (cell) | NaCl=Na++Cl- (cell) | &gt;SOH=&gt;SO-+H+ (cell) | &gt;SOH+H+=&gt;SOH2+ (cell) | &gt;SO-+Na+=&gt;SONa (cell) | &gt;SOH2++Cl-=&gt;SOH2Cl (cell) | Conservation of O (cell) | Conservation of H (cell) | Conservation of Na (cell) | Conservation of Cl (cell) | Conservation of &gt;SO (cell) |
+===============================================================================================================================================================================================================================================================================================
+|    1 | 2.30e+01          | 2.30e+00            | 8.06e+00            | 1.84e+01              | 4.37e+00              | 4.37e+00                  | 6.93e-01                 | 2.08e+00                 | 5.70e+00                  | 5.70e+00                  | 8.70e+00                   |
+|    2 |*1.78e-15          | 8.96e+00            | 5.45e+00            | 7.40e+00              | 1.10e+01              | 1.00e+01                  | 1.08e+01                 | 9.74e+00                 | 6.99e-01                  | 6.93e-01                  | 7.77e-01                   |
+|    3 |*0.00e+00          | 6.08e+00            | 2.17e+00            | 2.17e+00              | 6.93e+00              | 1.84e+00                  |*8.88e-16                 | 1.03e-03                 | 2.94e-01                  | 2.23e-01                  | 2.92e-01                   |
+|    4 |*0.00e+00          | 2.11e+00            | 5.61e-01            | 4.88e-02              | 1.45e+00              | 1.22e+00                  |*0.00e+00                 | 2.39e-05                 | 8.25e-03                  | 8.20e-03                  | 3.98e-02                   |
+|    5 |*0.00e+00          | 1.79e-02            |*1.67e-15            |*3.55e-15              | 8.97e-03              | 8.95e-03                  |*0.00e+00                 |*3.05e-07                 | 1.03e-03                  | 1.02e-03                  | 1.08e-03                   |
+|    6 |*0.00e+00          |*1.78e-15            |*1.32e-15            |*3.55e-15              |*3.55e-15              |*7.11e-15                  |*0.00e+00                 |*8.14e-13                 |*1.81e-07                  |*1.81e-07                  |*6.28e-09                   |
+===============================================================================================================================================================================================================================================================================================
+Solving chemical system...
+================================================================================================================================================================================================================================================================================================================================================================================================
+| It # | H2O=H++OH- (cell) | NaCl=Na++Cl- (cell) | &gt;SOH=&gt;SO-+H+ (cell) | &gt;SOH+H+=&gt;SOH2+ (cell) | &gt;SO-+Na+=&gt;SONa (cell) | &gt;SOH2++Cl-=&gt;SOH2Cl (cell) | Conservation of O (cell) | Conservation of H (cell) | Conservation of Na (cell) | Conservation of Cl (cell) | Conservation of &gt;SO (cell) | charge balance of &gt;SO (cell) | -s0 + C1*(P0 - P1), &gt;SO (cell) | -s2 - C2*(P1 - P2), &gt;SO (cell) |
+================================================================================================================================================================================================================================================================================================================================================================================================
+|    1 | 2.07e-01          | 2.07e-01            | 8.25e+01            | 8.25e+01              | 7.01e+01              | 7.03e+01                  |*0.00e+00                 |*8.14e-13                 |*1.81e-07                  |*1.81e-07                  |*6.28e-09                   |*4.55e-14                     |*5.00e-16                       |*4.56e-14                       |
+|    2 | 1.03e-05          | 1.03e-05            | 6.01e+01            | 4.77e+01              | 4.70e+01              | 6.54e+01                  | 2.30e-06                 | 1.99e-03                 | 7.97e-02                  | 7.98e-02                  | 1.57e+00                   | 3.20e-01                     | 3.16e-01                       | 9.76e-02                       |
+|    3 | 5.10e-02          | 1.09e+00            | 6.32e+00            | 6.70e+00              | 1.77e+00              | 1.18e+00                  |*1.64e-07                 | 2.76e-03                 | 2.22e-02                  | 2.43e-03                  | 1.10e+00                   | 1.09e-01                     | 3.00e-01                       | 8.73e-02                       |
+|    4 | 1.15e-03          | 2.44e-02            | 3.12e+00            | 3.12e+00              | 2.50e-02              | 5.76e-04                  |*1.66e-07                 | 6.17e-04                 | 1.82e-02                  | 8.13e-04                  | 2.57e-01                   | 4.55e-02                     | 7.00e-02                       | 1.01e-02                       |
+|    5 | 3.55e-04          | 7.55e-03            | 2.19e-01            | 2.18e-01              | 7.73e-03              | 1.77e-04                  |*5.71e-12                 | 2.88e-05                 | 4.73e-03                  |*2.00e-07                  | 3.60e-01                   | 1.18e-01                     | 1.42e-01                       | 1.03e-02                       |
+|    6 |*2.59e-08          |*2.59e-08            |*1.30e-08            |*1.30e-08              |*1.30e-08              |*1.30e-08                  |*1.01e-11                 | 3.04e-06                 | 1.23e-03                  |*3.05e-08                  | 3.73e-01                   | 1.35e-01                     | 1.44e-01                       | 3.98e-03                       |
+|    7 |*7.34e-09          |*7.34e-09            |*3.67e-09            |*3.67e-09              |*3.67e-09              |*3.67e-09                  |*5.95e-14                 | 2.58e-06                 | 8.25e-05                  |*1.77e-10                  | 5.76e-02                   | 4.53e-02                     | 4.56e-02                       | 7.94e-05                       |
+|    8 |*7.09e-11          |*7.09e-11            |*3.54e-11            |*3.54e-11              |*3.54e-11              |*3.54e-11                  |*8.88e-16                 | 1.37e-06                 |*1.78e-07                  |*1.71e-12                  | 3.70e-02                   | 1.15e-02                     | 1.16e-02                       | 1.03e-04                       |
+|    9 |*2.83e-11          |*2.83e-11            |*1.41e-11            |*1.41e-11              |*1.41e-11              |*1.41e-11                  |*8.88e-16                 |*6.73e-09                 |*8.32e-07                  |*6.83e-13                  | 3.98e-03                   | 1.48e-03                     | 1.50e-03                       | 1.55e-05                       |
+|   10 |*4.64e-13          |*4.65e-13            |*2.33e-13            |*2.34e-13              |*2.32e-13              |*2.31e-13                  |*8.88e-16                 |*5.03e-11                 |*1.89e-08                  |*1.11e-14                  | 1.01e-04                   | 3.43e-05                     | 3.48e-05                       |*4.70e-07                       |
+|   11 |*3.55e-15          |*1.78e-15            |*3.55e-15            |*5.33e-15              |*3.11e-15              |*6.22e-15                  |*8.88e-16                 |*3.02e-14                 |*1.25e-11                  |*4.44e-16                  |*5.72e-08                   |*1.96e-08                     |*1.99e-08                       |*2.65e-10                       |
+================================================================================================================================================================================================================================================================================================================================================================================================
+Solving the chemical system with strict charge balance...
+System is charge balanced to tolerance of 5.000000%...
+</pre><h2>post processing<a name="5"></a></h2><p>to add the surface potentials and charges to the state structure we must call on functions within ChemicalModel</p><pre class="codeinput">[state, chem] = chem.computeActivities(state);
+[state, chem] = chem.computeChargeBalance(state);
+[state, chem] = chem.computeSurfaceCharges(state);
+[state, chem] = chem.computeSurfacePotentials(state);
+[state, chem] = chem.computeAqueousConcentrations(state);
+[state, chem] = chem.computeSurfaceConcentrations(state);
+
+state = changeUnits(state, {<span class="string">'elements'</span>, <span class="string">'species'</span>, <span class="string">'activities'</span>}, mol/litre);
+
+pH = -log10(getProp(chem, state, <span class="string">'aH+'</span>));
+</pre><h2>plot the results<a name="6"></a></h2><pre class="codeinput">figure; hold <span class="string">on</span>; box <span class="string">on</span>;
+plot(pH, state.chargeBalance,<span class="string">'-k'</span>)
+xlabel(<span class="string">'pH'</span>)
+ylabel(<span class="string">'charge [% of total ion concentration]'</span>);
+
+figure; hold <span class="string">on</span>; box <span class="string">on</span>;
+plot(pH, state.surfaceConcentrations, <span class="string">'linewidth'</span>,2)
+xlabel(<span class="string">'pH'</span>)
+ylabel(<span class="string">'concentration [mol/L]'</span>);
+set(gca, <span class="string">'yscale'</span>, <span class="string">'log'</span>);
+legend(chem.surfaceConcentrationNames);
+
+figure; hold <span class="string">on</span>; box <span class="string">on</span>;
+plot(pH, state.surfacePotentials, <span class="string">'linewidth'</span>,2)
+xlabel(<span class="string">'pH'</span>)
+ylabel(<span class="string">'potential [volts]'</span>);
+legend(chem.surfacePotentialNames);
+
+figure; hold <span class="string">on</span>; box <span class="string">on</span>;
+plot(pH, state.surfaceCharges, <span class="string">'linewidth'</span>,2)
+xlabel(<span class="string">'pH'</span>)
+ylabel(<span class="string">'charge density [C/m^2]'</span>);
+legend(chem.surfaceChargeNames);
+</pre><img vspace="5" hspace="5" src="tripleLayerExample_01.png" alt=""> <img vspace="5" hspace="5" src="tripleLayerExample_02.png" alt=""> <img vspace="5" hspace="5" src="tripleLayerExample_03.png" alt=""> <img vspace="5" hspace="5" src="tripleLayerExample_04.png" alt=""> <h2>Copyright notice<a name="7"></a></h2><p>
+<p><font size="-1">
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+</font></p>
+<p><font size="-1">
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+</font></p>
+<p><font size="-1">
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+</font></p>
+<p><font size="-1">
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+</font></p>
+<p><font size="-1">
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see
+<a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses</a>.
+</font></p>
+</p><p class="footer"><br><a href="http://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2013b</a><br></p></div><!--
+##### SOURCE BEGIN #####
+clear;
+close all;
+
+%% load adi and geochemistry module
+mrstModule add ad-core geochemistry
+mrstVerbose on
+
+%% generate chemical system 
+% here we look at an amphoteric surface with the sorption of Na and Cl
+
+% define elements names
+elements = {'O', 'H', 'Na*', 'Cl*'};
+
+% define chemical species
+species = {'H+*', 'OH-', 'Na+', 'Cl-', 'NaCl', 'H2O*',...
+             '>SO-', '>SOH', '>SOH2+', '>SONa', '>SOH2Cl'};
+
+% list chemical reactions         
+reactions ={'H2O  = H+  + OH- ',          10^-14*mol/litre, ...
+            'NaCl = Na+ + Cl-',           10^1*mol/litre,...
+            '>SOH = >SO- + H+',           10^-7.5*mol/litre,...
+            '>SOH + H+ = >SOH2+',         10^2/(mol/litre),...
+            '>SO- + Na+ = >SONa',         10^-1.9/(mol/litre),...
+            '>SOH2+ + Cl- = >SOH2Cl',     10^-1.9/(mol/litre)};
+        
+% define the surface, here we choose a triple layer model to describe the
+% surface. Outersphere complext like >SONa and >SOH2Cl are defined by
+% giving their charge contributions to the inner and outer helmholtz plane
+
+geometry = [2*site/(nano*meter)^2 50e-3*meter^2/gram 5e3*gram/litre];
+sioInfo = {geometry, 'tlm', [1 0.2]/meter^2,      '>SONa',   [-1 1], '>SOH2Cl',[1 -1]};
+surfaces ={ '>SO', sioInfo };
+
+% instantiate the chemical model
+chem = ChemicalModel(elements, species, reactions, 'surf', surfaces);
+
+% print the chemical system
+chem.printChemicalSystem;
+
+%% define the inputs
+% here we vary pH from 4 to 10
+n = 500;
+
+Na = 1e-2.*ones(n,1);
+Cl = 1e-2*ones(n,1);
+H2O = ones(n,1);
+H = logspace(-4, -10, n)';
+
+userInput = [Na Cl H H2O]*mol/litre;
+
+
+[state, report, model] = chem.initState(userInput, 'chargeBalance', 'Na');
+
+%% post processing
+% to add the surface potentials and charges to the state structure we must
+% call on functions within ChemicalModel
+[state, chem] = chem.computeActivities(state);
+[state, chem] = chem.computeChargeBalance(state);
+[state, chem] = chem.computeSurfaceCharges(state);
+[state, chem] = chem.computeSurfacePotentials(state);
+[state, chem] = chem.computeAqueousConcentrations(state);
+[state, chem] = chem.computeSurfaceConcentrations(state);
+
+state = changeUnits(state, {'elements', 'species', 'activities'}, mol/litre);
+
+pH = -log10(getProp(chem, state, 'aH+'));
+
+%% plot the results
+figure; hold on; box on;
+plot(pH, state.chargeBalance,'-k')
+xlabel('pH')
+ylabel('charge [% of total ion concentration]');
+
+figure; hold on; box on;
+plot(pH, state.surfaceConcentrations, 'linewidth',2)
+xlabel('pH')
+ylabel('concentration [mol/L]');
+set(gca, 'yscale', 'log');
+legend(chem.surfaceConcentrationNames);
+
+figure; hold on; box on;
+plot(pH, state.surfacePotentials, 'linewidth',2)
+xlabel('pH')
+ylabel('potential [volts]');
+legend(chem.surfacePotentialNames);
+
+figure; hold on; box on;
+plot(pH, state.surfaceCharges, 'linewidth',2)
+xlabel('pH')
+ylabel('charge density [C/m^2]');
+legend(chem.surfaceChargeNames);
+
+%% Copyright notice
+%
+% <html>
+% <p><font size="-1">
+% Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+% </font></p>
+% <p><font size="-1">
+% This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+% </font></p>
+% <p><font size="-1">
+% MRST is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% </font></p>
+% <p><font size="-1">
+% MRST is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+% </font></p>
+% <p><font size="-1">
+% You should have received a copy of the GNU General Public License
+% along with MRST.  If not, see
+% <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses</a>.
+% </font></p>
+% </html>
+##### SOURCE END #####
+--></body></html>

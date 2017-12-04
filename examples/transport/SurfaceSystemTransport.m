@@ -7,7 +7,7 @@ mrstVerbose off
 
 %% Define the grid
 
-G = cartGrid([100, 1, 1], [10, 1, 1]);
+G = cartGrid([10, 1, 1], [10, 1, 1]);
 G = computeGeometry(G);
 nc = G.cells.num;
 
@@ -69,12 +69,6 @@ initState.pressure = pRef*ones(nc,1);
 %% Define the transport model
 model = ChemicalTransportModel(G, rock, fluid, chemModel);
 
-% plot the species and element distribution at the end of each time step
-model.plotFinal = false;
-model.plotIter = true;
-
-% plotting during the simulation slows the solver down quite a bit
-
 %% Define the boundary conditions
 
 % use model.fluidMat to pull the fluid concentrations from the injected
@@ -102,7 +96,7 @@ bc.logElements      = log(initfluidpart);  % (will not be used if outflow)
 %% Define the schedule
 
 % ten time steps of 0.01 days followed by 100 steps of 1 day
-schedule.step.val = [0.01*day*ones(10, 1); 1*day*ones(100, 1);];
+schedule.step.val = [0.01*day*ones(10, 1); 1*day*ones(10, 1);];
 schedule.step.control = ones(numel(schedule.step.val), 1);
 schedule.control = struct('bc', bc, 'src', src, 'W', []);
 
@@ -110,3 +104,35 @@ schedule.control = struct('bc', bc, 'src', src, 'W', []);
 %% Run the simulation
 
 [~, states, scheduleReport] = simulateScheduleAD(initState, model, schedule);
+
+%% visualize the simulation
+plotToolbar(G, states, 'field', 'species:1','startplayback', true,'plot1D', true)
+
+%% Copyright notice
+%
+% <html>
+% <p><font size="-1">
+% Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+% </font></p>
+% <p><font size="-1">
+% This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+% </font></p>
+% <p><font size="-1">
+% MRST is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% </font></p>
+% <p><font size="-1">
+% MRST is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+% </font></p>
+% <p><font size="-1">
+% You should have received a copy of the GNU General Public License
+% along with MRST.  If not, see
+% <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses</a>.
+% </font></p>
+% </html>
+
