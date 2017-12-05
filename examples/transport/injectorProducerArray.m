@@ -6,7 +6,8 @@ mrstModule add ad-core ad-props ad-blackoil geochemistry mrst-gui
 mrstVerbose off
 
 %% Define the domain 
-% here we look at a cartesian grid  with 100 cells
+% here we look at a 2D cartesian grid  with 100 cells
+
 sideLength = 10;
 G = cartGrid([sideLength, sideLength, 1], [sideLength, sideLength, 1]);
 G = computeGeometry(G);
@@ -109,7 +110,6 @@ bc.logElements      = initChemState.logElements(end,:);  % will not used if outf
 schedule.step.val = [0.01*day*ones(5, 1); 0.1*day*ones(5,1); 1*day*ones(5, 1); 5*day*ones(10, 1)];
 schedule.step.control = ones(numel(schedule.step.val), 1);
 schedule.control = struct('bc', bc, 'src', src, 'W', []);
-
 
 %% Run the simulation
 

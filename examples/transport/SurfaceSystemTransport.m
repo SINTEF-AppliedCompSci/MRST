@@ -6,6 +6,7 @@ mrstModule add ad-core ad-props ad-blackoil geochemistry
 mrstVerbose off
 
 %% Define the grid
+% here we define a 1D domain with 10 cells, each a meter in length
 
 G = cartGrid([10, 1, 1], [10, 1, 1]);
 G = computeGeometry(G);
@@ -23,6 +24,8 @@ fluid = initSimpleADIFluid('phases', 'W', 'mu', 1*centi*poise, 'rho', ...
                            'pRef', pRef);
 
 %% Define the chemistry
+% the chemical system include the speciation of NaCl and H2O, as well as a
+% reactive silica surface which can have a negative or neutral surface
 
 elements = {'O', 'H', 'Na*','Cl*'};
 
@@ -43,6 +46,10 @@ chemModel = ChemicalModel(elements, species, reactions, 'surf', surfaces);
 % print the chemical model to the screen
 chemModel.printChemicalSystem;
 
+%% solve for the initial state
+% the column is originally saturated with a basic solution, an acidic
+% solution is injected on the left boundary
+
 % initial chemistry
 Nai = 1e-3;
 Cli = Nai;
@@ -51,6 +58,9 @@ H2Oi = 1;
 
 inputConstraints = [Nai Cli Hi H2Oi]*mol/litre;
 [initchemstate, initreport]= chemModel.initState(repmat(inputConstraints, nc,1), 'charge', 'Cl');
+
+initState = initchemstate;
+initState.pressure = pRef*ones(nc,1);
 
 % injected chemistry
 Naf = 1e-1;
@@ -61,15 +71,13 @@ H2Of = 1;
 inputConstraints = [Naf Clf Hf H2Of]*mol/litre;
 [injchemstate, injreport] = chemModel.initState(inputConstraints, 'charge', 'Cl');
 
-%% Define the initial state
-
-initState = initchemstate;
-initState.pressure = pRef*ones(nc,1);
-
 %% Define the transport model
 model = ChemicalTransportModel(G, rock, fluid, chemModel);
 
 %% Define the boundary conditions
+% here we specify a dirchlet boundary condition for pressure on the right
+% hand side, and a constant flux on the left. The total element
+% concentration at the boundaries must be provided.
 
 % use model.fluidMat to pull the fluid concentrations from the injected
 % state
@@ -94,6 +102,7 @@ bc.logElements      = log(initfluidpart);  % (will not be used if outflow)
 
 
 %% Define the schedule
+% it is recommened to ramp up the time stepping
 
 % ten time steps of 0.01 days followed by 100 steps of 1 day
 schedule.step.val = [0.01*day*ones(10, 1); 1*day*ones(10, 1);];

@@ -24,8 +24,8 @@ reactions ={'H2O  = H+  + OH- ',          10^-14*mol/litre, ...
             '>SOH2+ + Cl- = >SOH2Cl',     10^-1.9/(mol/litre)};
         
 % define the surface, here we choose a triple layer model to describe the
-% surface. Outersphere complext like >SONa and >SOH2Cl are defined by
-% giving their charge contributions to the inner and outer helmholtz plane
+% surface. Outersphere complexes like >SONa and >SOH2Cl are defined by
+% defining their charge contributions to the inner and outer helmholtz plane
 
 geometry = [2*site/(nano*meter)^2 50e-3*meter^2/gram 5e3*gram/litre];
 sioInfo = {geometry, 'tlm', [1 0.2]/meter^2,      '>SONa',   [-1 1], '>SOH2Cl',[1 -1]};

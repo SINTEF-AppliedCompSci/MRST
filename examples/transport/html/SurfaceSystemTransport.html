@@ -6,7 +6,7 @@
    <!--
 This HTML was auto-generated from MATLAB code.
 To make changes, update the MATLAB code and republish this document.
-      --><title>SurfaceSystemTransport</title><meta name="generator" content="MATLAB 8.2"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2017-12-04"><meta name="DC.source" content="SurfaceSystemTransport.m"><style type="text/css">
+      --><title>surfaceSystemTransport</title><meta name="generator" content="MATLAB 8.2"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2017-12-05"><meta name="DC.source" content="surfaceSystemTransport.m"><style type="text/css">
 html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
 
 html { min-height:100%; margin-bottom:1px; }
@@ -65,13 +65,13 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
 
 
 
-  </style></head><body><div class="content"><h2>Contents</h2><div><ul><li><a href="#2">Define the grid</a></li><li><a href="#3">Define the rock</a></li><li><a href="#4">Define the fluid</a></li><li><a href="#5">Define the chemistry</a></li><li><a href="#6">Define the initial state</a></li><li><a href="#7">Define the transport model</a></li><li><a href="#8">Define the boundary conditions</a></li><li><a href="#9">Define the schedule</a></li><li><a href="#10">Run the simulation</a></li><li><a href="#11">visualize the simulation</a></li><li><a href="#12">Copyright notice</a></li></ul></div><pre class="codeinput">close <span class="string">all</span>;
+  </style></head><body><div class="content"><h2>Contents</h2><div><ul><li><a href="#2">Define the grid</a></li><li><a href="#3">Define the rock</a></li><li><a href="#4">Define the fluid</a></li><li><a href="#5">Define the chemistry</a></li><li><a href="#6">solve for the initial state</a></li><li><a href="#7">Define the transport model</a></li><li><a href="#8">Define the boundary conditions</a></li><li><a href="#9">Define the schedule</a></li><li><a href="#10">Run the simulation</a></li><li><a href="#11">visualize the simulation</a></li><li><a href="#12">Copyright notice</a></li></ul></div><pre class="codeinput">close <span class="string">all</span>;
 clear;
 
 mrstModule <span class="string">add</span> <span class="string">ad-core</span> <span class="string">ad-props</span> <span class="string">ad-blackoil</span> <span class="string">geochemistry</span>
 
 mrstVerbose <span class="string">off</span>
-</pre><h2>Define the grid<a name="2"></a></h2><pre class="codeinput">G = cartGrid([10, 1, 1], [10, 1, 1]);
+</pre><h2>Define the grid<a name="2"></a></h2><p>here we define a 1D domain with 10 cells, each a meter in length</p><pre class="codeinput">G = cartGrid([10, 1, 1], [10, 1, 1]);
 G = computeGeometry(G);
 nc = G.cells.num;
 </pre><h2>Define the rock<a name="3"></a></h2><pre class="codeinput">rock.perm = 1*darcy*ones(G.cells.num, 1);
@@ -80,7 +80,7 @@ rock.poro = ones(G.cells.num, 1);
 fluid = initSimpleADIFluid(<span class="string">'phases'</span>, <span class="string">'W'</span>, <span class="string">'mu'</span>, 1*centi*poise, <span class="string">'rho'</span>, <span class="keyword">...</span>
                            1000*kilogram/meter^3, <span class="string">'c'</span>, 1e-10, <span class="string">'cR'</span>, 4e-10, <span class="keyword">...</span>
                            <span class="string">'pRef'</span>, pRef);
-</pre><h2>Define the chemistry<a name="5"></a></h2><pre class="codeinput">elements = {<span class="string">'O'</span>, <span class="string">'H'</span>, <span class="string">'Na*'</span>,<span class="string">'Cl*'</span>};
+</pre><h2>Define the chemistry<a name="5"></a></h2><p>the chemical system include the speciation of NaCl and H2O, as well as a reactive silica surface which can have a negative or neutral surface</p><pre class="codeinput">elements = {<span class="string">'O'</span>, <span class="string">'H'</span>, <span class="string">'Na*'</span>,<span class="string">'Cl*'</span>};
 
 species = {<span class="string">'H+*'</span>, <span class="string">'OH-'</span>, <span class="string">'Na+'</span>, <span class="string">'H2O*'</span>, <span class="string">'&gt;SiO-'</span>, <span class="string">'&gt;SiOH'</span>, <span class="string">'NaCl'</span>,<span class="string">'Cl-'</span>};
 
@@ -98,24 +98,6 @@ chemModel = ChemicalModel(elements, species, reactions, <span class="string">'su
 
 <span class="comment">% print the chemical model to the screen</span>
 chemModel.printChemicalSystem;
-
-<span class="comment">% initial chemistry</span>
-Nai = 1e-3;
-Cli = Nai;
-Hi = 1e-9;
-H2Oi = 1;
-
-inputConstraints = [Nai Cli Hi H2Oi]*mol/litre;
-[initchemstate, initreport]= chemModel.initState(repmat(inputConstraints, nc,1), <span class="string">'charge'</span>, <span class="string">'Cl'</span>);
-
-<span class="comment">% injected chemistry</span>
-Naf = 1e-1;
-Clf = Nai;
-Hf = 1e-9;
-H2Of = 1;
-
-inputConstraints = [Naf Clf Hf H2Of]*mol/litre;
-[injchemstate, injreport] = chemModel.initState(inputConstraints, <span class="string">'charge'</span>, <span class="string">'Cl'</span>);
 </pre><pre class="codeoutput">
 ================================================================================================================================================================
 |Equations      |          H+|         OH-|         Na+|         H2O|       &gt;SiO-|       &gt;SiOH|        NaCl|         Cl-| &gt;SiO_ePsi_0| &gt;SiO_ePsi_1| &gt;SiO_ePsi_2|
@@ -131,7 +113,27 @@ inputConstraints = [Naf Clf Hf H2Of]*mol/litre;
 |&gt;SiOH=&gt;SiO-+H+ |           1|           0|           0|           0|           1|          -1|           0|           0|          -1|           0|           0|
 ================================================================================================================================================================
 
-Computing initial guess...
+</pre><h2>solve for the initial state<a name="6"></a></h2><p>the column is originally saturated with a basic solution, an acidic solution is injected on the left boundary</p><pre class="codeinput"><span class="comment">% initial chemistry</span>
+Nai = 1e-3;
+Cli = Nai;
+Hi = 1e-9;
+H2Oi = 1;
+
+inputConstraints = [Nai Cli Hi H2Oi]*mol/litre;
+[initchemstate, initreport]= chemModel.initState(repmat(inputConstraints, nc,1), <span class="string">'charge'</span>, <span class="string">'Cl'</span>);
+
+initState = initchemstate;
+initState.pressure = pRef*ones(nc,1);
+
+<span class="comment">% injected chemistry</span>
+Naf = 1e-1;
+Clf = Nai;
+Hf = 1e-9;
+H2Of = 1;
+
+inputConstraints = [Naf Clf Hf H2Of]*mol/litre;
+[injchemstate, injreport] = chemModel.initState(inputConstraints, <span class="string">'charge'</span>, <span class="string">'Cl'</span>);
+</pre><pre class="codeoutput">Computing initial guess...
 Solving chemical system...
 Solving the chemical system with strict charge balance...
 System is charge balanced to tolerance of 5.000000%...
@@ -141,10 +143,8 @@ Solving the chemical system with strict charge balance...
 Warning: Charge balance not acheived with given inputs, abandoning solution from
 attempt. Try a different element for charge compensation, or increase salt
 content. 
-</pre><h2>Define the initial state<a name="6"></a></h2><pre class="codeinput">initState = initchemstate;
-initState.pressure = pRef*ones(nc,1);
 </pre><h2>Define the transport model<a name="7"></a></h2><pre class="codeinput">model = ChemicalTransportModel(G, rock, fluid, chemModel);
-</pre><h2>Define the boundary conditions<a name="8"></a></h2><pre class="codeinput"><span class="comment">% use model.fluidMat to pull the fluid concentrations from the injected</span>
+</pre><h2>Define the boundary conditions<a name="8"></a></h2><p>here we specify a dirchlet boundary condition for pressure on the right hand side, and a constant flux on the left. The total element concentration at the boundaries must be provided.</p><pre class="codeinput"><span class="comment">% use model.fluidMat to pull the fluid concentrations from the injected</span>
 <span class="comment">% state</span>
 injfluidpart = injchemstate.species*model.fluidMat';
 initfluidpart = initchemstate.species(end,:)*model.fluidMat';
@@ -164,7 +164,7 @@ bc                  = [];
 bc                  = pside(bc, G, <span class="string">'east'</span>, 0*barsa, <span class="string">'sat'</span>, 1);
 bc.elements         = initfluidpart;        <span class="comment">% (will not be used if outflow)</span>
 bc.logElements      = log(initfluidpart);  <span class="comment">% (will not be used if outflow)</span>
-</pre><h2>Define the schedule<a name="9"></a></h2><pre class="codeinput"><span class="comment">% ten time steps of 0.01 days followed by 100 steps of 1 day</span>
+</pre><h2>Define the schedule<a name="9"></a></h2><p>it is recommened to ramp up the time stepping</p><pre class="codeinput"><span class="comment">% ten time steps of 0.01 days followed by 100 steps of 1 day</span>
 schedule.step.val = [0.01*day*ones(10, 1); 1*day*ones(10, 1);];
 schedule.step.control = ones(numel(schedule.step.val), 1);
 schedule.control = struct(<span class="string">'bc'</span>, bc, <span class="string">'src'</span>, src, <span class="string">'W'</span>, []);
@@ -189,9 +189,9 @@ Solving timestep 17/20: 6 Days, 2 Hours, 1440.00 Seconds  -&gt; 7 Days, 2 Hours,
 Solving timestep 18/20: 7 Days, 2 Hours, 1440.00 Seconds  -&gt; 8 Days, 2 Hours, 1440.00 Seconds
 Solving timestep 19/20: 8 Days, 2 Hours, 1440.00 Seconds  -&gt; 9 Days, 2 Hours, 1440.00 Seconds
 Solving timestep 20/20: 9 Days, 2 Hours, 1440.00 Seconds  -&gt; 10 Days, 2 Hours, 1440.00 Seconds
-*** Simulation complete. Solved 20 control steps in 14 Seconds, 503 Milliseconds ***
-</pre><h2>visualize the simulation<a name="11"></a></h2><pre class="codeinput">plotToolbar(G, states, <span class="string">'field'</span>, <span class="string">'species:1'</span>,<span class="string">'startplayback'</span>, true)
-</pre><img vspace="5" hspace="5" src="SurfaceSystemTransport_01.png" alt=""> <h2>Copyright notice<a name="12"></a></h2><p>
+*** Simulation complete. Solved 20 control steps in 14 Seconds, 751 Milliseconds ***
+</pre><h2>visualize the simulation<a name="11"></a></h2><pre class="codeinput">plotToolbar(G, states, <span class="string">'field'</span>, <span class="string">'species:1'</span>,<span class="string">'startplayback'</span>, true,<span class="string">'plot1D'</span>, true)
+</pre><img vspace="5" hspace="5" src="surfaceSystemTransport_01.png" alt=""> <h2>Copyright notice<a name="12"></a></h2><p>
 <p><font size="-1">
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 </font></p>
@@ -225,6 +225,7 @@ mrstModule add ad-core ad-props ad-blackoil geochemistry
 mrstVerbose off
 
 %% Define the grid
+% here we define a 1D domain with 10 cells, each a meter in length
 
 G = cartGrid([10, 1, 1], [10, 1, 1]);
 G = computeGeometry(G);
@@ -242,6 +243,8 @@ fluid = initSimpleADIFluid('phases', 'W', 'mu', 1*centi*poise, 'rho', ...
                            'pRef', pRef);
 
 %% Define the chemistry
+% the chemical system include the speciation of NaCl and H2O, as well as a
+% reactive silica surface which can have a negative or neutral surface
 
 elements = {'O', 'H', 'Na*','Cl*'};
 
@@ -262,6 +265,10 @@ chemModel = ChemicalModel(elements, species, reactions, 'surf', surfaces);
 % print the chemical model to the screen
 chemModel.printChemicalSystem;
 
+%% solve for the initial state
+% the column is originally saturated with a basic solution, an acidic
+% solution is injected on the left boundary
+
 % initial chemistry
 Nai = 1e-3;
 Cli = Nai;
@@ -270,6 +277,9 @@ H2Oi = 1;
 
 inputConstraints = [Nai Cli Hi H2Oi]*mol/litre;
 [initchemstate, initreport]= chemModel.initState(repmat(inputConstraints, nc,1), 'charge', 'Cl');
+
+initState = initchemstate;
+initState.pressure = pRef*ones(nc,1);
 
 % injected chemistry
 Naf = 1e-1;
@@ -280,15 +290,13 @@ H2Of = 1;
 inputConstraints = [Naf Clf Hf H2Of]*mol/litre;
 [injchemstate, injreport] = chemModel.initState(inputConstraints, 'charge', 'Cl');
 
-%% Define the initial state
-
-initState = initchemstate;
-initState.pressure = pRef*ones(nc,1);
-
 %% Define the transport model
 model = ChemicalTransportModel(G, rock, fluid, chemModel);
 
 %% Define the boundary conditions
+% here we specify a dirchlet boundary condition for pressure on the right
+% hand side, and a constant flux on the left. The total element
+% concentration at the boundaries must be provided.
 
 % use model.fluidMat to pull the fluid concentrations from the injected
 % state
@@ -313,6 +321,7 @@ bc.logElements      = log(initfluidpart);  % (will not be used if outflow)
 
 
 %% Define the schedule
+% it is recommened to ramp up the time stepping
 
 % ten time steps of 0.01 days followed by 100 steps of 1 day
 schedule.step.val = [0.01*day*ones(10, 1); 1*day*ones(10, 1);];
@@ -325,7 +334,7 @@ schedule.control = struct('bc', bc, 'src', src, 'W', []);
 [~, states, scheduleReport] = simulateScheduleAD(initState, model, schedule);
 
 %% visualize the simulation
-plotToolbar(G, states, 'field', 'species:1','startplayback', true)
+plotToolbar(G, states, 'field', 'species:1','startplayback', true,'plot1D', true)
 
 %% Copyright notice
 %
