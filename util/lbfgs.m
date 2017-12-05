@@ -19,7 +19,7 @@ function [x,f,gNorm] = lbfgs(x0, F, varargin)
     %   
     % Returns:
     %   x           optimal point
-    %   f           functioin value at each step
+    %   f           function value at each step
     %   gNorm       norm of the gradient at each step
 
 %{

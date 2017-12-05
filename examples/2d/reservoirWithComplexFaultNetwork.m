@@ -19,8 +19,8 @@
 % in a polygon. The vertices must be ordered counterclockwise or clockwise.
 % We can not use the wrapping function pebiGrid since the boundary is not a
 % square, and therefore have to create the grid "manually". 
-
-load('gridBranets');
+pth = fullfile(mrstPath('upr'), 'datasets', 'gridBranets.mat');
+load(pth);
 color = get(gca,'ColorOrder');
 figure(); hold on
 plot([bdr(:,1);bdr(1,1)],[bdr(:,2);bdr(1,2)],'k');
@@ -53,7 +53,8 @@ pInit = removeConflictPoints2(pInit,F.f.pts,F.f.Gs);
 % If you wish to run the optimization yourself, uncomment the following
 % code:
 %G = CVD2D(pInit, bdr,'fixedPts', F.f.pts,'maxIt',10);
-load('datasets/reservoirWithComplexFaultNetwork.mat')
+pth = fullfile(mrstPath('upr'), 'datasets', 'reservoirWithComplexFaultNetwork.mat');
+load(pth)
 
 %% Plot grid
 figure(); hold on
