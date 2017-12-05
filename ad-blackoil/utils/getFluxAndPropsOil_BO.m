@@ -104,8 +104,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % oil upstream-index
     upco = (double(dpO)<=0);
     
-    [krOf, krO] = s.splitFaceCellValue(upco, krO);
-    [muOf, muO] = s.splitFaceCellValue(upco, muO);
+    [krOf, krO] = s.splitFaceCellValue(s, upco, krO);
+    [muOf, muO] = s.splitFaceCellValue(s, upco, muO);
     mobO   = krO./muO;
     
     vO   = -(krOf./muOf).*T.*dpO;

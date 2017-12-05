@@ -186,7 +186,7 @@ s.faceAvg = @(x)M*x;
 upw = @(flag, x)faceUpstr(flag, x, N, [nf, nc]);
 s.faceUpstr = upw;
 
-s.splitFaceCellValue = @(flag, x) splitFaceCellValue(flag, x, N, [nf, nc], upw);
+s.splitFaceCellValue = @(operators, flag, x) splitFaceCellValue(operators, flag, x, [nf, nc]);
 
 % Include neighbor relations
 s.N = N;

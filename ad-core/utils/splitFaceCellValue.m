@@ -1,4 +1,4 @@
-function [fx, cx] = splitFaceCellValue(flag, x, N, sz, upstr)
+function [fx, cx] = splitFaceCellValue(operators, flag, x, sz)
 % Evaluate multi-valued function into cell and face values
     nf = sz(1);
     nc = sz(2);
@@ -12,7 +12,7 @@ function [fx, cx] = splitFaceCellValue(flag, x, N, sz, upstr)
     switch n
         case nc
             % Cell-wise values only, use upstream weighting
-            fx = upstr(flag, x);
+            fx = operators.faceUpstr(flag, x);
             cx = x;
         case nf + nc
             % Face values first, then cell values
