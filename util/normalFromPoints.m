@@ -1,4 +1,4 @@
-function normal = normal_from_points(p)
+function normal = normalFromPoints(p)
     assert(size(p,1)>=3)
     p1 = p(1, :);
     p2 = p(2,:);
@@ -8,7 +8,7 @@ function normal = normal_from_points(p)
     
     normal = cross(v1, v2);
     if sum(abs(normal))<1e-8
-        normal = normal_from_points(p(:, 2:end));
+        normal = normalFromPoints(p(:, 2:end));
         return
     end
     normal = normal / sqrt(sum(normal.^2));

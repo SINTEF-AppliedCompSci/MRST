@@ -1,4 +1,4 @@
-function pts = ellipticFracture(center, major_axis, minor_axis, major_axis_angle, ...
+function pts = ellipticFault(center, major_axis, minor_axis, major_axis_angle, ...
                  strike_angle, dip_angle, varargin)
     %{
    Create an elliptic fault that is apparoximated by a polygon. Addapted 
@@ -48,15 +48,15 @@ function pts = ellipticFracture(center, major_axis, minor_axis, major_axis_angle
 
     % Rotate reference points so that the major axis has the right
     % orientation
-    major_axis_rot = rotation_matrix_from_vector(major_axis_angle, [0, 0, 1]);
+    major_axis_rot = rotationMatrixFromVector(major_axis_angle, [0, 0, 1]);
     rot_ref_pts = ref_pts * major_axis_rot';
 
     % Then the dip
     % Rotation matrix of the strike angle
-    strike_rot = rotation_matrix_from_vector(strike_angle, [0, 0, 1]);
+    strike_rot = rotationMatrixFromVector(strike_angle, [0, 0, 1]);
     % Compute strike direction
     strike_dir = [1, 0, 0] * strike_rot';
-    dip_rot = rotation_matrix_from_vector(dip_angle, strike_dir);
+    dip_rot = rotationMatrixFromVector(dip_angle, strike_dir);
 
     dip_pts = rot_ref_pts* dip_rot';
 

@@ -1,11 +1,11 @@
-function [grids_2] = fault_sites(faults, grids_1, intersections, ds, gamma)
+function [grids_2] = fautlSites(faults, grids_1, intersections, ds, gamma)
 %sites_2 = {};
 grids_2 = {};
 for f = 1:numel(faults)
     f_pts = faults{f};
     center = mean(f_pts, 1);
     f_center = bsxfun(@minus, f_pts, center);
-    R = rotation_matrix_from_plane(f_center);
+    R = rotationMatrixFromPlane(f_center);
     f_xy = f_center * R';
     assert(sum(abs(f_xy(:, 3)))<1e-6);
     f_xy = f_xy(:,1:2);
@@ -58,7 +58,7 @@ for f = 1:numel(faults)
     % throw out tip sites otside fracture domain
     is_innside = true(1, size(tip_sites, 1));
     for i = 1:size(tip_sites, 1)
-        is_innside(i) = in_polygon(f_xy, tip_sites(i,:));    
+        is_innside(i) = inPolygon(f_xy, tip_sites(i,:));    
     end
     tip_sites = tip_sites(is_innside, :);
     tip_sites = faultSufCondFrom1D(tip_sites, grids_1_projected, gamma - 1e-6);

@@ -1,9 +1,9 @@
-function int = polygon_intersection(poly_1, poly_2)
+function int = polygonIntersection(poly_1, poly_2)
     tol = 1e-6;
     center_1 = mean(poly_1, 1);
     poly_1 = bsxfun(@minus, poly_1, center_1);
     poly_2 = bsxfun(@minus, poly_2, center_1);
-    R = rotation_matrix_from_plane(poly_1);
+    R = rotationMatrixFromPlane(poly_1);
     poly_1 = poly_1 * R';
     assert(sum(abs(poly_1(:, 3)))<1e-6);
     poly_1 = poly_1(:,1:2);
@@ -41,8 +41,8 @@ function int = polygon_intersection(poly_1, poly_2)
     AB = AB(:, 1:2);
     
     % Now test if the two intersections are innside the first polygon
-    A_innside = in_polygon(poly_1, AB(1,:));
-    B_innside = in_polygon(poly_1, AB(2,:));
+    A_innside = inPolygon(poly_1, AB(1,:));
+    B_innside = inPolygon(poly_1, AB(2,:));
     AB_line = reshape(AB', 1,4);
     poly_1 = [poly_1; poly_1(1,:)];
     poly_1 = [poly_1(1:end-1,:),poly_1(2:end,  :)];

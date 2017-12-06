@@ -1,10 +1,10 @@
-function intersections = fault_intersections(faults)
+function intersections = faultIntersections(faults)
 
 intersections = {};
 for f1 = 1:numel(faults)
     % first find intersection between fault i and all other faults
     for f2 = f1+1:numel(faults)
-       int_pts = polygon_intersection(faults{f1}, faults{f2});
+       int_pts = polygonIntersection(faults{f1}, faults{f2});
        if size(int_pts, 1) > 0
            intersections= {intersections{:}, {int_pts, f1, f2}};
        end
@@ -17,7 +17,7 @@ for f = 1:numel(faults)
     f_pts = faults{f};
     center = mean(f_pts, 1);
     f_center = bsxfun(@minus, f_pts, center);
-    R = rotation_matrix_from_plane(f_center);
+    R = rotationMatrixFromPlane(f_center);
     f_xy = f_center * R';
     assert(sum(abs(f_xy(:, 3)))<1e-6);
     f_xy = f_xy(:,1:2);

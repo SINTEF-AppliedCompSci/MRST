@@ -1,4 +1,4 @@
-function inside = in_polygon(poly, ptn)
+function inside = inPolygon(poly, ptn)
     tol = 1e-6;
     poly = poly - ptn;
     ind = [1:size(poly,1), 1];

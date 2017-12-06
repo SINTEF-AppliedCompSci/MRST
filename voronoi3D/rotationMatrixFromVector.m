@@ -1,13 +1,9 @@
-function mat = rotation_matrix_from_plane(poly)
-    normal = normal_from_points(poly);
-    z_basis = [0,0,1];
-    theta = acos(dot(normal, z_basis));
-    v = cross(normal, z_basis);
-    if sum(abs(v))<1e-8
+function mat = rotationMatrixFromVector(theta, vec)
+    if sum(abs(vec))<1e-8
         mat = eye(3);
         return
     end
-    v = v/sqrt(sum(v.^2));
+    v = vec/sqrt(sum(vec.^2));
     mat_x = [     0, -v(3),  v(2);...
                v(3),     0, -v(1);...
               -v(2),  v(1),     0];

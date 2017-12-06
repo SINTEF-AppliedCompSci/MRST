@@ -1,10 +1,10 @@
-function [grid_3]  = reservoir_sites(pdim, faults, grids_2, ds, gamma)
+function [grid_3]  = reservoirSites(pdim, faults, grids_2, ds, gamma)
 
 internal_pts = zeros(0, 3);
 
 for f = 1:numel(grids_2)
     f_pts = faults{f};
-    normal = normal_from_points(f_pts);
+    normal = normalFromPoints(f_pts);
     pts_2 = grids_2{f}.cells.sites; 
 
     pts_3 = bsxfun(@plus, pts_2, normal * gamma);
@@ -39,15 +39,12 @@ rSites = [X(:), Y(:), Z(:)];
 
 sites = cellfun(@(c) c.cells.sites, grids_2, 'un', false);
 CC = vertcat(sites{:});
-R = ds * ones(size(CC, 1), 1);
 
-%rSites = faultSufCond3D(rSites, CC, R);
 rSites = faultSufCondFromGrid3D(rSites, grids_2, gamma);
 sites_3 = [internal_pts; rSites];
-%grid_3 = CVD3D(rSites, bdr, 'fixedPts', internal_pts, 'maxIt', 30);
 
 grid_3 = mirroredPebi(sites_3, bdr);
 grid_3.cells.sites = sites_3;
-%grid_3 = internal_pts;
+
 
 end

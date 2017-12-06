@@ -1,4 +1,4 @@
-function grid_1 = intersection_sites(intersections, ds)
+function grid_1 = intersectionSites(intersections, ds)
 
 grid_1 = {};
 for i = 1:numel(intersections)
