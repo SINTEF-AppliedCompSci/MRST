@@ -30,6 +30,9 @@ function [state, model] = activity(model, state)
     pg = cell(1,nC);
     for i = 1 : nC
         pg{i} = log(10).*-A.*CV(1,i)'.^2 .* (ion{i}.^(1/2)./(1 + ion{i}.^(1/2)) - 0.3.*ion{i});
+        if CV(1,i) == 0
+            pg{i} = ion{i}*0.1;
+        end
     end
 
     % Reaction matrix, activities only apply to laws of mass action

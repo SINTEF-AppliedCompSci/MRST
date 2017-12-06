@@ -1,5 +1,5 @@
 function [eqs, names, types] = equationsChargeBalance(model, state, logComponents, logMasterComponents, combinationComponents,...
-                 logPartialPressures, logSaturationIndicies, logSurfaceAcitivityCoefficients, CVC)
+                 logPartialPressures, logSaturationIndicies, logSurfaceAcitivityCoefficients)
 
     [eqs, names, types] = equationsChemicalLog(model, state, logComponents, logMasterComponents, combinationComponents, ...
                                                        logPartialPressures, logSaturationIndicies,logSurfaceAcitivityCoefficients);
@@ -8,16 +8,16 @@ function [eqs, names, types] = equationsChargeBalance(model, state, logComponent
     
     CVCind = strcmpi(model.CVC, model.elementNames)';
 
-    %% recalculate mass balance on CVC
-    eqInd = strcmpi(names, ['Conservation of ' model.CVC]);
-
-    masssum = 0;
-    for k = 1 : model.nC
-        masssum = masssum + model.compositionMatrix(CVCind,k).*components{k};
-    end
-    masssum = masssum + CVC;
-
-    eqs{eqInd} = log(masssum) - logMasterComponents{CVCind};
+%     %% recalculate mass balance on CVC
+%     eqInd = strcmpi(names, ['Conservation of ' model.CVC]);
+% 
+%     masssum = 0;
+%     for k = 1 : model.nC
+%         masssum = masssum + model.compositionMatrix(CVCind,k).*components{k};
+%     end
+%     masssum = masssum - CVC;
+% 
+%     eqs{eqInd} = log(masssum) - logMasterComponents{CVCind};
 
 
     %% charge balance

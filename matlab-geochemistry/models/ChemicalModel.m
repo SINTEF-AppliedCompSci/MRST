@@ -344,7 +344,7 @@ classdef ChemicalModel < PhysicalModel
         linearTolerance           % tolerance of the residual of the linear system, for backslash
         linearMaxIterations       % maximum number of iterations for the linear solver
         chargeBalanceTolerance    % tolerance of charge balance equaiton as fraction of total ion concentraciton
-        
+        CVC % charge variation component
     end
 
 
@@ -425,6 +425,7 @@ classdef ChemicalModel < PhysicalModel
             model.linearMaxIterations       = 25;
             model.linearTolerance           = 1e-8;
             model.chargeBalanceTolerance        = 0.05;
+            model.CVC = '';
         end
 
 
@@ -1057,7 +1058,6 @@ classdef ChemicalModel < PhysicalModel
                 end
                 state0 = state;
                 if isempty(model.chargeBalanceModel)
-%                     model.chargeBalanceModel = chargeBalanceModel_nonLog();
                     model.chargeBalanceModel = chargeBalanceModel();
                 end
                 for i = 1 : numel(props);

@@ -17,9 +17,8 @@ pVar = nonLogVariables(sortInd);
 LC = model.combinationMatrix;
 CM = model.compositionMatrix;
 
-mult = 1;
 if isfield(state, 'CVC')
-    mult = 10;
+    mult = 100;
 end
 
 for i = 1 : numel(pVar)
@@ -44,15 +43,24 @@ for i = 1 : numel(pVar)
         state = model.capProperty(state, p, -maxvals, ...
                                   maxvals);
                               
-   elseif strcmpi(p, 'CVC') 
-        cvcInd = strcmpi(model.CVC, model.elementNames);
-        cvcVal = state.elements(:,cvcInd);
-        state = model.capProperty(state, p, -0.99*cvcVal, 10*cvcVal);
+%    elseif strcmpi(p, 'CVC') 
+%         cvcInd = strcmpi(model.CVC, model.elementNames);
+%         cvcVal = state.elements(:,cvcInd);
+%         figure(1); hold on;
+%         plot(model.getProp(state, p),'-k')
+%         state = model.capProperty(state, p, -0.99*cvcVal, mult*cvcVal);
+%         plot(model.getProp(state, p),'--r')
+%         if true
+%         end
         
     elseif any(strcmpi(p, model.speciesNames))
         maxvals = model.maxMatrices{compInd}*((state.elements)');
-        maxvals = (min(maxvals))';         
-        state = model.capProperty(state, p, 1e-100, mult*maxvals); 
+        maxvals = (min(maxvals))';
+%         if ~isempty(strfind(p,model.CVC)) 
+%             state = model.capProperty(state, p, 1e-100, mult*maxvals);
+%         else 
+            state = model.capProperty(state, p, 1e-100, maxvals);
+%         end
     end
 
 end

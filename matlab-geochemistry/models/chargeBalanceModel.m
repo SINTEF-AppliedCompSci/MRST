@@ -2,14 +2,14 @@ classdef chargeBalanceModel < ChemicalInputModel
     
     
     properties
-        CVC         % charge variation component
+%         CVC         % charge variation component
     end
     
     methods
 
         function model = chargeBalanceModel()
             model = model@ChemicalInputModel();
-            model.CVC = [];
+%             model.CVC = [];
         end
         
 
@@ -20,11 +20,13 @@ classdef chargeBalanceModel < ChemicalInputModel
                 state.CVC = eps*ones(nCells,1);
             end
             
-            [unknowns, components, masterComponents, combinationComponents,...
-                 partialPressures, saturationIndiciess, surfaceAcitivityCoefficients, CVC] = prepStateForEquations(model, state);
-
+%             [unknowns, components, masterComponents, combinationComponents,...
+%                  partialPressures, saturationIndiciess, surfaceAcitivityCoefficients, CVC] = prepStateForEquations(model, state);
+        [unknowns, components, masterComponents, combinationComponents,...
+                 partialPressures, saturationIndiciess, surfaceAcitivityCoefficients] = prepStateForEquations(model, state);
+             
             [eqs, names, types] = equationsChargeBalance(model, state, components, masterComponents, combinationComponents,...
-                 partialPressures, saturationIndiciess, surfaceAcitivityCoefficients, CVC);
+                 partialPressures, saturationIndiciess, surfaceAcitivityCoefficients);
             
             problem = LinearizedProblem(eqs, types, names, unknowns, state, dt);
 
@@ -32,7 +34,7 @@ classdef chargeBalanceModel < ChemicalInputModel
         
         
         function [unknowns, components, masterComponents, combinationComponents,...
-                 partialPressures, saturationIndiciess, surfaceAcitivityCoefficients,CVC] = prepStateForEquations(model, ...
+                 partialPressures, saturationIndiciess, surfaceAcitivityCoefficients] = prepStateForEquations(model, ...
                                                               state)
             
             CNames = model.logSpeciesNames;
@@ -43,7 +45,7 @@ classdef chargeBalanceModel < ChemicalInputModel
             SPNames = model.logSurfaceActivityCoefficientNames;
             
             unknowns = model.unknownNames;
-            knowns = model.inputNames;
+            knowns = model.inputNames(~strcmpi(model.inputNames,model.CVC));
             
             unknowns = addLogToNames(unknowns);
             knowns = addLogToNames(knowns);
@@ -68,8 +70,8 @@ classdef chargeBalanceModel < ChemicalInputModel
             saturationIndiciess = distributeVariable( SNames, knowns, unknowns, knownVal, unknownVal );
             surfaceAcitivityCoefficients = distributeVariable( SPNames, knowns, unknowns, knownVal, unknownVal );
 
-            cvcInd = strcmpi(unknowns, 'CVC');
-            CVC = unknownVal{cvcInd}; 
+%             cvcInd = strcmpi(unknowns, 'CVC');
+%             CVC = unknownVal{cvcInd}; 
             
         end
         
@@ -77,8 +79,9 @@ classdef chargeBalanceModel < ChemicalInputModel
         % inputstate contains the input and the initial guess.
 
             % grab the names of unknowns                                              
-            unknownNames = horzcat(model.speciesNames, model.elementNames,model.combinationNames, 'CVC', model.solidNames, model.gasNames, model.surfaceActivityCoefficientNames);
-            ind = ismember(unknownNames, model.inputNames);
+            unknownNames = horzcat(model.speciesNames, model.elementNames,model.combinationNames, model.solidNames, model.gasNames, model.surfaceActivityCoefficientNames);
+            
+            ind = ismember(unknownNames, model.inputNames(~strcmpi(model.inputNames, model.CVC)));
             model.unknownNames = unknownNames(~ind);
             
             solver = NonLinearSolver(); 
@@ -124,7 +127,7 @@ classdef chargeBalanceModel < ChemicalInputModel
                 warning(warningText);
             end
             
-            state = model.setProp(state, model.CVC, MCval + CVC);
+            state = model.setProp(state, model.CVC, MCval - CVC);
             assert(all((MCval + CVC) > 0), warningText);
            
             state= rmfield(state, 'CVC');
