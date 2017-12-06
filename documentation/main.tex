@@ -24,6 +24,11 @@
 
 \graphicspath{{./figures/}}
 
+\newcommand{\fracpar}[2]{\frac{\partial #1}{\partial #2}}
+\newcommand{\grad}{\nabla}
+\newcommand{\dive}{\nabla\cdot}
+\newcommand{\curl}{\nabla\times}
+
 \urlstyle{same}
 \setlist[description]{leftmargin=1cm,labelindent=1cm}
 
@@ -160,7 +165,9 @@ Multiples and fractions of species can be written just like any equation by mult
 
 The parser will search the reaction strings for exact, non-case-sensitive matches to entries of \verb|elementNames|. Therefore, species must be written consistently throughout the chemical system. This includes the way charge is written. 
 
-Reactions must be written as 'products = reactants', with an equals sign (=) separating the two. The direction of the reaction does not matter from the parser standpoint, but care should be taken to write the equilibrium constant correctly as its value depends on the reaction direction. The parser is insensitive to spacing and capitalization. 
+Reactions must be written as ``products = reactants'', with an equals sign (=) separating the two. The direction of the reaction does not matter from the parser standpoint, but care should be taken to write the equilibrium constant correctly as its value depends on the reaction direction. The parser is insensitive to spacing and capitalization. 
+
+Note that in the laws of mass action, surface activities are mole fractions, as defined by model 3 in \citet{wang2013} and are therefore surface activities are dimensionless. If the units of the reaction constant are not in SI, then care should be taken in surface reactions, see surface chemistry examples for details. 
 
 The parser will verify that charge and the mass of each element is conserved within the reaction.
 
@@ -174,6 +181,8 @@ chem = ChemicalModel(elementNames, speciesNames, reactions, 'surfaces', surfInfo
 where \mcode{'surfaces'} is the ``key'' (alternatively any fraction of the word surfaces \mcode{'s'}, \mcode{'surf'} etc.), and \verb|surfInfo| is cell array containing information pertinent to the surfaces in the system. 
 
 There are many parameters for surface chemistry models, and so the construction of \verb|surfInfo| is a bit complex. We will start with the most simplistic model, the Langmuir model, and build from there.
+
+Special care should be taken when defining the reaction constant of a surface reaction. In the laws of mass action, surface species are defined as mole fractions (model 3 of \citet{wang2013}). Therefore, surface species are dimensionless.
 
 \subsubsection{Langmuir}
 
@@ -191,7 +200,7 @@ Within the information cell is the surface geometry and the surface model type. 
 The \verb|geometry| variable is a \{1$\times$3\} vector containing the surface site density, specific surface area, and slurry density, in that order. For example
 
 \begin{lstlisting}
-geometry = [1/(nano*meter)^2 50*meter^2/gram 1000*grams/litre];
+geometry = [1*site/(nano*meter)^2 50*meter^2/gram 1000*grams/litre];
 \end{lstlisting}
 
 defines a surface with a site density of 1 site/nm$^2$, a specific surface area of 50 m$^2$/g and slurry density of 1000 g/L.  The entries of \verb|geometry| must be in SI units. Many conversion multipliers are provided within MRST to make this conversion convenient. The geometry information is used to calculate the total molar concentration of the surface functional group. For example the total concentration of \ce{FeO} sites would calculated as the product of all entries of \verb|geometry| with a conversion from site to moles. \verb|geometry| can also be a matrix with the same length as the input vector described in Section \ref{sec:format} so that the surface geometry may be varied. This may be useful in understanding the effect of say specific surface area on the distribution of surface species. 
@@ -208,7 +217,7 @@ surfInfo = {'>SiO', {geometry, 'ie'}};
 
 chem = ChemicalModel(elementNames, speciesNames, reactions, 'surf', surfInfo);
 \end{lstlisting}
-The parser will ensure that surface species associated with an ion exchange surface does not have a charge. Note how the surface reaction is defined in \verb|reactions| such that the surface is always neutral. The active fraction is used to determine the activity of surface species of ion exchange surfaces. 
+The parser will ensure that surface species associated with an ion exchange surface does not have a charge. Note how the surface reaction is defined in \verb|reactions| such that the surface is always neutral.  Note that the ion exchange reaction constant abover is dimensionless as \mcode{'>SiOH'} and \mcode{'>SiONa'} are dimensionless and the units of \mcode{'H+'} and \mcode{'Na+'} cancel in the law of mass action. 
 
 \subsubsection{Triple layer model}
 The triple layer model attempts to capture the electrostatic behavior of the mineral surface by considering the mineral-liquid interface as three capacitors in series. The capacitance layers are segmented by charge accumulation planes. The two inner most layers have a constant capacitance and the outermost layer (the diffuse layer) has a variable capacitance which depends on the temperature and salinity of the bulk aqueous phase \cite{McNeece2016, westall1980, Hiemstra1989a}{}.
@@ -249,6 +258,8 @@ The parser checks that the entries of the charge distribution vector sum to the 
 
 Partial charges can also be written in the charge distribution vector as is common in the triple layer and CD-MUSIC models, for example \mcode{[0.5 -1]}. The multisite aspect of the CD-MUSIC model can be included by grouping surfaces which is discussed in Section \ref{sec:groups}. 
 
+Note that mole fraction is used for surface species in the laws of mass action. 
+
 \subsubsection{Constant capacitance model}
 The constant capacitance model is the high ionic strength limit of the triple layer model. However, unlike the basic stern and diffuse layer model the constant capacitance model can not be simulated by an adjustment of the capacitance density values as was done above. Instead the constant capacitance model must be specified by the \mcode{'ccm'} model flag.
 
@@ -260,6 +271,8 @@ surfInfo = {'>FeO', {geometry, 'ccm', cap}};
 chem = ChemicalModel(elementNames, speciesNames, reactions, 'surf', surfInfo);
 \end{lstlisting}
 As with the triple layer model, the capacitance density is a required parameter of the constant capacitance model. However, only one capacitance density is needed. 
+
+Note that mole fraction is used for surface species in the laws of mass action. 
 
 \subsubsection{Surface groups}\label{sec:groups}
 In the triple layer model, specifically the CD-MUSIC variation, it is common to have multiple surface functional groups belonging to a single electrostatic surface. An example of this would be the different iron oxide functional groups of the goethite surface. To group these different functional groups into a single surface an additional ``key''/value pair is included in \verb|surfInfo|
@@ -525,12 +538,12 @@ The ``key'' \mcode{'temperature'} (alternatively \mcode{'temp'}, \mcode{'t'} etc
 By default charge balance is not enforced in MATCH. To include the charge balance equation as an additional constraint on the chemical system an additional ``key''/value pair must be passed to \verb|initState|
 
 \begin{lstlisting}
-state = chem.initState(inputs, 'chargeBalance', element);
+state = chem.initState(inputs, 'chargeBalance', component);
 \end{lstlisting}
 
-The ``key'' \mcode{'chargeBalance'} (alternatively  \mcode{'charge'}, \mcode{'c'} etc.) is followed by a string containing the name of an element in the system that will be used to balance charge, hereafter called the charge variation component. The charge variation component must be an element that is provided as an input in \verb|inputs| and must be associated with at least one charged species. If the conditions specified by the user do not result in a charge balanced system the solver will add or subtract mass from the total concentration of the charge variation component. The solver bounds the charge variation component between \mcode{eps} and twice the value given in \verb|inputs|. 
+The ``key'' \mcode{'chargeBalance'} (alternatively  \mcode{'charge'}, \mcode{'c'} etc.) is followed by a string containing the name of an element, species, linear combination, or gas in the system that will be used to balance charge, hereafter called the charge variation component. The charge variation component must be associated with at least one charged species. If the conditions specified by the user do not result in a charge balanced system the solver will add or subtract mass from the total concentration of the charge variation component. The solver puts a lower bound on the charge variation component at \mcode{realmin}.
 
-If charge balance can not be obtained under these constraints the solver will throw a warning and instead return the results of the solver without the constraint of charge balance. If the solver fails to converge consider increasing the mass of the charge variation component, or choosing a different element as the charge variation component. 
+If charge balance can not be obtained under these constraints the solver will throw a warning and instead return the results of the solver without the constraint of charge balance. If the solver fails to converge consider increasing the mass of the charge variation component, or choosing a different component (one with the opposite charge) as the charge variation component. 
 
 \subsection{Solver options}
 
@@ -726,7 +739,7 @@ In MATCH the total aqueous concentration of an element can be retrieved once the
 \begin{lstlisting}
 [state, chem] = chem.computeAqueousConcentrations(state);
 \end{lstlisting}
-The above code returns \verb|state| with the additional field \verb|aqueousConcentrations|. The \verb|ChemicalModel| object is also returned with the additional field \verb|aqueousConcentrationNames|. The total aqueous concentration of an element can be retrieved from \verb|state| by asking \verb|getProp| for the element name appended by '(aq)' (i.e. \mcode{chem.getProp(state, 'H(aq)')} for the total aqueous concentration of hydrogen). The total aqueous concentration of all elements can be retrieved by \mcode{chem.getProp(state,'aqueousConcentrations')}. The total aqueous concentration of surface functional groups is not added to \verb|aqueousConcentrations|.
+The above code returns \verb|state| with the additional field \verb|aqueousConcentrations|. The \verb|ChemicalModel| object is also returned with the additional field \verb|aqueousConcentrationNames|. The total aqueous concentration of an element can be retrieved from \verb|state| by asking \verb|getProp| for the element name appended by \mcode{'(aq)'} (i.e. \mcode{chem.getProp(state, 'H(aq)')} for the total aqueous concentration of hydrogen). The total aqueous concentration of all elements can be retrieved by \mcode{chem.getProp(state,'aqueousConcentrations')}. The total aqueous concentration of surface functional groups is not added to \verb|aqueousConcentrations|.
 
 \subsubsection{computeSurfaceConcentrations}
 
@@ -735,7 +748,7 @@ In MATCH the total surface concentration of an element can be retrieved once the
 \begin{lstlisting}
 [state, chem] = chem.computeSurfaceConcentrations(state);
 \end{lstlisting}
-The above code returns \verb|state| with the additional field \verb|surfaceConcentrations|. The \verb|ChemicalModel| object is also returned with the additional field \verb|surfaceConcentrationNames|. The total surface concentration of an element can be retrieved from \verb|state| by asking \verb|getProp| for the element name appended by '(surf)' (i.e. \mcode{chem.getProp(state, 'H(surf)')} for the total surface concentration of hydrogen). The total surface concentration of all elements can be retrieved by \mcode{chem.getProp(state,'surfaceConcentrations')}. The total surface concentration of surface functional groups is not added to \verb|surfaceConcentrations|.
+The above code returns \verb|state| with the additional field \verb|surfaceConcentrations|. The \verb|ChemicalModel| object is also returned with the additional field \verb|surfaceConcentrationNames|. The total surface concentration of an element can be retrieved from \verb|state| by asking \verb|getProp| for the element name appended by \mcode{'(surf)'} (i.e. \mcode{chem.getProp(state, 'H(surf)')} for the total surface concentration of hydrogen). The total surface concentration of all elements can be retrieved by \mcode{chem.getProp(state,'surfaceConcentrations')}. The total surface concentration of surface functional groups is not added to \verb|surfaceConcentrations| as this would be equivalent to the total concentration, as surface functional groups do not reside in the liquid. 
 
 \subsubsection{changeUnits}
 \verb|changeUnits| is not a function inside of the \verb|ChemicalModel| object, and so should be called with the object name:
@@ -760,6 +773,134 @@ Or each field can have different units
 state = changeUnits(state, {'species', 'elements', 'activities'}, [mol/litre, milli*mol/litre, kilo*mol/(nano*meter)^3]);
 \end{lstlisting}
 
+\section{Transport simulations}
+
+MATCH has the ability to simulate the advection-reaction equation on arbitrary domains using a fully implicit upwind finite volume scheme. The procedure for such a simulation follows the steps
+\begin{enumerate}
+    \item define a domain geometry
+    \item define fluid and rock properties
+    \item define a chemical system
+    \item solve the chemical system for the conditions in the domain
+    \item specify boundary conditions, wells, and source terms
+    \item define a time stepping schedule
+    \item run the simulation
+\end{enumerate}
+
+The MRST guidebook has a wealth of knowledge for the grid generation \cite{lie2014}, and several examples are provided for reference. We will use a simple system as an example to introduce the above concepts
+
+\begin{lstlisting}
+close all;
+clear;
+
+mrstModule add ad-core ad-props ad-blackoil geochemistry mrst-gui
+
+%% Define the grid
+G = cartGrid([100, 1, 1], [1, 1, 1]);
+G = computeGeometry(G);
+\end{lstlisting}
+
+Here we loaded the necessary modules for the transport simulation and have defined a 1D domain of size 1m$\times$1m$\times$1m, and a discretization of 100$\times$1$\times$1 cells. 
+
+We must now define a fluid and rock so that the transport properties of the porous medium can be calculated
+
+\begin{lstlisting}
+%% Define the rock
+rock.perm = 1*darcy*ones(G.cells.num, 1);
+rock.poro = 0.5*ones(G.cells.num, 1);
+
+%% Define the fluid
+pRef = 0*barsa;
+fluid = initSimpleADIFluid('phases', 'W', 'mu', 1*centi*poise, 'rho', ...
+                           1000*kilogram/meter^3, 'c', 1e-10, 'cR', 4e-10, ...
+                           'pRef', pRef);
+\end{lstlisting}
+
+Here we have defined a rock object with a permeability of 1 Darcy and porosity of 0.5 as well as a single liquid phase, water. For more information on the fluid and rock objects see the MRST book \cite{lie2014}.
+
+In this example we will simulate the injection of a fluid with distinct composition into a resovoir at equilibrium with a fluid of a different composition. We define the system chemical system as before, but solve for two composition, one for in initial fluid, and one for the injected. 
+
+\begin{lstlisting}
+%% Define the chemistry
+elements = {'O', 'H', 'Na*','Cl*'};
+
+species = {'H+*', 'OH-', 'Na+', 'H2O*', 'NaCl','Cl-'};
+
+reactions ={'H2O  = H+  + OH- ',      10^-14*mol/litre, ... 
+            'NaCl = Na+ + Cl-',       10^1*mol/litre};
+
+% instantiate chemical model
+chemModel = ChemicalModel(elements, species, reactions);
+
+% initial chemistry
+Nai = 1e-3;
+Cli = Nai;
+Hi = 1e-7;
+H2Oi = 1;
+
+initial = [Nai Cli Hi H2Oi]*mol/litre;
+
+[initChemState, initReport]= chemModel.initState( repmat(initial, G.cells.num, 1), 'charge', 'Cl');
+
+% injected chemistry
+Naf = 1e-3;
+Clf = Naf;
+Hf = 1e-10;
+H2Of = 1;
+
+injected = [Naf Clf Hf H2Of]*mol/litre;
+
+[injChemState, injreport]= chemModel.initState(injected, 'charge', 'Cl');
+\end{lstlisting}
+
+The transport equation evolves the total element concentration. The flow field is calculated by solving the pressure field. Thus pressure must be added to the \mcode{state} structure.
+\begin{lstlisting}
+initChemState.pressure          = pRef*ones(G.cells.num, 1);
+\end{lstlisting}
+
+The transport model object is instantiated using the \mcode{ChemicalTransportModel} command
+
+\begin{lstlisting}
+model = ChemicalTransportModel(G, rock, fluid, chemModel);
+\end{lstlisting}
+
+and accepts the domain geoemtry, rock, fluid and chemical model objects. Next the boundary conditions must be specified. In this example we will be injecting the new fluid into the first cell via a Neumann boundary condition on the left hand side. On the right hande side of the domain we specify a Dirchlet boundary condition with a reference pressure of 0.
+
+\begin{lstlisting}
+src                	= [];
+src               	= addSource(src, 1, 1*meter^3/day, 'sat', 1);
+src.elements        = injChemState.elements(end,:);
+src.logElements     = injChemState.logElements(end,:);
+
+bc                  = [];
+bc                  = pside(bc, 'east', 0*barsa, 'sat', 1);
+bc.elements         = initChemState.elements(end,:);        % (will not used if outflow)
+bc.logElements      = initChemState.logElements(end,:);  % (will not used if outflow)
+\end{lstlisting}
+
+Note that the element concentrations will only be used if the boundary condition is an inflow. If the chemical system involves surface species, their concentration should not be added to the boundary condition. The transport model object contains a matrix multiplier called \mcode{fluidMat} which can be used to remove their contribution. See the example file \mcode{surfaceSystemTransport.m} for a demonstration. 
+
+Next an injection schedule must be specified
+
+\begin{lstlisting}
+%% Define the schedule
+schedule.step.val = [0.01*day*ones(5, 1); 0.1*day*ones(5,1); 1*day*ones(5, 1); 5*day*ones(10, 1)];
+schedule.step.control = ones(numel(schedule.step.val), 1);
+schedule.control = struct('bc', bc, 'src', src, 'W', []);
+\end{lstlisting}
+
+Here we take five steps of 0.01 days, 5 steps of 0.1 days, 5 steps of 1 day and then 10 steps of 5 days. The transport solver will have an easier time converging is the time stepping is ramped up in such a way. 
+
+Finally, the transport simulation can be run. 
+
+\begin{lstlisting}
+[wellsols, states, scheduleReport] = simulateScheduleAD(initChemState, model, schedule);
+\end{lstlisting}
+
+The function will return a cell array of \mcode{state} structures corresponding to every time state in the system, as well as a solver report for each of the steps. In the case that a well is also specified the well solutions will be returned.
+
+The results of the simulation can be visualized with the \mcode{plotToolbar} function.
+
+The simulation progress can be visualized by toggling the two options \mcode{model.plotIter} and \mcode{model.plotFinal}. Both options are set to \mcode{false} by default. With these options the solver will plot the elements and species distribution in the domain for each iteration of the newton solver, and at each time step once the solver has converged. 
 
 \section{Equations of the chemical system}
 The chemical system is determined by the following equation
@@ -769,6 +910,7 @@ The chemical system is determined by the following equation
     \item equilibrium between gas-liquid and solid-liquid phases
     \item aqueous charge balance [optional]
     \item surface charge balance [depending on surface chemistry model]
+    \item transport law [optional]
 \end{itemize}
 
 Below we will formally introduce these equations. For convenience the variables and nomenclature are presented in Table \ref{table:variables}.
@@ -781,7 +923,7 @@ Below we will formally introduce these equations. For convenience the variables 
 \toprule
 variable        & unit                      & index                     & description                           \\ \midrule
 $N_i$           & mol/m$^3$                 & $i = \{1 \ldots n_b\}$    & total concentration of element $i$                        \\
-$c_j$           & mol/m$^3$                 & $j = \{1 \ldots n_c\}$    & concentration of aqueous species $j$                      \\
+$c_j$           & mol/m$^3$  or [-]         & $j = \{1 \ldots n_c\}$    & concentration or mole fraction of species $j$                      \\
 $\gamma_j$      & -                         & -                         & activity coefficient of species $j$                      \\
 $\alpha_{i,j}$  &    -                      & -                         & mass contribution of element $i$ to species $j$ \\
 $z_j$           &    -                      & -                         & charge of species $j$ \\
@@ -799,6 +941,9 @@ $\Psi_{o,p}$    & V                         & -                         & electr
 $\zeta_{j,o,p}$ & -                         & -                         & charge contribution of species $j$ to plane $p$ of electrostatic surface $o$ \\
 $L_{u}$         & mol/m$^3$                 & $u = \{1 \ldots n_w\}$    & concentration of linear combination $u$ \\
 $\xi{j,u}$      & -                         & -                         & mass contribution of species $j$ to linear combination $u$ \\
+$U_i$           & mol/(m$^2$s)              & -                         & flux of element $i$\\
+$F_i$           & mol/(m$^3$s)              & -                         & source of element $i$\\
+$\vec{U}$       & m$^3$/(m$^2$s)            & -                         & volumetric flow rate of element $i$\\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -828,7 +973,7 @@ In the absence of sink and source terms the conservation of total element concen
 \begin{align}
     N_i = \sum_{j=1}^{n_c} \alpha_{i,j} c_j,
 \end{align}
-where $N_i$ is the concentration of element $i$, $n_c$ is the number of total number of species, $\alpha_{i,j}$ is the mass contribution of element $i$ to species $j$, and  $c_j$ is the concentration of species $j$. The variables $c$ and $N$ includes surface functional groups and surface bound species. Note that the mass of elements in the gas a solid phase do not contribute to the mass constraint in the model formulation.
+where $N_i$ is the concentration of element $i$, $n_c$ is the number of total number of species, $\alpha_{i,j}$ is the mass contribution of element $i$ to species $j$, and  $c_j$ is the concentration of species $j$. The variables $c$ and $N$ includes surface functional groups and surface bound species. Note that the mass of elements in the gas a solid phase do not contribute to the mass constraint in the model formulation. In the conservation of mass equations, all species concentrations $c_j$ are in units of moles/m$^3$ including surface species. 
 
 \subsection{Laws of mass action}
 The laws of mass action determine the equilibrium distribution of species under the constrain of local chemical equilibrium
@@ -836,7 +981,7 @@ The laws of mass action determine the equilibrium distribution of species under 
 \begin{align}
 K_l = \prod_{j=1}^{n_c} \left(\gamma_j c_j\right)^{\beta_{j,l}}.
 \end{align}
-Where $K_l$ is the equilibrium constant of reaction $l$, $\gamma_j$ is the activity coefficient of species $j$, and $\beta_{j,l}$ is the stoichiometric coefficient of species $j$ in reaction $l$.  Note that $\beta$ can be positive, negative, or zero if the species is a reactant, a product, or absent respectively. Note that $K$ does not include solid phase reactions, but does include gas phase reactions, surface reactions and aqueous reactions. 
+Where $K_l$ is the equilibrium constant of reaction $l$, $\gamma_j$ is the activity coefficient of species $j$, and $\beta_{j,l}$ is the stoichiometric coefficient of species $j$ in reaction $l$.  Note that $\beta$ can be positive, negative, or zero if the species is a reactant, a product, or absent respectively. Note that $K$ does not include solid phase reactions, but does include gas phase reactions, surface reactions, and aqueous reactions. For the laws of mass actions, if species $j$ resides on the surface $c_j$ is the mole fraction of the surface species as defined by model 3 in \citet{wang2013}{}. This is the case for all the surface models used in MATCH.
 
 \subsection{Activity of aqueous species}
 The activity of aqueous species $\gamma_j$ is determined by the extended Davies equation
@@ -947,7 +1092,7 @@ MATCH allows the user to define custom linear combination components $L$
 where $L_u$ is the concentration of linear combination $u$, $\xi_{j,u}$ is the stoichiometric contribution of species $j$ to linear combination $u$. MATCH does not allow solid and gas phases to enter into linear combinations.
 
 \subsection{Charge balance}
-The user may choose whether to enforce charge balance. Charge balance only considers the charge of aqueous species, disregarding the contribution of surface species and the electron \ce{e-}. There should be no charged species in the gas and solid phase. The sum of all positive and negative charges should be equal when charge balance is enforced
+The user may choose whether to enforce charge balance. Charge balance only considers the charge of aqueous species, disregarding the contribution of surface species and the electron \ce{e-}. There should be no charged species in the gas and solid phases. The sum of all positive and negative charges should be equal when charge balance is enforced
 
 \begin{align}
     0 = \sum_{j=1}^{n_c} z_j c_j \delta_j
@@ -960,12 +1105,31 @@ where $\delta$ turns off the contribution of \ce{e-}, and surface species
 \end{cases}
 \end{align}
 
-It is possible that charge balance can not be achieved with the mass constraints specified by the user, as the addition of the charge balance equation makes the system over determined. Therefore we introduce a new variable, the charge variation component, CVC, which serves to relax the mass constraint of a user chosen element/basis component, 
+It is possible that charge balance can not be achieved with the mass constraints specified by the user, as the addition of the charge balance equation makes the system over determined. Therefore to achieve charge balance and a well posed problem we relax the user supplied constraint on the charge variation component so that it is an unknown. This ensure there are an equal number of unknowns and equations.
 
+\subsection{Transport}
+
+The governing equations for the transport of chemical elements can be written
+\begin{equation}
+  \label{eq:transgen}
+  \fracpar{N_i}{t} + \dive \vec{U_i} = F_i(N)
+\end{equation}
+where the flux $U_i$ is defined by
 \begin{align}
-    N_{i=v} = \sum_{j=1}^{n_c} \alpha_{i=v,j} c_j + \mathrm{CVC}
+    \vec{U_i} = \sum_{j=1}^{n_c} \alpha_{i,j} c_j \vec{U} \delta_j
 \end{align}
-where $v$ is the index of the element that has been chosen as the charge variation component. Once the solver has converged, the new value of $N_{i=v}$ is updated to accommodate the value of CVC. Note that CVC can be positive or negative.
+where $\delta$ here is defined as
+\begin{align}
+  \delta_j =
+  \begin{cases}
+    1 &\text{ if the component $j$ is a dissolved species,}\\
+    0 &\text{ if the component $j$ is a solid, gas, or surface species}
+  \end{cases}
+\end{align}
+
+The determination of the flow field $\vec{U}$ depends on the physical system. For a detailed discussion of these physics see the MRST book \cite{lie2014}. 
+The transport law is solved fully implicitly, with a upwind difference scheme in space. 
+
 
 \subsection{a priori bounds on variables}
 
@@ -1017,13 +1181,6 @@ The electric potential is bounded by
     -|\hat{\Psi}_{o,p}| \leq \Psi_{o,p} \leq |\hat{\Psi}_{o,p}|.
 \end{align}
 
-If the user chooses to enforce charge balance, and additional variable CVC is introduced. The CVC variable serves to augment the mass constraint of a selected element/basis component, so that charge balance can be achieved. An element can only be chosen as CVC if the total concentration of the element in the system is provided as an input, and if that element is associated with at least one charged species. CVC is bounded by 
-
-\begin{align}
-    -N_{i=\text{v}} < \text{CVC} \leq 2N_{i=\text{v}}
-\end{align}
-where $v$ is the index of the element chosen by the user whose mass constraint equation will be relaxed. 
-
 \subsection{log transformation of variables}
 
 The numerical solution of chemical systems is made difficult by the large condition number of the nonlinear system. To mediate this problem MATCH performs a $\log_e$ transformation on all variables \emph{except} CVC, and $L$. The unknowns of the chemical system are then the $\log_e$ of concentrations, potential, saturation indices and partial pressures. The transformation reduces the reaction equations to a set of linear equations, however, the linear combination and mass constraint equations are now nonlinear, though slightly (we think) better behaved than the original nonlinearity in the reaction equations. Another important point is that the $\log_e$ transformation reduces the surface activity multiplier, as seen in \eqref{eq:surfAct}, from exponential to linear. The original values are retrieved by taking the exponential of all transformed variables after the solver has converged. 
@@ -1039,6 +1196,9 @@ Several example scripts are provided in the \verb|examples| folder of the reposi
         \item[\texttt{ionExchange.m}] Competition of protons and sodium for an ion exchange site.
         \item[\texttt{phases.m}] Carbonate system with precipitation and gas phase equilibrium.
         \item[\texttt{redoxChemsitry.m}] Speciation of nitrogen between oxidation states as a function of pe and pH.
+        \item[\texttt{simpleSystemTransport.m}] Transport of the \ce{H2O} and \ce{NaCl} system on a 2D domain with source terms.
+        \item[\texttt{surfaceSystemTransport.m}] Transport on a 1D domain of a system with sorption.
+        \item[\texttt{solidSystemTransport.m}] Transport on a 1D domain of a system with solid phase.
 \end{description}
 
 \section{Comparison to PHREEQC}
