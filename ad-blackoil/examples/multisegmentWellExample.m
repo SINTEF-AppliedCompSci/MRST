@@ -157,7 +157,7 @@ figure, h = [];
 plotGrid(pg,'FaceColor','none');
 plotGrid(G,c,'FaceColor','none','EdgeColor','r');
 plotWell(G,[inj; prodS]);
-caxis([0 .5]); view(37.5,34); caxis([0 .5]); axis(ax); colorbar, drawnow;
+ caxis([0 .5]); view(37.5,34); caxis([0 .5]); axis tight; colorbar, drawnow;
 for i=1:numel(states)
     sg = states{i}.s(:,3); inx = sg>1e-5;
     if sum(inx)>0
