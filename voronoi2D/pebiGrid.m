@@ -269,7 +269,7 @@ else
   ds = wellGridSize;
   hres = @(p, varargin) hresw(p);
 end
-fixedPts = [F.f.pts; wellPts; protPts; corners];  
+fixedPts = [F.f.pts; wellPts; protPts; F.t.pts; corners];  
 [Pts,~,sorting] = distmesh2d(fd, hres, ds, rectangle, fixedPts,vararg);
 
 % Distmesh change the order of all points. We undo this sorting.
@@ -302,7 +302,7 @@ if k<3
 	G = triangleGrid(Pts, t);
 	G = pebi(G);
 else
-	G = clippedPebi2D(Pts, polyBdr);
+    G = clippedPebi2D(Pts, polyBdr);
 end
 % label fault faces.
 if ~isempty(F.f.pts)

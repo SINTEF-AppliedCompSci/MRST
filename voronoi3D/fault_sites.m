@@ -97,7 +97,6 @@ for f = 1:numel(faults)
     G.cells.sites = pts * R + center;
     grids_2 = [grids_2, G];
 end
-
 end
 
 
