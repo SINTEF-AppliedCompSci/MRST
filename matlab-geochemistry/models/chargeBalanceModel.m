@@ -2,26 +2,18 @@ classdef chargeBalanceModel < ChemicalInputModel
     
     
     properties
-%         CVC         % charge variation component
     end
     
     methods
 
         function model = chargeBalanceModel()
             model = model@ChemicalInputModel();
-%             model.CVC = [];
         end
         
 
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
             
-            if ~isfield(state, 'CVC')
-            	nCells = size(state.elements,1);
-                state.CVC = eps*ones(nCells,1);
-            end
             
-%             [unknowns, components, masterComponents, combinationComponents,...
-%                  partialPressures, saturationIndiciess, surfaceAcitivityCoefficients, CVC] = prepStateForEquations(model, state);
         [unknowns, components, masterComponents, combinationComponents,...
                  partialPressures, saturationIndiciess, surfaceAcitivityCoefficients] = prepStateForEquations(model, state);
              
@@ -70,8 +62,6 @@ classdef chargeBalanceModel < ChemicalInputModel
             saturationIndiciess = distributeVariable( SNames, knowns, unknowns, knownVal, unknownVal );
             surfaceAcitivityCoefficients = distributeVariable( SPNames, knowns, unknowns, knownVal, unknownVal );
 
-%             cvcInd = strcmpi(unknowns, 'CVC');
-%             CVC = unknownVal{cvcInd}; 
             
         end
         
@@ -115,27 +105,6 @@ classdef chargeBalanceModel < ChemicalInputModel
                                                    
         end
         
-        function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces) %#ok
-        % solve for the electrostatics
-        
-            CVC = model.getProp(state, 'CVC');
-            MCval = model.getProp(state, model.CVC);
-            
-            warningText = ['Charge balance could not be acheived with given constraint on ' model.CVC ' increase the value if reasonable.'];
-            
-            if ~all(abs(CVC) <= 10*MCval),
-                warning(warningText);
-            end
-            
-            state = model.setProp(state, model.CVC, MCval - CVC);
-            assert(all((MCval + CVC) > 0), warningText);
-           
-            state= rmfield(state, 'CVC');
-            state = model.syncLog(state);
-        
-        
-            report = [];
-        end
     
     end
 

@@ -82,6 +82,7 @@ classdef compositionReactionModel < ChemicalModel
             dt = 0; % dummy timestep
             drivingForces = []; % drivingForces;
             inputstate0 = inputstate;
+%             solver.maxIterations = 10;
 
             [state, failure, report] = solveMinistep(solver, model, inputstate, ...
                                                      inputstate0, dt, ...

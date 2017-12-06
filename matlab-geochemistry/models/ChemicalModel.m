@@ -343,8 +343,8 @@ classdef ChemicalModel < PhysicalModel
         nonLinearTolerance        % tolerance of the residual of the nonlinear system
         linearTolerance           % tolerance of the residual of the linear system, for backslash
         linearMaxIterations       % maximum number of iterations for the linear solver
-        chargeBalanceTolerance    % tolerance of charge balance equaiton as fraction of total ion concentraciton
-        CVC % charge variation component
+        
+        CVC                     % charge variation component
     end
 
 
@@ -424,7 +424,6 @@ classdef ChemicalModel < PhysicalModel
             model.nonLinearTolerance        = 1e-12;
             model.linearMaxIterations       = 25;
             model.linearTolerance           = 1e-8;
-            model.chargeBalanceTolerance        = 0.05;
             model.CVC = '';
         end
 
@@ -939,16 +938,24 @@ classdef ChemicalModel < PhysicalModel
             % parse inputs to initState
             p = inputParser;
             
-            valInd = cellfun(@(x) isempty(x), regexpi(model.elementNames, '>'));
-            
-            
-            valFun = @(x) any(validatestring(x, model.elementNames(valInd)));
+            valFun = @(x) ischar(x);
             p.addParameter('chargeBalance', 'nochargebalance', valFun);
             p.addParameter('temperature', 298, @isnumeric);
 
             
             p.parse(varargin{:})
             
+            if strcmpi('nochargebalance',p.Results.chargeBalance)
+               
+            elseif any(ismember({'e','e-'},p.Results.chargeBalance))
+                error('Electron concentration, e or e-, can not be used for charge balance.')
+                
+            elseif sum(ismember(model.elementNames,p.Results.chargeBalance))==0
+                warning('Using any quantitiy other than a total element concentration as a charge balance can yield unexpected results.')
+                
+            end
+            
+                
             nI = size(userInput,1);
             
             % grab temperature
@@ -962,8 +969,10 @@ classdef ChemicalModel < PhysicalModel
 
             
             givenTest = any(strcmpi(p.Results.chargeBalance, horzcat(model.chemicalInputModel.inputNames,'nochargebalance')));
-            assert(givenTest, ['Only elements whos values are given (marked with "*") can be used for charge balance.']);
-                        
+            if ~givenTest
+                warning 'Using a total element concentration whos values are not given (marked with "*") for charge balance may result in unexpected results.';
+            end
+            
             chargeBalance = ~strcmpi(p.Results.chargeBalance,'nochargebalance');
 
             model.chemicalInputModel = model.chemicalInputModel.validateModel();
@@ -1045,17 +1054,9 @@ classdef ChemicalModel < PhysicalModel
             [state, ~, report] = model.compositionReactionModel.solveChemicalState(state);
             
             % solve chemical system
-                 fprintf('Solving chemical system...\n')
-                [state, ~, report] = model.chemicalInputModel.solveChemicalState(state);
-            
                 
             if chargeBalance
                 fprintf('Solving the chemical system with strict charge balance...\n');
-                [state, ~] = model.computeChargeBalance(state);
-                if all(abs(state.chargeBalance)<=model.chargeBalanceTolerance)
-                    fprintf('System is charge balanced to tolerance of %f%%...\n', model.chargeBalanceTolerance*100);
-                    return
-                end
                 state0 = state;
                 if isempty(model.chargeBalanceModel)
                     model.chargeBalanceModel = chargeBalanceModel();
@@ -1068,9 +1069,15 @@ classdef ChemicalModel < PhysicalModel
                 
                 if ~report.Converged
                     state = state0;
-                    warning('Charge balance not acheived with given inputs, abandoning solution from attempt. Try a different element for charge compensation, or increase salt content.');
+                    warning('Charge balance not acheived with given inputs, consider choosing a different component for charge compensation. Attempting solution without charge balance.');
                 end
-
+            end
+            if ~report.Converged || ~chargeBalance
+                fprintf('Solving chemical system...\n')
+                [state, ~, report] = model.chemicalInputModel.solveChemicalState(state);
+                if ~report.Converged
+                    warning('Solver did not converge, use results with caution.');
+                end
             end
             
             

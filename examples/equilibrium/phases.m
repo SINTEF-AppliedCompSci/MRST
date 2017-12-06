@@ -34,10 +34,10 @@ Cl = 1e-1*ones(n,1)*mol/litre;
 H = 1e-4*ones(n,1)*mol/litre;
 H2O = ones(n,1)*mol/litre;
 Ca = 1e-2*ones(n,1)*mol/litre;
-CO2 = logspace(-3, 0, n)'*atm;
+CO2 = logspace(-3, 1, n)'*atm;
 
 %% solve chemical system given inputs
-state = chem.initState([Na, Cl, Ca, H, H2O, CO2], 'charge','Na');
+state = chem.initState([Na, Cl, Ca, H, H2O, CO2], 'charge','H+');
 
 %% process data
 state = changeUnits(state, {'elements','species','partialPressures'}, [mol/litre, mol/litre, atm] );
