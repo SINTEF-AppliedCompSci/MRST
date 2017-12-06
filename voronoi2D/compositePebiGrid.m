@@ -230,7 +230,7 @@ resPts = removeConflictPoints2(resPts, F.f.pts, F.f.Gs);
 resPts = removeConflictPoints2(resPts, F.c.CC, F.c.R);
 
 % Create Grid
-Pts = [F.f.pts; wellPts;protPts; resPts];
+Pts = [F.f.pts; wellPts; protPts; F.t.pts; resPts];
 if k<3
 	G = triangleGrid(Pts);
 	G = pebi(G);

@@ -135,7 +135,7 @@ F.l.fPos  = 1;                  % Map frm fault lines to fault points
 F.l.l     = faultLines;
 F.l.nFault = numel(faultLines);
 
-
+F.t.pts   = [];                 % tip points
 
 for i = 1:F.l.nFault
   faultLine     = F.l.l{i};
@@ -163,6 +163,29 @@ for i = 1:F.l.nFault
 end
 F.l.f = (1:F.l.fPos(end)-1)';
 F.c.lPos = (1:size(F.c.CC,1)+1)';
+
+% Add tip points
+if ~isempty(F.c.CC)
+   tipAtEnd = ~(fwCut==1|fwCut==3) & ~(fCut==1|fCut==3);
+   tipAtStr = ~(fwCut==2|fwCut==3) & ~(fCut==2|fCut==3);
+   endCirc1 = F.f.c(F.f.cPos(F.l.fPos([false;tipAtEnd])) - 2);
+   endCirc2 = F.f.c(F.f.cPos(F.l.fPos([false;tipAtEnd])) - 1);
+   strCirc1 = F.f.c(F.f.cPos(F.l.fPos(tipAtStr)));
+   strCirc2 = F.f.c(F.f.cPos(F.l.fPos(tipAtStr) + 1));
+   
+   %calculate tangential vectors
+   tEnd = F.c.CC(endCirc2, :) - F.c.CC(endCirc1, :);
+   tStr = F.c.CC(strCirc1, :) - F.c.CC(strCirc2, :);
+   tEnd = bsxfun(@rdivide, tEnd, sqrt(sum(tEnd.^2, 2)));
+   tStr = bsxfun(@rdivide, tStr, sqrt(sum(tStr.^2, 2)));
+   
+   % set tip points   
+   endPt = F.c.CC(endCirc2,:) + tEnd .* F.c.R(endCirc2);
+   strPt = F.c.CC(strCirc1,:) + tStr .* F.c.R(strCirc1);
+   F.t.pts = [F.t.pts; strPt; endPt];
+   
+    
+end
 
 % Add well-fault intersections
 if ~isempty(F.c.CC)
@@ -199,6 +222,7 @@ if ~isempty(F.c.CC)
 end
 
 
+  
 % Merge fault intersections
 if ~isempty(F.f.pts)
   % Remove duplicate fault centers
