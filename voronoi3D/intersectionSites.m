@@ -1,6 +1,39 @@
-function grid_1 = intersectionSites(intersections, ds)
+function grids_1 = intersectionSites(intersections, ds)
+% Find the sites of the grids defined by fault intersections, and generate
+% the corresponding 1D grids
+%
+% SYNOPSIS:
+%   grids_1 = intersectionSites(intersections, ds)
+%
+% PARAMETERS
+%   intersecitons   - The intersection of fautls as returned from
+%                     faultIntersections
+%   ds              - Cell size of the 1D cells
+%
+% RETURNS:
+%   grids_1         - cell-array where each element is a 1D grid. The grids
+%                     are defined by a set of vertices and the
+%                     corresponding PEBI-site
+%
+% EXAMPLE:
+%   f1 = [1,3,2; 4,3,2; 4,3,4; 1,3, 4];
+%   f2 = [2,2,3.3; 5,2,3.3; 5,4,3.3; 2,4, 3.3];
+%   fracs = {f1, f2};
+%   intersections = faultIntersections(fracs);
+%   grids_1 = intersectionSites(intersections, 0.2);
+%   % the PEBI-sites are:
+%   grids_1{1}{1} 
+%   % the vertices of the grid are:
+%   grids_1{1}{2}
+% SEE ALSO
+%   intersectionSites, faultSites, reservoirSites, compositePebiGrid, pebi, createFaultGridPoints, createWellGridPoints.
 
-grid_1 = {};
+%{
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Copyright (C) 2016 Runar Lie Berge. See COPYRIGHT.TXT for details.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%}  
+grids_1 = {};
 for i = 1:numel(intersections)
    int = intersections{i} ;
    p1 = int{1}(1,:);
@@ -20,7 +53,7 @@ for i = 1:numel(intersections)
        pts = bsxfun(@plus, p1, steps);
        vert = bsxfun(@plus, p1, steps_vert);
    end
-   grid_1 = {grid_1{:}, {pts, vert}};
+   grids_1 = {grids_1{:}, {pts, vert}};
 end
 
 

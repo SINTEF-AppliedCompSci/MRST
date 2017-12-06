@@ -1,4 +1,45 @@
-function [grids_2] = fautlSites(faults, grids_1, intersections, ds, gamma)
+function [grids_2] = faultSites(faults, grids_1, intersections, ds, gamma)
+% Find the sites and grids of faults such that the 2D PEBI-grids conform to
+% the fault intersections.
+%
+% SYNOPSIS:
+%   grids_2 = faultSites(faults, grids_1, intersections, ds, gamma)
+%
+% PARAMETERS
+%   fautls          - cell array of faults. Each element is a vector of
+%                     the vertices of the fault
+%   grids_1         - cell array of 1D grids as returned from
+%                     intersectionSites
+%   intersecitons   - The intersection of fautls as returned from
+%                     faultIntersections
+%   ds              - Cell size of the 2D cells
+%   gamma           - Distance fautl sites are placed from the 1D grids
+%
+% RETURNS:
+%   grids_2         - cell-array where each element is a 2D grid. In
+%                     addition to a normal MRST-grid the field
+%                     G.cells.sites is added, which is an array of the
+%                     sites used to generate the grid
+%
+% EXAMPLE:
+%   f1 = [1,3,2; 4,3,2; 4,3,4; 1,3, 4];
+%   f2 = [2,2,3.3; 5,2,3.3; 5,4,3.3; 2,4, 3.3];
+%   fracs = {f1, f2};
+%   intersections = faultIntersections(fracs);
+%   grids_1 = intersectionSites(intersections, 0.2);
+%   grids_2 = fautlSites(fracs, grids_1, intersections, 0.2, 0.2/6)
+%   figure(); clf; hold on
+%   for i =1:numel(grids_2)
+%       plotGrid(grids_2{i})
+%   end
+% SEE ALSO
+%   intersectionSites, faultIntersections, reservoirSites, compositePebiGrid, pebi, createFaultGridPoints, createWellGridPoints.
+
+%{
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Copyright (C) 2016 Runar Lie Berge. See COPYRIGHT.TXT for details.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%}  
 %sites_2 = {};
 grids_2 = {};
 for f = 1:numel(faults)

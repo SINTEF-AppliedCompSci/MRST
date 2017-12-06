@@ -1,4 +1,36 @@
 function intersections = faultIntersections(faults)
+% Find the intersection of faults defined by polygons. 
+%
+% SYNOPSIS:
+%   intersections = faultIntersections(faults)
+%
+% PARAMETERS
+%   faults          - cell array of faults. Each element is a vector of
+%                     the vertices of the fault
+% RETURNS:
+%   intersectiosn   - cell-array of the intersections of the fautls. Each
+%                     element is a cell array containing the start and end
+%                     point of the intersection line and the indices of the
+%                     two faults that generated this intersection
+%
+% EXAMPLE:
+%   f1 = [1,3,2; 4,3,2; 4,3,4; 1,3, 4];
+%   f2 = [2,2,3.3; 5,2,3.3; 5,4,3.3; 2,4, 3.3];
+%   fracs = {f1, f2};
+%   intersections = faultIntersections(fracs);
+%   % The intersection line is:
+%   intersections{1}{1}
+%   % The indices of the faults are
+%   intersections{1}{2:3}
+%
+% SEE ALSO
+%   intersectionSites, faultSites, reservoirSites, compositePebiGrid, pebi, createFaultGridPoints, createWellGridPoints.
+
+%{
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Copyright (C) 2016 Runar Lie Berge. See COPYRIGHT.TXT for details.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%}  
 
 intersections = {};
 for f1 = 1:numel(faults)
