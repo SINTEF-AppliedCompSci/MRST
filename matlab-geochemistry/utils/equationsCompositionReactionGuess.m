@@ -81,7 +81,12 @@ function [eqs, names, types] = equationsCompositionReactionGuess(model, state, l
         for k = 1 : model.nC
             combSum = combSum + model.combinationMatrix(i,k).*components{k};
         end
-        eqs{j} = combSum - combinationComponents{i};
+        if any(combSum<=0) || any(combinationComponents{i}<=0)
+            eqs{j} = combSum - combinationComponents{i};
+        else
+            eqs{j} = log(combSum) - log(combinationComponents{i});
+        end
+        
         names{j} = [model.combinationNames{i}] ;
     end
     

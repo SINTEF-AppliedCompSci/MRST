@@ -220,7 +220,12 @@ function [eqs, names, types] = equationsChemicalLog(model, state, logComponents,
         for k = 1 : model.nC
             combSum = combSum + model.combinationMatrix(i,k).*components{k};
         end
-        eqs{end + 1} = log(combSum) - log(combinationComponents{i});
+        if any(combSum<=0) || any(combinationComponents{i}<=0)
+            eqs{end+1} = combSum - combinationComponents{i};
+        else
+            eqs{end+1} = log(combSum) - log(combinationComponents{i});
+        end
+        
         names{end + 1} = [model.combinationNames{i}] ;
         types{end + 1} = 'cell';
     end

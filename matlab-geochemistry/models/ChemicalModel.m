@@ -1593,8 +1593,12 @@ classdef ChemicalModel < PhysicalModel
             end 
             
             for i = 1 : nVar
+                 
                 try
                     tmp{i} = eval([ combos{i} ,';'])';
+                    if numel(tmp{i}) == 1
+                        tmp{i} = zeros(1, model.nC);
+                    end
                 catch
                     error(['The linear combination "' combos0{i} '" appears ' ...
                                         'to contain a string combination that ' ...
@@ -1605,6 +1609,7 @@ classdef ChemicalModel < PhysicalModel
                                         'linear combinations  (i.e. 2*Na+ rather than 2Na+). ']);
                 end
             end
+            
             
             % create combination matrix
             model.allCombinationMatrix = vertcat(tmp{:});

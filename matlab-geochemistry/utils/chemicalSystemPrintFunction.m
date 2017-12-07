@@ -62,7 +62,7 @@ function chemicalSystemPrintFunction(model, varargin )
 
                     massnamestr = [massnamestr '' fl ''];
                 end
-                in = mat2cell(model.allCombinationMatrix(i,:), 1, ones(1,model.nC+model.nG+model.nS+model.nP) );
+                in = mat2cell([model.allCombinationMatrix(i,:), zeros(1,model.nG+model.nS+model.nP)], 1, ones(1,model.nC+model.nG+model.nS+model.nP) );
                 fprintf([massnamestr, '|\n'], model.combinationNames{i}, in{:});
                 massnamestr ='';
             end
