@@ -87,8 +87,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     % water upstream-index
     upcw  = (double(dpW)<=0);
-    [krWf, krW   ] = s.splitFaceCellValue(upcw, krW);
-    [muWf, muWeff] = s.splitFaceCellValue(upcw, muWeff);
+    [krWf, krW   ] = s.splitFaceCellValue(s, upcw, krW);
+    [muWf, muWeff] = s.splitFaceCellValue(s, upcw, muWeff);
     mobW   = krW./muWeff;
     
     vW = -(krWf./muWf).*T.*dpW;
@@ -98,8 +98,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     % Polymer
     muPeff = muWeff.*(a + (1-a)*cbar);
-    [muPf, muPeff] = s.splitFaceCellValue(upcw, muPeff);
-    [cf  , ~     ] = s.splitFaceCellValue(upcw, c     );
+    [muPf, muPeff] = s.splitFaceCellValue(s, upcw, muPeff);
+    [cf  , ~     ] = s.splitFaceCellValue(s, upcw, c     );
     mobP = krW./muPeff;
     
     vP = -(krWf./muPf).*cf.*T.*dpW;
