@@ -603,7 +603,7 @@ classdef FacilityModel < PhysicalModel
             end
             ctrleq = vertcat(allCtrl{:});
 
-            wc = model.getActiveWellCells(wellSol);
+            wc = model.getWellCells(actWellIx);
             [wc, srcMass, srcVol] = model.handleRepeatedPerforatedcells(wc, srcMass, srcVol);
             wellSystem = struct('wellEquations', {eqs}, ...
                                 'names',  {names}, ...
@@ -638,7 +638,7 @@ classdef FacilityModel < PhysicalModel
             end
         end
 
-        function wc = getWellCells(model)
+        function wc = getWellCells(model, subs)
             % Get the perforated cells of all wells, regardless of status
             %
             % SYNOPSIS:
@@ -650,7 +650,11 @@ classdef FacilityModel < PhysicalModel
             % RETURNS:
             %   wc   - Array of well cells
             %
-            c = cellfun(@(x) x.W.cells, model.WellModels, 'UniformOutput', false);
+            if nargin == 1
+                c = cellfun(@(x) x.W.cells, model.WellModels, 'UniformOutput', false);
+            else
+                c = cellfun(@(x) x.W.cells, model.WellModels(subs), 'UniformOutput', false);
+            end
             wc = vertcat(c{:});
         end
 
