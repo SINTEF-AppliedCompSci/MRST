@@ -1,96 +1,42 @@
- function [schedule, W_G, W_W] = makeWAGschedule(model, injectors, producers, nCycles, varargin)
+function schedule = makeWAGschedule(W, nCycles, varargin)
 
-opt = struct('gas_end'  , 0.5, ...
-             'T', 1*year, ...
-             'nStep', 100, ...
-             'useRampup', false, ...
-             'gRate', [], ...
-             'wRate', [], ...
-             'W',     []);
+opt = struct('gas_end'  , 0.5   , ...
+             'time'     , 1*year, ...
+             'dt'       , 30*day, ...
+             'useRampup', false );
          
 opt = merge_options(opt, varargin{:});
 
-G = model.G;
-rock = model.rock;
-pv = poreVolume(G, rock);
+%%
 
-gRate = opt.gRate;
-wRate = opt.wRate;
-T = opt.T;
-if isempty(gRate)
-    gRate = sum(pv)/T;
-end
-if isempty(wRate)
-    wRate = sum(pv)/T;
-end
-nStep = opt.nStep;
-Tc = T/nCycles;
-dT = T/nStep;
+time = opt.time;
+dt      = opt.dt;
+
+tCycle  = time/nCycles;
 gas_end = opt.gas_end;
 
-dT_G = rampupTimesteps(gas_end*Tc, dT, 0);
-dT_W = rampupTimesteps((1-gas_end)*Tc, dT, 0);
-
 if opt.useRampup
-    dT_G1 = rampupTimesteps(gas_end*Tc, dT/2);
-    dT_W1 = rampupTimesteps((1-gas_end)*Tc, dT);
-    dT = [dT_G1; dT_W1; repmat([dT_G; dT_W], nCycles-1, 1)];
-    step.control = [1*ones(numel(dT_G1),1); 2*ones(numel(dT_W1),1); ...
-        repmat([1*ones(numel(dT_G),1); 2*ones(numel(dT_W),1)],nCycles-1,1)];
+    dtG = rampupTimesteps(gas_end*tCycle    , dt, 2);
+    dtW = rampupTimesteps((1-gas_end)*tCycle, dt, 2);
 else
-    dT = repmat([dT_G; dT_W], nCycles, 1);
-    step.control = [repmat([1*ones(numel(dT_G),1); 2*ones(numel(dT_W),1)],nCycles,1)];
+    dtG = rampupTimesteps(gas_end*tCycle    , dt, 0);
+    dtW = rampupTimesteps((1-gas_end)*tCycle, dt, 0);
 end
 
-step.val = dT;
+step.val     = repmat([dtG; dtW], nCycles, 1);
+step.control = repmat([1*ones(numel(dtG),1); 2*ones(numel(dtW),1)], nCycles, 1);
 
-[W_G, W_W] = deal([]);
-
-W = opt.W;
-if isempty(W)
-
-    for inj = 1:numel(injectors)
-
-        W_G = addWell(W_G, G, rock, injectors{inj}, ...
-                      'comp_i', [0, 0, 0, 1], ...
-                      'type'  , 'rate', ...
-                      'val'   , gRate);
-
-        W_W = addWell(W_W, G, rock, injectors{inj}, ...
-                      'comp_i', [1, 0, 0, 0], ...
-                      'type'  , 'rate', ...
-                      'val'   , wRate);
-    end
-
-    for prod = 1:numel(producers)
-
-        W_G = addWell(W_G, G, rock, producers{prod}, ...
-                      'comp_i', [1, 0, 0, 0], ...
-                      'type'  , 'bhp', ...
-                      'val'   , 0);
-
-        W_W = addWell(W_W, G, rock, producers{prod}, ...
-                      'comp_i', [1, 0, 0, 0], ...
-                      'type'  , 'bhp', ...
-                      'val'   , 0);
-    end
-
-else
-    
-    [W_G, W_W] = deal(W);
-    
-    for i = 1:numel(W)
-        W_G(i).compi = [0, 0, 0, 1];
-        W_W(i).compi = [1, 0, 0, 0];
-    end
-    
+[WG, WW] = deal(W);
+for wNo = 1:numel(W)
+    WG(wNo).compi = [0, 0, 0, 1];
+    WW(wNo).compi = [1, 0, 0, 0];
 end
-    
-control(1).W = W_G;
-control(2).W = W_W;
+
+control(1).W = WG;
+control(2).W = WW;
 
 schedule.control = control;
-schedule.step = step;
+schedule.step    = step;
 
 end
 

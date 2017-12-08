@@ -100,14 +100,15 @@ end
 
 function T = tabulatedSaturationMiscibility()
     
-    n = 20;
+    n  = 20;
     ds = 1e-3;
-    s = linspace(-ds,1+ds,n)';
+    s  = linspace(-ds,1+ds,n)';
     [ss, sg] = meshgrid(s,s);
     M = ss./(ss + sg);
+    
     assert(~any(any(isnan(M))));
-    M(M<0) = 0;
-    M(M>1) = 1;
+    M(M<0) = 0; M(M>1) = 1;
+    
     T = struct('x', s, 'y', s, 'data', M);
     
 end
