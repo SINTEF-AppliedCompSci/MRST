@@ -87,10 +87,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     krS_eff = M.*krS_m + (1-M).*krS_i;
     
     % Modifiy relperm by mobility multiplier (if any)
+    
+    % Multiply by s>0 to avoid erroneous positive relperms due to
+    % roundoff-errors in evaluation of miscibility M.
     krW_eff = mobMult.*krW_eff;
-    krO_eff = mobMult.*krO_eff;
-    krG_eff = mobMult.*krG_eff;
-    krS_eff = mobMult.*krS_eff;
+    krO_eff = mobMult.*krO_eff.*(sO>0);
+    krG_eff = mobMult.*krG_eff.*(sG>0);
+    krS_eff = mobMult.*krS_eff.*(sS>0);
     
 end
 
