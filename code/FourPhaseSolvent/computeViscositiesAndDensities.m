@@ -31,9 +31,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     disgas = isprop(model, 'disgas') && model.disgas;
     vapoil = isprop(model, 'vapoil') && model.disgas;
     
-    %----------------------------------------------------------------------
     % Water
-    %----------------------------------------------------------------------
     pcOW = 0;
     if isfield(fluid, 'pcOW') && ~isempty(sW)
         pcOW  = fluid.pcOW(sW);
@@ -43,11 +41,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     muW = fluid.muW(pW);
     
     rhoW = bW.*fluid.rhoWS;
-    %----------------------------------------------------------------------
     
-    %----------------------------------------------------------------------
-    % Oil
-    %----------------------------------------------------------------------
+    % Oil    
     if disgas
         bO_i  = fluid.bO(p,  rs, isSatO);
         muO = fluid.muO(p, rs, isSatO);
@@ -65,11 +60,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     
     rhoO = bO_i.*(rs*fluid.rhoGS + fluid.rhoOS);
-    %----------------------------------------------------------------------
     
-    %----------------------------------------------------------------------
     % Gas
-    %----------------------------------------------------------------------
     pcOG = 0;
     if isfield(fluid, 'pcOG') && ~isempty(sG)
         Mp   = fluid.Mpres(p);
@@ -90,16 +82,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     
     rhoG = bG_i.*(rv*fluid.rhoOS + fluid.rhoGS);
-    %----------------------------------------------------------------------
     
-    %----------------------------------------------------------------------
     % Solvent
-    %----------------------------------------------------------------------
     bS_i   = fluid.bS(pG);
     muS  = fluid.muS(pG);
     
     rhoS = bS_i.*fluid.rhoSS;
-    %----------------------------------------------------------------------
     
     %% Effective viscosites
     
@@ -107,19 +95,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     sO(sO < tol) = 0;
     sG(sG < tol) = 0;
     sS(sS < tol) = 0; 
-    
-    
 
     % Caluculate mobile saturations
-%     tol = 1e-7;
-    tol = 0;
-    sOn = max(sO - sOres, tol);
-    sGn = max(sG - sSGres, tol);
-    sSn = max(sS - sSGres, tol);
-    
-%     sOn = sO - sOres;
-%     sGn = sG - sSGres;
-%     sSn = sS - sSGres;
+    sOn = max(sO - sOres, 0);
+    sGn = max(sG - sSGres, 0);
+    sSn = max(sS - sSGres, 0);
 
     % Calculate mixed viscosities
     a = 1/4;
@@ -201,7 +181,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     % Effective formation volume factors are interpolated using a
     % pressure-dependent miscibility funciton
-    Mp = fluid.Mpres(p);
+    Mp     = fluid.Mpres(p);
     bW_eff = bW;
     bO_eff = bO_m.*Mp + bO_i.*(1-Mp);
     bG_eff = bG_m.*Mp + bG_i.*(1-Mp);

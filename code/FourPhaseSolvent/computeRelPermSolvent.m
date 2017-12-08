@@ -63,12 +63,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     sGTn = max(sG + sS - sSGres, 0);
     sNn  = max(sO + sG + sS - (sOres + sSGres), 0);
     
-%     sOn  = sO - sOres;
-%     sGn  = sG - sSGres;
-%     sGTn = sG + sS - sSGres;
-%     sNn  = sO + sG + sS - (sOres + sSGres);
-    
-    
     sOnsNn = sOn./sNn;
     sOnsNn(isnan(double(sOnsNn))) = 0;
     sGTnsNn = 1 - sOnsNn;
@@ -94,13 +88,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     % Modifiy relperm by mobility multiplier (if any)
     krW_eff = mobMult.*krW_eff;
-%     krO_eff = mobMult.*krO_eff;
-%     krG_eff = mobMult.*krG_eff;
-%     krS_eff = mobMult.*krS_eff;
-    krO_eff = mobMult.*krO_eff.*(sO>0);
-    krG_eff = mobMult.*krG_eff.*(sG>0);
-    krS_eff = mobMult.*krS_eff.*(sS>0);
-
+    krO_eff = mobMult.*krO_eff;
+    krG_eff = mobMult.*krG_eff;
+    krS_eff = mobMult.*krS_eff;
+    
 end
 
 function kr = coreyRelperm(s, n, sr, kwm, sr_tot)
