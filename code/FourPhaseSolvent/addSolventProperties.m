@@ -73,6 +73,7 @@ fluid.sWres    = opt.sWres;
 fluid.Msat = opt.Msat;
 if isempty(opt.Msat)
     fluid.Msat = @(sG, sS) linearSaturationMiscibility(sG, sS);
+%     fluid.Msat = @(sG, sS) tabulatedSaturationMiscibility(sG, sS);
 end
 
 fluid.Mpres = opt.Mpres;
@@ -92,15 +93,41 @@ function mu = constantViscosity(mu, p, varargin)
     mu = p*0 + mu;
 end
 
+function Msat = tabulatedSaturationMiscibility(sG, sS)
+    
+    n = 10;
+    s = linspace(0,1,n)';
+    [ss, sg] = meshgrid(s,s);
+    tol = 0;
+    M = ss./(ss + sg + tol)*(1+tol);
+    M(isnan(M)) = 0;
+    T = struct('x', s, 'y', s, 'data', M);
+    Msat = interp2DTable(T, sG, sS);
+    
+end
+
 function Msat = linearSaturationMiscibility(sG, sS)
 
-    tol = 1e-10;
+%     tol = 1e-10;
+    tol = 0;
     sS(sS < tol) = 0;
     sG(sG < tol) = 0;
-
-    tol = 1e-4;
-    Msat = sS./(sS + sG + tol).*(1+tol);
     
+%     tol = 1e-10;
+%     sS(sS<tol&sS>0) = tol;
+
+%     tol = 1e-2;
+%     Msat = sS./(sS + sG + tol).*(1+tol);
+    
+    Msat = sS./(sS + sG);
+    Msat(isnan(double(Msat))) = 1;
+%     fix = double(sG) == 0;
+%     if isa(Msat, 'ADI')
+%         Msat.jac{4}(fix,fix) = 0;
+%     end
+    
+%     Msat = sS.* 0 + 0;
+
 end
 
 function Mpres = constantPressureMiscibility(p)
