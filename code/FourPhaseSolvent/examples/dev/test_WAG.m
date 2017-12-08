@@ -2,7 +2,7 @@ mrstModule add ad-core ad-eor ad-blackoil ad-props blackoil-sequential matlab_bg
 
 gravity reset on
 
-n = 10;
+n = 100;
 G = computeGeometry(cartGrid([n,1,1], [1000,1,1]));
 rock = makeRock(G, 100*milli*darcy, 1);
 
@@ -16,7 +16,7 @@ fluid = initSimpleADIFluid('n'     , [2, 2, 2], ...
 sOres_i= 0.2;
 fluid = addSolventProperties(fluid, 'n', 2, ...
                                     'rho', 100*kilogram/meter^3, ...
-                                    'mixPar', 1, ...
+                                    'mixPar', 0, ...
                                     'mu'    , 1*centi*poise, ...
                                     'sOres_i', sOres_i, ...
                                     'sOres_m', 0.0);
@@ -26,13 +26,13 @@ model.extraStateOutput = true;
 
 T = 2*year;
 rate = 1*sum(poreVolume(G, rock))/year;
-[schedule, W_G, W_W] = makeWAGschedule(model, {1}, {G.cells.num}, 1, 'T', T, 'nStep', 100, 'wRate', rate, 'gRate', rate);
+[schedule, W_G, W_W] = makeWAGschedule(model, {1}, {G.cells.num}, 2, 'T', T, 'nStep', 100, 'wRate', rate, 'gRate', rate);
 
 
 sO = sOres_i + 0.0;
 sG = 0.0;
 state0 = initResSol(G, 100*barsa, [1-sO-sG sO sG 0]);
-state0.wellSol = initWellSolSolventAD(W_G, model, state0);
+state0.wellSol = initWellSolAD(W_G, model, state0);
 
 nls = NonLinearSolver('useLineSearch', false);
 
@@ -94,21 +94,21 @@ plot(totM);
 
 %%
 
-% x = 1:n;
-% l = lines(3);
-% clr = [l(1,:); 0,0,0; l(2:end,:)];
-% for sNo = 1:numel(states)
-%     clf
-%     
-%     s = states{sNo}.s; 
-%     hold on
-%     for phNo = 1:4
-%         plot(x, s(:,phNo), 'color', clr(phNo,:))
-%     end
-%     hold off
-%     ylim([0,1]);
-%     pause(0.1);
-% end
+x = 1:n;
+l = lines(3);
+clr = [l(1,:); 0,0,0; l(2:end,:)];
+for sNo = 1:numel(states)
+    clf
+    
+    s = states{sNo}.s; 
+    hold on
+    for phNo = 1:4
+        plot(x, s(:,phNo), 'color', clr(phNo,:))
+    end
+    hold off
+    ylim([0,1]);
+    pause(0.1);
+end
 
 %%
 % 

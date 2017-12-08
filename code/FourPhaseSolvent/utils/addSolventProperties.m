@@ -100,7 +100,7 @@ end
 
 function T = tabulatedSaturationMiscibility()
     
-    n = 10;
+    n = 20;
     ds = 1e-3;
     s = linspace(-ds,1+ds,n)';
     [ss, sg] = meshgrid(s,s);
