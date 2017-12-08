@@ -1,56 +1,134 @@
-mrstModule add mrst-solvent spe10
+%% Add necessary modules
 
-%% Use setupSPE10_AD to Fetch the SPE10 model
-% We pick up only one layer 
-%
-layers = 10;
-[~, model, ~] = setupSPE10_AD('layers', layers);
-G = model.G;
-rock = model.rock;
-
-%%
+mrstModule add ad-blackoil ad-props % AD-moduels
+mrstModule add spe10                % SPE10 dataset
+mrstModule add solvent              % Solvent model
 
 gravity reset on
 
+df = get(0, 'defaultfigureposition');
+close all
+
+%% Set up grid and rock properties
+
+% We pick up layer 10 of SPE10, and extract the grid and rock properties.
+% We will define our own fluid.
+layers = 10;
+[~, model, ~] = setupSPE10_AD('layers', layers);
+G    = model.G;
+rock = model.rock;
+
+%% Define fluid properties
+
+% We start by defining a three-phase fluid with water, oil and gas
 fluid = initSimpleADIFluid('n'     , [2, 2, 2], ...
                            'rho'   , [1000, 800, 100]*kilogram/meter^3, ...
                            'phases', 'WOG', ...
-                           'mu'    , [1, 10, 2]*centi*poise);
+                           'mu'    , [1, 3, 0.1]*centi*poise, ...
+                           'c'     , [1e-6, 1e-5, 1e-4]/barsa);
                        
-fluid = addSolventProperties(fluid, 'n', 2, ...
-                                    'rho', 100*kilogram/meter^3, ...
-                                    'mixPar', 2/3, ...
-                                    'mu'    , 1*centi*poise, ...
-                                    'sOres_i', 0.3, ...
-                                    'sOres_m', 0.0);
+% The solvent model we will use, treats solvent gas as a fourth phase,
+% which is either miscible or immiscible with the oil and gas, depending on
+% the fraction of solvent concentration to total gas concentration,
+% $S_s/(S_g + S_s)$, and the pressure.
+
+sOres_i = 0.34; % Immiscible residual oil saturation
+sOres_m = 0.12; % Miscible residual oil saturation
+fluid   = addSolventProperties(fluid, 'n'      , 2                   , ...
+                                    'rho'    , 100*kilogram/meter^3, ...
+                                    'mixPar' , 2/3                 , ...
+                                    'mu'     , 0.2*centi*poise     , ...
+                                    'sOres_i', sOres_i             , ...
+                                    'sOres_m', sOres_m             , ...
+                                    'c'      , 1e-4/barsa          );
+
+%% Inspect fluid
+
+figure('Position', [df(1:2), 1000, 400]);
+
+n = 100;
+[sO,sS] = meshgrid(linspace(0,1,n)', linspace(0,1,n)');
+sW      = 0;
+sG      = 1-(sW+sO+sS);
+
+ss  = deal(linspace(0,1-sOres_m,100)');
+b   = sOres_i + 2*ss - 1;
+sg  = (-b + sqrt(b.^2 - 4*(ss.*(sOres_m + ss - 1))))/2;
+sOr = 1 - sg - ss;
+
+sW = sW(:); sO = sO(:); sG = sG(:); sS = sS(:);
+[sWres, sOres , sSGres ]  = computeResidualSaturations(fluid, 0 , sG , sS );
+[krW, krO, krG, krS]      = computeRelPermSolvent(fluid, 0, sW, sO, sG, sS, sWres, sOres, sSGres, mobMult);
+sO = reshape(sO, n,n); sG = reshape(sG, n,n); sS = reshape(sS, n,n);
+
+phName = {'O', 'G', 'S'};
+
+for phNo = 1:3
+
+    subplot(1,3,phNo)
+    
+    relpermName = ['kr', phName{phNo}];
+    kr = reshape(eval(relpermName),[n,n]);
+    kr(sG<0) = nan;
+
+    contourf(mapx(sG, sS, sO), mapy(sG,sS,sO), kr, 20, 'linecolor', 0.5.*[1,1,1])
+    [mapx, mapy] = ternaryAxis('names', {'S_g', 'S_s', 'S_o'});
+    plot(mapx(sg, ss, sOr), mapy(sg,ss,sOr), 'color', 0.99*[1,1,1], 'linewidth', 2)
+    
+    axis([0,1,0,sqrt(1-0.5^2)]); axis equal
+    title(relpermName, 'position', [0.5,-0.2]); 
+    
+end
+                                
+%%
                                 
 model = FourPhaseSolventModel(G, rock, fluid);
 model.extraStateOutput = true;
 
-
 producers = {1, G.cartDims(1), G.cartDims(1)*G.cartDims(2) - G.cartDims(1) + 1, G.cartDims(1)*G.cartDims(2)};
 injectors = {round(G.cartDims(1)*G.cartDims(2)/2 + G.cartDims(1)/2)};
 
-% injectors = {1};
-% producers = {G.cells.num};
+time = 2*year;
+pv = poreVolume(G, rock);
+rate = sum(pv)/time;
+bhp = 50*barsa;
 
-T = 1*year;
-rate = sum(poreVolume(G, rock))/(T*numel(injectors));
-nStep = 200;
+W = [];
+for pNo = 1:numel(producers)
+    W = addWell(W, G, rock, producers{pNo}, ...
+                'type', 'bhp', ...
+                'val', bhp, ...
+                'comp_i', [1,0,0,0], ...
+                'sign', -1, ...
+                'name', ['P', num2str(pNo)]);
+end
+for iNo = 1:numel(injectors)
+    W = addWell(W, G, rock, injectors{iNo}, ...
+                'type', 'rate', ...
+                'val', rate/numel(injectors), ...
+                'comp_i', [1,0,0,0], ...
+                'sign', 1, ...
+                'name', ['I', num2str(iNo)]);
+end
 
-[scheduleWAG, W_G, W_W] = makeWAGschedule(model, injectors, producers, 10, 'T', 2*T, 'gRate', rate, 'wRate', rate, 'nStep', 2*nStep);
+%%
 
-dT = rampupTimesteps(T, T/nStep,0);
-step.val = [dT; scheduleWAG.step.val; dT];
-step.control = [2*ones(numel(dT),1); scheduleWAG.step.control; 2*ones(numel(dT),1)];
+dt          = 30*day;
+useRampUp   = true;
+scheduleWAG = makeWAGschedule(W, 4, 'time'     , time     , ...
+                                    'dt'       , dt       , ...
+                                    'useRampup', useRampUp);
+schedule = scheduleWAG;
 
-schedule.control = scheduleWAG.control;
-schedule.step = step;
+tvec                  = rampupTimesteps(time, dt);
+control               = 2*ones(numel(tvec),1);
+schedule.step.val     = [tvec; scheduleWAG.step.val];
+schedule.step.control = [control; scheduleWAG.step.control];
 
-state0 = initResSol(G, 100*barsa, [0 1 0 0]);
-state0.wellSol = initWellSolAD(W_G, model, state0);
-
-
+%%
+sO = 0.6; sG = 0.2;
+state0 = initResSol(G, 100*barsa, [1-sO-sG, sO sG, 0]);
+state0.wellSol = initWellSolAD(W, model, state0);
 
 %%
 
@@ -58,11 +136,15 @@ state0.wellSol = initWellSolAD(W_G, model, state0);
 
 %%
 
+plotToolbar(G, states)
+
+%%
+
 W = addWell([], G, rock, injectors{1}, 'type', 'rate', 'val', rate, 'comp_i', [1,0,0,0]);
 for i = 1:numel(producers)
     W = addWell(W, G, rock, producers{i}, 'type', 'bhp', 'val', 0, 'comp_i', [1,0,0,0]);
 end
-dT = repmat(T/nStep, nStep,1);
+dT = repmat(time/nStep, nStep,1);
 step.val = dT;
 control(1).W = W;
 step.control = ones(nStep,1);
