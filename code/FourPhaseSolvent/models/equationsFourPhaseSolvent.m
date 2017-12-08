@@ -244,15 +244,17 @@ if ~isempty(W)
     compi = rldecode(vertcat(W.compi), nc, 1);
     compi = compi(sign>0,:);
 
+    [mobMultw, rsw, rvw, isSatOw, isSatGw] = getWellValue(wc, mobMult, rs, rv, ~st{1}, ~st{2}); 
+
     [muWell, rhoWell] = deal(cell(4,1));
     [krWell{1}, krWell{2}, krWell{3}, krWell{4}] ...
-        = computeRelPermSolvent(fluid, p(wc), compi(:,1), compi(:,2), compi(:,3), compi(:,4), 0,0,0, mobMult);
+        = computeRelPermSolvent(fluid, p(wc), compi(:,1), compi(:,2), compi(:,3), compi(:,4), 0,0,0, mobMultw);
     [muWell{1}, muWell{2}, muWell{3}, muWell{4}, rhoWell{1}, rhoWell{2}, rhoWell{3}, rhoWell{4}] ...
-        = computeViscositiesAndDensities(model, p(wc), compi(:,2), compi(:,3), compi(:,4), 0, 0, rs(wc), rv(wc), ~st{1}(wc), ~st{2}(wc));
+        = computeViscositiesAndDensities(model, p(wc), compi(:,2), compi(:,3), compi(:,4), 0, 0, rsw, rvw, isSatOw, isSatGw);
 
     for nPh = 1:4
         rho{nPh}(wc) = rhoWell{nPh};
-        mob{nPh}(wc) = mobMult(wc)*krWell{nPh}./muWell{nPh};
+        mob{nPh}(wc) = krWell{nPh}./muWell{nPh};
     end 
     
 %     wm = model.FacilityModel;
@@ -270,4 +272,17 @@ problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 
 eqsval = cellfun(@double, eqs, 'unif', false);
 eqsjac = cellfun(@(e) e.jac, eqs, 'unif', false);
+end
+
+function varargout = getWellValue(wellCells, varargin)
+    
+    for i = 1:numel(varargin)
+        v = varargin(i);
+        if numel(v) == 1
+            varargout(i) = v;
+        else
+            varargout(i) = v(wellCells);
+        end 
+    end
+
 end
