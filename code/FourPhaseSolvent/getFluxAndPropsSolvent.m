@@ -23,10 +23,10 @@ function [vW, vO, vG, vS, mobW, mobO, mobG, mobS, upcW, upcO, upcG, upcS] = getF
     
     pcOG = 0;
     if isfield(fluid, 'pcOG') && ~isempty(sG)
-        M = fluid.Mpres(p);
+        Mp = fluid.Mpres(p);
         pcOG_m = fluid.pcOG(sG);
         pcOG_i = fluid.pcOG(sG + sS);
-        pcOG = M.*pcOG_m + (1-M).*pcOG_i;
+        pcOG = Mp.*pcOG_m + (1-Mp).*pcOG_i;
     end
     
     [pG, pS] = deal(pO + pcOG);

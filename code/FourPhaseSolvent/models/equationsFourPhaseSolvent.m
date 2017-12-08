@@ -153,6 +153,7 @@ pW = p;
                                        mob, ...
                                        sat, ...
                                        drivingForces);
+                                   
 if model.outputFluxes
     state = model.storeBoundaryFluxes(state, qRes{1}, qRes{2}, [], drivingForces);
 end

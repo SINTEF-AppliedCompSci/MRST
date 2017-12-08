@@ -1,4 +1,4 @@
-classdef FourPhaseSolventModel < ReservoirModel
+classdef FourPhaseSolventModel < ThreePhaseBlackOilModel
 % Four-phase solvent model
 
 %{
@@ -26,18 +26,18 @@ end
 
 methods
     function model = FourPhaseSolventModel(G, rock, fluid, varargin)
-        model = model@ReservoirModel(G, rock, fluid, varargin{:});
+        model = model@ThreePhaseBlackOilModel(G, rock, fluid, varargin{:});
 
         % Use CNV style convergence 
         model.useCNVConvergence = true;
-
+        
         % All phases are present
-        model.water = true;
-        model.oil = true;
-        model.gas = true;
+        model.water   = true;
+        model.oil     = true;
+        model.gas     = true;
         model.solvent = true;
         model.saturationVarNames = {'sw', 'so', 'sg', 'ss'};
-
+        
         model = merge_options(model, varargin{:});
 
     end
@@ -51,7 +51,7 @@ methods
             W = varargin{1}.W;
             model.FacilityModel = model.FacilityModel.setupWells(W);
         end
-        model = validateModel@PhysicalModel(model, varargin{:});
+        model = validateModel@ThreePhaseBlackOilModel(model, varargin{:});
         return
     end
     
@@ -63,7 +63,7 @@ methods
                 fn = 's';
             otherwise
                 % Basic phases are known to the base class
-                [fn, index] = getVariableField@ReservoirModel(model, name);
+                [fn, index] = getVariableField@ThreePhaseBlackOilModel(model, name);
         end
     end
     
@@ -82,11 +82,6 @@ methods
     end
 
     % --------------------------------------------------------------------%
-    function state = validateState(model, state)
-        % Check parent class
-        state = validateState@ReservoirModel(model, state);
-    end
-    
     function [phNames, longNames] = getPhaseNames(model)
         % Get the active phases in canonical ordering
         tmp = 'WOGS';
@@ -107,7 +102,7 @@ methods
         si = strcmpi(saturations, 'ss');
         
         % Parent class handles almost everything for us
-        [state, report] = updateState@ReservoirModel(model, state, problem, dx, drivingForces);
+        [state, report] = updateState@ThreePhaseBlackOilModel(model, state, problem, dx, drivingForces);
 
         % Handle the directly assigned values (i.e. can be deduced directly from
         % the well controls. This is black oil specific.

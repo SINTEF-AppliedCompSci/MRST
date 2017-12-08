@@ -1,4 +1,8 @@
-function [muW_eff, muO_eff, muG_eff, muS_eff, rhoW_eff, rhoO_eff, rhoG_eff, rhoS_eff] = computeViscositiesAndDensities(fluid, p , sO , sG , sS , sOres , sSGres )
+function [muW_eff , muO_eff , muG_eff , muS_eff , ...
+          rhoW_eff, rhoO_eff, rhoG_eff, rhoS_eff, ...
+          bW_eff  , bO_eff  , bG_eff  , bS_eff  , ...
+          pW      , pG                          ] ...
+          = computeViscositiesAndDensities(model, p , sO , sG , sS , sOres , sSGres, rs, rv, isSatO, isSatG)
 % Calculates effective viscosities and densities using Todd-Longstaff
 % model + 1/4th-power mixing rule
 
@@ -21,23 +25,102 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    % Unmixed viscosities at reservoir conditions
-    muW = fluid.muW(p);
-    muO = fluid.muO(p);
-    muG = fluid.muG(p);
-    muS = fluid.muS(p);
+%% Unmixed viscosites and densities at reservoir conditions
+
+    fluid  = model.fluid;
+    disgas = isprop(model, 'disgas') && model.disgas;
+    vapoil = isprop(model, 'vapoil') && model.disgas;
     
-    tol = 1e-10;
+    %----------------------------------------------------------------------
+    % Water
+    %----------------------------------------------------------------------
+    pcOW = 0;
+    if isfield(fluid, 'pcOW') && ~isempty(sW)
+        pcOW  = fluid.pcOW(sW);
+    end
+    pW  = p - pcOW;
+    bW  = fluid.bW(pW);
+    muW = fluid.muW(pW);
+    
+    rhoW = bW.*fluid.rhoWS;
+    %----------------------------------------------------------------------
+    
+    %----------------------------------------------------------------------
+    % Oil
+    %----------------------------------------------------------------------
+    if disgas
+        bO_i  = fluid.bO(p,  rs, isSatO);
+        muO = fluid.muO(p, rs, isSatO);
+    else
+        bO_i  = fluid.bO(p);
+        if isfield(fluid, 'BOxmuO')
+            muO = fluid.BOxmuO(p).*bO_i;
+        else
+            muO = fluid.muO(p);
+        end
+    end
+    
+    if any(bO_i < 0)
+        warning('Negative oil compressibility present!')
+    end
+    
+    rhoO = bO_i.*(rs*fluid.rhoGS + fluid.rhoOS);
+    %----------------------------------------------------------------------
+    
+    %----------------------------------------------------------------------
+    % Gas
+    %----------------------------------------------------------------------
+    pcOG = 0;
+    if isfield(fluid, 'pcOG') && ~isempty(sG)
+        Mp   = fluid.Mpres(p);
+        pcOG = Mp.*fluid.pcOG(sG) + (1-Mp).*fluid.pcOG(sG + sS);
+    end
+    pG = p + pcOG;
+
+    if vapoil
+        bG_i  = fluid.bG(pG, rv, isSatG);
+        muG = fluid.muG(pG, rv, isSatG);
+    else
+        bG_i  = fluid.bG(pG);
+        muG = fluid.muG(pG);
+    end
+    
+    if any(bG_i < 0)
+        warning('Negative gas compressibility present!')
+    end
+    
+    rhoG = bG_i.*(rv*fluid.rhoOS + fluid.rhoGS);
+    %----------------------------------------------------------------------
+    
+    %----------------------------------------------------------------------
+    % Solvent
+    %----------------------------------------------------------------------
+    bS_i   = fluid.bS(pG);
+    muS  = fluid.muS(pG);
+    
+    rhoS = bS_i.*fluid.rhoSS;
+    %----------------------------------------------------------------------
+    
+    %% Effective viscosites
+    
+    tol = 0;
     sO(sO < tol) = 0;
     sG(sG < tol) = 0;
     sS(sS < tol) = 0; 
     
+    
+
     % Caluculate mobile saturations
-    sOn = max(sO - sOres, 0);
-    sGn = max(sG - sSGres, 0);
-    sSn = max(sS - sSGres, 0);
+%     tol = 1e-7;
+    tol = 0;
+    sOn = max(sO - sOres, tol);
+    sGn = max(sG - sSGres, tol);
+    sSn = max(sS - sSGres, tol);
     
-    
+%     sOn = sO - sOres;
+%     sGn = sG - sSGres;
+%     sSn = sS - sSGres;
+
     % Calculate mixed viscosities
     a = 1/4;
     muSa = muS.^a;
@@ -48,9 +131,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     sSnsOSn(isnan(double(sSnsOSn))) = 0;
     sSnsSGn = sSn./(sGn + sSn);
     sSnsSGn(isnan(double(sSnsSGn))) = 0;
-    sOnsNn = sOn./(sOn + sGn + sSn);
+    sOnsNn  = sOn./(sOn + sGn + sSn);
     sOnsNn(isnan(double(sOnsNn))) = 0;
-    sGnsNn = sGn./(sOn + sGn + sSn);
+    sGnsNn  = sGn./(sOn + sGn + sSn);
     sGnsNn(isnan(double(sGnsNn))) = 0;
         
     muMOS = muO.*muS./((1-sSnsOSn).*muSa + sSnsOSn.*muOa).^4;
@@ -66,11 +149,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     muG_eff = muG.^(1-omega).*muMSG.^omega;
     muS_eff = muS.^(1-omega).*muM.^omega;
     
-    % Unmixed densities at reservoir conditions
-    rhoW = fluid.bW(p).*fluid.rhoWS;
-    rhoO = fluid.bO(p).*fluid.rhoOS;
-    rhoG = fluid.bG(p).*fluid.rhoGS;
-    rhoS = fluid.bS(p).*fluid.rhoSS;
+    
+    %% Effective densities
     
     % Effective fractional saturations    
     muOmuS = (muO./muS).^a;
@@ -110,5 +190,21 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     rhoS_eff = (sSsN_Seff.*rhoS + (1-sSsN_Seff).*(rhoG.*sGf + rhoO.*(1-sGf))).*(~eq) ...
                                        + ((1-omega)*rhoS + omega*rhoM).*eq;
+                                   
+    % Effective formation volume factors are interpolated using a
+    % pressure-dependent miscibility funciton
+    
+    % Miscible formation volume factors b = rho_eff/rhoS
+    bO_m = rhoO_eff./fluid.rhoOS;
+    bG_m = rhoG_eff./fluid.rhoGS;
+    bS_m = rhoS_eff./fluid.rhoSS;
+    
+    % Effective formation volume factors are interpolated using a
+    % pressure-dependent miscibility funciton
+    Mp = fluid.Mpres(p);
+    bW_eff = bW;
+    bO_eff = bO_m.*Mp + bO_i.*(1-Mp);
+    bG_eff = bG_m.*Mp + bG_i.*(1-Mp);
+    bS_eff = bS_m.*Mp + bS_i.*(1-Mp);
     
 end
