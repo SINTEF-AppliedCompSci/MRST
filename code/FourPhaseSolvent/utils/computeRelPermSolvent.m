@@ -1,7 +1,26 @@
 function [krW_eff, krO_eff, krG_eff, krS_eff] = computeRelPermSolvent(fluid, p, sW, sO, sG, sS, sWres, sOres, sSGres, mobMult)
 % Calulates effective relative permeabilities.
 
-    tol = 1e-10;
+%{
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
+    tol = 0;
     sO(sO < tol) = 0;
     sG(sG < tol) = 0;
     sS(sS < tol) = 0;
@@ -38,10 +57,11 @@ function [krW_eff, krO_eff, krG_eff, krS_eff] = computeRelPermSolvent(fluid, p, 
     krG_i = (1-sSsGT).*krGT_i;
     krS_i = sSsGT.*krGT_i;
 
-    sOn = max(sO - sOres,0);
-    sGn = max(sG - sSGres,0);
+    
+    sOn  = max(sO - sOres,0);
+    sGn  = max(sG - sSGres,0);
     sGTn = max(sG + sS - sSGres, 0);
-    sNn = max(sO + sG + sS - (sOres + sSGres), 0);
+    sNn  = max(sO + sG + sS - (sOres + sSGres), 0);
     
     sOnsNn = sOn./sNn;
     sOnsNn(isnan(double(sOnsNn))) = 0;
@@ -67,11 +87,14 @@ function [krW_eff, krO_eff, krG_eff, krS_eff] = computeRelPermSolvent(fluid, p, 
     krS_eff = M.*krS_m + (1-M).*krS_i;
     
     % Modifiy relperm by mobility multiplier (if any)
+    
+    % Multiply by s>0 to avoid erroneous positive relperms due to
+    % roundoff-errors in evaluation of miscibility M.
     krW_eff = mobMult.*krW_eff;
-    krO_eff = mobMult.*krO_eff;
-    krG_eff = mobMult.*krG_eff;
-    krS_eff = mobMult.*krS_eff;
-
+    krO_eff = mobMult.*krO_eff.*(sO>0);
+    krG_eff = mobMult.*krG_eff.*(sG>0);
+    krS_eff = mobMult.*krS_eff.*(sS>0);
+    
 end
 
 function kr = coreyRelperm(s, n, sr, kwm, sr_tot)

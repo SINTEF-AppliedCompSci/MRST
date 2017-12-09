@@ -1,36 +1,57 @@
-classdef FourPhaseSolventModel < ReservoirModel
-% Three phase with optional dissolved gas and vaporized oil
+classdef FourPhaseSolventModel < ThreePhaseBlackOilModel
+% Four-phase solvent model
+
+%{
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
 properties
    solvent
 end
 
 methods
     function model = FourPhaseSolventModel(G, rock, fluid, varargin)
-        model = model@ReservoirModel(G, rock, fluid, varargin{:});
+        model = model@ThreePhaseBlackOilModel(G, rock, fluid, varargin{:});
 
-        % Blackoil -> use CNV style convergence 
+        % Use CNV style convergence 
         model.useCNVConvergence = true;
-
+        
         % All phases are present
-        model.water = true;
-        model.oil = true;
-        model.gas = true;
+        model.water   = true;
+        model.oil     = true;
+        model.gas     = true;
         model.solvent = true;
         model.saturationVarNames = {'sw', 'so', 'sg', 'ss'};
-
+        
         model = merge_options(model, varargin{:});
 
     end
     
+    % --------------------------------------------------------------------%
     function model = validateModel(model, varargin)
         if isempty(model.FacilityModel)
-            model.FacilityModel = FacilityModelSolvent(model); %#ok
+            model.FacilityModel = FacilityModel(model);
         end
         if nargin > 1
             W = varargin{1}.W;
             model.FacilityModel = model.FacilityModel.setupWells(W);
         end
-        model = validateModel@PhysicalModel(model, varargin{:});
+        model = validateModel@ThreePhaseBlackOilModel(model, varargin{:});
         return
     end
     
@@ -42,10 +63,11 @@ methods
                 fn = 's';
             otherwise
                 % Basic phases are known to the base class
-                [fn, index] = getVariableField@ReservoirModel(model, name);
+                [fn, index] = getVariableField@ThreePhaseBlackOilModel(model, name);
         end
     end
     
+    % --------------------------------------------------------------------%
     function vars = getSaturationVarNames(model)
         vars = {'sw', 'so', 'sg', 'ss'};
         ph = model.getActivePhases();
@@ -60,16 +82,15 @@ methods
     end
 
     % --------------------------------------------------------------------%
-    function state = validateState(model, state)
-        % Check parent class
-        state = validateState@ReservoirModel(model, state);
-    end
-    
-    function phNames = getPhaseNames(model)
+    function [phNames, longNames] = getPhaseNames(model)
         % Get the active phases in canonical ordering
         tmp = 'WOGS';
         active = model.getActivePhases();
         phNames = tmp(active);
+        if nargout > 1
+            tmp = {'water', 'oil', 'gas', 'solvent'};
+            longNames = tmp(active);
+        end
     end
 
     % --------------------------------------------------------------------%
@@ -81,7 +102,7 @@ methods
         si = strcmpi(saturations, 'ss');
         
         % Parent class handles almost everything for us
-        [state, report] = updateState@ReservoirModel(model, state, problem, dx, drivingForces);
+        [state, report] = updateState@ThreePhaseBlackOilModel(model, state, problem, dx, drivingForces);
 
         % Handle the directly assigned values (i.e. can be deduced directly from
         % the well controls. This is black oil specific.
@@ -98,12 +119,14 @@ methods
         end
     end
     
+    % --------------------------------------------------------------------%
     function rhoS = getSurfaceDensities(model)
         active = model.getActivePhases();
         props = {'rhoWS', 'rhoOS', 'rhoGS', 'rhoSS'};
         rhoS = cellfun(@(x) model.fluid.(x), props(active));
     end
     
+    % --------------------------------------------------------------------%
     function state = storeFluxes(model, state, vW, vO, vG, vS)
         % Utility function for storing the interface fluxes in the state
         isActive = model.getActivePhases();
@@ -146,6 +169,7 @@ methods
         rho = {double(rhoW), double(rhoO), double(rhoG), double(rhoS)};
         state = model.setPhaseData(state, rho, 'rho');
     end
+    
     % --------------------------------------------------------------------%
     function state = storebfactors(model, state, bW, bO, bG, bS)
         % Store compressibility / surface factors for plotting and
@@ -159,22 +183,3 @@ methods
     
 end
 end
-
-%{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
-
-This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
-
-MRST is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-MRST is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with MRST.  If not, see <http://www.gnu.org/licenses/>.
-%}
