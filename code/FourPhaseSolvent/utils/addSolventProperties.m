@@ -55,12 +55,10 @@ else
     end
     bf = @(p, varargin) b*exp((p-opt.pRef)*c);
 end
-kr = @(s) s.^opt.n;
     
 fluid.rhoSS = opt.rho;
 fluid.bS = bf;
 fluid.muS = @(p, varargin) constantViscosity(opt.mu, p, varargin{:});
-fluid.krS = kr;
 
 % Extra model properties
 
@@ -70,6 +68,21 @@ fluid.sOres_i  = opt.sOres_i;
 fluid.sSGres_m = opt.sSGres_m;
 fluid.sSGres_i = opt.sSGres_i;
 fluid.sWres    = opt.sWres;
+
+s = linspace(0.1,1,100);
+nW = polyfit(log(s), log(fluid.krW(s)), 1); nW = nW(1);
+nO = polyfit(log(s), log(fluid.krO(s)), 1); nO = nO(1);
+nG = polyfit(log(s), log(fluid.krG(s)), 1); nG = nG(1);
+fluid.krW_i  = @(sW, sWres, sOres, sSGres) coreyRelperm(sW, nW, sWres, fluid.krW(1-(sOres + sSGres)) , sWres + sOres + sSGres);
+fluid.krO_i  = @(sO, sWres, sOres, sSGres) coreyRelperm(sO, nO, sOres , fluid.krO(1-(sWres + sSGres)), sWres + sOres + sSGres);
+fluid.krGT_i = @(sGT, sWres, sOres, sSGres) coreyRelperm(sGT, nG, sSGres, fluid.krG(1-(sWres+sOres)), sWres + sOres + sSGres);
+fluid.krN    = @(sN, sWres, sOres, sSGres) coreyRelperm(sN, nO, sOres + sSGres, fluid.krO(1-sWres) , sWres + sOres + sSGres);
+
+fluid.krW = @(sW, varargin) fluid.krW_i (sW, fluid.sWres, fluid.sOres_i, fluid.sSGres_i);
+fluid.krO = @(sO, varargin) fluid.krO_i (sO, fluid.sWres, fluid.sOres_i, fluid.sSGres_i);
+fluid.krG = @(sG, varargin) fluid.krGT_i(sG, fluid.sWres, fluid.sOres_i, fluid.sSGres_i);
+fluid.krOW = fluid.krO;
+fluid.krOG = fluid.krO;
 
 fluid.Msat = opt.Msat;
 if isempty(opt.Msat)
@@ -99,14 +112,27 @@ function mu = constantViscosity(mu, p, varargin)
     mu = p*0 + mu;
 end
 
+function kr = coreyRelperm(s, n, sr, kwm, sr_tot)
+    den = 1 - sr_tot;
+    sat = ((s - sr)./den);
+    if isa(sat, 'ADI')
+        sat.val = max(min(sat.val, 1), 0);
+    else
+        sat = max(min(sat, 1), 0);
+    end
+    
+    kr = kwm.*sat.^n;
+end
+
 function T = tabulatedSaturationMiscibility()
     
     n  = 100;
     ds = 1e-4;
     s  = linspace(-ds,1+ds,n)';
     [ss, sg] = meshgrid(s,s);
-    tol = 1e-5;
-    M = ss./(ss + sg + tol);
+%     tol = 1e-5;
+%     M = ss./(ss + sg + tol);
+    M = ss./(ss + sg);
     
     assert(~any(any(isnan(M))));
     M(M<0) = 0; M(M>1) = 1;
