@@ -16,10 +16,10 @@ tCycle  = time/nCycles;
 gas_end = opt.gas_end;
 
 if opt.useRampup
-    dtG1 = rampupTimesteps(gas_end*tCycle    , dt, 8);
-    dtW1 = rampupTimesteps((1-gas_end)*tCycle, dt, 8);
-    dtG  = rampupTimesteps(gas_end*tCycle    , dt, 2);
-    dtW  = rampupTimesteps((1-gas_end)*tCycle, dt, 2);
+    dtG1 = rampupTimesteps(gas_end*tCycle    , dt*gas_end, 8);
+    dtW1 = rampupTimesteps((1-gas_end)*tCycle, dt, 4);
+    dtG  = rampupTimesteps(gas_end*tCycle    , dt, 1);
+    dtW  = rampupTimesteps((1-gas_end)*tCycle, dt, 1);
 else
     [dtG1, dtG] = rampupTimesteps(gas_end*tCycle    , dt, 0);
     [dtW1, dtW] = rampupTimesteps((1-gas_end)*tCycle, dt, 0);
