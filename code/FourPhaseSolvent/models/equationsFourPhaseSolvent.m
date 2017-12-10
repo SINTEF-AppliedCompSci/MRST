@@ -32,7 +32,7 @@ W     = drivingForces.W;
 op    = model.operators;
 fluid = model.fluid;
 
-keepOil = true;
+keepOil = false;
 
 % Properties at current timestep
 if keepOil
@@ -205,10 +205,10 @@ if 1
     flux(:,4)    = op.Div(bSvS);
     state.flux   = flux;
     
-    state.sOres = double(sOres);
-    state.sSGres = double(sSGres);
-    
 end
+
+state.sOres  = double(sOres);
+state.sSGres = double(sSGres);
 
 
 eqs   = {water, oil, gas, solvent};
@@ -271,8 +271,6 @@ eqs{4} = eqs{4}.*(dt./op.pv);
 
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 
-eqsval = cellfun(@double, eqs, 'unif', false);
-eqsjac = cellfun(@(e) e.jac, eqs, 'unif', false);
 end
 
 function varargout = getWellValue(wellCells, varargin)
