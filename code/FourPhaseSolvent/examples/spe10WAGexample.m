@@ -4,7 +4,7 @@
 % several cycles. The solvent gas mixes with the reservoir hydrocarbons
 % according to amodified vesrion of the Todd-Longstaff mixing model, which
 % treats the solvent gas as fourth pseudocomponent.
-mrstModule add ad-blackoil ad-props spe10 mrst-gui mrstModule solvent
+mrstModule add ad-blackoil ad-props spe10 mrst-gui solvent
 
 df = get(0, 'defaultfigureposition');
 close all
@@ -128,7 +128,7 @@ for iNo = 1:numel(injectors)
 end
 
 dt          = 60*day; % Timestep size for water injection
-dtWAG       = 30*day; % Timestep size for WAG cycles
+dtWAG       = 45*day; % Timestep size for WAG cycles
 useRampUp   = true;   % We use a few more steps each time we change the 
                       % well control to ease the nonlinear solution process
 nCycles     = 4;      % Four WAG cycles
