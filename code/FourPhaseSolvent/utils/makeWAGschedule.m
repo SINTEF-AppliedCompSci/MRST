@@ -16,15 +16,18 @@ tCycle  = time/nCycles;
 gas_end = opt.gas_end;
 
 if opt.useRampup
-    dtG = rampupTimesteps(gas_end*tCycle    , dt, 2);
-    dtW = rampupTimesteps((1-gas_end)*tCycle, dt, 2);
+    dtG1 = rampupTimesteps(gas_end*tCycle    , dt, 8);
+    dtW1 = rampupTimesteps((1-gas_end)*tCycle, dt, 8);
+    dtG  = rampupTimesteps(gas_end*tCycle    , dt, 2);
+    dtW  = rampupTimesteps((1-gas_end)*tCycle, dt, 2);
 else
-    dtG = rampupTimesteps(gas_end*tCycle    , dt, 0);
-    dtW = rampupTimesteps((1-gas_end)*tCycle, dt, 0);
+    [dtG1, dtG] = rampupTimesteps(gas_end*tCycle    , dt, 0);
+    [dtW1, dtW] = rampupTimesteps((1-gas_end)*tCycle, dt, 0);
 end
 
-step.val     = repmat([dtG; dtW], nCycles, 1);
-step.control = repmat([1*ones(numel(dtG),1); 2*ones(numel(dtW),1)], nCycles, 1);
+step.val     = [dtG1; dtW1; repmat([dtG; dtW], nCycles-1, 1)];
+step.control = [1*ones(numel(dtG1),1); 2*ones(numel(dtW1),1); ...
+                repmat([1*ones(numel(dtG),1); 2*ones(numel(dtW),1)], nCycles-1, 1)];
 
 [WG, WW] = deal(W);
 for wNo = 1:numel(W)
