@@ -91,12 +91,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     %% Effective viscosites
     
-%     tol = 0;
-%     sO(sO < tol) = 0;
-%     sG(sG < tol) = 0;
-%     sS(sS < tol) = 0; 
     tol = 1e-8;
-    is_solvent = false;
+%     is_solvent = sS > tol;
+    is_solvent = true;
 
     % Caluculate mobile saturations
     sOn = max(sO - sOres, 0);
