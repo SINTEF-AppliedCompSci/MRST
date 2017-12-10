@@ -1,4 +1,4 @@
-function [sWres, sOres, sSGres] = computeResidualSaturations(fluid, p, sG, sS)
+function [sWres, sOres, sSGres] = computeResidualSaturations(fluid, p, sG, sS, state0)
 % Calculate effective residual saturations
 
 %{
@@ -35,4 +35,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     sOres  = M.*sOres_m  + (1 - M).*sOres_i ;
     sSGres = M.*sSGres_m + (1 - M).*sSGres_i;
     
+    if nargin > 4 && isfield(state0, 'sOres') && isfield(state0, 'sSGres')
+        sOres = min(sOres, state0.sOres);
+        sSGres = min(sSGres, state0.sSGres);
+    end
+
 end

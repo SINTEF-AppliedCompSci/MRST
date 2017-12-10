@@ -114,8 +114,8 @@ else
 end
 
 % Calculate residual saturations
-[sWres, sOres , sSGres ] = computeResidualSaturations(fluid, p , sG , sS );
-[~    , sO0res, sSG0res] = computeResidualSaturations(fluid, p0, sG0, sS0);
+[sWres, sOres , sSGres ] = computeResidualSaturations(fluid, p , sG , sS , state0);
+[~    , sO0res, sSG0res] = computeResidualSaturations(fluid, p0, sG0, sS0, state0);
 
 % Get multipliers
 [pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
@@ -206,6 +206,7 @@ if 1
     state.flux   = flux;
     
     state.sOres = double(sOres);
+    state.sSGres = double(sSGres);
     
 end
 
@@ -248,7 +249,7 @@ if ~isempty(W)
 
     [muWell, rhoWell] = deal(cell(4,1));
     [krWell{1}, krWell{2}, krWell{3}, krWell{4}] ...
-        = computeRelPermSolvent(fluid, p(wc), compi(:,1), compi(:,2), compi(:,3), compi(:,4), 0,0,0, mobMultw);
+        = computeRelPermSolvent(fluid, p(wc), compi(:,1), compi(:,2), compi(:,3), compi(:,4), 0, 0, 0, mobMultw);
     [muWell{1}, muWell{2}, muWell{3}, muWell{4}, rhoWell{1}, rhoWell{2}, rhoWell{3}, rhoWell{4}] ...
         = computeViscositiesAndDensities(model, p(wc), compi(:,2), compi(:,3), compi(:,4), 0, 0, rsw, rvw, isSatOw, isSatGw);
 
