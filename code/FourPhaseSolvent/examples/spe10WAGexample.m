@@ -1,6 +1,7 @@
 %% Add necessary modules
 
 mrstModule add ad-blackoil ad-props % AD-moduels
+mrstModule add mrst-gui
 mrstModule add spe10                % SPE10 dataset
 mrstModule add solvent              % Solvent model
 
@@ -10,55 +11,62 @@ df = get(0, 'defaultfigureposition');
 close all
 
 %% Set up grid and rock properties
-
 % We pick up layer 10 of SPE10, and extract the grid and rock properties.
-% We will define our own fluid.
+% We will define our own fluid based on a three-phasespe10 fluid with water, oil
+% and gas
+fluid = initSimpleADIFluid('n'     , [2, 2, 2], ...
+                           'rho'   , [1000, 800, 100]*kilogram/meter^3, ...
+                           'phases', 'WOG', ...
+                           'mu'    , [2, 3, 0.4]*centi*poise, ...
+                           'c'     , [1e-7, 1e-6, 1e-5]/barsa);
 layers = 10;
 [~, model, ~] = setupSPE10_AD('layers', layers);
 G    = model.G;
 rock = model.rock;
 
-%% Define fluid properties
-
-% We start by defining a three-phase fluid with water, oil and gas
-fluid = initSimpleADIFluid('n'     , [2, 2, 2], ...
-                           'rho'   , [1000, 800, 100]*kilogram/meter^3, ...
-                           'phases', 'WOG', ...
-                           'mu'    , [1, 3, 0.1]*centi*poise, ...
-                           'c'     , [1e-6, 1e-5, 1e-4]/barsa);
-                       
+%% Define solvent properties         
 % The solvent model we will use, treats solvent gas as a fourth phase,
 % which is either miscible or immiscible with the oil and gas, depending on
 % the fraction of solvent concentration to total gas concentration,
 % $S_s/(S_g + S_s)$, and the pressure.
 
-sOres_i = 0.34; % Immiscible residual oil saturation
+sOres_i = 0.36; % Immiscible residual oil saturation
 sOres_m = 0.12; % Miscible residual oil saturation
-fluid   = addSolventProperties(fluid, 'n'      , 2                   , ...
+fluid   = addSolventProperties(fluid, 'n'    , 2                   , ...
                                     'rho'    , 100*kilogram/meter^3, ...
                                     'mixPar' , 2/3                 , ...
-                                    'mu'     , 0.2*centi*poise     , ...
+                                    'mu'     , 0.5*centi*poise     , ...
                                     'sOres_i', sOres_i             , ...
                                     'sOres_m', sOres_m             , ...
-                                    'c'      , 1e-4/barsa          );
+                                    'c'      , 1e-5/barsa          );
 
-%% Inspect fluid
+%% Inspect fluid relperms
+% In regions with only oil, reservoir gas and water, we have traditional
+% black-oil behavior, whereas regions with only water, reservoir oil and
+% solvent gas, the oil is completely miscible with the solvent. In this
+% case, olvent gas mixes with formation oil, effectively altering the
+% viscosities, densities and relperms according the the Todd-Longstaff
+% model [1]. In the intermediate region, we interpolate between the two
+% extrema depending on the solvent to total gas saturation fraction, and
+% the pressure. We look at terneary plots for the hydrocarbon relperms of
+% the hydrocardon phases when no water is present. Notice how the residual
+% oil saturation (white line) from $S_{or,i}$ (immiscible) to $S_{or,m}$
+% (miscible) with increasing solvent saturation.
 
 figure('Position', [df(1:2), 1000, 400]);
 
 n = 100;
 [sO,sS] = meshgrid(linspace(0,1,n)', linspace(0,1,n)');
-sW      = 0;
-sG      = 1-(sW+sO+sS);
+sW = 0; sG = 1-(sW+sO+sS);
 
-ss  = deal(linspace(0,1-sOres_m,100)');
+ss  = linspace(0,1-sOres_m,100)';
 b   = sOres_i + 2*ss - 1;
 sg  = (-b + sqrt(b.^2 - 4*(ss.*(sOres_m + ss - 1))))/2;
 sOr = 1 - sg - ss;
 
 sW = sW(:); sO = sO(:); sG = sG(:); sS = sS(:);
 [sWres, sOres , sSGres ]  = computeResidualSaturations(fluid, 0 , sG , sS );
-[krW, krO, krG, krS]      = computeRelPermSolvent(fluid, 0, sW, sO, sG, sS, sWres, sOres, sSGres, mobMult);
+[krW, krO, krG, krS]      = computeRelPermSolvent(fluid, 0, sW, sO, sG, sS, sWres, sOres, sSGres, 1);
 sO = reshape(sO, n,n); sG = reshape(sG, n,n); sS = reshape(sS, n,n);
 
 phName = {'O', 'G', 'S'};
@@ -71,6 +79,7 @@ for phNo = 1:3
     kr = reshape(eval(relpermName),[n,n]);
     kr(sG<0) = nan;
 
+    [mapx, mapy] = ternaryAxis('names', {'S_g', 'S_s', 'S_o'});
     contourf(mapx(sG, sS, sO), mapy(sG,sS,sO), kr, 20, 'linecolor', 0.5.*[1,1,1])
     [mapx, mapy] = ternaryAxis('names', {'S_g', 'S_s', 'S_o'});
     plot(mapx(sg, ss, sOr), mapy(sg,ss,sOr), 'color', 0.99*[1,1,1], 'linewidth', 2)
@@ -80,267 +89,80 @@ for phNo = 1:3
     
 end
                                 
-%%
-                                
-model = FourPhaseSolventModel(G, rock, fluid);
-model.extraStateOutput = true;
+%% Set up wells and injection schedule
+% We consider the hello-world of reservoir simulation: A quarter-five spot
+% pattern. The injector in the middle is operater at a fixed injection
+% rate, while the producers in each corner is operated at a fixed
+% bottom-hole pressure of 50 bars. We will simulate a popular injection
+% strategy called water-alternating gas (WAG) injection over a period of
+% four years. During the first 2 years, we inject only water, while the
+% next two, we perform four cycles of equal periods of solvent gas and
+% water injection. This is a common strategy to reduce the growth of
+% viscous fingers associated with gas injection, and uphold a more
+% favourable injected to reservoir fluid mobility ratio.
 
-producers = {1, G.cartDims(1), G.cartDims(1)*G.cartDims(2) - G.cartDims(1) + 1, G.cartDims(1)*G.cartDims(2)};
+time = 1*year;                             % Time of the water injection and
+                                           % WAG injection.
+rate = 0.15*sum(poreVolume(G, rock))/time; % We inject a total of 0.3 PVI 
+bhp = 50*barsa;                            % Producer bhp
+
+producers = {1                                                     , ...
+             G.cartDims(1)                                         , ...
+             G.cartDims(1)*G.cartDims(2) - G.cartDims(1) + 1       , ...
+             G.cartDims(1)*G.cartDims(2)                           };
 injectors = {round(G.cartDims(1)*G.cartDims(2)/2 + G.cartDims(1)/2)};
-
-time = 2*year;
-pv = poreVolume(G, rock);
-rate = sum(pv)/time;
-bhp = 50*barsa;
 
 W = [];
 for pNo = 1:numel(producers)
-    W = addWell(W, G, rock, producers{pNo}, ...
-                'type', 'bhp', ...
-                'val', bhp, ...
-                'comp_i', [1,0,0,0], ...
-                'sign', -1, ...
-                'name', ['P', num2str(pNo)]);
+    W = addWell(W, G, rock, producers{pNo}   , ...
+                'type'  , 'bhp'              , ...
+                'val'   , bhp                , ...
+                'comp_i', [1,0,0,0]          , ...
+                'sign'  , -1                 , ...
+                'name'  , ['P', num2str(pNo)]);
 end
 for iNo = 1:numel(injectors)
-    W = addWell(W, G, rock, injectors{iNo}, ...
-                'type', 'rate', ...
-                'val', rate/numel(injectors), ...
-                'comp_i', [1,0,0,0], ...
-                'sign', 1, ...
-                'name', ['I', num2str(iNo)]);
+    W = addWell(W, G, rock, injectors{iNo}     , ...
+                'type'  , 'rate'               , ...
+                'val'   , rate/numel(injectors), ...
+                'comp_i', [1,0,0,0]            , ...
+                'sign'  , 1                    , ...
+                'name'  , ['I', num2str(iNo)]  );
 end
 
-%%
-
-dt          = 30*day;
-useRampUp   = true;
-scheduleWAG = makeWAGschedule(W, 4, 'time'     , time     , ...
-                                    'dt'       , dt       , ...
-                                    'useRampup', useRampUp);
+dtWAG       = 15*day; % Timestep size
+useRampUp   = true;   % We use a few more steps each time we change the 
+                      % well control to ease the nonlinear solution process
+nCycles     = 4;      % Four WAG cycles
+scheduleWAG = makeWAGschedule(W, nCycles, 'time'     , time     , ...
+                                          'dt'       , dtWAG    , ...
+                                          'useRampup', useRampUp);
 schedule = scheduleWAG;
 
+dt                    = 30*day;
 tvec                  = rampupTimesteps(time, dt);
 control               = 2*ones(numel(tvec),1);
 schedule.step.val     = [tvec; scheduleWAG.step.val];
 schedule.step.control = [control; scheduleWAG.step.control];
 
-%%
-sO = 0.6; sG = 0.2;
-state0 = initResSol(G, 100*barsa, [1-sO-sG, sO sG, 0]);
+%% Define model and initial state, and simulate results
+% The reservoir is initially filled with a mixture of oil, reservoir gas
+% and water.
+model = FourPhaseSolventModel(G, rock, fluid);
+model.extraStateOutput = true;
+sO = 0.75; sG = 0.2;
+state0 = initResSol(G, 100*barsa, [1-sO-sG, sO, sG, 0]);
 state0.wellSol = initWellSolAD(W, model, state0);
 
-%%
+fn = getPlotAfterStepSolvent(state0, model, schedule, ...
+                     'plotWell', true, 'plotReservoir', true);
 
-[ws, states, reports] = simulateScheduleAD(state0, model, schedule);
+[ws, states, reports] = simulateScheduleAD(state0, model, schedule, 'afterStepFn', fn);
 
 %%
 
 plotToolbar(G, states)
+% plotWellSols(ws)
 
 %%
 
-W = addWell([], G, rock, injectors{1}, 'type', 'rate', 'val', rate, 'comp_i', [1,0,0,0]);
-for i = 1:numel(producers)
-    W = addWell(W, G, rock, producers{i}, 'type', 'bhp', 'val', 0, 'comp_i', [1,0,0,0]);
-end
-dT = repmat(time/nStep, nStep,1);
-step.val = dT;
-control(1).W = W;
-step.control = ones(nStep,1);
-schedule.control = control;
-schedule.step = step;
-
-state0 = initResSol(G, 100*barsa, [0 1 0 0]);
-state0.wellSol = initWellSolAD(W_G, model, state0);
-
-%%
-
-[wsW, statesW, reportsW] = simulateScheduleAD(state0, model, schedule);
-
-%%
-
-figure(1)
-plotToolbar(G, states)
-axis equal tight
-colorbar
-% 
-% figure(2)
-% plotToolbar(G, statesW)
-% axis equal tight
-% colorbar
-
-%%
-
-close all
-ns = numel(states);
-pos = [500, 500, 2000,1000];
-fig = figure('position', pos);
-M = struct('cdata',[],'colormap',[]);
-jv = [4,1,2];
-% ns = 4;
-for i = 1:ns
-    
-    clf;
-    
-    subplot(1,3,1)
-    plotCellData(G, states{i}.s(:,1), 'edgecolor', 'none');
-    colorbar('fontsize', 20);
-    colormap(jet)
-    caxis([0,1])
-    axis equal tight off
-    title('S_w');
-    ax = gca;
-    ax.FontSize = 20;
-    
-    subplot(1,3,2)
-    plotCellData(G, states{i}.s(:,4), 'edgecolor', 'none');
-    colorbar('fontSize', 20);
-    caxis([0,1])
-    colormap(jet)
-    axis equal tight off
-    title('S_s');
-    ax = gca;
-    ax.FontSize = 20;
-    
-    subplot(1,3,3)
-    plotCellData(G, states{i}.s(:,2), 'edgecolor', 'none');
-    colorbar('fontSize', 20);
-    colormap(jet)
-    caxis([0,1])
-    axis equal tight off
-    title('S_o');
-    ax = gca;
-    ax.FontSize = 20;
-    
-    drawnow;
-    ax = gca;
-    ax.Units = 'pixels';
-%     pos = ax.Position;
-    
-    m = 150; n = 150;
-    rect = [m, n, 2000-m-20, 1000-n-40];
-    
-    M(i) = getframe(fig, rect);
-    
-    ax.Units = 'normalized';
-    
-end
-
-%%
-
-pth = [mrstPath('mrst-solvent'), '/presentation/figures/spe10/spe10_1'];
-vo = VideoWriter(pth);
-n = numel(states);
-vo.FrameRate = n/30;
-open(vo);
-
-writeVideo(vo, M);
-
-close(vo)
-
-%%
-
-close all
-pos = [500, 500, 2000,1000];
-fig = figure('position', pos);
-axis off
-
-movie(M)
-
-%%
-
-wellS = 0;
-for i = 1:n
-    wellS = wellS + [ws{i}.qSs]*step.val(i);
-end
-
-% %%
-% 
-%%
-
-clc
-
-pv = poreVolume(G, rock);
-n = numel(ws);
-nw = numel(W_G);
-wellW = zeros(n,nw);
-wellO = zeros(n,nw);
-wellS = zeros(n,nw);
-wellM = cell(3,1);
-resM = zeros(n,4);
-
-wc = vertcat(W_G.cells);
-for i = 1:n    
-    
-%     rhoW = [fluid.rhoWS, (states{i}.rho(wc(2:end),1))'];
-%     rhoW = (states{i}.rho(wc,1))';
-%     wellW(i,:) = [ws{i}.qWs].*schedule.step.val(i).*fluid.rhoWS;
-    wellM{1}(i,:) = [ws{i}.qWs].*schedule.step.val(i).*fluid.rhoWS;
-    
-%     rhoO = [fluid.rhoOS, (states{i}.rho(wc(2:end),2))'];
-%     rhoO = (states{i}.rho(wc,2))';
-%     wellO(i,:) = [ws{i}.qOs].*schedule.step.val(i).*fluid.rhoOS;
-    wellM{2}(i,:) = [ws{i}.qOs].*schedule.step.val(i).*fluid.rhoOS;
-    
-%     rhoO = [fluid.rhoOS, (states{i}.rho(wc(2:end),2))'];
-%     rhoO = (states{i}.rho(wc,2))';
-%     wellO(i,:) = [ws{i}.qOs].*schedule.step.val(i).*fluid.rhoOS;
-    wellM{3}(i,:) = [ws{i}.qGs].*schedule.step.val(i).*fluid.rhoGS;
-    
-    rhoS = [fluid.rhoSS, (states{i}.rho(wc(2:end),4))'];
-%     rhoS = (states{i}.rho(wc,4))';
-%     wellS(i,:) = [ws{i}.qSs].*schedule.step.val(i).*fluid.rhoSS;
-    wellM{4}(i,:) = [ws{i}.qSs].*schedule.step.val(i).*fluid.rhoSS;
-    
-    for phNo = 1:4
-        resM(i,phNo) = sum(states{i}.s(:,phNo).*states{i}.rho(:,phNo).*pv);
-    end
-    
-end
-
-wellMtot = zeros(n,nw);
-for phNo = 1:4
-    wellMtot = wellMtot + wellM{phNo};
-end
-resMtot = sum(resM,2);
-
-
-wellMcum = cellfun(@(m) cumsum(m,1), wellM, 'uniformOutput', false);
-wellMtotCum = cumsum(wellMtot,1);
-
-err = (resMtot(1) + sum(wellMtotCum,2) - resMtot)./resMtot;
-
-errTot = abs(resMtot(1) + sum(wellMtotCum(end,:)) - resMtot(end));
-
-fprintf(['Absolute error: \t %.2d \n'], ...
-         errTot);
-     
-%%
-
-path = [mrstPath('mrst-solvent'), '/presentation/figures/'];
-savepng = @(name) print([path, 'spe10/', name], '-dpng', '-r300');
-% savepng = @(name) [];
-
-close all
-
-figure(1); clf;
-perm = rock.perm(:,1);
-plotCellData(G, log10(perm), 'edgecolor', 'none');
-axis equal tight off
-% view([90,90])
-ax = gca;
-pos = ax.Position;
-logColorbar%('southoutside', 'position', [pos(1), pos(2)+0.07, pos(3), 0.05*pos(4)]);
-
-savepng('spe10perm');
-
-figure(2); clf;
-plotCellData(G, rock.poro, 'edgecolor', 'none');
-axis equal tight off
-% view([90,90])
-ax = gca;
-pos = ax.Position;
-colorbar%('southoutside', 'position', [pos(1), pos(2)+0.07, pos(3), 0.05*pos(4)]);
-
-savepng('spe10poro');
