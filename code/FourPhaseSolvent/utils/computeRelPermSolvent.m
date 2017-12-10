@@ -20,33 +20,9 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-%     tol = 1e-16;
-%     sO(sO < tol) = 0;
-%     sG(sG < tol) = 0;
-%     sS(sS < tol) = 0;
-    
-    n = 2;
-    sres_tot = sWres + sOres + sSGres;
-    
-    % Relperm of hydrocarbon to water as a funciton of total HC saturation
-    krN = coreyRelperm(sO + sG + sS, ...
-                  n, ...
-                  sOres + sSGres, ...
-                  fluid.krO(1 - sWres), ...
-                  sres_tot);
-
-              
-    % Immiscible relperms for oil and total gas          
-    krO_i = coreyRelperm(sO, ...
-                  n, ...
-                  sOres, ...
-                  fluid.krO(1 - (sWres + sSGres)), ...
-                  sres_tot);
-    krGT_i = coreyRelperm(sG + sS, ...
-                  n, ...
-                  sSGres, ...
-                  fluid.krG(1 - (sWres + sOres)), ...
-                  sres_tot);
+    krN    = fluid.krN  (sO + sG + sS, sWres, sOres, sSGres);
+    krO_i  = fluid.krO_i(sO          , sWres, sOres, sSGres);
+    krGT_i = fluid.krGT_i(sG + sS    , sWres, sOres, sSGres);
               
     M = fluid.Msat(sG, sS).*fluid.Mpres(p);
 
@@ -81,7 +57,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     % Interpolate between miscible and immiscible cases (water relperm
     % not affected by the solvent)
-    krW_eff = fluid.krW(sW);
+    krW_eff = fluid.krW_i(sW, sWres, sOres, sSGres);
     
     krO_eff = M.*krO_m + (1-M).*krO_i;
     krG_eff = M.*krG_m + (1-M).*krG_i;
@@ -95,13 +71,5 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     krO_eff = mobMult.*krO_eff.*(sOn>0);
     krG_eff = mobMult.*krG_eff.*(sGn>0);
     krS_eff = mobMult.*krS_eff.*(sSn>0);
-    
-end
-
-function kr = coreyRelperm(s, n, sr, kwm, sr_tot)
-
-    den = 1 - sr_tot;
-    sat = max(min((s-sr)./den,1),0);    
-    kr = kwm.*sat.^n;
     
 end
