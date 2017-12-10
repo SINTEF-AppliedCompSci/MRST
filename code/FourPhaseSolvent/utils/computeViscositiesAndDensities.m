@@ -44,8 +44,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     % Oil    
     if disgas
-        bO_i  = fluid.bO(p,  rs, isSatO);
-        muO = fluid.muO(p, rs, isSatO);
+        bO_i = fluid.bO(p,  rs, isSatO);
+        muO  = fluid.muO(p, rs, isSatO);
     else
         bO_i  = fluid.bO(p);
         if isfield(fluid, 'BOxmuO')
@@ -73,7 +73,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         bG_i  = fluid.bG(pG, rv, isSatG);
         muG = fluid.muG(pG, rv, isSatG);
     else
-        bG_i  = fluid.bG(pG);
+        bG_i = fluid.bG(pG);
         muG = fluid.muG(pG);
     end
     
@@ -84,17 +84,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     rhoG = bG_i.*(rv*fluid.rhoOS + fluid.rhoGS);
     
     % Solvent
-    bS_i   = fluid.bS(pG);
+    bS_i  = fluid.bS(pG);
     muS  = fluid.muS(pG);
     
     rhoS = bS_i.*fluid.rhoSS;
     
     %% Effective viscosites
     
-    tol = 0;
-    sO(sO < tol) = 0;
-    sG(sG < tol) = 0;
-    sS(sS < tol) = 0; 
+%     tol = 0;
+%     sO(sO < tol) = 0;
+%     sG(sG < tol) = 0;
+%     sS(sS < tol) = 0; 
+    tol = 1e-8;
+    is_solvent = false;
 
     % Caluculate mobile saturations
     sOn = max(sO - sOres, 0);
@@ -126,8 +128,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     omega = fluid.mixPar;
     muW_eff = muW;
     muO_eff = muO.^(1-omega).*muMOS.^omega;
+    muO_eff = muO_eff.*is_solvent + muO.*(~is_solvent);
     muG_eff = muG.^(1-omega).*muMSG.^omega;
+    muG_eff = muG_eff.*is_solvent + muG.*(~is_solvent);
     muS_eff = muS.^(1-omega).*muM.^omega;
+    muS_eff = muS_eff.*is_solvent + muS.*(~is_solvent);
     
     
     %% Effective densities
@@ -141,7 +146,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     sOsN_Geff = (muSmuG - (muS./muG_eff).^a)./(muSmuG-1);
     sOsN_Geff(~isfinite(double(sOsN_Geff))) = 0; 
     
-    sGf = sGn./(sOn + sGn);
+    sGf = sGn./(sOn + sGn).*(sGn>0);
     sGf(isnan(double(sGf))) = 0;
 
     sSsN_Seff = (muSmuG.*sGf + muSmuO.*(1-sGf) - (muS./muS_eff).^a)...
@@ -164,12 +169,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     rhoO_eff = (sOsN_Oeff.*rhoO + (1-sOsN_Oeff).*rhoS).*(~eq) ...
                                        + ((1-omega)*rhoO + omega*rhoM).*eq;
+    rhoO_eff = rhoO_eff.*is_solvent + rhoO.*(~is_solvent);
                                    
     rhoG_eff = (sOsN_Geff.*rhoS + (1-sOsN_Geff).*rhoG).*(~eq) ...
                                        + ((1-omega)*rhoG + omega*rhoM).*eq;
+    rhoG_eff = rhoG_eff.*is_solvent + rhoG.*(~is_solvent);
     
     rhoS_eff = (sSsN_Seff.*rhoS + (1-sSsN_Seff).*(rhoG.*sGf + rhoO.*(1-sGf))).*(~eq) ...
                                        + ((1-omega)*rhoS + omega*rhoM).*eq;
+    rhoS_eff = rhoS_eff.*is_solvent + rhoS.*(~is_solvent);
                                    
     % Effective formation volume factors are interpolated using a
     % pressure-dependent miscibility funciton

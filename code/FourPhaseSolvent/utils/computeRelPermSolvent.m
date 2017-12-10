@@ -20,10 +20,10 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    tol = 0;
-    sO(sO < tol) = 0;
-    sG(sG < tol) = 0;
-    sS(sS < tol) = 0;
+%     tol = 1e-16;
+%     sO(sO < tol) = 0;
+%     sG(sG < tol) = 0;
+%     sS(sS < tol) = 0;
     
     n = 2;
     sres_tot = sWres + sOres + sSGres;
@@ -60,6 +60,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     sOn  = max(sO - sOres,0);
     sGn  = max(sG - sSGres,0);
+    sSn  = max(sS - sSGres,0);
     sGTn = max(sG + sS - sSGres, 0);
     sNn  = max(sO + sG + sS - (sOres + sSGres), 0);
     
@@ -88,12 +89,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     % Modifiy relperm by mobility multiplier (if any)
     
-    % Multiply by s>0 to avoid erroneous positive relperms due to
+    % Multiply by sn>0 to avoid erroneous positive relperms due to
     % roundoff-errors in evaluation of miscibility M.
     krW_eff = mobMult.*krW_eff;
-    krO_eff = mobMult.*krO_eff.*(sO>0);
-    krG_eff = mobMult.*krG_eff.*(sG>0);
-    krS_eff = mobMult.*krS_eff.*(sS>0);
+    krO_eff = mobMult.*krO_eff.*(sOn>0);
+    krG_eff = mobMult.*krG_eff.*(sGn>0);
+    krS_eff = mobMult.*krS_eff.*(sSn>0);
     
 end
 

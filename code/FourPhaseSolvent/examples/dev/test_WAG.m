@@ -16,7 +16,7 @@ fluid = initSimpleADIFluid('n'     , [2, 2, 2], ...
 sOres_i= 0.2;
 fluid = addSolventProperties(fluid, 'n', 2, ...
                                     'rho', 100*kilogram/meter^3, ...
-                                    'mixPar', 0, ...
+                                    'mixPar', 1, ...
                                     'mu'    , 1*centi*poise, ...
                                     'sOres_i', sOres_i, ...
                                     'sOres_m', 0.0);
@@ -26,13 +26,17 @@ model.extraStateOutput = true;
 
 T = 2*year;
 rate = 1*sum(poreVolume(G, rock))/year;
-[schedule, W_G, W_W] = makeWAGschedule(model, {1}, {G.cells.num}, 2, 'T', T, 'nStep', 100, 'wRate', rate, 'gRate', rate);
+W = [];
+W = addWell(W, G, rock, 1, 'type', 'rate', 'val', rate, 'comp_i', [1,0,0,0]);
+W = addWell(W, G, rock, G.cells.num, 'type', 'bhp', 'val', 50*barsa, 'comp_i', [1,0,0,0]);
+
+schedule = makeWAGschedule(W, 2, 'time', T);
 
 
 sO = sOres_i + 0.0;
-sG = 0.0;
+sG = 1e-1;
 state0 = initResSol(G, 100*barsa, [1-sO-sG sO sG 0]);
-state0.wellSol = initWellSolAD(W_G, model, state0);
+state0.wellSol = initWellSolAD(W, model, state0);
 
 nls = NonLinearSolver('useLineSearch', false);
 

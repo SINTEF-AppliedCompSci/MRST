@@ -75,7 +75,8 @@ fluid.Msat = opt.Msat;
 if isempty(opt.Msat)
     if opt.useTabulatedMsat
         T = tabulatedSaturationMiscibility();
-        fluid.Msat = @(sG, sS) interp2DTable(T, sG, sS);
+        tol = 1e-10;
+        fluid.Msat = @(sG, sS) interp2DTable(T, sG, sS).*(sS > tol);
     else
         fluid.Msat = @(sG, sS) linearSaturationMiscibility(sG, sS);
     end
@@ -100,11 +101,12 @@ end
 
 function T = tabulatedSaturationMiscibility()
     
-    n  = 20;
-    ds = 1e-3;
+    n  = 100;
+    ds = 1e-4;
     s  = linspace(-ds,1+ds,n)';
     [ss, sg] = meshgrid(s,s);
-    M = ss./(ss + sg);
+    tol = 1e-5;
+    M = ss./(ss + sg + tol);
     
     assert(~any(any(isnan(M))));
     M(M<0) = 0; M(M>1) = 1;
