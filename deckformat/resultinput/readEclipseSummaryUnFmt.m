@@ -105,6 +105,11 @@ kws    = smry.KEYWORDS(kwPos);
 
 function s = getData(smry, nm, kw, ms)
 rInx = getRowInx(smry, nm, kw);
+
+if isempty(ms) || (ischar(ms) && strcmp(ms, ':'))
+   ms = 1 : size(smry.data, 2);
+end
+
 s = smry.data(rInx, ms);
 
 function rInx = getRowInx(smry, nm, kw)
