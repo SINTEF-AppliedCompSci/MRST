@@ -1,4 +1,5 @@
 function deck = readSUMMARY(fid, dirname, deck)
+% Read summary
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -12,7 +12,7 @@ function G = mcomputeGeometry(G)
 %       centroids.
 %
 % SEE ALSO:
-%   computeGeometry, grid_structure.
+%   `computeGeometry`, `grid_structure`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

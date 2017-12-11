@@ -55,7 +55,7 @@ function wellpath = makeSingleWellpath(pts, conn, active)
 %              completions.
 %
 % SEE ALSO:
-%   plotWellPath, getWellFromPath
+%   `plotWellPath`, `getWellFromPath`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

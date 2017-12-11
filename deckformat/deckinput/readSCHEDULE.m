@@ -1,4 +1,5 @@
 function [deck, varargout] = readSCHEDULE(fid, dirname, deck, varargin)
+% Read schedule
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
@@ -236,13 +237,13 @@ end
 
 %--------------------------------------------------------------------------
 
-function data = readTSTEP(fid, varargin) %#ok
+function data = readTSTEP(fid, varargin)
    data = readVector(fid, 'TSTEP', inf);
 end
 
 %--------------------------------------------------------------------------
 
-function data = readDATES(fid, start, timespec) %#ok
+function data = readDATES(fid, start, timespec)
    empty_record = @(rec) isempty(rec) || all(isspace(rec));
 
    getDate = @() strtrim(removeQuotes(readRecordString(fid)));

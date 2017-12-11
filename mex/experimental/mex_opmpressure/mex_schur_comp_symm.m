@@ -61,7 +61,7 @@ function varargout = mex_schur_comp_symm(varargin)
 %   lam = SS \ R;
 %
 % SEE ALSO:
-%   mex_ip_simple, mex_compute_press_flux.
+%   `mex_ip_simple`, `mex_compute_press_flux`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

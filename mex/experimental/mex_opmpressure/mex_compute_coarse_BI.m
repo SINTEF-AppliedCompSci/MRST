@@ -19,7 +19,7 @@ function varargout = mex_compute_coarse_BI(varargin)
 %        system of linear equations
 %
 % SEE ALSO:
-%   mex_generate_coarsesystem, mex_schur_comp_symm.
+%   `mex_generate_coarsesystem`, `mex_schur_comp_symm`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

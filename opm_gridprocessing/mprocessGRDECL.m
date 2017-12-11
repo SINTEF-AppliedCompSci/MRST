@@ -44,7 +44,7 @@ function G = mprocessGRDECL(grdecl, varargin)
 %   plotGrid(G); view(10,45);
 %
 % SEE ALSO:
-%   readGRDECL, processGRDECL
+%   `readGRDECL`, `processGRDECL`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

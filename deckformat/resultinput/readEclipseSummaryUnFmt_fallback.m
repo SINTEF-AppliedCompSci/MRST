@@ -35,7 +35,7 @@ function [smry, smspec] = readEclipseSummaryUnFmt(prefix)
 %             reported.
 %
 % SEE ALSO:
-%   readEclipseSummaryFmt.
+%   `readEclipseSummaryFmt`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

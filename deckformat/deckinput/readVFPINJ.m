@@ -1,4 +1,6 @@
 function [tid, tab] = readVFPINJ(fid)
+% Read VFP tables for injector
+
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 

@@ -38,7 +38,7 @@ function S = splitQuotedString(s)
 %   from the return value 'S'.
 %
 % SEE ALSO:
-%   private/assembleString.
+%   `private/assembleString`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

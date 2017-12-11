@@ -17,7 +17,7 @@ function fid = writeBinaryEclipseField(ecl_field, header, fid)
 %   invoked directly from user code.
 %
 % SEE ALSO:
-%   writeBinaryEclipseFile.m
+%   `writeBinaryEclipseFile`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

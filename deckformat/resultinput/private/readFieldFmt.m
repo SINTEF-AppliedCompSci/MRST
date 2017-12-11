@@ -41,7 +41,7 @@ function [name, output] = readFieldFmt(fid, varargin)
 %   invoked directly from user code.
 %
 % SEE ALSO:
-%   private/readFieldUnFmt.
+%   `private/readFieldUnFmt`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

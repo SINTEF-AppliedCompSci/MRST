@@ -61,7 +61,7 @@ function state = opmcoreTransportReorder(state, G, rock, src, dt)
 %   libstdc++ first.
 %
 % SEE ALSO:
-%   solveIncompFlow.
+%   `solveIncompFlow`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

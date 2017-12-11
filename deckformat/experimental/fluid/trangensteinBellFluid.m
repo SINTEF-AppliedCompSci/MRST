@@ -47,7 +47,7 @@ function fluid = initTrangensteinBellFluid(rho0, varargin)
 % EXAMPLE:
 %
 % SEE ALSO:
-%   initBlackoilFluid.
+%   `initBlackoilFluid`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

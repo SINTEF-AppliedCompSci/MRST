@@ -20,7 +20,7 @@ function s = stringReplace(s, s1, s2)
 %       strings.
 %
 % SEE ALSO:
-%   strrep.
+%   `strrep`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

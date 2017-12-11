@@ -24,7 +24,7 @@ function state = initEclipseState(G, deck, fluid)
 %   problems for which the equilibrium datum depth is in the oil zone.
 %
 % SEE ALSO:
-%   readEclipseDeck, convertDeckUnits, initEclipseGrid, initEclipseFluid.
+%   `readEclipseDeck`, `convertDeckUnits`, `initEclipseGrid`, `initEclipseFluid`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

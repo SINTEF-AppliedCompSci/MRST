@@ -48,7 +48,7 @@ function varargout = mex_ip_simple(varargin)
 %   norm(S.BI - S2.BI, inf) / norm(S2.BI, inf)
 %
 % SEE ALSO:
-%   computeMimeticIP, solveIncompFlow, blockDiagIndex.
+%   `computeMimeticIP`, `solveIncompFlow`, `blockDiagIndex`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

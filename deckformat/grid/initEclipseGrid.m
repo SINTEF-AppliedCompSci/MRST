@@ -24,7 +24,7 @@ function G = initEclipseGrid(deck, varargin)
 %   G - Valid 'grid_structure'
 %
 % SEE ALSO:
-%   readEclipseDeck, grid_structure.
+%   `readEclipseDeck`, `grid_structure`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

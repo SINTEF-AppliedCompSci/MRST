@@ -18,7 +18,7 @@ function [B, dB, R, dR, mu, P] = pvdx(tab, p, varargin)
 %   P     - Predicate for identifying which cells are in a saturated state.
 %
 % SEE ALSO:
-%   pvto, pvtg.
+%   `pvto`, `pvtg`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -3,6 +3,7 @@ function deck = readPROPS(fid, dirname, deck)
 %
 % Otherwise intentionally undocumented.
 
+
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 

@@ -21,7 +21,7 @@ function output = readEclipseOutputFileFmt(fname)
 %              field in the file.
 %
 % SEE ALSO:
-%   readEclipseOutputFileUnFmt, fopen.
+%   `readEclipseOutputFileUnFmt`, `fopen`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -26,7 +26,7 @@ function varargout = mex_partition_invert(varargin)
 %          requested.
 %
 % SEE ALSO:
-%   mex_partition_ui, mex_partition_compress.
+%   `mex_partition_ui`, `mex_partition_compress`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -40,7 +40,7 @@ function [pvtfuns, surface_density, names, info, incomp] = ...
 %             all rows of columns 2:3 in PVDG are identical.
 %
 % SEE ALSO:
-%   readEclipseDeck.
+%   `readEclipseDeck`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

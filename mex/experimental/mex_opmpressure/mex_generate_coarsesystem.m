@@ -37,7 +37,7 @@ function varargout = mex_generate_coarsesystem(varargin)
 %        [ I(x)+1 : I(x+1) ] to index into the corresponding data array.
 %
 % SEE ALSO:
-%   mex_generate_coarsegrid, subFaces.
+%   `mex_generate_coarsegrid`, `subFaces`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

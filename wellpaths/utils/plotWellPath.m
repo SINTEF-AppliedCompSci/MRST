@@ -35,7 +35,7 @@ function h = plotWellPath(wellpaths, varargin)
 %               control point markers.
 %
 % SEE ALSO:
-%   makeSingleWellpath, findWellPathCells
+%   `makeSingleWellpath`, `findWellPathCells`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -20,7 +20,7 @@ function fn = matchResultFiles(dname, patt)
 %   semantics or existence may change without prior notice.
 %
 % SEE ALSO:
-%   dir, regexp.
+%   `dir`, `regexp`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -12,7 +12,7 @@ function boxKeyword(fid)
 %   Nothing, but resets the global input box depending on keyword data.
 %
 % SEE ALSO:
-%   private/gridBox.
+%   `private/gridBox`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -33,7 +33,7 @@ function varargout = mex_compute_coarse_contrib(varargin)
 %   language implementation of the MsMFE method.
 %
 % SEE ALSO:
-%   mex_ip_simple.
+%   `mex_ip_simple`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -61,7 +61,7 @@ function [state, report] = implicitTransportReorder(state, G, tf, rock, fluid, v
 %   See <....>
 %
 % SEE ALSO:
-%   implicitTransport, explicitTransport, initCoreyFluidROC
+%   `implicitTransport`, `explicitTransport`, `initCoreyFluidROC`
 
 opt=struct('bc', [], 'src', [], 'wells', [],'substeps',1,...
     'max_iterations',100,'verbose',mrstVerbose());

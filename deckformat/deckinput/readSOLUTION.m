@@ -1,4 +1,5 @@
 function deck = readSOLUTION(fid, dirname, deck)
+% Read solution
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

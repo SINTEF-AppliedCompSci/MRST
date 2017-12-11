@@ -36,7 +36,7 @@ function varargout = mex_compute_trans(varargin)
 %   norm(T - T2, inf) / norm(T2, inf)
 %
 % SEE ALSO:
-%   computeTrans.
+%   `computeTrans`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

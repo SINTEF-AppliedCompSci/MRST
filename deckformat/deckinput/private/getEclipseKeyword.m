@@ -27,7 +27,7 @@ function kw = getEclipseKeyword(fid)
 %   which keywords are present in any given input deck.
 %
 % SEE ALSO:
-%   fopen, ftell, fseek, feof, ferror.
+%   `fopen`, `ftell`, `fseek`, `feof`, `ferror`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -65,7 +65,7 @@ function W = processWells(G, rock, control, varargin)
 %       c        -- Component concentrations. Unit convention may vary.
 %
 % SEE ALSO:
-%   readSCHEDULE, readWellKW, addWell.
+%   `readSCHEDULE`, `readWellKW`, `addWell`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

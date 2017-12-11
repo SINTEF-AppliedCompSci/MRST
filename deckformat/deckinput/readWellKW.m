@@ -26,7 +26,7 @@ function w  = readWellKW(fid, w, kw)
 %   keywords.
 %
 % SEE ALSO:
-%   readEclipseDeck, processWells.
+%   `readEclipseDeck`, `processWells`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

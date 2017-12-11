@@ -1,4 +1,6 @@
 function [tid, tab] = readVFPPROD(fid)
+% Read VFP tables for producer
+
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 

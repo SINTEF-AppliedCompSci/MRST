@@ -17,7 +17,7 @@ function varargout = defaultBox(varargin)
 %   b - Default input box limits defined by [1, d(1), 1, d(2), 1, d(3)].
 %
 % SEE ALSO:
-%   grid_structure, private/gridBox.
+%   `grid_structure`, `private/gridBox`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

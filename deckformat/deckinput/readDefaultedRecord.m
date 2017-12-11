@@ -43,7 +43,7 @@ function rec = readDefaultedRecord(fid, rec)
 %   data.
 %
 % SEE ALSO:
-%   readDefaultedKW, readWellKW.
+%   `readDefaultedKW`, `readWellKW`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

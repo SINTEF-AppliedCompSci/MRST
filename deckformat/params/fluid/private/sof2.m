@@ -36,7 +36,7 @@ function [kro, Soco, Socr, Somax, krsmax] = sof2(T, varargin)
 %             corresponding maximum oil saturations, Somax.
 %
 % SEE ALSO:
-%   readRelPermTable, swfn, sgfn, sof2, swof, sgof.
+%   `readRelPermTable`, `swfn`, `sgfn`, `sof2`, `swof`, `sgof`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -15,7 +15,7 @@ function kr_deck = getSPE10_model_1_relperm()
 %             initDeckADIFluid.
 %
 % SEE ALSO:
-%   getSPE10_model_1_rock, initDeckADIFluid.
+%   `getSPE10_model_1_rock`, `initDeckADIFluid`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -18,8 +18,8 @@ function deck = initializeDeck()
 %              SCHEDULE - Time step and well controls (&c).
 %
 % SEE ALSO:
-%   readEclipseDeck, convertDeckUnits, initEclipseGrid,
-%   initEclipseRock, initEclipseFluid.
+%   `readEclipseDeck`, `convertDeckUnits`, `initEclipseGrid`,
+%   `initEclipseRock`, `initEclipseFluid`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
@@ -58,7 +58,7 @@ end
 
 %--------------------------------------------------------------------------
 
-function runspec = initRunSpec
+function runspec = initRunSpec()
    runspec.cartDims = repmat(-1, [1, 3]);
    runspec.START    = datenum('01 JAN 1983');  % E100 default value.
    runspec.DUALPORO = false;
@@ -70,37 +70,37 @@ end
 
 %--------------------------------------------------------------------------
 
-function grid = initGrid
+function grid = initGrid()
    grid = struct();
 end
 
 %--------------------------------------------------------------------------
 
-function props = initProps
+function props = initProps()
    props = struct();
 end
 
 %--------------------------------------------------------------------------
 
-function regions = initRegions
+function regions = initRegions()
    regions = struct();
 end
 
 %--------------------------------------------------------------------------
 
-function solution = initSolution
+function solution = initSolution()
    solution = struct();
 end
 
 %--------------------------------------------------------------------------
 
-function summary = initSummary
+function summary = initSummary()
    summary = struct();
 end
 
 %--------------------------------------------------------------------------
 
-function schedule = initSchedule
+function schedule = initSchedule()
    schedule.control = [];
    schedule.step    = struct('control', [], 'val', []);
 end

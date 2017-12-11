@@ -27,7 +27,7 @@ function T = readImmisciblePVTTable(fid, ntab, ncol)
 %   newline, '\n').  A table is terminated by a slash character ('/').
 %
 % SEE ALSO:
-%   readRelPermTable, readMisciblePVTTable.
+%   `readRelPermTable`, `readMisciblePVTTable`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

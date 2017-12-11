@@ -13,7 +13,7 @@ function G = processUnstructuredEGRID(egrid)
 % COMMENTS:
 %
 % SEE ALSO:
-%   readEclipseOutputFileUnFmt
+%   `readEclipseOutputFileUnFmt`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
@@ -111,11 +111,7 @@ function N = findNormalDirections(G, N)
 %
 % RETURNS:
 %   N       - n x 2 cell neighbors array.
-%
-% COMMENTS:
-%
-% SEE ALSO:
-%
+
    assert(size(G.nodes.coords, 2)==3);
 
    % Assume convex faces.   Compute average of node coordinates.

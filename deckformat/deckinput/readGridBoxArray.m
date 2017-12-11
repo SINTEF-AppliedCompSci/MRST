@@ -28,7 +28,7 @@ function sect = readGridBoxArray(sect, fid, kw, nc)
 %             the current input box.
 %
 % SEE ALSO:
-%   readGRID, readREGIONS, private/boxIndices, private/gridBox.
+%   `readGRID`, `readREGIONS`, `private/boxIndices`, `private/gridBox`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

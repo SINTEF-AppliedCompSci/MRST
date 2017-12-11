@@ -13,7 +13,7 @@ function writeBinaryEclipseRestartData(prefix, restart_data)
 %
 %
 % SEE ALSO:
-%   writeBinaryEclipseFile, writeBinaryEclipseField
+%   `writeBinaryEclipseFile`, `writeBinaryEclipseField`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

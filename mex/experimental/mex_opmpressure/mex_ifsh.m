@@ -37,7 +37,7 @@ function varargout = mex_ifsh(varargin)
 %             of no wells.
 %
 % SEE ALSO:
-%   mex_ip_simple, mex_schur_comp_symm, test_mex_schur_comp_symm.
+%   `mex_ip_simple`, `mex_schur_comp_symm`, `test_mex_schur_comp_symm`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

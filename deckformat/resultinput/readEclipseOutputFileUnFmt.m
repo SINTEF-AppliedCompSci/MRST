@@ -21,7 +21,7 @@ function varargout = readEclipseOutputFileUnFmt(fname)
 %              field in the file.
 %
 % SEE ALSO:
-%   readEclipseOutputFileFmt, fopen.
+%   `readEclipseOutputFileFmt`, `fopen`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

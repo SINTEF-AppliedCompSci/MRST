@@ -11,7 +11,7 @@ function [G, rock, fluid, state, wells, ...
 %   objects (grid, rock properties, fluids &c) from a single ECLIPSE-style
 %   input file (typically named '*.DATA').
 %
-% PARAMS:
+% PARAMETERS:
 %   inputfile - Name (string) of input file.  The input is assumed to be a
 %               regular file on disk and not, say, a POSIX pipe.
 %
@@ -51,7 +51,7 @@ function [G, rock, fluid, state, wells, ...
 %           SCHEDULE information pertaining to switching well controls.
 %
 % SEE ALSO:
-%   initEclipseGrid, initEclipseState, processWells.
+%   `initEclipseGrid`, `initEclipseState`, `processWells`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

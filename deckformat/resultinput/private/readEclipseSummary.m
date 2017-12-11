@@ -51,7 +51,7 @@ function smry = readEclipseSummary(files, smspec, open, readField)
 %                            List of ministeps in set of summary files.
 %
 % SEE ALSO:
-%   private/readEclipseRestart, readEclipseOutputFileUnFmt.
+%   `private/readEclipseRestart`, `readEclipseOutputFileUnFmt`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -160,7 +160,7 @@ function [c, rho, mu, u, R, B, A, dA] = blackOilPVT(pvtfun, rhos, p, z)
 %
 %
 % SEE ALSO:
-%   pvtg, pvto.
+%   `pvtg`, `pvto`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

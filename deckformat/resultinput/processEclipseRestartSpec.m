@@ -22,7 +22,7 @@ function [spec, specLGR] = processEclipseRestartSpec(prefix, restartAmount)
 %             grid 
 %
 % SEE ALSO:
-%   readEclipseOutputFileUnFmt, readRestartUnFmt.
+%   `readEclipseOutputFileUnFmt`, `readRestartUnFmt`.
 
 if nargin < 2
     restartAmount = 'default';

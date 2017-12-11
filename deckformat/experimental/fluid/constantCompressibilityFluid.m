@@ -53,7 +53,7 @@ function fluid = initCompressibleFluid(rho0, p0, c0, mu0, varargin)
 % EXAMPLE:
 %
 % SEE ALSO:
-%   initBlackoilFluid.
+%   `initBlackoilFluid`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -21,7 +21,7 @@ function deck = convertDeckUnits(deck, varargin)
 %          strict, SI only, conventions.
 %
 % SEE ALSO:
-%   readEclipseDeck, mrstVerbose.
+%   `readEclipseDeck`, `mrstVerbose`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
@@ -197,7 +197,7 @@ end
 
 %--------------------------------------------------------------------------
 
-function rspec = convertRUNSPEC(rspec, varargin)                       %#ok
+function rspec = convertRUNSPEC(rspec, varargin)
    usys = { 'METRIC', 'FIELD', 'LAB', 'PVT_M' };
 
    rspec = rmfield(rspec, usys(isfield(rspec, usys)));
@@ -207,7 +207,7 @@ end
 
 %--------------------------------------------------------------------------
 
-function grid = convertGRID(grid, u)                                   %#ok
+function grid = convertGRID(grid, u)
    if isempty(grid), return; end
 
    for kw = reshape(fieldnames(grid), 1, []),
@@ -280,7 +280,7 @@ end
 
 %--------------------------------------------------------------------------
 
-function props = convertPROPS(props, u)                                %#ok
+function props = convertPROPS(props, u)
    for kw = reshape(fieldnames(props), 1, []),
       key = kw{1};
 
@@ -502,7 +502,7 @@ end
 
 %--------------------------------------------------------------------------
 
-function soln = convertSOLUTION(soln, u)                               %#ok
+function soln = convertSOLUTION(soln, u)
    for kw = reshape(fieldnames(soln), 1, []),
       key = kw{1};
 
@@ -572,7 +572,7 @@ end
 
 %--------------------------------------------------------------------------
 
-function schd = convertSCHEDULE(schd, u)                               %#ok
+function schd = convertSCHEDULE(schd, u)
    schd.step.val = convertFrom(schd.step.val, u.time);
 
    if isfield(schd, 'control'),

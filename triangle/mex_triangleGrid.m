@@ -49,7 +49,7 @@ function G = mex_triangleGrid(points, edges, varargin)
 %   f = plotGrid(G); axis equal tight; view(2)
 %
 % SEE ALSO:
-%   grid_structure, computeGeometry.
+%   `grid_structure`, `computeGeometry`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

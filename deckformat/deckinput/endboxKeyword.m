@@ -1,4 +1,4 @@
-function endboxKeyword
+function endboxKeyword()
 %Uniform handling of ENDBOX keyword
 %
 % SYNOPSIS:
@@ -11,7 +11,7 @@ function endboxKeyword
 %   Nothing, but resets the global input box to encompass entire model.
 %
 % SEE ALSO:
-%   private/gridBox.
+%   `private/gridBox`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

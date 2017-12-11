@@ -19,7 +19,7 @@ function s = assembleString(tokens)
 %   tokens.  No separator is inserted into the output string.
 %
 % SEE ALSO:
-%   private/splitQuotedString.
+%   `private/splitQuotedString`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

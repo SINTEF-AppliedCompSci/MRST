@@ -19,7 +19,7 @@ function G = processgrid(varargin)
 %   plotGrid(G); view(10,45);
 %
 % SEE ALSO:
-%   processGRDECL, readGRDECL, splitDisconnectedGrid.
+%   `processGRDECL`, `readGRDECL`, `splitDisconnectedGrid`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

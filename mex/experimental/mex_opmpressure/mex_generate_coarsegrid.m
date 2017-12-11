@@ -44,7 +44,7 @@ function varargout = mex_generate_coarsegrid(varargin)
 %        any order.
 %
 % SEE ALSO:
-%   generateCoarseGrid, subFaces.
+%   `generateCoarseGrid`, `subFaces`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

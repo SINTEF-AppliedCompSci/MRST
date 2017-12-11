@@ -1,4 +1,5 @@
 function deck = readRUNSPEC(fid, dirname, deck)
+% Read runspec
 
 %Modiefied by VES for reading dual porosity eclipse decks
 
