@@ -9,7 +9,7 @@ mrstModule add incomp
 %% Set up reservoir model
 [nx,ny,nz] = deal(20,20,5);
 G = computeGeometry( cartGrid([nx,ny,nz], [500 500 25]) );
-rock = makeRock(100.*milli*darcy, .2);
+rock  = makeRock(G, 100.*milli*darcy, .2);
 fluid = initSingleFluid('mu', 1*centi*poise,'rho', 1014*kilogram/meter^3);
 hT    = computeTrans(G, rock);
 
