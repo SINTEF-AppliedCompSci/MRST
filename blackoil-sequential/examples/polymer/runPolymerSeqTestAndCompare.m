@@ -1,10 +1,7 @@
 %% Add required modules
-
-mrstModule add ad-core ad-blackoil ad-fi deckformat
-
+mrstModule add ad-core ad-blackoil ad-eor ad-props deckformat
 
 %% Setup example
-
 fn    = 'POLYMER.DATA';
 deck  = readEclipseDeck(fn);
 deck  = convertDeckUnits(deck);
@@ -49,7 +46,6 @@ gravity on
 % We want a layer of oil on top of the reservoir and water on the bottom.
 % To do this, we alter the initial state based on the logical height of
 % each cell. The resulting oil concentration is then plotted.
-
 ijk = gridLogicalIndices(G);
 state0 = initResSol(G, 300*barsa, [ .9, .1]);
 state0.s(ijk{3} == 1, 2) = .9;
@@ -62,7 +58,6 @@ state0.cmax = zeros(G.cells.num, 1);
 
 
 %% Plot grid
-
 figure;
 plotCellData(G, rock.perm(:,1)./(milli*darcy), 'facealpha', 0.7);
 view([-16,20]); axis tight; colorbar;
@@ -71,7 +66,6 @@ xlabel('x-axis');ylabel('y-axis');zlabel('z-axis');
 
 
 %% Run fully implicit schedules
-
 fprintf('Running Oil-Water fully implicit model...\n');
 tic;
 [wsTFI, statesTFI] = simulateScheduleAD(state0, modelTFI, scheduleOW);
@@ -84,7 +78,6 @@ toc
 
 
 %% Run sequential schedules
-
 fprintf('Running Oil-Water sequential model...\n');
 tic;
 [wsTSQ, statesTSQ] = simulateScheduleAD(state0, modelTSQ, scheduleOW);
@@ -97,8 +90,6 @@ tic;
 toc
 
 %% Plot the accumulated water and oil production
-
-
 wsTFIvc = vertcat(wsTFI{:});
 wsPFIvc = vertcat(wsPFI{:});
 wsTSQvc = vertcat(wsTSQ{:});
@@ -137,7 +128,6 @@ ylabel('Stb'); xlabel('Years');
 
 
 %% Run POLYMER fully implicit schedule
-
 fprintf('Running Oil-Water-Polymer fully implicit model...\n');
 tic;
 [wsPFI, statesPFI] = simulateScheduleAD(state0, modelPFI, scheduleP);
@@ -145,7 +135,6 @@ toc
 
 
 %% Run POLYMER sequential schedule
-
 fprintf('Running Oil-Water-Polymer sequential model...\n');
 tic;
 [wsPSQ, statesPSQ] = simulateScheduleAD(state0, modelPSQ, scheduleP);
@@ -153,8 +142,6 @@ toc
 
 
 %% Plot the accumulated water and oil production
-
-
 wsTFIvc = vertcat(wsTFI{:});
 wsPFIvc = vertcat(wsPFI{:});
 wsTSQvc = vertcat(wsTSQ{:});
@@ -190,8 +177,3 @@ legend({'Water, TFI', 'Oil, TFI', 'Water, PFI', 'Oil, PFI', ...
     'Water, TSQ', 'Oil, TSQ', 'Water, PSQ', 'Oil, PSQ'}, ...
 	'Location', 'NorthEastOutside');
 ylabel('Stb'); xlabel('Years');
-
-
-
-
-

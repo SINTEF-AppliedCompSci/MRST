@@ -1,5 +1,7 @@
-mrstModule add ad-fi deckformat mrst-gui ad-core ad-blackoil blackoil-sequential ad-unittest multiscale-devel
+mrstModule add deckformat mrst-gui ad-core ad-blackoil ad-props
+mrstModule add blackoil-sequential ad-unittest multiscale-devel
 mrstModule add blackoil-sequential spe10
+
 %%
 totTime = 2000*day;
 gravity reset on
