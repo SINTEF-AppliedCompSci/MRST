@@ -62,7 +62,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       facedata = varargin{1};
       varargin = varargin(2:end);
    else
-      cells    = varargin{1};
+      if isnumeric(varargin{1}),
+         cells = varargin{1};
+      elseif islogical(varargin{1}) && ...
+            numel(varargin{1}) == G.cells.num,
+         cells = find(varargin{1});
+      end
+      % cells    = varargin{1};
       facedata = varargin{2};
       varargin = varargin(3:end);
    end
