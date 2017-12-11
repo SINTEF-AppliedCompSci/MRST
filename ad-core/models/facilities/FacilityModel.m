@@ -138,7 +138,7 @@ classdef FacilityModel < PhysicalModel
             end
         end
 
-        function W = getWellStruct(model)
+        function W = getWellStruct(model, subs)
             % Get the well struct representing the current set of wells
             %
             % SYNOPSIS:
@@ -150,7 +150,10 @@ classdef FacilityModel < PhysicalModel
             % RETURNS:
             %   W - Standard well struct.
             %
-            W = cellfun(@(x) x.W, model.WellModels, 'UniformOutput', false);
+            if nargin == 1
+                subs = ':';
+            end
+            W = cellfun(@(x) x.W, model.WellModels(subs), 'UniformOutput', false);
             W = vertcat(W{:});
         end
         
