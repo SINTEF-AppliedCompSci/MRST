@@ -8,7 +8,7 @@ function output = readEclipseRestartUnFmt(prefix, spec, steps)
 %   prefix - Name (string) of file(s) (omitting extensions) containing 
 %            unformatted ECLIPSE results. 
 %
-%   spec   - Specifiaction (struct) of restart data as obtained by
+%   spec   - Specification (struct) of restart data as obtained by
 %            processEclipseRestartSpec. If empty or not given, 
 %            processEclipseRestartSpec will be called with default options.
 %
@@ -48,8 +48,12 @@ output = cell2struct(v, nms);
 
 % Read
 if strcmp(spec.type, 'unified')
-    [fid, msg] = fopen([prefix, '.UNRST'], 'rb', 'ieee-be');
-    if fid < 0, error([fname, ': ', msg]); end
+    fname = [prefix, '.UNRST'];
+    [fid, msg] = fopen(fname, 'rb', 'ieee-be');
+    if fid < 0
+       error('Open:Failure', ...
+             'Failed to open Restart File ''%s'': %s', fname, msg);
+    end
 end
 dispif(mrstVerbose, 'Reading restart:     ')
 for ks = 1:numel(steps)
@@ -57,7 +61,11 @@ for ks = 1:numel(steps)
     step = steps(ks);
     if strcmp(spec.type, 'multiple')
         [fid, msg] = fopen(spec.fnames{step}, 'rb',  'ieee-be');
-        if fid < 0, error([fname, ': ', msg]); end
+        if fid < 0,
+           error('Open:Failure', ...
+                 'Failed to open Restart File ''%s'': %s', ...
+                 spec.fnames{step}, msg);
+        end
     end
     nms  = cellfun(@fixVarName, spec.keywords{step}, 'UniformOutput', false);
     p    = spec.pointers{step};
