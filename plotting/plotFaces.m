@@ -12,49 +12,50 @@ function varargout = plotFaces(G, varargin)
 %   G       - Grid data structure.
 %
 %   faces   - Vector of face indices or a logical vector of length
-%             G.faces.num.  The graphical output of 'plotFaces'
-%             will be restricted to the subset of grid faces from 'G'
-%             represented by 'faces'.
+%             G.faces.num.  The graphical output of `plotFaces`
+%             will be restricted to the subset of grid faces from `G`
+%             represented by `faces`.
 %
-%   colour  - Colour data specification.  Either a MATLAB 'ColorSpec'
+%   colour  - Colour data specification.  Either a MATLAB `ColorSpec`
 %             (i.e., an RGB triplet (1-by-3 row vector) or a short or long
-%             colour name such as 'r' or 'cyan'), or a PATCH
-%             'FaceVertexCData' table suiteable for either indexed or
+%             colour name such as 'r' or 'cyan'), or a `patch`
+%             `FaceVertexCData` table suitable for either indexed or
 %             'true-colour' face colouring.  This data *MUST* be an m-by-1
 %             column vector or an m-by-3 matrix.  We assume the following
 %             conventions for the size of the colour data:
 %
-%                - ANY(SIZE(colour,1) == [1, NUMEL(faces)])
-%                  One (constant) indexed colour for each face in 'faces'.
-%                  This option supports 'flat' face shading only.  If
-%                  SIZE(colour,1) == 1, then the same colour is used for
-%                  all faces in 'faces'.
+%                - `any(size(colour,1) == [1, numel(faces)])`
+%                  One (constant) indexed colour for each face in `faces`.
+%                  This option supports `flat` face shading only.  If
+%                  `size(colour,1) == 1`, then the same colour is used for
+%                  all faces in `faces`.
 %
-%                - SIZE(colour,1) == G.nodes.num
-%                  One (constant) indexed colour for each node in 'faces'.
+%                - `size(colour,1) == G.nodes.num`
+%                  One (constant) indexed colour for each node in `faces`.
 %                  This option must be chosen in order to support
 %                  interpolated face shading.
 %
-%             OPTIONAL.  Default value: colour = 'y' (shading flat).
+%             OPTIONAL.  Default value: `colour = 'y'` (shading flat).
 %
-%   'pn'/pv - List of other property name/value pairs.  OPTIONAL.
-%             This list will be passed directly on to function PATCH
-%             meaning all properties supported by PATCH are valid.
+% KEYWORD ARGUMENTS:
 %
-%             As a special case function plotFaces supports a separate
-%             boolean option 'outline' which, when set, draws the outline
-%             edge of the 'faces' input argument.  The outline is defined
-%             as those edges that appear exactly once in the edge list
-%             implied by 'faces'.
+%  'Any '    - Additional keyword arguments will be passed directly on to
+%              function `patch` meaning all properties supported by `patch`
+%              are valid.
+%
+%  'Outline' - Boolean option. When enabled, `plotFaces` draws the outline
+%              edge of the `faces` input argument.  The outline is defined
+%              as those edges that appear exactly once in the edge list
+%              implied by `faces`.
 %
 % RETURNS:
-%   h - Handle to resulting PATCH object.  The patch object is added to the
-%       current AXES object.
+%   h - Handle to resulting `patch` object.  The patch object is added to the
+%       current `axes` object.
 %
 % NOTES:
-%   Function 'plotFaces' is implemented directly in terms of the low-level
-%   function PATCH.  If a separate axes is needed for the graphical output,
-%   callers should employ function newplot prior to calling 'plotFaces'.
+%   Function `plotFaces` is implemented directly in terms of the low-level
+%   function `patch`.  If a separate axes is needed for the graphical output,
+%   callers should employ function `newplot` prior to calling `plotFaces`.
 %
 % EXAMPLE:
 %   % Plot grid with boundary faces on left side in red colour:
@@ -64,7 +65,7 @@ function varargout = plotFaces(G, varargin)
 %   plotFaces(G, faces, 'r');
 %
 % SEE ALSO:
-%   plotCellData, plotGrid, newplot, patch, shading.
+%   `plotCellData`, `plotGrid`, `newplot`, `patch`, `shading`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

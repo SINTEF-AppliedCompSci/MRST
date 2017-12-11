@@ -20,12 +20,11 @@ function data = readDefaultedKW(fid, template, varargin)
 %
 %                  template(1 : n) = { 'NaN' }
 %
-%   'pn'/pv  - List of 'key'/value pairs defining optional parameters.
-%              The supported options are:
-%                 - NRec -- Maximum number of records to input.  Integer.
-%                           Default value: Inf whence input will terminate
-%                           upon detecting an empty input record (usually
-%                           consisting only of a slash character).
+% OPTIONAL PARAMETERS:
+%   'NRec' - Maximum number of records to input.  Integer.
+%            Default value: Inf whence input will terminate upon detecting
+%            an empty input record (usually consisting only of a slash
+%            character).
 %
 % RETURNS:
 %   data - Keyword data.  An m-by-n CELL array, the rows of which
@@ -35,13 +34,13 @@ function data = readDefaultedKW(fid, template, varargin)
 %
 % NOTE:
 %   It is the caller's responsibility to supply default values in the input
-%   'template' which can be reliably distinguished from all (expected) data
+%   `template` which can be reliably distinguished from all (expected) data
 %   for any given keyword.
 %
 %   Data reading terminates when the input reader detects an empty record.
 %
 % SEE ALSO:
-%   readDefaultedRecord.
+%   `readDefaultedRecord`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

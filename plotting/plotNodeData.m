@@ -1,7 +1,8 @@
 function varargout = plotNodeData(G, node_data, varargin)
+% Plot data defined on nodes of grid
 %
 % SYNOPSIS:
-%       plotNodeData(G, data)
+%   plotNodeData(G, data)
 %
 % PARAMETERS:
 %   G         - Grid data structure.
@@ -9,19 +10,22 @@ function varargout = plotNodeData(G, node_data, varargin)
 %   node_data - Data at nodes to be plotted.  
 %
 %
-%   'pn'/pv   - List of other property name/value pairs.  OPTIONAL.
-%               This list will be passed directly on to function PATCH
-%               meaning all properties supported by PATCH are valid.
+% KEYWORD ARGUMENTS:
+%
+%   'Any'    - Additional keyword arguments will be passed directly on to
+%              function `patch` meaning all properties supported by `patch`
+%              are valid.
 %
 % RETURNS:
 %   h - Handle to resulting PATCH object.  The patch object is added to the
 %       current AXES object.
 %
-%
 % EXAMPLE:
+%  G = cartGrid([10, 10]);
+%  plotNodeData(G, G.nodes.coords(:, 1));
 %
 % SEE ALSO:
-%   plotCellData, plotGrid, newplot, patch, shading.
+%   `plotCellData`, `plotGrid`, `newplot`, `patch`, `shading`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

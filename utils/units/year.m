@@ -11,7 +11,7 @@ function d = year()
 %   d - Numerical value, in units of s, of one year.
 %
 % SEE ALSO:
-%   day, hour.
+%   `day`, `hour`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

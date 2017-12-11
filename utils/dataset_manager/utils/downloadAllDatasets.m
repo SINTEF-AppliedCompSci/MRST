@@ -11,11 +11,11 @@ function downloadAllDatasets(askFirst)
 %
 % NOTE:
 %   Avoid using this function in scripts. Rather, opt for the more
-%   conservative downloadDataset function to have control over which files
-%   to download.
+%   conservative `downloadDataset` function to have control over which
+%   files to download.
 %
 % SEE ALSO:
-%   mrstDatasetGUI, downloadDataset
+%   `mrstDatasetGUI`, `downloadDataset`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

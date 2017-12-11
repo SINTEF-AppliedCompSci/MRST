@@ -1,11 +1,8 @@
-function root = ROOTDIR
+function root = ROOTDIR()
 %Retrieve full path of Toolbox installation directory.
 %
 % SYNOPSIS:
 %   root = ROOTDIR
-%
-% PARAMETERS:
-%   none.
 %
 % RETURNS:
 %   root - Full path to MRST installation directory.

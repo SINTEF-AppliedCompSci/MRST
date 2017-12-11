@@ -31,7 +31,7 @@ function q = convertTo(q, unit)
 %   emptor.
 %
 % SEE ALSO:
-%   units, convertFrom.
+%   `units`, `convertFrom`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

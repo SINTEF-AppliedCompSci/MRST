@@ -4,7 +4,7 @@ function T = avogadro()
 % SYNOPSIS:
 %   An = avogadro()
 %
-% PARMETERS:
+% PARAMETERS:
 %   None.
 %
 % RETURNS:

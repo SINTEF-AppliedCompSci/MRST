@@ -8,9 +8,9 @@ function T = computeTrans(G, rock, varargin)
 % PARAMETERS:
 %   G    - Grid structure as described by grid_structure.
 %
-%   rock - Rock data structure with valid field 'perm'.  The permeability
+%   rock - Rock data structure with valid field `perm`.  The permeability
 %          is assumed to be in measured in units of metres squared (m^2).
-%          Use function 'darcy' to convert from darcies to m^2, e.g.,
+%          Use function `darcy` to convert from darcies to m^2, e.g::
 %
 %                 perm = convertFrom(perm, milli*darcy)
 %
@@ -20,7 +20,7 @@ function T = computeTrans(G, rock, varargin)
 %          permeability in each cell, TWO/THREE columns for a diagonal
 %          permeability in each cell (in 2/3 D) and THREE/SIX columns for a
 %          symmetric full tensor permeability.  In the latter case, each
-%          cell gets the permeability tensor
+%          cell gets the permeability tensor::
 %
 %                 K_i = [ k1  k2 ]      in two space dimensions
 %                       [ k2  k3 ]
@@ -30,27 +30,29 @@ function T = computeTrans(G, rock, varargin)
 %                       [ k3  k5  k6 ]
 %
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
+%
 %   K_system - Define the system permeability is defined in valid values
-%              are 'xyz' and 'loc_xyz'.
-%   cellCenters - Compute transmissibilities based on supplied cellCenters
-%              rather than default G.cells.centroids
+%              are `xyz` and `loc_xyz`.
+%
+%   cellCenters - Compute transmissibilities based on supplied
+%                 `cellCenters` rather than default `G.cells.centroids`
+%
 %   cellFaceCenters - Compute transmissibilities based on supplied
-%              cellFaceCenters rather then default
-%              G.faces.centroids(G.cells.faces(:,1), :)
+%                     `cellFaceCenters` rather then default
+%                     `G.faces.centroids(G.cells.faces(:,1), :)`
 %
 % RETURNS:
 %   T - half-transmissibilities for each local face of each grid cell in
 %       the grid.  The number of half-transmissibilities equals the number
-%       of rows in G.cells.faces.
+%       of rows in `G.cells.faces`.
 %
-% COMMENTS:
-%   PLEASE NOTE: Face normals are assumed to have length equal to the
-%   corresponding face areas.  This property is guaranteed by function
-%   'computeGeometry'.
+% NOTE:
+%   Face normals are assumed to have length equal to the corresponding face
+%   areas. This property is guaranteed by function `computeGeometry`.
 %
 % SEE ALSO:
-%   computeGeometry, permTensor, makeRock.
+%   `computeGeometry`, `permTensor`, `makeRock`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

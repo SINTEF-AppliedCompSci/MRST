@@ -15,11 +15,15 @@ function varargout = outlineCoarseGrid(G, p, varargin)
 %
 %   c       - color, works only if G.griddim==2
 %
-%   'pn'/pv - List of PATCH property specifications.
+% KEYWORD ARGUMENTS:
+%
+%   'Any'   - Additional keyword arguments will be passed directly on to
+%             function `patch` meaning all properties supported by `patch`
+%             are valid.
 %
 % RETURNS:
 %   h - Handle to polygonal patch structure as defined by function
-%       plotFaces.  OPTIONAL.
+%       plotFaces. Only returned if requested.
 %
 % EXAMPLE:
 %   G  = cartGrid([8, 8, 2]);
@@ -30,7 +34,7 @@ function varargout = outlineCoarseGrid(G, p, varargin)
 %   outlineCoarseGrid(G, p);
 %
 % SEE ALSO:
-%   plotFaces, plotGrid, patch.
+%   `plotFaces`, `plotGrid`, `patch`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

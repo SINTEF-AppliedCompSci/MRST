@@ -6,20 +6,18 @@ function G = removePinch(G, tol)
 %   H = removePinch(G, tol)
 %
 % PARAMETERS:
-%   G       - Grid structure as described by grid_structure.
+%   G       - Grid structure as described by `grid_structure`.
 %   tol     - Absolute tolerance to distinguish neighbouring points
 %
 % RETURNS:
 %   G       - Grid structure where duplicate nodes have been removed in
-%             G.nodes.coords and duplicate node numbers are removed from
-%             G.faces.nodes.  Faces with fewer than 3 nodes and cells with
-%             fewer than GRIDDIM+1 faces are also removed to avoid zero
+%             `G.nodes.coords` and duplicate node numbers are removed from
+%             `G.faces.nodes`.  Faces with fewer than 3 nodes and cells with
+%             fewer than `G.griddim+1` faces are also removed to avoid zero
 %             areas and zero volumes subsequently.
-
-% COMMENTS:
 %
 % SEE ALSO:
-%
+%  `removeCells`, `extractSubgrid`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

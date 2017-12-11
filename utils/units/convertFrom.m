@@ -30,7 +30,7 @@ function q = convertFrom(q, unit)
 %   the numeric value of a pressure into a time value.  Caveat emptor.
 %
 % SEE ALSO:
-%   units, convertTo.
+%   `units`, `convertTo`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

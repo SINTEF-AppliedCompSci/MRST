@@ -4,7 +4,7 @@ function m = milli()
 % SYNOPSIS:
 %   m = milli()
 %
-% PARMETERS:
+% PARAMETERS:
 %   None.
 %
 % RETURNS:

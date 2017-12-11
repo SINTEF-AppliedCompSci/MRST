@@ -32,7 +32,7 @@ function sect = applyOperatorSimple(sect, fid, cartDims, box, kw)
 %   sect - Updated deck section structure array.
 %
 % SEE ALSO:
-%   readGRID, readEDIT, readPROPS, readREGIONS, readSOLUTION.
+%   `readGRID`, `readEDIT`, `readPROPS`, `readREGIONS`, `readSOLUTION`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

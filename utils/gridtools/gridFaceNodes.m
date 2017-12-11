@@ -10,9 +10,9 @@ function [n, pos] = gridFaceNodes(G, f)
 %
 %
 % RETURNS:
-%   pos  - indirectionmap into n. The nodes of face f(i) is found at
-%   positions p(i):p(i+1)-1 in n
-%   n    - node positions in G
+%   pos  - indirection map into `n`. The nodes of face `f(i)` is found at
+%          positions `p(i):p(i+1)-1` in `n`
+%   n    - node positions in `G`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

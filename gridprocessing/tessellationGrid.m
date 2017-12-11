@@ -72,7 +72,7 @@ function G = tessellationGrid(p, t)
 %   clf, plotGrid(G);
 %
 % SEE ALSO:
-%   triangleGrid, tetrahedralGrid, grid_structure.
+%   `triangleGrid`, `tetrahedralGrid`, `grid_structure`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -5,23 +5,23 @@ function x = geomspace(a, b, n, x0)
 %   x = geomspace(x1, x2, n, L0)
 %
 % PARAMETERS:
-%   x1, x2 - Lower and upper bounds on resulting vector.
+%   x1,x2  - Lower and upper bounds on resulting vector.
 %
-%   n      - Number of points to generate between x1 and x2, inclusive.
-%            Must be at least two (n >= 2).
+%   n      - Number of points to generate between `x1` and `x2`, inclusive.
+%            Must be at least two (`n` >= 2).
 %
 %   L0     - Length of first (and shortest) sub-interval.
-%            Must not exceed (x2 - x1) / (n - 1).
+%            Must not exceed `(x2 - x1) / (n - 1)`.
 %
 % RETURNS:
 %   x - n-point row vector from x1 to x2 constructed such that the length
 %       of consecutive sub-intervals (i.e., DIFF(x)) *increases* by a
 %       constant (geometric) factor.
 %
-% CAVEATS:
+% NOTE:
 %   This function is based on solving a polynomial equation of degree n-1
-%   (using the ROOTS function).  This is an unstable process and,
-%   consequently, 'n' should not be too big (usually no greater than 100).
+%   (using the `roots` function).  This is an unstable process and,
+%   consequently, `n` should not be too big (usually no greater than 100).
 %
 %   Due to round-off errors, x(end) may differ slightly from x2.
 %
@@ -29,7 +29,7 @@ function x = geomspace(a, b, n, x0)
 %   should be carefully considered in every instance.
 %
 % SEE ALSO:
-%   linspace, logspace, roots.
+%   `linspace`, `logspace`, `roots`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -1,5 +1,5 @@
 function hash = md5sum_fallback(varargin)
-    % Alternative implementation of md5sum for systems without C compiler
+    % Alternative implementation of md5sum for systems without C compiler.
     % Requires java.
     try
         md = java.security.MessageDigest.getInstance('MD5');

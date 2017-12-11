@@ -11,7 +11,7 @@ function [hcb, hax] = colorbarHist(q, lim, varargin)
 %    q   - vector for which histogram is to be defined
 %    lim - defines the range of values used to set limits of colorbar and
 %          axis of histogram for q
-%    loc - location of colorbar: 'East','West', or 'South' (default)
+%    loc - location of colorbar: `East`, `West`, or `South` (default)
 %    n   - number of bins in histogram (default: 50). See the documentation
 %          of hist for the interpretation of this parameter.
 %    islog - flag indicating that we should visualize q on a logarithmic scale
@@ -21,7 +21,7 @@ function [hcb, hax] = colorbarHist(q, lim, varargin)
 %    hh  - graphics handle to histogram
 %
 % SEE ALSO:
-%   hist.
+%   `hist`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

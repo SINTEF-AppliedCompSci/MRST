@@ -18,7 +18,7 @@ function grdecl = convertInputUnits(grdecl, u)
 %            lengths/depths measured in meters &c).
 %
 % SEE ALSO:
-%   readGRDECL, getUnitSystem, convertFrom.
+%   `readGRDECL`, `getUnitSystem`, `convertFrom`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

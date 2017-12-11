@@ -13,20 +13,20 @@ function p = gaussianField(N, vals, sz, std)
 %   distributed random field with a Gaussian filter.
 %
 % PARAMETERS:
-%   N    - Three-element vector, [nx, ny, nz], specifying the number of
-%          discrete values in the 'x', 'y', and 'z' coordinate directions
+%   N    - Three-element vector, `[nx, ny, nz]`, specifying the number of
+%          discrete values in the `x`, `y`, and `z` coordinate directions
 %          respectively.
 %
 %   VALS - Target interval for the values of the random field
 %
 %   SIZE - Sets the size of the convolution kernel. Default value is
-%          [3,3,3]. If SIZE is a scalar,  the size is interpreted as [SIZE
-%          SIZE SIZE].
+%          `[3,3,3]`. If `SIZE` is a scalar,  the size is interpreted as 
+%          `[SIZE SIZE SIZE].`
 %
 %   STD  - Standard deviation used in the Gaussian filter (default: 0.65)
 %
 % RETURNS:
-%   p - The scalar nx-by-ny-by-nz Gaussian random field
+%   p - The scalar `nx` by `ny` by `nz` Gaussian random field
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

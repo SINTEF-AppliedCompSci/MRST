@@ -1,5 +1,5 @@
 function [flt, flt_id] = processFaults(G, geomspec)
-%Construct fault structure from input specification (keyword 'FAULTS')
+%Construct fault structure from input specification (keyword `FAULTS`)
 %
 % SYNOPSIS:
 %   [faults, id] = processFaults(G, geom)
@@ -9,44 +9,44 @@ function [flt, flt_id] = processFaults(G, geomspec)
 %          column of G.cells.faces, the values of which must identify the
 %          cardinal direction of each face within each cell.
 %
-%   geom - Geometry specification.  Typically corresponds to the 'GRID'
-%          section data structure defined by function 'readEclipseDeck'
-%          (i.e., 'deck.GRID').
+%   geom - Geometry specification.  Typically corresponds to the `GRID`
+%          section data structure defined by function `readEclipseDeck`
+%          (i.e., `deck.GRID`).
 %
-%          If 'geom' contains the fault-related keywords 'FAULTS' and,
-%          optionally, 'MULTFLT' (matched case insensitively), then fault
+%          If `geom` contains the fault-related keywords `FAULTS` and,
+%          optionally, `MULTFLT` (matched case insensitively), then fault
 %          structures will be generate for each named fault.  Otherwise,
 %          empty return values will be produced by function
-%          'processFaults'.
+%          `processFaults`.
 %
 % RETURNS:
-%   faults - An n-by-1 structure array, one element for each of the 'n'
+%   faults - An n-by-1 structure array, one element for each of the `n`
 %            unique faults in the geometry specification.  Each array
 %            element has the following fields:
 %
-%               name  - Fault name.  Copied from 'geom'.
+%               name  - Fault name.  Copied from `geom`.
 %
-%               faces - Global grid faces (from the grid 'G') connected to
-%                       the given, named fault.
+%               faces - Global grid faces (from the grid `G`) connected to
+%               the given, named fault.
 %
 %               numf  - Number of global faces connected to given, named
-%                       fault (== NUMEL(faces)).
+%               fault (`== NUMEL(faces)`).
 %
 %               mult  - Fault transmissibility multiplier.
-%                       Numeric value 1 (one) unless redefined in 'MULT'.
+%               Numeric value 1 (one) unless redefined in `MULT`.
 %
 %   id     - Fault enumeration mapping.  Function handle supporting the
-%            following syntax:
+%            following syntax::
 %
 %                     i = id(name)
 %
-%            where 'name' is one of the unique fault names defined in the
-%            'FAULTS' field of 'geom'.  The return value, 'i', is the index
-%            into 'faults' such that 'faults(i)' contains the information
-%            pertaining to the 'name'd fault.
+%            where `name` is one of the unique fault names defined in the
+%            `FAULTS` field of `geom`.  The return value, `i`, is the index
+%            into `faults` such that `faults(i)` contains the information
+%            pertaining to the `name`d fault.
 %
 % SEE ALSO:
-%   readEclipseDeck.
+%   `readEclipseDeck`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

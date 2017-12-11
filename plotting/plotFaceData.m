@@ -1,5 +1,5 @@
 function h = plotFaceData(G, varargin)
-%Plot face data on exterior grid faces to current axes (reversed Z axis).
+% Plot face data on exterior grid faces to current axes (reversed Z axis).
 %
 % SYNOPSIS:
 %       plotFaceData(G, data)
@@ -15,27 +15,29 @@ function h = plotFaceData(G, varargin)
 %
 %   cells   - Vector of cell indices defining sub grid.
 %
-%             If unspecified, function 'ploFaceData' will behave as if the
+%             If unspecified, function `plotFaceData` will behave as if the
 %             caller defined
 %
-%                 cells = 1 : G.cells.num
+%                 `cells = 1 : G.cells.num`
 %
 %             meaning graphical output will be produced for all cells in
-%             the grid model 'G'.  If 'cells' is empty (i.e., if
-%             ISEMPTY(cells)), then no graphical output will be produced.
+%             the grid model `G`.  If `cells` is empty (i.e., if
+%             `isempty(cells)`), then no graphical output will be produced.
 %
-%   'pn'/pv - List of property names/property values.  OPTIONAL.
-%             This list will be passed directly on to function PATCH
-%             meaning all properties supported by PATCH are valid.
+% KEYWORD ARGUMENTS:
+%
+%   'Any'   - Additional keyword arguments will be passed directly on to
+%             function `patch` meaning all properties supported by `patch`
+%             are valid.
 %
 % RETURNS:
 %   h  - Handle to resulting patch object.  The patch object is added
-%        directly to the current AXES object (GCA).
+%        directly to the current `axes` object (`gca`).
 %        OPTIONAL.  Only returned if specifically requested.  If
-%        ISEMPTY(cells), then h==-1.
+%        `isempty(cells)`, then `h==-1`.
 %
 % SEE ALSO:
-%   plotCellData, plotFaces, patch, newplot.
+%   `plotCellData`, `plotFaces`, `patch`, `newplot`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

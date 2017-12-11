@@ -13,12 +13,12 @@ function varargout = downloadDataset(name, askFirst)
 %
 % PARAMETERS:
 %   name     - Name (string) of the dataset to download.  Must be one of
-%              the names returned by function getAvailableDatasets.
+%              the names returned by function `getAvailableDatasets`.
 %
 %   askFirst - Whether or not to ask for permission in the command window
 %              before downloading any files.  Reports the size of the
 %              dataset for context.  LOGICAL.  If unspecified, treated as
-%              TRUE (*do* ask for permission before downloading files).
+%              `true` (*do* ask for permission before downloading files).
 %
 % RETURNS:
 %   pth - Filesystem path where dataset was or should be placed.
@@ -27,12 +27,12 @@ function varargout = downloadDataset(name, askFirst)
 %         process completed successfully.
 %
 % NOTE:
-%   Function downloadDataset is a fairly low-level facility and end-users
+%   Function `downloadDataset` is a fairly low-level facility and end-users
 %   should rarely call this function directly.  We recommend higher-level
-%   interfaces like function mrstDatasetGUI for interactive work.
+%   interfaces like function `mrstDatasetGUI` for interactive work.
 %
 % SEE ALSO:
-%   getAvailableDatasets, mrstDatasetGUI.
+%   `getAvailableDatasets`, `mrstDatasetGUI`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

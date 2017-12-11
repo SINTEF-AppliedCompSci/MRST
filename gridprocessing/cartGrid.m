@@ -20,8 +20,8 @@ function G = cartGrid(celldim, varargin)
 %              jmin,kmin), (imax,jmin,kmin), (imin,jmax,kmin), ...
 %
 % RETURNS:
-%   G - Grid structure mostly as detailed in grid_structure, though lacking
-%       the fields
+%   G - Grid structure with a subset of the fields `grid_structure`.
+%       Specifically, the geometry fields are missing:
 %         - G.cells.volumes
 %         - G.cells.centroids
 %
@@ -29,17 +29,17 @@ function G = cartGrid(celldim, varargin)
 %         - G.faces.normals
 %         - G.faces.centroids
 %
-%       These fields may be computed using the function computeGeometry.
+%       These fields may be computed using the function `computeGeometry`.
 %
 %       There is, however, an additional field not described in
-%       grid_structure:
+%       `grid_structure:
 %
-%         - cartDims -- A length 3 vector giving number of cells in each
-%                       coordinate direction.  In other words
+%           `cartDims` is a length 2 or 3 vector giving number of cells in
+%           each coordinate direction.  In other words 
 %
-%                               cartDims == celldim .
+%                      `all(G.cartDims == celldim)`.
 %
-%       G.cells.faces(:,2) contains integers 1-6 corresponding to
+%       `G.cells.faces(:,2)` contains integers 1-6 corresponding to
 %       directions W, E, S, N, T, B respectively.
 %
 % EXAMPLE:
@@ -51,7 +51,7 @@ function G = cartGrid(celldim, varargin)
 %      f = plotGrid(G); view(3);
 %
 % SEE ALSO:
-%   grid_structure, tensorGrid, computeGeometry.
+%   `grid_structure`, `tensorGrid`, `computeGeometry`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

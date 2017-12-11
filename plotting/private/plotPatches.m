@@ -57,7 +57,7 @@ function varargout = plotPatches(G, faces, varargin)
 %   plotFaces(G, faces, 'r');
 %
 % SEE ALSO:
-%   plotCellData, plotGrid, newplot, patch, shading.
+%   `plotCellData`, `plotGrid`, `newplot`, `patch`, `shading`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

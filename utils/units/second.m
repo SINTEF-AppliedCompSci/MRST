@@ -4,7 +4,7 @@ function t = second()
 % SYNOPSIS:
 %   t = second()
 %
-% PARMETERS:
+% PARAMETERS:
 %   None.
 %
 % RETURNS:

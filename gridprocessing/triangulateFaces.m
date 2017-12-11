@@ -1,7 +1,7 @@
 function G = triangulateFaces(G, f)
 %Split face f in grid G into subfaces.
 %
-% DESCRIPTION
+% DESCRIPTION:
 %   For each face listed in F, face center as compute average of face node
 %   coordinates.  Use face center to triangulate face.  remove original
 %   face and add triangular faces.
@@ -23,7 +23,7 @@ function G = triangulateFaces(G, f)
 %   G        - Grid.
 %
 % SEE ALSO:
-%   grid_structure, computeGeometry
+%   `grid_structure`, `computeGeometry`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -31,7 +31,7 @@ function varargout = mrstReferencesGUI(modules, parent, pos, name)
 %  Note that all arguments are optional. Passing no input arguments
 %
 % SEE ALSO:
-%   mrstExploreModules, getAvailablePapers
+%   `mrstExploreModules`, `getAvailablePapers`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

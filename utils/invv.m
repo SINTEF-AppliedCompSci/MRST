@@ -5,20 +5,20 @@ function varargout = invv(varargin)
 %   B = invv(A, sz)
 %
 % PARAMETERS:
-%   A  - Array (type DOUBLE) containing the elements/entries of a sequence
+%   A  - Array (type `double`) containing the elements/entries of a sequence
 %        of square matrices--ordered consequtively.  Each matrix is
 %        expected to be small (dimension less than 50).
 %
 %   sz - Sequence of matrix block sizes.  The number of matrix blocks
-%        contained in 'A' is implicitly assumed to be NUMEL(sz).
+%        contained in `A` is implicitly assumed to be `numel(sz)`.
 %
 % RETURNS:
-%   B  - Array (type DOUBLE) containing the elements/entries of the
-%        sequence of inverses of the square matrices contained in 'A' and
-%        whose block sizes are 'sz'.
+%   B  - Array (type `double`) containing the elements/entries of the
+%        sequence of inverses of the square matrices contained in `A` and
+%        whose block sizes are `sz`.
 %
 % NOTE:
-%   The output is algorithmically equivalent to the loop
+%   The output is algorithmically equivalent to the loop ::
 %
 %       p = cumsum([1, sz.^2]);
 %       B = zeros([p(end) - 1, 1]);

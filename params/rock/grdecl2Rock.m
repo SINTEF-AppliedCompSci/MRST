@@ -6,40 +6,40 @@ function rock = grdecl2Rock(grdecl, varargin)
 %   rock = grdecl2Rock(grdecl, actmap)
 %
 % PARAMETERS:
-%   grdecl - Raw input data in GRDECL form (typically corresponding to
-%            values from the 'GRID' section of an ECLIPSE or FrontSim input
+%   grdecl - Raw input data in `GRDECL` form (typically corresponding to
+%            values from the `GRID` section of an ECLIPSE or FrontSim input
 %            deck.
 %
 %   actmap - Active-to-global cell mapping.  An n-by-1 array of global cell
 %            indices.  Specifically, actmap(i) is the linearized Cartesian
 %            index of the global cell (from the nx-by-ny-by-nz bounding
-%            box) corresponding to active cell 'i'.
+%            box) corresponding to active cell `i`.
 %
 %            OPTIONAL.  Default value corresponds to treating all input
 %            values as corresponding to active grid cells.
 %
 % RETURNS:
 %   rock - Rock data stucture suitable for passing to function
-%          'permTensor'.  Specifically, function 'grdecl2Rock' assigns the
-%          permeability tensor values, 'rock.perm'.  Moreover, the
+%          `permTensor`.  Specifically, function `grdecl2Rock` assigns the
+%          permeability tensor values, `rock.perm`.  Moreover, the
 %          following data values will be assigned if present in the input
 %          deck:
-%            - poro -- Porosity values.  Corresponds to 'PORO' keyword.
-%            - ntg  -- Net-to-gross values.  Corresponds to 'NTG' keyword.
+%            - poro -- Porosity values.  Corresponds to `PORO` keyword.
+%            - ntg  -- Net-to-gross values.  Corresponds to `NTG` keyword.
 %
 % NOTE:
-%   Function 'grdecl2Rock' only extracts the raw data values from the input
+%   Function `grdecl2Rock` only extracts the raw data values from the input
 %   vectors.  The caller will have to perform any required unit conversion
-%   separately, possibly aided by functions 'convertInputUnits' and
-%   'convertFrom'.
+%   separately, possibly aided by functions `convertInputUnits` and
+%   `convertFrom`.
 %
 %   For backwards compatibility, the caller may pass a valid grid_structure
-%   as the second parameter ('actmap') of function 'grdecl2Rock'.  In this
-%   case, the field 'grid_structure.cells.indexMap' (if present and
-%   non-empty) will be used in place of the 'actmap' array described above.
+%   as the second parameter (`actmap`) of function `grdecl2Rock`.  In this
+%   case, the field `grid_structure.cells.indexMap` (if present and
+%   non-empty) will be used in place of the `actmap` array described above.
 %
 % SEE ALSO:
-%   grid_structure, permTensor, convertInputUnits, convertFrom.
+%   `grid_structure`, `permTensor`, `convertInputUnits`, `convertFrom`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

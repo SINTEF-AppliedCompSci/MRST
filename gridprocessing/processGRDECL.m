@@ -5,104 +5,15 @@ function G = processGRDECL(grdecl, varargin)
 %   G = processGRDECL(grdecl)
 %   G = processGRDECL(grdecl, 'pn1', pv1, ...)
 %
-% PARAMETERS:
-%   grdecl - Raw pillar grid structure, as defined by function
-%            'readGRDECL', with fields COORDS, ZCORN and, possibly, ACTNUM.
-%
-%  'pn'/pv - List of 'key'/value pairs defining optional parameters.  The
-%            supported options are:
-%
-%              Verbose -- Whether or not to display progress information
-%                         Logical.  Default value: Verbose = false.
-%
-%              Tolerance --
-%                         Minimum distinguishing vertical distance for
-%                         points along a pillar.  Specifically, two points
-%                         (x1,y1,z1) and (x2,y2,z2) are considered separate
-%                         only if ABS(z2 - z1) > Tolerance.
-%                         Non-negative scalar.
-%                         Default value: Tolerance = 0.0 (distinguish all
-%                         points along a pillar whose z coordinate differ
-%                         even slightly).
-%
-%              CheckGrid --
-%                         Whether or not to perform basic consistency
-%                         checks on the resulting grid.
-%                         Logical.  Default value: CheckGrid = true.
-%
-%              SplitDisconnected --
-%                         Whether or not to split disconnected grid
-%                         components into separate grids/reservoirs.
-%                         Logical.  Default value: SplitDisconnected=true.
-%
-%              RepairZCORN --
-%                         Make an effort to detect and repair artifacts
-%                         that may occur in the corner-point depth
-%                         specification.  Specifically, detect and repair
-%                         the following, rare, conditions
-%                           - Upper corners of a cell below lower corners
-%                             of that same cell
-%                           - Lower corners of a cell below that cell's
-%                             lower neighbour's upper corners.
-%                          Logical.  Default value: RepairZCORN = false.
-%
-% RETURNS:
-%   G - Valid grid definition containing connectivity, cell geometry, face
-%       geometry and unique nodes.
-%
-%       If the pillar grid structure contains a pinch-out definition field
-%       'PINCH', then the grid structure will contain a separate field
-%       'nnc' in the top-level structure if any explicit non-neighbouring
-%       connections are deemed to exist according to the tolerances
-%       specified in 'PINCH'.  See function 'processPINCH' for a more
-%       detailed description of the 'nnc' field.
-%
-% EXAMPLE:
-%   G = processGRDECL(readGRDECL('small.grdecl'));
-%   plotGrid(G); view(10,45);
-%
-% SEE ALSO:
-%   readGRDECL, processPINCH, removeCells, checkAndRepairZCORN.
-
-%{
-Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
-
-This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
-
-MRST is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-MRST is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with MRST.  If not, see <http://www.gnu.org/licenses/>.
-%}
-
-% Maintained by Jostein Natvig, SINTEF Applied Mathematics.
-
-
-
-% Relies on buildCornerPtNodes, rlencode, rldecode, removeCells, dispif,
-% tocif
-
-% -------------------------------------------------------------------------
-%
-%                        TECHNICAL DESCRIPTION
-%
-% -------------------------------------------------------------------------
+% DESCRIPTION:
 %
 %  This code is designed to compute connectivity of fairly general
-%  cornerpoint grids described in Eclipse SPECGRID/COORDS/ZCORN format.  In
-%  short, the algorithm consist of
+%  cornerpoint grids described in Eclipse `SPECGRID/COORDS/ZCORN` format.
+%  In short, the algorithm consist of
 %
-%  a) Compute 8 node coordinates of each grid block BUILDCORNERPTNODES.
+%  a) Compute 8 node coordinates of each grid block `buildCornerPtNodes`.
 %
-%  b) Find unique points by comparing point coordinates and make matrix P
+%  b) Find unique points by comparing point coordinates and make matrix `P`
 %     of point numbers for each grid block.
 %
 %  c) Add auxillary top and bottom layer to grid to ease processing of
@@ -113,8 +24,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %
 %     Faulted pillar pairs, those where there is at least one non-matching
 %     cell pair (non-neighboring connection), are processed separately by
-%     FINDFAULTS, the remaining pillar pairs with with matching cells are
-%     processed by FINDFACES.
+%     `findFaults`, the remaining pillar pairs with with matching cells are
+%     processed by `findFaces`.
 %
 %     Connectivity computation does not (ever) use the coordinates of
 %     inactive cells as they are undefined by the grid format.  The
@@ -123,21 +34,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %
 %     Collapsed faces and cells resulting form pinched layers are removed.
 %
-%  e) Compute connectivity in the k-direction by FINDVERTICALFACES.  The
+%  e) Compute connectivity in the k-direction by `findVerticalFaces`. The
 %     connectivity over pinched layers is restored.
 %
-%  f) Build grid struct BUILDGRID, remove auxillary layers and pinched
-%     cells (REMOVECELLS), change cell and point numbering accordingly.
+%  f) Build grid struct `buildGrid`, remove auxillary layers and pinched
+%     cells (`removeCells`), change cell and point numbering accordingly.
 %
 %  g) Check if grid is connected and reasonable.
 %
-%
-%
-%                                 - * -
-%
-%
 %  For each pair of pillars (1) and (2), compute geometric neighbor cells
-%  and geometry of corresponding intersection of cell faces.
+%  and geometry of corresponding intersection of cell faces::
 %
 %
 %                (1)                        (2)
@@ -181,10 +87,84 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %  b-points to find the geometrical neighbors.  The face geometries are
 %  computed last.
 %
+% PARAMETERS:
+%   grdecl - Raw pillar grid structure, as defined by function
+%            `readGRDECL`, with fields `COORDS`, `ZCORN` and, possibly,
+%            `ACTNUM`.
 %
+% KEYWORD ARGUMENTS:
 %
-%%
+%   Verbose           - Whether or not to display progress information
+%                       Logical.  Default value: `Verbose = mrstVerbose()`.
+%
+%   Tolerance         - Minimum distinguishing vertical distance for
+%                       points along a pillar.  Specifically, two points
+%                       (x1,y1,z1) and (x2,y2,z2) are considered separate
+%                       only if ABS(z2 - z1) > Tolerance.
+%                       Non-negative scalar.
+%                       Default value: Tolerance = 0.0 (distinguish all
+%                       points along a pillar whose z coordinate differ
+%                       even slightly).
+%
+%   CheckGrid         - Whether or not to perform basic consistency
+%                       checks on the resulting grid.
+%                       Logical.  Default value: CheckGrid = true.
+%
+%   SplitDisconnected - Whether or not to split disconnected grid
+%                       components into separate grids/reservoirs.
+%                       Logical.  Default value: SplitDisconnected=true.
+%
+%   RepairZCORN       - Make an effort to detect and repair artifacts
+%                       that may occur in the corner-point depth
+%                       specification.  Specifically, detect and repair
+%                       the following, rare, conditions:
+%                           - Upper corners of a cell below lower corners
+%                             of that same cell
+%                           - Lower corners of a cell below that cell's
+%                             lower neighbour's upper corners.
+%                       Logical.  Default value: RepairZCORN = false.
+%
+% RETURNS:
+%   G - Valid grid definition containing connectivity, cell geometry, face
+%       geometry and unique nodes.
+%
+%       If the pillar grid structure contains a pinch-out definition field
+%       `PINCH`, then the grid structure will contain a separate field
+%       `nnc` in the top-level structure if any explicit non-neighbouring
+%       connections are deemed to exist according to the tolerances
+%       specified in `PINCH`.  See function `processPINCH` for a more
+%       detailed description of the `nnc` field.
+%
+% EXAMPLE:
+%   G = processGRDECL(readGRDECL('small.grdecl'));
+%   plotGrid(G); view(10,45);
+%
+% SEE ALSO:
+%   `readGRDECL`, `processPINCH`, `removeCells`, `checkAndRepairZCORN`.
+%
 
+%{
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
+
+% Relies on buildCornerPtNodes, rlencode, rldecode, removeCells, dispif,
+% tocif
 opt = struct('CheckGrid'        , true       , ...
              'RepairZCORN'      , false      , ...
              'SplitDisconnected', true       , ...
@@ -204,7 +184,7 @@ dispif(opt.Verbose,                                   ...
        'Adding %d artifical cells at top/bottom\n\n', ...
        numAuxillaryCells);
 
-%%  -----------------------------------------------------------------------
+%  -----------------------------------------------------------------------
 % Replace nan coordinates by inf to avoid special-purpose code below
 %
 % Nan may occur if top and bottom pillar coordinates coincide.  This
@@ -222,7 +202,7 @@ Y(isnan(Y)) = inf;
 
 [G, P, B] = create_initial_grid(X, Y, Z);  clear X Y Z
 
-%% -------------------------------------------------------------------------
+% -------------------------------------------------------------------------
 % Process faces with constant i-index
 % Note
 % In all caluculations we pass arrays of point numbers P, block numbers
@@ -231,7 +211,7 @@ Y(isnan(Y)) = inf;
 tags = [1, 2]; % i.e., [West, East]
 G = process_pillar_faces(G, P, B, actnum, tags, 'i', opt);
 
-%% ------------------------------------------------------------------------
+% ------------------------------------------------------------------------
 % Process faces with constant j-index
 % Switch i and j indices in order to reuse code for i-faces.  This will
 % require some face surgery below.
@@ -257,7 +237,7 @@ clear i j k pos B
 P = permute(P, [2, 1, 3]);
 
 
-%% ------------------------------------------------------------------------
+% ------------------------------------------------------------------------
 dispif(opt.Verbose, 'Processing regular k-faces\n');
 
 tags = [5,6]; % i.e., [Top, Bottom]
@@ -272,7 +252,7 @@ actnum(:,:,1)   = false;
 actnum(:,:,end) = false;
 
 
-%% ------------------------------------------------------------------------
+% ------------------------------------------------------------------------
 dispif(opt.Verbose, 'Building grid structure\n');
 G   = buildCellFaces(G, G.faces.cellTags);
 clear tags
@@ -295,7 +275,7 @@ G.faces = rmfield(G.faces, 'cellTags');
 
 
 
-%% ------------------------------------------------------------------------
+% ------------------------------------------------------------------------
 % A sane grid cell has at least four faces
 if opt.CheckGrid,
    assert(all(diff(G.cells.facePos)>3));
@@ -304,7 +284,7 @@ if opt.CheckGrid,
 end
 
 
-%% If coordinate axes have been reversed, restore original directions
+% If coordinate axes have been reversed, restore original directions
 
 G.nodes.coords(:, reverseaxis) = -G.nodes.coords(:, reverseaxis);
 if mod(sum(reverseaxis), 2),
@@ -599,7 +579,7 @@ function G = findFaces(G, P, B, actnum, tags, opt)
 %
 %
 % SEE ALSO:
-%   findFaults
+%   `findFaults`
 
 %  Layout of point number k
 %     ----> i
@@ -793,7 +773,7 @@ function G = findFaults(G, P, B, actnum, tags, opt)
 %
 %
 % SEE ALSO:
-%   findFaces.
+%   `findFaces`.
 
 % Vectorized version of findFaults.
 %
@@ -1034,7 +1014,7 @@ if all(all (pa == pb))
 
 
 else
-    %% We only use z-coordinate of corners to determine intersections
+    % We only use z-coordinate of corners to determine intersections
     z  = points(:,3);
     az = reshape(z(pa), size(pa));
     bz = reshape(z(pb), size(pb));
@@ -1124,7 +1104,7 @@ else
     % J(:, 1:3) -- bottom envelope
     % J(:, 5:7) -- top envelope
 
-    %% ---------------------------------------------------------------
+    % ---------------------------------------------------------------
     % A line in cell A intersects both lines of cell B or vice versa.
     % In other words, top and bottom envelopes intersect on left, right or
     % both sides:
@@ -1204,7 +1184,7 @@ else
     J(ind, 4)      = f(ind,4); % p4
 
 
-    %% ---------------------------------------------------------------
+    % ---------------------------------------------------------------
     % Remove repeated points arising from pinch:
     Corners  = [J, inf(size(J,1),1)]';
     Corners  = rlencode(Corners(~isnan(Corners)), 1);

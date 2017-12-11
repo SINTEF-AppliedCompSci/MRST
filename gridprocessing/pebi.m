@@ -13,13 +13,13 @@ function H = pebi(G, varargin)
 %             also  known as a Voronoi diagram.
 %
 %
-% REMARK:
+% NOTE:
 %   If triangulation is not Delaunay, some circumcenters may fall outside
 %   its assiciated triangle.  This may generate warped grids or grids that
 %   do not preserve the original outer boundary of the triangulation.
 %
 % SEE ALSO:
-%   triangleGrid
+%   `triangleGrid`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
@@ -40,14 +40,10 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
-   %opt = struct('pebi', true);
-   %opt = merge_options(opt, varargin{:});
-
    p         = circumcenter(G);
    [G, p, a] = addAuxillaryTriangles(G, p);
    
-   %%% Add midpoints of boundary edges in G
+   % Add midpoints of boundary edges in G
    b         = any(G.faces.neighbors==0, 2);
    fe        = reshape(G.faces.nodes, 2, []) .';
 
@@ -62,7 +58,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    map       = cumsum(accumarray(reshape(fe(b,:),[], 1), 1)>0);
    num       = size(p,1)+size(newcoords, 1);
 
-   %%% Edges in H:
+   % Edges in H:
    % internal edges
    faceNodes = G.faces.neighbors;
 
@@ -79,7 +75,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 num+map(fe(b,2)), newnodes];
    faceNodes = reshape(faceNodes', [], 1);
 
-   %%% Wrap up
+   % Wrap up
    numFaces  = size(neighbors, 1);
    numCells  = max(neighbors(:));
    numNodes  = repmat(2, [numFaces, 1]);
@@ -88,13 +84,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    H = sortCellFaces(H);
 
-   %%% Fix boundary
+   % Fix boundary
    a = [false(size(p, 1), 1);newnodes_art; gcoords_a];
    % Remove nodes 'a' in H
    H = removeNodes(H, find(a));
 
 
-   %%% Make cells oriented
+   % Make cells oriented
    assert(H.nodes.num==numel(unique(H.faces.nodes)));
    assert(H.nodes.num==max(H.faces.nodes));
    H = sortCellFaces(H);
@@ -365,7 +361,7 @@ end
 %}
 
 
-%% Helper function to sortCellFaces
+% Helper function to sortCellFaces
 function [edges, m, s] = swap(k, edges, m, s)
 % Do one edge swap.  With N=size(edges,1), N-1 edge swaps will sort edges.
 
@@ -397,7 +393,7 @@ function [edges, m, s] = swap(k, edges, m, s)
    end
 end
 
-%% For each (2D) cell, sort edges counter-clockwise to ensure that the cell
+%  For each (2D) cell, sort edges counter-clockwise to ensure that the cell
 %  volumes are positive and that the edge normals and edge signs are
 %  consistent with the cell-face neightbor list.
 function G = sortCellFaces(G)

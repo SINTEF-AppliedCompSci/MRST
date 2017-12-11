@@ -6,26 +6,26 @@ function g = makeModel3(dims, varargin)
 %   grdecl = makeModel3(dims, physDims)
 %
 % PARAMETERS:
-%  dims     - A 3-vector [nx, ny, nz] giving the number of cells in each of
+%  dims     - A 3-vector `[nx, ny, nz]` giving the number of cells in each of
 %             the three coordinate directions.
 %
-%  physdims - A 3-vector [hx, hy, hz] giving the physical extent (in units
+%  physdims - A 3-vector `[hx, hy, hz]` giving the physical extent (in units
 %             of meters) of the original sandbox before the transformations
 %             that emulate geological activity. OPTIONAL.  Default value:
-%             [1000, 600, 15],  meaning the geometry discretises a sandbox
+%             `[1000, 600, 15]`,  meaning the geometry discretises a sandbox
 %             of the following size in physical domain:
 %
-%                    [0,1000]-by-[0,600]-by-[0,15]
+%                    `[0,1000]` by `[0,600]` by `[0,15]`
 %
 % RETURNS:
 %   grdecl - A GRDECL structure suitable for passing to function
-%            'processGRDECL'.
+%            `processGRDECL`.
 %
 % EXAMPLE:
 %   plotGrid(processGRDECL(makeModel3([100, 60, 15])));
 %
 % SEE ALSO:
-%   processGRDECL.
+%   `processGRDECL`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
@@ -56,7 +56,7 @@ g.cartDims = reshape(dims, 1, []);
                     linspace(0, physDims(2), dims(2) + 1), ...
                     linspace(0, physDims(3), dims(3) + 1));
 
-%% Make perturbation in z-direction
+% Make perturbation in z-direction
 a   = rand ([dims(3) + 1, 1]);
 s   = randn([dims(3) + 1, 2]);
 fun = @(x, y, a, s) -5 *sin(pi * (x - 1/2)) - ...
@@ -70,7 +70,7 @@ for k = 1 : dims(3) + 1,
 end
 
 
-%% Make pilars
+% Make pilars
 lines          = zeros([prod(dims([1, 2]) + 1), 6]);
 lines(:,[1,4]) = reshape(X(:,:,[1,end]), [], 2);
 lines(:,[2,5]) = reshape(Y(:,:,[1,end]), [], 2);
@@ -78,12 +78,12 @@ lines(:,[3,6]) = reshape(Z(:,:,[1,end]), [], 2);
 
 g.COORD = reshape(lines', [], 1);
 
-%% Assign z-coordinates
+% Assign z-coordinates
 % ind(d) == [1, 2, 2, 3, 3, ..., dims(d), dims(d), dims(d)+1]
 ind = @(d) 1 + fix((1 : 2*dims(d)) ./ 2);
 z   = Z(ind(1), ind(2), ind(3));
 
-%% Add faults
+% Add faults
 h  = physDims ./ dims;
 i1 = round((0.6 * physDims(1)) / h(1));   assert (i1 > 0);
 j1 = round((0.5 * physDims(2)) / h(2));   assert (j1 > 0);
@@ -98,7 +98,7 @@ z = cumsum(cat(3, z(:,:,1), max(0, diff(z, 1, 3))), 3);
 
 g.ZCORN = z(:);
 
-%% Assign active cells
+% Assign active cells
 actnum = ones(dims);
 [x, y] = ndgrid(linspace(0, 1, dims(1)), ...
                 linspace(0, 1, dims(2)), ...

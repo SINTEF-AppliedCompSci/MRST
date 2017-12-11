@@ -8,46 +8,54 @@ function [K, L] = logNormLayers(N, varargin)
 %
 % DESCRIPTION:
 %   This function creates a nx-by-ny-by-nz scalar permeability field
-%   consisting of M layers. If M is a vector, then the number of layers
-%   equals numel(M) and M gives the desired mean for each layer. If L is
-%   given, we assume that M gives the desired mean values of each layer and
-%   then numel(M)=numel(L)-1.
+%   consisting of `M` layers. If `M` is a vector, then the number of layers
+%   equals `numel(M)` and `M` gives the desired mean for each layer. If `L`
+%   is given, we assume that `M` gives the desired mean values of each
+%   layer and then `numel(M)=numel(L)-1`.
 %
-%   The gaussian field within each layer is generated based on the formulas
+%   The gaussian field within each layer is generated based on the
+%   formulas::
 %     k = smooth3(randn(..) - a*randn(1), 'gaussian', sz, std);
 %     k = exp( b + sigma*k);
-%   where 'a', 'b', 'sigma', 'sz', and 'std' are optional parameters.
+%   where `a`, `b`, `sigma`, `sz`, and `std` are optional parameters.
 %
 % PARAMETERS:
-%   N       - Three-element vector, [nx, ny, nz], specifying the number of
-%             discrete values in the 'x', 'y', and 'z' coordinate
+%   N       - Three-element vector, `[nx, ny, nz]`, specifying the number of
+%             discrete values in the `x`, `y`, and `z` coordinate
 %             directions respectively.
 %
 %   M      -  The number of layers if a scalar and the desired means of the
 %             layers if a vector.
 %
 %
-%   'pn'/pv - List of 'key'/value pairs designating optional parameters.
-%             Currently supported parameters are
-%               - Verbose -- Whether or not to emit progress reports
-%                            during the computation.
-%                            Logical.  Default value: FALSE.
-%               - indices -- List <L> of k-indices for the generated layers,
-%                            given such that layer <i> is represented by
-%                            k-indices L(i):L(i+1)-1 in the grid. The
-%                            number of layers must agree with the
-%                            specification of means in the <M> parameter.
-%                            Default value: []
-%               - sigma   -- Scalar. Default value: 2
-%               - a       -- Scalar. Default value: 0.6
-%               - b       -- Scalar. Default value: 2
-%               - sz      -- Gaussian mask. Default value: [9,3,3]
-%               - std     -- St.dev. Default value: 4.5
+% OPTIONAL PARAMETERS:
+%
+%   'Verbose' - Whether or not to emit progress reports during the
+%               computation. 
+%               Logical.  Default value: `mrstVerbose()`.
+%
+%   'indices' - List `L` of k-indices for the generated layers, given such
+%               that layer <i> is represented by k-indices `L(i):L(i+1)-1`
+%               in the grid. The number of layers must agree with the
+%               specification of means in the `M` parameter.
+%               Default value: `[]`
+%
+%    'sigma   - Scalar. Default value: `2`
+%
+%    'a'      - Scalar. Default value: `0.6`
+%
+%    'b'      - Scalar. Default value: `2`
+%
+%    'sz'     - Gaussian mask. Default value: `[9,3,3]`
+%
+%    'std'    - Standard deviation. Default value: `4.5`
 %
 % RETURNS:
+%
 %   K - The scalar nx-by-ny-by-nz permeability field in units mD
-%   L - list of indices for the layers in K, so that layer <i> has
-%       k-indices=L(i):L(i+1)-1
+%
+%   L - list of indices for the layers in `K`, so that layer `i` has
+%       k-indices=`L(i):L(i+1)-1`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -16,7 +16,7 @@ function d = darcy()
 %   gradient of 1 atm/cm acting across an area of 1 cm².
 %
 % SEE ALSO:
-%   gravity.
+%   `gravity`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

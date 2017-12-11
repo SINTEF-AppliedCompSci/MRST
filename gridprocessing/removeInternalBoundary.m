@@ -18,17 +18,17 @@ function [G, f] = removeInternalBoundary(G, N)
 %   f       - New face numbers for the faces that have been merged.
 %
 %
-% COMMENTS:
+% NOTE:
 %
 %  What if nodes in f1 are permuted compared to nodes in f2, either due to
 %  sign of face (2D) or due to arbitary starting node (3D)?  For the time
 %  being, this code assumes that nodes that appear in faces that are being
-%  merged coincide exactly --- no checking is doen on node positions.  If
+%  merged coincide exactly --- no checking is done on node positions.  If
 %  nodes are permuted in one of the faces, the resulting grid will be
 %  warped.
 %
 % SEE ALSO:
-%  makeInteralBoundary
+%  `makeInteralBoundary`
 
 
 %{

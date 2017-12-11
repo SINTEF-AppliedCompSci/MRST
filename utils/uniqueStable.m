@@ -1,5 +1,5 @@
 function [c, ia, ic] = uniqueStable(a, varargin)
-%Support UNIQUE(A, 'stable') in all versions of MATLAB
+%Support `unique(A, 'stable')` in all versions of MATLAB
 %
 % SYNOPSIS:
 %   [c, ia, ic] = uniqueStable(a)
@@ -7,16 +7,16 @@ function [c, ia, ic] = uniqueStable(a, varargin)
 %   [c, ia, ic] = uniqueStable(..., 'use_fallback')
 %
 % DESCRIPTION:
-%   This is a pure MATLAB compatibility implementation of
+%   This is a pure MATLAB compatibility implementation of ::
 %
-%        UNIQUE(A,         'stable')
-%        UNIQUE(A, 'rows', 'stable')
+%        unique(A,         'stable')
+%        unique(A, 'rows', 'stable')
 %
 %   for MATLABs prior to release R2012a (MATLAB 7.14).  In versions 7.14
 %   and later, this simply forwards the parameters to the built-in version
-%   of function UNIQUE.
+%   of function `unique`.
 %
-%   Function UNIQUE's 'stable' option returns the unique values in the
+%   Function `unique`'s 'stable' option returns the unique values in the
 %   input in the same order as they appear in the input.  Without 'stable',
 %   the unique elements are returned in sorted order.
 %
@@ -42,7 +42,7 @@ function [c, ia, ic] = uniqueStable(a, varargin)
 %   ic - Index into output 'c' such that ALL(ALL(c(ic, :) == a)).
 %
 % NOTE:
-%   This function uses SORTROWS.
+%   This function uses `sortrows`.
 %
 % EXAMPLE:
 %   % 1) Unique elements in order of appearance
@@ -67,7 +67,7 @@ function [c, ia, ic] = uniqueStable(a, varargin)
 %           '''IC'' Regression in ''uniqueStable/rows''.')
 %
 % SEE ALSO:
-%   unique, sortrows.
+%   `unique`, `sortrows`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

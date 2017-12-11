@@ -4,7 +4,7 @@ function g = giga()
 % SYNOPSIS:
 %   g = giga()
 %
-% PARMETERS:
+% PARAMETERS:
 %   None.
 %
 % RETURNS:

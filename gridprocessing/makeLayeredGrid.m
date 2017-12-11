@@ -1,5 +1,5 @@
 function G = makeLayeredGrid(G, layerSpec)
-%Extrude 2D Grid to Layered 3D Grid With Specified Layering Structure
+%Extrude 2D Grid to layered 3D grid with specified layering structure
 %
 % SYNOPSIS:
 %   G = makeLayeredGrid(G, layerSpec)
@@ -47,14 +47,14 @@ function G = makeLayeredGrid(G, layerSpec)
 %   figure, plotGrid(G1), view(10, 45)
 %
 % NOTE:
-%   The special treatment of a *scalar* 'layerSpec' parameter, to preserve
+%   The special treatment of a *scalar* `layerSpec` parameter, to preserve
 %   backwards compatibility with the original semantics of this function,
 %   means that it is not possible to specify a single layer of non-unit
 %   thickness.  If you need a single layer of non-unit thickness then you
-%   need to manually update the third column of 'G.nodes.coords'.
+%   need to manually update the third column of `G.nodes.coords`.
 %
 % SEE ALSO:
-%   grid_structure.
+%   `grid_structure`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

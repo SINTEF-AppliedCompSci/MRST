@@ -17,21 +17,22 @@ function grdecl = threeLayers(nx, ny, nz, varargin)
 %      z = z - (z + 1)*y/2,  y \in [0, 1]
 %
 % PARAMETERS:
+%
 %   nx - One- or two-element vector defining the number of intervals along
 %        the X axis.  Specifically, if nx=[n1, n2], then the interval
 %        [-1,0] will be divided into n1 sub-intervals and the interval
-%        [0,1] will be divided into n2 sub-intervals.  A scalar 'nx'
+%        [0,1] will be divided into n2 sub-intervals.  A scalar `nx`
 %        parameter is treated as if the caller specified nx = [nx, nx].
 %
 %   ny - Number of sub-intervals along the Y axis.  Single positive integer.
 %
 %   nz - One or three-element vector defining the number of sub-intervals
-%        along the Z axis.  Specifically, if nz=[n1, n2, n3], then the
-%        interval [0,0.25] will be divided into n1 sub-intervals, the
-%        interval [0.25,0.75] will be divided into n2 sub-intervals, and
-%        the interval [0.75,1] will be divided into n3 sub-intervals.  A
-%        scalar 'nz' parameter is treated as if the caller specified
-%        nz = [nz, nz, nz].
+%        along the Z axis.  Specifically, if `nz=[n1, n2, n3]`, then the
+%        interval `[0,0.25]` will be divided into `n1` sub-intervals, the
+%        interval `[0.25,0.75]` will be divided into `n2` sub-intervals,
+%        and the interval `[0.75,1]` will be divided into `n3`
+%        sub-intervals. A scalar `nz` parameter is treated as if the caller
+%        specified nz = [nz, nz, nz].
 %
 % EXAMPLE:
 %   grdecl = threeLayers(10, 10, [5, 10, 5]);
@@ -46,7 +47,7 @@ function grdecl = threeLayers(nx, ny, nz, varargin)
 %            function 'writeGRDECL'.
 %
 % SEE ALSO:
-%   processGRDECL, writeGRDECL, simpleGrdecl, makeModel3.
+%   `processGRDECL`, `writeGRDECL`, `simpleGrdecl`, `makeModel3`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -7,23 +7,23 @@ function pth = getDatasetPath(name, varargin)
 %
 % REQUIRED PARAMETERS:
 %   name    -  The name of the dataset. Must be known to MRST, see
-%              getAvailableDatasets for details.
+%              `getAvailableDatasets` for details.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %   download - Boolean indicating if the functions should attempt to
 %              download the dataset if it is missing. Default: Enabled.
 %
 %   askBeforeDownload - Boolean. If the download option is enabled, setting
-%              this to true will prompt the user before starting a
-%              potentially large download. Default: Enabled.
+%                       this to true will prompt the user before starting a
+%                       potentially large download. Default: Enabled.
 %
 %   skipAvailableCheck -
 %              Boolean flag indicating whether or not to omit checking for
 %              presence of data on disk.  This is mainly intended for the
 %              case of needing to manually download objects into the
 %              dataset's containing directory through some external means.
-%              Default value: skipAvailableCheck = FALSE (*do* check if the
-%              dataset is available).
+%              Default value: `skipAvailableCheck = false` (*do* check if
+%              the dataset is available).
 %
 % RETURNS:
 %   pth      - Path to dataset.
@@ -32,12 +32,12 @@ function pth = getDatasetPath(name, varargin)
 %   If this function returns, the dataset will be present at the path
 %   given. Any other situation will result in an error being thrown.
 %
-%   Using 'skipAvailableCheck' bypasses this basic safety measure of MRST's
+%   Using `skipAvailableCheck` bypasses this basic safety measure of MRST's
 %   dataset handling.  Consequently, said option should be used only when
 %   circumstances so dictate.
 % 
 % SEE ALSO:
-%   mrstdatasetGUI, downloadDataset.
+%   `mrstdatasetGUI`, `downloadDataset`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

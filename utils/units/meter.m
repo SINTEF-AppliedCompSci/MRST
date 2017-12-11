@@ -4,7 +4,7 @@ function d = meter()
 % SYNOPSIS:
 %   d = meter()
 %
-% PARMETERS:
+% PARAMETERS:
 %   None.
 %
 % RETURNS:

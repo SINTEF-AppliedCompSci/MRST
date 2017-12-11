@@ -18,7 +18,7 @@ function wellSol = initWellSol(W, p0)
 %               - pressure -- Well bottom-hole pressure (== p0).
 %
 % SEE ALSO:
-%   initResSol, solveIncompFlow.
+%   `initResSol`, `solveIncompFlow`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

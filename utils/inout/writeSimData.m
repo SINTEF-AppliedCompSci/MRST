@@ -19,7 +19,7 @@ function writeSimData(varargin)
 %   Nothing
 %
 % SEE ALSO:
-%   fopen, fprintf.
+%   `fopen`, `fprintf`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -4,7 +4,7 @@ function rec = readDefaultedRecord(fid, rec)
 % SYNOPSIS:
 %   rec = readDefaultedRecord(fid, template)
 %
-% DESCRIPTIONS:
+% DESCRIPTION:
 %   Reads a single record, containing a specific number of fields, whilst
 %   replacing input default value designators of the form 'n*' (where 'n'
 %   is an integer) with 'n' copies of a user-supplied default value.
@@ -25,7 +25,7 @@ function rec = readDefaultedRecord(fid, rec)
 %
 %              To conveniently generate an n-element CELL array, each
 %              element of which contains the string 'NaN', issue a
-%              statement of the form:
+%              statement of the form::
 %
 %                  template(1 : n) = { 'NaN' }
 %
@@ -43,7 +43,7 @@ function rec = readDefaultedRecord(fid, rec)
 %   data.
 %
 % SEE ALSO:
-%   readDefaultedKW, readWellKW.
+%   `readDefaultedKW`, `readWellKW`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

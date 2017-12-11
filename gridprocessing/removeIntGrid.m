@@ -11,11 +11,11 @@ function G = removeIntGrid(G)
 %   G - Grid where int32 has been removed from cells/faces subfields
 %
 % NOTE:
-%   Previously int32 was used in the grid structure to conserve memory.
+%   Previously `int32` was used in the grid structure to conserve memory.
 %   This routine converts grids of the old type to the new one.
 %
 % SEE ALSO:
-%   grid_structure
+%   `grid_structure`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

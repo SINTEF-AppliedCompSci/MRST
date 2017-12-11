@@ -13,12 +13,7 @@ function writeCache(arg, varargin)
 %   none
 %
 % SEE ALSO:
-%   readCache.
-
-%
-% save -append
-% save struct field1 field2 ...
-%
+%   `readCache`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

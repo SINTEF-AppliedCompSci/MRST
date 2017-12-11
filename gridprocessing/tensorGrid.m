@@ -28,8 +28,8 @@ function G = tensorGrid(x, y, varargin)
 %              jmin,kmin), (imax,jmin,kmin), (imin,jmax,kmin), ...
 %
 % RETURNS:
-%   G - Grid structure mostly as detailed in grid_structure, though lacking the
-%       fields
+%   G - Grid structure with a subset of the fields `grid_structure`.
+%       Specifically, the geometry fields are missing:
 %         - G.cells.volumes
 %         - G.cells.centroids
 %
@@ -37,20 +37,22 @@ function G = tensorGrid(x, y, varargin)
 %         - G.faces.normals
 %         - G.faces.centroids
 %
-%       These fields may be computed using the function computeGeometry.
+%       These fields may be computed using the function `computeGeometry`.
 %
-%       There is, however, an additional field not described in grid_structure:
+%       There is, however, an additional field not described in
+%       `grid_structure:
 %
-%         - cartDims -- A length 2 or 3 vector giving number of cells in each
-%                       coordinate direction.  In other words
+%           `cartDims` is a length 2 or 3 vector giving number of cells in
+%           each coordinate direction.  In other words 
 %
-%                         cartDims == [NUMEL(x)-1, NUMEL(y)-1, NUMEL(z)-1].
+%                      `all(G.cartDims == celldim)`.
 %
-%  New:  G.cells.faces(:,2) contains integers 1-6 corresponding to directions
-%        W, E, S, N, T, B.
+%       `G.cells.faces(:,2)` contains integers 1-6 corresponding to
+%       directions W, E, S, N, T, B respectively.
+%
 %
 % SEE ALSO:
-%   grid_structure, computeGeometry
+%   `grid_structure`, `computeGeometry`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
@@ -138,7 +140,7 @@ function G = tensorGrid3D(x, y, z, varargin)
    coords = [xCoord(:), yCoord(:), zCoord(:)];
 
    %--------------------------------------------------------------------------
-   %% Generate face-edges ----------------------------------------------------
+   % Generate face-edges ----------------------------------------------------
 
    % Node index matrix
    N = reshape(1 : numN, [sx+1, sy+1, sz+1]);
@@ -182,7 +184,7 @@ function G = tensorGrid3D(x, y, z, varargin)
 
    clear -regexp ^faceNodes. ^N ^NF.
    %--------------------------------------------------------------------------
-   %% Generate cell-faces ----------------------------------------------------
+   % Generate cell-faces ----------------------------------------------------
 
    foffset = 0;
    % Face index matrices
@@ -205,7 +207,7 @@ function G = tensorGrid3D(x, y, z, varargin)
    clear -regexp ^F.
 
    %--------------------------------------------------------------------------
-   %% Generate neighbors -----------------------------------------------------
+   % Generate neighbors -----------------------------------------------------
 
    % Cell index matrix
    C = zeros([sx+2, sy+2, sz+2]);
@@ -227,7 +229,7 @@ function G = tensorGrid3D(x, y, z, varargin)
    clear -regexp ^N..
 
    %-----------------------------------------------------------------------
-   %% Generate cell nodes -------------------------------------------------
+   % Generate cell nodes -------------------------------------------------
    if opt.cellnodes,
       % Index to first node in each cell
       k  = firstnodeindex([sx+1, sy+1, sz+1], 1:sx, 1:sy, 1:sz);
@@ -237,7 +239,7 @@ function G = tensorGrid3D(x, y, z, varargin)
       cNodes = [k, k+di, k+dj, k+di+dj, k+dk, k+di+dk, k+dj+dk, k+di+dj+dk];
    end
    %--------------------------------------------------------------------------
-   %% Assemble structure -----------------------------------------------------
+   % Assemble structure -----------------------------------------------------
 
    G.cells = struct('num',      numC,                   ...
                     'facePos',  (1:6:(numC+1)*6)', ...
@@ -298,7 +300,7 @@ function G =tensorGrid2D(x, y, varargin)
    coords = [xCoord(:), yCoord(:)];
 
    %-----------------------------------------------------------------------
-   %% Generate face-edges -------------------------------------------------
+   % Generate face-edges --------------------------------------------------
 
    % Node index matrix
    N = reshape(1 : numN, [sx+1, sy+1]);
@@ -330,7 +332,7 @@ function G =tensorGrid2D(x, y, varargin)
 
    clear -regexp ^faceNodes. ^N ^NF.
    %-----------------------------------------------------------------------
-   %% Generate cell-faces -------------------------------------------------
+   % Generate cell-faces --------------------------------------------------
 
    foffset = 0;
    % Face index matrices
@@ -349,7 +351,7 @@ function G =tensorGrid2D(x, y, varargin)
    clear -regexp ^F.
 
    %-----------------------------------------------------------------------
-   %% Generate neighbors --------------------------------------------------
+   % Generate neighbors ---------------------------------------------------
 
    % Cell index matrix
    C = zeros([sx+2, sy+2]);
@@ -366,7 +368,7 @@ function G =tensorGrid2D(x, y, varargin)
    clear -regexp ^N..
 
    %-----------------------------------------------------------------------
-   %% Generate cell nodes -------------------------------------------------
+   % Generate cell nodes --------------------------------------------------
    if opt.cellnodes,
       % Index to first node in each cell
       k  = firstnodeindex([sx+1, sy+1], 1:sx, 1:sy);
@@ -375,7 +377,7 @@ function G =tensorGrid2D(x, y, varargin)
       cNodes = [k, k+di, k+dj, k+di+dj];
    end
    %-----------------------------------------------------------------------
-   %% Assemble structure --------------------------------------------------
+   % Assemble structure ---------------------------------------------------
 
    G.cells = struct('num',      numC,                   ...
                     'facePos',  (1:4:(numC+1)*4)', ...

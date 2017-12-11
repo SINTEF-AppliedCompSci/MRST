@@ -1,22 +1,19 @@
 function w  = createGridMappings(G)
-% Add preliminary mappings to be used in createAugmentedGrid
+% Add preliminary mappings to be used in `createAugmentedGrid`
 %
 % SYNOPSIS:
 %   function w  = createGridMappings(g)
 %
-% DESCRIPTION: Create preliminary structures which is used to conveniently
-% set up the grid mapping, see full_grid_structure.
+% DESCRIPTION: 
+% Create preliminary structures which is used to conveniently set up the
+% grid mapping, see `full_grid_structure`.
 %
 % PARAMETERS:
 %   G - Grid structure
 %
 % RETURNS:
-%   w - preliminary structure to be used in createAugmentedGrid
-%
-% EXAMPLE:
-%
-% SEE ALSO:
-%
+%   w - preliminary structure to be used in `createAugmentedGrid`
+
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
@@ -47,5 +44,4 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     i        = cells~=0;
     w        = [cells(i), nodes(i), hfaces(i), faces(i)];
     w        = double(sortrows(w));
-    
 end

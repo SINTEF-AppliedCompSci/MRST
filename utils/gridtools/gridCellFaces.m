@@ -10,9 +10,9 @@ function [cf, p] = gridCellFaces(G, c)
 %
 %
 % RETURNS:
-%   p    - indirectionmap into n. The faces of cell c(i) is found at
-%   positions p(i):p(i+1)-1 in n
-%   cf    - cell face positions in G
+%   p    - indirectionmap into `n`. The faces of cell `c(i)` is found at
+%          positions `p(i):p(i+1)-1` in `n`
+%   cf   - cell face positions in `G`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

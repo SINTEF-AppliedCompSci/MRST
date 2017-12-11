@@ -30,7 +30,7 @@ function ok = makeSPE10DataAvailable()
 %   The permeability data is stored in SI units (metres squared).
 %
 % SEE ALSO:
-%   getDatasetPath.
+%   `getDatasetPath`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -1,16 +1,16 @@
-function grdecl = pinchedNode
+function grdecl = pinchedNode()
 %Define two-cell corner-point specification with single, pinched vertex
 %
 % SYNOPSIS:
-%   grdecl = pinchedNode
+%   grdecl = pinchedNode()
 %
 % PARAMETERS:
 %   None.
 %
 % RETURNS:
 %   grdecl - A GRDECL structure suitable for further processing by function
-%            'processGRDECL', refinement by function 'refineGrdecl', or
-%            permanent storage on disk by function 'writeGRDECL'.
+%            `processGRDECL`, refinement by function `refineGrdecl`, or
+%            permanent storage on disk by function `writeGRDECL`.
 %
 % EXAMPLE:
 %   grdecl = refineGrdecl(pinchedNode, [20, 40, 20]);
@@ -27,7 +27,7 @@ function grdecl = pinchedNode
 %   view(3), colorbar
 %
 % SEE ALSO:
-%   processGRDECL, refineGrdecl, writeGRDECL.
+%   `processGRDECL`, `refineGrdecl`, `writeGRDECL`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

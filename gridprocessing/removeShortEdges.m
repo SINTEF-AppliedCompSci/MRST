@@ -1,5 +1,5 @@
 function G = removeShortEdges(G, tol)
-%Replace short edges in G by a single node.
+%Replace short edges in grid G by a single node.
 %
 % SYNOPSIS:
 %   G = removeShortEdges(G)
@@ -12,14 +12,13 @@ function G = removeShortEdges(G, tol)
 %             are collapsed to a single node at the edge mid-point. Faces
 %             and cells that collapse as a consequence are removed.
 %
-% COMMENTS:
+% NOTE:
 %   This is useful to remove very short edges that may appear in
 %   PEBI/Voronoi grids and on faults in cornerpoint grids.
 %
 % SEE ALSO:
-%   pebi, processGRDECL
+%   `pebi`, `processGRDECL`
 
-% r9
 
 %{
 The MIT License (MIT)

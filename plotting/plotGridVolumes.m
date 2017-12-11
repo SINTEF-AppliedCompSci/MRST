@@ -2,8 +2,8 @@ function varargout = plotGridVolumes(G, values, varargin)
 % Plot partially transparent isosurfaces for a set of values
 %
 % SYNOPSIS:
-%                 plotGridVolumes(G, data)
-%                 plotGridVolumes(G, data, 'pn', pv,...)
+%   plotGridVolumes(G, data)
+%   plotGridVolumes(G, data, 'pn', pv,...)
 %   interpolant = plotGridVolumes(...)
 %
 % PARAMETERS:
@@ -12,45 +12,44 @@ function varargout = plotGridVolumes(G, values, varargin)
 %   values  - A list of values to be plotted
 %
 %
-%   'pn'/pv - List of 'key'/value pairs defining optional parameters.  The
-%             supported options are:
+% KEYWORD ARGUMENTS:
 %
-%   N       - The number of bins used to create the isosurfaces.
+%   'N'     - The number of bins used to create the isosurfaces.
 %
-%   min     - Minimum value to plot. This is useful to create plots where
+%   'min'   - Minimum value to plot. This is useful to create plots where
 %             high values are visible.
 %
-%   max     - Maximum value to plot.
+%   'max'   - Maximum value to plot.
 %
-%   mesh    - The mesh size used to sample the interpolant. Should be a row
+%   'mesh'  - The mesh size used to sample the interpolant. Should be a row
 %             vector of length 3. Defaults to G.cartDims.
 %
-%   cmap    - Function handle to colormap function. Using different
+%   'cmap'   - Function handle to colormap function. Using different
 %             colormaps for different datasets makes it possible to create
 %             fairly complex visualizations.
 %
-%   basealpha - Set to a value lower than 1 to increase transparency, set
-%               it to a larger value to decrease transparency.
+%   'basealpha' - Set to a value lower than 1 to increase transparency, set
+%                 it to a larger value to decrease transparency.
 %
-%   binc     - Do not call hist on dataset. Instead, use provided bins. To
+%   'binc'  - Do not call hist on dataset. Instead, use provided bins. To
 %            get good results, do *not* call binc option with unique(data):
 %            Ideally, binc's values should be between the unique values.
 %
-%   patchn   - Maximum number of patch faces in total for one call of
+%   'patchn' - Maximum number of patch faces in total for one call of
 %            plotGridVolumes. If this number is large, the process may be
 %            computationally intensive.
 %
-%   interpolant - If you are plotting the same dataset many times, the
+%   'interpolant' - If you are plotting the same dataset many times, the
 %             interpolant can be returned and stored.
 %
-%   extrudefaces - Let the cell values be extrapolated to the edges of the
+%   'extrudefaces' - Let the cell values be extrapolated to the edges of the
 %                  domain. Turn this off if you get strange results.
 %
 % RETURNS:
 %   interpolant - See keyword argument of same name.
 %
 % SEE ALSO:
-%   plotCellData
+%   `plotCellData`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

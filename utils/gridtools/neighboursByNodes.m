@@ -18,12 +18,12 @@ function N = neighboursByNodes(G, varargin)
 %
 %          Adj = getConnectivityMatrix(N, true, G.cells.num)
 %
-%       to convert the neighbourship relation 'N' into an undirected
-%       adjacency matrix (neighbourhood), 'Adj'.
+%       to convert the neighbourship relation `N` into an undirected
+%       adjacency matrix (neighbourhood), `Adj`.
 %
 % NOTE:
-%   This function uses SORTROWS and is potentially *very* expensive in
-%   terms of memory use.  As an example, the statement
+%   This function uses `sortrows` and is potentially *very* expensive in
+%   terms of memory use.  As an example, the statement ::
 %
 %      N = neighboursByNodes(cartGrid([60, 220, 85]))
 %
@@ -31,7 +31,7 @@ function N = neighboursByNodes(G, varargin)
 %   workstation from the autumn of 2009.
 %
 % SEE ALSO:
-%   getConnectivityMatrix, sortrows.
+%   `getConnectivityMatrix`, `sortrows`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -4,7 +4,7 @@ function p = psia()
 % SYNOPSIS:
 %   p = psia()
 %
-% PARMETERS:
+% PARAMETERS:
 %   None.
 %
 % RETURNS:

@@ -4,7 +4,7 @@ function F = faradayConstant()
 % SYNOPSIS:
 %   F = faradayConstant()
 %
-% PARMETERS:
+% PARAMETERS:
 %   None.
 %
 % RETURNS:

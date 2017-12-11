@@ -12,8 +12,8 @@ function g = oneSlopingFault(dims, drop)
 %      [0,500] x [0,100] x [0,32].
 %
 % PARAMETERS:
-%   n    - Three-element vector, [nx, ny, nz], specifying the number of
-%          cells in the 'x', 'y', and 'z' coordinate directions
+%   n    - Three-element vector, `[nx, ny, nz]`, specifying the number of
+%          cells in the `x`, `y`, and `z` coordinate directions
 %          respectively.
 %
 %   drop - Length of fault drop (i.e., the physical length (in metres)
@@ -21,8 +21,8 @@ function g = oneSlopingFault(dims, drop)
 %          fault)).  OPTIONAL.  Default value: drop = 0.
 %
 % RETURNS:
-%   grdecl - A GRDECL structure suitable for passing to function
-%            'processGRDECL'.
+%   grdecl - A `GRDECL` structure suitable for passing to function
+%            `processGRDECL`.
 %
 % NOTE:
 %   This example is due to knl.
@@ -39,7 +39,7 @@ function g = oneSlopingFault(dims, drop)
 %   view(3), grid on, axis tight
 %
 % SEE ALSO:
-%   processGRDECl, writeGRDECL.
+%   `processGRDECl`, `writeGRDECL`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
@@ -61,7 +61,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-%% Preprocess input data to make the underlying logical Cartesian grid
+% Preprocess input data to make the underlying logical Cartesian grid
 if mod(dims(1), 2) ~= 0,
    error('Number of cells in ''x'' direction must be even.');
 end
@@ -75,7 +75,7 @@ X = X .* 500;
 Y = Y .* 100;
 Z = Z .*  32;
 
-%% Make pilars
+% Make pilars
 lines          = zeros([prod(dims([1, 2]) + 1), 6]);
 lines(:,[1,4]) = reshape(X(:,:,[1,end]), [], 2);
 lines(:,[2,5]) = reshape(Y(:,:,[1,end]), [], 2);
@@ -83,15 +83,15 @@ lines(:,[3,6]) = reshape(Z(:,:,[1,end]), [], 2);
 
 g.COORD = reshape(lines', [], 1);
 
-%% Assign z-coordinates
+% Assign z-coordinates
 % ind(d) == [1, 2, 2, 3, 3, ..., dims(d), dims(d), dims(d)+1]
 ind = @(d) 1 + fix((1 : 2*dims(d)) ./ 2);
 z   = Z(ind(1), ind(2), ind(3));
 
-%% Add fault
+% Add fault
 z(end/2+1:end,:,:) = z(end/2+1:end,:,:) + drop;
 
 g.ZCORN = z(:);
 
-%% Assign active cells
+% Assign active cells
 g.ACTNUM = ones([prod(dims), 1], 'int32');
