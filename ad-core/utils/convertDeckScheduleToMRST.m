@@ -20,9 +20,9 @@ function scheduleMRST = convertDeckScheduleToMRST(model, scheduleDeck, varargin)
 %                  schedule (typically deck.SCHEDULE).
 %
 % 
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %
-%   StepLimit - Only parse the first n control steps.
+%   'StepLimit' - Only parse the first n control steps.
 %
 % RETURNS:
 %   scheduleMRST - Schedule ready for simulation in 'simulateScheduleAD'.

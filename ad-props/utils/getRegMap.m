@@ -1,5 +1,5 @@
 function reginx = getRegMap(val, REGNUM, REGINX, varargin)
-% Get region mapping from 
+% Get region mapping from REGNUM array
 %
 % SYNOPSIS:
 %   reginx = getRegMap(val, REGNUM, REGINX)

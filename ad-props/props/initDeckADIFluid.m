@@ -7,34 +7,34 @@ function fluid = initDeckADIFluid(deck, varargin)
 % REQUIRED PARAMETERS:
 %   deck - Output structure from readEclipseDeck
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs, ('pn'/pv)):
+% OPTIONAL PARAMETERS:
 %   G    - Grid to be used for the fluid model. Only required for the
 %          situation when a deck has more than one region, and the intended
 %          simulation grid is different from the one defined by the deck
 %          (more specifically, the deck.GRID.ACTNUM field).
 %
-%  region_method - Method for defining regions. Either 'deck' (use exactly as
+%   region_method - Method for defining regions. Either 'deck' (use exactly as
 %           prescribed in the input deck [DEFAULT] or 'override' which
 %           allows individual fields to be overwritten. Since the region
 %           support in MRST is abstracted away, this option should only be
 %           used if you are comfortable with the internal structure of
 %           getRegMap and interpReg.
 %
-%  regionOverride - Struct containing fields to be overwritten. Only used
+%   regionOverride - Struct containing fields to be overwritten. Only used
 %           if 'method' equals 'override'. The supported fields include
 %           PVTNUM, SATNUM, ROCKNUM, IMBNUM and SURFNUM. For each of these
 %           fields, if present, the value can be formatted in three
 %           different ways:
 %               * Single numerical value. Will be repeated for all grid
-%               cells.
+%                 cells.
 %               * The char ':'. Interpreted as using the first region for
-%               all cells. This is normally used when no regions are
-%               present.
+%                 all cells. This is normally used when no regions are
+%                 present.
 %               * A Nx1 array containing one region indicator per cell in
-%               the grid. The region indicator is a single number
-%               indicating which table is to be used for that cell.
+%                 the grid. The region indicator is a single number
+%                 indicating which table is to be used for that cell.
 %
-%  singleRegion - Internal debug option. This region will be used for ALL
+%   singleRegion - Internal debug option. This region will be used for ALL
 %                 fields and any other value than 1 or ':' will usually
 %                 result in exceptions being thrown.
 %

@@ -5,21 +5,22 @@ function [yi, dyidxi] = interpReg(T, xi, reginx)
 %   [yi, dyidxi] = interpReg(T, xi, reginx)
 %
 % REQUIRED PARAMETERS:
-%   T   - Interpolation table. Cell array of N tables for interpolation
-%         where N is the number of regions. Table should consist of a
-%         function f(x) in the format [x, f(x)] where x are points and f(x)
-%         is the function values, both in the format of column vectors.
+%   T      - Interpolation table. Cell array of N tables for interpolation
+%            where N is the number of regions. Table should consist of a
+%            function f(x) in the format [x, f(x)] where x are points and 
+%            f(x) is the function values, both in the format of column
+%            vectors.
 %
-%   xi  - Query points where the function should be interpolated.
+%   xi     - Query points where the function should be interpolated.
 %
-% reginx - Cell array of length N, where each entry corresponds to a list
-%          of the cells present in a certain region. See getRegMap for
-%          details.
+%   reginx - Cell array of length N, where each entry corresponds to a list
+%            of the cells present in a certain region. See getRegMap for
+%            details.
 %
 % RETURNS:
-%   yi   - Function evaluated at given points, accounting for regions.
+%   yi     - Function evaluated at given points, accounting for regions.
 %
-%  dyidxi - Slope at xi (only computed if requested).
+%   dyidxi - Slope at xi (only computed if requested).
 %
 
 %{

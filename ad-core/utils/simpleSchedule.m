@@ -9,7 +9,7 @@ function schedule = simpleSchedule(dt, varargin)
 %   
 %   dt    - Vector (column/row) of desired timesteps.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %
 %   W -  Wells to be used in the schedule. The wells will be active in
 %        all timesteps.
@@ -22,10 +22,10 @@ function schedule = simpleSchedule(dt, varargin)
 %
 % RETURNS:
 %   schedule - struct suitable for further modification, or for input to
-%              simulateScheduleAD.
+%              `simulateScheduleAD`.
 %
 % SEE ALSO:
-%   simulateScheduleAD
+%   `simulateScheduleAD`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

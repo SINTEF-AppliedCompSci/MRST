@@ -5,10 +5,10 @@ function wellSols = convertIncompWellSols(W, states, incompFluid)
 %   wellSols = convertIncompWellSols(W, states, fluid)
 %
 % DESCRIPTION:
-%   The solvers in the "incomp" module uses a different wellSol format than
-%   the "ad-core" style wellSols. This function converts a set of states
+%   The solvers in the `incomp` module uses a different wellSol format than
+%   the `ad-core` style wellSols. This function converts a set of states
 %   into wellSols suitable for routines that were designed to work with the
-%   "ad-core" style wellSols. Specifically, this enables the use of
+%   `ad-core` style wellSols. Specifically, this enables the use of
 %   getWellOutput and plotWellSols with solutions from the incompressible
 %   solvers not based on AD.
 %
@@ -21,11 +21,10 @@ function wellSols = convertIncompWellSols(W, states, incompFluid)
 %
 % RETURNS:
 %   wellSols    - Nstep long cell array of the same format as output by
-%                 e.g. simulateScheduleAD
+%                 e.g. `simulateScheduleAD`
 %
 % SEE ALSO:
-%   % Found in ad-core
-%   plotWellSols, getWellOutput
+%   `plotWellSols`, `getWellOutput`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

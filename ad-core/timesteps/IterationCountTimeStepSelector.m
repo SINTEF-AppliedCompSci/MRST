@@ -11,7 +11,7 @@ classdef IterationCountTimeStepSelector < SimpleTimeStepSelector
     % REQUIRED PARAMETERS:
     %   None.
     %
-    % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+    % OPTIONAL PARAMETERS:
     %   targetIterationCount  - Desired number of iterations.
     %
     %   iterationOffset       - Uses [actual + iterationOffset] to calculate
@@ -29,10 +29,8 @@ classdef IterationCountTimeStepSelector < SimpleTimeStepSelector
     %   SimpleTimeStepSelector, NonLinearSolver
 
     properties
-        % Desired number of nonlinear iterations per timestep.
-        targetIterationCount
-        % Offset to make iteration a bit smoother as a response function.
-        iterationOffset
+        targetIterationCount % Desired number of nonlinear iterations per timestep.
+        iterationOffset % Offset to make iteration a bit smoother as a response function.
     end
     methods
         function selector = IterationCountTimeStepSelector(varargin)

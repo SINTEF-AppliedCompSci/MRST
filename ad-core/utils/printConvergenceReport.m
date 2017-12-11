@@ -2,7 +2,7 @@ function printConvergenceReport(names, values, converged, iteration)
 % Print a neatly formatted convergence report
 %
 % SYNOPSIS:
-% printConvergenceReport({'myEquation', 'yourEquation'}, [1, 25], [true, false], it);
+%   printConvergenceReport({'myEquation', 'yourEquation'}, [1, 25], [true, false], it);
 %
 % DESCRIPTION:
 %   Print convergence report to the Command Window. Two lines are plotted

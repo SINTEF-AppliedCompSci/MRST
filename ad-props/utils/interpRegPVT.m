@@ -1,4 +1,5 @@
 function [yi, dyidxi, dyidvi] = interpRegPVT(T, xi, vi, flag, reginx)
+% Interpolate PVT-type curves with region support
 compDer = (nargout>1);
 nreg = numel(reginx);
 
@@ -11,8 +12,6 @@ end
 tabSat = cellfun(@(x)x.data(x.pos(1:end-1),:), T, 'UniformOutput', false);
 
 if nreg > 1
-%     reginxSat  = reginx(flag,:);
-%     reginxUSat = reginx(~flag,:);
     reginxSat  = cellfun(@(v) v(flag(v)), reginx, 'UniformOutput', false);
     reginxUSat = cellfun(@(v) v(~flag(v)), reginx, 'UniformOutput', false);
 else

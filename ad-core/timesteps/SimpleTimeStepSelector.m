@@ -1,9 +1,8 @@
 classdef SimpleTimeStepSelector < handle
-    %Time step selector base class
+    % Time step selector base class
     %
     % SYNOPSIS:
     %   selector = SimpleTimeStepSelector();
-    %
     %   selector = SimpleTimeStepSelector('maxTimestep', 5*day);
     %
     % DESCRIPTION:
@@ -15,7 +14,7 @@ classdef SimpleTimeStepSelector < handle
     % REQUIRED PARAMETERS:
     %   None
     %
-    % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+    % OPTIONAL PARAMETERS:
     %   See properties
     %
     % RETURNS:
@@ -27,46 +26,29 @@ classdef SimpleTimeStepSelector < handle
     %   StateChangeTimeStepSelector
 
     properties
-        % Stored history of iterations/residuals during simulation that may
-        % be used to pick the next timestep
-        history
-        % Hard upper limit on timestep in seconds
-        maxTimestep
-        % Hard lower limit on timestep in seconds
-        minTimestep
-        % Extra output
-        verbose
-        % Parameter adjusting the amount of history that is stored.
-        maxHistoryLength
-        % Flag indicating that we are at the beginning of a control step
-        isStartOfCtrlStep
-        % Flag indicating that the controls have changed
-        controlsChanged
+        history % Stored history used to pick next timestep
+        maxTimestep % Hard upper limit on timestep in seconds
+        minTimestep % Hard lower limit on timestep in seconds
+        verbose % Extra output
+        maxHistoryLength % The maximum number of history steps stored
+        isStartOfCtrlStep % Flag indicating the beginning of a control step
+        controlsChanged % Flag indicating that the controls have changed
         
-        % The first ministep attempted after controls have changed. Could
-        % be set to a low value to get the timestep controller started with
-        % some estimate of problem stiffness.
-        firstRampupStep
-        % Same as firstRampupStep, but interpreted in a relative fashion
+        firstRampupStep % The first ministep attempted after controls have changed
+        % Could be set to a low value to get the timestep controller started 
+        % with some estimate of problem stiffness.
+        % 
+        firstRampupStepRelative % Relative version of firstRampupStep
         % (i.e. if timestep is 5*days, the ramp up step will then be
         % 5*days*firstRampupStepRelative.
-        firstRampupStepRelative
+
+        maxRelativeAdjustment % Ensure dt_next < dt_suggested*maxRelativeAdjustment
+        minRelativeAdjustment % Ensure dt_next > dt_suggested*minRelativeAdjustment
         
-        % Ensure that dt_next < dt_suggested*maxRelativeAdjustment
-        maxRelativeAdjustment
-        % Ensure that dt_next > dt_suggested*minRelativeAdjustment
-        minRelativeAdjustment
-        
-        % Flag indicating that hard limits and not any step algorithm was
-        % the cause of the previous timestep taken
-        stepLimitedByHardLimits
-        % Previous control seen by the selector used to determine when
-        % controls change.
-        previousControl
-        % Reset when controls change
-        resetOnControlsChanged
-        % Flag indicating that we are at the start of the simulation
-        isFirstStep
+        stepLimitedByHardLimits % Flag indicating that hard limits and not any step algorithm was the cause of the previous timestep taken
+        previousControl % Previous control seen by the selector used to determine when controls change.
+        resetOnControlsChanged % Reset when controls change
+        isFirstStep % Flag indicating that we are at the start of the simulation
     end
         
     

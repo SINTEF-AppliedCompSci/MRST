@@ -37,7 +37,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     perf2well   = rldecode((1:nw)', nConn);
     if nargout > 1
         nperf = numel(perf2well);
-        if nperf == nw;
+        if nperf == nw
             Rw = 1;
         else
             Rw = sparse((1:nperf)', perf2well, 1, nperf, nw);

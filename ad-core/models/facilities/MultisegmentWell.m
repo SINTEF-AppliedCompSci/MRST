@@ -1,6 +1,26 @@
 classdef MultisegmentWell < SimpleWell
-    % Derived class implementign multisegment wells with full wellbore
-    % modelling
+    % Derived class implementing multisegment wells
+    %
+    % SYNOPSIS:
+    %   wm = MultisegmentWell(W)
+    %
+    % DESCRIPTION:
+    %   This well extends SimpleWell to general multisegment wells. These
+    %   wells can take on complex topological structures, including loops
+    %   for e.g. annular flow modelling.
+    %
+    % PARAMETERS:
+    %   W - Well struct. See `addWell` and `processWells`. Should have been
+    %       converted into a multisegment well using `convert2MSWell`.
+    %
+    % OPTIONAL PARAMETERS:
+    %   'property' - Set property to the specified value.
+    %
+    % RETURNS:
+    %   model - Class instance of `MultisegmentWell`.
+    %
+    % SEE ALSO:
+    %   `convert2MSWell`, `SimpleWell`,
     properties
         signChangeChop
     end

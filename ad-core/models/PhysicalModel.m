@@ -329,8 +329,6 @@ methods
         %   state  - Updated `struct` holding the current solution state.
         %   report - Report containing information about the update.
         %
-        % EXAMPLE:
-        %   
         report = [];
     end
 

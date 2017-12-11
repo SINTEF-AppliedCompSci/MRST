@@ -13,24 +13,24 @@ function varargout = terniaryWellPlot(wellSols, T, ix, varargin)
 %   phase (water, oil gas) and optionally also bottom hole pressures as a
 %   separate axis. One figure is produced per well requested.
 %
-% REQUIRED PARAMETERS:
+% PARAMETERS:
 %   wellSols - Cell array of NSTEP by 1, each containing a uniform struct
 %              array of well solution structures. For example, the first
 %              output from simulateScheduleAD. Can also be a cell array of
 %              such cell arrays, for comparing multiple simulation
 %              scenarios.
 %
-%  time     - (OPTIONAL) The time for each timestep. If not provided, the
-%             plotter will use step number as the x axis intead. If
-%             wellSols is a cell array of multiple datasets, time should
-%             also be a cell array, provided not all datasets use the same
-%             timesteps.
+%   time     - (OPTIONAL) The time for each timestep. If not provided, the
+%              plotter will use step number as the x axis intead. If
+%              wellSols is a cell array of multiple datasets, time should
+%              also be a cell array, provided not all datasets use the
+%              same timesteps.
 %
-%  ix       - (OPTIONAL) A list of indices to plot, or a single string
-%             corresponding to the name of a specific well. The default is
-%             all wells.
+%   ix       - (OPTIONAL) A list of indices to plot, or a single string
+%              corresponding to the name of a specific well. The default is
+%              all wells.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %   'plotBHP'  - Boolean indicating if BHP is to be plotted. Defaults to
 %                enabled.
 % 
@@ -38,7 +38,7 @@ function varargout = terniaryWellPlot(wellSols, T, ix, varargin)
 %   fh         - Figure handles to all figures that were created.
 %
 % SEE ALSO:
-%   simulateScheduleAD, plotWellSols
+%   `simulateScheduleAD`, `plotWellSols`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

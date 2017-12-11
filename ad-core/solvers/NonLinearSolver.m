@@ -26,69 +26,42 @@ classdef NonLinearSolver < handle
     %   `simulateScheduleAD`, `LinearSolverAD`, `SimpleTimeStepSelector`
 
     properties
-        % The max number of iterations during a ministep.
-        maxIterations
-        % The minimum number of solves during a ministep.
-        minIterations
-        % The maximum number of times the timestep can be halved before it
-        % is counted as a failed run
-        maxTimestepCuts
-        % The solver used to solve the linearized problems during the
-        % simulation.
-        LinearSolver
-        % Verbose flag used to get extra output during simulation.
-        verbose
-        % Identifier for the nonlinear solver
-        identifier
-        % Subclass of SimpleTimeStepSelector used to select timesteps
+        maxIterations % The max number of iterations during a ministep.
+        minIterations % The minimum number of solves during a ministep.
+        maxTimestepCuts  % The maximum number of times the timestep can be halved before it is counted as a failed attempt
+        LinearSolver % The solver used to solve the linearized problems during the simulation.
+        verbose % Verbose flag used to get extra output during simulation.
+        identifier % String identifier for the nonlinear solver
+        timeStepSelector % Subclass of SimpleTimeStepSelector used to select timesteps
         % during simulation. By default no dynamic timestepping will be
         % enabled.
-        timeStepSelector
-
-        % Boolean indicating if Newton increments should be relaxed.
-        useRelaxation
-        % Relaxation parameter between 0 and 1. This is modified
-        % dynamically if useRelaxation is on, and should in general not be
-        % modified unless you know what you are doing.
-        relaxationParameter
+        useRelaxation % Boolean indicating if Newton increments should be relaxed.
+        relaxationParameter % Relaxation parameter between 0 and 1.
+        % This is modified dynamically if useRelaxation is on, and should 
+        % in general not be modified unless you know what you are doing.
         % Either 'dampen', 'sor' or 'none'
         % For dampen, where w = relaxationParameter.
         %       x_new = x_old + dx*w
         % For successive over-relaxation (SOR)
         %       x_new = x_old + dx*w + dx_prev*(1-w)
-        relaxationType
-        % Relaxation is reduced by this when stagnation occurs
-        relaxationIncrement
-        % Lowest possible relaxation factor
-        minRelaxation
-        % Largest possible relaxation factor
-        maxRelaxation
+        relaxationType % Relaxation is reduced by this when stagnation occurs
+        relaxationIncrement 
+        minRelaxation % Lowest possible relaxation factor
+        maxRelaxation % Largest possible relaxation factor
         
-        useLinesearch
-        alwaysUseLinesearch
-        linesearchReductionFactor
-        linesearchDecreaseFactor
-        linesearchMaxIterations
-        linesearchConvergenceNames
-        linesearchResidualScaling
-        linesearchReductionFn
-        
+        useLinesearch % True to enable line-search in residual
+        alwaysUseLinesearch % Debug option to always use line search
+        linesearchReductionFactor % Reduction factor for each step in LS
+        linesearchDecreaseFactor % Required reduction factor in residual (default 1)
+        linesearchMaxIterations % Max iterations in linesearch
+        linesearchConvergenceNames % Residual names to be checked in linesearch
+        linesearchResidualScaling % Residual scaling for each equation
+        linesearchReductionFn % Function for combining multiple residuals into value used by linesearch
         convergenceIssues
-
-        % Abort a timestep if no reduction is residual is happening.
-        enforceResidualDecrease
-        % Stagnation tolerance - used in relaxation to determine of a
-        % residual value is no longer decreasing
-        stagnateTol
-
-        % If error on failure is not enabled, the solver will return even
-        % though it did not converge. May be useful for debugging. Results
-        % should not be relied upon if this is enabled.
-        errorOnFailure
-        % If errorOnFailure is disabled, the solver will continue after a
-        % failed timestep, treating it as a simply non-converged result
-        % with the maximum number of iterations
-        continueOnFailure
+        enforceResidualDecrease % Abort a solution if no reduction is residual is happening.
+        stagnateTol % Stagnation tolerance - used in relaxation to determine of a residual value is no longer decreasing
+        errorOnFailure % If error on failure is not enabled, the solver will return even though it did not converge. May be useful for debugging. Results should not be relied upon if this is enabled. If errorOnFailure is disabled, the solver will continue after a failed timestep, treating it as a simply non-converged result with the maximum number of iterations
+        continueOnFailure % Continue even if failure is reported by the model. Results are most likely not useful. Intended for nested nonlinear solvers.
     end
     
     properties (Access=private)

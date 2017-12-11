@@ -20,7 +20,7 @@ function s = setupOperatorsTPFA(G, rock, varargin)
 %             approprioate dimensions for the grid. See makeRock for more
 %             details.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %
 %   'deck'      - deck file containing rock properties
 %
@@ -30,44 +30,45 @@ function s = setupOperatorsTPFA(G, rock, varargin)
 %   'neighbors' - neighbors for each internal face
 %
 %   'porv'      - pore volumes for all cells
+%
 % RETURNS:
-%   s           - Operators struct, with discrete operators and derived
-%                 quantities:
-%         T_all:  Transmissibilities for all interfaces, *including*
-%                 (half) transmissibilities for faces on the boundary. One
-%                 value per interface.
+%   s        - Operators struct, with discrete operators and derived
+%              quantities:
+%              T_all - Transmissibilities for all interfaces, *including*
+%              (half) transmissibilities for faces on the boundary. One
+%              value per interface.
+%              T - Transmissibilities for all internal interfaces. Internal
+%              interfaces have a cell on both sides.
+%              pv - Pore volumes. See function `poreVolume`. One value per
+%              cell.
+%              C - Transfer matrix between cells and faces. Used to derive
+%              discrete gradient and divergence operators.
+%              faceAvg  - (Function) For each interface, computes the
+%              average value of a quantity defined in the cells. If a face
+%              is connecting two cells, the faceAvg function will
+%              compute the arithmetic average of the values in both cells.
 %
-%         T    : Transmissibilities for all internal interfaces. Internal
-%                interfaces have a cell on both sides.
+%   Grad     - Discrete gradient as function handle. Computes the gradient
+%              on each interface via a first order finite difference
+%              approximation using the values of the cells connected to the
+%              face. Note that this discrete gradient does *not* divide by
+%              the distance between the points.
 %
-%         pv   : Pore volumes. See function poreVolume. One value per cell.
+%   Div      - (Function) Discrete divergence. Integrates / sums up
+%              values on the interfaces for all cells to give the
+%              (integrated) divergence per cell.
 %
-%         C    : Transfer matrix between cells and faces. Used to derive
-%                discrete gradient and divergence operators.
+%   faceUpstr - (Function) Perform upstream weighting of values. Given a
+%               set of cell wise values and a upstream flag for each
+%               interface, this function will pick the values corresponding
+%               to the position in the neighborship. I.e. if the flag is
+%               true for a given interface, it will select the value in the
+%               FIRST cell connected to the interface x(N(faceNo, 1)).
+%               Otherwise, it will select the SECOND x(N(faceNo, 2)).
+%               Typical usage is for upstream weighting of transported
+%               quantities.
 %
-%      faceAvg : (Function) For each interface, computes the average value
-%      of a quantity defined in the cells. If a face is connecting cells 4
-%      and 5, the faceAvg function will compute the arithmetic average of
-%      the values in both cells.
-%
-%      Grad    : (Function)  Discrete gradient. Computes the gradient on
-%      each interface via a first order finite difference approximation
-%      using the values of the cells connected to the face.
-%
-%      Div     : (Function) Discrete divergence. Integrates / sums up
-%      values on the interfaces for all cells to give the (integrated)
-%      divergence per cell.
-%
-%      faceUpstr: (Function) Perform upstream weighting of values. Given a
-%      set of cell wise values and a upstream flag for each interface, this
-%      function will pick the values corresponding to the position in the
-%      neighborship. I.e. if the flag is true for a given interface, it
-%      will select the value in the FIRST cell connected to the interface
-%      x(N(faceNo, 1)). Otherwise, it will select the SECOND x(N(faceNo,
-%      2)). Typical usage is for upstream weighting of transported
-%      quantities.
-%
-%      N      : Neighborship structure. Will be number of interfaces by 2
+%   N         - Neighborship structure. Will be number of interfaces by 2
 %               in size where N(ix, :) contains the cells connected to
 %               face number ix.
 %

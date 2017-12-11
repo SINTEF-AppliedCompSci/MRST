@@ -19,15 +19,16 @@ function model = selectModelFromDeck(G, rock, fluid, deck, varargin)
 %
 %   deck       - Parsed input deck, typically from readEclipseDeck.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
-%    Are passed onto the model constructor directly.
+% OPTIONAL PARAMETERS:
+%    Any - Any extra arguments passed onto the model constructor directly.
 %
 % RETURNS:
-%   model      - Subclass of PhysicalModel approprioate for passing along
-%                to simulateScheduleAD.
+%   model      - Subclass of `PhysicalModel` approprioate for passing along
+%                to `simulateScheduleAD`.
 %
 % SEE ALSO:
-%   ThreePhaseBlackOilModel, TwoPhaseOilWaterModel, OilWaterPolymerModel
+%   `ThreePhaseBlackOilModel`, `TwoPhaseOilWaterModel`,
+%   `OilWaterPolymerModel`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
