@@ -79,6 +79,12 @@ end
 function [data, done] = append_line(data, lin)
    comment = '(--|#).*$';
 
+   if regexp(lin, ['^\s*', comment])
+      % Line is a comment (first non-blank is a comment marker).  Skip.
+      done = false;
+      return
+   end
+
    S = splitQuotedString(lin);
    i = find(~ cellfun(@isempty, regexp(S.unquoted, comment)), 1, 'first');
 

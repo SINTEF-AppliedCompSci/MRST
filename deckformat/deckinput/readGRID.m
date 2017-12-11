@@ -1,8 +1,5 @@
 function deck = readGRID(fid, dirname, deck)
 
-%Modiefied by VES for reading dual porosity eclipse decks
-
-
 % deck = readGRID(fid, dirname, deck)
 
 %{
@@ -24,14 +21,13 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    
-    if deck.RUNSPEC.DUALPORO
-       [dims, nc, np, nv,ncdp] = get_dimensions(deck);
-    else
-        [dims, nc, np, nv,~] = get_dimensions(deck);
-    end 
-    
-   [grd, miss_kw]     = get_state(deck);
+   if deck.RUNSPEC.DUALPORO
+      [dims, nc, np, nv, ncdp] = get_dimensions(deck);
+   else
+      [dims, nc, np, nv]       = get_dimensions(deck);
+   end
+
+   [grd, miss_kw] = get_state(deck);
 
    kw = getEclipseKeyword(fid);
    in_section = ischar(kw);
@@ -132,49 +128,38 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             grd.(kw)     = data;
 
          case {'ACTNUM'},
-           
-           if deck.RUNSPEC.DUALPORO
-                %grd = readGridBoxArrayDP(grd, fid, kw, nc);
-                grd = readGridBoxArray(grd, fid, kw, ncdp);
-           else      
-                grd = readGridBoxArray(grd, fid, kw, nc);
-           end
-           
-        case {'SIGMAV' , 'SIGMADV', 'DZMTRXV'},
-           
-           if deck.RUNSPEC.DUALPORO
-                
-                grd = readGridBoxArray(grd, fid, kw, nc);
-           else      
-                
-           end
-           
+            if deck.RUNSPEC.DUALPORO
+               %grd = readGridBoxArrayDP(grd, fid, kw, nc);
+               grd = readGridBoxArray(grd, fid, kw, ncdp);
+            else
+               grd = readGridBoxArray(grd, fid, kw, nc);
+            end
+
+         case {'SIGMAV' , 'SIGMADV', 'DZMTRXV'},
+            if deck.RUNSPEC.DUALPORO
+               grd = readGridBoxArray(grd, fid, kw, nc);
+            end
+
          case {'SIGMA'},
-           
-           if deck.RUNSPEC.DUALPORO
-                
-                %Not handled yet
-           else      
-                
-           end
-           
-           
-         case { 'NTG'   , 'PORO' ,  ...
+            if deck.RUNSPEC.DUALPORO
+               %Not handled yet
+            end
+
+         case {'NTG'   , 'PORO'  ,  ...
                'MULTPV',                     ...
                'MULTX' , 'MULTX-',           ...
                'MULTY' , 'MULTY-',           ...
                'MULTZ' , 'MULTZ-',           ...
                'PERMX' , 'PERMXY', 'PERMXZ', ...
                'PERMYX', 'PERMY' , 'PERMYZ', ...
-               'PERMZX', 'PERMZY', 'PERMZ' , ...
-               },
-           
-           if deck.RUNSPEC.DUALPORO
-                grd = readGridBoxArrayDP(grd, fid, kw, nc);
-           else      
-                grd = readGridBoxArray(grd, fid, kw, nc);
-           end
-
+               'PERMZX', 'PERMZY', 'PERMZ',  ...
+               'THCONR', ...
+               }
+            if deck.RUNSPEC.DUALPORO
+               grd = readGridBoxArrayDP(grd, fid, kw, nc);
+            else
+               grd = readGridBoxArray(grd, fid, kw, nc);
+            end
 
          case {'ADD', 'COPY', 'EQUALS', 'MAXVALUE', ...
                'MINVALUE', 'MULTIPLY'},
@@ -192,31 +177,25 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             tmpl = { '1.0e-6' };  % In all unit systems
             data = readDefaultedRecord(fid, tmpl);
             grd.(kw) = to_double(data{1});
-            
-           if deck.RUNSPEC.DUALPORO
-                grd = readGridBoxArrayDP(grd, fid, kw, nc);
-           else      
-                grd = readGridBoxArray(grd, fid, kw, nc);
-           end
 
          case 'MINPVV',
             if ~isfield(grd, kw), grd.(kw) = repmat(1.0e-6, [nc, 1]); end
             %grd = readGridBoxArray(grd, fid, kw, nc);
-            
-           if deck.RUNSPEC.DUALPORO
-                grd = readGridBoxArrayDP(grd, fid, kw, nc);
-           else      
-                grd = readGridBoxArray(grd, fid, kw, nc);
-           end
+
+            if deck.RUNSPEC.DUALPORO
+               grd = readGridBoxArrayDP(grd, fid, kw, nc);
+            else
+               grd = readGridBoxArray(grd, fid, kw, nc);
+            end
 
          case 'FLUXNUM',
             %grd.(kw) = readVector(fid, kw, nc);
-            
-           if deck.RUNSPEC.DUALPORO
-                grd = readGridBoxArrayDP(grd, fid, kw, nc);
-           else      
-                grd = readGridBoxArray(grd, fid, kw, nc);
-           end
+
+            if deck.RUNSPEC.DUALPORO
+               grd = readGridBoxArrayDP(grd, fid, kw, nc);
+            else
+               grd = readGridBoxArray(grd, fid, kw, nc);
+            end
 
          case {'ECHO', 'NOECHO'},
             kw = getEclipseKeyword(fid);

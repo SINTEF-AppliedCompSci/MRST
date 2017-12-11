@@ -8,8 +8,8 @@ if nargin < 2
     unit = 'metric';
 end
 [dr,nm] = fileparts(fn);
-smry  = readSummaryLocal(fullfile(dr,nm));
-
+%smry  = readSummaryLocal(fullfile(dr,nm));
+smry = readEclipseSummaryUnFmt(fn);
 % units:
 if ischar(unit)
     u = getUnits(unit);

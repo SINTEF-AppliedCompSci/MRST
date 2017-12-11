@@ -154,8 +154,9 @@ readAll = (~isinf(nel) && (numel(C{1}) == nel)) | isinf(nel);
 if (iseof || (ischar(lin) && matches(lin, '^\s*/'))) && readAll,
    v = C{1};
 elseif ischar(lin) && matches(lin, '^\s*/'),
-   fclose(fid);
-   error(['readGRDECL:Vector_', field, ':PrematureTermination'],    ...
+   %fclose(fid);
+   v  = C{1};
+   warning(['readGRDECL:Vector_', field, ':PrematureTermination'],    ...
          ['Detected termination character ''/'' at position %d.\n', ...
           'Scanning of keyword ''%s'' not completed.'], pos, field);
 elseif ischar(lin) && matches(lin, '^[A-Z]+'),
