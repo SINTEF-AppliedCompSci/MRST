@@ -1,10 +1,23 @@
 function [G, rock, fluid, state, wells, ...
-      htrans, trans, dt, deck] = initEclipseModel(inputfile,varargin)
+      htrans, trans, dt, deck] = initEclipseModel(inputfile, varargin)
 %Initialise basic MRST objects from ECLIPSE input file (*.DATA)
 %
 % SYNOPSIS:
+%   G = initEclipseModel(inputfile)
+%   G = initEclipseModel(inputfile, 'pn1', pv1, ...)
+%
+%   [G, rock]                      = initEclipseModel(...)
+%   [G, rock, fluid]               = initEclipseModel(...)
+%   [G, rock, fluid, state]        = initEclipseModel(...)
+%   [G, rock, fluid, state, wells] = initEclipseModel(...)
+%   [G, rock, fluid, state, ...
+%    wells, htrans]                = initEclipseModel(...)
 %   [G, rock, fluid, state, wells, ...
-%    htrans, trans, dt, deck] = initEclipseModel(inputfile,'pn1','pv1',..)
+%    htrans, trans]                = initEclipseModel(...)
+%   [G, rock, fluid, state, wells, ...
+%    htrans, trans, dt]            = initEclipseModel(...)
+%   [G, rock, fluid, state, wells, ...
+%    htrans, trans, dt, deck]      = initEclipseModel(...)
 %
 % DESCRIPTION:
 %   Function 'initEclipseModel' constructs the fundamental MRST simulation
@@ -15,13 +28,13 @@ function [G, rock, fluid, state, wells, ...
 %   inputfile - Name (string) of input file.  The input is assumed to be a
 %               regular file on disk and not, say, a POSIX pipe.
 %
-% OPTIONAL PARAMETERS:
-%  'pn'/pv - List of 'key'/value pairs defining optional parameters.  These
-%            are passed on to the function 'processGRDECL', which is used
-%            to construct corner-point grids. Of particular interest is
-%            the parameter 'SplitDisconnected' which tells whether or not
-%            to split disconnected grid components into separate
-%            grids/reservoirs.
+%   'pn'/pv   - List of 'key'/value pairs defining optional parameters.
+%               These are passed on to the function 'initEclipseGrid',
+%               which is used to construct corner-point grids and other
+%               grid types.  Of particular interest is the parameter
+%               'SplitDisconnected' which tells whether or not to split
+%               disconnected grid components into separate
+%               grids/reservoirs.
 %
 % RETURNS:
 %   G     - Grid structure as defined by function 'initEclipseGrid'.
