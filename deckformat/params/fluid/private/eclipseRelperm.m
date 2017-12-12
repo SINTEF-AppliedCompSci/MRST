@@ -9,7 +9,7 @@ function [relperm, pcap, info] = eclipseRelperm(deck, varargin)
 %   deck - An ECLIPSE/FrontSim input deck as defined by functions
 %          'readEclipseDeck' and 'convertDeckUnits'.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %   verbose - Display (short) summary of fluid relperm model.
 %
 % RETURNS:

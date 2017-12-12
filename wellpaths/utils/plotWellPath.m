@@ -13,7 +13,7 @@ function h = plotWellPath(wellpaths, varargin)
 %
 %   wellpath - Well path to be plotted. See makeSingleWellpath.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %
 %   interpType  - Interpolation type used. Same possible values as for
 %               MATLAB builtin interp1. Default: Spline. 

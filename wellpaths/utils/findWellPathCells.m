@@ -15,7 +15,7 @@ function [cells, segment, param, ptsind, DT] = findWellPathCells(G, wellpath, va
 %  wellpath - Well path. See "makeSingleWellpath" for spec.
 %
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %
 %  interpType - The type of interpolation used to extend the curve between
 %               points. Supports the same types as MATLAB builtin interp1.

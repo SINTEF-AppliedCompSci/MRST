@@ -38,7 +38,7 @@ function [state, report] = implicitTransportReorder(state, G, tf, rock, fluid, v
 %           the only fluid that is yet supported over the mex interface is
 %           the one defined in initCoreyFluidROC
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %
 %   wells - Well structure as defined by function 'addWell'.  This
 %           structure accounts for all injection and production well
