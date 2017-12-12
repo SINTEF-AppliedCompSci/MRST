@@ -75,6 +75,7 @@ ws = repmat(struct(...
     'qWs',    [],...
     'qOs',    [],...
     'qGs',    [],...
+    'qSs',    [],...
     'mixs',   [],...
     'cstatus',[],...
     'cdp',    [],...
@@ -82,6 +83,10 @@ ws = repmat(struct(...
 
  
 % Additional model dependent fields
+if isprop(model, 'solvent') && model.solvent % solvent model
+	 [ws(:).qSs] = deal(0);
+end
+
 if isprop(model, 'polymer') && model.polymer % polymer model
 	 [ws(:).qWPoly] = deal(0);
 end
@@ -118,6 +123,9 @@ for k = 1:nw
     end
     if model.gas
         ws(k).qGs  = W(k).sign*irate;
+    end
+    if isprop(model, 'solvent') && model.solvent
+       ws(k).qSs = W(k).sign*irate;
     end
     cnames = model.getComponentNames();
     for i = 1:numel(cnames)
@@ -163,6 +171,10 @@ for k = 1:numel(W)
             if model.gas
                 ix = 1 + model.water + model.oil;
                 ws(k).qGs = v*W(k).compi(ix);
+            end
+            if isprop(model, 'solvent') && model.solvent
+                ix = 1 + model.water + model.oil + model.gas;
+                ws(k).qSs = v*W(k).compi(ix);
             end
             cnames = model.getComponentNames();
             for i = 1:numel(cnames)

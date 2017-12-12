@@ -371,6 +371,9 @@ classdef SimpleWell < PhysicalModel
             qs_t = sum(qs_double);
 
             actPh = model.getActivePhases();
+            if isprop(model, 'solvent') && model.solvent
+                solIx = sum(actPh(1:4));
+            end
             gasIx = sum(actPh(1:3));
             oilIx = sum(actPh(1:2));
             watIx = 1;
@@ -406,7 +409,7 @@ classdef SimpleWell < PhysicalModel
                         % VRAT is upper limit, switch default sign
                         lims.vrat = inf;
                     end
-                    [q_w, q_o, q_g] = deal(0);
+                    [q_w, q_o, q_g, q_sl] = deal(0);
                     if model.water
                         q_w = qs_double(watIx);
                     end
@@ -416,11 +419,13 @@ classdef SimpleWell < PhysicalModel
                     if model.gas
                         q_g = qs_double(gasIx);
                     end
-
+                    if isprop(model, 'solvent') && model.solvent
+                        q_sl = qs_double(solIx);
+                    end
                     flags = [double(bhp) < lims.bhp,  ...
                         q_o          < lims.orat, ...
                         q_w + q_o    < lims.lrat, ...
-                        q_g          < lims.grat, ...
+                        q_g + q_sl   < lims.grat, ...
                         q_w          < lims.wrat, ...
                         qs_t         > lims.vrat];
                 end
@@ -526,6 +531,8 @@ classdef SimpleWell < PhysicalModel
                     fn = 'qGs';
                 case 'qws'
                     fn = 'qWs';
+                case 'qss'
+                    fn = 'qSs';
                 otherwise
                     % This will throw an error for us
                     [fn, index] = getVariableField@PhysicalModel(model, name);
@@ -614,7 +621,7 @@ classdef SimpleWell < PhysicalModel
            if ns == 0
                return
            end
-           typelist = {'qWs', 'qOs', 'qGs'};
+           typelist = {'qWs', 'qOs', 'qGs', 'qSs'};
            types    = typelist(isfield(sol(1), typelist));
            for w = 1:ns
               for t = reshape(types, 1, []),
