@@ -38,7 +38,7 @@ function p = refineGreedy3(p, G, IFlw, NU, varargin)
 %                IFlw(B) |B| >= (NU / n) IFlw(G) |G|    (*)
 %                n_B         >= NU                      (**)
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %
 %   nlevel   - Specifies the definition of neighbourship used in the greedy
 %              algorithm. Level-2 neighbours are all cells that share at

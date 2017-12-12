@@ -25,7 +25,7 @@ function partition = refineBlocks(partition, G, indicator, N_U, f_handle, vararg
 %
 %   N_U       - Upper bound
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %
 %   verbose  - Whether or not display number of blocks in the resulting
 %              partition. Default value: verbose = false.

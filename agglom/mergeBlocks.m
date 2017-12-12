@@ -32,7 +32,7 @@ function p = mergeBlocks(p, G, IVol, IFlw, NL, varargin)
 %
 %           with the neighboring block that has the closest IFlw value.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %
 %   verbose - Whether or not display number of blocks in the resulting
 %           partition. Default value dependent on the global verbose

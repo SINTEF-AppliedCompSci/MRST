@@ -22,7 +22,7 @@ function p = refineUniform(p, G, indicator, NU, varargin)
 %
 %   NU       - Upper bound
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %
 %   cartDims - Dimensions of subdivison of the blocks.
 %

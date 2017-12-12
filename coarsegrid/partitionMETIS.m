@@ -13,7 +13,7 @@ function [p, A] = partitionMETIS(G, T, n, varargin)
 %
 %   n - Number of blocks into which to partition the grid 'G'.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %
 %  ufactor - Percentage overweight allowed in coarse blocks. Examples:
 %                   1.01: Largest difference in cells per coarse block is
