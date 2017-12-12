@@ -4,7 +4,7 @@ function [mapx, mapy, mapz] = tetrahedralAxis(varargin)
 % SYNOPSIS:
 %       [mapx, mapy] = ternaryAxis()
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %   'tick'  - Tick points to be displayed on the axis (vector from 0 to 1)
 %
 %   'names' - Names of the x, y, z coordinates (to be plotted on axis)
