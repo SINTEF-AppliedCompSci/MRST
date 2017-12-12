@@ -25,7 +25,7 @@ function state = simpleIncompTPFA(state, G, hT, fluid, varargin)
 %
 %   fluid  - Fluid object as defined by function 'initSimpleFluid'.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %   bc     - Boundary condition structure as defined by function 'addBC'.
 %            This structure accounts for all external boundary conditions to
 %            the reservoir flow.  May be empty (i.e., bc = struct([])) which
