@@ -353,7 +353,6 @@ function F = Residual (resSol, resSol_0, dt, fluid, ...
    F   = resSol.s(:,1) - s0(:,1);
    F   = F + dt.*(1./pv).*(accumarray([ic1; ic2], [v_water; -v_water], ...
                                     size(F)) - Q);
-
 end
 
 %--------------------------------------------------------------------------
@@ -369,20 +368,21 @@ function [gflux, pc_flux, pcJac]  = getFlux(G, cellNo, cellFace, rock, rho, flui
 
    g     = opt.gravity * (rho(1) - rho(2));
    [N, neighborship] = deal(getNeighbourship(G, 'Topological', true));
+
    % Number of interfaces (faces + NNC)
    nif = size(N, 1);
 
    gflux = zeros([size(N, 1), 1]);
    dim   = G.griddim;
 
-   if (norm(g) > 0) || isfield(fluid, 'pc'),
-      if isempty(opt.Trans),
-      [K, r, c] = permTensor(rock, dim);
+   if (norm(g) > 0) || isfield(fluid, 'pc')
+      if isempty(opt.Trans)
+         [K, r, c] = permTensor(rock, dim);
 
-      assert (size(K,1) == G.cells.num, ...
-             ['Permeability must be defined in active cells only.\n', ...
-              'Got %d tensors, expected %d (== number of cells).'],   ...
-              size(K,1), G.cells.num);
+         assert (size(K,1) == G.cells.num, ...
+                ['Permeability must be defined in active cells only.\n', ...
+                 'Got %d tensors, expected %d (== number of cells).'],   ...
+                 size(K,1), G.cells.num);
       end
    end
 
@@ -420,49 +420,62 @@ function [gflux, pc_flux, pcJac]  = getFlux(G, cellNo, cellFace, rock, rho, flui
 
    if isfield(fluid, 'pc')
       % Capillary pressure
-      i = any(N==0, 2);
+      i = any(N == 0, 2);
 
       % N(i, :) = [c_i 0] or [0 c_i], change to [c_i c_i] to make
       % C(innerFaces) = 0
       N(i, :) = repmat(sum(N(i, :), 2), [1, 2]);
-      if(isempty(opt.Trans))
-        C   = G.cells.centroids(N(:,1),:) - G.cells.centroids(N(:,2),:);
-        nC  = sqrt(sum(C.*C, 2));
+
+      if isempty(opt.Trans)
+         C   = G.cells.centroids(N(:,1),:) - G.cells.centroids(N(:,2),:);
+         nC  = sqrt(sum(C .* C, 2));
 
          % Weigthing of permeability for each cellface
-        nKC = sum(G.faces.normals(G.cells.faces(:,1), r).* ...
-                    K(cellNo,:).* C(G.cells.faces(:,1), c), 2);
+         nKC = sum(G.faces.normals(G.cells.faces(:,1), r).* ...
+                   K(cellNo,:).* C(G.cells.faces(:,1), c), 2);
 
-        % Permeability contribution for each face by taking the
-        % harmonic average of nKC on all faces and divide by |C| = nC
-        % Area weighted since n is area weighted.
-         harm_c = 2 ./ accumarray(G.cells.faces(:,1), 1./ nKC, [G.faces.num, 1])./nC;
+         % Permeability contribution for each face by taking the
+         % harmonic average of nKC on all faces and divide by |C| = nC
+         % Area weighted since n is area weighted.
+         harm_c = 2 ./ accumarray(G.cells.faces(:,1), 1 ./ nKC, ...
+                                  [G.faces.num, 1]) ./ nC;
+
          % Two point approximation to grad pc
-         d_pc   = @(cell_pc) ( cell_pc(N(~i,1),:)-cell_pc(N(~i,2),:))./nC(~i);
+         d_pc = @(cell_pc) ...
+            (cell_pc(N(~i,1),:) - cell_pc(N(~i,2),:)) ./ nC(~i);
 
          % Flux contribution of capillary pressure for internal faces
          % pc_flux_ij = A_ij*K_avg*(pc(s_i)-pc(s_j))/nC = harm_c*d_pc,
          % A_ij = area of face.
-         pc_flux = @(rSol)  harm_c(~i).*d_pc(fluid.pc(rSol));
+         pc_flux = @(rSol) harm_c(~i) .* d_pc(fluid.pc(rSol));
 
          % The constant contribution to the Jacobian from the term
          % d/ds( K grad pc) which in flux formulation is
          % d/ds_i (harm_c(pc_flux)
-         pcJac  = harm_c./nC;
+         pcJac = harm_c ./ nC;
       else
-        % Use transmissibilites
-        harm_c  = 1 ./ accumarray(cellFace, 1./opt.Trans, [G.faces.num, 1]);
-        % Two point approximation to grad pc
-        d_pc_mod   = @(cell_pc) ( cell_pc(N(~i,2),:)-cell_pc(N(~i,1),:));
+         % Use transmissibilites
+         if numel(opt.Trans) == numel(cellFace)
+            harm_c = 1 ./ accumarray(cellFace, 1./opt.Trans, ...
+                                     [G.faces.num, 1]);
+         elseif numel(opt.Trans) == size(N, 1)
+            harm_c = opt.Trans;
+         else
+            error('Unsupported Size of Transmissibility Field');
+         end
 
-        % Flux contribution of capillary pressure for internal faces
-        % pc_flux_ij = A_ij*K_avg*(pc(s_i)-pc(s_j))/nC = harm_c*d_pc,
-        % A_ij = area of face.
-        pc_flux = @(rSol)  harm_c(~i).*d_pc_mod(fluid.pc(rSol));
-        % The constant contribution to the Jacobian from the term
-        % d/ds( K grad pc) which in flux formulation is
-        % d/ds_i (harm_c(pc_flux)
-        pcJac  = -harm_c;
+         % Two point approximation to grad pc
+         d_pc_mod = @(cell_pc) (cell_pc(N(~i,2),:) - cell_pc(N(~i,1),:));
+
+         % Flux contribution of capillary pressure for internal faces
+         % pc_flux_ij = A_ij*K_avg*(pc(s_i)-pc(s_j))/nC = harm_c*d_pc,
+         % A_ij = area of face.
+         pc_flux = @(rSol) harm_c(~i) .* d_pc_mod(fluid.pc(rSol));
+
+         % The constant contribution to the Jacobian from the term
+         % d/ds( K grad pc) which in flux formulation is
+         % d/ds_i (harm_c(pc_flux)
+         pcJac = -harm_c;
       end
    else
       pc_flux = @(rSol) zeros(sum(all(neighborship~=0, 2)), 1);

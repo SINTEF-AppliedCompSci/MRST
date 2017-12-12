@@ -207,24 +207,33 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    hh = zeros(nif, 1);
    dF = false(nif, 1);
    [grav, ff] = deal(zeros(ncf, 1));
-   [ff(~cn_isnnc), gg, hh(~n_isnnc), grav(~cn_isnnc), dF(~n_isnnc), dC] = ...
+
+   [ff(~cn_isnnc), gg, hh(~n_isnnc), ...
+    grav(~cn_isnnc), dF(~n_isnnc), dC] = ...
       computePressureRHS(G, omega, opt.bc, opt.src);
 
    % made to add capillary pressure
-   if isfield(fluid, 'pc'),
-      pc  = fluid.pc(state);
+   if isfield(fluid, 'pc')
+      pc = fluid.pc(state);
+
+%{
       gpc = zeros(size(totmob));
 
-      if isfield(fluid,'gpc') && strcmp(opt.pc_form,'global'),
+      if isfield(fluid,'gpc') && strcmp(opt.pc_form, 'global'),
          gpc = fluid.gpc(state);
       end
+%}
 
-      if ~all(pc == 0),
+      if any(abs(pc) > 0)
+
+%{
          if isfield(fluid, 'gpc') && strcmp(opt.pc_form, 'global'),
             cc = capPressureRHS(G, mob, pc, gpc, opt.pc_form); % ERROR HERE
          else
+%}
             cc = capPressureRHS(G, mob, pc, opt.pc_form);
-         end
+         %end
+
          grav = grav + cc;
       end
    end
