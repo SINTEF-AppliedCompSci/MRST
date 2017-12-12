@@ -17,7 +17,7 @@ function [state, r] = conserveFlux(state, G, rock, varargin)
 %
 %   rock    - Rock data structure with valid field 'perm'.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %   bc      - Boundary condition structure as defined by function 'addBC'.
 %             This structure accounts for all external boundary conditions
 %             to the reservoir flow.  May be empty (i.e., bc = []) which is

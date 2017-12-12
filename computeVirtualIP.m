@@ -34,7 +34,7 @@ function S = computeVirtualIP(G, rock, k, varargin)
 %   k    - Method order. A k-th order method vil recover k-th order
 %          pressure fields exactly. Supported values are 1 and 2.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %
 %   innerProduct - The choice of stability term in the inner
 %                  product. String. Default value = 'ip_simple'.

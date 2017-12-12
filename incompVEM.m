@@ -24,7 +24,7 @@ function state = incompVEM(state, G, S, fluid, varargin)
 %
 %   fluid  - Fluid data structure as described by 'fluid_structure'.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %   bc     - Boundary condition structure as defined by function 'addBC'.
 %            This structure accounts for all external boundary conditions
 %            to the reservoir flow.  May be empty (i.e., bc = []) which is
