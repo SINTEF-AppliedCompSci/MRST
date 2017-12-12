@@ -17,7 +17,6 @@ classdef AMGCLSolverAD < LinearSolverAD
        coarsening
        solver
        relaxation
-       reduceToCell
        preconditioner
    end
    methods
@@ -29,27 +28,23 @@ classdef AMGCLSolverAD < LinearSolverAD
             solver.relaxation = 'spai0';
             solver.solver     = 'bicgstab';
             solver.reduceToCell = true;
+            solver.tolerance = 1e-6;
             
             solver = merge_options(solver, varargin{:});
        end
        
-       function [dx, result, report] = solveLinearProblem(solver, problem, model)
-           if solver.reduceToCell
-               [dx, result, report] = solver.solveCellReducedLinearProblem(problem, model);
-           else
-               [dx, result, report] = solveLinearProblem@LinearSolverAD(solver, problem, model);
-           end
-       end
-       
        function [result, report] = solveLinearSystem(solver, A, b)
             report = struct();
-            result = callAMGCL(A, b, ...
+            [result, error_estimate] = callAMGCL(A, b, ...
                  'coarsening',     solver.coarsening, ...
                  'preconditioner', solver.preconditioner, ...
                  'relaxation',     solver.relaxation, ....
                  'solver',         solver.solver,...
                  'maxIterations',  solver.maxIterations, ...
                  'tolerance',      solver.tolerance);
+            if error_estimate > solver.tolerance
+                warning('Solver did not converge to specified tolerance of %g. Reported residual estimate was %g', solver.tolerance, error_estimate);
+            end
        end
    end
 end

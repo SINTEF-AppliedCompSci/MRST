@@ -32,6 +32,9 @@ classdef LinearSolverAD < handle
        replaceInf % Boolean indicating if the solver should replace Inf in the results
        replacementNaN % If replaceNaN is enabled, this is the value that will be inserted
        replacementInf % If replaceInf is enabled, this is the value that will be inserted
+       reduceToCell % Reduce to per-cell system before solving
+       applyLeftDiagonalScaling
+       applyRightDiagonalScaling
    end
    methods
        function solver = LinearSolverAD(varargin)
@@ -43,6 +46,10 @@ classdef LinearSolverAD < handle
            solver.replaceInf      = false;
            solver.replacementNaN  = 0;
            solver.replacementInf  = 0;
+           solver.reduceToCell = true;
+           solver.applyLeftDiagonalScaling = false;
+           solver.applyRightDiagonalScaling = false;
+
            solver = merge_options(solver, varargin{:});
            
            assert(solver.maxIterations >= 0);
@@ -66,14 +73,7 @@ classdef LinearSolverAD < handle
            end
            objective = combineEquations(objective);
            assert(isa(objective, 'ADI'), 'Objective function was not of type ADI.');
-           if isnumeric(objective)
-              % assumes that the reason for objective is numerics is that
-              % all derivatives are zeros.
-              error('Objectives have to be ADI: change result to val+0*ADIvariable');
-              rhs = 0;
-           else
-              rhs = -objective.jac{1}';
-           end
+           rhs = -objective.jac{1}';
            if ~isempty(adjVec)
                problemPrev = problemPrev.assembleSystem();
                rhs = rhs - problemPrev.A'*adjVec;
@@ -86,11 +86,21 @@ classdef LinearSolverAD < handle
        
        function [dx, result, report] = solveLinearProblem(solver, problem, model)
            % Solve a linearized problem
+           
+           if solver.reduceToCell
+               % Eliminate non-cell variables (well equations etc)
+               keep = problem.indexOfType('cell');
+               [problem, eliminated] = solver.reduceToVariable(problem, keep);
+           end
            problem = problem.assembleSystem();
            assert(all(isfinite(problem.b)), 'Linear system rhs must have finite entries.');
            
            timer = tic();
-           [result, report] = solver.solveLinearSystem(problem.A, problem.b); 
+           [A, b] = problem.getLinearSystem();
+           [A, b, scaling] = solver.applyScaling(A, b);
+           [result, report] = solver.solveLinearSystem(A, b);
+           result = solver.undoScaling(result, scaling);
+           
            [result, report] = problem.processResultAfterSolve(result, report);
            report.SolverTime = toc(timer);
            if solver.replaceNaN
@@ -100,6 +110,9 @@ classdef LinearSolverAD < handle
                result(isinf(result)) = solver.replacementInf;
            end
            dx = solver.storeIncrements(problem, result);
+           if solver.reduceToCell
+               dx = solver.recoverResult(dx, eliminated, keep);
+           end
        end
        
        function dx = storeIncrements(solver, problem, result) %#ok
@@ -119,6 +132,47 @@ classdef LinearSolverAD < handle
                dx{i} = result(ii(i,1):ii(i,2), :);
            end
        end
+       
+       function [A, b, scaling] = applyScaling(solver, A, b)
+           scaling = struct();
+           applyLeft = solver.applyLeftDiagonalScaling;
+           applyRight = solver.applyRightDiagonalScaling;
+           
+           if ~applyLeft && ~applyRight
+               return
+           end
+           M = solver.getDiagonalInverse(A);
+           
+           if solver.applyLeftDiagonalScaling
+               assert(~applyRight, 'Cannot both apply left and right diagonal scaling');
+               A = M*A;
+               b = M*b;
+           else
+               A = A*M;
+           end
+           scaling.M = M;
+       end
+
+       function x = undoScaling(solver, x, scaling)
+           if solver.applyRightDiagonalScaling
+               x = scaling.M*x;
+           end
+       end
+
+       function x = preconditionerInverse(solver, M, x)
+           if isempty(M)
+               return
+           end
+           
+           if isa(M, 'function_handle')
+               % We got a function handle for the inverse
+               x = M(x);
+           else
+               % We got a matrix
+               x = M\x;
+           end
+       end
+       
        
        function solver = setupSolver(solver, A, b, varargin) %#ok 
            % Run setup on a solver for a given system
@@ -196,6 +250,16 @@ classdef LinearSolverAD < handle
                 dx{pos} = dVal;
                 recovered(pos) = true;
             end
+        end
+        
+        function M = getDiagonalInverse(solver, A)
+            sz = size(A);
+            assert(sz(1) == sz(2), 'Matrix must be square!');
+            n = sz(1);
+            d = 1./diag(A);
+            d(~isfinite(d)) = 1;
+            I = (1:n)';
+            M = sparse(I, I, d, n, n);
         end
    end
 end

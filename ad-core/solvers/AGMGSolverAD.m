@@ -19,7 +19,6 @@ classdef AGMGSolverAD < LinearSolverAD
        reuseSetup % Will reuse the setup phase to improve speed for e.g. a GMRES loop
        % with the same matrix system. However, some systems report
        % segfaults with this option enabled.
-       reduceToCell % Reduce to per-cell system before solving
    end
    methods
        function solver = AGMGSolverAD(varargin)

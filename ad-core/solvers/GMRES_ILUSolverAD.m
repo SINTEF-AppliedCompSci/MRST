@@ -70,11 +70,6 @@ classdef GMRES_ILUSolverAD < LinearSolverAD
                 'udiag',   solver.udiagReplacement, ...
                 'thresh',  solver.pivotThreshold);
         end
-        
-       function [dx, result, report] = solveLinearProblem(solver, problem, model)
-           % Reduce to cell variables before solving
-           [dx, result, report]= solver.solveCellReducedLinearProblem(problem, model);
-       end
     end
 end
 
