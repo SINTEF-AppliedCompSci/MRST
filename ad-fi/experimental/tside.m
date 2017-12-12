@@ -36,7 +36,7 @@ function bc = tside(bc, G, side, T, varargin)
 %            grid 'G'.  The local axes on a 'side' in 'G' are ordered
 %            according to 'X' before 'Y', and 'Y' before 'Z'.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %   sat    - Fluid composition of fluid injected across inflow faces.
 %            An n-by-m array of fluid compositions with 'n' being the
 %            number of individual faces specified by (I1,I2) (i.e.,

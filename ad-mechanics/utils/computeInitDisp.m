@@ -12,7 +12,7 @@ function state = computeInitDisp(model, state, uu, varargin)
 %   uu       - Given initial displacement, if the initial state is not
 %              computed by solving the mechanical system
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %  'pressure' - fluid pressure. Used as input for mechanical system.
 %
 % RETURNS:

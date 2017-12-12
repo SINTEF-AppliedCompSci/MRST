@@ -28,7 +28,7 @@ function [problem, state] = equationsOilWater(state0, state, model, dt, drivingF
 %                   * bc for boundary conditions. Can be empty for no bc.
 %                   * src for source terms. Can be empty for no sources.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %   'Verbose'    -  Extra output if requested.
 %
 %   'reverseMode'- Boolean indicating if we are in reverse mode, i.e.

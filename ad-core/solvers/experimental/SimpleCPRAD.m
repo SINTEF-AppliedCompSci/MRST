@@ -15,7 +15,7 @@ classdef SimpleCPRAD < CPRSolverAD
 % REQUIRED PARAMETERS:
 %   None
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %   See class properties.
 %
 %

@@ -19,7 +19,7 @@ function T = getFaceTransmissibility(G, rock, deck, varargin)
 %                     typically produced by readEclipseDeck. Needed to
 %                     account for multipliers.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %   (Passed directly onto underlying function computeTrans)
 %
 % RETURNS:

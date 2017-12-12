@@ -125,7 +125,7 @@ classdef NonLinearSolver < handle
             %               valid implementation of the "stepFunction"
             %               member function.
             %
-            % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+            % OPTIONAL PARAMETERS:
             %   'W'       - Wells for the timestep. (struct)
             %   'bc'      - Boundary conditions for the problem (struct).
             %   'src'     - Source terms for the timestep (struct).

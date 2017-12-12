@@ -13,7 +13,7 @@ function reginx = getRegMap(val, REGNUM, REGINX, varargin)
 %   REGINX   - Override for output parameter. Only minimal checking is done
 %              in this case.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs, ('pn'/pv)):
+% OPTIONAL PARAMETERS:
 %   key - Parameter description
 %
 % RETURNS:

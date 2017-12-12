@@ -23,7 +23,7 @@ function [W, wells_shut] = updateSwitchedControls(wellSol, W, varargin)
 %
 %   W       - Wells used to produce wellSol.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %   allowWellSignChange - Boolean indicating if wells are allowed to change
 %                         between injection and production. Disabled by
 %                         default (changing wells will be shut down until

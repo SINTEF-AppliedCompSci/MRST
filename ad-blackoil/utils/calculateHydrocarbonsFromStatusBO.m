@@ -32,7 +32,7 @@ function [sG, rs, rv, rsSat, rvSat] = calculateHydrocarbonsFromStatusBO(fluid, .
 %
 %   vapoil   - true if vaporized oil should be taken into account
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %   'field'   -  
 % RETURNS:
 %   
