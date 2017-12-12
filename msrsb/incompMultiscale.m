@@ -20,8 +20,8 @@ function [state, report] = incompMultiscale(state, CG, T, fluid, basis, varargin
 %
 %   basis  - Basis functions from getMultiscaleBasis.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
-%   ** See incompTPFA for flow-related options **
+% OPTIONAL PARAMETERS:
+%  any         - Additional options are passed onto `incompTPFA`.
 %
 %  getSmoother - Smoother function from getSmootherFunction. Required if
 %                iterations is set to anything larger than zero.

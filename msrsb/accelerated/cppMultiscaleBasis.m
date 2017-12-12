@@ -1,6 +1,8 @@
 function [I, report] = cppMultiscaleBasis(CG, A, varargin)
 % Create MsRSB basis using MEX code
 
+% export LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libgomp.so.1
+
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 

@@ -1,4 +1,4 @@
-%% Example: High-resolution bed model
+%% Multiscale solver applied to high-resolution bed model
 % Pinchouts will create unstructured non-neighboring connections and hence
 % be one of the principal gridding challenges for real-life reservoir
 % models. To exemplify, we consider a highly detailed, core-scale model of
