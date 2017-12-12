@@ -32,7 +32,7 @@ W     = drivingForces.W;
 op    = model.operators;
 fluid = model.fluid;
 
-keepOil = false;
+keepOil = true;
 
 % Properties at current timestep
 if keepOil

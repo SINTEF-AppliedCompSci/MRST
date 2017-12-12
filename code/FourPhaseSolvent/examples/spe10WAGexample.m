@@ -2,7 +2,7 @@
 % In this example, we simulate water-alternating gas injection (WAG), where
 % we inject small volumes of water and solvent gas into the reservoir
 % several cycles. The solvent gas mixes with the reservoir hydrocarbons
-% according to amodified vesrion of the Todd-Longstaff mixing model, which
+% according to amodified version of the Todd-Longstaff mixing model, which
 % treats the solvent gas as fourth pseudocomponent.
 mrstModule add ad-blackoil ad-props spe10 mrst-gui solvent
 
@@ -31,13 +31,13 @@ rock = model4Ph.rock;
 
 sOres_i = 0.38; % Immiscible residual oil saturation
 sOres_m = 0.21; % Miscible residual oil saturation
-fluid   = addSolventProperties(fluid, 'n'    , 2                   , ...
-                                    'rho'    , 100*kilogram/meter^3, ...
-                                    'mixPar' , 2/3                 , ...
-                                    'mu'     , 0.5*centi*poise     , ...
-                                    'sOres_i', sOres_i             , ...
-                                    'sOres_m', sOres_m             , ...
-                                    'c'      , 1e-5/barsa          );
+fluid   = addSolventProperties(fluid,'n'      , [2,2,2]             , ...
+                                     'rho'    , 100*kilogram/meter^3, ...
+                                     'mixPar' , 2/3                 , ...
+                                     'mu'     , 0.5*centi*poise     , ...
+                                     'sOres_i', sOres_i             , ...
+                                     'sOres_m', sOres_m             , ...
+                                     'c'      , 1e-5/barsa          );
 
 %% Inspect fluid relperms
 % In regions with only oil, reservoir gas and water, we have traditional
@@ -98,9 +98,9 @@ end
 % the growth of viscous fingers associated with gas injection, and uphold a
 % more favourable injected to reservoir fluid mobility ratio.
 
-time = 1*year;                             % Time of the water injection
+time = 0.5*year;                             % Time of the water injection
                                            % and WAG injection
-rate = 0.15*sum(poreVolume(G, rock))/time;  % We inject a total of 0.2 PVI 
+rate = 0.1*sum(poreVolume(G, rock))/time;  % We inject a total of 0.2 PVI 
 bhp = 50*barsa;                            % Producer bottom-hole pressure
 
 producers = {1                                                     , ...
@@ -128,7 +128,7 @@ for iNo = 1:numel(injectors)
 end
 
 dt          = 60*day; % Timestep size for water injection
-dtWAG       = 45*day; % Timestep size for WAG cycles
+dtWAG       = 30*day; % Timestep size for WAG cycles
 useRampUp   = true;   % We use a few more steps each time we change the 
                       % well control to ease the nonlinear solution process
 nCycles     = 4;      % Four WAG cycles
@@ -185,4 +185,7 @@ state0.wellSol = initWellSolAD(W, model3Ph, state0);
 close all
 tWAG = cumsum(scheduleWAG.step.val);
 t    = cumsum(schedule.step.val);
+for sNo = 1:numel(wellSol)
+    [wellSol{sNo}.qSs] = deal(0);
+end
 plotWellSols({wellSolsWAG, wellSol},{tWAG, t})

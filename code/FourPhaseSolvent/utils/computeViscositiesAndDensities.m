@@ -91,7 +91,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     %% Effective viscosites
     
-    tol = 1e-8;
+%     tol = 1e-8;
 %     is_solvent = sS > tol;
     is_solvent = true;
 
@@ -106,15 +106,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     muGa = muG.^a;
     muOa = muO.^a;
 
-    sSnsOSn = sSn./(sOn + sSn);
+    tol = 1e-10;
+    sSnsOSn = sSn./(sOn + sSn).*(sSn>tol);
     sSnsOSn(isnan(double(sSnsOSn))) = 0;
-    sSnsSGn = sSn./(sGn + sSn);
+    sSnsSGn = sSn./(sGn + sSn).*(sSn>tol);
     sSnsSGn(isnan(double(sSnsSGn))) = 0;
     sOnsNn  = sOn./(sOn + sGn + sSn);
     sOnsNn(isnan(double(sOnsNn))) = 0;
     sGnsNn  = sGn./(sOn + sGn + sSn);
     sGnsNn(isnan(double(sGnsNn))) = 0;
-        
+    
     muMOS = muO.*muS./((1-sSnsOSn).*muSa + sSnsOSn.*muOa).^4;
     muMSG = muS.*muG./(sSnsSGn.*muGa + (1-sSnsSGn).*muSa).^4;
     muM   = muO.*muS.*muG./(sOnsNn.*muSa.*muGa ...
@@ -143,8 +144,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     sOsN_Geff = (muSmuG - (muS./muG_eff).^a)./(muSmuG-1);
     sOsN_Geff(~isfinite(double(sOsN_Geff))) = 0; 
     
-    sGf = sGn./(sOn + sGn).*(sGn>0);
+    sGf = sGn./(sOn + sGn);
     sGf(isnan(double(sGf))) = 0;
+%     sGf = fluid.satFrac(sGn, sOn);
 
     sSsN_Seff = (muSmuG.*sGf + muSmuO.*(1-sGf) - (muS./muS_eff).^a)...
                ./(muSmuG.*sGf + muSmuO.*(1-sGf) - 1);
@@ -154,9 +156,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % by a simple interpolation rho*(1-omega) + rhoM*omega
     eq = abs(muO - muS) < 1e-10 | abs(muS - muG) < 1e-10;
 
-    sOsN = sO./(sO + sG + sS);
+    sOsN = sO./(sO + sG + sS).*(sO>tol);
     sOsN(isnan(double(sOsN))) = 0;
-    sGsN = sG./(sO + sG + sS);
+    sGsN = sG./(sO + sG + sS).*(sG>tol);
     sGsN(isnan(double(sGsN))) = 0;
     
     rhoM = rhoO.*sOsN + rhoG.*sGsN + rhoS.*(1 - (sOsN + sGsN));

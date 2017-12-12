@@ -18,11 +18,11 @@ gas_end = opt.gas_end;
 if opt.useRampup
     dtG1 = rampupTimesteps(gas_end*tCycle    , dt*gas_end, 8);
     dtW1 = rampupTimesteps((1-gas_end)*tCycle, dt, 4);
-    dtG  = rampupTimesteps(gas_end*tCycle    , dt, 1);
-    dtW  = rampupTimesteps((1-gas_end)*tCycle, dt, 1);
+    dtG  = rampupTimesteps(gas_end*tCycle    , dt, 2);
+    dtW  = rampupTimesteps((1-gas_end)*tCycle, dt, 2);
 else
-    [dtG1, dtG] = rampupTimesteps(gas_end*tCycle    , dt, 0);
-    [dtW1, dtW] = rampupTimesteps((1-gas_end)*tCycle, dt, 0);
+    [dtG1, dtG] = deal(rampupTimesteps(gas_end*tCycle    , dt, 0));
+    [dtW1, dtW] = deal(rampupTimesteps((1-gas_end)*tCycle, dt, 0));
 end
 
 step.val     = [dtG1; dtW1; repmat([dtG; dtW], nCycles-1, 1)];

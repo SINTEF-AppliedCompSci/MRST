@@ -69,14 +69,13 @@ fluid.sSGres_m = opt.sSGres_m;
 fluid.sSGres_i = opt.sSGres_i;
 fluid.sWres    = opt.sWres;
 
-s = linspace(0.1,1,100);
-nW = polyfit(log(s), log(fluid.krW(s)), 1); nW = nW(1);
-nO = polyfit(log(s), log(fluid.krO(s)), 1); nO = nO(1);
-nG = polyfit(log(s), log(fluid.krG(s)), 1); nG = nG(1);
+
+nW = opt.n(1); nO = opt.n(2); nG = opt.n(3);
 fluid.krW_i  = @(sW, sWres, sOres, sSGres) coreyRelperm(sW, nW, sWres, fluid.krW(1-(sOres + sSGres)) , sWres + sOres + sSGres);
 fluid.krO_i  = @(sO, sWres, sOres, sSGres) coreyRelperm(sO, nO, sOres , fluid.krO(1-(sWres + sSGres)), sWres + sOres + sSGres);
 fluid.krGT_i = @(sGT, sWres, sOres, sSGres) coreyRelperm(sGT, nG, sSGres, fluid.krG(1-(sWres+sOres)), sWres + sOres + sSGres);
 fluid.krN    = @(sN, sWres, sOres, sSGres) coreyRelperm(sN, nO, sOres + sSGres, fluid.krO(1-sWres) , sWres + sOres + sSGres);
+
 
 fluid.krW = @(sW, varargin) fluid.krW_i (sW, fluid.sWres, fluid.sOres_i, fluid.sSGres_i);
 fluid.krO = @(sO, varargin) fluid.krO_i (sO, fluid.sWres, fluid.sOres_i, fluid.sSGres_i);
@@ -87,9 +86,25 @@ fluid.krOG = fluid.krO;
 fluid.Msat = opt.Msat;
 if isempty(opt.Msat)
     if opt.useTabulatedMsat
-        T = tabulatedSaturationMiscibility();
-        tol = 1e-10;
-        fluid.Msat = @(sG, sS) interp2DTable(T, sG, sS).*(sS > tol);
+        T = tabulatedSaturationFraction();
+        
+        if 0
+            a = 1e-3;
+            b = 1e-10;
+            % b = 0;
+            smthr = @(s) (s > a+b) + (s >= b & s <= a+b).*((s-b)/a).^2./(((s-b)/a).^2 + (1-(s-b)/a).^2);
+        elseif 1
+            smin = 1e-12;
+            smax = 1e-3;
+            smthr = @(s)  min(max((s - smin)/(smax - smin), 0), 1);
+        else
+            tol = 1e-12;
+            smthr = @(sS) sS>tol;
+        end
+        tol = 1e-12;
+        fluid.Msat = @(sG, sS) interp2DTable(T, sG, sS).*smthr(sS);
+%         fluid.Msat = @(sG, sS) interp2DTable(T, sG, sS).*(sS>tol);
+        fluid.satFrac = @(sA, sB) interp2DTable(T, sB, sA).*(sA>tol);
     else
         fluid.Msat = @(sG, sS) linearSaturationMiscibility(sG, sS);
     end
@@ -102,6 +117,27 @@ end
 
 
 
+end
+
+function [nW, nO, nG] = getRelpermExponent(fluid)
+
+    tol = 0.2;
+    sWres = fluid.sWres;
+    sOres = fluid.sOres_i;
+    sSGres = fluid.sSGres_i;
+
+    n = -100:0.1:0;
+    s = 10.^n;
+    
+    sW = s(s>sWres & s < 1 - (sOres + sSGres));
+    nW = polyfit(log(sW), log(fluid.krW(sW)), 1); nW = nW(1);    
+
+    sO = s(s>sOres & s < 1 - (sWres + sSGres));
+    nO = polyfit(log(sO), log(fluid.krO(sO)), 1); nO = nO(1);    
+
+    sG = s(s>sSGres & s < 1 - (sWres + sOres));
+    nG = polyfit(log(sG), log(fluid.krG(sG)), 1); nG = nG(1);    
+    
 end
 
 function B = constantReciprocalFVF(p, varargin)
@@ -124,14 +160,12 @@ function kr = coreyRelperm(s, n, sr, kwm, sr_tot)
     kr = kwm.*sat.^n;
 end
 
-function T = tabulatedSaturationMiscibility()
+function T = tabulatedSaturationFraction()
     
-    n  = 100;
+    n  = 400;
     ds = 1e-4;
     s  = linspace(-ds,1+ds,n)';
     [ss, sg] = meshgrid(s,s);
-%     tol = 1e-5;
-%     M = ss./(ss + sg + tol);
     M = ss./(ss + sg);
     
     assert(~any(any(isnan(M))));
@@ -160,3 +194,4 @@ function Mpres = constantPressureMiscibility(p)
     Mpres = p.*0 + 1;
     
 end
+    
