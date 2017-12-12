@@ -28,7 +28,7 @@ function state = lincompTPFA(dt, state, G, T, pv, fluid, rock, varargin)
 %
 %   fluid  - Fluid object as defined by function 'initSimpleFluid'.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %   wells  - Well structure as defined by function 'addWell'.  May be empty
 %            (i.e., W = struct([])) which is interpreted as a model without
 %            any wells.

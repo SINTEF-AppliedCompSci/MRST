@@ -46,7 +46,7 @@ function state = explicitTransport(state, G, tf, rock, fluid, varargin)
 %
 %   fluid - Fluid data structure as defined in 'fluid_structure'.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %   wells     - Well structure as defined by function 'addWell'.  This
 %               structure accounts for all injection and production well
 %               contribution to the reservoir flow.

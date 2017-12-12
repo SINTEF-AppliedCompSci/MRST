@@ -7,7 +7,7 @@ function [G, bc, test_cases] = squareTest(varargin)
 % DESCRIPTION: Set up different test cases to test the linear elasticity
 % code.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %     'L'              - Physical dimension
 %     'cartDims'       - Cartesian dimension
 %     'grid_type'      - grid type (see squareGrid function)

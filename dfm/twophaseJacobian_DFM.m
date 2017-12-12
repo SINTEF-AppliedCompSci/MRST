@@ -53,7 +53,7 @@ function [Res, Jac] = twophaseJacobian_DFM(G, state, rock, fluid, varargin)
 %
 %   fluid   - Data structure describing the fluids in the problem.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %
 %
 % RETURNS:

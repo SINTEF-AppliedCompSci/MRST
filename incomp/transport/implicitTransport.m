@@ -50,7 +50,7 @@ function [state, report] = implicitTransport(state, G, tf, ...
 %
 %   fluid - Fluid data structure as described by 'fluid_structure'.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %
 %   verbose  - Whether or not time integration progress should be
 %              reported to the screen. Default value: verbose = mrstVerbose.

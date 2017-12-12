@@ -57,7 +57,7 @@ function [Res, Jac, gflux, q] = twophaseJacobian(G, state, rock, fluid, varargin
 %
 %   fluid   - Data structure describing the fluids in the problem.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %
 %   gravity   - The current gravity in vector form. Defaults to gravity().
 %

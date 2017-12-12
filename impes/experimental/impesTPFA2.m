@@ -37,7 +37,7 @@ function [state,dt,report,sreport] = impesTPFA2(state0, G, T, fluid, dt, pv, var
 %   pv    - Pore volume.  One positive scalar for each grid cell.  Use
 %           function 'poreVolume' to compute this value.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %   wells   - Well structure as defined by functions 'addWell'.  May be
 %             empty (i.e., W = struct([])) which is interpreted as a model
 %             without any wells.

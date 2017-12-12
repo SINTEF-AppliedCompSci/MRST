@@ -15,7 +15,7 @@ function [div] = VEM2D_div(G, varargin)
 % PARAMETERS:
 %   G        - Grid structure
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %
 %   'extraFaceDof' - This option has to be set to get a stable divergence
 %                    operator when extra degrees of freedom have been introduced

@@ -28,7 +28,7 @@ function state = incompMPFA(state, g, T, fluid, varargin)
 %
 %   fluid  - Fluid object as defined by function 'initSimpleFluid'.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %   wells  - Well structure as defined by functions 'addWell' and
 %            'assembleWellSystem'.  May be empty (i.e., W = struct([]))
 %            which is interpreted as a model without any wells.

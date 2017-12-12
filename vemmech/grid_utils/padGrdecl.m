@@ -12,7 +12,7 @@ function grdecl_new = padGrdecl(grdecl, dirs, box, varargin)
 %   dirs     - Padding directions
 %   box      - Size of elements in each padding layer
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %   relative - 
 %
 % RETURNS:

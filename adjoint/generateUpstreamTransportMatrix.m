@@ -16,7 +16,7 @@ function [A, qPluss, signQ] = ...
 %
 % REQUIRED PARAMETERS:
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %   Transpose     - if true, the transpose of a is given (default false)
 %
 %   VectorOutput  - if true, output A is a struct with fields 'i', 'j' and

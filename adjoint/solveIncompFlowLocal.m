@@ -28,7 +28,7 @@ function state = solveIncompFlowLocal(state, g, s, fluid, varargin)
 %
 %   fluid  - Fluid data structure as described by 'fluid_structure'.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %   wells  - Well structure as defined by function 'addWell'.  May be empty
 %            (i.e., W = []) which is interpreted as a model without any
 %            wells.

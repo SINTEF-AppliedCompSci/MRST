@@ -42,7 +42,7 @@ function [T,hybrids] = computeTrans_DFM(G, rock, varargin)
 %                       [ k3  k5  k6 ]
 %
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %   K_system - Define the system permeability is defined in valid values
 %              are 'xyz' and 'loc_xyz'.
 %   cellCenters - Compute transmissibilities based on supplied cellCenters

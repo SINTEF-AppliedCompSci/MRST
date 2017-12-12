@@ -17,7 +17,7 @@ function [el_bc, load] = makeCompactionTest(G, opt, varargin)
 %          'islinear'     : impose some linear displacement
 %                           (in vertical direction)
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %  'gravity'   - value for gravity (default gravity = 10)
 %  'density'   - value for density in kg/m^3 (default density = 3000)
 %  'top_force' - value for top force (default top_force = 30000)

@@ -31,7 +31,7 @@ function [uu, extra] = VEM_linElast(G, C, el_bc, load, varargin)
 %
 %   load     - loading term
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %  'linsolve'             - Linear solver
 %  'blocksize'            - block size used in the assembly
 %  'add_operators'        - Add operator in output

@@ -49,7 +49,7 @@ function [resSol,report] = twophaseUpwBEGrav(resSol, G, tf, q, flux, grav, ...
 %
 %   fluid   - Data structure describing the fluids in the problem.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %
 %   verbose  - Whether or not time integration progress should be reported
 %              to the screen.
