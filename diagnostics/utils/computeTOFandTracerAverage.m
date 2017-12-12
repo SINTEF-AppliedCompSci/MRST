@@ -21,7 +21,7 @@ function D = computeTOFandTracerAverage(state, G, rock, varargin)
 %           'state.flux'.
 %
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %   wells   - Well structure as defined by function 'addWell'.  May be empty
 %             (i.e., wells = []) which is interpreted as a model without any
 %             wells.

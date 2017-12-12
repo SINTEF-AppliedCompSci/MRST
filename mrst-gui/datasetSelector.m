@@ -33,7 +33,7 @@ function varargout = datasetSelector(G, datasets, varargin)
 %              plotCellData, or have columns which are valid input for
 %              plotCellData.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %   Location  - Location supplied to parent gui for placement.
 %
 %   Parent    - Handle to gui component where the selector should be

@@ -29,7 +29,7 @@ function varargout = pollock(G, state, varargin)
 %               indices, and the d next columns contain the local
 %               coordinates at which to start streamlines.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %
 %   substeps  - Number of substeps in each cell, to improve visual quality.
 %               Default 5.

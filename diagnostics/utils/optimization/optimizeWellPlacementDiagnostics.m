@@ -43,7 +43,7 @@ function [W, wellHistory, history] = ...
 %
 %   s           - AD system. See initADISystem.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %
 %  maxIter  - Maximum outer iterations. An outer iteration does a single
 %             pass over all wells, moving them until they improve the

@@ -18,7 +18,7 @@ function [hs, htop] = plotCurveTube(curve, radius, varargin)
 %             to be used for all points. The radius determines the radius
 %             of the tube plotted.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %   data    - Dataset with one value per curve point given as a column
 %             vector. Will be used to colorize the tube based on the
 %             current figure colormap.

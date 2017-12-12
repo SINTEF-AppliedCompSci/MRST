@@ -15,7 +15,7 @@ function varargout = editWells(G, W, rock, varargin)
 %
 %   rock - Valid rock structure suitable for input to addWell.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %   'callback'  - Callback function to execute once wells have changed.
 %
 %   edit  - Allow editing of wells (Note: Editing wells makes it easy to

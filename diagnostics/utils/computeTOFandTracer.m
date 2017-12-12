@@ -24,7 +24,7 @@ function D = computeTOFandTracer(state, G, rock,  varargin)
 %           'solveIncompFlow'.  Must contain valid cell interface fluxes,
 %           'state.flux'.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %   wells - Well structure as defined by function 'addWell'.  May be empty
 %           (i.e., wells = []) which is interpreted as a model without any
 %           wells.

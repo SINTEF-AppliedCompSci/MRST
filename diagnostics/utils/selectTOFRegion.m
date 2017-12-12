@@ -15,7 +15,7 @@ function selection = selectTOFRegion(D, max_tof, min_tof, varargin)
 %   min_tof - All TOF-regions less than this will be discarded.
 %
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %       'drain_wells' - List of draining (production) wells to consider.
 %                       Other wells will be ignored
 %       'flood_wells' - List of flooding (injecting) wells to consider.

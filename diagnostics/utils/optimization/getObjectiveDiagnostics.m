@@ -67,7 +67,7 @@ function obj = getObjectiveDiagnostics(G, rock, type, varargin)
 %         of the forward time of flight, and can be used to optimize well
 %         rates and placement.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %
 %   Any optional parameters are passed onto the objective function.
 %   Different objective functions handle different parameters.

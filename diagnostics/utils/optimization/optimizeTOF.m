@@ -47,7 +47,7 @@ function [D_best, W_best, history] = optimizeTOF(G, W, fluid, pv, T, s, state, m
 %               getObjectiveDiagnostics for examples.
 %
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %
 %  maxiter - Maximum number of attempts to find an improvement. If maxiter
 %            successive evaluations fail to improve upon the last optimum,

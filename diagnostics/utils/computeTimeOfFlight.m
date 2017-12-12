@@ -30,7 +30,7 @@ function [T, A, q] = computeTimeOfFlight(state, G, rock, varargin)
 %           fluxes, 'state.flux'. Typically, 'state' will contain the
 %           solution produced by a flow solver like 'incompTPFA'.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %   wells - Well structure as defined by function 'addWell'.  May be empty
 %           (i.e., wells = []) which is interpreted as a model without any
 %           wells.

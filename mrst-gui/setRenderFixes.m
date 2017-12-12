@@ -28,7 +28,7 @@ function setRenderFixes(varargin)
 %   Fixes can be applied and removed, either globally or per figure basis.
 %   See next section.
 %
-% OPTIONAL PARAMETERS (supplied in any order):
+% OPTIONAL PARAMETERS:
 %
 %   h      - Handle to figure fixes should be applied to. Defaults to 0
 %            (root figure, defaults are applied system wide (!!!) ).

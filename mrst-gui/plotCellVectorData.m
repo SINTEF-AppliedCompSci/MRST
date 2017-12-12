@@ -34,7 +34,7 @@ function handles = plotCellVectorData(G, data, varargin)
 %             the grid model 'G'.  If 'cells' is empty (i.e., if
 %             ISEMPTY(cells)), then no graphical output will be produced.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %
 %   'linewidth' - Width of the underlying quiver plot vectors. Default 2.
 %

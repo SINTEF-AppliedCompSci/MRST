@@ -44,7 +44,7 @@ function [state, varargout] = solveStationaryPressure(G, state, system, W, fluid
 %   fluid  - Valid AD fluid object. For simple instances, consider
 %            initSimpleADIFluid
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %
 %  objective  - Objective function handle as defined by
 %               getObjectiveDiagnostics. Should use the interface

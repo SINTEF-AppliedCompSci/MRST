@@ -51,7 +51,7 @@ function interactiveDiagnostics(G, rock, W, varargin)
 %   W    - A set of wells which are compatible with the incompTPFA solver.
 %
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %
 %  'state' - Reservoir state containing fluid saturations and optionally
 %       flux and pressure (if 'computeFlux' is false)
