@@ -20,7 +20,7 @@ function [CG,CGf] = storeFractureInteractionRegion(CG,CGf,CGm,varargin)
 %
 %   CGm - Matrix coarse grid.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %
 %   levels    - levels of connectivity used to define the support region
 %               for a fracture coarse block. In other words, the

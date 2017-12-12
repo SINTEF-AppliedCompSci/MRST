@@ -16,7 +16,7 @@ function [G,F,fracture] = gridFracture2D(G,fracture,varargin)
 %               independent fractures and their conductivity towards the
 %               matrix cells they penetrate. See processFracture2D.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %   Same as assembleFracNodes2D
 %
 % RETURNS:

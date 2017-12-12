@@ -20,7 +20,7 @@ function [CG, CGf] = getRsbGridsHFM(G, nw, varargin)
 %        independent fracture network. same as fracture.networks for 2D
 %        examples (see getIndepNetwork)
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %
 %   pm - Partition vector mapping matrix fine cells to coarse blocks.
 %        Size = nm-by-1 where nm is the total number of fine cells in the

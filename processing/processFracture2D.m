@@ -14,7 +14,7 @@ function [G,fracture] = processFracture2D(G,fl,varargin)
 %   fl - fracture lines represented by it's end points as [x1 y1 x2 y2]. fl
 %        will have 1 row per fracture line. Size = nf-by-1.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %   verbose - Enable output.  Default value dependent upon global verbose
 %             settings of function 'mrstVerbose'.
 %

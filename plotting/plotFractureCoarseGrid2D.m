@@ -17,7 +17,7 @@ function varargout = plotFractureCoarseGrid2D(G, p, F, varargin)
 %
 %   F  - see assembleFracNodes2D.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %
 %   showNumbering - If true, plots the fracture coarse block numbers.
 %

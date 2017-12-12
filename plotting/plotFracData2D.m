@@ -15,7 +15,7 @@ function varargout = plotFracData2D(G, data, varargin)
 %   data - data to plot with values inside fracture cells only. Matrix data
 %          is ignored.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %
 %   wide        - This option can be used to redefine a fracture grid (by
 %                 recalling FracTensorGrid2D) with larger aperture for

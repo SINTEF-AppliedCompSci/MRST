@@ -12,7 +12,7 @@ function CGf = addCoarseCenterPointsFrac(CGf,varargin)
 %   CGf  - Fracture coarse grid (supplied by 'generateCoarseGrid') with
 %         geometry information (computed through 'coarsenGeometry').
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/'value' pairs ('pn'/'pv' ...)):
+% OPTIONAL PARAMETERS:
 %
 %   option - option specifies the type of coarse grid points to use for
 %            computing the coarse node location. Possible self-explanatory

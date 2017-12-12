@@ -15,7 +15,7 @@ function G = makeRockFrac(G, K_frac, varargin)
 %
 %   K_frac - Scalar Darcy permeability for homogeneous fractures.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %
 %   permtype - 'homogeneous' or 'heterogeneous'. If 'heterogeneous' is
 %               passed as the permtype, this function assigns a random

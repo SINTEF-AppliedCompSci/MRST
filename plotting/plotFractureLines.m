@@ -14,7 +14,7 @@ function varargout = plotFractureLines(G,fracture,varargin)
 %
 %   fracture  - See processFracture2D.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %
 %   show        - Takes string values 'lines' or 'network' to indicate if
 %                 each fractures should be coloured using its corresponding

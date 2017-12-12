@@ -15,7 +15,7 @@ function varargout = plotFractureNodes2D(G,F,fracture,varargin)
 %
 %   fracture - See gridFracture2D.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %
 %   linewidth     - width of fracture line. Passed as a LineSpec in the
 %                   matlab function 'plot'.

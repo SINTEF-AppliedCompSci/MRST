@@ -11,7 +11,7 @@ function CGf = storeFractureInternalInteractionRegion(CGf, G, A, varargin)
 %   CGf  - Fracture coarse grid (supplied by 'generateCoarseGrid') with
 %          geometry information (computed through 'coarsenGeometry').
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/'value' pairs ('pn'/'pv' ...)):
+% OPTIONAL PARAMETERS:
 %    simpleInteractionRegion - connects neighboring coarse nodes, in a 2D
 %                              domain where fractures are represented as 1D
 %                              grids to compute the interaction region.

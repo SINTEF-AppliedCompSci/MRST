@@ -15,7 +15,7 @@ function [G,fracplanes] = preProcessingFractures(G, fracplanes, varargin)
 %                 the fracture polygon and a value for the fracture
 %                 aperture.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %   
 %   fractureGridType   - Type of fracture mesh desired. Possible options:
 %                        (a) 1 - Cartesian mesh: Possible only when the
