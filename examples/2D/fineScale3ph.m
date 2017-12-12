@@ -60,7 +60,7 @@ axis equal tight; box on
 % For this example, we will generate the porosity as a Gaussian field. To
 % get a crude approximation to the permeability-porosity relationship, we
 % assume that our medium is made up of uniform spherical grains of diameter
-% dp = 10 m, for which the specic surface area is Av = 6 = dp. With these
+% dp = 10 m, for which the specic surface area is Av = 6 = dp. With these
 % assumptions, we can then use the Carman Kozeny relation to calculate the
 % isotropic permeability (K). The rock properties are then plotted. We also
 % identify fracture-matrix and fracture-fracture connections and compute

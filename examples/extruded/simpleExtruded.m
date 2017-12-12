@@ -61,7 +61,7 @@ Gl = makeLayers(G,layers,flayers);
 % For this example, we will generate the matrix porosity as a Gaussian
 % field. To get a crude approximation to the permeability-porosity
 % relationship, we assume that our medium is made up of uniform spherical
-% grains of diameter dp = 10 m, for which the specic surface area is Av =
+% grains of diameter dp = 10 m, for which the specic surface area is Av =
 % 6 = dp. With these assumptions, using the Carman Kozeny relation, we can
 % then calculate the isotropic matrix permeability (K). The rock properties
 % are then plotted. Fracture permeability is set to 1000 Darcy with 50%
