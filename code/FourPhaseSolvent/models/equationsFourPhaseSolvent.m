@@ -114,21 +114,26 @@ else
 end
 
 % Calculate residual saturations
-[sWres, sOres , sSGres ] = computeResidualSaturations(fluid, p , sG , sS , state0);
-[~    , sO0res, sSG0res] = computeResidualSaturations(fluid, p0, sG0, sS0, state0);
+[sWr, sOr , sGc ] = computeResidualSaturations(model, p , sW , sG , sS , state0);
+if isfield(state0, 'sOr') && isfield(state0, 'sGcr')
+    sOr0 = state0.sOr0;
+    sGc0 = state0.sGc0;
+else
+    [~    , sOr0, sGc0] = computeResidualSaturations(model, p0, sW0, sG0, sS0, state0);
+end
 
 % Get multipliers
 [pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
 T = op.T.*transMult;
 
  % Calculate effective relperms
-[krW, krO, krG, krS] = computeRelPermSolvent(fluid, p, sW, sO, sG, sS, sWres, sOres, sSGres, mobMult);
+[krW, krO, krG, krS] = computeRelPermSolvent(fluid, p, sW, sO, sG, sS, sWr, sOr, sGc, mobMult);
 
  % Calulate effective viscosities and densities
 [muW, muO, muG, muS, rhoW, rhoO , rhoG , rhoS , bW , bO , bG , bS , pW, pG] ...
-    = computeViscositiesAndDensities(model, p , sO , sG , sS , sOres , sSGres , rs, rv, ~st{1}, ~st{2});
+    = computeViscositiesAndDensities(model, p , sO , sG , sS , sOr , sGc , rs, rv, ~st{1}, ~st{2});
 [~  , ~  , ~  , ~  , ~   , rhoO0, rhoG0, rhoS0, bW0, bO0, bG0, bS0, ~ , ~] ...
-    = computeViscositiesAndDensities(model, p0, sO0, sG0, sS0, sO0res, sSG0res, rs0, rv0, ~st0{1}, ~st0{2});
+    = computeViscositiesAndDensities(model, p0, sO0, sG0, sS0, sOr0, sGc0, rs0, rv0, ~st0{1}, ~st0{2});
 
 % % Calulcate effective formation volume factors
 % [bW , bO , bG , bS ] = computeFormationVolumeFactors(fluid, p , rhoO , rhoG , rhoS );
@@ -207,8 +212,8 @@ if 1
     
 end
 
-state.sOres  = double(sOres);
-state.sSGres = double(sSGres);
+state.sOr = double(sOr);
+state.sGc = double(sGc);
 
 
 eqs   = {water, oil, gas, solvent};

@@ -22,6 +22,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 properties
    solvent
+   hystereticResSat
 end
 
 methods
@@ -30,6 +31,8 @@ methods
 
         % Use CNV style convergence 
         model.useCNVConvergence = true;
+        
+        model.hystereticResSat = false;
         
         % All phases are present
         model.water   = true;
