@@ -1,4 +1,4 @@
-function [krW_eff, krO_eff, krG_eff, krS_eff] = computeRelPermSolvent(fluid, p, sW, sO, sG, sS, sWr, sOr, sGc, mobMult)
+function [krW_eff, krO_eff, krG_eff, krS_eff] = computeRelPermSolvent(model, p, sW, sO, sG, sS, sWr, sOr, sGc, mobMult)
 % Calulates effective relative permeabilities.
 
 %{
@@ -20,6 +20,10 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
+    %% Get model fluid
+
+    fluid = model.fluid;
+    
     %% Immiscible relative permeabilities
     
     krO_i  = fluid.krO(sO);      % Oil relperm

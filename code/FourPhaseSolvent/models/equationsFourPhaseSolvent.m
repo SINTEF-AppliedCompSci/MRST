@@ -127,7 +127,7 @@ end
 T = op.T.*transMult;
 
  % Calculate effective relperms
-[krW, krO, krG, krS] = computeRelPermSolvent(fluid, p, sW, sO, sG, sS, sWr, sOr, sGc, mobMult);
+[krW, krO, krG, krS] = computeRelPermSolvent(model, p, sW, sO, sG, sS, sWr, sOr, sGc, mobMult);
 
  % Calulate effective viscosities and densities
 [muW, muO, muG, muS, rhoW, rhoO , rhoG , rhoS , bW , bO , bG , bS , pW, pG] ...
@@ -254,7 +254,7 @@ if ~isempty(W)
 
     [muWell, rhoWell] = deal(cell(4,1));
     [krWell{1}, krWell{2}, krWell{3}, krWell{4}] ...
-        = computeRelPermSolvent(fluid, p(wc), compi(:,1), compi(:,2), compi(:,3), compi(:,4), 0, 0, 0, mobMultw);
+        = computeRelPermSolvent(model, p(wc), compi(:,1), compi(:,2), compi(:,3), compi(:,4), 0, 0, 0, mobMultw);
     [muWell{1}, muWell{2}, muWell{3}, muWell{4}, rhoWell{1}, rhoWell{2}, rhoWell{3}, rhoWell{4}] ...
         = computeViscositiesAndDensities(model, p(wc), compi(:,2), compi(:,3), compi(:,4), 0, 0, rsw, rvw, isSatOw, isSatGw);
 

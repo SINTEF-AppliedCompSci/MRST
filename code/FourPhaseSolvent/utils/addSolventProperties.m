@@ -38,7 +38,7 @@ opt = struct('mu'              , 1    , ... % Solvent viscosity
              'MkrG'            , []   , ... % Miscible gas relperm multiplier function
              'krFS'            , []   , ... % Immiscible gas relperm multiplier function
              'krFG'            , []   , ... % Miscible solvent relperm multiplier function
-             'smin'            , 1e-10);    % Cut-off used to avoid division by zero
+             'smin'            , 1e-16);    % Cut-off used to avoid division by zero
 
 opt = merge_options(opt, varargin{:});
 

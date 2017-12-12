@@ -127,32 +127,32 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     % Expressions are sinuglar if muO == muG, in which case we replace the
     % by a simple interpolation rho*(1-omega) + rhoM*omega
-    eq = abs(muO - muS) < 1e-10 | abs(muS - muG) < 1e-10;
-
-    FON_Oeff = (muOmuS - (muO./muO_eff).^a)./(muOmuS-1);
-    FON_Oeff(~isfinite(double(FON_Oeff))) = 0; 
-    FON_Geff = (muSmuG - (muS./muG_eff).^a)./(muSmuG-1);
-    FON_Geff(~isfinite(double(FON_Geff))) = 0; 
+    tol = 1e-5*centi*poise;
+    ok = abs(muO - muS) > tol & abs(muS - muG) > tol;
+    one = ones(nnz(ok),1);
+    
+    [FON_Oeff, FON_Geff, FSN_Seff] = deal(muO); % Initialize to some AD-variable
     FGnOGn = fluid.satFrac(sGn, sOn + sGn);
     
-    FSN_Seff = (muSmuG.*FGnOGn + muSmuO.*(1-FGnOGn) - (muS./muS_eff).^a)...
-               ./(muSmuG.*FGnOGn + muSmuO.*(1-FGnOGn) - 1);
-    FSN_Seff(~isfinite(double(FSN_Seff))) = 0; 
-           
+    % Effective saturations for the given viscosites if we had full mixing.
+    FON_Oeff(ok) = (muOmuS(ok) - (muO(ok)./muO_eff(ok)).^a)./(muOmuS(ok)-one);
+    FON_Geff(ok) = (muSmuG(ok) - (muS(ok)./muG_eff(ok)).^a)./(muSmuG(ok)-one);
+    FSN_Seff(ok) = (muSmuG(ok).*FGnOGn(ok) + muSmuO(ok).*(one-FGnOGn(ok)) - (muS(ok)./muS_eff(ok)).^a)...
+                   ./(muSmuG(ok).*FGnOGn(ok) + muSmuO(ok).*(one-FGnOGn(ok)) - one);
+    
+    % Interpolated fully-mixed densities
     FON = fluid.satFrac(sO, sO + sG + sS);
     FGN = fluid.satFrac(sG, sO + sG + sS);
-    
     rhoM = rhoO.*FON + rhoG.*FGN + rhoS.*(1 - (FON + FGN));
     
     % Calulcate mixed densities
     rhoW_eff = rhoW;
-    
-    rhoO_eff = (FON_Oeff.*rhoO + (1-FON_Oeff).*rhoS).*(~eq) ...
-                                       + ((1-omega)*rhoO + omega*rhoM).*eq;
-    rhoG_eff = (FON_Geff.*rhoS + (1-FON_Geff).*rhoG).*(~eq) ...
-                                       + ((1-omega)*rhoG + omega*rhoM).*eq;
-    rhoS_eff = (FSN_Seff.*rhoS + (1-FSN_Seff).*(rhoG.*FGnOGn + rhoO.*(1-FGnOGn))).*(~eq) ...
-                                       + ((1-omega)*rhoS + omega*rhoM).*eq;
+    rhoO_eff = (FON_Oeff.*rhoO + (1-FON_Oeff).*rhoS).*(ok) ...
+                                       + ((1-omega)*rhoO + omega*rhoM).*(~ok);
+    rhoG_eff = (FON_Geff.*rhoS + (1-FON_Geff).*rhoG).*(ok) ...
+                                       + ((1-omega)*rhoG + omega*rhoM).*(~ok);
+    rhoS_eff = (FSN_Seff.*rhoS + (1-FSN_Seff).*(rhoG.*FGnOGn + rhoO.*(1-FGnOGn))).*(ok) ...
+                                       + ((1-omega)*rhoS + omega*rhoM).*(~ok);
                                    
     % Effective formation volume factors are interpolated using a
     % pressure-dependent miscibility funciton
