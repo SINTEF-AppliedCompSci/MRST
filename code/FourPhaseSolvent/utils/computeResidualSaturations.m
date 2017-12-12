@@ -1,4 +1,4 @@
-function [sWres, sOres, sSGres] = computeResidualSaturations(fluid, p, sG, sS, state0)
+function [sWr, sOr, sGc] = computeResidualSaturations(model, p, sW, sG, sS, state0)
 % Calculate effective residual saturations
 
 %{
@@ -20,24 +20,27 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
+    fluid = model.fluid;
+    
     % Residual saturations for the immiscible and miscible extrema
-    sOres_m    = fluid.sOres_m ;
-    sOres_i    = fluid.sOres_i ;
-    sSGres_m   = fluid.sSGres_m;
-    sSGres_i   = fluid.sSGres_i;
+    sOr_m = fluid.sOr_m(sW) ;
+    sOr_i = fluid.sOr_i ;
+    sGc_m = fluid.sGc_m(sW);
+    sGc_i = fluid.sGc_i;
     
     % Misscibility is a function of the solvent fraction in the total gas
     % phase
-    M = fluid.Msat(sG, sS).*fluid.Mpres(p);
+    FSG = fluid.satFrac(sS, sG + sS);
+    M = fluid.Ms(FSG).*fluid.Mp(p);
     
     % Interpolated water/oil residual saturations
-    sWres  = fluid.sWres;
-    sOres  = M.*sOres_m  + (1 - M).*sOres_i ;
-    sSGres = M.*sSGres_m + (1 - M).*sSGres_i;
+    sWr  = fluid.sWr;
+    sOr  = M.*sOr_m + (1 - M).*sOr_i ;
+    sGc = M.*sGc_m + (1 - M).*sGc_i;
     
-    if nargin > 4 && isfield(state0, 'sOres') && isfield(state0, 'sSGres')
-        sOres = min(sOres, state0.sOres);
-        sSGres = min(sSGres, state0.sSGres);
+    if nargin > 5 && isfield(state0, 'sOr') && isfield(state0, 'sGc') && model.hystereticResSat
+        sOr = min(sOr, state0.sOr);
+        sGc = min(sGc, state0.sGc);
     end
 
 end

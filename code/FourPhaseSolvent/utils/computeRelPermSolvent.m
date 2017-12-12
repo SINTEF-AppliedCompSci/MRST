@@ -1,4 +1,4 @@
-function [krW_eff, krO_eff, krG_eff, krS_eff] = computeRelPermSolvent(fluid, p, sW, sO, sG, sS, sWres, sOres, sSGres, mobMult)
+function [krW_eff, krO_eff, krG_eff, krS_eff] = computeRelPermSolvent(fluid, p, sW, sO, sG, sS, sWr, sOr, sGc, mobMult)
 % Calulates effective relative permeabilities.
 
 %{
@@ -20,56 +20,49 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    krN    = fluid.krN  (sO + sG + sS, sWres, sOres, sSGres);
-    krO_i  = fluid.krO_i(sO          , sWres, sOres, sSGres);
-    krGT_i = fluid.krGT_i(sG + sS    , sWres, sOres, sSGres);
-              
-    M = fluid.Msat(sG, sS).*fluid.Mpres(p);
+    %% Immiscible relative permeabilities
+    
+    krO_i  = fluid.krO(sO);      % Oil relperm
+    krGT_i = fluid.krG(sG + sS); % Total gas relperm
+    
+    sS(sS < fluid.smin) = 0;
+    FSG = fluid.satFrac(sS, sG + sS); % Solvent to total gas saturation fraction
+    krG_i = fluid.krFG((1-FSG)).*krGT_i;
+    krS_i = fluid.krFS(FSG    ).*krGT_i;
 
-    sSsGT = sS./(sS + sG);
-    sSsGT(isnan(double(sSsGT))) = 0;
+    %% Miscible relative permeabilities
     
-    % Immiscible gas and solvent relperms
-    krG_i = (1-sSsGT).*krGT_i;
-    krS_i = sSsGT.*krGT_i;
-
+    % Mobile saturaitons
+    sOn  = max(sO - sOr,0);
+    sGn  = max(sG - sGc,0);
+    sGTn = max(sG + sS - sGc, 0);              % Total mobile gas saturation
+    sNn  = max(sO + sG + sS - (sOr + sGc), 0); % Total mobile HC saturaion
     
-    sOn  = max(sO - sOres,0);
-    sGn  = max(sG - sSGres,0);
-    sSn  = max(sS - sSGres,0);
-    sGTn = max(sG + sS - sSGres, 0);
-    sNn  = max(sO + sG + sS - (sOres + sSGres), 0);
-    
-    sOnsNn = sOn./sNn;
-    sOnsNn(isnan(double(sOnsNn))) = 0;
-    sGTnsNn = 1 - sOnsNn;
-    
-    sGnsGTn = sGn./sGTn;
-    sGnsGTn(isnan(double(sGnsGTn))) = 0;
-    sSnsGTn = 1 - sGnsGTn;
+    FOnNn = fluid.satFrac(sOn, sNn);   % Oil to HC saturation fraction
+    FGnGTn = fluid.satFrac(sGn, sGTn); % Gas to HC saturation fraction
     
     % Miscible relperms
-    krO_m = sOnsNn.*krN;
-    krGT_m = sGTnsNn.*krN;
+    krN    = fluid.krOW(sO + sG + sS);
+    krO_m  = fluid.MkrO(FOnNn).*krN;
+    krGT_m = fluid.MkrG(1-FOnNn).*krN;
+    krG_m  = fluid.krFG(FGnGTn).*krGT_m;
+    krS_m  = fluid.krFS(1-FGnGTn).*krGT_m;
     
-    krG_m = sGnsGTn.*krGT_m;
-    krS_m = sSnsGTn.*krGT_m;
+    %% Interpolate between the two
     
     % Interpolate between miscible and immiscible cases (water relperm
     % not affected by the solvent)
-    krW_eff = fluid.krW_i(sW, sWres, sOres, sSGres);
+    M = fluid.Ms(fluid.satFrac(sS, sG + sS)).*fluid.Mp(p);
     
+    krW_eff = fluid.krW(sW);
     krO_eff = M.*krO_m + (1-M).*krO_i;
     krG_eff = M.*krG_m + (1-M).*krG_i;
     krS_eff = M.*krS_m + (1-M).*krS_i;
     
     % Modifiy relperm by mobility multiplier (if any)
-    
-    % Multiply by sn>0 to avoid erroneous positive relperms due to
-    % roundoff-errors in evaluation of miscibility M.
     krW_eff = mobMult.*krW_eff;
-    krO_eff = mobMult.*krO_eff.*(sOn>0);
-    krG_eff = mobMult.*krG_eff.*(sGn>0);
-    krS_eff = mobMult.*krS_eff.*(sSn>0);
+    krO_eff = mobMult.*krO_eff;
+    krG_eff = mobMult.*krG_eff;
+    krS_eff = mobMult.*krS_eff;
     
 end

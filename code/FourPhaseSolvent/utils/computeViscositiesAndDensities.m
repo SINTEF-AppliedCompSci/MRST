@@ -1,8 +1,4 @@
-function [muW_eff , muO_eff , muG_eff , muS_eff , ...
-          rhoW_eff, rhoO_eff, rhoG_eff, rhoS_eff, ...
-          bW_eff  , bO_eff  , bG_eff  , bS_eff  , ...
-          pW      , pG                          ] ...
-          = computeViscositiesAndDensities(model, p , sO , sG , sS , sOres , sSGres, rs, rv, isSatO, isSatG)
+function [muW_eff, muO_eff, muG_eff, muS_eff, rhoW_eff, rhoO_eff, rhoG_eff, rhoS_eff, bW_eff, bO_eff, bG_eff, bS_eff, pW, pG] = computeViscositiesAndDensities(model, p , sO , sG , sS , sOr , sGc, rs, rv, isSatO, isSatG)
 % Calculates effective viscosities and densities using Todd-Longstaff
 % model + 1/4th-power mixing rule
 
@@ -91,47 +87,36 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     %% Effective viscosites
     
-%     tol = 1e-8;
-%     is_solvent = sS > tol;
-    is_solvent = true;
-
     % Caluculate mobile saturations
-    sOn = max(sO - sOres, 0);
-    sGn = max(sG - sSGres, 0);
-    sSn = max(sS - sSGres, 0);
-
+    sOn = max(sO - sOr, 0);
+    sGn = max(sG - sGc, 0);
+    sSn = max(sS - sGc, 0);
+    
     % Calculate mixed viscosities
-    a = 1/4;
+    a    = 1/4;
     muSa = muS.^a;
     muGa = muG.^a;
     muOa = muO.^a;
 
-    tol = 1e-10;
-    sSnsOSn = sSn./(sOn + sSn).*(sSn>tol);
-    sSnsOSn(isnan(double(sSnsOSn))) = 0;
-    sSnsSGn = sSn./(sGn + sSn).*(sSn>tol);
-    sSnsSGn(isnan(double(sSnsSGn))) = 0;
-    sOnsNn  = sOn./(sOn + sGn + sSn);
-    sOnsNn(isnan(double(sOnsNn))) = 0;
-    sGnsNn  = sGn./(sOn + sGn + sSn);
-    sGnsNn(isnan(double(sGnsNn))) = 0;
+    % Saturation fractions
+    FSnOSn = fluid.satFrac(sSn, sOn + sSn);
+    FSnGSn = fluid.satFrac(sSn, sGn + sSn);
+    FOnNn  = fluid.satFrac(sOn, sOn + sGn  + sSn);
+    FGnNn  = fluid.satFrac(sGn, sOn + sGn  + sSn);
     
-    muMOS = muO.*muS./((1-sSnsOSn).*muSa + sSnsOSn.*muOa).^4;
-    muMSG = muS.*muG./(sSnsSGn.*muGa + (1-sSnsSGn).*muSa).^4;
-    muM   = muO.*muS.*muG./(sOnsNn.*muSa.*muGa ...
-                          + (1-sOnsNn-sGnsNn).*muOa.*muGa ...
-                          + sGnsNn.*muOa.*muSa).^4;
+    % Mixed viscosities
+    muMOS = muO.*muS./((1-FSnOSn).*muSa + FSnOSn.*muOa).^(1/a); % Oil-solvent
+    muMSG = muS.*muG./(FSnGSn.*muGa + (1-FSnGSn).*muSa).^(1/a); % Solvent-gas
+    muM   = muO.*muS.*muG./(FOnNn.*muSa.*muGa           ... 
+                          + (1-FOnNn-FGnNn).*muOa.*muGa ...
+                          + FGnNn.*muOa.*muSa).^(1/a);          % Oil-gas-solvent
     
     % Effective viscosities are determined by the mixing parameter
     omega = fluid.mixPar;
     muW_eff = muW;
     muO_eff = muO.^(1-omega).*muMOS.^omega;
-    muO_eff = muO_eff.*is_solvent + muO.*(~is_solvent);
-    muG_eff = muG.^(1-omega).*muMSG.^omega;
-    muG_eff = muG_eff.*is_solvent + muG.*(~is_solvent);
+    muG_eff = muG.^(1-omega).*muMSG.^omega;    
     muS_eff = muS.^(1-omega).*muM.^omega;
-    muS_eff = muS_eff.*is_solvent + muS.*(~is_solvent);
-    
     
     %% Effective densities
     
@@ -139,44 +124,35 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     muOmuS = (muO./muS).^a;
     muSmuO = 1./muOmuS;
     muSmuG = (muS./muG).^a;
-    sOsN_Oeff = (muOmuS - (muO./muO_eff).^a)./(muOmuS-1);
-    sOsN_Oeff(~isfinite(double(sOsN_Oeff))) = 0; 
-    sOsN_Geff = (muSmuG - (muS./muG_eff).^a)./(muSmuG-1);
-    sOsN_Geff(~isfinite(double(sOsN_Geff))) = 0; 
     
-    sGf = sGn./(sOn + sGn);
-    sGf(isnan(double(sGf))) = 0;
-%     sGf = fluid.satFrac(sGn, sOn);
-
-    sSsN_Seff = (muSmuG.*sGf + muSmuO.*(1-sGf) - (muS./muS_eff).^a)...
-               ./(muSmuG.*sGf + muSmuO.*(1-sGf) - 1);
-    sSsN_Seff(~isfinite(double(sSsN_Seff))) = 0; 
-           
     % Expressions are sinuglar if muO == muG, in which case we replace the
     % by a simple interpolation rho*(1-omega) + rhoM*omega
     eq = abs(muO - muS) < 1e-10 | abs(muS - muG) < 1e-10;
 
-    sOsN = sO./(sO + sG + sS).*(sO>tol);
-    sOsN(isnan(double(sOsN))) = 0;
-    sGsN = sG./(sO + sG + sS).*(sG>tol);
-    sGsN(isnan(double(sGsN))) = 0;
+    FON_Oeff = (muOmuS - (muO./muO_eff).^a)./(muOmuS-1);
+    FON_Oeff(~isfinite(double(FON_Oeff))) = 0; 
+    FON_Geff = (muSmuG - (muS./muG_eff).^a)./(muSmuG-1);
+    FON_Geff(~isfinite(double(FON_Geff))) = 0; 
+    FGnOGn = fluid.satFrac(sGn, sOn + sGn);
     
-    rhoM = rhoO.*sOsN + rhoG.*sGsN + rhoS.*(1 - (sOsN + sGsN));
+    FSN_Seff = (muSmuG.*FGnOGn + muSmuO.*(1-FGnOGn) - (muS./muS_eff).^a)...
+               ./(muSmuG.*FGnOGn + muSmuO.*(1-FGnOGn) - 1);
+    FSN_Seff(~isfinite(double(FSN_Seff))) = 0; 
+           
+    FON = fluid.satFrac(sO, sO + sG + sS);
+    FGN = fluid.satFrac(sG, sO + sG + sS);
+    
+    rhoM = rhoO.*FON + rhoG.*FGN + rhoS.*(1 - (FON + FGN));
     
     % Calulcate mixed densities
     rhoW_eff = rhoW;
     
-    rhoO_eff = (sOsN_Oeff.*rhoO + (1-sOsN_Oeff).*rhoS).*(~eq) ...
+    rhoO_eff = (FON_Oeff.*rhoO + (1-FON_Oeff).*rhoS).*(~eq) ...
                                        + ((1-omega)*rhoO + omega*rhoM).*eq;
-    rhoO_eff = rhoO_eff.*is_solvent + rhoO.*(~is_solvent);
-                                   
-    rhoG_eff = (sOsN_Geff.*rhoS + (1-sOsN_Geff).*rhoG).*(~eq) ...
+    rhoG_eff = (FON_Geff.*rhoS + (1-FON_Geff).*rhoG).*(~eq) ...
                                        + ((1-omega)*rhoG + omega*rhoM).*eq;
-    rhoG_eff = rhoG_eff.*is_solvent + rhoG.*(~is_solvent);
-    
-    rhoS_eff = (sSsN_Seff.*rhoS + (1-sSsN_Seff).*(rhoG.*sGf + rhoO.*(1-sGf))).*(~eq) ...
+    rhoS_eff = (FSN_Seff.*rhoS + (1-FSN_Seff).*(rhoG.*FGnOGn + rhoO.*(1-FGnOGn))).*(~eq) ...
                                        + ((1-omega)*rhoS + omega*rhoM).*eq;
-    rhoS_eff = rhoS_eff.*is_solvent + rhoS.*(~is_solvent);
                                    
     % Effective formation volume factors are interpolated using a
     % pressure-dependent miscibility funciton
@@ -188,7 +164,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     % Effective formation volume factors are interpolated using a
     % pressure-dependent miscibility funciton
-    Mp     = fluid.Mpres(p);
+    Mp     = fluid.Mp(p);
     bW_eff = bW;
     bO_eff = bO_m.*Mp + bO_i.*(1-Mp);
     bG_eff = bG_m.*Mp + bG_i.*(1-Mp);
