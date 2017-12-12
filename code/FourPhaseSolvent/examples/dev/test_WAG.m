@@ -25,7 +25,7 @@ model = FourPhaseSolventModel(G, rock, fluid);
 model.extraStateOutput = true;
 
 T = 2*year;
-rate = 1*sum(poreVolume(G, rock))/year;
+rate = 0.2*sum(poreVolume(G, rock))/T;
 W = [];
 W = addWell(W, G, rock, 1, 'type', 'rate', 'val', rate, 'comp_i', [1,0,0,0]);
 W = addWell(W, G, rock, G.cells.num, 'type', 'bhp', 'val', 50*barsa, 'comp_i', [1,0,0,0]);

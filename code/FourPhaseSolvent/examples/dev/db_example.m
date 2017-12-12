@@ -1,9 +1,9 @@
 mrstModule add ad-core ad-eor ad-blackoil ad-props blackoil-sequential matlab_bgl
 
-gravity reset on
+gravity reset off
 
 n = 10;
-G = computeGeometry(cartGrid([n,1,1], [1000,1,1]));
+G = computeGeometry(cartGrid([n,1,1], [100,1,1]));
 rock = makeRock(G, 100*milli*darcy, 1);
 
 %%
@@ -11,38 +11,44 @@ rock = makeRock(G, 100*milli*darcy, 1);
 fluid = initSimpleADIFluid('n'     , [2, 2, 2], ...
                            'rho'   , [1000, 800, 100]*kilogram/meter^3, ...
                            'phases', 'WOG', ...
-                           'mu'    , [1, 10, 2]*centi*poise);
+                           'mu'    , [1, 3, 1]*centi*poise);
 
 sOres_i= 0.2;
+fluid.krW = coreyPhaseRelpermAD(2,     0, fluid.krG(1-sOr_i), sOr_i);
+[fluid.krO, fluid.krOW, fluid.krOG] = deal(coreyPhaseRelpermAD(2, sOr_i, fluid.krO(1)      , sOr_i));
+fluid.krG = coreyPhaseRelpermAD(2,     0, fluid.krG(1-sOr_i), sOr_i);
+
 fluid = addSolventProperties(fluid, 'n', 2, ...
                                     'rho', 100*kilogram/meter^3, ...
-                                    'mixPar', 0, ...
-                                    'mu'    , 1*centi*poise, ...
-                                    'sOres_i', sOres_i, ...
-                                    'sOres_m', 0.0);
+                                    'mixPar', 0.3, ...
+                                    'mu'    , 0.1*centi*poise, ...
+                                    'sOr_i', sOres_i, ...
+                                    'sOr_m', 0.0);
                                 
 model = FourPhaseSolventModel(G, rock, fluid);
 model.extraStateOutput = true;
 
-T = 2*year;
-rate = 1*sum(poreVolume(G, rock))/year;
+T = 1*year;
+rate = 1*sum(poreVolume(G, rock))/T;
 W = [];
 W = addWell(W, G, rock, 1, 'type', 'rate', 'val', rate, 'comp_i', [1,0,0,0]);
 W = addWell(W, G, rock, G.cells.num, 'type', 'bhp', 'val', 50*barsa, 'comp_i', [1,0,0,0]);
-schedule = simpleSchedule(rampupTimesteps(T, T/100,0), 'W', W);
+nstep = 100;
+schedule = simpleSchedule(rampupTimesteps(T, T/nstep), 'W', W);
 
+% schedule.control(2) = schedule.control(1);
+% schedule.control(2).W(1).compi = [0,0,0,1];
+% schedule.step.control(1:nstep/2) = 2;
 
 sO = sOres_i + 0.0;
 sG = 0.0;
 state0 = initResSol(G, 100*barsa, [1-sO-sG sO sG 0]);
 state0.wellSol = initWellSolAD(W, model, state0);
 
-nls = NonLinearSolver('useLineSearch', false);
-
 
 %%
 
-[ws, states, reports] = simulateScheduleAD(state0, model, schedule, 'NonLinearSolver', nls);
+[ws, states, reports] = simulateScheduleAD(state0, model, schedule);
 
 %%
 

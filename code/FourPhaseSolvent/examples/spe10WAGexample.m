@@ -11,33 +11,48 @@ close all
 
 %% Set up grid and rock properties
 % We pick up layer 10 of SPE10, and extract the grid and rock properties.
+layers        = 10;
+[~, model, ~] = setupSPE10_AD('layers', layers);
+G             = model.G;
+rock          = model.rock;
+
+%% Set up fluid and add solvent gas properties
 % We will define our own fluid based on a three-phase fluid with water, oil
-% and gas.
-fluid = initSimpleADIFluid('n'     , [2, 2, 2], ...
+% and gas. % The solvent model we will use, treats solvent gas as a fourth
+% phase, which is either miscible or immiscible with the oil and gas,
+% depending on the fraction of solvent concentration to total gas
+% concentration, $S_s/(S_g + S_s)$, and the pressure.
+fluid = initSimpleADIFluid('n'     , [2, 2, 2]                        , ...
                            'rho'   , [1000, 800, 100]*kilogram/meter^3, ...
-                           'phases', 'WOG', ...
-                           'mu'    , [1, 3, 0.4]*centi*poise, ...
-                           'c'     , [1e-7, 1e-6, 1e-5]/barsa);
-layers = 10;
-[~, model4Ph, ~] = setupSPE10_AD('layers', layers);
-G    = model4Ph.G;
-rock = model4Ph.rock;
+                           'phases', 'WOG'                            , ...
+                           'mu'    , [1, 3, 0.4]*centi*poise          , ...
+                           'c'     , [1e-7, 1e-6, 1e-5]/barsa         );
 
-%% Define solvent properties         
-% The solvent model we will use, treats solvent gas as a fourth phase,
-% which is either miscible or immiscible with the oil and gas, depending on
-% the fraction of solvent concentration to total gas concentration,
-% $S_s/(S_g + S_s)$, and the pressure.
+% The model assumes one immiscible and one miscible residual saturation for
+% the hydrocarbon phases, with $S_{\alpha r,i} > S_{\alpha r,m}$, and we
+% must define both. In this example, we assume that the critical (residual)
+% gas saturation is zero in both the immiscible and miscible case.
+sOr_i = 0.38; % Immiscible residual oil saturation
+sOr_m = 0.21; % Miscible residual oil saturation
 
-sOres_i = 0.38; % Immiscible residual oil saturation
-sOres_m = 0.21; % Miscible residual oil saturation
-fluid   = addSolventProperties(fluid,'n'      , [2,2,2]             , ...
-                                     'rho'    , 100*kilogram/meter^3, ...
-                                     'mixPar' , 2/3                 , ...
-                                     'mu'     , 0.5*centi*poise     , ...
-                                     'sOres_i', sOres_i             , ...
-                                     'sOres_m', sOres_m             , ...
-                                     'c'      , 1e-5/barsa          );
+% We scale the relperms to the immiscible endpoints.
+fluid.krW = coreyPhaseRelpermAD(2,     0, fluid.krG(1-sOr_i), sOr_i);
+[fluid.krO, fluid.krOW, fluid.krOG] = deal(coreyPhaseRelpermAD(2, sOr_i, fluid.krO(1)      , sOr_i));
+fluid.krG = coreyPhaseRelpermAD(2,     0, fluid.krG(1-sOr_i), sOr_i);     
+
+% The model uses a mixing paramter $\omega$ that defines the degree of
+% mixing, where
+% $$ \text{(no mixing)} = 0 <= \omega <= 1 = \text{(full mixing)}.$$
+% This is set by mixPar.
+fluid   = addSolventProperties(fluid,'n'     , [2,2,2]             , ...
+                                     'rho'   , 80*kilogram/meter^3, ...
+                                     'mixPar', 2/3                 , ...
+                                     'mu'    , 0.5*centi*poise     , ...
+                                     'sOr_i' , sOr_i               , ...
+                                     'sOr_m' , sOr_m               , ...
+                                     'c'     , 1e-5/barsa          );
+                                 
+model4Ph = FourPhaseSolventModel(G, rock, fluid);
 
 %% Inspect fluid relperms
 % In regions with only oil, reservoir gas and water, we have traditional
@@ -58,14 +73,16 @@ n = 100;
 [sO,sS] = meshgrid(linspace(0,1,n)', linspace(0,1,n)');
 sW = 0; sG = 1-(sW+sO+sS);
 
-ss  = linspace(0,1-sOres_m,100)';
-b   = sOres_i + 2*ss - 1;
-sg  = (-b + sqrt(b.^2 - 4*(ss.*(sOres_m + ss - 1))))/2;
-sOr = 1 - sg - ss;
+ss  = linspace(0,1-sOr_m,100)';
+b   = sOr_i + 2*ss - 1;
+sg  = (-b + sqrt(b.^2 - 4*(ss.*(sOr_m + ss - 1))))/2;
+sor = 1 - sg - ss;
 
 sW = sW(:); sO = sO(:); sG = sG(:); sS = sS(:);
-[sWres, sOres , sSGres ]  = computeResidualSaturations(fluid, 0 , sG , sS );
-[krW, krO, krG, krS]      = computeRelPermSolvent(fluid, 0, sW, sO, sG, sS, sWres, sOres, sSGres, 1);
+[sWr, sOr, sGc]  = computeResidualSaturations(model4Ph, 0, sW, sG, sS);
+[krW, krO, krG, krS]      = computeRelPermSolvent(model4Ph, 0, sW, sO, sG, sS, sWr, sOr, sGc, 1);
+[muW, muO, muG, muS, rhoW, rhoO, rhoG, rhoS, bW, bO, bG, bS, ~, ~] ...
+    = computeViscositiesAndDensities(model4Ph, p , sO , sG , sS , sOr , sGc, 0, 0, false, false);
 sO = reshape(sO, n,n); sG = reshape(sG, n,n); sS = reshape(sS, n,n);
 
 phName = {'O', 'G', 'S'};
@@ -77,14 +94,14 @@ for phNo = 1:3
     relpermName = ['kr', phName{phNo}];
     kr = reshape(eval(relpermName),[n,n]);
     kr(sG<0) = nan;
-
+    
     [mapx, mapy] = ternaryAxis('names', {'S_g', 'S_s', 'S_o'});
     contourf(mapx(sG, sS, sO), mapy(sG,sS,sO), kr, 20, 'linecolor', 0.5.*[1,1,1])
     [mapx, mapy] = ternaryAxis('names', {'S_g', 'S_s', 'S_o'});
-    plot(mapx(sg, ss, sOr), mapy(sg,ss,sOr), 'color', 0.99*[1,1,1], 'linewidth', 2)
+    plot(mapx(sg, ss, sor), mapy(sg,ss,sor), 'color', 0.99*[1,1,1], 'linewidth', 2)
     
     axis([0,1,0,sqrt(1-0.5^2)]); axis equal
-    title(relpermName, 'position', [0.5,-0.2]); 
+    title(relpermName, 'position', [0.5,-0.2]);   
     
 end
                                 
@@ -127,25 +144,25 @@ for iNo = 1:numel(injectors)
                 'name'  , ['I', num2str(iNo)]  );
 end
 
-dt          = 60*day; % Timestep size for water injection
-dtWAG       = 30*day; % Timestep size for WAG cycles
+dt1         = 60*day; % Timestep size for water injection
+dt2         = 30*day; % Timestep size for WAG cycles
 useRampUp   = true;   % We use a few more steps each time we change the 
                       % well control to ease the nonlinear solution process
 nCycles     = 4;      % Four WAG cycles
 scheduleWAG = makeWAGschedule(W, nCycles, 'time'     , 2*time     , ...
-                                          'dt'       , dtWAG    , ...
+                                          'dt'       , dt2    , ...
                                           'useRampup', useRampUp);
 
-tvec                  = rampupTimesteps(time, dt);
-control               = 2*ones(numel(tvec),1);
-scheduleWAG.step.val     = [tvec; scheduleWAG.step.val; tvec];
-scheduleWAG.step.control = [control; scheduleWAG.step.control; control];
+tvec1                    = rampupTimesteps(time, dt1);
+tvec2                    = rampupTimesteps(time, dt2, 0);
+scheduleWAG.step.val     = [tvec1; scheduleWAG.step.val; tvec2];
+scheduleWAG.step.control = [2*ones(numel(tvec1),1); scheduleWAG.step.control; 2*ones(numel(tvec2),1)];
 
 %% Define model and initial state, and simulate results
 % The reservoir is initially filled with a mixture of oil, reservoir gas
 % and water. We set up a four-phase solvent model and simulate the
 % schedule.
-model4Ph = FourPhaseSolventModel(G, rock, fluid);
+
 model4Ph.extraStateOutput = true;
 sO = 0.5; sG = 0.4;
 state0 = initResSol(G, 100*barsa, [1-sO-sG, sO, sG, 0]);
@@ -170,7 +187,7 @@ for wNo = 1:numel(W)
     W(wNo).compi = [1,0,0];
 end
 
-tvec     = rampupTimesteps(4*time, dt);
+tvec     = rampupTimesteps(4*time, dt1);
 schedule = simpleSchedule(tvec, 'W', W);
 model3Ph = ThreePhaseBlackOilModel(G, rock, fluid);
 model3Ph.extraStateOutput = true;
