@@ -35,7 +35,7 @@ function state = solveIncompFlowVE(state, g, s, rock, fluid, varargin)
 %
 %   fluid  - Fluid object as defined by function 'initVEFluid'.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %   wells  - Well structure as defined by function 'addWell'.  May be empty
 %            (i.e., W = []) which is interpreted as a model without any
 %            wells.

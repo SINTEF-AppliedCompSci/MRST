@@ -41,7 +41,7 @@ function [Res, Jac] = twophaseJacobianWithVE_coupled(G, state, rock, fluid, vara
 %
 %   fluid   - Data structure describing the fluids in the problem.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %   - verbose 
 %
 %   - wells

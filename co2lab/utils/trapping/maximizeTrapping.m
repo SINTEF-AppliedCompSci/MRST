@@ -9,7 +9,7 @@ function [trees, vols] = maximizeTrapping(G, varargin)
 %   G   - Top surface grid
 %
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %   N   - The number of trapping trees to consider. This will, for a
 %         most purposes, be the number of injection wells to be drilled for
 %         a CO2 migration study.

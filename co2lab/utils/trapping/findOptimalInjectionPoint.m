@@ -13,7 +13,7 @@ function [cell, largestVol, allFaces, point, traps] = findOptimalInjectionPoint(
 %   G   - Top surface grid.
 %   res - trapAnalysis output.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %   None.
 %
 % RETURNS:
