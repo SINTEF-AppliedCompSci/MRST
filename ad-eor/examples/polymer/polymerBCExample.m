@@ -1,4 +1,4 @@
-%% POLYMER BOUNDARY CONDITIONS AND SOURCE EXAMPLE
+%% Polymer solver with boundary conditions and sources
 %
 % This example is made just to illustrate how one can setup a polymer
 % simulation with boundary conditions and/or source.
