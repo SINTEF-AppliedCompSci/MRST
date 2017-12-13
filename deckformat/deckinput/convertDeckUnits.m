@@ -458,7 +458,7 @@ function props = convertPROPS(props, u)
             unt         = [u.gasvol_s/u.liqvol_s, u.press];
             props.(key) = convertFrom(props.(key), unt);
 
-         case {'SGFN', 'SWFN'},
+         case {'SGFN', 'SWFN', 'SSFN'},
             unt = [1, 1, u.press];
 
             for t = 1 : numel(props.(key)),
