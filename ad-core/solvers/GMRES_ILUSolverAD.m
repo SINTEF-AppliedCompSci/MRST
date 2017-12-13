@@ -53,14 +53,17 @@ classdef GMRES_ILUSolverAD < LinearSolverAD
                 [A, b] = reorderForILU(A, b);
             end
             [L, U] = ilu(A, solver.getOptsILU());
-            prec = @(x) U\(L\x);
             [result, flag, res, its] = gmres(A, b, [], ...
                 solver.tolerance,...
                 min(solver.maxIterations, nel), ...
-                prec);
+                L, U);
             report = struct('GMRESFlag',  flag, ...
                             'residual',   res,...
                             'iterations', its);
+
+            if flag > 0
+                warning('Solver did not converge to specified tolerance of %g. Reported residual estimate was %g', solver.tolerance, res);
+            end
         end
         
         function opts = getOptsILU(solver)
