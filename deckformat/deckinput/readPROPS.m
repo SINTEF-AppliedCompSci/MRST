@@ -52,8 +52,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          case 'ENDBOX',
             endboxKeyword;
 
-         case 'DENSITY',
+         case 'DENSITY'
             tmpl(1:3) = { '0.0' };
+            data      = readDefaultedKW(fid, tmpl, 'NRec', ntpvt);
+            prp.(kw)  = to_double(data);  clear tmpl
+
+         case 'SDENSITY'
+            tmpl(1) = { '0.0' };
             data      = readDefaultedKW(fid, tmpl, 'NRec', ntpvt);
             prp.(kw)  = to_double(data);  clear tmpl
 
@@ -73,7 +78,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             tmpl(1:2) = { 'NaN' };
             data      = readDefaultedKW(fid, tmpl, 'NRec', ntsfun);
             prp.(kw)  = to_double(data);  clear tmpl
-
+            
+         case {'MISC', 'PMISC'}
+            prp.(kw) = readRelPermTable(fid, kw, ntsfun, 2);
+             
          case {'MW', 'PCRIT', 'TCRIT', 'VCRIT', 'ZCRIT'}
             prp.(kw) = readVector(fid, kw, ncomp);
 
@@ -121,7 +129,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             data      = readDefaultedKW(fid, tmpl, 'NRec', ntpvt);
             prp.(kw)  = to_double(data);  clear tmpl
 
-         case {'PVDG', 'PVDO'},
+         case {'PVDG', 'PVDO', 'PVDS'},
             prp.(kw) = readImmisciblePVTTable(fid, ntpvt, 3);
 
          case 'PVCO'
@@ -175,7 +183,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          case 'SOF2',
             prp.(kw) = readRelPermTable(fid, kw, ntsfun, 2);
 
-         case {'SGFN', 'SWFN', 'SOF3'},
+         case {'SGFN', 'SWFN', 'SOF3', 'SSFN'},
             prp.(kw) = readRelPermTable(fid, kw, ntsfun, 3);
 
          case {'SGOF', 'SGWFN', 'SLGOF', 'SWOF'},
