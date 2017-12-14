@@ -42,13 +42,18 @@ opt.fluid_model = 'water';
 
 opt.method      = 'fully coupled';
 writeIntroText(opt);
-[model, states] = run2DCase(opt);
+
+optvals = cellfun(@(x) opt.(x), fieldnames(opt), 'uniformoutput', false);
+optlist = reshape(vertcat(fieldnames(opt)', optvals'), [], 1);
+[model, states] = run2DCase(optlist{:});
 plot2DPoroExample(model, states, opt);
 
 
 opt.method      = 'fixed stress splitting';
 writeIntroText(opt);
-[model, states] = run2DCase(opt);
+optvals = cellfun(@(x) opt.(x), fieldnames(opt), 'uniformoutput', false);
+optlist = reshape(vertcat(fieldnames(opt)', optvals'), [], 1);
+[model, states] = run2DCase(optlist{:});
 plot2DPoroExample(model, states, opt);
 
 %%  Two phase oil water phases cases
@@ -57,13 +62,17 @@ opt.fluid_model = 'oil water';
 
 opt.method      = 'fully coupled';
 writeIntroText(opt);
-[model, states] = run2DCase(opt);
+optvals = cellfun(@(x) opt.(x), fieldnames(opt), 'uniformoutput', false);
+optlist = reshape(vertcat(fieldnames(opt)', optvals'), [], 1);
+[model, states] = run2DCase(optlist{:});
 plot2DPoroExample(model, states, opt);
 
 
 opt.method      = 'fixed stress splitting';
 writeIntroText(opt);
-[model, states] = run2DCase(opt);
+optvals = cellfun(@(x) opt.(x), fieldnames(opt), 'uniformoutput', false);
+optlist = reshape(vertcat(fieldnames(opt)', optvals'), [], 1);
+[model, states] = run2DCase(optlist{:});
 plot2DPoroExample(model, states, opt);
 
 %%  Three phases Black-Oil phases cases
@@ -72,11 +81,15 @@ opt.fluid_model = 'blackoil';
 
 opt.method      = 'fully coupled';
 writeIntroText(opt);
-[model, states] = run2DCase(opt);
+optvals = cellfun(@(x) opt.(x), fieldnames(opt), 'uniformoutput', false);
+optlist = reshape(vertcat(fieldnames(opt)', optvals'), [], 1);
+[model, states] = run2DCase(optlist{:});
 plot2DPoroExample(model, states, opt);
 
 
 opt.method      = 'fixed stress splitting';
 writeIntroText(opt);
-[model, states] = run2DCase(opt);
+optvals = cellfun(@(x) opt.(x), fieldnames(opt), 'uniformoutput', false);
+optlist = reshape(vertcat(fieldnames(opt)', optvals'), [], 1);
+[model, states] = run2DCase(optlist{:});
 plot2DPoroExample(model, states, opt);

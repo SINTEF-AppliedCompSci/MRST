@@ -53,12 +53,16 @@ opt.fluid_model = 'water';
 
 opt.method = 'fully coupled';
 writeIntroText(opt);
-[model, states] = runNorneExample(opt);
+optvals = cellfun(@(x) opt.(x), fieldnames(opt), 'uniformoutput', false);
+optlist = reshape(vertcat(fieldnames(opt)', optvals'), [], 1);
+[model, states] = runNorneExample(optlist{:});
 plotNornePoroExample(model, states, opt);
 
 opt.method = 'fixed stress splitting';
 writeIntroText(opt);
-[model, states] = runNorneExample(opt);
+optvals = cellfun(@(x) opt.(x), fieldnames(opt), 'uniformoutput', false);
+optlist = reshape(vertcat(fieldnames(opt)', optvals'), [], 1);
+[model, states] = runNorneExample(optlist{:});
 plotNornePoroExample(model, states, opt);
 
 
@@ -68,12 +72,16 @@ opt.fluid_model = 'oil water';
 
 opt.method = 'fully coupled';
 writeIntroText(opt);
-[model, states] = runNorneExample(opt);
+optvals = cellfun(@(x) opt.(x), fieldnames(opt), 'uniformoutput', false);
+optlist = reshape(vertcat(fieldnames(opt)', optvals'), [], 1);
+[model, states] = runNorneExample(optlist{:});
 plotNornePoroExample(model, states, opt);
 
 opt.method = 'fixed stress splitting';
 writeIntroText(opt);
-[model, states] = runNorneExample(opt);
+optvals = cellfun(@(x) opt.(x), fieldnames(opt), 'uniformoutput', false);
+optlist = reshape(vertcat(fieldnames(opt)', optvals'), [], 1);
+[model, states] = runNorneExample(optlist{:});
 plotNornePoroExample(model, states, opt);
 
 
@@ -83,11 +91,15 @@ opt.fluid_model = 'blackoil';
 
 opt.method = 'fully coupled';
 writeIntroText(opt);
-[model, states] = runNorneExample(opt);
+optvals = cellfun(@(x) opt.(x), fieldnames(opt), 'uniformoutput', false);
+optlist = reshape(vertcat(fieldnames(opt)', optvals'), [], 1);
+[model, states] = runNorneExample(optlist{:});
 plotNornePoroExample(model, states, opt);
 
 opt.method = 'fixed stress splitting';
 writeIntroText(opt);
 opt.splittingTolerance = 1e-3;
-[model, states] = runNorneExample(opt);
+optvals = cellfun(@(x) opt.(x), fieldnames(opt), 'uniformoutput', false);
+optlist = reshape(vertcat(fieldnames(opt)', optvals'), [], 1);
+[model, states] = runNorneExample(optlist{:});
 plotNornePoroExample(model, states, opt);
