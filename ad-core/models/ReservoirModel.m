@@ -1134,23 +1134,9 @@ methods
         %            field defining the component in question, so that the
         %            inflow of the component through the boundary condition
         %            or source terms can accurately by estimated.
-        if isempty(force)
-            return
-        end
-        c = model.getProp(force, cname);
-        cells = src.sourceCells;
-        switch lower(cname)
-            case {'polymer', 'surfactant'}
-                % Water based EOR, multiply by water flux divided by
-                % density and add into corresponding equation
-                qW = src.phaseMass{1}./model.fluid.rhoWS;
-                isInj = qW > 0;
-                qC = (isInj.*c + ~isInj.*component(cells)).*qW;
-            otherwise
-                error(['Unknown component ''', cname, '''. BC not implemented.']);
-        end
-        eq(cells) = eq(cells) - qC;
-        src.components{end+1} = qC;
+
+            error('This function is not valid for the base class. It should be implemented for the derived classes that contain components');
+            
     end
 
     function rhoS = getSurfaceDensities(model)

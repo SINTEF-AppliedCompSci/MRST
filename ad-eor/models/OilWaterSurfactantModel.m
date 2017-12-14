@@ -126,6 +126,52 @@ classdef OilWaterSurfactantModel < TwoPhaseOilWaterModel
             end
         end
         
+        function [eq, src] = addComponentContributions(model, cname, eq, component, src, force)
+        % For a given component conservation equation, compute and add in
+        % source terms for a specific source/bc where the fluxes have
+        % already been computed.
+        %
+        % PARAMETERS:
+        %
+        %   model  - (Base class, automatic)
+        %
+        %   cname  - Name of the component. Must be a property known to the
+        %            model itself through `getProp` and `getVariableField`.
+        %
+        %   eq     - Equation where the source terms are to be added. Should
+        %            be one value per cell in the simulation grid (model.G)
+        %            so that the src.sourceCells is meaningful.
+        %
+        %   component - Cell-wise values of the component in question. Used
+        %               for outflow source terms only.
+        %
+        %   src    - Source struct containing fields for fluxes etc. Should
+        %            be constructed from force and the current reservoir
+        %            state by `computeSourcesAndBoundaryConditionsAD`.
+        %
+        %   force  - Force struct used to produce src. Should contain the
+        %            field defining the component in question, so that the
+        %            inflow of the component through the boundary condition
+        %            or source terms can accurately by estimated.
+            if isempty(force)
+                return
+            end
+            c = model.getProp(force, cname);
+            cells = src.sourceCells;
+            switch lower(cname)
+              case {'surfactant'}
+                % Water based EOR, multiply by water flux divided by
+                % density and add into corresponding equation
+                qW = src.phaseMass{1}./model.fluid.rhoWS;
+                isInj = qW > 0;
+                qC = (isInj.*c + ~isInj.*component(cells)).*qW;
+              otherwise
+                error(['Unknown component ''', cname, '''. BC not implemented.']);
+            end
+            eq(cells) = eq(cells) - qC;
+            src.components{end+1} = qC;
+        end        
+        
         function [compEqs, compSrc, compNames, wellSol] = getExtraWellContributions(model, well, wellSol0, wellSol, q_s, bh, packed, qMass, qVol, dt, iteration)
             [compEqs, compSrc, compNames, wellSol] = getExtraWellContributions@TwoPhaseOilWaterModel(model, well, wellSol0, wellSol, q_s, bh, packed, qMass, qVol, dt, iteration);
             if model.surfactant
