@@ -16,10 +16,9 @@ classdef AGMGSolverAD < LinearSolverAD
 
    properties
        setupDone % Internal book-keeping variable
-       reuseSetup % Will reuse the setup phase to improve speed for e.g. a GMRES loop
-       % with the same matrix system. However, some systems report
-       % segfaults with this option enabled.
+       reuseSetup % Will reuse the setup phase to improve speed for e.g. a GMRES loop with the same matrix system. However, some systems report segfaults with this option enabled.
    end
+
    methods
        function solver = AGMGSolverAD(varargin)
             require agmg
