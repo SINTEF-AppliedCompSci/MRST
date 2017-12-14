@@ -75,7 +75,7 @@ classdef LinearSolverAD < handle
             end
             objective = combineEquations(objective);
             assert(isa(objective, 'ADI'), 'Objective function was not of type ADI.');
-            rhs = -objective.jac{1}';
+            rhs = -(objective.jac{1})';
             if ~isempty(adjVec)
                 problemPrev = problemPrev.assembleSystem();
                 rhs = rhs - problemPrev.A'*adjVec;
