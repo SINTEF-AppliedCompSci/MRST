@@ -129,6 +129,13 @@ classdef LinearSolverAD < handle
             
             % Find first index corresponding to ADI equation
             ix = find(cellfun(@(x) isa(x, 'ADI'), problem.equations), 1);
+            if isempty(ix)
+                % No ADI equations, we return empty increments
+                assert(isempty(result), ...
+                    'No ADI equations returned. Unable to map increments to variables.');
+                dx = {};
+                return
+            end
             % Calculate positions in newton increment
             numVars = problem.equations{ix}.getNumVars();
             cumVars = cumsum(numVars);
