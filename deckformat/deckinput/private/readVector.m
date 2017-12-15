@@ -1,16 +1,16 @@
-function v = readVector(fid, field, nel)
-%Input vector of floating point numbers from GRDECL file.
+function vec = readVector(fid, field, nel)
+%Input vector of floating point numbers from ECLIPSE input file.
 %
 % SYNOPSIS:
 %   v = readVector(fid, field, nel)
 %
 % PARAMETERS:
-%   fid   - File identifier (as defined by FOPEN) of GRDECL file open for
-%           reading.  Assumed to point to a seekable (i.e. physical) file
-%           on disk, not (e.g.) a POSIX pipe.
+%   fid   - File identifier (as defined by FOPEN) of ECLIPSE input file
+%           open for reading.  Assumed to point to a seekable (i.e.,
+%           physical) file on disk, not (e.g.) a POSIX pipe.
 %
-%   field - Name (string) identifying the GRDECL keyword (field) currently
-%           being processed.  Used for error identification/messages only.
+%   field - Name (string) identifying the keyword (field) currently being
+%           processed.  Used for error identification/messages only.
 %
 %   nel   - Number of elements to read from input stream.  As a special
 %           case, the caller may pass nel==INF (or nel=='inf') to read as
@@ -19,9 +19,12 @@ function v = readVector(fid, field, nel)
 %
 % RETURNS:
 %   v     - Vector, length 'nel', of floating point numbers defining the
-%           contents of GRDECL keyword 'field'.  If nel==INF, NUMEL(v) is
+%           contents of ECLIPSE keyword 'field'.  If nel==INF, NUMEL(v) is
 %           the number of vector elements read before the terminating slash
 %           character.
+%
+% SEE ALSO:
+%   `fopen`, `fseek`, `textscan`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
@@ -42,293 +45,223 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
-% Simple vector read.  Assume the vector is given explictly by listing all
-% of its values separated by whitespace, possibly interspersed by comments.
-%
-
-if ischar(nel) && strcmpi(nel, 'inf'), nel = inf; end
-scanner = getScanner();
-opt = getScanOpt(nel);
-cs  = opt{end};   % CommentStyle -- relies on knowledge of 'getScanOpt'.
-C   = scanner(fid, '%f', opt{:});
-
-pos = ftell(fid);
-lin = fgetl(fid);
-while ischar(lin) && (isempty(lin) || matches(lin, ['^\*|^\s+$|^\s*', cs])),
-   if strncmp('*', lin, 1),
-      % Repeat description of the form
-      %      N*value
-      % with 'N' a positive integer.  There must be no whitespace
-      % immediately before or after the literal asterisk ('*').
-      %
-      % This format allows considerable economy of file space, e.g., when
-      % listing uniform porosity values such as
-      %
-      %   PORO
-      %     5000*0.3 /
-      %
-      % for a vector of five thousand repetitions of the value 0.3.  The
-      % MATLAB equivalent is
-      %
-      %   PORO = REPMAT(0.3, [5000, 1]);
-      %
-      % This format is most likely encountered when processing GRID section
-      % keywords such as 'DXV', 'PERMX', 'PORO', 'ACTNUM' and, possibly,
-      % 'ZCORN' and SCHEDULE section keywords such as 'TSTEP'.
-      %
-
-      % Validate repeat description format.
-      %
-      % Algorithm:
-      %   1) Read character string starting from (pos - 1) up to first
-      %      blank (white-space) or termination ('/') character.
-      %   2) Check if first two characters are exactly one digit and an
-      %      asterisk respectively.
-      %   3) If so, check that the remainder of the character string can be
-      %      parsed as a floating point value without any parse failures.
-      %
-      fseek(fid, pos - 1, 'bof');
-      check_string = fscanf(fid, '%[^/ \n\r\v\t\f]', 1);
-
-      [count, count, err, nchar] = ...
-         sscanf(check_string(3:end), '%f');                     %#ok<ASGLU>
-
-      if ~ matches(check_string(1:2), '\d\*') || ...
-         (count ~= 1) || ~ isempty(err)       || ...
-         (nchar ~= (numel(check_string) - 1))
-
-         error('readGRDECL:RepeatDescr:Malformed',                    ...
-               'Incorrect repeat description detected in keyword %s', ...
-               field);
-      end
-
-      % Validate repeat count value.
-      nrep = C{1}(end);
-      if ~isnumeric(nrep)             || ...
-         nrep < 1                     || ...
-         nrep > nel - numel(C{1}) + 1 || ...
-         nrep ~= fix(nrep),
-         error('readGRDECL:RepeatCount:OutOfBounds',             ...
-               ['Unexpected repeat count in keyword %s.\n',      ...
-                'Expected integral repeat count in [1 .. %d], ', ...
-                'but found %d.'], field, nel - numel(C{1}) + 1, nrep);
-      end
-
-      % Append repeated value to vector.
-      % 1) Position file descriptor directly after literal asterisk.
-      %
-      fseek(fid, pos + 1, 'bof');
-
-      % 2) Read a single floating point value (whence FTELL(fid) will
-      %    be on first whitespace, termination character ('/'), or,
-      %    if the input is malformed, EOF).
-      %
-      [val, count] = fscanf(fid, '%f', 1);   assert (count == 1);
-
-      % 3) Append this value to the vector whilst excluding the repeat
-      %    present in C{1}(end).
-      %
-      C = { [reshape(C{1}(1 : end-1), [], 1); ...
-             repmat(val, [nrep, 1])]        };
-
-      % 4) Count new number of elements and update expected read count.
-      %
-      nv  = numel(C{1});
-      opt = getScanOpt(nel, nv);
-
-      % Read next portion of vector data (possibly all remaining data).
-      C1 = scanner(fid, '%f', opt{:});
-
-      % Append this data to existing array.
-      C  = { [ reshape(C{1}, [], 1);   reshape(C1{1}, [], 1) ] };
+   if isnan(nel)
+      error('Argument:Invalid', 'Repeat Count Cannot be NaN');
    end
-   pos = ftell(fid);
-   lin = fgetl(fid);
-end
 
-iseof           = feof(fid);
-[errmsg, errno] = ferror(fid);
-readAll = (~isinf(nel) && (numel(C{1}) == nel)) | isinf(nel);
-
-if (iseof || (ischar(lin) && matches(lin, '^\s*/'))) && readAll,
-   v = C{1};
-elseif ischar(lin) && matches(lin, '^\s*/'),
-   %fclose(fid);
-   v  = C{1};
-   warning(['readGRDECL:Vector_', field, ':PrematureTermination'],    ...
-         ['Detected termination character ''/'' at position %d.\n', ...
-          'Scanning of keyword ''%s'' not completed.'], pos, field);
-elseif ischar(lin) && matches(lin, '^[A-Z]+'),
-   fclose(fid);
-   error(['readGRDECL:Vector_', field, ':OtherKeyword'],           ...
-         ['Encountered non-numeric data ''%s'' at position %d.\n', ...
-          'Scanning of keyword ''%s'' not completed.\n',           ...
-          'Missing slash (/) in input?'],                          ...
-          lin, pos, field);
-elseif ischar(lin) && matches(lin, '^[a-z!;=]+'),
-   error(['readGRDECL:Vector_', field, ':Unexpected'],             ...
-         ['Encountered non-numeric data ''%s'' at position %d.\n', ...
-          'Scanning of keyword ''%s'' not completed.'],            ...
-          lin, pos, field);
-elseif iseof,
-   fclose(fid);
-   error(['readGRDECL:Vector_', field, ':EOF'],               ...
-         'End of file before complete read of keyword ''%s''.', field);
-elseif errno ~= 0,
-   fclose(fid);
-   error(['readGRDECL:Vector_', field, ':SystemError'], ...
-         ['Read error while processing keyword %s.\n',  ...
-          'Input system reports ''%s''.'], field, errmsg);
-else
-   fclose(fid);
-   error(['readGRDECL:Vector_', field, ':Malformed'],     ...
-         ['Unexpected input while reading keyword %s.\n', ...
-          'Found ''%s'' at position %d.'], field, lin, pos);
-end
-
-%--------------------------------------------------------------------------
-% Private helpers follow.
-%--------------------------------------------------------------------------
-
-function scan = getScanner()
-%{
-if exist('textscan', 'builtin'),
-   scan = @textscan;
-else
-%}
-   scan = @myscanner;
-%end
-
-%--------------------------------------------------------------------------
-
-function opt = getScanOpt(nel, varargin)
-opt = {'CommentStyle', '--'};
-if nargin > 1 && isnumeric(varargin{1}),
-   nel = nel - varargin{1};
-end
-if ~isinf(nel),
-   opt = [{nel}, opt];
-end
-
-%--------------------------------------------------------------------------
-
-function b = matches(str, pat)
-b = ~isempty(regexp(str, pat, 'once'));
-
-%--------------------------------------------------------------------------
-
-function C = myscanner(fid, format, varargin)
-%Scanner function supporting a subset of TEXTSCAN features.
-
-% This function is needed when TEXTSCAN is unavailable (e.g., Octave or old
-% (pre-R14) releases of M).
-%
-% Algorithm:
-%   1) Attempt to read as much data as possible using FSCANF.  This handles
-%      most common cases (all data listed separately, no comments).
-%   2) If we encounter a comment, as identified by 'opt.CommentStyle', then
-%      scan individual lines until all comments have been scanned.
-%   3) If we encounter 'end-of-record' (i.e., a '/' character), then
-%      terminate all scanning and trust caller to detect any errors.
-
-% Setup:
-%   Define comment style (usually '--' to exclude a single line of input)
-%   Define termination strings (regexp's).
-nel = inf;
-if mod(numel(varargin), 2) == 1,
-   if readnum_ok(varargin{1}),
-      nel = varargin{1};
+   if ischar(nel) && strcmpi(nel, 'inf')
+      nel = inf;
    end
-   varargin = varargin(2 : end);
-end
-opt = struct('CommentStyle', '--');
-opt = merge_options(opt, varargin{:});
-if iscell(opt.CommentStyle),
-   assert (numel(opt.CommentStyle) == 1);
-   opt.CommentStyle = opt.CommentStyle{1};
-end
-assert (ischar(opt.CommentStyle));
-patt_comment   = ['^', opt.CommentStyle];
-patt_terminate = '^\*|^/';
 
-% Algorithm step 1.  Consume as much data as possible.
-[v, cnt] = fscanf(fid, format, nel);
-n = 0;
-C = reshape(v, [], 1);
-read_complete = n + cnt == nel;
-while ~read_complete,
-   % Short read.  Encountered comment or "premature" termination (usually
-   % when ISINF(nel)).  Must either consume a (block of) comment line(s)
-   % and all subsequent data or detect end-of-record in which case we need
-   % to terminate.
+   % Optimistic approach.  Try to parse vector that consists entirely of
+   % separate floating-point values (i.e., no repeat counts).  This is the
+   % fastest approach and often, though not always, useful for the very
+   % largest vectors such as ZCORN.
+   [vec, pos, complete] = read_vector_elements_simple(fid, nel);
 
-   % Algorithm:
-   %   1) Record position in file to allow caller to inspect input stream
-   %      if we need to terminate.
-   %   2) Inspect the next few character to determine if this is a comment
-   %      or 'end-of-record'.
-   %   3) Act accordingly.
-   pos = ftell(fid);
-   lin = fgetl(fid);
-   if strncmp(opt.CommentStyle, '--', 2) && matches(lin, '^-'),
-      % CommentStyle is '--' (i.e., following Eclipse convention).  In
-      % MATLABs prior to 7.10 (R2010a), FSCANF consumed the first '-'
-      % character thinking that the next token would be (negative) floating
-      % point number and failed when the second '-' character was
-      % encountered.  In MATLABs 7.10 and later, this behaviour has been
-      % corrected and FSCANF no longer consumes characters from the input
-      % stream that cannot be converted to outputs according to the scan
-      % format.
-      %
-      % Support both behaviours by backing up to one character before 'lin'
-      % (unless pos==0, in which case we back up to 'pos'), before reading
-      % a single character.  This one character should either be a space,
-      % as defined by ISSPACE, or a single dash that (likely) introduces a
-      % comment.
-      fseek(fid, pos - (pos > 0), 'bof');
-      c   = fscanf(fid, '%c', 1);
+   if ~complete
+      % Failed to read a complete vector.  Most likely cause is that we
+      % encountered a repeat count character ('*') which signals that we
+      % need to perform more elaborate input parsing.  First verify that we
+      % didn't encounter a read error.
+      [msg, errno] = ferror(fid);
+
+      if errno == 0
+         % No read error.  This is likely to be the case of repeat counts.
+         % We must, however, verify that we were able to read at least one
+         % floating-point value (the repeat count).
+         assert (isfloat(vec) && ~isempty(vec), 'Internal Logic Error');
+
+         % Tokenize the remainder of the vector's elements.
+         elm = read_vector_elements(vec(end), pos, fid);
+
+         % Parse those elements to numeric values and concatenate to
+         % previously read elements.  The last read element is the first
+         % repeat count, so we must NOT include that value in the final
+         % output returned to the caller.
+         vec = [ vec(1 : (end - 1))         ; ...
+                 parse_vector_elements(elm) ];
+      else
+         error('Read:Error', 'Input Error (TEXTSCAN): %s', msg);
+      end
+   end
+
+   finalize_reading_and_check_state(vec, fid, field, nel)
+end
+
+%--------------------------------------------------------------------------
+
+function [v, pos, complete] = read_vector_elements_simple(fid, nel)
+   % Simple vector read.  Try to consume a vector for which each element
+   % value is listed separately without any repeat counts.
+
+   % Defer the heavy lifting and comment handling to TEXTSCAN.  In
+   % principle this is FSCANF(FID, '%f'), but TEXTSCAN is easier to use.
+   [arr, pos] = textscan(fid, '%f', 'CommentStyle', '--');
+
+   % Output is single-element cell array of floating-point values.  Get the
+   % values.
+   v = arr{1};
+
+   % Check if we completed the entire vector read.
+   if isfinite(nel)
+      % Finite number of vector elements.  Check if we got all of them.
+      complete = numel(v) == nel;
+   elseif feof(fid)
+      % Non-finite element count (i.e., called as readVector(..., inf)).
+      % Treat EOF as '/' for ISINF(nel).
+      complete = true;
+   else
+      % Non-finite element count (i.e., called as readVector(..., inf)).
+      % Not at EOF.  Vector read complete if next character is terminator
+      % ('/').
+      complete = strcmp(fscanf(fid, '%c', 1), '/');
+
+      % Reverse back one character to enable surrounding logic to identify
+      % termination criterion.
+      fseek(fid, pos, 'bof');
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function tok = read_vector_elements(rpt, pos, fid)
+   % Elaborate tokenization of vectors that contain repeat counts of the
+   % form
+   %      N*value
+   % with 'N' a positive integer.  There must be no whitespace immediately
+   % before or after the literal asterisk ('*').
+   %
+   % This format allows considerable economy of file space, e.g., when
+   % listing uniform porosity values such as
+   %
+   %   PORO
+   %     5000*0.3 /
+   %
+   % for a vector of five thousand repetitions of the value 0.3.  The MATLAB
+   % equivalent is
+   %
+   %   PORO = REPMAT(0.3, [5000, 1]);
+   %
+   % This format is most likely encountered when processing GRID section
+   % keywords such as 'DXV', 'PERMX', 'PORO', 'ACTNUM' and, possibly,
+   % 'ZCORN' and SCHEDULE section keywords such as 'TSTEP'.
+
+   % Consistency checking: Verify that encountering a repeat count ('*')
+   % character actually prompted the more involved input routine.  Input
+   % 'pos' is directly before the character that could not be converted
+   % during the simplified vector read.  Seek to that position, read a
+   % single character and verify that that single character actually is the
+   % repeat designator.
+   fseek(fid, pos, 'bof');
+   ast = fscanf(fid, '%c', 1);
+   if ~strcmp(ast, '*') || mod(rpt, 1) ~= 0
+      error('RepeatDesignator:Erroneous', ...
+           ['Incorrect Repeat Descriptor.  ', ...
+            'Expected N*, but got %f%c'], rpt, ast);
+   end
+
+   % Tokenize relevant portion of the input stream.  Read everything up to
+   % the vector terminator '/' (or FEOF or input error), split on blanks
+   % (space, newline, tab) and ignore comment lines ('--' designator).
+   tok = textscan(fid, '%[^/ \n\t]', 'CommentStyle', '--');
+
+   % Output from TEXTSCAN is single-element cell array of cellstring of
+   % tokens.  Get the actual tokens.
+   tok = tok{1};
+
+   % Re-insert repeat count that was erroneously intepreted as a vector
+   % value into the first token to allow the parsing step to treat this
+   % complete token correctly.
+   tok{1} = sprintf('%d%c%s', rpt, ast, tok{1});
+end
+
+%--------------------------------------------------------------------------
+
+function vec = parse_vector_elements(val)
+   % Using TEXTSCAN here means we automatically handle Fortran-style double
+   % precision exponent characters (1.2D+3, 4.3d-2).  Function TEXTSCAN
+   % requires a single string (character vector), so we need to convert the
+   % input cellstring to that format (N-by-C CHAR).  Take special care to
+   % separate each token (single blank character between tokens).
+   cell1     = @(c) c{1};
+   mkchar    = @(c) [ char(c).' ; repmat(' ', [1, numel(c)]) ];
+   to_double = @(c) cell1(textscan(mkchar(c), '%f'));
+
+   count = ones([numel(val), 1]);
+
+   % Input (val) is cellstring with each element being a token of the form
+   % 1.23D+4 or 123*-.4567e-8 .  We need to identify the tokens that have
+   % repeat counts and translate those to RLDECODE arguments.
+
+   rpt = regexp(val, '(\d+)\*(\S+)', 'tokens');
+   i   = ~cellfun('isempty', rpt);
+
+   has_rpt = any(i);
+
+   if has_rpt
+      % Some vector elements have repeat counts.  Decode those and replace
+      % the tokens with their values only.
+
+      % 1) Extract tokens with repeat counts.
+      rpt = vertcat(rpt{i});
+
+      % 2) Translate those tokens to M-by-2 cellstring.
+      rpt = vertcat(rpt{:});
+
+      % 3) Convert string representations of repeat counts to numeric value
+      count(i) = to_double(rpt(:,1));
+
+      % 4) Replace repeat count tokens with the value portion (i.e., the
+      %    character sequence after the '*' character) only.
+      val(i) = rpt(:,2);
+   end
+
+   % Convert value string tokens to numeric type.
+   vec = to_double(val);
+
+   if has_rpt
+      % Some vector elements have repeat counts.  Expand those.
+      vec = rldecode(vec, count, 1);
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function finalize_reading_and_check_state(vec, fid, field, nel)
+   if isfinite(nel) && (numel(vec) ~= nel)
+      % Finite expected element count, but we did not get that number.
+      % Could be something resembling TOPS that has an implied copy
+      % operation built into the specification.  Issue a warning here.
+      warning('VectorSize:Mismatch', ...
+              'Failed to Input Keyword Vector ''%s''', field);
+   else
+      % Element reading complete for this vector.  Finish up by skipping
+      % the terminator ('/') and anything following that up to and
+      % including the next EOL mark.
       lin = fgetl(fid);
 
-      assert (isspace(c) || c == '-', ...
-             ['Unexpected character ''%c'' at position %d in file ', ...
-              '''%s''. Expected space or comment character.'], ...
-              c, pos, fopen(fid));
+      if ischar(lin)
+         % Got a set of characters.  If the first character is the vector
+         % terminator ('/'), then everything is fine.  Otherwise, issue a
+         % warning that we didn't find the expected terminator.
 
-      if c == '-',
-         lin = [c, lin];  %#ok
+         if isempty(regexp(lin, '^\s*/', 'once'))
+            warning('Unexpected:Termination', ...
+                   ['Expected Vector Terminator (''/''), ', ...
+                    'but Got ''%s'''], lin);
+         end
+
+      elseif ~feof(fid)
+         % Didn't find any characters after the vector elements and we're
+         % not at EOF.  This is a (highly) unexpected input failure (I/O
+         % error condition).  Nothing to do here but to report the issue
+         % back to our caller and hope they have a way of dealing with it.
+
+         errmsg = ferror(fid);
+         fname  = fopen(fid);
+         fprintf('I/O Error Reading Keyword Vector ''%s'' (%s): %s\n', ...
+                 field, fname, errmsg);
       end
    end
-   n = n + cnt;
-   if matches(lin, patt_comment),
-      % This is a comment.  The above FGETL has already consumed all
-      % character up to (and including) EOL.  Attempt to read new data with
-      % regular FSCANF approach.  This will fail if the next line is
-      % another comment, but then the enclosing WHILE will bring us back
-      % here on the next iteration...
-      [v, cnt] = fscanf(fid, format, nel - n);
-      C = [C; reshape(v, [], 1)];  %#ok
-      read_complete = n + cnt == nel;
-   elseif matches(lin, patt_terminate),
-      % This is a termination character (i.e., the '/' character) or a
-      % repeat character (i.e., the '*' character).  Back up to beginning
-      % of 'lin' to allow caller to rediscover the special character and
-      % take appropriate action.  Our work here is done.
-      fseek(fid, pos, 'bof');
-      read_complete = true;
-   else
-      fname = fopen(fid);
-      fclose(fid);
-      error('readVector:Input:Unexpected', ...
-           ['Unexpected input ''%s'' encountered at position ''%d''', ...
-            ' whilst scanning file ''%s''.'], lin, pos, fname);
-   end
 end
-
-% Convert to CELL to conform to semantics of TEXTSCAN.
-C = { C };
-
-%--------------------------------------------------------------------------
-
-function b = readnum_ok(n)
-b = isnumeric(n) && ~isempty(n) && isfinite(n);
