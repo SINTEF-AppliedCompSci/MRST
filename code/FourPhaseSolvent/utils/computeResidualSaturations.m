@@ -34,8 +34,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     M = fluid.Ms(FSG).*fluid.Mp(p);
     
     % Interpolated water/oil residual saturations
-    sWr  = fluid.sWr;
-    sOr  = M.*sOr_m + (1 - M).*sOr_i ;
+    sWr = fluid.sWr;
+    sOr = M.*sOr_m + (1 - M).*sOr_i ;
     sGc = M.*sGc_m + (1 - M).*sGc_i;
     
     if nargin > 5 && isfield(state0, 'sOr') && isfield(state0, 'sGc') && model.hystereticResSat

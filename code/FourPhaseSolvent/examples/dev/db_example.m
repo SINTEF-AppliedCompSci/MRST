@@ -2,7 +2,7 @@ mrstModule add ad-core ad-eor ad-blackoil ad-props blackoil-sequential matlab_bg
 
 gravity reset off
 
-n = 10;
+n = 100;
 G = computeGeometry(cartGrid([n,1,1], [100,1,1]));
 rock = makeRock(G, 100*milli*darcy, 1);
 
@@ -13,17 +13,18 @@ fluid = initSimpleADIFluid('n'     , [2, 2, 2], ...
                            'phases', 'WOG', ...
                            'mu'    , [1, 3, 1]*centi*poise);
 
-sOres_i= 0.2;
+sOr_i = 0.2;
 fluid.krW = coreyPhaseRelpermAD(2,     0, fluid.krG(1-sOr_i), sOr_i);
 [fluid.krO, fluid.krOW, fluid.krOG] = deal(coreyPhaseRelpermAD(2, sOr_i, fluid.krO(1)      , sOr_i));
 fluid.krG = coreyPhaseRelpermAD(2,     0, fluid.krG(1-sOr_i), sOr_i);
 
-fluid = addSolventProperties(fluid, 'n', 2, ...
-                                    'rho', 100*kilogram/meter^3, ...
-                                    'mixPar', 0.3, ...
-                                    'mu'    , 0.1*centi*poise, ...
-                                    'sOr_i', sOres_i, ...
-                                    'sOr_m', 0.0);
+fluid = addSolventProperties(fluid, ...
+                                    'rhoSS', 100*kilogram/meter^3, ...
+                                    'mixPar', 1, ...
+                                    'muS'    , 0.1*centi*poise, ...
+                                    'sOr_i', sOr_i, ...
+                                    'sOr_m', 0.0, ...
+                                    'smin', 1e-8);
                                 
 model = FourPhaseSolventModel(G, rock, fluid);
 model.extraStateOutput = true;
@@ -36,11 +37,11 @@ W = addWell(W, G, rock, G.cells.num, 'type', 'bhp', 'val', 50*barsa, 'comp_i', [
 nstep = 100;
 schedule = simpleSchedule(rampupTimesteps(T, T/nstep), 'W', W);
 
-% schedule.control(2) = schedule.control(1);
-% schedule.control(2).W(1).compi = [0,0,0,1];
-% schedule.step.control(1:nstep/2) = 2;
+schedule.control(2) = schedule.control(1);
+schedule.control(2).W(1).compi = [0,0,0,1];
+schedule.step.control(1:nstep/2) = 2;
 
-sO = sOres_i + 0.0;
+sO = sOr_i + 0.0;
 sG = 0.0;
 state0 = initResSol(G, 100*barsa, [1-sO-sG sO sG 0]);
 state0.wellSol = initWellSolAD(W, model, state0);

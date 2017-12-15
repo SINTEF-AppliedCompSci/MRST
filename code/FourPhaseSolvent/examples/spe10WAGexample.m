@@ -37,20 +37,19 @@ sOr_m = 0.21; % Miscible residual oil saturation
 
 % We scale the relperms to the immiscible endpoints.
 fluid.krW = coreyPhaseRelpermAD(2,     0, fluid.krG(1-sOr_i), sOr_i);
-[fluid.krO, fluid.krOW, fluid.krOG] = deal(coreyPhaseRelpermAD(2, sOr_i, fluid.krO(1)      , sOr_i));
+[fluid.krO, fluid.krOW, fluid.krOG] = deal(coreyPhaseRelpermAD(2, sOr_i, fluid.krO(1), sOr_i));
 fluid.krG = coreyPhaseRelpermAD(2,     0, fluid.krG(1-sOr_i), sOr_i);     
 
 % The model uses a mixing paramter $\omega$ that defines the degree of
 % mixing, where
 % $$ \text{(no mixing)} = 0 <= \omega <= 1 = \text{(full mixing)}.$$
 % This is set by mixPar.
-fluid   = addSolventProperties(fluid,'n'     , [2,2,2]             , ...
-                                     'rho'   , 80*kilogram/meter^3, ...
-                                     'mixPar', 2/3                 , ...
-                                     'mu'    , 0.5*centi*poise     , ...
-                                     'sOr_i' , sOr_i               , ...
-                                     'sOr_m' , sOr_m               , ...
-                                     'c'     , 1e-5/barsa          );
+fluid   = addSolventProperties(fluid, 'rhoSS' , 100*kilogram/meter^3, ...
+                                      'mixPar', 2/3                 , ...
+                                      'muS'   , 0.5*centi*poise     , ...
+                                      'sOr_i' , sOr_i               , ...
+                                      'sOr_m' , sOr_m               , ...
+                                      'c'     , 1e-5/barsa          );
                                  
 model4Ph = FourPhaseSolventModel(G, rock, fluid);
 
@@ -71,7 +70,7 @@ figure('Position', [df(1:2), 1000, 400]);
 
 n = 100;
 [sO,sS] = meshgrid(linspace(0,1,n)', linspace(0,1,n)');
-sW = 0; sG = 1-(sW+sO+sS);
+sG = 1-(sO+sS); sW = 0*sO;
 
 ss  = linspace(0,1-sOr_m,100)';
 b   = sOr_i + 2*ss - 1;
@@ -79,10 +78,8 @@ sg  = (-b + sqrt(b.^2 - 4*(ss.*(sOr_m + ss - 1))))/2;
 sor = 1 - sg - ss;
 
 sW = sW(:); sO = sO(:); sG = sG(:); sS = sS(:);
-[sWr, sOr, sGc]  = computeResidualSaturations(model4Ph, 0, sW, sG, sS);
-[krW, krO, krG, krS]      = computeRelPermSolvent(model4Ph, 0, sW, sO, sG, sS, sWr, sOr, sGc, 1);
-[muW, muO, muG, muS, rhoW, rhoO, rhoG, rhoS, bW, bO, bG, bS, ~, ~] ...
-    = computeViscositiesAndDensities(model4Ph, p , sO , sG , sS , sOr , sGc, 0, 0, false, false);
+[sWr, sOr, sGc]      = computeResidualSaturations(model4Ph, 0, sW, sG, sS);
+[krW, krO, krG, krS] = computeRelPermSolvent(model4Ph, 0, sW, sO, sG, sS, sWr, sOr, sGc, 1);
 sO = reshape(sO, n,n); sG = reshape(sG, n,n); sS = reshape(sS, n,n);
 
 phName = {'O', 'G', 'S'};
@@ -109,16 +106,17 @@ end
 % We consider the hello-world of reservoir simulation: A quarter-five spot
 % pattern. The injector in the middle is operater at a fixed injection
 % rate, while the producers in each corner is operated at a fixed
-% bottom-hole pressure of 50 bars. During the first 2 years, we inject only
-% water, while during the next two, we perform four cycles of equal periods
-% of solvent gas and water injection. This is a common strategy to reduce
-% the growth of viscous fingers associated with gas injection, and uphold a
-% more favourable injected to reservoir fluid mobility ratio.
+% bottom-hole pressure of 50 bars. During the first half year, we inject
+% only water, while during the next year, we perform four cycles of equal
+% periods of solvent gas and water injection. Finally, we perform half a
+% year of water injection. This is a common strategy to reduce the growth
+% of viscous fingers associated with gas injection, and uphold a more
+% favourable injected to reservoir fluid mobility ratio.
 
-time = 0.5*year;                             % Time of the water injection
-                                           % and WAG injection
-rate = 0.1*sum(poreVolume(G, rock))/time;  % We inject a total of 0.2 PVI 
-bhp = 50*barsa;                            % Producer bottom-hole pressure
+timeW   = 0.5*year;                           % Duration of water injection periods
+timeWAG = 2*timeW;                            % Duration of WAG period
+rate    = 0.1*sum(poreVolume(G, rock))/timeW; % We inject a total of 0.4 PVI 
+bhp     = 50*barsa;                           % Producer bottom-hole pressure
 
 producers = {1                                                     , ...
              G.cartDims(1)                                         , ...
@@ -144,19 +142,21 @@ for iNo = 1:numel(injectors)
                 'name'  , ['I', num2str(iNo)]  );
 end
 
-dt1         = 60*day; % Timestep size for water injection
-dt2         = 30*day; % Timestep size for WAG cycles
+dt1         = 60*day; % Timestep size for first water injection period
+dt2         = 30*day; % Timestep size for WAG cycles and second water injection period
 useRampUp   = true;   % We use a few more steps each time we change the 
                       % well control to ease the nonlinear solution process
 nCycles     = 4;      % Four WAG cycles
-scheduleWAG = makeWAGschedule(W, nCycles, 'time'     , 2*time     , ...
-                                          'dt'       , dt2    , ...
+scheduleWAG = makeWAGschedule(W, nCycles, 'time'     , timeWAG  , ...
+                                          'dt'       , dt2      , ...
                                           'useRampup', useRampUp);
 
-tvec1                    = rampupTimesteps(time, dt1);
-tvec2                    = rampupTimesteps(time, dt2, 0);
+tvec1                    = rampupTimesteps(timeW, dt1);
+tvec2                    = rampupTimesteps(timeW, dt2, 0);
 scheduleWAG.step.val     = [tvec1; scheduleWAG.step.val; tvec2];
-scheduleWAG.step.control = [2*ones(numel(tvec1),1); scheduleWAG.step.control; 2*ones(numel(tvec2),1)];
+scheduleWAG.step.control = [2*ones(numel(tvec1),1)  ; ...
+                            scheduleWAG.step.control; ...
+                            2*ones(numel(tvec2),1) ];
 
 %% Define model and initial state, and simulate results
 % The reservoir is initially filled with a mixture of oil, reservoir gas
@@ -187,7 +187,7 @@ for wNo = 1:numel(W)
     W(wNo).compi = [1,0,0];
 end
 
-tvec     = rampupTimesteps(4*time, dt1);
+tvec     = rampupTimesteps(4*timeW, dt1);
 schedule = simpleSchedule(tvec, 'W', W);
 model3Ph = ThreePhaseBlackOilModel(G, rock, fluid);
 model3Ph.extraStateOutput = true;
