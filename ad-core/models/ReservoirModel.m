@@ -149,7 +149,10 @@ methods
 
         if isempty(model.FacilityModel)
             model.FacilityModel = FacilityModel(model); %#ok
+        else
+            model.FacilityModel.ReservoirModel = model;
         end
+        
         if nargin > 1
             W = varargin{1}.W;
             model.FacilityModel = model.FacilityModel.setupWells(W);
