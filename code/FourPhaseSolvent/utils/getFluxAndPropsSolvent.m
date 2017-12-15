@@ -1,5 +1,5 @@
-function [vW, vO, vG, vS, mobW, mobO, mobG, mobS, upcW, upcO, upcG, upcS] = getFluxAndPropsSolvent(fluid, pO, krW, krO, krG, krS, muW, muO, muG, muS, rhoW, rhoO, rhoG, rhoS, T, gdz, op)
-    
+function [vW, vO, vG, vS, mobW, mobO, mobG, mobS, upcW, upcO, upcG, upcS] = getFluxAndPropsSolvent(fluid, pO, krW, krO, krG, krS, muW, muO, muG, muS, rhoW, rhoO, rhoG, rhoS, sW, sG, sS, T, gdz, op)
+
     pcOW = 0;
     if isfield(fluid, 'pcOW') && ~isempty(sW)
        pcOW = fluid.pcOW(sW);
@@ -23,7 +23,7 @@ function [vW, vO, vG, vS, mobW, mobO, mobG, mobS, upcW, upcO, upcG, upcS] = getF
     
     pcOG = 0;
     if isfield(fluid, 'pcOG') && ~isempty(sG)
-        Mp = fluid.Mpres(p);
+        Mp = fluid.Mp(pO);
         pcOG_m = fluid.pcOG(sG);
         pcOG_i = fluid.pcOG(sG + sS);
         pcOG = Mp.*pcOG_m + (1-Mp).*pcOG_i;

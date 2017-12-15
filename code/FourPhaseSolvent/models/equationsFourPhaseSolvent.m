@@ -32,33 +32,25 @@ W     = drivingForces.W;
 op    = model.operators;
 fluid = model.fluid;
 
-keepOil = true;
-
 % Properties at current timestep
-if keepOil
-    [p , sW , sO , sG , rs , rv , wellSol ] = model.getProps(state, ...
-                     'pressure', 'water', 'oil', 'gas', 'rs', 'rv', 'wellSol');
-    % Properties at previous timestep
-    [p0, sW0, sO0, sG0, rs0, rv0, wellSol0] = model.getProps(state0, ...
-                     'pressure', 'water', 'oil', 'gas', 'rs', 'rv', 'wellSol');
-else
-    [p , sW , sG , sS , rs , rv , wellSol ] = model.getProps(state, ...
-                     'pressure', 'water', 'gas', 'solvent', 'rs', 'rv', 'wellSol');
-    [p0, sW0, sG0, sS0, rs0, rv0, wellSol0] = model.getProps(state0, ...
-                     'pressure', 'water', 'gas', 'solvent', 'rs', 'rv', 'wellSol');
-end
+[p , sW , sG , sS , rs , rv , wellSol ] = model.getProps(state, ...
+             'pressure', 'water', 'gas', 'solvent', 'rs', 'rv', 'wellSol');
+% Properties at previous timestep
+[p0, sW0, sG0, sS0, rs0, rv0, wellSol0] = model.getProps(state0, ...
+             'pressure', 'water', 'gas', 'solvent', 'rs', 'rv', 'wellSol');
 
-             
 % Well variables
 [wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
 
+solventInWater = true;
+
 % Initialize primary variables (gas saturation taken to be sG + sS)
-if keepOil
-    st  = model.getCellStatusVO(state,  sO , sW , 1 - sW  - sO );
-    st0 = model.getCellStatusVO(state0, sO0, sW0, 1 - sW0 - sO0);
+if solventInWater
+    st  = model.getCellStatusVO(state,  1-(sW + sG  + sS) , sW  + sS , sG );
+    st0 = model.getCellStatusVO(state0, 1-(sW0+ sG0 + sS0), sW0 + sS0, sG0);
 else
-    st  = model.getCellStatusVO(state,  1-(sW +sG +sS ), sW , sG  + sS );
-    st0 = model.getCellStatusVO(state0, 1-(sW0+sG0+sS0), sW0, sG0 + sS0);
+    st  = model.getCellStatusVO(state,  1-(sW + sG  + sS) , sW , sG  + sS );
+    st0 = model.getCellStatusVO(state0, 1-(sW0+ sG0 + sS0), sW0, sG0 + sS0);
 end
 
 if model.disgas || model.vapoil
@@ -73,51 +65,42 @@ end
 if ~opt.resOnly,
     if ~opt.reverseMode,
         % define primary varible x and initialize
-        if keepOil
-            [p, sW, sO, x, wellVars{:}] = initVariablesADI(p, sW, sO, x, wellVars{:});
-        else
-            [p, sW, x, sS, wellVars{:}] = initVariablesADI(p, sW, x, sS, wellVars{:});
-        end
+        [p, sW, x, sS, wellVars{:}] = initVariablesADI(p, sW, x, sS, wellVars{:});
     else
         wellVars0 = model.FacilityModel.getAllPrimaryVariables(wellSol0);
         x0 = st0{1}.*rs0 + st0{2}.*rv0 + st0{3}.*sG0;
-        if keepOil
-            [p0, sW0, sO0, x0, wellVars0{:}] = initVariablesADI(p0, sW0, sO0, x0, wellVars0{:}); %#ok
+        [p0, sW0, x0, sS0, wellVars0{:}] = initVariablesADI(p0, sW0, x0, sS0, wellVars0{:}); %#ok
+        if solventInWater
+            [sG0, rs0, rv0] = calculateHydrocarbonsFromStatusBO(model, st0, 1-(sW0 + sS0), x0, rs0, rv0, p0);
         else
-            [p0, sW0, x0, sS0, wellVars0{:}] = initVariablesADI(p0, sW0, x0, sS0, wellVars0{:}); %#ok
+            [sG0, rs0, rv0] = calculateHydrocarbonsFromStatusBO(model, st0, 1- sW0, x0 + sS0, rs0, rv0, p0);
         end
-        [sG0, rs0, rv0] = calculateHydrocarbonsFromStatusBO(model, st0, 1-sW0, x0, rs0, rv0, p0);
     end
 end
     
 if ~opt.reverseMode
     % Compute values from status flags. If we are in reverse mode, these
     % values have already converged in the forward simulation.
-    [sG, rs, rv, rsSat, rvSat] = calculateHydrocarbonsFromStatusBO(model, st, 1-sW, x, rs, rv, p);
+    if solventInWater
+        [sG, rs, rv, rsSat, rvSat] = calculateHydrocarbonsFromStatusBO(model, st, 1 - (sW + sS), x, rs, rv, p);
+    else
+        [sG, rs, rv, rsSat, rvSat] = calculateHydrocarbonsFromStatusBO(model, st, 1 - sW , x + sS, rs, rv, p);
+    end
 end
 
-% We will solve for pressure, and water/oil/gas saturations (solvent
+% We will solve for pressure, and water/gas/solvent saturations (oil
 % saturation follows via the definition of saturations), and well rates +
 % bhp.
-if keepOil
-    primaryVars = {'pressure', 'sW', 'sO', gvar, wellVarNames{:}};
-else
-    primaryVars = {'pressure', 'sW', gvar, 'sS', wellVarNames{:}};
-end
+primaryVars = {'pressure', 'sW', gvar, 'sS', wellVarNames{:}};
 
-if keepOil
-    sS  = 1 - (sW  + sO  + sG );
-    sS0 = 1 - (sW0 + sO0 + sG0);
-else
-    sO  = 1 - (sW  + sG  + sS );
-    sO0 = 1 - (sW0 + sG0 + sS0);
-end
+sO  = 1 - (sW  + sG  + sS );
+sO0 = 1 - (sW0 + sG0 + sS0);
 
 % Calculate residual saturations
 [sWr, sOr , sGc ] = computeResidualSaturations(model, p , sW , sG , sS , state0);
 if isfield(state0, 'sOr') && isfield(state0, 'sGcr')
-    sOr0 = state0.sOr0;
-    sGc0 = state0.sGc0;
+    sOr0 = state0.sOr;
+    sGc0 = state0.sGc;
 else
     [~    , sOr0, sGc0] = computeResidualSaturations(model, p0, sW0, sG0, sS0, state0);
 end
@@ -131,9 +114,9 @@ T = op.T.*transMult;
 
  % Calulate effective viscosities and densities
 [muW, muO, muG, muS, rhoW, rhoO , rhoG , rhoS , bW , bO , bG , bS , pW, pG] ...
-    = computeViscositiesAndDensities(model, p , sO , sG , sS , sOr , sGc , rs, rv, ~st{1}, ~st{2});
+    = computeViscositiesAndDensities(model, p , sW, sO , sG , sS , sOr , sGc , rs, rv, ~st{1}, ~st{2});
 [~  , ~  , ~  , ~  , ~   , rhoO0, rhoG0, rhoS0, bW0, bO0, bG0, bS0, ~ , ~] ...
-    = computeViscositiesAndDensities(model, p0, sO0, sG0, sS0, sOr0, sGc0, rs0, rv0, ~st0{1}, ~st0{2});
+    = computeViscositiesAndDensities(model, p0, sW0, sO0, sG0, sS0, sOr0, sGc0, rs0, rv0, ~st0{1}, ~st0{2});
 
 % % Calulcate effective formation volume factors
 % [bW , bO , bG , bS ] = computeFormationVolumeFactors(fluid, p , rhoO , rhoG , rhoS );
@@ -142,7 +125,7 @@ T = op.T.*transMult;
 gdz = model.getGravityGradient();
 
 [vW, vO, vG, vS, mobW, mobO, mobG, mobS, upcW, upcO, upcG, upcS] ...
-    = getFluxAndPropsSolvent(fluid, p, krW, krO, krG, krS, muW, muO, muG, muS, rhoW, rhoO, rhoG, rhoS, T, gdz, op);
+    = getFluxAndPropsSolvent(fluid, p, krW, krO, krG, krS, muW, muO, muG, muS, rhoW, rhoO, rhoG, rhoS, sW, sG, sS, T, gdz, op);
 
 if model.outputFluxes
     state = model.storeFluxes(state, vW, vO, vG, vS);
@@ -182,7 +165,7 @@ end
 % Conservation of mass for gas
 if model.disgas
     % The gas transported in the oil phase.
-    rsbOvO = op.faceUpstr(upco, rs).*bOvO;
+    rsbOvO = op.faceUpstr(upcO, rs).*bOvO;
     
     gas = (op.pv/dt).*( pvMult.* (bG.* sG  + rs.* bO.* sO) - ...
         pvMult0.*(bG0.*sG0 + rs0.*bO0.*sO0 ) ) + ...
@@ -212,6 +195,7 @@ if 1
     
 end
 
+state.sr = [double(sOr), double(sGc)];
 state.sOr = double(sOr);
 state.sGc = double(sGc);
 
@@ -224,21 +208,22 @@ rho = {rhoW, rhoO, rhoG, rhoS};
 mob = {mobW, mobO, mobG, mobS};
 sat = {sW, sO, sG, sS};
 dissolved = model.getDissolutionMatrix(rs, rv);
-
-[eqs, ~, qRes] = addFluxesFromSourcesAndBC(model, eqs, ...
-                                       {pW, p, pG, pG},...
-                                       rho, ...
-                                       mob, ...
-                                       sat, ...
-                                       drivingForces);
-                                   
-if model.outputFluxes
-    state = model.storeBoundaryFluxes(state, qRes{1}, qRes{2}, [], drivingForces);
-end
+% 
+% [eqs, ~, qRes] = addFluxesFromSourcesAndBC(model, eqs, ...
+%                                        {pW, p, pG, pG},...
+%                                        rho, ...
+%                                        mob, ...
+%                                        sat, ...
+%                                        drivingForces);
+%                                    
+% if model.outputFluxes
+%     state = model.storeBoundaryFluxes(state, qRes{1}, qRes{2}, [], drivingForces);
+% end
 
 % Finally, add in and setup well equations
 if ~isempty(W)
-    
+   
+if 0
     % Density of injected fluids are calculated using the 'saturations'
     % given in compi
     nc = arrayfun(@(w) numel(w.cells), W);
@@ -254,21 +239,68 @@ if ~isempty(W)
 
     [muWell, rhoWell] = deal(cell(4,1));
     [krWell{1}, krWell{2}, krWell{3}, krWell{4}] ...
-        = computeRelPermSolvent(model, p(wc), compi(:,1), compi(:,2), compi(:,3), compi(:,4), 0, 0, 0, mobMultw);
+        = computeRelPermSolvent(model, p(wc), compi(:,1), compi(:,2), compi(:,3), compi(:,4), sWr, sOr(wc), sGc(wc), mobMultw);
     [muWell{1}, muWell{2}, muWell{3}, muWell{4}, rhoWell{1}, rhoWell{2}, rhoWell{3}, rhoWell{4}] ...
-        = computeViscositiesAndDensities(model, p(wc), compi(:,2), compi(:,3), compi(:,4), 0, 0, rsw, rvw, isSatOw, isSatGw);
-
+        = computeViscositiesAndDensities(model, p(wc), compi(:,1), compi(:,2), compi(:,3), compi(:,4), sOr(wc), sGc(wc), rsw, rvw, isSatOw, isSatGw);
     for nPh = 1:4
         rho{nPh}(wc) = rhoWell{nPh};
         mob{nPh}(wc) = krWell{nPh}./muWell{nPh};
     end 
     
-%     wm = model.FacilityModel;
-    if ~opt.reverseMode
-        [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, wellVars, wellMap, p, mob, rho, dissolved, {}, dt, opt);
-    else
-%         [eqs(4:7), names(4:7), types(4:7)] = wm.createReverseModeWellEquations(model, state0.wellSol, p0);
+elseif 0
+    
+    nc = arrayfun(@(w) numel(w.cells), W);
+    sign = rldecode(vertcat(wellSol.sign), nc, 1);
+
+    wc = vertcat(W.cells);
+    wc = wc(sign>0);
+
+    compi = rldecode(vertcat(W.compi), nc, 1);
+    compi = compi(sign>0,:);
+
+    [mobMultw, rsw, rvw, isSatOw, isSatGw] = getWellValue(wc, mobMult, rs, rv, ~st{1}, ~st{2}); 
+    
+    FSGw = fluid.satFrac(compi(:,4), compi(:,3) + compi(:,4));
+    krGTw = fluid.krG(compi(:,3) + compi(:,4));
+    krGw  = fluid.krFG(1-FSGw).*krGTw;
+    krSw  = fluid.krFS(FSGw).*krGTw;
+    
+    krWell   = {mobMultw.*fluid.krW(compi(:,1)), mobMultw.*fluid.krO(compi(:,2)), ...
+               mobMult.*krGw, mobMult.*krSw};
+    fld = fluid; fld.mixPar = 0; fld.mixParRho = 0;
+    mdl = model; mdl.fluid = fld;
+
+    [muWell, rhoWell] = deal(cell(4,1));
+    [muWell{1}, muWell{2}, muWell{3}, muWell{4}, rhoWell{1}, rhoWell{2}, rhoWell{3}, rhoWell{4}] ...
+        = computeViscositiesAndDensities(mdl, p(wc), compi(:,1), compi(:,2), compi(:,3), compi(:,4), sOr(wc), sGc(wc), rsw, rvw, isSatOw, isSatGw);
+    for nPh = 1:4
+        rho{nPh}(wc) = rhoWell{nPh};
+        mob{nPh}(wc) = krWell{nPh}./muWell{nPh};
+    end 
+    
+elseif 0
+    
+    nc = arrayfun(@(w) numel(w.cells), W);
+    sign = rldecode(vertcat(wellSol.sign), nc, 1);
+    wc = vertcat(W.cells);
+    wc = wc(sign>0);
+    
+    Mpw = fluid.Mp(p(wc));
+    rhoS = model.getSurfaceDensities();
+    
+    bO_i = fluid.bO(p, rs, ~st{1});
+    bG_i = fluid.bG(p);
+    bS_i = fluid.bS(p);
+    b = {bW, bO_i, bG_i, bS_i};
+        
+    for phNo = 1:4
+        rho{phNo}(wc) = rho{phNo}(wc).*Mpw + rhoS(phNo).*b{phNo}(wc).*(1-Mpw);
     end
+    
+end
+    
+    [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, wellVars, wellMap, p, mob, rho, dissolved, {}, dt, opt);
+
 end
 
 % Scale solvent equations (this should be changed to CNV/MB convergence...)
@@ -281,11 +313,11 @@ end
 function varargout = getWellValue(wellCells, varargin)
     
     for i = 1:numel(varargin)
-        v = varargin(i);
-        if numel(v) == 1
-            varargout(i) = v;
+        v = varargin{i};
+        if numel(double(v)) == 1
+            varargout{i} = v;
         else
-            varargout(i) = v(wellCells);
+            varargout{i} = v(wellCells);
         end 
     end
 
