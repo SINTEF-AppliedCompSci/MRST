@@ -26,31 +26,57 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     %% Immiscible relative permeabilities
     
-    krO_i  = fluid.krO(sO);      % Oil relperm
-    krGT_i = fluid.krG(sG + sS); % Total gas relperm
+%     sS(sS < fluid.smin) = 0;
+%     sG(sG < fluid.smin) = 0;
     
-    sS(sS < fluid.smin) = 0;
-    FSG = fluid.satFrac(sS, sG + sS); % Solvent to total gas saturation fraction
+    sOr_i = fluid.sOr_i; sGc_i = fluid.sGc_i;
+    srtot = sWr + sOr + sGc;
+    srtot_i = sWr + sOr_i + sGc_i;
+    
+    sWn  = scaledSaturation(fluid, sW, srtot, srtot_i, sWr, sWr  );
+    sOn  = scaledSaturation(fluid, sO, srtot, srtot_i, sOr, sOr_i);
+    sGTn = scaledSaturation(fluid, sG + sS, srtot, srtot_i, sGc, sGc_i);
+    
+%     sOn = scaledSaturation(fluid, 1-(sW + sG), srtot, srtot_i, sOr, sOr_i);
+%     sWn = sW;
+%     sOn = sO;
+%     sGTn = sG + sS;
+    
+    krW    = fluid.krW(sWn);
+    krO_i  = fluid.krO(sOn);  % Oil relperm
+    krGT_i = fluid.krG(sGTn); % Total gas relperm
+    
+    
+    FSG   = fluid.satFrac(sS, sG + sS); % Solvent to total gas saturation fraction
     krG_i = fluid.krFG((1-FSG)).*krGT_i;
     krS_i = fluid.krFS(FSG    ).*krGT_i;
 
     %% Miscible relative permeabilities
     
     % Mobile saturaitons
-    sOn  = max(sO - sOr,0);
-    sGn  = max(sG - sGc,0);
-    sGTn = max(sG + sS - sGc, 0);              % Total mobile gas saturation
-    sNn  = max(sO + sG + sS - (sOr + sGc), 0); % Total mobile HC saturaion
+    sOm  = max(sO - sOr, 0);
+    sGm  = max(sG - sGc, 0);
+    sGTm = max(sG + sS - sGc, 0);              % Total mobile gas saturation
+    sNm  = max(sO + sG + sS - (sOr + sGc), 0); % Total mobile HC saturaion
     
-    FOnNn = fluid.satFrac(sOn, sNn);   % Oil to HC saturation fraction
-    FGnGTn = fluid.satFrac(sGn, sGTn); % Gas to HC saturation fraction
+    FOmNm = fluid.satFrac(sOm, sNm);   % Oil to HC saturation fraction
+    FGmGTm = fluid.satFrac(sGm, sGTm); % Gas to HC saturation fraction
+    
+    FGTmNm = fluid.satFrac(sGTm, sNm);
     
     % Miscible relperms
-    krN    = fluid.krOW(sO + sG + sS);
-    krO_m  = fluid.MkrO(FOnNn).*krN;
-    krGT_m = fluid.MkrG(1-FOnNn).*krN;
-    krG_m  = fluid.krFG(FGnGTn).*krGT_m;
-    krS_m  = fluid.krFS(1-FGnGTn).*krGT_m;
+    sNn = scaledSaturation(fluid, sO + sG + sS, srtot, srtot_i, sOr + sGc, sOr_i);
+    
+%     sNn = sO + sG + sS;
+    krN    = fluid.krOW(sNn);
+%     krO_m  = fluid.MkrO(1-FOmNm).*krN;
+%     krGT_m = fluid.MkrG(1-FOmNm).*krN;
+    krO_m  = fluid.MkrO(FGTmNm).*krN;
+    krGT_m = fluid.MkrG(FGTmNm).*krN;
+%     krG_m  = fluid.krFG(FGmGTm).*krGT_m;
+%     krS_m  = fluid.krFS(1-FGmGTm).*krGT_m;
+    krG_m  = fluid.krFG(1-FSG).*krGT_m;
+    krS_m  = fluid.krFS(FSG).*krGT_m;
     
     %% Interpolate between the two
     
@@ -58,7 +84,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % not affected by the solvent)
     M = fluid.Ms(fluid.satFrac(sS, sG + sS)).*fluid.Mp(p);
     
-    krW_eff = fluid.krW(sW);
+    krW_eff = krW;
     krO_eff = M.*krO_m + (1-M).*krO_i;
     krG_eff = M.*krG_m + (1-M).*krG_i;
     krS_eff = M.*krS_m + (1-M).*krS_i;
@@ -68,5 +94,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     krO_eff = mobMult.*krO_eff;
     krG_eff = mobMult.*krG_eff;
     krS_eff = mobMult.*krS_eff;
+    
+end
+
+function sn = scaledSaturation(fluid, s, srtot, srtot_i, sr, sr_i)
+
+    sn = max(s - sr, 0);
+    sn = fluid.satFrac(sn, 1 - srtot);
+    sn = sn.*(1 - srtot_i) + sr_i;
+    sn = min(sn, 1);
     
 end
