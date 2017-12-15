@@ -48,7 +48,7 @@ classdef LinearSolverAD < handle
             solver.replaceInf      = false;
             solver.replacementNaN  = 0;
             solver.replacementInf  = 0;
-            solver.reduceToCell = true;
+            solver.reduceToCell    = false;
             solver.applyLeftDiagonalScaling = false;
             solver.applyRightDiagonalScaling = false;
             
