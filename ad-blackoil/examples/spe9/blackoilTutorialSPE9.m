@@ -511,7 +511,7 @@ nw = numel(wellsols{1});
 nstep = numel(wellsols);
 
 X = repmat(0:nw, nstep, 1)+.5;
-Y = repmat(T/day, 1, nw+1);
+Y = repmat(convertTo(convertFrom(T, year), day), 1, nw+1);
 C = double(ctrls); C=C(:,[1:end end]);
 clf
 pcolor(X, Y, C); view(90, 90); axis tight

@@ -120,7 +120,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     % Make a figure that's wider than the default.
     df = get(0, 'DefaultFigurePosition');
-    if isempty(opt.figure) || ~ishandle(fh)
+    if isempty(opt.figure) || ~ishandle(opt.figure)
         fh = figure('Position', df.*[1 1 1.75 1]);
     else
         fh = opt.figure;
