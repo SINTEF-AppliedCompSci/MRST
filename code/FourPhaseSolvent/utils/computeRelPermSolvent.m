@@ -43,7 +43,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %     sGTn = sG + sS;
     
     krW    = fluid.krW(sWn);
-    krO_i  = fluid.krO(sOn);  % Oil relperm
+    krO_i  = fluid.krOW(sOn);  % Oil relperm
     krGT_i = fluid.krG(sGTn); % Total gas relperm
     
     
@@ -68,7 +68,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     sNn = scaledSaturation(fluid, sO + sG + sS, srtot, srtot_i, sOr + sGc, sOr_i);
     
 %     sNn = sO + sG + sS;
-    krN    = fluid.krOW(sNn);
+    krN    = fluid.krO(sNn);
 %     krO_m  = fluid.MkrO(1-FOmNm).*krN;
 %     krGT_m = fluid.MkrG(1-FOmNm).*krN;
     krO_m  = fluid.MkrO(FGTmNm).*krN;
