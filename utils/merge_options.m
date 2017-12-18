@@ -207,11 +207,11 @@ function [prm, extra] = process_options(prm, caller, varargin)
          end
 
          oclass = class(prm.(ofn{ix}));
-         nclass = class(nfv{n});
          empty = isempty(prm.(ofn{ix})) || isempty(nfv{n});
-         if empty || isequal(oclass, nclass),
+         if empty || isa(nfv{n}, oclass),
             prm.(ofn{ix}) = nfv{n};
          else
+            nclass = class(nfv{n});
             error([caller, ':Option:ValueWrongClass'], ...
                   ['Option ''', nfn{n}, ''' has value of ', ...
                    'unsupported type.\nExpected ''', oclass, ...
