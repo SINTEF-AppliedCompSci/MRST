@@ -458,7 +458,7 @@ function props = convertPROPS(props, u)
             unt         = [u.gasvol_s/u.liqvol_s, u.press];
             props.(key) = convertFrom(props.(key), unt);
 
-         case {'SGFN', 'SWFN', 'SSFN'},
+         case {'SGFN', 'SWFN'},
             unt = [1, 1, u.press];
 
             for t = 1 : numel(props.(key)),
@@ -470,6 +470,12 @@ function props = convertPROPS(props, u)
 
             unt = [1, 1, 1, u.press];
 
+            for t = 1 : numel(props.(key)),
+               props.(key){t} = convertFrom(props.(key){t}, unt);
+            end
+            
+         case 'PMISC',
+            unt = [u.press, 1];
             for t = 1 : numel(props.(key)),
                props.(key){t} = convertFrom(props.(key){t}, unt);
             end
@@ -535,7 +541,7 @@ function props = convertPROPS(props, u)
                ...
                'ACF', 'BIC', 'CNAMES', 'ROCKOPTS', ...
                ...
-               'MISC', 'PMISC', ...
+               'MISC', 'MSFN', 'SSFN', ...
                },
             continue;  % Dimensionless
 

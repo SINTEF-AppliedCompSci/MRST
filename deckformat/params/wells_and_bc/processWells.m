@@ -111,7 +111,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    post = struct('WPOLYMER', @process_wpolymer, ...
                  'WSURFACT', @process_wsurfact, ...
-                 'WTEMP',    @process_wtemp);
+                 'WSOLVENT', @process_wsolvent, ...
+                 'WTEMP'   , @process_wtemp);
 
    % ----------------------------------------------------------------------
    % Well processing stages
@@ -329,6 +330,35 @@ function W = process_wsurfact(W, control, varargin)
 
          if ~isempty(j),
             [ W(j).c(end) ] = deal(control.WSURFACT{i,2});
+         end
+      end
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function W = process_wsolvent(W, control, varargin)
+   nsol = size(control.WSOLVENT, 1);
+
+   if nsol == 0, return, end
+
+   if ~isfield(W, 'solventFrac')
+       [W.solventFrac] = deal([]);
+   end
+
+   for i = 1:numel(W)
+       % Add zeros for solvent fraction
+       W(i).solventFrac = 0;
+   end
+
+   if ~isempty(W),
+      Wn = { W.name };
+
+      for i = 1 : nsol
+         j = find(strcmp(Wn, control.WSOLVENT{i,1}));
+
+         if ~isempty(j),
+            [ W(j).solventFrac ] = deal(control.WSOLVENT{i,2});
          end
       end
    end

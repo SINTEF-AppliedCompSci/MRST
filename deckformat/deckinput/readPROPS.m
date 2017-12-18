@@ -81,6 +81,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             
          case {'MISC', 'PMISC'}
             prp.(kw) = readRelPermTable(fid, kw, ntsfun, 2);
+            
+         case 'MSFN',
+            prp.(kw) = readRelPermTable(fid, kw, ntsfun, 3);
              
          case {'MW', 'PCRIT', 'TCRIT', 'VCRIT', 'ZCRIT'}
             prp.(kw) = readVector(fid, kw, ncomp);
