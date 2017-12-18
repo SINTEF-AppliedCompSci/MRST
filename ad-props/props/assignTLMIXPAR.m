@@ -1,5 +1,9 @@
 function f = assignTLMIXPAR(f, tlmixpar, reg)
-f.mixPar = tlmixpar(1);
+
+[f.mixPar, f.mixParRho] = deal(tlmixpar(1));
+if numel(tlmixpar) == 2
+    f.mixParRho = tlmixpar(2);
+end
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
