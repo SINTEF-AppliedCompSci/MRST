@@ -65,7 +65,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         pcOW  = fluid.pcOW(sW);
     end
     pW = pO - pcOW;
-    muW    = fluid.muW(pO);
+    muW    = fluid.muW(pW);
 
     % Multipliers due to polymer
     mixpar = fluid.mixPar;
