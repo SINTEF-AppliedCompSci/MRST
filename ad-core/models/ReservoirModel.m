@@ -131,7 +131,9 @@ methods
         if nPh > 1
             model.checkProperty(state, 'Saturation', [nc, nPh], [1, 2]);
         end
-        state = model.FacilityModel.validateState(state);
+        if ~isempty(model.FacilityModel)
+            state = model.FacilityModel.validateState(state);
+        end
     end
 
     function vars = getSaturationVarNames(model)
