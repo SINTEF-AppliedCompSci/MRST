@@ -74,6 +74,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 map(i) = 2;
             case 'sg'
                 map(i) = 3;
+            case 'ss'
+                map(i) = 3;
+                % Solvent injection rate is given as fraction of gas
+                % injection rate.
             otherwise
                 map(i) = 4;
                 warning('Unknown phase, translation directly from deck difficult, setting zero');
@@ -87,6 +91,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         for j = 1:numel(W)
             c = [W(j).compi, 0];
             W(j).compi = c(map);
+            if isfield(W(j), 'solventFrac')
+                W(j).compi(3) = W(j).compi(3)*(1-W(j).solventFrac);
+                W(j).compi(4) = W(j).compi(4)*W(j).solventFrac;
+            end
         end
         scheduleMRST.control(i).W = W;
     end
