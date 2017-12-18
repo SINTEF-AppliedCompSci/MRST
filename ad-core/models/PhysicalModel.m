@@ -59,12 +59,14 @@ properties
     % converge in a single step.  Do not enable this unless you are very
     % certain that it is the case, as this removes several tolerance
     % checks.
+    AutoDiffBackend
 end
 
 methods
     function model = PhysicalModel(G, varargin)
         model.nonlinearTolerance = 1e-6;
         model.verbose = mrstVerbose();
+        model.AutoDiffBackend = AutoDiffBackend();
         model = merge_options(model, varargin{:});
         model.G = G;
 
@@ -222,7 +224,9 @@ methods
         %           simulation. It may have been changed in the process.
         %   
 
-        % Base class is always suitable
+        % Base class is always suitable, but we call the AD backend and
+        % allow it to modify any discrete operators (if applicable)
+        model = model.AutoDiffBackend.updateDiscreteOperators(model);
         return
     end
 

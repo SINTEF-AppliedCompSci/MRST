@@ -99,7 +99,7 @@ methods
         model.extraWellSolOutput = true;
         model.outputFluxes = true;
         % Gravity defaults to the global variable
-        model.gravity = gravity(); %#ok
+        model.gravity = gravity();
         [model, unparsed] = merge_options(model, varargin{:}); %#ok
 
         % Base class does not support any phases
