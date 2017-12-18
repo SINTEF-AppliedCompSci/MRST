@@ -4,8 +4,9 @@ classdef DiagonalAutoDiffBackend < AutoDiffBackend
     end
     
     methods
-        function backend = DiagonalAutoDiffBackend()
+        function backend = DiagonalAutoDiffBackend(varargin)
             backend = backend@AutoDiffBackend();
+            backend = merge_options(backend, varargin{:});
         end
         
         function model = updateDiscreteOperators(backend, model)
