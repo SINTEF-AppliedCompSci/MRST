@@ -9,7 +9,7 @@ classdef DiagonalAutoDiffBackend < AutoDiffBackend
         end
         
         function model = updateDiscreteOperators(backend, model)
-            if isa(model, 'ReservoirModel')
+            if isa(model, 'ReservoirModel') && backend.modifyOperators
                 N = model.operators.N;
                 nc = model.G.cells.num;
                 nf = size(N, 1);

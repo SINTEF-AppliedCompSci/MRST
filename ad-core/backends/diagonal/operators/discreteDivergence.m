@@ -3,7 +3,6 @@ function v = discreteDivergence(N, v, nc, nf, sortIx, C)
         for i = 1:numel(v.jac)
             v.jac{i} = divJac(v.jac{i}, N, nc, nf, sortIx, C);
         end
-%         v.jac = cellfun(@(x) divJac(x, N, nc, nf, sortIx, C), v.jac, 'UniformOutput', false);
         v.val = accumulate(N, double(v), nc);
     else
         v = accumulate(N, double(v), nc);
@@ -24,44 +23,42 @@ function jac = divJac(jac, N, nc, nf, sortIx, C)
         else
             jac = sparse([], [], [], nc, matrixDims(jac, 2));
         end
+    elseif jac.isZero
+        jac = sparse([], [], [], nc, prod(jac.dim));
+        return
     else
-        if jac.isZero
-            jac = sparse([], [], [], nc, prod(jac.dim));
-            return
-        end
         if 0
             % Manual version
             nD = jac.dim(2);
-            
+
             if isempty(jac.subset)
                 N = jac.map;
             else
                 N = jac.map(jac.subset, :);
             end
             J = repmat(reshape(N, [], 1), 2, nD);
-            
+
             ix = sortIx.J_sorted_index;
-            
+
             if nD > 1
                 J = bsxfun(@plus, J, (0:nD-1)*jac.dim(1));
             end
-            
+
             I = repmat(sortIx.I_base, 1, nD);
             V = [jac.diagonal; -jac.diagonal];
 
             V = V(ix, :);
             J = J(ix, :);
-            
+
             act = V~=0;
-            
+
             I = I(act);
             J = J(act);
             V = V(act);
-            jac = sparse(I, J, V, nc, prod(jac.dim), 1.1*numel(I));
+            jac = sparse(I, J, V, nc, prod(jac.dim), ceil(1.1*numel(I)));
         else
             % Sparse version
             jac = sortIx.C*jac.sparse();
         end
     end
-
 end

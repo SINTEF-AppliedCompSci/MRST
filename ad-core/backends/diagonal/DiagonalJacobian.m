@@ -86,6 +86,7 @@ classdef DiagonalJacobian
         
         function s = sparse(D)
             [I, J, V, n, m] = D.getSparseArguments();
+            % s = accumarray([I(:), J(:)], V(:), [n, m], [], [], true);
             s = sparse(I, J, V, n, m);
         end
         
@@ -141,10 +142,7 @@ classdef DiagonalJacobian
                     s = x.getSubset();
                     if subsetsEqualNoZeroCheck(x, v, s(subs), v.subset)
                         x.diagonal(subs, :) = x.diagonal(subs, :) + v.diagonal;
-                        if ~isempty(x.subset) && ~isempty(y.subset)
-                            isWildcard = x.subset == 0;
-                            x.subset(isWildcard) = y.subset(isWildcard);
-                        end
+                        % x.subset = DiagonalJacobian.treatSubset(x.subset, y.subset);
                     else
                         x = x.sparse();
                         v = v.sparse();
@@ -279,10 +277,7 @@ classdef DiagonalJacobian
             if xD && yD
                 if subsetsEqualNoZeroCheck(x, y)
                     x.diagonal = x.diagonal + y.diagonal;
-                    if ~isempty(x.subset)
-                        isWildcard = x.subset == 0;
-                        x.subset(isWildcard) = y.subset(isWildcard);
-                    end
+                    x.subset = DiagonalJacobian.treatSubset(x.subset, y.subset);
                 else
                     x = x.sparse() + y.sparse();
                 end
@@ -317,10 +312,7 @@ classdef DiagonalJacobian
             if xD && yD
                 if subsetsEqualNoZeroCheck(x, y)
                     x.diagonal = x.diagonal.*y.diagonal;
-                    if ~isempty(x.subset) && ~isempty(y.subset)
-                        isWildcard = x.subset == 0;
-                        x.subset(isWildcard) = y.subset(isWildcard);
-                    end
+                    x.subset = DiagonalJacobian.treatSubset(x.subset, y.subset);
                 else
                     x = x.sparse().*y.sparse();
                 end
@@ -353,10 +345,7 @@ classdef DiagonalJacobian
             if xD && yD
                 if subsetsEqualNoZeroCheck(x, y)
                     x.diagonal = x.diagonal.*y.diagonal;
-                    if ~isempty(x.subset) && ~isempty(y.subset)
-                        isWildcard = x.subset == 0;
-                        x.subset(isWildcard) = y.subset(isWildcard);
-                    end
+                    x.subset = DiagonalJacobian.treatSubset(x.subset, y.subset);
                 else
                     x = x.sparse().*y.sparse();
                 end
@@ -479,6 +468,12 @@ classdef DiagonalJacobian
             %     isZ = nnz(v) == 0;
         end
 
+        function xsubset = treatSubset(xsubset, ysubset)
+            if ~isempty(xsubset) && ~isempty(ysubset)
+                isWildcard = xsubset == 0;
+                xsubset(isWildcard) = ysubset(isWildcard);
+            end
+        end
     end
 end
 
