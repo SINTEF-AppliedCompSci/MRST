@@ -1,5 +1,5 @@
-classdef FourPhaseSolventModel < ThreePhaseBlackOilModel
-% Four-phase solvent model
+classdef BlackOilSolventModel < ThreePhaseBlackOilModel
+% Black-oil solvent model.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
@@ -32,7 +32,7 @@ properties
 end
 
 methods
-    function model = FourPhaseSolventModel(G, rock, fluid, varargin)
+    function model = BlackOilSolventModel(G, rock, fluid, varargin)
         model = model@ThreePhaseBlackOilModel(G, rock, fluid, varargin{:});
 
         % Use CNV style convergence 
@@ -85,7 +85,7 @@ methods
     
     % --------------------------------------------------------------------%
     function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
-        [problem, state] = equationsFourPhaseSolvent(state0, state, ...
+        [problem, state] = equationsBlackOilSolvent(state0, state, ...
                 model, dt, drivingForces, varargin{:});
 
     end

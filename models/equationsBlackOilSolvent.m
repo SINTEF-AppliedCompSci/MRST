@@ -1,11 +1,11 @@
-function [problem, state] = equationsFourPhaseSolvent(state0, state, model, dt, drivingForces, varargin)
-% Generate linearized problem for the four-pahse oil-water-gas-solvent equations
+function [problem, state] = equationsBlackOilSolvent(state0, state, model, dt, drivingForces, varargin)
+% Generate linearized problem for the black-oil solvent model equations
 %
 % SYNOPSIS:
-%   [problem, state] = equationsFourPhaseSolvent(state0, state, model, dt, drivingForces)
+%   [problem, state] = equationsBlackOilSolvent(state0, state, model, dt, drivingForces)
 %
 % DESCRIPTION:
-%   This is the core function of the four-phase model solver. This function
+%   This is the core function of the black-oil solvent model. This function
 %   assembles the residual equations for the conservation of water, oil and
 %   gas, as well as required well equations. By default, Jacobians are also
 %   provided by the use of automatic differentiation.
@@ -56,7 +56,7 @@ function [problem, state] = equationsFourPhaseSolvent(state0, state, model, dt, 
 %             controls from the well model.
 %
 % SEE ALSO:
-%   FourPhaseSolventModel,  ThreePhaseBlackOilModel
+%   BlackOilSolventModel,  ThreePhaseBlackOilModel
 
 
 %{
