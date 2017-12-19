@@ -27,7 +27,7 @@ opt = struct('muS'             , 1    , ... % Solvent viscosity
              'pRef'            , 0    , ... % Reference pressure
              'mixPar'          , 1    , ... % Mixing parameter for viscosity
              'mixParRho'       , []   , ... % Mixing parameter for density
-             'sWr'             , 0    , ... % Residual water saturation
+             'sWcon'           , 0    , ... % Residual water saturation
              'sOr_m'           , 0    , ... % Miscible residual oil saturation
              'sGc_m'           , 0    , ... % Miscible residual gas saturation
              'Ms'              , []   , ... % Saturation-dependent miscibility
@@ -37,7 +37,7 @@ opt = struct('muS'             , 1    , ... % Solvent viscosity
              'krFS'            , []   , ... % Immiscible gas relperm multiplier function
              'krFG'            , []   , ... % Miscible solvent relperm multiplier function
              'smin'            , 1e-13, ... % Cut-off used to avoid division by zero
-             'overwrite'       , false);     % Overwrite any solvent propertis already defined
+             'overwrite'       , false);    % Overwrite any solvent propertis already defined
 
 opt = merge_options(opt, varargin{:});
 
@@ -53,10 +53,8 @@ opt = merge_options(opt, varargin{:});
     
     fluid.sOr_i = getResSat(fluid.krOW);
     fluid.sGc_i = getResSat(fluid.krG);
-    if isfield(fluid, 'sWcon')
-        fluid.sWcon   = fluid.sWcon;
-    else
-        fluid.sWcon = 0;
+    if overwrite || ~isfield(fluid, 'sWcon')
+        fluid.sWcon = opt.sWcon;
     end
     
     if isempty(opt.Mp)
