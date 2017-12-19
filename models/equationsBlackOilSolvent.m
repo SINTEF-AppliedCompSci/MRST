@@ -35,7 +35,7 @@ function [problem, state] = equationsBlackOilSolvent(state0, state, model, dt, d
 %                   * NOTE: The current implementation does not support
 %                   BC's and sources.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %   'Verbose'    -  Extra output if requested.
 %
 %   'reverseMode'- Boolean indicating if we are in reverse mode, i.e.

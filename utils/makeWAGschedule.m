@@ -14,7 +14,7 @@ function schedule = makeWAGschedule(W, nCycles, varargin)
 %               rates/bhp.
 %   nCycles   - Number of cycles.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %   'time'      - Total duration of the WAG injection period. Defaults to 1
 %                 year.
 %   'dt'          Target time step size. Defaluts to 30 days.
