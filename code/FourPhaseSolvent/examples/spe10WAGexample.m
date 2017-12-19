@@ -36,9 +36,9 @@ sOr_i = 0.38; % Immiscible residual oil saturation
 sOr_m = 0.21; % Miscible residual oil saturation
 
 % We scale the relperms to the immiscible endpoints.
-fluid.krW = coreyPhaseRelpermAD(2,     0, fluid.krG(1-sOr_i), sOr_i);
+fluid.krW = coreyPhaseRelpermAD(2, 0, fluid.krG(1-sOr_i), sOr_i);
+fluid.krG = coreyPhaseRelpermAD(2, 0, fluid.krG(1-sOr_i), sOr_i);     
 [fluid.krO, fluid.krOW, fluid.krOG] = deal(coreyPhaseRelpermAD(2, sOr_i, fluid.krO(1), sOr_i));
-fluid.krG = coreyPhaseRelpermAD(2,     0, fluid.krG(1-sOr_i), sOr_i);     
 
 % The model uses a mixing paramter $\omega$ that defines the degree of
 % mixing, where
@@ -59,48 +59,13 @@ model4Ph = FourPhaseSolventModel(G, rock, fluid);
 % solvent gas, the oil is completely miscible with the solvent. In this
 % case, solvent gas mixes with formation oil, effectively altering the
 % viscosities, densities and relperms according the the Todd-Longstaff
-% model [1]. In the intermediate region, we interpolate between the two
-% extrema depending on the solvent to total gas saturation fraction, and
-% the pressure. We look at terneary plots for the hydrocarbon relperms of
-% the hydrocardon phases when no water is present. Notice how the residual
-% oil saturation (white line) reduces from $S_{or,i}$ (immiscible) to
+% model. In the intermediate region, we interpolate between the two extrema
+% depending on the solvent to total gas saturation fraction, and the
+% pressure. We look at terneary plots for the hydrocarbon relperms of the
+% hydrocardon phases when no water is present. Notice how the residual oil
+% saturation (white line) reduces from $S_{or,i}$ (immiscible) to
 % $S_{or,m}$ (miscible) with increasing solvent saturation.
-
-figure('Position', [df(1:2), 1000, 400]);
-
-n = 100;
-[sO,sS] = meshgrid(linspace(0,1,n)', linspace(0,1,n)');
-sG = 1-(sO+sS); sW = 0*sO;
-
-ss  = linspace(0,1-sOr_m,100)';
-b   = sOr_i + 2*ss - 1;
-sg  = (-b + sqrt(b.^2 - 4*(ss.*(sOr_m + ss - 1))))/2;
-sor = 1 - sg - ss;
-
-sW = sW(:); sO = sO(:); sG = sG(:); sS = sS(:);
-[sWr, sOr, sGc]      = computeResidualSaturations(model4Ph, 0, sW, sG, sS);
-[krW, krO, krG, krS] = computeRelPermSolvent(model4Ph, 0, sW, sO, sG, sS, sWr, sOr, sGc, 1);
-sO = reshape(sO, n,n); sG = reshape(sG, n,n); sS = reshape(sS, n,n);
-
-phName = {'O', 'G', 'S'};
-
-for phNo = 1:3
-
-    subplot(1,3,phNo)
-    
-    relpermName = ['kr', phName{phNo}];
-    kr = reshape(eval(relpermName),[n,n]);
-    kr(sG<0) = nan;
-    
-    [mapx, mapy] = ternaryAxis('names', {'S_g', 'S_s', 'S_o'});
-    contourf(mapx(sG, sS, sO), mapy(sG,sS,sO), kr, 20, 'linecolor', 0.5.*[1,1,1])
-    [mapx, mapy] = ternaryAxis('names', {'S_g', 'S_s', 'S_o'});
-    plot(mapx(sg, ss, sor), mapy(sg,ss,sor), 'color', 0.99*[1,1,1], 'linewidth', 2)
-    
-    axis([0,1,0,sqrt(1-0.5^2)]); axis equal
-    title(relpermName, 'position', [0.5,-0.2]);   
-    
-end
+plotSolventFluidProps(model4Ph, {'kr'}, {'O', 'G', 'S'});
                                 
 %% Set up wells and injection schedule
 % We consider the hello-world of reservoir simulation: A quarter-five spot
