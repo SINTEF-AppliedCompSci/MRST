@@ -305,7 +305,7 @@ function props = convertPROPS(props, u)
       key = kw{1};
 
       switch key,
-         case 'DENSITY',
+         case {'DENSITY', 'SDENSITY'}
             props.(key) = convertFrom(props.(key), u.density);
 
          case 'RKTRMDIR'
@@ -414,7 +414,7 @@ function props = convertPROPS(props, u)
             unt         = [u.press, 1, u.compr, u.viscosity, u.compr];
             props.(key) = convertFrom(props.(key), unt);
 
-         case 'PVDG',
+         case {'PVDG', 'PVDS'}
             unt = [u.press, u.gasvol_r/u.gasvol_s, u.viscosity];
             for t = 1 : numel(props.(key)),
                props.(key){t} = convertFrom(props.(key){t}, unt);
@@ -470,6 +470,12 @@ function props = convertPROPS(props, u)
 
             unt = [1, 1, 1, u.press];
 
+            for t = 1 : numel(props.(key)),
+               props.(key){t} = convertFrom(props.(key){t}, unt);
+            end
+            
+         case 'PMISC',
+            unt = [u.press, 1];
             for t = 1 : numel(props.(key)),
                props.(key){t} = convertFrom(props.(key){t}, unt);
             end
@@ -534,6 +540,8 @@ function props = convertPROPS(props, u)
                'SURFCAPD', ...
                ...
                'ACF', 'BIC', 'CNAMES', 'ROCKOPTS', ...
+               ...
+               'MISC', 'MSFN', 'SSFN', ...
                },
             continue;  % Dimensionless
 
@@ -676,6 +684,11 @@ function ctrl = convertControl(ctrl, u)
          case 'WSURFACT',
             if ~isempty(ctrl.(key)),
                ctrl.(key) = convertWSurfact(ctrl.(key), u);
+            end
+            
+         case 'WSOLVENT',
+            if ~isempty(ctrl.(key)),
+               ctrl.(key) = convertWSolvent(ctrl.(key), u);
             end
 
          case 'GCONINJE',
@@ -929,6 +942,14 @@ end
 function wcp = convertWSurfact(wcp, u)
 
    wcp(:, 2) = cellfun(@(c) convertFrom(c, u.concentr), ...
+                       wcp(:, 2), 'UniformOutput', false);
+end
+
+%--------------------------------------------------------------------------
+
+function wcp = convertWSolvent(wcp, u)
+
+   wcp(:, 2) = cellfun(@(c) convertFrom(c, 1), ...
                        wcp(:, 2), 'UniformOutput', false);
 end
 

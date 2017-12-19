@@ -71,6 +71,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       case 'WELSPECS', w = readWellSpec(fid, w);
       case 'WPOLYMER', w = readWPolymer(fid, w);
       case 'WSURFACT', w = readWSurfact(fid, w);
+      case 'WSOLVENT', w = readWSolvent(fid, w);
       case 'WTEMP'   , w = readWTemp   (fid, w);
       case {'WELTARG', 'WELLTARG'},
          w = readWelTarg(fid, w);
@@ -606,6 +607,19 @@ function w = readWSurfact(fid, w)
    data = toDouble(data, numeric);
 
    w.WSURFACT = appendSpec(w.WSURFACT, data, w.WELSPECS(:,1));
+end
+
+%--------------------------------------------------------------------------
+
+function w = readWSolvent(fid, w)
+   %            1          2
+   template = {'Default', '0.0'};
+   numeric  = 2;
+
+   data = readDefaultedKW(fid, template);
+   data = toDouble(data, numeric);
+
+   w.WSOLVENT = appendSpec(w.WSOLVENT, data, w.WELSPECS(:,1));
 end
 
 %--------------------------------------------------------------------------
