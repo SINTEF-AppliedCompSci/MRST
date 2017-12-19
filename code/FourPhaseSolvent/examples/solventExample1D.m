@@ -55,9 +55,15 @@ fluid   = addSolventProperties(fluid, 'rhoSS' , 90*kilogram/meter^3, ...
                                       'sOr_m' , sOr_m              , ...
                                       'sGc_m' , sGc_m              , ...
                                       'smin'  , 1e-10);
-                                 
-% Set up four-phase solvent model
-model4Ph_fm = FourPhaseSolventModel(G, rock, fluid, 'extraStateOutput', true);
+%% Set up four-phase solvent model
+% Set up four-phase solvent model. Since the residual saturations changes
+% with the solvent and pressure, dynamic endpoint-scaling should be used in
+% the relperm evaluations. However, this is somewhate unstable in cases
+% where the initial oil or gas saturation is close to the residual
+% saturation, and is thus disabeled by default.
+model4Ph_fm = FourPhaseSolventModel(G, rock, fluid                   , ...
+                                       'extraStateOutput'      , true, ...
+                                       'dynamicEndPointScaling', true);
 
 %% Inspect fluid model
 % In regions with only oil, reservoir gas and water, we have traditional
@@ -148,13 +154,14 @@ for sNo = 1:numel(step)
     end
     hold off
     if sNo == 1
-        legend(hp, {'Oil mass', 'Solvent mass'}, 'Location', 'SouthEast')
+        legend(hp, {'Oil mass', 'Solvent mass'}, 'Location', 'NorthWest')
         ylabel('Mass [kg]');
     elseif sNo == 2
         xlabel('Distance from injector [m]');
     elseif sNo == numel(step)
         legend(hm, {'Full mixing', 'Moderate mixing'}, 'Location', 'NorthWest')
     end
+    ylim([0,650]);
     title([num2str(times(step(sNo))/day), ' days'])
 end
 
