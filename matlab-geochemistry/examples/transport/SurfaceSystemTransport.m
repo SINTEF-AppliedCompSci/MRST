@@ -115,6 +115,7 @@ schedule.control = struct('bc', bc, 'src', src, 'W', []);
 [~, states, scheduleReport] = simulateScheduleAD(initState, model, schedule);
 
 %% visualize the simulation
+mrstModule add mrst-gui
 plotToolbar(G, states, 'field', 'species:1','startplayback', true,'plot1D', true)
 
 %% Copyright notice

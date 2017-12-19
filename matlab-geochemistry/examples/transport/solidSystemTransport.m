@@ -109,6 +109,7 @@ schedule.control = struct('bc', bc, 'src', src, 'W', []);
 %% Run the simulation
 
 [~, states, scheduleReport] = simulateScheduleAD(initState, model, schedule);
+mrstModule add mrst-gui
 
 plotToolbar(G, states, 'field', 'elements:5', 'plot1d', true,'startplayback',true)
 ylabel('Ca / mol/m^3')
