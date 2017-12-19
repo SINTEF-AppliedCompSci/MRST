@@ -1,8 +1,56 @@
 function schedule = makeWAGschedule(W, nCycles, varargin)
+% Make schedule for water-alternating gas (WAG) injection.
+% SYNOPSIS:
+%   schedule = makeWAGschedule(W, nCycles)
+%
+% DESCRIPTION:
+%   This function makes a WAG schedule based on a well structure, to be
+%   used with the FourPhaseSolventModel.
+%
+% REQUIRED PARAMETERS:
+%   W         - Well structure, properly initialized with e.g. addWell().
+%               The function assumes this is initialized with desired
+%               rates/bhp.
+%   nCycles   - Number of cycles.
+%
+% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+%   'time'      - Total duration of the WAG injection period. Defaults to 1
+%                 year.
+%   'dt'          Target time step size.
+%   'gas_end'   - Duration of gas injection, 0 < gas_end < 1. The gas
+%                 injection period of each cycle will last for
+%                 time/ncycle*gas_end. Defaults to 0.5.
+%   'useRampUp' - Use rampup each time the well control changes to ease the
+%                 nonlinear solution process.
+%
+% RETURNS:
+%   schedule - WAG injection schedule.
+%
+% SEE ALSO:
+%   simpleSchedule, FourPhaseSolventModel
 
-opt = struct('gas_end'  , 0.5   , ...
-             'time'     , 1*year, ...
+%{
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
+opt = struct('time'     , 1*year, ...
              'dt'       , 30*day, ...
+             'gas_end'  , 0.5   , ...
              'useRampup', false );
          
 opt = merge_options(opt, varargin{:});
