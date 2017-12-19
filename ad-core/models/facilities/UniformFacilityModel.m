@@ -90,7 +90,8 @@ classdef UniformFacilityModel < FacilityModel
             end
             
             b_w = phaseDensitiesTobfactor(rho_w, rhoS, dissolved_w);
-            if isa(model.ReservoirModel, 'ThreePhaseBlackOilModel')
+            if isa(model.ReservoirModel, 'ThreePhaseBlackOilModel') && ...
+                  (model.ReservoirModel.disgas || model.ReservoirModel.vapoil)
                 w = model.ReservoirModel.water;
                 % RS, then RV
                 rs = dissolved_w{2 + w}{1 + w};
