@@ -31,16 +31,13 @@ usingShear = isfield(fluid, 'plyshearMult');
 if ~opt.resOnly,
     % ADI variables needed since we are not only computing residuals.
     if ~opt.reverseMode,
-%         [p, qWs, qOs, qWPoly, pBH] = ...
-%             initVariablesADI(p, qWs, qOs, qWPoly, pBH);
         [p, wellVars{:}] = ...
-            initVariablesADI(p, wellVars{:});
+            model.AutoDiffBackend.initVariablesAD(p, wellVars{:});
     else
         assert(0, 'Backwards solver not supported for splitting');
     end
 end
 primaryVars = {'pressure', wellVarNames{:}};
-% primaryVars = {'pressure', 'qWs', 'qOs', 'qWPoly', 'bhp'};
 
 p_prop = opt.propsPressure;
 otherPropPressure = ~isempty(p_prop);
