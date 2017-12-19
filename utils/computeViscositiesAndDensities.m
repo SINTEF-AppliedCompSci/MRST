@@ -21,7 +21,6 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
 %% Unmixed viscosites and densities at reservoir conditions
 
     fluid  = model.fluid;

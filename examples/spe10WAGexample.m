@@ -1,9 +1,10 @@
 %% Water-alternating Gas Injection in layer 10 of SPE10
-% In this example, we simulate water-alternating gas injection (WAG), where
-% we inject small volumes of water and solvent gas into the reservoir
-% several cycles. The solvent gas mixes with the reservoir hydrocarbons
-% according to amodified version of the Todd-Longstaff mixing model, which
-% treats the solvent gas as fourth pseudocomponent.
+% In this example, we simulate water-alternating gas injection (WAG) in a
+% layer of SPE10 model 2, where we inject small volumes of water and
+% solvent gas into the reservoir several cycles. The solvent gas mixes with
+% the reservoir hydrocarbons according to a modified version of the
+% Todd-Longstaff mixing model, which treats the solvent gas as fourth
+% pseudocomponent.
 mrstModule add ad-blackoil ad-props spe10 mrst-gui solvent
 
 df = get(0, 'defaultfigureposition');
@@ -18,20 +19,22 @@ rock          = model.rock;
 
 %% Set up fluid and add solvent gas properties
 % We will define our own fluid based on a three-phase fluid with water, oil
-% and gas. % The solvent model we will use, treats solvent gas as a fourth
-% phase, which is either miscible or immiscible with the oil and gas,
-% depending on the fraction of solvent concentration to total gas
-% concentration, $S_s/(S_g + S_s)$, and the pressure.
+% and gas. The solvent model we will use, treats solvent gas as a fourth
+% pseudocomponent, which is either miscible or immiscible with the oil and
+% gas, depending on the fraction of solvent concentration to total gas
+% concentration, $S_s/(S_g + S_s)$, and the pressure. The model assumes one
+% immiscible and one miscible residual saturation for the hydrocarbon
+% phases, with $S_{\alpha r,i} > S_{\alpha r,m}$. In this example, we
+% assume that the critical (residual) gas saturation is zero in both the
+% immiscible and miscible case. The model uses a mixing paramter $\omega$
+% that defines the degree of mixing, where (no mixing) $ = 0 <= \omega <= 1
+% = $ (full mixing).
 fluid = initSimpleADIFluid('n'     , [2, 2, 2]                        , ...
                            'rho'   , [1000, 800, 100]*kilogram/meter^3, ...
                            'phases', 'WOG'                            , ...
                            'mu'    , [1, 3, 0.4]*centi*poise          , ...
                            'c'     , [1e-7, 1e-6, 1e-5]/barsa         );
 
-% The model assumes one immiscible and one miscible residual saturation for
-% the hydrocarbon phases, with $S_{\alpha r,i} > S_{\alpha r,m}$, and we
-% must define both. In this example, we assume that the critical (residual)
-% gas saturation is zero in both the immiscible and miscible case.
 sOr_i = 0.38; % Immiscible residual oil saturation
 sOr_m = 0.21; % Miscible residual oil saturation
 
@@ -40,17 +43,16 @@ fluid.krW = coreyPhaseRelpermAD(2, 0, fluid.krG(1-sOr_i), sOr_i);
 fluid.krG = coreyPhaseRelpermAD(2, 0, fluid.krG(1-sOr_i), sOr_i);     
 [fluid.krO, fluid.krOW, fluid.krOG] = deal(coreyPhaseRelpermAD(2, sOr_i, fluid.krO(1), sOr_i));
 
-% The model uses a mixing paramter $\omega$ that defines the degree of
-% mixing, where
-% $$ \text{(no mixing)} = 0 <= \omega <= 1 = \text{(full mixing)}.$$
-% This is set by mixPar.
-fluid   = addSolventProperties(fluid, 'rhoSS' , 100*kilogram/meter^3, ...
+fluid = addSolventProperties(fluid, 'rhoSS' , 100*kilogram/meter^3, ...
                                       'mixPar', 2/3                 , ...
                                       'muS'   , 0.5*centi*poise     , ...
                                       'sOr_m' , sOr_m               , ...
                                       'c'     , 1e-5/barsa          );
-                                 
-model4Ph = FourPhaseSolventModel(G, rock, fluid);
+
+% We use dynamic end-point scaling to account for the changes in residual
+% saturaitons. This is disabeled by default since it can be somewhat
+% unstable.
+model4Ph = BlackOilSolventModel(G, rock, fluid, 'dynamicEndPointScaling', true);
 
 %% Inspect fluid relperms
 % In regions with only oil, reservoir gas and water, we have traditional
@@ -126,7 +128,6 @@ scheduleWAG.step.control = [2*ones(numel(tvec1),1)  ; ...
 % The reservoir is initially filled with a mixture of oil, reservoir gas
 % and water. We set up a four-phase solvent model and simulate the
 % schedule.
-
 model4Ph.extraStateOutput = true;
 sO = 0.5; sG = 0.4;
 state0 = initResSol(G, 100*barsa, [1-sO-sG, sO, sG, 0]);

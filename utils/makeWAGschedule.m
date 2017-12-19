@@ -6,7 +6,7 @@ function schedule = makeWAGschedule(W, nCycles, varargin)
 %
 % DESCRIPTION:
 %   This function makes a WAG schedule based on a well structure, to be
-%   used with the FourPhaseSolventModel.
+%   used with the BlackOilSolventModel.
 %
 % REQUIRED PARAMETERS:
 %   W         - Well structure, properly initialized with e.g. addWell().
@@ -28,7 +28,7 @@ function schedule = makeWAGschedule(W, nCycles, varargin)
 %   schedule - WAG injection schedule.
 %
 % SEE ALSO:
-%   simpleSchedule, FourPhaseSolventModel
+%   simpleSchedule, BlackOilSolventModel
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

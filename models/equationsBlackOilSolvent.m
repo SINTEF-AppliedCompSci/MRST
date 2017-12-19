@@ -24,7 +24,7 @@ function [problem, state] = equationsBlackOilSolvent(state0, state, model, dt, d
 %   state     - State at the current nonlinear iteration. The values do not
 %               need to be physically reasonable.
 %
-%   model     - FourPhaseSolventModel-derived class. Typically,
+%   model     - BlackOilSolventModel-derived class. Typically,
 %               equationsBlackOil will be called from the class
 %               getEquations member function.
 %

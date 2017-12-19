@@ -1,55 +1,9 @@
-function fn = getPlotAfterStep(state0, model, schedule, varargin)
-% Get a function that allows for dynamic plotting in `simulateScheduleAD`.
-%
-% SYNOPSIS:
-%   fn = getPlotAfterStep(state0, model, schedule, 'plotWell', true);
-%
-% DESCRIPTION:
-%   The `simulateScheduleAD` function has a optional input argument
-%   `afterStepFn` that allows for dynamic plotting after each step in the
-%   simulation, for instance to show how the well curves progress during the
-%   simulation, or to print out extra information to the command window. This
-%   function is an implementation of one such function, that can add both a
-%   panel showing the simulation progress, as well as interactive plots for
-%   well and reservoir quantities.
-%
-% PARAMETERS:
-%   state0 -   Initial state for simulateScheduleAD
-%
-%   model -    Simulation model which will be passed to simulateScheduleAD.
-%
-%   schedule - The simulation schedule containing wells, driving forces
-%              and time-steps that will be passed to simulateScheduleAD.
-%
-% KEYWORD ARGUMENTS:
-%
-%  'plotWell' -      Launch interactive plotting for well quantities
-%                    using `plotWellSols`
-%
-%  'plotReservoir' - Add an interactive plotting window for reservoir
-%                    quantities during the simulation. Note that, due to
-%                    limitations in the implementation, this window will
-%                    only be truly interactive after the simulation
-%                    finishes. You can, however, set the options (field for
-%                    plotting, locked color axis and so on) before
-%                    initiating the simulation itself.
-%
-%  'view' -          View angle for the reservoir plotting. See Matlab
-%                    builtin `view` for more information. Defaults to
-%                    empty for no modification to the default.
-%
-%  'wells' -         Wells for the reservoir plotting (using `plotWell`) 
-%
-% RETURNS:
-%  fn -              Function handle suitable for the `afterStepFn`
-%                    input in `simulateScheduleAD`. 
-%
-% EXAMPLE: 
-%  fn = getPlotAfterStep(state0, model, schedule, 'plotWell', true);
-%  simulateScheduleAD(state0, model, schedule, 'afterStepFn', fn);
+function fn = getPlotAfterStepSolvent(state0, model, varargin)
+% Get a function that allows for dynamic plotting in `simulateScheduleAD`
+% for the black-oil solvent model.
 %
 % SEE ALSO:
-%   `simulateScheduleAD`, `plotWellSols`
+%   `getPlotAfterStep`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
@@ -89,10 +43,7 @@ function [model, states, reports, solver, ok] = afterStepFunction(model, states,
     computed = cellfun(@(x) ~isempty(x), states);
     ctrl_computed = cellfun(@(x) ~isempty(x), reports);
     
-    current = find(computed, 1, 'last');
-    
-    st = states(computed);   
-    rep = reports(ctrl_computed);
+    st = states(computed);
     
     current = find(computed, 1, 'last');
     
@@ -102,7 +53,6 @@ function [model, states, reports, solver, ok] = afterStepFunction(model, states,
     set(0, 'CurrentFigure', resfig);
     ssh.CData = st{current}.s(bc,4);
     soh.CData = st{current}.s(bc,2);
-    
     
     ok = true;
     if 1

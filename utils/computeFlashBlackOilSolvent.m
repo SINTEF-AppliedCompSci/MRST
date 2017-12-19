@@ -1,5 +1,5 @@
 function state = computeFlashBlackOilSolvent(state, state0, model, status)
-% Compute flash for a black-oil model with disgas/vapoil
+% Compute flash for a black-oil solvent model with disgas/vapoil
 %
 % SYNOPSIS:
 %   state = computeFlashBlackOil(state, state0, model, status)
@@ -60,13 +60,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     so0 = model.getProp(state0, 'so');
     
     sw = model.getProp(state, 'sw');
-    % sw0 = model.getProp(state0, 'sw');
     
     sg = model.getProp(state, 'sg');
     sg0 = model.getProp(state0, 'sg');
     
     ss = model.getProp(state, 'ss');
-    ss0 = model.getProp(state0, 'ss');
     
     rs = model.getProp(state, 'rs');
     rs0 = model.getProp(state0, 'rs');
@@ -76,12 +74,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     etol = sqrt(eps);
     
-%     swss = sw + ss;
     % Determine status of updated cells -----------------------------------------
-%     watSolOnly  = sw + ss > 1-etol;
     swss = sw + ss;
     watSolOnly  = swss > 1-etol;
-%     watSolOnly = sw > 1-etol;
     
     % phase transitions sg <-> rs  --------------------------------------------
     if ~disgas
@@ -93,10 +88,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         rsSat0 = fluid.rsSat(p0);
         rsSat  = fluid.rsSat(p);
         gasPresent = or(and( sg > 0, ~st1), watSolOnly); % Obvious case
-%         gasPresent = or(and( sg + ss> 0, ~st1), watSolOnly); % Obvious case
         % Keep oil saturated if previous sg is sufficiently large:
         ix1 = and( sg < 0, sg0 > etol);
-%         ix1 = and( sg + ss < 0, sg0 + ss0 > etol);
         gasPresent = or(gasPresent, ix1);
         % Set oil saturated if previous rs is sufficiently large
         ix2 = and( and(rs > rsSat*(1+etol), st1), rs0 > rsSat0*(1-etol) );
@@ -105,9 +98,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     ix = sg < 0;
     swss(ix) = swss(ix)./(1-sg(ix));
-%     sw(ix) = sw(ix)./(1-sg(ix));
     so(ix) = so(ix)./(1-sg(ix));
-%     ss(ix) = ss(ix)./(1-sg(ix));
     sg(ix) = 0;
 
     % phase transitions so <-> rv
@@ -130,30 +121,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     ix = so < 0;
     swss(ix) = swss(ix)./(1-so(ix));
-%     sw(ix) = sw(ix)./(1-so(ix));
     sg(ix) = sg(ix)./(1-so(ix));
-%     ss(ix) = ss(ix)./(1-so(ix));
     so(ix) = 0;
 
     % make sure sw >=0
     ix = swss < 0;
-%     ix = sw < 0;
     so(ix) = so(ix)./(1-sw(ix));
     sg(ix) = sg(ix)./(1-sw(ix));
     ss(ix) = ss(ix)./(1-sw(ix));
     swss(ix) = 0;
     
     FSW = model.fluid.satFrac(ss, sw + ss);
-%     
     sw = swss.*(1-FSW); ss = swss.*FSW;
-    
-    % make sure ss >=0
-%     ix = ss < 0;
-%     sw(ix) = sw(ix)./(1-ss(ix));
-%     so(ix) = so(ix)./(1-ss(ix));
-%     sg(ix) = sg(ix)./(1-ss(ix));
-%     ss(ix) = 0;
-
 
     % Update saturated r-values -----------------------------------------------
     rs(gasPresent) = rsSat(gasPresent);

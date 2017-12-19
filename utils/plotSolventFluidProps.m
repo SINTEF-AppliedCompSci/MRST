@@ -1,5 +1,5 @@
 function plotSolventFluidProps(model, propNames, phases, varargin)
-% Terneary plots of HC components in 4-phase solvent model
+% Terneary plots of HC components in black-oil solvent model.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

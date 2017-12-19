@@ -1,9 +1,8 @@
-%% Using the four-phase solvent model
-% In this example, we investigate the four-phase solvent module, which
-% models the effect of injecting a solvent gas that mixes with the
-% reservoir hydrocarbon fluids. The model is an extension of the
-% Todd-Longstaff mixing model, which treats the solvent gas as a fourth
-% pseudo-component.
+%% Using the black-oil solvent model
+% In this example, we investigate black-oil solvent model, which models the
+% effect of injecting a solvent gas that mixes with the reservoir
+% hydrocarbon fluids. The model is an extension of the Todd-Longstaff
+% mixing model, which treats the solvent gas as a fourth pseudo-component.
 mrstModule add ad-core ad-props ad-blackoil spe10 mrst-gui solvent
 
 df = get(0, 'defaultfigureposition');
@@ -21,15 +20,15 @@ rock = makeRock(G, perm, poro);
 
 %% Set up fluid and add solvent gas properties
 % The solvent model we will use, treats solvent gas as a fourth
-% phase, which is either miscible or immiscible with the oil and gas,
-% depending on the fraction of solvent concentration to total gas
+% pseudocomponent, which is either miscible or immiscible with the oil and
+% gas, depending on the fraction of solvent concentration to total gas
 % concentration, $S_s/(S_g + S_s)$, and the pressure. The model assumes one
 % immiscible and one miscible residual saturation for the hydrocarbon
 % phases, with $S_{\alpha r,i} > S_{\alpha r,m}$, and we must define both.
 % In this example, we assume that the critical (residual) gas saturation is
 % zero in both the immiscible and miscible case. The degree of mixing is
 % modeled through a mixing paramter $\omega$ that defines the degree of
-% mixing, where (no mixing) $ = 0 <= \omega <= 1 = $ (full mixing).
+% mixing, where (no mixing) $= 0 \leq \omega \leq 1 =$ (full mixing).
 
 % Set up three-phase fluid with quadratic relperms
 fluid = initSimpleADIFluid('n'     , [2, 2, 2]                        , ...
@@ -48,20 +47,20 @@ fluid.krG = coreyPhaseRelpermAD(2, sGc_i, fluid.krG(1 - sOr_i), sOr_i + sGc_i);
 [fluid.krO, fluid.krOW, fluid.krOG] ...
      = deal(coreyPhaseRelpermAD(2, sOr_i, fluid.krO(1 - sGc_i), sOr_i + sGc_i));
 
-% Add the solvent "pahse" to the fluid
+% Add the solvent pseudocomponent to the fluid
 fluid   = addSolventProperties(fluid, 'rhoSS' , 90*kilogram/meter^3, ...
                                       'muS'   , 0.5*centi*poise    , ...
                                       'mixPar', 1                  , ...
                                       'sOr_m' , sOr_m              , ...
                                       'sGc_m' , sGc_m              );
                                   
-%% Set up four-phase solvent model
-% Set up four-phase solvent model. Since the residual saturations changes
-% with the solvent and pressure, dynamic endpoint-scaling should be used in
-% the relperm evaluations. However, this is somewhate unstable in cases
-% where the initial oil or gas saturation is close to the residual
-% saturation, and is thus disabeled by default.
-model4Ph_fm = FourPhaseSolventModel(G, rock, fluid                   , ...
+%% Set up black-oil solvent model
+% Since the residual saturations changes with the solvent and pressure,
+% dynamic endpoint-scaling should be used in the relperm evaluations.
+% However, this is somewhate unstable in cases where the initial oil or gas
+% saturation is close to the residual saturation, and is thus disabeled by
+% default.
+model_fm = BlackOilSolventModel(G, rock, fluid                   , ...
                                        'extraStateOutput'      , true, ...
                                        'dynamicEndPointScaling', true);
 
@@ -78,7 +77,7 @@ model4Ph_fm = FourPhaseSolventModel(G, rock, fluid                   , ...
 % saturation (white line) reduces from $S_{or,i}$ (immiscible) to
 % $S_{or,m}$ (miscible) with increasing solvent saturation, and the kinks
 % in the gas and solvent relperms across this line.
-plotSolventFluidProps(model4Ph_fm, {'kr', 'mu'}, {'O', 'G', 'S'});
+plotSolventFluidProps(model_fm, {'kr', 'mu'}, {'O', 'G', 'S'});
 
 %% Set up wells and simulate schedule
 % We set up a simple injection schedule where solvent is injected into the
@@ -96,22 +95,22 @@ tvec     = rampupTimesteps(time, dt);
 schedule = simpleSchedule(tvec, 'W', W);
 
 state0         = initResSol(G, 100*barsa, [0.6, 0.4, 0, 0]);
-state0.wellSol = initWellSolAD(W, model4Ph_fm, state0);
-[wellSols_fm, states_fm, reports_fm] = simulateScheduleAD(state0, model4Ph_fm, schedule);
+state0.wellSol = initWellSolAD(W, model_fm, state0);
+[wellSols_fm, states_fm, reports_fm] = simulateScheduleAD(state0, model_fm, schedule);
 
 %% Compare with moderate mixing
 % To see the effect of the mixing parameter $\omega$, we compare the
 % results above with a model with moderate mixing, where we set $\omega =
 % 1/3$.
-model4Ph_mm = model4Ph_fm;
-model4Ph_mm.fluid.mixPar = 1/3;
-[wellSols_mm, states_mm, reports_mm] = simulateScheduleAD(state0, model4Ph_mm, schedule);
+model_mm = model_fm;
+model_mm.fluid.mixPar = 1/3;
+[wellSols_mm, states_mm, reports_mm] = simulateScheduleAD(state0, model_mm, schedule);
 
 %% Plot the results
 % We now compare the results obtained from the two models by plotting the
 % oil and solvent mass in each cell for three time steps. We see how the
 % model with full mixing predicts a much higher oil recovery, and that the
-% solvent travels faster with lower mixing due to the lower viscosity and
+% solvent travels faster with higher mixing due to the lower viscosity and
 % thus higher mobility of the solvent-oil mixture. The difference in oil
 % mass is shown as grey-shaded areas.
 
@@ -122,7 +121,7 @@ clr    = lines(numel(phases));
 mrk    = {'-', '--'};
 pargs  = @(phNo, mNo) {mrk{mNo}, 'color', clr(phNo,:), 'lineWidth', 2};
 step   = [15, 25, 45];
-pv     = model4Ph_fm.operators.pv;
+pv     = model_fm.operators.pv;
 gray   = [1,1,1]*0.9;
 times  = cumsum(schedule.step.val);
 
