@@ -1,5 +1,63 @@
 function [problem, state] = equationsFourPhaseSolvent(state0, state, model, dt, drivingForces, varargin)
-% Equations for the four-phase solvent model
+% Generate linearized problem for the four-pahse oil-water-gas-solvent equations
+%
+% SYNOPSIS:
+%   [problem, state] = equationsFourPhaseSolvent(state0, state, model, dt, drivingForces)
+%
+% DESCRIPTION:
+%   This is the core function of the four-phase model solver. This function
+%   assembles the residual equations for the conservation of water, oil and
+%   gas, as well as required well equations. By default, Jacobians are also
+%   provided by the use of automatic differentiation.
+%
+%   The model assumes two extrema: In cases with only oil, reservoir gas
+%   and water, we have traditional black-oil behavior. In cases with oil,
+%   solvent gas and water, the oil mixes with the solvent gas according to
+%   the Todd-Longstaff model. In intermediate regions, we interpolate
+%   between the two extrema based on the solvet to total gas saturation
+%   fraction, and the pressure.
+%
+% REQUIRED PARAMETERS:
+%   state0    - Reservoir state at the previous timestep. Assumed to have
+%               physically reasonable values.
+%
+%   state     - State at the current nonlinear iteration. The values do not
+%               need to be physically reasonable.
+%
+%   model     - FourPhaseSolventModel-derived class. Typically,
+%               equationsBlackOil will be called from the class
+%               getEquations member function.
+%
+%   dt        - Scalar timestep in seconds.
+%
+%   drivingForces - Struct with fields:
+%                   * W for wells. Can be empty for no wells.
+%                   * NOTE: The current implementation does not support
+%                   BC's and sources.
+%
+% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+%   'Verbose'    -  Extra output if requested.
+%
+%   'reverseMode'- Boolean indicating if we are in reverse mode, i.e.
+%                  solving the adjoint equations. Defaults to false.
+%
+%   'resOnly'    - Only assemble residual equations, do not assemble the
+%                  Jacobians. Can save some assembly time if only the
+%                  values are required.
+%
+%   'iterations' - Nonlinear iteration number. Special logic happens in the
+%                  wells if it is the first iteration.
+% RETURNS:
+%   problem - LinearizedProblemAD class instance, containing the water, oil
+%             and gas conservation equations, as well as well equations
+%             specified by the FacilityModel class.
+%
+%   state   - Updated state. Primarily returned to handle changing well
+%             controls from the well model.
+%
+% SEE ALSO:
+%   FourPhaseSolventModel,  ThreePhaseBlackOilModel
+
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

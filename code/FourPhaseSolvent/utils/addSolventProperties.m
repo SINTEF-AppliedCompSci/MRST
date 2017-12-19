@@ -1,5 +1,5 @@
 function fluid = addSolventProperties(fluid, varargin)
-% Add solvent "phase" and properties to fluid.
+% Add solvent pseudo-component and properties to fluid.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

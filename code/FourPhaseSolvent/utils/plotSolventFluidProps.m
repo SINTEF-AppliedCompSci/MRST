@@ -1,5 +1,24 @@
 function plotSolventFluidProps(model, propNames, phases, varargin)
+% Terneary plots of HC components in 4-phase solvent model
 
+%{
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
 
     opt = struct('np', 100, 'pressure', 100*barsa);
     
@@ -48,7 +67,6 @@ function plotSolventFluidProps(model, propNames, phases, varargin)
             plot(mapx(sgc(so>=0), ss(so>=0), so(so>=0)), mapy(sgc(so>=0),ss(so>=0),so(so>=0)), 'color', 0.99*[1,1,1], 'linewidth', 2)
             
             axis([0,1,0,sqrt(1-0.5^2)]); axis equal
-%             caxis([min(min(prop)), max(max(prop))])
             colorbar('location', 'southOutside');
             title(name, 'position', [0.5,-0.5]);   
 
