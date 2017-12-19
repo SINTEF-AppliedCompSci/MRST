@@ -1,5 +1,6 @@
 function schedule = makeWAGschedule(W, nCycles, varargin)
 % Make schedule for water-alternating gas (WAG) injection.
+%
 % SYNOPSIS:
 %   schedule = makeWAGschedule(W, nCycles)
 %
@@ -16,12 +17,12 @@ function schedule = makeWAGschedule(W, nCycles, varargin)
 % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
 %   'time'      - Total duration of the WAG injection period. Defaults to 1
 %                 year.
-%   'dt'          Target time step size.
+%   'dt'          Target time step size. Defaluts to 30 days.
 %   'gas_end'   - Duration of gas injection, 0 < gas_end < 1. The gas
 %                 injection period of each cycle will last for
 %                 time/ncycle*gas_end. Defaults to 0.5.
 %   'useRampUp' - Use rampup each time the well control changes to ease the
-%                 nonlinear solution process.
+%                 nonlinear solution process. Defaults to false.
 %
 % RETURNS:
 %   schedule - WAG injection schedule.
