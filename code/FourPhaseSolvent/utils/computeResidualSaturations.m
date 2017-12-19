@@ -1,4 +1,4 @@
-function [sWr, sOr, sGc] = computeResidualSaturations(model, p, sW, sG, sS, state0)
+function [sWcon, sOr, sGc] = computeResidualSaturations(model, p, sW, sG, sS, state0)
 % Calculate effective residual saturations
 
 %{
@@ -23,21 +23,22 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     fluid = model.fluid;
     
     % Residual saturations for the immiscible and miscible extrema
-    sOr_m = fluid.sOr_m(sW) ;
-    sOr_i = fluid.sOr_i ;
+    sOr_m = fluid.sOr_m(sW);
+    sOr_i = fluid.sOr_i;
     sGc_m = fluid.sGc_m(sW);
     sGc_i = fluid.sGc_i;
     
     % Misscibility is a function of the solvent fraction in the total gas
     % phase
-    FSG = fluid.satFrac(sS, sG + sS);
-    M = fluid.Ms(FSG).*fluid.Mp(p);
+    
+    FSGT = fluid.satFrac(sS, sG + sS);
+    M = fluid.Ms(FSGT).*fluid.Mp(p);
     
     % Interpolated water/oil residual saturations
-    sWr = fluid.sWr;
+    sWcon = fluid.sWcon;
     sOr = M.*sOr_m + (1 - M).*sOr_i ;
     sGc = M.*sGc_m + (1 - M).*sGc_i;
-    
+        
     if nargin > 5 && isfield(state0, 'sOr') && isfield(state0, 'sGc') && model.hystereticResSat
         sOr = min(sOr, state0.sOr);
         sGc = min(sGc, state0.sGc);

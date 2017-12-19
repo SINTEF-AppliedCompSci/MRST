@@ -31,12 +31,12 @@ function [vW, vO, vG, vS, mobW, mobO, mobG, mobS, upcW, upcO, upcG, upcS] = getF
     
     [pG, pS] = deal(pO + pcOG);
     
-    rhoGf  = op.faceAvg(rhoG);
-    mobG   = krG./muG;
-    dpG    = op.Grad(pG) - rhoGf.*gdz;
+    rhoGf = op.faceAvg(rhoG);
+    mobG  = krG./muG;
+    dpG   = op.Grad(pG) - rhoGf.*gdz;
     % gas upstream-index
-    upcG    = (double(dpG)<=0);
-    vG = - op.faceUpstr(upcG, mobG).*T.*dpG;
+    upcG  = (double(dpG)<=0);
+    vG    = - op.faceUpstr(upcG, mobG).*T.*dpG;
     
     rhoSf  = op.faceAvg(rhoS);
     mobS   = krS./muS;

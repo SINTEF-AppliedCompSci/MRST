@@ -29,17 +29,15 @@ opt = struct('muS'             , 1    , ... % Solvent viscosity
              'mixParRho'       , []   , ... % Mixing parameter for density
              'sWr'             , 0    , ... % Residual water saturation
              'sOr_m'           , 0    , ... % Miscible residual oil saturation
-             'sOr_i'           , 0    , ... % Immiscible residual oil saturation
              'sGc_m'           , 0    , ... % Miscible residual gas saturation
-             'sGc_i'           , 0    , ... % Immiscible residual gas saturation
              'Ms'              , []   , ... % Saturation-dependent miscibility
-             'Mp'              , 1    , ... % Pressure-dependent miscibility
+             'Mp'              , []   , ... % Pressure-dependent miscibility
              'MkrO'            , []   , ... % Miscible oil relperm multiplier function
              'MkrG'            , []   , ... % Miscible gas relperm multiplier function
              'krFS'            , []   , ... % Immiscible gas relperm multiplier function
              'krFG'            , []   , ... % Miscible solvent relperm multiplier function
              'smin'            , 1e-13, ... % Cut-off used to avoid division by zero
-             'overwrite'       , true);     % Overwrite any solvent propertis already defined
+             'overwrite'       , false);     % Overwrite any solvent propertis already defined
 
 opt = merge_options(opt, varargin{:});
 
@@ -52,12 +50,23 @@ opt = merge_options(opt, varargin{:});
     end
 
     % Mixing parameters for viscosity and density
-
-    names = fieldnames(opt);
     
+    fluid.sOr_i = getResSat(fluid.krOW);
+    fluid.sGc_i = getResSat(fluid.krG);
+    if isfield(fluid, 'sWcon')
+        fluid.sWcon   = fluid.sWcon;
+    else
+        fluid.sWcon = 0;
+    end
+    
+    if isempty(opt.Mp)
+        opt.Mp = 1;
+    end
+    
+    names = fieldnames(opt);
     for fNo = 1:numel(names)
         name = names{fNo};
-        if any(strcmpi(name, {'mixPar', 'mixParRho', 'sWr', 'sOr_i', 'sGc_i', 'smin'}))
+        if any(strcmpi(name, {'mixPar', 'mixParRho', 'smin'}))
             type = {'constant'};
         elseif any(strcmpi(name, {'sOr_m', 'sGc_m', 'Mp'}))
             slope = 0; x0 = opt.(name);
@@ -110,7 +119,7 @@ function fluid = assignProp(fluid, name, value, type, overwrite)
         fluid.(name) = value;
         switch type{1}
             case 'linear'
-                if ~isa(fluid.(name), 'functionHandle')
+                if ~isa(fluid.(name), 'function_handle')
                     fluid.(name) = setLinearFunction(type{2}, type{3});
                 end
         end
@@ -136,4 +145,17 @@ end
 
 function v = setLinearFunction(slope, x0)
     v = @(x) min(max(slope*x + x0,0),1);
+end
+
+function sr = getResSat(kr)
+
+    s = linspace(0,1,101)';
+    kr = kr(s);
+    is_mob = kr > 0;
+    sr = s([is_mob(2:end); true] & ~is_mob);
+    
+    if isempty(sr) 
+        sr = 0;
+    end
+    
 end

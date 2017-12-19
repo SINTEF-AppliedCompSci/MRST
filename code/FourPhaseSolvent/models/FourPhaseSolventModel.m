@@ -21,8 +21,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 properties
-   solvent
-   hystereticResSat
+    % Model contains a solvent pseudo-component
+    solvent
+    % HC residual saturations can be set to the smallest observed over the entire
+    % simulaiton history
+    hystereticResSat
+    % Dynamic end-point scaling should be used in a proper solvent model,
+    % but is somewhat unstable. Set to false by default.
+    dynamicEndPointScaling
 end
 
 methods
@@ -30,9 +36,9 @@ methods
         model = model@ThreePhaseBlackOilModel(G, rock, fluid, varargin{:});
 
         % Use CNV style convergence 
-        model.useCNVConvergence = true;
-        
-        model.hystereticResSat = false;
+        model.useCNVConvergence      = true;
+        model.hystereticResSat       = false;
+        model.dynamicEndPointScaling = false;
         
         % All phases are present
         model.water   = true;
@@ -106,35 +112,6 @@ methods
         phIndices = [w, w+o, w+o+g, w+o+g+s];
         phIndices(~model.getActivePhases) = -1;
     end
-
-    % --------------------------------------------------------------------%
-%     function [state, report] = updateState(model, state, problem, dx, drivingForces)
-%         
-%         % Parent class handles almost everything for us
-%         [state, report] = updateState@ReservoirModel(model, state, problem, dx, drivingForces);
-%         
-%         
-% %         stateBO = state;
-% %         stateBO.s(:,3) = stateBO.s(:,3) + stateBO.s(:,4);
-% %         saturations = lower(model.saturationVarNames);
-% %         wi = strcmpi(saturations, 'sw');
-% %         oi = strcmpi(saturations, 'so');
-% %         gi = strcmpi(saturations, 'sg');
-% %         si = strcmpi(saturations, 'si');
-% %         problem.
-% %         si = strcmpi(saturations, 'ss');
-% 
-%         
-%         
-% %         [state, report] = updateState@ThreePhaseBlackOilModel(model, stateBO, problem, dx, drivingForces);
-% 
-% %         % Handle the directly assigned values (i.e. can be deduced directly from
-% %         % the well controls. This is black oil specific.
-% %         W = drivingForces.W;
-% %         state.wellSol = assignWellValuesFromControlSolvent(model, state.wellSol, W, wi, oi, gi, si);
-%         
-%         
-%     end
     
     % --------------------------------------------------------------------%
     function [state, report] = updateState(model, state, problem, dx, drivingForces)
@@ -199,37 +176,7 @@ methods
             % We should *NOT* be solving for oil saturation for this to make sense
             assert(~any(strcmpi(vars, 'so')));
 
-            if 0
-                state = computeFlashBlackOilSolvent(state, state0, model, st);
-            else
-                solvInWat = true;
-
-                if solvInWat
-                    stateBO = state;
-                    stateBO.s(:, 1) = stateBO.s(:, 1) + stateBO.s(:, 4);
-                    stateBO0 = state0;
-                    stateBO0.s(:,1) = stateBO0.s(:, 1) + stateBO0.s(:, 4);
-                    stateBO.s = stateBO.s(:,1:3);
-                    stateBO = computeFlashBlackOil(stateBO, stateBO0, model, st);
-
-%                     FWS = model.fluid.satFrac(state.s(:,1), state.s(:,1) + state.s(:,4));
-% 
-%                     state.s = [stateBO.s(:,1).*FWS, stateBO.s(:,2:3), stateBO.s(:,1).*(1-FWS)];
-                    state.s = [stateBO.s(:,1) - state.s(:,4), stateBO.s(:,2:3), state.s(:,4)];
-
-                else
-                    stateBO = state;
-                    stateBO.s(:, 3) = stateBO.s(:, 3) + stateBO.s(:, 4);
-                    stateBO0 = state0;
-                    stateBO0.s(:,3) = stateBO0.s(:, 3) + stateBO0.s(:, 4);
-                    stateBO.s = stateBO.s(:,1:3);
-                    stateBO = computeFlashBlackOil(stateBO, stateBO0, model, st);
-                    state.s = [stateBO.s(:,1:2), stateBO.s(:,3) - state.s(:,4), state.s(:,4)];
-                end
-                state.status = stateBO.status;
-            end
-
-            
+            state = computeFlashBlackOilSolvent(state, state0, model, st);
             state.s = bsxfun(@rdivide, state.s, sum(state.s, 2));
 
             %  We have explicitly dealt with rs/rv properties, remove from list
@@ -247,31 +194,7 @@ methods
         dx(removed) = [];
 
         % Parent class handles almost everything for us
-        [state, report] = updateState@ReservoirModel(model, state, problem, dx, drivingForces);
-        
-%         tol = 1e-10;
-%         tol = 0;
-%         
-%         sO = state.s(:,2);
-% %         ix = abs(sO - state.sr(:,1)) < tol;
-%         ix = sO < state.sr(:,1) + tol;
-%         sO(ix) = state.sr(ix,1);
-%         
-%         sG = state.s(:,3);
-% %         ix = abs(sG - state.sr(:,2)) < tol;
-%         ix = sG < state.sr(:,2) + tol;
-%         sG(ix) = state.sr(ix,2);
-        
-%         tol = 1e-10;
-% %         tol = 0;
-%         state.s(:,2) = max(state.s(:,2), state.sr(:,1) + tol);
-%         state.s(:,3) = max(state.s(:,3), state.sr(:,2) + tol);
-%         
-% %         state.s = [state.s(:,1), sO, sG, state.s(:,4)];
-%         state.s = state.s./(sum(state.s,2));
-       
-        
-        
+        [state, report] = updateState@ReservoirModel(model, state, problem, dx, drivingForces);        
     end
     
     % --------------------------------------------------------------------%

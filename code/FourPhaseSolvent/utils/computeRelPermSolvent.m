@@ -1,4 +1,4 @@
-function [krW_eff, krO_eff, krG_eff, krS_eff] = computeRelPermSolvent(model, p, sW, sO, sG, sS, sWr, sOr, sGc, mobMult)
+function [krW_eff, krO_eff, krG_eff, krS_eff] = computeRelPermSolvent(model, p, sW, sO, sG, sS, sWcon, sOr, sGc, mobMult)
 % Calulates effective relative permeabilities.
 
 %{
@@ -26,82 +26,69 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     %% Immiscible relative permeabilities
     
-%     sS(sS < fluid.smin) = 0;
-%     sG(sG < fluid.smin) = 0;
+    sOr_i   = fluid.sOr_i;
+    sGc_i   = fluid.sGc_i;
+    srtot   = sWcon + sOr + sGc;
+    srtot_i = sWcon + sOr_i + sGc_i;
     
-    sOr_i = fluid.sOr_i; sGc_i = fluid.sGc_i;
-    srtot = sWr + sOr + sGc;
-    srtot_i = sWr + sOr_i + sGc_i;
-    
-    sWn  = scaledSaturation(fluid, sW, srtot, srtot_i, sWr, sWr  );
-    sOn  = scaledSaturation(fluid, sO, srtot, srtot_i, sOr, sOr_i);
-    sGTn = scaledSaturation(fluid, sG + sS, srtot, srtot_i, sGc, sGc_i);
-    
-%     sOn = scaledSaturation(fluid, 1-(sW + sG), srtot, srtot_i, sOr, sOr_i);
-%     sWn = sW;
-%     sOn = sO;
-%     sGTn = sG + sS;
-    
+    if model.dynamicEndPointScaling
+        sWn  = scaledSaturation(fluid, sW          , srtot, srtot_i, sWcon    , sWcon);
+        sOn  = scaledSaturation(fluid, sO          , srtot, srtot_i, sOr      , sOr_i);
+        sGTn = scaledSaturation(fluid, sG + sS     , srtot, srtot_i, sGc      , sGc_i);
+        sNn  = scaledSaturation(fluid, sO + sG + sS, srtot, srtot_i, sOr + sGc, sOr_i);
+    else
+        sWn  = sW;
+        sOn  = sO;
+        sGTn = sG + sS;
+        sNn  = sO + sG + sS;
+    end
+
     krW    = fluid.krW(sWn);
-    krO_i  = fluid.krOW(sOn);  % Oil relperm
+    krO_i  = fluid.krOW(sOn); % Oil relperm
     krGT_i = fluid.krG(sGTn); % Total gas relperm
-    
-    
-    FSG   = fluid.satFrac(sS, sG + sS); % Solvent to total gas saturation fraction
-    krG_i = fluid.krFG((1-FSG)).*krGT_i;
-    krS_i = fluid.krFS(FSG    ).*krGT_i;
 
     %% Miscible relative permeabilities
     
     % Mobile saturaitons
-    sOm  = max(sO - sOr, 0);
-    sGm  = max(sG - sGc, 0);
-    sGTm = max(sG + sS - sGc, 0);              % Total mobile gas saturation
-    sNm  = max(sO + sG + sS - (sOr + sGc), 0); % Total mobile HC saturaion
-    
-    FOmNm = fluid.satFrac(sOm, sNm);   % Oil to HC saturation fraction
-    FGmGTm = fluid.satFrac(sGm, sGTm); % Gas to HC saturation fraction
-    
+    sGTm   = max(sG + sS - sGc, 0);              % Total mobile gas saturation
+    sNm    = max(sO + sG + sS - (sOr + sGc), 0); % Total mobile HC saturaion    
     FGTmNm = fluid.satFrac(sGTm, sNm);
     
     % Miscible relperms
-    sNn = scaledSaturation(fluid, sO + sG + sS, srtot, srtot_i, sOr + sGc, sOr_i);
-    
-%     sNn = sO + sG + sS;
     krN    = fluid.krO(sNn);
-%     krO_m  = fluid.MkrO(1-FOmNm).*krN;
-%     krGT_m = fluid.MkrG(1-FOmNm).*krN;
     krO_m  = fluid.MkrO(FGTmNm).*krN;
     krGT_m = fluid.MkrG(FGTmNm).*krN;
-%     krG_m  = fluid.krFG(FGmGTm).*krGT_m;
-%     krS_m  = fluid.krFS(1-FGmGTm).*krGT_m;
-    krG_m  = fluid.krFG(1-FSG).*krGT_m;
-    krS_m  = fluid.krFS(FSG).*krGT_m;
+
     
     %% Interpolate between the two
     
     % Interpolate between miscible and immiscible cases (water relperm
     % not affected by the solvent)
-    M = fluid.Ms(fluid.satFrac(sS, sG + sS)).*fluid.Mp(p);
+    M    = fluid.Ms(fluid.satFrac(sS, sG + sS)).*fluid.Mp(p);
+    FSGT = fluid.satFrac(sS, sG + sS); % Solvent to total gas saturation fraction
     
-    krW_eff = krW;
-    krO_eff = M.*krO_m + (1-M).*krO_i;
-    krG_eff = M.*krG_m + (1-M).*krG_i;
-    krS_eff = M.*krS_m + (1-M).*krS_i;
-    
+    krW_eff  = krW;
+    krO_eff  = M.*krO_m  + (1-M).*krO_i;
+    krGT_eff = M.*krGT_m + (1-M).*krGT_i;
+    krG_eff  = fluid.krFG(1-FSGT).*krGT_eff;
+    krS_eff  = fluid.krFS(FSGT  ).*krGT_eff;
+
     % Modifiy relperm by mobility multiplier (if any)
     krW_eff = mobMult.*krW_eff;
     krO_eff = mobMult.*krO_eff;
     krG_eff = mobMult.*krG_eff;
     krS_eff = mobMult.*krS_eff;
     
+    
 end
 
 function sn = scaledSaturation(fluid, s, srtot, srtot_i, sr, sr_i)
 
-    sn = max(s - sr, 0);
-    sn = fluid.satFrac(sn, 1 - srtot);
+%     tol = 1e-4;
+    sn = max(s-sr,0);
+%     sn(sn <= 0) = -tol;
+    sn = sn./(1-srtot);
+%     sn = min(max(sn,-),1);
     sn = sn.*(1 - srtot_i) + sr_i;
-    sn = min(sn, 1);
     
 end

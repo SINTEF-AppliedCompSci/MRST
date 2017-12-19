@@ -86,15 +86,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     rhoS = bS_i.*fluid.rhoSS;
     
     %% Effective viscosites
-    
-%     tol = 1e-6;
-%     is_oil     = sO > tol;
-%     is_gas     = sG > tol;
-%     is_solvent = sS > tol;
-
-    is_oil     = true;
-    is_gas     = true;
-    is_solvent = true;
 
     % Caluculate mobile saturations
     sOn = max(sO - sOr, 0);
@@ -107,8 +98,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % Saturation fractions
     FSnOSn = fluid.satFrac(sSn, sOn + sSn);
     FSnGSn = fluid.satFrac(sSn, sGn + sSn);
-    FOnNn  = fluid.satFrac(sOn, sOn + sGn  + sSn);
-    FGnNn  = fluid.satFrac(sGn, sOn + sGn  + sSn);
+    FOnNn  = fluid.satFrac(sOn, sOn + sGn + sSn);
+    FGnNn  = fluid.satFrac(sGn, sOn + sGn + sSn);
     
     % Mixed viscosities
     muMOS = muO.*muS./((1-FSnOSn).*muS.^a + FSnOSn.*muO.^a).^(1/a); % Oil-solvent
@@ -116,16 +107,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     muM   = muO.*muS.*muG./(FOnNn.*(muS.*muG).^a           ... 
                           + (1-FOnNn-FGnNn).*(muO.*muG).^a ...
                           + FGnNn.*(muO.*muS).^a).^(1/a);          % Oil-gas-solvent
-    
+
     % Effective viscosities are determined by the mixing parameter
-    omega = fluid.mixPar;
+    omega   = fluid.mixPar;
     muW_eff = muW;
     muO_eff = muO.^(1-omega).*muMOS.^omega;
-    muO_eff = muO_eff.*(is_oil & is_solvent) + muO.*(~(is_oil & is_solvent));
     muG_eff = muG.^(1-omega).*muMSG.^omega;    
-    muG_eff = muG_eff.*(is_gas & is_solvent) + muG.*(~(is_gas & is_solvent));
     muS_eff = muS.^(1-omega).*muM.^omega;
-    muS_eff = muS_eff.*is_solvent + muS.*(~is_solvent);
     
     %% Effective densities
     
@@ -143,10 +131,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     [FON_Oeff, FON_Geff, FSN_Seff] = deal(muO); % Initialize to some AD-variable
     FGnOGn = fluid.satFrac(sGn, sOn + sGn);
     
+    omega   = fluid.mixParRho;
+    muO_rho = muO.^(1-omega).*muMOS.^omega;
+    muG_rho = muG.^(1-omega).*muMSG.^omega;
+    muS_rho = muS.^(1-omega).*muM.^omega;
+    
     % Effective saturations for the given viscosites if we had full mixing.
-    FON_Oeff(ok) = (muOmuS(ok) - (muO(ok)./muO_eff(ok)).^a)./(muOmuS(ok)-one);
-    FON_Geff(ok) = (muSmuG(ok) - (muS(ok)./muG_eff(ok)).^a)./(muSmuG(ok)-one);
-    FSN_Seff(ok) = (muSmuG(ok).*FGnOGn(ok) + muSmuO(ok).*(one-FGnOGn(ok)) - (muS(ok)./muS_eff(ok)).^a)...
+    FON_Oeff(ok) = (muOmuS(ok) - (muO(ok)./muO_rho(ok)).^a)./(muOmuS(ok)-one);
+    FON_Geff(ok) = (muSmuG(ok) - (muS(ok)./muG_rho(ok)).^a)./(muSmuG(ok)-one);
+    FSN_Seff(ok) = (muSmuG(ok).*FGnOGn(ok) + muSmuO(ok).*(one-FGnOGn(ok)) - (muS(ok)./muS_rho(ok)).^a)...
                    ./(muSmuG(ok).*FGnOGn(ok) + muSmuO(ok).*(one-FGnOGn(ok)) - one);
     
     % Interpolated fully-mixed densities
@@ -155,25 +148,23 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     rhoM = rhoO.*FON + rhoG.*FGN + rhoS.*(1 - (FON + FGN));
     
     % Calulcate mixed densities
-    omega = fluid.mixParRho;
     rhoW_eff = rhoW;
     rhoO_eff = (FON_Oeff.*rhoO + (1-FON_Oeff).*rhoS).*(ok) ...
                                        + ((1-omega)*rhoO + omega*rhoM).*(~ok);
-    rhoO_eff = rhoO_eff.*(is_oil & is_solvent) + rhoO.*(~(is_oil & is_solvent));
     rhoG_eff = (FON_Geff.*rhoS + (1-FON_Geff).*rhoG).*(ok) ...
                                        + ((1-omega)*rhoG + omega*rhoM).*(~ok);
-    rhoG_eff = rhoG_eff.*(is_gas & is_solvent) + rhoG.*(~(is_gas & is_solvent));
     rhoS_eff = (FSN_Seff.*rhoS + (1-FSN_Seff).*(rhoG.*FGnOGn + rhoO.*(1-FGnOGn))).*(ok) ...
                                        + ((1-omega)*rhoS + omega*rhoM).*(~ok);
-    rhoS_eff = rhoS_eff.*(is_solvent) + rhoS.*(~is_solvent);
                                    
     % Effective formation volume factors are interpolated using a
     % pressure-dependent miscibility funciton
     
     % Miscible formation volume factors b = rho_eff/rhoS
-    bO_m = rhoO_eff./fluid.rhoOS;
-    bG_m = rhoG_eff./fluid.rhoGS;
+    bO_m = rhoO_eff./(fluid.rhoOS + rs.*fluid.rhoGS);
+    bG_m = rhoG_eff./(fluid.rhoGS + rv.*fluid.rhoOS);
     bS_m = rhoS_eff./fluid.rhoSS;
+    
+    %% Pressure effects
     
     % Effective formation volume factors are interpolated using a
     % pressure-dependent miscibility funciton
@@ -182,5 +173,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     bO_eff = bO_m.*Mp + bO_i.*(1-Mp);
     bG_eff = bG_m.*Mp + bG_i.*(1-Mp);
     bS_eff = bS_m.*Mp + bS_i.*(1-Mp);
+    
+    if any(bW_eff < 0 | bO_eff < 0 | bG_eff < 0 | bS_eff < 0)
+        warning('Negative compressibility present!')
+    end
+    
+    rhoO_eff = bO_eff.*(fluid.rhoOS + rs.*fluid.rhoGS);
+    rhoG_eff = bG_eff.*(fluid.rhoGS + rv.*fluid.rhoOS);
+    rhoS_eff = bS_eff.*fluid.rhoSS;
+    
+    muO_eff = bO_eff./((bO_m./muO_eff).*Mp + (bO_i./muO).*(1-Mp));
+    muG_eff = bG_eff./((bG_m./muG_eff).*Mp + (bG_i./muG).*(1-Mp));
+    muS_eff = bS_eff./((bS_m./muS_eff).*Mp + (bS_i./muS).*(1-Mp));
     
 end
