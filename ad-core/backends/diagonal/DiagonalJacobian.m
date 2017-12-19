@@ -335,7 +335,6 @@ classdef DiagonalJacobian
             if DiagonalJacobian.isAllZeros(x) || DiagonalJacobian.isAllZeros(y)
                 dx = matrixDims(x);
                 dy = matrixDims(y);
-                assert(dx(2) == dy(1))
                 x = sparse([], [], [], dx(1), dy(2));
                 return;
             end
