@@ -1,4 +1,5 @@
 function v = discreteDivergence(N, v, nc, nf, sortIx, C)
+% Discrete divergence for the NewAD library
     if isa(v, 'NewAD')
         for i = 1:numel(v.jac)
             v.jac{i} = divJac(v.jac{i}, N, nc, nf, sortIx, C);

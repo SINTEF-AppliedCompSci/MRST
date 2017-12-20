@@ -1,8 +1,7 @@
 function [x, D] = diagMult(v, M, D)
+% Internal function for diagonal multiplication in AD code
     if ~any(v)
-%         x = 0*M;
         sz = size(M);
-%         x = ZeroJacobian(sz);
         x = sparse([],[],[],sz(1), sz(2));
     elseif nnz(M) == 0
         x = M;

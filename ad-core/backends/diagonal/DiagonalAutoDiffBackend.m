@@ -1,6 +1,24 @@
 classdef DiagonalAutoDiffBackend < AutoDiffBackend
+    % Automatic differentiation backend class (diagonal representation)
+    %
+    % SYNOPSIS:
+    %   backend = DiagonalAutoDiffBackend()
+    %
+    % DESCRIPTION:
+    %   This backend uses a diagonal representation (with an optional set
+    %   of operators that produce intermediate diagonal representations).
+    %   The primary use of this class is for problems with a large number
+    %   of independent primary variables, with many cell-wise operations
+    %   (e.g. compositional or similar problems).
+    %
+    % RETURNS:
+    %   Backend - Initialized class instance
+    %
+    % SEE ALSO:
+    %   `AutoDiffBackend`, `SparseAutoDiffBackend`
+
     properties
-        modifyOperators = true;
+        modifyOperators = true; % Update the operators and use custom versions that return `DiagonalSubset` instances
     end
     
     methods

@@ -1,4 +1,5 @@
 classdef (InferiorClasses = {?DiagonalJacobian,?DiagonalSubset}) DivergenceTerm
+    % Very experimental divergence term
     properties
         I
         J

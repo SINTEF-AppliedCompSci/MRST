@@ -1,7 +1,8 @@
 classdef DiagonalJacobian
+    % Diagonal representation of a Jacobian
     properties
-        diagonal
-        subset % List of subset values
+        diagonal % Dense matrix of diagonal derivatives
+        subset % Indices corresponding to the subset (if empty, class contains the full set)
         dim % Vector: First dimension is the number of variables in block, while the second is the number of columns
     end
     

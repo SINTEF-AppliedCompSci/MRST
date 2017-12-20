@@ -1,44 +1,5 @@
 function varargout = initVariablesAD_oneBlock(varargin)
-% Initialize a set of automatic differentiation variables
-%
-% SYNOPSIS:
-%  a            = initVariablesADI(a);
-%  [a, b, c, d] = initVariablesADI(a, b, c, d);
-%
-% PARAMETERS:
-%   Any number of variables in either column vector format or as scalars.
-%   These variables will be instantiate as ADI objects containing both a
-%   .val field and a .jac jacobian. These variables will start with
-%   identity jacobians with regards to themselves and zero jacobians with
-%   regards to the other variables (implicitly defined by the ordering of
-%   input and output).
-%
-%   These variables can then be used to create more complex expressions,
-%   resulting in automatic compuation of the first order derivatives
-%   leading to easy implementation of Newton-like nonlinear solvers.
-%
-% EXAMPLE:
-%        x = 1;
-%        y = 5;
-%        [x, y] = initVariablesADI(x, y)
-%
-%        This gives x.jac ->  {[1]  [0]} and y.jac ->  {[0]  [1]}.
-%
-%        If we compute z = x.*y.^2 we get
-%
-%        z.val = 25 (as is expected),
-%        z.jac{1} = d(x*y^2)/dx = y^2 = 5^2 = 25
-%        z.jac{2} = d(x*y^2)/dy = 2*x*y = 2*1*5 = 10;
-%
-%        Note that as this is meant for vector operations, the
-%        element-wise operations should be used (.* instead of *) even when
-%        dealing with scalars.
-%
-% RETURNS:
-%   The same variables as inputted, as ADI objects.
-%
-% SEE ALSO:
-%   ADI
+% Initialize a set of automatic differentiation variables (single block)
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

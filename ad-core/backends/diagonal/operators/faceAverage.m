@@ -1,4 +1,5 @@
 function v = faceAverage(N, v)
+% Face average operator for the NewAD library
     if isa(v, 'NewAD')
         v.val = 0.5*sum(v.val(N), 2);
         v.jac = cellfun(@(x) avgJac(x, N), v.jac, 'UniformOutput', false);

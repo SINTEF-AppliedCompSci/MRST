@@ -1,4 +1,5 @@
 function v = singlePointUpwind(flag, N, v)
+% Single-point upwind for the NewAD library
     vD = double(v);
     value = vD(N(:, 1));
     value(~flag, :) = vD(N(~flag, 2), :);

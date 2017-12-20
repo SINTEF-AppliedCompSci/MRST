@@ -1,6 +1,21 @@
 classdef SparseAutoDiffBackend < AutoDiffBackend
+    % Automatic differentiation backend class (sparse representation)
+    %
+    % SYNOPSIS:
+    %   backend = SparseAutoDiffBackend()
+    %
+    % DESCRIPTION:
+    %    This version of the AD backend uses different types of sparse
+    %    blocks to represent derivatives.
+    %
+    % RETURNS:
+    %   Backend - Initialized class instance
+    %
+    % SEE ALSO:
+    %   `AutoDiffBackend`, `DiagonalAutoDiffBackend`
+
     properties
-        useBlocks
+        useBlocks % Organize Jacobian as a set of blocks, instead of one large AD matrix
     end
     
     methods
@@ -10,7 +25,7 @@ classdef SparseAutoDiffBackend < AutoDiffBackend
             backend = merge_options(backend, varargin{:});
         end
         
-        function ops = updateDiscreteOperators(backend, ops)
+        function model = updateDiscreteOperators(backend, model)
             % Do nothing
         end
         

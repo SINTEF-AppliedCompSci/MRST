@@ -1,4 +1,6 @@
 classdef NewAD < ADI
+    % NewAD is the testbed for future updates to the ADI class. All
+    % features herein are subject to rapid change.
     properties
         numVars
         offsets
