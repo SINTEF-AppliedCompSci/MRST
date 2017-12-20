@@ -1,5 +1,5 @@
 classdef DiagonalSubset < DiagonalJacobian
-% Structured subset of a diagonal jacobian 
+    % Structured subset of a diagonal jacobian 
     properties
         map
     end
