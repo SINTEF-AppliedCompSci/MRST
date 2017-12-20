@@ -324,7 +324,7 @@ function cache = register_modules(cache, mods)
    % absence of a terminating FILESEP on either of the directory strings.
    %
    cmp         = match_algorithm;
-   canonical   = @(d) fileparts(fullfile(d, '.'));
+   canonical   = @canonicalise_dirname;
    dir_is_same = @(d1, d2) cmp(canonical(d1), canonical(d2));
 
    if ~ dir_is_same(dsrc{1}, root),
@@ -458,6 +458,18 @@ end
 
 function cache = map_to_cache(cache)
    % Identity, no-op
+end
+
+%--------------------------------------------------------------------------
+
+function dname = canonicalise_dirname(dname)
+   cwd = pwd();
+
+   cd(fileparts(fullfile(dname, '.')));
+
+   dname = pwd();
+
+   cd(cwd);
 end
 
 %--------------------------------------------------------------------------
