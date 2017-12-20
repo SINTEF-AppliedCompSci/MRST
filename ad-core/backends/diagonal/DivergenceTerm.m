@@ -13,19 +13,41 @@ classdef (InferiorClasses = {?DiagonalJacobian,?DiagonalSubset}) DivergenceTerm
             D.I = I; D.J = J; D.V = V; D.n = N; D.m = M;
         end
         
-        function [I, J, V, n, m] = getSparseArguments(D)
+        function [I, J, V, n, m] = getSparseBlocks(D, varargin)
             if isempty(D.other)
                 I = D.I;
                 J = D.J;
                 V = D.V;
             else
-                [Io, Jo, Vo] = getSparseArguments(D.other);
-                I = [D.I; reshape(Io, [], 1)];
-                J = [D.J; reshape(Jo, [], 1)];
-                V = [D.V; reshape(Vo, [], 1)];
+                [Io, Jo, Vo] = getSparseBlocks(D.other);
+                I = [D.I(:); Io(:)];
+                J = [D.J(:); Jo(:)];
+                V = [D.V(:); Vo(:)];
             end
             n = D.n;
             m = D.m;
+            if nargin > 1
+                I = I + varargin{1};
+                if nargin > 2
+                    J = J + varargin{2};
+                end
+            end
+        end
+
+        
+        function [I, J, V, n, m] = getSparseArguments(D, varargin)
+            [I, J, V, n, m] = getSparseBlocks(D);
+            
+            act = V ~= 0;
+            I = I(act);
+            J = J(act);
+            V = V(act);
+            if nargin > 1
+                I = I + varargin{1};
+                if nargin > 2
+                    J = J + varargin{2};
+                end
+            end
         end
         
         function s = sparse(D)
@@ -35,16 +57,24 @@ classdef (InferiorClasses = {?DiagonalJacobian,?DiagonalSubset}) DivergenceTerm
         
         function D = plus(D, v)
             if isa(D, 'DivergenceTerm')
-                if isa(v, 'DiagonalJacobian')
-                    D.other = v;
-                else
-                    D = D.sparse() + v;
-                end
+                D.other = v;
             else
-                D = plus(v, D);
+                v.other = D;
+                D = v;
             end
         end
-
+        
+        function v = nnz(D)
+            v = nnz(D.other) + nnz(D.V);
+        end
+        
+        function [x, D] = diagMult(v, x, D)
+            x.V = x.V.*v(x.I);
+            if ~isempty(x.other)
+                [x.other, D] = diagMult(v, x.other, D);
+            end
+        end
+        
         function D = uminus(D)
             D.V = -D.V;
             D.other = -D.other;

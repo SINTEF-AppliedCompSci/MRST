@@ -24,7 +24,7 @@ classdef DiagonalAutoDiffBackend < AutoDiffBackend
 
                 [~, sortedN] = sort(repmat(reshape(N, [], 1), 2, 1));
                 I_base = [N(:, 1); N(:, 1); N(:, 2); N(:, 2)];
-                I_base = I_base(sortedN);
+%                 I_base = I_base(sortedN);
 
                 sortIx = struct('C', C, 'J_sorted_index', sortedN, 'I_base', I_base);
                 model.operators.Grad = @(v) twoPointGradient(N, v, gradMat);

@@ -47,11 +47,11 @@ classdef DiagonalJacobian
             isz = size(u.diagonal, 2) == 0;
         end
         
-        function [I, J, V, imax, jmax] = getSparseBlocks(D)
+        function [I, J, V, imax, jmax] = getSparseBlocks(D, ioffset, joffset)
             [imax, m] = size(D.diagonal);
             jmax = prod(D.dim);
             if m == 0
-                I = []; J = []; V = [];
+                I = zeros(0, 1); J = zeros(0, 1); V = zeros(0, 1);
                 return
             end
             if isempty(D.subset)
@@ -68,14 +68,20 @@ classdef DiagonalJacobian
             end
             I = repmat(reshape(1:numel(subs), [], 1), m, 1);
             V = D.diagonal;
+            if nargin > 1
+                I = I + ioffset;
+                if nargin > 2
+                    J = J + joffset;
+                end
+            end
         end
         
         function [I, J, V, imax, jmax] = getSparseArguments(D, ioffset, joffset)
             [I, J, V, imax, jmax] = getSparseBlocks(D);
             act = V ~= 0;
-            I = I(act);
-            J = J(act);
-            V = V(act);
+            I = reshape(I(act), [], 1);
+            J = reshape(J(act), [], 1);
+            V = reshape(V(act), [], 1);
             if nargin > 1
                 I = I + ioffset;
                 if nargin > 2
