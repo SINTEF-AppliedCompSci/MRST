@@ -117,7 +117,7 @@ function p = translate_rootdir(p)
       src = fullfile( ROOTDIR , up{:});
       dst = fullfile('ROOTDIR', up{:});
 
-      p = regexprep(p, dirstring(src), dst);
+      p = regexprep(p, dirstring(src), escape(dst));
    end
 end
 
