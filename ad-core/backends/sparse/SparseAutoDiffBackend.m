@@ -5,8 +5,8 @@ classdef SparseAutoDiffBackend < AutoDiffBackend
     %   backend = SparseAutoDiffBackend()
     %
     % DESCRIPTION:
-    %    This version of the AD backend uses different types of sparse
-    %    blocks to represent derivatives.
+    %   This version of the AD backend uses different types of sparse
+    %   blocks to represent derivatives.
     %
     % RETURNS:
     %   Backend - Initialized class instance
