@@ -12,8 +12,6 @@ function cflux = coarsenFlux(cg, flux)
 % RETURNS:
 %   cflux   - Accumulated net flux on coarse faces
 %
-% REMARK:
-%
 % SEE ALSO:
 %   `coarsenGeometry`, `coarseConnections`
 

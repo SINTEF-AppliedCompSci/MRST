@@ -14,7 +14,7 @@ function p = partitionTensor(G, di, dj, dk)
 %                each cell can be identified by its (I,J) pair or (I,J,K)
 %                triplet in two and three space dimensions, respectively.
 %
-%   di, dj, dk - Tensor product block sizes.  Vectors of positive integers.
+%   di,dj,dk   - Tensor product block sizes.  Vectors of positive integers.
 %                Specifically, the block at position (x,y,z) consists of
 %
 %                      di(x)-by-dj(y)-by-dk(z)

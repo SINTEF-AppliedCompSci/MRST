@@ -5,7 +5,7 @@ function cg = generateCoarseGrid(G, p, varargin)
 %   CG = generateCoarseGrid(G, pv)
 %   CG = generateCoarseGrid(G, pv, pf)
 %
-% PARAMETER:
+% PARAMETERS:
 %   G -  grid_structure data structure describing fine-scale discretisation
 %        of reservoir geometry.
 %

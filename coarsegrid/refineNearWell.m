@@ -4,9 +4,6 @@ function [p, binAngle, binRadius, dist] = refineNearWell(pts, wellpt, varargin)
 % SYNOPSIS:
 %   p = refineNearWell(points, wellpoint)
 %
-% DESCRIPTION:
-%   
-%
 % REQUIRED PARAMETERS:
 %   pts    - Set of points that are to be partitioned (for example
 %            G.cells.centroids)
