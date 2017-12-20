@@ -243,8 +243,31 @@ classdef NewAD < ADI
           for i = 1:numel(varargin)
               varargin{i} = varargin{i}.castJacToSparse();
           end
-          
-          h = cat(varargin{:});
+          if nargin > 1
+              nj = numel(varargin{1}.jac);
+              nv = nargin;
+              
+              [I, J, V] = deal(cell(nv, nj));
+              N = 0;
+              for i = 1:nv
+                  M = 0;
+                  for j = 1:nj
+                      [ii, jj, vv, n, m] = getSparseArguments(varargin{i}.jac{j}, N, M);
+                      I{i, j} = reshape(ii, [], 1);
+                      J{i, j} = reshape(jj, [], 1);
+                      V{i, j} = reshape(vv, [], 1);
+                      M = M + m;
+                  end
+                  N = N + n;
+              end
+              
+              h = varargin{1};
+              v = cellfun(@(x) x.val, varargin, 'UniformOutput', false);
+              h.val = vertcat(v{:});
+              h.jac = {sparse(vertcat(I{:}), vertcat(J{:}), vertcat(V{:}), N, M)};
+          else
+              h = cat(varargin{:});
+          end
       end
       
       function AD = castJacToSparse(AD)
