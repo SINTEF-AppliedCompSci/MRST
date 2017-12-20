@@ -21,8 +21,8 @@ classdef UniformFacilityModel < FacilityModel
             % "SimpleWell" class.
             enames = model.addedEquationNames;
             cnames = model.ReservoirModel.getComponentNames();
-            ncomp = numel(cnames);
-            assert(ncomp == 0, 'UniformFacilityModel does not support components.');
+            % ncomp = numel(cnames);
+            % assert(ncomp == 0, 'UniformFacilityModel does not support components.');
             
             n_extra = numel(enames);
             assert(n_extra == 0);

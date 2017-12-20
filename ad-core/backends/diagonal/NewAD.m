@@ -243,7 +243,7 @@ classdef NewAD < ADI
           for i = 1:numel(varargin)
               varargin{i} = varargin{i}.castJacToSparse();
           end
-          if nargin > 1
+          if nargin > 1 && 0
               nj = numel(varargin{1}.jac);
               nv = nargin;
               

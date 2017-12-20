@@ -27,7 +27,7 @@ function jac = divJac(jac, N, nc, nf, sortIx, C)
         jac = sparse([], [], [], nc, prod(jac.dim));
         return
     else
-        if 0
+        if 1
             % Manual version
             nD = jac.dim(2);
 
@@ -55,7 +55,8 @@ function jac = divJac(jac, N, nc, nf, sortIx, C)
             I = I(act);
             J = J(act);
             V = V(act);
-            jac = sparse(I, J, V, nc, prod(jac.dim), ceil(1.1*numel(I)));
+            jac = DivergenceTerm(I, J, V, nc, prod(jac.dim));
+%             jac = sparse(I, J, V, nc, prod(jac.dim), ceil(1.1*numel(I)));
         else
             % Sparse version
             jac = sortIx.C*jac.sparse();
