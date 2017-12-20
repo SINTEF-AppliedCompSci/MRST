@@ -1,41 +1,35 @@
 classdef CompositionalFluid
     properties
-        % Critical temperature in Kelvin
-        Tcrit
-        % Critical pressure in Pascal
-        Pcrit
-        % Critical volume in m^3 / mol
-        Vcrit
-        % Acentric factors (dimensionless)
-        acentricFactors
-        % Component mass (kg / mol)
-        molarMass
-        T_ref
-        P_ref
-        % Names of each component. Must be unique.
-        names
+        Tcrit % Critical temperature in Kelvin
+        Pcrit % Critical pressure in Pascal
+        Vcrit % Critical volume in m^3 / mol
+        acentricFactors % Acentric factors (dimensionless)
+        molarMass % Component mass (kg / mol)
+        names % Names of each component. Each name must be unique.
     end
     
-    properties ( Access = private)
-        % Binary interaction coefficients
-        bic
+    properties ( Access = protected)
+        bic % Binary interaction coefficients
     end
     
     methods
-        function fluid = CompositionalFluid(names, Tcrit, Pcrit, Vcrit, acentricFactors, molarMass, T_ref, P_ref)
+        function fluid = CompositionalFluid(names, Tcrit, Pcrit, Vcrit, acentricFactors, molarMass, varargin)
             if nargin == 0
                 disp('Empty fluid - no validation');
                 return
             end
             
+            for i = 1:numel(names)
+                cts = sum(strcmp(names{i}, names));
+                assert(cts == 1, ...
+                    ['Component ', num2str(i), ': ', names{i}, ' occurs multiple times. Components must be unique.']);
+            end
             fluid.names = names;
             fluid.Tcrit = Tcrit;
             fluid.Pcrit = Pcrit;
             fluid.Vcrit = Vcrit;
             fluid.acentricFactors = acentricFactors;
             fluid.molarMass = molarMass;
-            fluid.T_ref = T_ref;
-            fluid.P_ref = P_ref;
             ncomp = numel(fluid.names);
             
             fluid.bic = zeros(ncomp, ncomp);

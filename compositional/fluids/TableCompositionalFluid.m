@@ -1,12 +1,11 @@
-classdef CoolPropsCompositionalFluid < CompositionalFluid
-    % Create MRST compositional fluid by using the open CoolProp library
-    % (can be downloaded from http://www.coolprop.org/)
+classdef TableCompositionalFluid < CompositionalFluid
+    % Create MRST compositional from stored tables (taken from CoolProp)
     properties
         
     end
     
     methods
-        function fluid = CoolPropsCompositionalFluid(names)
+        function fluid = TableCompositionalFluid(names)
             % Create fluid from names
             %
             % SYNOPSIS:
@@ -17,7 +16,6 @@ classdef CoolPropsCompositionalFluid < CompositionalFluid
             %           valid names.
             % RETURNS:
             %   fluid - Initialized fluid.
-
             if ischar(names)
                 names = {names};
             end
@@ -25,37 +23,34 @@ classdef CoolPropsCompositionalFluid < CompositionalFluid
             ncomp = numel(names);
             [Tcrit, Pcrit, rhocrit, acc, molarMass] = deal(zeros(1, ncomp));
             
-            validChoices = CoolPropsCompositionalFluid.getFluidList();
+            fluids = coolPropFluidsStructs();
+            validChoices = TableCompositionalFluid.getFluidList();
+            
             ok = ismember(lower(names), lower(validChoices));
             
             if ~all(ok)
-                s ='Unable to create fluid. The following names were not known to coolprops: ';
+                s ='Unable to create fluid. The following names were not known to CoolProps table: ';
                 msg = [s, sprintf('%s ', names{~ok})];
                 error(msg);
             end
             
             for i = 1:numel(names)
                 isF = strcmpi(names{i}, validChoices);
-                n = validChoices{isF};
-                Tcrit(i) = CoolProp.Props1SI(n, 'Tcrit');
-                Pcrit(i) = CoolProp.Props1SI(n, 'Pcrit');
-                rhocrit(i) = CoolProp.Props1SI(n, 'rhocrit');
-                acc(i) = CoolProp.Props1SI(n, 'acentric');
-                molarMass(i) = CoolProp.Props1SI(n, 'molarmass');
+                str = fluids(isF);
+                Tcrit(i) = str.Tcrit;
+                Pcrit(i) = str.Pcrit;
+                rhocrit(i) = str.rhocrit;
+                acc(i) = str.acentric;
+                molarMass(i) = str.molarmass;
             end
-            assert(all(isfinite(Tcrit)));
-            assert(all(isfinite(Pcrit)));
-            assert(all(isfinite(rhocrit)));
-            assert(all(isfinite(acc)));
-            assert(all(isfinite(molarMass)));
             Vcrit = molarMass./rhocrit;
             fluid = fluid@CompositionalFluid(names, Tcrit, Pcrit, Vcrit, acc, molarMass);
         end
     end
     methods (Static)
         function varargout = getFluidList()
-            names = num2str(CoolProp.get_global_param_string('FluidsList'));
-            names = strsplit(names, ',');
+            fluids = coolPropFluidsStructs();
+            names = {fluids.name};
             if nargout > 0
                 varargout{1} = names;
             else

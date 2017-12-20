@@ -1,4 +1,5 @@
 classdef FastAD
+    % A very limited AD class for quick EOS assembly
     properties
         val
         jac

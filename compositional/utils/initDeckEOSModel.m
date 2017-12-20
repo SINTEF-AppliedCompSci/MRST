@@ -1,5 +1,18 @@
 function model = initDeckEOSModel(deck)
-% Set up a EOS model from a parsed deck
+% Set up a EquationOfState model from a parsed deck
+%
+% SYNOPSIS:
+%   model = initDeckEOSModel(deck)
+%
+% DESCRIPTION:
+%   Detailed description of function
+%
+% PARAMETERS:
+%   deck  - Input deck with compositional keywords.
+%
+% RETURNS:
+%   model - Initialized EquationOfState model.
+
     names = deck.PROPS.CNAMES;
     Tcrit = deck.PROPS.TCRIT';
     Pcrit = deck.PROPS.PCRIT';

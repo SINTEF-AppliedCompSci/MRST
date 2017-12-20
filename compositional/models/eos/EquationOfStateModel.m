@@ -3,14 +3,12 @@ classdef EquationOfStateModel < PhysicalModel
     % equation of state with Newton and successive substitution solvers, as
     % well as standard functions for computing density and viscosity.
     properties
-        fluid
-        omegaA
-        omegaB
-        % Use Newton based solver for flash. If set to false, successive
-        % substitution if used instead.
-        useNewton
-        fastDerivatives
-        performFlash
+        fluid % CompositionalFluid
+        omegaA % Parameter for EOS
+        omegaB % Parameter for EOS
+        useNewton % Use Newton based solver for flash. If set to false, successive substitution if used instead.
+        fastDerivatives % Use FastAD to compute EOS derivatives.
+        PropertyModel % Model to be used for property evaluations
     end
     
     properties (Access = private)
@@ -31,7 +29,7 @@ classdef EquationOfStateModel < PhysicalModel
             model.nonlinearTolerance = 1e-4;
             model.useNewton = false;
             model.fastDerivatives = true;
-            model.performFlash = true;
+            model.PropertyModel = CompositionalPropertyModel(fluid);
             
             model = model.setType(eosname);
         end
@@ -42,7 +40,6 @@ classdef EquationOfStateModel < PhysicalModel
             if 1
                 % Use vectorized cubic solver
                 Z = cubicPositive(E2, E1, E0);
-%                 Z = mrstCubic(1, E2, E1, E0);
             else
                 % Fallback to Matlab's root solver
                 n = numel(A);
@@ -117,7 +114,7 @@ classdef EquationOfStateModel < PhysicalModel
             bad = bsxfun(@lt, Z, B);
             Z(bad) = nan;
             Z = min(Z, [], 2);
-            checkZ(Z);
+            model.checkZ(Z);
         end
         function Z = computeVaporZ(model, A, B)
             % Pick largest Z factors for vapor phase (most energy)
@@ -125,7 +122,7 @@ classdef EquationOfStateModel < PhysicalModel
             bad = bsxfun(@lt, Z, B);
             Z(bad) = nan;
             Z = max(Z, [], 2);
-            checkZ(Z);
+            model.checkZ(Z);
         end
         
         function [state, report] = stepFunction(model, state, state0, dt, drivingForces, linsolve, nonlinsolve, iteration, varargin)%#ok
@@ -133,101 +130,86 @@ classdef EquationOfStateModel < PhysicalModel
             % equation of state (thermodynamic flash calculation);
             T = state.T;
             P = state.pressure;
+            nc = numel(P);
             assert(all(P >= 0))
             
             z = state.components;
             ncomp = model.fluid.getNumberOfComponents();
             
             % Basic assertions
-            assert(all(sum([z{:}], 2) > 0.999), ...
+            assert(all(sum(z, 2) > 0.999), ...
                                 'Molar fractions must sum up to unity.')
             assert(iteration > 0);
             
             if iteration == 1
                 % Book-keeping
-                state = model.setEquilibriumFields(state);
-                state.eos.itCount = zeros(size(state.L));
+                state.eos.itCount = zeros(nc, 1);
+                state.eos.converged = false(nc, 1);
             end
 
             L0 = state.L;
             K0 = state.K;
-            Z0_V = state.Z_V;
-            Z0_L = state.Z_L;
-            x0 = state.x;
-            y0 = state.y;
-            
             % Only apply calculations for cells that have not converged yet
             if iteration == 1
-                [stable, x0, y0] = phaseStabilityTest(model, state.components, state.pressure, state.T);
+                [stable, x0, y0] = model.performPhaseStabilityTest(state.pressure, state.T, state.components);
                 acf = model.fluid.acentricFactors;
                 [Si_L, Si_V, A_L, A_V, B_L, B_V] = model.getMixtureFugacityCoefficients(P, T, x0, y0, acf);
                 % Solve EOS for each phase
                 Z0_L = model.computeLiquidZ(A_L, B_L);
                 Z0_V = model.computeVaporZ(A_V, B_V);
-                L0 = model.estimateSinglePhaseState(state.pressure, state.T, state.components, L0, stable);
-                
+                L0 = model.solveRachfordRice(L0, K0, z);
+                L0(stable & L0 >  0.5) = 1;
+                L0(stable & L0 <= 0.5) = 0;
+                % L0 = model.estimateSinglePhaseState(state.pressure, state.T, state.components, L0, stable);
                 active = ~stable;
             else
+                Z0_V = state.Z_V;
+                Z0_L = state.Z_L;
+                x0 = state.x;
+                y0 = state.y;
                 active = ~state.eos.converged;
             end
             
             if any(active)
                 state.eos.itCount(active) = state.eos.itCount(active) + 1;
                 L = L0(active);
-                subset = @(x, active) cellfun(@(y) y(active, :), x, 'UniformOutput', false);
-
-                z = subset(z, active);
-                K = subset(K0, active);
+                z = z(active, :);
+                K = K0(active, :);
                 P = P(active);
                 T = T(active);
 
-                if model.performFlash
-                    if model.useNewton
-                        % Newton-based solver for equilibrium
-                        [x, y, K, Z_L, Z_V, L, equilvals] = model.newtonCompositionUpdate(P, T, z, K, L);
-                    else
-                        % Successive substitution solver for equilibrium
-                        [x, y, K, Z_L, Z_V, L, equilvals] = model.substitutionCompositionUpdate(P, T, z, K, L);
-                    end
+                if model.useNewton
+                    % Newton-based solver for equilibrium
+                    [x, y, K, Z_L, Z_V, L, equilvals] = model.newtonCompositionUpdate(P, T, z, K, L);
                 else
-                    [x, y, K, Z_L, Z_V, L, equilvals] = model.updateWithoutFlash(P, T, z, K, L);
+                    % Successive substitution solver for equilibrium
+                    [x, y, K, Z_L, Z_V, L, equilvals] = model.substitutionCompositionUpdate(P, T, z, K, L);
                 end
+
                 values = max(equilvals, [], 1);
+                valconv = values <= model.nonlinearTolerance;
                 conv = max(equilvals, [], 2) <= model.nonlinearTolerance;
                 conv = conv & iteration > nonlinsolve.minIterations;
                 resConv = values <= model.nonlinearTolerance & iteration > nonlinsolve.minIterations;
-
-                isConverged = all(conv);
                 % Insert back the local values into global arrays
                 state.eos.converged(active) = conv;
                 % Insert updated values in active cells
-                [K_next, x_next, y_next] = deal(cell(1, ncomp));
-                for i = 1:ncomp
-                    K_next{i} = K0{i};
-                    x_next{i} = x0{i};
-                    y_next{i} = y0{i};
+                L0(active) = L;
 
-                    K_next{i}(active) = K{i};
-                    x_next{i}(active) = x{i};
-                    y_next{i}(active) = y{i};
-                    L0(active) = L;
-
-                    Z0_L(active ) = Z_L;
-                    Z0_V(active ) = Z_V;
-
-                end
+                Z0_L(active) = Z_L;
+                Z0_V(active) = Z_V;
+                K0(active, :) = K;
+                x0(active, :) = x;
+                y0(active, :) = y;
             else
-                K_next = K0;
-                x_next = x0;
-                y_next = y0;
-                isConverged = true;
+                valconv = true(1, ncomp);
                 values = zeros(1, ncomp);
                 resConv = true(1, ncomp);
             end
-            state.K = K_next;
+            state.K = K0;
             state.L = L0;
-            state.x = x_next;
-            state.y = y_next;
+            state.x = x0;
+            state.y = y0;
             state.Z_L = Z0_L;
             state.Z_V = Z0_V;
 
@@ -237,32 +219,15 @@ classdef EquationOfStateModel < PhysicalModel
             failureMsg = '';
             
             if model.verbose
-                printConvergenceReport(model.fluid.names, values, isConverged, iteration);
+                printConvergenceReport(model.fluid.names, values, valconv, iteration);
             end
             report = model.makeStepReport(...
                             'Failure',      failure, ...
                             'FailureMsg',   failureMsg, ...
-                            'Converged',    isConverged, ...
+                            'Converged',    all(valconv), ...
                             'ResidualsConverged', resConv, ...
                             'Residuals',    values);
             report.ActiveCells = sum(active);
-        end
-        
-        function [x, y, K, Z_L, Z_V, L, values] = updateWithoutFlash(model, P, T, z, K, L)
-            % Determine overall liquid fraction
-            L = model.solveRachfordRice(L, K, z);
-            % Compute liquid component fraction
-            x = model.computeLiquid(L, K, z);
-            % Vapor component fraction
-            y = model.computeVapor(L, K, z);
-            % Reduced values for pressure etc (divided by critical values)
-            % [Pr, Tr] = model.getReducedPT(P, T);
-            acf = (toCell(model.fluid.acentricFactors));
-            [Si_L, Si_V, A_L, A_V, B_L, B_V] = model.getMixtureFugacityCoefficients(P, T, x, y, acf);
-            % Solve EOS for each phase
-            Z_L = model.computeLiquidZ(A_L, B_L);
-            Z_V = model.computeVaporZ(A_V, B_V);
-            values = zeros(model.G.cells.num, numel(x));
         end
         
         function [x, y, K, Z_L, Z_V, L, values] = substitutionCompositionUpdate(model, P, T, z, K, L)
@@ -272,157 +237,182 @@ classdef EquationOfStateModel < PhysicalModel
             [x, sx] = model.computeLiquid(L, K, z);
             % Vapor component fraction
             y = model.computeVapor(L, K, z);
-            % Reduced values for pressure etc (divided by critical values)
-            % [Pr, Tr] = model.getReducedPT(P, T);
-            acf = (toCell(model.fluid.acentricFactors));
-            ncomp = numel(x);
-            
-            [Si_L, Si_V, A_L, A_V, B_L, B_V, Bi] = model.getMixtureFugacityCoefficients(P, T, x, y, acf);
-            % Solve EOS for each phase
-            Z_L = model.computeLiquidZ(A_L, B_L);
-            Z_V = model.computeVaporZ(A_V, B_V);
-            
-            % Compute fugacities
-            f_L = model.computeFugacity(P, x, Z_L, A_L, B_L, Si_L, Bi);
-            f_V = model.computeFugacity(P, y, Z_V, A_V, B_V, Si_V, Bi);
+            [Z_L, Z_V, f_L, f_V] = getProperties(model, P, T, x, y, z, [], []);
             
             % Pure liquid / pure vapor is converged
             ok = L == 1 | L == 0;
-            f_r = cell(1, ncomp);
             % Compute fugacity ratios
-            for i = 1:ncomp
-                f_r{i} = sx.*f_L{i}./f_V{i};
-                f_r{i}(ok | z{i} == 0) = 1;
-            end
+            f_r = bsxfun(@times, sx, f_L./f_V);
+            f_r(ok, :) = 1;
+            f_r(z == 0) = 1;
             % Update equilibrium constant estimates based on fugacity ratio
-            values = abs([f_r{:}] - 1);
-            for i = 1:ncomp
-                K{i} = max(K{i}.*abs(f_r{i}), 1e-12);
-                K{i}(~isfinite(K{i})) = 1;
-            end
+            values = abs(f_r - 1);
+            K = max(K.*abs(f_r), 1e-12);
+            K(~isfinite(K)) = 1;
         end
-        
+
+        function [stable, x, y] = performPhaseStabilityTest(model, P, T, z)
+            [stable, x, y] = phaseStabilityTest(model, z, P, T);
+        end
+
         function [x, y, K, Z_L, Z_V, L, vals] = newtonCompositionUpdate(model, P, T, z, K, L)
             [x, y, K, Z_L, Z_V, L, vals] = newtonFugacityEquilibrium(model, P, T, z, K, L);
         end
 
-        function state = setEquilibriumFields(model, state)
+        function state = validateState(model, state)
             n_cell = size(state.pressure, 1);
-            ncomp = model.fluid.getNumberOfComponents();
             if ~isfield(state, 'L') 
                 % Initial guess of 0.5
                 state.L = repmat(0.5, n_cell, 1);
             end
-            acf = (toCell(model.fluid.acentricFactors));
-            % Estimate equilibrium constants using Wilson equation
-            K_est = cell(1, ncomp);
-            for i = 1:ncomp
-                Tr = state.T./model.fluid.Tcrit(i);
-                Pr = state.pressure./model.fluid.Pcrit(i);
-                K_est{i} = exp(5.37.*(1 + acf{i}).*(1 - 1./Tr))./Pr;
-                K_est{i}(~isfinite(K_est{i})) = 1000;
-            end
 
             if ~isfield(state, 'K')
-                state.K = K_est;
+                state.K = estimateEquilibriumWilson(model, state.pressure, state.T);
             else
                 pure = state.L == 1 | state.L == 0;
-                for i = 1:numel(state.K)
-                    state.K{i}(pure) = K_est{i}(pure);
+                if any(pure)
+                    state.K(pure, :) = estimateEquilibriumWilson(model, state.pressure(pure), state.T(pure));
                 end
             end
             
-            state.Z_V = zeros(n_cell, 1);
-            state.Z_L = zeros(n_cell, 1);
+            if ~isfield(state, 'Z_V')
+                state.Z_V = ones(n_cell, 1);
+            end
+            if ~isfield(state, 'Z_V')
+                state.Z_V = ones(n_cell, 1);
+            end
             
             if ~isfield(state, 'x')
-                state.x = cellfun(@(x) 0*x, state.K, 'uniformoutput', false);
+                state.x = state.components;
             end
-            
             if ~isfield(state, 'y')
-                state.y = cellfun(@(x) 0*x, state.K, 'uniformoutput', false);
-            end
-            
-            state.eos.converged = false(n_cell, 1);
-        end
-        
-        function [Pr, Tr] = getReducedPT(model, P, T)
-            n = model.fluid.getNumberOfComponents();
-            Tr = cell(1, n);
-            Pr = cell(1, n);
-            
-            for i = 1:n
-                Tr{i} = T./model.fluid.Tcrit(i);
-                Pr{i} = P./model.fluid.Pcrit(i);
+                state.y = state.components;
             end
         end
         
-        function [A_ij, Bi] = getMixingParameters(model, P, T, acf)
+        function [Pr, Tr] = getReducedPT(model, P, T, useCell)
+            if nargin < 4
+                useCell = true;
+            end
+            
+            if useCell
+                n = model.fluid.getNumberOfComponents();
+                Tr = cell(1, n);
+                Pr = cell(1, n);
+
+                for i = 1:n
+                    Tr{i} = T./model.fluid.Tcrit(i);
+                    Pr{i} = P./model.fluid.Pcrit(i);
+                end
+            else
+                Tr = bsxfun(@rdivide, T, model.fluid.Tcrit);
+                Pr = bsxfun(@rdivide, P, model.fluid.Pcrit);
+            end
+        end
+        
+        function [A_ij, Bi] = getMixingParameters(model, P, T, acf, useCell)
+            if nargin < 5
+                useCell = true;
+            end
+            
             % Calculate intermediate values for fugacity computation
             ncomp = model.fluid.getNumberOfComponents();
-            [Pr, Tr] = model.getReducedPT(P, T);
-            if ~iscell(acf)
-                acf = toCell(acf);
+            [Pr, Tr] = model.getReducedPT(P, T, useCell);
+
+            if useCell
+                [Ai, Bi] = deal(cell(1, ncomp));
+                [oA, oB] = deal(cell(1, ncomp));
+                [oB{:}] = deal(model.omegaB);
+            else
+                oB = model.omegaB;
             end
-            [Ai, Bi] = deal(cell(1, ncomp));
-            [oA, oB] = deal(cell(1, ncomp));
-            
             switch model.eosType
                 case 1
                     % PR
-                    for i = 1:ncomp
-                        oA{i} = model.omegaA.*(1 + (0.37464 + 1.54226.*acf{i} - 0.26992.*acf{i}.^2).*(1-Tr{i}.^(1/2))).^2;
+                    if useCell
+                        for i = 1:ncomp
+                            oA{i} = model.omegaA.*(1 + (0.37464 + 1.54226.*acf(i) - 0.26992.*acf(i).^2).*(1-Tr{i}.^(1/2))).^2;
+                        end
+                    else
+                        tmp = bsxfun(@times, 0.37464 + 1.54226.*acf - 0.26992.*acf.^2, 1-Tr.^(1/2));
+                        oA = model.omegaA.*(1 + tmp).^2;
                     end
                 case 2
                     % SRK
-                    for i = 1:ncomp
-                        oA{i} = model.omegaA.*(1 + (0.48 + 1.574.*acf{i} - 0.176.*acf{i}.^2).*(1-Tr{i}.^(1/2))).^2;
+                    if useCell
+                        for i = 1:ncomp
+                            oA{i} = model.omegaA.*(1 + (0.48 + 1.574.*acf(i) - 0.176.*acf(i).^2).*(1-Tr{i}.^(1/2))).^2;
+                        end
+                    else
+                        tmp = bsxfun(@times, (0.48 + 1.574.*acf - 0.176.*acf.^2), (1-Tr.^(1/2)));
+                        oA = model.omegaA.*(1 + tmp).^2;
                     end
                 case 3
                     % ZJ
                     error('Not implemented yet.')
                 case 4
                     % RK
-                    for i = 1:ncomp
-                        oA{i} = model.omegaA.*Tr{i}.^(-1/2);
+                    if useCell
+                        for i = 1:ncomp
+                            oA{i} = model.omegaA.*Tr{i}.^(-1/2);
+                        end
+                    else
+                        oA = model.omegaA.*Tr.^(-1/2);
                     end
                 otherwise
                     error('Unknown eos type: %d', model.eosType);
             end
-            [oB{:}] = deal(model.omegaB);
+            
             bic = model.fluid.getBinaryInteraction();
-            A_ij = cell(ncomp, ncomp);
-
-            for i = 1:ncomp
-                Ai{i} = oA{i}.*Pr{i}./Tr{i}.^2;
-                Bi{i} = oB{i}.*Pr{i}./Tr{i};
-            end
-            for i = 1:ncomp
+            if useCell
+                A_ij = cell(ncomp, ncomp);
+                for i = 1:ncomp
+                    tmp = Pr{i}./Tr{i};
+                    Ai{i} = oA{i}.*tmp./Tr{i};
+                    Bi{i} = oB{i}.*tmp;
+                end
+                for i = 1:ncomp
+                    for j = i:ncomp
+                        A_ij{i, j} = (Ai{i}.*Ai{j}).^(1/2).*(1 - bic(i, j));
+                        A_ij{j, i} = A_ij{i, j};
+                    end
+                end
+            else
+                Ai = oA.*Pr./Tr.^2;
+                Bi = oB.*Pr./Tr;
+                A_ij = cell(ncomp, 1);
                 for j = 1:ncomp
-                    A_ij{i, j} = (Ai{i}.*Ai{j}).^(1/2).*(1 - bic(i, j));
+                    A_ij{j} = bsxfun(@times, bsxfun(@times, Ai, Ai(:, j)).^(1/2), 1 - bic(j, :));
                 end
             end
         end
         
         function [Si_L, Si_V, A_L, A_V, B_L, B_V, Bi] = getMixtureFugacityCoefficients(model, P, T, x, y, acf)
             % Calculate intermediate values for fugacity computation
-            [A_ij, Bi] = model.getMixingParameters(P, T, acf);
+            [A_ij, Bi] = model.getMixingParameters(P, T, acf, iscell(x));
             [Si_L, A_L, B_L] = model.getPhaseMixCoefficients(x, A_ij, Bi);
             [Si_V, A_V, B_V] = model.getPhaseMixCoefficients(y, A_ij, Bi);
         end
         
-        function eosdata = getPropertiesFastAD(model, P, T, x, y, Z_L, Z_V)
+        function eosdata = getPropertiesFastAD(model, P, T, x, y, z, Z_L, Z_V)
             % Get packed properties (fugacity, Z-factors) with FastAD type
             % to easily get derivatives
             P = double(P);
             T = double(T);
-            x = cellfun(@double, x, 'UniformOutput', false);
-            y = cellfun(@double, y, 'UniformOutput', false);
+            if iscell(x)
+                assert(iscell(y))
+                x = cellfun(@double, x, 'UniformOutput', false);
+                y = cellfun(@double, y, 'UniformOutput', false);
+            else
+                x = expandMatrixToCell(x);
+                y = expandMatrixToCell(y);
+            end
+            
             
             [P, x{:}, y{:}] = initVariablesFastAD(P, x{:}, y{:});
             [Si_L, Si_V, A_L, A_V, B_L, B_V, Bi] = model.getMixtureFugacityCoefficients(P, T, x, y, model.fluid.acentricFactors);
             
-            if nargin < 6
+            if nargin < 7
                 Z_L = model.computeLiquidZ(double(A_L), double(B_L));
                 Z_V = model.computeVaporZ(double(A_V), double(B_V));
 
@@ -442,26 +432,43 @@ classdef EquationOfStateModel < PhysicalModel
             eosdata.f_V = f_V;
         end
         
-        function [Z_L, Z_V, f_L, f_V] = getProperties(model, P, T, x, y)
+        function [Z_L, Z_V, f_L, f_V] = getProperties(model, P, T, x, y, z, sO, sG, state, varargin)
+            if nargin < 9
+                state = [];
+            end
+            
             [Si_L, Si_V, A_L, A_V, B_L, B_V, Bi] = model.getMixtureFugacityCoefficients(P, T, x, y, model.fluid.acentricFactors);
 
-            Z_L = model.computeLiquidZ(double(A_L), double(B_L));
-            Z_V = model.computeVaporZ(double(A_V), double(B_V));
-            s = getSampleAD(P, T, x{:}, y{:});
-            if isa(s, 'ADI')
-                Z_L = double2ADI(Z_L, s);
-                Z_V = double2ADI(Z_V, s);
+            if isfield(state, 'Z_L')
+                Z_L = state.Z_L;
+            else
+                Z_L = model.computeLiquidZ(double(A_L), double(B_L));
+            end
+            if isfield(state, 'Z_V')
+                Z_V = state.Z_V;
+            else
+                Z_V = model.computeVaporZ(double(A_V), double(B_V));
+            end
+            if iscell(x)
+                s = getSampleAD(P, T, x{:}, y{:});
+                if isa(s, 'NewAD')
+                    Z_L = double2NewAD(Z_L, s);
+                    Z_V = double2NewAD(Z_V, s);
+                elseif isa(s, 'ADI')
+                    Z_L = double2ADI(Z_L, s);
+                    Z_V = double2ADI(Z_V, s);
+                end
             end
                 
-            Z_L = model.setZDerivatives(Z_L, A_L, B_L);
-            Z_V = model.setZDerivatives(Z_V, A_V, B_V);
+            Z_L = model.setZDerivatives(Z_L, A_L, B_L, varargin{:});
+            Z_V = model.setZDerivatives(Z_V, A_V, B_V, varargin{:});
             
             f_L = model.computeFugacity(P, x, Z_L, A_L, B_L, Si_L, Bi);
             f_V = model.computeFugacity(P, y, Z_V, A_V, B_V, Si_V, Bi);
         end
         
-        function [Z_L, Z_V, f_L, f_V, rep] = getEquilibriumProperties(model, P, T, x, y, Z_L, Z_V, packed)
-            [s, isAD] = getSampleAD(P, x{:}, y{:});
+        function [Z_L, Z_V, f_L, f_V, rep] = getEquilibriumProperties(model, P, T, x, y, z, Z_L, Z_V, packed)
+            [s, isAD] = getSampleAD(P, T, x{:}, y{:}, z{:});
             wantFugacity = nargout > 2;
             
             useFast = isAD && model.fastDerivatives;
@@ -472,7 +479,7 @@ classdef EquationOfStateModel < PhysicalModel
                 end
                 [Z_L, Z_V, f_L, f_V] = deal(packed.Z_L, packed.Z_V, packed.f_L, packed.f_V);
             else
-                [Z_L, Z_V, f_L, f_V] = model.getProperties(P, T, x, y);
+                [Z_L, Z_V, f_L, f_V] = model.getProperties(P, T, x, y, z, [], []);
             end
             
             if useFast
@@ -481,7 +488,7 @@ classdef EquationOfStateModel < PhysicalModel
                 x0 = x;
                 y0 = y;
                 P0 = P;
-                ncell = model.G.cells.num;
+                ncell = numel(double(P));
 
                 ncomp = model.fluid.getNumberOfComponents();
                 Z_L0 = double2ADI(double(Z_L), s);
@@ -499,7 +506,7 @@ classdef EquationOfStateModel < PhysicalModel
                     end
                 end
                 vx = (1:ncell)';
-                DM = @(x) makeDiagonal(x, vx, ncell);
+                DM = @(x) model.makeDiagonal(x, vx, ncell);
                 
                 xoffset = 1;
                 yoffset = ncomp + 1;
@@ -579,16 +586,28 @@ classdef EquationOfStateModel < PhysicalModel
         end
         
         function [Si, A, B] = getPhaseMixCoefficients(model, x, A_ij, Bi)
-            ncomp = numel(x);
+            
             [A, B] = deal(0);
-            Si = cell(1, ncomp);
-            [Si{:}] = deal(0);
-            for i = 1:ncomp
-                B = B + x{i}.*Bi{i};
-                for j = 1:ncomp
-                    A_ijx_j = A_ij{i, j}.*x{j};
-                    A = A + x{i}.*A_ijx_j;
-                    Si{i} = Si{i} + A_ijx_j;
+            if iscell(x)
+                ncomp = numel(x);
+                Si = cell(1, ncomp);
+                [Si{:}] = deal(0);
+                for i = 1:ncomp
+                    B = B + x{i}.*Bi{i};
+                    for j = 1:ncomp
+                        A_ijx_j = A_ij{i, j}.*x{j};
+                        A = A + x{i}.*A_ijx_j;
+                        Si{i} = Si{i} + A_ijx_j;
+                    end
+                end
+            else
+                ncomp = size(x, 2);
+                Si = zeros(size(x));
+                B = sum(x.*Bi, 2);
+                A = 0;
+                for i = 1:ncomp
+                    A = A + sum(bsxfun(@times, bsxfun(@times, A_ij{i}, x(:, i)), x), 2);
+                    Si = Si + bsxfun(@times, A_ij{i}, x(:, i));
                 end
             end
         end
@@ -601,24 +620,34 @@ classdef EquationOfStateModel < PhysicalModel
             E2 = (m1 + m2 - 1).*B - 1;
         end
         
-        function f = computeFugacity(model, p, x, Z, A, B, Si, Bi)
+        function [f, phi] = computeFugacity(model, p, x, Z, A, B, Si, Bi)
             % Compute fugacity based on EOS coefficients
             [m1, m2] = model.getEOSCoefficients();
             ncomp = model.fluid.getNumberOfComponents();
-            f = cell(1, ncomp);
-            a1 = -log(Z-B);
-            b1 = log((Z + m2.*B)./(Z + m1.*B)).*(A./((m1-m2).*B));
-            b2 = (Z-1)./B;
-            for i = 1:ncomp
-                v = a1 + b1.*(2.*Si{i}./A - Bi{i}./B) + Bi{i}.*b2;
-                % v = -log(max(Z - B, 0)) + (A./((m1-m2).*B)).*(2.*Si{i}./A - Bi{i}./B).*log((Z + m2.*B)./(Z + m1.*B)) + Bi{i}./B.*(Z-1);
-                f{i} = exp(v).*p.*x{i};
+            if iscell(x)
+                [f, phi] = deal(cell(1, ncomp));
+                a1 = -log(Z-B);
+                b1 = log((Z + m2.*B)./(Z + m1.*B)).*(A./((m1-m2).*B));
+                
+                Binv = 1./B;
+                Ainv = 1./A;
+                b2 = (Z-1).*Binv;
+                for i = 1:ncomp
+                    phi{i} = a1 + b1.*(2.*Si{i}.*Ainv - Bi{i}.*Binv) + Bi{i}.*b2;
+                    f{i} = exp(phi{i}).*p.*x{i};
+                end
+            else
+                a1 = -log(Z-B);
+                b1 = log((Z + m2.*B)./(Z + m1.*B)).*(A./((m1-m2).*B));
+                b2 = (Z-1)./B;
+                tmp = bsxfun(@times, b1, 2.*bsxfun(@rdivide, Si, A) - bsxfun(@rdivide, Bi, B)) + bsxfun(@times, Bi, b2);
+                phi = bsxfun(@plus, a1, tmp);
+                f = exp(phi).*bsxfun(@times, p, x);
             end
         end
-        
-        
-        function [Z_L, Z_V] = getCompressibility(model, state, P, T, x, y)
-            [Z_L, Z_V] = getEquilibriumProperties(model, P, T, x, y, state.Z_L, state.Z_V, state.eos.packed);
+
+        function [Z_L, Z_V] = getCompressibility(model, state, P, T, x, y, z)
+            [Z_L, Z_V] = getEquilibriumProperties(model, P, T, x, y, z, state.Z_L, state.Z_V, state.eos.packed);
         end
         
         function [eqs, f_L, f_V, Z_L, Z_V, rep] = equationsEquilibrium(model, P, T, x, y, z, L, Z_L, Z_V, K, packed)
@@ -626,12 +655,13 @@ classdef EquationOfStateModel < PhysicalModel
             if nargin < 10
                 packed = [];
             end
-            [Z_L, Z_V, f_L, f_V, rep] = model.getEquilibriumProperties(P, T, x, y, Z_L, Z_V, packed);
+            [Z_L, Z_V, f_L, f_V, rep] = model.getEquilibriumProperties(P, T, x, y, z, Z_L, Z_V, packed);
             
             ncomp = numel(x);
             timer = tic();
             eqs = cell(1, 2*ncomp + 1);
-            emptyJac = 0*P + 0*z{1};
+            sample = getSampleAD(P, T, x{:}, y{:});
+            emptyJac = double2ADI(zeros(size(double(P))), sample);
             
             isLiq = double(L) == 1;
             isVap = double(L) == 0;
@@ -639,11 +669,7 @@ classdef EquationOfStateModel < PhysicalModel
             eqs{end} = emptyJac + (isLiq | isVap);
             for i = 1:ncomp
                 eqs{i} = z{i} - L.*x{i} - (1-L).*y{i} + emptyJac;
-                if model.performFlash 
-                    eqs{i+ncomp} = (f_V{i} - f_L{i}) + emptyJac;
-                else
-                    eqs{i+ncomp} = (x{i} - K{i}.*y{i}) + emptyJac;
-                end
+                eqs{i+ncomp} = (f_V{i} - f_L{i}) + emptyJac;
                 eqs{end} = eqs{end} - ~isLiq.*y{i} + ~isVap.*x{i} + emptyJac;
                 
                 if any(isPure)
@@ -666,17 +692,61 @@ classdef EquationOfStateModel < PhysicalModel
             % Compute derivatives for values obtained by solving the
             % equilibrium equations (molar fractions in each phase, liquid
             % mole fraction).
+            
+            
+            % [~, ~, twoPhase] = model.getFlag(state);
+            % twoPhase = state.L > 0 & state.L < 1;
+            % This function currently only works for the full set of
+            % variables, making the local systems a bit too large. The root
+            % cause of this is that the derivatives must be massaged to
+            % take subsets.
+            twoPhase = true(size(double(pP)));
+            packed = state.eos.packed;
+            [x, y] = deal(z0);
+            LL = state.L;
+            
+            primVar = getSampleAD(pP, TP, z0{:});
+            for i = 1:numel(x)
+                if ~isa(x{i}, 'ADI')
+                    x{i} = double2ADI(x{i}, primVar);
+                    y{i} = double2ADI(y{i}, primVar);
+                end
+            end
+            if ~isa(LL, 'ADI')
+                LL = double2ADI(LL, primVar);
+            end
+            if ~any(twoPhase)
+                return
+            end
+            
+            
+            subpacked = packed;
+            if isfield(subpacked, 'Z_L')
+                subpacked.Z_L.val = subpacked.Z_L.val(twoPhase);
+                subpacked.Z_L.jac = subpacked.Z_L.jac(twoPhase, :);
+                subpacked.Z_V.val = subpacked.Z_V.val(twoPhase);
+                subpacked.Z_V.jac = subpacked.Z_V.jac(twoPhase, :);
+                for i = 1:numel(subpacked.f_L)
+                    subpacked.f_L{i}.val = subpacked.f_L{i}.val(twoPhase);
+                    subpacked.f_L{i}.jac = subpacked.f_L{i}.jac(twoPhase, :);
+                    subpacked.f_V{i}.val = subpacked.f_V{i}.val(twoPhase);
+                    subpacked.f_V{i}.jac = subpacked.f_V{i}.jac(twoPhase, :);
+                end
+            end
+            z0 = cellfun(@(x) x(twoPhase), z0, 'UniformOutput', false);
+            pP = pP(twoPhase);
+            TP = TP(twoPhase);
             zP = z0;
-            L = state.L;
-            K = state.K;
+            
+            L = state.L(twoPhase);
+            K = state.K(twoPhase, :);
             zD = cellfun(@double, zP, 'UniformOutput', false);
             % Compute secondary variables as pure doubles
-            xD = state.x;
-            yD = state.y;
+            xD = expandMatrixToCell(state.x(twoPhase, :));
+            yD = expandMatrixToCell(state.y(twoPhase, :));
             ncomp = numel(xD);
-            ncell = numel(L);
-            Z_L = state.Z_L;
-            Z_V = state.Z_V;
+            Z_L = state.Z_L(twoPhase);
+            Z_V = state.Z_V(twoPhase);
 
             xS = cell(1, ncomp);
             yS = cell(1, ncomp);
@@ -692,9 +762,9 @@ classdef EquationOfStateModel < PhysicalModel
             pS = double(pP);
             TS = double(TP);
             LP = L;
-            packed = state.eos.packed;
-            eqsPrim  = model.equationsEquilibrium(pP, TP, xP, yP, zP, LP, Z_L, Z_V, K, packed);
-            eqsSec = model.equationsEquilibrium(pS, TS, xS, yS, zS, LS, Z_L, Z_V, K, packed);
+            
+            eqsPrim  = model.equationsEquilibrium(pP, TP, xP, yP, zP, LP, Z_L, Z_V, K, subpacked);
+            eqsSec = model.equationsEquilibrium(pS, TS, xS, yS, zS, LS, Z_L, Z_V, K, subpacked);
             
             ep = combineEquations(eqsPrim{:});
             es = combineEquations(eqsSec{:});
@@ -714,11 +784,6 @@ classdef EquationOfStateModel < PhysicalModel
             [dFds_L, dFds_U] = lu(dFds);
             dsdp = -(dFds_U\(dFds_L\dFdp));
 
-            if isa(pP, 'ADI')
-                primVar = pP;
-            else
-                primVar = zP{1};
-            end
             % We now have a big lumped matrix of all the derivatives, which
             % we can then extract into the regular ADI format of cell
             % arrays
@@ -728,16 +793,9 @@ classdef EquationOfStateModel < PhysicalModel
 
             jOffset = cumsum([0, jSz]);
 
-            x = cell(1, ncomp);
-            y = cell(1, ncomp);
-            
             jump = numel(L);
             nj = numel(primVar.jac);
             for i = 1:ncomp
-                xjac = cell(1, nj);
-                yjac = cell(1, nj);
-
-
                 startIx = jump*(i-1);
                 endIx = jump*i;
                 
@@ -751,29 +809,27 @@ classdef EquationOfStateModel < PhysicalModel
                     actx = I > startIx & I <= endIx & J > startJ & J <= endJ;
                     acty = I > startIy & I <= endIy & J > startJ & J <= endJ;
                     
-                    xjac{j} = sparse(I(actx) - startIx, J(actx) - startJ, V(actx), endIx-startIx, endJ-startJ);
-                    yjac{j} = sparse(I(acty) - startIy, J(acty) - startJ, V(acty), endIy-startIy, endJ-startJ);
+                    x{i}.jac{j}(twoPhase, :) = sparse(I(actx) - startIx, J(actx) - startJ, V(actx), endIx-startIx, endJ-startJ);
+                    y{i}.jac{j}(twoPhase, :) = sparse(I(acty) - startIy, J(acty) - startJ, V(acty), endIy-startIy, endJ-startJ);
                 end
-                x{i} = ADI(xD{i}, xjac);
-                y{i} = ADI(yD{i}, yjac);
+                x{i}.val(twoPhase) = xD{i};
+                y{i}.val(twoPhase) = yD{i};
             end
             
-            Ljac = cell(1, nj);
-            startI = 2*ncomp*ncell;
-            endI = 2*ncomp*ncell + ncell;
+            startI = 2*ncomp*jump;
+            endI = startI + jump;
             for i = 1:nj
                 startJ = jOffset(i);
                 endJ = jOffset(i+1);
                 actL = I > startI & J > startJ & J <= endJ;
-                Ljac{i} = sparse(I(actL) - startI, J(actL) - startJ, V(actL), endI-startI, endJ-startJ);
+                LL.jac{i}(twoPhase, :) = sparse(I(actL) - startI, J(actL) - startJ, V(actL), endI-startI, endJ-startJ);
             end
-            LL = ADI(L, Ljac);
         end
         
         function L = solveRachfordRice(model, L, K, z) %#ok
             % Solve Rachford Rice equations to find liquid and vapor
             % distribution.
-            ncomp = numel(K);
+            ncomp = size(z, 2);
             tmp1 = warning('query','MATLAB:nearlySingularMatrix');
             tmp2 = warning('query','MATLAB:singularMatrix');
             warning('off','MATLAB:nearlySingularMatrix')
@@ -785,6 +841,7 @@ classdef EquationOfStateModel < PhysicalModel
             maxit = 25;
             tol = 1e-6;
             tolRes = 1e-12;
+            K(~isfinite(K)) = 1e6;
             for it = 1:maxit
                 % fprintf('Iteration %d: %d active\n', it, nnz(active));
                 L0 = L;
@@ -792,18 +849,25 @@ classdef EquationOfStateModel < PhysicalModel
                 
                 eq = 0;
                 for i = 1:ncomp
-                    Ki = K{i}(active);
-                    zi = z{i}(active);
+                    Ki = K(active, i);
+                    zi = z(active, i);
                     v = ((Ki - 1).*zi)./(1 + (1-L).*(Ki - 1));
                     present = zi > 0;
                     eq = eq + v.*present;
+                end                
+
+                r = double(eq);
+                if isa(eq, 'ADI')
+                    J = -eq.jac{1};
+                    dL = mldivide(J, r);
+                else
+                    dL = 0*r;
                 end
-                J = -eq.jac{1};
-                r = eq.val;
+                
                 vNorm = abs(r);
                 % Converged values do not need to be updated
                 convResidual = vNorm < tolRes;
-                dL = ~convResidual.*mldivide(J, r);
+                dL = ~convResidual.*dL;
                 dL = sign(dL).*min(abs(dL), 0.2);
                 L = double(L) + dL;
                 L = max(L, 0);
@@ -833,7 +897,6 @@ classdef EquationOfStateModel < PhysicalModel
 
             warning(tmp1.state,'MATLAB:nearlySingularMatrix')
             warning(tmp2.state,'MATLAB:singularMatrix')
-
         end
         
         function y = computeVapor(model, L, K, z)
@@ -841,15 +904,24 @@ classdef EquationOfStateModel < PhysicalModel
                 y = model.computeVapor(L.L, L.K, L.components);
                 return
             end
-            y = cellfun(@(k, zi) k.*zi./(L + (1-L).*k), K, z, 'UniformOutput', false);
-            
-            sv = 0;
-            for i = 1:numel(y)
-                sv = sv + double(y{i});
+            if iscell(z)
+                y = z;
+                sv = 0;
+                for i = 1:numel(z)
+                    bad = ~isfinite(K{i});
+                    y{i} = K{i}.*z{i}./(L + (1-L).*K{i});
+                    y{i}(bad) = 0;
+                    sv = sv + double(y{i});
+                end
+                y = cellfun(@(k, zi) k.*zi./(L + (1-L).*k), K, z, 'UniformOutput', false);
+                y = cellfun(@(x) x./sv, y, 'UniformOutput', false);
+                assert(all(cellfun(@(x) all(isfinite(double(x))), y)));
+            else
+                y = K.*z./bsxfun(@plus, L, bsxfun(@times, 1-L, K));
+                y(~isfinite(K)) = z(~isfinite(K));
+                y = bsxfun(@rdivide, y, sum(y, 2));
+                assert(all(isfinite(y(:))));
             end
-            y = cellfun(@(x) x./sv, y, 'UniformOutput', false);
-            
-            assert(all(cellfun(@(x) all(isfinite(double(x))), y)));
         end
         
         function [x, sv] = computeLiquid(model, L, K, z)
@@ -857,115 +929,64 @@ classdef EquationOfStateModel < PhysicalModel
                 x = model.computeLiquid(L.L, L.K, L.components);
                 return
             end
-            x = cellfun(@(k, zi) zi./(L + (1-L).*k), K, z, 'UniformOutput', false);
-           
-            sv = 0;
-            for i = 1:numel(x)
-                sv = sv + double(x{i});
+
+            if iscell(z)
+                x = z;
+                sv = 0;
+                for i = 1:numel(z)
+                    bad = ~isfinite(K{i});
+                    x{i} = z{i}./(L + (1-L).*K{i});
+                    x{i}(bad) = 0;
+                    sv = sv + double(x{i});
+                end
+                x = cellfun(@(x) x./sv, x, 'UniformOutput', false);
+                assert(all(cellfun(@(x) all(isfinite(double(x))), x)));
+            else
+                tmp = bsxfun(@times, 1-L, K);
+                x = z./bsxfun(@plus, L, tmp);
+                x(~isfinite(K)) = 0;
+                sv = sum(x, 2);
+                x = bsxfun(@rdivide, x, sv);
+                assert(all(isfinite(x(:))));
             end
-            x = cellfun(@(x) x./sv, x, 'UniformOutput', false);
-            assert(all(cellfun(@(x) all(isfinite(double(x))), x)));
+            
         end
         
-        function rho = computeDensity(model, p, x, Z, T, isLiquid)
-            ncomp = numel(model.fluid.names);
-            M = 0;
-            for i = 1:ncomp
-                M = M + x{i}.*model.fluid.molarMass(i);
-            end
-            R = 8.3144598;
-            rho = p.*M./(R.*T.*Z);
-        end
-        
-        function rho = computeMolarDensity(model, p, x, Z, T, isLiquid)
-            ncomp = numel(model.fluid.names);
-            R = 8.3144598;
-            rho = p./(R.*T.*Z);
-        end
         function [sL, sV] = computeSaturations(model, rhoL, rhoV, x, y, L, Z_L, Z_V)
             sL = L.*Z_L./(L.*Z_L + (1-L).*Z_V);
-            sV = 1 - sL;
+            sV = (1-L).*Z_V./(L.*Z_L + (1-L).*Z_V);
         end
         
-        function mu = computeViscosity(model, P, rho, T, x, isLiquid)
-            % Compute viscosity using the Lohrenz, Bray and Clark
-            % correlation for hydrocarbon mixtures (LBC viscosity)
-            ncomp = numel(x);
-            molfactor = 1/gram;
-            
-            % We first compute an estimated low pressure (surface)
-            % viscosity for the mixture
-            MW = (molfactor*model.fluid.molarMass).^(1/2);
-            [a, b] = deal(0);
-            for i = 1:ncomp
-                tr = T./model.fluid.Tcrit(i);
-                Tc = model.fluid.Tcrit(i)./Rankine();
-                Pc = model.fluid.Pcrit(i)./psia();
 
-                mwi = MW(i);
-                e_i = (5.4402*Tc.^(1/6))./(mwi.*Pc.^(2/3).*(centi*poise));
-                
-                large = double(tr) > 1.5;
-                % Different estimates based on how far above we are from
-                % the critical temp
-                mu_i = (~large.*34e-5.*tr.^(0.94) + large.*17.78e-5.*(4.58*tr - 1.67).^0.625)./e_i;
-                a = a + x{i}.*mu_i.*mwi;
-                b = b + x{i}.*mwi;
-            end
-            % Final atmospheric / low pressure viscosity is the ratio of a and b
-            mu_atm = a./b;
-            % Compute critical properties and coefficient for final
-            % expression
-            [P_pc, T_pc, Vc, mwc] = model.computePseudoCriticalPhaseProperties(x);            
-            e_mix = 5.4402*(T_pc./Rankine()).^(1/6)./((molfactor*mwc).^(1/2).*(P_pc./psia()).^(2/3).*(centi*poise));
-            % Reduced density via definition of critical density 
-            rhor = Vc.*rho./mwc;
-            % Final adjusted viscosity at current conditions
-            mu = mu_atm + ((0.1023 + 0.023364.*rhor + 0.058533.*rhor.^2 ...
-                - 0.040758.*rhor.^3 + 0.0093324.*rhor.^4).^4 - 1e-4)./e_mix;
-        end
-        
-        function [P_pc, T_pc, Vc, mw] = computePseudoCriticalPhaseProperties(model, x)
-            % Molar fraction weighted aggregated properties to get
-            % pseudocritical properties of mixture.
-            ncomp = numel(x);
-            [T_pc, P_pc, Vc, mw] = deal(0);
-            for i = 1:ncomp
-                T_pc = T_pc + model.fluid.Tcrit(i)*x{i};
-                P_pc = P_pc + model.fluid.Pcrit(i)*x{i};
-                mw = mw + model.fluid.molarMass(i)*x{i};
-                Vc = Vc + model.fluid.Vcrit(i)*x{i};
-            end
-        end
         
         function frac = getMassFraction(model, molfraction)
             % Convert molar fraction to mass fraction
-            ncomp = numel(molfraction);
-            mass = cell(1, ncomp);
-            totMass = 0;
-            for i = 1:numel(molfraction)
-                mass{i} = model.fluid.molarMass(i).*molfraction{i};
-                totMass = totMass + mass{i};
+            if iscell(molfraction)
+                ncomp = numel(molfraction);
+                mass = cell(1, ncomp);
+                totMass = 0;
+                for i = 1:numel(molfraction)
+                    mass{i} = model.fluid.molarMass(i).*molfraction{i};
+                    totMass = totMass + mass{i};
+                end
+                frac = cellfun(@(x) x./totMass, mass, 'UniformOutput', false);
+            else
+                mass = bsxfun(@times, molfraction, model.fluid.molarMass);
+                frac = bsxfun(@rdivide, mass, sum(mass, 2));
             end
-            frac = cellfun(@(x) x./totMass, mass, 'UniformOutput', false);
         end
         
         function L = estimateSinglePhaseState(model, p, T, z, L, stable)
-            z = cellfun(@(x) x(stable), z, 'UniformOutput', false);
+            z = z(stable, :);
             p = p(stable);
             T = T(stable);
-            
-            p_c = 0;
-            T_c = 0;
-            for i = 1:numel(z)
-                p_c = p_c + z{i}.*model.fluid.Pcrit(i);
-                T_c = T_c + z{i}.*model.fluid.Tcrit(i);
-            end
-            p0 = 0*atm;
-            T0 = 0;
-            dpdt = (p_c - p0)./(T_c - T0);
-            p_b = p0 + dpdt.*(T - T0);
-            L(stable) = double(p > p_b);
+
+            K = estimateEquilibriumWilson(model, p, T);
+            L0 = repmat(0.5, nnz(stable), 1);
+            L(stable) = model.solveRachfordRice(L0, K, z);
+
+            L(stable & L > 0.5) = 1;
+            L(stable & L <= 0.5) = 0;
         end
 
         function Z = setZDerivatives(model, Z, A, B, cellJacMap)
@@ -977,7 +998,7 @@ classdef EquationOfStateModel < PhysicalModel
             % being a cubic polynomial
             if nargin < 5
                 if isa(Z, 'ADI')
-                cellJacMap = cell(numel(Z.jac), 1);
+                    cellJacMap = cell(numel(Z.jac), 1);
                 else
                     cellJacMap = {};
                 end
@@ -986,18 +1007,60 @@ classdef EquationOfStateModel < PhysicalModel
             e2 = double(E2);
             e1 = double(E1);
             z = double(Z);
-            if isa(Z, 'ADI')
+            if isa(Z, 'NewAD')
+                offset = Z.offsets;
+                for i = 1:numel(Z.jac)
+                    act = offset(i):offset(i+1)-1;
+                    map = cellJacMap(act);
+                    map = map(~cellfun(@isempty, map));
+                    if Z.jac{i}.isZero
+                        Z.jac{i} = Z.jac{i}.expandZero();
+                    end
+                    if isempty(map)
+                        if Z.jac{i}.dim(1) ~= numel(z)
+                            continue
+                        end
+                        % All cells
+                        dE2 = E2.jac{i}.diagonal;
+                        dE1 = E1.jac{i}.diagonal;
+                        dE0 = E0.jac{i}.diagonal;
+
+                        d = -(dE2.*z.^2 + dE1.*z + dE0)./(3*z.^2 + 2*z.*e2 + e1);
+                        Z.jac{i}.diagonal = d;
+                        Z.jac{i}.subset = [];
+                    else
+                        % Subset of cells
+                        map = map{1};
+                        dE2 = E2.jac{i}.diagonal(map, :);
+                        dE1 = E1.jac{i}.diagonal(map, :);
+                        dE0 = E0.jac{i}.diagonal(map, :);
+                        if isempty(dE0)
+                            assert(isempty(dE1));
+                            assert(isempty(dE2));
+                            continue
+                        end
+                        zi = z(map);
+                        e2i = e2(map);
+                        e1i = e1(map);
+                        d = -(dE2.*zi.^2 + dE1.*zi + dE0)./(3*zi.^2 + 2*zi.*e2i + e1i);
+
+                        Z.jac{i}.diagonal(map, :) = d;
+                        Z.jac{i}.subset(map) = (1:numel(map))';
+                    end
+                end
+                
+            elseif isa(Z, 'ADI')
                 for i = 1:numel(Z.jac)
                     if isempty(cellJacMap{i})
                         [n, m] = size(Z.jac{i});
-                        if n == 0 || m ~= numel(z);
+                        if n == 0 || m ~= numel(z)
                             % There are either no derivatives present or the
                             % derivatives are not of the right dimension
                             continue
                         end
-                        dE2 = getJac(E2, i);
-                        dE1 = getJac(E1, i);
-                        dE0 = getJac(E0, i);
+                        dE2 = model.getJac(E2, i);
+                        dE1 = model.getJac(E1, i);
+                        dE0 = model.getJac(E0, i);
 
                         d = -(dE2.*z.^2 + dE1.*z + dE0)./(3*z.^2 + 2*z.*e2 + e1);
                         Z.jac{i} = sparse((1:n)', (1:m)', d, n, m);
@@ -1008,14 +1071,14 @@ classdef EquationOfStateModel < PhysicalModel
                         e1i = e1(map);
                         
                         [n, m] = size(Z.jac{i});
-                        if n == 0 || m ~= numel(zi);
+                        if n == 0 || m ~= numel(zi)
                             % There are either no derivatives present or the
                             % derivatives are not of the right dimension
                             continue
                         end
-                        dE2 = getJacSub(E2, i, map);
-                        dE1 = getJacSub(E1, i, map);
-                        dE0 = getJacSub(E0, i, map);
+                        dE2 = model.getJacSub(E2, i, map);
+                        dE1 = model.getJacSub(E1, i, map);
+                        dE0 = model.getJacSub(E0, i, map);
 
                         d = -(dE2.*zi.^2 + dE1.*zi + dE0)./(3*zi.^2 + 2*zi.*e2i + e1i);
                         Z.jac{i} = sparse(map, (1:m)', d, n, m);
@@ -1023,9 +1086,9 @@ classdef EquationOfStateModel < PhysicalModel
                 end
             elseif isa(Z, 'FastAD')
                 for i = 1:size(Z.jac, 2)
-                    dE2 = getJac(E2, i);
-                    dE1 = getJac(E1, i);
-                    dE0 = getJac(E0, i);
+                    dE2 = model.getJac(E2, i);
+                    dE1 = model.getJac(E1, i);
+                    dE0 = model.getJac(E0, i);
                     
                     Z.jac(:, i) = -(dE2.*z.^2 + dE1.*z + dE0)./(3*z.^2 + 2*z.*e2 + e1);
                 end
@@ -1033,89 +1096,94 @@ classdef EquationOfStateModel < PhysicalModel
         end
 
         
-    function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
-        [state, report] = updateAfterConvergence@PhysicalModel(model, state0, state, dt, drivingForces);
-        
-        pure = state.L == 0 | state.L == 1;
-        for i = 1:numel(state.K)
-            state.K{i}(pure) = 1;
+        function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
+            [state, report] = updateAfterConvergence@PhysicalModel(model, state0, state, dt, drivingForces);
+            
+            state = model.setFlag(state);
+            state.x = model.computeLiquid(state);
+            state.y = model.computeVapor(state);
+
+            % Set derivatives
+            state.eos.packed = model.getPropertiesFastAD(state.pressure, state.T, state.x, state.y);
         end
-        state.x = model.computeLiquid(state);
-        state.y = model.computeVapor(state);
-        
-        L = state.L;
-        for i = 1:numel(state.K)
-            x = state.x{i};
-            z = state.components{i};
-            y = (z - L.*x)./(1-L);
-            y(L == 1) = z(L == 1);
-
-            state.y{i} = y;
-            state.K{i} = y./x;
-            state.K{i}(x == 0) = 1;
-            state.K{i}(~isfinite(state.K{i})) = 1;
+        function state = setFlag(model, state, pureLiquid, pureVapor)
+            if nargin < 4
+                pureVapor = state.L == 0;
+                if nargin < 3
+                    pureLiquid = state.L == 1;
+                end
+            end
+            pureVapor(pureLiquid) = false;
+            state.flag = 1*pureLiquid + 2*pureVapor;
         end
-        % Set derivatives
-        state.eos.packed = model.getPropertiesFastAD(state.pressure, state.T, state.x, state.y);
-    end
-
-    end
-end
-
-function v = toCell(x)
-    v = cell(size(x));
-    for i = 1:numel(x)
-        v{i} = x(i);
-    end
-end
-
-function dx = getJac(x, ix)
-    if isa(x, 'ADI')
-        dx = diag(x.jac{ix});
-    elseif isa(x, 'FastAD')
-        dx = x.jac(:, ix);
-    else
-        dx = 0;
-    end
-end
-
-function dx = getJacSub(x, ix, map)
-    if isa(x, 'ADI')
-        [ii, jj, vv] = find(x.jac{ix});
-        if isempty(vv)
-            dx = 0;
-        else
-            keep = ii == map(jj);
-            dx = zeros(size(map));
-            dx(jj(keep)) = vv(keep);
-%             dx = vv;
+        function isSinglePhase = getSinglePhase(model, state)
+            if ~isfield(state, 'flag')
+                state = model.setFlag(state);
+            end
+            isSinglePhase = state.flag ~= 0;
         end
-    else
-        dx = 0;
+        function [isLiquid, isVapor, is2ph] = getFlag(model, state)
+            if ~isfield(state, 'flag')
+                state = model.setFlag(state);
+            end
+            flag = state.flag;
+            isLiquid = flag == 1;
+            isVapor = flag == 2;
+            is2ph = ~(isLiquid | isVapor);
+        end
+
+    end
+    
+    methods (Static, Access=private)
+        function dx = getJac(x, ix)
+            if isa(x, 'ADI')
+                dx = diag(x.jac{ix});
+            elseif isa(x, 'FastAD')
+                dx = x.jac(:, ix);
+            else
+                dx = 0;
+            end
+        end
+
+        function dx = getJacSub(x, ix, map)
+            if isa(x, 'ADI')
+                [ii, jj, vv] = find(x.jac{ix});
+                if isempty(vv)
+                    dx = 0;
+                else
+                    keep = ii == map(jj);
+                    dx = zeros(size(map));
+                    dx(jj(keep)) = vv(keep);
+                end
+            else
+                dx = 0;
+            end
+        end
+
+        function D = makeDiagonal(x, vx, ncell)
+            D = sparse(vx, vx, x, ncell, ncell);
+        end
+
+        function checkZ(Z)
+           % Give warning if bad values 
+           if any(Z < 0)
+               error([num2str(nnz(Z<0)), ' negative Z-factors detected...']);
+           end
+           if any(~isfinite(Z))
+               error([num2str(nnz(~isfinite(Z))), ' non-finite Z-factors detected...']);
+           end
+        end
+
+        function Z = fallbackCubic(A, E2, E1, E0)
+            n = numel(A);
+            Z = zeros(n, 3);
+            for i = 1:n
+                Z(i, :) = roots([1, E2(i), E1(i), E0(i)]);
+            end
+        end
     end
 end
 
-function D = makeDiagonal(x, vx, ncell)
-    D = sparse(vx, vx, x, ncell, ncell);
-end
-
-function checkZ(Z)
-   % Give warning if bad values 
-   if any(Z < 0)
-       warning([num2str(nnz(Z<0)), ' negative Z-factors detected...']);
-   end
-   if any(~isfinite(Z))
-       warning([num2str(nnz(~isfinite(Z))), ' non-finite Z-factors detected...']);
-   end
-end
-
-function Z = fallbackCubic(A, E2, E1, E0)
-    n = numel(A);
-    Z = zeros(n, 3);
-    for i = 1:n
-        Z(i, :) = roots([1, E2(i), E1(i), E0(i)]);
-    end
-end
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -1,8 +1,31 @@
 function [problem, state] = equationsCompositional(state0, state, model, dt, drivingForces, varargin)
+% Overall composition fully-implicit equations
+
+%{
+Copyright 2009-2017 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
 opt = struct('Verbose',     mrstVerbose,...
             'reverseMode', false,...
             'resOnly',     false,...
             'pressure',    false, ...
+            'propsPressure', [], ...
+            'staticWells',  false, ...
             'iteration',   -1);
 
 opt = merge_options(opt, varargin{:});
@@ -11,19 +34,26 @@ opt = merge_options(opt, varargin{:});
 s = model.operators;
 f = model.fluid;
 W = drivingForces.W;
-state.eos.packed = model.EOSModel.getPropertiesFastAD(state.pressure, state.T, state.x, state.y);
 
 fluid = model.fluid;
 compFluid = model.EOSModel.fluid;
 
-% state = model.computeFlash(state, dt, opt.iteration);
+if isempty(opt.propsPressure)
+    if model.EOSModel.fastDerivatives
+        state.eos.packed = model.EOSModel.getPropertiesFastAD(state.pressure, state.T, state.x, state.y, state.components);
+    else
+        state.eos.packed = struct();
+    end
+end
+
 % Properties at current timestep
 [p, sW, z, temp, wellSol] = model.getProps(state, ...
     'pressure', 'water', 'z', 'T', 'wellSol');
-assert(all(p>0), 'Pressure must be positive for compositional model');
 
 [p0, sW0, z0, temp0, wellSol0] = model.getProps(state0, ...
     'pressure', 'water', 'z', 'T', 'wellSol');
+z = expandMatrixToCell(z);
+z0 = expandMatrixToCell(z0);
 
 [wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
 
@@ -36,6 +66,12 @@ else
     [p, z{1:ncomp-1}, wellVars{:}] = initVariablesADI(p, z{1:ncomp-1}, wellVars{:});
     primaryVars = {'pressure', cnames{1:end-1}, wellVarNames{:}};
 end
+% Property pressure different from flow potential
+p_prop = opt.propsPressure;
+otherPropPressure = ~isempty(p_prop);
+if ~otherPropPressure
+    p_prop = p;
+end
 
 
 z{end} = 1;
@@ -43,22 +79,24 @@ for i = 1:(ncomp-1)
     z{end} = z{end} - z{i};
 end
 
-[xM,  yM,  sO,  sG,  rhoO,  rhoG, muO, muG] = model.computeTwoPhaseFlowProps(state, p, temp, z);
+[xM,  yM,  sO,  sG,  rhoO,  rhoG, muO, muG] = model.computeTwoPhaseFlowProps(state, p_prop, temp, z);
 [xM0, yM0, sO0, sG0, rhoO0, rhoG0] = model.computeTwoPhaseFlowProps(state0, p0, temp0, z0);
 
 % Multipliers for properties
-[pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
+[pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p_prop, p0);
 
 if model.water
     sO = (1-sW).*sO;
     sG = (1-sW).*sG;
     sO0 = (1-sW0).*sO0;
     sG0 = (1-sW0).*sG0;
+    sat = {sW, sO, sG};
     
-    [krW, krO, krG] = model.evaluateRelPerm({sW, sO, sG});
+    [krW, krO, krG] = model.evaluateRelPerm(sat);
     krW = mobMult.*krW;
 else
-    [krO, krG] = model.evaluateRelPerm({sO, sG});
+    sat = {sO, sG};
+    [krO, krG] = model.evaluateRelPerm(sat);
 end
 
 krO = mobMult.*krO;
@@ -96,8 +134,8 @@ bG = rhoG./fluid.rhoGS;
 % EQUATIONS -----------------------------------------------------------
 if model.water
     % Water flux
-    muW = f.muW(p);
-    bW     = fluid.bW(p);
+    muW = f.muW(p_prop);
+    bW     = fluid.bW(p_prop);
     rhoW   = bW.*fluid.rhoWS;
     rhoW0 = fluid.bW(p0).*fluid.rhoWS;
 
@@ -159,20 +197,48 @@ end
 if model.water
     rho = {rhoW, rhoO, rhoG};
     mob = {mobW, mobO, mobG};
+    pressures = {p, p, p};
 else
     rho = {rhoO, rhoG};
     mob = {mobO, mobG};
+    pressures = {p, p};
 end
-[eqs, names, types, state.wellSol, src] = model.insertWellEquations(eqs, names, ...
-                                                 types, wellSol0, wellSol, ...
-                                                 wellVars, ...
-                                                 wellMap, p, mob, rho, ...
-                                                 {}, {xM, yM}, ...
-                                                 dt, opt);
+comps = cellfun(@(x, y) {x, y}, xM, yM, 'UniformOutput', false);
 
+
+[eqs, state] = model.addBoundaryConditionsAndSources(eqs, names, types, state, ...
+                                                 pressures, sat, mob, rho, ...
+                                                 {}, comps, ...
+                                                 drivingForces);
+
+if opt.staticWells
+    compSrc = vertcat(wellSol.components);
+    for i = 1:ncomp
+        wc = vertcat(W.cells);
+        eqs{i+model.water}(wc) = eqs{i+model.water}(wc) - compSrc(:, i);
+    end
+else
+    [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, ...
+                                                     types, wellSol0, wellSol, ...
+                                                     wellVars, ...
+                                                     wellMap, p, mob, rho, ...
+                                                     {}, comps, ...
+                                                     dt, opt);
+end
 if model.water && ~opt.pressure
     wscale = dt./(s.pv*mean(double(rhoW)));
     eqs{1} = eqs{1}.*wscale;
+end
+
+if ~opt.pressure
+    if model.water
+        wscale = dt./(s.pv*mean(double(rhoW)));
+        eqs{1} = eqs{1}.*wscale;
+    end
+    scale = (dt./s.pv)./mean(double(sO0).*double(rhoO0) + double(sG0).*double(rhoG0));
+    for i = 1:ncomp
+        eqs{i+model.water} = eqs{i+model.water}.*scale;
+    end
 end
 
 if opt.pressure
@@ -181,14 +247,14 @@ if opt.pressure
         weights = cell(1, ncomp + wat);
         [weights{:}] = deal(1);
     else
+        state = model.storeDensities(state, rhoW, rhoO, rhoG);
         e = vertcat(acc{:});
         e.jac = e.jac(1:ncomp+wat);
         c = cat(e);
         A = c.jac{1};
 
-        ncomp = numel(state.components);
-        ncell = numel(state.pressure);
-        ndof = ncell*(ncomp+wat);% + 3*numel(state.wellSol);
+        [ncell, ncomp] = size(state.components);
+        ndof = ncell*(ncomp+wat);
 
         b = zeros(ndof, 1);
         b(1:ncell) = 1/barsa;
@@ -196,29 +262,32 @@ if opt.pressure
         Ap = A';
         w = Ap\b;
         w = reshape(w, [], ncomp+woffset);
-        
+        w = w./sum(abs(w), 2);
+        w = w./sum(state.rho.*state.s, 2);
+
         weights = cell(ncomp, 1);
-        if 0
-            liq = state.L == 1;
-            vap = state.L == 0;
-            two = ~liq | ~vap;
-            for i = 1:ncomp
-                weights{i+wat} = liq.*(1./rhoO) + w(:, i+wat).*two + vap.*(1./rhoG);
+
+        for i = 1:ncomp+wat
+            wi = w(:, i);
+            if opt.iteration == 1 || isa(p, 'double') 
+                Wp = wi;
+            else
+                ddp = (state.pressure - state.pressurePrev);
+                dwdp = (wi - state.w(:, i))./ddp;
+                dwdp(~isfinite(dwdp)) = 0;
+                Wp = double2ADI(wi, p);
+                Wp.jac{1} = sparse(1:ncell, 1:ncell, dwdp, ncell, ncell);
             end
-            if wat
-                weights{1} = two.*w(:, 1) + ~two.*1./rhoW;
-            end
-        else
-            for i = 1:ncomp+wat
-                weights{i} = w(:, i);
-            end
+            weights{i} = Wp;
         end
+        state.w = w;
+        state.pressurePrev = state.pressure;
     end
     peq = 0;
     for i = 1:ncomp
         peq = peq + weights{i}.*eqs{i};
     end
-    active = false(numel(primaryVars), 1);
+    active = false(numel(eqs), 1);
     active(1) = true;
     active(ncomp+wat+1:end) = true;
 
@@ -238,6 +307,7 @@ if opt.pressure
 end
 
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
+problem.iterationNo = opt.iteration;
 end
 
 %{

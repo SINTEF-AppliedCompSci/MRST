@@ -15,7 +15,12 @@
 % MRST uses the Peng-Robinson equation of state by default and the Lohrenz,
 % Bray and Clark (LBC) correlation to determine viscosities for both
 % phases.
-mrstModule add deckformat compositional ad-core  ad-props
+mrstModule add compositional deckformat ad-core ad-props
+%% Set up model
+% MRST includes both natural variables and overall composition. This toggle
+% can switch between the modes.
+useNatural = true;
+
 pth = getDatasetPath('simplecomp');
 fn  = fullfile(pth, 'SIMPLE_COMP.DATA');
 % Read deck
@@ -34,34 +39,38 @@ fluid.rhoOS = 800;
 fluid.rhoGS = 10;
 
 eos = initDeckEOSModel(deck);
-model = ThreePhaseCompositionalModel(G, rock, fluid, eos.fluid, 'water', false);
+if useNatural
+    model = NaturalVariablesCompositionalModel(G, rock, fluid, eos.fluid, 'water', false);
+else
+    model = OverallCompositionCompositionalModel(G, rock, fluid, eos.fluid, 'water', false);
+end
 schedule = convertDeckScheduleToMRST(model, deck);
 
 % Manually set the injection composition
 [schedule.control.W.components] = deal([0, 1, 0]);
+% Injection is pure gas
+[schedule.control.W.compi] = deal([1, 0]);
+
 %% Set up initial state
 % The problem is defined at 150 degrees celsius with 75 bar initial
 % pressure. We set up the initial problem and make a call to the flash
 % routines to get correct initial composition.
 ncomp = eos.fluid.getNumberOfComponents();
 
-state0 = initResSol(G, 0);
-state0.pressure = repmat(75*barsa, G.cells.num, 1);
-state0.components = cell(1, ncomp);
-
 for i = 1:numel(schedule.control.W)
     schedule.control.W(i).lims = [];
 end
 
-init = [0.6, 0.1, 0.3];
-for i = 1:ncomp
-    state0.components{i} = repmat(init(i), G.cells.num, 1);
-end
-state0.T = repmat(150 + 273.15, G.cells.num, 1);
-state0 = model.computeFlash(state0, 1);
+% Initial conditions
+z0 = [0.6, 0.1, 0.3];
+T = 150 + 273.15;
+p = 75*barsa;
+
+state0 = initCompositionalState(G, p, T, 1, z0, eos);
+
 %% Simulate the schedule
 % Note that as the poblem has 500 control steps, this may take some time
-% (upwards of 10 minutes).
+% (upwards of 4 minutes).
 [ws, states, rep] = simulateScheduleAD(state0, model, schedule);
 %% Comparison plots with existing simulators
 % The same problem was defined into two other simulators: Eclipse 300
@@ -97,7 +106,10 @@ for step = 1:n
     figure(h); clf; hold on
     for i = 1:numel(data)
         s = data{i}{step};
-        comp = [s.components{:}];
+        comp = s.components;
+        if iscell(comp)
+            comp = [comp{:}];
+        end
         for j = 1:ncomp
             plot(comp(:, j), markers{i}, 'linewidth', lw(i), 'color', colors(j, :));
         end
@@ -125,8 +137,12 @@ for step = 1:n
         plot(s.s(:, 2), marker, 'color', [0.913, 0.172, 0.047], 'linewidth', linewidth, 'color', colors(1, :));
         p = s.pressure./max(s.pressure);
         plot(p, marker, 'linewidth', linewidth, 'color', colors(2, :));
+        comp = s.components;
+        if iscell(comp)
+            comp = [comp{:}];
+        end
         for j = 1:ncomp
-            plot(s.components{j}, marker, 'linewidth', linewidth, 'color', colors(j + 2, :));
+            plot(comp(:, j), marker, 'linewidth', linewidth, 'color', colors(j + 2, :));
         end
         if i == 1
             legend('sV', 'Normalized pressure', cnames{:}, 'location', 'northoutside', 'orientation', 'horizontal');
