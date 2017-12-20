@@ -463,13 +463,25 @@ end
 %--------------------------------------------------------------------------
 
 function dname = canonicalise_dirname(dname)
-   cwd = pwd();
+   pth = fileparts(fullfile(dname, '.'));
 
-   cd(fileparts(fullfile(dname, '.')));
-
-   dname = pwd();
-
-   cd(cwd);
+   if isdir(pth)
+      % Use the side effect that function WHAT, in the case of an input
+      % argument that names an existing directory, also resolves symbolic
+      % links and special directories DOT and DOTDOT (i.e., '.' and '..').
+      w     = what(pth);
+      dname = w.path;
+   else
+      try
+         % Input directory (dname) does not (yet?) exist.  Try Java's
+         % getCanonicalPath() to resolve any intermediate pathname
+         % components.
+         dname = java.io.File(pth).getCanonicalPath();
+      catch
+         % Java not available (-nojvm?).  Punt back to caller.
+         dname = pth;
+      end
+   end
 end
 
 %--------------------------------------------------------------------------
