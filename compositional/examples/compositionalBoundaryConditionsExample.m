@@ -72,6 +72,12 @@ model = NaturalVariablesCompositionalModel(G, rock, flowfluid, fluid, 'water', f
 
 nls = NonLinearSolver('useRelaxation', true);
 [~, states, report] = simulateScheduleAD(state0, model, schedule, 'nonlinearsolver', nls);
+%% Solve using overall composition
+% Another formulation is to use composition variables with no saturations.
+% In this formulation, the flash is solved between each nonlinear update.
+model_o = OverallCompositionCompositionalModel(G, rock, flowfluid, fluid, 'water', false);
+
+[~, states_o, report_o] = simulateScheduleAD(state0, model_o, schedule, 'nonlinearsolver', nls);
 %% Launch interactive plotting
 mrstModule add mrst-gui
 figure; 
@@ -81,12 +87,7 @@ title('Natural variables')
 figure; 
 plotToolbar(G, states_o)
 title('Overall composition')
-%% Solve using overall composition
-% Another formulation is to use composition variables with no saturations.
-% In this formulation, the flash is solved between each nonlinear update.
-model_o = OverallCompositionCompositionalModel(G, rock, flowfluid, fluid, 'water', false);
 
-[~, states_o, report_o] = simulateScheduleAD(state0, model_o, schedule, 'nonlinearsolver', nls);
 %% Plot the pressure, gas saturation and CO2 mole fraction for both solvers
 % We compare the two results and see that they agree on the solution.
 [h1, h2, h3, h4, h5, h6] = deal(nan);
