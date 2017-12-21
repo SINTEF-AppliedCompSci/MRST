@@ -51,8 +51,7 @@ hybridInd = find(G.cells.hybrid);
 nCells = G.cells.num;
 
 % Define permeability and porosity
-rock.perm = milli * darcy * ones(nCells,2);
-rock.poro = 0.01 * ones(nCells,1);
+rock = makeRock(G, milli*darcy, 0.01);
 
 % The fracture permeability is computed from the parallel plate assumption,
 % which states that the permeability is aperture squared divided by 12.

@@ -137,8 +137,7 @@ hybridInd = find(G.cells.hybrid);
 nCells = G.cells.num;
 
 % Define permeability and porosity
-rock.perm = milli * darcy * ones(nCells,2);
-rock.poro = 0.01 * ones(nCells,1);
+rock = makeRock(G, [1, 1]*milli*darcy, 0.01);
 
 % Much higher values are used in the fracture
 rock.perm(hybridInd,:) = aperture(G.cells.tags(hybridInd)).^2/12 * [1 1];
