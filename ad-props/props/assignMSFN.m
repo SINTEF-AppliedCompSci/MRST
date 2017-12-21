@@ -1,8 +1,19 @@
-function f = assignTLMIXPAR(f, tlmixpar, reg)
+function f = assignMSFN(f, msfn, reg)
+   cfun = @(f) cellfun(f, msfn, 'UniformOutput', false);
 
-[f.mixPar, f.mixParRho] = deal(tlmixpar(1));
-if numel(tlmixpar) == 2
-    f.mixParRho = tlmixpar(2);
+   % Compute tables (static data)
+   Tmkrg = extendTab( cfun(@(x) x(:, [1, 2])) );
+   Tmkro = extendTab( cfun(@(x) x(:, [1, 3])) );
+
+   % Region mapping
+   regmap = @(sg, varargin) ...
+      getRegMap(sg, reg.SATNUM, reg.SATINX, varargin{:});
+
+   % Region interpolator
+   ireg = @(T, sg, varargin) interpReg(T, sg, regmap(sg, varargin{:}));
+
+   f.MkrG = @(sg, varargin) ireg(Tmkrg, sg, varargin{:});
+   f.MkrO = @(sg, varargin) ireg(Tmkro, sg, varargin{:});
 end
 
 %{

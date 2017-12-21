@@ -1,8 +1,10 @@
-function f = assignTLMIXPAR(f, tlmixpar, reg)
-
-[f.mixPar, f.mixParRho] = deal(tlmixpar(1));
-if numel(tlmixpar) == 2
-    f.mixParRho = tlmixpar(2);
+function f = assignSDENSITY(f, sdensity, reg)
+% dens of size ntpvtx3
+ntpvt = numel(reg.PVTINX);
+if ntpvt == 1
+    f.rhoSS = sdensity(1,1);
+else
+    f.rhoSS = sdensity(reg.PVTNUM, 1);
 end
 
 %{
