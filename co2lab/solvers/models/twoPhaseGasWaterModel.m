@@ -11,14 +11,11 @@ classdef twoPhaseGasWaterModel < ThreePhaseBlackOilModel
         % ------------------------------------------------------------------------
         function model = twoPhaseGasWaterModel(G, rock, fluid, tsurf, tgrad, varargin)
            
-            model = model@ThreePhaseBlackOilModel(G, rock, fluid, varargin{:}); 
-           
-            %model.G     = G;
-            model.fluid = fluid;
+            model = model@ThreePhaseBlackOilModel(G, rock, fluid); 
+
             model.oil   = false;
             model.gas   = true;
             model.water = true;
-            model.rock  = rock;
             model.t     = computeTemperatureField(G, tsurf, tgrad);
             model.name  = 'GasWater_2ph';
             model.saturationVarNames = {'sw', 'sg'}; % @@ Design: ideally, we
@@ -28,6 +25,7 @@ classdef twoPhaseGasWaterModel < ThreePhaseBlackOilModel
                                                % flags above. Check with
                                                % maintainer of parent class.
             model.gravity = gravity;
+            model = merge_options(model, varargin{:});
         end
 
     end
