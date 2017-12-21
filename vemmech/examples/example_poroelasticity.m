@@ -180,8 +180,8 @@ SS = [As, [fac*(-gradP), zeromat']; [fac*div; zeromat], ct + dt*Af];
 %% Time loop
 % Set up bigger figures
 df = get(0, 'DefaultFigurePosition');
-figure(1); set(1, 'Position', df.*[0.8, 1, 3, 1])
-figure(2); set(2, 'Position', df.*[1, 1, 3, 1])
+figure(1); set(1, 'Position', df.*[0.8, 1, 3, 1]); clf
+figure(2); set(2, 'Position', df.*[1, 1, 3, 1]); clf
 
 t = 0;
 end_time = 10*dt;
