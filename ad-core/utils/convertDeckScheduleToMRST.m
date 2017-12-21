@@ -90,11 +90,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         
         for j = 1:numel(W)
             c = [W(j).compi, 0];
-            W(j).compi = c(map);
             if isfield(W(j), 'solventFrac')
                 W(j).compi(3) = W(j).compi(3)*(1-W(j).solventFrac);
                 W(j).compi(4) = W(j).compi(4)*W(j).solventFrac;
             end
+            W(j).compi = c(map);
         end
         scheduleMRST.control(i).W = W;
     end
