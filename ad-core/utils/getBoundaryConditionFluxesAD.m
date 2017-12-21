@@ -113,7 +113,8 @@ for i = 1:nPh
     else
         sample = pressure{1};
     end
-    [q_s, q_r] = deal(double2ADI(zeros(nbc, 1), sample));
+    zeroAD = model.AutoDiffBackend.convertToAD(zeros(nbc, 1), sample);
+    [q_s, q_r] = deal(zeroAD);
     
     pBC   = cellToBCMap*pressure{i};
     bBC = cellToBCMap*b{i};

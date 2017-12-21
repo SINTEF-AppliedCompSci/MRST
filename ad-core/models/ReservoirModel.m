@@ -99,7 +99,7 @@ methods
         model.extraWellSolOutput = true;
         model.outputFluxes = true;
         % Gravity defaults to the global variable
-        model.gravity = gravity(); %#ok
+        model.gravity = gravity();
         [model, unparsed] = merge_options(model, varargin{:}); %#ok
 
         % Base class does not support any phases
@@ -131,7 +131,9 @@ methods
         if nPh > 1
             model.checkProperty(state, 'Saturation', [nc, nPh], [1, 2]);
         end
-        state = model.FacilityModel.validateState(state);
+        if ~isempty(model.FacilityModel)
+            state = model.FacilityModel.validateState(state);
+        end
     end
 
     function vars = getSaturationVarNames(model)

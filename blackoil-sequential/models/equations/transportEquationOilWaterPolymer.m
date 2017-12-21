@@ -43,7 +43,7 @@ end
 if ~opt.resOnly,
     % ADI variables needed since we are not only computing residuals.
     if ~opt.reverseMode,
-        [sW, c] = initVariablesADI(sW, c);
+        [sW, c] = model.AutoDiffBackend.initVariablesAD(sW, c);
     else
         assert(0, 'Backwards solver not supported for splitting');
     end

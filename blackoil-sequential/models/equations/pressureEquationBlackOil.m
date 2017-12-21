@@ -39,7 +39,7 @@ if ~opt.resOnly,
         % define primary varible x and initialize
         x = st{1}.*rs + st{2}.*rv + st{3}.*sG;
 
-        [p, wellVars{:}] = initVariablesADI(p, wellVars{:});
+        [p, wellVars{:}] = model.AutoDiffBackend.initVariablesAD(p, wellVars{:});
         if ~otherPropPressure
             p_prop = p;
         end

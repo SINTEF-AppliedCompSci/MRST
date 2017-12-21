@@ -2,7 +2,7 @@
 % We set up a simple grid and rock structure. The numbers can be adjusted
 % to get a bigger/smaller problem. The default is a small problem with
 % 20x20x2 grid blocks.
-mrstModule add ad-core compositional ad-props mrst-gui
+mrstModule add ad-core ad-props mrst-gui compositional
 % Dimensions
 nx = 20;
 ny = nx;
@@ -43,18 +43,11 @@ nkr = 2;
 flowfluid = initSimpleADIFluid('n', [nkr, nkr, nkr], 'rho', [1000, 800, 10]);
 
 gravity reset on
-model = ThreePhaseCompositionalModel(G, rock, flowfluid, fluid, 'water', false);
+model = NaturalVariablesCompositionalModel(G, rock, flowfluid, fluid, 'water', false);
 
 ncomp = fluid.getNumberOfComponents();
-state0 = initResSol(G, minP + (maxP - minP)/2, 1);
 
-state0.T = repmat(info.temp, G.cells.num, 1);
-state0.components = cell(1, ncomp);
-for i = 1:ncomp
-   state0.components{i} = repmat(info.initial(i), G.cells.num, 1);
-end
-state0.wellSol = initWellSolAD(W, model, state0);
-state0 = model.computeFlash(state0, inf);
+state0 = initCompositionalState(G, minP + (maxP - minP)/2, info.temp, [0.5, 0.5], info.initial, model.EOSModel);
 
 for i = 1:numel(W)
     W(i).components = info.injection;
@@ -78,7 +71,7 @@ for step = 1:numel(states)
     state = states{step};
     for i = 1:ncomp
         subplot(nm, 3, i);
-        plotCellData(G, state.components{i}, 'EdgeColor', 'none');
+        plotCellData(G, state.components(:, i), 'EdgeColor', 'none');
         view(v);
         title(fluid.names{i})
         caxis([0, 1])

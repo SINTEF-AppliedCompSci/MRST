@@ -1,11 +1,17 @@
-% EXAMPLES
-%
-% Files
-%   compositionalValidationSimple - Compare MRST results with other simulators
-%   simpleCompositionalExample    - Example demonstrating a three dimensional, six component problem
-
+classdef PropertyModel
+    % Base class for properties in the compositional module
+    properties
+        fluid
+    end
+    
+    methods
+        function model = PropertyModel(f)
+            model.fluid = f;
+        end
+    end
+end
 %{
-Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -22,3 +28,4 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+

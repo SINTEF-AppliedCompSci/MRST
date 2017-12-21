@@ -1,6 +1,9 @@
 function r = mrstCubic(a, b, c, d)
 % Straightforward implementation of a cubic root solver for vectorized
 % problems. See https://en.wikipedia.org/wiki/Cubic_function
+%
+% Vectorized version of the Matlab builtin `roots` for cubic and lower
+% order equations.
     if nargin == 1
         % We recieved a matrix. Unpack into vectors.
         b = a(:, 2);

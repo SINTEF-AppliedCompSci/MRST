@@ -110,14 +110,14 @@ else
     gvar = 'sG';
 end
 
-if ~opt.resOnly,
-    if ~opt.reverseMode,
+if ~opt.resOnly
+    if ~opt.reverseMode
         % define primary varible x and initialize
-        [p, sW, x, wellVars{:}] = initVariablesADI(p, sW, x, wellVars{:});
+        [p, sW, x, wellVars{:}] = model.AutoDiffBackend.initVariablesAD(p, sW, x, wellVars{:});
     else
         wellVars0 = model.FacilityModel.getAllPrimaryVariables(wellSol0);
         x0 = st0{1}.*rs0 + st0{2}.*rv0 + st0{3}.*sG0;
-        [p0, sW0, x0, wellVars0{:}] = initVariablesADI(p0, sW0, x0, wellVars0{:}); %#ok
+        [p0, sW0, x0, wellVars0{:}] = model.AutoDiffBackend.initVariablesAD(p0, sW0, x0, wellVars0{:}); %#ok
         [sG0, rs0, rv0] = calculateHydrocarbonsFromStatusBO(model, st0, 1-sW0, x0, rs0, rv0, p0);
     end
 end
@@ -182,7 +182,8 @@ bGvG = s.faceUpstr(upcg, bG).*vG;
 % The first equation is the conservation of the water phase. This equation is
 % straightforward, as water is assumed to remain in the aqua phase in the
 % black oil model.
-water = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 ) + s.Div(bWvW);
+water = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 );
+divWater = s.Div(bWvW);
 
 % Second equation: mass conservation equation for the oil phase at surface
 % conditions. This is any liquid oil at reservoir conditions, as well as
@@ -193,11 +194,12 @@ if model.vapoil
     % phase.
     rvbGvG = s.faceUpstr(upcg, rv).*bGvG;
     % Final equation
-    oil = (s.pv/dt).*( pvMult.* (bO.* sO  + rv.* bG.* sG) - ...
-        pvMult0.*(bO0.*sO0 + rv0.*bG0.*sG0) ) + ...
-        s.Div(bOvO + rvbGvG);
+    oil = (s.pv/dt).*( pvMult .* (bO.* sO  + rv.* bG.* sG) - ...
+                       pvMult0.*(bO0.*sO0 + rv0.*bG0.*sG0));
+    divOil = s.Div(bOvO + rvbGvG);
 else
-    oil = (s.pv/dt).*( pvMult.*bO.*sO - pvMult0.*bO0.*sO0 ) + s.Div(bOvO);
+    oil = (s.pv/dt).*( pvMult.*bO.*sO - pvMult0.*bO0.*sO0 );
+    divOil = s.Div(bOvO);
 end
 
 % Conservation of mass for gas. Again, we have two cases depending on
@@ -207,14 +209,16 @@ if model.disgas
     rsbOvO = s.faceUpstr(upco, rs).*bOvO;
     
     gas = (s.pv/dt).*( pvMult.* (bG.* sG  + rs.* bO.* sO) - ...
-        pvMult0.*(bG0.*sG0 + rs0.*bO0.*sO0 ) ) + ...
-        s.Div(bGvG + rsbOvO);
+                       pvMult0.*(bG0.*sG0 + rs0.*bO0.*sO0 ));
+    divGas = s.Div(bGvG + rsbOvO);
 else
-    gas = (s.pv/dt).*( pvMult.*bG.*sG - pvMult0.*bG0.*sG0 ) + s.Div(bGvG);
+    gas = (s.pv/dt).*( pvMult.*bG.*sG - pvMult0.*bG0.*sG0 );
+    divGas = s.Div(bGvG);
 end
 
 % Put the set of equations into cell arrays along with their names/types.
 eqs = {water, oil, gas};
+divTerms = {divWater, divOil, divGas};
 names = {'water', 'oil', 'gas'};
 types = {'cell', 'cell', 'cell'};
 
@@ -229,8 +233,14 @@ dissolved = model.getDissolutionMatrix(rs, rv);
                                                  dissolved, {}, ...
                                                  drivingForces);
 
-% Finally, add in and setup well equations
+% Add in and setup well equations
 [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, wellVars, wellMap, p, mob, rho, dissolved, {}, dt, opt);
+
+% Finally, adding divergence terms to equations
+for i = 1:numel(divTerms)
+    eqs{i} = eqs{i} + divTerms{i};
+end
+
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 end
 

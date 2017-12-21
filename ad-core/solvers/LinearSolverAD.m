@@ -152,7 +152,7 @@ classdef LinearSolverAD < handle
             % Perform Schur complement reduction of linear system
             
             sys = struct('B', [], 'C', [], 'D', [], 'f', [], 'h', [], 'E_L', [], 'E_U', []);
-            if isempty(solver.keepNumber)
+            if isempty(solver.keepNumber) || solver.keepNumber >= size(b, 1)
                 return
             end
             if isempty(A)

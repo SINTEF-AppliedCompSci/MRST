@@ -7,7 +7,6 @@ function r = cubicPositive(a, b, c)
         b = a(:, 2);
         a = a(:, 1);
     end
-%     assert(all(a == 1));
     Q = (a.^2 - 3*b)./9;
     R = (2*a.^3 - 9.*a.*b + 27.*c)./54;
     
@@ -17,8 +16,12 @@ function r = cubicPositive(a, b, c)
     neg = M < 0;
     pos = ~neg;
     
-    r(neg, :) = threeRoots(a(neg), R(neg), Q(neg));
-    r(pos, 1) = singleRoot(a(pos), R(pos), Q(pos), M(~neg));
+    if any(neg)
+        r(neg, :) = threeRoots(a(neg), R(neg), Q(neg));
+    end
+    if any(pos)
+        r(pos, 1) = singleRoot(a(pos), R(pos), Q(pos), M(pos));
+    end
 end
 
 function r = threeRoots(a, R, Q)

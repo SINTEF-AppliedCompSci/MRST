@@ -1,8 +1,5 @@
-% MODELS
-%
-% Files
-%   EquationOfStateModel         - Equation of state model. Implements generalized two-parameter cubic
-%   ThreePhaseCompositionalModel - Compositional model with up to two phases + optional aqua phase
+function varargout = initVariablesAD_oneBlock(varargin)
+% Initialize a set of automatic differentiation variables (single block)
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
@@ -22,3 +19,26 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+
+
+   assert (nargin == nargout, ...
+          ['Number of output variables must equal the number ', ...
+           'of input variables.']);
+
+   numvals   = reshape(cellfun('prodofsize', varargin), 1, []);
+   n         = nargin;
+   varargout = cell([1, n]);
+
+   offsets = cumsum([1, numvals])';
+   ncols = sum(numvals);
+   for i = 1 : n
+      nrows  = numvals(i);
+  
+      I = 1:nrows;
+      J = (1:nrows) + offsets(i) - 1;
+      jac = {sparse(I, J, 1, nrows, ncols)};
+
+      varargout{i} = NewAD(varargin{i}, jac);
+      varargout{i}.numVars = numvals';
+   end
+end
