@@ -1,0 +1,6 @@
+VAL = debug_on_error (1) % stops at newplot
+graphics_toolkit fltk
+struct_levels_to_print ()
+struct_levels_to_print(0) % set struct levels of print to 0
+dispatch("regexp","my_regexp")% seems to slowthings down
+mrstVerbose(0) do not w

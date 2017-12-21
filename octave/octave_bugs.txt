@@ -1,0 +1,13 @@
+do not axept nan for patches
+nar??
+error do not work as in  matlab
+makehgform ??
+mkoctfile -output do not work used in mex compilation
+cellfun(@ischar, varargin(1 : 2 : end)) fails if varargin is empty used in assert statement
+some bug using accumarray with struct simpleMCBC
+display is bad for struct
+subplot do not work with position do not know how to fix this
+/home/hnil/heim/SVN/simmatlab/branches/mrst-reorg/modules/msmfem/generateCoarseGrid.m at line 132
+ctags = accumarray(block(f(:,1)), f(:,2), [], @(t) { unique(t) });
+combination of debug_on_error and newplot line 57, unnowkn reasone
+clear -regexp gives error "regex not available" in tensorGrid.m
