@@ -4,7 +4,8 @@ classdef ThreePhaseBlackOilPolymerModel < ThreePhaseBlackOilModel
     % SYNOPSIS:
     %   model = ThreePhaseBlackOilPolymerModel(G, rock, fluid, varargin)
     %
-    % DESCRIPTION: Fully implicit three phase blackoil model with polymer.
+    % DESCRIPTION: 
+    %   Fully implicit three phase blackoil model with polymer.
     %
     % PARAMETERS:
     %   G        - Grid

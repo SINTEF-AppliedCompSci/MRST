@@ -5,8 +5,9 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
     % SYNOPSIS:
     %   model = OilWaterPolymerModel(G, rock, fluid, varargin)
     %
-    % DESCRIPTION: Two phase model with polymer. A description of the polymer model
-    % that is implemented here can be found in the directory ad-eor/docs .
+    % DESCRIPTION: 
+    %   Two phase model with polymer. A description of the polymer model
+    %   that is implemented here can be found in the directory ad-eor/docs .
     %
     % PARAMETERS:
     %   G        - Grid

@@ -4,8 +4,9 @@ function state = updateAdsorption(state0, state, model)
 % SYNOPSIS:
 %   function state = updateAdsorption(state0, state, model)
 %
-% DESCRIPTION: Update the adsorption value in the state variable. Used by the
-% surfactant models.
+% DESCRIPTION: 
+%   Update the adsorption value in the state variable. Used by the
+%   surfactant models.
 %
 % PARAMETERS:
 %   state0 - State at previous time step

@@ -1,4 +1,6 @@
 classdef EquilibriumConstantModel < EquationOfStateModel
+    % Equilibrium constant EOS model for problems where functions of the
+    % type K(p, T, z) is sufficient to describe the phase behavior
     properties
         equilibriumConstantFunctions
     end
@@ -113,7 +115,7 @@ classdef EquilibriumConstantModel < EquationOfStateModel
             end
         end
         
-        function [state, report] = stepFunction(model, state, state0, dt, drivingForces, linsolve, nonlinsolve, iteration, varargin)%#ok
+        function [state, report] = stepFunction(model, state, state0, dt, drivingForces, linsolve, nonlinsolve, iteration, varargin)
             P = state.pressure;
             T = state.T;
             z = state.components;

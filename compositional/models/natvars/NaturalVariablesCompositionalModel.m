@@ -1,8 +1,8 @@
 classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
-    % Overall composition model for compositional problems
+    % Natural variables model for compositional problems
     %
     % SYNOPSIS:
-    %   model = ThreePhaseCompositionalModel(G, rock, fluid, compFluid)
+    %   model = NaturalVariablesCompositionalModel(G, rock, fluid, compFluid)
     %
     % DESCRIPTION:
     %   The natural variables model relies on separate primary variables

@@ -5,13 +5,14 @@ function [problem, state] = equationsThreePhaseBlackOilPolymer(state0, state, mo
 % SYNOPSIS:
 %   function [problem, state] = equationsThreePhaseBlackOilPolymer(state0, state, model, dt, drivingForces, varargin)
 %
-% DESCRIPTION: Assemble the linearized equations for a blackoil system,
-% computing both the residuals and the Jacobians. Returns the result as an
-% instance of the class LinearizedProblem which can be solved using instances of
-% LinearSolverAD.
+% DESCRIPTION: 
+%   Assemble the linearized equations for a blackoil system,
+%   computing both the residuals and the Jacobians. Returns the result as an
+%   instance of the class LinearizedProblem which can be solved using instances of
+%   LinearSolverAD.
 %
-% A description of the modeling equations can be found in the directory
-% ad-eor/docs.
+%   A description of the modeling equations can be found in the directory
+%   ad-eor/docs.
 %
 % PARAMETERS:
 %   state0        - State at previous times-step

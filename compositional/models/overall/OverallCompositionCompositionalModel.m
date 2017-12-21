@@ -2,7 +2,7 @@ classdef OverallCompositionCompositionalModel < ThreePhaseCompositionalModel
     % Overall composition model for compositional problems
     %
     % SYNOPSIS:
-    %   model = ThreePhaseCompositionalModel(G, rock, fluid, compFluid)
+    %   model = OverallCompositionCompositionalModel(G, rock, fluid, compFluid)
     %
     % DESCRIPTION:
     %   The overall composition model relies on primary variables

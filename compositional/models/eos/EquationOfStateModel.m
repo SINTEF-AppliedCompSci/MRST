@@ -125,7 +125,7 @@ classdef EquationOfStateModel < PhysicalModel
             model.checkZ(Z);
         end
         
-        function [state, report] = stepFunction(model, state, state0, dt, drivingForces, linsolve, nonlinsolve, iteration, varargin)%#ok
+        function [state, report] = stepFunction(model, state, state0, dt, drivingForces, linsolve, nonlinsolve, iteration, varargin) %#ok
             % Compute a single step of the solution process for a given
             % equation of state (thermodynamic flash calculation);
             T = state.T;
@@ -692,15 +692,16 @@ classdef EquationOfStateModel < PhysicalModel
             % Compute derivatives for values obtained by solving the
             % equilibrium equations (molar fractions in each phase, liquid
             % mole fraction).
-            
-            
-            % [~, ~, twoPhase] = model.getFlag(state);
-            % twoPhase = state.L > 0 & state.L < 1;
+            twoPhase = true(size(double(pP)));
+
             % This function currently only works for the full set of
             % variables, making the local systems a bit too large. The root
             % cause of this is that the derivatives must be massaged to
             % take subsets.
-            twoPhase = true(size(double(pP)));
+            
+            % [~, ~, twoPhase] = model.getFlag(state);
+            % twoPhase = state.L > 0 & state.L < 1;
+
             packed = state.eos.packed;
             [x, y] = deal(z0);
             LL = state.L;

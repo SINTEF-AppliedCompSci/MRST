@@ -4,10 +4,11 @@ function [problem, state] = equationsOilWaterPolymer(state0, state, model, dt, .
 % SYNOPSIS:
 %   function [problem, state] = equationsOilWaterPolymer(state0, state, model, dt, drivingForces, varargin)
 %
-% DESCRIPTION: Assemble the linearized equations for an oil-water-polymer
-% system, computing both the residuals and the Jacobians. Returns the result as
-% an instance of the class LinearizedProblem which can be solved using instances
-% of LinearSolverAD.
+% DESCRIPTION: 
+%   Assemble the linearized equations for an oil-water-polymer
+%   system, computing both the residuals and the Jacobians. Returns the result as
+%   an instance of the class LinearizedProblem which can be solved using instances
+%   of LinearSolverAD.
 %
 % A description of the modeling equations can be found in the directory
 % ad-eor/docs.

@@ -4,9 +4,10 @@ function [vW, vP, bW, muWeffMult, mobW, mobP, rhoW, pW, upcw, a, dpW] = getFluxA
 % SYNOPSIS:
 %   function [vW, vP, bW, muWeffMult, mobW, mobP, rhoW, pW, upcw, a] = getFluxAndPropsWaterPolymer_BO(model, pO, sW, c, ads, krW, T, gdz)
 %
-% DESCRIPTION: Given pressure, saturation and polymer concentration and some
-% other input variables, compute the fluxes and other properties, as listed
-% below. Used in the assembly of the blackoil equations with polymer.
+% DESCRIPTION: 
+%   Given pressure, saturation and polymer concentration and some
+%   other input variables, compute the fluxes and other properties, as listed
+%   below. Used in the assembly of the blackoil equations with polymer.
 
 %
 % PARAMETERS:
