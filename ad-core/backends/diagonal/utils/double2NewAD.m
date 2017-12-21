@@ -1,5 +1,5 @@
 function u = double2NewAD(u, sample)
-%Convert a double to NewAD variable, using a sample NewAD variable for dimensions
+% Convert a double to NewAD variable, using a sample NewAD variable for dimensions
 %
 % SYNOPSIS:
 %   u = double2NewAD(u, adivar)
@@ -16,7 +16,7 @@ function u = double2NewAD(u, sample)
 %            jacobians of sample.
 %
 % SEE ALSO:
-%   NewAD
+%   `NewAD`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

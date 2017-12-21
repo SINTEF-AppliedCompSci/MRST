@@ -50,6 +50,5 @@ classdef SparseAutoDiffBackend < AutoDiffBackend
                 v = double2NewAD(v, sample);
             end
         end
-        
     end
 end

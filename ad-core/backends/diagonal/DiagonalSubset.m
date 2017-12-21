@@ -1,7 +1,7 @@
 classdef DiagonalSubset < DiagonalJacobian
     % Structured subset of a diagonal jacobian 
     properties
-        map
+        map % Map to the underlying DiagonalJacobian representation. Two DiagonalSubsets of the same map can be multiplied together, etc.
     end
     
     methods

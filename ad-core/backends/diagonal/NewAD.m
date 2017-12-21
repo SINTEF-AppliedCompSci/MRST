@@ -48,7 +48,7 @@ classdef NewAD < ADI
              end
          end
       end
-      function h = mtimes(u,v)% '*'
+      function h = mtimes(u,v) % '*'
           if ~isa(u,'ADI') %u is a scalar/matrix
               h = v;
               h.val = u*h.val;
@@ -72,7 +72,7 @@ classdef NewAD < ADI
               end
           end
       end
-      function h = times(u,v)% '.*'
+      function h = times(u,v) % '.*'
          if ~isa(u,'ADI') %u is a scalar/vector
              if numel(u)==numel(v.val)
                  h = v;
@@ -95,7 +95,7 @@ classdef NewAD < ADI
              end
          end
       end
-      function h = power(u,v)% '.^'
+      function h = power(u,v) % '.^'
          if ~isa(v,'ADI') % v is a scalar
              h = u;
              h.val = h.val.^v;

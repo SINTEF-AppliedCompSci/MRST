@@ -1,5 +1,5 @@
 function [x, D] = diagMult(v, M, D)
-% Internal function for diagonal multiplication in AD code
+    % Internal function for diagonal multiplication in AD code
     if ~any(v)
         sz = size(M);
         x = sparse([],[],[],sz(1), sz(2));

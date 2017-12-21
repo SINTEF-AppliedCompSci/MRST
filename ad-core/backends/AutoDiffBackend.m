@@ -15,10 +15,6 @@ classdef AutoDiffBackend
     % SEE ALSO:
     %   `DiagonalAutoDiffBackend`, `SparseAutoDiffBackend`
 
-    properties
-        
-    end
-    
     methods
         function backend = AutoDiffBackend()
             % Class constructor.
