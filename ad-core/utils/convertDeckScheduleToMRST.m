@@ -70,14 +70,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         switch lower(model.saturationVarNames{i})
             case 'sw'
                 map(i) = 1;
-            case 'so'
+            case 'so'   
                 map(i) = 2;
             case 'sg'
                 map(i) = 3;
             case 'ss'
-                map(i) = 3;
-                % Solvent injection rate is given as fraction of gas
-                % injection rate.
+                map(i) = 4;
             otherwise
                 map(i) = 4;
                 warning('Unknown phase, translation directly from deck difficult, setting zero');
@@ -93,8 +91,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             if isfield(W(j), 'solventFrac')
                 gasIx = 3;
                 solIx = 4;
-                c(gasIx) = c(gasIx)*(1-W(j).solventFrac);
                 c(solIx) = c(gasIx)*W(j).solventFrac;
+                c(gasIx) = c(gasIx)*(1-W(j).solventFrac);
             end
             W(j).compi = c(map);
         end
