@@ -81,6 +81,7 @@ plot_press(xr3); caxis(cax);  axis equal tight, title('Pressure: TPFA')
 colorbar('Position',[.92 .11 .02 .34])
 
 %% Compute discrepancies in flux and errors in pressure
+p = struct();
 p.pressure = 2 - G.cells.centroids(:,1)/G.cartDims(1);
 err_press  = @(x1, x2) ...
     norm(x1.pressure - x2.pressure, inf) / norm(x1.pressure, inf);
