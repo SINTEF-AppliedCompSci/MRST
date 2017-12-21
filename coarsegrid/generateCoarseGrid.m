@@ -183,7 +183,7 @@ end
 
 function nnc = coarsenNonNeighboringConnections(G, p)
     nnc = struct();
-    if isfield(G.nnc, 'cells')
+    if isfield(G.nnc, 'cells') && ~isempty(G.nnc.cells)
         % Use unique to remove merged blocks
         cells = uniqueStable(p(G.nnc.cells), 'rows');
         % Remove NNC between cells that have been placed in the same coarse
