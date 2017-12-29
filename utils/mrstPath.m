@@ -320,9 +320,6 @@ function cache = register_modules(cache, mods)
    dsrc = { pwd };
    root = ROOTDIR;
 
-   % The FULLFILE(x, '.') construct is to transparently handle presence or
-   % absence of a terminating FILESEP on either of the directory strings.
-   %
    cmp         = match_algorithm;
    canonical   = @canonicalise_dirname;
    dir_is_same = @(d1, d2) cmp(canonical(d1), canonical(d2));
@@ -463,6 +460,9 @@ end
 %--------------------------------------------------------------------------
 
 function dname = canonicalise_dirname(dname)
+   % The FULLFILE(dname, '.') construct is to transparently handle presence
+   % or absence of a terminating FILESEP on 'dname'.
+   %
    pth = fileparts(fullfile(dname, '.'));
 
    if isdir(pth)
