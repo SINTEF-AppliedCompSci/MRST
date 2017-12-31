@@ -11,6 +11,7 @@ classdef PressureOverallCompositionModel < OverallCompositionCompositionalModel
             model.useIncTolPressure = true;            
             model = merge_options(model, varargin{:});
             model.outputFluxes = true;
+            model.useIncTolComposition = false;
         end
 
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)

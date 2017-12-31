@@ -50,8 +50,8 @@ end
 [p, sW, z, temp, wellSol] = model.getProps(state, ...
     'pressure', 'water', 'z', 'T', 'wellSol');
 
-[p0, sW0, z0, temp0, wellSol0] = model.getProps(state0, ...
-    'pressure', 'water', 'z', 'T', 'wellSol');
+[p0, sW0, sO0, sG0, z0, temp0, wellSol0] = model.getProps(state0, ...
+    'pressure', 'water', 'oil', 'gas', 'z', 'T', 'wellSol');
 z = expandMatrixToCell(z);
 z0 = expandMatrixToCell(z0);
 
@@ -80,7 +80,7 @@ for i = 1:(ncomp-1)
 end
 
 [xM,  yM,  sO,  sG,  rhoO,  rhoG, muO, muG] = model.computeTwoPhaseFlowProps(state, p_prop, temp, z);
-[xM0, yM0, sO0, sG0, rhoO0, rhoG0] = model.computeTwoPhaseFlowProps(state0, p0, temp0, z0);
+[xM0, yM0, ~, ~, rhoO0, rhoG0] = model.computeTwoPhaseFlowProps(state0, p0, temp0, z0);
 
 % Multipliers for properties
 [pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p_prop, p0);
