@@ -10,6 +10,8 @@ classdef ReducedLinearizedSystem < LinearizedProblem
         E % Second lower block
         f % First part of right-hand-side
         h % Last part of right-hand-side
+        E_U % Upper part of LU-factorized E-matrix
+        E_L % Lower part of LU-factorized E-matrix
     end
     methods
         function problem = ReducedLinearizedSystem(varargin)
@@ -71,6 +73,8 @@ classdef ReducedLinearizedSystem < LinearizedProblem
                [L, U] = lu(p.E);
                p.A = p.B - p.C*(U\(L\p.D));
                p.b = p.f - p.C*(U\(L\p.h));
+               p.E_U = U;
+               p.E_L = L;
            end
         end
         
@@ -78,7 +82,8 @@ classdef ReducedLinearizedSystem < LinearizedProblem
            if isempty(problem.E)
                return
            end
-           s = problem.E\(problem.h - problem.D*p);
+           % s = problem.E\(problem.h - problem.D*p);
+           s = problem.E_U\(problem.E_L\(problem.h - problem.D*p));
            if any(~isfinite(s))
                warning('Recovered values were non-finite.');
            end
