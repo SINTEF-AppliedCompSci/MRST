@@ -222,7 +222,7 @@ classdef ADI
           % Left matrix divide: `h=u\v`
           if ~isa(u,'ADI') %u is a scalar/matrix
               h.val = u\v.val;
-              h.jac = mldivideJac(u, h.jac);
+              h.jac = ADI.mldivideJac(u, h.jac);
           else
               error('Operation not supported');
           end
