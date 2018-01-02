@@ -599,7 +599,7 @@ classdef SimpleWell < PhysicalModel
                 gor(isnan(gor)) = inf;
                 rs = min(rsMax, gor);
                 ogr = abs(o./g);
-                ogr(isnan(gor)) = inf;
+                ogr(isnan(ogr)) = inf;
                 rv = min(rvMax, ogr);
                 d = 1-rs.*rv;
                 x(:,isgas) = (x(:,isgas) - rs.*o)./d;
