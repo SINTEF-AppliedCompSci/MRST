@@ -545,7 +545,7 @@ classdef ADI
               if isa(v, 'ADI')
                   % Both are ADI. We need to update Jacobians
                   for i = 1:numel(u.jac)
-                      u.jac{i}(subs, :) = u.jac{i}(subs, :) + v.jac{i};
+                      u.jac{i} = subsetPlus(u.jac{i}, v.jac{i}, subs);
                   end
               end
           else
