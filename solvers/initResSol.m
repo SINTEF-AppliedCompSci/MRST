@@ -71,7 +71,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
       error(msgid('InitSat:Inconsistent'), ...
            ['Initial saturation must either be 1-by-np ', ...
-            'or (G.clls.num (=%d))-by-np.'], nc);
+            'or (G.cells.num (=%d))-by-np.'], nc);
 
    end
 
