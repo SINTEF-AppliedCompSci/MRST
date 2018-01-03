@@ -88,7 +88,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     % Average the pressure (not entirely correct for compressible systems,
     % but we won't start evaluating properties in here).
-    state.pressure = accumarray(p, state.pressure)./counts;
+    %state.pressure = accumarray(p, state.pressure)./counts;
+    state.pressure = accumarray(p, pvf.*state.pressure)./pvc;
     if isfield(state, 'T')
         state.T = accumarray(p, state.T)./counts;
     end
