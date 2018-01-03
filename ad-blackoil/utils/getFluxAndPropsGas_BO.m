@@ -101,11 +101,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     rhoG   = bG.*(rv*fluid.rhoOS + fluid.rhoGS);
     rhoGf  = s.faceAvg(rhoG);
-    mobG   = krG./muG;
     dpG    = s.Grad(pG) - rhoGf.*gdz;
     % gas upstream-index
     upcg    = (double(dpG)<=0);
-    vG = - s.faceUpstr(upcg, mobG).*T.*dpG;
+    
+    [krGf, krG] = s.splitFaceCellValue(s, upcg, krG);
+    [muGf, muG] = s.splitFaceCellValue(s, upcg, muG);
+    mobG   = krG./muG;
+    
+    vG = - (krGf./muGf).*T.*dpG;
 end
 
 %{

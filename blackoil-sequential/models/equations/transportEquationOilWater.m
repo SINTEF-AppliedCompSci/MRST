@@ -34,7 +34,7 @@ end
 if ~opt.resOnly,
     % ADI variables needed since we are not only computing residuals.
     if ~opt.reverseMode,
-        sW = initVariablesADI(sW);
+        sW = model.AutoDiffBackend.initVariablesAD(sW);
     else
         assert(0, 'Backwards solver not supported for splitting');
     end
@@ -157,7 +157,7 @@ types = {'cell'};
 rho = {rhoW, rhoO};
 mob = {mobW, mobO};
 sat = {sW, sO};
-eqs = addBoundaryConditionsAndSources(model, eqs, names, types, state, ...
+[eqs, ~, src] = addBoundaryConditionsAndSources(model, eqs, names, types, state, ...
                                      {pFlow, pFlow}, sat, mob, rho, ...
                                      {}, {}, ...
                                      drivingForces);

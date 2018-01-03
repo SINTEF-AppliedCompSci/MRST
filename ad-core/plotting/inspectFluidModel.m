@@ -9,15 +9,15 @@ function varargout = inspectFluidModel(model, varargin)
 %   Launch an interactive plotting interface for the fluid model.
 %
 % REQUIRED PARAMETERS:
-%   model - Some ReservoirModel-derived class with a valid fluid model.
+%   model - Some `ReservoirModel`-derived class with a valid fluid model.
 %           This function has primarily been tested for black-oil and
 %           black-oil similar fluids.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %   'pressureRange'   -  An array of the pressures values to be used for
 %                        pressure-dependent properties. Defaults to
-%                        max(model.minimumPressure, 0.1) to 
-%                        min(model.maximumPressure, 600*barsa)
+%                        `max(model.minimumPressure, 0.1*barsa)` to 
+%                        `min(model.maximumPressure, 600*barsa)`
 % RETURNS:
 %   h    - Figure handle to the plotting panel.
 %

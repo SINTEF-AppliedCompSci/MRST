@@ -22,7 +22,7 @@ function system = initADISystem(input, G, rock, fluid, varargin)
 %
 %   fluid - fluid as defined by initDeckADIFluid
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %
 %
 % NOTE

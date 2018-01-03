@@ -111,7 +111,7 @@ colormap(jet(32)); colorbar
 for i=1:numel(states1)
     set(hp1,'CData', states1{i}.pressure/barsa);
     set(hp2,'CData', states2{i}.pressure/barsa);
-    drawnow, pause
+    drawnow, pause(0.1);
 end
 
 % Launch plotting of well responses

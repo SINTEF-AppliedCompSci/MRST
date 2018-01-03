@@ -7,57 +7,47 @@ function [src, bc] = computeSourcesAndBoundaryConditionsAD(model, pressure, s, m
 % REQUIRED PARAMETERS:
 %   model     - Subclass of ReservoirModel for which the source terms are
 %               to be computed.
-%
-%   The following arguments are all cell-arrays where the entries are
-%   cell-wise values of the property for that phase:
-%
-%   pressure  - Reservoir pressures.
-%   s         - Phase saturations
-%   mob       - Phase mobilities
+%   pressure  - Reservoir pressures (cell array, one pressure per phase)
+%   s         - Phase saturations (cell array, one saturation per phase)
+%   mob       - Phase mobilities (cell array, one mobilit per phase)
 %   rho       - Phase densities (including contributions from dissolved
 %               phases. For a black-oil style model, this is
 %               rhoO = bO.*(rs*rhoGS + rhoOS), and not the pseudocomponent
 %               density in the phase bO.*rhoOS!
-%
 %   dissolved - Dissolution matrix for the properties. See
-%   getDissolutionMatrix in ThreePhaseBlackOilModel.
-%
+%               `getDissolutionMatrix` in `ThreePhaseBlackOilModel`.
 %   forces    - Struct containing standard MRST driving forces.
 %               Specifically, this routine uses the src and bc fields. All
 %               other fields are ignored. For well source terms, see the
-%               FacilityModel.
+%               `FacilityModel`.
 %
 % RETURNS:
-%   src, bc - Structs for sources and boundary conditions respectively.
+%   src,bc  - Structs for sources and boundary conditions respectively.
 %             Each struct uses the same format with the following fields:
 %                 'phaseMass'    - Cell array of mass source terms per
-%                                  phase pseudocomponent, accounting for
-%                                  dissolved fractions.
+%                 phase pseudocomponent, accounting for dissolved fractions.
 %                 'phaseVolume'  - Cell array of volumetric source terms
-%                                  per phase at reservoir conditions.
+%                 per phase at reservoir conditions.
 %                 'components'   - Empty cell array for inserting component
-%                                  source terms. Components are not the
-%                                  responsibility of this function, but we
-%                                  add the field to ensure that the
-%                                  structure is normalized.
+%                 source terms. Components are not the responsibility of
+%                 this function, but we add the field to ensure that the
+%                 structure is normalized.
 %                 'mapping'      - Either empty or a matrix used to map the
-%                                  source terms into aggregate per-cell
-%                                  values. This matrix is required when
-%                                  multiple source terms are defined in the
-%                                  same block (e.g. two faces for a cell)
-%                                  since Matlab overwrites repeat indices
-%                                  instead of summing them.
+%                 source terms into aggregate per-cell values. This matrix
+%                 is required when multiple source terms are defined in the
+%                 same block (e.g. two faces for a cell) since Matlab
+%                 overwrites repeat indices instead of summing them.
 %                 'sourceCells'  - List of cells the source terms should be
-%                                  added to.
+%                 added to.
 %
-% NOTE: The practical implementation of boundary conditions is normally
-% done through the gateway ReservoirModel>addBoundaryConditionsAndSources
-% routine, which uses this routine directly.
-%
+% NOTE: 
+%   The practical implementation of boundary conditions is normally done
+%   through the gateway ReservoirModel>addBoundaryConditionsAndSources
+%   routine, which uses this routine directly.
 %
 % SEE ALSO:
-%   equationsOilWater, equationsBlackOil,
-%   ReservoirModel>addBoundaryConditionsAndSources 
+%   `equationsOilWater`, `equationsBlackOil`,
+%   `ReservoirModel>addBoundaryConditionsAndSources`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

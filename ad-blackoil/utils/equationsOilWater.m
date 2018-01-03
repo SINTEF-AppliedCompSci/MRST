@@ -28,7 +28,7 @@ function [problem, state] = equationsOilWater(state0, state, model, dt, drivingF
 %                   * bc for boundary conditions. Can be empty for no bc.
 %                   * src for source terms. Can be empty for no sources.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %   'Verbose'    -  Extra output if requested.
 %
 %   'reverseMode'- Boolean indicating if we are in reverse mode, i.e.
@@ -87,13 +87,13 @@ s = model.operators;
 [wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
 
 % Initialize independent variables.
-if ~opt.resOnly,
+if ~opt.resOnly
     % ADI variables needed since we are not only computing residuals.
-    if ~opt.reverseMode,
-        [p, sW, wellVars{:}] = initVariablesADI(p, sW, wellVars{:});
+    if ~opt.reverseMode
+        [p, sW, wellVars{:}] = model.AutoDiffBackend.initVariablesAD(p, sW, wellVars{:});
     else
         wellVars0 = model.FacilityModel.getAllPrimaryVariables(wellSol0);
-        [p0, sW0, wellVars0{:}] = initVariablesADI(p0, sW0, wellVars0{:}); %#ok
+        [p0, sW0, wellVars0{:}] = model.AutoDiffBackend.initVariablesAD(p0, sW0, wellVars0{:}); %#ok
     end
 end
 primaryVars = {'pressure', 'sW', wellVarNames{:}};
@@ -142,10 +142,10 @@ bOvO = s.faceUpstr(upco, bO).*vO;
 bWvW = s.faceUpstr(upcw, bW).*vW;
 
 % Conservation of mass for water
-water = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 ) + s.Div(bWvW);
+water = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 );
 
 % Conservation of mass for oil
-oil = (s.pv/dt).*( pvMult.*bO.*sO - pvMult0.*bO0.*sO0 ) + s.Div(bOvO);
+oil = (s.pv/dt).*( pvMult.*bO.*sO - pvMult0.*bO0.*sO0 );
 
 eqs = {water, oil};
 names = {'water', 'oil'};
@@ -162,6 +162,11 @@ sat = {sW, sO};
                                                                  drivingForces);
 % Finally, add in and setup well equations
 [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, wellVars, wellMap, p, mob, rho, {}, {}, dt, opt);
+% Add in fluxes
+eqs{1} = eqs{1} + s.Div(bWvW);
+eqs{2} = eqs{2} + s.Div(bOvO);
+
+
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 end
 

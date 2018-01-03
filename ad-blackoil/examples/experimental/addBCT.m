@@ -32,7 +32,7 @@ function bc = addBC(bc, f, t, v, varargin)
 %            specify an extraction flux (i.e., flux out of the reservoir),
 %            the caller should provide a negative value in 'values'.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %   sat    - Fluid composition of fluid injected across inflow faces.
 %            An n-by-m array of fluid compositions with 'n' being the
 %            number of faces in 'faces' and for m=3, the columns

@@ -1,4 +1,5 @@
 function [eqs, cq_mass, mix_s, status, cstatus, cq_vol] = computeWellContributionsSingleWell(wellmodel, wellSol, resmodel, q_s, pBH, packed)
+% Main internal function for computing well equations and source terms
 [p, mob, rho, dissolved] = unpackPerforationProperties(packed);
 
 W = wellmodel.W;
@@ -20,7 +21,7 @@ drawdown = getDrawdown(wellSol, pBH, p);
 [Tw, isInj, connInjInx, cstatus] = getWellTrans(wellmodel, wellSol, qt_s, drawdown);
 
 % ------------------ HANDLE FLOW INTO WELLBORE -------------------------
-[cq_vol, cq_s, mix_s] = computePerforationRates(resmodel, wellmodel, connInjInx, q_s, qt_s, drawdown, Tw, isInj, mob, rho, rhoS, dissolved);
+[cq_vol, cq_s, mix_s_ad] = computePerforationRates(resmodel, wellmodel, connInjInx, q_s, qt_s, drawdown, Tw, isInj, mob, rho, rhoS, dissolved);
 
 %---------------------- WELL EQUATIONS     -------------------------------
 % Well equations
@@ -37,7 +38,12 @@ if ~W.status
     end
 end
 % return mix_s(just values), connection and well status:
-mix_s   = cell2mat( cellfun(@double, mix_s, 'UniformOutput', false));
+mix_s = mix_s_ad;
+for i = 1:numel(mix_s)
+    mix_s{i} = double(mix_s_ad{i});
+end
+
+mix_s   = cell2mat(mix_s);
 % For now, don't change status here
 status = vertcat(wellSol.status);
 

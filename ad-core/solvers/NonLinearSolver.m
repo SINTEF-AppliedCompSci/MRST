@@ -1,116 +1,67 @@
 classdef NonLinearSolver < handle
-%Generalized Newton-like nonlinear solver
-%
-% SYNOPSIS:
-%   solver = NonLinearSolver()
-%
-%   solver = NonLinearSolver('maxIterations', 5)
-%
-% DESCRIPTION:
-%   The NonLinearSolver class is a general non-linear solver based on
-%   Newton's method. It is capable of timestep selection and cutting based
-%   on convergence rates and can be extended via subclassing or modular
-%   linear solvers and timestep classes.
-%
-%   Convergence is handled by the PhysicalModel class. The NonLinearSolver
-%   simply responds based on what the model reports in terms of convergence
-%   to ensure some level of encapsulation.
-%
-% REQUIRED PARAMETERS:
-%   None.
-%
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
-%   Documented in methods section.
-%
-% RETURNS:
-%   A NonLinearSolver class instance ready for use.
-%
-% SEE ALSO:
-%   simulateScheduleAD, LinearSolverAD, SimpleTimeStepSelector
-
-%{
-Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
-
-This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
-
-MRST is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-MRST is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with MRST.  If not, see <http://www.gnu.org/licenses/>.
-%}
+    %Generalized Newton-like nonlinear solver
+    %
+    % SYNOPSIS:
+    %   solver = NonLinearSolver()
+    %
+    %   solver = NonLinearSolver('maxIterations', 5)
+    %
+    % DESCRIPTION:
+    %   The NonLinearSolver class is a general non-linear solver based on
+    %   Newton's method. It is capable of timestep selection and cutting based
+    %   on convergence rates and can be extended via subclassing or modular
+    %   linear solvers and timestep classes.
+    %
+    %   Convergence is handled by the PhysicalModel class. The NonLinearSolver
+    %   simply responds based on what the model reports in terms of convergence
+    %   to ensure some level of encapsulation.
+    %
+    % REQUIRED PARAMETERS:
+    %   None.
+    %
+    % RETURNS:
+    %   A NonLinearSolver class instance ready for use.
+    %
+    % SEE ALSO:
+    %   `simulateScheduleAD`, `LinearSolverAD`, `SimpleTimeStepSelector`
 
     properties
-        % The max number of iterations during a ministep.
-        maxIterations
-        % The minimum number of solves during a ministep.
-        minIterations
-        % The maximum number of times the timestep can be halved before it
-        % is counted as a failed run
-        maxTimestepCuts
-        % The solver used to solve the linearized problems during the
-        % simulation.
-        LinearSolver
-        % Verbose flag used to get extra output during simulation.
-        verbose
-        % Identifier for the nonlinear solver
-        identifier
-        % Subclass of SimpleTimeStepSelector used to select timesteps
+        maxIterations % The max number of iterations during a ministep.
+        minIterations % The minimum number of solves during a ministep.
+        maxTimestepCuts  % The maximum number of times the timestep can be halved before it is counted as a failed attempt
+        LinearSolver % The solver used to solve the linearized problems during the simulation.
+        verbose % Verbose flag used to get extra output during simulation.
+        identifier % String identifier for the nonlinear solver
+        timeStepSelector % Subclass of SimpleTimeStepSelector used to select timesteps
         % during simulation. By default no dynamic timestepping will be
         % enabled.
-        timeStepSelector
-
-        % Boolean indicating if Newton increments should be relaxed.
-        useRelaxation
-        % Relaxation parameter between 0 and 1. This is modified
-        % dynamically if useRelaxation is on, and should in general not be
-        % modified unless you know what you are doing.
-        relaxationParameter
+        useRelaxation % Boolean indicating if Newton increments should be relaxed.
+        relaxationParameter % Relaxation parameter between 0 and 1.
+        % This is modified dynamically if useRelaxation is on, and should 
+        % in general not be modified unless you know what you are doing.
         % Either 'dampen', 'sor' or 'none'
         % For dampen, where w = relaxationParameter.
         %       x_new = x_old + dx*w
         % For successive over-relaxation (SOR)
         %       x_new = x_old + dx*w + dx_prev*(1-w)
-        relaxationType
-        % Relaxation is reduced by this when stagnation occurs
-        relaxationIncrement
-        % Lowest possible relaxation factor
-        minRelaxation
-        % Largest possible relaxation factor
-        maxRelaxation
+        relaxationType % Relaxation is reduced by this when stagnation occurs
+        relaxationIncrement 
+        minRelaxation % Lowest possible relaxation factor
+        maxRelaxation % Largest possible relaxation factor
         
-        useLinesearch
-        alwaysUseLinesearch
-        linesearchReductionFactor
-        linesearchDecreaseFactor
-        linesearchMaxIterations
-        linesearchConvergenceNames
-        linesearchResidualScaling
-        linesearchReductionFn
-        
+        useLinesearch % True to enable line-search in residual
+        alwaysUseLinesearch % Debug option to always use line search
+        linesearchReductionFactor % Reduction factor for each step in LS
+        linesearchDecreaseFactor % Required reduction factor in residual (default 1)
+        linesearchMaxIterations % Max iterations in linesearch
+        linesearchConvergenceNames % Residual names to be checked in linesearch
+        linesearchResidualScaling % Residual scaling for each equation
+        linesearchReductionFn % Function for combining multiple residuals into value used by linesearch
         convergenceIssues
-
-        % Abort a timestep if no reduction is residual is happening.
-        enforceResidualDecrease
-        % Stagnation tolerance - used in relaxation to determine of a
-        % residual value is no longer decreasing
-        stagnateTol
-
-        % If error on failure is not enabled, the solver will return even
-        % though it did not converge. May be useful for debugging. Results
-        % should not be relied upon if this is enabled.
-        errorOnFailure
-        % If errorOnFailure is disabled, the solver will continue after a
-        % failed timestep, treating it as a simply non-converged result
-        % with the maximum number of iterations
-        continueOnFailure
+        enforceResidualDecrease % Abort a solution if no reduction is residual is happening.
+        stagnateTol % Stagnation tolerance - used in relaxation to determine of a residual value is no longer decreasing
+        errorOnFailure % If error on failure is not enabled, the solver will return even though it did not converge. May be useful for debugging. Results should not be relied upon if this is enabled. If errorOnFailure is disabled, the solver will continue after a failed timestep, treating it as a simply non-converged result with the maximum number of iterations
+        continueOnFailure % Continue even if failure is reported by the model. Results are most likely not useful. Intended for nested nonlinear solvers.
     end
     
     properties (Access=private)
@@ -174,7 +125,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             %               valid implementation of the "stepFunction"
             %               member function.
             %
-            % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+            % OPTIONAL PARAMETERS:
             %   'W'       - Wells for the timestep. (struct)
             %   'bc'      - Boundary conditions for the problem (struct).
             %   'src'     - Source terms for the timestep (struct).
@@ -277,7 +228,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 if ~isFinalMinistep || dt/dt_sel > 0.9
                     % Avoid storing ministeps that are just due to cutting
                     % at the end of the control step
-                    stepsel.storeTimestep(reports{end});
+                    rep = reports{end};
+                    stepsel.storeTimestep(rep);
                 end
 
                 % Keep total itcount so we know how much time we are
@@ -572,27 +524,48 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 str = [solver.identifier, ': '];
             end
         end
+        
+        function v = linesearchApplyUpdate(solver, v, ok, active)
+            v = v./solver.linesearchResidualScaling;
+            v = v(active);
+            ok = ok(active);
+
+            if ~isempty(solver.linesearchReductionFn)
+                % Apply function
+                v = solver.linesearchReductionFn(v);
+            else
+                % Set converged value to zero
+                v = v.*~ok;
+            end
+        end
+
+        function activeNames = getActiveNames(solver, names)
+            if isempty(solver.linesearchConvergenceNames)
+                activeNames = true(size(names));
+            else
+                activeNames = ismember(names, solver.linesearchConvergenceNames);
+            end
+        end
+
     end
 end
 
-function v = linesearchApplyUpdate(solver, v, ok, active)
-    v = v./solver.linesearchResidualScaling;
-    v = v(active);
-    ok = ok(active);
+%{
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
-    if ~isempty(solver.linesearchReductionFn)
-        % Apply function
-        v = solver.linesearchReductionFn(v);
-    else
-        % Set converged value to zero
-        v = v.*~ok;
-    end
-end
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
-function activeNames = getActiveNames(solver, names)
-    if isempty(solver.linesearchConvergenceNames)
-        activeNames = true(size(names));
-    else
-        activeNames = ismember(names, solver.linesearchConvergenceNames);
-    end
-end
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+

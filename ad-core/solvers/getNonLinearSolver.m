@@ -8,7 +8,7 @@ function solver = getNonLinearSolver(model, varargin)
 % REQUIRED PARAMETERS:
 %   model  - Simulation model (subclass of PhysicalModel).
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %   'DynamicTimesteps'  - Set up a simple iteration count timestep
 %                         selector.
 %

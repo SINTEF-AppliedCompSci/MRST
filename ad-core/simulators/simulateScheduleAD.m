@@ -25,96 +25,96 @@ function [wellSols, states, schedulereport] = ...
 %
 %   model        - The physical model that determines jacobians/convergence
 %                  for the problem. This must be a subclass of the
-%                  PhysicalModel base class.
+%                  `PhysicalModel` base class.
 %
 %   schedule     - Schedule containing fields step and control, defined as
 %                  follows:
-%                         - schedule.control is a struct array containing
-%                         fields that the model knows how to process.
-%                         Typically, this will be the fields such as .W for
-%                         wells or .bc for boundary conditions.
+%                         - `schedule.control` is a struct array containing
+%                           fields that the model knows how to process.
+%                           Typically, this will be the fields such as `.W` 
+%                           for wells or `.bc` for boundary conditions.
 %
-%                         - schedule.step contains two arrays of equal size
-%                         named "val" and "control". Control is a index
-%                         into the schedule.control array, indicating which
-%                         control is to be used for the timestep.
-%                         schedule.step.val is the timestep used for that
-%                         control step.
+%                         - `schedule.step` contains two arrays of equal 
+%                           size named `val` and `control`. Control is a
+%                           index into the `schedule.control` array,
+%                           indicating which control is to be used for the
+%                           timestep.`schedule.step.val` is the timestep
+%                           used for that control step.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %
-%  'Verbose'        - Indicate if extra output is to be printed such as
-%                     detailed convergence reports and so on.
+%   'Verbose'         - Indicate if extra output is to be printed such as
+%                       detailed convergence reports and so on.
 %
+%   'OutputMinisteps' - The solver may not use timesteps equal to the
+%                       control steps depending on problem stiffness and
+%                       timestep selection. Enabling this option will make
+%                       the solver output the states and reports for all
+%                       steps actually taken and not just at the control
+%                       steps. See also `convertReportToSchedule` which can
+%                       be used to construct a new schedule from these
+%                       timesteps.
 %
-%  'OutputMinisteps' - The solver may not use timesteps equal to the
-%                      control steps depending on problem stiffness and
-%                      timestep selection. Enabling this option will make
-%                      the solver output the states and reports for all
-%                      steps actually taken and not just at the control
-%                      steps. See also 'convertReportToSchedule' which can
-%                      be used to construct a new schedule from these
-%                      timesteps.
+%   'initialGuess'     - A cell array with one entry per control-step. If
+%                        provided, the state from this cell array is passed as
+%                        initial guess for the `NonLinearSolver`. See:
+%                        `NonLinearSolver.solveTimestep`, optional arguments.
 %
-%  'initialGuess'   - A cell array with one entry per control-step. If
-%                     provided, the state from this cell array is passed as
-%                     initial guess for the NonLinearSolver. See:
-%                     NonLinearSolver>solveTimestep, optional arguments.
+%   'NonLinearSolver'  - An instance of the `NonLinearSolver` class. Consider
+%                        using this if you for example want a special timestep
+%                        selection algorithm. See the `NonLinearSolver` class
+%                        docs for more information.
 %
-% 'NonLinearSolver' - An instance of the NonLinearSolver class. Consider
-%                     using this if you for example want a special timestep
-%                     selection algorithm. See the NonLinear Solver class
-%                     docs for more information.
+%   'OutputHandler'    - Output handler class, for example for writing states
+%                        to disk during the simulation or in-situ
+%                        visualization. See the ResultHandler base class.
 %
-% 'OutputHandler'   - Output handler class, for example for writing states
-%                     to disk during the simulation or in-situ
-%                     visualization. See the ResultHandler base class.
+%   'ReportHandler'    - Same as 'OutputHandler', but for the reports for the
+%                        individual report steps.
 %
-% 'ReportHandler'   - Same as 'OutputHandler', but for the reports for the
-%                     individual report steps.
+%   'LinearSolver'     - Class instance subclassed from `LinearSolverAD`. Used
+%                        to solve linearized problems in the `NonLinearSolver`
+%                        class. Note that if you are passing a
+%                        `NonLinearSolver`, you might as well put it there.
 %
-% 'LinearSolver'    - Class instance subclassed from LinearSolverAD. Used
-%                     to solve linearized problems in the NonLinearSolver
-%                     class. Note that if you are passing a
-%                     NonLinearSolver, you might as well put it there.
+%   'afterStepFn'      - Function handle to an optional function that will be
+%                        called after each successful report step in the
+%                        schedule. The function should take in the following
+%                        input arguments:
+%                        - model: The model used in the schedule
+%                        - states: A cell array of all states that are
+%                          computed, as well as possible empty entries
+%                          where the states have not been computed yet.
+%                        - reports: A cell array of reports for each step,
+%                          with empty entries for steps that have not been
+%                          reached yet.
+%                        - solver: The NonLinearSolver instance.
+%                        - schedule: The current schedule.
+%                        - simtime: Array with the time in seconds taken by
+%                          the `NonLinearSolver` to compute each step.
+%                          Entries not computed will contain zeros.
 %
-% 'afterStepFn'     - Function handle to an optional function that will be
-%                     called after each successful report step in the
-%                     schedule. The function should take in the following
-%                     input arguments:
-%                     model    - The model used in the schedule
-%                     states   - A cell array of all states that are
-%                     computed, as well as possible empty entries where the
-%                     states have not been computed yet.
-%                     reports  - A cell array of reports for each step, with
-%                     empty entries for steps that have not been reached
-%                     yet.
-%                     solver   - The NonLinearSolver instance.
-%                     schedule - The current schedule.
-%                     simtime  - Array with the time in seconds taken by
-%                     the NonLinearSolver to compute each step. Entries not
-%                     computed will contain zeros.
-%
-%                     See "getPlotAfterStep" for more information and
-%                     "howtoAddPlotHook" for a worked example.
+%                        See `getPlotAfterStep` for more information and
+%                        `howtoAddPlotHook` for a worked example.
 %
 % RETURNS:
-%  wellSols         - Well solution at each control step (or timestep if
-%                     'OutputMinisteps' is enabled.
+%   wellSols         - Well solution at each control step (or timestep if
+%                      'OutputMinisteps' is enabled.
 %
-%  states           - State at each control step (or timestep if
-%                     'OutputMinisteps' is enabled.
+%   states           - State at each control step (or timestep if
+%                      'OutputMinisteps' is enabled.
 %
-%  schedulereport   - Report for the simulation. Contains detailed info for
-%                     the whole schedule run, as well as arrays containing
-%                     reports for the whole stack of routines called during
-%                     the simulation.
+%   schedulereport   - Report for the simulation. Contains detailed info for
+%                      the whole schedule run, as well as arrays containing
+%                      reports for the whole stack of routines called during
+%                      the simulation.
 %
 % NOTE:
-%   For valid models, see ThreePhaseBlackOilModel or TwoPhaseOilWaterModel.
+%   For examples of valid models, see `ThreePhaseBlackOilModel` or
+%   `TwoPhaseOilWaterModel`.
 %
 % SEE ALSO:
-%   computeGradientAdjointAD, PhysicalModel
+%   `computeGradientAdjointAD`, `PhysicalModel`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

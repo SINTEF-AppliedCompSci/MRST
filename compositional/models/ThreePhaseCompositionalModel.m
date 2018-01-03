@@ -1,11 +1,36 @@
 classdef ThreePhaseCompositionalModel < ReservoirModel
-% Compositional model with up to two phases + optional aqua phase
+    % Base class for compositional models
+    %
+    % SYNOPSIS:
+    %   model = ThreePhaseCompositionalModel(G, rock, fluid, compFluid)
+    %
+    % DESCRIPTION:
+    %   This is the base class for several compositional models in MRST. It
+    %   contains common functionality and is not intended for direct use.
+    %
+    % PARAMETERS:
+    %   G         - Grid structure
+    %   rock      - Rock structure for the reservoir
+    %   fluid     - The flow fluid, containing relative permeabilities,
+    %               surface densities and flow properties for the
+    %               aqueous/water phase (if present)
+    %   compFluid - CompositionalFluid instance describing the species
+    %               present.
+    %
+    % RETURNS:
+    %  model - Initialized class instance
+    %
+    % SEE ALSO:
+    %   `NaturalVariablesCompositionalModel`, `OverallCompositionCompositionalModel`
+
     properties
-        EOSModel
-        EOSNonLinearSolver
-        dzMaxAbs
-        incTolPressure
-        fugacityTolerance
+        EOSModel % EquationOfState model used for PVT and phase behavior
+        EOSNonLinearSolver % NonLinearSolver used to solve EOS problems that appear
+        dzMaxAbs % Maximum allowable change in any mole fraction
+        incTolPressure % Relative increment tolerance for pressure
+        incTolComposition % Increment tolerance for composition
+        useIncTolComposition % If true, use increment tolerance for composition. Otherwise, use mass-balance.
+        fugacityTolerance % Tolerance for fugacity equality (in units 1/barsa)
     end
     
     methods
@@ -19,17 +44,13 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             end
             
             model.EOSModel.verbose = false;
-            
-            model.EOSNonLinearSolver = NonLinearSolver();
-            model.EOSNonLinearSolver.verbose = -1;
-            model.EOSNonLinearSolver.maxIterations = 100;
-            model.EOSNonLinearSolver.maxTimestepCuts = 0;
-            model.EOSNonLinearSolver.useRelaxation = true;
-            model.EOSNonLinearSolver.continueOnFailure = true;
-            model.EOSNonLinearSolver.errorOnFailure = false;
+            model.EOSNonLinearSolver = getDefaultFlashNonLinearSolver();
             
             model.nonlinearTolerance = 0.01;
             model.incTolPressure = 1e-3;
+            model.useIncTolComposition = false;
+            model.incTolComposition = 1e-3;
+            
             model.fugacityTolerance = 1e-3;
             
             model.water = true;
@@ -42,19 +63,17 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             model.minimumPressure = 0;
             model.dpMaxRel = 0.25;
             model = merge_options(model, varargin{:});
-            
-            if model.water
-                model.saturationVarNames = {'sw', 'so', 'sg'};
-            else
-                model.saturationVarNames = {'so', 'sg'};
-            end
         end
         
-        function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
-            [problem, state] = equationsCompositional(state0, state, model, dt, ...
-                            drivingForces, varargin{:});
+        function [problem, state] = getEquations(model, varargin)
+            error('Superclass not intended for direct use!');
         end
         
+        function names = getComponentNames(model)
+            names = getComponentNames@ReservoirModel(model);
+            names = horzcat(names, model.EOSModel.fluid.names);
+        end
+
         function [fn, index] = getVariableField(model, name)
             switch(lower(name))
                 case {'z', 'components'}
@@ -82,8 +101,14 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                     fn = 'Z_V';
                     index = 1;
                 otherwise
-                    % This will throw an error for us
-                    [fn, index] = getVariableField@ReservoirModel(model, name);
+                    sub = strcmpi(model.getComponentNames(), name);
+                    if any(sub)
+                        fn = 'components';
+                        index = find(sub);
+                    else
+                        % This will throw an error for us
+                        [fn, index] = getVariableField@ReservoirModel(model, name);
+                    end
             end
         end
 
@@ -91,7 +116,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             state = validateState@ReservoirModel(model, state);
             ncell = model.G.cells.num;
             ncomp = model.EOSModel.fluid.getNumberOfComponents();
-            model.checkProperty(state, 'Components', [1, ncomp], [1, 2]);
+            model.checkProperty(state, 'Components', [ncell, ncomp], [1, 2]);
             T = model.getProp(state, 'Temperature');
             if numel(T) == 1
                 % Expand single temperature to all grid cells
@@ -100,172 +125,59 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                 state = model.setProp(state, 'Temperature', repmat(T, ncell, 1));
             end
             model.checkProperty(state, 'Temperature', [ncell, 1], [1, 2]);
-            state = model.computeFlash(state, inf);
+            if ~isfield(state, 'x') || ~isfield(state, 'K')
+                state = model.computeFlash(state, inf);
+            end
+            if isfield(state, 'wellSol')
+                for i = 1:numel(state.wellSol)
+                    state.wellSol(i).components = [];
+                end
+            end
         end
 
         function [state, report] = updateState(model, state, problem, dx, drivingForces)
-            state0 = state;
-            
-            var0 = problem.primaryVariables;
-            vars = var0;
-            removed = false(size(vars));
-            
-            wix = strcmpi(vars, 'sW');
-            if any(wix)
-                state = model.updateStateFromIncrement(state, dx{wix}, problem, 'sW', model.dsMaxRel, model.dsMaxAbs);
-                removed(wix) = true;
-                vars = vars(~wix);
-            end
-            
-            % Components
-            cnames = model.EOSModel.fluid.names;
-            ncomp = numel(cnames);
-            ok = false(ncomp, 1);
-
-            z = state.components;
-            rm = 0;
-
-            for i = 1:ncomp
-                name = lower(cnames{i});
-                cix = strcmpi(var0, name);
-                if any(cix)
-                    z0 = z{i};
-
-                    dz = dx{cix};
-                    if isfinite(model.dzMaxAbs)
-                        dz = sign(dz).*min(abs(dz), model.dzMaxAbs);
-                    end
-                    z{i} = min(max(z0 + dz, 0), 1);
-
-                    ok(i) = true;
-                    [vars, ix] = model.stripVars(vars, {name});
-                    removed(~removed) = removed(~removed) | ix;
-
-                    rm = rm - (z{i} - z0);
-                end
-            end
-            
-            if any(ok)
-                % We had components as active variables somehow
-                
-                if nnz(~ok) == 0
-                    state.componentsActual = z;
-                    sz = sum([z{:}], 2);
-                    z = cellfun(@(x) x./sz, z, 'UniformOutput', false);
-                    zz = state.componentsActual;
-                    if isfield(state0, 'componentsActual')
-                        zz0 = state0.componentsActual;
-                    else
-                        zz0 = state0.components;
-                    end
-                else
-                    assert(nnz(~ok) == 1)
-                    z{~ok} = min(max(z{~ok} + rm, 0), 1);
-                    sz = sum([z{:}], 2);
-                    z = cellfun(@(x) x./sz, z, 'UniformOutput', false);
-                    zz = z;
-                    zz0 = state0.components;
-                end
-                state.components = z;
-                if model.water
-                    v  = 1 - state.s(:, 1);
-                    v0 = 1 - state0.s(:, 1);
-                else
-                    [v, v0] = deal(1);
-                end
-
-                state.dz = computeChange(zz, zz0, v, v0);
-            end
-
-            % Parent class handles almost everything for us
-            problem.primaryVariables = vars;
-            dx(removed) = [];
+            p0 = state.pressure;
             [state, report] = updateState@ReservoirModel(model, state, problem, dx, drivingForces);
-
-            p0 = state0.pressure;
             range = max(p0) - min(p0);
             if range == 0
                 range = 1;
             end
             state.dpRel = (state.pressure - p0)./range;
             state.dpAbs = state.pressure - p0;
-            
-            if problem.iterationNo == 1
-                state.switched = false(model.G.cells.num, 1);
-                state.switchCount = zeros(model.G.cells.num, 1);
-            end
-            twoPhase0 = state.L < 1 & state.L > 0;
-            s0 = state;
-            
-            state = model.computeFlash(state, problem.dt, problem.iterationNo);
-            twoPhase = state.L < 1 & state.L > 0;
-            switched = twoPhase0 ~= twoPhase;
-            
-%             osc = switched & state.switched;
-            osc = switched & state.switchCount > 3 & twoPhase;
-            dispif(model.verbose > 1, '%d gas, %d oil, %d two-phase\n', nnz(state.L == 0), nnz(state.L == 1), nnz(twoPhase));
-            dispif(model.verbose > 1, '%d cells are two phase, %d switched. %d of %d cells are locked\n', nnz(twoPhase), nnz(switched), nnz(osc), model.G.cells.num);
-            if 1 && any(strcmpi(var0, 'pressure'))
-                state.L(osc) = s0.L(osc);
-                for i = 1:ncomp
-                    state.x{i}(osc) = s0.x{i}(osc);
-                    state.y{i}(osc) = s0.y{i}(osc);
-                end
-                state.Z_L(osc) = s0.Z_L(osc);
-                state.Z_V(osc) = s0.Z_V(osc);
-                dt = problem.dt;
-                state = model.EOSModel.updateAfterConvergence(state0, state, dt, struct());
-            end
-            state.switched = switched & ~osc;
-            state.switchCount = state.switchCount + double(switched);
-%             state.switchCount(osc) = 0;
-            
-            % Saturation update
-            vL = state.Z_L.*state.L;
-            vV = state.Z_V.*(1-state.L);
-            vT = vL + vV;
-            if model.water
-                void = 1 - state.s(:, 1);
-            else
-                void = 1;
-            end
-            % Liquid
-            state.s(:, 1 + model.water) = void.*vL./vT;
-            state.s(:, 2 + model.water) = void.*vV./vT;
-            
-            state.components = ensureMinimumFraction(state.components);
-            state.x = ensureMinimumFraction(state.x);
-            state.y = ensureMinimumFraction(state.y);
         end
         
         function state = computeFlash(model, state, dt, iteration)
+            % Flash a state with the model's EOS.
             if nargin < 4
                 iteration = 1;
             end
-            transportProblem = isa(model, 'TransportCompositionalModel');
-            if iteration == 1 && ~transportProblem
+            state0 = state;
+            if iteration == 1
                 state.eos.iterations = 0;
                 state.eos.cellcount = 0;
+                state = model.EOSModel.validateState(state);
             end
-            state0 = state;
             [state, report] = model.EOSNonLinearSolver.solveTimestep(state, dt, model.EOSModel);
 
             if ~isempty(report)
                 state.eos.iterations = state.eos.iterations + report.StepReports{1}.Iterations;
-                state.eos.cellcount = state.eos.cellcount + sum(cellfun(@(x) x.ActiveCells, report.StepReports{1}.NonlinearReport));
-                
+
                 if ~report.StepReports{1}.Converged
                     state = model.EOSModel.updateAfterConvergence(state0, state, dt, struct());
-                    disp('!!! Flash did not converge');
-                    fprintf('Final residuals: ')
-                    fprintf('%1.4g ', report.StepReports{1}.NonlinearReport{end}.Residuals)
-                    fprintf('after %d iterations\n', report.StepReports{1}.Iterations);
+                    disp   ('********************************');
+                    disp   ('*    Flash did not converge    *');
+                    disp   ('********************************');
+                    fprintf('* Final residuals after %d iterations:\n', report.StepReports{1}.Iterations);
+                    for i = 1:numel(report.StepReports{1}.NonlinearReport{end}.Residuals)
+                        fprintf('* %s: %1.4g \n', model.EOSModel.fluid.names{i},....
+                                report.StepReports{1}.NonlinearReport{end}.Residuals(i))
+                    end
                 end
             end
             L = state.L;
             Z_L = state.Z_L;
             Z_V = state.Z_V;
-            
+
             if model.water
                 sW = state.s(:, 1);
                 sL = (1 - sW).*L.*Z_L./(L.*Z_L + (1-L).*Z_V);
@@ -278,97 +190,51 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             end
         end
     
-        function [xM, yM, sL, sV, rhoL, rhoV, muL, muV, report] = computeTwoPhaseFlowProps(model, state, p, temp, z)
-            isADI = isa(p, 'ADI') || isa(temp, 'ADI') || any(cellfun(@(x) isa(x, 'ADI'), z));
-            report = struct();
-            if isADI
-                t1 = tic();
-                [x, y, L] = model.EOSModel.getPhaseFractionAsADI(state, p, temp, z);
-                report.t_derivatives = toc(t1);
-                t2 = tic();
-                [Z_L, Z_V] = model.EOSModel.getCompressibility(state, p, temp, x, y);
-                report.t_compressibility = toc(t2);
-            else
-                [x, y, L, Z_L, Z_V] = model.getProps(state, 'x', 'y', 'L', 'Z_L', 'Z_V');
-                [report.t_derivatives, report.t_compressibility] = deal(0);
-            end
-            
-            t1 = tic();
-            xM = model.EOSModel.getMassFraction(x);
-            yM = model.EOSModel.getMassFraction(y);
-            report.t_massfraction = toc(t1);
-            
-            t2 = tic();
-            rhoL = model.EOSModel.computeDensity(p, x, Z_L, temp, true);
-            rhoV = model.EOSModel.computeDensity(p, y, Z_V, temp, false);
-            report.t_density = toc(t2);
-            
-            [sL, sV] = model.EOSModel.computeSaturations(rhoL, rhoV, x, y, L, Z_L, Z_V);
-            
-            t3 = tic();
-            if nargout > 6
-                muL = model.EOSModel.computeViscosity(p, rhoL, temp, x, true);
-                muV = model.EOSModel.computeViscosity(p, rhoV, temp, y, false);
-            end
-            report.t_viscosity = toc(t3);
-        end
-
+        
         function [convergence, values, names] = checkConvergence(model, problem, varargin)
-            tsolver = isa(model, 'TransportCompositionalModel');
-            psolver = isa(model, 'PressureCompositionalModel');
-            if ~psolver
-                names = problem.equationNames;
+            [conv_wells, v_wells, namesWell, isWell] = ...
+                model.FacilityModel.checkFacilityConvergence(problem);
 
-                offset = model.water;
-                ncomp = numel(model.EOSModel.fluid.names);
-                if tsolver 
-                    % We might be missing a component
-                    ncomp = ncomp - 1;
-                    offset = (model.conserveWater && model.water);
-                end
+            values = norm(problem, inf);
+            % Check components
+            [conv_comp, v_comp, names_comp, isComponent] = model.checkComponentConvergence(problem);
+            % Check fugacity
+            [conv_f, v_f, names_f, isFugacity] = model.checkFugacityConvergence(problem);
+            % Remaining values use nonlinear tolerances
+            rest = ~(isWell | isFugacity | isComponent);
+            v_rest = values(rest);
+            conv_rest = v_rest <= model.nonlinearTolerance;
+            names_rest = problem.equationNames(rest);
 
-                values = cellfun(@(x) norm(double(x), inf), problem.equations);
-
-                if problem.iterationNo > 1
-                    v = problem.state.dz(1:ncomp);
-                else
-                    v = inf(1, ncomp);
-                end
-
-                values((1+offset):(ncomp+offset)) = v;
-
-                [conv_wells, v_wells, namesWell, isWell] = ...
-                    model.FacilityModel.checkFacilityConvergence(problem);
-                
-                isFugacity = strcmpi(problem.types, 'fugacity');
-                rest = ~(isWell | isFugacity);
-                v_cells = values(rest);
-                v_f = values(isFugacity);
-                
-                conv_cells = v_cells <= model.nonlinearTolerance;
-                conv_f = v_f <= model.fugacityTolerance;
-
-                convergence = [conv_cells, conv_f, conv_wells];
-                values = [v_cells, v_f, v_wells];
-                names = horzcat(names(rest), names(isFugacity), namesWell);
-            else
-                [convergence, values, names] = checkConvergence@ReservoirModel(model, problem, varargin{:});
-            end 
-            if ~isa(model, 'TransportCompositionalModel')
-                if isfield(problem.state, 'dpRel')
+            convergence = [conv_comp, conv_rest, conv_f, conv_wells];
+            values = [v_comp, v_rest, v_f, v_wells];
+            names = horzcat(names_comp, names_rest, names_f, namesWell);
+            % Pressure tolerances
+            if any(strcmpi(problem.primaryVariables, 'pressure'))
+                if isfield(problem.state, 'dpRel') && problem.iterationNo > 1
                     dp = norm(problem.state.dpRel, inf);
                 else
                     dp = inf;
                 end
-                isp = strcmpi(names, 'pressure (cell)');
-                if any(isp)
-                    values(isp) = dp;
-                    convergence(isp) = dp <= model.incTolPressure;
-                    names{isp} = 'deltaP';
-                else
-                    values = [dp, values];
-                    convergence = [dp <= model.incTolPressure, convergence];
-                    names = ['deltaP', names];
+                if isfinite(model.incTolPressure)
+                    isp = strcmpi(names, 'pressure');
+                    if any(isp)
+                        values(isp) = dp;
+                        convergence(isp) = dp <= model.incTolPressure;
+                        names{isp} = 'dPressure';
+                    else
+                        values = [dp, values];
+                        convergence = [dp <= model.incTolPressure, convergence];
+                        names = ['deltaP', names];
+                    end
+                elseif isa(model, 'PressureNaturalVariablesModel')
+                    pRes = norm(problem.b, inf);
+                    if isempty(pRes)
+                        pRes = inf;
+                    end
+                    values = [pRes, values];
+                    convergence = [pRes <= model.nonlinearTolerance, convergence];
+                    names = ['Pressure', names];
                 end
             end
         end
@@ -377,96 +243,157 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             % Densities
             isActive = model.getActivePhases();
 
-            state.mob = zeros(model.G.cells.num, sum(isActive));
+            state.rho = zeros(model.G.cells.num, sum(isActive));
             rho = {double(rhoW), double(rhoO), double(rhoG)};
             state = model.setPhaseData(state, rho, 'rho');
         end
+        
+        function [compEqs, compSrc, eqNames, wellSol] = getExtraWellContributions(model, well, wellSol0, wellSol, q_s, bh, packed, qMass, qVol, dt, iteration)
+            [compEqs, compSrc, eqNames, wellSol] = getExtraWellContributions@ReservoirModel(model, well, wellSol0, wellSol, q_s, bh, packed, qMass, qVol, dt, iteration);
+            names = model.getComponentNames();
+            ncomp = numel(names);
+            
+            
+            z_well = model.getProp(well.W, 'components');
+            mf_well = model.EOSModel.getMassFraction(z_well);
+            
+            lix = model.water + 1;
+            vix = lix + 1;
+            cqLs = qMass{lix};
+            cqVs = qMass{vix};
+            ncell = numel(double(cqLs));
 
-        function [eqs, names, types, wellSol, src] = insertWellEquations(model, eqs, names, ...
-                                                         types, wellSol0, wellSol, ...
-                                                         wellVars, ...
-                                                         wellMap, p, mob, rho, ...
-                                                         dissolved, components, ...
-                                                         dt, opt)
-            fm = model.FacilityModel;
-            compFluid = model.EOSModel.fluid;
-            ncomp = compFluid.getNumberOfComponents();
-            % Store cell wise well variables in cell arrays and send to ewll
-            % model to get the fluxes and well control equations.
+            N = numel(compSrc);
+            compSrc = [compSrc, cell(1, ncomp)];
+            
+            wellSol.components = zeros(ncell, ncomp);
+            for cNo = 1:ncomp
+                Z_well = mf_well(cNo);
+                X_res = packed.components{cNo}{1};
+                Y_res = packed.components{cNo}{2};
 
-
-            [src, wellsys, state.wellSol] = ...
-                fm.getWellContributions(wellSol0, wellSol, wellVars, ...
-                                        wellMap, p, mob, rho, {}, {}, ...
-                                        dt, opt.iteration);
-            L_ix = model.water + 1;
-            V_ix = model.water + 2;
-            W = fm.getWellStruct();
-
-            wc    = vertcat(W.cells);
-            w_comp = vertcat(W.components);
-            perf2well = getPerforationToWellMapping(W);
-            a = w_comp(perf2well, :).*repmat(compFluid.molarMass, numel(wc), 1);
-            w_comp = bsxfun(@rdivide, a, sum(a, 2));
-
-            x_comp = cellfun(@(v) v(wc), components{1}, 'UniformOutput', false);
-            y_comp = cellfun(@(v) v(wc), components{2}, 'UniformOutput', false);        
-            cqs_m = src.phaseMass;
-            injO = double(cqs_m{L_ix}) > 0;
-            injG = double(cqs_m{V_ix}) > 0;
+                injO = cqLs > 0;
+                injG = cqVs > 0;
+                % Account for both phases.
+                q_i = (cqLs.*injO + cqVs.*injG).*Z_well ...
+                       + ~injO.*X_res.*cqLs + ~injG.*Y_res.*cqVs;
 
 
-            offset = numel(wellsys.wellEquations);
-            eqs(end+1:end+offset) = wellsys.wellEquations;
-            names(end+1:end+offset) = wellsys.names;
-            types(end+1:end+offset) = wellsys.types;
-            eqs{end+1} = wellsys.controlEquation;
-            names{end+1} = 'closureWells';
-            types{end+1} = 'well';
-
-            if model.water
-                % Water
-                eqs{1}(wc) = eqs{1}(wc) - cqs_m{1};
-            end
-            srcTot = 0;
-            compSrc = zeros(numel(wc), ncomp);
-            for i = 1:ncomp
-                ix = i + model.water;
-                % Mixture of production and injection. Production uses cell
-                % values for components, injectors use whatever was prescribed
-                % to the well.
-                q_i = (cqs_m{L_ix}.*injO + cqs_m{V_ix}.*injG).*w_comp(perf2well, i)...
-                           + ~injO.*x_comp{i}.*cqs_m{L_ix} + ~injG.*y_comp{i}.*cqs_m{V_ix};
-                if ~(i == ncomp && isa(model, 'TransportCompositionalModel'))
-                    eqs{ix}(wc) = eqs{ix}(wc) - q_i;
-                end
-                compSrc(:, i) = double(q_i);
-                srcTot = srcTot + double(q_i);
-            end
-            fluxt = 0;
-            fluxMass = 0;
-            cqr = src.phaseVolume;
-            for i = 1:numel(cqr)
-                fluxt = fluxt + double(cqr{i});
-                fluxMass = fluxMass + double(cqs_m{i});
-            end
-            for i = 1:numel(W)
-                wp = perf2well == i;
-                wellSol(i).flux = fluxt(wp);
-                wellSol(i).massFlux = fluxMass(wp);
-                wellSol(i).components = (compSrc(wp, :));
+                compSrc{N+cNo} = q_i;
+                wellSol.components(:, cNo) = double(q_i);
             end
         end
 
+        function [eq, src] = addComponentContributions(model, cname, eq, component, src, force)
+            if isempty(force)
+                return
+            end
+            cnames = model.getComponentNames();
+            sub = strcmpi(cnames, cname);
+            if any(sub)
+                z_bc = model.getProp(force, 'components');
+                mf_bc = model.EOSModel.getMassFraction(z_bc);
+                cells = src.sourceCells;
+                
+                qC = 0;
+                for ph = 1:2
+                    ix = ph + model.water;
+                    q_ph = src.phaseMass{ix};
+                    inj = q_ph > 0;
+                    
+                    qC = qC + ~inj.*component{ph}(cells).*q_ph ...
+                            +  inj.*mf_bc(:, sub).*q_ph;
+                end
+                eq(cells) = eq(cells) - qC;
+                src.components{end+1} = qC;
+            else
+                [eq, src] = addComponentContributions@ReservoirModel(model, cname, eq, component, src, force);
+            end
+        end
+
+        
+        function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
+            [state, report] = updateAfterConvergence@ReservoirModel(model, state0, state, dt, drivingForces);
+            if isfield(state, 'wellSol') && isfield(state.wellSol, 'components')
+                names = model.getComponentNames();
+                for i = 1:numel(names)
+                    names{i} = names{i}(isstrprop(names{i}, 'alphanum'));
+                end
+                ncomp = numel(names);
+                for i = 1:numel(state.wellSol)
+                    for j = 1:ncomp
+                        if state.wellSol(i).status
+                            state.wellSol(i).(names{j}) = sum(state.wellSol(i).components(:, j));
+                        end
+                    end
+                end
+            end
+            
+            if isfield(state, 'dz')
+                state = rmfield(state, 'dz');
+            end
+            
+            if isfield(state, 'eos')
+                state = rmfield(state, 'eos');
+            end
+        end
+        
+        function state = setFlag(model, varargin)
+            state = model.EOSModel.setFlag(varargin{:});
+        end
+        
+        function [isLiquid, isVapor, is2ph] = getFlag(model, state)
+            [isLiquid, isVapor, is2ph] = model.EOSModel.getFlag(state);
+        end
+        
+        function m = PropertyModel(model)
+            m = model.EOSModel.PropertyModel;
+        end
+    end
+    
+    methods (Access=protected)
+       function [conv_comp, v_comp, names_comp, isComponent] = checkComponentConvergence(model, problem)
+            % Check convergence criterion of components
+            isComponent = false(size(problem.equations));
+            cnames = model.getComponentNames();
+            names = problem.equationNames;
+            
+            ncomp = numel(cnames);
+            for i = 1:ncomp
+                f = strcmpi(names, cnames{i});
+                if any(f)
+                    isComponent(f) = true;
+                    if model.useIncTolComposition
+                        names{f} = ['d', cnames{i}];
+                    end
+                end
+            end
+
+            if model.useIncTolComposition
+                if problem.iterationNo == 1
+                    v_comp = inf(1, ncomp);
+                else
+                    v_comp = problem.state.dz;
+                end
+                tol_c = model.incTolComposition;
+            else
+                tol_c = model.nonlinearTolerance;
+                v_comp = cellfun(@(x) norm(double(x), inf), problem.equations(isComponent));
+            end
+            conv_comp = v_comp <= tol_c;
+            names_comp = names(isComponent);
+       end
+       
+       function [conv_f, v_f, names_f, isFugacity] = checkFugacityConvergence(model, problem)
+            % Check fugacity constraints if present
+            isFugacity = strcmpi(problem.types, 'fugacity');
+            v_f = cellfun(@(x) norm(double(x), inf), problem.equations(isFugacity));
+            conv_f = v_f <= model.fugacityTolerance;
+            names_f = problem.equationNames(isFugacity);
+       end
     end
 end
 
-function dz = computeChange(z, z0, s, s0)
-    z_prev = cellfun(@(x) x.*s0, z0, 'UniformOutput', false);
-    z_curr = cellfun(@(x) x.*s, z, 'UniformOutput', false);
-
-    dz = cellfun(@(x, y) norm(x - y, inf), z_curr, z_prev);
-end
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

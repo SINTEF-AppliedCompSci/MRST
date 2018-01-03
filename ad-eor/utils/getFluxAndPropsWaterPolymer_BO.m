@@ -4,9 +4,10 @@ function [vW, vP, bW, muWeffMult, mobW, mobP, rhoW, pW, upcw, a, dpW] = getFluxA
 % SYNOPSIS:
 %   function [vW, vP, bW, muWeffMult, mobW, mobP, rhoW, pW, upcw, a] = getFluxAndPropsWaterPolymer_BO(model, pO, sW, c, ads, krW, T, gdz)
 %
-% DESCRIPTION: Given pressure, saturation and polymer concentration and some
-% other input variables, compute the fluxes and other properties, as listed
-% below. Used in the assembly of the blackoil equations with polymer.
+% DESCRIPTION: 
+%   Given pressure, saturation and polymer concentration and some
+%   other input variables, compute the fluxes and other properties, as listed
+%   below. Used in the assembly of the blackoil equations with polymer.
 
 %
 % PARAMETERS:
@@ -65,7 +66,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         pcOW  = fluid.pcOW(sW);
     end
     pW = pO - pcOW;
-    muW    = fluid.muW(pO);
+    muW    = fluid.muW(pW);
 
     % Multipliers due to polymer
     mixpar = fluid.mixPar;
@@ -87,8 +88,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     % water upstream-index
     upcw  = (double(dpW)<=0);
-    [krWf, krW   ] = s.splitFaceCellValue(upcw, krW);
-    [muWf, muWeff] = s.splitFaceCellValue(upcw, muWeff);
+    [krWf, krW   ] = s.splitFaceCellValue(s, upcw, krW);
+    [muWf, muWeff] = s.splitFaceCellValue(s, upcw, muWeff);
     mobW   = krW./muWeff;
     
     vW = -(krWf./muWf).*T.*dpW;
@@ -98,8 +99,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     % Polymer
     muPeff = muWeff.*(a + (1-a)*cbar);
-    [muPf, muPeff] = s.splitFaceCellValue(upcw, muPeff);
-    [cf  , ~     ] = s.splitFaceCellValue(upcw, c     );
+    [muPf, muPeff] = s.splitFaceCellValue(s, upcw, muPeff);
+    [cf  , ~     ] = s.splitFaceCellValue(s, upcw, c     );
     mobP = krW./muPeff;
     
     vP = -(krWf./muPf).*cf.*T.*dpW;

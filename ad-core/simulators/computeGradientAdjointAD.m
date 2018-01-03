@@ -5,44 +5,53 @@ function gradients = computeGradientAdjointAD(state0, states, model, schedule, g
 %   grad = computeGradientAdjointAD(state0, states, model, schedule, getObjective
 %
 % DESCRIPTION:
-%   Compute gradient using adjoint simulations.
+%   For a given schedule, compute gradients with regards to well controls
+%   by perturbing all controls ever so slightly and re-running the
+%   simulation.
+%  
+%   As the cost of this routine grows is approximately ::
+%
+%        (# wells)x(# ctrl step) x cost of schedule
+%
+%   it can be potentially extremely expensive. It is better to use the
+%   'computeGradientAdjointAD' routine for most practical purposes. This
+%   routine is primarily designed for validation of said routine.
 %
 % REQUIRED PARAMETERS:
 %
 %   state0       - Physical model state at t = 0
 %
 %   states       - All previous states. Must support the syntax 
-%                  state = states{i}. If the problem is too large to fit in
+%                  `state = states{i}`. If the problem is too large to fit in
 %                  memory, it can use ResultHandler class to retrieve files
 %                  from the disk.
 %                  
-%   model        - Subclass of PhysicalModel class such as
-%                 ThreePhaseBlackOilModel that models the physical effects
-%                 we want to study.
+%   model        - Subclass of `PhysicalModel` class such as
+%                  `ThreePhaseBlackOilModel` that models the physical 
+%                  effects we want to study.
 %
-%   schedule     - Schedule suitable for simulateScheduleAD.
+%   schedule     - Schedule suitable for `simulateScheduleAD`.
 %
 %   getObjective - Function handle for getting objective function value 
 %                  for a given timestep with derivatives. Format: @(tstep)
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
-%   
-% 
-%
-% RETURNS:
+% OPTIONAL PARAMETERS:
 %
 %  'Verbose'        - Indicate if extra output is to be printed such as
 %                     detailed convergence reports and so on. 
 % 
-%  'scaling'        - Struct with fields 'rate' and 'pressure' used to
+%  'scaling'        - Struct with fields `rate` and `pressure` used to
 %                     scale the relevant control equations, if the model 
 %                     supports it.
 %
-%  'LinearSolver'   - Subclass of 'LinearSolverAD' suitable for solving the
+%  'LinearSolver'   - Subclass of `LinearSolverAD` suitable for solving the
 %                     adjoint systems.
 %
+% RETURNS:
+%   gradients - Cell array of gradients for each control step.
+%
 % SEE ALSO:
-%   computeGradientPerturbationAD, simulateScheduleAD
+%   `computeGradientPerturbationAD`, `simulateScheduleAD`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

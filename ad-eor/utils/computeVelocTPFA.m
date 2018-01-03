@@ -4,23 +4,24 @@ function veloc = computeVelocTPFA(G, intInx)
 % SYNOPSIS:
 %   function veloc = computeVelocTPFA(G, intInx)
 %
-% DESCRIPTION: Setup the operator which computes an approximation of the square
-% of the velocity for each cell given fluxes on the faces. 
+% DESCRIPTION: 
+%   Setup the operator which computes an approximation of the square
+%   of the velocity for each cell given fluxes on the faces. 
 %
-% We use a velocity reconstruction of the type  v_c  = 1/V * sum_{f} (x_f -x_c)u_f
-% where
-%    v_c : Approximated alue of the velocity at the cell center
-%    V   : Cell volume
-%    f   : Face
-%    x_f : Centroid of the face f
-%    x_c : Centroid of the cell
-%    u_f : flux at the face f
+%   We use a velocity reconstruction of the type  v_c  = 1/V * sum_{f} (x_f -x_c)u_f
+%   where
+%     v_c : Approximated alue of the velocity at the cell center
+%     V   : Cell volume
+%     f   : Face
+%     x_f : Centroid of the face f
+%     x_c : Centroid of the cell
+%     u_f : flux at the face f
 %    
-% Such reconstruction is exact for linear functions and first order accurate,
-% when a mimetic discretization is used or, in the case of TPFA, if the grid is
-% K-orthogonal. Note that it gives very large errors for cells that contain
-% well, as the pressure in such cells is only badly approximated by linear
-% functions.
+%   Such reconstruction is exact for linear functions and first order accurate,
+%   when a mimetic discretization is used or, in the case of TPFA, if the grid is
+%   K-orthogonal. Note that it gives very large errors for cells that contain
+%   well, as the pressure in such cells is only badly approximated by linear
+%   functions.
 %
 %
 % PARAMETERS:

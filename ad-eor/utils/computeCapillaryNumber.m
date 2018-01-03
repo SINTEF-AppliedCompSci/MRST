@@ -18,7 +18,7 @@ function Nc = computeCapillaryNumber(p, c, pBH, W, fluid, G, operators, varargin
 %   operators - discrete differential operator (Grad, T (transmissibilies), ...)
 %   varargin  - optional arguments
 %            
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %   velocCompMethod   - if 'linear' (default), uses computeVelocTPFA 
 %                       if  'square', uses computeSqVelocTPFA
 %

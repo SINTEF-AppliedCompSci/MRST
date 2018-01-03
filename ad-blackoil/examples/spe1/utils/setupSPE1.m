@@ -56,7 +56,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     fluid = initDeckADIFluid(deck);
 
     % The case includes gravity
-    gravity reset on
+    gravity reset on;
 
 
     % The initial state is a pressure field that is constant in each layer, a

@@ -36,8 +36,6 @@ model.operators.pv = model_ref.operators.pv.*0.8;
 % plot well solutions for the two models
 plotWellSols({ws_ref, ws}, {r_ref.ReservoirTime, r.ReservoirTime}, ...
             'datasetnames', {'reference', 'perturbed'})
-pause
-
 
 %% setup misfit-function and run adjoint to get parameter sensitivities
 % setup weights for matching function, empty weight uses default (will 

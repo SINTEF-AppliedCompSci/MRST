@@ -1,91 +1,54 @@
 classdef SimpleTimeStepSelector < handle
-%Time step selector base class
-%
-% SYNOPSIS:
-%   selector = SimpleTimeStepSelector();
-%
-%   selector = SimpleTimeStepSelector('maxTimestep', 5*day);
-%
-% DESCRIPTION:
-%   The timestep selector base class is called by the NonLinearSolver to
-%   determine timesteps, based on hard limits such as the min/max timesteps
-%   as well as possibly more advanced features via the computeTimestep
-%   method that can account for iteration count, residual reduction etc.
-%
-% REQUIRED PARAMETERS:
-%   None
-%
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
-%   See properties
-%
-% RETURNS:
-%   selector suitable for passing to the NonLinearSolver class.
-%
-%
-% SEE ALSO:
-%   IterationCountTimeStepSelector, NonLinearSolver, 
-%   StateChangeTimeStepSelector
-
-%{
-Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
-
-This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
-
-MRST is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-MRST is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with MRST.  If not, see <http://www.gnu.org/licenses/>.
-%}
+    % Time step selector base class
+    %
+    % SYNOPSIS:
+    %   selector = SimpleTimeStepSelector();
+    %   selector = SimpleTimeStepSelector('maxTimestep', 5*day);
+    %
+    % DESCRIPTION:
+    %   The timestep selector base class is called by the NonLinearSolver to
+    %   determine timesteps, based on hard limits such as the min/max timesteps
+    %   as well as possibly more advanced features via the computeTimestep
+    %   method that can account for iteration count, residual reduction etc.
+    %
+    % REQUIRED PARAMETERS:
+    %   None
+    %
+    % OPTIONAL PARAMETERS:
+    %   See properties
+    %
+    % RETURNS:
+    %   selector suitable for passing to the NonLinearSolver class.
+    %
+    %
+    % SEE ALSO:
+    %   IterationCountTimeStepSelector, NonLinearSolver, 
+    %   StateChangeTimeStepSelector
 
     properties
-        % Stored history of iterations/residuals during simulation that may
-        % be used to pick the next timestep
-        history
-        % Hard upper limit on timestep in seconds
-        maxTimestep
-        % Hard lower limit on timestep in seconds
-        minTimestep
-        % Extra output
-        verbose
-        % Parameter adjusting the amount of history that is stored.
-        maxHistoryLength
-        % Flag indicating that we are at the beginning of a control step
-        isStartOfCtrlStep
-        % Flag indicating that the controls have changed
-        controlsChanged
+        history % Stored history used to pick next timestep
+        maxTimestep % Hard upper limit on timestep in seconds
+        minTimestep % Hard lower limit on timestep in seconds
+        verbose % Extra output
+        maxHistoryLength % The maximum number of history steps stored
+        isStartOfCtrlStep % Flag indicating the beginning of a control step
+        controlsChanged % Flag indicating that the controls have changed
         
-        % The first ministep attempted after controls have changed. Could
-        % be set to a low value to get the timestep controller started with
-        % some estimate of problem stiffness.
-        firstRampupStep
-        % Same as firstRampupStep, but interpreted in a relative fashion
+        firstRampupStep % The first ministep attempted after controls have changed
+        % Could be set to a low value to get the timestep controller started 
+        % with some estimate of problem stiffness.
+        % 
+        firstRampupStepRelative % Relative version of firstRampupStep
         % (i.e. if timestep is 5*days, the ramp up step will then be
         % 5*days*firstRampupStepRelative.
-        firstRampupStepRelative
+
+        maxRelativeAdjustment % Ensure dt_next < dt_suggested*maxRelativeAdjustment
+        minRelativeAdjustment % Ensure dt_next > dt_suggested*minRelativeAdjustment
         
-        % Ensure that dt_next < dt_suggested*maxRelativeAdjustment
-        maxRelativeAdjustment
-        % Ensure that dt_next > dt_suggested*minRelativeAdjustment
-        minRelativeAdjustment
-        
-        % Flag indicating that hard limits and not any step algorithm was
-        % the cause of the previous timestep taken
-        stepLimitedByHardLimits
-        % Previous control seen by the selector used to determine when
-        % controls change.
-        previousControl
-        % Reset when controls change
-        resetOnControlsChanged
-        % Flag indicating that we are at the start of the simulation
-        isFirstStep
+        stepLimitedByHardLimits % Flag indicating that hard limits and not any step algorithm was the cause of the previous timestep taken
+        previousControl % Previous control seen by the selector used to determine when controls change.
+        resetOnControlsChanged % Reset when controls change
+        isFirstStep % Flag indicating that we are at the start of the simulation
     end
         
     
@@ -123,7 +86,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
         
         function storeTimestep(selector, report)
-            selector.history = vertcat(selector.history, report);
+            if isempty(selector.history)
+                selector.history = report;
+            else
+                selector.history = vertcat(selector.history, report);
+            end
             
             n = selector.maxHistoryLength;
             if numel(selector.history) > n
@@ -202,3 +169,23 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
     end
 end
+
+%{
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+

@@ -11,9 +11,9 @@ function plotReportIterations(report, schedule)
 %   and wasted iterations respectively.
 %
 % REQUIRED PARAMETERS:
-%   report   - Report as returned by simulateScheduleAD.
+%   report   - Report as returned by `simulateScheduleAD`.
 %
-%   schedule - The schedule passed to simulateScheduleAD to produce the
+%   schedule - The schedule passed to `simulateScheduleAD` to produce the
 %              report.
 %
 % RETURNS:

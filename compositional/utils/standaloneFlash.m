@@ -1,28 +1,23 @@
 function [L, x, y, Z_L, Z_V] = standaloneFlash(p, T, z, EOSModel)
 % Utility for flashing without explicitly forming a state
-    solver = NonLinearSolver();
-    solver.maxTimestepCuts = 0;
-    solver.maxIterations = 200;
-    solver.continueOnFailure = true;
-    solver.errorOnFailure = false;
-    
-    state = struct();
-
-    state.pressure = p;
-    state.T = T;
-    state.components = z;
-    
-    state = solver.solveTimestep(state, 1, EOSModel);
-    
-    L = state.L;
-    x = state.x;
-    y = state.y;
-    Z_L = state.Z_L;
-    Z_V = state.Z_V;
-end
+%
+% SYNOPSIS:
+%   [L, x, y, Z_L, Z_V] = standaloneFlash(p, T, z, EOSModel)
+%
+% DESCRIPTION:
+%   Wrapper function for solving a EOS flash without dealing with a state.
+%
+% PARAMETERS:
+%   p   - Pressures as a column vector
+%   T   - Temperatures as a column vector
+%   z   - Composition as a matrix with number of rows equal to the number
+%         of components.
+%
+% SEE ALSO:
+%   `EquationOfStateModel`
 
 %{
-Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2017 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -39,3 +34,20 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+    solver = getDefaultFlashNonLinearSolver();
+    
+    state = struct();
+
+    state.pressure = p;
+    state.T = T;
+    state.components = z;
+    
+    state = EOSModel.validateState(state);
+    state = solver.solveTimestep(state, 1, EOSModel);
+    
+    L = state.L;
+    x = state.x;
+    y = state.y;
+    Z_L = state.Z_L;
+    Z_V = state.Z_V;
+end

@@ -50,7 +50,7 @@ if ~opt.resOnly,
         % define primary varible x and initialize
         x = st{1}.*rs + st{2}.*rv + st{3}.*sG;
 
-        [sW, x, c] = initVariablesADI(sW, x, c);
+        [sW, x, c] = model.AutoDiffBackend.initVariablesAD(sW, x, c);
 
         % define sG, rs and rv in terms of x
         sG = st{2}.*(1-sW) + st{3}.*x;

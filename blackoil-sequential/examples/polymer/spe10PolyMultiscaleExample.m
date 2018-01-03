@@ -1,8 +1,6 @@
-
-
 %% Load part of the SPE10 model
 
-mrstModule add spe10
+mrstModule add spe10 deckformat ad-props
 
 % We choose 5 layers from the Tarbert formation
 [G, W, rock] = SPE10_setup((5:9)');
@@ -47,5 +45,3 @@ state0 = initState(G, W, 250*barsa, [swir 1-swir]);
 
 % Schedule
 schedule = simpleSchedule(1*day.*ones(10,1), 'wells', W);
-
-

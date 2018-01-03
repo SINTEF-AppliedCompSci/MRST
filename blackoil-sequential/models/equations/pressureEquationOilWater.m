@@ -26,7 +26,7 @@ f = model.fluid;
 if ~opt.resOnly,
     % ADI variables needed since we are not only computing residuals.
     if ~opt.reverseMode,
-        [p, wellVars{:}] = initVariablesADI(p, wellVars{:});
+        [p, wellVars{:}] = model.AutoDiffBackend.initVariablesAD(p, wellVars{:});
     else
         assert(0, 'Backwards solver not supported for splitting');
     end

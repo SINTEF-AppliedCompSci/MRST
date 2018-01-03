@@ -1,10 +1,10 @@
-function [model, states] = run2DCase(opt)
+function [model, states] = run2DCase(varargin)
 %
 %
 % SYNOPSIS:
 %   function run2DCase(varargin)
 %
-% DESCRIPTION: 
+% DESCRIPTION:
 %    Example which setups poroelasticity computations for a two dimensional domain.
 %
 %    Simple well setup: One injection well in the middle.
@@ -20,16 +20,16 @@ function [model, states] = run2DCase(opt)
 %% 2D example for poroelasticity
 % Options that can be chosen in this example (see opt structure below)
 %
-% - fluid model : 
+% - fluid model :
 %
 %   * 'water'     : single phase model
 %   * 'oil water' : two phases model
 %   * 'blackoil'  : Three phases, blackoil model
 %
-% - solver : 
+% - solver :
 %
 %   * 'fully coupled'          : fully coupled solver
-%   * 'fixed stress splitting' : solver using fixed stress splitting 
+%   * 'fixed stress splitting' : solver using fixed stress splitting
 %
 %
 % - Cartesian grid :
@@ -39,13 +39,28 @@ function [model, states] = run2DCase(opt)
 %
 % - boundary conditions for the mechanics (only one choice here)
 %
-%   * 'bottom fixed' : Fixed bottom 
+%   * 'bottom fixed' : Fixed bottom
+
+
 
     %% Load required modules
-        
+
     mrstModule add ad-mechanics ad-core ad-props ad-blackoil vemmech deckformat mrst-gui
 
+    %% Setup default options
+    opt = struct('cartDim'            , [100, 10], ...
+                 'L'                  , [100, 10], ...
+                 'fluid_model'        , 'water', ...
+                 'method'             , 'fully coupled', ...
+                 'bc_case'            , 'bottom fixed', ...
+                 'nonlinearTolerance' , 1e-6, ...
+                 'splittingTolerance' , 1e-6, ...
+                 'verbose'            , false, ...
+                 'splittingVerbose'   , false);
+
+    opt = merge_options(opt, varargin{:});
     %% Setup grid
+
 
     G = cartGrid(opt.cartDim, opt.L);
     G = computeGeometry(G);
@@ -151,7 +166,7 @@ function [model, states] = run2DCase(opt)
         bc = pside(bc, G, 'Xmax', 100);
         bc = pside(bc, G, 'Ymax', 100);
         sidefaces = bc.face;
-        
+
         signcoef = (G.faces.neighbors(sidefaces, 1) == 0) - (G.faces.neighbors(sidefaces, ...
                                                           2) == 0);
         n = bsxfun(@times, G.faces.normals(sidefaces, :), signcoef./ ...

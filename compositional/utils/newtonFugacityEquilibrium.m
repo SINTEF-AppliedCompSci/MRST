@@ -1,17 +1,59 @@
 function [x, y, K, Z_L, Z_V, L, values] = newtonFugacityEquilibrium(model, P, T, z, K, L)
-% Single step of the newton update based on fugacity
-    
+% Single step of the newton update for flash equations
+%
+% SYNOPSIS:
+%   [x, y, K, Z_L, Z_V, L, values] = newtonFugacityEquilibrium(model, P, T, z, K, L)
+%
+% DESCRIPTION:
+%   Perform a single Newton update 
+%
+% PARAMETERS:
+%   eos - EquationOfState derived class instance.
+%   p   - Pressures as a column vector. One value per cell.
+%   T   - Temperatures as a column vector. One value per cell.
+%   z   - Composition as a matrix with number of rows equal to the number
+%         of components.
+%   K   - Equilibrium constants as a matrix with number of rows equal to the number
+%         of components.
+%   L   - Column vector of liquid mole fractions. One value per cell.
+%
+% SEE ALSO:
+%   `EquationOfStateModel`
+
+%{
+Copyright 2009-2017 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
     ncomp = model.fluid.getNumberOfComponents();
     ncell = numel(L);
 
+    z = ensureMinimumFraction(z);
+    
     x = model.computeLiquid(L, K, z);
     y = model.computeVapor(L, K, z);
+    x = expandMatrixToCell(x);
+    y = expandMatrixToCell(y);
+    z = expandMatrixToCell(z);
     
     [xAD, yAD] = deal(cell(1, ncomp));
     [xAD{:}, yAD{:}, L_ad] = initVariablesADI(x{:}, y{:}, L);
     [eqs, f_L, f_V, Z_L, Z_V] = model.equationsEquilibrium(P, T, xAD, yAD, z, L_ad, [], []);
 
-    eq = cat(eqs{:});
+    eq = combineEquations(eqs{:});
     
     J = eq.jac{1};
     r = eq.val;
@@ -65,6 +107,10 @@ function [x, y, K, Z_L, Z_V, L, values] = newtonFugacityEquilibrium(model, P, T,
     assert(all(fn(x)));
     assert(all(fn(y)));
     assert(all(isfinite(L)));
+    
+    K = [K{:}];
+    x = [x{:}];
+    y = [y{:}];
     
     values = abs([f_r{:}] - 1);
 end

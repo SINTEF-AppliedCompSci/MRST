@@ -1,4 +1,4 @@
-function f = assignRelPerm(f,opt)
+function f = assignRelPermScal(f,opt)
 if ~isfield(f, 'krOG')      % two-phase water/oil
     f.relPerm = @(sw, varargin)relPermWO(sw, f, varargin{:});
 elseif ~isfield(f, 'krOW')  % two-phase oil/gas

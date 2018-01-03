@@ -12,33 +12,37 @@ function model = upscaleModelTPFA(model, partition, varargin)
 %   already knows for instance transmissibilities.
 %
 % REQUIRED PARAMETERS:
-%   model     - Fine scale model. Subclass of ReservoirModel.
+%   model     - Fine scale model. Subclass of `ReservoirModel`.
 %
-%   partition - Partition vector. Length equal to model.G.cells.num, with
+%   partition - Partition vector. Length equal to `model.G.cells.num`, with
 %               positive indicator values. All cells with the same
-%               indicator will be agglomerated into a single coarse block.
+%               indicator will be combined into a single coarse block.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
-% 'validatePartition' - Ensure partition is connected on the grid, and
-%                       numbered from 1...N without gaps.
+% OPTIONAL PARAMETERS:
+%   'validatePartition' - Ensure partition is connected on the grid, and
+%                         numbered from 1...N without gaps.
 % 
-% 'transCoarse'       - Coarse transmissibilities. Will be calculated from
-%                       upscaled permeability if not provided.
+%   'transCoarse'       - Coarse transmissibilities. Will be calculated from
+%                         upscaled permeability if not provided.
 %
-% 'permCoarse'        - Coarse permeability. Will be calculated using
-%                       harmonic averaging if not provided.
+%   'transFromRock'     - Compute transmissibility from rock. Default is
+%                         true. If disabled, the coarse transmissibility
+%                         will be a sum instead.
 %
-% 'neighborship'      - Coarse neighborship (matching transCoarse). Will be
-%                       derived from fine grid if not provided.
+%   'permCoarse'        - Coarse permeability. Will be calculated using
+%                         harmonic averaging if not provided.
 %
-% 'poroCoarse'        - Coarse porosities. Computed from fine model using a
-%                       simple sum if not provided.
+%   'neighborship'      - Coarse neighborship (matching transCoarse). Will
+%                         be derived from fine grid if not provided.
+%
+%   'poroCoarse'        - Coarse porosities. Computed from fine model using
+%                         a simple sum if not provided.
 %
 % RETURNS:
 %   model  - Coarse model.
 %
 % SEE ALSO:
-%   upscaleSchedule, generateCoarseGrid
+%   `upscaleSchedule`, `upscaleState`, `generateCoarseGrid`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

@@ -11,14 +11,16 @@ function state = upscaleState(coarsemodel, model, state)
 % REQUIRED PARAMETERS:
 %   coarsemodel - A coarse model derived from the fine model.
 %
-%   model       - The fine model. Subclass of ReservoirModel.
+%   model       - The fine model. Subclass of `ReservoirModel`.
 %
-%   state       - State to be converted. Should correspond to model.
+%   state       - State to be converted. Should correspond to `model`.
 %
 %
 % RETURNS:
 %   state       - Coarse state suitable for the coarsemodel.
 %
+% SEE ALSO:
+%   `upscaleSchedule`, `upscaleModelTPFA`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

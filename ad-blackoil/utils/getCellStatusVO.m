@@ -15,7 +15,7 @@ function st = getCellStatusVO(sO, sW, sG, varargin)
 %
 %   sG        - Gas saturation. One value per cell in the simulation grid.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %  
 %   status - status that can be provided fom the state for which the status
 %            flags are to be computed.

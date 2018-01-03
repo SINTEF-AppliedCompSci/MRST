@@ -7,12 +7,23 @@ classdef CoolPropsCompositionalFluid < CompositionalFluid
     
     methods
         function fluid = CoolPropsCompositionalFluid(names)
+            % Create fluid from names
+            %
+            % SYNOPSIS:
+            %   f = TableCompositionalFluid({'Methane', 'n-Decane'});
+            %
+            % PARAMETERS:
+            %   names - Cell array of valid names. See `getFluidList` for
+            %           valid names.
+            % RETURNS:
+            %   fluid - Initialized fluid.
+
             if ischar(names)
                 names = {names};
             end
             
             ncomp = numel(names);
-            [Tcrit, Pcrit, rhocrit, acc, molarMass, T_ref, P_ref] = deal(zeros(1, ncomp));
+            [Tcrit, Pcrit, rhocrit, acc, molarMass] = deal(zeros(1, ncomp));
             
             validChoices = CoolPropsCompositionalFluid.getFluidList();
             ok = ismember(lower(names), lower(validChoices));
@@ -31,10 +42,6 @@ classdef CoolPropsCompositionalFluid < CompositionalFluid
                 rhocrit(i) = CoolProp.Props1SI(n, 'rhocrit');
                 acc(i) = CoolProp.Props1SI(n, 'acentric');
                 molarMass(i) = CoolProp.Props1SI(n, 'molarmass');
-                
-                % assuming IUPAC STP ??
-                T_ref(i) = 273.15;
-                P_ref(i) = 100000*Pascal;
             end
             assert(all(isfinite(Tcrit)));
             assert(all(isfinite(Pcrit)));
@@ -42,7 +49,7 @@ classdef CoolPropsCompositionalFluid < CompositionalFluid
             assert(all(isfinite(acc)));
             assert(all(isfinite(molarMass)));
             Vcrit = molarMass./rhocrit;
-            fluid = fluid@CompositionalFluid(names, Tcrit, Pcrit, Vcrit, acc, molarMass, T_ref, P_ref);
+            fluid = fluid@CompositionalFluid(names, Tcrit, Pcrit, Vcrit, acc, molarMass);
         end
     end
     methods (Static)

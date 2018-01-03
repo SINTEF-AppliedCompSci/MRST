@@ -1,5 +1,5 @@
 classdef ThreePhaseBlackOilModel < ReservoirModel
-% Three phase with optional dissolved gas and vaporized oil
+    % Three phase with optional dissolved gas and vaporized oil
 properties
     % Flag deciding if gas can be dissolved into the oil phase
     disgas
@@ -14,7 +14,7 @@ end
 
 methods
     function model = ThreePhaseBlackOilModel(G, rock, fluid, varargin)
-        model = model@ReservoirModel(G, rock, fluid, varargin{:});
+        model = model@ReservoirModel(G, rock, fluid);
 
         % Typical black oil is disgas / dead oil, but all combinations
         % are supported
@@ -161,7 +161,7 @@ methods
                 ds(:, phIndices(3)) = dsg;
             end
 
-            state = model.updateStateFromIncrement(state, ds, problem, 's', model.dsMaxRel, model.dsMaxAbs);
+            state = model.updateStateFromIncrement(state, ds, problem, 's', inf, model.dsMaxAbs);
             % We should *NOT* be solving for oil saturation for this to make sense
             assert(~any(strcmpi(vars, 'so')));
             state = computeFlashBlackOil(state, state0, model, st);

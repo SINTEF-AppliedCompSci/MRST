@@ -1,5 +1,5 @@
 classdef WellModel < handle
-%Well model for three phase flow with black oil-style fluids
+%DEPRECATED Well model for three phase flow with black oil-style fluids
 %
 % SYNOPSIS:
 %   wm = WellModel();
@@ -12,13 +12,15 @@ classdef WellModel < handle
 % REQUIRED PARAMETERS:
 %   None.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %
 %   (See documented class properties)
 %
 % RETURNS:
 %   WellModel class instance.
 %
+% NOTE:
+%   This class is deprecated!
 %
 % SEE ALSO:
 %   ReservoirModel, ThreePhaseBlackOilModel
@@ -163,7 +165,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             % Update well limits
             [wellSol, currentFluxes, bhp] = wellmodel.updateLimits(wellSol, currentFluxes, bhp, model);
             
-            if model.upstreamWeightInjectors
+            if false
                 wellmodel = setUpstreamMobility(wellmodel, model, wellSol, bhp, currentFluxes);
             end
             

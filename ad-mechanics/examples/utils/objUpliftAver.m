@@ -14,7 +14,7 @@ function obj = objUpliftAver(model, states, schedule, topnode, varargin)
 %   topnode  - index of the node where the uplift will be computed
 %   varargin - 
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %   computePartials  - if true, the derivatives are computed
 %   exponent         - We use the l^p norm as an average where p=exponent
 %
