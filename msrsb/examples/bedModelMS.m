@@ -1,4 +1,4 @@
-%% Example: High-resolution bed model
+%% Multiscale solver applied to high-resolution bed model
 % Pinchouts will create unstructured non-neighboring connections and hence
 % be one of the principal gridding challenges for real-life reservoir
 % models. To exemplify, we consider a highly detailed, core-scale model of
@@ -9,7 +9,7 @@
 % corner-point grid. Almost all cells are affected in some degree by pinch:
 % Although the model has around 300.000 cells initially, over 2/3 will be
 % inactive due to significant erosion, giving a fine grid of approximate
-% dimensions 30x30x100. The volumes of the cells, as well as the areas of
+% dimensions 30x30x100. The volumes of the cells, as well as the areas of
 % the (vertical) faces, vary almost four orders of magnitudes. We partition
 % the fine grid into 6x6x5 coarse blocks and apply Dirichlet boundary
 % conditions imposing a pressure drop from west to east. 
@@ -22,6 +22,7 @@
 
 mrstModule add mrst-gui incomp coarsegrid msrsb
 
+gravity off
 %% Load model
 % This is one of the standard data sets that comes along with MRST and can
 % be downloaded automatically from our webpages.

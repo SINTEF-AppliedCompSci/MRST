@@ -32,7 +32,7 @@ function state = solveCoarsePsysBO(state, G, CG, p, rock, ...
 %
 %   dt       - Time step size.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %   wells    - Well structure as defined by functions 'addWell' and
 %              'generateCoarseWellSystem'.  May be empty (i.e., W = [],
 %              default value) which is interpreted as a model without any

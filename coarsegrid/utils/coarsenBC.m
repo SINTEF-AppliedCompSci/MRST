@@ -4,10 +4,10 @@ function bc = coarsenBC(cg, bc)
 % SYNOPSIS:
 %   bc = coarsenBC(cg, bc)
 %
-% All 'pressure' boundary conditions are mapped from fine-grid to the
-% coarse-grid faces by sampling the value at cg.faces.centerFace *). All
-% flux boundary
-%
+% DESCRIPTION:
+%   All 'pressure' boundary conditions are mapped from fine-grid to the
+%   coarse-grid faces by sampling the value at cg.faces.centerFace *). All
+%   flux boundaries are accumulated
 %
 % PARAMETERS:
 %   cg      - Coarse-grid including parent grid.
@@ -21,7 +21,7 @@ function bc = coarsenBC(cg, bc)
 %             computed.  Mixed conditions are not supported.
 %
 % SEE ALSO:
-%   `coarsenGeometry`, `coarsenFlux`, `fineToCoarseSign`, ...
+%   `coarsenGeometry`, `coarsenFlux`, `fineToCoarseSign`, `upscaleSchedule`
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.

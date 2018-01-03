@@ -21,7 +21,7 @@ function [partition, edges] = segmentIndicator(G, indicator, bins, varargin)
 %   bins      - Gives the bins to segment the fine grid cells into if it is
 %               a vector and the number of bins if a scalar.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %
 %   split    - Whether or not to split the grouped cells into connected
 %              components. Default: true

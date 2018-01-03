@@ -4,9 +4,6 @@ function [p, binAngle, binRadius, dist] = refineNearWell(pts, wellpt, varargin)
 % SYNOPSIS:
 %   p = refineNearWell(points, wellpoint)
 %
-% DESCRIPTION:
-%   
-%
 % REQUIRED PARAMETERS:
 %   pts    - Set of points that are to be partitioned (for example
 %            G.cells.centroids)
@@ -14,7 +11,7 @@ function [p, binAngle, binRadius, dist] = refineNearWell(pts, wellpt, varargin)
 %   wellpt - A single point to be used for partitioning (for example the
 %            well heel. Routine currently only partitions in xy-plane.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %  maxRadius   - The distance in meters for which a partition will be
 %                applied. (Defaults to inf, i.e. all points). If maxRadius
 %                is a two-vector, the partition is applied inside a

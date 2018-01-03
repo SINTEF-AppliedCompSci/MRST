@@ -36,7 +36,7 @@ function p = mergeBlocks2(p, G, IVol, IFlw, NL, NU, varargin)
 %
 %                #cells(B) <= NB                        (***)
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %
 %   nblock   - Upper bound on the number of cells in a single block.
 %              Default: nblock = inf

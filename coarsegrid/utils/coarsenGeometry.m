@@ -1,5 +1,5 @@
 function cg = coarsenGeometry(cg)
-%
+% Add geometry (centroids, face normals, areas, ...) to a coarse grid
 %
 % SYNOPSIS:
 %   cg = coarsenGeometry(cg)
@@ -12,7 +12,10 @@ function cg = coarsenGeometry(cg)
 %           volume-weighted centroids and accumulated area-weighted
 %           normals accounting for sign convention in coarse and fine grid.
 %
-% REMARK:
+% NOTE:
+%   The coarse geometry is derived from the geometry on the underlying fine
+%   grid. For this reason, the underlying fine grid should be the output
+%   from a call to `computeGeometry(G)`.
 %
 % SEE ALSO:
 %   `generateCoarseGrid`, `computeGeometry`

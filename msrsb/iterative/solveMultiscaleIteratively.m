@@ -9,22 +9,22 @@ function [p_ms, report] = solveMultiscaleIteratively(A, q, p_ms, basis, getSmoot
 %   either as standalone or accelerated by GMRES.
 %
 % REQUIRED PARAMETERS:
-%   A, q   - Linear system and right hand side. This solver attempts to
-%            solve Ap = q.
+%   A,q           - Linear system and right hand side. This solver attempts
+%                   to solve Ap = q.
 %
-%   basis  - Basis functions as given by getMultiscaleBasis.
+%   basis         - Basis functions as given by getMultiscaleBasis.
 %
 %   getSmootherFn - Smoother handle from getSmootherFunction.
 %
-%   tol    - Tolerance for convergence. A solution x is deemed to be
-%            converged if norm(A*x -q, 2)/norm(q) <= tol.
+%   tol           - Tolerance for convergence. A solution x is deemed to be
+%                   converged if norm(A*x -q, 2)/norm(q) <= tol.
 %
-%   iterations - Maximum number of iterations to apply.
+%   iterations    - Maximum number of iterations to apply.
 %
-%   LinSolve - (OPTIONAL) Linear solver for coarse scale system.
+%   LinSolve      - (OPTIONAL) Linear solver for coarse scale system.
 %
-%   useGMRES - (OPTIONAL) Boolean indicating if GMRES should be used to
-%              accelerate the solution process. Default false.
+%   useGMRES      - (OPTIONAL) Boolean indicating if GMRES should be used 
+%                   to accelerate the solution process. Default false.
 %
 % RETURNS:
 %   p_ms     - Solution, either converged or stopped by max iterations.

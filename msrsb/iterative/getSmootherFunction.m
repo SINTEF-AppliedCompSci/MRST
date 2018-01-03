@@ -10,18 +10,15 @@ function fn = getSmootherFunction(varargin)
 %   given matrix and a right hand side and return another function handle
 %   on the format @(d, x) which applies a smoother to the system Ax = d.
 %
-% REQUIRED PARAMETERS:
-%   None
-%
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
-%   Type     - Type of smoother. Can be 'jacobi', 'sor', for successive
-%              over-relaxation (SOR), or  'ilu' for ilu(0).
+% OPTIONAL PARAMETERS:
+%   Type       - Type of smoother. Can be 'jacobi', 'sor', for successive
+%                over-relaxation (SOR), or  'ilu' for ilu(0).
 %
 %   Iterations - How many iterations the smoother should apply. Default 5
 %                for Jacobi and SOR, and 1 for ILU(0).
 %
-%   Omega - If type = 'sor', parapeter for successive over-relaxation.
-%           0 < omega < 2, omega = 1 gives the Gauss-Seidel method.
+%   Omega      - If type = 'sor', parapeter for successive over-relaxation.
+%                0 < omega < 2, omega = 1 gives the Gauss-Seidel method.
 %
 % RETURNS:
 %  fn  - Function handle for setting up smoother (see description).

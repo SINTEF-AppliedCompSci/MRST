@@ -1,11 +1,11 @@
 function pf = cellPartitionToFacePartition(g, p, varargin)
 %Construct partition of all grid faces from cell partition.
 %
-% SYNOPSIS
+% SYNOPSIS:
 %   pf = cellPartitionToFacePartition(g, p)
 %   pf = cellPartitionToFacePartition(g, p, 'pn1', pv1, ...)
 %
-% DESCRIPTION
+% DESCRIPTION:
 %   Define unique partition ID for each pair of cell partition IDs
 %   occurring in a partition vector, and construct a partitioning of all
 %   faces in a grid.

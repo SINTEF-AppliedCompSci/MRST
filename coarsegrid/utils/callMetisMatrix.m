@@ -12,8 +12,9 @@ function p = callMetisMatrix(A, n, varargin)
 %   n - Number of blocks into which the vertices of the connectivity graph
 %       'A' should be partitioned.  Must be an integer value exceeding one.
 %
-%   Any additional arguments will be interpreted as options, and will
-%   require metis5 to be installed. The function will then call gpmetis.
+%   x - Any additional arguments will be interpreted as options, and will
+%       require metis5 to be installed. The function will then call
+%       gpmetis.
 %
 % RETURNS:
 %   p - A SIZE(A,1)-by-1 partition vector with semantics similar to those

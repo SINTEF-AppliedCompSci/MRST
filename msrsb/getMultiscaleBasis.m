@@ -10,37 +10,37 @@ function [basis, CG] = getMultiscaleBasis(CG, A, varargin)
 %   A      - System matrix for which the basis functions are to be
 %            computed.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
-%   type   - Type of basis functions. Available options are 'MsRSB' for basis
-%            functions based on restricted smoothing and 'MsFV' for
-%            basis functions based on localized flow problems and a dual
-%            grid.
+% OPTIONAL PARAMETERS:
+%   type              - Type of basis functions. Available options are
+%                       'MsRSB' for basis functions based on restricted
+%                       smoothing and 'MsFV' for basis functions based on
+%                       localized flow problems and a dual grid.
 %
-%   regularizeSys - Regularize system before computing basis functions, by
-%                   ensuring that the row and column sum of the matrix is
-%                   zero. Default on.
+%   regularizeSys     - Regularize system before computing basis functions,
+%                       by ensuring that the row and column sum of the
+%                       matrix is zero. Default on.
 %
-%   iterations - Max number of iterations in MsRSB basis functions. No
-%                effect on other solvers.
+%   iterations        - Max number of iterations in MsRSB basis functions. 
+%                       No effect on other solvers.
 %
-%   tolerance  - Tolerance for MsRSB basis functions.
+%   tolerance         - Tolerance for MsRSB basis functions.
 %
-%   implicitDual -  Indicator if the MsFV basis functions are generated
-%                   with implicit or explicit dual grid. Implicit generally
-%                   makes it easier to generate dual grids, but the basis
-%                   construction is no longer local in nature for complex
-%                   grids.
+%   implicitDual      - Indicator if the MsFV basis functions are generated
+%                       with implicit or explicit dual grid. Implicit
+%                       generally makes it easier to generate dual grids,
+%                       but the basis construction is no longer local in
+%                       nature for complex grids.   
 %
-%  useControlVolume - Use a control volume restriction operator, required
-%                     for flux reconstruction. If disabled, will set R =
-%                     B^T, i.e. Galerkin/finite element type which will
-%                     give better iterative convergence if the coarse scale
-%                     stencil is unstable.
+%   useControlVolume  - Use a control volume restriction operator, required
+%                       for flux reconstruction. If disabled, will set R =
+%                       B^T, i.e. Galerkin/finite element type which will
+%                       give better iterative convergence if the coarse 
+%                       scale stencil is unstable.
 %
 % RETURNS:
-%  basis   - Struct suitable for incompMultiscale. Contains fields .B for
-%            basis functions and .R for the restriction operator as well as
-%            the name of the method in .type.
+%   basis   - Struct suitable for incompMultiscale. Contains fields .B for
+%             basis functions and .R for the restriction operator as well 
+%             as the name of the method in .type.
 %
 % SEE ALSO:
 %   `incompMultiscale`

@@ -37,7 +37,7 @@ function state = solveIncompFlowMSSpeedUp(state, G, CG, p, S, CS, fluid, varargi
 %
 %   fluid  - Fluid object as defined by function 'initSimpleFluid'.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS:
 %   wells  - well linear system structure (W) as defined by functions
 %            'addWell', 'assembleWellSystem', and
 %            'assembleCoarseWellSystem'.  An empty well linear system
