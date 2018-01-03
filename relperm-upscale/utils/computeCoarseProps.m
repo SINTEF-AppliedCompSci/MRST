@@ -83,7 +83,8 @@ function states = computeCoarseProps(model, model_f, states, schedule, schedule_
             Wf = schedule_f.control(schedule_f.step.control(k)).W;
             for wno = 1:numel(W)
                 ws0 = state.wellSol(wno);
-                for ph = size(state.wellSol(i).flux, 2)
+                state.wellSol(wno).flux = [];
+                for ph = 1:size(ws0.flux, 2)
                     state.wellSol(wno).flux(:, ph) = accumarray(W(wno).fperf, ws0.flux(:, ph));
                 end
                 WI = Wf(wno).WI;
