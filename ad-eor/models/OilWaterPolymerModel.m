@@ -5,7 +5,7 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
     % SYNOPSIS:
     %   model = OilWaterPolymerModel(G, rock, fluid, varargin)
     %
-    % DESCRIPTION: 
+    % DESCRIPTION:
     %   Two phase model with polymer. A description of the polymer model
     %   that is implemented here can be found in the directory ad-eor/docs .
     %
@@ -26,7 +26,7 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
     properties
         % Polymer present
         polymer
-        
+
     end
 
     methods
@@ -57,13 +57,13 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
 
         function [state, report] = updateState(model, state, problem, ...
                 dx, drivingForces)
-            
+
             if model.polymer
                 % Store the polymer from previous iteration temporarily to
                 % use in convergence criteria
                 c_prev = model.getProp(state, 'polymer');
             end
-            
+
             [state, report] = updateState@TwoPhaseOilWaterModel(model, ...
                state, problem,  dx, drivingForces);
 
@@ -73,8 +73,8 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
                 c = min(c, model.fluid.cmax);
                 state = model.setProp(state, 'polymer', max(c, 0) );
                 state.c_prev = c_prev;
-                
-                % Shear Thinning Report               
+
+                % Shear Thinning Report
                 % We (may) have stored the shear thinning report
                 % temporarily in the state structure. We move this over to
                 % the report structure instead. The reason for this is that
@@ -92,7 +92,7 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
                 c     = model.getProp(state, 'polymer');
                 cmax  = model.getProp(state, 'polymermax');
                 state = model.setProp(state, 'polymermax', max(cmax, c));
-                
+
                 if isfield(state, 'c_prev')
                     % Remove the temporary field used for convergence
                     state = rmfield(state, 'c_prev');
@@ -121,7 +121,7 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
                                     model, name);
             end
         end
-        
+
         function names = getComponentNames(model)
             names = getComponentNames@TwoPhaseOilWaterModel(model);
             if model.polymer
@@ -129,7 +129,7 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
             end
         end
 
-        
+
         function scaling = getScalingFactorsCPR(model, problem, names, solver)
             nNames = numel(names);
 
@@ -201,7 +201,7 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
             eq(cells) = eq(cells) - qC;
             src.components{end+1} = qC;
         end
-        
+
         function [names, types] = getExtraWellEquationNames(model)
             [names, types] = getExtraWellEquationNames@TwoPhaseOilWaterModel(model);
             if model.polymer
@@ -216,33 +216,38 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
                 names{end+1} = 'qWPoly';
             end
         end
-        
+
         function [compEqs, compSrc, eqNames, wellSol] = getExtraWellContributions(model, well, wellSol0, wellSol, q_s, bh, packed, qMass, qVol, dt, iteration)
             [compEqs, compSrc, eqNames, wellSol] = getExtraWellContributions@TwoPhaseOilWaterModel(model, well, wellSol0, wellSol, q_s, bh, packed, qMass, qVol, dt, iteration);
             if model.polymer
                 assert(model.water, 'Polymer injection requires a water phase.');
                 f = model.fluid;
-                if well.isInjector
-                    concWell = model.getProp(well.W, 'polymer');
-                else
-                    pix = strcmpi(model.getComponentNames(), 'polymer');
-                    concWell = packed.components{pix};
-                end
+
+                concWell = model.getProp(well.W, 'polymer');
+                pix = strcmpi(model.getComponentNames(), 'polymer');
+                concRes = packed.components{pix};
+
                 qwpoly = packed.extravars{strcmpi(packed.extravars_names, 'qwpoly')};
                 a = f.muWMult(f.cmax).^(1-f.mixPar);
-                cbarw     = concWell/f.cmax;
+
                 % Water is always first
                 wix = 1;
                 cqWs = qMass{wix}./f.rhoWS; % connection volume flux at surface condition
+
+                isInj = (cqWs > 0);
+                conc = concRes;
+                conc(isInj) = concWell;
+
+                cbarw     = conc/f.cmax;
 
                 % the term (a + (1 - a).*cbarw) account for the
                 % todd-longstaff mixing factor, which model the fact that for
                 % not-fully mixed polymer solution the polymer does not
                 % travel at the same velocity as water. See the governing
                 % equation for polymer (e.g. equationsOilWaterPolymer.m)
-                cqP = concWell.*cqWs./(a + (1-a).*cbarw);
+                cqP = conc.*cqWs./(a + (1-a).*cbarw);
 
-                compEqs{end+1} = qwpoly - sum(concWell.*cqWs);
+                compEqs{end+1} = qwpoly - sum(conc.*cqWs);
                 compSrc{end+1} = cqP;
                 eqNames{end+1} = 'polymerWells';
             end
