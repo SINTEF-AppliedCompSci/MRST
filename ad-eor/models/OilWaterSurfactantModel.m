@@ -180,7 +180,7 @@ classdef OilWaterSurfactantModel < TwoPhaseOilWaterModel
                 %
                 assert(model.water, 'Surfactant injection requires a water phase.');
                 f = model.fluid;
-                if well.isInjector
+                if well.isInjector()
                     concWell = model.getProp(well.W, 'surfactant');
                 else
                     pix = strcmpi(model.getComponentNames(), 'surfactant');

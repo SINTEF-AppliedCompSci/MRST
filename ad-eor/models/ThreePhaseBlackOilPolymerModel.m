@@ -215,7 +215,7 @@ classdef ThreePhaseBlackOilPolymerModel < ThreePhaseBlackOilModel
                 wix = 1;
                 cqWs = qMass{wix}./f.rhoWS; % connection volume flux at surface condition
 
-                if well.isInjector
+                if well.isInjector()
                     concWell = model.getProp(well.W, 'polymer');
                     cqP = concWell.*cqWs;
                 else
