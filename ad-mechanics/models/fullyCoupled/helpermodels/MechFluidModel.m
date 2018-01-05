@@ -104,10 +104,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             end
         end
 
-        function [isActive, phInd] = getActivePhases(model)
-            [isActive, phInd] = model.fluidModel.getActivePhases();
-        end
-
         function [mechTerm, fluidp] = computeCouplingTerms(model, p0, ...
                                                            xd0, p, xd)
             error('Base class function not meant for direct use.');
@@ -127,7 +123,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 warning('The MechFluidModel has an empty FacilityModel');
             end
             model.fluidModel.FacilityModel = model.FacilityModel;
-            model = validateModel@ReservoirModel(model, varargin{:});
             return
         end
 
