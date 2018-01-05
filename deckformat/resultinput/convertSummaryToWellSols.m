@@ -67,7 +67,7 @@ end
 
 %% ------------------------------------------------------------------------
 function u = getUnits(unit)
-switch unit
+switch lower(unit)
     case 'metric'
         u.p   = barsa;
         u.ql  = meter^3/day;

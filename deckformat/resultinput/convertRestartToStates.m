@@ -100,7 +100,7 @@ else
     %opt.consistentWellSols=false;
     opt.addTrajectory=false;
 
-    fnames = fieldnams(opm);
+    fnames = fieldnames(opm);
     opm_s  = [];
 
     for i = 1 : numel(fnames)
