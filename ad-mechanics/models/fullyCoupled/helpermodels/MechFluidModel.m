@@ -123,7 +123,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 warning('The MechFluidModel has an empty FacilityModel');
             end
             model.fluidModel.FacilityModel = model.FacilityModel;
-            model = validateModel@ReservoirModel(model, varargin{:});
             return
         end
 
