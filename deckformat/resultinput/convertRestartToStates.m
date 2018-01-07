@@ -105,7 +105,14 @@ else
 
     for i = 1 : numel(fnames)
         if ~strcmp(opm.(fnames{i}).type, 'MESS')
-            tmp = reshape(opm.(fnames{i}).values,[],ns);
+            V = opm.(fnames{i}).values;
+            if  mod(numel(V), ns) ~= 0
+                if mrstVerbose()
+                    fprintf('Skipping entry %s\n', fnames{i});
+                end
+                continue
+            end
+            tmp = reshape(V,[],ns);
 
             if isempty(opt.steps)
                 opt.steps=1:ns;
