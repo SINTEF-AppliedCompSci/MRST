@@ -88,6 +88,7 @@ if isprop(model, 'solvent') && model.solvent % solvent model
 end
 
 if isprop(model, 'polymer') && model.polymer % polymer model
+	 [ws(:).cWPoly] = deal(0);
 	 [ws(:).qWPoly] = deal(0);
 end
 
