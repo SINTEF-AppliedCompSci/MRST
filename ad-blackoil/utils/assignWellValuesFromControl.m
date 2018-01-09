@@ -63,7 +63,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 end
                 if isprop(model, 'polymer') && model.polymer
                     ws.cWPoly = W(w).poly;
-                    ws.qWPoly = ws.qWs*W(w).poly;
                 end
                 if isprop(model, 'surfactant') && model.surfactant
                     ws.qWSft = ws.qWs*W(w).surfact;

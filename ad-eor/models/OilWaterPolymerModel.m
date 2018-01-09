@@ -116,8 +116,6 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
                     end
                 case 'cwpoly'
                     fn = 'cWPoly';
-                case 'qwpoly'
-                    fn = 'qWPoly';
                 otherwise
                     [fn, index] = getVariableField@TwoPhaseOilWaterModel(...
                                     model, name);
@@ -209,8 +207,6 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
             if model.polymer
                 names{end+1} = 'polymerWells';
                 types{end+1} = 'perf';
-                names{end+1} = 'polymerRateWells';
-                types{end+1} = 'perf';
             end
         end
 
@@ -218,7 +214,6 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
             names = getExtraWellPrimaryVariableNames@TwoPhaseOilWaterModel(model);
             if model.polymer
                 names{end+1} = 'cWPoly';
-                names{end+1} = 'qWPoly';
             end
         end
 
@@ -234,10 +229,6 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
                 % Polymer concentration from the reservoir at the connections
                 pix = strcmpi(model.getComponentNames(), 'polymer');
                 concpolyRes = packed.components{pix};
-
-                % Polymer mass rate 
-                qwpoly = packed.extravars{strcmpi(packed.extravars_names, ...
-                                                  'qwpoly')}; 
 
                 % Polymer concentration of the mixture in the well
                 concMix = packed.extravars{strcmpi(packed.extravars_names, ...
@@ -265,24 +256,23 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
                 a     = f.muWMult(f.cmax).^(1-f.mixPar);
                 cqP   = concpoly.*cqWs./(a + (1-a).*cbarw);
 
-                % Mass conservation equation for polymer in the well
-                compEqs{end+1} = qwpoly - sum(cqP);
-                eqNames{end+1} = 'polymerWells';
-
                 % Upwinding for the polymer concentration at the bottom hole.
                 % We ignore effect of incomplete mixing (f.mixPar=1) here,
                 % as it is also not clear how to include it here
                 q_sw = q_s{wix};
                 if (q_sw > 0) 
                     % Well is injecting water
-                    eq_qwpoly = qwpoly - concpolyCtrl*q_sw;
+                    qwpoly = concpolyCtrl*q_sw;
                 else
                     % Well is producing water
-                    eq_qwpoly = qwpoly - concMix*(q_sw + 1e-10);
+                    % We use a small coefficient due to to well-posedness of
+                    % polymer concentration when there is no water.
+                    qwpoly = concMix*(q_sw  + 1e-10);
                 end
-                % Equation defining polymer rate at bottom hole.
-                compEqs{end+1} = eq_qwpoly;
-                eqNames{end+1} = 'polymerRateWells';
+
+                % Mass conservation equation for polymer in the well
+                compEqs{end+1} = qwpoly - sum(cqP);
+                eqNames{end+1} = 'polymerWells';
 
                 compSrc{end+1} = cqP;
             end
