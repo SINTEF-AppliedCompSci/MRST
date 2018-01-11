@@ -193,7 +193,6 @@ void mexFunction( int nlhs, mxArray *plhs[],
         result[ix] = x[ix];
     }
     err[0] = error;
-
     return;
 }
 
