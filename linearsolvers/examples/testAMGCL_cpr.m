@@ -51,14 +51,21 @@ A = A(subs, subs);
 b = b(subs);
 
 %% 
+clc
 At = A';
 tic();
 [x, err] = amgcl_matlab_cpr(At, b, 1e-6, 10, 1, 1, 1, 1, 2);
 t_amg = toc();
+toc()
 
 % ref = A\b;
 
 err
 
 %%
-!rm /home/moyner/bitbucket/mrst-solvers/linearsolvers/amgcl/utils/amgcl_matlab_cpr.mexa64
+tic();
+[x, err] = callAMGCL_cpr(At, b, 2, 'isTransposed', true, 'maxIterations', 10);
+t_wrapper = toc();
+
+%%
+% !rm /home/moyner/bitbucket/mrst-solvers/linearsolvers/amgcl/utils/amgcl_matlab_cpr.mexa64
