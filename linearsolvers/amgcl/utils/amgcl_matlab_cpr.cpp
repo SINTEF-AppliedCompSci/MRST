@@ -48,9 +48,10 @@ void mexFunction( int nlhs, mxArray *plhs[],
     mwIndex * rows;
     double * entries;
     std::string relaxParam;
+    std::string coarsenParam;
     
-    if (nrhs != 4) { 
-	    mexErrMsgTxt("4 input arguments required."); 
+    if (nrhs != 9) { 
+	    mexErrMsgTxt("8 input arguments required."); 
     } else if (nlhs > 2) {
 	    mexErrMsgTxt("Wrong number of output arguments."); 
     } 
@@ -80,7 +81,12 @@ void mexFunction( int nlhs, mxArray *plhs[],
 
     double tolerance = mxGetScalar(prhs[2]);
     int maxiter = mxGetScalar(prhs[3]);
-
+    int coarsen_id = mxGetScalar(prhs[4]);
+    int relax_p_id = mxGetScalar(prhs[5]);
+    int solver_id = mxGetScalar(prhs[6]);
+    int relax_s_id = mxGetScalar(prhs[7]);
+    int block_size = mxGetScalar(prhs[8]);
+    
     std::vector<double> b(n);
     for(int ix = 0; ix < n; ix++){
         b[ix] = rhs[ix];
@@ -107,8 +113,110 @@ void mexFunction( int nlhs, mxArray *plhs[],
     if(maxiter > 0){
         prm.put("solver.maxiter", maxiter);
     }
-    prm.put("precond.block_size", 2);
+    prm.put("precond.block_size", block_size);
 
+    /* Select coarsening strategy */
+    coarsenParam = "precond.pprecond.coarsening.type";
+    switch(coarsen_id) {
+        case 1: 
+            prm.put(coarsenParam,  amgcl::runtime::coarsening::smoothed_aggregation);
+            break;
+        case 2: 
+            prm.put(coarsenParam,  amgcl::runtime::coarsening::ruge_stuben);
+            break;
+        case 3: 
+            prm.put(coarsenParam,  amgcl::runtime::coarsening::aggregation);
+            break;
+        case 4: 
+            prm.put(coarsenParam,  amgcl::runtime::coarsening::smoothed_aggr_emin);
+            break;
+        default : mexErrMsgTxt("Unknown coarsen_id."); 
+    }
+    /* Select relaxation strategy */
+    relaxParam = "precond.pprecond.relax.type";
+    switch(relax_p_id) {
+        case 1: 
+            prm.put(relaxParam,  amgcl::runtime::relaxation::spai0);
+            break;
+        case 2: 
+            prm.put(relaxParam,  amgcl::runtime::relaxation::gauss_seidel);
+            break;
+        case 3: 
+            prm.put(relaxParam,  amgcl::runtime::relaxation::ilu0);
+            break;
+        case 4: 
+            prm.put(relaxParam,  amgcl::runtime::relaxation::iluk);
+            break;
+        case 5: 
+            prm.put(relaxParam,  amgcl::runtime::relaxation::ilut);
+            break;
+        case 6: 
+            prm.put(relaxParam,  amgcl::runtime::relaxation::damped_jacobi);
+            break;
+        case 7: 
+            prm.put(relaxParam,  amgcl::runtime::relaxation::spai1);
+            break;
+        case 8: 
+            prm.put(relaxParam,  amgcl::runtime::relaxation::chebyshev);
+            break;
+        default : mexErrMsgTxt("Unknown relax_id."); 
+    }
+    
+    relaxParam = "precond.sprecond.type";
+    switch(relax_s_id) {
+        case 1: 
+            prm.put(relaxParam,  amgcl::runtime::relaxation::spai0);
+            break;
+        case 2: 
+            prm.put(relaxParam,  amgcl::runtime::relaxation::gauss_seidel);
+            break;
+        case 3: 
+            prm.put(relaxParam,  amgcl::runtime::relaxation::ilu0);
+            break;
+        case 4: 
+            prm.put(relaxParam,  amgcl::runtime::relaxation::iluk);
+            break;
+        case 5: 
+            prm.put(relaxParam,  amgcl::runtime::relaxation::ilut);
+            break;
+        case 6: 
+            prm.put(relaxParam,  amgcl::runtime::relaxation::damped_jacobi);
+            break;
+        case 7: 
+            prm.put(relaxParam,  amgcl::runtime::relaxation::spai1);
+            break;
+        case 8: 
+            prm.put(relaxParam,  amgcl::runtime::relaxation::chebyshev);
+            break;
+        default : mexErrMsgTxt("Unknown relax_id."); 
+    }
+    /* Select solver */
+    switch(solver_id) {
+        case 1: 
+            prm.put("solver.type",  amgcl::runtime::solver::bicgstab);
+            break;
+        case 2: 
+            prm.put("solver.type",  amgcl::runtime::solver::cg);
+            break;
+        case 3: 
+            prm.put("solver.type",  amgcl::runtime::solver::bicgstabl);
+            break;
+        case 4: 
+            prm.put("solver.type",  amgcl::runtime::solver::gmres);
+            break;
+        case 5: 
+            prm.put("solver.type",  amgcl::runtime::solver::lgmres);
+            break;
+        case 6: 
+            prm.put("solver.type",  amgcl::runtime::solver::fgmres);
+            break;
+        case 7: 
+            prm.put("solver.type",  amgcl::runtime::solver::idrs);
+            break;
+        default : mexErrMsgTxt("Unknown solver_id."); 
+    }
+
+    
     amgcl::make_solver<
         amgcl::preconditioner::cpr<PPrecond, SPrecond>,
         amgcl::runtime::iterative_solver<Backend>

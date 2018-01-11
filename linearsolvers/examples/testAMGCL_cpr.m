@@ -2,7 +2,7 @@
 mrstModule add msrsb incomp coarsegrid spe10 linearsolvers ad-core ad-blackoil ad-props
 %% Setup problem
 
-nx = 1000;
+nx = 100;
 ny = nx;
 G = cartGrid([nx, ny, 1], [1, 1, 1]);
 G = computeGeometry(G);
@@ -53,7 +53,7 @@ b = b(subs);
 %% 
 At = A';
 tic();
-[x, err] = amgcl_matlab_cpr(At, b, 1e-6, 10);
+[x, err] = amgcl_matlab_cpr(At, b, 1e-6, 10, 1, 1, 1, 1, 2);
 t_amg = toc();
 
 % ref = A\b;
