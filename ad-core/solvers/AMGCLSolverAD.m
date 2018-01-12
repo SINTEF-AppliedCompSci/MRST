@@ -14,37 +14,38 @@ classdef AMGCLSolverAD < LinearSolverAD
     %   `BackslashSolverAD`
 
    properties
-       coarsening
-       solver
-       relaxation
-       preconditioner
+        amgcl_setup
    end
    methods
        function solver = AMGCLSolverAD(varargin)
             require linearsolvers
             solver = solver@LinearSolverAD();
-            solver.preconditioner = 'amg';
-            solver.coarsening = 'smoothed_aggregation';
-            solver.relaxation = 'spai0';
-            solver.solver     = 'bicgstab';
             solver.reduceToCell = true;
             solver.tolerance = 1e-6;
             
-            solver = merge_options(solver, varargin{:});
+            [solver, extra] = merge_options(solver, varargin{:});
+            solver.amgcl_setup = getAMGCLMexStruct(extra{:});
+
        end
        
        function [result, report] = solveLinearSystem(solver, A, b)
             report = struct();
-            [result, error_estimate] = callAMGCL(A, b, ...
-                 'coarsening',     solver.coarsening, ...
-                 'preconditioner', solver.preconditioner, ...
-                 'relaxation',     solver.relaxation, ....
-                 'solver',         solver.solver,...
-                 'maxIterations',  solver.maxIterations, ...
-                 'tolerance',      solver.tolerance);
+            [result, error_estimate] = amgcl_matlab(A', b, solver.amgcl_setup);
             if error_estimate > solver.tolerance
                 warning('Solver did not converge to specified tolerance of %g. Reported residual estimate was %g', solver.tolerance, error_estimate);
             end
+       end
+       
+       function setCoarsening(solver, v)
+           solver.amgcl_setup.coarsening = translateOptionsAMGCL('coarsening', v);
+       end
+       
+       function setRelaxation(solver, v)
+           solver.amgcl_setup.relaxation = translateOptionsAMGCL('relaxation', v);
+       end
+       
+       function setPreconditioner(solver, v)
+           solver.amgcl_setup.preconditioner = translateOptionsAMGCL('preconditioner', v);
        end
    end
 end

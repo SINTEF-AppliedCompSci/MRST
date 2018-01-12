@@ -1,4 +1,4 @@
-classdef AMGCL_CPRSolverAD < LinearSolverAD
+classdef AMGCL_CPRSolverAD < AMGCLSolverAD
     % Linear solver that calls external compiled multigrid solver
     %
     % SYNOPSIS:
@@ -14,14 +14,6 @@ classdef AMGCL_CPRSolverAD < LinearSolverAD
     %   `BackslashSolverAD`
 
    properties
-       coarsening
-       solver
-       relaxation
-       s_relaxation
-       block_size
-       use_drs
-       eps_ps
-       eps_dd
        doApplyScalingCPR
        trueIMPES % Use true impes decoupling strategy (if supported by model)
        
@@ -29,37 +21,19 @@ classdef AMGCL_CPRSolverAD < LinearSolverAD
    methods
        function solver = AMGCL_CPRSolverAD(varargin)
             require linearsolvers
-            solver = solver@LinearSolverAD();
-            solver.coarsening   = 'smoothed_aggregation';
-            solver.relaxation   = 'spai0';
-            solver.s_relaxation = 'spai0';
-            solver.solver       = 'bicgstab';
-            solver.block_size   = 0;
+            solver = solver@AMGCLSolverAD();
             solver.trueIMPES    = true;
-            solver.use_drs = true;
-            solver.eps_ps = 0.02;
-            solver.eps_dd = 0.2;
             solver.doApplyScalingCPR = true;
             solver.reduceToCell = true;
             solver.tolerance    = 1e-6;
             
-            solver = merge_options(solver, varargin{:});
+            [solver, extra] = merge_options(solver, varargin{:});
+            solver.amgcl_setup = getAMGCLMexStruct(extra{:});
        end
        
        function [result, report] = solveLinearSystem(solver, A, b)
             report = struct();
-            [result, error_estimate] = callAMGCL_cpr(A, b, solver.block_size, ...
-                 'coarsening',     solver.coarsening, ...
-                 'relaxation',     solver.relaxation, ....
-                 's_relaxation',   solver.s_relaxation, ....
-                 'solver',         solver.solver,...
-                 'maxIterations',  solver.maxIterations, ...
-                 'drs_eps_ps',     solver.eps_ps, ...
-                 'drs_eps_dd',     solver.eps_dd, ...
-                 'use_drs',        solver.use_drs, ...
-                 'isTransposed',   false, ...
-                 'cellMajorOrder', true, ...
-                 'tolerance',      solver.tolerance);
+            [result, error_estimate] = amgcl_matlab_cpr(A', b, solver.amgcl_setup);
             if error_estimate > solver.tolerance
                 warning('Solver did not converge to specified tolerance of %g. Reported residual estimate was %g', solver.tolerance, error_estimate);
             end
@@ -82,7 +56,8 @@ classdef AMGCL_CPRSolverAD < LinearSolverAD
             end
             
             n = model.G.cells.num;
-            m = solver.block_size;
+            m = solver.amgcl_setup.block_size;
+            assert(m > 0);
             ndof = n*m;
             if isempty(solver.variableOrdering) || numel(solver.variableOrdering) ~= ndof
                 ordering = getCellMajorReordering(n, m, ndof);
@@ -94,6 +69,10 @@ classdef AMGCL_CPRSolverAD < LinearSolverAD
             
             [dx, result, report] = solveLinearProblem@LinearSolverAD(solver, problem, model);
         end
+        
+       function setSRelaxation(solver, v)
+           solver.amgcl_setup.s_relaxation = translateOptionsAMGCL('s_relaxation', v);
+       end
    end
 end
 
