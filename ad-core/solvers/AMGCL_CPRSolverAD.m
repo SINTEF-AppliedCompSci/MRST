@@ -48,7 +48,7 @@ classdef AMGCL_CPRSolverAD < LinearSolverAD
                  'solver',         solver.solver,...
                  'maxIterations',  solver.maxIterations, ...
                  'isTransposed',   false, ...
-                 'cellMajorOrder', false, ...
+                 'cellMajorOrder', true, ...
                  'tolerance',      solver.tolerance);
             if error_estimate > solver.tolerance
                 warning('Solver did not converge to specified tolerance of %g. Reported residual estimate was %g', solver.tolerance, error_estimate);
@@ -59,13 +59,29 @@ classdef AMGCL_CPRSolverAD < LinearSolverAD
             % Get and apply scaling
             if solver.doApplyScalingCPR
                 scale = model.getScalingFactorsCPR(problem, problem.equationNames, solver);
+                e = 0;
                 for i = 1:numel(scale)
-                    if numel(scale{i}) > 1 || scale{i} ~= 0
-                         problem.equations{i} = problem.equations{i}.*scale{i};
+                    if ~strcmpi(problem.types{i}, 'cell')
+                        continue
+                    end
+                    if (numel(scale{i}) > 1 || scale{i} ~= 0)
+                         e = e + problem.equations{i}.*scale{i};
                     end
                 end
+                problem.equations{1} = e;
             end
-
+            
+            n = model.G.cells.num;
+            m = solver.block_size;
+            ndof = n*m;
+            if isempty(solver.variableOrdering) || numel(solver.variableOrdering) ~= ndof
+                ordering = getCellMajorReordering(n, m, ndof);
+                solver.variableOrdering = ordering;
+                if isempty(solver.equationOrdering) || numel(solver.equationOrdering) ~= ndof
+                    solver.equationOrdering = ordering;
+                end
+            end
+            
             [dx, result, report] = solveLinearProblem@LinearSolverAD(solver, problem, model);
         end
    end
