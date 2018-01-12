@@ -117,6 +117,39 @@ void mexFunction( int nlhs, mxArray *plhs[],
                 break;
             default : mexErrMsgTxt("Unknown coarsen_id."); 
         }
+        /* When is a level coarse enough */
+        int coarse_enough = mxGetScalar(mxGetField(pa, 0, "coarse_enough"));
+        if (coarse_enough >= 0){
+            prm.put("precond.coarse_enough", coarse_enough);
+        }
+        /* Use direct solver for coarse sys */
+        bool direct_coarse = mxGetScalar(mxGetField(pa, 0, "direct_coarse"));
+        prm.put("precond.direct_coarse", direct_coarse);
+        /* Max levels */
+        int max_levels = mxGetScalar(mxGetField(pa, 0, "max_levels"));
+        if (max_levels >= 0){
+            prm.put("precond.max_levels", max_levels);
+        }
+        /* Number of cycles */
+        int ncycle = mxGetScalar(mxGetField(pa, 0, "ncycle"));
+        if (ncycle >= 0){
+            prm.put("precond.ncycle", ncycle);
+        }
+        /* Pre cycles */
+        int npre = mxGetScalar(mxGetField(pa, 0, "npre"));
+        if (npre >= 0){
+            prm.put("precond.npre", npre);
+        }
+        /* Post cycles */
+        int npost = mxGetScalar(mxGetField(pa, 0, "npost"));
+        if (npost >= 0){
+            prm.put("precond.npost", npost);
+        }
+        /* Pre cycles (precond) */
+        int pre_cycles = mxGetScalar(mxGetField(pa, 0, "pre_cycles"));
+        if (pre_cycles >= 0){
+            prm.put("precond.pre_cycles", pre_cycles);
+        }
     }
     /* Select relaxation strategy */
     switch(relax_id) {
