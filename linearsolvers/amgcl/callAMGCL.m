@@ -1,22 +1,13 @@
 function [x, err] = callAMGCL(A, b, varargin)
 % Call AMGCL
-    opt = struct('coarsening',   'smoothed_aggregation', ...
-                 'preconditioner', 'amg', ...
-                 'relaxation',   'spai0', ....
-                 'solver',       'bicgstab',...
-                 'maxIterations', 0, ...
-                 'isTransposed',  false, ...
-                 'tolerance',     1e-6);
-    opt = merge_options(opt, varargin{:});
-    
-    precond = translateOptionsAMGCL('preconditioner', opt.preconditioner);
-    coarse = translateOptionsAMGCL('coarsening', opt.coarsening);
-    relax = translateOptionsAMGCL('relaxation', opt.relaxation);
-    solver = translateOptionsAMGCL('solver', opt.solver);
+    opt = struct('isTransposed',  false);
+    [opt, cl_opts] = merge_options(opt, varargin{:});
 
+    amg_opt = getAMGCLMexStruct(cl_opts{:});
+    
     % Note the transpose...
     if ~opt.isTransposed
         A = A';
     end
-    [x, err] = amgcl_matlab(A, b, opt.tolerance, opt.maxIterations, coarse, relax, solver, precond);
+    [x, err] = amgcl_matlab(A, b, amg_opt);
 end

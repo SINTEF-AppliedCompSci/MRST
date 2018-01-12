@@ -2,7 +2,7 @@
 mrstModule add msrsb incomp coarsegrid spe10 linearsolvers ad-core ad-blackoil ad-props
 %% Setup problem
 if 1
-    nx = 500;
+    nx = 10;
     ny = nx;
     G = cartGrid([nx, ny, 1], [1, 1, 1]);
     G = computeGeometry(G);
@@ -71,22 +71,11 @@ b0 = b0./norm(b0, inf);
 A = A0(subs, subs);
 b = b0(subs);
 % b = b0;
-%% 
 its = 100;
-clc
 At = A';
-tic();
-[x0, err] = amgcl_matlab_cpr(At, b, 1e-6, its, 1, 1, 1, 1, ncomp);
-t_amg = toc();
-toc()
-
-% ref = A\b;
-
-err
 
 %%
 % ref = A\b;
-
 tic();
 [x1, err1] = callAMGCL_cpr(At, b, ncomp, 'isTransposed', true, 'maxIterations', its, 'cellMajorOrder', true);
 t_wrapper = toc();  
@@ -119,14 +108,14 @@ ordering = getCellMajorReordering(G.cells.num, ncomp, ncomp*G.cells.num);
 lsolve.variableOrdering = ordering;
 lsolve.equationOrdering = ordering;
 
-if 0
+if 1
     lsolve = AMGCL_CPRSolverAD('block_size', ncomp, 'maxIterations', 200, 'tolerance', 1e-3);
     lsolve.t_relaxation = 'ilu0';
     lsolve.trueIMPES = true;
     solver.coarsening = 'aggregation';
 end
 % lsolve.applyRightDiagonalScaling = true;
-lsolve.solver = 'gmres';
+lsolve.solver = 'bicgstab';
 
 if isa(model.AutoDiffBackend, 'DiagonalAutoDiffBackend')
     lsolve.reduceToCell = false;

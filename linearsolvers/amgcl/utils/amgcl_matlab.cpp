@@ -2,6 +2,7 @@
 // include necessary system headers
 //
 #include <mex.h>
+#include "matrix.h"
 #include <iostream>
 #include <amgcl/make_solver.hpp>
 #include <amgcl/solver/bicgstab.hpp>
@@ -32,9 +33,10 @@ void mexFunction( int nlhs, mxArray *plhs[],
     mwIndex * rows;
     double * entries;
     std::string relaxParam;
+    const mxArray * pa;
     
-    if (nrhs != 8) { 
-	    mexErrMsgTxt("6 input arguments required."); 
+    if (nrhs != 3) { 
+	    mexErrMsgTxt("3 input arguments required."); 
     } else if (nlhs > 2) {
 	    mexErrMsgTxt("Wrong number of output arguments."); 
     } 
@@ -62,12 +64,13 @@ void mexFunction( int nlhs, mxArray *plhs[],
     nnz  = mxGetNzmax(prhs[0]);
     rhs     = mxGetPr(prhs[1]);
 
-    double tolerance = mxGetScalar(prhs[2]);
-    int maxiter = mxGetScalar(prhs[3]);
-    int coarsen_id = mxGetScalar(prhs[4]);
-    int relax_id = mxGetScalar(prhs[5]);
-    int solver_id = mxGetScalar(prhs[6]);
-    int precond_id = mxGetScalar(prhs[7]);
+    pa = prhs[2];
+    double tolerance = mxGetScalar(mxGetField(pa, 0, "tolerance"));
+    int maxiter = mxGetScalar(mxGetField(pa, 0, "maxIterations"));
+    int coarsen_id = mxGetScalar(mxGetField(pa, 0, "coarsening"));
+    int relax_id = mxGetScalar(mxGetField(pa, 0, "relaxation"));
+    int solver_id = mxGetScalar(mxGetField(pa, 0, "solver"));
+    int precond_id = mxGetScalar(mxGetField(pa, 0, "preconditioner"));
     
     std::vector<double> b(n);
     for(int ix = 0; ix < n; ix++){
