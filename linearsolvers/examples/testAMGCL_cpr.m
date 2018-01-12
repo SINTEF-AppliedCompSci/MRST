@@ -110,7 +110,7 @@ lsolve.equationOrdering = ordering;
 
 if 1
     lsolve = AMGCL_CPRSolverAD('block_size', ncomp, 'maxIterations', 200, 'tolerance', 1e-3);
-    lsolve.t_relaxation = 'ilu0';
+    lsolve.s_relaxation = 'ilu0';
     lsolve.trueIMPES = true;
     solver.coarsening = 'aggregation';
 end

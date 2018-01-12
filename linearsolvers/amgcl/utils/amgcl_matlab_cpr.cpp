@@ -27,16 +27,9 @@
 
 #include <string>
 
-//#include <boost/program_options.hpp>
-//#include <boost/property_tree/ptree.hpp>
-//#include <boost/property_tree/json_parser.hpp>
-//#include <boost/foreach.hpp>
 
 #include <amgcl/preconditioner/cpr.hpp>
-//#include <amgcl/adapter/crs_tuple.hpp>
-//#include <amgcl/io/mm.hpp>
-//#include <amgcl/io/binary.hpp>
-//#include <amgcl/profiler.hpp>
+#include <amgcl/preconditioner/cpr_drs.hpp>
 
 void mexFunction( int nlhs, mxArray *plhs[], 
 		  int nrhs, const mxArray *prhs[] )
@@ -86,11 +79,14 @@ void mexFunction( int nlhs, mxArray *plhs[],
     double tolerance = mxGetScalar(mxGetField(pa, 0, "tolerance"));
     int maxiter = mxGetScalar(mxGetField(pa, 0, "maxIterations"));
     int block_size = mxGetScalar(mxGetField(pa, 0, "block_size"));
+    bool use_drs = mxGetScalar(mxGetField(pa, 0, "use_drs"));
+    
     
     int coarsen_id = mxGetScalar(mxGetField(pa, 0, "coarsening"));
     int relax_p_id = mxGetScalar(mxGetField(pa, 0, "relaxation"));
     int relax_s_id = mxGetScalar(mxGetField(pa, 0, "s_relaxation"));
     int solver_id = mxGetScalar(mxGetField(pa, 0, "solver"));
+    
     // int precond_id = mxGetScalar(mxGetField(pa, 0, "preconditioner"));
     
     std::vector<double> b(n);
@@ -222,24 +218,34 @@ void mexFunction( int nlhs, mxArray *plhs[],
         default : mexErrMsgTxt("Unknown solver_id."); 
     }
 
-    
-    amgcl::make_solver<
-        amgcl::preconditioner::cpr<PPrecond, SPrecond>,
-        amgcl::runtime::iterative_solver<Backend>
-        > solve(amgcl::adapter::zero_copy(n, &cols[0], &rows[0], &entries[0]), prm);
     /***************************************
      *        Solve problem                *
      ***************************************/
     std::vector<double> x(M, 0.0);
     int    iters;
     double error;
-    boost::tie(iters, error) = solve(b, x);
     
+    if(use_drs){
+        double dd = mxGetScalar(mxGetField(pa, 0, "drs_eps_dd"));
+        double ps = mxGetScalar(mxGetField(pa, 0, "drs_eps_ps"));
+        prm.put("precond.eps_dd", dd);
+        prm.put("precond.eps_ps", dd);
+        amgcl::make_solver<
+            amgcl::preconditioner::cpr_drs<PPrecond, SPrecond>,
+            amgcl::runtime::iterative_solver<Backend>
+            > solve(amgcl::adapter::zero_copy(n, &cols[0], &rows[0], &entries[0]), prm);
+            boost::tie(iters, error) = solve(b, x);
+    }else{
+        amgcl::make_solver<
+            amgcl::preconditioner::cpr<PPrecond, SPrecond>,
+            amgcl::runtime::iterative_solver<Backend>
+            > solve(amgcl::adapter::zero_copy(n, &cols[0], &rows[0], &entries[0]), prm);
+            boost::tie(iters, error) = solve(b, x);
+    }
     for(int ix=0; ix < M; ix++){
         result[ix] = x[ix];
     }
     err[0] = error;
-
     return;
 }
 
