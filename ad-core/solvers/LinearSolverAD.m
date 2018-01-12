@@ -36,6 +36,8 @@ classdef LinearSolverAD < handle
         applyLeftDiagonalScaling % Apply left diagonal scaling before solving
         applyRightDiagonalScaling % Apply right diagonal scaling before solving
         keepNumber % If set, linear solver will reduce the system to the first keepNumber entries
+        variableOrdering % Variable ordering to be used for linear solver. Row vector of equal length to the size of the linear system.
+        equationOrdering % Equation ordering to be used for linear solver. Row vector of equal length to the size of the linear system.
     end
     
     methods
@@ -51,6 +53,8 @@ classdef LinearSolverAD < handle
             solver.reduceToCell    = false;
             solver.applyLeftDiagonalScaling = false;
             solver.applyRightDiagonalScaling = false;
+            solver.variableOrdering = [];
+            solver.equationOrdering = [];
             
             solver = merge_options(solver, varargin{:});
             
@@ -102,8 +106,12 @@ classdef LinearSolverAD < handle
             [A, b, scaling] = solver.applyScaling(A, b);
             % Reduce system (if requested)
             [A, b, lsys] = solver.reduceLinearSystem(A, b);
+            % Reorder linear system
+            [A, b] = solver.reorderLinearSystem(A, b);
             % Solve the system
             [result, report] = solver.solveLinearSystem(A, b);
+            % Permute system back
+            result = solver.deorderLinearSystem(result);
             % Recover eliminated variables on linear level
             result = solver.recoverLinearSystem(result, lsys);
             % Undo scaling
@@ -239,6 +247,32 @@ classdef LinearSolverAD < handle
             else
                 % We got a matrix
                 x = M\x;
+            end
+        end
+        
+        function [A, b] = reorderLinearSystem(solver, A, b)
+            vo = solver.variableOrdering;
+            eo = solver.equationOrdering;
+            hasVar = ~isempty(vo);
+            hasEq = ~isempty(eo);
+            if hasVar && hasEq
+                assert(numel(vo) == size(A, 1));
+                assert(numel(eo) == size(A, 1));
+                A = A(eo, vo);
+                b = b(eo);
+            elseif hasVar
+                assert(numel(vo) == size(A, 1));
+                A = A(:, vo);
+            elseif hasEq
+                assert(numel(eo) == size(A, 1));
+                A = A(eo, :);
+                b = b(eo);
+            end
+        end
+        
+        function x = deorderLinearSystem(solver, x)
+            if ~isempty(solver.variableOrdering)
+                x(solver.variableOrdering) = x;
             end
         end
         
