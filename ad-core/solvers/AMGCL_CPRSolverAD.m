@@ -17,7 +17,7 @@ classdef AMGCL_CPRSolverAD < LinearSolverAD
        coarsening
        solver
        relaxation
-       t_relaxation
+       s_relaxation
        block_size
        doApplyScalingCPR
        trueIMPES % Use true impes decoupling strategy (if supported by model)
@@ -28,7 +28,7 @@ classdef AMGCL_CPRSolverAD < LinearSolverAD
             solver = solver@LinearSolverAD();
             solver.coarsening   = 'smoothed_aggregation';
             solver.relaxation   = 'spai0';
-            solver.t_relaxation = 'spai0';
+            solver.s_relaxation = 'spai0';
             solver.solver       = 'bicgstab';
             solver.block_size   = 0;
             solver.trueIMPES    = true;
@@ -44,7 +44,7 @@ classdef AMGCL_CPRSolverAD < LinearSolverAD
             [result, error_estimate] = callAMGCL_cpr(A, b, solver.block_size, ...
                  'coarsening',     solver.coarsening, ...
                  'relaxation',     solver.relaxation, ....
-                 't_relaxation',   solver.t_relaxation, ....
+                 's_relaxation',   solver.s_relaxation, ....
                  'solver',         solver.solver,...
                  'maxIterations',  solver.maxIterations, ...
                  'isTransposed',   false, ...
