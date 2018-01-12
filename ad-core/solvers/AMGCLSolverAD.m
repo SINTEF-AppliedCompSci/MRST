@@ -47,6 +47,10 @@ classdef AMGCLSolverAD < LinearSolverAD
        function setPreconditioner(solver, v)
            solver.amgcl_setup.preconditioner = translateOptionsAMGCL('preconditioner', v);
        end
+       
+       function setSolver(solver, v)
+           solver.amgcl_setup.solver = translateOptionsAMGCL('solver', v);
+       end
    end
 end
 
