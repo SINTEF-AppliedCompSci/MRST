@@ -24,28 +24,13 @@ function [x, err] = callAMGCL_cpr(A, b, block_size, varargin)
         end
     else
         n = size(A, 1);
-        [ii, jj, vv] = find(A);
-
-        subs = 1:n;
-        subs = reshape(subs, [], block_size)';
-        subs = subs(:);
-        
-        remap = zeros(n, 1);
-        remap(subs) = 1:n;
-        
-        if opt.isTransposed
-            A = sparse(remap(ii), remap(jj), vv, n, n);
-        else
-            A = sparse(remap(jj), remap(ii), vv, n, n);
-        end
-        
-        b = b(subs);
+        ordering = getCellMajorReordering(n/block_size, block_size, n);
+        A = A(ordering, ordering)';
+        b = b(ordering);
     end
-    tic()
     [x, err] = amgcl_matlab_cpr(A, b, opt.tolerance, opt.maxIterations, coarse, relax, solver, t_relax, block_size);
-    toc()
     
     if ~opt.cellMajorOrder
-        x = x(remap);
+        x(ordering) = x;
     end
 end

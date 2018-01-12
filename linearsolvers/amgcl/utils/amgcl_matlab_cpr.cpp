@@ -25,13 +25,13 @@
 
 #include <string>
 
-#include <boost/program_options.hpp>
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/json_parser.hpp>
-#include <boost/foreach.hpp>
+//#include <boost/program_options.hpp>
+//#include <boost/property_tree/ptree.hpp>
+//#include <boost/property_tree/json_parser.hpp>
+//#include <boost/foreach.hpp>
 
 #include <amgcl/preconditioner/cpr.hpp>
-#include <amgcl/adapter/crs_tuple.hpp>
+//#include <amgcl/adapter/crs_tuple.hpp>
 //#include <amgcl/io/mm.hpp>
 //#include <amgcl/io/binary.hpp>
 //#include <amgcl/profiler.hpp>
