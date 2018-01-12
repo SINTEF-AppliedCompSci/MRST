@@ -19,8 +19,12 @@ classdef AMGCL_CPRSolverAD < LinearSolverAD
        relaxation
        s_relaxation
        block_size
+       use_drs
+       eps_ps
+       eps_dd
        doApplyScalingCPR
        trueIMPES % Use true impes decoupling strategy (if supported by model)
+       
    end
    methods
        function solver = AMGCL_CPRSolverAD(varargin)
@@ -32,6 +36,9 @@ classdef AMGCL_CPRSolverAD < LinearSolverAD
             solver.solver       = 'bicgstab';
             solver.block_size   = 0;
             solver.trueIMPES    = true;
+            solver.use_drs = true;
+            solver.eps_ps = 0.02;
+            solver.eps_dd = 0.2;
             solver.doApplyScalingCPR = true;
             solver.reduceToCell = true;
             solver.tolerance    = 1e-6;
@@ -47,6 +54,9 @@ classdef AMGCL_CPRSolverAD < LinearSolverAD
                  's_relaxation',   solver.s_relaxation, ....
                  'solver',         solver.solver,...
                  'maxIterations',  solver.maxIterations, ...
+                 'drs_eps_ps',     solver.eps_ps, ...
+                 'drs_eps_dd',     solver.eps_dd, ...
+                 'use_drs',        solver.use_drs, ...
                  'isTransposed',   false, ...
                  'cellMajorOrder', true, ...
                  'tolerance',      solver.tolerance);
