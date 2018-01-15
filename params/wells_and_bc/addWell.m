@@ -48,10 +48,6 @@ function W = addWell(W, G, rock, cellInx, varargin)
 %            Supported values are 'ip_simple', 'ip_tpf', 'ip_quasitpf',
 %            and 'ip_rt'.
 %
-%   rR     - The representative radius for the wells, which is used in the
-%            shear thinning calculation when polymer is involved in the
-%            simulation.
-%
 %   WI     - Well productivity index. Vector of length `nc=numel(cellInx)`.
 %            Default value: `WI = repmat(-1, [nc, 1])`, whence the
 %            productivity index will be computed from available grid block
@@ -79,6 +75,14 @@ function W = addWell(W, G, rock, cellInx, varargin)
 %   refDepth - Reference depth for the well, i.e. the value for which
 %            bottom hole pressures are defined.
 %
+%   calcReprRad - Whether or not to compute the representative radius of
+%            each perforation.  The representative radius is needed to
+%            derive shear thinning calculations in the context of polymer
+%            injection.  LOGICAL.  Default value: `calcReprRad = true` (do
+%            calculate the representative radius).  If set to false, the
+%            resulting well structure cannot be used to simulate polymer
+%            injection.
+%
 % RETURNS:
 %   W - Updated (or freshly created) well structure, each element of which
 %       has the following fields:
@@ -101,6 +105,10 @@ function W = addWell(W, G, rock, cellInx, varargin)
 %           of limits applicable to the well (bhp, rate, orat, ...)
 %           Injectors generally have upper limits, while producers have
 %           lower limits.
+%         - rR:      The representative radius for the wells, which is used
+%           in the shear thinning calculation when polymer is involved in
+%           the simulation.  Empty if 'calcReprRad' is false.
+%
 % EXAMPLE:
 %   incompTutorialWells
 %
@@ -171,7 +179,8 @@ opt = struct('InnerProduct', 'ip_tpf',                     ...
              'lims'        , [],                           ...
              'vfp_index'   , 0,                            ...
              'c'           , [],                           ...
-             'Sign'        , 0);
+             'Sign'        , 0,                            ...
+             'calcReprRad' , true);
 
 opt = merge_options(opt, varargin{:});
 
@@ -200,9 +209,13 @@ if isempty(opt.refDepth),
 end
 ip = opt.InnerProduct;
 
-% Compute the representative radius for the grid block in which the well is
-% completed. It is needed for computing the shear rate of the wells.
-rR = radiusRep(G, opt.Radius, opt.Dir, reshape(cellInx, [], 1));
+if opt.calcReprRad
+   % Compute the representative radius for the grid block in which the well
+   % is completed.  It is needed for computing the shear rate of the wells.
+   rR = radiusRep(G, opt.Radius, opt.Dir, reshape(cellInx, [], 1));
+else
+   rR = [];
+end
 
 % Initialize Well index - WI. ---------------------------------------------
 % Check if we need to calculate WI or if it is supplied.
