@@ -236,21 +236,52 @@ void mexFunction( int nlhs, mxArray *plhs[],
             break;
         case 3: 
             prm.put("solver.type",  amgcl::runtime::solver::bicgstabl);
+            {
+                int L = mxGetScalar(mxGetField(pa, 0, "bicgstabl_l"));
+                prm.put("solver.L", L);
+                double delta = mxGetScalar(mxGetField(pa, 0, "bicgstabl_delta"));
+                prm.put("solver.delta", delta);
+                bool convex = mxGetScalar(mxGetField(pa, 0, "bicgstabl_convex"));
+                prm.put("solver.convex", convex);
+            }
             break;
         case 4: 
             prm.put("solver.type",  amgcl::runtime::solver::gmres);
+            {
+                int M = mxGetScalar(mxGetField(pa, 0, "gmres_m"));
+                prm.put("solver.M", M);
+            }
             break;
         case 5: 
             prm.put("solver.type",  amgcl::runtime::solver::lgmres);
+            {
+                int M = mxGetScalar(mxGetField(pa, 0, "gmres_m"));
+                prm.put("solver.M", M);
+                int K = mxGetScalar(mxGetField(pa, 0, "lgmres_k"));
+                prm.put("solver.K", K);
+                bool always_reset = mxGetScalar(mxGetField(pa, 0, "lgmres_always_reset"));
+                prm.put("solver.always_reset", always_reset);
+                bool store_Av = mxGetScalar(mxGetField(pa, 0, "lgmres_store_av"));
+                prm.put("solver.store_Av", store_Av);            
+            }
             break;
         case 6: 
             prm.put("solver.type",  amgcl::runtime::solver::fgmres);
+            {
+                int s = mxGetScalar(mxGetField(pa, 0, "idrs_s"));
+                prm.put("solver.s", s);
+                double omega = mxGetScalar(mxGetField(pa, 0, "idrs_omega"));
+                prm.put("solver.omega", omega);
+                bool replace = mxGetScalar(mxGetField(pa, 0, "idrs_replacement"));
+                prm.put("solver.replacement", replace);
+            }
             break;
         case 7: 
             prm.put("solver.type",  amgcl::runtime::solver::idrs);
             break;
         default : mexErrMsgTxt("Unknown solver_id."); 
     }
+
 
     /***************************************
      *        Solve problem                *
