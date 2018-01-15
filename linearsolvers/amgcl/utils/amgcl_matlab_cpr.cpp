@@ -26,6 +26,8 @@
 
 
 #include <string>
+#include <chrono>
+
 
 
 #include <amgcl/preconditioner/cpr.hpp>
@@ -38,6 +40,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     double *result; 
     double *rhs;
     double *err;
+    double *it_count;
     mwSize m,n,nnz;
     mwIndex * cols;
     mwIndex * rows;
@@ -49,7 +52,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     
     if (nrhs != 3) { 
 	    mexErrMsgTxt("3 input arguments required."); 
-    } else if (nlhs > 2) {
+    } else if (nlhs > 3) {
 	    mexErrMsgTxt("Wrong number of output arguments."); 
     } 
 
@@ -66,9 +69,11 @@ void mexFunction( int nlhs, mxArray *plhs[],
     // main();
     plhs[0] = mxCreateDoubleMatrix(m, 1, mxREAL);
     plhs[1] = mxCreateDoubleMatrix(1, 1, mxREAL);
+    plhs[2] = mxCreateDoubleMatrix(1, 1, mxREAL);
     
     result = mxGetPr(plhs[0]);
     err = mxGetPr(plhs[1]);
+    it_count = mxGetPr(plhs[2]);
     
     cols    = mxGetJc(prhs[0]);
     rows    = mxGetIr(prhs[0]);
@@ -87,6 +92,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     int relax_s_id = mxGetScalar(mxGetField(pa, 0, "s_relaxation"));
     int solver_id = mxGetScalar(mxGetField(pa, 0, "solver"));
     
+    bool verbose = mxGetScalar(mxGetField(pa, 0, "verbose"));
     // int precond_id = mxGetScalar(mxGetField(pa, 0, "preconditioner"));
     
     std::vector<double> b(n);
@@ -268,6 +274,13 @@ void mexFunction( int nlhs, mxArray *plhs[],
         case 6: 
             prm.put("solver.type",  amgcl::runtime::solver::fgmres);
             {
+                int M = mxGetScalar(mxGetField(pa, 0, "gmres_m"));
+                prm.put("solver.M", M);
+            }
+            break;
+        case 7: 
+            prm.put("solver.type",  amgcl::runtime::solver::idrs);
+            {
                 int s = mxGetScalar(mxGetField(pa, 0, "idrs_s"));
                 prm.put("solver.s", s);
                 double omega = mxGetScalar(mxGetField(pa, 0, "idrs_omega"));
@@ -275,9 +288,6 @@ void mexFunction( int nlhs, mxArray *plhs[],
                 bool replace = mxGetScalar(mxGetField(pa, 0, "idrs_replacement"));
                 prm.put("solver.replacement", replace);
             }
-            break;
-        case 7: 
-            prm.put("solver.type",  amgcl::runtime::solver::idrs);
             break;
         default : mexErrMsgTxt("Unknown solver_id."); 
     }
@@ -289,28 +299,53 @@ void mexFunction( int nlhs, mxArray *plhs[],
     std::vector<double> x(M, 0.0);
     int    iters;
     double error;
-    
+    auto t1 = std::chrono::high_resolution_clock::now();
+
     if(use_drs){
         double dd = mxGetScalar(mxGetField(pa, 0, "drs_eps_dd"));
         double ps = mxGetScalar(mxGetField(pa, 0, "drs_eps_ps"));
         prm.put("precond.eps_dd", dd);
         prm.put("precond.eps_ps", dd);
+
         amgcl::make_solver<
             amgcl::preconditioner::cpr_drs<PPrecond, SPrecond>,
             amgcl::runtime::iterative_solver<Backend>
             > solve(amgcl::adapter::zero_copy(n, &cols[0], &rows[0], &entries[0]), prm);
-            boost::tie(iters, error) = solve(b, x);
+        auto t2 = std::chrono::high_resolution_clock::now();
+        
+        if(verbose){
+            std::cout << "CPR setup took "
+                      << (double)std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count()/1000.0
+                      << " seconds\n";
+        }
+        boost::tie(iters, error) = solve(b, x);
+        
+        if(verbose){
+            std::cout << solve << std::endl;
+        }
     }else{
         amgcl::make_solver<
             amgcl::preconditioner::cpr<PPrecond, SPrecond>,
             amgcl::runtime::iterative_solver<Backend>
             > solve(amgcl::adapter::zero_copy(n, &cols[0], &rows[0], &entries[0]), prm);
-            boost::tie(iters, error) = solve(b, x);
+            
+        auto t2 = std::chrono::high_resolution_clock::now();
+        if(verbose){
+            std::cout << "CPR setup took "
+                      << (double)std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count()/1000.0
+                      << " seconds\n";
+        }
+        boost::tie(iters, error) = solve(b, x);
+        
+        if(verbose){
+            std::cout << solve << std::endl;
+        }
     }
     for(int ix=0; ix < M; ix++){
         result[ix] = x[ix];
     }
     err[0] = error;
+    it_count[0] = iters;
     return;
 }
 
