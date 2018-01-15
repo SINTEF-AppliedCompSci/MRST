@@ -958,6 +958,22 @@ classdef EquationOfStateModel < PhysicalModel
             sV = (1-L).*Z_V./(L.*Z_L + (1-L).*Z_V);
         end
         
+        function frac = getMoleFraction(model, massfraction)
+            % Convert mass fraction to molar fraction
+            if iscell(massfraction)
+                ncomp = numel(massfraction);
+                moles = cell(1, ncomp);
+                totMole = 0;
+                for i = 1:numel(massfraction)
+                    moles{i} = massfraction{i}./model.fluid.molarMass(i);
+                    totMole = totMole + moles{i};
+                end
+                frac = cellfun(@(x) x./totMole, moles, 'UniformOutput', false);
+            else
+                moles = bsxfun(@times, massfraction, 1./model.fluid.molarMass);
+                frac = bsxfun(@rdivide, moles, sum(moles, 2));
+            end
+        end
 
         
         function frac = getMassFraction(model, molfraction)
