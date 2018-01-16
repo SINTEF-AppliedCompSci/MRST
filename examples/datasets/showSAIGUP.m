@@ -60,7 +60,7 @@ G             = processGRDECL(grdecl, 'Verbose', true, 'checkgrid', false);
 %
 % To simplify the processing, a single layer of artificial cells is added
 % above the top and below the bottom of the model, but not touching the
-% model.  (See the tutorial <cornerPointModelExample.html#1 "Read, Display,
+% model.  (See the tutorial <gridTutorialCornerPoint.html#1 "Read, Display,
 % and Manipulate"> for more details). In the following, we therefore work
 % with a 40x120x22 model.
 %
