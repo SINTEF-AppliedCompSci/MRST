@@ -66,11 +66,17 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
                     problem.equations{1} = e;
                 end
             end
-            
             n = model.G.cells.num;
             m = solver.amgcl_setup.block_size;
             assert(m > 0);
-            ndof = n*m;
+
+            if isempty(solver.keepNumber)
+                problem = problem.assembleSystem();
+                ndof = size(problem.A, 1);
+            else
+                ndof = solver.keepNumber;
+            end
+
             if isempty(solver.variableOrdering) || numel(solver.variableOrdering) ~= ndof
                 ordering = getCellMajorReordering(n, m, ndof);
                 solver.variableOrdering = ordering;
