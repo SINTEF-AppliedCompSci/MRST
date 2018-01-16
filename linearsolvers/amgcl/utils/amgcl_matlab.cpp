@@ -220,6 +220,7 @@ void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries, const mx
         int maxiter, int & iters, double & error){
 
     int block_size = mxGetScalar(mxGetField(pa, 0, "block_size"));
+    int active_rows = mxGetScalar(mxGetField(pa, 0, "active_rows"));
     bool use_drs = mxGetScalar(mxGetField(pa, 0, "use_drs"));
     
     
@@ -247,7 +248,7 @@ void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries, const mx
         prm.put("solver.maxiter", maxiter);
     }
     prm.put("precond.block_size", block_size);
-
+    prm.put("precond.active_rows", active_rows);
     /* Select coarsening strategy */
     amg_opts c_opt;
     setCoarseningStructMex(c_opt, pa);
