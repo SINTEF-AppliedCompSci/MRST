@@ -33,53 +33,192 @@
 #include <amgcl/preconditioner/cpr.hpp>
 #include <amgcl/preconditioner/cpr_drs.hpp>
 
-void setCoarseningAMGCL(boost::property_tree::ptree &prm, std::string coarsenParam, int coarsen_id){
-    switch(coarsen_id) {
+
+
+/* Relaxation */ 
+typedef struct relax_opts{
+    int relax_id;
+};
+
+void setRelaxationAMGCL(boost::property_tree::ptree & prm, std::string relaxParam, relax_opts opts){
+    std::string relaxType = relaxParam + "type";
+    switch(opts.relax_id) {
         case 1: 
-            prm.put(coarsenParam,  amgcl::runtime::coarsening::smoothed_aggregation);
+            prm.put(relaxType,  amgcl::runtime::relaxation::spai0);
             break;
         case 2: 
-            prm.put(coarsenParam,  amgcl::runtime::coarsening::ruge_stuben);
+            prm.put(relaxType,  amgcl::runtime::relaxation::gauss_seidel);
             break;
         case 3: 
-            prm.put(coarsenParam,  amgcl::runtime::coarsening::aggregation);
+            prm.put(relaxType,  amgcl::runtime::relaxation::ilu0);
             break;
         case 4: 
-            prm.put(coarsenParam,  amgcl::runtime::coarsening::smoothed_aggr_emin);
+            prm.put(relaxType,  amgcl::runtime::relaxation::iluk);
             break;
-        default : mexErrMsgTxt("Unknown coarsen_id."); 
+        case 5: 
+            prm.put(relaxType,  amgcl::runtime::relaxation::ilut);
+            break;
+        case 6: 
+            prm.put(relaxType,  amgcl::runtime::relaxation::damped_jacobi);
+            break;
+        case 7: 
+            prm.put(relaxType,  amgcl::runtime::relaxation::spai1);
+            break;
+        case 8: 
+            prm.put(relaxType,  amgcl::runtime::relaxation::chebyshev);
+            break;
+        default : mexErrMsgTxt("Unknown relax_id."); 
     }
 }
 
-void setCoarseningOptionsAMGCL(boost::property_tree::ptree &prm, std::string prefix, int coarse_enough,
-                               int direct_coarse, int max_levels, int ncycle, int npre, int npost, int pre_cycles){
+/* Coarsening */ 
+typedef struct amg_opts{
+    int coarsen_id;
+    int coarse_enough;
+    bool direct_coarse;
+    int max_levels;
+    int ncycle;
+    int npre;
+    int npost;
+    int pre_cycles;
+};
+
+void setCoarseningStructMex(amg_opts &c_opt, const mxArray * pa){
+    c_opt.coarsen_id = mxGetScalar(mxGetField(pa, 0, "coarsening"));
+    c_opt.coarse_enough = mxGetScalar(mxGetField(pa, 0, "coarse_enough"));
+    c_opt.direct_coarse = mxGetScalar(mxGetField(pa, 0, "direct_coarse"));
+    c_opt.max_levels = mxGetScalar(mxGetField(pa, 0, "max_levels"));
+    c_opt.ncycle = mxGetScalar(mxGetField(pa, 0, "ncycle"));
+    c_opt.npre = mxGetScalar(mxGetField(pa, 0, "npre"));
+    c_opt.npost = mxGetScalar(mxGetField(pa, 0, "npost"));
+    c_opt.pre_cycles = mxGetScalar(mxGetField(pa, 0, "pre_cycles"));
+}
+
+void setCoarseningAMGCL(boost::property_tree::ptree & prm, std::string prefix, amg_opts options){
+    std::string coarsetype = prefix + "coarsening.type";
+    switch(options.coarsen_id) {
+        case 1: 
+            prm.put(coarsetype,  amgcl::runtime::coarsening::smoothed_aggregation);
+            break;
+        case 2: 
+            prm.put(coarsetype,  amgcl::runtime::coarsening::ruge_stuben);
+            break;
+        case 3: 
+            prm.put(coarsetype,  amgcl::runtime::coarsening::aggregation);
+            break;
+        case 4: 
+            prm.put(coarsetype,  amgcl::runtime::coarsening::smoothed_aggr_emin);
+            break;
+        default : mexErrMsgTxt("Unknown coarsen_id: " + options.coarsen_id); 
+    }
     /* When is a level coarse enough */
-    if (coarse_enough >= 0){
-        prm.put(prefix + "coarse_enough", coarse_enough);
+    if (options.coarse_enough >= 0){
+        prm.put(prefix + "coarse_enough", options.coarse_enough);
     }
     /* Use direct solver for coarse sys */
-    prm.put(prefix + "direct_coarse", direct_coarse);
+    prm.put(prefix + "direct_coarse", options.direct_coarse);
     /* Max levels */
-    if (max_levels >= 0){
-        prm.put(prefix + "max_levels", max_levels);
+    if (options.max_levels >= 0){
+        prm.put(prefix + "max_levels", options.max_levels);
     }
     /* Number of cycles */
-    if (ncycle >= 0){
-        prm.put(prefix + "ncycle", ncycle);
+    if (options.ncycle >= 0){
+        prm.put(prefix + "ncycle", options.ncycle);
     }
     /* Pre cycles */
-    if (npre >= 0){
-        prm.put(prefix + "npre", npre);
+    if (options.npre >= 0){
+        prm.put(prefix + "npre", options.npre);
     }
     /* Post cycles */
-    if (npost >= 0){
-        prm.put(prefix + "npost", npost);
+    if (options.npost >= 0){
+        prm.put(prefix + "npost", options.npost);
     }
     /* Pre cycles (precond) */
-    if (pre_cycles >= 0){
-        prm.put(prefix + "pre_cycles", pre_cycles);
+    if (options.pre_cycles >= 0){
+        prm.put(prefix + "pre_cycles", options.pre_cycles);
     }
 }
+/* Krylov solver */
+typedef struct solver_opts{
+    int solver_id;
+    int L;
+    int M;
+    int K;
+    int S;
+    double delta;
+    double omega;
+    bool convex;
+    bool always_reset;
+    bool store_Av;
+    bool replace;
+};
+
+void setSolverStructMex(solver_opts &opt, const mxArray * pa){
+    opt.solver_id = mxGetScalar(mxGetField(pa, 0, "solver"));
+    opt.L = mxGetScalar(mxGetField(pa, 0, "bicgstabl_l"));
+    opt.M = mxGetScalar(mxGetField(pa, 0, "gmres_m"));
+    opt.K = mxGetScalar(mxGetField(pa, 0, "lgmres_k"));
+    opt.S = mxGetScalar(mxGetField(pa, 0, "idrs_s"));
+    opt.delta = mxGetScalar(mxGetField(pa, 0, "bicgstabl_delta"));
+    opt.omega = mxGetScalar(mxGetField(pa, 0, "idrs_omega"));
+    opt.convex = mxGetScalar(mxGetField(pa, 0, "bicgstabl_convex"));
+    opt.always_reset = mxGetScalar(mxGetField(pa, 0, "lgmres_always_reset"));
+    opt.store_Av = mxGetScalar(mxGetField(pa, 0, "lgmres_store_av"));
+    opt.replace = mxGetScalar(mxGetField(pa, 0, "idrs_replacement"));
+}
+
+
+void setSolverAMGCL(boost::property_tree::ptree prm, std::string prefix, solver_opts options){
+    std::string solvertype = prefix + "type";
+    switch(options.solver_id) {
+        case 1: 
+            prm.put(solvertype,  amgcl::runtime::solver::bicgstab);
+            break;
+        case 2: 
+            prm.put(solvertype,  amgcl::runtime::solver::cg);
+            break;
+        case 3: 
+            prm.put(solvertype,  amgcl::runtime::solver::bicgstabl);
+            {
+                prm.put(prefix + "L", options.L);
+                prm.put(prefix + "delta", options.delta);
+                prm.put(prefix + "convex", options.convex);
+            }
+            break;
+        case 4: 
+            prm.put(solvertype,  amgcl::runtime::solver::gmres);
+            {
+                prm.put(prefix + "M", options.M);
+            }
+            break;
+        case 5: 
+            prm.put(solvertype,  amgcl::runtime::solver::lgmres);
+            {
+                prm.put(prefix + "M", options.M);
+                prm.put(prefix + "K", options.K);
+                prm.put(prefix + "always_reset", options.always_reset);
+                prm.put(prefix + "store_Av", options.store_Av);            
+            }
+            break;
+        case 6: 
+            prm.put(solvertype,  amgcl::runtime::solver::fgmres);
+            {
+                prm.put(prefix + "M", options.M);
+            }
+            break;
+        case 7: 
+            prm.put(solvertype,  amgcl::runtime::solver::idrs);
+            {
+                prm.put(prefix + "s", options.S);
+                prm.put(prefix + "omega", options.omega);
+                prm.put(prefix + "replacement", options.replace);
+            }
+            break;
+        default : mexErrMsgTxt("Unknown solver_id."); 
+    }
+}
+
+/* MEX gateway */
 
 void mexFunction( int nlhs, mxArray *plhs[], 
 		  int nrhs, const mxArray *prhs[] )
@@ -141,7 +280,6 @@ void mexFunction( int nlhs, mxArray *plhs[],
     int solver_id = mxGetScalar(mxGetField(pa, 0, "solver"));
     
     bool verbose = mxGetScalar(mxGetField(pa, 0, "verbose"));
-    // int precond_id = mxGetScalar(mxGetField(pa, 0, "preconditioner"));
     
     std::vector<double> b(n);
     for(int ix = 0; ix < n; ix++){
@@ -172,142 +310,25 @@ void mexFunction( int nlhs, mxArray *plhs[],
     prm.put("precond.block_size", block_size);
 
     /* Select coarsening strategy */
-    coarsenParam = "precond.pprecond.coarsening.type.";
-    setCoarseningAMGCL(prm, coarsenParam, coarsen_id);
-    
-    /* When is a level coarse enough */
-    int coarse_enough = mxGetScalar(mxGetField(pa, 0, "coarse_enough"));
-    /* Use direct solver for coarse sys */
-    bool direct_coarse = mxGetScalar(mxGetField(pa, 0, "direct_coarse"));
-    /* Max levels */
-    int max_levels = mxGetScalar(mxGetField(pa, 0, "max_levels"));
-    /* Number of cycles */
-    int ncycle = mxGetScalar(mxGetField(pa, 0, "ncycle"));
-    /* Pre cycles */
-    int npre = mxGetScalar(mxGetField(pa, 0, "npre"));
-    /* Post cycles */
-    int npost = mxGetScalar(mxGetField(pa, 0, "npost"));
-    /* Pre cycles (precond) */
-    int pre_cycles = mxGetScalar(mxGetField(pa, 0, "pre_cycles"));
-    setCoarseningOptionsAMGCL(prm, "precond.pprecond", coarse_enough, direct_coarse, max_levels, ncycle, npre, npost, pre_cycles);
+    amg_opts c_opt;
+    setCoarseningStructMex(c_opt, pa);
+    printf("Coarsening id: %d\n", c_opt.coarsen_id);
+    setCoarseningAMGCL(prm, "precond.pprecond.", c_opt);
 
-    /* Select relaxation strategy */
-    relaxParam = "precond.pprecond.relax.type";
-    switch(relax_p_id) {
-        case 1: 
-            prm.put(relaxParam,  amgcl::runtime::relaxation::spai0);
-            break;
-        case 2: 
-            prm.put(relaxParam,  amgcl::runtime::relaxation::gauss_seidel);
-            break;
-        case 3: 
-            prm.put(relaxParam,  amgcl::runtime::relaxation::ilu0);
-            break;
-        case 4: 
-            prm.put(relaxParam,  amgcl::runtime::relaxation::iluk);
-            break;
-        case 5: 
-            prm.put(relaxParam,  amgcl::runtime::relaxation::ilut);
-            break;
-        case 6: 
-            prm.put(relaxParam,  amgcl::runtime::relaxation::damped_jacobi);
-            break;
-        case 7: 
-            prm.put(relaxParam,  amgcl::runtime::relaxation::spai1);
-            break;
-        case 8: 
-            prm.put(relaxParam,  amgcl::runtime::relaxation::chebyshev);
-            break;
-        default : mexErrMsgTxt("Unknown relax_id."); 
-    }
-    
-    relaxParam = "precond.sprecond.type";
-    switch(relax_s_id) {
-        case 1: 
-            prm.put(relaxParam,  amgcl::runtime::relaxation::spai0);
-            break;
-        case 2: 
-            prm.put(relaxParam,  amgcl::runtime::relaxation::gauss_seidel);
-            break;
-        case 3: 
-            prm.put(relaxParam,  amgcl::runtime::relaxation::ilu0);
-            break;
-        case 4: 
-            prm.put(relaxParam,  amgcl::runtime::relaxation::iluk);
-            break;
-        case 5: 
-            prm.put(relaxParam,  amgcl::runtime::relaxation::ilut);
-            break;
-        case 6: 
-            prm.put(relaxParam,  amgcl::runtime::relaxation::damped_jacobi);
-            break;
-        case 7: 
-            prm.put(relaxParam,  amgcl::runtime::relaxation::spai1);
-            break;
-        case 8: 
-            prm.put(relaxParam,  amgcl::runtime::relaxation::chebyshev);
-            break;
-        default : mexErrMsgTxt("Unknown relax_id."); 
-    }
+    /* Select relaxation strategy for pressure solver */
+    relax_opts pr_opt;
+    pr_opt.relax_id = relax_p_id;
+    setRelaxationAMGCL(prm, "precond.pprecond.relax.", pr_opt);
+    /* Select relaxation strategy for second stage solver */
+    relax_opts ps_opt;
+    ps_opt.relax_id = relax_s_id;
+    setRelaxationAMGCL(prm, "precond.sprecond.", ps_opt);
+
     /* Select solver */
-    switch(solver_id) {
-        case 1: 
-            prm.put("solver.type",  amgcl::runtime::solver::bicgstab);
-            break;
-        case 2: 
-            prm.put("solver.type",  amgcl::runtime::solver::cg);
-            break;
-        case 3: 
-            prm.put("solver.type",  amgcl::runtime::solver::bicgstabl);
-            {
-                int L = mxGetScalar(mxGetField(pa, 0, "bicgstabl_l"));
-                prm.put("solver.L", L);
-                double delta = mxGetScalar(mxGetField(pa, 0, "bicgstabl_delta"));
-                prm.put("solver.delta", delta);
-                bool convex = mxGetScalar(mxGetField(pa, 0, "bicgstabl_convex"));
-                prm.put("solver.convex", convex);
-            }
-            break;
-        case 4: 
-            prm.put("solver.type",  amgcl::runtime::solver::gmres);
-            {
-                int M = mxGetScalar(mxGetField(pa, 0, "gmres_m"));
-                prm.put("solver.M", M);
-            }
-            break;
-        case 5: 
-            prm.put("solver.type",  amgcl::runtime::solver::lgmres);
-            {
-                int M = mxGetScalar(mxGetField(pa, 0, "gmres_m"));
-                prm.put("solver.M", M);
-                int K = mxGetScalar(mxGetField(pa, 0, "lgmres_k"));
-                prm.put("solver.K", K);
-                bool always_reset = mxGetScalar(mxGetField(pa, 0, "lgmres_always_reset"));
-                prm.put("solver.always_reset", always_reset);
-                bool store_Av = mxGetScalar(mxGetField(pa, 0, "lgmres_store_av"));
-                prm.put("solver.store_Av", store_Av);            
-            }
-            break;
-        case 6: 
-            prm.put("solver.type",  amgcl::runtime::solver::fgmres);
-            {
-                int M = mxGetScalar(mxGetField(pa, 0, "gmres_m"));
-                prm.put("solver.M", M);
-            }
-            break;
-        case 7: 
-            prm.put("solver.type",  amgcl::runtime::solver::idrs);
-            {
-                int s = mxGetScalar(mxGetField(pa, 0, "idrs_s"));
-                prm.put("solver.s", s);
-                double omega = mxGetScalar(mxGetField(pa, 0, "idrs_omega"));
-                prm.put("solver.omega", omega);
-                bool replace = mxGetScalar(mxGetField(pa, 0, "idrs_replacement"));
-                prm.put("solver.replacement", replace);
-            }
-            break;
-        default : mexErrMsgTxt("Unknown solver_id."); 
-    }
+    solver_opts sol_opt;
+    setSolverStructMex(sol_opt, pa);
+    setSolverAMGCL(prm, "solver.", sol_opt);
+    
 
 
     /***************************************
