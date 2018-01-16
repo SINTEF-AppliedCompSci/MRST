@@ -32,11 +32,7 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
        end
        
        function [result, report] = solveLinearSystem(solver, A, b)
-            report = struct();
-            [result, error_estimate] = amgcl_matlab_cpr(A', b, solver.amgcl_setup);
-            if error_estimate > solver.tolerance
-                warning('Solver did not converge to specified tolerance of %g. Reported residual estimate was %g', solver.tolerance, error_estimate);
-            end
+           [result, report] = solver.callAMGCL_MEX(A, b, 2);
        end
        
         function [dx, result, report] = solveLinearProblem(solver, problem, model)

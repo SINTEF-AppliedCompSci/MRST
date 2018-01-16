@@ -29,11 +29,7 @@ classdef AMGCLSolverAD < LinearSolverAD
        end
        
        function [result, report] = solveLinearSystem(solver, A, b)
-            report = struct();
-            [result, error_estimate] = amgcl_matlab(A', b, solver.amgcl_setup);
-            if error_estimate > solver.tolerance
-                warning('Solver did not converge to specified tolerance of %g. Reported residual estimate was %g', solver.tolerance, error_estimate);
-            end
+           [result, report] = solver.callAMGCL_MEX(A, b, 1);
        end
        
        function setCoarsening(solver, v)
@@ -50,6 +46,17 @@ classdef AMGCLSolverAD < LinearSolverAD
        
        function setSolver(solver, v)
            solver.amgcl_setup.solver = translateOptionsAMGCL('solver', v);
+       end
+       
+       function [result, report] = callAMGCL_MEX(solver, A, b, id)
+            [result, res, its] = amgcl_matlab(A', b, solver.amgcl_setup, solver.tolerance, solver.maxIterations, id);
+            if res > solver.tolerance
+                warning('Solver did not converge to specified tolerance of %g. Reported residual estimate was %g', solver.tolerance, res);
+            end
+            report = struct('converged',  res <= solver.tolerance, ...
+                            'residual',   res,...
+                            'iterations', its);
+
        end
    end
 end
