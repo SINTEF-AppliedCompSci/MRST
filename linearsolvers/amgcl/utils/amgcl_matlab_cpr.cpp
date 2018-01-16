@@ -33,6 +33,54 @@
 #include <amgcl/preconditioner/cpr.hpp>
 #include <amgcl/preconditioner/cpr_drs.hpp>
 
+void setCoarseningAMGCL(boost::property_tree::ptree &prm, std::string coarsenParam, int coarsen_id){
+    switch(coarsen_id) {
+        case 1: 
+            prm.put(coarsenParam,  amgcl::runtime::coarsening::smoothed_aggregation);
+            break;
+        case 2: 
+            prm.put(coarsenParam,  amgcl::runtime::coarsening::ruge_stuben);
+            break;
+        case 3: 
+            prm.put(coarsenParam,  amgcl::runtime::coarsening::aggregation);
+            break;
+        case 4: 
+            prm.put(coarsenParam,  amgcl::runtime::coarsening::smoothed_aggr_emin);
+            break;
+        default : mexErrMsgTxt("Unknown coarsen_id."); 
+    }
+}
+
+void setCoarseningOptionsAMGCL(boost::property_tree::ptree &prm, std::string prefix, int coarse_enough,
+                               int direct_coarse, int max_levels, int ncycle, int npre, int npost, int pre_cycles){
+    /* When is a level coarse enough */
+    if (coarse_enough >= 0){
+        prm.put(prefix + "coarse_enough", coarse_enough);
+    }
+    /* Use direct solver for coarse sys */
+    prm.put(prefix + "direct_coarse", direct_coarse);
+    /* Max levels */
+    if (max_levels >= 0){
+        prm.put(prefix + "max_levels", max_levels);
+    }
+    /* Number of cycles */
+    if (ncycle >= 0){
+        prm.put(prefix + "ncycle", ncycle);
+    }
+    /* Pre cycles */
+    if (npre >= 0){
+        prm.put(prefix + "npre", npre);
+    }
+    /* Post cycles */
+    if (npost >= 0){
+        prm.put(prefix + "npost", npost);
+    }
+    /* Pre cycles (precond) */
+    if (pre_cycles >= 0){
+        prm.put(prefix + "pre_cycles", pre_cycles);
+    }
+}
+
 void mexFunction( int nlhs, mxArray *plhs[], 
 		  int nrhs, const mxArray *prhs[] )
      
@@ -124,55 +172,24 @@ void mexFunction( int nlhs, mxArray *plhs[],
     prm.put("precond.block_size", block_size);
 
     /* Select coarsening strategy */
-    coarsenParam = "precond.pprecond.coarsening.type";
-    switch(coarsen_id) {
-        case 1: 
-            prm.put(coarsenParam,  amgcl::runtime::coarsening::smoothed_aggregation);
-            break;
-        case 2: 
-            prm.put(coarsenParam,  amgcl::runtime::coarsening::ruge_stuben);
-            break;
-        case 3: 
-            prm.put(coarsenParam,  amgcl::runtime::coarsening::aggregation);
-            break;
-        case 4: 
-            prm.put(coarsenParam,  amgcl::runtime::coarsening::smoothed_aggr_emin);
-            break;
-        default : mexErrMsgTxt("Unknown coarsen_id."); 
-    }
+    coarsenParam = "precond.pprecond.coarsening.type.";
+    setCoarseningAMGCL(prm, coarsenParam, coarsen_id);
+    
     /* When is a level coarse enough */
     int coarse_enough = mxGetScalar(mxGetField(pa, 0, "coarse_enough"));
-    if (coarse_enough >= 0){
-        prm.put("precond.pprecond.coarse_enough", coarse_enough);
-    }
     /* Use direct solver for coarse sys */
     bool direct_coarse = mxGetScalar(mxGetField(pa, 0, "direct_coarse"));
-    prm.put("precond.pprecond.direct_coarse", direct_coarse);
     /* Max levels */
     int max_levels = mxGetScalar(mxGetField(pa, 0, "max_levels"));
-    if (max_levels >= 0){
-        prm.put("precond.pprecond.max_levels", max_levels);
-    }
     /* Number of cycles */
     int ncycle = mxGetScalar(mxGetField(pa, 0, "ncycle"));
-    if (ncycle >= 0){
-        prm.put("precond.pprecond.ncycle", ncycle);
-    }
     /* Pre cycles */
     int npre = mxGetScalar(mxGetField(pa, 0, "npre"));
-    if (npre >= 0){
-        prm.put("precond.pprecond.npre", npre);
-    }
     /* Post cycles */
     int npost = mxGetScalar(mxGetField(pa, 0, "npost"));
-    if (npost >= 0){
-        prm.put("precond.pprecond.npost", npost);
-    }
     /* Pre cycles (precond) */
     int pre_cycles = mxGetScalar(mxGetField(pa, 0, "pre_cycles"));
-    if (pre_cycles >= 0){
-        prm.put("precond.pprecond.pre_cycles", pre_cycles);
-    }
+    setCoarseningOptionsAMGCL(prm, "precond.pprecond", coarse_enough, direct_coarse, max_levels, ncycle, npre, npost, pre_cycles);
 
     /* Select relaxation strategy */
     relaxParam = "precond.pprecond.relax.type";
