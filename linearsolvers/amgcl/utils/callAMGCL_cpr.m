@@ -21,7 +21,7 @@ function [x, err] = callAMGCL_cpr(A, b, block_size, varargin)
         A = A(ordering, ordering)';
         b = b(ordering);
     end
-    [x, err] = amgcl_matlab_cpr(A, b, amg_opt, opt.tolerance, opt.maxIterations);
+    [x, err] = amgcl_matlab(A, b, amg_opt, opt.tolerance, opt.maxIterations, 2);
     
     if ~opt.cellMajorOrder
         x(ordering) = x;
