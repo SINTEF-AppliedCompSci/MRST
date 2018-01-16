@@ -220,7 +220,7 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
                 act = ~isTwoPh0;
                 stable = act;
                 [stable(act), x(act, :), y(act, :)] =...
-                    model.EOSModel.performPhaseStabilityTest(p(act, :), T(act), z(act, :));
+                    model.EOSModel.performPhaseStabilityTest(p(act, :), T(act, :), z(act, :));
             end
             
             locked = state.switchCount > model.maxPhaseChangesNonLinear;
