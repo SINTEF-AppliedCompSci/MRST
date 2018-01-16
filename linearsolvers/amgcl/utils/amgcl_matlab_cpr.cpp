@@ -237,7 +237,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     std::string relaxParam;
     std::string coarsenParam;
     
-    if (nrhs != 3) { 
+    if (nrhs != 5) { 
 	    mexErrMsgTxt("3 input arguments required."); 
     } else if (nlhs > 3) {
 	    mexErrMsgTxt("Wrong number of output arguments."); 
@@ -268,16 +268,14 @@ void mexFunction( int nlhs, mxArray *plhs[],
     nnz  = mxGetNzmax(prhs[0]);
     rhs     = mxGetPr(prhs[1]);
     pa = prhs[2];
-    double tolerance = mxGetScalar(mxGetField(pa, 0, "tolerance"));
-    int maxiter = mxGetScalar(mxGetField(pa, 0, "maxIterations"));
+    double tolerance = mxGetScalar(prhs[3]);
+    int maxiter = mxGetScalar(prhs[4]);
     int block_size = mxGetScalar(mxGetField(pa, 0, "block_size"));
     bool use_drs = mxGetScalar(mxGetField(pa, 0, "use_drs"));
     
     
-    int coarsen_id = mxGetScalar(mxGetField(pa, 0, "coarsening"));
     int relax_p_id = mxGetScalar(mxGetField(pa, 0, "relaxation"));
     int relax_s_id = mxGetScalar(mxGetField(pa, 0, "s_relaxation"));
-    int solver_id = mxGetScalar(mxGetField(pa, 0, "solver"));
     
     bool verbose = mxGetScalar(mxGetField(pa, 0, "verbose"));
     

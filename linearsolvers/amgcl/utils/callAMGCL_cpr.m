@@ -2,7 +2,9 @@ function [x, err] = callAMGCL_cpr(A, b, block_size, varargin)
     % Call AMGCL
     assert(block_size > 0);
     opt = struct('isTransposed',   false, ...
-                 'cellMajorOrder', false);
+                 'cellMajorOrder', false, ...
+                 'tolerance',     1e-6, ...
+                 'maxIterations',  0);
     [opt, cl_opts] = merge_options(opt, varargin{:});
         
     amg_opt = getAMGCLMexStruct(cl_opts{:});
@@ -19,7 +21,7 @@ function [x, err] = callAMGCL_cpr(A, b, block_size, varargin)
         A = A(ordering, ordering)';
         b = b(ordering);
     end
-    [x, err] = amgcl_matlab_cpr(A, b, amg_opt);
+    [x, err] = amgcl_matlab_cpr(A, b, amg_opt, opt.tolerance, opt.maxIterations);
     
     if ~opt.cellMajorOrder
         x(ordering) = x;
