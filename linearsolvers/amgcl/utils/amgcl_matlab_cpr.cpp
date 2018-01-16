@@ -22,13 +22,8 @@
 #include <amgcl/preconditioner/dummy.hpp>
 #include <amgcl/preconditioner/runtime.hpp>
 
-
-
-
 #include <string>
 #include <chrono>
-
-
 
 #include <amgcl/preconditioner/cpr.hpp>
 #include <amgcl/preconditioner/cpr_drs.hpp>
@@ -218,58 +213,11 @@ void setSolverAMGCL(boost::property_tree::ptree prm, std::string prefix, solver_
     }
 }
 
-/* MEX gateway */
 
-void mexFunction( int nlhs, mxArray *plhs[], 
-		  int nrhs, const mxArray *prhs[] )
-     
-{ 
-    double *result; 
-    double *rhs;
-    double *err;
-    double *it_count;
-    mwSize m,n,nnz;
-    mwIndex * cols;
-    mwIndex * rows;
-    const mxArray * pa;
+void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries, const mxArray * pa, 
+        std::vector<double> b, std::vector<double> & x, double tolerance,
+        int maxiter, int & iters, double & error){
 
-    double * entries;
-    std::string relaxParam;
-    std::string coarsenParam;
-    
-    if (nrhs != 5) { 
-	    mexErrMsgTxt("3 input arguments required."); 
-    } else if (nlhs > 3) {
-	    mexErrMsgTxt("Wrong number of output arguments."); 
-    } 
-
-    m = mxGetM(prhs[0]); 
-    n = mxGetN(prhs[0]);
-    if (!mxIsDouble(prhs[0]) || mxIsComplex(prhs[0]) ||  !mxIsSparse(prhs[0]) ) { 
-	    mexErrMsgTxt("Matrix should be a real sparse matrix."); 
-        return;
-    } 
-    if (!mxIsDouble(prhs[1]) || mxIsComplex(prhs[1])) { 
-	    mexErrMsgTxt("Right hand side must be real double column vector.");
-        return; 
-    } 
-    // main();
-    plhs[0] = mxCreateDoubleMatrix(m, 1, mxREAL);
-    plhs[1] = mxCreateDoubleMatrix(1, 1, mxREAL);
-    plhs[2] = mxCreateDoubleMatrix(1, 1, mxREAL);
-    
-    result = mxGetPr(plhs[0]);
-    err = mxGetPr(plhs[1]);
-    it_count = mxGetPr(plhs[2]);
-    
-    cols    = mxGetJc(prhs[0]);
-    rows    = mxGetIr(prhs[0]);
-    entries = mxGetPr(prhs[0]);
-    nnz  = mxGetNzmax(prhs[0]);
-    rhs     = mxGetPr(prhs[1]);
-    pa = prhs[2];
-    double tolerance = mxGetScalar(prhs[3]);
-    int maxiter = mxGetScalar(prhs[4]);
     int block_size = mxGetScalar(mxGetField(pa, 0, "block_size"));
     bool use_drs = mxGetScalar(mxGetField(pa, 0, "use_drs"));
     
@@ -278,12 +226,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     int relax_s_id = mxGetScalar(mxGetField(pa, 0, "s_relaxation"));
     
     bool verbose = mxGetScalar(mxGetField(pa, 0, "verbose"));
-    
-    std::vector<double> b(n);
-    for(int ix = 0; ix < n; ix++){
-        b[ix] = rhs[ix];
-    }
-    int M = (int)m;
+
     /***************************************
      * Start AMGCL-link and select options *
      ***************************************/
@@ -332,9 +275,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     /***************************************
      *        Solve problem                *
      ***************************************/
-    std::vector<double> x(M, 0.0);
-    int    iters;
-    double error;
+
     auto t1 = std::chrono::high_resolution_clock::now();
 
     if(use_drs){
@@ -377,6 +318,73 @@ void mexFunction( int nlhs, mxArray *plhs[],
             std::cout << solve << std::endl;
         }
     }
+}
+
+
+/* MEX gateway */
+
+void mexFunction( int nlhs, mxArray *plhs[], 
+		  int nrhs, const mxArray *prhs[] )
+     
+{ 
+    double *result; 
+    double *rhs;
+    double *err;
+    double *it_count;
+    mwSize m,n,nnz;
+    mwIndex * cols;
+    mwIndex * rows;
+    const mxArray * pa;
+
+    double * entries;
+    std::string relaxParam;
+    std::string coarsenParam;
+    
+    if (nrhs != 5) { 
+	    mexErrMsgTxt("3 input arguments required."); 
+    } else if (nlhs > 3) {
+	    mexErrMsgTxt("Wrong number of output arguments."); 
+    } 
+
+    m = mxGetM(prhs[0]); 
+    n = mxGetN(prhs[0]);
+    int M = (int)m;
+
+    if (!mxIsDouble(prhs[0]) || mxIsComplex(prhs[0]) ||  !mxIsSparse(prhs[0]) ) { 
+	    mexErrMsgTxt("Matrix should be a real sparse matrix."); 
+        return;
+    } 
+    if (!mxIsDouble(prhs[1]) || mxIsComplex(prhs[1])) { 
+	    mexErrMsgTxt("Right hand side must be real double column vector.");
+        return; 
+    } 
+    // main();
+    plhs[0] = mxCreateDoubleMatrix(m, 1, mxREAL);
+    plhs[1] = mxCreateDoubleMatrix(1, 1, mxREAL);
+    plhs[2] = mxCreateDoubleMatrix(1, 1, mxREAL);
+    
+    result = mxGetPr(plhs[0]);
+    err = mxGetPr(plhs[1]);
+    it_count = mxGetPr(plhs[2]);
+    
+    cols    = mxGetJc(prhs[0]);
+    rows    = mxGetIr(prhs[0]);
+    entries = mxGetPr(prhs[0]);
+    nnz  = mxGetNzmax(prhs[0]);
+    rhs     = mxGetPr(prhs[1]);
+    pa = prhs[2];
+    double tolerance = mxGetScalar(prhs[3]);
+    int maxiter = mxGetScalar(prhs[4]);
+    
+    
+    std::vector<double> b(n);
+    for(int ix = 0; ix < n; ix++){
+        b[ix] = rhs[ix];
+    }
+    int    iters;
+    double error;
+    std::vector<double> x(M, 0.0);
+    solve_cpr(M, cols, rows, entries, pa, b, x, tolerance, maxiter, iters, error);
     for(int ix=0; ix < M; ix++){
         result[ix] = x[ix];
     }
@@ -384,4 +392,5 @@ void mexFunction( int nlhs, mxArray *plhs[],
     it_count[0] = iters;
     return;
 }
+
 
