@@ -164,7 +164,7 @@ void setSolverStructMex(solver_opts &opt, const mxArray * pa){
 }
 
 
-void setSolverAMGCL(boost::property_tree::ptree prm, std::string prefix, solver_opts options){
+void setSolverAMGCL(boost::property_tree::ptree & prm, std::string prefix, solver_opts options){
     std::string solvertype = prefix + "type";
     switch(options.solver_id) {
         case 1: 
