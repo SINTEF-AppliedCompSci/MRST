@@ -14,7 +14,7 @@ function staircase_3D_test()
    [G, rock] = setup_grid();
    fluid = setup_fluid(p_ref, rhoWS, rhoGS, cap_press);
    initState = setupInitState(G, p_ref, rhoWS);
-   model = twoPhaseGasWaterModel(G, rock, fluid, T, 0);
+   model = TwoPhaseGasWaterModel(G, rock, fluid, T, 0);
    schedule = initSchedule(duration);
    
    %% Running simulation
