@@ -247,7 +247,7 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
                 % equation for polymer (e.g. equationsOilWaterPolymer.m)
                 cqP = conc.*cqWs./(a + (1-a).*cbarw);
 
-                compEqs{end+1} = qwpoly - sum(conc.*cqP);
+                compEqs{end+1} = qwpoly - sum(cqP);
                 compSrc{end+1} = cqP;
                 eqNames{end+1} = 'polymerWells';
             end

@@ -55,7 +55,14 @@ classdef (InferiorClasses = {?DiagonalJacobian,?DiagonalSubset}) DivergenceTerm
             [i, j, v, nn, mm] = D.getSparseArguments();
             s = sparse(i, j, v, nn, mm);
         end
-        
+        function D = mtimes(D, v)
+            if isa(D, 'DivergenceTerm')
+                D = D.sparse();
+            else
+                v = v.sparse();
+            end
+            D = D*v;
+        end
         function D = plus(D, v)
             if isa(D, 'DivergenceTerm')
                 D.other = v;
