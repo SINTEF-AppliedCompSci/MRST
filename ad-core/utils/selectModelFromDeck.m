@@ -85,7 +85,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         % Two-phase water-gas (Note: Model tailored for CO2 storage, uses
         % CO2lab module).
         require co2lab
-        model = twoPhaseGasWaterModel(G, rock, fluid, nan, nan, 'inputdata', deck, varargin{:});
+        model = TwoPhaseGasWaterModel(G, rock, fluid, nan, nan, 'inputdata', deck, varargin{:});
     else
         error('Did not find matching model');
     end
