@@ -32,7 +32,6 @@ methods
         model.oil = true;
         model.gas = true;
         model.water = true;
-        model.saturationVarNames = {'sw', 'so', 'sg'};
 
         model = merge_options(model, varargin{:});
 
