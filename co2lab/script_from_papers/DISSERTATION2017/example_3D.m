@@ -129,7 +129,7 @@ schedule.step.control = [ones(100, 1); ...
 
 %% Model
 
-model = TwoPhaseGasWaterModel(G, rock, fluid, 0, 0);
+model = TwoPhaseWaterGasModel(G, rock, fluid, 0, 0);
 
 %% Simulate
 [wellSol, states] = simulateScheduleAD(initState, model, schedule);
