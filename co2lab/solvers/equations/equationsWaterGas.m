@@ -1,4 +1,4 @@
-function [problem, state] = equationsGasWater(model, state0, state, dt, drivingForces, varargin)
+function [problem, state] = equationsWaterGas(model, state0, state, dt, drivingForces, varargin)
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 

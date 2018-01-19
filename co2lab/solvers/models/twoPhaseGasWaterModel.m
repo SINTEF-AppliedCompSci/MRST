@@ -1,11 +1,11 @@
-classdef twoPhaseGasWaterModel < TwoPhaseGasWaterModel
+classdef twoPhaseGasWaterModel < TwoPhaseWaterGasModel
     % Clone of the TowPhaseGasWaterModel class for backward compatibility.
     
 methods
     % ------------------------------------------------------------------------
     function model = twoPhaseGasWaterModel(G, rock, fluid, tsurf, tgrad, varargin)
         
-        model = model@TwoPhaseGasWaterModel(G, rock, fluid, tsurf, tgrad, varargin{:});
+        model = model@TwoPhaseWaterGasModel(G, rock, fluid, tsurf, tgrad, varargin{:});
         
     end
 

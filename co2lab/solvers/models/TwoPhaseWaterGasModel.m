@@ -1,4 +1,4 @@
-classdef TwoPhaseGasWaterModel < ThreePhaseBlackOilModel
+classdef TwoPhaseWaterGasModel < ThreePhaseBlackOilModel
     % Two-phase gas and water model
     properties
         % (constant) temperature field
@@ -9,7 +9,7 @@ classdef TwoPhaseGasWaterModel < ThreePhaseBlackOilModel
     % ============================================================================
     methods
         % ------------------------------------------------------------------------
-        function model = TwoPhaseGasWaterModel(G, rock, fluid, tsurf, tgrad, varargin)
+        function model = TwoPhaseWaterGasModel(G, rock, fluid, tsurf, tgrad, varargin)
            
             model = model@ThreePhaseBlackOilModel(G, rock, fluid); 
 
@@ -37,7 +37,7 @@ classdef TwoPhaseGasWaterModel < ThreePhaseBlackOilModel
         function [problem, state] = getEquations(model, state0, state, dt, ...
                                                         drivingForces, ...
                                                         varargin)
-            [problem, state] = equationsGasWater(model, state0, state , dt , ...
+            [problem, state] = equationsWaterGas(model, state0, state , dt , ...
                                                  drivingForces             , ...
                                                  varargin{:});
         end
