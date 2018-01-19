@@ -14,11 +14,6 @@ classdef TransportNaturalVariablesModel < NaturalVariablesCompositionalModel
             model.EOSModel.fastDerivatives = false;
             model.allowLargeSaturations = true;
             model.maxPhaseChangesNonLinear = inf;
-            if model.water
-                model.saturationVarNames = {'sw', 'so', 'sg'};
-            else
-                model.saturationVarNames = {'so', 'sg'};
-            end
         end
 
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
