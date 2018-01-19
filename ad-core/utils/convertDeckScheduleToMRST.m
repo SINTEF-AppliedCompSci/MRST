@@ -64,10 +64,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     scheduleMRST.control = struct('W', tmp, 'bc', tmp, 'src', tmp);
     
     % Massage phases in compi to match active components in model
-    ncomp = numel(model.saturationVarNames);
+    satVarNames = model.getSaturationVarNames();
+    ncomp = numel(satVarNames);
     map = zeros(ncomp, 1);
     for i = 1:ncomp
-        switch lower(model.saturationVarNames{i})
+        switch lower(satVarNames{i})
             case 'sw'
                 map(i) = 1;
             case 'so'   

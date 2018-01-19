@@ -13,8 +13,6 @@ classdef TwoPhaseOilWaterModel < ThreePhaseBlackOilModel
             model.gas = false;
             model.water = true;
 
-            model.saturationVarNames = {'sw', 'so'};
-
             model = merge_options(model, varargin{:});
         end
 

@@ -40,8 +40,6 @@ properties
     water % Indicator showing if the aqueous/water phase is present
     gas % Indicator showing if the vapor/gas phase is present
     oil % Indicator showing if the liquid/oil phase is present
-    saturationVarNames % Names of saturation variables
-    componentVarNames % Names of components
     % Tolerances
     useCNVConvergence % Use volume-scaled tolerance scheme
     toleranceCNV; % CNV tolerance (similar to inf-norm over saturation error)
@@ -92,8 +90,6 @@ methods
         model.useCNVConvergence = false;
         model.toleranceCNV = 1e-3;
         model.toleranceMB = 1e-7;
-
-        model.componentVarNames  = {};
 
         model.extraStateOutput = false;
         model.extraWellSolOutput = true;
