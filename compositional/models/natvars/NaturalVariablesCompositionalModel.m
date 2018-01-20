@@ -282,12 +282,12 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
 
             sO(isPureVapor) = 0;
             sG(isPureLiquid) = 0;
-            if isPressure
-                sO(isPureLiquid) = sMax(isPureLiquid);
-                sG(isPureVapor) = sMax(isPureVapor);
-            else
+            if isTransport
                 sO(toOnlyOil) = sMax(toOnlyOil);
                 sG(toOnlyGas) = sMax(toOnlyGas);
+            else
+                sO(isPureLiquid) = sMax(isPureLiquid);
+                sG(isPureVapor) = sMax(isPureVapor);
             end
 
             if model.water
