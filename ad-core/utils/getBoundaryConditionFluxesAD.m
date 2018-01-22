@@ -101,7 +101,7 @@ noSat = all(sat == 0, 2);
 hasNoSat = any(noSat);
 
 % Store total mobility
-totMob = 0;
+totMob = zeros(size(sat, 1), 1);
 for i = 1:nPh
     totMob = totMob + cellToBCMap*mob{i};
 end
