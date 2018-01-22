@@ -642,7 +642,18 @@ methods
             return
         end
         phasefluxes = {double(qW), double(qO), double(qG)};
-        state = model.setPhaseData(state, phasefluxes, 'flux', forces.bc.face);
+        faces = forces.bc.face;
+        % Compensate for sign. Boundary fluxes have signs that correspond
+        % to in/out of the reservoir. This does not necessarily correspond
+        % to the neighbor structure in the grit itself.
+        sgn = 1 - 2*(model.G.faces.neighbors(faces, 2) == 0);
+        for i = 1:numel(phasefluxes)
+            if isempty(phasefluxes{i})
+                continue
+            end
+            phasefluxes{i} = phasefluxes{i}.*sgn;
+        end
+        state = model.setPhaseData(state, phasefluxes, 'flux', faces);
     end
 
     % --------------------------------------------------------------------%
