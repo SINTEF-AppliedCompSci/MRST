@@ -53,7 +53,7 @@ function deck = refineDeck(deck_in, dim, varargin)
                                             'ISGL', 'ISOGCR', 'ISOWCR', ...
                                             'ISGCR', 'SWATINIT'});
    %% Refine the grid
-   deck.GRID = refineGRDECL(deck_in.GRID, dim);
+   deck.GRID = refineGrdecl(deck_in.GRID, dim);
    
    %% Refine schedule (i.e. wells)
    if isfield(deck, 'SCHEDULE') 

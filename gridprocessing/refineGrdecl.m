@@ -1,10 +1,10 @@
-function grdecl = refineGRDECL(grdecl_in, dim)
+function grdecl = refineGrdecl(grdecl_in, dim)
 %
 % Refine an Eclipse grid with a specified factor in each of the three logical
 % grid directions.
 % 
 % SYNOPSIS:
-%   function grdecl = refineGRDECL(grdecl_in, dim)
+%   function grdecl = refineGrdecl(grdecl_in, dim)
 %
 % DESCRIPTION:
 %
