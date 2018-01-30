@@ -205,7 +205,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         G.cartDims = ones(1, G.griddim);
     end
     
-    if G.griddim == 2
+    if G.griddim == 2 && isfield(G.faces, 'nodes')
         G.cells.sortedCellNodes = getSortedCellNodes(G);
     end
     
