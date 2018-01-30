@@ -26,6 +26,7 @@ subplot(1,3,1:2);
 plotCellData(G,xr.s(:,1),'EdgeColor','none');
 set(gca,'XTick',[],'YTick',[],'Ztick',[]); box on; view(3); caxis([0 1]);
 title(sprintf('Time: %.2f years', 0));
+colormap(flipud(parula));
 
 % Plot 2D profile of the solution
 subplot(1,3,3); 
@@ -88,6 +89,6 @@ hold off
 %%
 figure;
 pcolor(S'); shading interp;
-colormap(parula);
+colormap(flipud(parula));
 set(gca,'YDir','reverse'); 
 box on; %set(gca,'XTick',[],'YTick',[]);
