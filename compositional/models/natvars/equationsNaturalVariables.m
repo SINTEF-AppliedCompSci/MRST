@@ -199,7 +199,14 @@ vO = -s.faceUpstr(upco, mobO).*T.*dpO;
 % Gas flux
 rhoGf  = s.faceAvg(sat{2+model.water}.*rhoG)./max(s.faceAvg(sat{2+model.water}), 1e-8);
 mobG   = krG./muG;
-dpG    = s.Grad(p) - rhoGf.*gdz;
+if isfield(fluid, 'pcOG')
+    pcOG  = fluid.pcOG(sG);
+    pG = p + pcOG;
+else
+    pG = p;
+end
+dpG    = s.Grad(pG) - rhoGf.*gdz;
+
 upcg  = (double(dpG)<=0);
 vG = -s.faceUpstr(upcg, mobG).*T.*dpG;
 
@@ -224,7 +231,13 @@ if model.water
 
     rhoWf  = s.faceAvg(rhoW);
     mobW   = krW./muW;
-    dpW    = s.Grad(p) - rhoWf.*gdz;
+    if isfield(fluid, 'pcOW')
+        pcOW  = fluid.pcOW(sW);
+        pW = p + pcOW;
+    else
+        pW = p;
+    end
+    dpW    = s.Grad(pW) - rhoWf.*gdz;
     upcw  = (double(dpW)<=0);
     vW = -s.faceUpstr(upcw, mobW).*T.*dpW;
     rWvW = s.faceUpstr(upcw, rhoW).*vW;
@@ -257,14 +270,17 @@ if opt.reduceToPressure
 end
 
 divTerm = cell(ncomp, 1);
+
+compFlux = zeros(size(model.operators.N, 1), ncomp);
 for i = 1:ncomp
     names{i} = compFluid.names{i};
     types{i} = 'cell';
     eqs{i} = (1/dt).*( ...
                     pv.*rhoO.*sO.*xM{i} - pv0.*rhoO0.*sO0.*xM0{i} + ...
                     pv.*rhoG.*sG.*yM{i} - pv0.*rhoG0.*sG0.*yM0{i});
-    
-    divTerm{i} = s.Div(rOvO.*s.faceUpstr(upco, xM{i}) + rGvG.*s.faceUpstr(upcg, yM{i}));
+    vi = rOvO.*s.faceUpstr(upco, xM{i}) + rGvG.*s.faceUpstr(upcg, yM{i});
+    divTerm{i} = s.Div(vi);
+    compFlux(:,i) = double(vi);
     if opt.reduceToPressure
         C{i} = eqs{i};
     end
@@ -279,7 +295,8 @@ for i = 1:ncomp
     end
     
 end
-
+state.componentFluxes = compFlux;
+state.massFlux = [double(rOvO), double(rGvG)];
 if model.water
     if ~opt.reduceToPressure
         eqs{ncomp+1} = water.*(dt./(s.pv.*double(rhoW)));
@@ -291,15 +308,15 @@ if model.water
     
     rho = {rhoW, rhoO, rhoG};
     mob = {mobW, mobO, mobG};
-    pressures = {p, p, p};
+    pressures = {pW, p, pG};
 else
     rho = {rhoO, rhoG};
     mob = {mobO, mobG};
-    pressures = {p, p};
+    pressures = {p, pG};
 end
 comps = cellfun(@(x, y) {x, y}, xM, yM, 'UniformOutput', false);
 
-[eqs, state] = model.addBoundaryConditionsAndSources(eqs, names, types, state, ...
+[eqs, state, bsrc] = model.addBoundaryConditionsAndSources(eqs, names, types, state, ...
                                                  pressures, sat, mob, rho, ...
                                                  {}, comps, ...
                                                  drivingForces);
