@@ -100,16 +100,23 @@ function schedule = refine_wells(schedule, dim, default_well)
       for i=1:2
          E = cur_ctrl.COMPDAT(:,1+i);
          schedule.control(j).COMPDAT(:,1+i) = ...
-             cellfun(@(x) dim(i).*(x-1) + 1, E, 'unif', false);
+             cellfun(@(x) dim(i).*(x-1) + ceil(dim(i)/2), E, 'unif', false);
       end
       
       % Updating vertical cell indices (k) for individual well completions
+      vw_ind = [cur_ctrl.COMPDAT{:,13}] == 'Z';  % indicator for vertical wells
+      
       E = cur_ctrl.COMPDAT(:, 4); % start index 
-      schedule.control(j).COMPDAT(:,4) = ...
-          cellfun(@(x) dim(3) .* (x-1) + 1, E, 'unif', false);
+      schedule.control(j).COMPDAT(vw_ind, 4) = ...
+          cellfun(@(x) dim(3) .* (x-1) + 1, E(vw_ind), 'unif', false);
+      schedule.control(j).COMPDAT(~vw_ind, 4) = ...
+          cellfun(@(x) dim(3) .* (x-1) + ceil(dim(3)/2), E(~vw_ind), 'unif', false);
+      
       E = cur_ctrl.COMPDAT(:, 5); % end index
-      schedule.control(j).COMPDAT(:,5) = ...
-          cellfun(@(x) dim(3) .* x, E, 'unif', false);
+      schedule.control(j).COMPDAT(vw_ind ,5) = ...
+          cellfun(@(x) dim(3) .* x, E(vw_ind), 'unif', false);
+      schedule.control(j).COMPDAT(~vw_ind, 5) = ...
+          cellfun(@(x) dim(3) .* (x-1) + ceil(dim(3)/2), E(~vw_ind), 'unif', false);
       
       %% Repeat perforations in the right direction and change fields
       compdat_old = schedule.control(j).COMPDAT;
@@ -147,4 +154,5 @@ function schedule = refine_wells(schedule, dim, default_well)
          
       end
    end
+      
 end
