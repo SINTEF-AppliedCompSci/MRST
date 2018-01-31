@@ -1,12 +1,30 @@
 function grdecl = refineGrdecl(grdecl_in, dim)
-%
-% Refine an Eclipse grid with a specified factor in each of the three logical
-% grid directions.
 % 
+%   Refine an Eclipse grid (`GRDECL file`) with a specified factor in each of
+%   the three logical grid directions.
+% 
+%   Currently, the function 
+%     - Refines the grid by subdividing each cell according to input
+%       parameter `dim`. 
+%     
+%     - Updates the following keywords: `ACTNUM`, `PERMX`, `PERMY`, `PERMZ`,
+%       `PORO`, `MULTX`, `MULTY`, `MULTZ`, `EQLNUM`, `FLUXNUM` and `NTG`.
+% 
+%     - Updates the `FAULTS` keyword.  Multipliers are not changed, which is
+%       only correct for refinements in the z-direction.
+%    
+%   Function does not handle flow-based upscaling keywords (e.g. `MULTX`,
+%   `MULTY` and `MULTZ`) for which there is no natural automated refinement
+%   process. 
+% 
+%
+%   NOTE:
+%     This function is not fully tested and has only been used on a limited
+%     subset of models. While potentially useful, it should be used with care
+%     and results should be carefully examined.
+%
 % SYNOPSIS:
 %   function grdecl = refineGrdecl(grdecl_in, dim)
-%
-% DESCRIPTION:
 %
 % PARAMETERS:
 %   grdecl_in - Eclipse grid to refine (grdecl)
@@ -18,6 +36,25 @@ function grdecl = refineGrdecl(grdecl_in, dim)
 % SEE ALSO:
 % refineDeck
 
+%{
+
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
    
    [xyz, zcorn] = grdeclXYZ(grdecl_in);
    nx = dim(1); ny = dim(2); nz = dim(3);

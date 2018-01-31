@@ -1,8 +1,19 @@
 function deck = refineDeck(deck_in, dim, varargin)
 %
-% Refine the grid resolution of a deck, and update other information (faults
-% and wells) accordingly. 
+% Refine the grid resolution of a deck, and update other information
+% (`RUNSPEC`, wells, selected cell-based fields under `SOLUTION`, `REGIONS`
+% and `PROPS`) accordingly. 
 % 
+% Cell-based fields are updated by letting refined cells inherit the values from
+% their 'parent' coarse cells.  Wells are updated by changing the cell indexing,
+% adding perforations in the direction of the original perforations, and divide
+% refined well indices and KH by the refinement in the perforation direction.
+%
+% NOTE:
+%   This function is not fully tested and has only been used on a limited
+%   subset of models. While potentially useful, it should be used with care
+%   and results should be carefully examined.
+%
 % SYNOPSIS:
 %   function deck = refineDeck(deck_in, dim, varargin)
 %
@@ -23,7 +34,25 @@ function deck = refineDeck(deck_in, dim, varargin)
 %
 % SEE ALSO:
 %   refineGRDECL
+%{
 
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
 
    opt.default_well = false;
    opt = merge_options(opt, varargin{:});
