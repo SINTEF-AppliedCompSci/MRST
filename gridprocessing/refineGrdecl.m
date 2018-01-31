@@ -1,71 +1,43 @@
-function grdecl = refineGrdecl(grdecl, dim, varargin)
-% Refine a corner-point grid in `GRDECL` format
+function grdecl = refineGrdecl(grdecl_in, dim)
+% 
+%   Refine an Eclipse grid (`GRDECL file`) with a specified factor in each of
+%   the three logical grid directions.
+% 
+%   Currently, the function 
+%     - Refines the grid by subdividing each cell according to input
+%       parameter `dim`. 
+%     
+%     - Updates the following keywords: `ACTNUM`, `PERMX`, `PERMY`, `PERMZ`,
+%       `PORO`, `MULTX`, `MULTY`, `MULTZ`, `EQLNUM`, `FLUXNUM` and `NTG`.
+% 
+%     - Updates the `FAULTS` keyword.  Multipliers are not changed, which is
+%       only correct for refinements in the z-direction.
+%    
+%   Function does not handle flow-based upscaling keywords (e.g. `MULTX`,
+%   `MULTY` and `MULTZ`) for which there is no natural automated refinement
+%   process. 
+% 
+%
+%   NOTE:
+%     This function is not fully tested and has only been used on a limited
+%     subset of models. While potentially useful, it should be used with care
+%     and results should be carefully examined.
 %
 % SYNOPSIS:
-%   function grdecl = refineGrdecl(grdecl, dim, varargin)
-%
-% DESCRIPTION: 
-%   This function attempts to refine a `GRDECL` file. It is somewhat
-%   limited in scope and user caution is advised.
-%
-%   Currently, the function
-%
-%     - Refines the grid by subdividing each cell according to input
-%     parameter `dim`.
-%
-%     - Updates the major cell keywords (`ACTNUM`, `PERMX`, `PERMY`,
-%     `PERMZ`, `PORO`, `MULTZ`, `MULTX`, `MULTY` and `EQLNUM`).
-%
-%     - Updates the `FAULTS` keyword, multipliers are not changed
-%     which is only mathematically correct for refinement in z direction.
-%
-%     - Copy keywords which are not affected by refinement (`OIL`,
-%     `METRIC`, `WATER`, `EQUIL`, `ROCK`, `FLUID`, `START`).
-%
-%    - Well features (`SCHEDULE.control`),
-%
-%       * Cell numbering in wells is updated
-%
-%       * KH and well index not changed
-%
-%     - Function does not handle flow-based upscaling keywords (e.g.
-%     `MULTZ`, `MULTX`, `MULTY`) for which there is no natural automated
-%     refinement process.
-%
-%
-% NOTE:
-%   This function is not fully tested and has only been used on a limited
-%   subset of models. While potentially useful, it should be used with care
-%   and results should be carefully examined.
+%   function grdecl = refineGrdecl(grdecl_in, dim)
 %
 % PARAMETERS:
-%
-%   grdecl   - Corner-point grid in grdecl format, from e.g. `readGRDECL`.
-%
-%   dim      - [ni, nj, nk] defines degree of refiment each cardinal
-%              direction (I, J, K). %
+%   grdecl_in - Eclipse grid to refine (grdecl)
+%   dim       - refinement factor in each logical direction (3-component vector)
 %
 % RETURNS:
-%   grdecl - refined grid in eclipse format
-%
-% EXAMPLE:
-%    grdecl0 = makeModel3([10, 5, 5]);
-%    grdecl = refineGrdecl(grdecl0, [2, 2, 2]);
-%
-%    figure;
-%    subplot(1, 2, 1);
-%    plotGrid(processGRDECL(grdecl0))
-%    view(50, 40);
-%
-%    subplot(1, 2, 2);
-%    plotGrid(processGRDECL(grdecl))
-%    view(50, 40);
+%   grdecl - refined grid
 %
 % SEE ALSO:
-% `processGRDECL`
-
+% refineDeck
 
 %{
+
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
@@ -83,173 +55,112 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+   
+   [xyz, zcorn] = grdeclXYZ(grdecl_in);
+   nx = dim(1); ny = dim(2); nz = dim(3);
 
-    opt = struct('default_well', false);
-    opt = merge_options(opt, varargin{:});
-    [xyz, zcorn] = grdeclXYZ(grdecl);
-    nx = dim(1); ny = dim(2); nz = dim(3);
-    % if(nz>1)
+   %% refining in z direction
+   if(nz > 1)
+      dz = zcorn(:, :, 2:2:end) - zcorn(:, :, 1:2:end);
+      slice = zcorn(:, :, 1:2:end);
+      zcorn = zeros(size(zcorn, 1), size(zcorn, 2), size(zcorn, 3) * nz);
+      for i = 0:nz - 1
+         zcorn(:, :, 2 * i + 1:2 * nz:end) = slice + i * dz / nz;
+         zcorn(:, :, 2 * i + 2:2 * nz:end) = slice + (i + 1) * dz / nz;
+      end
+   end
 
-    % refining in z direction
-    dz = zcorn(:, :, 2:2:end) - zcorn(:, :, 1:2:end);
-    zcorn_new = zeros(size(zcorn, 1), size(zcorn, 2), size(zcorn, 3) * nz);
-    if(nz>1)
-        for i = 0:nz - 1
-            zcorn_new(:, :, 2 * i + 1:2 * nz:end) = zcorn(:, :, 1:2:end) + i * dz / nz;
-            zcorn_new(:, :, 2 * i + 2:2 * nz:end) = zcorn(:, :, 1:2:end) + (i + 1) * dz / nz;
-        end
-    else
-        zcorn_new = zcorn;
-    end
+   %% refining in x direction
+   if(nx > 1)
+      dx = xyz(:, 2:end, :) - xyz(:, 1:end - 1, :);
+      slice = xyz(:, 1:end - 1, :);
+      endslice = xyz(:, end, :);
+      xyz = zeros(6, (size(xyz, 2) - 1) * nx + 1, size(xyz, 3));
+      for i = 1:nx
+         xyz(:, i:nx:end - 1, :) = slice + (i - 1) * dx / nx;
+      end
+      xyz(:, end, :) = endslice;
+      
+      dz = zcorn(2:2:end, :, :) - zcorn(1:2:end, :, :);
+      slice = zcorn(1:2:end, :, :);
+      zcorn = zeros(size(zcorn, 1) * nx, size(zcorn, 2), size(zcorn, 3));
+      for i = 0:nx - 1
+         zcorn(2 * i + 1:2 * nx:end, :, :) = slice + i * dz / nx;
+         zcorn(2 * i + 2:2 * nx:end, :, :) = slice + (i + 1) * dz / nx;
+      end
+   end
 
-    % refining in x direction
-    xyz_new = xyz;
-    if(nx>1)
-        zcorn = zcorn_new;
-        di = xyz(:, 2:end, :) - xyz(:, 1:end - 1, :);
-        xyz_new = zeros(6, (size(xyz, 2) - 1) * nx + 1, size(xyz, 3));
-        for i = 1:nx
-            xyz_new(:, i:nx:end - 1, :) = xyz(:, 1:end - 1, :) + (i - 1) * di / nx;
-        end
-        xyz_new(:, end, :) = xyz(:, end, :);
-        zcorn_new = zeros(size(zcorn, 1) * nx, size(zcorn, 2), size(zcorn, 3));
-        dz = zcorn(2:2:end, :, :) - zcorn(1:2:end, :, :);
-        if(nx>1)
-            for i = 0:nx - 1
-                zcorn_new(2 * i + 1:2 * nx:end, :, :) = zcorn(1:2:end, :, :) + i * dz / nx;
-                zcorn_new(2 * i + 2:2 * nx:end, :, :) = zcorn(1:2:end, :, :) + (i + 1) * dz / nx;
-            end
-        else
-            zcorn_new = zcorn;
-        end
-    end
+   %% refining in y direction
+   if(ny > 1)
+      dy = xyz(:, :, 2:end) - xyz(:, :, 1:end - 1);
+      slice = xyz(:, :, 1:end - 1);
+      endslice = xyz(:,:, end);
+      xyz = zeros(6, size(xyz, 2), (size(xyz, 3) - 1) * ny + 1);
+      for i = 1:ny
+         xyz(:, :, i:ny:end - 1) = slice + (i - 1) * dy / ny;
+      end
+      xyz(:, :, end) = endslice;
+      
+      dz = zcorn(:, 2:2:end, :) - zcorn(:, 1:2:end, :);
+      slice = zcorn(:, 1:2:end, :);
+      zcorn = zeros(size(zcorn, 1), size(zcorn, 2) * ny, size(zcorn, 3));
+      for i = 0:ny - 1
+         zcorn(:, 2 * i + 1:2 * ny:end, :) = slice + i * dz / ny;
+         zcorn(:, 2 * i + 2:2 * ny:end, :) = slice + (i + 1) * dz / ny;
+      end
+   end
 
-    % refining in y direction
-    zcorn = zcorn_new;
-    xyz = xyz_new;
-    dj = xyz(:, :, 2:end) - xyz(:, :, 1:end - 1);
-    if(ny>1)
-        xyz_new = zeros(6, size(xyz, 2), (size(xyz, 3) - 1) * ny + 1);
-        for i = 1:ny
-            xyz_new(:, :, i:ny:end - 1) = xyz(:, :, 1:end - 1) + (i - 1) * dj / ny;
-        end
-        xyz_new(:, :, end) = xyz(:, :, end);
-        zcorn_new = zeros(size(zcorn, 1), size(zcorn, 2) * ny, size(zcorn, 3));
-        dz = zcorn(:, 2:2:end, :) - zcorn(:, 1:2:end, :);
-        if(ny>1)
-            for i = 0:ny - 1
-                zcorn_new(:, 2 * i + 1:2 * ny:end, :) = zcorn(:, 1:2:end, :) + i * dz / ny;
-                zcorn_new(:, 2 * i + 2:2 * ny:end, :) = zcorn(:, 1:2:end, :) + (i + 1) * dz / ny;
-            end
-        else
-            zcorn_new = zcorn;
-        end
-    end
+   grdecl.cartDims = grdecl_in.cartDims .* [nx, ny, nz];
+   grdecl.COORD = xyz(:);
+   grdecl.ZCORN = zcorn(:);
 
-    grdecl_new.cartDims = grdecl.cartDims .* [nx, ny, nz];
-    grdecl_new.COORD = xyz_new(:);
-    grdecl_new.ZCORN = zcorn_new(:);
-    grdecl_new.ACTNUM = zeros(grdecl.cartDims .* [nx, ny, nz]);
+   %% refine faults, if any
+   if isfield(grdecl_in, 'FAULTS')
+      grdecl.FAULTS = refine_faults(grdecl_in.FAULTS, dim);
+      if isfield(grdecl_in,'MULTFLT')
+         grdecl.MULTFLT = grdecl_in.MULTFLT;
+      end
+   end
+   
+   %% expanding and copying associated cell-based fields
+   cartDims_in = grdecl_in.cartDims;
+   
+   if ~isfield(grdecl_in, 'ACTNUM')
+      % Interpret no ACTNUM as all cells active.  This is consistent with
+      % (e.g.) 'processGRDECL'.
+      grdecl_in.ACTNUM = ones([prod(cartDims_in), 1]);
+   end
+   
+   % expanding and copying cell based fields
+   fields = {'ACTNUM', 'PERMX', 'PERMY', 'PERMZ', 'PORO', 'MULTZ', 'MULTX', ...
+             'MULTY', 'EQLNUM', 'FLUXNUM', 'NTG'};
 
-    cartDims = grdecl.cartDims;
-
-    % cell based fields
-    keyword = {'ACTNUM', 'PERMX', 'PERMY', 'PERMZ', 'PORO'...
-               , 'MULTZ', 'MULTX', 'MULTY', 'EQLNUM'};
-
-    if ~isfield(grdecl, 'ACTNUM'),
-        % Interpret no ACTNUM as all cells active.  This is consistent with
-        % (e.g.) 'processGRDECL'.
-        grdecl.ACTNUM = ones([prod(cartDims), 1]);
-    end
-
-    for i = 1:numel(keyword)
-        if(isfield(grdecl, keyword{i}))
-            A = reshape(grdecl.(keyword{i}), cartDims);
-            grdecl_new.(keyword{i}) = A(ceil([1:nx * cartDims(1)] / nx), ceil([1:ny * cartDims(2)] / ny), ceil([1:nz * cartDims(3)] / nz));
-            grdecl_new.(keyword{i}) = grdecl_new.(keyword{i})(:);
-        end
-    end
-
-    % not changed fields
-    keyword = {'OIL', 'METRIC', 'WATER', 'EQUIL', 'ROCK', 'FLUID', 'START'};
-    for i = 1:numel(keyword)
-        if(isfield(grdecl, keyword{i}))
-            grdecl_new.(keyword{i}) = grdecl.(keyword{i});
-        end
-    end
-
-    % fault
-    if(isfield(grdecl, 'FAULTS'))
-        faults = fields(grdecl.FAULTS);
-        grdecl_new.FAULTS = grdecl.FAULTS;
-        for i = 1:numel(faults)
-            cells = grdecl_new.FAULTS.(faults{i}).cells;
-            grdecl_new.FAULTS.(faults{i}).cells = (cells - 1) .* repmat(dim(ceil([1:2 * 3] / 2)), size(cells, 1), 1) + 1;
-        end
-    end
-
-    if(isfield(grdecl, 'SCHEDULE'))
-        grdecl_new.SCHEDULE = grdecl.SCHEDULE;
-        for j = 1:numel(grdecl.SCHEDULE.control)
-            if(isfield(grdecl.SCHEDULE.control(j), 'WELSPECS'))
-                % wellspec mod
-                for i = 1:2
-                    E = grdecl.SCHEDULE.control(j).WELSPECS(:, 2 + i);
-                    grdecl_new.SCHEDULE.control(j).WELSPECS(:, 2 + i) = cellfun(@(x) dim(i) .* (x - 1) + 1, E, 'unif', false);
-                end
-                for i = 1:4
-                    E = grdecl.SCHEDULE.control(j).COMPDAT(:, 1 + i);
-                    if(i<4)
-                        fac = dim(i);
-                    else
-                        fac = dim(3);
-                    end
-                    grdecl_new.SCHEDULE.control.COMPDAT(:, 1 + i) = cellfun(@(x) fac .* (x - 1) + 1, E, 'unif', false);
-                end
-                % repeat perforation in the right direction and change fields
-                compdat_old = grdecl_new.SCHEDULE.control(j).COMPDAT;
-                grdecl_new.SCHEDULE.control(j).COMPDAT = [];
-                for i = 1:size(compdat_old, 1)
-                    gg = compdat_old(i, :);
-                    tmp_str = struct('X', 1, 'Y', 2, 'Z', 3);
-                    mydim = tmp_str.(cell2mat(gg(end - 1)));
-                    % mydim = dim(tmp_str.(cell2mat(gg(end - 1))));
-                    gg = repmat(gg, dim(mydim), 1);
-                    for d = 1:size(gg, 1)
-                        if(mydim<3)
-                            gg(d, 1 + mydim) = {cell2mat(gg(d, 1 + mydim)) + d - 1};
-                            if(mydim == 1)
-                                gg(d, 3) = {cell2mat(gg(d, 3)) + floor(dim(2) / 2)};
-                            else
-                                gg(d, 2) = {cell2mat(gg(d, 2)) + floor(dim(1) / 2)};
-                            end
-                            gg(d, 4) = {cell2mat(gg(d, 4)) + floor(dim(3) / 2)};
-                            gg(d, 5) = {cell2mat(gg(d, 5)) + floor(dim(3) / 2)};
-                        else
-                            gg(d, 4) = {cell2mat(gg(d, 4)) + d - 1};
-                            gg(d, 5) = {cell2mat(gg(d, 5)) + d - 1};
-                            % place the perforation in midle of cell
-                            gg(d, 2) = {cell2mat(gg(d, 2)) + floor(dim(1) / 2)};
-                            gg(d, 3) = {cell2mat(gg(d, 3)) + floor(dim(2) / 2)};
-                        end
-                        if(~opt.default_well)
-                            if(cell2mat(gg(d, 8))>0)
-                                gg(d, 8) = {cell2mat(gg(d, 8)) / mydim}; % trans
-                            end
-                            if(cell2mat(gg(d, 10))>0)
-                                gg(d, 10) = {cell2mat(gg(d, 10)) / mydim}; % KH
-                            end
-                        else
-                            gg(d, 8) = {' - 1'};
-                            gg(d,10) = {' - 1'};
-                        end
-                    end
-                    grdecl_new.SCHEDULE.control(j).COMPDAT = [grdecl_new.SCHEDULE.control(j).COMPDAT;gg];
-                end
-            end
-        end
-    end
-
-    grdecl =grdecl_new;
+   for f = fields
+      if isfield(grdecl_in, f{:})
+         A = reshape(grdecl_in.(f{:}), cartDims_in);
+         grdecl.(f{:}) = A(ceil((1:nx * cartDims_in(1)) / nx), ...
+                           ceil((1:ny * cartDims_in(2)) / ny), ...
+                           ceil((1:nz * cartDims_in(3)) / nz));
+         grdecl.(f{:}) = grdecl.(f{:})(:);
+      end
+   end
+end  
+ 
+% ----------------------------------------------------------------------------
+function faults = refine_faults(faults_in, refs)
+   
+   sdim = {'X','Y','Z'};
+   dd = size(faults_in);
+   faults = faults_in;
+   for i = 1:dd(1)
+      for j = 0:2
+         if ~(sdim{j+1}==faults_in{i,8})
+            faults{i,1+2*j+1} = (faults_in{i,1+2*j+1}-1) * refs(j+1)+1;
+            faults{i,1+2*j+2} = (faults_in{i,1+2*j+2}-1) * refs(j+1)+1+(refs(j+1)-1);
+         else
+            faults{i,1+2*j+1} = (faults_in{i,1+2*j+1}-1)*refs(j+1)+1+refs(j+1)-1;
+            faults{i,1+2*j+2} = (faults_in{i,1+2*j+2}-1)*refs(j+1)+1+refs(j+1)-1;
+         end
+      end
+   end
 end
