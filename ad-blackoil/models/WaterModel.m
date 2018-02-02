@@ -12,9 +12,6 @@ classdef WaterModel < ReservoirModel
             model.gas = false;
             model.water = true;
             model.useCNVConvergence = false;
-            
-            model.saturationVarNames = {'sw'};
-            
             model = merge_options(model, varargin{:});
         end
         
