@@ -118,7 +118,13 @@ vO = -s.faceUpstr(upco, mobO).*T.*dpO;
 % Gas flux
 rhoGf  = s.faceAvg(sG.*rhoG)./max(s.faceAvg(sG), 1e-8);
 mobG   = krG./muG;
-dpG    = s.Grad(p) - rhoGf.*gdz;
+if isfield(fluid, 'pcOG')
+    pcOG  = fluid.pcOG(sG);
+    pG = p + pcOG;
+else
+    pG = p;
+end
+dpG    = s.Grad(pG) - rhoGf.*gdz;
 upcg  = (double(dpG)<=0);
 vG = -s.faceUpstr(upcg, mobG).*T.*dpG;
 
@@ -141,7 +147,13 @@ if model.water
 
     rhoWf  = s.faceAvg(rhoW);
     mobW   = krW./muW;
-    dpW    = s.Grad(p) - rhoWf.*gdz;
+    if isfield(fluid, 'pcOW')
+        pcOW  = fluid.pcOW(sW);
+        pW = p + pcOW;
+    else
+        pW = p;
+    end
+    dpW    = s.Grad(pW) - rhoWf.*gdz;
     upcw  = (double(dpW)<=0);
     vW = -s.faceUpstr(upcw, mobW).*T.*dpW;
     rWvW = s.faceUpstr(upcw, rhoW).*vW;
@@ -197,11 +209,11 @@ end
 if model.water
     rho = {rhoW, rhoO, rhoG};
     mob = {mobW, mobO, mobG};
-    pressures = {p, p, p};
+    pressures = {pW, p, pG};
 else
     rho = {rhoO, rhoG};
     mob = {mobO, mobG};
-    pressures = {p, p};
+    pressures = {p, pG};
 end
 comps = cellfun(@(x, y) {x, y}, xM, yM, 'UniformOutput', false);
 
