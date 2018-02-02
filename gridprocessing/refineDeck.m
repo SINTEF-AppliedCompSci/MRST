@@ -171,11 +171,11 @@ function schedule = refine_wells(schedule, dim, default_well)
          else
             nz = [gg{:, 8}] > 0;
             if any(nz) % trans
-               gg(nz, 8) = arrayfun(@(x) x, [gg{nz, 8}] / mydim, 'unif', false); 
+               gg(nz, 8) = arrayfun(@(x) x, [gg{nz, 8}] / dim(mydim), 'unif', false); 
             end
             nz = [gg{:, 10}] > 0;
             if any(nz) % KH
-               gg(nz, 10) = arrayfun(@(x) x, [gg{nz, 10}] / mydim, 'unif', false); 
+               gg(nz, 10) = arrayfun(@(x) x, [gg{nz, 10}] / dim(mydim), 'unif', false); 
             end
          end
          
