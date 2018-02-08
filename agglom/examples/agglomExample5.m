@@ -59,8 +59,8 @@ outlineCoarseGrid(G,p); axis equal tight off
 % the coarsening, we specify it in the option |'static_partition'| in the
 % call to |mergeBlocks|. Then the interfaces in this partitioning will not
 % be crossed.
-p1 = mergeBlocks(p, G, iV, iV, 30);
-p2 = mergeBlocks(p, G, iV, iV, 30, 'static_partition', pS);
+p1 = mergeBlocks(p, G, rock.poro, iV, 30);
+p2 = mergeBlocks(p, G, rock.poro, iV, 30, 'static_partition', pS);
 
 %%
 % We then plot the result to confirm that the uniform partition is
