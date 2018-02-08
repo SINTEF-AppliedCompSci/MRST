@@ -57,6 +57,8 @@ rSol = initState(G, W, 0, [0, 1]);
 rSol = incompTPFA(rSol, G, hT, fluid, 'wells', W);
 
 t = 0; 
+pv = poreVolume(G, rock);
+oip = sum(rSol.s(:,2).*pv);
 colormap(flipud(winter))
 wellSols = cell(numel(dT),1);
 set(gca,'XTick',[],'Ytick',[],'ZTick',[]);
@@ -107,3 +109,35 @@ axis tight, view(45,35)
 
 %% Plot surface rates etc using GUI
 plotWellSols(wellSols, cumsum(dT));
+
+%{
+%% Oil surface rate
+t = cumsum(dT)/day;
+qOs = cellfun(@(x) abs(x(1).qOs), wellSols);
+figure, set(gca,'Fontsize',24)
+plot(t, qOs,'LineWidth',2); 
+xlabel('Time [days]'); title('Oil surface rate [m^3/s]');
+axis tight
+
+%%
+figure, set(gca,'Fontsize',24)
+plot(t,cumsum(qOs.*dT),'LineWidth',2);
+hold on, plot(t([1 end]),[oip oip],'--r','LineWidth',2); hold off
+xlabel('Time [days]'); title('Cumulative oil production [m^3]');
+axis tight
+
+%% Water surface rate
+qWs(:,1) = cellfun(@(x) abs(x(1).qWs), wellSols);
+qWs(:,2) = cellfun(@(x) abs(x(2).qWs), wellSols);
+figure, set(gca,'Fontsize',24)
+plot(t, qWs,'LineWidth',2); 
+xlabel('Time [days]'); title('Water surface rate [m^3/s]');
+axis tight
+
+%%
+figure, set(gca,'Fontsize',24)
+plot(t,[cumsum(qWs(:,1).*dT) cumsum(qWs(:,2).*dT)],'LineWidth',2);
+hold on, plot(t([1 end]),[oip oip],'--r','LineWidth',2); hold off
+xlabel('Time [days]'); title('Cumulative oil production [m^3]');
+set(gca,'XLim',t([1 end]));
+%}
