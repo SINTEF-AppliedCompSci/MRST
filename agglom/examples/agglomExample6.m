@@ -78,9 +78,9 @@ if useCart,
    p = partitionUI(G, [6 22 1]);
 else
    p = segmentIndicator(G, iTOF, 2*round(max(iTOF) - min(iTOF)) ); %#ok<UNRCH>
-   p = mergeBlocks2(p, G, pv, iTOF, NL, NU);
+   p = mergeBlocks2(p, G, pv./G.cells.volumes, iTOF, NL, NU);
    p = refineGreedy2(p, G, iTOF, NU);
-   p = mergeBlocks2(p, G, pv, iTOF, NL, NU);
+   p = mergeBlocks2(p, G, pv./G.cells.volumes, iTOF, NL, NU);
    [b, bi, pS] = unique([pS, p], 'rows');
 end
 [blks, p] = findConfinedBlocks(G,p);
