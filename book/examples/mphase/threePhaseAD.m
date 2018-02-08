@@ -59,6 +59,7 @@ fn   = fullfile(pth, 'BENCH_SPE3.DATA');
 deck = readEclipseDeck(fn);
 deck = convertDeckUnits(deck);
 f    = initDeckADIFluid(deck);
+f    = assignRelPerm(f);
 
 %% Extract grid information
 nf = G.faces.num;                                 % Number of faces
