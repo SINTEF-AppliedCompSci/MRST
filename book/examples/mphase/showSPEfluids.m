@@ -124,9 +124,9 @@ plot(pbp/barsa,rsd,'-o',pargs{:}); xlabel('Pressure [bar]');
 [M, N]    = deal(11,51);
 [RsMax,pMax] = deal(max(rsd), max(pbp));
 [rs,p]    = meshgrid(linspace(10,RsMax-10,M), linspace(0,pMax,N));
-Rs        = reshape(f.rsSat(p(:)), N, M);
-isSat     = rs >= Rs;
-rs(isSat) = Rs(isSat);
+Rv        = reshape(f.rsSat(p(:)), N, M);
+isSat     = rs >= Rv;
+rs(isSat) = Rv(isSat);
 Bo        = 1./reshape(f.bO(p(:), rs(:), isSat(:)),N,M);
 muO       = reshape(f.muO(p(:), rs(:), isSat(:)),N,M);
 
@@ -173,9 +173,9 @@ title('Gas viscosity [cP]');
 [M, N]    = deal(101,201);
 [rs,p]    = meshgrid(linspace(f.rsSat(100*barsa),f.rsSat(1300*barsa),M), ...
               linspace(100,1300,N)*barsa);
-Rs        = reshape(f.rsSat(p(:)), N, M);
-isSat     = rs >= Rs;
-rs(isSat) = Rs(isSat);
+Rv        = reshape(f.rsSat(p(:)), N, M);
+isSat     = rs >= Rv;
+rs(isSat) = Rv(isSat);
 bo        = reshape(f.bO (p(:), rs(:), isSat(:)),N,M);
 Bo        = 1./bo;
 muO       = reshape(f.muO(p(:), rs(:), isSat(:)),N,M);
@@ -183,13 +183,16 @@ bg        = reshape(f.bG (p(:)), N, M);
 Bg        = 1./bg;
 
 figure
-contourf(p/barsa,rs,bo,21); axis tight
-set(gca,'FontSize',14); xlabel('Pressure [bar]'); ylabel('Gas-oil ratio');
-colorbar;
+contourf(p/barsa,rs,bo,[-inf linspace(-.2,.9,12) inf]); axis tight
+set(gca,'FontSize',20); xlabel('Pressure [bar]'); ylabel('Gas-oil ratio');
+cb = colorbar; set(cb,'FontSize',20);
+colormap(repmat([linspace(.2,.3,4) linspace(.6,1,20)]',1,3));
+
 figure
 contourf(p/barsa,rs,1./bo - rs./bg,[-inf linspace(-10,10,41) inf]); axis tight
-set(gca,'FontSize',14); xlabel('Pressure [bar]');ylabel('Gas-oil ratio');
-caxis([-10,10]); colorbar;
+set(gca,'FontSize',20); xlabel('Pressure [bar]');ylabel('Gas-oil ratio');
+caxis([-10,10]); cb = colorbar; set(cb,'FontSize',20);
+colormap(repmat([linspace(.25,.5,20) linspace(.7,.95,20)]',1,3));
 
 % =========================================================================
 %% Dead oil and gas with vaporized oil (SPE3)
@@ -279,3 +282,57 @@ plot(pbp,muGd([pvtg.pos(2:end-1)'-1 end]),'-or', ...
 hold off
 xlabel('Pressure [bar]');
 title('Gas viscosity [cP]');
+
+
+%% Interpolation/extrapolation of viscosity
+% For sufficintly high pressure/gas-oil ratios, the interpolated viscosity
+% values exhibit unphysical behavior 
+[M, N]    = deal(51,51);
+[rs,pp]    = meshgrid(linspace(0,f.rvSat(240*barsa),M), ...
+              linspace(200,240,N)*barsa);
+Rv        = reshape(f.rvSat(pp(:)), N, M);
+isSat     = rs >= Rv;
+rs(isSat) = Rv(isSat);
+muG       = reshape(f.muG(pp(:), rs(:), isSat(:)),N,M);
+
+figure;
+contourf(pp/barsa,rs,convertTo(muG,centi*poise),21);
+hold on
+p    = pvtg.key(rldecode((1:numel(pvtg.key))',diff(pvtg.pos),1))/barsa;
+for i=1:numel(pbp)
+    ind = pvtg.pos(i):pvtg.pos(i+1)-1;
+    plot(p(ind),pvtg.data(ind,1),'-ok',...
+        'MarkerSize',6,'MarkerFaceColor',[.5 .5 .5]);
+end
+plot(pbp,rvd,'-o',pargs{:});
+hold off
+cb = colorbar; set([gca;cb],'FontSize',20); xlabel('Pressure [bar]');
+
+%%
+% Plot viscosity as function of pressure only for a larger pressure
+% interval
+[M, N]    = deal(11,21);
+[rs,pp]    = meshgrid(linspace(0,f.rvSat(280*barsa),M), ...
+              linspace(160,280,N)*barsa);
+Rv        = reshape(f.rvSat(pp(:)), N, M);
+isSat     = rs >= Rv;
+rs(isSat) = Rv(isSat);
+muG       = convertTo(reshape(f.muG(pp(:), rs(:), isSat(:)),N,M),centi*poise);
+
+figure
+y = muG; y(isSat)=NaN;
+z = muG; z(~isSat) = NaN;
+plot(pp/barsa, y,'k--');
+hold on
+plot(pp/barsa, z, '--k','LineWidth',3);
+hold on, set(gca,'FontSize',20)
+for i=1:numel(pbp)
+    ind = pvtg.pos(i):pvtg.pos(i+1)-1;
+    plot(p(ind), muGd(ind), '-ok',...
+        'MarkerSize',6,'MarkerFaceColor',[.5 .5 .5] );
+end
+plot(pbp,muGd([pvtg.pos(2:end-1)'-1 end]),'-ok', ...
+    pbp, muGd(pvtg.pos(1:end-1)), '-ok',pargs{:});
+hold off
+xlabel('Pressure [bar]');
+axis([160 280 0.015 0.08]);
