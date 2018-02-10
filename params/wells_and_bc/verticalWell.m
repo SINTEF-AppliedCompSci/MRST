@@ -106,7 +106,7 @@ assert (isnumeric(I) && numel(I) == 1);
 %--------------------------------------------------------------------------
 % Determine call mode. ----------------------------------------------------
 %
-if mod(nargin, 2) == 0,
+if mod(nargin, 2) == 0
    % W = verticalWell(W, G, rock, I, J, K, ...)
    %
    assert (isfield(G, 'cartDims'));
@@ -127,11 +127,11 @@ if mod(nargin, 2) == 0,
 else
    % W = verticalWell(W, G, rock, I, K, ...)
    %
-   if isfield(G, 'layerSize') && isfield(G, 'numLayers'),
+   if isfield(G, 'layerSize') && isfield(G, 'numLayers')
       % G presumably a 'makeLayeredGrid'.
       layerSize = G.layerSize;
       numLayers = G.numLayers;
-   elseif isfield(G, 'cartDims'),
+   elseif isfield(G, 'cartDims')
       % Logically Cartesian grid.
       layerSize = prod(G.cartDims(1:2));
       if G.griddim == 3
@@ -149,7 +149,7 @@ end
 % Extract layer vector (K). -----------------------------------------------
 %
 K = varargin{1}; varargin = varargin(2 : end);
-if isempty(K),
+if isempty(K)
    % Empty 'K'.  Complete in all layers.
    K = (1 : numLayers) .';
 end
@@ -167,14 +167,24 @@ opt = struct('InnerProduct', 'ip_tpf',                     ...
              'Val'         , 0,                            ...
              'Comp_i'      , [1, 0, 0],                    ...
              'c'           , [],                           ...
-             'WI'          , repmat(-1, [nc, 1]),          ...
-             'Kh'          , repmat(-1, [nc, 1]),          ...
-             'Skin'        , zeros([nc, 1]),               ...
+             'WI'          , -1,                           ...
+             'Kh'          , -1,                           ...
+             'Skin'        , 0,                            ...
              'RefDepth'    , 0,                            ...
              'lims'        , [],                           ...
              'Sign'        , 0);
 opt = merge_options(opt, varargin{:});
 
+% Expand scalar values to vectors equal to the number of cells
+if numel(opt.WI) == 1
+    opt.WI = repmat(opt.WI, nc, 1);
+end
+if numel(opt.Skin) == 1
+    opt.Skin = repmat(opt.Skin, nc, 1);
+end
+if numel(opt.Kh) == 1
+    opt.Kh = repmat(opt.Kh, nc, 1);
+end
 %--------------------------------------------------------------------------
 % Extract active completions. ---------------------------------------------
 %
