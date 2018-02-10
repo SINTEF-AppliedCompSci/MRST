@@ -25,8 +25,7 @@ G = cartGrid([50, 1, 1], [1000, 10, 10]*meter);
 G = computeGeometry(G);
 
 % Homogenous rock properties
-rock = struct('perm', darcy*ones(G.cells.num, 1), ...
-              'poro', .3*ones(G.cells.num, 1));
+rock = makeRock(G, 1*darcy, .3);
 
 % Default oil-water fluid with unit values
 fluid = initSimpleADIFluid('phases', 'WO', 'n', [2 2]);
