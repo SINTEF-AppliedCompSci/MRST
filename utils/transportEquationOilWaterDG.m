@@ -58,25 +58,33 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     w = 1;
     psi = @(x) [w*prod(x.^[0,0],2), w*prod(x.^[1,0],2), w*prod(x.^[0,1],2)];
     
+    w = 1;
     psi = {@(x) w*prod(x.^[0,0],2), @(x) w*prod(x.^[1,0],2), @(x) w*prod(x.^[0,1],2)};
     
-    sW = satfun(sWdof, psi, model.G);
-    ss = sW([1,1]);
-
-    for cNo = 1:model.G.cells.num
-        sWc = 0;
-        for dofNo = 1:nDof
-            psi = Polynomial(k(dofNo,:));
-            sWc  = sWc + sWdof((cNo-1)*dofNo + dofNo)*psi;
-        end
-        sW{cNo} = sWc;
-        sloc = zeros(nDof,1);
-        [intFun, w, x] = makeCellIntegrator(model.G, cNo, model.degree, 'tri');
-        for dofNo = 1:nDof
-            psi = Polynomial(k(dofNo,:));
-            sloc(dofNo) = intFun(sWc*psi);
-        end
-    end
+    x = [1,1;2,2;3,3;4,4;5,5];
+    c = [1;1;2;3;4];
+    sW = getSatFromDof(x, model, sWdof, c);
+    
+    
+    asd
+    
+%     sW = satfun(model, sWdof, psi, model.G);
+%     ss = sW([1,1]);
+% 
+%     for cNo = 1:model.G.cells.num
+%         sWc = 0;
+%         for dofNo = 1:nDof
+%             psi = Polynomial(k(dofNo,:));
+%             sWc  = sWc + sWdof((cNo-1)*dofNo + dofNo)*psi;
+%         end
+%         sW{cNo} = sWc;
+%         sloc = zeros(nDof,1);
+%         [intFun, w, x] = makeCellIntegrator(model.G, cNo, model.degree, 'tri');
+%         for dofNo = 1:nDof
+%             psi = Polynomial(k(dofNo,:));
+%             sloc(dofNo) = intFun(sWc*psi);
+%         end
+%     end
     
     
 
