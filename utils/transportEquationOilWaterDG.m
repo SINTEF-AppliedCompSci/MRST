@@ -14,6 +14,7 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     W   = drivingForces.W;
     op   = model.operators;
     fluid = model.fluid;
+    G = model.G;
 
     assert(~(opt.solveForWater && opt.solveForOil));
 
@@ -50,23 +51,130 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
 %     
 %     flux = 0;
 
-    [k, nDof] = dgBasis(model.degree, model.G.griddim);
+    [k, nDof, psi, grad_psi] = dgBasis(model.degree, model.G.griddim);
 
     sW  = cell(model.G.cells.num,1);
-%     sW0 = @(cell,x) 0*x;
+%   
+
+    sW0 = @(cell,x) 0*x;
     
     w = 1;
-    psi = @(x) [w*prod(x.^[0,0],2), w*prod(x.^[1,0],2), w*prod(x.^[0,1],2)];
+%     psi = @(x) [w*prod(x.^[0,0],2), w*prod(x.^[1,0],2), w*prod(x.^[0,1],2)];
+    
+    w = 1;
+%     psi = {@(x) w*prod(x.^[0,0],2), @(x) w*prod(x.^[1,0],2), @(x) w*prod(x.^[0,1],2)};
+    
+%     x = [1,1;2,2;3,3;4,4;5,5];
+%     c = [1;1;2;3;4];
+    sW = @(x,c) getSatFromDof(x, c, sWdof, psi, G);
+    sW0 = @(x,c) getSatFromDof(x, c, sWdof0, psi, G);
+    
+    G = model.G;
+    [~, w, x, cells] = makeCellIntegrator(G, (1:G.cells.num)', model.degree, 'tri');
+    nq = size(w,1);
+    
+    w = repmat(w(:), nDof, 1);
+    [ii, jj] = blockDiagIndex(ones(G.cells.num*nDof, 1), repmat(diff(G.cells.facePos)*nq, nDof,1));
+    w = sparse(ii, jj, w);
+    
+    acc = sWdof;
+    ps = [];
+    ps0 = [];
+    for dofNo = 1:nDof
+        ps = [ps; psi{dofNo}(x).*sW(x,cells)];
+        ps0 = [ps0; psi{dofNo}(x).*sW0(x,cells)];
+    end
+    a = ps;
+    
+    acc = w*(ps - ps0);
+    
+    mobW = @(x,c) fluid.krW(sW(x, c))./fluid.muW(p);
+    mobO = @(x,c) fluid.krO(1-sW(x, c))./fluid.muO(p);
+    
+    fs = [];
+    fW = @(x,c) mobW(x,c)./(mobW(x,c) + mobO(x,c));
+    for dofNo = 1:nDof
+        fs = [fs; psi{dofNo}(x).*sW(x,cells)];
+    end
+    flux = w*fs;
+    
     
     w = 1;
     psi = {@(x) w*prod(x.^[0,0],2), @(x) w*prod(x.^[1,0],2), @(x) w*prod(x.^[0,1],2)};
+    sW = @(x,c) getSatFromDof(x, c, sWdof, psi, G);
+
+    [pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
+    T = op.T.*transMult;
+    gdz = 0;
+    [vW, bW, mobW, rhoW, pW, upcW, dpW, muW] = getPropsWater_DG(model, p, sW, T, gdz);
     
-    x = [1,1;2,2;3,3;4,4;5,5];
-    c = [1;1;2;3;4];
-    sW = getSatFromDof(x, model, sWdof, c);
+    sO = @(x,c) 1-sW(x,c);
+    [vO, bO, mobO, rhoO, pO, upcO, dpO, muO] = getPropsOil_DG(model, p, sO, T, gdz);
+    
+%     [flag_v, flag_g] = getSaturationUpwind(model.upwindType, state, {Gw, Go}, vT, op.T, {mobW, mobO}, s.faceUpstr);
+%     flag = flag_v;
+    
+    vT = faceFlux2cellVelocity(G, sum(state.flux,2));
+    grad_vTpsi = @(x,c) sum(vT(c,:).*grad_psi{2}(x),2);
+
+    fW = @(x,c) mobW(x,c)./(mobW(x,c) + mobO(x,c));
+    
+    fWgrad_vTpsi = @(x,c) fW(x,c).*grad_vTpsi(x,c);
     
     
-    asd
+    
+    
+%     div(v*psi
+    
+    % cellInt(sW, psi);
+    % cellInt(fdiv v)
+    % faceInt(f)
+    
+    
+    
+    
+%     vT = @(x) vT
+%     
+%     
+%     
+    [vW, bW, mobW, rhoW, pW, upcw, dpW] = getFluxAndPropsWater_BO(model, p, sW, krW, T, gdz);
+
+    % Evaluate oil properties
+    [vO, bO, mobO, rhoO, pO, upco, dpO] = getFluxAndPropsOil_BO(model, p, sO, krO, T, gdz);
+
+    gp = s.Grad(p);
+    Gw = gp - dpW;
+    Go = gp - dpO;
+    
+    flux = sum(state.flux, 2);
+    vT = flux(model.operators.internalConn);
+
+    % Stored upstream indices
+    [flag_v, flag_g] = getSaturationUpwind(model.upwindType, state, {Gw, Go}, vT, op.T, {mobW, mobO}, s.faceUpstr);
+    flag = flag_v;
+
+    upcw  = flag(:, 1);
+    upco  = flag(:, 2);
+
+    upcw_g = flag_g(:, 1);
+    upco_g = flag_g(:, 2);
+
+    mobOf = s.faceUpstr(upco, mobO);
+    mobWf = s.faceUpstr(upcw, mobW);
+
+    totMob = (mobOf + mobWf);
+
+    mobWf_G = s.faceUpstr(upcw_g, mobW);
+    mobOf_G = s.faceUpstr(upco_g, mobO);
+    mobTf_G = mobWf_G + mobOf_G;
+    f_g = mobWf_G.*mobOf_G./mobTf_G;
+%     if opt.solveForWater
+        f_w = mobWf./totMob;
+        bWvW   = s.faceUpstr(upcw, bW).*f_w.*vT + s.faceUpstr(upcw_g, bO).*f_g.*s.T.*(Gw - Go);
+    
+    [vW, bW, mobW, rhoW, pW, upcw, dpW] ...
+                      = getFluxAndPropsWater_BO(model, p, sW, krW, T, gdz);
+
     
 %     sW = satfun(model, sWdof, psi, model.G);
 %     ss = sW([1,1]);
@@ -250,13 +358,13 @@ end
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 end
 
-function fun = satfun(sdof, psi, G)
-    
-    fun = @(x) x(:,1)*0;
-    nDof = size(psi,2);
-    for dofNo = 1:size(psi,2)
-        ix = (1:nDof:G.cells.num*nDof) + dofNo - 1;
-        fun = @(x) fun(x) + sdof(ix).*psi{dofNo}(x);
-    end
-    
-end
+% function fun = getSatFromDof(sdof, psi, G)
+%     
+%     fun = @(x) x(:,1)*0;
+%     nDof = size(psi,2);
+%     for dofNo = 1:size(psi,2)
+%         ix = (1:nDof:G.cells.num*nDof) + dofNo - 1;
+%         fun = @(x) fun(x) + sdof(ix).*psi{dofNo}(x);
+%     end
+%     
+% end

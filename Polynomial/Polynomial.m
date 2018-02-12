@@ -11,13 +11,15 @@ classdef Polynomial
         function p = Polynomial(k, w)
             if nargin == 0
                 p.k = [0,0,0];
-                p.w = {0};
+                p.w = 1;
+%                 p.w = {0};
             elseif nargin == 1
                 p.k = k;
                 p.w = cell(size(k,1),1);
-                [p.w{:}] = deal(1);
+                p.w = ones(size(k,1),1);
+%                 [p.w{:}] = deal(1);
             elseif nargin == 2
-                assert(isa(w, 'cell'));
+%                 assert(isa(w, 'cell'));
                 p.k = k;
                 p.w = w;
             else
@@ -31,15 +33,33 @@ classdef Polynomial
             switch x(1).type
                 case '()'
                     x = x.subs{1};
-                    val = 0;
-                    for wNo = 1:numel(p)
-                        val = val + prod(x.^p.k(wNo,:),2).*p.w{wNo};
+                    
+                    val = zeros(size(x,1), size(p,2));
+                    for dNo = 1:size(p,2)
+                        pk = reshape(repmat(p(dNo).k', size(x,1), 1), p(dNo).dim, [])';
+                        pw = reshape(repmat(p(dNo).w', size(x,1), 1), 1, [])';
+                        tmp = pw.*prod(repmat(x, numel(p(dNo)), 1).^pk,2);
+                        val(:, dNo) = accumarray(repmat((1:size(x,1))', numel(p(dNo)), 1), tmp);
                     end
+%                     for wNo = 1:numel(p)
+%                         val = val + prod(x.^p.k(wNo,:),2).*p.w{wNo};
+%                     end
                     [varargout{1:nargout}] = val;
                 otherwise
                     [varargout{1:nargout}] = builtin('subsref', p, x);
             end
 
+        end
+        
+        function r = dx(p, i)
+            r = p;
+            r.w = r.w.*r.k(:,i);
+            r.k(:,i) = max(r.k(:,i) - 1, 0);
+        end
+        function v = grad(p)
+            for dNo = 1:p.dim
+                v(dNo) = dx(p,dNo);
+            end
         end
         
         function n = numel(p)
@@ -51,7 +71,8 @@ classdef Polynomial
         end
         
         function p = uminus(p)
-            p.w = cellfun(@(w) -w, p.w, 'unif', false);
+            p.w = -p.w;
+%             p.w = cellfun(@(w) -w, p.w, 'unif', false);
         end
         
         function r = plus(p,q)
@@ -84,13 +105,18 @@ classdef Polynomial
                 qk = rldecode(q.k, numel(p)*ones(numel(q),1), 1);
                 rk = qk + pk;
                 
-                rw = cell(numel(p)*numel(q),1);
-                for i = 1:numel(p)
-                    for j = 1:numel(q)
-                        rw{(i-1)*numel(q) + j} = p.w{i}*q.w{j};
-                    end
-                end
+                pw = repmat(p.w, numel(q), 1);
+                qw = rldecode(q.w, numel(p)*ones(numel(q),1), 1);
+                rw = qw.*pw;
                 
+                
+%                 rw = cell(numel(p)*numel(q),1);
+%                 for i = 1:numel(p)
+%                     for j = 1:numel(q)
+%                         rw{(i-1)*numel(q) + j} = p.w{i}*q.w{j};
+%                     end
+%                 end
+%                 
                 r = Polynomial(rk, rw);
             end
         end

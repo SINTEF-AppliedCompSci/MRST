@@ -1,4 +1,4 @@
-function [intFun, w, x] = makeCellIntegrator(G, cells, degree, type)
+function [intFun, w, x, cells] = makeCellIntegrator(G, cells, degree, type)
 
     faces = G.cells.faces(mcolon(G.cells.facePos(cells), G.cells.facePos(cells+1)-1));
     nodes = G.faces.nodes(mcolon(G.faces.nodePos(faces), G.faces.nodePos(faces+1)-1));
@@ -22,6 +22,9 @@ function [intFun, w, x] = makeCellIntegrator(G, cells, degree, type)
             W = sparse(ii, jj, w(:));
             
             intFun = @(fun) W*fun(x);
+            
+            cells = rldecode((1:G.cells.num)', ncf(cells)*nq, 1);
+%             w
             
         case 'div'
     

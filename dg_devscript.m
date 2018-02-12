@@ -35,4 +35,5 @@ schedule = simpleSchedule(dtvec, 'W', W);
 state0 = initResSol(G, 100*barsa, [1,0]);
 [k, nDof] = dgBasis(model.transportModel.degree, G.griddim);
 state0.sdof = zeros(G.cells.num*nDof, 1);
+state0.sdof(1:nDof:G.cells.num*nDof) = 1;
 [ws, state, rep] = simulateScheduleAD(state0, model, schedule);
