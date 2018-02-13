@@ -37,8 +37,8 @@ state0.wellSol = initWellSolAD([], model, state0);
 
 % Set up drive mechanism: constant rate at x=0, constant pressure at x=L
 pv = poreVolume(G, rock);
-injRate = -sum(pv)/(500*day);
-bc = fluxside([], G, 'xmin', -injRate, 'sat', [1, 0]);
+injRate = sum(pv)/(500*day);
+bc = fluxside([], G, 'xmin', injRate, 'sat', [1, 0]);
 bc = pside(bc, G, 'xmax', 0*barsa, 'sat', [0, 1]);
 
 %% Simulate 1 PVI using a manual loop
@@ -47,10 +47,11 @@ bc = pside(bc, G, 'xmax', 0*barsa, 'sat', [0, 1]);
 % implicit time step
 solver = NonLinearSolver();
 
-dT = 20*day;
-n = 25;
+n  = 25;
+dT = (500/n)*day;
 states = cell(n+1, 1);
 states{1} = state0;
+solver.verbose = true;
 for i = 1:n
     state = solver.solveTimestep(states{i}, dT, model, 'bc', bc);
     states{i+1} = state;
