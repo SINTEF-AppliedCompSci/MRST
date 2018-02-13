@@ -544,7 +544,7 @@ classdef SimpleWell < PhysicalModel
         end
     end
     
-    methods (Static, Access = private)
+    methods (Static, Access = protected)
         function C = wb2in(w)
             conn = w.topo(2:end, :);
             % Number of connections between perforations
