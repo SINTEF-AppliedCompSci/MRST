@@ -36,6 +36,7 @@ classdef LinearSolverAD < handle
         applyLeftDiagonalScaling % Apply left diagonal scaling before solving
         applyRightDiagonalScaling % Apply right diagonal scaling before solving
         keepNumber % If set, linear solver will reduce the system to the first keepNumber entries
+        useSparseReduction % If true, sparse indexing will be used with keepNumber option
         variableOrdering % Variable ordering to be used for linear solver. Row vector of equal length to the size of the linear system.
         equationOrdering % Equation ordering to be used for linear solver. Row vector of equal length to the size of the linear system.
     end
@@ -51,6 +52,7 @@ classdef LinearSolverAD < handle
             solver.replacementNaN  = 0;
             solver.replacementInf  = 0;
             solver.reduceToCell    = false;
+            solver.useSparseReduction = true;
             solver.applyLeftDiagonalScaling = false;
             solver.applyRightDiagonalScaling = false;
             solver.variableOrdering = [];
@@ -188,27 +190,37 @@ classdef LinearSolverAD < handle
             if any(~isfinite(b))
                 warning('Non-finite values in right-hand side before Schur-complement reduction.');
             end
-            n = size(A, 2);
-            keep = false(n, 1);
-            keep(start) = true;
             
-            
-            keepRow = keep(ix);
-            keepCol = keep(jx);
-            kb = keepRow & keepCol;
-            sys.B = sparse(ix(kb), jx(kb), vx(kb), nk, nk);
-            
-            kc = keepRow & ~keepCol;
-            sys.C = sparse(ix(kc), jx(kc) - nk, vx(kc), nk, n - nk);
-            
-            kd = ~keepRow & keepCol;
-            sys.D = sparse(ix(kd) - nk, jx(kd), vx(kd), n - nk, nk);
-            
-            ke = ~keepRow & ~keepCol;
-            sys.E = sparse(ix(ke) - nk, jx(ke) - nk, vx(ke), n - nk, n - nk);
-            sys.f = b(keep);
-            sys.h = b(~keep);
-            
+            if solver.useSparseReduction
+                start = 1:nk;
+                stop = (nk+1):size(A, 2);
+                sys.B = A(start, start);
+                sys.C = A(start, stop);
+                sys.D = A(stop, start);
+                sys.E = A(stop, stop);
+                
+                sys.f = b(start);
+                sys.h = b(stop);
+            else
+                n = size(A, 2);
+                keep = false(n, 1);
+                keep(start) = true;
+                keepRow = keep(ix);
+                keepCol = keep(jx);
+                kb = keepRow & keepCol;
+                sys.B = sparse(ix(kb), jx(kb), vx(kb), nk, nk);
+
+                kc = keepRow & ~keepCol;
+                sys.C = sparse(ix(kc), jx(kc) - nk, vx(kc), nk, n - nk);
+
+                kd = ~keepRow & keepCol;
+                sys.D = sparse(ix(kd) - nk, jx(kd), vx(kd), n - nk, nk);
+
+                ke = ~keepRow & ~keepCol;
+                sys.E = sparse(ix(ke) - nk, jx(ke) - nk, vx(ke), n - nk, n - nk);
+                sys.f = b(keep);
+                sys.h = b(~keep);
+            end
             [sys.E_L, sys.E_U] = lu(sys.E);
             A = sys.B - sys.C*(sys.E_U\(sys.E_L\sys.D));
             b = sys.f - sys.C*(sys.E_U\(sys.E_L\sys.h));
