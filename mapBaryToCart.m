@@ -23,10 +23,10 @@ function [b2c, vol] = mapBaryToCart(G, cells)
     x = [x, ones(size(x,1),1)];
     
     
-    R = zeros(G.griddim + 1, (G.griddim + 1)*numel(faces));
-    R(:,1:(G.griddim+1):end) = reshape(x(:,1),3,[]);
-    R(:,2:(G.griddim+1):end) = reshape(x(:,2),3,[]);
-    R(:,3:(G.griddim+1):end) = reshape(x(:,3),3,[]);
+    R = zeros(G.griddim + 1, (G.griddim)*numel(faces));
+    R(:,1:(G.griddim):end) = reshape(x(:,1),3,[]);
+    R(:,2:(G.griddim):end) = reshape(x(:,2),3,[]);
+%     R(:,3:(G.griddim+1):end) = reshape(x(:,3),3,[]);
     
 %     T = xn - xc;
 %     
@@ -43,9 +43,9 @@ end
 function x = map(R, xb)
 
      xx = xb*R;
-     x = zeros(3*(size(xx,2)/3), 2);
+     x = zeros(3*(size(xx,2)/2), 2);
      for dNo = 1:2
-        xtmp = xx(:, dNo:3:end);
+        xtmp = xx(:, dNo:2:end);
         x(:,dNo) = xtmp(:);
      end
      

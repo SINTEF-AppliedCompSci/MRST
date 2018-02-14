@@ -2,20 +2,21 @@ function [x, w, nq] = getQuadratureRule(degree, type)
 
     switch type
         case 'div'
+            
             if degree <= 3
-                x = [-1, 0, 1];
+                x = [-1; 0; 1];
                 degree = 3;
 
             elseif degree <= 4
-                x = [-1, -sqrt(5)/5, sqrt(5)/5, 1];
+                x = [-1; -sqrt(5)/5; sqrt(5)/5; 1];
                 degree = 4;    
 
             elseif degree <= 5
-                x = [-1, -sqrt(21)/7, 0, sqrt(21)/7, 1];
+                x = [-1; -sqrt(21)/7; 0; sqrt(21)/7; 1];
 
             elseif degree <= 6
-                x = [-1, sqrt(1/21*(7+2*sqrt(7))), sqrt(1/21*(7-2*sqrt(7))), ...
-                         sqrt(1/21*(7-2*sqrt(7))), sqrt(1/21*(7+2*sqrt(7))), 1];
+                x = [-1; sqrt(1/21*(7+2*sqrt(7))); sqrt(1/21*(7-2*sqrt(7))); ...
+                         sqrt(1/21*(7-2*sqrt(7))); sqrt(1/21*(7+2*sqrt(7))); 1];
                 degree = 6;
 
             end
@@ -24,12 +25,17 @@ function [x, w, nq] = getQuadratureRule(degree, type)
             
         case 'tri'
             
-            if degree <= 2
-                w = [1,1,1]/3;
+            if degree == 0
+                w = 1;
+                x = [0,0];
+            
+            elseif degree <= 2
+                w = [1;1;1]/3;
                 x = [0,1,1; 1,0,1; 1,1,0]/2;
             end
-            nq = numel(w);
     end
+    
+    nq = numel(w);
     
 end
 

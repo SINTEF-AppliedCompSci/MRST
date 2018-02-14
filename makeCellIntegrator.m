@@ -1,4 +1,4 @@
-function [intFun, w, x, cells] = makeCellIntegrator(G, cells, degree, type)
+function [x, w, nq, ii, jj, cellNo] = makeCellIntegrator(G, cells, degree, type)
 
     faces = G.cells.faces(mcolon(G.cells.facePos(cells), G.cells.facePos(cells+1)-1));
     nodes = G.faces.nodes(mcolon(G.faces.nodePos(faces), G.faces.nodePos(faces+1)-1));
@@ -8,23 +8,27 @@ function [intFun, w, x, cells] = makeCellIntegrator(G, cells, degree, type)
         case 'tri'
            
             [xr, w, nq] = getQuadratureRule(degree, type);
-            b2c = mapBaryToCart(G, cells);
-                 
-            x = b2c(xr);
             
-            vol = getTvolumes(G, cells);
-            w = w'.*vol';
+            if degree == 0
+                
+               x = xr + G.cells.centroids(cells,:);
+               [ii, jj] = deal(0);
+               cellNo = cells;
+               vol = G.cells.volumes(cells);
+               
+            else
+                
+                b2c = mapBaryToCart(G, cells);
+                x = b2c(xr);
+                
+                vol = getTvolumes(G, cells);
+                ncf = diff(G.cells.facePos);
+                [ii, jj] = blockDiagIndex(ones(numel(cells), 1), ncf(cells)*nq);
+                cellNo = rldecode(cells, ncf(cells)*nq, 1);
+                
+            end
             
-            ncf = diff(G.cells.facePos);
-            
-            
-            [ii, jj] = blockDiagIndex(ones(numel(cells), 1), ncf(cells)*nq);
-            W = sparse(ii, jj, w(:));
-            
-            intFun = @(fun) W*fun(x);
-            
-            cells = rldecode((1:G.cells.num)', ncf(cells)*nq, 1);
-%             w
+            w = reshape(w.*vol', [], 1);
             
         case 'div'
     
@@ -69,7 +73,7 @@ function vol = getTvolumes(G, cells)
     nodes = reshape(nodes, 2, [])';
     
     ncf = diff(G.cells.facePos);
-    xc = rldecode(G.cells.centroids(cells), ncf(cells), 1);
+    xc = rldecode(G.cells.centroids(cells,:), ncf(cells), 1);
     
 %     xc = rldecode(G.cells.centroids, accumarray(ind, nfn(faces)), 1);
     

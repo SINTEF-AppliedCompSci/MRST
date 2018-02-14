@@ -14,8 +14,9 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     W   = drivingForces.W;
     op   = model.operators;
     fluid = model.fluid;
+    rock = model.rock;
     G = model.G;
-
+        
     assert(~(opt.solveForWater && opt.solveForOil));
 
     [p, sWdof, wellSol] = model.getProps(state, 'pressure', 'water', 'wellsol');
@@ -42,318 +43,225 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     end
     
     % -------------------------------------------------------------------------
-    
-    
 
     primaryVars = {'sWdof'};
     
-%     acc = 1/dt*op.M.*(sWdof - sWdof0);
-%     
-%     flux = 0;
+%     [psi, grad_psi, k, nDof] = dgBasis(model.degree, model.G.griddim, 'legendre');
 
-    [k, nDof, psi, grad_psi] = dgBasis(model.degree, model.G.griddim);
-
-    sW  = cell(model.G.cells.num,1);
-%   
-
-    sW0 = @(cell,x) 0*x;
+    psi      = model.basis.psi;
+    grad_psi = model.basis.grad_psi;
+    nDof     = model.basis.nDof;
     
-    w = 1;
-%     psi = @(x) [w*prod(x.^[0,0],2), w*prod(x.^[1,0],2), w*prod(x.^[0,1],2)];
+    % Express sW and sW0 in basis
+    sW  = @(x,c) getSatFromDof(x, c, sWdof , model);
+    sW0 = @(x,c) getSatFromDof(x, c, sWdof0, model);
+    sO  = @(x,c) 1-sW(x,c);
     
-    w = 1;
-%     psi = {@(x) w*prod(x.^[0,0],2), @(x) w*prod(x.^[1,0],2), @(x) w*prod(x.^[0,1],2)};
-    
-%     x = [1,1;2,2;3,3;4,4;5,5];
-%     c = [1;1;2;3;4];
-    sW = @(x,c) getSatFromDof(x, c, sWdof, psi, G);
-    sW0 = @(x,c) getSatFromDof(x, c, sWdof0, psi, G);
-    
-    G = model.G;
-    [~, w, x, cells] = makeCellIntegrator(G, (1:G.cells.num)', model.degree, 'tri');
-    nq = size(w,1);
-    
-    w = repmat(w(:), nDof, 1);
-    [ii, jj] = blockDiagIndex(ones(G.cells.num*nDof, 1), repmat(diff(G.cells.facePos)*nq, nDof,1));
-    w = sparse(ii, jj, w);
-    
-    acc = sWdof;
-    ps = [];
-    ps0 = [];
-    for dofNo = 1:nDof
-        ps = [ps; psi{dofNo}(x).*sW(x,cells)];
-        ps0 = [ps0; psi{dofNo}(x).*sW0(x,cells)];
-    end
-    a = ps;
-    
-    acc = w*(ps - ps0);
-    
-    mobW = @(x,c) fluid.krW(sW(x, c))./fluid.muW(p);
-    mobO = @(x,c) fluid.krO(1-sW(x, c))./fluid.muO(p);
-    
-    fs = [];
-    fW = @(x,c) mobW(x,c)./(mobW(x,c) + mobO(x,c));
-    for dofNo = 1:nDof
-        fs = [fs; psi{dofNo}(x).*sW(x,cells)];
-    end
-    flux = w*fs;
-    
-    
-    w = 1;
-    psi = {@(x) w*prod(x.^[0,0],2), @(x) w*prod(x.^[1,0],2), @(x) w*prod(x.^[0,1],2)};
-    sW = @(x,c) getSatFromDof(x, c, sWdof, psi, G);
-
     [pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
     T = op.T.*transMult;
     gdz = 0;
     [vW, bW, mobW, rhoW, pW, upcW, dpW, muW] = getPropsWater_DG(model, p, sW, T, gdz);
+    bW0 = fluid.bW(p0);
     
-    sO = @(x,c) 1-sW(x,c);
     [vO, bO, mobO, rhoO, pO, upcO, dpO, muO] = getPropsOil_DG(model, p, sO, T, gdz);
     
-%     [flag_v, flag_g] = getSaturationUpwind(model.upwindType, state, {Gw, Go}, vT, op.T, {mobW, mobO}, s.faceUpstr);
-%     flag = flag_v;
+    [xc, wc, nqc, ii, jj, cellNoc] = makeCellIntegrator(G, (1:G.cells.num)', model.degree, 'tri');
+    xc = (xc - G.cells.centroids(cellNoc,:))./G.cells.diameters(cellNoc);
     
-    vT = faceFlux2cellVelocity(G, sum(state.flux,2));
-    grad_vTpsi = @(x,c) sum(vT(c,:).*grad_psi{2}(x),2);
+    [xf, wf, cellsf, faces, nqf] = makeFaceIntegrator(G, (1:G.cells.num)', model.degree);
+    xf = (xf - G.cells.centroids(cellsf,:))./G.cells.diameters(cellsf);
+    
+    wc = repmat(wc(:), nDof, 1);
+    [ii, jj] = blockDiagIndex(ones(G.cells.num*nDof, 1), repmat(diff(G.cells.facePos)*nqc, nDof,1));
+    WC = sparse(ii, jj, wc);
+    
+    wf = repmat(wf(:), nDof, 1);
+    [bf, bc] = boundaryFaces(G);
+    ncbf = sum((1:G.cells.num)' == bc',2);
+    [ii, jj] = blockDiagIndex(ones(G.cells.num*nDof, 1), repmat((diff(G.cells.facePos) - ncbf)*nqf, nDof,1));
+    WF = sparse(ii, jj, wf);
+    
+    % Accumulation term----------------------------------------------------
+    
+    sW_psi  = [];
+    sW0_psi = [];
+    if numel(pvMult) == 1
+        pvMult = repmat(pvMult, G.cells.num,1);
+    end
+    if numel(pvMult0) == 1
+        pvMult0 = repmat(pvMult0, G.cells.num,1);
+    end
+    
+    for dofNo = 1:nDof
+        sW_psi  = [sW_psi ; pvMult(cellNoc) .*bW(cellNoc) .*rock.poro(cellNoc).*sW(xc,cellNoc) .*psi{dofNo}(xc)];
+        sW0_psi = [sW0_psi; pvMult0(cellNoc).*bW0(cellNoc).*rock.poro(cellNoc).*sW0(xc,cellNoc).*psi{dofNo}(xc)];
+    end
+    
+    acc = WC*(sW_psi - sW0_psi)/dt;
+    
+    % Flux term------------------------------------------------------------
+    
+    vT = sum(state.flux,2);
+    vTc = faceFlux2cellVelocity(G, vT);
+    
+    gp = op.Grad(p);
+    
+    [Gw, Go] = deal(zeros(G.faces.num, 1));
+    Gw(op.internalConn) = op.T.*(gp - dpW);
+    Go(op.internalConn) = op.T.*(gp - dpO);
+    
+    Gwc = faceFlux2cellVelocity(G, Gw);
+    Goc = faceFlux2cellVelocity(G, Go);
 
     fW = @(x,c) mobW(x,c)./(mobW(x,c) + mobO(x,c));
     
-    fWgrad_vTpsi = @(x,c) fW(x,c).*grad_vTpsi(x,c);
+    
+    Gc = @(x,c) bW(c).*fW(x,c).*mobO(x,c);
+    
+    ig = [];
+    for dofNo = 1:nDof
+        ig = [ig;   fW(xc, cellNoc).*sum(vTc(cellNoc,:).*grad_psi{dofNo}(xc),2)  ...
+                  + fW(xc, cellNoc).*mobO(xc, cellNoc).*sum((Gwc(cellNoc,:) - Goc(cellNoc,:)).*grad_psi{dofNo}(xc),2)];
+    end
+    flux1 = -WC*ig;
+    
+    faces = reshape(repmat(faces, nqf, 1), [], 1);
     
     
+    upCells_v = G.faces.neighbors(:,2);
+    
+    intf = find(op.internalConn);
+    upCells_v(intf(upcW)) = op.N(:,1);
+    
+%     upCells_v = rldecode(upCells_v, (diff(G.cells.facePos) - ncbf)*nqf);
+    upCells_v = upCells_v(faces);
     
     
-%     div(v*psi
+    upCells_G = upCells_v;
     
-    % cellInt(sW, psi);
-    % cellInt(fdiv v)
-    % faceInt(f)
-    
-    
-    
-    
-%     vT = @(x) vT
-%     
-%     
-%     
-    [vW, bW, mobW, rhoW, pW, upcw, dpW] = getFluxAndPropsWater_BO(model, p, sW, krW, T, gdz);
-
-    % Evaluate oil properties
-    [vO, bO, mobO, rhoO, pO, upco, dpO] = getFluxAndPropsOil_BO(model, p, sO, krO, T, gdz);
-
-    gp = s.Grad(p);
-    Gw = gp - dpW;
-    Go = gp - dpO;
-    
-    flux = sum(state.flux, 2);
-    vT = flux(model.operators.internalConn);
-
-    % Stored upstream indices
-    [flag_v, flag_g] = getSaturationUpwind(model.upwindType, state, {Gw, Go}, vT, op.T, {mobW, mobO}, s.faceUpstr);
-    flag = flag_v;
-
-    upcw  = flag(:, 1);
-    upco  = flag(:, 2);
-
-    upcw_g = flag_g(:, 1);
-    upco_g = flag_g(:, 2);
-
-    mobOf = s.faceUpstr(upco, mobO);
-    mobWf = s.faceUpstr(upcw, mobW);
-
-    totMob = (mobOf + mobWf);
-
-    mobWf_G = s.faceUpstr(upcw_g, mobW);
-    mobOf_G = s.faceUpstr(upco_g, mobO);
-    mobTf_G = mobWf_G + mobOf_G;
-    f_g = mobWf_G.*mobOf_G./mobTf_G;
-%     if opt.solveForWater
-        f_w = mobWf./totMob;
-        bWvW   = s.faceUpstr(upcw, bW).*f_w.*vT + s.faceUpstr(upcw_g, bO).*f_g.*s.T.*(Gw - Go);
-    
-    [vW, bW, mobW, rhoW, pW, upcw, dpW] ...
-                      = getFluxAndPropsWater_BO(model, p, sW, krW, T, gdz);
-
-    
-%     sW = satfun(model, sWdof, psi, model.G);
-%     ss = sW([1,1]);
-% 
-%     for cNo = 1:model.G.cells.num
-%         sWc = 0;
-%         for dofNo = 1:nDof
-%             psi = Polynomial(k(dofNo,:));
-%             sWc  = sWc + sWdof((cNo-1)*dofNo + dofNo)*psi;
-%         end
-%         sW{cNo} = sWc;
-%         sloc = zeros(nDof,1);
-%         [intFun, w, x] = makeCellIntegrator(model.G, cNo, model.degree, 'tri');
-%         for dofNo = 1:nDof
-%             psi = Polynomial(k(dofNo,:));
-%             sloc(dofNo) = intFun(sWc*psi);
-%         end
-%     end
-    
-    
-
-
-
-
-%     sWdof.*
-%     psi(x);
-    
-    sO = 1-sW;
-    
-    [krW, krO] = model.evaluateRelPerm({sW, sO});
-    
-    [pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
-
-    % Modifiy relperm by mobility multiplier (if any)
-    krW = mobMult.*krW; krO = mobMult.*krO;
-
-    % Compute transmissibility
-    T = s.T.*transMult;
-    
-    [vW, bW, mobW, rhoW, pW, upcw, dpW] = getFluxAndPropsWater_BO(model, p, sW, krW, T, gdz);
+    ig = [];
     
     for dofNo = 1:nDof
-        psi = Polynomial(k(dofNo,:));
-        ind = (1:nDof:G.cells.num) + dofNo - 1;
-        accW(ind)  = op.cellInt(sW.*bW.*psi);
-        fluxW(ind) = op.cellInt(fW(sW).*op.div(v*psi)) + ...
-                     op.faceCellInt(fWhat(bWvW)*psi);
+        ig = [ig; (fW(xf, upCells_v).*vT(faces) + fW(xf, upCells_G).*mobO(xf, upCells_G).*(Gw(faces) - Go(faces))).*psi{dofNo}(xf)];
+    end
+    flux2 = WF*ig;
+    
+    flux = flux1 + flux2;
+    
+    water = acc + flux;
+    
+    % Well contributions---------------------------------------------------
+    
+    if ~isempty(W)
         
+        
+        perf2well = getPerforationToWellMapping(W);
+        wc = vertcat(W.cells);
+
+        wflux = zeros(G.cells.num,1);
+        wflux(wc) = sum(vertcat(wellSol.flux), 2);
+        isInj = wflux > 0;
+        compWell = vertcat(W.compi);
+        compPerf = zeros(G.cells.num, 2);
+        compPerf(wc,:) = compWell(perf2well,:);
+
+        [xwc, wwc, nqwc, ii, jj, cellNowc] = makeCellIntegrator(G, wc, model.degree, 'tri');
+        xwc = (xwc - G.cells.centroids(cellNowc,:))./G.cells.diameters(cellNowc);
+        
+        wwc = repmat(wwc(:), nDof, 1);
+        ncf = diff(G.cells.facePos);
+        [ii, jj] = blockDiagIndex(ones(numel(wc)*nDof, 1), repmat(ncf(wc)*nqwc, nDof,1));
+        WWC = sparse(ii, jj, wwc);
+        
+        ig = [];
+        for dofNo = 1:nDof
+            ig = [ig; bW(cellNowc).*wflux(cellNowc).*(fW(xwc, cellNowc).*(~isInj(cellNowc)) ...
+                                                  + compPerf(cellNowc,1).*(isInj(cellNowc))).*psi{dofNo}(xwc)];
+        end
+        
+        prod = WWC*ig;
+        
+        ind = mcolon((wc-1)*nDof + 1, wc*nDof);
+        
+        water(ind) = water(ind) - prod;
+%         water = water - prod;
+%         bWqW = bW(wc).*f_w_w.*wflux;
+%         bOqO = bO(wc).*f_o_w.*wflux;
+
+        % Store well fluxes
+%         wflux_O = double(bOqO);
+%         wflux_W = double(bWqW);
+% 
+%         for i = 1:numel(W)
+%             perfind = perf2well == i;
+%             state.wellSol(i).qOs = sum(wflux_O(perfind));
+%             state.wellSol(i).qWs = sum(wflux_W(perfind));
+%         end
+
     end
-    
-    water = accW + fluxW;
-    
-%     accW = 1/dt.*op.M*(sWdof - sWdof0);
 
-
-%     fluxW = op.cellInt(
+% % Get total flux from state
+% flux = sum(state.flux, 2);
+% vT = flux(model.operators.internalConn);
+% 
+% % Stored upstream indices
+% [flag_v, flag_g] = getSaturationUpwind(model.upwindType, state, {Gw, Go}, vT, s.T, {mobW, mobO}, s.faceUpstr);
+% flag = flag_v;
+% 
+% upcw  = flag(:, 1);
+% upco  = flag(:, 2);
+% 
+% upcw_g = flag_g(:, 1);
+% upco_g = flag_g(:, 2);
+% 
+% mobOf = s.faceUpstr(upco, mobO);
+% mobWf = s.faceUpstr(upcw, mobW);
+% 
+% totMob = (mobOf + mobWf);
 %     
-    % -------------------------------------------------------------------------
-    sO = 1 - sW;
-    [krW, krO] = model.evaluateRelPerm({sW, sO});
+% mobWf_G = s.faceUpstr(upcw_g, mobW);
+% mobOf_G = s.faceUpstr(upco_g, mobO);
+% mobTf_G = mobWf_G + mobOf_G;
+% f_g = mobWf_G.*mobOf_G./mobTf_G;
+% if opt.solveForWater
+%     f_w = mobWf./totMob;
+%     bWvW   = s.faceUpstr(upcw, bW).*f_w.*vT + s.faceUpstr(upcw_g, bO).*f_g.*s.T.*(Gw - Go);
+% 
+%     wat = (s.pv/dt).*(pvMult.*bW.*sW - pvMult0.*f.bW(p0).*sW0) + s.Div(bWvW);
+%     if ~isempty(W)
+%         wat(wc) = wat(wc) - bWqW;
+%     end
+% 
+%     eqs = {wat};
+%     names = {'water'};    
+% else
+%     f_o = mobOf./totMob;
+%     bOvO   = s.faceUpstr(upco, bO).*f_o.*vT + s.faceUpstr(upco_g, bO).*f_g.*s.T.*(Go - Gw);
+% 
+%     oil = (s.pv/dt).*( pvMult.*bO.*(1-sW) - pvMult0.*f.bO(p0).*(1-sW0) ) + s.Div(bOvO);
+%     if ~isempty(W)
+%         oil(wc) = oil(wc) - bOqO;
+%     end
+%     eqs = {oil};
+%     names = {'oil'};
+% end
+% types = {'cell'};
+% rho = {rhoW, rhoO};
+% mob = {mobW, mobO};
+% sat = {sW, sO};
+% [eqs, ~, src] = addBoundaryConditionsAndSources(model, eqs, names, types, state, ...
+%                                      {pFlow, pFlow}, sat, mob, rho, ...
+%                                      {}, {}, ...
+%                                      drivingForces);
 
-    % Multipliers for properties
-    [pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
-
-    % Modifiy relperm by mobility multiplier (if any)
-    krW = mobMult.*krW; krO = mobMult.*krO;
-
-    % Compute transmissibility
-    T = s.T.*transMult;
-
-    % Gravity gradient per face
-    gdz = model.getGravityGradient();
-
-    % Evaluate water properties
-    [vW, bW, mobW, rhoW, pW, upcw, dpW] = getFluxAndPropsWater_BO(model, p, sW, krW, T, gdz);
-
-    % Evaluate oil properties
-    [vO, bO, mobO, rhoO, pO, upco, dpO] = getFluxAndPropsOil_BO(model, p, sO, krO, T, gdz);
-
-    gp = s.Grad(p);
-    Gw = gp - dpW;
-    Go = gp - dpO;
-
-    if model.extraStateOutput
-        state = model.storebfactors(state, bW, bO, []);
-        state = model.storeMobilities(state, mobW, mobO, []);
-    end
-
-if ~isempty(W)
-    wflux = sum(vertcat(wellSol.flux), 2);
-    perf2well = getPerforationToWellMapping(W);
-    wc = vertcat(W.cells);
-    
-    mobWw = mobW(wc);
-    mobOw = mobO(wc);
-    totMobw = mobWw + mobOw;
-
-    f_w_w = mobWw./totMobw;
-    f_o_w = mobOw./totMobw;
-
-    isInj = wflux > 0;
-    compWell = vertcat(W.compi);
-    compPerf = compWell(perf2well, :);
-
-    f_w_w(isInj) = compPerf(isInj, 1);
-    f_o_w(isInj) = compPerf(isInj, 2);
-
-    bWqW = bW(wc).*f_w_w.*wflux;
-    bOqO = bO(wc).*f_o_w.*wflux;
-
-    % Store well fluxes
-    wflux_O = double(bOqO);
-    wflux_W = double(bWqW);
-    
-    for i = 1:numel(W)
-        perfind = perf2well == i;
-        state.wellSol(i).qOs = sum(wflux_O(perfind));
-        state.wellSol(i).qWs = sum(wflux_W(perfind));
-    end
-
-end
-
-% Get total flux from state
-flux = sum(state.flux, 2);
-vT = flux(model.operators.internalConn);
-
-% Stored upstream indices
-[flag_v, flag_g] = getSaturationUpwind(model.upwindType, state, {Gw, Go}, vT, s.T, {mobW, mobO}, s.faceUpstr);
-flag = flag_v;
-
-upcw  = flag(:, 1);
-upco  = flag(:, 2);
-
-upcw_g = flag_g(:, 1);
-upco_g = flag_g(:, 2);
-
-mobOf = s.faceUpstr(upco, mobO);
-mobWf = s.faceUpstr(upcw, mobW);
-
-totMob = (mobOf + mobWf);
-    
-mobWf_G = s.faceUpstr(upcw_g, mobW);
-mobOf_G = s.faceUpstr(upco_g, mobO);
-mobTf_G = mobWf_G + mobOf_G;
-f_g = mobWf_G.*mobOf_G./mobTf_G;
-if opt.solveForWater
-    f_w = mobWf./totMob;
-    bWvW   = s.faceUpstr(upcw, bW).*f_w.*vT + s.faceUpstr(upcw_g, bO).*f_g.*s.T.*(Gw - Go);
-
-    wat = (s.pv/dt).*(pvMult.*bW.*sW - pvMult0.*f.bW(p0).*sW0) + s.Div(bWvW);
-    if ~isempty(W)
-        wat(wc) = wat(wc) - bWqW;
-    end
-
-    eqs = {wat};
-    names = {'water'};    
-else
-    f_o = mobOf./totMob;
-    bOvO   = s.faceUpstr(upco, bO).*f_o.*vT + s.faceUpstr(upco_g, bO).*f_g.*s.T.*(Go - Gw);
-
-    oil = (s.pv/dt).*( pvMult.*bO.*(1-sW) - pvMult0.*f.bO(p0).*(1-sW0) ) + s.Div(bOvO);
-    if ~isempty(W)
-        oil(wc) = oil(wc) - bOqO;
-    end
-    eqs = {oil};
-    names = {'oil'};
-end
+eqs = {water};
+names = {'water'};
 types = {'cell'};
-rho = {rhoW, rhoO};
-mob = {mobW, mobO};
-sat = {sW, sO};
-[eqs, ~, src] = addBoundaryConditionsAndSources(model, eqs, names, types, state, ...
-                                     {pFlow, pFlow}, sat, mob, rho, ...
-                                     {}, {}, ...
-                                     drivingForces);
 
-if ~model.useCNVConvergence
-    eqs{1} = eqs{1}.*(dt./s.pv);
-end
+% pv = reshape(repmat(op.pv', nDof, 1), [], 1);
+% if ~model.useCNVConvergence
+%     eqs{1} = eqs{1}.*(dt./pv);
+% end
 
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 end
