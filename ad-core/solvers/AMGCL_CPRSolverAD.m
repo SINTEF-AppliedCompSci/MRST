@@ -36,6 +36,16 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
        end
        
         function [dx, result, report] = solveLinearProblem(solver, problem, model)
+            n = model.G.cells.num;
+            if solver.amgcl_setup.block_size == 0
+                % Solver has not been told about block size, try to compute
+                % it from what we are given.
+                s = getSampleAD(problem.equations{:});
+                nv = s.getNumVars();
+                isCell = problem.indexOfType('cell');
+                solver.amgcl_setup.block_size = sum(nv(isCell)/n);
+            end
+            
             % Get and apply scaling
             if solver.doApplyScalingCPR
                 scale = model.getScalingFactorsCPR(problem, problem.equationNames, solver);
@@ -66,16 +76,27 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
                     problem.equations{1} = e;
                 end
             end
-            n = model.G.cells.num;
             m = solver.amgcl_setup.block_size;
             assert(m > 0);
 
             if isempty(solver.keepNumber)
-                problem = problem.assembleSystem();
-                ndof = size(problem.A, 1);
+                if solver.reduceToCell
+                    % Will be reduced to ncell by block_size syste,
+                    ndof = n*m;
+                else
+                    % We have no idea and should check
+                    problem = problem.assembleSystem();
+                    ndof = size(problem.A, 1);
+                    if solver.amgcl_setup.active_rows == 0
+                        % Only the first n*m entries are cell-wise
+                        % variables, tell the solver this
+                        solver.amgcl_setup.active_rows = n*m;
+                    end
+                end
             else
                 ndof = solver.keepNumber;
             end
+
 
             if isempty(solver.variableOrdering) || numel(solver.variableOrdering) ~= ndof
                 ordering = getCellMajorReordering(n, m, ndof);
