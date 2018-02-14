@@ -39,6 +39,7 @@ classdef CPRSolverAD < LinearSolverAD
             solver.diagonalTol = 1e-2;
             solver.trueIMPES = false;
             solver.ellipticVarName = 'pressure';
+            solver.reduceToCell = true;
             
             solver = merge_options(solver, varargin{:});
             
@@ -71,9 +72,29 @@ classdef CPRSolverAD < LinearSolverAD
             
             isPressure = problem0.indexOfPrimaryVariable(solver.ellipticVarName);
             pressureIndex = find(isPressure);
-            
-            [problem, eliminated] = problem0.reduceToSingleVariableType('cell');
+            problem = problem0;
             isCurrent = problem.indexOfType('cell');
+            keepNumber0 = solver.keepNumber;
+            s = getSampleAD(problem.equations{:});
+            % Get pressure indices
+            offsets = cumsum([1; s.getNumVars()]);
+            pInx = offsets(pressureIndex):offsets(pressureIndex+1)-1;
+            if solver.reduceToCell && isempty(solver.keepNumber)
+                % Eliminate non-cell variables (well equations etc)
+                isCurrent = problem.indexOfType('cell');
+                if isa(s, 'NewAD')
+                    % If we are working with block AD, we use the built-in
+                    % keepNumber property of the linear solver to perform a
+                    % full block Schur complement
+                    nk = sum(isCurrent);
+                    assert(all(isCurrent(1:nk)) & ~any(isCurrent(nk+1:end)), ...
+                        'Cell variables must all combine first in the ordering for this AutodiffBackend.');
+                    nv =  s.getNumVars();
+                    solver.keepNumber = sum(nv(isCurrent));
+                else
+                    [problem, eliminated] = solver.reduceToVariable(problem0, isCurrent);
+                end
+            end
             cellIndex = find(isCurrent);
             
             cellEqNo = numel(cellIndex);
@@ -94,6 +115,7 @@ classdef CPRSolverAD < LinearSolverAD
                 % Find the derivative of current cell block w.r.t the
                 % pressure
                 pressureJacobi = eqs{i}.jac{isPressure};
+                assert(size(eqs{i}.jac{isPressure}, 2) == nCell);
                 pressureDiag  = diag(pressureJacobi);
                 
                 sod = sum(abs(pressureJacobi), 2) - abs(pressureDiag);
@@ -162,16 +184,15 @@ classdef CPRSolverAD < LinearSolverAD
 
             % Set up linear system
             [A, b] = problem.getLinearSystem();
-            
+            % Reduce system (if requested)
+            [A, b, lsys] = solver.reduceLinearSystem(A, b);
             % ILU0 preconditioner for the non-elliptic part
             [L, U] = ilu(A, struct('type', 'nofill'));
-
-            Ap = -problem.equations{pressureIndex}.jac{pressureIndex};
-            % We have only cell variables present, and these will have
-            % offsets of cellnum long each
-            pInx = (1:nCell).' + nCell*(pressureIndex-1);
-            
-            
+            if isempty(solver.keepNumber)
+                Ap = -problem.equations{pressureIndex}.jac{pressureIndex};
+            else
+                Ap = A(pInx, pInx);
+            end
             % Set up elliptic solver
             solver.ellipticSolver = solver.ellipticSolver.setupSolver(Ap, b(pInx));
             ellipSolve = @(b) solver.ellipticSolver.solveLinearSystem(Ap, b);
@@ -190,15 +211,21 @@ classdef CPRSolverAD < LinearSolverAD
             % Clean up elliptic solver
             solver.ellipticSolver = solver.ellipticSolver.cleanupSolver(Ap, b(pInx));
 
+            % Recover eliminated variables on linear level
+            cprSol = solver.recoverLinearSystem(cprSol, lsys);
             % Undo pressure scaling
-            if solver.pressureScaling ~= 1;
+            if solver.pressureScaling ~= 1
                 cprSol(pInx) = cprSol(pInx) ./ solver.pressureScaling;
             end
             
+            dx = solver.storeIncrements(problem, cprSol);
             
-            dxCell = solver.storeIncrements(problem, cprSol);
-            dx = problem.recoverFromSingleVariableType(problem0, dxCell, eliminated);
+            if solver.reduceToCell && isempty(solver.keepNumber)
+                dx = problem.recoverFromSingleVariableType(problem0, dx, eliminated);
+            end
             
+            solver.keepNumber = keepNumber0;
+
             % Recover stuff
             solvetime = toc(timer);
             

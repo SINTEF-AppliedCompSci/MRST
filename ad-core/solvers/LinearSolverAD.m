@@ -91,10 +91,23 @@ classdef LinearSolverAD < handle
         
         function [dx, result, report] = solveLinearProblem(solver, problem, model)
             % Solve a linearized problem
-            if solver.reduceToCell
+            keepNumber0 = solver.keepNumber;
+            if solver.reduceToCell && isempty(solver.keepNumber)
                 % Eliminate non-cell variables (well equations etc)
+                s = getSampleAD(problem.equations{:});
                 keep = problem.indexOfType('cell');
-                [problem, eliminated] = solver.reduceToVariable(problem, keep);
+                if isa(s, 'NewAD')
+                    % If we are working with block AD, we use the built-in
+                    % keepNumber property of the linear solver to perform a
+                    % full block Schur complement
+                    nk = sum(keep);
+                    assert(all(keep(1:nk)) & ~any(keep(nk+1:end)), ...
+                        'Cell variables must all combine first in the ordering for this AutodiffBackend.');
+                    nv =  s.getNumVars();
+                    solver.keepNumber = sum(nv(keep));
+                else
+                    [problem, eliminated] = solver.reduceToVariable(problem, keep);
+                end
             end
             problem = problem.assembleSystem();
             assert(all(isfinite(problem.b)), 'Linear system rhs must have finite entries.');
@@ -126,9 +139,10 @@ classdef LinearSolverAD < handle
                 result(isinf(result)) = solver.replacementInf;
             end
             dx = solver.storeIncrements(problem, result);
-            if solver.reduceToCell
+            if solver.reduceToCell && isempty(solver.keepNumber)
                 dx = solver.recoverResult(dx, eliminated, keep);
             end
+            solver.keepNumber = keepNumber0;
         end
         
         function dx = storeIncrements(solver, problem, result) %#ok
@@ -158,7 +172,6 @@ classdef LinearSolverAD < handle
         
         function [A, b, sys] = reduceLinearSystem(solver, A, b)
             % Perform Schur complement reduction of linear system
-            
             sys = struct('B', [], 'C', [], 'D', [], 'f', [], 'h', [], 'E_L', [], 'E_U', []);
             if isempty(solver.keepNumber) || solver.keepNumber >= size(b, 1)
                 return

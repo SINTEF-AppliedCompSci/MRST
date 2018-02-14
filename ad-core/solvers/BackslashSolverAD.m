@@ -11,6 +11,11 @@ classdef BackslashSolverAD < LinearSolverAD
     %   `LinearSolverAD`
 
    methods
+       function solver = BackslashSolverAD(varargin)
+           solver@LinearSolverAD();
+           solver = merge_options(solver, varargin{:});
+       end
+       
        function [result, report] = solveLinearSystem(solver, A, b)
           result = A\b;
            % Nothing to report

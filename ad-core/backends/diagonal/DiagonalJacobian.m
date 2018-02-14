@@ -261,8 +261,21 @@ classdef DiagonalJacobian
         function x = minus(x, y)
             x = plus(x, -y);
         end
-        
-        
+
+        function u = rdivide(u,v)
+            % Right matrix divide: `h=u/v`
+            if isscalar(v)
+                if ~u.isZero()
+                    u.diagonal = u.diagonal./v;
+                end
+            else
+                u = u.sparse();
+                if isa(v, 'DiagonalJacobian')
+                    v = v.sparse();
+                end
+                u = u./v;
+            end
+        end
         function x = plus(x, y)
             if DiagonalJacobian.isAllZeros(x)
                 x = y;
