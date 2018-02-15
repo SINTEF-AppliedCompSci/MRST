@@ -7,28 +7,32 @@ function [x, w, nq, ii, jj, cellNo] = makeCellIntegrator(G, cells, degree, type)
             
         case 'tri'
            
-            [xr, w, nq] = getQuadratureRule(degree, type);
+            [xr, w, nq] = getQuadratureRule(degree, G.griddim);
             
-            if degree == 0
+            if degree <= 1
                 
                x = xr + G.cells.centroids(cells,:);
-               [ii, jj] = deal(0);
+               [ii, jj] = deal(1:numel(cells));
                cellNo = cells;
                vol = G.cells.volumes(cells);
+               nq = repmat(nq, G.cells.num, 1);
                
             else
                 
                 b2c = mapBaryToCart(G, cells);
                 x = b2c(xr);
-                
                 vol = getTvolumes(G, cells);
                 ncf = diff(G.cells.facePos);
-                [ii, jj] = blockDiagIndex(ones(numel(cells), 1), ncf(cells)*nq);
-                cellNo = rldecode(cells, ncf(cells)*nq, 1);
+                
+                nq = nq*ncf(cells);
+                
+                [ii, jj] = blockDiagIndex(ones(numel(cells), 1), nq);
+                cellNo = rldecode(cells, nq, 1);
                 
             end
             
             w = reshape(w.*vol', [], 1);
+            
             
         case 'div'
     

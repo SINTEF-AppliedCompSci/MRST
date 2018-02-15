@@ -65,21 +65,17 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     
     [vO, bO, mobO, rhoO, pO, upcO, dpO, muO] = getPropsOil_DG(model, p, sO, T, gdz);
     
-    [xc, wc, nqc, ii, jj, cellNoc] = makeCellIntegrator(G, (1:G.cells.num)', model.degree, 'tri');
-    xc = (xc - G.cells.centroids(cellNoc,:))./G.cells.diameters(cellNoc);
+    [xc, cellNo_c, WC] = cellBasisIntegrator(model);
     
-    [xf, wf, cellsf, faces, nqf] = makeFaceIntegrator(G, (1:G.cells.num)', model.degree);
-    xf = (xf - G.cells.centroids(cellsf,:))./G.cells.diameters(cellsf);
+    [xf, cellNo_f, faceNo, WF] = faceBasisIntegrator(model);
     
-    wc = repmat(wc(:), nDof, 1);
-    [ii, jj] = blockDiagIndex(ones(G.cells.num*nDof, 1), repmat(diff(G.cells.facePos)*nqc, nDof,1));
-    WC = sparse(ii, jj, wc);
-    
-    wf = repmat(wf(:), nDof, 1);
-    [bf, bc] = boundaryFaces(G);
-    ncbf = sum((1:G.cells.num)' == bc',2);
-    [ii, jj] = blockDiagIndex(ones(G.cells.num*nDof, 1), repmat((diff(G.cells.facePos) - ncbf)*nqf, nDof,1));
-    WF = sparse(ii, jj, wf);
+%     [xf, wf, cellsf, faces, nqf] = makeFaceIntegrator(G, (1:G.cells.num)', model.degree*2);
+%     xf = (xf - G.cells.centroids(cellsf,:))./G.cells.diameters(cellsf);
+%     wf = repmat(wf(:), nDof, 1);
+%     [bf, bc] = boundaryFaces(G);
+%     ncbf = sum((1:G.cells.num)' == bc',2);
+%     [ii, jj] = blockDiagIndex(ones(G.cells.num*nDof, 1), repmat((diff(G.cells.facePos) - ncbf)*nqf, nDof,1));
+%     WF = sparse(ii, jj, wf);
     
     % Accumulation term----------------------------------------------------
     
@@ -93,8 +89,8 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     end
     
     for dofNo = 1:nDof
-        sW_psi  = [sW_psi ; pvMult(cellNoc) .*bW(cellNoc) .*rock.poro(cellNoc).*sW(xc,cellNoc) .*psi{dofNo}(xc)];
-        sW0_psi = [sW0_psi; pvMult0(cellNoc).*bW0(cellNoc).*rock.poro(cellNoc).*sW0(xc,cellNoc).*psi{dofNo}(xc)];
+        sW_psi  = [sW_psi ; pvMult(cellNo_c) .*bW(cellNo_c) .*rock.poro(cellNo_c).*sW(xc,cellNo_c) .*psi{dofNo}(xc)];
+        sW0_psi = [sW0_psi; pvMult0(cellNo_c).*bW0(cellNo_c).*rock.poro(cellNo_c).*sW0(xc,cellNo_c).*psi{dofNo}(xc)];
     end
     
     acc = WC*(sW_psi - sW0_psi)/dt;
@@ -115,34 +111,29 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
 
     fW = @(x,c) mobW(x,c)./(mobW(x,c) + mobO(x,c));
     
-    
-    Gc = @(x,c) bW(c).*fW(x,c).*mobO(x,c);
-    
     ig = [];
     for dofNo = 1:nDof
-        ig = [ig;   fW(xc, cellNoc).*sum(vTc(cellNoc,:).*grad_psi{dofNo}(xc),2)  ...
-                  + fW(xc, cellNoc).*mobO(xc, cellNoc).*sum((Gwc(cellNoc,:) - Goc(cellNoc,:)).*grad_psi{dofNo}(xc),2)];
+        ig = [ig;   bW(cellNo_c).*fW(xc, cellNo_c).*sum(vTc(cellNo_c,:).*grad_psi{dofNo}(xc),2)  ...
+                  + bO(cellNo_c).*fW(xc, cellNo_c).*sum((Gwc(cellNo_c,:) ...
+                                       - Goc(cellNo_c,:)).*grad_psi{dofNo}(xc),2)];
     end
-    flux1 = -WC*ig;
+    vol = reshape(repmat(G.cells.volumes, nDof, 1), [], 1);
+    flux1 = -(WC*ig)./vol;
     
-    faces = reshape(repmat(faces, nqf, 1), [], 1);
+%     faceNo = reshape(repmat(faceNo, nqf, 1), [], 1);
     
     
     upCells_v = G.faces.neighbors(:,2);
     
     intf = find(op.internalConn);
     upCells_v(intf(upcW)) = op.N(:,1);
-    
-%     upCells_v = rldecode(upCells_v, (diff(G.cells.facePos) - ncbf)*nqf);
-    upCells_v = upCells_v(faces);
-    
-    
+
+    upCells_v = upCells_v(faceNo);    
     upCells_G = upCells_v;
     
     ig = [];
-    
     for dofNo = 1:nDof
-        ig = [ig; (fW(xf, upCells_v).*vT(faces) + fW(xf, upCells_G).*mobO(xf, upCells_G).*(Gw(faces) - Go(faces))).*psi{dofNo}(xf)];
+        ig = [ig; (bW(upCells_G).*fW(xf, upCells_v).*vT(faceNo) + fW(xf, upCells_G).*bO(upCells_G).*(Gw(faceNo) - Go(faceNo))).*psi{dofNo}(xf)];
     end
     flux2 = WF*ig;
     
@@ -165,21 +156,37 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
         compPerf = zeros(G.cells.num, 2);
         compPerf(wc,:) = compWell(perf2well,:);
 
-        [xwc, wwc, nqwc, ii, jj, cellNowc] = makeCellIntegrator(G, wc, model.degree, 'tri');
-        xwc = (xwc - G.cells.centroids(cellNowc,:))./G.cells.diameters(cellNowc);
         
-        wwc = repmat(wwc(:), nDof, 1);
-        ncf = diff(G.cells.facePos);
-        [ii, jj] = blockDiagIndex(ones(numel(wc)*nDof, 1), repmat(ncf(wc)*nqwc, nDof,1));
-        WWC = sparse(ii, jj, wwc);
+        [ii, jj] = find(WC);
+        ind = mcolon((wc-1)*nDof + 1, wc*nDof);
+        keep = any(ii == ind,2);
+        jj = jj(keep);
+        
+        S1 = sparse((1:numel(wc)*nDof)', ind, 1, numel(wc)*nDof, size(WC,1)     );
+        S2 = sparse(jj, (1:numel(jj))' , 1, size(WC,2)     , numel(jj));
+        WWC = S1*WC*S2;
+        
+        keep = any(cellNo_c == wc',2);
+        xwc = xc(keep,:);
+        cellNo_wc = cellNo_c(keep);
+        
+%         [xwc, wwc, nqwc, ii, jj, cellNowc] = makeCellIntegrator(G, wc, model.degree, 'tri');
+%         xwc = (xwc - G.cells.centroids(cellNowc,:))./G.cells.diameters(cellNowc);
+%         
+%         wwc = repmat(wwc(:), nDof, 1);
+%         ncf = diff(G.cells.facePos);
+%         [ii, jj] = blockDiagIndex(ones(numel(wc)*nDof, 1), repmat(ncf(wc)*nqwc, nDof,1));
+%         WWC = sparse(ii, jj, wwc);
         
         ig = [];
         for dofNo = 1:nDof
-            ig = [ig; bW(cellNowc).*wflux(cellNowc).*(fW(xwc, cellNowc).*(~isInj(cellNowc)) ...
-                                                  + compPerf(cellNowc,1).*(isInj(cellNowc))).*psi{dofNo}(xwc)];
+            ig = [ig; bW(cellNo_wc).*wflux(cellNo_wc) ...
+                            .*(fW(xwc, cellNo_wc) .*(~isInj(cellNo_wc)) ...
+                           + compPerf(cellNo_wc,1).*( isInj(cellNo_wc))).*psi{dofNo}(xwc)];
         end
         
-        prod = WWC*ig;
+        vol = reshape(repmat(G.cells.volumes(wc), nDof, 1), [], 1);
+        prod = (WWC*ig)./vol;
         
         ind = mcolon((wc-1)*nDof + 1, wc*nDof);
         
@@ -200,68 +207,14 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
 
     end
 
-% % Get total flux from state
-% flux = sum(state.flux, 2);
-% vT = flux(model.operators.internalConn);
-% 
-% % Stored upstream indices
-% [flag_v, flag_g] = getSaturationUpwind(model.upwindType, state, {Gw, Go}, vT, s.T, {mobW, mobO}, s.faceUpstr);
-% flag = flag_v;
-% 
-% upcw  = flag(:, 1);
-% upco  = flag(:, 2);
-% 
-% upcw_g = flag_g(:, 1);
-% upco_g = flag_g(:, 2);
-% 
-% mobOf = s.faceUpstr(upco, mobO);
-% mobWf = s.faceUpstr(upcw, mobW);
-% 
-% totMob = (mobOf + mobWf);
-%     
-% mobWf_G = s.faceUpstr(upcw_g, mobW);
-% mobOf_G = s.faceUpstr(upco_g, mobO);
-% mobTf_G = mobWf_G + mobOf_G;
-% f_g = mobWf_G.*mobOf_G./mobTf_G;
-% if opt.solveForWater
-%     f_w = mobWf./totMob;
-%     bWvW   = s.faceUpstr(upcw, bW).*f_w.*vT + s.faceUpstr(upcw_g, bO).*f_g.*s.T.*(Gw - Go);
-% 
-%     wat = (s.pv/dt).*(pvMult.*bW.*sW - pvMult0.*f.bW(p0).*sW0) + s.Div(bWvW);
-%     if ~isempty(W)
-%         wat(wc) = wat(wc) - bWqW;
-%     end
-% 
-%     eqs = {wat};
-%     names = {'water'};    
-% else
-%     f_o = mobOf./totMob;
-%     bOvO   = s.faceUpstr(upco, bO).*f_o.*vT + s.faceUpstr(upco_g, bO).*f_g.*s.T.*(Go - Gw);
-% 
-%     oil = (s.pv/dt).*( pvMult.*bO.*(1-sW) - pvMult0.*f.bO(p0).*(1-sW0) ) + s.Div(bOvO);
-%     if ~isempty(W)
-%         oil(wc) = oil(wc) - bOqO;
-%     end
-%     eqs = {oil};
-%     names = {'oil'};
-% end
-% types = {'cell'};
-% rho = {rhoW, rhoO};
-% mob = {mobW, mobO};
-% sat = {sW, sO};
-% [eqs, ~, src] = addBoundaryConditionsAndSources(model, eqs, names, types, state, ...
-%                                      {pFlow, pFlow}, sat, mob, rho, ...
-%                                      {}, {}, ...
-%                                      drivingForces);
-
 eqs = {water};
 names = {'water'};
 types = {'cell'};
 
-% pv = reshape(repmat(op.pv', nDof, 1), [], 1);
-% if ~model.useCNVConvergence
-%     eqs{1} = eqs{1}.*(dt./pv);
-% end
+pv = reshape(repmat(op.pv', nDof, 1), [], 1);
+if ~model.useCNVConvergence
+    eqs{1} = eqs{1}.*(dt./pv);
+end
 
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 end

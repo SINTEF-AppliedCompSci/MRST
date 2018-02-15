@@ -22,7 +22,7 @@ function basis = dgBasis(degree, dim, type)
                 end
 
             case 'legendre'
-                leg = legendre(degree);
+                leg = legendrePolynomials(degree);
                 for dofNo = 1:nDof
                     l = cell(dim, 1);
                     for dNo = 1:dim
@@ -45,20 +45,20 @@ function basis = dgBasis(degree, dim, type)
     
 end
 
-function l = legendre(degree)
-    
-    n = polyDim(degree, 1);
-    l = cell(n,1);
-    
-    l{1} = Polynomial(0, 1);
-    if degree > 0
-        l{2} = Polynomial(1,1);
-        for k = 1:n-2
-            l{k+2} = ((2*k+1)*l{2}*l{k+1} - k*l{k})./(k+1);
-        end
-    end
-    
-end
+% function l = legendre(degree)
+%     
+%     n = polyDim(degree, 1);
+%     l = cell(n,1);
+%     
+%     l{1} = Polynomial(0, 1);
+%     if degree > 0
+%         l{2} = Polynomial(1,1);
+%         for k = 1:n-2
+%             l{k+2} = ((2*k+1)*l{2}*l{k+1} - k*l{k})./(k+1);
+%         end
+%     end
+%     
+% end
 
 function n = polyDim(degree, dim)
 

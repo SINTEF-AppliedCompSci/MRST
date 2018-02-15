@@ -2,7 +2,7 @@ mrstModule add dg vem vemmech ad-props ad-core ad-blackoil blackoil-sequential
 
 %%
 
-n = 3;
+n = 100;
 G = computeGeometry(cartGrid([n,1], [100,10]));
 G.nodes.coords = G.nodes.coords;
 G = computeVEMGeometry(G);
@@ -13,8 +13,9 @@ fluid = initSimpleADIFluid('phases', 'WO', ...
                            'mu', [0.3, 1]*centi*poise);
                        
 modelfi = TwoPhaseOilWaterModel(G, rock, fluid);
-model = getSequentialModelFromFI(modelfi);
-model.transportModel = TransportOilWaterModelDG(G, rock, fluid, 'degree', 0);
+modelFV = getSequentialModelFromFI(modelfi);
+modelDG = modelFV;
+modelDG.transportModel = TransportOilWaterModelDG(G, rock, fluid, 'degree', 0);
                        
 %%
 
@@ -33,17 +34,37 @@ schedule = simpleSchedule(dtvec, 'W', W);
 %%
 
 state0      = initResSol(G, 100*barsa, [0,1]);
-nDof        = model.transportModel.basis.nDof;
+nDof        = modelDG.transportModel.basis.nDof;
 state0.sdof = zeros(G.cells.num*nDof, 2);
 state0.sdof(1:nDof:G.cells.num*nDof,2) = 1;
 
-[ws, state, rep] = simulateScheduleAD(state0, model, schedule);
+[ws, state, rep] = simulateScheduleAD(state0, modelDG, schedule);
 
 %%
 
-basis = dgBasis(model.transportModel.degree, model.transportModel.G.griddim, 'poly');
-x = zeros(G.cells.num,2);
+[ws2, state2, rep2] = simulateScheduleAD(state0, modelFV, schedule);
 
-sW = cellfun(@(s) getSatFromDof(x, (1:G.cells.num)', s.sdof(:,1), model.transportModel), state, 'unif', false);
+%%
 
-plotToolbar(G, state);
+figure
+x = linspace(0,100,n);
+
+steps = [1:4:25];
+clr = lines(numel(steps));
+h = [];
+for sNo = 1:numel(steps)
+    hold on
+    h(sNo) = plot(x, state {steps(sNo)}.s(:,1), '--', 'linew', 4, 'color', clr(sNo, :));
+             plot(x, state2{steps(sNo)}.s(:,1), '-', 'color', clr(sNo,:));
+end
+
+lgnd = cellfun(@(ts) ['Timestep', num2str(ts)], mat2cell(steps, 1, ones(1,numel(steps))), 'unif', false);
+legend(h, lgnd)
+
+%%
+
+figure;
+plotToolbar(G, state, 'plot1d', true);
+
+figure
+plotToolbar(G, state2, 'plot1d', true);
