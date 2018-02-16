@@ -2,21 +2,21 @@ mrstModule add dg vem vemmech ad-props ad-core ad-blackoil blackoil-sequential
 
 %%
 
-n = 100;
+n = 3;
 G = computeGeometry(cartGrid([n,1], [100,10]));
 G.nodes.coords = G.nodes.coords;
 G = computeVEMGeometry(G);
 
 rock = makeRock(G, 100*milli*darcy, 0.4);
-fluid = initSimpleADIFluid('phases', 'WO', ...
-                           'rho', [1000, 800]*kilogram/meter^3, ...
-                           'mu', [1, 1]*centi*poise, ...
-                           'n', [3,3]);
+fluid = initSimpleADIFluid('phases', 'WO'                        , ...
+                           'rho'   , [1000, 800]*kilogram/meter^3, ...
+                           'mu'    , [1, 1]*centi*poise          , ...
+                           'n'     , [1,1]                       );
                        
 modelfi = TwoPhaseOilWaterModel(G, rock, fluid);
 modelFV = getSequentialModelFromFI(modelfi);
 modelDG = modelFV;
-disc    = DGDiscretization(modelDG.transportModel, G.griddim, 'degree', 0);
+disc    = DGDiscretization(modelDG.transportModel, G.griddim, 'degree', 1);
 modelDG.transportModel = TransportOilWaterModelDG(G, rock, fluid, 'disc', disc);
                        
 %%
@@ -34,8 +34,8 @@ schedule = simpleSchedule(dtvec, 'W', W);
 
 %%
 
-state0      = initResSol(G, 100*barsa, [0.2,0.8]);
-state0 = assignDofFromState(modelDG.transportModel.disc, state0);
+state0         = initResSol(G, 100*barsa, [0.2,0.8]);
+state0         = assignDofFromState(modelDG.transportModel.disc, state0);
 state0.limflag = false(G.cells.num,1);
 
 [ws, state, rep] = simulateScheduleAD(state0, modelDG, schedule);
@@ -49,7 +49,7 @@ state0.limflag = false(G.cells.num,1);
 figure
 x = linspace(0,100,n);
 
-steps = round(linspace(1, numel(schedule.step.val), 10));
+steps = round(linspace(1, numel(schedule.step.val), 7));
 clr = lines(numel(steps));
 h = [];
 for sNo = 1:numel(steps)

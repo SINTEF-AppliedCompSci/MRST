@@ -180,7 +180,7 @@ classdef TransportOilWaterModelDG < TransportOilWaterModel
             % re-normalize if any values were capped
             bad = any((state.s > 1) | (state.s < 0), 2);
             if any(bad)
-                ix = (find(bad)-1)*model.basis.nDof + 1;
+                ix = (find(bad)-1)*model.disc.basis.nDof + 1;
                 over  = max(state.s(bad,:)-1,0);
                 under = min(state.s(bad,:),0);
                 state.sdof(ix,:) = state.sdof(ix,:) - over - under;

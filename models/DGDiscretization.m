@@ -17,7 +17,8 @@ classdef DGDiscretization < WENODiscretization
             disc.limiter = 'tvb';
             disc         = merge_options(disc, varargin{:});
             
-            disc.basis = dgBasis(disc.degree, dim, disc.basis);
+            disc.basis   = dgBasis(disc.degree, dim, disc.basis);
+            disc.limiter = dgLimiter(disc     , disc.limiter);
             
         end
             

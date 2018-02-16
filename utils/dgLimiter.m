@@ -1,9 +1,9 @@
-function limiter = dgLimiter(model, type, varargin)
+function limiter = dgLimiter(disc, type, varargin)
 
     opt = struct('threshold', 0, 'innerType', 'minmod');
     opt = merge_options(opt, varargin{:});
 
-    G = model.G;
+    G = disc.G;
 
     switch type
         case 'tvb'
@@ -15,12 +15,11 @@ function limiter = dgLimiter(model, type, varargin)
             isbf  = any(G.faces.neighbors(faces,:) == 0,2);
             faces = faces(~isbf);
             
-            sW     = @(x,dof,c) getSatFromDof(x, c, dof, model);
+            sW     = @(x,dof,c) getSatFromDof(x, c, dof, disc);
             
             cells = rldecode((1:G.cells.num)', diff(G.cells.facePos), 1);
-            nbf = accumarray(cells, isbf);
+            nbf   = accumarray(cells, isbf);
             cells = rldecode((1:G.cells.num)', diff(G.cells.facePos) - nbf, 1);
-            
             
             xf = (G.faces.centroids(faces,:) - G.cells.centroids(cells,:))./h(cells);
             
@@ -28,34 +27,20 @@ function limiter = dgLimiter(model, type, varargin)
                               - sW(xf, dof, G.faces.neighbors(faces,2))  );
             indicator = @(dof) accumarray(cells, sWjump(dof) > opt.threshold) > 0;
 
-            limiter = @(dof) tvbLimiter(model, dof, indicator, opt);
             
-            op = model.operators;
+            for d = 1:disc.dim
+                b = disc.interp_setup.tri_basis{d};
+                for l = 1:disc.dim+1
+                    loc_cells = disc.interp_setup.C(:, l);
+                    ccl = disc.interp_setup.tri_cells(loc_cells);
+                    ds = b(:, l).*q(ccl);
+
+                    sigma{d} = sigma{d} + ds;
+                end
+            end
             
-            dx = G.cells.centroids(op.N(:,2), :) - ...
-                 G.cells.centroids(op.N(:,1), :);
+            limiter = @(dof) tvbLimiter(disc, dof, indicator, opt);
              
-            [C, pts, grad_basis, supports, linear_weights, scaling] = getTriangulation(model);
-             
-            dMat = cell(G.griddim,1);
-            for dNo = 1:G.griddim
-                dMat{dNo} = sparse(op.N(:,1), op.N(:,2), -abs(dx(:,dNo)), G.cells.num, G.cells.num);
-            end
-             
-            tol = 1e-3;
-            connections = cell(G.griddim,1);
-            for dNo = 1:G.griddim
-                
-                [cr, cc] = find(dMat{dNo} == min(dMat{dNo},[], 2));
-                
-                connections{dNo} = repmat((1:G.cells.num)', 1, 2);
-                connections{dNo}(op.N(:,1),1) = op.N(:, 2);
-                
-%                 .*(dx(:,dNo) > 0);
-                
-                
-                connections{dNo}(op.N(:,2),2) = op.N(: ,2).*(dx(:,dNo) < 0);
-            end
 
             ll = getLimiter(opt.innerType);
             
@@ -66,7 +51,7 @@ function limiter = dgLimiter(model, type, varargin)
 
 end
 
-function limiter = tvbLimiter(model, dof, indicator, opt)
+function [newdof, flag] = tvbLimiter(model, dof, indicator, opt)
     
     dx = G.cells.centroids(G.faces.neighbors(:,1), :) - G.cells.centroids(G.faces.neighbors(:,2), :);
 
@@ -83,7 +68,8 @@ function limiter = tvbLimiter(model, dof, indicator, opt)
 %             ll([dofx, theta*dof]);
 %         end
 %     end
-    limiter = indicator(dof);
+    flag   = indicator(dof);
+    newdof = 1;
 
 end
 

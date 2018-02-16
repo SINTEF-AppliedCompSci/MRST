@@ -161,14 +161,6 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
         xwc = xc(keep,:);
         cellNo_wc = cellNo_c(keep);
         
-%         [xwc, wwc, nqwc, ii, jj, cellNowc] = makeCellIntegrator(G, wc, model.degree, 'tri');
-%         xwc = (xwc - G.cells.centroids(cellNowc,:))./G.cells.diameters(cellNowc);
-%         
-%         wwc = repmat(wwc(:), nDof, 1);
-%         ncf = diff(G.cells.facePos);
-%         [ii, jj] = blockDiagIndex(ones(numel(wc)*nDof, 1), repmat(ncf(wc)*nqwc, nDof,1));
-%         WWC = sparse(ii, jj, wwc);
-        
         ig = [];
         for dofNo = 1:nDof
             ig = [ig; bW(cellNo_wc).*wflux(cellNo_wc) ...
@@ -182,7 +174,7 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
         ind = mcolon((wc-1)*nDof + 1, wc*nDof);
         
         water(ind) = water(ind) - prod;
-%         water = water - prod;
+        
 %         bWqW = bW(wc).*f_w_w.*wflux;
 %         bOqO = bO(wc).*f_o_w.*wflux;
 
@@ -209,14 +201,3 @@ end
 
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 end
-
-% function fun = getSatFromDof(sdof, psi, G)
-%     
-%     fun = @(x) x(:,1)*0;
-%     nDof = size(psi,2);
-%     for dofNo = 1:size(psi,2)
-%         ix = (1:nDof:G.cells.num*nDof) + dofNo - 1;
-%         fun = @(x) fun(x) + sdof(ix).*psi{dofNo}(x);
-%     end
-%     
-% end
