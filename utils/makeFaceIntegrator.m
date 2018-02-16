@@ -27,11 +27,14 @@ function [x, w, nq, ii, jj, cellNo, faceNo] = makeFaceIntegrator(G, cells, degre
     sign = reshape(repmat(sign', nq, 1), [], 1);
     w = sign.*w/2;
     
+%     faceNo = rldecode(faces, 
+    if size(faces,1) == 1, faces = faces'; end
+    faceNo = reshape(repmat(faces', nq, 1), [], 1);
+    
     nq = (ncf(cells) - ncbf(cells))*nq;
     [ii, jj] = blockDiagIndex(ones(numel(cells), 1), nq);
 
     cellNo = rldecode(cells, nq, 1);
-    faceNo = faces;
     
 end
 

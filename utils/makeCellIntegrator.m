@@ -11,7 +11,8 @@ function [x, w, nq, ii, jj, cellNo] = makeCellIntegrator(G, cells, degree, type)
             
             if degree <= 1
                 
-               x = xr + G.cells.centroids(cells,:);
+%                x = xr + G.cells.centroids(cells,:);
+               x = repmat(xr, numel(cells), 1);
                [ii, jj] = deal(1:numel(cells));
                cellNo = cells;
                vol = G.cells.volumes(cells);

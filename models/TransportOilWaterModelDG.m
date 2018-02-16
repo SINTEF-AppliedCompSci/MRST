@@ -3,18 +3,20 @@ classdef TransportOilWaterModelDG < TransportOilWaterModel
     properties
         degree
         basis
-        basistype
+        limiter
     end
 
     methods
         function model = TransportOilWaterModelDG(G, rock, fluid, varargin)
             model = model@TransportOilWaterModel(G, rock, fluid);
             model.degree = 1;
-            model.basistype = 'legendre';
+            model.basis = 'legendre';
+%             model.limiter = 'tvb';
             
             model = merge_options(model, varargin{:});
             
-            model.basis = dgBasis(model.degree, G.griddim, model.basistype);
+            model.basis = dgBasis(model.degree, G.griddim, model.basis);
+%             model.limiter = dgLimiter(model, model.limiter);
 
         end
 
@@ -157,27 +159,16 @@ classdef TransportOilWaterModelDG < TransportOilWaterModel
             ds(:, ~solvedFor) = tmp;
             % We update all saturations simultanously, since this does not bias the
             % increment towards one phase in particular.
-%             state = model.updateStateFromIncrement(state, ds, problem, 'sdof', inf, model.dsMaxAbs);
-            state = model.updateStateFromIncrement(state, ds, problem, 'sdof', inf, inf);
+            state = model.updateStateFromIncrement(state, ds, problem, 'sdof', inf, model.dsMaxAbs);
             
-            G = model.G;
-            nPh = nnz(model.getActivePhases);
-            s = zeros(G.cells.num, nPh);
-            for phNo = 1:nPh
-                s(:,phNo) = getSatFromDof(zeros(G.cells.num, G.griddim), (1:G.cells.num)', state.sdof(:,phNo), model);
-            end
             
-            state.s = s;
-            s0 = s;
+            
+%             state = model.updateStateFromIncrement(state, ds, problem, 'sdof', inf, inf);
+            state = getCellSaturation(model, state);
 
             if 1
             % Ensure that values are within zero->one interval, and
             % re-normalize if any values were capped
-%             for phNo = 1:nPh
-%                 bad = any((state.s(:,phNo) > 1 | state.s(:,phNo) < 0));
-%                 ix = (find(bad)-1)*model.basis.nDof + 1;
-%                 state.sdof(ix,:) = state.sdof(ix)
-%             end
             bad = any((state.s > 1) | (state.s < 0), 2);
             if any(bad)
                 ix = (find(bad)-1)*model.basis.nDof + 1;
@@ -185,18 +176,8 @@ classdef TransportOilWaterModelDG < TransportOilWaterModel
                 under = min(state.s(bad,:),0);
                 state.sdof(ix,:) = state.sdof(ix,:) - over - under;
                 state.sdof(ix,:) = state.sdof(ix,:)./sum(state.sdof(ix,:),2);
-%                 state.sdof(ix,:) = state.sdof(ix,:) - min(1-state.s(bad,:), 1);
-%                 state.sdof(ix,:) = state.sdof(ix,:) - max(1-state.s(bad,:), 0);
-%                 state.s(bad, :) = min(state.s(bad, :), 1);
-%                 state.s(bad, :) = max(state.s(bad, :), 0);
-%                 state.s(bad, :) = bsxfun(@rdivide, state.s(bad, :), sum(state.s(bad, :), 2));
             end
-            
-            s = zeros(G.cells.num, nPh);
-            for phNo = 1:nPh
-                s(:,phNo) = getSatFromDof(zeros(G.cells.num, G.griddim), (1:G.cells.num), state.sdof(:,phNo), model);
-            end
-            state.s = s;
+                state = getCellSaturation(model, state);
             end
         end 
         

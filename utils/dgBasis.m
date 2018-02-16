@@ -38,27 +38,18 @@ function basis = dgBasis(degree, dim, type)
 
     end
     
-    basis = struct('psi'     , {psi}     , ...
-                   'grad_psi', {grad_psi}, ...
-                   'k'       , k         , ...
-                   'nDof'    , nDof      );
+    psi_lim = {Polynomial([0,0], 1), ...
+               Polynomial([1,0], 1), ...
+               Polynomial([0,1], 1)};
+    
+    basis = struct('psi'         , {psi}     , ...
+                   'grad_psi'    , {grad_psi}, ...
+                   'psi_lim'     , {psi_lim} , ...
+                   'k'           , k         , ...
+                   'nDof'        , nDof      , ...
+                   'type'        , type      );
     
 end
-
-% function l = legendre(degree)
-%     
-%     n = polyDim(degree, 1);
-%     l = cell(n,1);
-%     
-%     l{1} = Polynomial(0, 1);
-%     if degree > 0
-%         l{2} = Polynomial(1,1);
-%         for k = 1:n-2
-%             l{k+2} = ((2*k+1)*l{2}*l{k+1} - k*l{k})./(k+1);
-%         end
-%     end
-%     
-% end
 
 function n = polyDim(degree, dim)
 

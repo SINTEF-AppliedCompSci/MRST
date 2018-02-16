@@ -10,18 +10,17 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
                  'iteration', -1, ...
                  'stepOptions', []);  % Compatibility only
     
-    opt = merge_options(opt, varargin{:});
-    W   = drivingForces.W;
-    op   = model.operators;
+    opt   = merge_options(opt, varargin{:});
+    W     = drivingForces.W;
+    op    = model.operators;
     fluid = model.fluid;
-    rock = model.rock;
-    G = model.G;
+    rock  = model.rock;
+    G     = model.G;
         
     assert(~(opt.solveForWater && opt.solveForOil));
 
-    [p, sWdof, wellSol] = model.getProps(state, 'pressure', 'water', 'wellsol');
-
-    [p0, sWdof0] = model.getProps(state0, 'pressure', 'water');
+    [p , sWdof , wellSol] = model.getProps(state , 'pressure', 'water', 'wellsol');
+    [p0, sWdof0         ] = model.getProps(state0, 'pressure', 'water'           );
 
     % If timestep has been split relative to pressure, linearly interpolate in
     % pressure.
@@ -45,6 +44,7 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     % -------------------------------------------------------------------------
 
     primaryVars = {'sWdof'};
+    limflag = state.limflag;
     
 %     [psi, grad_psi, k, nDof] = dgBasis(model.degree, model.G.griddim, 'legendre');
 
@@ -53,8 +53,8 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     nDof     = model.basis.nDof;
     
     % Express sW and sW0 in basis
-    sW  = @(x,c) getSatFromDof(x, c, sWdof , model);
-    sW0 = @(x,c) getSatFromDof(x, c, sWdof0, model);
+    sW  = @(x,c) getSatFromDof(x, c, sWdof , limflag, model);
+    sW0 = @(x,c) getSatFromDof(x, c, sWdof0, limflag, model);
     sO  = @(x,c) 1-sW(x,c);
     
     [pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
@@ -65,17 +65,8 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     
     [vO, bO, mobO, rhoO, pO, upcO, dpO, muO] = getPropsOil_DG(model, p, sO, T, gdz);
     
-    [xc, cellNo_c, WC] = cellBasisIntegrator(model);
-    
+    [xc, cellNo_c,         WC] = cellBasisIntegrator(model);
     [xf, cellNo_f, faceNo, WF] = faceBasisIntegrator(model);
-    
-%     [xf, wf, cellsf, faces, nqf] = makeFaceIntegrator(G, (1:G.cells.num)', model.degree*2);
-%     xf = (xf - G.cells.centroids(cellsf,:))./G.cells.diameters(cellsf);
-%     wf = repmat(wf(:), nDof, 1);
-%     [bf, bc] = boundaryFaces(G);
-%     ncbf = sum((1:G.cells.num)' == bc',2);
-%     [ii, jj] = blockDiagIndex(ones(G.cells.num*nDof, 1), repmat((diff(G.cells.facePos) - ncbf)*nqf, nDof,1));
-%     WF = sparse(ii, jj, wf);
     
     % Accumulation term----------------------------------------------------
     
@@ -114,11 +105,10 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     ig = [];
     for dofNo = 1:nDof
         ig = [ig;   bW(cellNo_c).*fW(xc, cellNo_c).*sum(vTc(cellNo_c,:).*grad_psi{dofNo}(xc),2)  ...
-                  + bO(cellNo_c).*fW(xc, cellNo_c).*sum((Gwc(cellNo_c,:) ...
-                                       - Goc(cellNo_c,:)).*grad_psi{dofNo}(xc),2)];
+                  + bO(cellNo_c).*fW(xc, cellNo_c).*sum((Gwc(cellNo_c,:) - Goc(cellNo_c,:)).*grad_psi{dofNo}(xc),2)];
     end
-    vol = reshape(repmat(G.cells.volumes, nDof, 1), [], 1);
-    flux1 = -(WC*ig)./vol;
+%     vol = reshape(repmat(G.cells.volumes, nDof, 1), [], 1);
+    flux1 = -(WC*ig);%./vol;
     
 %     faceNo = reshape(repmat(faceNo, nqf, 1), [], 1);
     

@@ -2,7 +2,7 @@ function [x, cellNo, faceNo, W] = faceBasisIntegrator(model)
 
     G = model.G;
     nDof = model.basis.nDof;
-    degree = model.degree;
+    degree = model.degree*G.griddim;
     [x, w, nq, ii, jj, cellNo, faceNo] = makeFaceIntegrator(G, (1:G.cells.num)', degree);
     
     x = (x - G.cells.centroids(cellNo,:))./G.cells.diameters(cellNo);
