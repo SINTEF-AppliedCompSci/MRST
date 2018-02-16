@@ -16,6 +16,7 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     fluid = model.fluid;
     rock  = model.rock;
     G     = model.G;
+    disc  = model.disc;
         
     assert(~(opt.solveForWater && opt.solveForOil));
 
@@ -48,13 +49,13 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     
 %     [psi, grad_psi, k, nDof] = dgBasis(model.degree, model.G.griddim, 'legendre');
 
-    psi      = model.basis.psi;
-    grad_psi = model.basis.grad_psi;
-    nDof     = model.basis.nDof;
+    psi      = disc.basis.psi;
+    grad_psi = disc.basis.grad_psi;
+    nDof     = disc.basis.nDof;
     
     % Express sW and sW0 in basis
-    sW  = @(x,c) getSatFromDof(x, c, sWdof , limflag, model);
-    sW0 = @(x,c) getSatFromDof(x, c, sWdof0, limflag, model);
+    sW  = @(x,c) getSatFromDof(x, c, sWdof , limflag, disc);
+    sW0 = @(x,c) getSatFromDof(x, c, sWdof0, limflag, disc);
     sO  = @(x,c) 1-sW(x,c);
     
     [pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
@@ -65,8 +66,8 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     
     [vO, bO, mobO, rhoO, pO, upcO, dpO, muO] = getPropsOil_DG(model, p, sO, T, gdz);
     
-    [xc, cellNo_c,         WC] = cellBasisIntegrator(model);
-    [xf, cellNo_f, faceNo, WF] = faceBasisIntegrator(model);
+    [xc, cellNo_c,         WC] = cellBasisIntegrator(disc);
+    [xf, cellNo_f, faceNo, WF] = faceBasisIntegrator(disc);
     
     % Accumulation term----------------------------------------------------
     

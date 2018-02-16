@@ -11,12 +11,13 @@ rock = makeRock(G, 100*milli*darcy, 0.4);
 fluid = initSimpleADIFluid('phases', 'WO', ...
                            'rho', [1000, 800]*kilogram/meter^3, ...
                            'mu', [1, 1]*centi*poise, ...
-                           'n', [1,1]);
+                           'n', [3,3]);
                        
 modelfi = TwoPhaseOilWaterModel(G, rock, fluid);
 modelFV = getSequentialModelFromFI(modelfi);
 modelDG = modelFV;
-modelDG.transportModel = TransportOilWaterModelDG(G, rock, fluid, 'degree', 0);
+disc    = DGDiscretization(modelDG.transportModel, G.griddim, 'degree', 0);
+modelDG.transportModel = TransportOilWaterModelDG(G, rock, fluid, 'disc', disc);
                        
 %%
 
@@ -34,7 +35,7 @@ schedule = simpleSchedule(dtvec, 'W', W);
 %%
 
 state0      = initResSol(G, 100*barsa, [0.2,0.8]);
-state0 = assignDofFromState(modelDG.transportModel, state0);
+state0 = assignDofFromState(modelDG.transportModel.disc, state0);
 state0.limflag = false(G.cells.num,1);
 
 [ws, state, rep] = simulateScheduleAD(state0, modelDG, schedule);

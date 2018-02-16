@@ -1,8 +1,8 @@
-function [x, cellNo, W] = cellBasisIntegrator(model)
+function [x, cellNo, W] = cellBasisIntegrator(disc)
 
-    G = model.G;
-    nDof = model.basis.nDof;
-    degree = model.degree*G.griddim;
+    G      = disc.G;
+    nDof   = disc.basis.nDof;
+    degree = disc.degree*G.griddim;
     [x, w, nq, ii, jj, cellNo] = makeCellIntegrator(G, (1:G.cells.num)', degree, 'tri');
     
     x = (x - G.cells.centroids(cellNo,:))./G.cells.diameters(cellNo);

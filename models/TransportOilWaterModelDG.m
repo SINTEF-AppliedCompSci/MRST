@@ -1,21 +1,30 @@
 classdef TransportOilWaterModelDG < TransportOilWaterModel
     % Two phase oil/water system without dissolution
     properties
-        degree
-        basis
-        limiter
+%         discretization
+        disc
+%         degree
+%         basis
+%         limiter
     end
 
     methods
         function model = TransportOilWaterModelDG(G, rock, fluid, varargin)
+            
             model = model@TransportOilWaterModel(G, rock, fluid);
-            model.degree = 1;
-            model.basis = 'legendre';
-%             model.limiter = 'tvb';
+            model.disc = [];
             
             model = merge_options(model, varargin{:});
             
-            model.basis = dgBasis(model.degree, G.griddim, model.basis);
+            if isempty(model.disc)
+                model.disc = DGDiscretization(model, G.griddim);
+            end
+            
+%             model.degree = 1;
+%             model.basis = 'legendre';
+% %             model.limiter = 'tvb';
+%             
+%             model.basis = dgBasis(model.degree, G.griddim, model.basis);
 %             model.limiter = dgLimiter(model, model.limiter);
 
         end
@@ -142,7 +151,7 @@ classdef TransportOilWaterModelDG < TransportOilWaterModel
             % Fill component is whichever saturation is assumed to fill up the rest of
             % the pores. This is done by setting that increment equal to the
             % negation of all others so that sum(s) == 0 at end of update
-            nDof = model.basis.nDof;
+            nDof = model.disc.basis.nDof;
             solvedFor = ~strcmpi(saturations, fillsat);
             ds = zeros(model.G.cells.num*nDof, numel(saturations));
             
