@@ -1,4 +1,4 @@
-mrstModule add dg vem vemmech ad-props ad-core ad-blackoil blackoil-sequential
+mrstModule add dg vem vemmech ad-props ad-core ad-blackoil blackoil-sequential gasinjection
 
 %%
 
@@ -11,12 +11,12 @@ rock = makeRock(G, 100*milli*darcy, 0.4);
 fluid = initSimpleADIFluid('phases', 'WO'                        , ...
                            'rho'   , [1000, 800]*kilogram/meter^3, ...
                            'mu'    , [1, 1]*centi*poise          , ...
-                           'n'     , [1,1]                       );
+                           'n'     , [1, 1]                      );
                        
 modelfi = TwoPhaseOilWaterModel(G, rock, fluid);
 modelFV = getSequentialModelFromFI(modelfi);
 modelDG = modelFV;
-disc    = DGDiscretization(modelDG.transportModel, G.griddim, 'degree', 1);
+disc    = DGDiscretization(modelDG.transportModel, G.griddim, 'degree', 0);
 modelDG.transportModel = TransportOilWaterModelDG(G, rock, fluid, 'disc', disc);
                        
 %%

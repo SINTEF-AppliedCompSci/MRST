@@ -27,20 +27,10 @@ function limiter = dgLimiter(disc, type, varargin)
                               - sW(xf, dof, G.faces.neighbors(faces,2))  );
             indicator = @(dof) accumarray(cells, sWjump(dof) > opt.threshold) > 0;
 
+            limiter = @(dof) approx_grad(dof, disc);
             
-            for d = 1:disc.dim
-                b = disc.interp_setup.tri_basis{d};
-                for l = 1:disc.dim+1
-                    loc_cells = disc.interp_setup.C(:, l);
-                    ccl = disc.interp_setup.tri_cells(loc_cells);
-                    ds = b(:, l).*q(ccl);
-
-                    sigma{d} = sigma{d} + ds;
-                end
-            end
+%             limiter = @(dof) tvbLimiter(disc, dof, indicator, opt);
             
-            limiter = @(dof) tvbLimiter(disc, dof, indicator, opt);
-             
 
             ll = getLimiter(opt.innerType);
             
@@ -49,6 +39,23 @@ function limiter = dgLimiter(disc, type, varargin)
 %             limiter = @(dof,c) 2/sqrt(G.*lim(dof) > M;
     end
 
+end
+
+function sigma = approx_grad(dof, disc)
+    ind = 1:disc.basis.nDof:disc.G.cells.num*disc.basis.nDof;
+    q = dof(ind);
+    sigma = cell(1, disc.dim);
+    [sigma{:}] = deal(0);
+    for d = 1:disc.dim
+        b = disc.interp_setup.tri_basis{d};
+        for l = 1:disc.dim+1
+            loc_cells = disc.interp_setup.C(:, l);
+            ccl = disc.interp_setup.tri_cells(loc_cells);
+            ds = b(:, l).*q(ccl);
+
+            sigma{d} = sigma{d} + ds;
+        end
+    end
 end
 
 function [newdof, flag] = tvbLimiter(model, dof, indicator, opt)
