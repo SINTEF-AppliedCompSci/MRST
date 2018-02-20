@@ -125,18 +125,20 @@ for nstep=1:2
     plotCellData(G,rock.poro,'EdgeColor','none');
     plotWell(G,W,'height',10,'LineWidth',4);
     plotWellPairConnections(G,WP,D,W,pv,1e-4);
-    cmap=jet(128); colormap(.6*cmap + .4*ones(size(cmap))); clear cmap;
+    cmap=jet(128); colormap(.4*cmap + .6*ones(size(cmap))); clear cmap;
     view(0,70); set(gca,'DataAspectRatio',[1 1 .5]); axis off
     cax = caxis;
 
     % Plot zoom around each producer in separate axes
-    pos = [.05 .025 .25 .35;  .725 .025 .25 .35; ...
-        .05 .625 .25 .35; .725 .625 .25 .35];
+    pos = [.05 .05 .25 .35;  .725 .05 .25 .35; ...
+        .05 .6 .25 .35; .725 .6 .25 .35];
     for i=1:4
         axes('position', pos(i,:));
-        rad = sum(bsxfun(@minus,G.cells.centroids,....
-            G.cells.centroids(W(i).cells,:)).^2,2);
-        plotCellData(G,rock.poro,rad<3500,'EdgeColor','k','EdgeAlpha',.1);
+        if nstep==1,
+            rad(:,i) = sum(bsxfun(@minus,G.cells.centroids,....
+                G.cells.centroids(W(i).cells,:)).^2,2);
+        end
+        plotCellData(G,rock.poro,rad(:,i)<3500,'EdgeColor','k','EdgeAlpha',.1);
         plotWell(G,W(i),'height',10,'LineWidth',10);
         caxis(cax);
         view(0,70); set(gca,'DataAspectRatio',[1 1 .5]); axis off tight;
