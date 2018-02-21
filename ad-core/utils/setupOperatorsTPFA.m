@@ -5,7 +5,7 @@ function s = setupOperatorsTPFA(G, rock, varargin)
 %   s = setupOperatorsTPFA(G, rock)
 %
 % DESCRIPTION:
-%   The automatic differention solvers rely on discrete operators for
+%   The automatic differentiation solvers rely on discrete operators for
 %   divergence and gradient on the grid as well as a variety of derived
 %   reservoir quantities such as transmissibility and pore volume. The
 %   purpose of this function is to assemble all such quantities using a
