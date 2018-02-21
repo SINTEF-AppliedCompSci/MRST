@@ -1,4 +1,4 @@
-load showProcessPartition.mat;
+load(fullfile('data','showProcessPartition.mat'));
 
 %% Plot grid
 figure, plotGrid(G,c,'FaceColor',0.7*col+[.3 .3 .3]);
