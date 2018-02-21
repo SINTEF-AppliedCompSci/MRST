@@ -168,14 +168,27 @@ classdef TransportOilWaterModelDG < TransportOilWaterModel
             ds(:, ~solvedFor) = tmp;
             % We update all saturations simultanously, since this does not bias the
             % increment towards one phase in particular.
-            state = model.updateStateFromIncrement(state, ds, problem, 'sdof', inf, model.dsMaxAbs);
+            state = model.updateStateFromIncrement(state, ds, problem, 'sdof', inf, inf);
             
             
             
 %             state = model.updateStateFromIncrement(state, ds, problem, 'sdof', inf, inf);
             state = getCellSaturation(model, state);
+            
+            if model.disc.degree > 0 & 0
 
-            if 1
+                sWdof = model.disc.limiter(state.sdof(:,1));
+                sOdof = -sWdof;
+                ix = 1:model.disc.basis.nDof:model.G.cells.num*model.disc.basis.nDof;
+                sOdof(ix) = 1 - sWdof(ix);
+
+                state.sdof = [sWdof, sOdof];
+                
+                state = getCellSaturation(model, state);
+                
+            end
+
+            if 0
             % Ensure that values are within zero->one interval, and
             % re-normalize if any values were capped
             bad = any((state.s > 1) | (state.s < 0), 2);

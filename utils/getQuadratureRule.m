@@ -12,7 +12,7 @@ function [x, w, nq] = getQuadratureRule(degree, dim)
                 x = 0;
                 
             elseif degree == 2
-                x = [-sqrt(3); sqrt(3)];
+                x = [-sqrt(1/3); sqrt(1/3)];
                 
             elseif degree == 3
                 x = [-sqrt(3/5); 0; sqrt(3/5)];
@@ -51,7 +51,7 @@ function [x, w, nq] = getQuadratureRule(degree, dim)
                 w = 1;
                 x = [0,0];
             
-            elseif degree <= 2
+            elseif degree == 2
                 w = [1;1;1]/3;
                 x = [0,1,1; 1,0,1; 1,1,0]/2;
             end

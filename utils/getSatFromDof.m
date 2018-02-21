@@ -1,8 +1,8 @@
-function s = getSatFromDof(x, cell, dof, limflag, disc)
+function s = getSatFromDof(x, cell, dof, disc)
 
     G       = disc.G;
     psi     = disc.basis.psi;
-    psi_lim = disc.basis.psi_lim;
+%     psi_lim = disc.basis.psi_lim;
     nDof    = disc.basis.nDof;
     
     ii = sum((1:G.cells.num)' == cell',2);
@@ -11,11 +11,11 @@ function s = getSatFromDof(x, cell, dof, limflag, disc)
         
         ind = (1:nDof:G.cells.num*nDof)' + dofNo - 1;
         ix = rldecode(ind, ii, 1);
-        s = s + dof(ix).*psi{dofNo}(x).*(~limflag(cell));
+        s = s + dof(ix).*psi{dofNo}(x);%.*(~limflag(cell));
         
-        if disc.degree > 0 && dofNo <= polyDim(1, G.griddim)
-            s = s + dof(ix).*psi_lim{dofNo}(x).*limflag(cell);
-        end
+%         if disc.degree > 0 && dofNo <= polyDim(1, G.griddim)
+%             s = s + dof(ix).*psi_lim{dofNo}(x).*limflag(cell);
+%         end
         
     end
     

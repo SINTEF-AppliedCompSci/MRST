@@ -45,7 +45,6 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     % -------------------------------------------------------------------------
 
     primaryVars = {'sWdof'};
-    limflag = state.limflag;
     
 %     [psi, grad_psi, k, nDof] = dgBasis(model.degree, model.G.griddim, 'legendre');
 
@@ -54,8 +53,8 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     nDof     = disc.basis.nDof;
     
     % Express sW and sW0 in basis
-    sW  = @(x,c) getSatFromDof(x, c, sWdof , limflag, disc);
-    sW0 = @(x,c) getSatFromDof(x, c, sWdof0, limflag, disc);
+    sW  = @(x,c) getSatFromDof(x, c, sWdof , disc);
+    sW0 = @(x,c) getSatFromDof(x, c, sWdof0, disc);
     sO  = @(x,c) 1-sW(x,c);
     
     [pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
@@ -71,8 +70,8 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     
     % Accumulation term----------------------------------------------------
     
-    sW_psi  = [];
-    sW0_psi = [];
+    acc  = [];
+    acc0 = [];
     if numel(pvMult) == 1
         pvMult = repmat(pvMult, G.cells.num,1);
     end
@@ -80,12 +79,19 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
         pvMult0 = repmat(pvMult0, G.cells.num,1);
     end
     
+%     acc = sWdof;
+%     [acc, acc0] = 0;
     for dofNo = 1:nDof
-        sW_psi  = [sW_psi ; pvMult(cellNo_c) .*bW(cellNo_c) .*rock.poro(cellNo_c).*sW(xc,cellNo_c) .*psi{dofNo}(xc)];
-        sW0_psi = [sW0_psi; pvMult0(cellNo_c).*bW0(cellNo_c).*rock.poro(cellNo_c).*sW0(xc,cellNo_c).*psi{dofNo}(xc)];
+        
+%         tmp = WC*pvMult(cellNo_c) .*bW(cellNo_c) .*rock.poro(cellNo_c).*sW(xc,cellNo_c) .*psi{dofNo}(xc);
+                
+        
+%         ix   = 0;
+        acc  = [acc ; pvMult(cellNo_c) .*bW(cellNo_c) .*rock.poro(cellNo_c).*sW(xc,cellNo_c) .*psi{dofNo}(xc)];
+        acc0 = [acc0; pvMult0(cellNo_c).*bW0(cellNo_c).*rock.poro(cellNo_c).*sW0(xc,cellNo_c).*psi{dofNo}(xc)];
     end
     
-    acc = WC*(sW_psi - sW0_psi)/dt;
+    acc = WC*(acc - acc0)/dt;
     
     % Flux term------------------------------------------------------------
     
@@ -103,13 +109,13 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
 
     fW = @(x,c) mobW(x,c)./(mobW(x,c) + mobO(x,c));
     
-    ig = [];
+    flux1 = [];
     for dofNo = 1:nDof
-        ig = [ig;   bW(cellNo_c).*fW(xc, cellNo_c).*sum(vTc(cellNo_c,:).*grad_psi{dofNo}(xc),2)  ...
-                  + bO(cellNo_c).*fW(xc, cellNo_c).*sum((Gwc(cellNo_c,:) - Goc(cellNo_c,:)).*grad_psi{dofNo}(xc),2)];
+        flux1 = [flux1;   bW(cellNo_c).*fW(xc, cellNo_c).*sum(vTc(cellNo_c,:).*grad_psi{dofNo}(xc),2)  ...
+                        + bO(cellNo_c).*fW(xc, cellNo_c).*sum((Gwc(cellNo_c,:) - Goc(cellNo_c,:)).*grad_psi{dofNo}(xc),2)];
     end
-%     vol = reshape(repmat(G.cells.volumes, nDof, 1), [], 1);
-    flux1 = -(WC*ig);%./vol;
+    vol = reshape(repmat(G.cells.volumes, nDof, 1), [], 1);
+    flux1 = -(WC*flux1)./vol;
     
 %     faceNo = reshape(repmat(faceNo, nqf, 1), [], 1);
     
@@ -117,16 +123,17 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     upCells_v = G.faces.neighbors(:,2);
     
     intf = find(op.internalConn);
-    upCells_v(intf(upcW)) = op.N(:,1);
+    upCells_v(intf(upcW)) = op.N(upcW,1);
 
     upCells_v = upCells_v(faceNo);    
     upCells_G = upCells_v;
     
-    ig = [];
+    flux2 = [];
     for dofNo = 1:nDof
-        ig = [ig; (bW(upCells_G).*fW(xf, upCells_v).*vT(faceNo) + fW(xf, upCells_G).*bO(upCells_G).*(Gw(faceNo) - Go(faceNo))).*psi{dofNo}(xf)];
+        flux2 = [flux2;  bW(upCells_G).*fW(xf, upCells_v).*vT(faceNo).*psi{dofNo}(xf) ...
+                       + bO(upCells_G).*fW(xf, upCells_G).*mobO(xf,upCells_G).*(Gw(faceNo) - Go(faceNo)).*psi{dofNo}(xf)];
     end
-    flux2 = WF*ig;
+    flux2 = WF*flux2;
     
     flux = flux1 + flux2;
     
@@ -161,32 +168,40 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
         xwc = xc(keep,:);
         cellNo_wc = cellNo_c(keep);
         
-        ig = [];
+        prod = [];
         for dofNo = 1:nDof
-            ig = [ig; bW(cellNo_wc).*wflux(cellNo_wc) ...
+            prod = [prod; bW(cellNo_wc).*wflux(cellNo_wc) ...
                             .*(fW(xwc, cellNo_wc) .*(~isInj(cellNo_wc)) ...
                            + compPerf(cellNo_wc,1).*( isInj(cellNo_wc))).*psi{dofNo}(xwc)];
         end
         
         vol = reshape(repmat(G.cells.volumes(wc), nDof, 1), [], 1);
-        prod = (WWC*ig)./vol;
+        prod = (WWC*prod)./vol;
         
         ind = mcolon((wc-1)*nDof + 1, wc*nDof);
         
         water(ind) = water(ind) - prod;
-        
-%         bWqW = bW(wc).*f_w_w.*wflux;
-%         bOqO = bO(wc).*f_o_w.*wflux;
 
         % Store well fluxes
-%         wflux_O = double(bOqO);
-%         wflux_W = double(bWqW);
+        
+        wflux_W = bW(wc).*wflux(wc) ...
+              .*(fW([0,0], wc) .*(~isInj(wc)) ...
+               + compPerf(wc,1).*( isInj(wc)));
+          
+        wflux_O = bO(wc).*wflux(wc) ...
+              .*((1-fW([0,0], wc)).*(~isInj(wc)) ...
+               + compPerf(wc,2) .*( isInj(wc)));
+          
+          
+        
+        wflux_O = double(wflux_O);
+        wflux_W = double(wflux_W);
 % 
-%         for i = 1:numel(W)
-%             perfind = perf2well == i;
-%             state.wellSol(i).qOs = sum(wflux_O(perfind));
-%             state.wellSol(i).qWs = sum(wflux_W(perfind));
-%         end
+        for wNo = 1:numel(W)
+            perfind = perf2well == wNo;
+            state.wellSol(wNo).qOs = sum(wflux_O(perfind));
+            state.wellSol(wNo).qWs = sum(wflux_W(perfind));
+        end
 
     end
 
@@ -200,4 +215,12 @@ if ~model.useCNVConvergence
 end
 
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
+
+if 1
+    faces = G.cells.faces(:,1);
+    cells = rldecode((1:G.cells.num)', diff(G.cells.facePos), 1);
+    xx = (G.faces.centroids(faces,:) - G.cells.centroids(cells,:))./(2*sqrt(G.griddim)*G.cells.diameters(cells,:));
+    ss = sW(xx,cells);
+end
+
 end

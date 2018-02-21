@@ -1,10 +1,19 @@
-function [x, w, nq, ii, jj, cellNo, faceNo] = makeFaceIntegrator(G, cells, degree)
+function [x, w, nq, ii, jj, cellNo, faceNo] = makeFaceIntegrator(G, cells, degree, varargin)
 
-    [bf, bc] = boundaryFaces(G);
-    ncbf = sum((1:G.cells.num)' == bc',2);
+    opt = struct('exclude_boundary', true);
+    opt = merge_options(opt, varargin{:});
+
+
     
     faces = G.cells.faces(mcolon(G.cells.facePos(cells), G.cells.facePos(cells+1)-1));
-    faces = faces(~ismember(faces, bf));
+    if opt.exclude_boundary
+        [bf, bc] = boundaryFaces(G);
+        ncbf = sum((1:G.cells.num)' == bc',2);
+        faces = faces(~ismember(faces, bf));
+    else
+        ncbf = zeros(G.cells.num, 1);
+    end
+    
     nodes = G.faces.nodes(mcolon(G.faces.nodePos(faces), G.faces.nodePos(faces+1)-1));
     nodes = reshape(nodes, 2, [])';
 

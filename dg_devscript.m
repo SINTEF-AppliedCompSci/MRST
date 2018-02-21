@@ -3,14 +3,14 @@ mrstModule add dg vem vemmech ad-props ad-core ad-blackoil blackoil-sequential g
 %%
 
 n = 3;
-G = computeGeometry(cartGrid([n,1], [100,10]));
+G = computeGeometry(cartGrid([n,1], [n,1]));
 G.nodes.coords = G.nodes.coords;
 G = computeVEMGeometry(G);
 
-rock = makeRock(G, 100*milli*darcy, 0.4);
+rock = makeRock(G, 100*milli*darcy, 1);
 fluid = initSimpleADIFluid('phases', 'WO'                        , ...
-                           'rho'   , [1000, 800]*kilogram/meter^3, ...
-                           'mu'    , [1, 1]*centi*poise          , ...
+                           'rho'   , [1, 1]*kilogram/meter^3, ...
+                           'mu'    , [1, 1]                 , ...
                            'n'     , [1, 1]                      );
                        
 modelfi = TwoPhaseOilWaterModel(G, rock, fluid);
@@ -32,9 +32,11 @@ dtvec = rampupTimesteps(time, dt, 0);
 
 schedule = simpleSchedule(dtvec, 'W', W);
 
+
 %%
 
-state0         = initResSol(G, 100*barsa, [0.2,0.8]);
+sW             = 0.0;
+state0         = initResSol(G, 100*barsa, [sW,1-sW]);
 state0         = assignDofFromState(modelDG.transportModel.disc, state0);
 state0.limflag = false(G.cells.num,1);
 

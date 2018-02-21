@@ -7,7 +7,6 @@ function limiter = dgLimiter(disc, type, varargin)
 
     switch type
         case 'tvb'
-            lim = getLimiter(opt.innerType);
             
             h     = G.cells.diameters;
             
@@ -20,69 +19,102 @@ function limiter = dgLimiter(disc, type, varargin)
             cells = rldecode((1:G.cells.num)', diff(G.cells.facePos), 1);
             nbf   = accumarray(cells, isbf);
             cells = rldecode((1:G.cells.num)', diff(G.cells.facePos) - nbf, 1);
-            
-            xf = (G.faces.centroids(faces,:) - G.cells.centroids(cells,:))./h(cells);
+            xf = (G.faces.centroids(faces,:) - G.cells.centroids(cells,:))./(2*sqrt(G.griddim)*h(cells));
             
             sWjump = @(dof) abs(sW(xf, dof, G.faces.neighbors(faces,1)) ...
                               - sW(xf, dof, G.faces.neighbors(faces,2))  );
             indicator = @(dof) accumarray(cells, sWjump(dof) > opt.threshold) > 0;
-
-            limiter = @(dof) approx_grad(dof, disc);
             
-%             limiter = @(dof) tvbLimiter(disc, dof, indicator, opt);
+            grad = @(dof) approx_grad(dof, disc);
             
-
-            ll = getLimiter(opt.innerType);
+            limiter = @(dof) tvbLimiter(disc, dof, indicator);
             
-%             model.operators
-            
-%             limiter = @(dof,c) 2/sqrt(G.*lim(dof) > M;
     end
 
 end
 
-function sigma = approx_grad(dof, disc)
-    ind = 1:disc.basis.nDof:disc.G.cells.num*disc.basis.nDof;
-    q = dof(ind);
+function dofbar = approx_grad(dof, disc)
+
+    ind  = 1:disc.basis.nDof:disc.G.cells.num*disc.basis.nDof;
+    q    = dof(ind);
+    G    = disc.G;
+    nDof = disc.basis.nDof;
+    
     sigma = cell(1, disc.dim);
     [sigma{:}] = deal(0);
+    
+    gradpos = [0;cumsum(disc.interp_setup.cell_support_count)] + 1;
+    
     for d = 1:disc.dim
         b = disc.interp_setup.tri_basis{d};
         for l = 1:disc.dim+1
             loc_cells = disc.interp_setup.C(:, l);
             ccl = disc.interp_setup.tri_cells(loc_cells);
             ds = b(:, l).*q(ccl);
-
             sigma{d} = sigma{d} + ds;
         end
     end
-end
+    
+    dofbar = zeros(G.cells.num, disc.dim);
+    for cNo = 1:G.cells.num
+        
+%         gradix = gradpos(cNo):gradpos(cNo+1)-1;
+        gradix = disc.interp_setup.cell_support{cNo};
+        for dNo = 1:disc.dim
+            dofix = (cNo-1)*nDof + 1 + dNo;
+            ss = sigma{dNo}(gradix);
+            ss = ss(ss~=0);
+            val = [dof(dofix); ss];
+            dofbar(cNo, dNo) = minmod(val);
+        end
 
-function [newdof, flag] = tvbLimiter(model, dof, indicator, opt)
-    
-    dx = G.cells.centroids(G.faces.neighbors(:,1), :) - G.cells.centroids(G.faces.neighbors(:,2), :);
-
-    ll = getLimiter(opt.innerType);
-    
-    
-    
-    
-%     dof0 = dof(1:nDof:G.cells.num*nDof);
-%     for dNo = 1:G.griddim
-%         dofx = dof((dNo+1):nDof:G.cells.num*nDof);
-%         for cNo = 1:G.cells.num
-%             dofx(c)
-%             ll([dofx, theta*dof]);
-%         end
-%     end
-    flag   = indicator(dof);
-    newdof = 1;
-
-end
-
-function limiter = getLimiter(type)
-    switch type
-        case 'minmod'
-            limiter = @(val) max(val)*all(val < 0) + min(val)*all(val > 0);
     end
+    
 end
+
+function newdof = tvbLimiter(disc, dof, indicator)
+
+    flag   = indicator(dof);
+    
+    dofbar = approx_grad(dof, disc)';
+    dofbar = dofbar(:);
+    
+    newdof = dof;
+    
+    nDof = disc.basis.nDof;
+    
+    ix1 = mcolon((find(flag)-1)*nDof + 1 + 1, (find(flag)-1)*nDof + 1 + disc.dim);
+    ix2 = mcolon((find(flag)-1)*disc.dim + 1, (find(flag)-1)*disc.dim + disc.dim);
+    newdof(ix1) = dofbar(ix2);
+    
+
+%     dx = G.cells.centroids(G.faces.neighbors(:,1), :) - G.cells.centroids(G.faces.neighbors(:,2), :);
+% 
+%     ll = getLimiter(opt.innerType);
+%     
+%     
+%     
+%     
+% %     dof0 = dof(1:nDof:G.cells.num*nDof);
+% %     for dNo = 1:G.griddim
+% %         dofx = dof((dNo+1):nDof:G.cells.num*nDof);
+% %         for cNo = 1:G.cells.num
+% %             dofx(c)
+% %             ll([dofx, theta*dof]);
+% %         end
+%     end
+
+
+end
+
+function v = minmod(val)
+    v = max(val)*all(val < 0) + min(val)*all(val > 0);
+end
+        
+% 
+% function limiter = getLimiter(type)
+%     switch type
+%         case 'minmod'
+%             limiter = @(val) max(val)*all(val < 0) + min(val)*all(val > 0);
+%     end
+% end
