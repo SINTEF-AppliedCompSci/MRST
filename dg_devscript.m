@@ -16,7 +16,7 @@ fluid = initSimpleADIFluid('phases', 'WO'                        , ...
 modelfi = TwoPhaseOilWaterModel(G, rock, fluid);
 modelFV = getSequentialModelFromFI(modelfi);
 modelDG = modelFV;
-disc    = DGDiscretization(modelDG.transportModel, G.griddim, 'degree', 0);
+disc    = DGDiscretization(modelDG.transportModel, G.griddim, 'degree', 1);
 modelDG.transportModel = TransportOilWaterModelDG(G, rock, fluid, 'disc', disc);
                        
 %%

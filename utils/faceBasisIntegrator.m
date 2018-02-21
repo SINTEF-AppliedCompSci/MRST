@@ -8,7 +8,8 @@ function [x, cellNo, faceNo, W] = faceBasisIntegrator(model)
     
     x = (x - G.cells.centroids(cellNo,:))./(G.cells.diameters(cellNo)/(2*sqrt(G.griddim)));
     
-    [ii, jj] = blockDiagIndex(ones(G.cells.num*nDof, 1), repmat(nq, nDof,1));
-    W = sparse(ii, jj, repmat(w, nDof, 1));
+%     [ii, jj] = blockDiagIndex(ones(G.cells.num*nDof, 1), repmat(nq, nDof,1));
+%     W = sparse(ii, jj, repmat(w, nDof, 1));
+    W = sparse(ii, jj, w);
     
 end

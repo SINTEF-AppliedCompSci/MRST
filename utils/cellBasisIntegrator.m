@@ -6,9 +6,13 @@ function [x, cellNo, W] = cellBasisIntegrator(disc)
 %     degree = 2;
     [x, w, nq, ii, jj, cellNo] = makeCellIntegrator(G, (1:G.cells.num)', degree, 'tri');
     
-    x = (x - G.cells.centroids(cellNo,:))./(G.cells.diameters(cellNo)/(2*sqrt(G.griddim)));
+    if degree > 1
+        x = (x - G.cells.centroids(cellNo,:))./(G.cells.diameters(cellNo)/(2*sqrt(G.griddim)));
+    end
     
-    [ii, jj] = blockDiagIndex(ones(G.cells.num*nDof, 1), repmat(nq, nDof,1));
-    W = sparse(ii, jj, repmat(w, nDof, 1));
+%     [ii, jj] = blockDiagIndex(ones(G.cells.num*nDof, 1), repmat(nq, nDof,1));
+%     W = sparse(ii, jj, repmat(w, nDof, 1));
+    
+    W = sparse(ii, jj, w);
     
 end
