@@ -198,8 +198,9 @@ classdef TransportOilWaterModelDG < TransportOilWaterModel
                 under = min(state.s(bad,:),0);
                 state.sdof(ix,:) = state.sdof(ix,:) - over - under;
                 state.sdof(ix,:) = state.sdof(ix,:)./sum(state.sdof(ix,:),2);
-            end
                 state = getCellSaturation(model, state);
+            end
+                
             end
         end 
         

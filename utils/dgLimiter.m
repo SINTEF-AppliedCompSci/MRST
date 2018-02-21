@@ -19,7 +19,7 @@ function limiter = dgLimiter(disc, type, varargin)
             cells = rldecode((1:G.cells.num)', diff(G.cells.facePos), 1);
             nbf   = accumarray(cells, isbf);
             cells = rldecode((1:G.cells.num)', diff(G.cells.facePos) - nbf, 1);
-            xf = (G.faces.centroids(faces,:) - G.cells.centroids(cells,:))./(2*sqrt(G.griddim)*h(cells));
+            xf = (G.faces.centroids(faces,:) - G.cells.centroids(cells,:))./(h(cells)/(2*sqrt(G.griddim)));
             
             sWjump = @(dof) abs(sW(xf, dof, G.faces.neighbors(faces,1)) ...
                               - sW(xf, dof, G.faces.neighbors(faces,2))  );
@@ -63,9 +63,9 @@ function dofbar = approx_grad(dof, disc)
         for dNo = 1:disc.dim
             dofix = (cNo-1)*nDof + 1 + dNo;
             ss = sigma{dNo}(gradix);
-            ss = ss(ss~=0);
+%             ss = ss(ss~=0);
             val = [dof(dofix); ss];
-            dofbar(cNo, dNo) = minmod(val);
+                dofbar(cNo, dNo) = minmod(val);
         end
 
     end

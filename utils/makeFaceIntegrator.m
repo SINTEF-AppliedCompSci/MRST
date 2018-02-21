@@ -34,6 +34,7 @@ function [x, w, nq, ii, jj, cellNo, faceNo] = makeFaceIntegrator(G, cells, degre
     sign = 1 - 2*(G.faces.neighbors(faces,1) ~= rldecode(cells, ncf(cells) - ncbf(cells), 1));
 
     sign = reshape(repmat(sign', nq, 1), [], 1);
+%     sign = reshape(repmat(sign'.*G.faces.areas(faces)', nq, 1), [], 1);
     w = sign.*w/2;
     
 %     faceNo = rldecode(faces, 

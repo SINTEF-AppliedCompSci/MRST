@@ -66,7 +66,6 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     [vO, bO, mobO, rhoO, pO, upcO, dpO, muO] = getPropsOil_DG(model, p, sO, T, gdz);
     
     [xc, cellNo_c,         WC] = cellBasisIntegrator(disc);
-    [xf, cellNo_f, faceNo, WF] = faceBasisIntegrator(disc);
     
     % Accumulation term----------------------------------------------------
     
@@ -81,8 +80,8 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     for dofNo = 1:nDof
         
         ix = (1:nDof:G.cells.num*nDof) + dofNo - 1;
-        now  = WC*(pvMult(cellNo_c) .*bW(cellNo_c) .*rock.poro(cellNo_c).*sW(xc,cellNo_c) .*psi{dofNo}(xc));
-        then = WC*(pvMult0(cellNo_c).*bW0(cellNo_c).*rock.poro(cellNo_c).*sW0(xc,cellNo_c).*psi{dofNo}(xc));
+        now  = WC*(pvMult(cellNo_c) .*rock.poro(cellNo_c).*bW(cellNo_c) .*sW(xc,cellNo_c) .*psi{dofNo}(xc));
+        then = WC*(pvMult0(cellNo_c).*rock.poro(cellNo_c).*bW0(cellNo_c).*sW0(xc,cellNo_c).*psi{dofNo}(xc));
         acc(ix) = (now - then)/dt;
         
     end
@@ -91,6 +90,9 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     
     vT = sum(state.flux,2);
     vTc = faceFlux2cellVelocity(G, vT);
+    
+%     vTc(1,:) = vTc(2,:);
+%     vTc(end,:) = vTc(end-1,:);
     
     gp = op.Grad(p);
     
@@ -106,31 +108,36 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     flux1 = sWdof;
     for dofNo = 1:nDof
         
-        ix = (1:nDof:G.cells.num*nDof) + dofNo - 1;
+        ix        = (1:nDof:G.cells.num*nDof) + dofNo - 1;
         flux1(ix) = -WC*(bW(cellNo_c).*fW(xc, cellNo_c).*sum(vTc(cellNo_c,:).*grad_psi{dofNo}(xc),2)  ...
                        + bO(cellNo_c).*fW(xc, cellNo_c).*sum((Gwc(cellNo_c,:) - Goc(cellNo_c,:)).*grad_psi{dofNo}(xc),2));
                    
     end
     
-    upCells_v = G.faces.neighbors(:,2);
+%     flux1 = flux1./reshape(repmat(G.cells.volumes', 3, 1), [], 1);
     
+    [xf, cellNo_f, faceNo, WF] = faceBasisIntegrator(disc);
+    upCells_v = G.faces.neighbors(:,2);
     intf = find(op.internalConn);
     upCells_v(intf(upcW)) = op.N(upcW,1);
-
     upCells_v = upCells_v(faceNo);    
     upCells_G = upCells_v;
+    
+    xf_up = (xf - G.cells.centroids(upCells_v))./(G.cells.diameters(upCells_v)/(2*sqrt(G.griddim)));
+    
+    xf_c  = (xf - G.cells.centroids(cellNo_f))./(G.cells.diameters(cellNo_f)/(2*sqrt(G.griddim)));
     
     flux2 = sWdof;
     for dofNo = 1:nDof
         
-        ix = (1:nDof:G.cells.num*nDof) + dofNo - 1;
-        flux2(ix) = WF*(bW(upCells_G).*fW(xf, upCells_v).*vT(faceNo).*psi{dofNo}(xf) ...
-                      + bO(upCells_G).*fW(xf, upCells_G).*mobO(xf,upCells_G).*(Gw(faceNo) - Go(faceNo)).*psi{dofNo}(xf));
+        ix        = (1:nDof:G.cells.num*nDof) + dofNo - 1;
+        flux2(ix) = WF*(bW(upCells_G).*fW(xf_up, upCells_v).*vT(faceNo).*psi{dofNo}(xf_c) ...
+                      + bO(upCells_G).*fW(xf_up, upCells_G).*mobO(xf_up,upCells_G).*(Gw(faceNo) - Go(faceNo)).*psi{dofNo}(xf_c));
                   
     end
-    
+%     flux1 = 0;
     flux  = flux1 + flux2;
-    water = acc + flux;
+    water = acc   + flux;
     
     % Well contributions---------------------------------------------------
     
@@ -160,7 +167,7 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
         
         prod = sWdof(wc);
         for dofNo = 1:nDof
-            ix = (1:nDof:numel(wc)*nDof) + dofNo - 1;
+            ix       = (1:nDof:numel(wc)*nDof) + dofNo - 1;
             prod(ix) = (WWC*(bW(cellNo_wc).*wflux(cellNo_wc)...
                           .*(fW(xwc, cellNo_wc) .*(~isInj(cellNo_wc)) ...
                           +  compPerf(cellNo_wc,1).*( isInj(cellNo_wc))).*psi{dofNo}(xwc)))./G.cells.volumes(wc);
@@ -191,9 +198,9 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
 
     end
 
-eqs = {water};
+eqs   = {water  };
 names = {'water'};
-types = {'cell'};
+types = {'cell' };
 
 pv = reshape(repmat(op.pv', nDof, 1), [], 1);
 if ~model.useCNVConvergence
@@ -202,11 +209,11 @@ end
 
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 
-if 1
-    faces = G.cells.faces(:,1);
-    cells = rldecode((1:G.cells.num)', diff(G.cells.facePos), 1);
-    xx = (G.faces.centroids(faces,:) - G.cells.centroids(cells,:))./(2*sqrt(G.griddim)*G.cells.diameters(cells,:));
-    ss = sW(xx,cells);
-end
+% if 1
+%     faces = G.cells.faces(:,1);
+%     cells = rldecode((1:G.cells.num)', diff(G.cells.facePos), 1);
+%     xx = (G.faces.centroids(faces,:) - G.cells.centroids(cells,:))./(2*sqrt(G.griddim)*G.cells.diameters(cells,:));
+%     ss = sW(xx,cells);
+% end
 
 end

@@ -6,8 +6,9 @@ function [x, cellNo, W] = cellBasisIntegrator(disc)
 %     degree = 2;
     [x, w, nq, ii, jj, cellNo] = makeCellIntegrator(G, (1:G.cells.num)', degree, 'tri');
     
-    if degree > 1
+    if degree > 0
         x = (x - G.cells.centroids(cellNo,:))./(G.cells.diameters(cellNo)/(2*sqrt(G.griddim)));
+%         x = (x - G.cells.centroids(cellNo,:))./G.cells.diameters(cellNo);
     end
     
 %     [ii, jj] = blockDiagIndex(ones(G.cells.num*nDof, 1), repmat(nq, nDof,1));

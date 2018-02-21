@@ -3,7 +3,7 @@ function [vW, bW, mobW, rhoW, pW, upcW, dpW, muW] = getPropsWater_DG(model, pO, 
 
     fluid = model.fluid;
     op = model.operators;
-    G = model.G;
+%     G = model.G;
     
      % Check for capillary pressure (p_cow)
     pcOW = 0;
@@ -11,9 +11,6 @@ function [vW, bW, mobW, rhoW, pW, upcW, dpW, muW] = getPropsWater_DG(model, pO, 
         pcOW  = fluid.pcOW(sW);
     end
     pW = pO - pcOW;
-    muW = fluid.muW(pW);
-    
-   
 
     bW     = fluid.bW(pW);
     rhoW   = bW.*fluid.rhoWS;
