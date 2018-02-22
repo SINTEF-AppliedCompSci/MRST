@@ -123,16 +123,18 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     upCells_v = upCells_v(faceNo);    
     upCells_G = upCells_v;
     
-    xf_up = (xf - G.cells.centroids(upCells_v))./(G.cells.diameters(upCells_v)/(2*sqrt(G.griddim)));
-    
-    xf_c  = (xf - G.cells.centroids(cellNo_f))./(G.cells.diameters(cellNo_f)/(2*sqrt(G.griddim)));
+%     xf_up = (xf - G.cells.centroids(upCells_v))./(G.cells.diameters(upCells_v)/(2*sqrt(G.griddim)));
+%     
+%     xf_c  = (xf - G.cells.centroids(cellNo_f))./(G.cells.diameters(cellNo_f)/(2*sqrt(G.griddim)));
+%     
+   
     
     flux2 = sWdof;
     for dofNo = 1:nDof
         
         ix        = (1:nDof:G.cells.num*nDof) + dofNo - 1;
-        flux2(ix) = WF*(bW(upCells_G).*fW(xf_up, upCells_v).*vT(faceNo).*psi{dofNo}(xf_c) ...
-                      + bO(upCells_G).*fW(xf_up, upCells_G).*mobO(xf_up,upCells_G).*(Gw(faceNo) - Go(faceNo)).*psi{dofNo}(xf_c));
+        flux2(ix) = WF*(bW(upCells_G).*fW(xf, upCells_v).*vT(faceNo).*psi{dofNo}(xf) ...
+                      + bO(upCells_G).*fW(xf, upCells_G).*mobO(xf,upCells_G).*(Gw(faceNo) - Go(faceNo)).*psi{dofNo}(xf));
                   
     end
 %     flux1 = 0;
@@ -159,7 +161,7 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
         
         S1 = sparse((1:numel(wc))', wc, 1, numel(wc), G.cells.num);
         S2 = sparse(jj, (1:numel(jj))' , 1, size(WC,2)     , numel(jj));
-        WWC = S1*WC*S2;
+        WWC = (S1*WC*S2)./G.cells.volumes(wc);
         
         keep = any(cellNo_c == wc',2);
         xwc = xc(keep,:);
@@ -170,7 +172,7 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
             ix       = (1:nDof:numel(wc)*nDof) + dofNo - 1;
             prod(ix) = (WWC*(bW(cellNo_wc).*wflux(cellNo_wc)...
                           .*(fW(xwc, cellNo_wc) .*(~isInj(cellNo_wc)) ...
-                          +  compPerf(cellNo_wc,1).*( isInj(cellNo_wc))).*psi{dofNo}(xwc)))./G.cells.volumes(wc);
+                          +  compPerf(cellNo_wc,1).*( isInj(cellNo_wc))).*psi{dofNo}(xwc)));%./G.cells.volumes(wc);
         end
         
         ind = mcolon((wc-1)*nDof + 1, wc*nDof);

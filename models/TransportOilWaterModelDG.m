@@ -168,7 +168,7 @@ classdef TransportOilWaterModelDG < TransportOilWaterModel
             ds(:, ~solvedFor) = tmp;
             % We update all saturations simultanously, since this does not bias the
             % increment towards one phase in particular.
-            state = model.updateStateFromIncrement(state, ds, problem, 'sdof', inf, inf);
+            state = model.updateStateFromIncrement(state, ds, problem, 'sdof', inf, model.dsMaxAbs);
             
             
             
@@ -188,7 +188,7 @@ classdef TransportOilWaterModelDG < TransportOilWaterModel
                 
             end
 
-            if 0
+            if 1
             % Ensure that values are within zero->one interval, and
             % re-normalize if any values were capped
             bad = any((state.s > 1) | (state.s < 0), 2);

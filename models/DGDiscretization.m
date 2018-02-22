@@ -21,8 +21,16 @@ classdef DGDiscretization < WENODiscretization
             disc.limiter = dgLimiter(disc     , disc.limiter);
             
         end
-            
         
+        %-----------------------------------------------------------------%
+        function xhat = scaling(disc, x, cells)
+            
+            G = disc.G;
+            xhat = (x - G.cells.centroids(cells))...
+                   ./(G.cells.diameters(cells)/(2*sqrt(G.griddim)));
+               
+        end
+            
     end
     
 end

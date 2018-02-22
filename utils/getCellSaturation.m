@@ -6,7 +6,9 @@ function state = getCellSaturation(model, state)
     
     sfun = @(x,c, phNo) getSatFromDof(x, c, state.sdof(:,phNo), disc);
     [x, w, nq, ii, jj, cellNo] = makeCellIntegrator(G, (1:G.cells.num)', disc.degree, 'tri');
-    x = (x - G.cells.centroids(cellNo))./(G.cells.diameters(cellNo)/(2*sqrt(G.griddim)));
+%     if disc.degree > 1
+%         x = (x - G.cells.centroids(cellNo))./(G.cells.diameters(cellNo)/(2*sqrt(G.griddim)));
+%     end
     W = sparse(ii, jj, w);
 
     nPh = nnz(model.getActivePhases);
