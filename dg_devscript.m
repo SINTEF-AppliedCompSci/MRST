@@ -2,23 +2,22 @@ mrstModule add dg vem vemmech ad-props ad-core ad-blackoil blackoil-sequential g
 
 %%
 
-n = 100;
-G = computeGeometry(cartGrid([n,1], [1000,10]*meter));
+n = 25;
+l = 1000;
+G = computeGeometry(cartGrid([n,1], [l,10]*meter));
+% G = computeGeometry(cartGrid([n,n], [l,l]*meter));
 G.nodes.coords = G.nodes.coords;
 G = computeVEMGeometry(G);
 
 rock = makeRock(G, 100*milli*darcy, 1);
 fluid = initSimpleADIFluid('phases', 'WO'                        , ...
                            'rho'   , [1, 1]*kilogram/meter^3, ...
-                           'mu'    , [1, 1]                 , ...
-                           'n'     , [2, 2]                      );
-                       
+                           'mu'    , [1, 1]*centi*poise                 , ...
+                           'n'     , [1, 1]                      );
+
 modelfi = TwoPhaseOilWaterModel(G, rock, fluid);
 modelFV = getSequentialModelFromFI(modelfi);
 modelDG = modelFV;
-degree = 1;
-disc    = DGDiscretization(modelDG.transportModel, G.griddim, 'degree', degree, 'basis', 'legendre');
-modelDG.transportModel = TransportOilWaterModelDG(G, rock, fluid, 'disc', disc);
                        
 %%
 
@@ -33,39 +32,67 @@ dtvec = rampupTimesteps(time, dt, 0);
 
 schedule = simpleSchedule(dtvec, 'W', W);
 
+sW     = 0.0;
+state0 = initResSol(G, 100*barsa, [sW,1-sW]);
 
 %%
 
-sW             = 0.2;
-state0         = initResSol(G, 100*barsa, [sW,1-sW]);
-state0         = assignDofFromState(modelDG.transportModel.disc, state0);
+degree = [0, 1, 2];
+states = cell(numel(degree),1);
+for dNo = 1:numel(degree)
+    disc    = DGDiscretization(modelDG.transportModel, G.griddim, 'degree', degree(dNo), 'basis', 'legendre');
+    modelDG.transportModel = TransportOilWaterModelDG(G, rock, fluid, 'disc', disc);    
 
-[ws, state, rep] = simulateScheduleAD(state0, modelDG, schedule);
+    state0 = assignDofFromState(modelDG.transportModel.disc, state0);
+    [ws, states{dNo}, rep] = simulateScheduleAD(state0, modelDG, schedule);
+end
 
 %%
 
-[ws2, state2, rep2] = simulateScheduleAD(state0, modelFV, schedule);
+[ws, statesFV, rep] = simulateScheduleAD(state0, modelFV, schedule);
 
 %%
 
-figure
-x = linspace(0,100,n);
+figure('Position', [0,0,1500,600])
+x = linspace(0,l,n);
 
-steps = round(linspace(1, numel(schedule.step.val), 7));
+steps = round(linspace(1, numel(schedule.step.val), 5));
 clr = copper(numel(steps));
-h = [];
+[h, hDG] = deal([]);
+mrksz = [7, 7, 7];
+mrks = {'-o', '^-', '-sq'};
+lw = 1.5;
 for sNo = 1:numel(steps)
     hold on
-    hFV = plot(x, state2{steps(sNo)}.s(:,1), '-', 'color', clr(sNo,:));
-    hDG = plot(x, state {steps(sNo)}.s(:,1), '--', 'linew', 4, 'color', clr(sNo, :));
+    hFV = plot(x, statesFV{steps(sNo)}.s(:,1), '-', 'linew', lw, 'color', clr(sNo,:));
+    for dNo = 1:numel(degree)
+        hDG(dNo) = plot(x, states{dNo}{steps(sNo)}.s(:,1), mrks{dNo}, 'markers', mrksz(dNo), 'linew', lw, 'color', clr(sNo, :), 'markerfacecolor', clr(sNo,:));
+    end
     if isempty(h)
         h = [hFV, hDG];
     end
 end
 
+dgNames = cellfun(@(c) ['dG(', num2str(c), ')'], num2cell(degree), 'unif', false);
+lgnd = {'FV', dgNames{:}};
+legend(h, lgnd, 'location', 'eastoutside')
+% 
+% yyaxis left
 % lgnd = cellfun(@(ts) ['Timestep ', num2str(ts)], mat2cell(steps, 1, ones(1,numel(steps))), 'unif', false);
-lgnd = {'FV', ['dG(', num2str(degree), ')']};
-legend(h, lgnd)
+% legend(hT, lgnd);
+
+ds = 0.1;
+ylim([-ds, 1+ds]);
+xlabel('Distance from injector');
+ylabel('Water saturation');
+ax = gca;
+ax.FontSize = 15;
+box on
+
+%%
+
+pth = mrstPath('dg');
+print([pth, '/', 'dgExample1D'], '-dpng', '-r300');
 
 %%
 

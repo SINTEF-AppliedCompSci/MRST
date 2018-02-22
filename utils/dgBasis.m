@@ -1,5 +1,6 @@
-function basis = dgBasis(degree, dim, type)
+function basis = dgBasis(G, degree, type)
     
+    dim = G.griddim;
     nDof = polyDim(degree, dim); 
         [psi, grad_psi] = deal(cell(nDof,1));
     if degree < 0
@@ -17,7 +18,8 @@ function basis = dgBasis(degree, dim, type)
         switch type
             case 'poly'
                 for dofNo = 1:nDof
-                    psi{dofNo}      = Polynomial(k(dofNo,:), 1);
+                    psi{dofNo}      = DGBasisFunction(k(dofNo,:), 1);
+%                     Polynomial(k(dofNo,:), 1);
                     grad_psi{dofNo} = grad(psi{dofNo});
                 end
 
@@ -28,7 +30,9 @@ function basis = dgBasis(degree, dim, type)
                     for dNo = 1:dim
                         l{dNo} = leg{k(dofNo,dNo)+1};
                     end
-                    psi{dofNo} = combine(l{:});
+%                     psi{dofNo} = combine(l{:});
+                    p = combine(l{:});
+                    psi{dofNo} = DGBasisFunction(G, p.k, p.w);
                     grad_psi{dofNo} = grad(psi{dofNo});
                 end
                 

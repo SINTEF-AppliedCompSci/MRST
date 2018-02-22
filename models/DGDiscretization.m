@@ -17,19 +17,29 @@ classdef DGDiscretization < WENODiscretization
             disc.limiter = 'tvb';
             disc         = merge_options(disc, varargin{:});
             
-            disc.basis   = dgBasis(disc.degree, dim, disc.basis);
+            disc.basis = DGBasisFunctions(disc.G, disc.degree);
+            
+%             disc.basis   = dgBasis(disc.degree, dim, disc.basis);
             disc.limiter = dgLimiter(disc     , disc.limiter);
             
         end
         
         %-----------------------------------------------------------------%
-        function xhat = scaling(disc, x, cells)
+        function [xhat, translation, scaling] = transformCoords(disc, x, cells)
             
-            G = disc.G;
-            xhat = (x - G.cells.centroids(cells))...
-                   ./(G.cells.diameters(cells)/(2*sqrt(G.griddim)));
+            G           = disc.G;
+            translation = -G.cells.centroids(cells);
+            scaling     = 1./(G.cells.diameters(cells)/(2*sqrt(G.griddim)));
+            xhat        = (x + translation)./scaling;
                
         end
+        
+%         function accumulation = getAccumulationTerm(disc, sdof, sdof0)
+%             
+%             
+%             sW = getSatFromDof(x, c, sdof
+%             
+%         end
             
     end
     

@@ -4,7 +4,7 @@ function [x, cellNo, W] = cellBasisIntegrator(disc)
     nDof   = disc.basis.nDof;
     degree = disc.degree*G.griddim;
 %     degree = 2;
-    [x, w, nq, ii, jj, cellNo] = makeCellIntegrator(G, (1:G.cells.num)', degree, 'tri');
+    [x, w, nq, ii, jj, cellNo] = makeCellIntegrator(G, (1:G.cells.num)', degree);
     
 %     if degree > 1
 %         x = (x - G.cells.centroids(cellNo,:))./(G.cells.diameters(cellNo)/(2*sqrt(G.griddim)));

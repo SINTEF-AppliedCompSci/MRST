@@ -8,7 +8,7 @@ function s = getSatFromDof(x, cells, dof, disc)
 %     x     = repmat(x, numel(cells), 1);
 %     cells = reshape(repmat(cells', nq, q), [], 1);
     
-    xhat = disc.scaling(x, cells);
+%     xhat = disc.scaling(x, cells);
     
     ii = sum((1:G.cells.num)' == cells',2);
     s = 0;
@@ -16,7 +16,7 @@ function s = getSatFromDof(x, cells, dof, disc)
         ind = (1:nDof:G.cells.num*nDof)' + dofNo - 1;
         ix = rldecode(ind, ii, 1);
 %         ix = rldecode(ind, cells, 1);
-        s = s + dof(ix).*psi{dofNo}(xhat);
+        s = s + dof(ix).*psi{dofNo}(x, cells);
     end
     
 end

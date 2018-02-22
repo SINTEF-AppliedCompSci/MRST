@@ -1,11 +1,11 @@
-function [x, w, nq, ii, jj, cellNo] = makeCellIntegrator(G, cells, degree, type)
+function [x, w, nq, ii, jj, cellNo] = makeCellIntegrator(G, cells, degree)
 
     faces = G.cells.faces(mcolon(G.cells.facePos(cells), G.cells.facePos(cells+1)-1));
     nodes = G.faces.nodes(mcolon(G.faces.nodePos(faces), G.faces.nodePos(faces+1)-1));
 
-    switch type
+%     switch type
             
-        case 'tri'
+%         case 'tri'
            
             [xr, w, nq] = getQuadratureRule(degree, G.griddim);
             
@@ -35,41 +35,44 @@ function [x, w, nq, ii, jj, cellNo] = makeCellIntegrator(G, cells, degree, type)
             w = reshape(w.*vol', [], 1);
             
             
-        case 'div'
-    
-            nodes = reshape(nodes, 2, [])';
-
-            x0 = G.nodes.coords(nodes(:,1),:);
-            x1 = G.nodes.coords(nodes(:,2),:);
-
-            [xr, w] = getQuadratureRule(degree);
-            xr = reshape(xr, 1, 1, []);
-            w = reshape(w, 1, []);
-
-            x = ((x1 - x0).*xr +  (x1 + x0))/2;
-
-            ncf = diff(G.cells.facePos);
-            sign = 1 - 2*(G.faces.neighbors(faces,1) ~= rldecode(cells, ncf(cells), 1));
-            nx = G.faces.normals(faces,1).*sign/2;
-
-            val = @(fun) integrate(fun, cells, faces, w.*nx, x, ncf);
-            
-    end
+%         case 'div'
+%     
+%             nq = 0; 
+%             [ii, jj] = deal([]);
+%             
+%             nodes = reshape(nodes, 2, [])';
+% 
+%             x0 = G.nodes.coords(nodes(:,1),:);
+%             x1 = G.nodes.coords(nodes(:,2),:);
+% 
+%             [xr, w] = getQuadratureRule(degree, 1);
+%             xr = reshape(xr, 1, 1, []);
+%             w = reshape(w, 1, []);
+% 
+%             x = ((x1 - x0).*xr +  (x1 + x0))/2;
+% 
+%             ncf = diff(G.cells.facePos);
+%             sign = 1 - 2*(G.faces.neighbors(faces,1) ~= rldecode(cells, ncf(cells), 1));
+%             nx = G.faces.normals(faces,1).*sign/2;
+% 
+%             val = @(fun) integrate(fun, cells, faces, w.*nx, x, ncf);
+%             
+%     end
                   
             
 end
 
-function val = integrate(fun, cells, faces, w, x, ncf)
-
-    val = zeros(numel(faces), numel(w));
-    for wNo = 1:numel(w)
-        val(:,wNo) = fun(x(:,:,wNo));
-    end
-    
-    val = sum(val.*w, 2);
-    val = accumarray(rldecode((1:numel(cells))',ncf(cells),1), val);
-    
-end
+% function val = integrate(fun, cells, faces, w, x, ncf)
+% 
+%     val = zeros(numel(faces), numel(w));
+%     for wNo = 1:numel(w)
+%         val(:,wNo) = fun(x(:,:,wNo));
+%     end
+%     
+%     val = sum(val.*w, 2);
+%     val = accumarray(rldecode((1:numel(cells))',ncf(cells),1), val);
+%     
+% end
 
 function vol = getTvolumes(G, cells)
 

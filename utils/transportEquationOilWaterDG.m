@@ -80,8 +80,8 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     for dofNo = 1:nDof
         
         ix = (1:nDof:G.cells.num*nDof) + dofNo - 1;
-        now  = WC*(pvMult(cellNo_c) .*rock.poro(cellNo_c).*bW(cellNo_c) .*sW(xc,cellNo_c) .*psi{dofNo}(xc));
-        then = WC*(pvMult0(cellNo_c).*rock.poro(cellNo_c).*bW0(cellNo_c).*sW0(xc,cellNo_c).*psi{dofNo}(xc));
+        now  = WC*(pvMult(cellNo_c) .*rock.poro(cellNo_c).*bW(cellNo_c) .*sW(xc,cellNo_c) .*psi{dofNo}(xc, cellNo_c));
+        then = WC*(pvMult0(cellNo_c).*rock.poro(cellNo_c).*bW0(cellNo_c).*sW0(xc,cellNo_c).*psi{dofNo}(xc, cellNo_c));
         acc(ix) = (now - then)/dt;
         
     end
@@ -109,8 +109,8 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     for dofNo = 1:nDof
         
         ix        = (1:nDof:G.cells.num*nDof) + dofNo - 1;
-        flux1(ix) = -WC*(bW(cellNo_c).*fW(xc, cellNo_c).*sum(vTc(cellNo_c,:).*grad_psi{dofNo}(xc),2)  ...
-                       + bO(cellNo_c).*fW(xc, cellNo_c).*sum((Gwc(cellNo_c,:) - Goc(cellNo_c,:)).*grad_psi{dofNo}(xc),2));
+        flux1(ix) = -WC*(bW(cellNo_c).*fW(xc, cellNo_c).*sum(vTc(cellNo_c,:).*grad_psi{dofNo}(xc, cellNo_c),2)  ...
+                       + bO(cellNo_c).*fW(xc, cellNo_c).*sum((Gwc(cellNo_c,:) - Goc(cellNo_c,:)).*grad_psi{dofNo}(xc, cellNo_c),2));
                    
     end
     
@@ -133,8 +133,8 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     for dofNo = 1:nDof
         
         ix        = (1:nDof:G.cells.num*nDof) + dofNo - 1;
-        flux2(ix) = WF*(bW(upCells_G).*fW(xf, upCells_v).*vT(faceNo).*psi{dofNo}(xf) ...
-                      + bO(upCells_G).*fW(xf, upCells_G).*mobO(xf,upCells_G).*(Gw(faceNo) - Go(faceNo)).*psi{dofNo}(xf));
+        flux2(ix) = WF*(bW(upCells_G).*fW(xf, upCells_v).*vT(faceNo).*psi{dofNo}(xf, cellNo_f) ...
+                      + bO(upCells_G).*fW(xf, upCells_G).*mobO(xf,upCells_G).*(Gw(faceNo) - Go(faceNo)).*psi{dofNo}(xf, cellNo_f));
                   
     end
 %     flux1 = 0;
@@ -172,7 +172,7 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
             ix       = (1:nDof:numel(wc)*nDof) + dofNo - 1;
             prod(ix) = (WWC*(bW(cellNo_wc).*wflux(cellNo_wc)...
                           .*(fW(xwc, cellNo_wc) .*(~isInj(cellNo_wc)) ...
-                          +  compPerf(cellNo_wc,1).*( isInj(cellNo_wc))).*psi{dofNo}(xwc)));%./G.cells.volumes(wc);
+                          +  compPerf(cellNo_wc,1).*( isInj(cellNo_wc))).*psi{dofNo}(xwc, cellNo_wc)));%./G.cells.volumes(wc);
         end
         
         ind = mcolon((wc-1)*nDof + 1, wc*nDof);

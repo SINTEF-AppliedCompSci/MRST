@@ -36,14 +36,15 @@ function [b2c, vol] = mapBaryToCart(G, cells)
     
 %     b2c = @(x) x*T;
     
-    b2c = @(xb) map(R, xb);
+    b2c = @(xb) map(G, R, xb);
     
 end
 
-function x = map(R, xb)
+function x = map(G, R, xb)
 
      xx = xb*R;
-     x = zeros(3*(size(xx,2)/2), 2);
+     
+     x = zeros(numel(xx)/G.griddim, G.griddim);
      for dNo = 1:2
         xtmp = xx(:, dNo:2:end);
         x(:,dNo) = xtmp(:);
