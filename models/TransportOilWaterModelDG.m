@@ -168,7 +168,7 @@ classdef TransportOilWaterModelDG < TransportOilWaterModel
             ds(:, ~solvedFor) = tmp;
             % We update all saturations simultanously, since this does not bias the
             % increment towards one phase in particular.
-            state = model.updateStateFromIncrement(state, ds, problem, 'sdof', inf, model.dsMaxAbs);
+            state = model.updateStateFromIncrement(state, ds, problem, 'sdof', inf, inf);
             
             
             

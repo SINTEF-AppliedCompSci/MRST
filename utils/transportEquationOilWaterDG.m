@@ -76,19 +76,30 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
         pvMult0 = repmat(pvMult0, G.cells.num,1);
     end
     
-    acc  = sWdof;
-    for dofNo = 1:nDof
-        
-        ix = (1:nDof:G.cells.num*nDof) + dofNo - 1;
-        now  = WC*(pvMult(cellNo_c) .*rock.poro(cellNo_c).*bW(cellNo_c) .*sW(xc,cellNo_c) .*psi{dofNo}(xc, cellNo_c));
-        then = WC*(pvMult0(cellNo_c).*rock.poro(cellNo_c).*bW0(cellNo_c).*sW0(xc,cellNo_c).*psi{dofNo}(xc, cellNo_c));
-        acc(ix) = (now - then)/dt;
-        
-    end
+    integrand = @(x,c,psi) (pvMult (c).*rock.poro(c).*bW (c).*sW (x,c) - ...
+                            pvMult0(c).*rock.poro(c).*bW0(c).*sW0(x,c)).*psi(x);
+                   
+    acc = disc.cellInt(integrand, (1:G.cells.num)')/dt;
+    
+    [xc, tr, scaling] = disc.transformCoords(xc, cellNo_c);
+    
+%     acc0  = sWdof;
+%     for dofNo = 1:nDof
+%         
+%         ix = (1:nDof:G.cells.num*nDof) + dofNo - 1;
+%         now  = WC*(pvMult(cellNo_c) .*rock.poro(cellNo_c).*bW(cellNo_c) .*sW(xc, cellNo_c) .*psi{dofNo}(xc));
+%         then = WC*(pvMult0(cellNo_c).*rock.poro(cellNo_c).*bW0(cellNo_c).*sW0(xc, cellNo_c).*psi{dofNo}(xc));
+% %         now  = WC*(pvMult(cellNo_c) .*rock.poro(cellNo_c).*bW(cellNo_c) .*sW(xc,cellNo_c) .*psi{dofNo}(xc, cellNo_c));
+% %         then = WC*(pvMult0(cellNo_c).*rock.poro(cellNo_c).*bW0(cellNo_c).*sW0(xc,cellNo_c).*psi{dofNo}(xc, cellNo_c));
+%         acc0(ix) = (now - then)/dt;
+%         
+%     end
+    
+    
     
     % Flux term------------------------------------------------------------
     
-    vT = sum(state.flux,2);
+    vT  = sum(state.flux,2);
     vTc = faceFlux2cellVelocity(G, vT);
     
 %     vTc(1,:) = vTc(2,:);
@@ -105,39 +116,58 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
 
     fW = @(x,c) mobW(x,c)./(mobW(x,c) + mobO(x,c));
     
-    flux1 = sWdof;
-    for dofNo = 1:nDof
-        
-        ix        = (1:nDof:G.cells.num*nDof) + dofNo - 1;
-        flux1(ix) = -WC*(bW(cellNo_c).*fW(xc, cellNo_c).*sum(vTc(cellNo_c,:).*grad_psi{dofNo}(xc, cellNo_c),2)  ...
-                       + bO(cellNo_c).*fW(xc, cellNo_c).*sum((Gwc(cellNo_c,:) - Goc(cellNo_c,:)).*grad_psi{dofNo}(xc, cellNo_c),2));
-                   
-    end
+    integrand = @(x,c,grad_psi) bW(c).*fW(x, c).*sum(vTc(c,:).*grad_psi(x),2) ...
+                              + bO(c).*fW(x, c).*sum((Gwc(c,:) - Goc(c,:)).*grad_psi(x),2);
     
+    flux1 = -disc.cellIntDiv(integrand);
+    
+%     flux10 = sWdof;
+%     for dofNo = 1:nDof
+%         
+%         ix        = (1:nDof:G.cells.num*nDof) + dofNo - 1;
+%                 flux10(ix) = -WC*(bW(cellNo_c).*fW(xc, cellNo_c).*sum(vTc(cellNo_c,:).*grad_psi{dofNo}(xc).*scaling,2)  ...
+%                        + bO(cellNo_c).*fW(xc, cellNo_c).*sum((Gwc(cellNo_c,:) - Goc(cellNo_c,:)).*grad_psi{dofNo}(xc).*scaling,2));
+% %         flux10(ix) = -WC*(bW(cellNo_c).*fW(xc, cellNo_c).*sum(vTc(cellNo_c,:).*grad_psi{dofNo}(xc, cellNo_c),2)  ...
+% %                        + bO(cellNo_c).*fW(xc, cellNo_c).*sum((Gwc(cellNo_c,:) - Goc(cellNo_c,:)).*grad_psi{dofNo}(xc, cellNo_c),2));
+%                    
+%     end
+%     flux1 = flux10;
 %     flux1 = flux1./reshape(repmat(G.cells.volumes', 3, 1), [], 1);
     
-    [xf, cellNo_f, faceNo, WF] = faceBasisIntegrator(disc);
-    upCells_v = G.faces.neighbors(:,2);
-    intf = find(op.internalConn);
-    upCells_v(intf(upcW)) = op.N(upcW,1);
-    upCells_v = upCells_v(faceNo);    
-    upCells_G = upCells_v;
+%     [xf, cellNo_f, faceNo, WF] = faceBasisIntegrator(disc);
+%     upCells_v = G.faces.neighbors(:,2);
+%     intf = find(op.internalConn);
+%     upCells_v(intf(upcW)) = op.N(upcW,1);
+%     upCells_v = upCells_v(faceNo);    
+%     upCells_G = upCells_v;
+%     
+%     xf_c = disc.transformCoords(xf, cellNo_f);
+%     xf_v = disc.transformCoords(xf, upCells_v);
+%     xf_G = disc.transformCoords(xf, upCells_G);
     
 %     xf_up = (xf - G.cells.centroids(upCells_v))./(G.cells.diameters(upCells_v)/(2*sqrt(G.griddim)));
 %     
 %     xf_c  = (xf - G.cells.centroids(cellNo_f))./(G.cells.diameters(cellNo_f)/(2*sqrt(G.griddim)));
 %     
    
-    
-    flux2 = sWdof;
-    for dofNo = 1:nDof
-        
-        ix        = (1:nDof:G.cells.num*nDof) + dofNo - 1;
-        flux2(ix) = WF*(bW(upCells_G).*fW(xf, upCells_v).*vT(faceNo).*psi{dofNo}(xf, cellNo_f) ...
-                      + bO(upCells_G).*fW(xf, upCells_G).*mobO(xf,upCells_G).*(Gw(faceNo) - Go(faceNo)).*psi{dofNo}(xf, cellNo_f));
-                  
-    end
-%     flux1 = 0;
+    integrand = @(xc, xv, xg, c, cv, cg, f, psi) ...
+        (bW(cg).*fW(xv, cv).*vT(f) ...
+       + bO(cg).*fW(xg, cg).*mobO(xg,cg).*(Gw(f) - Go(f))).*psi(xc);
+
+   flux2 = disc.faceIntDiv(integrand, upcW);
+  
+%     flux20 = sWdof;
+%     for dofNo = 1:nDof
+%         
+%         ix        = (1:nDof:G.cells.num*nDof) + dofNo - 1;
+%                 flux20(ix) = WF*(bW(upCells_G).*fW(xf_v, upCells_v).*vT(faceNo).*psi{dofNo}(xf_c) ...
+%                       + bO(upCells_G).*fW(xf_G, upCells_G).*mobO(xf_G,upCells_G).*(Gw(faceNo) - Go(faceNo)).*psi{dofNo}(xf_c));
+% %         flux20(ix) = WF*(bW(upCells_G).*fW(xf, upCells_v).*vT(faceNo).*psi{dofNo}(xf, cellNo_f) ...
+% %                       + bO(upCells_G).*fW(xf, upCells_G).*mobO(xf,upCells_G).*(Gw(faceNo) - Go(faceNo)).*psi{dofNo}(xf, cellNo_f));
+%                   
+%     end
+% %     flux2 = flux20;
+% % %     flux1 = 0;
     flux  = flux1 + flux2;
     water = acc   + flux;
     
@@ -155,26 +185,33 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
         compPerf = zeros(G.cells.num, 2);
         compPerf(wc,:) = compWell(perf2well,:);
 
-        [ii, jj] = find(WC);
-        keep = any(ii == wc',2);
-        jj = jj(keep);
+%         [ii, jj] = find(WC);
+%         keep = any(ii == wc',2);
+%         jj = jj(keep);
+%         
+%         S1 = sparse((1:numel(wc))', wc, 1, numel(wc), G.cells.num);
+%         S2 = sparse(jj, (1:numel(jj))' , 1, size(WC,2)     , numel(jj));
+%         WWC = (S1*WC*S2)./G.cells.volumes(wc);
+%         
+%         keep = any(cellNo_c == wc',2);
+%         xwc = xc(keep,:);
+%         cellNo_wc = cellNo_c(keep);
         
-        S1 = sparse((1:numel(wc))', wc, 1, numel(wc), G.cells.num);
-        S2 = sparse(jj, (1:numel(jj))' , 1, size(WC,2)     , numel(jj));
-        WWC = (S1*WC*S2)./G.cells.volumes(wc);
+        integrand = @(x, c, psi) ...
+            bW(c).*wflux(c).*(fW(x, c)     .*(~isInj(c)) ...
+                            + compPerf(c,1).*( isInj(c))).*psi(x);
         
-        keep = any(cellNo_c == wc',2);
-        xwc = xc(keep,:);
-        cellNo_wc = cellNo_c(keep);
+        vol = reshape(repmat(G.cells.volumes(wc)', nDof, 1), [], 1);
+        prod = disc.cellInt(integrand, wc)./vol;
         
-        prod = sWdof(wc);
-        for dofNo = 1:nDof
-            ix       = (1:nDof:numel(wc)*nDof) + dofNo - 1;
-            prod(ix) = (WWC*(bW(cellNo_wc).*wflux(cellNo_wc)...
-                          .*(fW(xwc, cellNo_wc) .*(~isInj(cellNo_wc)) ...
-                          +  compPerf(cellNo_wc,1).*( isInj(cellNo_wc))).*psi{dofNo}(xwc, cellNo_wc)));%./G.cells.volumes(wc);
-        end
-        
+%         prod0 = sWdof(wc);
+%         for dofNo = 1:nDof
+%             ix       = (1:nDof:numel(wc)*nDof) + dofNo - 1;
+%             prod0(ix) = (WWC*(bW(cellNo_wc).*wflux(cellNo_wc)...
+%                           .*(fW(xwc, cellNo_wc) .*(~isInj(cellNo_wc)) ...
+%                           +  compPerf(cellNo_wc,1).*( isInj(cellNo_wc))).*psi{dofNo}(xwc)));%./G.cells.volumes(wc);
+%         end
+%         prod = prod0;
         ind = mcolon((wc-1)*nDof + 1, wc*nDof);
         water(ind) = water(ind) - prod;
 

@@ -2,7 +2,7 @@ mrstModule add dg vem vemmech ad-props ad-core ad-blackoil blackoil-sequential g
 
 %%
 
-n = 25;
+n = 100;
 l = 1000;
 G = computeGeometry(cartGrid([n,1], [l,10]*meter));
 % G = computeGeometry(cartGrid([n,n], [l,l]*meter));
@@ -56,26 +56,37 @@ end
 figure('Position', [0,0,1500,600])
 x = linspace(0,l,n);
 
-steps = round(linspace(1, numel(schedule.step.val), 5));
+steps = round(linspace(1, numel(schedule.step.val)-5, 3));
+steps = [2,12,20]
+clr = lines(numel(states)+1);
 clr = copper(numel(steps));
 [h, hDG] = deal([]);
-mrksz = [7, 7, 7];
+mrksz = [8, 8, 8];
 mrks = {'-o', '^-', '-sq'};
 lw = 1.5;
+
 for sNo = 1:numel(steps)
+%     subplot(1,numel(steps), sNo)
     hold on
-    hFV = plot(x, statesFV{steps(sNo)}.s(:,1), '-', 'linew', lw, 'color', clr(sNo,:));
+    hFV = plot(x, statesFV{steps(sNo)}.s(:,1), '--', 'linew', 4, 'color', clr(sNo,:));
     for dNo = 1:numel(degree)
         hDG(dNo) = plot(x, states{dNo}{steps(sNo)}.s(:,1), mrks{dNo}, 'markers', mrksz(dNo), 'linew', lw, 'color', clr(sNo, :), 'markerfacecolor', clr(sNo,:));
     end
     if isempty(h)
-        h = [hFV, hDG];
+%         h = [hFV, hDG];
     end
+    ds = 0.1;
+    ylim([-ds, 1+ds]);
+%     xlabel('Distance from injector');
+    ax = gca;
+    ax.FontSize = 15;
+    box on
+    
 end
 
 dgNames = cellfun(@(c) ['dG(', num2str(c), ')'], num2cell(degree), 'unif', false);
 lgnd = {'FV', dgNames{:}};
-legend(h, lgnd, 'location', 'eastoutside')
+legend(h, lgnd, 'location', 'northeast')
 % 
 % yyaxis left
 % lgnd = cellfun(@(ts) ['Timestep ', num2str(ts)], mat2cell(steps, 1, ones(1,numel(steps))), 'unif', false);
@@ -83,8 +94,8 @@ legend(h, lgnd, 'location', 'eastoutside')
 
 ds = 0.1;
 ylim([-ds, 1+ds]);
-xlabel('Distance from injector');
-ylabel('Water saturation');
+% xlabel('Distance from injector');
+% ylabel('Water saturation');
 ax = gca;
 ax.FontSize = 15;
 box on

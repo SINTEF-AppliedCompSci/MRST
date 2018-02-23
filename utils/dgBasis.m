@@ -30,9 +30,9 @@ function basis = dgBasis(G, degree, type)
                     for dNo = 1:dim
                         l{dNo} = leg{k(dofNo,dNo)+1};
                     end
-%                     psi{dofNo} = combine(l{:});
-                    p = combine(l{:});
-                    psi{dofNo} = DGBasisFunction(G, p.k, p.w);
+                    psi{dofNo} = combine(l{:});
+%                     p = combine(l{:});
+%                     psi{dofNo} = DGBasisFunction(G, p.k, p.w);
                     grad_psi{dofNo} = grad(psi{dofNo});
                 end
                 
@@ -42,13 +42,8 @@ function basis = dgBasis(G, degree, type)
 
     end
     
-    psi_lim = {Polynomial([0,0], 1), ...
-               Polynomial([1,0], 1), ...
-               Polynomial([0,1], 1)};
-    
     basis = struct('psi'         , {psi}     , ...
                    'grad_psi'    , {grad_psi}, ...
-                   'psi_lim'     , {psi_lim} , ...
                    'k'           , k         , ...
                    'nDof'        , nDof      , ...
                    'type'        , type      );

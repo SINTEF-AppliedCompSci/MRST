@@ -16,7 +16,8 @@ function s = getSatFromDof(x, cells, dof, disc)
         ind = (1:nDof:G.cells.num*nDof)' + dofNo - 1;
         ix = rldecode(ind, ii, 1);
 %         ix = rldecode(ind, cells, 1);
-        s = s + dof(ix).*psi{dofNo}(x, cells);
+%         s = s + dof(ix).*psi{dofNo}(x, cells);
+        s = s + dof(ix).*psi{dofNo}(x);
     end
     
 end
