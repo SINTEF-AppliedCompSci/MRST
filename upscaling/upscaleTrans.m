@@ -14,26 +14,41 @@ function [HT_cg, T_cg, cgwells, report] = upscaleTrans(cg, T_fine, varargin)
 %   'pn'/pv - List of 'key'/value pairs for supplying optional parameters.
 %             The supported options are
 %               - Verbose -- Whether or not to display informational
-%                            messages throughout the computational process.
-%                            Logical.  Default value: Verbose = false
-%                            (don't display any informational messages).
-%               - bc_method  choice of global boundary condition method.
-%                            Valid choices are
-%                            'bc_simple' (default),
-%                            'bc' need  option 'bc'
-%                            'wells_simple', need option 'wells' with one
-%                            well configuration and give an upscaled well
-%                            cgwells as output
-%                            'wells' need 'wells as' cellarray and do not
+%                       messages throughout the computational process.
+%                       Logical.  Default value: Verbose = false
+%                       (Do not display any informational messages).
+%
+%               - bc_method --  choice of method used to construct global
+%                       boundary conditions for the upscaling of each block. 
+%                       Valid choices are:
+%
+%                         *  'bc_simple' (default) - flow is driven by a 
+%                             unit pressure drop along each axial direction 
+%
+%                         *  'bc' - flow is driven by a set of boundary
+%                             conditions specified through option 'bc'
+%
+%                         *  'wells_simple' - assumes a set of wells are 
+%                            given through option 'wells'. Considers all
+%                            linearly independent well conditions for
+%                            incompressible flow. This option gives an
+%                            upscaled well 'cgwells' as output.
+%
+%                         *  'wells' - uses a specific set of pressures
+%                            and/or rates for incompressible flow to 
+%                            determine the global flow pattern. This option
+%                            needs 'wells as' cellarray and does not
 %                            upscale wells
-%             - match_method how to match to the set of global boundary
-%                            conditions options are
+%
+%             - match_method: how to match to the set of global boundary
+%                            conditions. Options are
 %                            'max_flux'
 %                             lsq_flux'
-%             - fix_trans     'true/false' set negative and zero
+%
+%             - fix_trans     'true/false', set negative and zero
 %                             transmissibility to lowest positive found
 %
-%             - use_average_pressure if false used the pressure nearest the  
+%             - use_average_pressure: if false used the pressure nearest the  
 %                                    coarse cells centroid as pressure
 %
 %             - check_trans  if true check upscaled transmissibilities
@@ -379,7 +394,7 @@ function [bc, well_cases, cgwells_cases] = setupCases(cg, opt)
       case 'bc'
          % given bc conditions
          if isempty(opt.bc),
-            error('bc_method==bc need non empty bc  option')
+            error('bc_method==bc need nonempty bc option')
          end
 
          bc            = opt.bc;
@@ -390,7 +405,7 @@ function [bc, well_cases, cgwells_cases] = setupCases(cg, opt)
          % use all linearly independent well configurations for
          % incompressible flow
          if isempty(opt.wells),
-            error('bc_method==wells need non empty wells option')
+            error('bc_method==wells need nonempty wells option')
          end
 
          if(~iscell(opt.wells))
