@@ -24,7 +24,7 @@ for i = 1 : numel(pVar)
     compInd = strcmpi(p, model.speciesNames);
 
     if any(strcmpi(p, model.elementNames))
-        state = model.capProperty(state, p, 1e-100, 300*mol/litre);
+        state = model.capProperty(state, p, realmin, 300*mol/litre);
         
     elseif ~isempty(regexpi(p, 'psi'))
         ind = find(strcmpi(p, names));
@@ -37,7 +37,7 @@ for i = 1 : numel(pVar)
         conMat(:,LC(ind,:)==0) = 0; 
         conMat = sum(conMat,2);
         maxvals = state.elements*conMat;
-%         state = model.capProperty(state, p, -maxvals, maxvals);
+        state = model.capProperty(state, p, -maxvals, maxvals);
                               
 
     elseif any(strcmpi(p, model.speciesNames))
