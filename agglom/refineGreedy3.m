@@ -141,7 +141,7 @@ for i = reshape(find((ui > ubnd) | (un > NU)), 1, []),
 
       minIFlw = min(IFlw(cells));
 
-      while (Ve + minIFlw < ubound) && (nnc < NU),
+      while ~(Ve + minIFlw > ubound) && (nnc < NU),
          % Include new cells in block according to the following selection:
          %   - Consider only the immediate neighbours of 'c' that have not
          %     already been included
@@ -190,7 +190,7 @@ for i = reshape(find((ui > ubnd) | (un > NU)), 1, []),
          %    list until the cumulative indicator exceeds threshold or list
          %    of candidate cells is exhausted.
          cumInd = Ve + cumsum(IFlw(c));
-         index  = index(cumInd < ubound);
+         index  = index(~(cumInd > ubound));
          nAdd   = numel(index);
 
          if ~ nAdd,

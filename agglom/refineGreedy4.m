@@ -123,7 +123,7 @@ for i=reshape(find(ui > ubnd), 1, []),
       c = cells(nCells(1)); Ve = IFlw(c); pick(c+1) = true;
       minIFlw = min(IFlw(cells));
       eo = e;
-      while (Ve + minIFlw < ubound)
+      while ~(Ve + minIFlw > ubound)
          % Find neighbours, N(e)
          e  = (I*eo)>0; en = e - eo;
          index = find(en);
@@ -135,12 +135,12 @@ for i=reshape(find(ui > ubnd), 1, []),
          c = cells(index);
          myInd = abs(Ve/nnc - IFlw(c));
          [nn,ii]=sort(myInd,'ascend');
-         if ~nn(1), break, end
+         %if ~nn(1), disp('tilslag'), break, end
          index = index(ii); index = index(1:min(end,opt.nadd));
          c = c(ii);         c = c(1:min(end,opt.nadd));
 
          cumInd = Ve + cumsum(IFlw(c));
-         index = index(cumInd < ubound);
+         index = index(~(cumInd > ubound));
          nAdd = numel(index);
          if ~nAdd, break, end
          nCells(nnc+1:nnc+nAdd) = index;

@@ -120,7 +120,7 @@ for i=reshape(find(ui > ubnd), 1, []),
 
       nCells(1) = find(e); nnc = 1;
       Ve = IFlw(cells(nCells(1)));
-      while (Ve < ubound)
+      while ~(Ve > ubound)
          % Find level-1 neighbours, N(e)
          eo = e; e  = (I*e)>0; en = e - eo;
 
@@ -128,7 +128,7 @@ for i=reshape(find(ui > ubnd), 1, []),
          % list until the cummulative indicator exceeds threshold
          index = find(en);
          cumInd = Ve + cumsum(IFlw(cells(index)));
-         index = index(cumInd < ubound);
+         index = index(~(cumInd>ubound));
          nAdd = numel(index);
          if ~nAdd, break, end
          nCells(nnc+1:nnc+nAdd) = index; nnc = nnc+nAdd;
@@ -149,7 +149,7 @@ for i=reshape(find(ui > ubnd), 1, []),
          % list until the cummulative indicator exceeds threshold
          index = find(en);
          cumInd = Ve + cumsum(IFlw(cells(index)));
-         index = index(cumInd < ubound);
+         index = index(~(cumInd > ubound));
          nAdd = numel(index);
          if ~nAdd, continue, end
          nCells(nnc+1:nnc+nAdd) = index; nnc = nnc+nAdd;
