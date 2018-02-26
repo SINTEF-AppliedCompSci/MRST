@@ -17,7 +17,7 @@ figure(1); clf
 plotCellData(G, K,'EdgeAlpha',.1);
 view(-120,15), axis tight, set(gca,'Projection','Perspective');
 colormap(.8*jet+0.2*ones(size(jet)));
-[hc, hh]=colorbarHist(K, [0 450], 'South', 100);
+[~, hh]=colorbarHist(K, [0 450], 'South', 100);
 h = outlineCoarseGrid(G,p,'EdgeColor','k','LineWidth',2,'FaceColor','none');
 hold(hh,'on');
 ym = .8*max(reshape(get(get(hh,'Children'),'YData'),[],1));
@@ -28,7 +28,7 @@ hold(hh,'off'); axis off
 %%
 % Plot bins resulting from the segmentation
 figure(2); clf
-hp = plotCellData(G, p,'EdgeAlpha',.1);
+plotCellData(G, p,'EdgeAlpha',.1);
 mp = max(p);
 caxis([.5 mp+.5]); colormap(.8*tatarizeMap(mp)+.2*ones(mp,3));
 view(-120,15), axis tight off, set(gca,'Projection','Perspective');
@@ -42,7 +42,7 @@ set(hc,'XTick',1:4); % set(hc,'FontSize',16);
 % Split connected components (done by initial segmentation)
 p = segmentIndicator(G, K, [0 30 80 205 inf]);
 figure(1); clf
-hp = plotCellData(G, p,'EdgeAlpha',.1);
+plotCellData(G, p,'EdgeAlpha',.1);
 mp = max(p);
 caxis([.5 mp+.5]); colormap(.8*tatarizeMap(mp)+.2*ones(mp,3));
 view(-120,15), axis tight off, set(gca,'Projection','Perspective');

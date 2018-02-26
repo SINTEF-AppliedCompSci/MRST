@@ -19,8 +19,9 @@ file = fullfile(getDatasetPath('CaseB4'),'pillar_36x48.grdecl');
 G = processGRDECL(readGRDECL(file));
 G = computeGeometry(G);
 layers = [1 2 8 12 13];
-rock.perm = bsxfun(@times, logNormLayers(G.cartDims, ...
-    [50 300 100 20]*milli*darcy,'sz', [51 3 3], 'indices', layers), [1 1 .1]);
+K = logNormLayers(G.cartDims, [50 300 100 20]*milli*darcy, ...
+                  'sz', [51 3 3], 'indices', layers);
+rock = makeRock(G, bsxfun(@times, K*milli*darcy,[1 1 .1]), 0.2);
 
 W = verticalWell([], G, rock, G.cartDims(1), 1, [], 'InnerProduct', 'ip_tpf');
 W = verticalWell(W, G, rock, 14, 36, [],'InnerProduct', 'ip_tpf');
@@ -97,10 +98,10 @@ end
 pw = compressPartition(pw);
 figure, myPlotPartition(G, W, pw, 400);
 
-%% Coarsen in the vertical direction
-% For the Cartesian partition, we also coarsen in the vertical direction
-% following the layering in the petrophysical data, which we assume is
-% known.
+%% Refine partition in the vertical direction
+% For the Cartesian partition, we end by refining the partition in the
+% vertical direction so that it follows the layering in the petrophysical
+% data, which we assume is known.
 if ~useMetis
     pK = rldecode((1:numel(layers)-1)',diff(layers));
     [~,~,k]=gridLogicalIndices(G);
