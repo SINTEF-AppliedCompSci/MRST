@@ -41,14 +41,6 @@ classdef DGDiscretization < WENODiscretization
         %-----------------------------------------------------------------%
         function s = evaluateSaturation(disc, x, cells, dof)
             
-%             if nargin < 5
-%                 transCoord = true;
-%             end
-%             
-%             if ~transCoord
-%                 x = disc.transformCoords(x, cells);
-%             end
-            
             psi  = disc.basis.psi;
             nDof = disc.basis.nDof;
             
@@ -72,7 +64,7 @@ classdef DGDiscretization < WENODiscretization
             nPh = size(state.sdof,2);
             s = zeros(disc.G.cells.num, nPh);
             for phNo = 1:nPh
-                s(:, phNo) = evaluateSaturation(disc, x, cells, state.sdof);
+                s(:, phNo) = evaluateSaturation(disc, x, cells, state.sdof(:,phNo));
             end
             
             state.s = s;
