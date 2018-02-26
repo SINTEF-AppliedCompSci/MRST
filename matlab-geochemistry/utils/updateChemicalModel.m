@@ -9,7 +9,6 @@ end
 
 nonLogVariables = removeLogFromNames(problem.primaryVariables); 
 
-
 len = cellfun(@(x) length(x), nonLogVariables);
 [~,sortInd] = sort(len(:),1, 'ascend');
 pVar = nonLogVariables(sortInd);
@@ -48,6 +47,7 @@ for i = 1 : numel(pVar)
     end
 
 end
+
 
 end
 
