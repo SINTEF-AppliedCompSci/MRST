@@ -5,15 +5,15 @@ mrstModule add dg vem vemmech ad-props ad-core ad-blackoil blackoil-sequential g
 n = 100;
 l = 1000;
 G = computeGeometry(cartGrid([n,1], [l,10]*meter));
-% G = computeGeometry(cartGrid([n,n], [l,l]*meter));
 G.nodes.coords = G.nodes.coords;
 G = computeVEMGeometry(G);
+G = computeCellDimensions(G);
 
 rock = makeRock(G, 100*milli*darcy, 1);
-fluid = initSimpleADIFluid('phases', 'WO'                        , ...
+fluid = initSimpleADIFluid('phases', 'WO'                   , ...
                            'rho'   , [1, 1]*kilogram/meter^3, ...
-                           'mu'    , [1, 1]*centi*poise                 , ...
-                           'n'     , [1, 1]                      );
+                           'mu'    , [1, 1]*centi*poise     , ...
+                           'n'     , [1, 1]                 );
 
 modelfi = TwoPhaseOilWaterModel(G, rock, fluid);
 modelFV = getSequentialModelFromFI(modelfi);
@@ -37,7 +37,7 @@ state0 = initResSol(G, 100*barsa, [sW,1-sW]);
 
 %%
 
-degree = [0, 1, 2];
+degree = [0,1,2];
 states = cell(numel(degree),1);
 for dNo = 1:numel(degree)
     disc    = DGDiscretization(modelDG.transportModel, G.griddim, 'degree', degree(dNo), 'basis', 'legendre');
@@ -62,7 +62,7 @@ clr = lines(numel(states)+1);
 clr = copper(numel(steps));
 [h, hDG] = deal([]);
 mrksz = [8, 8, 8];
-mrks = {'-o', '^-', '-sq'};
+mrks = {'-', 'o-', '-^'};
 lw = 1.5;
 
 for sNo = 1:numel(steps)
@@ -74,9 +74,6 @@ for sNo = 1:numel(steps)
     end
     if isempty(h)
 %         h = [hFV, hDG];
-    end
-    ds = 0.1;
-    ylim([-ds, 1+ds]);
 %     xlabel('Distance from injector');
     ax = gca;
     ax.FontSize = 15;
@@ -92,8 +89,8 @@ legend(h, lgnd, 'location', 'northeast')
 % lgnd = cellfun(@(ts) ['Timestep ', num2str(ts)], mat2cell(steps, 1, ones(1,numel(steps))), 'unif', false);
 % legend(hT, lgnd);
 
-ds = 0.1;
-ylim([-ds, 1+ds]);
+% ds = 0.1;
+% ylim([-ds, 1+ds]);
 % xlabel('Distance from injector');
 % ylabel('Water saturation');
 ax = gca;

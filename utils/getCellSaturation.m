@@ -6,9 +6,7 @@ function state = getCellSaturation(model, state)
     
     sfun = @(x,c, phNo) getSatFromDof(x, c, state.sdof(:,phNo), disc);
     [x, w, nq, ii, jj, cellNo] = makeCellIntegrator(G, (1:G.cells.num)', disc.degree);
-%     if disc.degree > 1
-%         x = (x - G.cells.centroids(cellNo))./(G.cells.diameters(cellNo)/(2*sqrt(G.griddim)));
-%     end
+
     W = sparse(ii, jj, w);
 
     x = disc.transformCoords(x, cellNo);
@@ -17,9 +15,16 @@ function state = getCellSaturation(model, state)
     s = zeros(G.cells.num, nPh);
     for phNo = 1:nPh
         s(:,phNo) = (W*sfun(x, cellNo, phNo))./G.cells.volumes;
-%         s(:,phNo) = disc.cellInt(@(x, c, psi) sfun(x, c, phNo), (1:G.cells.num)')./G.cells.volumes;
-%         (W*sfun(x, cellNo, phNo))./G.cells.volumes;
     end
+    
+    s0 = s;
+    
+    nDof = model.disc.basis.nDof;
+    ix = 1:nDof:G.cells.num*nDof;
+    
+    
+    s(:,1) = state.sdof(ix);
+    s(:,2) = 1 - s(:,1);
     
     state.s = s;
     

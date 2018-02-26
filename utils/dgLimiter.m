@@ -14,18 +14,24 @@ function limiter = dgLimiter(disc, type, varargin)
             isbf  = any(G.faces.neighbors(faces,:) == 0,2);
             faces = faces(~isbf);
             
-            sW     = @(x,dof,c) getSatFromDof(x, c, dof, disc);
+            sW     = @(x,dof,c) disc.evaluateSaturation(x, c, dof);
             
             cells = rldecode((1:G.cells.num)', diff(G.cells.facePos), 1);
             nbf   = accumarray(cells, isbf);
             cells = rldecode((1:G.cells.num)', diff(G.cells.facePos) - nbf, 1);
-            xf = (G.faces.centroids(faces,:) - G.cells.centroids(cells,:))./(h(cells)/(2*sqrt(G.griddim)));
             
-            sWjump = @(dof) abs(sW(xf, dof, G.faces.neighbors(faces,1)) ...
-                              - sW(xf, dof, G.faces.neighbors(faces,2))  );
+            xf = G.faces.centroids(faces,:);
+            
+            c_l  = G.faces.neighbors(faces,1);
+            xf_l = disc.transformCoords(xf, c_l);
+            c_r  = G.faces.neighbors(faces,2);
+            xf_r = disc.transformCoords(xf, c_r);
+            
+%             xf = (G.faces.centroids(faces,:) - G.cells.centroids(cells,:))./(h(cells)/(2*sqrt(G.griddim)));
+            
+            sWjump = @(dof) abs(sW(xf_l, dof, c_l) ...
+                              - sW(xf_r, dof, c_r)  );
             indicator = @(dof) accumarray(cells, sWjump(dof) > opt.threshold) > 0;
-            
-            grad = @(dof) approx_grad(dof, disc);
             
             limiter = @(dof) tvbLimiter(disc, dof, indicator);
             
@@ -42,8 +48,6 @@ function dofbar = approx_grad(dof, disc)
     
     sigma = cell(1, disc.dim);
     [sigma{:}] = deal(0);
-    
-    gradpos = [0;cumsum(disc.interp_setup.cell_support_count)] + 1;
     
     for d = 1:disc.dim
         b = disc.interp_setup.tri_basis{d};
@@ -63,9 +67,9 @@ function dofbar = approx_grad(dof, disc)
         for dNo = 1:disc.dim
             dofix = (cNo-1)*nDof + 1 + dNo;
             ss = sigma{dNo}(gradix);
-%             ss = ss(ss~=0);
+            ss = ss(ss~=0);
             val = [dof(dofix); ss];
-                dofbar(cNo, dNo) = minmod(val);
+            dofbar(cNo, dNo) = minmod(val);
         end
 
     end

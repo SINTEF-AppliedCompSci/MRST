@@ -20,7 +20,7 @@ classdef DGDiscretization < WENODiscretization
 %             disc.basis = DGBasisFunctions(disc.G, disc.degree);
             
             disc.basis   = dgBasis(disc.G, disc.degree, disc.basis);
-%             disc.limiter = dgLimiter(disc     , disc.limiter);
+            disc.limiter = dgLimiter(disc     , disc.limiter);
             
         end
         
@@ -29,9 +29,54 @@ classdef DGDiscretization < WENODiscretization
             
             G           = disc.G;
             translation = -G.cells.centroids(cells,:);
-            scaling     = 1./(G.cells.diameters(cells)/(2*sqrt(G.griddim)));
+            if isfield(G.cells, 'dx')
+                scaling = 1./(G.cells.dx(cells,:)/2);
+            else
+                scaling     = 1./(G.cells.diameters(cells)/(2*sqrt(G.griddim)));
+            end
             xhat        = (x + translation).*scaling;
                
+        end
+        
+        %-----------------------------------------------------------------%
+        function s = evaluateSaturation(disc, x, cells, dof)
+            
+%             if nargin < 5
+%                 transCoord = true;
+%             end
+%             
+%             if ~transCoord
+%                 x = disc.transformCoords(x, cells);
+%             end
+            
+            psi  = disc.basis.psi;
+            nDof = disc.basis.nDof;
+            
+            s = 0;
+            for dofNo = 1:nDof
+                ix = (cells-1)*nDof + dofNo;
+                s = s + dof(ix).*psi{dofNo}(x);
+            end
+            
+        end
+        
+        %-----------------------------------------------------------------%
+        function state = getCellSaturation(disc, state)
+            
+            ix = 1:disc.basis.nDof:disc.G.cells.num*disc.basis.nDof;
+            
+            cells = (1:disc.G.cells.num)';
+            x = disc.G.cells.centroids;
+            x = disc.transformCoords(x, cells);
+            
+            nPh = size(state.sdof,2);
+            s = zeros(disc.G.cells.num, nPh);
+            for phNo = 1:nPh
+                s(:, phNo) = evaluateSaturation(disc, x, cells, state.sdof);
+            end
+            
+            state.s = s;
+            
         end
         
         %-----------------------------------------------------------------%
@@ -48,11 +93,12 @@ classdef DGDiscretization < WENODiscretization
             
             [x, ~, ~] = disc.transformCoords(x, cellNo);
             
-            I = integrand(repmat([0,0], numel(cells).*nDof, 1), ones(numel(cells)*nDof, 1), psi{1});
+            I = integrand(repmat([0,0], numel(cells).*nDof, 1), ones(numel(cells)*nDof, 1), 1);
             for dofNo = 1:nDof
                 ix = (1:nDof:numel(cells)*nDof) + dofNo - 1;
+                p = psi{dofNo}(x);
 %                 ix = (1:nDof:G.cells.num*nDof) + dofNo - 1;
-                I(ix) = W*(integrand(x, cellNo, psi{dofNo}));
+                I(ix) = W*integrand(x, cellNo, p);
             end
             
         end
@@ -68,10 +114,11 @@ classdef DGDiscretization < WENODiscretization
             
             [x, ~, scaling] = disc.transformCoords(x, cellNo);
             
-            I = integrand(repmat([0,0], G.cells.num.*nDof, 1), ones(G.cells.num*nDof, 1), grad_psi{1});
+            I = integrand(repmat([0,0], G.cells.num.*nDof, 1), ones(G.cells.num*nDof, 1), [1,1]);
             for dofNo = 1:nDof
                 ix = (1:nDof:G.cells.num*nDof) + dofNo - 1;
-                I(ix) = W*(integrand(x, cellNo, grad_psi{dofNo}).*scaling);
+                gp = grad_psi{dofNo}(x).*scaling;
+                I(ix) = W*(integrand(x, cellNo, gp));
             end
             
         end
@@ -96,10 +143,11 @@ classdef DGDiscretization < WENODiscretization
             
             x0 = repmat([0,0], G.cells.num.*nDof, 1);
             [c0, f0] = deal(ones(G.cells.num*nDof, 1));
-            I = integrand(x0, x0, x0, c0, c0, c0, f0, psi{1});
+            I = integrand(x0, x0, x0, c0, c0, c0, f0, 1);
             for dofNo = 1:nDof
                 ix = (1:nDof:G.cells.num*nDof) + dofNo - 1;
-                I(ix) = W*(integrand(x_c, x_v, x_G, cellNo, upCells_v, upCells_G, faceNo, psi{dofNo}));
+                p = psi{dofNo}(x_c);
+                I(ix) = W*(integrand(x_c, x_v, x_G, cellNo, upCells_v, upCells_G, faceNo, p));
             end
             
         end        
