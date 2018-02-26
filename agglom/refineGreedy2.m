@@ -89,7 +89,7 @@ IFlw = IFlw.*G.cells.volumes;
 ubnd = NU*sum(IFlw)/G.cells.num;
 ui   = accumarray(p,IFlw);
 
-%% Refining algorithm
+% Refining algorithm
 %  Go through each coarse block in the partition and refine if necessary.
 for i=reshape(find(ui > ubnd), 1, []),
 
@@ -168,7 +168,7 @@ for i=reshape(find(ui > ubnd), 1, []),
    end
 end
 
- %% Update partition vector
+% Update partition vector
  p = processPartition(G, compressPartition(p));
 
 end
