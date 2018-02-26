@@ -9,7 +9,6 @@ end
 
 nonLogVariables = removeLogFromNames(problem.primaryVariables); 
 
-
 len = cellfun(@(x) length(x), nonLogVariables);
 [~,sortInd] = sort(len(:),1, 'ascend');
 pVar = nonLogVariables(sortInd);
@@ -37,7 +36,7 @@ for i = 1 : numel(pVar)
         conMat(:,LC(ind,:)==0) = 0; 
         conMat = sum(conMat,2);
         maxvals = state.elements*conMat;
-%         state = model.capProperty(state, p, -maxvals, maxvals);
+        state = model.capProperty(state, p, -maxvals, maxvals);
                               
 
     elseif any(strcmpi(p, model.speciesNames))
@@ -48,6 +47,7 @@ for i = 1 : numel(pVar)
     end
 
 end
+
 
 end
 

@@ -537,12 +537,6 @@ classdef ChemicalModel < PhysicalModel
 
             while ~varfound
 
-                if strcmpi(name, 'CVC')
-                    varfound = true;
-                    fn = 'CVC';
-                    index = ':';
-                    break
-                end
 
                 if strcmpi(name, 'partialPressures')
                     varfound = true;

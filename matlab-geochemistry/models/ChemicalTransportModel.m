@@ -176,7 +176,7 @@ classdef ChemicalTransportModel < WaterModel
             logSurfActNames         = chemModel.logSurfaceActivityCoefficientNames;
             
             
-            variableNames = ['pressure', logComponentNames, logMasterComponentNames, logGasNames, logSolidNames, logSurfActNames];
+            variableNames = ['pressure', logComponentNames, logMasterComponentNames, logGasNames, logSolidNames, logSurfActNames, combinationNames];
             variableValues = cell(1, numel(variableNames));
             variableValues{1} = model.getProps(state, 'pressure');
             [variableValues{2:end}] = chemModel.getProps(state, variableNames{2:end});
@@ -241,7 +241,10 @@ classdef ChemicalTransportModel < WaterModel
             vars = problem.primaryVariables;
 
             ind = false(size(vars));
-            chemvars = {chemModel.logSpeciesNames{:}, chemModel.logElementNames{:}, chemModel.logGasNames{:}, chemModel.logSolidNames{:}, chemModel.logSurfaceActivityCoefficientNames{:}}; % the chemical primary variables, see getEquations
+            chemvars = {chemModel.logSpeciesNames{:}, chemModel.logElementNames{:},...
+                        chemModel.logGasNames{:}, chemModel.logSolidNames{:},...
+                        chemModel.logSurfaceActivityCoefficientNames{:},...
+                        chemModel.combinationNames{:}}; % the chemical primary variables, see getEquations
             [lia, loc] = ismember(chemvars, vars);
             assert(all(lia), 'The primary variables are not set correctly.');
             ind(loc) = true;

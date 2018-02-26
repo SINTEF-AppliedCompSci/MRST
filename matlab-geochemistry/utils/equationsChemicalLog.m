@@ -51,7 +51,6 @@ function [eqs, names, types] = equationsChemicalLog(model, state, logComponents,
         if CV(1,i) == 0
             pg{i} = ion{i}*0.1;
         end
-        
     end
     
     %% mol fractions
@@ -156,9 +155,7 @@ function [eqs, names, types] = equationsChemicalLog(model, state, logComponents,
 
                 switch model.surfaces.scm{i}
                     case 'tlm'
-
                         % calculate surface charges
-
                         for k = 1 : nSp
                             SpInd = strcmpi(SpNames{k}, model.speciesNames);
                             sig_0 = sig_0 + (F./(S.*a)).*charge{k}(1).*components{SpInd};
@@ -167,13 +164,11 @@ function [eqs, names, types] = equationsChemicalLog(model, state, logComponents,
                         end
 
                     case 'ccm'
-
                         % calculate surface charge
                         for k = 1 : nSp
                             SpInd = strcmpi(SpNames{k}, model.speciesNames);
                             sig_0 = sig_0 + (F./(S.*a)).*charge{k}(1).*components{SpInd};
                         end
-
                 end
             end
 
@@ -200,7 +195,6 @@ function [eqs, names, types] = equationsChemicalLog(model, state, logComponents,
                     types{end+1} = [];
 
                 case 'ccm'
-                    
                     % explicitly calculate what the potential should be
                     Pind = cellfun(@(x) ~isempty(x), regexpi(model.surfaceActivityCoefficientNames, groupNames));
                     eqs{end+1} = -sig_0 + (R*T/F).*logSurfAct{Pind}.*C(:,1);
@@ -221,9 +215,9 @@ function [eqs, names, types] = equationsChemicalLog(model, state, logComponents,
             combSum = combSum + model.combinationMatrix(i,k).*components{k};
         end
         if any(combSum<=0) || any(combinationComponents{i}<=0)
-            eqs{end+1} = combSum - combinationComponents{i};
+            eqs{end+1} = (combSum - combinationComponents{i});
         else
-            eqs{end+1} = log(combSum) - log(combinationComponents{i});
+            eqs{end+1} = (log(combSum) - log(combinationComponents{i}));
         end
         
         names{end + 1} = [model.combinationNames{i}] ;
