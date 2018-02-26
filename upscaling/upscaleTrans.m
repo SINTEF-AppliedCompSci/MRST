@@ -17,8 +17,8 @@ function [HT_cg, T_cg, cgwells, report] = upscaleTrans(cg, T_fine, varargin)
 %                            messages throughout the computational process.
 %                            Logical.  Default value: Verbose = false
 %                            (don't display any informational messages).
-%               - bc_method  choise of global boundary condition method.
-%                            Valid choises is
+%               - bc_method  choice of global boundary condition method.
+%                            Valid choices are
 %                            'bc_simple' (default),
 %                            'bc' need  option 'bc'
 %                            'wells_simple', need option 'wells' with one
