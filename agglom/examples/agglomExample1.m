@@ -45,8 +45,8 @@ plotCoarseningStep(p1, G, iVol, iVel, NL, NU, 1, 1);
 %% Merge blocks
 % The segmentation will typically create a speckle of small blocks that we
 % do not want in our coarse grid. We therefore merge blocks that have a
-% volume below NL*G.cells.volumes/G.cells.num with the neighboring block
-% that has the closest iVel value.
+% volume less than NL times the average cell volume with the neighboring
+% block that has the closest iVel value.
 p2 = mergeBlocks2(p1, G, iVol, iVel, NL, NU);
 plotCoarseningStep(p2, G, iVol, iVel, NL, NU, 2, 1);
 
@@ -61,7 +61,7 @@ plotCoarseningStep(p3, G, iVol, iVel, NL, NU, 3, 1);
 
 %% Merge blocks
 % The greedy refinement may have created some small cells (typically if
-% the blocks to be refined only slightly exceeds the upper bound). We
+% the blocks to be refined only slightly exceed the upper bound). We
 % therefore perform a second merging step to get rid of blocks that have
 % too small volume.
 p4 = mergeBlocks2(p3, G, iVol, iVel, NL, NU);
@@ -77,25 +77,25 @@ plotCoarseningStep(p5, G, iVol, iVel, NL, NU, 4, 1);
 
 %%
 % With such small grid blocks, the algorithm does not have many choices and
-% therefore produces a grid that has two blocks that violate the upper
-% bound. In general, it is our experience that |refineGreedy2| produces
-% better results than the original algorithm proposed by Aarnes et al.
+% therefore produces a grid with two blocks that violate the upper bound.
+% In general, it is our experience that |refineGreedy2| produces better
+% results than the original algorithm proposed by Aarnes et al.
 
 %% Improved refinement algorithm - part 2
-% Even better results may be obtained if we use the |refineGreedy3| method
-% in which the neighbouring cells are sorted in descending order in terms
-% of the number of faces shared with cells in the growing block.
-% Unfortunately, the method is quite expensive and its use is not
-% recommended for very large models.
+% Alternatively, we can use the |refineGreedy3| method which sorts the
+% neighbouring cells in descending order by the number of faces shared with
+% cells in the growing block. Unfortunately, the method is quite expensive
+% and its use is not recommended for very large models.
 p3 = refineGreedy3(p2, G, iVel, NU, 'nlevel',1);
 p6 = mergeBlocks2(p3, G, iVol, iVel, NL, NU);
 plotCoarseningStep(p6, G, iVol, iVel, NL, NU, 4, 1);
 
 %%
-% In this particular example, the result is 'perfect' since there are no
-% blocks that violate the lower and upper bounds. In our experience,
-% however, it is hard to create grids that satisfy both constraints and
-% these should generally be seen as soft (and indicatory) bounds.
+% In this particular example, the resulting grid has the same number of
+% violations as for |refineGreedy2|, but one of the blocks now has a
+% stronger violation. In our experience, it is generally hard to create
+% grids that satisfy both constraints and these should generally be seen as
+% soft (and indicatory) bounds.
 
 %% Improved refinement algorithm - part 3
 % As a fourth alternative, we can use the |refineGreedy4| method
