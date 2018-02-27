@@ -13,7 +13,7 @@ rock = makeRock(G, 100*milli*darcy, 1);
 fluid = initSimpleADIFluid('phases', 'WO'                   , ...
                            'rho'   , [1, 1]*kilogram/meter^3, ...
                            'mu'    , [1, 1]*centi*poise     , ...
-                           'n'     , [1, 1]                 );
+                           'n'     , [2, 2]                 );
 
 modelfi = TwoPhaseOilWaterModel(G, rock, fluid);
 modelFV = getSequentialModelFromFI(modelfi);
@@ -75,6 +75,7 @@ for sNo = 1:numel(steps)
     if isempty(h)
 %         h = [hFV, hDG];
 %     xlabel('Distance from injector');
+    end
     ax = gca;
     ax.FontSize = 15;
     box on

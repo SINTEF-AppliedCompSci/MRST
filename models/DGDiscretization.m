@@ -27,14 +27,15 @@ classdef DGDiscretization < WENODiscretization
         %-----------------------------------------------------------------%
         function [xhat, translation, scaling] = transformCoords(disc, x, cells)
             
-            G           = disc.G;
+            G = disc.G;
             translation = -G.cells.centroids(cells,:);
             if isfield(G.cells, 'dx')
                 scaling = 1./(G.cells.dx(cells,:)/2);
             else
-                scaling     = 1./(G.cells.diameters(cells)/(2*sqrt(G.griddim)));
+                scaling = 1./(G.cells.diameters(cells)/(2*sqrt(G.griddim)));
             end
-            xhat        = (x + translation).*scaling;
+            
+            xhat = (x + translation).*scaling;
                
         end
         
@@ -55,17 +56,25 @@ classdef DGDiscretization < WENODiscretization
         %-----------------------------------------------------------------%
         function state = getCellSaturation(disc, state)
             
-            ix = 1:disc.basis.nDof:disc.G.cells.num*disc.basis.nDof;
+%             ix = 1:disc.basis.nDof:disc.G.cells.num*disc.basis.nDof;
             
-            cells = (1:disc.G.cells.num)';
-            x = disc.G.cells.centroids;
-            x = disc.transformCoords(x, cells);
+%             cells = (1:disc.G.cells.num)';
+%             x = disc.G.cells.centroids;
             
-            nPh = size(state.sdof,2);
+            [x, w, nq, ii, jj, cellNo] = makeCellIntegrator(disc.G, (1:disc.G.cells.num)', disc.degree);
+            W = sparse(ii, jj, w);
+
+            x = disc.transformCoords(x, cellNo);
+            
+            sdof = state.sdof;
+            nPh = size(sdof,2);
             s = zeros(disc.G.cells.num, nPh);
             for phNo = 1:nPh
-                s(:, phNo) = evaluateSaturation(disc, x, cells, state.sdof(:,phNo));
+                s(:,phNo) = (W*disc.evaluateSaturation(x, cellNo, sdof(:,phNo)))./disc.G.cells.volumes;
+%                 s(:, phNo) = evaluateSaturation(disc, x, cells, state.sdof(:,phNo));
             end
+            
+            
             
             state.s = s;
             
