@@ -2,7 +2,7 @@ mrstModule add dg vem vemmech ad-props ad-core ad-blackoil blackoil-sequential g
 
 %%
 
-n = 100;
+n = 50;
 l = 1000;
 G = computeGeometry(cartGrid([n,1], [l,10]*meter));
 G.nodes.coords = G.nodes.coords;
@@ -37,10 +37,10 @@ state0 = initResSol(G, 100*barsa, [sW,1-sW]);
 
 %%
 
-degree = [0,1,2];
+degree = [2];
 states = cell(numel(degree),1);
 for dNo = 1:numel(degree)
-    disc    = DGDiscretization(modelDG.transportModel, G.griddim, 'degree', degree(dNo), 'basis', 'legendre');
+    disc    = DGDiscretization(modelDG.transportModel, 1, 'degree', degree(dNo), 'basis', 'legendre');
     modelDG.transportModel = TransportOilWaterModelDG(G, rock, fluid, 'disc', disc);    
 
     state0 = assignDofFromState(modelDG.transportModel.disc, state0);
@@ -56,8 +56,8 @@ end
 figure('Position', [0,0,1500,600])
 x = linspace(0,l,n);
 
-steps = round(linspace(1, numel(schedule.step.val)-5, 3));
-steps = [2,12,20]
+steps = round(linspace(1, numel(schedule.step.val)-5,10));
+% steps = [2,12,20]
 clr = lines(numel(states)+1);
 clr = copper(numel(steps));
 [h, hDG] = deal([]);

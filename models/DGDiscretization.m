@@ -10,7 +10,7 @@ classdef DGDiscretization < WENODiscretization
         %-----------------------------------------------------------------%
         function disc = DGDiscretization(model, dim, varargin)
             
-            disc = disc@WENODiscretization(model, dim);
+            disc = disc@WENODiscretization(model, dim, 'interpolateReference', false);
             
             disc.degree  = 1;
             disc.basis   = 'legendre';
@@ -55,12 +55,7 @@ classdef DGDiscretization < WENODiscretization
         
         %-----------------------------------------------------------------%
         function state = getCellSaturation(disc, state)
-            
-%             ix = 1:disc.basis.nDof:disc.G.cells.num*disc.basis.nDof;
-            
-%             cells = (1:disc.G.cells.num)';
-%             x = disc.G.cells.centroids;
-            
+                        
             [x, w, nq, ii, jj, cellNo] = makeCellIntegrator(disc.G, (1:disc.G.cells.num)', disc.degree);
             W = sparse(ii, jj, w);
 
@@ -71,10 +66,7 @@ classdef DGDiscretization < WENODiscretization
             s = zeros(disc.G.cells.num, nPh);
             for phNo = 1:nPh
                 s(:,phNo) = (W*disc.evaluateSaturation(x, cellNo, sdof(:,phNo)))./disc.G.cells.volumes;
-%                 s(:, phNo) = evaluateSaturation(disc, x, cells, state.sdof(:,phNo));
             end
-            
-            
             
             state.s = s;
             
@@ -90,17 +82,19 @@ classdef DGDiscretization < WENODiscretization
             [x, w, nq, ii, jj, cellNo] = makeCellIntegrator(G, cells, disc.degree*G.griddim);
             W = sparse(ii, jj, w);
             
-%             [x, cellNo, W] = cellBasisIntegrator(disc);
-            
             [x, ~, ~] = disc.transformCoords(x, cellNo);
             
             I = integrand(repmat([0,0], numel(cells).*nDof, 1), ones(numel(cells)*nDof, 1), 1);
             for dofNo = 1:nDof
                 ix = (1:nDof:numel(cells)*nDof) + dofNo - 1;
                 p = psi{dofNo}(x);
-%                 ix = (1:nDof:G.cells.num*nDof) + dofNo - 1;
                 I(ix) = W*integrand(x, cellNo, p);
             end
+            
+%             tol = eps(mean(G.cells.volumes));
+%             if isa(I, 'ADI')
+%                 I.val(abs(double(I)) < tol) = 0;
+%             end
             
         end
         
@@ -121,6 +115,11 @@ classdef DGDiscretization < WENODiscretization
                 gp = grad_psi{dofNo}(x).*scaling;
                 I(ix) = W*(integrand(x, cellNo, gp));
             end
+            
+%             tol = eps(mean(G.cells.volumes));
+%             if isa(I, 'ADI')
+%                 I.val(abs(double(I)) < tol) = 0;
+%             end
             
         end
         
@@ -150,6 +149,11 @@ classdef DGDiscretization < WENODiscretization
                 p = psi{dofNo}(x_c);
                 I(ix) = W*(integrand(x_c, x_v, x_G, cellNo, upCells_v, upCells_G, faceNo, p));
             end
+            
+%             tol = eps(mean(G.cells.volumes));
+%             if isa(I, 'ADI')
+%                 I.val(abs(double(I)) < tol) = 0;
+%             end
             
         end        
         

@@ -175,21 +175,9 @@ classdef TransportOilWaterModelDG < TransportOilWaterModel
             
 %             state = model.updateStateFromIncrement(state, ds, problem, 'sdof', inf, inf);
             state = model.disc.getCellSaturation(state);
-            
-            if model.disc.degree > 0 & 0
 
-                sWdof = model.disc.limiter(state.sdof(:,1));
-                sOdof = -sWdof;
-                ix = 1:model.disc.basis.nDof:model.G.cells.num*model.disc.basis.nDof;
-                sOdof(ix) = 1 - sWdof(ix);
 
-                state.sdof = [sWdof, sOdof];
-                
-                state = model.disc.getCellSaturation(state);
-                
-            end
-
-            if 0
+            if 1
             % Ensure that values are within zero->one interval, and
             % re-normalize if any values were capped
             bad = any((state.s > 1) | (state.s < 0), 2);
@@ -203,6 +191,20 @@ classdef TransportOilWaterModelDG < TransportOilWaterModel
             end
                 
             end
+            
+            if model.disc.degree > 0 & 1
+
+            sWdof = model.disc.limiter(state.sdof(:,1));
+            sOdof = -sWdof;
+            ix = 1:model.disc.basis.nDof:model.G.cells.num*model.disc.basis.nDof;
+            sOdof(ix) = 1 - sWdof(ix);
+
+            state.sdof = [sWdof, sOdof];
+
+            state = model.disc.getCellSaturation(state);
+
+            end
+            
         end 
         
     end
