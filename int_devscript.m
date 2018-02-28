@@ -3,19 +3,19 @@ mrstModule add vem vemmech
 %%
 
 n = 2;
-G = computeGeometry(cartGrid([n,n], [2*n,2*n]));
+G = computeGeometry(cartGrid([n,n], [2*n,2]));
 G.nodes.coords = G.nodes.coords;
 G = computeVEMGeometry(G);
 
 %%
 
 degree = 4;
-% basis = dgBasis(degree, G.griddim, 'legendre');
+basis = dgBasis(G, degree, 'legendre');
 
-basis = DGBasisFunctions(G, degree);
+% basis = DGBasisFunctions(G, degree);
 
-p = cell(size(k,1),1);
 k = basis.k;
+p = cell(size(k,1),1);
 for pNo = 1:size(k,1)
     p{pNo} = Polynomial(k(pNo,:), 1);
 end

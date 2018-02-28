@@ -33,6 +33,30 @@ function [limiter, sWjump, indicator] = dgLimiter(disc, type, varargin)
             
             limiter = @(dof) tvbLimiter(disc, dof, indicator);
             
+        case 'cap'
+            
+            faces = G.cells.faces(:,1);
+            nodes = G.faces.nodes(mcolon(G.faces.nodePos(faces), G.faces.nodePos(faces+1)-1));
+%             nodes = reshape(nodes, 2, [])';
+%             swap  = G.faces.neighors(faces,1) ~= rldecode((1:G.cells.num)', diff(G.cells.facePos), 1);
+%             nodes(swap,:) = nodes(swap,[2,1]); nodes = nodes(:,1);
+
+
+            
+            nfn = diff(G.faces.nodePos);
+            ncn = accumarray(rldecode((1:G.cells.num)', diff(G.cells.facePos), 1), nfn(faces));
+            
+            x = G.nodes.coords(nodes,:);
+            
+            cells = rldecode((1:G.cells.num)', ncn, 1);
+            x = disc.transformCoords(x, cells);
+            
+            s = @(dof) disc.evaluateSaturation(x, cells, dof);
+            indicator = @(dof) accumarray(cells, s(dof) < 0 | s(dof) > 1) > 0;
+            
+            sWjump = @(dof) 0;
+            limiter = @(dof) false;
+            
     end
 
 end
@@ -101,7 +125,7 @@ function dofbar = approx_grad(dof, disc)
             dofix = (cNo-1)*nDof + 1 + dNo;
             ss = sigma{dNo}(gradix);
 %             ss = ss(ss~=0);
-            val = [dof(dofix); ss];
+            val = [dof(dofix); 200*ss];
             db = minmod(val);
             dofbar(cNo, dNo) = db;
         end
@@ -113,38 +137,30 @@ end
 function newdof = tvbLimiter(disc, dof, indicator)
 
     flag   = indicator(dof);
-    
-    dofbar = approx_grad(dof, disc)';
-    dofbar = dofbar(:);
-    
     newdof = dof;
     
-    nDof = disc.basis.nDof;
+    if any(flag)
     
-    ix1 = mcolon((find(flag)-1)*nDof + 1 + 1, (find(flag)-1)*nDof + 1 + disc.G.griddim);
-    ix2 = mcolon((find(flag)-1)*disc.G.griddim + 1, (find(flag)-1)*disc.G.griddim + disc.G.griddim);
-    newdof(ix1) = dofbar(ix2);
-    if disc.degree > 1
-        ix = mcolon((find(flag)-1)*nDof + 1 + disc.G.griddim + 1, (find(flag)-1)*nDof + 1 + disc.G.griddim + nDof);
-        newdof(ix) = 0;
+        dofbar = approx_grad(dof, disc)';
+        dofbar = dofbar(:);
+
+        nDof = disc.basis.nDof;
+
+
+        cells = find(flag);
+
+        ix1 = disc.getDofIx(2:disc.G.griddim+1, cells);
+
+    %     ix1 = mcolon((find(flag)-1)*nDof + 1 + 1, (find(flag)-1)*nDof + 1 + disc.G.griddim);
+        ix2 = mcolon((find(flag)-1)*disc.G.griddim + 1, (find(flag)-1)*disc.G.griddim + disc.G.griddim);
+        newdof(ix1) = dofbar(ix2);
+        if disc.degree > 1
+            ix = disc.getDofIx((disc.G.griddim + 2):nDof, cells);
+    %         ix = mcolon((find(flag)-1)*nDof + 1 + disc.G.griddim + 1, (find(flag)-1)*nDof + 1 + disc.G.griddim + nDof);
+            newdof(ix) = 0;
+        end
+    
     end
-
-%     dx = G.cells.centroids(G.faces.neighbors(:,1), :) - G.cells.centroids(G.faces.neighbors(:,2), :);
-% 
-%     ll = getLimiter(opt.innerType);
-%     
-%     
-%     
-%     
-% %     dof0 = dof(1:nDof:G.cells.num*nDof);
-% %     for dNo = 1:G.griddim
-% %         dofx = dof((dNo+1):nDof:G.cells.num*nDof);
-% %         for cNo = 1:G.cells.num
-% %             dofx(c)
-% %             ll([dofx, theta*dof]);
-% %         end
-%     end
-
 
 end
 
