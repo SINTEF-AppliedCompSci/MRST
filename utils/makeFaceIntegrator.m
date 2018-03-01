@@ -5,6 +5,9 @@ function [x, w, nq, ii, jj, cellNo, faceNo] = makeFaceIntegrator(G, cells, degre
 
 
     
+    
+    
+    
     faces = G.cells.faces(mcolon(G.cells.facePos(cells), G.cells.facePos(cells+1)-1));
     if opt.exclude_boundary
         [bf, bc] = boundaryFaces(G);
@@ -13,9 +16,13 @@ function [x, w, nq, ii, jj, cellNo, faceNo] = makeFaceIntegrator(G, cells, degre
     else
         ncbf = zeros(G.cells.num, 1);
     end
-    
     nodes = G.faces.nodes(mcolon(G.faces.nodePos(faces), G.faces.nodePos(faces+1)-1));
+    
+    ncf = diff(G.cells.facePos);
+    swap = G.faces.neighbors(faces,1) ~= rldecode(cells, ncf(cells) - ncbf(cells), 1);
+    
     nodes = reshape(nodes, 2, [])';
+%     nodes(swap,:) = nodes(swap, [2,1]);
 
     x0 = G.nodes.coords(nodes(:,1),:);
     x1 = G.nodes.coords(nodes(:,2),:);
@@ -30,8 +37,8 @@ function [x, w, nq, ii, jj, cellNo, faceNo] = makeFaceIntegrator(G, cells, degre
     
     x = ((x1 - x0).*xr +  (x1 + x0))/2;
 
-    ncf = diff(G.cells.facePos);
-    sign = 1 - 2*(G.faces.neighbors(faces,1) ~= rldecode(cells, ncf(cells) - ncbf(cells), 1));
+    
+    sign = 1 - 2*swap;
 
     sign = reshape(repmat(sign', nq, 1), [], 1);
 %     sign = reshape(repmat(sign'.*G.faces.areas(faces)', nq, 1), [], 1);

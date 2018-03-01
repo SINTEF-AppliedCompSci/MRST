@@ -1,6 +1,5 @@
-function basis = dgBasis(G, degree, type)
-    
-    dim = G.griddim;
+function basis = dgBasis(dim, degree, type)
+
     nDof = polyDim(degree, dim); 
         [psi, grad_psi] = deal(cell(nDof,1));
     if degree < 0

@@ -1,4 +1,4 @@
-tol = 1e-10;
+tol = 1e-9;
 
 %%
 degree = 10;
@@ -22,9 +22,14 @@ end
 fprintf('Testing 1D Legenrdre polynomials ... ')
 
 dim = 1;
-[psi, grad_psi, k, nDof] = dgBasis(degree, dim, 'legendre');
+basis    = dgBasis(dim, degree, 'legendre');
+psi      = basis.psi;
+grad_psi = basis.grad_psi;
+nDof     = basis.nDof;
+k        = basis.k;
 
-x = linspace(-0.99,0.99,100)';
+xl       = 0.9999;
+x = linspace(-xl, xl, 100)';
 fun_diff = cellfun(@(l1,l2) norm(l1(x) - l2(x)), l, psi);
 grad_fun_diff = cellfun(@(gl1,gl2) norm(gl1(x) - gl2(x)), d_l, grad_psi);
 
@@ -36,8 +41,12 @@ fprintf('1D unit test successful!\n')
 
 fprintf('Testing 2D Legenrdre polynomials ... ')
 
-dim = 2;
-[psi, grad_psi, k, nDof] = dgBasis(degree, dim, 'legendre');
+dim      = 2;
+basis    = dgBasis(dim, degree, 'legendre');
+psi      = basis.psi;
+grad_psi = basis.grad_psi;
+nDof     = basis.nDof;
+k        = basis.k;
 
 [L, dL] = deal(cell(nDof,1));
 for dofNo = 1:nDof
@@ -49,7 +58,7 @@ for dofNo = 1:nDof
                         l{k(dofNo,1)+1}(x(:,1)).*d_l{k(dofNo,2)+1}(x(:,2))];
 end
 
-x = linspace(-0.99,0.99,10)';
+x = linspace(-xl, xl, 10)';
 [xx,yy] = ndgrid(x, x);
 x = [xx(:), yy(:)];
 
@@ -63,8 +72,12 @@ fprintf('2D unit test successful!\n')
 
 fprintf('Testing 3D Legenrdre polynomials ... ')
 
-dim = 3;
-[psi, grad_psi, k, nDof] = dgBasis(degree, dim, 'legendre');
+dim      = 3;
+basis    = dgBasis(dim, degree, 'legendre');
+psi      = basis.psi;
+grad_psi = basis.grad_psi;
+nDof     = basis.nDof;
+k        = basis.k;
 
 [L, dL] = deal(cell(nDof,1));
 for dofNo = 1:nDof
@@ -77,7 +90,7 @@ for dofNo = 1:nDof
                         l{k(dofNo,1)+1}(x(:,1)).*  l{k(dofNo,2)+1}(x(:,2)).*d_l{k(dofNo,3)+1}(x(:,3))];
 end
 
-x = linspace(-0.99,0.99,10)';
+x = linspace(-xl, xl, 10)';
 [xx,yy, zz] = ndgrid(x, x, x);
 x = [xx(:), yy(:), zz(:)];
 

@@ -13,7 +13,7 @@ function [x, w, nq, ii, jj, cellNo] = makeCellIntegrator(G, cells, degree)
                 
                x = xr + G.cells.centroids(cells,:);
 %                x = repmat(xr, numel(cells), 1);
-               [ii, jj] = deal(1:numel(cells));
+               [ii, jj] = deal((1:numel(cells))');
                cellNo = cells;
                vol = G.cells.volumes(cells);
                nq = repmat(nq, G.cells.num, 1);
@@ -33,32 +33,6 @@ function [x, w, nq, ii, jj, cellNo] = makeCellIntegrator(G, cells, degree)
             end
             
             w = reshape(w.*vol', [], 1);
-            
-            
-%         case 'div'
-%     
-%             nq = 0; 
-%             [ii, jj] = deal([]);
-%             
-%             nodes = reshape(nodes, 2, [])';
-% 
-%             x0 = G.nodes.coords(nodes(:,1),:);
-%             x1 = G.nodes.coords(nodes(:,2),:);
-% 
-%             [xr, w] = getQuadratureRule(degree, 1);
-%             xr = reshape(xr, 1, 1, []);
-%             w = reshape(w, 1, []);
-% 
-%             x = ((x1 - x0).*xr +  (x1 + x0))/2;
-% 
-%             ncf = diff(G.cells.facePos);
-%             sign = 1 - 2*(G.faces.neighbors(faces,1) ~= rldecode(cells, ncf(cells), 1));
-%             nx = G.faces.normals(faces,1).*sign/2;
-% 
-%             val = @(fun) integrate(fun, cells, faces, w.*nx, x, ncf);
-%             
-%     end
-                  
             
 end
 

@@ -99,13 +99,13 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     integrand = @(x,c,grad_psi) bW(c).*fW(x, c).*sum(vTc(c,:).*grad_psi,2) ...
                               + bO(c).*fW(x, c).*sum((Gwc(c,:) - Goc(c,:)).*grad_psi,2);
     
-    flux1 = -disc.cellIntDiv(integrand);  
+    flux1 = -disc.cellIntDiv(integrand, (1:G.cells.num)');  
    
     integrand = @(xc, xv, xg, c, cv, cg, f, psi) ...
         (bW(cg).*fW(xv, cv).*vT(f) ...
        + bO(cg).*fW(xg, cg).*mobO(xg,cg).*(Gw(f) - Go(f))).*psi;
 
-    flux2 = disc.faceIntDiv(integrand, upcW);
+    flux2 = disc.faceIntDiv(integrand, (1:G.cells.num)', upcW);
   
     % Water equation-------------------------------------------------------
     

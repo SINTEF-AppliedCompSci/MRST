@@ -189,7 +189,7 @@ classdef TransportOilWaterModelDG < TransportOilWaterModel
 
             end
             
-            if 0
+            if 1
             % Ensure that values are within zero->one interval, and
             % re-normalize if any values were capped
             bad = any((state.s > 1) | (state.s < 0), 2);
