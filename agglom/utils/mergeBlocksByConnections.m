@@ -61,12 +61,17 @@ while ~ok
     % Targets are all blocks with less than the desired number of
     % cells.
     targets = find(bad);
+    disconnected = 0;
     for i = 1:numel(targets)
         C = targets(i);
         fa = gridCellFaces(CG, C);
+        fa = fa(~(Tc(fa)<0));
+        if isempty(fa)
+            disconnected = disconnected+1; continue;
+        end
         % Find strongest connection for this local block, and merge
         % into that neighbor.
-        [v, strongest] = max(Tc(fa));
+        [v, strongest] = max(Tc(fa));                                      %#ok<ASGLU>
 
         % Set partition to that of the strongest neighbor
         other = CG.faces.neighbors(fa(strongest), :);
@@ -77,8 +82,14 @@ while ~ok
     p = compressPartition(p_next);
     % Update bad entries
     bad = getBlockCount(p) < minBlockSize;
-    ok = ~any(bad);
-    dispif(mrstVerbose(), '%d blocks remain under limit...\n', sum(bad))
+    if disconnected == sum(bad)
+        dispif(mrstVerbose(), ...
+            '%d disconnected blocks remain under limit...\n', sum(bad))
+        ok = 1;
+    else
+        ok = ~any(bad);
+        dispif(mrstVerbose(), '%d blocks remain under limit...\n', sum(bad))
+    end
 end
 end
 
