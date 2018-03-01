@@ -23,9 +23,10 @@ classdef DGDiscretization < WENODiscretization
 %             disc.basis = DGBasisFunctions(disc.G, disc.degree);
             
             disc.basis   = dgBasis(disc.G.griddim, disc.degree, disc.basis);
-            disc.limiter = dgLimiter(disc     , disc.limiter);
             
             disc.dofPos = reshape((1:disc.G.cells.num*disc.basis.nDof)', disc.basis.nDof, []);
+            
+            disc.limiter = dgLimiter(disc     , disc.limiter);
             
 %             [x, w, nq, ii, jj, cellNo] = makeCellIntegrator(disc.G, (1:disc.G.cells.num)', disc.degree*2);
 %             disc.cellIntegrator = struct('points'  , x     , ...

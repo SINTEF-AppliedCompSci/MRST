@@ -1,6 +1,6 @@
 function [limiter, sWjump, indicator] = dgLimiter(disc, type, varargin)
 
-    opt = struct('threshold', 0.2, 'innerType', 'minmod');
+    opt = struct('threshold', 0.5, 'innerType', 'minmod');
     opt = merge_options(opt, varargin{:});
 
     G = disc.G;
@@ -80,8 +80,9 @@ function dofbar = approx_grad(dof, disc)
         dx    = G.cells.dx(:,1);
         for d = 1:disc.G.griddim
             if d == 1
-                dd = [(q(cells) - q(left) )./(dx(cells)/2 + dx(left)/2 ), ...
-                            (q(right) - q(cells))./(dx(cells)/2 + dx(right)/2)];
+%                 dd = [(q(cells) - q(left) )./(dx(cells)/2 + dx(left)/2 ), ...
+%                             (q(right) - q(cells))./(dx(cells)/2 + dx(right)/2)];
+                dd = [(q(cells) - q(left) ), (q(right) - q(cells))];
                 sigma{d} = reshape(dd', [], 1);
                 sigma{d} = sigma{d}(2:end-1);
             else
@@ -125,7 +126,7 @@ function dofbar = approx_grad(dof, disc)
             dofix = (cNo-1)*nDof + 1 + dNo;
             ss = sigma{dNo}(gradix);
 %             ss = ss(ss~=0);
-            val = [dof(dofix); 200*ss];
+            val = [dof(dofix); 2*ss];
             db = minmod(val);
             dofbar(cNo, dNo) = db;
         end

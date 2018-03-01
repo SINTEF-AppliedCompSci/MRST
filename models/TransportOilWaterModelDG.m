@@ -1,11 +1,7 @@
 classdef TransportOilWaterModelDG < TransportOilWaterModel
     % Two phase oil/water system without dissolution
     properties
-%         discretization
         disc
-%         degree
-%         basis
-%         limiter
     end
 
     methods
@@ -176,18 +172,6 @@ classdef TransportOilWaterModelDG < TransportOilWaterModel
 %             state = model.updateStateFromIncrement(state, ds, problem, 'sdof', inf, inf);
             state = model.disc.getCellSaturation(state);
             
-            if model.disc.degree > 0 && 0
-
-            sWdof = model.disc.limiter(state.sdof(:,1));
-            sOdof = -sWdof;
-            ix = 1:model.disc.basis.nDof:model.G.cells.num*model.disc.basis.nDof;
-            sOdof(ix) = 1 - sWdof(ix);
-
-            state.sdof = [sWdof, sOdof];
-
-            state = model.disc.getCellSaturation(state);
-
-            end
             
             if 1
             % Ensure that values are within zero->one interval, and
@@ -215,6 +199,21 @@ classdef TransportOilWaterModelDG < TransportOilWaterModel
             end
                 
             end
+            
+            if model.disc.degree > 0 && 1
+
+            sWdof = model.disc.limiter(state.sdof(:,1));
+            sOdof = -sWdof;
+            ix = 1:model.disc.basis.nDof:model.G.cells.num*model.disc.basis.nDof;
+            sOdof(ix) = 1 - sWdof(ix);
+
+            state.sdof = [sWdof, sOdof];
+
+            state = model.disc.getCellSaturation(state);
+
+            end
+            
+            
             
         end
         
