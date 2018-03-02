@@ -156,6 +156,8 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
 
     end
     
+    state.cfl = dt.*sum(vTc./G.cells.dx,2);
+    
     % Make Linearized problem----------------------------------------------
 
     eqs   = {water  };

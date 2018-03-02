@@ -173,7 +173,7 @@ classdef TransportOilWaterModelDG < TransportOilWaterModel
             state = model.disc.getCellSaturation(state);
             
             
-            if 1
+            if ~isempty(model.disc.limiter)
             % Ensure that values are within zero->one interval, and
             % re-normalize if any values were capped
             bad = any((state.s > 1) | (state.s < 0), 2);
@@ -200,7 +200,7 @@ classdef TransportOilWaterModelDG < TransportOilWaterModel
                 
             end
             
-            if model.disc.degree > 0 && 1
+            if model.disc.degree > 0 && ~isempty(model.disc.limiter)
 
             sWdof = model.disc.limiter(state.sdof(:,1));
             sOdof = -sWdof;

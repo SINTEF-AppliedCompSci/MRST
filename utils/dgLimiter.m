@@ -1,11 +1,16 @@
 function [limiter, sWjump, indicator] = dgLimiter(disc, type, varargin)
 
-    opt = struct('threshold', 0.5, 'innerType', 'minmod');
+    opt = struct('threshold', 0.9, 'innerType', 'minmod');
     opt = merge_options(opt, varargin{:});
 
     G = disc.G;
 
     switch type
+        
+        case 'none'
+            [limiter, sWjump, indicator] = deal([]);
+            
+        
         case 'tvb'
             
             faces = G.cells.faces(:,1);
@@ -126,7 +131,7 @@ function dofbar = approx_grad(dof, disc)
             dofix = (cNo-1)*nDof + 1 + dNo;
             ss = sigma{dNo}(gradix);
 %             ss = ss(ss~=0);
-            val = [dof(dofix); 2*ss];
+            val = [dof(dofix); ss];
             db = minmod(val);
             dofbar(cNo, dNo) = db;
         end
