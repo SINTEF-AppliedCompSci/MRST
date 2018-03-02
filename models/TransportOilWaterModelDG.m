@@ -173,7 +173,7 @@ classdef TransportOilWaterModelDG < TransportOilWaterModel
             state = model.disc.getCellSaturation(state);
             
             
-            if ~isempty(model.disc.limiter)
+            if 1%~isempty(model.disc.limiter)
             % Ensure that values are within zero->one interval, and
             % re-normalize if any values were capped
             bad = any((state.s > 1) | (state.s < 0), 2);
@@ -189,7 +189,8 @@ classdef TransportOilWaterModelDG < TransportOilWaterModel
                 s0 = state.s;
 
                 ix = model.disc.getDofIx(1, cells);
-                state.sdof(ix,:) = min(max(state.s(bad,:),0),1);
+%                 state.sdof(ix,:) = min(max(state.s(bad,:),0),1);
+                state.sdof(ix,:) = min(max(state.sdof(ix,:),0),1);
                 state.sdof(ix,:) = state.sdof(ix,:)./sum(state.sdof(ix,:),2);
                 
                 ix = model.disc.getDofIx(2:model.disc.basis.nDof, cells);
@@ -200,16 +201,18 @@ classdef TransportOilWaterModelDG < TransportOilWaterModel
                 
             end
             
-            if model.disc.degree > 0 && ~isempty(model.disc.limiter)
+            if model.disc.degree > 0 && 1
 
-            sWdof = model.disc.limiter(state.sdof(:,1));
-            sOdof = -sWdof;
-            ix = 1:model.disc.basis.nDof:model.G.cells.num*model.disc.basis.nDof;
-            sOdof(ix) = 1 - sWdof(ix);
+                state = model.disc.limiter(state);
+                
+%             sWdof = model.disc.limiter(state.sdof(:,1));
+%             sOdof = -sWdof;
+%             ix = 1:model.disc.basis.nDof:model.G.cells.num*model.disc.basis.nDof;
+%             sOdof(ix) = 1 - sWdof(ix);
+% 
+%             state.sdof = [sWdof, sOdof];
 
-            state.sdof = [sWdof, sOdof];
-
-            state = model.disc.getCellSaturation(state);
+                state = model.disc.getCellSaturation(state);
 
             end
             

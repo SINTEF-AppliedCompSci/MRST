@@ -40,13 +40,10 @@ function [limiter, sWjump, indicator] = dgLimiter(disc, type, varargin)
             
         case 'cap'
             
+            G = disc.G;
+            
             faces = G.cells.faces(:,1);
             nodes = G.faces.nodes(mcolon(G.faces.nodePos(faces), G.faces.nodePos(faces+1)-1));
-%             nodes = reshape(nodes, 2, [])';
-%             swap  = G.faces.neighors(faces,1) ~= rldecode((1:G.cells.num)', diff(G.cells.facePos), 1);
-%             nodes(swap,:) = nodes(swap,[2,1]); nodes = nodes(:,1);
-
-
             
             nfn = diff(G.faces.nodePos);
             ncn = accumarray(rldecode((1:G.cells.num)', diff(G.cells.facePos), 1), nfn(faces));
@@ -57,11 +54,14 @@ function [limiter, sWjump, indicator] = dgLimiter(disc, type, varargin)
             x = disc.transformCoords(x, cells);
             
             s = @(dof) disc.evaluateSaturation(x, cells, dof);
-            indicator = @(dof) accumarray(cells, s(dof) < 0 | s(dof) > 1) > 0;
             
-            sWjump = @(dof) 0;
-            limiter = @(dof) false;
+            jj = rldecode((1:G.cells.num)', ncn, 1);
+            s = @(dof) sparse(jj, (1:numel(s))', s(dof));
             
+            smax = @(dof) full(max(s(dof), [], 2));
+            smin = @(dof) full(min(s(dof), [], 2));
+            
+
     end
 
 end

@@ -133,7 +133,9 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
         vol = reshape(repmat(G.cells.volumes(wc)', nDof, 1), [], 1);
         prod = disc.cellInt(integrand, wc)./vol;
         
-        ind = mcolon((wc-1)*nDof + 1, wc*nDof);
+        ind = disc.getDofIx(1:nDof, wc);
+        
+%         ind = mcolon((wc-1)*nDof + 1, wc*nDof);
         water(ind) = water(ind) - prod;
 
         % Store well fluxes

@@ -4,7 +4,7 @@ classdef DGDiscretization < WENODiscretization
         degree
         basis
         dofPos
-        limiter
+%         limiter
 %         cellIntegrator
 %         faceIntegrator
     end
@@ -17,7 +17,7 @@ classdef DGDiscretization < WENODiscretization
             
             disc.degree  = 1;
             disc.basis   = 'legendre';
-            disc.limiter = 'tvb';
+%             disc.limiter = 'tvb';
             disc         = merge_options(disc, varargin{:});
             
 %             disc.basis = DGBasisFunctions(disc.G, disc.degree);
@@ -26,7 +26,7 @@ classdef DGDiscretization < WENODiscretization
             
             disc.dofPos = reshape((1:disc.G.cells.num*disc.basis.nDof)', disc.basis.nDof, []);
             
-            disc.limiter = dgLimiter(disc     , disc.limiter);
+%             disc.limiter = dgLimiter(disc     , disc.limiter);
             
 %             [x, w, nq, ii, jj, cellNo] = makeCellIntegrator(disc.G, (1:disc.G.cells.num)', disc.degree*2);
 %             disc.cellIntegrator = struct('points'  , x     , ...
@@ -60,6 +60,19 @@ classdef DGDiscretization < WENODiscretization
             
             xhat = (x + translation).*scaling;
                
+        end
+        
+        %-----------------------------------------------------------------%
+        function v = trimValues(disc, v)
+            
+            tol = eps(mean(disc.G.cells.volumes));
+            ix = abs(v) < tol;
+            if isa(v, 'ADI')
+                v.val(ix) = 0;
+            else
+                v(ix) = 0;
+            end
+            
         end
         
         %-----------------------------------------------------------------%
@@ -105,10 +118,77 @@ classdef DGDiscretization < WENODiscretization
             nPh = size(sdof,2);
             s = zeros(disc.G.cells.num, nPh);
             for phNo = 1:nPh
+%                 s(:, phNo) = disc.evaluateSaturation(repmat([0,0], disc.G.cells.num, 1), (1:disc.G.cells.num)', sdof(:,phNo));
                 s(:,phNo) = (W*disc.evaluateSaturation(x, cellNo, sdof(:,phNo)))./disc.G.cells.volumes;
             end
             
             state.s = s;
+            
+        end
+        
+        %-----------------------------------------------------------------%
+        function state = limiter(disc, state)
+            
+            G = disc.G;
+            nDof = disc.basis.nDof;
+            
+            faces = G.cells.faces(:,1);
+            nodes = G.faces.nodes(mcolon(G.faces.nodePos(faces), G.faces.nodePos(faces+1)-1));
+            
+            nfn = diff(G.faces.nodePos);
+            ncn = accumarray(rldecode((1:G.cells.num)', diff(G.cells.facePos), 1), nfn(faces));
+            
+            x = G.nodes.coords(nodes,:);
+            
+            cells = rldecode((1:G.cells.num)', ncn, 1);
+            x = disc.transformCoords(x, cells);
+            
+            s = disc.evaluateSaturation(x, cells, state.sdof);
+            
+            jj = rldecode((1:G.cells.num)', ncn, 1);
+            s = sparse(jj, (1:numel(s))', s);
+            
+            smax = full(max(s, [], 2));
+            smin = full(min(s, [], 2));
+            
+            over  = smax > 1;
+            under = smin < 0;
+            bad = over | under;
+            
+            sdof = state.sdof(:,1);
+            sdof0 = sdof;
+            
+            if any(bad)
+                
+                cells = find(bad);
+                cells_o = find(over);
+                cells_u = find(under);
+                
+                % Reduce to first-order
+                ix = disc.getDofIx((1 + G.griddim + 1):nDof, cells);
+                sdof(ix) = 0;
+                
+                % Reduce linear dofs so that saturaion is within [0,1]
+%                 ix0 = disc.getDofIx(1                , cells);
+                for dNo = 1:G.griddim
+                    
+                    ix0 = disc.getDofIx(1, cells_u);
+                    ix  = disc.getDofIx(dNo+1, cells_u);
+                    sdof(ix) = sign(sdof(ix)).*min(abs(sdof(ix0)), abs(sdof(ix)));
+                    
+                    ix0 = disc.getDofIx(1, cells_o);
+                    ix  = disc.getDofIx(dNo+1, cells_o);
+                    sdof(ix) = sign(sdof(ix)).*(1 - sdof(ix0));
+                    
+                end
+                
+                state.sdof(:,1) = sdof;
+                state.sdof(:,2) = -sdof;
+                
+                ix0 = disc.getDofIx(1, (1:G.cells.num)');
+                state.sdof(ix0,2) = 1 - state.sdof(ix0,1);
+                
+            end
             
         end
         
@@ -131,6 +211,8 @@ classdef DGDiscretization < WENODiscretization
                 I(ix) = W*integrand(x, cellNo, p);
             end
             
+            I = disc.trimValues(I);
+            
         end
         
         %-----------------------------------------------------------------%
@@ -151,6 +233,8 @@ classdef DGDiscretization < WENODiscretization
                 gp = grad_psi{dofNo}(x).*scaling;
                 I(ix) = W*(integrand(x, cellNo, gp));
             end
+            
+            I = disc.trimValues(I);
             
         end
         
@@ -182,6 +266,8 @@ classdef DGDiscretization < WENODiscretization
                 p = psi{dofNo}(x_c);
                 I(ix) = W*(integrand(x_c, x_v, x_G, cellNo, upCells_v, upCells_G, faceNo, p));
             end
+            
+            I = disc.trimValues(I);
             
         end        
         
