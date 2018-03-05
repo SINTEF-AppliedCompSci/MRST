@@ -166,7 +166,7 @@ classdef TransportOilWaterModelDG < TransportOilWaterModel
                 
             end
             
-            if model.disc.degree > 0 && 0
+            if max(model.disc.degree) > 0 && 0
                 state = model.disc.limiter(state);
                 
 %             sWdof = model.disc.limiter(state.sdof(:,1));
