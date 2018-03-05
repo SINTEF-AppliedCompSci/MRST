@@ -23,7 +23,8 @@ modelDG = modelFV;
 time = 2*year;
 rate = 1*sum(poreVolume(G, rock))/time;
 W = [];
-W = addWell(W, G, rock, 1          , 'type', 'rate', 'val', rate    , 'comp_i', [1,0]);
+% W = addWell(W, G, rock, 1          , 'type', 'rate', 'val', rate    , 'comp_i', [1,0]);
+W = addWell(W, G, rock, 1          , 'type', 'bhp', 'val', 2000*barsa, 'comp_i', [1,0]);
 W = addWell(W, G, rock, G.cells.num, 'type', 'bhp' , 'val', 50*barsa, 'comp_i', [1,0]);
 
 dt    = 30*day;
@@ -36,30 +37,30 @@ state0 = initResSol(G, 100*barsa, [sW,1-sW]);
 
 %%
 
-degree = [1];
-states = cell(numel(degree),1);
+degree = [2];
+[wsDG, statesDG] = deal(cell(numel(degree),1));
 for dNo = 1:numel(degree)
     disc    = DGDiscretization(modelDG.transportModel, 1, 'degree', degree(dNo), 'basis', 'legendre');%, 'limiter', 'none');
     modelDG.transportModel = TransportOilWaterModelDG(G, rock, fluid, 'disc', disc);    
 
     state0 = assignDofFromState(modelDG.transportModel.disc, state0);
-    [ws, states{dNo}, rep] = simulateScheduleAD(state0, modelDG, schedule);
+    [wsDG{dNo}, statesDG{dNo}, rep] = simulateScheduleAD(state0, modelDG, schedule);
 end
 
 %%
 
-limiter = {'cap', 'none', 'tvb'};
-for lNo = 1:2
-    disc    = DGDiscretization(modelDG.transportModel, 1, 'degree', 1, 'basis', 'legendre', 'limiter', limiter{lNo});
-    modelDG.transportModel = TransportOilWaterModelDG(G, rock, fluid, 'disc', disc);    
-
-    state0 = assignDofFromState(modelDG.transportModel.disc, state0);
-    [ws, states{lNo}, rep] = simulateScheduleAD(state0, modelDG, schedule);
-end
+% limiter = {'cap', 'none', 'tvb'};
+% for lNo = 1:2
+%     disc    = DGDiscretization(modelDG.transportModel, 1, 'degree', 1, 'basis', 'legendre', 'limiter', limiter{lNo});
+%     modelDG.transportModel = TransportOilWaterModelDG(G, rock, fluid, 'disc', disc);    
+% 
+%     state0 = assignDofFromState(modelDG.transportModel.disc, state0);
+%     [ws, statesDG{lNo}, rep] = simulateScheduleAD(state0, modelDG, schedule);
+% end
     
 %%
 
-[ws, statesFV, rep] = simulateScheduleAD(state0, modelFV, schedule);
+[wsFV, statesFV, rep] = simulateScheduleAD(state0, modelFV, schedule);
 
 %%
 
@@ -68,7 +69,7 @@ x = linspace(0,l,n);
 
 steps = round(linspace(1, numel(schedule.step.val)-5,5));
 % steps = [2,12,20]
-clr = lines(numel(states)+1);
+clr = lines(numel(statesDG)+1);
 clr = copper(numel(steps));
 [h, hDG] = deal([]);
 mrksz = [8, 8, 8];
@@ -80,7 +81,7 @@ for sNo = 1:numel(steps)
     hold on
     hFV = plot(x, statesFV{steps(sNo)}.s(:,1), '--', 'linew', 4, 'color', clr(sNo,:));
     for dNo = 1:numel(degree)
-        hDG(dNo) = plot(x, states{dNo}{steps(sNo)}.s(:,1), mrks{dNo}, 'markers', mrksz(dNo), 'linew', lw, 'color', clr(sNo, :), 'markerfacecolor', clr(sNo,:));
+        hDG(dNo) = plot(x, statesDG{dNo}{steps(sNo)}.s(:,1), mrks{dNo}, 'markers', mrksz(dNo), 'linew', lw, 'color', clr(sNo, :), 'markerfacecolor', clr(sNo,:));
     end
     if isempty(h)
 %         h = [hFV, hDG];
@@ -116,7 +117,7 @@ print([pth, '/', 'dgExample1D'], '-dpng', '-r300');
 %%
 
 figure;
-plotToolbar(G, state, 'plot1d', true);
+plotToolbar(G, statesDG{1}, 'plot1d', true);
 
 figure
-plotToolbar(G, state2, 'plot1d', true);
+plotToolbar(G, statesFV, 'plot1d', true);

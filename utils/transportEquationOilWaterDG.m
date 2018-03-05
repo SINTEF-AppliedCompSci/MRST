@@ -51,9 +51,6 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     % Express sW and sW0 in basis
     sW  = @(x,c) disc.evaluateSaturation(x, c, sWdof );
     sW0 = @(x,c) disc.evaluateSaturation(x, c, sWdof0);
-    
-%     sW  = @(x,c) getSatFromDof(x, c, sWdof , disc);
-%     sW0 = @(x,c) getSatFromDof(x, c, sWdof0, disc);
     sO  = @(x,c) 1-sW(x,c);
     
     [pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
@@ -63,8 +60,6 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     bW0 = fluid.bW(p0);
     
     [vO, bO, mobO, rhoO, pO, upcO, dpO, muO] = getPropsOil_DG(model, p, sO, T, gdz);
-    
-    [xc, cellNo_c,         WC] = cellBasisIntegrator(disc);
     
     % Accumulation term----------------------------------------------------
     
@@ -76,9 +71,9 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     end
     
     integrand = @(x,c,psi) (pvMult (c).*rock.poro(c).*bW (c).*sW (x,c) - ...
-                            pvMult0(c).*rock.poro(c).*bW0(c).*sW0(x,c)).*psi;
+                            pvMult0(c).*rock.poro(c).*bW0(c).*sW0(x,c)).*psi/dt;
                    
-    acc = disc.cellInt(integrand, (1:G.cells.num)')/dt;
+    acc = disc.cellInt(integrand, (1:G.cells.num)');
     
     % Flux term------------------------------------------------------------
     
@@ -99,8 +94,8 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     integrand = @(x,c,grad_psi) bW(c).*fW(x, c).*sum(vTc(c,:).*grad_psi,2) ...
                               + bO(c).*fW(x, c).*sum((Gwc(c,:) - Goc(c,:)).*grad_psi,2);
     
-    flux1 = -disc.cellIntDiv(integrand, (1:G.cells.num)');  
-   
+    flux1 = -disc.cellIntDiv(integrand, (1:G.cells.num)');
+    
     integrand = @(xc, xv, xg, c, cv, cg, f, psi) ...
         (bW(cg).*fW(xv, cv).*vT(f) ...
        + bO(cg).*fW(xg, cg).*mobO(xg,cg).*(Gw(f) - Go(f))).*psi;
@@ -109,6 +104,14 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
   
     % Water equation-------------------------------------------------------
     
+%     ix = disc.getDofIx(4:6, (1:G.cells.num)');
+%     if isa(sWdof, 'ADI')
+%         acc.val(ix) = 0;
+%         flux2.val(ix) = 0;
+%     else
+%         acc(ix) = 0;
+%         flux2(ix) = 0;
+%     end
     flux  = flux1 + flux2;
     water = acc   + flux;
     
@@ -134,18 +137,22 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
         prod = disc.cellInt(integrand, wc)./vol;
         
         ind = disc.getDofIx(1:nDof, wc);
-        
-%         ind = mcolon((wc-1)*nDof + 1, wc*nDof);
         water(ind) = water(ind) - prod;
 
         % Store well fluxes
-        wflux_W = bW(wc).*wflux(wc) ...
-              .*(fW([0,0], wc) .*(~isInj(wc)) ...
-               + compPerf(wc,1).*( isInj(wc)));
+        [x, w, nq, ii, jj, cellNo] = makeCellIntegrator(G, wc, disc.degree+1);
+        x = disc.transformCoords(x, cellNo);
+        WC = sparse(ii, jj, w);
+        
+        wflux_W = WC*(bW(cellNo).*wflux(cellNo) ...
+                     .*(fW(x, cellNo) .*(~isInj(cellNo)) ...
+                     + compPerf(cellNo,1).*( isInj(cellNo))));
+        wflux_W = wflux_W./G.cells.volumes(wc);
           
-        wflux_O = bO(wc).*wflux(wc) ...
-              .*((1-fW([0,0], wc)).*(~isInj(wc)) ...
-               + compPerf(wc,2) .*( isInj(wc)));
+        wflux_O = WC*(bO(cellNo).*wflux(cellNo) ...
+                     .*((1-fW(x, cellNo)).*(~isInj(cellNo)) ...
+                     + compPerf(cellNo,2) .*( isInj(cellNo))));
+        wflux_O = wflux_O./G.cells.volumes(wc);
 
         wflux_O = double(wflux_O);
         wflux_W = double(wflux_W);
@@ -166,8 +173,8 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     names = {'water'};
     types = {'cell' };
 
-    pv = reshape(repmat(op.pv', nDof, 1), [], 1);
     if ~model.useCNVConvergence
+        pv = reshape(repmat(op.pv', nDof, 1), [], 1);
         eqs{1} = eqs{1}.*(dt./pv);
     end
 

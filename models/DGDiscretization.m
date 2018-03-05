@@ -22,7 +22,7 @@ classdef DGDiscretization < WENODiscretization
             
 %             disc.basis = DGBasisFunctions(disc.G, disc.degree);
             
-            disc.basis   = dgBasis(disc.G.griddim, disc.degree, disc.basis);
+            disc.basis   = dgBasis(dim, disc.degree, disc.basis);
             
             disc.dofPos = reshape((1:disc.G.cells.num*disc.basis.nDof)', disc.basis.nDof, []);
             
@@ -59,6 +59,10 @@ classdef DGDiscretization < WENODiscretization
             end
             
             xhat = (x + translation).*scaling;
+            
+            xhat = xhat(:, 1:disc.dim);
+            scaling = scaling(:, 1:disc.dim);
+            translation = translation(:, 1:disc.dim);
                
         end
         
@@ -66,6 +70,7 @@ classdef DGDiscretization < WENODiscretization
         function v = trimValues(disc, v)
             
             tol = eps(mean(disc.G.cells.volumes));
+%             tol = 1e-7;
             ix = abs(v) < tol;
             if isa(v, 'ADI')
                 v.val(ix) = 0;
@@ -126,8 +131,7 @@ classdef DGDiscretization < WENODiscretization
             
         end
         
-        %-----------------------------------------------------------------%
-        function state = limiter(disc, state)
+        function [smin, smax] = getMinMaxSaturation(disc, state)
             
             G = disc.G;
             nDof = disc.basis.nDof;
@@ -151,8 +155,69 @@ classdef DGDiscretization < WENODiscretization
             smax = full(max(s, [], 2));
             smin = full(min(s, [], 2));
             
-            over  = smax > 1;
-            under = smin < 0;
+        end
+        
+        function plotCellSaturation(disc, state, cellNo)
+            
+            G = disc.G;
+            
+            faces = G.cells.faces(G.cells.facePos(cellNo):G.cells.facePos(cellNo+1)-1);
+            nodes = G.faces.nodes(mcolon(G.faces.nodePos(faces), G.faces.nodePos(faces+1)-1));
+            nodes = reshape(nodes, 2, [])';
+            
+            swap = G.faces.neighbors(faces,1) ~= cellNo;
+
+            nodes(swap,:) = nodes(swap, [2,1]); nodes = nodes(:,1);
+            
+            x = G.nodes.coords(nodes,:);
+            
+            x = disc.transformCoords(x, cellNo);
+            
+            
+            if disc.dim == 1
+                
+                n = 100;
+                xx = linspace(-1,1,n)';
+                xk = xx;
+                
+            elseif disc.dim == 2
+                
+                n = 10;
+                xx = linspace(-1, 1, n);
+                [xx, yy] = ndgrid(xx);
+                xx = [xx(:), yy(:)];
+                
+                [in, on] = inpolygon(xx(:,1), xx(:,2), x(:,1), x(:,2));
+                keep = in;
+                xk = xx(keep,:);
+                
+            elseif disc.dim == 3
+                
+            end
+                
+            s = disc.evaluateSaturation(xk, cellNo, state.sdof);
+            
+            if disc.dim > 1
+                s = scatteredInterpolant(xk, s);
+                s = reshape(s(xx(:,1), xx(:,2)), n,n);
+                surf(s);
+            else
+                plot(xx, s);
+            end
+            
+        end
+        
+        %-----------------------------------------------------------------%
+        function state = limiter(disc, state)
+            
+            G = disc.G;
+            nDof = disc.basis.nDof;
+
+            [smin, smax] = disc.getMinMaxSaturation(state);
+            
+            tol = 1e-2;
+            over  = smax > 1 + tol;
+            under = smin < 0 - tol;
             bad = over | under;
             
             sdof = state.sdof(:,1);
@@ -187,6 +252,10 @@ classdef DGDiscretization < WENODiscretization
                 
                 ix0 = disc.getDofIx(1, (1:G.cells.num)');
                 state.sdof(ix0,2) = 1 - state.sdof(ix0,1);
+                
+                [smin, smax] = disc.getMinMaxSaturation(state);
+                
+                s = disc.getCellSaturation(state);
                 
             end
             

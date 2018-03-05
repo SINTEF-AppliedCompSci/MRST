@@ -56,41 +56,6 @@ classdef TransportOilWaterModelDG < TransportOilWaterModel
                 [fn, index] = getVariableField@TransportOilWaterModel(model, name);
         end
         end
-        
-%         % --------------------------------------------------------------------%
-%         function [state, report] = updateState(model, state, problem, dx, drivingForces)
-%             % Generic update function for reservoir models containing wells.
-%             %
-%             % SEE ALSO:
-%             %   :meth:`ad_core.models.PhysicalModel.updateState`
-% 
-%             % Split variables into three categories: Regular/rest variables, saturation
-%             % variables (which sum to 1 after updates) and well variables (which live
-%             % in wellSol and are in general more messy to work with).
-%             [restVars, satVars, wellVars] = model.splitPrimaryVariables(problem.primaryVariables);
-% 
-%             % Update the wells
-%             if isfield(state, 'wellSol')
-%                 state.wellSol = model.FacilityModel.updateWellSol(state.wellSol, problem, dx, drivingForces, wellVars);
-%             end
-% 
-%             % Update saturations in one go
-%             state  = model.updateSaturations(state, dx, problem, satVars);
-% 
-%             if ~isempty(restVars)
-%                 % Handle pressure seperately
-%                 state = model.updateStateFromIncrement(state, dx, problem, 'pressure', model.dpMaxRel, model.dpMaxAbs);
-%                 state = model.capProperty(state, 'pressure', model.minimumPressure, model.maximumPressure);
-%                 restVars = model.stripVars(restVars, 'pressure');
-% 
-%                 % Update remaining variables (tracers, temperature etc)
-%                 for i = 1:numel(restVars)
-%                      state = model.updateStateFromIncrement(state, dx, problem, restVars{i});
-%                 end
-%             end
-% 
-%             report = [];
-%         end
 
         function vars = getSaturationVarNames(model)
             vars = {'sWdof', 'sOdof'};
@@ -173,7 +138,7 @@ classdef TransportOilWaterModelDG < TransportOilWaterModel
             state = model.disc.getCellSaturation(state);
             
             
-            if 1%~isempty(model.disc.limiter)
+            if 0
             % Ensure that values are within zero->one interval, and
             % re-normalize if any values were capped
             bad = any((state.s > 1) | (state.s < 0), 2);
@@ -201,8 +166,7 @@ classdef TransportOilWaterModelDG < TransportOilWaterModel
                 
             end
             
-            if model.disc.degree > 0 && 1
-
+            if model.disc.degree > 0 && 0
                 state = model.disc.limiter(state);
                 
 %             sWdof = model.disc.limiter(state.sdof(:,1));

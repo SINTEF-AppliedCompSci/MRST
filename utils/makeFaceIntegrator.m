@@ -2,11 +2,6 @@ function [x, w, nq, ii, jj, cellNo, faceNo] = makeFaceIntegrator(G, cells, degre
 
     opt = struct('exclude_boundary', true);
     opt = merge_options(opt, varargin{:});
-
-
-    
-    
-    
     
     faces = G.cells.faces(mcolon(G.cells.facePos(cells), G.cells.facePos(cells+1)-1));
     if opt.exclude_boundary
