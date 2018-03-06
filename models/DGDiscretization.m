@@ -34,9 +34,9 @@ classdef DGDiscretization < WENODiscretization
 
             state.degree = repmat(disc.degree, disc.G.cells.num, 1);
             
-            if ~isfield(state, 'dofPos')
+%             if ~isfield(state, 'dofPos')
                 state = disc.updateDisc(state);
-            end
+%             end
             
             state.nDof = disc.getnDof(state);
             sdof = zeros(sum(state.nDof), size(state.s,2));
@@ -59,6 +59,10 @@ classdef DGDiscretization < WENODiscretization
                 nd = disc.getnDof(state);
                 subt = cumsum([0; disc.basis.nDof - nd(1:end-1)]);
                 [ii, jj, v] = find(dp);
+                
+                if size(ii,1) == 1, ii = ii'; end
+                if size(jj,1) == 1, jj = jj'; end
+                if size(v ,1) == 1, v  =  v'; end
 
                 cnDof = cumsum(nd);
 
@@ -223,14 +227,24 @@ classdef DGDiscretization < WENODiscretization
             for dofNo = 1:nDofMax
                 
                 keepCells = nDof(cells) >= dofNo;
-                ix = disc.getDofIx(state, dofNo, cells(keepCells));
                 
-                [x, w, nq, ii, jj, cellNo] = makeCellIntegrator(G, cells(keepCells), max(disc.degree+1));
-                W = sparse(ii, jj, w);
-                [x, ~, ~] = disc.transformCoords(x, cellNo);
+                if any(keepCells)
                 
-                p = psi{dofNo}(x);
-                I(ix) = W*integrand(x, cellNo, p);
+                    ix = disc.getDofIx(state, dofNo, cells(keepCells));
+
+                    [x, w, nq, ii, jj, cellNo] = makeCellIntegrator(G, cells(keepCells), max(disc.degree+1));
+                    W = sparse(ii, jj, w);
+                    [x, ~, ~] = disc.transformCoords(x, cellNo);
+
+                    p = psi{dofNo}(x);
+                    I(ix) = W*integrand(x, cellNo, p);
+                    
+                elseif numel(cells) == disc.G.cells.num
+                    
+                    warning('No cells with %d dofs', dofNo);
+                    
+                end
+                
             end
             
             I = disc.trimValues(I);
@@ -253,15 +267,24 @@ classdef DGDiscretization < WENODiscretization
             for dofNo = 1:nDofMax
                 
                 keepCells = nDof(cells) >= dofNo;
-                ix = disc.getDofIx(state, dofNo, cells(keepCells));
                 
-                [x, w, nq, ii, jj, cellNo] = makeCellIntegrator(G, cells(keepCells), max(disc.degree+1));
-                W = sparse(ii, jj, w);
-                [x, ~, scaling] = disc.transformCoords(x, cellNo);
-                
-                gp = grad_psi{dofNo}(x).*scaling;
-                I(ix) = W*integrand(x, cellNo, gp);
-                
+                if any(keepCells)
+                    
+                    ix = disc.getDofIx(state, dofNo, cells(keepCells));
+
+                    [x, w, nq, ii, jj, cellNo] = makeCellIntegrator(G, cells(keepCells), max(disc.degree+1));
+                    W = sparse(ii, jj, w);
+                    [x, ~, scaling] = disc.transformCoords(x, cellNo);
+
+                    gp = grad_psi{dofNo}(x).*scaling;
+                    I(ix) = W*integrand(x, cellNo, gp);
+                    
+                elseif numel(cells) == disc.G.cells.num
+                    
+                    warning('No cells with %d dofs', dofNo);
+                    
+                end
+                    
             end
             
             I = disc.trimValues(I);
@@ -276,8 +299,8 @@ classdef DGDiscretization < WENODiscretization
             nDof    = state.nDof;
             nDofMax = disc.basis.nDof;
 
-            [x, w, nq, ii, jj, cellNo, faceNo] = makeFaceIntegrator(G, cells, max(disc.degree+1));
-            W = sparse(ii, jj, w);
+%             [x, w, nq, ii, jj, cellNo, faceNo] = makeFaceIntegrator(G, cells, max(disc.degree+1));
+%             W = sparse(ii, jj, w);
 
             upCells_v = G.faces.neighbors(:,2);
             intf      = find(disc.internalConn);
@@ -296,20 +319,29 @@ classdef DGDiscretization < WENODiscretization
             for dofNo = 1:nDofMax
                 
                 keepCells = nDof(cells) >= dofNo;
-                ix = disc.getDofIx(state, dofNo, cells(keepCells)');
                 
-                [x, w, nq, ii, jj, cellNo, faceNo] = makeFaceIntegrator(G, cells(keepCells), max(disc.degree+1));
-                W = sparse(ii, jj, w);
-                
-                upCells_vtmp = upCells_v(faceNo);
-                upCells_G = upCells_vtmp;
-                
-                [x_c, ~, ~] = disc.transformCoords(x, cellNo);
-                [x_v, ~, ~] = disc.transformCoords(x, upCells_vtmp);
-                [x_G, ~, ~] = disc.transformCoords(x, upCells_G);
-                
-                p = psi{dofNo}(x_c);
-                I(ix) = W*(integrand(x_c, x_v, x_G, cellNo, upCells_vtmp, upCells_G, faceNo, p));
+                if any(keepCells)
+                    
+                    ix = disc.getDofIx(state, dofNo, cells(keepCells)');
+
+                    [x, w, nq, ii, jj, cellNo, faceNo] = makeFaceIntegrator(G, cells(keepCells), max(disc.degree+1));
+                    W = sparse(ii, jj, w);
+
+                    upCells_vtmp = upCells_v(faceNo);
+                    upCells_G = upCells_vtmp;
+
+                    [x_c, ~, ~] = disc.transformCoords(x, cellNo);
+                    [x_v, ~, ~] = disc.transformCoords(x, upCells_vtmp);
+                    [x_G, ~, ~] = disc.transformCoords(x, upCells_G);
+
+                    p = psi{dofNo}(x_c);
+                    I(ix) = W*(integrand(x_c, x_v, x_G, cellNo, upCells_vtmp, upCells_G, faceNo, p));
+                    
+                elseif numel(cells) == disc.G.cells.num
+                    
+                    warning('No cells with %d dofs', dofNo);
+                    
+                end
                 
             end
             
