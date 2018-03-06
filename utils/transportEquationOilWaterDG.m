@@ -46,7 +46,10 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
 
     primaryVars = {'sWdof'};
     
-    nDof     = disc.basis.nDof;
+    nDofMax = disc.basis.nDof;
+%     nDof    = disc.getnDof();
+    disc = disc.updateDisc(state);
+    nDof = disc.nDof;
     
     % Express sW and sW0 in basis
     sW  = @(x,c) disc.evaluateSaturation(x, c, sWdof );
@@ -104,14 +107,6 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
   
     % Water equation-------------------------------------------------------
     
-%     ix = disc.getDofIx(4:6, (1:G.cells.num)');
-%     if isa(sWdof, 'ADI')
-%         acc.val(ix) = 0;
-%         flux2.val(ix) = 0;
-%     else
-%         acc(ix) = 0;
-%         flux2(ix) = 0;
-%     end
     flux  = flux1 + flux2;
     water = acc   + flux;
     
@@ -133,11 +128,11 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
             bW(c).*wflux(c).*(fW(x, c)     .*(~isInj(c)) ...
                             + compPerf(c,1).*( isInj(c))).*psi;
         
-        vol = reshape(repmat(G.cells.volumes(wc)', nDof, 1), [], 1);
-        prod = disc.cellInt(integrand, wc)./vol;
+        vol = reshape(repmat(G.cells.volumes(wc)', nDofMax, 1), [], 1);
+        prod = disc.cellInt(integrand, wc);
         
-        ind = disc.getDofIx(1:nDof, wc);
-        water(ind) = water(ind) - prod;
+        ix = disc.getDofIx([], wc);
+        water(ix) = water(ix) - prod(ix)./vol;
 
         % Store well fluxes
         [x, w, nq, ii, jj, cellNo] = makeCellIntegrator(G, wc, disc.degree+1);
@@ -174,7 +169,7 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     types = {'cell' };
 
     if ~model.useCNVConvergence
-        pv = reshape(repmat(op.pv', nDof, 1), [], 1);
+        pv = rldecode(op.pv, nDof, 1);
         eqs{1} = eqs{1}.*(dt./pv);
     end
 

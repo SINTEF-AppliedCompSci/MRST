@@ -112,9 +112,8 @@ classdef TransportOilWaterModelDG < TransportOilWaterModel
             % Fill component is whichever saturation is assumed to fill up the rest of
             % the pores. This is done by setting that increment equal to the
             % negation of all others so that sum(s) == 0 at end of update
-            nDof = model.disc.basis.nDof;
             solvedFor = ~strcmpi(saturations, fillsat);
-            ds = zeros(model.G.cells.num*nDof, numel(saturations));
+            ds = zeros(sum(model.disc.nDof), numel(saturations));
             
             tmp = 0;
             for i = 1:numel(saturations)

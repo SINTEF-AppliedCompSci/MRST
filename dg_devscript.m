@@ -1,8 +1,8 @@
-mrstModule add dg vem vemmech ad-props ad-core ad-blackoil blackoil-sequential gasinjection
+mrstModule add vem dg vemmech ad-props ad-core ad-blackoil blackoil-sequential gasinjection
 
 %%
 
-n = 30;
+n = 10;
 l = 1000;
 G = computeGeometry(cartGrid([n,1], [l,10]*meter));
 G = computeVEMGeometry(G);
@@ -41,9 +41,12 @@ degree = [1];
 [wsDG, statesDG] = deal(cell(numel(degree),1));
 for dNo = 1:numel(degree)
     disc    = DGDiscretization(modelDG.transportModel, 1, 'degree', degree(dNo), 'basis', 'legendre');%, 'limiter', 'none');
+    
+%     disc.dofPos = disc.updateDofPos();
     modelDG.transportModel = TransportOilWaterModelDG(G, rock, fluid, 'disc', disc);    
 
-    state0 = assignDofFromState(modelDG.transportModel.disc, state0);
+    state0 = disc.assignDofFromState(state0);
+%     state0.degree = repmat(disc.degree, G.cells.num, 1);
     [wsDG{dNo}, statesDG{dNo}, rep] = simulateScheduleAD(state0, modelDG, schedule);
 end
 
