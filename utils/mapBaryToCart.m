@@ -10,7 +10,7 @@ function [b2c, vol] = mapBaryToCart(G, cells)
     
     ind = rldecode(cells, ncf(cells), 1);
     
-    xc = rldecode(G.cells.centroids, accumarray(ind, nfn(faces)), 1);
+%     xc = rldecode(G.cells.centroids, accumarray(ind, nfn(faces)), 1);
     
     
     

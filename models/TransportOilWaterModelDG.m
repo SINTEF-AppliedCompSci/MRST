@@ -113,7 +113,8 @@ classdef TransportOilWaterModelDG < TransportOilWaterModel
             % the pores. This is done by setting that increment equal to the
             % negation of all others so that sum(s) == 0 at end of update
             solvedFor = ~strcmpi(saturations, fillsat);
-            ds = zeros(sum(model.disc.nDof), numel(saturations));
+%             ds = zeros(sum(model.disc.nDof), numel(saturations));
+            ds = zeros(sum(state.nDof), numel(saturations));
             
             tmp = 0;
             for i = 1:numel(saturations)
@@ -165,8 +166,10 @@ classdef TransportOilWaterModelDG < TransportOilWaterModel
                 
             end
             
-            if max(model.disc.degree) > 0 && 0
+            if max(model.disc.degree) > 0 && 1
+                
                 state = model.disc.limiter(state);
+                state = model.disc.updateDisc(state);
                 
 %             sWdof = model.disc.limiter(state.sdof(:,1));
 %             sOdof = -sWdof;
@@ -175,7 +178,7 @@ classdef TransportOilWaterModelDG < TransportOilWaterModel
 % 
 %             state.sdof = [sWdof, sOdof];
 
-                state = model.disc.getCellSaturation(state);
+%                 state = model.disc.getCellSaturation(state);
 
             end
             

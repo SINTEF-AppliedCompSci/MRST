@@ -2,7 +2,7 @@ mrstModule add vem dg vemmech ad-props ad-core ad-blackoil blackoil-sequential g
 
 %%
 
-n = 10;
+n = 50;
 l = 1000;
 G = computeGeometry(cartGrid([n,1], [l,10]*meter));
 G = computeVEMGeometry(G);

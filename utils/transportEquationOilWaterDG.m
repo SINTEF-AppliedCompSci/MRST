@@ -19,6 +19,21 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     disc  = model.disc;
         
     assert(~(opt.solveForWater && opt.solveForOil));
+    
+    
+    if opt.iteration == 1
+        
+        state.degree = repmat(disc.degree, G.cells.num, 1);
+        state        = disc.mapDofs(state, state0);
+        
+%         state0_tmp = state0;
+%         state0.degree = repmat(disc.degree, G.cells.num, 1);
+%         state0        = disc.mapDofs(state0, state0_tmp);
+        
+        
+    end
+    state = disc.updateDisc(state);
+    
 
     [p , sWdof , wellSol] = model.getProps(state , 'pressure', 'water', 'wellsol');
     [p0, sWdof0         ] = model.getProps(state0, 'pressure', 'water'           );
@@ -46,14 +61,14 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
 
     primaryVars = {'sWdof'};
     
-    nDofMax = disc.basis.nDof;
 %     nDof    = disc.getnDof();
-    disc = disc.updateDisc(state);
-    nDof = disc.nDof;
+
+%     nDof = disc.nDof;
+    nDof = state.nDof;
     
     % Express sW and sW0 in basis
-    sW  = @(x,c) disc.evaluateSaturation(x, c, sWdof );
-    sW0 = @(x,c) disc.evaluateSaturation(x, c, sWdof0);
+    sW  = @(x,c) disc.evaluateSaturation(x, c, sWdof , state );
+    sW0 = @(x,c) disc.evaluateSaturation(x, c, sWdof0, state0);
     sO  = @(x,c) 1-sW(x,c);
     
     [pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
@@ -76,7 +91,7 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     integrand = @(x,c,psi) (pvMult (c).*rock.poro(c).*bW (c).*sW (x,c) - ...
                             pvMult0(c).*rock.poro(c).*bW0(c).*sW0(x,c)).*psi/dt;
                    
-    acc = disc.cellInt(integrand, (1:G.cells.num)');
+    acc = disc.cellInt(integrand, (1:G.cells.num)', state);
     
     % Flux term------------------------------------------------------------
     
@@ -97,13 +112,13 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     integrand = @(x,c,grad_psi) bW(c).*fW(x, c).*sum(vTc(c,:).*grad_psi,2) ...
                               + bO(c).*fW(x, c).*sum((Gwc(c,:) - Goc(c,:)).*grad_psi,2);
     
-    flux1 = -disc.cellIntDiv(integrand, (1:G.cells.num)');
+    flux1 = -disc.cellIntDiv(integrand, (1:G.cells.num)', state);
     
     integrand = @(xc, xv, xg, c, cv, cg, f, psi) ...
         (bW(cg).*fW(xv, cv).*vT(f) ...
        + bO(cg).*fW(xg, cg).*mobO(xg,cg).*(Gw(f) - Go(f))).*psi;
 
-    flux2 = disc.faceIntDiv(integrand, (1:G.cells.num)', upcW);
+    flux2 = disc.faceIntDiv(integrand, (1:G.cells.num)', upcW, state);
   
     % Water equation-------------------------------------------------------
     
@@ -128,10 +143,13 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
             bW(c).*wflux(c).*(fW(x, c)     .*(~isInj(c)) ...
                             + compPerf(c,1).*( isInj(c))).*psi;
         
-        vol = reshape(repmat(G.cells.volumes(wc)', nDofMax, 1), [], 1);
-        prod = disc.cellInt(integrand, wc);
+        prod = disc.cellInt(integrand, wc, state);
         
-        ix = disc.getDofIx([], wc);
+%         vol = reshape(repmat(G.cells.volumes(wc)', nDofMax, 1), [], 1);
+        
+        vol = rldecode(G.cells.volumes(wc), nDof(wc), 1);
+        
+        ix = disc.getDofIx(state, [], wc);
         water(ix) = water(ix) - prod(ix)./vol;
 
         % Store well fluxes
