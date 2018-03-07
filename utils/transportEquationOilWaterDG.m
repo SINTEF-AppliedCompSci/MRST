@@ -153,7 +153,7 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
         water(ix) = water(ix) - prod(ix)./vol;
 
         % Store well fluxes
-        [x, w, nq, ii, jj, cellNo] = makeCellIntegrator(G, wc, disc.degree+1);
+        [x, w, nq, ii, jj, cellNo] = makeCellIntegrator(G, wc, disc.degree+1, 'volume');
         x = disc.transformCoords(x, cellNo);
         WC = sparse(ii, jj, w);
         

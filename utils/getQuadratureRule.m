@@ -90,7 +90,7 @@ function [x, w, nq] = getQuadratureRule(degree, dim)
             
         case 3
             
-            if degree == 1
+            if degree <= 1
                 
                 w = 1;
                 

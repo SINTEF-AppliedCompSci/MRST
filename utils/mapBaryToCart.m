@@ -1,4 +1,4 @@
-function [b2c, vol, nct] = mapBaryToCart(G, cells)
+function [b2c, nct, vol] = mapBaryToCart(G, cells)
 
     faces = G.cells.faces(mcolon(G.cells.facePos(cells), G.cells.facePos(cells+1)-1));
     if G.griddim == 2
@@ -31,7 +31,7 @@ function [b2c, vol, nct] = mapBaryToCart(G, cells)
         
     else
         
-        xf = [];
+        xf  = [];
         ixf = [];
         
     end
