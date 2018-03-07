@@ -4,6 +4,11 @@ mrstModule add spe10
 
 [state0, model, schedule]  = setupSPE10_AD('layers', 10);
 G = model.G;
+G = computeVEMGeometry(G);
+G = computeCellDimensions(G);
+
+%%
+
 fluid = model.fluid;
 rock = model.rock;
 
@@ -16,4 +21,3 @@ modelDG.transportModel.disc = disc;
 
 state0 = disc.assignDofFromState(state0);
 [wsDG, statesDG, rep] = simulateScheduleAD(state0, modelDG, schedule);
-

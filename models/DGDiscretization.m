@@ -1,6 +1,8 @@
-classdef DGDiscretization < WENODiscretization
+classdef DGDiscretization < HyperbolicDiscretization% < WENODiscretization
     
     properties
+%         G
+        dim
         degree
         basis
 %         dofPos
@@ -15,7 +17,11 @@ classdef DGDiscretization < WENODiscretization
         %-----------------------------------------------------------------%
         function disc = DGDiscretization(model, dim, varargin)
             
-            disc = disc@WENODiscretization(model, dim, 'interpolateReference', false);
+%             disc = disc@WENODiscretization(model, dim, 'interpolateReference', false);
+            disc = disc@HyperbolicDiscretization(model);
+            
+%             disc.G = model.G;
+            disc.dim = dim;
             
             disc.degree = 1;
             disc.basis  = 'legendre';
@@ -435,7 +441,7 @@ classdef DGDiscretization < WENODiscretization
 
             [smin, smax] = disc.getMinMaxSaturation(state);
             
-            tol = 0;
+            tol = 1e-1;
             over  = smax > 1 + tol;
             under = smin < 0 - tol;
             bad = over | under;
