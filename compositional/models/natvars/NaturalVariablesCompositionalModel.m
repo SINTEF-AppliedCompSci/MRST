@@ -332,8 +332,14 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
         function state = updateSecondaryProperties(model, state)
             sO = state.s(:, 1 + model.water);
             sG = state.s(:, 2 + model.water);
-            sO = sO./(sO + sG);
-            sG = sG./(sO + sG);
+            sT = sO + sG;
+            sO = sO./sT;
+            sG = sG./sT;
+            
+            % Only water
+            missingPhases = sT == 0;
+            sO(missingPhases) = state.L(missingPhases);
+            sG(missingPhases) = 1-state.L(missingPhases);
             x = state.x;
             y = state.y;
             z = state.components;
