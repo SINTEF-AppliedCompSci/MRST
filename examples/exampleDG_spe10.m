@@ -1,8 +1,8 @@
-mrstModule add spe10
+mrstModule add spe10 vem vemmech dg ad-core ad-props ad-blackoil blackoil-sequential gasinjection
 
 %%
 
-[state0, model, schedule]  = setupSPE10_AD('layers', 40);
+[state0, model, schedule]  = setupSPE10_AD('layers', 10);
 G = model.G;
 rock = model.rock;
 
@@ -11,10 +11,11 @@ G = cartGrid(G.cartDims(1:2), xmax(1:2));
 G = computeVEMGeometry(G);
 G = computeCellDimensions(G);
 rock.perm = model.rock.perm(:, 1:2);
+fluid = model.fluid;
 fluid = initSimpleADIFluid('phases', 'WO'                   , ...
                            'rho'   , [1000, 800]*kilogram/meter^3, ...
-                           'mu'    , [0.3, 1]*centi*poise     , ...
-                           'n'     , [2, 2]                 );
+                           'mu'    , [0.5, 0.5]*centi*poise     , ...
+                           'n'     , [1, 1]                 );
 
 model = TwoPhaseOilWaterModel(G, rock, fluid);
 
@@ -61,6 +62,7 @@ for mNo = 1:numel(states)
     colormap jet
     axis equal off
     text(290, 20, titles{mNo}, 'fontsize', 25, 'color', 'w'); 
+    caxis([0,1])
 end
 
 % set(fig, 'Units', 'pixels');
@@ -77,7 +79,7 @@ for sNo = 1:numel(schedule.step.val)
     
 %     dx = 10;
 %     dy = 10;
-    rect = [0, 0, pos(3:4)];
+    rect = [0, 0, fig.Position(3:4)];
 %     rect = pos;
     M(sNo) = getframe(fig, rect);
     

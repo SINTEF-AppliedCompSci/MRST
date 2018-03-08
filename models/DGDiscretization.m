@@ -141,6 +141,9 @@ classdef DGDiscretization < HyperbolicDiscretization% < WENODiscretization
             if ~includezero
                 ix(ix == 0) = [];
             end
+%             else
+%                 ix(ix == 0) = 1;
+%             end
               
         end
         
@@ -185,11 +188,26 @@ classdef DGDiscretization < HyperbolicDiscretization% < WENODiscretization
             nDofMax = disc.basis.nDof;
             
             ix = disc.getDofIx(state, 1, cells);
-            s = double2ADI(zeros(numel(cells), 1), dof(ix));
+%             s = double2ADI(zeros(numel(cells), 1), dof(ix));
+            s = dof(ix).*0;
             for dofNo = 1:nDofMax
                 keep = nDof(cells) >= dofNo;
                 ix = disc.getDofIx(state, dofNo, cells(keep));
+                
+%                 dof_tmp = dof(ix);
+%                 p = psi{dofNo}(x(keep,:));
+%                 s_tmp = dof_tmp.*p;
+%                 
+%                 if nnz(keep) == size(double(s))
+%                     s = s + s_tmp;
+%                 else
+%                     s(keep) = s(keep) + s_tmp;
+%                 end                
+                
                 s(keep) = s(keep) + dof(ix).*psi{dofNo}(x(keep,:));
+                
+%                 ix = disc.getDofIx(state, dofNo, cells);
+%                 s = s + dof(ix).*psi{dofNo}(x).*keep;
             end
             
         end
@@ -218,6 +236,7 @@ classdef DGDiscretization < HyperbolicDiscretization% < WENODiscretization
         
             G    = disc.G;
             psi  = disc.basis.psi;
+            grad_psi = disc.basis.grad_psi;
             nDof = state.nDof;
             nDofMax = disc.basis.nDof;
             
@@ -228,7 +247,7 @@ classdef DGDiscretization < HyperbolicDiscretization% < WENODiscretization
 %             I = integrand(zeros(numel(cells)*nDofMax,disc.dim), ones(numel(cells)*nDofMax, 1), 1);
             
             I = double2ADI(zeros(sum(nDof),1), ...
-                           integrand(zeros(sum(nDof),disc.dim), ones(sum(nDof), 1), 1));
+                           integrand(zeros(sum(nDof),disc.dim), ones(sum(nDof), 1), 1, [1,1]));
             
             for dofNo = 1:nDofMax
                 
@@ -240,10 +259,15 @@ classdef DGDiscretization < HyperbolicDiscretization% < WENODiscretization
 
                     [x, w, nq, ii, jj, cellNo] = makeCellIntegrator(G, cells(keepCells), max(disc.degree+1), 'volume');
                     W = sparse(ii, jj, w);
-                    [x, ~, ~] = disc.transformCoords(x, cellNo);
+                    [x, ~, scaling] = disc.transformCoords(x, cellNo);
 
-                    p = psi{dofNo}(x);
-                    I(ix) = W*integrand(x, cellNo, p);
+                    p  = psi{dofNo}(x);
+                    gp = grad_psi{dofNo}(x).*scaling;
+                    
+%                     s  = disc.evaluateSaturation(x, cells(keepCells) , sdof , state );
+%                     s0 = disc.evaluateSaturation(x, cells(keepCells)), sdof0, state0);
+                    
+                    I(ix) = W*integrand(x, cellNo, p, gp);
                     
                 elseif numel(cells) == disc.G.cells.num
                     
@@ -360,7 +384,6 @@ classdef DGDiscretization < HyperbolicDiscretization% < WENODiscretization
         function [smin, smax] = getMinMaxSaturation(disc, state)
             
             G = disc.G;
-            nDof = disc.basis.nDof;
             
             faces = G.cells.faces(:,1);
             nodes = G.faces.nodes(mcolon(G.faces.nodePos(faces), G.faces.nodePos(faces+1)-1));
@@ -373,7 +396,7 @@ classdef DGDiscretization < HyperbolicDiscretization% < WENODiscretization
             cells = rldecode((1:G.cells.num)', ncn, 1);
             x = disc.transformCoords(x, cells);
             
-            s = disc.evaluateSaturation(x, cells, state.sdof, state);
+            s = disc.evaluateSaturation(x, cells, state.sdof(:,1), state);
             
             jj = rldecode((1:G.cells.num)', ncn, 1);
             s = sparse(jj, (1:numel(s))', s);
@@ -384,53 +407,32 @@ classdef DGDiscretization < HyperbolicDiscretization% < WENODiscretization
         end
         
         %-----------------------------------------------------------------%
-        function plotCellSaturation(disc, state, cellNo)
+        function jump = getInterfaceJumps(disc, state)
             
             G = disc.G;
             
-            faces = G.cells.faces(G.cells.facePos(cellNo):G.cells.facePos(cellNo+1)-1);
-            nodes = G.faces.nodes(mcolon(G.faces.nodePos(faces), G.faces.nodePos(faces+1)-1));
-            nodes = reshape(nodes, 2, [])';
+            faces = G.cells.faces(:,1);
+            isbf  = any(G.faces.neighbors(faces,:) == 0,2);
+            faces = faces(~isbf);
             
-            swap = G.faces.neighbors(faces,1) ~= cellNo;
-
-            nodes(swap,:) = nodes(swap, [2,1]); nodes = nodes(:,1);
+            s     = @(x, c) disc.evaluateSaturation(x, c, state.sdof(:,1), state);
             
-            x = G.nodes.coords(nodes,:);
+            cells = rldecode((1:G.cells.num)', diff(G.cells.facePos), 1);
+            nbf   = accumarray(cells, isbf);
+            cells = rldecode((1:G.cells.num)', diff(G.cells.facePos) - nbf, 1);
             
-            x = disc.transformCoords(x, cellNo);
+            xf = G.faces.centroids(faces,:);
+            
+            c_l  = G.faces.neighbors(faces,1);
+            xf_l = disc.transformCoords(xf, c_l);
+            c_r  = G.faces.neighbors(faces,2);
+            xf_r = disc.transformCoords(xf, c_r);
             
             
-            if disc.dim == 1
-                
-                n = 100;
-                xx = linspace(-1,1,n)';
-                xk = xx;
-                
-            elseif disc.dim == 2
-                
-                n = 10;
-                xx = linspace(-1, 1, n);
-                [xx, yy] = ndgrid(xx);
-                xx = [xx(:), yy(:)];
-                
-                [in, on] = inpolygon(xx(:,1), xx(:,2), x(:,1), x(:,2));
-                keep = in;
-                xk = xx(keep,:);
-                
-            elseif disc.dim == 3
-                
-            end
-                
-            s = disc.evaluateSaturation(xk, cellNo, state.sdof);
+            jump = abs(s(xf_l, c_l) - s(xf_r, c_r));
             
-            if disc.dim > 1
-                s = scatteredInterpolant(xk, s);
-                s = reshape(s(xx(:,1), xx(:,2)), n,n);
-                surf(s);
-            else
-                plot(xx, s);
-            end
+            jump = accumarray(cells, jump > 0.2) > 0;
+            
             
         end
         
@@ -442,16 +444,20 @@ classdef DGDiscretization < HyperbolicDiscretization% < WENODiscretization
 
             [smin, smax] = disc.getMinMaxSaturation(state);
             
-%             disc.getInterfaceJums(state)
+            jump = disc.getInterfaceJumps(state);
             
-            tol = 0;
+            tol = 1e-4;
             over  = smax > 1 + tol;
             under = smin < 0 - tol;
-            bad = over | under;
             
-            sdof = state.sdof(:,1);
+            outside = over | under;
+            bad     = outside | jump;
+%             bad = jump;
+            
+            state.outside = outside;
+            state.jump = jump;
+
             sdof = state.sdof;
-            sdof0 = sdof;
             
             if any(bad)
                 
@@ -504,6 +510,57 @@ classdef DGDiscretization < HyperbolicDiscretization% < WENODiscretization
 %                 
 %                 s = disc.getCellSaturation(state);
                 
+            end
+            
+        end
+        
+        %-----------------------------------------------------------------%
+        function plotCellSaturation(disc, state, cellNo)
+            
+            G = disc.G;
+            
+            faces = G.cells.faces(G.cells.facePos(cellNo):G.cells.facePos(cellNo+1)-1);
+            nodes = G.faces.nodes(mcolon(G.faces.nodePos(faces), G.faces.nodePos(faces+1)-1));
+            nodes = reshape(nodes, 2, [])';
+            
+            swap = G.faces.neighbors(faces,1) ~= cellNo;
+
+            nodes(swap,:) = nodes(swap, [2,1]); nodes = nodes(:,1);
+            
+            x = G.nodes.coords(nodes,:);
+            
+            x = disc.transformCoords(x, cellNo);
+            
+            
+            if disc.dim == 1
+                
+                n = 100;
+                xx = linspace(-1,1,n)';
+                xk = xx;
+                
+            elseif disc.dim == 2
+                
+                n = 10;
+                xx = linspace(-1, 1, n);
+                [xx, yy] = ndgrid(xx);
+                xx = [xx(:), yy(:)];
+                
+                [in, on] = inpolygon(xx(:,1), xx(:,2), x(:,1), x(:,2));
+                keep = in;
+                xk = xx(keep,:);
+                
+            elseif disc.dim == 3
+                
+            end
+                
+            s = disc.evaluateSaturation(xk, cellNo, state.sdof);
+            
+            if disc.dim > 1
+                s = scatteredInterpolant(xk, s);
+                s = reshape(s(xx(:,1), xx(:,2)), n,n);
+                surf(s);
+            else
+                plot(xx, s);
             end
             
         end

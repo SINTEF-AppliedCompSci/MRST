@@ -88,10 +88,10 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
         pvMult0 = repmat(pvMult0, G.cells.num,1);
     end
     
-    integrand = @(x,c,psi) (pvMult (c).*rock.poro(c).*bW (c).*sW (x,c) - ...
+    acc = @(x,c,psi) (pvMult (c).*rock.poro(c).*bW (c).*sW (x,c) - ...
                             pvMult0(c).*rock.poro(c).*bW0(c).*sW0(x,c)).*psi/dt;
                    
-    acc = disc.cellInt(integrand, (1:G.cells.num)', state);
+%     acc = disc.cellInt(acc, (1:G.cells.num)', state);
     
     % Flux term------------------------------------------------------------
     
@@ -109,21 +109,28 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
 
     fW = @(x,c) mobW(x,c)./(mobW(x,c) + mobO(x,c));
     
-    integrand = @(x,c,grad_psi) bW(c).*fW(x, c).*sum(vTc(c,:).*grad_psi,2) ...
+    flux1 = @(x,c,grad_psi) bW(c).*fW(x, c).*sum(vTc(c,:).*grad_psi,2) ...
                               + bO(c).*fW(x, c).*sum((Gwc(c,:) - Goc(c,:)).*grad_psi,2);
+                          
+    cellIntegral = disc.cellInt(@(x,c,psi,grad_psi) acc(x,c,psi) - flux1(x,c,grad_psi), (1:G.cells.num)', state);
     
-    flux1 = -disc.cellIntDiv(integrand, (1:G.cells.num)', state);
+%     flux1 = -disc.cellIntDiv(flux1, (1:G.cells.num)', state);
     
-    integrand = @(xc, xv, xg, c, cv, cg, f, psi) ...
+    
+    
+    flux2 = @(xc, xv, xg, c, cv, cg, f, psi) ...
         (bW(cg).*fW(xv, cv).*vT(f) ...
        + bO(cg).*fW(xg, cg).*mobO(xg,cg).*(Gw(f) - Go(f))).*psi;
 
-    flux2 = disc.faceIntDiv(integrand, (1:G.cells.num)', upcW, state);
+%     flux2 = disc.faceIntDiv(integrand, (1:G.cells.num)', upcW, state);
+    faceIntegral = disc.faceIntDiv(flux2, (1:G.cells.num)', upcW, state);
   
     % Water equation-------------------------------------------------------
     
-    flux  = flux1 + flux2;
-    water = acc   + flux;
+%     flux  = flux1 + flux2;
+%     water = acc   + flux;
+    water = cellIntegral + faceIntegral;
+     
     
     % Well contributions---------------------------------------------------
     
@@ -139,7 +146,7 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
         compPerf = zeros(G.cells.num, 2);
         compPerf(wc,:) = compWell(perf2well,:);
         
-        integrand = @(x, c, psi) ...
+        integrand = @(x, c, psi, grad_psi) ...
             bW(c).*wflux(c).*(fW(x, c)     .*(~isInj(c)) ...
                             + compPerf(c,1).*( isInj(c))).*psi;
         
@@ -178,7 +185,7 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
 
     end
     
-    state.cfl = dt.*sum(vTc./G.cells.dx,2);
+    state.cfl = dt.*sum(abs(vTc)./G.cells.dx,2);
     
     % Make Linearized problem----------------------------------------------
 

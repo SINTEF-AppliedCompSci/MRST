@@ -41,6 +41,15 @@ function basis = dgBasis(dim, degree, type)
 
     end
     
+%     for dofNo = 1:nDof
+%         p = psi{dofNo};
+%         q = @(x) 0;
+%         for kNo = 1:size(p.k)
+%             q = @(x) q(x) + p.w(kNo).*prod(x.^p.k(kNo, :),2);
+%         end
+%         psi{dofNo} = q;
+%     end
+    
     basis = struct('psi'         , {psi}     , ...
                    'grad_psi'    , {grad_psi}, ...
                    'k'           , k         , ...

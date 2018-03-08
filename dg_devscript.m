@@ -12,7 +12,7 @@ rock = makeRock(G, 100*milli*darcy, 1);
 fluid = initSimpleADIFluid('phases', 'WO'                   , ...
                            'rho'   , [1, 1]*kilogram/meter^3, ...
                            'mu'    , [1, 1]*centi*poise     , ...
-                           'n'     , [3, 2]                 );
+                           'n'     , [1,1]                 );
 
 modelfi = TwoPhaseOilWaterModel(G, rock, fluid);
 modelFV = getSequentialModelFromFI(modelfi);
@@ -27,7 +27,7 @@ W = addWell(W, G, rock, 1          , 'type', 'rate', 'val', rate    , 'comp_i', 
 % W = addWell(W, G, rock, 1          , 'type', 'bhp', 'val', 2000*barsa, 'comp_i', [1,0]);
 W = addWell(W, G, rock, G.cells.num, 'type', 'bhp' , 'val', 50*barsa, 'comp_i', [1,0]);
 
-dt    = 30*day;
+dt    = 5*day;
 dtvec = rampupTimesteps(time, dt, 0);
 
 schedule = simpleSchedule(dtvec, 'W', W);
@@ -37,7 +37,7 @@ state0 = initResSol(G, 100*barsa, [sW,1-sW]);
 
 %%
 
-degree = [2];
+degree = [1,2];
 [wsDG, statesDG] = deal(cell(numel(degree),1));
 for dNo = 1:numel(degree)
     disc    = DGDiscretization(modelDG.transportModel, 1, 'degree', degree(dNo), 'basis', 'legendre');%, 'limiter', 'none');
@@ -120,7 +120,7 @@ print([pth, '/', 'dgExample1D'], '-dpng', '-r300');
 %%
 
 figure;
-plotToolbar(G, statesDG{1}, 'plot1d', true);
+plotToolbar(G, statesDG{2}, 'plot1d', true);
 
 figure
 plotToolbar(G, statesFV, 'plot1d', true);
