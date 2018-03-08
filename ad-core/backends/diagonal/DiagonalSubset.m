@@ -85,6 +85,7 @@ classdef DiagonalSubset < DiagonalJacobian
                 J = bsxfun(@plus, repmat(jmap, 1, m), (0:m-1)*D.dim(1));
             end
             V = D.diagonal;
+            V(J == 0) = 0;
         end
         
         function u = repmat(u, varargin)
