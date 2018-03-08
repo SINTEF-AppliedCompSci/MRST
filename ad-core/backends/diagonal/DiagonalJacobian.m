@@ -69,6 +69,7 @@ classdef DiagonalJacobian
             end
             I = repmat(reshape(1:numel(subs), [], 1), m, 1);
             V = D.diagonal;
+            V(subs == 0, :) = 0;
             if nargin > 1
                 I = I + ioffset;
                 if nargin > 2
@@ -94,7 +95,7 @@ classdef DiagonalJacobian
         function s = sparse(D)
             [I, J, V, n, m] = D.getSparseArguments();
             % s = accumarray([I(:), J(:)], V(:), [n, m], [], [], true);
-            s = sparse(I, J, V, n, m);
+             s = sparse(I, J, V, n, m);
         end
         
         function s = double(D)
