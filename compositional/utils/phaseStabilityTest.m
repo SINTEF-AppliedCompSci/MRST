@@ -27,6 +27,14 @@ function [stable, x, y] = phaseStabilityTest(eos, z, p, T, x, y, varargin)
 %
 %  'tol_trivial' - Tolerance for the trivial test
 %
+%  'solve_both'  - Perform a stability test for a second liquid-like phase
+%                  for cells already determined to be unstable by the
+%                  second vapor-like phase. This has slightly higher
+%                  computational cost since the stability must be checked
+%                  twice, but the phase fraction estimates are more
+%                  accurate. Enabled by default if x, y are requested as
+%                  outputs.
+%
 % RETURNS:
 %   stable - Indicator. If the entry for cell i is true, then the mixture
 %            is stable (single-phase) for the p, T regime in that cell.
@@ -56,7 +64,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-    opt = struct('tol_equil', 1e-10, 'tol_trivial', 1e-5);
+    opt = struct('tol_equil', 1e-10, 'tol_trivial', 1e-5, 'solve_both', nargout > 1);
     assert(all(p > 0 & isfinite(p)), 'Positive, finite pressures required for phase stability test.');
     if numel(varargin)
         opt = merge_options(opt, varargin{:});
@@ -73,7 +81,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     [y, S_V, isTrivialV] = checkStability(eos, z, y, p, T, true, active, opt);
     V_stable = S_V <= 1 + S_tol | isTrivialV;
     
-    [x, S_L, isTrivialL] = checkStability(eos, z, x, p, T, false, V_stable, opt);
+    if ~opt.solve_both
+        active = V_stable;
+    end
+    [x, S_L, isTrivialL] = checkStability(eos, z, x, p, T, false, active, opt);
     L_stable = S_L <= 1 + S_tol | isTrivialL;
 
     stable = (L_stable & V_stable);
