@@ -28,10 +28,10 @@ classdef ReducedLinearizedSystem < LinearizedProblem
                    A = A(:, p.reorder);
                end
                start = 1:p.keepNum;
+               if isempty(A)
+                   return
+               end
                if 1
-                   if isempty(A)
-                       return
-                   end
                    [ix, jx, vx] = find(A);
                    if any(~isfinite(vx))
                        warning('Non-finite values in matrix before Schur-complement reduction.');
@@ -68,7 +68,6 @@ classdef ReducedLinearizedSystem < LinearizedProblem
 
                    p.f = b(start);
                    p.h = b(stop);
-
                end
                [L, U] = lu(p.E);
                p.A = p.B - p.C*(U\(L\p.D));
