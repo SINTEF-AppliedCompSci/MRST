@@ -149,7 +149,7 @@ if model.water
     mobW   = krW./muW;
     if isfield(fluid, 'pcOW')
         pcOW  = fluid.pcOW(sW);
-        pW = p + pcOW;
+        pW = p - pcOW;
     else
         pW = p;
     end

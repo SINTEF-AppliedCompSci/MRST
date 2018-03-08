@@ -19,14 +19,13 @@ classdef PressureOverallCompositionModel < OverallCompositionCompositionalModel
             [problem, state] = equationsCompositional(state0, state, model, dt, ...
                         drivingForces, 'pressure', true, varargin{:});
         end
-        
+
         function [state, report] = updateState(model, state, problem, dx, drivingForces)
             [state, report] = updateState@OverallCompositionCompositionalModel(model, state, problem, dx, drivingForces);
         end
-        
+
         function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces) %#ok
             [state, report] = updateAfterConvergence@OverallCompositionCompositionalModel(model, state0, state, dt, drivingForces);
         end
-
     end
 end

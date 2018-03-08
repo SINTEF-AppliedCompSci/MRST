@@ -187,17 +187,25 @@ mobG   = krG./muG;
 % splitting starts here
 Go = rhoOf.*gdz;
 Gg = rhoGf.*gdz;
+if isfield(fluid, 'pcOG')
+    Gg = Gg + s.Grad(fluid.pcOG(sG));
+end
 
 vT = sum(state.flux(model.operators.internalConn, :), 2);
 if model.water
-    bW = model.fluid.bW(p);
-    rhoW = bW.*model.fluid.rhoWS;
-    rhoW0 = model.fluid.bW(p0).*model.fluid.rhoWS;
+    bW = fluid.bW(p);
+    rhoW = bW.*fluid.rhoWS;
+    rhoW0 = fluid.bW(p0).*fluid.rhoWS;
     
     rhoWf  = s.faceAvg(rhoW);
-    muW = model.fluid.muW(p);
+    muW = fluid.muW(p);
     mobW   = krW./muW;
     Gw = rhoWf.*gdz;
+    
+    if isfield(fluid, 'pcOW')
+        pcOW  = fluid.pcOW(sW);
+        Gw = Gw - s.Grad(pcOW);
+    end
 
     gg = {Gw, Go, Gg};
     mg = {mobW, mobO, mobG};

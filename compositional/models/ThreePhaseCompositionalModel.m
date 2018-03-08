@@ -295,7 +295,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                 mf_bc = model.EOSModel.getMassFraction(z_bc);
                 cells = src.sourceCells;
                 
-                qC = 0;
+                qC = zeros(size(cells));
                 for ph = 1:2
                     ix = ph + model.water;
                     q_ph = src.phaseMass{ix};
