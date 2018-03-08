@@ -277,7 +277,7 @@ void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries, const mx
         double dd = mxGetScalar(mxGetField(pa, 0, "drs_eps_dd"));
         double ps = mxGetScalar(mxGetField(pa, 0, "drs_eps_ps"));
         prm.put("precond.eps_dd", dd);
-        prm.put("precond.eps_ps", dd);
+        prm.put("precond.eps_ps", ps);
 
         amgcl::make_solver<
             amgcl::preconditioner::cpr_drs<PPrecond, SPrecond>,
