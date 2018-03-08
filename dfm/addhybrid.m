@@ -364,7 +364,7 @@ hybridNeighbors.neighbors = neighbors;
 hybridNeighbors.facePos = facePos;
 
 function G = addHybrid2Cells(G,opt)
-% Adds hybrid cells of secound kind and remove interanl
+% Adds hybrid cells of secound kind and remove internal
 % boundaries between the hybrid faces.
 
 % numbers of hybrid segments meeting at a vertex
