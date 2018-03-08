@@ -227,7 +227,7 @@ if model.water
     muW = f.muW(p_prop);
     bW     = fluid.bW(p_prop);
     rhoW   = bW.*fluid.rhoWS;
-    rhoW0 = fluid.bW(p0).*fluid.rhoWS;
+    bW0 = fluid.bW(p0);
 
     rhoWf  = s.faceAvg(rhoW);
     mobW   = krW./muW;
@@ -240,8 +240,8 @@ if model.water
     dpW    = s.Grad(pW) - rhoWf.*gdz;
     upcw  = (double(dpW)<=0);
     vW = -s.faceUpstr(upcw, mobW).*T.*dpW;
-    rWvW = s.faceUpstr(upcw, rhoW).*vW;
-    water = (1/dt).*(pv.*rhoW.*sW - pv0.*rhoW0.*sW0);
+    rWvW = s.faceUpstr(upcw, bW).*vW;
+    water = (1/dt).*(pv.*bW.*sW - pv0.*bW0.*sW0);
     divWater = s.Div(rWvW);
 else
     [vW, mobW, upcw, bW, rhoW] = deal([]);
@@ -298,9 +298,6 @@ end
 state.componentFluxes = compFlux;
 state.massFlux = [double(rOvO), double(rGvG)];
 if model.water
-    if ~opt.reduceToPressure
-        eqs{ncomp+1} = water.*(dt./(s.pv.*double(rhoW)));
-    end
     eqs{ncomp+1} = water;
     names{ncomp+1} = 'water';
     types{ncomp+1} = 'cell';
@@ -380,6 +377,10 @@ else
     scale = (dt./s.pv)./mean(double(sO0).*double(rhoO0) + double(sG0).*double(rhoG0));
     for i = 1:ncomp
         eqs{i} = eqs{i}.*scale;
+    end
+    
+    if model.water
+        eqs{ncomp+1} = eqs{ncomp+1}.*(dt./(s.pv.*double(bW)));
     end
     if model.reduceLinearSystem
         problem = ReducedLinearizedSystem(eqs, types, names, primaryVars, state, dt);

@@ -432,7 +432,7 @@ end
 
 if model.reduceLinearSystem
     problem = ReducedLinearizedSystem(eqs, types, names, primaryVars, state, dt);
-    problem.keepNum = model.G.cells.num*ncomp;
+    problem.keepNum = model.G.cells.num*(ncomp+model.water);
     problem.reorder = reorder;
 else
     problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);

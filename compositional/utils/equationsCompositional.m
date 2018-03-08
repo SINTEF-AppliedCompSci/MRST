@@ -143,7 +143,7 @@ if model.water
     muW = f.muW(p_prop);
     bW     = fluid.bW(p_prop);
     rhoW   = bW.*fluid.rhoWS;
-    rhoW0 = fluid.bW(p0).*fluid.rhoWS;
+    bW0 = fluid.bW(p0);
 
     rhoWf  = s.faceAvg(rhoW);
     mobW   = krW./muW;
@@ -156,8 +156,8 @@ if model.water
     dpW    = s.Grad(pW) - rhoWf.*gdz;
     upcw  = (double(dpW)<=0);
     vW = -s.faceUpstr(upcw, mobW).*T.*dpW;
-    rWvW = s.faceUpstr(upcw, rhoW).*vW;
-    water = (s.pv/dt).*( rhoW.*pvMult.*sW - rhoW0.*pvMult0.*sW0 ) + s.Div(rWvW);
+    rWvW = s.faceUpstr(upcw, bW).*vW;
+    water = (s.pv/dt).*( bW.*pvMult.*sW - bW0.*pvMult0.*sW0 ) + s.Div(rWvW);
 else
     [vW, mobW, upcw, bW, rhoW] = deal([]);
 end
@@ -181,7 +181,7 @@ if woffset
     eqs{1} = water;
     names{1} = 'water';
     types{1} = 'cell';
-    acc{1} = (s.pv/dt).*( rhoW.*pvMult.*sW - rhoW0.*pvMult0.*sW0 );
+    acc{1} = (s.pv/dt).*( bW.*pvMult.*sW - bW0.*pvMult0.*sW0 );
 end
 
 for i = 1:ncomp
@@ -237,14 +237,10 @@ else
                                                      {}, comps, ...
                                                      dt, opt);
 end
-if model.water && ~opt.pressure
-    wscale = dt./(s.pv*mean(double(rhoW)));
-    eqs{1} = eqs{1}.*wscale;
-end
 
 if ~opt.pressure
     if model.water
-        wscale = dt./(s.pv*mean(double(rhoW)));
+        wscale = dt./(s.pv*mean(double(bW)));
         eqs{1} = eqs{1}.*wscale;
     end
     scale = (dt./s.pv)./mean(double(sO0).*double(rhoO0) + double(sG0).*double(rhoG0));
