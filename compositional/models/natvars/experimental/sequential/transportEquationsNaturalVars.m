@@ -188,23 +188,28 @@ mobG   = krG./muG;
 Go = rhoOf.*gdz;
 Gg = rhoGf.*gdz;
 if isfield(fluid, 'pcOG')
-    Gg = Gg + s.Grad(fluid.pcOG(sG));
+    Gg = Gg - s.Grad(fluid.pcOG(sG));
 end
 
 vT = sum(state.flux(model.operators.internalConn, :), 2);
 if model.water
-    bW = fluid.bW(p);
+    if isfield(fluid, 'pcOW')
+        pcOW  = fluid.pcOW(sW);
+        pW = p - pcOW;
+    else
+        pW = p;
+    end
+    bW = fluid.bW(pW);
     rhoW = bW.*fluid.rhoWS;
     rhoW0 = fluid.bW(p0).*fluid.rhoWS;
     
     rhoWf  = s.faceAvg(rhoW);
-    muW = fluid.muW(p);
+    muW = fluid.muW(pW);
     mobW   = krW./muW;
     Gw = rhoWf.*gdz;
     
     if isfield(fluid, 'pcOW')
-        pcOW  = fluid.pcOW(sW);
-        Gw = Gw - s.Grad(pcOW);
+        Gw = Gw + s.Grad(pcOW);
     end
 
     gg = {Gw, Go, Gg};
