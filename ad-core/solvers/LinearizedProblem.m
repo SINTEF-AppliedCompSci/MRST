@@ -292,9 +292,8 @@ methods
             n = find(problem.indexOfEquationName(variable));
         elseif isnumeric(variable)
             n = variable;
-            if islogical(n)
-                n = find(n);
-            end
+        elseif islogical(variable)
+            n = find(variable);
         end
         eqs = problem.equations;
         solveInx = setdiff(1:numel(eqs), n);

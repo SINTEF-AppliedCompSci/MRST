@@ -69,7 +69,7 @@ hold off, view(-30,25), axis tight off
 % First, initialize production well as "standard" well structure
 prodS = addWell([], G, rock, c, 'name', 'prod', ...
                 'refDepth', G.cells.centroids(1,3), ...
-               'type', 'rate', 'val', -8e5/day);
+               'type', 'rate', 'val', -8e5*meter^3/day);
 
 % Define additional properties needed for ms-well
 % We have 12 node-to-node segments
@@ -104,7 +104,7 @@ prodMS.segments.flowModel = @(v, rho, mu)...
 % easily be combined in MRST, each with their own models for pressure drop
 % and solution variables.
 inj = addWell([], G, rock, 100, 'name', 'inj', 'type', 'rate', 'Comp_i', [0 0 1], ...
-              'val', 2.5e6/day,'refDepth', G.cells.centroids(1,3));
+              'val', 2.5e6*meter^3/day,'refDepth', G.cells.centroids(1,3));
 
 %% Run schedule with simple wells
 % We first simulate a baseline where the producer is treated as a simple
