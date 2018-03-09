@@ -56,14 +56,23 @@ fig = figure('Position', [-2000, 0, 1500, 1000]);
 states = {statesDG, statesFV};
 titles = {'dG(1)', 'FV'};
 
+x = [250, 295];
 for mNo = 1:numel(states)
-    subplot(1,3,mNo)
+    subplot(1,3,mNo+1)
     h(mNo) = plotCellData(G, states{mNo}{1}.s(:,1), 'edgec', 'none');
-    colormap jet
+    colorbar('Location', 'southoutside');
     axis equal off
-    text(290, 20, titles{mNo}, 'fontsize', 25, 'color', 'w'); 
+    text(x(mNo), 20, titles{mNo}, 'fontsize', 25, 'color', 'w'); 
     caxis([0,1])
 end
+
+subplot(1,3,1);
+h(3) = plotCellData(G, states{1}{1}.degree, 'edgec', 'none');
+colormap jet
+caxis([0,1]);
+colorbar('Location', 'southoutside');
+axis equal off
+text(150, 20, 'dG degree', 'fontsize', 25, 'color', 'w'); 
 
 % set(fig, 'Units', 'pixels');
 % pos = get(fig, 'Position');
@@ -74,9 +83,12 @@ for sNo = 1:numel(schedule.step.val)
     
     for mNo = 1:numel(states)
         h(mNo).CData = states{mNo}{sNo}.s(:,1);
-        pause(0.01);
     end
     
+    h(3).CData = states{1}{sNo}.degree;
+    
+    pause(0.01);
+    drawnow
 %     dx = 10;
 %     dy = 10;
     rect = [0, 0, fig.Position(3:4)];
