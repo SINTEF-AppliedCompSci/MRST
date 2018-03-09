@@ -1130,6 +1130,12 @@ classdef EquationOfStateModel < PhysicalModel
                     pureLiquid = state.L == 1;
                 end
             end
+            if size(state, 2) > 2
+                pureWater = sum(state.s(:, 2:end), 2) == 0;
+                pureVapor(pureWater) = false;
+                pureLiquid(pureWater) = true;
+            end
+            
             pureVapor(pureLiquid) = false;
             state.flag = 1*pureLiquid + 2*pureVapor;
         end

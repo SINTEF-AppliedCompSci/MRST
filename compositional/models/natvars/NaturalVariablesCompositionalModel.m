@@ -266,12 +266,13 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
             else
                 sMax = ones(model.G.cells.num, 1);
             end
+            sMin = tol.*sMax;
             if model.water
                 sMax = sMax - sW;
             end
             
-            ds_oswitch = tol.*sMax(toEpsOil);
-            ds_gswitch = tol.*sMax(toEpsGas);
+            ds_oswitch = sMin(toEpsOil);
+            ds_gswitch = sMin(toEpsGas);
             
             sG(toEpsOil) = sMax(toEpsOil) - ds_oswitch;
             sO(toEpsGas) = sMax(toEpsGas) - ds_gswitch;

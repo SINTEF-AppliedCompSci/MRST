@@ -44,6 +44,12 @@ z = expandMatrixToCell(z);
     'pressure', 'water', 'so', 'sg', 'x', 'y', 'T', 'wellSol');
 [pureLiquid, pureVapor, twoPhase] = model.getFlag(state);
 
+pureWater = sO + sG == 0;
+
+stol = 1e-8;
+sO(pureWater) = stol;
+sG(pureWater) = stol;
+
 multiPhase = twoPhase;
 freeOil = twoPhase;
 freeGas = twoPhase;
@@ -108,10 +114,12 @@ sG(freeGas) = sg;
 if model.water
     if any(pureVapor)
         sG(pureVapor) = 1 - sW(pureVapor);
+        sG(pureVapor) = max(sG(pureVapor), stol);
     end
     
     if any(pureLiquid)
         sO(pureLiquid) = 1 - sW(pureLiquid);
+        sO(pureLiquid) = max(sO(pureLiquid), stol);
     end
 end
 
@@ -284,16 +292,6 @@ for i = 1:ncomp
     if opt.reduceToPressure
         C{i} = eqs{i};
     end
-    if model.water
-        pureWater = double(sW) == 1;
-        if any(pureWater)
-            % Cells with pure water should just retain their composition to
-            % avoid singular systems
-            eqs{i}(pureWater) = eqs{i}(pureWater) + ...
-                            1e-3*(x{i}(pureWater) - double(x{i}(pureWater)));
-        end
-    end
-    
 end
 state.componentFluxes = compFlux;
 state.massFlux = [double(rOvO), double(rGvG)];
@@ -374,7 +372,9 @@ if opt.reduceToPressure
     problem.wellvars = wellvars;
     problem.wellvarNames = wellVarNames;
 else
-    scale = (dt./s.pv)./mean(double(sO0).*double(rhoO0) + double(sG0).*double(rhoG0));
+    massT = double(sO0).*double(rhoO0) + double(sG0).*double(rhoG0);
+    massT(massT == 0) = 1;
+    scale = (dt./s.pv)./massT;
     for i = 1:ncomp
         eqs{i} = eqs{i}.*scale;
     end
