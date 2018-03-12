@@ -22,14 +22,20 @@ assert(all(p>0), 'Pressure must be positive for compositional model');
 [p0, sW0, sO0, sG0, x0, y0, temp0, wellSol0] = model.getProps(state0, ...
     'pressure', 'water', 'so', 'sg', 'x', 'y', 'T', 'wellSol');
 
+[pureLiquid, pureVapor, twoPhase] = model.getFlag(state);
+
+stol = 1e-8;
+pureWater = sO + sG == 0;
+sO(~pureVapor & pureWater) = stol;
+sG(~pureLiquid & pureWater) = stol;
+
+
 if isfield(state, 'timestep') && opt.iteration == 1
     p = state.pressure_full;
     dt_frac = dt/state.timestep;
     state.pressure = p.*dt_frac + p0.*(1-dt_frac);
 end
 
-% [wellvars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
-[pureLiquid, pureVapor, twoPhase] = model.getFlag(state);
 z = state.components;
 x(~twoPhase, :) = z(~twoPhase, :);
 y(~twoPhase, :) = z(~twoPhase, :);
@@ -292,16 +298,6 @@ for i = 1:ncomp
                     pv.*rhoO.*sO.*xM{i} - pv0.*rhoO0.*sO0.*xM0{i} + ...
                     pv.*rhoG.*sG.*yM{i} - pv0.*rhoG0.*sG0.*yM0{i}) ...
           + s.Div(rOvO.*s.faceUpstr(upco, xM{i}) + rGvG.*s.faceUpstr(upcg, yM{i}));
-      
-    if model.water
-        pureWater = double(sG) == 0 & double(sO) == 0;
-        if any(pureWater)
-            % Cells with pure water should just retain their composition to
-            % avoid singular systems
-            eqs{i}(pureWater) = eqs{i}(pureWater) + ...
-                            1e-3*(x{i}(pureWater) - double(x{i}(pureWater)));
-        end
-    end
 end
 if model.water
     wix = ncomp+1;
@@ -417,14 +413,14 @@ for i = 1:ncomp
 end
 
 
+massT = double(sO0).*double(rhoO0) + double(sG0).*double(rhoG0);
+massT(massT == 0) = 1;
+scale = (dt./s.pv)./massT;
 if model.water
     wscale = dt./(s.pv*mean(double(rhoW0)));
     eqs{wix} = eqs{wix}.*wscale;
-    
-    scale = (dt./s.pv)./mean(double(sO0).*double(rhoO0) + double(sG0).*double(rhoG0) + double(sW0).*double(rhoW0));
-else
-    scale = (dt./s.pv)./mean(double(sO0).*double(rhoO0) + double(sG0).*double(rhoG0));
 end
+
 for i = 1:ncomp
     eqs{i} = eqs{i}.*scale;
 end

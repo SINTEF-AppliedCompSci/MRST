@@ -42,8 +42,6 @@ function [dx, dy, ds, dL, twoPhase, w] = getUpdatesFromPressure(model, state, dp
     else
         sW = 0;
     end
-    
-%     [p, x{1:end}, y{1:end}, sO, sG, L] = initVariablesADI(p, x{1:end}, y{1:end}, sO, sG, L0);
     includeWater = model.water;
     if includeWater
         [p, x{1:end}, y{1:end}, sW, sO, sG] = initVariablesAD_diagonal(p, x{1:end}, y{1:end}, sW, sO, sG);
@@ -115,11 +113,13 @@ function [dx, dy, ds, dL, twoPhase, w] = getUpdatesFromPressure(model, state, dp
     x = unit(x0 + dx);
     y = unit(y0 + dy);
     s0 = state.s(twoPhase, :);
-    s = max(min(s0 + ds, -0.01), 1.01);
     
-    wx = (x - x0)./dx;
-    wy = (y - y0)./dy;
-    ws = (s - s0)./ds;
+    s_tol = 1e-3;
+    s = min(max(s0 + ds, -s_tol), 1 + s_tol);
+    
+    wx = abs(x - x0)./abs(dx);
+    wy = abs(y - y0)./abs(dy);
+    ws = abs(s - s0)./abs(ds);
     
     wx(abs(dx) < 0.1*model.nonlinearTolerance) = 1;
     wy(abs(dy) < 0.1*model.nonlinearTolerance) = 1;
@@ -128,14 +128,15 @@ function [dx, dy, ds, dL, twoPhase, w] = getUpdatesFromPressure(model, state, dp
     
     w = min(wx, wy);
     w = min(w, [], 2);
-%     w = min(w, ws);
-    
+    w = min(w, ws);
+
     dx = bsxfun(@times, dx, w);
     dy = bsxfun(@times, dy, w);
     ds = bsxfun(@times, ds, w);
     
     dx(noHydrocarbons, :) = 0;
     dy(noHydrocarbons, :) = 0;
+    
     
 %     dL = res((2*n*ncomp+nsat+1):end);
     
