@@ -1014,7 +1014,9 @@ classdef EquationOfStateModel < PhysicalModel
             % derivatives without making any assumptions other than the EOS
             % being a cubic polynomial
             if nargin < 5
-                if isa(Z, 'ADI')
+                if isa(Z, 'NewAD')
+                    cellJacMap = cell(Z.offsets(end)-1, 1);
+                elseif isa(Z, 'ADI')
                     cellJacMap = cell(numel(Z.jac), 1);
                 else
                     cellJacMap = {};

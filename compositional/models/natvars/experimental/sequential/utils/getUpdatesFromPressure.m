@@ -46,9 +46,9 @@ function [dx, dy, ds, dL, twoPhase, w] = getUpdatesFromPressure(model, state, dp
 %     [p, x{1:end}, y{1:end}, sO, sG, L] = initVariablesADI(p, x{1:end}, y{1:end}, sO, sG, L0);
     includeWater = model.water;
     if includeWater
-        [p, x{1:end}, y{1:end}, sW, sO, sG] = initVariablesADI(p, x{1:end}, y{1:end}, sW, sO, sG);
+        [p, x{1:end}, y{1:end}, sW, sO, sG] = initVariablesAD_diagonal(p, x{1:end}, y{1:end}, sW, sO, sG);
     else
-        [p, x{1:end}, y{1:end}, sO, sG] = initVariablesADI(p, x{1:end}, y{1:end}, sO, sG);
+        [p, x{1:end}, y{1:end}, sO, sG] = initVariablesAD_diagonal(p, x{1:end}, y{1:end}, sO, sG);
     end
     
     eos = model.EOSModel;

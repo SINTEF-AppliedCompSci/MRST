@@ -167,7 +167,6 @@ classdef PressureReducedLinearSystem < ReducedLinearizedSystem
                     wEqs = combineEquations(problem.equations{isWell});
                     Aw = -wEqs.jac{1};
                     dp_up = dp;
-                    dp_up((nc+1):numel(dp0)) = 0;
 
                     q = wEqs.val - Aw*dp_up;
                     Aw = Aw(:, problem.wellVarIndices);
