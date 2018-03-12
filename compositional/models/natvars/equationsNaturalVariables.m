@@ -361,9 +361,17 @@ end
 
 types{cloix} = 'saturation';
 names{cloix} = 'volclosure';
-
+    
+if model.water
+    eqs{ncomp+1} = eqs{ncomp+1}.*model.fluid.rhoWS;
+end
 if opt.reduceToPressure
     C{cloix - nwelleqs} = eqs{cloix};
+    
+    if model.water
+        C{ncomp+1} = C{ncomp+1}.*model.fluid.rhoWS;
+    end
+    
     problem = PressureReducedLinearSystem(eqs, types, names, primaryVars, state, dt);
     problem.accumulationTerms = C;
     problem.model = model;
@@ -380,7 +388,7 @@ else
     end
     
     if model.water
-        eqs{ncomp+1} = eqs{ncomp+1}.*(dt./(s.pv.*double(bW)));
+        eqs{ncomp+1} = eqs{ncomp+1}.*(dt./(s.pv.*model.fluid.rhoWS.*double(bW)));
     end
     if model.reduceLinearSystem
         problem = ReducedLinearizedSystem(eqs, types, names, primaryVars, state, dt);
