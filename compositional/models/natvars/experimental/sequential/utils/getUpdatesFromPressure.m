@@ -112,23 +112,23 @@ function [dx, dy, ds, dL, twoPhase, w] = getUpdatesFromPressure(model, state, dp
     unit = @(x) min(max(x, 0), 1);
     x = unit(x0 + dx);
     y = unit(y0 + dy);
-    s0 = state.s(twoPhase, :);
-    
-    s_tol = 1e-3;
-    s = min(max(s0 + ds, -s_tol), 1 + s_tol);
+%     s0 = state.s(twoPhase, :);
+%     
+%     s_tol = 1e-3;
+%     s = min(max(s0 + ds, -s_tol), 1 + s_tol);
     
     wx = abs(x - x0)./abs(dx);
     wy = abs(y - y0)./abs(dy);
-    ws = abs(s - s0)./abs(ds);
+%     ws = abs(s - s0)./abs(ds);
     
     wx(abs(dx) < 0.1*model.nonlinearTolerance) = 1;
     wy(abs(dy) < 0.1*model.nonlinearTolerance) = 1;
-    ws(abs(ds) < 0.1*model.nonlinearTolerance) = 1;
-    ws = min(ws, [], 2);
+%     ws(abs(ds) < 0.1*model.nonlinearTolerance) = 1;
+%     ws = min(ws, [], 2);
     
     w = min(wx, wy);
     w = min(w, [], 2);
-    w = min(w, ws);
+%     w = min(w, ws);
 
     dx = bsxfun(@times, dx, w);
     dy = bsxfun(@times, dy, w);
