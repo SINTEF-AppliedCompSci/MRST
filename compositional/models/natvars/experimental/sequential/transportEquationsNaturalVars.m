@@ -23,11 +23,18 @@ assert(all(p>0), 'Pressure must be positive for compositional model');
     'pressure', 'water', 'so', 'sg', 'x', 'y', 'T', 'wellSol');
 
 [pureLiquid, pureVapor, twoPhase] = model.getFlag(state);
+if 1
+    stol = 1e-8;
+    pureWater = sO + sG < stol;
+    sO(~pureVapor & pureWater) = stol;
+    sG(~pureLiquid & pureWater) = stol;
 
-stol = 1e-8;
-pureWater = sO + sG == 0;
-sO(~pureVapor & pureWater) = stol;
-sG(~pureLiquid & pureWater) = stol;
+    [pureLiquid0, pureVapor0, twoPhase0] = model.getFlag(state0);
+
+    pureWater0 = sO0 + sG0 < stol;
+    sO0(~pureVapor0 & pureWater0) = stol;
+    sG0(~pureLiquid0 & pureWater0) = stol;
+end
 
 
 if isfield(state, 'timestep') && opt.iteration == 1
@@ -414,7 +421,7 @@ end
 
 
 massT = double(sO0).*double(rhoO0) + double(sG0).*double(rhoG0);
-massT(massT == 0) = 1;
+massT(massT < 1) = 1;
 scale = (dt./s.pv)./massT;
 if model.water
     wscale = dt./(s.pv*mean(double(rhoW0)));
@@ -433,12 +440,6 @@ if model.reduceLinearSystem
 else
     problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 end
-% if ~opt.resOnly
-%     problem = problem.assembleSystem();
-%     res = problem.A\problem.b;
-% else
-%     res = 1;
-% end
 end
 
 

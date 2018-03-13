@@ -44,11 +44,21 @@ z = expandMatrixToCell(z);
     'pressure', 'water', 'so', 'sg', 'x', 'y', 'T', 'wellSol');
 [pureLiquid, pureVapor, twoPhase] = model.getFlag(state);
 
-pureWater = sO + sG == 0;
 
-stol = 1e-8;
-sO(pureWater) = stol;
-sG(pureWater) = stol;
+if 1
+    stol = 1e-8;
+    pureWater = sO + sG < stol;
+
+    sO(~pureVapor & pureWater) = stol;
+    sG(~pureLiquid & pureWater) = stol;
+
+
+    [pureLiquid0, pureVapor0, twoPhase0] = model.getFlag(state0);
+
+    pureWater0 = sO0 + sG0 < stol;
+    sO0(~pureVapor0 & pureWater0) = stol;
+    sG0(~pureLiquid0 & pureWater0) = stol;
+end
 
 multiPhase = twoPhase;
 freeOil = twoPhase;
@@ -112,14 +122,17 @@ sG(freeGas) = sg;
 
 
 if model.water
+    sT = sum(state.s, 2);
     if any(pureVapor)
-        sG(pureVapor) = 1 - sW(pureVapor);
+        sG(pureVapor) = sT(pureVapor) - sW(pureVapor);
         sG(pureVapor) = max(sG(pureVapor), stol);
+        sW(pureVapor) = sT(pureVapor) - sG(pureVapor);
     end
     
     if any(pureLiquid)
-        sO(pureLiquid) = 1 - sW(pureLiquid);
+        sO(pureLiquid) = sT(pureLiquid) - sW(pureLiquid);
         sO(pureLiquid) = max(sO(pureLiquid), stol);
+        sW(pureLiquid) = sT(pureLiquid) - sO(pureLiquid);
     end
 end
 
@@ -381,7 +394,7 @@ if opt.reduceToPressure
     problem.wellvarNames = wellVarNames;
 else
     massT = double(sO0).*double(rhoO0) + double(sG0).*double(rhoG0);
-    massT(massT == 0) = 1;
+    massT(massT < 1) = 1;
     scale = (dt./s.pv)./massT;
     for i = 1:ncomp
         eqs{i} = eqs{i}.*scale;
