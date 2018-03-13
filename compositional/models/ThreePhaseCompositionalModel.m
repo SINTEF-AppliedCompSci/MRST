@@ -349,6 +349,38 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
         function m = PropertyModel(model)
             m = model.EOSModel.PropertyModel;
         end
+        
+        function scaling = getScalingFactorsCPR(model, problem, names, solver) %#ok
+            % Get scaling factors for CPR reduction in `CPRSolverAD`
+            %
+            % PARAMETERS:
+            %   model   - Class instance
+            %   problem - `LinearizedProblemAD` which is intended for CPR
+            %             preconditioning.
+            %   names   - The names of the equations for which the factors are
+            %             to be obtained.
+            %   solver  - The `LinearSolverAD` class requesting the scaling
+            %             factors.
+            %
+            % RETURNS:
+            %   scaling - Cell array with either a scalar scaling factor for
+            %             each equation, or a vector of equal length to that 
+            %             equation.
+            %
+            % SEE ALSO
+            %   `CPRSolverAD`
+            scaling = getScalingFactorsCPR@ReservoirModel(model, problem, names, solver);
+%             state = problem.state;
+%             rhos = state.rho.*state.s;
+%             
+%             for i = 1:numel(names)
+%                 if strcmpi(names{i}, 'water')
+%                     scaling{i} = 1./state.rho(:, 1);
+%                 elseif any(strcmpi(names{i}, model.EOSModel.fluid.names))
+%                     scaling{i} = 1./max(sum(rhos(:, (1+model.water):end), 2), 1);
+%                 end
+%             end
+        end
     end
     
     methods (Access=protected)

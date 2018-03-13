@@ -208,13 +208,20 @@ vT = sum(state.flux(model.operators.internalConn, :), 2);
 if model.water
     if isfield(fluid, 'pcOW')
         pcOW  = fluid.pcOW(sW);
-        pW = p - pcOW;
+        if 1
+            pW = p - pcOW;
+            pW0 = p0 - fluid.pcOW(sW0);
+        else
+            pW = p;
+            pW0 = p0;
+        end
     else
         pW = p;
+        pW0 = p0;
     end
     bW = fluid.bW(pW);
     rhoW = bW.*fluid.rhoWS;
-    rhoW0 = fluid.bW(p0).*fluid.rhoWS;
+    rhoW0 = fluid.bW(pW0).*fluid.rhoWS;
     
     rhoWf  = s.faceAvg(rhoW);
     muW = fluid.muW(pW);
@@ -440,6 +447,12 @@ if model.reduceLinearSystem
 else
     problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 end
+% problem = problem.assembleSystem();
+% d = diag(problem.A);
+
+% min(abs(d))
+
+
 end
 
 

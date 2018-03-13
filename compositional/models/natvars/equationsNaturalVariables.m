@@ -34,6 +34,7 @@ s = model.operators;
 f = model.fluid;
 W = drivingForces.W;
 
+
 fluid = model.fluid;
 compFluid = model.EOSModel.fluid;
 % Properties at current timestep
@@ -121,18 +122,40 @@ sG = model.AutoDiffBackend.convertToAD(sG, sample);
 sG(freeGas) = sg;
 
 
-if model.water
+if model.water && 1
     sT = sum(state.s, 2);
     if any(pureVapor)
         sG(pureVapor) = sT(pureVapor) - sW(pureVapor);
-        sG(pureVapor) = max(sG(pureVapor), stol);
-        sW(pureVapor) = sT(pureVapor) - sG(pureVapor);
+        if isa(sG, 'ADI')
+            sG.val(pureVapor) = double(max(sG(pureVapor), stol));
+        else
+            sG(pureVapor) = max(sG(pureVapor), stol);
+        end
+%         if isa(sW, 'ADI')
+%             sG.val(pureVapor) = double(max(sG(pureVapor), stol));
+%             sW.val(pureVapor) = sT(pureVapor) - double(sG(pureVapor));
+%         else
+%             sG(pureVapor) = max(sG(pureVapor), stol);
+%             sW(pureVapor) = sT(pureVapor) - sG(pureVapor);
+%         end
     end
     
     if any(pureLiquid)
-        sO(pureLiquid) = sT(pureLiquid) - sW(pureLiquid);
-        sO(pureLiquid) = max(sO(pureLiquid), stol);
-        sW(pureLiquid) = sT(pureLiquid) - sO(pureLiquid);
+        if isa(sO, 'ADI')
+            sO.val(pureLiquid) = double(sT(pureLiquid) - sW(pureLiquid));
+        else
+            sO(pureLiquid) = sT(pureLiquid) - sW(pureLiquid);
+        end
+        
+%         sO(pureLiquid) = max(sO(pureLiquid), stol);
+%         if isa(sW, 'ADI')
+%             sO.val(pureLiquid) = double(max(sO(pureLiquid), stol));
+%             sW.val(pureLiquid) = sT(pureLiquid) - double(sO(pureLiquid));
+%         else
+%             sO(pureLiquid) = max(sO(pureLiquid), stol);
+%             sW(pureLiquid) = sT(pureLiquid) - sO(pureLiquid);
+%         end
+%         
     end
 end
 
@@ -245,20 +268,24 @@ end
 % EQUATIONS -----------------------------------------------------------
 if model.water
     % Water flux
-    muW = f.muW(p_prop);
-    bW     = fluid.bW(p_prop);
+    if isfield(fluid, 'pcOW')
+        pcOW  = fluid.pcOW(sW);
+        pW = p_prop - pcOW;
+        pW0 = p0 - fluid.pcOW(sW0);
+    else
+        pcOW = 0;
+        pW = p_prop;
+        pW0 = p0;
+    end
+    muW = f.muW(pW);
+    bW     = fluid.bW(pW);
     rhoW   = bW.*fluid.rhoWS;
-    bW0 = fluid.bW(p0);
+    bW0 = fluid.bW(pW0);
 
     rhoWf  = s.faceAvg(rhoW);
     mobW   = krW./muW;
-    if isfield(fluid, 'pcOW')
-        pcOW  = fluid.pcOW(sW);
-        pW = p - pcOW;
-    else
-        pW = p;
-    end
-    dpW    = s.Grad(pW) - rhoWf.*gdz;
+
+    dpW    = s.Grad(p - pcOW) - rhoWf.*gdz;
     upcw  = (double(dpW)<=0);
     vW = -s.faceUpstr(upcw, mobW).*T.*dpW;
     rWvW = s.faceUpstr(upcw, bW).*vW;

@@ -77,7 +77,11 @@ function [dx, dy, ds, dL, twoPhase, w] = getUpdatesFromPressure(model, state, dp
     end
     
     if includeWater
-        rhoW = model.fluid.bW(p).*model.fluid.rhoWS;
+        pW = p;
+        if isfield(model.fluid, 'pcOW')
+%             pW = pW - model.fluid.pcOW(sW);
+        end
+        rhoW = model.fluid.bW(pW).*model.fluid.rhoWS;
         eqs{2*ncomp + 2} = sW.*rhoW./(sW.*rhoW + sO.*rhoO + sG.*rhoG) - state.sM(twoPhase);
     end
     eqs{2*ncomp + 2 + includeWater} = sO + sG + sW - 1;
