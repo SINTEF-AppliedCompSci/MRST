@@ -45,7 +45,6 @@ z = expandMatrixToCell(z);
     'pressure', 'water', 'so', 'sg', 'x', 'y', 'T', 'wellSol');
 [pureLiquid, pureVapor, twoPhase] = model.getFlag(state);
 
-
 if 1
     stol = 1e-8;
     pureWater = sO + sG < stol;
@@ -119,26 +118,8 @@ sG = model.AutoDiffBackend.convertToAD(sG, sample);
 sG(freeGas) = sg;
 
 
-if model.water
-    sT = sum(state.s, 2);
-    if any(pureVapor)
-        sG(pureVapor) = sT(pureVapor) - sW(pureVapor);
-        if isa(sG, 'ADI')
-            sG.val(pureVapor) = max(sG.val(pureVapor), stol);
-        else
-            sG(pureVapor) = max(sG(pureVapor), stol);
-        end
-    end
-    
-    if any(pureLiquid)
-        sO(pureLiquid) = sT(pureLiquid) - sW(pureLiquid);
-        if isa(sO, 'ADI')
-            sO.val(pureLiquid) = max(sO.val(pureLiquid), stol);
-        else
-            sO(pureLiquid) = max(sO(pureLiquid), stol);
-        end
-    end
-end
+[sO, sG] = setMinimums(model, state, sW, sO, sG, pureVapor, pureLiquid);
+[sO0, sG0] = setMinimums(model, state0, sW0, sO0, sG0, pureVapor0, pureLiquid0);
 
 if isempty(twoPhaseIx) || opt.resOnly
     reorder = [];
@@ -425,6 +406,31 @@ end
 problem.iterationNo = opt.iteration;
 end
 
+
+function [sO, sG] = setMinimums(model, state, sW, sO, sG, pureVapor, pureLiquid)
+    stol = 1e-8;
+    if model.water
+        sT = sum(state.s, 2);
+        if any(pureVapor)
+            sG(pureVapor) = sT(pureVapor) - sW(pureVapor);
+            if isa(sG, 'ADI')
+                sG.val(pureVapor) = max(sG.val(pureVapor), stol);
+            else
+                sG(pureVapor) = max(sG(pureVapor), stol);
+            end
+        end
+
+        if any(pureLiquid)
+            sO(pureLiquid) = sT(pureLiquid) - sW(pureLiquid);
+            if isa(sO, 'ADI')
+                sO.val(pureLiquid) = max(sO.val(pureLiquid), stol);
+            else
+                sO(pureLiquid) = max(sO(pureLiquid), stol);
+            end
+        end
+    end
+
+end
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
