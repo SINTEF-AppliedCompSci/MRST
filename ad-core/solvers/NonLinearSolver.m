@@ -336,7 +336,7 @@ classdef NonLinearSolver < handle
         function [state, failure, report] = solveMinistep(solver, model, state, state0, dt, drivingForces)
             % Attempt to solve a single mini timestep while trying to avoid
             % stagnation or oscillating residuals.
-            omega0 = solver.relaxationParameter;
+            solver.relaxationParameter = solver.maxRelaxation;
             solver.convergenceIssues = false;
             if model.stepFunctionIsLinear
                 maxIts = 0;
@@ -405,7 +405,6 @@ classdef NonLinearSolver < handle
             % If we converged, the last step did not solve anything
             its = i - converged;
             reports = reports(~cellfun(@isempty, reports));
-            solver.relaxationParameter = omega0;
             solver.convergenceIssues = false;
             if converged
                 [state, r] = model.updateAfterConvergence(state0, state, dt, drivingForces);
