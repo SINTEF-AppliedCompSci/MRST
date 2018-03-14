@@ -49,13 +49,10 @@ z = expandMatrixToCell(z);
 if 1
     stol = 1e-8;
     pureWater = sO + sG < stol;
-
     sO(~pureVapor & pureWater) = stol;
     sG(~pureLiquid & pureWater) = stol;
-
-
+    
     [pureLiquid0, pureVapor0, twoPhase0] = model.getFlag(state0);
-
     pureWater0 = sO0 + sG0 < stol;
     sO0(~pureVapor0 & pureWater0) = stol;
     sG0(~pureLiquid0 & pureWater0) = stol;
@@ -122,40 +119,24 @@ sG = model.AutoDiffBackend.convertToAD(sG, sample);
 sG(freeGas) = sg;
 
 
-if model.water && 1
+if model.water
     sT = sum(state.s, 2);
     if any(pureVapor)
         sG(pureVapor) = sT(pureVapor) - sW(pureVapor);
         if isa(sG, 'ADI')
-            sG.val(pureVapor) = double(max(sG(pureVapor), stol));
+            sG.val(pureVapor) = max(sG.val(pureVapor), stol);
         else
             sG(pureVapor) = max(sG(pureVapor), stol);
         end
-%         if isa(sW, 'ADI')
-%             sG.val(pureVapor) = double(max(sG(pureVapor), stol));
-%             sW.val(pureVapor) = sT(pureVapor) - double(sG(pureVapor));
-%         else
-%             sG(pureVapor) = max(sG(pureVapor), stol);
-%             sW(pureVapor) = sT(pureVapor) - sG(pureVapor);
-%         end
     end
     
     if any(pureLiquid)
+        sO(pureLiquid) = sT(pureLiquid) - sW(pureLiquid);
         if isa(sO, 'ADI')
-            sO.val(pureLiquid) = double(sT(pureLiquid) - sW(pureLiquid));
+            sO.val(pureLiquid) = max(sO.val(pureLiquid), stol);
         else
-            sO(pureLiquid) = sT(pureLiquid) - sW(pureLiquid);
+            sO(pureLiquid) = max(sO(pureLiquid), stol);
         end
-        
-%         sO(pureLiquid) = max(sO(pureLiquid), stol);
-%         if isa(sW, 'ADI')
-%             sO.val(pureLiquid) = double(max(sO(pureLiquid), stol));
-%             sW.val(pureLiquid) = sT(pureLiquid) - double(sO(pureLiquid));
-%         else
-%             sO(pureLiquid) = max(sO(pureLiquid), stol);
-%             sW(pureLiquid) = sT(pureLiquid) - sO(pureLiquid);
-%         end
-%         
     end
 end
 
@@ -270,13 +251,11 @@ if model.water
     % Water flux
     if isfield(fluid, 'pcOW')
         pcOW  = fluid.pcOW(sW);
-        pW = p_prop - pcOW;
-        pW0 = p0 - fluid.pcOW(sW0);
     else
         pcOW = 0;
-        pW = p_prop;
-        pW0 = p0;
     end
+    pW = p_prop;
+    pW0 = p0;
     muW = f.muW(pW);
     bW     = fluid.bW(pW);
     rhoW   = bW.*fluid.rhoWS;

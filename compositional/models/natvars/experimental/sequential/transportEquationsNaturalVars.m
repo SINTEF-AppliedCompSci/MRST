@@ -30,7 +30,6 @@ if 1
     sG(~pureLiquid & pureWater) = stol;
 
     [pureLiquid0, pureVapor0, twoPhase0] = model.getFlag(state0);
-
     pureWater0 = sO0 + sG0 < stol;
     sO0(~pureVapor0 & pureWater0) = stol;
     sG0(~pureLiquid0 & pureWater0) = stol;
@@ -206,19 +205,8 @@ end
 
 vT = sum(state.flux(model.operators.internalConn, :), 2);
 if model.water
-    if isfield(fluid, 'pcOW')
-        pcOW  = fluid.pcOW(sW);
-        if 1
-            pW = p - pcOW;
-            pW0 = p0 - fluid.pcOW(sW0);
-        else
-            pW = p;
-            pW0 = p0;
-        end
-    else
-        pW = p;
-        pW0 = p0;
-    end
+    pW = p;
+    pW0 = p0;
     bW = fluid.bW(pW);
     rhoW = bW.*fluid.rhoWS;
     rhoW0 = fluid.bW(pW0).*fluid.rhoWS;
@@ -229,6 +217,7 @@ if model.water
     Gw = rhoWf.*gdz;
     
     if isfield(fluid, 'pcOW')
+        pcOW  = fluid.pcOW(sW);
         Gw = Gw + s.Grad(pcOW);
     end
 
@@ -447,12 +436,6 @@ if model.reduceLinearSystem
 else
     problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 end
-% problem = problem.assembleSystem();
-% d = diag(problem.A);
-
-% min(abs(d))
-
-
 end
 
 
