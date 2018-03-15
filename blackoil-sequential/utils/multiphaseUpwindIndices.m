@@ -1,39 +1,53 @@
 function [up, theta, r] = multiphaseUpwindIndices(G, vT, T, K, upstr)
+    % Implementation of algorithm from "UPSTREAM DIFFERENCING FOR
+    % MULTIPHASE FLOW IN RESERVOIR SIMULATIONS" by Brenier & Jaffre
     nPh = numel(G);
     nF  = numel(T);
     G = flattenAndMakeDouble(G);
     K = flattenAndMakeDouble(K);
 
+    % Sort phases for each interface by potential
     [G, sortInd] = sort(G, 2);
+    % Get the linear index for this sorting
+    subs = sub2ind([nF, nPh], repmat((1:nF)', 1, nPh), sortInd);
+    
     theta = repmat(vT, 1, nPh);
+    flag = true(nF, 1);
+    
+    left_upwind = upstr(flag, K);
+    right_upwind = upstr(~flag, K);
+    
+    left_upwind = left_upwind(subs);
+    right_upwind = right_upwind(subs);
+
     for l = 1:nPh
         for j = 1:nPh
             if j == l
+                % Potential difference between a phase and itself is zero
                 continue
             end
-            flag = repmat(j > l, nF, 1);
-            kj = nan(nF, 1);
-            for k = 1:nPh
-                % Upstream weight mobility
-                kloc = upstr(flag, K(:, k));
-                % Lookup sort index for this phase (G is sorted by weight,
-                % K is not)
-                ind = sortInd(:, j) == k;
-  
-                kj(ind) = kloc(ind);
+            if j > l
+                % Phase has larger potential, take upwind
+                kj = left_upwind(:, j);
+            else
+                % Phase has lower potential, take downwind
+                kj = right_upwind(:, j);
             end
             theta(:, l) = theta(:, l) + T.*(G(:, l) - G(:, j)).*kj;
         end
     end
+    % r is zero if all thetas are positive, otherwise it is the last phase
+    % with negative value
     r = zeros(nF, 1);
     for l = 1:nPh
         r(theta(:, l) <= 0) = l;
     end
-    r(all(theta < 0, 2)) = nPh+1;
     up = false(nF, nPh);
     for l = 1:nPh
-        up(:, l) = (sortInd(:, l) > r);
+        up(:, l) = l > r;
     end
+    % Permute back to original ordering
+    up(subs) = up;
 end
 
 function d = flattenAndMakeDouble(d)
