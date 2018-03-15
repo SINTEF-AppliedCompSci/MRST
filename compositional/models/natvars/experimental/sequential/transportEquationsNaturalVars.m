@@ -415,10 +415,7 @@ for i = 1:ncomp
     types{ix} = 'fugacity';
     eqs{ix} = (f_L{i}(twoPhase) - f_V{i}(twoPhase))/barsa;
 end
-
-
-massT = double(sO0).*double(rhoO0) + double(sG0).*double(rhoG0);
-massT(massT < 1) = 1;
+massT = model.getComponentScaling(state0);
 scale = (dt./s.pv)./massT;
 if model.water
     wscale = dt./(s.pv*mean(double(rhoW0)));

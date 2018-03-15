@@ -243,7 +243,8 @@ if ~opt.pressure
         wscale = dt./(s.pv*mean(double(bW)));
         eqs{1} = eqs{1}.*wscale;
     end
-    scale = (dt./s.pv)./mean(double(sO0).*double(rhoO0) + double(sG0).*double(rhoG0));
+    massT = model.getComponentScaling(state0);
+    scale = (dt./s.pv)./mean(massT);
     for i = 1:ncomp
         eqs{i+model.water} = eqs{i+model.water}.*scale;
     end

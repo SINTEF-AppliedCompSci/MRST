@@ -73,6 +73,27 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             names = getComponentNames@ReservoirModel(model);
             names = horzcat(names, model.EOSModel.fluid.names);
         end
+        
+        function scaling = getComponentScaling(model, state)
+            wL = state.s(:, 1+model.water);
+            wV = state.s(:, 2+model.water);
+            wT = wL + wV;
+
+            wL = wL./wT;
+            wV = wV./wT;
+            
+            if isfield(state, 'rho')
+                rhoO = state.rho(:, 1+model.water);
+                rhoG = state.rho(:, 2+model.water);
+            else
+                rhoO = model.fluid.rhoWS;
+                rhoG = model.fluid.rhoGS;
+            end
+            wL(wT == 0) = state.L(wT == 0);
+            wV(wT == 0) = 1 - state.L(wT == 0);
+
+            scaling = wL.*double(rhoO) + wV.*double(rhoG);
+        end
 
         function [fn, index] = getVariableField(model, name)
             switch(lower(name))

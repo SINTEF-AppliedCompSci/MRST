@@ -389,8 +389,7 @@ if opt.reduceToPressure
     problem.wellvars = wellvars;
     problem.wellvarNames = wellVarNames;
 else
-    massT = double(sO0).*double(rhoO0) + double(sG0).*double(rhoG0);
-    massT(massT < 1) = 1;
+    massT = model.getComponentScaling(state0);
     scale = (dt./s.pv)./massT;
     for i = 1:ncomp
         eqs{i} = eqs{i}.*scale;
