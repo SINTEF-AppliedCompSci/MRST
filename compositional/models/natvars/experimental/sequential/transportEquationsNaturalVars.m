@@ -45,7 +45,8 @@ end
 z = state.components;
 x(~twoPhase, :) = z(~twoPhase, :);
 y(~twoPhase, :) = z(~twoPhase, :);
-
+x = ensureMinimumFraction(x);
+y = ensureMinimumFraction(y);
 x = expandMatrixToCell(x);
 y = expandMatrixToCell(y);
 x0 = expandMatrixToCell(x0);

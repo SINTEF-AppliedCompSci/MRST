@@ -60,7 +60,8 @@ end
 multiPhase = twoPhase;
 freeOil = twoPhase;
 freeGas = twoPhase;
-
+x = ensureMinimumFraction(x);
+y = ensureMinimumFraction(y);
 x = expandMatrixToCell(x);
 y = expandMatrixToCell(y);
 
