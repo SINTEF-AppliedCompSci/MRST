@@ -210,6 +210,8 @@ classdef PressureReducedLinearSystem < ReducedLinearizedSystem
             w = reshape(w, [], ncomp);
             w = bsxfun(@rdivide, w, sum(abs(w), 2));
             w = bsxfun(@rdivide, w, sum(state.rho.*state.s, 2));
+            
+            w(state.flag ~= 0, :) = 1;
         end
     end
 end
