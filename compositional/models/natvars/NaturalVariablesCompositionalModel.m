@@ -269,6 +269,7 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
             sMin = tol.*sMax;
             if model.water
                 sMax = sMax - sW;
+                sMax = max(sMax, 1e-8);
             end
             
             ds_oswitch = sMin(toEpsOil);

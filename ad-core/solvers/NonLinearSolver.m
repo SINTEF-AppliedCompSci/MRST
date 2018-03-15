@@ -154,7 +154,7 @@ classdef NonLinearSolver < handle
             %               just be {state}.
             % SEE ALSO:
             %   PhysicalModel
-
+            timer = tic();
             opt = struct('initialGuess', state0);
 
             % Get default driving forces for model
@@ -319,11 +319,12 @@ classdef NonLinearSolver < handle
                     ' (%d rejected, %d total iteration%s)\n'], ...
                    acceptCount, pl_mini, stepCount - acceptCount, ...
                    itCount, pl_it);
-
+            time = toc(timer);
             % Truncate reports from step functions
             reports = reports(~cellfun(@isempty, reports));
             report = struct('Iterations',           itCount,...
                             'Converged',            converged,...
+                            'WallTime',             time, ...
                             'MinistepCuttingCount', cuttingCount);
             % Add seperately because struct constructor interprets cell
             % arrays as repeated structs.
