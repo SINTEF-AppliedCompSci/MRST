@@ -17,7 +17,6 @@
 #include <amgcl/adapter/zero_copy.hpp>
 
 #include <amgcl/backend/builtin.hpp>
-#include <amgcl/backend/block_crs.hpp>
 #include <amgcl/runtime.hpp>
 
 #include <amgcl/preconditioner/dummy.hpp>
@@ -328,8 +327,14 @@ void solve_regular(int n, mwIndex * cols, mwIndex * rows, double * entries, cons
      * Start AMGCL-link and select options *
      ***************************************/
     typedef amgcl::backend::builtin<double> Backend;
-    typedef amgcl::backend::block_crs<double> BlockBackend;
+    
+    typedef
+        amgcl::runtime::amg<Backend>
+        PPrecond;
 
+    typedef
+        amgcl::runtime::relaxation::as_preconditioner<Backend>
+        SPrecond;
     boost::property_tree::ptree prm;
     /* Set tolerance */
     prm.put("solver.tol", tolerance);
@@ -372,41 +377,23 @@ void solve_regular(int n, mwIndex * cols, mwIndex * rows, double * entries, cons
      *        Solve problem                *
      ***************************************/
     auto t1 = std::chrono::high_resolution_clock::now();
-    int block_size = mxGetScalar(mxGetField(pa, 0, "block_size"));
-    if(block_size > 1){
-            BlockBackend::params bprm;
-            bprm.block_size = block_size;
-            amgcl::make_solver<
-            amgcl::runtime::preconditioner<BlockBackend>,
-            amgcl::runtime::iterative_solver<BlockBackend>
-        > solve(amgcl::adapter::zero_copy(n, &cols[0], &rows[0], &entries[0]), prm, bprm);
-        auto t2 = std::chrono::high_resolution_clock::now();
-        if(verbose){
-            std::cout << "Solver setup took "
-                      << (double)std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count()/1000.0
-                      << " seconds\n";
-        }
-        boost::tie(iters, error) = solve(b, x);
 
-        if(verbose){
-            std::cout << solve << std::endl;
-        }
-    }else{
-        amgcl::make_solver<
-            amgcl::runtime::preconditioner<Backend>,
-            amgcl::runtime::iterative_solver<Backend>
-        > solve(amgcl::adapter::zero_copy(n, &cols[0], &rows[0], &entries[0]), prm);
-        auto t2 = std::chrono::high_resolution_clock::now();
-        if(verbose){
-            std::cout << "Solver setup took "
-                      << (double)std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count()/1000.0
-                      << " seconds\n";
-        }
-        boost::tie(iters, error) = solve(b, x);
 
-        if(verbose){
-            std::cout << solve << std::endl;
-        }
+    amgcl::make_solver<
+        amgcl::runtime::preconditioner<Backend>,
+        amgcl::runtime::iterative_solver<Backend>
+    > solve(amgcl::adapter::zero_copy(n, &cols[0], &rows[0], &entries[0]), prm);
+    
+    auto t2 = std::chrono::high_resolution_clock::now();
+    if(verbose){
+        std::cout << "Solver setup took "
+                  << (double)std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count()/1000.0
+                  << " seconds\n";
+    }
+    boost::tie(iters, error) = solve(b, x);
+
+    if(verbose){
+        std::cout << solve << std::endl;
     }
 }
 
