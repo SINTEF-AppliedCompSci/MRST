@@ -100,8 +100,11 @@ classdef SequentialPressureTransportModel < ReservoirModel
                         % Convert Dirichlet boundary conditions to flux
                         % boundary conditions for the transport
                         transportForces = drivingForces;
+                        G = model.pressureModel.G;
                         dirFace = transportForces.bc.face(isDir);
-                        transportForces.bc.value(isDir) = sum(state.flux(dirFace, :), 2);
+                        q = sum(state.flux(dirFace, :), 2);
+                        sgn = 1 - 2*(G.faces.neighbors(dirFace, 2) == 0);
+                        transportForces.bc.value(isDir) = sgn.*q;
                         [transportForces.bc.type{isDir}] = deal('resflux');
                         forceArg = model.transportModel.getDrivingForces(transportForces);
                     end
