@@ -86,7 +86,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                 rhoO = state.rho(:, 1+model.water);
                 rhoG = state.rho(:, 2+model.water);
             else
-                rhoO = model.fluid.rhoWS;
+                rhoO = model.fluid.rhoOS;
                 rhoG = model.fluid.rhoGS;
             end
             wL(wT == 0) = state.L(wT == 0);
