@@ -58,9 +58,7 @@ int computeBasis(Grid * grid, ConnMatrix * mat, double * __restrict__ basis, dou
     // Upper bound on the number of off diagonal entries in a matrix row
 	int n_conn = (*mat).n_conn;
 
-	// Cache is used for intermediate storage of basis
-	double * cache = new double[n_el]();
-    // Used for sum of updates for renormalization
+    // Used for sum of basis functions for renormalization
 	double * update_sum = new double[n_f]();
     // Storage for the update values
 	double * basis_update = new double[n_el]();
@@ -82,7 +80,7 @@ int computeBasis(Grid * grid, ConnMatrix * mat, double * __restrict__ basis, dou
 			int stop  = (*grid).offsets[coarseIx+1];
 			// Iterate over local support
 			for (int j = start; j < stop; j++) {
-				cache[j] = basis[j];
+				basis_update[j] = basis[j];
 				// Iterate over local values
 				for (int k = 0; k < n_conn; k++) {
 					int jx = mat->loc_index[j*n_conn + k];
@@ -91,7 +89,7 @@ int computeBasis(Grid * grid, ConnMatrix * mat, double * __restrict__ basis, dou
 						break;
 					}
                     // This is the tentative update for each basis element
-					cache[j] +=  (*mat).loc_conn[j*n_conn + k]* basis[jx];
+					basis_update[j] +=  (*mat).loc_conn[j*n_conn + k]* basis[jx];
 				}
 			}
 		}
@@ -102,18 +100,17 @@ int computeBasis(Grid * grid, ConnMatrix * mat, double * __restrict__ basis, dou
 			int type = (*grid).celltypes[i];
 			if(type == 0){
 				// The cell is category 1: We simply update the value.
-				basis_update[i] += omega*cache[i];
-			}
+				basis[i] -= omega*basis_update[i];
+                if (check_convergence && fabs(basis_update[i]) > tol){
+                    done = false;
+                }
+            }
 			else if (type == 2) {
                 // The cell is part of the boundary for some other cell. We
                 // need to keep track of what the nonzero values are.
-				basis_update[i] += omega*cache[i];
-				#pragma omp atomic
-				update_sum[(*grid).support[i]] += omega*cache[i];
-			}
-			else {
-                // The cell is on the boundary. The update is simply zero.
-				basis_update[i] = 0;
+				basis[i] -= omega*basis_update[i];
+                #pragma omp atomic
+                update_sum[(*grid).support[i]] += basis[i];
 			}
 		}
 		#pragma omp barrier
@@ -122,22 +119,8 @@ int computeBasis(Grid * grid, ConnMatrix * mat, double * __restrict__ basis, dou
             // Fix partition of unity for cells that are part of some boundary.
 			if ((*grid).celltypes[i] == 2) {
 				double us = update_sum[(*grid).support[i]];
-				basis_update[i] = (basis_update[i] - basis[i] * us) / (1.0 + us);
+				basis[i] = basis[i]/us;
 			}
-		}
-		#pragma omp barrier
-		#pragma omp parallel for
-		for (int i = 0; i < n_el; i++) {
-            // Actually update the basis functions.
-			basis[i] -= basis_update[i];
-			if (check_convergence && fabs(basis_update[i]) > tol && (*grid).celltypes[i] == 0) {
-				done = false;
-			}
-			basis_update[i] = 0;
-		}
-		if((iter + 1) % NORM_ITER == 0 && iter > 1){
-            // Algorithm can be numerically unstable due to floating point errors.
-			renormalize(grid, mat, basis);
 		}
 		#pragma omp barrier
 		#pragma omp parallel for
@@ -151,7 +134,6 @@ int computeBasis(Grid * grid, ConnMatrix * mat, double * __restrict__ basis, dou
 		iter++;
 	}
 
-	delete[] cache;
 	delete[] update_sum;
 	delete[] basis_update;
 	std::cout << "Done after " << iter << " iterations\r\n";
