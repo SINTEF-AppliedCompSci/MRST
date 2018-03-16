@@ -1,4 +1,4 @@
-function [I, report] = cppMultiscaleBasis(CG, A, varargin)
+function [I, report, I_com] = cppMultiscaleBasis(CG, A, varargin)
 % Create MsRSB basis using MEX code
 
 % export LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libgomp.so.1
@@ -24,6 +24,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     opt = struct('tolerance', 0.01, ...
                  'maxiter',   1000, ...
                  'omega',     2/3, ...
+                 'basis',     [], ...
                  'verbose', mrstVerbose,...
                  'writePath', '', ...
                  'maxThreads', inf, ...
@@ -38,6 +39,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     timer = tic();
     [offsets, support, types, I_com, fine, coarse] = getGridData(CG);
     report.t_setup = toc(timer);
+    if ~isempty(opt.basis) && isfield(opt.basis, 'I_compressed')
+        I_com = opt.basis.I_compressed;
+    end
     
     if ~isempty(opt.writePath)
         % Error checking

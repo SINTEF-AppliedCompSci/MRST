@@ -48,7 +48,7 @@ classdef MultiscaleVolumeSolverAD < LinearSolverAD
            CG = solver.coarsegrid;
            nc = CG.parent.cells.num;
            if isempty(solver.basis)
-               solver.setupSolver(A(1:nc, 1:nc), b(1:nc));
+              solver.setupSolver(A(1:nc, 1:nc), b(1:nc));
            end
            
            [x, report] = solveMultiscaleIteratively(A, b, [], ...
@@ -86,6 +86,14 @@ classdef MultiscaleVolumeSolverAD < LinearSolverAD
            if doReduce
                [A, b, B, C, D, E, f, h] = reduceSystem(A, b, nc);
            end
+           if problem.iterationNo == 1 
+               if solver.resetBasis
+                  solver.basis = [];
+               elseif solver.updateBasis
+                   solver = solver.createBasis(A);
+               end
+           end
+           
            timer = tic();
            [result, report] = solver.solveLinearSystem(A, b);
            if doReduce
@@ -105,7 +113,7 @@ classdef MultiscaleVolumeSolverAD < LinearSolverAD
        end
 
        function solver = createBasis(solver, A)
-           if isempty(solver.basis) || solver.resetBasis
+           if isempty(solver.basis) || solver.updateBasis
                if solver.verbose
                    fprintf('Constructing multiscale basis of type %s', solver.prolongationType)
                    if solver.controlVolumeRestriction
@@ -136,6 +144,7 @@ classdef MultiscaleVolumeSolverAD < LinearSolverAD
                [solver.basis, solver.coarsegrid] =...
                    getMultiscaleBasis(solver.coarsegrid, A, 'useMEX', solver.useMEX, ...
                                                             'mexGrid', solver.mexGrid, ...
+                                                            'basis',  solver.basis, ...
                                                             'iterations', solver.basisIterations, ...
                                                             'tolerance', solver.basisTolerance, ...
                                                             'type',   solver.prolongationType, ...
@@ -143,23 +152,6 @@ classdef MultiscaleVolumeSolverAD < LinearSolverAD
                                                             'regularizeSys', true);
                solver.setupTime = toc(timer);
                dispif(solver.verbose, 'Basis constructed in %s.\n', formatTimeRange(solver.setupTime));
-           elseif solver.updateBasis
-               % THIS PART SHOULD BE IMPROVED TO SUPPORT OTHER SOLVERS!
-               A_basis = A - diag(sum(A, 2));
-               timer = tic();
-               switch solver.prolongationType
-                   case 'smoothed'
-                       % Just redo iterations until we are below increment
-                       % tolerance again
-                       I = iteratedJacobiBasis(A_basis, solver.coarsegrid,...
-                                            'useConstant', true, ...
-                                            'interpolator', solver.prolongationOperator);
-                       solver.basis.I = I;
-                   otherwise
-                       error('Error!')
-               end
-               solver.setupTime = solver.setupTime + toc(timer);
-               solver.prolongationOperator = I;
            end
        end
    end

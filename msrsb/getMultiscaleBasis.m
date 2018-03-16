@@ -73,6 +73,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'mexGrid',          [], ...
                  'iterations',       ceil(50*(Nf/Nc).^(1/G.griddim)), ...
                  'tolerance',        5e-3, ...
+                 'basis',           [], ...
                  'implicitDual',    false, ...
                  'useControlVolume', true);
 
@@ -82,7 +83,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         A = (A + A')/2;
         A = A - diag(sum(A, 2));
     end
-
+    basis = struct('R', [], 'B', [], 'type', lower(opt.type));
 
     switch lower(opt.type)
         case {'msrsb', 'rsb', 'jacobi', 'smoothed', 'jacobi-mex'}
@@ -93,11 +94,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             if opt.useMex || strcmpi(opt.type, 'jacobi-mex')
                 assert(exist('cppMultiscaleBasis', 'file') > 0, 'MsRSB-Mex basis functions not available');
                 CG = setupMexInteractionMapping(CG);
-                B = cppMultiscaleBasis(CG, A, 'verbose', true, 'omega', 2/3, 'maxiter', opt.iterations, 'tolerance', opt.tolerance);
+                [B, ~, basis.I_compressed] = cppMultiscaleBasis(CG, A, 'verbose', true, 'omega', 2/3, 'maxiter', opt.iterations, 'tolerance', opt.tolerance, 'basis', opt.basis);
             else
+                if isempty(opt.basis)
+                    B0 = [];
+                else
+                    B0 = opt.basis.B;
+                end
                 assert(exist('iteratedJacobiBasis', 'file') > 0, 'MsRSB basis functions not available');
                 B = iteratedJacobiBasis(A, CG, 'iterations', opt.iterations,...
-                    'incrementTol', opt.tolerance);
+                    'incrementTol', opt.tolerance, 'interpolator', B0);
             end
         case {'mstpfa', 'tpfa'}
             assert(exist('createFaceBasis', 'file') > 0, 'MsTPFA basis functions not available');
@@ -135,6 +141,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     else
         R = B';
     end
-
-    basis = struct('R', R, 'B', B, 'type', lower(opt.type));
+    basis.B = B;
+    basis.R = R;
 end
