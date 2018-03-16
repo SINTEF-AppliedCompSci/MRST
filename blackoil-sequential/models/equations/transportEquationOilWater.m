@@ -133,7 +133,7 @@ mobTf_G = mobWf_G + mobOf_G;
 f_g = mobWf_G.*mobOf_G./mobTf_G;
 if opt.solveForWater
     f_w = mobWf./totMob;
-    bWvW   = s.faceUpstr(upcw, bW).*f_w.*vT + s.faceUpstr(upcw_g, bO).*f_g.*s.T.*(Gw - Go);
+    bWvW   = s.faceUpstr(upcw, bW).*f_w.*vT + s.faceUpstr(upcw_g, bW).*f_g.*s.T.*(Gw - Go);
 
     wat = (s.pv/dt).*(pvMult.*bW.*sW - pvMult0.*f.bW(p0).*sW0) + s.Div(bWvW);
     if ~isempty(W)
