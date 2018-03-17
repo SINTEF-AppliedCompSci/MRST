@@ -86,9 +86,12 @@ function smoother = getILU0(A, ~, its)
     setup = struct('type', 'nofill');
     
     [L, U] = ilu(A, setup);
-    % Apply a single pass of jacobi
-    jac = @(d, x) x + U\(L\(d - A*x));
-    smoother = @(d) loopfun(d, jac, its);
+    if its == 1
+        smoother = @(d) U\(L\d);
+    else
+        jac = @(d, x) x + U\(L\(d - A*x));
+        smoother = @(d) loopfun(d, jac, its);
+    end
 end
 
 function smoother = getSOR(A, ~, omega, its)

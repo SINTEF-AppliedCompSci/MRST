@@ -83,7 +83,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         A = (A + A')/2;
         A = A - diag(sum(A, 2));
     end
-    basis = struct('R', [], 'B', [], 'type', lower(opt.type));
+    
+    basis = opt.basis;
+    if isempty(opt.basis)
+        basis = struct('R', [], 'B', [], 'type', lower(opt.type));
+    end
 
     switch lower(opt.type)
         case {'msrsb', 'rsb', 'jacobi', 'smoothed', 'jacobi-mex'}
@@ -137,10 +141,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 
     if opt.useControlVolume
-        R = controlVolumeRestriction(CG.partition);
+        if isempty(basis.R)
+            basis.R = controlVolumeRestriction(CG.partition);
+        end
     else
-        R = B';
+        basis.R = B';
     end
     basis.B = B;
-    basis.R = R;
 end
