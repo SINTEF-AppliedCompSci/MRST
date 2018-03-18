@@ -64,8 +64,13 @@ classdef CompositionalPropertyModel < PropertyModel
             % Reduced density via definition of critical density 
             rhor = Vc.*rho;
             % Final adjusted viscosity at current conditions
-            mu = mu_atm + ((0.1023 + 0.023364.*rhor + 0.058533.*rhor.^2 ...
-                - 0.040758.*rhor.^3 + 0.0093324.*rhor.^4).^4 - 1e-4)./e_mix;
+            
+            % From Jossi et al
+            % coeffs = [0.1023, 0.023364, 0.058533, -0.040758, 0.0093724, 1e-4];
+            % From LBC paper
+            coeffs = [0.1023, 0.023364, 0.058533, -0.040758, 0.0093324, -1e-4];
+            mu = mu_atm + ((coeffs(1) + coeffs(2).*rhor + coeffs(3).*rhor.^2 ...
+                + coeffs(4).*rhor.^3 + coeffs(5).*rhor.^4).^4 + coeffs(6))./e_mix;
         end
 
         function [P_pc, T_pc, Vc, mw] = computePseudoCriticalPhaseProperties(model, x)
