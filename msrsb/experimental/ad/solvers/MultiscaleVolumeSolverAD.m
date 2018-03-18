@@ -13,6 +13,8 @@ classdef MultiscaleVolumeSolverAD < LinearSolverAD
        mexGrid
        basisIterations
        basisTolerance
+       updateCounter
+       updateInterval
        
        getSmoother
        useGMRES
@@ -36,6 +38,7 @@ classdef MultiscaleVolumeSolverAD < LinearSolverAD
            solver.useMEX = true;
            solver.mexGrid = [];
            solver.resetBasis = false;
+           solver.updateInterval = 1;
            solver.basisIterations = ceil(50*(Nf/Nc).^(1/dim));
            
            solver = merge_options(solver, varargin{:});
@@ -72,6 +75,7 @@ classdef MultiscaleVolumeSolverAD < LinearSolverAD
        
        function [dx, result, report] = solveLinearProblem(solver, problem0, model)
            % Solve a linearized problem
+           timer = tic();
            skipElim = isa(problem0, 'PressureReducedLinearSystem');
            if skipElim
                problem = problem0;
@@ -86,16 +90,24 @@ classdef MultiscaleVolumeSolverAD < LinearSolverAD
            if doReduce
                [A, b, B, C, D, E, f, h] = reduceSystem(A, b, nc);
            end
-           if problem.iterationNo == 1 
-               if solver.resetBasis
-                  solver.basis = [];
-               elseif solver.updateBasis
-                   solver = solver.createBasis(A);
+           if problem.iterationNo == 1
+               if isempty(solver.updateCounter)
+                   solver.updateCounter = 0;
+               end
+               if mod(solver.updateCounter, solver.updateInterval) == 0
+                   if solver.resetBasis
+                      solver.basis = [];
+                   elseif solver.updateBasis
+                       solver = solver.createBasis(A);
+                   end
+                   solver.updateCounter = 1;
+               else
+                   solver.updateCounter = solver.updateCounter + 1;
                end
            end
-           
-           timer = tic();
+           t_prepare = toc(timer);
            [result, report] = solver.solveLinearSystem(A, b);
+           t_solve = toc(timer) - t_prepare;
            if doReduce
                s = E\(h - D*result);
                result = [result; s];
@@ -103,7 +115,9 @@ classdef MultiscaleVolumeSolverAD < LinearSolverAD
            
            [result, report] = problem.processResultAfterSolve(result, report);
            report.SolverTime = toc(timer);
-           
+           report.LinearSolutionTime = t_solve;
+           report.preparationTime = t_prepare;
+           report.postprocessTime = report.SolverTime - t_solve - t_prepare;
            dxCell = solver.storeIncrements(problem, result);
            if skipElim
                dx = dxCell;
