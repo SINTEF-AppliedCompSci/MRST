@@ -138,7 +138,15 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
             % Update sat
             capunit = @(x) min(max(x, 0), 1);
             if any(ds(:) ~= 0)
-                ds_relax = bsxfun(@times, w, ds);
+                if model.water
+                    ds_relax = ds;
+                    ds_relax(:, 1) = ds(:, 1).*min(dsMax./max(abs(ds(:, 1)), [], 2), 1);
+                    ds_relax(:, 2:end) = ds(:, 2:end).*w;
+                    
+%                     ds_relax = bsxfun(@times, w, ds);
+                else
+                    ds_relax = bsxfun(@times, w, ds);
+                end
                 s_uncap = state.s + ds_relax;
                 if model.allowLargeSaturations
                     state.s = max(s_uncap, 0);

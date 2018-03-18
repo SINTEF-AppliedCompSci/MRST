@@ -93,6 +93,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             wV(wT == 0) = 1 - state.L(wT == 0);
 
             scaling = wL.*double(rhoO) + wV.*double(rhoG);
+            scaling(wT  < 1e-3) = 1e6;
         end
 
         function [fn, index] = getVariableField(model, name)
@@ -385,7 +386,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             %
             % RETURNS:
             %   scaling - Cell array with either a scalar scaling factor for
-            %             each equation, or a vector of equal length to that 
+            %             each equation, or a vectogetComponentScalingr of equal length to that 
             %             equation.
             %
             % SEE ALSO
