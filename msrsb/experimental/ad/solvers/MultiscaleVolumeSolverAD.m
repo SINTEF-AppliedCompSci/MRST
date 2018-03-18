@@ -90,24 +90,30 @@ classdef MultiscaleVolumeSolverAD < LinearSolverAD
            if doReduce
                [A, b, B, C, D, E, f, h] = reduceSystem(A, b, nc);
            end
-           if problem.iterationNo == 1
-               if isempty(solver.updateCounter)
-                   solver.updateCounter = 0;
-               end
-               if mod(solver.updateCounter, solver.updateInterval) == 0
-                   if solver.resetBasis
-                      solver.basis = [];
-                   elseif solver.updateBasis
-                       solver = solver.createBasis(A);
+           t_prepare = toc(timer);
+           if isempty(solver.basis)
+               solver = solver.createBasis(A);
+           else
+               if problem.iterationNo == 1
+                   if isempty(solver.updateCounter)
+                       solver.updateCounter = 0;
                    end
-                   solver.updateCounter = 1;
-               else
-                   solver.updateCounter = solver.updateCounter + 1;
+                   if mod(solver.updateCounter, solver.updateInterval) == 0
+                       if solver.resetBasis
+                          solver.basis = [];
+                          solver = solver.createBasis(A);
+                       elseif solver.updateBasis
+                          solver = solver.createBasis(A);
+                       end
+                       solver.updateCounter = 1;
+                   else
+                       solver.updateCounter = solver.updateCounter + 1;
+                   end
                end
            end
-           t_prepare = toc(timer);
+           t_basis = toc(timer) - t_prepare;
            [result, report] = solver.solveLinearSystem(A, b);
-           t_solve = toc(timer) - t_prepare;
+           t_solve = toc(timer) - t_prepare - t_basis;
            if doReduce
                s = E\(h - D*result);
                result = [result; s];
@@ -116,6 +122,7 @@ classdef MultiscaleVolumeSolverAD < LinearSolverAD
            [result, report] = problem.processResultAfterSolve(result, report);
            report.SolverTime = toc(timer);
            report.LinearSolutionTime = t_solve;
+           report.BasisTime = t_basis;
            report.preparationTime = t_prepare;
            report.postprocessTime = report.SolverTime - t_solve - t_prepare;
            dxCell = solver.storeIncrements(problem, result);
