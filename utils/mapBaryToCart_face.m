@@ -84,8 +84,8 @@ function [b2c, nSimplex, vol] = mapBaryToCart_face(G, cells, type)
                 for dNo = 1:G.griddim
                     R(:, dNo:G.griddim:end) = reshape(xn(:,dNo), G.griddim, []);
                 end
-                
-                nSimplex = diff(G.cells.facePos);
+
+                nSimplex = ones(numel(faces),1);
     
             else
                 

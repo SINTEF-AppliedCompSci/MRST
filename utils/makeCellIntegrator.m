@@ -38,82 +38,34 @@ function [x, w, nq, ii, jj, cellNo, faceNo] = makeCellIntegrator(G, cells, degre
             ncf = diff(G.cells.facePos);
             faces = faces(~ismember(faces, bf));
             
-            if G.griddim == 2
+            if degree <= 1
             
-                l2c = mapLineToCart(G, faces);
-                x = l2c(xr);
-
-                w  = repmat(w , numel(faces), 1);
-                w = w/2;
-                nct = 1;
-
-                
+                x = G.faces.centroids(faces,:);
+                nct = ones(numel(faces), 1);
+                    
             else
                 
-%                 ncf = ncf(cells);
-                
-                if degree <= 1
-
-                    x = G.faces.centroids(faces,:);
-%                     [ii, jj] = deal((1:numel(faces))');
-%                     cellNo = rldecode(cells, ncf, 1);
-%                     faceNo = faces;
-%                     vol = G.faces.areas(faces);
-%                     nq = repmat(nq, G.cells.num, 1);
-                      nct = 1;
-
-                else
-
-%                     [b2c, vol, nct] = mapBaryToCart(G, cells);
-                    [b2c, nct, vol] = mapBaryToCart_face(G, cells, 'surface');
-                    x = b2c(xr);
-
-%                     nq = nq*nct;
-
-%                     [ii, jj] = blockDiagIndex(ones(numel(cells), 1), nq);
-%                     cellNo = rldecode(cells, nq, 1);
-
-                end
-                
-%                 w = repmat(w , numel(faces), 1);
-                w = repmat(w , sum(nct), 1);
-%                 w = w/4;
+                [b2c, nct, vol] = mapBaryToCart_face(G, cells, 'surface');
+                x = b2c(xr);
                 
             end
-            
+                
+            w = repmat(w , sum(nct), 1);
             swap = G.faces.neighbors(faces,1) ~= rldecode(cells, ncf(cells) - ncbf(cells), 1);
 
             sign = 1 - 2*swap;
 
             sign = rldecode(sign, nct*nq, 1);
             vol = reshape(repmat(vol', nq, 1), [], 1);
-%             vol  = rldecode(vol, nct*nq, 1);
-%             sign = reshape(repmat(sign', nq, 1), [], 1);
-            
-%             w = repmat(w , numel(faces), 1);
-            %     sign = reshape(repmat(sign'.*G.faces.areas(faces)', nq, 1), [], 1);
+
             w = sign.*vol.*w;
                 
             if size(faces,1) == 1, faces = faces'; end
-%             faceNo = reshape(repmat(faces', nq, 1), [], 1);
             faceNo = rldecode(faces, nct*nq, 1);
+                
+            vv = rldecode((1:numel(cells))', ncf(cells) - ncbf(cells), 1);
+            nq = accumarray(vv, nct*nq);
 
-            
-            if G.griddim == 3 && degree > 1
-                
-                vv = rldecode((1:numel(cells))', ncf(cells) - ncbf(cells), 1);
-%                 vv(cells)
-%                 vv = rldecode((1:G.cells.num)', ncf(cells) - ncbf(cells), 1);
-%                 vv(cells)
-                nq = accumarray(vv, nct*nq);
-
-            else
-                
-                nq = (ncf(cells) - ncbf(cells))*nq;
-                
-            end
-            
-            
             [ii, jj] = blockDiagIndex(ones(numel(cells), 1), nq);
 
             cellNo = rldecode(cells, nq, 1);

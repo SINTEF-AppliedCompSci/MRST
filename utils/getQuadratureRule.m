@@ -24,6 +24,10 @@ function [x, w, nq] = getQuadratureRule(degree, dim)
             end
             
             w = 2./((1 - x.^2).*dl(x).^2);
+            
+            x = (x + 1)/2;
+            x = [x, 1-x];
+            w = w/2;
 
         case 2
             

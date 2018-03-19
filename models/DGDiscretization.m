@@ -240,12 +240,6 @@ classdef DGDiscretization < HyperbolicDiscretization% < WENODiscretization
             nDof = state.nDof;
             nDofMax = disc.basis.nDof;
             
-%             [x, w, nq, ii, jj, cellNo] = makeCellIntegrator(G, cells, max(disc.degree+1), 'volume');
-%             W = sparse(ii, jj, w);
-            
-            
-%             I = integrand(zeros(numel(cells)*nDofMax,disc.dim), ones(numel(cells)*nDofMax, 1), 1);
-            
             I = double2ADI(zeros(sum(nDof),1), ...
                            integrand(zeros(sum(nDof),disc.dim), ones(sum(nDof), 1), 1, ones(1, disc.dim) ));
             
@@ -329,18 +323,9 @@ classdef DGDiscretization < HyperbolicDiscretization% < WENODiscretization
             nDof    = state.nDof;
             nDofMax = disc.basis.nDof;
 
-%             [x, w, nq, ii, jj, cellNo, faceNo] = makeFaceIntegrator(G, cells, max(disc.degree+1));
-%             W = sparse(ii, jj, w);
-
             upCells_v = G.faces.neighbors(:,2);
             intf      = find(disc.internalConn);
             upCells_v(intf(upc)) = disc.N(upc,1);
-%             upCells_v = upCells_v(faceNo);    
-%             upCells_G = upCells_v;
-            
-%             [x_c, ~, ~] = disc.transformCoords(x, cellNo);
-%             [x_v, ~, ~] = disc.transformCoords(x, upCells_v);
-%             [x_G, ~, ~] = disc.transformCoords(x, upCells_G);
             
             x0       = zeros(sum(nDof), disc.dim);
             [c0, f0] = deal(ones(sum(nDof), 1));
@@ -353,8 +338,7 @@ classdef DGDiscretization < HyperbolicDiscretization% < WENODiscretization
                 if any(keepCells)
                     
                     ix = disc.getDofIx(state, dofNo, cells(keepCells)');
-
-%                     [x, w, nq, ii, jj, cellNo, faceNo] = makeFaceIntegrator(G, cells(keepCells), max(disc.degree+1));
+                    
                     [x, w, nq, ii, jj, cellNo, faceNo] = makeCellIntegrator(G, cells(keepCells), max(disc.degree+1), 'surface');
                     W = sparse(ii, jj, w);
 
