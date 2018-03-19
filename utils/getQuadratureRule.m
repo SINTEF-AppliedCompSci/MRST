@@ -25,7 +25,6 @@ function [x, w, nq] = getQuadratureRule(degree, dim)
             
             w = 2./((1 - x.^2).*dl(x).^2);
 
-            
         case 2
             
             if degree <= 1

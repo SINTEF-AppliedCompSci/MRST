@@ -247,7 +247,7 @@ classdef DGDiscretization < HyperbolicDiscretization% < WENODiscretization
 %             I = integrand(zeros(numel(cells)*nDofMax,disc.dim), ones(numel(cells)*nDofMax, 1), 1);
             
             I = double2ADI(zeros(sum(nDof),1), ...
-                           integrand(zeros(sum(nDof),disc.dim), ones(sum(nDof), 1), 1, [1,1]));
+                           integrand(zeros(sum(nDof),disc.dim), ones(sum(nDof), 1), 1, ones(1, disc.dim) ));
             
             for dofNo = 1:nDofMax
                 

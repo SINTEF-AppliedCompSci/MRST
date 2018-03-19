@@ -119,19 +119,16 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     
     
     flux2 = @(xc, xv, xg, c, cv, cg, f, psi) ...
-        (bW(cg).*fW(xv, cv).*vT(f) ...
+        (bW(cg).*fW(xv, cv).*vT(f)./G.faces.areas(f) ...
        + bO(cg).*fW(xg, cg).*mobO(xg,cg).*(Gw(f) - Go(f))).*psi;
 
 %     flux2 = disc.faceIntDiv(integrand, (1:G.cells.num)', upcW, state);
     faceIntegral = disc.faceIntDiv(flux2, (1:G.cells.num)', upcW, state);
   
     % Water equation-------------------------------------------------------
-    
-%     flux  = flux1 + flux2;
-%     water = acc   + flux;
+
     water = cellIntegral + faceIntegral;
-     
-    
+
     % Well contributions---------------------------------------------------
     
     if ~isempty(W)

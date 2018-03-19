@@ -1,5 +1,6 @@
 function [b2c, nct, vol] = mapBaryToCart(G, cells)
 
+    
     faces = G.cells.faces(mcolon(G.cells.facePos(cells), G.cells.facePos(cells+1)-1));
     if G.griddim == 2
         edges = faces;
