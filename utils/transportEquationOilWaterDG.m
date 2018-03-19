@@ -88,10 +88,12 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
         pvMult0 = repmat(pvMult0, G.cells.num,1);
     end
     
+    
+%     acc = @(sW, sW0, c, psi) (pvMult (c).*rock.poro(c).*bW (c).*sW - ...
+%                               pvMult0(c).*rock.poro(c).*bW0(c).*sW0).*psi/dt;
+    
     acc = @(x,c,psi) (pvMult (c).*rock.poro(c).*bW (c).*sW (x,c) - ...
                             pvMult0(c).*rock.poro(c).*bW0(c).*sW0(x,c)).*psi/dt;
-                   
-%     acc = disc.cellInt(acc, (1:G.cells.num)', state);
     
     % Flux term------------------------------------------------------------
     
@@ -108,9 +110,12 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     Goc = faceFlux2cellVelocity(G, Go);
 
     fW = @(x,c) mobW(x,c)./(mobW(x,c) + mobO(x,c));
-    
+
     flux1 = @(x,c,grad_psi) bW(c).*fW(x, c).*sum(vTc(c,:).*grad_psi,2) ...
-                              + bO(c).*fW(x, c).*sum((Gwc(c,:) - Goc(c,:)).*grad_psi,2);
+                 + bO(c).*fW(x, c).*sum((Gwc(c,:) - Goc(c,:)).*grad_psi,2);
+    
+%     flux1 = @(x,c,grad_psi) bW(c).*fW(x, c).*sum(vTc(c,:).*grad_psi,2) ...
+%                               + bO(c).*fW(x, c).*sum((Gwc(c,:) - Goc(c,:)).*grad_psi,2);
                           
     cellIntegral = disc.cellInt(@(x,c,psi,grad_psi) acc(x,c,psi) - flux1(x,c,grad_psi), (1:G.cells.num)', state);
     

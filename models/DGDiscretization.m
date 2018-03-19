@@ -188,26 +188,11 @@ classdef DGDiscretization < HyperbolicDiscretization% < WENODiscretization
             nDofMax = disc.basis.nDof;
             
             ix = disc.getDofIx(state, 1, cells);
-%             s = double2ADI(zeros(numel(cells), 1), dof(ix));
-            s = dof(ix).*0;
+            s = dof(ix);
             for dofNo = 1:nDofMax
                 keep = nDof(cells) >= dofNo;
-                ix = disc.getDofIx(state, dofNo, cells(keep));
-                
-%                 dof_tmp = dof(ix);
-%                 p = psi{dofNo}(x(keep,:));
-%                 s_tmp = dof_tmp.*p;
-%                 
-%                 if nnz(keep) == size(double(s))
-%                     s = s + s_tmp;
-%                 else
-%                     s(keep) = s(keep) + s_tmp;
-%                 end                
-                
+                ix = disc.getDofIx(state, dofNo, cells(keep));              
                 s(keep) = s(keep) + dof(ix).*psi{dofNo}(x(keep,:));
-                
-%                 ix = disc.getDofIx(state, dofNo, cells);
-%                 s = s + dof(ix).*psi{dofNo}(x).*keep;
             end
             
         end
