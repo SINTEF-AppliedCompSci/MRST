@@ -2,6 +2,8 @@ mrstModule add spe10 vem vemmech dg ad-core ad-props ad-blackoil blackoil-sequen
 
 %%
 
+gravity reset off
+
 [state0, model, schedule]  = setupSPE10_AD('layers', 10);
 G = model.G;
 rock = model.rock;
@@ -12,10 +14,10 @@ G = computeVEMGeometry(G);
 G = computeCellDimensions(G);
 rock.perm = model.rock.perm(:, 1:2);
 fluid = model.fluid;
-fluid = initSimpleADIFluid('phases', 'WO'                   , ...
-                           'rho'   , [1000, 800]*kilogram/meter^3, ...
-                           'mu'    , [0.5, 0.5]*centi*poise     , ...
-                           'n'     , [1, 1]                 );
+% fluid = initSimpleADIFluid('phases', 'WO'                   , ...
+%                            'rho'   , [1000, 800]*kilogram/meter^3, ...
+%                            'mu'    , [0.5, 0.5]*centi*poise     , ...
+%                            'n'     , [1, 1]                 );
 
 model = TwoPhaseOilWaterModel(G, rock, fluid);
 
@@ -23,15 +25,20 @@ modelFV = getSequentialModelFromFI(model);
 modelDG = modelFV;
 modelDG.transportModel = TransportOilWaterModelDG(G, rock, fluid);
 % modelDG.transportModel.AutoDiffBackend = DiagonalAutoDiffBackend();
-disc = DGDiscretization(modelDG.transportModel, 2, 'degree', 1, 'basis', 'legendre');
+disc = DGDiscretization(modelDG.transportModel, G.griddim, 'degree', 1, 'basis', 'legendre');
 
 modelDG.transportModel.disc = disc;
 
+% state0 = initResSol(G, 100*barsa, [0,1]);
 state0.s = repmat([0,1], G.cells.num,1);
 state0 = disc.assignDofFromState(state0);
 
 %%
 
+% subschedule = schedule;
+% ix = 1:numel(schedule.step.val);
+% subschedule.step.val = subschedule.step.val(ix);
+% subschedule.step.control = subschedule.step.control(ix);
 [wsDG, statesDG, rep] = simulateScheduleAD(state0, modelDG, schedule);
 
 %%
