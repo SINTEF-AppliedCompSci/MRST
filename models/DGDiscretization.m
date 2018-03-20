@@ -171,7 +171,7 @@ classdef DGDiscretization < HyperbolicDiscretization
             nDofMax = disc.basis.nDof;
             
             ix = disc.getDofIx(state, 1, cells);
-            s = dof(ix);
+            s = dof(ix).*0;
             for dofNo = 1:nDofMax
                 keep = nDof(cells) >= dofNo;
                 ix = disc.getDofIx(state, dofNo, cells(keep));              
