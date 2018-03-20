@@ -2,7 +2,7 @@ mrstModule add vem dg vemmech ad-props ad-core ad-blackoil blackoil-sequential g
 
 %%
 
-n = 100;
+n = 50;
 l = 1000;
 G = computeGeometry(cartGrid([n,1], [l,10]*meter));
 G = computeVEMGeometry(G);
@@ -27,7 +27,7 @@ W = addWell(W, G, rock, 1          , 'type', 'rate', 'val', rate    , 'comp_i', 
 % W = addWell(W, G, rock, 1          , 'type', 'bhp', 'val', 2000*barsa, 'comp_i', [1,0]);
 W = addWell(W, G, rock, G.cells.num, 'type', 'bhp' , 'val', 50*barsa, 'comp_i', [1,0]);
 
-dt    = 5*day;
+dt    = 15*day;
 dtvec = rampupTimesteps(time, dt, 0);
 
 schedule = simpleSchedule(dtvec, 'W', W);
@@ -37,7 +37,7 @@ state0 = initResSol(G, 100*barsa, [sW,1-sW]);
 
 %%
 
-degree = [1,2];
+degree = [0, 1, 2];
 [wsDG, statesDG] = deal(cell(numel(degree),1));
 for dNo = 1:numel(degree)
     disc    = DGDiscretization(modelDG.transportModel, 1, 'degree', degree(dNo), 'basis', 'legendre');%, 'limiter', 'none');

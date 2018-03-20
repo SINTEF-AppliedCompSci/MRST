@@ -26,11 +26,6 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
         state.degree = repmat(disc.degree, G.cells.num, 1);
         state        = disc.mapDofs(state, state0);
         
-%         state0_tmp = state0;
-%         state0.degree = repmat(disc.degree, G.cells.num, 1);
-%         state0        = disc.mapDofs(state0, state0_tmp);
-        
-        
     end
     state = disc.updateDisc(state);
     
@@ -60,10 +55,6 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     % ---------------------------------------------------------------------
 
     primaryVars = {'sWdof'};
-    
-%     nDof    = disc.getnDof();
-
-%     nDof = disc.nDof;
     nDof = state.nDof;
     
     % Express sW and sW0 in basis
@@ -89,11 +80,8 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     end
     
     
-%     acc = @(sW, sW0, c, psi) (pvMult (c).*rock.poro(c).*bW (c).*sW - ...
-%                               pvMult0(c).*rock.poro(c).*bW0(c).*sW0).*psi/dt;
-    
-    acc = @(x,c,psi) (pvMult (c).*rock.poro(c).*bW (c).*sW (x,c) - ...
-                            pvMult0(c).*rock.poro(c).*bW0(c).*sW0(x,c)).*psi/dt;
+    acc = @(sW, sW0, c, psi) (pvMult (c).*rock.poro(c).*bW (c).*sW - ...
+                              pvMult0(c).*rock.poro(c).*bW0(c).*sW0).*psi/dt;
     
     % Flux term------------------------------------------------------------
     
@@ -109,26 +97,19 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     Gwc = faceFlux2cellVelocity(G, Gw);
     Goc = faceFlux2cellVelocity(G, Go);
 
-    fW = @(x,c) mobW(x,c)./(mobW(x,c) + mobO(x,c));
+    fW = @(sW, c) mobW(sW, c)./(mobW(sW, c) + mobO(1-sW, c));
 
-    flux1 = @(x,c,grad_psi) bW(c).*fW(x, c).*sum(vTc(c,:).*grad_psi,2) ...
-                 + bO(c).*fW(x, c).*sum((Gwc(c,:) - Goc(c,:)).*grad_psi,2);
-    
-%     flux1 = @(x,c,grad_psi) bW(c).*fW(x, c).*sum(vTc(c,:).*grad_psi,2) ...
-%                               + bO(c).*fW(x, c).*sum((Gwc(c,:) - Goc(c,:)).*grad_psi,2);
-                          
-    cellIntegral = disc.cellInt(@(x,c,psi,grad_psi) acc(x,c,psi) - flux1(x,c,grad_psi), (1:G.cells.num)', state);
-    
-%     flux1 = -disc.cellIntDiv(flux1, (1:G.cells.num)', state);
-    
-    
-    
-    flux2 = @(xc, xv, xg, c, cv, cg, f, psi) ...
-        (bW(cg).*fW(xv, cv).*vT(f)./G.faces.areas(f) ...
-       + bO(cg).*fW(xg, cg).*mobO(xg,cg).*(Gw(f) - Go(f))).*psi;
+    flux1 = @(sW,c,grad_psi) bW(c).*fW(sW, c).*sum(vTc(c,:).*grad_psi,2) ...
+                 + bO(c).*fW(sW, c).*sum((Gwc(c,:) - Goc(c,:)).*grad_psi,2);
 
-%     flux2 = disc.faceIntDiv(integrand, (1:G.cells.num)', upcW, state);
-    faceIntegral = disc.faceIntDiv(flux2, (1:G.cells.num)', upcW, state);
+    cellIntegral = disc.cellInt(@(sW, sW0, c, psi, grad_psi) ...
+        acc(sW, sW0, c, psi) - flux1(sW,c,grad_psi), (1:G.cells.num)', sWdof, sWdof0, state, state0);
+
+    flux2 = @(sWc, sWv, sWg, c, cv, cg, f, psi) ...
+        (bW(cg).*fW(sWv, cv).*vT(f)./G.faces.areas(f) ...
+       + bO(cg).*fW(sWg, cg).*mobO(sWg,cg).*(Gw(f) - Go(f))).*psi;
+
+    faceIntegral = disc.faceIntDiv(flux2, (1:G.cells.num)', upcW, sWdof, state);
   
     % Water equation-------------------------------------------------------
 
@@ -147,14 +128,12 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
         compWell = vertcat(W.compi);
         compPerf = zeros(G.cells.num, 2);
         compPerf(wc,:) = compWell(perf2well,:);
-        
-        integrand = @(x, c, psi, grad_psi) ...
-            bW(c).*wflux(c).*(fW(x, c)     .*(~isInj(c)) ...
+
+        integrand = @(sW, sW0, c, psi, grad_psi) ...
+            bW(c).*wflux(c).*(fW(sW, c)     .*(~isInj(c)) ...
                             + compPerf(c,1).*( isInj(c))).*psi;
         
-        prod = disc.cellInt(integrand, wc, state);
-        
-%         vol = reshape(repmat(G.cells.volumes(wc)', nDofMax, 1), [], 1);
+        prod = disc.cellInt(integrand, wc, sWdof, sWdof0, state, state0);
         
         vol = rldecode(G.cells.volumes(wc), nDof(wc), 1);
         

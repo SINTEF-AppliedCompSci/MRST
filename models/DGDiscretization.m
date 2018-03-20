@@ -1,37 +1,26 @@
-classdef DGDiscretization < HyperbolicDiscretization% < WENODiscretization
+classdef DGDiscretization < HyperbolicDiscretization
     
     properties
-%         G
+
         dim
         degree
         basis
-%         dofPos
-%         nDof
-%         state
-%         limiter
-%         cellIntegrator
-%         faceIntegrator
+        
     end
     
     methods
+        
         %-----------------------------------------------------------------%
         function disc = DGDiscretization(model, dim, varargin)
             
-%             disc = disc@WENODiscretization(model, dim, 'interpolateReference', false);
             disc = disc@HyperbolicDiscretization(model);
             
-%             disc.G = model.G;
-            disc.dim = dim;
-            
+            disc.dim    = dim;
             disc.degree = 1;
             disc.basis  = 'legendre';
             disc        = merge_options(disc, varargin{:});
             
             disc.basis  = dgBasis(dim, disc.degree, disc.basis);
-%             disc.degree = repmat(disc.degree, disc.G.cells.num, 1);
-%             [~, disc]        = disc.updateDisc();
-            
-%             disc.dofPos = reshape((1:disc.G.cells.num*disc.basis.nDof)', disc.basis.nDof, []);
             
         end
         
@@ -39,10 +28,7 @@ classdef DGDiscretization < HyperbolicDiscretization% < WENODiscretization
         function state = assignDofFromState(disc, state)
 
             state.degree = repmat(disc.degree, disc.G.cells.num, 1);
-            
-%             if ~isfield(state, 'dofPos')
-                state = disc.updateDisc(state);
-%             end
+            state = disc.updateDisc(state);
             
             state.nDof = disc.getnDof(state);
             sdof = zeros(sum(state.nDof), size(state.s,2));
@@ -141,9 +127,6 @@ classdef DGDiscretization < HyperbolicDiscretization% < WENODiscretization
             if ~includezero
                 ix(ix == 0) = [];
             end
-%             else
-%                 ix(ix == 0) = 1;
-%             end
               
         end
         
@@ -217,7 +200,7 @@ classdef DGDiscretization < HyperbolicDiscretization% < WENODiscretization
         end
         
         %-----------------------------------------------------------------%
-        function I = cellInt(disc, integrand, cells, state)
+        function I = cellInt(disc, integrand, cells, sdof, sdof0, state, state0)
         
             G    = disc.G;
             psi  = disc.basis.psi;
@@ -225,8 +208,14 @@ classdef DGDiscretization < HyperbolicDiscretization% < WENODiscretization
             nDof = state.nDof;
             nDofMax = disc.basis.nDof;
             
-            I = double2ADI(zeros(sum(nDof),1), ...
-                           integrand(zeros(sum(nDof),disc.dim), ones(sum(nDof), 1), 1, ones(1, disc.dim) ));
+            [x, w, nq, ii, jj, cellNo] = makeCellIntegrator(G, cells, max(disc.degree+1), 'volume');
+            W = sparse(ii, jj, w);
+            
+            [x, ~, scaling] = disc.transformCoords(x, cellNo);
+            s  = disc.evaluateSaturation(x, cellNo , sdof , state );
+            s0 = disc.evaluateSaturation(x, cellNo, sdof0, state0);
+            
+            I = integrand(sdof, sdof, 1, 1, ones(1, disc.dim)).*0;
             
             for dofNo = 1:nDofMax
                 
@@ -235,18 +224,8 @@ classdef DGDiscretization < HyperbolicDiscretization% < WENODiscretization
                 if any(keepCells)
                 
                     ix = disc.getDofIx(state, dofNo, cells(keepCells));
-
-                    [x, w, nq, ii, jj, cellNo] = makeCellIntegrator(G, cells(keepCells), max(disc.degree+1), 'volume');
-                    W = sparse(ii, jj, w);
-                    [x, ~, scaling] = disc.transformCoords(x, cellNo);
-
-                    p  = psi{dofNo}(x);
-                    gp = grad_psi{dofNo}(x).*scaling;
-                    
-%                     s  = disc.evaluateSaturation(x, cells(keepCells) , sdof , state );
-%                     s0 = disc.evaluateSaturation(x, cells(keepCells)), sdof0, state0);
-                    
-                    I(ix) = W*integrand(x, cellNo, p, gp);
+                    i  = W*integrand(s, s0, cellNo, psi{dofNo}(x), grad_psi{dofNo}(x).*scaling);
+                    I(ix) = i(keepCells);
                     
                 elseif numel(cells) == disc.G.cells.num
                     
@@ -261,47 +240,7 @@ classdef DGDiscretization < HyperbolicDiscretization% < WENODiscretization
         end
         
         %-----------------------------------------------------------------%
-        function I = cellIntDiv(disc, integrand, cells, state)
-            
-            G        = disc.G;
-            grad_psi = disc.basis.grad_psi;
-            nDof     = state.nDof;
-            nDofMax  = disc.basis.nDof;
-            
-%             [x, w, nq, ii, jj, cellNo] = makeCellIntegrator(G, cells, max(disc.degree+1));
-%             W = sparse(ii, jj, w);
-            
-            I = double2ADI(zeros(sum(nDof),1), ...
-                           integrand(zeros(sum(nDof),disc.dim), ones(sum(nDof), 1), 1));
-            for dofNo = 1:nDofMax
-                
-                keepCells = nDof(cells) >= dofNo;
-                
-                if any(keepCells)
-                    
-                    ix = disc.getDofIx(state, dofNo, cells(keepCells));
-
-                    [x, w, nq, ii, jj, cellNo] = makeCellIntegrator(G, cells(keepCells), max(disc.degree+1), 'volume');
-                    W = sparse(ii, jj, w);
-                    [x, ~, scaling] = disc.transformCoords(x, cellNo);
-
-                    gp = grad_psi{dofNo}(x).*scaling;
-                    I(ix) = W*integrand(x, cellNo, gp);
-                    
-                elseif numel(cells) == disc.G.cells.num
-                    
-                    warning('No cells with %d dofs', dofNo);
-                    
-                end
-                    
-            end
-            
-            I = disc.trimValues(I);
-            
-        end
-        
-        %-----------------------------------------------------------------%
-        function I = faceIntDiv(disc, integrand, cells, upc, state)
+        function I = faceIntDiv(disc, integrand, cells, upc, sdof, state)
             
             G       = disc.G;
             psi     = disc.basis.psi;
@@ -312,10 +251,22 @@ classdef DGDiscretization < HyperbolicDiscretization% < WENODiscretization
             intf      = find(disc.internalConn);
             upCells_v(intf(upc)) = disc.N(upc,1);
             
-            x0       = zeros(sum(nDof), disc.dim);
-            [c0, f0] = deal(ones(sum(nDof), 1));
-            I = double2ADI(zeros(sum(nDof),1), ...
-                           integrand(x0, x0, x0, c0, c0, c0, f0, 1));
+            [x, w, nq, ii, jj, cellNo, faceNo] = makeCellIntegrator(G, cells, max(disc.degree+1), 'surface');
+            W = sparse(ii, jj, w);
+
+            upCells_vtmp = upCells_v(faceNo);
+            upCells_G = upCells_vtmp;
+            
+            [x_c, ~, ~] = disc.transformCoords(x, cellNo);
+            [x_v, ~, ~] = disc.transformCoords(x, upCells_vtmp);
+            [x_G, ~, ~] = disc.transformCoords(x, upCells_G);
+                    
+            s_c = disc.evaluateSaturation(x_c, cellNo, sdof, state);
+            s_v = disc.evaluateSaturation(x_v, upCells_vtmp, sdof, state);
+            s_G = disc.evaluateSaturation(x_G, upCells_G, sdof, state);
+
+            I = integrand(sdof, sdof, sdof, 1, 1, 1, 1, 1).*0;
+            
             for dofNo = 1:nDofMax
                 
                 keepCells = nDof(cells) >= dofNo;
@@ -323,19 +274,8 @@ classdef DGDiscretization < HyperbolicDiscretization% < WENODiscretization
                 if any(keepCells)
                     
                     ix = disc.getDofIx(state, dofNo, cells(keepCells)');
-                    
-                    [x, w, nq, ii, jj, cellNo, faceNo] = makeCellIntegrator(G, cells(keepCells), max(disc.degree+1), 'surface');
-                    W = sparse(ii, jj, w);
-
-                    upCells_vtmp = upCells_v(faceNo);
-                    upCells_G = upCells_vtmp;
-
-                    [x_c, ~, ~] = disc.transformCoords(x, cellNo);
-                    [x_v, ~, ~] = disc.transformCoords(x, upCells_vtmp);
-                    [x_G, ~, ~] = disc.transformCoords(x, upCells_G);
-
-                    p = psi{dofNo}(x_c);
-                    I(ix) = W*(integrand(x_c, x_v, x_G, cellNo, upCells_vtmp, upCells_G, faceNo, p));
+                    i  = W*integrand(s_c, s_v, s_G, cellNo, upCells_vtmp, upCells_G, faceNo, psi{dofNo}(x_c));
+                    I(ix) = i(keepCells);
                     
                 elseif numel(cells) == disc.G.cells.num
                     
@@ -416,6 +356,7 @@ classdef DGDiscretization < HyperbolicDiscretization% < WENODiscretization
             jump = disc.getInterfaceJumps(state);
             
             tol = 1e-4;
+            tol = 0;
             over  = smax > 1 + tol;
             under = smin < 0 - tol;
             

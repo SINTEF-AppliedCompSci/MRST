@@ -42,6 +42,7 @@ function [x, w, nq, ii, jj, cellNo, faceNo] = makeCellIntegrator(G, cells, degre
             
                 x = G.faces.centroids(faces,:);
                 nct = ones(numel(faces), 1);
+                vol = G.faces.areas(faces);
                     
             else
                 
