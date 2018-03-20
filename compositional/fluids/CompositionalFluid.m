@@ -46,6 +46,20 @@ classdef CompositionalFluid
         function fluid = setBinaryInteraction(fluid, input)
             % Set BIC via a matrix. Must be symmetric and ncomp by ncomp
             ncomp = fluid.getNumberOfComponents();
+            
+            if isvector(input)
+                n_el = ncomp*(ncomp-1)/2;
+                assert(numel(input) == n_el);
+                
+                tmp = zeros(ncomp, ncomp);
+                offset = 0;
+                for i = 2:ncomp
+                    cts = i-1;
+                    tmp(i, 1:i-1) = input(offset + (1:cts));
+                    offset = offset + cts;
+                end
+                input = tmp + tmp';
+            end
             assert(size(input, 1) == ncomp)
             assert(size(input, 1) == size(input, 2));
             assert(all(all(input == input')));
