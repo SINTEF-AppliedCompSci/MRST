@@ -1,4 +1,4 @@
-function [L, x, y, Z_L, Z_V] = standaloneFlash(p, T, z, EOSModel)
+function [L, x, y, Z_L, Z_V, rhoL, rhoV] = standaloneFlash(p, T, z, EOSModel)
 % Utility for flashing without explicitly forming a state
 %
 % SYNOPSIS:
@@ -50,4 +50,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     y = state.y;
     Z_L = state.Z_L;
     Z_V = state.Z_V;
+    
+    rhoL = EOSModel.PropertyModel.computeDensity(p, x, Z_L, T, true);
+    rhoV = EOSModel.PropertyModel.computeDensity(p, y, Z_V, T, false);
 end
