@@ -23,8 +23,17 @@ classdef DGDiscretization < HyperbolicDiscretization
             disc        = merge_options(disc, varargin{:});
             
             disc.basis  = dgBasis(dim, disc.degree, disc.basis);
-            disc.volumeCubature = makeCubature(disc, 'volume');
-            disc.surfaceCubature = makeCubature(disc, 'surface');
+%             disc.volumeCubature = makeCubature(disc, 'volume');
+%             disc.surfaceCubature = makeCubature(disc, 'surface');
+            
+            if disc.degree == 0
+                disc.volumeCubature = UnstructCubature(disc.G, disc.degree + 1);
+            else
+                disc.volumeCubature  = TriangleCubature(disc.G, disc.degree + 1);
+            end
+            disc.surfaceCubature = LineCubature(disc.G, disc.degree + 1);
+%             disc.surfaceCubature = makeCubature(disc, 'surface');
+            
             
         end
         
@@ -100,6 +109,7 @@ classdef DGDiscretization < HyperbolicDiscretization
         function v = trimValues(disc, v)
             
             tol = eps(mean(disc.G.cells.volumes));
+            tol = -inf;
 %             tol = 1e-7;
             ix = abs(v) < tol;
             if isa(v, 'ADI')
@@ -219,7 +229,8 @@ classdef DGDiscretization < HyperbolicDiscretization
 %             W = sparse(ii, jj, w);
             
 %             [x, w, nq, ii, jj, cellNo] = makeCubature(disc, cells);x
-            [x, w, ii, jj, cellNo] = disc.getCubature(cells);
+            [x, w, ii, jj, cellNo] = disc.getCubature(cells, 'volume');
+            
             W = sparse(ii, jj, w);
             [x, ~, scaling] = disc.transformCoords(x, cellNo);
             
@@ -263,8 +274,10 @@ classdef DGDiscretization < HyperbolicDiscretization
             upCells_v = G.faces.neighbors(:,2);
             intf      = find(disc.internalConn);
             upCells_v(intf(upc)) = disc.N(upc,1);
+                
+            [x, w, ii, jj, cellNo, faceNo] = disc.getCubature(cells, 'surface');
             
-            [x, w, nq, ii, jj, cellNo, faceNo] = makeCellIntegrator(G, cells, max(disc.degree+1), 'surface');
+%             [x, w, nq, ii, jj, cellNo, faceNo] = makeCellIntegrator(G, cells, max(disc.degree+1), 'surface');
             W = sparse(ii, jj, w);
             
             upCells_vtmp = upCells_v(faceNo);
@@ -303,18 +316,46 @@ classdef DGDiscretization < HyperbolicDiscretization
         end
         
         %-----------------------------------------------------------------%
-        function [x, w, ii, jj, cellNo] = getCubature(disc, cells)
+        function [x, w, ii, jj, cellNo, faceNo] = getCubature(disc, cells, type)
             
-            cubature = disc.volumeCubature;
-            nq = cubature.nq;
+            if size(cells,1) == 1, cells = cells'; end
             
-            ix = mcolon((cells-1)*nq + 1, cells*nq);
-            w = cubature.w(ix);
-            x = cubature.x(ix,:);
-            cellNo = rldecode(cells, nq, 1);
+            switch type
+                case 'volume'
+                    
+                    cubature = disc.volumeCubature;
+                    ix = mcolon(cubature.parentPos(cells), cubature.parentPos(cells+1)-1);
+                    
+                    nq = diff(cubature.parentPos);
+                    nq = nq(cells);
+                    
+                    cellNo = rldecode(cells, nq, 1);
+                    faceNo = [];
+                    sign   = ones(numel(ix),1);
+                    
+                case 'surface'
+                    
+                    cubature = disc.surfaceCubature;
+                    G = disc.G;
+                    faces = G.cells.faces(mcolon(G.cells.facePos(cells), G.cells.facePos(cells+1)-1));
+                    ncf = accumarray(rldecode((1:G.cells.num)', diff(G.cells.facePos), 1), disc.internalConn(faces));
+                    faces = faces(disc.internalConn(faces));
+                    if size(faces,1) == 1, faces = faces'; end
+                    ix = mcolon(cubature.parentPos(faces), cubature.parentPos(faces+1)-1);
+                    
+                    nqf = diff(cubature.parentPos);
+                    nq = accumarray(rldecode(cells, ncf(cells), 1), nqf(faces));
+                    
+                    cellNo = rldecode(cells, nq);
+                    faceNo = rldecode(faces, nqf(faces), 1);
+                    sign   = 1 - 2*(G.faces.neighbors(faceNo,1) ~= cellNo);
+                    
+            end
             
-            [ii, jj] = blockDiagIndex(ones(numel(cells),1), nq*ones(numel(cells), 1));
-            
+            x = cubature.points(ix, :);
+            w = cubature.weights(ix).*sign;
+            [ii, jj] = blockDiagIndex(ones(numel(cells),1), nq);
+                        
         end
         
         %-----------------------------------------------------------------%
@@ -491,7 +532,8 @@ classdef DGDiscretization < HyperbolicDiscretization
                 
             end
                 
-            s = disc.evaluateSaturation(xk, cellNo, state.sdof);
+            cellNo = repmat(cellNo, size(xk,1), 1);
+            s = disc.evaluateSaturation(xk, cellNo, state.sdof, state);
             
             if disc.dim > 1
                 s = scatteredInterpolant(xk, s);

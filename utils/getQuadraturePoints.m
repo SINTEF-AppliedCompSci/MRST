@@ -30,7 +30,7 @@ function x = getQuadraturePoints(degree, dim)
 
                 x = [-a -a;
                       0  a;
-                      a  a];
+                      a  -a];
 
             elseif degree == 3
 
