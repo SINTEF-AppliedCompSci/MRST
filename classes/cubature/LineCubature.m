@@ -9,9 +9,9 @@ classdef LineCubature < Cubature
     
     methods
         
-        function cub = LineCubature(G, prescision)
+        function cub = LineCubature(G, prescision, internalConn)
             
-            cub = cub@Cubature(G, prescision);
+            cub = cub@Cubature(G, prescision, internalConn);
             [x, w, n, linNo] = cub.makeCubature();
             cub.points = x;
             cub.weights = w;

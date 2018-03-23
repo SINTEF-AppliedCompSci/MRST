@@ -10,14 +10,15 @@ classdef TriangleCubature < Cubature
     
     methods
         
-        function cub = TriangleCubature(G, prescision)
+        function cub = TriangleCubature(G, prescision, internalConn)
             
-            cub = cub@Cubature(G, prescision);
+            cub = cub@Cubature(G, prescision, internalConn);
             cub.triangulation = cub.getTriangulation(G);
             [x, w, n] = cub.makeCubature();
             cub.points = x;
             cub.weights = w;
             cub.numPoints = n;
+            cub.dim = 2;
             
             cub.parentPos = [0; cumsum(cub.triangulation.nTri*cub.numPoints)] + 1;
             
@@ -167,8 +168,11 @@ classdef TriangleCubature < Cubature
             vec1 = x(ind(:,1),:)  - x(ind(:,2),:);
             vec2 = x(ind(:,1),:)  - x(ind(:,3),:);
             
-            areas = abs(vec1(:,1).*vec2(:,2) - vec1(:,2).*vec2(:,1))/2;
-            
+            if cub.G.griddim == 2
+                areas = abs(vec1(:,1).*vec2(:,2) - vec1(:,2).*vec2(:,1))/2;
+            else
+                areas = sqrt(sum(cross(vec1, vec2, 2).^2, 2))/2;
+            end
             
         end
         
