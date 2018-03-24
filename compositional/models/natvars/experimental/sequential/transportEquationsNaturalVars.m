@@ -279,8 +279,10 @@ else
     vG = F_g.*(vT + T.*mobOf.*(Gg - Go));
     rOvO = rhoOf.*vO;
     rGvG = rhoGf.*vG;
+    vW = [];
 end
 
+state = model.storeFluxes(state, vW, vO, vG);
 % rOvO = s.faceUpstr(upco, sT).*rOvO;
 % rGvG = s.faceUpstr(upcg, sT).*rGvG;
 
@@ -290,18 +292,20 @@ if isfield(fluid, 'pvMultR')
     pv = pv.*fluid.pvMultR(p);
     pv0 = pv0.*fluid.pvMultR(p0);
 end
-
+% compFlux = zeros(size(model.operators.N, 1), ncomp);
 
 % water equation + n component equations
 [eqs, types, names] = deal(cell(1, 2*ncomp + model.water));
 for i = 1:ncomp
     names{i} = compFluid.names{i};
     types{i} = 'cell';
-      
+    
+    vi = s.Div(rOvO.*s.faceUpstr(upco, xM{i}) + rGvG.*s.faceUpstr(upcg, yM{i}));
     eqs{i} = (1/dt).*( ...
                     pv.*rhoO.*sO.*xM{i} - pv0.*rhoO0.*sO0.*xM0{i} + ...
-                    pv.*rhoG.*sG.*yM{i} - pv0.*rhoG0.*sG0.*yM0{i}) ...
-          + s.Div(rOvO.*s.faceUpstr(upco, xM{i}) + rGvG.*s.faceUpstr(upcg, yM{i}));
+                    pv.*rhoG.*sG.*yM{i} - pv0.*rhoG0.*sG0.*yM0{i});
+      
+%       compFlux(:, i) = double(vi);
 end
 if model.water
     wix = ncomp+1;
