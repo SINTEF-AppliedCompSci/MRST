@@ -106,7 +106,6 @@ for i = 1:nPh
     totMob = totMob + cellToBCMap*mob{i};
 end
 
-rhoS = model.getSurfaceDensities();
 for i = 1:nPh
     if isa(totMob, 'ADI')
         sample = totMob;
@@ -129,32 +128,34 @@ for i = 1:nPh
         sat(noSat, i) = sBC(noSat);
     end
     
-    % Treat pressure BC
-    dP = bc.value(isP) - pBC(isP) + rhoBC(isP).*dzbc(isP);
+    if any(isP)
+        % Treat pressure BC
+        dP = bc.value(isP) - pBC(isP) + rhoBC(isP).*dzbc(isP);
 
-    % Determine if pressure bc are injecting or producing
-    injDir = dP > 0;
-    
-    injP = isP;
-    injP(isP) = injDir;
-    
-    if any(~injDir)
-        % Write out the flux equation over the interface
-        subs = isP & ~injP;
-        q_res = mobBC(subs).*T(subs).*dP(~injDir);
-        q_s(subs) = bBC(subs).*q_res;
-        q_r(subs) = q_res;
-        clear subs
-    end
-    
-    if any(injDir)
-        % In this case, pressure drives flow inwards, we get the injection rate
-        % determined by the sat field
-        subs = isP & injP;
-        q_res = totMob(subs).*T(subs).*dP(injDir).*sat(subs, i);
-        q_s(subs)  = bBC(subs).*q_res;
-        q_r(subs) = q_res;
-        clear subs
+        % Determine if pressure bc are injecting or producing
+        injDir = dP > 0;
+
+        injP = isP;
+        injP(isP) = injDir;
+
+        if any(~injDir)
+            % Write out the flux equation over the interface
+            subs = isP & ~injP;
+            q_res = mobBC(subs).*T(subs).*dP(~injDir);
+            q_s(subs) = bBC(subs).*q_res;
+            q_r(subs) = q_res;
+            clear subs
+        end
+
+        if any(injDir)
+            % In this case, pressure drives flow inwards, we get the injection rate
+            % determined by the sat field
+            subs = isP & injP;
+            q_res = totMob(subs).*T(subs).*dP(injDir).*sat(subs, i);
+            q_s(subs)  = bBC(subs).*q_res;
+            q_r(subs) = q_res;
+            clear subs
+        end
     end
     % Treat flux / Neumann BC
     injNeu = bc.value > 0;

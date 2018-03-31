@@ -1080,7 +1080,12 @@ methods
 
                 bc = bnd_cond.sourceCells;
                 if ~isempty(bc)
-                    eqs{sub}(bc) = eqs{sub}(bc) - bnd_cond.phaseMass{i}./rhoS(i);
+                    if isempty(bnd_cond.mapping)
+                        q = bnd_cond.phaseMass{i}./rhoS(i);
+                    else
+                        q = (bnd_cond.mapping*bnd_cond.phaseMass{i})./rhoS(i);
+                    end
+                    eqs{sub}(bc) = eqs{sub}(bc) - q;
                 end
             end
         end

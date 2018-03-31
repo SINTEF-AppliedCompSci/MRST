@@ -292,7 +292,7 @@ if isfield(fluid, 'pvMultR')
     pv = pv.*fluid.pvMultR(p);
     pv0 = pv0.*fluid.pvMultR(p0);
 end
-% compFlux = zeros(size(model.operators.N, 1), ncomp);
+compFlux = zeros(size(model.operators.N, 1), ncomp);
 
 % water equation + n component equations
 [eqs, types, names] = deal(cell(1, 2*ncomp + model.water));
@@ -300,13 +300,16 @@ for i = 1:ncomp
     names{i} = compFluid.names{i};
     types{i} = 'cell';
     
-    vi = s.Div(rOvO.*s.faceUpstr(upco, xM{i}) + rGvG.*s.faceUpstr(upcg, yM{i}));
+    vi = rOvO.*s.faceUpstr(upco, xM{i}) + rGvG.*s.faceUpstr(upcg, yM{i});
     eqs{i} = (1/dt).*( ...
                     pv.*rhoO.*sO.*xM{i} - pv0.*rhoO0.*sO0.*xM0{i} + ...
-                    pv.*rhoG.*sG.*yM{i} - pv0.*rhoG0.*sG0.*yM0{i});
+                    pv.*rhoG.*sG.*yM{i} - pv0.*rhoG0.*sG0.*yM0{i}) + s.Div(vi);
       
-%       compFlux(:, i) = double(vi);
+   compFlux(:, i) = double(vi);
 end
+state.componentFluxes = compFlux;
+state.massFlux = [double(rOvO), double(rGvG)];
+
 if model.water
     wix = ncomp+1;
     eqs{wix} = (1/dt).*(pv.*rhoW.*sW.*sT - pv0.*rhoW0.*sW0.*sT0) + s.Div(s.faceUpstr(upcw, sT).*rWvW);

@@ -21,7 +21,7 @@ function [qSurf, BCTocellMap, cells] = getSourceFluxesAD(model, mob, s, src)
 %   src            - Source struct as defined by addSource
 %
 % RETURNS:
-%   qRes           - Source terms at standard conditions. Cell array of
+%   qSurf           - Source terms at standard conditions. Cell array of
 %                   same dimensions as the number of active phases.
 %
 %   cells          - A list of cells for which the entries of qRes should

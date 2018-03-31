@@ -326,6 +326,9 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                     qC = qC + ~inj.*component{ph}(cells).*q_ph ...
                             +  inj.*mf_bc(:, sub).*q_ph;
                 end
+                if ~isempty(src.mapping)
+                    qC = src.mapping*qC;
+                end
                 eq(cells) = eq(cells) - qC;
                 src.components{end+1} = qC;
             else
