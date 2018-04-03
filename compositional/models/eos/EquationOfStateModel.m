@@ -90,8 +90,15 @@ classdef EquationOfStateModel < PhysicalModel
                         model.omegaA = 0.427480;
                         model.omegaB = 0.086640;
                         model.eosType = 4;
+                    case {'prcorr', 'peng-robinson-corrected'}
+                        % Peng-Robinson
+                        model.eosA = 1 + sqrt(2);
+                        model.eosB = 1 - sqrt(2);
+                        model.omegaA = 0.4572355;
+                        model.omegaB = 0.0779691;
+                        model.eosType = 5;
                     otherwise
-                    error('Invalid string ''%s''.\n Valid choices are:\n PR: Peng-Robinson\n', arg);
+                        error('Invalid string ''%s''.\n Valid choices are:\n PR: Peng-Robinson\n', arg);
                 end
             end
             
@@ -327,14 +334,22 @@ classdef EquationOfStateModel < PhysicalModel
                 oB = model.omegaB;
             end
             switch model.eosType
-                case 1
+                case {1, 5}
                     % PR
                     if useCell
                         for i = 1:ncomp
-                            oA{i} = model.omegaA.*(1 + (0.37464 + 1.54226.*acf(i) - 0.26992.*acf(i).^2).*(1-Tr{i}.^(1/2))).^2;
+                            if model.eosType == 5 && acf(i) > 0.49
+                                oA{i} = model.omegaA.*(1 + (0.379642 + 1.48503.*acf(i) - 0.164423.*acf(i).^2 + 0.016666.*acf(i).^3).*(1-Tr{i}.^(1/2))).^2;
+                            else
+                                oA{i} = model.omegaA.*(1 + (0.37464 + 1.54226.*acf(i) - 0.26992.*acf(i).^2).*(1-Tr{i}.^(1/2))).^2;
+                            end
                         end
                     else
                         tmp = bsxfun(@times, 0.37464 + 1.54226.*acf - 0.26992.*acf.^2, 1-Tr.^(1/2));
+                        if model.eosType == 5
+                            act = acf > 0.49;
+                            tmp(:, act) = bsxfun(@times, 0.379642 + 1.48503.*acf(act) - 0.164423.*acf(act).^2 + 0.016666.*acf(act).^3, 1-Tr(:, act).^(1/2));
+                        end
                         oA = model.omegaA.*(1 + tmp).^2;
                     end
                 case 2
