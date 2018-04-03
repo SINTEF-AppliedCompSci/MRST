@@ -29,29 +29,35 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    kw = getEclipseKeyword(fid);
    in_section = ischar(kw);
-   while in_section,
-      if isfield(prp, kw),
+   while in_section
+      if isfield(prp, kw)
          error('Keyword ''%s'' is already defined.', kw);
       end
 
-      switch kw,
-         case 'ACF',
+      switch kw
+         case 'ACF'
             prp.(kw) = readVector(fid, kw, ncomp);
 
-         case 'BOX',
+         case 'BOX'
             boxKeyword(fid);
 
-         case 'BIC',
+         case 'BIC'
             prp.(kw) = readVector(fid, kw, ncomp*(ncomp-1)/2);
 
-         case 'CNAMES',
+         case 'CNAMES'
             tmpl = arrayfun(@(x) sprintf('COMP_%d', x), 1:ncomp, ...
                                                 'UniformOutput', false);
             prp.(kw) = readDefaultedKW(fid, tmpl, 'NRec', 1); clear tmpl
 
-         case 'ENDBOX',
+         case 'ENDBOX'
             endboxKeyword;
+            
+          case 'EOS'
+              prp.(kw) = readDefaultedRecord(fid, {'PR'});
 
+          case 'PRCORR'
+              prp.PRCORR = true;
+              
          case 'DENSITY'
             tmpl(1:3) = { '0.0' };
             data      = readDefaultedKW(fid, tmpl, 'NRec', ntpvt);
@@ -62,19 +68,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             data      = readDefaultedKW(fid, tmpl, 'NRec', ntpvt);
             prp.(kw)  = to_double(data);  clear tmpl
 
-         case 'SURFST',
+         case 'SURFST'
             prp.(kw) = readImmisciblePVTTable(fid, ntpvt, 2);
 
-         case 'SURFCAPD',
+         case 'SURFCAPD'
             prp.(kw) = readRelPermTable(fid, kw, ntsfun, 2);
 
-         case 'SURFVISC',
+         case 'SURFVISC'
             prp.(kw) = readImmisciblePVTTable(fid, ntpvt, 2);
 
-         case 'SURFADS',
+         case 'SURFADS'
            prp.(kw) = readRelPermTable(fid, kw, ntsfun, 2);
 
-         case 'SURFROCK',
+         case 'SURFROCK'
             tmpl(1:2) = { 'NaN' };
             data      = readDefaultedKW(fid, tmpl, 'NRec', ntsfun);
             prp.(kw)  = to_double(data);  clear tmpl
@@ -82,32 +88,32 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          case {'MISC', 'PMISC'}
             prp.(kw) = readRelPermTable(fid, kw, ntsfun, 2);
 
-         case 'MSFN',
+         case 'MSFN'
             prp.(kw) = readRelPermTable(fid, kw, ntsfun, 3);
 
          case {'MW', 'PCRIT', 'TCRIT', 'VCRIT', 'ZCRIT'}
             prp.(kw) = readVector(fid, kw, ncomp);
 
-         case 'PLYADS',
+         case 'PLYADS'
             prp.(kw) = readRelPermTable(fid, kw, ntsfun, 2);
 
-         case 'PLYMAX',
+         case 'PLYMAX'
             tmpl(1:2) = { '0.0' };
             data      = readDefaultedKW(fid, tmpl, 'NRec', ntmisc);
             prp.(kw)  = to_double(data);  clear tmpl
 
-         case 'PLYROCK',
+         case 'PLYROCK'
             tmpl(1:5) = { 'NaN' };
             data      = readDefaultedKW(fid, tmpl, 'NRec', ntsfun);
             prp.(kw)  = to_double(data);  clear tmpl
 
-         case 'PLYVISC',
+         case 'PLYVISC'
             prp.(kw) = readImmisciblePVTTable(fid, ntpvt, 2);
 
-         case 'PLYSHEAR',
+         case 'PLYSHEAR'
             prp.(kw) = readImmisciblePVTTable(fid, ntpvt, 2);
 
-         case 'PLYSHLOG',
+         case 'PLYSHLOG'
              tmpl(1:3) = { 'NaN' };
              refcondition = readDefaultedKW(fid, tmpl, 'NRec', ntpvt);
              prp.(kw).refcondition = to_double(refcondition);
@@ -116,10 +122,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
              prp.(kw).data = data;
              clear data;
 
-         case 'SHRATE',
+         case 'SHRATE'
              tmpl = { 'NaN' };
              data = readDefaultedKW(fid, tmpl, 'NRec', ntpvt);
-             if ~isempty(data),
+             if ~isempty(data)
                  data = to_double(data);
              else
                  data = repmat(4.8, [ ntpvt, 1 ]);
@@ -127,12 +133,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
              data(isnan(data)) = 4.8;
              prp.(kw) = data; clear tmpl; clear data;
 
-         case 'PVCDO',
+         case 'PVCDO'
             tmpl(1:5) = { '0.0' };
             data      = readDefaultedKW(fid, tmpl, 'NRec', ntpvt);
             prp.(kw)  = to_double(data);  clear tmpl
 
-         case {'PVDG', 'PVDO', 'PVDS'},
+         case {'PVDG', 'PVDO', 'PVDS'}
             prp.(kw) = readImmisciblePVTTable(fid, ntpvt, 3);
 
          case 'PVCO'
@@ -140,23 +146,23 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             assert(~isfield(prp, 'PVTO'));
             prp.PVTO = expandPVCOintoPVTO(tbl, ntpvt);
 
-         case {'PVTG', 'PVTO'},
+         case {'PVTG', 'PVTO'}
             prp.(kw) = readMisciblePVTTable(fid, ntpvt, 3, kw);
 %            prp.(kw) = feval(['complete', kw], prp.(kw));
 
-         case 'PVTW',
+         case 'PVTW'
             tmpl(1:5) = { '0.0' };
             data      = readDefaultedKW(fid, tmpl, 'NRec', ntpvt);
             prp.(kw)  = to_double(data);  clear tmpl
 
-         case 'RKTRMDIR',
+         case 'RKTRMDIR'
             prp.(kw) = true;
 
          case 'ROCKOPTS'
             tmpl = { 'PRESSURE', 'NOSTORE', 'PVTNUM', 'DEFLATION' };
             prp.(kw) = readDefaultedKW(fid, tmpl, 'NRec', 1);    clear tmpl
 
-         case 'ROCK',
+         case 'ROCK'
             nrec = ntpvt;
 
             if isfield(prp, 'ROCKOPTS')
@@ -167,10 +173,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             data      = readDefaultedKW(fid, tmpl, 'NRec', nrec);
             prp.(kw)  = to_double(data);  clear tmpl nrec
 
-         case 'SPECHEAT',
+         case 'SPECHEAT'
             prp.(kw) = readRelPermTable(fid, kw, ntsfun, 4);
 
-         case 'SPECROCK',
+         case 'SPECROCK'
             prp.(kw) = readRelPermTable(fid, kw, ntsfun, 2);
 
          case 'ROCKTAB'
@@ -178,21 +184,21 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             ncol     = 3 + 2*isfield(prp, 'RKTRMDIR');
             prp.(kw) = readRelPermTable(fid, kw, ntrocc, ncol);  clear ncol
 
-         case 'RSCONSTT',
+         case 'RSCONSTT'
             tmpl     = { '-1.0', '-1.0' };
             data     = readDefaultedKW(fid, tmpl, 'NRec', ntpvt);
             prp.(kw) = to_double(data);   clear tmpl
 
-         case 'SOF2',
+         case 'SOF2'
             prp.(kw) = readRelPermTable(fid, kw, ntsfun, 2);
 
-         case {'SGFN', 'SWFN', 'SOF3', 'SSFN'},
+         case {'SGFN', 'SWFN', 'SOF3', 'SSFN'}
             prp.(kw) = readRelPermTable(fid, kw, ntsfun, 3);
 
-         case {'SGOF', 'SGWFN', 'SLGOF', 'SWOF'},
+         case {'SGOF', 'SGWFN', 'SLGOF', 'SWOF'}
             prp.(kw) = readRelPermTable(fid, kw, ntsfun, 4);
 
-         case {'STONE' , 'STONE1', 'STONE2', 'SIMPLE'},
+         case {'STONE' , 'STONE1', 'STONE2', 'SIMPLE'}
             prp.(kw) = true;
 
          case {'SWL'   ,            'ISWL' ,           ...
@@ -238,10 +244,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                'ISOWCR', 'ISOGCR' , ...
                ...
                'SWATINIT'
-               },
+               }
             prp = readGridBoxArray(prp, fid, kw, prod(dims));
 
-         case {'TLMIXPAR', 'PLMIXPAR'},
+         case {'TLMIXPAR', 'PLMIXPAR'}
             % Note: The following warning is given in ECLIPSE 2013.2 when
             % running a polymer model with TLMIXPAR: THE TLMIXPAR KEYWORD
             % IS NO LONGER COMPATIBLE WITH THE POLYMER FLOOD MODEL. USE THE
@@ -251,10 +257,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             prp.(kw)  = to_double(data);  clear tmpl
 
          case {'ADD', 'COPY', 'EQUALS', 'MAXVALUE', ...
-               'MINVALUE', 'MULTIPLY'},
+               'MINVALUE', 'MULTIPLY'}
             prp = applyOperator(prp, fid, kw);
 
-         case {'ECHO', 'NOECHO'},
+         case {'ECHO', 'NOECHO'}
             kw = getEclipseKeyword(fid);
             continue;  % Ignore.  Not handled in MRST
 
@@ -262,7 +268,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          % Sectioning keywords below.  Modifies flow of control.
          % Don't change unless absolutely required...
          %
-         case 'END',
+         case 'END'
             % Logical end of input deck.
             %
             in_section = false;
@@ -271,7 +277,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             % Restore default input box at end of section
             gridBox(defaultBox);
 
-         case 'REGIONS',
+         case 'REGIONS'
             % Read next section (i.e., 'PROPS' -> 'REGIONS' -> 'SOLUTION')
             in_section = false;
 
@@ -282,7 +288,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
             deck = readREGIONS(fid, dirname, deck);
 
-         case 'SOLUTION',
+         case 'SOLUTION'
             % Read next section (i.e., 'PROPS' -> 'SOLUTION', no 'REGIONS')
             in_section = false;
 
@@ -293,7 +299,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
             deck = readSOLUTION(fid, dirname, deck);
 
-         case 'INCLUDE',
+         case 'INCLUDE'
             % Handle 'INCLUDE' (recursion).
             deck = set_state(deck, prp, miss_kw);
 
@@ -302,8 +308,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             % Prepare for additional reading.
             [prp, miss_kw] = get_state(deck);
 
-         otherwise,
-            if ischar(kw),
+          otherwise
+            if ischar(kw)
                miss_kw = [ miss_kw, { kw } ];  %#ok
             end
       end
@@ -327,7 +333,7 @@ function [dims, ntsfun, ntpvt, ntmisc, ntrocc, ncomp] = get_dimensions(deck)
    [ntsfun, ntpvt, ntmisc, ncomp] = deal(1);
    ntrocc = -1;
 
-   if isfield(deck.RUNSPEC, 'TABDIMS'),
+   if isfield(deck.RUNSPEC, 'TABDIMS')
       ntsfun = deck.RUNSPEC.TABDIMS(1);  assert (ntsfun >= 1);
       ntpvt  = deck.RUNSPEC.TABDIMS(2);  assert (ntpvt  >= 1);
       ntrocc = deck.RUNSPEC.TABDIMS(13);
@@ -338,7 +344,7 @@ function [dims, ntsfun, ntpvt, ntmisc, ntrocc, ncomp] = get_dimensions(deck)
       assert (ntrocc >= 1);
    end
 
-   if isfield(deck.RUNSPEC, 'MISCIBLE'),
+   if isfield(deck.RUNSPEC, 'MISCIBLE')
       ntmisc = deck.RUNSPEC.MISCIBLE{1};  assert (ntmisc >= 1);
    end
 
@@ -352,7 +358,7 @@ end
 function v = to_double(v)
    convert = @(s) sscanf(regexprep(s, '[dD]', 'e'), '%f');
 
-   if ischar(v),
+   if ischar(v)
       v = convert(v);
    else
       v = cellfun(convert, v);
