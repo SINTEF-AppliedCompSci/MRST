@@ -226,9 +226,9 @@ for k = 1:numel(tr)
     end
 
     % compositional features
-    states{k} = convertCompositions(states{k}, 'XMF', rstrt, k, 'xM');
-    states{k} = convertCompositions(states{k}, 'YMF', rstrt, k, 'yM');
-    states{k} = convertCompositions(states{k}, 'ZMF', rstrt, k, 'zM');
+    states{k} = convertCompositions(states{k}, 'XMF', rstrt, k, 'x');
+    states{k} = convertCompositions(states{k}, 'YMF', rstrt, k, 'y');
+    states{k} = convertCompositions(states{k}, 'ZMF', rstrt, k, 'components');
 
     % fluxes
     if opt.includeFluxes
