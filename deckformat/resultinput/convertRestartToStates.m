@@ -225,7 +225,10 @@ for k = 1:numel(tr)
         states{k}.ads = rstrt.PADS{k};
     end
 
-
+    % compositional features
+    states{k} = convertCompositions(states{k}, 'XMF', rstrt, k, 'xM');
+    states{k} = convertCompositions(states{k}, 'YMF', rstrt, k, 'yM');
+    states{k} = convertCompositions(states{k}, 'ZMF', rstrt, k, 'zM');
 
     % fluxes
     if opt.includeFluxes
@@ -491,5 +494,23 @@ function name = fixVarName(name)
     if ~isvarname(name)
         name = regexprep(name, {'+', '-'}, {'p', 'n'});
         name = genvarname(regexprep(name, '\W', '_'));
+    end
+end
+
+function state = convertCompositions(state, prefix, rstrt, step, newfield)
+    if isfield(rstrt, [prefix, '1'])
+        ncomp = 1;
+        while ncomp < 1000
+            if ~isfield(rstrt, [prefix, num2str(ncomp+1)])
+                break
+            end
+            ncomp = ncomp + 1;
+        end
+        tmp = repmat(rstrt.([prefix, '1']){step}, 1, ncomp);
+        for i = 2:ncomp
+            tmp(:, i) = rstrt.([prefix, num2str(i)]){step};
+        end
+        
+        state.(newfield) = tmp;
     end
 end
