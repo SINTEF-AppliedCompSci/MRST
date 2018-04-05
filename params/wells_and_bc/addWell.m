@@ -259,7 +259,7 @@ W  = [W; struct('cells'    , cellInx(:),           ...
                 'dir'      , opt.Dir,              ...
                 'rR'       , rR,                   ...
                 'WI'       , WI,                   ...
-                'dZ'       , getDepth(G, cellInx(:))-opt.refDepth, ...
+                'dZ'       , getDeltaZ(G, cellInx(:), opt.refDepth), ...
                 'name'     , opt.Name,             ...
                 'compi'    , opt.Comp_i,           ...
                 'refDepth' , opt.refDepth,         ...
@@ -381,7 +381,7 @@ end
 
 %--------------------------------------------------------------------------
 
-function Z = getDepth(G, cells)
+function dZ = getDeltaZ(G, cells, refDepth)
 direction = gravity();
 dims      = G.griddim;
 if norm(direction(1:dims)) > 0,
@@ -391,6 +391,30 @@ else
    direction(end) = 1;
 end
 Z = G.cells.centroids(cells, :) * direction(1:dims).';
+dZ = Z - refDepth;
+if any(dZ < 0)
+    warning('Negative distance between perforation and reference depth.')
+end
+if isfield(G, 'nodes')
+    % Grid with nodes
+    delta = max(G.nodes.coords)-min(G.nodes.coords);
+elseif isfield(G.faces, 'centroids')
+    % Possibly a coarse grid
+    delta = max(G.faces.centroids)-min(G.nodes.centroids);
+else
+    % Skip check
+    delta = inf;
+end
+
+if max(dZ) > delta*direction(1:dims).'
+    msg = 'Pressure drop from refDepth to perforation exceeds depth of model.';
+    if refDepth == 0
+        msg = [msg, ' refDepth is defaulted to zero. Consider setting a different value.'];
+    else
+        msg = [msg, ' Please check refDepth value.'];
+    end
+    warning(msg)
+end
 
 %--------------------------------------------------------------------------
 
