@@ -139,6 +139,8 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             ncell = model.G.cells.num;
             ncomp = model.EOSModel.fluid.getNumberOfComponents();
             model.checkProperty(state, 'Components', [ncell, ncomp], [1, 2]);
+            assert(all(max(model.getProp(state, 'Components')) <= 1), ...
+                'Initial mole fractions are larger than unity.')
             T = model.getProp(state, 'Temperature');
             if numel(T) == 1
                 % Expand single temperature to all grid cells
