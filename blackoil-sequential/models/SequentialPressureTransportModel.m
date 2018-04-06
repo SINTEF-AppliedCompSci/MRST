@@ -198,7 +198,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
         end
 
         function [model, state] = updateForChangedControls(model, state, forces)
-            [model.pressureModel, state] = model.pressureModel.updateForChangedControls@PhysicalModel(state, forces);
+            [model.pressureModel, state] = model.pressureModel.updateForChangedControls(state, forces);
         end
 
         function model = validateModel(model, varargin)
