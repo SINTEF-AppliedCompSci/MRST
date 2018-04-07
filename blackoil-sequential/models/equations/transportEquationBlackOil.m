@@ -58,7 +58,7 @@ if solveAllPhases
         end
     end
     primaryVars = {'sW', gvar, 'sO'};
-    sT = sO + sW;
+    sT = sO + sW + sG;
     % Evaluate relative permeability
     [krW, krO, krG] = model.evaluateRelPerm({sW./sT, sO./sT, sG./sT});    
 else

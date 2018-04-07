@@ -153,7 +153,7 @@ if opt.solveForOil
     f_o = mobOf./totMob;
     bOvO = s.faceUpstr(upco, sT.*bO).*f_o.*vT + s.faceUpstr(upco_g, bO).*f_g.*s.T.*(Go - Gw);
 
-    oil = (s.pv/dt).*( pvMult.*bO.*(1-sW) - pvMult0.*f.bO(p0).*(1-sW0) ) + s.Div(bOvO);
+    oil = (s.pv/dt).*( pvMult.*bO.*sO - pvMult0.*f.bO(p0).*sO0 ) + s.Div(bOvO);
     if ~isempty(W)
         oil(wc) = oil(wc) - bOqO;
     end
