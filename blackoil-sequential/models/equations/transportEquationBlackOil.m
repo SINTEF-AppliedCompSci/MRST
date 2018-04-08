@@ -172,6 +172,7 @@ end
 if model.extraStateOutput
     state = model.storebfactors(state, bW, bO, bG);
     state = model.storeMobilities(state, mobW, mobO, mobG);
+    state = model.storeDensity(state, rhoW, rhoO, rhoG);
 end
 % well equations
 if ~isempty(W)

@@ -308,7 +308,11 @@ for i = 1:ncomp
    compFlux(:, i) = double(vi);
 end
 state.componentFluxes = compFlux;
-state.massFlux = [double(rOvO), double(rGvG)];
+if model.water
+    state.massFlux = [double(rWvW), double(rOvO), double(rGvG)];
+else
+    state.massFlux = [double(rOvO), double(rGvG)];
+end
 
 if model.water
     wix = ncomp+1;

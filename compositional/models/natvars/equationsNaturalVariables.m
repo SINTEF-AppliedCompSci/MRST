@@ -295,7 +295,11 @@ for i = 1:ncomp
     end
 end
 state.componentFluxes = compFlux;
-state.massFlux = [double(rOvO), double(rGvG)];
+if model.water
+    state.massFlux = [model.fluid.rhoWS.*double(rWvW), double(rOvO), double(rGvG)];
+else
+    state.massFlux = [double(rOvO), double(rGvG)];
+end
 if model.water
     eqs{ncomp+1} = water;
     names{ncomp+1} = 'water';
