@@ -88,8 +88,6 @@ end
 if model.water
     sO = (1-sW).*sO;
     sG = (1-sW).*sG;
-    sO0 = (1-sW0).*sO0;
-    sG0 = (1-sW0).*sG0;
     sat = {sW, sO, sG};
     
     [krW, krO, krG] = model.evaluateRelPerm(sat);
@@ -131,9 +129,6 @@ vG = -s.faceUpstr(upcg, mobG).*T.*dpG;
 rOvO = s.faceUpstr(upco, rhoO).*vO;
 rGvG = s.faceUpstr(upcg, rhoG).*vG;
 
-% state.massFlux = double(rOvO + rGvG);
-state.massesFlux = double(rOvO + rGvG);
-state.volFlux = double(vO + vG);
 
 bO = rhoO./fluid.rhoOS;
 bG = rhoG./fluid.rhoGS;

@@ -5,7 +5,7 @@ function checkComponentMassBalance(model, state0, states, schedule, n)
         n = numel(states);
     end
     
-    if ~isfield(state0, 'L')
+    if ~isfield(state0, 'x')
         state0 = model.computeFlash(state0, schedule.step.val(1), 1);
     end
     
@@ -13,7 +13,7 @@ function checkComponentMassBalance(model, state0, states, schedule, n)
     dt = schedule.step.val(1:n);
 
     ws = cellfun(@(x) x.wellSol, states, 'UniformOutput', false);    
-    ncomp = size(states{1}.components, 2);
+    ncomp = numel(model.getComponentNames());
     
     if isfield(states{end}, 'xMass')
         fracx = states{end}.xMass;
@@ -28,16 +28,21 @@ function checkComponentMassBalance(model, state0, states, schedule, n)
 
     fracx0 = getMassFraction(state0.x, model.EOSModel.fluid);
     fracy0 = getMassFraction(state0.y, model.EOSModel.fluid);
-    
-    rhoO0 = model.EOSModel.PropertyModel.computeDensity(state0.pressure, state0.x, state0.Z_L, state0.T);
-    rhoG0 = model.EOSModel.PropertyModel.computeDensity(state0.pressure, state0.y, state0.Z_V, state0.T);
+    oilIx = 1 + model.water;
+    gasIx = 1 + model.water + model.oil;
+
+    if isfield(state0, 'rho')
+        rhoO0 = state0.rho(:, oilIx);
+        rhoG0 = state0.rho(:, gasIx);
+    else
+        rhoO0 = model.EOSModel.PropertyModel.computeDensity(state0.pressure, state0.x, state0.Z_L, state0.T);
+        rhoG0 = model.EOSModel.PropertyModel.computeDensity(state0.pressure, state0.y, state0.Z_V, state0.T);
+    end
     for i = 1:numel(states)
         if ~isfield(states{i}, 'rho')
             states{i} = computeDensities(model, states{i});
         end
     end
-    oilIx = 1 + model.water;
-    gasIx = 1 + model.water + model.oil;
     
     
     [oilMass, oilMass0, gasMass, gasMass0, injMass, prodMass] = deal(0);
