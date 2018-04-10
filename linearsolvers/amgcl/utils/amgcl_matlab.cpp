@@ -30,8 +30,8 @@
 
 
 
-/* Relaxation */ 
-typedef struct relax_opts{
+/* Relaxation */
+struct relax_opts {
     int relax_id;
 };
 
@@ -67,7 +67,7 @@ void setRelaxationAMGCL(boost::property_tree::ptree & prm, std::string relaxPara
 }
 
 /* Coarsening */ 
-typedef struct amg_opts{
+struct amg_opts {
     int coarsen_id;
     int coarse_enough;
     bool direct_coarse;
@@ -135,7 +135,7 @@ void setCoarseningAMGCL(boost::property_tree::ptree & prm, std::string prefix, a
     }
 }
 /* Krylov solver */
-typedef struct solver_opts{
+struct solver_opts {
     int solver_id;
     int L;
     int M;
