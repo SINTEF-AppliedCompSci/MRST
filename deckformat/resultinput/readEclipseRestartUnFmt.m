@@ -90,7 +90,7 @@ end
 if strcmp(spec.type, 'unified')
     fclose(fid);
 end
-fprintf(',  done\n')
+dispif(mrstVerbose, ',  done\n')
 end
         
 %--------------------------------------------------------------------------

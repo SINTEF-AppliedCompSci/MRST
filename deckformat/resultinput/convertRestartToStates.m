@@ -189,8 +189,9 @@ satix  = isfield(rstrt, satnms); % occuring fields
 
 % If not all saturation fields are present, assert only one is missing
 assert(nnz(~satix)<=1, 'Saturation output found for less than nPh-1 phases');
-
+dispif(mrstVerbose, 'Converting restart to mrst-states:     ')
 for k = 1:numel(tr)
+    dispif(mrstVerbose, '\b\b\b\b%3d%%', round(100*k/numel(tr)));
     % pressure
     p = rstrt.PRESSURE{k};
     if ~isempty(p), states{k}.pressure = convertFrom(p, unit.p); end
@@ -264,6 +265,7 @@ for k = 1:numel(tr)
         end
     end
 end
+dispif(mrstVerbose, ',  done\n')
 % check for eMap-field, and if present, reduce data
 
 if isfield(G.cells, 'eMap')
