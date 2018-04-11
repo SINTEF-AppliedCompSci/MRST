@@ -82,6 +82,11 @@ classdef SequentialPressureTransportModel < ReservoirModel
             % Solve pressure and transport sequentially
             psolver = model.pressureNonLinearSolver;
             tsolver = model.transportNonLinearSolver;
+            if iteration > 1
+                for i = 1:numel(model.pressureModel.FacilityModel.WellModels)
+                    model.pressureModel.FacilityModel.WellModels{i}.doUpdatePressureDrop = false;
+                end
+            end
             % Get the forces used in the step
             forceArg = model.pressureModel.getDrivingForces(drivingForces);
             
