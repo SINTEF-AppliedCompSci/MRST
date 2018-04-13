@@ -152,7 +152,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             if ~isfield(state, 'x') || ~isfield(state, 'K')
                 state = model.computeFlash(state, inf);
             end
-            if isfield(state, 'wellSol')
+            if isfield(state, 'wellSol') && ~isfield(state.wellSol, 'components')
                 for i = 1:numel(state.wellSol)
                     state.wellSol(i).components = [];
                 end
