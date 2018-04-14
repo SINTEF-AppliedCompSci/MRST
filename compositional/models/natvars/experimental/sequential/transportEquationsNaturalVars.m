@@ -36,11 +36,11 @@ if 1
 end
 
 
-if isfield(state, 'timestep') && opt.iteration == 1
-    p = state.pressure_full;
-    dt_frac = dt/state.timestep;
-    state.pressure = p.*dt_frac + p0.*(1-dt_frac);
-end
+% if isfield(state, 'timestep') && opt.iteration == 1
+%     p = state.pressure_full;
+%     dt_frac = dt/state.timestep;
+%     state.pressure = p.*dt_frac + p0.*(1-dt_frac);
+% end
 
 z = state.components;
 x(~twoPhase, :) = z(~twoPhase, :);
@@ -49,8 +49,6 @@ x = ensureMinimumFraction(x);
 y = ensureMinimumFraction(y);
 x = expandMatrixToCell(x);
 y = expandMatrixToCell(y);
-x0 = expandMatrixToCell(x0);
-y0 = expandMatrixToCell(y0);
 
 ncomp = model.EOSModel.fluid.getNumberOfComponents();
 [xnames, ynames, cnames] = deal(model.EOSModel.fluid.names);
