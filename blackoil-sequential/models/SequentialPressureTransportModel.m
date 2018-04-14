@@ -137,6 +137,19 @@ classdef SequentialPressureTransportModel < ReservoirModel
                 % up to some tolerance.
                 if isa(model.pressureModel, 'PressureNaturalVariablesModel')
                     values = max(abs(sum(state.s, 2) - 1));
+                    if ~model.transportModel.useIncTolComposition
+                        % Make a normalization of saturations and check if
+                        % the equations are still converged.
+                        state_normalized = state;
+                        state_normalized.s = bsxfun(@rdivide, state_normalized.s, sum(state_normalized.s, 2));
+
+                        [problem, state_normalized] = model.transportModel.getEquations(state0, state_normalized, dt, drivingForces, 'resOnly', true, 'iteration', inf);
+                        conv_t = model.transportModel.checkConvergence(problem);
+                        if all(conv_t)
+                            state = state_normalized;
+                            values = 0;
+                        end
+                    end
                 else
                     problem = model.pressureModel.getEquations(state0, state, dt, drivingForces, 'resOnly', true, 'iteration', inf);
                     % Is the pressure still converged when accounting for the
