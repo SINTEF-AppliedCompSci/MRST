@@ -73,7 +73,7 @@ methods
             varargin = varargin(3:end);
             % We have been provided the means, so we will execute setup
             % phase after parsing other inputs and defaults.
-            doSetup = true;
+            doSetup = ~(isempty(G) || isempty(model.rock));
         end
 
         model.dpMaxRel = inf;
@@ -104,12 +104,7 @@ methods
         model.oil = false;
 
         if doSetup
-            if isempty(G) || isempty(model.rock)
-                dispif(model.verbose, ...
-                    'Invalid grid/rock pair supplied. Operators have not been set up.')
-            else
-                model.operators = setupOperatorsTPFA(G, model.rock, 'deck', model.inputdata);
-            end
+            model.operators = setupOperatorsTPFA(G, model.rock, 'deck', model.inputdata);
         end
     end
 
@@ -150,6 +145,9 @@ methods
         else
             model.FacilityModel.ReservoirModel = model;
         end
+        
+        assert(~isempty(model.operators),...
+            'Operators must be set up before simulation. See model.setupOperators for more details.');
         
         if nargin > 1
             W = varargin{1}.W;

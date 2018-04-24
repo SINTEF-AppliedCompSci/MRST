@@ -60,34 +60,38 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     haspoly = check('polymer');
     hassurf = check('surfact');
     
+    arg = {G, [], fluid, varargin{:}};
     if haspoly
         % Polymer EOR
+        mrstModule add ad-eor
         assert(~hassurf, 'Polymer model does not support surfactant');
         assert(haswat, 'Polymer model requires water phase to be present');
         if hasgas
-            model = ThreePhaseBlackOilPolymerModel(G, rock, fluid, 'inputdata', deck, varargin{:});
+            model = ThreePhaseBlackOilPolymerModel(arg{:});
         else
-            model = OilWaterPolymerModel(G, rock, fluid, 'inputdata', deck, varargin{:});
+            model = OilWaterPolymerModel(arg{:});
         end
     elseif hassurf
         % Surfactant EOR
+        mrstModule add ad-eor
         assert(~hasgas, 'Surfactant model does not support gas');
         assert(~haspoly, 'Surfactant model does not support polymer');
         assert(haswat, 'Surfactant model requires water phase to be present');
-        model = OilWaterSurfactantModel(G, rock, fluid, 'inputdata', deck, varargin{:});
+        model = OilWaterSurfactantModel(arg{:});
     elseif hasgas && hasoil && haswat
         % Blackoil three phase
-        model = ThreePhaseBlackOilModel(G, rock, fluid, 'inputdata', deck, varargin{:});
+        model = ThreePhaseBlackOilModel(arg{:});
     elseif hasoil && haswat
         % Two-phase oil-water
-        model = TwoPhaseOilWaterModel(G, rock, fluid, 'inputdata', deck, varargin{:});
+        model = TwoPhaseOilWaterModel(arg{:});
     elseif haswat && hasgas
         % Two-phase water-gas (Note: Model tailored for CO2 storage, uses
         % CO2lab module).
-        require co2lab
-        model = TwoPhaseWaterGasModel(G, rock, fluid, nan, nan, 'inputdata', deck, varargin{:});
+        mrstModule add co2lab
+        model = TwoPhaseWaterGasModel(G, [], [], nan, nan, varargin{:});
     else
         error('Did not find matching model');
     end
+    model = model.setupOperators(G, rock, 'deck', deck);
     model.FacilityModel = selectFacilityFromDeck(deck, model);
 end
