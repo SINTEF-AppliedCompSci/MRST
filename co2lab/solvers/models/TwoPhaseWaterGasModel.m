@@ -18,12 +18,6 @@ classdef TwoPhaseWaterGasModel < ThreePhaseBlackOilModel
             model.water = true;
             model.t     = computeTemperatureField(G, tsurf, tgrad);
             model.name  = 'GasWater_2ph';
-            model.saturationVarNames = {'sw', 'sg'}; % @@ Design: ideally, we
-                                                     % should not have to set
-                                                     % both this _and_ the
-                                                     % 'water', 'gas' and 'oil'
-                                               % flags above. Check with
-                                               % maintainer of parent class.
             model.gravity = gravity;
             model = merge_options(model, varargin{:});
         end
