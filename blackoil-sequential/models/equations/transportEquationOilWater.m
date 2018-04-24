@@ -79,6 +79,7 @@ Go = gp - dpO;
 if model.extraStateOutput
     state = model.storebfactors(state, bW, bO, []);
     state = model.storeMobilities(state, mobW, mobO, []);
+    state = model.storeDensity(state, rhoW, rhoO, []);
 end
 
 if ~isempty(W)

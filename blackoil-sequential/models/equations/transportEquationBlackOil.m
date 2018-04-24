@@ -52,12 +52,12 @@ end
 if solveAllPhases
     if ~opt.resOnly
         if disgas || vapoil
-            [sW, x, sO] = model.AutoDiffBackend.initVariablesAD(sW, x, sO);
+            [sW, sO, x] = model.AutoDiffBackend.initVariablesAD(sW, sO, x);
         else
-            [sW, sG, sO] = model.AutoDiffBackend.initVariablesAD(sW, sG, sO);
+            [sW, sO, sG] = model.AutoDiffBackend.initVariablesAD(sW, sO, sG);
         end
     end
-    primaryVars = {'sW', gvar, 'sO'};
+    primaryVars = {'sW', 'sO', gvar};
     sT = sO + sW + sG;
     % Evaluate relative permeability
     [krW, krO, krG] = model.evaluateRelPerm({sW./sT, sO./sT, sG./sT});    
