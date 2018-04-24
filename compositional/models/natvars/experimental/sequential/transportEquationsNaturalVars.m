@@ -23,27 +23,32 @@ assert(all(p>0), 'Pressure must be positive for compositional model');
     'pressure', 'water', 'so', 'sg', 'x', 'y', 'T', 'wellSol');
 
 [pureLiquid, pureVapor, twoPhase] = model.getFlag(state);
+if 1
+    stol = 1e-8;
+    pureWater = sO + sG < stol;
+    sO(~pureVapor & pureWater) = stol;
+    sG(~pureLiquid & pureWater) = stol;
 
-stol = 1e-8;
-pureWater = sO + sG == 0;
-sO(~pureVapor & pureWater) = stol;
-sG(~pureLiquid & pureWater) = stol;
-
-
-if isfield(state, 'timestep') && opt.iteration == 1
-    p = state.pressure_full;
-    dt_frac = dt/state.timestep;
-    state.pressure = p.*dt_frac + p0.*(1-dt_frac);
+    [pureLiquid0, pureVapor0, twoPhase0] = model.getFlag(state0);
+    pureWater0 = sO0 + sG0 < stol;
+    sO0(~pureVapor0 & pureWater0) = stol;
+    sG0(~pureLiquid0 & pureWater0) = stol;
 end
+
+
+% if isfield(state, 'timestep') && opt.iteration == 1
+%     p = state.pressure_full;
+%     dt_frac = dt/state.timestep;
+%     state.pressure = p.*dt_frac + p0.*(1-dt_frac);
+% end
 
 z = state.components;
 x(~twoPhase, :) = z(~twoPhase, :);
 y(~twoPhase, :) = z(~twoPhase, :);
-
+x = ensureMinimumFraction(x);
+y = ensureMinimumFraction(y);
 x = expandMatrixToCell(x);
 y = expandMatrixToCell(y);
-x0 = expandMatrixToCell(x0);
-y0 = expandMatrixToCell(y0);
 
 ncomp = model.EOSModel.fluid.getNumberOfComponents();
 [xnames, ynames, cnames] = deal(model.EOSModel.fluid.names);
@@ -199,15 +204,11 @@ end
 
 vT = sum(state.flux(model.operators.internalConn, :), 2);
 if model.water
-    if isfield(fluid, 'pcOW')
-        pcOW  = fluid.pcOW(sW);
-        pW = p - pcOW;
-    else
-        pW = p;
-    end
+    pW = p;
+    pW0 = p0;
     bW = fluid.bW(pW);
     rhoW = bW.*fluid.rhoWS;
-    rhoW0 = fluid.bW(p0).*fluid.rhoWS;
+    rhoW0 = fluid.bW(pW0).*fluid.rhoWS;
     
     rhoWf  = s.faceAvg(rhoW);
     muW = fluid.muW(pW);
@@ -215,6 +216,7 @@ if model.water
     Gw = rhoWf.*gdz;
     
     if isfield(fluid, 'pcOW')
+        pcOW  = fluid.pcOW(sW);
         Gw = Gw + s.Grad(pcOW);
     end
 
@@ -275,8 +277,10 @@ else
     vG = F_g.*(vT + T.*mobOf.*(Gg - Go));
     rOvO = rhoOf.*vO;
     rGvG = rhoGf.*vG;
+    vW = [];
 end
 
+state = model.storeFluxes(state, vW, vO, vG);
 % rOvO = s.faceUpstr(upco, sT).*rOvO;
 % rGvG = s.faceUpstr(upcg, sT).*rGvG;
 
@@ -286,19 +290,28 @@ if isfield(fluid, 'pvMultR')
     pv = pv.*fluid.pvMultR(p);
     pv0 = pv0.*fluid.pvMultR(p0);
 end
-
+compFlux = zeros(size(model.operators.N, 1), ncomp);
 
 % water equation + n component equations
 [eqs, types, names] = deal(cell(1, 2*ncomp + model.water));
 for i = 1:ncomp
     names{i} = compFluid.names{i};
     types{i} = 'cell';
-      
+    
+    vi = rOvO.*s.faceUpstr(upco, xM{i}) + rGvG.*s.faceUpstr(upcg, yM{i});
     eqs{i} = (1/dt).*( ...
                     pv.*rhoO.*sO.*xM{i} - pv0.*rhoO0.*sO0.*xM0{i} + ...
-                    pv.*rhoG.*sG.*yM{i} - pv0.*rhoG0.*sG0.*yM0{i}) ...
-          + s.Div(rOvO.*s.faceUpstr(upco, xM{i}) + rGvG.*s.faceUpstr(upcg, yM{i}));
+                    pv.*rhoG.*sG.*yM{i} - pv0.*rhoG0.*sG0.*yM0{i}) + s.Div(vi);
+      
+   compFlux(:, i) = double(vi);
 end
+state.componentFluxes = compFlux;
+if model.water
+    state.massFlux = [double(rWvW), double(rOvO), double(rGvG)];
+else
+    state.massFlux = [double(rOvO), double(rGvG)];
+end
+
 if model.water
     wix = ncomp+1;
     eqs{wix} = (1/dt).*(pv.*rhoW.*sW.*sT - pv0.*rhoW0.*sW0.*sT0) + s.Div(s.faceUpstr(upcw, sT).*rWvW);
@@ -411,10 +424,7 @@ for i = 1:ncomp
     types{ix} = 'fugacity';
     eqs{ix} = (f_L{i}(twoPhase) - f_V{i}(twoPhase))/barsa;
 end
-
-
-massT = double(sO0).*double(rhoO0) + double(sG0).*double(rhoG0);
-massT(massT == 0) = 1;
+massT = model.getComponentScaling(state0);
 scale = (dt./s.pv)./massT;
 if model.water
     wscale = dt./(s.pv*mean(double(rhoW0)));
@@ -433,12 +443,6 @@ if model.reduceLinearSystem
 else
     problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 end
-% if ~opt.resOnly
-%     problem = problem.assembleSystem();
-%     res = problem.A\problem.b;
-% else
-%     res = 1;
-% end
 end
 
 

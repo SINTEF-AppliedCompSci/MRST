@@ -25,7 +25,8 @@ classdef PressureReducedLinearSystem < ReducedLinearizedSystem
 %                 problem.w = getImpesWeightsOverallComposition(problem.model, problem.state, 1);
                 
                 weights = problem.w;
-                
+%                 singlePhase = problem.state.flag ~= 0;
+
                 Ap = sparse(0);
                 
                 A0 = problem.A;
@@ -51,12 +52,15 @@ classdef PressureReducedLinearSystem < ReducedLinearizedSystem
                             wder = sparse([], [], [], ncell, nder);
                         else
                             dp = problem.state.pressure - problem.state.w_p;
+%                             dp(singlePhase) = 0;
                             ddp = (weights(:, i) - problem.state.w(:, i))./dp;
                             ddp(~isfinite(ddp)) = 0;
                             wder = sparse(1:ncell, 1:ncell, ddp, ncell, nder);
                         end
+                        wi = weights(:, i);
+%                         wi(singlePhase) = 1;
 
-                        W{i} = ADI(weights(:, i), wder);
+                        W{i} = ADI(wi, wder);
                         eq = eq + W{i}.*eqs{i};
                     end
                     problem.b = eq.val;

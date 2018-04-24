@@ -72,14 +72,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     hasSRC = isfield(forces, 'src') && ~isempty(forces.src);
     rhoS = model.getSurfaceDensities();
     
-    [qVolBC, qVolSRC, b] = deal(cell(1, numel(mob)));
+    [qVolBC, qResBC, qVolSRC, b] = deal(cell(1, numel(mob)));
     [bcCells, srcCells, BCTocellMap, BCToSourceMap] = deal([]);
 
     if hasBC || hasSRC
         b = phaseDensitiesTobfactor(rho, rhoS, dissolved);
         if hasBC
             % Setup the fluxes from the boundary condition
-            [qVolBC, BCTocellMap, bcCells] = getBoundaryConditionFluxesAD(model, pressure, s, mob, rho, b, forces.bc);
+            [qVolBC, BCTocellMap, bcCells, qResBC] = getBoundaryConditionFluxesAD(model, pressure, s, mob, rho, b, forces.bc);
         end
 
         if hasSRC
@@ -88,14 +88,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
     end
     src = getContributionsStruct(forces.src, qVolSRC, b, rhoS, srcCells, dissolved, BCToSourceMap);
-    bc = getContributionsStruct(forces.bc, qVolBC, b, rhoS, bcCells, dissolved, BCTocellMap);
+    bc = getContributionsStruct(forces.bc, qVolBC, b, rhoS, bcCells, dissolved, BCTocellMap, qResBC);
 end
 
-function src = getContributionsStruct(force, q_s, b, rhoS, cells, dissolved, map)
+function src = getContributionsStruct(force, q_s, b, rhoS, cells, dissolved, map, q_r)
     nPh = numel(q_s);
-    q_r = q_s;
-    for i = 1:nPh
-        q_r{i} = q_s{i}./b{i}(cells);
+    if nargin < 8
+        q_r = q_s;
+        for i = 1:nPh
+            q_r{i} = q_s{i}./b{i}(cells);
+        end
     end
     
     if ~isempty(dissolved) && ~isempty(force)
@@ -136,10 +138,10 @@ function src = getContributionsStruct(force, q_s, b, rhoS, cells, dissolved, map
     end
     if nargin > 6
         mm = map(cells, :);
-        for i = 1:numel(q_s)
-            q_s{i} = mm*q_s{i};
-            q_r{i} = mm*q_r{i};
-        end
+%         for i = 1:numel(q_s)
+%             q_s{i} = mm*q_s{i};
+%             q_r{i} = mm*q_r{i};
+%         end
     else
         mm = [];
     end

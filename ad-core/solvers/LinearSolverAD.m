@@ -93,6 +93,7 @@ classdef LinearSolverAD < handle
         
         function [dx, result, report] = solveLinearProblem(solver, problem, model)
             % Solve a linearized problem
+            timer = tic();
             keepNumber0 = solver.keepNumber;
             if solver.reduceToCell && isempty(solver.keepNumber)
                 % Eliminate non-cell variables (well equations etc)
@@ -113,8 +114,7 @@ classdef LinearSolverAD < handle
             end
             problem = problem.assembleSystem();
             assert(all(isfinite(problem.b)), 'Linear system rhs must have finite entries.');
-            
-            timer = tic();
+
             % Get linearized system
             [A, b] = problem.getLinearSystem();
             % Apply scaling
@@ -123,8 +123,11 @@ classdef LinearSolverAD < handle
             [A, b, lsys] = solver.reduceLinearSystem(A, b);
             % Reorder linear system
             [A, b] = solver.reorderLinearSystem(A, b);
+            
+            t_prepare = toc(timer);
             % Solve the system
             [result, report] = solver.solveLinearSystem(A, b);
+            t_solve = toc(timer) - t_prepare;
             % Permute system back
             result = solver.deorderLinearSystem(result);
             % Recover eliminated variables on linear level
@@ -134,6 +137,9 @@ classdef LinearSolverAD < handle
             
             [result, report] = problem.processResultAfterSolve(result, report);
             report.SolverTime = toc(timer);
+            report.LinearSolutionTime = t_solve;
+            report.preparationTime = t_prepare;
+            report.postprocessTime = report.SolverTime - t_solve - t_prepare;
             if solver.replaceNaN
                 result(isnan(result)) = solver.replacementNaN;
             end

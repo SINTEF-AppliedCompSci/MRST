@@ -16,16 +16,16 @@ W = drivingForces.W;
 s = model.operators;
 f = model.fluid;
 
-[p, sW, wellSol] = model.getProps(state, 'pressure', 'water', 'wellsol');
-[p0, sW0, wellSol0] = model.getProps(state0, 'pressure', 'water', 'wellsol');
+[p, sW, sO, wellSol] = model.getProps(state, 'pressure', 'water', 'oil', 'wellsol');
+[p0, sW0, sO0, wellSol0] = model.getProps(state0, 'pressure', 'water', 'oil', 'wellsol');
 
 [wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
 
 %Initialization of independent variables ----------------------------------
 
-if ~opt.resOnly,
+if ~opt.resOnly
     % ADI variables needed since we are not only computing residuals.
-    if ~opt.reverseMode,
+    if ~opt.reverseMode
         [p, wellVars{:}] = model.AutoDiffBackend.initVariablesAD(p, wellVars{:});
     else
         assert(0, 'Backwards solver not supported for splitting');
@@ -40,9 +40,6 @@ if ~otherPropPressure
 end
 
 % -------------------------------------------------------------------------
-sO  = 1 - sW;
-sO0 = 1 - sW0;
-
 [krW, krO] = model.evaluateRelPerm({sW, sO});
 
 % Multipliers for properties

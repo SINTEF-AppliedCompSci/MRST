@@ -34,6 +34,7 @@ s = model.operators;
 f = model.fluid;
 W = drivingForces.W;
 
+
 fluid = model.fluid;
 compFluid = model.EOSModel.fluid;
 % Properties at current timestep
@@ -44,16 +45,23 @@ z = expandMatrixToCell(z);
     'pressure', 'water', 'so', 'sg', 'x', 'y', 'T', 'wellSol');
 [pureLiquid, pureVapor, twoPhase] = model.getFlag(state);
 
-pureWater = sO + sG == 0;
-
-stol = 1e-8;
-sO(pureWater) = stol;
-sG(pureWater) = stol;
+if 1
+    stol = 1e-8;
+    pureWater = sO + sG < stol;
+    sO(~pureVapor & pureWater) = stol;
+    sG(~pureLiquid & pureWater) = stol;
+    
+    [pureLiquid0, pureVapor0, twoPhase0] = model.getFlag(state0);
+    pureWater0 = sO0 + sG0 < stol;
+    sO0(~pureVapor0 & pureWater0) = stol;
+    sG0(~pureLiquid0 & pureWater0) = stol;
+end
 
 multiPhase = twoPhase;
 freeOil = twoPhase;
 freeGas = twoPhase;
-
+x = ensureMinimumFraction(x);
+y = ensureMinimumFraction(y);
 x = expandMatrixToCell(x);
 y = expandMatrixToCell(y);
 
@@ -111,17 +119,8 @@ sG = model.AutoDiffBackend.convertToAD(sG, sample);
 sG(freeGas) = sg;
 
 
-if model.water
-    if any(pureVapor)
-        sG(pureVapor) = 1 - sW(pureVapor);
-        sG(pureVapor) = max(sG(pureVapor), stol);
-    end
-    
-    if any(pureLiquid)
-        sO(pureLiquid) = 1 - sW(pureLiquid);
-        sO(pureLiquid) = max(sO(pureLiquid), stol);
-    end
-end
+[sO, sG] = setMinimums(model, state, sW, sO, sG, pureVapor, pureLiquid);
+[sO0, sG0] = setMinimums(model, state0, sW0, sO0, sG0, pureVapor0, pureLiquid0);
 
 if isempty(twoPhaseIx) || opt.resOnly
     reorder = [];
@@ -232,20 +231,22 @@ end
 % EQUATIONS -----------------------------------------------------------
 if model.water
     % Water flux
-    muW = f.muW(p_prop);
-    bW     = fluid.bW(p_prop);
+    if isfield(fluid, 'pcOW')
+        pcOW  = fluid.pcOW(sW);
+    else
+        pcOW = 0;
+    end
+    pW = p_prop;
+    pW0 = p0;
+    muW = f.muW(pW);
+    bW     = fluid.bW(pW);
     rhoW   = bW.*fluid.rhoWS;
-    bW0 = fluid.bW(p0);
+    bW0 = fluid.bW(pW0);
 
     rhoWf  = s.faceAvg(rhoW);
     mobW   = krW./muW;
-    if isfield(fluid, 'pcOW')
-        pcOW  = fluid.pcOW(sW);
-        pW = p - pcOW;
-    else
-        pW = p;
-    end
-    dpW    = s.Grad(pW) - rhoWf.*gdz;
+
+    dpW    = s.Grad(p - pcOW) - rhoWf.*gdz;
     upcw  = (double(dpW)<=0);
     vW = -s.faceUpstr(upcw, mobW).*T.*dpW;
     rWvW = s.faceUpstr(upcw, bW).*vW;
@@ -294,7 +295,11 @@ for i = 1:ncomp
     end
 end
 state.componentFluxes = compFlux;
-state.massFlux = [double(rOvO), double(rGvG)];
+if model.water
+    state.massFlux = [model.fluid.rhoWS.*double(rWvW), double(rOvO), double(rGvG)];
+else
+    state.massFlux = [double(rOvO), double(rGvG)];
+end
 if model.water
     eqs{ncomp+1} = water;
     names{ncomp+1} = 'water';
@@ -372,6 +377,14 @@ if opt.reduceToPressure
         C{ncomp+1} = C{ncomp+1}.*model.fluid.rhoWS;
     end
     
+%     for i = 1:ncomp
+%         eqs{i}(pureLiquid) = eqs{i}(pureLiquid)./rhoO(pureLiquid);
+%         eqs{i}(pureVapor) = eqs{i}(pureVapor)./rhoG(pureVapor);
+%     end
+%     if model.water
+%         eqs{ncomp+1}(~twoPhase) = eqs{ncomp+1}(~twoPhase)./rhoW(~twoPhase);
+%     end
+    
     problem = PressureReducedLinearSystem(eqs, types, names, primaryVars, state, dt);
     problem.accumulationTerms = C;
     problem.model = model;
@@ -380,8 +393,7 @@ if opt.reduceToPressure
     problem.wellvars = wellvars;
     problem.wellvarNames = wellVarNames;
 else
-    massT = double(sO0).*double(rhoO0) + double(sG0).*double(rhoG0);
-    massT(massT == 0) = 1;
+    massT = model.getComponentScaling(state0);
     scale = (dt./s.pv)./massT;
     for i = 1:ncomp
         eqs{i} = eqs{i}.*scale;
@@ -406,6 +418,31 @@ end
 problem.iterationNo = opt.iteration;
 end
 
+
+function [sO, sG] = setMinimums(model, state, sW, sO, sG, pureVapor, pureLiquid)
+    stol = 1e-8;
+    if model.water
+        sT = sum(state.s, 2);
+        if any(pureVapor)
+            sG(pureVapor) = sT(pureVapor) - sW(pureVapor);
+            if isa(sG, 'ADI')
+                sG.val(pureVapor) = max(sG.val(pureVapor), stol);
+            else
+                sG(pureVapor) = max(sG(pureVapor), stol);
+            end
+        end
+
+        if any(pureLiquid)
+            sO(pureLiquid) = sT(pureLiquid) - sW(pureLiquid);
+            if isa(sO, 'ADI')
+                sO.val(pureLiquid) = max(sO.val(pureLiquid), stol);
+            else
+                sO(pureLiquid) = max(sO(pureLiquid), stol);
+            end
+        end
+    end
+
+end
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

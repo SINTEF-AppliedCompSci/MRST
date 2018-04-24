@@ -16,11 +16,11 @@ W = drivingForces.W;
 s = model.operators;
 f = model.fluid;
 
-assert(~(opt.solveForWater && opt.solveForOil));
+solveAllPhases = opt.solveForWater && opt.solveForOil;
 
-[p, sW, wellSol] = model.getProps(state, 'pressure', 'water', 'wellsol');
+[p, sW, sO, wellSol] = model.getProps(state, 'pressure', 'water', 'oil', 'wellsol');
 
-[p0, sW0] = model.getProps(state0, 'pressure', 'water');
+[p0, sW0, sO0] = model.getProps(state0, 'pressure', 'water', 'oil');
 
 % If timestep has been split relative to pressure, linearly interpolate in
 % pressure.
@@ -31,21 +31,28 @@ if isfield(state, 'timestep')
 end
 %Initialization of independent variables ----------------------------------
 
-if ~opt.resOnly,
-    % ADI variables needed since we are not only computing residuals.
-    if ~opt.reverseMode,
-        sW = model.AutoDiffBackend.initVariablesAD(sW);
-    else
-        assert(0, 'Backwards solver not supported for splitting');
+assert(~opt.reverseMode, 'Backwards solver not supported for splitting');
+if solveAllPhases
+    if ~opt.resOnly
+        [sW, sO] = model.AutoDiffBackend.initVariablesAD(sW, sO);
     end
+    primaryVars = {'sW', 'sO'};
+    sT = sO + sW;
+    [krW, krO] = model.evaluateRelPerm({sW./sT, sO./sT});
+else
+    if ~opt.resOnly
+        sW = model.AutoDiffBackend.initVariablesAD(sW);
+    end
+    primaryVars = {'sW'};
+    sO = 1 - sW;
+    sT = ones(size(double(sW)));
+    [krW, krO] = model.evaluateRelPerm({sW, sO});
 end
-primaryVars = {'sW'};
+
 
 clear tmp
 
 % -------------------------------------------------------------------------
-sO = 1 - sW;
-[krW, krO] = model.evaluateRelPerm({sW, sO});
 
 % Multipliers for properties
 [pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
@@ -83,8 +90,8 @@ if ~isempty(W)
     mobOw = mobO(wc);
     totMobw = mobWw + mobOw;
 
-    f_w_w = mobWw./totMobw;
-    f_o_w = mobOw./totMobw;
+    f_w_w = sT(wc).*mobWw./totMobw;
+    f_o_w = sT(wc).*mobOw./totMobw;
 
     isInj = wflux > 0;
     compWell = vertcat(W.compi);
@@ -133,27 +140,41 @@ mobTf_G = mobWf_G + mobOf_G;
 f_g = mobWf_G.*mobOf_G./mobTf_G;
 if opt.solveForWater
     f_w = mobWf./totMob;
-    bWvW   = s.faceUpstr(upcw, bW).*f_w.*vT + s.faceUpstr(upcw_g, bO).*f_g.*s.T.*(Gw - Go);
+    bWvW   = s.faceUpstr(upcw, sT.*bW).*f_w.*vT + s.faceUpstr(upcw_g, bW).*f_g.*s.T.*(Gw - Go);
 
     wat = (s.pv/dt).*(pvMult.*bW.*sW - pvMult0.*f.bW(p0).*sW0) + s.Div(bWvW);
     if ~isempty(W)
         wat(wc) = wat(wc) - bWqW;
     end
 
-    eqs = {wat};
-    names = {'water'};    
-else
-    f_o = mobOf./totMob;
-    bOvO   = s.faceUpstr(upco, bO).*f_o.*vT + s.faceUpstr(upco_g, bO).*f_g.*s.T.*(Go - Gw);
+end
 
-    oil = (s.pv/dt).*( pvMult.*bO.*(1-sW) - pvMult0.*f.bO(p0).*(1-sW0) ) + s.Div(bOvO);
+if opt.solveForOil
+    f_o = mobOf./totMob;
+    bOvO = s.faceUpstr(upco, sT.*bO).*f_o.*vT + s.faceUpstr(upco_g, bO).*f_g.*s.T.*(Go - Gw);
+
+    oil = (s.pv/dt).*( pvMult.*bO.*sO - pvMult0.*f.bO(p0).*sO0 ) + s.Div(bOvO);
     if ~isempty(W)
         oil(wc) = oil(wc) - bOqO;
     end
+
+end
+
+if solveAllPhases
+    eqs = {wat, oil};
+    names = {'water', 'oil'};    
+    types = {'cell', 'cell'};
+elseif opt.solveForOil
     eqs = {oil};
     names = {'oil'};
+    types = {'cell'};
+else
+    eqs = {wat};
+    names = {'water'};
+    types = {'cell'};
 end
-types = {'cell'};
+
+
 rho = {rhoW, rhoO};
 mob = {mobW, mobO};
 sat = {sW, sO};
@@ -163,7 +184,9 @@ sat = {sW, sO};
                                      drivingForces);
 
 if ~model.useCNVConvergence
-    eqs{1} = eqs{1}.*(dt./s.pv);
+    for i = 1:(opt.solveForOil+opt.solveForWater)
+        eqs{i} = eqs{i}.*(dt./s.pv);
+    end
 end
 
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);

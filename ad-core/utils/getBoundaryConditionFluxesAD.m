@@ -89,6 +89,9 @@ else
    dzbc = dz*g';
 end
 
+hasOutsideMob = isfield(bc, 'mob');
+hasOutsideRho = isfield(bc, 'rho');
+
 isP = reshape(strcmpi(bc.type, 'pressure'), [], 1);
 isSF = reshape(strcmpi(bc.type, 'flux'), [], 1);
 isRF = ~(isP | isSF);
@@ -117,9 +120,23 @@ for i = 1:nPh
     [q_s, q_r] = deal(zeroAD);
     
     pBC   = cellToBCMap*pressure{i};
-    bBC = cellToBCMap*b{i};
-    rhoBC = cellToBCMap*rho{i};
-    mobBC = cellToBCMap*mob{i};
+    bBC_in = cellToBCMap*b{i};
+    rhoBC_in = cellToBCMap*rho{i};
+    mobBC_in = cellToBCMap*mob{i};
+    
+    if hasOutsideRho
+        rhoBC_out = bc.rho(:, i);
+        bBC_out = rhoBC_out./rhoS(i);
+    else
+        rhoBC_out = rhoBC_in;
+        bBC_out = bBC_in;
+    end
+    if hasOutsideMob
+        mobBC_out = bc.mob(:, i);
+    else
+        mobBC_out = mobBC_in;
+    end
+    
     sBC   = cellToBCMap*s{i};
     
     if hasNoSat
@@ -129,66 +146,79 @@ for i = 1:nPh
         sat(noSat, i) = sBC(noSat);
     end
     
-    % Treat pressure BC
-    dP = bc.value(isP) - pBC(isP) + rhoBC(isP).*dzbc(isP);
+    if any(isP)
+        % Treat pressure BC
+        rhoF = (rhoBC_in(isP) + rhoBC_out(isP))./2;
+        dP = bc.value(isP) - pBC(isP) + rhoF.*dzbc(isP);
+        
+        % Determine if pressure bc are injecting or producing
+        injDir = dP > 0;
 
-    % Determine if pressure bc are injecting or producing
-    injDir = dP > 0;
-    
-    injP = isP;
-    injP(isP) = injDir;
-    
-    if any(~injDir)
-        % Write out the flux equation over the interface
-        subs = isP & ~injP;
-        q_res = mobBC(subs).*T(subs).*dP(~injDir);
-        q_s(subs) = bBC(subs).*q_res;
-        q_r(subs) = q_res;
-        clear subs
-    end
-    
-    if any(injDir)
-        % In this case, pressure drives flow inwards, we get the injection rate
-        % determined by the sat field
-        subs = isP & injP;
-        q_res = totMob(subs).*T(subs).*dP(injDir).*sat(subs, i);
-        q_s(subs)  = bBC(subs).*q_res;
-        q_r(subs) = q_res;
-        clear subs
+        injP = isP;
+        injP(isP) = injDir;
+
+        if any(~injDir)
+            % Write out the flux equation over the interface
+            subs = isP & ~injP;
+            q_res = mobBC_in(subs).*T(subs).*dP(~injDir);
+            q_s(subs) = bBC_in(subs).*q_res;
+            q_r(subs) = q_res;
+            clear subs
+        end
+
+        if any(injDir)
+            % In this case, pressure drives flow inwards, we get the injection rate
+            % determined by the sat field
+            subs = isP & injP;
+            if hasOutsideMob
+                q_res = mobBC_out(subs).*T(subs).*dP(injDir);
+            else
+                q_res = totMob(subs).*T(subs).*dP(injDir).*sat(subs, i);
+            end
+            q_s(subs) = bBC_out(subs).*q_res;
+            q_r(subs) = q_res;
+            clear subs
+        end
     end
     % Treat flux / Neumann BC
+    
+    % ------ Fluxes given at surface conditions ----- %
     injNeu = bc.value > 0;
     
     subs = isSF &  injNeu;
+    % Injection
     if any(subs)
-        % Injection
         q_s(subs) = bc.value(subs).*sat(subs, i);
-        q_r(subs) = bc.value(subs).*sat(subs, i)./bBC(subs);
+        q_r(subs) = bc.value(subs).*sat(subs, i)./bBC_in(subs);
     end
-    % Fluxes given at surface conditions
+    
     subs = isSF & ~injNeu;
+    % Production
     if any(subs)
         % Production fluxes, use fractional flow of total mobility to
         % estimate how much mass will be removed.
-        f = mobBC(subs)./totMob(subs);
+        f = mobBC_in(subs)./totMob(subs);
         tmp = f.*bc.value(subs);
         q_s(subs) = tmp;
-        q_r(subs) = tmp./bBC(subs);
+        q_r(subs) = tmp./bBC_in(subs);
     end
-    % Fluxes given at reservoir conditions
+    % ------ Fluxes given at reservoir conditions ----- %
     subs = isRF &  injNeu;
+    % Injection
     if any(subs)
-        % Injection
-        q_s(subs) = bc.value(subs).*sat(subs, i).*bBC(subs);
-        q_r(subs) = bc.value(subs).*sat(subs, i);
-    end
-    subs = isRF & ~injNeu;
-    if any(subs)
-        f = mobBC(subs)./totMob(subs);
-        tmp = f.*bc.value(subs);
-        q_s(subs) = tmp.*bBC(subs);
+        tmp = bc.value(subs).*sat(subs, i);
+        q_s(subs) = tmp.*bBC_in(subs);
         q_r(subs) = tmp;
     end
+    subs = isRF & ~injNeu;
+    % Production
+    if any(subs)
+        f = mobBC_in(subs)./totMob(subs);
+        tmp = f.*bc.value(subs);
+        q_s(subs) = tmp.*bBC_in(subs);
+        q_r(subs) = tmp;
+    end
+
     qSurf{i} = q_s;
     qRes{i} = q_r;
 end
