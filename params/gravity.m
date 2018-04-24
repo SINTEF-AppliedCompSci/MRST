@@ -103,29 +103,29 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    persistent G g_vec gravityOn
 
-   if isempty(G),
+   if isempty(G)
       [G, g_vec, gravityOn] = reset();
    end
 
-   for k = 1 : nargin,
+   for k = 1 : nargin
       arg = varargin{k};
-      if ischar(arg),
-         switch lower(arg),
+      if ischar(arg)
+         switch lower(arg)
             case {'off', 'no' , 'false'}, gravityOn = false;
             case {'on' , 'yes', 'true' }, gravityOn = true;
             case 'x'                    , g_vec     = [1, 0, 0];
             case 'y'                    , g_vec     = [0, 1, 0];
             case 'z'                    , g_vec     = [0, 0, 1];
-            case 'reset',
+            case 'reset'
                [G, g_vec, gravityOn] = reset();
-            otherwise,
+             otherwise
                error(msgid('Mode:Unsupported'), ...
                      'Unsupported gravity control mode ''%s''.', arg);
          end
-      elseif islogical(arg),
+      elseif islogical(arg)
          gravityOn = arg;
-      elseif isnumeric(arg) && isreal(arg),
-         if numel(arg) == 1 && ~(norm(g_vec) > 0),
+      elseif isnumeric(arg) && isreal(arg)
+         if numel(arg) == 1 && ~(norm(g_vec) > 0)
             error(msgid('GravDir:AllZero'), ...
                  ['Gravity does not point anywhere ',       ...
                   '(direction is [0,0,0]).\n',              ...
@@ -133,16 +133,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                   'the acceleration strength.']);
          end
 
-         switch numel(arg),
+         switch numel(arg)
             case 1, G = arg;  g_vec = g_vec ./ norm(g_vec)    ;
             case 2, G = 1  ;  g_vec = [reshape(arg, 1, []), 0];
             case 3, G = 1  ;  g_vec =  reshape(arg, 1, [])    ;
 
-            case num2cell(4 : 26),
+            case num2cell(4 : 26)
                error(['%d-D String Theory is yet to be proven as a ', ...
                       'valid description of our world.'], numel(arg));
 
-            otherwise,
+             otherwise
                error(msgid('foo:bar'), ...
                     ['This does not compute.\n',                ...
                      'Our three dimensional, visible physical', ...
@@ -158,8 +158,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       end
    end
 
-   if nargout
-       if gravityOn,
+   if nargout || nargin == 0
+       if gravityOn
           g = G * g_vec;
        else
           g = zeros([1, 3]);
