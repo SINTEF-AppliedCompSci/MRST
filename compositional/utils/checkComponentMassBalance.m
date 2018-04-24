@@ -85,8 +85,8 @@ function checkComponentMassBalance(model, state0, states, schedule, n)
         rhoW0 = model.fluid.bW(state0.pressure).*model.fluid.rhoWS;
         rhoW = model.fluid.bW(states{end}.pressure).*model.fluid.rhoWS;
         
-        watMass = pv.*sum(states{end}.s(:, 1).*rhoW.*model.operators.pv);
-        watMass0 = pv0.*sum(state0.s(:, 1).*rhoW0.*model.operators.pv);
+        watMass = sum(pv.*states{end}.s(:, 1).*rhoW.*model.operators.pv);
+        watMass0 = sum(pv0.*state0.s(:, 1).*rhoW0.*model.operators.pv);
         
         wrate = bsxfun(@times, getWellOutput(ws, 'qWs'), dt);
         wrate = wrate(:).*model.fluid.rhoWS;
