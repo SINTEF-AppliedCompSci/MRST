@@ -185,16 +185,9 @@ function [cq_vol, cq_s, mix_s] = computePerforationRates(resmodel, wellmodel, co
         
         isInj = double(qt_s)>0;
         wbq = cell(1, numPh);
-        if isInj
-            % Injection given by prescribed composition
-            for ph = 1:numPh
-                wbq{ph} = compi(ph).*qt_s;
-            end
-        else
-            % Determined by reservoir conditions
-            for ph = 1:numPh
-                wbq{ph} = q_s{ph}.*(q_s{ph}>0) - sum(cq_ps{ph});
-            end
+
+        for ph = 1:numPh
+            wbq{ph} = q_s{ph}.*(q_s{ph}>0) - sum(cq_ps{ph});
         end
 
         % compute wellbore total volumetric rates at std conds.

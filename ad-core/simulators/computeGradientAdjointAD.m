@@ -5,17 +5,8 @@ function gradients = computeGradientAdjointAD(state0, states, model, schedule, g
 %   grad = computeGradientAdjointAD(state0, states, model, schedule, getObjective
 %
 % DESCRIPTION:
-%   For a given schedule, compute gradients with regards to well controls
-%   by perturbing all controls ever so slightly and re-running the
-%   simulation.
-%  
-%   As the cost of this routine grows is approximately ::
-%
-%        (# wells)x(# ctrl step) x cost of schedule
-%
-%   it can be potentially extremely expensive. It is better to use the
-%   'computeGradientAdjointAD' routine for most practical purposes. This
-%   routine is primarily designed for validation of said routine.
+%   For a given schedule, compute gradients of objective with respect to well 
+%   controls by solving adjoint equations.
 %
 % REQUIRED PARAMETERS:
 %
@@ -74,6 +65,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     opt = struct('ControlVariables', {{'well'}}, ...
                  'LinearSolver',     [], ...
+                 'OutputPerTimestep', false, ...
                  'Verbose', mrstVerbose());
     opt = merge_options(opt, varargin{:});
     
@@ -115,10 +107,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     
     % Sum up to the control steps
-    nc = numel(schedule.control);
-    gradients = cell(ncv, nc);
-    for k = 1:nc
-        ck = schedule.step.control == k;
+    if ~opt.OutputPerTimestep
+        nOut = numel(schedule.control);
+        contr = schedule.step.control;
+    else % output gradient per time-step
+        nOut = nt;
+        contr = (1:nt)';
+    end
+    gradients = cell(ncv, nOut);
+    
+    for k = 1:nOut
+        ck = contr == k;
         for j = 1:ncv
             tmp = gradstep(ck, j);
             gradients{j, k} = 0;
