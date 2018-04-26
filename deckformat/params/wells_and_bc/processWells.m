@@ -38,6 +38,7 @@ function W = processWells(G, rock, control, varargin)
 %           - createDefaultWell -- If enabled, this function will not parse
 %                              any wells, but simply return a default well
 %                              structure suitable for further modification.
+%           - cellDims -- optional input of accurate cellDims
 %
 % RETURNS:
 %   W  - Updated (or freshly created) well structure, each element of which
@@ -90,7 +91,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 'Verbose',           mrstVerbose(), ...
                 'DepthReorder',      false, ...
                 'strictParsing',     true, ...
-                'createDefaultWell', false);
+                'createDefaultWell', false, ...
+                'cellDims',         []);
    opt = merge_options(opt, varargin{:});
 
    if opt.createDefaultWell
@@ -185,7 +187,7 @@ function W = process_wconinj(W, control, G, rock, well_id, p, opt)
 
       sizeW = numel(W);
       W = buildWell(W, G, rock, control, well_id(nm), p, type, val, ...
-                    compi, opt.InnerProduct, 1);
+                    compi, opt.InnerProduct, 1, opt);
       if numel(W) > sizeW
          W(end).lims.rate = control.WCONINJ{i, 5};
          W(end).lims.bhp  = control.WCONINJ{i, 9};
@@ -235,7 +237,7 @@ function W = process_wconinje(W, control, G, rock, well_id, p, opt)
 
       sizeW = numel(W);
       W = buildWell(W, G, rock, control, well_id(nm), p, type, val, ...
-                    compi, opt.InnerProduct, 1);
+                    compi, opt.InnerProduct, 1, opt);
 
       if numel(W) > sizeW
          W(end).lims.rate = control.WCONINJE{i, 5};
@@ -269,7 +271,7 @@ function W = process_wconinjh(W, control, G, rock, well_id, p, opt)
 
       sizeW = numel(W);
       W = buildWell(W, G, rock, control, well_id(nm), p, type, val, ...
-                    compi, opt.InnerProduct, 1);
+                    compi, opt.InnerProduct, 1, opt);
 
       if numel(W) > sizeW
          % lims.bhp is \approx 100e3 psia, as for default wconinje.
@@ -437,7 +439,7 @@ function W = process_wconhist(W, control, G, rock, well_id, p, opt)
       sizeW = numel(W);
 
       W = buildWell(W, G, rock, control, well_id(nm), p, type, val, ...
-                    compi, opt.InnerProduct, -1);
+                    compi, opt.InnerProduct, -1, opt);
 
       if numel(W) > sizeW
          switch type,
@@ -530,7 +532,7 @@ function W = process_wconprod(W, control, G, rock, well_id, p, opt)
       sizeW = numel(W);
 
       W = buildWell(W, G, rock, control, well_id(nm), p, type, val, ...
-                    compi, opt.InnerProduct, -1);
+                    compi, opt.InnerProduct, -1, opt);
 
       if numel(W) > sizeW
          W(end).lims.orat = -control.WCONPROD{i, 4};
@@ -598,7 +600,7 @@ end
 %--------------------------------------------------------------------------
 
 function W = buildWell(W, G, rock, control, i, p, ...
-                       type, val, compi, ip, sgn)
+                       type, val, compi, ip, sgn, opt)
    comp  = control.COMPDAT(p(i) : p(i + 1) - 1, :);
    perf  = arrayfun(@(i) active_perf(G, comp(i,:)), ...
                     (1 : size(comp,1)).', 'UniformOutput', false);
@@ -648,7 +650,7 @@ function W = buildWell(W, G, rock, control, i, p, ...
                   'Type', type, 'Val', val, 'Dir', wdir, 'Kh', Kh,    ...
                   'Sign', sgn, 'Wi', WI, 'Comp_i', compi,             ...
                   'Name', control.WELSPECS{i, 1}, 'Radius', Wdiam./2, ...
-                  'RefDepth', RefDepth, 'InnerProduct', ip);
+                  'RefDepth', RefDepth, 'InnerProduct', ip, 'cellDims', opt.cellDims);
       if numel(W) > sizeW
          W(end).lims = [];
          W(end).cstatus   = cstatus;
