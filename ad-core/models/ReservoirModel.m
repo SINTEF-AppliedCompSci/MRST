@@ -73,7 +73,7 @@ methods
             varargin = varargin(3:end);
             % We have been provided the means, so we will execute setup
             % phase after parsing other inputs and defaults.
-            doSetup = true;
+            doSetup = ~(isempty(G) || isempty(model.rock));
         end
 
         model.dpMaxRel = inf;
@@ -104,12 +104,7 @@ methods
         model.oil = false;
 
         if doSetup
-            if isempty(G) || isempty(model.rock)
-                dispif(model.verbose, ...
-                    'Invalid grid/rock pair supplied. Operators have not been set up.')
-            else
-                model.operators = setupOperatorsTPFA(G, model.rock, 'deck', model.inputdata);
-            end
+            model.operators = setupOperatorsTPFA(G, model.rock, 'deck', model.inputdata);
         end
     end
 
@@ -150,6 +145,9 @@ methods
         else
             model.FacilityModel.ReservoirModel = model;
         end
+        
+        assert(~isempty(model.operators),...
+            'Operators must be set up before simulation. See model.setupOperators for more details.');
         
         if nargin > 1
             W = varargin{1}.W;
@@ -509,13 +507,20 @@ methods
         % link
         saturations = lower(model.getSaturationVarNames);
         fillsat = setdiff(saturations, lower(satVars));
-        assert(numel(fillsat) == 1)
-        fillsat = fillsat{1};
-
-        % Fill component is whichever saturation is assumed to fill up the rest of
-        % the pores. This is done by setting that increment equal to the
-        % negation of all others so that sum(s) == 0 at end of update
-        solvedFor = ~strcmpi(saturations, fillsat);
+        
+        n_fill = numel(fillsat);
+        assert(n_fill == 1 || n_fill == 0)
+        if n_fill == 1
+            fillsat = fillsat{1};
+            % Fill component is whichever saturation is assumed to fill up the rest of
+            % the pores. This is done by setting that increment equal to the
+            % negation of all others so that sum(s) == 0 at end of update
+            solvedFor = ~strcmpi(saturations, fillsat);
+        else
+            % All saturations are primary variables. Sum of saturations is
+            % assumed to be enforced from the equation setup
+            solvedFor = true(numel(saturations), 1);
+        end
         ds = zeros(model.G.cells.num, numel(saturations));
 
         tmp = 0;
@@ -523,23 +528,30 @@ methods
             if solvedFor(i)
                 v = model.getIncrement(dx, problem, saturations{i});
                 ds(:, i) = v;
-                % Saturations added for active variables must be subtracted
-                % from the last phase
-                tmp = tmp - v;
+                if n_fill > 0
+                    % Saturations added for active variables must be subtracted
+                    % from the last phase
+                    tmp = tmp - v;
+                end
             end
         end
         ds(:, ~solvedFor) = tmp;
         % We update all saturations simultanously, since this does not bias the
         % increment towards one phase in particular.
         state = model.updateStateFromIncrement(state, ds, problem, 's', inf, model.dsMaxAbs);
-
-        % Ensure that values are within zero->one interval, and
-        % re-normalize if any values were capped
-        bad = any((state.s > 1) | (state.s < 0), 2);
-        if any(bad)
-            state.s(bad, :) = min(state.s(bad, :), 1);
-            state.s(bad, :) = max(state.s(bad, :), 0);
-            state.s(bad, :) = bsxfun(@rdivide, state.s(bad, :), sum(state.s(bad, :), 2));
+        if n_fill == 1
+            % Ensure that values are within zero->one interval, and
+            % re-normalize if any values were capped
+            bad = any((state.s > 1) | (state.s < 0), 2);
+            if any(bad)
+                state.s(bad, :) = min(state.s(bad, :), 1);
+                state.s(bad, :) = max(state.s(bad, :), 0);
+                state.s(bad, :) = bsxfun(@rdivide, state.s(bad, :), sum(state.s(bad, :), 2));
+            end
+        else
+            % Ensure positive values, we assume that sum of saturations is
+            % handled via constraint equation
+            state.s = max(state.s, 0);
         end
     end
 
@@ -1080,7 +1092,12 @@ methods
 
                 bc = bnd_cond.sourceCells;
                 if ~isempty(bc)
-                    eqs{sub}(bc) = eqs{sub}(bc) - bnd_cond.phaseMass{i}./rhoS(i);
+                    if isempty(bnd_cond.mapping)
+                        q = bnd_cond.phaseMass{i}./rhoS(i);
+                    else
+                        q = (bnd_cond.mapping*bnd_cond.phaseMass{i})./rhoS(i);
+                    end
+                    eqs{sub}(bc) = eqs{sub}(bc) - q;
                 end
             end
         end

@@ -18,11 +18,11 @@ disgas = model.disgas;
 vapoil = model.vapoil;
 
 % Properties at current timestep
-[p, sW, sG, rs, rv, wellSol] = model.getProps(state, ...
-                                'pressure', 'water', 'gas', 'rs', 'rv', 'wellSol');
+[p, sW, sO, sG, rs, rv, wellSol] = model.getProps(state, ...
+                                'pressure', 'water', 'oil', 'gas', 'rs', 'rv', 'wellSol');
 % Properties at previous timestep
-[p0, sW0, sG0, rs0, rv0, wellSol0] = model.getProps(state0, ...
-                                'pressure', 'water', 'gas', 'rs', 'rv', 'wellSol');
+[p0, sW0, sO0, sG0, rs0, rv0, wellSol0] = model.getProps(state0, ...
+                                'pressure', 'water', 'oil', 'gas', 'rs', 'rv', 'wellSol');
 
 
 [wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
@@ -30,32 +30,32 @@ vapoil = model.vapoil;
 
 
 %Initialization of independent variables ----------------------------------
-st  = model.getCellStatusVO(state,  1-sW-sG,   sW,  sG);
-st0 = model.getCellStatusVO(state0, 1-sW0-sG0, sW0, sG0);
+st  = model.getCellStatusVO(state,  sO,   sW,  sG);
+st0 = model.getCellStatusVO(state0, sO0, sW0, sG0);
 p_prop = opt.propsPressure;
 otherPropPressure = ~isempty(p_prop);
-if ~opt.resOnly,
-    if ~opt.reverseMode,
+if ~opt.resOnly
+    if ~opt.reverseMode
         % define primary varible x and initialize
-        x = st{1}.*rs + st{2}.*rv + st{3}.*sG;
+        if disgas || vapoil
+            x = st{1}.*rs + st{2}.*rv + st{3}.*sG;
+        end
 
         [p, wellVars{:}] = model.AutoDiffBackend.initVariablesAD(p, wellVars{:});
         if ~otherPropPressure
             p_prop = p;
         end
-        % define sG, rs and rv in terms of x
-        sG = st{2}.*(1-sW) + st{3}.*x;
-        if disgas
-            rsSat = f.rsSat(p_prop);
-            rs = (~st{1}).*rsSat + st{1}.*x;
-        else % otherwise rs = rsSat = const
-            rsSat = rs;
-        end
-        if vapoil
-            rvSat = f.rvSat(p_prop);
-            rv = (~st{2}).*rvSat + st{2}.*x;
-        else % otherwise rv = rvSat = const
-            rvSat = rv;
+        if disgas || vapoil
+            % define sG, rs and rv in terms of x
+            sG = st{2}.*(1-sW) + st{3}.*x;
+            if disgas
+                rsSat = f.rsSat(p_prop);
+                rs = (~st{1}).*rsSat + st{1}.*x;
+            end
+            if vapoil
+                rvSat = f.rvSat(p_prop);
+                rv = (~st{2}).*rvSat + st{2}.*x;
+            end
         end
     else
         assert(0, 'Backwards solver not supported for splitting');
@@ -64,11 +64,7 @@ else % resOnly-case compute rsSat and rvSat for use in well eqs
     if isempty(p_prop)
         p_prop = p;
     end
-    if disgas, rsSat = f.rsSat(p_prop); else rsSat = rs; end
-    if vapoil, rvSat = f.rvSat(p_prop); else rvSat = rv; end
 end
-sO  = 1- sW  - sG;
-sO0 = 1- sW0 - sG0;
 
 primaryVars = {'pressure', wellVarNames{:}};
 

@@ -73,6 +73,28 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             names = getComponentNames@ReservoirModel(model);
             names = horzcat(names, model.EOSModel.fluid.names);
         end
+        
+        function scaling = getComponentScaling(model, state)
+            wL = state.s(:, 1+model.water);
+            wV = state.s(:, 2+model.water);
+            wT = wL + wV;
+
+            wL = wL./wT;
+            wV = wV./wT;
+            
+            if isfield(state, 'rho')
+                rhoO = state.rho(:, 1+model.water);
+                rhoG = state.rho(:, 2+model.water);
+            else
+                rhoO = model.fluid.rhoOS;
+                rhoG = model.fluid.rhoGS;
+            end
+            wL(wT == 0) = state.L(wT == 0);
+            wV(wT == 0) = 1 - state.L(wT == 0);
+
+            scaling = wL.*double(rhoO) + wV.*double(rhoG);
+            scaling(wT  < 1e-3) = 1e6;
+        end
 
         function [fn, index] = getVariableField(model, name)
             switch(lower(name))
@@ -117,6 +139,8 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             ncell = model.G.cells.num;
             ncomp = model.EOSModel.fluid.getNumberOfComponents();
             model.checkProperty(state, 'Components', [ncell, ncomp], [1, 2]);
+            assert(all(max(model.getProp(state, 'Components')) <= 1), ...
+                'Initial mole fractions are larger than unity.')
             T = model.getProp(state, 'Temperature');
             if numel(T) == 1
                 % Expand single temperature to all grid cells
@@ -128,7 +152,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             if ~isfield(state, 'x') || ~isfield(state, 'K')
                 state = model.computeFlash(state, inf);
             end
-            if isfield(state, 'wellSol')
+            if isfield(state, 'wellSol') && ~isfield(state.wellSol, 'components')
                 for i = 1:numel(state.wellSol)
                     state.wellSol(i).components = [];
                 end
@@ -304,6 +328,9 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                     qC = qC + ~inj.*component{ph}(cells).*q_ph ...
                             +  inj.*mf_bc(:, sub).*q_ph;
                 end
+                if ~isempty(src.mapping)
+                    qC = src.mapping*qC;
+                end
                 eq(cells) = eq(cells) - qC;
                 src.components{end+1} = qC;
             else
@@ -348,6 +375,38 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
         
         function m = PropertyModel(model)
             m = model.EOSModel.PropertyModel;
+        end
+        
+        function scaling = getScalingFactorsCPR(model, problem, names, solver) %#ok
+            % Get scaling factors for CPR reduction in `CPRSolverAD`
+            %
+            % PARAMETERS:
+            %   model   - Class instance
+            %   problem - `LinearizedProblemAD` which is intended for CPR
+            %             preconditioning.
+            %   names   - The names of the equations for which the factors are
+            %             to be obtained.
+            %   solver  - The `LinearSolverAD` class requesting the scaling
+            %             factors.
+            %
+            % RETURNS:
+            %   scaling - Cell array with either a scalar scaling factor for
+            %             each equation, or a vectogetComponentScalingr of equal length to that 
+            %             equation.
+            %
+            % SEE ALSO
+            %   `CPRSolverAD`
+            scaling = getScalingFactorsCPR@ReservoirModel(model, problem, names, solver);
+%             state = problem.state;
+%             rhos = state.rho.*state.s;
+%             
+%             for i = 1:numel(names)
+%                 if strcmpi(names{i}, 'water')
+%                     scaling{i} = 1./state.rho(:, 1);
+%                 elseif any(strcmpi(names{i}, model.EOSModel.fluid.names))
+%                     scaling{i} = 1./max(sum(rhos(:, (1+model.water):end), 2), 1);
+%                 end
+%             end
         end
     end
     

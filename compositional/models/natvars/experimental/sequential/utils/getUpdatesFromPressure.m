@@ -136,15 +136,4 @@ function [dx, dy, ds, dL, twoPhase, w] = getUpdatesFromPressure(model, state, dp
     
     dx(noHydrocarbons, :) = 0;
     dy(noHydrocarbons, :) = 0;
-    
-    
-%     dL = res((2*n*ncomp+nsat+1):end);
-    
-%     L = L0 + dL;
-%     V = 1-L;
-%     L = (z0 - y0 - dy)./(x0 + dx - y0 - dy);
-%     
-%     [(x0 + dx).*(L0 + dL) + (y0 + dy).*(1 - L0 - dL)]./z0
-%     
-%     [(x0 + w.*dx).*(L0 + w.*dL) + (y0 + w.*dy).*(1 - L0 - w.*dL)]./z0
 end

@@ -154,7 +154,7 @@ classdef NonLinearSolver < handle
             %               just be {state}.
             % SEE ALSO:
             %   PhysicalModel
-
+            timer = tic();
             opt = struct('initialGuess', state0);
 
             % Get default driving forces for model
@@ -319,11 +319,12 @@ classdef NonLinearSolver < handle
                     ' (%d rejected, %d total iteration%s)\n'], ...
                    acceptCount, pl_mini, stepCount - acceptCount, ...
                    itCount, pl_it);
-
+            time = toc(timer);
             % Truncate reports from step functions
             reports = reports(~cellfun(@isempty, reports));
             report = struct('Iterations',           itCount,...
                             'Converged',            converged,...
+                            'WallTime',             time, ...
                             'MinistepCuttingCount', cuttingCount);
             % Add seperately because struct constructor interprets cell
             % arrays as repeated structs.
@@ -336,7 +337,7 @@ classdef NonLinearSolver < handle
         function [state, failure, report] = solveMinistep(solver, model, state, state0, dt, drivingForces)
             % Attempt to solve a single mini timestep while trying to avoid
             % stagnation or oscillating residuals.
-            omega0 = solver.relaxationParameter;
+            solver.relaxationParameter = solver.maxRelaxation;
             solver.convergenceIssues = false;
             if model.stepFunctionIsLinear
                 maxIts = 0;
@@ -405,7 +406,6 @@ classdef NonLinearSolver < handle
             % If we converged, the last step did not solve anything
             its = i - converged;
             reports = reports(~cellfun(@isempty, reports));
-            solver.relaxationParameter = omega0;
             solver.convergenceIssues = false;
             if converged
                 [state, r] = model.updateAfterConvergence(state0, state, dt, drivingForces);

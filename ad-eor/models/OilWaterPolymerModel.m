@@ -114,8 +114,6 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
                     else
                         fn = 'cmax';
                     end
-                case 'qwpoly'
-                    fn = 'qWPoly';
                 otherwise
                     [fn, index] = getVariableField@TwoPhaseOilWaterModel(...
                                     model, name);
@@ -202,54 +200,62 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
             src.components{end+1} = qC;
         end
 
-        function [names, types] = getExtraWellEquationNames(model)
-            [names, types] = getExtraWellEquationNames@TwoPhaseOilWaterModel(model);
-            if model.polymer
-                names{end+1} = 'polymerWells';
-                types{end+1} = 'perf';
-            end
-        end
-
-        function names = getExtraWellPrimaryVariableNames(model)
-            names = getExtraWellPrimaryVariableNames@TwoPhaseOilWaterModel(model);
-            if model.polymer
-                names{end+1} = 'qWPoly';
-            end
-        end
-
         function [compEqs, compSrc, eqNames, wellSol] = getExtraWellContributions(model, well, wellSol0, wellSol, q_s, bh, packed, qMass, qVol, dt, iteration)
             [compEqs, compSrc, eqNames, wellSol] = getExtraWellContributions@TwoPhaseOilWaterModel(model, well, wellSol0, wellSol, q_s, bh, packed, qMass, qVol, dt, iteration);
+
             if model.polymer
                 assert(model.water, 'Polymer injection requires a water phase.');
                 f = model.fluid;
 
-                concWell = model.getProp(well.W, 'polymer');
-                pix = strcmpi(model.getComponentNames(), 'polymer');
-                concRes = packed.components{pix};
+                % Polymer concentration given by the well control
+                concpolyCtrl = model.getProp(well.W, 'polymer');
 
-                qwpoly = packed.extravars{strcmpi(packed.extravars_names, 'qwpoly')};
-                a = f.muWMult(f.cmax).^(1-f.mixPar);
+                % Polymer concentration from the reservoir at the connections
+                pix = strcmpi(model.getComponentNames(), 'polymer');
+                concpolyRes = packed.components{pix};
 
                 % Water is always first
                 wix = 1;
                 cqWs = qMass{wix}./f.rhoWS; % connection volume flux at surface condition
+                q_sw = q_s{wix}; % water flow from bottom hole. 
 
                 isInj = (cqWs > 0);
-                conc = concRes;
-                conc(isInj) = concWell;
+                % Computation of total polymer influx in well qP
+                % (We recall that cqWs<0 when producing)
+                qP = sum(-concpolyRes(~isInj).*cqWs(~isInj));
+                if (q_sw > 0) 
+                    % Well is injecting water
+                    qP = qP + concpolyCtrl*q_sw;
+                end
+                
+                % Computation of total water outflux from well
+                qWout = sum(cqWs(isInj));
+                if (q_sw < 0) 
+                    % Well is injecting water
+                    % (We recall that q_sw < 0 when producing)
+                    qWout = qWout - q_sw;
+                end
 
-                cbarw     = conc/f.cmax;
+                % Let us now compute the polymer flow rate at each connection
+                %
+                % First, we handle the producting connections.
+                % The term (a + (1 - a).*cbarw) account for the todd-longstaff mixing factor,
+                % which model the fact that for not-fully mixed polymer solution
+                % the polymer does not travel at the same velocity as water. See
+                % the governing equation for polymer
+                % (e.g. equationsOilWaterPolymer.m)
+                cbarw = concpolyRes/f.cmax;
+                a     = f.muWMult(f.cmax).^(1-f.mixPar);
+                cqP   = concpolyRes.*cqWs./(a + (1-a).*cbarw);
 
-                % the term (a + (1 - a).*cbarw) account for the
-                % todd-longstaff mixing factor, which model the fact that for
-                % not-fully mixed polymer solution the polymer does not
-                % travel at the same velocity as water. See the governing
-                % equation for polymer (e.g. equationsOilWaterPolymer.m)
-                cqP = conc.*cqWs./(a + (1-a).*cbarw);
+                % For the injecting connections, the polymer is distributed equally in each
+                % connection.
 
-                compEqs{end+1} = qwpoly - sum(cqP);
+                if any(isInj)
+                    cqP(isInj) = (qP./qWout).*cqWs(isInj);
+                end                
+                
                 compSrc{end+1} = cqP;
-                eqNames{end+1} = 'polymerWells';
             end
         end
     end

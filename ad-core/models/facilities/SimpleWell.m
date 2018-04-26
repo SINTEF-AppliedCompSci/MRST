@@ -32,6 +32,7 @@ classdef SimpleWell < PhysicalModel
         dpMaxAbs % Maximum allowable absolute change in well pressure
         dsMaxAbs % Maximum allowable change in well composition/saturation
         VFPTable % Vertical lift table. EXPERIMENTAL.
+        doUpdatePressureDrop
     end
 
     methods
@@ -42,6 +43,7 @@ classdef SimpleWell < PhysicalModel
             well.allowCrossflow = true;
             well.allowSignChange = false;
             well.allowControlSwitching = true;
+            well.doUpdatePressureDrop = true;
 
             well.dpMaxRel = inf;
             well.dpMaxAbs = inf;
@@ -277,7 +279,7 @@ classdef SimpleWell < PhysicalModel
             %
             % To avoid dense linear systems, this update only happens at
             % the start of each nonlinear loop.
-            if iteration ~= 1
+            if iteration ~= 1 || ~well.doUpdatePressureDrop
                 return
             end
             [p, mob, rho, dissolved, comp, wellvars] = unpackPerforationProperties(packed);
@@ -515,7 +517,7 @@ classdef SimpleWell < PhysicalModel
             if switched && well.verbose
                 fprintf('Step complete: Well %s was switched from %s to %s controls.\n',...
                                                                  w.name, ...
-                                                                 w.type, ...
+                                                                 wellSol0.type, ...
                                                                  wellSol.type);
             end
         end

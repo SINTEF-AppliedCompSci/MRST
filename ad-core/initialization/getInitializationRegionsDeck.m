@@ -56,7 +56,7 @@ function region = getRegion(model, deck, eql, cells, regionIx)
     rv_method = eql(8);
     
     p_datum = eql(2);
-    if model.disgas
+    if isprop(model, 'disgas') && model.disgas
         if rs_method <= 0
             rs =  @(p, z) 0*p + model.fluid.rsSat(p_datum, 'cellInx', cells(1));
         else
@@ -69,7 +69,7 @@ function region = getRegion(model, deck, eql, cells, regionIx)
         rs = 0;
     end
     
-    if model.vapoil
+    if isprop(model, 'vapoil') && model.vapoil
         if rv_method <= 0
             % Oil pressure at gas-oil contact + capillary pressure there
             pg_goc = p_datum + eql(6);

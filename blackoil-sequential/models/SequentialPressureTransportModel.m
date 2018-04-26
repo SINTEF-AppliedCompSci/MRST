@@ -6,6 +6,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
         pressureModel
         % Model for the transport subproblem after pressure is found
         transportModel
+        parentModel
         
         % NonLinearSolver instance used for pressure updates
         pressureNonLinearSolver
@@ -82,6 +83,11 @@ classdef SequentialPressureTransportModel < ReservoirModel
             % Solve pressure and transport sequentially
             psolver = model.pressureNonLinearSolver;
             tsolver = model.transportNonLinearSolver;
+            if iteration > 1
+                for i = 1:numel(model.pressureModel.FacilityModel.WellModels)
+                    model.pressureModel.FacilityModel.WellModels{i}.doUpdatePressureDrop = false;
+                end
+            end
             % Get the forces used in the step
             forceArg = model.pressureModel.getDrivingForces(drivingForces);
             
@@ -100,8 +106,11 @@ classdef SequentialPressureTransportModel < ReservoirModel
                         % Convert Dirichlet boundary conditions to flux
                         % boundary conditions for the transport
                         transportForces = drivingForces;
+                        G = model.pressureModel.G;
                         dirFace = transportForces.bc.face(isDir);
-                        transportForces.bc.value(isDir) = sum(state.flux(dirFace, :), 2);
+                        q = sum(state.flux(dirFace, :), 2);
+                        sgn = 1 - 2*(G.faces.neighbors(dirFace, 2) == 0);
+                        transportForces.bc.value(isDir) = sgn.*q;
                         [transportForces.bc.type{isDir}] = deal('resflux');
                         forceArg = model.transportModel.getDrivingForces(transportForces);
                     end
@@ -127,31 +136,53 @@ classdef SequentialPressureTransportModel < ReservoirModel
                 % converged after the transport step. This check ensures
                 % that the assumption of fixed total velocity is reasonable
                 % up to some tolerance.
-                if isa(model.pressureModel, 'PressureNaturalVariablesModel')
-                    values = max(abs(sum(state.s, 2) - 1));
-                else
-                    problem = model.pressureModel.getEquations(state0, state, dt, drivingForces, 'resOnly', true, 'iteration', inf);
-                    % Is the pressure still converged when accounting for the
-                    % updated quantities after transport (mobility, density
-                    % and so on?)
-                    [~, values] = model.pressureModel.checkConvergence(problem);
-                end
-                if model.outerCheckWellConvergence
-                    lv = max(values);
-                else
-                    values = values(1);
-                    lv = values(1);
-                end
-                converged = all(values < model.outerTolerance);
-                converged = converged || iteration > model.maxOuterIterations;
-                if model.verbose
-                    if converged
-                        s = 'Converged.';
-                    else
-                        s = 'Not converged.';
+                if ~isempty(model.parentModel)
+                    state.s = bsxfun(@rdivide, state.s, sum(state.s, 2));
+                    [problem, state] = model.parentModel.getEquations(state0, state, dt, drivingForces, 'resOnly', true, 'iteration', inf);
+                    [converged, values, resnames] = model.parentModel.checkConvergence(problem);
+                    if model.verbose
+                        printConvergenceReport(resnames, values, converged, iteration);
                     end
-                    fprintf('OUTER LOOP step #%d with tolerance %1.4e: Largest value %1.4e -> %s \n', ...
-                                                            iteration, model.outerTolerance, lv, s);
+                else
+                    if isa(model.pressureModel, 'PressureNaturalVariablesModel')
+                        values = max(abs(sum(state.s, 2) - 1));
+                        if ~model.transportModel.useIncTolComposition
+                            % Make a normalization of saturations and check if
+                            % the equations are still converged.
+                            state_normalized = state;
+                            state_normalized.s = bsxfun(@rdivide, state_normalized.s, sum(state_normalized.s, 2));
+
+                            [problem, state_normalized] = model.transportModel.getEquations(state0, state_normalized, dt, drivingForces, 'resOnly', true, 'iteration', inf);
+                            conv_t = model.transportModel.checkConvergence(problem);
+                            if all(conv_t)
+                                state = state_normalized;
+                                values = 0;
+                            end
+                        end
+                    else
+                        problem = model.pressureModel.getEquations(state0, state, dt, drivingForces, 'resOnly', true, 'iteration', inf);
+                        % Is the pressure still converged when accounting for the
+                        % updated quantities after transport (mobility, density
+                        % and so on?)
+                        [~, values] = model.pressureModel.checkConvergence(problem);
+                    end
+                    if model.outerCheckWellConvergence
+                        lv = max(values);
+                    else
+                        values = values(1);
+                        lv = values(1);
+                    end
+                    converged = all(values < model.outerTolerance);
+                    converged = converged || iteration > model.maxOuterIterations;
+                    if model.verbose
+                        if converged
+                            s = 'Converged.';
+                        else
+                            s = 'Not converged.';
+                        end
+                        fprintf('OUTER LOOP step #%d with tolerance %1.4e: Largest value %1.4e -> %s \n', ...
+                                                                iteration, model.outerTolerance, lv, s);
+                    end
                 end
             else
                 % Need to have some value
@@ -164,7 +195,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
             end
             report = model.makeStepReport(...
                                     'Failure',         failure, ...
-                                    'Converged',       converged, ...
+                                    'Converged',       all(converged), ...
                                     'FailureMsg',      FailureMsg, ...
                                     'ResidualsConverged', converged, ...
                                     'Residuals',       values ...
@@ -195,12 +226,15 @@ classdef SequentialPressureTransportModel < ReservoirModel
         end
 
         function [model, state] = updateForChangedControls(model, state, forces)
-            [model.pressureModel, state] = model.pressureModel.updateForChangedControls@PhysicalModel(state, forces);
+            [model.pressureModel, state] = model.pressureModel.updateForChangedControls(state, forces);
         end
 
         function model = validateModel(model, varargin)
             model.pressureModel = model.pressureModel.validateModel(varargin{:});
             model.transportModel = model.transportModel.validateModel(varargin{:});
+            if ~isempty(model.parentModel)
+                model.parentModel = model.parentModel.validateModel(varargin{:});
+            end
             return
         end
 

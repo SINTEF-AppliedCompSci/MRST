@@ -20,54 +20,87 @@ disgas = model.disgas;
 vapoil = model.vapoil;
 
 % Properties at current timestep
-[p, sW, sG, rs, rv, wellSol] = model.getProps(state, ...
-                                'pressure', 'water', 'gas', 'rs', 'rv', 'wellSol');
+[p, sW, sG, sO, rs, rv, wellSol] = model.getProps(state, ...
+                                'pressure', 'water', 'gas', 'oil', 'rs', 'rv', 'wellSol');
 % Properties at previous timestep
-[p0, sW0, sG0, rs0, rv0] = model.getProps(state0, ...
-                                'pressure', 'water', 'gas', 'rs', 'rv');
+[p0, sW0, sG0, sO0, rs0, rv0] = model.getProps(state0, ...
+                                'pressure', 'water', 'gas', 'oil', 'rs', 'rv');
 % If timestep has been split relative to pressure, linearly interpolate in
 % pressure.
-pFlow = p;
 if isfield(state, 'timestep')
     dt_frac = dt/state.timestep;
     p = p.*dt_frac + p0.*(1-dt_frac);
 end
+
+
+solveAllPhases = opt.solveForWater && opt.solveForOil && opt.solveForGas;
+
+assert(~opt.reverseMode, 'Backwards solver not supported for splitting');
+
 %Initialization of primary variables ----------------------------------
-st  = model.getCellStatusVO(state,  1-sW-sG,   sW,  sG);
-st0 = model.getCellStatusVO(state0, 1-sW0-sG0, sW0, sG0);
-if ~opt.resOnly,
-    if ~opt.reverseMode,
-        % define primary varible x and initialize
-        x = st{1}.*rs + st{2}.*rv + st{3}.*sG;
+st  = model.getCellStatusVO(state,  sO,   sW,  sG);
+st0 = model.getCellStatusVO(state0, sO0,  sW0, sG0);
 
-        [sW, x] = model.AutoDiffBackend.initVariablesAD(sW, x);
 
-        % define sG, rs and rv in terms of x
-        sG = st{2}.*(1-sW) + st{3}.*x;
-
-        if disgas
-            rsSat = f.rsSat(p);
-            rs = (~st{1}).*rsSat + st{1}.*x;
-        end
-        if vapoil
-            rvSat = f.rvSat(p);
-            rv = (~st{2}).*rvSat + st{2}.*x;
-        end
-    else
-        assert(0, 'Backwards solver not supported for splitting');
-    end
-end
 if disgas || vapoil
+    x = st{1}.*rs + st{2}.*rv + st{3}.*sG;
     gvar = 'x';
 else
     gvar = 'sG';
 end
-primaryVars = {'sW', gvar};
 
-% Evaluate relative permeability
-sO  = 1 - sW  - sG;
-sO0 = 1 - sW0 - sG0;
-[krW, krO, krG] = model.evaluateRelPerm({sW, sO, sG});
+if solveAllPhases
+    if ~opt.resOnly
+        if disgas || vapoil
+            [sW, sO, x] = model.AutoDiffBackend.initVariablesAD(sW, sO, x);
+        else
+            [sW, sO, sG] = model.AutoDiffBackend.initVariablesAD(sW, sO, sG);
+        end
+    end
+    primaryVars = {'sW', 'sO', gvar};
+    sT = sO + sW + sG;
+    % Evaluate relative permeability
+    [krW, krO, krG] = model.evaluateRelPerm({sW./sT, sO./sT, sG./sT});    
+else
+    if ~opt.resOnly
+        if disgas || vapoil
+            [sW, x] = model.AutoDiffBackend.initVariablesAD(sW, x);
+        else
+            [sW, sG] = model.AutoDiffBackend.initVariablesAD(sW, sG);
+        end
+    end
+    primaryVars = {'sW', gvar};
+    % Evaluate relative permeability
+    sO  = 1 - sW  - sG;
+    sO0 = 1 - sW0 - sG0;
+    sT = ones(size(double(sW)));
+    [krW, krO, krG] = model.evaluateRelPerm({sW, sO, sG});
+end
+
+
+
+if disgas || vapoil
+    % define sG, rs and rv in terms of x
+    sG = st{2}.*(1-sW) + st{3}.*x;
+
+    if disgas
+        rsSat = f.rsSat(p);
+        rs = (~st{1}).*rsSat + st{1}.*x;
+    end
+    if vapoil
+        rvSat = f.rvSat(p);
+        rv = (~st{2}).*rvSat + st{2}.*x;
+    end
+end
+
+if ~opt.resOnly
+    if ~opt.reverseMode
+    else
+        assert(0, 'Backwards solver not supported for splitting');
+    end
+end
+
+
 
 % Multipliers for properties
 [pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
@@ -124,21 +157,22 @@ vW = f_w.*(vT + s.T.*mobOf.*(Gw - Go) + s.T.*mobGf.*(Gw - Gg));
 vO = f_o.*(vT + s.T.*mobWf.*(Go - Gw) + s.T.*mobGf.*(Go - Gg));
 vG = f_g.*(vT + s.T.*mobWf.*(Gg - Gw) + s.T.*mobOf.*(Gg - Go));
 
-bWvW = s.faceUpstr(upcw, bW).*vW;
-bOvO = s.faceUpstr(upco, bO).*vO;
-bGvG = s.faceUpstr(upcg, bG).*vG;
+bWvW = s.faceUpstr(upcw, sT.*bW).*vW;
+bOvO = s.faceUpstr(upco, sT.*bO).*vO;
+bGvG = s.faceUpstr(upcg, sT.*bG).*vG;
 
 if disgas
     rsbOvO = s.faceUpstr(upco, rs).*bOvO;
 end
 
-if vapoil;
+if vapoil
     rvbGvG = s.faceUpstr(upcg, rv).*bGvG;
 end
 
 if model.extraStateOutput
     state = model.storebfactors(state, bW, bO, bG);
     state = model.storeMobilities(state, mobW, mobO, mobG);
+    state = model.storeDensity(state, rhoW, rhoO, rhoG);
 end
 % well equations
 if ~isempty(W)
@@ -158,9 +192,9 @@ if ~isempty(W)
     compWell = vertcat(W.compi);
     compPerf = compWell(perf2well, :);
 
-    f_w_w = mobWw./totMobw;
-    f_o_w = mobOw./totMobw;
-    f_g_w = mobGw./totMobw;
+    f_w_w = sT(wc).*mobWw./totMobw;
+    f_o_w = sT(wc).*mobOw./totMobw;
+    f_g_w = sT(wc).*mobGw./totMobw;
 
 
     f_w_w(isInj) = compPerf(isInj, 1);
@@ -198,7 +232,7 @@ if ~isempty(W)
     end
 end
 
-[eqs, names, types] = deal(cell(1,2));
+[eqs, names, types] = deal(cell(1,2 + solveAllPhases));
 [types{:}] = deal('cell');
 ix = 1;
 if opt.solveForWater

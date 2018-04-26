@@ -62,7 +62,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     ws.qGs = v*W(w).compi(gi);
                 end
                 if isprop(model, 'polymer') && model.polymer
-                    ws.qWPoly = ws.qWs*W(w).poly;
+                    ws.cWPoly = W(w).poly;
                 end
                 if isprop(model, 'surfactant') && model.surfactant
                     ws.qWSft = ws.qWs*W(w).surfact;
@@ -83,4 +83,3 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         wellSol(w) = ws;
     end
 end
-
