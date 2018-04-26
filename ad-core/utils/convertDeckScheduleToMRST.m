@@ -53,6 +53,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     if isfield(scheduleDeck, 'RUNSPEC') &&...
        isfield(scheduleDeck, 'SCHEDULE')
+       if isfield(scheduleDeck, 'GRID')
+           [~, ~, cellDims] = computeCpGeometry(model.G, scheduleDeck.GRID);
+           cellDims = cellDims(model.G.cells.indexMap,:);
+       end
        % Support passing deck directly
        scheduleDeck = scheduleDeck.SCHEDULE;
     end
@@ -85,7 +89,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     for i = 1:nc
         % Parse well
-        W = processWells(model.G, model.rock, scheduleDeck.control(i), wellArg{:});
+        W = processWells(model.G, model.rock, scheduleDeck.control(i), wellArg{:}, 'cellDims', cellDims);
         
         for j = 1:numel(W)
             c = [W(j).compi, 0];
