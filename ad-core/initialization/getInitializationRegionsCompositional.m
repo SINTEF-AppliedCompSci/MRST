@@ -1,12 +1,18 @@
-function region = getInitializationRegionsBlackOil(model, cells, datum_p, datum_z, contacts, contacts_pc, rs, rv)    
+function region = getInitializationRegionsCompositional(model, cells, datum_p, datum_z, contacts, contacts_pc, x, y, T)
     actPh = model.getActivePhases();
     nPh = sum(actPh);
+    
+    if ischar(cells)
+        getRegCell = @(x) repmat(1, size(double(x)));
+    else
+        getRegCell = @(x) repmat(cells(1), size(double(x)));
+    end
     
     rho = cell(1, nPh);
     PC = cell(1, nPh);
     pc_sign = ones(1, nPh);
     
-    getRegCell = @(x) repmat(cells(1), size(double(x)));
+    
     
     f = model.fluid;
     if model.water
@@ -23,14 +29,13 @@ function region = getInitializationRegionsBlackOil(model, cells, datum_p, datum_
     
     if model.oil
         ix = model.getPhaseIndex('O');
-        
-        rho{ix} = @(p, z) getOilDensity(model, p, z, rs, 'cellInx', getRegCell(p));
+        rho{ix} = @(p, z) getDensity(model, p, T, z, x, true, 'cellInx', getRegCell(p));
         PC{ix} = @(S) 0*S;
     end
     
     if model.gas
         ix = model.getPhaseIndex('G');
-        rho{ix} = @(p, z) getGasDensity(model, p, z, rv, 'cellInx', getRegCell(p));
+        rho{ix} = @(p, z) getDensity(model, p, T, z, y, false, 'cellInx', getRegCell(p));
         pc_sign(ix) = 1;
         if isfield(model.fluid, 'pcOG')
             PC{ix} = @(S) model.fluid.pcOG(S, 'cellInx', getRegCell(S));
@@ -48,34 +53,17 @@ function region = getInitializationRegionsBlackOil(model, cells, datum_p, datum_
         's_min',        s_min, ....
         's_max',        s_max, ....
         'pc_functions', PC);
-    region.rs = rs;
-    region.rv = rv;
 end
 
-function rhoO = getOilDensity(model, p, z, rs, varargin)
-    f = model.fluid;
-    if model.disgas
-        if isa(rs, 'function_handle')
-            rs = rs(p, z);
-        end
-        rsSat = f.rsSat(p, varargin{:});
-        rs = min(rs, rsSat);
-        rhoO = f.bO(p, rs, rs >= rsSat, varargin{:}).*(f.rhoOS + rs.*f.rhoGS);
+function rho = getDensity(model, p, T, z, x, isLiquid, varargin)
+    eos = model.EOSModel;
+    
+    [A_ij, Bi] = eos.getMixingParameters(p, T, eos.fluid.acentricFactors, iscell(x));
+    [Si, A, B] = eos.getPhaseMixCoefficients(x, A_ij, Bi);
+    if isLiquid
+        Z = eos.computeLiquidZ(double(A), double(B));
     else
-        rhoO = f.bO(p, varargin{:}).*f.rhoOS;
+        Z = eos.computeVaporZ(double(A), double(B));
     end
-end
-
-function rhoG = getGasDensity(model, p, z, rv, varargin)
-    f = model.fluid;
-    if model.vapoil
-        if isa(rv, 'function_handle')
-            rv = rv(p, z);
-        end
-        rvSat = f.rvSat(p, varargin{:});
-        rv = min(rv, rvSat);
-        rhoG = f.bG(p, rv, rv >= rvSat, varargin{:}).*(rv.*f.rhoOS + f.rhoGS);
-    else
-        rhoG = f.bG(p, varargin{:}).*f.rhoGS;
-    end
+    rho = model.EOSModel.PropertyModel.computeDensity(p, x, Z, T, isLiquid);
 end

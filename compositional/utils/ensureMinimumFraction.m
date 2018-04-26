@@ -1,4 +1,4 @@
-function z = ensureMinimumFraction(z, tol)
+function [z, tol] = ensureMinimumFraction(z, tol)
 % Set a minimum value on a composition matrix
     if nargin == 1
         tol = 1e-8;

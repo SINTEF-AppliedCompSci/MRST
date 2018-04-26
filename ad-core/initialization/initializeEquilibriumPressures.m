@@ -3,6 +3,9 @@ function p = initializeEquilibriumPressures(model, region)
     nph = sum(actPh);
     
     cells = region.cells;
+    if ischar(cells)
+        cells = 1:model.G.cells.num;
+    end
     nc = numel(cells);
     
     z = model.G.cells.centroids(cells, 3);

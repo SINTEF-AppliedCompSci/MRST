@@ -52,9 +52,17 @@ function s = solveSaturations(p, p_ref, pc_fn, pc_sign, s_min, s_max)
 
     toMax = dp > max(pc);
     toMin = dp <= min(pc);
-
-    s(toMin) = s_min(toMin);
-    s(toMax) = s_max(toMax);
+    if size(s_min, 1) == 1
+        s(toMin) = s_min;
+    else
+        s(toMin) = s_min(toMin);
+    end
+    if size(s_max, 1) == 1
+        s(toMax) = s_max;
+    else
+        s(toMax) = s_max(toMax);
+    end
+    
 
     middle = ~(toMin | toMax);
 

@@ -61,7 +61,7 @@ multiPhase = twoPhase;
 freeOil = twoPhase;
 freeGas = twoPhase;
 x = ensureMinimumFraction(x);
-y = ensureMinimumFraction(y);
+[y, z_tol] = ensureMinimumFraction(y);
 x = expandMatrixToCell(x);
 y = expandMatrixToCell(y);
 
@@ -346,6 +346,12 @@ for i = 1:ncomp
     names{ix}= ['f_', compFluid.names{i}];
     types{ix} = 'fugacity';
     eqs{ix} = (f_L{i}(twoPhase) - f_V{i}(twoPhase))/barsa;
+    
+    absent = state.components(twoPhase, i) <= z_tol;
+    if any(absent) && isa(eqs{ix}, 'ADI')
+        eqs{ix}.val(absent) = 0;
+%         eqs{ix}(absent) = x{i}(absent) + y{i}(absent);
+    end
     
     if opt.reduceToPressure
         C{ix - nwelleqs} = eqs{ix};
