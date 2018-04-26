@@ -4,15 +4,16 @@ function [state, pressures] = initStateBlackOilAD(model, regions, varargin)
     
     [rs, rv] = deal(0);
     G = model.G;
-    if model.disgas
+    if isprop(model, 'disgas') && model.disgas
         rs = zeros(G.cells.num, 1);
     end
-    if model.vapoil
+    if isprop(model, 'vapoil') && model.vapoil
         rv = zeros(G.cells.num, 1);
     end
     nph = sum(model.getActivePhases());
     state = struct('pressure', zeros(G.cells.num, 1), 'rs', rs, 'rv', rv, 's', zeros(G.cells.num, nph));
     
+    watIx = model.getPhaseIndex('W');
     oilIx = model.getPhaseIndex('O');
     gasIx = model.getPhaseIndex('G');
     
@@ -31,20 +32,22 @@ function [state, pressures] = initStateBlackOilAD(model, regions, varargin)
             p = opt.pressure(cells, :);
         end
         
-        if model.disgas
-            rs = region.rs(p(:, oilIx), G.cells.centroids(cells, 3));
-            state.rs(cells) = rs;
-        end
-        
-        if model.vapoil
-            rv = region.rv(p(:, gasIx), G.cells.centroids(cells, 3));
-            state.rv(cells) = rv;
-        end
         s = initializeEquilibriumSaturations(model, region, p);
-        
-        pressures(cells, :) = p;
-        state.pressure(cells) = p(:, 2);
         state.s(cells, :) = s;
+        pressures(cells, :) = p;
+        
+        toOil = true(size(p, 1), 1);
+        if model.gas
+            onlyGas = state.s(cells, gasIx) == 1;
+            toOil(onlyGas) = false;
+            state.pressure(cells(onlyGas)) = p(cells(onlyGas), gasIx);
+        end
+        if model.water
+            onlyWat = state.s(cells, watIx) == 1;
+            toOil(onlyWat) = false;
+            state.pressure(cells(onlyWat)) = p(cells(onlyWat), watIx);
+        end        
+        state.pressure(cells(toOil)) = p(toOil, oilIx);
     end
     if ~all(touched)
         warning('Regions did not cover all cells. Model only partially initialized.');
