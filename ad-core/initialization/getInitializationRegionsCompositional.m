@@ -2,11 +2,17 @@ function region = getInitializationRegionsCompositional(model, cells, datum_p, d
     actPh = model.getActivePhases();
     nPh = sum(actPh);
     
+    if ischar(cells)
+        getRegCell = @(x) repmat(1, size(double(x)));
+    else
+        getRegCell = @(x) repmat(cells(1), size(double(x)));
+    end
+    
     rho = cell(1, nPh);
     PC = cell(1, nPh);
     pc_sign = ones(1, nPh);
     
-    getRegCell = @(x) repmat(cells(1), size(double(x)));
+    
     
     f = model.fluid;
     if model.water

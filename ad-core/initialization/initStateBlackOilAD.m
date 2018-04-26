@@ -21,8 +21,11 @@ function [state, pressures] = initStateBlackOilAD(model, regions, varargin)
     touched = false(G.cells.num, 1);
     for regNo = 1:numel(regions)
         region = regions{regNo};
+        if ischar(region.cells)
+            assert(numel(regions) == 1)
+            region.cells = (1:model.G.cells.num)';
+        end
         cells = region.cells;
-        
         assert(~any(touched(cells)), 'Multiple regions defined in same cells.');
         touched(cells) = true;
         
