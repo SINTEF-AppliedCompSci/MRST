@@ -97,6 +97,20 @@ function [wellSols, states, schedulereport] = ...
 %                        See `getPlotAfterStep` for more information and
 %                        `howtoAddPlotHook` for a worked example.
 %
+%   'controlLogicFn'   - Function handle to optional function that will be
+%                        called after each step enabling schedule updates to 
+%                        be triggered on specified events. Input arguemnts:
+%                        - state: The current state
+%                        - schedule: The current schedule
+%                        - report: Current report
+%                        - i: The current report step such that current
+%                          control step equals schedule.step.control(i)
+%                        The function must have three outputs:
+%                        - schedule: Possibly updated schedule
+%                        - report: Possibly updated report
+%                        - isAltered: Flag indicated whether the schedule
+%                          was updated or not
+%                       
 % RETURNS:
 %   wellSols         - Well solution at each control step (or timestep if
 %                      'OutputMinisteps' is enabled.
@@ -147,6 +161,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'OutputHandler',   [], ...
                  'ReportHandler',   [], ...
                  'afterStepFn',     [], ...
+                 'controlLogicFn',  [], ...
                  'restartStep',     1, ...
                  'LinearSolver',    []);
 
@@ -247,6 +262,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             break;
         end
 
+        if ~isempty(opt.controlLogicFn)
+            [schedule, report, isAltered] = opt.controlLogicFn(state, schedule, report, i);
+            if isAltered
+                prevControl = nan; 
+            end
+        end
+        
         if opt.Verbose,
            disp_step_convergence(report.Iterations, t);
         end
@@ -274,7 +296,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             opt.ReportHandler{i + opt.restartStep - 1} = report;
         end
         firstEmptyIx = firstEmptyIx + numel(states_step);
-        
+
         if wantStates
             states(ind) = states_step;
         end
