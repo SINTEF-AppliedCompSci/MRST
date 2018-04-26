@@ -88,10 +88,20 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         % Two-phase water-gas (Note: Model tailored for CO2 storage, uses
         % CO2lab module).
         mrstModule add co2lab
-        model = TwoPhaseWaterGasModel(G, [], [], nan, nan, varargin{:});
+        model = TwoPhaseWaterGasModel(G, [], fluid, nan, nan, varargin{:});
     else
         error('Did not find matching model');
     end
+    % Set blackoil specific features
+    if isa(model, 'ThreePhaseBlackOilModel') && isfield(deck, 'RUNSPEC')
+        if isfield(deck.RUNSPEC, 'VAPOIL')
+            model.vapoil = deck.RUNSPEC.VAPOIL;
+        end
+        if isfield(deck.RUNSPEC, 'DISGAS')
+            model.disgas = deck.RUNSPEC.DISGAS;
+        end
+    end
     model = model.setupOperators(G, rock, 'deck', deck);
+    model.rock = rock;
     model.FacilityModel = selectFacilityFromDeck(deck, model);
 end
