@@ -14,7 +14,11 @@ function region = getInitializationRegionsBlackOil(model, cells, datum_p, datum_
         
         rho{ix} = @(p, z) f.bW(p, 'cellInx', getRegCell(p)).*f.rhoWS;
         pc_sign(ix) = -1;
-        PC{ix} = @(S) model.fluid.pcOW(S, 'cellInx', getRegCell(S));
+        if isfield(model.fluid, 'pcOW')
+            PC{ix} = @(S) model.fluid.pcOW(S, 'cellInx', getRegCell(S));
+        else
+            PC{ix} = @(S) 0*S;
+        end
     end
     
     if model.oil
@@ -28,7 +32,11 @@ function region = getInitializationRegionsBlackOil(model, cells, datum_p, datum_
         ix = model.getPhaseIndex('G');
         rho{ix} = @(p, z) getGasDensity(model, p, z, rv, 'cellInx', getRegCell(p));
         pc_sign(ix) = 1;
-        PC{ix} = @(S) model.fluid.pcOG(S, 'cellInx', getRegCell(S));
+        if isfield(model.fluid, 'pcOG')
+            PC{ix} = @(S) model.fluid.pcOG(S, 'cellInx', getRegCell(S));
+        else
+            PC{ix} = @(S) 0*S;
+        end
     end
     ref_index = model.getPhaseIndex('O');
     
