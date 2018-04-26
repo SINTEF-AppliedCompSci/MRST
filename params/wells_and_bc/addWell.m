@@ -83,6 +83,8 @@ function W = addWell(W, G, rock, cellInx, varargin)
 %            resulting well structure cannot be used to simulate polymer
 %            injection.
 %
+%   cellDims - optional cellDims of grid cells
+%
 % RETURNS:
 %   W - Updated (or freshly created) well structure, each element of which
 %       has the following fields:
@@ -180,7 +182,8 @@ opt = struct('InnerProduct', 'ip_tpf',                     ...
              'vfp_index'   , 0,                            ...
              'c'           , [],                           ...
              'Sign'        , 0,                            ...
-             'calcReprRad' , true);
+             'calcReprRad' , true,                         ...
+             'cellDims',   []);
 
 opt = merge_options(opt, varargin{:});
 
@@ -224,7 +227,7 @@ compWI = WI < 0;
 
 if any(compWI) % calculate WI for the cells in compWI
    WI(compWI) = wellInx(G, rock, opt.Radius, opt.Dir, ...
-                        reshape(cellInx, [], 1), ip, opt, compWI);
+                        reshape(cellInx, [], 1), ip, opt, compWI, opt.cellDims);
 end
 
 % Set well sign (injection = 1 or production = -1)
@@ -280,13 +283,21 @@ assert (numel(W(end).dir) == numel(W(end).cells));
 %--------------------------------------------------------------------------
 
 
-function WI = wellInx(G, rock, radius, welldir, cells, innerProd, opt, inx)
+function WI = wellInx(G, rock, radius, welldir, cells, innerProd, opt, inx, cellDims)
 
-if(isfield(G,'nodes'))
-   [dx, dy, dz] = cellDims(G, cells);
+if ~isempty(cellDims)
+    [dx, dy, dz] = deal(cellDims(cells,1), cellDims(cells,3), cellDims(cells,3));
 else
-   [dx, dy, dz] = cellDimsCG(G, cells);
+    if(isfield(G,'nodes'))
+        [dx, dy, dz] = cellDims(G, cells);
+    else
+        [dx, dy, dz] = cellDimsCG(G, cells);
+    end
 end
+if isfield(rock, 'ntg') && numel(rock.ntg) == G.cells.num
+    dz = dz.*rock.ntg(cells);
+end
+
 if G.griddim > 2,
    k = permDiag3D(rock, cells);
 else
