@@ -57,7 +57,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         deck = struct('GRID', struct());
         hasDeck = false;
     end
-    T = computeTrans(G, rock, varargin{:});
+    
+    if hasDeck
+        [cellCenters,cellFaceCenters]=computeCpGeometry(G,deck.GRID);
+        T = computeTrans(G, rock,'K_system', 'loc_xyz', ...
+                 'cellCenters', cellCenters, ...
+                 'cellFaceCenters', cellFaceCenters);
+    else
+        T = computeTrans(G, rock, varargin{:});
+    end
     
     % Multiply inn transmissibility multipliers
     if hasDeck
