@@ -446,7 +446,13 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
        function [conv_f, v_f, names_f, isFugacity] = checkFugacityConvergence(model, problem)
             % Check fugacity constraints if present
             isFugacity = strcmpi(problem.types, 'fugacity');
-            v_f = cellfun(@(x) norm(double(x), inf), problem.equations(isFugacity));
+            if model.water
+                state = problem.state;
+                scale = sum(state.s(state.flag == 0, model.water+1:end), 2);
+            else
+                scale = 1;
+            end
+            v_f = cellfun(@(x) norm(double(x).*scale, inf), problem.equations(isFugacity));
             conv_f = v_f <= model.fugacityTolerance;
             names_f = problem.equationNames(isFugacity);
        end
