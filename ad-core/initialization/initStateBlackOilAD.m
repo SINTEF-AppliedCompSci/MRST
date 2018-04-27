@@ -43,12 +43,12 @@ function [state, pressures] = initStateBlackOilAD(model, regions, varargin)
         if model.gas
             onlyGas = state.s(cells, gasIx) == 1;
             toOil(onlyGas) = false;
-            state.pressure(cells(onlyGas)) = p(cells(onlyGas), gasIx);
+            state.pressure(cells(onlyGas)) = p(onlyGas, gasIx);
         end
         if model.water
             onlyWat = state.s(cells, watIx) == 1;
             toOil(onlyWat) = false;
-            state.pressure(cells(onlyWat)) = p(cells(onlyWat), watIx);
+            state.pressure(cells(onlyWat)) = p(onlyWat, watIx);
         end        
         state.pressure(cells(toOil)) = p(toOil, oilIx);
     end
