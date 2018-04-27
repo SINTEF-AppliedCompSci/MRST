@@ -50,10 +50,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'EnsureConsistent', true);
     [opt, wellArg] = merge_options(opt, varargin{:});
 
-
+    cellDims = [];
     if isfield(scheduleDeck, 'RUNSPEC') &&...
        isfield(scheduleDeck, 'SCHEDULE')
-       if isfield(scheduleDeck, 'GRID')
+       if isfield(scheduleDeck, 'GRID') &&...
+          isfield(scheduleDeck.GRID, 'COORD')
            [~, ~, cellDims] = computeCpGeometry(model.G, scheduleDeck.GRID);
            cellDims = cellDims(model.G.cells.indexMap,:);
        end
