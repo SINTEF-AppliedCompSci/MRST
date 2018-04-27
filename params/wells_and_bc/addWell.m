@@ -286,7 +286,7 @@ assert (numel(W(end).dir) == numel(W(end).cells));
 function WI = wellInx(G, rock, radius, welldir, cells, innerProd, opt, inx, cellDims)
 
 if ~isempty(cellDims)
-    [dx, dy, dz] = deal(cellDims(cells,1), cellDims(cells,3), cellDims(cells,3));
+    [dx, dy, dz] = deal(cellDims(cells,1), cellDims(cells,2), cellDims(cells,3));
 else
     if(isfield(G,'nodes'))
         [dx, dy, dz] = cellDims(G, cells);
