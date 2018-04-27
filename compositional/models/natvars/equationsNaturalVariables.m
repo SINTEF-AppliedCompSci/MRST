@@ -46,7 +46,7 @@ z = expandMatrixToCell(z);
 [pureLiquid, pureVapor, twoPhase] = model.getFlag(state);
 
 if 1
-    stol = 1e-8;
+    stol = 1e-6;
     pureWater = sO + sG < stol;
     sO(~pureVapor & pureWater) = stol;
     sG(~pureLiquid & pureWater) = stol;
@@ -347,7 +347,10 @@ for i = 1:ncomp
     types{ix} = 'fugacity';
     eqs{ix} = (f_L{i}(twoPhase) - f_V{i}(twoPhase))/barsa;
     
-    absent = state.components(twoPhase, i) <= z_tol;
+    absent = state.components(twoPhase, i) <= 10*z_tol;
+    if model.water
+        absent = absent | pureWater(twoPhase);
+    end
     if any(absent) && isa(eqs{ix}, 'ADI')
         eqs{ix}.val(absent) = 0;
 %         eqs{ix}(absent) = x{i}(absent) + y{i}(absent);

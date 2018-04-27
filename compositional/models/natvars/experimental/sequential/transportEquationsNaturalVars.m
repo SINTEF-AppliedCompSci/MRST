@@ -46,7 +46,7 @@ z = state.components;
 x(~twoPhase, :) = z(~twoPhase, :);
 y(~twoPhase, :) = z(~twoPhase, :);
 x = ensureMinimumFraction(x);
-y = ensureMinimumFraction(y);
+[y, z_tol] = ensureMinimumFraction(y);
 x = expandMatrixToCell(x);
 y = expandMatrixToCell(y);
 
@@ -423,6 +423,13 @@ for i = 1:ncomp
     names{ix}= ['f_', compFluid.names{i}];
     types{ix} = 'fugacity';
     eqs{ix} = (f_L{i}(twoPhase) - f_V{i}(twoPhase))/barsa;
+    absent = state.components(twoPhase, i) <= 10*z_tol;
+    if model.water
+        absent = absent | pureWater(twoPhase);
+    end
+    if any(absent) && isa(eqs{ix}, 'ADI')
+        eqs{ix}.val(absent) = 0;
+    end    
 end
 massT = model.getComponentScaling(state0);
 scale = (dt./s.pv)./massT;
