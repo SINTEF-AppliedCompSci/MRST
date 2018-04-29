@@ -78,7 +78,7 @@ classdef EquilibriumConstantModel < EquationOfStateModel
             eosdata.f_V = f_V;
         end
 
-        function [stable, x, y] = performPhaseStabilityTest(model, P, T, z)
+        function [stable, x, y, L] = performPhaseStabilityTest(model, P, T, z)
 %             [stable, x, y] = phaseStabilityTest(model, z, P, T);
             if isempty(P)
                 [stable, x, y] = deal([]);
@@ -87,10 +87,10 @@ classdef EquilibriumConstantModel < EquationOfStateModel
             if isempty(model.PropertyModel.checkStabilityFunction)
                 K = model.evaluateEquilibriumConstants(P, T, z);
                 L = model.solveRachfordRice(0*P + 0.5, K, z);
-                L_tol = 1e-5;
+                L_tol = 1e-10;
                 stable = abs(L - 1) <= L_tol| L <= L_tol;
             else
-                stable = model.PropertyModel.checkStabilityFunction(P, T, expandMatrixToCell(z));
+                [stable, L] = model.PropertyModel.checkStabilityFunction(P, T, expandMatrixToCell(z));
             end
             [x, y] = deal(z);
         end
@@ -123,8 +123,11 @@ classdef EquilibriumConstantModel < EquationOfStateModel
             L = repmat(0.5, size(P));
             L0 = state.L;
             state.L = model.solveRachfordRice(L, K, z);
-            [stable, state.x, state.y] = model.performPhaseStabilityTest(P, T, z);
-            state.L(stable) = double(L0(stable) > 0.5);
+            [stable, state.x, state.y, L_est] = model.performPhaseStabilityTest(P, T, z);
+            if isempty(L_est)
+                L_est = L0;
+            end
+            state.L(stable) = double(L_est(stable) > 0.5);
             state.K = K;
             
             report = model.makeStepReport('Converged', true);

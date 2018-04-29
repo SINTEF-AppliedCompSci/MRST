@@ -854,10 +854,10 @@ classdef EquationOfStateModel < PhysicalModel
             n_L = numel(L);
             L_final = L;
             active = true(n_L, 1);
-            maxit = 25;
-            tol = 1e-6;
+            maxit = 100;
+            tol = 1e-12;
             tolRes = 1e-12;
-            K(~isfinite(K)) = 1e6;
+            K(~isfinite(K)) = 1e10;
             for it = 1:maxit
                 % fprintf('Iteration %d: %d active\n', it, nnz(active));
                 L0 = L;
@@ -886,13 +886,16 @@ classdef EquationOfStateModel < PhysicalModel
                 dL = ~convResidual.*dL;
                 dL = sign(dL).*min(abs(dL), 0.2);
                 L = double(L) + dL;
+                dLNorm = abs(L - L0);
+                
+                convResidual((dL > 0 & L0 == 1) | (dL < 0 & L0 == 0)) = true;
+                
                 L = max(L, 0);
                 L = min(L, 1);
-                dLNorm = abs(L - L0);
                 
                 conv = dLNorm < tol | convResidual;
                 if it == maxit
-                    disp('reached max iterations in Racheford rice')
+                    disp('Reached max iterations in Rachford rice')
                     conv = conv | true;
                 end
                 update = false(n_L, 1);

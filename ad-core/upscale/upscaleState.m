@@ -59,19 +59,28 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     state.s = s;
     if isfield(state, 'components')
-        if iscell(state.components)
-            z = [state.components{:}];
-            pvz = bsxfun(@times, z, pvf);
-            for i = 1:numel(state.components)
-                state.components{i} = accumarray(p, pvz(:, i))./pvc;
-            end
-        else
-            z = state.components;
-            pvz = bsxfun(@times, z, pvf);
-            ncomp = size(state.components, 2);
-            state.components = zeros(CG.cells.num, ncomp);
-            for i = 1:ncomp
-                state.components(:, i) = accumarray(p, pvz(:, i))./pvc;
+        state_f = model.computeFlash(state, inf);
+        
+        rhoL = model.PropertyModel.computeMolarDensity(state.pressure, state_f.x, state_f.Z_L, state.T, true);
+        rhoV = model.PropertyModel.computeMolarDensity(state.pressure, state_f.y, state_f.Z_V, state.T, false);
+        L = state_f.L;
+        
+        N = L.*rhoL.*state_f.x + (1-L).*rhoV.*state_f.y;
+        
+%         z = state.components;
+        N_f = bsxfun(@times, N, pvf);
+        ncomp = size(state.components, 2);
+        state.components = zeros(CG.cells.num, ncomp);
+        for i = 1:ncomp
+            state.components(:, i) = accumarray(p, N_f(:, i))./pvc;
+        end
+        state.components = bsxfun(@rdivide, state.components, sum(state.components, 2));
+        
+        flds = {'x', 'y', 'K', 'K', 'Z_L', 'Z_V', 'mising', 'flag', 'eos'};
+        for i = 1:numel(flds)
+            f = flds{i};
+            if isfield(state, f)
+                state = rmfield(state, f);
             end
         end
     end
