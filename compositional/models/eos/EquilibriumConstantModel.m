@@ -84,15 +84,16 @@ classdef EquilibriumConstantModel < EquationOfStateModel
                 [stable, x, y] = deal([]);
                 return
             end
+            K = model.evaluateEquilibriumConstants(P, T, z);
             if isempty(model.PropertyModel.checkStabilityFunction)
-                K = model.evaluateEquilibriumConstants(P, T, z);
                 L = model.solveRachfordRice(0*P + 0.5, K, z);
                 L_tol = 1e-10;
                 stable = abs(L - 1) <= L_tol| L <= L_tol;
             else
                 [stable, L] = model.PropertyModel.checkStabilityFunction(P, T, expandMatrixToCell(z));
             end
-            [x, y] = deal(z);
+            x = model.computeLiquid(L, K, z);
+            y = model.computeVapor(L, K, z);
         end
         
         function K = evaluateEquilibriumConstants(model, P, T, z)
