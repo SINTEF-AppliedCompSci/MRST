@@ -60,6 +60,11 @@ end
 multiPhase = twoPhase;
 freeOil = twoPhase;
 freeGas = twoPhase;
+
+state0.x = ensureMinimumFraction(state0.x);
+state0.y = ensureMinimumFraction(state0.y);
+state0.components = ensureMinimumFraction(state0.components);
+
 x = ensureMinimumFraction(x);
 [y, z_tol] = ensureMinimumFraction(y);
 x = expandMatrixToCell(x);
@@ -197,14 +202,14 @@ T = s.T;
 gdz = model.getGravityGradient();
 
 % Oil flux
-rhoOf  = s.faceAvg(sat{1+model.water}.*rhoO)./max(s.faceAvg(sat{1+model.water}), 1e-8);
+rhoOf  = s.faceAvg(sO.*rhoO)./max(s.faceAvg(sO), 1e-8);
 mobO   = krO./muO;
 dpO    = s.Grad(p) - rhoOf.*gdz;
 upco  = (double(dpO)<=0);
 vO = -s.faceUpstr(upco, mobO).*T.*dpO;
 
 % Gas flux
-rhoGf  = s.faceAvg(sat{2+model.water}.*rhoG)./max(s.faceAvg(sat{2+model.water}), 1e-8);
+rhoGf  = s.faceAvg(sG.*rhoG)./max(s.faceAvg(sG), 1e-8);
 mobG   = krG./muG;
 if isfield(fluid, 'pcOG')
     pcOG  = fluid.pcOG(sG);
@@ -353,7 +358,6 @@ for i = 1:ncomp
     end
     if any(absent) && isa(eqs{ix}, 'ADI')
         eqs{ix}.val(absent) = 0;
-%         eqs{ix}(absent) = x{i}(absent) + y{i}(absent);
     end
     
     if opt.reduceToPressure
