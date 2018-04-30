@@ -52,6 +52,8 @@ end
 
 [p0, sW0, sO0, sG0, z0, temp0, wellSol0] = model.getProps(state0, ...
     'pressure', 'water', 'oil', 'gas', 'z', 'T', 'wellSol');
+z = ensureMinimumFraction(z);
+z0 = ensureMinimumFraction(z0);
 z = expandMatrixToCell(z);
 z0 = expandMatrixToCell(z0);
 

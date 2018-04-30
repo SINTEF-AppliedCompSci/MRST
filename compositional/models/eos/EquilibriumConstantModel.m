@@ -18,6 +18,7 @@ classdef EquilibriumConstantModel < EquationOfStateModel
             rhoL = model.PropertyModel.computeMolarDensity(P, x, nan, T, true);
             rhoV = model.PropertyModel.computeMolarDensity(P, y, nan, T, false);
             
+            assert(all(P > 0), 'Pressures must be positive!')
             Z_L = P./(rhoL.*R.*T);
             Z_V = P./(rhoV.*R.*T);
             
@@ -136,10 +137,13 @@ classdef EquilibriumConstantModel < EquationOfStateModel
         
         function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
             [state, report] = updateAfterConvergence@PhysicalModel(model, state0, state, dt, drivingForces);
-            
             state = model.setFlag(state);
             state.x = model.computeLiquid(state);
             state.y = model.computeVapor(state);
+            [pureLiquid, pureVapor] = model.getFlag(state);
+            
+            state.x(pureVapor, :) = state.components(pureVapor, :);
+            state.y(pureLiquid, :) = state.components(pureLiquid, :);
             [state.Z_L, state.Z_V] = model.getProperties(state.pressure, state.T, state.x, state.y);
         end
 
