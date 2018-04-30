@@ -858,40 +858,60 @@ classdef EquationOfStateModel < PhysicalModel
             tol = 1e-12;
             tolRes = 1e-12;
             K(~isfinite(K)) = 1e10;
+            L_min = max(1./(1 - max(K, [], 2)), 0);
+            L_max = min(1./(1 - min(K, [], 2)), 1);
+            % L = (L_min + L_max)/2;
             for it = 1:maxit
                 % fprintf('Iteration %d: %d active\n', it, nnz(active));
                 L0 = L;
-                L = initVariablesADI(L);
-                
-                eq = 0;
-                for i = 1:ncomp
-                    Ki = K(active, i);
-                    zi = z(active, i);
-                    v = ((Ki - 1).*zi)./(1 + (1-L).*(Ki - 1));
-                    present = zi > 0;
-                    eq = eq + v.*present;
-                end                
+                if 1
+                    L = initVariablesADI(L);
 
-                r = double(eq);
-                if isa(eq, 'ADI')
-                    J = -eq.jac{1};
-                    dL = mldivide(J, r);
+                    eq = 0;
+                    for i = 1:ncomp
+                        Ki = K(active, i);
+                        zi = z(active, i);
+                        v = ((Ki - 1).*zi)./(1 + (1-L).*(Ki - 1));
+                        present = zi > 0;
+                        eq = eq + v.*present;
+                    end                
+
+                    r = double(eq);
+                    if isa(eq, 'ADI')
+                        J = -eq.jac{1};
+                        dL = mldivide(J, r);
+                    else
+                        dL = 0*r;
+                    end
                 else
-                    dL = 0*r;
+                    enum = 0;
+                    denom = 0;
+                    V = 1 - L;
+                    for i = 1:ncomp
+                        Ki = K(active, i);
+                        zi = z(active, i);
+                        present = zi > 0;
+                        
+                        enum = enum + present.*(zi.*(Ki - 1))./(1 + V.*(Ki-1));
+                        denom = denom + present.*(zi.*(Ki - 1).^2)./(1 + V.*(Ki-1)).^2;
+                    end
+                    dL = - enum./denom;
+                    r = inf(size(dL));
                 end
                 
                 vNorm = abs(r);
                 % Converged values do not need to be updated
                 convResidual = vNorm < tolRes;
                 dL = ~convResidual.*dL;
-                dL = sign(dL).*min(abs(dL), 0.2);
+                % dL = sign(dL).*min(abs(dL), 0.2);
                 L = double(L) + dL;
                 dLNorm = abs(L - L0);
                 
-                convResidual((dL > 0 & L0 == 1) | (dL < 0 & L0 == 0)) = true;
+                atBoundary = (dL > 0 & L0 == L_max) | (dL < 0 & L0 == L_min);
+                convResidual(atBoundary) = true;
                 
-                L = max(L, 0);
-                L = min(L, 1);
+                L = max(L, L_min);
+                L = min(L, L_max);
                 
                 conv = dLNorm < tol | convResidual;
                 if it == maxit
@@ -905,15 +925,14 @@ classdef EquationOfStateModel < PhysicalModel
                 L_final(update) = L(conv);
                 active(update) = false;
                 L = L(~conv);
+                L_max = L_max(~conv);
+                L_min = L_min(~conv);
                 
                 if all(conv)
                     break
                 end
-                
             end
-            
             L = L_final;
-
             warning(tmp1.state,'MATLAB:nearlySingularMatrix')
             warning(tmp2.state,'MATLAB:singularMatrix')
         end

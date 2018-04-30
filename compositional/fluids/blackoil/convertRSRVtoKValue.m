@@ -75,8 +75,7 @@ function props = convertRSRVtoKValue(model, varargin)
     k_values.freeGas = interpolateToMesh2D(p, zg, double(isSat), p_s, zg_s, 'natural');%, 'nearest');
     
     
-    maxK = 1e4;
-    maxK = inf;
+    maxK = 1e8;
     k_values.K_g(~isfinite(k_values.K_g)) = maxK;
     k_values.K_o(~isfinite(k_values.K_o)) = maxK;
     

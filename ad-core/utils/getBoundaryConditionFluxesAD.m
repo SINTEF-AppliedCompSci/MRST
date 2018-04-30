@@ -149,7 +149,7 @@ for i = 1:nPh
     if any(isP)
         % Treat pressure BC
         rhoF = (rhoBC_in(isP) + rhoBC_out(isP))./2;
-        dP = bc.value(isP) - pBC(isP) + rhoF.*dzbc(isP);
+        dP = bc.value(isP) - pBC(isP) - rhoF.*dzbc(isP);
         
         % Determine if pressure bc are injecting or producing
         injDir = dP > 0;
