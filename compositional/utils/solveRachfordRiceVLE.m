@@ -1,7 +1,10 @@
 function L = solveRachfordRiceVLE(L, K, z, varargin)
     % Solve Rachford Rice equations to find liquid and vapor
     % distribution.
-    ncomp = size(z, 2);
+    opt = struct('tolerance', 1e-12, ...
+                 'min_z', 1e-10,...
+                 'maxIterations', 100);
+    opt = merge_options(opt, varargin{:});
     tmp1 = warning('query','MATLAB:nearlySingularMatrix');
     tmp2 = warning('query','MATLAB:singularMatrix');
     warning('off','MATLAB:nearlySingularMatrix')
@@ -12,7 +15,6 @@ function L = solveRachfordRiceVLE(L, K, z, varargin)
     active = true(n_L, 1);
     maxit = 100;
     tol = 1e-12;
-    tolRes = 1e-12;
     K(~isfinite(K)) = 1e6;
     
     singularities = 1./(1 - K);
@@ -20,18 +22,20 @@ function L = solveRachfordRiceVLE(L, K, z, varargin)
     
     L_min = min(singularities, [], 2);
     L_max = max(singularities, [], 2);
-    % L = (L_min + L_max)/2;
-    for it = 1:maxit
+    if isempty(L)
+        L = (L_min + L_max)/2;
+    end
+    for it = 1:opt.maxIterations
         % fprintf('Iteration %d: %d active\n', it, nnz(active));
         L0 = L;
         K_local = K(active, :);
         z_local = z(active, :);
         
-        [dL, r] = getIncrement(L, K_local, z_local);
+        [dL, r] = getIncrement(L, K_local, z_local, opt);
 
         vNorm = abs(r);
         % Converged values do not need to be updated
-        convResidual = vNorm < tolRes;
+        convResidual = vNorm < opt.tolerance;
         dL = ~convResidual.*dL;
         % dL = sign(dL).*min(abs(dL), 0.2);
         L = double(L) + dL;
@@ -39,12 +43,12 @@ function L = solveRachfordRiceVLE(L, K, z, varargin)
 
         atBoundary = (dL > 0 & L0 == L_max) | (dL < 0 & L0 == L_min);
         convResidual(atBoundary) = true;
-        conv = dLNorm < tol | convResidual;
+        conv = dLNorm < opt.tolerance | convResidual;
 
         bad = (L < L_min | L > L_max);
         if any(bad)
             % Perform bisection
-            L(bad) = bisection(L_max(bad), L_min(bad), K_local(bad, :), z_local(bad, :), tol);
+            L(bad) = bisection(L_max(bad), L_min(bad), K_local(bad, :), z_local(bad, :), opt);
             conv(bad) = true;
         end
         L = max(L, L_min);
@@ -73,11 +77,12 @@ function L = solveRachfordRiceVLE(L, K, z, varargin)
     warning(tmp2.state,'MATLAB:singularMatrix')
 end
 
-function L = bisection(L_max, L_min, K, z, tol)
-    fn = @(L) sum(((K - 1).*z)./(1 + (1-L).*(K - 1)).*(z>0), 2);
+function L = bisection(L_max, L_min, K, z, opt)
+    fn = @(L) sum(((K - 1).*z)./(1 + (1-L).*(K - 1)).*(z>opt.min_z), 2);
     left = fn(L_min);
     right = fn(L_max);
     it = 1;
+    tol = opt.tolerance;
     while it < 10000
         L = (L_max + L_min)/2;
         mid = fn(L);
@@ -96,7 +101,7 @@ function L = bisection(L_max, L_min, K, z, tol)
 end
 
 
-function [dL, r] = getIncrement(L, K, z)
+function [dL, r] = getIncrement(L, K, z, opt)
     ncomp = size(K, 2);
     if 0
         % Old AD version
@@ -106,7 +111,7 @@ function [dL, r] = getIncrement(L, K, z)
             Ki = K(:, i);
             zi = z(:, i);
             v = ((Ki - 1).*zi)./(1 + (1-L).*(Ki - 1));
-            present = zi > 0;
+            present = zi > opt.min_z;
             eq = eq + v.*present;
         end                
 
@@ -125,7 +130,7 @@ function [dL, r] = getIncrement(L, K, z)
         for i = 1:ncomp
             Ki = K(:, i);
             zi = z(:, i);
-            present = zi > 0;
+            present = zi > opt.min_z;
 
             enum = enum + present.*(zi.*(Ki - 1))./(1 + V.*(Ki-1));
             denom = denom + present.*(zi.*(Ki - 1).^2)./(1 + V.*(Ki-1)).^2;
