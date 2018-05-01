@@ -76,10 +76,11 @@ function L = solveRachfordRiceVLE(L, K, z, varargin)
     warning(tmp2.state,'MATLAB:singularMatrix')
 end
 
-function L = bisection(L_max, L_min, K, z, opt)
+function L = bisection(L_max0, L_min0, K, z, opt)
     fn = @(L) sum(((K - 1).*z)./(1 + (1-L).*(K - 1)).*(z>opt.min_z), 2);
-    left = fn(L_min);
-    right = fn(L_max);
+    left0 = fn(L_min0);
+    right0 = fn(L_max0);
+    [left, right, L_max, L_min] = deal(left0, right0, L_max0, L_min0);
     it = 1;
     tol = opt.tolerance;
     while it < 10000
@@ -97,6 +98,10 @@ function L = bisection(L_max, L_min, K, z, opt)
         end
         it = it + 1;
     end
+    % Treat case where endpoints are outside of the domain
+    bad = sign(left) == sign(right);
+    lrg = abs(left0(bad)) < abs(right0(bad));
+    L(bad) = lrg.*L_min0(bad) + ~lrg.*L_max0(bad);
 end
 
 
