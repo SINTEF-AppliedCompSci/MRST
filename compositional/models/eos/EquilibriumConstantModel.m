@@ -40,15 +40,14 @@ classdef EquilibriumConstantModel < EquationOfStateModel
                     z = x.*L + y.*(1-L);
                 end
             end
+            K =  model.evaluateEquilibriumConstants(P, T, z);
             if iscell(x)
                 [f_L, f_V] = deal(cell(1, numel(x)));
-                K =  model.evaluateEquilibriumConstants(P, T, z);
                 for i = 1:numel(x)
                     f_V{i} = y{i};
                     f_L{i} = x{i}.*K{i};
                 end
             else
-                K =  model.evaluateEquilibriumConstants(P, T, z);
                 f_V = y;
                 f_L = x.*K;
             end
@@ -80,14 +79,13 @@ classdef EquilibriumConstantModel < EquationOfStateModel
         end
 
         function [stable, x, y, L] = performPhaseStabilityTest(model, P, T, z)
-%             [stable, x, y] = phaseStabilityTest(model, z, P, T);
             if isempty(P)
                 [stable, x, y] = deal([]);
                 return
             end
             K = model.evaluateEquilibriumConstants(P, T, z);
             if isempty(model.PropertyModel.checkStabilityFunction)
-                L = model.solveRachfordRice(0*P + 0.5, K, z);
+                L = model.solveRachfordRice([], K, z);
                 L_tol = 1e-10;
                 stable = abs(L - 1) <= L_tol| L <= L_tol;
             else

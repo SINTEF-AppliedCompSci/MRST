@@ -10,11 +10,7 @@ function L = solveRachfordRiceVLE(L, K, z, varargin)
     warning('off','MATLAB:nearlySingularMatrix')
     warning('off','MATLAB:singularMatrix')
 
-    n_L = numel(L);
-    L_final = L;
-    active = true(n_L, 1);
     maxit = 100;
-    tol = 1e-12;
     K(~isfinite(K)) = 1e6;
     
     singularities = 1./(1 - K);
@@ -25,6 +21,9 @@ function L = solveRachfordRiceVLE(L, K, z, varargin)
     if isempty(L)
         L = (L_min + L_max)/2;
     end
+    n_L = numel(L);
+    L_final = L;
+    active = true(n_L, 1);
     for it = 1:opt.maxIterations
         % fprintf('Iteration %d: %d active\n', it, nnz(active));
         L0 = L;
