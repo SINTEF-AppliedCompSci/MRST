@@ -29,6 +29,7 @@ opt     = struct('additionalFields',    {{}}, ...
                  'neighbors',           [],   ...
                  'wellSolsFromRestart', true, ...
                  'consistentWellSols',  true,...
+                 'splitWellsOnSignChange', false, ...
                  'steps',               [], ...
                  'restartInfo',         [], ...
                  'addTrajectory',       true, ...
@@ -462,8 +463,51 @@ end
 
 %--------------------------------------------------------------------------
 
-function    states = processWellStates(states, opt)
+function states = processWellStates(states, opt)
+ns = numel(states);
 nw = numel(states{1}.wellSol);
+if opt.splitWellsOnSignChange
+    ws = cellfun(@(x)x.wellSol, states, 'UniformOutput', false);
+    sgn = cellfun(@(x)[x.sign], ws, 'UniformOutput', false);
+    sgn = vertcat(sgn{:});
+    for k = 1:nw
+        if any(sgn(:,k)~= sgn(1,k))
+            nw = nw + 1;
+            firstSgn = sgn(1,k);
+            [firstNm, secondNm] = deal(strcat(ws{1}(k).name, ' (inj)'), strcat(ws{1}(k).name, ' (prod)'));
+            if firstSgn < 0
+                [firstNm, secondNm] = deal(secondNm, firstNm);
+            end
+                
+            for k1 = 1:ns
+                % copy into new last entry
+                ws{k1}(nw) = ws{k1}(k);
+                % rename and update status
+                ws{k1}(k).name   = firstNm;
+                ws{k1}(k).status = ws{k1}(k).status && (ws{k1}(k).sign == firstSgn);
+                ws{k1}(k).sign   = firstSgn;
+                if ~ws{k1}(k).status
+                    ws{k1}(k).resv = 0;
+                    ws{k1}(k).flux = 0*ws{k1}(k).flux;
+                end
+                
+                ws{k1}(nw).name = secondNm;
+                ws{k1}(nw).status = ws{k1}(nw).status && (ws{k1}(nw).sign ~= firstSgn);
+                ws{k1}(nw).sign   = -firstSgn;
+                if ~ws{k1}(nw).status
+                    ws{k1}(nw).resv = 0;
+                    ws{k1}(nw).flux = 0*ws{k1}(nw).flux;
+                end
+            end
+        end
+    end
+    if numel(states{1}.wellSol) ~= nw % some have been added
+        for k = 1:ns
+            states{k}.wellSol = ws{k};
+        end
+    end
+end
+
 alwaysClosed = true(nw,1);
 for k = 1:numel(states)
     ws = states{k}.wellSol;
