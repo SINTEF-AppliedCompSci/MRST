@@ -110,7 +110,8 @@ function smry = read_single_summary(fid, smspec, readField)
    ministep      = [];
    data          = struct();
    read_complete = false;
-
+   % skip first 4
+   fseek(fid, 4, 'cof');
    while ~read_complete;
       [name, field] = readField(fid);
 
