@@ -25,6 +25,10 @@ smspec = readEclipseOutputFileUnFmt([prefix, '.SMSPEC']);
 nameList = smspec.WGNAMES.values;
 kwrdList = smspec.KEYWORDS.values;
 
+% replace empty entries by 'empty'
+[nameList{strcmp(nameList, '')}] = deal('empty');
+[kwrdList{strcmp(kwrdList, '')}] = deal('empty');
+
 numFull = numel(nameList);
 
 if nargin > 1
@@ -41,48 +45,63 @@ end
 nlist  = numel(nameList);
 
 smry_file = [prefix, '.UNSMRY'];
-%estimate number of ministeps
-d = dir(smry_file);
-estNum = floor(d.bytes/(4*numFull));
+if exist(smry_file, 'file') % unified summary
+    smry_files = {smry_file};
+    %estimate number of ministeps
+    d = dir(smry_file);
+    estNum = floor(d.bytes/(4*numFull));
+else % multiple summary-files
+    [dname, fp] = fileparts(prefix);
+    smry_files = matchResultFiles(dname, [fp, '\.S\d{4}']);
+    %estimate number of ministeps
+    nbts = 0;
+    for k = 1:numel(smry_files)
+        d = dir(smry_files{k});
+        nbts = nbts + d.bytes;
+    end
+    estNum = floor(nbts/(4*numFull));
+end
 
 data = zeros(nlist, estNum);
-ministeps = false(1, estNum);
-
-[fid, msg] = fopen(smry_file, 'r', 'ieee-be');
-if fid < 0, error([smry_file, ': ', msg]); end
-
-% jump to start
-fseek(fid, 4, 'cof');
-    
-dispif(mrstVerbose, ['Reading info from roughly ', num2str(estNum), ' ministeps:      '])
+ministeps = nan(1, estNum);
 curStep = 0;
-while ~feof(fid)
-    [name, field] = readFieldUnFmt(fid);
-    if strcmp(name, 'MINISTEP')
-        ministep = field.values;
-        curStep = curStep +1;
-        if mod(curStep, 100) == 0
-           dispif(mrstVerbose, '\b\b\b\b%3d%%', round(100*ministep/estNum));
+
+dispif(mrstVerbose, ['Reading info from roughly ', num2str(estNum), ' ministeps:      '])
+for f = reshape(smry_files, 1, [])
+    [fid, msg] = fopen(f{1}, 'r', 'ieee-be');
+    if fid < 0, error([f{1}, ': ', msg]); end
+    % jump to start
+    fseek(fid, 4, 'cof');
+    while ~feof(fid)
+        [name, field] = readFieldUnFmt(fid);
+        if strcmp(name, 'MINISTEP')
+            curStep = curStep +1;
+            ministeps(curStep) = field.values;
+            if mod(curStep, 100) == 0
+                dispif(mrstVerbose, '\b\b\b\b%3d%%', round(100*curStep/estNum));
+            end
+        end
+        if strcmp(name, 'PARAMS')
+            data(:, curStep) = field.values(rowInx);
+            %ministeps(ministep+1) = true;
         end
     end
-    if strcmp(name, 'PARAMS')
-        data(:, ministep+1) = field.values(rowInx);
-        ministeps(ministep+1) = true;
-    end
+    fclose(fid);
 end
-fclose(fid);
-dispif(mrstVerbose, '\b\b\b\b%3d%%', 100);
-dispif(mrstVerbose, ['\nActual number of ministeps: ', num2str(ministep+1), '\n']);
-
-data = data(:, ministeps);
 
 smry.WGNAMES  = names;
 smry.KEYWORDS = kwrds;
 smry.nInx     = nInx;
 smry.kInx     = kInx;
-smry.data     = data;
+smry.data     = data(:, 1:curStep);
+smry.ministep = ministeps(1:curStep);
 
 smry = addSmryFuncs(smry);
+
+dispif(mrstVerbose, '\b\b\b\b%3d%%', 100);
+dispif(mrstVerbose, ['\nActual number of ministeps: ', num2str(curStep), '\n']);
+end
+
 
 %--------------------------------------------------------------------------
 
@@ -91,26 +110,27 @@ smry.get    = @(nm,kw,ms)getData(smry, nm, kw, ms);
 smry.getInx = @(nm,kw)getRowInx(smry,nm,kw);
 smry.getNms = @(kw)getNames(smry,kw);
 smry.getKws = @(nm)getKeywords(smry, nm);
-
+end
 
 function nms = getNames(smry,kw)
 rInx   = getRowInx(smry, [], kw);
 nmPos  = unique(smry.nInx(rInx));
 nms    = smry.WGNAMES(nmPos);
+end
 
 function kws = getKeywords(smry,nm)
 rInx   = getRowInx(smry, nm, []);
 kwPos  = unique(smry.kInx(rInx));
 kws    = smry.KEYWORDS(kwPos);
+end
 
 function s = getData(smry, nm, kw, ms)
 rInx = getRowInx(smry, nm, kw);
-
 if isempty(ms) || (ischar(ms) && strcmp(ms, ':'))
    ms = 1 : size(smry.data, 2);
 end
-
 s = smry.data(rInx, ms);
+end
 
 function rInx = getRowInx(smry, nm, kw)
 nlist = numel(smry.kInx);
@@ -127,6 +147,6 @@ else
     rInxK = true(nlist, 1);
 end
 rInx = and(rInxN, rInxK);
-
+end
 
 
