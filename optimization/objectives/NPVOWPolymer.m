@@ -63,14 +63,14 @@ for step = 1:numSteps
     if isfield(sol, 'poly')
         poly = vertcat(sol.poly);
     else
-        poly = vertcat(sol.qWPoly) ./ vertcat(sol.qWs);
+        poly = vertcat(sol.cWPoly);
     end
     injPoly = [sol.qWs] > 0 & [sol.sign] == 1;
 
 
     if opt.ComputePartials
-        [qWs, qWs, qWs, qWs, qOs, poly, ignore] = ...
-           initVariablesADI(p, sW, c, qWs, qOs, poly, pBHP);           %#ok
+        [qWs, qWs, qWs, qWs, qOs, ignore] = ...
+           initVariablesADI(p, sW, c, qWs, qOs, pBHP);           %#ok
 
         clear ignore
     end
