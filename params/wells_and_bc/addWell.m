@@ -283,10 +283,10 @@ assert (numel(W(end).dir) == numel(W(end).cells));
 %--------------------------------------------------------------------------
 
 
-function WI = wellInx(G, rock, radius, welldir, cells, innerProd, opt, inx, cellDims)
+function WI = wellInx(G, rock, radius, welldir, cells, innerProd, opt, inx, physDims)
 
-if ~isempty(cellDims)
-    [dx, dy, dz] = deal(cellDims(cells,1), cellDims(cells,2), cellDims(cells,3));
+if ~isempty(physDims)
+    [dx, dy, dz] = deal(physDims(cells,1), physDims(cells,2), physDims(cells,3));
 else
     if(isfield(G,'nodes'))
         [dx, dy, dz] = cellDims(G, cells);
