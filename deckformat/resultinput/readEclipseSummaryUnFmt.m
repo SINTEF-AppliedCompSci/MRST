@@ -91,6 +91,8 @@ end
 
 smry.WGNAMES  = names;
 smry.KEYWORDS = kwrds;
+smry.UNITS    = smspec.UNITS.values;
+smry.STARTDAT = smspec.STARTDAT.values([3 2 1])';
 smry.nInx     = nInx;
 smry.kInx     = kInx;
 smry.data     = data(:, 1:curStep);
@@ -110,6 +112,7 @@ smry.get    = @(nm,kw,ms)getData(smry, nm, kw, ms);
 smry.getInx = @(nm,kw)getRowInx(smry,nm,kw);
 smry.getNms = @(kw)getNames(smry,kw);
 smry.getKws = @(nm)getKeywords(smry, nm);
+smry.getUnit= @(nm,kw)getUnit(smry, nm, kw);
 end
 
 function nms = getNames(smry,kw)
@@ -147,6 +150,11 @@ else
     rInxK = true(nlist, 1);
 end
 rInx = and(rInxN, rInxK);
+end
+
+function u = getUnit(smry, nm, kw)
+rInx = getRowInx(smry, nm, kw);
+u = smry.UNITS{rInx};
 end
 
 
