@@ -1089,6 +1089,10 @@ methods
                 if ~isempty(sc)
                     eqs{sub}(sc) = eqs{sub}(sc) - src_terms.phaseMass{i}./rhoS(i);
                 end
+                
+                if isfield(forces.bc, 'phaseMass')
+                    bnd_cond.phaseMass{i} = forces.bc.phaseMass(:, i);
+                end
 
                 bc = bnd_cond.sourceCells;
                 if ~isempty(bc)

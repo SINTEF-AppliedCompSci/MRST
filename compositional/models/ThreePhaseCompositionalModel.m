@@ -315,24 +315,30 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             cnames = model.getComponentNames();
             sub = strcmpi(cnames, cname);
             if any(sub)
-                z_bc = model.getProp(force, 'components');
-                mf_bc = model.EOSModel.getMassFraction(z_bc);
                 cells = src.sourceCells;
-                
-                qC = zeros(size(cells));
-                for ph = 1:2
-                    ix = ph + model.water;
-                    q_ph = src.phaseMass{ix};
-                    inj = q_ph > 0;
-                    
-                    qC = qC + ~inj.*component{ph}(cells).*q_ph ...
-                            +  inj.*mf_bc(:, sub).*q_ph;
+                if isfield(force, 'componentMass')
+                    qC = force.componentMass(:, sub);
+                else
+                    z_bc = model.getProp(force, 'components');
+                    mf_bc = model.EOSModel.getMassFraction(z_bc);
+                    qC = zeros(size(cells));
+                    for ph = 1:2
+                        ix = ph + model.water;
+                        q_ph = src.phaseMass{ix};
+                        inj = q_ph > 0;
+
+                        qC = qC + ~inj.*component{ph}(cells).*q_ph ...
+                                +  inj.*mf_bc(:, sub).*q_ph;
+                    end
                 end
+%                 figure(123); plot(double(qC));
+%                 drawnow
                 if ~isempty(src.mapping)
                     qC = src.mapping*qC;
                 end
                 eq(cells) = eq(cells) - qC;
                 src.components{end+1} = qC;
+
             else
                 [eq, src] = addComponentContributions@ReservoirModel(model, cname, eq, component, src, force);
             end
