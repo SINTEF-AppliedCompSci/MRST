@@ -119,8 +119,8 @@ classdef UniformFacilityModel < FacilityModel
             
             
             [eqs, srcSurfCond, mix_s, status, cstatus, srcVol] = ...
-                            computeWellContributionsNew(wellmodel, model.ReservoirModel, wellSol, bhp, qWell);
-            ctrleq =  setupWellControlEquations(wellSol, bhp, qWell, status, mix_s, model.ReservoirModel);
+                            computeWellContributionsNew(wellmodel, model.ReservoirModel, wellSol(actWellIx), bhp, qWell);
+            ctrleq =  setupWellControlEquations(wellSol(actWellIx), bhp, qWell, status, mix_s, model.ReservoirModel);
             srcMass = srcSurfCond;
             for i = 1:numel(srcMass)
                 srcMass{i} = srcMass{i}*rhoS(i);
@@ -145,10 +145,10 @@ classdef UniformFacilityModel < FacilityModel
 
             for i = 1:numel(actWellIx)
                 wnr = actWellIx(i);
-                ix = wellmodel.perf2well == wnr;
+                ix = wellmodel.perf2well == i;
                 wellSol(wnr).cqs     = cq_sDb(ix,:);
                 wellSol(wnr).cstatus = cstatus(ix);
-                wellSol(wnr).status  = status(wnr);
+                wellSol(wnr).status  = status(i);
             end
         end
     end
