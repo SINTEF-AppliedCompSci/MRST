@@ -3,69 +3,59 @@
 % water injection in a 3-dimensional fractured porous media using the EDFM
 % method
 
-% Load necessary modules, etc 
+%% Load necessary modules
 mrstModule add hfm;             % hybrid fracture module
-mrstModule add ad-core;         
-mrstModule add ad-props ad-core 
 mrstModule add mrst-gui;        % plotting routines
-mrstModule add ad-blackoil;
-mrstModule add upr;
+mrstModule add ad-blackoil;     % AD blackoil solver
+mrstModule add ad-core;         % AD core module
+mrstModule add ad-props;        % AD properties
 
+%% Set up a matrix grid
+% We first set up a Cartesian matrix grid with dimensions 500m x 200m x
+% 100m with grid blocks that are 10m x 10m x 10m. Matrix permeability is
+% 100mD and porosity is 30%.
 
-%% NOTE ON PARALLEL PROCESSING
-% Use 'parpool' to enable parallel processing. Note that on some
-% machines, initializing a parallel pool takes a long time. Also note that
-% MATLAB by default initializes parpool when encountering functions from
-% the Parallel Processing Toolbox. To prevent this, go to Home >
-% Preferences > Parallel Computing Toolbox and untick 'Automatically create
-% a parallel pool...'
-
-
-%% Grid and fracture(s)
-% LX=500; NX=50; clx=LX/NX;
-% LY=200; NY=20; cly=LY/NY;
-% LZ=1; NZ=5; clz=LZ/NZ;
-% celldim = [NX, NY, NZ];
-% physdim = [LX, LY, LZ];
-tol=1e-5;
-celldim = [50, 20, 4];
+celldim = [50, 20, 10];
 physdim = [500, 200, 100];
-G_matrix = cartGrid(celldim, physdim);
-G_matrix = computeGeometry(G_matrix);
-G_matrix.rock=makeRock(G_matrix,100*milli*darcy,0.3);
+G = cartGrid(celldim, physdim); 
+G = computeGeometry(G);
+G.rock=makeRock(G,100*milli*darcy,0.3);
 
-% fracplanes = struct;
-% points = [30 30 0;
-%           470 30 0;
-%           470 30 100
-%           30 30 100];
-% fracplanes(1).points = points;
-% fracplanes(1).aperture = 1/25;
-% fracplanes(1).poro=0.8;
-% fracplanes(1).perm=10000*darcy;
-% fracplanes(2).points = [470 10 0
-%                         470 170 0
-%                         470 170 100
-%                         470 10 100];
-% fracplanes(2).aperture = 1/25;
-% fracplanes(2).poro=0.8;
-% fracplanes(2).perm=10000*darcy;
-fracplanes = struct;
-points = [80 100 0;
-                        130 160 0;
-                        130 160 100;
-                        80 100 100];
-fracplanes(1).points = points;
+% Plot Matrix Grid
+figure;
+plotGrid(G,'facealpha',0,'edgealpha',0.5);
+view(30,45);
+
+%% Set up fracture planes
+% Fracture planes are set up by defining their vertices. Additionally,
+% the aperture, porosity and permeability of the fractures are provided.
+% Fracture planes 1 and 3 will be vertical while fracture 2 is slanted.
+
+% Fracture plane 1
+fracplanes(1).points = [90 100 0;
+                        140 160 0;
+                        140 160 100;
+                        90 100 100];
 fracplanes(1).aperture = 1/25;
 fracplanes(1).poro=0.8;
 fracplanes(1).perm=10000*darcy;
-fracplanes(2).points = [130 160 0
-                        340 40 0
-                        340 40 100
-                        130 160 100];
+
+% Fracture plane 2 
+points = [130 160 0
+          340 40 0
+          340 40 100
+          130 160 100];
+
+f2normal = getnormal(points);
+points([1,2],:)=points([1,2],:)+f2normal*5; % displace top points
+points([3,4],:)=points([3,4],:)-f2normal*5; % displace bottom points
+
+fracplanes(2).points = points;
 fracplanes(2).aperture = 1/25;
 fracplanes(2).poro=0.8;
 fracplanes(2).perm=10000*darcy;
+
+% Fracture plane 3
 fracplanes(3).points = [250 70 0
                         330 160 0
                         330 160 100
@@ -73,45 +63,80 @@ fracplanes(3).points = [250 70 0
 fracplanes(3).aperture = 1/25;
 fracplanes(3).poro=0.8;
 fracplanes(3).perm=10000*darcy;
-% fracplanes(1).points = [250 70 0
-%                         330 160 0
-%                         330 160 100
-%                         250 70 100];
-% fracplanes(1).aperture = 1/25;
-% fracplanes(1).poro=0.8;
-% fracplanes(1).perm=10000*darcy;
 
-% checkIfCoplanar(fracplanes)
-plotfracongrid(G_matrix,fracplanes); % visualize to check before pre-process
-G=G_matrix;
+% Plot fracture planes
+figure;
+plotfracongrid(G,fracplanes); % visualize to check before pre-process
+view(30,45)
 
+%% Construct fracture grid
+% The fracture grid is constructed using the matrix grid. The matrix grid
+% will serve as a 'cookie cutter' to subdivide the fracture planes.
+% Parallel processing can be used to speed up this process (Start a 
+% parallel pool to do this).
 
-%% Process fracture(s)
+tol=1e-5;
 [G,fracplanes]=EDFMgrid(G,fracplanes,...
-    'Tolerance',tol,'plotgrid',true,'fracturelist',1:3);
+    'Tolerance',tol,'fracturelist',1:3);
 
-%% Fracture-Matrix NNCs
+% Plot Fracture grid
+figure;
+plotGrid(cartGrid([1 1 1],physdim),'facealpha',0);
+hold on;
+plotGrid(G,G.Matrix.cells.num+1:G.cells.num);
+axis tight equal
+title('Fracture Grid')
+view(30,45);
+
+%% Fracture-Matrix non-Neighbouring Connections (NNC)
+% This calculates the transmissibilities between connected matrix and
+% fracture grid blocks. Information is saved under G.nnc.
+
+tol=1e-5;
 G=fracturematrixNNC3D(G,tol);
 
+% Plot matrix gridblocks that have NNCs with fractures
+figure;
+plotfracongrid(cartGrid([1 1 1],physdim),fracplanes);
+hold on;
+plotGrid(G,G.nnc.cells(:,1),'facealpha',0,'edgealpha',1);
+axis tight equal
+title('Matrix-Fracture NNCs')
+view(30,45);
 
-%%
-[G,fracplanes]=fracturefractureNNCs3D(G,fracplanes,tol);
+%% Fracture-Fracture NNCs
+% This calculates the transmissibilities between connected fracture and
+% fracture grid blocks. Information is saved under G.nnc.
 
-%%
+tol=1e-5;
+[G,fracplanes]=fracturefractureNNCs3D(G,fracplanes,tol,'Verbose',true);
+
+% Plot fracture gridblocks that have Fracture-Fracture NNCs
+fraccells = G.nnc.cells(strcmp(G.nnc.type,'fracfrac'),:);
+figure;
+plotGrid(cartGrid([1 1 1],physdim),'facealpha',0);
+hold on;
+plotGrid(G,G.Matrix.cells.num+1:G.cells.num,'facealpha',0,'edgealpha',0.5);
+plotGrid(G,fraccells);
+axis equal tight;
+title('Fracture-Fracture NNCs')
+view(30,45);
+
+
+%% Setup TPFA Operators
+% Generate operators for the black oil model which incorporates all the
+% NNCs identified above.
+
 TPFAoperators = setupEDFMOperatorsTPFA(G, G.rock, tol);
 
 %% Define fluid properties
-% Define a two-phase fluid model without capillarity. The fluid model has
-% the values:
-%
-% * densities: [rho_w, rho_o] = [1000 700 250] kg/m^3
-% * viscosities: [mu_w, mu_o] = [1 5 0.2] cP.
-% * corey-coefficient: [2, 2] = [2 2 2].
+% Define a three-phase fluid model without capillarity.
 
 fluid = initSimpleADIFluid('mu' , [   1,  5, 0.2] .* centi*poise     , ...
                            'rho', [1000, 700, 250] .* kilogram/meter^3, ...
                            'n'  , [   2,   2, 2]);
 
+% Add compressibility to fluid
 pRef = 100*barsa;
 c_w = 1e-8/barsa;
 c_o = 1e-5/barsa;
@@ -126,25 +151,33 @@ fluid.bG = @(p) exp((p - pRef)*c_g);
 % oil. This is done by first instantiating the blackoil model, and then
 % manually passing in the internal transmissibilities and the topological
 % neighborship from the embedded fracture grid.
+
 gravity reset off
 model = ThreePhaseBlackOilModel(G, [], fluid, 'disgas', false, 'vapoil', false);
 model.operators = TPFAoperators;
 
 %% Add wells
+% An injector/producer pair is added. 1PV of water is injected over the
+% course of 5 years.
+
 totTime = 5*year;
 tpv = sum(model.operators.pv);
 wellRadius = 0.1;
 [nx, ny, nz] = deal(G.cartDims(1), G.cartDims(2), G.cartDims(3));
+
+% Injector
 cellinj = 1:nx*ny:(1+(nz-1)*nx*ny);
-cellprod1 = nx*ny:nx*ny:nz*nx*ny;
 W   = addWell([], G.Matrix, G.Matrix.rock, cellinj,'InnerProduct', 'ip_tpf','Type', ...
     'rate', 'Val', tpv/totTime, 'Radius', wellRadius, 'Comp_i', [1, 0, 0], 'Name', 'Injector');
-W   = addWell(W, G.Matrix, G.Matrix.rock, cellprod1, 'InnerProduct', 'ip_tpf', 'Type', ...
-    'bhp' , 'Val', 50*barsa, 'Radius', wellRadius, 'Comp_i', [1, 1, 0]/2, 'Name', 'Producer1');
-% cellprod2 = nx:nx*ny:(nx+(nz-1)*nx*ny);
-% W   = addWell(W, G.Matrix, G.Matrix.rock, cellprod2, 'InnerProduct', 'ip_tpf', 'Type', ...
-%     'bhp' , 'Val', 50*barsa, 'Radius', wellRadius, 'Comp_i', [1, 1, 0]/3, 'Name', 'Producer2');
 
+% Producer
+cellprod = nx*ny:nx*ny:nz*nx*ny;
+W   = addWell(W, G.Matrix, G.Matrix.rock, cellprod, 'InnerProduct', 'ip_tpf', 'Type', ...
+    'bhp' , 'Val', 50*barsa, 'Radius', wellRadius, 'Comp_i', [1, 1, 0], 'Name', 'Producer');
+
+% Plot setup
+plotEDFMgrid(G);
+hold on;
 plotWell(G,W);
 
 %% Set up initial state and schedule
@@ -152,21 +185,11 @@ plotWell(G,W);
 % water and oil initially. We also set up a simple-time step strategy that
 % ramps up gradually towards 30 day time-steps.
 
-
 s0 = [0.2, 0.8, 0];
 state  = initResSol(G, pRef, s0);
 dt = rampupTimesteps(totTime, 30*day, 8);
-% dt = repmat(30*day,61,1);
 schedule = simpleSchedule(dt, 'W', W);
 
 %% Simulate problem
-%fn = getPlotAfterStep(state, model, schedule);
 [ws, states, report] = simulateScheduleAD(state, model, schedule, ...
    'afterStepFn', getPlotAfterStep(state, model, schedule));
-
-%% plotting
-figure;
-plotToolbar(G,states);
-view(40,30);
-axis tight equal;
-
