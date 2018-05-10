@@ -1,18 +1,18 @@
-function plotfracongrid(G_matrix,fracplanes,varargin)
+function [hm,hf]=plotfracongrid(G_matrix,fracplanes,varargin)
 % Plots fracplanes with matrix grid as backdrop
 
-opt=struct('fracturelist',1:length(fracplanes),'label',true,'fracfacealpha',0.5);
+opt=struct('fracturelist',1:length(fracplanes),'label',true,'fracfacealpha',0.5,'fracfacecolor','y');
 opt=merge_options(opt,varargin{:});
 
 
-
+hf={};
 for i = opt.fracturelist
     X=fracplanes(i).points(:,1);
     Y=fracplanes(i).points(:,2);
     Z=fracplanes(i).points(:,3);
-    h=fill3(X,Y,Z,'y');
+    hf{end+1}=fill3(X,Y,Z,opt.fracfacecolor);
     hold on;
-    set(h,'facealpha',opt.fracfacealpha);
+    set(hf{end},'facealpha',opt.fracfacealpha);
     
     if opt.label
         [~,index]=max(X);
@@ -20,7 +20,7 @@ for i = opt.fracturelist
     end
 end
 
-plotGrid(G_matrix,'facealpha',0);
+hm=plotGrid(G_matrix,'facealpha',0);
 
 view(15,20);
 axis equal tight;
