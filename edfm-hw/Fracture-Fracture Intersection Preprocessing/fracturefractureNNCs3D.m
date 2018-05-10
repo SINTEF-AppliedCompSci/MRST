@@ -19,9 +19,9 @@ function [G,fracplanes]=fracturefractureNNCs3D(G,fracplanes,tol,varargin)
 %
 % Future improvements: Add in G.nnc.type
 
-% opt=struct;
-% opt=merge_options(opt,varargin{:});
-% type=opt.type;
+opt=struct('Verbose',true);
+opt=merge_options(opt,varargin{:});
+Verbose=opt.Verbose;
 
 t1=clock;
 
@@ -76,7 +76,7 @@ for i=1:(numfrac-1)
             continue; % skip to next fracj
         end
         
-        disp(['Checking ',fieldnamei,' vs ',fieldnamej,'.']);
+        dispif(Verbose,['Checking ',fieldnamei,' vs ',fieldnamej,'.\n']);
         G.FracGrid.(fieldnamei).fracgridnnc(end+1)=j; % record that i and j have been checked
         G.FracGrid.(fieldnamej).fracgridnnc(end+1)=i;
                 
