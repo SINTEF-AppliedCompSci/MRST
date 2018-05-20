@@ -1,5 +1,6 @@
 mrstModule add ad-core;
 mrstModule add ad-props;
+mrstModule add ad-blackoil;
 
 %% Grid and rock
 
