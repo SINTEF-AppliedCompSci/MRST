@@ -66,10 +66,15 @@ assert(size(bc.sat, 2) == nPh, ...
     ['Wrong number of columns in BC sat field: Expected columns', ...
     num2str(nPh), ', but input had ', num2str(size(bc.sat, 2)), ' columns.']);
 assert(~any(all(N > 0, 2)),'bc on internal boundary');
-ss = sum(bc.sat, 2);
-% Values should either sum to zero or one
-assert(all(ss - 1 < sqrt(eps) | ss < sqrt(eps)));
 
+hasOutsideMob = isfield(bc, 'mob');
+hasOutsideRho = isfield(bc, 'rho');
+
+if ~hasOutsideMob
+    ss = sum(bc.sat, 2);
+    % Values should either sum to zero or one
+    assert(all(ss - 1 < sqrt(eps) | ss < sqrt(eps)));
+end
 % Mapping
 BCcells = sum(N, 2);
 nbc = numel(bc.face);
@@ -86,11 +91,8 @@ if any(strcmpi(G.type, 'topSurfaceGrid'))
 else
    g = model.getGravityVector();
    dz = G.cells.centroids(BCcells, :) - G.faces.centroids(bc.face,:);
-   dzbc = dz*g';
+   dzbc = -dz*g';
 end
-
-hasOutsideMob = isfield(bc, 'mob');
-hasOutsideRho = isfield(bc, 'rho');
 
 isP = reshape(strcmpi(bc.type, 'pressure'), [], 1);
 isSF = reshape(strcmpi(bc.type, 'flux'), [], 1);
@@ -148,7 +150,13 @@ for i = 1:nPh
     
     if any(isP)
         % Treat pressure BC
-        rhoF = (rhoBC_in(isP) + rhoBC_out(isP))./2;
+        if isa(model, 'ThreePhaseCompositionalModel') && i > model.water
+            sT = (sBC(isP) + sat(isP, i));
+            sT(double(sT) == 0) = 1e-8;
+            rhoF = (sBC(isP).*rhoBC_in(isP) + sat(isP, i).*rhoBC_out(isP))./sT;
+        else
+            rhoF = (rhoBC_in(isP) + rhoBC_out(isP))./2;
+        end
         dP = bc.value(isP) - pBC(isP) - rhoF.*dzbc(isP);
         
         % Determine if pressure bc are injecting or producing
