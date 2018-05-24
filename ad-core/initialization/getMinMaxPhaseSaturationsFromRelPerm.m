@@ -35,7 +35,11 @@ function [s_min, s_max] = getMinMaxPhaseSaturationsFromRelPerm(model, tol, cellI
             end
             
             if model.gas
-                krog = model.fluid.krOG(s, 'cellInx', cellInx);
+                if isfield(model.fluid, 'krO')
+                    krog = model.fluid.krO(s, 'cellInx', cellInx);
+                else
+                    krog = model.fluid.krOG(s, 'cellInx', cellInx);
+                end
             else
                 krog = 1;
             end
