@@ -87,7 +87,18 @@ classdef LinearSolverAD < handle
                 rhs = rhs - problemPrev.A'*adjVec;
             end
             A = problemCurr.A';
+            % Apply scaling
+            [A, rhs, scaling] = solver.applyScaling(A, rhs);
+            % Reduce system (if requested)
+            [A, rhs, lsys] = solver.reduceLinearSystem(A, rhs);
+            
             [result, report] = solver.solveLinearSystem(A, rhs);
+            
+            % Recover eliminated variables on linear level
+            result = solver.recoverLinearSystem(result, lsys);
+            % Undo scaling
+            result = solver.undoScaling(result, scaling);
+            
             grad = solver.storeIncrements(problemCurr, result);
         end
         
