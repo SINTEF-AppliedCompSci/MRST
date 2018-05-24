@@ -58,7 +58,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         hasDeck = false;
     end
     
-    if hasDeck
+    if hasDeck && isfield(deck.GRID, 'COORD')
         [cellCenters,cellFaceCenters]=computeCpGeometry(G,deck.GRID);
         T = computeTrans(G, rock,'K_system', 'loc_xyz', ...
                  'cellCenters', cellCenters, ...
