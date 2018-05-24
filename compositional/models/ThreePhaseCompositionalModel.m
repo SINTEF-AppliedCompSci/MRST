@@ -328,7 +328,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                         z_bc = model.getProp(force, 'components');
                         mf_bc = model.EOSModel.getMassFraction(z_bc);
                         
-                        massFractions = {mf_bc, bf_bc};
+                        massFractions = {mf_bc, mf_bc};
                     end
                     qC = zeros(size(cells));
                     for ph = 1:2
