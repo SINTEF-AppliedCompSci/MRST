@@ -181,6 +181,7 @@ function bc_coarse = handleBC(model, bc, opt)
         values = bc.value(act);
         
         sat = [];
+        comp = [];
         assert(all(strcmpi(type, types)), ...
             ['Mixture of boundary condition types on the same coarse face.',...
             ' Not possible to upscale.']);
@@ -193,6 +194,12 @@ function bc_coarse = handleBC(model, bc, opt)
                     sat = sum(sat, 1);
                     sat = sat./sum(sat, 2);
                 end
+                if isfield(bc, 'components')
+                    comp = bsxfun(@times, bc.components(act, :), values);
+                    comp = sum(comp, 1);
+                    comp = comp./sum(comp, 2);
+                end
+                
                 val = sum(values);
             case 'pressure'
                 if ~isempty(bc.sat)
@@ -200,6 +207,12 @@ function bc_coarse = handleBC(model, bc, opt)
                     sat = bsxfun(@times, bc.sat(act, :), areas);
                     sat = sum(sat, 1);
                     sat = sat./sum(sat, 2);
+                end
+                
+                if isfield(bc, 'components')
+                    comp = bsxfun(@times, bc.components(act, :), areas);
+                    comp = sum(comp, 1);
+                    comp = comp./sum(comp, 2);
                 end
                 
                 if isfield(G, 'nodes')
@@ -255,6 +268,12 @@ function bc_coarse = handleBC(model, bc, opt)
         end
         
         bc_coarse = addBC(bc_coarse, cf, type, val, 'sat', sat);
+        if isfield(bc, 'components')
+            if ~isfield(bc_coarse, 'components')
+                bc_coarse.components = [];
+            end
+            bc_coarse.components = [bc_coarse.components; comp];
+        end
     end
 end
 
