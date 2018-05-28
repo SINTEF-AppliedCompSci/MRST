@@ -9,6 +9,7 @@ classdef EquationOfStateModel < PhysicalModel
         useNewton % Use Newton based solver for flash. If set to false, successive substitution if used instead.
         fastDerivatives % Use FastAD to compute EOS derivatives.
         PropertyModel % Model to be used for property evaluations
+        selectGibbsMinimum = true; % Use minimum Gibbs energy to select Z
     end
     
     properties (Access = private)
@@ -115,6 +116,55 @@ classdef EquationOfStateModel < PhysicalModel
             m2 = model.eosB;
         end
         
+        function Z = computeCompressibilityZ(model, p, xy, A, B, Si, Bi, isLiquid)
+            if iscell(xy)
+                xy = cellfun(@double, xy, 'UniformOutput', false);
+                xy = [xy{:}];
+            end
+            if iscell(Si)
+                Si = cellfun(@double, Si, 'UniformOutput', false);
+                Si = [Si{:}];
+            end
+            if iscell(Bi)
+                Bi = cellfun(@double, Bi, 'UniformOutput', false);
+                Bi = [Bi{:}];
+            end            
+            p = double(p); A = double(A); B = double(B);
+                
+            if ~model.selectGibbsMinimum
+                if isLiquid
+                    Z = computeLiquidZ(model, A, B);
+                else
+                    Z = computeVaporZ(model, A, B);
+                end
+                return
+            end
+            
+            Z0 = model.solveCubicEOS(A, B);
+            bad = bsxfun(@lt, Z0, B);
+            Z0(bad) = nan;
+            
+            candidates = isfinite(Z0);
+            numRoots = sum(candidates, 2);
+            single = numRoots == 1;
+            multiple = ~single;
+            Z = max(Z0, [], 2);
+            if any(multiple)
+                Z_max = max(Z0(multiple, :), [], 2);
+                Z_min = min(Z0(multiple, :), [], 2);
+                xi = xy(multiple, :);
+                
+                [~, phi] = model.computeFugacity(p(multiple), xi, Z_max, A(multiple), B(multiple), Si(multiple, :), Bi(multiple, :));
+                g_max = sum(phi.*xi, 2);
+                [~, phi] = model.computeFugacity(p(multiple), xi, Z_min, A(multiple), B(multiple), Si(multiple, :), Bi(multiple, :));
+                g_min = sum(phi.*xi, 2);
+                Zi = Z_max;
+                smallest = g_min < g_max;
+                Zi(smallest) = Z_min(smallest);
+                Z(multiple) = Zi;
+            end
+        end
+        
         function Z = computeLiquidZ(model, A, B)
             % Pick smallest Z factors for liquid phase (least energy)
             Z = model.solveCubicEOS(A, B);
@@ -160,10 +210,10 @@ classdef EquationOfStateModel < PhysicalModel
             if iteration == 1
                 [stable, x0, y0] = model.performPhaseStabilityTest(state.pressure, state.T, state.components);
                 acf = model.fluid.acentricFactors;
-                [Si_L, Si_V, A_L, A_V, B_L, B_V] = model.getMixtureFugacityCoefficients(P, T, x0, y0, acf);
+                [Si_L, Si_V, A_L, A_V, B_L, B_V, Bi] = model.getMixtureFugacityCoefficients(P, T, x0, y0, acf);
                 % Solve EOS for each phase
-                Z0_L = model.computeLiquidZ(A_L, B_L);
-                Z0_V = model.computeVaporZ(A_V, B_V);
+                Z0_L = model.computeCompressibilityZ(state.pressure, x0, A_L, B_L, Si_L, Bi);
+                Z0_V = model.computeCompressibilityZ(state.pressure, y0, A_V, B_V, Si_V, Bi);
                 L0 = model.solveRachfordRice(L0, K0, z);
                 L0(stable & L0 >  0.5) = 1;
                 L0(stable & L0 <= 0.5) = 0;
@@ -428,8 +478,8 @@ classdef EquationOfStateModel < PhysicalModel
             [Si_L, Si_V, A_L, A_V, B_L, B_V, Bi] = model.getMixtureFugacityCoefficients(P, T, x, y, model.fluid.acentricFactors);
             
             if nargin < 7
-                Z_L = model.computeLiquidZ(double(A_L), double(B_L));
-                Z_V = model.computeVaporZ(double(A_V), double(B_V));
+                Z_L = model.computeCompressibilityZ(P, x, A_L, B_L, Si_L, Bi);
+                Z_V = model.computeCompressibilityZ(P, y, A_V, B_V, Si_V, Bi);
 
                 Z_L = FastAD(Z_L, 0*P.jac);
                 Z_V = FastAD(Z_V, 0*P.jac);
@@ -457,12 +507,12 @@ classdef EquationOfStateModel < PhysicalModel
             if isfield(state, 'Z_L')
                 Z_L = state.Z_L;
             else
-                Z_L = model.computeLiquidZ(double(A_L), double(B_L));
+                Z_L = model.computeCompressibilityZ(P, x, A_L, B_L, Si_L, Bi);
             end
             if isfield(state, 'Z_V')
                 Z_V = state.Z_V;
             else
-                Z_V = model.computeVaporZ(double(A_V), double(B_V));
+                Z_V = model.computeCompressibilityZ(P, y, A_V, B_V, Si_V, Bi);
             end
             if iscell(x)
                 s = getSampleAD(P, T, x{:}, y{:});

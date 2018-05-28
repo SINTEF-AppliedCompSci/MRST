@@ -165,10 +165,11 @@ end
 
 function f = getFugacity(model, A_ij, Bi, xy, p, T, isLiquid)
     [Si, A, B] = model.getPhaseMixCoefficients(xy, A_ij, Bi);
-    if isLiquid
-        Z = model.computeLiquidZ(A, B);
-    else
-        Z = model.computeVaporZ(A, B);
-    end
+    Z = model.computeCompressibilityZ(p, xy, A, B, Si, Bi);
+%     if isLiquid
+%         Z = model.computeLiquidZ(A, B);
+%     else
+%         Z = model.computeVaporZ(A, B);
+%     end
     f = model.computeFugacity(p, xy, Z, A, B, Si, Bi);
 end
