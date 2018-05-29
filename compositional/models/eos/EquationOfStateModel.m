@@ -479,6 +479,7 @@ classdef EquationOfStateModel < PhysicalModel
             
             if nargin < 7
                 Z_L = model.computeCompressibilityZ(P, x, A_L, B_L, Si_L, Bi, true);
+                Z_V = model.computeCompressibilityZ(P, y, A_V, B_V, Si_V, Bi, false);
 
                 Z_L = FastAD(Z_L, 0*P.jac);
                 Z_V = FastAD(Z_V, 0*P.jac);
@@ -506,12 +507,12 @@ classdef EquationOfStateModel < PhysicalModel
             if isfield(state, 'Z_L')
                 Z_L = state.Z_L;
             else
-                Z_L = model.computeCompressibilityZ(P, x, A_L, B_L, Si_L, Bi);
+                Z_L = model.computeCompressibilityZ(P, x, A_L, B_L, Si_L, Bi, true);
             end
             if isfield(state, 'Z_V')
                 Z_V = state.Z_V;
             else
-                Z_V = model.computeCompressibilityZ(P, y, A_V, B_V, Si_V, Bi);
+                Z_V = model.computeCompressibilityZ(P, y, A_V, B_V, Si_V, Bi, false);
             end
             if iscell(x)
                 s = getSampleAD(P, T, x{:}, y{:});
