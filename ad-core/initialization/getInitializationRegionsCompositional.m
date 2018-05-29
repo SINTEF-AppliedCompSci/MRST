@@ -64,7 +64,7 @@ function rho = getDensity(model, p, T, z, x, isLiquid, varargin)
 %         model.EOSModel.selectGibbsMinimum = false;
         [A_ij, Bi] = eos.getMixingParameters(p, T, eos.fluid.acentricFactors, iscell(x));
         [Si, A, B] = eos.getPhaseMixCoefficients(x, A_ij, Bi);
-        Z = model.EOSModel.computeCompressibilityZ(p, x, A, B, Si, Bi);
+        Z = model.EOSModel.computeCompressibilityZ(p, x, A, B, Si, Bi, isLiquid);
     end
     rho = model.EOSModel.PropertyModel.computeDensity(p, x, Z, T, isLiquid);
     [rho, isLiquid]
