@@ -166,7 +166,7 @@ classdef EquationOfStateModel < PhysicalModel
         end
         
         function Z = computeLiquidZ(model, A, B)
-            % Pick slest Z factors for liquid phase (least energy)
+            % Pick smallest Z factors for liquid phase (least energy)
             Z = model.solveCubicEOS(A, B);
             bad = bsxfun(@lt, Z, B);
             Z(bad) = nan;
