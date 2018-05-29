@@ -64,7 +64,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-    opt = struct('tol_equil', 1e-10, 'tol_trivial', 1e-5, 'solve_both', nargout > 1);
+    opt = struct('tol_equil', 1e-10, 'alpha', [], 'tol_trivial', 1e-5, 'solve_both', nargout > 1);
     assert(all(p > 0 & isfinite(p)), 'Positive, finite pressures required for phase stability test.');
     if numel(varargin)
         opt = merge_options(opt, varargin{:});
@@ -138,8 +138,16 @@ function [xy, S, trivialSolution, K] = checkStability(eos, z, xy, p, T, insidePh
 
         f_zi = f_z(active, :);
         if insidePhaseIsVapor
+            % xy = y
+            if ~isempty(opt.alpha)
+                f_xy = f_xy + opt.alpha(active, :);
+            end
             R = bsxfun(@rdivide, f_zi./f_xy, S_loc);
         else
+            % xy = x
+            if ~isempty(opt.alpha)
+                f_xy = f_xy - opt.alpha(active, :);
+            end
             R = bsxfun(@times, f_xy./f_zi, S_loc);
         end
         K(active, :) = K(active, :).*R;
@@ -165,11 +173,6 @@ end
 
 function f = getFugacity(model, A_ij, Bi, xy, p, T, isLiquid)
     [Si, A, B] = model.getPhaseMixCoefficients(xy, A_ij, Bi);
-    Z = model.computeCompressibilityZ(p, xy, A, B, Si, Bi);
-%     if isLiquid
-%         Z = model.computeLiquidZ(A, B);
-%     else
-%         Z = model.computeVaporZ(A, B);
-%     end
+    Z = model.computeCompressibilityZ(p, xy, A, B, Si, Bi, isLiquid);
     f = model.computeFugacity(p, xy, Z, A, B, Si, Bi);
 end

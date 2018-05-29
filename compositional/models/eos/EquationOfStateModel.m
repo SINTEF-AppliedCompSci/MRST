@@ -10,6 +10,7 @@ classdef EquationOfStateModel < PhysicalModel
         fastDerivatives % Use FastAD to compute EOS derivatives.
         PropertyModel % Model to be used for property evaluations
         selectGibbsMinimum = true; % Use minimum Gibbs energy to select Z
+        alpha = [];
     end
     
     properties (Access = private)
@@ -308,8 +309,19 @@ classdef EquationOfStateModel < PhysicalModel
             K(~isfinite(K)) = 1;
         end
 
-        function [stable, x, y] = performPhaseStabilityTest(model, P, T, z)
-            [stable, x, y] = phaseStabilityTest(model, z, P, T);
+        function [stable, x, y] = performPhaseStabilityTest(model, P, T, z, cells)
+            if nargin < 5
+                cells = [];
+            end
+            arg = {};
+            if ~isempty(model.alpha)
+                A = cell(numel(model.alpha), 1);
+                for i = 1:numel(A)
+                    A{i} = model.alpha{i}(P, z(:, i));
+                end
+                arg = {'alpha', [A{:}]};
+            end
+            [stable, x, y] = phaseStabilityTest(model, z, P, T, z, z, arg{:});
         end
 
         function [x, y, K, Z_L, Z_V, L, vals] = newtonCompositionUpdate(model, P, T, z, K, L)
