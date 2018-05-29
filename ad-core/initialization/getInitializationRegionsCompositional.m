@@ -49,6 +49,7 @@ function region = getInitializationRegionsCompositional(model, cells, datum_p, d
     
     region = getInitializationRegionsBase(model, cells, ref_index, rho, datum_p, datum_z, contacts, ...
         'contacts_pc', contacts_pc, ...
+        'reference_index', model.water + 1, ...
         'pc_sign',      pc_sign, ...
         's_min',        s_min, ....
         's_max',        s_max, ....
@@ -60,9 +61,11 @@ function rho = getDensity(model, p, T, z, x, isLiquid, varargin)
     if isa(model.EOSModel, 'EquilibriumConstantModel')
         Z = nan;
     else
+%         model.EOSModel.selectGibbsMinimum = false;
         [A_ij, Bi] = eos.getMixingParameters(p, T, eos.fluid.acentricFactors, iscell(x));
         [Si, A, B] = eos.getPhaseMixCoefficients(x, A_ij, Bi);
         Z = model.EOSModel.computeCompressibilityZ(p, x, A, B, Si, Bi);
     end
     rho = model.EOSModel.PropertyModel.computeDensity(p, x, Z, T, isLiquid);
+    [rho, isLiquid]
 end
