@@ -212,8 +212,8 @@ classdef EquationOfStateModel < PhysicalModel
                 acf = model.fluid.acentricFactors;
                 [Si_L, Si_V, A_L, A_V, B_L, B_V, Bi] = model.getMixtureFugacityCoefficients(P, T, x0, y0, acf);
                 % Solve EOS for each phase
-                Z0_L = model.computeCompressibilityZ(state.pressure, x0, A_L, B_L, Si_L, Bi);
-                Z0_V = model.computeCompressibilityZ(state.pressure, y0, A_V, B_V, Si_V, Bi);
+                Z0_L = model.computeCompressibilityZ(state.pressure, x0, A_L, B_L, Si_L, Bi, true);
+                Z0_V = model.computeCompressibilityZ(state.pressure, y0, A_V, B_V, Si_V, Bi, false);
                 L0 = model.solveRachfordRice(L0, K0, z);
                 L0(stable & L0 >  0.5) = 1;
                 L0(stable & L0 <= 0.5) = 0;
@@ -478,8 +478,7 @@ classdef EquationOfStateModel < PhysicalModel
             [Si_L, Si_V, A_L, A_V, B_L, B_V, Bi] = model.getMixtureFugacityCoefficients(P, T, x, y, model.fluid.acentricFactors);
             
             if nargin < 7
-                Z_L = model.computeCompressibilityZ(P, x, A_L, B_L, Si_L, Bi);
-                Z_V = model.computeCompressibilityZ(P, y, A_V, B_V, Si_V, Bi);
+                Z_L = model.computeCompressibilityZ(P, x, A_L, B_L, Si_L, Bi, true);
 
                 Z_L = FastAD(Z_L, 0*P.jac);
                 Z_V = FastAD(Z_V, 0*P.jac);
