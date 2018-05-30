@@ -11,6 +11,7 @@ classdef EquationOfStateModel < PhysicalModel
         PropertyModel % Model to be used for property evaluations
         selectGibbsMinimum = true; % Use minimum Gibbs energy to select Z
         alpha = [];
+        minimumComposition = 1e-8;
     end
     
     properties (Access = private)
@@ -321,6 +322,7 @@ classdef EquationOfStateModel < PhysicalModel
                 end
                 arg = {'alpha', [A{:}]};
             end
+            z = ensureMinimumFraction(z, model.minimumComposition);
             [stable, x, y] = phaseStabilityTest(model, z, P, T, z, z, arg{:});
         end
 

@@ -337,8 +337,8 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
             [isLiquid, isVapor, isTwoPh] = model.getFlag(state);
             state.switched = (isTwoPh0 ~= isTwoPh);
 
-            state.x = ensureMinimumFraction(state.x);
-            state.y = ensureMinimumFraction(state.y);
+            state.x = ensureMinimumFraction(state.x, model.EOSModel.minimumComposition);
+            state.y = ensureMinimumFraction(state.y, model.EOSModel.minimumComposition);
             if any(xyUpdated)
                 state.components = bsxfun(@times, state.x, state.L) + bsxfun(@times, state.y, (1-state.L));
             end

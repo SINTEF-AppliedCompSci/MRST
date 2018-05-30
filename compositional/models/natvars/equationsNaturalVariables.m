@@ -61,12 +61,13 @@ multiPhase = twoPhase;
 freeOil = twoPhase;
 freeGas = twoPhase;
 
-state0.x = ensureMinimumFraction(state0.x);
-state0.y = ensureMinimumFraction(state0.y);
-state0.components = ensureMinimumFraction(state0.components);
+z_tol = model.EOSModel.minimumComposition;
+state0.x = ensureMinimumFraction(state0.x, z_tol);
+state0.y = ensureMinimumFraction(state0.y, z_tol);
+state0.components = ensureMinimumFraction(state0.components, z_tol);
 
-x = ensureMinimumFraction(x);
-[y, z_tol] = ensureMinimumFraction(y);
+x = ensureMinimumFraction(x, z_tol);
+y = ensureMinimumFraction(y, z_tol);
 x = expandMatrixToCell(x);
 y = expandMatrixToCell(y);
 
@@ -350,7 +351,13 @@ for i = 1:ncomp
     ix = i + eq_offset;
     names{ix}= ['f_', compFluid.names{i}];
     types{ix} = 'fugacity';
-    eqs{ix} = (f_L{i}(twoPhase) - f_V{i}(twoPhase))/barsa;
+    if isfield(model.fluid, 'alpha')
+        a = model.fluid.alpha{i}(p, temp, z);
+        a = a(twoPhase);
+    else
+        a = zeros(nnz(twoPhase), 1);
+    end
+    eqs{ix} = (f_L{i}(twoPhase) - f_V{i}(twoPhase) + a)/barsa;
     
     absent = state.components(twoPhase, i) <= 10*z_tol;
     if model.water
