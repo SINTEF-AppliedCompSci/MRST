@@ -113,6 +113,21 @@ function [xy, S, trivialSolution, K] = checkStability(eos, z, xy, p, T, insidePh
     [A_ij, Bi] = eos.getMixingParameters(p, T, eos.fluid.acentricFactors, false);
     
     f_z = getFugacity(eos, A_ij, Bi, z, p, T, insidePhaseIsVapor);
+    hasAlpha = ~isempty(opt.alpha);
+    if hasAlpha
+        pos = opt.alpha > 0;
+        alpha_pos = opt.alpha.*pos;
+        alpha_neg = opt.alpha.*(~pos);
+        
+        if insidePhaseIsVapor
+            % f_z is liquid fugacity
+            f_z = f_z - alpha_neg;
+        else
+            % f_z is vapor fugacity
+            f_z = f_z + alpha_pos;
+        end
+    end
+    
     K = estimateEquilibriumWilson(eos, p, T);
     % xy is either x or y, depending on context for phase test
     S = zeros(nc, 1);
@@ -138,15 +153,13 @@ function [xy, S, trivialSolution, K] = checkStability(eos, z, xy, p, T, insidePh
 
         f_zi = f_z(active, :);
         if insidePhaseIsVapor
-            % xy = y
-            if ~isempty(opt.alpha)
-                f_xy = f_xy + opt.alpha(active, :);
+            if hasAlpha
+                f_xy = f_xy + alpha_pos(active, :);
             end
             R = bsxfun(@rdivide, f_zi./f_xy, S_loc);
         else
-            % xy = x
-            if ~isempty(opt.alpha)
-                f_xy = f_xy - opt.alpha(active, :);
+            if hasAlpha
+                f_xy = f_xy - alpha_neg(active, :);
             end
             R = bsxfun(@times, f_xy./f_zi, S_loc);
         end
