@@ -78,7 +78,7 @@ classdef EquilibriumConstantModel < EquationOfStateModel
             eosdata.f_V = f_V;
         end
 
-        function [stable, x, y, L] = performPhaseStabilityTest(model, P, T, z)
+        function [stable, x, y, L] = performPhaseStabilityTest(model, P, T, z, varargin)
             if isempty(P)
                 [stable, x, y] = deal([]);
                 return
