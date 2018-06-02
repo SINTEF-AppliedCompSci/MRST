@@ -13,11 +13,11 @@ function schedule = upscaleSchedule(model, schedule, varargin)
 %
 % OPTIONAL PARAMETERS:
 %   'wellUpscaleMethod' - Upscaling method for well indices. The default is
-%                         to sum the well indices in the same block. Other
-%                         options are 'harmonic' and 'mean'. We recommend
-%                         applying a dedicated upscaling routine and
-%                         replacing these values if well-bore flow
-%                         performance is important.
+%                         to recompute the well indices in the new block.
+%                         Other options are 'sum', 'harmonic' and 'mean'.
+%                         We recommend applying a dedicated upscaling
+%                         routine and replacing these values if well-bore
+%                         flow performance is important.
 %
 %   'bcUpscaleMethod'   - Interpolation strategy used for boundary
 %                         conditions. Possible options:
@@ -59,7 +59,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-    opt = struct('wellUpscaleMethod', 'sum', ...
+    opt = struct('wellUpscaleMethod', 'recompute', ...
                  'bcUpscaleMethod',   'linear');
     opt = merge_options(opt, varargin{:});
 
@@ -105,19 +105,22 @@ function Wc = handleWell(model, W, opt)
     dr = W.dir;
     Wc.dir = dr(firstInd);
     
-    % Upscale well index using harmonic average...
-    switch lower(opt.wellUpscaleMethod)
-        case 'sum'
-            fn = @(WI, map, counts) accumarray(map, WI);
-        case 'harmonic'
-            fn = @(WI, map, counts) 1./(accumarray(map, 1./WI)./counts);
-        case 'mean'
-            fn = @(WI, map, counts)accumarray(map, WI)./counts;
-            otherwise
-        error(['Unknown upscale mode: "', opt.wellUpscaleMethod, '"'])
+    % Upscale well index
+    if strcmpi(opt.wellUpscaleMethod, 'recompute')
+        Wc.WI = computeWellIndex(model.G, model.rock, W.r, Wc.cells, 'Dir', dr);
+    else
+        switch lower(opt.wellUpscaleMethod)
+            case 'sum'
+                fn = @(WI, map, counts) accumarray(map, WI);
+            case 'harmonic'
+                fn = @(WI, map, counts) 1./(accumarray(map, 1./WI)./counts);
+            case 'mean'
+                fn = @(WI, map, counts)accumarray(map, WI)./counts;
+                otherwise
+            error(['Unknown upscale mode: "', opt.wellUpscaleMethod, '"'])
+        end
+        Wc.WI = fn(W.WI, newMap, counts);
     end
-    Wc.WI = fn(W.WI, newMap, counts);
-
     % dZ
     if model.G.griddim > 2
         z = model.G.cells.centroids(Wc.cells, 3);
