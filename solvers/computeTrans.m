@@ -95,6 +95,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    T = handle_negative_trans(T, opt);
 
+   T = handle_ntg(T, rock, G);
+   
    if isstruct(opt.grdecl) && numel(opt.grdecl) == 1,
       m = getMultipliers(G, opt.grdecl);
       T = T .* m;
@@ -147,6 +149,7 @@ function T = htrans_local(G, rock, opt)
    ind = sub2ind(size(rock.perm), cellNo, double(dim));
    T   = reshape(rock.perm(ind), [], 1) .* ...
          sum(C .* N, 2) ./ sum(C .* C, 2);
+     
 end
 
 %--------------------------------------------------------------------------
@@ -173,6 +176,18 @@ function [C, N, cellNo] = cell_geometry(G, opt)
    N   = bsxfun(@times, sgn, G.faces.normals(cf, :));
 end
 
+%--------------------------------------------------------------------------
+
+function T = handle_ntg(T, rock, G)
+if isfield(rock, 'ntg') && size(G.cells.faces, 2) == 2
+    cellNo = gridCellNo(G);
+    dim    = ceil(G.cells.faces(:,2) / 2);
+    m      = rock.ntg(cellNo);
+    m(dim==3) = 1;
+    T = m.*T;
+end
+end
+    
 %--------------------------------------------------------------------------
 
 function T = handle_negative_trans(T, opt)

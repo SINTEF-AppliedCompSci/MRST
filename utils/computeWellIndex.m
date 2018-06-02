@@ -2,15 +2,22 @@ function WI = computeWellIndex(G, rock, radius, cells, varargin)
 nc = numel(cells);
 opt = struct('Dir', 'z', ...
              'Subset', [], ...
+             'cellDims', [], ...
              'InnerProduct', 'ip_tpf', ...
              'Skin', zeros(nc, 1), ...
              'Kh', repmat(-1, nc, 1));
 opt = merge_options(opt, varargin{:});
 
-if(isfield(G,'nodes'))
-   [dx, dy, dz] = cellDims(G, cells);
+if ~isempty(opt.cellDims)
+    [dx, dy, dz] = deal(opt.cellDims(cells, 1), ...
+                        opt.cellDims(cells, 2), ...
+                        opt.cellDims(cells, 3));
 else
-   [dx, dy, dz] = cellDimsCG(G, cells);
+    if(isfield(G,'nodes'))
+       [dx, dy, dz] = cellDims(G, cells);
+    else
+       [dx, dy, dz] = cellDimsCG(G, cells);
+    end
 end
 if G.griddim > 2
    k = permDiag3D(rock, cells);

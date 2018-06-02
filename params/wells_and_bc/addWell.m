@@ -83,6 +83,8 @@ function W = addWell(W, G, rock, cellInx, varargin)
 %            resulting well structure cannot be used to simulate polymer
 %            injection.
 %
+%   cellDims - optional cellDims of grid cells
+%
 % RETURNS:
 %   W - Updated (or freshly created) well structure, each element of which
 %       has the following fields:
@@ -180,7 +182,8 @@ opt = struct('InnerProduct', 'ip_tpf',                     ...
              'vfp_index'   , 0,                            ...
              'c'           , [],                           ...
              'Sign'        , 0,                            ...
-             'calcReprRad' , true);
+             'calcReprRad' , true,                         ...
+             'cellDims',   []);
 
 opt = merge_options(opt, varargin{:});
 
@@ -226,6 +229,7 @@ if any(compWI) % calculate WI for the cells in compWI
    WI(compWI) = computeWellIndex(G, rock, opt.Radius, reshape(cellInx, [], 1), ...
                         'Dir', opt.Dir, ...
                         'Skin', opt.Skin, ...
+                        'cellDims', opt.cellDims, ...
                         'Kh', opt.Kh, ...
                         'InnerProduct', ip, ...
                         'Subset', compWI);
@@ -281,10 +285,6 @@ assert (numel(W(end).dir) == numel(W(end).cells));
 
 %--------------------------------------------------------------------------
 % Private helper functions follow
-%--------------------------------------------------------------------------
-
-
-
 %--------------------------------------------------------------------------
 
 function dZ = getDeltaZ(G, cells, refDepth)
