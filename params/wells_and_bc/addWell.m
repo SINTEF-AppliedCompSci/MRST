@@ -197,10 +197,10 @@ assert (numel(opt.Skin) == numC || numel(opt.Skin) == 1, ...
 if numel(opt.Skin) == 1, opt.Skin = opt.Skin(ones([numC, 1]));  end
 
 % Set reference depth default value.
-if isempty(opt.refDepth),
+if isempty(opt.refDepth)
    g_vec = gravity();
    dims  = G.griddim;
-   if norm(g_vec(1:dims)) > 0,
+   if norm(g_vec(1:dims)) > 0
       g_vec = g_vec ./ norm(g_vec);
       opt.refDepth = min(G.nodes.coords * g_vec(1:dims)');
    else
@@ -223,26 +223,30 @@ end
 compWI = WI < 0;
 
 if any(compWI) % calculate WI for the cells in compWI
-   WI(compWI) = wellInx(G, rock, opt.Radius, opt.Dir, ...
-                        reshape(cellInx, [], 1), ip, opt, compWI);
+   WI(compWI) = computeWellIndex(G, rock, opt.Radius, reshape(cellInx, [], 1), ...
+                        'Dir', opt.Dir, ...
+                        'Skin', opt.Skin, ...
+                        'Kh', opt.Kh, ...
+                        'InnerProduct', ip, ...
+                        'Subset', compWI);
 end
 
 % Set well sign (injection = 1 or production = -1)
 % for bhp wells or rate controlled wells with rate = 0.
-if opt.Sign ~= 0,
-   if sum(opt.Sign == [-1, 1]) ~= 1,
+if opt.Sign ~= 0
+   if sum(opt.Sign == [-1, 1]) ~= 1
       error(msgid('Sign:NonUnit'), 'Sign must be -1 or 1');
    end
    if strcmp(opt.Type, 'rate') && (sign(opt.Val) ~= 0) ...
-         && (opt.Sign ~= sign(opt.Val)),
+         && (opt.Sign ~= sign(opt.Val))
       warning(msgid('Sign'), ...
              ['Given sign does not match sign of given value. ', ...
               'Setting w.sign = sign( w.val )']);
       opt.Sign = sign(opt.Val);
    end
 else
-   if strcmp(opt.Type, 'rate'),
-      if opt.Val == 0,
+   if strcmp(opt.Type, 'rate')
+      if opt.Val == 0
          warning(msgid('Sign'), 'Given value is zero, prod or inj ???');
       else
          opt.Sign = sign(opt.Val);
@@ -270,7 +274,7 @@ W  = [W; struct('cells'    , cellInx(:),           ...
                 'vfp_index', opt.vfp_index,        ...
                 'cstatus'  , true(numC,1))];
 
-if numel(W(end).dir) == 1,
+if numel(W(end).dir) == 1
    W(end).dir = repmat(W(end).dir, [numel(W(end).cells), 1]);
 end
 assert (numel(W(end).dir) == numel(W(end).cells));
@@ -280,111 +284,13 @@ assert (numel(W(end).dir) == numel(W(end).cells));
 %--------------------------------------------------------------------------
 
 
-function WI = wellInx(G, rock, radius, welldir, cells, innerProd, opt, inx)
-
-if(isfield(G,'nodes'))
-   [dx, dy, dz] = cellDims(G, cells);
-else
-   [dx, dy, dz] = cellDimsCG(G, cells);
-end
-if G.griddim > 2,
-   k = permDiag3D(rock, cells);
-else
-   k = permDiag2D(rock, cells);
-   kz = 1./(1./k(:, 1) + 1./k(:, 2));
-   k = [k, kz];
-end
-welldir = lower(welldir);
-
-if numel(welldir) == 1, welldir = welldir(ones([size(k,1), 1])); end
-if numel(radius)  == 1, radius  = radius (ones([size(k,1), 1])); end
-
-assert (numel(welldir) == size(k,1));
-assert (numel(radius)  == size(k,1));
-
-[d1, d2, ell, k1, k2] = deal(zeros([size(k,1), 1]));
-
-ci = welldir == 'x';
-[d1(ci), d2(ci), ell(ci), k1(ci), k2(ci)] = ...
-   deal(dy(ci), dz(ci), dx(ci), k(ci,2), k(ci,3));
-
-ci = welldir == 'y';
-[d1(ci), d2(ci), ell(ci), k1(ci), k2(ci)] = ...
-   deal(dx(ci), dz(ci), dy(ci), k(ci,1), k(ci,3));
-
-ci = welldir == 'z';
-[d1(ci), d2(ci), ell(ci), k1(ci), k2(ci)] = ...
-   deal(dx(ci), dy(ci), dz(ci), k(ci,1), k(ci,2));
-
-% Table look-up (interpolation) for mimetic or 0.14 for tpf
-wc  = wellConstant(d1, d2, innerProd);
-
-re1 = 2 * wc .* sqrt((d1.^2).*sqrt(k2 ./ k1) + ...
-                     (d2.^2).*sqrt(k1 ./ k2));
-re2 = (k2 ./ k1).^(1/4) + (k1 ./ k2).^(1/4);
-
-re  = reshape(re1 ./ re2, [], 1);
-ke  = sqrt(k1 .* k2);
-
-Kh = reshape(opt.Kh, [], 1); i = Kh < 0;
-if G.griddim > 2,
-   Kh(i) = ell(i) .* ke(i);
-else
-   Kh(i) =           ke(i);
-end
-
-WI = 2 * pi * Kh ./ (log(re ./ radius) + reshape(opt.Skin, [], 1));
-
-if any(WI < 0),
-   if any(re < radius)
-      error(id('WellRadius'), ...
-           ['Equivalent radius in well model smaller than well ', ...
-            'radius causing negative well index'].');
-   else
-      error(id('SkinFactor'), ...
-            'Large negative skin factor causing negative well index.');
-   end
-end
-
-% Only return calculated WI for requested cells
-WI = WI(inx);
-
-%--------------------------------------------------------------------------
-
-function wellConst = wellConstant(d1, d2, innerProd)
-% table= [ratio mixedWellConstant]
-table = [ 1, 0.292; ...
-          2, 0.278; ...
-          3, 0.262; ...
-          4, 0.252; ...
-          5, 0.244; ...
-          8, 0.231; ...
-          9, 0.229; ...
-         16, 0.220; ...
-         17, 0.219; ...
-         32, 0.213; ...
-         33, 0.213; ...
-         64, 0.210; ...
-         65, 0.210];
-
-switch innerProd,
-   case {'ip_tpf', 'ip_quasitpf'},
-      wellConst = 0.14;
-   case {'ip_rt', 'ip_simple', 'ip_quasirt'},
-      ratio = max(round(d1./d2), round(d2./d1));
-      wellConst = interp1(table(:,1), table(:,2), ratio, ...
-                          'linear', 'extrap');
-   otherwise,
-      error(id('InnerProduct:Unknown'), ...
-            'Unknown inner product ''%s''.', innerProd);
-end
 
 %--------------------------------------------------------------------------
 
 function dZ = getDeltaZ(G, cells, refDepth)
 direction = gravity();
 dims      = G.griddim;
-if norm(direction(1:dims)) > 0,
+if norm(direction(1:dims)) > 0
    direction = direction ./ norm(direction(1:dims));
 else
    direction      = zeros(1, dims);
@@ -417,126 +323,7 @@ if max(dZ) > delta*direction(1:dims).'
 end
 
 %--------------------------------------------------------------------------
-
-function [dx, dy, dz] = cellDimsCG(G,ix)
-% cellDims -- Compute physical dimensions of all cells in single well
-%
-% SYNOPSIS:
-%   [dx, dy, dz] = cellDims(G, ix)
-%
-% PARAMETERS:
-%   G  - Grid data structure.
-%   ix - Cells for which to compute the physical dimensions (bounding
-%        boxes).
-%
-% RETURNS:
-%   dx, dy, dz -- Size of bounding box for each cell.  In particular,
-%                 [dx(k),dy(k),dz(k)] is Cartesian BB for cell ix(k).
-n = numel(ix);
-[dx, dy, dz] = deal(zeros([n, 1]));
-ixc = G.cells.facePos;
-
-for k = 1 : n,
-    c = ix(k);                                     % Current cell
-    f = G.cells.faces(ixc(c) : ixc(c + 1) - 1, 1); % Faces on cell
-    assert(numel(f)==6);
-    [~, ff] = sortrows(abs(G.faces.normals(f,:)));
-    f = f(ff(end:-1:1));
-    dx(k) = 2*G.cells.volumes(c) / (sum(G.faces.areas(f(1:2))));
-    dy(k) = 2*G.cells.volumes(c) / (sum(G.faces.areas(f(3:4))));
-    dz(k) = 2*G.cells.volumes(c) / (sum(G.faces.areas(f(5:6))));
-end
-
-
-
-function [dx, dy, dz] = cellDims(G, ix)
-% cellDims -- Compute physical dimensions of all cells in single well
-%
-% SYNOPSIS:
-%   [dx, dy, dz] = cellDims(G, ix)
-%
-% PARAMETERS:
-%   G  - Grid data structure.
-%   ix - Cells for which to compute the physical dimensions
-%
-% RETURNS:
-%   dx, dy, dz -- [dx(k) dy(k)] is bounding box in xy-plane, while dz(k) =
-%                 V(k)/dx(k)*dy(k)
-
-n = numel(ix);
-[dx, dy, dz] = deal(zeros([n, 1]));
-
-ixc = G.cells.facePos;
-ixf = G.faces.nodePos;
-
-for k = 1 : n,
-   c = ix(k);                                     % Current cell
-   f = G.cells.faces(ixc(c) : ixc(c + 1) - 1, 1); % Faces on cell
-   e = mcolon(ixf(f), ixf(f + 1) - 1);            % Edges on cell
-
-   nodes  = unique(G.faces.nodes(e, 1));          % Unique nodes...
-   coords = G.nodes.coords(nodes,:);            % ... and coordinates
-
-   % Compute bounding box
-   m = min(coords);
-   M = max(coords);
-
-   % Size of bounding box
-   dx(k) = M(1) - m(1);
-   if size(G.nodes.coords, 2) > 1,
-      dy(k) = M(2) - m(2);
-   else
-      dy(k) = 1;
-   end
-
-   if size(G.nodes.coords, 2) > 2,
-      dz(k) = G.cells.volumes(ix(k))/(dx(k)*dy(k));
-   else
-      dz(k) = 1;
-   end
-end
-
-%--------------------------------------------------------------------------
-
-function p = permDiag3D(rock, inx)
-if isempty(rock),
-   error(id('Rock:Empty'), ...
-         'Empty input argument ''rock'' is not supported');
-elseif ~isfield(rock, 'perm'),
-   error(id('Rock:NoPerm'), ...
-         '''rock'' must include permeability data');
-elseif size(rock.perm, 2) == 1,
-   p = rock.perm(inx, [1, 1, 1]);
-elseif size(rock.perm, 2) == 3,
-   p = rock.perm(inx, :);
-else
-   p = rock.perm(inx, [1, 4, 6]);
-end
-
-%--------------------------------------------------------------------------
-
-function p = permDiag2D(rock, inx)
-if isempty(rock),
-   error(id('Rock:Empty'), ...
-         'Empty input argument ''rock'' is not supported');
-elseif ~isfield(rock, 'perm'),
-   error(id('Rock:NoPerm'), ...
-         '''rock'' must include permeability data');
-elseif size(rock.perm, 2) == 1,
-   p = rock.perm(inx, [1, 1]);
-elseif size(rock.perm, 2) == 2,
-   p = rock.perm(inx, :);
-else
-   p = rock.perm(inx, [1, 3]);
-end
-
-%--------------------------------------------------------------------------
-
-function s = id(s)
-s = ['addWell:', s];
-
-%--------------------------------------------------------------------------
-% A funciton to compute the representative radius of the grid block in
+% A function to compute the representative radius of the grid block in
 % which the well is completed.
 % rR = sqrt(re * rw).
 % Here, rw is the wellbore radius, re is the area equivalent radius of the
@@ -561,7 +348,7 @@ if numel(welldir) == 1
 end
 re = zeros(size(welldir, 1), 1);
 
-% The following formualtion only works for Cartisian mesh
+% The following formulation only works for Cartisian mesh
 ci = welldir == 'x';
 re(ci) = sqrt(dy(ci) .* dz(ci) / pi);
 
