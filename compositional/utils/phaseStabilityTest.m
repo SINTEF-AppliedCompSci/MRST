@@ -64,7 +64,10 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-    opt = struct('tol_equil', 1e-10, 'alpha', [], 'tol_trivial', 1e-5, 'solve_both', nargout > 1);
+    opt = struct('tol_equil',       1e-10, ...
+                 'alpha',           [], ...
+                 'tol_trivial',     1e-5, ...
+                 'solve_both',      nargout > 1);
     assert(all(p > 0 & isfinite(p)), 'Positive, finite pressures required for phase stability test.');
     if numel(varargin)
         opt = merge_options(opt, varargin{:});
@@ -112,21 +115,7 @@ function [xy, S, trivialSolution, K] = checkStability(eos, z, xy, p, T, insidePh
 
     [A_ij, Bi] = eos.getMixingParameters(p, T, eos.fluid.acentricFactors, false);
     
-    f_z = getFugacity(eos, A_ij, Bi, z, p, T, insidePhaseIsVapor);
-    hasAlpha = ~isempty(opt.alpha);
-    if hasAlpha
-        pos = opt.alpha > 0;
-        alpha_pos = opt.alpha.*pos;
-        alpha_neg = opt.alpha.*(~pos);
-        
-        if insidePhaseIsVapor
-            % f_z is liquid fugacity
-            f_z = f_z - alpha_neg;
-        else
-            % f_z is vapor fugacity
-            f_z = f_z + alpha_pos;
-        end
-    end
+    f_z = getFugacity(eos, A_ij, Bi, z, p, insidePhaseIsVapor);
     
     K = estimateEquilibriumWilson(eos, p, T);
     % xy is either x or y, depending on context for phase test
@@ -149,20 +138,16 @@ function [xy, S, trivialSolution, K] = checkStability(eos, z, xy, p, T, insidePh
         S_loc = sum(xy_loc, 2);
         xy_loc = bsxfun(@rdivide, xy_loc, S_loc);
         
-        f_xy = getFugacity(eos, A_ij_loc, Bi_loc, xy_loc, p(active), T(active), ~insidePhaseIsVapor);
-
+        f_xy = getFugacity(eos, A_ij_loc, Bi_loc, xy_loc, p(active), ~insidePhaseIsVapor);
         f_zi = f_z(active, :);
         if insidePhaseIsVapor
-            if hasAlpha
-                f_xy = f_xy + alpha_pos(active, :);
-            end
+            % f_xy is vapor fugacity
             R = bsxfun(@rdivide, f_zi./f_xy, S_loc);
         else
-            if hasAlpha
-                f_xy = f_xy - alpha_neg(active, :);
-            end
+            % f_xy is liquid fugacity
             R = bsxfun(@times, f_xy./f_zi, S_loc);
         end
+
         K(active, :) = K(active, :).*R;
         R_norm = sum((R-1).^2, 2);
         K_norm = sum(log(K(active, :)).^2, 2);
@@ -184,7 +169,7 @@ function [xy, S, trivialSolution, K] = checkStability(eos, z, xy, p, T, insidePh
     end
 end
 
-function f = getFugacity(model, A_ij, Bi, xy, p, T, isLiquid)
+function f = getFugacity(model, A_ij, Bi, xy, p, isLiquid)
     [Si, A, B] = model.getPhaseMixCoefficients(xy, A_ij, Bi);
     Z = model.computeCompressibilityZ(p, xy, A, B, Si, Bi, isLiquid);
     f = model.computeFugacity(p, xy, Z, A, B, Si, Bi);
