@@ -1,4 +1,4 @@
-function fn = getMultiDimInterpolator(x, Y)
+function fn = getMultiDimInterpolator(x, Y, extrap)
 % Get a multidimensional interpolator (with support for ADI varibles)
 %
 % SYNOPSIS:
@@ -18,7 +18,10 @@ function fn = getMultiDimInterpolator(x, Y)
 %
 % SEE ALSO:
 %   `interpTable`
-
+    if nargin == 2
+        extrap = 'linear';
+    end
+    
     sz = size(Y);
     assert(iscell(x));
     if numel(x) > 1
@@ -36,7 +39,7 @@ function fn = getMultiDimInterpolator(x, Y)
         end
     end
     
-    T = griddedInterpolant(x, Y, 'linear', 'linear');
+    T = griddedInterpolant(x, Y, 'linear', extrap);
     for i = 1:nvar
         dyi = diff(Y, 1, i);
         dxi = diff(x{i});
