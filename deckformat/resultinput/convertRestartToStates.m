@@ -480,6 +480,7 @@ if opt.splitWellsOnSignChange
             end
                 
             for k1 = 1:ns
+                ncon = numel(ws{k1}(k).cells);
                 % copy into new last entry
                 ws{k1}(nw) = ws{k1}(k);
                 % rename and update status
@@ -487,16 +488,20 @@ if opt.splitWellsOnSignChange
                 ws{k1}(k).status = ws{k1}(k).status && (ws{k1}(k).sign == firstSgn);
                 ws{k1}(k).sign   = firstSgn;
                 if ~ws{k1}(k).status
-                    ws{k1}(k).resv = 0;
-                    ws{k1}(k).flux = 0*ws{k1}(k).flux;
+                    ws{k1}(k).cstatus = false(ncon,1);
+                    ws{k1}(k).resv    = 0;
+                    ws{k1}(k).flux    = zeros(ncon,1);
+                    ws{k1}(k).cqs     = zeros(ncon,3);
                 end
                 
                 ws{k1}(nw).name = secondNm;
                 ws{k1}(nw).status = ws{k1}(nw).status && (ws{k1}(nw).sign ~= firstSgn);
                 ws{k1}(nw).sign   = -firstSgn;
                 if ~ws{k1}(nw).status
-                    ws{k1}(nw).resv = 0;
-                    ws{k1}(nw).flux = 0*ws{k1}(nw).flux;
+                    ws{k1}(nw).cstatus = false(ncon,1);
+                    ws{k1}(nw).resv    = 0;
+                    ws{k1}(nw).flux    = zeros(ncon,1);
+                    ws{k1}(nw).cqs     = zeros(ncon,3);
                 end
             end
         end
@@ -517,10 +522,13 @@ for k = 1:numel(states)
                 cf = ws(k1).flux*ws(k1).sign < 0;
                 ws(k1).flux(cf) = 0;
             end
-            if ws(k1).resv*ws(k1).sign < opt.setToClosedTol
-                ws(k1).resv = 0;
-                ws(k1).flux = 0*ws(k1).flux;
-                ws(k1).status = false;
+            if ws(k1).resv*ws(k1).sign <= opt.setToClosedTol
+                ncon = numel(ws(k1).cells);
+                ws(k1).status  = false;
+                ws(k1).cstatus = false(ncon, 1);
+                ws(k1).resv    = 0;
+                ws(k1).flux    = zeros(ncon, 1);
+                ws(k1).cqs     = zeros(ncon, 3);
             end
             alwaysClosed = and(alwaysClosed, ~vertcat(ws.status));
         end

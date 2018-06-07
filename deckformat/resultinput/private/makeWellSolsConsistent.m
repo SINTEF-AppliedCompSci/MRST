@@ -22,6 +22,7 @@ for k = 1:numel(tmp)
     tmp(k).status  = false;
     tmp(k).cstatus = false(nc, 1);
     tmp(k).flux    = zeros(nc, 1);
+    tmp(k).cqs     = zeros(nc, 3);
 end
 
 nr = numel(wellSols);
@@ -40,7 +41,8 @@ for k = 1:numel(ws)
             ws{k}(ix).status = true;
             na = numel(w(k2).cells);
             ws{k}(ix).cstatus(1:na) = w(k2).cstatus;
-            ws{k}(ix).flux(1:na) = w(k2).flux;
+            ws{k}(ix).flux(1:na)    = w(k2).flux;
+            ws{k}(ix).cqs(1:na, :)  = w(k2).cqs;
         end
     end
 end
