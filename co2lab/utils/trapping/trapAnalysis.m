@@ -146,7 +146,7 @@ function res = edge_based_trap_analysis(Gt, closed_bedges, closed_fedges, projec
        res.cell_lines   = crivers';
        res.top          = csommets;
     else
-       res.traps        = ntraps.traps;;
+       res.traps        = ntraps.traps;
        res.trap_z       = ntraps.trap_zvals;
        res.trap_regions = ntraps.trap_regions;
        res.trap_adj     = ntraps.connectivity;
