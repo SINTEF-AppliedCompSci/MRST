@@ -205,14 +205,13 @@ function cell_sommets = n2c_sommets(Gt, node_sommets)
     cell_sommets = node_sommets(cnodes_rep);
     
     % choosing unique cell to represent each node
-    cell_sommets_ix = find(cell_sommets);
-    cell_sommets_vals = cell_sommets(cell_sommets_ix);
-    [Y, I] = sort(cell_sommets_vals); %#ok<ASGLU>
-    [Z, J] = unique(cell_sommets_vals, 'first'); %#ok<ASGLU>
+    cwsn = find(cell_sommets);  % indices of all cells with a sommet node
+    M = [cwsn, cell_sommets(cwsn), Gt.cells.z(cwsn)];
+    M = sortrows(M, [2, 3]); % sort wrt. sommet ix, then wrt. cell depth
+    [~, k] = unique(M(:,2), 'first');
     cell_sommets(:) = 0;
-    cell_sommets(cell_sommets_ix(I(J))) = 1;   
+    cell_sommets(M(k,1)) = 1;
 end
-
 
 % function csixs = unique_cell_sommet_ixs(cell_sommets, cell_centroids)
 % % For each sommet, determine one unique cell to represent it.  This should be
