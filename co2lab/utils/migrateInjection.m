@@ -57,7 +57,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-
+require incomp
 %%% Process options
 opt = struct('amount',      1, ...
             'T_injection',  100*year,  ...
@@ -189,7 +189,7 @@ wbar = @(i, t, status) waitbar(t/T_tot, hwbar, ...
    sprintf('Timestep %d of %d, T=%s%s', i, tstep_tot, ...
    formatTimeRange(floor(t/year)*year), status));
 [ctime, cputimeT,cputimeP] = deal(0);
-while t < T_tot;
+while t < T_tot
     if ishandle(hwbar)
         wbar(i, t, tt);
     end

@@ -109,8 +109,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     mob = {mobW, mobG};
     sat = {1-sG, sG};
     if ~isempty(drivingForces.bc) && isempty(drivingForces.bc.sat)
-       drivingForces.bc.sat = repmat([1 0], model.G.cells.num, 1); % default
-                                                                   % is water 
+       drivingForces.bc.sat = repmat([1 0], numel(drivingForces.bc.face), 1);
     end
     primaryVars = {'pressure' , 'sG', wellVarNames{:}};
     types = {'cell'           , 'cell'};
