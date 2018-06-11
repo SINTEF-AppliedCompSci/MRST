@@ -1,8 +1,40 @@
 function downloadMBGL
-   fex = 'http://www.mathworks.com/matlabcentral/fileexchange';
-   pth = 'submissions/10922/v/2/download';  % Probably not stable over time
-   zip = 'zip';                             % Possibly not stable over time
-   url = [fex, '/', pth, '/', zip];
+%Download MATLAB BGL package from The MathWorks FileExchange
+%
+% SYNOPSIS:
+%   downloadMBGL
+%
+% PARAMETERS:
+%   None.
+%
+% RETURNS:
+%   Nothing.
+
+%{
+Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
+   % Note: These URL fragments are likely to be unstable and must be
+   % checked and/or updated from time to time.
+   dl  = 'https://www.mathworks.com/matlabcentral/mlc-downloads/downloads';
+   pth = 'submissions/10922/versions/2/download';
+   zip = 'zip';
+   url = [dl, '/', pth, '/', zip];
 
    % Ouput directory.
    dest = fullfile(ROOTDIR, 'utils', '3rdparty', 'matlab_bgl');
@@ -14,6 +46,7 @@ function downloadMBGL
       t = toc(t);
       fprintf('done (%.02f [s])\n\n', t);
    catch
+      fex       = 'https://www.mathworks.com/matlabcentral/fileexchange';
       fallback  = [fex, '/', '10922-matlabbgl'];
       print_url = ['<a href="', fallback, '">', fallback, '</a>'];
 
@@ -21,7 +54,7 @@ function downloadMBGL
              'Please see fall-back location\n  * %s'], print_url);
    end
 
-   if exist('assert', 'builtin'),
+   if exist('assert', 'builtin')
       % MatlabBGL contains an 'assert.m' file in its 'test' directory that
       % conflicts with the built-in function of the same name.  Just use
       % the built-in, because the semantics of 'assert.m' are the same as
@@ -38,7 +71,7 @@ function downloadMBGL
    fprintf(['Patching ''startup_user'' function for ', ...
             'MatlabBGL installation ... ']);
    [fid, msg] = fopen(fullfile(ROOTDIR, 'startup_user.m'), 'at');
-   if fid < 0,
+   if fid < 0
       warning('Open:Fail', 'Failed to open ''startup_user.m'': %s', msg);
    end
    fprintf(fid, 'mrstPath reregister matlab_bgl ...\n    ''%s''\n', ...
