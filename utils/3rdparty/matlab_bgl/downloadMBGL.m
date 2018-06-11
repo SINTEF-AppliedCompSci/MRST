@@ -68,16 +68,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    % Rewrite the module path for matlab_bgl to point to the correct
    % directory
-   fprintf(['Patching ''startup_user'' function for ', ...
-            'MatlabBGL installation ... ']);
    [fid, msg] = fopen(fullfile(ROOTDIR, 'startup_user.m'), 'at');
    if fid < 0
       warning('Open:Fail', 'Failed to open ''startup_user.m'': %s', msg);
+   else
+      fprintf(['Patching ''startup_user'' function for ', ...
+               'MatlabBGL installation ... ']);
+
+      fprintf(fid, 'mrstPath reregister matlab_bgl ...\n    ''%s''\n', ...
+              fullfile(dest, 'matlab_bgl'));
+
+      fclose(fid);
+      fprintf('done\n');
    end
-   fprintf(fid, 'mrstPath reregister matlab_bgl ...\n    ''%s''\n', ...
-           fullfile(dest, 'matlab_bgl'));
-   fclose(fid);
-   fprintf('done\n');
 
    fprintf('Update module mapping to new location of MatlabBGL ... ');
    mrstPath('reregister', 'matlab_bgl', fullfile(dest, 'matlab_bgl'));
