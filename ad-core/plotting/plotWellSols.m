@@ -619,6 +619,19 @@ function [tit, d, yl, doCsum] = getWellUnit(d, fld, usys, isCsum, hasTimesteps)
         case 'gor'
             tit = [fld, ': Gas/oil ratio at surface conditions'];
             doCsum = isCsum;
+
+            switch lower(usys)
+               case {'metric', 'si'}
+                  yl = 'Sm^3/Sm^3';
+
+               case 'field'
+                  yl = 'MScf/stb';
+                  d  = convertTo(d, 1000*ft^3 / stb);
+
+               case 'lab'
+                  yl = 'Scm^3/Scm^3';
+            end
+
         case {'ocut', 'wcut', 'gcut'}
             switch lower(fld(1))
                 case 'o'
