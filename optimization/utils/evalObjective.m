@@ -21,7 +21,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 minu = min(u);
 maxu = max(u);
 if or(minu < -eps , maxu > 1+eps)
-    warning('Controls are expected to lie in [0 1]\n')
+    warning('Controls are expected to lie in [0 1]')
 end
 
 boxLims = scaling.boxLims;
