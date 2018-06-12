@@ -21,7 +21,7 @@ modelPSQ = getSequentialModelFromFI(modelPFI);
 %%
 
 % Create schedule
-schedule = convertDeckScheduleToMRST(G, modelPFI, rock, deck);
+schedule = convertDeckScheduleToMRST(modelPFI, deck);
 
 % Reduce schedule
 nsteps = 30;
@@ -39,7 +39,7 @@ scheduleP.step.control  = 1.*ones(nsteps,1); % control 1 has polymer
 % Needed by equation implementation function 'eqsfiOWExplictWells'.
 fluid.krO = fluid.krOW;
 
-gravity on
+gravity reset on
 
 
 %% Set up simulation parameters

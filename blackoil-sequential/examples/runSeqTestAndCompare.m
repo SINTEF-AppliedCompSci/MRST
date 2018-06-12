@@ -1,16 +1,23 @@
-mrstModule add ad-unittest
+mrstModule add ...
+   deckformat mrst-gui ...
+   ad-core ad-blackoil blackoil-sequential ...
+   ad-unittest
+
+%%{
 [G, rock, fluid, deck, state] = setupSPE1();
+model = selectModelFromDeck(G, rock, fluid, deck);
+%}
+
+%{
 % testcase = TestSPE1();
 % testcase = TestEGG();
-
-mrstModule add ad-fi deckformat mrst-gui ad-core ad-blackoil blackoil-sequential ad-unittest
-
 
 model    = testcase.model;
 state    = testcase.state0;
 schedule = testcase.schedule;
 rock     = testcase.rock;
 G        = model.G;
+%}
 
 
 % lim = 10;
