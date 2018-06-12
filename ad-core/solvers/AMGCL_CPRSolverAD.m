@@ -16,7 +16,7 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
    properties
        doApplyScalingCPR
        trueIMPES % Use true impes decoupling strategy (if supported by model)
-       
+       useSYMRCMOrdering
    end
    methods
        function solver = AMGCL_CPRSolverAD(varargin)
@@ -26,6 +26,7 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
             solver.doApplyScalingCPR = true;
             solver.reduceToCell = true;
             solver.tolerance    = 1e-6;
+            solver.useSYMRCMOrdering = true;
             
             [solver, extra] = merge_options(solver, varargin{:});
             solver.amgcl_setup = getAMGCLMexStruct(extra{:});
@@ -99,7 +100,12 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
 
 
             if isempty(solver.variableOrdering) || numel(solver.variableOrdering) ~= ndof
-                ordering = getCellMajorReordering(n, m, ndof);
+                if solver.useSYMRCMOrdering
+                    sym_ordering = getGridSYMRCMOrdering(model.G);
+                else
+                    sym_ordering = [];
+                end
+                ordering = getCellMajorReordering(n, m, 'ndof', ndof, 'cell_ordering', sym_ordering);
                 solver.variableOrdering = ordering;
                 if isempty(solver.equationOrdering) || numel(solver.equationOrdering) ~= ndof
                     solver.equationOrdering = ordering;
