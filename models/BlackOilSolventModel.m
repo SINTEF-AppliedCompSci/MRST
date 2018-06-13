@@ -25,7 +25,6 @@ classdef BlackOilSolventModel < ThreePhaseBlackOilModel
             model.oil     = true;
             model.gas     = true;
             model.solvent = true;
-            model.saturationVarNames = {'sw', 'so', 'sg', 'ss'};
 
             model = merge_options(model, varargin{:});
 
