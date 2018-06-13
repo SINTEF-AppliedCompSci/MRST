@@ -1,12 +1,17 @@
-function ordering = getCellMajorReordering(ncell, block_size, ndof)
+function ordering = getCellMajorReordering(ncell, block_size, varargin)
     ncell_total = ncell*block_size;
-    if nargin < 3
-        ndof = ncell_total;
-    end
-    ordering = (1:ndof)';
+
+    opt = struct('ndof', ncell_total, ...
+                 'cell_ordering', []);
+    opt = merge_options(opt, varargin{:});
+
+    ordering = (1:opt.ndof)';
     
     subs = 1:ncell_total;
     subs = reshape(subs, [], block_size)';
+    if ~isempty(opt.cell_ordering)
+        subs = subs(:, opt.cell_ordering);
+    end
     subs = subs(:);
     ordering(1:ncell_total) = subs;
 end

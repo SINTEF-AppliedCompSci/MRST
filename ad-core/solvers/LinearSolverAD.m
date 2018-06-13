@@ -297,24 +297,28 @@ classdef LinearSolverAD < handle
             eo = solver.equationOrdering;
             hasVar = ~isempty(vo);
             hasEq = ~isempty(eo);
+            
+            nv = numel(vo);
+            ne = numel(eo);
+            n = size(A, 1);
             if hasVar && hasEq
-                assert(numel(vo) == size(A, 1));
-                assert(numel(eo) == size(A, 1));
-                A = A(eo, vo);
-                b = b(eo);
+                assert(nv <= n);
+                assert(ne <= n);
+                A(1:ne, 1:nv) = A(eo, vo);
+                b(1:ne) = b(eo);
             elseif hasVar
-                assert(numel(vo) == size(A, 1));
-                A = A(:, vo);
+                assert(nv <= n);
+                A(:, 1:nv) = A(:, vo);
             elseif hasEq
-                assert(numel(eo) == size(A, 1));
-                A = A(eo, :);
-                b = b(eo);
+                assert(ne <= n);
+                A(1:ne, :) = A(eo, :);
+                b(1:ne) = b(eo);
             end
         end
         
         function x = deorderLinearSystem(solver, x)
             if ~isempty(solver.variableOrdering)
-                x(solver.variableOrdering) = x;
+                x(solver.variableOrdering) = x(1:numel(solver.variableOrdering));
             end
         end
         

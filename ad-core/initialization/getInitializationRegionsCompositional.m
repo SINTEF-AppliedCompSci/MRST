@@ -62,11 +62,7 @@ function rho = getDensity(model, p, T, z, x, isLiquid, varargin)
     else
         [A_ij, Bi] = eos.getMixingParameters(p, T, eos.fluid.acentricFactors, iscell(x));
         [Si, A, B] = eos.getPhaseMixCoefficients(x, A_ij, Bi);
-        if isLiquid
-            Z = eos.computeLiquidZ(double(A), double(B));
-        else
-            Z = eos.computeVaporZ(double(A), double(B));
-        end
+        Z = model.EOSModel.computeCompressibilityZ(p, x, A, B, Si, Bi, isLiquid);
     end
     rho = model.EOSModel.PropertyModel.computeDensity(p, x, Z, T, isLiquid);
 end

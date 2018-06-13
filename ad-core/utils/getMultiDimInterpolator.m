@@ -1,5 +1,27 @@
-function fn = getMultiDimInterpolator(x, Y)
+function fn = getMultiDimInterpolator(x, Y, extrap)
 % Get a multidimensional interpolator (with support for ADI varibles)
+%
+% SYNOPSIS:
+%       fn = getMultiDimInterpolator(x, Y);
+%
+% PARAMETERS:
+%   x       - Cell array containing the vectors for the points of the
+%             function. Must have equal length to the number of dimensions
+%             in Y.
+%
+%   Y       - A matrix of dimension equal to x, representing a structured
+%             dataset for multdimensional itnerpolation
+%
+% RETURNS:
+%   fn      - A function for interpolation with variable arguments equal to
+%             the length of x.
+%
+% SEE ALSO:
+%   `interpTable`
+    if nargin == 2
+        extrap = 'linear';
+    end
+    
     sz = size(Y);
     assert(iscell(x));
     if numel(x) > 1
@@ -10,13 +32,17 @@ function fn = getMultiDimInterpolator(x, Y)
     nvar = numel(x);
     dY = cell(nvar, 1);
     
-    T = griddedInterpolant(x, Y, 'linear', 'linear');
+    for i = 1:nvar
+        if diff(x{i}(1:2)) < 0
+            x{i} = x{i}(end:-1:1);
+            Y = flip(Y, i);
+        end
+    end
+    
+    T = griddedInterpolant(x, Y, 'linear', extrap);
     for i = 1:nvar
         dyi = diff(Y, 1, i);
         dxi = diff(x{i});
-        
-
-        
         % delta y / delta x
         if nvar > 1
             % Permute to allow for use of bsxfun

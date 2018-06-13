@@ -31,6 +31,7 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
         allowLargeSaturations = false; % Allow sum of saturations larger than unity (experimental option)
         reduceLinearSystem = true; % Return ReducedLinearizedSystem instead of LinearizedSystemAD
         maxPhaseChangesNonLinear = inf; % Maximum number of phase transitions for a given cell, during a nonlinear step (experimental option)
+        checkStableTransition = false;
     end
     
     methods
@@ -228,7 +229,7 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
                 act = ~isTwoPh0;
                 stable = act;
                 [stable(act), x(act, :), y(act, :)] =...
-                    model.EOSModel.performPhaseStabilityTest(p(act, :), T(act, :), z(act, :));
+                    model.EOSModel.performPhaseStabilityTest(p(act, :), T(act, :), z(act, :), act);
             end
             
             locked = state.switchCount > model.maxPhaseChangesNonLinear;
@@ -250,6 +251,21 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
             end
             toOnlyOil = isTwoPh0 & sG_uncap <= 0;
             toOnlyGas = isTwoPh0 & sO_uncap <= 0;
+            
+            if model.checkStableTransition
+                toPure = toOnlyOil | toOnlyGas;
+                stable_next = false(size(toOnlyGas));
+                stable_next(toPure) = model.EOSModel.performPhaseStabilityTest(p(toPure, :), T(toPure, :), z(toPure, :));
+                
+                badGas = ~stable_next & toOnlyGas;
+                badOil = ~stable_next & toOnlyOil;
+                
+                toOnlyGas(badGas) = false;
+                toOnlyOil(badOil) = false;
+                
+                toEpsOil(badGas) = true;
+                toEpsGas(badOil) = true;
+            end
 
             bad = toOnlyOil & toOnlyGas;
             if any(bad)
@@ -321,8 +337,8 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
             [isLiquid, isVapor, isTwoPh] = model.getFlag(state);
             state.switched = (isTwoPh0 ~= isTwoPh);
 
-            state.x = ensureMinimumFraction(state.x);
-            state.y = ensureMinimumFraction(state.y);
+            state.x = ensureMinimumFraction(state.x, model.EOSModel.minimumComposition);
+            state.y = ensureMinimumFraction(state.y, model.EOSModel.minimumComposition);
             if any(xyUpdated)
                 state.components = bsxfun(@times, state.x, state.L) + bsxfun(@times, state.y, (1-state.L));
             end

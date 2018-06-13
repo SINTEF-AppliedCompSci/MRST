@@ -76,7 +76,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
         state.components = bsxfun(@rdivide, state.components, sum(state.components, 2));
         
-        flds = {'x', 'y', 'K', 'K', 'Z_L', 'Z_V', 'mising', 'flag', 'eos'};
+        flds = {'L', 'x', 'y', 'K', 'K', 'Z_L', 'Z_V', 'mising', 'flag', 'eos'};
         for i = 1:numel(flds)
             f = flds{i};
             if isfield(state, f)
