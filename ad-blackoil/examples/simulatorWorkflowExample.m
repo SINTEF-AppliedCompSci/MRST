@@ -21,7 +21,35 @@ close all;
 % md in the lower, middle, and top layers. respectively.
 
 % Define grid
-grdecl = makeModel3([50, 50, 5], [1000, 1000, 5]*meter);
+
+xmax = 1000*meter;
+ymax = 1000*meter;
+n = 30;
+
+x = 0:(xmax/n):xmax;
+y = 0:(ymax/n):ymax;
+[x, y] = meshgrid(x, y);
+x = x';
+y = y';
+
+h = 10;
+h_r = 3;
+rng(0);
+
+perturb = (sin(5*pi*x/xmax) + 0.5*sin(4*pi*x/xmax + 6*pi*y/ymax) + cos(0.25*x*y/(ymax*xmax)) + cos(3*pi*y/ymax))/3.5;
+z = 50 + h*perturb + rand(size(x))*h_r;
+
+
+HH = 30;
+dome = 1 + -exp(sqrt((x - xmax/2).^2 + (y - ymax/2).^2)*1e-3);
+
+z = z - 20*dome;
+top = struct('x', x, 'y', y, 'z', z);
+bottom = struct('x', x, 'y', y, 'z', z + 30);
+dims = [40, 40, 5];
+grdecl = convertHorizonsToGrid({top, bottom}, 'dims', dims(1:2), 'layers', [dims(3)]);
+
+
 G = processGRDECL(grdecl);
 G = computeGeometry(G);
 
@@ -64,14 +92,14 @@ pv      = poreVolume(G, rock);
 injRate = 1*sum(pv)/simTime;
 offset  = 10;
 W = verticalWell([], G, rock, offset, offset, [],...
-                'Name', 'P1', 'comp_i', [1 0], 'Val', 250*barsa, 'Type', 'bhp');            
+                'Name', 'P1', 'comp_i', [1 0], 'Val', 250*barsa, 'Type', 'bhp', 'refDepth', 50);
 W = verticalWell(W, G, rock,  offset, floor(G.cartDims(1)/2)+3, [],...
-                'Name', 'P2', 'comp_i', [1 0], 'Val', 250*barsa, 'Type', 'bhp');
+                'Name', 'P2', 'comp_i', [1 0], 'Val', 250*barsa, 'Type', 'bhp', 'refDepth', 50);
 W = verticalWell(W, G, rock, offset, G.cartDims(2) - offset/2, [], ...
-                'Name', 'P3', 'comp_i', [1 0], 'Val', 250*barsa, 'Type', 'bhp');
+                'Name', 'P3', 'comp_i', [1 0], 'Val', 250*barsa, 'Type', 'bhp', 'refDepth', 50);
 % Injectors
 W = verticalWell(W, G, rock, G.cartDims(1)-5, offset, 1,...
-                'Name', 'I1', 'comp_i', [1 0], 'Val', injRate, 'Type', 'rate');
+                'Name', 'I1', 'comp_i', [1 0], 'Val', injRate, 'Type', 'rate', 'refDepth', 50);
 
 % Compute the timesteps
 startSteps = repmat((simTime/(nstep + 1))/refine, refine, 1);
@@ -108,7 +136,7 @@ fluid = initSimpleADIFluid('mu',    [1, 5, 0]*centi*poise, ...
 % Constant oil compressibility
 c        = 0.001/barsa;
 p_ref    = 300*barsa;
-fluid.bO = @(p) exp((p - p_ref)*c);
+fluid.bO = @(p, varargin) exp((p - p_ref)*c);
 clf
 p0 = (100:10:500)*barsa;
 plot(p0/barsa, fluid.bO(p0))
@@ -126,16 +154,13 @@ model = TwoPhaseOilWaterModel(G, rock, fluid);
 % completely water filled, and the top completely oil filled. MRST uses
 % water, oil, gas ordering internally, so in this case we have water in the
 % first column and oil in the second for the saturations.
-sW = ones(G.cells.num, 1);
-sW(G.cells.centroids(:, 3) < 5) = 0;
 
-sat = [sW, 1 - sW];
+contacts = 85;
 
-g = model.gravity(3);
-% Compute initial pressure
-p_res = p_ref + g*G.cells.centroids(:, 3).*...
-   (sW.*model.fluid.rhoWS + (1 - sW).*model.fluid.rhoOS);
-state0 = initResSol(G, p_res, sat);
+region = getInitializationRegionsBlackOil(model, contacts, ...
+            'datum_depth', 10, 'datum_pressure', p_ref);
+state0 = initStateBlackOilAD(model, region);
+
 clf
 plotCellData(G, state0.s(:,1))
 plotWell(G,W)
