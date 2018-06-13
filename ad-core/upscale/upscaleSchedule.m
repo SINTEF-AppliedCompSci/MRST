@@ -107,7 +107,7 @@ function Wc = handleWell(model, W, opt)
     
     % Upscale well index
     if strcmpi(opt.wellUpscaleMethod, 'recompute')
-        Wc.WI = computeWellIndex(model.G, model.rock, W.r, Wc.cells, 'Dir', dr);
+        Wc.WI = computeWellIndex(model.G, model.rock, W.r, Wc.cells, 'Dir', Wc.dir);
     else
         switch lower(opt.wellUpscaleMethod)
             case 'sum'
