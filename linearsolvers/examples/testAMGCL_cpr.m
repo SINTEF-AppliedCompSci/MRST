@@ -103,19 +103,29 @@ schedule = convertDeckScheduleToMRST(model, deck);
 %%
 ncomp = model.water+model.gas+model.oil;
 
-lsolve = AMGCLSolverAD('maxIterations', 200, 'tolerance', 1e-3, 'preconditioner', 'relaxation', 'relaxation', 'ilu0');
-ordering = getCellMajorReordering(G.cells.num, ncomp, ncomp*G.cells.num);
+lsolve = AMGCLSolverAD('maxIterations', 200, 'tolerance', 1e-3,...
+    'preconditioner', 'relaxation',...
+    'solver', 'idrs', ...
+    'relaxation', 'ilu0');
+if 1
+    ord = getGridSYMRCMOrdering(model.G);
+else
+    ord = [];
+end
+
+ndof = ncomp*G.cells.num;
+ordering = getCellMajorReordering(G.cells.num, ncomp, 'ndof', ndof);
 lsolve.variableOrdering = ordering;
 lsolve.equationOrdering = ordering;
 
-if 1
+if 0
     lsolve = AMGCL_CPRSolverAD('block_size', ncomp, 'maxIterations', 200, 'tolerance', 1e-3);
-    lsolve.s_relaxation = 'ilu0';
+    lsolve.setSRelaxation('ilu0');
     lsolve.trueIMPES = true;
-    solver.coarsening = 'aggregation';
+    lsolve.setCoarsening('aggregation');
 end
 % lsolve.applyRightDiagonalScaling = true;
-lsolve.solver = 'bicgstab';
+lsolve.setSolver('bicgstab');
 
 if isa(model.AutoDiffBackend, 'DiagonalAutoDiffBackend')
     lsolve.reduceToCell = false;
