@@ -24,14 +24,10 @@ function [s_min, s_max] = getMinMaxPhaseSaturations(model, cellInx)
             else
                 s_min(:, wix) = f.sWcon(cellInx);
             end
-            s_max(:, wix) = 1;
         end
         if model.gas
             % Account for minimum water saturation
             s_max(:, gix) = min(s_max(:, gix), 1 - s_min(:, wix));
         end
-%         if model.oil
-%             s_max(oix) = min(s_max(oix), 1 - s_min(wix));
-%         end
     end
 end

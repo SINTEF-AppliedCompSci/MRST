@@ -1,4 +1,9 @@
-function region = getInitializationRegionsBlackOil(model, cells, datum_p, datum_z, contacts, contacts_pc, rs, rv)    
+function region = getInitializationRegionsBlackOil(model, contacts, varargin)
+    opt = struct('cells', (1:model.G.cells.num)',...
+                 'rs', [], ...
+                 'rv', []);
+    [opt, args] = merge_options(opt, varargin{:});
+    
     actPh = model.getActivePhases();
     nPh = sum(actPh);
     
@@ -6,7 +11,7 @@ function region = getInitializationRegionsBlackOil(model, cells, datum_p, datum_
     PC = cell(1, nPh);
     pc_sign = ones(1, nPh);
     
-    getRegCell = @(x) repmat(cells(1), size(double(x)));
+    getRegCell = @(x) repmat(opt.cells(1), size(double(x)));
     
     f = model.fluid;
     if model.water
@@ -24,13 +29,13 @@ function region = getInitializationRegionsBlackOil(model, cells, datum_p, datum_
     if model.oil
         ix = model.getPhaseIndex('O');
         
-        rho{ix} = @(p, z) getOilDensity(model, p, z, rs, 'cellInx', getRegCell(p));
+        rho{ix} = @(p, z) getOilDensity(model, p, z, opt.rs, 'cellInx', getRegCell(p));
         PC{ix} = @(S) 0*S;
     end
     
     if model.gas
         ix = model.getPhaseIndex('G');
-        rho{ix} = @(p, z) getGasDensity(model, p, z, rv, 'cellInx', getRegCell(p));
+        rho{ix} = @(p, z) getGasDensity(model, p, z, opt.rv, 'cellInx', getRegCell(p));
         pc_sign(ix) = 1;
         if isfield(model.fluid, 'pcOG')
             PC{ix} = @(S) model.fluid.pcOG(S, 'cellInx', getRegCell(S));
@@ -40,21 +45,25 @@ function region = getInitializationRegionsBlackOil(model, cells, datum_p, datum_
     end
     ref_index = model.getPhaseIndex('O');
     
-    [s_min, s_max] = getMinMaxPhaseSaturations(model, cells);
+    [s_min, s_max] = getMinMaxPhaseSaturations(model, opt.cells);
     
-    region = getInitializationRegionsBase(model, cells, ref_index, rho, datum_p, datum_z, contacts, ...
-        'contacts_pc', contacts_pc, ...
-        'pc_sign',      pc_sign, ...
-        's_min',        s_min, ....
-        's_max',        s_max, ....
-        'pc_functions', PC);
-    region.rs = rs;
-    region.rv = rv;
+    region = getInitializationRegionsBase(model, rho, contacts, ...
+        'rho',              rho, ...
+        'cells',            opt.cells, ...
+        'reference_index',  ref_index, ...
+        'pc_sign',          pc_sign, ...
+        's_min',            s_min, ...
+        's_max',            s_max, ...
+        'pc_functions',     PC, ...
+        args{:});
+    region.rs = opt.rs;
+    region.rv = opt.rv;
 end
 
 function rhoO = getOilDensity(model, p, z, rs, varargin)
     f = model.fluid;
     if model.disgas
+        assert(~isempty(rs), 'Disgas model must have rs specified as optional argument');
         if isa(rs, 'function_handle')
             rs = rs(p, z);
         end
@@ -69,6 +78,7 @@ end
 function rhoG = getGasDensity(model, p, z, rv, varargin)
     f = model.fluid;
     if model.vapoil
+        assert(~isempty(rv), 'Vapoil model must have rv specified as optional argument');
         if isa(rv, 'function_handle')
             rv = rv(p, z);
         end

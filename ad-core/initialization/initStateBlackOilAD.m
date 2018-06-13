@@ -2,6 +2,10 @@ function [state, pressures] = initStateBlackOilAD(model, regions, varargin)
     opt = struct('pressure', []);
     opt = merge_options(opt, varargin{:});
     
+    if ~iscell(regions)
+        regions = {regions};
+    end
+    
     [rs, rv] = deal(0);
     G = model.G;
     if isprop(model, 'disgas') && model.disgas
