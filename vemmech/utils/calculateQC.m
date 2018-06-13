@@ -13,8 +13,8 @@ function [qc, qf, qcvol] = calculateQC(G)
 % RETURNS:
 %   qc    - Elementary assembly integrals : One (3D) vector value in each
 %                                           cell, see (74) in [Gain et al].  
-%   qf    - Elementary assembly integrals : One scalar value for each face in each cells,
-%                                           corresponds to (98) in [Gain et al].
+%   qf    - Elementary assembly integrals : One scalar value for each face
+%                                           for each node, corresponds to (98) in [Gain et al].
 %   qcvol - Elementary assembly integrals : One scalar value for each node in each cells,
 %                                           gives weights to compute the L^2
 %                                           projections, see VEM_linElast.m
@@ -53,7 +53,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    inodes       = mcolon(G.faces.nodePos(faces), G.faces.nodePos(faces + 1) - ...
                          1); 
    nodes        = G.faces.nodes(inodes); 
-   nlc          = diff(G.faces.nodePos);  % Number of nodes per cell
+   nlc          = diff(G.faces.nodePos);  % Number of nodes per face
    facenode     = rldecode(faces, nlc); 
    xn           = G.nodes.coords(nodes, :); 
    xbb          = zeros(G.faces.num, G.griddim); 
