@@ -1,29 +1,27 @@
 //
 // include necessary system headers
 //
+#define _USE_MATH_DEFINES
+#include <cmath>
 #include <mex.h>
+#include <array>
 #include "matrix.h"
+
 
 #include <iostream>
 #include <amgcl/make_solver.hpp>
-#include <amgcl/solver/bicgstab.hpp>
+#include <amgcl/solver/runtime.hpp>
+
 #include <amgcl/amg.hpp>
-#include <amgcl/coarsening/smoothed_aggregation.hpp>
-#include <amgcl/relaxation/spai0.hpp>
-#include <amgcl/relaxation/runtime.hpp>
-
-
 #include <amgcl/adapter/crs_tuple.hpp>
 #include <amgcl/adapter/zero_copy.hpp>
-
 #include <amgcl/backend/builtin.hpp>
-#include <amgcl/runtime.hpp>
-
-#include <amgcl/preconditioner/dummy.hpp>
-#include <amgcl/preconditioner/runtime.hpp>
-
+#include <amgcl/coarsening/runtime.hpp>
+#include <amgcl/relaxation/runtime.hpp>
+#include <amgcl/relaxation/as_preconditioner.hpp>
 #include <string>
 #include <chrono>
+#include <amgcl/preconditioner/runtime.hpp>
 
 #include <amgcl/preconditioner/cpr.hpp>
 #include <amgcl/preconditioner/cpr_drs.hpp>
@@ -235,12 +233,12 @@ void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries, const mx
     typedef amgcl::backend::builtin<double> Backend;
     
     typedef
-        amgcl::runtime::amg<Backend>
+    amgcl::amg<Backend, amgcl::runtime::coarsening::wrapper, amgcl::runtime::relaxation::wrapper>
         PPrecond;
 
     typedef
-        amgcl::runtime::relaxation::as_preconditioner<Backend>
-        SPrecond;
+    amgcl::relaxation::as_preconditioner<Backend, amgcl::runtime::relaxation::wrapper>
+            SPrecond;
     boost::property_tree::ptree prm;
     /* Set tolerance */
     prm.put("solver.tol", tolerance);
@@ -281,7 +279,7 @@ void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries, const mx
 
         amgcl::make_solver<
             amgcl::preconditioner::cpr_drs<PPrecond, SPrecond>,
-            amgcl::runtime::iterative_solver<Backend>
+            amgcl::runtime::solver::wrapper<Backend>
             > solve(amgcl::adapter::zero_copy(n, &cols[0], &rows[0], &entries[0]), prm);
         auto t2 = std::chrono::high_resolution_clock::now();
         
@@ -290,7 +288,7 @@ void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries, const mx
                       << (double)std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count()/1000.0
                       << " seconds\n";
         }
-        boost::tie(iters, error) = solve(b, x);
+        std::tie(iters, error) = solve(b, x);
         
         if(verbose){
             std::cout << solve << std::endl;
@@ -298,7 +296,7 @@ void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries, const mx
     }else{
         amgcl::make_solver<
             amgcl::preconditioner::cpr<PPrecond, SPrecond>,
-            amgcl::runtime::iterative_solver<Backend>
+            amgcl::runtime::solver::wrapper<Backend>
             > solve(amgcl::adapter::zero_copy(n, &cols[0], &rows[0], &entries[0]), prm);
             
         auto t2 = std::chrono::high_resolution_clock::now();
@@ -307,7 +305,7 @@ void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries, const mx
                       << (double)std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count()/1000.0
                       << " seconds\n";
         }
-        boost::tie(iters, error) = solve(b, x);
+        std::tie(iters, error) = solve(b, x);
         
         if(verbose){
             std::cout << solve << std::endl;
@@ -329,12 +327,13 @@ void solve_regular(int n, mwIndex * cols, mwIndex * rows, double * entries, cons
     typedef amgcl::backend::builtin<double> Backend;
     
     typedef
-        amgcl::runtime::amg<Backend>
+    amgcl::amg<Backend, amgcl::runtime::coarsening::wrapper, amgcl::runtime::relaxation::wrapper>
         PPrecond;
 
     typedef
-        amgcl::runtime::relaxation::as_preconditioner<Backend>
-        SPrecond;
+    amgcl::relaxation::as_preconditioner<Backend, amgcl::runtime::relaxation::wrapper>
+            SPrecond;
+
     boost::property_tree::ptree prm;
     /* Set tolerance */
     prm.put("solver.tol", tolerance);
@@ -381,7 +380,7 @@ void solve_regular(int n, mwIndex * cols, mwIndex * rows, double * entries, cons
 
     amgcl::make_solver<
         amgcl::runtime::preconditioner<Backend>,
-        amgcl::runtime::iterative_solver<Backend>
+        amgcl::runtime::solver::wrapper<Backend>
     > solve(amgcl::adapter::zero_copy(n, &cols[0], &rows[0], &entries[0]), prm);
     
     auto t2 = std::chrono::high_resolution_clock::now();
@@ -390,7 +389,7 @@ void solve_regular(int n, mwIndex * cols, mwIndex * rows, double * entries, cons
                   << (double)std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count()/1000.0
                   << " seconds\n";
     }
-    boost::tie(iters, error) = solve(b, x);
+    std::tie(iters, error) = solve(b, x);
 
     if(verbose){
         std::cout << solve << std::endl;
@@ -475,6 +474,8 @@ void mexFunction( int nlhs, mxArray *plhs[],
     for(int ix=0; ix < M; ix++){
         result[ix] = x[ix];
     }
+    x.clear();
+    b.clear();
     err[0] = error;
     it_count[0] = iters;
     return;

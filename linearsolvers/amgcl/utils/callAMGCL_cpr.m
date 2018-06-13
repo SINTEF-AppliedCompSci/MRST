@@ -17,7 +17,7 @@ function [x, err] = callAMGCL_cpr(A, b, block_size, varargin)
         end
     else
         n = size(A, 1);
-        ordering = getCellMajorReordering(n/block_size, block_size, n);
+        ordering = getCellMajorReordering(n/block_size, block_size, 'ndof', n);
         A = A(ordering, ordering)';
         b = b(ordering);
     end
