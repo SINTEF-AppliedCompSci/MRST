@@ -53,12 +53,6 @@ methods
       model.water   = true;
       model.gas     = true;
       model.oil     = false;
-      model.saturationVarNames = {'sw', 'sg'}; % @@ Design: ideally, we
-                                               % should not have to set
-                                               % both this _and_ the
-                                               % 'water', 'gas' and 'oil'
-                                               % flags above. Check with
-                                               % maintainer of parent class.
       model.gravity = gravity;
       
       if isfield(fluid, 'dis_rate')

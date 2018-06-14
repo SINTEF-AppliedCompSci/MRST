@@ -22,7 +22,7 @@ try
 catch me
    disp(' -> Download data from: http://www.sintef.no/Projectweb/MatMoRA/')
    disp(['    Putting data in ', jdir]);
-   unzip('http://www.sintef.no/project/MatMoRA/Johansen/NPD5.zip', jdir);
+   unzip('https://www.sintef.no/project/MatMoRA/Johansen/NPD5.zip', jdir);
    grdecl = readGRDECL([sector '.grdecl']);
 end
 
@@ -53,7 +53,7 @@ try
 catch me
    disp(' -> Download data from: http://www.sintef.no/Projectweb/MatMoRA/')
    disp(['    Putting data in ', jdir]);
-   unzip('http://www.sintef.no/project/MatMoRA/Johansen/FULLFIELD_Eclipse.zip', jdir);
+   unzip('https://www.sintef.no/project/MatMoRA/Johansen/FULLFIELD_Eclipse.zip', jdir);
    grdecl = readGRDECL([sector '.GRDECL']);
 end
 

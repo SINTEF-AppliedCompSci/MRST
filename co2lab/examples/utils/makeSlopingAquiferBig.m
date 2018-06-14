@@ -37,7 +37,7 @@ try
 catch
    disp(' -> Download data from: http://www.sintef.no/Projectweb/MRST/');
    disp(['    Putting data in ', idir]);
-   untar('http://www.sintef.no/project/MRST/IGEMS.tar.gz',...
+   untar('https://www.sintef.no/project/MRST/IGEMS.tar.gz',...
       fullfile(mrstPath('co2lab'), 'data'));
    grdecl = readGRDECL(fullfile(idir, imodel));
 end
