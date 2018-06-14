@@ -3,6 +3,9 @@
 % in the aquifer zone, modest coarsening above the initial water contact,
 % and original resolution for cells with low residence time
 
+%%
+mrstModule add coarsegrid diagnostics incomp spe10
+
 %% Cartesian grid and rock parameters
 [nx,ny,nz] = deal(60,60,15);
 G = cartGrid([nx ny nz], [nx ny nz].*[20 10 2]*ft);

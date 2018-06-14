@@ -1,3 +1,6 @@
+%%
+mrstModule add agglom coarsegrid
+
 %% ------ S E G M E N T A T I O N ------ 
 % Demonstrate segmentation: apply to CaseB4 model
 rng(1,'twister');    % reset random generator to reproduce the same results

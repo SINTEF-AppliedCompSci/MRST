@@ -1,3 +1,6 @@
+%%
+mrstModule add agglom coarsegrid diagnostics incomp spe10
+
 %% CaseB4: merge small cells
 % Load and set up model
 file = fullfile(getDatasetPath('CaseB4'),'pillar_36x48.grdecl');

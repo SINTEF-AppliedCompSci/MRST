@@ -5,6 +5,8 @@
 % permeability. These two partitions are applied recursively together with
 % a nested set of uniform partitions with permeability as an indicator.
 
+mrstModule add coarsegrid agglom
+
 % Load facies data
 exdir = fullfile(mrstPath('agglom'), 'examples');
 imload = @(fn) ...
@@ -75,4 +77,3 @@ for i=[1:3 5:6],
     subplot(2,3,i), 
     set(gca,'Position',get(gca,'Position')+[-.025 -.025 .05 .05]);
 end
-m
