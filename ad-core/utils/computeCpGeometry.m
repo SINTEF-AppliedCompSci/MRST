@@ -83,7 +83,7 @@ cellFaceCenters  =  ...
 
 if nargout > 2
     vnorm = create_vector_norm_function();
-    cellDims = [vnorm(xfc2-xfc1), vecnorm(yfc2-yfc1), vecnorm(zfc2-zfc1)];
+    cellDims = [vnorm(xfc2-xfc1), vnorm(yfc2-yfc1), vnorm(zfc2-zfc1)];
 end
 end
 
