@@ -72,6 +72,7 @@ classdef LinearSolverAD < handle
         function [grad, result, report] = solveAdjointProblem(solver, problemPrev,...
                 problemCurr, adjVec, objective, model) %#ok
             % Solve an adjoint problem.
+            timer = tic();
             problemCurr = problemCurr.assembleSystem();
             
             % Maybe formalize the control variables a bit in the future
@@ -81,24 +82,36 @@ classdef LinearSolverAD < handle
             end
             objective = combineEquations(objective);
             assert(isa(objective, 'ADI'), 'Objective function was not of type ADI.');
-            rhs = -(objective.jac{1})';
+            b = -(objective.jac{1})';
             if ~isempty(adjVec)
                 problemPrev = problemPrev.assembleSystem();
-                rhs = rhs - problemPrev.A'*adjVec;
+                b = b - problemPrev.A'*adjVec;
             end
-            A = problemCurr.A';
+            A = problemCurr.A;
+            b = full(b);
             % Apply scaling
-            [A, rhs, scaling] = solver.applyScaling(A, rhs);
+            [A, b, scaling] = solver.applyScaling(A, b);
             % Reduce system (if requested)
-            [A, rhs, lsys] = solver.reduceLinearSystem(A, rhs);
-            
-            [result, report] = solver.solveLinearSystem(A, rhs);
-            
+            [A, b, lsys] = solver.reduceLinearSystemAdjoint(A, b);
+            % Reorder linear system
+            [A, b] = solver.reorderLinearSystem(A, b);
+            % Apply transpose
+            A = A';
+            t_prepare = toc(timer);
+            % Solve system
+            [result, report] = solver.solveLinearSystem(A, b);
+            t_solve = toc(timer) - t_prepare;
+            % Permute system back
+            result = solver.deorderLinearSystemAdjoint(result);
             % Recover eliminated variables on linear level
-            result = solver.recoverLinearSystem(result, lsys);
+            result = solver.recoverLinearSystemAdjoint(result, lsys);
             % Undo scaling
-            result = solver.undoScaling(result, scaling);
-            
+            result = solver.undoScalingAdjoint(result, scaling);
+
+            report.SolverTime = toc(timer);
+            report.LinearSolutionTime = t_solve;
+            report.preparationTime = t_prepare;
+            report.postprocessTime = report.SolverTime - t_solve - t_prepare;
             grad = solver.storeIncrements(problemCurr, result);
         end
         
@@ -189,7 +202,10 @@ classdef LinearSolverAD < handle
             end
         end
         
-        function [A, b, sys] = reduceLinearSystem(solver, A, b)
+        function [A, b, sys] = reduceLinearSystem(solver, A, b, isAdjoint)
+            if nargin == 3
+                isAdjoint = false;
+            end
             % Perform Schur complement reduction of linear system
             sys = struct('B', [], 'C', [], 'D', [], 'f', [], 'h', [], 'E_L', [], 'E_U', []);
             if isempty(solver.keepNumber) || solver.keepNumber >= size(b, 1)
@@ -240,9 +256,17 @@ classdef LinearSolverAD < handle
             end
             [sys.E_L, sys.E_U] = lu(sys.E);
             A = sys.B - sys.C*(sys.E_U\(sys.E_L\sys.D));
-            b = sys.f - sys.C*(sys.E_U\(sys.E_L\sys.h));
+            if isAdjoint
+                b = sys.f - sys.C*(sys.E_U\(sys.E_L\sys.h));
+            else
+                b = sys.f - (sys.D')*((sys.E')\sys.h);
+            end
         end
         
+        function [A, b, sys] = reduceLinearSystemAdjoint(solver, A, b)
+            [A, b, sys] = reduceLinearSystem(solver, A, b, true);
+        end
+
         function x = recoverLinearSystem(solver, x, sys)
             % Recover eliminated variables
             if ~isempty(sys.E_U)
@@ -251,6 +275,14 @@ classdef LinearSolverAD < handle
             end
         end
         
+        function x = recoverLinearSystemAdjoint(solver, x, sys)
+            % Recover eliminated variables
+            if ~isempty(sys.E)
+                s = (sys.E')\(sys.h - sys.C'*x);
+                x = [x; s];
+            end
+        end
+
         function [A, b, scaling] = applyScaling(solver, A, b)
             % Apply left or right diagonal scaling
             scaling = struct();
@@ -277,6 +309,14 @@ classdef LinearSolverAD < handle
             end
         end
         
+        function x = undoScalingAdjoint(solver, x, scaling)
+            % Undo effects of scaling applied to linear system (adjoint
+            % version)
+            if solver.applyLeftDiagonalScaling
+                x = scaling.M*x;
+            end
+        end
+
         function x = preconditionerInverse(solver, M, x)
             % Apply a preconditioner. Either a handle or a matrix.
             if isempty(M)
@@ -321,7 +361,13 @@ classdef LinearSolverAD < handle
                 x(solver.variableOrdering) = x(1:numel(solver.variableOrdering));
             end
         end
-        
+
+        function x = deorderLinearSystemAdjoint(solver, x)
+            if ~isempty(solver.equationOrdering)
+                x(solver.equationOrdering) = x(1:numel(solver.equationOrdering));
+            end
+        end
+
         function solver = setupSolver(solver, A, b, varargin) %#ok
             % Run setup on a solver for a given system
             
