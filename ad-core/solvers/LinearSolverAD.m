@@ -207,7 +207,8 @@ classdef LinearSolverAD < handle
                 isAdjoint = false;
             end
             % Perform Schur complement reduction of linear system
-            sys = struct('B', [], 'C', [], 'D', [], 'f', [], 'h', [], 'E_L', [], 'E_U', []);
+            sys = struct('B', [], 'C', [], 'D',   [], 'E',   [],...
+                         'f', [], 'h', [], 'E_L', [], 'E_U', []);
             if isempty(solver.keepNumber) || solver.keepNumber >= size(b, 1)
                 return
             end
@@ -257,9 +258,11 @@ classdef LinearSolverAD < handle
             [sys.E_L, sys.E_U] = lu(sys.E);
             A = sys.B - sys.C*(sys.E_U\(sys.E_L\sys.D));
             if isAdjoint
-                b = sys.f - sys.C*(sys.E_U\(sys.E_L\sys.h));
-            else
+                % We are solving the transpose system
                 b = sys.f - (sys.D')*((sys.E')\sys.h);
+            else
+                % We are solving the untransposed system
+                b = sys.f - sys.C*(sys.E_U\(sys.E_L\sys.h));
             end
         end
         
