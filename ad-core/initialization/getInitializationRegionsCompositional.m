@@ -1,9 +1,10 @@
-function region = getInitializationRegionsCompositional(model, cells, varargin)
+function region = getInitializationRegionsCompositional(model, contacts, varargin)
     opt = struct('cells',   (1:model.G.cells.num)', ...
                  'T',       303.15, ...
                  'x',       [], ...
                  'y',       []);
     [opt, args] = merge_options(opt, varargin{:});
+    cells = opt.cells;
     x = opt.x;
     y = opt.y;
     T = opt.T;

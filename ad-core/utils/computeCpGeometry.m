@@ -82,6 +82,18 @@ cellFaceCenters  =  ...
    ((fType == 6)*[1 1 1]).*zfc2(cartCellNo, :);
 
 if nargout > 2
-    cellDims = [vecnorm(xfc2-xfc1, 2, 2), vecnorm(yfc2-yfc1, 2, 2), vecnorm(zfc2-zfc1, 2, 2)];
+    vnorm = create_vector_norm_function();
+    cellDims = [vnorm(xfc2-xfc1), vnorm(yfc2-yfc1), vnorm(zfc2-zfc1)];
 end
+end
+
+%--------------------------------------------------------------------------
+
+function vnorm = create_vector_norm_function()
+    if ~exist('verLessThan', 'file') || verLessThan('matlab', '9.3.0')
+        % Fall-back for 'vecnorm'; introduced in MATLAB 9.3.0 (R2017b)
+        vnorm = @(x) sqrt(sum(x.^2, 2));
+    else
+        vnorm = @(x) vecnorm(x, 2, 2);
+    end
 end
