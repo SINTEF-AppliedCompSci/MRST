@@ -301,18 +301,29 @@ classdef LinearSolverAD < handle
             nv = numel(vo);
             ne = numel(eo);
             n = size(A, 1);
+            
+            if hasVar
+                assert(nv <= n);
+                if nv < n
+                    vo = [vo; (nv+1:n)'];
+                    nv = n;
+                end
+            end
+            if hasEq 
+                assert(ne <= n);
+                if ne < n
+                    vo = [vo; (ne+1:n)'];
+                    ne = n;
+                end
+            end
             if hasVar && hasEq
-                assert(nv <= n);
-                assert(ne <= n);
-                A(1:ne, 1:nv) = A(eo, vo);
-                b(1:ne) = b(eo);
+                A = A(eo, vo);
+                b = b(eo);
             elseif hasVar
-                assert(nv <= n);
-                A(:, 1:nv) = A(:, vo);
+                A = A(:, vo);
             elseif hasEq
-                assert(ne <= n);
-                A(1:ne, :) = A(eo, :);
-                b(1:ne) = b(eo);
+                A = A(eo, :);
+                b = b(eo);
             end
         end
         
