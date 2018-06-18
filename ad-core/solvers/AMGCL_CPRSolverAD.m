@@ -22,7 +22,7 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
        function solver = AMGCL_CPRSolverAD(varargin)
             require linearsolvers
             solver = solver@AMGCLSolverAD();
-            solver.trueIMPES    = true;
+            solver.trueIMPES    = false;
             solver.doApplyScalingCPR = true;
             solver.reduceToCell = true;
             solver.tolerance    = 1e-6;
