@@ -78,6 +78,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    G = processgrid_mex(grdecl,opt.Tolerance);
 
+   % Guarantee type DOUBLE for indices.  Needed, for instance, if the grid
+   % is used in constructing linear operators in the AD framework (which
+   % pass such index arrays to function SPARSE).
+   G = double_indices(G);
+
    if opt.CheckGrid
       assert (all(diff(G.cells.facePos) > 3), ...
               'All cells must have at least four faces');
@@ -104,4 +109,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       end
    end
 %}
+end
+
+%--------------------------------------------------------------------------
+
+function G = double_indices(G)
+   G.faces.neighbors = double(G.faces.neighbors);
+   G.faces.nodes     = double(G.faces.nodes);
+   G.faces.nodePos   = double(G.faces.nodePos);
+
+   G.cells.faces     = double(G.cells.faces);
+   G.cells.facePos   = double(G.cells.facePos);
+
+   if isfield(G.cells, 'indexMap')
+      G.cells.indexMap = double(G.cells.indexMap);
+   end
 end
