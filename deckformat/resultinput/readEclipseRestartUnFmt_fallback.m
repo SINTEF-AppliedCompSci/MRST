@@ -1,4 +1,4 @@
-function [rstrt, rsspec] = readEclipseRestartUnFmt(prefix, varargin)
+function [rstrt, rsspec] = readEclipseRestartUnFmt_fallback(prefix, varargin)
 %Read unformatted (binary) ECLIPSE restart data
 %
 % SYNOPSIS:
