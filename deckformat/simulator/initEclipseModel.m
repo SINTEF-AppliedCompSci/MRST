@@ -101,19 +101,24 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    end
 
    fprintf('----------------------------------------------------------\n');
-   G = initEclipseGrid(deck,varargin{:});
+
+   G = initEclipseGrid(deck, varargin{:});
+
    if numel(G) > 1
        warning(['Grid processing resulted in %d disconnected grids. '...
                 'Picking the grid with the most cells.'], numel(G));
        G = G(1);
    end
+
    G = computeGeometry(G);
 
    if ~ all(G.cells.volumes > 0)
       nc0 = G.cells.num;
 
       dispif(mrstVerbose, 'Removing cells with non-positive volume ... ');
+
       G = removeCells(G, ~ (G.cells.volumes > 0));
+
       dispif(mrstVerbose, '%d cells removed.\n', nc0 - G.cells.num);
    end
 
