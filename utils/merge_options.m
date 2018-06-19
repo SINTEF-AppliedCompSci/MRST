@@ -19,12 +19,12 @@ function [prm, varargout] = merge_options(prm, varargin)
 %
 %          [<FUNCTIONNAME>, ':Option:Unsupported']
 %
-%      with <FUNCTIONNAME> being the name of function `merge_options`' caller
-%      or the string 'BASE' if `merge_options` is used directly from the base
-%      workspace (i.e., the Command Window).
+%      with <FUNCTIONNAME> being the name of function `merge_options`'
+%      caller or the string 'BASE' if `merge_options` is used directly from
+%      the base workspace (i.e., the Command Window).
 %
-%      Function `merge_options` will fail (and call ERROR) if the new value's
-%      class is different from the class of the existing value.
+%      Function `merge_options` will fail (and call ERROR) if the new
+%      value's class is different from the class of the existing value.
 %
 %      In the interest of convenience for the typical case of using MRST
 %      interactively from the Command Window, `merge_options` matches keys
@@ -56,9 +56,9 @@ function [prm, varargout] = merge_options(prm, varargin)
 % NOTE:
 %   If the value of a field of the input parameters ('prm') is a `cell`
 %   array, then the overriding value of that field can be anything.  If the
-%   new value is another `cell` array (i.e., if `iscell` returns true) it will
-%   simply be assigned.  Otherwise, we wrap the overriding value in a cell
-%   array so that the field value is always a `cell` array.
+%   new value is another `cell` array (i.e., if `iscell` returns true) it
+%   will simply be assigned.  Otherwise, we wrap the overriding value in a
+%   cell array so that the field value is always a `cell` array.
 %
 %   This behaviour allows the user of function `merge_options` to implement
 %   uniform support for both single elements and heterogeneous collections
@@ -106,12 +106,12 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-   if nargin > 1,
+   if nargin > 1
       % Caller passed additional input.  Verify that that extra input can
       % be interpreted as a list of 'key'/value pairs.
 
       if mod(numel(varargin), 2) == 0 && ...
-            iscellstr(varargin(1 : 2 : end)),
+            iscellstr(varargin(1 : 2 : end))
          % Additional input is structurally sound from the point of view of
          % being an apparent list of 'key'/value pairs.  Process options.
 
@@ -124,12 +124,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
          [prm, extra] = process_options(prm, caller, varargin{:});
 
-         if nargout == 2,
+         if nargout == 2
             % Caller requested that unused options be returned.  Abide by
             % this request and don't emit any diagnostics.
             varargout{1} = extra;
 
-         elseif ~isempty(extra),
+         elseif ~isempty(extra)
             % Caller did not request that unused options be returned
             % unmodified but there were unused options in the input.
             % Report those unused options to the Command Window.
@@ -140,7 +140,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     'Unsupported option%s in %s%s', pl, caller, ...
                     sprintf('\n * %s', extra{1 : 2 : end}));
 
-         elseif nargout > 2,
+         elseif nargout > 2
             error(msgid('NargOut:TooMany'), ...
                   'Too many output arguments: %d', nargout);
          end
@@ -163,7 +163,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                '''key''/value pairs.\nDid you unpack VARARGIN?']);
       end
 
-   elseif nargout == 2,
+   elseif nargout == 2
       % Caller requested that unmatched options be returned, but there were
       % no option pairs in the input list (i.e., ISEMPTY(varargin)).
       %
@@ -186,10 +186,10 @@ function [prm, extra] = process_options(prm, caller, varargin)
 
    unused = false(size(nfv));
 
-   for n = 1 : numel(nfn),
+   for n = 1 : numel(nfn)
       ix = find(strcmpi(nfn{n}, ofn));
 
-      if numel(ix) > 1,
+      if numel(ix) > 1
          % Case insensitive match hits more than one field name.  Defer to
          % case sensitive matching as arbiter/disambiguator.  If we then
          % don't match *any* option, proceed to next field name.  Note: Due
@@ -199,8 +199,8 @@ function [prm, extra] = process_options(prm, caller, varargin)
          ix = find(strcmp(nfn{n}, ofn));
       end
 
-      if ~isempty(ix),
-         if iscell(prm.(ofn{ix})) && ~iscell(nfv{n}),
+      if ~isempty(ix)
+         if iscell(prm.(ofn{ix})) && ~iscell(nfv{n})
             % Original is CELL -> accept anything by turning "new"
             % into CELL too.
             nfv{n} = nfv(n);
@@ -208,7 +208,7 @@ function [prm, extra] = process_options(prm, caller, varargin)
 
          oclass = class(prm.(ofn{ix}));
          empty = isempty(prm.(ofn{ix})) || isempty(nfv{n});
-         if empty || isa(nfv{n}, oclass),
+         if empty || isa(nfv{n}, oclass)
             prm.(ofn{ix}) = nfv{n};
          else
             nclass = class(nfv{n});
