@@ -125,35 +125,30 @@ end
 fluid = struct();
 % Properties
 props = deck.PROPS;
-fns = fieldnames(props);
-for k = 1:numel(fns)
-    fn = fns{k};
-    if doAssign(fn)
-        asgn = str2func(['assign',fn]);
-        try
-            fluid = asgn(fluid, props.(fn), reg);
-        catch ME
-            warning(msgid('Assign:Failed'), ...
-            'Could not assign property ''%s''. Encountered error: ''%s''',...
-                fn, ME.message);
-        end
-    end
+
+for fld = assignable_fields(fieldnames(props))
+   try
+      fluid = feval(['assign', fld{1}], fluid, props.(fld{1}), reg);
+
+   catch ME
+      warning(msgid('Assign:Failed'), ...
+             ['Could not assign property ''%s''. ', ...
+              'Encountered error: ''%s'''], fld{1}, ME.message);
+   end
 end
 end
 
-function flag = doAssign(propNm)
-% Properties not resulting in individual functions
-excpt = {'SWL'   ,'SWCR'   ,'SWU' , ...
-         'SGL'   ,'SGCR'   ,'SGU' , ...
-         'SOWCR' ,'SOGCR'  , ...
-         'CNAMES','BIC'   , 'ACF', ...
-         'PCRIT' ,'TCRIT' , 'VCRIT',...
-         'MW',    'ZCRIT', 'EOS', ...
-         'PRCORR', ...
-         'ISWL'  ,'ISWCR'  ,'ISWU', ...
-         'ISGL'  ,'ISGCR'  ,'ISGU', ...
-         'ISOWCR','ISOGCR'};
-flag = ~any( strcmp(propNm , excpt) );
+
+function flds = assignable_fields(fnames)
+   excpt = reshape(exclude_properties(), [], 1);
+   n     = numel(excpt);
+
+   [i, j] = blockDiagIndex(numel(fnames), n);
+
+   mtch = strcmp(reshape(fnames(i), [], n), ...
+                 reshape(excpt (j), [], n));
+
+   flds = reshape(fnames(~ any(mtch, 2)), 1, []);
 end
 
 function nc = getNumberOfCells(G, deck)
@@ -162,6 +157,20 @@ function nc = getNumberOfCells(G, deck)
     else
         nc = sum(deck.GRID.ACTNUM);
     end
+end
+
+function excpt = exclude_properties()
+   % Properties not resulting in individual functions
+   excpt = {'SWL'   , 'SWCR'  , 'SWU',   ...
+            'SGL'   , 'SGCR'  , 'SGU',   ...
+            'SOWCR' , 'SOGCR' ,          ...
+            'ISWL'  , 'ISWCR' , 'ISWU',  ...
+            'ISGL'  , 'ISGCR' , 'ISGU',  ...
+            'ISOWCR', 'ISOGCR',          ...
+            'CNAMES', 'BIC'   , 'ACF',   ...
+            'PCRIT' , 'TCRIT' , 'VCRIT', ...
+            'MW'    , 'ZCRIT' ,          ...
+            };
 end
 
 function v = expandValue(v, nc)
