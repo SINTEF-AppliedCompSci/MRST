@@ -42,7 +42,7 @@ u0 = sin((xh-.1)*pi/.3).^2.*double(xh>=.1 & xh<=.4);
 u0((xh<.9) & (xh>.6)) = 1;
 
 un = nt (u0, .495, dx, 50, f, df, @periodic, lim);
-uc = cuw(u0, .495, dx, 20, f, df, @periodic);
+uc = cuw(u0, .995, dx, 1, f, df, @periodic);
 figure
 i = (xh>=.1 & xh<=.4);
 plot(xh(3:end-2), un(3:end-2), 'o', xh(3:end-2), uc(3:end-2), 's', ...
@@ -123,7 +123,7 @@ xh  = -1.5*dx:dx:1+1.5*dx;
 u0 = 0*xh; u0(xh<.1)=1.0;
 
 un = nt(u0, .495, dx, .65, f, df, @inflow);
-uc = cuw(u0, .495, dx, .65, f, df, @inflow);
+uc = cuw(u0, .995, dx, .65, f, df, @inflow);
 figure;
 plot(x(2:end-1), uu(2:end-1), '*', xh(3:end-2), un(3:end-2), 'o', ...
     xh(3:end-2), uc(3:end-2), 's', xr(2:end-1),ur(2:end-1), 'k-');
@@ -131,7 +131,7 @@ axis([0 1 -.1 1.1]);
 legend('Upwind','Nessyahu-Tadmor','Central-upwind','Location','NorthEast');
 axes('position',[.2 .2 .4 .4]); box on
 plot(x(2:end-1), uu(2:end-1), '*', xh(3:end-1), un(3:end-1), 'o', ...
-    xh(3:end-2), uc(3:end-2), 'o', xr(2:end-1),ur(2:end-1), 'k-');
+    xh(3:end-2), uc(3:end-2), 's', xr(2:end-1),ur(2:end-1), 'k-');
 axis([0 0.35 0.85 1.05]); set(gca,'XTick',[],'YTick',[]);
 
 %% Buckley-Leverett problem: using 'incomp' module
@@ -166,7 +166,7 @@ ur = upw(u0, .995, dx, .65, f, df, @outflow);
 
 figure;
 plot(G.cells.centroids(:,1), rSole.s(:,1),'o', ...
-    G.cells.centroids(:,1), rSoli.s(:,1), 's', ...
-    G.cells.centroids(:,1), rSolt.s(:,1), '*', ...
+    G.cells.centroids(:,1), rSolt.s(:,1), 's', ...
+    G.cells.centroids(:,1), rSoli.s(:,1), '*', ...
     xr(2:end-1),ur(2:end-1),'-k');
 legend('Explicit','Implicit, CFL=1','Implicit, CFL=10','Location','SouthWest');
