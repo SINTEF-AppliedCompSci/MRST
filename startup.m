@@ -55,6 +55,7 @@ function build_mrst_path_tree
    i =     strncmp(m, p, length(m));
    i = i | ~cellfun(@isempty, regexp(p, '\.(git|hg|svn)'));
    i = i | ~cellfun(@isempty, regexp(p, '3rdparty'));
+   i = i | ~cellfun(@isempty, regexp(p, 'output'));
    i = i | cellfun(@isempty, p);
 
    addpath(p{~i});
