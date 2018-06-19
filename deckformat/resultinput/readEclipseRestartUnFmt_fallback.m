@@ -57,7 +57,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    end
 
    rstReader = @readEclipseOutputFileUnFmt;
-   rsspec    = rstReader([prefix, '.RSSPEC']);
+
+   if exist([prefix, '.RSSPEC'], 'file')
+      rsspec = rstReader([prefix, '.RSSPEC']);
+   else
+      rsspec = [];
+   end
 
    rstfiles  = matchResultFiles(dname, [fp, '\.X\d{4}']);
    rstrt     = readEclipseRestart(rstfiles, rstReader, opt);
