@@ -45,8 +45,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       end
    end
 
-   p = find(data == '/') - 1;
-   if ~isempty(p),
+   p = strfind(data, '/') - 1;
+   if ~isempty(p)
       data = data(1 : p);                  % Exclude terminator character.
    end
 end
@@ -58,9 +58,14 @@ function [lin, done] = get_line(fid, done)
    valid = ischar(lin);
 
    if ~valid
+      % Unable to input character data.  Try to determine cause of failure.
+
       if feof(fid)
+         % Record terminated by end of file.  Mark as "done".
          done = true;
+
       else
+         % Some other input error--disk on fire?
          [msg, errnum] = ferror(fid);
 
          assert (errnum ~= 0, ...
@@ -97,6 +102,19 @@ function [data, done] = append_line(data, lin)
    end
 
    lin  = assembleString(S);
-   done = any(lin == '/');              % Record complete?
+   done = is_complete(lin);                   % Record complete?
    data = [data, ' ', lin];
+end
+
+%--------------------------------------------------------------------------
+
+function tf = is_complete(lin)
+   if exist('verLessThan', 'file') && ...
+         ~verLessThan('matlab', '9.1.0') && ...
+         exist('contains', 'file')
+      % Contains was introduced in MATLAB 9.1.0 (R2016b)
+      tf = contains(lin, '/');
+   else
+      tf = ~isempty(strfind(lin, '/'));
+   end
 end
