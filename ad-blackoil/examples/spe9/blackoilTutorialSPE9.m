@@ -434,7 +434,7 @@ Tcomp =  smry.get(':+:+:+:+', 'YEARS', compd);
 %% Set up plotting functions
 % We will plot the timesteps with different colors to see the difference
 % between the results clearly.
-if ishandle(h);
+if ishandle(h)
     close(h);
 end
 T = convertTo(cumsum(schedule.step.val), year);
