@@ -13,6 +13,9 @@ function w  = createGridMappings(G)
 %
 % RETURNS:
 %   w - preliminary structure to be used in `createAugmentedGrid`
+%
+% SEE ALSO:
+%   `createAugmentedGrid`.
 
 %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
@@ -32,7 +35,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-    
+
     cellno   = rldecode(1:G.cells.num, diff(G.cells.facePos), 2) .';
     col      = 1 + (cellno == G.faces.neighbors(G.cells.faces(:,1), 2));
     nhfaces  = G.cells.facePos(end)-1;
