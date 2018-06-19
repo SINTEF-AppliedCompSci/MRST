@@ -47,28 +47,22 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-    persistent DATADIR
-    if isempty(DATADIR)
-        % Default datadir
-        DATADIR = fullfile(ROOTDIR, 'examples', 'data');
-        if ~isdir(DATADIR)
-            [ok, msg, id] = mkdir(DATADIR);
 
-            if ~ok,
-               error(id, 'Failed to create Data Directory ''%s'': %s', ...
-                     DATADIR, msg);
-            end
-        end
+    persistent DATADIR
+
+    if isempty(DATADIR)
+        DATADIR = initialize_data_dir(varargin{:});
 
         mlock
     end
-    
+
     if nargin == 0 && nargout == 0
         fprintf('The current MRST data directory is set to:\n\t%s\n', ...
                  DATADIR);
     elseif nargin > 0
         newDir = varargin{1};
         assert(ischar(newDir), 'Data directory must be a string');
+
         if isdir(newDir)
             munlock
             DATADIR = newDir;
@@ -78,8 +72,41 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                      ' Data directory has not been changed']);
         end
     end
-    
+
     if nargout > 0
         varargout{1} = DATADIR;
     end
+end
+
+%--------------------------------------------------------------------------
+
+function ddir = initialize_data_dir(varargin)
+    if (nargin > 0) && ischar(varargin{1})
+        % Caller requested specific data directory.  Honour request.
+        ddir = varargin{1};
+    else
+        % No specific data directory requested.  Use default.
+        ddir = default_data_dir();
+    end
+
+    ensure_directory_exists(ddir);
+end
+
+%--------------------------------------------------------------------------
+
+function ensure_directory_exists(ddir)
+    if ~isdir(ddir)
+        [ok, msg, id] = mkdir(ddir);
+
+        if ~ok
+            error(id, 'Failed to create Data Directory ''%s'': %s', ...
+                  ddir, msg);
+        end
+    end
+end
+
+%--------------------------------------------------------------------------
+
+function ddir = default_data_dir()
+    ddir = fullfile(ROOTDIR, 'examples', 'data');
 end
