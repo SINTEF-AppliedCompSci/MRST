@@ -57,7 +57,7 @@ classdef ResultHandler < handle
             handler.writeToDisk = true;
             handler.storeInMemory = false;
 
-            handler.dataDirectory = fullfile(mrstPath('query', 'ad-fi'));
+            handler.dataDirectory = fullfile(mrstOutputDirectory(), 'tmp');
             handler.dataPrefix = 'state';
             handler.dataFolder = 'cache';
             handler.saveflags = '';
@@ -214,7 +214,7 @@ classdef ResultHandler < handle
                     l = reshape([l, pad]', 1, []);
                 end
                 l = regexp(l,'\s+','split');
-                for i = 1:numel(l);
+                for i = 1:numel(l)
                     line = l{i};
                     [s, e] = regexp(line, [handler.dataPrefix, '\d+']);
                     if isempty(s); continue; end
