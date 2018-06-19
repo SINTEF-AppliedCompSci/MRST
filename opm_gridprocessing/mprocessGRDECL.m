@@ -71,14 +71,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    opt = merge_options(opt, varargin{:});
 
    if isfield(grdecl, 'ACTNUM') && ...
-         ~isa(grdecl.ACTNUM, 'int32'),
+         ~isa(grdecl.ACTNUM, 'int32')
 
       grdecl.ACTNUM = int32(grdecl.ACTNUM);
    end
 
    G = processgrid_mex(grdecl,opt.Tolerance);
 
-   if opt.CheckGrid,
+   if opt.CheckGrid
       assert (all(diff(G.cells.facePos) > 3), ...
               'All cells must have at least four faces');
 
@@ -89,7 +89,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
               'All nodes must have all finite coordinates');
    end
 
-   if opt.SplitDisconnected,
+   if opt.SplitDisconnected
       G = splitDisconnectedGrid(G, 'Verbose', false);
    end
 

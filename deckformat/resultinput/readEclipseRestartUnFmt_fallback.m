@@ -52,7 +52,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    is_open_pre = fopen('all');
 
    [dname, fp] = fileparts(prefix);
-   if isempty(dname),
+   if isempty(dname)
       dname = '.';
    end
 

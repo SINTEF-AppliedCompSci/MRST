@@ -94,7 +94,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    fprintf('----------------------------------------------------------\n');
 
-   if isfield(deck.RUNSPEC, 'TITLE'),
+   if isfield(deck.RUNSPEC, 'TITLE')
       fprintf(' %s\n', deck.RUNSPEC.TITLE);
    else
       fprintf(' Untitled run\n');
@@ -108,7 +108,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        G = G(1);
    end
    G = computeGeometry(G);
-   if ~ all(G.cells.volumes > 0),
+
+   if ~ all(G.cells.volumes > 0)
       nc0 = G.cells.num;
 
       dispif(mrstVerbose, 'Removing cells with non-positive volume ... ');

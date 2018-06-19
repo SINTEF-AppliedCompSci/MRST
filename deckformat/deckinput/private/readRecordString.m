@@ -37,10 +37,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    done = false;
    data = [];
 
-   while ~done,
+   while ~done
       [lin, done] = get_line(fid, done);
 
-      if ~done,
+      if ~done
          [data, done] = append_line(data, lin);
       end
    end
@@ -57,8 +57,8 @@ function [lin, done] = get_line(fid, done)
    lin   = fgetl(fid);
    valid = ischar(lin);
 
-   if ~valid,
-      if feof(fid),
+   if ~valid
+      if feof(fid)
          done = true;
       else
          [msg, errnum] = ferror(fid);
@@ -88,7 +88,7 @@ function [data, done] = append_line(data, lin)
    S = splitQuotedString(lin);
    i = find(~ cellfun(@isempty, regexp(S.unquoted, comment)), 1, 'first');
 
-   if ~ isempty(i),
+   if ~ isempty(i)
       S.quoted   = S.quoted  (1 : (i - 1));
       S.unquoted = S.unquoted(1 : i);
 
