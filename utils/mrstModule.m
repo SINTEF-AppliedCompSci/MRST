@@ -33,14 +33,13 @@ function varargout = mrstModule(varargin)
 %                         unloading modules. Equivialent to calling
 %                         `moduleGUI()` directly.
 %
-%     module_list - *Mode 1 only*: A sequence of strings naming individual add-on
-%                   modules for MRST.  The mapping of module names to
-%                   system paths is performed by function `mrstPath`.
-%
+%     module_list - *Mode 1 only*: A sequence of strings naming individual
+%                   add-on modules for MRST.  The mapping of module names
+%                   to system paths is performed by function `mrstPath`.
 %
 % RETURNS:
-%     modules - *Mode 2 only*: List, represented as a cell array of strings, of the
-%               currently active add-on modules.
+%     modules - *Mode 2 only*: List, represented as a cell array of
+%               strings, of the currently active add-on modules.
 %
 % EXAMPLES:
 %    mrstModule add deckformat ad-core spe10
