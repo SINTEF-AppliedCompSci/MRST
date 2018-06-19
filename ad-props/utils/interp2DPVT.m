@@ -32,7 +32,7 @@ for k = 1:nreg
 
         ixl = (bin==(tn-1));
         ixr = (bin==tn);
-        if ~(ischar(reginx{k}) && reginx{k} == ':')
+        if ~(ischar(reginx{k}) && strcmp(reginx{k}, ':'))
             ixl = reginx{k}(ixl);
             ixr = reginx{k}(ixr);        
         end
