@@ -102,12 +102,11 @@ function Wc = handleWell(model, W, opt)
     
     % Take first direction uncritically (it shouldn't really matter when
     % the well index has been upscaled).
-    dr = W.dir;
-    Wc.dir = dr(firstInd);
-    
+    Wc.dir = W.dir(firstInd);
+    Wc.r = W.r(firstInd);
     % Upscale well index
     if strcmpi(opt.wellUpscaleMethod, 'recompute')
-        Wc.WI = computeWellIndex(model.G, model.rock, W.r, Wc.cells, 'Dir', Wc.dir);
+        Wc.WI = computeWellIndex(model.G, model.rock, Wc.r, Wc.cells, 'Dir', Wc.dir);
     else
         switch lower(opt.wellUpscaleMethod)
             case 'sum'
