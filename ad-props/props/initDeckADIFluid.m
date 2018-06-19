@@ -74,32 +74,41 @@ reg = handleRegions(deck, opt.G);
 switch opt.region_method
      case 'deck'
          % Default behavior - do nothing
+
      case 'override'
          % In override mode, it is possible to overwrite 
-         nc = getNumberOfCells(opt.G, deck);
+         nc   = getNumberOfCells(opt.G, deck);
          flds = {'PVTNUM', 'SATNUM', 'SURFNUM', 'IMBNUM', 'ROCKNUM'};
-         for i = 1:numel(flds)
-             f = flds{i};
+
+         for fld = reshape(flds, 1, [])
+             f = fld{1};
+
              if isfield(opt.regionOverride, f)
                  % First check if this specific field has been overridden
                  d = expandValue(opt.regionOverride.(f), nc);
+
              elseif ~isempty(opt.singleRegion)
                  % Otherwise just use the expanded single region
                  d = expandValue(opt.singleRegion, nc);
+
              else
                  % No override found, just use whatever was in the deck
                  continue
              end
+
              % Get the maximum allowable value
              switch f
                  case 'PVTNUM'
                      maxval = deck.RUNSPEC.TABDIMS(2);
+
                  case 'SATNUM'
                      maxval = deck.RUNSPEC.TABDIMS(1);
+
                  case {'IMBNUM', 'ROCKNUM', 'SURFNUM'}
                      if isfield(deck.REGIONS, f)
                          maxval = deck.REGIONS.(f);
                      end
+
                  otherwise
                      if ischar(d)
                          maxval = inf;
@@ -107,22 +116,30 @@ switch opt.region_method
                          maxval = max(d);
                      end
              end
+
              % Sanity check
              if isnumeric(d)
-                assert(all(d <= maxval), ...
-                    ['Input override for ''', f, ''' exceeds maximum allowable value ''', num2str(maxval),'''']);
+                assert (all(d <= maxval), ...
+                       ['Input override for ''%s'' exceeds maximum ', ...
+                        'allowable value ''%f'''], f, maxval);
              end
+
              % Set INX values, used internally for the region interpolator
              reg.(f) = d;
-             inx = [f(1:end-3), 'INX'];
-             inx_v = arrayfun(@(x) find(x==d), 1:maxval, 'UniformOutput', false);
+
+             inx   = [f(1:end-3), 'INX'];
+             inx_v = arrayfun(@(x) find(x == d), 1:maxval, ...
+                              'UniformOutput', false);
 
              reg.(inx) = inx_v;
          end
+
      otherwise
          error('No such region method')
 end
+
 fluid = struct();
+
 % Properties
 props = deck.PROPS;
 
@@ -138,6 +155,7 @@ for fld = assignable_fields(fieldnames(props))
 end
 end
 
+%--------------------------------------------------------------------------
 
 function flds = assignable_fields(fnames)
    excpt = reshape(exclude_properties(), [], 1);
@@ -151,13 +169,7 @@ function flds = assignable_fields(fnames)
    flds = reshape(fnames(~ any(mtch, 2)), 1, []);
 end
 
-function nc = getNumberOfCells(G, deck)
-    if ~isempty(G)
-        nc = G.cells.num;
-    else
-        nc = sum(deck.GRID.ACTNUM);
-    end
-end
+%--------------------------------------------------------------------------
 
 function excpt = exclude_properties()
    % Properties not resulting in individual functions
@@ -173,19 +185,29 @@ function excpt = exclude_properties()
             };
 end
 
-function v = expandValue(v, nc)
-    if ischar(v)
-        assert(strcmp(v, ':'), 'Only valid char region is '':''.');
-    else
-        assert(isnumeric(v));
-        if numel(v) == 1
-            v = repmat(v, nc, 1);
-        end
-        assert(numel(v) == nc, 'Values must be provided per cell or one for entire grid.');
-    end
+%--------------------------------------------------------------------------
+
+function nc = getNumberOfCells(G, deck)
+   if ~isempty(G)
+      nc = G.cells.num;
+   else
+      nc = sum(deck.GRID.ACTNUM);
+   end
 end
 
+%--------------------------------------------------------------------------
 
+function v = expandValue(v, nc)
+   if ischar(v)
+      assert(strcmp(v, ':'), 'Only valid char region is '':''.');
+   else
+      assert(isnumeric(v));
 
+      if numel(v) == 1
+         v = repmat(v, [nc, 1]);
+      end
 
-
+      assert (numel(v) == nc, ...
+              'Values must be provided per cell or one for entire grid.');
+   end
+end
