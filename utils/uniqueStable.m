@@ -87,13 +87,15 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+
    if isempty(a)
-       [c, ia, ic] = deal([]);
-       return
+      [c, ia, ic] = deal([]);
+      return
    end
+
    if force_fallback(varargin{:}) || ...
          ~exist('verLessThan', 'file') || ...
-         verLessThan('matlab', '7.14'),
+         verLessThan('matlab', '7.14')
 
       % Caller explicitly requested that the fall-back option be used or
       % we're currently targeting an older release of MATLAB.  Feature
@@ -122,7 +124,7 @@ function [c, ia, ic] = fall_back(a, varargin)
    opt   = get_options(varargin{:});
    isrow = is_row_shape(a);
 
-   if isrow && opt.rows,
+   if isrow && opt.rows
       % UNIQUE(A, 'rows', 'stable') on row vector implies
       %
       %    C = A, IA = 1, IC = 1
@@ -131,12 +133,12 @@ function [c, ia, ic] = fall_back(a, varargin)
 
    else
 
-      if opt.rows && (ndims(a) > 2),                            %#ok<ISMAT>
+      if opt.rows && (ndims(a) > 2)                             %#ok<ISMAT>
          error('uniqueStable:Rows:NDArray', ...
                'Option ''rows'' is only supported for matrices.');
       end
 
-      if isrow || ~opt.rows,
+      if isrow || ~opt.rows
          % Row vector or 2D array without 'rows' option.  Linearise to
          % treat as column vector.
          a = reshape(a, [], 1);
@@ -158,7 +160,7 @@ function [c, ia, ic] = fall_back(a, varargin)
       ic            = zeros([size(t, 1), 1]);
       ic(t(:, end)) = rldecode(renum, n);
 
-      if isrow,
+      if isrow
          % Input was row vector.  Return row shape.
          c = reshape(c, 1, []);
       end
@@ -171,7 +173,7 @@ function opt = get_options(varargin)
    opt = struct('rows', false);
 
    if (nargin > 0) && iscellstr(varargin) && ...
-         any(strcmp(varargin, 'rows')),
+         any(strcmp(varargin, 'rows'))
       opt.rows = true;
    end
 end
