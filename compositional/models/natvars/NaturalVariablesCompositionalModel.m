@@ -143,8 +143,6 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
                     ds_relax = ds;
                     ds_relax(:, 1) = ds(:, 1).*min(dsMax./max(abs(ds(:, 1)), [], 2), 1);
                     ds_relax(:, 2:end) = ds(:, 2:end).*w;
-                    
-%                     ds_relax = bsxfun(@times, w, ds);
                 else
                     ds_relax = bsxfun(@times, w, ds);
                 end
@@ -443,24 +441,23 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
     end
     
     methods(Access=protected)
-       function [ds, dx, vars] = getSatUpdateInternal(model, name, dx, vars, twoPhase)
-        dsgix = strcmpi(vars, name);
-        if any(dsgix)
-            ds_tmp = dx{dsgix};
-            if numel(ds_tmp) == nnz(twoPhase)
-                ds = zeros(model.G.cells.num, 1);
-                ds(twoPhase) = ds_tmp;
+        function [ds, dx, vars] = getSatUpdateInternal(model, name, dx, vars, twoPhase)
+            dsgix = strcmpi(vars, name);
+            if any(dsgix)
+                ds_tmp = dx{dsgix};
+                if numel(ds_tmp) == nnz(twoPhase)
+                    ds = zeros(model.G.cells.num, 1);
+                    ds(twoPhase) = ds_tmp;
+                else
+                    assert(numel(ds_tmp) == model.G.cells.num);
+                    ds = ds_tmp;
+                end
+                [vars, removed] = model.stripVars(vars, name);
+                dx = dx(~removed);
             else
-                assert(numel(ds_tmp) == model.G.cells.num);
-                ds = ds_tmp;
+                ds = zeros(model.G.cells.num, 1);
             end
-            [vars, removed] = model.stripVars(vars, name);
-            dx = dx(~removed);
-        else
-            ds = zeros(model.G.cells.num, 1);
         end
-    end
- 
     end
 end
 

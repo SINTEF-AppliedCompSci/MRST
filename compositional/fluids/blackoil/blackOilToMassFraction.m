@@ -1,5 +1,5 @@
 function [xo, xg, yo, yg, zo, zg, rhoO, rhoG, muO, muG, freeGas] = blackOilToMassFraction(model, p, sO, sG, rs, rv)
-    % Evaluate properties
+% Evaluate properties
     fluid = model.fluid;
     rhoGS = fluid.rhoGS;
     rhoOS = fluid.rhoOS;

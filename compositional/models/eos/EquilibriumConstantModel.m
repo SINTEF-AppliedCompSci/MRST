@@ -9,20 +9,16 @@ classdef EquilibriumConstantModel < EquationOfStateModel
         function model = EquilibriumConstantModel(G, fluid, k_values)
             model = model@EquationOfStateModel(G, fluid);
             model.equilibriumConstantFunctions = k_values;
-            % Not needed and not implemented
-            model.fastDerivatives = false;
+            model.fastDerivatives = false; % Not implemented
         end
         
         function [Z_L, Z_V, f_L, f_V] = getProperties(model, P, T, x, y, z, sO, sG, varargin)
             R = 8.3144598;
             rhoL = model.PropertyModel.computeMolarDensity(P, x, nan, T, true);
             rhoV = model.PropertyModel.computeMolarDensity(P, y, nan, T, false);
-            
             assert(all(P > 0), 'Pressures must be positive!')
             Z_L = P./(rhoL.*R.*T);
             Z_V = P./(rhoV.*R.*T);
-            
-            
             if nargout < 3
                 return
             end
@@ -129,7 +125,6 @@ classdef EquilibriumConstantModel < EquationOfStateModel
             end
             state.L(stable) = double(L_est(stable) > 0.5);
             state.K = K;
-            
             report = model.makeStepReport('Converged', true);
         end
         
@@ -139,11 +134,9 @@ classdef EquilibriumConstantModel < EquationOfStateModel
             state.x = model.computeLiquid(state);
             state.y = model.computeVapor(state);
             [pureLiquid, pureVapor] = model.getFlag(state);
-            
             state.x(pureVapor, :) = state.components(pureVapor, :);
             state.y(pureLiquid, :) = state.components(pureLiquid, :);
             [state.Z_L, state.Z_V] = model.getProperties(state.pressure, state.T, state.x, state.y);
         end
-
     end
 end

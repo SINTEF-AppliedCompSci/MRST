@@ -1,6 +1,6 @@
 function L = solveRachfordRiceVLE(L, K, z, varargin)
-    % Solve Rachford Rice equations to find liquid and vapor
-    % distribution.
+% Solve Rachford Rice equations to find liquid and vapor
+% distribution.
     opt = struct('tolerance', 1e-12, ...
                  'min_z', 1e-10,...
                  'maxIterations', 100);
