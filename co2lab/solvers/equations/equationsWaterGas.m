@@ -43,10 +43,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     if ~opt.resOnly
         if ~opt.reverseMode
-            [p, sG, wellVars{:}] = initVariablesADI(p, sG, wellVars{:});
+            [p, sG, wellVars{:}] = model.AutoDiffBackend.initVariablesAD(p, sG, wellVars{:});
         else
             wellVars0 = model.FacilityModel.getAllPrimaryVariables(wellSol0);
-            [p0, sG0, wellVars0{:}] = initVariablesADI(p0, sw0, wellVars0{:}); %#ok
+            [p0, sG0, wellVars0{:}] = model.AutoDiffBackend.initVariablesAD(p0, sw0, wellVars0{:}); %#ok
         end
     end
         
@@ -75,8 +75,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         pcWG = f.pcWG(sG);
     end
     % ----------------------------------------------------------------------------
-    
-    [krW, krG] = deal(f.krW(1-sG), f.krG(sG));
+    sW = 1-sG;
+    [krW, krG] = model.evaluateRelPerm({sW, sG});
     
     % computing densities, mobilities and upstream indices
     [bW, mobW, fluxW, vW, upcw] = compMFlux(p       , f.bW, f.muW, f.rhoWS, trMult, krW, s, trans, model);
@@ -92,7 +92,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     % --------------------------- Continuity equations ---------------------------
     
-    eqs{1} = (s.pv/dt) .* (pvMult .* bW .* (1-sG) - pvMult0 .* bW0 .* (1-sG0)) + s.Div(fluxW);
+    eqs{1} = (s.pv/dt) .* (pvMult .* bW .* sW     - pvMult0 .* bW0 .* (1-sG0)) + s.Div(fluxW);
     eqs{2} = (s.pv/dt) .* (pvMult .* bG .* sG     - pvMult0 .* bG0 .* sG0    ) + s.Div(fluxG);
     
     % ---------------------------- Boundary conditions ----------------------------
@@ -107,7 +107,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     rho = {bW.*f.rhoWS, bG.*f.rhoGS};
     mob = {mobW, mobG};
-    sat = {1-sG, sG};
+    sat = {sW, sG};
     if ~isempty(drivingForces.bc) && isempty(drivingForces.bc.sat)
        drivingForces.bc.sat = repmat([1 0], numel(drivingForces.bc.face), 1);
     end
