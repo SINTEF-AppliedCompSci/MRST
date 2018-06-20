@@ -15,14 +15,18 @@ function [dx, dy, dz] = cellDimsCG(G,ix)
 n = numel(ix);
 [dx, dy, dz] = deal(zeros([n, 1]));
 ixc = G.cells.facePos;
+dim = size(G.faces.centroids, 2);
 
 for k = 1 : n
     c = ix(k);                                     % Current cell
     f = G.cells.faces(ixc(c) : ixc(c + 1) - 1, 1); % Faces on cell
-    assert(numel(f)==6);
-    [~, ff] = sortrows(abs(G.faces.normals(f,:)));
-    f = f(ff(end:-1:1));
-    dx(k) = 2*G.cells.volumes(c) / (sum(G.faces.areas(f(1:2))));
-    dy(k) = 2*G.cells.volumes(c) / (sum(G.faces.areas(f(3:4))));
-    dz(k) = 2*G.cells.volumes(c) / (sum(G.faces.areas(f(5:6))));
+    fc = G.faces.centroids(f, :);
+    delta = max(fc) - min(fc);
+    dx(k) = delta(1);
+    dy(k) = delta(2);
+    if dim > 2
+        dz(k) = delta(3);
+    else
+        dz(k) = 1;
+    end
 end
