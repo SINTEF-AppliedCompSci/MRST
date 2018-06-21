@@ -43,7 +43,11 @@ function region = getInitializationRegionsBlackOil(model, contacts, varargin)
             PC{ix} = @(S) 0*S;
         end
     end
-    ref_index = model.getPhaseIndex('O');
+    if model.oil
+        ref_index = model.getPhaseIndex('O');
+    else
+        ref_index = 1;
+    end
     
     [s_min, s_max] = getMinMaxPhaseSaturations(model, opt.cells);
     
