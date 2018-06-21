@@ -2,6 +2,7 @@ classdef TransportOilWaterModelDG < TransportOilWaterModel
     % Two phase oil/water system without dissolution
     properties
         disc
+        faceFlux2cellVelocity
     end
 
     methods
@@ -15,7 +16,21 @@ classdef TransportOilWaterModelDG < TransportOilWaterModel
             if isempty(model.disc)
                 model.disc = DGDiscretization(model, G.griddim);
             end
+
             
+            cellNo    = rldecode((1:G.cells.num)', diff(G.cells.facePos), 1);
+            faceNo = G.cells.faces(:,1);
+            X = G.faces.centroids(faceNo, :) - ...
+                G.cells.centroids(cellNo   , :);
+            sgn = 1 - 2*(cellNo ~= G.faces.neighbors(faceNo,1));
+            
+            D1 = sparse(cellNo, faceNo, X(:,1).*sgn, G.cells.num, G.faces.num)./G.cells.volumes;
+            D2 = sparse(cellNo, faceNo, X(:,2).*sgn, G.cells.num, G.faces.num)./G.cells.volumes;
+
+            
+            model.operators.D = {D1, D2};
+            model.operators.faceFlux2cellVelocity = @(v) [D1*v, D2*v];
+
 %             model.degree = 1;
 %             model.basis = 'legendre';
 % %             model.limiter = 'tvb';
