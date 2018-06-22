@@ -53,6 +53,12 @@ for i=1:numel(fieldnames(FracGrid)) % loop through every fracture
     % wt = 1;
     Ti = CIi.*(wt./(w1+w2));
     
+    % Adjust Ti for surface area. Ti was previously calculated using
+    % frac-mat intersection area. For fractures within a cell, surface area
+    % is 2*intersection. For fractures on a cell face, surface area is
+    % equal to intersection area. Refer to Tene et al. (2017) pEDFM.
+    Ti = adjustT(Ti, cellsi);
+    
     % Append data to existing nnc information
     G_global.nnc.cells=[G_global.nnc.cells;cellsi];
     G_global.nnc.type=[G_global.nnc.type;typei];
