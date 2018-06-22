@@ -349,14 +349,12 @@ classdef LinearSolverAD < handle
                 assert(nv <= n);
                 if nv < n
                     vo = [vo; (nv+1:n)'];
-                    nv = n;
                 end
             end
             if hasEq 
                 assert(ne <= n);
                 if ne < n
-                    vo = [vo; (ne+1:n)'];
-                    ne = n;
+                    eo = [eo; (ne+1:n)'];
                 end
             end
             if hasVar && hasEq
