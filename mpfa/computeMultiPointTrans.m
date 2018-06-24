@@ -89,14 +89,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    opt = merge_options(opt, varargin{:});
    opt.invertBlocks = blockInverter(opt);
 
-   if opt.verbose,
+   if opt.verbose
       fprintf('Computing mappings between for subfaces ...\t');
       t0 = tic;
    else
       t0 = [];
    end
 
-   %%
    % Enumerate sub-faces and sub-half-faces.
    % Create mappings from {cells, nodes, faces} to {subfaces, subhalffaces}.
 
@@ -104,7 +103,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    tocif(opt.verbose, t0);
 
-   if opt.verbose,
+   if opt.verbose
       fprintf('Computing inner product on sub-half-faces ...\t');
       t0 = tic;
    end
@@ -114,12 +113,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    tocif(opt.verbose, t0);
 
-   if opt.verbose,
+   if opt.verbose
       fprintf('Computing inverse mixed innerproduct ...\t');
       t0 = tic;
    end
 
-   %% Create matrices needed to compute transmissibilities
+   % Create matrices needed to compute transmissibilities
    s     = 2*(cno==g.faces.neighbors(fno,1))-1;
    D     = sparse(subhfno, subfno, 1); % Hybrid D matrix
    Do    = sparse(subhfno, subfno, s); % Mixed  D matrix
@@ -129,18 +128,29 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    % c1     = sparse(subhfno, hfno, 1);
 
    % d1 adds up sub-face contributions for each face.
+%    tmp = fno;
+%    isBF = false(g.faces.num, 1);
+%    isBF(boundaryFaces(g)) = true;
+%    tmp(isBF(fno)) = 1;
+%    tmp = ones(size(fno));
+   
+   counts = accumarray(fno, 1, [g.faces.num, 1]);
+%    counts = counts(fno);
+%    bf_counts = counts(fno);
+%    tmp(isBF(fno)) = 1./bf_counts(isBF(fno));
+%    d1     = sparse(subfno, fno, tmp);
    d1     = sparse(subfno, fno, 1);
 
    % Note that c1'*D*d1 is equal to the reglar mimetic D matrix.
 
-   %% Construct the inverse of the mixed B
+   % Construct the inverse of the mixed B
    % In the local-flux mimetic method, the mixed mass matrix DoBDo is block
    % diagonal with n_i x n_i blocks due to the special form of the hybrid
    % mass matrix.  Here n_i is the number of cells adjacent to a node in
    % the grid.
    DoBDo = Do'*B*Do;
 
-   %% Invert DoBDo
+   % Invert DoBDo
    tmp      = unique([nno, subfno], 'rows');
    p        = tmp(:,2);
    P        = sparse(1:numel(p), p, 1, numel(p), numel(p));
@@ -150,13 +160,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    tocif(opt.verbose, t0);
 
-   if opt.verbose,
+   if opt.verbose
       fprintf('Computing multi-point transmissibilities ...\t');
       t0 = tic;
    end
 
 
-   %% Compute multi-point transmissibilities
+   % Compute multi-point transmissibilities
    % for all faces in terms of cell pressures and outer boundary pressures.
   
    %T = c1'*Dm*inv(Dm'*B*Dm)*Dm'*[C, -D(:,b)*d1(b,:)];
@@ -195,9 +205,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             'd1',d1,...%mapp from mpfa faces to faces
             'R',R,...% the continuity points fo for calculating gravity contricutions
             'cno',cno,...%cno for mpfa faces
+            'counts', counts, ...
             'sb',sb...%defines the mpfa boundary faces
             );
-   %%
+   %
    % the usefull trans for  other methods are
    %Trans =d1'*iDoBDo*Do';
    % resdused Trans for neumann baundary
@@ -211,12 +222,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    rTrans = A-B*inv(D)*C;
    % reduce to internal normal
    
-   %%
+   %
    intfaces=~any(g.faces.neighbors==0,2);
    rTrans = d1(iface,intfaces)'*rTrans; % mpfa trans from cell pressure to internal fluxes
    N=g.faces.neighbors(intfaces,:);
    
-   %% gravity contributaion 
+   % gravity contributaion 
    gTrans = iDoBDo*d1; % note that this maps from gravity differences over faces including outer faces.
    % gravity trans ???
    rgTrans = gTrans(iface,:) + B*(D\gTrans(~iface,:));
@@ -231,8 +242,8 @@ end
 %--------------------------------------------------------------------------
 
 function [cno, nno, hfno, fno, subfno, subhfno] = createMapping(g)
-   %% Create mapping from sub-half-face to cell, node, face, half-face and
-   %% sub-face
+   % Create mapping from sub-half-face to cell, node, face, half-face and
+   % sub-face
    cellno   = rldecode(1:g.cells.num, diff(g.cells.facePos), 2) .';
    col      = 1+(cellno == g.faces.neighbors(g.cells.faces(:,1), 2));
    nhfaces  = g.cells.facePos(end)-1;
@@ -261,7 +272,7 @@ function [B,Rvec] = computeLocalFluxMimeticIP(g, rock, cno, fno, nno, subhfno, o
    [a, blocksz] = rlencode([cno,nno]);
    dims         = size(g.nodes.coords, 2);
    assert(all(blocksz==dims));
-   %% Expand centroid differences, normals, signs and permeabilities to
+   % Expand centroid differences, normals, signs and permeabilities to
    %  block-diagonal matrices such that B may be constructed by matrix-matrix
    %  multiplications:
    [i,j] = ndgrid(subhfno, 1:dims);
@@ -293,14 +304,14 @@ function [B,Rvec] = computeLocalFluxMimeticIP(g, rock, cno, fno, nno, subhfno, o
    K     = sparse(i,j,reshape(k(a(:,1),:)', dims, [])');
    clear k a blocksz sgn
 
-   %% Construct B : Invert diagonal blocks of size sz
+   % Construct B : Invert diagonal blocks of size sz
    d     = size(g.nodes.coords,2);       % == dims
    sz    = repmat(d, [size(R, 1)/d, 1]);
    B     = R * opt.invertBlocks(N*K, sz);
 end
 
 function B = processFaceTrans(B, g, f, t, fno)
-%% Modify B to account for face transmissibility (t) for regular faces (f)
+% Modify B to account for face transmissibility (t) for regular faces (f)
 % (a) Distribute 2*t to each half-face such that the harmonic mean
 %     equals t.  (Use 1*t for boundary faces)
 %
@@ -327,7 +338,7 @@ end
 %--------------------------------------------------------------------------
 
 function bi = blockInverter(opt)
-   if ~ischar(opt.invertBlocks),
+   if ~ischar(opt.invertBlocks)
       dispif(opt.verbose, ...
             ['Unsupported option value of type ''%s'' in ', ...
              'option ''invertBlocks''. Reset to default ' , ...
@@ -335,10 +346,10 @@ function bi = blockInverter(opt)
       opt.invertBlocks = 'matlab';
    end
 
-   switch lower(opt.invertBlocks),
-      case {'matlab', 'm', 'builtin'},
+   switch lower(opt.invertBlocks)
+      case {'matlab', 'm', 'builtin'}
          bi = @invertDiagonalBlocks;
-      case {'mex', 'c', 'accelerated'},
+      case {'mex', 'c', 'accelerated'}
          bi = @invertDiagonalBlocksMex;
       otherwise
          dispif(opt.verbose, ...
@@ -353,7 +364,7 @@ end
 
 %--------------------------------------------------------------------------
 
-%% Matlab code calling mex function invertSmallMatrices.c
+% Matlab code calling mex function invertSmallMatrices.c
 function iA = invertDiagonalBlocksMex(A, sz)
    sz     = int32(sz);
    blocks = matrixBlocksFromSparse(A, sz);
@@ -362,12 +373,12 @@ end
 
 %--------------------------------------------------------------------------
 
-%% Pure Matlab code using inv
+% Pure Matlab code using inv
 function iA = invertDiagonalBlocks(A, sz)
    V = zeros([sum(sz .^ 2), 1]);
    [p1, p2] = deal(0);
 
-   for b = 1 : numel(sz),
+   for b = 1 : numel(sz)
       n  = sz(b);
       n2 = n * n;
       i  = p1 + (1 : n);

@@ -180,7 +180,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    % hybrid mimetic method.
    [~, gg, hh, ~, dF, ~] = computePressureRHS(g, omega, ...
                                                    opt.bc, opt.src);
-   % add gravity contribution for each mpfa half face
+   
+   if any(~dF)
+       % Account for each face being subdivided
+       hh(~dF) = hh(~dF)./TT.counts(~dF);
+   end
+                                               % add gravity contribution for each mpfa half face
    grav     = -omega(TT.cno) .* (TT.R * reshape(g_vec(1:g.griddim), [], 1));  
    
    b  = any(g.faces.neighbors==0, 2);
