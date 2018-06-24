@@ -710,10 +710,6 @@ function replotPatch(varargin)
 
     plotAsVector = any(ishandle(vecToggle)) && strcmpi(get(vecToggle, 'State'), 'on');
     plotAsLine = any(ishandle(linePlotToggle)) && strcmpi(get(linePlotToggle, 'State'), 'on');
-    if sum(subset) == 0
-        disp 'Selection returned no values, will not change plot...'
-        return
-    end
 
     if strcmpi(get(caxisToggle, 'State'), 'on')
         cx = caxis();
@@ -780,7 +776,9 @@ function replotPatch(varargin)
         else
             deleteHandle(ph);
             if size(d, 1) == G.cells.num
-                ph = plotCellData(G, d, subset, 'EdgeColor', 'none', varargin{:});
+                if sum(subset)
+                    ph = plotCellData(G, d, subset, 'EdgeColor', 'none', varargin{:});
+                end
             else
                 ph = plotNodeData(G, d, 'cells', find(subset), 'EdgeColor', 'none', varargin{:});
             end
