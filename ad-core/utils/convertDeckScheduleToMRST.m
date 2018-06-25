@@ -46,8 +46,9 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    opt = struct('StepLimit', inf, ...
-                 'useCpGeometry', true, ...
+    opt = struct('StepLimit',        inf, ...
+                 'useCpGeometry',    true, ...
+                 'DepthReorder',     false, ...
                  'EnsureConsistent', true);
     [opt, wellArg] = merge_options(opt, varargin{:});
 
@@ -92,7 +93,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     for i = 1:nc
         % Parse well
-        W = processWells(model.G, model.rock, scheduleDeck.control(i), wellArg{:}, 'cellDims', cellDims);
+        W = processWells(model.G, model.rock, scheduleDeck.control(i), 'DepthReorder', opt.DepthReorder, wellArg{:}, 'cellDims', cellDims);
         
         for j = 1:numel(W)
             c = [W(j).compi, 0];
@@ -117,6 +118,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     
     if opt.EnsureConsistent
-        scheduleMRST = makeScheduleConsistent(scheduleMRST);
+        scheduleMRST = makeScheduleConsistent(scheduleMRST, 'DepthReorder', opt.DepthReorder);
     end
 end

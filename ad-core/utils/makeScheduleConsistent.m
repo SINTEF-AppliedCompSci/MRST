@@ -41,6 +41,7 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
     opt = struct('perforationFields', {{'WI', 'dZ'}}, ...
+                 'DepthReorder',      false, ...
                  'fixSign',           true);
 
     opt = merge_options(opt, varargin{:});
@@ -80,7 +81,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             if ~(numel(c) == numel(c_all) && all(c == c_all))
                 % The perforations have changed
                 cellsChangedFlag(ind_all) = true; %#ok
-                W_all(ind_all).cells = remapIndices(c_all, c); %#ok
+                if opt.DepthReorder
+                    new_cells = [c_all; c];
+                    dz = [W_all(ind_all).dZ; W(other(j)).dZ];
+                    [~, order] = sort(dz);
+                    new_cells = uniqueStable(new_cells(order));
+                else
+                    new_cells = mergeOrderedArrays(c_all, c);
+                end
+                W_all(ind_all).cells = new_cells;%#ok
             end
         end
         
@@ -137,16 +146,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 end
                 
                 W_all(j).cstatus = ismember(W_all(j).cells, w.cells(w.cstatus)); %#ok
-                
                 for k = 1:numel(perffields)
                     pf = perffields{k};
                     % Take the values from the active perforations
-                    W_all(j).(pf)(isActivePerf, :) = W(sub).(pf); %#ok
+                    if any(isActivePerf)
+                        W_all(j).(pf)(isActivePerf, :) = W(sub).(pf);
+                    end
                 end
                 % Treat rest of the fields, whatever they may be
                 for k = 1:numel(restfields)
                     fn = restfields{k};
-                    W_all(j).(fn) = W(sub).(fn); %#ok
+                    W_all(j).(fn) = W(sub).(fn);
                 end
                 
                 if ~passed(j) && W_all(j).status
@@ -177,55 +187,3 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 end
 
-function ind = remapIndices(old, new)
-    % Merge two sets of cells that are similar in that they may contain
-    % elements from the same superset in the same order, but each set may
-    % be missing one or more elements that the other has.
-    %
-    % This is done by having two simple pointers that are incremented as we
-    % go along trying to merge the two sets.
-    N = numel(unique([old; new]));
-    
-    if isempty(old)
-        ind = new;
-        return
-    elseif isempty(new)
-        ind = old;
-        return
-    end
-    ind = nan(N, 1);
-    
-    iOld = 1;
-    iNew = 1;
-    for i = 1:N
-        nv = new(iNew);
-        no = old(iOld);
-        
-        if nv == no
-            ind(i) = nv;
-            iNew = iNew + 1;
-            iOld = iOld + 1;
-        else
-            oOld = searchForward(old(iOld+1:end), nv);
-            oNew = searchForward(new(iNew+1:end), no);
-            
-            if isinf(oNew)
-                ind(i) = no;
-                iOld = iOld + 1;
-            elseif isinf(oOld)
-                ind(i) = nv;
-                iNew = iNew + 1;
-            else
-                error('Unable to correctly reassign indices based on given data. Consider sorting them first.')
-            end
-            assert(~(isinf(oOld) && isinf(oNew)));
-        end
-    end
-end
-
-function offset = searchForward(d, i)
-    offset = find(d == i);
-    if isempty(offset)
-        offset = inf;
-    end
-end

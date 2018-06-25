@@ -86,8 +86,10 @@ classdef FacilityModel < PhysicalModel
                 [pvars, fromRes, eqnames, eqtypes] = deal(cell(nw, 1));
                 model.WellModels = cell(nw, 1);
                 for i = 1:nw
-                    assert(numel(W(i).val) == 1, ...
-                        'Bad controls for well %d: One value must be specified for .val', i);
+                    if W(i).status
+                        assert(numel(W(i).val) == 1, ...
+                            'Bad controls for well %d: One value must be specified for .val', i);
+                    end
                     % Set up models: SimpleWell or MultisegmentWell
                     if nargin < 3
                         if isfield(W(i), 'isMS') && W(i).isMS
