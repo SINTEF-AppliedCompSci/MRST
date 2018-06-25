@@ -17,10 +17,10 @@ classdef LineCubature < Cubature
             cub.weights = w;
             cub.numPoints = n;
             cub.linNo = linNo;
+            cub.dim = 1;
             
             
             cub.parentPos = (0:cub.numPoints:cub.numPoints*G.faces.num)' + 1;
-%             cub.parentPos = [0; cumsum(diff(G.cells.facePos).*cub.numPoints)] + 1;
             
         end
         

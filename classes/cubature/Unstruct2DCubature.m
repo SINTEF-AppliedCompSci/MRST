@@ -25,6 +25,14 @@ classdef Unstruct2DCubature < Cubature
             end
             cub.parentPos = (0:cub.numPoints:numParents*cub.numPoints)' + 1;
 %             cub.parentPos = [0; cumsum(cub.triangulation.nTri*cub.numPoints)] + 1;
+            if G.griddim == 2
+                elements = (1:G.cells.num)';
+                type = 'cell';
+            else
+                elements = (1:G.faces.num)';
+                type = 'face';
+            end
+            W = cub.getCubature(elements, type);
             
         end
         
@@ -89,6 +97,14 @@ classdef Unstruct2DCubature < Cubature
             
             n = size(x,1);
             
+            if G.griddim > cub.dim
+                    type = 'face';
+                    elements = 1:G.faces.num;
+                else
+                    type = 'cell';
+                    elements = 1:G.cells.num;
+                end
+            
             if cub.prescision > 1
                 
                 dim = 2;
@@ -97,15 +113,8 @@ classdef Unstruct2DCubature < Cubature
                 psi = basis.psi;
                 nDof = basis.nDof;
                 P = reshape(cell2mat(cellfun(@(p) p(x), psi, 'unif', false)), nDof, nDof)';
-                
-                if G.griddim > cub.dim
-                    type = 'face';
-                    elements = 1:G.faces.num;
-                else
-                    type = 'cell';
-                    elements = 1:G.cells.num;
-                end
-                [xq, w, ii, jj, cellNo, faceNo] = cubTri.getCubature(elements, type);
+
+                [W, xq, w, ii, jj, cellNo, faceNo] = cubTri.getCubature(elements, type);
                 
                 if G.griddim == 3
                     xq = cub.map2face(xq, faceNo);
@@ -137,14 +146,11 @@ classdef Unstruct2DCubature < Cubature
             if strcmp(type, 'face')
                 
                 faceNo = reshape(repmat((1:G.faces.num), n, 1), [], 1);
-%                 xc = G.faces.centroids(faceNo,:);
-%                 dx = G.faces.dx(faceNo,:);
                 vec1 = G.faces.coordSys{1}(faceNo,:);
                 vec2 = G.faces.coordSys{2}(faceNo,:);
             
                 x = repmat(x, G.faces.num, 1).*(G.faces.dx(faceNo,:)/2);
                 x = x(:,1).*vec1 + x(:,2).*vec2;
-%                 x = [sum(x.*vec1,2), sum(x.*vec2, 2)];
                 
                 x = x + G.faces.centroids(faceNo,:);
                 
