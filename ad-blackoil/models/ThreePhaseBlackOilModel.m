@@ -105,6 +105,10 @@ methods
             clear fn
         end
     end
+    % --------------------------------------------------------------------%
+    function [model, state] = prepareTimestep(model, state, state0, dt, drivingForces)
+        [model, state] = prepareTimestep@ReservoirModel(model, state, state0, dt, drivingForces);
+    end
 
     % --------------------------------------------------------------------%
     function [state, report] = updateState(model, state, problem, dx, drivingForces)

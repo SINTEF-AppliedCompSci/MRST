@@ -865,6 +865,83 @@ classdef FacilityModel < PhysicalModel
             isVarWell = rldecode((1:nnz(act))', counts);
         end
 
+        function [model, state] = prepareTimestep(model, state0, state, dt, drivingForces)
+            active = model.getWellStatusMask(state.wellSol);
+            isResv = cellfun(@(x) strcmpi(x.W.type, 'resv'), model.WellModels(active));
+            if any(isResv)
+                W = model.getWellStruct(active);
+                compi = vertcat(W.compi);
+                compi = compi(isResv, :);
+                
+                rates = vertcat(W.val);
+                rates = rates(isResv);
+                
+                qs = bsxfun(@times, rates, compi);
+                
+                newRates = 0*rates;
+                p = mean(state0.pressure);
+                rmodel = model.ReservoirModel;
+                
+                disgas = isprop(rmodel, 'disgas') && rmodel.disgas;
+                vapoil = isprop(rmodel, 'vapoil') && rmodel.vapoil;
+                oix = rmodel.getPhaseIndex('O');
+                gix = rmodel.getPhaseIndex('G');
+                wix = rmodel.getPhaseIndex('W');
+                f = rmodel.fluid;
+                if disgas
+                    mrs = repmat(mean(state.rs), sum(isResv));
+                    rs = min(qs(:, gix)./qs(:, oix), mean(state.rs));
+                end
+                if vapoil
+                    mrv = repmat(mean(state.rv), sum(isResv));
+                    rv = min(qs(:, oix)./qs(:, gix), mrv);
+                end
+                
+                if disgas && vapoil
+                    shrink = 1 - rs.*rv;
+                else
+                    shrink = 1;
+                end
+                
+                if rmodel.water
+                    bW = f.bW(p);
+                    newRates = newRates + qs(:, wix)./bW;
+                end
+                if rmodel.oil
+                    if disgas
+                        bO = f.bO(p, rs, rs >= f.rsSat(p));
+                    else
+                        bO = f.bO(p);
+                    end
+                    orat = qs(:, oix);
+                    if vapoil
+                        orat = orat - rv.*qs(:, gix);
+                    end
+                    newRates = newRates + orat./(bO.*shrink);
+                end
+                if rmodel.gas
+                    if vapoil
+                        bG = f.bG(p, rv, rv >= f.rvSat(p));
+                    else
+                        bG = f.bG(p);
+                    end
+                    grat = qs(:, gix);
+                    if vapoil
+                        grat = grat - rs.*qs(:, oix);
+                    end
+                    newRates = newRates + grat./(bG.*shrink);
+                end
+                resvIx = find(isResv);
+                actIx = find(active);
+                for i = 1:numel(resvIx)
+                    global_well_ix = actIx(resvIx(i));
+                    model.WellModels{global_well_ix}.W.val = newRates(i);
+                    model.WellModels{global_well_ix}.W.type = 'rate';
+                    state.wellSol(global_well_ix).type = 'rate';
+                end
+            end
+        end
+        
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
             % Get stand-alone equations for the wells
             %

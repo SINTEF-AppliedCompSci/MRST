@@ -137,6 +137,7 @@ methods
         if ~isempty(drivingForces.W)
             assert(~isempty(model.FacilityModel), ...
             'FacilityModel not set up. Call model.validateModel before calling equations with wells.');
+            [model.FacilityModel, state] = model.FacilityModel.prepareTimestep(state, state0, dt, drivingForces);
         end
     end
 

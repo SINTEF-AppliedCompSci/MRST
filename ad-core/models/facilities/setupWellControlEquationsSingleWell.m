@@ -109,8 +109,6 @@ else
                 eq = qt_s;
             end
         case 'thp'
-            disp(type)
-            
             vfp = well.VFPTable;
             switch lower(vfp.flowType)
                 case 'oil'
