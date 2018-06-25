@@ -8,6 +8,8 @@ classdef DGDiscretization < HyperbolicDiscretization
         volumeCubature
         surfaceCubature
         useUnstructCubature
+        jumpTolerance
+        outTolerance
         
     end
     
@@ -21,6 +23,8 @@ classdef DGDiscretization < HyperbolicDiscretization
             disc.dim    = dim;
             disc.degree = 1;
             disc.basis  = 'legendre';
+            disc.jumpTolerance = 0.2;
+            disc.outTolerance = 1e-4;
             disc.useUnstructCubature = false;
             
             disc        = merge_options(disc, varargin{:});
@@ -45,6 +49,10 @@ classdef DGDiscretization < HyperbolicDiscretization
                     disc.surfaceCubature = TriangleCubature(disc.G, disc.degree + 1, disc.internalConn);
                 end
             end
+            [W, x, w, ii, jj, cellNo] = disc.volumeCubature.getCubature((1:G.cells.num)', 'cell');
+            disc.volumeCubature.W = W;
+            [W, x, w, ii, jj, cellNo] = disc.surfaceCubature.getCubature((1:G.cells.num)', 'cellsurface');
+            disc.surfaceCubature.W = W;
             
         end
         
@@ -211,8 +219,11 @@ classdef DGDiscretization < HyperbolicDiscretization
         %-----------------------------------------------------------------%
         function state = getCellSaturation(disc, state)
             
-            [x, w, nq, ii, jj, cellNo] = makeCellIntegrator(disc.G, (1:disc.G.cells.num)', max(disc.degree), 'volume');
-            W = sparse(ii, jj, w);
+            
+            [W, x, cellNo, faceNo] = disc.getCubature((1:disc.G.cells.num)', 'volume');
+%             getCubature(disc, cells, type)
+%             [x, w, nq, ii, jj, cellNo] = makeCellIntegrator(disc.G, (1:disc.G.cells.num)', max(disc.degree), 'volume');
+%             W = sparse(ii, jj, w);
 
             x = disc.transformCoords(x, cellNo);
             
@@ -227,6 +238,11 @@ classdef DGDiscretization < HyperbolicDiscretization
             
         end
         
+%         %-----------------------------------------------------------------%        
+%         function 
+%             
+%         end
+        
         %-----------------------------------------------------------------%
         function I = cellInt(disc, integrand, f, cells, sdof, sdof0, state, state0)
         
@@ -236,15 +252,29 @@ classdef DGDiscretization < HyperbolicDiscretization
             nDof = state.nDof;
             nDofMax = disc.basis.nDof;
             
+%             cubature = disc.volumeCubature;
+%             ix = mcolon(cubature.parentPos(cells), cubature.parentPos(cells+1)-1);
+%                     
+%             nq = diff(cubature.parentPos);
+%             nq = nq(cells);
+%                     
+%             cellNo = rldecode(cells, nq, 1);
+%             x = cubature.points(ix,:);
+%             W = cubature.W(cells,ix);
+            
+            [W, x, cellNo, faceNo] = disc.getCubature(cells, 'volume');
+            
 %             [x, w, nq, ii, jj, cellNo] = makeCellIntegrator(G, cells, max(disc.degree+1), 'volume');
 %             W = sparse(ii, jj, w);
             
 %             [x, w, nq, ii, jj, cellNo] = makeCubature(disc, cells);x
-            [x, w, ii, jj, cellNo] = disc.getCubature(cells, 'volume');
+%             [W, x, w, ii, jj, cellNo] = disc.getCubature(cells, 'volume');
+%             W = disc.volumeCubature.W;
+%             cellNo = disc.volumeCubature.parentPos
             
-            W = sparse(ii, jj, w);
+%             W = sparse(ii, jj, w);
             [x, ~, scaling] = disc.transformCoords(x, cellNo);
-            
+
             s  = disc.evaluateSaturation(x, cellNo , sdof , state );
             s0 = disc.evaluateSaturation(x, cellNo, sdof0, state0);
             f = f(s, cellNo);
@@ -338,11 +368,21 @@ classdef DGDiscretization < HyperbolicDiscretization
             upCells_v = G.faces.neighbors(:,2);
             intf      = find(disc.internalConn);
             upCells_v(intf(upc)) = disc.N(upc,1);
-                
-            [x, w, ii, jj, cellNo, faceNo] = disc.getCubature(cells, 'surface');
+            
+%             cubature = disc.surfaceCubature;
+%             ix = mcolon(cubature.parentPos(cells), cubature.parentPos(cells+1)-1);
+%                     
+%             nq = diff(cubature.parentPos);
+%             nq = nq(cells);
+%                     
+%             cellNo = rldecode(cells, nq, 1);
+%             x = cubature.points(ix,:);
+%             W = cubature.W(cells,ix);
+            
+            [W, x, cellNo, faceNo] = disc.getCubature(cells, 'surface');
             
 %             [x, w, nq, ii, jj, cellNo, faceNo] = makeCellIntegrator(G, cells, max(disc.degree+1), 'surface');
-            W = sparse(ii, jj, w);
+%             W = sparse(ii, jj, w);
             
             upCells_v = upCells_v(faceNo);
             upCells_G = upCells_v;
@@ -383,7 +423,7 @@ classdef DGDiscretization < HyperbolicDiscretization
         
         
         %-----------------------------------------------------------------%
-        function [x, w, ii, jj, cellNo, faceNo] = getCubature(disc, cells, type)
+        function [W, x, cellNo, faceNo] = getCubature(disc, cells, type)
             
             if size(cells,1) == 1, cells = cells'; end
             
@@ -392,13 +432,14 @@ classdef DGDiscretization < HyperbolicDiscretization
                     
                     cubature = disc.volumeCubature;
                     ix = mcolon(cubature.parentPos(cells), cubature.parentPos(cells+1)-1);
-                    
+                    ixf = ix;
                     nq = diff(cubature.parentPos);
                     nq = nq(cells);
                     
                     cellNo = rldecode(cells, nq, 1);
                     faceNo = [];
-                    sign   = ones(numel(ix),1);
+
+%                     sgn   = ones(numel(ix),1);
                     
                 case 'surface'
                     
@@ -415,14 +456,19 @@ classdef DGDiscretization < HyperbolicDiscretization
                     
                     cellNo = rldecode(cells, nq);
                     faceNo = rldecode(faces, nqf(faces), 1);
-                    sign   = 1 - 2*(G.faces.neighbors(faceNo,1) ~= cellNo);
+%                     sgn   = 1 - 2*(G.faces.neighbors(faceNo,1) ~= cellNo);
+                    
+                    ixf = nan(numel(ix),1);
+                    ixf(disc.internalConn(faceNo)) = 1:nnz(disc.internalConn(faceNo));
                     
             end
             
             x = cubature.points(ix, :);
-            w = cubature.weights(ix).*sign;
-            [ii, jj] = blockDiagIndex(ones(numel(cells),1), nq);
-                        
+%             w = cubature.weights(ix).*sgn;
+%             [ii, jj] = blockDiagIndex(ones(numel(cells),1), nq);
+%             W = sparse(ii, jj, w);
+            W = cubature.W(cells, ixf);
+            
         end
         
         %-----------------------------------------------------------------%
@@ -476,7 +522,7 @@ classdef DGDiscretization < HyperbolicDiscretization
             
             jump = abs(s(xf_l, c_l) - s(xf_r, c_r));
             
-            jump = accumarray(cells, jump > 0.1) > 0;
+            jump = accumarray(cells, jump > disc.jumpTolerance) > 0;
             
             
         end
@@ -491,15 +537,14 @@ classdef DGDiscretization < HyperbolicDiscretization
             
             jump = disc.getInterfaceJumps(state);
             
-            tol = 1e-4;
+%             tol = 1e-4;
 %             tol = 0;
-            over  = smax > 1 + tol;
-            under = smin < 0 - tol;
+            over  = smax > 1 + disc.outTolerance;
+            under = smin < 0 - disc.outTolerance;
             
             outside = over | under;
             bad     = outside | jump;
-%             bad = jump;
-            
+
             state.outside = outside;
             state.jump = jump;
 
@@ -593,7 +638,7 @@ classdef DGDiscretization < HyperbolicDiscretization
                 
             elseif disc.dim == 2
                 
-                n = 10;
+                n = 10; 
                 xx = linspace(-1, 1, n);
                 [xx, yy] = ndgrid(xx);
                 xx = [xx(:), yy(:)];

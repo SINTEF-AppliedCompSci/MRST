@@ -20,19 +20,27 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
         
     assert(~(opt.solveForWater && opt.solveForOil));
     
-    
     if opt.iteration == 1
-        
+        % If we are at the first iteration, we try to solve using maximum
+        % degree in all cells
         state.degree = repmat(disc.degree, G.cells.num, 1);
+        % For cells that previously had less than nDof unknowns, we must
+        % map old dofs to new
         state        = disc.mapDofs(state, state0);
         
     end
+    % Update discretizaiton information. This is carried by the state
+    % variable, and holds the number of dofs per state + dof position in
+    % state.sdof
     state = disc.updateDisc(state);
+    state = disc.getCellSaturation(state);
     
-
+    % Properties from current timestep
     [p , sWdof , wellSol] = model.getProps(state , 'pressure', 'water', 'wellsol');
+    % Properties from previous timestep
     [p0, sWdof0         ] = model.getProps(state0, 'pressure', 'water'           );
-
+    sW = state.s(:,1);
+    
     % If timestep has been split relative to pressure, linearly interpolate in
     % pressure.
     pFlow = p;
@@ -43,9 +51,9 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     
     %Initialization of independent variables ------------------------------
 
-    if ~opt.resOnly,
+    if ~opt.resOnly
         % ADI variables needed since we are not only computing residuals.
-        if ~opt.reverseMode,
+        if ~opt.reverseMode
             sWdof = model.AutoDiffBackend.initVariablesAD(sWdof);
         else
             assert(0, 'Backwards solver not supported for splitting');
@@ -54,68 +62,73 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     
     % ---------------------------------------------------------------------
 
+    % We will soclve for water saturation dofs
     primaryVars = {'sWdof'};
-    nDof = state.nDof;
-    
-    % Express sW and sW0 in basis
-    sW  = @(x,c) disc.evaluateSaturation(x, c, sWdof , state );
-    sW0 = @(x,c) disc.evaluateSaturation(x, c, sWdof0, state0);
-    sO  = @(x,c) 1-sW(x,c);
-    
+    nDof        = state.nDof;
+
+    % Get multipliers
     [pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
+    pvMult  = expandSingleValue(pvMult, G);
+    pvMult0 = expandSingleValue(pvMult0, G);
+    mobMult = expandSingleValue(mobMult, G);
     T = op.T.*transMult;
-    gdz = 0;
-    [vW, bW, mobW, rhoW, pW, upcW, dpW, muW] = getPropsWater_DG(model, p, sW, T, gdz);
+    
+    % Phase properties
+    sO  = 1 - sW;
+    gdz = model.getGravityGradient();
+    
+    [vW, bW, mobW, rhoW, pW, upcW, dpW, muW] = getPropsWater_DG(model, p, sW, T, gdz, mobMult);
+    [vO, bO, mobO, rhoO, pO, upcO, dpO, muO] = getPropsOil_DG(model, p, sO, T, gdz, mobMult);
+    
+    % Fractional flow function
+%     fW = @(sW, cW, cO) mobW(sW, cW)./(mobW(sW, cW) + mobO(1-sW, cO));
+    fW = @(sW, c) mobW(sW, c)./(mobW(sW, c) + mobO(1-sW, c));
+    
     bW0 = fluid.bW(p0);
     
-    [vO, bO, mobO, rhoO, pO, upcO, dpO, muO] = getPropsOil_DG(model, p, sO, T, gdz);
-    
-    % Accumulation term----------------------------------------------------
-    
-    if numel(pvMult) == 1
-        pvMult = repmat(pvMult, G.cells.num,1);
-    end
-    if numel(pvMult0) == 1
-        pvMult0 = repmat(pvMult0, G.cells.num,1);
-    end
-    
-    acc = @(sW, sW0, c, psi) (pvMult (c).*rock.poro(c).*bW (c).*sW - ...
-                              pvMult0(c).*rock.poro(c).*bW0(c).*sW0).*psi/dt;
-    
-    % Flux term------------------------------------------------------------
-    
-    vT  = sum(state.flux,2);
-    
-    vTc = faceFlux2cellVelocity(G, vT);
-%     vTc = disc.faceFlux2cellVelocity(model, vT);
-    
     gp = op.Grad(p);
-    
     [Gw, Go] = deal(zeros(G.faces.num, 1));
     Gw(op.internalConn) = op.T.*(gp - dpW);
     Go(op.internalConn) = op.T.*(gp - dpO);
     
-    Gwc = faceFlux2cellVelocity(G, Gw);
-    Goc = faceFlux2cellVelocity(G, Go);
-
-    fW = @(sW, c) mobW(sW, c)./(mobW(sW, c) + mobO(1-sW, c));
-
-%     flux1 = @(sW,c,grad_psi) bW(c).*fW(sW, c).*sum(vTc(c,:).*grad_psi,2) ...
-%                  + bO(c).*fW(sW, c).*sum((Gwc(c,:) - Goc(c,:)).*grad_psi,2);
-             
-    flux1 = @(sW,fW,c,grad_psi) bW(c).*fW.*sum(vTc(c,:).*grad_psi,2) ...
-                 + bO(c).*fW.*sum((Gwc(c,:) - Goc(c,:)).*grad_psi,2);
-
-%     cellIntegral = disc.cellInt(@(sW, sW0, c, psi, grad_psi) ...
-%         acc(sW, sW0, c, psi) - flux1(sW,c,grad_psi), (1:G.cells.num)', sWdof, sWdof0, state, state0);
-
-    cellIntegral = disc.cellInt(@(sW, sW0, fW, c, psi, grad_psi) ...
-        acc(sW, sW0, c, psi) - flux1(sW, fW, c,grad_psi), fW, (1:G.cells.num)', sWdof, sWdof0, state, state0);
+    vT  = sum(state.flux,2);
     
-%     flux2 = @(sWv, sWg, c, cv, cg, f, psi) ...
-%         (bW(cg).*fW(sWv, cv).*vT(f)./G.faces.areas(f) ...
-%        + bO(cg).*fW(sWg, cg).*mobO(sWg,cg).*(Gw(f) - Go(f))).*psi;
-   
+    Gwc = op.faceFlux2cellVelocity(Gw);
+    Goc = op.faceFlux2cellVelocity(Go);
+    vTc = op.faceFlux2cellVelocity(vT);
+    
+    % Upstream cells-------------------------------------------------------
+    
+    cells = (1:G.cells.num)';
+
+    [flag_v, flag_g] = getSaturationUpwind(model.upwindType, state, ...
+                            {Gw(op.internalConn), Go(op.internalConn)}, ...
+                            vT(op.internalConn), op.T, ...
+                            {mobW(sW, cells), mobO(sO, cells)}, op.faceUpstr);
+    flag = flag_v;
+
+    upcW  = flag(:, 1);
+    upcO  = flag(:, 2);
+
+    upcW_G = flag_g(:, 1);
+    upcO_G = flag_g(:, 2);
+    
+    % Cell integrand functions---------------------------------------------
+    
+    % Accumulation term
+    acc = @(sW, sW0, c, psi) (pvMult (c).*rock.poro(c).*bW (c).*sW - ...
+                              pvMult0(c).*rock.poro(c).*bW0(c).*sW0).*psi/dt;
+                          
+    % Flux term         
+    flux1 = @(fW,c,grad_psi) bW(c).*fW.*sum(vTc(c,:).*grad_psi,2) ...
+                   + bO(c).*fW.*sum((Gwc(c,:) - Goc(c,:)).*grad_psi,2);
+
+    cellIntegrand = disc.cellInt(@(sW, sW0, fW, c, psi, grad_psi) ...
+        acc(sW, sW0, c, psi) - flux1(fW, c,grad_psi), fW, (1:G.cells.num)', sWdof, sWdof0, state, state0);
+
+    % Surface integrand functions------------------------------------------
+    
+    % Flux term
     flux2 = @(fWv, fWg, sWv, sWg, c, cv, cg, f, psi) ...
         (bW(cg).*fWv.*vT(f)./G.faces.areas(f) ...
        + bO(cg).*fWg.*mobO(sWg,cg).*(Gw(f) - Go(f))).*psi;
@@ -124,7 +137,7 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
   
     % Water equation-------------------------------------------------------
 
-    water = cellIntegral + faceIntegral;
+    water = cellIntegrand + faceIntegral;
 
     % Well contributions---------------------------------------------------
     
@@ -139,16 +152,11 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
         compWell = vertcat(W.compi);
         compPerf = zeros(G.cells.num, 2);
         compPerf(wc,:) = compWell(perf2well,:);
-
-%         integrand = @(sW, sW0, c, psi, grad_psi) ...
-%             bW(c).*wflux(c).*(fW(sW, c)     .*(~isInj(c)) ...
-%                             + compPerf(c,1).*( isInj(c))).*psi;
         
         integrand = @(sW, sW0, fW, c, psi, grad_psi) ...
             bW(c).*wflux(c).*(fW     .*(~isInj(c)) ...
                             + compPerf(c,1).*( isInj(c))).*psi;
-                        
-%         prod = disc.cellInt(integrand, wc, sWdof, sWdof0, state, state0);
+
         prod = disc.cellInt(integrand, fW, wc, sWdof, sWdof0, state, state0);
         
         vol = rldecode(G.cells.volumes(wc), nDof(wc), 1);
@@ -185,7 +193,6 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     state.cfl = dt.*sum(abs(vTc)./G.cells.dx,2);
     
     % Add sources
-    
     src = drivingForces.src;
     if ~isempty(src)
         cells = src.cell;
@@ -216,5 +223,17 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     end
 
     problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
+    
+    if 1
+        state.problem = problem;
+    end
 
+end
+
+function v = expandSingleValue(v,G)
+
+    if numel(v) == 1
+        v = v*ones(G.cells.num,1);
+    end
+    
 end

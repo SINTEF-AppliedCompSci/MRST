@@ -60,7 +60,7 @@ classdef TransportOilWaterModelDG < TransportOilWaterModel
             case {'water', 'swdof'}
                 index = 1;
                 fn = 'sdof';
-            case {'oil', 'swodof'}
+            case {'oil', 'sodof'}
                 index = 2;
                 fn = 'sdof';
             case{'saturation', 'sdof'}
@@ -73,6 +73,7 @@ classdef TransportOilWaterModelDG < TransportOilWaterModel
         end
 
         function vars = getSaturationVarNames(model)
+%             vars = {'sW', 'sO'};
             vars = {'sWdof', 'sOdof'};
             ph = model.getActivePhases();
             vars = vars(ph);
