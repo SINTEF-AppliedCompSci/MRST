@@ -1,4 +1,4 @@
-mrstModule add dg vem vemmech ad-props ad-core ad-blackoil blackoil-sequential gasinjection
+mrstModule add dg vem vemmech ad-props ad-core ad-blackoil blackoil-sequential gasinjection reorder matlab_bgl
 
 %%
 
@@ -36,7 +36,7 @@ state0 = initResSol(G, 100*barsa, [sW,1-sW]);
 %%
 
 degree = 1;
-disc   = DGDiscretization(modelDG.transportModel, 2, 'degree', degree(dNo), ...
+disc   = DGDiscretization(modelDG.transportModel, 2, 'degree', degree, ...
                          'basis', 'legendre', 'useUnstructCubature', true);
 modelDG.transportModel = TransportOilWaterModelDG(G, rock, fluid, 'disc', disc);    
 
@@ -50,7 +50,7 @@ modelDGreorder.pressureModel.extraStateOutput = true;
 
 modelDGreorder.transportModel = ReorderingModel(modelDGreorder.transportModel);
 
-modelDGreorder.transportModel.chunkSize = 250;
+modelDGreorder.transportModel.chunkSize = 1;
 modelDGreorder.transportModel.parent.extraStateOutput = true;
 
 

@@ -1,4 +1,4 @@
-mrstModule add dg vem vemmech ad-props ad-core ad-blackoil blackoil-sequential gasinjection
+mrstModule add dg vem vemmech ad-props ad-core ad-blackoil blackoil-sequential gasinjection mrst-gui
 
 %%
 
@@ -39,10 +39,13 @@ state0 = initResSol(G, 100*barsa, [sW,1-sW]);
 
 %%
 
-degree = [1];
+degree = [1, 2];
+% degree = 2;
+jt = 0.05;
+ot = Inf;
 statesDG = cell(numel(degree),1);
 for dNo = 1:numel(degree)
-    disc    = DGDiscretization(modelDG.transportModel, 2, 'degree', degree(dNo), 'basis', 'legendre', 'useUnstructCubature', true);
+    disc = DGDiscretization(modelDG.transportModel, 2, 'degree', degree(dNo), 'basis', 'legendre', 'useUnstructCubature', false, 'jumpTolerance', jt, 'outTolerance', ot);
     modelDG.transportModel = TransportOilWaterModelDG(G, rock, fluid, 'disc', disc);    
 
     state0 = assignDofFromState(modelDG.transportModel.disc, state0);
