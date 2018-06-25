@@ -1,13 +1,16 @@
 function f = assignSPECROCK(f, specheat, reg)
    % Compute tables (static data)
    tab = cellfun(@(x)x(:,[1,2]), specheat, 'UniformOutput', false);
+    %NB the table is of spesific heat the energy is then the integral but we
+    % neglect this
    f.eR =@(T,varargin) func(T,tab,reg,varargin{:});
 end
 function v = func(x, tab, reg, varargin)
-inx = getRegMap(x, reg.ROCKNUM, reg.ROCKINX, varargin{:});
-T = cellfun(@(x)x(:,[1,2]), tab, 'UniformOutput', false);
-T = extendTab(T);
-v = interpReg(T, x, inx);
+    inx = getRegMap(x, reg.ROCKNUM, reg.ROCKINX, varargin{:});
+    T = cellfun(@(x)x(:,[1,2]), tab, 'UniformOutput', false);
+    T = extendTab(T);
+    v = interpReg(T, x, inx);
+    v = v.*x;
 end
 
 %{

@@ -1,20 +1,13 @@
-function f = assignSPECHEAT(f, specheat, reg)
+function f = assignWATERVIST(f, table, reg)
    % Compute tables (static data)
-   kn =  {'uG','uW','uO'}
-   for i = 1:3 
-     tab = cellfun(@(x)x(:,[1,1+i]), specheat, 'UniformOutput', false);
-     %NB the table is of spesific heat the energy is then the integral but we
-     % neglect this
-     f.(kn{i}) =@(T,varargin) func(T,tab,reg,varargin{:});
-   end
+   tab = cellfun(@(x)x(:,[1,2]), table, 'UniformOutput', false);
+   f.muWT =@(T,varargin) func(T,tab,reg,varargin{:});
 end
 function v = func(x, tab, reg, varargin)
-inx = getRegMap(x, reg.SATNUM, reg.SATINX, varargin{:});
+inx = getRegMap(x, reg.SATNUM, reg.SATKINX, varargin{:});
 T = cellfun(@(x)x(:,[1,2]), tab, 'UniformOutput', false);
 T = extendTab(T);
 v = interpReg(T, x, inx);
-%NB
-v=v.*x;
 end
 
 %{

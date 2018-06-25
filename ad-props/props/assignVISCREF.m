@@ -1,20 +1,9 @@
-function f = assignSPECHEAT(f, specheat, reg)
-   % Compute tables (static data)
-   kn =  {'uG','uW','uO'}
-   for i = 1:3 
-     tab = cellfun(@(x)x(:,[1,1+i]), specheat, 'UniformOutput', false);
-     %NB the table is of spesific heat the energy is then the integral but we
-     % neglect this
-     f.(kn{i}) =@(T,varargin) func(T,tab,reg,varargin{:});
-   end
-end
-function v = func(x, tab, reg, varargin)
-inx = getRegMap(x, reg.SATNUM, reg.SATINX, varargin{:});
-T = cellfun(@(x)x(:,[1,2]), tab, 'UniformOutput', false);
-T = extendTab(T);
-v = interpReg(T, x, inx);
-%NB
-v=v.*x;
+function f = assignVISCREF(f, val, reg)
+% dens of size ntpvtx3
+if(numel(reg.SATNUM)==1)
+    f.refVisc = val;
+else
+    f.refVisc = val(reg.SATNUM,:);
 end
 
 %{
