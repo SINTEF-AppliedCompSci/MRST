@@ -345,6 +345,10 @@ classdef NonLinearSolver < handle
                 maxIts = solver.maxIterations;
             end
             reports = cell(maxIts, 1);
+            % Prepare model and state for solution of time-step. Note that
+            % since we do not return model here, any changes to model are
+            % not persistent.
+            [model, state] = model.prepareTimestep(state, state0, dt, drivingForces);
             for i = 1:(maxIts + 1)
                 % If we are past maximum number of iterations, step function will
                 % just check convergence and return

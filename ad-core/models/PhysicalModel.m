@@ -229,7 +229,38 @@ methods
         model = model.AutoDiffBackend.updateDiscreteOperators(model);
         return
     end
-
+    
+    function [model, state] = prepareTimestep(model, state, state0, dt, drivingForces)
+        % Prepare state and model (temporarily) before solving a times-tep
+        %
+        % SYNOPSIS:
+        %   [model, state] = model.prepareTimestep(state, state0, dt, drivingForces)
+        %
+        % DESCRIPTION:
+        %   Prepare model and state just before the first call to
+        %   `stepFunction` in a solution loop.
+        %
+        % PARAMETERS:
+        %   model   -  Class instance
+        %   state   - `struct` representing the current state of the solution
+        %             variables to be updated.
+        %   problem - `LinearizedProblemAD` instance that has
+        %             `primaryVariables` which matches `dx` in length and
+        %             meaning.
+        %   dx      - Cell-wise increments. These are typically output from
+        %             `LinearSolverAD.solveLinearizedProblem`.
+        %   forces  - The forces used to produce the update. See
+        %            `getDrivingForces`.
+        %
+        % RETURNS:
+        %   model  - Updated model (non-persistent)
+        %   state  - Updated state with physically reasonable values.
+        %
+        % NOTE:
+        %   Any changes to the model are temporary for this specific step,
+        %   as enforced by the NonLinearSolver. Any changes will not apply
+        %   to the next time-step.
+    end
     
     function [state, report] = updateState(model, state, problem, dx, forces) 
         % Update the state based on increments of the primary values

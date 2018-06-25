@@ -132,6 +132,13 @@ methods
         ph = model.getActivePhases();
         vars = vars(ph);
     end
+    % --------------------------------------------------------------------%
+    function [model, state] = prepareTimestep(model, state, state0, dt, drivingForces)
+        if ~isempty(drivingForces.W)
+            assert(~isempty(model.FacilityModel), ...
+            'FacilityModel not set up. Call model.validateModel before calling equations with wells.');
+        end
+    end
 
     % --------------------------------------------------------------------%
     function model = validateModel(model, varargin)
@@ -974,7 +981,6 @@ methods
         %
         %   various - Additional input arguments correspond to standard
         %             reservoir-well coupling found in `FacilityModel.
-        
         if model.FacilityModel.getNumberOfActiveWells(wellSol) == 0
             src = [];
             return
