@@ -414,17 +414,13 @@ function W = process_wconhist(W, control, G, rock, well_id, p, opt)
           val = - control.WCONHIST{i, 6};
           compi = [0, 0, 1];  % Gas, 3rd phase
         case 'lrat'
-          val = - sum([control.WCONHIST{i, 4:5}]);
-          compi = [1, 1, 0];
+          rates = - ([control.WCONHIST{i, 4:5}]);
+          val   = sum(rates);
+          compi = rates./val;
         case 'resv'
-          if opt.strictParsing
-             error('RESV for WCONHIST not supported');
-          else
-             warning(['RESV for WCONHIST not supported. '...
-                      'Inserting NaN values for control in well %s.'], nm);
-          end
-          val = nan;
-          compi = [nan, nan, nan];
+          rates = - ([control.WCONHIST{i, 4:6}]);
+          val   = sum(rates);
+          compi = rates./val;
         case 'bhp'
           val = control.WCONHIST{i, 10};
 
