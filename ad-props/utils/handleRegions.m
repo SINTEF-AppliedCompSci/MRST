@@ -20,7 +20,7 @@ if ntpvt == 1
     reg.PVTNUM = [];
     reg.PVTINX = ':';
 else
-    reg.PVTINX = cellfun(@(x)find(x==reg.PVTNUM), num2cell(1:ntpvt), 'UniformOutput', false);
+    reg.PVTINX = cellfun(@(x)(x==reg.PVTNUM), num2cell(1:ntpvt), 'UniformOutput', false);
 end
 
 % SAT-REGIONS AND POSSIBLY SURF-REGIONS

@@ -11,26 +11,28 @@ end
 
 tabSat = cellfun(@(x)x.data(x.pos(1:end-1),:), T, 'UniformOutput', false);
 
-if nreg > 1
-    reginxSat  = cellfun(@(v) v(flag(v)), reginx, 'UniformOutput', false);
-    reginxUSat = cellfun(@(v) v(~flag(v)), reginx, 'UniformOutput', false);
+if isempty(xi)
+    [yi, dyidxi, dyidvi] = deal([]);
+    return;
 else
-    reginxSat{1}  = ':';
-    reginxUSat{1} = ':';
+    for k = 1:nreg
+        if nreg == 1
+            [ixf, ixnf] = deal(flag, ~flag);
+        else
+            [ixf, ixnf] = deal(flag & reginx{k}, (~flag) & reginx{k});
+        end
+        if ~compDer
+            yi(ixf)  = interpReg(tabSat, xi(ixf), {':'});
+            yi(ixnf) = interp2DPVT(T, xi(ixnf), vi(ixnf), {':'});
+        else
+            [yi(ixf), dyidxi(ixf)]                 = interpReg(tabSat, xi(ixf), {':'});
+            [yi(ixnf), dyidxi(ixnf), dyidvi(ixnf)] = interp2DPVT(T, xi(ixnf), vi(ixnf), {':'});
+        end
+    end
 end
 
-if ~compDer
-    yi(flag)  = interpReg(tabSat, xi(flag), reginxSat);
-    yi(~flag) = interp2DPVT(T, xi(~flag), vi(~flag), reginxUSat);
-else
-    [yi(flag), dyidxi(flag)] = interpReg(tabSat, xi(flag), reginxSat);
-    [yi(~flag), dyidxi(~flag), dyidvi(~flag)] = interp2DPVT(T, xi(~flag), vi(~flag), reginxUSat);
-end
-
-end
-
-
-%{
+            
+            %{
 Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
