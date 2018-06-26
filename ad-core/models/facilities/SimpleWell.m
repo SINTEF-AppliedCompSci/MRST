@@ -496,7 +496,11 @@ classdef SimpleWell < PhysicalModel
 
         function [wellSol, well_shut] = updateWellSolAfterStep(well, resmodel, wellSol, wellSol0)
             % Updates the wellSol after a step is complete (book-keeping)
+            well_shut = false;
             w = well.W;
+            if ~w.status
+                return
+            end
             % Check if producers are becoming injectors and vice versa. The indexes
             % of such wells are stored in inx.
             wsg = w.sign;
@@ -509,12 +513,10 @@ classdef SimpleWell < PhysicalModel
                 dispif(well.verbose, 'Well %s shut down.\n', w.name);
                 wellSol.status = false;
                 well_shut = true;
-            else
-                well_shut = false;
             end
 
             switched = ~strcmpi(wellSol.type, wellSol0.type);
-            if switched && well.verbose
+            if switched && well.verbose && ~strcmpi(wellSol0.type, 'resv')
                 fprintf('Step complete: Well %s was switched from %s to %s controls.\n',...
                                                                  w.name, ...
                                                                  wellSol0.type, ...

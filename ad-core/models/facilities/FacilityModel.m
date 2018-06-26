@@ -879,7 +879,8 @@ classdef FacilityModel < PhysicalModel
                 qs = bsxfun(@times, rates, compi);
                 
                 newRates = 0*rates;
-                p = mean(state0.pressure);
+                n_resv = sum(isResv);
+                p = repmat(mean(state0.pressure), n_resv, 1);
                 rmodel = model.ReservoirModel;
                 
                 disgas = isprop(rmodel, 'disgas') && rmodel.disgas;
@@ -889,11 +890,11 @@ classdef FacilityModel < PhysicalModel
                 wix = rmodel.getPhaseIndex('W');
                 f = rmodel.fluid;
                 if disgas
-                    mrs = repmat(mean(state.rs), sum(isResv));
-                    rs = min(qs(:, gix)./qs(:, oix), mean(state.rs));
+                    mrs = repmat(mean(state.rs), n_resv, 1);
+                    rs = min(qs(:, gix)./qs(:, oix), mrs);
                 end
                 if vapoil
-                    mrv = repmat(mean(state.rv), sum(isResv));
+                    mrv = repmat(mean(state.rv), n_resv, 1);
                     rv = min(qs(:, oix)./qs(:, gix), mrv);
                 end
                 
