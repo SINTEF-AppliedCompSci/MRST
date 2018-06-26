@@ -7,11 +7,14 @@ function [state, pressures] = initStateBlackOilAD(model, regions, varargin)
     end
     
     [rs, rv] = deal(0);
+    vapoil = isprop(model, 'vapoil') && model.vapoil;
+    disgas = isprop(model, 'disgas') && model.disgas;
+
     G = model.G;
-    if isprop(model, 'disgas') && model.disgas
+    if disgas
         rs = zeros(G.cells.num, 1);
     end
-    if isprop(model, 'vapoil') && model.vapoil
+    if disgas
         rv = zeros(G.cells.num, 1);
     end
     nph = sum(model.getActivePhases());
@@ -20,7 +23,7 @@ function [state, pressures] = initStateBlackOilAD(model, regions, varargin)
     watIx = model.getPhaseIndex('W');
     oilIx = model.getPhaseIndex('O');
     gasIx = model.getPhaseIndex('G');
-    
+
     pressures = zeros(G.cells.num, nph);
     touched = false(G.cells.num, 1);
     for regNo = 1:numel(regions)
@@ -38,6 +41,7 @@ function [state, pressures] = initStateBlackOilAD(model, regions, varargin)
         else
             p = opt.pressure(cells, :);
         end
+        z = model.G.cells.centroids(cells, 3);
         
         s = initializeEquilibriumSaturations(model, region, p);
         state.s(cells, :) = s;
@@ -48,6 +52,22 @@ function [state, pressures] = initStateBlackOilAD(model, regions, varargin)
             onlyGas = state.s(cells, gasIx) == 1;
             toOil(onlyGas) = false;
             state.pressure(cells(onlyGas)) = p(onlyGas, gasIx);
+            if disgas
+                po = p(:, oilIx);
+                rsMax = model.fluid.rsSat(po, 'cellInx', cells);
+                rs = region.rs(po, z);
+                rs(rs > rsMax) = rsMax(rs > rsMax);
+                state.rs(cells) = rs;
+            end
+        end
+        if model.oil
+            if vapoil
+                pg = p(:, gasIx);
+                rvMax = model.fluid.rvSat(po, 'cellInx', cells);
+                rv = region.rv(pg, z);
+                rv(rv > rvMax) = rsMax(rv > rvMax);
+                state.rv(cells) = rv;
+            end
         end
         if model.water
             onlyWat = state.s(cells, watIx) == 1;
