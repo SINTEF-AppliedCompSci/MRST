@@ -217,9 +217,10 @@ else
 end
 
 % Put the set of equations into cell arrays along with their names/types.
-eqs = {water, oil, gas};
-divTerms = {divWater, divOil, divGas};
-names = {'water', 'oil', 'gas'};
+eqs      = {oil, water, gas};
+divTerms = {divOil, divWater, divGas};
+names    = {'oil', 'water', 'gas'};
+
 types = {'cell', 'cell', 'cell'};
 
 % Add in any fluxes / source terms prescribed as boundary conditions.
