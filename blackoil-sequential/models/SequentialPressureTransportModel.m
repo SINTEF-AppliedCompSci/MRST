@@ -229,7 +229,12 @@ classdef SequentialPressureTransportModel < ReservoirModel
             [model.pressureModel, state] = model.pressureModel.updateForChangedControls(state, forces);
         end
 
+        function [model, state] = prepareTimestep(model, state, state0, dt, drivingForces)
+            [model.pressureModel, state] = model.pressureModel.prepareTimestep(state, state0, dt, drivingForces);
+        end
+
         function model = validateModel(model, varargin)
+            model.pressureModel.extraWellSolOutput = true;
             model.pressureModel = model.pressureModel.validateModel(varargin{:});
             model.transportModel = model.transportModel.validateModel(varargin{:});
             if ~isempty(model.parentModel)
