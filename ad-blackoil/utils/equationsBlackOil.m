@@ -245,9 +245,9 @@ end
 
 % Put the set of equations into cell arrays along with their names/types.
 if model.water
-    eqs      = {oil, water, gas};
-    divTerms = {divOil, divWater, divGas};
-    names    = {'oil', 'water', 'gas'};
+    eqs      = {water, oil, gas};
+    divTerms = {divWater, divOil, divGas};
+    names    = {'water', 'oil', 'gas'};
     types    = {'cell', 'cell', 'cell'};
     rho      = {rhoW, rhoO, rhoG};
     mob      = {mobW, mobO, mobG};
