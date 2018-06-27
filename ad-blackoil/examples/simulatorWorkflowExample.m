@@ -64,14 +64,14 @@ pv      = poreVolume(G, rock);
 injRate = 1*sum(pv)/simTime;
 offset  = 10;
 W = verticalWell([], G, rock, offset, offset, [],...
-                'Name', 'P1', 'comp_i', [1 0], 'Val', 250*barsa, 'Type', 'bhp');            
+                'Name', 'P1', 'comp_i', [1 0], 'Val', 250*barsa, 'Type', 'bhp', 'refDepth', -8);           
 W = verticalWell(W, G, rock,  offset, floor(G.cartDims(1)/2)+3, [],...
-                'Name', 'P2', 'comp_i', [1 0], 'Val', 250*barsa, 'Type', 'bhp');
+                'Name', 'P2', 'comp_i', [1 0], 'Val', 250*barsa, 'Type', 'bhp', 'refDepth', -8);
 W = verticalWell(W, G, rock, offset, G.cartDims(2) - offset/2, [], ...
-                'Name', 'P3', 'comp_i', [1 0], 'Val', 250*barsa, 'Type', 'bhp');
+                'Name', 'P3', 'comp_i', [1 0], 'Val', 250*barsa, 'Type', 'bhp', 'refDepth', -8);
 % Injectors
 W = verticalWell(W, G, rock, G.cartDims(1)-5, offset, 1,...
-                'Name', 'I1', 'comp_i', [1 0], 'Val', injRate, 'Type', 'rate');
+                'Name', 'I1', 'comp_i', [1 0], 'Val', injRate, 'Type', 'rate', 'refDepth', -8);
 
 % Compute the timesteps
 startSteps = repmat((simTime/(nstep + 1))/refine, refine, 1);
@@ -108,7 +108,7 @@ fluid = initSimpleADIFluid('mu',    [1, 5, 0]*centi*poise, ...
 % Constant oil compressibility
 c        = 0.001/barsa;
 p_ref    = 300*barsa;
-fluid.bO = @(p) exp((p - p_ref)*c);
+fluid.bO = @(p, varargin) exp((p - p_ref)*c);
 clf
 p0 = (100:10:500)*barsa;
 plot(p0/barsa, fluid.bO(p0))
@@ -126,16 +126,9 @@ model = TwoPhaseOilWaterModel(G, rock, fluid);
 % completely water filled, and the top completely oil filled. MRST uses
 % water, oil, gas ordering internally, so in this case we have water in the
 % first column and oil in the second for the saturations.
-sW = ones(G.cells.num, 1);
-sW(G.cells.centroids(:, 3) < 5) = 0;
 
-sat = [sW, 1 - sW];
-
-g = model.gravity(3);
-% Compute initial pressure
-p_res = p_ref + g*G.cells.centroids(:, 3).*...
-   (sW.*model.fluid.rhoWS + (1 - sW).*model.fluid.rhoOS);
-state0 = initResSol(G, p_res, sat);
+region = getInitializationRegionsBlackOil(model, 5, 'datum_pressure', p_ref);
+state0 = initStateBlackOilAD(model, region);
 clf
 plotCellData(G, state0.s(:,1))
 plotWell(G,W)
