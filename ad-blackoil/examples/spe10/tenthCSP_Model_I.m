@@ -82,12 +82,8 @@ model = TwoPhaseOilGasModel(G, rock, fluid, 'gravity', gravity);
 %% Initialise Formation
 % Formation is initially filled with oil and the initial pressure at the
 % top of the model is 100 Psi.
-p0 = ode45(@(z, p) model.fluid.rhoOS * norm(model.gravity), ...
-           [ 0, physDims(end) ], 100*psia);
-p0 = reshape(deval(p0, G.cells.centroids(:,3)), [], 1);
-sO = ones([G.cells.num, 1]);
-
-state0 = initResSol(G, p0, [ sO, 1 - sO ]);
+region = getInitializationRegionsBlackOil(model, 0, 'datum_pressure', 100*psia);
+state0 = initStateBlackOilAD(model, region);
 
 clf
 plotCellData(G, convertTo(state0.pressure, psia))
