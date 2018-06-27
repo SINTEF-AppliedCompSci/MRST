@@ -3,27 +3,10 @@ mrstModule add ...
    ad-core ad-blackoil blackoil-sequential ...
    ad-unittest
 
-%%{
+
 [G, rock, fluid, deck, state] = setupSPE1();
 model = selectModelFromDeck(G, rock, fluid, deck);
-%}
-
-%{
-% testcase = TestSPE1();
-% testcase = TestEGG();
-
-model    = testcase.model;
-state    = testcase.state0;
-schedule = testcase.schedule;
-rock     = testcase.rock;
-G        = model.G;
-%}
-
-
-% lim = 10;
-% schedule.step.val = schedule.step.val(1:lim);
-% schedule.step.control = schedule.step.control(1:lim);
-
+schedule = convertDeckScheduleToMRST(model, deck);
 %%
 mrstModule add agmg
 solver = NonLinearSolver('enforceResidualDecrease', false, 'useRelaxation', true);

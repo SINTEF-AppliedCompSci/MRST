@@ -44,7 +44,7 @@ fluid = initDeckADIFluid(deck);
 
 fn = @(p) fluid.BOxmuO(p).*fluid.bO(p);
 
-fluid = rmfield(fluid, {'BOxmuO', 'BO', 'BW', 'pcOW', 'sWcon', 'relPerm'});
+fluid = rmfield(fluid, {'BOxmuO', 'pcOW', 'sWcon'});
 fluid.muO = fn;
 
 fluid.krOW = @(s, varargin) s.^2;

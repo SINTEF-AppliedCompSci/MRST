@@ -1,4 +1,4 @@
-mrstModule add ad-fi deckformat mrst-gui ad-core ad-blackoil 
+mrstModule add deckformat mrst-gui ad-core ad-blackoil 
 mrstModule add blackoil-sequential ad-unittest
 %multiscale-devel
 mrstModule add blackoil-sequential spe10 ad-props ad-eor
@@ -31,11 +31,11 @@ for i = 1:numel(W)
     if isinj
         W(i).val = 3*sum(pv)/totTime;
         W(i).type = 'rate';
-        W(i).poly = 4;
+        W(i).c = 4;
     else
         W(i).val = 4000*psia;
         W(i).type = 'bhp';
-        W(i).poly = 0;
+        W(i).c = 0;
     end
     W(i).compi = [1 0];
     W(i).sign = 1 - 2*~isinj;
@@ -49,7 +49,7 @@ fluid = initDeckADIFluid(deck);
 
 fn = @(p) fluid.BOxmuO(p).*fluid.bO(p);
 
-fluid = rmfield(fluid, {'BOxmuO', 'BO', 'BW', 'pcOW', 'sWcon', 'relPerm'});
+fluid = rmfield(fluid, {'BOxmuO', 'pcOW', 'sWcon'});
 fluid.muO = fn;
 
 fluid.krOW = @(s, varargin) s.^2;
@@ -104,7 +104,6 @@ state = initResSol(G, p0, [.2, .8]);
 state.c    = zeros(G.cells.num, 1);
 state.cmax = zeros(G.cells.num, 1);
 
-state.wellSol = initWellSolAD(W, modelfi, state);
 
 % lim = 5;
 % schedule.step.val     = schedule.step.val(1:lim);
