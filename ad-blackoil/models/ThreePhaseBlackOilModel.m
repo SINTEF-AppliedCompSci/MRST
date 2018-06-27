@@ -127,14 +127,18 @@ methods
 
             % Black oil with dissolution
             so = model.getProp(state, 'so');
-            sw = model.getProp(state, 'sw');
             sg = model.getProp(state, 'sg');
-
+            if model.water
+                sw = model.getProp(state, 'sw');
+                dsw = model.getIncrement(dx, problem, 'sw');
+            else
+                sw = 0;
+                dsw = 0;
+            end
             % Magic status flag, see inside for doc
             st = model.getCellStatusVO(state0, so, sw, sg);
 
             dr = model.getIncrement(dx, problem, 'x');
-            dsw = model.getIncrement(dx, problem, 'sw');
             % Interpretation of "gas" phase varies from cell to cell, remove
             % everything that isn't sG updates
             dsg = st{3}.*dr - st{2}.*dsw;
