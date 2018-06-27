@@ -13,12 +13,6 @@ classdef TwoPhaseOilGasModel < ThreePhaseBlackOilModel
          model.gas   = true;
          model.water = false;
 
-         % Blackoil -> use CNV style convergence
-         model.useCNVConvergence = true;
-
-         model.saturationVarNames = { 'so', 'sg' };
-         model.wellVarNames       = { 'qOs', 'qGs', 'bhp' };
-
          model = merge_options(model, varargin{:});
       end
 
