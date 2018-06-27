@@ -865,7 +865,7 @@ classdef FacilityModel < PhysicalModel
             isVarWell = rldecode((1:nnz(act))', counts);
         end
 
-        function [model, state] = prepareTimestep(model, state0, state, dt, drivingForces)
+        function [model, state] = prepareTimestep(model, state, state0, dt, drivingForces)
             active = model.getWellStatusMask(state.wellSol);
             isResv = cellfun(@(x) strcmpi(x.W.type, 'resv'), model.WellModels(active));
             if any(isResv)
