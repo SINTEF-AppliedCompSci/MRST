@@ -1,4 +1,4 @@
-function [vO, bO, mobO, rhoO, pO, upcO, dpO, muO] = getPropsOil_DG(model, pO, sO, T, gdz, mobMult)
+function [vO, bO, mobO, rhoO, pO, upcO, dpO, muO] = getPropsOil_DG(model, pO, T, gdz, mobMult)
 
     fluid = model.fluid;
     op = model.operators;

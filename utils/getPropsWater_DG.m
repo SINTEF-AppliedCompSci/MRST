@@ -1,4 +1,4 @@
-function [vW, bW, mobW, rhoW, pW, upcW, dpW, muW] = getPropsWater_DG(model, pO, sW, T, gdz, mobMult)
+function [vW, bW, mobW, rhoW, pW, upcW, dpW, muW] = getPropsWater_DG(model, pO, T, gdz, mobMult)
 
 
     fluid = model.fluid;
