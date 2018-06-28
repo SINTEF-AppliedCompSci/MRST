@@ -69,7 +69,7 @@ classdef Unstruct3DCubature < Cubature
                 psi = basis.psi;
                 nDof = basis.nDof;
                 P = reshape(cell2mat(cellfun(@(p) p(x), psi, 'unif', false)), nDof, nDof)';
-                [xq, w, ii, jj, cellNo, faceNo] = cubTet.getCubature(1:G.cells.num, 'cell');
+                [W, xq, w, ii, jj, cellNo, faceNo] = cubTet.getCubature(1:G.cells.num, 'cell');
 
                 xq = cub.transformCoords(xq, cellNo);
                 
