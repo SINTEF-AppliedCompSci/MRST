@@ -2,6 +2,8 @@ mrstModule add dg vem vemmech ad-props ad-core ad-blackoil blackoil-sequential g
 
 %%
 
+gravity reset off
+
 n = 50;
 l = 1000;
 G = computeGeometry(cartGrid([n,n], [l,l]*meter));
@@ -10,8 +12,8 @@ G = computeCellDimensions(G);
 
 rock = makeRock(G, 100*milli*darcy, 1);
 fluid = initSimpleADIFluid('phases', 'WO'                   , ...
-                           'rho'   , [1, 1]*kilogram/meter^3, ...
-                           'mu'    , [0.5, 0.5]*centi*poise     , ...
+                           'rho'   , [10, 1]*kilogram/meter^3, ...
+                           'mu'    , [0.5, 0.2]*centi*poise     , ...
                            'n'     , [1, 1]                 );
 % fluid.krW = @(s) fluid.krW(s).*(s>=0 & s<=1) + fluid.krW(1).*(s>1);
 % fluid.krO = @(s) fluid.krO(s).*(s>=0 & s<=1) + fluid.krO(1).*(s>1);
@@ -28,21 +30,25 @@ W = [];
 W = addWell(W, G, rock, 1          , 'type', 'rate', 'val', rate    , 'comp_i', [1,0]);
 W = addWell(W, G, rock, G.cells.num, 'type', 'bhp' , 'val', 50*barsa, 'comp_i', [1,0]);
 
-src = addSource([], 20, rate/3, 'sat', [1,0]);
+if 0
+    src = addSource([], 20, rate/3, 'sat', [1,0]);
+else
+    src = [];
+end
 
 dt    = 30*day;
 dtvec = rampupTimesteps(time, dt, 0);
 schedule = simpleSchedule(dtvec, 'W', W, 'src', src);
 
-sW     = 0.0;
+sW     = 0.1;
 state0 = initResSol(G, 100*barsa, [sW,1-sW]);
 
 %%
 
-degree = [1, 2];
-% degree = 2;
-jt = 0.05;
-ot = Inf;
+degree = [0, 1];
+% degree = 0;
+jt = 0.2;
+ot = 1e-3;
 statesDG = cell(numel(degree),1);
 for dNo = 1:numel(degree)
     disc = DGDiscretization(modelDG.transportModel, 2, 'degree', degree(dNo), 'basis', 'legendre', 'useUnstructCubature', false, 'jumpTolerance', jt, 'outTolerance', ot);
@@ -86,7 +92,7 @@ nlines = 6;
 
 nclr = 7;
 
-ixDG = 1;
+ixDG = 2;
 for sNo = 1:nsteps
     
     subplot(2, nsteps, sNo);
@@ -125,6 +131,6 @@ end
 
 %%
 
-plotWellSols({wsDG{1}, wsFV}, schedule.step.val)
+plotWellSols({wsDG{:}, wsFV}, schedule.step.val)
 
 
