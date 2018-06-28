@@ -5,7 +5,7 @@ function [vW, bW, mobW, rhoW, pW, upcW, dpW, muW] = getPropsWater_DG(model, pO, 
     op = model.operators;
     
     % Check for capillary pressure (p_cow) (currently not supported)
-    assert(~isfield(fluid, 'pcOW'));
+    %assert(~isfield(fluid, 'pcOW'));
     pcOW  = 0;
     if 0
     pcOW = @(sW) 0.*sW;

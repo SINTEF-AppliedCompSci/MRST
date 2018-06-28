@@ -10,6 +10,7 @@ classdef DGDiscretization < HyperbolicDiscretization
         useUnstructCubature
         jumpTolerance
         outTolerance
+        meanTolerance
         
     end
     
@@ -25,6 +26,7 @@ classdef DGDiscretization < HyperbolicDiscretization
             disc.basis  = 'legendre';
             disc.jumpTolerance = 0.2;
             disc.outTolerance = 1e-4;
+            disc.meanTolerance = 1e-4;
             disc.useUnstructCubature = false;
             
             disc        = merge_options(disc, varargin{:});
@@ -247,27 +249,7 @@ classdef DGDiscretization < HyperbolicDiscretization
             nDof = state.nDof;
             nDofMax = disc.basis.nDof;
             
-%             cubature = disc.volumeCubature;
-%             ix = mcolon(cubature.parentPos(cells), cubature.parentPos(cells+1)-1);
-%                     
-%             nq = diff(cubature.parentPos);
-%             nq = nq(cells);
-%                     
-%             cellNo = rldecode(cells, nq, 1);
-%             x = cubature.points(ix,:);
-%             W = cubature.W(cells,ix);
-            
             [W, x, cellNo, faceNo] = disc.getCubature(cells, 'volume');
-            
-%             [x, w, nq, ii, jj, cellNo] = makeCellIntegrator(G, cells, max(disc.degree+1), 'volume');
-%             W = sparse(ii, jj, w);
-            
-%             [x, w, nq, ii, jj, cellNo] = makeCubature(disc, cells);x
-%             [W, x, w, ii, jj, cellNo] = disc.getCubature(cells, 'volume');
-%             W = disc.volumeCubature.W;
-%             cellNo = disc.volumeCubature.parentPos
-            
-%             W = sparse(ii, jj, w);
             [x, ~, scaling] = disc.transformCoords(x, cellNo);
 
             s  = disc.evaluateSaturation(x, cellNo , sdof , state );
@@ -283,9 +265,7 @@ classdef DGDiscretization < HyperbolicDiscretization
                 if any(keepCells)
                 
                     ix = disc.getDofIx(state, dofNo, cells(keepCells));
-%                     i = accumarray(cellNo, w.*integrand(s, s0, cellNo, psi{dofNo}(x), grad_psi{dofNo}(x).*scaling));
                     i  = W*integrand(s, s0, f, cellNo, psi{dofNo}(x), grad_psi{dofNo}(x).*scaling);
-%                     i  = W*integrand(s, s0, cellNo, psi{dofNo}(x), grad_psi{dofNo}(x).*scaling);
                     I(ix) = i(keepCells);
                     
                 elseif numel(cells) == disc.G.cells.num
@@ -307,20 +287,6 @@ classdef DGDiscretization < HyperbolicDiscretization
             psi     = disc.basis.psi;
             nDof    = state.nDof;
             nDofMax = disc.basis.nDof;
-
-%             upCells_v_ = g.faces.neighbors(:,2);
-%             intf      = find(disc.internalConn);
-%             upCells_v_(intf(upc)) = disc.N(upc,1);
-%             
-%             cubature = disc.surfaceCubature;
-%             ix = mcolon(cubature.parentPos(cells), cubature.parentPos(cells+1)-1);
-%                     
-%             nq = diff(cubature.parentPos);
-%             nq = nq(cells);
-%                     
-%             cellNo = rldecode(cells, nq, 1);
-%             x = cubature.points(ix,:);
-%             W = cubature.W(cells,ix);
             
             [W, x, cellNo, faceNo] = disc.getCubature(cells, 'surface');
             
@@ -365,25 +331,8 @@ classdef DGDiscretization < HyperbolicDiscretization
             
             f_v = f(s_v{1}, 1-s_v{2}, upCells_v{1}, upCells_v{2});
             f_G = f(s_G{1}, 1-s_G{2}, upCells_G{1}, upCells_G{2});
-%             upCells_v(flag_
-%             upCells_v = cL.*flag_v(:,1) + cR.*(~flag_v);
-%             upCells_G = cL.*flag_G(:,1);
-%             
-%             [x, w, nq, ii, jj, cellNo, faceNo] = makeCellIntegrator(G, cells, max(disc.degree+1), 'surface');
-%             W = sparse(ii, jj, w);
-            
-%             upCells_v_ = upCells_v_(faceNo);
-%             upCells_G = upCells_v;
             
             [x_c, ~, ~] = disc.transformCoords(x, cellNo);
-%             [x_v, ~, ~] = disc.transformCoords(x, upCells_v);
-%             [x_G, ~, ~] = disc.transformCoords(x, upCells_G);
-                    
-%             s_c = disc.evaluateSaturation(x_c, cellNo, sdof, state);
-%             s_v = disc.evaluateSaturation(x_v, upCells_v, sdof, state);
-%             s_G = disc.evaluateSaturation(x_G, upCells_G, sdof, state);
-%             f_v = f(s_v, upCells_v);
-%             f_G = f(s_G, upCells_G);
 
             I = integrand(sdof, sdof, sdof, sdof, 1, 1, 1, 1, 1).*0;
             
@@ -527,11 +476,18 @@ classdef DGDiscretization < HyperbolicDiscretization
             
             over  = smax > 1 + disc.outTolerance;
             under = smin < 0 - disc.outTolerance;
-            
             outside = over | under;
-            bad     = outside | jump;
+            
+            s = disc.getCellSaturation(state);
+            s = s.s(:,1);
+            mover  = s > 1 + disc.meanTolerance;
+            munder = s < 0 - disc.meanTolerance;
+            moutside = mover | munder;
+            
+            bad     = outside | moutside | jump;
 
             state.outside = outside;
+            state.moutside = moutside;
             state.jump = jump;
             
 %             state0 = state;

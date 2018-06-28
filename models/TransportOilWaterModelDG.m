@@ -24,13 +24,17 @@ classdef TransportOilWaterModelDG < TransportOilWaterModel
                 G.cells.centroids(cellNo   , :);
             sgn = 1 - 2*(cellNo ~= G.faces.neighbors(faceNo,1));
             
-            D1 = sparse(cellNo, faceNo, X(:,1).*sgn, G.cells.num, G.faces.num)./G.cells.volumes;
-            D2 = sparse(cellNo, faceNo, X(:,2).*sgn, G.cells.num, G.faces.num)./G.cells.volumes;
-
+            D = cell(1,G.griddim);
+            for dNo = 1:G.griddim
+                D{dNo} = sparse(cellNo, faceNo, X(:,dNo).*sgn, G.cells.num, G.faces.num)./G.cells.volumes;
+            end
+            model.operators.D = D;
+            if G.griddim == 2
+                model.operators.faceFlux2cellVelocity = @(v) [D{1}*v, D{2}*v];
+            else
+                model.operators.faceFlux2cellVelocity = @(v) [D{1}*v, D{2}*v, D{3}*v];
+            end
             
-            model.operators.D = {D1, D2};
-            model.operators.faceFlux2cellVelocity = @(v) [D1*v, D2*v];
-
 %             model.degree = 1;
 %             model.basis = 'legendre';
 % %             model.limiter = 'tvb';
