@@ -73,6 +73,7 @@ axis tight, view(-10, 60)
 %% Make plots to compare solution with a commercial simulator
 % Load summary from binary file and find indices of the producer and
 % injector.
+mrstModule add ad-fi
 load SPE1_smry
 
 inj = find([wellSols{1}.sign] == 1);
