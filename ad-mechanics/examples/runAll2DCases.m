@@ -35,7 +35,7 @@ opt.verbose            = false;
 opt.splittingVerbose   = false;
 
 % write intro text for each case
-writeIntroText = @(opt)(fprintf('\n*** New simulation\n* fluid model : %s\n* method : %s\n\n', opt.fluid_model, opt.method));
+writeIntroText = @(opt)(fprintf('\n*** Start new simulation with\n* fluid model : %s\n* method : %s\n\n', opt.fluid_model, opt.method));
 
 %%  water cases
 opt.fluid_model = 'water';

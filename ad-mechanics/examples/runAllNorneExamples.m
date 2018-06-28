@@ -45,7 +45,7 @@ opt.norne_case       = 'mini Norne';
 opt.bc_case          = 'bottom fixed';
 
 % write intro text for each case
-writeIntroText = @(opt)(fprintf('\n*** New Norne poroelasticity simulation\n* fluid model : %s\n* method : %s\n\n', opt.fluid_model, opt.method));
+writeIntroText = @(opt)(fprintf('\n*** Start new simulation\n* fluid model : %s\n* method : %s\n\n', opt.fluid_model, opt.method));
 
 %%  water cases
 
