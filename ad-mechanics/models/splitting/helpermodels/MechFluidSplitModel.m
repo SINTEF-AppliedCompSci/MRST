@@ -150,7 +150,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 error('The MechFluidSplitModel requires to have an iniatilized FacilityModel')
             end
             model.fluidModel.FacilityModel        = model.FacilityModel;
-
+            if isempty(model.operators)
+                model.operators = model.fluidModel.operators;
+            end
             model = validateModel@ReservoirModel(model, varargin{:});
             return
         end
