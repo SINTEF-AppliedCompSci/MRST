@@ -46,7 +46,7 @@ classdef Unstruct2DCubature < Cubature
             
                 case 1
                 
-                    x = zeros(1, cub.G.griddim);
+                    x = zeros(1, 2);
             
                 case 2
                     
@@ -139,7 +139,12 @@ classdef Unstruct2DCubature < Cubature
                 w = reshape(P\rhs, [], 1);
                 
             else
-                w = G.cells.volumes;
+                
+                if G.griddim == 2
+                    w = G.cells.volumes;
+                else
+                    w = G.faces.areas;
+                end
                 
             end
             
