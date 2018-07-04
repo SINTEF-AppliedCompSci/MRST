@@ -42,7 +42,6 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
    opt = struct('verbose', mrstVerbose);
    opt = merge_options(opt, varargin{:});
 
@@ -51,15 +50,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    u = unit_system(deck.RUNSPEC);
 
-   for sect = reshape(fieldnames(deck), 1, []),
+   for sect = reshape(fieldnames(deck), 1, [])
       s = sect{1};
 
-      switch s,
-         case {'RUNSPEC', 'GRID', 'PROPS', 'SOLUTION', 'SCHEDULE'},
+      switch s
+         case {'RUNSPEC', 'GRID', 'PROPS', 'SOLUTION', 'SCHEDULE'}
             cvrt     = str2func(['convert', s]);
             deck.(s) = cvrt(deck.(s), u);
 
-         case 'UnhandledKeywords',
+         case 'UnhandledKeywords'
             continue   % MRST specific
 
          otherwise
@@ -80,13 +79,13 @@ function u = unit_system(rspec)
    pvt_m  = isfield(rspec, 'PVT_M');
    SI     = isfield(rspec, 'SI');
 
-   if sum([metric, field, lab, pvt_m, SI]) ~= 1,
+   if sum([metric, field, lab, pvt_m, SI]) ~= 1
       error(id('USys:Unknown'), ...
            ['Input unit system must be either METRIC, ', ...
             'FIELD, LAB, PVT_M, or SI.']);
    end
 
-   if metric,
+   if metric
       u = struct('length'      , meter               , ...
                  'area'        , meter^2             , ...
                  'invarea'     , meter^(-2)          , ...
@@ -136,7 +135,7 @@ function u = unit_system(rspec)
                  'volumheatcapacity', btu / (ft^3*Rankine),        ...
                  'massheatcapacity' , btu / (pound*Rankine));
 
-   elseif lab,
+   elseif lab
       u = struct('length'      , centi*meter           , ...
                  'area'        , (centi*meter)^2       , ...
                  'invarea'     , (centi*meter)^(-2)    , ...
@@ -225,27 +224,27 @@ end
 function grid = convertGRID(grid, u)
    if isempty(grid), return; end
 
-   for kw = reshape(fieldnames(grid), 1, []),
+   for kw = reshape(fieldnames(grid), 1, [])
       key = kw{1};
 
-      switch key,
+      switch key
          case {'PERMX' , 'PERMXY', 'PERMXZ', ...
                'PERMYX', 'PERMY' , 'PERMYZ', ...
                'PERMZX', 'PERMZY', 'PERMZ' , ...
-               'PERMXX', 'PERMYY', 'PERMZZ'},
+               'PERMXX', 'PERMYY', 'PERMZZ'}
             grid.(key) = convertFrom(grid.(key), u.perm);
 
          case {'DXV'   , 'DYV'   , 'DZV'   , 'DEPTHZ', ...
                'DX'    , 'DY'    , 'DZ'    , 'TOPS'  , ...
                'COORDX', 'COORDY', 'COORDZ',           ...
-               'COORD' , 'ZCORN'                     },
+               'COORD' , 'ZCORN'                     }
             grid.(key) = convertFrom(grid.(key), u.length);
 
-         case 'MAPAXES',
+         case 'MAPAXES'
             unt = u.length;
 
-            if isfield(grid, 'MAPUNITS'),
-               switch grid.MAPUNITS,
+            if isfield(grid, 'MAPUNITS')
+               switch grid.MAPUNITS
                   case 'METRES', unt = meter;
                   case 'FEET'  , unt = ft;
                   otherwise
@@ -257,38 +256,38 @@ function grid = convertGRID(grid, u)
 
             grid.(key) = convertFrom(grid.(key), unt);
 
-         case 'MAPUNITS',
+         case 'MAPUNITS'
             continue;  % Handled in 'MAPAXES'.
 
-         case {'MINPV', 'MINPVV'},
+         case {'MINPV', 'MINPVV'}
             grid.(key) = convertFrom(grid.(key), u.liqvol_r);
 
-         case 'NNC',
+         case 'NNC'
             grid.(key)(:,7) = convertFrom(grid.(key)(:,7), u.trans);
 
-         case {'TRANX', 'TRANY', 'TRANZ'},
+         case {'TRANX', 'TRANY', 'TRANZ'}
             grid.(key) = convertFrom(grid.(key), u.trans);
 
          case {'THCONR'}
             grid.(key) = convertFrom(grid.(key), u.rockcond);
 
-         case 'PINCH',
+         case 'PINCH'
             i    = [1, 3];
             data = convertFrom([ grid.(key){i} ], u.length);
 
             grid.(key)(i) = num2cell(data);   clear i data
 
-         case {'SIGMAV', 'SIGMA'},
+         case {'SIGMAV', 'SIGMA'}
               grid.(key) = convertFrom(grid.(key), u.invarea);
 
-         case {'DZMTRXV', 'DZMTRX'},
+         case {'DZMTRXV', 'DZMTRX'}
               grid.(key) = convertFrom(grid.(key), u.length);
 
          case {'cartDims',                        ...  % MRST specific
                'ACTNUM', 'NTG', 'PORO', 'MULTPV', ...
                'FLUXNUM',                         ...
                'FAULTS', 'MULTFLT',               ...
-               'MULTX' , 'MULTX_', 'MULTY', 'MULTY_', 'MULTZ', 'MULTZ_'},
+               'MULTX' , 'MULTX_', 'MULTY', 'MULTY_', 'MULTZ', 'MULTZ_'}
             continue;  % Dimensionless
 
          otherwise
@@ -301,94 +300,94 @@ end
 %--------------------------------------------------------------------------
 
 function props = convertPROPS(props, u)
-   for kw = reshape(fieldnames(props), 1, []),
+   for kw = reshape(fieldnames(props), 1, [])
       key = kw{1};
 
-      switch key,
+      switch key
          case {'DENSITY', 'SDENSITY'}
             props.(key) = convertFrom(props.(key), u.density);
 
          case 'RKTRMDIR'
             continue; %dimensionless
 
-         case 'ROCK',
+         case 'ROCK'
             unt         = [u.press, u.compr, u.compr, u.compr, 1, 1];
             unt         = unt(1 : size(props.(key), 2));
             props.(key) = convertFrom(props.(key), unt);
 
-         case 'ROCKTAB',
+         case 'ROCKTAB'
             unt         = [u.press, ones(1, size(props.(key){1}, 2)-1)];
             for t = 1:numel(props.(key))
                 props.(key){t} = convertFrom(props.(key){t}, unt);
             end
 
-         case 'SURFST',
+         case 'SURFST'
             unt         = [u.concentr, u.surf_tension];
-            for t = 1 : numel(props.(key)),
+            for t = 1 : numel(props.(key))
                 props.(key){t} = convertFrom(props.(key){t}, unt);
             end
 
-         case 'SURFADS',
+         case 'SURFADS'
             unt         = [u.concentr, 1];
-            for t = 1 : numel(props.(key)),
+            for t = 1 : numel(props.(key))
                 props.(key){t} = convertFrom(props.(key){t}, unt);
             end
 
-         case 'SURFROCK',
+         case 'SURFROCK'
             unt         = [1, u.concentr];
             props.(key) = convertFrom(props.(key), unt);
 
-         case 'SURFVISC',
+         case 'SURFVISC'
             unt         = [u.concentr, u.viscosity];
-            for t = 1 : numel(props.(key)),
+            for t = 1 : numel(props.(key))
                 props.(key){t} = convertFrom(props.(key){t}, unt);
             end
 
-        case {'SPECHEAT'},
+         case {'SPECHEAT'}
             unt         = [u.temp, repmat(u.massheatcapacity,1,3)];
-            for t = 1 : numel(props.(key)),
+            for t = 1 : numel(props.(key))
                 props.(key){t} = convertFrom(props.(key){t}, unt);
             end
 
          case {'VISCREF'}
-             unt         = [u.press, u.gasvol_s/u.liqvol_s];
-            for t = 1 : numel(props.(key)),
+            unt         = [u.press, u.gasvol_s/u.liqvol_s];
+            for t = 1 : numel(props.(key))
                 props.(key){t} = convertFrom(props.(key){t}, unt);
             end
 
-         case {'OILVISCT', 'WATERVICT'},
+         case {'OILVISCT', 'WATERVICT'}
             unt         = [u.temp, u.viscosity];
-            for t = 1 : numel(props.(key)),
+            for t = 1 : numel(props.(key))
                 props.(key){t} = convertFrom(props.(key){t}, unt);
             end
 
-        case {'SPECROCK'} ,
+        case {'SPECROCK'} 
             unt         = [u.temp, u.volumheatcapacity];
-            for t = 1 : numel(props.(key)),
+            for t = 1 : numel(props.(key))
                 props.(key){t} = convertFrom(props.(key){t}, unt);
             end
 
-         case 'MW',
+         case 'MW'
             unt         = u.mass / u.mol;
             props.(key) = convertFrom(props.(key), unt);
 
-        case 'PLYMAX',
+        case 'PLYMAX'
             unt         = [u.concentr, u.concentr];
             props.(key) = convertFrom(props.(key), unt);
 
-         case 'PLYROCK',
+         case 'PLYROCK'
             unt         = [1, 1, u.concentr, 1, 1];
             props.(key) = convertFrom(props.(key), unt);
 
-         case {'PLYVISC', 'PLYADS'},
+         case {'PLYVISC', 'PLYADS'}
             unt         = [u.concentr, 1];
-            for t = 1 : numel(props.(key)),
+            for t = 1 : numel(props.(key))
                 props.(key){t} = convertFrom(props.(key){t}, unt);
             end
 
-         case 'PLYSHEAR',
+         case 'PLYSHEAR'
             unt = [u.length/u.time, 1];
-            for t = 1 : numel(props.(key)),
+            for t = 1 : numel(props.(key))
                props.(key){t} = convertFrom(props.(key){t}, unt);
             end
 
@@ -402,54 +401,54 @@ function props = convertPROPS(props, u)
              else
                  unt = [u.length/u.time, 1];
              end
-             for t = 1 : numel(props.(key).data),
+             for t = 1 : numel(props.(key).data)
                 props.(key).data{t} = convertFrom(props.(key).data{t}, unt);
              end
 
-         case 'PCRIT',
+         case 'PCRIT'
             unt         = u.press;
             props.(key) = convertFrom(props.(key), unt);
 
-         case 'PVCDO',
+         case 'PVCDO'
             unt         = [u.press, 1, u.compr, u.viscosity, u.compr];
             props.(key) = convertFrom(props.(key), unt);
 
          case {'PVDG', 'PVDS'}
             unt = [u.press, u.gasvol_r/u.gasvol_s, u.viscosity];
-            for t = 1 : numel(props.(key)),
+            for t = 1 : numel(props.(key))
                props.(key){t} = convertFrom(props.(key){t}, unt);
             end
 
-         case 'PVDO',
+         case 'PVDO'
             assert (iscell(props.(key)));
 
             unt = [u.press, u.liqvol_r/u.liqvol_s, u.viscosity];
-            for t = 1 : numel(props.(key)),
+            for t = 1 : numel(props.(key))
                props.(key){t} = convertFrom(props.(key){t}, unt);
             end
 
-         case 'PVTG',
+         case 'PVTG'
             assert (iscell(props.(key)));
 
             uk = u.press;
             ud = [u.liqvol_s/u.gasvol_s, ...
                   u.gasvol_r/u.gasvol_s, u.viscosity];
 
-            for t = 1 : numel(props.(key)),
+            for t = 1 : numel(props.(key))
                props.(key){t}.key  = convertFrom(props.(key){t}.key , uk);
                props.(key){t}.data = convertFrom(props.(key){t}.data, ud);
             end
 
-         case 'PVTO',
+         case 'PVTO'
             uk = u.gasvol_s / u.liqvol_s;
             ud = [u.press, u.liqvol_r/u.liqvol_s, u.viscosity];
 
-            for t = 1 : numel(props.(key)),
+            for t = 1 : numel(props.(key))
                props.(key){t}.key  = convertFrom(props.(key){t}.key , uk);
                props.(key){t}.data = convertFrom(props.(key){t}.data, ud);
             end
 
-         case 'PVTW',
+         case 'PVTW'
             unt         = [u.press, u.liqvol_r/u.liqvol_s, ...
                            u.compr, u.viscosity, u.compr];
             props.(key) = convertFrom(props.(key), unt);
@@ -458,37 +457,37 @@ function props = convertPROPS(props, u)
             unt         = [u.gasvol_s/u.liqvol_s, u.press];
             props.(key) = convertFrom(props.(key), unt);
 
-         case {'SGFN', 'SWFN'},
+         case {'SGFN', 'SWFN'}
             unt = [1, 1, u.press];
 
-            for t = 1 : numel(props.(key)),
+            for t = 1 : numel(props.(key))
                props.(key){t} = convertFrom(props.(key){t}, unt);
             end
 
-         case {'SGOF', 'SWOF', 'SGWFN', 'SLGOF'},
+         case {'SGOF', 'SWOF', 'SGWFN', 'SLGOF'}
             assert (iscell(props.(key)));
 
             unt = [1, 1, 1, u.press];
 
-            for t = 1 : numel(props.(key)),
+            for t = 1 : numel(props.(key))
                props.(key){t} = convertFrom(props.(key){t}, unt);
             end
             
-         case 'PMISC',
+         case 'PMISC'
             unt = [u.press, 1];
-            for t = 1 : numel(props.(key)),
+            for t = 1 : numel(props.(key))
                props.(key){t} = convertFrom(props.(key){t}, unt);
             end
 
-         case 'TCRIT',
+         case 'TCRIT'
             unt         = u.temp;
             props.(key) = convertFrom(props.(key), unt);
 
-         case 'VCRIT',
+         case 'VCRIT'
             unt         = u.density / (u.mass*u.mol);
             props.(key) = convertFrom(props.(key), unt);
 
-         case 'ZCRIT',
+         case 'ZCRIT'
             unt         = 1;
             props.(key) = convertFrom(props.(key), unt);
 
@@ -543,7 +542,7 @@ function props = convertPROPS(props, u)
                'ACF', 'BIC', 'CNAMES', 'ROCKOPTS', 'EOS', 'PRCORR', ...
                ...
                'MISC', 'MSFN', 'SSFN', ...
-               },
+               }
             continue;  % Dimensionless
 
          otherwise
@@ -556,11 +555,11 @@ end
 %--------------------------------------------------------------------------
 
 function soln = convertSOLUTION(soln, u)
-   for kw = reshape(fieldnames(soln), 1, []),
+   for kw = reshape(fieldnames(soln), 1, [])
       key = kw{1};
 
-      switch key,
-         case 'AQUCT',                               %  7  8  9 10 11
+      switch key
+         case 'AQUCT'                                %  7  8  9 10 11
             unt = [1, u.length, u.press u.perm, 1,    ...
                    1./u.press, u.length, u.length, 1, ...
                    1, 1, 0.0, NaN];
@@ -571,49 +570,49 @@ function soln = convertSOLUTION(soln, u)
                cellfun(@(c) convertFrom(c, u.length ^ 2), ...
                        soln.(key)(:,9), 'UniformOutput', false);
 
-         case 'EQUIL',                               %  7  8  9 10 11
+         case 'EQUIL'                                %  7  8  9 10 11
             unt = [repmat([u.length, u.press], [1, 3]), 1, 1, 1, 1, 1];
 
             unt        = unt(1 : size(soln.(key), 2));
             soln.(key) = convertFrom(soln.(key), unt);
 
-         case 'DATUM',
+         case 'DATUM'
             soln.(key) = convertFrom(soln.(key), u.length);
 
-         case {'PBVD', 'PDVD'},
+         case {'PBVD', 'PDVD'}
             unt = [u.length, u.press];
 
-            for reg = 1 : numel(soln.(key)),
+            for reg = 1 : numel(soln.(key))
                soln.(key){reg} = convertFrom(soln.(key){reg}, unt);
             end
 
          case {'PBUB', 'PRESSURE'}
                soln.(key) = convertFrom(soln.(key), u.press);
 
-         case 'RSVD',
+         case 'RSVD'
             unt = [u.length, u.gasvol_s/u.liqvol_s];
 
-            for reg = 1 : numel(soln.(key)),
+            for reg = 1 : numel(soln.(key))
                soln.(key){reg} = convertFrom(soln.(key){reg}, unt);
             end
 
-         case 'RVVD',
+         case 'RVVD'
             unt = [u.length, u.liqvol_s/u.gasvol_s];
 
-            for reg = 1 : numel(soln.(key)),
+            for reg = 1 : numel(soln.(key))
                soln.(key){reg} = convertFrom(soln.(key){reg}, unt);
             end
 
-         case 'RS',
+         case 'RS'
             soln.(key) = convertFrom(soln.(key), u.gasvol_s / u.liqvol_s);
 
-         case 'RV',
+         case 'RV'
             soln.(key) = convertFrom(soln.(key), u.liqvol_s / u.gasvol_s);
 
-         case {'SGAS', 'SOIL', 'SWAT', 'XMF', 'YMF', 'ZMF'},
+         case {'SGAS', 'SOIL', 'SWAT', 'XMF', 'YMF', 'ZMF'}
             continue;  % Dimensionless
 
-         case 'TEMPI',
+         case 'TEMPI'
             soln.(key) = convertFrom(soln.(key), u.temp);
 
          otherwise
@@ -628,8 +627,8 @@ end
 function schd = convertSCHEDULE(schd, u)
    schd.step.val = convertFrom(schd.step.val, u.time);
 
-   if isfield(schd, 'control'),
-      for c = 1 : numel(schd.control),
+   if isfield(schd, 'control')
+      for c = 1 : numel(schd.control)
          schd.control(c) = convertControl(schd.control(c), u);
       end
    end
@@ -638,103 +637,103 @@ end
 %--------------------------------------------------------------------------
 
 function ctrl = convertControl(ctrl, u)
-   for kw = reshape(fieldnames(ctrl), 1, []),
+   for kw = reshape(fieldnames(ctrl), 1, [])
       key = kw{1};
 
-      switch key,
-         case 'COMPDAT',
-            if ~isempty(ctrl.(key)),
+      switch key
+         case 'COMPDAT'
+            if ~isempty(ctrl.(key))
                ctrl.(key) = convertCompDat(ctrl.(key), u);
             end
 
-         case 'COMPSEGS',
-            if ~isempty(ctrl.(key)),
+         case 'COMPSEGS'
+            if ~isempty(ctrl.(key))
                ctrl.(key) = convertCompSegs(ctrl.(key), u);
             end
 
-         case 'WCONHIST',
-            if ~isempty(ctrl.(key)),
+         case 'WCONHIST'
+            if ~isempty(ctrl.(key))
                ctrl.(key) = convertWconHist(ctrl.(key), u);
             end
 
-         case 'WCONINJ',
-            if ~isempty(ctrl.(key)),
+         case 'WCONINJ'
+            if ~isempty(ctrl.(key))
                ctrl.(key) = convertWConInj(ctrl.(key), u);
             end
 
-         case 'WCONINJE',
-            if ~isempty(ctrl.(key)),
+         case 'WCONINJE'
+            if ~isempty(ctrl.(key))
                ctrl.(key) = convertWConInje(ctrl.(key), u);
             end
 
-         case 'WCONINJH',
-            if ~isempty(ctrl.(key)),
+         case 'WCONINJH'
+            if ~isempty(ctrl.(key))
                ctrl.(key) = convertWConInjh(ctrl.(key), u);
             end
 
-         case 'WCONPROD',
-            if ~isempty(ctrl.(key)),
+         case 'WCONPROD'
+            if ~isempty(ctrl.(key))
                ctrl.(key) = convertWConProd(ctrl.(key), u);
             end
 
-         case 'WPOLYMER',
-            if ~isempty(ctrl.(key)),
+         case 'WPOLYMER'
+            if ~isempty(ctrl.(key))
                ctrl.(key) = convertWPolymer(ctrl.(key), u);
             end
 
-         case 'WSURFACT',
-            if ~isempty(ctrl.(key)),
+         case 'WSURFACT'
+            if ~isempty(ctrl.(key))
                ctrl.(key) = convertWSurfact(ctrl.(key), u);
             end
             
-         case 'WSOLVENT',
-            if ~isempty(ctrl.(key)),
+         case 'WSOLVENT'
+            if ~isempty(ctrl.(key))
                ctrl.(key) = convertWSolvent(ctrl.(key), u);
             end
 
-         case 'GCONINJE',
-            if ~isempty(ctrl.(key)),
+         case 'GCONINJE'
+            if ~isempty(ctrl.(key))
                ctrl.(key) = convertGconInje(ctrl.(key), u);
             end
 
-         case 'GCONPROD',
-            if ~isempty(ctrl.(key)),
+         case 'GCONPROD'
+            if ~isempty(ctrl.(key))
                ctrl.(key) = convertGConProd(ctrl.(key), u);
             end
 
-         case 'GECON',
-            if ~isempty(ctrl.(key)),
+         case 'GECON'
+            if ~isempty(ctrl.(key))
                ctrl.(key) = convertGEcon(ctrl.(key), u);
             end
 
-         case 'WELSPECS',
-            if ~isempty(ctrl.(key)),
+         case 'WELSPECS'
+            if ~isempty(ctrl.(key))
                ctrl.(key) = convertWellSpecs(ctrl.(key), u);
             end
 
-         case 'WELSEGS',
-            if ~isempty(ctrl.(key)),
+         case 'WELSEGS'
+            if ~isempty(ctrl.(key))
                ctrl.(key) = convertWellSegs(ctrl.(key), u);
             end
 
-         case {'GRUPTREE', 'WGRUPCON', 'RPTSCHED'},
+         case {'GRUPTREE', 'WGRUPCON', 'RPTSCHED'}
             continue; % No conversion necessary
 
-         case 'GRUPNET',
-            if ~isempty(ctrl.(key)),
+         case 'GRUPNET'
+            if ~isempty(ctrl.(key))
                ctrl.(key) = convertGrupNet(ctrl.(key), u);
             end
 
-         case 'WTEMP',
-            if ~isempty(ctrl.(key)),
+         case 'WTEMP'
+            if ~isempty(ctrl.(key))
                ctrl.(key) = convertWTemp(ctrl.(key), u);
             end
 
-         case 'DRSDT',
+         case 'DRSDT'
             unt           = (u.gasvol_s / u.liqvol_s) / u.time;
             ctrl.(key){1} = convertFrom(ctrl.(key){1}, unt);
 
-         case { 'VFPINJ', 'VFPPROD' },
+         case { 'VFPINJ', 'VFPPROD' }
             for i = 1:numel(ctrl.(key))
                 d = ctrl.(key){i};
                 if isempty(d)
@@ -809,7 +808,7 @@ function compdat = convertCompDat(compdat, u)
    c = [8      , 9       , 10             , 14      ];
    u = [u.trans, u.length, u.perm*u.length, u.length];
 
-   for n = 1 : numel(c),
+   for n = 1 : numel(c)
       compdat(:, c(n)) = cellfun(@(x) convertFrom(x, u(n)), ...
                                  compdat(:, c(n)), 'UniformOutput', false);
    end
@@ -822,8 +821,8 @@ function compsegs = convertCompSegs(compsegs, u)
    c = [ 5       , 6       , 9       , 10       ];
    u = [ u.length, u.length, u.length, u.length ];
 
-   for w = 1 : size(compsegs, 1),
-      for n = 1 : numel(c),
+   for w = 1 : size(compsegs, 1)
+      for n = 1 : numel(c)
          compsegs{w, 2}(:, c(n)) = ...
             cellfun(@(x) convertFrom(x, u(n)), ...
                     compsegs{w, 2}(:, c(n)), ...
@@ -843,7 +842,7 @@ function wch = convertWconHist(wch, u)
 
    c = c(c <= size(wch, 2));
 
-   for n = 1 : numel(c),
+   for n = 1 : numel(c)
       wch(:, c(n)) = cellfun(@(x) convertFrom(x, u(n)), ...
                              wch(:, c(n)), 'UniformOutput', false);
    end
@@ -864,7 +863,7 @@ function wconinj = convertWConInj(wconinj, u)
                              'UniformOutput', false);
 
    % Vapourised gas concentration
-   if any(is_gas | is_oil),
+   if any(is_gas | is_oil)
       R_unit = repmat(u.liqvol_s / u.gasvol_s, [numel(is_gas), 1]);
       R_unit(is_oil) = u.gasvol_s / u.liqvol_s;
 
@@ -883,7 +882,7 @@ function wconinj = convertWConInj(wconinj, u)
    c = [6                , 7, 10     ];
    u = [u.liqvol_r/u.time, 1, u.press];
 
-   for n = 1 : numel(c),
+   for n = 1 : numel(c)
       wconinj(:, c(n)) = cellfun(@(x) convertFrom(x, u(n)), ...
                                  wconinj(:, c(n)), 'UniformOutput', false);
    end
@@ -907,7 +906,7 @@ function wconinj = convertWConInje(wconinj, u)
                              'UniformOutput', false);
 
    % Vapourised gas concentration
-   if any(is_gas | is_oil),
+   if any(is_gas | is_oil)
       R_unit = repmat(u.liqvol_s / u.gasvol_s, [numel(is_gas), 1]);
       R_unit(is_oil) = u.gasvol_s / u.liqvol_s;
 
@@ -928,7 +927,7 @@ function wconinj = convertWConInje(wconinj, u)
    c = [6                , 8      , 11                   ];
    u = [u.liqvol_r/u.time, u.press, u.gasvol_s/u.liqvol_s];
 
-   for n = 1 : numel(c),
+   for n = 1 : numel(c)
       wconinj(:, c(n)) = cellfun(@(x) convertFrom(x, u(n)), ...
                                  wconinj(:, c(n)), 'UniformOutput', false);
    end
@@ -949,7 +948,7 @@ function wconinj = convertWConInjh(wconinj, u)
                              'UniformOutput', false);
 
    % Vapourised gas concentration
-   if any(is_gas | is_oil),
+   if any(is_gas | is_oil)
       R_unit = repmat(u.liqvol_s / u.gasvol_s, [numel(is_gas), 1]);
       R_unit(is_oil) = u.gasvol_s / u.liqvol_s;
 
@@ -962,7 +961,7 @@ function wconinj = convertWConInjh(wconinj, u)
    c = [5      , 6      ];
    u = [u.press, u.press];
 
-   for n = 1 : numel(c),
+   for n = 1 : numel(c)
       wconinj(:, c(n)) = cellfun(@(x) convertFrom(x, u(n)), ...
                                  wconinj(:, c(n)), 'UniformOutput', false);
    end
@@ -978,7 +977,7 @@ function wcp = convertWConProd(wcp, u)
    c = [4   , 5   , 6   , 7   , 8   , 9      , 10     ];
    u = [lrat, lrat, grat, lrat, resv, u.press, u.press];
 
-   for n = 1 : numel(c),
+   for n = 1 : numel(c)
       wcp(:, c(n)) = cellfun(@(x) convertFrom(x, u(n)), ...
                              wcp(:, c(n)), 'UniformOutput', false);
    end
@@ -991,7 +990,7 @@ function wcp = convertWPolymer(wcp, u)
    c = [2        , 3        ];
    u = [u.density, u.density];
 
-   for n = 1 : numel(c),
+   for n = 1 : numel(c)
       wcp(:, c(n)) = cellfun(@(x) convertFrom(x, u(n)), ...
                              wcp(:, c(n)), 'UniformOutput', false);
    end
@@ -1007,7 +1006,7 @@ end
 
 %--------------------------------------------------------------------------
 
-function wcp = convertWSolvent(wcp, u)
+function wcp = convertWSolvent(wcp, varargin)
 
    wcp(:, 2) = cellfun(@(c) convertFrom(c, 1), ...
                        wcp(:, 2), 'UniformOutput', false);
@@ -1033,7 +1032,7 @@ function wcp = convertGConProd(wcp, u)
    c = [3   , 4   , 5   , 6   , 14  , 15  , 16  , 17 , 18  , 19   ];
    u = [lrat, lrat, grat, lrat, resv, resv, grat, inf, grat, lrat ];
 
-   for n = 1 : numel(c),
+   for n = 1 : numel(c)
       wcp(:, c(n)) = cellfun(@(x) convertFrom(x, u(n)), ...
                              wcp(:, c(n)), 'UniformOutput', false);
    end
@@ -1056,7 +1055,7 @@ function gconinj = convertGconInje(gconinj, u)
    c = [5         , 13        ];
    u = [u.liqvol_r, u.gasvol_s] ./ u.time;
 
-   for n = 1 : numel(c),
+   for n = 1 : numel(c)
       gconinj(:, c(n)) = cellfun(@(x) convertFrom(x, u(n)), ...
                                  gconinj(:, c(n)), 'UniformOutput', false);
    end
@@ -1071,7 +1070,7 @@ function gecon = convertGEcon(gecon, u)
    c = [ 2    , 3    ];
    u = [ orat , grat ];
 
-   for n = 1 : numel(c),
+   for n = 1 : numel(c)
       gecon(:, c(n)) = cellfun(@(x) convertFrom(x, u(n)), ...
                                gecon(:, c(n)), 'UniformOutput', false);
    end
@@ -1092,7 +1091,7 @@ function wspecs = convertWellSpecs(wspecs, u)
    c = [5       , 7       ];
    u = [u.length, u.length];
 
-   for n = 1 : numel(c),
+   for n = 1 : numel(c)
       wspecs(:, c(n)) = cellfun(@(x) convertFrom(x, u(n)), ...
                                 wspecs(:, c(n)), 'UniformOutput', false);
    end
@@ -1101,7 +1100,7 @@ end
 %--------------------------------------------------------------------------
 
 function wsegs = convertWellSegs(wsegs, u)
-   for w = 1 : size(wsegs, 1),
+   for w = 1 : size(wsegs, 1)
       wsegs{w,2}.header   = convertWellSegsHeader (wsegs{w,2}.header, u);
       wsegs{w,2}.segments = convertWellSegsRecords(wsegs{w,2}.segments, u);
    end
@@ -1116,7 +1115,7 @@ function header = convertWellSegsHeader(header, u)
    c = [ 2       , 3       , 4       , 8       , 9        ] - 1;
    u = [ u.length, u.length, u.volume, u.length, u.length ];
 
-   for n = 1 : numel(c),
+   for n = 1 : numel(c)
       header(c(n)) = cellfun(@(x) convertFrom(x, u(n)), ...
                              header(c(n)), 'UniformOutput', false);
    end
@@ -1133,7 +1132,7 @@ function segments = convertWellSegsRecords(segments, u)
    c  = [c , 9     , 10      , 11      , 12      , 13    ];
    uu = [uu, u.area, u.volume, u.length, u.length, u.area];
 
-   for n = 1 : numel(c),
+   for n = 1 : numel(c)
       segments(:, c(n)) = ...
          cellfun(@(x) convertFrom(x, uu(n)), ...
                  segments(:, c(n)), 'UniformOutput', false);
