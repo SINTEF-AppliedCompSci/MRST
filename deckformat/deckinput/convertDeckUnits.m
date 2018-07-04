@@ -735,6 +735,65 @@ function ctrl = convertControl(ctrl, u)
             ctrl.(key){1} = convertFrom(ctrl.(key){1}, unt);
 
          case { 'VFPINJ', 'VFPPROD' },
+            for i = 1:numel(ctrl.(key))
+                d = ctrl.(key){i};
+                if isempty(d)
+                    continue
+                end
+                if strcmp(d.USYS, 'USYS')
+                    usys = u;
+                else
+                    tmp = struct(ctrl.(key){i}.USYS, 1);
+                    usys = unit_system(tmp);
+                end
+                if any(strcmp(d.FLOID, {'OIL', 'WAT', 'LIQ'}))
+                    funit = usys.liqvol_s;
+                elseif strcmp(d.FLOID, 'GAS')
+                    funit = usys.gasvol_s;
+                else
+                    error('Unsupported FLOID');
+                end
+                ctrl.(key){i}.depth = convertFrom(ctrl.(key){i}.depth, usys.length);
+                ctrl.(key){i}.THP = convertFrom(ctrl.(key){i}.THP, usys.press);
+                ctrl.(key){i}.FLO = convertFrom(ctrl.(key){i}.FLO, funit);
+                % Note: GFR, WFR are dimensionless ratios (with the
+                % exception of molar weights, which are not supported here
+                % presently).
+                if strcmp(key, 'VFPPROD')
+                    % Producer
+                    ALQ = ctrl.(key){i}.ALQ;
+                    if ~(numel(ALQ) == 1 && ALQ == 0)
+                        switch ctrl.(key){i}.ALQID
+                            case {'', ' '}
+                                alq_unit = 1;
+                            case 'GRAT'
+                                alq_unit = usys.volume/usys.time;
+                            case 'IGLR'
+                                alq_unit = 1;
+                            case 'TGLR'
+                                alq_unit = 1;
+                            case 'PUMP'
+                                error('Pump rating not known');
+                            case 'COMP'
+                                error('Compressor unit not known');
+                            case {'DENG', 'DENO'}
+                                usys.density;
+                            case 'BEAN'
+                                usys.length;
+                            otherwise
+                                alq_unit = 1;
+                        end
+                        ctrl.(key){i}.ALQ = convertFrom(ALQ, alq_unit);
+                    end
+                    assert(strcmp(ctrl.(key){i}.QID, 'BHP'), ...
+                        'Temperature not supported for VFPROD.');
+                    ctrl.(key){i}.Q = convertFrom(ctrl.(key){i}.Q, usys.press);
+                else
+                    % Injector
+                    ctrl.(key){i}.BHP = convertFrom(ctrl.(key){i}.BHP, usys.press);
+                end
+                ctrl.(key){i}.USYS = 'SI';
+            end
             continue;  % Not implemented
 
          otherwise
