@@ -20,20 +20,19 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
    [schd, miss_kw] = get_state(deck);
 
    [start, ctrl, def_ctrl, cno] = setup(deck, varargin{:});
 
    kw = getEclipseKeyword(fid);
    in_section = ischar(kw);
-   while in_section,
-      switch kw,
-         case 'BOX',
+   while in_section
+      switch kw
+         case 'BOX'
             warning('BOX:Ignored:Schedule', ...
                     'BOX keyword currently ignored in SCHEDULE section');
 
-         case 'ENDBOX',
+         case 'ENDBOX'
             warning('ENDBOX:Ignored:Schedule', ...
                     'ENDBOX keyword currently ignored in SCHEDULE section');
 
@@ -54,17 +53,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                'WPOLYMER', ...
                'WSURFACT', ...
                'WSOLVENT', ...
-               'WTEMP'},
+               'WTEMP'}
 
-            if ~def_ctrl,
+            if ~def_ctrl
                def_ctrl = true;
                cno      = cno + 1;
                ctrl     = defaultControl(ctrl);
             end
             ctrl = readWellKW(fid, ctrl, kw);
 
-         case 'VFPINJ',
-            if ~def_ctrl,
+         case 'VFPINJ'
+            if ~def_ctrl
                def_ctrl = true;
                cno      = cno + 1;
                ctrl     = defaultControl(ctrl);
@@ -73,8 +72,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             [tid, vfpinj]    = readVFPINJ(fid);
             ctrl.VFPINJ{tid} = vfpinj;   clear tid vfpinj
 
-         case 'VFPPROD',
-            if ~def_ctrl,
+         case 'VFPPROD'
+            if ~def_ctrl
                def_ctrl = true;
                cno      = cno + 1;
                ctrl     = defaultControl(ctrl);
@@ -83,8 +82,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             [tid, vfpprod]    = readVFPPROD(fid);
             ctrl.VFPPROD{tid} = vfpprod;   clear tid vfpprod
 
-         case {'DATES', 'TSTEP'},
-            if def_ctrl,
+         case {'DATES', 'TSTEP'}
+            if def_ctrl
                def_ctrl = false;
                schd.control = [schd.control; ctrl];
             end
@@ -94,22 +93,22 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                  repmat(cno, [numel(data), 1])];
             schd.step.val     = [schd.step.val; data];
 
-         case {'ECHO', 'NOECHO'},
+         case {'ECHO', 'NOECHO'}
             kw = getEclipseKeyword(fid);
             continue;  % Ignore.  Not handled in MRST
 
-         case 'DRSDT',
+         case 'DRSDT'
             data    = readDefaultedRecord(fid, {'NaN', 'ALL'});
             data{1} = sscanf(regexprep(data{1}, '[Dd]', 'e'), '%f');
 
-            if ~def_ctrl,
+            if ~def_ctrl
                def_ctrl = true;
                cno      = cno + 1;
                ctrl     = defaultControl(ctrl);
             end
             ctrl.(kw) = data;                                    clear data
 
-            if isfinite(ctrl.DRSDT{1}),
+            if isfinite(ctrl.DRSDT{1})
                fprintf([...
                   '\n\n', ...
                   '@ The black-oil model currently implemented ' ,  ...
@@ -125,13 +124,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          % Sectioning keywords below.  Modifies flow of control.
          % Don't change unless absolutely required...
          %
-         case 'END',
+         case 'END'
             % Logical end of input deck.
             %
             in_section    = false;
             deck.SCHEDULE = schd;
 
-         case 'INCLUDE',
+         case 'INCLUDE'
             % Handle 'INCLUDE' (recursion).
             deck = set_state(deck, schd, miss_kw);
 
@@ -144,13 +143,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             % Prepare for additional reading.
             [schd, miss_kw] = get_state(deck);
 
-            if def_ctrl,
+            if def_ctrl
                ctrl         = schd.control(end);
                schd.control = schd.control(1:end-1);
             end
 
-         otherwise,
-            if ischar(kw),
+         otherwise
+            if ischar(kw)
                miss_kw = [ miss_kw, { kw } ];  %#ok
             end
       end
@@ -160,7 +159,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       in_section = in_section && ischar(kw);
    end
 
-   if def_ctrl,
+   if def_ctrl
       % Reading (or, possibly, file) ended whilst defining the current
       % 'control'.  Time stepping information is (presumably) elsewhere.
       %
@@ -172,7 +171,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    deck = set_state(deck, schd, miss_kw);
 
-   if nargout > 1,
+   if nargout > 1
       % Return def_ctrl and cno settings back to caller (i.e., ourselves)
       % to prepare for additional SCHEDULE reading.
       %
@@ -213,10 +212,11 @@ function control = defaultControl(varargin)
                     'WPOLYMER', [], ...
                     'WSURFACT', [], ...
                     'WSOLVENT', [], ...
-                    'VFPINJ'  , [], 'VFPPROD' , [], ...
-                    'WTEMP', [],...
+                    'VFPINJ'  , [], ...
+                    'VFPPROD' , [], ...
+                    'WTEMP'   , [], ...
                     'DRSDT'   , {{ inf, 'ALL' }});
-   if nargin > 0,
+   if nargin > 0
       control.WELSPECS = [control.WELSPECS; varargin{1}.WELSPECS];
       control.COMPDAT  = [control.COMPDAT;  varargin{1}.COMPDAT ];
       control.DRSDT    = varargin{1}.DRSDT;
@@ -228,9 +228,9 @@ function control = defaultControl(varargin)
                    'GRUPTREE', 'GRUPNET' , ...
                    'COMPSEGS', ...
                    'WELSEGS' , ...
-                   'RPTSCHED' },
+                   'RPTSCHED' }
 
-         if ~ isempty(varargin{1}.(ctrl{1})),
+         if ~ isempty(varargin{1}.(ctrl{1}))
             control.(ctrl{1}) = varargin{1}.(ctrl{1});
          end
       end
@@ -252,7 +252,7 @@ function data = readDATES(fid, start, timespec)
 
    dates = {};
    date  = getDate();
-   while ~empty_record(date),
+   while ~empty_record(date)
       dates = [dates; { date }];     %#ok  % Willfully ignore MLINT advice.
       date  = getDate();
    end
@@ -277,14 +277,4 @@ end
 function deck = set_state(deck, schd, miss_kw)
    deck.SCHEDULE                   = schd;
    deck.UnhandledKeywords.SCHEDULE = unique(miss_kw);
-end
-
-function s = getUnitSystemString(deck)
-   possible = {'METRIC', 'FIELD', 'LAB', 'SI'};
-   for i = 1:numel(possible)
-       if isfield(deck.RUNSPEC, possible{i})
-           s = possible{i};
-           return
-       end
-   end
 end
