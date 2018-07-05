@@ -11,6 +11,7 @@ classdef DGDiscretization < HyperbolicDiscretization
         jumpTolerance
         outTolerance
         meanTolerance
+        Gfull
         
     end
     
@@ -34,6 +35,7 @@ classdef DGDiscretization < HyperbolicDiscretization
             disc.basis  = dgBasis(dim, disc.degree, disc.basis);
             
             G = disc.G;
+            disc.Gfull = G;
             if G.griddim == 2
                 if disc.degree == 0 || disc.useUnstructCubature
                     disc.volumeCubature = Unstruct2DCubature(disc.G, disc.degree + 1, disc.internalConn);
@@ -51,10 +53,10 @@ classdef DGDiscretization < HyperbolicDiscretization
                     disc.surfaceCubature = TriangleCubature(disc.G, disc.degree + 1, disc.internalConn);
                 end
             end
-            [W, x, w, ii, jj, cellNo] = disc.volumeCubature.getCubature((1:G.cells.num)', 'cell');
-            disc.volumeCubature.W = W;
-            [W, x, w, ii, jj, cellNo] = disc.surfaceCubature.getCubature((1:G.cells.num)', 'cellsurface');
-            disc.surfaceCubature.W = W;
+%             [W, x, w, ii, jj, cellNo] = disc.volumeCubature.getCubature((1:G.cells.num)', 'cell');
+%             disc.volumeCubature.W = W;
+%             [W, x, w, ii, jj, cellNo] = disc.surfaceCubature.getCubature((1:G.cells.num)', 'cellsurface');
+%             disc.surfaceCubature.W = W;
             
         end
         
@@ -77,7 +79,8 @@ classdef DGDiscretization < HyperbolicDiscretization
         %-----------------------------------------------------------------%
         function state = updateDisc(disc, state)
             
-            dp = reshape((1:disc.G.cells.num*disc.basis.nDof)', disc.basis.nDof, []);
+%             dp = reshape((1:disc.G.cells.num*disc.basis.nDof)', disc.basis.nDof, []);
+            dp = reshape((1:numel(state.cells)*disc.basis.nDof)', disc.basis.nDof, []);
             
             if nargin == 1
                 nd = repmat(disc.basis.nDof, disc.G.cells.num, 1);
@@ -222,7 +225,8 @@ classdef DGDiscretization < HyperbolicDiscretization
         function state = getCellSaturation(disc, state)
             
             
-            [W, x, cellNo, faceNo] = disc.getCubature((1:disc.G.cells.num)', 'volume');
+%             [W, x, cellNo, faceNo] = disc.getCubature((1:disc.G.cells.num)', 'volume');
+            [W, x, cellNo, faceNo] = disc.getCubature(state.cells, 'volume');
 %             getCubature(disc, cells, type)
 %             [x, w, nq, ii, jj, cellNo] = makeCellIntegrator(disc.G, (1:disc.G.cells.num)', max(disc.degree), 'volume');
 %             W = sparse(ii, jj, w);
@@ -233,7 +237,7 @@ classdef DGDiscretization < HyperbolicDiscretization
             nPh = size(sdof,2);
             s = zeros(disc.G.cells.num, nPh);
             for phNo = 1:nPh
-                s(:,phNo) = (W*disc.evaluateSaturation(x, cellNo, sdof(:,phNo), state))./disc.G.cells.volumes;
+                s(:,phNo) = (W*disc.evaluateSaturation(x, cellNo, sdof(:,phNo), state))./disc.G.cells.volumes(state.cells);
             end
             
             state.s = s;
@@ -288,18 +292,18 @@ classdef DGDiscretization < HyperbolicDiscretization
             nDof    = state.nDof;
             nDofMax = disc.basis.nDof;
             
-            [W, x, cellNo, faceNo] = disc.getCubature(cells, 'surface');
+            [W, x, cellNo, faceNo] = disc.getCubature(state.cells(cells), 'surface');
             
             all2int = zeros(g.faces.num,1);
             all2int(disc.internalConn) = 1:nnz(disc.internalConn);
             ix = all2int(faceNo);
             
-            N = disc.N(ix,:);
             cL = disc.N(ix,1);
             cR = disc.N(ix,2);
             T = T(ix);
             vT = vT(faceNo);
-            G = cellfun(@(g) g(ix), G, 'unif', false);
+%             G = cellfun(@(g) g(ix), G, 'unif', false);
+            G = cellfun(@(g) g(faceNo), G, 'unif', false);
             nPh = numel(G);
             
             [xL, ~, ~] = disc.transformCoords(x, cL);
@@ -358,53 +362,118 @@ classdef DGDiscretization < HyperbolicDiscretization
             
         end
         
+        %-----------------------------------------------------------------%
+        function I = faceFluxIntBC(disc, integrand, f, sdof, state, bc)
+            
+            G       = disc.G;
+            psi     = disc.basis.psi;
+            nDof    = state.nDof;
+            nDofMax = disc.basis.nDof;
+            
+            
+            isFlux = strcmpi(bc.type, 'flux');
+            
+            faces = bc.face(isFlux);
+            cells = sum(G.faces.neighbors(faces,:),2);
+            [W, x, cellNo, faceNo] = disc.getCubature(faces, 'face');
+            cellNo = sum(G.faces.neighbors(faceNo,:),2);
+            
+            sgn = 1 - 2*(G.faces.neighbors(faces, 1) ~= cells);
+            W = W.*sgn;
+            numFlux = nnz(isFlux);
+            
+            [xR, ~, ~] = disc.transformCoords(x, cellNo);
+            sR = disc.evaluateSaturation(xR, cellNo, sdof, state);
+            
+            all2BC = nan(G.faces.num,1);
+            all2BC(faces) = 1:numFlux;
+            locFaceNo = all2BC(faceNo);
+            
+            sL = bc.sat(isFlux,1);
+            sL = sL(locFaceNo);
+            
+            isInj = bc.value(isFlux) > 0;
+            s = sL.*isInj(locFaceNo) + sR.*(~isInj(locFaceNo));
+            
+            
+            f = f(s, 1-s, cellNo, cellNo);
+            
+            I = integrand(sdof, sdof, 1, 1, 1).*0;
+            
+            for dofNo = 1:nDofMax
+                
+                keepCells = nDof(cells) >= dofNo;
+                
+                if any(keepCells)
+                    
+                    ix = disc.getDofIx(state, dofNo, cells(keepCells)');
+                    i  = W*integrand(f, s, cellNo, faceNo, psi{dofNo}(xR));
+                    I(ix) = i(keepCells);
+                    
+                end
+                
+            end
+            
+            I = disc.trimValues(I);
+            
+        end
         
         %-----------------------------------------------------------------%
-        function [W, x, cellNo, faceNo] = getCubature(disc, cells, type)
+        function [W, x, cellNo, faceNo] = getCubature(disc, elements, type)
             
-            if size(cells,1) == 1, cells = cells'; end
+            if size(elements,1) == 1, elements = elements'; end
             
             switch type
                 case 'volume'
                     
                     cubature = disc.volumeCubature;
-                    ix = mcolon(cubature.parentPos(cells), cubature.parentPos(cells+1)-1);
-                    ixf = ix;
+                    ix = mcolon(cubature.parentPos(elements), cubature.parentPos(elements+1)-1);
+%                     ixf = ix;
                     nq = diff(cubature.parentPos);
-                    nq = nq(cells);
+                    nq = nq(elements);
                     
-                    cellNo = rldecode(cells, nq, 1);
+                    cellNo = rldecode(elements, nq, 1);
                     faceNo = [];
 
-%                     sgn   = ones(numel(ix),1);
+                    sgn   = ones(numel(ix),1);
+                    
+                case 'face'
+                    
+                    cubature = disc.surfaceCubature;
+                    nqf = diff(cubature.parentPos);
+                    faceNo = rldecode(elements, nqf(elements), 1);
+                    ix = mcolon(cubature.parentPos(elements), cubature.parentPos(elements+1)-1);
+                    nq = nqf(elements);
+                    cellNo = [];
+                    sgn = 1;
                     
                 case 'surface'
                     
                     cubature = disc.surfaceCubature;
-                    G = disc.G;
-                    faces = G.cells.faces(mcolon(G.cells.facePos(cells), G.cells.facePos(cells+1)-1));
-                    ncf = accumarray(rldecode((1:G.cells.num)', diff(G.cells.facePos), 1), disc.internalConn(faces));
+                    G = disc.Gfull;
+                    faces = G.cells.faces(mcolon(G.cells.facePos(elements), G.cells.facePos(elements+1)-1));
+                    ncf = accumarray(rldecode((1:G.cells.num)', diff(G.cells.facePos), 1), disc.internalConn(G.cells.faces(:,1)));
                     faces = faces(disc.internalConn(faces));
                     if size(faces,1) == 1, faces = faces'; end
                     ix = mcolon(cubature.parentPos(faces), cubature.parentPos(faces+1)-1);
                     
                     nqf = diff(cubature.parentPos);
-                    nq = accumarray(rldecode(cells, ncf(cells), 1), nqf(faces));
+                    nq = accumarray(rldecode(elements, ncf(elements), 1), nqf(faces));
                     
-                    cellNo = rldecode(cells, nq);
+                    cellNo = rldecode(elements, nq);
                     faceNo = rldecode(faces, nqf(faces), 1);
-%                     sgn   = 1 - 2*(G.faces.neighbors(faceNo,1) ~= cellNo);
+                    sgn   = 1 - 2*(G.faces.neighbors(faceNo,1) ~= cellNo);
                     
-                    ixf = nan(numel(ix),1);
-                    ixf(disc.internalConn(faceNo)) = 1:nnz(disc.internalConn(faceNo));
+%                     ixf = nan(numel(ix),1);
+%                     ixf(disc.internalConn(faceNo)) = 1:nnz(disc.internalConn(faceNo));
                     
             end
             
             x = cubature.points(ix, :);
-%             w = cubature.weights(ix).*sgn;
-%             [ii, jj] = blockDiagIndex(ones(numel(cells),1), nq);
-%             W = sparse(ii, jj, w);
-            W = cubature.W(cells, ixf);
+            w = cubature.weights(ix).*sgn;
+            [ii, jj] = blockDiagIndex(ones(numel(elements),1), nq);
+            W = sparse(ii, jj, w);
+%             W = cubature.W(cells, ixf);
             
         end
         

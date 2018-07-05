@@ -20,6 +20,10 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
         
     assert(~(opt.solveForWater && opt.solveForOil));
         
+    if ~isfield(state, 'cells')
+        [state.cells, state0.cells] = deal((1:G.cells.num)');
+    end
+    
     if opt.iteration == 1
         % If we are at the first iteration, we try to solve using maximum
         % degree in all cells
@@ -86,11 +90,27 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     
     bW0 = fluid.bW(p0);
     
-    % Gravity flux
+    
+    % Gravity fluxs
     gp = op.Grad(p);
     [Gw, Go] = deal(zeros(G.faces.num, 1));
     Gw(op.internalConn) = gp - dpW;
     Go(op.internalConn) = gp - dpO;
+    
+    % Add gravity flux where we have a BC.
+    bc = drivingForces.bc;
+    if ~isempty(bc)
+
+        BCcells = sum(G.faces.neighbors(bc.face,:),2);
+        dz = G.cells.centroids(BCcells, :) - G.faces.centroids(bc.face,:);
+        g = model.getGravityVector();
+        rhoWBC = rhoW(BCcells);
+        rhoOBC = rhoO(BCcells);
+        
+        Gw(bc.face) = rhoWBC.*(dz*g');
+        Go(bc.face) = rhoOBC.*(dz*g');
+        
+    end    
     
     TGw = T_all.*Gw;
     TGo = T_all.*Go;
@@ -180,7 +200,23 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     
     state.cfl = dt.*sum(abs(vTc)./G.cells.dx,2);
     
-    % Add sources
+    % Add BCs--------------------------------------------------------------
+    
+    if ~isempty(bc)
+        
+        % Flux term
+        fluxBC = @(fW, sW, c, f, psi) ...
+        (bW(c).*fW.*vT(f) + bW(c).*fW.*mobO(1-sW,c).*(TGw(f) - TGo(f))).*psi./G.faces.areas(f);
+
+        bcInt = disc.faceFluxIntBC(fluxBC, fW, sWdof, state, bc);
+        
+        water = water + bcInt;
+        
+        
+    end
+    
+    % Add sources----------------------------------------------------------
+    
     src = drivingForces.src;
     if ~isempty(src)
         cells = src.cell;
@@ -213,6 +249,12 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     
     if 1
         state.problem = problem;
+    end
+    
+    if model.extraStateOutput
+    %     state = model.storebfactors(state, bW, bO, []);
+    %     state = model.storeMobilities(state, mobW, mobO, []);
+        state = model.storeDensity(state, rhoW, rhoO, []);
     end
 
 end

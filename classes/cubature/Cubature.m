@@ -63,7 +63,7 @@ classdef Cubature
                     switch type
                         case 'face'
                             faceNo = rldecode(faces, nqf(faces), 1);
-                            nq = nqf;
+                            nq = nqf(faces);
                             cellNo = [];
                             sgn = 1;
                         case 'cellsurface'

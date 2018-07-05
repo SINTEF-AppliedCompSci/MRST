@@ -32,6 +32,7 @@ schedule = simpleSchedule(dtvec, 'W', W);
 
 sW     = 0.0;
 state0 = initResSol(G, 100*barsa, [sW,1-sW]);
+state0.cells = (1:G.cells.num)';
 
 %%
 
@@ -45,10 +46,11 @@ state0 = assignDofFromState(modelDG.transportModel.disc, state0);
 
 %%
 
+[modelDG.transportModel.extraStateOutput, modelDG.pressureModel.extraStateOutput] = deal(true);
 modelDGreorder = modelDG;
 modelDGreorder.pressureModel.extraStateOutput = true;
 
-modelDGreorder.transportModel = ReorderingModel(modelDGreorder.transportModel);
+modelDGreorder.transportModel = ReorderingModelDG(modelDGreorder.transportModel);
 
 modelDGreorder.transportModel.chunkSize = 1;
 modelDGreorder.transportModel.parent.extraStateOutput = true;
