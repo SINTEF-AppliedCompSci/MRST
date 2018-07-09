@@ -1,0 +1,156 @@
+\documentclass{beamer}
+
+\usepackage{xcolor}
+\usepackage[latin1]{inputenc}
+\usepackage{pgfplots}
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows,calc,positioning,shadows,fillbetween}
+
+%%%<
+\usepackage{verbatim}
+\usepackage[active,tightpage]{preview}
+
+
+\PreviewEnvironment{tikzpicture}
+\setlength\PreviewBorder{5pt}%
+%%%>
+
+\usepackage[outline]{contour}
+\contourlength{0pt}
+
+\begin{document}
+\pagestyle{empty}
+
+\pgfdeclarelayer{background layer}
+\pgfsetlayers{background layer,main}
+
+\definecolor{bl}{rgb}{0, 0.4470, 0.7410}
+\definecolor{re}{rgb}{0.8500, 0.3250, 0.0980}
+\definecolor{ye}{rgb}{    0.9290    0.6940    0.1250}
+
+\pgfdeclarelayer{background layer}
+\pgfsetlayers{background layer,main}
+
+  \pgfplotsset{
+    every mark/.append style={solid}
+  }
+
+% Define block styles
+\tikzstyle{decision} = [diamond, aspect = 5, draw, fill=bl!30, 
+    text width=12em, text badly centered, node distance=3cm, inner sep=0pt, font = \huge]
+\tikzstyle{block} = [rectangle, draw, fill=bl!30, 
+text width=20em, text centered, rounded corners, minimum height=4.5em, font = \huge]
+\tikzstyle{block2} = [rectangle, draw, fill=re!30, 
+text width=20em, text centered, rounded corners, minimum height=4.5em, font = \huge]
+\tikzstyle{line} = [draw, -latex', line width = 2pt, font = \Large]
+\tikzstyle{cloud} = [draw, ellipse,fill=re!20, node distance=3cm,
+minimum height=2em]
+\tikzstyle{code} = [rectangle, draw, fill = ye!10,
+text width=50em, rounded corners, minimum height=3em, font = \ttfamily\Large]
+\tikzstyle{line2} = [draw, dashed, line width = 1pt, color = black!20]
+
+\begin{tikzpicture}[node distance = 2cm, auto]
+  % Place nodes
+  \begin{scope}[shift = {(0,0)}]
+    \node [block2] (init) at (0,0) {Initialize model and reservoir state};
+    \node [code, right = 3cm of init, anchor = north west] (initCode) {
+      G \hspace{3.8ex} = computeGeometry(cartGrid([10,10,10])); \\
+      rock \hspace{1.1ex}= makeRock(G, 100*milli*darcy, 1); \\
+      fluid = initSimpleADIFluid(...); \\
+      fluid = addSolventProperties(fluid, ...); \\
+      model = FourPhaseSolventModel(G, rock, fluid); \\\vspace{0.5cm}
+      
+      state0 = initResSol(G, 100*barsa, [sW, sO, sG, sS]); \\\vspace{0.5cm}
+
+      states = simulateScheduleAD(state0, model, ...)
+    };
+  \end{scope}
+  \def\y{-2.8}
+  \def\dy{-2.3}
+  \def\ddy{-3}
+  \begin{scope}[shift = {(0,\y)}]
+    \node [block] (dtm) at (0,0) {$\Delta t_m = \Delta t/2^m$};
+  \end{scope}
+  \begin{scope}[shift = {(0,\y + \dy)}]
+    \node [block] (prop) at (0,0) {Compute properties and assemble equations};
+  \end{scope}
+  \begin{scope}[shift = {(0,\y + \dy +\dy)}]
+    \node [block] (solve) at (0,0) {Solve at $t + \Delta t_m$ using Newton-Raphson};
+  \end{scope}
+  \begin{scope}[shift = {(0,\y + \dy + \dy + \dy)}]
+    \node [decision] (conv) at (0,0) {Convergence};
+  \end{scope}
+  \begin{scope}[shift = {(0,\y + 3*\dy + \ddy)}]
+    \node [decision] (fin) at (0,0) {$t < t_{n+1}$};
+  \end{scope}
+  \begin{scope}[shift = {(0,\y + 3*\dy + 2*\ddy)}]
+    \node [decision] (end) at (0,0) {$t < T$};
+  \end{scope}  
+  \begin{scope}[shift = {(0,\y + 3*\dy + 3*\ddy)}]
+    \node [block] (comp) at (0,0) {Simulation complete};
+  \end{scope}    
+  % \node [block] (relperm) at (0,-3) {simulateScheduleAD};
+  % \node [block] (relperm) at (0,-3) {solveTimestep};
+  % \node [block] (visc) at (0,-3) {getEquations};
+  % \node [block] (visc) at (0,-3) {Nonlineasr};
+  
+%   \node [block] (eqs) at (5,-3) {% Conservation of mass for water
+% water = (op.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 ) + op.Div(bWvW);
+
+% % Conservation of mass for oil
+% oil = (op.pv/dt).*( pvMult.*bO.*sO - pvMult0.*bO0.*sO0 ) + op.Div(bOvO);
+
+% % Conservation of mass for gas
+% gas = (op.pv/dt).*( pvMult.*bG.*sG - pvMult0.*bG0.*sG0 ) + op.Div(bGvG);
+
+% % Conservation of mass for solvent
+% solvent = (op.pv/dt).*( pvMult.*bS.*sS - pvMult0.*bS0.*sS0 ) + op.Div(bSvS);};
+
+  % \node [block, below = 0.8cm of relperm] (transp) {Solve $R_{w}=0$ and $R_p = 0$ to obtain saturation $S_w$ and concentration $c$};
+  % \node [decision, below = 0.8cm of transp] (transp_check) {$\max\{\|\Delta S_w\|, \|\Delta c\|\} < \varepsilon_t$};
+  % \node [block2, below = 0.8cm of transp_check] (time_update) {$t = t + \Delta t$};
+  % Helper coordinates
+  % \coordinate [right = 1.5cm of pres_check] (no_pres) {};
+  % \coordinate [right = 1.5cm of transp_check] (no_transp) {};
+  % \coordinate [left = 1.5cm of transp_check] (no_transp2) {};
+  \coordinate [left = 0.5cm of dtm] (next_m) {};
+  \coordinate [left = 1.4cm of dtm] (next_it) {};
+  \coordinate [right = 0.5cm of dtm] (next_n) {};
+  % Draw edges
+  \path [line] (init) -- node[pos = 0.5, anchor = west]{$t = 0, \, n = 0, \, m = 0$}(dtm);
+  \path [line] (dtm) -- (prop);%
+  \path [line] (prop) -- (solve);
+  \path [line] (solve) -- (conv);
+  \draw [line width = 2pt] (conv) -| node[below, pos = 0.2]{\Large no} node[above, pos = 0.75, rotate = 90]{\Large $m = m+1$}(next_m);
+  \path [line] (next_m) -- (dtm);
+  \path [line] (conv) -- node[right, pos = 0.3]{ yes} node[right, pos = 0.6]{ $t = t + \Delta t_m$}(fin);
+  \draw [line width = 2pt] (fin) -| node[below, pos = 0.2]{\Large yes} (next_it);
+  \path [line] (next_it) -- (dtm);
+  \draw [line width = 2pt] (end) -| node[below, pos = 0.2]{\Large yes}
+  node[above, pos = 0.75, rotate = -90]{\Large $n = n+1, \, m = 0$}(next_n);
+  \path [line] (next_n) -- (dtm);
+  \path [line] (fin) -- node[right, pos = 0.5]{ no}(end);
+  \path [line] (end) -- node[right, pos = 0.5]{ no}(comp);
+  \path [line2] (init.east) -- (initCode.north west);
+  \path [line2] (init.east) -- (initCode.south west);
+  
+  % \draw [line width = 1pt] (pres_check) -- node[below]{no}(no_pres);
+  % \path [line] (no_pres) |- (pres);
+  % \path [line] (pres_check) -- node{yes}(transp);
+  % \path [line] (transp) -- (transp_check);
+  % \draw [line width = 1pt] (transp_check) -- node[below]{no}(no_transp);
+  % \path [line] (no_transp) |- coordinate[pos=0.25](mid) (transp);
+  % \draw [dashed, line width = 1pt] (transp_check) -- (no_transp2);
+  % \path [line, dashed] (no_transp2) |- node[pos=0.25, above, rotate=90]{Optional: Recompute pressure}(pres);
+  % \path [line] (transp_check) --node{yes} (time_update);
+  % \draw [line width = 1pt] (time_update) -| (next_it);
+  % \path [line] (next_it) -| (pres);
+  % \draw (5.5,-10) node[color = re, text width = 3cm, align = center] (diff) {\textbf{Many wasted iterations}};
+  % \draw (diff) edge[bend right, -latex', color =re, line width = 1.5pt] (mid);
+\end{tikzpicture}
+ 
+\end{document}
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:

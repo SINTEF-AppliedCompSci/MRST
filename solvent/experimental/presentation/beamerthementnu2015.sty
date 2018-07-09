@@ -1,0 +1,289 @@
+%
+% Template for NTNU presentations in LaTeX beamer
+%
+% See README for further details.
+%
+% Useage: \usetheme[style=ntnu|simple|vertical|horizontal, language=bm|nn|en]{ntnu}
+
+\ProvidesClass{beamerthementnu2015}[2015/12/03]
+
+\mode<presentation>
+
+\RequirePackage{helvet}
+\RequirePackage[absolute,overlay]{textpos}
+
+\DeclareOptionBeamer{style}{\def\beamer@ntnu@style{#1}}  
+\DeclareOptionBeamer{language}{\def\beamer@ntnu@language{#1}}
+\ProcessOptionsBeamer
+
+% Get the aspect ratio, 
+% http://tex.stackexchange.com/questions/123106/detect-aspect-ratio-in-beamer
+\usepackage{xparse}
+
+\ExplSyntaxOn
+\NewDocumentCommand{\ifaspectratio}{mmm}
+ {
+  % Recover the option from those passed to the class
+  \keys_set:nf { zunbeltz/beameroptions } { \use:c { opt@beamer.cls } }
+  \str_if_eq:nVTF { #1 } \l_zunbeltz_aspectratio_tl { #2 } { #3 }
+ }
+\NewDocumentCommand{\xifaspectratio}{mO{}}
+ {
+  % Recover the option from those passed to the class
+  \keys_set:nf { zunbeltz/beameroptions } { \use:c { opt@beamer.cls } }
+  \str_case:Vnn \l_zunbeltz_aspectratio_tl { #1 } { #2 }
+ }
+% We need to define only one key, the other are treated as `unknown'
+\keys_define:nn { zunbeltz/beameroptions }
+ {
+  aspectratio .tl_set:N = \l_zunbeltz_aspectratio_tl,
+  aspectratio .initial:n = 43,
+  unknown .code:n = {},
+ }
+
+% Generate the variants we need
+\cs_generate_variant:Nn \keys_set:nn { nf }
+\cs_generate_variant:Nn \str_if_eq:nnTF { nV }
+\cs_generate_variant:Nn \str_case:nnF { V }
+\ExplSyntaxOff
+
+\ifaspectratio{169}{\def\aspect{169}}{\def\aspect{43}}
+% Aspect ration detection finished
+
+
+% Background image for title slide
+\pgfdeclareimage[height=\paperheight,width=\paperwidth,interpolate=true]{titlebackground}{gfx/titlebackground-\beamer@ntnu@style-\beamer@ntnu@language-\aspect}
+
+% Background image for normal slides
+%\pgfdeclareimage[height=\paperheight, width=\paperwidth,interpolate=true]{background}{gfx/background-\beamer@ntnu@style-\aspect}
+
+% Turn off navigation symbols
+\setbeamertemplate{navigation symbols}{}
+
+% Official NTNU colors
+\definecolor{ntnublue}{RGB}{0, 80, 158}
+\definecolor{ntnuboksbakgrunn}{RGB}{221, 231, 238}
+
+\setbeamercolor{normal text}{fg=black,bg=white}
+\setbeamercolor{pagenumber}{fg=pagenumbercolor}
+\setbeamercolor{alerted text}{fg=red}
+\setbeamercolor{example text}{fg=ntnublue!50!black}
+\setbeamercolor{structure}{fg=ntnublue}
+\setbeamercolor{background canvas}{parent=normal text}
+\setbeamercolor{background}{parent=background canvas}
+
+
+% Set some style dependent values
+\usepackage{boolexpr,pdftexcmds,trace}
+\long\def\isequal#1#2{\pdf@strcmp{#1}{#2}}
+\switch
+\case{\isequal{\beamer@ntnu@style}{vertical}}
+   \setbeamercolor{footline}{fg=white}
+   \def\footlinealign{left}
+   \def\titlex{50pt}
+   \def\titley{70pt}
+   \def\pgnumoffset{7pt}
+   \setbeamersize{text margin left=2cm,text margin right=1em}
+\case{\isequal{\beamer@ntnu@style}{horizontal}}
+   \setbeamercolor{footline}{fg=white}
+   \def\footlinealign{left}
+   \def\titlex{30pt}
+   \def\titley{70pt}
+   \def\pgnumoffset{0pt}
+   \setbeamersize{text margin left=1cm,text margin right=1em}
+\otherwise
+   \setbeamercolor{footline}{fg=black}
+   \def\footlinealign{right}
+   \def\titlex{16pt}
+   \def\titley{110pt}
+   \def\pgnumoffset{0pt}
+   \setbeamersize{text margin left=1cm,text margin right=1em}
+\endswitch
+
+\setbeamerfont{footline}{size=\tiny}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Definerer to templates for bakgrunn, avhengig av om det er forside
+% eller ikke. Hvilken som brukes må styres av brukeren, se kommandoen 
+% \ntnutitlepage under.
+\defbeamertemplate*{background canvas}{ntnu theme}%
+{%
+%  \pgfuseimage{background}%
+}
+\defbeamertemplate{background canvas}{ntnu theme titlepage}%
+{%
+  \pgfuseimage{titlebackground}%
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% En kommando for å lage forside, som bruker en annen bakgrunn
+\newcommand{\ntnutitlepage}{%
+{% open a TeX group to keep changes local
+\setbeamertemplate{background canvas}[ntnu theme titlepage]
+\setbeamertemplate{footline}[ntnu theme titlepage]
+\begin{frame}%
+\titlepage%
+\end{frame}%
+}%
+}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 
+% Kode for å få til pene bokser
+\setbeamertemplate{blocks}[]
+\setbeamercolor{block title}{fg=white,bg=ntnublue}
+\setbeamercolor{block title example}{parent=block title}
+\setbeamercolor{block body}{parent=normal text,%
+  use=block title,bg=ntnuboksbakgrunn}
+\setbeamercolor{block body example}{parent=block body}
+% NB:
+% Rektangulære bokser får litt for mye spacing når de er inni
+% kolonner. Dette er innrapportert som beamerbug [2005/10/27]
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Tegner opp footer, den blå bakgrunnen i footer kommer fra bakgrunnsbilde.
+\defbeamertemplate*{footline}{ntnu theme}
+{
+  % stay in vertical mode here, thus no \leavevmode.
+%  \hbox{%
+%    \hspace{8.5cm}
+%      \pgfuseimage{skapendeunivlite}%
+%    }%
+  \hbox{%
+    \hspace{\pgnumoffset}
+    \begin{beamercolorbox}[wd=.95\textwidth,ht=5mm,dp=2.0mm,\footlinealign]{footline}%
+      \hspace{2mm}\usebeamerfont{footline}\textbf{\insertframenumber}%
+    \end{beamercolorbox}%
+%    \begin{beamercolorbox}[wd=0.8\textwidth,ht=5mm,dp=2mm,right]{ffootline}%
+%      \usebeamerfont{footline}\insertshortauthor,~\insertshorttitle~\hspace{2mm}%
+%    \end{beamercolorbox}%
+  }
+}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Tegner opp footer for forsida, \ntnutitlepage styrer bruk av denne.
+\defbeamertemplate{footline}{ntnu theme titlepage}
+{
+  \hbox{%
+%    \begin{beamercolorbox}[wd=0.2\textwidth,ht=5mm,dp=2mm,left]{footline}%
+%      \hspace{2mm}\usebeamerfont{footline}www.ntnu.no%
+%    \end{beamercolorbox}%
+%    \begin{beamercolorbox}[wd=0.8\textwidth,ht=5mm,dp=2mm,right]{ffootline}%
+%      \usebeamerfont{footline}\insertshortauthor,~\insertshorttitle~\hspace{2mm}%
+%    \end{beamercolorbox}%
+  }
+}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Setter opp teksten på forsida (tittel på foredrag, foredragsholder etc..
+\defbeamertemplate*{title page}{ntnu}[1][]
+{%
+%  \vspace{\titleoffset \paperheight}
+%  \begin{flushleft}
+\begin{textblock*}{\paperwidth}(\titlex,\titley)
+    \begin{beamercolorbox}[sep=3pt,left,leftskip=.2cm,#1]{title}
+      \usebeamerfont{title}\inserttitle\par%
+      \ifx\insertsubtitle\@empty%
+      \else%
+        \vskip0.25em%
+        {\usebeamerfont{subtitle}\usebeamercolor[fg]{subtitle}\insertsubtitle\par}%
+      \fi%     
+    \end{beamercolorbox}%
+    \vskip1em\par
+    \begin{beamercolorbox}[sep=3pt,left,leftskip=.2cm,#1]{author}
+      \usebeamerfont{author}\insertauthor
+    \end{beamercolorbox}
+    \begin{beamercolorbox}[sep=3pt,left,leftskip=.2cm,#1]{institute}
+      \usebeamerfont{institute}\insertinstitute
+    \end{beamercolorbox}
+    \begin{beamercolorbox}[sep=3pt,left,leftskip=.2cm,#1]{date}
+      \usebeamerfont{date}\insertdate
+    \end{beamercolorbox}
+\end{textblock*}
+%  \end{flushleft}
+%  \vfill
+}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Header på hver slide
+\defbeamertemplate*{frametitle}{ntnu theme}[1][left]
+{
+  \@tempdima=\textwidth%
+%$  \advance\@tempdima by\beamer@leftmargin%
+  \advance\@tempdima by\beamer@rightmargin%
+  % \@tempdima must now be the whole physical page width
+  
+  % sep-option to beamercolorbox gives padding in all directions
+  % inside the beamercolorbox.
+  
+%  % Page number:
+%  \begin{beamercolorbox}[sep=0.2cm,leftskip=-1cm,wd=1cm]{pagenumber}
+%    \usebeamerfont{pagenumber}
+%    \insertframenumber
+%  \end{beamercolorbox}
+  
+  % Skip a bit downwards:
+  \vskip0.4cm
+  
+  % Print frametitle:
+  \begin{beamercolorbox}[sep=0cm,#1,wd=\the\@tempdima]{frametitle}
+    \if@tempswa\else\csname beamer@fte#1\endcsname\fi%
+    {\usebeamerfont{frametitle}\insertframetitle\par}%
+    % \if@tempswa\else\vskip-.3cm\fi% set inside beamercolorbox... evil here... 
+  \end{beamercolorbox}%
+}
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Noen generelle innstillinger
+\setbeamercolor*{itemize item}{fg=black}
+\setbeamercolor*{itemize subitem}{fg=black}
+\setbeamercolor*{itemize subsubitem}{fg=black}
+\setbeamercolor*{enumerate item}{fg=black}
+\setbeamercolor*{enumerate subitem}{fg=black}
+\setbeamercolor*{enumerate subsubitem}{fg=black}
+\setbeamercolor*{title}{fg=black}
+\setbeamercolor*{subtitle}{fg=gray}
+\setbeamercolor*{author}{fg=gray}
+\setbeamercolor*{date}{fg=gray}
+\setbeamercolor*{institute}{fg=gray}
+\setbeamercolor*{frametitle}{fg=black}
+
+
+\defbeamertemplate*{itemize item}{ntnu}{---}
+\defbeamertemplate*{itemize subitem}{ntnu}{$\bullet$}
+\defbeamertemplate*{itemize subsubitem}{ntnu}{---}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Fonter
+
+\setbeamerfont{title}{size=\large,series=\bfseries}
+\setbeamerfont{subtitle}{size=\normalsize}
+\setbeamerfont{author}{size=\normalsize}
+\setbeamerfont{date}{size=\normalsize}
+\setbeamerfont{institute}{size=\normalsize}
+\setbeamerfont{frametitle}{size=\large, series=\bfseries}
+\setbeamerfont{pagenumber}{size=\small,series=\bfseries}
+
+
+% Textpos conflicts with biblatex, they both define ifboolexpr.
+% This is a workaround to undefine the conflicting macro.
+% But we only undefine it, if it was defined. (textpos might change later)
+\ifcsname ifboolexpr\endcsname
+\makeatletter
+\let\ifboolexpr\@undefined
+\makeatother
+\fi
+
+\mode
+<all>
