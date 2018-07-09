@@ -1112,7 +1112,7 @@ function vfpprod = convertVFPPROD(vfpprod, u)
       if ~ ((numel(vfpprod{i}.ALQ) == 1) && (vfpprod{i}.ALQ == 0))
          switch vfpprod{i}.ALQID
             case {'', ' '},        alq_unit = 1;
-            case 'GRAT',           alq_unit = usys.volume / usys.time;
+            case 'GRAT',           alq_unit = usys.gasvol_s / usys.time;
             case 'IGLR',           alq_unit = 1;
             case 'TGLR',           alq_unit = 1;
             case {'DENG', 'DENO'}, alq_unit = usys.density;
