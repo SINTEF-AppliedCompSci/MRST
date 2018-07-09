@@ -7,7 +7,7 @@ function [press, s, rs, rv] = direct_assignment(G, deck, fluid, pix)
 %   `initEclipseState`.
 
 %{
-Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

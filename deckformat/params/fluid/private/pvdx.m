@@ -21,7 +21,7 @@ function [B, dB, R, dR, mu, P] = pvdx(tab, p, varargin)
 %   `pvto`, `pvtg`.
 
 %{
-Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

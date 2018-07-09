@@ -5,7 +5,7 @@ function deck = readRUNSPEC(fid, dirname, deck)
 
 
 %{
-Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
