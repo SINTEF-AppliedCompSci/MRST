@@ -108,7 +108,7 @@ end
 plotWellSols({wellSols(:,1), wellSols(:,2)}, ...
     cumsum(dt), 'datasetnames', {'TPFA','MFD'});
 %{
-Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
