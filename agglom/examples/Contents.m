@@ -9,7 +9,7 @@
 %   agglomExample6 - Example 6: Adaptive Refinement of Grid
 
 %{
-Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
