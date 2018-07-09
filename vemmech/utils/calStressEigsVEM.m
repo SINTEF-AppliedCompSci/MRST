@@ -4,7 +4,7 @@ function [sigm,evec]=calStressEigsVEM(G,stress,varargin)
 % transform to traditional voits notation (for stress this has no factors)
 
 %{
-Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
 %}
 
 opt=struct('use_c',false);

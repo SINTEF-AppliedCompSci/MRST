@@ -31,7 +31,7 @@ function [Xq, w, V, vol] = triangleQuadRule(k)
 %                        quadrature_rules_tri/quadrature_rules_tri.html
 
 %{
-Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

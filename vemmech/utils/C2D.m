@@ -5,7 +5,7 @@ function D = C2D(C, G,varargin)
 % convert form voit notation to matrix in VEM format of vem formulation
 
 %{
-Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

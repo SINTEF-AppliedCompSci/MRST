@@ -46,7 +46,7 @@ function varargout = plotFracData2D(G, data, varargin)
 %   outlineCoarseGrid, plotToolbar, patch
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

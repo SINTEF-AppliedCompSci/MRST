@@ -52,7 +52,7 @@ function [uu, extra] = VEM_linElast(G, C, el_bc, load, varargin)
 %
 
 %{
-Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

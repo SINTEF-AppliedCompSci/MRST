@@ -56,7 +56,7 @@ function [x, err, nIter] = callAMGCL_cpr(A, b, block_size, varargin)
 %   `callAMGCL`, `amgcl_matlab`, `getAMGCLMexStruct`.
 
 %{
-Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

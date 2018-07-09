@@ -19,7 +19,7 @@ function grdecl_new = padGrdecl(grdecl, dirs, box, varargin)
 %   grdecl_new - Grid in eclipse format, with padding.
 
 %{
-Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
