@@ -25,7 +25,7 @@ function yi = interpTable(X, Y, xi, varargin)
 %   `dinterpTable`, `interp1`, `spline`.
 
 %{
-Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
