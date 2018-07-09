@@ -24,7 +24,7 @@ function operators = setupOperatorsVEM(G, C, el_bc, load, alpha_scaling, S)
 % SEE ALSO: VEM_linElast, MechanicalModel 
 %
 %{
-Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

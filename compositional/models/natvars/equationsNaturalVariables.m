@@ -465,7 +465,7 @@ function [sO, sG] = setMinimums(model, state, sW, sO, sG, pureVapor, pureLiquid)
 end
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

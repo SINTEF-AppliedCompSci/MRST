@@ -46,7 +46,7 @@ function [vW, bW, mobW, rhoW, pW, upcw, dpW, muW] = getFluxAndPropsWater_BO(mode
 %   getFluxAndPropsGas_BO, getFluxAndPropsOil_BO
 
 %{
-Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

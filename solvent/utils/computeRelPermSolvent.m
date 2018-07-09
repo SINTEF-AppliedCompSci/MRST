@@ -2,7 +2,7 @@ function [krW_eff, krO_eff, krG_eff, krS_eff] = computeRelPermSolvent(model, p, 
 % Calulates effective relative permeabilities.
 
 %{
-Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

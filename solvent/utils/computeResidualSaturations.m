@@ -2,7 +2,7 @@ function [sWcon, sOr, sGc] = computeResidualSaturations(model, p, sW, sG, sS, st
 % Calculate effective residual saturations
 
 %{
-Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
