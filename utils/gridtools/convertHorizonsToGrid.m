@@ -1,4 +1,75 @@
 function grdecl = convertHorizonsToGrid(horizons, varargin)
+%Build corner-point grid based on a series of horizons
+%
+% SYNOPSIS:
+%   grdecl = convertHorizonsToGrid(horizons)
+%   grdecl = convertHorizonsToGrid(horizons, 'pn', pv)
+%
+% PARAMETERS:
+%  horizons - A cell array of structures describing the surfaces that make
+%             up the individual horizons. There must at least be two such
+%             horizons. The structure should contain three fields (x,y,z)
+%             that give the coordinates of the respective horizons. The x
+%             and y coordinates are assumed to lie on a rectilinear grid
+%             (i.e., what MATLAB refers to as a meshgrid), but the number
+%             of mesh points need not be the same the different surfaces.
+%
+%  'dims'   - A 2-vector `[nx, ny]` giving the number of cells in each
+%             spatial direction inside the iterpolation area. If this
+%             optional parameter is not specified, the number of cells in
+%             the interpolation region will be the same as the maximum of
+%             mesh points found in each spatial direction for all the input
+%             horizons.
+%
+%  'layers' - A vector specifying the number of grid layers to be inserted
+%             in between each pair of horizon surfaces
+%
+% DESCRIPTION:
+%   The function uses 'interp2' to interpolate between pairs of horizons.
+%   The interpolation region is set to be the minimum rectangle that
+%   contains the areal bounding boxes of all the horizons, inside which the
+%   routine will interpolate on a Cartesian grid of size dims(1) x dims(2).
+%   The output grid, however, will only contain cells that are inside the
+%   maximum areal rectangle that fit inside all the individual areal
+%   bounding boxes
+%
+% RETURNS:
+%   grdecl - A GRDECL structure suitable for passing to function
+%            `processGRDECL`.
+%
+% EXAMPLES:
+%   [y,x,z]  = peaks(30);
+%   horizons = {struct('x',x,'y',y,'z',z),struct('x',x,'y',y,'z',z+5)};
+%   grdecl   = convertHorizonsToGrid(horizons,'layers', 2);
+%   G        = processGRDECL(grdecl);
+%   figure, plotGrid(G); view(3); axis tight
+%
+%   horizons = {struct('x',x,'y',y,'z',z),struct('x',x,'y',2*y+1,'z',z+10)};
+%   G = processGRDECL(convertHorizonsToGrid(horizons,'dims',[20 20]));
+%   figure, plotGrid(G); view(-140,30); axis tight
+%
+% SEE ALSO:
+%   `processGRDECL`, `makeModel3`
+
+%{
+Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
     opt = struct('dims', [],... % X and Y resolution
                  'layers', []); % Number of cells in each layer
     opt = merge_options(opt, varargin{:});
@@ -90,7 +161,7 @@ end
 function checkDeltaZ(dz)
     dz_finite = dz(:);
     dz_finite = dz_finite(isfinite(dz));
-    if ~all(dz_finite > 0)
+    if ~all(dz_finite >= 0)
         warning('Non-monotone data detected.');
     end
 end
