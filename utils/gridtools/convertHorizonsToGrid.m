@@ -12,7 +12,7 @@ function grdecl = convertHorizonsToGrid(horizons, varargin)
 %             that give the coordinates of the respective horizons. The x
 %             and y coordinates are assumed to lie on a rectilinear grid
 %             (i.e., what MATLAB refers to as a meshgrid), but the number
-%             of mesh points need not be the same the different surfaces.
+%             of mesh points need not be the same in the different surfaces.
 %
 %  'dims'   - A 2-vector `[nx, ny]` giving the number of cells in each
 %             spatial direction inside the iterpolation area. If this
@@ -29,9 +29,9 @@ function grdecl = convertHorizonsToGrid(horizons, varargin)
 %   The interpolation region is set to be the minimum rectangle that
 %   contains the areal bounding boxes of all the horizons, inside which the
 %   routine will interpolate on a Cartesian grid of size dims(1) x dims(2).
-%   The output grid, however, will only contain cells that are inside the
-%   maximum areal rectangle that fit inside all the individual areal
-%   bounding boxes
+%   The output grid, however, will only contain cells that are contained
+%   inside the maximum areal rectangle that fits inside all the individual
+%   areal bounding boxes
 %
 % RETURNS:
 %   grdecl - A GRDECL structure suitable for passing to function
