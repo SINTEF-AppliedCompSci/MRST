@@ -192,7 +192,7 @@ legend('c_\mu=0', 'c_\mu=0.002', 'c_\mu=0.005', 'Location', 'SouthEast');
 axis tight
 
 %{
-Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
