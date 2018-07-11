@@ -19,7 +19,7 @@ colormap((jet(G.cells.num)+repmat(2,G.cells.num,3))/3);
 % Show cell/block indices
 CG = coarsenGeometry(CG);
 tg = text(G.cells.centroids(:,1), G.cells.centroids(:,2), ...
-   num2str((1:G.cells.num)'),'FontSize',16, 'HorizontalAlignment','center');
+   num2str((1:G.cells.num)'),'FontSize',20, 'HorizontalAlignment','center');
 tcg = text(CG.cells.centroids(:,1), CG.cells.centroids(:,2), ...
    num2str((1:CG.cells.num)'),'FontSize',24, 'HorizontalAlignment','center');
 axis off;
@@ -29,10 +29,10 @@ set(tcg,'BackgroundColor','w','EdgeColor','none');
 % Show indices of the faces in the fine/coarse grids
 delete([tg; tcg]);
 tg = text(G.faces.centroids(:,1), G.faces.centroids(:,2), ...
-   num2str((1:G.faces.num)'),'FontSize',14, 'HorizontalAlignment','center');
+   num2str((1:G.faces.num)'),'FontSize',18, 'HorizontalAlignment','center');
 tcg = text(CG.faces.centroids(:,1), CG.faces.centroids(:,2), ...
    num2str((1:CG.faces.num)'),'FontSize',24, 'HorizontalAlignment','center');
-set(tcg,'BackgroundColor','w','EdgeColor','none');
+set(tcg,'BackgroundColor','w','EdgeColor','k');
 
 %% Second example: 2D face partition 
 clf;
