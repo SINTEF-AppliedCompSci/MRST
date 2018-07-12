@@ -1,8 +1,8 @@
 % AD
 %
 % Files
-%   pressureEquationOilWaterNTPFA -
-%   PressureOilWaterModelNTPFA    -
+%   PressureOilWaterModelNTPFA    - 
+%   pressureEquationOilWaterNTPFA - 
 
 %{
 Copyright 2009-2018 SINTEF ICT, Applied Mathematics.

@@ -1,15 +1,7 @@
-% UTILS
+% AMGCL
 %
 % Files
-%   adjacentFacesForFace         - 
-%   computeNonLinearTrans        - 
-%   getCollactionSet             - 
-%   getFaceFromCellInterpolator  - Get nodes
-%   getFaceFromCellInterpolatorN - 
-%   getInterpolationOperator     - Pcell = speye(G.cells.num);
-%   getNodeFromCellInterpolator  - Get nodes
-%   incompSinglePhaseNTPFA       - 
-%   interpolatedFacePressure     - 
+%   callAMGCL - Invoke AMGCL Linear Solver Software
 
 %{
 Copyright 2009-2018 SINTEF ICT, Applied Mathematics.

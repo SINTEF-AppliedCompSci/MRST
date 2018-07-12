@@ -1,15 +1,10 @@
 % UTILS
 %
 % Files
-%   adjacentFacesForFace         - 
-%   computeNonLinearTrans        - 
-%   getCollactionSet             - 
-%   getFaceFromCellInterpolator  - Get nodes
-%   getFaceFromCellInterpolatorN - 
-%   getInterpolationOperator     - Pcell = speye(G.cells.num);
-%   getNodeFromCellInterpolator  - Get nodes
-%   incompSinglePhaseNTPFA       - 
-%   interpolatedFacePressure     - 
+%   amgcl_matlab          - MEX-gateway to AMGCL Linear Solver Software
+%   callAMGCL_cpr         - Invoke AMGCL Linear Solver Software in CPR Mode
+%   getAMGCLMexStruct     - 
+%   translateOptionsAMGCL - 
 
 %{
 Copyright 2009-2018 SINTEF ICT, Applied Mathematics.

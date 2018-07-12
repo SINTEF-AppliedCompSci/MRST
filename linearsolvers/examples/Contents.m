@@ -1,15 +1,9 @@
-% UTILS
+% EXAMPLES
 %
 % Files
-%   adjacentFacesForFace         - 
-%   computeNonLinearTrans        - 
-%   getCollactionSet             - 
-%   getFaceFromCellInterpolator  - Get nodes
-%   getFaceFromCellInterpolatorN - 
-%   getInterpolationOperator     - Pcell = speye(G.cells.num);
-%   getNodeFromCellInterpolator  - Get nodes
-%   incompSinglePhaseNTPFA       - 
-%   interpolatedFacePressure     - 
+%   sequentialAMGCL - Select layer 1
+%   testAMGCL       - Example demonstrating AMGCL on a few test problems
+%   testAMGCL_cpr   - Example demonstrating AMGCL on a few test problems
 
 %{
 Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
