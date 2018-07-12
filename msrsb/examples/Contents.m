@@ -1,7 +1,7 @@
 % EXAMPLES
 %
 % Files
-%   bedModelMS                    - Example: High-resolution bed model
+%   bedModelMS                    - Multiscale solver applied to high-resolution bed model
 %   exampleMs                     - Simple Conceptual Multiscale Example (Layers of SPE10)
 %   highContrastChannelMultiscale - Problem comparing different multiscale methods on an idealized channel
 %   inclusionsMultiscale          - Multiscale solver with inactive cells / inclusions
