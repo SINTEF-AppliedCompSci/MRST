@@ -1,7 +1,7 @@
 % TESTS
 %
 % Files
-%   test_mrstFigure  -
+%   test_mrstFigure  - 
 %   testWellPlotting - 3d plotting
 
 %{

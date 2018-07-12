@@ -2,13 +2,14 @@
 %
 % Files
 %   addFilters                 - Filter cells based on dataset.
-%   colorizedHistogram         -
+%   colorizedHistogram         - 
 %   datasetSelector            - Create dataset selector either as standalone or integrated in gui.
 %   editWells                  - Edit well setup
+%   editStructGUI              - 
 %   extractSubcellsInteractive - Extract a subset of cells from a grid interactively.
 %   fastRotateButton           - Hook in faster rotation for 3D plots.
 %   getStructFields            - Dump possible plotting fields of a struct into human readable format.
-%   interactiveSelection       -
+%   interactiveSelection       - 
 %   logColorbar                - Create colorbar for log dataset
 %   mrstFigure                 - Create or select figure with convenient default options for 3d plotting
 %   plotAdjustiblePlane        - {
