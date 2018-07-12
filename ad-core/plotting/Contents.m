@@ -1,7 +1,7 @@
 % PLOTTING
 %
 % Files
-%   getPlotAfterStep       - Get a function that allows for dynamic plotting using simulateScheduleAD
+%   getPlotAfterStep       - Get a function that allows for dynamic plotting in `simulateScheduleAD`.
 %   inspectFluidModel      - Create a interactive plotting panel for a given model that shows
 %   plotReportIterations   - Plot nonlinear convergence behavior for simulateScheduleAD output
 %   plotWellSols           - Plot well solutions from AD-solvers

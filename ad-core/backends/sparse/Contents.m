@@ -1,9 +1,7 @@
-% MODELS
+% SPARSE
 %
 % Files
-%   OilWaterPolymerModel           - Oil/water/polymer system
-%   OilWaterSurfactantModel        - SYNOPSIS:
-%   ThreePhaseBlackOilPolymerModel - Three-phase black-oil model with support for polymer injection
+%   SparseAutoDiffBackend - Automatic differentiation backend class (sparse representation)
 
 %{
 Copyright 2009-2018 SINTEF ICT, Applied Mathematics.

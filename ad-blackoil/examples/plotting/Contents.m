@@ -1,9 +1,7 @@
-% MODELS
+% PLOTTING
 %
 % Files
-%   OilWaterPolymerModel           - Oil/water/polymer system
-%   OilWaterSurfactantModel        - SYNOPSIS:
-%   ThreePhaseBlackOilPolymerModel - Three-phase black-oil model with support for polymer injection
+%   surfWithOutline - Standard surf plot with black outline of perimeter
 
 %{
 Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
@@ -23,3 +21,4 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+

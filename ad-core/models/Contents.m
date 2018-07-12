@@ -1,7 +1,7 @@
 % MODELS
 %
 % Files
-%   PhysicalModel  - Base class for physical models
+%   PhysicalModel  - Base class for all AD models. Implements a generic discretized model.
 %   ReservoirModel - Base class for physical models
 
 %{

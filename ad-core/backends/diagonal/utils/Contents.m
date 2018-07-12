@@ -1,9 +1,14 @@
-% MODELS
+% UTILS
 %
 % Files
-%   OilWaterPolymerModel           - Oil/water/polymer system
-%   OilWaterSurfactantModel        - SYNOPSIS:
-%   ThreePhaseBlackOilPolymerModel - Three-phase black-oil model with support for polymer injection
+%   diagMult                 - Internal function for diagonal multiplication in AD code
+%   double2NewAD             - Convert a double to NewAD variable, using a sample NewAD variable for dimensions
+%   getSparseArguments       - Get sparse matrix indices
+%   getSparseBlocks          - Get sparse blocks
+%   incrementSubset          - Update a subset directly
+%   initVariablesAD_diagonal - Diagonal AD initializer
+%   initVariablesAD_oneBlock - Initialize a set of automatic differentiation variables (single block)
+%   matrixDims               - Overloadable version of size
 
 %{
 Copyright 2009-2018 SINTEF ICT, Applied Mathematics.

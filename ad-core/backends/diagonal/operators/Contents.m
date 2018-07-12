@@ -1,9 +1,10 @@
-% MODELS
+% OPERATORS
 %
 % Files
-%   OilWaterPolymerModel           - Oil/water/polymer system
-%   OilWaterSurfactantModel        - SYNOPSIS:
-%   ThreePhaseBlackOilPolymerModel - Three-phase black-oil model with support for polymer injection
+%   discreteDivergence - Discrete divergence for the NewAD library
+%   faceAverage        - Face average operator for the NewAD library
+%   singlePointUpwind  - Single-point upwind for the NewAD library
+%   twoPointGradient   - Discrete gradient for the NewAD library
 
 %{
 Copyright 2009-2018 SINTEF ICT, Applied Mathematics.

@@ -3,12 +3,12 @@
 % Files
 %   dinterpReg           - Interpolate table with multiple regions
 %   extendTab            - 
-%   getRegMap            - Get region mapping from 
+%   getRegMap            - Get region mapping from REGNUM array
 %   handleRegions        - 
 %   interp2DPVT          - 
 %   interp2DTable        - 
 %   interpReg            - Interpolate data (with region support)
-%   interpRegPVT         - 
+%   interpRegPVT         - Interpolate PVT-type curves with region support
 %   interpRegular2DTable - 
 
 %{

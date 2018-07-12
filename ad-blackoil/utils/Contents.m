@@ -16,6 +16,8 @@
 %   getFluxAndPropsGas_BO             - Get flux and properties for the gas phase for a black-oil problem
 %   getFluxAndPropsOil_BO             - Get flux and properties for the oil phase for a black-oil problem
 %   getFluxAndPropsWater_BO           - Get flux and properties for the water phase for a black-oil problem
+%   getPolymerShearMultiplier         - Compute the flux multiplier due to polymer shear thinning/thickening
+%   getWellPolymer                    - 
 %   updateStateBlackOilGeneric        - Generic update function for blackoil-like models
 
 %{

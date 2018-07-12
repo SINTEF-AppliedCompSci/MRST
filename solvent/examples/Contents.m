@@ -1,9 +1,8 @@
-% MODELS
+% EXAMPLES
 %
 % Files
-%   OilWaterPolymerModel           - Oil/water/polymer system
-%   OilWaterSurfactantModel        - SYNOPSIS:
-%   ThreePhaseBlackOilPolymerModel - Three-phase black-oil model with support for polymer injection
+%   solventExample1D - Using the black-oil solvent model
+%   spe10WAGexample  - Water-alternating Gas Injection in layer 10 of SPE10
 
 %{
 Copyright 2009-2018 SINTEF ICT, Applied Mathematics.

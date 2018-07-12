@@ -1,9 +1,9 @@
-% MODELS
+% NATVARS
 %
 % Files
-%   OilWaterPolymerModel           - Oil/water/polymer system
-%   OilWaterSurfactantModel        - SYNOPSIS:
-%   ThreePhaseBlackOilPolymerModel - Three-phase black-oil model with support for polymer injection
+%   equationsNaturalVariables          - Equations for natural variables formulation
+%   NaturalVariablesCompositionalModel - Natural variables model for compositional problems
+%   ReducedLinearizedSystem            - Linearized system which performs a Schur complement before solving
 
 %{
 Copyright 2009-2018 SINTEF ICT, Applied Mathematics.

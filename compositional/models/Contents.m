@@ -1,9 +1,7 @@
 % MODELS
 %
 % Files
-%   OilWaterPolymerModel           - Oil/water/polymer system
-%   OilWaterSurfactantModel        - SYNOPSIS:
-%   ThreePhaseBlackOilPolymerModel - Three-phase black-oil model with support for polymer injection
+%   ThreePhaseCompositionalModel - Base class for compositional models
 
 %{
 Copyright 2009-2018 SINTEF ICT, Applied Mathematics.

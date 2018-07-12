@@ -1,15 +1,20 @@
 % Files
 %   assignDENSITY     - dens of size ntpvtx3
+%   assignMISC        - 
+%   assignMSFN        - 
+%   assignOILVIST     - Compute tables (static data)
 %   assignPLMIXPAR    - 
 %   assignPLYADS      - 
 %   assignPLYMAX      - 
 %   assignPLYROCK     - 
-%   assignPLYSHEAR    - 
+%   assignPLYSHEAR    - Polymer shear thinning/thickening
 %   assignPLYSHLOG    - 
 %   assignPLYVISC     - 
+%   assignPMISC       - 
 %   assignPVCDO       - 
 %   assignPVDG        - 
 %   assignPVDO        - 
+%   assignPVDS        - 
 %   assignPVTG        - 
 %   assignPVTO        - 
 %   assignPVTW        - 
@@ -18,11 +23,16 @@
 %   assignRSCONSTT    - 
 %   assignRelPerm     - 
 %   assignRelPermScal - 
+%   assignSDENSITY    - dens of size ntpvtx3
 %   assignSGFN        - 
 %   assignSGOF        - 
 %   assignSHRATE      - 
+%   assignSLGOF       - 
 %   assignSOF2        - 
 %   assignSOF3        - 
+%   assignSPECHEAT    - Compute tables (static data)
+%   assignSPECROCK    - Compute tables (static data)
+%   assignSSFN        - 
 %   assignSURFADS     - 
 %   assignSURFCAPD    - 
 %   assignSURFROCK    - 
@@ -31,6 +41,8 @@
 %   assignSWFN        - 
 %   assignSWOF        - 
 %   assignTLMIXPAR    - 
+%   assignVISCREF     - dens of size ntpvtx3
+%   assignWATERVIST   - Compute tables (static data)
 %   initDeckADIFluid  - Initialize AD-solver fluid from ECLIPSE-style input deck
 
 %{

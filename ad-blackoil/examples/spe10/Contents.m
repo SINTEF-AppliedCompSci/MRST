@@ -1,9 +1,7 @@
-% MODELS
+% SPE10
 %
 % Files
-%   OilWaterPolymerModel           - Oil/water/polymer system
-%   OilWaterSurfactantModel        - SYNOPSIS:
-%   ThreePhaseBlackOilPolymerModel - Three-phase black-oil model with support for polymer injection
+%   tenthCSP_Model_I - Example Simulation of Model One From Tenth SPE CSP
 
 %{
 Copyright 2009-2018 SINTEF ICT, Applied Mathematics.

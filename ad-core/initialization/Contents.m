@@ -1,9 +1,19 @@
-% MODELS
+% INITIALIZATION
 %
 % Files
-%   OilWaterPolymerModel           - Oil/water/polymer system
-%   OilWaterSurfactantModel        - SYNOPSIS:
-%   ThreePhaseBlackOilPolymerModel - Three-phase black-oil model with support for polymer injection
+%   getDeckOPMData                        - 
+%   getInitializationRegionsBase          - 
+%   getInitializationRegionsBlackOil      - 
+%   getInitializationRegionsCompositional - 
+%   getInitializationRegionsDeck          - 
+%   getMinimumPhaseSaturations            - 
+%   getMinMaxPhaseSaturations             - 
+%   getMinMaxPhaseSaturationsFromRelPerm  - 
+%   initializeEquilibriumPressures        - 
+%   initializeEquilibriumSaturations      - 
+%   initStateBlackOilAD                   - 
+%   initStateDeck                         - 
+%   plotRegionContacts                    - 
 
 %{
 Copyright 2009-2018 SINTEF ICT, Applied Mathematics.

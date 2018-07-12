@@ -1,9 +1,8 @@
 % MODELS
 %
 % Files
-%   OilWaterPolymerModel           - Oil/water/polymer system
-%   OilWaterSurfactantModel        - SYNOPSIS:
-%   ThreePhaseBlackOilPolymerModel - Three-phase black-oil model with support for polymer injection
+%   BlackOilSolventModel     - Black-oil solvent model.
+%   equationsBlackOilSolvent - Generate linearized problem for the black-oil solvent model equations
 
 %{
 Copyright 2009-2018 SINTEF ICT, Applied Mathematics.

@@ -1,9 +1,10 @@
-% MODELS
+% DIAGONAL
 %
 % Files
-%   OilWaterPolymerModel           - Oil/water/polymer system
-%   OilWaterSurfactantModel        - SYNOPSIS:
-%   ThreePhaseBlackOilPolymerModel - Three-phase black-oil model with support for polymer injection
+%   DiagonalAutoDiffBackend - Automatic differentiation backend class (diagonal representation)
+%   DiagonalJacobian        - Diagonal representation of a Jacobian
+%   DiagonalSubset          - Structured subset of a diagonal jacobian 
+%   NewAD                   - NewAD is the testbed for future updates to the ADI class. All
 
 %{
 Copyright 2009-2018 SINTEF ICT, Applied Mathematics.

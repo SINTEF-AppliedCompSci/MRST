@@ -1,9 +1,13 @@
-% MODELS
+% FLUIDS
 %
 % Files
-%   OilWaterPolymerModel           - Oil/water/polymer system
-%   OilWaterSurfactantModel        - SYNOPSIS:
-%   ThreePhaseBlackOilPolymerModel - Three-phase black-oil model with support for polymer injection
+%   BlackOilPropertyModel       - Black-oil property model for compositional models
+%   CompositionalFluid          - 
+%   CompositionalPropertyModel  - Property model for compositional models
+%   CoolPropsCompositionalFluid - Create MRST compositional fluid by using the open CoolProp library
+%   getCompositionalFluidCase   - Grab bag of different fluids for use in examples etc
+%   PropertyModel               - Base class for properties in the compositional module
+%   TableCompositionalFluid     - Create MRST compositional from stored tables (taken from CoolProp)
 
 %{
 Copyright 2009-2018 SINTEF ICT, Applied Mathematics.

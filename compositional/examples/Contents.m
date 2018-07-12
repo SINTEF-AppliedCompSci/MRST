@@ -1,9 +1,11 @@
-% MODELS
+% EXAMPLES
 %
 % Files
-%   OilWaterPolymerModel           - Oil/water/polymer system
-%   OilWaterSurfactantModel        - SYNOPSIS:
-%   ThreePhaseBlackOilPolymerModel - Three-phase black-oil model with support for polymer injection
+%   compositionalBoundaryConditionsExample - Example comparing natural variables and overall composition with boundary conditions
+%   compositionalExample3DSixComponents    - Example demonstrating a three dimensional, six component problem
+%   compositionalLargerProblemTutorial     - Conceptual example on how to run larger compositional problems
+%   compositionalValidationSimple          - Compare MRST results with other simulators
+%   runCompositionalSPE1                   - Example demonstrating compositional solvers with K-values
 
 %{
 Copyright 2009-2018 SINTEF ICT, Applied Mathematics.

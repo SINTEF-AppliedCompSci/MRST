@@ -1,10 +1,14 @@
 % EQUATIONS
 %
 % Files
-%   pressureEquationBlackOil  - 
-%   pressureEquationOilWater  - 
-%   transportEquationBlackOil - Generate linearized problem for a volatile 3Ph system (wet-gas, live-oil).
-%   transportEquationOilWater - 
+%   pressureEquationBlackOil         - 
+%   pressureEquationBlackOilPolymer  - 
+%   pressureEquationOilWater         - 
+%   pressureEquationOilWaterPolymer  - 
+%   transportEquationBlackOil        - Generate linearized problem for a volatile 3Ph system (wet-gas, live-oil).
+%   transportEquationBlackOilPolymer - 
+%   transportEquationOilWater        - 
+%   transportEquationOilWaterPolymer - 
 
 %{
 Copyright 2009-2018 SINTEF ICT, Applied Mathematics.

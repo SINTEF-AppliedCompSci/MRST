@@ -1,9 +1,10 @@
-% MODELS
+% BLACKOIL
 %
 % Files
-%   OilWaterPolymerModel           - Oil/water/polymer system
-%   OilWaterSurfactantModel        - SYNOPSIS:
-%   ThreePhaseBlackOilPolymerModel - Three-phase black-oil model with support for polymer injection
+%   blackOilToMassFraction                   - Evaluate properties
+%   convertBlackOilModelToCompositionalModel - Convert blackoil model to compositional-like model
+%   convertBlackOilStateToCompositional      - Convert BO state to compositional-like state
+%   convertRSRVtoKValue                      - Convert RS/RV b lackoil to K-value. Experimental!
 
 %{
 Copyright 2009-2018 SINTEF ICT, Applied Mathematics.

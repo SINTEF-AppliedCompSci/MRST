@@ -1,9 +1,8 @@
-% MODELS
+% EOS
 %
 % Files
-%   OilWaterPolymerModel           - Oil/water/polymer system
-%   OilWaterSurfactantModel        - SYNOPSIS:
-%   ThreePhaseBlackOilPolymerModel - Three-phase black-oil model with support for polymer injection
+%   EquationOfStateModel     - Equation of state model. Implements generalized two-parameter cubic
+%   EquilibriumConstantModel - Equilibrium constant EOS model for problems where functions of the
 
 %{
 Copyright 2009-2018 SINTEF ICT, Applied Mathematics.

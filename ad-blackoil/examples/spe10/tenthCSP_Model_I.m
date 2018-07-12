@@ -1,3 +1,4 @@
+%% Example Simulation of Model One From Tenth SPE CSP
 mrstModule add ad-core ad-blackoil ad-props mrst-gui spe10
 gravity reset on
 
