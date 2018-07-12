@@ -10,20 +10,20 @@
 %   readDefaultedKW        - Read data, possibly containing default designators, for a single keyword.
 %   readDefaultedRecord    - Read data, possibly containing default designators, for a single record.
 %   readEclipseDeck        - Read Simplified ECLIPSE input deck.
-%   readEDIT               - {
+%   readEDIT               - Read edit
 %   readGRID               - deck = readGRID(fid, dirname, deck)
 %   readGridBoxArray       - Input grid array (global cell based) corresponding to current input box
 %   readImmisciblePVTTable - Input immiscible ECLIPSE/FrontSim PVT table (e.g., PVDO, PVDG).
 %   readMisciblePVTTable   - Input miscible ECLIPSE/FrontSim PVT table (e.g., PVTO, PVTG).
 %   readPROPS              - deck = readPROPS(fid, dirname, deck)
-%   readREGIONS            - {
+%   readREGIONS            - Read regions
 %   readRelPermTable       - Input ECLIPSE/FrontSim saturation function table (SWOF/SGOF &c).
-%   readRUNSPEC            - {
-%   readSCHEDULE           - {
-%   readSOLUTION           - {
-%   readSUMMARY            - {
-%   readVFPINJ             - {
-%   readVFPPROD            - {
+%   readRUNSPEC            - Read runspec
+%   readSCHEDULE           - Read schedule
+%   readSOLUTION           - Read solution
+%   readSUMMARY            - Read summary
+%   readVFPINJ             - Read VFP tables for injector
+%   readVFPPROD            - Read VFP tables for producer
 %   readWellKW             - Read well definitions from an ECLIPSE Deck specification.
 %   replaceKeywords        - Replace keywords. Internal function
 
