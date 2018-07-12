@@ -15,7 +15,9 @@
 %   dataset_igemssurfaces        - 
 %   dataset_johansen             - Info function for Johansen dataset. Use getDatasetInfo or getAvailableDatasets for practical purposes.
 %   dataset_norne                - Info function for Norne dataset. Use getDatasetInfo or getAvailableDatasets for practical purposes.
+%   dataset_olympus              - Info function for Olympus benchmark dataset. Use getDatasetInfo or getAvailableDatasets for practical purposes.
 %   dataset_saigup               - Info function for SAIGUP dataset. Use getDatasetInfo or getAvailableDatasets for practical purposes.
+%   dataset_simplecomp           - Info function for simple compositional dataset. 
 %   dataset_sleipner             - Info function for CO2lab dataset. Use getDatasetInfo or getAvailableDatasets for practical purposes.
 %   dataset_sleipnerplumes       - Info function for CO2lab dataset. Use getDatasetInfo or getAvailableDatasets for practical purposes.
 %   dataset_spe1                 - Info function for SPE1 dataset. Use getDatasetInfo or getAvailableDatasets for practical purposes.

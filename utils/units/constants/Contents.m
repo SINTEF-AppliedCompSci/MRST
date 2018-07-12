@@ -1,14 +1,10 @@
-% ROCK
-%   Routines related to rock data (permeability and porosity).
+% CONSTANTS
 %
 % Files
-%   gaussianField         - Compute realization of lognormal, isotropic permeability field.
-%   grdecl2Rock           - Extract rock properties from input deck (grdecl structure)
-%   logNormLayers         - Compute realization of lognormal, isotropic permeability field.
-%   makeRock              - Create rock structure from given permeabilty and porosity values
-%   permeabilityConverter - Add tensor permeability to GRDECL struct
-%   permTensor            - Expand permeability tensor to full format.
-%   poreVolume            - Compute pore volumes of individual cells in grid.
+%   avogadro           - Avogadro constant (in mol^-1)
+%   faradayConstant    - Faraday constant in C mol^-1
+%   gasConstant        - Gas constant (in kg m^2 s^-2 K^-1 mol^-1)
+%   vacuumpermittivity - Vacuum permitivity in Farads per meter
 
 %{
 Copyright 2009-2018 SINTEF ICT, Applied Mathematics.

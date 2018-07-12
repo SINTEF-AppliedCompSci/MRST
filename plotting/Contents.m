@@ -11,9 +11,9 @@
 %   plotFaceData          - Plot face data on exterior grid faces to current axes (reversed Z axis).
 %   plotFaces             - Plot selection of coloured grid faces to current axes (reversed Z axis).
 %   plotFaults            - Plot faults in model
-%   plotGrid              - plots exterior grid faces to current axes.
+%   plotGrid              - Plot exterior faces of grid to current axes.
 %   plotGridVolumes       - Plot partially transparent isosurfaces for a set of values
-%   plotNodeData          - SYNOPSIS:
+%   plotNodeData          - Plot data defined on nodes of grid
 %   plotSlice             - Plot Cartesian slices of cell data on faces
 %   plotWell              - Plot well trajectories into current axes.
 

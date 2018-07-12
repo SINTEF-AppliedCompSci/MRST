@@ -5,8 +5,9 @@
 %   checkGrid             - Apply Basic Consistency Checks to MRST Grid Geometry
 %   compareGrids          - Determine if two grid structures are the same.
 %   connectedCells        - Compute connected components of grid cell subsets.
+%   convertHorizonsToGrid - Build corner-point grid based on a series of horizons
 %   createAugmentedGrid   - Extend grid with mappings needed for the virtual element solver
-%   createGridMappings    - Add preliminary mappings to be used in createAugmentedGrid
+%   createGridMappings    - Add preliminary mappings to be used in `createAugmentedGrid`
 %   findEnclosingCell     - Find cells with closest centroid (in Euclidian norm) in a 2D grid.
 %   getCellNoFaces        - Get a list over all half faces, accounting for possible NNC
 %   getConnectivityMatrix - Derive global, undirected connectivity matrix from neighbourship relation.
@@ -17,7 +18,7 @@
 %   gridCellNodes         - Extract nodes per cell in a particular set of cells
 %   gridFaceNodes         - Find nodes corresponding to a set of faces
 %   gridLogicalIndices    - Given grid G and optional subset of cells, find logical indices.
-%   indirectionSub        - Index map of the type G.cells.facePos, G.faces.nodePos...
+%   indirectionSub        - Look-up in index map of the type G.cells.facePos, G.faces.nodePos, etc
 %   makePlanarGrid        - Construct 2D surface grid from faces of 3D grid.
 %   neighboursByNodes     - Derive neighbourship from common node (vertex) relationship
 %   refineGrdeclLayers    - Refine a GRDECL structure in the vertical direction
@@ -25,6 +26,7 @@
 %   sampleFromBox         - Sample from data on a uniform Cartesian grid that covers the bounding box
 %   sortEdges             - Sort edges in G.faces.edges counter-clockwise to face orientation
 %   sortGrid              - Permute nodes, faces and cells to sorted form
+%   sortHorizons          - 
 %   transform3Dto2Dgrid   - Transforms a 3D grid into a 2D grid.
 %   translateGrid         - Move all grid coordinates according to particular translation
 %   volumeByGaussGreens   - Compute cell volume by means of Gauss-Greens' formula

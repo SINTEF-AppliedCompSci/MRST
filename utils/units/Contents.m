@@ -5,6 +5,7 @@
 %   ampere        - Electrical current of 1 ampere (in units of amps)
 %   atm           - Compute numerical value, in units of Pascal, of one atmosphere.
 %   barsa         - Compute numerical value, in units of Pascal, of one bar.
+%   btu           - British termal unit
 %   centi         - One houndreth prefix.
 %   convertFrom   - Convert physical quantity from given unit to equivalent SI.
 %   convertTo     - Convert physical quantity from SI to equivalent given unit.
@@ -15,12 +16,14 @@
 %   dyne          - Compute numerical value, in units of Newton of one dyne.
 %   farad         - Electrical capacitance of 1 Farad (in units of Farads)
 %   ft            - Distance of one foot (in units of meters).
+%   gal           - Unit of gravity 1 Gal = 0.01 m/s²
 %   gallon        - Compute numerical value, in units of m^3, of one U.S. liquid gallon.
 %   getUnitSystem - Define unit conversion factors for input data.
 %   giga          - One billion (milliard) prefix.
 %   gram          - Mass of one gram, in units of kilogram.
 %   hour          - Time span of one hour (in units of seconds).
 %   inch          - Distance of one inch (in units of meters).
+%   joule         - Units of energy
 %   Kelvin        - Temperature of one Kelvin (in units Kelvin)
 %   kilo          - One thousand prefix.
 %   kilogram      - Mass of one kilogram, in units of kilogram.
