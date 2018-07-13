@@ -53,7 +53,7 @@ function [Gt, optim, init, history, other] = optimizeFormation(varargin)
 %   For an example, refer to the sample script 'optimizeUtsira'.
 %
 %{
-Copyright 2009-2017 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

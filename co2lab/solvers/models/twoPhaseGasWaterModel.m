@@ -1,16 +1,16 @@
-function fill = findPercolationVolumes(traps, injectionAmount, trapvols)
-    nt = numel(traps);
-    fill = zeros(nt, 1);
-    for i = nt:-1:1
-        locvol = trapvols(traps(i));
-        if injectionAmount > locvol
-            fill(i) = 1;
-            injectionAmount = injectionAmount - locvol;
-        else
-            fill(i) = injectionAmount/locvol;
-            break
-        end
+classdef twoPhaseGasWaterModel < TwoPhaseWaterGasModel
+    % Clone of the TowPhaseGasWaterModel class for backward compatibility.
+    
+methods
+    % ------------------------------------------------------------------------
+    function model = twoPhaseGasWaterModel(G, rock, fluid, tsurf, tgrad, varargin)
+        
+        model = model@TwoPhaseWaterGasModel(G, rock, fluid, tsurf, tgrad, varargin{:});
+        
     end
+
+end
+
 end
 
 %{
