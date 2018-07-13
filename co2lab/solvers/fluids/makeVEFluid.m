@@ -18,7 +18,8 @@ function fluid = makeVEFluid(Gt, rock, relperm_model, varargin)
 %   relperm_model - Text string used to specify one of several possible
 %                   models for computing upscaled permeabilities.  Options are:
 %                   - 'simple' : sharp-interface model with linear relative
-%                                permeabilities and vertically homogeneous rock
+%                                permeabilities, no residual saturation, and
+%                                vertically homogeneous rock
 %                   - 'integrated' : sharp-interface model with linear
 %                                    relative permeabilities.  Allows vertically
 %                                    heterogeneous rock and impact of caprock
@@ -443,15 +444,6 @@ end
 
 % ----------------------------------------------------------------------------
 
-function fluid = residual_saturations(fluid, residual)
-
-   fluid.res_water = residual(1);
-   fluid.res_gas   = residual(2);
-
-end
-
-% ----------------------------------------------------------------------------
-
 function fluid = sharp_interface_cap_pressure(fluid, Gt)
 
    % When function is called, the following fields are needed
@@ -474,11 +466,14 @@ end
 function fluid = setup_simple_fluid(fluid, Gt, residual)
 
 % Sharp interface; rock considered vertically uniform; no impact from caprock
-% rugosity  @@ with linear relperms without scaling, how can we ensure
-% residual saturation?
+% rugosity  
 
    fluid = linear_relperms(fluid);                    % 'krW'      , 'krG', 'kr3D'
-   fluid = residual_saturations(fluid, residual);     % 'res_water', 'res_gas'
+   if residual(1) ~= 0 || residual(2) ~= 0
+      warning('Simple model ignores nonzero residual saturation values.');
+   end
+   fluid.res_water = 0;
+   fluid.res_gas = 0;
    fluid = sharp_interface_cap_pressure(fluid, Gt);    % 'pcWG'     , 'invPc3D'
 
 end
