@@ -15,10 +15,14 @@ mrstModule add coarsegrid incomp
 % rectangular domain discretized by a uniform Cartesian grid. As our first
 % far-field coarse grid, we use an almost uniform partitioning
 
-G = cartGrid([150 150 5], [100 100 1]*meter);
-p0 = partitionUI(G, [3 3 1]);
+G = cartGrid([150 150 6], [100 100 1]*meter);
+x = G.nodes.coords(:,1); y = G.nodes.coords(:,2);
+G.nodes.coords(:,3) = G.nodes.coords(:,3) - exp( -(x-60).^2./1000 - (y-40).^2/2000); 
+clf, plotGrid(G,'EdgeAlpha',.05); view(3);
+%%
+p0 = partitionUI(G, [5 5 1]);
 G = computeGeometry(G);
-plotPartition = @(p) plotCellData(G, p, 'EdgeColor','w','EdgeAlpha',.2);
+plotPartition = @(p) plotCellData(G, p, 'EdgeColor','k','EdgeAlpha',.05);
 
 % Make a dummy rock object which is required to set up wells
 clear rock
@@ -58,8 +62,16 @@ for i = 1:numel(W)
 
     p(cells) = max(p) + out;
 end
+
+%%
+p1 = partitionCartGrid(G.cartDims,[1 1 3]);
+p = p + max(p).*(p1-1);
+
+%%
 clf
-plotPartition(p); outlineCoarseGrid(G, p)
+plotPartition(p); %outlineCoarseGrid(G, p)
+CG = generateCoarseGrid(G, p);
+plotFaces(CG,1:CG.faces.num,'FaceColor','none','EdgeColor','k','LineWidth',1);
 plotWell(G, W, 'height', 1/2)
 axis tight off, view(25, 60), colormap(colorcube(max(p)))
 
@@ -84,7 +96,7 @@ axis tight off, view(25, 60), colormap(colorcube(max(out)))
 % METIS so that it tries to make grid blocks having as homogeneous
 % permeability as possible. We then combine this partition with a radial
 % refinement. (The result is not guaranteed to give accurate simulations,
-% but the example illustrates the flexibility in they type of coarsening.)
+% but the example illustrates the flexibility in this type of coarsening.)
 rock.perm = logNormLayers(G.cartDims, [300 200]*milli*darcy, 'sz', [51 3 3]);
 T = computeTrans(G, rock);
 p = partitionMETIS(G, T, 20, 'useLog', true);
