@@ -59,7 +59,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    [cartDims, physDims, layers] = define_layers(varargin{:});
 
    % Define grid
-   G = computeGeometry(cartGrid(cartDims, physDims));
+   try
+       mrstModule add libgeometry
+       G = mcomputeGeometry(cartGrid(cartDims, physDims));
+   catch
+       G = computeGeometry(cartGrid(cartDims, physDims));
+   end
 
    % Get reservoir rock properties in given layers
    rock = getSPE10rock(layers);
