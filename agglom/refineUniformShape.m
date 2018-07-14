@@ -29,6 +29,7 @@ function p = refineUniformShape(p, G, indicator, NU, varargin)
 %              coarse block with a too large indicator. If the partition is
 %              a matrix, the columns are applied in sequence until the
 %              upper bound is fulfilled.
+%   preserve - Boolean. If true, the original partition is preserved.
 %
 % RETURNS:
 %   p - Partition vector after refining.
@@ -55,7 +56,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 require coarsegrid
 
-opt = struct('cartDims', repmat(2, [1, G.griddim]), 'fixPart', []);
+opt = struct('cartDims', repmat(2, [1, G.griddim]), ...
+             'fixPart', [], ...
+             'preserve', false);
 opt = merge_options(opt, varargin{:});
 
 assert(numel(opt.cartDims)==G.griddim, ...
@@ -74,6 +77,7 @@ upper_bound    = NU*sum(indicator)/G.cells.num;
 % in all blocks that exceed the upper limit. Likewise, if a partition array
 % is provided, we apply the columns sequentially until the upper bound is
 % fulfilled.
+q = p;
 if ~isempty(opt.fixPart)
    assert(any([numel(opt.fixPart),size(opt.fixPart,1)]==G.cells.num), ...
       'Wrong dimension of partition vector');
@@ -86,6 +90,10 @@ if ~isempty(opt.fixPart)
       p(bfix(p)) = opt.fixPart(bfix(p),i) + max(p);
       blockIndicator = accumarray(p, indicator);
    end
+end
+if opt.preserve,
+    [~,~,p] = unique([p, q],'rows');
+    p = compressPartition(p);
 end
 
 % Impose a rectangular partition using the bounding box for each
