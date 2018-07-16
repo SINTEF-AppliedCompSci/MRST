@@ -2,7 +2,7 @@
 % plume migration and structural trapping capacity
 
 % The following script generates some of the results and plots presented in
-% Section 3 of the paper, more specifically:
+% Section 3 of the paper (see README.txt), more specifically:
 %   * Figure 6 (plume outlines and trapping inventories given perturbations
 %   in permeability, porosity, and caprock elevation)
 %   * Table 1 (middle column plots showing evolution of Sorensen-Dice
@@ -16,14 +16,32 @@
 % each of the uncertain parameters considered here (caprock, permeability,
 % porosity). An injection/migration scenario is simulated for each model
 % realization, thus the following script can take several minutes to an
-% hour, depending on how many realizations are generated. Results presented
-% in the paper were generated using 100 realizations, however we specify
-% only 10 realizations here for speed.
+% hour, depending on how many realizations are generated. Simulation
+% results presented in the paper were generated using 100 realizations,
+% however we specify the number of realizations here (num_real) to be 10 in
+% order to reduce computing time. Also, structural capacity estimates given
+% perturbations in caprock and porosity were generated using 1000
+% realizations, however we specify only 100 here (num_real_strap).
 num_real = 10;
+num_real_strap = 100;
 
-moduleCheck('ad-core','co2lab','mrst-gui')
+mrstModule add co2lab
+moduleCheck('ad-core')
 
 %% Base model case (no perturbations applied yet)
+% The geomodel we consider is the southern portion of the Utsira aquifer,
+% located in the North Sea. This dataset is available as part of the
+% Norwegian Petroleum Directorate's CO2 Storage Atlas. More details of this
+% aquifer can be found here:
+%       http://www.npd.no/en/Publications/Reports/CO2-Storage-Atlas-/
+% The publically-downloadable Utsira geomodel is comprised of top and
+% bottom surfaces, and an average permeability and porosity is reported in
+% the published Atlas. Since heterogeneous rock properties are not
+% available, we create plausible fields using a perm-phi and phi-depth
+% model that we derive from another aquifer's geomodel.
+
+% Using a single well, we simulate the injection of ~720 Mt of CO2 over a
+% period of 30 years, and then a migration period of close to 3000 years.
 
 [Gt_base, rock_base, seainfo] = makeMyGeomodel();
 fluid_base = makeMyFluid(Gt_base, rock_base, seainfo);
@@ -33,12 +51,14 @@ model_base = CO2VEBlackOilTypeModel(Gt_base, rock_base, fluid_base);
 
 
 % Simulating injection and migration:
-[wellSols_base, states_base] = simulateScheduleAD(initState_base, model_base, schedule_base);
+[wellSols_base, states_base] = simulateScheduleAD(initState_base, ...
+    model_base, schedule_base);
 
 
 % Estimate structural trapping capacity (static)
 ta_base = trapAnalysis(Gt_base, true); % independent of rock
-tot_strap_base = computeTotalStructuralTrapping(Gt_base, ta_base, rock_base, seainfo); % depends on rock
+tot_strap_base = computeTotalStructuralTrapping(Gt_base, ta_base, ...
+    rock_base, seainfo); % depends on rock
     
 
 % Some post-processing
@@ -66,24 +86,27 @@ axis equal tight off
 
 
 %% Perturbed caprock
-% Perturbation levels of +/-1, +/-5, and +/-15 meters were used to generate
-% plots shown in Table 1 of paper. Here, we consider +/-5 meters.
+% Now, we consider the influence of the caprock elevations on structural
+% trapping capacity and plume migration by perturbing elevations using
+% Guassian fields. Perturbation levels of +/-1, +/-5, and +/-15 meters were
+% used to generate results shown in Table 1 of the paper. Here, we consider
+% a perturbation level of +/-5 meters.
+
+% Using same rock properties as base model
+rock = rock_base;
 
 % Loop through "r" realizations of caprock model
-rock = rock_base;
+pertCaprock.Gt_all = cell(1,num_real);
+pertCaprock.reports_all = cell(1,num_real);
+pertCaprock.Ma_all = cell(1,num_real);
 for r=1:num_real
     
     % Generate a perturbed model
     [Gt, ~] = perturbMyGeomodel(Gt_base, rock, ...
                     'perturbType','perturbCaprock', ...
                     'pert_interval',[-5 5]);
-    Gt_all{r} = Gt;
-    
-    
-    % Estimate structural trapping capacity (static)
-    ta = trapAnalysis(Gt, true); % independent of rock
-    tot_strap(r) = computeTotalStructuralTrapping(Gt, ta, rock, seainfo); % depends on rock
-   
+    pertCaprock.Gt_all{1,r} = Gt;
+
     
     % Simulation injection/migration scenario for each perturbed model
     fluid = makeMyFluid(Gt, rock, seainfo);
@@ -94,30 +117,31 @@ for r=1:num_real
     [wellSols, states] = simulateScheduleAD(initState, model, schedule);
 
     
+    % Trapping structure is dependent on caprock elevations
+    ta = trapAnalysis(Gt, true);
+    
+    
     % Prepare output
-    reports_all{r} = makeReports(Gt, {initState, states{:}}, rock, fluid, ...
-                        schedule, [fluid.res_water, fluid.res_gas], ta, []);
-    Ma_all{r} = forecastCurve(initState, states, model, ta);
+    pertCaprock.reports_all{r} = makeReports(Gt, {initState, states{:}}, ...
+        rock, fluid, schedule, [fluid.res_water, fluid.res_gas], ta, []);
+    pertCaprock.Ma_all{r} = forecastCurve(initState, states, model, ta);
 
 end
-
-perturbed.Gt_all      = Gt_all;
-perturbed.rock_all    = rock;
-perturbed.tot_strap   = tot_strap;
-perturbed.Ma_all      = Ma_all;
-perturbed.reports_all = reports_all;
+pertCaprock.rock_all = rock;
 
 
 % Analyze results:
 % Here, we specify select years for plotting plume outlines and error bars
 % in the trapping inventory.
-postProcess( base, perturbed, 'year',[30, 400, 800, 1200, 1600, 2000, 2400, 2800, 3000] );
+postProcess( base, pertCaprock, 'year', ...
+    [30, 400, 800, 1200, 1600, 2000, 2400, 2800, 3000] );
 
 
 % Plot histogram of structural trapping capacities using 100 realizations
 % (Note that plot shown in Figure 7 of paper was generated using 1000
 % realizations)
-for r=1:100
+pertCaprock.tot_strap = zeros(1,num_real_strap);
+for r=1:num_real_strap
     
     % Generate a perturbed model
     [Gt, ~] = perturbMyGeomodel(Gt_base, rock, ...
@@ -125,36 +149,41 @@ for r=1:100
                     'pert_interval',[-5 5]);
     
     % Estimate structural trapping capacity (static)
-    ta = trapAnalysis(Gt, true); % independent of rock
-    tot_strap(r) = computeTotalStructuralTrapping(Gt, ta, rock, seainfo); % depends on rock
+    ta = trapAnalysis(Gt, true); % dependent on elevations
+    pertCaprock.tot_strap(r) = computeTotalStructuralTrapping(Gt, ta, ...
+        rock, seainfo);
 
 end
-plotSimplePDFCDF(tot_strap, 'numBins',15)
+plotSimplePDFCDF(pertCaprock.tot_strap, 'numBins',15)
 
 
 %% Perturbed permeability
-% Perturbation levels of +/-0.02, +/-0.05, and +/-0.10 were used to
-% generate plots shown in Table 1 of paper. Here, we consider +/-0.05.
-% (Note that permeability perturbations are created by first perturbing
-% porosity and then using a porosity-permeability model. As such the
-% pert_interval specified here refers to a porosity perturbation. See
-% paper, Section 2.3, for more explanation)
+% Next, we consider the influence of permeability. Perturbation levels of
+% +/-0.02, +/-0.05, and +/-0.10 were used to generate plots shown in Table
+% 1 of paper. These levels actually refer to porosity perturbations, since
+% permeability perturbations are created by first perturbing porosity and
+% then using a porosity-permeability model. (See paper, Section 2.3, for
+% more explanation.) Here, we consider a perturbation level of +/-0.05.
+% Notice that we do not calculate structural trapping capacity for a set of
+% permeability realizations here; this is because trapping capacity is a
+% static estimate and is not dependent on permeability.
 
-% Loop through "r" realizations of permeability model
+% Grid and trapping structure is not dependent on porosity
 Gt = Gt_base;
 ta = ta_base;
+
+% Loop through "r" realizations of permeability model
+pertPerm.rock_all = cell(1,num_real);
+pertPerm.reports_all = cell(1,num_real);
+pertPerm.Ma_all = cell(1,num_real);
 for r=1:num_real
     
     % Generate a perturbed model
     [~, rock] = perturbMyGeomodel(Gt, rock_base, ...
                     'perturbType','perturbPerm', ...
                     'pert_interval',[-0.05 0.05]);
-    rock_all{r} = rock;
+    pertPerm.rock_all{r} = rock;
     
-    
-    % Note: Structural trapping capacity (static) is not
-    % dependent on permeability, thus we don't estimate it here.
-   
     
     % Simulation injection/migration scenario for each perturbed model
     fluid = makeMyFluid(Gt, rock, seainfo);
@@ -166,44 +195,42 @@ for r=1:num_real
 
     
     % Prepare output
-    reports_all{r} = makeReports(Gt, {initState, states{:}}, rock, fluid, ...
-                        schedule, [fluid.res_water, fluid.res_gas], ta, []);
-    Ma_all{r} = forecastCurve(initState, states, model, ta);
+    pertPerm.reports_all{r} = makeReports(Gt, {initState, states{:}}, ...
+        rock, fluid, schedule, [fluid.res_water, fluid.res_gas], ta, []);
+    pertPerm.Ma_all{r} = forecastCurve(initState, states, model, ta);
 
 end
-
-perturbed.Gt_all      = Gt;
-perturbed.rock_all    = rock_all;
-perturbed.tot_strap   = [];
-perturbed.Ma_all      = Ma_all;
-perturbed.reports_all = reports_all;
+pertPerm.Gt_all = Gt;
 
 
 % Analyze results:
 % Here, we specify select years for plotting plume outlines and error bars
 % in the trapping inventory.
-postProcess( base, perturbed, 'year',[30, 400, 800, 1200, 1600, 2000, 2400, 2800, 3000] );
+postProcess( base, pertPerm, 'year', ...
+    [30, 400, 800, 1200, 1600, 2000, 2400, 2800, 3000] );
 
 
 %% Perturbed porosity
-% Perturbation levels of +/-0.02, +/-0.05, and +/-0.10 were used to
-% generate plots shown in Table 1 of paper. Here, we consider +/-0.05.
+% Finally, we consider the influence of porosity. Perturbation levels of
+% +/-0.02, +/-0.05, and +/-0.10 were used to generate plots shown in Table
+% 1 of paper. Here, we consider perturbation level of +/-0.05.
 
-% Loop through "r" realizations of porosity model
+% Grid and trapping structure is not dependent on porosity
 Gt = Gt_base;
 ta = ta_base;
+
+% Loop through "r" realizations of porosity model
+pertPoro.rock_all = cell(1,num_real);
+pertPoro.reports_all = cell(1,num_real);
+pertPoro.Ma_all = cell(1,num_real);
 for r=1:num_real
     
     % Generate a perturbed model
     [~, rock] = perturbMyGeomodel(Gt, rock_base, ...
                     'perturbType','perturbPoro', ...
                     'pert_interval',[-0.05 0.05]);
-    rock_all{r} = rock;
+    pertPoro.rock_all{r} = rock;
     
-    
-    % Estimate structural trapping capacity (static)
-    tot_strap(r) = computeTotalStructuralTrapping(Gt, ta, rock, seainfo); % depends on rock
-   
     
     % Simulation injection/migration scenario for each perturbed model
     fluid = makeMyFluid(Gt, rock, seainfo);
@@ -215,29 +242,26 @@ for r=1:num_real
 
     
     % Prepare output
-    reports_all{r} = makeReports(Gt, {initState, states{:}}, rock, fluid, ...
-                        schedule, [fluid.res_water, fluid.res_gas], ta, []);
-    Ma_all{r} = forecastCurve(initState, states, model, ta);
+    pertPoro.reports_all{r} = makeReports(Gt, {initState, states{:}}, ...
+        rock, fluid, schedule, [fluid.res_water, fluid.res_gas], ta, []);
+    pertPoro.Ma_all{r} = forecastCurve(initState, states, model, ta);
 
 end
-
-perturbed.Gt_all      = Gt;
-perturbed.rock_all    = rock_all;
-perturbed.tot_strap   = tot_strap;
-perturbed.Ma_all      = Ma_all;
-perturbed.reports_all = reports_all;
+pertPoro.Gt_all = Gt;
 
 
 % Analyze results:
 % Here, we specify select years for plotting plume outlines and error bars
 % in the trapping inventory.
-postProcess( base, perturbed, 'year',[30, 400, 800, 1200, 1600, 2000, 2400, 2800, 3000] );
+postProcess( base, pertPoro, 'year', ...
+    [30, 400, 800, 1200, 1600, 2000, 2400, 2800, 3000] );
 
 
 % Plot histogram of structural trapping capacities using 100 realizations
 % (Note that plot shown in Figure 7 of paper was generated using 1000
 % realizations)
-for r=1:100
+pertPoro.tot_strap = zeros(1,num_real_strap);
+for r=1:num_real_strap
     
     % Generate a perturbed model
     [~, rock] = perturbMyGeomodel(Gt, rock_base, ...
@@ -245,7 +269,8 @@ for r=1:100
                     'pert_interval',[-0.05 0.05]);
    
     % Estimate structural trapping capacity (static)
-    tot_strap(r) = computeTotalStructuralTrapping(Gt, ta, rock, seainfo); % depends on rock
+    pertPoro.tot_strap(r) = computeTotalStructuralTrapping(Gt, ta, rock, ...
+        seainfo);
    
 end
-plotSimplePDFCDF(tot_strap, 'numBins',15)
+plotSimplePDFCDF(pertPoro.tot_strap, 'numBins',15)

@@ -1,12 +1,14 @@
 %% Comparison of fault cases simulated in Stø aquifer
 % The following script generates results (similar**) to those presented in
-% Figures 13, 14, and 15 of the paper.
+% Figures 13, 14, and 15 of the paper (see README.txt).
 
-% The Stø aquifer contains several faults. We treat these faults as either
-% conducting, semi-conducting, or sealing. An injection scenario with 7
-% wells operating at the same fixed rate is simulated, followed by a
-% migration period of close to 3000 years. Over pressure induced by the
-% injection scenario is assessed, as well as plume migration.
+% The Stø aquifer contains several faults. Fault data was provided to us
+% through personal communication with the Norwegian Petroleum Directorate.
+% We treat these faults as either conducting, semi-conducting, or sealing.
+% An injection scenario with 7 wells operating at the same fixed rate is
+% simulated, followed by a migration period of close to 3000 years. Over
+% pressure induced by the injection scenario is assessed, as well as plume
+% migration.
 
 % ** Note: results presented in the paper were generated using a high
 % resolution of the grid and relatively small time step sizes. As such the
@@ -17,6 +19,7 @@
 % These changes will allow you to obtain results quicker, however they are
 % likely to be slightly different from those presented in the paper.
 
+mrstModule add co2lab
 moduleCheck('ad-core');
 
 %% Model set-up
@@ -52,6 +55,8 @@ wc = findEnclosingCell( Gt, [pt1; pt2; pt3; pt4; pt5; pt6; pt7] );
 % Three different transmissibility multipliers are considered (to treat
 % faults as conducting, semi-sealing, or sealing). Also, 10 different
 % injection rates applied to the wells are considered.
+
+myMainFolder = 'simFaults_Sto'; % for saving results of 3 transMult cases
 
 transMults = [1 0.01 0]; % transmissibility multipliers for fault-faces
 % 0     - sealing
@@ -103,14 +108,16 @@ for k = 1:numel(transMults)
         % Save results for post-processing
         ta = trapAnalysis(Gt, false);
         reports = makeReports(Gt, {initState, states{:}}, rock2D, fluid, ...
-                    schedule, [model.fluid.res_water, model.fluid.res_gas], ta, []);
+                    schedule, [model.fluid.res_water, model.fluid.res_gas], ...
+                    ta, []);
 
-        folder = ['simFaults_Sto/transMult' num2str(transMult)];
+        folder = fullfile(myMainFolder, ['transMult' num2str(transMult)]);
         if ~exist(folder,'dir')
             mkdir(folder);
         end
         filename = fullfile(folder, ['injRate' num2str(val) '.mat']);
-        save(filename, 'Gt','reports','schedule','rock2D','faultFaces2D','-v7.3')
+        save(filename, 'Gt','reports','schedule','rock2D','faultFaces2D', ...
+            '-v7.3')
 
     end
 end
@@ -188,9 +195,9 @@ ylim([7.90e6 8.06e6])
 
 hh = 102; % figure handle for line plot
 
-folders = { 'simFaults_Sto/transMult0'; ...
-            'simFaults_Sto/transMult0pt01'; ...
-            'simFaults_Sto/transMult1'  };
+folders = { fullfile(myMainFolder, 'transMult0'); ...
+            fullfile(myMainFolder, 'transMult0.01'); ...
+            fullfile(myMainFolder, 'transMult1') };
 
 for f=1:numel(folders)
     
@@ -209,13 +216,13 @@ for f=1:numel(folders)
             % load file
             load(fullfile(folder,files(j).name))
             
-            inj_rate = schedule.control(1).W.val; % assuming all wells have same rate
+            inj_rate = schedule.control(1).W.val; % assume all w/ same rate
             states = {reports.sol}';
             p_init = reports(1).sol.pressure;
             
             % determine how much the overburden pressure was surpassed
-            maxOverP = [];
-            loc_ind = [];
+            maxOverP = zeros(1,numel(reports));
+            loc_ind = zeros(1,numel(reports));
             for i=1:numel(reports)
 
                 % pressure field at i-th time step
@@ -243,13 +250,16 @@ for f=1:numel(folders)
             % compare max overP reached vs rates
             figure(hh), hold on
             if strcmpi(folder,'simFaults_Sto/transMult0')
-                h1 = plot(inj_rate * 760/1e9*(365*24*60*60), convertTo(maxMaxOverP,barsa), 'xk');
+                h1 = plot(inj_rate * 760/1e9*(365*24*60*60), ...
+                    convertTo(maxMaxOverP,barsa), 'xk');
                 str = 'Sealing case';
             elseif strcmpi(folder,'simFaults_Sto/transMult0.01')
-                h2 = plot(inj_rate * 760/1e9*(365*24*60*60), convertTo(maxMaxOverP,barsa), 'or');
+                h2 = plot(inj_rate * 760/1e9*(365*24*60*60), ...
+                    convertTo(maxMaxOverP,barsa), 'or');
                 str = 'Semi-sealing case';
             elseif strcmpi(folder,'simFaults_Sto/transMult1')
-                h3 = plot(inj_rate * 760/1e9*(365*24*60*60), convertTo(maxMaxOverP,barsa), '+b');
+                h3 = plot(inj_rate * 760/1e9*(365*24*60*60), ...
+                    convertTo(maxMaxOverP,barsa), '+b');
                 str = 'Conducting case';
             end
             
@@ -260,8 +270,10 @@ for f=1:numel(folders)
                 % over pressure at time step when max over pressure was
                 % reached
                 figure, hold on
-                plotCellData(Gt, convertTo(maxOverP_field,barsa), 'edgecolor','none')
-                plotCellData(Gt, convertTo(maxOverP_field,barsa), cell_ind, 'facecolor','red','edgecolor','none')
+                plotCellData(Gt, convertTo(maxOverP_field,barsa), ...
+                    'edgecolor','none')
+                plotCellData(Gt, convertTo(maxOverP_field,barsa), ...
+                    cell_ind, 'facecolor','red','edgecolor','none')
                 colorbar
                 title({str;'Over pressure';['year ',num2str(time_step1)]})
                 colormap('hot')
@@ -270,12 +282,16 @@ for f=1:numel(folders)
                 % saturations at end of simulated period (approx 3000
                 % years)
                 figure
-                plotCellData(Gt, states{end}.s(:,2), states{end}.s(:,2) > 0.01, 'edgecolor','none'); axis equal tight off; colorbar
+                plotCellData(Gt, states{end}.s(:,2), ...
+                    states{end}.s(:,2) > 0.01, 'edgecolor','none');
+                axis equal tight off; colorbar
                 plotGrid(Gt, 'facecolor','none', 'edgealpha',0.1)
-                if strcmpi(str,'Semi-sealing case') || strcmpi(str,'Sealing case')
+                if strcmpi(str,'Semi-sealing case') || ...
+                        strcmpi(str,'Sealing case')
                     plotFaces(Gt, faultFaces2D, 'edgec','r','linewidth',2)
                 end
-                title({str;'CO2 saturations';['year ',num2str(convertTo(reports(end).t,year))]})
+                title({str;'CO2 saturations'; ...
+                    ['year ',num2str(convertTo(reports(end).t,year))]})
 
             end
             

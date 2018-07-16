@@ -1,27 +1,27 @@
 %% Influence of pressure and temperature on structural trapping estimates
 % The following script investigates the influence of initial pressure and
 % temperature on the static estimation (i.e., without simulation) of the
-% structural trapping capacity. First, structural capacity is calculated
-% for the base model, which assumes hydrostatic pressure and a caprock
-% temperature calculated using a thermal gradient of 35.6 C/km. Then,
-% pressure is deviated between -20% to 20% of its pore-volume weighted
-% average. And then, temperature is deviated by considering thermal
-% gradients between 34 and 43 C/km. Plots are generated to show how
-% structural trapping capacity changes with initial pressure and
-% temperature. Map plots are also generated to show structural trapping
+% structural trapping capacity in the southern part of Utsira. First,
+% structural capacity is calculated for the base model, which assumes
+% hydrostatic pressure and a caprock temperature calculated using a thermal
+% gradient of 35.6 C/km. Then, pressure is deviated between -20% to 20% of
+% its pore-volume weighted average. And then, temperature is deviated by
+% considering thermal gradients between 34 and 43 C/km. Plots are generated
+% to show how structural trapping capacity changes with initial pressure
+% and temperature. Map plots are also generated to show structural trapping
 % capacity in the following cases:
 %   * base case,
 %   * given a pressure deviation of +15%,
 %   * given a thermal gradient of 34 C/km.
 
-
-moduleCheck('ad-core','co2lab','mrst-gui','ad-props')
+mrstModule add co2lab
+moduleCheck('ad-core','ad-props')
 
 
 %% Base model case
 % assuming:
 %   * hydrostatic pressure
-%   * temperature assuming temp_grad of 35.6 C/km
+%   * temperature assuming temp. gradient of 35.6 C/km
 
 [Gt_base, rock_base, seainfo] = makeMyGeomodel('modify_base_rock',false);
 ta_base = trapAnalysis(Gt_base, true); % independent of rock
@@ -29,7 +29,7 @@ ta_base = trapAnalysis(Gt_base, true); % independent of rock
 surface_pressure = 1*atm;
 
 
-% Plot initial conditions of base model
+% Plot initial conditions of base model:
 
 % initial pressure
 p_init = (seainfo.water_density * norm(gravity()) * Gt_base.cells.z + surface_pressure);
@@ -38,43 +38,31 @@ plotCellData(Gt_base, convertTo(p_init,barsa), 'edgecolor','none');
 colorbar; axis equal tight off
 
 % initial temperature
-t = seainfo.seafloor_temp + (Gt_base.cells.z - seainfo.seafloor_depth) ...
+t_init = seainfo.seafloor_temp + (Gt_base.cells.z - seainfo.seafloor_depth) ...
     .* seainfo.temp_gradient ./ 1000; % Celsius
-t = t + 273.14; % Kelvin
-figure, title('Temperature (C)')
-plotCellData(Gt_base, t-273.14, 'edgecolor','none');
+t_init = t_init + 273.14; % Kelvin
+figure, title('Initial Temperature (C)')
+plotCellData(Gt_base, t_init-273.14, 'edgecolor','none');
 colorbar; axis equal tight off
 
-% corresponding structural traps and their capacities
+
+% Map of corresponding structural traps and their capacities. Red shaded
+% region indicates where CO2 is non-dense according according to (p,t)
+% conditions.
+p = p_init;
+t = t_init;
 [~, strap, ~, ~, ~] = compute_trapcap(Gt_base, ta_base, rock_base, ...
     seainfo, surface_pressure);
-figure, title([num2str(sum(strap)/giga), ' Mt'])
-plotFaces(Gt_base, boundaryFaces(Gt_base));
-plotCellData(Gt_base, strap/giga, strap > 0, 'edgecolor','none');
-colorbar; axis equal tight off;
-set(gca,'FontSize',14);
 
-% include red shading to indicate where CO2 is non-dense as well as
-% non-supercritical
-hold on;
-p = p_init;
-suitable_cells = aquiferConditionSuitability(p, t, 'plot',false);
-non_suitable_cells = ~suitable_cells; 
-plotCellData(Gt_base, Gt_base.cells.z, non_suitable_cells, ...
-    'facecolor','red', 'facealpha',0.2, 'edgecolor','none');
-set(gca,'CLim',clim);
-H = removeCells(Gt_base.parent, find(~non_suitable_cells));
-H = topSurfaceGrid(H);
-plotFaces(H, boundaryFaces(H), 'LineWidth',2, 'FaceColor','r', 'EdgeColor','r');
-
+plotTrapCapacities(Gt_base, strap, p, t);
 
 
 %% Influence of initial pressure on structural trapping estimate
-
 % We deviate hydrostatic pressure uniformly from -20% to 20% of its
 % pore-volume weighted average. This corresponds to a deviation of roughly
 % -15 to 15 bars since the reference pressure (i.e., pore-volume weighted
 % average pressure) for this geomodel is ~80 bars.
+
 if ~isfield(rock_base,'ntg'), ntg = 1; end
 pv = rock_base.poro .* Gt_base.cells.volumes .* Gt_base.cells.H .* ntg; % m^3
 ref_p = sum(p_init.*pv) / sum(pv);
@@ -82,6 +70,7 @@ press_deviation_all = [-20:1:20];
 
 
 % Loop through realizations (deviate a parameter)
+tot_strap = zeros(1,numel(press_deviation_all));
 for r = 1:numel(press_deviation_all)
 
     press_deviation = press_deviation_all(r);
@@ -108,41 +97,29 @@ ylabel('Pressure deviation (bars)')
 
 
 % Map of structural traps and their capacities given pressure deviation of
-% +15% of its pore-volume weighted average (i.e., +11.5 bars)
+% +15% of its pore-volume weighted average (i.e., +11.5 bars). Red shaded
+% region indicates where CO2 is non-dense according according to (p,t)
+% conditions.
 p_dev = 15;
+p = p_init + ref_p * p_dev/100;
+t = t_init;
 [~, strap, ~, ~, ~] = compute_trapcap(Gt_base, ta_base, rock_base, ...
     seainfo, surface_pressure, 'press_deviation',p_dev);
-figure, title([num2str(sum(strap)/giga), ' Mt'])
-plotFaces(Gt_base, boundaryFaces(Gt_base));
-plotCellData(Gt_base, strap/giga, strap > 0, 'edgecolor','none');
-colorbar; axis equal tight off;
-set(gca,'FontSize',14); clim = get(gca,'CLim');
 
-% Include red shading to indicate where CO2 is non-dense as well as
-% non-supercritical
-hold on;
-p = p_init + ref_p * p_dev/100;
-suitable_cells = aquiferConditionSuitability(p, t, 'plot',false);
-non_suitable_cells = ~suitable_cells; 
-plotCellData(Gt_base, Gt_base.cells.z, non_suitable_cells, ...
-    'facecolor','red', 'facealpha',0.2, 'edgecolor','none');
-set(gca,'CLim',clim);
-H = removeCells(Gt_base.parent, find(~non_suitable_cells));
-H = topSurfaceGrid(H);
-plotFaces(H, boundaryFaces(H), 'LineWidth',2, 'FaceColor','r', 'EdgeColor','r');
+plotTrapCapacities(Gt_base, strap, p, t);
 
 
 %% Influence of initial temperature on structural trapping estimate
-
 % Then we deviate caprock temperature by considering thermal gradients
 % ranging from 34 to 43 degrees C/km.
+
 temp_deviation_all = [34:0.2:43] - seainfo.temp_gradient; % C/km
 
 
 % Loop through realizations (deviate a parameter)
 press_deviation = 0;
 seainfo_r = seainfo;
-clear tot_strap
+tot_strap = zeros(1,numel(temp_deviation_all));
 for r = 1:numel(temp_deviation_all)
 
     seainfo_r.temp_gradient = seainfo.temp_gradient + temp_deviation_all(r);
@@ -164,27 +141,14 @@ ylabel('Temperature gradient (C/km)')
 
 
 % Map of structural traps and their capacities given temperature gradient
-% of 34 C/km
+% of 34 C/km. Red shaded region indicates where CO2 is non-dense according
+% according to (p,t) conditions
 temp_grad = 34; % C/km
 t = seainfo.seafloor_temp + (Gt_base.cells.z - seainfo.seafloor_depth) ...
     .* temp_grad ./ 1000; % Celsius
 t = t + 273.14; % Kelvin
+p = p_init;
 [~, strap, ~, ~, ~] = compute_trapcap(Gt_base, ta_base, rock_base, ...
     seainfo, surface_pressure, 'caprockTemp',t);
-figure, title([num2str(sum(strap)/giga), ' Mt'])
-plotFaces(Gt_base, boundaryFaces(Gt_base));
-plotCellData(Gt_base, strap/giga, strap > 0, 'edgecolor','none');
-colorbar; axis equal tight off;
-set(gca,'FontSize',14); clim = get(gca,'CLim');
 
-% Include red shading to indicate where CO2 is non-dense as well as
-% non-supercritical
-hold on;
-suitable_cells = aquiferConditionSuitability(p_init,t, 'plot',false);
-non_suitable_cells = ~suitable_cells; 
-plotCellData(Gt_base, Gt_base.cells.z, non_suitable_cells, ...
-    'facecolor','red', 'facealpha',0.2, 'edgecolor','none');
-set(gca,'CLim',clim);
-H = removeCells(Gt_base.parent, find(~non_suitable_cells));
-H = topSurfaceGrid(H);
-plotFaces(H, boundaryFaces(H), 'LineWidth',2, 'FaceColor','r', 'EdgeColor','r');
+plotTrapCapacities(Gt_base, strap, p, t);

@@ -1,4 +1,6 @@
 function [Gt, rock2D, faults, faces, faultFaces2D] = setUpFaultExample(varargin)
+% The following uses fault data (2D corrodinate quantities) to map faults
+% to grid faces in the Stø grid model.
 
     opt.coarse_level = 1;
     opt = merge_options(opt, varargin{:});

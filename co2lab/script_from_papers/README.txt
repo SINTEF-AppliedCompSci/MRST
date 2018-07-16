@@ -12,9 +12,13 @@ COMG-2/   : Fully-Implicit Simulation of Vertical-Equilibrium Models with
 CAGEO-79/ : Analysis of CO2 Trapping Capacities and Long-Term Migration for
             Geological Formations in the Norwegian North Sea Using MRST-co2lab (*)
 
-EP-2017/  :
+EP-2017/  : Using sensitivities and vertical-equilibrium models for
+            parameter estimation of CO2 injection models with application
+            to Sleipner data
 
-IJGGC-75/ : 
+IJGGC-75/ : Using simplified methods to explore the impact of parameter
+            uncertainty on CO2 storage estimates with application to the
+            Norwegian Continental Shelf
 
 
 The directories contain MATLAB code that can be used with co2lab to generate the

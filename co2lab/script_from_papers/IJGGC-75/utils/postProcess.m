@@ -2,6 +2,22 @@ function postProcess( base, perturbed, varargin )
 % Post-processing for parameter uncertainty study
 
 
+% Calculation of Sørensen-Dice coefficient requires two downloaded
+% Mathwork's file exchanges. If not downloaded and available on path, plots
+% will be skipped.
+polygon_funcs_available = true;
+if ~exist('Matlab_Polygons_intersection','dir') && ...
+        ~exist('PolygonClipper','dir')
+    polygon_funcs_available = false;
+    fprintf('\n Skipping calculation of Sørensen-Dice coefficient\n')
+    fprintf(' due to unavailable polygon functions.\n\n')
+    fprintf(' Did you download the following directories and\n')
+    fprintf(' add them to your path?\n\n')
+    fprintf(' https://se.mathworks.com/matlabcentral/fileexchange/8818-polygon-clipper\n')
+    fprintf(' https://se.mathworks.com/matlabcentral/fileexchange/18173-polygon_intersection?s_tid=FX_rc2_behav\n\n')
+end
+
+
 % Renaming of INPUTS:
 Gt_base         = base.Gt_base;
 schedule        = base.schedule;
@@ -48,9 +64,9 @@ r = max([ numel(Gt_all), numel(rock_all), numel(press_deviation_all) ]);
 
 if ~isempty(Ma_all)
     
-    % -----------------------------
+    % ----------------------------------------------------------
     %   forecast curves
-    % -----------------------------
+    % ----------------------------------------------------------
     fprintf(' Plotting forecast curves...')
     figure, hold on,
     % perturbed
@@ -66,23 +82,23 @@ if ~isempty(Ma_all)
     fprintf(' done.\n')
 
     
-    % -----------------------------
-    %   plot base trapping inventory with errorbars corresponding to lower and
-    %       upper percentiles. Add base forecast curve with errorbars
-    % -----------------------------
+    % ----------------------------------------------------------
+    %   plot base trapping inventory with errorbars corresponding to lower
+    %       and upper percentiles. Add base forecast curve with errorbars
+    % ----------------------------------------------------------
     fprintf(' Plotting trapping inventory...')
     assert( r >= 10, 'Expecting that r >= 10')
     tstep4errorbars = opt.tstep-1; % doesn't account for initial state/step
     tstep4errorbars(tstep4errorbars == 0) = []; % remove possible zeros
-    plotTrappingDistribution_withErrorBars(reports_base, Ma_base, reports_all, Ma_all, schedule, ...
-        'lowPercentile',10, 'uppPercentile',90, ...
-        'tsteps4errorbars', tstep4errorbars);
+    plotTrappingDistribution_withErrorBars(reports_base, Ma_base, ...
+        reports_all, Ma_all, schedule, 'lowPercentile',10, ...
+        'uppPercentile',90, 'tsteps4errorbars', tstep4errorbars);
     fprintf(' done.\n')
 
 
-    % -----------------------------
+    % ----------------------------------------------------------
     %   plume outlines (perturbed cases and base case)
-    % -----------------------------
+    % ----------------------------------------------------------
     tstep = opt.tstep;
     if (sum(reports_base(1).sol.s(:,2)) == 0)
         % initial state didn't contain any CO2 so remove any possible
@@ -100,6 +116,7 @@ if ~isempty(Ma_all)
     % get base contour of each subplot, one at a time
     hfig = gcf;
     k = numel(tstep):-1:1; % for correct ordering of subplots
+    cdata_base = cell(numel(tstep),1);
     for j=1:numel(tstep)
         set(hfig, 'CurrentAxes', hfig.Children(j))
         contours = findobj(hfig.Children(j).Children, 'type','contour');
@@ -110,6 +127,7 @@ if ~isempty(Ma_all)
     end
     % get contour of set of realizations
     fprintf(' Plotting plume of specified years in realization:\n')
+    cdata_realiz = cell(numel(tstep),numel(reports_all));
     for i=1:1:numel(reports_all) % looping thru all realizations can be expensive
         fprintf('  %d of %d\n', i, numel(reports_all))
         plotPlumeOutline(h, Gt_base, reports_all{i}, [tstep], ...
@@ -129,20 +147,24 @@ if ~isempty(Ma_all)
         numel(tstep), numel(1:1:numel(reports_all)));
     fprintf(' Plume contour data obtained.\n')
 
-    % --------------------------------
+    % -------------------------------------------------------------
     %   get SDC from plume outlines (needs to be done before adding grid
     %   outline and base plume outline again)
-    % --------------------------------
-    % loop thru and compute Sorensen-Dice coefficient of each obtained
+    % -------------------------------------------------------------
+    % loop thru and compute Sørensen-Dice coefficient of each obtained
     % contour wrt base contour:
-    fprintf(' Calculating Sorensen-Dice coefficient...')
-    for i=1:size(cdata_realiz,1)
-        for j=1:size(cdata_realiz,2)
-            [sdc_realiz(i,j), ~] = computeSorensenDiceCoefficient(cdata_base{i,1}, cdata_realiz{i,j});
+    sdc_realiz = [];
+    if polygon_funcs_available
+        fprintf(' Calculating Sørensen-Dice coefficient...')
+        sdc_realiz = zeros(size(cdata_realiz,1),size(cdata_realiz,2));
+        for i=1:size(cdata_realiz,1)
+            for j=1:size(cdata_realiz,2)
+                [sdc_realiz(i,j), ~] = computeSorensenDiceCoefficient(...
+                    cdata_base{i,1}, cdata_realiz{i,j});
+            end
         end
+        fprintf(' done.\n')
     end
-    fprintf(' done.\n')
-
     
     % add base grid outline (to all subplots)
     fprintf(' Adding grid outline...')
@@ -163,34 +185,72 @@ if ~isempty(Ma_all)
                          'plumeColor', 'r');
     fprintf(' done.\n')
 
-    % ---------------------------------------
+    % --------------------------------------------------------------------
     % Sørensen-Dice coefficient's evolution
-    % ---------------------------------------
+    % --------------------------------------------------------------------
     % Plot with average and error bars:
-    fprintf(' Plotting Sorensen-Dice coefficient...')
-    figure, hold on;
-    r = size(sdc_realiz,2);
-    P10inx = round(r*0.1); if P10inx == 0, P10inx = 1; end;
-    P50inx = round(r*0.5);
-    P90inx = round(r*0.9);
-    for i=1:numel(tstep)
-        sdc_curr_sorted = sort(sdc_realiz(i,:)); % in ascending order
-        P10(i) = sdc_curr_sorted(P10inx);
-        P50(i) = sdc_curr_sorted(P50inx);
-        P90(i) = sdc_curr_sorted(P90inx);
-        sdc_av(i) = mean(sdc_curr_sorted);
-        sigma(i) = std(sdc_realiz(i,:));
+    if ~isempty(sdc_realiz)
+        fprintf(' Plotting Sorensen-Dice coefficient...')
+        figure, hold on;
+        r = size(sdc_realiz,2);
+        P10inx = round(r*0.1); if P10inx == 0, P10inx = 1; end;
+        P50inx = round(r*0.5);
+        P90inx = round(r*0.9);
+        [P10, P50, P90, sdc_av, sigma] = deal( zeros(1,numel(tstep)) );
+        for i=1:numel(tstep)
+            sdc_curr_sorted = sort(sdc_realiz(i,:)); % in ascending order
+            P10(i) = sdc_curr_sorted(P10inx);
+            P50(i) = sdc_curr_sorted(P50inx);
+            P90(i) = sdc_curr_sorted(P90inx);
+            sdc_av(i) = mean(sdc_curr_sorted);
+            sigma(i) = std(sdc_realiz(i,:));
+        end
+        if numel(tstep)>1
+            myShadedErrorBar(years(tstep), sdc_av, sigma);
+        else
+            plot(1);
+        end
+        ylabel('Sørensen-Dice coefficient')
+        xlabel('Year')
+        fprintf(' done.\n')
     end
-    if numel(tstep)>1
-        shadedErrorBar(years(tstep), sdc_av, sigma);
-    else
-        plot(1);
-    end
-    ylabel('Sørensen-Dice coefficient')
-    xlabel('Year')
-    fprintf(' done.\n')
     
 end
 
+
+end
+
+function H = myShadedErrorBar(x, y, err)
+% modified version of shadedErrorBar.m by Rob Campbell (2009)
+% https://se.mathworks.com/matlabcentral/fileexchange/26311-raacampbell-shadederrorbar
+
+    
+    H.mainLine = plot(x,y,'-k');
+    
+    % for patch color
+    col = get(H.mainLine,'color');
+    edgeColor = col + (1-col)*0.55;
+    patchSaturation = 0.15;
+    patchColor = col+(1-col)*(1-patchSaturation);
+    set(gcf,'renderer','painters')
+    
+    % plot the patch
+    errBar = repmat(err(:)',2,1);
+    y = y(:)';
+    x = x(:)';
+    uE = y + errBar(1,:);
+    lE = y - errBar(2,:);
+    yP = [lE, fliplr(uE)];
+    xP = [x, fliplr(x)];
+    H.patch = patch(xP, yP, 1, ...
+              'facecolor',patchColor,...
+              'edgecolor','none');
+
+    % plot edges around patch
+    H.edge(1) = plot(x,lE,'-','color',edgeColor);
+    H.edge(2) = plot(x,uE,'-','color',edgeColor);
+    
+    % re-plot main line since patch covers it up
+    H.mainLine = plot(x,y,'-k');
 
 end
