@@ -288,5 +288,5 @@ end
 %--------------------------------------------------------------------------
 
 function url = csp_url()
-   url = 'http://www.spe.org/web/csp/datasets/';
+   url = 'https://www.spe.org/web/csp/datasets/';
 end
