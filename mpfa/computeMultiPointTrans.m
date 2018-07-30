@@ -128,17 +128,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    % c1     = sparse(subhfno, hfno, 1);
 
    % d1 adds up sub-face contributions for each face.
-%    tmp = fno;
-%    isBF = false(g.faces.num, 1);
-%    isBF(boundaryFaces(g)) = true;
-%    tmp(isBF(fno)) = 1;
-%    tmp = ones(size(fno));
-   
    counts = accumarray(fno, 1, [g.faces.num, 1]);
-%    counts = counts(fno);
-%    bf_counts = counts(fno);
-%    tmp(isBF(fno)) = 1./bf_counts(isBF(fno));
-%    d1     = sparse(subfno, fno, tmp);
    d1     = sparse(subfno, fno, 1);
 
    % Note that c1'*D*d1 is equal to the reglar mimetic D matrix.

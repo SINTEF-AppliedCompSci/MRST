@@ -149,7 +149,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    no_grav = ~(norm(g_vec) > 0); %(1 : size(g.nodes.coords,2))) > 0);
    if all([isempty(opt.bc)   , ...
            isempty(opt.src)  , ...
-           isempty(opt.wells), no_grav]),
+           isempty(opt.wells), no_grav])
       warning(id('DrivingForce:Missing'),                       ...
               ['No external driving forces present in model--', ...
                'state remains unchanged.\n']);
@@ -185,7 +185,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        % Account for each face being subdivided
        hh(~dF) = hh(~dF)./TT.counts(~dF);
    end
-                                               % add gravity contribution for each mpfa half face
+   % add gravity contribution for each mpfa half face
    grav     = -omega(TT.cno) .* (TT.R * reshape(g_vec(1:g.griddim), [], 1));  
    
    b  = any(g.faces.neighbors==0, 2);
@@ -211,14 +211,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    hh_tmp = TT.d1*hh;
    rhs = [gg; -hh_tmp(TT.sb)];
    rhs = rhs+rhs_g;
-   %% Dirichlet condition
+   % Dirichlet condition
    % If there are Dirichlet conditions, move contribution to rhs.  Replace
    % equations for the unknowns by speye(*)*x(dF) = dC.
-   %% add gravity
 
    factor = A(1,1);
    assert (factor > 0)
-   if any(dF),
+   if any(dF)
       dF_tmp     = TT.d1(TT.sb,:)*dF;
       ind        = [false(g.cells.num, 1) ; dF_tmp>0];
       is_press   = strcmpi('pressure', opt.bc.type);
@@ -240,7 +239,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    D    = zeros(nnp, 1);
    W    = opt.wells;
    d  = zeros(g.cells.num, 1);
-   for k = 1 : nw,
+   for k = 1 : nw
       wc       = W(k).cells;
       nwc      = numel(wc);
       w        = k + nnp;
@@ -250,14 +249,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       dp       = computeIncompWellPressureDrop(W(k), mob, rho, norm(gravity));
       d   (wc) = d   (wc) + wi;
       state.wellSol(k).cdp = dp;
-      if strcmpi(W(k).type, 'bhp'),
+      if strcmpi(W(k).type, 'bhp')
          ww=max(wi);
          rhs (w)  = rhs (w)  + ww*W(k).val;
          rhs (wc) = rhs (wc) + wi.*(W(k).val + dp);
          C{k}     = -sparse(1, nnp);
          D(k)     = ww;
 
-      elseif strcmpi(W(k).type, 'rate'),
+      elseif strcmpi(W(k).type, 'rate')
          rhs (w)  = rhs (w)  + W(k).val;
          rhs (wc) = rhs (wc) + wi.*dp;
 
@@ -277,7 +276,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    A = A+sparse(1:nc,1:nc,d,size(A,1),size(A,2));
 
   
-   if ~any(dF) && (isempty(W) || ~any(strcmpi({W.type }, 'bhp'))),
+   if ~any(dF) && (isempty(W) || ~any(strcmpi({W.type }, 'bhp')))
       A(1) = A(1)*2;
    end
    ticif(opt.Verbose);
@@ -285,7 +284,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    tocif(opt.Verbose);
 
-   %% ---------------------------------------------------------------------
+   % ---------------------------------------------------------------------
    dispif(opt.Verbose, 'Computing fluxes, face pressures etc...\t\t');
    ticif (opt.Verbose);
    state.pressure(1 : nc) = p(1 : nc);
@@ -295,14 +294,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    state.flux(~b)=state.flux(~b)/2;
    state.boundaryPressure = p(nc + 1 : nnp);
 
-   for k = 1 : nw,
+   for k = 1 : nw
       wc = W(k).cells;
       dp = state.wellSol(k).cdp;
       state.wellSol(k).flux = W(k).WI.*totmob(wc).*(p(nnp+k) + dp - p(wc));
       state.wellSol(k).pressure = p(nnp + k);
    end
 
-   if opt.MatrixOutput,
+   if opt.MatrixOutput
       state.A   = A;
       state.rhs = rhs;
    end
