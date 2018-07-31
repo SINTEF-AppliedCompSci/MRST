@@ -23,12 +23,16 @@ modelDG = modelFV;
 time = 2*year;
 rate = 1*sum(poreVolume(G, rock))/time;
 W = [];
-W = addWell(W, G, rock, 1          , 'type', 'rate', 'val', rate    , 'comp_i', [1,0]);
+% W = addWell(W, G, rock, 1          , 'type', 'rate', 'val', rate    , 'comp_i', [1,0]);
 W = addWell(W, G, rock, G.cells.num, 'type', 'bhp' , 'val', 50*barsa, 'comp_i', [1,0]);
+
+bc = [];
+bc = fluxside(bc, G, 'left', rate, 'sat', [1,0]);
+bc = makeDGBC(G, bc);
 
 dt    = 30*day;
 dtvec = rampupTimesteps(time, dt, 0);
-schedule = simpleSchedule(dtvec, 'W', W);
+schedule = simpleSchedule(dtvec, 'W', W, 'bc', bc);
 
 sW     = 0.0;
 state0 = initResSol(G, 100*barsa, [sW,1-sW]);
@@ -42,6 +46,9 @@ disc   = DGDiscretization(modelDG.transportModel, 2, 'degree', degree, ...
 modelDG.transportModel = TransportOilWaterModelDG(G, rock, fluid, 'disc', disc);    
 
 state0 = assignDofFromState(modelDG.transportModel.disc, state0);
+
+%%
+
 [wsDG, statesDG, rep] = simulateScheduleAD(state0, modelDG, schedule);
 
 %%

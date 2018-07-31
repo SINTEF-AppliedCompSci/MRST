@@ -36,8 +36,9 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     % Update discretizaiton information. This is carried by the state
     % variable, and holds the number of dofs per cell + dof position in
     % state.sdof
+    state0 = disc.updateDisc(state0);
     state = disc.updateDisc(state);
-    state = disc.getCellSaturation(state);
+%     state = disc.getCellSaturation(state);
     
     % Properties from current timestep
     [p , sWdof , wellSol] = model.getProps(state , 'pressure', 'water', 'wellsol');
@@ -72,7 +73,7 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
 
     % Get multipliers
     [pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
-    pvMult  = expandSingleValue(pvMult, G);
+    pvMult  = expandSingleValue(pvMult , G);
     pvMult0 = expandSingleValue(pvMult0, G);
     mobMult = expandSingleValue(mobMult, G);
     T = op.T.*transMult;
@@ -100,8 +101,12 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     % Add gravity flux where we have a BC.
     bc = drivingForces.bc;
     if ~isempty(bc)
-
-        BCcells = sum(G.faces.neighbors(bc.face,:),2);
+        
+        BCcells = bc.cell(:,2);
+        if isfield(state, 'mappings')
+            BCcells = state.mappings.cellMap.old2new(BCcells);
+        end
+%         BCcells = sum(G.faces.neighbors(bc.face,:),2);
         dz = G.cells.centroids(BCcells, :) - G.faces.centroids(bc.face,:);
         g = model.getGravityVector();
         rhoWBC = rhoW(BCcells);

@@ -2,9 +2,11 @@ mrstModule add dg vem vemmech ad-props ad-core ad-blackoil blackoil-sequential g
 
 %%
 
-gravity reset off
+% gravity reset off
+gravity reset on
+gravity([0,-9.81]);
 
-n = 50;
+n = 20;
 l = 1000;
 G = computeGeometry(cartGrid([n,n], [l,l]*meter));
 G = computeVEMGeometry(G);
@@ -12,8 +14,8 @@ G = computeCellDimensions(G);
 
 rock = makeRock(G, 100*milli*darcy, 1);
 fluid = initSimpleADIFluid('phases', 'WO'                   , ...
-                           'rho'   , [10, 1]*kilogram/meter^3, ...
-                           'mu'    , [0.5, 0.2]*centi*poise     , ...
+                           'rho'   , [500, 1]*kilogram/meter^3, ...
+                           'mu'    , [0.5, 0.5]*centi*poise     , ...
                            'n'     , [1, 1]                 );
 % fluid.krW = @(s) fluid.krW(s).*(s>=0 & s<=1) + fluid.krW(1).*(s>1);
 % fluid.krO = @(s) fluid.krO(s).*(s>=0 & s<=1) + fluid.krO(1).*(s>1);
@@ -25,7 +27,7 @@ modelDG = modelFV;
 %%
 
 time = 2*year;
-rate = 1*sum(poreVolume(G, rock))/time;
+rate = 0.5*sum(poreVolume(G, rock))/time;
 W = [];
 W = addWell(W, G, rock, 1          , 'type', 'rate', 'val', rate    , 'comp_i', [1,0]);
 W = addWell(W, G, rock, G.cells.num, 'type', 'bhp' , 'val', 50*barsa, 'comp_i', [1,0]);
@@ -40,18 +42,24 @@ dt    = 30*day;
 dtvec = rampupTimesteps(time, dt, 0);
 schedule = simpleSchedule(dtvec, 'W', W, 'src', src);
 
-sW     = 0.1;
+sW     = 0.0;
 state0 = initResSol(G, 100*barsa, [sW,1-sW]);
+state0.cells = (1:G.cells.num);
 
 %%
 
 degree = [0, 1];
-% degree = 0;
-jt = 0.2;
-ot = 1e-3;
-statesDG = cell(numel(degree),1);
+degree = 1;
+
+[jt, ot, mt] = deal(Inf);
+% 
+% jt = 0.2;
+% ot = 0.1;
+% mt = 0;
+
+[wsDG, statesDG] = deal(cell(numel(degree),1));
 for dNo = 1:numel(degree)
-    disc = DGDiscretization(modelDG.transportModel, 2, 'degree', degree(dNo), 'basis', 'legendre', 'useUnstructCubature', false, 'jumpTolerance', jt, 'outTolerance', ot);
+    disc = DGDiscretization(modelDG.transportModel, 2, 'degree', degree(dNo), 'basis', 'legendre', 'useUnstructCubature', false, 'jumpTolerance', jt, 'outTolerance', ot, 'meanTolerance', mt);
     modelDG.transportModel = TransportOilWaterModelDG(G, rock, fluid, 'disc', disc);    
 
     state0 = assignDofFromState(modelDG.transportModel.disc, state0);
@@ -71,13 +79,13 @@ for dNo = 1:numel(degree)
     figure
     plotToolbar(G, statesDG{dNo});
     colormap(jet);
-%     colormap(summer(nclr))
 end
 
 figure
 plotToolbar(G, statesFV);
 colormap(jet)
-% colormap(summer(nclr))
+
+plotWellSols({wsFV, wsDG{:}})
 
 %%
 
@@ -128,9 +136,3 @@ end
 %     axis equal
 %     
 % end
-
-%%
-
-plotWellSols({wsDG{:}, wsFV}, schedule.step.val)
-
-

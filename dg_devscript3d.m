@@ -37,6 +37,7 @@ schedule = simpleSchedule(dtvec, 'W', W);
 
 sW     = 0.0;
 state0 = initResSol(G, 100*barsa, [sW,1-sW]);
+state0.cells = (1:G.cells.num)';
 
 %%
 
