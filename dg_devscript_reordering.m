@@ -20,6 +20,13 @@ modelDG = modelFV;
 
 %%
 
+degree = 1;
+disc   = DGDiscretization(modelDG.transportModel, 2, 'degree', degree, ...
+                         'basis', 'legendre', 'useUnstructCubature', true);
+modelDG.transportModel = TransportOilWaterModelDG(G, rock, fluid, 'disc', disc);    
+
+%%
+
 time = 2*year;
 rate = 1*sum(poreVolume(G, rock))/time;
 W = [];
@@ -28,7 +35,7 @@ W = addWell(W, G, rock, G.cells.num, 'type', 'bhp' , 'val', 50*barsa, 'comp_i', 
 
 bc = [];
 bc = fluxside(bc, G, 'left', rate, 'sat', [1,0]);
-bc = makeDGBC(G, bc);
+bc = makeDGBC(disc, bc);
 
 dt    = 30*day;
 dtvec = rampupTimesteps(time, dt, 0);
@@ -37,14 +44,6 @@ schedule = simpleSchedule(dtvec, 'W', W, 'bc', bc);
 sW     = 0.0;
 state0 = initResSol(G, 100*barsa, [sW,1-sW]);
 state0.cells = (1:G.cells.num)';
-
-%%
-
-degree = 1;
-disc   = DGDiscretization(modelDG.transportModel, 2, 'degree', degree, ...
-                         'basis', 'legendre', 'useUnstructCubature', true);
-modelDG.transportModel = TransportOilWaterModelDG(G, rock, fluid, 'disc', disc);    
-
 state0 = assignDofFromState(modelDG.transportModel.disc, state0);
 
 %%

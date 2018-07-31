@@ -12,6 +12,7 @@ classdef DGDiscretization < HyperbolicDiscretization
         outTolerance
         meanTolerance
         Gfull
+        internalConnParent
         
     end
     
@@ -29,6 +30,7 @@ classdef DGDiscretization < HyperbolicDiscretization
             disc.outTolerance = 1e-4;
             disc.meanTolerance = 1e-4;
             disc.useUnstructCubature = false;
+            disc.internalConnParent = disc.internalConn;
             
             disc        = merge_options(disc, varargin{:});
             
@@ -78,16 +80,8 @@ classdef DGDiscretization < HyperbolicDiscretization
         
         %-----------------------------------------------------------------%
         function state = updateDisc(disc, state)
-            
-%             Nc = disc.G.cells.num;
-%             if isfield(state, 'mappings')
-%                 Nc = nnz(state.mappings.cellMap.keepCells);
-%             end
-%             dp = reshape((1:disc.G.cells.num*disc.basis.nDof)', disc.basis.nDof, []);
-            dp = reshape((1:numel(state.cells)*disc.basis.nDof)', disc.basis.nDof, []);
 
-%             dp = reshape((1:Nc*disc.basis.nDof)', disc.basis.nDof, []);
-            
+            dp = reshape((1:disc.G.cells.num*disc.basis.nDof)', disc.basis.nDof, []);            
             if nargin == 1
                 nd = repmat(disc.basis.nDof, numel(state.cells), 1);
             else
@@ -114,9 +108,18 @@ classdef DGDiscretization < HyperbolicDiscretization
         end
         
         %-----------------------------------------------------------------%
-        function [xhat, translation, scaling] = transformCoords(disc, x, cells, inverse)
+        function [xhat, translation, scaling] = transformCoords(disc, x, cells, inverse, useParent)
             
             G = disc.G;
+            
+            if nargin < 4, inverse = false; end
+            if nargin < 5, useParent  = true; end
+            
+            if isfield(G, 'mappings') && useParent
+                cells = G.mappings.cellMap.new2old(cells);
+                G = G.parent;
+            end
+            
             translation = -G.cells.centroids(cells,:);
             if isfield(G.cells, 'dx')
                 scaling = 1./(G.cells.dx(cells,:)/2);
@@ -124,7 +127,7 @@ classdef DGDiscretization < HyperbolicDiscretization
                 scaling = 1./(G.cells.diameters(cells)/(2*sqrt(G.griddim)));
             end
             
-            if nargin < 4 || ~inverse
+            if ~inverse%nargin < 4 || ~inverse
                 xhat = (x + translation).*scaling;
                 xhat = xhat(:, 1:disc.dim);
                 scaling = scaling(:, 1:disc.dim);
@@ -298,8 +301,13 @@ classdef DGDiscretization < HyperbolicDiscretization
             nDof    = state.nDof;
             nDofMax = disc.basis.nDof;
             
-            [W, x, cellNo, faceNo] = disc.getCubature(state.cells(cells), 'surface');
+            [W, x, cellNo, faceNo] = disc.getCubature(cells, 'surface');
             nPh = numel(G);
+            
+            if isempty(faceNo)
+                I = 0;
+                return
+            end
             
             [flag_v, flag_G, cL, cR] = disc.getUpstreamCell(faceNo, x, T, vT, G, mob, sdof, state);
             
@@ -357,11 +365,13 @@ classdef DGDiscretization < HyperbolicDiscretization
             isFlux = strcmpi(bc.type, 'flux');
             faces = bc.face(isFlux);
             
+            map = (1:G.faces.num)';
+            map(bc.face) = 1:numel(faces);
+            
             cells = bc.cell(:,1);
             
             [W, x, cellNo, faceNo] = disc.getCubature(faces, 'face');
-%             
-%             [W, x, cellNo, faceNo] = disc.getCubature(state.cells(cells), 'surface');
+            
 %             nPh = numel(G);
 %             
 %             [flag_v, flag_G, cL, cR] = disc.getUpstreamCell(faceNo, x, T, vT, G, mob, sdof, state);
@@ -388,15 +398,43 @@ classdef DGDiscretization < HyperbolicDiscretization
             
 %             [flag_v, flag_G, cL, cR] = disc.getUpstreamCell(
             
+           
+            
 
-            cellNo = sum(G.faces.neighbors(faceNo,:),2);
+            
+%             g = disc.G;
+%             
+%             T = T_all(faceNo);
+%             vT = vT(faceNo);
+% %             G = cellfun(@(g) g(ix), G, 'unif', false);
+%             G = cellfun(@(g) g(faceNo), G, 'unif', false);
+%             
+            cL = bc.cell(map(faceNo),1);
+            cR = bc.cell(map(faceNo),2);
+            xL = disc.transformCoords(x, cL, false, false);
+            xR = disc.transformCoords(x, cR, false, false);
+%             
+            sL = disc.evaluateSaturation(xL, cL, bc.sat(:,1), bc.state);
+            sR = disc.evaluateSaturation(xR, cR, sdof, state);
+            
+%             mob{1} = mob{1}([sL; sR], [cL; cR]);
+%             mob{2} = mob{2}(1-[sL; sR], [cL; cR]);
+%             
+%             N = [1:numel(ix); numel(ix)+1:2*numel(ix)]';
+%             
+%             upw = @(flag, x)faceUpstr(flag, x, N, [size(N,1), max(max(N))]);
+%             [flag_v, flag_G] = getSaturationUpwind('potential', 0, G, vT, T, mob, upw);
+%             
+%             st = bc.state;
+% 
+%             [flag_v, flag_G, cL, cR] = disc.getUpstreamCell(faceNo, x, T, vT, G, mob, sdof, state);
+            
             
             sgn = 1 - 2*(G.faces.neighbors(faces, 1) ~= cells);
             W = W.*sgn;
             numFlux = nnz(isFlux);
             
-            [xR, ~, ~] = disc.transformCoords(x, cellNo);
-            sR = disc.evaluateSaturation(xR, cellNo, sdof, state);
+            
             
             all2BC = nan(G.faces.num,1);
             all2BC(faces) = 1:numFlux;
@@ -408,7 +446,7 @@ classdef DGDiscretization < HyperbolicDiscretization
             isInj = bc.value(isFlux) > 0;
             s = sL.*isInj(locFaceNo) + sR.*(~isInj(locFaceNo));
             
-            
+            cellNo = cR;
             f = f(s, 1-s, cellNo, cellNo);
             
             I = integrand(sdof, sdof, 1, 1, 1).*0;
@@ -465,8 +503,20 @@ classdef DGDiscretization < HyperbolicDiscretization
             
             if size(elements,1) == 1, elements = elements'; end
             
+            G = disc.G;
+            useMap = false;
+            if isfield(G, 'mappings')
+                useMap = true;
+                maps = G.mappings;
+                G = disc.G.parent;
+            end
+            
             switch type
                 case 'volume'
+                    
+                    if useMap
+                        elements = maps.cellMap.new2old(elements);
+                    end
                     
                     cubature = disc.volumeCubature;
                     ix = mcolon(cubature.parentPos(elements), cubature.parentPos(elements+1)-1);
@@ -481,6 +531,10 @@ classdef DGDiscretization < HyperbolicDiscretization
                     
                 case 'face'
                     
+                    if useMap
+                        elements = maps.faceMap.new2old(elements);
+                    end
+                    
                     cubature = disc.surfaceCubature;
                     nqf = diff(cubature.parentPos);
                     faceNo = rldecode(elements, nqf(elements), 1);
@@ -491,16 +545,20 @@ classdef DGDiscretization < HyperbolicDiscretization
                     
                 case 'surface'
                     
+                    if useMap
+                        elements = maps.cellMap.new2old(elements);
+                    end
+                    
                     cubature = disc.surfaceCubature;
-                    G = disc.G;
                     faces = G.cells.faces(mcolon(G.cells.facePos(elements), G.cells.facePos(elements+1)-1));
-                    ncf = accumarray(rldecode((1:G.cells.num)', diff(G.cells.facePos), 1), disc.internalConn(G.cells.faces(:,1)));
-                    faces = faces(disc.internalConn(faces));
+                    ncf = accumarray(rldecode((1:G.cells.num)', diff(G.cells.facePos), 1), disc.internalConnParent(G.cells.faces(:,1)));
+                    faces = faces(disc.internalConnParent(faces));
                     if size(faces,1) == 1, faces = faces'; end
                     ix = mcolon(cubature.parentPos(faces), cubature.parentPos(faces+1)-1);
                     
                     nqf = diff(cubature.parentPos);
-                    nq = accumarray(rldecode(elements, ncf(elements), 1), nqf(faces));
+                    nq = accumarray(rldecode((1:numel(elements))', ncf(elements), 1), nqf(faces));
+                    if isempty(nq), nq = 0; end
                     
                     cellNo = rldecode(elements, nq);
                     faceNo = rldecode(faces, nqf(faces), 1);
@@ -509,6 +567,11 @@ classdef DGDiscretization < HyperbolicDiscretization
 %                     ixf = nan(numel(ix),1);
 %                     ixf(disc.internalConn(faceNo)) = 1:nnz(disc.internalConn(faceNo));
                     
+            end
+            
+            if useMap
+                cellNo = maps.cellMap.old2new(cellNo);
+                faceNo = maps.faceMap.old2new(faceNo);
             end
             
             x = cubature.points(ix, :);
