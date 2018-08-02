@@ -10,6 +10,7 @@ classdef TransportOilWaterModelDG < TransportOilWaterModel
             
             model = model@TransportOilWaterModel(G, rock, fluid);
             model.disc = [];
+            model.G.cells.ghost = false(G.cells.num,1);
             
             model = merge_options(model, varargin{:});
             
@@ -137,16 +138,18 @@ classdef TransportOilWaterModelDG < TransportOilWaterModel
             ds = zeros(sum(state.nDof), numel(saturations));
             
             tmp = 0;
+            active = ~model.G.cells.ghost;
+            ix = model.disc.getDofIx(state, [], active);
             for i = 1:numel(saturations)
                 if solvedFor(i)
                     v = model.getIncrement(dx, problem, saturations{i});
-                    ds(:, i) = v;
+                    ds(ix, i) = v;
                     % Saturations added for active variables must be subtracted
                     % from the last phase
                     tmp = tmp - v;
                 end
             end
-            ds(:, ~solvedFor) = tmp;
+            ds(ix, ~solvedFor) = tmp;
             % We update all saturations simultanously, since this does not bias the
             % increment towards one phase in particular.
 %             state = model.updateStateFromIncrement(state, ds, problem, 'sdof', inf, inf);
@@ -186,7 +189,7 @@ classdef TransportOilWaterModelDG < TransportOilWaterModel
                 
             end
             
-            if max(model.disc.degree) > 0 && 1
+            if max(model.disc.degree) > 0 && 0
                 
                 state = model.disc.limiter(state);
                 state = model.disc.updateDisc(state);

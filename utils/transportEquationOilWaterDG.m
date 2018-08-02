@@ -20,6 +20,10 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
         
     assert(~(opt.solveForWater && opt.solveForOil));
         
+    if ~isfield(state, 'cells')
+        [state.cells, state0.cells] = deal((1:G.cells.num)');
+    end
+    
     if opt.iteration == 1
         % If we are at the first iteration, we try to solve using maximum
         % degree in all cells
@@ -32,8 +36,9 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     % Update discretizaiton information. This is carried by the state
     % variable, and holds the number of dofs per cell + dof position in
     % state.sdof
+    state0 = disc.updateDisc(state0);
     state = disc.updateDisc(state);
-    state = disc.getCellSaturation(state);
+%     state = disc.getCellSaturation(state);
     
     % Properties from current timestep
     [p , sWdof , wellSol] = model.getProps(state , 'pressure', 'water', 'wellsol');
@@ -68,7 +73,7 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
 
     % Get multipliers
     [pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
-    pvMult  = expandSingleValue(pvMult, G);
+    pvMult  = expandSingleValue(pvMult , G);
     pvMult0 = expandSingleValue(pvMult0, G);
     mobMult = expandSingleValue(mobMult, G);
     T = op.T.*transMult;
@@ -86,16 +91,36 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     
     bW0 = fluid.bW(p0);
     
-    % Gravity flux
-    gp = op.Grad(p);
-    [Gw, Go] = deal(zeros(G.faces.num, 1));
-    Gw(op.internalConn) = gp - dpW;
-    Go(op.internalConn) = gp - dpO;
     
-    TGw = T_all.*Gw;
-    TGo = T_all.*Go;
-    TGwc = op.faceFlux2cellVelocity(TGw);
-    TGoc = op.faceFlux2cellVelocity(TGo);
+    % Gravity fluxs
+    gp = op.Grad(p);
+    [gW, gO] = deal(zeros(G.faces.num, 1));
+    gW(op.internalConn) = gp - dpW;
+    gO(op.internalConn) = gp - dpO;
+    
+    % Add gravity flux where we have a BC.
+    bc = drivingForces.bc;
+    if ~isempty(bc)
+        
+        BCcells = bc.cell(:,2);
+        if isfield(state, 'mappings')
+            BCcells = state.mappings.cellMap.old2new(BCcells);
+        end
+%         BCcells = sum(G.faces.neighbors(bc.face,:),2);
+        dz = G.cells.centroids(BCcells, :) - G.faces.centroids(bc.face,:);
+        g = model.getGravityVector();
+        rhoWBC = rhoW(BCcells);
+        rhoOBC = rhoO(BCcells);
+        
+        gW(bc.face) = rhoWBC.*(dz*g');
+        gO(bc.face) = rhoOBC.*(dz*g');
+        
+    end    
+    
+    TgW = T_all.*gW;
+    TgO = T_all.*gO;
+    TgWc = op.faceFlux2cellVelocity(TgW);
+    TgOc = op.faceFlux2cellVelocity(TgO);
     
     % Viscous flux
     vT  = sum(state.flux,2);
@@ -109,7 +134,7 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
                           
     % Flux term         
     flux1 = @(sW,fW,c,grad_psi) ...
-        bW(c).*fW.*(sum(vTc(c,:).*grad_psi,2) + mobO(1-sW,c).*sum((TGwc(c,:) - TGoc(c,:)).*grad_psi,2));
+        bW(c).*fW.*(sum(vTc(c,:).*grad_psi,2) + mobO(1-sW,c).*sum((TgWc(c,:) - TgOc(c,:)).*grad_psi,2));
 
     cellIntegral = disc.cellInt(@(sW, sW0, fW, c, psi, grad_psi) ...
         acc(sW, sW0, c, psi) - flux1(sW, fW, c,grad_psi), fW, (1:G.cells.num)', sWdof, sWdof0, state, state0);
@@ -118,9 +143,9 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     
     % Flux term
     flux2 = @(fWv, fWg, sWv, sWg, c, cv, cg, f, psi) ...
-        (bW(cv).*fWv.*vT(f) + bW(cg).*fWg.*mobO(1-sWg,cg).*(TGw(f) - TGo(f))).*psi./G.faces.areas(f);
+        (bW(cv).*fWv.*vT(f) + bW(cg).*fWg.*mobO(1-sWg,cg).*(TgW(f) - TgO(f))).*psi./G.faces.areas(f);
 
-    faceIntegral = disc.faceFluxInt(flux2, fW, (1:G.cells.num)', sWdof, state, T, vT, {Gw, Go}, {mobW, mobO});
+    faceIntegral = disc.faceFluxInt(flux2, fW, (1:G.cells.num)', sWdof, state, T, vT, {gW, gO}, {mobW, mobO});
   
     % Water equation-------------------------------------------------------
 
@@ -180,7 +205,23 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     
     state.cfl = dt.*sum(abs(vTc)./G.cells.dx,2);
     
-    % Add sources
+    % Add BCs--------------------------------------------------------------
+    
+    if ~isempty(bc)
+        
+        % Flux term
+        fluxBC = @(fW, sW, c, f, psi) ...
+        (bW(c).*fW.*vT(f) + bW(c).*fW.*mobO(1-sW,c).*(TgW(f) - TgO(f))).*psi./G.faces.areas(f);
+
+        bcInt = disc.faceFluxIntBC(fluxBC, fW, sWdof, state, bc, {mobW, mobO}, {gW, gO}, vT, T_all);
+        
+        water = water + bcInt;
+        
+        
+    end
+    
+    % Add sources----------------------------------------------------------
+    
     src = drivingForces.src;
     if ~isempty(src)
         cells = src.cell;
@@ -213,6 +254,28 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     
     if 1
         state.problem = problem;
+    end
+    
+    if model.extraStateOutput
+    %     state = model.storebfactors(state, bW, bO, []);
+    %     state = model.storeMobilities(state, mobW, mobO, []);
+        state = model.storeDensity(state, rhoW, rhoO, []);
+        state.G = [double(gW), double(gO)];
+    end
+    
+    if isfield(G, 'parent')
+%         active = find(~G.cells.ghost);
+        ix = disc.getDofIx(state, [], ~G.cells.ghost);
+        
+        for eqNo = 1:numel(problem.equations)
+            eq = problem.equations{eqNo};
+            eq.val = eq.val(ix);
+            eq.jac = cellfun(@(j) j(ix,ix), eq.jac, 'unif', false);
+            problem.equations{eqNo} = eq;
+        end
+        
+%         state.cells = state
+        
     end
 
 end
