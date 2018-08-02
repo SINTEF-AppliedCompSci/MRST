@@ -223,8 +223,13 @@ classdef DGDiscretization < HyperbolicDiscretization
             s = dof(ix).*0;
             for dofNo = 1:nDofMax
                 keep = nDof(cells) >= dofNo;
-                ix = disc.getDofIx(state, dofNo, cells(keep));              
-                s(keep) = s(keep) + dof(ix).*psi{dofNo}(x(keep,:));
+                ix = disc.getDofIx(state, dofNo, cells(keep));
+                if all(keep)
+                    s = s + dof(ix).*psi{dofNo}(x(keep,:));
+                else
+                    s(keep) = s(keep) + dof(ix).*psi{dofNo}(x(keep,:));
+                end
+
             end
             
         end
@@ -308,21 +313,21 @@ classdef DGDiscretization < HyperbolicDiscretization
                 return
             end
             
-            [flag_v, flag_G, cL, cR] = disc.getUpstreamCell(faceNo, x, T, vT, G, mob, sdof, state);
+            [flag_v, flag_G, upCells_v, upCells_G, s_v, s_G] = disc.getUpstreamCell(faceNo, x, T, vT, G, mob, sdof, state);
             
-            [upCells_v, upCells_G] = deal(repmat({cR}, 1, nPh));
-            [x_v, s_v, x_G, s_G] = deal(cell(1, nPh));
-            for phNo = 1:nPh
-                
-                upCells_v{phNo}(flag_v(:,phNo)) = cL(flag_v(:,phNo));
-                x_v{phNo} = disc.transformCoords(x, upCells_v{phNo});
-                s_v{phNo} = disc.evaluateSaturation(x_v{phNo}, upCells_v{phNo}, sdof, state);
-                
-                upCells_G{phNo}(flag_G(:,phNo)) = cL(flag_G(:,phNo));
-                x_G{phNo} = disc.transformCoords(x, upCells_G{phNo});
-                s_G{phNo} = disc.evaluateSaturation(x_G{phNo}, upCells_G{phNo}, sdof, state);
-                
-            end
+%             [upCells_v, upCells_G] = deal(repmat({cR}, 1, nPh));
+%             [x_v, s_v, x_G, s_G] = deal(cell(1, nPh));
+%             for phNo = 1:nPh
+%                 
+%                 upCells_v{phNo}(flag_v(:,phNo)) = cL(flag_v(:,phNo));
+%                 x_v{phNo} = disc.transformCoords(x, upCells_v{phNo});
+%                 s_v{phNo} = disc.evaluateSaturation(x_v{phNo}, upCells_v{phNo}, sdof, state);
+%                 
+%                 upCells_G{phNo}(flag_G(:,phNo)) = cL(flag_G(:,phNo));
+%                 x_G{phNo} = disc.transformCoords(x, upCells_G{phNo});
+%                 s_G{phNo} = disc.evaluateSaturation(x_G{phNo}, upCells_G{phNo}, sdof, state);
+%                 
+%             end
             
             f_v = f(s_v{1}, 1-s_v{2}, upCells_v{1}, upCells_v{2});
             f_G = f(s_G{1}, 1-s_G{2}, upCells_G{1}, upCells_G{2});
@@ -410,9 +415,6 @@ classdef DGDiscretization < HyperbolicDiscretization
                 
                 upCells_v{phNo}(flag_v(:,phNo)) = cR(flag_v(:,phNo));
                 x_v{phNo} = disc.transformCoords(x, upCells_v{phNo}, false, true);
-                
-                
-                
                 s_v{phNo} = disc.evaluateSaturation(x_v{phNo}, upCells_v{phNo}, sdof, state);
                 
                 upCells_G{phNo}(flag_G(:,phNo)) = cR(flag_G(:,phNo));
@@ -501,7 +503,7 @@ classdef DGDiscretization < HyperbolicDiscretization
             
         end
         
-        function [flag_v, flag_G, cL, cR] = getUpstreamCell(disc, faces, x, T, vT, g, mob, sdof, state)
+        function [flag_v, flag_G, upCells_v, upCells_G, s_v, s_G] = getUpstreamCell(disc, faces, x, T, vT, g, mob, sdof, state)
             
             G = disc.G;
             all2int = zeros(G.faces.num,1);
@@ -518,8 +520,13 @@ classdef DGDiscretization < HyperbolicDiscretization
             [xL, ~, ~] = disc.transformCoords(x, cL);
             [xR, ~, ~] = disc.transformCoords(x, cR);
             
-            sL = disc.evaluateSaturation(xL, cL, sdof, state);
-            sR = disc.evaluateSaturation(xR, cR, sdof, state);
+%             sdof = double(sdof);
+%             sL = disc.evaluateSaturation(xL, cL, sdof, state);
+%             sR = disc.evaluateSaturation(xR, cR, sdof, state); 
+            s = disc.evaluateSaturation([xL; xR], [cL; cR], sdof, state);
+            sL = s(1:numel(cL));
+            sR = s(numel(cL)+1:end);
+            
             mob{1} = mob{1}([sL; sR], [cL; cR]);
             mob{2} = mob{2}(1-[sL; sR], [cL; cR]);
             
@@ -527,6 +534,24 @@ classdef DGDiscretization < HyperbolicDiscretization
             
             upw = @(flag, x)faceUpstr(flag, x, N, [size(N,1), max(max(N))]);
             [flag_v, flag_G] = getSaturationUpwind('potential', 0, g, vT, T, mob, upw);
+            
+            nPh = numel(g);
+            [upCells_v, upCells_G] = deal(repmat({cR}, 1, nPh));
+            [s_v, s_G] = deal(cell(1, nPh));
+            [s_v{:},s_G{:}] = deal(sR);
+            for phNo = 1:nPh
+                
+                upCells_v{phNo}(flag_v(:,phNo)) = cL(flag_v(:,phNo));
+                s_v{phNo}(flag_v(:,phNo)) = sL(flag_v(:,phNo));
+%                 x_v{phNo} = disc.transformCoords(x, upCells_v{phNo});
+%                 s_v{phNo} = disc.evaluateSaturation(x_v{phNo}, upCells_v{phNo}, sdof, state);
+%                 
+                upCells_G{phNo}(flag_G(:,phNo)) = cL(flag_G(:,phNo));
+                s_G{phNo}(flag_G(:,phNo)) = sL(flag_G(:,phNo));
+%                 x_G{phNo} = disc.transformCoords(x, upCells_G{phNo});
+%                 s_G{phNo} = disc.evaluateSaturation(x_G{phNo}, upCells_G{phNo}, sdof, state);
+                
+            end
             
         end
         

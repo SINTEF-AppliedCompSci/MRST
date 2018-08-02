@@ -74,4 +74,4 @@ plotToolbar(G, statesFV);
 
 %%
     
-plotWellSols({wsDG{1}, wsFV})
+plotWellSols({wsDG{:}, wsFV})

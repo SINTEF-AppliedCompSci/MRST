@@ -1,4 +1,4 @@
-mrstModule add dg vem vemmech ad-props ad-core ad-blackoil blackoil-sequential gasinjection mrst-gui
+mrstModule add dg vem vemmech ad-props ad-core ad-blackoil blackoil-sequential gasinjection mrst-gui reorder matlab_bgl
 
 %%
 
@@ -7,7 +7,7 @@ gravity reset off
 
 
 
-n = 20;
+n = 10;
 l = 1000;
 G = computeGeometry(cartGrid([n,n], [l,l]*meter));
 G = computeVEMGeometry(G);
@@ -49,14 +49,14 @@ state0 = initResSol(G, 100*barsa, [sW,1-sW]);
 
 %%
 
-degree = [0, 1];
+degree = [0, 1, 2];
 % degree = 1;
 
 [jt, ot, mt] = deal(Inf);
 % 
-% jt = 0.2;
-% ot = 0.1;
-% mt = 0;
+jt = 0.2;
+ot = 0.1;
+mt = 0;
 
 [wsDG, statesDG] = deal(cell(numel(degree),1));
 for dNo = 1:numel(degree)
@@ -69,18 +69,27 @@ end
 
 %%
 
-[modelDG.transportModel.extraStateOutput, modelDG.pressureModel.extraStateOutput] = deal(true);
-modelDGreorder = modelDG;
-modelDGreorder.pressureModel.extraStateOutput = true;
+% [jt, ot, mt] = deal(Inf);
 
-modelDGreorder.transportModel = ReorderingModelDG_ghost(modelDGreorder.transportModel, 'plotProgress', true);
+[wsDGReorder, statesDGReorder] = deal(cell(numel(degree),1));
+for dNo = 1:numel(degree)
+    disc = DGDiscretization(modelDG.transportModel, 2, 'degree', degree(dNo), 'basis', 'legendre', 'useUnstructCubature', false, 'jumpTolerance', jt, 'outTolerance', ot, 'meanTolerance', mt);
+    modelDG.transportModel = TransportOilWaterModelDG(G, rock, fluid, 'disc', disc);    
 
-modelDGreorder.transportModel.chunkSize = 6;
-modelDGreorder.transportModel.parent.extraStateOutput = true;
+    [modelDG.transportModel.extraStateOutput, modelDG.pressureModel.extraStateOutput] = deal(true);
+    modelDGReorder = modelDG;
+    modelDGReorder.pressureModel.extraStateOutput = true;
 
+    modelDGReorder.transportModel = ReorderingModelDG_ghost(modelDGReorder.transportModel, 'plotProgress', false);
 
-[wsDGReorder, statesDGReorder, repDGReorder] = simulateScheduleAD(state0, modelDGreorder, schedule);
+    modelDGReorder.transportModel.chunkSize = 1;
+    modelDGReorder.transportModel.parent.extraStateOutput = true;
 
+    
+    state0 = assignDofFromState(modelDG.transportModel.disc, state0);
+    [wsDGReorder{dNo}, statesDGReorder{dNo}, rep] = simulateScheduleAD(state0, modelDGReorder, schedule);
+    
+end
 
 %%
 
@@ -90,10 +99,13 @@ modelDGreorder.transportModel.parent.extraStateOutput = true;
 
 close all
 
-nclr = 6;
 for dNo = 1:numel(degree)
     figure
     plotToolbar(G, statesDG{dNo});
+    colormap(jet);
+    
+    figure
+    plotToolbar(G, statesDGReorder{dNo});
     colormap(jet);
 end
 
@@ -102,10 +114,16 @@ plotToolbar(G, statesFV);
 colormap(jet)
 
 figure
-plotToolbar(G, statesDGReorder);
+% plotToolbar(G, statesDGReorder);
 colormap(jet)
 
-plotWellSols({wsFV, wsDG{:}, wsDGReorder}, schedule.step.val)
+dsnDG = cellfun(@(d) ['dG(' num2str(d), ')'] ,num2cell(degree), 'unif', false);
+dsnDGReorder = cellfun(@(d) ['dG(' num2str(d), ') reorder'] ,num2cell(degree), 'unif', false);
+dsnFV = {'FV'};
+dsn = horzcat(dsnFV, dsnDG, dsnDGReorder);
+
+plotWellSols({wsFV, wsDG{:}, wsDGReorder{:}}, schedule.step.val, 'datasetNames', dsn)
+% plotWellSols({wsFV, wsDG{:}, wsDGReorder}, schedule.step.val)
 
 %%
 
