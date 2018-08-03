@@ -20,14 +20,14 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
         
     assert(~(opt.solveForWater && opt.solveForOil));
         
-    if ~isfield(state, 'cells')
-        [state.cells, state0.cells] = deal((1:G.cells.num)');
-    end
+%     if ~isfield(state, 'cells')
+%         [state.cells, state0.cells] = deal((1:G.cells.num)');
+%     end
     
-    if opt.iteration == 1
+    if opt.iteration == 1 && ~opt.resOnly
         % If we are at the first iteration, we try to solve using maximum
         % degree in all cells
-        state.degree = repmat(disc.degree, G.cells.num, 1);
+        state.degree(~G.cells.ghost) = repmat(disc.degree, nnz(~G.cells.ghost), 1);
         % For cells that previously had less than nDof unknowns, we must
         % map old dofs to new
         state        = disc.mapDofs(state, state0);
@@ -69,7 +69,8 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
 
     % We will soclve for water saturation dofs
     primaryVars = {'sWdof'};
-    nDof        = state.nDof;
+%     nDof        = state.nDof;
+    nDof = disc.getnDof(state);
 
     % Get multipliers
     [pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);

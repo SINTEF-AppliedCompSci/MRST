@@ -12,6 +12,7 @@ classdef DGDiscretization < HyperbolicDiscretization
         outTolerance
         meanTolerance
         internalConnParent
+        limiterType
         
     end
     
@@ -30,6 +31,7 @@ classdef DGDiscretization < HyperbolicDiscretization
             disc.meanTolerance = 1e-4;
             disc.useUnstructCubature = false;
             disc.internalConnParent = disc.internalConn;
+            disc.limiterType = 'simple';
             
             disc        = merge_options(disc, varargin{:});
             
@@ -250,7 +252,7 @@ classdef DGDiscretization < HyperbolicDiscretization
             nPh = size(sdof,2);
             s = zeros(disc.G.cells.num, nPh);
             for phNo = 1:nPh
-                s(:,phNo) = (W*disc.evaluateSaturation(x, cellNo, sdof(:,phNo), state))./disc.G.cells.volumes(state.cells);
+                s(:,phNo) = (W*disc.evaluateSaturation(x, cellNo, sdof(:,phNo), state))./disc.G.cells.volumes;
             end
             
             state.s = s;
@@ -638,22 +640,35 @@ classdef DGDiscretization < HyperbolicDiscretization
         %-----------------------------------------------------------------%
         function [smin, smax] = getMinMaxSaturation(disc, state)
             
-            G = disc.G;
+            useMap = isfield(disc.G, 'mappings');
+            if useMap
+                maps = disc.G.mappings.cellMap;
+                cells = find(maps.keep);
+                G = disc.G.parent;
+                faces = G.cells.faces(mcolon(G.cells.facePos(cells), G.cells.facePos(cells+1)-1),1);
+                s     = @(x, c) disc.evaluateSaturation(x, maps.old2new(c), state.sdof(:,1), state);                
+            else
+                G = disc.G;
+                cells = (1:G.cells.num)';
+                faces = G.cells.faces(:,1);
+                s     = @(x, c) disc.evaluateSaturation(x, c, state.sdof(:,1), state);
+            end
             
-            faces = G.cells.faces(:,1);
+%             faces = G.cells.faces(:,1);
             nodes = G.faces.nodes(mcolon(G.faces.nodePos(faces), G.faces.nodePos(faces+1)-1));
             
             nfn = diff(G.faces.nodePos);
-            ncn = accumarray(rldecode((1:G.cells.num)', diff(G.cells.facePos), 1), nfn(faces));
+            ncf = diff(G.cells.facePos);
+            ncn = accumarray(rldecode((1:numel(cells))', ncf(cells), 1), nfn(faces));
             
             x = G.nodes.coords(nodes,:);
             
-            cells = rldecode((1:G.cells.num)', ncn, 1);
-            x = disc.transformCoords(x, cells);
+            cellNo = rldecode(cells, ncn, 1);
+            x = disc.transformCoords(x, cellNo, false, true);
             
-            s = disc.evaluateSaturation(x, cells, state.sdof(:,1), state);
+            s = s(x, cellNo);
             
-            jj = rldecode((1:G.cells.num)', ncn, 1);
+            jj = rldecode((1:numel(cells))', ncn, 1);
             s = sparse(jj, (1:numel(s))', s);
             
             smax = full(max(s, [], 2));
@@ -662,60 +677,109 @@ classdef DGDiscretization < HyperbolicDiscretization
         end
         
         %-----------------------------------------------------------------%
-        function jump = getInterfaceJumps(disc, state)
+        function [jumpVal, cells] = getInterfaceJumps(disc, state)
             
-            G = disc.G;
+            useMap = isfield(disc.G, 'mappings');
+            if useMap
+                maps = disc.G.mappings.cellMap;
+                cells = find(maps.keep);
+                G = disc.G.parent;
+                faces = G.cells.faces(mcolon(G.cells.facePos(cells), G.cells.facePos(cells+1)-1),1);
+                s     = @(x, c) disc.evaluateSaturation(x, maps.old2new(c), state.sdof(:,1), state);                
+            else
+                G = disc.G;
+                cells = (1:G.cells.num)';
+                faces = G.cells.faces(:,1);
+                s     = @(x, c) disc.evaluateSaturation(x, c, state.sdof(:,1), state);
+            end
             
-            faces = G.cells.faces(:,1);
-            isbf  = any(G.faces.neighbors(faces,:) == 0,2);
+            isbf = ~disc.internalConnParent(faces);
             faces = faces(~isbf);
-            
-            s     = @(x, c) disc.evaluateSaturation(x, c, state.sdof(:,1), state);
-            
-            cells = rldecode((1:G.cells.num)', diff(G.cells.facePos), 1);
-            nbf   = accumarray(cells, isbf);
-            cells = rldecode((1:G.cells.num)', diff(G.cells.facePos) - nbf, 1);
-            
-            xf = G.faces.centroids(faces,:);
-            
-            c_l  = G.faces.neighbors(faces,1);
-            xf_l = disc.transformCoords(xf, c_l);
-            c_r  = G.faces.neighbors(faces,2);
-            xf_r = disc.transformCoords(xf, c_r);
+%             isbf  = any(G.faces.neighbors(faces,:) == 0,2);
+%             faces = faces(~isbf);
             
             
-            jump = abs(s(xf_l, c_l) - s(xf_r, c_r));
             
-            jump = accumarray(cells, jump > disc.jumpTolerance) > 0;
+            ncf = diff(G.cells.facePos);
+            cellsTmp = rldecode((1:numel(cells))', ncf(cells), 1);
+            nbf   = accumarray(cellsTmp, isbf);
+            cells = rldecode(cells, ncf(cells) - nbf, 1);
             
+            xF = G.faces.centroids(faces,:);
+            
+            cL  = G.faces.neighbors(faces,1);
+            xFL = disc.transformCoords(xF, cL, false, true);
+            cR  = G.faces.neighbors(faces,2);
+            xFR = disc.transformCoords(xF, cR, false, true);
+            
+            jumpVal = abs(s(xFL, cL) - s(xFR, cR));
+            
+            if useMap
+                cells = maps.old2new(cells);
+            end
+            
+            ff = jumpVal > disc.jumpTolerance;
+            
+
+            
+            if 0
+            faces = find(ff);
+            cellsL = cL(faces);
+            cellsR = cR(faces);
+            for cNo = 1:numel(faces)
+                
+                figure(1); clf;
+                
+                subplot(2,2,1)
+                disc.plotCellSaturation(state, cellsL(cNo));
+                
+                subplot(2,2,2)
+                disc.plotCellSaturation(state, cellsR(cNo));
+                
+                subplot(2,2,3)
+                plotGrid(G);
+                plotGrid(G, cellsL(cNo), 'facec', 'r')
+                
+                subplot(2,2,4)
+                plotGrid(G);
+                plotGrid(G, cellsR(cNo), 'facec', 'r')
+                
+            end
+            
+            end
             
         end
         
         %-----------------------------------------------------------------%
         function state = limiter(disc, state)
             
-            G = disc.G;
             nDofMax = disc.basis.nDof;
+            G       = disc.G;
 
-            [smin, smax] = disc.getMinMaxSaturation(state);
+            [jump, over, under] = deal(false(G.cells.num,1));
             
-            jump = disc.getInterfaceJumps(state);
+            if disc.jumpTolerance < Inf
+                % Cells with interface jumps larger than threshold
+                [jumpVal, cells] = disc.getInterfaceJumps(state);
+                jump = accumarray(cells, jumpVal > disc.jumpTolerance) > 0;
+                jump(state.degree == 0) = false;
+            end
             
-            over  = smax > 1 + disc.outTolerance;
-            under = smin < 0 - disc.outTolerance;
-            outside = over | under;
+            if disc.outTolerance < Inf
+                % Cells maximum/minimum value outside [-tol, 1+tol]
+                [smin, smax] = disc.getMinMaxSaturation(state);
+                over  = smax > 1 + disc.outTolerance;
+                under = smin < 0 - disc.outTolerance;
+            end
             
-            s = disc.getCellSaturation(state);
-            s = s.s(:,1);
-            mover  = s > 1 + disc.meanTolerance;
-            munder = s < 0 - disc.meanTolerance;
-            moutside = mover | munder;
+            bad = jump | over | under;
+            state.outside = over | under;
+            state.jump    = jump;
             
-            bad     = outside | moutside | jump;
-
-            state.outside = outside;
-            state.moutside = moutside;
-            state.jump = jump;
+            if isfield(G, 'mappings')
+                bad(G.cells.ghost) = false;
+            end
+                
             
 %             state0 = state;
 %             state.degree = repmat(disc.degree, G.cells.num, 1);
@@ -726,27 +790,75 @@ classdef DGDiscretization < HyperbolicDiscretization
            
             if any(bad)
                 
-                cells = find(bad);
-                
-                state.degree(cells) = 0;
-                
-%                 disc.dofPos = disc.updateDofPos();
+                switch disc.limiterType
+                    
+                    case 'simple'
+                        % Simple "limiter" that reduces to zero-degree for
+                        % all bad cells
 
-                ix = disc.getDofIx(state, 1, cells);
-                sdof(ix,:) = min(max(sdof(ix,:), 0), 1);
-                sdof(ix,:) = sdof(ix,:)./sum(sdof(ix,:),2);
+                        state.degree(bad) = 0;
+                        ix = disc.getDofIx(state, 1, bad);
+                        sdof(ix,:) = min(max(sdof(ix,:), 0), 1);
+                        sdof(ix,:) = sdof(ix,:)./sum(sdof(ix,:),2);
+                        state.s(bad,:) = sdof(ix,:);
+                        ix = disc.getDofIx(state, 2:nDofMax, bad);
+                        sdof(ix,:) = [];
+                        state.sdof = sdof;
+                        state.degree(bad) = 0;
+                        
+                    case 'adjust'
+                        % Reduce to dG(1) and adjust slope
+                        
+                        meanOutside = state.s(:,1) > 1 | state.s(:,1) < 0;
                 
-                state.s(cells,:) = sdof(ix,:);
+                        ix = disc.getDofIx(state, 1, meanOutside);
+                        sdof(ix,:) = min(max(sdof(ix,:), 0), 1);
+                        sdof(ix,:) = sdof(ix,:)./sum(sdof(ix,:),2);
+                        state.degree(meanOutside) = 0;
+                        bad(meanOutside) = false;
+
+                        for dNo = 1:G.griddim
+                    
+                            ix0 = disc.getDofIx(state, 1, under);
+                            ix  = disc.getDofIx(state, dNo+1, under);
+                            sdof(ix) = sign(sdof(ix)).*sdof(ix0);
+%                             sdof(ix) = sign(sdof(ix)).*min(abs(sdof(ix0)), abs(sdof(ix)));
+
+                            ix0 = disc.getDofIx(state, 1, over);
+                            ix  = disc.getDofIx(state, dNo+1, over);
+                            sdof(ix) = sign(sdof(ix)).*(1 - sdof(ix0));
+
+                        end
+                        state.degree(bad) = 1;
+                        
+                        ix = disc.getDofIx(state, (1+G.griddim+1):nDofMax, bad);
+                        sdof(ix,:) = [];
+%                         ix = disc.getDofIx(state, G.gr
+                        state.sdof = sdof;
+                        
+                        
+%                         both = over & under;
+%                         
+%                         
+%                         
+%                         %                 disc.dofPos = disc.updateDofPos();
+%                 
+%                         sdof = sdof(:,1);
+%                         cells_o = find(over);
+%                         cells_u = find(under);
+
+                    case 'tvb'
                 
-                ix = disc.getDofIx(state, 2:nDofMax, cells);
-                sdof(ix,:) = [];
+                        error('Limiter type not implemented yet...');
+
+                        
+                end
                 
-                state.sdof = sdof;
-                
-                
-%                 sdof = sdof(:,1);
-%                 cells_o = find(over);
-%                 cells_u = find(under);
+%                 state = disc.getCellSaturation(state);
+%                 ix = disc.getDofIx(state, 2:nDofMax, meanOutside | bad);
+%                 sdof(ix,:) = [];
+%                 state.sdof = s
+                 
 %                 
 %                 % Reduce to first-order
 %                 ix = disc.getDofIx(state, (1 + G.griddim + 1):nDofMax, cells);
@@ -831,7 +943,7 @@ classdef DGDiscretization < HyperbolicDiscretization
             
             if disc.dim > 1
                 s = scatteredInterpolant(xk, s);
-                s = reshape(s(xx(:,1), xx(:,2)), n,n);
+                s = reshape(s(xx(:,1), xx(:,2)), n,n)';
                 surf(s);
             else
                 plot(xx, s);

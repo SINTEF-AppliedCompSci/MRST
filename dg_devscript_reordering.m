@@ -22,9 +22,13 @@ modelDG = modelFV;
 
 %%
 
+[jt, ot, mt] = deal(Inf);
+jt = 0.2;
+ot = 1e-3;
 degree = 1;
 disc   = DGDiscretization(modelDG.transportModel, 2, 'degree', degree, ...
-                         'basis', 'legendre', 'useUnstructCubature', true);
+                         'basis', 'legendre', 'useUnstructCubature', true,  'jumpTolerance', jt, ...
+     'outTolerance', ot, 'meanTolerance', mt);
 modelDG.transportModel = TransportOilWaterModelDG(G, rock, fluid, 'disc', disc);    
 
 %%
@@ -57,7 +61,7 @@ state0 = assignDofFromState(modelDG.transportModel.disc, state0);
 modelDGreorder = modelDG;
 modelDGreorder.pressureModel.extraStateOutput = true;
 
-modelDGreorder.transportModel = ReorderingModelDG_ghost(modelDGreorder.transportModel);
+modelDGreorder.transportModel = ReorderingModelDG_ghost(modelDGreorder.transportModel, 'plotProgress', true);
 
 modelDGreorder.transportModel.chunkSize = 1;
 modelDGreorder.transportModel.parent.extraStateOutput = true;
