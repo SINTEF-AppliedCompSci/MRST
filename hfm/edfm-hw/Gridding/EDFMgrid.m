@@ -8,11 +8,14 @@ t1=clock;
 
 opt = struct('Tolerance'   ,    1e-5, ...
              'plotgrid', false, ...
-             'fracturelist',1:length(fracplanes));
+             'fracturelist',1:length(fracplanes), ...
+             'Verbose', true,...
+             'lowesttol',1e-15);
          
 opt = merge_options(opt, varargin{:});
 
-tol=opt.Tolerance;
+verbose = opt.Verbose;
+
 fracturelist=opt.fracturelist;
 
 %% Rearrange G if hasn't been done before
@@ -37,7 +40,7 @@ end
 templist=[];
 for i=fracturelist
     if fracplanes(i).processed % if preprocessed before, remove from list
-        disp(['Fracplane #',num2str(i),' has been preprocessed before.']);
+        dispif(verbose,['Fracplane #',num2str(i),' has been preprocessed before.']);
         continue;
     end
     templist=[templist,i];
@@ -79,120 +82,136 @@ gaugetol=norm(max(mcellnodes)-min(mcellnodes)); % for out of plane matrix cell f
 lenfraclist=num2str(length(fracturelist)); % for verbose
 
 for k=1:length(fracturelist)
+    tol=opt.Tolerance; % reset to default tolerance for subsequent fractures
+    
     i=fracturelist(k);
     points=fracplanes(i).points;
     planenormal=fracplanes(i).normal;
     planecenter=sum(points)/size(points,1);
     aperture=fracplanes(i).aperture;
     
-    % Narrow down matrices that intersect fracture
-    planepoint=points(1,:);
-    temp=bsxfun(@minus,points,planecenter);
-    gaugeradius=realsqrt(max(sum(temp.^2,2))); % for in plane matrix cell filtering
-    
-    
-    mcellsintersect=false(nummatcells,1); % preallocate max number of cells, remove excess later
-    
-    parfor j=1:nummatcells % check for plane intersection. PARFOR HERE.
-        % find out if cell 'j' intersects infinite plane
-        mcellnodes=mcellnodes_par{j};
-        [xtruth,xtype]=checkplaneAABBintersect(mcellnodes,planepoint,planenormal,tol);
+    tightentolerance=true; % set to true to start while loop
+    while tightentolerance
+        % Ensure tolerance is reasonable
+        assert(tol>opt.lowesttol,'Tolerance too tight.');
         
-        if xtruth && (strcmp(xtype,'interior') || strcmp(xtype,'face'))
-            circtruth=circularfilter(mcellnodes,planenormal,points,tol,'gaugetol',gaugetol,'gaugeradius',gaugeradius,'center',planecenter);
-            if circtruth
-                mcellsintersect(j)=true; % if cell j possibly intersects fracture, assign logical true in row
+        % Narrow down matrices that intersect fracture
+        planepoint=points(1,:);
+        temp=bsxfun(@minus,points,planecenter);
+        gaugeradius=realsqrt(max(sum(temp.^2,2))); % for in plane matrix cell filtering
+        
+        
+        mcellsintersect=false(nummatcells,1); % preallocate max number of cells, remove excess later
+        
+        parfor j=1:nummatcells % check for plane intersection. PARFOR HERE.
+            % find out if cell 'j' intersects infinite plane
+            mcellnodes=mcellnodes_par{j};
+            [xtruth,xtype]=checkplaneAABBintersect(mcellnodes,planepoint,planenormal,tol);
+            
+            if xtruth && (strcmp(xtype,'interior') || strcmp(xtype,'face'))
+                circtruth=circularfilter(mcellnodes,planenormal,points,tol,'gaugetol',gaugetol,'gaugeradius',gaugeradius,'center',planecenter);
+                if circtruth
+                    mcellsintersect(j)=true; % if cell j possibly intersects fracture, assign logical true in row
+                end
             end
         end
-    end
-    
-    possiblemcells=find(mcellsintersect);
-    disp(['Processing ',num2str(k),' out of ',lenfraclist,' fractures.']);
-%     disp([num2str(length(possiblemcells)),'/',num2str(nummatcells),' cells were selected by quick filter.']);
-    
-    % at this point, we have an array possiblecells which contains indices of
-    % cells that could potentially intersect the fracture. We proceed to a more
-    % rigorous intersection detection in the next step.
-    
-    % RIGOROUS STEP
-    Nm=length(possiblemcells);
-    
-    mcells=-1*ones(Nm,1);area=-1*ones(Nm,1); % preallocate, remove excess later
-    typenum=-1*ones(Nm,1); % preallocate, remove excess later
-    fraccellpoints=cell(Nm,1);
-    centroidside=false(Nm,1);
-    
-    % m related data.
-    mcellnodes_par_i=cell(Nm,1);
-    for j=1:Nm
-        mcellnodeind=cn(cpos(possiblemcells(j)):(cpos(possiblemcells(j)+1)-1));
-        mcellnodes=Gm.nodes.coords(mcellnodeind,:); % 8x3 matrix, each row containing xyz coords of nodes
-        mcellnodes_par_i(j)={mcellnodes};
-    end
-    
-
-    parfor j=1:Nm % PARFOR HERE.
-        % matrix cell data
-        mcellnodes=mcellnodes_par_i{j};
         
-        % check intersection
-        [xtruth,xarea,xtype,xlocation,fraccellpoints{j}]=pebiAABBintersect(points,mcellnodes,tol);
-        % [~,~,~,~,fraccellpoints{j}]=pebiAABBintersect(points,mcellnodes,tol);
+        possiblemcells=find(mcellsintersect);
+        dispif(verbose,['Processing ',num2str(k),' out of ',lenfraclist,' fractures.\n']);
+        %     disp([num2str(length(possiblemcells)),'/',num2str(nummatcells),' cells were selected by quick filter.']);
         
-        if xtruth && strcmp(xtype,'polygon')
-            % if fracture plane intersects a matrix cell, save details to
-            % cells, area and CI.
-            mcells(j)=possiblemcells(j);
-            
-            area(j)=xarea;
-            
-            switch xlocation
-                case 'none'
-                    xlocation=0;
-                case 'boundary'
-                    xlocation=1;
-                    centroid=sum(mcellnodes)/size(mcellnodes,1);
-                    dir=dot(centroid-points(1,:),planenormal);
-                    dir=dir/abs(dir);
-                    centroidside(j)=dir>0;
-                case 'interior'
-                    xlocation=2;
-                    centroidside(j)=true;
-            end
-            
-            typenum(j)=xlocation;
+        % at this point, we have an array possiblecells which contains indices of
+        % cells that could potentially intersect the fracture. We proceed to a more
+        % rigorous intersection detection in the next step.
+        
+        % RIGOROUS STEP
+        Nm=length(possiblemcells);
+        
+        mcells=-1*ones(Nm,1);area=-1*ones(Nm,1); % preallocate, remove excess later
+        typenum=-1*ones(Nm,1); % preallocate, remove excess later
+        fraccellpoints=cell(Nm,1);
+        centroidside=false(Nm,1);
+        
+        % m related data.
+        mcellnodes_par_i=cell(Nm,1);
+        for j=1:Nm
+            mcellnodeind=cn(cpos(possiblemcells(j)):(cpos(possiblemcells(j)+1)-1));
+            mcellnodes=Gm.nodes.coords(mcellnodeind,:); % 8x3 matrix, each row containing xyz coords of nodes
+            mcellnodes_par_i(j)={mcellnodes};
         end
+        
+        
+        parfor j=1:Nm % PARFOR HERE.
+            
+            
+            % matrix cell data
+            mcellnodes=mcellnodes_par_i{j};
+            
+            % check intersection
+            [xtruth,xarea,xtype,xlocation,fraccellpoints{j}]=pebiAABBintersect(points,mcellnodes,tol);
+            % [~,~,~,~,fraccellpoints{j}]=pebiAABBintersect(points,mcellnodes,tol);
+            
+            if xtruth && strcmp(xtype,'polygon')
+                % if fracture plane intersects a matrix cell, save details to
+                % cells, area and CI.
+                mcells(j)=possiblemcells(j);
+                
+                area(j)=xarea;
+                
+                switch xlocation
+                    case 'none'
+                        xlocation=0;
+                    case 'boundary'
+                        xlocation=1;
+                        centroid=sum(mcellnodes)/size(mcellnodes,1);
+                        dir=dot(centroid-points(1,:),planenormal);
+                        dir=dir/abs(dir);
+                        centroidside(j)=dir>0;
+                    case 'interior'
+                        xlocation=2;
+                        centroidside(j)=true;
+                end
+                
+                typenum(j)=xlocation;
+            end
+        end
+        
+        % remove excess data in mcells, area, typenum
+        intersected=~cellfun('isempty',fraccellpoints);
+        mcells=[mcells(intersected & centroidside);mcells(intersected & ~centroidside)]; %
+        area=[area(intersected & centroidside);area(intersected & ~centroidside)];
+        typenum=[typenum(intersected & centroidside);typenum(intersected & ~centroidside)];
+        
+        % Construct V
+        fraccellpoints=fraccellpoints(intersected & centroidside);
+        V=vertcat(fraccellpoints{:});
+        
+        % Construct C
+        C=cellfun(@(c) 1:size(c,1),fraccellpoints,'UniformOutput',false);
+        for j=2:size(C,1)
+            addTo=C{j-1}(end);
+            C{j}=C{j}+addTo;
+        end
+        
+        % How to read the above data
+        % Cell f has nodes C{f}, which have coordinates V(C{f},:)
+        % Cell f intersects matrix cell mcells(f) and the intersection area is
+        % area(f) and the intersection type is typenum(f)
+        
+        Fgrid=fractureplanegeneralgrid(V,C,points,planenormal,aperture,tol);
+        
+        % Save matrix-fracture connection information
+        Fgrid.matrix_connection.cells=mcells;
+        Fgrid.matrix_connection.area=area;
+        Fgrid.matrix_connection.type=typenum;
+        
+        % Check volume. If not equal, tightentolerance
+        targetvol = convexpolygonarea(points,opt.Tolerance)*aperture;
+        totcellvol = sum(Fgrid.cells.volumes);
+        tightentolerance=~(abs(targetvol-totcellvol)<opt.Tolerance);
+        tol=tol/10;
+        
     end
-    
-    % remove excess data in mcells, area, typenum
-    intersected=~cellfun('isempty',fraccellpoints);
-    mcells=[mcells(intersected & centroidside);mcells(intersected & ~centroidside)]; % 
-    area=[area(intersected & centroidside);area(intersected & ~centroidside)];
-    typenum=[typenum(intersected & centroidside);typenum(intersected & ~centroidside)];
-    
-    % Construct V
-    fraccellpoints=fraccellpoints(intersected & centroidside);
-    V=vertcat(fraccellpoints{:});
-    
-    % Construct C
-    C=cellfun(@(c) 1:size(c,1),fraccellpoints,'UniformOutput',false);
-    for j=2:size(C,1)
-        addTo=C{j-1}(end);
-        C{j}=C{j}+addTo;
-    end
-    
-    % How to read the above data
-    % Cell f has nodes C{f}, which have coordinates V(C{f},:)
-    % Cell f intersects matrix cell mcells(f) and the intersection area is
-    % area(f) and the intersection type is typenum(f)
-    
-    Fgrid=fractureplanegeneralgrid(V,C,points,planenormal,aperture,tol);
-    
-    % Save matrix-fracture connection information
-    Fgrid.matrix_connection.cells=mcells;
-    Fgrid.matrix_connection.area=area;
-    Fgrid.matrix_connection.type=typenum;
-    
     Fstorecell{k}=Fgrid;
 end
 
@@ -282,6 +301,6 @@ G=assembleGlobalGrid(Gtemp);
 %% Calculate elapsed time
 t2=clock;
 e=etime(t2,t1);
-disp(['EDFM grid assembly took ',num2str(e),' seconds.']);
+dispif(verbose,['EDFM grid assembly took ',num2str(e),' seconds.']);
 
 end
