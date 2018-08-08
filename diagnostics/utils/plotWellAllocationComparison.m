@@ -49,7 +49,8 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 opt = struct('useZ', true,...
-             'bwidth', .98);
+             'bwidth', .98, ...
+             'plotrow', false);
 opt = merge_options(opt, varargin{:});
 
 % -------------------------------------------------------------------------
@@ -132,11 +133,12 @@ end
 % -------------------------------------------------------------------------
 % Calculate number of plots in 2D grid
 num_plots = numel(wp1);
-nx = ceil(sqrt(num_plots));
-ny = nx-1;
-if (nx*ny < num_plots)
-    ny = nx;
+ny = ceil(sqrt(num_plots));
+nx = ny-1;
+if (ny*nx < num_plots)
+    nx = ny;
 end
+if opt.plotrow, [nx,ny] = deal(num_plots,1); end
 
 current_fig = gcf();
 wb = waitbar(0, 'Well 1');
@@ -145,7 +147,7 @@ set(0, 'CurrentFigure', current_fig);
 % -------------------------------------------------------------------------
 % Plot the well-allocation factors for fine/coarse scale models
 for i=1:num_plots
-   subplot(nx,ny,i);
+   subplot(ny,nx,i);
    
    % --------------------------------
    % Plot data for model 1
@@ -205,10 +207,10 @@ for i=1:num_plots
 
    if max(wp1(i).alloc(:))>0
       hl=legend(h(i),wp1(i).name,'Location','SouthEast');
-      set(hl,'FontSize',8); legend boxoff
+      set(hl,'FontSize',14,'FontWeight','demi'); legend boxoff
    else
       hl=legend(h(i),wp1(i).name,'Location','SouthWest');
-      set(hl,'FontSize',8); legend boxoff
+      set(hl,'FontSize',14,'FontWeight','demi'); legend boxoff
    end
    waitbar(i/num_plots,wb,['Well ', num2str(i+1)])
 end
