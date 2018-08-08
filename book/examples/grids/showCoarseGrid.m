@@ -40,8 +40,8 @@ G  = computeGeometry(cartGrid([8, 8], [1 1]));
 f  = @(c) sin(3*pi*(c(:,1)-c(:,2)));
 pf = 1 + (f(G.cells.centroids) > 0);
 
-plotCellData(G, pf); axis off;
-colormap((jet(16)+ones(16,3))/2);
+plotCellData(G, pf,'edgecolor','none'); axis off;
+colormap(.2*gray(2)+.8*ones(2,3));
 
 pv = partitionCartGrid(G.cartDims, [2 2]);
 pf = cellPartitionToFacePartition(G,pf);
@@ -49,10 +49,13 @@ pf = processFacePartition(G, pv, pf);
 CG = generateCoarseGrid(G, pv, pf);
 
 CG = coarsenGeometry(CG);
-plotFaces(CG,1:CG.faces.num,'Marker','+','MarkerSize',8,'LineWidth',2);
-h=get(gca,'children');set(h(1),'LineWidth',2)
+cmap = lines(CG.faces.num);
+for i=1:CG.faces.num
+    plotFaces(CG,i,'LineWidth',6,'EdgeColor', cmap(i,:));
+end
 text(CG.faces.centroids(:,1), CG.faces.centroids(:,2), ...
-   num2str((1:CG.faces.num)'),'FontSize',20, 'HorizontalAlignment','center');
+        num2str((1:CG.faces.num)'),'FontSize',20,'HorizontalAlignment','center');
+
 
 %% Third example: 3D face partition
 clf
