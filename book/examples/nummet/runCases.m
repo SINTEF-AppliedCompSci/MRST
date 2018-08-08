@@ -2,6 +2,7 @@
 % Initial data: set up the initial data and remember to add one ghost cell
 % at each end of the interval. These cells will be used to impose boundary
 % conditions
+FontSize = 12; pargs = {'MarkerSize',8};
 dx = 1/100;
 x  = -.5*dx:dx:1+.5*dx;
 u0 = sin((x-.1)*pi/.3).^2.*double(x>=.1 & x<=.4);
@@ -12,26 +13,26 @@ f  = @(u) u;
 df = @(u) 0*u + 1;
 
 % Run simulation
-uu = upw(u0, .995, dx, 20, f, df, @periodic);
-uf = lxf(u0, .995, dx, 20, f, df, @periodic);
-uw = lxw(u0, .995, dx, 20, f, df, @periodic);
+uu = upw(u0, .5, dx, 1, f, df, @periodic);
+uf = lxf(u0, .5, dx, 1, f, df, @periodic);
+uw = lxw(u0, .5, dx, 1, f, df, @periodic);
 
 % Plot results
 figure('Position',[293 539 1000 300]);
 i = (x>=.1 & x<=.4);
-subplot(1,3,1)
-plot([0 x(i) .6 .6 .9 .9 1], [0 u0(i) 0 1 1 0 0], '-',...
-    x(2:end-1), uu(2:end-1), 'o');
+subplot(1,4,1,'FontSize',FontSize)
+plot([0 x(i) .6 .6 .9 .9 1], [0 u0(i) 0 1 1 0 0], '-k',...
+    x(2:end-1), uu(2:end-1), '.', pargs{:});
 axis([0 1 -.2 1.2]); title('Upwind');
 
-subplot(1,3,2)
-plot([0 x(i) .6 .6 .9 .9 1], [0 u0(i) 0 1 1 0 0], '-',...
-    x(2:end-1), uf(2:end-1), 'o');
+subplot(1,4,2,'FontSize',FontSize)
+plot([0 x(i) .6 .6 .9 .9 1], [0 u0(i) 0 1 1 0 0], '-k',...
+    x(2:end-1), uf(2:end-1), '.', pargs{:});
 axis([0 1 -.2 1.2]); title('Lax-Friedrichs');
 
-subplot(1,3,3)
-plot([0 x(i) .6 .6 .9 .9 1], [0 u0(i) 0 1 1 0 0], '-',...
-    x(2:end-1), uw(2:end-1), 'o');
+subplot(1,4,3,'FontSize',FontSize)
+plot([0 x(i) .6 .6 .9 .9 1], [0 u0(i) 0 1 1 0 0], '-k',...
+    x(2:end-1), uw(2:end-1), '.', pargs{:});
 axis([0 1 -.2 1.2]); title('Lax-Wendroff');
 
 
@@ -41,13 +42,14 @@ xh  = -1.5*dx:dx:1+1.5*dx;
 u0 = sin((xh-.1)*pi/.3).^2.*double(xh>=.1 & xh<=.4);
 u0((xh<.9) & (xh>.6)) = 1;
 
-un = nt (u0, .495, dx, 50, f, df, @periodic, lim);
-uc = cuw(u0, .995, dx, 1, f, df, @periodic);
-figure
+un = nt (u0, .25, dx, 1, f, df, @periodic, lim);
+%uc = cuw(u0, .25, dx, 1, f, df, @periodic, lim);
+
+subplot(1,4,4,'FontSize',FontSize)
 i = (xh>=.1 & xh<=.4);
-plot(xh(3:end-2), un(3:end-2), 'o', xh(3:end-2), uc(3:end-2), 's', ...
-    [0 x(i) .6 .6 .9 .9 1], [0 u0(i) 0 1 1 0 0], '-k');
-legend('Nessyahu-Tadmor','Central-upwind','Location','best');
+plot([0 x(i) .6 .6 .9 .9 1], [0 u0(i) 0 1 1 0 0], '-k', ...
+    xh(3:end-2), un(3:end-2), '.', pargs{:});
+title('Nessyahu-Tadmor');
 axis([0 1 -.2 1.2]);
 
 %% Burgers' equation
@@ -83,7 +85,7 @@ plot(xr(3:end-2),ur(3:end-2), '-', xh(3:end-2), uh(3:end-2), 'o');
 axis([-1 1 -1.1 1.1]); title('Nessyahu-Tadmor');
 
 
-%% Buckley-Leverett problem: classical schemes
+%% Buckley-Leverett problem: classical schemes vs high-resolution
 % Flux function
 f = @(u) u.^2./(u.^2 + (1-u).^2);
 s = linspace(0,1,501);
@@ -91,10 +93,11 @@ dfv = max(diff(f(s))./diff(s));
 df = @(u) 0*u + dfv;
 
 % reference solution
+T = 0.65;
 dx = 1/1000;
 xr = -.5*dx:dx:1+.5*dx;
 u0 = 0*xr; u0(xr<.1)=1.0;
-ur = upw(u0, .995, dx, .65, f, df, @outflow);
+ur = upw(u0, .995, dx, T, f, df, @outflow);
 
 % Solutions on coarser grids
 N  = 50;
@@ -102,37 +105,31 @@ dx = 1/N;
 x  = -.5*dx:dx:1+.5*dx;
 u0 = 0*x; u0(x<.1)=1.0;
 
-uu = upw(u0, .995, dx, .65, f, df, @outflow);
-uf = lxf(u0, .995, dx, .65, f, df, @outflow);
-uw = lxw(u0, .995, dx, .65, f, df, @outflow);
-
-% Plot results
 figure('Position',[293 539 1000 300]);
-subplot(1,3,1)
-plot(xr(2:end-1),ur(2:end-1), '-', x(2:end-1), uu(2:end-1), 'o'); 
-axis([0 1 -.1 1.1]); title('Upwind');
-subplot(1,3,2)
-plot(xr(2:end-1),ur(2:end-1), '-', x(2:end-1), uf(2:end-1), 'o');
-axis([0 1 -.1 1.1]); title('Lax-Friedrichs');
-subplot(1,3,3)
-plot(xr(2:end-1),ur(2:end-1), '-', x(2:end-1), uw(2:end-1), 'o');
-axis([0 1 -.1 1.1]); title('Lax-Wendroff');
+subplot(1,4,1,'FontSize',FontSize)
+uu = upw(u0, .995, dx, T, f, df, @outflow);
+plot(xr(2:end-1),ur(2:end-1), '-k', x(2:end-1), uu(2:end-1), '.', pargs{:}); 
+axis([0 1 -.05 1.05]); title('Upwind');
 
-%% Buckley-Leverett problem: high-resolution schemes
+subplot(1,4,2,'FontSize',FontSize)
+uf = lxf(u0, .995, dx, T, f, df, @outflow);
+plot(xr(2:end-1),ur(2:end-1), '-k', x(2:end-1), uf(2:end-1), '.', pargs{:});
+axis([0 1 -.05 1.05]); title('Lax-Friedrichs');
+
+subplot(1,4,3,'FontSize',FontSize)
+uw = lxw(u0, .995, dx, T, f, df, @outflow);
+plot(xr(2:end-1),ur(2:end-1), '-k', x(2:end-1), uw(2:end-1), '.', pargs{:});
+axis([0 1 -.05 1.05]); title('Lax-Wendroff');
+
+% High-resolution schemes
 xh  = -1.5*dx:dx:1+1.5*dx;
 u0 = 0*xh; u0(xh<.1)=1.0;
-
-un = nt(u0, .495, dx, .65, f, df, @inflow);
-uc = cuw(u0, .995, dx, .65, f, df, @inflow);
-figure;
-plot(x(2:end-1), uu(2:end-1), '*', xh(3:end-2), un(3:end-2), 'o', ...
-    xh(3:end-2), uc(3:end-2), 's', xr(2:end-1),ur(2:end-1), 'k-');
-axis([0 1 -.1 1.1]);
-legend('Upwind','Nessyahu-Tadmor','Central-upwind','Location','NorthEast');
-axes('position',[.2 .2 .4 .4]); box on
-plot(x(2:end-1), uu(2:end-1), '*', xh(3:end-1), un(3:end-1), 'o', ...
-    xh(3:end-2), uc(3:end-2), 's', xr(2:end-1),ur(2:end-1), 'k-');
-axis([0 0.35 0.85 1.05]); set(gca,'XTick',[],'YTick',[]);
+un = nt(u0, .495, dx, T, f, df, @inflow);
+uc = cuw(u0, .495, dx, T, f, df, @inflow);
+subplot(1,4,4,'FontSize',FontSize)
+plot(xh(3:end-2), un(3:end-2), '.', xh(3:end-2), uc(3:end-2), '.r', ...
+    xr(2:end-1),ur(2:end-1), 'k-', pargs{:});
+axis([0 1 -.05 1.05]); title('High-resolution');
 
 %% Buckley-Leverett problem: using 'incomp' module
 mrstModule add incomp
