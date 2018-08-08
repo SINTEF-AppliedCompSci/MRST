@@ -117,7 +117,7 @@ axis tight off
 
 %%
 % Let us now try to also colour the faces of the model
-cellno  = rldecode(1:G.cells.num, diff(G.cells.facePos), 2) .';
+cellno  = gridCellNo(G);
 faces   = unique(G.cells.faces(pick(cellno), 1));
 inspect = faces(G.faces.tag(faces)>0);
 plotFaces(G,inspect,[.7 .7 .7],'edgec','r');
