@@ -99,16 +99,9 @@ if use_trans  %#ok<*UNRCH>
                           'bc_method', 'wells_simple', 'wells', W);
 else
    crock.perm = upscalePerm(G, CG, rock);
-   crock.poro = crock.poro(p);
-   crock.perm = crock.perm(p,:);
-   CG = G;
-   WC = W;
-   CTrans = computeTrans(CG, crock);
-   CTrans = 1 ./ accumarray(CG.cells.faces(:,1), 1 ./ CTrans, [CG.faces.num, 1]);
-   p = (1:G.cells.num)';
 end
-figure(1); subplot(1,2,2);
-plotCellData(CG,crock.poro);
+figure(1); subplot(1,2,2); cla
+plotCellData(CG,crock.poro,'EdgeColor','none');
 plotFaces(CG, boundaryFaces(CG),...
    'EdgeColor', [0.4 0.4 0.4],'EdgeAlpha',.5, 'FaceColor', 'none'); view(3);
 plotWell(G,W,'Color','k'); axis off tight
@@ -117,6 +110,18 @@ pos = get(hh,'Position'); set(hh,'Position', pos + [.01 0 0 0]);
 pos = get(hc,'Position'); set(hc,'Position', pos + [.02 0 0 0]);
 set(gca,'Position',[.56 .075 .315 .9])
 
+%%
+% If permeability upscaling: to assess the effect of permeability upscaling
+% only, we project the upscaled permeability back to the fine grid
+if ~use_trans
+   crock.poro = crock.poro(p);
+   crock.perm = crock.perm(p,:);
+   CG = G;
+   WC = W;
+   CTrans = computeTrans(CG, crock);
+   CTrans = 1 ./ accumarray(CG.cells.faces(:,1), 1 ./ CTrans, [CG.faces.num, 1]);
+   p = (1:G.cells.num)';
+end
 xd    = initState(CG, WC, accumarray(p,100*barsa)./accumarray(p,1));
 xd    = incompTPFA(xd, CG, CTrans, dfluid, 'wells', WC, 'use_trans', true);
 
