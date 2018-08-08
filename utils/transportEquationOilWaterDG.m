@@ -36,8 +36,9 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     % Update discretizaiton information. This is carried by the state
     % variable, and holds the number of dofs per cell + dof position in
     % state.sdof
-    state0 = disc.updateDisc(state0);
-    state = disc.updateDisc(state);
+    state0 = disc.updateDofPos(state0);
+    state = disc.updateDofPos(state);
+%     state.nDof = disc.getnDof(state);
 %     state = disc.getCellSaturation(state);
     
     % Properties from current timestep
@@ -270,8 +271,12 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
         
         for eqNo = 1:numel(problem.equations)
             eq = problem.equations{eqNo};
-            eq.val = eq.val(ix);
-            eq.jac = cellfun(@(j) j(ix,ix), eq.jac, 'unif', false);
+            if isa(eq, 'ADI')
+                eq.val = eq.val(ix);
+                eq.jac = cellfun(@(j) j(ix,ix), eq.jac, 'unif', false);
+            else
+                eq = eq(ix);
+            end
             problem.equations{eqNo} = eq;
         end
         

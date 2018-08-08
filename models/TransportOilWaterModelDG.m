@@ -160,40 +160,13 @@ classdef TransportOilWaterModelDG < TransportOilWaterModel
 %             state = model.updateStateFromIncrement(state, ds, problem, 'sdof', inf, inf);
             state = model.disc.getCellSaturation(state);
             
-            
-            if 0
-            % Ensure that values are within zero->one interval, and
-            % re-normalize if any values were capped
-            bad = any((state.s > 1) | (state.s < 0), 2);
-            if any(bad)
-                cells = find(bad);
-
-%                 ix = model.disc.getDofIx(1, cells);
-%                 over  = max(state.s(bad,:)-1,0);
-%                 under = min(state.s(bad,:),0);
-%                 state.sdof(ix,:) = state.sdof(ix,:) - over - under;
-%                 state.sdof(ix,:) = state.sdof(ix,:)./sum(state.sdof(ix,:),2);
-                
-                s0 = state.s;
-
-                ix = model.disc.getDofIx(1, cells);
-%                 state.sdof(ix,:) = min(max(state.s(bad,:),0),1);
-                state.sdof(ix,:) = min(max(state.sdof(ix,:),0),1);
-                state.sdof(ix,:) = state.sdof(ix,:)./sum(state.sdof(ix,:),2);
-                
-                ix = model.disc.getDofIx(2:model.disc.basis.nDof, cells);
-                state.sdof(ix,:) = 0;
-                
-                state = model.disc.getCellSaturation(state);
-            end
-                
-            end
-            
-            if max(model.disc.degree) > 0 && 1
+            if model.disc.degree > 0 && 1
                 
                 state = model.disc.limiter(state);
-                state = model.disc.updateDisc(state);
+                state = model.disc.updateDofPos(state);
                 
+                
+                  
 %             sWdof = model.disc.limiter(state.sdof(:,1));
 %             sOdof = -sWdof;
 %             ix = 1:model.disc.basis.nDof:model.G.cells.num*model.disc.basis.nDof;
@@ -203,20 +176,30 @@ classdef TransportOilWaterModelDG < TransportOilWaterModel
 
 %                 state = model.disc.getCellSaturation(state);
 
+            elseif 0
+                
+                bad = any(state.s < 0 | state.s > 1,2);
+    %                         sdof(ix,:) = min(max(sdof(ix,:), 0), 1);
+                state.sdof(bad,:) = min(max(state.sdof(bad,:), 0), 1);
+                state.sdof(bad,:) = state.sdof(bad,:)./sum(state.sdof(bad,:),2);
+                state.s(bad,:) = state.sdof(bad,:);
+%                 ix = disc.getDofIx(state, 2:nDofMax, bad);
             end
             
-            
-            
         end
-        
-%         function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
-%             % Generic update function for reservoir models containing wells.
-%             %
-%             % SEE ALSO:
-%             %   :meth:`ad_core.models.PhysicalModel.updateAfterConvergence`
-% 
-%             [state, report] = updateAfterConvergence@TransportOilWaterModel(model, state0, state, dt, drivingForces);
-%             
+        %{
+        function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
+            % Generic update function for reservoir models containing wells.
+            %
+            % SEE ALSO:
+            %   :meth:`ad_core.models.PhysicalModel.updateAfterConvergence`
+
+            [state, report] = updateAfterConvergence@TransportOilWaterModel(model, state0, state, dt, drivingForces);
+            
+            state = model.disc.limiter(state);
+            state = model.disc.updateDofPos(state);
+            state.nDof = model.disc.getnDof(state);
+            
 %             if model.disc.degree > 0 & 1
 % 
 %             sWdof = model.disc.limiter(state.sdof(:,1));
@@ -227,10 +210,9 @@ classdef TransportOilWaterModelDG < TransportOilWaterModel
 %             state.sdof = [sWdof, sOdof];
 % 
 %             state = model.disc.getCellSaturation(state);
-% 
-%             end
-%             
-%         end
+    
+        end
+        %}
         
     end
 end

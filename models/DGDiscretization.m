@@ -31,7 +31,7 @@ classdef DGDiscretization < HyperbolicDiscretization
             disc.meanTolerance = 1e-4;
             disc.useUnstructCubature = false;
             disc.internalConnParent = disc.internalConn;
-            disc.limiterType = 'simple';
+            disc.limiterType = 'kill';
             
             disc        = merge_options(disc, varargin{:});
             
@@ -67,7 +67,7 @@ classdef DGDiscretization < HyperbolicDiscretization
         function state = assignDofFromState(disc, state)
 
             state.degree = repmat(disc.degree, disc.G.cells.num, 1);
-            state = disc.updateDisc(state);
+            state = disc.updateDofPos(state);
             
             state.nDof = disc.getnDof(state);
             sdof = zeros(sum(state.nDof), size(state.s,2));
@@ -80,7 +80,7 @@ classdef DGDiscretization < HyperbolicDiscretization
         end
         
         %-----------------------------------------------------------------%
-        function state = updateDisc(disc, state)
+        function state = updateDofPos(disc, state)
 
             dp = reshape((1:disc.G.cells.num*disc.basis.nDof)', disc.basis.nDof, []);            
             if nargin == 1
@@ -194,19 +194,20 @@ classdef DGDiscretization < HyperbolicDiscretization
         end
         
         %-----------------------------------------------------------------%
-        function state = mapDofs(disc, state, state_prev)
+        function state = mapDofs(disc, state, state0)
             
-            state = disc.updateDisc(state);
+            state = disc.updateDofPos(state);
             
-            if all(state.nDof == state_prev.nDof)
+            if all(state.nDof == state0.nDof)
                 return
             else
-                sdof = zeros(sum(state.nDof), size(state_prev.sdof,2));
+                sdof = zeros(sum(state.nDof), size(state0.sdof,2));
                 for dofNo = 1:disc.basis.nDof
                     ix      = disc.getDofIx(state, dofNo, (1:disc.G.cells.num)', true);
-                    ix_prev = disc.getDofIx(state_prev, dofNo, (1:disc.G.cells.num)', true);
+                    ix0 = disc.getDofIx(state0, dofNo, (1:disc.G.cells.num)', true);
                     
-                    sdof(ix(ix_prev > 0),:) = state_prev.sdof(ix_prev(ix_prev > 0),:);
+%                     sdof(ix(ix0 > 0),:) = state0.sdof(ix0(ix0 > 0),:);
+                    sdof(ix(ix0 > 0 & ix > 0),:) = state0.sdof(ix0(ix0 > 0 & ix > 0),:);
                     
                 end
                 state.sdof = sdof;
@@ -300,22 +301,21 @@ classdef DGDiscretization < HyperbolicDiscretization
         end
         
         %-----------------------------------------------------------------%
-        function I = faceFluxInt(disc, integrand, f, cells, sdof, state, T, vT, G, mob)
+        function I = faceFluxInt(disc, integrand, f, cells, sdof, state, T, vT, g, mob)
             
-            g       = disc.G;
             psi     = disc.basis.psi;
             nDof    = state.nDof;
             nDofMax = disc.basis.nDof;
             
             [W, x, cellNo, faceNo] = disc.getCubature(cells, 'surface');
-            nPh = numel(G);
+            nPh = numel(g);
             
             if isempty(faceNo)
                 I = 0;
                 return
             end
             
-            [flag_v, flag_G, upCells_v, upCells_G, s_v, s_G] = disc.getUpstreamCell(faceNo, x, T, vT, G, mob, sdof, state);
+            [flag_v, flag_G, upCells_v, upCells_G, s_v, s_G] = disc.getUpstreamCell(faceNo, x, T, vT, g, mob, sdof, state);
             
 %             [upCells_v, upCells_G] = deal(repmat({cR}, 1, nPh));
 %             [x_v, s_v, x_G, s_G] = deal(cell(1, nPh));
@@ -677,52 +677,32 @@ classdef DGDiscretization < HyperbolicDiscretization
         end
         
         %-----------------------------------------------------------------%
-        function [jumpVal, cells] = getInterfaceJumps(disc, state)
+        function [jumpVal, faces, cells] = getInterfaceJumps(disc, state)
             
-            useMap = isfield(disc.G, 'mappings');
-            if useMap
-                maps = disc.G.mappings.cellMap;
-                cells = find(maps.keep);
-                G = disc.G.parent;
-                faces = G.cells.faces(mcolon(G.cells.facePos(cells), G.cells.facePos(cells+1)-1),1);
-                s     = @(x, c) disc.evaluateSaturation(x, maps.old2new(c), state.sdof(:,1), state);                
-            else
-                G = disc.G;
-                cells = (1:G.cells.num)';
-                faces = G.cells.faces(:,1);
-                s     = @(x, c) disc.evaluateSaturation(x, c, state.sdof(:,1), state);
+            G = disc.G;
+            faces = find(disc.internalConn);
+            cells = G.faces.neighbors(disc.internalConn,:);
+            if isfield(G, 'mappings')
+                order = G.mappings.cellMap.localOrder;
+                isUpstr = any(order <= order(~G.cells.ghost)',2);
+                keep = all(isUpstr(cells),2);
+                faces = faces(keep);
             end
-            
-            isbf = ~disc.internalConnParent(faces);
-            faces = faces(~isbf);
-%             isbf  = any(G.faces.neighbors(faces,:) == 0,2);
-%             faces = faces(~isbf);
-            
-            
-            
-            ncf = diff(G.cells.facePos);
-            cellsTmp = rldecode((1:numel(cells))', ncf(cells), 1);
-            nbf   = accumarray(cellsTmp, isbf);
-            cells = rldecode(cells, ncf(cells) - nbf, 1);
+
+            cells = G.faces.neighbors(faces,:);                
+            s     = @(x, c) disc.evaluateSaturation(x, c, state.sdof(:,1), state);                
             
             xF = G.faces.centroids(faces,:);
             
-            cL  = G.faces.neighbors(faces,1);
-            xFL = disc.transformCoords(xF, cL, false, true);
-            cR  = G.faces.neighbors(faces,2);
-            xFR = disc.transformCoords(xF, cR, false, true);
+            cL  = cells(:,1);
+            xFL = disc.transformCoords(xF, cL);
+            cR  = cells(:,2);
+            xFR = disc.transformCoords(xF, cR);
             
             jumpVal = abs(s(xFL, cL) - s(xFR, cR));
-            
-            if useMap
-                cells = maps.old2new(cells);
-            end
-            
-            ff = jumpVal > disc.jumpTolerance;
-            
-
-            
+                        
             if 0
+            ff = jumpVal > disc.jumpTolerance;
             faces = find(ff);
             cellsL = cL(faces);
             cellsR = cR(faces);
@@ -745,7 +725,6 @@ classdef DGDiscretization < HyperbolicDiscretization
                 plotGrid(G, cellsR(cNo), 'facec', 'r')
                 
             end
-            
             end
             
         end
@@ -760,9 +739,14 @@ classdef DGDiscretization < HyperbolicDiscretization
             
             if disc.jumpTolerance < Inf
                 % Cells with interface jumps larger than threshold
-                [jumpVal, cells] = disc.getInterfaceJumps(state);
-                jump = accumarray(cells, jumpVal > disc.jumpTolerance) > 0;
+                [jumpVal, ~, cells] = disc.getInterfaceJumps(state);
+                
+                j = accumarray(cells(:), repmat(jumpVal,2,1) > disc.jumpTolerance) > 0;
+                jump = false(G.cells.num,1);
+                jump(cells(:)) = j(cells(:));
+                
                 jump(state.degree == 0) = false;
+                
             end
             
             if disc.outTolerance < Inf
@@ -792,13 +776,14 @@ classdef DGDiscretization < HyperbolicDiscretization
                 
                 switch disc.limiterType
                     
-                    case 'simple'
+                    case 'kill'
                         % Simple "limiter" that reduces to zero-degree for
                         % all bad cells
 
-                        state.degree(bad) = 0;
+%                         state.degree(bad) = 0;
                         ix = disc.getDofIx(state, 1, bad);
-                        sdof(ix,:) = min(max(sdof(ix,:), 0), 1);
+%                         sdof(ix,:) = min(max(sdof(ix,:), 0), 1);
+                        sdof(ix,:) = min(max(state.s(bad,:), 0), 1);
                         sdof(ix,:) = sdof(ix,:)./sum(sdof(ix,:),2);
                         state.s(bad,:) = sdof(ix,:);
                         ix = disc.getDofIx(state, 2:nDofMax, bad);
@@ -809,13 +794,13 @@ classdef DGDiscretization < HyperbolicDiscretization
                     case 'adjust'
                         % Reduce to dG(1) and adjust slope
                         
-                        meanOutside = state.s(:,1) > 1 | state.s(:,1) < 0;
-                
-                        ix = disc.getDofIx(state, 1, meanOutside);
-                        sdof(ix,:) = min(max(sdof(ix,:), 0), 1);
-                        sdof(ix,:) = sdof(ix,:)./sum(sdof(ix,:),2);
-                        state.degree(meanOutside) = 0;
-                        bad(meanOutside) = false;
+%                         meanOutside = state.s(:,1) > 1 | state.s(:,1) < 0;
+%                 
+%                         ix = disc.getDofIx(state, 1, meanOutside);
+%                         sdof(ix,:) = min(max(sdof(ix,:), 0), 1);
+%                         sdof(ix,:) = sdof(ix,:)./sum(sdof(ix,:),2);
+%                         state.degree(meanOutside) = 0;
+%                         bad(meanOutside) = false;
 
                         for dNo = 1:G.griddim
                     
