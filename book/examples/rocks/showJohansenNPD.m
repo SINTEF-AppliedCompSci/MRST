@@ -40,29 +40,38 @@ plotCellData(G, p, find(p>0.1), args{:})
 % only plot the x-component, Kx, using a logarithmic color scale.
 clf
 K = load([sector '_Permeability.txt'])'; K=K(G.cells.indexMap);
-h = plotCellData(G, log10(K*milli*darcy), args{:});
+plotCellData(G, log10(K), args{:});
 view(-45,15), axis tight off, zoom(1.15)
 
-% Manipulate the colorbar to get the ticks we want
-hc = colorbar;
-cs = [0.01 0.1 1 10 100 1000];
-caxis(log10([min(cs) max(cs)]*milli*darcy));
-set(hc, 'XTick', 0.5, 'XTickLabel','mD', ...
-   'YTick', log10(cs*milli*darcy), 'YTickLabel', num2str(cs'));
+[hc,hh] = colorbarHist(K, [0.001 1000], 'East', 100, true);
+p = get(hh,'Position'); set(hh,'Position',p.*[1 1 1.5 1]);
+set(get(hh,'Children'),'FaceColor',[.6 .6 .6]);
+set(hc,'Fontsize',16,'FontWeight','bold', 'XTick', 0.5, 'XTickLabel','mD', ...
+    'YTickLabel', {10.^(-3:3)});
 
 %%
 % To show more of the permeability structure, we strip away the shale
 % layers, starting with the layers with lowest permeability on top.
-delete(h), view(-20,35)
+clf,
 plotGrid(G,'FaceColor','none',args{:});
-h = plotCellData(G, log10(K*milli*darcy), find(K>0.01), args{:});
+plotCellData(G, log10(K), find(K>0.01), args{:});
+view(-60,40), axis tight off, zoom(1.15)
+
+[hc,hh] = colorbarHist(K(K>0.01), [0.01 1000], 'East', 100, true);
+set(get(hh,'Children'),'FaceColor',[.6 .6 .6]);
+set(hc,'Fontsize',16,'FontWeight','bold', 'XTick', 0.5, 'XTickLabel','mD', ...
+    'YTickLabel', {10.^(-2:3)});
 
 %%
 % Then we also take away the lower shale layer and plot the permeability
 % using a linear color scale.
-delete(h);
+clf; plotGrid(G,'FaceColor','none',args{:});
 h = plotCellData(G, K, find(K>0.1), args{:});
-caxis auto; colorbar, view(-130,60)
+view(-60,40), axis tight off, zoom(1.15)
+
+[hc,hh] = colorbarHist(K(K>0.1), [0 900], 'East', 100, false);
+set(get(hh,'Children'),'FaceColor',[.6 .6 .6]);
+set(hc,'Fontsize',16,'FontWeight','bold', 'XTick', 0.5, 'XTickLabel','mD');
 
 %{
 Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
