@@ -131,15 +131,15 @@ pertCaprock.rock_all = rock;
 
 
 % Analyze results:
-% Here, we specify select years for plotting plume outlines and error bars
+% Here, we specify certain years for plotting plume outlines and error bars
 % in the trapping inventory.
 postProcess( base, pertCaprock, 'year', ...
     [30, 400, 800, 1200, 1600, 2000, 2400, 2800, 3000] );
 
 
-% Plot histogram of structural trapping capacities using 100 realizations
-% (Note that plot shown in Figure 7 of paper was generated using 1000
-% realizations)
+% Now we create 100 realizations of the geomodel and plot a histogram of
+% the cooresponding structural trapping capacities. Note that plot shown in
+% Figure 7 of paper was generated using 1000 realizations.
 pertCaprock.tot_strap = zeros(1,num_real_strap);
 for r=1:num_real_strap
     
@@ -204,7 +204,7 @@ pertPerm.Gt_all = Gt;
 
 
 % Analyze results:
-% Here, we specify select years for plotting plume outlines and error bars
+% Here, we specify certain years for plotting plume outlines and error bars
 % in the trapping inventory.
 postProcess( base, pertPerm, 'year', ...
     [30, 400, 800, 1200, 1600, 2000, 2400, 2800, 3000] );
@@ -251,15 +251,15 @@ pertPoro.Gt_all = Gt;
 
 
 % Analyze results:
-% Here, we specify select years for plotting plume outlines and error bars
+% Here, we specify certain years for plotting plume outlines and error bars
 % in the trapping inventory.
 postProcess( base, pertPoro, 'year', ...
     [30, 400, 800, 1200, 1600, 2000, 2400, 2800, 3000] );
 
 
-% Plot histogram of structural trapping capacities using 100 realizations
-% (Note that plot shown in Figure 7 of paper was generated using 1000
-% realizations)
+% Now we create 100 realizations of the geomodel and plot a histogram of
+% the cooresponding structural trapping capacities. Note that plot shown in
+% Figure 7 of paper was generated using 1000 realizations.
 pertPoro.tot_strap = zeros(1,num_real_strap);
 for r=1:num_real_strap
     

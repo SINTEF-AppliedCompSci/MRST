@@ -9,12 +9,14 @@ polygon_funcs_available = true;
 if ~exist('Matlab_Polygons_intersection','dir') && ...
         ~exist('PolygonClipper','dir')
     polygon_funcs_available = false;
-    fprintf('\n Skipping calculation of Sørensen-Dice coefficient\n')
-    fprintf(' due to unavailable polygon functions.\n\n')
-    fprintf(' Did you download the following directories and\n')
-    fprintf(' add them to your path?\n\n')
+    fprintf('\n Post-processing of results will skip calculation of\n')
+    fprintf(' Sørensen-Dice coefficient due to missing polygon functions.\n\n')
+    fprintf(' To avoid this message, ensure you have downloaded the\n')
+    fprintf(' following files and added them to your path:\n\n')
     fprintf(' https://se.mathworks.com/matlabcentral/fileexchange/8818-polygon-clipper\n')
     fprintf(' https://se.mathworks.com/matlabcentral/fileexchange/18173-polygon_intersection?s_tid=FX_rc2_behav\n\n')
+    fprintf(' [Press any key to continue]\n')
+    pause
 end
 
 
@@ -151,8 +153,8 @@ if ~isempty(Ma_all)
     %   get SDC from plume outlines (needs to be done before adding grid
     %   outline and base plume outline again)
     % -------------------------------------------------------------
-    % loop thru and compute Sørensen-Dice coefficient of each obtained
-    % contour wrt base contour:
+    % loop thru and compute Sørensen-Dice coefficient (SDC) of each
+    % obtained contour wrt base contour:
     sdc_realiz = [];
     if polygon_funcs_available
         fprintf(' Calculating Sørensen-Dice coefficient...')
