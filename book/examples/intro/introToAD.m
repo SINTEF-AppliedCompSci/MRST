@@ -10,7 +10,7 @@ disp([1 -y -x]*3*exp(-x*y))
 
 disp('Automatic differentiation:')
 [x,y] = initVariablesADI(1,2);
-z = 3*exp(-x.*y)
+z = 3*exp(-x*y)
 
 
 %% Demonstrate the importance of vectorization
@@ -29,17 +29,29 @@ for i = 1:m
    fprintf('%7d: %6.5f sec, %6.5f sec, %6.5f sec, %6.5f sec\n', ...
       n(i), t1(i), t2(i), t3(i), t4(i))
 end
-loglog(n,t1,'-*',n,t2,'-+',n,t3,'-o',n,t4,'-s');
-legend('analytical','vectorized','for+mtimes','for+times','Location','NorthWest');
+%%
+clf, set(gca,'FontSize',14);
+loglog(n,t1,'-*',n,t2,'-+',n,t3,'-o',n,t4,'-s','LineWidth',2);
+legend('exact formulat','vectorized ADI','for loop and mtimes','for loop and times','Location','NorthWest');
 
 
 %% Use automatic differentation to assmble a linear system
+% First we just evaluate the residual equation as a matrix vector product
+x = initVariablesADI(zeros(3,1));
+A = [3,  2, -4; 1, -4,  2; -2,- 2.  4];
+eq = A*x + [5; 1; -6];
+u  = -eq.jac{1}\eq.val
+
+%%
+% Secondly, we can evaluate the equations one by one and then use ADI to
+% assemble the resulting matrix
 x = initVariablesADI(zeros(3,1));
 eq1 = [ 3,  2, -4]*x + 5;
 eq2 = [ 1, -4,  2]*x + 1;
 eq3 = [-2,- 2.  4]*x - 6;
 eq = cat(eq1,eq2,eq3);
 u  = -eq.jac{1}\eq.val
+
 
 %% Use AD to solve the nonlinear Rosenbrock problem
 % Problem: minimize f(x,y) = (a-x)^2 + b(y-x^2)^2 = 0
