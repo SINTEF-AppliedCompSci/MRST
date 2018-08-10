@@ -6,17 +6,22 @@ function postProcess( base, perturbed, varargin )
 % Mathwork's file exchanges. If not downloaded and available on path, plots
 % will be skipped.
 polygon_funcs_available = true;
-if ~exist('Matlab_Polygons_intersection','dir') && ...
-        ~exist('PolygonClipper','dir')
+persistent user_warned_once; % if empty, warning can appear, otherwise muted
+if ~isdir('Matlab_Polygons_intersection') && ...
+        ~isdir('PolygonClipper')
     polygon_funcs_available = false;
-    fprintf('\n Post-processing of results will skip calculation of\n')
-    fprintf(' Sørensen-Dice coefficient due to missing polygon functions.\n\n')
-    fprintf(' To avoid this message, ensure you have downloaded the\n')
-    fprintf(' following files and added them to your path:\n\n')
-    fprintf(' https://se.mathworks.com/matlabcentral/fileexchange/8818-polygon-clipper\n')
-    fprintf(' https://se.mathworks.com/matlabcentral/fileexchange/18173-polygon_intersection?s_tid=FX_rc2_behav\n\n')
-    fprintf(' [Press any key to continue]\n')
-    pause
+    if isempty(user_warned_once)
+        user_warned_once = 1;
+        fprintf('\n Post-processing of results will skip calculation of\n')
+        fprintf(' Sørensen-Dice coefficient due to missing polygon functions.\n\n')
+        fprintf(' To avoid this message, ensure you have downloaded the\n')
+        fprintf(' following files and added them to your path:\n\n')
+        fprintf(' www.mathworks.com/matlabcentral/fileexchange/8818-polygon-clipper\n')
+        fprintf(' www.mathworks.com/matlabcentral/fileexchange/18173-polygon_intersection?s_tid=FX_rc2_behav\n\n')
+        fprintf(' This message will not be displayed again.\n')
+        fprintf(' Continuing after pause short...\n')
+        pause(5)
+    end
 end
 
 
