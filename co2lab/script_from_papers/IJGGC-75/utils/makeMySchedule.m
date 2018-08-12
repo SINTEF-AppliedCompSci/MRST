@@ -31,8 +31,7 @@ function schedule = makeMySchedule(Gt, rock, fluid)
                 'Type',     'rate', ...
                 'Val',      1, ... % (m3/s)
                 'comp_i',   [0,1], ...
-                'Radius',   0.3, ...
-                'refDepth', Gt.parent.cells.centroids(winx,3) );
+                'Radius',   0.3);
     W = convertwellsVE(W, Gt.parent, Gt, rock, 'ip_tpf');
     W_shut = W;
     W_shut.val = sqrt(eps);
