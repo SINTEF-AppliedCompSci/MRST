@@ -235,6 +235,11 @@ plotFaces(CG,1:CG.faces.num,'EdgeColor','k','FaceColor','none','LineWidth',2);
 s=states{6}.s(:,1); plotCellData(G,s,s>1e-2); caxis([0 1]);
 colormap(flipud(winter)), view(-53,46); axis tight off
 
+%% Launch flow diagnostics
+interactiveDiagnostics(G, rock, W, 'state', states{end}, 'computeFlux', false);
+set(gcf,'position',[440 317 866 480]); axis normal
+view(-85,73)
+
 %% Create an upscaled, coarser model
 % The fine scale model has 16 350 cells. If we want a smaller model we can
 % easily define an upscaled model. We start by setting up a straightforward
