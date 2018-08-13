@@ -151,7 +151,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-if ~isempty(W) && ~isfield(W, 'WI'),
+if ~isempty(W) && ~isfield(W, 'WI')
    error(msgid('CallingSequence:Changed'), ...
         ['The calling sequence for function ''addWell'' has changed\n', ...
          'Please use\n\tW = addWell(W, G, rock, cellInx, ...)\n', ...
@@ -294,7 +294,9 @@ if norm(direction(1:dims)) > 0
    direction = direction ./ norm(direction(1:dims));
 else
    direction      = zeros(1, dims);
-   direction(end) = 1;
+   if dims > 2
+      direction(end) = 1;
+   end
 end
 Z = G.cells.centroids(cells, :) * direction(1:dims).';
 dZ = Z - refDepth;
