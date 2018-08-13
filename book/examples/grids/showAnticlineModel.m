@@ -10,7 +10,7 @@ mrstModule add coarsegrid diagnostics incomp spe10
 [nx,ny,nz] = deal(60,60,15);
 G = cartGrid([nx ny nz], [nx ny nz].*[20 10 2]*ft);
 
-rock = SPE10_rock(1:nx,1:ny,nz:-1:1);
+rock = getSPE10rock(1:nx,1:ny,nz:-1:1);
 rock.perm = convertFrom(rock.perm, milli*darcy);
 rock.poro(rock.poro==0) = 1e-5;
 
