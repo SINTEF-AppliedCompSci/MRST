@@ -254,9 +254,9 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
 
     problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
     
-    if 1
-        state.problem = problem;
-    end
+%     if 1
+%         state.problem = problem;
+%     end
     
     if model.extraStateOutput
     %     state = model.storebfactors(state, bW, bO, []);

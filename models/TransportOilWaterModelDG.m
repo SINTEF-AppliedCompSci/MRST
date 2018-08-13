@@ -176,7 +176,7 @@ classdef TransportOilWaterModelDG < TransportOilWaterModel
 
 %                 state = model.disc.getCellSaturation(state);
 
-            elseif 0
+            elseif 1
                 
                 bad = any(state.s < 0 | state.s > 1,2);
     %                         sdof(ix,:) = min(max(sdof(ix,:), 0), 1);
