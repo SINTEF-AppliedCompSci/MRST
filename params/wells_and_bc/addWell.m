@@ -260,14 +260,15 @@ end
 
 % Add well to well structure. ---------------------------------------------
 %
-W  = [W; struct('cells'    , cellInx(:),           ...
+W  = [W; struct('cells'    , reshape(cellInx, [], 1), ...
                 'type'     , opt.Type,             ...
                 'val'      , opt.Val,              ...
                 'r'        , opt.Radius,           ...
                 'dir'      , opt.Dir,              ...
                 'rR'       , rR,                   ...
                 'WI'       , WI,                   ...
-                'dZ'       , getDeltaZ(G, cellInx(:), opt.refDepth), ...
+                'dZ'       , getDeltaZ(G, reshape(cellInx, [], 1), ...
+                                       opt.refDepth, opt.Name), ...
                 'name'     , opt.Name,             ...
                 'compi'    , opt.Comp_i,           ...
                 'refDepth' , opt.refDepth,         ...
@@ -287,7 +288,7 @@ assert (numel(W(end).dir) == numel(W(end).cells));
 % Private helper functions follow
 %--------------------------------------------------------------------------
 
-function dZ = getDeltaZ(G, cells, refDepth)
+function dZ = getDeltaZ(G, cells, refDepth, wellName)
 direction = gravity();
 dims      = G.griddim;
 if norm(direction(1:dims)) > 0
@@ -301,7 +302,9 @@ end
 Z = G.cells.centroids(cells, :) * direction(1:dims).';
 dZ = Z - refDepth;
 if any(dZ < 0)
-    warning('Negative distance between perforation and reference depth.')
+    warning('RefDepth:BelowTopConnection', ...
+           ['Reference depth for well BHP in well ''%s'' is set ', ...
+            'below well''s top-most reservoir connection'], wellName);
 end
 if isfield(G, 'nodes')
     % Grid with nodes
@@ -315,13 +318,16 @@ else
 end
 
 if max(dZ) > delta*direction(1:dims).'
-    msg = 'Pressure drop from refDepth to perforation exceeds depth of model.';
+    msg = ['Pressure drop distance from BHP reference depth to ', ...
+           'selected perforation exceeds total thickness of model ', ...
+           'in well ''%s''.'];
     if refDepth == 0
-        msg = [msg, ' refDepth is defaulted to zero. Consider setting a different value.'];
+        msg = [msg, ' BHP reference depth is defaulted to zero. ', ...
+               'Consider setting a different value.'];
     else
         msg = [msg, ' Please check refDepth value.'];
     end
-    warning(msg)
+    warning('RefDepth:PDropExceedsThickness', msg, wellName)
 end
 
 %--------------------------------------------------------------------------
@@ -361,5 +367,3 @@ ci = welldir == 'z';
 re(ci) = sqrt(dy(ci) .* dx(ci) / pi);
 
 rr = sqrt( re .* radius);
-
-
