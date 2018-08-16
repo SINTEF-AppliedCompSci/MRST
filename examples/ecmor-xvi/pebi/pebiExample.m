@@ -3,52 +3,65 @@ mrstVerbose on
 
 %%
 
-xmax = [500, 1000, 200]*meter;
-% n = [10, 20, 5];
-n = [15, 30, 7];
+if 1
 
-xx = cell(3,1);
-d = 5*meter;
-for dNo = 1:3
-    xx{dNo} = linspace(d,xmax(dNo)-d,n(dNo));
+%     xmax = [500, 1000, 500]*meter;
+%     xmax = [500, 1000, 500]/2*meter;
+    xmax = [100, 300, 100]*meter;
+%     n = [5, 10, 5];
+    n = [10, 20, 10];
+
+    xx = cell(3,1);
+    d = 5*meter;
+    for dNo = 1:3
+        xx{dNo} = linspace(d,xmax(dNo)-d,n(dNo));
+    end
+
+    [x,y,z] = ndgrid(xx{:});
+    x = [x(:), y(:), z(:)];
+    npts = size(x,1);
+    
+    rng(1);
+    d = xmax./n*0.2;
+    x = x + randn(npts,3).*d;
+
+    bnd = [0      , 0      , 0      ;
+           xmax(1), 0      , 0      ;
+           xmax(1), xmax(2), 0      ;
+           0      , xmax(2), 0      ;
+           0      , 0      , xmax(3);
+           xmax(1), 0      , xmax(3);
+           xmax(1), xmax(2), xmax(3);
+           0      , xmax(2), xmax(3)];
+    bnd = delaunayTriangulation(bnd);
+    G = clippedPebi3D(x, bnd);
+
+    G = computeVEMGeometry(G);
+    G = computeCellDimensions(G);
+
+else
+    
+    load('grid.mat')
+    
 end
-
-[x,y,z] = ndgrid(xx{:});
-x = [x(:), y(:), z(:)];
-npts = size(x,1);
-
-d = xmax./n*0.1;
-x = x + randn(npts,3).*d;
-
-bnd = [0      , 0      , 0      ;
-       xmax(1), 0      , 0      ;
-       xmax(1), xmax(2), 0      ;
-       0      , xmax(2), 0      ;
-       0      , 0      , xmax(3);
-       xmax(1), 0      , xmax(3);
-       xmax(1), xmax(2), xmax(3);
-       0      , xmax(2), xmax(3)];
-bnd = delaunayTriangulation(bnd);
-G = clippedPebi3D(x, bnd);
-
-G = computeVEMGeometry(G);
-G = computeCellDimensions(G);
-
 %% 
 
 dy = 115;
 dx = 10;
 rock  = makeRock(G, 100*milli*darcy, 0.4);
-[~, m, ~] = setupSPE10_AD('layers', 1:20);
 
-perm = reshape(m.rock.perm(:,1), [m.G.cartDims(1:2), 20]);
-% perm = perm((1:2*n(1)) + dx,(1:2*n(2)) + dy,:);
-rock.perm = sampleFromBox(G, perm);
+if 1
+    [~, m, ~] = setupSPE10_AD('layers', 1:20);
+    perm = reshape(m.rock.perm(:,1), [m.G.cartDims(1:2), 20]);
+    % perm = perm((1:2*n(1)) + dx,(1:2*n(2)) + dy,:);
+    rock.perm = sampleFromBox(G, perm);
+%     rock.perm = repmat(rock.perm, 1, 3);
+%     rock.perm(:,1) = rock.perm(:,1)*10;
 
-poro = reshape(m.rock.poro(:,1), [m.G.cartDims(1:2), 20]);
-% poro = poro((1:2*n(1)) + dx,(1:2*n(2)) + dy,:);
-rock.poro = sampleFromBox(G, poro);
-
+    poro = reshape(m.rock.poro(:,1), [m.G.cartDims(1:2), 20]);
+    % poro = poro((1:2*n(1)) + dx,(1:2*n(2)) + dy,:);
+    rock.poro = sampleFromBox(G, poro);
+end
 %%
 
 fluid = initSimpleADIFluid('phases', 'WO', ...
@@ -59,10 +72,10 @@ fluid = initSimpleADIFluid('phases', 'WO', ...
 time = 4*year;
 xw = [xmax(1)/2, 0, xmax(3)/2; xmax(1)/2, xmax(2), xmax(3)/2];
 isInj = [true false];
-rate = 0.7*sum(poreVolume(G, rock))/time;
+rate = 1.5*sum(poreVolume(G, rock))/time;
 bhp = 50*barsa;
-type = {'rate', 'bhp'};
-val = [rate, bhp];
+type = {'bhp', 'bhp'};
+val = [800*barsa, bhp];
 
 W = [];
 for wNo = 1:size(xw,1)
@@ -73,7 +86,7 @@ for wNo = 1:size(xw,1)
     
 end
 
-dt = 10*day;
+dt = 60*day;
 dtvec = rampupTimesteps(time, dt, 0);
 schedule = simpleSchedule(dtvec, 'W', W);
 
@@ -99,23 +112,34 @@ getRepHandler = @(name) ResultHandler('dataDirectory', dataDir, ...
                                    'dataPrefix'   , 'rep', ...
                                    'cleardir'     , false  );
                                
-    %%
+%%
 
 modelFI = TwoPhaseOilWaterModel(G, rock, fluid);
 modelFV = getSequentialModelFromFI(modelFI);
+sW     = 0.0;
+state0 = initResSol(G, 100*barsa, [sW, 1-sW]);
+
+%%
+
+[wsFV, statesFV, repFV] = simulateScheduleAD(state0, modelFV, schedule);
+
+%%
+
+
 modelDG = modelFV;
 [modelDG.transportModel.extraStateOutput, ...
  modelDG.pressureModel.extraStateOutput] = deal(true);
 
 [jt, ot, mt] = deal(Inf);
-ot = 1e-3;
+ot = 1e-1;
+% jt = 0.3;
+% ot = 0;
 
-sW     = 0.0;
-state0 = initResSol(G, 100*barsa, [sW, 1-sW]);
 
 degree = [0,1];
-[wsDG, statesDG, repDG, wsDGReorder, statesDGReorder, repDGReorder] = deal(cell(numel(degree),1));
-for dNo = 1:numel(degree)
+% [wsDG, statesDG, repDG, wsDGReorder, statesDGReorder, repDGReorder] = deal(cell(numel(degree),1));
+runIx = 2;
+for dNo = runIx
     
     disc   = DGDiscretization(modelDG.transportModel, G.griddim, ...
                               'degree'             , degree(dNo), ...
@@ -129,26 +153,29 @@ for dNo = 1:numel(degree)
                                 'nonlinearTolerance', 1e-3, ...
                                 'dsMaxAbs'          , 0.1);    
     state0 = assignDofFromState(modelDG.transportModel.disc, state0);
-
+% 
     oh = getOutHandler(['dg',num2str(degree(dNo))]);
     rh = getRepHandler(['dg',num2str(degree(dNo))]);
-    [wsDG{dNo}, statesDG{dNo}, repDG{dNo}] ...
-        = simulateScheduleAD(state0, modelDG, schedule, ...
-                             'OutputHandler', oh, ...
-                             'ReportHandler', rh);
-    
+%     [oh, rh] = deal([]);
+%     [wsDG{dNo}, statesDG{dNo}, repDG{dNo}] ...
+%         = simulateScheduleAD(state0, modelDG, schedule, ...
+%                              'OutputHandler', oh, ...
+%                              'ReportHandler', rh);
+%     
     modelDGReorder = modelDG;
     modelDGReorder.transportModel ...
         = ReorderingModelDG_ghost(modelDGReorder.transportModel, ...
             'plotProgress'      , false, ...
-            'chunkSize'         , 1    , ...
+            'plotAfterTimestep' , true , ...
+            'chunkSize'         , 300  , ...
             'nonlinearTolerance', 1e-3 );
         
     modelDGReorder.transportModel.parent.extraStateOutput = true;
     modelDGReorder.transportModel.parent.nonlinearTolerance = 1e-3;
     
-    oh = getOutHandler(['dg',num2str(degree(dNo)), '-reorder']);
-    rh = getRepHandler(['dg',num2str(degree(dNo)), '-reorder']);
+    oh = getOutHandler(['dg',num2str(degree(dNo)), '-reorder-2']);
+    rh = getRepHandler(['dg',num2str(degree(dNo)), '-reorder-2']);
+    [oh, rh] = deal([]);
     [wsDGReorder{dNo}, statesDGReorder{dNo}, repDGReorder{dNo}] ...
         = simulateScheduleAD(state0, modelDGReorder, schedule, ...
                              'OutputHandler', oh, ...
@@ -273,4 +300,15 @@ end
 
 plotWellSols({wsDG{:}, wsDGReorder{:}});
 % plotWellSols(wsDG);
+
+%%
+figure; hold on
+colors = jet(G.cells.num);
+for cNo = 1:15:G.cells.num
+    s = cellfun(@(x) x.s(cNo, 1), statesDG{1});
+    s2 = cellfun(@(x) x.s(cNo, 1), statesDG{2});
+    
+    plot(s, '--', 'color', colors(cNo, :));
+    plot(s2, '-', 'color', colors(cNo, :));
+end
 

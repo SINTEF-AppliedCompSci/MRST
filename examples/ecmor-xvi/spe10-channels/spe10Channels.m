@@ -14,7 +14,7 @@ close all
 
 time = 4*year;
 rate = 0.2*sum(poreVolume(G, rock))/time;
-bhp = 50*barsa;
+bhp = 275*barsa;
 
 W = [];
 W = verticalWell(W, G, rock, 31, 1, [], ...
@@ -84,9 +84,11 @@ rhWENO = getRepHandler('weno');
 ot = 1e-3;
 
 degree = [0,1];
+% dsMaxAbs = 0.05;
+dsMaxAbs = 0.1;
 [wsDG, statesDG, repDG, wsDGReorder, statesDGReorder, repDGReorder] = deal(cell(numel(degree),1));
 
-runIx = 2;
+runIx = 1:2;
 for dNo = runIx
     
     disc   = DGDiscretization(modelDG.transportModel, G.griddim, ...
@@ -99,21 +101,22 @@ for dNo = runIx
     modelDG.transportModel = TransportOilWaterModelDG(G, rock, fluid, ...
                                 'disc'              , disc, ...
                                 'nonlinearTolerance', 1e-3, ...
-                                'dsMaxAbs'          , 0.1);
+                                'dsMaxAbs'          , dsMaxAbs);
     state0 = assignDofFromState(modelDG.transportModel.disc, state0);
     
     ohDG = getOutHandler(['dg', num2str(degree(dNo))]);
     rhDG = getRepHandler(['dg', num2str(degree(dNo))]);
-    [wsDG{dNo}, statesDG{dNo}, repDG{dNo}] ...
-        = simulateScheduleAD(state0, modelDG, schedule, ...
-                             'OutputHandler', ohDG, ...
-                             'Reporthandler', rhDG);
+%     [wsDG{dNo}, statesDG{dNo}, repDG{dNo}] ...
+%         = simulateScheduleAD(state0, modelDG, schedule, ...
+%                              'OutputHandler', ohDG, ...
+%                              'Reporthandler', rhDG);
                          
     modelDGReorder = modelDG;
     modelDGReorder.transportModel ...
         = ReorderingModelDG_ghost(modelDGReorder.transportModel, ...
                                   'plotProgress'      , false, ...
-                                  'chunkSize'         , 1    , ...
+                                  'plotAfterTimestep' , true , ...
+                                  'chunkSize'         , 1000 , ...
                                   'nonlinearTolerance', 1e-3 );
     modelDGReorder.transportModel.parent.nonlinearTolerance = 1e-3;
     modelDGReorder.transportModel.parent.extraStateOutput = true;
@@ -124,7 +127,7 @@ for dNo = runIx
         = simulateScheduleAD(state0, modelDGReorder, schedule, ...
                              'OutputHandler', ohDG, ...
                              'Reporthandler', rhDG);
-    
+%     
 end
 
 %%
@@ -240,6 +243,6 @@ end
 % end
 
 
-plotWellSols({wsFV, wsWENO});
+plotWellSols({wsFV, wsDG{2}});
 % plotWellSols(wsDG);
 
