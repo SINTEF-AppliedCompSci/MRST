@@ -56,7 +56,8 @@ wc = findEnclosingCell( Gt, [pt1; pt2; pt3; pt4; pt5; pt6; pt7] );
 % faults as conducting, semi-sealing, or sealing). Also, 10 different
 % injection rates applied to the wells are considered.
 
-myMainFolder = 'simFaults_Sto'; % for saving results of 3 transMult cases
+% for saving results of 3 transMult cases
+myMainFolder = fullfile(mrstOutputDirectory, 'simFaults_Sto'); 
 
 transMults = [1 0.01 0]; % transmissibility multipliers for fault-faces
 % 0     - sealing
@@ -248,15 +249,17 @@ for f=1:numel(folders)
             
             % compare max overP reached vs rates
             figure(hh), hold on
-            if strcmpi(folder,'simFaults_Sto/transMult0')
+            [~, name, exten] = fileparts(folder);
+            fname = [name,exten];
+            if strcmpi(fname,'transMult0')
                 h1 = plot(inj_rate * 760/1e9*(365*24*60*60), ...
                     convertTo(maxMaxOverP,barsa), 'xk');
                 str = 'Sealing case';
-            elseif strcmpi(folder,'simFaults_Sto/transMult0.01')
+            elseif strcmpi(fname,'transMult0.01')
                 h2 = plot(inj_rate * 760/1e9*(365*24*60*60), ...
                     convertTo(maxMaxOverP,barsa), 'or');
                 str = 'Semi-sealing case';
-            elseif strcmpi(folder,'simFaults_Sto/transMult1')
+            elseif strcmpi(fname,'transMult1')
                 h3 = plot(inj_rate * 760/1e9*(365*24*60*60), ...
                     convertTo(maxMaxOverP,barsa), '+b');
                 str = 'Conducting case';
