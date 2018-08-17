@@ -167,7 +167,7 @@ function params = getDefaultsItemParams()
 end
 
 function params = getDefaultsMenuParams()
-    params = struct('margins',            [5 0 0 0], ...  % left, right, bottom, top
+    params = struct('margins',            [5 5 0 0], ...  % left, right, bottom, top
                     'outerMargins',       [0 0 0 0], ...  % left, right, bottom, top 
                     'dummyOuterMargins',  [0 0 0 0], ...  %
                     'vskipMenu',                  1, ...

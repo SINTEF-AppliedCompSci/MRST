@@ -217,8 +217,8 @@ classdef uiItem < handle
         end
         %------------------------------------------------------------------
         function set.BackgroundColor(d, val)
-            %d.panel.BackgroundColor = val;
-            set(d.Children, 'BackgroundColor', val);
+            d.panel.BackgroundColor = val;
+            %set(d.Children, 'BackgroundColor', val);
         end
         function val = get.BackgroundColor(d)
             val = d.getProp('BackgroundColor');
@@ -545,7 +545,8 @@ classdef uiItem < handle
                                     %elseif strcmp(l{m}.Style, 'pushbutton')
                                     %    lineItemWidths(m) = layout.lineHeight;
                                 case 'text'% use extent of text
-                                    rowItemWidths(m) = l{m}.Extent(3);
+                                    %rowItemWidths(m) = 60;
+                                    l{m}.Extent(3);
                                 case 'listbox'
                                     itemHeight(m) = nan;
                                     numLinesUseful(m) = max(numLinesUseful(m), numel(l{m}.String));

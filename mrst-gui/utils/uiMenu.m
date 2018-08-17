@@ -241,6 +241,19 @@ classdef uiMenu < handle
             val = m.panel.FontAngle;
         end
         
+        function set(d, nm, val)
+            if ischar(nm)
+                nm  = {nm};
+                val = {val};
+            end
+            
+            for k = 1:numel(d)
+                for l = 1:numel(nm)
+                    d(k).(nm{l}) = val{l};
+                end
+            end
+        end
+        
         %------------------------------------------------------------------
         function set.collapse(m, val)
             if ~val
@@ -291,77 +304,82 @@ classdef uiMenu < handle
         function destributeItems(d, ~, ~)
             %only destribute items if x-extent has changed and if d is not collapsed
             if ~d.collapse
-            %disp('.')
-            %l = getGuiLayoutDefaults('layout');
-            mrgs  = d.layout.params.margins;
-            omrgs = d.layout.params.outerMargins;
-            isItem = cellfun(@(x)isa(x, 'uiItem'), d.items);
-            vskips = d.layout.params.vskipItem*isItem + ...
-                     d.layout.params.vskipMenu*(~isItem);   
-            %vskip = d.layout.params.vskip;  
-            % only apply vskip below uiitems (not uimenus)
-            %vskip_all = vskip * ones(numel(d.Children), 1);%arrayfun(@(x)isa(x.UserData, 'uiItem'), d.panel.Children);
-            heights = cellfun(@(x)x.Position(4), d.items);
-            d.fullHeight = d.titleHeight + sum(heights) + sum(vskips) + sum(mrgs(3:4)) + 0*sum(omrgs(3:4));
-            %d.fullHeight = d.getFullHeight(vskip_all);
-            %if ~d.collapse
+                %disp('.')
+                %l = getGuiLayoutDefaults('layout');
+                mrgs  = d.layout.params.margins;
+                omrgs = d.layout.params.outerMargins;
+                isItem = cellfun(@(x)isa(x, 'uiItem'), d.items);
+                vskips = d.layout.params.vskipItem*isItem + ...
+                    d.layout.params.vskipMenu*(~isItem);
+                %vskip = d.layout.params.vskip;
+                % only apply vskip below uiitems (not uimenus)
+                %vskip_all = vskip * ones(numel(d.Children), 1);%arrayfun(@(x)isa(x.UserData, 'uiItem'), d.panel.Children);
+                heights = cellfun(@(x)x.Position(4), d.items);
+                d.fullHeight = d.titleHeight + sum(heights) + sum(vskips) + sum(mrgs(3:4)) + 0*sum(omrgs(3:4));
+                %d.fullHeight = d.getFullHeight(vskip_all);
+                %if ~d.collapse
                 dh = d.Position(4) - d.fullHeight;
-            %else
-            %    dh = d.Position(4) - d.titleHeight;
-            %end
-            if (dh ~= 0) || (d.width ~= d.Position(3)) || ...
-                    (d.level > 1 && (d.Position(3) ~= d.Parent.Position(3) - sum(mrgs(1:2))))
-                % switch of SizeChangedFcn while drawing to prevent calling from
-                % items
-                %disp(d.Title)
-                %disp(d.Position)
-            
-                fn = d.panel.SizeChangedFcn;
-                d.panel.SizeChangedFcn = '';
-                
-                d.Position(4) = d.Position(4) - dh;
-                d.width      = d.Position(3);
-                if d.level == 1
-                    d.Position(2) = d.Position(2) + dh;
                 %else
-                    % d.Position(3) = d.width;
+                %    dh = d.Position(4) - d.titleHeight;
+                %end
+                if (dh ~= 0) || (d.width ~= d.Position(3)) || ...
+                    (d.level > 1 && (d.Position(3) ~= d.Parent.Position(3) - sum(mrgs(1:2))))
+                    % switch of SizeChangedFcn while drawing to prevent calling from
+                    % items
+                    %disp(d.Title)
+                    %disp(d.Position)
+                    
+                    fn = d.panel.SizeChangedFcn;
+                    d.panel.SizeChangedFcn = '';
+                    
+                    d.Position(4) = d.Position(4) - dh;
+                    d.width      = d.Position(3);
+                    if d.level == 1
+                        d.Position(2) = d.Position(2) + dh;
+                        %else
+                        % d.Position(3) = d.width;
+                    end
+                    
+                    %c = d.Children;
+                    % last half of children may be dumm panels - dont loop over
+                    % them
+                    psize     = d.Position(3:4);
+                    itemWidth = psize(1)-sum(omrgs(1:2))-sum(mrgs(1:2));
+                    %dm = d.layout.params.dummyMargins(1:2);
+                    %dm = dm.*(dm<0);
+                    cury  = psize(2)-0*omrgs(4)-mrgs(4)-d.titleHeight+0*vskips(1)+1;% + dm(2);
+                    for k = 1:numel(d.items) %numel(d.items):-1:1
+                        % use item Postition, not item.panel
+                        %item = c(k).UserData;
+                        %csize = d.items{k}.Position(3:4);
+                        if k > 1
+                            vskip = vskips(k-1);
+                        else
+                            vskip = 0;
+                        end
+                        cury = cury - heights(k) - vskip;
+                        d.items{k}.Position = [mrgs(1)+1, cury, itemWidth, heights(k)];
+                    end
+                    d.panel.SizeChangedFcn = fn;
+                    %                [c(1).Position; c(2).Position];
                 end
-                
-                %c = d.Children;
-                % last half of children may be dumm panels - dont loop over
-                % them
-                psize     = d.Position(3:4);
-                itemWidth = psize(1)-sum(omrgs(1:2))-sum(mrgs(1:2));
-                %dm = d.layout.params.dummyMargins(1:2);
-                %dm = dm.*(dm<0);
-                cury  = psize(2)-0*omrgs(4)-mrgs(4)-d.titleHeight+vskips(1)+1;% + dm(2);
-                for k = numel(d.items):-1:1
-                    % use item Postition, not item.panel
-                    %item = c(k).UserData;
-                    %csize = d.items{k}.Position(3:4);
-                    cury = cury - heights(k) - vskips(k);
-                    d.items{k}.Position = [mrgs(1)+1, cury, itemWidth, heights(k)];
-                end
-                d.panel.SizeChangedFcn = fn;
-%                [c(1).Position; c(2).Position];
-            end
             end
             % update parent
-            if isprop(d.panel.Parent, 'SizeChangedFcn') && isa(d.panel.Parent.SizeChangedFcn, 'function_handle')
+            if ~(d.level == 1) && isprop(d.panel.Parent, 'SizeChangedFcn') && isa(d.panel.Parent.SizeChangedFcn, 'function_handle')
                 feval(d.panel.Parent.SizeChangedFcn)
             end
             
         end
         
-%         function h = getFullHeight(d, vskip_all)
-%             if numel(d.items) > 0
-%                 heights = cellfun(@(x)x.Position(4), d.items);
-%                 %dm = d.layout.params.dummyMargins;
-%                 h = d.titleHeight + sum(heights) + sum(vskip_all) + sum(d.layout.params.margins(3:4));
-%             else
-%                 h = d.titleHeight;
-%             end
-%         end
+        %         function h = getFullHeight(d, vskip_all)
+        %             if numel(d.items) > 0
+        %                 heights = cellfun(@(x)x.Position(4), d.items);
+        %                 %dm = d.layout.params.dummyMargins;
+        %                 h = d.titleHeight + sum(heights) + sum(vskip_all) + sum(d.layout.params.margins(3:4));
+        %             else
+        %                 h = d.titleHeight;
+        %             end
+        %         end
         
         function val = CurrentPoint(d, ~, ~)
             %val = d.panel.Parent.CurrentPoint - d.panel.Position(1:2);
