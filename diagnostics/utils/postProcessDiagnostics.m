@@ -159,10 +159,23 @@ classdef postProcessDiagnostics < handle
             
             % set different bkcolor of each sub-menu ,select some light
             % colors
-            tt = tatarizeMap;
-            tt = tt(sum(tt,2)>2,:);
+            tt = [251 180 76; 58 152 216; 42 187 155; 252 121 122]./255;
+            tt = [tt; tatarizeMap];
             for k =1:numel(d.Menu.items)
                 d.Menu.items{k}.BackgroundColor = tt(k,:);
+                try
+                    d.Menu.items{k}.titleColor = 'w';
+                catch
+                    d.Menu.items{k}.ForegroundColor = 'w';
+                end
+                for l=1:numel(d.Menu.items{k}.Children)
+                    d.Menu.items{k}.Children(l).BackgroundColor = ...
+                        .4*tt(k,:) + 0.6*[1 1 1];
+                    for m=1:numel(d.Menu.items{k}.Children(l).Children)
+                        d.Menu.items{k}.Children(l).Children(m).BackgroundColor = ...
+                            .2*tt(k,:) + 0.8*[1 1 1];
+                    end
+                end
             end
             
 
