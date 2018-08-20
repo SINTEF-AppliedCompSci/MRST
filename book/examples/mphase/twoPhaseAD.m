@@ -63,7 +63,7 @@ legend('Water density', 'Oil density','Location','best')
 % Plot relative permeability
 subplot(1,2,2);
 plot(s, [krW(s), krO(s)],'LineWidth',2);
-legend('krW', 'krO',2); 
+legend('krW', 'krO','Location','NorthWest'); 
 
 %% Extract grid information
 nf = G.faces.num;                                 % Number of faces
@@ -169,7 +169,7 @@ for n=1:nstep
         % Collect and concatenate all equations (i.e., assemble and
         % linearize system)
         eqs = {oil, water};
-        eq  = cat(eqs{:});
+        eq  = combineEquations(eqs{:});
         
         % Measure condition number
         cnd(i) = condest(eq.jac{1}); i = i+1;                              %#ok<SAGROW>
@@ -186,9 +186,9 @@ for n=1:nstep
         fprintf('  Iteration %3d:  Res = %.4e\n', nit, resNorm);
     end
     % Add line with NaN in cnd variable to signify end of time step
-    cnd(i) = NaN; i=i+1;                                                   %#ok<SAGROW>
+    cnd(i) = NaN; i=i+1;                                                   
     
-    if nit > maxits,
+    if nit > maxits
         error('Newton solves did not converge')
     else % plot
         nits(n) = nit;
