@@ -6,7 +6,7 @@ opt = struct('injectorIx', [], ...
 opt = merge_options(opt, varargin{:});
 
 [pix, iix] = deal(opt.producerIx, opt.injectorIx);
-if ~isempty(pix) && ~isempty(pix)
+if ~isempty(pix) && ~isempty(iix)
     assert(isfield(D, 'ptof') && isfield(D, 'itof'), ...
             'RTD estimation for subset of all wells require input of individual well TOFs (fields itof/ptof)');
 end
@@ -29,14 +29,18 @@ end
 % compute tof as weighted average of well-tofs
 tof = zeros(nsub, 2);
 if isfield(D, 'itof')
-    tof(:,1) = sum(D.itracer(sub, iix).*D.itof(sub, iix) ,2)./c(sub, 1);
+    itof = D.itof(sub,iix);
+    itof(isinf(itof)) = 1e5*year;
+    tof(:,1) = sum(D.itracer(sub, iix).*itof ,2)./c(sub, 1);
 else
     tof(:,1) = D.tof(sub,1);
 end
 if isfield(D, 'ptof')
-    tof(:,2) = sum(D.ptracer(sub, pix).*D.ptof(sub, pix) ,2)./c(sub, 2);
+    ptof = D.ptof(sub,pix);
+    ptof(isinf(ptof))=1e5*year;
+    tof(:,2) = sum(D.ptracer(sub, pix).*ptof ,2)./c(sub, 2);
 else
-    tof(:, 2) = D.tof(:,2);
+    tof(:, 2) = D.tof(sub,2);
 end
 
 % total tof/residence time
@@ -54,7 +58,8 @@ edges = [(0:opt.nbins)*(t_end/opt.nbins), inf];
 % sum fluxes for each bin
 binflux = accumarray(bins, flux);
 % divide by bin-length to get unit flux
-unitbinflux = [0; binflux./diff(edges(:))];
+i = 1:min(numel(binflux)+1,numel(edges));
+unitbinflux = [0; binflux./diff(edges(i)).'];
 
 % normalize so total flux equals allocation
 if opt.match_allocation
@@ -65,5 +70,5 @@ if opt.match_allocation
 end
 
 % ommit last entry (t_end to infinity)
-[t,vals] = deal(edges(1:end-1), unitbinflux(1:end-1));
+[t,vals] = deal(edges(i(1:end-1)), unitbinflux(i(1:end-1)));
 end
