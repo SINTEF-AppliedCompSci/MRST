@@ -525,17 +525,18 @@ classdef postProcessDiagnostics < handle
                     case 1
                         axis(ax, 'off')
                     case 2 % estimate
-                        for k = 1:numel(pIx)
-                            [t, vals(:,k)] = estimateRTD(d.Gs.PORV, d.Data.diagnostics(tsel.ix).D, ...
+                        %for k = 1:numel(pIx)
+                            dist = estimateRTD(d.Gs.PORV, d.Data.diagnostics(tsel.ix).D, ...
                                                     d.Data.diagnostics(tsel.ix).WP, s2.dsel.extendTime*year, ...
-                                                    'injectorIx', iIx, 'producerIx', pIx(k));
-                            plot(ax, t/year, vals, 'LineWidth', 2);
-                        end
+                                                    'injectorIx', iIx, 'producerIx', pIx);
+                            plot(ax, dist.t/year, dist.values, 'LineWidth', 2);
+                        %end
                     case 3 % compute
-                            [t, vals] = computeRTD(d.Data.states{tsel.ix}, d.Gs, d.Gs.PORV, ...
-                                            d.Data.diagnostics(tsel.ix).D, d.Data.states{tsel.ix}.wellSol, ...
+                            dist = computeRTD(d.Data.states{tsel.ix}, d.Gs, d.Gs.PORV, ...
+                                            d.Data.diagnostics(tsel.ix).D, d.Data.diagnostics(tsel.ix).WP, ...
+                                            d.Data.states{tsel.ix}.wellSol, ...
                                             s2.dsel.extendTime*year, 'injectorIx', iIx, 'producerIx', pIx);
-                            plot(ax, t/year, vals{1}, 'LineWidth', 2);
+                            plot(ax, dist.t/year, dist.values, 'LineWidth', 2);
                             
                 end
                 if ix > 1

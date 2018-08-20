@@ -1,4 +1,4 @@
-function [t, vals] = computeRTD(state, G, pv, D, W, t_end, varargin)
+function dist = computeRTD(state, G, pv, D, WP, W, t_end, varargin)
 opt = struct('injectorIx', [], ...
              'producerIx', [], ...
              'nsteps',     50);
@@ -36,6 +36,25 @@ for k = 1:opt.nsteps
 end
 close(h);
 t = (0:opt.nsteps)'*(t_end/opt.nsteps);
+
+% create output struct
+nreg = numel(pix).*numel(iix);
+dist = struct('pairIx', zeros(nreg, 2), 't', zeros(opt.nsteps+1, nreg), ...
+              'volumes', zeros(nreg, 1), 'allocations',  zeros(nreg,1), ...
+              'values', zeros(opt.nsteps+1, nreg) ); 
+ix = 0;          
+for ik = 1:numel(iix)
+    for pk = 1:numel(pix)
+        ix = ix +1;
+        % collect data from WP
+        dist.pairIx(ix,:) = [iix(ik), pix(pk)];
+        ixWP = WP.pairIx(:,1)==iix(ik) & WP.pairIx(:,2) == pix(pk);
+        dist.volumes(ix)      = WP.vols(ixWP);
+        dist.allocations(ix)  = sum(WP.inj(iix(ik)).alloc(:,pix(pk)));
+        dist.t                = repmat(t, [1, nreg]);
+        dist.values(:, ix)    = vals{ik}(:, pk);
+    end
+end
 end
     
 function [A, qi_well, qp_well, tr0, pv] = setupSystemComponents(state, G, pv, W, dt, sub, inj, prod)
