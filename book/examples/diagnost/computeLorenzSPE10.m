@@ -44,15 +44,15 @@ for n=1:85
     % To ensure that we get the correct well index when updating the
     % petrophysical data, we simply regenerate the well objects.
     W = [];
-    for w = 1 : numel(wtype),
+    for w = 1 : numel(wtype)
         W = verticalWell(W, G, rock, wloc(1,w), wloc(2,w), 1, ...
             'Type', wtype{w}, 'Val', wtarget(w), ...
             'Radius', wrad(w), 'Name', wname{w}, ...
-            'InnerProduct', 'ip_tpf');
+            'InnerProduct', 'ip_tpf', 'Comp_i', 1);
     end
     
     % --- Initiate and solve flow problem 
-    rS = initState(G, W, 0);
+    rS = initState(G, W, 0, 0.0);
     T  = computeTrans(G, rock);
     rS = incompTPFA(rS, G, T, fluid, 'wells', W);
     
@@ -88,7 +88,7 @@ fig1=figure('Position',[250 490 750 300]); col = {'b','g'};
 for nstep=1:2
     % Set well conditions
     W = [];
-    for w = 1 : numel(wtype),
+    for w = 1 : numel(wtype)
         W = verticalWell(W, G, rock, nwloc(1,w), nwloc(2,w), 1, ...
             'Type', wtype{w}, 'Val', wtarget(w), ...
             'Radius', wrad(w), 'Name', wname{w}, ...
@@ -134,9 +134,9 @@ for nstep=1:2
         .05 .6 .25 .35; .725 .6 .25 .35];
     for i=1:4
         axes('position', pos(i,:));
-        if nstep==1,
+        if nstep==1
             rad(:,i) = sum(bsxfun(@minus,G.cells.centroids,....
-                G.cells.centroids(W(i).cells,:)).^2,2);
+                G.cells.centroids(W(i).cells,:)).^2,2); %#ok<SAGROW>
         end
         plotCellData(G,rock.poro,rad(:,i)<3500,'EdgeColor','k','EdgeAlpha',.1);
         plotWell(G,W(i),'height',10,'LineWidth',10);
@@ -145,7 +145,7 @@ for nstep=1:2
     end
     
     % Impose manually improved well positions for next pass
-    if minCase,
+    if minCase
         nwloc     = [  1,   53,     1,   59,  30;
                        1,    2,   218,  220, 111];
     else
