@@ -4,16 +4,16 @@ opt = merge_options(opt, varargin{:});
 % assure vector shape
 [t, vals] = deal(t(:), vals(:));
 
-if vals(end) == 0
-    warning('All values of distribution are zero, empty output.')
-    [F,Phi] = deal([]);
-    return
-end
+% if vals(end) == 0
+%     warning('All values of distribution are zero, empty output.')
+%     [F,Phi] = deal([]);
+%     return
+% end
 
 % take mean values of intervals
 t(isnan(t)) = 0;
 vals(isnan(vals)) = 0;
-[mt, mvals] = deal(.5*t(1:end-1)+.5*t(2:end), .5*vals(1:end-1)+.5*vals(2:end));
+[mt, mvals] = deal(t(2:end),vals(2:end));
 
 % integrate to get cum flux
 F = cumsum(diff(t).*mvals);
@@ -33,7 +33,10 @@ else
     Phi = Phi/opt.volume;
 end
 
-% Add point (1,1) if not present
+% Add points (0,0) and (1,1) if not present
+if F(end) ~= 0 || Phi(end) ~= 0
+    [F, Phi] = deal([0; F], [0; Phi]);
+end
 if F(end) ~= 1 || Phi(end) ~= 1
     [F, Phi] = deal([F;1], [Phi;1]);
 end
