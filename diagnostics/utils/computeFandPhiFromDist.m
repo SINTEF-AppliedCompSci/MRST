@@ -13,7 +13,7 @@ opt = merge_options(opt, varargin{:});
 % take mean values of intervals
 t(isnan(t)) = 0;
 vals(isnan(vals)) = 0;
-[mt, mvals] = deal(t(2:end),vals(2:end));
+[mt, mvals] = deal(.5*t(1:end-1)+.5*t(2:end),vals(2:end));
 
 % integrate to get cum flux
 F = cumsum(diff(t).*mvals);
