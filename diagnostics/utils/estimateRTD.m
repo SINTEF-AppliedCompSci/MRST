@@ -18,9 +18,9 @@ if isempty(injectorIx), injectorIx = (1:numel(D.inj))'; end
 nreg = numel(producerIx).*numel(injectorIx);
 
 % create output structure
-dist = struct('pairIx', zeros(nreg, 2), 't', zeros(opt.nbins+1, nreg), ...
+dist = struct('pairIx', zeros(nreg, 2), 't', nan(opt.nbins+1, nreg), ...
               'volumes', zeros(nreg, 1), 'allocations',  zeros(nreg,1), ...
-              'values', zeros(opt.nbins+1, nreg) );              
+              'values', nan(opt.nbins+1, nreg) );              
 
           
 ix = 0;          
@@ -65,13 +65,13 @@ for ik = 1:numel(injectorIx)
             flux = pvs(order)./ts;
             
             % bin edges
-            edges = [(0:opt.nbins)*(t_end/opt.nbins), inf];
+            edges = [(0:opt.nbins).'*(t_end/opt.nbins); inf];
             [~, ~, bins] = histcounts(ts, edges);
             % sum fluxes for each bin
             binflux = accumarray(bins, flux);
             % divide by bin-length to get unit flux
             i = 1:min(numel(binflux)+1,numel(edges));
-            unitbinflux = [0; binflux./diff(edges(i)).'];
+            unitbinflux = [0; binflux./diff(edges(i))];
             
             % normalize so total flux equals allocation
             if opt.match_allocation
@@ -81,8 +81,9 @@ for ik = 1:numel(injectorIx)
             end
             
             % ommit last entry (t_end to infinity)
-            dist.t(:, ix)      = edges(i(1:end-1));
-            dist.values(:, ix) = unitbinflux(i(1:end-1));
+            i = i(1:end-1);
+            dist.t(i, ix)      = edges(i);
+            dist.values(i, ix) = unitbinflux(i);
         end
     end
 end
