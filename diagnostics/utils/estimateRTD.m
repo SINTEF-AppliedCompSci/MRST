@@ -1,4 +1,4 @@
-function [dist] = estimateRTD(pv, D, WP, t_end, varargin)
+function [dist] = estimateRTD(pv, D, WP, varargin)
 opt = struct('injectorIx', [], ...
              'producerIx', [], ...
              'nbins',      25, ...
@@ -41,49 +41,48 @@ for ik = 1:numel(injectorIx)
         sub  = cp > 1e-5;
         nsub = nnz(sub);
         
-        if nsub > 0
-            % compute tof as weighted average of well-tofs
-            tof = zeros(nsub, 2);
-            if isfield(D, 'itof')
-                tof(:,1) = D.itof(sub, iix);
-            else
-                tof(:,1) = D.tof(sub,1);
-            end
-            if isfield(D, 'ptof')
-                tof(:,2) = D.ptof(sub,pix);
-            else
-                tof(:, 2) = D.tof(sub,2);
-            end
-            
-            % total tof/residence time
-            ttof  = sum(tof, 2);
-            % relevant pore volumes
-            pvs   = pv(sub).*cp(sub);
-            % sort according to ttof
-            [ts, order] = sort(ttof);
-            % approximate flux through each cell
-            flux = pvs(order)./ts;
-            
-            % bin edges
-            edges = [(0:opt.nbins).'*(t_end/opt.nbins); inf];
-            [~, ~, bins] = histcounts(ts, edges);
-            % sum fluxes for each bin
-            binflux = accumarray(bins, flux);
-            % divide by bin-length to get unit flux
-            i = 1:min(numel(binflux)+1,numel(edges));
-            unitbinflux = [0; binflux./diff(edges(i))];
-            
-            % normalize so total flux equals allocation
-            if opt.match_allocation
-                fac   = sum(binflux)/dist.allocations(ix);
-                unitbinflux = unitbinflux*fac;
-                dispif(mrstVerbose, 'Distribution scaled by %3.2f to match allocation.\n', fac);
-            end
-            
-            % ommit last entry (t_end to infinity)
-            i = i(1:end-1);
-            dist.t(i, ix)      = edges(i);
-            dist.values(i, ix) = unitbinflux(i);
+        if nsub==0, continue; end
+        
+        % compute tof as weighted average of well-tofs
+        tof = zeros(nsub, 2);
+        if isfield(D, 'itof')
+            tof(:,1) = D.itof(sub, iix);
+        else
+            tof(:,1) = D.tof(sub,1);
         end
+        if isfield(D, 'ptof')
+            tof(:,2) = D.ptof(sub,pix);
+        else
+            tof(:, 2) = D.tof(sub,2);
+        end
+        
+        % total tof/residence time
+        ttof  = sum(tof, 2);
+        % relevant pore volumes
+        pvs   = pv(sub).*cp(sub);
+        % sort according to ttof
+        [ts, order] = sort(ttof);
+        % approximate flux through each cell
+        flux = pvs(order)./ts;
+        
+        % bin edges
+        [~,edges, bins] = histcounts(log10(ts), opt.nbins);
+        edges = 10.^edges;
+        % sum fluxes for each bin
+        binflux = accumarray(bins, flux);
+        % divide by bin-length to get unit flux
+        unitbinflux = [0; binflux./diff(edges)'];
+        
+        % normalize so total flux equals allocation
+        if opt.match_allocation
+            fac   = sum(binflux)/dist.allocations(ix);
+            unitbinflux = unitbinflux*fac;
+            dispif(mrstVerbose, 'Distribution scaled by %3.2f to match allocation.\n', fac);
+        end
+        
+        % ommit last entry (t_end to infinity)
+        i = (1:numel(binflux)).';
+        dist.t(i, ix)      = edges(i);
+        dist.values(i, ix) = unitbinflux(i);
     end
 end
