@@ -11,7 +11,9 @@ if vals(end) == 0
 end
 
 % take mean values of intervals
-[mt, mvals] = deal(t(1:end-1)+.5*diff(t), vals(1:end-1) + .5*diff(vals));
+t(isnan(t)) = 0;
+vals(isnan(vals)) = 0;
+[mt, mvals] = deal(.5*t(1:end-1)+.5*t(2:end), .5*vals(1:end-1)+.5*vals(2:end));
 
 % integrate to get cum flux
 F = cumsum(diff(t).*mvals);
