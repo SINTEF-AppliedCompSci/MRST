@@ -540,7 +540,7 @@ classdef postProcessDiagnostics < handle
                     case 2 % estimate
                         %for k = 1:numel(pIx)
                             dist = estimateRTD(d.Gs.PORV, d.Data.diagnostics(tsel.ix).D, ...
-                                                    d.Data.diagnostics(tsel.ix).WP, s2.dsel.extendTime*year, ...
+                                                    d.Data.diagnostics(tsel.ix).WP, ...
                                                     'injectorIx', iIx, 'producerIx', pIx);
                             plot(ax, dist.t/year, dist.values, 'LineWidth', 2);
                         %end
@@ -548,15 +548,15 @@ classdef postProcessDiagnostics < handle
                             dist = computeRTD(d.Data.states{tsel.ix}, d.Gs, d.Gs.PORV, ...
                                             d.Data.diagnostics(tsel.ix).D, d.Data.diagnostics(tsel.ix).WP, ...
                                             d.Data.states{tsel.ix}.wellSol, ...
-                                            s2.dsel.extendTime*year, 'injectorIx', iIx, 'producerIx', pIx);
+                                            'injectorIx', iIx, 'producerIx', pIx);
                             plot(ax, dist.t/year, dist.values, 'LineWidth', 2);
-                            
                 end
                 if ix > 1
                     ylabel(ax, 'Tracer rate');
                     wn = arrayfun(@(x)x.label.String, d.WellPlot.producers(pIx), 'UniformOutput', false);
                     legend(ax, wn, 'Location','northeast', 'Interpreter', 'none')
                     set(ax, 'FontSize', 10)
+                    set(ax, 'XLim', [0, s2.dsel.extendTime]);
                 end
             end
         end
