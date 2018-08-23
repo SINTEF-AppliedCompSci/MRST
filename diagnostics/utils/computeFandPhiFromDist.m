@@ -1,11 +1,15 @@
 function [F,Phi] = computeFandPhiFromDist(RTD, varargin)
-opt = struct('sum',false, 'normalize', false);
+opt = struct('sum',false);
 opt = merge_options(opt, varargin{:});
 
 if strcmpi(RTD.creator,'estimateRTD')
     warning(['F-Phi diagrams computed from estimated RTD ', ...
         'are highly inaccurate. Proceed with caution\n']);
-    opt.normalize = false;
+    normalizeAlloc = true;
+    normalizeVol = false;
+else
+    normalizeAlloc = false;
+    normalizeVol = true;
 end
 
 if opt.sum
@@ -27,7 +31,7 @@ vals(isnan(vals)) = 0;
 
 % integrate to get cum flux
 F = cumsum(diff(t,1).*mvals, 1);
-if opt.normalize
+if normalizeAlloc
     F = bsxfun(@rdivide, F, F(end,:));
 else
     F = bsxfun(@rdivide, F, alloc);
@@ -35,10 +39,10 @@ end
 
 % integrate to get cum volume
 Phi = cumsum(diff(t,1).*mvals.*mt,1);
-if opt.normalize
-    Phi = bsxfun(@rdivide, Phi, Phi(end,:));
-else
+if normalizeVol
     Phi = bsxfun(@rdivide, Phi, vol);
+else
+    Phi = bsxfun(@rdivide, Phi, Phi(end,:));
 end
 
 % Add points (0,0) and (1,1) to be sure they exist
