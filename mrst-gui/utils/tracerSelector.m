@@ -70,7 +70,7 @@ classdef tracerSelector < uiItem
                                
             controls      = {{leftText, leftPopup}, {rightText, rightPopup}, ...
                              {timeText, timeEdit}};
-            controlLayout = {[.3, nan],[.3, nan], [.8 .2]}; 
+            controlLayout = {[.2, nan],[.2, nan], [.8 .2]}; 
             
             if opt.includeEnableSwitch
                 enableSwitch = uicontrol('Parent', [], 'Style', 'checkbox', 'String', 'Enable', ...
