@@ -244,7 +244,7 @@ classdef postProcessDiagnostics < handle
             % ------ Set callbacks for 2D axes ----------------------------
             selector2D.msel.Callback      = @(src, event)d.measureCallback(src, event, selector2D, selector3D);
             selector2D.asel.Callback      = @(src, event)d.allocationCallback(src, event, selector2D, selector3D);
-            selector2D.dtsel.Callback     = @(src, event)tracerDistCallback(d, src, event, selector2D, selector3D);
+            %selector2D.dtsel.Callback     = @(src, event)tracerDistCallback(d, src, event, selector2D, selector3D);
             selector2D.ssel.Callback      = @(src, event)summaryCallback(d, src, event, selector2D);
             selector2D.ssel.regCallback   = @(src, event)selectWellsForSummary(d, src, event, selector2D, selector3D);
             selector2D.dsel.Callback      = @(src, event)d.distributionCallback(src, event, selector2D, selector3D);
@@ -640,7 +640,7 @@ classdef postProcessDiagnostics < handle
             aPos2DL = aPos2D; aPos2DL([1 3]) = aPos2DL([1 3]) + [sp -sp];
             aPos2DR = aPos2D; aPos2DR(1) = aPos2D(1)+aPos2D(3)+2*sp;
             aPos3D = [mw+sp, 2*sp+ah, fip(3)-mw-2*sp, fip(4)-3*sp-ah];
-            cbh    = 300;
+            cbh    = max(50, min(300, fip(4)-2*sp));
             cbw    = 27;
             %aPosCB = [mw+2*sp,       fip(4)-cbh-sp, cbw, cbh];
             aPosCB = [fip(3)-2*cbw-sp, fip(4)-cbh-sp, cbw, cbh];
@@ -993,7 +993,7 @@ classdef postProcessDiagnostics < handle
                 end
                 set(d.colorHAx.Children, 'Visible', 'off');
                 cb.TickLabelInterpreter = 'none';
-                cb.Position(1) = d.layoutParams.menuWidth + 75;
+                %cb.Position(1) = d.layoutParams.menuWidth + 75;
                 % switch off log if selected
                 if s3.psel.logSwitch == true
                     s3.psel.logSwitch = false;
