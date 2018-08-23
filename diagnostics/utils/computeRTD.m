@@ -81,6 +81,7 @@ for ik = 1:numel(iix)
         dist.values(:, ix)    = vals{ik}(:, pk);
     end
 end
+dist.creator = mfilename;
 end
     
 function [sysmat, qp_well, tr0, pv] = setupSystemComponents(state, G, pv, W, sub, inj, prod)
