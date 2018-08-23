@@ -516,8 +516,9 @@ classdef uiItem < handle
             assert(isa(d.panel, 'matlab.ui.container.Panel'));
             
             params = d.layout.params;
-            lineHeight      = params.lineHeightAt10*d.FontSize/10;
-            lineHeightPopup = 26*d.FontSize/10;
+            lineHeight      = ceil(params.lineHeightAt10*d.FontSize/10);
+            %lineHeightPopup = 26*d.FontSize/10;
+            lineHeightPopup = lineHeight +4;
             %d.titleHeight   = 19 + (d.titleFontSize - 10)*2;
             items = d.controls;
             nrows = numel(items);
@@ -593,13 +594,13 @@ classdef uiItem < handle
                     if ~isempty(items{k}{m})
                         items{k}{m}.Position = ([curp, itemWidths{k}(m), rowHeights(k)]);
                         % some adjustments (set text closer to item below)
-                        if strcmp(items{k}{m}.Type, 'uicontrol')
-                            if strcmp(items{k}{m}.Style, 'text')
-                                fzpix  = items{k}{m}.FontSize * 0.014 * 96; % approx fontsize in pixels
-                                adjust = max((lineHeight - fzpix)/2, 0);
-                                items{k}{m}.Position(2) = items{k}{m}.Position(2) - adjust;
-                            end
-                        end
+                        %if strcmp(items{k}{m}.Type, 'uicontrol')
+                        %    if strcmp(items{k}{m}.Style, 'text')
+                                %fzpix  = items{k}{m}.FontSize * 0.014 * 96; % approx fontsize in pixels
+                                %adjust = max((lineHeight - fzpix)/2, 0);
+                                %items{k}{m}.Position(2) = items{k}{m}.Position(2) - adjust;
+                        %    end
+                        %end
                     end
                     curp(1) = curp(1) + params.hskip + itemWidths{k}(m);
                 end
