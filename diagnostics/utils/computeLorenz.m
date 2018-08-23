@@ -38,6 +38,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 
 v      = diff(Phi,1);
-Lc     = 2*(sum((F(1:end-1)+F(2:end))/2.*v) - .5);
+Lc     = 2*(sum((F(1:end-1,:)+F(2:end,:))/2.*v) - .5);
 end
 
