@@ -975,17 +975,16 @@ classdef postProcessDiagnostics < handle
                 colormap(d.Axes3D, 'default');
                 %cb.Position(1) = d.layoutParams.menuWidth + 50;
             else
-                cmap = tatarizeMap(max(size(d.Data.wellComunication,1), 64));
                 if  s3.psel.propIx == 7 % sweep regions
                     ninj = numel(d.WellPlot.injectors);
-                    cmap = cmap(2:ninj+1,:);
+                    cmap = d.Data.injColors(1:ninj,:);
                     colormap(d.Axes3D, cmap);
                     cb.Ticks = (.5:ninj)/ninj;
                     cb.TickLabels = s3.wsel.injSelector.String;
                     cb.Limits = [0 1];
                 elseif s3.psel.propIx == 8 % sweep regions
                     nprod = numel(d.WellPlot.producers);
-                    cmap = cmap(2:nprod+1,:);
+                    cmap = d.Data.prodColors(1:nprod,:);
                     colormap(d.Axes3D, cmap);
                     cb.Ticks = (.5:nprod)/nprod;
                     cb.TickLabels = s3.wsel.prodSelector.String;

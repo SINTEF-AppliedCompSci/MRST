@@ -200,7 +200,9 @@ function d = extractSweepRegion(d, ts)
 diagn  = d.Data.diagnostics;
 nsteps = numel(ts);
 p = 10; bc = 0.85;
-cmap = tatarizeMap(max(size(d.Data.wellComunication,1), 64));
+cmap = d.Data.injColors;
+% put last (reservoir-) color first since below we use D.ipart+1 (and the reservoir partition has value 0)
+cmap = [cmap(end,:); cmap(1:end-1,:)];
 rgb  = zeros(d.G.cells.num,3);
 for k=1:nsteps
    maxconc = max(diagn(ts(k)).D.itracer, [], 2);
@@ -216,7 +218,9 @@ function d = extractDrainageRegion(d, ts)
 diagn = d.Data.diagnostics;
 nsteps = numel(ts);
 p = 10; bc = 0.85;
-cmap = tatarizeMap(max(size(d.Data.wellComunication,2), 64));
+cmap = d.Data.prodColors;
+% put reservoir-color first
+cmap = [cmap(end,:); cmap(1:end-1,:)];
 rgb  = zeros(d.G.cells.num,3);
 for k=1:nsteps
    maxconc = max(diagn(ts(k)).D.ptracer, [], 2);
