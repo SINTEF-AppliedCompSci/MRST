@@ -1,7 +1,7 @@
 function [dist] = estimateRTD(pv, D, WP, varargin)
 opt = struct('injectorIx', [], ...
              'producerIx', [], ...
-             'nbins',      25, ...
+             'nbins',      100, ...
              'match_allocation', true);
          
 opt = merge_options(opt, varargin{:});
@@ -18,9 +18,9 @@ if isempty(injectorIx), injectorIx = (1:numel(D.inj))'; end
 nreg = numel(producerIx).*numel(injectorIx);
 
 % create output structure
-dist = struct('pairIx', zeros(nreg, 2), 't', nan(opt.nbins+1, nreg), ...
+dist = struct('pairIx', zeros(nreg, 2), 't', nan(opt.nbins, nreg), ...
               'volumes', zeros(nreg, 1), 'allocations',  zeros(nreg,1), ...
-              'values', nan(opt.nbins+1, nreg) );              
+              'values', nan(opt.nbins, nreg) );              
 
           
 ix = 0;          
@@ -65,24 +65,37 @@ for ik = 1:numel(injectorIx)
         % approximate flux through each cell
         flux = pvs(order)./ts;
         
-        % bin edges
-        [~,edges, bins] = histcounts(log10(ts), opt.nbins);
+        % bin edges: histcounts was introduced in MATLAB R2014b, so we
+        % provide a backup solution for older versions
+        try
+            [~,edges, bins] = histcounts(log10(ts), opt.nbins);
+        catch
+           t = log10(ts);
+           edges = linspace(min(t),max(t+0.01), opt.nbins+1);
+           [~,bins] = histc(t, edges);
+        end
         edges = 10.^edges;
+           
         % sum fluxes for each bin
         binflux = accumarray(bins, flux);
+        totflux = sum(binflux);
+        if numel(binflux)+1<numel(edges)
+            binflux(end+1:numel(edges)-1)=nan;
+        end
         % divide by bin-length to get unit flux
         unitbinflux = [0; binflux./diff(edges)'];
         
         % normalize so total flux equals allocation
         if opt.match_allocation
-            fac   = sum(binflux)/dist.allocations(ix);
-            unitbinflux = unitbinflux*fac;
+            fac   = totflux/dist.allocations(ix);
+            unitbinflux = unitbinflux/fac;
             dispif(mrstVerbose, 'Distribution scaled by %3.2f to match allocation.\n', fac);
         end
         
-        % ommit last entry (t_end to infinity)
+        % ommit last entry
         i = (1:numel(binflux)).';
         dist.t(i, ix)      = edges(i);
         dist.values(i, ix) = unitbinflux(i);
     end
+    dist.creator = mfilename;
 end
