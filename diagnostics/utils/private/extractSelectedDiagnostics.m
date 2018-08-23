@@ -71,14 +71,14 @@ switch prop
         flag = true;
         
     case d.currentDiagnostics(9).name % First arrival forward
-        if isempty(d.currentDiagnostics(8).values)
+        if isempty(d.currentDiagnostics(9).values)
            d = extractFAForward(d, tsel.ix, injIx, prodIx);
         end
         vals = d.currentDiagnostics(9).values;
         lims = [0 d.maxTOF/year];
         
     case d.currentDiagnostics(10).name % First arrival backward
-        if isempty(d.currentDiagnostics(8).values)
+        if isempty(d.currentDiagnostics(10).values)
            d = extractFABackward(d, tsel.ix, injIx, prodIx);
         end
         vals = d.currentDiagnostics(10).values;
