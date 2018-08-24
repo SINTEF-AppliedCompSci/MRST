@@ -36,7 +36,7 @@ switch src.Value
         title(ax,d.WellPlot.injectors(iIx).label.String, 'Interpreter','none');
         
     case 3  % Injector allocation
-        if numel(iIx)~=1,
+        if numel(iIx)~=1
             text(0,.1,'Injector allocation:','Parent', ax);
             text(0,0,'Please select{\bf one} injector only','Parent',ax);
             axis(ax,'off'); return
@@ -58,7 +58,7 @@ switch src.Value
                 alloc(:,i) = abs(sum([inj.alloc, inj.ralloc],1))';
             end
             h = area(ax,alloc');
-            for i=1:numel(h),
+            for i=1:numel(h)
                 set(h(i),'FaceColor', d.Data.prodColors(i,:));
             end
             axis tight
@@ -66,7 +66,7 @@ switch src.Value
         title(ax,d.WellPlot.injectors(iIx).label.String);
         
     case 4  % PLT plot (production logging tool)
-        if numel(iIx)~=1,
+        if numel(iIx)~=1
             text(0,.1,'Injector profile:','Parent', ax);
             text(0,0,'Please select{\bf one} injector','Parent',ax);
             axis(ax,'off'); return
@@ -83,6 +83,8 @@ switch src.Value
                 false, d.Data.prodColors);
         end
         title(ax,d.WellPlot.injectors(iIx).label.String);
+        legend(ax, ax.Children(numel(d.WellPlot.producers)+1-pIx), ...
+            arrayfun(@(x) x.label.String, d.WellPlot.producers(pIx),'UniformOutput',false));
         
     case 5  % Producer volumes
         if (~doAvg && numel(ts)~=1) || numel(pIx)~=1
@@ -102,7 +104,7 @@ switch src.Value
         title(ax,d.WellPlot.producers(pIx).label.String);
         
     case 6  % Producer allocation
-        if numel(pIx)~=1,
+        if numel(pIx)~=1
             text(0,.1,'Producer allocation:','Parent', ax);
             text(0,0,'Please select{\bf one} producer only','Parent', ax);
             axis(ax,'off'); return
@@ -124,7 +126,7 @@ switch src.Value
                 alloc(:,i) = abs(sum([prod.alloc, prod.ralloc],1))';
             end
             h = area(ax,alloc');
-            for i=1:numel(h),
+            for i=1:numel(h)
                 set(h(i),'FaceColor', d.Data.injColors(i,:));
             end
             axis tight
@@ -132,7 +134,7 @@ switch src.Value
         title(ax,d.WellPlot.producers(pIx).label.String);
         
     case 7  % PLT plot (production logging tool)
-        if numel(pIx)~=1,
+        if numel(pIx)~=1
             text(0,.1,'Producer profile:','Parent', ax);
             text(0,0,'Please select{\bf one} producer','Parent', ax);
             axis(ax,'off'); return
@@ -149,6 +151,8 @@ switch src.Value
                 true, d.Data.injColors);
         end
         title(ax,d.WellPlot.producers(pIx).label.String);
+        legend(ax, ax.Children(numel(d.WellPlot.injectors)+1-iIx), ...
+            arrayfun(@(x) x.label.String, d.WellPlot.injectors(iIx),'UniformOutput',false));
         
     otherwise
         disp('functionality not implemented yet');
