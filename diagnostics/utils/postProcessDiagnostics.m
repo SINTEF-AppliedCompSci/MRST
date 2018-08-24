@@ -168,14 +168,14 @@ classdef postProcessDiagnostics < handle
                 catch
                     d.Menu.items{k}.ForegroundColor = 'w';
                 end
-                for l=1:numel(d.Menu.items{k}.Children)
-                    d.Menu.items{k}.Children(l).BackgroundColor = ...
-                        .4*tt(k,:) + 0.6*[1 1 1];
-                    for m=1:numel(d.Menu.items{k}.Children(l).Children)
-                        d.Menu.items{k}.Children(l).Children(m).BackgroundColor = ...
-                            .2*tt(k,:) + 0.8*[1 1 1];
-                    end
-                end
+ %               for l=1:numel(d.Menu.items{k}.Children)
+ %                   d.Menu.items{k}.Children(l).BackgroundColor = ...
+ %                       .4*tt(k,:) + 0.6*[1 1 1];
+ %                   for m=1:numel(d.Menu.items{k}.Children(l).Children)
+ %                       d.Menu.items{k}.Children(l).Children(m).BackgroundColor = ...
+ %                           .2*tt(k,:) + 0.8*[1 1 1];
+ %                   end
+ %               end
             end
             
 
