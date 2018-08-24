@@ -22,7 +22,6 @@ fluid = initSingleFluid('mu', 1*centi*poise, ...
 %% Compute RTD for a single well
 [T,layer] = deal(10*year, [23, 75]);
 for n=1:2
-    continue
     % --- Set petrophysical data for this particular layer
     % To avoid problems with very small porosity values, we explicitly
     % impose a lower threshold of 1e-4
@@ -44,22 +43,29 @@ for n=1:2
     rS = initState(G, W, 0, 0.0);
     hT = computeTrans(G, rock);
     rS = incompTPFA(rS, G, hT, fluid, 'wells', W);
+    rS.wellSol(1).sign = 1;
+    rS.wellSol(2).sign =-1;
+    
     
     % --- Compute RTD
-    D   = computeTOFandTracer(rS, G, rock, 'wells', W, 'maxTOF', inf);
+    D   = computeTOFandTracerFirstArrival(rS, G, rock, 'wells', W, ...
+        'maxTOF', inf,'computeWellTOFs', true);
     WP  = computeWellPairs(rS, G, rock, W, D);
     rtd = computeRTD(rS, G, pv, D, WP, W, 'nsteps',5000);
     RTD = estimateRTD(pv, D, WP);
     
     % --- Plot RTD
-    figure,
-    plot(rtd.t/year, rtd.values, '-', ...
-         RTD.t/year, RTD.values, '--', 'LineWidth',2);
-    hold on, plot(RTD.volumes/RTD.allocations*[1 1]./year, ...
-        [0 max(RTD.values)], '--r','LineWidth',1); hold off
+    figure, hold on
+    plot(rtd.t/year, rtd.values, '-',  'LineWidth',2);
+    plot(RTD.t/year, RTD.values, '--', 'LineWidth',2);
+    tfa = min(D.ifa(W(2).cells))/year;      % first arrival
+    tm  = RTD.volumes/RTD.allocations/year; % mean time
+    vm  = max(RTD.values);
+    plot([tfa tfa], [0 vm], ':k', [tm tm], [0 vm], '-k');
     legend('Simulated pulse','From averaged TOF');    
     set(gca,'XLim',[0 10],'YLim',[0 8e-12],'FontSize',14); 
     xlabel('Time [years]')
+    hold off
     
     axes('Position',[.6 .4 .3 .35]);
     plotCellData(G,log10(rock.perm(:,1)),'EdgeColor','none');
@@ -85,6 +91,7 @@ wrad     = [0.125, 0.125, 0.125] .* meter;
 wloc     = [ 10,   50,    25;
             220,   220,    1];
 wname    = {'P1', 'P2', 'I'};
+sgn      = [-1 -1 1];
 
 [T,layer] = deal(10*year, [23, 75]);
 for n=1:2
@@ -111,45 +118,47 @@ for n=1:2
     rS = initState(G, W, 0, 0.0);
     hT = computeTrans(G, rock);
     rS = incompTPFA(rS, G, hT, fluid, 'wells', W);
+    for i=1:numel(rS.wellSol), rS.wellSol(i).sign = sgn(i); end
     
     % --- Compute RTD
-    D   = computeTOFandTracer(rS, G, rock, 'wells', W, ...
+    D   = computeTOFandTracerFirstArrival(rS, G, rock, 'wells', W, ...
         'maxTOF', inf, 'computeWellTOFs', true);
     WP  = computeWellPairs(rS, G, rock, W, D);
-    rtd = computeRTD(rS, G, pv, D, WP, W, 'nsteps',100);
+    rtd = computeRTD(rS, G, pv, D, WP, W, 'nsteps',2500);
     RTD = estimateRTD(pv, D, WP);
     
     % --- Plot RTD
     figure, hold on
-    plot(rtd.t/year, rtd.values, '-', 'LineWidth', 2);
-    plot(RTD.t/year, RTD.values, '--', 'LineWidth',2);
-    plot((rtd.volumes./rtd.allocations*[1 1]./year)', ...
-        repmat([0; max(rtd.values(:))],1,numel(rtd.volumes)), ...
-        '--r','LineWidth',1);
+    plot(rtd.t/year, rtd.values, '-', 'LineWidth', 2); set(gca,'ColorOrderIndex',1)
+    plot(RTD.t/year, RTD.values, '--', 'LineWidth',2); set(gca,'ColorOrderIndex',1)
+    tfa = min(D.ifa(W(2).cells))/year;      % first arrival
+    tm  = rtd.volumes./rtd.allocations/year; % mean time
+    vm  = max(RTD.values(:));
+    plot([1; 1]*tm',repmat([0; vm],1,numel(rtd.volumes)), '-');
     legend('Simulated pulse: P1', 'Simulated pulse: P2', ...
         'From averaged TOF: P1', 'From averaged TOF: P2');    
     set(gca,'FontSize',14,'XLim',[0 130]); 
     xlabel('Time [years]')
     hold off
     
-    axes('Position',[.6 .2 .3 .35]);
+    axes('Position',[.6 .3 .3 .35]);
     plotCellData(G,log10(rock.perm(:,1)),'EdgeColor','none');
+    outlineCoarseGrid(G,D.ppart,'LineWidth',1);
     view(2); axis equal off, colormap(parula)
     x = G.cells.centroids(vertcat(W.cells),:);
     hold on
-    plot(x(:,1),x(:,2),'ok','MarkerSize',4,'MarkerFaceColor','w');
+    plot(x(:,1),x(:,2),'ok','MarkerSize',8,'MarkerFaceColor','w');
+    text(x(:,1)+40,x(:,2), {W.name});
     hold off
     
     % --- F-Phi diagram
-    [F, Phi ] = computeFandPhi(pv, D.tof);
-    [f, phi ] = computeFandPhiFromDist(rtd, 'normalize', true);
-    [tf,tphi] = computeFandPhiFromDist(rtd, 'sum', true, 'normalize', true);
+    [f, phi ] = computeFandPhiFromDist(rtd);
+    [tf,tphi] = computeFandPhiFromDist(rtd, 'sum', true);
 
     figure, hold on
-    plot(phi,f, '-', tphi, tf, '-', Phi,F, '--k', 'LineWidth',2);
+    plot(phi,f, '-', tphi, tf, '-','LineWidth',2);
     legend('Simulated pulse: P1', 'Simulated pulse: P2', ...
-        'Simulated pulse: whold field', 'From averaged TOF', ...
-        'Location','SouthEast');
+        'Simulated pulse: whole field','Location','SouthEast');
     hold off
     axis([0 1 0 1]); set(gca,'FontSize',14);
 end
