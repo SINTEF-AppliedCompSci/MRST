@@ -158,7 +158,7 @@ if ~iscell(tr), tr = {tr}; end
 
 pv = poreVolume(G, rock);
 
-if opt.reverse,
+if opt.reverse
    q  = -q;
    qb = -qb;
    state.flux = -state.flux;
@@ -217,7 +217,9 @@ end
 % Inflow flux matrix
 A  = sparse(n(:,2), n(:,1),  in, nc, nc)...
    + sparse(n(:,1), n(:,2), -out, nc, nc);
-A = -A + spdiags(d, 0, nc, nc);
+if ~isempty(d)
+    A = -A + spdiags(d, 0, nc, nc);
+end
 
 if ~opt.allowInf && opt.processCycles
     [A, pv] = thresholdConnectedComponents(A, pv, maxIn, opt);
@@ -228,7 +230,7 @@ end
 % on the right-hand side here.
 numTrRHS = numel(tr);
 TrRHS = zeros(nc,numTrRHS);
-for i=1:numTrRHS,
+for i=1:numTrRHS
    TrRHS(tr{i},i) = qp(tr{i});
 end
 
@@ -278,13 +280,13 @@ function [q, qb] = computeSourceTerm(state, G, W, src, bc)
    qs = [];  % Actual strength of source term (in m^3/s).
 
    % Contribution from wells
-   if ~isempty(W),
+   if ~isempty(W)
       qi = [qi; vertcat(W.cells)];
       qs = [qs; vertcat(state.wellSol.flux)];
    end
 
    % Contribution from sources
-   if ~isempty(src),
+   if ~isempty(src)
       qi = [qi; src.cell];
       qs = [qs; src.rate];
    end
@@ -293,7 +295,7 @@ function [q, qb] = computeSourceTerm(state, G, W, src, bc)
    q = sparse(qi, 1, qs, G.cells.num, 1);
 
    % Contribution from boundary conditions
-   if ~isempty(bc),
+   if ~isempty(bc)
       ff    = zeros(G.faces.num, 1);
 
       isDir = strcmp('pressure', bc.type);
