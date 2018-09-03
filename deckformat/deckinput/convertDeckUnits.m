@@ -271,11 +271,13 @@ function grid = convertGRID(grid, u)
          case {'THCONR'}
             grid.(key) = convertFrom(grid.(key), u.rockcond);
 
-         case 'PINCH'
+         case {'PINCH', 'PINCHREG'}
             i    = [1, 3];
-            data = convertFrom([ grid.(key){i} ], u.length);
+            data = convertFrom([ grid.(key){:,i} ], u.length);
 
-            grid.(key)(i) = num2cell(data);   clear i data
+            grid.(key)(:, i) = reshape(num2cell(data), [], numel(i));
+
+            clear i data
 
          case {'SIGMAV', 'SIGMA'}
               grid.(key) = convertFrom(grid.(key), u.invarea);

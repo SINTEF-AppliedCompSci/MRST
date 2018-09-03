@@ -127,6 +127,32 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             data([1, 3]) = to_double(data([1, 3]));  clear tmpl
             grd.(kw)     = data;
 
+         case 'PINCHREG'
+            nrec = 0;
+
+            if isfield(grd, 'PINCHNUM') && ...
+                  isfield(deck.RUNSPEC, 'GRIDOPTS')
+
+               nrec = deck.RUNSPEC.GRIDOPTS{3};
+
+            elseif isfield(grd, 'FLUXNUM')
+               if isfield(deck.RUNSPEC, 'REGDIMS')
+                  nrec = deck.RUNSPEC.REGDIMS{4};
+               end
+               if isfield(deck.RUNSPEC, 'TABDIMS')
+                  nrec = max(nrec, deck.RUNSPEC.TABDIMS(11));
+               end
+            end
+
+            if nrec > 0
+               tmpl = { '1.0e-3', 'GAP', 'Inf', 'TOPBOT', 'TOP' };
+               data = readDefaultedKW(fid, tmpl, 'NRec', nrec);
+
+               data(:, [1, 3]) = to_double(data(:, [1, 3])); clear tmpl;
+
+               grd.(kw) = data;
+            end
+
          case {'ACTNUM'},
             if deck.RUNSPEC.DUALPORO
                %grd = readGridBoxArrayDP(grd, fid, kw, nc);
