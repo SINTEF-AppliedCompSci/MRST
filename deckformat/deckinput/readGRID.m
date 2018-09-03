@@ -161,6 +161,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                grd = readGridBoxArray(grd, fid, kw, nc);
             end
 
+         case {'FLUXNUM', 'MULTNUM', 'OPERNUM', 'PINCHNUM'}
+            if ~ isfield(grd, kw), grd.(kw) = ones([nc, 1]); end
+
+            if deck.RUNSPEC.DUALPORO
+               grd = readGridBoxArrayDP(grd, fid, kw, nc);
+            else
+               grd = readGridBoxArray(grd, fid, kw, nc);
+            end
+
          case {'ADD', 'COPY', 'EQUALS', 'MAXVALUE', ...
                'MINVALUE', 'MULTIPLY'},
             grd = applyOperator(grd, fid, kw);
@@ -181,15 +190,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          case 'MINPVV',
             if ~isfield(grd, kw), grd.(kw) = repmat(1.0e-6, [nc, 1]); end
             %grd = readGridBoxArray(grd, fid, kw, nc);
-
-            if deck.RUNSPEC.DUALPORO
-               grd = readGridBoxArrayDP(grd, fid, kw, nc);
-            else
-               grd = readGridBoxArray(grd, fid, kw, nc);
-            end
-
-         case 'FLUXNUM',
-            %grd.(kw) = readVector(fid, kw, nc);
 
             if deck.RUNSPEC.DUALPORO
                grd = readGridBoxArrayDP(grd, fid, kw, nc);
