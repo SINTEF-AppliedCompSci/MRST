@@ -1,0 +1,2 @@
+# RE-MPFA
+RE-MPFA is a package that implements a cell-centered finite volume discretization, specifically Multi-Point Flux Approximation (MPFA) in order to solve the three-dimensional incompressible mixed-based form of the Richards' Equation. The code runs on MATLAB and it is build upon two main toolboxes, MRST (https://www.sintef.no/projectweb/mrst/) developed by SINTEF and FV-BIOT (https://github.com/pmgbergen/fvbiot) developed by UiB's Porous Media Group.
