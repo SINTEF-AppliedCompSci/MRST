@@ -1,5 +1,5 @@
 function fn = getUniformInterpRegLinear(xs, fs, reg)
-% Intermediate interpolator. Support for multiple regions, with the caveaet
+% Intermediate interpolator. Support for multiple regions, with the caveat
 % that all functions must be given on the same set of points.
     ns = numel(xs);
     assert(issorted(xs));
