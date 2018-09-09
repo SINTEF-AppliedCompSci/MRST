@@ -393,7 +393,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
         
         if get(useleg, 'Value')
-            legh = legend(l, 'Location', lpos);
+            legh = legend(l, 'Location', lpos, 'Interpreter', 'none');
         elseif ishandle(legh)
             delete(legh);
             legh = nan;
