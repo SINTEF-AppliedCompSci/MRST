@@ -1,4 +1,7 @@
 function [ok, status] = simulatePackedProblem(problems, varargin)
+    opt = struct('checkTooMany', true, ...
+                 'continueOnError', true);
+    opt = merge_options(opt, varargin{:});
     if isstruct(problems)
         problems = {problems};
     end
@@ -24,11 +27,11 @@ function [ok, status] = simulatePackedProblem(problems, varargin)
         ok = true;
         doSim = true;
         msg = '';
-        % This is a serious error!
-        assert(ndata <= nstep, 'Too much data exists! Problem may have been redefined.');
+        if opt.checkTooMany
+            % This is a serious error!
+            assert(ndata <= nstep, 'Too much data exists! Problem may have been redefined.');
+        end
         
-%         lim = '============================================================\n';
-%         fprintf(lim);
         firstLine = sprintf(' Case "%s" (%s)',...
                 problem.BaseName, problem.Name);
         secondLine = sprintf(' Description: "%s"',...
@@ -74,6 +77,9 @@ function [ok, status] = simulatePackedProblem(problems, varargin)
                 msg = ex.message;
                 ok = false;
                 fprintf('!!! Simulation resulted in fatal error !!!\n Exception thrown: %s\n', msg);
+                if ~opt.continueOnError
+                    rethrow(ex);
+                end
             end
         end
         
