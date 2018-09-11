@@ -93,6 +93,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 end
 
 function CG = getGrid(G, partition, opt)
+    if isstruct(partition)
+        CG = partition;
+        return
+    end
     if opt.validatePartition
         partition = processPartition(G, partition);
         partition = compressPartition(partition);
