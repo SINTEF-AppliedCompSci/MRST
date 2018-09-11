@@ -14,7 +14,7 @@ function [T, A, q] = computeTOFAndFirstArrival(state, G, rock, varargin)
 %
 %   using a first-order finite-volume method with upwind flux. Here, 'v' is
 %   the Darcy velocity, '\phi' is the porosity, and T is time-of-flight.
-%   The time-of-flight T(x) is the time it takes an inert particles
+%   The time-of-flight T(x) is the time it takes an inert particles that is
 %   passively advected with the fluid to travel from the nearest inflow
 %   point to the point 'x' inside the reservoir. For the computation to
 %   make sense, inflow points must be specified in terms of inflow
@@ -30,7 +30,7 @@ function [T, A, q] = computeTOFAndFirstArrival(state, G, rock, varargin)
 %           fluxes, 'state.flux'. Typically, 'state' will contain the
 %           solution produced by a flow solver like 'incompTPFA'.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% OPTIONAL PARAMETERS (supplied in 'key'/value pairs):
 %   wells - Well structure as defined by function 'addWell'.  May be empty
 %           (i.e., wells = []) which is interpreted as a model without any
 %           wells.
@@ -226,7 +226,6 @@ end
 % Inflow flux matrix
 A  = sparse(n(:,2), n(:,1),  in, nc, nc)...
    + sparse(n(:,1), n(:,2), -out, nc, nc);
-
 A = -A + spdiags(d, 0, nc, nc);
 
 if ~opt.allowInf && opt.processCycles
@@ -260,7 +259,6 @@ end
 
 % compute individual well-tofs A*(c_i.*tau_i) = c_i.*pv
 if opt.computeWellTOFs
-    %if false
     C   = T(:, 2:end);
     pvi = bsxfun(@times, C, pv);
     pvi(pvi<0) = 0;
@@ -277,6 +275,7 @@ if opt.computeWellTOFs
     ix     = and(pvi*opt.maxTOF > X, C > sqrt(eps));
     X(~ix) = opt.maxTOF;
     X(ix)  = X(ix)./C(ix);
+    %X      = min(X, opt.maxTOF);
     T      = [T, X];
     %else
     
@@ -302,6 +301,7 @@ if opt.computeWellTOFs
         T = [T, X];
     end
 end
+
 end
 
 

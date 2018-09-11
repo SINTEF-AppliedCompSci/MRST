@@ -30,7 +30,7 @@ function [T, A, q] = computeTimeOfFlight(state, G, rock, varargin)
 %           fluxes, 'state.flux'. Typically, 'state' will contain the
 %           solution produced by a flow solver like 'incompTPFA'.
 %
-% OPTIONAL PARAMETERS:
+% OPTIONAL PARAMETERS (supplied in 'key'/value pairs):
 %   wells - Well structure as defined by function 'addWell'.  May be empty
 %           (i.e., wells = []) which is interpreted as a model without any
 %           wells.
@@ -60,6 +60,18 @@ function [T, A, q] = computeTimeOfFlight(state, G, rock, varargin)
 %           additional right-hand side to the original tof-system. Output
 %           given as additional columns in T.
 %
+%   computeWellTOFs - Boolean variable. If true, time-of-flight values are
+%           computed individually for each influence region by solving
+%           equations of the form:
+%
+%              \nabla·(v C_i T) = \phi C_i,    T(inflow)=0
+%
+%           where C_i denotes the tracer concentration associated with each
+%           individual influence region
+%
+%   firstArrival - Boolean variable. If true, also compute the first-arrival
+%           time by a graph algorithm (requires MATLAB R2015b or newer)
+
 %   allowInf - Switch to turn off (true) or on (false) maximal TOF
 %           thresholding. Default is false.
 %
@@ -114,7 +126,7 @@ function [T, A, q] = computeTimeOfFlight(state, G, rock, varargin)
 %   `simpleTimeOfFlight`, `solveIncompFlow`.
 
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -142,7 +154,8 @@ opt = struct('bc',              [], ...
              'tracer',          {{}}, ...
              'solver',          [], ...
              'processCycles',   false, ...
-             'computeWellTOFs', false);
+             'computeWellTOFs', false, ...
+	     'firstArrival',    false);
 
 opt = merge_options(opt, varargin{:});
 
@@ -268,6 +281,30 @@ if opt.computeWellTOFs
     X(ix)  = X(ix)./C(ix);
     %X      = min(X, opt.maxTOF);
     T      = [T, X];
+
+    if opt.firstArrival
+      if verLessThan('matlab','8.6')
+	warning('Computing first arrival requires MATLAB R2015b or later');
+      else
+	n(out<0, [1 2]) = n(out<0, [2 1]);
+	% add edges for well-to-connection cell
+	nconn = cellfun(@numel, tr);
+	wnum  = rldecode((1:numel(tr))', nconn(:));
+        wc    = vertcat(tr{:});
+        n1    = [n(:,1); wnum+nc];
+        n2    = [n(:,2); wc];
+        fl    = [inflow(n(:,2)); qp(wc)];
+        fl    = max(fl, max(fl)*eps);
+        gr    = digraph(n1, n2, pv(n2)./fl);
+        X = T(:, 2:(numTrRHS+1));
+        for k = 1:size(X,2)
+            [~, t] = shortestpathtree(gr, nc+k, 'OutputForm', 'vector');
+            X(:,k) = t(1:nc);
+        end
+        X = min(X, opt.maxTOF);
+        T = [T, X];
+      end
+    end
 end
 
 end
