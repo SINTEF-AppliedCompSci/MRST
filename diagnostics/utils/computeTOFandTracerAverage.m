@@ -2,7 +2,7 @@ function D = computeTOFandTracerAverage(state, G, rock, varargin)
 %Executes computeTOFandTracer for a series of states and averages
 %
 % SYNOPSIS:
-%   computeTOFandTracerAverage(state, G, rock, W, 'pn1', pv1, ...);
+%    D  = computeTOFandTracerAverage(state, G, rock, 'pn1', pv1, ...)
 %
 % DESCRIPTION:
 %   Computes time of flight for a series of time steps and avarages.
@@ -27,6 +27,10 @@ function D = computeTOFandTracerAverage(state, G, rock, varargin)
 %             wells.
 %   dt      - List of timesteps to use in averaging
 %   max_tof - Threshold
+%   min_tof - Threshold
+%
+%   Additional parameters will be passed on to 'computeTOFandTracer', which
+%   computes the flow diagnostics. See this function for further documentation.
 %
 % RETURNS:
 %   D - struct that contains the basis for computing flow diagnostics:
@@ -49,7 +53,7 @@ function D = computeTOFandTracerAverage(state, G, rock, varargin)
 %   `computeTOFandTracer`
 
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -70,10 +74,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 % Process optional parameters
 opt = struct(...
-    'wells', [],...
-    'dt', [],...
-    'max_tof', [], ...
-    'min_tof', [], ...
+    'wells', [],      ...
+    'dt', [],         ...
+    'max_tof', [],    ...
+    'min_tof', [],    ...
     'diagnostics', [] ...
     );
 
@@ -107,13 +111,13 @@ for idx=1:N
         end
         D_new = computeTOFandTracer(state{idx}, G, rock, extra{:});
     end
-    
+
     if (all(isinf(D_new.tof(:))))
         continue;
     end
-    
+
     compute_subsets = and(~isempty(opt.min_tof), ~isempty(opt.max_tof));
-    
+
     %Initialize our average D with zeros
     if (isempty(D))
         D.tof = zeros(size(D_new.tof));
@@ -131,7 +135,7 @@ for idx=1:N
         D.inj_avg = zeros(1, num_wells);
         D.prod_avg = zeros(1, num_wells);
     end
-    
+
     dt = dts(idx);
 
     %Accumulate TOF and tracer values, etc
