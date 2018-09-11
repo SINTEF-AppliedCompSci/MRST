@@ -2,10 +2,10 @@ function [T, A, q] = computeTOFAndFirstArrival(state, G, rock, varargin)
 %Compute time of flight using finite-volume scheme.
 %
 % SYNOPSIS:
-%    T        = computeTimeOfFlight(state, G, rock)
-%    T        = computeTimeOfFlight(state, G, rock, 'pn1', pv1, ...)
-%   [T, A]    = computeTimeOfFlight(...)
-%   [T, A, q] = computeTimeOfFlight(...)
+%    T        = computeTOFAndFirstArrival(state, G, rock)
+%    T        = computeTOFAndFirstArrival(state, G, rock, 'pn1', pv1, ...)
+%   [T, A]    = computeTOFAndFirstArrival(...)
+%   [T, A, q] = computeTOFAndFirstArrival(...)
 %
 % DESCRIPTION:
 %   Compute time-of-flight by solving
@@ -14,7 +14,7 @@ function [T, A, q] = computeTOFAndFirstArrival(state, G, rock, varargin)
 %
 %   using a first-order finite-volume method with upwind flux. Here, 'v' is
 %   the Darcy velocity, '\phi' is the porosity, and T is time-of-flight.
-%   The time-of-flight T(x) is the time it takes an inert particles that is
+%   The time-of-flight T(x) is the time it takes an inert particles
 %   passively advected with the fluid to travel from the nearest inflow
 %   point to the point 'x' inside the reservoir. For the computation to
 %   make sense, inflow points must be specified in terms of inflow
@@ -59,6 +59,15 @@ function [T, A, q] = computeTOFAndFirstArrival(state, G, rock, varargin)
 %           the cells with the given indices. Each vector adds one
 %           additional right-hand side to the original tof-system. Output
 %           given as additional columns in T.
+%
+%   computeWellTOFs - Boolean variable. If true, time-of-flight values are
+%           computed individually for each influence region by solving
+%           equations of the form:
+%
+%              \nabla·(v C_i T) = \phi C_i,    T(inflow)=0
+%
+%           where C_i denotes the tracer concentration associated with each
+%           individual influence region
 %
 %   allowInf - Switch to turn off (true) or on (false) maximal TOF
 %           thresholding. Default is false.
@@ -111,10 +120,10 @@ function [T, A, q] = computeTOFAndFirstArrival(state, G, rock, varargin)
 %       OPTIONAL.  Only returned if specifically requested.
 %
 % SEE ALSO:
-%   simpleTimeOfFlight, solveIncompFlow.
+%   computeTimeOfFlight
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -252,24 +261,28 @@ end
 % compute individual well-tofs A*(c_i.*tau_i) = c_i.*pv
 if opt.computeWellTOFs
     %if false
-        C   = T(:, 2:end);
-        pvi = bsxfun(@times, C, pv);
-        pvi(pvi<0) = 0;
-        if isempty(opt.solver)
-            X  = A \ pvi;
-        else % if other solver, iterate over RHSs
-            X = zeros(size(pvi));
-            for k = 1:size(X, 2)
-                X(:, k) = opt.solver(A, pvi(:, k));
-            end
+    C   = T(:, 2:end);
+    pvi = bsxfun(@times, C, pv);
+    pvi(pvi<0) = 0;
+    if isempty(opt.solver)
+        X  = A \ pvi;
+    else % if other solver, iterate over RHSs
+        X = zeros(size(pvi));
+        for k = 1:size(X, 2)
+            X(:, k) = opt.solver(A, pvi(:, k));
         end
-        X(X<0) = 0;
-        % disregard tracer values < sqrt(eps)
-        ix     = and(pvi*opt.maxTOF > X, C > sqrt(eps));
-        X(~ix) = opt.maxTOF;
-        X(ix)  = X(ix)./C(ix);
-     T      = [T, X];
+    end
+    X(X<0) = 0;
+    % disregard tracer values < sqrt(eps)
+    ix     = and(pvi*opt.maxTOF > X, C > sqrt(eps));
+    X(~ix) = opt.maxTOF;
+    X(ix)  = X(ix)./C(ix);
+    T      = [T, X];
     %else
+    
+    if verLessThan('matlab','8.6')
+        warning('Computing first arrival requires MATLAB R2015b or later');
+    else
         n(out<0, [1 2]) = n(out<0, [2 1]);
         % add edges for well-to-connection cell
         nconn = cellfun(@numel, tr);
@@ -286,11 +299,9 @@ if opt.computeWellTOFs
             X(:,k) = t(1:nc);
         end
         X = min(X, opt.maxTOF);
-    %end
-    %X      = min(X, opt.maxTOF);
-    T      = [T, X];
+        T = [T, X];
+    end
 end
-
 end
 
 
