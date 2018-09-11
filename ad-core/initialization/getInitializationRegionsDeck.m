@@ -86,8 +86,11 @@ function region = getRegion(model, deck, eql, cells, regionIx)
     
     contacts = eql([3, 5]);
     contacts_pc = eql([4, 6]);
-    
-    act = [model.water & model.oil, model.oil & model.gas];
+    if model.water && model.gas && ~model.oil
+        act = [true, false, false];
+    else
+        act = [model.water & model.oil, model.oil & model.gas];
+    end
     region = getInitializationRegionsBlackOil(model, contacts(act),...
         'cells', cells, 'datum_pressure', p_datum, ...
         'datum_depth', eql(1), 'contacts_pc', contacts_pc(act), 'rs', rs, 'rv', rv);

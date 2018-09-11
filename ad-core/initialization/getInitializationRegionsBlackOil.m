@@ -39,6 +39,8 @@ function region = getInitializationRegionsBlackOil(model, contacts, varargin)
         pc_sign(ix) = 1;
         if isfield(model.fluid, 'pcOG')
             PC{ix} = @(S) model.fluid.pcOG(S, 'cellInx', getRegCell(S));
+        elseif ~model.oil && isfield(model.fluid, 'pcWG')
+            PC{ix} = @(S) model.fluid.pcWG(S, 'cellInx', getRegCell(S));
         else
             PC{ix} = @(S) 0*S;
         end
