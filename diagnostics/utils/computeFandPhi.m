@@ -8,8 +8,14 @@ function [F,Phi] = computeFandPhi(arg1, varargin)
 %
 % DESCRIPTION:
 %   Compute the flow-capacity/storage-capacity based upon either:
-%    - pore volumes and time-of-flight values given per cell, or
-%    - residence-time distribution.
+%    1. Pore volumes and time-of-flight values per cell. In this case,
+%       Phi is defined as the cumulative pore volume and F is the
+%       cumulative flux as function of residence time. Assuming
+%       incompressible flow, the instant flux is computed as the ratio of
+%       pore volume and the residence time.
+%    2. Residence-time distribution. In this case, F is the integral of the
+%       RTD values, whereas Phi is the first-order moment (i.e., the
+%       integral of the product of time and RTD values).
 %   Making an analogue to 1D displacement theory, the F-Phi curve is the
 %   equivalent to a plot of the fractional flow versus saturation.
 %   Technical description: see Chapter 13.2-13.3 in the MRST book, Shavali
