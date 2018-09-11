@@ -50,6 +50,9 @@ function D = computeTOFandTracer(state, G, rock,  varargin)
 %           interpeted as all true, i.e., compute tracer fields for all
 %           wells.
 %
+%   computeWellTOFs - Boolean variable. If true, time-of-flight values are
+%           computed individually for each influence region by solving
+%
 %   solver - Function handle to solver for use in TOF/tracer equations.
 %           Default (empty) is matlab mldivide (i.e., \)
 %
@@ -66,7 +69,10 @@ function D = computeTOFandTracer(state, G, rock,  varargin)
 %       'inj'     - list of injection wells
 %       'prod'    - list of production wells
 %       'tof'     - time-of-flight and reverse time-of-flight returned
-%                   as an (G.cells.num x 2) vector
+%                   as an array where the first (G.cells.num x 2) elements
+%                   contain forward/backward TOF for the whole field, and
+%                   any other columns optinally contain TOF values for
+%                   individual influence regions
 %       'itracer' - steady-state tracer distribution for injectors
 %       'ipart'   - tracer partition for injectors
 %       'ptracer' - steady-state tracer distribution for producers
@@ -131,7 +137,7 @@ if (sum(sum_flux) == 0.0)
 end
 
 % Compute time-of-flight and tracer partition from injectors
-t = computeTimeOfFlight(state, G, rock, 'wells', opt.wells, ...
+t = computeTimeOfFlight(state, G, rock, 'wells', opt.wells,  ...
    'tracer', {opt.wells(D.inj).cells}, 'solver', opt.solver, ...
    'maxTOF', opt.maxTOF, 'processCycles', opt.processCycles, ...
    'computeWellTOFs', opt.computeWellTOFs);
