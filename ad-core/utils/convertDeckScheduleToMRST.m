@@ -103,7 +103,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 c(solIx) = c(gasIx)*W(j).solventFrac;
                 c(gasIx) = c(gasIx)*(1-W(j).solventFrac);
             end
-            W(j).compi = c(map);
+            ci = c(map);
+            W(j).compi = ci/sum(ci);
         end
         
         if isfield(W, 'solventFrac')
