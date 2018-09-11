@@ -9,8 +9,14 @@ function D = computeTOFandTracer(state, G, rock,  varargin)
 %   Construct the basis for flow diagnostic by computing
 %     1) time-of-flight        :   \nabla·(v T) = \phi,
 %     2) reverse time-of-flight:  -\nabla·(v T) = \phi,
-%     3) stationary tracer     :  -\nabla·(v C) = 0
-%   using a first-order finite-volume method with upwind flux.
+%     3) stationary tracer     :  ±\nabla·(v C) = 0
+%   using a first-order finite-volume method with upwind flux. A majority
+%   vote is also used to partition the volume and assign each cell to a
+%   unique tracer. Optionally, the routine can also compute time-of-flight
+%   values for each influence region by solving localized time-of-flight
+%   equations
+%         \nabla·(v C_i T) = \phi C_i,
+%   where C_i is the tracer concentration of each influence region.
 %
 % REQUIRED PARAMETERS:
 %   G     - Grid structure.
@@ -24,7 +30,7 @@ function D = computeTOFandTracer(state, G, rock,  varargin)
 %           'solveIncompFlow'.  Must contain valid cell interface fluxes,
 %           'state.flux'.
 %
-% OPTIONAL PARAMETERS:
+% OPTIONAL PARAMETERS (supplied in 'key'/value pairs):
 %   wells - Well structure as defined by function 'addWell'.  May be empty
 %           (i.e., wells = []) which is interpreted as a model without any
 %           wells.
@@ -39,22 +45,22 @@ function D = computeTOFandTracer(state, G, rock,  varargin)
 %           interpreted as all external no-flow (homogeneous Neumann)
 %           conditions.
 %
-%   tracerWells - Logical index vector indicating subset of wells for which 
-%           tracer-fields will be computed. Empty matrix (default) is 
-%           interpeted as all true, i.e., compute tracer fields for all 
+%   tracerWells - Logical index vector indicating subset of wells for which
+%           tracer-fields will be computed. Empty matrix (default) is
+%           interpeted as all true, i.e., compute tracer fields for all
 %           wells.
 %
 %   solver - Function handle to solver for use in TOF/tracer equations.
 %           Default (empty) is matlab mldivide (i.e., \)
 %
-%   maxTOF - Maximal TOF thresholding to avoid singular/ill-conditioned 
-%           systems. Default (empty) is 50*PVI (pore-volumes-injected).  
+%   maxTOF - Maximal TOF thresholding to avoid singular/ill-conditioned
+%           systems. Default (empty) is 50*PVI (pore-volumes-injected).
 %
 %   processCycles - Extend TOF thresholding to strongly connected
-%           components in flux graph by considering Dulmage-Mendelsohn 
-%           decomposition (dmperm). Recommended for highly cyclic flux 
-%           fields. Only takes effect if 'allowInf' is set to false.   
-%   
+%           components in flux graph by considering Dulmage-Mendelsohn
+%           decomposition (dmperm). Recommended for highly cyclic flux
+%           fields. Only takes effect if 'allowInf' is set to false.
+%
 % RETURNS:
 %   D - struct that contains the basis for computing flow diagnostics:
 %       'inj'     - list of injection wells
@@ -67,7 +73,7 @@ function D = computeTOFandTracer(state, G, rock,  varargin)
 %       'ppart'   - tracer partition for producers
 
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -87,9 +93,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 
 % Process optional parameters
-opt = struct('bc', [], 'src', [], 'wells', [], 'tracerWells', [], ...
-             'solver', [], 'maxTOF', [], 'processCycles', false, ...
-              'computeWellTOFs', false);
+opt = struct('bc', [],                ...
+             'src', [],               ...
+             'wells', [],             ...
+             'tracerWells', [],       ...
+             'solver', [],            ...
+             'maxTOF', [],            ...
+             'processCycles', false,  ...
+             'computeWellTOFs', false);
 opt = merge_options(opt, varargin{:});
 
 check_input(G, rock, opt);
