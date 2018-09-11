@@ -16,6 +16,9 @@ classdef TwoPhaseWaterGasModel < ThreePhaseBlackOilModel
             model.oil   = false;
             model.gas   = true;
             model.water = true;
+            if nargin < 4
+                [tsurf, tgrad] = deal(nan);
+            end
             model.t     = computeTemperatureField(G, tsurf, tgrad);
             model.name  = 'GasWater_2ph';
             model.gravity = gravity;
