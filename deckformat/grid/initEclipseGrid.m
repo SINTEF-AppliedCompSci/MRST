@@ -75,7 +75,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 
    % -- "Grid" ------------------------------------------------------------
-   elseif all(isfield(deck.GRID, {'DX', 'DY', 'DZ'}))
+   elseif all(isfield(deck.GRID, {'DX', 'DY', 'DZ'}) | ...
+              isfield(deck.GRID, {'DXV', 'DYV', 'DZV'}))
       if isfield(deck.GRID, 'NNC')
          error('Non-neighboring connections not supported.');
       end
@@ -84,9 +85,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       ny = deck.RUNSPEC.DIMENS(2);
       nz = deck.RUNSPEC.DIMENS(3);
 
-      dx = reshape(deck.GRID.DX, deck.RUNSPEC.DIMENS);
-      dy = reshape(deck.GRID.DY, deck.RUNSPEC.DIMENS);
-      dz = reshape(deck.GRID.DZ, deck.RUNSPEC.DIMENS);
+      dx = getDeltas(deck, 1);
+      dy = getDeltas(deck, 2);
+      dz = getDeltas(deck, 3);
 
       [dxv, n]= rlencode(dx,2);
       assert(n==ny, 'Only tensor-grid supported.');
@@ -129,4 +130,24 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             mapAxes(G(i).nodes.coords(:,1:2), deck.GRID.MAPAXES);
       end
    end
+end
+
+function dc = getDeltas(deck, index)
+xyz = 'XYZ';
+duv = ['D', xyz(index), 'V'];
+du = ['D', xyz(index)];
+dims = deck.RUNSPEC.DIMENS;
+
+if isfield(deck.GRID, duv)
+    % Single vector, expand to nx by ny by nz format
+    arg1 = {dims(1), dims(2), dims(3)};
+    arg2 = {1, 1, 1};
+    arg1{index} = 1;
+    arg2{index} = [];
+    dxv = reshape(deck.GRID.(duv), arg2{:});
+    dc = repmat(dxv, arg1{:});
+else
+    % We were given deltas directly
+    dc = reshape(deck.GRID.(du), dims);
+end
 end
