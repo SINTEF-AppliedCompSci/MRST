@@ -520,11 +520,11 @@ function W = process_wconprod(W, control, G, rock, well_id, p, opt)
 
         case 'bhp',
           val   = control.WCONPROD{i, 9};
-          compi = [0, 1, 0];  % Doesn't matter.
+          compi = [1, 1, 1];  % Doesn't matter.
 
         case 'thp',
           val   = control.WCONPROD{i, 10};
-          compi = [0, 1, 0];  % Doesn't matter.
+          compi = [1, 1, 1];  % Doesn't matter.
 
         otherwise
           dispif(opt.Verbose, ...
