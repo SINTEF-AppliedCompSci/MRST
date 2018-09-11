@@ -233,8 +233,10 @@ function finalize_reading_and_check_state(vec, fid, field, nel)
       % Finite expected element count, but we did not get that number.
       % Could be something resembling TOPS that has an implied copy
       % operation built into the specification.  Issue a warning here.
-      warning('VectorSize:Mismatch', ...
-              'Failed to Input Keyword Vector ''%s''', field);
+      if ~strcmp(field, 'TOPS')
+          warning('VectorSize:Mismatch', ...
+                  'Failed to Input Keyword Vector ''%s''', field);
+      end
    else
       % Element reading complete for this vector.  Finish up by skipping
       % the terminator ('/') and anything following that up to and
