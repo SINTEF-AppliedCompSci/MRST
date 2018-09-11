@@ -18,7 +18,7 @@ if opt.sum
     vol   = sum(RTD.volumes);
     alloc = sum(RTD.allocations);
 else
-    t     =  RTD.t;
+    t     = RTD.t;
     vals  = RTD.values;
     vol   = RTD.volumes(:).';
     alloc = RTD.allocations(:).';

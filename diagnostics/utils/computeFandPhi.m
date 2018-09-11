@@ -1,20 +1,25 @@
-function [F,Phi] = computeFandPhi(pv, tof)
+function [F,Phi] = computeFandPhi(arg1, varargin)
 %Compute flow-capacity/storage-capacity diagram (F,Phi)
 %
 % SYNOPSIS:
 %   [F,Phi] = computeFandPhi(pv, tof)
+%   [F,Phi] = computeFandPhi(rtd)
+%   [F,Phi] = computeFandPhi(rtd, 'sum', true/false);
 %
 % DESCRIPTION:
-%   Compute the flow-capacity/storage-capacity based upon time-of-flight
-%   values given per cell. Making an analogue to 1D displacement theory,
-%   the F-Phi curve is the equivalent to a plot of the fractional flow
-%   versus saturation. Technical description: see Shavali et al. (SPE
-%   146446), Shook and Mitchell (SPE 124625)
+%   Compute the flow-capacity/storage-capacity based upon either:
+%    - pore volumes and time-of-flight values given per cell, or
+%    - residence-time distribution.
+%   Making an analogue to 1D displacement theory, the F-Phi curve is the
+%   equivalent to a plot of the fractional flow versus saturation.
+%   Technical description: see Chapter 13.2-13.3 in the MRST book, Shavali
+%   et al. (SPE 146446), Shook and Mitchell (SPE 124625)
 %
 % PARAMETERS:
 %   vol - pore volume, one value per cell
 %   tof - two-component vector with time-of-flight from injector and
 %         time-of-flight from producer, one value per cell
+%   rtd - structure with residence-time distribution from computeRTD
 %
 % RETURNS:
 %   F   - flow capacity = cumulative flux for increasing time-of-flight
@@ -27,7 +32,7 @@ function [F,Phi] = computeFandPhi(pv, tof)
 %   `computeTOFandTracer`, `computeLorenz`, `computeSweep`
 
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -45,6 +50,12 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
+if isstruct(arg1)
+    [F,Phi] = computeFandPhiFromDist(arg1, varargin{:});
+    return
+else
+    pv = arg1; tof = varargin{1};
+end
 
 assert(size(tof,2) == 2, 'Tof input must have two columns.')
 
