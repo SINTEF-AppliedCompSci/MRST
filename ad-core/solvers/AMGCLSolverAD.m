@@ -22,6 +22,7 @@ classdef AMGCLSolverAD < LinearSolverAD
             solver = solver@LinearSolverAD();
             solver.reduceToCell = true;
             solver.tolerance = 1e-6;
+            solver.maxIterations = 100;
             
             [solver, extra] = merge_options(solver, varargin{:});
             solver.amgcl_setup = getAMGCLMexStruct(extra{:});
