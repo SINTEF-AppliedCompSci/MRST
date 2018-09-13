@@ -73,8 +73,10 @@ function [state, pressures] = initStateBlackOilAD(model, regions, varargin)
             onlyWat = state.s(cells, watIx) == 1;
             toOil(onlyWat) = false;
             state.pressure(cells(onlyWat)) = p(onlyWat, watIx);
-        end        
-        state.pressure(cells(toOil)) = p(toOil, oilIx);
+        end
+        if model.oil
+            state.pressure(cells(toOil)) = p(toOil, oilIx);
+        end
     end
     if ~all(touched)
         warning('Regions did not cover all cells. Model only partially initialized.');
