@@ -2,6 +2,9 @@ function [state, model, schedule]  = setupSPE10_AD(varargin)
     opt = struct('layers', 1:85, ...
                  'dt',      30*day, ...
                  'T',       2000*day, ...
+                 'I',       1:60, ...
+                 'J',       1:220, ...
+                 'make2D',  false, ...
                  'minporo', 0.01);
     opt = merge_options(opt, varargin{:});
     
@@ -36,7 +39,7 @@ function [state, model, schedule]  = setupSPE10_AD(varargin)
     fluid.pvMultR = @(p)(1 + cR.*(p-pRef));
 
     
-    rock = getSPE10rock(opt.layers);
+    rock = getSPE10rock(opt.I, opt.J, opt.layers);
 
     % Compute pore volume fraction of the full model
     volFrac = sum(rock.poro)/1.9141e+05;
@@ -44,8 +47,20 @@ function [state, model, schedule]  = setupSPE10_AD(varargin)
     
     
     % Grid
-    cartDims = [  60,  220,   numel(opt.layers)];
-    physDims = [1200, 2200, 2*cartDims(end)] .* ft();
+    nl = numel(opt.layers);
+    i = numel(opt.I);
+    j = numel(opt.J);
+    assert(i > 0 && i <= 60);
+    assert(j > 0 && j <= 220);
+    cartDims = [  i,  j,   nl];
+    physDims = [20*i, 10*j, 2*nl] .* ft();
+
+    if opt.make2D
+        assert(nl == 1);
+        cartDims = cartDims(1:2);
+        physDims = physDims(1:2);
+        rock.perm = rock.perm(:, 1);
+    end
 
     G = cartGrid(cartDims, physDims);
     try
@@ -63,12 +78,14 @@ function [state, model, schedule]  = setupSPE10_AD(varargin)
     makeProd = @(W, name, I, J) verticalWell(W, G, rock, I, J, [],...
         'Name', name, 'radius', 5*inch, 'sign', -1, 'Type', 'bhp',...
         'Val', 4000*psia, 'comp_i', [.5, .5]);
+    I = G.cartDims(1);
+    J = G.cartDims(2);
     W = [];
     W = makeProd(W, 'P1', 1, 1);
-    W = makeProd(W, 'P2', 60, 1);
-    W = makeProd(W, 'P3', 60, 220);
-    W = makeProd(W, 'P4', 1, 220);
-    W = verticalWell(W, G, rock, 30, 110, [], 'Name', 'I1', 'radius', 5*inch, ...
+    W = makeProd(W, 'P2', I, 1);
+    W = makeProd(W, 'P3', I, J);
+    W = makeProd(W, 'P4', 1, J);
+    W = verticalWell(W, G, rock, ceil(I/2), ceil(J/2), [], 'Name', 'I1', 'radius', 5*inch, ...
         'Type', 'rate', 'Val', volFrac*5000*stb/day, 'comp_i', [1, 0], 'Sign', 1);
     
     dt = rampupTimesteps(opt.T, opt.dt);
