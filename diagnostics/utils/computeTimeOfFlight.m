@@ -147,6 +147,9 @@ opt = struct('bc',              [], ...
 opt = merge_options(opt, varargin{:});
 
 checkInput(G, rock, opt)
+if size(state.flux, 2) > 1
+    state = validateStateForDiagnostics(state);
+end
 
 tr = opt.tracer;
 if ~iscell(tr), tr = {tr}; end
