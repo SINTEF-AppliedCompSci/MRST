@@ -77,6 +77,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         % Single input, wrap in cell
         wellsols = {wellsols};
     end
+    ndata = numel(wellsols);
     warning('ON', 'mrst:badcumsum');
     timesteps = validateTimesteps(wellsols, timesteps);
     
@@ -279,8 +280,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         set(0, 'CurrentFigure', fh);
         fld = getFieldString(fieldsel, true);
         wells = getFieldString(wellsel, false);
-        
-        ndata = numel(wellsols);
+
         nw = numel(wells);
         
         if nw == 1
@@ -349,13 +349,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 end
 
                 linew = get(wsl, 'Value');
-                if linew == 0;
+                if linew == 0
                     % Draw no lines
                     line = '';
                     linew = 1;
                 end
                 
-                if isfield(wellsols{i}{1}, 'status')
+                if numel(wellsols{i}) > 0 && isfield(wellsols{i}{1}, 'status')
                     % Mask away inactive data points
                     status = getData(wname, wellnames, 'status', wellsols{i});
                     d(status == 0, :) = nan;
@@ -377,7 +377,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 
                 tmp = wname;
                 if ndata > 1
-                    tmp = [tmp, ' (' opt.datasetnames{i}, ')']; %#ok
+                    if nw == 1
+                        tmp = opt.datasetnames{i};
+                    else
+                        tmp = [tmp, ' (' opt.datasetnames{i}, ')']; %#ok
+                    end
                 end
                 l = [l; tmp];
                 currentdata{i} = [currentdata{i}, d];
