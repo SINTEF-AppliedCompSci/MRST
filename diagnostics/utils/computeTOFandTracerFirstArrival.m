@@ -47,6 +47,11 @@ function D = computeTOFandTracerFirstArrival(state, G, rock,  varargin)
 %           interpreted as all external no-flow (homogeneous Neumann)
 %           conditions.
 %
+%   tracerWells - Logical index vector indicating subset of wells for which
+%           tracer-fields will be computed. Empty matrix (default) is
+%           interpeted as all true, i.e., compute tracer fields for all
+%           wells.
+%
 %   computeWellTOFs - Boolean variable. If true, time-of-flight values are
 %           computed individually for each influence region by solving
 %
@@ -104,6 +109,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 opt = struct('bc', [],                ...
              'src', [],               ...
              'wells', [],             ...
+             'tracerWells', [],       ...
              'solver', [],            ...
              'maxTOF', [],            ...
              'processCycles', false,  ...
@@ -117,10 +123,17 @@ end
 check_input(G, rock, opt);
 
 state = validateStateForDiagnostics(state);
+% If opt.tracerWells is empty include all
+if isempty(opt.tracerWells)
+    opt.tracerWells = true(numel(opt.wells), 1);
+end
+opt.tracerWells = opt.tracerWells(:)';
 
 % Find injectors and producers
-D.inj  = find(vertcat(state.wellSol.sign)>0);
-D.prod = find(vertcat(state.wellSol.sign)<0);
+wflux = getTotalWellSolFlux(state.wellSol);
+iwells = wflux > 0;
+D.inj  = find( iwells & opt.tracerWells);
+D.prod = find(~iwells & opt.tracerWells);
 
 % Check that we actually have a meaningful TOF scenario. If all wells are
 % shut off, return Inf.
@@ -184,4 +197,21 @@ function check_input(G, rock, opt)
            'for each cell in the grid.']);
 
    assert(min(rock.poro) > 0, 'Rock porosities must be positive numbers.');
+end
+
+%--------------------------------------------------------------------------
+
+function flux = getTotalWellSolFlux(wellSol)
+    nw = numel(wellSol);
+    flux = zeros(1, nw);
+    for i = 1:nw
+        ws = wellSol(i);
+        f = sum(ws.flux);
+        if isempty(f) || f == 0 && ~isempty(ws.sign)
+            % If we have a sign for well and there is no flux defined, set
+            % it to a small value of right sign instead.
+            f = sqrt(eps)*ws.sign;
+        end
+        flux(i) = f;
+    end
 end
