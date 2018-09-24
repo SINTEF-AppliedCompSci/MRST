@@ -17,6 +17,7 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     rock  = model.rock;
     G     = model.G;
     disc  = model.disc;
+    flux2Vel = disc.velocityInterp.faceFlux2cellVelocity;
         
     assert(~(opt.solveForWater && opt.solveForOil));
         
@@ -121,12 +122,12 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     
     TgW = T_all.*gW;
     TgO = T_all.*gO;
-    TgWc = op.faceFlux2cellVelocity(TgW);
-    TgOc = op.faceFlux2cellVelocity(TgO);
+    TgWc = flux2Vel(TgW);
+    TgOc = flux2Vel(TgO);
     
     % Viscous flux
     vT  = sum(state.flux,2);
-    vTc = op.faceFlux2cellVelocity(vT);
+    vTc = flux2Vel(vT);
     
     % Cell integrand functions---------------------------------------------
         

@@ -1,15 +1,15 @@
-classdef TransportOilWaterModelDG < TransportOilWaterModel
+classdef TransportBlackOilModelDG < TransportBlackOilModel
     % Two phase oil/water system without dissolution with discontinuous
     % Galerking discretization
     
     properties
-        disc % Discretization
+        disc % DG discretization
     end
 
     methods
-        function model = TransportOilWaterModelDG(G, rock, fluid, varargin)
+        function model = TransportBlackOilModelDG(G, rock, fluid, varargin)s
             
-            model = model@TransportOilWaterModel(G, rock, fluid);
+            model = model@TransportBlackOilModel(G, rock, fluid);
             model.disc = [];
             % If we use reordering, this tells us which cells are actually
             % part of the discretization, and which cells that are included
@@ -30,6 +30,7 @@ classdef TransportOilWaterModelDG < TransportOilWaterModel
                 = transportEquationOilWaterDG(state0, state, model, dt, drivingForces, ...
                                   'solveForOil'  , model.conserveOil  , ...
                                   'solveForWater', model.conserveWater, ...
+                                  'solveForGas'  , model.conserveGas  , ...
                                   varargin{:}                         );
             
         end
@@ -47,6 +48,9 @@ classdef TransportOilWaterModelDG < TransportOilWaterModel
                 case {'oil', 'sodof'}
                     index = 2;
                     fn = 'sdof';
+                case {'gas', 'sgdof'}
+                    index = 3;
+                    fn = 'sdof';
                 case{'saturation', 'sdof'}
                     index = ':';
                     fn = 'sdof';
@@ -58,9 +62,25 @@ classdef TransportOilWaterModelDG < TransportOilWaterModel
 
         % ----------------------------------------------------------------%
         function vars = getSaturationVarNames(model)
-            vars = {'sWdof', 'sOdof'};
+            vars = {'sWdof', 'sOdof', 'sGdof'};
             ph = model.getActivePhases();
             vars = vars(ph);
+        end
+        
+        %-----------------------------------------------------------------%
+        function integrand = cellIntegrand(model, x, cellNo, f, sdof, sdof0, state, state0)
+            
+            % Evaluate saturations and fractional flow at cubature points
+            s  = model.disc.evaluateSaturation(x, cellNo, sdof , state );
+            s0 = model.disc.evaluateSaturation(x, cellNo, sdof0, state0);
+            f = f(s, 1-s, cellNo, cellNo);
+            integrand = @(psi, grad_psi) fun(s, s0, f, cellNo, psi, grad_psi);
+            
+        end
+        
+        %-----------------------------------------------------------------%
+        function integrand = faceIntegrand(model, fun)
+            
         end
         
         % ----------------------------------------------------------------%
