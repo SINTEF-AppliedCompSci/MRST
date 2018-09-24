@@ -1,13 +1,13 @@
-mrstModule add dg vem vemmech ad-props ad-core ad-blackoil blackoil-sequential gasinjection reorder matlab_bgl upr mrst-gui spe10
+mrstModule add dg vem vemmech ad-props ad-core ad-blackoil blackoil-sequential gasinjection reorder matlab_bgl upr mrst-gui spe10 gasinjection
 mrstVerbose on
 
 %%
 
 if 1
 
-%     xmax = [500, 1000, 500]*meter;
+    xmax = [500, 1000, 500]*meter;
 %     xmax = [500, 1000, 500]/2*meter;
-    xmax = [100, 300, 100]*meter;
+%     xmax = [100, 300, 100]*meter;
 %     n = [5, 10, 5];
     n = [10, 20, 10];
 
@@ -154,8 +154,8 @@ for dNo = runIx
                                 'dsMaxAbs'          , 0.1);    
     state0 = assignDofFromState(modelDG.transportModel.disc, state0);
 % 
-    oh = getOutHandler(['dg',num2str(degree(dNo))]);
-    rh = getRepHandler(['dg',num2str(degree(dNo))]);
+    oh = getOutHandler(['dg',num2str(degree(dNo)),'-2']);
+    rh = getRepHandler(['dg',num2str(degree(dNo)),'-2']);
 %     [oh, rh] = deal([]);
 %     [wsDG{dNo}, statesDG{dNo}, repDG{dNo}] ...
 %         = simulateScheduleAD(state0, modelDG, schedule, ...
