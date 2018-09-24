@@ -450,9 +450,9 @@ function G = tensorGrid1D(x, varargin)
    G.nodes = struct('num', numN, 'coords', coords);
 
    cellFaces = [1; reshape(repmat(2:numC, 2, 1), [], 1); numC+1];
-
+   cellFaceTag = repmat([1; 2], numC, 1);
    % Faces are equal to nodes for this type of grid
-   G.cells.faces = cellFaces;
+   G.cells.faces = [cellFaces, cellFaceTag];
    G.faces.nodes = cellFaces;
    if opt.cellnodes
       G.cellNodes = (1:numC)';

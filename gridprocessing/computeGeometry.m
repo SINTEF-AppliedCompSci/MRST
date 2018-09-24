@@ -287,7 +287,7 @@ function [faceAreas, faceNormals, faceCentroids, ...
   cellVolumes = diff(G.nodes.coords);
 
   cellNo = rldecode((1:G.cells.num)', diff(G.cells.facePos));
-  cellCentroids = accumarray(cellNo, G.nodes.coords(G.cells.faces)) / 2;
+  cellCentroids = accumarray(cellNo, G.nodes.coords(G.cells.faces(:, 1))) / 2;
 end
 
 %--------------------------------------------------------------------------
