@@ -2,25 +2,29 @@ classdef DGDiscretization < HyperbolicDiscretization
     
     properties
 
-        degree               % Degree of discretization, dG(degree)
-        basis                % Type of basis functions. Standard is tensor 
-                             % products of Legendre polynomials.
-        dim                  % Dimension of disc to facilitate e.g. 2D 
-                             % simulations on horizontal slice of 3D reservoir
+        degree              % Degree of discretization, dG(degree)
+        basis               % Type of basis functions. Standard is tensor 
+                            % products of Legendre polynomials.
+        dim                 % Dimension of disc to facilitate e.g. 2D 
+                            % simulations on horizontal slice of 3D
+                            % reservoir
         
-        useUnstructCubature  % Bool to tell the method to use experimental 
-                             % unstructured cubature class
-        volumeCubature       % Cubature for volume integrals
-        surfaceCubature      % Cubature for surface integrals
+        useUnstructCubature % Bool to tell the method to use experimental 
+                            % unstructured cubature class
+        volumeCubature      % Cubature for volume integrals
+        surfaceCubature     % Cubature for surface integrals
         
-        jumpTolerance        % Tolerance for sat jumps across interfaces
-        outTolerance         % Tolerance for sat outside [0,1]
-        meanTolerance        % Tolerance for mean sat outside [0,1]
-        limiterType          % Type of limiter
+        jumpTolerance       % Tolerance for sat jumps across interfaces
+        outTolerance        % Tolerance for sat outside [0,1]
+        meanTolerance       % Tolerance for mean sat outside [0,1]
+        limiterType         % Type of limiter
         
-        internalConnParent   % If we only solve on subset of full grid, we
-                             % must keep tract of internal connections in 
-                             % the full grid.
+        velocityInterp      % Function for mapping face fluxes to cell
+                            % velocity/ies
+        
+        internalConnParent  % If we only solve on subset of full grid, we
+                            % must keep tract of internal connections in 
+                            % the full grid.
         
     end
     
@@ -52,6 +56,9 @@ classdef DGDiscretization < HyperbolicDiscretization
             
             % Replace basis string by dG basis object
             disc.basis  = dgBasis(disc.dim, disc.degree, disc.basis);
+            
+            % Set up velocity interpolation
+            disc.velocityInterp = velocityInterpolation(G, 'mimetic');
             
             % Create cubatures
             disc.useUnstructCubature = false;
