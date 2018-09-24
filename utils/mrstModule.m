@@ -148,7 +148,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          otherwise,
             error(msgid('Command:Unsupported'), ...
                  ['Command word ''%s'' unsupported. Must be one of ', ...
-                  '''add'', ''clear'', ''list'', or ''reset''.'], cmd);
+                  '''add'', ''clear'', ''list'', ''gui'', or ''reset''.'], cmd);
       end
 
    elseif nargout == 0,
