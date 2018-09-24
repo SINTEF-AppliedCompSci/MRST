@@ -31,6 +31,9 @@ classdef CompositionalPropertyModel < PropertyModel
         function mu = computeViscosity(model, P, x, Z, T, isLiquid)
             % Compute viscosity using the Lohrenz, Bray and Clark
             % correlation for hydrocarbon mixtures (LBC viscosity)
+            if ~iscell(x)
+                x = expandMatrixToCell(x);
+            end
             ncomp = numel(x);
             molfactor = 1/gram;
             
