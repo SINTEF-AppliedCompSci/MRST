@@ -73,25 +73,34 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-if ~all(celldim > 0),
+if ~all(celldim > 0)
    error('CELLDIM must be positive');
 end
 
 physdim = celldim;
-if nargin > 1 && isnumeric(varargin{1}),
+if nargin > 1 && isnumeric(varargin{1})
    physdim  = varargin{1};
    varargin = varargin(2 : end);
 end
 
+dim = numel(celldim);
+
 x = linspace(0, physdim(1), celldim(1)+1);
-y = linspace(0, physdim(2), celldim(2)+1);
-if numel(celldim) == 3,
-   z = linspace(0, physdim(3), celldim(3)+1);
-   G = tensorGrid(x, y, z, varargin{:});
-else
-   G = tensorGrid(x, y, varargin{:});
+if dim > 1
+    y = linspace(0, physdim(2), celldim(2)+1);
 end
 
+switch dim
+    case 1
+        G = tensorGrid(x, varargin{:});
+    case 2
+        G = tensorGrid(x, y, varargin{:});
+    case 3
+        z = linspace(0, physdim(3), celldim(3)+1);
+        G = tensorGrid(x, y, z, varargin{:});
+    otherwise
+        error('Cannot create grid with %d dimensions: Only 1, 2 or 3 is valid.', dim);
+end
 
 % Record grid constructur in grid.
 G.type    = [G.type, { mfilename }];

@@ -1,7 +1,8 @@
-function G = tensorGrid(x, y, varargin)
+function G = tensorGrid(x, varargin)
 %Construct Cartesian grid with variable physical cell sizes.
 %
 % SYNOPSIS:
+%   G = tensorGrid(x)
 %   G = tensorGrid(x, y)
 %   G = tensorGrid(x, y, 'depthz', dz)
 %   G = tensorGrid(x, y, z)
@@ -42,8 +43,8 @@ function G = tensorGrid(x, y, varargin)
 %       There is, however, an additional field not described in
 %       `grid_structure:
 %
-%           `cartDims` is a length 2 or 3 vector giving number of cells in
-%           each coordinate direction.  In other words 
+%           `cartDims` is a length 1, 2 or 3 vector giving number of cells
+%           in each coordinate direction.  In other words 
 %
 %                      `all(G.cartDims == celldim)`.
 %
@@ -73,11 +74,22 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
+   % Find first char option
+   firstOpt = find(cellfun(@ischar, varargin), 1, 'first');
+   dim = nargin();
+   if ~isempty(firstOpt)
+       dim = dim - firstOpt;
+   end
 
-   if mod(nargin, 2), %3D
-      G = tensorGrid3D(x, y, varargin{:});
-   else
-      G = tensorGrid2D(x, y, varargin{:});
+   switch dim
+       case 1
+           G = tensorGrid1D(x, varargin{:});
+       case 2
+           G = tensorGrid2D(x, varargin{:});
+       case 3
+           G = tensorGrid3D(x, varargin{:});
+       otherwise
+           error('Invalid grid dimension "%d"', dim);
    end
 
    % Record grid constructor in grid.
@@ -91,21 +103,21 @@ function G = tensorGrid3D(x, y, z, varargin)
    %-----------------------------------------------------------------------
    % Check input data -----------------------------------------------------
    x = x(:); dx=diff(x);
-   if ~all(dx > 0),
+   if ~all(dx > 0)
       warning('tensorGrid:xData', 'Nonmonotone x-data, truncating..');
       while ~all(dx>0)
          i = find(dx>0); x = x([1; i+1]); dx = diff(x);
       end
    end
    y=y(:); dy = diff(y);
-   if ~all(dy > 0),
+   if ~all(dy > 0)
       warning('tensorGrid:yData', 'Nonmonotone y-data, truncating..');
       while ~all(dy>0)
          i = find(dy>0); y = y([1; i+1]); dy = diff(y);
       end
    end
    z=z(:); dz = diff(z);
-   if ~all(dz > 0),
+   if ~all(dz > 0)
       warning('tensorGrid:yData', 'Nonmonotone z-data, truncating..');
       while ~all(dz>0)
          i = find(dz>0); z = z([1; i+1]); dz = diff(z);
@@ -117,7 +129,7 @@ function G = tensorGrid3D(x, y, z, varargin)
 
    opt = struct('depthz', zeros(sx+1, sy+1), 'cellnodes', false);
    opt = merge_options(opt, varargin{:});
-   if numel(opt.depthz) ~= (sx+1) * (sy+1),
+   if numel(opt.depthz) ~= (sx+1) * (sy+1)
       error(msgid('DepthZ:WrongSize'), ...
          'Input argument ''depthz'' is wrongly sized.')
    end
@@ -230,7 +242,7 @@ function G = tensorGrid3D(x, y, z, varargin)
 
    %-----------------------------------------------------------------------
    % Generate cell nodes -------------------------------------------------
-   if opt.cellnodes,
+   if opt.cellnodes
       % Index to first node in each cell
       k  = firstnodeindex([sx+1, sy+1, sz+1], 1:sx, 1:sy, 1:sz);
       di = 1;
@@ -254,14 +266,14 @@ function G = tensorGrid3D(x, y, z, varargin)
 
    G.cells.faces = cellFaces;
    G.faces.nodes = faceNodes;
-   if opt.cellnodes,
+   if opt.cellnodes
       G.cellNodes = cNodes;
    end
    G.cartDims = celldim;
 end
 
 
-function G =tensorGrid2D(x, y, varargin)
+function G = tensorGrid2D(x, y, varargin)
    mrstNargInCheck(2, 4, nargin);
    opt = struct('cellnodes', false);
    opt = merge_options(opt, varargin{:});
@@ -269,14 +281,14 @@ function G =tensorGrid2D(x, y, varargin)
    %-----------------------------------------------------------------------
    % Check input data -----------------------------------------------------
    x = x(:); dx=diff(x);
-   if ~all(dx > 0),
+   if ~all(dx > 0)
       warning('tensorGrid:xData', 'Nonmonotone x-data, truncating..');
       while ~all(dx>0)
          i = find(dx>0); x = x([1; i+1]); dx = diff(x);
       end
    end
    y=y(:); dy = diff(y);
-   if ~all(dy > 0),
+   if ~all(dy > 0)
       warning('tensorGrid:yData', 'Nonmonotone y-data, truncating..');
       while ~all(dy>0)
          i = find(dy>0); y = y([1; i+1]); dy = diff(y);
@@ -369,7 +381,7 @@ function G =tensorGrid2D(x, y, varargin)
 
    %-----------------------------------------------------------------------
    % Generate cell nodes --------------------------------------------------
-   if opt.cellnodes,
+   if opt.cellnodes
       % Index to first node in each cell
       k  = firstnodeindex([sx+1, sy+1], 1:sx, 1:sy);
       di = 1;
@@ -392,11 +404,63 @@ function G =tensorGrid2D(x, y, varargin)
 
    G.cells.faces = cellFaces;
    G.faces.nodes = faceNodes;
-   if opt.cellnodes,
+   if opt.cellnodes
       G.cellNodes = cNodes;
    end
    G.cartDims = celldim;
 end
+
+function G = tensorGrid1D(x, varargin)
+   mrstNargInCheck(1, 3, nargin);
+   opt = struct('cellnodes', false);
+   opt = merge_options(opt, varargin{:});
+
+   %-----------------------------------------------------------------------
+   % Check input data -----------------------------------------------------
+   x = x(:); dx=diff(x);
+   if ~all(dx > 0)
+      warning('tensorGrid:xData', 'Nonmonotone x-data, truncating..');
+      while ~all(dx>0)
+         i = find(dx>0); x = x([1; i+1]); dx = diff(x);
+      end
+   end
+   sx = numel(x)-1;
+   celldim = sx;
+
+   numC = sx;         % Number of cells.
+   numN = (sx+1);     % Number of nodes.
+   numF = numN;       % Number of faces.
+
+   %-----------------------------------------------------------------------
+   % Nodes/Coordinates ----------------------------------------------------
+
+   coords = x;
+   v = (0:numC)';
+   neighbors = [v, circshift(v, -1)];
+
+   G.cells = struct('num',      numC,                   ...
+                    'facePos',  (1:2:(numC+1)*2)', ...
+                    'indexMap', (1 : numC)');
+
+   G.faces = struct('num',       numF,                   ...
+                    'nodePos',   (1:2:(numC+1)*2)', ...
+                    'neighbors', neighbors,       ...
+                    'tag',       zeros(numF, 1));
+
+   G.nodes = struct('num', numN, 'coords', coords);
+
+   cellFaces = [1; reshape(repmat(2:numC, 2, 1), [], 1); numC+1];
+
+   % Faces are equal to nodes for this type of grid
+   G.cells.faces = cellFaces;
+   G.faces.nodes = cellFaces;
+   if opt.cellnodes
+      G.cellNodes = (1:numC)';
+   end
+   G.cartDims = celldim;
+end
+
+
 function k = firstnodeindex(sz, varargin)
    assert(numel(sz) == numel(varargin));
    assert(all(cellfun(@min, varargin) > 0));

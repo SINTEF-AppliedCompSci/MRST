@@ -73,7 +73,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-if numel(G) > 1,
+if numel(G) > 1
    error(msgid('Grid:MultiComponent'), ...
          'Cannot plot more than one grid at a time.');
 end
@@ -82,12 +82,12 @@ end
 %
 cells = (1 : G.cells.num) .';
 
-if mod(numel(varargin), 2) == 1,
+if mod(numel(varargin), 2) == 1
    % Caller requested graphical output from a particular subset of the grid
    % cells.  Honour request, but treat an empty 'cells' argument as if the
    % caller requested the default behaviour (i.e., cells = 1:G.cells.num).
    %
-   if isnumeric(varargin{1}),
+   if isnumeric(varargin{1})
       cells = varargin{1};
    elseif islogical(varargin{1})
       cells = find(varargin{1});
@@ -102,7 +102,7 @@ if mod(numel(varargin), 2) == 1,
    varargin = varargin(2 : end);
 end
 
-if isempty(cells),
+if isempty(cells)
    warning(msgid('SubGrid:Empty'), ...
           'Empty cell selection in ''plotGrid''.  No graphics for you.')
    if nargout > 0, varargout{1} = -1; end
@@ -118,7 +118,7 @@ if ~isempty(varargin)
      'Additional arguments to plotGrid should be ''prop''/value pairs.');
 end
 
-if G.griddim == 3,
+if G.griddim == 3
    f = boundaryFaces(G, cells);
    subFaces = @getSubFaces;
 else
@@ -126,7 +126,9 @@ else
    subFaces = @getSubCells;
 end
 
-if isCoarseGrid(G),
+if G.griddim == 1
+   plot(G.cells.centroids, ones(G.cells.num, 1), varargin{:});
+elseif isCoarseGrid(G)
    % Separate otions: edge-related stuff is sent to plotFaceOutline
    ix           = rldecode(strncmpi('edge', varargin(1:2:end), 4), 2);
    outline_opts = varargin(ix);
