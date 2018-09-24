@@ -44,7 +44,7 @@ state0.cells = (1:G.cells.num)';
 degree = [1];
 statesDG = cell(numel(degree),1);
 for dNo = 1:numel(degree)
-    disc    = DGDiscretization(modelDG.transportModel, 3, 'degree', degree(dNo), 'basis', 'legendre', 'useUnstructCubature', true);
+    disc    = DGDiscretization(modelDG.transportModel, 'degree', degree(dNo), 'basis', 'legendre', 'useUnstructCubature', true);
     modelDG.transportModel = TransportOilWaterModelDG(G, rock, fluid, 'disc', disc, 'dsMaxAbs', 0.2);    
 %     modelDG.transportModel.AutoDiffBackend = DiagonalAutoDiffBackend();
 

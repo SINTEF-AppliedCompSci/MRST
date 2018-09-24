@@ -2,77 +2,95 @@ classdef DGDiscretization < HyperbolicDiscretization
     
     properties
 
-        dim
-        degree
-        basis
-        volumeCubature
-        surfaceCubature
-        useUnstructCubature
-        jumpTolerance
-        outTolerance
-        meanTolerance
-        internalConnParent
-        limiterType
+        degree               % Degree of discretization, dG(degree)
+        basis                % Type of basis functions. Standard is tensor 
+                             % products of Legendre polynomials.
+        dim                  % Dimension of disc to facilitate e.g. 2D 
+                             % simulations on horizontal slice of 3D reservoir
+        
+        useUnstructCubature  % Bool to tell the method to use experimental 
+                             % unstructured cubature class
+        volumeCubature       % Cubature for volume integrals
+        surfaceCubature      % Cubature for surface integrals
+        
+        jumpTolerance        % Tolerance for sat jumps across interfaces
+        outTolerance         % Tolerance for sat outside [0,1]
+        meanTolerance        % Tolerance for mean sat outside [0,1]
+        limiterType          % Type of limiter
+        
+        internalConnParent   % If we only solve on subset of full grid, we
+                             % must keep tract of internal connections in 
+                             % the full grid.
         
     end
     
     methods
         
         %-----------------------------------------------------------------%
-        function disc = DGDiscretization(model, dim, varargin)
+        function disc = DGDiscretization(model, varargin)
             
             disc = disc@HyperbolicDiscretization(model);
             
-            disc.dim    = dim;
+            G = disc.G;
+            
+            % Standard dG properties
             disc.degree = 1;
             disc.basis  = 'legendre';
+            disc.dim    = G.griddim;
+            
+            % Limiter tolerances
             disc.jumpTolerance = 0.2;
-            disc.outTolerance = 1e-4;
+            disc.outTolerance  = 1e-4;
             disc.meanTolerance = 1e-4;
+            disc.limiterType   = 'kill';
+            
+            % Specifics for reordering
+            disc.internalConnParent  = disc.internalConn;
+            disc.G.parent            = G;
+            
+            disc = merge_options(disc, varargin{:});
+            
+            % Replace basis string by dG basis object
+            disc.basis  = dgBasis(disc.dim, disc.degree, disc.basis);
+            
+            % Create cubatures
             disc.useUnstructCubature = false;
-            disc.internalConnParent = disc.internalConn;
-            disc.limiterType = 'kill';
-            
-            disc        = merge_options(disc, varargin{:});
-            
-            disc.basis  = dgBasis(dim, disc.degree, disc.basis);
-            
-            G = disc.G;
-            disc.G.parent = G;
+            prescision = disc.degree + 1;
             if G.griddim == 2
                 if disc.degree == 0 || disc.useUnstructCubature
-                    disc.volumeCubature = Unstruct2DCubature(disc.G, disc.degree + 1, disc.internalConn);
+                    disc.volumeCubature = Unstruct2DCubature(G, prescision, disc.internalConn);
                 else
-                    disc.volumeCubature  = TriangleCubature(disc.G, disc.degree + 1, disc.internalConn);
+                    disc.volumeCubature = TriangleCubature(G, prescision, disc.internalConn);
                 end
-                disc.surfaceCubature  = LineCubature(disc.G, disc.degree + 1, disc.internalConn);
+                disc.surfaceCubature = LineCubature(G, prescision, disc.internalConn);
             else
                 if disc.degree == 0 || disc.useUnstructCubature
-                    disc.volumeCubature = Unstruct3DCubature(disc.G, disc.degree + 1, disc.internalConn);
-                    disc.surfaceCubature = Unstruct2DCubature(disc.G, disc.degree + 1, disc.internalConn);
-%                     disc.surfaceCubature = TriangleCubature(disc.G, disc.degree + 1, disc.internalConn);
+                    disc.volumeCubature  = Unstruct3DCubature(G, prescision, disc.internalConn);
+                    disc.surfaceCubature = Unstruct2DCubature(G, prescision, disc.internalConn);
                 else
-                    disc.volumeCubature  = TetrahedronCubature(disc.G, disc.degree + 1, disc.internalConn);
-                    disc.surfaceCubature = TriangleCubature(disc.G, disc.degree + 1, disc.internalConn);
+                    disc.volumeCubature  = TetrahedronCubature(G, prescision, disc.internalConn);
+                    disc.surfaceCubature = TriangleCubature(G, prescision, disc.internalConn);
                 end
             end
-%             [W, x, w, ii, jj, cellNo] = disc.volumeCubature.getCubature((1:G.cells.num)', 'cell');
-%             disc.volumeCubature.W = W;
-%             [W, x, w, ii, jj, cellNo] = disc.surfaceCubature.getCubature((1:G.cells.num)', 'cellsurface');
-%             disc.surfaceCubature.W = W;
             
         end
         
-        %-----------------------------------------------------------------%        
+        %-----------------------------------------------------------------%
         function state = assignDofFromState(disc, state)
-
+            % Assign dofs from state (typically initial state). All dofs
+            % for dofNo > 0 are set to zero.
+            
+            % Set degree to disc.degree in all cells
             state.degree = repmat(disc.degree, disc.G.cells.num, 1);
+            
+            % Create vector dofPos for position of dofs in state.sdof
             state = disc.updateDofPos(state);
             
-            state.nDof = disc.getnDof(state);
-            sdof = zeros(sum(state.nDof), size(state.s,2));
+            state.nDof  = disc.getnDof(state);
+            sdof        = zeros(sum(state.nDof), size(state.s,2));
             
-            ix = disc.getDofIx(state, 1);
+            % Assing constant dof equal to cell saturation in each cell
+            ix          = disc.getDofIx(state, 1);
             sdof(ix, :) = state.s;
 
             state.sdof = sdof;
@@ -81,92 +99,60 @@ classdef DGDiscretization < HyperbolicDiscretization
         
         %-----------------------------------------------------------------%
         function state = updateDofPos(disc, state)
+            % Update dosfPos (position of dofs in state.sdof) based on
+            % changes in state.degree, or create dofPos vector if it does
+            % not exist. Dofs for cell i are found in
+            %
+            %   state.sdof(dofPos(:,i),:),
+            %
+            % Zeros are included to easily map dofs from one timestep to
+            % the next.
 
-            dp = reshape((1:disc.G.cells.num*disc.basis.nDof)', disc.basis.nDof, []);            
-            if nargin == 1
-                nd = repmat(disc.basis.nDof, numel(state.cells), 1);
-            else
-                nd = disc.getnDof(state);
-                subt = cumsum([0; disc.basis.nDof - nd(1:end-1)]);
-                [ii, jj, v] = find(dp);
-                
-                if size(ii,1) == 1, ii = ii'; end
-                if size(jj,1) == 1, jj = jj'; end
-                if size(v ,1) == 1, v  =  v'; end
+            dp = reshape((1:disc.G.cells.num*disc.basis.nDof)', disc.basis.nDof, []);
+            
+            nd = disc.getnDof(state);
+            subt = cumsum([0; disc.basis.nDof - nd(1:end-1)]);
+            [ii, jj, v] = find(dp);
 
-                cnDof = cumsum(nd);
+            if size(ii,1) == 1, ii = ii'; end
+            if size(jj,1) == 1, jj = jj'; end
+            if size(v ,1) == 1, v  =  v'; end
 
-                v = v - subt(jj);
-                v(v > cnDof(jj)) = 0;
-                dp = full(sparse(ii, jj, v));
-            end
+            cnDof = cumsum(nd);
+
+            v = v - subt(jj);
+            v(v > cnDof(jj)) = 0;
+            dp = full(sparse(ii, jj, v));
             
             state.nDof   = nd;
             state.dofPos = dp;
-            
-%             disc.state = state;
-            
-        end
-        
-        %-----------------------------------------------------------------%
-        function [xhat, translation, scaling] = transformCoords(disc, x, cells, inverse, useParent)
-            
-            G = disc.G;
-            
-            if nargin < 4, inverse = false; end
-            if nargin < 5, useParent  = false; end
-            
-            if isfield(G, 'mappings') && useParent
-%                 cells = G.mappings.cellMap.new2old(cells);
-                G = G.parent;
-            end
-            
-            translation = -G.cells.centroids(cells,:);
-            if isfield(G.cells, 'dx')
-                scaling = 1./(G.cells.dx(cells,:)/2);
-            else
-                scaling = 1./(G.cells.diameters(cells)/(2*sqrt(G.griddim)));
-            end
-            
-            if ~inverse%nargin < 4 || ~inverse
-                xhat = (x + translation).*scaling;
-                xhat = xhat(:, 1:disc.dim);
-                scaling = scaling(:, 1:disc.dim);
-                translation = translation(:, 1:disc.dim);
-            else
-                xhat = x./scaling - translation;
-            end
-               
-        end
-        
-        %-----------------------------------------------------------------%
-        function v = trimValues(disc, v)
-            
-            tol = eps(mean(disc.G.cells.volumes));
-            tol = -inf;
-%             tol = 1e-7;
-            ix = abs(v) < tol;
-            if isa(v, 'ADI')
-                v.val(ix) = 0;
-            else
-                v(ix) = 0;
-            end
             
         end
         
         %-----------------------------------------------------------------%
         function ix = getDofIx(disc, state, dofNo, cells, includezero)
+            % Get position of dofs in state.sdof for a given cell
+            %
+            % PARAMETERS:
+            %   state       - State with field sdof
+            %   dofNo       - Dof number we want the position of. Empty
+            %                 dofNo returns position of all dofs for cells
+            %   cells       - Cells we want the dof position for. If empty,
+            %                 positions of dofNo are returned for all cells.
+            %   includeZero - Boolean indicating of we should include zeros
+            %                 or not (see updateDofPos)
+            %
+            % RETURNS:
+            %   ix - Indices into states.sdof. Dof number dofNo for cells
+            %        are found in state.sdof(ix,:);
 
             G = disc.G;
-            if nargin == 2
-                cells = 1:disc.G.cells.num;
+            if nargin < 3 || isempty(dofNo)
+                % dofNo not given, return ix for all dofs
                 dofNo = 1:disc.basis.nDof;
-            elseif nargin == 3
+            elseif nargin < 4
+                % Cells not given, return ix for all cels
                 cells = 1:G.cells.num;
-            else
-                if isempty(dofNo)
-                    dofNo = 1:disc.basis.nDof;
-                end
             end
             
             ix = state.dofPos(dofNo, cells);
@@ -182,7 +168,59 @@ classdef DGDiscretization < HyperbolicDiscretization
         end
         
         %-----------------------------------------------------------------%
+        function [xhat, translation, scaling] = transformCoords(disc, x, cells, inverse, useParent)
+            % Transfor coordinates from physical to reference coordinates. 
+            %
+            % PARAMETERS:
+            %   x         - Coordinates in physical space
+            %   cells     - Cells we want reference coordinates for, cells(ix)
+            %               are used when transforming x(ix,:)
+            %   inverse   - Boolean indicatiing if we are mapping 
+            %               to (inverse = false) or from (inverse = true)
+            %               reference coordiantes. Default = false.
+            %   useParent - Boolean indicating if we are working on the
+            %               full grid (G.parent) or a subgrid.
+            %
+            % RETURNS:
+            %   xhat        - Transformed coordinates
+            %   translation - Translation applied to x
+            %   scaling     - Scaling applied to x
+            
+            G = disc.G;
+            
+            if nargin < 4, inverse   = false; end
+            if nargin < 5, useParent = false; end
+            
+            if isfield(G, 'mappings') && useParent
+                G = G.parent;
+            end
+            
+            % Coordinates are centered in cell center
+            translation = -G.cells.centroids(cells,:);
+            if isfield(G.cells, 'dx')
+                % Scaling found from dimensions of minimum bounding box
+                % aligned with coordinate axes that contains the cell
+                scaling = 1./(G.cells.dx(cells,:)/2);
+            else
+                % If it G.cells.dx is not computed, we use approximation
+                dx = G.cells.volumes(cells).^(1/G.griddim);
+                scaling = 1./(dx/2);
+            end
+            
+            if ~inverse
+                xhat = (x + translation).*scaling;
+                xhat = xhat(:, 1:disc.dim);
+                scaling     = scaling(:, 1:disc.dim);
+                translation = translation(:, 1:disc.dim);
+            else
+                xhat = x./scaling - translation;
+            end
+               
+        end
+        
+        %-----------------------------------------------------------------%
         function nDof = getnDof(disc, state)
+            % Get number of dofs for each cell from degree.
             
             if disc.degree < 0
                 nDof = 0;
@@ -195,20 +233,24 @@ classdef DGDiscretization < HyperbolicDiscretization
         
         %-----------------------------------------------------------------%
         function state = mapDofs(disc, state, state0)
+            % Map dofs from state0 to state, typically from one timestep to
+            % the next, when we start with maximum number of dofs in all
+            % cells.
             
+            % Update dofPos
             state = disc.updateDofPos(state);
             
             if all(state.nDof == state0.nDof)
-                return
+                state.sdof = state0.sdof;
             else
                 sdof = zeros(sum(state.nDof), size(state0.sdof,2));
                 for dofNo = 1:disc.basis.nDof
-                    ix      = disc.getDofIx(state, dofNo, (1:disc.G.cells.num)', true);
+                    % We may be solving only a subset of the gridcells, so
+                    % we include zeros in dofIx to keep track of where old
+                    % dofs maps to new ones.
+                    ix  = disc.getDofIx(state , dofNo, (1:disc.G.cells.num)', true);
                     ix0 = disc.getDofIx(state0, dofNo, (1:disc.G.cells.num)', true);
-                    
-%                     sdof(ix(ix0 > 0),:) = state0.sdof(ix0(ix0 > 0),:);
                     sdof(ix(ix0 > 0 & ix > 0),:) = state0.sdof(ix0(ix0 > 0 & ix > 0),:);
-                    
                 end
                 state.sdof = sdof;
             end
@@ -216,21 +258,33 @@ classdef DGDiscretization < HyperbolicDiscretization
         end
         
         %-----------------------------------------------------------------%
-        function s = evaluateSaturation(disc, x, cells, dof, state)
+        function sat = evaluateSaturation(disc, x, cells, dof, state)
+            % Evaluate saturation at coordinate x as seen from cell
+            %
+            % PARAMETERS:
+            %   x     - Coordinates in REFERENCE space
+            %   cells - Cells we want saturation value in (saturation
+            %               evaluated at coordinate x(ix,:) in cell(ix)
+            %   dof   - degrees of freedom for the phase we want the
+            %               saturation
+            %   state - State we get our dofs from (only used to get dofIx)
+            %
+            % RETURNS:
+            %   sat - Saturation values at coordinates x as seen from cells
             
             psi     = disc.basis.psi;
             nDof    = state.nDof;
             nDofMax = disc.basis.nDof;
             
             ix = disc.getDofIx(state, 1, cells);
-            s = dof(ix).*0;
+            sat = dof(ix).*0;
             for dofNo = 1:nDofMax
                 keep = nDof(cells) >= dofNo;
                 ix = disc.getDofIx(state, dofNo, cells(keep));
                 if all(keep)
-                    s = s + dof(ix).*psi{dofNo}(x(keep,:));
+                    sat = sat + dof(ix).*psi{dofNo}(x(keep,:));
                 else
-                    s(keep) = s(keep) + dof(ix).*psi{dofNo}(x(keep,:));
+                    sat(keep) = sat(keep) + dof(ix).*psi{dofNo}(x(keep,:));
                 end
 
             end
@@ -239,22 +293,19 @@ classdef DGDiscretization < HyperbolicDiscretization
         
         %-----------------------------------------------------------------%
         function state = getCellSaturation(disc, state)
-            
-            
-%             [W, x, cellNo, faceNo] = disc.getCubature((1:disc.G.cells.num)', 'volume');
-            [W, x, cellNo, faceNo] = disc.getCubature((1:disc.G.cells.num)', 'volume');
-%             getCubature(disc, cells, type)
-%             [x, w, nq, ii, jj, cellNo] = makeCellIntegrator(disc.G, (1:disc.G.cells.num)', max(disc.degree), 'volume');
-%             W = sparse(ii, jj, w);
+            % Get average cell saturaion, typically assigned to state.s
 
+            % Get cubature for all cells, transform coordinates to ref space
+            [W, x, cellNo, ~] = disc.getCubature((1:disc.G.cells.num)', 'volume');
             x = disc.transformCoords(x, cellNo);
             
             sdof = state.sdof;
-            nPh = size(sdof,2);
-            s = zeros(disc.G.cells.num, nPh);
+            nPh  = size(sdof,2);
+            s    = zeros(disc.G.cells.num, nPh);
             for phNo = 1:nPh
-                s(:,phNo) = (W*disc.evaluateSaturation(x, cellNo, sdof(:,phNo), state))./disc.G.cells.volumes;
+                s(:,phNo) = W*disc.evaluateSaturation(x, cellNo, sdof(:,phNo), state);
             end
+            s = s./disc.G.cells.volumes;
             
             state.s = s;
             
@@ -262,40 +313,33 @@ classdef DGDiscretization < HyperbolicDiscretization
         
         %-----------------------------------------------------------------%
         function I = cellInt(disc, integrand, f, cells, sdof, sdof0, state, state0)
-        
-            G    = disc.G;
-            psi  = disc.basis.psi;
-            grad_psi = disc.basis.grad_psi;
-            nDof = state.nDof;
-            nDofMax = disc.basis.nDof;
+            % Integrate integrand over cells
             
-            [W, x, cellNo, faceNo] = disc.getCubature(cells, 'volume');
-            [x, ~, scaling] = disc.transformCoords(x, cellNo);
+            psi      = disc.basis.psi;      % Basis functions
+            grad_psi = disc.basis.grad_psi; % Gradient of basis functions
+            nDof     = state.nDof;          % Number of dofs per cell
+            nDofMax  = disc.basis.nDof;     % Maximum number of dofs
+            
+            % Get cubature for all cells, transform coordinates to ref space
+            [W, x, cellNo, ~] = disc.getCubature(cells, 'volume');
+            [x, ~, scaling]   = disc.transformCoords(x, cellNo);
 
-            s  = disc.evaluateSaturation(x, cellNo , sdof , state );
+            % Evaluate saturations and fractional flow at cubature points
+            s  = disc.evaluateSaturation(x, cellNo, sdof , state );
             s0 = disc.evaluateSaturation(x, cellNo, sdof0, state0);
             f = f(s, 1-s, cellNo, cellNo);
             
-            I = integrand(sdof, sdof, sdof, ones(numel(double(sdof)), 1), 1, ones(1, disc.dim)).*0;
-            
+            I = getSampleAD(sdof);
             for dofNo = 1:nDofMax
-                
                 keepCells = nDof(cells) >= dofNo;
-                
                 if any(keepCells)
-                
                     ix = disc.getDofIx(state, dofNo, cells(keepCells));
                     i  = W*integrand(s, s0, f, cellNo, psi{dofNo}(x), grad_psi{dofNo}(x).*scaling);
                     I(ix) = i(keepCells);
-                    
                 elseif numel(cells) == disc.G.cells.num
-                    
                     warning('No cells with %d dofs', dofNo);
-                    
                 end
-                
             end
-            
             I = disc.trimValues(I);
             
         end
@@ -666,6 +710,7 @@ classdef DGDiscretization < HyperbolicDiscretization
             cellNo = rldecode(cells, ncn, 1);
             x = disc.transformCoords(x, cellNo, false, true);
             
+            
             s = s(x, cellNo);
             
             jj = rldecode((1:numel(cells))', ncn, 1);
@@ -757,8 +802,9 @@ classdef DGDiscretization < HyperbolicDiscretization
             end
             
             bad = jump | over | under;
-            state.outside = over | under;
+
             state.jump    = jump;
+            state.outside = over | under;
             
             if isfield(G, 'mappings')
                 bad(G.cells.ghost) = false;
@@ -881,6 +927,21 @@ classdef DGDiscretization < HyperbolicDiscretization
         function v = faceFlux2cellVelocity(disc, model, faceFlux)
             
             
+            
+        end
+        
+        %-----------------------------------------------------------------%
+        function v = trimValues(disc, v)
+            
+            tol = eps(mean(disc.G.cells.volumes));
+            tol = -inf;
+%             tol = 1e-7;
+            ix = abs(v) < tol;
+            if isa(v, 'ADI')
+                v.val(ix) = 0;
+            else
+                v(ix) = 0;
+            end
             
         end
         

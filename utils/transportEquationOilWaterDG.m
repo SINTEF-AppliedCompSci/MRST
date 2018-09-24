@@ -30,7 +30,7 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
         state.degree(~G.cells.ghost) = repmat(disc.degree, nnz(~G.cells.ghost), 1);
         % For cells that previously had less than nDof unknowns, we must
         % map old dofs to new
-        state        = disc.mapDofs(state, state0);
+        state = disc.mapDofs(state, state0);
         
     end
     % Update discretizaiton information. This is carried by the state
@@ -132,7 +132,7 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
         
     % Accumulation term
     acc = @(sW, sW0, c, psi) ...
-        (pvMult (c).*rock.poro(c).*bW (c).*sW - pvMult0(c).*rock.poro(c).*bW0(c).*sW0).*psi/dt;
+        (pvMult(c).*rock.poro(c).*bW(c).*sW - pvMult0(c).*rock.poro(c).*bW0(c).*sW0).*psi/dt;
                           
     % Flux term         
     flux1 = @(sW,fW,c,grad_psi) ...

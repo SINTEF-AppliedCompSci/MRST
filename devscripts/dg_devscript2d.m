@@ -49,46 +49,24 @@ state0 = initResSol(G, 100*barsa, [sW,1-sW]);
 
 %%
 
-degree = [0, 1, 2];
+degree = [0, 1, 2, 3];
+% degree = [1,2];
+
 % degree = 1;
 
 [jt, ot, mt] = deal(Inf);
 % 
 jt = 0.2;
-ot = 0.1;
-mt = 0;
+% mt = 0.0;
+ot = 0.01;
 
 [wsDG, statesDG] = deal(cell(numel(degree),1));
 for dNo = 1:numel(degree)
-    disc = DGDiscretization(modelDG.transportModel, 2, 'degree', degree(dNo), 'basis', 'legendre', 'useUnstructCubature', false, 'jumpTolerance', jt, 'outTolerance', ot, 'meanTolerance', mt);
-    modelDG.transportModel = TransportOilWaterModelDG(G, rock, fluid, 'disc', disc);    
+    disc = DGDiscretization(modelDG.transportModel, 'degree', degree(dNo), 'basis', 'legendre', 'useUnstructCubature', false, 'jumpTolerance', jt, 'outTolerance', ot, 'meanTolerance', mt);
+    modelDG.transportModel = TransportOilWaterModelDG(G, rock, fluid, 'disc', disc, 'dsMaxAbs', 0.2/(degree(dNo)+1));
 
     state0 = assignDofFromState(modelDG.transportModel.disc, state0);
     [wsDG{dNo}, statesDG{dNo}, rep] = simulateScheduleAD(state0, modelDG, schedule);
-end
-
-%%
-
-% [jt, ot, mt] = deal(Inf);
-
-[wsDGReorder, statesDGReorder] = deal(cell(numel(degree),1));
-for dNo = 1:numel(degree)
-    disc = DGDiscretization(modelDG.transportModel, 2, 'degree', degree(dNo), 'basis', 'legendre', 'useUnstructCubature', false, 'jumpTolerance', jt, 'outTolerance', ot, 'meanTolerance', mt);
-    modelDG.transportModel = TransportOilWaterModelDG(G, rock, fluid, 'disc', disc);    
-
-    [modelDG.transportModel.extraStateOutput, modelDG.pressureModel.extraStateOutput] = deal(true);
-    modelDGReorder = modelDG;
-    modelDGReorder.pressureModel.extraStateOutput = true;
-
-    modelDGReorder.transportModel = ReorderingModelDG_ghost(modelDGReorder.transportModel, 'plotProgress', false);
-
-    modelDGReorder.transportModel.chunkSize = 1;
-    modelDGReorder.transportModel.parent.extraStateOutput = true;
-
-    
-    state0 = assignDofFromState(modelDG.transportModel.disc, state0);
-    [wsDGReorder{dNo}, statesDGReorder{dNo}, rep] = simulateScheduleAD(state0, modelDGReorder, schedule);
-    
 end
 
 %%
@@ -103,26 +81,16 @@ for dNo = 1:numel(degree)
     figure
     plotToolbar(G, statesDG{dNo});
     colormap(jet);
-    
-    figure
-    plotToolbar(G, statesDGReorder{dNo});
-    colormap(jet);
 end
 
 figure
 plotToolbar(G, statesFV);
 colormap(jet)
 
-figure
-% plotToolbar(G, statesDGReorder);
-colormap(jet)
+dsnDG = cellfun(@(d) ['dG(' num2str(d), ')'] , num2cell(degree), 'unif', false);
+dsn = horzcat('FV', dsnDG);
 
-dsnDG = cellfun(@(d) ['dG(' num2str(d), ')'] ,num2cell(degree), 'unif', false);
-dsnDGReorder = cellfun(@(d) ['dG(' num2str(d), ') reorder'] ,num2cell(degree), 'unif', false);
-dsnFV = {'FV'};
-dsn = horzcat(dsnFV, dsnDG, dsnDGReorder);
-
-plotWellSols({wsFV, wsDG{:}, wsDGReorder{:}}, schedule.step.val, 'datasetNames', dsn)
+plotWellSols({wsFV, wsDG{:}}, schedule.step.val, 'datasetNames', dsn)
 % plotWellSols({wsFV, wsDG{:}, wsDGReorder}, schedule.step.val)
 
 %%
@@ -174,3 +142,28 @@ end
 %     axis equal
 %     
 % end
+
+
+%%
+
+% [jt, ot, mt] = deal(Inf);
+
+[wsDGReorder, statesDGReorder] = deal(cell(numel(degree),1));
+for dNo = 1:numel(degree)
+    disc = DGDiscretization(modelDG.transportModel, 2, 'degree', degree(dNo), 'basis', 'legendre', 'useUnstructCubature', false, 'jumpTolerance', jt, 'outTolerance', ot, 'meanTolerance', mt);
+    modelDG.transportModel = TransportOilWaterModelDG(G, rock, fluid, 'disc', disc);    
+
+    [modelDG.transportModel.extraStateOutput, modelDG.pressureModel.extraStateOutput] = deal(true);
+    modelDGReorder = modelDG;
+    modelDGReorder.pressureModel.extraStateOutput = true;
+
+    modelDGReorder.transportModel = ReorderingModelDG_ghost(modelDGReorder.transportModel, 'plotProgress', false);
+
+    modelDGReorder.transportModel.chunkSize = 1;
+    modelDGReorder.transportModel.parent.extraStateOutput = true;
+
+    
+    state0 = assignDofFromState(modelDG.transportModel.disc, state0);
+    [wsDGReorder{dNo}, statesDGReorder{dNo}, rep] = simulateScheduleAD(state0, modelDGReorder, schedule);
+    
+end
