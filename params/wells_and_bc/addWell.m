@@ -311,7 +311,7 @@ if isfield(G, 'nodes')
     delta = max(G.nodes.coords)-min(G.nodes.coords);
 elseif isfield(G.faces, 'centroids')
     % Possibly a coarse grid
-    delta = max(G.faces.centroids)-min(G.nodes.centroids);
+    delta = max(G.faces.centroids)-min(G.faces.centroids);
 else
     % Skip check
     delta = inf;
