@@ -138,9 +138,11 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     % Flux term         
     flux1 = @(sW,fW,c,grad_psi) ...
         bW(c).*fW.*(sum(vTc(c,:).*grad_psi,2) + mobO(1-sW,c).*sum((TgWc(c,:) - TgOc(c,:)).*grad_psi,2));
-
-    cellIntegral = disc.cellInt(@(sW, sW0, fW, c, psi, grad_psi) ...
-        acc(sW, sW0, c, psi) - flux1(sW, fW, c,grad_psi), fW, (1:G.cells.num)', sWdof, sWdof0, state, state0);
+    
+    cellIntegral = disc.cellInt(model, @(sW, sW0, fW, c, psi, grad_psi) acc(sW, sW0, c, psi) - flux1(sW, fW, c, grad_psi), ...
+                                     (1:G.cells.num)', state, state0, sWdof, sWdof0, fW);
+%     cellIntegral = disc.cellInt(@(sW, sW0, fW, c, psi, grad_psi) ...
+%         acc(sW, sW0, c, psi) - flux1(sW, fW, c,grad_psi), fW, (1:G.cells.num)', sWdof, sWdof0, state, state0);
     
     % Surface integrand functions------------------------------------------
     

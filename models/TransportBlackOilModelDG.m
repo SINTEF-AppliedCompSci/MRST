@@ -7,7 +7,7 @@ classdef TransportBlackOilModelDG < TransportBlackOilModel
     end
 
     methods
-        function model = TransportBlackOilModelDG(G, rock, fluid, varargin)s
+        function model = TransportBlackOilModelDG(G, rock, fluid, varargin)
             
             model = model@TransportBlackOilModel(G, rock, fluid);
             model.disc = [];
@@ -56,7 +56,7 @@ classdef TransportBlackOilModelDG < TransportBlackOilModel
                     fn = 'sdof';
                 otherwise
                     % This will throw an error for us
-                    [fn, index] = getVariableField@TransportOilWaterModel(model, name);
+                    [fn, index] = getVariableField@TransportBlackOilModel(model, name);
             end
         end
 
@@ -68,7 +68,7 @@ classdef TransportBlackOilModelDG < TransportBlackOilModel
         end
         
         %-----------------------------------------------------------------%
-        function integrand = cellIntegrand(model, x, cellNo, f, sdof, sdof0, state, state0)
+        function integrand = cellIntegrand(model, fun, x, cellNo, state, state0, sdof, sdof0, f)
             
             % Evaluate saturations and fractional flow at cubature points
             s  = model.disc.evaluateSaturation(x, cellNo, sdof , state );

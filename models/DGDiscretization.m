@@ -319,7 +319,7 @@ classdef DGDiscretization < HyperbolicDiscretization
         end
         
         %-----------------------------------------------------------------%
-        function I = cellInt(disc, integrand, f, cells, sdof, sdof0, state, state0)
+        function I = cellInt(disc, model, fun, cells, state, state0, varargin)
             % Integrate integrand over cells
             
             psi      = disc.basis.psi;      % Basis functions
@@ -332,16 +332,20 @@ classdef DGDiscretization < HyperbolicDiscretization
             [x, ~, scaling]   = disc.transformCoords(x, cellNo);
 
             % Evaluate saturations and fractional flow at cubature points
-            s  = disc.evaluateSaturation(x, cellNo, sdof , state );
-            s0 = disc.evaluateSaturation(x, cellNo, sdof0, state0);
-            f = f(s, 1-s, cellNo, cellNo);
+            integrand = model.cellIntegrand(fun, x, cellNo, state, state0, varargin{:});
             
-            I = getSampleAD(sdof);
+            
+%             s  = disc.evaluateSaturation(x, cellNo, sdof , state );
+%             s0 = disc.evaluateSaturation(x, cellNo, sdof0, state0);
+%             f = f(s, 1-s, cellNo, cellNo);
+            
+            I = getSampleAD(varargin{1});
             for dofNo = 1:nDofMax
                 keepCells = nDof(cells) >= dofNo;
                 if any(keepCells)
                     ix = disc.getDofIx(state, dofNo, cells(keepCells));
-                    i  = W*integrand(s, s0, f, cellNo, psi{dofNo}(x), grad_psi{dofNo}(x).*scaling);
+                    i = W*integrand(psi{dofNo}(x), grad_psi{dofNo}(x).*scaling);
+%                     i  = W*integrand(s, s0, f, cellNo, psi{dofNo}(x), grad_psi{dofNo}(x).*scaling);
                     I(ix) = i(keepCells);
                 elseif numel(cells) == disc.G.cells.num
                     warning('No cells with %d dofs', dofNo);
