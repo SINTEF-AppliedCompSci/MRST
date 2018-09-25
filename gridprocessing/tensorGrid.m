@@ -443,7 +443,7 @@ function G = tensorGrid1D(x, varargin)
                     'indexMap', (1 : numC)');
 
    G.faces = struct('num',       numF,                   ...
-                    'nodePos',   (1:2:(numC+1)*2)', ...
+                    'nodePos',   (1:numF+1)', ...
                     'neighbors', neighbors,       ...
                     'tag',       zeros(numF, 1));
 
@@ -453,7 +453,7 @@ function G = tensorGrid1D(x, varargin)
    cellFaceTag = repmat([1; 2], numC, 1);
    % Faces are equal to nodes for this type of grid
    G.cells.faces = [cellFaces, cellFaceTag];
-   G.faces.nodes = cellFaces;
+   G.faces.nodes = (1:numF)';
    if opt.cellnodes
       G.cellNodes = (1:numC)';
    end
