@@ -19,12 +19,15 @@ else
        [dx, dy, dz] = cellDimsCG(G, cells);
     end
 end
-if G.griddim > 2
-   k = permDiag3D(rock, cells);
-else
-   k = permDiag2D(rock, cells);
-   kz = 1./(1./k(:, 1) + 1./k(:, 2));
-   k = [k, kz];
+switch G.griddim
+    case 1
+        k = permDiag1D(rock, cells);
+    case 2
+        k = permDiag2D(rock, cells);
+    case 3
+        k = permDiag3D(rock, cells);
+    otherwise
+        error('Unable to compute well index for %d dimensional grid.', G.griddim);
 end
 welldir = lower(opt.Dir);
 
@@ -146,8 +149,23 @@ elseif size(rock.perm, 2) == 2
 else
    p = rock.perm(inx, [1, 3]);
 end
+pz = 1./(1./p(:, 1) + 1./p(:, 2));
+p = [p, pz];
 end
 
+%--------------------------------------------------------------------------
+
+function p = permDiag1D(rock, inx)
+if isempty(rock)
+   error(id('Rock:Empty'), ...
+         'Empty input argument ''rock'' is not supported');
+elseif ~isfield(rock, 'perm')
+   error(id('Rock:NoPerm'), ...
+         '''rock'' must include permeability data');
+elseif size(rock.perm, 2) == 1
+   p = rock.perm(inx, [1, 1, 1]);
+end
+end
 
 function s = id(s)
     s = ['computeWellIndex:', s];
