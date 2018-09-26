@@ -1,5 +1,6 @@
 function [vW, bW, mobW, rhoW, pW, upcW, dpW, muW] = getPropsWater_DG(model, pO, T, gdz, mobMult)
-
+% Calculate properties for the water pahse. All properties depending on
+% saturation are returnes as function handles.
 
     fluid = model.fluid;
     op = model.operators;
@@ -8,10 +9,10 @@ function [vW, bW, mobW, rhoW, pW, upcW, dpW, muW] = getPropsWater_DG(model, pO, 
     %assert(~isfield(fluid, 'pcOW'));
     pcOW  = 0;
     if 0
-    pcOW = @(sW) 0.*sW;
-    if isfield(fluid, 'pcOW') && ~isempty(sW)
-        pcOW  = fluid.pcOW(sW);
-    end
+        pcOW = @(sW) 0.*sW;
+        if isfield(fluid, 'pcOW') && ~isempty(sW)
+            pcOW  = fluid.pcOW(sW);
+        end
     end
     pW = pO - pcOW;
 

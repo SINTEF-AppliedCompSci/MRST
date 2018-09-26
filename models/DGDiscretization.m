@@ -318,30 +318,54 @@ classdef DGDiscretization < HyperbolicDiscretization
             
         end
         
+        function dotProduct = dot(disc,u,v)
+            dotProduct = sum(u.*v, 2);
+        end
+        
         %-----------------------------------------------------------------%
-        function I = cellInt(disc, integrand, f, cells, sdof, sdof0, state, state0)
+        function I = cellInt(disc, model, fun, cells, state, state0, varargin)
             % Integrate integrand over cells
+            %
+            % PARAMETERS:
+            %   model    - Model, which contains information on how the
+            %              integrand looks like
+            %   fun      - Integrand function handle
+            %   cells    - Cells over which we will integrate fun
+            %   state, state0 - States from current and prev timestep,
+            %              to be used for dofPos
+            %   varargin - Variables passed to model for integrand
+            %              evalauation. varargin{1} MUST be an AD object of
+            %              dofs for all cells in the grid.
+            %
+            % RETURNS:
+            %   I - Integrals int(fun*psi{dofNo}) for dofNo = 1:nDof over
+            %       all cells
             
             psi      = disc.basis.psi;      % Basis functions
             grad_psi = disc.basis.grad_psi; % Gradient of basis functions
             nDof     = state.nDof;          % Number of dofs per cell
             nDofMax  = disc.basis.nDof;     % Maximum number of dofs
             
+            % Empty cells means all cells in grid
+            if isempty(cells)
+                cells = (1:disc.G.cells.num)';
+            end
+            
             % Get cubature for all cells, transform coordinates to ref space
             [W, x, cellNo, ~] = disc.getCubature(cells, 'volume');
             [x, ~, scaling]   = disc.transformCoords(x, cellNo);
 
-            % Evaluate saturations and fractional flow at cubature points
-            s  = disc.evaluateSaturation(x, cellNo, sdof , state );
-            s0 = disc.evaluateSaturation(x, cellNo, sdof0, state0);
-            f = f(s, 1-s, cellNo, cellNo);
+            % Model evaluates integrand at cubature points, and returns
+            % function handle taking psi and grad_psi at the same points as
+            % argumets
+            integrand = model.cellIntegrand(fun, x, cellNo, state, state0, varargin{:});
             
-            I = getSampleAD(sdof);
+            I = getSampleAD(varargin{1})*0;
             for dofNo = 1:nDofMax
                 keepCells = nDof(cells) >= dofNo;
                 if any(keepCells)
                     ix = disc.getDofIx(state, dofNo, cells(keepCells));
-                    i  = W*integrand(s, s0, f, cellNo, psi{dofNo}(x), grad_psi{dofNo}(x).*scaling);
+                    i = W*integrand(psi{dofNo}(x), grad_psi{dofNo}(x).*scaling);
                     I(ix) = i(keepCells);
                 elseif numel(cells) == disc.G.cells.num
                     warning('No cells with %d dofs', dofNo);
@@ -352,209 +376,138 @@ classdef DGDiscretization < HyperbolicDiscretization
         end
         
         %-----------------------------------------------------------------%
-        function I = faceFluxInt(disc, integrand, f, cells, sdof, state, T, vT, g, mob)
+        function I = faceFluxInt(disc, model, fun, cells, T, vT, g, mob, state, varargin)
+            % Integrate integrand over all internal faces of each cell in
+            % cells
+            %
+            % PARAMETERS:
+            %   model    - Model, which contains information on how the
+            %              integrand looks like
+            %   fun      - Integrand function handle
+            %   cells    - Cells over which we will integrate fun
+            %   state    - State to be used for dofPos
+            %   varargin - Variables passed to model for integrand
+            %              evalauation. varargin{1} MUST be an AD object of
+            %              dofs for all cells in the grid.
+            %
+            % RETURNS:
+            %   I - Integrals int(fun*psi{dofNo}) for dofNo = 1:nDof over
+            %       all cell surfaces of all cells
             
-            psi     = disc.basis.psi;
-            nDof    = state.nDof;
-            nDofMax = disc.basis.nDof;
+            psi     = disc.basis.psi;  % Basis functions
+            nDof    = state.nDof;      % Number of dofs per cell
+            nDofMax = disc.basis.nDof; % maximum number of dofs
+        
+            % Empty cells means all cells in grid
+            if isempty(cells)
+                cells = (1:disc.G.cells.num)';
+            end
             
+            % Get cubature for all cells, transform coordinates to ref space
             [W, x, cellNo, faceNo] = disc.getCubature(cells, 'surface');
-            nPh = numel(g);
+            [x_c, ~, ~] = disc.transformCoords(x, cellNo);
             
             if isempty(faceNo)
                 I = 0;
                 return
             end
             
-            [flag_v, flag_G, upCells_v, upCells_G, s_v, s_G] = disc.getUpstreamCell(faceNo, x, T, vT, g, mob, sdof, state);
-            
-%             [upCells_v, upCells_G] = deal(repmat({cR}, 1, nPh));
-%             [x_v, s_v, x_G, s_G] = deal(cell(1, nPh));
-%             for phNo = 1:nPh
-%                 
-%                 upCells_v{phNo}(flag_v(:,phNo)) = cL(flag_v(:,phNo));
-%                 x_v{phNo} = disc.transformCoords(x, upCells_v{phNo});
-%                 s_v{phNo} = disc.evaluateSaturation(x_v{phNo}, upCells_v{phNo}, sdof, state);
-%                 
-%                 upCells_G{phNo}(flag_G(:,phNo)) = cL(flag_G(:,phNo));
-%                 x_G{phNo} = disc.transformCoords(x, upCells_G{phNo});
-%                 s_G{phNo} = disc.evaluateSaturation(x_G{phNo}, upCells_G{phNo}, sdof, state);
-%                 
-%             end
-            
-            f_v = f(s_v{1}, 1-s_v{2}, upCells_v{1}, upCells_v{2});
-            f_G = f(s_G{1}, 1-s_G{2}, upCells_G{1}, upCells_G{2});
-            
-            [x_c, ~, ~] = disc.transformCoords(x, cellNo);
+            % Model evaluates integrand at cubature points, and returns
+            % function handle taking psi and grad_psi at the same points as
+            % argumets. Inputs T, vT, g, mob are used to calculate upstram
+            % directions
+            integrand = model.faceIntegrand(fun, x, faceNo, cellNo, ...
+                                        T, vT, g, mob, state, varargin{:});
 
-            I = integrand(sdof, sdof, sdof, sdof, 1, 1, 1, 1, 1).*0;
-            
-            for dofNo = 1:nDofMax
-                
+            I = getSampleAD(varargin{1})*0;
+            for dofNo = 1:nDofMax                
                 keepCells = nDof(cells) >= dofNo;
-                
                 if any(keepCells)
-                    
                     ix = disc.getDofIx(state, dofNo, cells(keepCells)');
-                    i  = W*integrand(f_v, f_G, s_v{1}, s_G{1}, cellNo, upCells_v{1}, upCells_G{1}, faceNo, psi{dofNo}(x_c));
+                    i  = W*integrand(psi{dofNo}(x_c));
                     I(ix) = i(keepCells);
-                    
                 elseif numel(cells) == disc.G.cells.num
-                    
                     warning('No cells with %d dofs', dofNo);
-                    
                 end
-                
             end
-            
             I = disc.trimValues(I);
             
         end
         
         %-----------------------------------------------------------------%
-        function I = faceFluxIntBC(disc, integrand, f, sdof, state, bc, mob, g, vT, T)
+        function I = faceFluxIntBC(disc, model, fun, bc, state, varargin)
+            % Integrate integrand over all faces where bcs are defined
+            %
+            % PARAMETERS:
+            %   model    - Model, which contains information on how the
+            %              integrand looks like
+            %   fun      - Integrand function handle
+            %   bc       - Boundary condition struct from schedule
+            %   state    - State to be used for dofPos
+            %   varargin - Variables passed to model for integrand
+            %              evalauation. varargin{1} MUST be an AD object of
+            %              dofs for all cells in the grid.
+            %
+            % RETURNS:
+            %   I - All integrals int(fun*psi{dofNo}) for dofNo = 1:nDof
+            %       over all bc faces for each cell
             
-            G       = disc.G;
-            psi     = disc.basis.psi;
-            nDof    = state.nDof;
-            nDofMax = disc.basis.nDof;
+            G       = disc.G;          % Grid
+            psi     = disc.basis.psi;  % Basis functions
+            nDof    = state.nDof;      % Number of dofs per cell
+            nDofMax = disc.basis.nDof; % Maximum number of dofs
             
-            isFlux = strcmpi(bc.type, 'flux');
-            faces = bc.face(isFlux);
+            % Get faces and corresponding cells where BCs are defined
+            faces = bc.face;
+            cells = sum(G.faces.neighbors(faces,:),2);
             
-            faceMap = nan(G.faces.num,1);
-            faceMap(bc.face) = 1:numel(faces);
+            % Get cubature for each face, find corresponding cells, and
+            % transform to reference coords
+            [W, x, ~, faceNo] = disc.getCubature(faces, 'face');
+            cellNo = sum(G.faces.neighbors(faceNo,:),2);
+            [xR, ~, ~] = disc.transformCoords(x, cellNo);
             
-            cellMap = nan(G.parent.cells.num,1);
-            cellMap(bc.cell(:,1)) = 1:numel(bc.face);
-            
-            [W, x, cellNo, faceNo] = disc.getCubature(faces, 'face');
-            
-            cL = bc.cell(faceMap(faceNo),1);
-            cR = bc.cell(faceMap(faceNo),2);
-            xL = disc.transformCoords(x, cL, false, true);
-            xR = disc.transformCoords(x, cR, false, true);
-            
-            cLloc = cL;
-            cRloc = cR;
-            if isfield(G, 'mappings')
-                cLloc = cellMap(cL);
-                cRloc = G.mappings.cellMap.old2new(cR);
-            end
-            
-            sL = disc.evaluateSaturation(xL, cLloc, bc.sat(:,1), bc.state);
-            sR = disc.evaluateSaturation(xR, cRloc, sdof, state);
-            
-            
-            mm1 = [bc.mob(cellMap(cL),1); double(mob{1}(sR  , cRloc))];
-            mm2 = [bc.mob(cellMap(cL),2); double(mob{2}(1-sR, cRloc))];
-            
-            mob{1} = mm1;
-            mob{2} = mm2;
-            
-            g = cellfun(@(g) g(faceNo), g, 'unif', false);
-            
-            vT = -bc.value(faceMap(faceNo));
-            T = T(faceNo);
-            
-            N = [1:numel(cL); numel(cL)+1:2*numel(cL)]';
-            upw = @(flag, x)faceUpstr(flag, x, N, [size(N,1), max(max(N))]);
-            [flag_v, flag_G] = getSaturationUpwind('potential', 0, g, vT, T, mob, upw);
-
-            nPh = numel(g);
-            [upCells_v, upCells_G] = deal(repmat({cL}, 1, nPh));
-            [x_v, s_v, x_G, s_G] = deal(cell(1, nPh));
-            for phNo = 1:nPh
-                
-                upCells_v{phNo}(flag_v(:,phNo)) = cR(flag_v(:,phNo));
-                x_v{phNo} = disc.transformCoords(x, upCells_v{phNo}, false, true);
-                s_v{phNo} = disc.evaluateSaturation(x_v{phNo}, upCells_v{phNo}, sdof, state);
-                
-                upCells_G{phNo}(flag_G(:,phNo)) = cR(flag_G(:,phNo));
-                x_G{phNo} = disc.transformCoords(x, upCells_G{phNo}, false, true);
-                s_G{phNo} = disc.evaluateSaturation(x_G{phNo}, upCells_G{phNo}, sdof, state);
-                
-            end
-            
-            f_v = f(s_v{1}, 1-s_v{2}, upCells_v{1}, upCells_v{2});
-            f_G = f(s_G{1}, 1-s_G{2}, upCells_G{1}, upCells_G{2});
-            
-            [x_c, ~, ~] = disc.transformCoords(x, cR);
-
-            I = integrand(sdof, sdof, 1, 1, 1).*0;
-            
-            cellNo = G.mappings.cellMap.old2new(cR);
-            f2c = sparse(cellNo, faceMap(faceNo), 1);
-            
-            cells = G.mappings.cellMap.old2new(bc.cell(:,2));
-            
-            sgn = 1 - 2*(bc.value>0);
+            % Ensure that we have the right sign for the integrals
+            sgn = 1 - 2*(G.faces.neighbors(faces, 1) == 0);
             W = W.*sgn;
             
+            % Mappings from global face/cell numbers to bc face/cell
+            % numbers
+            globFace2BCface = nan(G.faces.num,1);
+            globFace2BCface(faces) = 1:numel(faces);
+            globCell2BCcell = nan(G.cells.num,1);
+            globCell2BCcell(cells) = 1:numel(cells);
+            S = sparse(globCell2BCcell(cells), 1:numel(faces), 1);
+            
+            % Determine if BC flux is in or out of domain from total flux
+            vT = sum(state.flux,2);
+            isInj = vT(faces) > 0 & sgn < 0;
+            
+            % Model evaluates integrand at cubature points, and returns
+            % function handle taking psi at the same points as argumets
+            integrand = model.faceIntegrandBC(fun, xR, faceNo, cellNo, ...
+                           bc, isInj, globFace2BCface, state, varargin{:});
+
+            I = getSampleAD(varargin{1})*0;
             for dofNo = 1:nDofMax
                 
                 keepCells = nDof(cells) >= dofNo;
                 
                 if any(keepCells)
                     
-                    i  = W*integrand(f_v, s_v{1}, cellNo, faceNo, psi{dofNo}(x_c));
-                    i  = f2c*i;
-                    
                     ix = disc.getDofIx(state, dofNo, cells(keepCells)');
-                    
-                    I(ix) = i(cells(keepCells));
-                    
-                elseif numel(cells) == disc.G.cells.num
-                    
-                    warning('No cells with %d dofs', dofNo);
+                    i  = W*integrand(psi{dofNo}(xR));
+                    i = S*i;
+                    I(ix) = i(keepCells);
                     
                 end
                 
             end
-            
-            %
-
-%             s = sL
-%             
-%             
-%             sgn = 1 - 2*(G.faces.neighbors(faces, 1) ~= cells);
-%             W = W.*sgn;
-%             numFlux = nnz(isFlux);
-%             
-%             
-%             
-%             all2BC = nan(G.faces.num,1);
-%             all2BC(faces) = 1:numFlux;
-%             locFaceNo = all2BC(faceNo);
-%             
-%             sL = bc.sat(isFlux,1);
-%             sL = sL(locFaceNo);
-%             
-%             isInj = bc.value(isFlux) > 0;
-%             s = sL.*isInj(locFaceNo) + sR.*(~isInj(locFaceNo));
-%             
-%             cellNo = cR;
-%             f = f(s, 1-s, cellNo, cellNo);
-%             
-%             I = integrand(sdof, sdof, 1, 1, 1).*0;
-%             
-%             for dofNo = 1:nDofMax
-%                 
-%                 keepCells = nDof(cells) >= dofNo;
-%                 
-%                 if any(keepCells)
-%                     
-%                     ix = disc.getDofIx(state, dofNo, cells(keepCells)');
-%                     i  = W*integrand(f, s, cellNo, faceNo, psi{dofNo}(xR));
-%                     I(ix) = i(keepCells);
-%                     
-%                 end
-%                 
-%             end
-%             
             I = disc.trimValues(I);
             
         end
+        
+        
         
         function [flag_v, flag_G, upCells_v, upCells_G, s_v, s_G] = getUpstreamCell(disc, faces, x, T, vT, g, mob, sdof, state)
             
@@ -567,7 +520,6 @@ classdef DGDiscretization < HyperbolicDiscretization
             cR = disc.N(ix,2);
             T = T(ix);
             vT = vT(faces);
-%             G = cellfun(@(g) g(ix), G, 'unif', false);
             g = cellfun(@(g) g(faces), g, 'unif', false);
             
             [xL, ~, ~] = disc.transformCoords(x, cL);
@@ -593,17 +545,12 @@ classdef DGDiscretization < HyperbolicDiscretization
             [s_v, s_G] = deal(cell(1, nPh));
             [s_v{:},s_G{:}] = deal(sR);
             for phNo = 1:nPh
-                
+
                 upCells_v{phNo}(flag_v(:,phNo)) = cL(flag_v(:,phNo));
                 s_v{phNo}(flag_v(:,phNo)) = sL(flag_v(:,phNo));
-%                 x_v{phNo} = disc.transformCoords(x, upCells_v{phNo});
-%                 s_v{phNo} = disc.evaluateSaturation(x_v{phNo}, upCells_v{phNo}, sdof, state);
-%                 
+
                 upCells_G{phNo}(flag_G(:,phNo)) = cL(flag_G(:,phNo));
                 s_G{phNo}(flag_G(:,phNo)) = sL(flag_G(:,phNo));
-%                 x_G{phNo} = disc.transformCoords(x, upCells_G{phNo});
-%                 s_G{phNo} = disc.evaluateSaturation(x_G{phNo}, upCells_G{phNo}, sdof, state);
-                
             end
             
         end
@@ -931,13 +878,6 @@ classdef DGDiscretization < HyperbolicDiscretization
         end
         
         %-----------------------------------------------------------------%
-        function v = faceFlux2cellVelocity(disc, model, faceFlux)
-            
-            
-            
-        end
-        
-        %-----------------------------------------------------------------%
         function v = trimValues(disc, v)
             
             tol = eps(mean(disc.G.cells.volumes));
@@ -949,6 +889,10 @@ classdef DGDiscretization < HyperbolicDiscretization
             else
                 v(ix) = 0;
             end
+            
+%             if any(ix)
+%                 disp(nnz(ix));
+%             end
             
         end
         

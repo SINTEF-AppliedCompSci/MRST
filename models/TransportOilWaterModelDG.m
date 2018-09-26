@@ -1,27 +1,13 @@
-classdef TransportOilWaterModelDG < TransportOilWaterModel
+classdef TransportOilWaterModelDG < TransportBlackOilModelDG
     % Two phase oil/water system without dissolution with discontinuous
     % Galerking discretization
-    
-    properties
-        disc % Discretization
-    end
 
     methods
         function model = TransportOilWaterModelDG(G, rock, fluid, varargin)
-            
-            model = model@TransportOilWaterModel(G, rock, fluid);
-            model.disc = [];
-            % If we use reordering, this tells us which cells are actually
-            % part of the discretization, and which cells that are included
-            % to get fluxes correct
-            model.G.cells.ghost = false(G.cells.num,1);
-            model = merge_options(model, varargin{:});
-            
-            % Construct discretization
-            if isempty(model.disc)
-                model.disc = DGDiscretization(model, G.griddim);
-            end
-
+            model = model@TransportBlackOilModelDG(G, rock, fluid, varargin{:});
+            model.oil   = true;
+            model.water = true;
+            model.gas   = false;
         end
 
         % ----------------------------------------------------------------%
@@ -32,35 +18,6 @@ classdef TransportOilWaterModelDG < TransportOilWaterModel
                                   'solveForWater', model.conserveWater, ...
                                   varargin{:}                         );
             
-        end
-        
-        % ----------------------------------------------------------------%
-        function [fn, index] = getVariableField(model, name)
-            % Map variables to state field.
-            %
-            % SEE ALSO:
-            %   :meth:`ad_core.models.PhysicalModel.getVariableField`
-            switch(lower(name))
-                case {'water', 'swdof'}
-                    index = 1;
-                    fn = 'sdof';
-                case {'oil', 'sodof'}
-                    index = 2;
-                    fn = 'sdof';
-                case{'saturation', 'sdof'}
-                    index = ':';
-                    fn = 'sdof';
-                otherwise
-                    % This will throw an error for us
-                    [fn, index] = getVariableField@TransportOilWaterModel(model, name);
-            end
-        end
-
-        % ----------------------------------------------------------------%
-        function vars = getSaturationVarNames(model)
-            vars = {'sWdof', 'sOdof'};
-            ph = model.getActivePhases();
-            vars = vars(ph);
         end
         
         % ----------------------------------------------------------------%

@@ -20,10 +20,6 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     flux2Vel = disc.velocityInterp.faceFlux2cellVelocity;
         
     assert(~(opt.solveForWater && opt.solveForOil));
-        
-%     if ~isfield(state, 'cells')
-%         [state.cells, state0.cells] = deal((1:G.cells.num)');
-%     end
     
     if opt.iteration == 1 && ~opt.resOnly
         % If we are at the first iteration, we try to solve using maximum
@@ -38,9 +34,7 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     % variable, and holds the number of dofs per cell + dof position in
     % state.sdof
     state0 = disc.updateDofPos(state0);
-    state = disc.updateDofPos(state);
-%     state.nDof = disc.getnDof(state);
-%     state = disc.getCellSaturation(state);
+    state  = disc.updateDofPos(state);
     
     % Properties from current timestep
     [p , sWdof , wellSol] = model.getProps(state , 'pressure', 'water', 'wellsol');
@@ -69,10 +63,9 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     
     % ---------------------------------------------------------------------
 
-    % We will soclve for water saturation dofs
+    % We will solve for water saturation dofs
     primaryVars = {'sWdof'};
-%     nDof        = state.nDof;
-    nDof = disc.getnDof(state);
+    nDof = state.nDof;
 
     % Get multipliers
     [pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
@@ -83,33 +76,29 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     T_all = model.operators.T_all;
     
     % Phase properties
-    sO  = 1 - sW;
     gdz = model.getGravityGradient();
-    
     [vW, bW, mobW, rhoW, pW, upcW, dpW, muW] = getPropsWater_DG(model, p, T, gdz, mobMult);
     [vO, bO, mobO, rhoO, pO, upcO, dpO, muO] = getPropsOil_DG(model, p, T, gdz, mobMult);
     
     % Fractional flow function
     fW = @(sW, sO, cW, cO) mobW(sW, cW)./(mobW(sW, cW) + mobO(sO, cO));
-    
     bW0 = fluid.bW(p0);
     
-    
-    % Gravity fluxs
+    % Gravity flux
     gp = op.Grad(p);
     [gW, gO] = deal(zeros(G.faces.num, 1));
     gW(op.internalConn) = gp - dpW;
     gO(op.internalConn) = gp - dpO;
     
-    % Add gravity flux where we have a BC.
+    % Add gravity flux where we have BCs
     bc = drivingForces.bc;
     if ~isempty(bc)
         
-        BCcells = bc.cell(:,2);
-        if isfield(state, 'mappings')
-            BCcells = state.mappings.cellMap.old2new(BCcells);
-        end
-%         BCcells = sum(G.faces.neighbors(bc.face,:),2);
+%         BCcells = bc.cell(:,2);
+%         if isfield(state, 'mappings')
+%             BCcells = state.mappings.cellMap.old2new(BCcells);
+%         end
+        BCcells = sum(G.faces.neighbors(bc.face,:), 2);
         dz = G.cells.centroids(BCcells, :) - G.faces.centroids(bc.face,:);
         g = model.getGravityVector();
         rhoWBC = rhoW(BCcells);
@@ -126,32 +115,32 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     TgOc = flux2Vel(TgO);
     
     % Viscous flux
-    vT  = sum(state.flux,2);
-    vTc = flux2Vel(vT);
+    vT  = sum(state.flux,2); % Total flux
+    vTc = flux2Vel(vT);      % Map face fluxes to cell velocities
     
     % Cell integrand functions---------------------------------------------
         
     % Accumulation term
-    acc = @(sW, sW0, c, psi) ...
-        (pvMult(c).*rock.poro(c).*bW(c).*sW - pvMult0(c).*rock.poro(c).*bW0(c).*sW0).*psi/dt;
-                          
-    % Flux term         
-    flux1 = @(sW,fW,c,grad_psi) ...
-        bW(c).*fW.*(sum(vTc(c,:).*grad_psi,2) + mobO(1-sW,c).*sum((TgWc(c,:) - TgOc(c,:)).*grad_psi,2));
-
-    cellIntegral = disc.cellInt(@(sW, sW0, fW, c, psi, grad_psi) ...
-        acc(sW, sW0, c, psi) - flux1(sW, fW, c,grad_psi), fW, (1:G.cells.num)', sWdof, sWdof0, state, state0);
-    
+    acc = @(sW, sW0, c, psi) (pvMult(c).*rock.poro(c).*bW(c).*sW - ...
+                              pvMult0(c).*rock.poro(c).*bW0(c).*sW0).*psi/dt;            
+    % Convection term
+    conv = @(sW,fW,c,grad_psi) bW(c).*fW.*(disc.dot(vTc(c,:),grad_psi) ...
+                 + mobO(1-sW,c).*disc.dot(TgWc(c,:) - TgOc(c,:),grad_psi));
+    % Cell integrand
+    integrand = @(sW, sW0, fW, c, psi, grad_psi) ...
+                          acc(sW, sW0, c, psi) - conv(sW, fW, c, grad_psi);
+    % Integrate integrand*psi{dofNo} over all cells for dofNo = 1:nDof
+    cellIntegral = disc.cellInt(model, integrand, [], state, state0, sWdof, sWdof0, fW);
+  
     % Surface integrand functions------------------------------------------
     
     % Flux term
-    flux2 = @(fWv, fWg, sWv, sWg, c, cv, cg, f, psi) ...
+    integrand = @(sWv, sWg, fWv, fWg, c, cv, cg, f, psi) ...
         (bW(cv).*fWv.*vT(f) + bW(cg).*fWg.*mobO(1-sWg,cg).*(TgW(f) - TgO(f))).*psi./G.faces.areas(f);
-
-    faceIntegral = disc.faceFluxInt(flux2, fW, (1:G.cells.num)', sWdof, state, T, vT, {gW, gO}, {mobW, mobO});
+    % % Integrate integrand*psi{dofNo} over all cells surfaces for dofNo = 1:nDof
+    faceIntegral = disc.faceFluxInt(model, integrand, [], T, vT, {gW, gO}, {mobW, mobO}, state, sWdof, fW);
   
     % Water equation-------------------------------------------------------
-
     water = cellIntegral + faceIntegral;
 
     % Well contributions---------------------------------------------------
@@ -171,7 +160,8 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
         integrand = @(sW, sW0, fW, c, psi, grad_psi) ...
             bW(c).*wflux(c).*(fW.*(~isInj(c)) + compPerf(c,1).*( isInj(c))).*psi;
 
-        prod = disc.cellInt(integrand, fW, wc, sWdof, sWdof0, state, state0);
+%         prod = disc.cellInt(integrand, fW, wc, sWdof, sWdof0, state, state0);
+        prod = disc.cellInt(model, integrand, wc, state, state0, sWdof, sWdof0, fW);
         
         vol = rldecode(G.cells.volumes(wc), nDof(wc), 1);
         ix = disc.getDofIx(state, [], wc);
@@ -213,10 +203,10 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     if ~isempty(bc)
         
         % Flux term
-        fluxBC = @(fW, sW, c, f, psi) ...
+        fluxBC = @(sW, fW, c, f, psi) ...
         (bW(c).*fW.*vT(f) + bW(c).*fW.*mobO(1-sW,c).*(TgW(f) - TgO(f))).*psi./G.faces.areas(f);
 
-        bcInt = disc.faceFluxIntBC(fluxBC, fW, sWdof, state, bc, {mobW, mobO}, {gW, gO}, vT, T_all);
+        bcInt = disc.faceFluxIntBC(model, fluxBC, bc, state, sWdof, fW);
         
         water = water + bcInt;
         
