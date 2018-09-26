@@ -354,7 +354,8 @@ classdef DGDiscretization < HyperbolicDiscretization
             end
             
             % Get cubature for all cells, transform coordinates to ref space
-            [W, x, cellNo, ~] = disc.getCubature(cells, 'volume');
+            [W, x, cellNo, ~] = disc.volumeCubature.getCubature2(cells, 'volume');
+%             [W, x, cellNo, ~] = disc.getCubature(cells, 'volume');
             [x, ~, scaling]   = disc.transformCoords(x, cellNo);
 
             % Model evaluates integrand at cubature points, and returns
@@ -406,7 +407,8 @@ classdef DGDiscretization < HyperbolicDiscretization
             end
             
             % Get cubature for all cells, transform coordinates to ref space
-            [W, x, cellNo, faceNo] = disc.getCubature(cells, 'surface');
+            [W, x, cellNo, faceNo] = disc.surfaceCubature.getCubature2(cells, 'surface', true);
+%             [W, x, cellNo, faceNo] = disc.getCubature(cells, 'surface');
             [x_c, ~, ~] = disc.transformCoords(x, cellNo);
             
             if isempty(faceNo)

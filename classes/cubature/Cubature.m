@@ -2,42 +2,40 @@ classdef Cubature
     
     properties
         
-        G
-        prescision
-        points
-        weights
-        numPoints
-        dim
-        internalConn
-        W
+        G            % Grid the cubature is defined on
+        prescision   % Prescision of cubature
+        points       % Cubature points
+        weights      % Cubature weights
+        numPoints    % Number of cubature points
+        dim          % Dimension of cubature
+        internalConn % Boolean indicating if face is internal connection
         
     end
     
     methods
         
-        function cub = Cubature(G, prescision, internalConn)
+        function cubature = Cubature(G, prescision, internalConn)
             
-            cub.G = G;
-            cub.prescision = prescision;
-            cub.points  = [];
-            cub.weights = [];
-            cub.dim = G.griddim;
-            cub.internalConn = internalConn;
-            W = [];
+            cubature.G            = G;
+            cubature.prescision   = prescision;
+            cubature.points       = [];
+            cubature.weights      = [];
+            cubature.dim          = G.griddim;
+            cubature.internalConn = internalConn;
             
         end
 
-        function [W, x, w, ii, jj, cellNo, faceNo] = getCubature(cub, elements, type)
+        function [W, x, w, ii, jj, cellNo, faceNo] = getCubature(cubature, elements, type)
             
             if size(elements,1) == 1, elements = elements'; end
-            g = cub.G;
+            g = cubature.G;
             
-            switch g.griddim - cub.dim
+            switch g.griddim - cubature.dim
                 case 0
                     
-                    ix = mcolon(cub.parentPos(elements), cub.parentPos(elements+1)-1);
+                    ix = mcolon(cubature.parentPos(elements), cubature.parentPos(elements+1)-1);
                     
-                    nq = diff(cub.parentPos);
+                    nq = diff(cubature.parentPos);
                     nq = nq(elements);
                     
                     cellNo = rldecode(elements, nq, 1);
@@ -52,14 +50,14 @@ classdef Cubature
                             faces = elements;
 %                             faces = (1:g.faces.num)';
 %                             elements = faces;
-                            ix = mcolon(cub.parentPos(faces), cub.parentPos(faces+1)-1);
+                            ix = mcolon(cubature.parentPos(faces), cubature.parentPos(faces+1)-1);
                         case 'cellsurface'
                             faces = g.cells.faces(mcolon(g.cells.facePos(elements), g.cells.facePos(elements+1)-1));
                     end
                     
                     if size(faces,1) == 1, faces = faces'; end
                     
-                    nqf = diff(cub.parentPos);
+                    nqf = diff(cubature.parentPos);
                     switch type
                         case 'face'
                             faceNo = rldecode(faces, nqf(faces), 1);
@@ -67,9 +65,9 @@ classdef Cubature
                             cellNo = [];
                             sgn = 1;
                         case 'cellsurface'
-                            ncf = accumarray(rldecode((1:g.cells.num)', diff(g.cells.facePos), 1), cub.internalConn(faces));
-                            faces = faces(cub.internalConn(faces));
-                            ix = mcolon(cub.parentPos(faces), cub.parentPos(faces+1)-1);
+                            ncf = accumarray(rldecode((1:g.cells.num)', diff(g.cells.facePos), 1), cubature.internalConn(faces));
+                            faces = faces(cubature.internalConn(faces));
+                            ix = mcolon(cubature.parentPos(faces), cubature.parentPos(faces+1)-1);
                             nq = accumarray(rldecode(elements, ncf(elements), 1), nqf(faces));
                             faceNo = rldecode(faces, nqf(faces), 1);
                             cellNo = rldecode(elements, nq);
@@ -78,10 +76,92 @@ classdef Cubature
                     
             end
             
-            x = cub.points(ix, :);
-            w = cub.weights(ix).*sgn;
+            x = cubature.points(ix, :);
+            w = cubature.weights(ix).*sgn;
             [ii, jj] = blockDiagIndex(ones(numel(elements),1), nq);
             W = sparse(ii, jj, w);
+            
+        end
+        
+        %-----------------------------------------------------------------%
+        function [W, x, cellNo, faceNo] = getCubature2(cubature, elements, type, excludeBoundary)
+            % TODO: Move mapping of elements to DGDiscretizaiton.
+            if size(elements,1) == 1, elements = elements'; end
+
+            useMap = false;
+            if isfield(cubature.G, 'mappings')
+                useMap = true;
+                maps = cubature.G.mappings;
+                cubature.G = cubature.G.parent;
+                switch type 
+                    case {'volume', 'surface'}
+                        elements = maps.cellMap.new2old(elements);
+                    case 'face'
+                        elements = maps.faceMap.new2old(elements);
+                end
+            end
+            
+            switch cubature.G.griddim - cubature.dim
+                case 0
+                    switch type
+                        case 'volume'
+                            ix = mcolon(cubature.parentPos(elements), cubature.parentPos(elements+1)-1);
+                            nq = diff(cubature.parentPos);
+                            nq = nq(elements);
+
+                            cellNo = rldecode(elements, nq, 1);
+                            faceNo = [];
+
+                            sgn   = ones(numel(ix),1);
+                        otherwise
+                            error(['Cubature dimension is not consistent ' ...
+                                   'with anything else than volume cubature']);
+                    end
+                case 1
+                    
+                    switch type
+                        case 'face'
+                    
+                            nqf = diff(cubature.parentPos);
+                            faceNo = rldecode(elements, nqf(elements), 1);
+                            ix = mcolon(cubature.parentPos(elements), cubature.parentPos(elements+1)-1);
+                            nq = nqf(elements);
+                            cellNo = [];
+                            sgn = 1;
+
+                        case 'surface'
+                    
+                            faces = cubature.G.cells.faces(mcolon(cubature.G.cells.facePos(elements), cubature.G.cells.facePos(elements+1)-1));
+                            ncf = accumarray(rldecode((1:cubature.G.cells.num)', diff(cubature.G.cells.facePos), 1), cubature.internalConn(cubature.G.cells.faces(:,1)));
+                            if excludeBoundary
+                                faces = faces(cubature.internalConn(faces));
+                            end
+                            if size(faces,1) == 1, faces = faces'; end
+                            ix = mcolon(cubature.parentPos(faces), cubature.parentPos(faces+1)-1);
+
+                            nqf = diff(cubature.parentPos);
+                            nq = accumarray(rldecode((1:numel(elements))', ncf(elements), 1), nqf(faces));
+                            if isempty(nq), nq = 0; end
+
+                            cellNo = rldecode(elements, nq);
+                            faceNo = rldecode(faces, nqf(faces), 1);
+                            sgn   = 1 - 2*(cubature.G.faces.neighbors(faceNo,1) ~= cellNo);
+                    end
+%                     ixf = nan(numel(ix),1);
+%                     ixf(disc.internalConn(faceNo)) = 1:nnz(disc.internalConn(faceNo));
+                    
+            end
+            
+            if useMap
+                cellNo = maps.cellMap.old2new(cellNo);
+                faceNo = maps.faceMap.old2new(faceNo);
+            end
+            
+            x = cubature.points(ix, :);
+            w = cubature.weights(ix).*sgn;
+            [ii, jj] = blockDiagIndex(ones(numel(elements),1), nq);
+            W = sparse(ii, jj, w);
+%             W = cubature.W(cells, ixf);
             
         end
             
