@@ -68,7 +68,7 @@ classdef TransportBlackOilModelDG < TransportBlackOilModel
         end
         
         %-----------------------------------------------------------------%
-        function integrand = cellIntegrand(model, fun, x, cellNo, state, state0, sdof, sdof0, f)
+        function integrand = cellIntegrand(model, fun, x, cellNo, state, state0, sdof, sdof0, f)            
             
             % Evaluate saturations and fractional flow at cubature points
             s  = model.disc.evaluateSaturation(x, cellNo, sdof , state );
@@ -79,7 +79,37 @@ classdef TransportBlackOilModelDG < TransportBlackOilModel
         end
         
         %-----------------------------------------------------------------%
-        function integrand = faceIntegrand(model, fun)
+        function integrand = faceIntegrand(model, fun, x, faceNo, cellNo, T, vT, g, mob, state, sdof, f)
+            
+            % Get upstream cells and upstram saturations at given
+            % quadrature points
+            [flag_v, flag_G, upCells_v, upCells_G, s_v, s_G] ...
+                = model.disc.getUpstreamCell(faceNo, x, T, vT, g, mob, sdof, state);
+            
+            f_v = f(s_v{1}, 1-s_v{2}, upCells_v{1}, upCells_v{2});
+            f_G = f(s_G{1}, 1-s_G{2}, upCells_G{1}, upCells_G{2});
+            
+            integrand = @(psi) fun(s_v{1}, s_G{1}, f_v, f_G, cellNo, upCells_v{1}, upCells_G{1}, faceNo, psi);
+
+        end
+        
+        %-----------------------------------------------------------------%
+        function integrand = faceIntegrandBC(model, fun, x, faceNo, cellNo, bc, isInj, globFace2BCface, state, sdof, f)
+            
+            % Get upstream cells and upstram saturations at given
+            % quadrature points
+            
+            
+            locFaceNo = globFace2BCface(faceNo);
+            
+            sL = bc.sat(:,1);
+            sL = sL(locFaceNo);
+            sR = model.disc.evaluateSaturation(x, cellNo, sdof, state);
+            s = sL.*isInj(locFaceNo) + sR.*(~isInj(locFaceNo));
+            f = f(s, 1-s, cellNo, cellNo);
+            
+            integrand = @(psi) fun(s, f, cellNo, faceNo, psi);
+            
             
         end
         
