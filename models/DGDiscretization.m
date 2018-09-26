@@ -21,6 +21,7 @@ classdef DGDiscretization < HyperbolicDiscretization
         
         velocityInterp      % Function for mapping face fluxes to cell
                             % velocity/ies
+        upwindType          % Type of upwind calculation
         
         internalConnParent  % If we only solve on subset of full grid, we
                             % must keep tract of internal connections in 
@@ -59,6 +60,7 @@ classdef DGDiscretization < HyperbolicDiscretization
             
             % Set up velocity interpolation
             disc.velocityInterp = velocityInterpolation(G, 'mimetic');
+            disc.upwindType     = 'potential';
             
             % Create cubatures
             disc.useUnstructCubature = false;
@@ -490,68 +492,22 @@ classdef DGDiscretization < HyperbolicDiscretization
 
             I = getSampleAD(varargin{1})*0;
             for dofNo = 1:nDofMax
-                
                 keepCells = nDof(cells) >= dofNo;
-                
                 if any(keepCells)
-                    
                     ix = disc.getDofIx(state, dofNo, cells(keepCells)');
                     i  = W*integrand(psi{dofNo}(xR));
                     i = S*i;
                     I(ix) = i(keepCells);
-                    
                 end
-                
             end
             I = disc.trimValues(I);
             
         end
         
-        
-        
-        function [flag_v, flag_G, upCells_v, upCells_G, s_v, s_G] = getUpstreamCell(disc, faces, x, T, vT, g, mob, sdof, state)
-            
-            G = disc.G;
-            all2int = zeros(G.faces.num,1);
-            all2int(disc.internalConn) = 1:nnz(disc.internalConn);
-            ix = all2int(faces);
-            
-            cL = disc.N(ix,1);
-            cR = disc.N(ix,2);
-            T = T(ix);
-            vT = vT(faces);
-            g = cellfun(@(g) g(faces), g, 'unif', false);
-            
-            [xL, ~, ~] = disc.transformCoords(x, cL);
-            [xR, ~, ~] = disc.transformCoords(x, cR);
-            
-%             sdof = double(sdof);
-%             sL = disc.evaluateSaturation(xL, cL, sdof, state);
-%             sR = disc.evaluateSaturation(xR, cR, sdof, state); 
-            s = disc.evaluateSaturation([xL; xR], [cL; cR], sdof, state);
-            sL = s(1:numel(cL));
-            sR = s(numel(cL)+1:end);
-            
-            mob{1} = mob{1}([sL; sR], [cL; cR]);
-            mob{2} = mob{2}(1-[sL; sR], [cL; cR]);
-            
-            N = [1:numel(ix); numel(ix)+1:2*numel(ix)]';
-            
-            upw = @(flag, x)faceUpstr(flag, x, N, [size(N,1), max(max(N))]);
-            [flag_v, flag_G] = getSaturationUpwind('potential', 0, g, vT, T, mob, upw);
-            
-            nPh = numel(g);
-            [upCells_v, upCells_G] = deal(repmat({cR}, 1, nPh));
-            [s_v, s_G] = deal(cell(1, nPh));
-            [s_v{:},s_G{:}] = deal(sR);
-            for phNo = 1:nPh
-
-                upCells_v{phNo}(flag_v(:,phNo)) = cL(flag_v(:,phNo));
-                s_v{phNo}(flag_v(:,phNo)) = sL(flag_v(:,phNo));
-
-                upCells_G{phNo}(flag_G(:,phNo)) = cL(flag_G(:,phNo));
-                s_G{phNo}(flag_G(:,phNo)) = sL(flag_G(:,phNo));
-            end
+        function [flag_v, flag_G, upCells_v, upCells_G, s_v, s_G] = getSaturationUpwind(disc, faces, x, T, vT, g, mob, sdof, state)
+            % Explicit calculation of upstream cells.
+            % See getSaturationUpwindDG
+            [flag_v, flag_G, upCells_v, upCells_G, s_v, s_G] = getSaturationUpwindDG(disc, faces, x, T, vT, g, mob, sdof, state);
             
         end
         

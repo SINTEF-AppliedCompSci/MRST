@@ -84,7 +84,7 @@ classdef TransportBlackOilModelDG < TransportBlackOilModel
             % Get upstream cells and upstram saturations at given
             % quadrature points
             [flag_v, flag_G, upCells_v, upCells_G, s_v, s_G] ...
-                = model.disc.getUpstreamCell(faceNo, x, T, vT, g, mob, sdof, state);
+                = model.disc.getSaturationUpwind(faceNo, x, T, vT, g, mob, sdof, state);
             
             f_v = f(s_v{1}, 1-s_v{2}, upCells_v{1}, upCells_v{2});
             f_G = f(s_G{1}, 1-s_G{2}, upCells_G{1}, upCells_G{2});
