@@ -16,7 +16,7 @@ function [flag_v, flag_G, upCells_v, upCells_G, s_v, s_G] = getSaturationUpwindD
     %
     %   Returned from function since since they must anyway be
     %   calculated later on
-            
+
     G = disc.G;
 
     % Mapping from all faces to internal connections
@@ -28,9 +28,9 @@ function [flag_v, flag_G, upCells_v, upCells_G, s_v, s_G] = getSaturationUpwindD
     % and gravity terms
     cL = disc.N(ix,1);
     cR = disc.N(ix,2);
-    T = T(ix);
+    T  = T(ix);
     vT = vT(faces);
-    g = cellfun(@(g) g(faces), g, 'unif', false);
+    g  = cellfun(@(g) g(faces), g, 'unif', false);
 
     % Transform to referece coordinates
     [xL, ~, ~] = disc.transformCoords(x, cL);

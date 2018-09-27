@@ -354,8 +354,8 @@ classdef DGDiscretization < HyperbolicDiscretization
             end
             
             % Get cubature for all cells, transform coordinates to ref space
-            [W, x, cellNo, ~] = disc.volumeCubature.getCubature2(cells, 'volume');
-%             [W, x, cellNo, ~] = disc.getCubature(cells, 'volume');
+%             [W, x, cellNo, ~] = disc.volumeCubature.getCubature2(cells, 'volume');
+            [W, x, cellNo, ~] = disc.getCubature(cells, 'volume');
             [x, ~, scaling]   = disc.transformCoords(x, cellNo);
 
             % Model evaluates integrand at cubature points, and returns
@@ -407,8 +407,8 @@ classdef DGDiscretization < HyperbolicDiscretization
             end
             
             % Get cubature for all cells, transform coordinates to ref space
-            [W, x, cellNo, faceNo] = disc.surfaceCubature.getCubature2(cells, 'surface', true);
-%             [W, x, cellNo, faceNo] = disc.getCubature(cells, 'surface');
+%             [W, x, cellNo, faceNo] = disc.surfaceCubature.getCubature2(cells, 'surface', true);
+            [W, x, cellNo, faceNo] = disc.getCubature(cells, 'surface');
             [x_c, ~, ~] = disc.transformCoords(x, cellNo);
             
             if isempty(faceNo)
@@ -507,89 +507,48 @@ classdef DGDiscretization < HyperbolicDiscretization
         end
         
         function [flag_v, flag_G, upCells_v, upCells_G, s_v, s_G] = getSaturationUpwind(disc, faces, x, T, vT, g, mob, sdof, state)
-            % Explicit calculation of upstream cells.
-            % See getSaturationUpwindDG
-            [flag_v, flag_G, upCells_v, upCells_G, s_v, s_G] = getSaturationUpwindDG(disc, faces, x, T, vT, g, mob, sdof, state);
-            
+            % Explicit calculation of upstream cells. See getSaturationUpwindDG
+            [flag_v, flag_G, upCells_v, upCells_G, s_v, s_G] ...
+                = getSaturationUpwindDG(disc, faces, x, T, vT, g, mob, sdof, state);
         end
         
         %-----------------------------------------------------------------%
         function [W, x, cellNo, faceNo] = getCubature(disc, elements, type)
+            % Get cubature for elements. Wrapper for cubature class
+            % function getCubature, with mapping of elements before and
+            % after in case we are solving on a subgrid
             
-            if size(elements,1) == 1, elements = elements'; end
-            
-            G = disc.G;
-            useMap = false;
-            if isfield(G, 'mappings')
-                useMap = true;
-                maps = G.mappings;
-                G = disc.G.parent;
-                
+            useMap = isfield(disc.G, 'mappings');
+            if useMap
+                % Map elements to old numbering
+                maps = disc.G.mappings; 
                 switch type 
                     case {'volume', 'surface'}
                         elements = maps.cellMap.new2old(elements);
                     case 'face'
                         elements = maps.faceMap.new2old(elements);
                 end
-                
             end
             
-            switch type
+            % Get correct cubature type
+            switch type 
                 case 'volume'
-                    
-                    cubature = disc.volumeCubature;
-                    ix = mcolon(cubature.parentPos(elements), cubature.parentPos(elements+1)-1);
-%                     ixf = ix;
-                    nq = diff(cubature.parentPos);
-                    nq = nq(elements);
-                    
-                    cellNo = rldecode(elements, nq, 1);
-                    faceNo = [];
-
-                    sgn   = ones(numel(ix),1);
-                    
-                case 'face'
-                    
+                    cubature = disc.volumeCubature; 
+                case {'surface', 'face'}
                     cubature = disc.surfaceCubature;
-                    nqf = diff(cubature.parentPos);
-                    faceNo = rldecode(elements, nqf(elements), 1);
-                    ix = mcolon(cubature.parentPos(elements), cubature.parentPos(elements+1)-1);
-                    nq = nqf(elements);
-                    cellNo = [];
-                    sgn = 1;
-                    
-                case 'surface'
-                    
-                    cubature = disc.surfaceCubature;
-                    faces = G.cells.faces(mcolon(G.cells.facePos(elements), G.cells.facePos(elements+1)-1));
-                    ncf = accumarray(rldecode((1:G.cells.num)', diff(G.cells.facePos), 1), disc.internalConnParent(G.cells.faces(:,1)));
-                    faces = faces(disc.internalConnParent(faces));
-                    if size(faces,1) == 1, faces = faces'; end
-                    ix = mcolon(cubature.parentPos(faces), cubature.parentPos(faces+1)-1);
-                    
-                    nqf = diff(cubature.parentPos);
-                    nq = accumarray(rldecode((1:numel(elements))', ncf(elements), 1), nqf(faces));
-                    if isempty(nq), nq = 0; end
-                    
-                    cellNo = rldecode(elements, nq);
-                    faceNo = rldecode(faces, nqf(faces), 1);
-                    sgn   = 1 - 2*(G.faces.neighbors(faceNo,1) ~= cellNo);
-                    
-%                     ixf = nan(numel(ix),1);
-%                     ixf(disc.internalConn(faceNo)) = 1:nnz(disc.internalConn(faceNo));
-                    
             end
+            
+            % Get cubature from cubature class
+            [W, x, cellNo, faceNo] = cubature.getCubature(elements, type, ...
+                              'excludeBoundary', true                   , ...
+                              'internalConn'   , disc.internalConnParent, ...
+                              'outwardNormal'  , true                   );
             
             if useMap
+                % Map elements back to new numbering
                 cellNo = maps.cellMap.old2new(cellNo);
                 faceNo = maps.faceMap.old2new(faceNo);
             end
-            
-            x = cubature.points(ix, :);
-            w = cubature.weights(ix).*sgn;
-            [ii, jj] = blockDiagIndex(ones(numel(elements),1), nq);
-            W = sparse(ii, jj, w);
-%             W = cubature.W(cells, ixf);
             
         end
         
