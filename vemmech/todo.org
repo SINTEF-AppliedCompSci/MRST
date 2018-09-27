@@ -1,0 +1,2 @@
+* TODO Fix stress computation for output
+  - the Voigts notations are not treated correctly.
