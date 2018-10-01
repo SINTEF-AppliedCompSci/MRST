@@ -80,6 +80,9 @@ classdef TransportBlackOilModelDG < TransportBlackOilModel
         
         %-----------------------------------------------------------------%
         function integrand = faceIntegrand(model, fun, x, faceNo, cellNo, T, vT, g, mob, state, sdof, f)
+            % TODO: See if upwind direction changes a lot during nonlinear
+            % solution. If so, maybe fix upstream after iteratio n as in "A
+            % fully-coupled upwind discontinuous ..."
             
             % Get upstream cells and upstram saturations at given
             % quadrature points
@@ -189,45 +192,34 @@ classdef TransportBlackOilModelDG < TransportBlackOilModel
 %             state = model.updateStateFromIncrement(state, ds, problem, 'sdof', inf, inf);
             state = model.disc.getCellSaturation(state);
             
-            if model.disc.degree > 0 && 1
-                
+            if 1
                 state = model.disc.limiter(state);
-                state = model.disc.updateDofPos(state);
-                
-                
-                  
-%             sWdof = model.disc.limiter(state.sdof(:,1));
-%             sOdof = -sWdof;
-%             ix = 1:model.disc.basis.nDof:model.G.cells.num*model.disc.basis.nDof;
-%             sOdof(ix) = 1 - sWdof(ix);
-% 
-%             state.sdof = [sWdof, sOdof];
-
-%                 state = model.disc.getCellSaturation(state);
-
-            elseif 1
-                
-                bad = any(state.s < 0 | state.s > 1,2);
-    %                         sdof(ix,:) = min(max(sdof(ix,:), 0), 1);
-                state.sdof(bad,:) = min(max(state.sdof(bad,:), 0), 1);
-                state.sdof(bad,:) = state.sdof(bad,:)./sum(state.sdof(bad,:),2);
-                state.s(bad,:) = state.sdof(bad,:);
-%                 ix = disc.getDofIx(state, 2:nDofMax, bad);
             end
             
         end
-        %{
+        %%{
         function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
             % Generic update function for reservoir models containing wells.
             %
             % SEE ALSO:
             %   :meth:`ad_core.models.PhysicalModel.updateAfterConvergence`
 
-            [state, report] = updateAfterConvergence@TransportOilWaterModel(model, state0, state, dt, drivingForces);
+            [state, report] = updateAfterConvergence@TransportBlackOilModel(model, state0, state, dt, drivingForces);
             
-            state = model.disc.limiter(state);
-            state = model.disc.updateDofPos(state);
-            state.nDof = model.disc.getnDof(state);
+            if 0
+                % Cells with interface jumps larger than threshold
+                [jumpVal, ~, cells] = model.disc.getInterfaceJumps(state.sdof(:,1), state);
+                j = accumarray(cells(:), repmat(jumpVal,2,1) > model.disc.jumpTolerance) > 0;
+                jump = false(model.G.cells.num,1);
+                jump(cells(:))          = j(cells(:));
+                jump(state.degree == 0) = false;
+                if any(jump)
+                    state = dgLimiter(model.disc, state, jump, 'tvb');
+                end
+%                 state = model.disc.limiter(state);
+            end
+%             state = model.disc.updateDofPos(state);
+%             state.nDof = model.disc.getnDof(state);
             
 %             if model.disc.degree > 0 & 1
 % 

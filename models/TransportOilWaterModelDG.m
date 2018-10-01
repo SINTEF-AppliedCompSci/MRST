@@ -20,6 +20,8 @@ classdef TransportOilWaterModelDG < TransportBlackOilModelDG
             
         end
         
+        
+        %{
         % ----------------------------------------------------------------%
         function state = updateSaturations(model, state, dx, problem, satVars)
             % Update of phase-saturations
@@ -99,7 +101,6 @@ classdef TransportOilWaterModelDG < TransportBlackOilModelDG
             if model.disc.degree > 0 && 1
                 
                 state = model.disc.limiter(state);
-                state = model.disc.updateDofPos(state);
                 
                 
                   
@@ -123,6 +124,7 @@ classdef TransportOilWaterModelDG < TransportBlackOilModelDG
             end
             
         end
+        %}
         %{
         function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
             % Generic update function for reservoir models containing wells.
