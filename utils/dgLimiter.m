@@ -1,8 +1,17 @@
 function state = dgLimiter(disc, state, bad, type, varargin)
 
+    opt = struct('plot', false);
+    opt = merge_options(opt, varargin{:});
+    
     nDofMax = disc.basis.nDof;
     G       = disc.G;
     sdof    = state.sdof;
+    
+    
+    if opt.plot
+        figure(1); clf; hold on
+        plotSaturationDG(disc, state, 'n', 500, 'plot1d', true, 'color', 'b', 'linew', 2);
+    end
 
     switch type
             
@@ -15,7 +24,7 @@ function state = dgLimiter(disc, state, bad, type, varargin)
             % Ensure sum(s,2) = 1
             sdof(ix,:) = sdof(ix,:)./sum(sdof(ix,:),2);
             % Set saturation
-            state.s(bad,:) = sdof(ix,:);
+%             state.s(bad,:) = sdof(ix,:);
             % Remove dofs for dofNo > 1
             if disc.degree > 0
                 ix         = disc.getDofIx(state, 2:nDofMax, bad);
@@ -36,75 +45,71 @@ function state = dgLimiter(disc, state, bad, type, varargin)
             ix = disc.getDofIx(state, (1:G.griddim)+1, bad);
             sdof(ix,:) = dofbar.*[1,-1];
             
-%             if disc.degree > 1
-%                 ix = disc.getDofIx(state, (G.griddim+2):nDofMax, bad);
-%                 sdof(ix,:) = [];
-%             end
+            if disc.degree > 1
+                ix = disc.getDofIx(state, (G.griddim+2):nDofMax, bad);
+                sdof(ix,:) = [];
+            end
             state.sdof = sdof;
-%             state.degree(bad) = 1;
+            state.degree(bad) = 1;
             
         case 'scale'
-
-            it = 1;
-            while any(bad) && it < 4
-
-                [smin, smax] = disc.getMinMaxSaturation(state);
-                under = smin < 0 - disc.outTolerance;
-                over  = smax > 1 + disc.outTolerance;
-                
-                bad   = bad & (over | under) & state.degree > 0;
-                under = under & bad;
-                over  = over  & bad;
-                    
-                if any(under)
-                    badCells = find(under);
-                    ix = disc.getDofIx(state, (1:G.griddim) + 1, badCells);
-                    sd = reshape(sdof(ix), G.griddim, [])';
-                    [~, i] = max(abs(sd), [], 2);
-                    ix0 = disc.getDofIx(state, 1, under);
-                    s0  = state.sdof(ix0,:);
-                    for dofNo = (1:G.griddim) + 1
-                        ii = i == (dofNo - 1);
-                        ix = disc.getDofIx(state, dofNo, badCells(ii));
-                        sdof(ix,1) = -s0(ii,1)/G.griddim;
-                        sdof(ix,2) = -sdof(ix,1);
-                    end
-%                     state.degree(badCells) = 1;
-                end
-
-                if any(over)
-                    badCells = find(over);
-                    ix = disc.getDofIx(state, (1:G.griddim) + 1, badCells);
-                    sd = reshape(sdof(ix), G.griddim, [])';
-                    [~, i] = max(abs(sd), [], 2);
-                    ix0 = disc.getDofIx(state, 1, over);
-                    s0  = state.sdof(ix0,:);
-
-                    for dofNo = (1:G.griddim) + 1
-                        ii = i == (dofNo - 1);
-                        ix = disc.getDofIx(state, dofNo, badCells(ii));
-                        sdof(ix,1) = (1-s0(ii,1))/G.griddim;
-                        sdof(ix,2) = -sdof(ix,1);
-                    end
-%                     state.degree(badCells) = 1;
-                end
-                
-                if disc.degree > 1
-                    ix = disc.getDofIx(state, (G.griddim+2):nDofMax, badCells);
-                    sdof(ix,:) = [];
-                end
-                state.sdof = sdof;
-%                 state = disc.updateDofPos(state);
-                
-                [smin, smax] = disc.getMinMaxSaturation(state);
-                it = it+1;
+            
+            s = state.s;
+            [sMin, sMax] = disc.getMinMaxSaturation(state);
+            theta = [(s(:,1) - 0)./(s(:,1) - sMin), ...
+                     (1 - s(:,1))./(sMax - s(:,1)), ...
+                     ones(G.cells.num,1)          ];
+            theta(abs(theta) > 1) = 1;
+            theta = min(theta, [], 2);
+            
+            for dofNo = 2:nDofMax%(1:G.griddim)+1
+                ix = disc.getDofIx(state, dofNo, (1:G.cells.num)', true);
+                sdof(ix(ix>0),:) = sdof(ix(ix>0),:).*theta(ix>0);
             end
             
-            state = disc.getCellSaturation(state);
+            satIx = state.degree > 0;
+            dofIx = disc.getDofIx(state, 1, satIx);
+            sdof(dofIx,:) = (sdof(dofIx,:) - s(satIx,:)).*theta(satIx) + s(satIx,:);
+            state.sdof = sdof;
+            [sMin, sMax] = disc.getMinMaxSaturation(state);
+            if any(sMin < 0 - eps | sMax > 1 + eps)
+                warning('Some saturations still outside [0,1]')
+            end
+            
+            ind = theta < 1;
+%             if disc.degree > 1
+%                 ix = disc.getDofIx(state, (G.griddim+2):nDofMax, ind);
+% %                 sdof(ix,:) = [];
+%                 sdof(ix,:) = 0;
+%             end
+            state.sdof = sdof;
+%             state.degree(ind & state.degree > 0) = 1;
+            state.scaled = ind;
+            
+        case 'orderReduce'
+            
+            [sMin, sMax] = disc.getMinMaxSaturation(state);
+            outside = sMin < 0 - disc.outTolerance | ...
+                      sMax > 1 + disc.outTolerance;
+                  
+            bad = outside & state.degree > 1;
+                  
+            if any(bad)
+                ix = disc.getDofIx(state, (G.griddim + 2):nDofMax, bad);
+                sdof(ix,:) = [];
+                state.sdof = sdof;
+                state.degree(bad) = 1;
+            end
 
     end
     
     state = disc.updateDofPos(state);
+    state = disc.getCellSaturation(state);
+    
+    if opt.plot
+        plotSaturationDG(disc, state, 'n', 500, 'plot1d', true, 'color', 'r', 'linew', 4, 'LineStyle', '--'); hold off
+        legend({['Before ', type], ['After ', type]});
+    end
 
 end
 
@@ -155,3 +160,61 @@ end
 function v = minmod(val)
     v = max(val)*all(val < 0) + min(val)*all(val > 0);
 end
+
+%             while any(bad) && it < 4
+% 
+%                 [sMin, sMax] = disc.getMinMaxSaturation(state);
+%                 under = sMin < 0 - disc.outTolerance;
+%                 over  = sMax > 1 + disc.outTolerance;
+%                 
+%                 
+%                 
+%                 bad   = bad & (over | under) & state.degree > 0;
+%                 under = under & bad;
+%                 over  = over  & bad;
+%                     
+%                 if any(under)
+%                     badCells = find(under);
+%                     ix = disc.getDofIx(state, (1:G.griddim) + 1, badCells);
+%                     sd = reshape(sdof(ix), G.griddim, [])';
+%                     [~, i] = max(abs(sd), [], 2);
+%                     ix0 = disc.getDofIx(state, 1, under);
+%                     s0  = state.sdof(ix0,:);
+%                     for dofNo = (1:G.griddim) + 1
+%                         ii = i == (dofNo - 1);
+%                         ix = disc.getDofIx(state, dofNo, badCells(ii));
+%                         sdof(ix,1) = -s0(ii,1)/G.griddim;
+%                         sdof(ix,2) = -sdof(ix,1);
+%                     end
+% %                     state.degree(badCells) = 1;
+%                 end
+% 
+%                 if any(over)
+%                     badCells = find(over);
+%                     ix = disc.getDofIx(state, (1:G.griddim) + 1, badCells);
+%                     sd = reshape(sdof(ix), G.griddim, [])';
+%                     [~, i] = max(abs(sd), [], 2);
+%                     ix0 = disc.getDofIx(state, 1, over);
+%                     s0  = state.sdof(ix0,:);
+% 
+%                     for dofNo = (1:G.griddim) + 1
+%                         ii = i == (dofNo - 1);
+%                         ix = disc.getDofIx(state, dofNo, badCells(ii));
+%                         sdof(ix,1) = (1-s0(ii,1))/G.griddim;
+%                         sdof(ix,2) = -sdof(ix,1);
+%                     end
+% %                     state.degree(badCells) = 1;
+%                 end
+%                 
+%                 if disc.degree > 1
+%                     ix = disc.getDofIx(state, (G.griddim+2):nDofMax, badCells);
+%                     sdof(ix,:) = [];
+%                 end
+%                 state.sdof = sdof;
+% %                 state = disc.updateDofPos(state);
+%                 
+%                 [sMin, sMax] = disc.getMinMaxSaturation(state);
+%                 it = it+1;
+%             end
+%             
+%             state = disc.getCellSaturation(state);

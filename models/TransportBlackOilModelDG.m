@@ -171,7 +171,7 @@ classdef TransportBlackOilModelDG < TransportBlackOilModel
             
             tmp = 0;
             active = ~model.G.cells.ghost;
-            ix = model.disc.getDofIx(state, [], active);
+            ix = model.disc.getDofIx(state, Inf, active);
             for i = 1:numel(saturations)
                 if solvedFor(i)
                     v = model.getIncrement(dx, problem, saturations{i});
@@ -206,7 +206,7 @@ classdef TransportBlackOilModelDG < TransportBlackOilModel
 
             [state, report] = updateAfterConvergence@TransportBlackOilModel(model, state0, state, dt, drivingForces);
             
-            if 0
+            if 1
                 % Cells with interface jumps larger than threshold
                 [jumpVal, ~, cells] = model.disc.getInterfaceJumps(state.sdof(:,1), state);
                 j = accumarray(cells(:), repmat(jumpVal,2,1) > model.disc.jumpTolerance) > 0;
@@ -217,6 +217,10 @@ classdef TransportBlackOilModelDG < TransportBlackOilModel
                     state = dgLimiter(model.disc, state, jump, 'tvb');
                 end
 %                 state = model.disc.limiter(state);
+            end
+            
+            if model.disc.degree > 0 && 1
+                state = dgLimiter(model.disc, state, true(model.G.cells.num,1), 'scale');
             end
 %             state = model.disc.updateDofPos(state);
 %             state.nDof = model.disc.getnDof(state);

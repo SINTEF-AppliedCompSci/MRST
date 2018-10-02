@@ -17,6 +17,7 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     rock  = model.rock;
     G     = model.G;
     disc  = model.disc;
+    nDofMax = disc.basis.nDof;
     flux2Vel = disc.velocityInterp.faceFlux2cellVelocity;
         
     assert(~(opt.solveForWater && opt.solveForOil));
@@ -164,7 +165,7 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
         prod = disc.cellInt(model, integrand, wc, state, state0, sWdof, sWdof0, fW);
         
         vol = rldecode(G.cells.volumes(wc), nDof(wc), 1);
-        ix = disc.getDofIx(state, [], wc);
+        ix = disc.getDofIx(state, Inf, wc);
         water(ix) = water(ix) - prod(ix)./vol;
 
         % Store well fluxes
@@ -227,7 +228,7 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
         
         vol = rldecode(G.cells.volumes(cells), nDof(cells), 1);
         
-        ix = disc.getDofIx(state, [], cells);
+        ix = disc.getDofIx(state, Inf, cells);
         water(ix) = water(ix) - source(ix)./vol;
         
     end
@@ -258,7 +259,7 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     
     if isfield(G, 'parent')
 %         active = find(~G.cells.ghost);
-        ix = disc.getDofIx(state, [], ~G.cells.ghost);
+        ix = disc.getDofIx(state, Inf, ~G.cells.ghost);
         
         for eqNo = 1:numel(problem.equations)
             eq = problem.equations{eqNo};
