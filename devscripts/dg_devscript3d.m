@@ -41,7 +41,7 @@ state0.cells = (1:G.cells.num)';
 
 %%
 
-degree = [1];
+degree = [0,1];
 statesDG = cell(numel(degree),1);
 for dNo = 1:numel(degree)
     disc    = DGDiscretization(modelDG.transportModel, 'degree', degree(dNo), 'basis', 'legendre', 'useUnstructCubature', true);

@@ -57,7 +57,7 @@ state0 = assignDofFromState(modelDG.transportModel.disc, state0);
 modelDGreorder = modelDG;
 modelDGreorder.pressureModel.extraStateOutput = true;
 
-modelDGreorder.transportModel = ReorderingModelDG_ghost(modelDGreorder.transportModel, 'plotProgress', true);
+modelDGreorder.transportModel = ReorderingModelDG_ghost(modelDGreorder.transportModel, 'plotProgress', false);
 
 modelDGreorder.transportModel.chunkSize = 1;
 modelDGreorder.transportModel.parent.extraStateOutput = true;
@@ -81,7 +81,7 @@ plotWellSols({wsDG, wsDGReorder});
 %%
 
 mrstModule add upr
-n = 3;
+n = 5;
 G = pebiGrid(l/n, [l,l]);
 G = computeVEMGeometry(G);
 G = computeCellDimensions(G);
@@ -115,10 +115,10 @@ modelDG = modelFV;
 %%
 
 [jt, ot, mt] = deal(Inf);
-% jt = 0.2;
-% ot = 1e-3;
+jt = 0.2;
+ot = 1e-3;
 degree = 0;
-disc   = DGDiscretization(modelDG.transportModel, 2, 'degree', degree, ...
+disc   = DGDiscretization(modelDG.transportModel, 'degree', degree, ...
                          'basis', 'legendre', 'useUnstructCubature', true,  'jumpTolerance', jt, ...
      'outTolerance', ot, 'meanTolerance', mt);
 modelDG.transportModel = TransportOilWaterModelDG(G, rock, fluid, 'disc', disc);
@@ -145,3 +145,16 @@ modelDGreorder.transportModel.parent.extraStateOutput = true;
 %%
 
 [wsDG, statesDG, rep] = simulateScheduleAD(state0, modelDG, schedule);
+
+%%
+
+close all
+
+figure
+plotToolbar(G, statesDG); colormap(jet);
+figure
+
+
+plotToolbar(G, statesDGReorder); colormap(jet);
+
+plotWellSols({wsDG, wsDGReorder});

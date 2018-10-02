@@ -3,13 +3,10 @@ mrstModule add dg vem vemmech ad-props ad-core ad-blackoil blackoil-sequential g
 %%
 
 gravity reset off
-% gravity reset on; gravity([0,-9.81]);
-
-
 
 n = 10;
-l = 1000;
-G = computeGeometry(cartGrid([n,n], [l,l]*meter));
+l = 1000*meter;
+G = computeGeometry(cartGrid([n,1], [1,0.1]*l));
 G = computeVEMGeometry(G);
 G = computeCellDimensions(G);
 
@@ -18,8 +15,6 @@ fluid = initSimpleADIFluid('phases', 'WO'                   , ...
                            'rho'   , [1000, 1]*kilogram/meter^3, ...
                            'mu'    , [0.5, 0.5]*centi*poise     , ...
                            'n'     , [1, 1]                 );
-% fluid.krW = @(s) fluid.krW(s).*(s>=0 & s<=1) + fluid.krW(1).*(s>1);
-% fluid.krO = @(s) fluid.krO(s).*(s>=0 & s<=1) + fluid.krO(1).*(s>1);
 
 modelfi = TwoPhaseOilWaterModel(G, rock, fluid);
 modelFV = getSequentialModelFromFI(modelfi);
@@ -49,9 +44,7 @@ state0 = initResSol(G, 100*barsa, [sW,1-sW]);
 
 %%
 
-degree = [0, 1, 2, 3];
-degree = [4];
-% degree = [1,2];
+degree = [0, 1, 2, 3, 4, 5];
 [jt, ot, mt] = deal(Inf);
 % 
 jt = Inf;
@@ -69,15 +62,15 @@ for dNo = 1:numel(degree)
                                     'jumpTolerance'      , jt         , ...
                                     'outTolerance'       , ot         , ...
                                     'meanTolerance'      , mt         , ...
-                                    'limiterType'        , 'kill'     , ...
-                                    'plotLimiterProgress', false);
+                                    'limiterType'        , 'tvb'      );
     modelDG.transportModel = TransportOilWaterModelDG(G, rock, fluid, ...
                                        'disc'    , disc{dNo}        , ...
-                                       'dsMaxAbs', 0.2/(degree(dNo) + 1), ...
+                                       'dsMaxAbs', 0.2/(degree(dNo)+1), ...
                                        'nonlinearTolerance', 1e-3);
 
     state0 = assignDofFromState(modelDG.transportModel.disc, state0);
     [wsDG{dNo}, statesDG{dNo}, rep] = simulateScheduleAD(state0, modelDG, schedule);
+    
 end
 
 %%
@@ -90,12 +83,12 @@ close all
 
 for dNo = 1:numel(degree)
     figure
-    plotToolbar(G, statesDG{dNo});
+    plotToolbar(G, statesDG{dNo}, 'plot1d', true);
     colormap(jet);
 end
 
 figure
-plotToolbar(G, statesFV);
+plotToolbar(G, statesFV, 'plot1d', true);
 colormap(jet)
 
 dsnDG = cellfun(@(d) ['dG(' num2str(d), ')'] , num2cell(degree), 'unif', false);
@@ -107,27 +100,26 @@ plotWellSols({wsFV, wsDG{:}}, schedule.step.val, 'datasetNames', dsn)
 %%
 close all
 figure('position', [-1000, 0, 800, 600])
-
-azel = [107, 16];
-pba = [5,5,1];
-dNo = 4;
-[h, saturation, coords, keep, n] = plotSaturationDG(disc{dNo}, statesDG{dNo}{1}, 'edgecolor', 'none');
-view(azel);
-pbaspect(pba)
-colormap(jet)
-light('position', [1100, 500, 2], 'style', 'local');
+% h = zeros(numel(degree),1);
+saturation = cell(numel(degree), 1);
+hold on
+for dNo = 1:numel(degree)
+    [h(dNo), saturation{dNo}, coords, keep, n] = ...
+        plotSaturationDG(disc{dNo}, statesDG{dNo}{1}, 'plot1d', true, 'linew', 2);
+end
+ll = cellfun(@(d) ['dG(', num2str(d), ')'], num2cell(degree), 'unif', false);
+legend(ll);
+hold off
 axis tight; box on
+ylim([-0.1,1.1])
 
-st = statesDG{dNo};
-for sNo = 1:numel(st)
-    s = saturation(st{sNo});
-    s(~keep) = nan;
-    s = reshape(s', [n, n]);
-    h.ZData = s;
+for sNo = 1:numel(statesDG{1})
+    for dNo = 1:numel(degree)
+        s = saturation{dNo}(statesDG{dNo}{sNo});
+        set(h(dNo), 'YData', s);
+    end
     pause(0.5);
 end
-
-
 
 %%
 
