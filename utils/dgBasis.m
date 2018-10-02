@@ -14,6 +14,13 @@ function basis = dgBasis(dim, degree, type)
         end
         k = k(sum(k,2) <= degree,:);
         
+        kn = [];
+        for dd = 0:degree
+            kk = k(sum(k,2) == dd,:);
+            kn = [kn; kk];
+        end
+        k = kn;
+        
         switch type
             case 'poly'
                 for dofNo = 1:nDof
