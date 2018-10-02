@@ -45,6 +45,27 @@ classdef LineCubature < Cubature
                 x = [-sqrt(3/7 + 2/7*sqrt(6/5)); -sqrt(3/7 - 2/7*sqrt(6/5)); ...
                       sqrt(3/7 - 2/7*sqrt(6/5));  sqrt(3/7 + 2/7*sqrt(6/5))];
                 
+            elseif presc == 5
+                a = 5; b = 2*sqrt(10/7);
+                x = [-1/3*sqrt(a + b); -1/3*sqrt(a - b); 0; ...
+                     +1/3*sqrt(a - b); +1/3*sqrt(a + b)];
+                 
+            elseif presc <= 7
+                
+                presc = 7;
+                presc = presc + (presc == 0);
+                l  = legendrePolynomials(presc);
+                dl = cellfun(@(l) dx(l,1), l, 'unif', false);
+                dl = dl{end};
+                
+                x = [-0.949107912342758524526189684048;
+                     -0.741531185599394439863864773281;
+                     -0.405845151377397166906606412077;
+                      0;
+                      0.405845151377397166906606412077;
+                      0.741531185599394439863864773281;
+                      0.949107912342758524526189684048];
+                  
             end
             
             w = 2./((1 - x.^2).*dl(x).^2);
