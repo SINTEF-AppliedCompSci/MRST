@@ -28,7 +28,8 @@ classdef LineCubature < Cubature
             
             presc = cub.prescision;
             presc = presc + (presc == 0);
-            l  = legendrePolynomials(presc);
+            l     = legendrePolynomials(presc); 
+            
             dl = cellfun(@(l) dx(l,1), l, 'unif', false);
             dl = dl{end};
             

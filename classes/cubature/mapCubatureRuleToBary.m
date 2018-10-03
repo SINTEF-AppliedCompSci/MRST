@@ -2,7 +2,7 @@ function [lambda, w] = mapCubatureRuleToBary(rule, type)
 
     if strcmpi(type, 'triangle')
         t = '%f%f';
-    elseif strcmpi(type, 'triangle')
+    elseif strcmpi(type, 'tetrahedron')
         t = '%f%f%f';
     end
 

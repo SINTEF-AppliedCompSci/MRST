@@ -21,7 +21,7 @@ modelfi = TwoPhaseOilWaterModel(G, rock, fluid);
 modelFV = getSequentialModelFromFI(modelfi);
 modelDG = modelFV;
 
-G = makeFaceCoords(G);
+% G = makeFaceCoords(G);
 
 %%
 
@@ -41,11 +41,20 @@ state0.cells = (1:G.cells.num)';
 
 %%
 
-degree = [0,1];
+degree = [1,2];
 statesDG = cell(numel(degree),1);
 for dNo = 1:numel(degree)
-    disc    = DGDiscretization(modelDG.transportModel, 'degree', degree(dNo), 'basis', 'legendre', 'useUnstructCubature', true);
-    modelDG.transportModel = TransportOilWaterModelDG(G, rock, fluid, 'disc', disc, 'dsMaxAbs', 0.2);    
+    disc    = DGDiscretization(modelDG.transportModel, ...
+                                'degree'             , degree(dNo), ...
+                                'basis'              , 'legendre' , ...
+                                'useUnstructCubature', true       , ...
+                                'jumpTolerance'      , Inf        , ...
+                                'outTolerance'       , Inf       , ...
+                                'meanTolerance'      , Inf        );
+    modelDG.transportModel = TransportOilWaterModelDG(G, rock, fluid  , ...
+                                                      'disc'    , disc, ...
+                                                      'dsMaxAbs', Inf );    
+    
 %     modelDG.transportModel.AutoDiffBackend = DiagonalAutoDiffBackend();
 
     state0 = assignDofFromState(modelDG.transportModel.disc, state0);
