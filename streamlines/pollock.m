@@ -86,20 +86,19 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
 % Written by Jostein R. Natvig, SINTEF ICT, 2010.
 
    d = size(G.nodes.coords, 2);
-   if mod(nargin, 2)==0,
-      positions   = [(1:G.cells.num)', repmat(0.5, [G.cells.num, d])];
+   if mod(nargin, 2) == 0
+      positions = [(1:G.cells.num)', repmat(0.5, [G.cells.num, d])];
    else
       positions = varargin{1};
-      if size(positions, 2) ==1,
+      if size(positions, 2) == 1
          positions = [positions, repmat(0.5, [size(positions, 1), d])];
-      elseif size(positions, 2) ~= 1 + d,
+      elseif size(positions, 2) ~= 1 + d
          error('Expected array of local positions of width 1 or 1+d.');
       end
-      varargin  = varargin(2:end);
+      varargin = varargin(2:end);
    end
 
    opt = struct('substeps', 5,     ...
@@ -124,16 +123,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    [varargout{1:nargout}] = trace(G, state, positions, opt);
 end
 
+% =========================================================================
 
-
-% ========================================================================
 function varargout = trace(G, state, pos, opt)
    d              = size(G.nodes.coords, 2);
-   numStreamlines = size(pos,1);
-   assert(size(pos, 2) == d+1);
+   numStreamlines = size(pos, 1);
+   assert(size(pos, 2) == d + 1);
 
-   if ~isfield(G, 'cellNodes'),
-      cn  = cellNodes(G);
+   if ~isfield(G, 'cellNodes')
+      cn = cellNodes(G);
       G.cellNodes = accumarray(cn(:,1:2), cn(:,3));
    end
 
@@ -159,9 +157,9 @@ function varargout = trace(G, state, pos, opt)
    C(active, 1) = pos(active,1);
 
    i = 2;
-   while any(active),
+   while any(active)
       % Realloc
-      if i+opt.substeps+1 > size(XYZ, 3),
+      if i+opt.substeps+1 > size(XYZ, 3)
          magic = max(magic, opt.substeps+1);
          XYZ   = cat(3, XYZ, nan(numStreamlines, d, magic));
          T     = cat(2, T,   nan(numStreamlines, magic));
@@ -200,31 +198,31 @@ function varargout = trace(G, state, pos, opt)
    ix = find(flag);
    dd  = diff([0;ix])-1;
    varargout{1} = mat2cell(p(~flag,:), dd, d);
-   if nargout > 1,
+   if nargout > 1
       T = reshape(T', [], 1);
       T = T(j);
       varargout{2} = mat2cell(T(~flag), dd, 1);
    end
-   if nargout > 2,
+   if nargout > 2
       C = reshape(C', [], 1);
       C = C(j);
       varargout{3} = mat2cell(C(~flag), dd, 1);
    end
 end
 
+% =========================================================================
 
-
-% ========================================================================
 function xyz = globalCoordinate(G, c, p)
 % Compute global coordinate corresponding to local coorinate p in cells c
 % p  - local positions == [xi,eta,zeta] in 3D
 % c  -
-%
+
    if numel(c)==1, p = reshape(p, 1, []); end
+
    % Compute node weight for quadrilateral or hexahedron
    d = size(G.nodes.coords, 2);
    w = ones(size(p,1), 2^d);
-   for i=1:d,
+   for i=1:d
       mask        = logical(bitget((0:2^d-1)', i));
       w(:, mask)  = w(:, mask).* repmat(  p(:,i), [1, sum( mask)]);
       w(:,~mask)  = w(:,~mask).* repmat(1-p(:,i), [1, sum(~mask)]);
@@ -232,36 +230,32 @@ function xyz = globalCoordinate(G, c, p)
 
    % Compute weighted average of corner points
    xyz = zeros(size(p,1), d);
-   for i=1:d,
+   for i=1:d
       xi       = G.nodes.coords(:,i);
-      xyz(:,i) = sum( w.*reshape(xi(G.cellNodes(c, :))', 2^d, [])', 2);
+      xyz(:,i) = sum(w .* reshape(xi(G.cellNodes(c, :))', 2^d, [])', 2);
    end
 end
 
+% =========================================================================
 
-
-% ========================================================================
 function [pos, tof, xyz] = step(pos, flux, neighbors, nsubsteps)
 % Update pos array by computing new local coordinate and new cell.
 % In addition, compute curve within cell.
-%
-%
-%
-%
+
    f = flux(pos(:,1),:);
    n = neighbors(pos(:,1),:);
 
    dims = size(pos, 2)-1;
    T    = nan(size(pos,1),dims);
-   for i=1:dims,
+   for i=1:dims
       T(:,i) = computeTime(pos(:,1+i), f(:,2*i-1:2*i));
    end
    [tof, dir] = min(T, [], 2);
 
    xyz = zeros(size(pos,1), dims, nsubsteps);
    d   = zeros(size(pos, 1), 1);
-   for s=1:nsubsteps,
-      for i=1:dims,
+   for s=1:nsubsteps
+      for i=1:dims
          t = tof*s/nsubsteps;
          [xyz(:,i,s), d(:,i)] = computePosition(pos(:,1+i), f(:,2*i-1:2*i), t);
       end
@@ -286,8 +280,8 @@ function [pos, tof, xyz] = step(pos, flux, neighbors, nsubsteps)
    pos(numel(dir) + k ) = 2-d(k);
 end
 
+% =========================================================================
 
-% ========================================================================
 function N = findNeighbors(G)
 % Build (n x 2*d) -array of neighbors for each cell in (Cartesian) grid G.
    cellNo = rldecode(1:G.cells.num, diff(G.cells.facePos), 2)';
@@ -296,12 +290,8 @@ function N = findNeighbors(G)
    N      = accumarray([cellNo, G.cells.faces(:,2)], c);
 end
 
+% =========================================================================
 
-
-
-
-
-% ========================================================================
 function t = computeTime(xi, v)
 % Compute time needed to reach xi=0 or xi=1 given velocities v=[v1,v2] at
 % xi=0 and xi=1.  The formula is
@@ -312,6 +302,7 @@ function t = computeTime(xi, v)
 %
 % where ui=v2*xi+v1*(1-xi) is the velocity at xi, and ue=v2 if ui>0 or
 % ue=v1 if ui<0.
+
    tolerance = 100*eps;
 
    ui         = v(:,1) + xi.*diff(v, 1, 2);%(:,2)-v(:,1));
@@ -333,8 +324,8 @@ function t = computeTime(xi, v)
    t(arg<0 | isnan(arg))   = inf;
 end
 
+% =========================================================================
 
-% ========================================================================
 function [x, i] = computePosition(xi, v, t)
 % Compute position at time t given start point xi and velocities v=[v1,v2].
 %
@@ -358,8 +349,3 @@ function [x, i] = computePosition(xi, v, t)
    x(~ind,:) = xi(~ind,:) + v(~ind, 1).*t(~ind, :);
    x(~ind & t==inf) = xi(~ind & t==inf);
 end
-
-
-
-
-
