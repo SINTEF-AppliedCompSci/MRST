@@ -73,8 +73,8 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     pvMult  = expandSingleValue(pvMult , G);
     pvMult0 = expandSingleValue(pvMult0, G);
     mobMult = expandSingleValue(mobMult, G);
-    T = op.T.*transMult;
-    T_all = model.operators.T_all;
+    T       = op.T.*transMult;
+    T_all   = model.operators.T_all;
     
     % Phase properties
     gdz = model.getGravityGradient();
@@ -280,7 +280,7 @@ end
 
 function v = expandSingleValue(v,G)
 
-    if numel(v) == 1
+    if numel(double(v)) == 1
         v = v*ones(G.cells.num,1);
     end
     

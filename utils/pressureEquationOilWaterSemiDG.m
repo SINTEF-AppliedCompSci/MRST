@@ -79,30 +79,28 @@ x = G.faces.centroids(faces,:);
 upCellsW = G.faces.neighbors(faces,1).*upcw + G.faces.neighbors(faces,2).*(~upcw); 
 xf = disc.transformCoords(x, upCellsW);
 sWf = disc.evaluateSaturation(xf, upCellsW, sWdof, state);
-% mobWf = mobW(sWf, upCellsW);
 vW = vW(sWf, upCellsW);
-% vW = -mobWf.*T.*dpW;
 
 upCellsO = G.faces.neighbors(faces,1).*upco + G.faces.neighbors(faces,2).*(~upco); 
 xf = disc.transformCoords(x, upCellsO);
 sOf = disc.evaluateSaturation(xf, upCellsO, sOdof, state);
-% mobOf = mobO(sOf, upCellsO);
 vO = vO(sOf, upCellsO);
-% vO = -mobOf.*T.*dpO;
 
-if otherPropPressure && 0
+if otherPropPressure
     % We have used a different pressure for property evaluation, undo the
     % effects of this on the fluxes.
     dp_diff = op.Grad(p) - op.Grad(p_prop);
-    
-    vW = -op.faceUpstr(upcw, mobW).*op.T.*(dpW + dp_diff);
-    vO = -op.faceUpstr(upco, mobO).*op.T.*(dpO + dp_diff);
+    vW = -mobW(sWf, upCellsW).*op.T.*(dpW + dp_diff);
+    vO = -mobO(sOf, upCellsO).*op.T.*(dpO + dp_diff);
 end
 
 % These are needed in transport solver, so we output them regardless of
 % any flags set in the model.
 state = model.storeFluxes(state, vW, vO, []);
 state = model.storeUpstreamIndices(state, upcw, upco, []);
+mobW = mobW(sW, (1:G.cells.num)');
+mobO = mobO(sO, (1:G.cells.num)');
+
 if model.extraStateOutput
     state = model.storebfactors(state, bW, bO, []);
     state = model.storeMobilities(state, mobW, mobO, []);
@@ -120,9 +118,6 @@ water = (op.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 ) + op.Div(bWvW);
 
 eqs = {water, oil};
 
-
-mobW = mobW(sW, (1:G.cells.num)');
-mobO = mobO(sO, (1:G.cells.num)');
 rho = {rhoW, rhoO};
 mob = {mobW, mobO};
 sat = {sW, sO};
@@ -151,7 +146,7 @@ end
 
 function v = expandSingleValue(v,G)
 
-    if numel(v) == 1
+    if numel(double(v)) == 1
         v = v*ones(G.cells.num,1);
     end
     

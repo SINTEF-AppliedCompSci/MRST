@@ -89,7 +89,7 @@ function state = dgLimiter(disc, state, bad, type, varargin)
             outside = sMin < 0 - disc.outTolerance | ...
                       sMax > 1 + disc.outTolerance;
                   
-            bad = outside & state.degree > 1;
+            bad = bad & outside & state.degree > 1;
                   
             if any(bad)
                 ix = disc.getDofIx(state, (G.griddim + 2):nDofMax, bad);
@@ -119,7 +119,6 @@ function dofbar = approximatGradient(dof, state, disc)
     dofIx   = disc.getDofIx(state, 1);
     q    = dof(dofIx);
     G    = disc.G;
-    nDof = disc.basis.nDof;
     
     sigma = cell(1, disc.dim);
     [sigma{:}] = deal(0);
@@ -140,18 +139,18 @@ function dofbar = approximatGradient(dof, state, disc)
     
     dofbar = zeros(G.cells.num, disc.G.griddim);
     for cNo = 1:G.cells.num
-        
-%         gradix = gradpos(cNo):gradpos(cNo+1)-1;
+    if state.degree(cNo) > 0
         gradIx = disc.interp_setup.cell_support{cNo};
         for dNo = 1:G.griddim
             dofIx = disc.getDofIx(state, 1+dNo, cNo);
             ss = sigma{dNo}(gradIx);
-%             ss = ss(ss~=0);
+            ss = ss(ss~=0);
             dd = dof(dofIx);
             val = [dd; ss];
             db = minmod(val);
             dofbar(cNo, dNo) = db;
         end
+    end
 
     end
     

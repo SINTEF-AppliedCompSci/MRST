@@ -166,7 +166,6 @@ classdef TransportBlackOilModelDG < TransportBlackOilModel
             % the pores. This is done by setting that increment equal to the
             % negation of all others so that sum(s) == 0 at end of update
             solvedFor = ~strcmpi(saturations, fillsat);
-%             ds = zeros(sum(model.disc.nDof), numel(saturations));
             ds = zeros(sum(state.nDof), numel(saturations));
             
             tmp = 0;
@@ -184,16 +183,12 @@ classdef TransportBlackOilModelDG < TransportBlackOilModel
             ds(ix, ~solvedFor) = tmp;
             % We update all saturations simultanously, since this does not bias the
             % increment towards one phase in particular.
-%             state = model.updateStateFromIncrement(state, ds, problem, 'sdof', inf, inf);
             state = model.updateStateFromIncrement(state, ds, problem, 'sdof', inf, model.dsMaxAbs);
-            
-            
-            
-%             state = model.updateStateFromIncrement(state, ds, problem, 'sdof', inf, inf);
             state.s = model.disc.getCellSaturation(state);
             
-            if 1
-                state = model.disc.limiter(state);
+            if model.disc.limitAfterNewtonStep
+                % Limit solution
+                state = model.disc.limiter(state, true);
             end
             
         end
@@ -204,25 +199,12 @@ classdef TransportBlackOilModelDG < TransportBlackOilModel
             % SEE ALSO:
             %   :meth:`ad_core.models.PhysicalModel.updateAfterConvergence`
 
+            % Let base class do what it want
             [state, report] = updateAfterConvergence@TransportBlackOilModel(model, state0, state, dt, drivingForces);
-            
-            if model.disc.degree > 0 && model.disc.jumpTolerance < Inf
-                % Cells with interface jumps larger than threshold
-                [jumpVal, ~, cells] = model.disc.getInterfaceJumps(state.sdof(:,1), state);
-                j = accumarray(cells(:), repmat(jumpVal,2,1) > model.disc.jumpTolerance) > 0;
-                jump = false(model.G.cells.num,1);
-                jump(cells(:))          = j(cells(:));
-                jump(state.degree == 0) = false;
-                if any(jump)
-                    state = dgLimiter(model.disc, state, jump, 'tvb');
-                end
-%                 state = model.disc.limiter(state);
+            if model.disc.limitAfterConvergence
+                % Postprocess using limiter(s)
+                state = model.disc.limiter(state, false);    
             end
-            
-            if model.disc.degree > 0 && 1
-                state = dgLimiter(model.disc, state, true(model.G.cells.num,1), 'scale');
-            end
-    
         end
         
     end
