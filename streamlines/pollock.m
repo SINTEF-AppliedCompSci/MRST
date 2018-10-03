@@ -40,6 +40,10 @@ function varargout = pollock(G, state, varargin)
 %   reverse   - Reverse velocity field before tracing.
 %               Default false.
 %
+%   pvol      - Pore-volume vector.  One positive scalar for each active
+%               cell in the grid `G`.  Makes the physical interpretation of
+%               time-of-flight appropriate for non-uniform porosity fields.
+%
 % RETURNS:
 %
 %  S      - Cell array of individual streamlines suitable for calls like
@@ -58,9 +62,10 @@ function varargout = pollock(G, state, varargin)
 %   S = vertcat(S{:});
 %   plot(S(:,1), S(:,2), 'r-');
 %
-%   streamline(pollock(G, x));
-% SEE ALSO:
+%   streamline(pollock(G, x, 'pvol', poreVolume(G, rock)));
 %
+% SEE ALSO:
+%   `streamline`.
 
 %{
 Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
@@ -96,18 +101,27 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       end
       varargin  = varargin(2:end);
    end
-   opt = struct('substeps', 5, 'maxsteps', 1000, 'reverse', false);
+
+   opt = struct('substeps', 5,     ...
+                'maxsteps', 1000,  ...
+                'reverse' , false, ...
+                'pvol'    , ones([G.cells.num, 1]));
    opt = merge_options(opt, varargin{:});
 
    if size(state.flux, 2) > 1
-       state.flux = sum(state.flux, 2);
+      state.flux = sum(state.flux, 2);
    end
-   if opt.reverse,
+
+   if opt.reverse
       state.flux = -state.flux;
    end
 
-   [varargout{1:nargout}] = trace(G, state, positions, opt);
+   if ~all(opt.pvol > 0)
+      error('PoreVol:NonPositive', ...
+            'Rock pore-volume must be strictly positive in all cells');
+   end
 
+   [varargout{1:nargout}] = trace(G, state, positions, opt);
 end
 
 
@@ -127,6 +141,7 @@ function varargout = trace(G, state, pos, opt)
    cellNo = rldecode(1:G.cells.num, diff(G.cells.facePos), 2) .';
    cf     = G.cells.faces;
    flux   = accumarray([cellNo, cf(:,2)], state.flux(cf(:,1)));
+   flux   = bsxfun(@rdivide, flux, opt.pvol);
    clear cf cellNo
 
    neighbors  = findNeighbors(G);
