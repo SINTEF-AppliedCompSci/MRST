@@ -190,14 +190,14 @@ classdef TransportBlackOilModelDG < TransportBlackOilModel
             
             
 %             state = model.updateStateFromIncrement(state, ds, problem, 'sdof', inf, inf);
-            state = model.disc.getCellSaturation(state);
+            state.s = model.disc.getCellSaturation(state);
             
             if 1
                 state = model.disc.limiter(state);
             end
             
         end
-        %%{
+
         function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
             % Generic update function for reservoir models containing wells.
             %
@@ -206,7 +206,7 @@ classdef TransportBlackOilModelDG < TransportBlackOilModel
 
             [state, report] = updateAfterConvergence@TransportBlackOilModel(model, state0, state, dt, drivingForces);
             
-            if 1
+            if model.disc.degree > 0 && model.disc.jumpTolerance < Inf
                 % Cells with interface jumps larger than threshold
                 [jumpVal, ~, cells] = model.disc.getInterfaceJumps(state.sdof(:,1), state);
                 j = accumarray(cells(:), repmat(jumpVal,2,1) > model.disc.jumpTolerance) > 0;
@@ -222,22 +222,8 @@ classdef TransportBlackOilModelDG < TransportBlackOilModel
             if model.disc.degree > 0 && 1
                 state = dgLimiter(model.disc, state, true(model.G.cells.num,1), 'scale');
             end
-%             state = model.disc.updateDofPos(state);
-%             state.nDof = model.disc.getnDof(state);
-            
-%             if model.disc.degree > 0 & 1
-% 
-%             sWdof = model.disc.limiter(state.sdof(:,1));
-%             sOdof = -sWdof;
-%             ix = 1:model.disc.basis.nDof:model.G.cells.num*model.disc.basis.nDof;
-%             sOdof(ix) = 1 - sWdof(ix);
-% 
-%             state.sdof = [sWdof, sOdof];
-% 
-%             state = model.disc.getCellSaturation(state);
     
         end
-        %}
         
     end
 end

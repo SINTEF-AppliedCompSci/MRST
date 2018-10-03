@@ -11,7 +11,7 @@ function [vO, bO, mobO, rhoO, pO, upcO, dpO, muO] = getPropsOil_DG(model, pO, T,
     muO = fluid.muO(pO);
     mobO = @(sO,c) mobMult(c).*fluid.krO(sO)./muO(c);
     
-    vO = @(x,c) -mobO(x,c).*T.*dpO;
+    vO = @(sO,c) -mobO(sO,c).*T.*dpO;
 
     upcO  = (double(dpO)<=0);
 

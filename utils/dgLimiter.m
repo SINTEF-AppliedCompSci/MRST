@@ -23,17 +23,14 @@ function state = dgLimiter(disc, state, bad, type, varargin)
             sdof(ix,:) = min(max(state.s(bad,:), 0), 1);
             % Ensure sum(s,2) = 1
             sdof(ix,:) = sdof(ix,:)./sum(sdof(ix,:),2);
-            % Set saturation
-%             state.s(bad,:) = sdof(ix,:);
             % Remove dofs for dofNo > 1
             if disc.degree > 0
                 ix         = disc.getDofIx(state, 2:nDofMax, bad);
                 sdof(ix,:) = [];
+                state.degree(bad) = 0;
             end
-%             sdof(ix,:) = 0;
             % Assign new dofs to state
             state.sdof = sdof;
-            state.degree(bad) = 0;
 
         case 'tvb'
             % TVB limiter
@@ -77,13 +74,13 @@ function state = dgLimiter(disc, state, bad, type, varargin)
             end
             
             ind = theta < 1;
-%             if disc.degree > 1
-%                 ix = disc.getDofIx(state, (G.griddim+2):nDofMax, ind);
-% %                 sdof(ix,:) = [];
+            if disc.degree > 1 && 0
+                ix = disc.getDofIx(state, (G.griddim+2):nDofMax, ind);
+                sdof(ix,:) = [];
+                state.degree(ind & state.degree > 1) = 1;
 %                 sdof(ix,:) = 0;
-%             end
+            end
             state.sdof = sdof;
-%             state.degree(ind & state.degree > 0) = 1;
             state.scaled = ind;
             
         case 'orderReduce'
@@ -97,18 +94,21 @@ function state = dgLimiter(disc, state, bad, type, varargin)
             if any(bad)
                 ix = disc.getDofIx(state, (G.griddim + 2):nDofMax, bad);
                 sdof(ix,:) = [];
-                state.sdof = sdof;
                 state.degree(bad) = 1;
+%                 sdof(ix,:) = 0;
+                state.sdof = sdof;
             end
 
     end
     
-    state = disc.updateDofPos(state);
-    state = disc.getCellSaturation(state);
+    % Update state dofPos and satuarion
+    state   = disc.updateDofPos(state);
+    state.s = disc.getCellSaturation(state);
     
     if opt.plot
         plotSaturationDG(disc, state, 'n', 500, 'plot1d', true, 'color', 'r', 'linew', 4, 'LineStyle', '--'); hold off
         legend({['Before ', type], ['After ', type]});
+        drawnow
     end
 
 end

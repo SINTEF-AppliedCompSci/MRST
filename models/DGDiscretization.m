@@ -304,7 +304,7 @@ classdef DGDiscretization < WENODiscretization
         end
         
         %-----------------------------------------------------------------%
-        function state = getCellSaturation(disc, state)
+        function sat = getCellSaturation(disc, state)
             % Get average cell saturaion, typically assigned to state.s
 
             % Get cubature for all cells, transform coordinates to ref space
@@ -319,7 +319,7 @@ classdef DGDiscretization < WENODiscretization
             end
             s = s./disc.G.cells.volumes;
             
-            state.s = s;
+            sat = s;
             
         end
         
@@ -666,7 +666,7 @@ classdef DGDiscretization < WENODiscretization
             
             
             
-            if disc.jumpTolerance < Inf
+            if disc.jumpTolerance < Inf && 0
                 % Cells with interface jumps larger than threshold
                 [jumpVal, ~, cells] = disc.getInterfaceJumps(state.sdof(:,1), state);
                 j = accumarray(cells(:), repmat(jumpVal,2,1) > disc.jumpTolerance) > 0;

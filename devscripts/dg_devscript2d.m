@@ -17,9 +17,7 @@ rock = makeRock(G, 100*milli*darcy, 1);
 fluid = initSimpleADIFluid('phases', 'WO'                   , ...
                            'rho'   , [1000, 1]*kilogram/meter^3, ...
                            'mu'    , [0.5, 0.5]*centi*poise     , ...
-                           'n'     , [1, 1]                 );
-% fluid.krW = @(s) fluid.krW(s).*(s>=0 & s<=1) + fluid.krW(1).*(s>1);
-% fluid.krO = @(s) fluid.krO(s).*(s>=0 & s<=1) + fluid.krO(1).*(s>1);
+                           'n'     , [2, 2]                 );
 
 modelfi = TwoPhaseOilWaterModel(G, rock, fluid);
 modelFV = getSequentialModelFromFI(modelfi);
@@ -49,12 +47,12 @@ state0 = initResSol(G, 100*barsa, [sW,1-sW]);
 
 %%
 
-degree = [0, 1, 2, 3];
-degree = [4];
+degree = [0, 1, 2, 3, 4, 5];
+% degree = [4];
 % degree = [1,2];
 [jt, ot, mt] = deal(Inf);
 % 
-jt = Inf;
+jt = 0.2;
 mt = 0.0;
 ot = 0.0;
 % ot = 0.2;
@@ -73,8 +71,10 @@ for dNo = 1:numel(degree)
                                     'plotLimiterProgress', false);
     modelDG.transportModel = TransportOilWaterModelDG(G, rock, fluid, ...
                                        'disc'    , disc{dNo}        , ...
-                                       'dsMaxAbs', 0.2/(degree(dNo) + 1), ...
+                                       'dsMaxAbs', 0.1, ...
                                        'nonlinearTolerance', 1e-3);
+    modelDG.pressureModel = PressureOilWaterModelSemiDG(G, rock, fluid, ...
+                                       'disc'    , disc{dNo}        );
 
     state0 = assignDofFromState(modelDG.transportModel.disc, state0);
     [wsDG{dNo}, statesDG{dNo}, rep] = simulateScheduleAD(state0, modelDG, schedule);
@@ -110,7 +110,7 @@ figure('position', [-1000, 0, 800, 600])
 
 azel = [107, 16];
 pba = [5,5,1];
-dNo = 4;
+dNo = 5;
 [h, saturation, coords, keep, n] = plotSaturationDG(disc{dNo}, statesDG{dNo}{1}, 'edgecolor', 'none');
 view(azel);
 pbaspect(pba)
