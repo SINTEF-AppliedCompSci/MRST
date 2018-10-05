@@ -55,6 +55,9 @@ classdef DGDiscretization < WENODiscretization
             disc.limitAfterConvergence = true;
             disc.plotLimiterProgress   = false;
             
+            % Cubature
+            disc.useUnstructCubature = false;
+            
             % Specifics for reordering
             disc.internalConnParent  = disc.internalConn;
             disc.G.parent            = G;
@@ -69,7 +72,6 @@ classdef DGDiscretization < WENODiscretization
             disc.upwindType     = 'potential';
             
             % Create cubatures
-            disc.useUnstructCubature = false;
             prescision = disc.degree + 1;
             if G.griddim == 2
                 if disc.degree == 0 || disc.useUnstructCubature
@@ -361,7 +363,6 @@ classdef DGDiscretization < WENODiscretization
             end
             
             % Get cubature for all cells, transform coordinates to ref space
-%             [W, x, cellNo, ~] = disc.volumeCubature.getCubature2(cells, 'volume');
             [W, x, cellNo, ~] = disc.getCubature(cells, 'volume');
             [x, ~, scaling]   = disc.transformCoords(x, cellNo);
 
@@ -414,7 +415,6 @@ classdef DGDiscretization < WENODiscretization
             end
             
             % Get cubature for all cells, transform coordinates to ref space
-%             [W, x, cellNo, faceNo] = disc.surfaceCubature.getCubature2(cells, 'surface', true);
             [W, x, cellNo, faceNo] = disc.getCubature(cells, 'surface');
             [x_c, ~, ~] = disc.transformCoords(x, cellNo);
             
@@ -520,7 +520,7 @@ classdef DGDiscretization < WENODiscretization
         end
         
         %-----------------------------------------------------------------%
-        function [W, x, cellNo, faceNo] = getCubature(disc, elements, type)
+        function [W, x, cellNo, faceNo] = getCubature(disc, elements, type, varargin)
             % Get cubature for elements. Wrapper for cubature class
             % function getCubature, with mapping of elements before and
             % after in case we are solving on a subgrid
@@ -545,11 +545,16 @@ classdef DGDiscretization < WENODiscretization
                     cubature = disc.surfaceCubature;
             end
             
+            opt = struct('excludeBoundary', true                   , ...
+                         'internalConn'   , disc.internalConnParent, ...
+                         'outwardNormal'  , true                   );
+            opt = merge_options(opt, varargin{:});
+            
             % Get cubature from cubature class
-            [W, x, cellNo, faceNo] = cubature.getCubature(elements, type, ...
-                              'excludeBoundary', true                   , ...
-                              'internalConn'   , disc.internalConnParent, ...
-                              'outwardNormal'  , true                   );
+            [W, x, ~, cellNo, faceNo] = cubature.getCubature(elements, type, ...
+                                 'excludeBoundary', opt.excludeBoundary    , ...
+                                 'internalConn'   , opt.internalConn       , ...
+                                 'outwardNormal'  , opt.outwardNormal      );
             
             if useMap
                 % Map elements back to new numbering
@@ -575,7 +580,7 @@ classdef DGDiscretization < WENODiscretization
                 cells = (1:G.cells.num)';
             end
             % Get all quadrature points for all cells
-            [~, xSurf, cSurf, ~] = disc.getCubature(cells, 'surface');
+            [~, xSurf, cSurf, ~] = disc.getCubature(cells, 'surface', 'excludeBoundary', false);
             [~, xCell, cCell, ~] = disc.getCubature(cells, 'volume' );
             x = [xSurf; xCell];
             c = [cSurf; cCell];
@@ -648,48 +653,47 @@ classdef DGDiscretization < WENODiscretization
                     if any(meanOutside)
                         state = dgLimiter(disc, state, meanOutside, 'kill', 'plot', disc.plotLimiterProgress);
                     end 
-
                 end
-
-                if disc.outTolerance < Inf && disc.degree > 0 && 1
-                    % If saturation is outside [0,1], we reduce to order 1
-                    if 0
-                        state = dgLimiter(disc, state, check, 'scale', 'plot', disc.plotLimiterProgress);
-                    else
-                        state = dgLimiter(disc, state, check, 'orderReduce', 'plot', disc.plotLimiterProgress);
+                
+                if disc.degree > 0
+                    if disc.outTolerance < Inf && 1
+                        % If saturation is outside [0,1], we reduce to order 1
+                        if 0
+                            state = dgLimiter(disc, state, check, 'scale', 'plot', disc.plotLimiterProgress);
+                        else
+                            state = dgLimiter(disc, state, check, 'orderReduce', 'plot', disc.plotLimiterProgress);
+                        end
                     end
-                end
 
-                if disc.jumpTolerance < Inf && 0
-                    % Cells with interface jumps larger than threshold
-                    [jumpVal, ~, cells] = disc.getInterfaceJumps(state.sdof(:,1), state);
-                    j = accumarray(cells(:), repmat(jumpVal,2,1) > disc.jumpTolerance) > 0;
-                    jump(cells(:))          = j(cells(:));
-                    jump(state.degree == 0) = false;
-                    if any(jump)
-                        state = dgLimiter(disc, state, jump, 'tvb');
+                    if disc.jumpTolerance < Inf && 0
+                        % Cells with interface jumps larger than threshold
+                        [jumpVal, ~, cells] = disc.getInterfaceJumps(state.sdof(:,1), state);
+                        j = accumarray(cells(:), repmat(jumpVal,2,1) > disc.jumpTolerance) > 0;
+                        jump(cells(:))          = j(cells(:));
+                        jump(state.degree == 0) = false;
+                        if any(jump)
+                            state = dgLimiter(disc, state, jump, 'tvb', 'plot', disc.plotLimiterProgress);
+                        end
                     end
                 end
             else
                 % Limiters to be applied after convergence
-                if disc.degree > 0 && disc.jumpTolerance < Inf
-                    % Limit saturation slope in cells with interface jumps
-                    % larger than threshold
-                    [jumpVal, ~, cells] = disc.getInterfaceJumps(state.sdof(:,1), state);
-                    j = accumarray(cells(:), repmat(jumpVal,2,1) > disc.jumpTolerance) > 0;
-                    jump = false(G.cells.num,1);
-                    jump(cells(:))          = j(cells(:));
-                    jump(state.degree == 0) = false;
-                    if any(jump)
-                        state = dgLimiter(disc, state, jump, 'tvb', 'plot', disc.plotLimiterProgress);
-                    end
-                end
-
                 if disc.degree > 0
                     % Scale solutions so that 0 <= s <= 1
                     state = dgLimiter(disc, state, check, 'scale', 'plot', disc.plotLimiterProgress);
+                    if disc.jumpTolerance < Inf
+                        % Limit saturation slope in cells with interface jumps
+                        % larger than threshold
+                        [jumpVal, ~, cells] = disc.getInterfaceJumps(state.sdof(:,1), state);
+                        j = accumarray(cells(:), repmat(jumpVal,2,1) > disc.jumpTolerance) > 0;
+                        jump = false(G.cells.num,1);
+                        jump(cells(:))          = j(cells(:));
+                        jump(state.degree == 0) = false;
+                        if any(jump)
+                            state = dgLimiter(disc, state, jump, 'tvb', 'plot', disc.plotLimiterProgress);
+                        end
+                    end
                 end
-                
             end
             
         end

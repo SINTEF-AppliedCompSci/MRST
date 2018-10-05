@@ -47,11 +47,35 @@ classdef Unstruct3DCubature < Cubature
                           c  b  0;
                           0  0  0];
                   
-                otherwise
-                
-                    error('Prescision not supported')
+%                 otherwise
+%                 
+%                     error('Prescision not supported')
                 
             end
+            
+            if 1
+                G1 = computeGeometry(cartGrid([1,1,1], [2,2,2]));
+                G1.nodes.coords = G1.nodes.coords - 1;
+                G1 = computeVEMGeometry(G1);
+                G1 = computeCellDimensions(G1);
+                cubTet = TetrahedronCubature(G1, cub.prescision, cub.internalConn);
+                [~, x, ~, cellNo, ~] = cubTet.getCubature(1, 'volume');
+                x = cubTet.transformCoords(x, cellNo);
+                x = unique(x, 'rows');
+                basis = dgBasis(3, cub.prescision, 'legendre');
+                nDof  = basis.nDof;
+                
+                psi = basis.psi;
+                P = zeros(nDof, nDof);
+                while rank(P) < nDof && cond(P) > 100
+                    ix = randperm(size(x,1));
+                    ix = ix(ix(1:nDof));
+                    P  = reshape(cell2mat(cellfun(@(p) p(x(ix,:)), psi, 'unif', false)), nDof, nDof)';
+                end
+                x = x(ix,:);
+            end
+                
+                
             
         end
         
@@ -69,7 +93,7 @@ classdef Unstruct3DCubature < Cubature
                 psi = basis.psi;
                 nDof = basis.nDof;
                 P = reshape(cell2mat(cellfun(@(p) p(x), psi, 'unif', false)), nDof, nDof)';
-                [W, xq, w, ii, jj, cellNo, faceNo] = cubTet.getCubature(1:G.cells.num, 'cell');
+                [~, xq, w, cellNo, ~] = cubTet.getCubature(1:G.cells.num, 'volume');
 
                 xq = cub.transformCoords(xq, cellNo);
                 

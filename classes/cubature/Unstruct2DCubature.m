@@ -43,52 +43,42 @@ classdef Unstruct2DCubature < Cubature
             c = sqrt(3/7 - 2/7*sqrt(6/5));
             
             switch cub.prescision
-            
                 case 1
-                
                     x = zeros(1, 2);
-            
                 case 2
-                    
-% Worki
                     x = [ 0  0;
                           0  b;
                          -a -a;
                           a -a;
                          -a  a;
                           a  a];
-
-%                     x = [-a -b;
-%                           a  b;
-%                          -b -a;
-%                           b  a;
-%                          -b  c
-%                           b -c];
-% No worki         
-%                     x = [-a -a;
-%                           a  a;
-%                          -b -b;
-%                           b  b;
-%                          -c -c
-%                           c  c];
-                    
-%                     x = [ -c  -b;
-%                           c  b;
-%                          -a -a;
-%                           a -a;
-%                          -a  a;
-%                           a  a];
-
-%                 x = [-a -a;
-%                       0  a;
-%                       a  -a];
-                  
-                otherwise
-                
-                    error('Prescision not supported')
-                
+%                 otherwise
+%                     error('Prescision not supported')                      
             end
-            
+                      
+            if 1
+                
+                G1 = computeGeometry(cartGrid([1,1], [2,2]));
+                G1.nodes.coords = G1.nodes.coords - 1;
+                G1 = computeVEMGeometry(G1);
+                G1 = computeCellDimensions(G1);
+                cubTri = TriangleCubature(G1, cub.prescision, cub.internalConn);
+                [~, x, ~, cellNo, ~] = cubTri.getCubature(1, 'volume');
+                x = cubTri.transformCoords(x, cellNo);
+                x = unique(x, 'rows');
+                basis = dgBasis(2, cub.prescision, 'legendre');
+                nDof  = basis.nDof;
+                psi = basis.psi;
+                P = zeros(nDof, nDof);
+                while rank(P) < nDof && cond(P) > 100
+                    ix = randperm(size(x,1));
+                    ix = ix(ix(1:nDof));
+                    P  = reshape(cell2mat(cellfun(@(p) p(x(ix,:)), psi, 'unif', false)), nDof, nDof)';
+                end
+                x = x(ix,:);
+            end
+                    
+                
         end
         
         function [x, w, n] = calculateWeights(cub, x)
@@ -98,12 +88,12 @@ classdef Unstruct2DCubature < Cubature
             n = size(x,1);
             
             if G.griddim > cub.dim
-                    type = 'face';
-                    elements = 1:G.faces.num;
-                else
-                    type = 'cell';
-                    elements = 1:G.cells.num;
-                end
+                type = 'face';
+                elements = 1:G.faces.num;
+            else
+                type = 'volume';
+                elements = 1:G.cells.num;
+            end
             
             if cub.prescision > 1
                 
@@ -114,7 +104,7 @@ classdef Unstruct2DCubature < Cubature
                 nDof = basis.nDof;
                 P = reshape(cell2mat(cellfun(@(p) p(x), psi, 'unif', false)), nDof, nDof)';
 
-                [W, xq, w, ii, jj, cellNo, faceNo] = cubTri.getCubature(elements, type);
+                [W, xq, w, cellNo, faceNo] = cubTri.getCubature(elements, type);
                 
                 if G.griddim == 3
                     xq = cub.map2face(xq, faceNo);
@@ -162,11 +152,13 @@ classdef Unstruct2DCubature < Cubature
             else
                 
                 cellNo = reshape(repmat((1:G.cells.num), n, 1), [], 1);
-                xc     = G.cells.centroids(cellNo,:);
-                dx = G.cells.dx(cellNo,:);
                 x = repmat(x, G.cells.num, 1);
-                x = x.*dx + xc;
-                
+%                 xc     = G.cells.centroids(cellNo,:);
+                x = cub.transformCoords(x, cellNo, true);
+%                 dx = G.cells.dx(cellNo,:)/2;
+
+%                 x = x.*dx + xc;
+%                 
             end
             
 %             x = cub.transformCoords(x, cellNo, true);

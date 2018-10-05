@@ -29,7 +29,7 @@ classdef Cubature
         end
         
         %-----------------------------------------------------------------%
-        function [W, x, cellNo, faceNo] = getCubature(cubature, elements, type, varargin)
+        function [W, x, w, cellNo, faceNo] = getCubature(cubature, elements, type, varargin)
             % Get cubature for given elements (either a set of cells or a
             % set of faces) of the grid.
             %
@@ -159,6 +159,53 @@ classdef Cubature
             [ii, jj] = blockDiagIndex(ones(numel(elements),1), nq);
             W = sparse(ii, jj, w);
             
+        end
+        
+        %-----------------------------------------------------------------%
+        function [xhat, translation, scaling] = transformCoords(cub, x, cells, inverse)
+            % Transfor coordinates from physical to reference coordinates. 
+            %
+            % PARAMETERS:
+            %   x         - Coordinates in physical space
+            %   cells     - Cells we want reference coordinates for, cells(ix)
+            %               are used when transforming x(ix,:)
+            %   inverse   - Boolean indicatiing if we are mapping 
+            %               to (inverse = false) or from (inverse = true)
+            %               reference coordiantes. Default = false.
+            %   useParent - Boolean indicating if we are working on the
+            %               full grid (G.parent) or a subgrid.
+            %
+            % RETURNS:
+            %   xhat        - Transformed coordinates
+            %   translation - Translation applied to x
+            %   scaling     - Scaling applied to x
+            
+            cub.G = cub.G;
+            
+            if nargin < 4, inverse   = false; end
+            
+            % Coordinates are centered in cell center
+            translation = -cub.G.cells.centroids(cells,:);
+            if isfield(cub.G.cells, 'dx')
+                % Scaling found from dimensions of minimum bounding box
+                % aligned with coordinate axes that contains the cell
+                scaling = 1./(cub.G.cells.dx(cells,:)/2);
+            else
+                % If G.cells.dx is not computed, we use approximation
+                dx = cub.G.cells.volumes(cells).^(1/cub.G.griddim);
+                scaling = 1./(dx/2);
+            end
+            
+            if ~inverse
+                xhat = (x + translation).*scaling;
+                xhat = xhat(:, 1:cub.dim);
+                scaling     = scaling(:, 1:cub.dim);
+                translation = translation(:, 1:cub.dim);
+%                 assert(all(all(abs(xhat)<=1)))
+            else
+                xhat = x./scaling - translation;
+            end
+               
         end
             
     end
