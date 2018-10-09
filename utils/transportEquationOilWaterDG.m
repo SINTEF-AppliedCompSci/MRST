@@ -22,10 +22,12 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
         
     assert(~(opt.solveForWater && opt.solveForOil));
     
-    if opt.iteration == 1 && ~opt.resOnly
-        % If we are at the first iteration, we try to solve using maximum
-        % degree in all cells
-        state.degree(~G.cells.ghost) = repmat(disc.degree, nnz(~G.cells.ghost), 1);
+    if opt.iteration == 1 && ~opt.resOnly 
+        if model.tryMaxDegree
+            % If we are at the first iteration, we try to solve using
+            % maximum degree in all cells
+            state.degree(~G.cells.ghost) = repmat(disc.degree, nnz(~G.cells.ghost), 1);
+        end
         % For cells that previously had less than nDof unknowns, we must
         % map old dofs to new
         state = disc.mapDofs(state, state0);
@@ -52,7 +54,6 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     end
     
     %Initialization of independent variables ------------------------------
-
     if ~opt.resOnly
         % ADI variables needed since we are not only computing residuals.
         if ~opt.reverseMode
@@ -61,7 +62,7 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
             assert(0, 'Backwards solver not supported for splitting');
         end
     end
-    
+
     % ---------------------------------------------------------------------
 
     % We will solve for water saturation dofs

@@ -53,11 +53,11 @@ classdef Unstruct3DCubature < Cubature
                 
             end
             
-            if 1
+            if cub.prescision > 1
                 G1 = computeGeometry(cartGrid([1,1,1], [2,2,2]));
                 G1.nodes.coords = G1.nodes.coords - 1;
                 G1 = computeVEMGeometry(G1);
-                G1 = computeCellDimensions(G1);
+                G1 = computeCellDimensions(G1); 
                 cubTet = TetrahedronCubature(G1, cub.prescision, cub.internalConn);
                 [~, x, ~, cellNo, ~] = cubTet.getCubature(1, 'volume');
                 x = cubTet.transformCoords(x, cellNo);
@@ -67,7 +67,7 @@ classdef Unstruct3DCubature < Cubature
                 
                 psi = basis.psi;
                 P = zeros(nDof, nDof);
-                while rank(P) < nDof && cond(P) > 100
+                while rank(P) < nDof && cond(P) > 1
                     ix = randperm(size(x,1));
                     ix = ix(ix(1:nDof));
                     P  = reshape(cell2mat(cellfun(@(p) p(x(ix,:)), psi, 'unif', false)), nDof, nDof)';

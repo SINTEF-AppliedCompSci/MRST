@@ -56,7 +56,7 @@ classdef Unstruct2DCubature < Cubature
 %                     error('Prescision not supported')                      
             end
                       
-            if 1
+            if cub.prescision > 1
                 
                 G1 = computeGeometry(cartGrid([1,1], [2,2]));
                 G1.nodes.coords = G1.nodes.coords - 1;
@@ -70,7 +70,7 @@ classdef Unstruct2DCubature < Cubature
                 nDof  = basis.nDof;
                 psi = basis.psi;
                 P = zeros(nDof, nDof);
-                while rank(P) < nDof && cond(P) > 100
+                while rank(P) < nDof && cond(P) > 1
                     ix = randperm(size(x,1));
                     ix = ix(ix(1:nDof));
                     P  = reshape(cell2mat(cellfun(@(p) p(x(ix,:)), psi, 'unif', false)), nDof, nDof)';

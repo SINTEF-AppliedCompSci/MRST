@@ -4,6 +4,7 @@ classdef TransportBlackOilModelDG < TransportBlackOilModel
     
     properties
         disc % DG discretization
+        tryMaxDegree
     end
 
     methods
@@ -11,6 +12,7 @@ classdef TransportBlackOilModelDG < TransportBlackOilModel
             
             model = model@TransportBlackOilModel(G, rock, fluid);
             model.disc = [];
+            model.tryMaxDegree = true;
             % If we use reordering, this tells us which cells are actually
             % part of the discretization, and which cells that are included
             % to get fluxes correct
@@ -188,7 +190,7 @@ classdef TransportBlackOilModelDG < TransportBlackOilModel
             
             if model.disc.limitAfterNewtonStep
                 % Limit solution
-                state = model.disc.limiter(state, true);
+                state = model.disc.limiter(model, state, [], true);
             end
             
         end
@@ -203,9 +205,9 @@ classdef TransportBlackOilModelDG < TransportBlackOilModel
             [state, report] = updateAfterConvergence@TransportBlackOilModel(model, state0, state, dt, drivingForces);
             if model.disc.limitAfterConvergence
                 % Postprocess using limiter(s)
-                state = model.disc.limiter(state, false);    
+                state = model.disc.limiter(model, state, state0, false);    
             end
-        end
+        end             
         
     end
 end

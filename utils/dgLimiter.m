@@ -35,19 +35,22 @@ function state = dgLimiter(disc, state, bad, type, varargin)
         case 'tvb'
             % TVB limiter
             
-            dofbar = approximatGradient(sdof(:,1), state, disc);
-            dofbar = dofbar(bad,:)';
-            dofbar = dofbar(:);
-            
-            ix = disc.getDofIx(state, (1:G.griddim)+1, bad);
-            sdof(ix,:) = dofbar.*[1,-1];
+            nPh = size(sdof,2);
+            for phNo = 1:nPh
+                dofbar = approximatGradient(sdof(:,phNo), state, disc);
+                dofbar = dofbar(bad,:)';
+                dofbar = dofbar(:);
+                dofbar(isnan(dofbar)) = 0;
+                ix = disc.getDofIx(state, (1:G.griddim)+1, bad);
+                sdof(ix,phNo) = dofbar;
+            end
             
             if disc.degree > 1
                 ix = disc.getDofIx(state, (G.griddim+2):nDofMax, bad);
                 sdof(ix,:) = [];
+                state.degree(bad) = 1;
             end
             state.sdof = sdof;
-            state.degree(bad) = 1;
             
         case 'scale'
             
@@ -56,7 +59,8 @@ function state = dgLimiter(disc, state, bad, type, varargin)
             theta = [(s(:,1) - 0)./(s(:,1) - sMin), ...
                      (1 - s(:,1))./(sMax - s(:,1)), ...
                      ones(G.cells.num,1)          ];
-            theta(abs(theta) > 1) = 1;
+            theta(~isfinite(theta) | abs(theta) > 1) = 1;
+%             theta(abs(theta) > 1) = 1;
             theta = min(theta, [], 2);
             
             for dofNo = 2:nDofMax%(1:G.griddim)+1
@@ -110,110 +114,67 @@ function state = dgLimiter(disc, state, bad, type, varargin)
         legend({['Before ', type], ['After ', type]});
         drawnow
     end
-
+    
+    if 0
+        [sum(sdof,2), rldecode((1:G.cells.num)', state.nDof, 1)]
+    end
 end
 
 function dofbar = approximatGradient(dof, state, disc)
 
-%     ind  = 1:disc.basis.nDof:disc.G.cells.num*disc.basis.nDof;
-    dofIx   = disc.getDofIx(state, 1);
-    q    = dof(dofIx);
+%     ind  = 1:disc.basis.nDof:disc.G.cells.num*disc.basis.nDof
+
     G    = disc.G;
+    useMap = isfield(G, 'mappings');
+    if useMap
+        map = G.mappings.cellMap;
+        G   = G.parent;
+    else
+        map = struct('keep', true(G.cells.num,1));
+    end
+    q    = nan(G.cells.num,1);
+    dofIx   = disc.getDofIx(state, 1);
+    q(map.keep) = dof(dofIx);
     
     sigma = cell(1, disc.dim);
     [sigma{:}] = deal(0);
      
-    for d = 1:disc.dim
-        b = disc.interp_setup.tri_basis{d};
+    for dNo = 1:disc.dim
+        b = disc.interp_setup.tri_basis{dNo};
         for l = 1:disc.dim+1
-            
-            cells = disc.interp_setup.C(:, l);
-%             
-%             cells = disc.interp_setup
-            
-            ccl = disc.interp_setup.tri_cells(cells);
+            loc_cells = disc.interp_setup.C(:, l);
+            ccl = disc.interp_setup.tri_cells(loc_cells);
             ds = b(:, l).*q(ccl);
-            sigma{d} = sigma{d} + ds;
-        end
-    end
-    
-    dofbar = zeros(G.cells.num, disc.G.griddim);
-    for cNo = 1:G.cells.num
-    if state.degree(cNo) > 0
-        gradIx = disc.interp_setup.cell_support{cNo};
-        for dNo = 1:G.griddim
-            dofIx = disc.getDofIx(state, 1+dNo, cNo);
-            ss = sigma{dNo}(gradIx);
-            ss = ss(ss~=0);
-            dd = dof(dofIx);
-            val = [dd; ss];
-            db = minmod(val);
-            dofbar(cNo, dNo) = db;
+            sigma{dNo} = sigma{dNo} + ds;
         end
     end
 
+    isLin = false(G.cells.num,1);
+    isLin(map.keep) = state.degree > 0;
+    cellNo = rldecode((1:G.cells.num)', disc.interp_setup.cell_support_count, 1);
+    colNo = mcolon(ones(G.cells.num, 1), disc.interp_setup.cell_support_count);
+    dofbar = zeros(G.cells.num,G.griddim);
+    for dNo = 1:G.griddim
+        ix = vertcat(disc.interp_setup.cell_support{:});
+        Sigma = sparse(cellNo, colNo, sigma{dNo}(ix));
+        dofIx = disc.getDofIx(state, 1+dNo, Inf, true);
+        dd = nan(G.cells.num,1);
+        dd(isLin) = dof(dofIx(dofIx>0));
+        Sigma = full([Sigma, dd]);
+        Sigma(Sigma==0) = nan;
+        dofbar(:,dNo) = minmod(Sigma);
     end
     
+    if useMap
+        dofbar = dofbar(map.keep, :);
+    end
+
 end
 
 function v = minmod(val)
-    v = max(val)*all(val < 0) + min(val)*all(val > 0);
+    valmin = val;
+    valmin(isnan(val)) = -1;
+    valmax = val;
+    valmax(isnan(val)) = 1;
+    v = max(val,[],2).*all(valmin < 0,2) + min(val,[],2).*all(valmax > 0,2);
 end
-
-%             while any(bad) && it < 4
-% 
-%                 [sMin, sMax] = disc.getMinMaxSaturation(state);
-%                 under = sMin < 0 - disc.outTolerance;
-%                 over  = sMax > 1 + disc.outTolerance;
-%                 
-%                 
-%                 
-%                 bad   = bad & (over | under) & state.degree > 0;
-%                 under = under & bad;
-%                 over  = over  & bad;
-%                     
-%                 if any(under)
-%                     badCells = find(under);
-%                     ix = disc.getDofIx(state, (1:G.griddim) + 1, badCells);
-%                     sd = reshape(sdof(ix), G.griddim, [])';
-%                     [~, i] = max(abs(sd), [], 2);
-%                     ix0 = disc.getDofIx(state, 1, under);
-%                     s0  = state.sdof(ix0,:);
-%                     for dofNo = (1:G.griddim) + 1
-%                         ii = i == (dofNo - 1);
-%                         ix = disc.getDofIx(state, dofNo, badCells(ii));
-%                         sdof(ix,1) = -s0(ii,1)/G.griddim;
-%                         sdof(ix,2) = -sdof(ix,1);
-%                     end
-% %                     state.degree(badCells) = 1;
-%                 end
-% 
-%                 if any(over)
-%                     badCells = find(over);
-%                     ix = disc.getDofIx(state, (1:G.griddim) + 1, badCells);
-%                     sd = reshape(sdof(ix), G.griddim, [])';
-%                     [~, i] = max(abs(sd), [], 2);
-%                     ix0 = disc.getDofIx(state, 1, over);
-%                     s0  = state.sdof(ix0,:);
-% 
-%                     for dofNo = (1:G.griddim) + 1
-%                         ii = i == (dofNo - 1);
-%                         ix = disc.getDofIx(state, dofNo, badCells(ii));
-%                         sdof(ix,1) = (1-s0(ii,1))/G.griddim;
-%                         sdof(ix,2) = -sdof(ix,1);
-%                     end
-% %                     state.degree(badCells) = 1;
-%                 end
-%                 
-%                 if disc.degree > 1
-%                     ix = disc.getDofIx(state, (G.griddim+2):nDofMax, badCells);
-%                     sdof(ix,:) = [];
-%                 end
-%                 state.sdof = sdof;
-% %                 state = disc.updateDofPos(state);
-%                 
-%                 [sMin, sMax] = disc.getMinMaxSaturation(state);
-%                 it = it+1;
-%             end
-%             
-%             state = disc.getCellSaturation(state);

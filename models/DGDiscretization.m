@@ -15,7 +15,9 @@ classdef DGDiscretization < WENODiscretization
         surfaceCubature     % Cubature for surface integrals
         
         jumpTolerance         % Tolerance for sat jumps across interfaces
+        jumpLimiter
         outTolerance          % Tolerance for sat outside [0,1]
+        outLimiter
         meanTolerance         % Tolerance of mean sat outside [0,1]
         limitAfterNewtonStep  % Use limiter after each Newton iteration
         limitAfterConvergence % Use limiter after convergence to reduce
@@ -49,7 +51,9 @@ classdef DGDiscretization < WENODiscretization
             
             % Limiter tolerances
             disc.jumpTolerance = 0.2;
+            disc.jumpLimiter   = 'kill';
             disc.outTolerance  = 0.0;
+            disc.outLimiter    = 'kill';
             disc.meanTolerance = 0.0;
             disc.limitAfterNewtonStep  = true;
             disc.limitAfterConvergence = true;
@@ -568,17 +572,8 @@ classdef DGDiscretization < WENODiscretization
         function [sMin, sMax] = getMinMaxSaturation(disc, state)
             % Get maximum and minimum saturaiton for each cell
             
-            if isfield(disc.G, 'mappings')
-                % We are dealing with a subgrid, make sure we get the
-                % correct faces for each cell
-                maps  = disc.G.mappings.cellMap;
-                G =disc.G;
-                cells = (1:G.cells.num)';
-%                 cells = find(maps.keep);
-            else
-                G     = disc.G;
-                cells = (1:G.cells.num)';
-            end
+            G = disc.G;
+            cells = (1:G.cells.num)';
             % Get all quadrature points for all cells
             [~, xSurf, cSurf, ~] = disc.getCubature(cells, 'surface', 'excludeBoundary', false);
             [~, xCell, cCell, ~] = disc.getCubature(cells, 'volume' );
@@ -629,7 +624,7 @@ classdef DGDiscretization < WENODiscretization
         end
         
         %-----------------------------------------------------------------%
-        function state = limiter(disc, state, before)
+        function state = limiter(disc, model, state, state0, before)
             % Limiters applied after each Newton iteration if
             % disc.limitAfterNewtonStep = true and before = true, and after
             % convergence if disc.limitAfterConvergence = true and before =
@@ -641,19 +636,20 @@ classdef DGDiscretization < WENODiscretization
                 check(G.cells.ghost) = false;
             end
 
-            if before
                 % Limiters to be applied after each Newton iteration
                 if disc.meanTolerance < Inf
-                    % If the first dof is outside [0,1], something is wrong,
-                    % and we reduce to order 0
+                    % If the mena cell saturation is outside [0,1],
+                    % something is wrong, and we reduce to order 0
                     s = state.s;
                     meanOutside = any(s < 0 - disc.meanTolerance | ...
                                       s > 1 + disc.meanTolerance, 2);
-                    meanOutside = meanOutside & check;
-                    if any(meanOutside)
-                        state = dgLimiter(disc, state, meanOutside, 'kill', 'plot', disc.plotLimiterProgress);
+                    bad = meanOutside & check;
+                    if any(bad)
+                        state = dgLimiter(disc, state, bad, 'kill', 'plot', disc.plotLimiterProgress);
                     end 
                 end
+                
+            if before
                 
                 if disc.degree > 0
                     if disc.outTolerance < Inf && 1
@@ -661,7 +657,13 @@ classdef DGDiscretization < WENODiscretization
                         if 0
                             state = dgLimiter(disc, state, check, 'scale', 'plot', disc.plotLimiterProgress);
                         else
-                            state = dgLimiter(disc, state, check, 'orderReduce', 'plot', disc.plotLimiterProgress);
+                            [sMin, sMax] = disc.getMinMaxSaturation(state);
+                            outside = sMin < 0 - disc.outTolerance | ...
+                                      sMax > 1 + disc.outTolerance;
+                            bad = outside & check;
+                            if any(bad)
+                                state = dgLimiter(disc, state, bad, disc.outLimiter, 'plot', disc.plotLimiterProgress);
+                            end
                         end
                     end
 
@@ -669,16 +671,19 @@ classdef DGDiscretization < WENODiscretization
                         % Cells with interface jumps larger than threshold
                         [jumpVal, ~, cells] = disc.getInterfaceJumps(state.sdof(:,1), state);
                         j = accumarray(cells(:), repmat(jumpVal,2,1) > disc.jumpTolerance) > 0;
+                        jump = false(G.cells.num,1);
                         jump(cells(:))          = j(cells(:));
                         jump(state.degree == 0) = false;
-                        if any(jump)
-                            state = dgLimiter(disc, state, jump, 'tvb', 'plot', disc.plotLimiterProgress);
+%                         if size(jump,1) == 1; jump = jump'; end
+                        bad = jump & check;
+                        if any(bad)
+                            state = dgLimiter(disc, state, bad, disc.jumpLimiter, 'plot', disc.plotLimiterProgress);
                         end
                     end
                 end
             else
                 % Limiters to be applied after convergence
-                if disc.degree > 0
+                if disc.degree > 0 && 0
                     % Scale solutions so that 0 <= s <= 1
                     state = dgLimiter(disc, state, check, 'scale', 'plot', disc.plotLimiterProgress);
                     if disc.jumpTolerance < Inf
@@ -689,8 +694,9 @@ classdef DGDiscretization < WENODiscretization
                         jump = false(G.cells.num,1);
                         jump(cells(:))          = j(cells(:));
                         jump(state.degree == 0) = false;
-                        if any(jump)
-                            state = dgLimiter(disc, state, jump, 'tvb', 'plot', disc.plotLimiterProgress);
+                        bad = jump & check & state.degree > 0;
+                        if any(bad)
+                            state = dgLimiter(disc, state, bad, 'tvb', 'plot', disc.plotLimiterProgress);
                         end
                     end
                 end
