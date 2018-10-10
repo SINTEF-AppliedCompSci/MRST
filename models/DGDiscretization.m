@@ -683,7 +683,7 @@ classdef DGDiscretization < WENODiscretization
                 end
             else
                 % Limiters to be applied after convergence
-                if disc.degree > 0 && 0
+                if disc.degree > 0
                     % Scale solutions so that 0 <= s <= 1
                     state = dgLimiter(disc, state, check, 'scale', 'plot', disc.plotLimiterProgress);
                     if disc.jumpTolerance < Inf
