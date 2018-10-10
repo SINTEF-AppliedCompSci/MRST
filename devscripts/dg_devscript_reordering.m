@@ -21,19 +21,20 @@ modelFV = getSequentialModelFromFI(modelfi);
 modelDG = modelFV;
 
 %%
-
-[jt, ot, mt] = deal(Inf);
-jt = Inf;
-ot = 1e-3;
-degree = 1;
+jt = 0.6;
+ot = 0.2;
+mt = 0.0;
+degree = 2;
 disc   = DGDiscretization(modelDG.transportModel, ...
                          'degree', degree, ...
                          'basis' , 'legendre', ...
                          'useUnstructCubature', true,  ...
                          'jumpTolerance', jt, ...
                          'outTolerance', ot, ...
-                         'meanTolerance', mt);
-modelDG.transportModel = TransportOilWaterModelDG(G, rock, fluid, 'disc', disc);    
+                         'meanTolerance', mt, ...
+                         'plotLimiterProgress', false);
+modelDG.transportModel = TransportOilWaterModelDG(G, rock, fluid, 'disc', disc, 'dsMaxAbs', 0.05);    
+modelDG.pressureModel  = PressureOilWaterModelSemiDG(G, rock, fluid, 'disc', disc);    
 
 %%
 
@@ -61,7 +62,7 @@ state0 = assignDofFromState(modelDG.transportModel.disc, state0);
 modelDGreorder = modelDG;
 modelDGreorder.pressureModel.extraStateOutput = true;
 
-modelDGreorder.transportModel = ReorderingModelDG_ghost(modelDGreorder.transportModel, 'plotProgress', false);
+modelDGreorder.transportModel = ReorderingModelDG_ghost(modelDGreorder.transportModel, 'plotAfterCellSolve', false);
 
 modelDGreorder.transportModel.chunkSize = 1;
 modelDGreorder.transportModel.parent.extraStateOutput = true;
