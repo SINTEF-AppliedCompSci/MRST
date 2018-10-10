@@ -1,7 +1,7 @@
 %% Compare Time-of-Flight Computed by Steamlines and by Finite-Volumes
 % MRST offers two ways of computing time-of-flight for Cartesian grids:
 % 
-% * using Polloc tracing from the |streamlines| module
+% * using Pollock tracing from the |streamlines| module
 % * using finite-volume methods from the |diagnostics| module
 % 
 % Pollock's method gives pointwise values of high accuracy for Cartesian
@@ -21,13 +21,14 @@ mrstModule add mimetic incomp diagnostics streamlines
 G = cartGrid([60,60]);
 G = computeGeometry(G);
 
-rock.poro = ones(G.cells.num, 1);
-% rock.perm = 10*milli*darcy*ones(G.cells.num, 1);
-rock.perm = convertFrom(logNormLayers([G.cartDims, 1], 1), milli*darcy);
+%perm = 10*milli*darcy;
+perm = convertFrom(logNormLayers([G.cartDims, 1], 1), milli*darcy);
+poro = 1;
+rock = makeRock(G, perm, poro);
 
-fluid = initSimpleFluid('mu',  [1, 1]*centi*poise', ...
+fluid = initSimpleFluid('mu',  [   1,    1]*centi*poise, ...
                         'rho', [1000, 1000]*kilogram/meter^3, ...
-                        'n',   [2, 2]);
+                        'n',   [   2,    2]);
 
 IP = computeMimeticIP(G, rock);
 src = addSource([], [1, G.cells.num], [1.1, -1.1], 'sat', [1.0 0.0;1.0,0.0]);
@@ -37,8 +38,8 @@ x = incompMimetic(x, G, IP, fluid, 'src', src);
 
 %% Trace and plot streamlines
 numStreamlines = 500;
-clf,
-scrsz = get(0,'ScreenSize')
+clf
+scrsz = get(0,'ScreenSize');
 set(gcf,'Position',[0 scrsz(4)-scrsz(3)/3 scrsz(3) scrsz(3)/3]);
 subplot(1,3,1);
 title('Streamlines');
