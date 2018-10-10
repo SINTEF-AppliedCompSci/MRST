@@ -34,11 +34,25 @@ function varargout = amgcl_matlab(varargin)
 %   nIter - Number of linear iterations.
 %
 % NOTE:
+%   For first-time use, this gateway will attempt to build a MEX-file using
+%   the configured C++ compiler. In order to do this, the paths to the
+%   dependencies AMGCL and BOOST must be specified via global variables.
+%
+%   For instance, this can be done by executing the following:
+%   global BOOSTPATH AMGCLPATH
+%   % Define paths
+%   BOOSTPATH = '/path/to/boost';
+%   AMGCLPATH = '/path/to/amgcl-repo';
+%   % Build the binaries
+%   amgcl_matlab();
+%
+%   In addition, you will require a working C++ compiler (see mex -setup).
+%
 %   This gateway was last tested with commit
 %
 %      946398e535cf2586ca59f37eaf8aa9e72f43fde4
 %
-%   of the AMGCL software (from GitHub).
+%   of the AMGCL software (from GitHub: https://github.com/ddemidov/amgcl).
 %
 %   * Linux (Mint 17.2):
 %       GCC   4.9.4
@@ -80,12 +94,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    if ~valid_global_path(AMGCLPATH)
       error(['Cannot Build AMGCL MEX Gateway Unless GLOBAL ', ...
-             '''AMGCLPATH'' Variable is Set in Current MATLAB Session']);
+             '''AMGCLPATH'' Variable is Set in Current MATLAB Session.', ...
+             ' For detailed build instructions, see "help amgcl_matlab".']);
    end
 
    if ~valid_global_path(BOOSTPATH)
       error(['Cannot Build AMGCL MEX Gateway Unless GLOBAL ', ...
-             '''BOOSTPATH'' Variable is Set in Current MATLAB Session']);
+             '''BOOSTPATH'' Variable is Set in Current MATLAB Session.', ...
+             ' For detailed build instructions, see "help amgcl_matlab".']);
    end
 
    INCLUDE = strcat('-I', { BOOSTPATH, AMGCLPATH });
