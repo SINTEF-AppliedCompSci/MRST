@@ -99,28 +99,28 @@ ix = faces(isOutF(faces) & tags == ft);
 function [cells, faceTag, isOutF] = ...
       bdryCellsSubset(G, direction, i1, i2, i3, caller)
 % Determine which indices and face tags to look for
-switch lower(direction),
-   case {'left'  , 'west' , 'xmin'},
+switch lower(direction)
+   case {'left'  , 'west' , 'xmin'}
       % I == min(I)
       [d1, d2, d3, faceTag] = deal(2, 3, 1, 1);
 
-   case {'right' , 'east' , 'xmax'},
+   case {'right' , 'east' , 'xmax'}
       % I == max(I)
       [d1, d2, d3, faceTag] = deal(2, 3, 1, 2);
 
-   case {'back'  , 'south', 'ymin'},
+   case {'back'  , 'south', 'ymin'}
       % J == min(J)
       [d1, d2, d3, faceTag] = deal(1, 3, 2, 3);
 
-   case {'front' , 'north', 'ymax'},
+   case {'front' , 'north', 'ymax'}
       % J == max(J)
       [d1, d2, d3, faceTag] = deal(1, 3, 2, 4);
 
-   case {'top'   , 'upper', 'zmin'},
+   case {'top'   , 'upper', 'zmin'}
       % K == min(K)
       [d1, d2, d3, faceTag] = deal(1, 2, 3, 5);
 
-   case {'bottom', 'lower', 'zmax'},
+   case {'bottom', 'lower', 'zmax'}
       % K == max(K)
       [d1, d2, d3, faceTag] = deal(1, 2, 3, 6);
 
@@ -139,16 +139,26 @@ cells  = find(accumarray(sum(G.faces.neighbors(isOutF,:), 2), 1) > 0);
 % fields 'G.cartDims' and 'G.cells.indexMap' are present.
 %
 dims = reshape(G.cartDims, 1, []);
-if G.griddim == 2,
+if G.griddim == 1
+   dims = [dims(1), 1, 1];
+
+   if faceTag > 2
+      error([caller, ':Side:Unsupported'], ...
+            ['Boundary side ''%s'' is not defined for one-dimensional ', ...
+             'grids in ''%s''.'], direction, caller);
+   end
+end
+
+if G.griddim == 2
    dims = [dims(1:2), 1];
 
-   if faceTag > 4,
+   if faceTag > 4
       error([caller, ':Side:Unsupported'], ...
             ['Boundary side ''%s'' is not defined for two-dimensional ', ...
              'grids in ''%s''.'], direction, caller);
    end
 
-   if numel(i2) > 1,
+   if numel(i2) > 1
       error([caller, ':I2:ERANGE'], ...
             ['Two-dimensional boundary faces are incompatible with a\n', ...
              'two-dimensional grid model in ''%s''.\n\n'               , ...
@@ -156,7 +166,7 @@ if G.griddim == 2,
             caller);
    end
 
-   if numel(i3) > 0 && any(i3 > 1),
+   if numel(i3) > 0 && any(i3 > 1)
       error([caller, ':I3:ERANGE'], ...
             ['A non-zero cell depth is incompatible with a\n', ...
              'two-dimensional grid model in ''%s''.\n\n'     , ...
@@ -170,15 +180,15 @@ if isempty(i2), i2 = 1:dims(d2); end
 
 % Determine whether or not a given cell is within the required subset
 %
-if any(i1 < 1 | dims(d1) < i1),
+if any(i1 < 1 | dims(d1) < i1)
    error([caller, ':I1:ERANGE'], ...
           'Cell range ''I1'' outside model in ''%s''.', caller);
 end
-if any(i2 < 1 | dims(d2) < i2),
+if any(i2 < 1 | dims(d2) < i2)
    error([caller, ':I2:ERANGE'], ...
           'Cell range ''I2'' outside model in ''%s''.', caller);
 end
-if numel(i3) > 0 && any(i3 < 1 | dims(d3) < i3),
+if numel(i3) > 0 && any(i3 < 1 | dims(d3) < i3)
    error([caller, ':I3:ERANGE'], ...
           'Cell range ''I3'' outside model in ''%s''.', caller);
 end
@@ -188,7 +198,7 @@ I{1}(i1) = true;
 I{2}(i2) = true;
 inSubSet = I{1}(cIJK{d1}) & I{2}(cIJK{d2});
 
-if ~isempty(i3),
+if ~isempty(i3)
    I{3}     = false([G.cells.num, 1]);   I{3}(i3) = true;
    inSubSet = inSubSet & I{3}(cIJK{d3});
 end

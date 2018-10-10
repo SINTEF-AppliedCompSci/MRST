@@ -83,7 +83,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    dispif(opt.verbose, 'Computing one-sided transmissibilities...\t');
    t0 = ticif(opt.verbose);
 
-   switch lower(opt.K_system),
+   switch lower(opt.K_system)
       case 'xyz',     T = htrans_xyz  (G, rock, opt);
       case 'loc_xyz', T = htrans_local(G, rock, opt);
 
@@ -97,7 +97,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    T = handle_ntg(T, rock, G);
    
-   if isstruct(opt.grdecl) && numel(opt.grdecl) == 1,
+   if isstruct(opt.grdecl) && numel(opt.grdecl) == 1
       m = getMultipliers(G, opt.grdecl);
       T = T .* m;
    end
@@ -118,7 +118,7 @@ function T = htrans_xyz(G, rock, opt)
 
    % Compute T = C'*K*N / C'*C. Loop-based to limit memory use.
    T = zeros(size(cellNo));
-   for k = 1 : size(i, 2),
+   for k = 1 : size(i, 2)
       T = T + (C(:, i(k)) .* K(cellNo, k) .* N(:, j(k)));
    end
 
@@ -128,11 +128,11 @@ end
 %--------------------------------------------------------------------------
 
 function T = htrans_local(G, rock, opt)
-   if size(rock.perm, 2) == 1,
+   if size(rock.perm, 2) == 1
       rock.perm = repmat(rock.perm, [1, G.griddim]);
    end
 
-   if size(rock.perm, 2) ~= size(G.cartDims, 2),
+   if size(rock.perm, 2) ~= size(G.cartDims, 2)
       error(msgid('PermSys:Inconsistent'),                 ...
            ['Permeability coordinate system ''loc_xyz'' ', ...
             'is only valid for diagonal tensors.']);
@@ -193,7 +193,7 @@ end
 function T = handle_negative_trans(T, opt)
    is_neg = T < 0;
 
-   if any(is_neg),
+   if any(is_neg)
       dispif(opt.verbose, ...
             ['\nWarning:\n\t%d negative transmissibilities.\n\t', ...
              'Replaced by absolute values...\n'], sum(is_neg));
@@ -226,27 +226,27 @@ function multipliers = getMultipliers(G, grdecl)
 
    % do fault multiplicators which are in grdecl.FAULTS.('fault_name')
    dirstruct = struct('X', 1, 'Y', 3, 'Z', 5);
-   if isfield(grdecl,'FAULTS'),
+   if isfield(grdecl,'FAULTS')
       faults = struct2cell(grdecl.FAULTS);
-      for i = 1:numel(faults),
+      for i = 1:numel(faults)
 
          fault = faults{i};
 
          % Skip if there are no fault multipliers.
-         if ~isfield(fault, 'multflt'),
+         if ~isfield(fault, 'multflt')
             continue;
          end
 
-         for j = 1 : numel(fault.dir),
+         for j = 1 : numel(fault.dir)
             dirnum = dirstruct.(fault.dir(j));
             region = fault.cells(j,:);
 
-            if region(dirnum) ~= region(dirnum+1),
+            if region(dirnum) ~= region(dirnum+1)
                error(['Wrong fault ind direction ', fault.dir(j)]);
             end
 
             % For each half-face...
-            for side = 0 : 1,
+            for side = 0 : 1
                % Find cell indices in G corresponding to region
                region(dirnum:dirnum+1) = region(dirnum:dirnum+1) + side;
 
@@ -269,7 +269,7 @@ function multipliers = getMultipliers(G, grdecl)
    %assume MULT?M is not used
    vecstruct=[];
    dirstruct=[];
-   if isfield(grdecl,'MULTX'),
+   if isfield(grdecl,'MULTX')
       vecstruct = [vecstruct, grdecl.MULTX];
       dirstruct = [dirstruct, 2];
       mult      = ones(G.cartDims);
@@ -279,7 +279,7 @@ function multipliers = getMultipliers(G, grdecl)
       dirstruct = [dirstruct, 1];%set the direction number
    end
 
-   if isfield(grdecl,'MULTY'),
+   if isfield(grdecl,'MULTY')
       vecstruct = [vecstruct, grdecl.MULTY];
       dirstruct = [dirstruct, 4];
       mult      = ones(G.cartDims);
@@ -301,7 +301,7 @@ function multipliers = getMultipliers(G, grdecl)
 
    if ~isempty(vecstruct)
       % do multipliers
-      for i = 1:length(dirstruct),
+      for i = 1:length(dirstruct)
          vec   = vecstruct(:, i);
          dir   = dirstruct(i);
          b     = cumsum(G.cells.faces(:, 2) == dir);

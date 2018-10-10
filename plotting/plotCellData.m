@@ -78,26 +78,26 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-if numel(G) > 1,
+if numel(G) > 1
    error(msgid('Grid:MultiComponent'), ...
          'Cannot plot more than one grid at a time.');
 end
 
-assert (sum(size(data, 2) == [1, 3]) == 1, ...
+assert (sum(size(data, 2) == [1, 3]) == 1 || G.griddim, ...
        'Second input, DATA, must have one or three columns.');
 
 % Default to providing graphical output from all cells in the grid model.
 %
 cells = (1 : G.cells.num) .';
 
-if mod(numel(varargin), 2) == 1,
+if mod(numel(varargin), 2) == 1
    % Caller requested graphical output from a particular subset of the grid
    % cells.  Honour that request, but only if it makes sense in context.
    %
-   if isnumeric(varargin{1}),
+   if isnumeric(varargin{1})
       cells = varargin{1};
    elseif islogical(varargin{1}) && ...
-         numel(varargin{1}) == G.cells.num,
+         numel(varargin{1}) == G.cells.num
       cells = find(varargin{1});
    else
       error(['Third parameter ''cells'' must either be a list of ', ...
@@ -110,7 +110,7 @@ if mod(numel(varargin), 2) == 1,
    varargin = varargin(2 : end);
 end
 
-if isempty(cells),
+if isempty(cells)
    warning(msgid('SubGrid:Empty'), ...
           ['Empty cell selection in ''plotCellData''.', ...
            '  No graphics for you.'])
@@ -121,7 +121,7 @@ end
 % Assert that remaining arguments at least appear to be 'name'/value pairs
 % intended for PATCH.
 %
-if ~isempty(varargin),
+if ~isempty(varargin)
    assert (all(iscellstr(varargin(1 : 2 : end))), ...
            'All property names must be strings');
 end
@@ -129,7 +129,7 @@ assert (size(data, 1) == G.cells.num || ...
         size(data, 1) == numel(cells),  ...
         'The DATA should have one value for each grid cell in output.');
 
-if G.griddim == 3,
+if G.griddim == 3
    % Define the boundary to be the boundary faces of the selected subset
    % where the values are not nan.
    selectcells = cells;
@@ -140,19 +140,19 @@ if G.griddim == 3,
        selectcells = find(selectcells & ~datanan);
    end
    [f, c] = boundaryFaces(G, selectcells);
-   if isCoarseGrid(G),
+   if isCoarseGrid(G)
          [f, i] = getSubFaces(G, f);
          c = c(i);
    end
 else
-   % For 2D grids, the faces to plot are the actual individual grid cells.
+   % For 1D/2D grids, the faces to plot are the actual individual grid cells.
    [f, c] = deal(cells);
-   if isCoarseGrid(G),
+   if isCoarseGrid(G)
       f = getSubCells(G, cells);
       c = G.partition(f);
    end
 end
-if size(data, 1) < G.cells.num,
+if size(data, 1) < G.cells.num
    renum        = zeros([G.cells.num, 1]);
    renum(cells) = 1 : numel(cells);
    c            = renum(c);
@@ -160,14 +160,14 @@ if size(data, 1) < G.cells.num,
    assert (all(c > 0) && all(c <= numel(data)));
 end
 
-if (numel(c) == 1) && (size(data, 2) == 1),
+if (numel(c) == 1) && (size(data, 2) == 1) && G.griddim > 1
    % Special case.  Translate single, scalar data value to RGB triplet
    % usable as a FaceColor value in PATCH.
    cmap = colormap();
    rng  = [min(data), max(data)];
    nc   = size(cmap, 1);
 
-   if ~(rng(2) > rng(1)),
+   if ~(rng(2) > rng(1))
       data = cmap(ceil(nc / 2), :);
    else
       ix   = ceil(nc * (data(c) - rng(1)) ./ diff(rng));
@@ -177,11 +177,19 @@ if (numel(c) == 1) && (size(data, 2) == 1),
    c = 1;
 end
 
-if isCoarseGrid(G), G = G.parent; end
-h = plotPatches(G, f, data(c, :), varargin{:});
-if G.griddim==3 || isfield(G.cells,'z'), 
+if isCoarseGrid(G)
+    G = G.parent;
+end
+if G.griddim > 1
+    h = plotPatches(G, f, data(c, :), varargin{:});
+else
+    x = G.cells.centroids(cells);
+    d = data(c, :);
+    h = plot(x, d, varargin{:});
+end
+if G.griddim==3 || isfield(G.cells,'z')
    set(get(h, 'Parent'), 'ZDir', 'reverse'),
-end;
+end
 
 if nargout > 0, varargout{1} = h; end
 end

@@ -100,11 +100,11 @@ assert(isempty(opt.hingenodes) || G.griddim == 3, ...
    'Hinge nodes are only supported for 3D grids.');
 
 % Possibly find neighbors
-if opt.findNeighbors,
+if opt.findNeighbors
    G.faces.neighbors = findNeighbors(G);
    G = findNormalDirections(G);
 else
-   if ~isfield(G.faces, 'neighbors'),
+   if ~isfield(G.faces, 'neighbors')
       warning(msgid('GridType:Incomplete'), ...
          ['No field ''faces.neighbors'' found. ',...
          'Adding plausible values... proceed with caution!']);
@@ -114,23 +114,29 @@ else
 end
 
 % Main part
-if G.griddim == 3,
+switch G.griddim
+    case 1
+        % 1D grid
+        [faceAreas, faceNormals, faceCentroids, ...
+            cellVolumes, cellCentroids] = geom_1d(G, opt);
 
-   [faceAreas, faceNormals, faceCentroids, ...
-      cellVolumes, cellCentroids] = geom_3d(G, opt);
-
-elseif (G.griddim ==2) && (size(G.nodes.coords,2)==2)
-
-   [faceAreas, faceNormals, faceCentroids, ...
-      cellVolumes, cellCentroids] = geom_2d2(G, opt);
-
-elseif (G.griddim ==2) && (size(G.nodes.coords,2)==3)
-
-   [faceAreas, faceNormals, faceCentroids, ...
-      cellVolumes, cellCentroids] = geom_2d3(G, opt);
-
-else
-  assert(false);
+    case 2
+        if size(G.nodes.coords,2)==2
+            % 2D grid
+            [faceAreas, faceNormals, faceCentroids, ...
+                cellVolumes, cellCentroids] = geom_2d2(G, opt);
+        else
+            % 2D grid with 3D structure
+            assert(size(G.nodes.coords, 2) == 3)
+            [faceAreas, faceNormals, faceCentroids, ...
+                cellVolumes, cellCentroids] = geom_2d3(G, opt);
+        end
+    case 3
+        % 3D grid
+        [faceAreas, faceNormals, faceCentroids, ...
+            cellVolumes, cellCentroids] = geom_3d(G, opt);
+    otherwise
+        error('Unable to compute geometry for %d dimensions', G.griddim);
 end
 
 % Update grid
@@ -141,7 +147,7 @@ G.faces.centroids = faceCentroids;
 G.cells.volumes   = cellVolumes;
 G.cells.centroids = cellCentroids;
 
-if ~isfield(G, 'type'),
+if ~isfield(G, 'type')
    warning(msgid('GridType:Unknown'),                            ...
           ['Input grid has no known type. ',                     ...
            'I''ll assume it arose from the primordial soup...']);
@@ -161,14 +167,14 @@ function [faceAreas, faceNormals, faceCentroids, ...
 
    geom = allocate_geometry_3d(G);
 
-   if opt.verbose,
+   if opt.verbose
       nDigits = 1 + floor(log10(G.cells.num));
 
       t0 = tic;
    end
 
-   for block = partition_cells(G, opt),
-      if opt.verbose,
+   for block = partition_cells(G, opt)
+      if opt.verbose
          fprintf('Processing Cells %*d : %*d of %*d ... ', ...
                  nDigits, block(1), ...
                  nDigits, block(2), ...
@@ -179,7 +185,7 @@ function [faceAreas, faceNormals, faceCentroids, ...
 
       geom = geom_3d_cell_block(geom, G, block, opt);
 
-      if opt.verbose,
+      if opt.verbose
          t1   = toc(t1);
          rate = (1 + diff(block)) / t1;
 
@@ -187,7 +193,7 @@ function [faceAreas, faceNormals, faceCentroids, ...
       end
    end
 
-   if opt.verbose,
+   if opt.verbose
       fprintf('Total 3D Geometry Processing Time = %.3f [s]\n', toc(t0));
    end
 
@@ -269,6 +275,23 @@ end
 
 %--------------------------------------------------------------------------
 
+function [faceAreas, faceNormals, faceCentroids, ...
+      cellVolumes, cellCentroids] = geom_1d(G, opt)
+  dN = diff(G.faces.neighbors, 1);
+  dN(end) = 1;
+  assert(all(dN(:) == 1) && all(diff(G.nodes.coords) > 0), ...
+      '1D grids require that cells are monotonically increasing with coordinates');
+  faceAreas = ones(G.faces.num, 1);
+  faceNormals = ones(G.faces.num, 1);
+  faceCentroids = G.nodes.coords;
+  cellVolumes = diff(G.nodes.coords);
+
+  cellNo = rldecode((1:G.cells.num)', diff(G.cells.facePos));
+  cellCentroids = accumarray(cellNo, G.nodes.coords(G.cells.faces(:, 1))) / 2;
+end
+
+%--------------------------------------------------------------------------
+
 function geom = allocate_geometry_3d(G)
    dim = 3;
 
@@ -292,7 +315,7 @@ function id_blocks = partition_cells(G, opt)
    B = opt.MaxBlockSize;
    M = G.cells.num;
 
-   if isempty(B) || (B < 0),
+   if isempty(B) || (B < 0)
       B = M;
    end
 
@@ -355,7 +378,7 @@ function geom = ensureValidFaceGeometry(geom, G, cfaces, opt)
    ufaces = unique_faces(G.faces.num, cfaces);
    inval  = ~ geom.face.valid(ufaces);
 
-   if any(inval),
+   if any(inval)
       ifaces = ufaces(inval);
 
       [fA, fN, fC, sC, sN, sNSigns] = face_geom3d(G, ifaces, opt);
@@ -405,7 +428,7 @@ function [fA, fN, fC, sC, sN, sNSigns] = face_geom3d(G, faces, opt)
 
    % Use hinge nodes for selected faces if present.
    if ~isempty(opt.hingenodes) && isstruct(opt.hingenodes) && ...
-         all(isfield(opt.hingenodes, { 'faces', 'nodes' })),
+         all(isfield(opt.hingenodes, { 'faces', 'nodes' }))
 
       pCenters = insertHingeNodes(pCenters, G, faces, opt.hingenodes);
    end
@@ -420,7 +443,7 @@ function [fA, fN, fC, sC, sN, sNSigns] = face_geom3d(G, faces, opt)
 
    % Computation above does not make sense for faces with zero area
    i = find(~ (fA > 0));
-   if ~ isempty(i),
+   if ~ isempty(i)
       warning(msgid('computeGeometry:faceAreas'), ...
              ['%d faces with non-positive area detected.\n', ...
               'Such faces should be removed before calling %s'], ...
@@ -583,7 +606,7 @@ end
 %--------------------------------------------------------------------------
 
 function [c, no, w, accum] = averageCoordinates(n, c, w)
-   if nargin < 3,
+   if nargin < 3
       w = 1;
    end
 

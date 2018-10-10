@@ -115,7 +115,7 @@ function W = addWell(W, G, rock, cellInx, varargin)
 %   incompTutorialWells
 %
 % NOTE:
-%   Wells in two-dimensional grids are not well defined in terms of
+%   Wells in one/two-dimensional grids are not well defined in terms of
 %   computing well indices. However, such wells are often useful for
 %   simulation scenarios where the exact value of well indices is not of
 %   great importance. For this reason, we make the following approximations
