@@ -30,6 +30,8 @@ function cfl = estimateSaturationCFL(model, state, dt, varargin)
     rate_cell = accumarray(l, rate_face.*( flag | xflow), [nc, 1]) +...
                 accumarray(r, rate_face.*(~flag | xflow), [nc, 1]);
     
+    wc = vertcat(opt.forces.W.cells);
+    rate_cell(wc) = 0;
     cfl = (dt./pv).*rate_cell;
 end
 
@@ -135,7 +137,7 @@ function [F, Q] = getFlowMagnitudeOG(model, state)
 
     F = J(f_g);
     
-    
+    f = model.fluid;
     hasOG = isfield(f, 'pcOG');
     if hasOG
     	Q = zeros(model.G.cells.num, 1);
