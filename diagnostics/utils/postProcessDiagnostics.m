@@ -29,7 +29,7 @@ classdef postProcessDiagnostics < handle
                               'itemSpace',         25, ...
                               'includeToolTips', true);
     end
-    
+
     methods
         function d = postProcessDiagnostics(varargin)
             opt = struct('style', 'default', 'steps', [], 'maxTOF', 500*year);
@@ -50,7 +50,7 @@ classdef postProcessDiagnostics < handle
                 opt = merge_options(opt, varargin{:});
             end
             assert(exist(filenm, 'file')>0, sprintf('Unable to find file %s', filenm));
-                
+
             % Select which time-steps to include
             [pth, nm] = fileparts(filenm);
             casenm = fullfile(pth, nm);
@@ -60,7 +60,7 @@ classdef postProcessDiagnostics < handle
             else
                 steps = uiPreSelectTimeSteps(rsspec);
             end
-       
+
             % Setup data for selected steps and compute diagnostics
             d.maxTOF = opt.maxTOF;
             [d.G, d.Data, d.Gs, valid_ix] = readAndPrepareForPostProcessor(casenm, steps, rsspec);
@@ -71,7 +71,7 @@ classdef postProcessDiagnostics < handle
                 d.Data.summary = [];
                 warning('Not able to read summary for selected case ...\n')
             end
-            
+
             % ------ Set unique colors for wells --------------------------
             % Avoid first color (black) and add an extra color representing
             % potential contributions from the reservoir
@@ -79,28 +79,28 @@ classdef postProcessDiagnostics < handle
             cmap = tatarizeMap(nInj+nProd+2);
             d.Data.injColors  = cmap([2:nInj+1 end],:);
             d.Data.prodColors = cmap(nInj+2:end,:);
-            
+
             % ------ Create figure window ---------------------------------
             screensize = get( groot, 'Screensize' );
             wsize = .75*screensize(3:4);
             wsize = [screensize(3:4)-wsize*1.1, wsize];
             d.Figure = limitedToolbarFigure('Position', wsize);
-            
+
             % ------ Selectors for time steps and wells -------------------
             itemOpts = {'Parent', d.Figure, 'Visible','off', 'style', opt.style};
-            
+
             tStepStr = getTStepStrings(d.Data.time.cur, d.Data.time.prev);
             selector3D.tsel = timeStepSelector('tSteps', tStepStr, itemOpts{:});
             selector3D.wsel = wellSelector(...
                     'injectors', {d.Data.diagnostics(1).WP.inj.name}, ...
                     'producers', {d.Data.diagnostics(1).WP.prod.name}, itemOpts{:});
             selector3D.wsel.communicationMatrix = d.Data.wellComunication;
-            
+
             % ------ Selector for properties in 3D plot -------------------
             d.Props = struct('static',  struct('name', {{d.Data.static.name}},  'limits', {{d.Data.static.limits}}), ...
                              'dynamic', struct('name', {{d.Data.dynamic.name}}, 'limits', {{d.Data.dynamic.limits}}), ...
                              'diagnostics', struct('name', {{'TOF forward', 'TOF backward', ...
-                                                             'Residence time', 'Tracer forward', ... 
+                                                             'Residence time', 'Tracer forward', ...
                                                              'Tracer backward', 'Tracer product', ...
                                                              'Sweep regions', 'Drainage regions', ...
                                                              'First arrival forward', 'First arrival backward'}}, ...
@@ -110,23 +110,23 @@ classdef postProcessDiagnostics < handle
                              'computed', struct('name', {{}}, 'limits', {{}}));
             d.currentDiagnostics = emptyDiagnostics(d);
             selector3D.psel = propertyDisplaySelector('props', d.Props, itemOpts{:}, 'includeLogSwitch', true);
-            
+
             % ------ Selector for property filter in 3D -------------------
             selector3D.fsel = propertyDisplaySelector( ...
                                 'Title', 'Property filter', 'includeFilter', true, ...
                                 'props', d.Props, 'includePlayer', true, ...
                                 itemOpts{:},...
-                                'includeEnableSwitch', true, 'includeLogSwitch', true, ... 
+                                'includeEnableSwitch', true, 'includeLogSwitch', true, ...
                                 'startPlayCallback', @d.startPlayCallback, ...
                                 'stopPlayCallback', @d.stopPlayCallback);
             selector3D.fsel.Min = d.Data.static(1).limits(1);
             selector3D.fsel.Max = d.Data.static(1).limits(2);
-            
+
             % ------ Selector for heterogeneity measures ------------------
             d.Measures = {{'none','Well connections', 'F-Phi plot', ...
                 'Sweep efficiency', 'Lorenz coefficient'}};
             selector2D.msel = dynamicMeasureSelector('props', d.Measures, itemOpts{:});
-            
+
             % ------ Selector for well allocation -------------------------
             d.Allocation = {{'none','Injector volumes', ...
                 'Injector allocation', 'Injector profile', ...
@@ -135,13 +135,13 @@ classdef postProcessDiagnostics < handle
                 'Title','Well allocations', ...
                 'props', d.Allocation, ...
                 'includeAvgSwitch', true, itemOpts{:});
-            
+
             % ------ Selector for summary output  -------------------------
             selector2D.ssel = summarySelector(d.Data.summary, itemOpts{:});
-            
+
             % ------ Selector for RTD distribution  -----------------------
             selector2D.dsel = tracerSelector(itemOpts{:});
-            
+
             % create menu(s)
             % sub-menu for property display (3d and 2d)
             m1 = uiMenu('Title', 'Property display selection', 'Parent', d.Figure, ...
@@ -156,7 +156,7 @@ classdef postProcessDiagnostics < handle
             d.Menu = uiMenu('Title', 'Menu', 'Parent', d.Figure, ...
                 itemOpts{:}, ...
                 'items', {selector3D.tsel, m1, m2, m3});
-            
+
             % set different bkcolor of each sub-menu ,select some light
             % colors
             tt = [251 180 76; 58 152 216; 42 187 155; 252 121 122]./255;
@@ -177,27 +177,27 @@ classdef postProcessDiagnostics < handle
  %                   end
  %               end
             end
-            
+
 
             % axes
             d.Axes3D  = axes('Parent', d.Figure, 'Units', 'pixels', 'CLimMode', 'manual');
             d.Axes2DL = axes('Parent', d.Figure, 'Units', 'pixels');
             d.Axes2DR = axes('Parent', d.Figure, 'Units', 'pixels');
             [d.Axes2DL, d.Axes2DR] = addAxesContextMenu(d.Axes2DL, d.Axes2DR);
-            
-            
+
+
             % collapse submenues whose function do not yet make sense
             selector3D.wsel.collapse  = 1;
             for  f = reshape(fieldnames(selector2D),1, [])
                selector2D.(f{1}).collapse = 1;
             end
-            
+
             % set figure callback functions:
             d.Figure.SizeChangedFcn        = @d.layout;
             d.Figure.WindowButtonDownFcn   = @d.resize;
             d.Figure.WindowButtonMotionFcn = @d.setMousePointer;
             d.Figure.WindowScrollWheelFcn  = @d.scrollMenu;
-            
+
             % set zoom/pan/rotate
             d.interactiveModes           = setInteractiveModes(d.Axes3D);
             % ------ Show model with static property ----------------------
@@ -205,25 +205,25 @@ classdef postProcessDiagnostics < handle
                'Parent', d.Axes3D, 'EdgeColor', [.4 .4 .4], ...
                'EdgeAlpha', 1, 'BackFaceLighting', 'lit');
             d.Patch = addPatchContextMenu(d.Patch);
-            
+
             d.Figure.CurrentAxes = d.Axes3D;
             d.outlineGrid = plotGrid(d.G, 'FaceColor', 'none', 'EdgeAlpha', 0.15, 'EdgeColor', [.4 .4 .4]);
             axis(d.Axes3D, 'tight', 'vis3d', 'off');
             d.Axes3D.ZDir = 'reverse';
             view(d.Axes3D, 3);
             daspect(d.Axes3D, [1 1 .2]);
-            
+
             %return
             % ------ Add colorbar with histogram --------------------------
             d.colorBar = colorbar(d.Axes3D, 'WestOutside', 'AxisLocation', 'in');
             set(d.colorBar, 'Position',[.24 .8 .01 .19], 'Units', 'pixels');
             d.colorHAx = axes('Position',[.255 .8 .03 .19], 'Units', 'pixels', 'XDir', 'reverse');
             d.updateColorHist();
-            
+
             % ------ Construct 2D plot axes -------------------------------
             axis(d.Axes2DL,'off');
             axis(d.Axes2DR,'off');
-            
+
             % ------ Switch back to 3D plot axes and plot wells -----------
             % add extra toolbar stuff
             d.Figure.CurrentAxes = d.Axes3D;
@@ -234,13 +234,13 @@ classdef postProcessDiagnostics < handle
             % finally wells
             d.WellPlot = wellPlotHandle(d.G, d.Data.states{1}.wellSol, ...
                'Visible', 'off', 'Parent', d.Axes3D);
-            
+
             % ------ Set callbacks for 3D axes ----------------------------
             selector3D.tsel.Callback = @(src, event) d.tStepCallback(src, event, selector3D, selector2D);
             selector3D.psel.Callback = @(src, event) d.displayPropCallback(src, event, selector3D);
             selector3D.wsel.Callback = @(src, event) d.interactionRegionCallback(src, event, selector2D, selector3D);
             selector3D.fsel.Callback = @(src, event) d.filterPropCallback(src, event, selector3D);
-            
+
             % ------ Set callbacks for 2D axes ----------------------------
             selector2D.msel.Callback      = @(src, event)d.measureCallback(src, event, selector2D, selector3D);
             selector2D.asel.Callback      = @(src, event)d.allocationCallback(src, event, selector2D, selector3D);
@@ -248,12 +248,12 @@ classdef postProcessDiagnostics < handle
             selector2D.ssel.Callback      = @(src, event)summaryCallback(d, src, event, selector2D);
             selector2D.ssel.regCallback   = @(src, event)selectWellsForSummary(d, src, event, selector2D, selector3D);
             selector2D.dsel.Callback      = @(src, event)d.distributionCallback(src, event, selector2D, selector3D);
-           
+
             % ------ Do initial callback for 3D axes ----------------------
             selector3D.psel.Callback([], [])
              d.layout();
         end
-            
+
         %% ---------- MAIN CALLBACKS --------------------------------------
         function tStepCallback(d, src, event, s3, s2)
             ts = s3.tsel.ix;
@@ -273,7 +273,7 @@ classdef postProcessDiagnostics < handle
             else
                 s3.wsel.Enable  = 'on';  s3.wsel.collapse = 0;
                 s2.msel.Enable  = 'on';  s2.msel.collapse = 0;
-                s2.dsel.Enable  = 'on'; 
+                s2.dsel.Enable  = 'on';
                 s2.asel.Enable  = 'on';
                 s2.rsel.Enable  = 'on';
                 s2.dtsel.Enable = 'on'; % Activate when this is implemented
@@ -352,8 +352,8 @@ classdef postProcessDiagnostics < handle
             d.Axes3D.CLim = lims;
             d.updateColorHist();
             d.updateColorBar(s3, lims, isLog);
-        end        
-        % -----------------------------------------------------------------        
+        end
+        % -----------------------------------------------------------------
         function filterPropCallback(d, src, event, s3)
             if ~strcmp(s3.fsel.playMode, 'stop')
                 d.Patch.value = s3.fsel.maxValue;
@@ -422,12 +422,12 @@ classdef postProcessDiagnostics < handle
                 end
                 d.updateColorHist();
             end
-        end        
-        % -----------------------------------------------------------------        
+        end
+        % -----------------------------------------------------------------
         function interactionRegionCallback(d, src, event, s2, s3)
             d.WellPlot.visibleInjectors = s3.wsel.injectorIx;
             d.WellPlot.visibleProducers = s3.wsel.producerIx;
-            if isprop(src,'Style') && all(strncmp(src.Style,'checkbox',6)) 
+            if isprop(src,'Style') && all(strncmp(src.Style,'checkbox',6))
                return;
             end
             % clear current diagnostics
@@ -461,8 +461,8 @@ classdef postProcessDiagnostics < handle
             if s2.ssel.regionSwitch.Value == 1
                s2.ssel.regCallback(src, event)
             end
-        end        
-        % -----------------------------------------------------------------        
+        end
+        % -----------------------------------------------------------------
         function measureCallback(d, src, event, s2, s3)
            if s2.msel.panelNo==1
               ax = d.Axes2DL;
@@ -506,8 +506,8 @@ classdef postProcessDiagnostics < handle
                  s2.msel.rightIx = 1;
               end
            end
-        end        
-        % -----------------------------------------------------------------        
+        end
+        % -----------------------------------------------------------------
         function allocationCallback(d, src, event, s2, s3)
             if s2.asel.panelNo==1
               ax = d.Axes2DL;
@@ -518,8 +518,8 @@ classdef postProcessDiagnostics < handle
            end
            cla(ax, 'reset');
            showAllocation(d, src, ax, s2, s3)
-        end       
-        % -----------------------------------------------------------------   
+        end
+        % -----------------------------------------------------------------
         function distributionCallback(d, src, event, s2, s3)
             [dsel, tsel, wsel] = deal(s2.dsel, s3.tsel, s3.wsel);
             if isempty(tsel.ix) || dsel.extendTime <= 0, return, end
@@ -527,7 +527,7 @@ classdef postProcessDiagnostics < handle
                 [ax, ix] = deal(d.Axes2DL, dsel.leftIx);
             else
                 [ax, ix] = deal(d.Axes2DR, dsel.rightIx);
-            end 
+            end
             cla(ax, 'reset');
             if numel(wsel.injectorIx) ~= 1 || numel(tsel.ix) ~= 1
                 axis(ax, 'off')
@@ -570,7 +570,7 @@ classdef postProcessDiagnostics < handle
                 end
             end
             [nms, prps] = deal(s2.ssel.curNames, s2.ssel.curProps);
-            
+
             if isempty(prps)
                 %axis(ax,'off');
             else
@@ -605,10 +605,10 @@ classdef postProcessDiagnostics < handle
             % set mouse pointer to wait-mode
             fsel = src.Parent.UserData;
             mtfnc  = d.Figure.WindowButtonMotionFcn;
-            curpnt = d.Figure.Pointer; 
+            curpnt = d.Figure.Pointer;
             d.Figure.WindowButtonMotionFcn = '';
-            d.Figure.Pointer = 'watch'; 
-            pause(0.001); % change pointer now 
+            d.Figure.Pointer = 'watch';
+            pause(0.001); % change pointer now
             set(d.Axes3D, {'YLimMode', 'XLimMode', 'ZLimMode'}, {'manual', 'manual', 'manual'});
             d.Patch.logScale = fsel.logSwitch;
             d.Patch.playMode = true;
@@ -670,7 +670,7 @@ classdef postProcessDiagnostics < handle
                 src.WindowButtonMotionFcn = {@dragVertically, offset};
                 src.WindowButtonUpFcn     = {@clearMotionFcn, motionFcn};
             end
-            
+
             function dragHorisontally(src, ~, offset)
                 p = src.CurrentPoint - [offset, 0];
                 if abs(mw - p(1)) > 5
@@ -679,7 +679,7 @@ classdef postProcessDiagnostics < handle
                     %d.layout();
                 end
             end
-            
+
             function dragVertically(src, ~, offset)
                 p = src.CurrentPoint - [0 offset];
                 if abs(ah - p(2)) > 2
@@ -687,7 +687,7 @@ classdef postProcessDiagnostics < handle
                     d.layout();
                 end
             end
-            
+
             function clearMotionFcn(src, ~, motionFcn)
                 src.WindowButtonMotionFcn = motionFcn;
                 d.layout();
@@ -699,20 +699,20 @@ classdef postProcessDiagnostics < handle
             p = src.CurrentPoint;
             if p(1) < mw % over menu
                 fp = d.Figure.Position;
-                mp = d.Menu.Position; 
-                if event.VerticalScrollCount > 0 
+                mp = d.Menu.Position;
+                if event.VerticalScrollCount > 0
                     if mp(2) < 5
                         n = event.VerticalScrollAmount;
                         d.Menu.Position(2) = min(mp(2)+n*30, 5);
                     end
-                elseif event.VerticalScrollCount < 0 
+                elseif event.VerticalScrollCount < 0
                     if mp(2)+ mp(4) > fp(4)-10
                         n = event.VerticalScrollAmount;
                         d.Menu.Position(2) = max(mp(2)-n*25, fp(4)-mp(4)-1);
                     end
                 end
             end
-        end        
+        end
         % -----------------------------------------------------------------
         function setMousePointer(d, ~, ~)
             [mw, ah, sp] = deal(d.layoutParams.menuWidth, d.layoutParams.distAxisHeight, d.layoutParams.itemSpace);
@@ -791,7 +791,7 @@ classdef postProcessDiagnostics < handle
            hold(ax,'on');
            for i = 1:size(alloc,3)
               h=bar3h(ax, z, alloc(:,:,i),'stacked');
-              for j=1:numel(h) 
+              for j=1:numel(h)
                  set(h(j), 'xdata', get(h(j),'xdata')+i-1, ...
                     'FaceColor', cmap(j,:),'EdgeAlpha',.5);
               end
@@ -804,7 +804,7 @@ classdef postProcessDiagnostics < handle
         function showFPhi(d, ax, tsel, wsel)
            if isempty(tsel.ix), return, end
            m = getDynamicMeasures(d, tsel, wsel);
-           
+
            nT = numel(tsel.ix);
            if nT < 8
               colM = get(gca,'ColorOrder');
@@ -816,7 +816,7 @@ classdef postProcessDiagnostics < handle
               col = colM(n,:);
               plot(ax,m.Phi,m.Ft(:,n),'LineWidth',2,'Color',col);
               if ~m.computePairs, continue; end
-              
+
               % Plot F-Phi for individual wall pairs. For multiple time
               % steps, these lines are plotted using a lighter color. For a
               % single time step, we compute using different colors
@@ -834,18 +834,18 @@ classdef postProcessDiagnostics < handle
               end
            end
            hold(ax,'off');
-           if ~isempty(m.wellName) 
+           if ~isempty(m.wellName)
               title(ax,['Well: ' m.wellName]);
               if nT<2
                  h=legend(ax,'region',m.names{:}); set(h,'FontSize',8)
               end
            end
         end
-        % -----------------------------------------------------------------        
+        % -----------------------------------------------------------------
         function showSweep(d, ax, tsel, wsel)
            if isempty(tsel.ix), return, end
            m = getDynamicMeasures(d, tsel, wsel);
-           
+
            nT = numel(tsel.ix);
            if nT < 8
               colM = get(gca,'ColorOrder');
@@ -857,7 +857,7 @@ classdef postProcessDiagnostics < handle
               col = colM(n,:);
               plot(ax,m.tDt(:,n),m.Ev,'LineWidth',2,'Color',col);
               if ~m.computePairs, continue; end
-              
+
               % Plot F-Phi for individual wall pairs. For multiple time
               % steps, these lines are plotted using a lighter color. For a
               % single time step, we compute using different colors
@@ -875,7 +875,7 @@ classdef postProcessDiagnostics < handle
               end
            end
            hold(ax,'off');
-           if ~isempty(m.wellName) 
+           if ~isempty(m.wellName)
               title(ax,['Well: ' m.wellName]);
               if nT<2
                  h=legend(ax,'region',m.names{:}); set(h,'FontSize',8)
@@ -884,12 +884,12 @@ classdef postProcessDiagnostics < handle
            hold(ax,'off'); axis(ax,'tight');
            set(ax,'XLim',[0 min(5,max(m.tDt(:)))]);
         end
-        % -----------------------------------------------------------------  
+        % -----------------------------------------------------------------
         function showLorenz(d, ax, tsel, wsel)
            if isempty(tsel.ix), return, end
-           
+
            m = getDynamicMeasures(d, tsel, wsel);
-           
+
            axes(ax)
            nT = numel(tsel.ix);
            if ~m.computePairs
@@ -899,7 +899,7 @@ classdef postProcessDiagnostics < handle
               text(h.XData, h.YData, cellstr(num2str(m.LCt(:),'%.4f')), ...
                  'HorizontalAlignment', 'center', ...
                  'VerticalAlignment','bottom', 'FontSize', 8);
-              
+
            elseif nT<4
               n = size(m.LC,1);
               h=bar(ax, m.LC,'LineWidth',1, ...
@@ -940,7 +940,7 @@ classdef postProcessDiagnostics < handle
                 end
             end
         end
-        % -----------------------------------------------------------------            
+        % -----------------------------------------------------------------
         function updateColorHist(d)
            vals = d.Patch.colorData(d.Patch.cells);
            lims = d.Axes3D.CLim;
@@ -1002,7 +1002,7 @@ classdef postProcessDiagnostics < handle
             end
             d.colorBar = cb;
         end
-        % -----------------------------------------------------------------       
+        % -----------------------------------------------------------------
     end
 end % --- END POSTPROCESSDIAGNOSICS ---------------------------------------
 
@@ -1031,7 +1031,7 @@ end
 function str = getTStepStrings(t_cur, t_prev)
 formatOut = 'mmm dd, yyyy';
 n = numel(t_cur);
-str = cellfun(@(x)datestr(x, formatOut), mat2cell(t_cur, ones(1, n)), 'UniformOutput', false); 
+str = cellfun(@(x)datestr(x, formatOut), mat2cell(t_cur, ones(1, n)), 'UniformOutput', false);
 if nargin > 1
     strp = cellfun(@(x)datestr(x, formatOut), mat2cell(t_prev, ones(1, n)), 'UniformOutput', false);
     str  = cellfun(@(x,y)[x,' - ',y], strp, str, 'UniformOutput', false);
@@ -1045,7 +1045,7 @@ varargout = cell(1,nax);
 for k = 1:nax
     ax = varargin{k};
     assert(isa(ax, 'matlab.graphics.axis.Axes'));
-    
+
     m = uicontextmenu('Parent', ax.Parent);
     uimenu(m, 'Label', 'Export to new figure', 'Callback', @(src, event)copyToFig(src, event, ax))
 
@@ -1067,9 +1067,9 @@ for k = 1:nax
         p = input.patchMain;
         inputIsPatch = false;
     end
-    
+
     varargout{k} = input;
-    
+
     if ~isempty(p)
         m = uicontextmenu('Parent', p.Parent.Parent);
         uimenu(m, 'Label', 'Export to new figure', 'Callback', @(src, event)copyToFig(src, event, p.Parent))
@@ -1104,7 +1104,7 @@ gh.OffCallback = @(src, event)outlineOnOff(src, event, d, 'off');
 lh = uitoggletool(tb,'CData',getIcon('light.png'), 'Separator', 'off', 'State', 'off', ...
                    'TooltipString', 'Enable/disable light');
 lh.OnCallback = @(src, event)lightOnOff(src, event, d, 'on');
-lh.OffCallback = @(src, event)lightOnOff(src, event, d, 'off');  
+lh.OffCallback = @(src, event)lightOnOff(src, event, d, 'off');
 
 
 aspFac = 1.2;
