@@ -10,15 +10,18 @@ else
     doAvg = s2.asel.rightSwitch && numel(ts)>1;
 end
 
-if doAvg 
+if doAvg
     WP_avg = timeAverageWellPairDiagnostics(d, ts);
 end
 
 switch src.Value
     case 1  % None
         axis(ax,'off');
-        
-    case 2  % Injector volumes
+
+    case 2
+        showWellCommunication(d, ax, s3.wsel.getCommunicationStrength());
+
+    case 3  % Injector volumes
         if (~doAvg && numel(ts)~=1) || numel(iIx)~=1
             text(0,.1,'Injector volumes:','Parent', ax);
             text(0,0,'Please select{\bf one} injector and{\bf one} time step (or select average)','Parent',ax);
@@ -34,8 +37,8 @@ switch src.Value
             d.WellPlot.producers, 'UniformOutput',false), ...
             d.Data.prodColors);
         title(ax,d.WellPlot.injectors(iIx).label.String, 'Interpreter','none');
-        
-    case 3  % Injector allocation
+
+    case 4  % Injector allocation
         if numel(iIx)~=1
             text(0,.1,'Injector allocation:','Parent', ax);
             text(0,0,'Please select{\bf one} injector only','Parent',ax);
@@ -61,11 +64,15 @@ switch src.Value
             for i=1:numel(h)
                 set(h(i),'FaceColor', d.Data.prodColors(i,:));
             end
-            axis tight
+            set(ax,'XTickLabel', ...
+                {datestr(d.Data.time.cur(ts) , 'mm.dd.yy')});
+            set(ax,'XTickLabelRotation',30,'FontSize',8);
+            axis(ax,'tight')
+            set(h,'HitTest','off');
         end
         title(ax,d.WellPlot.injectors(iIx).label.String);
-        
-    case 4  % PLT plot (production logging tool)
+
+    case 5  % PLT plot (production logging tool)
         if numel(iIx)~=1
             text(0,.1,'Injector profile:','Parent', ax);
             text(0,0,'Please select{\bf one} injector','Parent',ax);
@@ -81,12 +88,15 @@ switch src.Value
             d.plotPLT3D(ax, arrayfun(@(x) x.WP.inj(iIx),...
                 d.Data.diagnostics(ts),'UniformOutput',false), ...
                 false, d.Data.prodColors);
+            set(ax,'XTickLabel', ...
+                {datestr(d.Data.time.cur(ts) , 'mm.dd.yy')});
+            set(ax,'XTickLabelRotation',-30,'FontSize',8);
         end
         title(ax,d.WellPlot.injectors(iIx).label.String);
         legend(ax, ax.Children(numel(d.WellPlot.producers)+1-pIx), ...
             arrayfun(@(x) x.label.String, d.WellPlot.producers(pIx),'UniformOutput',false));
-        
-    case 5  % Producer volumes
+
+    case 6  % Producer volumes
         if (~doAvg && numel(ts)~=1) || numel(pIx)~=1
             text(0,.1,'Producer volumes:','Parent', ax);
             text(0,0,'Please select{\bf one} producer and{\bf one} time step (or select average)','Parent', ax);
@@ -102,8 +112,8 @@ switch src.Value
             d.WellPlot.injectors,'UniformOutput',false), ...
             d.Data.injColors);
         title(ax,d.WellPlot.producers(pIx).label.String);
-        
-    case 6  % Producer allocation
+
+    case 7  % Producer allocation
         if numel(pIx)~=1
             text(0,.1,'Producer allocation:','Parent', ax);
             text(0,0,'Please select{\bf one} producer only','Parent', ax);
@@ -129,11 +139,15 @@ switch src.Value
             for i=1:numel(h)
                 set(h(i),'FaceColor', d.Data.injColors(i,:));
             end
-            axis tight
-        end
-        title(ax,d.WellPlot.producers(pIx).label.String);
-        
-    case 7  % PLT plot (production logging tool)
+            set(ax,'XTickLabel', ...
+                {datestr(d.Data.time.cur(ts) , 'mm.dd.yy')});
+            set(ax,'XTickLabelRotation',30,'FontSize',8);
+            axis(ax,'tight')
+            set(h,'HitTest','off');
+       end
+       title(ax,d.WellPlot.producers(pIx).label.String);
+
+    case 8  % PLT plot (production logging tool)
         if numel(pIx)~=1
             text(0,.1,'Producer profile:','Parent', ax);
             text(0,0,'Please select{\bf one} producer','Parent', ax);
@@ -149,11 +163,14 @@ switch src.Value
             d.plotPLT3D(ax,arrayfun(@(x) x.WP.prod(pIx),...
                 d.Data.diagnostics(ts),'UniformOutput',false), ...
                 true, d.Data.injColors);
+            set(ax,'XTickLabel', ...
+                {datestr(d.Data.time.cur(ts) , 'mm.dd.yy')});
+            set(ax,'XTickLabelRotation',-30,'FontSize',8);
         end
         title(ax,d.WellPlot.producers(pIx).label.String);
         legend(ax, ax.Children(numel(d.WellPlot.injectors)+1-iIx), ...
             arrayfun(@(x) x.label.String, d.WellPlot.injectors(iIx),'UniformOutput',false));
-        
+
     otherwise
         disp('functionality not implemented yet');
 end

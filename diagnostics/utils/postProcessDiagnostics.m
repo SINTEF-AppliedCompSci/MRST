@@ -123,12 +123,12 @@ classdef postProcessDiagnostics < handle
             selector3D.fsel.Max = d.Data.static(1).limits(2);
 
             % ------ Selector for heterogeneity measures ------------------
-            d.Measures = {{'none','Well connections', 'F-Phi plot', ...
+            d.Measures = {{'none', 'F-Phi plot', ...
                 'Sweep efficiency', 'Lorenz coefficient'}};
             selector2D.msel = dynamicMeasureSelector('props', d.Measures, itemOpts{:});
 
             % ------ Selector for well allocation -------------------------
-            d.Allocation = {{'none','Injector volumes', ...
+            d.Allocation = {{'none','Well connections', 'Injector volumes', ...
                 'Injector allocation', 'Injector profile', ...
                 'Producer volumes', 'Producer allocation', 'Producer profile'}};
             selector2D.asel = dynamicMeasureSelector(...
@@ -178,7 +178,6 @@ classdef postProcessDiagnostics < handle
  %               end
             end
 
-
             % axes
             d.Axes3D  = axes('Parent', d.Figure, 'Units', 'pixels', 'CLimMode', 'manual');
             d.Axes2DL = axes('Parent', d.Figure, 'Units', 'pixels');
@@ -200,12 +199,12 @@ classdef postProcessDiagnostics < handle
 
             % set zoom/pan/rotate
             d.interactiveModes           = setInteractiveModes(d.Axes3D);
+
             % ------ Show model with static property ----------------------
             d.Patch = cellDataPatch(d.G, d.Data.static(1).values, ...
                'Parent', d.Axes3D, 'EdgeColor', [.4 .4 .4], ...
                'EdgeAlpha', 1, 'BackFaceLighting', 'lit');
             d.Patch = addPatchContextMenu(d.Patch);
-
             d.Figure.CurrentAxes = d.Axes3D;
             d.outlineGrid = plotGrid(d.G, 'FaceColor', 'none', 'EdgeAlpha', 0.15, 'EdgeColor', [.4 .4 .4]);
             axis(d.Axes3D, 'tight', 'vis3d', 'off');
@@ -477,20 +476,18 @@ classdef postProcessDiagnostics < handle
               case 1
                  axis(ax,'off');
               case 2
-                 showWellCommunication(d, ax, s3.wsel.getCommunicationStrength());
-              case 3
                  if isempty(s3.tsel.ix)
                     axis(ax,'off'); resetValue = true;
                  else
                     d.showFPhi(ax, s3.tsel, s3.wsel);
                  end
-              case 4
+              case 3
                  if isempty(s3.tsel.ix)
                     axis(ax,'off'); resetValue = true;
                  else
                     d.showSweep(ax, s3.tsel, s3.wsel);
                  end
-              case 5
+              case 4
                  if isempty(s3.tsel.ix)
                     axis(ax,'off'); resetValue = true;
                  else
@@ -753,6 +750,7 @@ classdef postProcessDiagnostics < handle
               set(h(i*2+1),'FaceColor',.85*cmap(i+1,:)+[.15 .15 .15]);
            end
            legend(ax, [names(pind); 'others'], 'Location','EastOutside', 'Interpreter','none');
+           set(ax,'PickableParts','all');set(h,'HitTest','off')
         end
         % -----------------------------------------------------------------
         function plotPLT(d, ax, wp, cmap)
@@ -771,7 +769,7 @@ classdef postProcessDiagnostics < handle
                  args = {'YDir', 'YLim'};
                  h=barh(ax, z, a,'stacked','BarWidth',1, 'EdgeColor','none');
               else
-                 h=area(ax, z, a, eps,'EdgeColor','none'); axis tight;
+                 h=area(ax, z, a, eps,'EdgeColor','none'); axis(ax,'tight');
                  view(90,-90);
                  args = {'XDir', 'XLim'};
               end
@@ -780,6 +778,7 @@ classdef postProcessDiagnostics < handle
            for i=1:numel(h) % avoid using black bars
               set(h(i),'FaceColor',cmap(i,:))
            end
+           set(h,'HitTest','off')
            set(ax,args{1},'reverse', args{2}, [zm zM + sqrt(eps)] + [-.1 .1]*(zM-zm));
         end
         % -----------------------------------------------------------------
@@ -795,6 +794,7 @@ classdef postProcessDiagnostics < handle
                  set(h(j), 'xdata', get(h(j),'xdata')+i-1, ...
                     'FaceColor', cmap(j,:),'EdgeAlpha',.5);
               end
+              set(h,'HitTest','off')
            end
            box(ax,'on'); grid(ax,'on'); view(ax,[140,20]); axis(ax,'tight');
            set(ax,'Xdir','reverse');
@@ -1089,8 +1089,11 @@ function copyToFig(src, event, ax) %#ok
     new = copyobj([ax, ax.Legend], f_new);
     ax  = findobj(new, 'Type', 'axes');
     drawnow
-    set(ax, 'FontSize', 12, 'Units', 'normalized');
-    set(ax, 'OuterPosition', [0 0 1 1])
+    set(ax, 'Units', 'normalized');
+    set(ax, 'OuterPosition', [0 0 1 1],'Position',[.13 .11 .775 .815])
+    set(get(gca,'Children'),'HitTest','on');
+    % set(ax, 'FontSize', 12, 'Units', 'normalized');
+    % set(ax, 'OuterPosition', [0 0 1 1])
 end
 % -----------------------------------------------------------------
 % Toolbar customization
