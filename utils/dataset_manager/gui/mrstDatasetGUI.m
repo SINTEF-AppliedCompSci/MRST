@@ -36,6 +36,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
     persistent h
+    names = {};
+
     if ~isempty(h) && ishandle(h)
         % Avoid creating more than one window, since we can't rely on close all
         % to get rid of them.
