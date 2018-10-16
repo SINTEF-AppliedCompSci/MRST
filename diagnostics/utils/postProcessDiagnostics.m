@@ -805,40 +805,68 @@ classdef postProcessDiagnostics < handle
            if isempty(tsel.ix), return, end
            m = getDynamicMeasures(d, tsel, wsel);
 
+           singleInj  = numel(wsel.injectorIx)==1;
+           singleProd = numel(wsel.producerIx)==1;
+           singlePlot = singleInj && singleProd;
+           lw = 0.5+singlePlot*1.5; np=0;
            nT = numel(tsel.ix);
-           if nT < 8
+           if nT==1
+               if singleInj
+                   colM = d.Data.prodColors(wsel.producerIx,:);
+               elseif singleProd
+                   colM = d.Data.injColors(wsel.injectorIx,:);
+               else
+                   colM = get(gca,'ColorOrder');
+               end
+               colM = [1 0 0; colM]; lw = 1;
+           elseif nT < 8
               colM = get(gca,'ColorOrder');
            else
               colM = colorcube(nT+1);
            end
+           hold(ax,'on');
            for n=1:nT
               % Plot F-Phi for the whole regions
               col = colM(n,:);
-              plot(ax,m.Phi,m.Ft(:,n),'LineWidth',2,'Color',col);
+              if ~singlePlot
+                  plot(ax,m.Phi,m.Ft(:,n), ...
+                      'LineWidth',2,'Color',col,'DisplayName', 'region');
+              end
               if ~m.computePairs, continue; end
 
               % Plot F-Phi for individual wall pairs. For multiple time
               % steps, these lines are plotted using a lighter color. For a
               % single time step, we compute using different colors
-              hold(ax,'on');
               np = size(m.F,2);
               if nT>1
-                 col = repmat(.5*(col + [.6 .6 .6]), np, 1);
+                  if ~singlePlot
+                     col = repmat(.5*(col + [.6 .6 .6]), np, 1);
+                  end
               elseif np<size(colM,1)
                  col = colM(2:end,:);
               else
                  col = colorcube(np+1);
               end
               for i=1:np
-                 plot(ax,m.Phi,m.F(:,i,n),'Color',col(i,:), 'LineWidth',.5);
+                 plot(ax,m.Phi,m.F(:,i,n),'Color',col(i,:), 'LineWidth',lw, 'DisplayName', m.names{i});
               end
            end
            hold(ax,'off');
            if ~isempty(m.wellName)
               title(ax,['Well: ' m.wellName]);
-              if nT<2
-                 h=legend(ax,'region',m.names{:}); set(h,'FontSize',8)
-              end
+           end
+           if singlePlot
+               title(ax,['Well-pair: ' m.wellName ',' m.names{:}]);
+               lgn = legend(ax, {datestr(d.Data.time.cur(tsel.ix) , 'mmm dd, yyyy')});
+               set(lgn,'FontSize',8);
+           elseif nT<2
+               lgn = legend(ax);
+               set(lgn,'FontSize',8);
+           else
+               hax = get(ax,'Children');
+               lgn = legend(hax(np+1:np+1:end), ...
+                   {datestr(d.Data.time.cur(tsel.ix) , 'mmm dd, yyyy')});
+               set(lgn,'FontSize',8);
            end
         end
         % -----------------------------------------------------------------
@@ -846,40 +874,68 @@ classdef postProcessDiagnostics < handle
            if isempty(tsel.ix), return, end
            m = getDynamicMeasures(d, tsel, wsel);
 
+           singleInj  = numel(wsel.injectorIx)==1;
+           singleProd = numel(wsel.producerIx)==1;
+           singlePlot = singleInj && singleProd;
+           lw = 0.5+singlePlot*1.5; np=0;
            nT = numel(tsel.ix);
-           if nT < 8
+           if nT==1
+               if singleInj
+                   colM = d.Data.prodColors(wsel.producerIx,:);
+               elseif singleProd
+                   colM = d.Data.injColors(wsel.injectorIx,:);
+               else
+                   colM = get(gca,'ColorOrder');
+               end
+               colM = [1 0 0; colM]; lw = 1;
+           elseif nT < 8
               colM = get(gca,'ColorOrder');
            else
               colM = colorcube(nT+1);
            end
+           hold(ax,'on');
            for n=1:nT
-              % Plot F-Phi for the whole regions
+              % Plot sweep for the whole regions
               col = colM(n,:);
-              plot(ax,m.tDt(:,n),m.Ev,'LineWidth',2,'Color',col);
+              if ~singlePlot
+	             plot(ax,m.tDt(:,n),m.Ev, ...
+                      'LineWidth',2,'Color',col,'DisplayName', 'region');
+              end
               if ~m.computePairs, continue; end
 
-              % Plot F-Phi for individual wall pairs. For multiple time
+              % Plot sweep for individual wall pairs. For multiple time
               % steps, these lines are plotted using a lighter color. For a
               % single time step, we compute using different colors
               hold(ax,'on');
-              np = size(m.F,2);
+              np = size(m.tD,2);
               if nT>1
-                 col = repmat(.5*(col + [.6 .6 .6]), np, 1);
+                  if ~singlePlot
+                     col = repmat(.5*(col + [.6 .6 .6]), np, 1);
+                  end
               elseif np<size(colM,1)
                  col = colM(2:end,:);
               else
                  col = colorcube(np+1);
               end
               for i=1:np
-                 plot(ax,m.tD(:,i,n),m.Ev,'Color',col(i,:), 'LineWidth',.5);
+                 plot(ax,m.tD(:,i,n),m.Ev,'Color',col(i,:), 'LineWidth',lw, 'DisplayName', m.names{i});
               end
            end
-           hold(ax,'off');
            if ~isempty(m.wellName)
               title(ax,['Well: ' m.wellName]);
-              if nT<2
-                 h=legend(ax,'region',m.names{:}); set(h,'FontSize',8)
-              end
+           end
+           if singlePlot
+               title(ax,['Well-pair: ' m.wellName ',' m.names{:}]);
+               lgn = legend(ax, {datestr(d.Data.time.cur(tsel.ix) , 'mmm dd, yyyy')});
+               set(lgn,'FontSize',8);
+           elseif nT<2
+               lgn = legend(ax);
+               set(lgn,'FontSize',8);
+           else
+               hax = get(ax,'Children');
+               lgn = legend(hax(np+1:np+1:end), ...
+                   {datestr(d.Data.time.cur(tsel.ix) , 'mmm dd, yyyy')});
+               set(lgn,'FontSize',8);
            end
            hold(ax,'off'); axis(ax,'tight');
            set(ax,'XLim',[0 min(5,max(m.tDt(:)))]);
@@ -890,6 +946,8 @@ classdef postProcessDiagnostics < handle
 
            m = getDynamicMeasures(d, tsel, wsel);
 
+           singlePlot  = (numel(wsel.injectorIx)==1) && ...
+               (numel(wsel.producerIx)==1);
            axes(ax)
            nT = numel(tsel.ix);
            if ~m.computePairs
@@ -899,6 +957,18 @@ classdef postProcessDiagnostics < handle
               text(h.XData, h.YData, cellstr(num2str(m.LCt(:),'%.4f')), ...
                  'HorizontalAlignment', 'center', ...
                  'VerticalAlignment','bottom', 'FontSize', 8);
+              set(ax,'XTickLabelRotation',45);
+
+           elseif singlePlot
+               h=bar(ax, m.LC,'LineWidth',1, ...
+                 'FaceColor',[.9 .9 .9],'EdgeColor',[0 .5 .8]);
+              hold(ax,'on');
+              text(h.XData, h.YData, cellstr(num2str(m.LC(:),'%.4f')), ...
+                 'HorizontalAlignment', 'center', ...
+                 'VerticalAlignment','bottom', 'FontSize', 8);
+              set(ax,'XTickLabel', ...
+                   {datestr(d.Data.time.cur(tsel.ix) , 'mm.dd.yy')});
+              set(ax,'XTickLabelRotation',45,'FontSize',8);
 
            elseif nT<4
               n = size(m.LC,1);
