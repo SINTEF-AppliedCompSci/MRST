@@ -61,14 +61,13 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
    rspec = deck.RUNSPEC;
    props = deck.PROPS;
 
    verify_pvt_specification(rspec, props);
 
    ntpvt = 1;
-   if isfield(rspec, 'TABDIMS'),
+   if isfield(rspec, 'TABDIMS')
       ntpvt = rspec.TABDIMS(2);
    end
 
@@ -91,30 +90,37 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    incomp          = false([1, 3]);
    surface_density = zeros([ntpvt, pos(end)]);
 
-   if phase(A),
+   rhoS = extract_surface_density(props);
+
+   if phase(A)
       [pvtfuns{A}, miscible(A), incomp(A)] = ...
          wat_functions(ntpvt, props);
-      surface_density(:, pos(A)) = props.DENSITY(:, 2);
+
+      surface_density(:, pos(A)) = rhoS.water;
    end
-   if phase(L),
+
+   if phase(L)
       [pvtfuns{L}, miscible(L), incomp(L)] = ...
          oil_functions(ntpvt, props, pos, L, V);
-      surface_density(:, pos(L)) = props.DENSITY(:, 1);
+
+      surface_density(:, pos(L)) = rhoS.oil;
    end
-   if phase(V),
+
+   if phase(V)
       [pvtfuns{V}, miscible(V), incomp(V)] = ...
          gas_functions(ntpvt, props, pos, L, V);
-      surface_density(:, pos(V)) = props.DENSITY(:, 3);
+
+      surface_density(:, pos(V)) = rhoS.gas;
    end
 
    % Miscible data requires presence of both solvent and solute.
-   if ~(miscible(L) == phase(V) || phase(V)),
+   if ~(miscible(L) == phase(V) || phase(V))
       error('Cannot specify miscible liquid phase in absence of vapour.');
    end
-   if ~(miscible(V) == phase(L) || phase(L)),
+   if ~(miscible(V) == phase(L) || phase(L))
       error('Cannot specify miscible vapour phase in absence of liquid.');
    end
-   if ~(miscible(A) == phase(V) || phase(V)),
+   if ~(miscible(A) == phase(V) || phase(V))
       error('Cannot specify miscible aquaic phase in absence of vapour.');
    end
 
@@ -369,6 +375,40 @@ function [f, miscible, incomp] = wat_functions(ntab, props)
       % Optimize for common case (single PVT region).
       f = f{1};
    end
+end
+
+%--------------------------------------------------------------------------
+
+function rhoS = extract_surface_density(props)
+
+   if isfield(props, 'DENSITY')
+      rhoS = extract_DENSITY(props);
+   elseif isfield(props, 'GRAVITY')
+      rhoS = extract_GRAVITY(props);
+   else
+      error('Density:Missing', 'Fluid Density Data Misssing');
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function rhoS = extract_DENSITY(props)
+   rhoS = struct('water', props.DENSITY(:,2), ...
+                 'oil',   props.DENSITY(:,1), ...
+                 'gas',   props.DENSITY(:,3));
+end
+
+%--------------------------------------------------------------------------
+
+function rhoS = extract_GRAVITY(props)
+   rho0 = struct('wat', 1000*kilogram/meter^3, ...
+                 'air', 1.22*kilogram/meter^3);  % E100 reference values
+
+   rho_oil = rho0.wat .* (141.5 ./ (props.GRAVITY(:,1) + 131.5));
+
+   rhoS = struct('water', rho0.wat .* props.GRAVITY(:, 2), ...
+                 'oil',   rho_oil, ...
+                 'gas',   rho0.gas .* props.GRAVITY(:, 3));
 end
 
 %--------------------------------------------------------------------------

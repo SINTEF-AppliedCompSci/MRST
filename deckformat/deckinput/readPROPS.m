@@ -57,7 +57,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
           case 'PRCORR'
               prp.PRCORR = true;
-              
+
+         case 'GRAVITY'
+            tmpl     = { '45.5', '1.0', '0.7773' };
+            data     = readDefaultedKW(fid, tmpl, 'NRec', ntpvt);
+            prp.(kw) = to_double(data);  clear tmpl
+
          case 'DENSITY'
             tmpl(1:3) = { '0.0' };
             data      = readDefaultedKW(fid, tmpl, 'NRec', ntpvt);
