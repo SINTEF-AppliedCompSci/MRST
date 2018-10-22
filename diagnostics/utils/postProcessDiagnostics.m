@@ -203,11 +203,11 @@ classdef postProcessDiagnostics < handle
 
             % ------ Show model with static property ----------------------
             d.Patch = cellDataPatch(d.G, d.Data.static(1).values, ...
-               'Parent', d.Axes3D, 'EdgeColor', [.4 .4 .4], ...
-               'EdgeAlpha', 1, 'BackFaceLighting', 'lit');
+               'Parent', d.Axes3D, 'EdgeColor', [.3 .3 .3], ...
+               'EdgeAlpha', .5, 'BackFaceLighting', 'lit');
             d.Patch = addPatchContextMenu(d.Patch);
             d.Figure.CurrentAxes = d.Axes3D;
-            d.outlineGrid = plotGrid(d.G, 'FaceColor', 'none', 'EdgeAlpha', 0.15, 'EdgeColor', [.4 .4 .4]);
+            d.outlineGrid = plotGrid(d.G, 'FaceColor', 'none', 'EdgeAlpha', 0.15, 'EdgeColor', [.3 .3 .3]);
             axis(d.Axes3D, 'tight', 'vis3d', 'off');
             d.Axes3D.ZDir = 'reverse';
             view(d.Axes3D, 3);
