@@ -216,8 +216,8 @@ classdef postProcessDiagnostics < handle
             %return
             % ------ Add colorbar with histogram --------------------------
             d.colorBar = colorbar(d.Axes3D, 'WestOutside', 'AxisLocation', 'in');
-            set(d.colorBar, 'Position',[.24 .8 .01 .19], 'Units', 'pixels');
-            d.colorHAx = axes('Position',[.255 .8 .03 .19], 'Units', 'pixels', 'XDir', 'reverse');
+            set(d.colorBar, 'Position',[.24 .8 .01 .19], 'Units', 'pixels', 'Xaxis', 'left');
+            d.colorHAx = axes('Position',[.255 .8 .03 .19], 'Units', 'pixels');
             d.updateColorHist();
 
             % ------ Construct 2D plot axes -------------------------------
@@ -640,10 +640,12 @@ classdef postProcessDiagnostics < handle
             aPos3D = [mw+sp, 2*sp+ah, fip(3)-mw-2*sp, fip(4)-3*sp-ah];
             cbh    = max(50, min(300, fip(4)-2*sp));
             cbw    = 27;
-            %aPosCB = [mw+2*sp,       fip(4)-cbh-sp, cbw, cbh];
-            aPosCB = [fip(3)-2*cbw-sp, fip(4)-cbh-sp, cbw, cbh];
-            %aPosHA = [mw+2*sp+cbw+5, fip(4)-cbh-sp, cbw, cbh];
-            aPosHA = [fip(3)-cbw-sp+5, fip(4)-cbh-sp, cbw, cbh];
+            % Colorbar left, next to menu 
+            aPosCB = [mw+2*sp,       fip(4)-cbh-sp, cbw, cbh];
+            aPosHA = [mw+2*sp+cbw+5, fip(4)-cbh-sp, cbw, cbh];
+            % Colorbar right
+            % aPosCB = [fip(3)-2*cbw-sp, fip(4)-cbh-sp, cbw, cbh];
+            % aPosHA = [fip(3)-cbw-sp+5, fip(4)-cbh-sp, cbw, cbh];
             d.Menu.Position     = mPos;
             d.Axes2DL.Position  = aPos2DL;
             d.Axes2DR.Position  = aPos2DR;
@@ -1044,7 +1046,8 @@ classdef postProcessDiagnostics < handle
                 end
                 set(d.colorHAx.Children, 'Visible', 'on');
                 colormap(d.Axes3D, 'default');
-                %cb.Position(1) = d.layoutParams.menuWidth + 50;
+                cb.Position(1) = d.layoutParams.menuWidth + 50;
+                d.colorHAx.Position(1) = d.colorBar.Position(1)+d.colorBar.Position(3)+10;
             else
                 if  s3.psel.propIx == 7 % sweep regions
                     ninj = numel(d.WellPlot.injectors);
