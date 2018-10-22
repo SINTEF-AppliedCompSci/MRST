@@ -33,6 +33,7 @@ classdef postProcessDiagnostics < handle
     methods
         function d = postProcessDiagnostics(varargin)
             opt = struct('style', 'default', 'steps', [], 'maxTOF', 500*year);
+            mrstModule add mrst-gui diagnostics deckformat ad-props
             if mod(numel(varargin), 2) == 1  % file-name provided
                 filenm = varargin{1};
                 [pth, nm, ext] = fileparts(filenm);
