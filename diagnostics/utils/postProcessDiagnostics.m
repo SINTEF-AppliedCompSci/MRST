@@ -273,7 +273,7 @@ classdef postProcessDiagnostics < handle
                 s2.dsel.Enable = 'off';   s2.dsel.collapse = 1;
                 set([s3.psel.typePopup, s3.psel.propPopup], 'Enable', 'on');
                 s3.psel.typeIx = 1;
-                s3.psel.propIx = 4;
+                s3.psel.propIx = 1;
                 s3.psel.propPopup.String = {d.Data.static.name};
                 d.displayPropCallback(src, event, s3);
             else
@@ -282,6 +282,7 @@ classdef postProcessDiagnostics < handle
                 s2.dsel.Enable  = 'on';
                 s2.asel.Enable  = 'on';
                 s2.rsel.Enable  = 'on';
+                s3.fsel.collapse = 1;
                 s3.wsel.collapse = 0;
                 if numel(ts) == 1
                     % some stat-stuff
