@@ -234,6 +234,14 @@ classdef postProcessDiagnostics < handle
             % finally wells
             d.WellPlot = wellPlotHandle(d.G, d.Data.states{1}.wellSol, ...
                'Visible', 'off', 'Parent', d.Axes3D);
+            for i=1:numel(d.WellPlot.producers)
+                d.WellPlot.producers(i).label.FontSize = 8;
+                d.WellPlot.producers(i).label.BackgroundColor = [.7 .7 .7]; 
+            end
+            for i=1:numel(d.WellPlot.injectors)
+                d.WellPlot.injectors(i).label.FontSize = 8;
+                d.WellPlot.injectors(i).label.BackgroundColor = [.7 .7 .7]; 
+            end
 
             % ------ Set callbacks for 3D axes ----------------------------
             selector3D.tsel.Callback = @(src, event) d.tStepCallback(src, event, selector3D, selector2D);
@@ -244,7 +252,6 @@ classdef postProcessDiagnostics < handle
             % ------ Set callbacks for 2D axes ----------------------------
             selector2D.msel.Callback      = @(src, event)d.measureCallback(src, event, selector2D, selector3D);
             selector2D.asel.Callback      = @(src, event)d.allocationCallback(src, event, selector2D, selector3D);
-            %selector2D.dtsel.Callback     = @(src, event)tracerDistCallback(d, src, event, selector2D, selector3D);
             selector2D.ssel.Callback      = @(src, event)summaryCallback(d, src, event, selector2D);
             selector2D.ssel.regCallback   = @(src, event)selectWellsForSummary(d, src, event, selector2D, selector3D);
             selector2D.dsel.Callback      = @(src, event)d.distributionCallback(src, event, selector2D, selector3D);
@@ -264,7 +271,6 @@ classdef postProcessDiagnostics < handle
                 s2.msel.Enable = 'on';    s2.msel.collapse = 1;
                 s2.asel.Enable = 'off';   s2.asel.collapse = 1;
                 s2.dsel.Enable = 'off';   s2.dsel.collapse = 1;
-                s2.dtsel.Enable = 'off'; s2.dtsel.collapse = 1;
                 set([s3.psel.typePopup, s3.psel.propPopup], 'Enable', 'on');
                 s3.psel.typeIx = 1;
                 s3.psel.propIx = 4;
@@ -276,7 +282,6 @@ classdef postProcessDiagnostics < handle
                 s2.dsel.Enable  = 'on';
                 s2.asel.Enable  = 'on';
                 s2.rsel.Enable  = 'on';
-                s2.dtsel.Enable = 'on'; % Activate when this is implemented
                 s3.wsel.collapse = 0;
                 if numel(ts) == 1
                     % some stat-stuff
