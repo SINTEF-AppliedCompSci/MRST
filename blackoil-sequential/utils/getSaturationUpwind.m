@@ -7,7 +7,7 @@ function [flag_v, flag_g] = getSaturationUpwind(upwtype, state, G, vT, T, K, ups
             [flag_v, flag_g] = deal(flag);
         case 'hybrid'
             % Hybrid upwinding
-            [flag_v, flag_g] = hybridUpwind(G, vT);
+            [flag_v, flag_g] = hybridUpwind(G, vT, T, K, upstr);
         case 'static'
             % Use whatever flags are kept in state, likely from the
             % pressure solver. Debug only.

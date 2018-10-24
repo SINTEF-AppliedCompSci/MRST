@@ -136,31 +136,13 @@ Gw = gp - dpW;
 Go = gp - dpO;
 Gg = gp - dpG;
 
-flag = getSaturationUpwind(model.upwindType, state, {Gw, Go, Gg}, vT, s.T, {mobW, mobO, mobG}, s.faceUpstr);
+[vW, vO, vG, bWvW, bOvO, bGvG, upcw, upco, upcg] = getFluxes(model, state, Gw, Go, Gg, vT, mobW, mobO, mobG, bW, bO, bG);
 
-upcw  = flag(:, 1);
-upco  = flag(:, 2);
-upcg  = flag(:, 3);
-
-% Upstream weighted face mobilities
-mobWf = s.faceUpstr(upcw, mobW);
-mobOf = s.faceUpstr(upco, mobO);
-mobGf = s.faceUpstr(upcg, mobG);
-% Tot mob
-totMob = mobOf + mobWf + mobGf;
-
-f_w = mobWf./totMob;
-f_o = mobOf./totMob;
-f_g = mobGf./totMob;
-
-vW = f_w.*(vT + s.T.*mobOf.*(Gw - Go) + s.T.*mobGf.*(Gw - Gg));
-vO = f_o.*(vT + s.T.*mobWf.*(Go - Gw) + s.T.*mobGf.*(Go - Gg));
-vG = f_g.*(vT + s.T.*mobWf.*(Gg - Gw) + s.T.*mobOf.*(Gg - Go));
-
-bWvW = s.faceUpstr(upcw, sT.*bW).*vW;
-bOvO = s.faceUpstr(upco, sT.*bO).*vO;
-bGvG = s.faceUpstr(upcg, sT.*bG).*vG;
-
+if solveAllPhases
+    bWvW = s.faceUpstr(upcw, sT).*bWvW;
+    bOvO = s.faceUpstr(upco, sT).*bOvO;
+    bGvG = s.faceUpstr(upcg, sT).*bGvG;
+end
 if disgas
     rsbOvO = s.faceUpstr(upco, rs).*bOvO;
 end
@@ -295,6 +277,69 @@ if ~model.useCNVConvergence
     end
 end
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
+end
+
+function [vW, vO, vG, bWvW, bOvO, bGvG, upcw, upco, upcg] = getFluxes(model, state, Gw, Go, Gg, vT, mobW, mobO, mobG, bW, bO, bG)
+    s = model.operators;
+    [flag_v, flag_g] = getSaturationUpwind(model.upwindType, state, {Gw, Go, Gg}, vT, s.T, {mobW, mobO, mobG}, s.faceUpstr);
+%         if 1
+%             [flag_v, flag_g] = getSaturationUpwind('potential', state, {Gw, Go, Gg}, vT, s.T, {mobW, mobO, mobG}, s.faceUpstr);
+%         end
+    upcw  = flag_v(:, 1);
+    upco  = flag_v(:, 2);
+    upcg  = flag_v(:, 3);
+    
+    mobWf = s.faceUpstr(upcw, mobW);
+    mobOf = s.faceUpstr(upco, mobO);
+    mobGf = s.faceUpstr(upcg, mobG);
+    
+    % Upstream weighted face mobilities
+    % Tot mob
+    totMob = mobOf + mobWf + mobGf;
+    f_w = mobWf./totMob;
+    f_o = mobOf./totMob;
+    f_g = mobGf./totMob;
+    if all(flag_v(:) == flag_g(:)) && ~strcmpi(model.upwindType, 'hybrid')
+        vW = f_w.*(vT + s.T.*mobOf.*(Gw - Go) + s.T.*mobGf.*(Gw - Gg));
+        vO = f_o.*(vT + s.T.*mobWf.*(Go - Gw) + s.T.*mobGf.*(Go - Gg));
+        vG = f_g.*(vT + s.T.*mobWf.*(Gg - Gw) + s.T.*mobOf.*(Gg - Go));
+        
+        bWvW = s.faceUpstr(upcw, bW).*vW;
+        bOvO = s.faceUpstr(upco, bO).*vO;
+        bGvG = s.faceUpstr(upcg, bG).*vG;
+    else
+
+        upcw  = flag_v(:, 1);
+        upco  = flag_v(:, 2);
+        upcg  = flag_v(:, 3);
+        upcw_g  = flag_g(:, 1);
+        upco_g  = flag_g(:, 2);
+        upcg_g  = flag_g(:, 3);
+        
+%         [upcw_g, upco_g, upcg_g] = deal(upcw, upco, upcg);
+
+        mobWf_g = s.faceUpstr(upcw_g, mobW);
+        mobOf_g = s.faceUpstr(upco_g, mobO);
+        mobGf_g = s.faceUpstr(upcg_g, mobG);
+        
+        totMob_g = mobWf_g + mobOf_g + mobGf_g;
+        
+        vW_g = s.T.*(mobWf_g./totMob_g).*(mobOf_g.*(Gw - Go) + mobGf_g.*(Gw - Gg));
+        vO_g = s.T.*(mobOf_g./totMob_g).*(mobWf_g.*(Go - Gw) + mobGf_g.*(Go - Gg));
+        vG_g = s.T.*(mobGf_g./totMob_g).*(mobWf_g.*(Gg - Gw) + mobOf_g.*(Gg - Go));
+       
+        [vW, bWvW] = composeFlux(f_w, vT, vW_g, bW, upcw, upcw_g, s.faceUpstr);
+        [vO, bOvO] = composeFlux(f_o, vT, vO_g, bO, upco, upco_g, s.faceUpstr);
+        [vG, bGvG] = composeFlux(f_g, vT, vG_g, bG, upcg, upcg_g, s.faceUpstr);
+    end
+%     [norm(double(vW)), norm(double(vO)), norm(double(vG))]
+end
+
+function [v, bv] = composeFlux(f, vT, v_g, b, up_v, up_g, upstr)
+    v_v = f.*vT;
+    v = v_v + v_g;
+%     bv = upstr(up_v, b).*(v_v + v_g);
+    bv = upstr(up_v, b).*v_v + upstr(up_g, b).*v_g;
 end
 
 %{
