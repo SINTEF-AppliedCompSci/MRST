@@ -136,20 +136,7 @@ Gw = gp - dpW;
 Go = gp - dpO;
 Gg = gp - dpG;
 
-[vW, vO, vG, bWvW, bOvO, bGvG, upcw, upco, upcg] = getFluxes(model, state, Gw, Go, Gg, vT, mobW, mobO, mobG, bW, bO, bG);
-
-if solveAllPhases
-    bWvW = s.faceUpstr(upcw, sT).*bWvW;
-    bOvO = s.faceUpstr(upco, sT).*bOvO;
-    bGvG = s.faceUpstr(upcg, sT).*bGvG;
-end
-if disgas
-    rsbOvO = s.faceUpstr(upco, rs).*bOvO;
-end
-
-if vapoil
-    rvbGvG = s.faceUpstr(upcg, rv).*bGvG;
-end
+[waterFlux, oilFlux, gasFlux] = getFluxes(model, state, Gw, Go, Gg, vT, mobW, mobO, mobG, sT.*bW, sT.*bO, sT.*bG, rs, rv);
 
 if model.extraStateOutput
     state = model.storebfactors(state, bW, bO, bG);
@@ -219,7 +206,7 @@ end
 ix = 1;
 if opt.solveForWater
     % water eq:
-    wat = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 ) + s.Div(bWvW);
+    wat = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 ) + s.Div(waterFlux);
     if ~isempty(W)
         wat(wc) = wat(wc) - wflux_W;
     end
@@ -233,9 +220,9 @@ if opt.solveForOil
     if vapoil
         oil = (s.pv/dt).*( pvMult.* (bO.* sO  + rv.* bG.* sG) - ...
                               pvMult0.*(bO0.*sO0 + rv0.*bG0.*sG0) ) + ...
-                 s.Div(bOvO + rvbGvG);
+                 s.Div(oilFlux);
     else
-        oil = (s.pv/dt).*( pvMult.*bO.*sO - pvMult0.*bO0.*sO0 ) + s.Div(bOvO);
+        oil = (s.pv/dt).*( pvMult.*bO.*sO - pvMult0.*bO0.*sO0 ) + s.Div(oilFlux);
     end
     if ~isempty(W)
         oil(wc) = oil(wc) - wflux_O;
@@ -250,9 +237,9 @@ if opt.solveForGas
     if disgas
         gas = (s.pv/dt).*( pvMult.* (bG.* sG  + rs.* bO.*sO) - ...
                               pvMult0.*(bG0.*sG0 + rs0.*bO0.*sO0 ) ) + ...
-                 s.Div(bGvG + rsbOvO);
+                 s.Div(gasFlux);
     else
-        gas = (s.pv/dt).*( pvMult.*bG.*sG - pvMult0.*bG0.*sG0 ) + s.Div(bGvG);
+        gas = (s.pv/dt).*( pvMult.*bG.*sG - pvMult0.*bG0.*sG0 ) + s.Div(gasFlux);
     end
     if ~isempty(W)
         gas(wc) = gas(wc) - wflux_G;
@@ -279,12 +266,10 @@ end
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 end
 
-function [vW, vO, vG, bWvW, bOvO, bGvG, upcw, upco, upcg] = getFluxes(model, state, Gw, Go, Gg, vT, mobW, mobO, mobG, bW, bO, bG)
+function [waterFlux, oilFlux, gasFlux] = getFluxes(model, state, Gw, Go, Gg, vT, mobW, mobO, mobG, bW, bO, bG, rs, rv)
     s = model.operators;
-    [flag_v, flag_g] = getSaturationUpwind(model.upwindType, state, {Gw, Go, Gg}, vT, s.T, {mobW, mobO, mobG}, s.faceUpstr);
-%         if 1
-%             [flag_v, flag_g] = getSaturationUpwind('potential', state, {Gw, Go, Gg}, vT, s.T, {mobW, mobO, mobG}, s.faceUpstr);
-%         end
+    upstr = s.faceUpstr;
+    [flag_v, flag_g] = getSaturationUpwind(model.upwindType, state, {Gw, Go, Gg}, vT, s.T, {mobW, mobO, mobG}, upstr);
     upcw  = flag_v(:, 1);
     upco  = flag_v(:, 2);
     upcg  = flag_v(:, 3);
@@ -304,19 +289,26 @@ function [vW, vO, vG, bWvW, bOvO, bGvG, upcw, upco, upcg] = getFluxes(model, sta
         vO = f_o.*(vT + s.T.*mobWf.*(Go - Gw) + s.T.*mobGf.*(Go - Gg));
         vG = f_g.*(vT + s.T.*mobWf.*(Gg - Gw) + s.T.*mobOf.*(Gg - Go));
         
-        bWvW = s.faceUpstr(upcw, bW).*vW;
-        bOvO = s.faceUpstr(upco, bO).*vO;
-        bGvG = s.faceUpstr(upcg, bG).*vG;
+        bWvW = s.faceUpstr(upcw, sT.*bW).*vW;
+        bOvO = s.faceUpstr(upco, sT.*bO).*vO;
+        bGvG = s.faceUpstr(upcg, sT.*bG).*vG;
+        
+        waterFlux = bWvW;
+        oilFlux = bOvO;
+        gasFlux = bGvG;
+        if model.disgas
+            gasFlux = gasFlux + upstr(upco, rs).*bOvO;
+        end
+        if model.vapoil
+            oilFlux = oilFlux + upstr(upcg, rv).*bGvG;
+        end
     else
-
         upcw  = flag_v(:, 1);
         upco  = flag_v(:, 2);
         upcg  = flag_v(:, 3);
         upcw_g  = flag_g(:, 1);
         upco_g  = flag_g(:, 2);
         upcg_g  = flag_g(:, 3);
-        
-%         [upcw_g, upco_g, upcg_g] = deal(upcw, upco, upcg);
 
         mobWf_g = s.faceUpstr(upcw_g, mobW);
         mobOf_g = s.faceUpstr(upco_g, mobO);
@@ -328,18 +320,27 @@ function [vW, vO, vG, bWvW, bOvO, bGvG, upcw, upco, upcg] = getFluxes(model, sta
         vO_g = s.T.*(mobOf_g./totMob_g).*(mobWf_g.*(Go - Gw) + mobGf_g.*(Go - Gg));
         vG_g = s.T.*(mobGf_g./totMob_g).*(mobWf_g.*(Gg - Gw) + mobOf_g.*(Gg - Go));
        
-        [vW, bWvW] = composeFlux(f_w, vT, vW_g, bW, upcw, upcw_g, s.faceUpstr);
-        [vO, bOvO] = composeFlux(f_o, vT, vO_g, bO, upco, upco_g, s.faceUpstr);
-        [vG, bGvG] = composeFlux(f_g, vT, vG_g, bG, upcg, upcg_g, s.faceUpstr);
+        [bWvW_v, bWvW_g] = composeFlux(f_w, vT, vW_g, bW, upcw, upcw_g, upstr);
+        waterFlux = bWvW_v + bWvW_g;
+        
+        [bOvO_v, bOvO_g] = composeFlux(f_o, vT, vO_g, bO, upco, upco_g, upstr);
+        oilFlux = bOvO_v + bOvO_g;
+        [bGvG_v, bGvG_g] = composeFlux(f_g, vT, vG_g, bG, upcg, upcg_g, upstr);
+        gasFlux = bGvG_v + bGvG_g;
+        
+        if model.vapoil
+            oilFlux = oilFlux + upstr(upcg, rv).*bGvG_v + upstr(upcg_g, rv).*bGvG_g;
+        end
+        if model.disgas
+            gasFlux = gasFlux + upstr(upco, rs).*bOvO_v + upstr(upco_g, rs).*bOvO_g;
+        end
     end
-%     [norm(double(vW)), norm(double(vO)), norm(double(vG))]
 end
 
-function [v, bv] = composeFlux(f, vT, v_g, b, up_v, up_g, upstr)
+function [bv_v, bv_g] = composeFlux(f, vT, v_g, b, up_v, up_g, upstr)
     v_v = f.*vT;
-    v = v_v + v_g;
-%     bv = upstr(up_v, b).*(v_v + v_g);
-    bv = upstr(up_v, b).*v_v + upstr(up_g, b).*v_g;
+    bv_v = upstr(up_v, b).*v_v;
+    bv_g = upstr(up_g, b).*v_g;
 end
 
 %{
