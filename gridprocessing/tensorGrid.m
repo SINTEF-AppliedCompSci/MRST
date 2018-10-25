@@ -78,7 +78,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    firstOpt = find(cellfun(@ischar, varargin), 1, 'first');
    dim = nargin();
    if ~isempty(firstOpt)
-       dim = dim - firstOpt;
+       % If option N is char, then the dimension is N-1 since the first N-1
+       % entries correspond to coordinates. Note that there is an
+       % off-by-one offset here since we always assume at least one
+       % coordinate is given.
+       dim = firstOpt;
    end
 
    switch dim
