@@ -113,6 +113,14 @@ end
 
 rhoS = model.getSurfaceDensities();
 for i = 1:nPh
+    if size(bc.value, 2) == 1
+        bc_v = bc.value;
+    else
+        assert(size(bc.value, 2) == nPh, ...
+        'Boundary conditions should have either one value or one value per phase, for each face');
+        bc_v = bc.value(:, i);
+    end
+    
     if isa(totMob, 'ADI')
         sample = totMob;
     else
@@ -157,7 +165,7 @@ for i = 1:nPh
         else
             rhoF = (rhoBC_in(isP) + rhoBC_out(isP))./2;
         end
-        dP = bc.value(isP) - pBC(isP) - rhoF.*dzbc(isP);
+        dP = bc_v(isP) - pBC(isP) - rhoF.*dzbc(isP);
         
         % Determine if pressure bc are injecting or producing
         injDir = dP > 0;
@@ -191,13 +199,13 @@ for i = 1:nPh
     % Treat flux / Neumann BC
     
     % ------ Fluxes given at surface conditions ----- %
-    injNeu = bc.value > 0;
+    injNeu = bc_v > 0;
     
     subs = isSF &  injNeu;
     % Injection
     if any(subs)
-        q_s(subs) = bc.value(subs).*sat(subs, i);
-        q_r(subs) = bc.value(subs).*sat(subs, i)./bBC_in(subs);
+        q_s(subs) = bc_v(subs).*sat(subs, i);
+        q_r(subs) = bc_v(subs).*sat(subs, i)./bBC_in(subs);
     end
     
     subs = isSF & ~injNeu;
@@ -206,7 +214,7 @@ for i = 1:nPh
         % Production fluxes, use fractional flow of total mobility to
         % estimate how much mass will be removed.
         f = mobBC_in(subs)./totMob(subs);
-        tmp = f.*bc.value(subs);
+        tmp = f.*bc_v(subs);
         q_s(subs) = tmp;
         q_r(subs) = tmp./bBC_in(subs);
     end
@@ -214,7 +222,7 @@ for i = 1:nPh
     subs = isRF &  injNeu;
     % Injection
     if any(subs)
-        tmp = bc.value(subs).*sat(subs, i);
+        tmp = bc_v(subs).*sat(subs, i);
         q_s(subs) = tmp.*bBC_in(subs);
         q_r(subs) = tmp;
     end
@@ -222,7 +230,7 @@ for i = 1:nPh
     % Production
     if any(subs)
         f = mobBC_in(subs)./totMob(subs);
-        tmp = f.*bc.value(subs);
+        tmp = f.*bc_v(subs);
         q_s(subs) = tmp.*bBC_in(subs);
         q_r(subs) = tmp;
     end
