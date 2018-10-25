@@ -1,4 +1,4 @@
-function [flag_v, flag_G, upCells_v, upCells_G, s_v, s_G] = getSaturationUpwindDG(disc, faces, x, T, vT, g, mob, sdof, state)
+function [flag_v, flag_G, upCells_v, upCells_G, s_v, s_G] = getSaturationUpwindDG(disc, faces, x, T, flux, g, mob, sdof, state)
     % Explicit calculation of upstream cells (Bernier & Jaffre)
     % for each quadrature point x on each face in faces.
     %
@@ -29,7 +29,7 @@ function [flag_v, flag_G, upCells_v, upCells_G, s_v, s_G] = getSaturationUpwindD
     cL = disc.N(ix,1);
     cR = disc.N(ix,2);
     T  = T(ix);
-    vT = vT(faces);
+    flux = flux(faces);
     g  = cellfun(@(g) g(faces), g, 'unif', false);
 
     % Transform to referece coordinates
@@ -48,7 +48,7 @@ function [flag_v, flag_G, upCells_v, upCells_G, s_v, s_G] = getSaturationUpwindD
     upw = @(flag, x)faceUpstr(flag, x, N, [size(N,1), max(max(N))]);
 
     % Use standard MRST function to compute upstraeam flags
-    [flag_v, flag_G] = getSaturationUpwind(disc.upwindType, state, g, vT, T, mob, upw);
+    [flag_v, flag_G] = getSaturationUpwind(disc.upwindType, state, g, flux, T, mob, upw);
 
     % For each phase, assign upstram cell and corresponding
     % saturation for each quadrature point of each face

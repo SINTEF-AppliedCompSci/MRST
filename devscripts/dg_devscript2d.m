@@ -3,7 +3,7 @@ mrstModule add dg vem vemmech ad-props ad-core ad-blackoil blackoil-sequential g
 %%
 
 gravity reset off
-% gravity reset on; gravity([0,-9.81]);
+gravity reset on; gravity([0,-9.81]);
 
 
 
@@ -49,7 +49,7 @@ state0 = initResSol(G, 100*barsa, [sW,1-sW]);
 
 degree = [0, 1, 2, 3, 4, 5];
 % degree = [4];
-% degree = [1,2];
+degree = [0,1,2];
 [jt, ot, mt] = deal(Inf);
 % 
 jt = 0.2;
@@ -59,7 +59,7 @@ ot = 0.0;
 
 
 [wsDG, statesDG, disc] = deal(cell(numel(degree),1));
-nls = NonLinearSolver('maxIterations', 50, 'useLinesearch', true);
+nls = NonLinearSolver('maxIterations', 25, 'useLinesearch', false);
 for dNo = 1:numel(degree)
     disc{dNo} = DGDiscretization(modelDG.transportModel                    , ...
                                     'degree'             , degree(dNo), ...
