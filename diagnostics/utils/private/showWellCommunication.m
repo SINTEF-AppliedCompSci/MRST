@@ -14,5 +14,5 @@ set(ax, 'XTick', 1.5:numel(pnames)+.5, ...
     'XAxisLocation','top','Fontsize',8,'YDir','reverse');
 axis(ax,'on','tight');
 caxis(ax, [0 max(max(val))]);
-colorbar(ax)
+colorbar(ax,'southoutside')
 end
