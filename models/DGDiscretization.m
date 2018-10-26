@@ -338,7 +338,7 @@ classdef DGDiscretization < WENODiscretization
         end
         
         %-----------------------------------------------------------------%
-        function I = cellInt(disc, model, fun, cells, state, state0, varargin)
+        function I = cellInt(disc, fun, cells, state, dof)
             % Integrate integrand over cells
             %
             % PARAMETERS:
@@ -373,14 +373,14 @@ classdef DGDiscretization < WENODiscretization
             % Model evaluates integrand at cubature points, and returns
             % function handle taking psi and grad_psi at the same points as
             % argumets
-            integrand = model.cellIntegrand(fun, x, cellNo, state, state0, varargin{:});
+%             integrand = model.cellIntegrand(fun, x, cellNo, state, state0, varargin{:});
             
-            I = getSampleAD(varargin{1})*0;
+            I = dof*0;
             for dofNo = 1:nDofMax
                 keepCells = nDof(cells) >= dofNo;
                 if any(keepCells)
                     ix = disc.getDofIx(state, dofNo, cells(keepCells));
-                    i = W*integrand(psi{dofNo}(x), grad_psi{dofNo}(x).*scaling);
+                    i = W*fun(psi{dofNo}(x), grad_psi{dofNo}(x).*scaling);
                     I(ix) = i(keepCells);
                 elseif numel(cells) == disc.G.cells.num
                     warning('No cells with %d dofs', dofNo);
@@ -391,7 +391,7 @@ classdef DGDiscretization < WENODiscretization
         end
         
         %-----------------------------------------------------------------%
-        function I = faceFluxInt(disc, model, fun, cells, T, vT, g, mob, state, varargin)
+        function I = faceFluxInt(disc, fun, cells, state, sdof)
             % Integrate integrand over all internal faces of each cell in
             % cells
             %
@@ -431,15 +431,15 @@ classdef DGDiscretization < WENODiscretization
             % function handle taking psi and grad_psi at the same points as
             % argumets. Inputs T, vT, g, mob are used to calculate upstram
             % directions
-            integrand = model.faceIntegrand(fun, x, faceNo, cellNo, ...
-                                        T, vT, g, mob, state, varargin{:});
+%             integrand = model.faceIntegrand(fun, x, faceNo, cellNo, ...
+%                                         T, vT, g, mob, state, varargin{:});
 
-            I = getSampleAD(varargin{1})*0;
+            I = sdof*0;
             for dofNo = 1:nDofMax                
                 keepCells = nDof(cells) >= dofNo;
                 if any(keepCells)
                     ix = disc.getDofIx(state, dofNo, cells(keepCells)');
-                    i  = W*integrand(psi{dofNo}(x_c));
+                    i  = W*fun(psi{dofNo}(x_c));
                     I(ix) = i(keepCells);
                 elseif numel(cells) == disc.G.cells.num
                     warning('No cells with %d dofs', dofNo);

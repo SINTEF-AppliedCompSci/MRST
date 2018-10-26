@@ -70,17 +70,18 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
             sWdof = model.AutoDiffBackend.initVariablesAD(sWdof);
         end
         primaryVars = {'sWdof'};
-        sOdof = 1;
-        sO = 1 - sW;
-        sT = ones(size(double(sW)));
+        sOdof     = -sWdof;
+        ix        = disc.getDofIx(state, 1, Inf);
+        sOdof(ix) = 1 + sOdof(ix);
+        sO        = 1 - sW;
+        sT        = ones(size(double(sW)));
+        sTdof     = 1;
         [krW, krO] = model.evaluateRelPerm({sW, sO});
     end
+    nDof = state.nDof;
     %----------------------------------------------------------------------
 
-%     % We will solve for water saturation dofs
-%     primaryVars = {'sWdof'};
-    nDof = state.nDof;
-
+    % Pressure and saturation dependent properties-------------------------
     % Get multipliers
     [pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
     pvMult  = expandSingleValue(pvMult , G);
@@ -91,11 +92,14 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     
     % Phase properties
     gdz = model.getGravityGradient();
-    [vW, bW, mobW, rhoW, pW, upcW, dpW, muW] = getPropsWater_DG(model, p, T, gdz, mobMult);
-    [vO, bO, mobO, rhoO, pO, upcO, dpO, muO] = getPropsOil_DG(model, p, T, gdz, mobMult);
+    [vW, bW, mobW, rhoW, pW, upcW, dpW, muW] ...
+                             = getPropsWater_DG(model, p, T, gdz, mobMult);
+    [vO, bO, mobO, rhoO, pO, upcO, dpO, muO] ...
+                               = getPropsOil_DG(model, p, T, gdz, mobMult);
     
-    % Fractional flow function
+    % Fractional flow functions
     fW = @(sW, sO, cW, cO) mobW(sW, cW)./(mobW(sW, cW) + mobO(sO, cO));
+    fO = @(sW, sO, cW, cO) mobO(sO, cO)./(mobW(sW, cW) + mobO(sO, cO));
     bW0 = fluid.bW(p0);
     
     % Gravity flux
@@ -103,11 +107,9 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     [gW, gO] = deal(zeros(G.faces.num, 1));
     gW(op.internalConn) = gp - dpW;
     gO(op.internalConn) = gp - dpO;
-    
-    % Add gravity flux where we have BCs
+    % Add gravity flux where we have BCs to get correct cell values
     bc = drivingForces.bc;
     if ~isempty(bc)
-        
         BCcells = sum(G.faces.neighbors(bc.face,:), 2);
         dz = G.cells.centroids(BCcells, :) - G.faces.centroids(bc.face,:);
         g = model.getGravityVector();
@@ -116,93 +118,141 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
         
         gW(bc.face) = rhoWBC.*(dz*g');
         gO(bc.face) = rhoOBC.*(dz*g');
-        
     end    
-    
-    TgW = T_all.*gW;
-    TgO = T_all.*gO;
-    TgWc = flux2Vel(TgW);
+    TgW  = T_all.*gW;          % Gravity volumetric flux, water
+    TgO  = T_all.*gO;          % Gravity volumetric flux, oil
+    TgWc = flux2Vel(TgW);      % Map to cell velocity
     TgOc = flux2Vel(TgO);
-    TgW = TgW./G.faces.areas;
-    TgO = TgO./G.faces.areas;
+    TgW  = TgW./G.faces.areas; % Convert to gravity flux
+    TgO  = TgO./G.faces.areas;
     
     % Viscous flux
     flux  = sum(state.flux,2);   % Total volumetric flux
     vT    = flux./G.faces.areas; % Total flux 
     vTc   = flux2Vel(flux);      % Map face fluxes to cell velocities
     
-    % Cell integrand functions---------------------------------------------
-        
-    % Accumulation term
-    acc = @(sW, sW0, c, psi) (pvMult(c).*rock.poro(c).*bW(c).*sW - ...
-                              pvMult0(c).*rock.poro(c).*bW0(c).*sW0).*psi/dt;            
-    % Convection term
-    conv = @(sW,fW,c,grad_psi) bW(c).*fW.*(disc.dot(vTc(c,:),grad_psi) ...
-                 + mobO(1-sW,c).*disc.dot(TgWc(c,:) - TgOc(c,:),grad_psi));
-    % Cell integrand
-    integrand = @(sW, sW0, fW, c, psi, grad_psi) ...
-                          acc(sW, sW0, c, psi) - conv(sW, fW, c, grad_psi);
-    % Integrate integrand*psi{dofNo} over all cells for dofNo = 1:nDof
-    cellIntegral = disc.cellInt(model, integrand, [], state, state0, sWdof, sWdof0, fW);
-  
-    % Surface integrand functions------------------------------------------
-    
-    % Flux term
-    integrand = @(sWv, sWg, fWv, fWg, c, cv, cg, f, psi) ...
-        (bW(cv).*fWv.*vT(f) + bW(cg).*fWg.*mobO(1-sWg,cg).*(TgW(f) - TgO(f))).*psi;%./G.faces.areas(f);
-    % % Integrate integrand*psi{dofNo} over all cells surfaces for dofNo = 1:nDof
-    faceIntegral = disc.faceFluxInt(model, integrand, [], T, flux, {gW, gO}, {mobW, mobO}, state, sWdof, fW);
-  
-    % Water equation-------------------------------------------------------
-    water = cellIntegral + faceIntegral;
-
     % Well contributions---------------------------------------------------
-    W        = drivingForces.W;
+    W = drivingForces.W;
     if ~isempty(W)
-        
-        perf2well = getPerforationToWellMapping(W);
-        wc = vertcat(W.cells);
 
-        wflux = zeros(G.cells.num,1);
-        wflux(wc) = sum(vertcat(wellSol.flux), 2);
-        isInj = wflux > 0;
-        compWell = vertcat(W.compi);
-        compPerf = zeros(G.cells.num, 2);
+        % Total well flux, composition and mappings
+        perf2well = getPerforationToWellMapping(W);
+        wc        = vertcat(W.cells);
+        wflux     = zeros(G.cells.num,1);
+        wflux(wc) = sum(vertcat(wellSol.flux), 2)./G.cells.volumes(wc);
+        isInj     = wflux > 0;
+        compWell  = vertcat(W.compi);
+        compPerf  = zeros(G.cells.num, 2);
         compPerf(wc,:) = compWell(perf2well,:);
         
-        integrand = @(sW, sW0, fW, c, psi, grad_psi) ...
-            bW(c).*wflux(c).*(fW.*(~isInj(c)) + compPerf(c,1).*( isInj(c))).*psi;
-
-        prod = disc.cellInt(model, integrand, wc, state, state0, sWdof, sWdof0, fW);
+        % Sa
+        [~, xcw, cNow] = disc.getCubature(wc, 'volume');
+        xcw = disc.transformCoords(xcw, cNow);
+        sWW = disc.evaluateSaturation(xcw, cNow, sWdof, state);
+        sOW = disc.evaluateSaturation(xcw, cNow, sOdof, state);
         
-        vol = rldecode(G.cells.volumes(wc), nDof(wc), 1);
-        ix = disc.getDofIx(state, Inf, wc);
-        water(ix) = water(ix) - prod(ix)./vol;
-
+        % Water well contributions
+        integrand = @(psi, gradPsi) bW(cNow).*wflux(cNow)...
+            .*(fW(sWW, sOW, cNow, cNow).*(~isInj(cNow)) + compPerf(cNow,1).*isInj(cNow)).*psi;
+        srcWW = disc.cellInt(integrand, wc, state, sWdof);
+        
+        % Oil well contributions
+        integrand = @(psi, gradPsi) bO(cNow).*wflux(cNow)...
+            .*(fO(sWW, sOW, cNow, cNow).*(~isInj(cNow)) + compPerf(cNow,1).*isInj(cNow)).*psi;
+        srcWO = disc.cellInt(integrand, wc, state, sOdof);
+                
         % Store well fluxes
-        [WC, x, cellNo] = disc.getCubature(wc, 'volume');
-        x = disc.transformCoords(x, cellNo);
-        sWw = disc.evaluateSaturation(x, cellNo, sWdof, state);
-        
-        wflux_W = WC*(bW(cellNo).*wflux(cellNo) ...
-                     .*(fW(sWw, 1-sWw, cellNo, cellNo) .*(~isInj(cellNo)) ...
-                     + compPerf(cellNo,1).*( isInj(cellNo))));
-        wflux_W = wflux_W./G.cells.volumes(wc);
-          
-        wflux_O = WC*(bO(cellNo).*wflux(cellNo) ...
-                     .*((1-fW(sWw, 1-sWw, cellNo, cellNo)).*(~isInj(cellNo)) ...
-                     + compPerf(cellNo,2) .*( isInj(cellNo))));
-        wflux_O = wflux_O./G.cells.volumes(wc);
-
-        wflux_O = double(wflux_O);
-        wflux_W = double(wflux_W);
-
+        ix     = disc.getDofIx(state, 1, wc);
+        wfluxW = double(srcWW(ix));
+        wfluxO = double(srcWO(ix));
         for wNo = 1:numel(W)
             perfind = perf2well == wNo;
-            state.wellSol(wNo).qOs = sum(wflux_O(perfind));
-            state.wellSol(wNo).qWs = sum(wflux_W(perfind));
+            state.wellSol(wNo).qWs = sum(wfluxW(perfind));
+            state.wellSol(wNo).qOs = sum(wfluxO(perfind));
         end
 
+    end
+    %----------------------------------------------------------------------
+
+    % Evaluate water saturation at cubature points-------------------------
+    % Cell cubature points
+    [~, xc, c] = disc.getCubature((1:G.cells.num)', 'volume');
+    xc   = disc.transformCoords(xc, c);
+    sWc  = disc.evaluateSaturation(xc, c, sWdof , state );
+    sWc0 = disc.evaluateSaturation(xc, c, sWdof0, state0);
+    sOc  = disc.evaluateSaturation(xc, c, sOdof , state );
+    sOc0 = disc.evaluateSaturation(xc, c, sOdof0, state0);
+    
+    % Face cubature points
+    [~, xf, ~, fNo] = disc.getCubature((1:G.cells.num)', 'surface');
+    % Upstream cells
+    [~, ~, cfV, cfG] = disc.getSaturationUpwind(fNo, xf, T, vT, ...
+                            {gW, gO}, {mobW, mobO}, {sWdof, sOdof}, state);
+    
+    xfV  = disc.transformCoords(xf, cfV(:,1));
+    sWfV = disc.evaluateSaturation(xfV, cfV(:,1), sWdof, state);
+    xfG  = disc.transformCoords(xf, cfG(:,1));
+    sWfG = disc.evaluateSaturation(xfG, cfG(:,1), sWdof, state);
+                       
+    xfV  = disc.transformCoords(xf, cfV(:,2));
+    sOfV = disc.evaluateSaturation(xfV, cfV(:,2), sOdof, state);
+    xfG  = disc.transformCoords(xf, cfG(:,2));
+    sOfG = disc.evaluateSaturation(xfG, cfG(:,2), sOdof, state);
+    
+    % Water equation-------------------------------------------------------
+    if opt.solveForWater
+        % Accumulation term
+        acc = @(psi) (pvMult(c) .*rock.poro(c).*bW(c) .*sWc - ...
+                      pvMult0(c).*rock.poro(c).*bW0(c).*sWc0).*psi/dt;
+        % Convection term
+        conv = @(gradPsi) bW(c).*fW(sWc, sOc, c, c).*(disc.dot(vTc(c,:),gradPsi) ...
+                        + mobO(sOc,c).*disc.dot(TgWc(c,:) - TgOc(c,:),gradPsi));
+        integrand = @(psi, gradPsi) acc(psi) - conv(gradPsi);
+        % Integrate integrand*psi{dofNo} over all cells for dofNo = 1:nDof
+        cellIntegral = disc.cellInt(integrand, [], state, sWdof);
+        % Flux term
+        flux = @(psi) ...
+            (bW(cfV(:,1)).*fW(sWfV, sOfV, cfV(:,1), cfG(:,1)).*vT(fNo) + ...
+             bW(cfG(:,1)).*fW(sWfG, sOfG, cfG(:,1), cfG(:,1)).*mobO(sOfG,cfG(:,1)).*(TgW(fNo) - TgO(fNo))).*psi;
+        % Integrate integrand*psi{dofNo} over all cells surfaces for dofNo = 1:nDof
+        faceIntegral = disc.faceFluxInt(integrand, [], state, sWdof);
+        % Sum integrals
+        water = cellIntegral + faceIntegral;
+        % Add well contributions
+        if ~isempty(W)
+            ix = disc.getDofIx(state, Inf, wc);
+            water(ix) = water(ix) - srcWW(ix);
+        end
+    end
+    %----------------------------------------------------------------------
+    
+    % Oil equation---------------------------------------------------------
+    if opt.solveForOil
+        % Accumulation term
+        acc = @(sW, sW0, c, psi) (pvMult(c) .*rock.poro(c).*bO(c) .*sO - ...
+                                  pvMult0(c).*rock.poro(c).*bO0(c).*sO0).*psi/dt;
+        % Convection term
+        conv = @(sO,fO,c,gradPsi) bO(c).*fO.*(disc.dot(vTc(c,:),gradPsi) ...
+                 + mobW(1-sO,c).*disc.dot(TgOc(c,:) - TgWc(c,:),gradPsi));
+        % Cell integrand
+        integrand = @(sO, sO0, fO, c, psi, gradPsi) ...
+                          acc(sO, sO0, c, psi) - conv(sO, fO, c, gradPsi);
+        % Integrate integrand*psi{dofNo} over all cells for dofNo = 1:nDof
+        cellIntegral = disc.cellInt(model, integrand, [], ...
+                                         state, state0, sOdof, sOdof0, fO);
+        % Flux term
+        integrand = @(sOv, sOg, fOv, fOg, c, cv, cg, f, psi) ...
+            (bO(cv).*fOv.*vT(f) + bO(cg).*fOg.*mobW(1-sOg,cg).*(TgO(f) - TgW(f))).*psi;
+        % Integrate integrand*psi{dofNo} over all cells surfaces for dofNo = 1:nDof
+        faceIntegral = disc.faceFluxInt(model, integrand, [], T, flux, ...
+                                 {gW, gO}, {mobW, mobO}, state, sOdof, fO);
+        % Sum integrals
+        oil = cellIntegral + faceIntegral;
+        % Add well contributions
+        if ~isempty(W)
+            ix = disc.getDofIx(state, Inf, wc);
+            oil(ix) = oil(ix) - srcWO(ix);
+        end
     end
     %----------------------------------------------------------------------
     
