@@ -43,7 +43,12 @@ function [flagV, flagG, upCellsV, upCellsG, s_v, s_G] = getSaturationUpwindDG(di
     for phNo = 1:nPh
         sL(:, phNo) = disc.evaluateSaturation(xL, cL, double(sdof{phNo}), state);
         sR(:, phNo) = disc.evaluateSaturation(xR, cR, double(sdof{phNo}), state);
-        mob{phNo} = mob{phNo}([sL; sR], [cL; cR]);
+%         mob{phNo} = mob{phNo}([sL; sR], [cL; cR]);
+    end        
+    s = [sL; sR];
+    sT = sum(s,2);
+    for phNo = 1:nPh
+        mob{phNo} = mob{phNo}(s(:,phNo), sT, [cL; cR]);
     end        
 %     s = disc.evaluateSaturation([xL; xR], [cL; cR], sdof, state);
 %     sL = s(1:numel(cL)); sR = s(numel(cL)+1:end);
