@@ -6,26 +6,29 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
                  'resOnly'      , false      ,...
                  'history'      , []         ,...
                  'solveForWater', true       , ...
-                 'solveForOil'  , true       , ...
+                 'solveForOil'  , false      , ...
                  'iteration'    , -1         , ...
                  'stepOptions'  , []         ); % Compatibility only
-    
     opt      = merge_options(opt, varargin{:});
-    W        = drivingForces.W;
+    
+    % Frequently used properties
     op       = model.operators;
     fluid    = model.fluid;
     rock     = model.rock;
     G        = model.G;
     disc     = model.disc;
     flux2Vel = disc.velocityInterp.faceFlux2cellVelocity;
-        
-    assert(~(opt.solveForWater && opt.solveForOil));
     
+    % We may solve for both oil and water simultaneously
+    solveAllPhases = opt.solveForWater && opt.solveForOil;
+    
+    % Prepare state for simulation-----------------------------------------
     if opt.iteration == 1 && ~opt.resOnly 
         if model.tryMaxDegree
             % If we are at the first iteration, we try to solve using
             % maximum degree in all cells
-            state.degree(~G.cells.ghost) = repmat(disc.degree, nnz(~G.cells.ghost), 1);
+            state.degree(~G.cells.ghost) ...
+                             = repmat(disc.degree, nnz(~G.cells.ghost), 1);
         end
         % For cells that previously had less than nDof unknowns, we must
         % map old dofs to new
@@ -37,35 +40,45 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     % state.sdof
     state0 = disc.updateDofPos(state0);
     state  = disc.updateDofPos(state);
+    %----------------------------------------------------------------------
     
-    % Properties from current timestep
-    [p , sWdof , wellSol] = model.getProps(state , 'pressure', 'water', 'wellsol');
-    % Properties from previous timestep
-    [p0, sWdof0         ] = model.getProps(state0, 'pressure', 'water'           );
-    sW = state.s(:,1);
-    
-    % If timestep has been split relative to pressure, linearly interpolate in
-    % pressure.
+    % Properties from current and previous timestep------------------------
+    [p , sWdof , sW , sOdof , sO , wellSol] = model.getProps(state , ...
+                  'pressure', 'swdof', 'water', 'sodof', 'oil', 'wellsol');
+    [p0, sWdof0, sW0, sOdof0, sO0,        ] = model.getProps(state0, ...
+                  'pressure', 'swdof', 'water', 'sodof', 'oil'           );
+    % If timestep has been split relative to pressure, linearly interpolate
+    % in pressure.
     pFlow = p;
     if isfield(state, 'timestep')
         dt_frac = dt/state.timestep;
-        p = p.*dt_frac + p0.*(1-dt_frac);
+        p       = p.*dt_frac + p0.*(1-dt_frac);
     end
+    %----------------------------------------------------------------------
     
-    %Initialization of independent variables ------------------------------
-    if ~opt.resOnly
-        % ADI variables needed since we are not only computing residuals.
-        if ~opt.reverseMode
-            sWdof = model.AutoDiffBackend.initVariablesAD(sWdof);
-        else
-            assert(0, 'Backwards solver not supported for splitting');
+    % Initialization of independent variables -----------------------------
+    assert(~opt.reverseMode, 'Backwards solver not supported for splitting');
+    if solveAllPhases
+        if ~opt.resOnly
+            [sWdof, sOdof] = model.AutoDiffBackend.initVariablesAD(sWdof, sOdof);
         end
+        primaryVars = {'sWdof', 'sOdof'};
+        sT = sO + sW;
+        [krW, krO] = model.evaluateRelPerm({sW./sT, sO./sT});
+    else
+        if ~opt.resOnly
+            sWdof = model.AutoDiffBackend.initVariablesAD(sWdof);
+        end
+        primaryVars = {'sWdof'};
+        sOdof = 1;
+        sO = 1 - sW;
+        sT = ones(size(double(sW)));
+        [krW, krO] = model.evaluateRelPerm({sW, sO});
     end
+    %----------------------------------------------------------------------
 
-    % ---------------------------------------------------------------------
-
-    % We will solve for water saturation dofs
-    primaryVars = {'sWdof'};
+%     % We will solve for water saturation dofs
+%     primaryVars = {'sWdof'};
     nDof = state.nDof;
 
     % Get multipliers
@@ -144,7 +157,7 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     water = cellIntegral + faceIntegral;
 
     % Well contributions---------------------------------------------------
-    
+    W        = drivingForces.W;
     if ~isempty(W)
         
         perf2well = getPerforationToWellMapping(W);
@@ -191,6 +204,7 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
         end
 
     end
+    %----------------------------------------------------------------------
     
     state.cfl = dt.*sum(abs(vTc)./G.cells.dx,2);
     

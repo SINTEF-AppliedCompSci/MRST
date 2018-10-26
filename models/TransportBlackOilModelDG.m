@@ -44,16 +44,16 @@ classdef TransportBlackOilModelDG < TransportBlackOilModel
             % SEE ALSO:
             %   :meth:`ad_core.models.PhysicalModel.getVariableField`
             switch(lower(name))
-                case {'water', 'swdof'}
+                case {'swdof'}
                     index = 1;
                     fn = 'sdof';
-                case {'oil', 'sodof'}
+                case {'sodof'}
                     index = 2;
                     fn = 'sdof';
-                case {'gas', 'sgdof'}
+                case {'sgdof'}
                     index = 3;
                     fn = 'sdof';
-                case{'saturation', 'sdof'}
+                case{'sdof'}
                     index = ':';
                     fn = 'sdof';
                 otherwise
@@ -63,8 +63,8 @@ classdef TransportBlackOilModelDG < TransportBlackOilModel
         end
 
         % ----------------------------------------------------------------%
-        function vars = getSaturationVarNames(model)
-            vars = {'sWdof', 'sOdof', 'sGdof'};
+        function vars = getDGDofVarNames(model)
+            vars = {'swdof', 'sodof', 'sgdof'};
             ph = model.getActivePhases();
             vars = vars(ph);
         end
@@ -115,11 +115,42 @@ classdef TransportBlackOilModelDG < TransportBlackOilModel
             
             integrand = @(psi) fun(s, f, cellNo, faceNo, psi);
             
-            
         end
         
         % ----------------------------------------------------------------%
-        function state = updateSaturations(model, state, dx, problem, satVars)
+        function [restVars, satDofVars, wellVars] = splitPrimaryVariables(model, vars)
+            % Split cell array of primary variables into grouping
+            % SYNOPSIS:
+            %   [restVars, satVars, wellVars] = model.splitPrimaryVariables(vars)
+            %
+            % DESCRIPTION:
+            %   Split a set of primary variables into three groups:
+            %   Well variables, saturation variables and the rest. This is
+            %   useful because the saturation variables usually are updated
+            %   together, and the well variables are a special case.
+            %
+            % PARAMETERS:
+            %   model - Class instance.
+            %   vars  - Cell array with names of primary variables
+            %
+            % RETURNS:
+            %   restVars - Names of variables that are not saturations or
+            %              belong to the wells.
+            %   satVars  - Names of the saturation variables present in `vars`.
+            %   wellVars - Names of the well variables present in `vars`
+            
+            wellvars = model.FacilityModel.getPrimaryVariableNames();
+            isSatDof = cellfun(@(x) any(strcmpi(model.getDGDofVarNames, x)), vars);
+            isWells  = cellfun(@(x) any(strcmpi(wellvars, x)), vars);
+
+            wellVars   = vars(isWells);
+            satDofVars = vars(isSatDof);
+
+            restVars = vars(~isSatDof & ~isWells);
+        end
+        
+        % ----------------------------------------------------------------%
+        function state = updateSaturations(model, state, dx, problem, satDofVars)
             % Update of phase-saturations
             %
             % SYNOPSIS:
@@ -150,17 +181,17 @@ classdef TransportBlackOilModelDG < TransportBlackOilModel
 
             if nargin < 5
                 % Get the saturation names directly from the problem
-                [~, satVars] = ...
+                [~, satDofVars] = ...
                     splitPrimaryVariables(model, problem.primaryVariables);
             end
-            if isempty(satVars)
+            if isempty(satDofVars)
                 % No saturations passed, nothing to do here.
                 return
             end
             % Solution variables should be saturations directly, find the missing
             % link
-            saturations = lower(model.getSaturationVarNames);
-            fillsat = setdiff(saturations, lower(satVars));
+            saturations = lower(model.getDGDofVarNames);
+            fillsat = setdiff(saturations, lower(satDofVars));
             assert(numel(fillsat) == 1)
             fillsat = fillsat{1};
 
