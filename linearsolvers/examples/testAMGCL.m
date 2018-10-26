@@ -21,7 +21,7 @@ state = initResSol(G, 0);
 state = incompTPFA(state, G, computeTrans(G, rock), initSingleFluid('rho', 0, 'mu', 1), 'Wells', W, 'matrixOutput', true, 'LinSolve', @(A, b) 0*b);
 A = state.A;
 b = state.rhs;
-
+[A, b] = eliminateWellEquations(A, b, G.cells.num);
 %% Compute AGMG (if available)
 try
     mrstModule add agmg
@@ -49,3 +49,11 @@ clf;
 bar([t_amg, t_relax, t_agmg])
 set(gca, 'XTicklabel', {'AMGCL-amg', 'AMGCL-relax' 'AGMG'});
 ylabel('Solution time [s]');
+
+%% Test block solver
+nc = size(A, 1);
+Z = sparse([], [], [], nc, nc);
+A_block = [A, Z; Z, A];
+b_block = [b ; b];
+x = callAMGCL_block(A, b, 'relaxation', 'spai0',...
+                    'preconditioner', 'relaxation', 'block_size', 2);
