@@ -123,6 +123,9 @@ end
 
 nnc_cells=removeexcess(nnc_cells,-1);
 nnc_T=removeexcess(nnc_T,-1);
+[~,ind]=unique(nnc_cells,'rows');
+nnc_cells = nnc_cells(ind,:);
+nnc_T = nnc_T(ind,:);
 G.nnc.cells=[G.nnc.cells;nnc_cells];
 G.nnc.T=[G.nnc.T;nnc_T];
 
