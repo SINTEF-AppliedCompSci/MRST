@@ -29,9 +29,10 @@ function cfl = estimateSaturationCFL(model, state, dt, varargin)
     % cross-flow.
     rate_cell = accumarray(l, rate_face.*( flag | xflow), [nc, 1]) +...
                 accumarray(r, rate_face.*(~flag | xflow), [nc, 1]);
-    
-    wc = vertcat(opt.forces.W.cells);
-    rate_cell(wc) = 0;
+    if ~isempty(opt.forces)
+        wc = vertcat(opt.forces.W.cells);
+        rate_cell(wc) = 0;
+    end
     cfl = (dt./pv).*rate_cell;
 end
 
@@ -174,6 +175,7 @@ function [F, Q] = getFlowMagnitudeOW(model, state)
     J = @(x) full(diag(x.jac{1}));
     F = J(f_w);
     
+    f = model.fluid;
     hasOW = isfield(f, 'pcOW');
     
     if hasOW 
