@@ -43,10 +43,10 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     %----------------------------------------------------------------------
     
     % Properties from current and previous timestep------------------------
-    [p , sWdof , sW , sOdof , sO , wellSol] = model.getProps(state , ...
-                  'pressure', 'swdof', 'water', 'sodof', 'oil', 'wellsol');
-    [p0, sWdof0, sW0, sOdof0, sO0,        ] = model.getProps(state0, ...
-                  'pressure', 'swdof', 'water', 'sodof', 'oil'           );
+    [p , sWdof , sOdof , wellSol] = model.getProps(state , ...
+                  'pressure', 'swdof', 'sodof', 'wellsol');
+    [p0, sWdof0, sOdof0,        ] = model.getProps(state0, ...
+                  'pressure', 'swdof', 'sodof'           );
     % If timestep has been split relative to pressure, linearly interpolate
     % in pressure.
     if isfield(state, 'timestep')
@@ -225,9 +225,9 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
             (sTWfV.*bW(cfV(:,1)).*fWfV.*vT(fNo) ...
                   + bW(cfG(:,1)).*fWfG.*mobOfG.*(TgW(fNo) - TgO(fNo))).*psi;
         % Integrate integrand*psi{dofNo} over all cells surfaces for dofNo = 1:nDof
-        faceIntegral = disc.faceFluxInt(flux, [], state, sWdof);
+        faceIntegrand = disc.faceFluxInt(flux, [], state, sWdof);
         % Sum integrals
-        water = cellIntegral + faceIntegral;
+        water = cellIntegral + faceIntegrand;
         % Add well contributions
         if ~isempty(W)
             ix = disc.getDofIx(state, Inf, wc);
@@ -260,9 +260,9 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
             (sTOfV.*bO(cfV(:,2)).*fOfV.*vT(fNo) ...
                   + bO(cfG(:,2)).*fOfG.*mobWfG.*(TgO(fNo) - TgW(fNo))).*psi;
         % Integrate integrand*psi{dofNo} over all cells surfaces for dofNo = 1:nDof
-        faceIntegral = disc.faceFluxInt(flux, [], state, sWdof);
+        faceIntegrand = disc.faceFluxInt(flux, [], state, sWdof);
         % Sum integrals
-        oil = cellIntegral + faceIntegral;
+        oil = cellIntegral + faceIntegrand;
         % Add well contributions
         if ~isempty(W)
             ix = disc.getDofIx(state, Inf, wc);
@@ -273,32 +273,77 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
 
     % Add BCs--------------------------------------------------------------
     if ~isempty(bc)
-        fluxBC = @(sW, fW, c, f, psi) ...
-        (bW(c).*fW.*vT(f) + bW(c).*fW.*mobO(1-sW,c).*(TgW(f) - TgO(f))).*psi;
-        bcInt = disc.faceFluxIntBC(model, fluxBC, bc, state, sWdof, fW);        
-        water = water + bcInt;
+        % Boundary faces
+        faces = bc.face;
+        % Saturation outside boundary
+        sL  = bc.sat;
+        % Face cubature foordinates
+        [~, x, ~, fBC] = disc.getCubature(faces, 'face');
+        cBC = sum(G.faces.neighbors(fBC,:),2);
+        [xR, ~, ~] = disc.transformCoords(x, cBC);
+        % Mapping from BC faces to global faces
+        globFace2BCface        = nan(G.faces.num,1);
+        globFace2BCface(faces) = 1:numel(faces);        
+        locFaceNo = globFace2BCface(fBC);
+        % Determine injectng boundaries
+        sgn = 1 - 2*(G.faces.neighbors(faces, 1) == 0);
+        isInj = vT(faces) > 0 & sgn < 0;
+        % Upstream saturation
+        sWR  = model.disc.evaluateSaturation(xR, cBC, sWdof, state);
+        sWBC = sL(locFaceNo,1).*isInj(locFaceNo) + sWR.*(~isInj(locFaceNo));
+        sOR  = model.disc.evaluateSaturation(xR, cBC, sOdof, state);
+        sOBC = sL(locFaceNo,2).*isInj(locFaceNo) + sOR.*(~isInj(locFaceNo));
+        sTR  = model.disc.evaluateSaturation(xR, cBC, sTdof, state);
+        sTBC = sum(sL(locFaceNo,:),2).*isInj(locFaceNo) + sTR.*(~isInj(locFaceNo));
+        % Frational flow functions
+        fWBC = fW(sWBC, sOBC, sTBC, cBC, cBC);
+        fOBC = fO(sWBC, sOBC, sTBC, cBC, cBC);
+        if opt.solveForWater
+            % Add water bc flux to water equation
+            faceIntegrand = @(psi) (bW(cBC).*fWBC.*vT(fBC) ...
+                      + bW(cBC).*fWBC.*mobO(sOBC,sTBC,cBC).*(TgW(fBC) - TgO(fBC))).*psi;
+            fluxWBC = disc.faceFluxIntBC(faceIntegrand, bc, state, sWdof);
+            water   = water + fluxWBC;
+        end
+        if opt.solveForOil
+            % Add oil bc flux to oil equation
+            faceIntegrand = @(psi) (bO(cBC).*fOBC.*vT(fBC) ...
+                      + bO(cBC).*fOBC.*mobW(sWBC,sTBC,cBC).*(TgO(fBC) - TgW(fBC))).*psi;
+            fluxOBC = disc.faceFluxIntBC(faceIntegrand, bc, state, sOdof);
+            oil     = oil + fluxOBC;
+        end
     end
     %----------------------------------------------------------------------
     
     % Add sources----------------------------------------------------------
     src = drivingForces.src;
-    if ~isempty(src)
-        cells = src.cell;
-        rate = src.rate;
-        sat = src.sat;
-        integrand = @(c, psi) ...
-                        bW(c).*rate.*sat(:,1).*psi;
-        source = disc.cellInt(@(sW, sW0, fW, c, psi, grad_psi) ...
-            integrand(c, psi), fW, cells, sWdof, sWdof0, state, state0);
-        
-        vol = rldecode(G.cells.volumes(cells), nDof(cells), 1);
-        
-        ix = disc.getDofIx(state, Inf, cells);
-        water(ix) = water(ix) - source(ix)./vol;
+    if ~isempty(src) 
+        % Cubature
+        [~, ~, cSRC] = disc.getCubature(src.cell, 'volume');
+        % Mapping from source cells to global cells
+        globCell2SRCcell = nan(G.cells.num,1);
+        globCell2SRCcell(src.cell) = 1:numel(src.cell);
+        cSRCloc = globCell2SRCcell(cSRC);
+        % Total rate and saturaion at cubature points
+        qT   = src.rate(cSRCloc)./G.cells.volumes(cSRC);
+        sSRC = src.sat(cSRCloc,:);
+        if opt.solveForWater
+            % Add water source to water equation
+            srcIntegrand = @(psi, gradPsi) bW(cSRC).*qT.*sSRC(:,1).*psi;
+            srcW  = disc.cellInt(srcIntegrand, src.cell, state, sWdof);
+            water = water - srcW;
+        end
+        if opt.solveForOil
+            % Add oil source to oil equation
+            srcIntegrand = @(psi, gradPsi) bO(cSRC).*qT.*sSRC(:,2).*psi;
+            srcO = disc.cellInt(srcIntegrand, src.cell, state, sOdof);
+            oil  = oil - srcO;
+        end
     end
     %----------------------------------------------------------------------
     
     % Make Linearized problem----------------------------------------------
+    % Define equations, names and types
     if solveAllPhases
         eqs = {water, oil};
         names = {'water', 'oil'};    
@@ -312,21 +357,23 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
         names = {'oil' };
         types = {'cell'};
     end
-
-
+    % Scale equations
     if ~model.useCNVConvergence
+        pv = rldecode(op.pv, state.nDof, 1);
         for eqNo = 1:(opt.solveForOil+opt.solveForWater)
-            eqs{eqNo} = eqs{eqNo}.*(dt./op.pv);
+            eqs{eqNo} = eqs{eqNo}.*(dt./pv);
         end
     end
-
-    problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
-    
+    % Extra state output
     if model.extraStateOutput
         state     = model.storeDensity(state, rhoW, rhoO, []);
         state.cfl = dt.*sum(abs(vTc)./G.cells.dx,2);
     end
+    % Linearize
+    problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
+    %----------------------------------------------------------------------
     
+    % Extract subproblem if we are solving subproblem----------------------
     if isfield(G, 'parent')
         ix = disc.getDofIx(state, Inf, ~G.cells.ghost);
         
@@ -341,13 +388,14 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
             problem.equations{eqNo} = eq;
         end
     end
+    %----------------------------------------------------------------------
 
 end
 
+% Expang single scalar values to one per cell------------------------------
 function v = expandSingleValue(v,G)
-
     if numel(double(v)) == 1
         v = v*ones(G.cells.num,1);
     end
-    
 end
+%--------------------------------------------------------------------------
