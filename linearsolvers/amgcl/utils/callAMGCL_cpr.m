@@ -2,7 +2,7 @@ function [x, err, nIter] = callAMGCL_cpr(A, b, block_size, varargin)
 %Invoke AMGCL Linear Solver Software in CPR Mode
 %
 % DESCRIPTION:
-%   Solves the system of simulatenaous linear equations
+%   Solves the system of simultaneous linear equations
 %
 %      Ax = b
 %

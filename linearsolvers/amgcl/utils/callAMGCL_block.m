@@ -2,7 +2,7 @@ function [x, err, nIter] = callAMGCL_block(A, b, varargin)
 %Invoke AMGCL Linear Solver Software
 %
 % DESCRIPTION:
-%   Solves the system of simulatenaous linear equations
+%   Solves the system of simultaneous linear equations
 %
 %      Ax = b
 %
