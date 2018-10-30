@@ -86,7 +86,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
 
             converged = pressure_ok && transport_ok;
             if converged && ~model.stepFunctionIsLinear
-                [converged, values] = checkOuterConvergence(model, state, state0, dt, drivingForces, iteration);
+                [converged, values, state] = checkOuterConvergence(model, state, state0, dt, drivingForces, iteration);
             else
                 % Need to have some value in the report
                 values = pressureReport.StepReports{end}.NonlinearReport{end}.Residuals(1);
@@ -166,7 +166,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
             end 
         end
         
-        function [converged, values] = checkOuterConvergence(model, state, state0, dt, drivingForces, iteration)
+        function [converged, values, state] = checkOuterConvergence(model, state, state0, dt, drivingForces, iteration)
             % Alternate mode: If outer loop is enabled, we will revisit
             % the pressue equation to verify that the equation remains
             % converged after the transport step. This check ensures
