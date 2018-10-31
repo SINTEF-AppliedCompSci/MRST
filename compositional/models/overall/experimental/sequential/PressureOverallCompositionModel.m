@@ -2,13 +2,15 @@ classdef PressureOverallCompositionModel < OverallCompositionCompositionalModel
     % Two phase oil/water system without dissolution
     properties
         useIncTolPressure
+        usePartialVolumeWeights
     end
     
     methods
         function model = PressureOverallCompositionModel(G, rock, fluid, compFluid, varargin)
             
             model = model@OverallCompositionCompositionalModel(G, rock, fluid, compFluid);
-            model.useIncTolPressure = true;            
+            model.useIncTolPressure = true;
+            model.usePartialVolumeWeights = false;
             model = merge_options(model, varargin{:});
             model.outputFluxes = true;
             model.useIncTolComposition = false;

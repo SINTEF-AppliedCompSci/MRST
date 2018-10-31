@@ -254,40 +254,49 @@ if opt.pressure
         [weights{:}] = deal(1);
     else
         state = model.storeDensities(state, rhoW, rhoO, rhoG);
-        e = vertcat(acc{:});
-        e.jac = e.jac(1:ncomp+wat);
-        c = cat(e);
-        A = c.jac{1};
-
         [ncell, ncomp] = size(state.components);
-        ndof = ncell*(ncomp+wat);
-
-        b = zeros(ndof, 1);
-        b(1:ncell) = 1/barsa;
-
-        Ap = A';
-        w = Ap\b;
-        w = reshape(w, [], ncomp+woffset);
-        w = w./sum(abs(w), 2);
-        w = w./sum(state.rho.*state.s, 2);
-
+        analyticalWeights = isprop(model, 'usePartialVolumeWeights') && ...
+                                   model.usePartialVolumeWeights;
         weights = cell(ncomp, 1);
-
-        for i = 1:ncomp+wat
-            wi = w(:, i);
-            if opt.iteration == 1 || isa(p, 'double') 
-                Wp = wi;
-            else
-                ddp = (state.pressure - state.pressurePrev);
-                dwdp = (wi - state.w(:, i))./ddp;
-                dwdp(~isfinite(dwdp)) = 0;
-                Wp = double2ADI(wi, p);
-                Wp.jac{1} = sparse(1:ncell, 1:ncell, dwdp, ncell, ncell);
+        if analyticalWeights
+            assert(~model.water)
+            [part_vol, dwdp] = getPartialVolumes(model, state);
+            for i = 1:ncomp
+                w = double2ADI(part_vol(:, i), p);
+                w.jac{1} = sparse((1:ncell)', (1:ncell)', dwdp(:, i), ncell, ncell);
+                weights{i} = w;
             end
-            weights{i} = Wp;
+        else
+            e = vertcat(acc{:});
+            e.jac = e.jac(1:ncomp+wat);
+            c = cat(e);
+            A = c.jac{1};
+            ndof = ncell*(ncomp+wat);
+
+            b = zeros(ndof, 1);
+            b(1:ncell) = 1/barsa;
+
+            Ap = A';
+            w = Ap\b;
+            w = reshape(w, [], ncomp+woffset);
+            w = w./sum(abs(w), 2);
+            w = w./sum(state.rho.*state.s, 2);
+            for i = 1:ncomp+wat
+                wi = w(:, i);
+                if opt.iteration == 1 || isa(p, 'double') 
+                    Wp = wi;
+                else
+                    ddp = (state.pressure - state.pressurePrev);
+                    dwdp = (wi - state.w(:, i))./ddp;
+                    dwdp(~isfinite(dwdp)) = 0;
+                    Wp = double2ADI(wi, p);
+                    Wp.jac{1} = sparse(1:ncell, 1:ncell, dwdp, ncell, ncell);
+                end
+                weights{i} = Wp;
+            end
+            state.w = w;
+            state.pressurePrev = state.pressure;
         end
-        state.w = w;
-        state.pressurePrev = state.pressure;
     end
     peq = 0;
     for i = 1:ncomp
