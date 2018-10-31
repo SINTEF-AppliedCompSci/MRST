@@ -17,7 +17,6 @@ compFluid = model.EOSModel.fluid;
 % Properties at current timestep
 [sT, p, sW, z, temp, wellSol] = model.getProps(state, ...
     'sT', 'pressure', 'water', 'z', 'T', 'wellSol');
-
 [sT0, p0, sW0, sO0, sG0, z0, temp0, wellSol0] = model.getProps(state0, ...
     'sT', 'pressure', 'water', 'oil', 'gas', 'z', 'T', 'wellSol');
 
@@ -47,8 +46,12 @@ if model.water
     [sT, z{1:ncomp-1}, sW] = initVariablesADI(sT, z{1:ncomp-1}, sW);
     primaryVars = {'sT', cnames{1:end-1}, 'sW'};
 else
-    [z{1:ncomp-1}, sT] = initVariablesADI(z{1:ncomp-1}, sT);
-    primaryVars = {cnames{1:end-1}, 'sT'};
+    [sT, z{1:ncomp-1}] = initVariablesADI(sT, z{1:ncomp-1});
+    primaryVars = {'sT', cnames{1:end-1}};
+end
+z{end} = 1;
+for i = 1:(ncomp-1)
+    z{end} = z{end} - z{i};
 end
 
 
@@ -67,7 +70,7 @@ else
     [krO, krG] = model.evaluateRelPerm(sat);
 end
 
-% [isLiq, isVap, is2ph] = model.EOSModel.getFlag(state);
+[isLiq, isVap, is2ph] = model.EOSModel.getFlag(state);
 % 
 % liquid = isLiq | is2ph;
 % vapor = isVap | is2ph;
@@ -77,6 +80,9 @@ for i = 1:ncomp
     xM{i} = xM{i}.*sT;
     yM{i} = yM{i}.*sT;
     
+    xM{i}(isVap) = double(xM{i}(isVap));
+    yM{i}(isLiq) = double(yM{i}(isLiq));
+
 %     xM0{i} = xM0{i}.*sT0;
 %     yM0{i} = yM0{i}.*sT0;
 end
