@@ -33,6 +33,7 @@ classdef postProcessDiagnostics < handle
     methods
         function d = postProcessDiagnostics(varargin)
             opt = struct('style', 'default', 'steps', [], 'maxTOF', 500*year);
+            mrstModule add mrst-gui diagnostics deckformat ad-props
             if mod(numel(varargin), 2) == 1  % file-name provided
                 filenm = varargin{1};
                 [pth, nm, ext] = fileparts(filenm);
@@ -202,11 +203,11 @@ classdef postProcessDiagnostics < handle
 
             % ------ Show model with static property ----------------------
             d.Patch = cellDataPatch(d.G, d.Data.static(1).values, ...
-               'Parent', d.Axes3D, 'EdgeColor', [.4 .4 .4], ...
-               'EdgeAlpha', 1, 'BackFaceLighting', 'lit');
+               'Parent', d.Axes3D, 'EdgeColor', [.3 .3 .3], ...
+               'EdgeAlpha', .5, 'BackFaceLighting', 'lit');
             d.Patch = addPatchContextMenu(d.Patch);
             d.Figure.CurrentAxes = d.Axes3D;
-            d.outlineGrid = plotGrid(d.G, 'FaceColor', 'none', 'EdgeAlpha', 0.15, 'EdgeColor', [.4 .4 .4]);
+            d.outlineGrid = plotGrid(d.G, 'FaceColor', 'none', 'EdgeAlpha', 0.15, 'EdgeColor', [.3 .3 .3]);
             axis(d.Axes3D, 'tight', 'vis3d', 'off');
             d.Axes3D.ZDir = 'reverse';
             view(d.Axes3D, 3);
@@ -215,8 +216,8 @@ classdef postProcessDiagnostics < handle
             %return
             % ------ Add colorbar with histogram --------------------------
             d.colorBar = colorbar(d.Axes3D, 'WestOutside', 'AxisLocation', 'in');
-            set(d.colorBar, 'Position',[.24 .8 .01 .19], 'Units', 'pixels');
-            d.colorHAx = axes('Position',[.255 .8 .03 .19], 'Units', 'pixels', 'XDir', 'reverse');
+            set(d.colorBar, 'Position',[.24 .8 .01 .19], 'Units', 'pixels', 'Xaxis', 'left');
+            d.colorHAx = axes('Position',[.255 .8 .03 .19], 'Units', 'pixels');
             d.updateColorHist();
 
             % ------ Construct 2D plot axes -------------------------------
@@ -233,6 +234,14 @@ classdef postProcessDiagnostics < handle
             % finally wells
             d.WellPlot = wellPlotHandle(d.G, d.Data.states{1}.wellSol, ...
                'Visible', 'off', 'Parent', d.Axes3D);
+            for i=1:numel(d.WellPlot.producers)
+                d.WellPlot.producers(i).label.FontSize = 8;
+                d.WellPlot.producers(i).label.BackgroundColor = [.7 .7 .7]; 
+            end
+            for i=1:numel(d.WellPlot.injectors)
+                d.WellPlot.injectors(i).label.FontSize = 8;
+                d.WellPlot.injectors(i).label.BackgroundColor = [.7 .7 .7]; 
+            end
 
             % ------ Set callbacks for 3D axes ----------------------------
             selector3D.tsel.Callback = @(src, event) d.tStepCallback(src, event, selector3D, selector2D);
@@ -243,7 +252,6 @@ classdef postProcessDiagnostics < handle
             % ------ Set callbacks for 2D axes ----------------------------
             selector2D.msel.Callback      = @(src, event)d.measureCallback(src, event, selector2D, selector3D);
             selector2D.asel.Callback      = @(src, event)d.allocationCallback(src, event, selector2D, selector3D);
-            %selector2D.dtsel.Callback     = @(src, event)tracerDistCallback(d, src, event, selector2D, selector3D);
             selector2D.ssel.Callback      = @(src, event)summaryCallback(d, src, event, selector2D);
             selector2D.ssel.regCallback   = @(src, event)selectWellsForSummary(d, src, event, selector2D, selector3D);
             selector2D.dsel.Callback      = @(src, event)d.distributionCallback(src, event, selector2D, selector3D);
@@ -263,10 +271,9 @@ classdef postProcessDiagnostics < handle
                 s2.msel.Enable = 'on';    s2.msel.collapse = 1;
                 s2.asel.Enable = 'off';   s2.asel.collapse = 1;
                 s2.dsel.Enable = 'off';   s2.dsel.collapse = 1;
-                s2.dtsel.Enable = 'off'; s2.dtsel.collapse = 1;
                 set([s3.psel.typePopup, s3.psel.propPopup], 'Enable', 'on');
                 s3.psel.typeIx = 1;
-                s3.psel.propIx = 4;
+                s3.psel.propIx = 1;
                 s3.psel.propPopup.String = {d.Data.static.name};
                 d.displayPropCallback(src, event, s3);
             else
@@ -275,7 +282,7 @@ classdef postProcessDiagnostics < handle
                 s2.dsel.Enable  = 'on';
                 s2.asel.Enable  = 'on';
                 s2.rsel.Enable  = 'on';
-                s2.dtsel.Enable = 'on'; % Activate when this is implemented
+                s3.fsel.collapse = 1;
                 s3.wsel.collapse = 0;
                 if numel(ts) == 1
                     % some stat-stuff
@@ -644,10 +651,12 @@ classdef postProcessDiagnostics < handle
             aPos3D = [mw+sp, 2*sp+ah, fip(3)-mw-2*sp, fip(4)-3*sp-ah];
             cbh    = max(50, min(300, fip(4)-2*sp));
             cbw    = 27;
-            %aPosCB = [mw+2*sp,       fip(4)-cbh-sp, cbw, cbh];
-            aPosCB = [fip(3)-2*cbw-sp, fip(4)-cbh-sp, cbw, cbh];
-            %aPosHA = [mw+2*sp+cbw+5, fip(4)-cbh-sp, cbw, cbh];
-            aPosHA = [fip(3)-cbw-sp+5, fip(4)-cbh-sp, cbw, cbh];
+            % Colorbar left, next to menu 
+            aPosCB = [mw+2*sp,       fip(4)-cbh-sp, cbw, cbh];
+            aPosHA = [mw+2*sp+cbw+5, fip(4)-cbh-sp, cbw, cbh];
+            % Colorbar right
+            % aPosCB = [fip(3)-2*cbw-sp, fip(4)-cbh-sp, cbw, cbh];
+            % aPosHA = [fip(3)-cbw-sp+5, fip(4)-cbh-sp, cbw, cbh];
             d.Menu.Position     = mPos;
             d.Axes2DL.Position  = aPos2DL;
             d.Axes2DR.Position  = aPos2DR;
@@ -1048,7 +1057,8 @@ classdef postProcessDiagnostics < handle
                 end
                 set(d.colorHAx.Children, 'Visible', 'on');
                 colormap(d.Axes3D, 'default');
-                %cb.Position(1) = d.layoutParams.menuWidth + 50;
+                cb.Position(1) = d.layoutParams.menuWidth + 50;
+                d.colorHAx.Position(1) = d.colorBar.Position(1)+d.colorBar.Position(3)+10;
             else
                 if  s3.psel.propIx == 7 % sweep regions
                     ninj = numel(d.WellPlot.injectors);
