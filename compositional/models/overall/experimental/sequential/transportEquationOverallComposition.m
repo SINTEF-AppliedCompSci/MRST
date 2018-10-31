@@ -20,17 +20,21 @@ compFluid = model.EOSModel.fluid;
 
 [sT0, p0, sW0, sO0, sG0, z0, temp0, wellSol0] = model.getProps(state0, ...
     'sT', 'pressure', 'water', 'oil', 'gas', 'z', 'T', 'wellSol');
+
+z = ensureMinimumFraction(z);
+z0 = ensureMinimumFraction(z0);
+
 z = expandMatrixToCell(z);
 z0 = expandMatrixToCell(z0);
 
 ncomp = numel(z);
 cnames = model.EOSModel.fluid.names;
 
-if isfield(state, 'timestep') && opt.iteration == 1
-    p = state.pressure_full;
-    dt_frac = dt/state.timestep;
-    state.pressure = p.*dt_frac + p0.*(1-dt_frac);
-end
+% if isfield(state, 'timestep') && opt.iteration == 1
+%     p = state.pressure_full;
+%     dt_frac = dt/state.timestep;
+%     state.pressure = p.*dt_frac + p0.*(1-dt_frac);
+% end
 
 if model.EOSModel.fastDerivatives
     state.eos.packed = model.EOSModel.getPropertiesFastAD(state.pressure, state.T, state.x, state.y, state.components);
@@ -63,6 +67,12 @@ else
     [krO, krG] = model.evaluateRelPerm(sat);
 end
 
+% [isLiq, isVap, is2ph] = model.EOSModel.getFlag(state);
+% 
+% liquid = isLiq | is2ph;
+% vapor = isVap | is2ph;
+% rhoO(liquid) = rhoO(liquid).*sT(liquid);
+% rhoG(vapor) = rhoG(vapor).*sT(vapor);
 for i = 1:ncomp
     xM{i} = xM{i}.*sT;
     yM{i} = yM{i}.*sT;
@@ -81,8 +91,8 @@ gdz = model.getGravityGradient();
 % rhoOf  = s.faceAvg(sat{1+model.water}.*rhoO)./max(s.faceAvg(sat{1+model.water}), 1e-8);
 % rhoGf  = s.faceAvg(sat{2+model.water}.*rhoG)./max(s.faceAvg(sat{2+model.water}), 1e-8);
 
-rhoOf  = s.faceAvg(sO.*rhoO.*sT)./max(s.faceAvg(sO.*sT), 1e-8);
-rhoGf  = s.faceAvg(sG.*rhoG.*sT)./max(s.faceAvg(sG.*sT), 1e-8);
+rhoOf  = s.faceAvg(sO.*rhoO)./max(s.faceAvg(sO), 1e-8);
+rhoGf  = s.faceAvg(sG.*rhoG)./max(s.faceAvg(sG), 1e-8);
 
 
 % Oil flux
@@ -146,7 +156,7 @@ end
 state = model.storeDensities(state, rhoW, rhoO, rhoG);
 
 totMob = mobWf + mobOf + mobGf;
-totMob = max(totMob, 1e-8);
+% totMob = max(totMob, 1e-8);
 F_o = mobOf./totMob;
 F_g = mobGf./totMob;
 
@@ -307,11 +317,11 @@ end
 if model.water
     wscale = dt./(s.pv*mean(double(rhoW0)));
     eqs{wix} = eqs{wix}.*wscale;
-    
-    scale = (dt./s.pv)./mean(double(sO0).*double(rhoO0) + double(sG0).*double(rhoG0) + double(sW0).*double(rhoW0));
-else
-    scale = (dt./s.pv)./mean(double(sO0).*double(rhoO0) + double(sG0).*double(rhoG0));
 end
+
+massT = model.getComponentScaling(state0);
+scale = (dt./s.pv)./massT;
+
 for i = 1:ncomp
     eqs{i} = eqs{i}.*scale;
 end
