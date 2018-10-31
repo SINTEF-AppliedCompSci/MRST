@@ -48,6 +48,8 @@ classdef OverallCompositionCompositionalModel < ThreePhaseCompositionalModel
                 report.t_compressibility = toc(t2);
             else
                 [x, y, L, Z_L, Z_V] = model.getProps(state, 'x', 'y', 'L', 'Z_L', 'Z_V');
+                x = ensureMinimumFraction(x);
+                y = ensureMinimumFraction(y);
                 x = expandMatrixToCell(x);
                 y = expandMatrixToCell(y);
                 [report.t_derivatives, report.t_compressibility] = deal(0);
