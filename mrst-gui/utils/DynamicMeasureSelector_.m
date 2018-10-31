@@ -1,4 +1,4 @@
-classdef dynamicMeasureSelector < uiItem
+classdef DynamicMeasureSelector < uiItem
     properties
         Callback
         leftPopup

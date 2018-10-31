@@ -1,4 +1,4 @@
-classdef tracerSelector < uiItem
+classdef TracerSelector < uiItem
     properties
         Callback
         leftPopup
