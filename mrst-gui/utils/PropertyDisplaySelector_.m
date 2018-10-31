@@ -1,4 +1,4 @@
-classdef propertyDisplaySelector < uiItem
+classdef PropertyDisplaySelector < UIItem
     properties
         Callback
         typePopup

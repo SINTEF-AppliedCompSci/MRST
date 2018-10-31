@@ -1,4 +1,4 @@
-classdef cellDataPatch < handle
+classdef CellDataPatch < handle
     properties
         fastMode = false % is set to true, only slices are plotted, not lids
         logScale  = false;

@@ -1,4 +1,4 @@
-classdef wellPlotHandle < handle
+classdef WellPlotHandle < handle
     properties
         injectors
         producers

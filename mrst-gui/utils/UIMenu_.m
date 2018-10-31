@@ -1,4 +1,4 @@
-classdef uiMenu < handle
+classdef UIMenu < handle
     properties
         items 
         panel

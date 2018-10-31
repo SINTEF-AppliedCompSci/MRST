@@ -1,4 +1,4 @@
-classdef summarySelector < uiItem
+classdef SummarySelector < UIItem
     properties
         Callback
         regCallback

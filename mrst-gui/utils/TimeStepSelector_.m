@@ -1,4 +1,4 @@
-classdef timeStepSelector < uiItem
+classdef TimeStepSelector < UIItem
     properties
         Callback
         selector

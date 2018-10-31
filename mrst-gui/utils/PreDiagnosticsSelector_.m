@@ -1,4 +1,4 @@
-classdef preDiagnosticsSelector < uiItem
+classdef PreDiagnosticsSelector < UIItem
     properties
         selector
         intervalPopup

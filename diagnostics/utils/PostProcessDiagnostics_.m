@@ -1,4 +1,4 @@
-classdef postProcessDiagnostics < handle
+classdef PostProcessDiagnostics < handle
     properties
         Figure
         Axes3D

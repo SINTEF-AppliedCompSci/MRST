@@ -1,4 +1,4 @@
-classdef uiItem < handle
+classdef UIItem < handle
     properties
         Tag = '';
         panel

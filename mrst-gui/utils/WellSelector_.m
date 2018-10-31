@@ -1,4 +1,4 @@
-classdef wellSelector < uiItem
+classdef WellSelector < uiItem
     properties
         Callback
         injSelector
