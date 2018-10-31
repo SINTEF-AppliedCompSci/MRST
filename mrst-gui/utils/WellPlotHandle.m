@@ -12,7 +12,7 @@ classdef WellPlotHandle < handle
     
     methods
         
-        function s = wellPlotHandle(G, W, varargin)
+        function s = WellPlotHandle(G, W, varargin)
             opt = struct('Parent',     [], ...
                          'Visible',  'on');
             [opt, extraOpt] = merge_options(opt, varargin{:});

@@ -32,9 +32,9 @@ panelProps = struct('HighlightColor',       blue, ...
 dummyPanelProps = panelProps;                
    
 % set default parameters
-if isa(d, 'uiItem')
+if isa(d, 'UIItem')
     d.layout.params = getDefaultsItemParams();
-elseif isa(d, 'uiMenu')
+elseif isa(d, 'UIMenu')
     d.layout.params = getDefaultsMenuParams();
 end
 
@@ -75,10 +75,10 @@ switch styleName
         dummyPanelProps.BackgroundColor = blue;
         
         d.layout.params.outerMargins    = [1 0 1 1];
-        if isa(d, 'uiMenu') && d.level == 1
+        if isa(d, 'UIMenu') && d.level == 1
             d.layout.params.outerMargins    = [1 1 1 1];
         end
-        if isa(d, 'uiMenu')
+        if isa(d, 'UIMenu')
             d.layout.params.vskip = 5;
             d.layout.params.margins    = [4 0 0 0];
         else
@@ -93,7 +93,7 @@ switch styleName
         uistack(d.dummyPanel, 'bottom');
         %uistack(d.dummyPanel, 'up');
         d.dummyStack = 'top';
-        if isa(d, 'uiItem')
+        if isa(d, 'UIItem')
             props.titleBackgroundColor = blue;
             props.BackgroundColor = standard;
             props.titleColor = standard;
@@ -101,12 +101,12 @@ switch styleName
             props.BackgroundColor = blue;
             props.ForegroundColor = standard;
         end
-        if isa(d, 'uiMenu') && d.level == 1
+        if isa(d, 'UIMenu') && d.level == 1
             d.layout.params.dummyOuterMargins    = [2 2 2 2];
         else
             d.layout.params.dummyOuterMargins    = [2 2 2 2];
         end
-        if isa(d, 'uiMenu')
+        if isa(d, 'UIMenu')
             d.layout.params.margins              = [0 0 0 0];
         else
             d.layout.params.margins              = [5 5 1 1];
@@ -121,7 +121,7 @@ switch styleName
         uistack(d.dummyPanel, 'bottom');
         dummyPanelProps.BackgroundColor = blue;
         d.layout.params.outerMargins    = [1 1 1 1];
-        if isa(d, 'uiMenu')
+        if isa(d, 'UIMenu')
             d.layout.params.margins         = [1 1 1 1];
         else
             d.layout.params.margins         = [1 1 1 1];
@@ -140,7 +140,7 @@ setProps(d.dummyPanel, dummyPanelProps)
 d.layout.styleName = styleName;
 d.layout.opt  = layoutOpt; 
 yMrg = sum(d.layout.params.outerMargins(3:4));
-if isa(d, 'uiMenu')
+if isa(d, 'UIMenu')
     d.titleHeight = ceil(18*d.FontSize/10) + yMrg + panelProps.BorderWidth;
 else
     d.titleHeight = ceil(18*d.titleFontSize/10) + yMrg + panelProps.BorderWidth;

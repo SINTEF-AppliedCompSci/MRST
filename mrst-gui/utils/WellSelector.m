@@ -1,4 +1,4 @@
-classdef WellSelector < uiItem
+classdef WellSelector < UIItem
     properties
         Callback
         injSelector
@@ -19,7 +19,7 @@ classdef WellSelector < uiItem
     
     methods
         
-        function s = wellSelector(varargin)
+        function s = WellSelector(varargin)
             
             opt = struct('Parent',          [], ...
                          'Callback',        'disp(''Hello'')', ...
@@ -71,7 +71,7 @@ classdef WellSelector < uiItem
             end
                 
                                       
-            s = s@uiItem('Parent', opt.Parent, 'controls', controls, 'controlWidths', controlWidths, 'Title', opt.Title, ...
+            s = s@UIItem('Parent', opt.Parent, 'controls', controls, 'controlWidths', controlWidths, 'Title', opt.Title, ...
                          'Position', opt.Position,'Visible', 'off', extraOpt{:});
             
             

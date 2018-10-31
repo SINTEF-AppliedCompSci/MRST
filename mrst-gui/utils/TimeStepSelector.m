@@ -11,7 +11,7 @@ classdef TimeStepSelector < UIItem
     
     methods
         
-        function s = timeStepSelector(varargin)
+        function s = TimeStepSelector(varargin)
             
             opt = struct('Parent',          [], ...
                          'Callback',        'disp(''Hello'')', ...
@@ -29,7 +29,7 @@ classdef TimeStepSelector < UIItem
                 selector.TooltipString = opt.TooltipString;
             end
             
-            s = s@uiItem('Parent', opt.Parent, 'controls', {{selector}}, 'Title', opt.Title, ...
+            s = s@UIItem('Parent', opt.Parent, 'controls', {{selector}}, 'Title', opt.Title, ...
                                'Position', opt.Position,'Visible', 'off', extraOpt{:});
             
             s.selector = selector;

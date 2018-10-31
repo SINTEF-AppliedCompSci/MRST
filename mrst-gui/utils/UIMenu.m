@@ -39,7 +39,7 @@ classdef UIMenu < handle
     end
     
     methods
-        function m = uiMenu(varargin)
+        function m = UIMenu(varargin)
             opt = struct('Parent',          [], ...
                          'Callback',        'disp(''Hello'')', ...
                          'Position',  [10 10 200 400], ...
@@ -69,7 +69,7 @@ classdef UIMenu < handle
             % assign items 
             for k = 1:numel(m.items)
                 m.items{k}.panel.Parent     = m.panel;
-                if isa(m.items{k}, 'uiMenu')
+                if isa(m.items{k}, 'UIMenu')
                     m.items{k}.level = m.level + 1;
                 end
                 % also point sub-panels to their item
@@ -308,7 +308,7 @@ classdef UIMenu < handle
                 %l = getGuiLayoutDefaults('layout');
                 mrgs  = d.layout.params.margins;
                 omrgs = d.layout.params.outerMargins;
-                isItem = cellfun(@(x)isa(x, 'uiItem'), d.items);
+                isItem = cellfun(@(x)isa(x, 'UIItem'), d.items);
                 vskips = d.layout.params.vskipItem*isItem + ...
                     d.layout.params.vskipMenu*(~isItem);
                 %vskip = d.layout.params.vskip;
@@ -431,7 +431,7 @@ classdef UIMenu < handle
                 if any(ix)  % resize item above
                     %check that current item is not collapsed
                     item = m.Children(ix).UserData;
-                    if ~isa(item, 'uiItem')
+                    if ~isa(item, 'UIItem')
                         return;
                     end
                     if ~item.collapse

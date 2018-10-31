@@ -1,4 +1,4 @@
-classdef TracerSelector < uiItem
+classdef TracerSelector < UIItem
     properties
         Callback
         leftPopup
@@ -20,7 +20,7 @@ classdef TracerSelector < uiItem
     end
     
     methods
-        function s = tracerSelector(varargin)
+        function s = TracerSelector(varargin)
             sampleProps = {{'none', 'Estimate from TOF', 'Simulated'}};
             opt = struct('Parent',          [], ...
                          'Callback',        'disp(''Hello'')', ...
@@ -80,7 +80,7 @@ classdef TracerSelector < uiItem
             end
             
                
-            s = s@uiItem('Parent', opt.Parent, 'controls', controls, ...
+            s = s@UIItem('Parent', opt.Parent, 'controls', controls, ...
                                 'controlWidths', controlLayout, 'Title', opt.Title, ...
                                 'Position', opt.Position,'Visible', 'off', extraOpt{:});
             

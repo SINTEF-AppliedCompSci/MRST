@@ -17,7 +17,7 @@ classdef PreDiagnosticsSelector < UIItem
     
     methods
         
-        function s = preDiagnosticsSelector(varargin)
+        function s = PreDiagnosticsSelector(varargin)
             
             opt = struct('Parent',          [], ...
                          'Visible',         'on', ...
@@ -55,7 +55,7 @@ classdef PreDiagnosticsSelector < UIItem
             controls = {{selector}, {minSlider, minText}, {maxSlider, maxText}, {intText}, {intervalPopup}, {[], OKButton}};
             layout   = {nan, [.7 .3], [.7 .3], nan, nan, [nan 0.3]};
             pos = [0 0 opt.Parent.Position(3:4)];
-            s = s@uiItem('Parent', opt.Parent, 'controls', controls, 'controlWidths', layout, ...
+            s = s@UIItem('Parent', opt.Parent, 'controls', controls, 'controlWidths', layout, ...
                                'Title', opt.Title, 'Position', pos,'Visible', 'on', extraOpt{:});
                                    
             s.selector      = selector;

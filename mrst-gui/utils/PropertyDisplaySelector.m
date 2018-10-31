@@ -33,7 +33,7 @@ classdef PropertyDisplaySelector < UIItem
     
     methods
         
-        function s = propertyDisplaySelector(varargin)
+        function s = PropertyDisplaySelector(varargin)
             % sampleprops must be updated with limits! will produce error
             sampleProps = struct('static',  struct('name', {{'sp1', 'sp2'}}, 'limits', ones(2,1)*[0 1]), ...
                                  'dynamic', struct('name', {{'dp1', 'dp2', 'dp3'}}, 'limits', ones(3,1)*[0 1]), ...
@@ -113,7 +113,7 @@ classdef PropertyDisplaySelector < UIItem
                 controlLayout = [controlLayout, {[.15 .15 .15 .15 nan]}];
             end
             
-            s = s@uiItem('Parent', opt.Parent, 'controls', controls, ...
+            s = s@UIItem('Parent', opt.Parent, 'controls', controls, ...
                          'controlWidths', controlLayout, 'Title', opt.Title, ...
                          'Position', opt.Position,'Visible', 'off', extraOpt{:});
             

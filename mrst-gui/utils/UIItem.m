@@ -45,14 +45,14 @@ classdef UIItem < handle
     
     %% Fixed props
     properties (SetAccess = immutable)
-        Type      = 'uiItem';
+        Type      = 'UIItem';
         Units     = 'pixels';
         FontUnits = 'points'
     end
     %%
     methods
         %% constructor
-        function d = uiItem(varargin)
+        function d = UIItem(varargin)
             opt = struct('Parent',          [], ...
                          'controls',        {{{[]}}}, ...
                          'controlWidths',   {{}}, ...
@@ -454,7 +454,7 @@ classdef UIItem < handle
             om  = d.layout.params.outerMargins;
             m   = d.layout.params.margins;
             miny = min(pos(:,2));
-            d.Position(4) = ceil(d.Position(4) - miny + sum(m(3:4)));%om(3) + om(4));
+            d.Position(4) = (d.Position(4) - miny + sum(m(3:4)));%om(3) + om(4));
         end
         
         function d = setProp(d, prop, val)

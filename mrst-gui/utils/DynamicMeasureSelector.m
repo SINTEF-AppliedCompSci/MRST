@@ -1,4 +1,4 @@
-classdef DynamicMeasureSelector < uiItem
+classdef DynamicMeasureSelector < UIItem
     properties
         Callback
         leftPopup
@@ -18,7 +18,7 @@ classdef DynamicMeasureSelector < uiItem
     
     methods
         
-        function s = dynamicMeasureSelector(varargin)
+        function s = DynamicMeasureSelector(varargin)
             sampleProps = {{{'none',  'measure1', 'measure2'}}};
             opt = struct('Parent',          [], ...
                          'Callback',        'disp(''Hello'')', ...
@@ -61,7 +61,7 @@ classdef DynamicMeasureSelector < uiItem
             end
             
                
-            s = s@uiItem('Parent', opt.Parent, 'controls', controls, ...
+            s = s@UIItem('Parent', opt.Parent, 'controls', controls, ...
                                 'controlWidths', controlLayout, 'Title', opt.Title, ...
                                 'Position', opt.Position,'Visible', 'off', extraOpt{:});
             
