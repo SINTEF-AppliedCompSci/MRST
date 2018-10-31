@@ -348,7 +348,12 @@ classdef postProcessDiagnostics < handle
                 end
             end
             d.Patch.colorData = displayVals;
-            d.Axes3D.CLim = lims;
+            if diff(lims) ~= 0
+                d.Axes3D.CLim = lims;
+            else
+                d.Axes3D.CLimMode = 'auto';
+                lims = d.Axes3D.CLim;
+            end
             d.updateColorHist();
             d.updateColorBar(s3, lims, isLog);
         end
