@@ -180,7 +180,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
                     printConvergenceReport(resnames, values, converged, iteration);
                 end
             else
-                if isa(model.pressureModel, 'PressureNaturalVariablesModel')
+                if isa(model.pressureModel, 'ThreePhaseCompositionalModel')
                     values = max(abs(sum(state.s, 2) - 1));
                     if ~model.transportModel.useIncTolComposition
                         % Make a normalization of saturations and check if

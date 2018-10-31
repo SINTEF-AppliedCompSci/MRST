@@ -58,7 +58,7 @@ classdef TransportOverallCompositionModel < OverallCompositionCompositionalModel
         function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
             [state, report] = updateAfterConvergence@OverallCompositionCompositionalModel(model, state0, state, dt, drivingForces);
             state.s = bsxfun(@times, state.s, state.sT);
-            state.sT = ones(model.G.cells.num, 1);
+            state = rmfield(state, 'sT');
         end
 
     end

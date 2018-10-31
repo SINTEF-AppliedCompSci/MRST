@@ -80,8 +80,8 @@ for i = 1:ncomp
     xM{i} = xM{i}.*sT;
     yM{i} = yM{i}.*sT;
     
-    xM{i}(isVap) = double(xM{i}(isVap));
-    yM{i}(isLiq) = double(yM{i}(isLiq));
+%     xM{i}(isVap) = double(xM{i}(isVap));
+%     yM{i}(isLiq) = double(yM{i}(isLiq));
 
 %     xM0{i} = xM0{i}.*sT0;
 %     yM0{i} = yM0{i}.*sT0;
