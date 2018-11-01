@@ -1,6 +1,6 @@
 function steps = uiPreSelectTimeSteps(info)
 d = dialog('Resize', 'on');
-s = preDiagnosticsSelector('Parent', d, 'restartInfo', info);
+s = PreDiagnosticsSelector('Parent', d, 'restartInfo', info);
 d.CloseRequestFcn = @setSteps;
 d.SizeChangedFcn  = @updateSize;
 uiwait(d)

@@ -31,7 +31,7 @@ classdef PostProcessDiagnostics < handle
     end
 
     methods
-        function d = postProcessDiagnostics(varargin)
+        function d = PostProcessDiagnostics(varargin)
             opt = struct('style', 'default', 'steps', [], 'maxTOF', 500*year);
             mrstModule add mrst-gui diagnostics deckformat ad-props
             if mod(numel(varargin), 2) == 1  % file-name provided
@@ -91,8 +91,8 @@ classdef PostProcessDiagnostics < handle
             itemOpts = {'Parent', d.Figure, 'Visible','off', 'style', opt.style};
 
             tStepStr = getTStepStrings(d.Data.time.cur, d.Data.time.prev);
-            selector3D.tsel = timeStepSelector('tSteps', tStepStr, itemOpts{:});
-            selector3D.wsel = wellSelector(...
+            selector3D.tsel = TimeStepSelector('tSteps', tStepStr, itemOpts{:});
+            selector3D.wsel = WellSelector(...
                     'injectors', {d.Data.diagnostics(1).WP.inj.name}, ...
                     'producers', {d.Data.diagnostics(1).WP.prod.name}, itemOpts{:});
             selector3D.wsel.communicationMatrix = d.Data.wellComunication;
@@ -110,10 +110,10 @@ classdef PostProcessDiagnostics < handle
                                                                [0 1.001*d.maxTOF/year], [0 1.001*d.maxTOF/year]}}), ...
                              'computed', struct('name', {{}}, 'limits', {{}}));
             d.currentDiagnostics = emptyDiagnostics(d);
-            selector3D.psel = propertyDisplaySelector('props', d.Props, itemOpts{:}, 'includeLogSwitch', true);
+            selector3D.psel = PropertyDisplaySelector('props', d.Props, itemOpts{:}, 'includeLogSwitch', true);
 
             % ------ Selector for property filter in 3D -------------------
-            selector3D.fsel = propertyDisplaySelector( ...
+            selector3D.fsel = PropertyDisplaySelector( ...
                                 'Title', 'Property filter', 'includeFilter', true, ...
                                 'props', d.Props, 'includePlayer', true, ...
                                 itemOpts{:},...
@@ -126,35 +126,35 @@ classdef PostProcessDiagnostics < handle
             % ------ Selector for heterogeneity measures ------------------
             d.Measures = {{'none', 'F-Phi plot', ...
                 'Sweep efficiency', 'Lorenz coefficient'}};
-            selector2D.msel = dynamicMeasureSelector('props', d.Measures, itemOpts{:});
+            selector2D.msel = DynamicMeasureSelector('props', d.Measures, itemOpts{:});
 
             % ------ Selector for well allocation -------------------------
             d.Allocation = {{'none','Well connections', 'Injector volumes', ...
                 'Injector allocation', 'Injector profile', ...
                 'Producer volumes', 'Producer allocation', 'Producer profile'}};
-            selector2D.asel = dynamicMeasureSelector(...
+            selector2D.asel = DynamicMeasureSelector(...
                 'Title','Well allocations', ...
                 'props', d.Allocation, ...
                 'includeAvgSwitch', true, itemOpts{:});
 
             % ------ Selector for summary output  -------------------------
-            selector2D.ssel = summarySelector(d.Data.summary, itemOpts{:});
+            selector2D.ssel = SummarySelector(d.Data.summary, itemOpts{:});
 
             % ------ Selector for RTD distribution  -----------------------
-            selector2D.dsel = tracerSelector(itemOpts{:});
+            selector2D.dsel = TracerSelector(itemOpts{:});
 
             % create menu(s)
             % sub-menu for property display (3d and 2d)
-            m1 = uiMenu('Title', 'Property display selection', 'Parent', d.Figure, ...
+            m1 = UIMenu('Title', 'Property display selection', 'Parent', d.Figure, ...
                         itemOpts{:}, 'items', {selector3D.psel, selector2D.ssel});
             % sub-menu for region selection
-            m2 = uiMenu('Title', 'Region selection', 'Parent', d.Figure, ...
+            m2 = UIMenu('Title', 'Region selection', 'Parent', d.Figure, ...
                         itemOpts{:}, 'items', {selector3D.wsel, selector3D.fsel});
             % sub-menu for diagnostics plots
-            m3 = uiMenu('Title', 'Diagnostics', 'Parent', d.Figure, ...
+            m3 = UIMenu('Title', 'Diagnostics', 'Parent', d.Figure, ...
                         itemOpts{:}, 'items', {selector2D.msel, selector2D.asel, selector2D.dsel});
             % main menu
-            d.Menu = uiMenu('Title', 'Menu', 'Parent', d.Figure, ...
+            d.Menu = UIMenu('Title', 'Menu', 'Parent', d.Figure, ...
                 itemOpts{:}, ...
                 'items', {selector3D.tsel, m1, m2, m3});
 
@@ -202,7 +202,7 @@ classdef PostProcessDiagnostics < handle
             d.interactiveModes           = setInteractiveModes(d.Axes3D);
 
             % ------ Show model with static property ----------------------
-            d.Patch = cellDataPatch(d.G, d.Data.static(1).values, ...
+            d.Patch = CellDataPatch(d.G, d.Data.static(1).values, ...
                'Parent', d.Axes3D, 'EdgeColor', [.3 .3 .3], ...
                'EdgeAlpha', .5, 'BackFaceLighting', 'lit');
             d.Patch = addPatchContextMenu(d.Patch);
@@ -232,7 +232,7 @@ classdef PostProcessDiagnostics < handle
             d = addExtraTools(d);
 
             % finally wells
-            d.WellPlot = wellPlotHandle(d.G, d.Data.states{1}.wellSol, ...
+            d.WellPlot = WellPlotHandle(d.G, d.Data.states{1}.wellSol, ...
                'Visible', 'off', 'Parent', d.Axes3D);
             for i=1:numel(d.WellPlot.producers)
                 d.WellPlot.producers(i).label.FontSize = 8;
@@ -1148,7 +1148,7 @@ for k = 1:nax
     p = [];
     if isa(input, 'matlab.graphics.primitive.Patch')
         p = input;
-    elseif isa(input, 'cellDataPatch')
+    elseif isa(input, 'CellDataPatch')
         p = input.patchMain;
         inputIsPatch = false;
     end
