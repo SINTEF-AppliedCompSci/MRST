@@ -80,6 +80,7 @@ classdef DGDiscretization < WENODiscretization
             if G.griddim == 2
                 if disc.degree == 0 || disc.useUnstructCubature
                     disc.volumeCubature = Unstruct2DCubature(G, prescision, disc.internalConn);
+%                     disc.volumeCubature = MomentFitting2DCubature(G, prescision, disc.internalConn);
                 else
                     disc.volumeCubature = TriangleCubature(G, prescision, disc.internalConn);
                 end
@@ -88,6 +89,8 @@ classdef DGDiscretization < WENODiscretization
                 if disc.degree == 0 || disc.useUnstructCubature
                     disc.volumeCubature  = Unstruct3DCubature(G, prescision, disc.internalConn);
                     disc.surfaceCubature = Unstruct2DCubature(G, prescision, disc.internalConn);
+%                     disc.volumeCubature  = MomentFitting3DCubature(G, prescision, disc.internalConn);
+%                     disc.surfaceCubature = MomentFitting2DCubature(G, prescision, disc.internalConn);
                 else
                     disc.volumeCubature  = TetrahedronCubature(G, prescision, disc.internalConn);
                     disc.surfaceCubature = TriangleCubature(G, prescision, disc.internalConn);

@@ -27,8 +27,7 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
         if model.tryMaxDegree
             % If we are at the first iteration, we try to solve using
             % maximum degree in all cells
-            state.degree(~G.cells.ghost) ...
-                             = repmat(disc.degree, nnz(~G.cells.ghost), 1);
+            state.degree(~G.cells.ghost) = disc.degree;
         end
         % For cells that previously had less than nDof unknowns, we must
         % map old dofs to new
