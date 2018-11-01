@@ -1,6 +1,6 @@
 function state = dgLimiter(disc, state, bad, type, varargin)
 
-    opt = struct('plot', false);
+    opt = struct('plot'  , false);
     opt = merge_options(opt, varargin{:});
     
     nDofMax = disc.basis.nDof;
@@ -17,12 +17,8 @@ function state = dgLimiter(disc, state, bad, type, varargin)
             
          case 'kill'
             % Simple "limiter" that reduces to dG(0) for bad cells
-            
-            % Fix saturation so that it is inside [0,1]
-            ix         = disc.getDofIx(state, 1, bad);
-            sdof(ix,:) = min(max(state.s(bad,:), 0), 1);
-            % Ensure sum(s,2) = 1
-            sdof(ix,:) = sdof(ix,:)./sum(sdof(ix,:),2);
+            ix = disc.getDofIx(state, 1, bad);
+            sdof(ix,:) = state.s(bad,:);
             % Remove dofs for dofNo > 1
             if disc.degree > 0
                 ix         = disc.getDofIx(state, 2:nDofMax, bad);

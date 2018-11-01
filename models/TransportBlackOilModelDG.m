@@ -166,8 +166,8 @@ classdef TransportBlackOilModelDG < TransportBlackOilModel
             ix = model.disc.getDofIx(state, Inf, active);
             for phNo = 1:numel(saturations)
                 if solvedFor(phNo)
-                v = model.getIncrement(dx, problem, saturations{phNo});
-                ds(ix, phNo) = v;
+                    v = model.getIncrement(dx, problem, saturations{phNo});
+                    ds(ix, phNo) = v;
                     if nFill > 0
                         % Saturations added for active variables must be subtracted
                         % from the last phase
@@ -181,6 +181,24 @@ classdef TransportBlackOilModelDG < TransportBlackOilModel
             state   = model.updateStateFromIncrement(state, ds, problem, 'sdof', inf, model.dsMaxAbs);
             state.s = model.disc.getCellSaturation(state);
             
+            if nFill == 1
+                bad = any((state.s > 1 + model.disc.outTolerance) ...
+                        | (state.s < 0 - model.disc.outTolerance), 2);
+                if any(bad)
+                    state.s(bad, :) = min(state.s(bad, :), 1);
+                    state.s(bad, :) = max(state.s(bad, :), 0);
+                    state.s(bad, :) = bsxfun(@rdivide, state.s(bad, :), ...
+                                                  sum(state.s(bad, :), 2));
+                    state = dgLimiter(model.disc, state, bad, 'kill');
+                end
+            else
+                bad = any(state.s < 0 - model.disc.outTolerance, 2);
+                 if any(bad)
+                    state.s(bad, :) = max(state.s(bad, :), 0);
+                    state = dgLimiter(model.disc, state, bad, 'kill');
+                 end
+            end
+
             if model.disc.limitAfterNewtonStep
                 % Limit solution
                 state = model.disc.limiter(model, state, [], true);

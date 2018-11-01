@@ -74,7 +74,6 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
         sTdof     = zeros(size(double(sWdof)));
         sTdof(ix) = 1;
     end
-    nDof = state.nDof;
     %----------------------------------------------------------------------
 
     % Pressure and saturation dependent properties-------------------------
@@ -183,9 +182,9 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     sTc  = disc.evaluateSaturation(xc, c, sTdof , state );
     
     % Face cubature points
-    [WF, xf, ~, fNo] = disc.getCubature((1:G.cells.num)', 'surface');
+    [WF, xf, ~, f] = disc.getCubature((1:G.cells.num)', 'surface');
     % Upstream cells
-    [~, ~, cfV, cfG] = disc.getSaturationUpwind(fNo, xf, T, flux, ...
+    [~, ~, cfV, cfG] = disc.getSaturationUpwind(f, xf, T, flux, ...
                             {gW, gO}, {mobW, mobO}, {sWdof, sOdof}, state);
     
     xfV   = disc.transformCoords(xf, cfV(:,1));
@@ -208,7 +207,7 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
         fWc   = fW(sWc,sOc,sTc,c,c);
         mobOc = mobO(sOc,sTc,c);
         % Face values
-        fWfV   = fW(sWfV, sOfV, sTWfV, cfV(:,1), cfG(:,2));
+        fWfV   = fW(sWfV, sOfV, sTWfV, cfV(:,1), cfV(:,2));
         fWfG   = fW(sWfG, sOfG, sTWfG, cfG(:,1), cfG(:,2));
         mobOfG = mobO(sOfG,sTOfG,cfG(:,2));
         % Accumulation term
@@ -219,15 +218,15 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
                         + mobOc.*disc.dot(TgWc(c,:) - TgOc(c,:),gradPsi));
         integrand = @(psi, gradPsi) acc(psi) - conv(gradPsi);
         % Integrate integrand*psi{dofNo} over all cells for dofNo = 1:nDof
-        cellIntegral = disc.cellInt(integrand, [], state, sWdof);
+        cellIntegralW = disc.cellInt(integrand, [], state, sWdof);
         % Flux term
-        flux = @(psi) ...
-            (sTWfV.*bW(cfV(:,1)).*fWfV.*vT(fNo) ...
-                  + bW(cfG(:,1)).*fWfG.*mobOfG.*(TgW(fNo) - TgO(fNo))).*psi;
+        integrand = @(psi) ...
+            (sTWfV.*bW(cfV(:,1)).*fWfV.*vT(f) ...
+                  + bW(cfG(:,1)).*fWfG.*mobOfG.*(TgW(f) - TgO(f))).*psi;
         % Integrate integrand*psi{dofNo} over all cells surfaces for dofNo = 1:nDof
-        faceIntegrand = disc.faceFluxInt(flux, [], state, sWdof);
+        faceIntegralW = disc.faceFluxInt(integrand, [], state, sWdof);
         % Sum integrals
-        water = cellIntegral + faceIntegrand;
+        water = cellIntegralW + faceIntegralW;
         % Add well contributions
         if ~isempty(W)
             ix = disc.getDofIx(state, Inf, wc);
@@ -240,10 +239,10 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     % Oil equation---------------------------------------------------------
     if opt.solveForOil
          % Cell values
-        fOc   = fO(sWc, sOc, sTc, c, c);
+        fOc   = fO(sWc,sOc,sTc,c,c);
         mobWc = mobW(sWc,sTc,c);
         % Face values
-        fOfV   = fO(sWfV, sOfV, sTOfV, cfV(:,1), cfG(:,2));
+        fOfV   = fO(sWfV, sOfV, sTOfV, cfV(:,1), cfV(:,2));
         fOfG   = fO(sWfG, sOfG, sTOfG, cfG(:,1), cfG(:,2));
         mobWfG = mobW(sWfG,sTWfG,cfG(:,1));
         % Accumulation term
@@ -254,15 +253,15 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
                         + mobWc.*disc.dot(TgOc(c,:) - TgWc(c,:),gradPsi));
         integrand = @(psi, gradPsi) acc(psi) - conv(gradPsi);
         % Integrate integrand*psi{dofNo} over all cells for dofNo = 1:nDof
-        cellIntegral = disc.cellInt(integrand, [], state, sWdof);
+        cellIntegralO = disc.cellInt(integrand, [], state, sOdof);
         % Flux term
-        flux = @(psi) ...
-            (sTOfV.*bO(cfV(:,2)).*fOfV.*vT(fNo) ...
-                  + bO(cfG(:,2)).*fOfG.*mobWfG.*(TgO(fNo) - TgW(fNo))).*psi;
+        integrand = @(psi) ...
+            (sTOfV.*bO(cfV(:,2)).*fOfV.*vT(f) ...
+                  + bO(cfG(:,2)).*fOfG.*mobWfG.*(TgO(f) - TgW(f))).*psi;
         % Integrate integrand*psi{dofNo} over all cells surfaces for dofNo = 1:nDof
-        faceIntegrand = disc.faceFluxInt(flux, [], state, sWdof);
+        faceIntegralO = disc.faceFluxInt(integrand, [], state, sOdof);
         % Sum integrals
-        oil = cellIntegral + faceIntegrand;
+        oil = cellIntegralO + faceIntegralO;
         % Add well contributions
         if ~isempty(W)
             ix = disc.getDofIx(state, Inf, wc);
