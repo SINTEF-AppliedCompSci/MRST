@@ -7,7 +7,7 @@ function G = sortEdges(G)
 % DESCRIPTION: 
 %   Each face has an orientation. A face indexed by `i` is oriented from
 %   `G.faces.neighbors(i, 1)` to `G.faces.neighbors(i, 2)`. The edges
-%   should be ordered in `G.faces.edges` (see `full_grid_structure`)
+%   should be ordered in `G.faces.edges` (see `extended_grid_structure`)
 %   counter-clock-wise with respect to the face orientation. The function
 %   `sortEdges` guarantes that this ordering is satisfied. Such check has
 %   only to be done in 2D because the 3D `grid_structure` standard always
@@ -20,7 +20,7 @@ function G = sortEdges(G)
 %   G - Grid structure with sorted edges.
 %
 % SEE ALSO:
-%  `full_grid_structure`
+%  `extended_grid_structure`
 %
 
 %{

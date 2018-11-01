@@ -13,13 +13,13 @@ function G = createAugmentedGrid(G)
 %   G - Grid structure as described by `grid_structure`.
 %
 % RETURNS:
-%   G - Grid structure as described by `full_grid_structure` (call the
-%       function full_grid_structure to display the documentation).
+%   G - Grid structure as described by `extended_grid_structure` (call the
+%       function extended_grid_structure to display the documentation).
 %
 % NOTE:
 %   The method assumes that the edges are sorted. The sorting rule can be
 %   found found the documentation displayed by calling
-%   `full_grid_structure`. The function `sortEdges` outputs a grid for
+%   `extended_grid_structure`. The function `sortEdges` outputs a grid for
 %   which the edges are guaranted to be sorted.
 
 %{

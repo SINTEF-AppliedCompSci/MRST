@@ -6,7 +6,7 @@ function w  = createGridMappings(G)
 %
 % DESCRIPTION: 
 % Create preliminary structures which is used to conveniently set up the
-% grid mapping, see `full_grid_structure`.
+% grid mapping, see `extended_grid_structure`.
 %
 % PARAMETERS:
 %   G - Grid structure
