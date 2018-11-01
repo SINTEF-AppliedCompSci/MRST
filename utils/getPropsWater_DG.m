@@ -22,9 +22,9 @@ function [vW, bW, mobW, rhoW, pW, upcW, dpW, muW] = getPropsWater_DG(model, pO, 
     dpW   = op.Grad(pW) - rhoWf.*gdz;
     
     muW = fluid.muW(pW);
-    mobW = @(sW,c) mobMult(c).*fluid.krW(sW)./muW(c);
+    mobW = @(sW,sT,c) mobMult(c).*fluid.krW(sW./sT)./muW(c);
     
-    vW = @(sW,c) -mobW(sW,c).*T.*dpW;
+    vW = @(sW,sT,c) -mobW(sW,sT,c).*T.*dpW;
 
     upcW  = (double(dpW)<=0);
     

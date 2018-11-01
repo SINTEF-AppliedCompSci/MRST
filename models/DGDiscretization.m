@@ -338,7 +338,7 @@ classdef DGDiscretization < WENODiscretization
         end
         
         %-----------------------------------------------------------------%
-        function I = cellInt(disc, model, fun, cells, state, state0, varargin)
+        function I = cellInt(disc, fun, cells, state, dof)
             % Integrate integrand over cells
             %
             % PARAMETERS:
@@ -357,41 +357,33 @@ classdef DGDiscretization < WENODiscretization
             %       all cells
             
             psi      = disc.basis.psi;      % Basis functions
-            grad_psi = disc.basis.grad_psi; % Gradient of basis functions
+            gradPsi  = disc.basis.grad_psi; % Gradient of basis functions
             nDof     = state.nDof;          % Number of dofs per cell
             nDofMax  = disc.basis.nDof;     % Maximum number of dofs
-            
             % Empty cells means all cells in grid
             if isempty(cells)
                 cells = (1:disc.G.cells.num)';
             end
-            
             % Get cubature for all cells, transform coordinates to ref space
             [W, x, cellNo, ~] = disc.getCubature(cells, 'volume');
             [x, ~, scaling]   = disc.transformCoords(x, cellNo);
-
-            % Model evaluates integrand at cubature points, and returns
-            % function handle taking psi and grad_psi at the same points as
-            % argumets
-            integrand = model.cellIntegrand(fun, x, cellNo, state, state0, varargin{:});
-            
-            I = getSampleAD(varargin{1})*0;
+            % Evaluate integrals
+            I = dof*0;
             for dofNo = 1:nDofMax
                 keepCells = nDof(cells) >= dofNo;
                 if any(keepCells)
                     ix = disc.getDofIx(state, dofNo, cells(keepCells));
-                    i = W*integrand(psi{dofNo}(x), grad_psi{dofNo}(x).*scaling);
+                    i = W*fun(psi{dofNo}(x), gradPsi{dofNo}(x).*scaling);
                     I(ix) = i(keepCells);
                 elseif numel(cells) == disc.G.cells.num
                     warning('No cells with %d dofs', dofNo);
                 end
             end
             I = disc.trimValues(I);
-            
         end
         
         %-----------------------------------------------------------------%
-        function I = faceFluxInt(disc, model, fun, cells, T, vT, g, mob, state, varargin)
+        function I = faceFluxInt(disc, fun, cells, state, sdof)
             % Integrate integrand over all internal faces of each cell in
             % cells
             %
@@ -412,45 +404,34 @@ classdef DGDiscretization < WENODiscretization
             psi     = disc.basis.psi;  % Basis functions
             nDof    = state.nDof;      % Number of dofs per cell
             nDofMax = disc.basis.nDof; % maximum number of dofs
-        
             % Empty cells means all cells in grid
             if isempty(cells)
                 cells = (1:disc.G.cells.num)';
             end
-            
             % Get cubature for all cells, transform coordinates to ref space
             [W, x, cellNo, faceNo] = disc.getCubature(cells, 'surface');
-            [x_c, ~, ~] = disc.transformCoords(x, cellNo);
-            
+            [xc, ~, ~] = disc.transformCoords(x, cellNo);
             if isempty(faceNo)
                 I = 0;
                 return
             end
-            
-            % Model evaluates integrand at cubature points, and returns
-            % function handle taking psi and grad_psi at the same points as
-            % argumets. Inputs T, vT, g, mob are used to calculate upstram
-            % directions
-            integrand = model.faceIntegrand(fun, x, faceNo, cellNo, ...
-                                        T, vT, g, mob, state, varargin{:});
-
-            I = getSampleAD(varargin{1})*0;
+            % Evaluate integrals
+            I = sdof*0;
             for dofNo = 1:nDofMax                
                 keepCells = nDof(cells) >= dofNo;
                 if any(keepCells)
                     ix = disc.getDofIx(state, dofNo, cells(keepCells)');
-                    i  = W*integrand(psi{dofNo}(x_c));
+                    i  = W*fun(psi{dofNo}(xc));
                     I(ix) = i(keepCells);
                 elseif numel(cells) == disc.G.cells.num
                     warning('No cells with %d dofs', dofNo);
                 end
             end
             I = disc.trimValues(I);
-            
         end
         
         %-----------------------------------------------------------------%
-        function I = faceFluxIntBC(disc, model, fun, bc, state, varargin)
+        function I = faceFluxIntBC(disc, fun, bc, state, sdof)
             % Integrate integrand over all faces where bcs are defined
             %
             % PARAMETERS:
@@ -471,44 +452,28 @@ classdef DGDiscretization < WENODiscretization
             psi     = disc.basis.psi;  % Basis functions
             nDof    = state.nDof;      % Number of dofs per cell
             nDofMax = disc.basis.nDof; % Maximum number of dofs
-            
             % Get faces and corresponding cells where BCs are defined
             faces = bc.face;
             cells = sum(G.faces.neighbors(faces,:),2);
-            
             % Get cubature for each face, find corresponding cells, and
             % transform to reference coords
             [W, x, ~, faceNo] = disc.getCubature(faces, 'face');
             cellNo = sum(G.faces.neighbors(faceNo,:),2);
             [xR, ~, ~] = disc.transformCoords(x, cellNo);
-            
             % Ensure that we have the right sign for the integrals
             sgn = 1 - 2*(G.faces.neighbors(faces, 1) == 0);
             W = W.*sgn;
-            
-            % Mappings from global face/cell numbers to bc face/cell
-            % numbers
-            globFace2BCface = nan(G.faces.num,1);
-            globFace2BCface(faces) = 1:numel(faces);
+            % Mappings from global cell numbers to bc face/cell numbers
             globCell2BCcell = nan(G.cells.num,1);
             globCell2BCcell(cells) = 1:numel(cells);
             S = sparse(globCell2BCcell(cells), 1:numel(faces), 1);
-            
-            % Determine if BC flux is in or out of domain from total flux
-            vT = sum(state.flux,2);
-            isInj = vT(faces) > 0 & sgn < 0;
-            
-            % Model evaluates integrand at cubature points, and returns
-            % function handle taking psi at the same points as argumets
-            integrand = model.faceIntegrandBC(fun, xR, faceNo, cellNo, ...
-                           bc, isInj, globFace2BCface, state, varargin{:});
-
-            I = getSampleAD(varargin{1})*0;
+            % Evaluate integrals
+            I = getSampleAD(sdof)*0;
             for dofNo = 1:nDofMax
                 keepCells = nDof(cells) >= dofNo;
                 if any(keepCells)
                     ix = disc.getDofIx(state, dofNo, cells(keepCells)');
-                    i  = W*integrand(psi{dofNo}(xR));
+                    i  = W*fun(psi{dofNo}(xR));
                     i = S*i;
                     I(ix) = i(keepCells);
                 end
@@ -635,21 +600,21 @@ classdef DGDiscretization < WENODiscretization
             if isfield(G, 'mappings')
                 check(G.cells.ghost) = false;
             end
-
-                % Limiters to be applied after each Newton iteration
-                if disc.meanTolerance < Inf
-                    % If the mena cell saturation is outside [0,1],
-                    % something is wrong, and we reduce to order 0
-                    s = state.s;
-                    meanOutside = any(s < 0 - disc.meanTolerance | ...
-                                      s > 1 + disc.meanTolerance, 2);
-                    bad = meanOutside & check;
-                    if any(bad)
-                        state = dgLimiter(disc, state, bad, 'kill', 'plot', disc.plotLimiterProgress);
-                    end 
-                end
                 
             if before
+                
+                % Limiters to be applied after each Newton iteration
+%                 if disc.meanTolerance < Inf
+%                     % If the mena cell saturation is outside [0,1],
+%                     % something is wrong, and we reduce to order 0
+%                     s = state.s;
+%                     meanOutside = any(s < 0 - disc.meanTolerance | ...
+%                                       s > 1 + disc.meanTolerance, 2);
+%                     bad = meanOutside & check;
+%                     if any(bad)
+%                         state = dgLimiter(disc, state, bad, 'kill', 'plot', disc.plotLimiterProgress);
+%                     end 
+%                 end
                 
                 if disc.degree > 0
                     if disc.outTolerance < Inf && 1

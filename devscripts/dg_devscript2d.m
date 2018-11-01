@@ -1,4 +1,5 @@
 mrstModule add dg vem vemmech ad-props ad-core ad-blackoil blackoil-sequential gasinjection mrst-gui reorder matlab_bgl
+mrstVerbose on;
 
 %%
 
@@ -7,7 +8,7 @@ gravity reset on; gravity([0,-9.81]);
 
 
 
-n = 10;
+n = 3;
 l = 1000;
 G = computeGeometry(cartGrid([n,n], [l,l]*meter));
 G = computeVEMGeometry(G);
@@ -49,12 +50,12 @@ state0 = initResSol(G, 100*barsa, [sW,1-sW]);
 
 degree = [0, 1, 2, 3, 4, 5];
 % degree = [4];
-degree = [0,1,2];
+degree = [0,1];
 [jt, ot, mt] = deal(Inf);
 % 
 jt = 0.2;
-mt = 0.0;
-ot = 0.0;
+mt = 1e-3;
+ot = 1e-3;
 % ot = 0.2;
 
 
@@ -71,8 +72,12 @@ for dNo = 1:numel(degree)
                                     'plotLimiterProgress', false);
     modelDG.transportModel = TransportOilWaterModelDG(G, rock, fluid, ...
                                        'disc'    , disc{dNo}        , ...
-                                       'dsMaxAbs', Inf, ...
+                                       'dsMaxAbs', 0.2, ...
                                        'nonlinearTolerance', 1e-3);
+    
+    modelDG.transportModel.conserveOil = true;
+    modelDG.transportModel.conserveWater = true;
+    
     modelDG.pressureModel = PressureOilWaterModelSemiDG(G, rock, fluid, ...
                                        'disc'    , disc{dNo}        );
     modelDG.transportNonLinearSolver = nls;
@@ -89,8 +94,11 @@ end
 
 close all
 
+dsnDG = cellfun(@(d) ['dG(' num2str(d), ')'] , num2cell(degree), 'unif', false);
+dsn = horzcat('FV', dsnDG);
+
 for dNo = 1:numel(degree)
-    figure
+    figure('name', dsnDG{dNo})
     plotToolbar(G, statesDG{dNo});
     colormap(jet);
 end
@@ -98,9 +106,6 @@ end
 figure
 plotToolbar(G, statesFV);
 colormap(jet)
-
-dsnDG = cellfun(@(d) ['dG(' num2str(d), ')'] , num2cell(degree), 'unif', false);
-dsn = horzcat('FV', dsnDG);
 
 plotWellSols({wsFV, wsDG{:}}, schedule.step.val, 'datasetNames', dsn)
 % plotWellSols({wsFV, wsDG{:}, wsDGReorder}, schedule.step.val)

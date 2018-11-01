@@ -9,9 +9,9 @@ function [vO, bO, mobO, rhoO, pO, upcO, dpO, muO] = getPropsOil_DG(model, pO, T,
     dpO    = op.Grad(pO) - rhoOf.*gdz;
     
     muO = fluid.muO(pO);
-    mobO = @(sO,c) mobMult(c).*fluid.krO(sO)./muO(c);
+    mobO = @(sO,sT,c) mobMult(c).*fluid.krO(sO./sT)./muO(c);
     
-    vO = @(sO,c) -mobO(sO,c).*T.*dpO;
+    vO = @(sO,sT,c) -mobO(sO,sT,c).*T.*dpO;
 
     upcO  = (double(dpO)<=0);
 

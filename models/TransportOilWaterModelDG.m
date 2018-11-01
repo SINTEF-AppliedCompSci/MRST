@@ -8,6 +8,8 @@ classdef TransportOilWaterModelDG < TransportBlackOilModelDG
             model.oil   = true;
             model.water = true;
             model.gas   = false;
+            model.conserveWater = true;
+            model.conserveOil   = false;
         end
 
         % ----------------------------------------------------------------%
@@ -18,6 +20,7 @@ classdef TransportOilWaterModelDG < TransportBlackOilModelDG
                                   'solveForWater', model.conserveWater, ...
                                   varargin{:}                         );
         end
+        
     end
 end
 

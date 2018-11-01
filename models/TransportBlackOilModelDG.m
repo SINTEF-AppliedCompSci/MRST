@@ -8,6 +8,7 @@ classdef TransportBlackOilModelDG < TransportBlackOilModel
     end
 
     methods
+        % ----------------------------------------------------------------%
         function model = TransportBlackOilModelDG(G, rock, fluid, varargin)
             
             model = model@TransportBlackOilModel(G, rock, fluid);
@@ -44,16 +45,16 @@ classdef TransportBlackOilModelDG < TransportBlackOilModel
             % SEE ALSO:
             %   :meth:`ad_core.models.PhysicalModel.getVariableField`
             switch(lower(name))
-                case {'water', 'swdof'}
+                case {'swdof'}
                     index = 1;
                     fn = 'sdof';
-                case {'oil', 'sodof'}
+                case {'sodof'}
                     index = 2;
                     fn = 'sdof';
-                case {'gas', 'sgdof'}
+                case {'sgdof'}
                     index = 3;
                     fn = 'sdof';
-                case{'saturation', 'sdof'}
+                case{'sdof'}
                     index = ':';
                     fn = 'sdof';
                 otherwise
@@ -63,63 +64,46 @@ classdef TransportBlackOilModelDG < TransportBlackOilModel
         end
 
         % ----------------------------------------------------------------%
-        function vars = getSaturationVarNames(model)
-            vars = {'sWdof', 'sOdof', 'sGdof'};
+        function vars = getDGDofVarNames(model)
+            vars = {'swdof', 'sodof', 'sgdof'};
             ph = model.getActivePhases();
             vars = vars(ph);
         end
-        
-        %-----------------------------------------------------------------%
-        function integrand = cellIntegrand(model, fun, x, cellNo, state, state0, sdof, sdof0, f)            
+                
+        % ----------------------------------------------------------------%
+        function [restVars, satDofVars, wellVars] = splitPrimaryVariables(model, vars)
+            % Split cell array of primary variables into grouping
+            % SYNOPSIS:
+            %   [restVars, satVars, wellVars] = model.splitPrimaryVariables(vars)
+            %
+            % DESCRIPTION:
+            %   Split a set of primary variables into three groups:
+            %   Well variables, saturation variables and the rest. This is
+            %   useful because the saturation variables usually are updated
+            %   together, and the well variables are a special case.
+            %
+            % PARAMETERS:
+            %   model - Class instance.
+            %   vars  - Cell array with names of primary variables
+            %
+            % RETURNS:
+            %   restVars - Names of variables that are not saturations or
+            %              belong to the wells.
+            %   satVars  - Names of the saturation variables present in `vars`.
+            %   wellVars - Names of the well variables present in `vars`
             
-            % Evaluate saturations and fractional flow at cubature points
-            s  = model.disc.evaluateSaturation(x, cellNo, sdof , state );
-            s0 = model.disc.evaluateSaturation(x, cellNo, sdof0, state0);
-            f = f(s, 1-s, cellNo, cellNo);
-            integrand = @(psi, grad_psi) fun(s, s0, f, cellNo, psi, grad_psi);
-            
-        end
-        
-        %-----------------------------------------------------------------%
-        function integrand = faceIntegrand(model, fun, x, faceNo, cellNo, T, vT, g, mob, state, sdof, f)
-            % TODO: See if upwind direction changes a lot during nonlinear
-            % solution. If so, maybe fix upstream after iteratio n as in "A
-            % fully-coupled upwind discontinuous ..."
-            
-            % Get upstream cells and upstram saturations at given
-            % quadrature points
-            [flag_v, flag_G, upCells_v, upCells_G, s_v, s_G] ...
-                = model.disc.getSaturationUpwind(faceNo, x, T, vT, g, mob, sdof, state);
-            
-            f_v = f(s_v{1}, 1-s_v{2}, upCells_v{1}, upCells_v{2});
-            f_G = f(s_G{1}, 1-s_G{2}, upCells_G{1}, upCells_G{2});
-            
-            integrand = @(psi) fun(s_v{1}, s_G{1}, f_v, f_G, cellNo, upCells_v{1}, upCells_G{1}, faceNo, psi);
+            wellvars = model.FacilityModel.getPrimaryVariableNames();
+            isSatDof = cellfun(@(x) any(strcmpi(model.getDGDofVarNames, x)), vars);
+            isWells  = cellfun(@(x) any(strcmpi(wellvars, x)), vars);
 
-        end
-        
-        %-----------------------------------------------------------------%
-        function integrand = faceIntegrandBC(model, fun, x, faceNo, cellNo, bc, isInj, globFace2BCface, state, sdof, f)
-            
-            % Get upstream cells and upstram saturations at given
-            % quadrature points
-            
-            
-            locFaceNo = globFace2BCface(faceNo);
-            
-            sL = bc.sat(:,1);
-            sL = sL(locFaceNo);
-            sR = model.disc.evaluateSaturation(x, cellNo, sdof, state);
-            s = sL.*isInj(locFaceNo) + sR.*(~isInj(locFaceNo));
-            f = f(s, 1-s, cellNo, cellNo);
-            
-            integrand = @(psi) fun(s, f, cellNo, faceNo, psi);
-            
-            
+            wellVars   = vars(isWells);
+            satDofVars = vars(isSatDof);
+
+            restVars = vars(~isSatDof & ~isWells);
         end
         
         % ----------------------------------------------------------------%
-        function state = updateSaturations(model, state, dx, problem, satVars)
+        function state = updateSaturations(model, state, dx, problem, satDofVars)
             % Update of phase-saturations
             %
             % SYNOPSIS:
@@ -150,44 +134,71 @@ classdef TransportBlackOilModelDG < TransportBlackOilModel
 
             if nargin < 5
                 % Get the saturation names directly from the problem
-                [~, satVars] = ...
+                [~, satDofVars] = ...
                     splitPrimaryVariables(model, problem.primaryVariables);
             end
-            if isempty(satVars)
+            if isempty(satDofVars)
                 % No saturations passed, nothing to do here.
                 return
             end
             % Solution variables should be saturations directly, find the missing
             % link
-            saturations = lower(model.getSaturationVarNames);
-            fillsat = setdiff(saturations, lower(satVars));
-            assert(numel(fillsat) == 1)
-            fillsat = fillsat{1};
-
-            % Fill component is whichever saturation is assumed to fill up the rest of
-            % the pores. This is done by setting that increment equal to the
-            % negation of all others so that sum(s) == 0 at end of update
-            solvedFor = ~strcmpi(saturations, fillsat);
+            saturations = lower(model.getDGDofVarNames);
+            
+            fillsat = setdiff(saturations, lower(satDofVars));
+            nFill = numel(fillsat);
+            assert(nFill == 0 || nFill == 1)
+            if nFill == 1
+                % Fill component is whichever saturation is assumed to fill up the rest of
+                % the pores. This is done by setting that increment equal to the
+                % negation of all others so that sum(s) == 0 at end of update
+                fillsat = fillsat{1};
+                solvedFor = ~strcmpi(saturations, fillsat);
+            else
+                % All saturations are primary variables. Sum of saturations is
+                % assumed to be enforced from the equation setup
+                solvedFor = true(numel(saturations), 1);
+            end
             ds = zeros(sum(state.nDof), numel(saturations));
             
             tmp = 0;
             active = ~model.G.cells.ghost;
             ix = model.disc.getDofIx(state, Inf, active);
-            for i = 1:numel(saturations)
-                if solvedFor(i)
-                    v = model.getIncrement(dx, problem, saturations{i});
-                    ds(ix, i) = v;
-                    % Saturations added for active variables must be subtracted
-                    % from the last phase
-                    tmp = tmp - v;
+            for phNo = 1:numel(saturations)
+                if solvedFor(phNo)
+                    v = model.getIncrement(dx, problem, saturations{phNo});
+                    ds(ix, phNo) = v;
+                    if nFill > 0
+                        % Saturations added for active variables must be subtracted
+                        % from the last phase
+                        tmp = tmp - v;
+                    end
                 end
             end
             ds(ix, ~solvedFor) = tmp;
             % We update all saturations simultanously, since this does not bias the
             % increment towards one phase in particular.
-            state = model.updateStateFromIncrement(state, ds, problem, 'sdof', inf, model.dsMaxAbs);
+            state   = model.updateStateFromIncrement(state, ds, problem, 'sdof', inf, model.dsMaxAbs);
             state.s = model.disc.getCellSaturation(state);
             
+            if nFill == 1
+                bad = any((state.s > 1 + model.disc.outTolerance) ...
+                        | (state.s < 0 - model.disc.outTolerance), 2);
+                if any(bad)
+                    state.s(bad, :) = min(state.s(bad, :), 1);
+                    state.s(bad, :) = max(state.s(bad, :), 0);
+                    state.s(bad, :) = bsxfun(@rdivide, state.s(bad, :), ...
+                                                  sum(state.s(bad, :), 2));
+                    state = dgLimiter(model.disc, state, bad, 'kill');
+                end
+            else
+                bad = any(state.s < 0 - model.disc.outTolerance, 2);
+                 if any(bad)
+                    state.s(bad, :) = max(state.s(bad, :), 0);
+                    state = dgLimiter(model.disc, state, bad, 'kill');
+                 end
+            end
+
             if model.disc.limitAfterNewtonStep
                 % Limit solution
                 state = model.disc.limiter(model, state, [], true);
