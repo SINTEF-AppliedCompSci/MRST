@@ -18,7 +18,7 @@ classdef Unstruct3DCubature < Cubature
             cub.dim = 3;
             
             numParents = G.cells.num;
-            cub.parentPos = (0:cub.numPoints:numParents*cub.numPoints)' + 1;
+            cub.pos = (0:cub.numPoints:numParents*cub.numPoints)' + 1;
             
         end
         

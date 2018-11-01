@@ -8,6 +8,8 @@ classdef Cubature
         points       % Cubature points
         weights      % Cubature weights
         numPoints    % Number of cubature points
+        pos          % Cubature points/weights for element e can be found
+                     % in ix = cubature.pos(e):cubature.pos(e+1)-1
         dim          % Dimension of cubature
         internalConn % Boolean indicating if face is internal connection
         
@@ -23,6 +25,7 @@ classdef Cubature
             cubature.prescision   = prescision;
             cubature.points       = [];
             cubature.weights      = [];
+            cubature.pos          = [];
             cubature.dim          = G.griddim;
             cubature.internalConn = internalConn;
             
@@ -84,10 +87,10 @@ classdef Cubature
                     switch type
                         case 'volume'
                             % Index of cubature points and weights
-                            ix = mcolon(cubature.parentPos(elements), ...
-                                         cubature.parentPos(elements+1)-1);
+                            ix = mcolon(cubature.pos(elements), ...
+                                         cubature.pos(elements+1)-1);
                             % Number of cubature points for each cell
-                            nq = diff(cubature.parentPos);
+                            nq = diff(cubature.pos);
                             nq = nq(elements);
                             % Decode cell numbers so we know what cubature
                             % point goes where
@@ -100,12 +103,12 @@ classdef Cubature
                     end
                 case 1
                     % This must be a cubature for the grid faces
-                    nqf = diff(cubature.parentPos); % Cub points per face
+                    nqf = diff(cubature.pos); % Cub points per face
                     switch type
                         case 'face'
                             % Index of cubature points and weights
-                            ix = mcolon(cubature.parentPos(elements), ...
-                                         cubature.parentPos(elements+1)-1);
+                            ix = mcolon(cubature.pos(elements), ...
+                                         cubature.pos(elements+1)-1);
                             % Number of points per face
                             nq = nqf(elements);
                             % Decode face numbers so we know what cubature
@@ -134,10 +137,10 @@ classdef Cubature
                             end
                             if size(faces,1) == 1, faces = faces'; end
                             % Index of cubature points and weights
-                            ix = mcolon(cubature.parentPos(faces), ...
-                                        cubature.parentPos(faces+1)-1);
+                            ix = mcolon(cubature.pos(faces), ...
+                                        cubature.pos(faces+1)-1);
                             % Get number of cubature points for each cell
-                            nqf = diff(cubature.parentPos);
+                            nqf = diff(cubature.pos);
                             nq = accumarray(rldecode((1:numel(elements))', ncf, 1), nqf(faces));
                             % Avoid returning empty nq
                             if isempty(nq), nq = 0; end
