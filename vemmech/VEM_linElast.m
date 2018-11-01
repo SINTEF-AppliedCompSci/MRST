@@ -7,7 +7,7 @@ function [uu, extra] = VEM_linElast(G, C, el_bc, load, varargin)
 % DESCRIPTION: Assemble and solve the linear elastisity equations using the
 % Virtual Element method.
 % PARAMETERS:
-%   G        - Grid structure as described by full_grid_structure
+%   G        - Grid structure as described by extended_grid_structure
 %   C        - Elasticity tensor
 %   el_bc    - Elastic boundary condition structure. It contains the fields
 %             'disp_bc'  : displacement boundary condition. It contains the
