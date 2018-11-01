@@ -6,7 +6,7 @@ function [V, dVdp] = getPartialVolumes(model, state, varargin)
     V = getPartialVolumesInternal(model, state, opt);
     if nargout > 1
         state1 = state;
-        dp = mean(state.pressure)*1e-3;
+        dp = mean(state.pressure)*1e-6;
         state1.pressure = state1.pressure - dp;
         state1 = model.computeFlash(state1, inf);
         
