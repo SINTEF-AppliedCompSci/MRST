@@ -58,6 +58,8 @@ end
 [xM,  yM,  sO,  sG,  rhoO,  rhoG, muO, muG] = model.computeTwoPhaseFlowProps(state, p, temp, z);
 [xM0, yM0, ~, ~, rhoO0, rhoG0]          = model.computeTwoPhaseFlowProps(state0, p0, temp0, z0);
 
+[pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
+
 if model.water
     sat = {sW, sO, sG};
 else
@@ -66,11 +68,15 @@ end
 
 if model.water
     [krW, krO, krG] = model.evaluateRelPerm(sat);
+    krW = mobMult.*krW;
 else
     [krO, krG] = model.evaluateRelPerm(sat);
 end
 
-[isLiq, isVap, is2ph] = model.EOSModel.getFlag(state);
+krO = mobMult.*krO;
+krG = mobMult.*krG;
+
+% [isLiq, isVap, is2ph] = model.EOSModel.getFlag(state);
 % 
 % liquid = isLiq | is2ph;
 % vapor = isVap | is2ph;
@@ -90,7 +96,7 @@ end
 
 % disp([min(double(sT)), max(double(sT))])
 % Compute transmissibility
-T = s.T;
+T = transMult.*s.T;
 
 % Gravity gradient per face
 gdz = model.getGravityGradient();
@@ -185,13 +191,8 @@ end
 % rOvO = s.faceUpstr(upco, sT).*rOvO;
 % rGvG = s.faceUpstr(upcg, sT).*rGvG;
 
-pv = model.operators.pv;
-pv0 = pv;
-if isfield(fluid, 'pvMultR')
-    pv = pv.*fluid.pvMultR(p);
-    pv0 = pv0.*fluid.pvMultR(p0);
-end
-
+pv = pvMult.*model.operators.pv;
+pv0 = pvMult0.*pv;
 
 % water equation + n component equations
 [eqs, types, names] = deal(cell(1, ncomp + model.water));
