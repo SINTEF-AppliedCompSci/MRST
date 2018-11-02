@@ -105,41 +105,19 @@ classdef MomentFitting2DCubature < Cubature
                     m(abs(m) < tol) = 0;
                     rhs(dofNo, :) = m;
                 end
-                % Matrix of basis functions evalauted at current quadrature
-                % points
-                P      = reshape(cell2mat(cellfun(@(p) p(x), psi, 'unif', false)), [], nDof)';
-                % Compute significance
-                significance = sum(P.^2,1);
-                % Compute weights
-                w      = reshape((P'/(P*P'))*rhs, [], 1);
-                % Try to eliminate least significant point until we have
-                % exactly nDof quadrature points
+                moments = rhs(:);
+%                 % Matrix of basis functions evalauted at current quadrature
+%                 % points
+%                 P      = reshape(cell2mat(cellfun(@(p) p(x), psi, 'unif', false)), [], nDof)';
+%                 % Compute significance
+%                 significance = sum(P.^2,1);
+%                 % Compute weights
+%                 W = zeros(size(P,2), G.cells.num);
+%                 I = eye(size(P,2));
                 
-                if cubature.reduce
-                    k = n;
-                    tol = 1e-3;
-                    while k > nDof
-                        [~, ix] = sort(significance);
-                        xPrev = x;
-                        wPrev = w;
-                        for m = 1:numel(ix)
-                            x(ix(m),:) = [];
-                            P = reshape(cell2mat(cellfun(@(p) p(x), psi, 'unif', false)), [], nDof)';
-                            A = (P*P');
-                            w = reshape((P'/A)*rhs, [], 1);
-                            if all(isfinite(w)) && rcond(A) > tol
-                                significance = sum(P.^2,1);
-                                k = k-1;
-                                break
-                            else
-                                x = xPrev;
-                                w = wPrev;
-                            end
-                        end
-
-                    end
-                    n = k;
-                end
+                moments = moments./rldecode(G.cells.volumes, nDof, 1);
+                [x,w,n] = fitMoments(x, basis, moments, num);
+%                 w = w;
             end
             
             % Map from reference to physical coordinates
