@@ -115,7 +115,7 @@ classdef MomentFitting2DCubature < Cubature
 %                 W = zeros(size(P,2), G.cells.num);
 %                 I = eye(size(P,2));
                 
-                moments = moments./rldecode(G.cells.volumes, nDof, 1);
+                moments = moments;%./rldecode(G.cells.volumes, nDof, 1);
                 [x,w,n] = fitMoments(x, basis, moments, num);
 %                 w = w;
             end
