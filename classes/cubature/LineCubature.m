@@ -23,8 +23,8 @@ classdef LineCubature < Cubature
         end
         
         %-----------------------------------------------------------------%
-        function x = mapCoords(cubature, x)
-            % Map cubatureature points from [0,1] to physical coordinates
+        function x = mapCoords(cubature, x, xR)
+            % Map cubatureature points from reference to physical coordinates
             
             G     = cubature.G;
             % Number of line vertices
@@ -35,19 +35,26 @@ classdef LineCubature < Cubature
             % Total number of lines
             nLin  = G.faces.num;
             % Node coordinates
-            xl    = G.nodes.coords(nodes,:);
+            xn = G.nodes.coords(nodes,:);
+            x1 = xn(1:2:end,:);
+            x2 = xn(2:2:end,:);
+            
+            vec = rldecode(x2-x1, nq, 1);
+            x1  = rldecode(x1, nq, 1);
+            
+            x = (repmat(x,nLin,1)-xR(1))./(xR(2) - xR(1)).*vec + x1;
             % Create mapping
-            R     = zeros(nPts, G.griddim*nLin);
-            for dNo = 1:G.griddim
-                R(:,dNo:G.griddim:end) = reshape(xl(:,dNo), nPts, []);
-            end
-            % Map coordinates
-            xx = x*R;
-            x = zeros(nLin*nq, G.griddim);
-            for dNo = 1:G.griddim
-                xtmp     = xx(:, dNo:G.griddim:end);
-                x(:,dNo) = xtmp(:);
-            end
+%             R     = zeros(nPts, G.griddim*nLin);
+%             for dNo = 1:G.griddim
+%                 R(:,dNo:G.griddim:end) = reshape(xn(:,dNo), nPts, []);
+%             end
+%             % Map coordinates
+%             xx = x*R;
+%             x = zeros(nLin*nq, G.griddim);
+%             for dNo = 1:G.griddim
+%                 xtmp     = xx(:, dNo:G.griddim:end);
+%                 x(:,dNo) = xtmp(:);
+%             end
             
         end
         
@@ -59,9 +66,9 @@ classdef LineCubature < Cubature
             % Total number of lines
             nLin = G.faces.num;
             % Get points and weights
-            [x, w, n] = getLineCubaturePointsAndWeights(cubature.prescision);
+            [x, w, n, xR] = getLineCubaturePointsAndWeights(cubature.prescision);
             % Map to physical coordinates
-            x = cubature.mapCoords(x);
+            x = cubature.mapCoords(x, xR);
             % Multiply weights by line lenghts
             linNo = reshape(repmat(1:G.faces.num, n, 1), [], 1);
             w = repmat(w, nLin, 1).*G.faces.areas(linNo);

@@ -82,7 +82,38 @@ classdef TetrahedronCubature < Cubature
         end
        
         %-----------------------------------------------------------------%
-        function x = mapCoords(cubature, x)
+        function x = mapCoords(cubature, x, xR)
+            % Map cubature points from Barycentric to physical coordinates
+            
+            G    = cubature.G;
+            % Number of triangle vertices
+            nPts = 4;
+            % Total number of cubature points
+            nq   = size(x,1);
+            % Total number of triangles
+            nTet = sum(cubature.triangulation.nTet);
+            % Triangulation points
+            ind  = reshape(cubature.triangulation.ConnectivityList', [], 1);
+            xt   = cubature.triangulation.Points(ind,:);
+            % Compute mappings from reference to physical triangles
+            XI = [xR, ones(4,1)];
+            X  = zeros(nPts, G.griddim*nTet);
+            for dNo = 1:G.griddim
+                X(:,dNo:G.griddim:end) = reshape(xt(:,dNo), nPts, []);
+            end
+            R = XI\X;
+            % Map coordinates
+            xx = x*R(1:3,:) + R(4,:);
+            x  = zeros(nTet*nq, G.griddim);
+            for dNo = 1:G.griddim
+                xtmp     = xx(:, dNo:G.griddim:end);
+                x(:,dNo) = xtmp(:);
+            end
+            
+        end
+        
+        %-----------------------------------------------------------------%
+        function x = mapCoordsBary(cubature, x)
             % Map cubature points from Barycentric to physical coordinates
             
             G    = cubature.G;
@@ -117,9 +148,9 @@ classdef TetrahedronCubature < Cubature
             % Get vectors defining three edges
             ind = cubature.triangulation.ConnectivityList;
             x   = cubature.triangulation.Points;
-            vec1 = x(ind(:,1),:)  - x(ind(:,2),:);
-            vec2 = x(ind(:,1),:)  - x(ind(:,3),:);
-            vec3 = x(ind(:,1),:)  - x(ind(:,4),:);
+            vec1 = x(ind(:,1),:) - x(ind(:,2),:);
+            vec2 = x(ind(:,1),:) - x(ind(:,3),:);
+            vec3 = x(ind(:,1),:) - x(ind(:,4),:);
             % Compute volumes
             volumes = abs(dot(cross(vec1, vec2, 2), vec3, 2))/6;
             
@@ -132,9 +163,13 @@ classdef TetrahedronCubature < Cubature
             % Numbe of tetrahedrons per cell
             nTri      = sum(cubature.triangulation.nTet);
             % Cubature points and weights
-            [x, w, n] = getTetrahedronCubaturePointsAndWeights(cubature.prescision);
+            [x, w, n, xR] = getTetrahedronCubaturePointsAndWeights(cubature.prescision);
+            % Map to physical coords
+            x = cubature.mapCoords(x, xR);
+%             [x, w, n] = getTriangleCubaturePointsAndWeightsBary(cubature.prescision);
+%             x = cubature.mapCoordsBary(x);
             % Map to physical coordinates
-            x         = cubature.mapCoords(x);
+%             x         = cubature.mapCoords(x);
             % Multiply weights by tetrahedron volumes
             tetNo     = reshape(repmat(1:sum(cubature.triangulation.nTet), n, 1), [], 1);
             volumes   = cubature.getTetVolumes();

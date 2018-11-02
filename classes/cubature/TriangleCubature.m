@@ -88,7 +88,7 @@ classdef TriangleCubature < Cubature
         end
         
         %-----------------------------------------------------------------%
-        function x = mapCoords(cubature, x)
+        function x = mapCoords(cubature, x, xR)
             % Map cubature points from Barycentric to physical coordinates
             
             G    = cubature.G;
@@ -101,6 +101,38 @@ classdef TriangleCubature < Cubature
             % Triangulation points
             ind  = reshape(cubature.triangulation.ConnectivityList', [], 1);
             xt   = cubature.triangulation.Points(ind,:);
+            % Compute mappings from reference to physical triangles
+            XI = [xR, ones(3,1)];
+            X  = zeros(nPts, G.griddim*nTri);
+            for dNo = 1:G.griddim
+                X(:,dNo:G.griddim:end) = reshape(xt(:,dNo), nPts, []);
+            end
+            R = XI\X;
+            % Map coordinates
+            xx = x*R(1:2,:) + R(3,:);
+            x  = zeros(nTri*nq, G.griddim);
+            for dNo = 1:G.griddim
+                xtmp     = xx(:, dNo:G.griddim:end);
+                x(:,dNo) = xtmp(:);
+            end
+            
+        end
+        
+         %-----------------------------------------------------------------%
+        function x = mapCoordsBary(cubature, x)
+            % Map cubature points from Barycentric to physical coordinates
+            
+            G    = cubature.G;
+            % Number of triangle vertices
+            nPts = 3;
+            % Total number of cubature points
+            nq   = size(x,1);
+            % Total number of triangles
+            nTri = sum(cubature.triangulation.nTri);
+            % Triangulation points
+            ind  = reshape(cubature.triangulation.ConnectivityList', [], 1);
+            xt   = cubature.triangulation.Points(ind,:);
+            
             % Create mapping
             R    = zeros(nPts, G.griddim*nTri);
             for dNo = 1:G.griddim
@@ -139,11 +171,13 @@ classdef TriangleCubature < Cubature
             % Make cubature
             
             % Number of triangles per cell/face
-            nTri      = sum(cubature.triangulation.nTri);
+            nTri = sum(cubature.triangulation.nTri);
             % Cubature points and weights
-            [x, w, n] = getTriangleCubaturePointsAndWeights(cubature.prescision);
+            [x, w, n, xR] = getTriangleCubaturePointsAndWeights(cubature.prescision);
             % Map to physical coords
-            x         = cubature.mapCoords(x);
+            x = cubature.mapCoords(x, xR);
+%             [x, w, n] = getTriangleCubaturePointsAndWeightsBary(cubature.prescision);
+%             x = cubature.mapCoordsBary(x);
             % Multiply weights by triangle areas
             triNo = reshape(repmat(1:sum(cubature.triangulation.nTri), n, 1), [], 1);
             areas = cubature.getTriAreas();
