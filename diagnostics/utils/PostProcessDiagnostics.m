@@ -6,6 +6,7 @@ classdef PostProcessDiagnostics < handle
         Axes2DR
         colorBar
         colorHAx
+        colormap3D = 'default';
         G
         Gs
         WellPlot
@@ -1025,6 +1026,24 @@ classdef PostProcessDiagnostics < handle
             end
         end
         % -----------------------------------------------------------------
+        function setColormap3D(d, str)
+            if ~strcmp(str, d.colormap3D)
+                if strcmp(str, 'injectors')
+                    ninj = numel(d.WellPlot.injectors);
+                    cmap = d.Data.injColors(1:ninj,:);
+                    colormap(d.Axes3D, cmap);
+                elseif strcmp(str, 'producers')
+                    nprod = numel(d.WellPlot.producers);
+                    cmap = d.Data.prodColors(1:nprod,:);
+                    colormap(d.Axes3D, cmap);
+                else
+                    colormap(d.Axes3D, str);
+                end
+                d.colormap3D = str;
+            end
+        end
+                                
+        % -----------------------------------------------------------------
         function updateColorHist(d)
            vals = d.Patch.colorData(d.Patch.cells);
            lims = d.Axes3D.CLim;
@@ -1056,21 +1075,19 @@ classdef PostProcessDiagnostics < handle
                         'UniformOutput', false);
                 end
                 set(d.colorHAx.Children, 'Visible', 'on');
-                colormap(d.Axes3D, 'default');
-                cb.Position(1) = d.layoutParams.menuWidth + 50;
-                d.colorHAx.Position(1) = d.colorBar.Position(1)+d.colorBar.Position(3)+10;
+                d.setColormap3D('default');
+                %cb.Position(1) = d.layoutParams.menuWidth + 50;
+                %d.colorHAx.Position(1) = d.colorBar.Position(1)+d.colorBar.Position(3)+10;
             else
                 if  s3.psel.propIx == 7 % sweep regions
                     ninj = numel(d.WellPlot.injectors);
-                    cmap = d.Data.injColors(1:ninj,:);
-                    colormap(d.Axes3D, cmap);
+                    d.setColormap3D('injectors');
                     cb.Ticks = (.5:ninj)/ninj;
                     cb.TickLabels = s3.wsel.injSelector.String;
                     cb.Limits = [0 1];
-                elseif s3.psel.propIx == 8 % sweep regions
+                elseif s3.psel.propIx == 8 % drainage regions
                     nprod = numel(d.WellPlot.producers);
-                    cmap = d.Data.prodColors(1:nprod,:);
-                    colormap(d.Axes3D, cmap);
+                    d.setColormap3D('producers');
                     cb.Ticks = (.5:nprod)/nprod;
                     cb.TickLabels = s3.wsel.prodSelector.String;
                     cb.Limits = [0 1];
@@ -1083,7 +1100,6 @@ classdef PostProcessDiagnostics < handle
                     s3.psel.logSwitch = false;
                     s3.psel.logSwitchCallback(s3.psel.logSwitchBox, []);
                 end
-                %d.colorBar.Position = [360 500 30 350];
             end
             d.colorBar = cb;
         end
