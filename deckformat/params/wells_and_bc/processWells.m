@@ -123,11 +123,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    W = [];
 
+   c2a = make_cart_to_active(G);
+
    for stage = reshape(stages, 1, [])
       fn = reshape(sort(fieldnames(stage{1})), 1, []);
 
       for kw = fn(isfield(control, fn))
-         W = stage{1}.(kw{1}) (W, control, G, rock, well_id, p, opt);
+         W = stage{1}.(kw{1}) (W, control, G, rock, c2a, well_id, p, opt);
       end
    end
 
@@ -155,8 +157,15 @@ end
 % Private helpers follow.
 %--------------------------------------------------------------------------
 
-function W = process_wconinj(W, control, G, rock, well_id, p, opt)
-   for i = 1 : size(control.WCONINJ, 1),
+function c2a = make_cart_to_active(G)
+   c2a = zeros([prod(G.cartDims), 1]);
+   c2a(G.cells.indexMap) = 1 : G.cells.num;
+end
+
+%--------------------------------------------------------------------------
+
+function W = process_wconinj(W, control, G, rock, c2a, well_id, p, opt)
+   for i = 1 : size(control.WCONINJ, 1)
       nm = control.WCONINJ{i,1};
       status = strcmp(control.WCONINJ{i,3}, 'OPEN');
 
@@ -187,8 +196,9 @@ function W = process_wconinj(W, control, G, rock, well_id, p, opt)
       end
 
       sizeW = numel(W);
-      W = buildWell(W, G, rock, control, well_id(nm), p, type, val, ...
-                    compi, opt.InnerProduct, 1, opt);
+      W = buildWell(W, G, rock, c2a, control, well_id(nm), ...
+                    p, type, val, compi, opt.InnerProduct, 1, opt);
+
       if numel(W) > sizeW
          W(end).lims.rate = control.WCONINJ{i, 5};
          W(end).lims.bhp  = control.WCONINJ{i, 9};
@@ -201,8 +211,8 @@ end
 
 %--------------------------------------------------------------------------
 
-function W = process_wconinje(W, control, G, rock, well_id, p, opt)
-   for i = 1 : size(control.WCONINJE, 1),
+function W = process_wconinje(W, control, G, rock, c2a, well_id, p, opt)
+   for i = 1 : size(control.WCONINJE, 1)
       nm = control.WCONINJE{i,1};
       status = strcmp(control.WCONINJE{i,3}, 'OPEN');
 
@@ -240,8 +250,8 @@ function W = process_wconinje(W, control, G, rock, well_id, p, opt)
       end
 
       sizeW = numel(W);
-      W = buildWell(W, G, rock, control, well_id(nm), p, type, val, ...
-                    compi, opt.InnerProduct, 1, opt);
+      W = buildWell(W, G, rock, c2a, control, well_id(nm), ...
+                    p, type, val, compi, opt.InnerProduct, 1, opt);
 
       if numel(W) > sizeW
          W(end).lims.rate = control.WCONINJE{i, 5};
@@ -255,8 +265,8 @@ end
 
 %--------------------------------------------------------------------------
 
-function W = process_wconinjh(W, control, G, rock, well_id, p, opt)
-   for i = 1 : size(control.WCONINJH, 1),
+function W = process_wconinjh(W, control, G, rock, c2a, well_id, p, opt)
+   for i = 1 : size(control.WCONINJH, 1)
       nm = control.WCONINJH{i,1};
       status = strcmp(control.WCONINJH{i,3}, 'OPEN');
 
@@ -276,8 +286,8 @@ function W = process_wconinjh(W, control, G, rock, well_id, p, opt)
       end
 
       sizeW = numel(W);
-      W = buildWell(W, G, rock, control, well_id(nm), p, type, val, ...
-                    compi, opt.InnerProduct, 1, opt);
+      W = buildWell(W, G, rock, c2a, control, well_id(nm), ...
+                    p, type, val, compi, opt.InnerProduct, 1, opt);
 
       if numel(W) > sizeW
          % lims.bhp is \approx 100e3 psia, as for default wconinje.
@@ -403,8 +413,8 @@ end
 
 %--------------------------------------------------------------------------
 
-function W = process_wconhist(W, control, G, rock, well_id, p, opt)
-   for i = 1 : size(control.WCONHIST, 1),
+function W = process_wconhist(W, control, G, rock, c2a, well_id, p, opt)
+   for i = 1 : size(control.WCONHIST, 1)
       nm = control.WCONHIST{i,1};
       status = strcmp(control.WCONHIST{i,2}, 'OPEN');
 
@@ -440,8 +450,8 @@ function W = process_wconhist(W, control, G, rock, well_id, p, opt)
 
       sizeW = numel(W);
 
-      W = buildWell(W, G, rock, control, well_id(nm), p, type, val, ...
-                    compi, opt.InnerProduct, -1, opt);
+      W = buildWell(W, G, rock, c2a, control, well_id(nm), ...
+                    p, type, val, compi, opt.InnerProduct, -1, opt);
 
       if numel(W) > sizeW
          switch type,
@@ -486,8 +496,8 @@ end
 
 %--------------------------------------------------------------------------
 
-function W = process_wconprod(W, control, G, rock, well_id, p, opt)
-   for i = 1 : size(control.WCONPROD,1),
+function W = process_wconprod(W, control, G, rock, c2a, well_id, p, opt)
+   for i = 1 : size(control.WCONPROD,1)
       nm = control.WCONPROD{i,1};
       status = strcmp(control.WCONPROD{i,2}, 'OPEN');
 
@@ -537,8 +547,8 @@ function W = process_wconprod(W, control, G, rock, well_id, p, opt)
 
       sizeW = numel(W);
 
-      W = buildWell(W, G, rock, control, well_id(nm), p, type, val, ...
-                    compi, opt.InnerProduct, -1, opt);
+      W = buildWell(W, G, rock, c2a, control, well_id(nm), ...
+                    p, type, val, compi, opt.InnerProduct, -1, opt);
 
       if numel(W) > sizeW
          W(end).lims.orat = -control.WCONPROD{i, 4};
@@ -607,10 +617,10 @@ end
 
 %--------------------------------------------------------------------------
 
-function W = buildWell(W, G, rock, control, i, p, ...
+function W = buildWell(W, G, rock, c2a, control, i, p, ...
                        type, val, compi, ip, sgn, opt)
    comp  = control.COMPDAT(p(i) : p(i + 1) - 1, :);
-   perf  = arrayfun(@(i) active_perf(G, comp(i,:)), ...
+   perf  = arrayfun(@(i) active_perf(G, comp(i,:), c2a), ...
                     (1 : size(comp,1)).', 'UniformOutput', false);
    nperf = reshape(cellfun(@numel, perf), [], 1);
 
@@ -720,10 +730,11 @@ end
 
 %--------------------------------------------------------------------------
 
-function perf = active_perf(G, comp)
+function perf = active_perf(G, comp, c2a)
    [ijk{1:3}] = ndgrid(comp{2}, comp{3}, comp{4} : comp{5});
-   i    = sub2ind(G.cartDims, ijk{1}(:), ijk{2}(:), ijk{3}(:));
-   perf = cart2active(G, i);
+
+   perf = c2a(sub2ind(G.cartDims, ijk{1}(:), ijk{2}(:), ijk{3}(:)));
+   perf = perf(perf > 0);
 end
 
 %--------------------------------------------------------------------------
