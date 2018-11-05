@@ -84,7 +84,7 @@ for i = 1:numel(states)
 end
 %% Launch interactive plotting
 mrstModule add mrst-gui
-plotWellSols(wellSols)
+plotWellSols(wellSols, cumsum(schedule.step.val))
 
 figure;
 plotToolbar(G, states)
