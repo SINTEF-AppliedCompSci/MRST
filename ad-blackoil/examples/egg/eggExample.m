@@ -21,7 +21,7 @@ schedule = convertDeckScheduleToMRST(model, deck);
 % controlled, we can plot the quantities that vary. We also plot the water
 % cut.
 
-T = cumsum(schedule.step.val)/year;
+T = convertTo(cumsum(schedule.step.val), year);
 W = schedule.control(1).W;
 
 inj = find(vertcat(W.sign) > 0);
@@ -29,7 +29,7 @@ prod = find(vertcat(W.sign) < 0);
 bhp = getWellOutput(wellSols, 'bhp', inj);
 
 clf,
-plot(T, bhp/barsa, 'linewidth', 2)
+plot(T, convertTo(bhp, barsa), 'linewidth', 2)
 legend({W(inj).name})
 xlabel('Time [years]')
 ylabel('Injector bottom-hole pressure [bar]')
@@ -38,13 +38,13 @@ orat = getWellOutput(wellSols, 'qOs', prod);
 wrat = getWellOutput(wellSols, 'qWs', prod);
 
 figure;
-plot(T, -orat*day, 'linewidth', 2)
+plot(T, convertTo(-orat, meter^3/day), 'linewidth', 2)
 legend({W(prod).name})
 xlabel('Time [years]')
 ylabel('Producer oil-rate [m^3/day]');
 
 figure;
-plot(T, -wrat*day, 'linewidth', 2)
+plot(T, convertTo(-wrat, meter^3/day), 'linewidth', 2)
 legend({W(prod).name})
 xlabel('Time [years]')
 ylabel('Producer water-rate [m^3/day]');
