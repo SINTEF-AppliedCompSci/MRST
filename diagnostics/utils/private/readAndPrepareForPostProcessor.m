@@ -1,4 +1,4 @@
-function [G, data, Gs, valid_ix] = readAndPrepareForPostProcessor(casenm, steps, info)
+function [G, data, Gs, valid_ix] = readAndPrepareForPostProcessor(casenm, steps, info, precomp)
 %if nargin < 4
 %    precomp = [];
 %end
@@ -23,7 +23,7 @@ startday = datenum(info.date(1, [3 2 1]));
 data.time.prev = startday + info.time( max(steps-1,1) ) - info.time(1);
 data.time.cur  = startday + info.time( steps ) - info.time(1);
 
-%if isempty(precomp)
+if isempty(precomp)
     [data.states, rstrt] = convertRestartToStates(casenm, Gs, 'steps', steps, 'restartInfo', info, ...
                                                   'splitWellsOnSignChange', true);
 %    if ~isfield(data.states{1}, 'flux') || isempty(data.states{1}.flux)
@@ -32,10 +32,10 @@ data.time.cur  = startday + info.time( steps ) - info.time(1);
 %    end
     %data.states = addFormationVolumeFactors(data.states, data.fluid, data.pvtDeck.RUNSPEC);
     %data.states = addConnectionPhaseFluxes(data.states, data.fluid, data.pvtDeck.RUNSPEC);
-%else
-%    rstrt = readEclipseRestartUnFmt(casenm, info, steps);
-%    data.states = cellfun(@(x)x.states{1}, precomp, 'UniformOutput', false);
-%end
+else
+    rstrt = readEclipseRestartUnFmt(casenm, info, steps);
+    data.states = cellfun(@(x)x.states{1}, precomp, 'UniformOutput', false);
+end
 
 valid_ix = isValidState(data.states);
 if ~all(valid_ix)

@@ -33,8 +33,13 @@ classdef PostProcessDiagnostics < handle
 
     methods
         function d = PostProcessDiagnostics(varargin)
-            opt = struct('style', 'default', 'steps', [], 'maxTOF', 500*year);
+            opt = struct('style', 'default', ...
+                         'steps',        [], ...
+                         'maxTOF', 500*year, ...
+                         'cleanup',   false, ...
+                         'precompute', true);
             mrstModule add mrst-gui diagnostics deckformat ad-props
+            mrstVerbose(true)
             if mod(numel(varargin), 2) == 1  % file-name provided
                 filenm = varargin{1};
                 [pth, nm, ext] = fileparts(filenm);
@@ -52,10 +57,23 @@ classdef PostProcessDiagnostics < handle
                 opt = merge_options(opt, varargin{:});
             end
             assert(exist(filenm, 'file')>0, sprintf('Unable to find file %s', filenm));
-
-            % Select which time-steps to include
             [pth, nm] = fileparts(filenm);
             casenm = fullfile(pth, nm);
+            
+            % precompute options
+            precompDir = fullfile(pth, 'mrst_diagnostics');
+            if opt.cleanup
+                cleanupDialogue(precompDir);
+            end
+            if opt.precompute
+                if exist(precompDir,'dir')~=7
+                    mkdir(precompDir);
+                end
+                if isempty(ls([precompDir, filesep, '*diagn*']))
+                    precomputeDialogue(casenm, precompDir);
+                end
+            end
+            % Select which time-steps to include
             rsspec = processEclipseRestartSpec(casenm, 'all');
             if ~isempty(opt.steps)
                 steps = opt.steps;
@@ -63,10 +81,22 @@ classdef PostProcessDiagnostics < handle
                 steps = uiPreSelectTimeSteps(rsspec);
             end
 
-            % Setup data for selected steps and compute diagnostics
+            % Setup data for selected steps and load/compute diagnostics
             d.maxTOF = opt.maxTOF;
-            [d.G, d.Data, d.Gs, valid_ix] = readAndPrepareForPostProcessor(casenm, steps, rsspec);
-            d.Data = computeDiagnostics(d.Gs, d.Data, d.maxTOF, []);
+            if opt.precompute
+                precomp = getPrecomputedDiagnostics(casenm, steps);
+            else
+                precomp = [];
+            end
+            [d.G, d.Data, d.Gs, valid_ix] = readAndPrepareForPostProcessor(casenm, steps, rsspec, precomp);
+            if ~any(valid_ix)
+                return;
+            end
+            if ~all(valid_ix) && ~isempty(precomp)
+                precomp = precomp(valid_ix);
+            end
+            
+            d.Data = computeDiagnostics(d.Gs, d.Data, d.maxTOF, [], precomp);
             try
                 d.Data.summary = readEclipseSummaryUnFmt(casenm);
             catch
@@ -731,12 +761,12 @@ classdef PostProcessDiagnostics < handle
             p = d.Figure.CurrentPoint;
             if p(1) <= mw + sp
                 if p(1) <= mw % inside menu panel
-                    dy = arrayfun(@(x)x.Position(2), d.Menu.panel.Children)-p(2);
-                    if any(and(dy > 0,dy <= 5))
-                        set(d.Figure,'Pointer','top');
-                    else
-                        set(d.Figure,'Pointer','arrow');
-                    end
+%                     dy = arrayfun(@(x)x.Position(2), d.Menu.panel.Children)-p(2);
+%                     if any(and(dy > 0,dy <= 5))
+%                         set(d.Figure,'Pointer','top');
+%                     else
+                      set(d.Figure,'Pointer','arrow');
+%                     end
                 elseif ~any(structfun(@(x)strcmp(x.Enable, 'on'), d.interactiveModes)) % resize not allowed in interactive mode
                     set(d.Figure,'Pointer','left');
                 else

@@ -1,4 +1,7 @@
-function data = computeDiagnostics(G, data, maxTOF, ix)
+function data = computeDiagnostics(G, data, maxTOF, ix, precomp)
+if nargin < 5
+    precomp = [];
+end
 if nargin < 4 || isempty(ix)
     ix = 1:numel(data.states);
 end
@@ -7,19 +10,22 @@ end
 G.cells.volumes = G.PORV;
 rock = struct('poro', ones(G.cells.num, 1));
 
-vb = mrstVerbose;
+vb = mrstVerbose && isempty(precomp);
 dispif(vb, 'Computing diagnostics:     ');
 for k = 1:numel(ix)
-    
-    dispif(vb, '\b\b\b\b\b%3.0d %%', round(100*k/numel(ix)));
-    st = data.states{ix(k)};
-    mrstVerbose('off');
-    D = computeTOFandTracerFirstArrival(st, G, rock, 'wells', st.wellSol, 'maxTOF', maxTOF, 'computeWellTOFs', true, ...
-        'processCycles', true);
-    mrstVerbose(vb);
-    % set tof to years
-    data.diagnostics(ix(k)).D  = D;
-    data.diagnostics(ix(k)).WP = computeWellPairs(st, G, rock, st.wellSol, D );
+    if isempty(precomp)
+        dispif(vb, '\b\b\b\b\b%3.0d %%', round(100*k/numel(ix)));
+        st = data.states{ix(k)};
+        mrstVerbose('off');
+        D = computeTOFandTracerFirstArrival(st, G, rock, 'wells', st.wellSol, 'maxTOF', maxTOF, 'computeWellTOFs', true, ...
+            'processCycles', true);
+        mrstVerbose(vb);
+        % set tof to years
+        data.diagnostics(ix(k)).D  = D;
+        data.diagnostics(ix(k)).WP = computeWellPairs(st, G, rock, st.wellSol, D );
+    else
+        data.diagnostics(k) = precomp{k}.diagnostics;
+    end
 end
 dispif(vb, ', done\n');
 
