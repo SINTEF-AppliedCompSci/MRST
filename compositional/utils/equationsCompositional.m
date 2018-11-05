@@ -224,7 +224,7 @@ if opt.staticWells
     compSrc = vertcat(wellSol.components);
     for i = 1:ncomp
         wc = vertcat(W.cells);
-        eqs{i+model.water}(wc) = eqs{i+model.water}(wc) - compSrc(:, i);
+        eqs{i+woffset}(wc) = eqs{i+woffset}(wc) - compSrc(:, i);
     end
 else
     [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, ...
@@ -241,9 +241,9 @@ if ~opt.pressure
         eqs{1} = eqs{1}.*wscale;
     end
     massT = model.getComponentScaling(state0);
-    scale = (dt./s.pv)./mean(massT);
+    scale = (dt./s.pv)./massT;
     for i = 1:ncomp
-        eqs{i+model.water} = eqs{i+model.water}.*scale;
+        eqs{i+woffset} = eqs{i+woffset}.*scale;
     end
 end
 
