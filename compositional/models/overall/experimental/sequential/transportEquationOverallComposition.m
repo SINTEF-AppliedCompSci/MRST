@@ -17,8 +17,8 @@ compFluid = model.EOSModel.fluid;
 % Properties at current timestep
 [sT, p, sW, z, temp, wellSol] = model.getProps(state, ...
     'sT', 'pressure', 'water', 'z', 'T', 'wellSol');
-[sT0, p0, sW0, sO0, sG0, z0, temp0, wellSol0] = model.getProps(state0, ...
-    'sT', 'pressure', 'water', 'oil', 'gas', 'z', 'T', 'wellSol');
+[p0, sW0, sO0, sG0, z0, temp0] = model.getProps(state0, ...
+    'pressure', 'water', 'oil', 'gas', 'z', 'T');
 
 z = ensureMinimumFraction(z);
 z0 = ensureMinimumFraction(z0);
