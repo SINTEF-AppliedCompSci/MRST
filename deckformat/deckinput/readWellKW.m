@@ -724,7 +724,7 @@ end
 function w = assignControlRecords(w, data, kw)
    assert (ischar(kw), 'Internal error');
 
-   w.(kw) = appendSpec(w.(kw), data, w.WELSPECS(:,1));
+   w.(kw) = appendSpec(w.(kw), kw, data, w.WELSPECS(:,1));
    w      = remove(w, data(:,1), excludeSet(kw));
 end
 
@@ -760,22 +760,24 @@ end
 
 %--------------------------------------------------------------------------
 
-function table = appendSpec(table, data, wells)
+function table = appendSpec(table, kw, data, wells)
    matches = @(a,p) cellfun(@(c) ~isempty(c), regexp(a, p, 'match'));
+
+   data = unique_well_records(data, kw);
 
    % Wildcard specs in new data?
    is_wc = matches(data(:,1), '\w+\*\s*$');
-   for i = reshape(find(is_wc), 1, []),      % Row shape is essential here.
+   for i = reshape(find(is_wc), 1, [])       % Row shape is essential here.
       patt = strrep(data{i,1}, '*', '.*');
 
-      if ~isempty(table),
+      if ~isempty(table)
          % Remove any previous specs matching this 'patt'ern.
          table(matches(table(:,1), patt), :) = [];
       end
 
       match_wells = matches(wells, patt);
       nmatch      = sum(double(match_wells));
-      if nmatch == 0,
+      if nmatch == 0
          warning(msgid('Well:Unknown'), ...
                 ['Well control wildcard ''%s'' does not match ', ...
                  'any previously defined wells.  Ignored.'], data{i,1});
@@ -790,7 +792,7 @@ function table = appendSpec(table, data, wells)
    data(is_wc, :) = [];
 
    % Ensure that any remaining injection specs refer to known wells.
-   if ~isempty(data) && ~all(ismember(data(:,1), wells)),
+   if ~isempty(data) && ~all(ismember(data(:,1), wells))
       unknown = data(~ismember(data(:,1), wells), 1);
       u = sprintf(' ''%s''', unknown{:});
       error(msgid('Well:Unknown'), ...
@@ -800,7 +802,7 @@ function table = appendSpec(table, data, wells)
 
    % Exclude any previous records for these wells.  They were likely copied
    % during readSCHEDULE>defaultControl
-   if ~ isempty(table),
+   if ~ isempty(table)
       table(ismember(table(:,1), data(:,1)), :) = [];
    end
 
@@ -860,6 +862,23 @@ function w = handleOverlapCompdat(w, compdat, memb, loc, ext, new)
    % *must* be robust in the face of scattered records.
    %
    w.COMPDAT = [ w.COMPDAT(~affected, :) ; compdat(~handled, :) ; append ];
+end
+
+%--------------------------------------------------------------------------
+
+function data = unique_well_records(data, kw)
+   [u, id] = unique(data(:, 1), 'last');
+
+   if numel(u) < size(data, 1)
+      pick   = false([size(data, 1), 1]);  pick(id) = true;
+      mwells = ['{ ', sprintf('''%s'' ', data{~pick, 1}), '}', ];
+
+      warning('MultiRecord:SameWell', ...
+             ['%s: Multiple Records Apply to Same Well/Well-List.\n', ...
+              '  -> Using Last Entry for %s.'], kw, mwells);
+
+      data = data(pick, :);
+   end
 end
 
 %--------------------------------------------------------------------------
