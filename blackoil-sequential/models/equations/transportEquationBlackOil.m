@@ -136,7 +136,20 @@ Gw = gp - dpW;
 Go = gp - dpO;
 Gg = gp - dpG;
 
-[waterFlux, oilFlux, gasFlux] = getFluxes(model, state, Gw, Go, Gg, vT, mobW, mobO, mobG, sT.*bW, sT.*bO, sT.*bG, rs, rv);
+rho = {rhoW, rhoO, rhoG};
+mob = {mobW, mobO, mobG};
+G = {Gw, Go, Gg};
+components = {};
+
+components = {{sT.*bW,  [],         []}, ...
+              {[],      sT.*bO,     sT.*rv.*bG}, ...
+              {[],      sT.*bO.*rs, sT.*bG}};
+upstr = model.operators.faceUpstr;
+[q_phase, q_components] = computeSequentialFluxes(...
+    state, G, vT, T, mob, rho, components, upstr, model.upwindType);
+% upwindType, state, G, vT, T, mob, rho, components, upstr, upwindType
+% [waterFlux, oilFlux, gasFlux] = getFluxes(model, state, Gw, Go, Gg, vT, mobW, mobO, mobG, sT.*bW, sT.*bO, sT.*bG, rs, rv);
+[waterFlux, oilFlux, gasFlux] = deal(q_components{:});
 
 if model.extraStateOutput
     state = model.storebfactors(state, bW, bO, bG);
