@@ -86,7 +86,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     dz = [W_all(ind_all).dZ; W(other(j)).dZ];
                     [~, order] = sort(dz);
                     new_cells = uniqueStable(new_cells(order));
+                elseif (numel(c_all)<numel(c)) && all(c_all == c(1:numel(c_all)))
+                    % c differs from c_all by simple appendage
+                    new_cells = c;
                 else
+                    % attempt merging
                     new_cells = mergeOrderedArrays(c_all, c);
                 end
                 W_all(ind_all).cells = new_cells;%#ok
