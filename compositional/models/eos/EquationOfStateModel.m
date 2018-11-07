@@ -317,8 +317,13 @@ classdef EquationOfStateModel < PhysicalModel
             if nargin < 5
                 cells = [];
             end
-            z = ensureMinimumFraction(z, model.minimumComposition);
-            [stable, x, y] = phaseStabilityTest(model, z, P, T, z, z);
+            if isempty(z)
+                stable = [];
+                [x, y] = deal(zeros(0, size(z, 2)));
+            else
+                z = ensureMinimumFraction(z, model.minimumComposition);
+                [stable, x, y] = phaseStabilityTest(model, z, P, T, z, z);
+            end
         end
 
         function [x, y, K, Z_L, Z_V, L, vals] = newtonCompositionUpdate(model, P, T, z, K, L)
