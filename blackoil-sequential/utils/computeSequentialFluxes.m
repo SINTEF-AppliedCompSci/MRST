@@ -5,31 +5,54 @@ function [q_phase, q_components] = computeSequentialFluxes(state, G, vT, T, mob,
     
     [flag_v, flag_g] = getSaturationUpwind(upwindType, state, G, vT, T, mob, upstr);
     isEqual = strcmpi(upwindType, 'potential') ||  all(flag_v(:) == flag_g(:));
-    % hybrid_combined
-    mob_f = cell(nph, 1);
-    components_f = cell(ncomp, 1);
-    [components_f{:}] = deal(cell(nph, 1));
-    for i = 1:nph
-        mob_f{i} = upstr(flag_v(:, i), mob{i});
-        for j = 1:ncomp
-            c = components{j}{i};
-            if ~isempty(c)
-                components_f{j}{i} = upstr(flag_v(:, i), c);
-            end
-        end
-    end
-    
+    % Get components and mobility on the faces according to the first flag
+    components_f = upstreamWeightCompositions(components, upstr, flag_v, nph, ncomp);
+    mob_f = upstreamWeightPhases(mob, upstr, flag_v, nph);
     if isEqual
         q_phase = computePhaseVolumetricFluxes(vT, T, mob_f, G);
         q_components = computeComponentFluxes(q_phase, components_f);
     else
         % Different upwinding for potentials and viscous flux
         q_visc = computePhaseVolumetricFluxes(vT, T, mob_f);
+        % Gravity part
+        mob_g = upstreamWeightPhases(mob, upstr, flag_g, nph);
         q_grav = computePhaseVolumetricFluxes(0, T, mob_g);
         
         q_phase = q_visc;
         for i = 1:nph
             q_phase{i} = q_phase{i} + q_grav{i};
+        end
+        if strcmpi(upwindType, 'hybrid_combined')
+            % Take volumetric flux to be fixed
+            q_components = computeComponentFluxes(q_phase, components_f);
+        else
+            % Take each term separately
+            q_components_v = computeComponentFluxes(q_visc, components_f);
+            q_components_g = computeComponentFluxes(q_grav, components_f);
+            q_components = q_components_v;
+            for i = 1:ncomp
+                q_components{i} = q_components{i} + q_components_g{i};
+            end
+        end
+    end
+end
+
+function mob_f = upstreamWeightPhases(value, upstr, flag, nph)
+    mob_f = cell(nph, 1);
+    for i = 1:nph
+        mob_f{i} = upstr(flag(:, i), value{i});
+    end
+end
+
+function components_f = upstreamWeightCompositions(components, upstr, flag, nph, ncomp)
+    components_f = cell(ncomp, 1);
+    [components_f{:}] = deal(cell(nph, 1));
+    for i = 1:nph
+        for j = 1:ncomp
+            c = components{j}{i};
+            if ~isempty(c)
+                components_f{j}{i} = upstr(flag(:, i), c);
+            end
         end
     end
 end
