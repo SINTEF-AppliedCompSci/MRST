@@ -11,8 +11,7 @@ mrstModule add mimetic incomp streamlines
 G = cartGrid([25,25]);
 G = computeGeometry(G);
 
-rock.perm = repmat(10*milli*darcy, [G.cells.num, 1]);
-rock.poro = repmat(0.3,            [G.cells.num, 1]);
+rock = makeRock(G, 10*milli*darcy, 0.3);
 
 fluid = initSimpleFluid('mu',  [1, 1]*centi*poise', ...
                         'rho', [1000, 1000]*kilogram/meter^3, ...
