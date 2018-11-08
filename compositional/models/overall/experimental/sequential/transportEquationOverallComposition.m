@@ -87,16 +87,10 @@ T = transMult.*s.T;
 gdz = model.getGravityGradient();
 rhoOf  = s.faceAvg(sO.*rhoO)./max(s.faceAvg(sO), 1e-8);
 rhoGf  = s.faceAvg(sG.*rhoG)./max(s.faceAvg(sG), 1e-8);
-
-
-% Oil flux
+% Phase mobility
 mobO   = krO./muO;
-
-% Gas flux
 mobG   = krG./muG;
 
-
-% splitting starts here
 Go = rhoOf.*gdz;
 Gg = rhoGf.*gdz;
 
@@ -177,6 +171,9 @@ if model.water
     eqs{wix} = (1/dt).*(pv.*rhoW.*sW.*sT - pv0.*rhoW0.*sW0.*sW) + s.Div(vw);
     names{wix} = 'water';
     types{wix} = 'cell';
+    state = model.storeFluxes(state, q_phase{:});
+else
+    state = model.storeFluxes(state, [], q_phase{:});
 end
 
 comps = cellfun(@(x, y) {x, y}, xM, yM, 'UniformOutput', false);

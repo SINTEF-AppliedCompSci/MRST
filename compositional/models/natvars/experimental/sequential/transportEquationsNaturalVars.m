@@ -156,6 +156,8 @@ end
 [xM,  yM,  rhoO,  rhoG,  muO,  muG, f_L, f_V, xM0, yM0, rhoO0, rhoG0] = ...
                   model.getTimestepPropertiesEoS(state, state0, p, temp, x, y, z, sO, sG, cellJacMap);
 
+[pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
+
 if model.water
     sat = {sW, sO, sG};
 else
@@ -164,9 +166,13 @@ end
 
 if model.water
     [krW, krO, krG] = model.evaluateRelPerm(sat);
+    krW = mobMult.*krW;
 else
     [krO, krG] = model.evaluateRelPerm(sat);
 end
+krO = mobMult.*krO;
+krG = mobMult.*krG;
+
 
 for i = 1:ncomp
     xM{i} = xM{i}.*sT;
@@ -177,7 +183,7 @@ for i = 1:ncomp
 end
 
 % Compute transmissibility
-T = s.T;
+T = transMult.*s.T;
 
 % Gravity gradient per face
 gdz = model.getGravityGradient();
@@ -246,13 +252,9 @@ upstr = model.operators.faceUpstr;
 [q_phase, q_components] = computeSequentialFluxes(...
     state, gg, vT, T, mob, rho, components, upstr, model.upwindType);
 
-% Todo use multipliers here
-pv = model.operators.pv;
-pv0 = pv;
-if isfield(fluid, 'pvMultR')
-    pv = pv.*fluid.pvMultR(p);
-    pv0 = pv0.*fluid.pvMultR(p0);
-end
+pv = pvMult.*model.operators.pv;
+pv0 = pvMult0.*model.operators.pv;
+
 compFlux = zeros(size(model.operators.N, 1), ncomp);
 
 % water equation + n component equations
@@ -268,11 +270,6 @@ for i = 1:ncomp
    compFlux(:, i) = double(vi);
 end
 state.componentFluxes = compFlux;
-% if model.water
-%     state.massFlux = [double(rWvW), double(rOvO), double(rGvG)];
-% else
-%     state.massFlux = [double(rOvO), double(rGvG)];
-% end
 
 if model.water
     wix = ncomp+1;
@@ -321,7 +318,6 @@ if ~isempty(W)
         mobWw = mobW(wc);
         rhoWw = rhoW(wc);
         totMobw = mobWw + mobOw + mobGw;
-        totMobw = max(totMobw, 1e-8);
         f_w_w = mobWw./totMobw;
         f_w_w = sT(wc).*f_w_w;
 
@@ -330,7 +326,6 @@ if ~isempty(W)
         eqs{wix}(wc) = eqs{wix}(wc) - rWqW;
     else
         totMobw = mobOw + mobGw;
-        totMobw = max(totMobw, 1e-8);
     end
     f_o_w = mobOw./totMobw;
     f_g_w = mobGw./totMobw;
