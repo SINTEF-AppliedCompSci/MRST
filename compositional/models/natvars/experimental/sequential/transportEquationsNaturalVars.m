@@ -223,14 +223,14 @@ if model.water
         pcOW  = fluid.pcOW(sW);
         Gw = Gw + s.Grad(pcOW);
     end
-
+    sWt = sW.*sT;
     gg = {Gw, Go, Gg};
     mob = {mobW, mobO, mobG};
     rho = {rhoW, rhoO, rhoG};
     pressures = {pW, p, p};
 
 else
-    [rhoW, rhoW0, mobW, bW] = deal([]);
+    [rhoW, rhoW0, mobW, bW, sWt] = deal([]);
     gg = {Go, Gg};
     mob = {mobO, mobG};
     rho = {rhoO, rhoG};
@@ -246,12 +246,7 @@ if model.extraStateOutput
 end
 state = model.storeDensities(state, rhoW, rhoO, rhoG);
 
-if model.water
-    components = cellfun(@(x, y) {[], rhoO.*x, rhoG.*y}, xM, yM, 'UniformOutput', false);
-    components = [{{sT.*rhoW.*sW, [], []}}, components];
-else
-    components = cellfun(@(x, y) {rhoO.*x, rhoG.*y}, xM, yM, 'UniformOutput', false);
-end
+components = getComponentsTwoPhaseSimpleWater(model, rho, sWt, xM, yM);
 
 upstr = model.operators.faceUpstr;
 [q_phase, q_components] = computeSequentialFluxes(...
