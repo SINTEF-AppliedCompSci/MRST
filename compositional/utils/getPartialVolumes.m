@@ -66,6 +66,10 @@ function V = getTwoPhaseVolumes(model, state, pv)
         'x', 'y', 'pressure', 'T', 'Z_L', 'Z_V', 'L');
     z = state.components;
     ncomp = size(x, 2);
+    if isempty(pv)
+        V = zeros(0, ncomp);
+        return
+    end
     
     V = 1 - L;
     
