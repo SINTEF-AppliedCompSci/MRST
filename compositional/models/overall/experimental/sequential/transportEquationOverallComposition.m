@@ -76,33 +76,15 @@ end
 krO = mobMult.*krO;
 krG = mobMult.*krG;
 
-% [isLiq, isVap, is2ph] = model.EOSModel.getFlag(state);
-% 
-% liquid = isLiq | is2ph;
-% vapor = isVap | is2ph;
-% rhoO(liquid) = rhoO(liquid).*sT(liquid);
-% rhoG(vapor) = rhoG(vapor).*sT(vapor);
 for i = 1:ncomp
     xM{i} = xM{i}.*sT;
     yM{i} = yM{i}.*sT;
-    
-%     xM{i}(isVap) = double(xM{i}(isVap));
-%     yM{i}(isLiq) = double(yM{i}(isLiq));
-
-%     xM0{i} = xM0{i}.*sT0;
-%     yM0{i} = yM0{i}.*sT0;
 end
-
-
-% disp([min(double(sT)), max(double(sT))])
 % Compute transmissibility
 T = transMult.*s.T;
 
 % Gravity gradient per face
 gdz = model.getGravityGradient();
-% rhoOf  = s.faceAvg(sat{1+model.water}.*rhoO)./max(s.faceAvg(sat{1+model.water}), 1e-8);
-% rhoGf  = s.faceAvg(sat{2+model.water}.*rhoG)./max(s.faceAvg(sat{2+model.water}), 1e-8);
-
 rhoOf  = s.faceAvg(sO.*rhoO)./max(s.faceAvg(sO), 1e-8);
 rhoGf  = s.faceAvg(sG.*rhoG)./max(s.faceAvg(sG), 1e-8);
 
@@ -120,41 +102,33 @@ Gg = rhoGf.*gdz;
 
 vT = sum(state.flux(model.operators.internalConn, :), 2);
 if model.water
-    bW = model.fluid.bW(p);
-    rhoW = bW.*model.fluid.rhoWS;
-    rhoW0 = model.fluid.bW(p0).*model.fluid.rhoWS;
+    pW = p;
+    pW0 = p0;
+    bW = fluid.bW(pW);
+    rhoW = bW.*fluid.rhoWS;
+    rhoW0 = fluid.bW(pW0).*fluid.rhoWS;
     
     rhoWf  = s.faceAvg(rhoW);
-    muW = model.fluid.muW(p);
+    muW = fluid.muW(pW);
     mobW   = krW./muW;
     Gw = rhoWf.*gdz;
-
+    
+    if isfield(fluid, 'pcOW')
+        pcOW  = fluid.pcOW(sW);
+        Gw = Gw + s.Grad(pcOW);
+    end
+    sWt = sW.*sT;
     gg = {Gw, Go, Gg};
-    mg = {mobW, mobO, mobG};
+    mob = {mobW, mobO, mobG};
+    rho = {rhoW, rhoO, rhoG};
+    pressures = {pW, p, p};
+
 else
-    [rhoW, rhoW0, mobW, bW] = deal([]);
+    [rhoW, rhoW0, mobW, bW, sWt] = deal([]);
     gg = {Go, Gg};
-    mg = {mobO, mobG};
-end
-flag = getSaturationUpwind(model.upwindType, state, gg, vT, s.T, mg, s.faceUpstr);
-upco  = flag(:, model.water + 1);
-upcg  = flag(:, model.water + 2);
-
-
-mobOf = s.faceUpstr(upco, mobO);
-mobGf = s.faceUpstr(upcg, mobG);
-
-rhoOf = s.faceUpstr(upco, rhoO);
-rhoGf = s.faceUpstr(upcg, rhoG);
-
-if model.water
-    upcw  = flag(:, 1);
-    mobWf = s.faceUpstr(upcw, mobW);
-    rhoWf = s.faceUpstr(upcw, rhoW);
-else
-    upcw = [];
-    mobWf = 0;
-    rhoWf = 0;
+    mob = {mobO, mobG};
+    rho = {rhoO, rhoG};
+    pressures = {p, p};
 end
 
 if model.extraStateOutput
@@ -163,47 +137,29 @@ if model.extraStateOutput
 
     state = model.storebfactors(state, bW, bO, bG);
     state = model.storeMobilities(state, mobW, mobO, mobG);
-    state = model.storeUpstreamIndices(state, upcw, upco, upcg);
 end
 state = model.storeDensities(state, rhoW, rhoO, rhoG);
 
-totMob = mobWf + mobOf + mobGf;
-% totMob = max(totMob, 1e-8);
-F_o = mobOf./totMob;
-F_g = mobGf./totMob;
+components = getComponentsTwoPhaseSimpleWater(model, rho, sWt, xM, yM);
 
-if model.water
-    F_w = mobWf./totMob;
-    vO = F_o.*(vT + T.*mobWf.*(Go - Gw) + T.*mobGf.*(Go - Gg));
-    vG = F_g.*(vT + T.*mobWf.*(Gg - Gw) + T.*mobOf.*(Gg - Go));
-    vW = F_w.*(vT + T.*mobOf.*(Gw - Go) + T.*mobGf.*(Gw - Gg));
+upstr = model.operators.faceUpstr;
+[q_phase, q_components] = computeSequentialFluxes(...
+    state, gg, vT, T, mob, rho, components, upstr, model.upwindType);
 
-    rOvO = rhoOf.*vO;
-    rGvG = rhoGf.*vG;
-    rWvW = rhoWf.*vW;
-else
-    vO = F_o.*(vT + T.*mobGf.*(Go - Gg));
-    vG = F_g.*(vT + T.*mobOf.*(Gg - Go));
-    rOvO = rhoOf.*vO;
-    rGvG = rhoGf.*vG;
-end
-
-% rOvO = s.faceUpstr(upco, sT).*rOvO;
-% rGvG = s.faceUpstr(upcg, sT).*rGvG;
 
 pv = pvMult.*model.operators.pv;
-pv0 = pvMult0.*pv;
+pv0 = pvMult0.*model.operators.pv;
 
 % water equation + n component equations
 [eqs, types, names] = deal(cell(1, ncomp + model.water));
 for i = 1:ncomp
     names{i} = compFluid.names{i};
     types{i} = 'cell';
-      
+    vi = q_components{i};
     eqs{i} = (1/dt).*( ...
                     pv.*rhoO.*sO.*xM{i} - pv0.*rhoO0.*sO0.*xM0{i} + ...
                     pv.*rhoG.*sG.*yM{i} - pv0.*rhoG0.*sG0.*yM0{i}) ...
-          + s.Div(rOvO.*s.faceUpstr(upco, xM{i}) + rGvG.*s.faceUpstr(upcg, yM{i}));
+          + s.Div(vi);
       
     if model.water
         pureWater = double(sG) == 0 & double(sO) == 0;
@@ -217,17 +173,10 @@ for i = 1:ncomp
 end
 if model.water
     wix = ncomp+1;
-    eqs{wix} = (1/dt).*(pv.*rhoW.*sW.*sT - pv0.*rhoW0.*sW0) + s.Div(s.faceUpstr(upcw, sT).*rWvW);
+    vw = q_components{ncomp+1};
+    eqs{wix} = (1/dt).*(pv.*rhoW.*sW.*sT - pv0.*rhoW0.*sW0.*sW) + s.Div(vw);
     names{wix} = 'water';
     types{wix} = 'cell';
-    
-    rho = {rhoW, rhoO, rhoG};
-    mob = {mobW, mobO, mobG};
-    pressures = {p, p, p};
-else
-    rho = {rhoO, rhoG};
-    mob = {mobO, mobG};
-    pressures = {p, p};
 end
 
 comps = cellfun(@(x, y) {x, y}, xM, yM, 'UniformOutput', false);

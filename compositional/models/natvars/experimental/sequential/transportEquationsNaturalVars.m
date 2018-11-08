@@ -181,14 +181,8 @@ T = s.T;
 
 % Gravity gradient per face
 gdz = model.getGravityGradient();
-% rhoOf  = s.faceAvg(sat{1+model.water}.*rhoO)./max(s.faceAvg(sat{1+model.water}), 1e-8);
-% rhoGf  = s.faceAvg(sat{2+model.water}.*rhoG)./max(s.faceAvg(sat{2+model.water}), 1e-8);
-
-% rhoOf  = s.faceAvg(sO.*rhoO.*sT)./max(s.faceAvg(sO.*sT), 1e-8);
-% rhoGf  = s.faceAvg(sG.*rhoG.*sT)./max(s.faceAvg(sG.*sT), 1e-8);
 rhoOf  = s.faceAvg(sO.*rhoO)./max(s.faceAvg(sO), 1e-8);
 rhoGf  = s.faceAvg(sG.*rhoG)./max(s.faceAvg(sG), 1e-8);
-
 
 % Oil flux
 mobO   = krO./muO;
@@ -252,6 +246,7 @@ upstr = model.operators.faceUpstr;
 [q_phase, q_components] = computeSequentialFluxes(...
     state, gg, vT, T, mob, rho, components, upstr, model.upwindType);
 
+% Todo use multipliers here
 pv = model.operators.pv;
 pv0 = pv;
 if isfield(fluid, 'pvMultR')
@@ -281,7 +276,8 @@ state.componentFluxes = compFlux;
 
 if model.water
     wix = ncomp+1;
-    eqs{wix} = (1/dt).*(pv.*rhoW.*sW.*sT - pv0.*rhoW0.*sW0.*sT0) + s.Div(rWvW);
+    vw = q_components{ncomp+1};
+    eqs{wix} = (1/dt).*(pv.*rhoW.*sW.*sT - pv0.*rhoW0.*sW0.*sT0) + s.Div(vw);
     names{wix} = 'water';
     types{wix} = 'cell';
     state = model.storeFluxes(state, q_phase{:});
