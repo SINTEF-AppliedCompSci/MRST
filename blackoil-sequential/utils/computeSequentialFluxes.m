@@ -16,7 +16,7 @@ function [q_phase, q_components] = computeSequentialFluxes(state, G, vT, T, mob,
         q_visc = computePhaseVolumetricFluxes(vT, T, mob_f);
         % Gravity part
         mob_g = upstreamWeightPhases(mob, upstr, flag_g, nph);
-        q_grav = computePhaseVolumetricFluxes(0, T, mob_g);
+        q_grav = computePhaseVolumetricFluxes(0, T, mob_g, G);
         
         q_phase = q_visc;
         for i = 1:nph
