@@ -1,30 +1,34 @@
-function [G, rock, N, T, Gs] = initGridFromEclipseOutput(init, grid, varargin)
+function [G, rock, N, T] = initGridFromEclipseOutput(init, grid, varargin)
 % Reads eclipse output files and converts to MRST-compatible datastructures
 %
 % SYNOPSIS:
-%   [G, rock, N, T, Gs] = eclOut2simGrid(init, grid, varargin)
+%   [G, rock, N, T] = initGridFromEclipseOutput(init, grid, varargin)
 %
 % REQUIRED PARAMETERS:
 %   init    - structure obtained by reading INIT-file
 %   grid    - structure obtined by reading EGRID (or GRID) - file 
 % 
 % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
-%
+% outputSimGrid - if true, output minimal grid representing the eclipse 
+%                 output ("topolgoy") suitable for computing TOF etc., 
+%                 but not for plotting. Output as second component of G. 
+%                 Default is false
 % RETURNS:
-% G     -   MRST compatible grid representing the eclipse grid, but which is 
-%           suitable for plotting ("topology and geometry").
+% G     -   if outputSimGrid = false, standard MRST-grid
+%           if outputSimGrid = true, G(1) is standard MRST-grid, G(2) is
+%           simulation grid 
 % rock  -   structure compatible with G if nargout < 5, compatible with Gs 
 %           otherwise, but compatible with both unless special situations 
 %           where e.g., an aquifer is represented in zero-volume cells
 % N, T  -   Neighbour + transmissiblity list typically not compatible with G, 
 %           but with Gs       
-% Gs    -   Minimal grid directly representing the eclipse output ("topolgoy"), 
-%           which is suitable for computing TOF etc., but not for plotting
+% Gs    -   Minimal grid directly 
 %
 
-opt = struct('outputRock',  nargout >= 2, ...
-             'outputTrans', nargout >= 4);
+opt = struct('outputSimGrid', false);
 opt     = merge_options(opt, varargin{:});
+outputRock  = nargin >= 2;
+outputTrans = nargin >= 3; 
 
 
 % units
@@ -83,33 +87,31 @@ G.cells.eMap = eMap;
 G.cells.eMapInv = eMapInv; 
 
 G.cells.centroids(:,3) = convertFrom(init.DEPTH.values(eMap), u.length);
-G.cells.PORV           = convertFrom(init.PORV.values(G.cells.indexMap), u.resvol);
-G.DX    = convertFrom(init.DX.values(eMap), u.length);
-G.DY    = convertFrom(init.DY.values(eMap), u.length);
-G.DZ    = convertFrom(init.DZ.values(eMap), u.length);
+G.cells.PORV           = convertFrom(init.PORV.values(G.cells.indexMap), u.resvolume);
+G.cells.DX    = convertFrom(init.DX.values(eMap), u.length);
+G.cells.DY    = convertFrom(init.DY.values(eMap), u.length);
+G.cells.DZ    = convertFrom(init.DZ.values(eMap), u.length);
 
-rock = [];
-if opt.outputRock
-    % if we are outputting simgrid or we have consistency between G and
-    % ECLIPSE-grid, rock is directly given by init
-    if outputSimGrid || consistentGrids
-        rock.poro = init.PORO.values;
-        rock.ntg  = init.NTG.values;
-        rock.perm = convertFrom([init.PERMX.values, ...
-            init.PERMY.values, ...
-            init.PERMZ.values], u.perm);
-    else % we want rock to match G
-        rock.poro = init.PORO.values(eMap);
-        rock.ntg  = init.NTG.values(eMap);
-        rock.perm = convertFrom([init.PERMX.values(eMap), ...
-                                 init.PERMY.values(eMap), ...
-                                 init.PERMZ.values(eMap)], u.perm);
-    end
+% if we are outputting simgrid or we have consistency between G and
+% ECLIPSE-grid, rock is directly given by init
+if opt.outputSimGrid || (consistentGrids && outputRock)
+    rock.poro = init.PORO.values;
+    rock.ntg  = init.NTG.values;
+    rock.perm = convertFrom([init.PERMX.values, ...
+        init.PERMY.values, ...
+        init.PERMZ.values], u.perm);
+elseif outputRock % we want rock to match G
+    rock.poro = init.PORO.values(eMap);
+    rock.ntg  = init.NTG.values(eMap);
+    rock.perm = convertFrom([init.PERMX.values(eMap), ...
+        init.PERMY.values(eMap), ...
+        init.PERMZ.values(eMap)], u.perm);
 end
+
         
 % transmissibilities and neighbor-list
 [N, T] = deal([]);
-if opt.outputTrans && ~outputSimGrid
+if outputTrans && ~opt.outputSimGrid
     % use simple short routine
     [N, T] = getActiveNeighbors(init, grid, actNum, cartDims);
 elseif opt.outputSimGrid
@@ -118,10 +120,10 @@ elseif opt.outputSimGrid
 end
 T = convertFrom(T, u.trans);
 
-if outputSimGrid
+if opt.outputSimGrid
     dispif(mrstVerbose, 'Creating simulation grid ...');
     Gs = simGridTPFA(G, rock, 'neighbors', N, ...
-            'porv',   convertFrom(init.PORV.values(actNum), u.resvol), ...
+            'porv',   convertFrom(init.PORV.values(actNum), u.resvolume), ...
             'depth',  convertFrom(init.DEPTH.values, u.length), ...
             'actnum', actNum);
     % set index field with descriptive name ix ...
@@ -130,34 +132,14 @@ if outputSimGrid
     if isfield(init, 'AQUIFERN')
         Gs.cells.aquifer = init.AQUIFERN.values;
     end
+    Gs.cells.DX    = convertFrom(init.DX.values(eMap), u.length);
+    Gs.cells.DY    = convertFrom(init.DY.values(eMap), u.length);
+    Gs.cells.DZ    = convertFrom(init.DZ.values(eMap), u.length);
     dispif(mrstVerbose, 'done\n')
-else
-    Gs = [];
+    G = {G, Gs};
 end
 
 end
-
-% function u = getUnitFacs(unit)
-% switch unit
-%     case 'metric'
-%         u.length  = meter;
-%         u.resvol  = meter^3;
-%         u.perm    = milli*darcy;
-%         u.trans   = centi*poise * meter^3 / (day * barsa);
-%     case 'field'
-%         u.length  = ft;
-%         u.resvol  = stb;
-%         u.perm    = milli*darcy;
-%         u.trans   = centi*poise * stb / (day * psia);
-%     case 'lab'
-%         u.length  = centi*meter;
-%         u.resvol  = (centi*meter)^3;
-%         u.perm    = milli*darcy;
-%         u.trans   = centi*poise * (centi*meter)^3 / (hour * atm);
-%     otherwise
-%         error(['Unknown unit:', unit])
-% end
-% end
 
 function [N, T, ix] = getActiveNeighbors(init, grid, actNum, cartDims)
 nCells = nnz(actNum);
@@ -259,53 +241,4 @@ else % do more thorough job and produce index maps
             TN(ix.iNe,:)];
     end
 end
-end
-
-
-function [N, T] = getTrans(init, grid, actNum, cartDims)
-nCells = nnz(actNum);
-
-%full grid to active grid mapping
-actInx = zeros(prod(cartDims), 1);
-actInx(actNum) = (1:nCells)';
-
-% temporary matrix M to find indices of active neighbors in X, Y and Z-direction,
-M = zeros(cartDims+1);
-M(1:end-1, 1:end-1, 1:end-1) = reshape(actInx, cartDims);
-
-NX = M(2:end, 1:end-1, 1:end-1); NX = NX(actNum);
-NY = M(1:end-1, 2:end, 1:end-1); NY = NY(actNum);
-NZ = M(1:end-1, 1:end-1, 2:end); NZ = NZ(actNum);
-
-%non-neighbouring connections (indices given in full grid -> map to active):
-if isfield(init, 'TRANNNC')
-    if isfield(grid, 'NNC1')
-        NNC1    = actInx(grid.NNC1.values);
-        NNC2 	= actInx(grid.NNC2.values);
-    else
-        NNC1    = actInx(init.NNC1.values);
-        NNC2 	= actInx(init.NNC2.values);
-    end
-    TRANNNC = init.TRANNNC.values;
-else
-    NNC1    = [];
-    NNC2 	= [];
-    TRANNNC = [];
-end
-
-
-% produce neighbour list N, and transmissibilities T
-N = [(1:nCells)' NX; ...
-     (1:nCells)' NY; ...
-     (1:nCells)' NZ; ...
-     NNC1 NNC2];
-T = [init.TRANX.values; ...
-     init.TRANY.values; ...
-     init.TRANZ.values; ...
-     TRANNNC];
-
-% remove 0-transmissibilities and non-active neighbors (appearing as zeros)
-inx = and(T>0, prod(N,2)>0);
-N = N(inx,:);
-T = T(inx);
 end
