@@ -256,7 +256,7 @@ function W = process_wconinje(W, control, G, rock, c2a, well_id, p, opt)
       if numel(W) > sizeW
          W(end).lims.rate = control.WCONINJE{i, 5};
          W(end).lims.bhp  = control.WCONINJE{i, 7};
-         W(end).lims.bhp  = control.WCONINJE{i, 8};
+         W(end).lims.thp  = control.WCONINJE{i, 8};
          W(end).status    = status;
       end
       W(end).vfp_index = control.WCONINJE{i, 9};
