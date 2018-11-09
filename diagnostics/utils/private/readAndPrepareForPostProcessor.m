@@ -11,13 +11,13 @@ data = setStatic([], init, {'PORO', 'PERMX', 'PERMY', 'PERMZ', 'NTG', 'DEPTH'});
 
 %[data.fluid, data.pvtDeck] = initFluidFromOutput(init);
 % assume 1-1 between eclipse and mrst grid for now
-[G, Gs] = eclOutToGrids(init, grid);
-G = eclOut2mrst(init, grid);
+G = initGridFromEclipseOutput(init, grid, 'outputSimGrid', true);
+[G, Gs] = deal(G{1}, G{2});
 
 % add porv to static props
-pv = G.PORV;
+pv = G.cells.PORV;
 data.static(end+1) = struct('name', 'PORV', 'values', pv, 'limits', [min(pv), max(pv)]);
-Gs.PORV = G.PORV;
+Gs.cells.PORV = G.cells.PORV;
 % time in days (start and end of restart step)
 startday = datenum(info.date(1, [3 2 1]));
 data.time.prev = startday + info.time( max(steps-1,1) ) - info.time(1);

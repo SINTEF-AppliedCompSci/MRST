@@ -20,8 +20,9 @@ grid = readEclipseOutputFileUnFmt([casenm, '.EGRID']);
 %[fluid, pvtdeck] = initFluidFromOutput(init);
 
 % only simulation-grid here
-[~, Gs] = eclOutToGrids(init, grid);
-G = eclOut2mrst(init, grid);
+G = initGridFromEclipseOutput(init, grid, 'outputSimGrid', true);
+[G, Gs] = deal(G{1}, G{2});
+
 Gs.PORV = G.PORV;
 info = processEclipseRestartSpec(casenm);
 

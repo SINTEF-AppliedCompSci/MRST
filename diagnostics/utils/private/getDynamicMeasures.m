@@ -12,7 +12,7 @@ if isempty(wsel.injectorIx) && isempty(wsel.producerIx)
     m.LCt = zeros(nT,1);
     for i=1:nT
         D = d.Data.diagnostics(tsel.ix(i)).D;
-        [F,Phi]   = computeFandPhi(d.G.PORV,D.tof);
+        [F,Phi]   = computeFandPhi(d.G.cells.PORV,D.tof);
         [~, ii]   = unique(Phi);
         m.Ft(:,i) = interp1(Phi(ii), F(ii), m.Phi);
         m.LCt(i)  = computeLorenz(F, Phi);
@@ -83,7 +83,7 @@ for t=1:nT
             if ~m.computePairs, continue, end
             ix = itr.*ptr>wsel.threshold;
             if sum(ix)>0
-                [F,Phi] = computeFandPhi(d.G.PORV(ix).*itr(ix).*ptr(ix), ...
+                [F,Phi] = computeFandPhi(d.G.cells.PORV(ix).*itr(ix).*ptr(ix), ...
                     [itof(ix) ptof(ix)]);
                 [~, ii]     = unique(Phi);
                 m.F(:,n,t)  = interp1(Phi(ii), F(ii), m.Phi);
@@ -99,7 +99,7 @@ for t=1:nT
     ireg = ritr.*rptr;
     ix   = ireg > wsel.threshold;
     if nnz(ix) > 0
-        [F,Phi] = computeFandPhi(d.G.PORV(ix).*ireg(ix),...
+        [F,Phi] = computeFandPhi(d.G.cells.PORV(ix).*ireg(ix),...
             [ritof(ix)./ritr(ix) rptof(ix)./rptr(ix)]);
         [~, ii]    = unique(Phi);
         m.Ft(:,t)  = interp1(Phi(ii), F(ii), m.Phi);

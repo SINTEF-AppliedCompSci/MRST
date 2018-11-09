@@ -5,8 +5,8 @@ classdef UIMenu < handle
         layout
         fullHeight
         width
-        titleHeight = 20;
-        collapseDirection = 'up';
+        titleHeight = 18;
+        collapseDirection = 'down';
         %fixUpper          = true;
         level = 1;
         dummyPanel
