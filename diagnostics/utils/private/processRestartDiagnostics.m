@@ -9,9 +9,11 @@ if isempty(opt.outputdir)
     opt.outputdir = fullfile(restartdir, 'mrst_diagnostics');
 end
 
-flag = mkdir(opt.outputdir);
-if ~flag
-    error('Unable to create directory...')
+if exist(opt.outputdir,'dir')~=7
+    flag = mkdir(opt.outputdir);
+    if ~flag
+        error('Unable to create directory...')
+    end
 end
 
 init = readEclipseOutputFileUnFmt([casenm, '.INIT']);
@@ -23,7 +25,7 @@ grid = readEclipseOutputFileUnFmt([casenm, '.EGRID']);
 G = initGridFromEclipseOutput(init, grid, 'outputSimGrid', true);
 [G, Gs] = deal(G{1}, G{2});
 
-Gs.PORV = G.PORV;
+Gs.cells.PORV = G.cells.PORV;
 info = processEclipseRestartSpec(casenm);
 
 steps = 1:numel(info.time);
