@@ -69,7 +69,7 @@ classdef PostProcessDiagnostics < handle
                 if exist(precompDir,'dir')~=7
                     mkdir(precompDir);
                 end
-                if isempty(ls([precompDir, filesep, '*diagn*']))
+                if isempty(ls(precompDir)) || isempty(ls([precompDir, filesep, '*diagn*']))
                     precomputeDialogue(casenm, precompDir);
                 end
             end
