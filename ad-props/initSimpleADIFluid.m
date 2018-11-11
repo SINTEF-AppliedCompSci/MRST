@@ -22,7 +22,7 @@ function fluid = initSimpleADIFluid(varargin)
 %            density of 100. However, if the input argument was 
 %            ... 'rho', [300, 500])
 %            and 'phases' was 'GO', it would be interpreted as a gas-oil
-%            system with gas density of 300kg/m^3 and oil densit yof 500
+%            system with gas density of 300kg/m^3 and oil density of 500
 %            kg/m^3. See the examples and the end of the documentation for
 %            more information.
 %
