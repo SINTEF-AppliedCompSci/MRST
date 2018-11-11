@@ -24,6 +24,8 @@ function ind = mergeOrderedArrays(old, new)
     
     iOld = 1;
     iNew = 1;
+    no = numel(old);
+    nn = numel(new);
     for i = 1:N
         nv = new(iNew);
         no = old(iOld);
@@ -38,13 +40,23 @@ function ind = mergeOrderedArrays(old, new)
             if isinf(oNew)
                 ind(i) = no;
                 iOld = iOld + 1;
-            elseif isinf(iOld)
+            elseif isinf(oOld)
                 ind(i) = nv;
                 iNew = iNew + 1;
             else
                 error('Unable to correctly reassign indices based on given data. Consider sorting them first.')
             end
             assert(~(isinf(oOld) && isinf(oNew)));
+        end
+        % If one of the arrays stops, we just finish by taking the rest of
+        % the other one
+        if iNew > nn && iOld < no
+            ind(i+1:end) = old(iOld:end);
+            break
+        end
+        if iNew < nn && iOld > no
+            ind(i+1:end) = new(iNew:end);
+            break
         end
     end
 end
