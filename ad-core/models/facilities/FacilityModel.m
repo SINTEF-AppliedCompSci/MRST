@@ -1052,7 +1052,7 @@ classdef FacilityModel < PhysicalModel
             %
             % SEE ALSO:
             %   :meth:`ad_core.models.PhysicalModel.validateState`
-            if ~isfield(state, 'wellSol') || isempty(state.wellSol)
+            if ~isfield(state, 'wellSol') || isempty(state.wellSol) || ~isfield(state.wellSol, 'bhp')
                 if isfield(state, 'wellSol')
                     state = rmfield(state, 'wellSol');
                 end
