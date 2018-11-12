@@ -208,7 +208,12 @@ classdef EquationOfStateModel < PhysicalModel
             K0 = state.K;
             % Only apply calculations for cells that have not converged yet
             if iteration == 1
-                [stable, x0, y0] = model.performPhaseStabilityTest(state.pressure, state.T, state.components);
+                x0 = state.x;
+                y0 = state.y;
+                [~, ~, twoPhase] = model.getFlag(state);
+                initSingle = ~twoPhase;
+                stable = initSingle;
+                [stable(initSingle), x0(initSingle, :), y0(initSingle, :)] = model.performPhaseStabilityTest(state.pressure(initSingle), state.T(initSingle), state.components(initSingle, :));
                 acf = model.fluid.acentricFactors;
                 [Si_L, Si_V, A_L, A_V, B_L, B_V, Bi] = model.getMixtureFugacityCoefficients(P, T, x0, y0, acf);
                 % Solve EOS for each phase
@@ -220,8 +225,8 @@ classdef EquationOfStateModel < PhysicalModel
                 % L0 = model.estimateSinglePhaseState(state.pressure, state.T, state.components, L0, stable);
                 active = ~stable;
             else
-                Z0_V = state.Z_V;
                 Z0_L = state.Z_L;
+                Z0_V = state.Z_V;
                 x0 = state.x;
                 y0 = state.y;
                 active = ~state.eos.converged;
@@ -312,8 +317,13 @@ classdef EquationOfStateModel < PhysicalModel
             if nargin < 5
                 cells = [];
             end
-            z = ensureMinimumFraction(z, model.minimumComposition);
-            [stable, x, y] = phaseStabilityTest(model, z, P, T, z, z);
+            if isempty(z)
+                stable = [];
+                [x, y] = deal(zeros(0, size(z, 2)));
+            else
+                z = ensureMinimumFraction(z, model.minimumComposition);
+                [stable, x, y] = phaseStabilityTest(model, z, P, T, z, z);
+            end
         end
 
         function [x, y, K, Z_L, Z_V, L, vals] = newtonCompositionUpdate(model, P, T, z, K, L)

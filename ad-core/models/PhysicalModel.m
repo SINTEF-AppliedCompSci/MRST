@@ -312,7 +312,12 @@ methods
         report = [];
     end
 
-    
+    function dt = getMaximumTimestep(model, state, state0, dt, drivingForces)
+        % Define the maximum allowable time-step based on physics or
+        % discretization choice
+        dt = inf;
+    end
+
     function [model, state] = updateForChangedControls(model, state, forces)
         % Update model and state when controls/drivingForces has changed
         %

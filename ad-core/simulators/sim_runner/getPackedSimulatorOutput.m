@@ -9,6 +9,15 @@ function [ws, states, reports] = getPackedSimulatorOutput(problem, varargin)
     
     ndata = sh.numelData();
     [ws, states, reports] = deal(cell(ndata, 1));
+    wantWells = false;
+    for i = 1:numel(problem.SimulatorSetup.schedule.control)
+        ctrl = problem.SimulatorSetup.schedule.control(i);
+        if isfield(ctrl, 'W') && ~isempty(ctrl.W)
+            wantWells = true;
+            break
+        end
+    end
+    statesInMemory = nargout > 1 && opt.readFromDisk;
 
     sn = sprintf('%s (%s)', problem.BaseName, problem.Name);
     if nstep == ndata
@@ -20,9 +29,11 @@ function [ws, states, reports] = getPackedSimulatorOutput(problem, varargin)
     end
     
     for i = 1:ndata
-        state = sh{i};
-        ws{i} = state.wellSol;
-        if nargout > 1 && opt.readFromDisk
+        if wantWells || statesInMemory
+            state = sh{i};
+            ws{i} = state.wellSol;
+        end
+        if statesInMemory
             states{i} = state;
         end
         if nargout > 2 && opt.readFromDisk

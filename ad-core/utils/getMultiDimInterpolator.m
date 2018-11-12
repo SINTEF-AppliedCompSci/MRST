@@ -71,7 +71,7 @@ function Ye = interpTableND(Y, dY, varargin)
     assert(numel(Yq) == nvar);
     
     isad = cellfun(@(x) isa(x, 'ADI'), Yq);
-    
+    isnewad = cellfun(@(x) isa(x, 'NewAD'), Yq);
     if any(isad)
         % Get a sample variable
         ad = Yq(isad);
@@ -81,7 +81,11 @@ function Ye = interpTableND(Y, dY, varargin)
         Yqd = cellfun(@double, Yq, 'UniformOutput', false);
         Ye = Y(Yqd{:});
         % Cast to ADI
-        Ye = double2ADI(Ye, ad);
+        if any(isnewad)
+            Ye = double2NewAD(Ye, ad);
+        else
+            Ye = double2ADI(Ye, ad);
+        end
         for i = 1:nvar
             if isad(i)
                 % If it is AD, compute derivative using chain rule

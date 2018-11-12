@@ -204,13 +204,15 @@ classdef NonLinearSolver < handle
 
             dtMin = dT/(2^solver.maxTimestepCuts);
             while ~done
-                dt_sel = stepsel.pickTimestep(dt_prev, dt, model, solver, state_prev, state0_inner);
-                if t_local + dt_sel >= dT
+                dt_selector = stepsel.pickTimestep(dt_prev, dt, model, solver, state_prev, state0_inner);
+                dt_model = model.getMaximumTimestep(state, state0_inner, dt_selector, drivingForces);
+                dt_choice = min(dt_selector, dt_model);
+                if t_local + dt_choice >= dT
                     % Ensure that we hit report time
                     isFinalMinistep = true;
                     dt = dT - t_local;
                 else
-                    dt = dt_sel;
+                    dt = dt_choice;
                 end
                 if solver.verbose && dt < dT
                     fprintf('%sSolving ministep : %s (%1.2f %% of control step, control step currently %1.2f %% complete)\n',...
@@ -225,7 +227,7 @@ classdef NonLinearSolver < handle
                 tmp.LocalTime = t_local + dt;
                 reports{end+1} = tmp; %#ok
                 clear tmp
-                if ~isFinalMinistep || dt/dt_sel > 0.9
+                if ~isFinalMinistep || dt/dt_choice > 0.9
                     % Avoid storing ministeps that are just due to cutting
                     % at the end of the control step
                     rep = reports{end};

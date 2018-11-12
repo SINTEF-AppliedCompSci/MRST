@@ -156,6 +156,8 @@ end
 [xM,  yM,  rhoO,  rhoG,  muO,  muG, f_L, f_V, xM0, yM0, rhoO0, rhoG0] = ...
                   model.getTimestepPropertiesEoS(state, state0, p, temp, x, y, z, sO, sG, cellJacMap);
 
+[pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
+
 if model.water
     sat = {sW, sO, sG};
 else
@@ -164,9 +166,13 @@ end
 
 if model.water
     [krW, krO, krG] = model.evaluateRelPerm(sat);
+    krW = mobMult.*krW;
 else
     [krO, krG] = model.evaluateRelPerm(sat);
 end
+krO = mobMult.*krO;
+krG = mobMult.*krG;
+
 
 for i = 1:ncomp
     xM{i} = xM{i}.*sT;
@@ -177,16 +183,12 @@ for i = 1:ncomp
 end
 
 % Compute transmissibility
-T = s.T;
+T = transMult.*s.T;
 
 % Gravity gradient per face
 gdz = model.getGravityGradient();
-% rhoOf  = s.faceAvg(sat{1+model.water}.*rhoO)./max(s.faceAvg(sat{1+model.water}), 1e-8);
-% rhoGf  = s.faceAvg(sat{2+model.water}.*rhoG)./max(s.faceAvg(sat{2+model.water}), 1e-8);
-
-rhoOf  = s.faceAvg(sO.*rhoO.*sT)./max(s.faceAvg(sO.*sT), 1e-8);
-rhoGf  = s.faceAvg(sG.*rhoG.*sT)./max(s.faceAvg(sG.*sT), 1e-8);
-
+rhoOf  = s.faceAvg(sO.*rhoO)./max(s.faceAvg(sO), 1e-8);
+rhoGf  = s.faceAvg(sG.*rhoG)./max(s.faceAvg(sG), 1e-8);
 
 % Oil flux
 mobO   = krO./muO;
@@ -203,6 +205,8 @@ if isfield(fluid, 'pcOG')
 end
 
 vT = sum(state.flux(model.operators.internalConn, :), 2);
+
+
 if model.water
     pW = p;
     pW0 = p0;
@@ -219,77 +223,38 @@ if model.water
         pcOW  = fluid.pcOW(sW);
         Gw = Gw + s.Grad(pcOW);
     end
-
+    sWt = sW.*sT;
     gg = {Gw, Go, Gg};
-    mg = {mobW, mobO, mobG};
+    mob = {mobW, mobO, mobG};
+    rho = {rhoW, rhoO, rhoG};
+    pressures = {pW, p, p};
+
 else
-    [rhoW, rhoW0, mobW, bW] = deal([]);
+    [rhoW, rhoW0, mobW, bW, sWt] = deal([]);
     gg = {Go, Gg};
-    mg = {mobO, mobG};
+    mob = {mobO, mobG};
+    rho = {rhoO, rhoG};
+    pressures = {p, p};
 end
-flag = getSaturationUpwind(model.upwindType, state, gg, vT, s.T, mg, s.faceUpstr);
-upco  = flag(:, model.water + 1);
-upcg  = flag(:, model.water + 2);
 
-
-mobOf = s.faceUpstr(upco, mobO);
-mobGf = s.faceUpstr(upcg, mobG);
-
-rhoOf = s.faceUpstr(upco, rhoO);
-rhoGf = s.faceUpstr(upcg, rhoG);
-
-if model.water
-    upcw  = flag(:, 1);
-    mobWf = s.faceUpstr(upcw, mobW);
-    rhoWf = s.faceUpstr(upcw, rhoW);
-else
-    upcw = [];
-    mobWf = 0;
-    rhoWf = 0;
-end
 
 if model.extraStateOutput
     bO = rhoO./fluid.rhoOS;
     bG = rhoG./fluid.rhoGS;
-
     state = model.storebfactors(state, bW, bO, bG);
     state = model.storeMobilities(state, mobW, mobO, mobG);
-    state = model.storeUpstreamIndices(state, upcw, upco, upcg);
 end
 state = model.storeDensities(state, rhoW, rhoO, rhoG);
 
-totMob = mobWf + mobOf + mobGf;
-totMob = max(totMob, 1e-8);
-F_o = mobOf./totMob;
-F_g = mobGf./totMob;
+components = getComponentsTwoPhaseSimpleWater(model, rho, sWt, xM, yM);
 
-if model.water
-    F_w = mobWf./totMob;
-    vO = F_o.*(vT + T.*mobWf.*(Go - Gw) + T.*mobGf.*(Go - Gg));
-    vG = F_g.*(vT + T.*mobWf.*(Gg - Gw) + T.*mobOf.*(Gg - Go));
-    vW = F_w.*(vT + T.*mobOf.*(Gw - Go) + T.*mobGf.*(Gw - Gg));
+upstr = model.operators.faceUpstr;
+[q_phase, q_components] = computeSequentialFluxes(...
+    state, gg, vT, T, mob, rho, components, upstr, model.upwindType);
 
-    rOvO = rhoOf.*vO;
-    rGvG = rhoGf.*vG;
-    rWvW = rhoWf.*vW;
-else
-    vO = F_o.*(vT + T.*mobGf.*(Go - Gg));
-    vG = F_g.*(vT + T.*mobOf.*(Gg - Go));
-    rOvO = rhoOf.*vO;
-    rGvG = rhoGf.*vG;
-    vW = [];
-end
+pv = pvMult.*model.operators.pv;
+pv0 = pvMult0.*model.operators.pv;
 
-state = model.storeFluxes(state, vW, vO, vG);
-% rOvO = s.faceUpstr(upco, sT).*rOvO;
-% rGvG = s.faceUpstr(upcg, sT).*rGvG;
-
-pv = model.operators.pv;
-pv0 = pv;
-if isfield(fluid, 'pvMultR')
-    pv = pv.*fluid.pvMultR(p);
-    pv0 = pv0.*fluid.pvMultR(p0);
-end
 compFlux = zeros(size(model.operators.N, 1), ncomp);
 
 % water equation + n component equations
@@ -297,8 +262,7 @@ compFlux = zeros(size(model.operators.N, 1), ncomp);
 for i = 1:ncomp
     names{i} = compFluid.names{i};
     types{i} = 'cell';
-    
-    vi = rOvO.*s.faceUpstr(upco, xM{i}) + rGvG.*s.faceUpstr(upcg, yM{i});
+    vi = q_components{i};
     eqs{i} = (1/dt).*( ...
                     pv.*rhoO.*sO.*xM{i} - pv0.*rhoO0.*sO0.*xM0{i} + ...
                     pv.*rhoG.*sG.*yM{i} - pv0.*rhoG0.*sG0.*yM0{i}) + s.Div(vi);
@@ -306,25 +270,16 @@ for i = 1:ncomp
    compFlux(:, i) = double(vi);
 end
 state.componentFluxes = compFlux;
-if model.water
-    state.massFlux = [double(rWvW), double(rOvO), double(rGvG)];
-else
-    state.massFlux = [double(rOvO), double(rGvG)];
-end
 
 if model.water
     wix = ncomp+1;
-    eqs{wix} = (1/dt).*(pv.*rhoW.*sW.*sT - pv0.*rhoW0.*sW0.*sT0) + s.Div(s.faceUpstr(upcw, sT).*rWvW);
+    vw = q_components{ncomp+1};
+    eqs{wix} = (1/dt).*(pv.*rhoW.*sW.*sT - pv0.*rhoW0.*sW0.*sT0) + s.Div(vw);
     names{wix} = 'water';
     types{wix} = 'cell';
-    
-    rho = {rhoW, rhoO, rhoG};
-    mob = {mobW, mobO, mobG};
-    pressures = {p, p, p};
+    state = model.storeFluxes(state, q_phase{:});
 else
-    rho = {rhoO, rhoG};
-    mob = {mobO, mobG};
-    pressures = {p, p};
+    state = model.storeFluxes(state, [], q_phase{:});
 end
 
 comps = cellfun(@(x, y) {x, y}, xM, yM, 'UniformOutput', false);
@@ -363,7 +318,6 @@ if ~isempty(W)
         mobWw = mobW(wc);
         rhoWw = rhoW(wc);
         totMobw = mobWw + mobOw + mobGw;
-        totMobw = max(totMobw, 1e-8);
         f_w_w = mobWw./totMobw;
         f_w_w = sT(wc).*f_w_w;
 
@@ -372,7 +326,6 @@ if ~isempty(W)
         eqs{wix}(wc) = eqs{wix}(wc) - rWqW;
     else
         totMobw = mobOw + mobGw;
-        totMobw = max(totMobw, 1e-8);
     end
     f_o_w = mobOw./totMobw;
     f_g_w = mobGw./totMobw;

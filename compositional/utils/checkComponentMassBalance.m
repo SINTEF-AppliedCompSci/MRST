@@ -152,8 +152,14 @@ function d = getWellComponent(ws, compix)
 end
 
 function state = computeDensities(model, state)
-    rhoO = model.EOSModel.computeDensity(state.pressure, state.x, state.Z_L, state.T);
-    rhoG = model.EOSModel.computeDensity(state.pressure, state.y, state.Z_V, state.T);
+    if ~isfield(state, 'Z_L')
+        eos = model.EOSModel;
+        [Si_L, Si_V, A_L, A_V, B_L, B_V, Bi] = eos.getMixtureFugacityCoefficients(state.pressure, state.T, state.x, state.y, eos.fluid.acentricFactors);
+        state.Z_L = eos.computeCompressibilityZ(state.pressure, state.x, A_L, B_L, Si_L, Bi, true);
+        state.Z_V = eos.computeCompressibilityZ(state.pressure, state.y, A_V, B_V, Si_V, Bi, false);
+    end
+    rhoO = model.EOSModel.PropertyModel.computeDensity(state.pressure, state.x, state.Z_L, state.T);
+    rhoG = model.EOSModel.PropertyModel.computeDensity(state.pressure, state.y, state.Z_V, state.T);
     
     if model.water
         state.rho = [model.fluid.rhoWS.*model.fluid.bW(state.pressure), rhoO, rhoG];
