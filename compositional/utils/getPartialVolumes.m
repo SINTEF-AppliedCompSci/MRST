@@ -119,6 +119,10 @@ end
 
 function [V, dVdp] = getSinglePhaseVolumes(model, state, liquid, vapor, computeDerivatives)
     singlePhase = liquid | vapor;
+    if ~any(singlePhase)
+        [V, dVdp] = deal(zeros(0, size(state.components, 2)));
+        return
+    end
     z = state.components(singlePhase, :);
     p = state.pressure(singlePhase);
     Z_L = state.Z_L(singlePhase);
