@@ -301,7 +301,7 @@ else
 end
 Z = G.cells.centroids(cells, :) * direction(1:dims).';
 dZ = Z - refDepth;
-if any(dZ < 0)
+if any(dZ < -max(eps(Z), eps(refDepth)))
     warning('RefDepth:BelowTopConnection', ...
            ['Reference depth for well BHP in well ''%s'' is set ', ...
             'below well''s top-most reservoir connection'], wellName);
