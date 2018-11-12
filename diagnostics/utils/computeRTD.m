@@ -45,7 +45,7 @@ end
 itof(~isfinite(itof)) = 0;
 maxTOF = max(max(itof));
 
-t  = [3*pvi, min(maxTOF, 100*pvi)];
+t  = [1*pvi, min(maxTOF, 100*pvi)];
 dt = t/opt.nsteps;
 
 % setup system
