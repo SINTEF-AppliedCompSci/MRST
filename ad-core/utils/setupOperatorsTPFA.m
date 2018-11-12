@@ -155,8 +155,8 @@ s.T = T;
 
 pv = opt.porv;
 if isempty(pv)
-    if isfield(G, 'PORV')
-        pv = G.PORV;
+    if isfield(G.cells, 'PORV')
+        pv = G.cells.PORV;
     else
         pv = poreVolume(G, rock);
     end
