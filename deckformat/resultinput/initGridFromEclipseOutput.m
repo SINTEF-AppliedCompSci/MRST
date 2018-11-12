@@ -135,6 +135,7 @@ if opt.outputSimGrid
     Gs.cells.DX    = convertFrom(init.DX.values(eMap), u.length);
     Gs.cells.DY    = convertFrom(init.DY.values(eMap), u.length);
     Gs.cells.DZ    = convertFrom(init.DZ.values(eMap), u.length);
+    Gs.cells.PORV   = convertFrom(init.PORV.values(actNum), u.resvolume);
     dispif(mrstVerbose, 'done\n')
     G = {G, Gs};
 end
