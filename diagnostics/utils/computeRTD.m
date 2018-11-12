@@ -140,6 +140,7 @@ for k = 1:numel(prod)
     c = c(c>0);
     qp_well(c, k) = sum(state.wellSol(prod(k)).flux(c>0,:), 2);
 end% distrubute tracer in injector cells according to injector rates
-tr0 = bsxfun(@rdivide, qi_well, pv(cix));
+w   = bsxfun(@rdivide, qi_well, sum(qi_well));
+tr0 = bsxfun(@rdivide, w, pv(cix));
 pv = pv(cix);
 end
