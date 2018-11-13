@@ -658,7 +658,9 @@ function [tit, d, yl, doCsum] = getWellUnit(d, fld, usys, isCsum, hasTimesteps)
                case 'lab'
                   yl = 'Scm^3/Scm^3';
             end
-
+        case 't'
+            tit = [fld, ': Temperature'];
+            yl  = 'kelvin';
         case {'ocut', 'wcut', 'gcut'}
             switch lower(fld(1))
                 case 'o'
