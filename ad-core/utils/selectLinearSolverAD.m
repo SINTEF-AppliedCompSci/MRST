@@ -16,7 +16,9 @@ function lsolve = selectLinearSolverAD(model, varargin)
     if opt.useAMGCL
         mrstModule add linearsolvers
         if opt.useCPR
-            lsolve = AMGCL_CPRSolverAD('maxIterations', 50, solver_arg{:});
+            lsolve = AMGCL_CPRSolverAD('maxIterations', 50,...
+                                       'block_size', ncomp,...
+                                       solver_arg{:});
         else
             lsolve = AMGCLSolverAD('preconditioner', 'relaxation',...
                                    'relaxation', 'ilu0', ...
@@ -37,7 +39,7 @@ function lsolve = selectLinearSolverAD(model, varargin)
     if ~isa(lsolve, 'BackslashSolverAD')
         if isa(model.AutoDiffBackend, 'DiagonalAutoDiffBackend')
             lsolve.reduceToCell = false;
-            lsolve.amgcl_setup.active_rows = model.G.cells.num*ncomp;
+            lsolve.keepNumber = model.G.cells.num*ncomp;
         end
     end
 end
