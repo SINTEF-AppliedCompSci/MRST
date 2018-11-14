@@ -4,7 +4,7 @@ function precomp = getPrecomputedDiagnostics(casenm, steps, pdir)
 if nargin < 3
     pdir = fullfile(caseDir, 'mrst_diagnostics');
 end
-if ~isempty(ls(pdir))
+if ~isempty(dir(pdir))
     fn = @(n)fullfile(pdir, [prefix, sprintf('_diagn%0.4d.mat', n)]);
     fail = false;
     fprintf('Loading precomputed diagnostics %3.0d%%', 0)

@@ -66,10 +66,12 @@ classdef PostProcessDiagnostics < handle
                 cleanupDialogue(precompDir);
             end
             if opt.precompute
+                dd = dir(precompDir);
                 %if exist(precompDir,'dir')~=7
                 %    mkdir(precompDir);
                 % end
-                if isempty(ls(precompDir)) || isempty(ls([precompDir, filesep, '*diagn*']))
+                % only precompute if directory is empty or non-existent
+                if ~any(~strncmp({dd.name}, '.', 1))
                     precomputeDialogue(casenm, precompDir);
                 end
             end
