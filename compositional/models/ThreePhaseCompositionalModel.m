@@ -150,6 +150,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             end
             model.checkProperty(state, 'Temperature', [ncell, 1], [1, 2]);
             if ~isfield(state, 'x') || ~isfield(state, 'K')
+                state.components = ensureMinimumFraction(state.components, model.EOSModel.minimumComposition);
                 state = model.computeFlash(state, inf);
             end
             if isfield(state, 'wellSol') && ~isfield(state.wellSol, 'components')

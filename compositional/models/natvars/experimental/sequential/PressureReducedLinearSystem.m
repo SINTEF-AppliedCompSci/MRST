@@ -21,12 +21,22 @@ classdef PressureReducedLinearSystem < ReducedLinearizedSystem
         function problem = assembleSystem(problem)
             if ~problem.assembled
                 problem = assembleSystem@ReducedLinearizedSystem(problem);
-                problem.w = problem.getWeights();
-%                 problem.w = getImpesWeightsOverallComposition(problem.model, problem.state, 1);
-                
-                weights = problem.w;
-%                 singlePhase = problem.state.flag ~= 0;
-
+                pmodel = problem.model;
+                analyticalWeights = isprop(pmodel, 'usePartialVolumeWeights') && ...
+                                    pmodel.usePartialVolumeWeights;
+                if analyticalWeights
+                    [weights, dwdp] = getPartialVolumes(pmodel, problem.state, 'simple_singlephase', true);
+                else
+                    weights = problem.getWeights();
+                    if problem.iterationNo == 1 || ~isfield(problem.state, 'w_p')
+                        dwdp = [];
+                    else
+                        dp = problem.state.pressure - problem.state.w_p;
+                        dwdp = bsxfun(@rdivide, (weights - problem.state.w), dp);
+                        dwdp(~isfinite(dwdp)) = 0;
+                    end
+                end
+                problem.w = weights;
                 Ap = sparse(0);
                 
                 A0 = problem.A;
@@ -35,12 +45,9 @@ classdef PressureReducedLinearSystem < ReducedLinearizedSystem
                 q = 0;
                 [ncell, ncomp] = size(weights);
                 ex = [1:ncell, problem.wellVarIndices];
-%                 ex = 1:ncell;
 
                 eqs = cell(ncomp, 1);
                 W = cell(ncomp, 1);
-                
-                
                 eq = 0;
                 nder = numel(ex);
                 if ~isempty(A0)
@@ -48,17 +55,12 @@ classdef PressureReducedLinearSystem < ReducedLinearizedSystem
                         ix = (1:ncell) + (i-1)*ncell;
                         eqs{i} = ADI(b0(ix), -A0(ix, ex));
 
-                        if problem.iterationNo == 1 || ~isfield(problem.state, 'w_p')
+                        if isempty(dwdp)
                             wder = sparse([], [], [], ncell, nder);
                         else
-                            dp = problem.state.pressure - problem.state.w_p;
-%                             dp(singlePhase) = 0;
-                            ddp = (weights(:, i) - problem.state.w(:, i))./dp;
-                            ddp(~isfinite(ddp)) = 0;
-                            wder = sparse(1:ncell, 1:ncell, ddp, ncell, nder);
+                            wder = sparse(1:ncell, 1:ncell, dwdp(:, i), ncell, nder);
                         end
                         wi = weights(:, i);
-%                         wi(singlePhase) = 1;
 
                         W{i} = ADI(wi, wder);
                         eq = eq + W{i}.*eqs{i};

@@ -140,8 +140,11 @@ classdef ResultHandler < handle
                     
                     if handler.writeToDisk
                         sub = s(1).subs{1};
+                        if ischar(sub) && strcmp(sub, ':')
+                            sub = 1:handler.numelData();
+                        end
                         tmp = handler.readFromFile(sub);
-                        s.subs{1} = 1:numel(sub);
+                        s(1).subs{1} = 1:numel(sub);
                         [varargout{1:nargout}] = builtin('subsref', tmp, s);
                         return
                     end

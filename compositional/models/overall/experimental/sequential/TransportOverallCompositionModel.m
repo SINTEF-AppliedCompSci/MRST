@@ -15,11 +15,6 @@ classdef TransportOverallCompositionModel < OverallCompositionCompositionalModel
             model.useIncTolComposition = false;
 
             model = merge_options(model, varargin{:});
-            if model.water
-                model.saturationVarNames = {'sw', 'so', 'sg'};
-            else
-                model.saturationVarNames = {'so', 'sg'};
-            end
         end
         
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
@@ -28,12 +23,23 @@ classdef TransportOverallCompositionModel < OverallCompositionCompositionalModel
             end
             if ~isfield(state0, 'sT')
                 state0.sT = sum(state0.s, 2);
-            end            
+            end
             [problem, state] = transportEquationOverallComposition(state0, state, model,...
                             dt, ...
                             drivingForces,...
                             varargin{:});
             
+        end
+        
+        function [state, report] = updateState(model, state, problem, dx, drivingForces)
+            isS = strcmpi(problem.primaryVariables, 'sT');
+            ds = dx{isS};
+            state = model.updateStateFromIncrement(state, ds, problem, 'sT', inf, model.dsMaxAbs);
+            problem.primaryVariables = problem.primaryVariables(~isS);
+            dx = dx(~isS);
+            
+            [state, report] = updateState@OverallCompositionCompositionalModel(model, state, problem, dx, drivingForces);
+%             state.sT = max(state.sT, 1e-8);
         end
         function state = validateState(model, state)
             state.sT = ones(model.G.cells.num, 1);
@@ -52,7 +58,7 @@ classdef TransportOverallCompositionModel < OverallCompositionCompositionalModel
         function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
             [state, report] = updateAfterConvergence@OverallCompositionCompositionalModel(model, state0, state, dt, drivingForces);
             state.s = bsxfun(@times, state.s, state.sT);
-            state.sT = ones(model.G.cells.num, 1);
+            state = rmfield(state, 'sT');
         end
 
     end
