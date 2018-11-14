@@ -572,32 +572,36 @@ classdef PostProcessDiagnostics < handle
             if numel(wsel.injectorIx) ~= 1 || numel(tsel.ix) ~= 1
                 axis(ax, 'off')
                 text(0,0,'Please select{\bf one} injector and{\bf one} time step.,','Parent' ,ax);
+                return
             else
                 [iIx, pIx] = deal(s3.wsel.injectorIx, s3.wsel.producerIx);
+                if isempty(pIx)
+                    pIx = 1:numel(d.WellPlot.producers);
+                end
                 switch ix
                     case 1
                         axis(ax, 'off')
+                        return
                     case 2 % estimate
-                        %for k = 1:numel(pIx)
-                            dist = estimateRTD(d.Gs.cells.PORV, d.Data.diagnostics(tsel.ix).D, ...
-                                                    d.Data.diagnostics(tsel.ix).WP, ...
-                                                    'injectorIx', iIx, 'producerIx', pIx);
-                            plot(ax, dist.t/year, dist.values, 'LineWidth', 2);
-                        %end
+                        %
+                        dist = estimateRTD(d.Gs.cells.PORV, d.Data.diagnostics(tsel.ix).D, ...
+                                           d.Data.diagnostics(tsel.ix).WP, ...
+                                           'injectorIx', iIx, 'producerIx', pIx);
                     case 3 % compute
-                            dist = computeRTD(d.Data.states{tsel.ix}, d.Gs, d.Gs.cells.PORV, ...
-                                            d.Data.diagnostics(tsel.ix).D, d.Data.diagnostics(tsel.ix).WP, ...
-                                            d.Data.states{tsel.ix}.wellSol, ...
-                                            'injectorIx', iIx, 'producerIx', pIx);
-                            plot(ax, dist.t/year, dist.values, 'LineWidth', 2);
+                        dist = computeRTD(d.Data.states{tsel.ix}, d.Gs, d.Gs.cells.PORV, ...
+                                          d.Data.diagnostics(tsel.ix).D, d.Data.diagnostics(tsel.ix).WP, ...
+                                          d.Data.states{tsel.ix}.wellSol, ...
+                                         'injectorIx', iIx, 'producerIx', pIx);
                 end
-                if ix > 1
-                    ylabel(ax, 'Tracer rate');
-                    wn = arrayfun(@(x)x.label.String, d.WellPlot.producers(pIx), 'UniformOutput', false);
-                    legend(ax, wn, 'Location','northeast', 'Interpreter', 'none')
-                    set(ax, 'FontSize', 10)
-                    set(ax, 'XLim', [0, s2.dsel.extendTime]);
+                for k = 1:numel(pIx)
+                    line(ax, dist.t(:,k)/year, dist.values(:,k), ...
+                        'LineWidth', 2, 'Color', d.Data.prodColors(pIx(k),:));
                 end
+                ylabel(ax, 'Tracer rate');
+                wn = arrayfun(@(x)x.label.String, d.WellPlot.producers(pIx), 'UniformOutput', false);
+                legend(ax, wn, 'Location','northeast', 'Interpreter', 'none')
+                set(ax, 'FontSize', 10)
+                set(ax, 'XLim', [0, s2.dsel.extendTime]);
             end
         end
         % -----------------------------------------------------------------
