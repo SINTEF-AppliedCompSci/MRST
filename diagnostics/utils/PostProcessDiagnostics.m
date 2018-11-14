@@ -59,16 +59,16 @@ classdef PostProcessDiagnostics < handle
             assert(exist(filenm, 'file')>0, sprintf('Unable to find file %s', filenm));
             [pth, nm] = fileparts(filenm);
             casenm = fullfile(pth, nm);
-            
+
             % precompute options
             precompDir = fullfile(pth, 'mrst_diagnostics');
             if opt.cleanup
                 cleanupDialogue(precompDir);
             end
             if opt.precompute
-                %if exist(precompDir,'dir')~=7
-                %    mkdir(precompDir);
-                % end
+                if exist(precompDir,'dir')~=7
+                    mkdir(precompDir);
+                end
                 if isempty(ls(precompDir)) || isempty(ls([precompDir, filesep, '*diagn*']))
                     precomputeDialogue(casenm, precompDir);
                 end
@@ -95,7 +95,7 @@ classdef PostProcessDiagnostics < handle
             if ~all(valid_ix) && ~isempty(precomp)
                 precomp = precomp(valid_ix);
             end
-            
+
             d.Data = computeDiagnostics(d.Gs, d.Data, d.maxTOF, [], precomp);
             try
                 d.Data.summary = readEclipseSummaryUnFmt(casenm);
@@ -267,11 +267,11 @@ classdef PostProcessDiagnostics < handle
                'Visible', 'off', 'Parent', d.Axes3D);
             for i=1:numel(d.WellPlot.producers)
                 d.WellPlot.producers(i).label.FontSize = 8;
-                d.WellPlot.producers(i).label.BackgroundColor = [.7 .7 .7]; 
+                d.WellPlot.producers(i).label.BackgroundColor = [.7 .7 .7];
             end
             for i=1:numel(d.WellPlot.injectors)
                 d.WellPlot.injectors(i).label.FontSize = 8;
-                d.WellPlot.injectors(i).label.BackgroundColor = [.7 .7 .7]; 
+                d.WellPlot.injectors(i).label.BackgroundColor = [.7 .7 .7];
             end
 
             % ------ Set callbacks for 3D axes ----------------------------
@@ -682,7 +682,7 @@ classdef PostProcessDiagnostics < handle
             aPos3D = [mw+sp, 2*sp+ah, fip(3)-mw-2*sp, fip(4)-3*sp-ah];
             cbh    = max(50, min(300, fip(4)-2*sp));
             cbw    = 27;
-            % Colorbar left, next to menu 
+            % Colorbar left, next to menu
             aPosCB = [mw+2*sp,       fip(4)-cbh-sp, cbw, cbh];
             aPosHA = [mw+2*sp+cbw+5, fip(4)-cbh-sp, cbw, cbh];
             % Colorbar right
@@ -1072,7 +1072,7 @@ classdef PostProcessDiagnostics < handle
                 d.colormap3D = str;
             end
         end
-                                
+
         % -----------------------------------------------------------------
         function updateColorHist(d)
            vals = d.Patch.colorData(d.Patch.cells);
