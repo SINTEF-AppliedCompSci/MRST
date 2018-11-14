@@ -59,19 +59,17 @@ classdef PostProcessDiagnostics < handle
             assert(exist(filenm, 'file')>0, sprintf('Unable to find file %s', filenm));
             [pth, nm] = fileparts(filenm);
             casenm = fullfile(pth, nm);
-            
+
             % precompute options
             precompDir = fullfile(pth, 'mrst_diagnostics');
             if opt.cleanup
                 cleanupDialogue(precompDir);
             end
             if opt.precompute
-                dd = dir(precompDir);
-                %if exist(precompDir,'dir')~=7
-                %    mkdir(precompDir);
-                % end
-                % only precompute if directory is empty or non-existent
-                if ~any(~strncmp({dd.name}, '.', 1))
+                if exist(precompDir,'dir')~=7
+                    mkdir(precompDir);
+                end
+                if isempty(ls(precompDir)) || isempty(ls([precompDir, filesep, '*diagn*']))
                     precomputeDialogue(casenm, precompDir);
                 end
             end
@@ -97,7 +95,7 @@ classdef PostProcessDiagnostics < handle
             if ~all(valid_ix) && ~isempty(precomp)
                 precomp = precomp(valid_ix);
             end
-            
+
             d.Data = computeDiagnostics(d.Gs, d.Data, d.maxTOF, [], precomp);
             try
                 d.Data.summary = readEclipseSummaryUnFmt(casenm);
@@ -269,11 +267,11 @@ classdef PostProcessDiagnostics < handle
                'Visible', 'off', 'Parent', d.Axes3D);
             for i=1:numel(d.WellPlot.producers)
                 d.WellPlot.producers(i).label.FontSize = 8;
-                d.WellPlot.producers(i).label.BackgroundColor = [.7 .7 .7]; 
+                d.WellPlot.producers(i).label.BackgroundColor = [.7 .7 .7];
             end
             for i=1:numel(d.WellPlot.injectors)
                 d.WellPlot.injectors(i).label.FontSize = 8;
-                d.WellPlot.injectors(i).label.BackgroundColor = [.7 .7 .7]; 
+                d.WellPlot.injectors(i).label.BackgroundColor = [.7 .7 .7];
             end
 
             % ------ Set callbacks for 3D axes ----------------------------
@@ -574,32 +572,36 @@ classdef PostProcessDiagnostics < handle
             if numel(wsel.injectorIx) ~= 1 || numel(tsel.ix) ~= 1
                 axis(ax, 'off')
                 text(0,0,'Please select{\bf one} injector and{\bf one} time step.,','Parent' ,ax);
+                return
             else
                 [iIx, pIx] = deal(s3.wsel.injectorIx, s3.wsel.producerIx);
+                if isempty(pIx)
+                    pIx = 1:numel(d.WellPlot.producers);
+                end
                 switch ix
                     case 1
                         axis(ax, 'off')
+                        return
                     case 2 % estimate
-                        %for k = 1:numel(pIx)
-                            dist = estimateRTD(d.Gs.cells.PORV, d.Data.diagnostics(tsel.ix).D, ...
-                                                    d.Data.diagnostics(tsel.ix).WP, ...
-                                                    'injectorIx', iIx, 'producerIx', pIx);
-                            plot(ax, dist.t/year, dist.values, 'LineWidth', 2);
-                        %end
+                        %
+                        dist = estimateRTD(d.Gs.cells.PORV, d.Data.diagnostics(tsel.ix).D, ...
+                                           d.Data.diagnostics(tsel.ix).WP, ...
+                                           'injectorIx', iIx, 'producerIx', pIx);
                     case 3 % compute
-                            dist = computeRTD(d.Data.states{tsel.ix}, d.Gs, d.Gs.cells.PORV, ...
-                                            d.Data.diagnostics(tsel.ix).D, d.Data.diagnostics(tsel.ix).WP, ...
-                                            d.Data.states{tsel.ix}.wellSol, ...
-                                            'injectorIx', iIx, 'producerIx', pIx);
-                            plot(ax, dist.t/year, dist.values, 'LineWidth', 2);
+                        dist = computeRTD(d.Data.states{tsel.ix}, d.Gs, d.Gs.cells.PORV, ...
+                                          d.Data.diagnostics(tsel.ix).D, d.Data.diagnostics(tsel.ix).WP, ...
+                                          d.Data.states{tsel.ix}.wellSol, ...
+                                         'injectorIx', iIx, 'producerIx', pIx);
                 end
-                if ix > 1
-                    ylabel(ax, 'Tracer rate');
-                    wn = arrayfun(@(x)x.label.String, d.WellPlot.producers(pIx), 'UniformOutput', false);
-                    legend(ax, wn, 'Location','northeast', 'Interpreter', 'none')
-                    set(ax, 'FontSize', 10)
-                    set(ax, 'XLim', [0, s2.dsel.extendTime]);
+                for k = 1:numel(pIx)
+                    line(ax, dist.t(:,k)/year, dist.values(:,k), ...
+                        'LineWidth', 2, 'Color', d.Data.prodColors(pIx(k),:));
                 end
+                ylabel(ax, 'Tracer rate');
+                wn = arrayfun(@(x)x.label.String, d.WellPlot.producers(pIx), 'UniformOutput', false);
+                legend(ax, wn, 'Location','northeast', 'Interpreter', 'none')
+                set(ax, 'FontSize', 10)
+                set(ax, 'XLim', [0, s2.dsel.extendTime]);
             end
         end
         % -----------------------------------------------------------------
@@ -684,7 +686,7 @@ classdef PostProcessDiagnostics < handle
             aPos3D = [mw+sp, 2*sp+ah, fip(3)-mw-2*sp, fip(4)-3*sp-ah];
             cbh    = max(50, min(300, fip(4)-2*sp));
             cbw    = 27;
-            % Colorbar left, next to menu 
+            % Colorbar left, next to menu
             aPosCB = [mw+2*sp,       fip(4)-cbh-sp, cbw, cbh];
             aPosHA = [mw+2*sp+cbw+5, fip(4)-cbh-sp, cbw, cbh];
             % Colorbar right
@@ -1074,7 +1076,7 @@ classdef PostProcessDiagnostics < handle
                 d.colormap3D = str;
             end
         end
-                                
+
         % -----------------------------------------------------------------
         function updateColorHist(d)
            vals = d.Patch.colorData(d.Patch.cells);
