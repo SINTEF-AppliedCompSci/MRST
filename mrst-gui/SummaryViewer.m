@@ -11,7 +11,7 @@ classdef SummaryViewer < handle
     
     methods
         function d = SummaryViewer(smry)
-            if isstring(smry)
+            if ischar(smry)
                 d.smry = readEclipseSummaryUnFmt(smry);
             else
                 d.smry = smry;
