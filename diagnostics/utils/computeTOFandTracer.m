@@ -9,8 +9,16 @@ function D = computeTOFandTracer(state, G, rock,  varargin)
 %   Construct the basis for flow diagnostic by computing
 %     1) time-of-flight        :   \nabla·(v T) = \phi,
 %     2) reverse time-of-flight:  -\nabla·(v T) = \phi,
-%     3) stationary tracer     :  -\nabla·(v C) = 0
-%   using a first-order finite-volume method with upwind flux.
+%     3) stationary tracer     :  ±\nabla·(v C) = 0
+%   using a first-order finite-volume method with upwind flux. A majority
+%   vote is also used to partition the volume and assign each cell to a
+%   unique tracer. Optionally, the routine can also compute time-of-flight
+%   values for each influence region by solving localized time-of-flight
+%   equations
+%         \nabla·(v C_i T) = \phi C_i,
+%   where C_i is the tracer concentration of each influence region.
+%
+%   Finally, first arrival time is computed by a graph algorithm.
 %
 % REQUIRED PARAMETERS:
 %   G     - Grid structure.
@@ -24,7 +32,7 @@ function D = computeTOFandTracer(state, G, rock,  varargin)
 %           'solveIncompFlow'.  Must contain valid cell interface fluxes,
 %           'state.flux'.
 %
-% OPTIONAL PARAMETERS:
+% OPTIONAL PARAMETERS (supplied in 'key'/value pairs):
 %   wells - Well structure as defined by function 'addWell'.  May be empty
 %           (i.e., wells = []) which is interpreted as a model without any
 %           wells.
@@ -39,35 +47,46 @@ function D = computeTOFandTracer(state, G, rock,  varargin)
 %           interpreted as all external no-flow (homogeneous Neumann)
 %           conditions.
 %
-%   tracerWells - Logical index vector indicating subset of wells for which 
-%           tracer-fields will be computed. Empty matrix (default) is 
-%           interpeted as all true, i.e., compute tracer fields for all 
+%   tracerWells - Logical index vector indicating subset of wells for which
+%           tracer-fields will be computed. Empty matrix (default) is
+%           interpeted as all true, i.e., compute tracer fields for all
 %           wells.
+%
+%   computeWellTOFs - Boolean variable. If true, time-of-flight values are
+%           computed individually for each influence region by solving
+%
+%   firstArrival - Boolean variable. If true, compute first-arrival time by
+%           a graph algorithm.
 %
 %   solver - Function handle to solver for use in TOF/tracer equations.
 %           Default (empty) is matlab mldivide (i.e., \)
 %
-%   maxTOF - Maximal TOF thresholding to avoid singular/ill-conditioned 
-%           systems. Default (empty) is 50*PVI (pore-volumes-injected).  
+%   maxTOF - Maximal TOF thresholding to avoid singular/ill-conditioned
+%           systems. Default (empty) is 50*PVI (pore-volumes-injected).
 %
 %   processCycles - Extend TOF thresholding to strongly connected
-%           components in flux graph by considering Dulmage-Mendelsohn 
-%           decomposition (dmperm). Recommended for highly cyclic flux 
-%           fields. Only takes effect if 'allowInf' is set to false.   
-%   
+%           components in flux graph by considering Dulmage-Mendelsohn
+%           decomposition (dmperm). Recommended for highly cyclic flux
+%           fields. Only takes effect if 'allowInf' is set to false.
+%
 % RETURNS:
 %   D - struct that contains the basis for computing flow diagnostics:
 %       'inj'     - list of injection wells
 %       'prod'    - list of production wells
 %       'tof'     - time-of-flight and reverse time-of-flight returned
-%                   as an (G.cells.num x 2) vector
+%                   as an array where the first (G.cells.num x 2) elements
+%                   contain forward/backward TOF for the whole field, and
+%                   any other columns optinally contain TOF values for
+%                   individual influence regions
 %       'itracer' - steady-state tracer distribution for injectors
 %       'ipart'   - tracer partition for injectors
+%       'ifa'     - first-arrival time injectors
 %       'ptracer' - steady-state tracer distribution for producers
 %       'ppart'   - tracer partition for producers
+%       'pfa'     - first-arrival time for producers
 
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -87,10 +106,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 
 % Process optional parameters
-opt = struct('bc', [], 'src', [], 'wells', [], 'tracerWells', [], ...
-             'solver', [], 'maxTOF', [], 'processCycles', false, ...
-              'computeWellTOFs', false);
+opt = struct('bc', [],                ...
+             'src', [],               ...
+             'wells', [],             ...
+             'tracerWells', [],       ...
+             'solver', [],            ...
+             'maxTOF', [],            ...
+             'processCycles', false,  ...
+             'computeWellTOFs', false, ...
+             'firstArrival', false);
 opt = merge_options(opt, varargin{:});
+if opt.firstArrival
+  opt.computeWellTOFs = true;
+end
 
 check_input(G, rock, opt);
 
@@ -120,14 +148,18 @@ if (sum(sum_flux) == 0.0)
 end
 
 % Compute time-of-flight and tracer partition from injectors
-t = computeTimeOfFlight(state, G, rock, 'wells', opt.wells, ...
+t = computeTimeOfFlight(state, G, rock, 'wells', opt.wells,  ...
    'tracer', {opt.wells(D.inj).cells}, 'solver', opt.solver, ...
    'maxTOF', opt.maxTOF, 'processCycles', opt.processCycles, ...
-   'computeWellTOFs', opt.computeWellTOFs);
+   'computeWellTOFs', opt.computeWellTOFs,                   ...
+   'firstArrival', opt.firstArrival);
 D.tof     = t(:,1);
 D.itracer = t(:,2:numel(D.inj)+1);
 if opt.computeWellTOFs
-    D.itof = t(:, numel(D.inj)+2:end);
+    D.itof = t(:, numel(D.inj)+2:2*numel(D.inj)+1);
+    if opt.firstArrival
+        D.ifa = t(:, 2*numel(D.inj)+2:end);
+    end
 end
 [val,D.ipart] = max(D.itracer,[],2); %#ok<*ASGLU>
 % set 'non-traced' cells to zero
@@ -138,11 +170,15 @@ t = computeTimeOfFlight(state, G, rock, 'wells', opt.wells, ...
    'tracer', {opt.wells(D.prod).cells}, 'reverse', true, ...
    'solver', opt.solver, 'maxTOF', opt.maxTOF, ...
    'processCycles', opt.processCycles, ...
-    'computeWellTOFs', opt.computeWellTOFs);
+   'computeWellTOFs', opt.computeWellTOFs, ...
+   'firstArrival', opt.firstArrival);
 D.tof(:,2) = t(:,1);
 D.ptracer  = t(:,2:numel(D.prod)+1);
 if opt.computeWellTOFs
-    D.ptof = t(:, numel(D.prod)+2:end);
+    D.ptof = t(:, numel(D.prod)+2:2*numel(D.prod)+1);
+    if opt.firstArrival
+       D.pfa = t(:, 2*numel(D.prod)+2 : end);
+    end
 end
 [val,D.ppart] = max(D.ptracer,[],2);
 D.ppart(val==0) = 0;
@@ -161,8 +197,6 @@ function check_input(G, rock, opt)
            'for each cell in the grid.']);
 
    assert(min(rock.poro) > 0, 'Rock porosities must be positive numbers.');
-   assert(or(isempty(opt.tracerWells), numel(opt.tracerWells)==numel(opt.wells)), ...
-           'Input tracerWells must be a logical vector of length equal to number of wells')
 end
 
 %--------------------------------------------------------------------------

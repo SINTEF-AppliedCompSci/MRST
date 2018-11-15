@@ -23,7 +23,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     require deckformat ad-fi
     init = readEclipseOutputFileUnFmt([prefix, '.INIT']);
     grid = readEclipseOutputFileUnFmt([prefix, '.EGRID']);
-    [G, rock, N, T] = eclOut2mrst(init, grid);
+    [G, rock, N, T] = initGridFromEclipseOutput(init, grid);
 
     try
         [rstrt, rsspec] = readRestartLocal(prefix);
