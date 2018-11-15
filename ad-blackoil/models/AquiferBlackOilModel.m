@@ -1,13 +1,15 @@
 classdef AquiferBlackOilModel < ThreePhaseBlackOilModel
     
     properties
-        aquifers
+        aquifer % aquifer data table
+        aquind % structure which explains the fields in the aquifer data table
     end
     
     methods
-        function model = AquiferBlackOilModel(G, rock, fluid, aquifers, arargin)
-            model = model@AquiferBlackOilModel(G, rock, fluid, varargin{:});
-            model.aquifers = aquifers;
+        function model = AquiferBlackOilModel(G, rock, fluid, aquifer, aquind, varargin)
+            model = model@ThreePhaseBlackOilModel(G, rock, fluid, varargin{:});
+            model.aquifer = aquifer;
+            model.aquind  = aquind;
         end
         
         % --------------------------------------------------------------------%
@@ -30,14 +32,14 @@ classdef AquiferBlackOilModel < ThreePhaseBlackOilModel
                                                               drivingForces);
             sW = model.getProp(state, 'sW');
             p = model.getProp(state, 'pressure');
-            q = computeAquiferFluxes((model, p, sW, state, dt);
+            q = computeAquiferFluxes(model, p, sW, state, dt);
         end
         
         function eqs = addAquiferContribution(model, eqs, names, state, p, sW, dt)
             
             q = computeAquiferFluxes(model, p, sW, state, dt);
             wind = strcmpi('water', names);
-            conn = model.aquifers.conn;
+            conn = model.aquifer.conn;
             eqs{wind}(conn) = eqs{wind}(conn) - q;
 
         end
