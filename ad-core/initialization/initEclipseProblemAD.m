@@ -44,12 +44,13 @@ function [state0, model, schedule, nonlinear] = initEclipseProblemAD(deck, varar
                 sel = [];
             case 'iteration'
                 % Control on iterations
-                sel = IterationCountTimeStepSelector();
+                sel = IterationCountTimeStepSelector('targetIterationCount', 8);
             case 'ds'
                 % Control on saturation change
                 sel = ...
                     StateChangeTimeStepSelector('targetProps', {'s'},...
-                                                'targetChangeAbs', 0.2);
+                                                'targetChangeAbs', 0.2, ...
+                                                'targetIterationCount', inf);
             case 'dsdc'
                 % Control on saturation + components
                 names = {'s'};
@@ -60,13 +61,15 @@ function [state0, model, schedule, nonlinear] = initEclipseProblemAD(deck, varar
                 end
                 sel = ...
                     StateChangeTimeStepSelector('targetProps', names,...
-                                                'targetChangeAbs', targets);
+                                                'targetChangeAbs', targets, ...
+                                                'targetIterationCount', inf);
 
             otherwise
                 error('Unknown timestepping strategy %s', opt.TimestepStrategy);
         end
         if ~isempty(sel)
-            sel.firstRampupStepRelative = 0.01;
+            sel.firstRampupStepRelative = 0.1;
+            sel.firstRampupStep = 1*day;
             nonlinear.timeStepSelector = sel;
         end
     end

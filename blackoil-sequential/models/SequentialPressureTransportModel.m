@@ -35,7 +35,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
     
     methods
         function model = SequentialPressureTransportModel(pressureModel, transportModel, varargin)
-            model = model@ReservoirModel([]);
+            model = model@ReservoirModel(transportModel.G);
             % Set up defaults
             model.pressureModel  = pressureModel;
             model.transportModel = transportModel;

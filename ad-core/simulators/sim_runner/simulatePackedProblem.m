@@ -67,19 +67,25 @@ function [ok, status] = simulatePackedProblem(problems, varargin)
 
         timer = tic();
         if doSim
+            mods = mrstModule();
             try
+                mrstModule('add', problem.Modules{:});
                 simulateScheduleAD(state0, model, schedule, 'nonlinearsolver', nls,...
                                                             'restartStep', restartStep,...
                                                             'OutputHandler', state_handler, ...
                                                             'ReportHandler', report_handler, ...
                                                             problem.SimulatorSetup.ExtraArguments{:});
             catch ex
+                mrstModule('reset', mods{:});
                 msg = ex.message;
                 ok = false;
                 fprintf('!!! Simulation resulted in fatal error !!!\n Exception thrown: %s\n', msg);
                 if ~opt.continueOnError
                     rethrow(ex);
                 end
+            end
+            if ok
+                mrstModule('reset', problem.Modules{:});
             end
         end
         
