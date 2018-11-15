@@ -21,7 +21,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-   [ncell, ncomp, ntequil, naqcon] = get_dimensions(deck);
+   [ncell, ncomp, ntequil, nanaqu] = get_dimensions(deck);
 
    [sln, miss_kw] = get_state(deck);
 
@@ -31,17 +31,27 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    in_section = ischar(kw);
    while in_section,
       switch kw,
+
+         case 'AQUFETP',
+            tmpl(1 : 9) = { 'NaN' };
+            tmpl(7) = { '1' };
+            tmpl(8) = { '0' };
+            
+            data = readDefaultedKW(fid, tmpl, 'NRec', nanaqu);
+
+            sln.(kw) = cellfun(to_double, data);            clear data tmpl
+
          case 'AQUCT',
             tmpl(1 : 13) = { 'NaN' };
             tmpl(  9   ) = { '360' };
 
-            data = readDefaultedKW(fid, tmpl, 'NRec', naqcon);
+            data = readDefaultedKW(fid, tmpl, 'NRec', nanaqu);
 
             sln.(kw) = cellfun(to_double, data);            clear data tmpl
 
          case 'AQUANCON',
             tmpl = [ repmat({ 'NaN' }, [1, 7]), ...
-                     { '', '1', '-1', 'NO' } ];         % Negative => unset
+                     { '', 'NaN', '-1', 'NO' } ];         % Negative => unset
 
             cols = [1:7, 9:10];
             data = readDefaultedKW(fid, tmpl);
@@ -150,7 +160,7 @@ end
 
 %--------------------------------------------------------------------------
 
-function [ncell, ncomp, ntequil, naqcon] = get_dimensions(deck)
+function [ncell, ncomp, ntequil, nanaqu] = get_dimensions(deck)
    assert (isstruct(deck) && isfield(deck, 'RUNSPEC') && ...
            isstruct(deck.RUNSPEC));
 
@@ -162,9 +172,9 @@ function [ncell, ncomp, ntequil, naqcon] = get_dimensions(deck)
       ntequil = deck.RUNSPEC.EQLDIMS(1);
    end
 
-   naqcon = 1;
+   nanaqu = 1;
    if isfield(deck.RUNSPEC, 'AQUDIMS'),
-      naqcon = deck.RUNSPEC.AQUDIMS(5);
+      nanaqu = deck.RUNSPEC.AQUDIMS(5);
    end
 
    ncomp = 1;

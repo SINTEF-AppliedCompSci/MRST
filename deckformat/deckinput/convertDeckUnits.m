@@ -578,6 +578,13 @@ function soln = convertSOLUTION(soln, u)
                cellfun(@(c) convertFrom(c, u.length ^ 2), ...
                        soln.(key)(:,9), 'UniformOutput', false);
 
+         case 'AQUFETP'
+            unt = [1, u.length, u.press, u.length ^ 3, ...
+                  1 / u.press, u.length ^ 3 / u.time / u.press, ...
+                  1, u.mass / (u.length ^ 3), u.temp];
+            
+            soln.(key) = convertFrom(soln.(key), unt);
+
          case 'EQUIL'                                %  7  8  9 10 11
             unt = [repmat([u.length, u.press], [1, 3]), 1, 1, 1, 1, 1];
 
