@@ -52,6 +52,9 @@ if exist(smry_file, 'file') % unified summary
     estNum = floor(d.bytes/(4*numFull));
 else % multiple summary-files
     [dname, fp] = fileparts(prefix);
+    if isempty(dname)
+        dname = '.';
+    end
     smry_files = matchResultFiles(dname, [fp, '\.S\d{4}']);
     %estimate number of ministeps
     nbts = 0;
