@@ -18,6 +18,8 @@ function D = computeTOFandTracer(state, G, rock,  varargin)
 %         \nabla·(v C_i T) = \phi C_i,
 %   where C_i is the tracer concentration of each influence region.
 %
+%   Finally, first arrival time is computed by a graph algorithm.
+%
 % REQUIRED PARAMETERS:
 %   G     - Grid structure.
 %
@@ -53,6 +55,9 @@ function D = computeTOFandTracer(state, G, rock,  varargin)
 %   computeWellTOFs - Boolean variable. If true, time-of-flight values are
 %           computed individually for each influence region by solving
 %
+%   firstArrival - Boolean variable. If true, compute first-arrival time by
+%           a graph algorithm.
+%
 %   solver - Function handle to solver for use in TOF/tracer equations.
 %           Default (empty) is matlab mldivide (i.e., \)
 %
@@ -75,8 +80,10 @@ function D = computeTOFandTracer(state, G, rock,  varargin)
 %                   individual influence regions
 %       'itracer' - steady-state tracer distribution for injectors
 %       'ipart'   - tracer partition for injectors
+%       'ifa'     - first-arrival time injectors
 %       'ptracer' - steady-state tracer distribution for producers
 %       'ppart'   - tracer partition for producers
+%       'pfa'     - first-arrival time for producers
 
 %{
 Copyright 2009-2018 SINTEF Digital, Applied Mathematics.
@@ -106,8 +113,12 @@ opt = struct('bc', [],                ...
              'solver', [],            ...
              'maxTOF', [],            ...
              'processCycles', false,  ...
-             'computeWellTOFs', false);
+             'computeWellTOFs', false, ...
+             'firstArrival', false);
 opt = merge_options(opt, varargin{:});
+if opt.firstArrival
+  opt.computeWellTOFs = true;
+end
 
 check_input(G, rock, opt);
 
@@ -140,11 +151,15 @@ end
 t = computeTimeOfFlight(state, G, rock, 'wells', opt.wells,  ...
    'tracer', {opt.wells(D.inj).cells}, 'solver', opt.solver, ...
    'maxTOF', opt.maxTOF, 'processCycles', opt.processCycles, ...
-   'computeWellTOFs', opt.computeWellTOFs);
+   'computeWellTOFs', opt.computeWellTOFs,                   ...
+   'firstArrival', opt.firstArrival);
 D.tof     = t(:,1);
 D.itracer = t(:,2:numel(D.inj)+1);
 if opt.computeWellTOFs
-    D.itof = t(:, numel(D.inj)+2:end);
+    D.itof = t(:, numel(D.inj)+2:2*numel(D.inj)+1);
+    if opt.firstArrival
+        D.ifa = t(:, 2*numel(D.inj)+2:end);
+    end
 end
 [val,D.ipart] = max(D.itracer,[],2); %#ok<*ASGLU>
 % set 'non-traced' cells to zero
@@ -155,11 +170,15 @@ t = computeTimeOfFlight(state, G, rock, 'wells', opt.wells, ...
    'tracer', {opt.wells(D.prod).cells}, 'reverse', true, ...
    'solver', opt.solver, 'maxTOF', opt.maxTOF, ...
    'processCycles', opt.processCycles, ...
-    'computeWellTOFs', opt.computeWellTOFs);
+   'computeWellTOFs', opt.computeWellTOFs, ...
+   'firstArrival', opt.firstArrival);
 D.tof(:,2) = t(:,1);
 D.ptracer  = t(:,2:numel(D.prod)+1);
 if opt.computeWellTOFs
-    D.ptof = t(:, numel(D.prod)+2:end);
+    D.ptof = t(:, numel(D.prod)+2:2*numel(D.prod)+1);
+    if opt.firstArrival
+       D.pfa = t(:, 2*numel(D.prod)+2 : end);
+    end
 end
 [val,D.ppart] = max(D.ptracer,[],2);
 D.ppart(val==0) = 0;
@@ -178,8 +197,6 @@ function check_input(G, rock, opt)
            'for each cell in the grid.']);
 
    assert(min(rock.poro) > 0, 'Rock porosities must be positive numbers.');
-   assert(or(isempty(opt.tracerWells), numel(opt.tracerWells)==numel(opt.wells)), ...
-           'Input tracerWells must be a logical vector of length equal to number of wells')
 end
 
 %--------------------------------------------------------------------------

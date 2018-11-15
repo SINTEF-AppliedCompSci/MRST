@@ -17,8 +17,8 @@ for k = 1:numel(ix)
         dispif(vb, '\b\b\b\b\b%3.0d %%', round(100*k/numel(ix)));
         st = data.states{ix(k)};
         mrstVerbose('off');
-        D = computeTOFandTracerFirstArrival(st, G, rock, 'wells', st.wellSol, 'maxTOF', maxTOF, 'computeWellTOFs', true, ...
-            'processCycles', true);
+        D = computeTOFandTracer(st, G, rock, 'wells', st.wellSol, 'maxTOF', maxTOF, 'computeWellTOFs', true, ...
+                                'processCycles', true, 'firstArrival', true);
         mrstVerbose(vb);
         % set tof to years
         data.diagnostics(ix(k)).D  = D;
