@@ -32,7 +32,7 @@ function WP = computeWellPairs(state, G, rock, W, D )
 %       'prod'    - list of structs containing allocation factors for the
 %                   producers
 %
-%   The structs that contains flux allocation information consists of the
+%   The structs that contain flux allocation information consist of the
 %   following data objects:
 %       'alloc'   - nxm array, where n is the number of perforations in
 %                   this well and m is the number of wells or segments from
