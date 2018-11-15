@@ -34,6 +34,7 @@ for ik = 1:numel(injectorIx)
         dist.volumes(ix)      = WP.vols(ixWP);
         dist.allocations(ix)  = sum(WP.inj(iix).alloc(:,pix));
         
+        q_inj = sum(sum(WP.inj(iix).alloc));
         % collect relevant tracer values
         c  = [D.itracer(:, iix), D.ptracer(:, pix)];
         cp = prod(c,2);
@@ -95,7 +96,8 @@ for ik = 1:numel(injectorIx)
         % ommit last entry
         i = (1:numel(binflux)).';
         dist.t(i, ix)      = edges(i);
-        dist.values(i, ix) = unitbinflux(i);
+        % scale by q_inj such that distribution represents 1kg injected tracer
+        dist.values(i, ix) = unitbinflux(i)/q_inj;
     end
     dist.creator = mfilename;
 end
