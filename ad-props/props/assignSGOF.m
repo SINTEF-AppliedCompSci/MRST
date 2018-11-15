@@ -13,17 +13,22 @@ function f = assignSGOF(f, sgof, reg)
    if ~ isfield(f, 'sWcon'),
       sgas = @(so) 1 - so;
    else
-      sgas = @(so) 1 - so - f.sWcon;
+      sgas = @(so, varargin) 1 - so - selectSubset(f.sWcon, varargin{:});
    end
 
    % Region interpolator
    ireg = @(T, sg, varargin) interpReg(T, sg, regmap(sg, varargin{:}));
 
-   f.krG  = @(sg, varargin) ireg(Tkrg , sg      , varargin{:});
-   f.krOG = @(so, varargin) ireg(Tkro , sgas(so), varargin{:});
-   f.pcOG = @(sg, varargin) ireg(Tpcog, sg      , varargin{:});
+   f.krG  = @(sg, varargin) ireg(Tkrg , sg                   , varargin{:});
+   f.krOG = @(so, varargin) ireg(Tkro , sgas(so, varargin{:}), varargin{:});
+   f.pcOG = @(sg, varargin) ireg(Tpcog, sg                   , varargin{:});
 end
 
+function v = selectSubset(v, varargin)
+if ~isempty(varargin)
+    v = v(varargin{2});
+end
+end
 %{
 Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
 
