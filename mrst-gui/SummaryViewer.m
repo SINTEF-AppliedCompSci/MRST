@@ -1,5 +1,5 @@
 classdef SummaryViewer < handle
-    % Simple summary viewer. Usage (name vithout extension)
+    % Simple summary viewer. Usage (name without extension)
     % >> SummaryViewer(readEclipseSummaryUnFmt([filepath, name]))
     properties
         Figure
