@@ -6,7 +6,7 @@ classdef UIMenu < handle
         fullHeight
         width
         titleHeight = 18;
-        collapseDirection = 'down';
+        collapseDirection
         %fixUpper          = true;
         level = 1;
         dummyPanel
@@ -47,7 +47,8 @@ classdef UIMenu < handle
                          'Title', '', ...
                          'style', 'default', ...
                          'items', {{}}, ...
-                         'itemFieldNames', {{}});
+                         'itemFieldNames', {{}}, ...
+                         'collapseDirection', 'up');
             [opt, extraOpt] = merge_options(opt, varargin{:});
             
             if ~isempty(opt.Parent)
@@ -87,6 +88,7 @@ classdef UIMenu < handle
             m.setStyle(opt.style, extraOpt);
             m.width = m.Position(3); 
             m.Title       = opt.Title;
+            m.collapseDirection = opt.collapseDirection;
             if strcmp(m.dummyStack, 'top')
                 m.dummyPanel.ButtonDownFcn = @m.resize;
             end
