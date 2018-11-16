@@ -67,7 +67,7 @@ t  = t(i);
 ct = vertcat(ct{:}); ct = ct(i);
 c  = vertcat(c{:});  c  = c(i);
 
-% Compute weithed average of time of flight in each cell that has been
+% Compute weigthed average of time of flight in each cell that has been
 % crossed by one or more streamlines,
 %
 %    tof_i = sum(t_ij*ct_ij; j) / sum(t_ij; j)
