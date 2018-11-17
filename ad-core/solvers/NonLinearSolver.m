@@ -92,7 +92,7 @@ classdef NonLinearSolver < handle
             solver.linesearchDecreaseFactor = 1;
             solver.linesearchMaxIterations = 10;
             solver.linesearchConvergenceNames = {};
-            solver.linesearchResidualScaling = 1;
+            solver.linesearchResidualScaling = [];
             solver.linesearchReductionFn = [];
             
             solver.enforceResidualDecrease = false;
@@ -391,13 +391,13 @@ classdef NonLinearSolver < handle
                     isStagnated = solver.checkForStagnation(res, i);
                     % We will use relaxations if all non-converged residuals are
                     % either stagnating or oscillating.
-                    bad = (isOscillating | isStagnated) | isOk;
-                    relax = all(bad) && ~all(isOk);
+                    bad = (isOscillating | isStagnated);
+                    relax = all(bad | isOk) && ~all(isOk);
                     if relax
                         if solver.verbose > 0 && ~solver.convergenceIssues
-                            fprintf('Convergence issues detected.');
+                            fprintf('Convergence issues detected:');
                             if solver.useLinesearch
-                                fprintf(' Activating line search.\n');
+                                fprintf(' Activating line-search.\n');
                             else
                                 fprintf(' Activating relaxation.\n');
                             end
@@ -470,7 +470,12 @@ classdef NonLinearSolver < handle
             % Check convergence of previous iteration. This is the value to
             % beat, i.e. we want a reduction in the residual with respect
             % to this value.
-            [ok, val0, names] = model.checkConvergence(problem0);
+            [val0, tol, names] = model.getConvergenceValues(problem0);
+            val0 = val0./tol;
+            if isempty(solver.linesearchResidualScaling)
+                solver.linesearchResidualScaling = tol;
+            end
+            ok = val0 <= 1;
             activeNames = getActiveNames(solver, names);
             vBest = linesearchApplyUpdate(solver, val0, ok, activeNames);
             
@@ -478,9 +483,11 @@ classdef NonLinearSolver < handle
                 [stateNext, updateReport] = update(dx);
                 problem = assemble(stateNext);
 
-                [ok, val] = model.checkConvergence(problem);
+                val = model.getConvergenceValues(problem);
+                val = val./tol;
+                ok = val <= 1;
                 v = linesearchApplyUpdate(solver, val, ok, activeNames);
-                if all(ok) || (any(v < vBest*factor) && all(v <= vBest))
+                if all(ok) || (any(v < vBest*factor) && sum(v) <= sum(vBest))
                     dispif(solver.verbose, 'Linesearch reduction successful after %d steps!\n', its)
                     converged = true;
                     break
