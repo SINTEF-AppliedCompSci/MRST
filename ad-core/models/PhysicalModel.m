@@ -472,10 +472,10 @@ methods
         % SEE ALSO:
         %   `NonLinearSolverAD`, `LinearSolverAD`, `simulateScheduleAD`
         %
-        onlyCheckConvergence = iteration > nonlinsolver.maxIterations;
+        outOfIterations = iteration > nonlinsolver.maxIterations;
         timer = tic();
         [problem, state] = model.getEquations(state0, state, dt, drivingForces, ...
-                                   'ResOnly', onlyCheckConvergence, ...
+                                   'ResOnly', outOfIterations, ...
                                    'iteration', iteration, ...
                                    varargin{:});
         problem.iterationNo = iteration;
@@ -493,7 +493,7 @@ methods
         failureMsg = '';
         failure = false;
         [linearReport, updateReport, stabilizeReport] = deal(struct());
-        if (~(all(convergence) && doneMinIts) && ~onlyCheckConvergence)
+        if (~(all(convergence) && doneMinIts) && ~outOfIterations)
             % Get increments for Newton solver
             [dx, ~, linearReport] = linsolver.solveLinearProblem(problem, model);
             if any(cellfun(@(d) ~all(isfinite(d)), dx))
@@ -513,8 +513,12 @@ methods
                 [state, updateReport] = model.updateState(state, problem, dx, drivingForces);
             end
         end
-        isConverged = (all(convergence) && doneMinIts) || model.stepFunctionIsLinear;
-        
+        modelConverged = all(convergence);
+        if outOfIterations && nonlinsolver.acceptanceFactor ~= 1
+            [values, tol, resnames] = model.getConvergenceValues(problem);
+            modelConverged = all(values < nonlinsolver.acceptanceFactor*tol);
+        end
+        isConverged = (modelConverged && doneMinIts) || model.stepFunctionIsLinear;
         % If step function is linear, we need to call a residual-only
         % equation assembly to ensure that indirect/derived quantities are
         % set with the updated values (fluxes, mobilities and so on).

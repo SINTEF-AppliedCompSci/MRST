@@ -59,6 +59,7 @@ classdef NonLinearSolver < handle
         linesearchReductionFn % Function for combining multiple residuals into value used by linesearch
         convergenceIssues
         enforceResidualDecrease % Abort a solution if no reduction is residual is happening.
+        acceptanceFactor % If we run out of iterations, this factor used for a relaxed tolerance check.
         stagnateTol % Stagnation tolerance - used in relaxation to determine of a residual value is no longer decreasing
         errorOnFailure % If error on failure is not enabled, the solver will return even though it did not converge. May be useful for debugging. Results should not be relied upon if this is enabled. If errorOnFailure is disabled, the solver will continue after a failed timestep, treating it as a simply non-converged result with the maximum number of iterations
         continueOnFailure % Continue even if failure is reported by the model. Results are most likely not useful. Intended for nested nonlinear solvers.
@@ -96,6 +97,7 @@ classdef NonLinearSolver < handle
             solver.linesearchReductionFn = [];
             
             solver.enforceResidualDecrease = false;
+            solver.acceptanceFactor = 1;
             solver.stagnateTol = 1e-2;
             solver.convergenceIssues = false;
 
