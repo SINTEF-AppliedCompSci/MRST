@@ -15,7 +15,7 @@ end
 end
 
 function [krW, krOW, pcOW, sWcon] = getFunctions(SWOF, reg)
-    sWcon  = cellfun(@(x) x(1,1), SWOF);
+    sWcon  = cellfun(@(x) x(1,1), SWOF)';
     [krW, krOW, pcOW] = deal(cell(1, reg.sat));
     
     for i = 1:reg.sat

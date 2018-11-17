@@ -1,27 +1,26 @@
 function f = assignPVTG(f, pvtg, reg)
-f.bG  = @(pg, rv, flag, varargin)bG(pg, rv, pvtg, flag, reg, varargin{:});
-f.muG = @(pg, rv, flag, varargin)muG(pg, rv, pvtg, flag, reg, varargin{:});
-f.rvSat = @(pg, varargin)rvSat(pg, pvtg, reg, varargin{:});
+    [f.bG, f.muG, f.rvSat] = getFunctions(pvtg, reg);
 end
 
-function v = bG(pg, rv, pvtg, flag, reg, varargin)
-pvtinx = getRegMap(pg, reg.PVTNUM, reg.PVTINX, varargin{:});
-T = pvtg;
-for k = 1:numel(T), T{k}.data = [T{k}.data(:,1), 1./T{k}.data(:,2)]; end
-v = interpRegPVT(T, rv, pg, flag, pvtinx);
-end
-
-function v = muG(pg, rv, pvtg, flag, reg, varargin)
-pvtinx = getRegMap(pg, reg.PVTNUM, reg.PVTINX, varargin{:});
-T = pvtg;
-for k = 1:numel(T), T{k}.data = T{k}.data(:,[1 3]); end
-v = interpRegPVT(T, rv, pg, flag, pvtinx);
-end
-
-function v = rvSat(pg, pvtg, reg, varargin)
-pvtinx = getRegMap(pg, reg.PVTNUM, reg.PVTINX, varargin{:});
-T = cellfun(@(x)[x.key x.data(x.pos(1:end-1),1)], pvtg, 'UniformOutput', false);
-v = interpReg(T, pg, pvtinx);
+function [bG, muG, rvSat] = getFunctions(PVTG, reg)
+    [bG, muG, rvSat] = deal(cell(1, reg.pvt));
+    
+    for i = 1:reg.pvt
+        pvtg = PVTG{i};
+        
+        p_vap = pvtg.data(pvtg.pos(1:end-1),1);
+        rv = pvtg.key;
+        
+        bg = pvtg;
+        bg.data = [bg.data(:,1), 1./bg.data(:,2)];
+        
+        mug = pvtg;
+        mug.data = [mug.data(:,1), mug.data(:,3)];
+        
+        bG{i} = @(pg, rv, flag) interpPVT(bg, pg, rv, flag);
+        muG{i} = @(pg, rv, flag) interpPVT(mug, pg, rv, flag);
+        rvSat{i} = @(pg) interpTable(p_vap, rv, pg);
+    end
 end
 
 %{

@@ -5,7 +5,7 @@ function f = assignROCK(f, rock, reg)
     if ntpvt == 1
         f.pvMultR = @(p) pvMult(p, cR, pRef);
     else
-        f.pvMultR = cell(ntpvt, 1);
+        f.pvMultR = cell(1, ntpvt);
         for i = 1:ntpvt
             f.pvMultR{i} = @(p) pvMult(p, cR(i), pRef(i));
         end
