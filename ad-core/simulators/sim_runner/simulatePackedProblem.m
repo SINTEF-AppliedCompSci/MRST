@@ -29,7 +29,7 @@ function [ok, status] = simulatePackedProblem(problems, varargin)
         msg = '';
         if opt.checkTooMany
             % This is a serious error!
-            assert(ndata <= nstep, 'Too much data exists! Problem may have been redefined.');
+            assert(ndata <= nstep, 'Too much data exists for %s! Problem may have been redefined.', problems{i}.Name);
         end
         
         firstLine = sprintf(' Case "%s" (%s)',...
