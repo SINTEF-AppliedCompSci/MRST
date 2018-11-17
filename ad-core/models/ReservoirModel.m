@@ -162,7 +162,19 @@ methods
             model.FacilityModel = model.FacilityModel.setupWells(W);
         end
         model = validateModel@PhysicalModel(model, varargin{:});
-        return
+        
+        [sat, pvt] = deal([]);
+        r = model.rock;
+        if isfield(r, 'regions')
+            if isfield(r.regions, 'saturation');
+                sat = r.regions.saturation;
+            end
+            if isfield(r.regions, 'pvt')
+                pvt = r.regions.pvt;
+            end
+        end
+        model.fluid.regions.saturation = GridProperty(model.AutoDiffBackend, sat);
+        model.fluid.regions.pvt = GridProperty(model.AutoDiffBackend, pvt);
     end
 
     % --------------------------------------------------------------------%
@@ -1299,13 +1311,21 @@ methods (Static)
 
         d  = (sg+sw-swcon);
         ww = (sw-swcon)./d;
-        krW = f.krW(sw, varargin{:});
+        
+        satfun = @(varargin) f.regions.saturation.evaluateFunction(varargin{:});
+        
+        krW = satfun(f.krW, sw);
+%         krW = f.krW(sw, varargin{:});
 
         wg = 1-ww;
-        krG = f.krG(sg, varargin{:});
+        krG = satfun(f.krG, sg);
+%         krG = f.krG(sg, varargin{:});
 
-        krow = f.krOW(so, varargin{:});
-        krog = f.krOG(so,  varargin{:});
+        krow = satfun(f.krOW, so);
+        krog = satfun(f.krOG, so);
+
+%         krow = f.krOW(so, varargin{:});
+%         krog = f.krOG(so,  varargin{:});
         krO  = wg.*krog + ww.*krow;
     end
 

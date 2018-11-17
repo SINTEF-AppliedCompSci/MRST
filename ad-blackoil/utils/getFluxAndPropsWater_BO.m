@@ -65,15 +65,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
     fluid = model.fluid;
     s = model.operators;
+    satfun = @(varargin) fluid.regions.saturation.evaluateFunction(varargin{:});
+    pvtfun = @(varargin) fluid.regions.pvt.evaluateFunction(varargin{:});
     % Check for capillary pressure (p_cow)
     pcOW = 0;
     if isfield(fluid, 'pcOW') && ~isempty(sW)
-        pcOW  = fluid.pcOW(sW);
+        pcOW  = satfun(fluid.pcOW, sW);
     end
     pW = pO - pcOW;
-    muW = fluid.muW(pW);
+    muW = pvtfun(fluid.muW, pW);
     
-    bW     = fluid.bW(pW);
+    bW     = pvtfun(fluid.bW, pW);
     rhoW   = bW.*fluid.rhoWS;
     % rhoW on face, average of neighboring cells
     rhoWf  = s.faceAvg(rhoW);
