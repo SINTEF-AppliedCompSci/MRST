@@ -263,7 +263,8 @@ methods
     end
 
     % --------------------------------------------------------------------%
-    function [convergence, values, names] = checkConvergence(model, problem, varargin)
+        
+    function [values, tolerances, names] = getConvergenceValues(model, problem, varargin)
         % Check convergence criterion. Relies on `FacilityModel` to check
         % wells.
         %
@@ -271,30 +272,32 @@ methods
         %   :meth:`ad_core.models.PhysicalModel.checkConvergence`
         if model.useCNVConvergence
             % Use convergence model similar to commercial simulator
-            [conv_cells, v_cells, isWOG, namesWOG] = CNV_MBConvergence(model, problem);
-            [conv_wells, v_wells, namesWell, isWell] = ...
-                model.FacilityModel.checkFacilityConvergence(problem);
+            [v_cnv, names_cnv, tol_cnv, is_cnv] = getConvergenceValuesCNV(model, problem);
+            [v_wells, tol_wells, names_wells, is_well] = ...
+                model.FacilityModel.getFacilityConvergenceValues(problem);
             % Get the values for all equations, just in case there are some
             % values that are not either wells or standard 3ph conservation
             % equations
-            values_all = norm(problem, inf);
-            rest = ~(isWOG | isWell);
+            rest = ~(is_cnv | is_well);
 
-            conv_rest = values_all(rest) < model.nonlinearTolerance;
-            convergence = [conv_cells, conv_wells, conv_rest];
-            values = [v_cells, v_wells, values_all(rest)];
-            restNames = problem.equationNames(rest);
-            names = horzcat(namesWOG, namesWell, restNames);
+            values_all = norm(problem, inf);
+            names_rest = problem.equationNames(rest);
+            values_rest = values_all(rest);
+            tol_rest = repmat(model.nonlinearTolerance, size(values_rest));
+
+            values = [v_cnv, v_wells, values_rest];
+            tolerances = [tol_cnv, tol_wells, tol_rest];
+            names = horzcat(names_cnv, names_wells, names_rest);
         else
             % Use strict tolerances on the residual without any
             % fingerspitzengefuhlen by calling the parent class
-            [convergence, values, names] = checkConvergence@PhysicalModel(model, problem, varargin{:});
-            [conv_wells, v_wells, namesWell, isWell] = ...
-                model.FacilityModel.checkFacilityConvergence(problem);
-            if any(isWell)
-                convergence(isWell) = conv_wells;
-                values(isWell) = v_wells;
-                names(isWell) = namesWell;
+            [values, tolerances, names] = getConvergenceValues@PhysicalModel(model, problem, varargin{:});
+            [v_wells, tol_wells, names_wells, is_well] = ...
+                model.FacilityModel.getFacilityConvergenceValues(problem);
+            if any(is_well)
+                tolerances(is_well) = tol_wells;
+                values(is_well) = v_wells;
+                names(is_well) = names_wells;
             end
         end
     end

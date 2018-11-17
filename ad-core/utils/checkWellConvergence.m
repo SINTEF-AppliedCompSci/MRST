@@ -1,4 +1,4 @@
-function [convergence, values, evaluated, names] = checkWellConvergence(model, problem)
+function [convergence, values, evaluated, names, tolerances] = checkWellConvergence(model, problem)
 % Compute convergence for wells.
 %
 % SYNOPSIS:
@@ -45,29 +45,6 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-    isperf = problem.indexOfType('perf');
-    iswell = problem.indexOfType('well');
-    isseg  = problem.indexOfType('seg');
-    isnode = problem.indexOfType('node');
-    isalpha  = problem.indexOfType('alpha');
-    
-    evaluated = (isperf | iswell | isseg | isnode | isalpha);
-
-    values = cellfun(@(x) norm(double(x), inf), problem.equations(evaluated));
-    
-    tmp = find(evaluated);
-    isperf = isperf(tmp);
-    iswell = iswell(tmp);
-    isseg  = isseg(tmp);
-    isnode = isnode(tmp);
-    isalpha  = isalpha(tmp);
-    
-    convergence = false(size(tmp));
-    convergence(isperf) = values(isperf) < model.toleranceWellRate;
-    convergence(iswell) = values(iswell) < model.toleranceWellBHP;
-    convergence(isseg)  = values(isseg)  < model.toleranceWellMS;
-    convergence(isnode) = values(isnode) < model.toleranceWellMS;
-    convergence(isalpha)  = values(isalpha)  < model.toleranceWellMS;
-    
-    names = strcat(problem.equationNames(evaluated), ' (', problem.types(evaluated), ')');
+    [values, names, tolerances, evaluated] = getConvergenceValuesWells(model, problem);
+    convergence = values < tolerances;
 end

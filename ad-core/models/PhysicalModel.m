@@ -373,7 +373,7 @@ methods
     end
 
     
-    function [convergence, values, names] = checkConvergence(model, problem, n)
+    function [convergence, values, names] = checkConvergence(model, problem, varargin)
         % Check and report convergence based on residual tolerances
         % 
         % SYNOPSIS:
@@ -410,12 +410,17 @@ methods
         %   criterions and they need not correspond to specific equations
         %   at all.
         %   
+        [values, tolerances, names] = getConvergenceValues(model, problem, varargin{:});
+        convergence = values < tolerances;
+    end
+
+    function [values, tolerances, names] = getConvergenceValues(model, problem, n)
         if nargin == 2
             n = inf;
         end
 
         values = norm(problem, n);
-        convergence = values < model.nonlinearTolerance;
+        tolerances = repmat(model.nonlinearTolerance, size(values));
         names = strcat(problem.equationNames, ' (', problem.types, ')');
     end
 
