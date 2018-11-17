@@ -101,6 +101,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             model.disgas = deck.RUNSPEC.DISGAS;
         end
     end
+    model.inputdata = deck;
     if ~isempty(rock)
         model = model.setupOperators(G, rock, 'deck', deck);
     end
