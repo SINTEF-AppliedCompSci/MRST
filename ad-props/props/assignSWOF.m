@@ -1,14 +1,5 @@
 function f = assignSWOF(f, swof, reg)
-f.krW  = @(sw, varargin)krW(sw, swof, reg, varargin{:});
-f.krOW = @(so, varargin)krOW(so, swof, reg, varargin{:});
-f.pcOW = @(sw, varargin)pcOW(sw, swof, reg, varargin{:});
-swcon  = cellfun(@(x)x(1,1), swof);
-ntsat = numel(reg.SATINX);
-if ntsat == 1
-    f.sWcon = swcon(1);
-else
-    f.sWcon = swcon(reg.SATNUM);
-end
+[f.krW, f.krOW, f.pcOW, f.sWcon] = getFunctions(swof, reg);
 
 if isfield(reg, 'SURFNUM')
    % Assign miscible relperm for surfactant
@@ -21,28 +12,19 @@ if isfield(reg, 'SURFNUM')
    f.sOres = 1 - sOres(reg.SATNUM);
    f.sOresSft = 1 - sOres(reg.SURFNUM);
 end
-
 end
 
-function v = krW(sw, swof, reg, varargin)
-satinx = getRegMap(sw, reg.SATNUM, reg.SATINX, varargin{:});
-T = cellfun(@(x)x(:,[1,2]), swof, 'UniformOutput', false);
-T = extendTab(T);
-v = interpReg(T, sw, satinx);
-end
-
-function v = krOW(so, swof, reg, varargin)
-satinx = getRegMap(so, reg.SATNUM, reg.SATINX, varargin{:});
-T = cellfun(@(x)x(:,[1,3]), swof, 'UniformOutput', false);
-T = extendTab(T);
-v = interpReg(T, 1 - so, satinx);
-end
-
-function v = pcOW(sw, swof, reg, varargin)
-satinx = getRegMap(sw, reg.SATNUM, reg.SATINX, varargin{:});
-T = cellfun(@(x)x(:,[1,4]), swof, 'UniformOutput', false);
-T = extendTab(T);
-v = interpReg(T, sw, satinx);
+function [krW, krOW, pcOW, sWcon] = getFunctions(SWOF, reg)
+    sWcon  = cellfun(@(x) x(1,1), SWOF);
+    [krW, krOW, pcOW] = deal(cell(1, reg.sat));
+    
+    for i = 1:reg.sat
+        swof = extendTab(SWOF{i});
+        SW = swof(:, 1);
+        krW{i} = @(sw) interpTable(SW, swof(:, 2), sw);
+        krOW{i} = @(so) interpTable(SW, swof(:, 3), 1-so);
+        pcOW{i} = @(sw) interpTable(SW, swof(:, 4), sw);
+    end
 end
 
 function v = krWSft(sw, swof, reg, varargin)

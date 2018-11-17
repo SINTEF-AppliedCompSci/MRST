@@ -1,4 +1,24 @@
 function f = assignPVDG(f, pvdg, reg)
+    [f.bG, f.muG] = getFunctions(f, pvdg, reg);
+end
+
+function [bG, muG] = getFunctions(f, PVDG, reg)
+    [bG, muG] = deal(cell(1, reg.pvt));
+    
+    for i = 1:reg.pvt
+        pvdg = PVDG{i};
+        
+        pG = pvdg(:, 1);
+        BG = pvdg(:, 2);
+        mug = pvdg(:, 3);
+        bG{i}  = @(pg) interpTable(pG, 1./BG, pg);
+        muG{i} = @(pg) interpTable(pG, mug, pg);
+    end
+end
+
+
+
+function f = assignPVDGOld(f, pvdg, reg)
    cfun = @(f) cellfun(f, pvdg, 'UniformOutput', false);
 
    % Compute tables (static data)

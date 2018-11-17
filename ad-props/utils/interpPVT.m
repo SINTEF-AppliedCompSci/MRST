@@ -1,33 +1,25 @@
-function [yi, dyidxi, dyidvi] = interpRegPVT(T, xi, vi, flag, reginx)
-% Interpolate PVT-type curves with region support
+function [yi, dyidxi, dyidvi] = interpPVT(T, xi, vi, flag)
+% Interpolate PVT-type curves
 compDer = (nargout>1);
-nreg = numel(reginx);
 
 yi = zeros(size(xi));
 if compDer
     dyidxi = zeros(size(xi));
     dyidvi = zeros(size(xi));
 end
-
-tabSat = cellfun(@(x)x.data(x.pos(1:end-1),:), T, 'UniformOutput', false);
+tabSat = T.data(T.pos(1:end-1),:);
 
 if isempty(xi)
     [yi, dyidxi, dyidvi] = deal([]);
     return;
 else
-    for k = 1:nreg
-        if nreg == 1
-            [ixf, ixnf] = deal(flag, ~flag);
-        else
-            [ixf, ixnf] = deal(flag & reginx{k}, (~flag) & reginx{k});
-        end
-        if ~compDer
-            yi(ixf)  = interpReg(tabSat, xi(ixf), {':'});
-            yi(ixnf) = interp2DPVT(T, xi(ixnf), vi(ixnf), {':'});
-        else
-            [yi(ixf), dyidxi(ixf)]                 = interpReg(tabSat, xi(ixf), {':'});
-            [yi(ixnf), dyidxi(ixnf), dyidvi(ixnf)] = interp2DPVT(T, xi(ixnf), vi(ixnf), {':'});
-        end
+    [ixf, ixnf] = deal(flag, ~flag);
+    if ~compDer
+        yi(ixf)  = interpTable(tabSat(:, 1), tabSat(:, 2), xi(ixf));
+        yi(ixnf) = interp2DPVT({T}, xi(ixnf), vi(ixnf), {':'});
+    else
+        [yi(ixf), dyidxi(ixf)]                 = interpReg({tabSat}, xi(ixf), {':'});
+        [yi(ixnf), dyidxi(ixnf), dyidvi(ixnf)] = interp2DPVT({T}, xi(ixnf), vi(ixnf), {':'});
     end
 end
 

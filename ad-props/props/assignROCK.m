@@ -1,15 +1,19 @@
 function f = assignROCK(f, rock, reg)
-ntpvt = numel(reg.PVTINX);
-if ntpvt == 1
-    pvtnum = 1;
-else
-    pvtnum = reg.PVTNUM;
+    ntpvt = reg.pvt;
+    cR   = rock(:, 2)';
+    pRef = rock(:, 1)';
+    if ntpvt == 1
+        f.pvMultR = @(p) pvMult(p, cR, pRef);
+    else
+        f.pvMultR = cell(ntpvt, 1);
+        for i = 1:ntpvt
+            f.pvMultR{i} = @(p) pvMult(p, cR(i), pRef(i));
+        end
+    end
 end
-cR   = rock(pvtnum, 2);
-pRef = rock(pvtnum, 1);
 
-f.cR = cR;
-f.pvMultR = @(p)(1 + cR.*(p-pRef));
+function v = pvMult(p, cR, pRef)
+    v = 1 + cR.*(p-pRef);
 end
 
 %{

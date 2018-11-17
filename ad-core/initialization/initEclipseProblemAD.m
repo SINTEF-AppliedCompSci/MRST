@@ -6,6 +6,8 @@ function [state0, model, schedule, nonlinear] = initEclipseProblemAD(deck, varar
                  'TimestepStrategy', 'iteration', ...
                  'AutoDiffBackend',  [], ...
                  'UniformFacilityModel', false, ...
+                 'getSchedule',     true, ...
+                 'getInitialState', true, ...
                  'SplitDisconnected', false);
     [opt, extra] = merge_options(opt, varargin{:});
     model = initializeModel(deck, opt);
@@ -34,9 +36,17 @@ function [state0, model, schedule, nonlinear] = initEclipseProblemAD(deck, varar
         model.FacilityModel = UniformFacilityModel(model);
     end
     % Set up schedule
-    schedule = convertDeckScheduleToMRST(model, deck, extra{:});
+    if opt.getSchedule
+        schedule = convertDeckScheduleToMRST(model, deck, extra{:});
+    else
+        schedule = [];
+    end
     % Set up state
-    state0 = initStateDeck(model, deck);
+    if opt.getInitialState
+        state0 = initStateDeck(model, deck);
+    else
+        state0 = [];
+    end
     
     if nargout > 3
         nonlinear = NonLinearSolver();
