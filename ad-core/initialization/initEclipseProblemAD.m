@@ -1,4 +1,7 @@
 function [state0, model, schedule, nonlinear] = initEclipseProblemAD(deck, varargin)
+    mrstModule add deckformat ad-core ad-blackoil ad-props
+    deck = convertDeckUnits(deck);
+
     opt = struct('useMexGeometry', false, ...
                  'TimestepStrategy', 'iteration', ...
                  'AutoDiffBackend',  [], ...
@@ -77,6 +80,11 @@ end
 
 function model = initializeModel(deck, opt)
     % Set up grid
+    rock  = initEclipseRock(deck);
+    if isfield(deck.GRID, 'ACTNUM')
+        deck.GRID.ACTNUM = double(deck.GRID.ACTNUM > 0 & rock.poro > 0);
+    end
+
     G = initEclipseGrid(deck, 'SplitDisconnected', opt.SplitDisconnected);
     if numel(G) > 1
         warning('Multiple disconnected grids found. Picking largest.');
@@ -91,7 +99,6 @@ function model = initializeModel(deck, opt)
     fluid = initDeckADIFluid(deck, 'G', G);
     gravity reset on;
     
-    rock  = initEclipseRock(deck);
     rock  = compressRock(rock, G.cells.indexMap);
 
     model = selectModelFromDeck(G, rock, fluid, deck);
