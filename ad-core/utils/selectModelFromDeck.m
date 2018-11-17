@@ -106,4 +106,5 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     model.rock = rock;
     model.FacilityModel = selectFacilityFromDeck(deck, model);
+    model.minimumPressure = 0;
 end
