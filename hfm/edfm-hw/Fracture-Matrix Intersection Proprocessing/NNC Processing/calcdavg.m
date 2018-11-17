@@ -35,10 +35,14 @@ celldim=[nx,ny,nz];
 physdim=[lx,ly,lz];
 G=cartGrid(celldim,physdim);
 G=computeGeometry(G);
+N = G.cells.num;
 
 cellvol=sum(G.cells.volumes); % only need to calculate this once
 
-davg=numericaldavg(G,cellvol,planenormal,planepoint); % first approximation
+normdist=pointplanedistance(G.cells.centroids,repmat(planenormal,N,1),repmat(planepoint,N,1));
+davg = sum(normdist.*G.cells.volumes)/cellvol;
+
+% davg=numericaldavg(G,cellvol,planenormal,planepoint); % first approximation
 
 % Alternative method
 % error=2*tol;
@@ -55,14 +59,16 @@ davg=numericaldavg(G,cellvol,planenormal,planepoint); % first approximation
 
 end
 
-function d=numericaldavg(G,cellvol,planenormal,planepoint)
-numcells=G.cells.num;
-sum=0;
-for i=1:numcells
-    normdist=pointplanedistance(G.cells.centroids(i,:),planenormal,planepoint);
-    sum=sum+normdist*G.cells.volumes(i);
-end
-d=sum/cellvol; 
-end
+% function d=numericaldavg(G,cellvol,planenormal,planepoint)
+% numcells=G.cells.num;
+% sum=0;
+% for i=1:numcells
+%     normdist=pointplanedistance(G.cells.centroids(i,:),planenormal,planepoint);
+%     sum=sum+normdist*G.cells.volumes(i);
+% end
+% 
+% 
+% d=sum/cellvol; 
+% end
 
 
