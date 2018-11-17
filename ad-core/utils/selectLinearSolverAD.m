@@ -10,6 +10,7 @@ function lsolve = selectLinearSolverAD(model, varargin)
     solver_arg = ['tolerance', opt.tolerance, solver_arg];
     lsolve = BackslashSolverAD();
     if opt.useAMGCL
+        mrstModule add linearsolvers
         opt.useAMGCL = checkAMGCL();
     end
     ncomp = getComponentCount(model);
@@ -22,14 +23,12 @@ function lsolve = selectLinearSolverAD(model, varargin)
     
     if opt.useAMGCLCPR && opt.useAMGCL
         % AMGCL CPR
-        mrstModule add linearsolvers
         lsolve = AMGCL_CPRSolverAD('maxIterations', 50,...
                                    'block_size', ncomp,...
                                    solver_arg{:});
         setSolverOrderingReduction(model, lsolve, ncomp, opt);
     elseif opt.useAMGCL
         % AMGCL as a preconditioner Krylov solver
-        mrstModule add linearsolvers
         lsolve = AMGCLSolverAD('preconditioner', 'relaxation',...
                                'relaxation', 'ilu0', ...
                                'maxIterations', 50, solver_arg{:});
