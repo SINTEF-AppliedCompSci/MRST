@@ -1,4 +1,4 @@
-function ok = makeSPE10DataAvailable()
+function ok = makeSPE10DataAvailable(do_build)
 %Ensure availability of Models 1 and 2 from tenth SPE Comparative Solution Project
 %
 % SYNOPSIS:
@@ -51,8 +51,20 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-   ok =        output_exists(model1_data()) || download_model1();
-   ok = ok && (output_exists(model2_matfile_name()) || download_model2());
+   if nargin == 0
+       do_build = false;
+   end
+   if do_build
+       % Build .mat files
+       ok =        output_exists(model1_data()) || download_model1();
+       ok = ok && (output_exists(model2_matfile_name()) || download_model2());
+   else
+       % Download pre-built files (default)
+       getDatasetPath('spe10', 'askBeforeDownload', false,...
+                               'download', true);
+       ok =       output_exists(model1_data());
+       ok = ok && output_exists(model2_matfile_name());
+   end
 end
 
 %--------------------------------------------------------------------------
