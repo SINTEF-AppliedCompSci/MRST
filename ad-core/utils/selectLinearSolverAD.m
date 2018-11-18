@@ -24,6 +24,7 @@ function lsolve = selectLinearSolverAD(model, varargin)
     if opt.useAMGCLCPR && opt.useAMGCL
         % AMGCL CPR
         lsolve = AMGCL_CPRSolverAD('maxIterations', 50,...
+                                   'relaxation', 'ilu0', ...
                                    'block_size', ncomp,...
                                    solver_arg{:});
         setSolverOrderingReduction(model, lsolve, ncomp, opt);
@@ -62,8 +63,15 @@ function setSolverOrderingReduction(model, lsolve, ncomp, opt)
         sym_ordering = [];
     end
     
+    if model.water && model.gas && model.oil
+        eq_ordering = [2, 1, 3];
+    else
+        eq_ordering = [];
+    end
+    
     ordering = getCellMajorReordering(G.cells.num, ncomp, ...
         'ndof', ndof, ...
+        'equation_ordering', eq_ordering, ...
         'cell_ordering', sym_ordering);
     lsolve.variableOrdering = ordering;
     lsolve.equationOrdering = ordering;
