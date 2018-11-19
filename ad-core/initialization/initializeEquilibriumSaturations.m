@@ -9,8 +9,6 @@ function s = initializeEquilibriumSaturations(model, region, pressures)
         if i == refIx
             continue
         end
-        
-%         pc = region.pc_sign(i)*region.pc_functions{i}(sat);
         p = pressures(:, i);
         s(:, i) = solveSaturations(p, p_ref, ...
                          region.pc_functions{i}, region.pc_sign(i),...
@@ -30,9 +28,7 @@ function s = initializeEquilibriumSaturations(model, region, pressures)
         % This may have the wrong sign.
         pc = @(S) (region.pc_sign(first)*region.pc_functions{first}(S) - ...
                    region.pc_sign(last)*region.pc_functions{last}(S));
-        
-        
-        
+
         p_ref = pressures(bad, first);
         p = pressures(bad, last);
         

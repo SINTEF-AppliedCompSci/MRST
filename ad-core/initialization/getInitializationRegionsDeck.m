@@ -26,8 +26,6 @@ function regions = getInitializationRegionsDeck(model, deck)
             
             sub_regions{j} = getRegion(model, deck, eql, subcells, regionIx);
         end
-        
-        
         regions{regionIx} = sub_regions;
     end
     % Flatten local regions
