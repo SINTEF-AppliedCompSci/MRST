@@ -22,11 +22,11 @@ else
             [ixf, ixnf] = deal(flag & reginx{k}, (~flag) & reginx{k});
         end
         if ~compDer
-            yi(ixf)  = interpReg(tabSat, xi(ixf), {':'});
-            yi(ixnf) = interp2DPVT(T, xi(ixnf), vi(ixnf), {':'});
+            yi(ixf)  = interpReg({tabSat{k}}, xi(ixf), {':'});
+            yi(ixnf) = interp2DPVT({T{k}}, xi(ixnf), vi(ixnf), {':'});
         else
-            [yi(ixf), dyidxi(ixf)]                 = interpReg(tabSat, xi(ixf), {':'});
-            [yi(ixnf), dyidxi(ixnf), dyidvi(ixnf)] = interp2DPVT(T, xi(ixnf), vi(ixnf), {':'});
+            [yi(ixf), dyidxi(ixf)]                 = interpReg({tabSat{k}}, xi(ixf), {':'});
+            [yi(ixnf), dyidxi(ixnf), dyidvi(ixnf)] = interp2DPVT({T{k}}, xi(ixnf), vi(ixnf), {':'});
         end
     end
 end
