@@ -34,7 +34,6 @@ function p = initializeEquilibriumPressures(model, region)
         end
         contact = region.contacts(contactNo);
         
-        % NOTE: This sign is not checked
         p_ref = po_fn(contact) + region.pc_sign(ix)*region.contacts_pc(contactNo);
         
         p(:, ix) = solvePressure(p_ref, contact, region.rho{ix}, norm_g, z, zmin, zmax);

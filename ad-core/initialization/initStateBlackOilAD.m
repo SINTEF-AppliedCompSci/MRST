@@ -47,9 +47,20 @@ function [state, pressures] = initStateBlackOilAD(model, regions, varargin)
         state.s(cells, :) = s;
         pressures(cells, :) = p;
         
+        % Evalaute rel. perm.
+        sat = cell(1, nph);
+        for i = 1:nph
+            sat{i} = state.s(cells, i);
+        end
+        kr = cell(1, nph);
+        [kr{:}] = model.evaluateRelPerm(sat, 'cellInx', cells);
+        kr = [kr{:}];
+        singlePhaseMobile = sum(kr > 0, 2) >= 1;
+        
         toOil = true(size(p, 1), 1);
         if model.gas
-            onlyGas = state.s(cells, gasIx) == 1;
+            % onlyGas = state.s(cells, gasIx) == 1;
+            onlyGas = kr(:, gasIx) > 0 & singlePhaseMobile;
             toOil(onlyGas) = false;
             state.pressure(cells(onlyGas)) = p(onlyGas, gasIx);
             if disgas
@@ -70,7 +81,8 @@ function [state, pressures] = initStateBlackOilAD(model, regions, varargin)
             end
         end
         if model.water
-            onlyWat = state.s(cells, watIx) == 1;
+            % onlyWat = state.s(cells, watIx) == 1;
+            onlyWat = kr(:, watIx) > 0 & singlePhaseMobile;
             toOil(onlyWat) = false;
             state.pressure(cells(onlyWat)) = p(onlyWat, watIx);
         end
