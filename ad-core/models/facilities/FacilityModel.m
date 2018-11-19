@@ -1103,20 +1103,19 @@ classdef FacilityModel < PhysicalModel
             %           convergence for.
             %   
 
-            [convergence, values, evaluated, names] = checkWellConvergence(model, ...
-                                                              problem);
-
+            [values, names, tolerances, evaluated] = getConvergenceValuesWells(model, problem);
+            convergence = values < tolerances;
+        end
+        
+         function [values, tolerances, names, evalauted] = getFacilityConvergenceValues(model, problem, varargin)
+            [values, names, tolerances, evalauted] = getConvergenceValuesWells(model, problem);
+         end
+  
+         function [values, tolerances, names] = getConvergenceValues(model, problem, varargin)
+            [values, names, tolerances] = getConvergenceValuesWells(model, problem);
         end
 
-        function [convergence, values, names] = checkConvergence(model, problem, varargin)
-            % Used when facility is run as a stand-alone model
-            %
-            % SEE ALSO:
-            %   :meth:`ad_core.models.PhysicalModel.checkConvergence`
 
-            [convergence, values, names] = ...
-                model.checkFacilityConvergence(problem);
-        end
     end
 
     methods (Static)

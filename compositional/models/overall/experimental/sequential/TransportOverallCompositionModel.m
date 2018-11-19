@@ -39,7 +39,6 @@ classdef TransportOverallCompositionModel < OverallCompositionCompositionalModel
             dx = dx(~isS);
             
             [state, report] = updateState@OverallCompositionCompositionalModel(model, state, problem, dx, drivingForces);
-%             state.sT = max(state.sT, 1e-8);
         end
         function state = validateState(model, state)
             state.sT = ones(model.G.cells.num, 1);
