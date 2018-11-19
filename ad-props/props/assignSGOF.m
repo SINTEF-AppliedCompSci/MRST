@@ -10,10 +10,14 @@ function f = assignSGOF(f, sgof, reg)
    regmap = @(sw, varargin) ...
       getRegMap(sw, reg.SATNUM, reg.SATINX, varargin{:});
 
-   if ~ isfield(f, 'sWcon'),
-      sgas = @(so) 1 - so;
+   if isfield(f, 'sWcon')
+       if numel(f.sWcon, 1) == 1
+           sgas = @(so, varargin) 1 - so - f.sWcon;
+       else
+           sgas = @(so, varargin) 1 - so - selectSubset(f.sWcon, varargin{:});
+       end
    else
-      sgas = @(so, varargin) 1 - so - selectSubset(f.sWcon, varargin{:});
+       sgas = @(so) 1 - so;
    end
 
    % Region interpolator
@@ -26,7 +30,8 @@ end
 
 function v = selectSubset(v, varargin)
 if ~isempty(varargin)
-    v = v(varargin{2});
+    subset = varargin{2};
+    v = v(subset);
 end
 end
 %{
