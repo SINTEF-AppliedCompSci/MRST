@@ -57,7 +57,7 @@ function [state, pressures] = initStateBlackOilAD(model, regions, varargin)
         kr = cell(1, nph);
         [kr{:}] = model.evaluateRelPerm(sat, 'cellInx', cells);
         kr = [kr{:}];
-        singlePhaseMobile = sum(kr > 0, 2) >= 1;
+        singlePhaseMobile = sum(kr > 0, 2) <= 1;
         
         toOil = true(size(p, 1), 1);
         if model.gas
