@@ -152,14 +152,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         f = model.fluid;
         p = opt.pressureRange;
         s = subdiv(0, 1);
+        arg = {'cellInx', ones(size(s))};
 
         rsMax = 0;
         rvMax = 0;
         if disgas
-            rsMax = f.rsSat(p);
+            rsMax = f.rsSat(p, arg{:});
         end
         if vapoil
-            rvMax = f.rvSat(p);
+            rvMax = f.rvSat(p, arg{:});
         end
         % n = sum(model.getActivePhases);
 
@@ -171,28 +172,29 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         hold on
         nf = numel(fields);
         colors = lines(nf);
+        
         for i = 1:nf
             fn = fields{i};
             legflag(i) = true;
             ctr = ctr + 1;
             switch(lower(fn))
                 case {'krw', 'krg', 'krog', 'kro', 'krow'}
-                    data = f.(fn)(s);
+                    data = f.(fn)(s, arg{:});
                     x = s;
                     xl = 'Saturation';
                 case {'pcow', 'pcog'}
-                    data = f.(fn)(s);
+                    data = f.(fn)(s, arg{:});
                     x = s;
                     data = data/barsa;
                     xl = 'Saturation';
                     yl = 'Capillary pressure [bar]';
                 case {'bo'}
-                    [x, data, ok] = evalSat(model, f, fn, p, rsMax, rvMax);
+                    [x, data, ok] = evalSat(model, f, fn, p, rsMax, rvMax, arg{:});
                     x = x/barsa;
                     yl = 'Shrinkage factor b(p) = 1/B(p)';
                     xl = 'Pressure [bar]';
                 case {'bg', 'bw'}
-                    [x, data, ok] = evalSat(model, f, fn, p, rsMax, rvMax);
+                    [x, data, ok] = evalSat(model, f, fn, p, rsMax, rvMax, arg{:});
                     x = x/barsa;
                     yl = 'Expansion factor b(p) = 1/B(p)';
                     xl = 'Pressure [bar]';
@@ -200,7 +202,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     phLetter = fn(end);
                     bsub = ['b', phLetter];
                     rho = f.(['rho', phLetter, 'S']);
-                    [x, b, ok, r] = evalSat(model, f, bsub, p, rsMax, rvMax);
+                    [x, b, ok, r] = evalSat(model, f, bsub, p, rsMax, rvMax, arg{:});
                     if strcmpi(phLetter, 'o') && disgas
                         % Account for solution gas
                         rhoO = rho;
@@ -218,13 +220,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     xl = 'Pressure [bar]';
                     yl = 'Density [kg/m^3]';
                 case {'muw', 'muo', 'mug'}
-                    [x, data, ok] = evalSat(model, f, fn, p, rsMax, rvMax);
+                    [x, data, ok] = evalSat(model, f, fn, p, rsMax, rvMax, arg{:});
                     data = data/(centi*poise);
                     x = x/barsa;
                     xl = 'Pressure [bar]';
                     yl = 'Viscosity [cP]';
                 case {'rssat', 'rvsat'}
-                    data = f.(fn)(p);
+                    data = f.(fn)(p, arg{:});
                     x = p/barsa;
                     xl = 'Pressure [bar]';
                 case {'pvmultr'}
@@ -234,12 +236,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     yl = 'Pore volume multiplier';
                 case 'ads'
                     x = (0:0.01:f.cmax)';
-                    data = f.(fn)(x);
+                    data = f.(fn)(x, arg{:});
                     yl = 'Adsorption';
                     xl = 'Polymer concentration';
                 case 'muwmult'
                     x = (0:0.01:f.cmax)';
-                    data = f.(fn)(x);
+                    data = f.(fn)(x, arg{:});
                     yl = 'Viscosity multiplier';
                     xl = 'Polymer concentration';
             end
@@ -339,7 +341,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         s = subdiv(0, 1, 50);
         [x, y] = meshgrid(s);
         [krW, krO, krG] = ...
-            model.relPermWOG(x(:), 1-x(:)-y(:), y(:), model.fluid);
+            model.relPermWOG(x(:), 1-x(:)-y(:), y(:), model.fluid, 'cellInx', 1);
         
         % If sW and sG sum up to more than unity, pad with NaN.
         unphys = x + y > 1;
@@ -379,7 +381,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         x = (start:dx:stop)';
     end
 
-    function [x, y, ok, rs_g] = evalSat(model, f, fn, x, rsMax, rvMax)
+    function [x, y, ok, rs_g] = evalSat(model, f, fn, x, rsMax, rvMax, varargin)
         ok = true(size(x));
         rs_g = nan;
         if checkBO(model)
@@ -389,13 +391,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 [x, rs_g] = meshgrid(x, rs);
                 rssat = zeros(size(x));
                 for i = 1:size(x, 1)
-                    rssat(i, :) = f.rsSat(x(i, :));
+                    rssat(i, :) = f.rsSat(x(i, :), varargin{:});
                 end
 
                 saturated = rs_g >= rssat;
                 rs_g(saturated) = rssat(saturated);
                 ok = saturated';
-                y = f.(fn)(x, rs_g, saturated)';
+                y = f.(fn)(x, rs_g, saturated, varargin{:})';
                 x = x';
                 rs_g = rs_g';
             elseif any(strcmpi(fn, {'mug', 'bg'})) && vapoil
@@ -410,15 +412,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 saturated = rs_g >= rvsat;
                 rs_g(saturated) = rvsat(saturated);
                 ok = saturated';
-                y = f.(fn)(x, rs_g, saturated)';
+                y = f.(fn)(x, rs_g, saturated, varargin{:})';
                 x = x';
                 rs_g = rs_g';
             else
-                y = f.(fn)(x);
+                y = f.(fn)(x, varargin{:});
                 rs_g = nan;
             end
         else
-            y = f.(fn)(x);
+            y = f.(fn)(x, varargin{:});
         end
     end
 
