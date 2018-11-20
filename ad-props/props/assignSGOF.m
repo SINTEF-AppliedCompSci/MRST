@@ -11,7 +11,7 @@ function f = assignSGOF(f, sgof, reg)
       getRegMap(sw, reg.SATNUM, reg.SATINX, varargin{:});
 
    if isfield(f, 'sWcon')
-       if numel(f.sWcon, 1) == 1
+       if numel(f.sWcon) == 1
            sgas = @(so, varargin) 1 - so - f.sWcon;
        else
            sgas = @(so, varargin) 1 - so - selectSubset(f.sWcon, varargin{:});
