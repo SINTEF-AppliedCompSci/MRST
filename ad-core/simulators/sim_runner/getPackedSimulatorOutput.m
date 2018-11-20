@@ -5,6 +5,7 @@ function [ws, states, reports] = getPackedSimulatorOutput(problem, varargin)
     nstep = numel(problem.SimulatorSetup.schedule.step.val);
     
     sh = problem.OutputHandlers.states;
+    wh = problem.OutputHandlers.wellSols;
     rh = problem.OutputHandlers.reports;
     
     ndata = sh.numelData();
@@ -30,11 +31,10 @@ function [ws, states, reports] = getPackedSimulatorOutput(problem, varargin)
     
     for i = 1:ndata
         if wantWells || statesInMemory
-            state = sh{i};
-            ws{i} = state.wellSol;
+            ws{i} = wh{i};
         end
         if statesInMemory
-            states{i} = state;
+            states{i} = sh{i};
         end
         if nargout > 2 && opt.readFromDisk
             reports{i} = rh{i};
