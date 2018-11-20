@@ -35,9 +35,12 @@ end
 function pvtnum= getPVTNUM(pw, reg, varargin)
 pvtinx = getRegMap(pw, reg.PVTNUM, reg.PVTINX, varargin{:});
 
-if strcmp(pvtinx{1}, ':')
-   pvtnum=ones(size(pw));
-   assert(numel(pvtinx)==1);
+if numel(pvtinx{1}) == 1 
+    if ischar(pvtinx{1}) && strcmp(pvtinx{1}, ':')
+        pvtnum=ones(size(pw));
+    else
+        pvtnum=repmat(pvtinx{1}, size(pw));
+    end
 else
     pvtnum=nan(size(pw));
     for i=1:numel(pvtinx)
