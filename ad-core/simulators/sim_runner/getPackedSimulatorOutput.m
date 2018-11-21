@@ -30,7 +30,7 @@ function [ws, states, reports] = getPackedSimulatorOutput(problem, varargin)
     end
     
     for i = 1:ndata
-        if wantWells || statesInMemory
+        if wantWells && statesInMemory
             ws{i} = wh{i};
         end
         if statesInMemory
