@@ -27,6 +27,10 @@ classdef DynamicState < handle
             
         end
         
+        function state = getState(dyn_state)
+            state = dyn_state.state;
+        end
+        
         function h = subsref(u, s)
             % h = u(s)
             if strcmp(s(1).type, '.') && ischar(s(1).subs)
@@ -34,6 +38,9 @@ classdef DynamicState < handle
                 if any(act)
                     dv = u.dynamicVariables{act};
                     if numel(s) > 1
+                        if iscell(dv) && strcmp(s(2).type, '()')
+                            s(2).type = '{}';
+                        end
                         h = builtin('subsref', dv, s(2:end));
                     else
                         h = dv;

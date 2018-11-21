@@ -60,6 +60,9 @@ methods
                 % components vaporizing into the gas phase respectively.
                 fn = lower(name);
                 index = 1;
+            case 'status'
+                fn = 'status';
+                index = ':';
             otherwise
                 % Basic phases are known to the base class
                 [fn, index] = getVariableField@ReservoirModel(model, name);
@@ -68,11 +71,38 @@ methods
     
     % --------------------------------------------------------------------%
     function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
-        [problem, state] = equationsBlackOil(state0, state, model, dt, ...
-                        drivingForces, varargin{:});
+        opt = struct('Verbose',     mrstVerbose,...
+                    'reverseMode', false,...
+                    'resOnly',     false,...
+                    'iteration',   -1);
+        opt = merge_options(opt, varargin{:});
+        
+        
+        % Define primary variables
+        [dyn_state, primaryVars] = model.getForwardDynamicState(state);
+        % State at previous time-step
+        dyn_state0 = model.getDynamicState(state0);
 
+        
+        [eqs, names, types] = equationsBlackOilDynamicState(dyn_state0, dyn_state, model, dt, drivingForces);
+        problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
+        
+        % Add in and setup well equations
+        [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, wellVars, wellMap, p, mob, rho, dissolved, {}, dt, opt);
     end
 
+    function [dyn_state, primaryVariables] = getForwardDynamicState(model, state)
+        [dyn_state, primaryVariables] = setupDynamicStateBlackOil(model, state, true);
+    end
+
+    function [dyn_state, primaryVariables] = getDynamicState(model, state)
+        dyn_state = setupDynamicStateBlackOil(model, state, false);
+        primaryVariables = {};
+    end
+    
+    function [dyn_state, primaryVariables] = getReverseDynamicState(model, state)
+        [dyn_state, primaryVariables] = setupDynamicStateBlackOil(model, state, true);
+    end
     % --------------------------------------------------------------------%
     function state = validateState(model, state)
         % Check parent class
