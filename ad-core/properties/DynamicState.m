@@ -41,11 +41,6 @@ classdef DynamicState < handle
                 else
                     h = builtin('subsref', u.state, s);
                 end
-                
-                if numel(s) > 1
-                    % Recursively handle next operation
-                    h = subsref(h, s(2:end));
-                end
             else
                 h = builtin('subsref',u,s);
             end
