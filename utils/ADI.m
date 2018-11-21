@@ -276,8 +276,15 @@ classdef ADI
           else
               switch s(1).type
                   case '()'
-                      assert(numel(s(1).subs) == 1, ...
-                          'Expected single index, got %d', numel(s(1).subs))
+                      ns = numel(s(1).subs);
+                      if ns > 1
+                          if ns == 2
+                              assert(s(1).subs{2} == 1 || ischar(s(1).subs{2}),...
+                                  'Invalid indexing for AD-variable. Object can only be indexed as a column-vector');
+                          else
+                              error('More than 2 inputs recieved to AD variable.');
+                          end
+                      end
                       subs  = s(1).subs{1};
                       if ischar(s) && strcmp(subs, ':'),
                           h = u;
