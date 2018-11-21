@@ -26,6 +26,8 @@ function [state, pressures] = initStateBlackOilAD(model, regions, varargin)
 
     pressures = zeros(G.cells.num, nph);
     touched = false(G.cells.num, 1);
+    singlePhaseMobileGlobal = zeros(G.cells.num, 1);
+    kr_global = zeros(G.cells.num, 3);
     for regNo = 1:numel(regions)
         region = regions{regNo};
         if ischar(region.cells)
@@ -57,13 +59,20 @@ function [state, pressures] = initStateBlackOilAD(model, regions, varargin)
         kr = cell(1, nph);
         [kr{:}] = model.evaluateRelPerm(sat, 'cellInx', cells);
         kr = [kr{:}];
-        singlePhaseMobile = sum(kr > 0, 2) <= 1;
+        numberOfMobile = sum(kr > 0, 2);
+        maxSat = max(s, [], 2);
+        singlePhaseMobile = numberOfMobile <= 1;
+        
+        singlePhaseMobileGlobal(cells) = singlePhaseMobile;
+        kr_global(cells, :) = kr;
         
         toOil = true(size(p, 1), 1);
         if model.gas
             % If only gas is mobile, set oil pressure to the gas hydrostatic 
             % pressure minus the capillary pressure
-            onlyGas = kr(:, gasIx) > 0 & singlePhaseMobile;
+            onlyGas = (kr(:, gasIx) > 0 & singlePhaseMobile) |...
+                       (s(:, gasIx) == maxSat & numberOfMobile == 0);
+
             toOil(onlyGas) = false;
             state.pressure(cells(onlyGas)) = p(onlyGas, gasIx) - pc{gasIx}(onlyGas);
             if disgas
@@ -85,7 +94,8 @@ function [state, pressures] = initStateBlackOilAD(model, regions, varargin)
         end
         if model.water
             % onlyWat = state.s(cells, watIx) == 1;
-            onlyWat = kr(:, watIx) > 0 & singlePhaseMobile;
+            onlyWat = (kr(:, watIx) > 0 & singlePhaseMobile) | ...
+                      (s(:, watIx) == maxSat & numberOfMobile == 0);
             toOil(onlyWat) = false;
             state.pressure(cells(onlyWat)) = p(onlyWat, watIx) - pc{watIx}(onlyWat);
         end
