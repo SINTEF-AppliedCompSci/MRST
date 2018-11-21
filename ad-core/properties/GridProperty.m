@@ -10,18 +10,31 @@ classdef GridProperty
             prop.regions = regions;
         end
 
-        function v = evaluateFunction(prop, fn, varargin)
+        function v = evaluateFunctionOnGrid(prop, fn, varargin)
+            v = prop.evaluateFunctionCellSubset(fn, ':', varargin{:});
+        end
+
+        function v = evaluateFunctionSingleRegion(prop, fn, region_index, varargin)
+            if iscell(fn)
+                v = fn{region_index}(varargin{:});
+            else
+                v = fn(varargin{:});
+            end
+        end
+        
+        function v = evaluateFunctionCellSubset(prop, fn, subset, varargin)
+            local_region = prop.regions(subset);
             if iscell(fn)
                 nc = size(prop.regions, 1);
                 isCell = cellfun(@(x) numel(double(x)) == nc, varargin);
                 assert(~isempty(prop.regions))
                 [sample, isAD] = getSampleAD(varargin{:});
-                v = zeros(numel(prop.regions), 1);
+                v = zeros(numel(local_region), 1);
                 if isAD
                     v = prop.AutoDiffBackend.convertToAD(v, sample);
                 end
                 for reg = 1:numel(fn)
-                    act = prop.regions == reg;
+                    act = local_region == reg;
                     arg = varargin;
                     carg = cellfun(@(x) x(act), arg(isCell), 'UniformOutput', false);
                     [arg{isCell}] = carg{:};
@@ -29,14 +42,6 @@ classdef GridProperty
                         v(act) = fn{reg}(arg{:});
                     end
                 end
-            else
-                v = fn(varargin{:});
-            end
-        end
-
-        function v = evaluateFunctionSingleRegion(prop, fn, region_index, varargin)
-            if iscell(fn)
-                v = fn{region_index}(varargin{:});
             else
                 v = fn(varargin{:});
             end

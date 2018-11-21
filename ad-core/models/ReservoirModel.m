@@ -165,6 +165,9 @@ methods
         
         [sat, pvt] = deal([]);
         r = model.rock;
+        
+        
+        [sat, pvt] = deal([]);
         if isfield(r, 'regions')
             if isfield(r.regions, 'saturation');
                 sat = r.regions.saturation;
@@ -173,8 +176,21 @@ methods
                 pvt = r.regions.pvt;
             end
         end
-        model.fluid.regions.saturation = GridProperty(model.AutoDiffBackend, sat);
-        model.fluid.regions.pvt = GridProperty(model.AutoDiffBackend, pvt);
+        model.PropertyFunctions.Density = BlackOilDensity(model.AutoDiffBackend, pvt);
+    end
+    
+    function [prop, state] = evaluatePropertyFunction(model, state, name)
+        name = lower(name);
+        name(1) = upper(name(1));
+        
+        if isfield(state.evaluatedProperties, name) &&...
+           isempty(state.evaluatedProperties.(name))
+            prop = state.evaluatedProperties.(name);
+            return
+        end
+        
+        prop = model.PropertyFunctions.(name).evaluate(model, state);
+        state.evaluatedProperties.(name) = prop;
     end
 
     % --------------------------------------------------------------------%
@@ -1314,18 +1330,18 @@ methods (Static)
         
         satfun = @(varargin) f.regions.saturation.evaluateFunction(varargin{:});
         
-        krW = satfun(f.krW, sw);
-%         krW = f.krW(sw, varargin{:});
+%         krW = satfun(f.krW, sw);
+        krW = f.krW(sw, varargin{:});
 
         wg = 1-ww;
-        krG = satfun(f.krG, sg);
-%         krG = f.krG(sg, varargin{:});
+%         krG = satfun(f.krG, sg);
+        krG = f.krG(sg, varargin{:});
 
-        krow = satfun(f.krOW, so);
-        krog = satfun(f.krOG, so);
+%         krow = satfun(f.krOW, so);
+%         krog = satfun(f.krOG, so);
 
-%         krow = f.krOW(so, varargin{:});
-%         krog = f.krOG(so,  varargin{:});
+        krow = f.krOW(so, varargin{:});
+        krog = f.krOG(so,  varargin{:});
         krO  = wg.*krog + ww.*krow;
     end
 

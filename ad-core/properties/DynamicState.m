@@ -1,4 +1,4 @@
-classdef DynamicState < handle
+classdef DynamicState 
     properties
         state
         dynamicNames = {};
@@ -33,8 +33,17 @@ classdef DynamicState < handle
         
         function h = subsref(u, s)
             % h = u(s)
-            if strcmp(s(1).type, '.') && ischar(s(1).subs)
-                act = strcmp(u.dynamicNames, s(1).subs);
+            fld = s(1).subs;
+            if strcmp(s(1).type, '.') && ischar(fld)
+                if strcmp(s(1).type, 'state')
+                    h = u.state;
+                    if numel(s) > 1
+                        h = builtin('subsref', h, s(2:end));
+                    end
+                    return
+                end
+                
+                act = strcmp(u.dynamicNames, fld);
                 if any(act)
                     dv = u.dynamicVariables{act};
                     if numel(s) > 1
@@ -45,8 +54,10 @@ classdef DynamicState < handle
                     else
                         h = dv;
                     end
-                else
+                elseif isfield(u.state, fld)
                     h = builtin('subsref', u.state, s);
+                else
+                    h = builtin('subsref', u, s);
                 end
             else
                 h = builtin('subsref',u,s);

@@ -60,9 +60,6 @@ methods
                 % components vaporizing into the gas phase respectively.
                 fn = lower(name);
                 index = 1;
-            case 'status'
-                fn = 'status';
-                index = ':';
             otherwise
                 % Basic phases are known to the base class
                 [fn, index] = getVariableField@ReservoirModel(model, name);
