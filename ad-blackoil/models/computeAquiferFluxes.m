@@ -33,10 +33,10 @@ function q = computeAquiferFluxes(model, p, sW, state, dt)
     bW     = fluid.bW(p_aq, 'cellInx', conn);
     rhoW   = bW.*fluid.rhoWS;
     
-    Tc = C.*V_aq/J;
-    coef = (1 - exp(-dt/Tc))./(dt/Tc);
+    Tc = C.*V_aq./J;
+    coef = (1 - exp(-dt./Tc))./(dt./Tc);
     
     g = model.gravity(3);
-    q = alpha.*J.*(p_aq + pcOW - p + rhoW*g*(depthconn - depthaq)).*coef;
+    q = alpha.*J.*(p_aq + pcOW - p + rhoW.*g.*(depthconn - depthaq)).*coef;
     
 end
