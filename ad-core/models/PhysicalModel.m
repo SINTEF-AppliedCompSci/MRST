@@ -60,7 +60,6 @@ properties
     % certain that it is the case, as this removes several tolerance
     % checks.
     AutoDiffBackend
-    PropertyFunctions
 end
 
 methods

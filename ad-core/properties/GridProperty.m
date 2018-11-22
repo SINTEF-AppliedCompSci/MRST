@@ -15,6 +15,7 @@ classdef GridProperty
         end
 
         function v = evaluateFunctionSingleRegion(prop, fn, region_index, varargin)
+            assert(region_index <= numel(fn), 'Region index exceeds maximum number of regions.');
             if iscell(fn)
                 v = fn{region_index}(varargin{:});
             else
@@ -25,6 +26,8 @@ classdef GridProperty
         function v = evaluateFunctionCellSubset(prop, fn, subset, varargin)
             local_region = prop.regions(subset);
             if iscell(fn)
+                % We have multiple regions and have to evaluate for each
+                % subregion
                 nc = size(prop.regions, 1);
                 isCell = cellfun(@(x) numel(double(x)) == nc, varargin);
                 assert(~isempty(prop.regions))

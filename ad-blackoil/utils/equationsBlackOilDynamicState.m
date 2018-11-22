@@ -56,8 +56,14 @@ T = s.T.*transMult;
 % Gravity gradient per face
 gdz = model.getGravityGradient();
 
-[rho, state] = model.evaluatePropertyFunction(state, 'density');
-[mu, state] = model.evaluatePropertyFunction(state, 'viscosity');
+props = model.FlowPropertyFunctions;
+
+% props.evaluateAllProperties(state);
+
+% rho = model.getProp()
+
+% [rho, state] = model.evaluatePropertyFunction(state, 'density');
+% [mu, state] = model.evaluatePropertyFunction(state, 'viscosity');
 
 
 % Evaluate water properties

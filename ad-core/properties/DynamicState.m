@@ -3,7 +3,6 @@ classdef DynamicState
         state
         dynamicNames = {};
         dynamicVariables = {};
-        evaluatedProperties = struct();
         implicitEvaluation = true
     end
     

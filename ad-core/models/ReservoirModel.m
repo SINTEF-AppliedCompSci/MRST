@@ -52,6 +52,7 @@ properties
     % Coupling to forces and other models
     gravity % Vector for the gravitational force
     FacilityModel % Facility model used to represent wells
+    FlowPropertyFunctions % Grouping for flow properties
 end
 
 methods
@@ -162,35 +163,11 @@ methods
             model.FacilityModel = model.FacilityModel.setupWells(W);
         end
         model = validateModel@PhysicalModel(model, varargin{:});
-        
-        [sat, pvt] = deal([]);
-        r = model.rock;
-        
-        
-        [sat, pvt] = deal([]);
-        if isfield(r, 'regions')
-            if isfield(r.regions, 'saturation');
-                sat = r.regions.saturation;
-            end
-            if isfield(r.regions, 'pvt')
-                pvt = r.regions.pvt;
-            end
-        end
-        model.PropertyFunctions.Density = BlackOilDensity(model.AutoDiffBackend, pvt);
+        model.FlowPropertyFunctions = FlowPropertyFunctions(model); %#ok
     end
     
-    function [prop, state] = evaluatePropertyFunction(model, state, name)
-        name = lower(name);
-        name(1) = upper(name(1));
-        
-        if isfield(state.evaluatedProperties, name) &&...
-           isempty(state.evaluatedProperties.(name))
-            prop = state.evaluatedProperties.(name);
-            return
-        end
-        
-        prop = model.PropertyFunctions.(name).evaluate(model, state);
-        state.evaluatedProperties.(name) = prop;
+    function state = evaluatePropertiesOnGrid(model, state)
+        props = model.FlowPropertyFunctions.evaluateOnGrid(state);
     end
 
     % --------------------------------------------------------------------%
