@@ -11,34 +11,28 @@ classdef BlackOilViscosity < GridProperty
             
             f = model.fluid;
             p = model.getProp(state, 'pressure');
+            p_phase = getPhasePressures(p, fp.CapillaryPressure);
             if model.water
                 wix = phInd == 1;
-                pw = p;
-                pcwo = fp.CapillaryPressure{wix};
-                if ~isempty(pcwo)
-                    pw = pw + pcwo;
-                end
+                pw = p_phase{wix};
                 mu{wix} = prop.evaluateFunctionOnGrid(f.muW, pw);
             end
             
             if model.oil
                 oix = phInd == 2;
+                po = p_phase{oix};
                 if model.disgas
                     rs = model.getProp(state, 'rs');
                     flag = false(size(double(p)));
-                    mu{oix} = prop.evaluateFunctionOnGrid(f.muO, p, rs, flag);
+                    mu{oix} = prop.evaluateFunctionOnGrid(f.muO, po, rs, flag);
                 else
-                    mu{oix} = prop.evaluateFunctionOnGrid(f.muO, p);
+                    mu{oix} = prop.evaluateFunctionOnGrid(f.muO, po);
                 end
             end
             
             if model.gas
                 gix = phInd == 3;
-                pg = p;
-                pcgo = fp.CapillaryPressure{gix};
-                if ~isempty(pcwo)
-                    pg = pg + pcgo;
-                end
+                pg = p_phase{gix};
                 if model.vapoil
                     rv = model.getProp(state, 'rv');
                     flag = false(size(double(p)));

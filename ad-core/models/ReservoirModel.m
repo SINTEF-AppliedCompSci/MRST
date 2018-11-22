@@ -1305,8 +1305,8 @@ methods (Static)
         d  = (sg+sw-swcon);
         ww = (sw-swcon)./d;
         
-        satfun = @(varargin) f.regions.saturation.evaluateFunction(varargin{:});
-        
+%         satfun = @(varargin) f.regions.saturation.evaluateFunction(varargin{:});
+%         
 %         krW = satfun(f.krW, sw);
         krW = f.krW(sw, varargin{:});
 

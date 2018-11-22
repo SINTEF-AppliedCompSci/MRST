@@ -38,17 +38,6 @@ f = model.fluid;
 % Multipliers for properties
 [pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
 
-% Evaluate relative permeability
-if model.water
-    [krW, krO, krG] = model.evaluateRelPerm(sat);
-    % Mobility multiplier for water
-    krW = mobMult.*krW;
-else
-    [krO, krG] = model.evaluateRelPerm(sat);
-end
-
-% Modifiy relperm by mobility multiplier (if any)
-krO = mobMult.*krO; krG = mobMult.*krG;
 
 % Compute transmissibility
 T = s.T.*transMult;
@@ -59,20 +48,55 @@ gdz = model.getGravityGradient();
 props = model.FlowPropertyFunctions;
 rho = props.getProperty(model, state, 'Density');
 mu = props.getProperty(model, state, 'Viscosity');
+kr = props.getProperty(model, state, 'RelativePermeability');
+
+
+rho0 = props.getProperty(model, state0, 'Density');
 
 
 % EQUATIONS -----------------------------------------------------------
+bW = rho{1}./f.rhoWS;
+bO = rho{2}./f.rhoOS;
+bG = rho{3}./f.rhoGS;
+
+b = {bW, bO, bG};
+
+
+bW0 = rho0{1}./f.rhoWS;
+bO0 = rho0{2}./f.rhoOS;
+bG0 = rho0{3}./f.rhoGS;
+
+
+
+% mobW = kr{1}./mu{1};
+% mobO = kr{2}./mu{2};
+% mobG = kr{3}./mu{3};
+
+p_phase = getPhasePressures(p, state.FlowProps.CapillaryPressure);
+
+nph = 3;
+v = cell(nph, 1);
+upc = false(numel(double(T)), nph);
+for i = 1:nph
+    rhof  = s.faceAvg(rho{i});
+    pot = s.Grad(p_phase{i}) - rhof.*gdz;
+    
+    upc(:, i) = double(pot)<=0;
+    
+    dflux = -T.*pot;
+    v{i} = dflux.*s.faceUpstr(upc(:, i), b{i}.*(kr{i}./mu{i}));
+end
 
 % Upstream weight b factors and multiply by interface fluxes to obtain the
 % fluxes at standard conditions.
-bOvO = s.faceUpstr(upco, bO).*vO;
-bGvG = s.faceUpstr(upcg, bG).*vG;
+bWvW = v{1};
+bOvO = v{2};
+bGvG = v{3};
 
 % The first equation is the conservation of the water phase. This equation is
 % straightforward, as water is assumed to remain in the aqua phase in the
 % black oil model.
 if model.water
-    bWvW = s.faceUpstr(upcw, bW).*vW;
     water = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 );
     divWater = s.Div(bWvW);
 end
@@ -84,7 +108,7 @@ if model.vapoil
     % The model allows oil to vaporize into the gas phase. The conservation
     % equation for oil must then include the fraction present in the gas
     % phase.
-    rvbGvG = s.faceUpstr(upcg, rv).*bGvG;
+    rvbGvG = s.faceUpstr(upc(:, 3), rv).*bGvG;
     % Final equation
     oil = (s.pv/dt).*( pvMult .* (bO.* sO  + rv.* bG.* sG) - ...
                        pvMult0.*(bO0.*sO0 + rv0.*bG0.*sG0));
@@ -98,7 +122,7 @@ end
 % whether the model allows us to dissolve the gas phase into the oil phase.
 if model.disgas
     % The gas transported in the oil phase.
-    rsbOvO = s.faceUpstr(upco, rs).*bOvO;
+    rsbOvO = s.faceUpstr(upc(:, 2), rs).*bOvO;
     
     gas = (s.pv/dt).*( pvMult.* (bG.* sG  + rs.* bO.* sO) - ...
                        pvMult0.*(bG0.*sG0 + rs0.*bO0.*sO0 ));
