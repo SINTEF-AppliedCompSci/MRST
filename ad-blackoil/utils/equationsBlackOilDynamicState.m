@@ -57,7 +57,7 @@ T = s.T.*transMult;
 gdz = model.getGravityGradient();
 
 props = model.FlowPropertyFunctions;
-
+rho = props.getProperty(model, state, 'Density');
 % props.evaluateAllProperties(state);
 
 % rho = model.getProp()
@@ -67,22 +67,22 @@ props = model.FlowPropertyFunctions;
 
 
 % Evaluate water properties
-if model.water
-    [vW, bW, mobW, rhoW, pW, upcw] = getFluxAndPropsWater_BO(model, p, sW, krW, T, gdz);
-    bW0 = f.bW(p0);
-else
-    [vW, bW, mobW, rhoW, pW, upcw] = deal([]);
-end
-st  = model.getCellStatusVO(state,  sO, sW, sG);
-st0  = model.getCellStatusVO(state0,  sO0, sW0, sG0);
-
-% Evaluate oil properties
-[vO, bO, mobO, rhoO, p, upco] = getFluxAndPropsOil_BO(model, p, sO, krO, T, gdz, rs, ~st{1});
-bO0 = getbO_BO(model, p0, rs0, ~st0{1});
-
-% Evaluate gas properties
-bG0 = getbG_BO(model, p0, rv0, ~st0{2});
-[vG, bG, mobG, rhoG, pG, upcg] = getFluxAndPropsGas_BO(model, p, sG, krG, T, gdz, rv, ~st{2});
+% if model.water
+%     [vW, bW, mobW, rhoW, pW, upcw] = getFluxAndPropsWater_BO(model, p, sW, krW, T, gdz);
+%     bW0 = f.bW(p0);
+% else
+%     [vW, bW, mobW, rhoW, pW, upcw] = deal([]);
+% end
+% st  = model.getCellStatusVO(state,  sO, sW, sG);
+% st0  = model.getCellStatusVO(state0,  sO0, sW0, sG0);
+% 
+% % Evaluate oil properties
+% [vO, bO, mobO, rhoO, p, upco] = getFluxAndPropsOil_BO(model, p, sO, krO, T, gdz, rs, ~st{1});
+% bO0 = getbO_BO(model, p0, rs0, ~st0{1});
+% 
+% % Evaluate gas properties
+% bG0 = getbG_BO(model, p0, rv0, ~st0{2});
+% [vG, bG, mobG, rhoG, pG, upcg] = getFluxAndPropsGas_BO(model, p, sG, krG, T, gdz, rv, ~st{2});
 
 % Store fluxes / properties for debugging / plotting, if requested.
 % if model.outputFluxes

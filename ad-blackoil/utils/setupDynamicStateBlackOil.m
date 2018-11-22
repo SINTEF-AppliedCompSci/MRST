@@ -45,8 +45,10 @@ function [state, primaryVars] = setupDynamicStateBlackOil(model, state, useAD)
     
     wellSol = DynamicState(wellSol, [wellVarNames, 'wellmap'], [wellVars, wellMap]);
     
-    state = DynamicState(state, {'pressure', 's', 'rv', 'rs', 'wellSol'},...
-                                {p, sat, rv, rs, wellSol});
+    [fp, fpname] = model.FlowPropertyFunctions.getPropertyContainer();
+    
+    state = DynamicState(state, {'pressure', 's', 'rv', 'rs', 'wellSol', fpname},...
+                                {p, sat, rv, rs, wellSol, fp});
 
 %     props = {'PhaseDensities', 'PhaseViscosities', ...
 %              'PhaseMobility', 'PhaseComposition', 'PhasePressures'};
