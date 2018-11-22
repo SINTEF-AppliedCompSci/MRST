@@ -27,9 +27,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 if model.water
     sW = model.getProp(state, 'sw');
     sW0 = model.getProp(state0, 'sw');
-    sat = {sW, sO, sG};
 else
-    sat = {sO, sG};
     [sW, sW0] = deal(0);
 end
 
@@ -78,7 +76,11 @@ nph = 3;
 v = cell(nph, 1);
 upc = false(numel(double(T)), nph);
 for i = 1:nph
-    rhof  = s.faceAvg(rho{i});
+    if i == 2 && model.disgas
+        rhof  = s.faceAvg(rho{i} + rs.*f.rhoGS./f.rhoOS);
+    else
+        rhof  = s.faceAvg(rho{i});
+    end
     pot = s.Grad(p_phase{i}) - rhof.*gdz;
     
     upc(:, i) = double(pot)<=0;

@@ -4,11 +4,6 @@ classdef StoneRelativePermeability1 < GridProperty
     
     methods
         function kr = evaluateOnGrid(prop, model, state)
-%             act = model.getActivePhases();
-%             bW = prop.evaluateFunctionOnGrid(f.bW, p);
-%             active = model.getActivePhases();
-%             nph = sum(active);
-            
             if model.water && model.gas && model.oil
                 kr = prop.relPermWOG(model, state);
             elseif model.water && model.oil
@@ -27,7 +22,7 @@ classdef StoneRelativePermeability1 < GridProperty
         f = model.fluid;
         swcon = 0;
         if isfield(f, 'sWcon')
-            warning('sWcon not implemented yet')
+            swcon = f.sWcon(prop.regions);
         end
         swcon = min(swcon, double(sw)-1e-5);
 
