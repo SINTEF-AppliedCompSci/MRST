@@ -82,10 +82,23 @@ methods
 
         
         [eqs, names, types] = equationsBlackOilDynamicState(dyn_state0, dyn_state, model, dt, drivingForces);
-        problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
         
+        dissolved = model.getDissolutionMatrix(dyn_state.rs, dyn_state.rv);
         % Add in and setup well equations
-        [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, wellVars, wellMap, p, mob, rho, dissolved, {}, dt, opt);
+        
+        ws_dyn = dyn_state.wellSol;
+        wellVars = ws_dyn.dynamicVariables(1:end-1);
+        wellMap = ws_dyn.wellmap;
+        
+        p = dyn_state.pressure;
+        kr = dyn_state.FlowProps.RelativePermeability;
+        mu = dyn_state.FlowProps.Viscosity;
+        
+        mob = cellfun(@(x, y) x./y, kr, mu, 'unif', false);
+        rho = dyn_state.FlowProps.Density;
+        [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, state0.wellSol, state.wellSol, wellVars, wellMap, p, mob, rho, dissolved, {}, dt, opt);
+        
+        problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
     end
 
     function [dyn_state, primaryVariables] = getForwardDynamicState(model, state)
