@@ -34,7 +34,11 @@ end
 s = model.operators;
 f = model.fluid;
 % Multipliers for properties
-[pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
+if 0
+    [pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
+else
+    [pvMult, transMult, mobMult, pvMult0] = deal(1);
+end
 
 
 % Compute transmissibility

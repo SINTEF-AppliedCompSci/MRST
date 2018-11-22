@@ -22,7 +22,7 @@ classdef StoneRelativePermeability1 < GridProperty
         f = model.fluid;
         swcon = 0;
         if isfield(f, 'sWcon')
-            swcon = f.sWcon(prop.regions);
+            swcon = f.sWcon(prop.regions)';
         end
         swcon = min(swcon, double(sw)-1e-5);
 
