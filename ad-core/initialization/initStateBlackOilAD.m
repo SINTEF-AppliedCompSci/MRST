@@ -26,8 +26,6 @@ function [state, pressures] = initStateBlackOilAD(model, regions, varargin)
 
     pressures = zeros(G.cells.num, nph);
     touched = false(G.cells.num, 1);
-    singlePhaseMobileGlobal = zeros(G.cells.num, 1);
-    kr_global = zeros(G.cells.num, 3);
     for regNo = 1:numel(regions)
         region = regions{regNo};
         if ischar(region.cells)
@@ -62,9 +60,6 @@ function [state, pressures] = initStateBlackOilAD(model, regions, varargin)
         numberOfMobile = sum(kr > 0, 2);
         maxSat = max(s, [], 2);
         singlePhaseMobile = numberOfMobile <= 1;
-        
-        singlePhaseMobileGlobal(cells) = singlePhaseMobile;
-        kr_global(cells, :) = kr;
         
         toOil = true(size(p, 1), 1);
         if model.gas
