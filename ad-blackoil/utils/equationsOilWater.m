@@ -156,7 +156,7 @@ types = {'cell', 'cell'};
 
 % Add aquifer contributions if any.
 if isfield(drivingForces, 'aquifer') && (drivingForces.aquifer==true)
-    eqs = addAquiferContributions(model, eqs, names, state, p, sW, dt);
+    eqs = addAquifersContribution(model, eqs, names, state, p, sW, dt);
 end
 
 % Finally, add in and setup well equations
