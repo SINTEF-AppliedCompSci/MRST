@@ -3,41 +3,49 @@ classdef BlackOilViscosity < GridProperty
     end
     
     methods
-        function rho = evaluateOnGrid(prop, model, state)
-            act = model.getActivePhases();
+        function mu = evaluateOnGrid(prop, model, state)
+            [act, phInd] = model.getActivePhases();
+            fp = state.FlowProps;
             nph = sum(act);
-            rho = cell(1, nph);
-            ix = 1;
+            mu = cell(1, nph);
             
             f = model.fluid;
             p = model.getProp(state, 'pressure');
             if model.water
-                bW = prop.evaluateFunctionOnGrid(f.bW, p);
-                rho{ix} = f.rhoWS.*bW;
-                ix = ix + 1;
+                wix = phInd == 1;
+                pw = p;
+                pcwo = fp.CapillaryPressure{wix};
+                if ~isempty(pcwo)
+                    pw = pw + pcwo;
+                end
+                mu{wix} = prop.evaluateFunctionOnGrid(f.muW, pw);
             end
             
             if model.oil
+                oix = phInd == 2;
                 if model.disgas
                     rs = model.getProp(state, 'rs');
                     flag = false(size(double(p)));
-                    bO = prop.evaluateFunctionOnGrid(f.bO, p, rs, flag);
+                    mu{oix} = prop.evaluateFunctionOnGrid(f.muO, p, rs, flag);
                 else
-                    bO = prop.evaluateFunctionOnGrid(f.bO, p);
+                    mu{oix} = prop.evaluateFunctionOnGrid(f.muO, p);
                 end
-                rho{ix} = f.rhoOS.*bO;
-                ix = ix + 1;
             end
             
             if model.gas
+                gix = phInd == 3;
+                pg = p;
+                pcgo = fp.CapillaryPressure{gix};
+                if ~isempty(pcwo)
+                    pg = pg + pcgo;
+                end
                 if model.vapoil
                     rv = model.getProp(state, 'rv');
                     flag = false(size(double(p)));
-                    bG = prop.evaluateFunctionOnGrid(f.bG, p, rv, flag);
+                    mu{gix} = prop.evaluateFunctionOnGrid(f.muG, pg, rv, flag);
                 else
-                    bG = prop.evaluateFunctionOnGrid(f.bG, p);
+                    mu{gix} = prop.evaluateFunctionOnGrid(f.muG, pg);
                 end
-                rho{ix} = f.rhoGS.*bG;
             end
         end
     end

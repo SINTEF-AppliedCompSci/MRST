@@ -23,6 +23,7 @@ classdef BlackOilDensity < GridProperty
             end
             
             if model.oil
+                oix = phInd == 2;
                 if model.disgas
                     rs = model.getProp(state, 'rs');
                     flag = false(size(double(p)));
@@ -30,11 +31,11 @@ classdef BlackOilDensity < GridProperty
                 else
                     bO = prop.evaluateFunctionOnGrid(f.bO, p);
                 end
-                rho{phInd == 2} = f.rhoOS.*bO;
+                rho{oix} = f.rhoOS.*bO;
             end
             
             if model.gas
-                gix = phInd == 1;
+                gix = phInd == 3;
                 pg = p;
                 pcgo = fp.CapillaryPressure{gix};
                 if ~isempty(pcwo)
@@ -47,7 +48,7 @@ classdef BlackOilDensity < GridProperty
                 else
                     bG = prop.evaluateFunctionOnGrid(f.bG, pg);
                 end
-                rho{phInd == 3} = f.rhoGS.*bG;
+                rho{gix} = f.rhoGS.*bG;
             end
         end
     end
