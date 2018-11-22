@@ -10,7 +10,7 @@ classdef FlowPropertyFunctions < PropertyFunctions
         function props = FlowPropertyFunctions(model)
             r = model.rock;
             f = model.fluid;
-            [sat, pvt] = deal([]);
+            [sat, pvt] = deal(ones(model.G.cells.num, 1));
             if isfield(r, 'regions')
                 if isfield(r.regions, 'saturation')
                     sat = r.regions.saturation;
