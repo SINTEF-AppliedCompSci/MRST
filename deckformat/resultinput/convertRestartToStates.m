@@ -52,7 +52,7 @@ fn = fullfile(dr,nm);
 if(~opt.use_opm)
     rstrt = readEclipseRestartUnFmt(fn, opt.restartInfo, opt.steps);
 else
-    % hack to do do reading from OPM which do not have RSTR
+    % hack to do reading from OPM which do not have RSTR
     out = [fn,'.UNRST'];
     opm = readEclipseOutputFileUnFmt(out);
     ns  = numel(opm.SEQNUM.values);
