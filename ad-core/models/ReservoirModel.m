@@ -165,10 +165,6 @@ methods
         model = validateModel@PhysicalModel(model, varargin{:});
         model.FlowPropertyFunctions = FlowPropertyFunctions(model); %#ok
     end
-    
-    function state = evaluatePropertiesOnGrid(model, state)
-        props = model.FlowPropertyFunctions.evaluateOnGrid(state);
-    end
 
     % --------------------------------------------------------------------%
     function [model, state] = updateForChangedControls(model, state, forces)
