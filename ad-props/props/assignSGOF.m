@@ -1,24 +1,37 @@
 function f = assignSGOF(f, sgof, reg)
-    [f.krG, f.krOG, f.pcOG] = getFunctions(f, sgof, reg);
+    [f.krG, f.krOG, f.pcOG, f.krPts.g, f.krPts.og] = getFunctions(f, sgof, reg);
 end
 
-function [krG, krOG, pcOG] = getFunctions(f, SGOF, reg)
+function [krG, krOG, pcOG, pts, pts_o] = getFunctions(f, SGOF, reg)
     [krG, krOG, pcOG] = deal(cell(1, reg.sat));
     
+    [pts, pts_o] = deal(zeros(reg.sat, 3));
     for i = 1:reg.sat
+        [pts(i, :), pts_o(i, :)] = getPoints(SGOF{i});
         swof = extendTab(SGOF{i});
         SG = swof(:, 1);
         krG{i} = @(sg) interpTable(SG, swof(:, 2), sg);
-        if isfield(f, 'sWcon')
-            sWcon = f.sWcon(i);
-        else
-            sWcon = 0;
-        end
-        krOG{i} = @(so) interpTable(SG, swof(:, 3), 1-so-sWcon);
+
+        krOG{i} = @(so) interpTable(SG, swof(:, 3), 1-so-f.krPts.w(i, 1));
         pcOG{i} = @(sg) interpTable(SG, swof(:, 4), sg);
     end
 end
 
+function [pts, pts_o] = getPoints(sgof)
+    % Connate gas saturation
+    pts = zeros(1, 3);
+    pts(1) = sgof(1, 1);
+    % Last mobile water saturation
+    ii = find(sgof(:,2)==0, 1, 'last');
+    pts(2) = sgof(ii,1);
+    % Last point
+    pts(3) = sgof(end,1);  % swmax 
+    
+    % Get OW-scaling
+    pts_o = zeros(1, 3);
+    ii = find(sgof(:,3) == 0, 1, 'first');
+    pts_o(2) = 1 - sgof(ii,1);
+end
 
 
 %{

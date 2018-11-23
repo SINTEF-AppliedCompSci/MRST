@@ -1,5 +1,5 @@
 function f = assignSWOF(f, swof, reg)
-[f.krW, f.krOW, f.pcOW, f.sWcon] = getFunctions(swof, reg);
+[f.krW, f.krOW, f.pcOW, f.krPts.w, f.krPts.ow] = getFunctions(swof, reg);
 
 if isfield(reg, 'SURFNUM')
    % Assign miscible relperm for surfactant
@@ -14,11 +14,18 @@ if isfield(reg, 'SURFNUM')
 end
 end
 
-function [krW, krOW, pcOW, sWcon] = getFunctions(SWOF, reg)
+function [krW, krOW, pcOW, pts_w, pts_ow] = getFunctions(SWOF, reg)
     sWcon  = cellfun(@(x) x(1,1), SWOF)';
+    
+    
+    pts_w = zeros(reg.sat, 3);
+    pts_ow = zeros(reg.sat, 3);
+    
     [krW, krOW, pcOW] = deal(cell(1, reg.sat));
     
     for i = 1:reg.sat
+        [pts_w(i, :), pts_ow(i, :)] = getPoints(SWOF{i});
+        
         swof = extendTab(SWOF{i});
         SW = swof(:, 1);
         krW{i} = @(sw) interpTable(SW, swof(:, 2), sw);
@@ -39,6 +46,22 @@ surfinx = getRegMap(so, reg.SURFNUM, reg.SURFINX, varargin{:});
 T = cellfun(@(x)x(:,[1,3]), swof, 'UniformOutput', false);
 T = extendTab(T);
 v = interpReg(T, 1 - so, surfinx);
+end
+
+function [pts, pts_o] = getPoints(swof)
+    % Connate water saturation
+    pts = zeros(1, 3);
+    pts(1) = swof(1, 1);
+    % Last mobile water saturation
+    ii = find(swof(:,2)==0, 1, 'last');
+    pts(2) = swof(ii,1);
+    % Last point
+    pts(3) = swof(end,1);  % swmax 
+    
+    % Get OW-scaling
+    pts_o = zeros(1, 3);
+    ii = find(swof(:,3) == 0, 1, 'first');
+    pts_o(2) = 1 - swof(ii,1);
 end
 
 %{
