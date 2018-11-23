@@ -21,11 +21,11 @@ function [pts, pts_o] = getPoints(sgof)
     % Connate gas saturation
     pts = zeros(1, 3);
     pts(1) = sgof(1, 1);
-    % Last mobile water saturation
+    % Last mobile gas saturation
     ii = find(sgof(:,2)==0, 1, 'last');
     pts(2) = sgof(ii,1);
     % Last point
-    pts(3) = sgof(end,1);  % swmax 
+    pts(3) = sgof(end,1);
     
     % Get OW-scaling
     pts_o = zeros(1, 3);

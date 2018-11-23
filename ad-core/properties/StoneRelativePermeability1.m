@@ -21,8 +21,8 @@ classdef StoneRelativePermeability1 < GridProperty
         [sw, so, sg] = model.getProps(state, 'sw', 'so', 'sg');
         f = model.fluid;
         swcon = 0;
-        if isfield(f, 'sWcon')
-            swcon = f.sWcon(prop.regions)';
+        if isfield(f, 'krPts')
+            swcon = reshape(f.krPts.w(prop.regions), [], 1);
         end
         swcon = min(swcon, double(sw)-1e-5);
 

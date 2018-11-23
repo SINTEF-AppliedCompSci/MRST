@@ -56,7 +56,7 @@ function [pts, pts_o] = getPoints(swof)
     ii = find(swof(:,2)==0, 1, 'last');
     pts(2) = swof(ii,1);
     % Last point
-    pts(3) = swof(end,1);  % swmax 
+    pts(3) = swof(end,1);
     
     % Get OW-scaling
     pts_o = zeros(1, 3);
