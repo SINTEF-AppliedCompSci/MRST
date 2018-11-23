@@ -27,6 +27,15 @@ classdef FlowPropertyFunctions < PropertyFunctions
             props.Density = BlackOilDensity(model.AutoDiffBackend, pvt);
             props.Viscosity = BlackOilViscosity(model.AutoDiffBackend, pvt);
             
+            if ~isempty(model.inputdata)
+                deck = model.inputdata;
+                
+                do_scaling = isfield(deck.RUNSPEC, 'ENDSCALE');
+                three_point = isfield(deck.PROPS, 'SCALECRS') && strcmpi(deck.PROPS.SCALECRS{1}(1), 'y');
+                props.RelativePermeability.relpermScaling = do_scaling;
+                props.RelativePermeability.relpermPoints = 2 + three_point;
+            end
+            
             % Define storage
             props.structName = 'FlowProps';
             props.structFields = {'CapillaryPressure', ...
