@@ -1,4 +1,4 @@
-function q = computeAquiferFluxes(model, p, sW, state, dt)
+function q = computeAquiferFluxes(model, p, sW, p_aq, V_aq, dt)
     
     aquifers  = model.aquifers;
     aquind  = model.aquind;
@@ -15,10 +15,7 @@ function q = computeAquiferFluxes(model, p, sW, state, dt)
     naq = max(aquid);
     aquid2conn = sparse(aquid, (1 : nconn)', 1, naq, nconn)';
     
-    p_aq = model.getProp(state, 'aquiferpressures');
     p_aq = aquid2conn*p_aq;
-
-    V_aq = model.getProp(state, 'aquifervolumes');
     V_aq = aquid2conn*V_aq;
 
     p  = p(conn);
@@ -34,7 +31,11 @@ function q = computeAquiferFluxes(model, p, sW, state, dt)
     rhoW   = bW.*fluid.rhoWS;
     
     Tc = C.*V_aq./J;
-    coef = (1 - exp(-dt./Tc))./(dt./Tc);
+    if dt == 0
+        coef = 1;
+    else
+        coef = (1 - exp(-dt./Tc))./(dt./Tc);
+    end
     
     g = model.gravity(3);
     q = alpha.*J.*(p_aq + pcOW - p + rhoW.*g.*(depthconn - depthaq)).*coef;
