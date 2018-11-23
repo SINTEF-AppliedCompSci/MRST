@@ -68,6 +68,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             data      = readDefaultedKW(fid, tmpl, 'NRec', ntpvt);
             prp.(kw)  = to_double(data);  clear tmpl
 
+         case 'SCALECRS'
+            tmpl        = { 'NO' };
+            data        = readDefaultedRecord(fid, tmpl);
+            prp.(kw)    = data;
+            
          case 'SDENSITY'
             tmpl(1) = { '0.0' };
             data      = readDefaultedKW(fid, tmpl, 'NRec', ntpvt);

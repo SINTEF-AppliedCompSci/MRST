@@ -73,11 +73,77 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    if isfield(deck.PROPS, 'ROCK')
       [rock.cr, rock.pref] = rock_compressibility(deck.PROPS);
    end
+   
+   rock = getRegions(rock, deck);
+   rock = getScaling(rock, deck);
 end
 
 %--------------------------------------------------------------------------
 % Private helpers follow.
 %--------------------------------------------------------------------------
+
+function rock = getRegions(rock, deck)
+   hasPVT = isfield(deck.REGIONS, 'PVTNUM') && max(deck.REGIONS.PVTNUM > 1);
+   hasSAT = isfield(deck.REGIONS, 'SATNUM') && max(deck.REGIONS.SATNUM > 1);
+   hasIMB = isfield(deck.REGIONS, 'IMBNUM') && max(deck.REGIONS.IMBNUM > 1);
+   if hasPVT || hasSAT || hasIMB
+       regions = struct();
+       if hasPVT
+           regions.pvt = deck.REGIONS.PVTNUM;
+       end
+       
+       if hasSAT
+           regions.saturation = deck.REGIONS.SATNUM;
+       end
+       
+       if hasIMB
+           regions.imbibition = deck.REGIONS.IMBNUM;
+       end
+       rock.regions = regions;
+   end
+end
+
+function rock = getScaling(rock, deck)
+   if isfield(deck.RUNSPEC, 'ENDSCALE')
+       drain = struct();
+       imb = struct();
+       [drain.w, drain.ow, drain.og, drain.g, ok_d] = getThreePhaseScaling(rock, deck, '');
+       [imb.w, imb.ow, imb.og, imb.g, ok_i] = getThreePhaseScaling(rock, deck, 'I');
+       
+       krscale.drainage = drain;
+       krscale.imbibition = imb;
+
+       rock.krscale = krscale;
+   end
+end
+
+function [w, ow, og, g, present] = getThreePhaseScaling(rock, deck, prefix)
+   [w, okw] = getRelPermScaling(rock, deck, prefix, 'W');
+   [ow, okow] = getRelPermScaling(rock, deck, prefix, 'OW');
+   [og, okog] = getRelPermScaling(rock, deck, prefix, 'OG');
+   [g, okg] = getRelPermScaling(rock, deck, prefix, 'W');
+   
+   present = okw || okow || okog || okg;
+end
+
+function [pts, present] = getRelPermScaling(rock, deck, prefix, phase)
+   nc = size(rock.poro, 1);
+   pts = repmat([0, 0, 1], nc, 1);
+
+   connate = [prefix, 'S', phase, 'L'];
+   crit = [prefix, 'S', phase, 'CR'];
+   maxv = [prefix, 'S', phase, 'U'];
+
+   flds = {connate, crit, maxv};
+   present = false;
+   for i = 1:numel(flds)
+       f = flds{i};
+       if isfield(deck.PROPS, f)
+           pts(:, i) = deck.PROPS.(f);
+           present = true;
+       end
+   end
+end
 
 function b = consistent(deck)
    k = false([3, 3]);
