@@ -24,7 +24,11 @@ classdef GridProperty
         end
         
         function v = evaluateFunctionCellSubset(prop, fn, subset, varargin)
-            local_region = prop.regions(subset);
+            if ischar(subset) && strcmp(subset, ':')
+                local_region = prop.regions;
+            else
+                local_region = prop.regions(subset);
+            end
             if iscell(fn)
                 % We have multiple regions and have to evaluate for each
                 % subregion
