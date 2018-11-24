@@ -259,7 +259,7 @@ function grid = convertGRID(grid, u)
          case 'MAPUNITS'
             continue;  % Handled in 'MAPAXES'.
 
-         case {'MINPV', 'MINPVV'}
+         case {'MINPV', 'MINPVV', 'PORV'}
             grid.(key) = convertFrom(grid.(key), u.liqvol_r);
 
          case 'NNC'
