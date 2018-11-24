@@ -35,15 +35,22 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-   assert (isstruct(rock), 'rock must be a structure');
+    assert (isstruct(rock), 'rock must be a structure');
 
-   compress_names = { 'perm', 'poro', 'ntg' };
+    nc = numel(rock.poro);
+    rock = compressFields(rock, nc, active);
+end
 
-   for field = compress_names,
-      fn = field{1};
-
-      if isfield(rock, fn),
-         rock.(fn) = rock.(fn)(active, :);
-      end
-   end
+function str = compressFields(str, nc, subs)
+    flds = fieldnames(str);
+    
+    for i = 1:numel(flds)
+        f = flds{i};
+        d = str.(f);
+        if isstruct(d)
+            str.(f) = compressFields(d, nc, subs);
+        elseif isnumeric(d) && size(d, 1) == nc
+            str.(f) = d(subs, :);
+        end
+    end
 end
