@@ -8,8 +8,8 @@ function [bG, muG, rvSat] = getFunctions(PVTG, reg)
     for i = 1:reg.pvt
         pvtg = PVTG{i};
         
-        p_vap = pvtg.data(pvtg.pos(1:end-1),1);
-        rv = pvtg.key;
+        rv = pvtg.data(pvtg.pos(1:end-1),1);
+        p_vap = pvtg.key;
         
         bg = pvtg;
         bg.data = [bg.data(:,1), 1./bg.data(:,2)];
@@ -17,8 +17,10 @@ function [bG, muG, rvSat] = getFunctions(PVTG, reg)
         mug = pvtg;
         mug.data = [mug.data(:,1), mug.data(:,3)];
         
-        bG{i} = @(pg, rv, flag) interpPVT(bg, pg, rv, flag);
-        muG{i} = @(pg, rv, flag) interpPVT(mug, pg, rv, flag);
+        bG{i} = @(pg, rv, flag) interpPVT(bg, rv, pg, flag);
+        muG{i} = @(pg, rv, flag) interpPVT(mug, rv, pg, flag);
+        
+        
         rvSat{i} = @(pg) interpTable(p_vap, rv, pg);
     end
 end

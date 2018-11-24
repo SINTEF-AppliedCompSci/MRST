@@ -29,6 +29,7 @@ function [pts, pts_o] = getPoints(sgof)
     
     % Get OW-scaling
     pts_o = zeros(1, 3);
+    pts_o(3) = 1;
     ii = find(sgof(:,3) == 0, 1, 'first');
     pts_o(2) = 1 - sgof(ii,1);
 end
