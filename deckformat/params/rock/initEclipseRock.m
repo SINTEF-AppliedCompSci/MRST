@@ -128,13 +128,20 @@ end
 
 function [pts, present] = getRelPermScaling(rock, deck, prefix, phase)
    nc = size(rock.poro, 1);
-   pts = repmat([0, 0, 1], nc, 1);
+   % Connate, critical, first s for max kr, max kr
+   pts = repmat([0, 0, 1, 1], nc, 1);
 
    connate = [prefix, 'S', phase, 'L'];
    crit = [prefix, 'S', phase, 'CR'];
-   maxv = [prefix, 'S', phase, 'U'];
+   maxs = [prefix, 'S', phase, 'U'];
+   if strcmpi(phase, 'wo') || strcmpi(phase, 'og')
+      % OW or OG relperm has same maximum value
+      maxv = [prefix, 'KRO'];
+   else
+      maxv = [prefix, 'KR', phase, 'U'];
+   end
 
-   flds = {connate, crit, maxv};
+   flds = {connate, crit, maxs, maxv};
    present = false;
    for i = 1:numel(flds)
        f = flds{i};
