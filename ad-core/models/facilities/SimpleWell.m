@@ -587,14 +587,24 @@ classdef SimpleWell < PhysicalModel
             o = mixs(:, isoil);
 
             if dg
-                rsMax = model.fluid.rsSat(double(p));
+                if iscell(model.fluid.rsSat)
+                    rsSatFn = model.fluid.rsSat{1};
+                else
+                    rsSatFn = model.fluid.rsSat;
+                end
+                rsMax = rsSatFn(double(p));
             else
                 rsMax = 0;
             end
             if isa(model, 'ThreePhaseBlackOilModel')
                 % Vapoil/disgas
+                if iscell(model.fluid.rvSat)
+                    rvSatFn = model.fluid.rvSat{1};
+                else
+                    rvSatFn = model.fluid.rvSat;
+                end
                 if vo
-                    rvMax = model.fluid.rvSat(double(p));
+                    rvMax = rvSatFn(double(p));
                 else
                     rvMax = 0;
                 end

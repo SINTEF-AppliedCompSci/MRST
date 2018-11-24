@@ -904,15 +904,17 @@ classdef FacilityModel < PhysicalModel
                     shrink = 1;
                 end
                 
+                evalpvt = @(varargin) model.ReservoirModel.FlowPropertyFunctions.Density.evaluateFunctionSingleRegion(varargin{1}, 1, varargin{2:end});
                 if rmodel.water
-                    bW = f.bW(p);
+                    bW = evalpvt(f.bW, p);
                     newRates = newRates + qs(:, wix)./bW;
                 end
                 if rmodel.oil
                     if disgas
-                        bO = f.bO(p, rs, rs >= f.rsSat(p));
+                        rssat = evalpvt(f.rsSat, p);
+                        bO = evalpvt(f.bO, p, rs, rs >= rssat);
                     else
-                        bO = f.bO(p);
+                        bO = evalpvt(f.bO, p);
                     end
                     orat = qs(:, oix);
                     if vapoil
@@ -922,9 +924,10 @@ classdef FacilityModel < PhysicalModel
                 end
                 if rmodel.gas
                     if vapoil
-                        bG = f.bG(p, rv, rv >= f.rvSat(p));
+                        rvsat = evalpvt(f.rvSat, p);
+                        bG = evalpvt(f.bG, p, rv, rv >= rvsat);
                     else
-                        bG = f.bG(p);
+                        bG = evalpvt(f.bG, p);
                     end
                     grat = qs(:, gix);
                     if vapoil
