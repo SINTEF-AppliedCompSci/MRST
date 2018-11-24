@@ -15,9 +15,6 @@ end
 end
 
 function [krW, krOW, pcOW, pts_w, pts_ow] = getFunctions(SWOF, reg)
-    sWcon  = cellfun(@(x) x(1,1), SWOF)';
-    
-    
     pts_w = zeros(reg.sat, 3);
     pts_ow = zeros(reg.sat, 3);
     
