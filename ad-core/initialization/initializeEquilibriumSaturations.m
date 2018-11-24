@@ -46,7 +46,7 @@ end
 function s = solveSaturations(p, p_ref, pc_fn, pc_sign, s_min, s_max)
     s = zeros(size(p));
     
-    sat = 0:0.01:1;
+    sat = (0:0.01:1)';
     pc = pc_sign*pc_fn(sat);
     dp =  p - p_ref;
 

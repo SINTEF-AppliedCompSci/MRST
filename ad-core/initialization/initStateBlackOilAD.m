@@ -54,7 +54,12 @@ function [state, pressures] = initStateBlackOilAD(model, regions, varargin)
             state.pressure(cells(onlyGas)) = p(onlyGas, gasIx);
             if disgas
                 po = p(:, oilIx);
-                rsMax = model.fluid.rsSat(po, 'cellInx', cells);
+                if iscell(model.fluid.rsSat)
+                    rsSatF = model.fluid.rsSat{region.pvt_region};
+                else
+                    rsSatF = model.fluid.rsSat;
+                end
+                rsMax = rsSatF(po);
                 rs = region.rs(po, z);
                 rs(rs > rsMax) = rsMax(rs > rsMax);
                 state.rs(cells) = rs;
@@ -63,7 +68,12 @@ function [state, pressures] = initStateBlackOilAD(model, regions, varargin)
         if model.oil
             if vapoil
                 pg = p(:, gasIx);
-                rvMax = model.fluid.rvSat(po, 'cellInx', cells);
+                if iscell(model.fluid.rvSat)
+                    rvSatF = model.fluid.rvSat{region.pvt_region};
+                else
+                    rvSatF = model.fluid.rvSat;
+                end
+                rvMax = rvSatF(po);
                 rv = region.rv(pg, z);
                 rv(rv > rvMax) = rvMax(rv > rvMax);
                 state.rv(cells) = rv;

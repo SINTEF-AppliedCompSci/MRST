@@ -24,7 +24,7 @@ function regions = getInitializationRegionsDeck(model, deck)
             pvtnum = pairs(j, 2);
             subcells = cells(sat == satnum & pvt == pvtnum);
             
-            sub_regions{j} = getRegion(model, deck, eql, subcells, regionIx);
+            sub_regions{j} = getRegion(model, deck, eql, subcells, regionIx, satnum, pvtnum);
         end
         
         
@@ -51,14 +51,19 @@ function reg = getPVTNUM(model, deck, cells)
     end
 end
 
-function region = getRegion(model, deck, eql, cells, regionIx)
+function region = getRegion(model, deck, eql, cells, regionIx, satnum, pvtnum)
     rs_method = eql(7);
     rv_method = eql(8);
     
     p_datum = eql(2);
     if isprop(model, 'disgas') && model.disgas
         if rs_method <= 0
-            rs =  @(p, z) 0*p + model.fluid.rsSat(p_datum, 'cellInx', cells(1));
+            rsSat = model.fluid.rsSat;
+            if iscell(rsSat)
+                rs =  @(p, z) 0*p + model.fluid.rsSat{pvtnum}(p_datum);
+            else
+                rs =  @(p, z) 0*p + model.fluid.rsSat(p_datum);
+            end
         else
             assert(isfield(deck.SOLUTION, 'RSVD'));
             rsvd = deck.SOLUTION.RSVD{regionIx};
@@ -73,7 +78,12 @@ function region = getRegion(model, deck, eql, cells, regionIx)
         if rv_method <= 0
             % Oil pressure at gas-oil contact + capillary pressure there
             pg_goc = p_datum + eql(6);
-            rv = @(p, z) 0*p + model.fluid.rvSat(pg_goc, 'cellInx', cells(1));
+            rvSat = model.fluid.rvSat;
+            if iscell(rvSat)
+                rv =  @(p, z) 0*p + model.fluid.rvSat{pvtnum}(pg_goc);
+            else
+                rv =  @(p, z) 0*p + model.fluid.rvSat(pg_goc);
+            end
         else
             assert(isfield(deck.SOLUTION, 'RVVD'));
             rvvd = deck.SOLUTION.RVVD{regionIx};
