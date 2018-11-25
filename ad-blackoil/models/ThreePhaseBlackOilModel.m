@@ -292,26 +292,32 @@ methods
         else
             % Very simple scaling factors, uniform over grid
             p = mean(state.pressure);
+            useReg = iscell(fluid.bO);
+            if useReg
+                call = @(x, varargin) x{1}(varargin{:});
+            else
+                call = @(x, varargin) x(varargin{:});
+            end
             for iter = 1:nNames
                 name = lower(names{iter});
                 switch name
                     case 'oil'
                         if model.disgas
-                           rs = fluid.rsSat(p);
-                           bO = fluid.bO(p, rs, true);
+                           rs = call(fluid.rsSat, p);
+                           bO = call(fluid.bO,p, rs, true);
                         else
-                           bO = fluid.bO(p);
+                           bO = call(fluid.bO,p);
                         end
                         s = 1./bO;
                     case 'water'
-                        bW = fluid.bW(p);
+                        bW = call(fluid.bW,p);
                         s = 1./bW;
                     case 'gas'
                         if model.vapoil
-                            rv = fluid.rvSat(p);
-                            bG = fluid.bG(p, rv, true);
+                            rv = call(fluid.rvSat, p);
+                            bG = call(fluid.bG, p, rv, true);
                         elseif model.gas
-                            bG = fluid.bG(p);
+                            bG = call(fluid.bG, p);
                         end
                         s = 1./bG;
                     otherwise

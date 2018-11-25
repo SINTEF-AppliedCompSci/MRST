@@ -26,14 +26,14 @@ function [state, primaryVars] = setupDynamicStateBlackOil(model, state, useAD)
         end
     end
     
-%     if useAD
-%         stol = 1e-6;
-%         bad_water = double(sW) < stol;% & st{1};
-%         if any(bad_water)
-% %             sW(bad_water) = stol;
-%             sW.val(bad_water) = stol;
-%         end
-%     end
+    if useAD
+        stol = 1e-6;
+        bad_water = double(sW) < stol;% & st{1};
+        if any(bad_water)
+%             sW(bad_water) = stol;
+            sW.val(bad_water) = stol;
+        end
+    end
     
     if isempty(sW)
         sW = 0;

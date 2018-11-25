@@ -84,7 +84,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         st1 = status{1};
         rsSat0 = fluid.rsSat{1}(p0);
         rsSat  = fluid.rsSat{1}(p);
-        gasPresent = or(and( sg > 0, ~st1), watOnly); % Obvious case
+        gasPresent = or(and( sg > 0 | rs == 0, ~st1), watOnly); % Obvious case
         % Keep oil saturated if previous sg is sufficiently large:
         ix1 = and( sg < 0, sg0 > etol);
         gasPresent = or(gasPresent, ix1);
@@ -107,7 +107,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         st2 = status{2};
         rvSat0   = fluid.rvSat{1}(p0);
         rvSat    = fluid.rvSat{1}(p);
-        oilPresent = or(and( so > 0, ~st2), watOnly); % Obvious case
+        oilPresent = or(and( so > 0 | rv == 0, ~st2), watOnly); % Obvious case
         % Keep gas saturated if previous so is sufficiently large
         ix1 = and( so < 0, so0 > etol);
         oilPresent = or(oilPresent, ix1);
