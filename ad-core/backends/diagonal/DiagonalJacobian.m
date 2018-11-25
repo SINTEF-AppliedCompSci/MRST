@@ -182,7 +182,7 @@ classdef DiagonalJacobian
                                 u = u.toZero(0);
                             end
                             
-                            if isempty(u.subset)
+                            if isempty(u.subset) && ~ischar(s(1).subs{1})
                                 u.subset = reshape(s(1).subs{1}, [], 1);
                             else
                                 subs = u.getSubset();
