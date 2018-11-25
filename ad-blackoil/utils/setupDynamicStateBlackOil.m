@@ -25,22 +25,46 @@ function [state, primaryVars] = setupDynamicStateBlackOil(model, state, useAD)
             [p, x, wellVars{:}] = model.AutoDiffBackend.initVariablesAD(p, x, wellVars{:});
         end
     end
-    if model.water
-        s_hydrocarbon = 1 - sW;
-    else
-        s_hydrocarbon = 1;
+    
+%     if useAD
+%         stol = 1e-6;
+%         bad_water = double(sW) < stol;% & st{1};
+%         if any(bad_water)
+% %             sW(bad_water) = stol;
+%             sW.val(bad_water) = stol;
+%         end
+%     end
+    
+    if isempty(sW)
+        sW = 0;
     end
-    [sG, rs, rv] = calculateHydrocarbonsFromStatusBO(model, st, s_hydrocarbon, x, rs, rv, p);
+    
+    [sG, rs, rv] = calculateHydrocarbonsFromStatusBO(model, st, 1 - sW, x, rs, rv, p);
+
+    if model.water
+        sO = 1 - sW - sG;
+    else
+        sO = 1 - sG;
+    end
+    
+    if model.vapoil
+        % No rv, no so -> zero on diagonal in matrix
+        bad_oil = double(sO) == 0 & double(rv) == 0;
+        if any(bad_oil)
+            sO(bad_oil) = 1 - sW(bad_oil) - double(sG(bad_oil));
+        end
+    end
+
 
     
     % We will solve for pressure, water and gas saturation (oil saturation
     % follows via the definition of saturations) and well rates + bhp.
     if model.water
         primaryVars = {'pressure', 'sW', gvar, wellVarNames{:}};
-        sat = {sW, 1-sW-sG, sG};
+        sat = {sW, sO, sG};
     else
         primaryVars = {'pressure', gvar, wellVarNames{:}};
-        sat = {1-sG, sG};
+        sat = {sO, sG};
     end
     
     wellSol = DynamicState(wellSol, [wellVarNames, 'wellmap'], [wellVars, wellMap]);
