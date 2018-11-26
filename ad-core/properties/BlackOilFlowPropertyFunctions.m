@@ -15,11 +15,10 @@ classdef BlackOilFlowPropertyFunctions < FlowPropertyFunctions
         
         function state = evaluateProperty(props, model, state, name)
             switch name
-                case 'rvMax'
+                case 'RvMax'
                     state = props.evaluateDependencies(model, state, {'CapillaryPressure'});
             end
             state = evaluateProperty@FlowPropertyFunctions(props, model, state, name);
         end
-
     end
 end
