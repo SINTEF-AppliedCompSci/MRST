@@ -4,6 +4,7 @@ classdef FlowPropertyFunctions < PropertyFunctions
         Viscosity
         RelativePermeability
         CapillaryPressure
+        ShrinkageFactors
     end
     
     methods
@@ -24,6 +25,7 @@ classdef FlowPropertyFunctions < PropertyFunctions
             props.RelativePermeability = StoneRelativePermeability1(model.AutoDiffBackend, sat);
             
             % PVT properties
+            props.ShrinkageFactors = BlackOilShrinkageFactors(model.AutoDiffBackend, pvt);
             props.Density = BlackOilDensity(model.AutoDiffBackend, pvt);
             props.Viscosity = BlackOilViscosity(model.AutoDiffBackend, pvt);
             
@@ -41,6 +43,7 @@ classdef FlowPropertyFunctions < PropertyFunctions
             props.structFields = {'CapillaryPressure', ...
                                   'Density', ...
                                   'RelativePermeability', ...
+                                  'ShrinkageFactors', ...
                                   'Viscosity', ...
                                   'Mobility', ...
                                   'Components'};
@@ -50,8 +53,10 @@ classdef FlowPropertyFunctions < PropertyFunctions
             switch name
                 case 'Mobility'
                     props.evaluateDependencies(model, state, {'Viscosity', 'RelativePermeability'});
-                case {'Density', 'Viscosity'}
+                case {'Viscosity', 'ShrinkageFactors'}
                     props.evaluateDependencies(model, state, {'CapillaryPressure'});
+                case {'Density'}
+                    props.evaluateDependencies(model, state, {'ShrinkageFactors'});
             end
             evaluateProperty@PropertyFunctions(props, model, state, name);
         end

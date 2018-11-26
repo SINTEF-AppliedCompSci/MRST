@@ -51,28 +51,12 @@ props = model.FlowPropertyFunctions;
 rho = props.getProperty(model, state, 'Density');
 mu = props.getProperty(model, state, 'Viscosity');
 kr = props.getProperty(model, state, 'RelativePermeability');
+b = props.getProperty(model, state, 'ShrinkageFactors');
+b0 = props.getProperty(model, state0, 'ShrinkageFactors');
 
+[bW, bO, bG] = deal(b{:});
+[bW0, bO0, bG0] = deal(b0{:});
 
-rho0 = props.getProperty(model, state0, 'Density');
-
-
-% EQUATIONS -----------------------------------------------------------
-bW = rho{1}./f.rhoWS;
-bO = rho{2}./f.rhoOS;
-bG = rho{3}./f.rhoGS;
-
-b = {bW, bO, bG};
-
-
-bW0 = rho0{1}./f.rhoWS;
-bO0 = rho0{2}./f.rhoOS;
-bG0 = rho0{3}./f.rhoGS;
-
-
-
-% mobW = kr{1}./mu{1};
-% mobO = kr{2}./mu{2};
-% mobG = kr{3}./mu{3};
 
 p_phase = getPhasePressures(p, state.FlowProps.CapillaryPressure);
 

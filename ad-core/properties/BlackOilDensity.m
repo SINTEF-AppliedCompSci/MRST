@@ -4,46 +4,30 @@ classdef BlackOilDensity < GridProperty
     
     methods
         function rho = evaluateOnGrid(prop, model, state)
-            [act, phInd] = model.getActivePhases();
+            rhoS = model.getSurfaceDensities();
             fp = state.FlowProps;
-            nph = sum(act);
+            nph = numel(rhoS);
             rho = cell(1, nph);
             
             f = model.fluid;
-            p = model.getProp(state, 'pressure');
-            p_phase = getPhasePressures(p, fp.CapillaryPressure);
+            b = fp.ShrinkageFactors;
             
-            if model.water
-                wix = phInd == 1;
-                pw = p_phase{wix};
-                bW = prop.evaluateFunctionOnGrid(f.bW, pw);
-                rho{wix} = f.rhoWS.*bW;
+            for i = 1:numel(b)
+                rho{i} = rhoS(i).*b{i};
             end
-            
-            if model.oil
-                oix = phInd == 2;
-                po = p_phase{oix};
-                if model.disgas
+            if (model.disgas || model.vapoil) && model.gas && model.oil
+                names = model.getPhaseNames();
+                oix = names == 'O';
+                gix = names == 'G';
+                
+                if model.oil && model.disgas
                     rs = model.getProp(state, 'rs');
-                    flag = false(size(double(p)));
-                    bO = prop.evaluateFunctionOnGrid(f.bO, po, rs, flag);
-                else
-                    bO = prop.evaluateFunctionOnGrid(f.bO, po);
+                    rho{oix} = rho{oix} + rs.*b{oix}.*rhoS(gix);
                 end
-                rho{oix} = f.rhoOS.*bO;
-            end
-            
-            if model.gas
-                gix = phInd == 3;
-                pg = p_phase{gix};
-                if model.vapoil
+                if model.oil && model.disgas
                     rv = model.getProp(state, 'rv');
-                    flag = false(size(double(p)));
-                    bG = prop.evaluateFunctionOnGrid(f.bG, pg, rv, flag);
-                else
-                    bG = prop.evaluateFunctionOnGrid(f.bG, pg);
+                    rho{gix} = rho{gix} + rv.*b{gix}.*rhoS(oix);
                 end
-                rho{gix} = f.rhoGS.*bG;
             end
         end
     end
