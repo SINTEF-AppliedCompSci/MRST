@@ -598,12 +598,12 @@ classdef SimpleWell < PhysicalModel
             end
             if isa(model, 'ThreePhaseBlackOilModel')
                 % Vapoil/disgas
-                if iscell(model.fluid.rvSat)
-                    rvSatFn = model.fluid.rvSat{1};
-                else
-                    rvSatFn = model.fluid.rvSat;
-                end
                 if vo
+                    if iscell(model.fluid.rvSat)
+                        rvSatFn = model.fluid.rvSat{1};
+                    else
+                        rvSatFn = model.fluid.rvSat;
+                    end
                     rvMax = rvSatFn(double(p));
                 else
                     rvMax = 0;

@@ -547,11 +547,34 @@ methods
         ds(:, ~solvedFor) = tmp;
         % We update all saturations simultanously, since this does not bias the
         % increment towards one phase in particular.
+        kr = model.FlowPropertyFunctions.RelativePermeability;
+        if kr.immobileChop
+            s0 = state.s;
+        end
         state = model.updateStateFromIncrement(state, ds, problem, 's', inf, model.dsMaxAbs);
+        chopped = false;
+        if kr.immobileChop
+            s_min = kr.getCriticalPhaseSaturations(model, state);
+            s = state.s;
+            for ph = 1:size(s, 2)
+                sm = s_min(:, ph);
+                
+                toMobile = s0(:, ph) < sm & s(:, ph) > sm;
+                toImmobile = s0(:, ph) > sm & s(:, ph) < sm;
+                tol = 1e-3;
+                s(toMobile, ph) = tol;
+                if size(sm, 1) > 1
+                    s(toImmobile, ph) = sm(toIoImmobile) - tol;
+                else
+                    s(toImmobile, ph) = sm - tol;
+                end
+            end
+            chopped = toImmobile | toMobile;
+        end
         if n_fill == 1
             % Ensure that values are within zero->one interval, and
             % re-normalize if any values were capped
-            bad = any((state.s > 1) | (state.s < 0), 2);
+            bad = any((state.s > 1) | (state.s < 0) | chopped, 2);
             if any(bad)
                 state.s(bad, :) = min(state.s(bad, :), 1);
                 state.s(bad, :) = max(state.s(bad, :), 0);

@@ -26,7 +26,7 @@ function [state, primaryVars] = setupDynamicStateBlackOil(model, state, useAD)
         end
     end
     
-    if useAD
+    if useAD && false
         stol = 1e-6;
         bad_water = double(sW) < stol;% & st{1};
         if any(bad_water)
