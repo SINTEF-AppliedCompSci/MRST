@@ -11,6 +11,7 @@ classdef FlowPropertyFunctions < PropertyFunctions
         function props = FlowPropertyFunctions(model)
             r = model.rock;
             f = model.fluid;
+            props@PropertyFunctions();
             [sat, pvt] = deal(ones(model.G.cells.num, 1));
             if isfield(r, 'regions')
                 if isfield(r.regions, 'saturation')
@@ -40,25 +41,18 @@ classdef FlowPropertyFunctions < PropertyFunctions
             
             % Define storage
             props.structName = 'FlowProps';
-            props.structFields = {'CapillaryPressure', ...
-                                  'Density', ...
-                                  'RelativePermeability', ...
-                                  'ShrinkageFactors', ...
-                                  'Viscosity', ...
-                                  'Mobility', ...
-                                  'Components'};
         end
 
-        function evaluateProperty(props, model, state, name)
+        function state = evaluateProperty(props, model, state, name)
             switch name
                 case 'Mobility'
-                    props.evaluateDependencies(model, state, {'Viscosity', 'RelativePermeability'});
+                    state = props.evaluateDependencies(model, state, {'Viscosity', 'RelativePermeability'});
                 case {'Viscosity', 'ShrinkageFactors'}
-                    props.evaluateDependencies(model, state, {'CapillaryPressure'});
+                    state = props.evaluateDependencies(model, state, {'CapillaryPressure'});
                 case {'Density'}
-                    props.evaluateDependencies(model, state, {'ShrinkageFactors'});
+                    state = props.evaluateDependencies(model, state, {'ShrinkageFactors'});
             end
-            evaluateProperty@PropertyFunctions(props, model, state, name);
+            state = evaluateProperty@PropertyFunctions(props, model, state, name);
         end
     end
 end
