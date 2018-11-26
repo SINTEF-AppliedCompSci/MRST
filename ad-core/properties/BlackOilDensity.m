@@ -8,8 +8,6 @@ classdef BlackOilDensity < GridProperty
             fp = state.FlowProps;
             nph = numel(rhoS);
             rho = cell(1, nph);
-            
-            f = model.fluid;
             b = fp.ShrinkageFactors;
             
             for i = 1:numel(b)

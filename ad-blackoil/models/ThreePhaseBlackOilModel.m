@@ -52,7 +52,19 @@ methods
             end
         end
     end
-    
+
+    % --------------------------------------------------------------------%
+    function model = validateModel(model, varargin)
+        % Validate model.
+        %
+        % SEE ALSO:
+        %   :meth:`ad_core.models.PhysicalModel.validateModel`
+
+        if isempty(model.FlowPropertyFunctions)
+            model.FlowPropertyFunctions = BlackOilFlowPropertyFunctions(model);
+        end
+        model = validateModel@ReservoirModel(model, varargin{:});
+    end
     % --------------------------------------------------------------------%
     function [fn, index] = getVariableField(model, name)
         switch(lower(name))
@@ -79,10 +91,8 @@ methods
         % Define primary variables
         [dyn_state, primaryVars] = model.getForwardDynamicState(state);
         % State at previous time-step
-%         dyn_state0 = model.getDynamicState(state0);
-        dyn_state0 = state0;
         
-        [eqs, names, types] = equationsBlackOilDynamicState(dyn_state0, dyn_state, model, dt, drivingForces);
+        [eqs, names, types] = equationsBlackOilDynamicState(state0, dyn_state, model, dt, drivingForces);
         
         dissolved = model.getDissolutionMatrix(dyn_state.rs, dyn_state.rv);
         % Add in and setup well equations

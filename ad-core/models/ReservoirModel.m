@@ -162,10 +162,10 @@ methods
             W = varargin{1}.W;
             model.FacilityModel = model.FacilityModel.setupWells(W);
         end
-        model = validateModel@PhysicalModel(model, varargin{:});
         if isempty(model.FlowPropertyFunctions)
             model.FlowPropertyFunctions = FlowPropertyFunctions(model); %#ok
         end
+        model = validateModel@PhysicalModel(model, varargin{:});
     end
 
     % --------------------------------------------------------------------%

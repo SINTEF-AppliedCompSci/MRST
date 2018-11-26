@@ -63,11 +63,11 @@ nph = 3;
 v = cell(nph, 1);
 upc = false(numel(double(T)), nph);
 for i = 1:nph
-    if i == 2 && model.disgas
-        rhof  = s.faceAvg(rho{i} + rs.*f.rhoGS./f.rhoOS);
-    else
+%     if i == 2 && model.disgas
+%         rhof  = s.faceAvg(rho{i} + rs.*f.rhoGS./f.rhoOS);
+%     else
         rhof  = s.faceAvg(rho{i});
-    end
+%     end
     pot = s.Grad(p_phase{i}) - rhof.*gdz;
     
     upc(:, i) = double(pot)<=0;
