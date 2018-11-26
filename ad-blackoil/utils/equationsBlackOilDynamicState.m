@@ -49,8 +49,7 @@ gdz = model.getGravityGradient();
 
 props = model.FlowPropertyFunctions;
 rho = props.getProperty(model, state, 'Density');
-mu = props.getProperty(model, state, 'Viscosity');
-kr = props.getProperty(model, state, 'RelativePermeability');
+mob = props.getProperty(model, state, 'Mobility');
 b = props.getProperty(model, state, 'ShrinkageFactors');
 b0 = props.getProperty(model, state0, 'ShrinkageFactors');
 
@@ -74,7 +73,7 @@ for i = 1:nph
     upc(:, i) = double(pot)<=0;
     
     dflux = -T.*pot;
-    v{i} = dflux.*s.faceUpstr(upc(:, i), b{i}.*(kr{i}./mu{i}));
+    v{i} = dflux.*s.faceUpstr(upc(:, i), b{i}.*(mob{i}));
 end
 
 % Upstream weight b factors and multiply by interface fluxes to obtain the

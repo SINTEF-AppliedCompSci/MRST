@@ -92,10 +92,8 @@ methods
         wellMap = ws_dyn.wellmap;
         
         p = dyn_state.pressure;
-        kr = dyn_state.FlowProps.RelativePermeability;
-        mu = dyn_state.FlowProps.Viscosity;
+        mob = dyn_state.FlowProps.Mobility;
         
-        mob = cellfun(@(x, y) x./y, kr, mu, 'unif', false);
         rho = dyn_state.FlowProps.Density;
         [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, state0.wellSol, state.wellSol, wellVars, wellMap, p, mob, rho, dissolved, {}, dt, opt);
         

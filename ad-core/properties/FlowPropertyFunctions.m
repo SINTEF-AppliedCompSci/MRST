@@ -5,6 +5,7 @@ classdef FlowPropertyFunctions < PropertyFunctions
         RelativePermeability
         CapillaryPressure
         ShrinkageFactors
+        Mobility
     end
     
     methods
@@ -23,7 +24,8 @@ classdef FlowPropertyFunctions < PropertyFunctions
             % Saturation properties
             props.CapillaryPressure = BlackOilCapillaryPressure(model.AutoDiffBackend, sat);
             props.RelativePermeability = StoneRelativePermeability1(model.AutoDiffBackend, sat);
-            
+            props.Mobility = Mobility(model.AutoDiffBackend, sat);
+
             % PVT properties
             props.ShrinkageFactors = BlackOilShrinkageFactors(model.AutoDiffBackend, pvt);
             props.Density = BlackOilDensity(model.AutoDiffBackend, pvt);
