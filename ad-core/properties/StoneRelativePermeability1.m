@@ -135,8 +135,8 @@ classdef StoneRelativePermeability1 < GridProperty
                 end
             end
             chopped = toImmobile | toMobile;
+            state.s = s;
         end
-        state.s = s;
     end
 end
 end
