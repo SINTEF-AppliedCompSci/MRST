@@ -10,7 +10,6 @@ classdef FlowPropertyFunctions < PropertyFunctions
     methods
         function props = FlowPropertyFunctions(model)
             r = model.rock;
-            f = model.fluid;
             props@PropertyFunctions();
             [sat, pvt] = deal(ones(model.G.cells.num, 1));
             if isfield(r, 'regions')

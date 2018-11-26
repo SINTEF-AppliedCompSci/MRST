@@ -21,11 +21,7 @@ classdef DynamicState
             dyn.state = state;
             dyn.implicitEvaluation = numel(dyn.dynamicVariables) > 0;
         end
-        
-        function addDynamicVariables(variables, names)
-            
-        end
-        
+
         function state = getState(dyn_state)
             state = dyn_state.state;
         end

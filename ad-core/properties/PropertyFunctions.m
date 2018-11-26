@@ -41,16 +41,25 @@ classdef PropertyFunctions
             % Get a property with lazy evaluation
             state = props.evaluateDependencies(model, state, {name});
             v = state.(props.structName).(name);
+
+            if isnumeric(v) && size(v, 2) > 1
+                n = size(v, 2);
+                out = cell(1, n);
+                for i = 1:n
+                    out{i} = v(:, i);
+                end
+                v = out;
+            end
         end
         
         function ok = isPropertyEvaluated(props, model, state, name)
             % Check if property is present in cache
-            if isstruct(state) && ~isfield(state, name)
+            if isstruct(state) && ~isfield(state, props.structName)
                 % Cache object is missing, we have no properties
                 ok = false;
             else
                 % Cache is present, but this specific property is not
-                % present
+                % necessarily present
                 ok = ~isempty(state.(props.structName).(name));
             end
         end

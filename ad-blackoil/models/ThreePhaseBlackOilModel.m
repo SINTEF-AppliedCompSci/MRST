@@ -79,8 +79,8 @@ methods
         % Define primary variables
         [dyn_state, primaryVars] = model.getForwardDynamicState(state);
         % State at previous time-step
-        dyn_state0 = model.getDynamicState(state0);
-
+%         dyn_state0 = model.getDynamicState(state0);
+        dyn_state0 = state0;
         
         [eqs, names, types] = equationsBlackOilDynamicState(dyn_state0, dyn_state, model, dt, drivingForces);
         
@@ -99,6 +99,7 @@ methods
         rho = dyn_state.FlowProps.Density;
         [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, state0.wellSol, state.wellSol, wellVars, wellMap, p, mob, rho, dissolved, {}, dt, opt);
         
+        state.FlowProps = dyn_state.FlowProps.reduce();
         problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
     end
 
@@ -167,8 +168,7 @@ methods
             removed(~removed) = removed(~removed) | ix;
 
             % Black oil with dissolution
-            so = model.getProp(state, 'so');
-            sg = model.getProp(state, 'sg');
+            [so, sg] = model.getProps(state, 'so', 'sg');
             if model.water
                 sw = model.getProp(state, 'sw');
                 dsw = model.getIncrement(dx, problem, 'sw');
