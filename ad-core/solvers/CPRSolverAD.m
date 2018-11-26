@@ -167,7 +167,7 @@ classdef CPRSolverAD < LinearSolverAD
                 % close as possible to M-matrices (because of switching,
                 % which does not actually alter the solution)
                 ok = isElliptic(:, i);
-                if i == pressureIndex || scale{i} == 0
+                if i == pressureIndex || all(scale{i} == 0)
                     continue
                 end
                 problem.equations{pressureIndex} = ...

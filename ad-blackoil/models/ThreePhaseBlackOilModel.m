@@ -257,46 +257,40 @@ methods
         fluid = model.fluid;
         if (isprop(solver, 'trueIMPES') || isfield(solver, 'trueIMPES')) && solver.trueIMPES
             % Rigorous pressure equation (requires lots of evaluations)
-            p = state.pressure;
             rs = state.rs;
             rv = state.rv;
             cfac = 1./(1 - model.disgas*model.vapoil*rs.*rv);
+            fp = model.FlowPropertyFunctions;
+            b = fp.getProperty(model, state, 'ShrinkageFactors');
+            ph = model.getPhaseNames();
+            
+            iso = ph == 'O';
+            isg = ph == 'G';
+            isw = ph == 'W';
+            [bO, bW, bG] = deal(1);
+            if any(isw)
+                bW = b{isw};
+            end
+            if any(iso)
+                bO = b{iso};
+            end
+            if any(isg)
+                bG = b{isg};
+            end
+            
             for iter = 1:nNames
                 name = lower(names{iter});
                 switch name
                     case 'oil'
-                        if model.disgas
-                           bO = fluid.bO(p, rs, rs >= fluid.rsSat(p));
-                        else
-                           bO = fluid.bO(p);
-                        end
-                        bG = 1;
-                        if model.vapoil
-                            bG = fluid.bG(p, rv, rv >= fluid.rvSat(p));
-                        elseif model.gas
-                            bG = fluid.bG(p);
-                        end
                         s = cfac.*(1./bO - model.disgas*rs./bG);
                     case 'water'
-                        bW = fluid.bW(p);
                         s = 1./bW;
                     case 'gas'
-                        if model.disgas
-                           bO = fluid.bO(p, rs, rs >= fluid.rsSat(p));
-                        else
-                           bO = fluid.bO(p);
-                        end
-                        if model.vapoil
-                            bG = fluid.bG(p, rv, rv >= fluid.rvSat(p));
-                        elseif model.gas
-                            bG = fluid.bG(p);
-                        end
                         s = cfac.*(1./bG - model.vapoil*rv./bO);
                     otherwise
                         continue
                 end
                 sub = strcmpi(problem.equationNames, name);
-
                 scaling{iter} = s;
                 handled(sub) = true;
             end
@@ -335,7 +329,6 @@ methods
                         continue
                 end
                 sub = strcmpi(problem.equationNames, name);
-
                 scaling{iter} = s;
                 handled(sub) = true;
             end

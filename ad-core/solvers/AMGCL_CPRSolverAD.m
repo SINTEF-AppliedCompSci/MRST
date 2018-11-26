@@ -76,7 +76,7 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
                        if ~strcmpi(problem.types{i}, 'cell')
                            continue
                        end
-                       if (numel(scale{i}) > 1 || scale{i} ~= 0)
+                       if (numel(scale{i}) > 1 || any(scale{i} ~= 0))
                            problem.equations{i} = problem.equations{i}.*scale{i};
                        end
                    end
