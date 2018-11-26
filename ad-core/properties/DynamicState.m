@@ -30,6 +30,20 @@ classdef DynamicState
             state = dyn_state.state;
         end
         
+        function u = subsasgn(u, s, v)
+            % Subscripted reference. Called for `u(s) = v`
+            if strcmp(s.type, '.') && ischar(s.subs)
+                act = strcmp(s.subs, u.dynamicNames);
+                if any(act)
+                    u.dynamicVariables{act} = v;
+                else
+                    u.state.(s.subs) = v;
+                end
+            else
+                u = builtin('subsasgn', u, s,v);
+            end
+        end
+
         function h = subsref(u, s)
             % h = u(s)
             fld = s(1).subs;
