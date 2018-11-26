@@ -514,6 +514,7 @@ methods
             % No saturations passed, nothing to do here.
             return
         end
+        state_init = state;
         % Solution variables should be saturations directly, find the missing
         % link
         saturations = lower(model.getSaturationVarNames);
@@ -550,29 +551,8 @@ methods
         % We update all saturations simultanously, since this does not bias the
         % increment towards one phase in particular.
         kr = model.FlowPropertyFunctions.RelativePermeability;
-        if kr.immobileChop
-            s0 = state.s;
-        end
         state = model.updateStateFromIncrement(state, ds, problem, 's', inf, model.dsMaxAbs);
-        chopped = false;
-        if kr.immobileChop
-            s_min = kr.getCriticalPhaseSaturations(model, state);
-            s = state.s;
-            for ph = 1:size(s, 2)
-                sm = s_min(:, ph);
-                
-                toMobile = s0(:, ph) < sm & s(:, ph) > sm;
-                toImmobile = s0(:, ph) > sm & s(:, ph) < sm;
-                tol = 1e-3;
-                s(toMobile, ph) = tol;
-                if size(sm, 1) > 1
-                    s(toImmobile, ph) = sm(toIoImmobile) - tol;
-                else
-                    s(toImmobile, ph) = sm - tol;
-                end
-            end
-            chopped = toImmobile | toMobile;
-        end
+        [state, chopped] = kr.applyImmobileChop(model, state, state_init);
         if n_fill == 1
             % Ensure that values are within zero->one interval, and
             % re-normalize if any values were capped

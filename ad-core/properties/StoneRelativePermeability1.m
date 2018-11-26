@@ -114,6 +114,30 @@ classdef StoneRelativePermeability1 < GridProperty
             end
         end
     end
+    
+    function [state, chopped] = applyImmobileChop(prop, model, state, state0)
+        chopped = false;
+        if prop.immobileChop
+            s_min = prop.getCriticalPhaseSaturations(model, state);
+            s = state.s;
+            s0 = state0.s;
+            for ph = 1:size(s, 2)
+                sm = s_min(:, ph);
+
+                toMobile = s0(:, ph) < sm & s(:, ph) > sm;
+                toImmobile = s0(:, ph) > sm & s(:, ph) < sm;
+                tol = 1e-3;
+                s(toMobile, ph) = tol;
+                if size(sm, 1) > 1
+                    s(toImmobile, ph) = sm(toIoImmobile) - tol;
+                else
+                    s(toImmobile, ph) = sm - tol;
+                end
+            end
+            chopped = toImmobile | toMobile;
+        end
+        state.s = s;
+    end
 end
 end
 

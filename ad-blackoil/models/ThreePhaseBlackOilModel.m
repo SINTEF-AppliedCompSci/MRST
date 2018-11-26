@@ -218,6 +218,10 @@ methods
             end
 
             state = model.updateStateFromIncrement(state, ds, problem, 's', inf, model.dsMaxAbs);
+            
+            kr = model.FlowPropertyFunctions.RelativePermeability;
+            state = kr.applyImmobileChop(model, state, state0);
+
             % We should *NOT* be solving for oil saturation for this to make sense
             assert(~any(strcmpi(vars, 'so')));
             state = computeFlashBlackOil(state, state0, model, st);
@@ -227,7 +231,6 @@ methods
             %  meant for autoupdate.
             [vars, ix] = model.stripVars(vars, {'sw', 'so', 'sg', 'rs', 'rv', 'x'});
             removed(~removed) = removed(~removed) | ix;
-
         end
 
         % We may have solved for a bunch of variables already if we had
