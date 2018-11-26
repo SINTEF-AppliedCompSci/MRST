@@ -25,22 +25,21 @@ function [state, primaryVars] = setupDynamicStateBlackOil(model, state, useAD)
             [p, x, wellVars{:}] = model.AutoDiffBackend.initVariablesAD(p, x, wellVars{:});
         end
     end
-    
-    if useAD && false
-        stol = 1e-6;
-        bad_water = double(sW) < stol;% & st{1};
-        if any(bad_water)
-%             sW(bad_water) = stol;
-            sW.val(bad_water) = stol;
-        end
-    end
+%     
+%     if useAD && false
+%         stol = 1e-6;
+%         bad_water = double(sW) < stol;% & st{1};
+%         if any(bad_water)
+% %             sW(bad_water) = stol;
+%             sW.val(bad_water) = stol;
+%         end
+%     end
     
     if isempty(sW)
         sW = 0;
     end
+    sG = st{2}.*(1-sW) + st{3}.*x;
     
-    [sG, rs, rv] = calculateHydrocarbonsFromStatusBO(model, st, 1 - sW, x, rs, rv, p);
-
     if model.water
         sO = 1 - sW - sG;
     else
@@ -55,8 +54,6 @@ function [state, primaryVars] = setupDynamicStateBlackOil(model, state, useAD)
         end
     end
 
-
-    
     % We will solve for pressure, water and gas saturation (oil saturation
     % follows via the definition of saturations) and well rates + bhp.
     if model.water
@@ -73,9 +70,15 @@ function [state, primaryVars] = setupDynamicStateBlackOil(model, state, useAD)
     
     state = DynamicState(state, {'pressure', 's', 'rv', 'rs', 'wellSol', fpname},...
                                 {p, sat, rv, rs, wellSol, fp});
-
-%     props = {'PhaseDensities', 'PhaseViscosities', ...
-%              'PhaseMobility', 'PhaseComposition', 'PhasePressures'};
+    if model.disgas
+        rsSat = model.FlowPropertyFunctions.getProperty(model, state, 'RsMax');
+        rs = (~st{1}).*rsSat + st{1}.*x;
+        state.rs = rs;
+    end
     
-%     state.evaluatedProperties.Flow = FlowProperties();
+    if model.vapoil
+        rvSat = model.FlowPropertyFunctions.getProperty(model, state, 'RvMax');
+        rv = (~st{2}).*rvSat + st{2}.*x;
+        state.rv = rv;
+    end
 end
