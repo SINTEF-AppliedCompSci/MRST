@@ -147,6 +147,9 @@ function kr= krW(sw,opt,varargin)
       sg = 1 - sw; 
 
       ineb = (sg) > loc_opt.sGmax; 
+      
+      % compute fraction of aquifer thickness where CO2 saturation is
+      % residual ( equivalent to (h_max - h)/H in the height formulation)
       sg_res = (loc_opt.sGmax - sg) / (1 - opt.res_water - opt.res_gas);  
 
       sw_free = 1 - (loc_opt.sGmax / (1 - opt.res_water)); 

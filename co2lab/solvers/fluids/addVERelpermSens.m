@@ -31,7 +31,24 @@ function fluid = addVERelpermSens(fluid, Gt, varargin)
 %   invPc3D   - Fine-scale water saturation as function of cap. pressure
 %   kr3D      - Dummy function, returning a rel.perm. value that is simply
 %               equal to the input saturation.
+%{
+Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
 
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
 
     opt=struct('res_water',     0,...
                'res_gas',       0,...
@@ -48,7 +65,9 @@ function fluid = addVERelpermSens(fluid, Gt, varargin)
     fluid.pcWG=@(sg, p, varargin) pcWG(sg, p ,fluid, Gt, opt, varargin{:});
 
     fluid.invPc3D   = @(p) invPc3D(p,opt);
-    fluid.kr3D      = @(s) s;
+    fluid.kr3D      = @(s) s; % @@ should we rather return nothing here,
+                              % since the underlying 3D relperm does not
+                              % necessarily have to be linear?
     fluid.res_gas   = opt.res_gas;
     fluid.res_water = opt.res_water;
 
@@ -57,8 +76,8 @@ end
 % ============================================================================
 
 function s = invPc3D(p, opt)
-% Fine-scale oil saturation, considered equal to residual saturation
-% ('res_water') in the gas zone and 1 in the oil zone.  @@ It doesn't take
+% Fine-scale water saturation, considered equal to residual saturation
+% ('res_water') in the gas zone and 1 in the water zone.  @@ It doesn't take
 % hysteresis into account).
    s = (sign(p + eps) + 1) / 2 * (1 - opt.res_water); 
    s = 1-s;
@@ -126,10 +145,12 @@ function kr= krW(sw,opt,varargin)
       sg = 1 - sw; 
 
       ineb = (sg) > loc_opt.sGmax; 
-      sg_res = (loc_opt.sGmax - sg); 
+      % compute fraction of aquifer thickness where CO2 saturation is
+      % residual ( equivalent to (h_max - h)/H in the height formulation)
+      sg_res = (loc_opt.sGmax - sg) / (1 - opt.res_water - opt.res_gas);
 
-      sg_free = 1 - (loc_opt.sGmax / (1 - opt.res_water)); 
-      kr = sg_free + (1 - opt.res_gas) * sg_res; 
+      sw_free = 1 - (loc_opt.sGmax / (1 - opt.res_water)); 
+      kr = sw_free + (1 - opt.res_gas) * sg_res; 
       % this to avoid errors in ADI derivative
 
       if any(ineb)% test necessary since otherwise we risk subtracting an
@@ -146,7 +167,10 @@ function kr= krW(sw,opt,varargin)
       kr = sw; 
    end
    kr = kr .* opt.krw; 
-   assert(all(double(kr) == 0 | double(sw)>opt.res_water));
+   
+   kr(sw <= opt.res_water) = 0; % normally it is the case, but slight inaccuracies may
+                                % invalidate this assumption.
+   %assert(all(double(kr) == 0 | double(sw)>opt.res_water));
    % assert(all(double(kr(double(sw) <= opt.res_water)) == 0));
 end
 
@@ -165,7 +189,7 @@ function pc = pcWG(sg, p, fluid, Gt, opt, varargin)
        pc = (fluid.rhoWS .* fluid.bW(p) - loc_opt.rhofac*fluid.rhoGS .* fluid.bG(p)) *...
             norm(gravity) .* sg .* Gt.cells.H;
     else
-       error('think twise') 
+       error('think twice') 
        % temperature-dependent formation-volume factors
        pc = (fluid.rhoWS .* fluid.bW(p, loc_opt.T) -...
              fluid.rhoGS .* fluid.bG(p, loc_opt.T)) *... 

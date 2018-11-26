@@ -26,7 +26,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    opt = merge_options(opt, varargin{:});
 
    assert(isempty(drivingForces.src)); % unsupported
-   W  = drivingForces.W;
+
    s  = model.operators;
    f  = model.fluid;
 
