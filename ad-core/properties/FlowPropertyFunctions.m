@@ -6,6 +6,7 @@ classdef FlowPropertyFunctions < PropertyFunctions
         CapillaryPressure
         ShrinkageFactors
         Mobility
+        PoreVolume
     end
     
     methods
@@ -30,7 +31,7 @@ classdef FlowPropertyFunctions < PropertyFunctions
             props.ShrinkageFactors = BlackOilShrinkageFactors(model.AutoDiffBackend, pvt);
             props.Density = BlackOilDensity(model.AutoDiffBackend, pvt);
             props.Viscosity = BlackOilViscosity(model.AutoDiffBackend, pvt);
-            
+            props.PoreVolume = MultipliedPoreVolume(model.AutoDiffBackend, pvt);
             if ~isempty(model.inputdata)
                 deck = model.inputdata;
                 

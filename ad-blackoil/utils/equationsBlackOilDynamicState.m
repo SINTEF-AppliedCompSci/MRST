@@ -32,17 +32,17 @@ else
 end
 
 s = model.operators;
-f = model.fluid;
+% f = model.fluid;
 % Multipliers for properties
-if 0
-    [pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
-else
-    [pvMult, transMult, mobMult, pvMult0] = deal(1);
-end
+% if 1
+%     [pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
+% else
+%     [pvMult, transMult, mobMult, pvMult0] = deal(1);
+% end
 
-
+T = s.T;
 % Compute transmissibility
-T = s.T.*transMult;
+% T = s.T.*transMult;
 
 % Gravity gradient per face
 gdz = model.getGravityGradient();
@@ -51,23 +51,19 @@ props = model.FlowPropertyFunctions;
 rho = props.getProperty(model, state, 'Density');
 mob = props.getProperty(model, state, 'Mobility');
 b = props.getProperty(model, state, 'ShrinkageFactors');
+pv = props.getProperty(model, state, 'PoreVolume');
+
 b0 = props.getProperty(model, state0, 'ShrinkageFactors');
+pv0 = props.getProperty(model, state0, 'PoreVolume');
 
 [bW, bO, bG] = deal(b{:});
 [bW0, bO0, bG0] = deal(b0{:});
-
-
 p_phase = getPhasePressures(p, state.FlowProps.CapillaryPressure);
-
 nph = 3;
 v = cell(nph, 1);
 upc = false(numel(double(T)), nph);
 for i = 1:nph
-%     if i == 2 && model.disgas
-%         rhof  = s.faceAvg(rho{i} + rs.*f.rhoGS./f.rhoOS);
-%     else
-        rhof  = s.faceAvg(rho{i});
-%     end
+    rhof  = s.faceAvg(rho{i});
     pot = s.Grad(p_phase{i}) - rhof.*gdz;
     
     upc(:, i) = double(pot)<=0;
@@ -75,18 +71,13 @@ for i = 1:nph
     dflux = -T.*pot;
     v{i} = dflux.*s.faceUpstr(upc(:, i), b{i}.*(mob{i}));
 end
-
-% Upstream weight b factors and multiply by interface fluxes to obtain the
-% fluxes at standard conditions.
-bWvW = v{1};
-bOvO = v{2};
-bGvG = v{3};
+[bWvW, bOvO, bGvG] = deal(v{:});
 
 % The first equation is the conservation of the water phase. This equation is
 % straightforward, as water is assumed to remain in the aqua phase in the
 % black oil model.
 if model.water
-    water = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 );
+    water = (1/dt).*( pv.*bW.*sW - pv0.*bW0.*sW0 );
     divWater = s.Div(bWvW);
 end
 
@@ -99,11 +90,11 @@ if model.vapoil
     % phase.
     rvbGvG = s.faceUpstr(upc(:, 3), rv).*bGvG;
     % Final equation
-    oil = (s.pv/dt).*( pvMult .* (bO.* sO  + rv.* bG.* sG) - ...
-                       pvMult0.*(bO0.*sO0 + rv0.*bG0.*sG0));
+    oil = (1/dt).*( pv .* (bO.* sO  + rv.* bG.* sG) - ...
+                    pv0.* (bO0.*sO0 + rv0.*bG0.*sG0));
     divOil = s.Div(bOvO + rvbGvG);
 else
-    oil = (s.pv/dt).*( pvMult.*bO.*sO - pvMult0.*bO0.*sO0 );
+    oil = (1/dt).*( pv.*bO.*sO - pv0.*bO0.*sO0 );
     divOil = s.Div(bOvO);
 end
 
@@ -113,11 +104,11 @@ if model.disgas
     % The gas transported in the oil phase.
     rsbOvO = s.faceUpstr(upc(:, 2), rs).*bOvO;
     
-    gas = (s.pv/dt).*( pvMult.* (bG.* sG  + rs.* bO.* sO) - ...
-                       pvMult0.*(bG0.*sG0 + rs0.*bO0.*sO0 ));
+    gas = (1/dt).*( pv.* (bG.* sG  + rs.* bO.* sO) - ...
+                    pv0.*(bG0.*sG0 + rs0.*bO0.*sO0 ));
     divGas = s.Div(bGvG + rsbOvO);
 else
-    gas = (s.pv/dt).*( pvMult.*bG.*sG - pvMult0.*bG0.*sG0 );
+    gas = (1/dt).*( pv.*bG.*sG - pv0.*bG0.*sG0 );
     divGas = s.Div(bGvG);
 end
 
@@ -127,17 +118,11 @@ if model.water
     divTerms = {divWater, divOil, divGas};
     names    = {'water', 'oil', 'gas'};
     types    = {'cell', 'cell', 'cell'};
-%     rho      = {rhoW, rhoO, rhoG};
-%     mob      = {mobW, mobO, mobG};
-%     pressures = {pW, p, pG};
 else
     eqs      = {oil, gas};
     divTerms = {divOil, divGas};
     names    = {'oil', 'gas'};
     types    = {'cell', 'cell'};
-%     rho      = {rhoO, rhoG};
-%     mob      = {mobO, mobG};
-%     pressures = {p, pG};
 end
 % Add in any fluxes / source terms prescribed as boundary conditions.
 % dissolved = model.getDissolutionMatrix(rs, rv);
@@ -146,8 +131,6 @@ end
 %                                                  pressures, sat, mob, rho, ...
 %                                                  dissolved, {}, ...
 %                                                  drivingForces);
-
-
 % Finally, adding divergence terms to equations
 for i = 1:numel(divTerms)
     eqs{i} = eqs{i} + divTerms{i};
