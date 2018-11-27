@@ -9,8 +9,8 @@ classdef BlackOilFlowPropertyFunctions < FlowPropertyFunctions
             props@FlowPropertyFunctions(model);
             % Get PVT region from density
             pvt = props.Density.regions;
-            props.RsMax = RsMax(model, pvt);
-            props.RvMax = RvMax(model, pvt);
+            props.RsMax = RsMax(model.AutoDiffBackend, pvt);
+            props.RvMax = RvMax(model.AutoDiffBackend, pvt);
         end
         
         function state = evaluateProperty(props, model, state, name)
