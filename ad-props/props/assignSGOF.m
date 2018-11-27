@@ -17,7 +17,7 @@ function f = assignSGOF(f, sgof, reg)
            sgas = @(so, varargin) 1 - so - selectSubset(f.sWcon, varargin{:});
        end
    else
-       sgas = @(so) 1 - so;
+       sgas = @(so, varargin) 1 - so;
    end
 
    % Region interpolator
