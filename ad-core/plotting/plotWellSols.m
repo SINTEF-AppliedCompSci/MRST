@@ -110,8 +110,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         warning(['Unknown field ''', opt.field, '''.']);
         fnIndex = 1;
     end
+    all_well_names = cell(numel(wellsols), 1);
+    for ind = 1:numel(wellsols)
+        all_well_names{ind} = arrayfun(@(x) x.name, wellsols{ind}{1}, 'UniformOutput', false);
+    end
     
-    wellnames = arrayfun(@(x) x.name, wellsols{1}{1}, 'UniformOutput', false);
+    wellnames = all_well_names{1};
     
     if isempty(opt.datasetnames)
         % If datasets are not actually named, just assign them data1,
@@ -343,7 +347,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 line = linestyles{mod(i-1, numel(linestyles)) + 1};
                 m = markerstyles{mod(i-1, numel(markerstyles)) + 1};
                 
-                d = getData(wname, wellnames, fld, wellsols{i});
+                d = getData(wname, all_well_names{i}, fld, wellsols{i});
                 if hasTimesteps && get(showdt, 'Value')
                     timescaleix = get(timesel, 'Value');
                     nowTime = timechoices{timescaleix};
@@ -380,7 +384,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 
                 if numel(wellsols{i}) > 0 && isfield(wellsols{i}{1}, 'status')
                     % Mask away inactive data points
-                    status = getData(wname, wellnames, 'status', wellsols{i});
+                    status = getData(wname, all_well_names{i}, 'status', wellsols{i});
                     d(status == 0, :) = nan;
                 end
                 if nw == 1 
