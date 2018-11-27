@@ -77,6 +77,13 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
                    if (numel(scale{i}) > 1 || any(scale{i} ~= 0))
                        problem.equations{i} = problem.equations{i}.*scale{i};
                    end
+                   
+                   if isa(model, 'ThreePhaseBlackOilModel')
+                        bad = problem.state.s(:, 1) <= 1e-8;
+                        for ph = 2:size(problem.state.s, 2)
+                            problem.equations{1}(bad) = problem.equations{1}(bad) + problem.equations{ph}(bad);
+                        end
+                   end
                end
            end
            m = solver.amgcl_setup.block_size;
