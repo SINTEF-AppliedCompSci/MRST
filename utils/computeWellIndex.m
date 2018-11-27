@@ -51,14 +51,16 @@ ci = welldir == 'z';
 [d1(ci), d2(ci), ell(ci), k1(ci), k2(ci)] = ...
    deal(dx(ci), dy(ci), dz(ci), k(ci,1), k(ci,2));
 
+k21 = k2 ./ k1;   k21(~isfinite(k21)) = 0.0;
+k12 = k1 ./ k2;   k12(~isfinite(k12)) = 0.0;
+
 % Table look-up (interpolation) for mimetic or 0.14 for tpf
 wc  = wellConstant(d1, d2, opt.InnerProduct);
 
-re1 = 2 * wc .* sqrt((d1.^2).*sqrt(k2 ./ k1) + ...
-                     (d2.^2).*sqrt(k1 ./ k2));
-re2 = (k2 ./ k1).^(1/4) + (k1 ./ k2).^(1/4);
+re1 = 2 * wc .* sqrt((d1.^2).*sqrt(k21) + (d2.^2).*sqrt(k12));
+re2 = nthroot(k21, 4) + nthroot(k12, 4);
 
-re  = reshape(re1 ./ re2, [], 1);
+re  = reshape(re1 ./ re2, [], 1);   re(~isfinite(re)) = 0.0;
 ke  = sqrt(k1 .* k2);
 
 Kh = reshape(opt.Kh, [], 1); i = Kh < 0;
