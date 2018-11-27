@@ -103,7 +103,6 @@ methods
         
         p = dyn_state.pressure;
         mob = dyn_state.FlowProps.Mobility;
-        
         rho = dyn_state.FlowProps.Density;
         [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, state0.wellSol, state.wellSol, wellVars, wellMap, p, mob, rho, dissolved, {}, dt, opt);
         
@@ -203,13 +202,19 @@ methods
             dsg = st{3}.*dr - st{2}.*dsw;
 
             if model.disgas
+                rsMax = model.FlowPropertyFunctions.getProperty(model, state, 'RsMax');
+                drs_rel = rsMax.*model.drsMaxRel;
+                drs = min(model.drsMaxAbs, drs_rel);
                 state = model.updateStateFromIncrement(state, st{1}.*dr, problem, ...
-                                                       'rs', model.drsMaxRel, model.drsMaxAbs);
+                                                       'rs', inf, drs);
             end
 
             if model.vapoil
+                rvMax = model.FlowPropertyFunctions.getProperty(model, state, 'RvMax');
+                drv_rel = rvMax.*model.drsMaxRel;
+                drs = min(model.drsMaxAbs, drv_rel);
                 state = model.updateStateFromIncrement(state, st{2}.*dr, problem, ...
-                                                       'rv', model.drsMaxRel, model.drsMaxAbs);
+                                                       'rv', inf, drs);
             end
 
             dso = -(dsg + dsw);
