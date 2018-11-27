@@ -133,6 +133,10 @@ methods
         if model.disgas
             % RS must be supplied for all cells. This may cause an error.
             model.checkProperty(state, 'rs', nc, 1);
+            rsMax = model.FlowPropertyFunctions.getProperty(model, state, 'RsMax');
+            [sg, rs] = model.getProps(state, 'sg', 'rs');
+            rs(sg > 0) = rsMax(sg > 0);
+            state = model.setProp(state, 'rs', rs);
         else
             % RS does not really matter. Assign single value.
             fn = model.getVariableField('rs');
@@ -146,6 +150,10 @@ methods
         if model.vapoil
             % RV must be supplied for all cells. This may cause an error.
             model.checkProperty(state, 'rv', nc, 1);
+            rvMax = model.FlowPropertyFunctions.getProperty(model, state, 'RvMax');
+            [so, rv] = model.getProps(state, 'so', 'rv');
+            rv(so > 0) = rvMax(so > 0);
+            state = model.setProp(state, 'rv', rv);
         else
             % RS does not really matter. Assign single value.
             fn = model.getVariableField('rv');
