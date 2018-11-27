@@ -463,7 +463,7 @@ classdef LinearSolverAD < handle
             sz = size(A);
             assert(sz(1) == sz(2), 'Matrix must be square!');
             n = sz(1);
-            d = 1./diag(A);
+            d = 1./abs(diag(A));
             d(~isfinite(d)) = 1;
             I = (1:n)';
             M = sparse(I, I, d, n, n);
