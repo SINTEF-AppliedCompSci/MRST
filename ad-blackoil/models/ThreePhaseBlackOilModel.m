@@ -109,6 +109,7 @@ methods
         
         state.FlowProps = dyn_state.FlowProps.reduce();
         problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
+        state = rmfield(state, 'FlowProps');
     end
 
     function [dyn_state, primaryVariables] = getForwardDynamicState(model, state)

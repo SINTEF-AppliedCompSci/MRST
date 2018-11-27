@@ -102,7 +102,7 @@ classdef StoneRelativePermeability1 < GridProperty
                 ph = lower(phases(i));
                 if strcmp(ph, 'o') && ~isfield(pts, 'o')
                     if model.water && model.gas
-                        s_min(i) = min(pts.ow(satnum, 2), pts.og(satnum, 2));
+                        s_min(i) = max(pts.ow(satnum, 2), pts.og(satnum, 2));
                     elseif model.water
                         s_min(i) = pts.ow(satnum, 2);
                     elseif model.gas
@@ -121,20 +121,23 @@ classdef StoneRelativePermeability1 < GridProperty
             s_min = prop.getCriticalPhaseSaturations(model, state);
             s = state.s;
             s0 = state0.s;
+            chopped = false;
             for ph = 1:size(s, 2)
                 sm = s_min(:, ph);
+                tol = 1e-8;
 
-                toMobile = s0(:, ph) < sm & s(:, ph) > sm;
-                toImmobile = s0(:, ph) > sm & s(:, ph) < sm;
-                tol = 1e-3;
+                toMobile = s0(:, ph) < sm + tol & s(:, ph) > sm - tol;
+                toImmobile = s0(:, ph) > sm - tol & s(:, ph) < sm + tol;
                 s(toMobile, ph) = tol;
                 if size(sm, 1) > 1
-                    s(toImmobile, ph) = sm(toIoImmobile) - tol;
+                    s(toImmobile, ph) = sm(toIoImmobile) - 2*tol;
+                    s(toMobile, ph) = sm(toMobile) + 2*tol;
                 else
-                    s(toImmobile, ph) = sm - tol;
+                    s(toImmobile, ph) = sm - 2*tol;
+                    s(toMobile, ph) = sm + 2*tol;
                 end
+                chopped = chopped | (toImmobile | toMobile);
             end
-            chopped = toImmobile | toMobile;
             state.s = s;
         end
     end

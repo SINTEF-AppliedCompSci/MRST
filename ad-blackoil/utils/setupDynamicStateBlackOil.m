@@ -72,13 +72,13 @@ function [state, primaryVars] = setupDynamicStateBlackOil(model, state, useAD)
                                 {p, sat, rv, rs, wellSol, fp});
     if model.disgas
         rsSat = model.FlowPropertyFunctions.getProperty(model, state, 'RsMax');
-        rs = (~st{1}).*rsSat + st{1}.*x;
+        rs = ~st{1}.*rsSat + st{1}.*x;
         state.rs = rs;
     end
     
     if model.vapoil
         rvSat = model.FlowPropertyFunctions.getProperty(model, state, 'RvMax');
-        rv = (~st{2}).*rvSat + st{2}.*x;
+        rv = ~st{2}.*rvSat + st{2}.*x;
         state.rv = rv;
     end
 end
