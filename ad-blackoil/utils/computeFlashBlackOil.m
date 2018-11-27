@@ -85,7 +85,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         gasPresent = or(gasPresent, ix1);
         % Set oil saturated if previous rs is sufficiently large
         ix2 = and( and(rs > rsSat*(1+etol), st1), rs0 > rsSat0*(1-etol) );
-        assert(all(sg(ix2)==0))
+        sg(ix2) = 0;
         gasPresent = or(gasPresent, ix2);
     end
     ix = sg < 0;
@@ -108,7 +108,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         oilPresent = or(oilPresent, ix1);
         % Set gas saturated if previous rv is sufficiently large
         ix2 = and( and(rv > rvSat*(1+etol), st2), rv0 > rvSat0*(1-etol) );
-        assert(all(so(ix2)==0))
+        so(ix2) = 0;
         oilPresent = or(oilPresent, ix2);
     end
     ix = so < 0;
