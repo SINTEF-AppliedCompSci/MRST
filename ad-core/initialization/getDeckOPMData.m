@@ -14,11 +14,7 @@ function [deck, output] = getDeckOPMData(name, caseName)
     end
     
     deck = convertDeckUnits(deck);
-    
-    
-    
     fldr = fullfile(opm, name);
-    
     output = struct('opm', [], 'ecl', []);
     try
         output.opm = getOutputOPM(deck, fldr, caseName, unit);
@@ -35,8 +31,11 @@ end
 
 
 function output = getOutputOPM(deck, fldr, caseName, unit)
-    G = initEclipseGrid(deck);
+    G = initEclipseGrid(deck, 'SplitDisconnected', false);
     smry_prefix = fullfile(fldr, 'opm-simulation-reference', 'flow', caseName);
+    if ~exist([smry_prefix, '.UNSMRY'], 'file')
+        smry_prefix = fullfile(fldr, 'opm-simulation-reference', 'flow_legacy', caseName);
+    end
 
     ws = convertSummaryToWellSols(smry_prefix, unit);
     states = convertRestartToStates(smry_prefix, G, 'use_opm', true, 'consistentWellSols', false);
