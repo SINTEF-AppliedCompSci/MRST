@@ -67,31 +67,16 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
            % Get and apply scaling
            if solver.doApplyScalingCPR
                scale = model.getScalingFactorsCPR(problem, problem.equationNames, solver);
-               
-               if solver.amgcl_setup.use_drs
-                   % Solver will take the sum for us, we just weight each
-                   % equation. Note: This is not the entirely correct way
-                   % of doing this, as solver could do this by itself.
-                   for i = 1:numel(scale)
-                       if ~strcmpi(problem.types{i}, 'cell')
-                           continue
-                       end
-                       if (numel(scale{i}) > 1 || any(scale{i} ~= 0))
-                           problem.equations{i} = problem.equations{i}.*scale{i};
-                       end
+               % Solver will take the sum for us, we just weight each
+               % equation. Note: This is not the entirely correct way
+               % of doing this, as solver could do this by itself.
+               for i = 1:numel(scale)
+                   if ~strcmpi(problem.types{i}, 'cell')
+                       continue
                    end
-               else
-                   % We form pressure equation for the solver.
-                   e = 0;
-                   for i = 1:numel(scale)
-                       if ~strcmpi(problem.types{i}, 'cell')
-                           continue
-                       end
-                       if (numel(scale{i}) > 1 || scale{i} ~= 0)
-                           e = e + problem.equations{i}.*scale{i};
-                       end
+                   if (numel(scale{i}) > 1 || any(scale{i} ~= 0))
+                       problem.equations{i} = problem.equations{i}.*scale{i};
                    end
-                   problem.equations{1} = e;
                end
            end
            m = solver.amgcl_setup.block_size;
