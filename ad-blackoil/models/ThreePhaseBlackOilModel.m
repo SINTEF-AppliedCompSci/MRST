@@ -108,10 +108,7 @@ methods
         [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, state0.wellSol, state.wellSol, wellVars, wellMap, p, mob, rho, dissolved, {}, dt, opt);
         
         state.FlowProps = dyn_state.FlowProps.reduce();
-        
-        bad = state.s(:, 1) < 1e-3;
-        eqs{1}(bad) = eqs{1}(bad) + eqs{2}(bad) + eqs{3}(bad);
-        
+                
         problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
         state = rmfield(state, 'FlowProps');
     end
