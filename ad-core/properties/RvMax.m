@@ -8,7 +8,11 @@ classdef RvMax < GridProperty
             pc = state.FlowProps.CapillaryPressure{model.water + model.oil + model.gas};
             if model.disgas
                 f = model.fluid;
-                rsSat = prop.evaluateFunctionOnGrid(f.rsSat, p + pc);
+                pg = p;
+                if ~isempty(pc)
+                    pg = pg + pc;
+                end
+                rsSat = prop.evaluateFunctionOnGrid(f.rvSat, pg);
             else
                 rsSat = 0*p;
             end
