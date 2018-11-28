@@ -147,7 +147,7 @@ end
 
 
 
-function [m, c, p] = getTwoPointScalers(scal, tab, ph, f)
+function [m, c, p] = getTwoPointScalers(pts, ph, reg, f)
     [get, CR, U] = getSatPointPicker(f, pts, reg);
     switch ph
         case {'w', 'g'}
