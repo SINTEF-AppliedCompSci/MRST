@@ -20,7 +20,7 @@ function jac = avgJac(jac, N)
     else
         diagonal = 0.5*jac.diagonal(N, :);
         if isempty(jac.subset)
-            map = N;
+            map = 'face';
         else
             map = jac.subset(N);
         end

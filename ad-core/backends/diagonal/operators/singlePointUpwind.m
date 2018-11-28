@@ -47,7 +47,7 @@ function [jac, M, DS] = upwindJac(jac, flag, N, M, DS)
                 diagonal = bsxfun(@times, jac.diagonal(N, :), [flag; ~flag]);
             end
             if isempty(jac.subset)
-                map = N;
+                map = 'face';
             else
                 map = jac.subset(N);
             end
