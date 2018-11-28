@@ -97,7 +97,13 @@ function model = initializeModel(deck, opt)
     % Set up grid
     rock  = initEclipseRock(deck);
     if isfield(deck.GRID, 'ACTNUM')
-        deck.GRID.ACTNUM = double(deck.GRID.ACTNUM > 0 & rock.poro > 0);
+        if isfield(rock, 'ntg')
+            pv = rock.poro.*rock.ntg;
+        else
+            pv = rock.poro;
+        end
+        perm_ok = ~all(rock.perm == 0, 2);
+        deck.GRID.ACTNUM = double(deck.GRID.ACTNUM > 0 & pv > 0 & perm_ok);
     end
 
     G = initEclipseGrid(deck, 'SplitDisconnected', opt.SplitDisconnected);
