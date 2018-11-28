@@ -9,9 +9,9 @@ function [x,w,nPts] = fitMoments(x, basis, moments, num)
     w = [];
     
     opts = optimoptions('lsqlin');
-    opts.ConstraintTolerance = 1e-8;
-    opts.OptimalityTolerance = 1e-2;
-    opts.MaxIterations       = 50;
+    opts.ConstraintTolerance = 1e-12;
+    opts.OptimalityTolerance = 1e-6;
+    opts.MaxIterations       = 100;
     
     while k > nDof && reduced
     
@@ -30,8 +30,11 @@ function [x,w,nPts] = fitMoments(x, basis, moments, num)
             [ii, jj] = blockDiagIndex(nPts*ones(num,1), nDof*ones(num,1));
             P = sparse(jj, ii, repmat(p, num,1));
 
-            I = eye(nPts*num); o = zeros(nPts*num,1); r = Inf(nPts*num,1);
-            [w, ~, ~, flag] = lsqlin(I, o, I, r, P, moments);
+            I = speye(nPts*num); o = zeros(nPts*num,1); r = Inf(nPts*num,1);
+            x0 = ones(nPts*num,1);
+            [w, ~, ~, flag] = lsqlin(I, o, I, r, P  , moments, [], [], [], opts);
+%                               lsqlin(C, d, A, b, Aeq, beq    , lb,ub,X0,options,varargin)
+%LSQLIN Constrained linear least squares
             
             if flag > 0
                 k       = k-1;

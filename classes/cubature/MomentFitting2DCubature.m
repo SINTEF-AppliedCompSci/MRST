@@ -16,13 +16,13 @@ classdef MomentFitting2DCubature < Cubature
             % Basic properties handled by parent class
             cubature = cubature@Cubature(G, prescision, internalConn);
             cubature.reduce = false;
+            cubature.dim       = 2;
             % Make cubature points and weights
             [x, w, n] = cubature.makeCubature();
             % Assing properties
             cubature.points    = x;
             cubature.weights   = w;
             cubature.numPoints = n;
-            cubature.dim       = 2;
             % Construct cubature position vector
             if G.griddim == 2
                 numParents = G.cells.num;
