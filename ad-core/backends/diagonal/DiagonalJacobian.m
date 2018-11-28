@@ -225,7 +225,7 @@ classdef DiagonalJacobian
                                 u.diagonal(s.subs{1}, :) = v.diagonal;
                                 return
                             end
-                            if subsetsEqualNoZeroCheck(u, v)
+                            if subsetsEqualNoZeroCheck(u, v, u.subset(s.subs{1}), v.subset)
                                 u.diagonal(s.subs{1}, :) = v.diagonal;
                             elseif isempty(u.subset) && ~isempty(v.subset) && u.compareIndices(s.subs{1}, v.subset)
                                 u.diagonal(s.subs{1}, :) = v.diagonal;
