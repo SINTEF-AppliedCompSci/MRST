@@ -13,7 +13,7 @@ function [x,w,nPts] = fitMoments(x, basis, moments, num)
     opts.OptimalityTolerance = 1e-6;
     opts.MaxIterations       = 100;
     
-    while k > nDof && reduced
+    while k > 0 && reduced
     
         % Matrix of basis functions evalauted at current quadrature points
         p = cell2mat(cellfun(@(p) p(x), psi, 'unif', false));
@@ -31,10 +31,7 @@ function [x,w,nPts] = fitMoments(x, basis, moments, num)
             P = sparse(jj, ii, repmat(p, num,1));
 
             I = speye(nPts*num); o = zeros(nPts*num,1); r = Inf(nPts*num,1);
-            x0 = ones(nPts*num,1);
             [w, ~, ~, flag] = lsqlin(I, o, I, r, P  , moments, [], [], [], opts);
-%                               lsqlin(C, d, A, b, Aeq, beq    , lb,ub,X0,options,varargin)
-%LSQLIN Constrained linear least squares
             
             if flag > 0
                 k       = k-1;

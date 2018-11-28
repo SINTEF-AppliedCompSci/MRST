@@ -386,7 +386,7 @@ classdef DGDiscretization < WENODiscretization
         end
         
         %-----------------------------------------------------------------%
-        function I = faceFluxInt(disc, fun, cells, state, sdof)
+        function I = faceFluxInt(disc, fun, cells, state, dof)
             % Integrate integrand over all internal faces of each cell in
             % cells
             %
@@ -419,7 +419,7 @@ classdef DGDiscretization < WENODiscretization
                 return
             end
             % Evaluate integrals
-            I = sdof*0;
+            I = dof*0;
             for dofNo = 1:nDofMax                
                 keepCells = nDof(cells) >= dofNo;
                 if any(keepCells)
