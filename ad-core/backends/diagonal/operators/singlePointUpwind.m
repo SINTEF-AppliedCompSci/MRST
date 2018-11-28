@@ -34,7 +34,18 @@ function [jac, M, DS] = upwindJac(jac, flag, N, M, DS)
         if jac.isZero
             jac = jac.toZero(size(N, 1));
         else
-            diagonal = bsxfun(@times, jac.diagonal(N, :), [flag; ~flag]);
+            if 1
+                nf = size(N, 1);
+                diagonal = zeros(2*nf, size(jac.diagonal, 2));
+                diagonal(flag, :) = jac.diagonal(N(flag, 1), :);
+                
+                notFlag = ~flag;
+                flag2 = [false(nf, 1); notFlag];
+                diagonal(flag2, :) = jac.diagonal(N(notFlag, 2), :);
+                jac.diagonal = diagonal;
+            else
+                diagonal = bsxfun(@times, jac.diagonal(N, :), [flag; ~flag]);
+            end
             if isempty(jac.subset)
                 map = N;
             else
@@ -47,7 +58,6 @@ function [jac, M, DS] = upwindJac(jac, flag, N, M, DS)
                 DS.diagonal = diagonal;
                 DS.map = map;
                 DS.dim = jac.dim;
-%                 DS.nvars = jac.nvars;
                 jac = DS;
             end
         end

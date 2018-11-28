@@ -19,7 +19,7 @@ function jac = gradJac(jac, N, M)
         jac = jac.toZero(size(N, 1));
         return
     else
-        if 1
+        if 0
             diagonal = M*jac.diagonal;
         else
             diagonal = jac.diagonal(N, :);
