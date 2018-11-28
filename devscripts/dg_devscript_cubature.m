@@ -76,6 +76,7 @@ for gNo = 1:numel(grids)
     
         if G.griddim == 2
             cubVol  = TriangleCubature(G, k, []);
+            cubVol = MomentFitting2DCubature(G, k, []);
             cubSurf = LineCubature(G, k, []);
         else
             cubVol  = TetrahedronCubature(G, k, []);

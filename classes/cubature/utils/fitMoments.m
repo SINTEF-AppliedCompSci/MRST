@@ -7,6 +7,12 @@ function [x,w,nPts] = fitMoments(x, basis, moments, num)
     k = nPts;
     reduced = true;
     w = [];
+    
+    opts = optimoptions('lsqlin');
+    opts.ConstraintTolerance = 1e-8;
+    opts.OptimalityTolerance = 1e-2;
+    opts.MaxIterations       = 50;
+    
     while k > nDof && reduced
     
         % Matrix of basis functions evalauted at current quadrature points
