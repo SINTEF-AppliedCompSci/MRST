@@ -1,4 +1,4 @@
-function v = singlePointUpwind(flag, N, v)
+function v = singlePointUpwind(flag, N, v, useMex)
     % Single-point upwind for the NewAD library
     vD = double(v);
     cells = N(:, 2);
@@ -10,14 +10,14 @@ function v = singlePointUpwind(flag, N, v)
         DS = [];
         v.val = value;
         for jacNo = 1:numel(v.jac)
-            [v.jac{jacNo}, M, DS] = upwindJac(v.jac{jacNo}, flag, N, M, DS);
+            [v.jac{jacNo}, M, DS] = upwindJac(v.jac{jacNo}, flag, N, M, DS, useMex);
         end
     else
         v = value;
     end
 end
 
-function [jac, M, DS] = upwindJac(jac, flag, N, M, DS)
+function [jac, M, DS] = upwindJac(jac, flag, N, M, DS, useMex)
     if issparse(jac)
         if any(jac(:))
             if isempty(M)
@@ -34,7 +34,9 @@ function [jac, M, DS] = upwindJac(jac, flag, N, M, DS)
         if jac.isZero
             jac = jac.toZero(size(N, 1));
         else
-            if 1
+            if useMex
+                diagonal = mexSinglePointUpwindDiagonalJac(jac.diagonal, N, flag);
+            elseif 1
                 nf = size(N, 1);
                 diagonal = zeros(2*nf, size(jac.diagonal, 2));
                 diagonal(flag, :) = jac.diagonal(N(flag, 1), :);

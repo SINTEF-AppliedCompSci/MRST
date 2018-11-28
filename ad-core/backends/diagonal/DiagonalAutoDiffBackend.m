@@ -19,6 +19,7 @@ classdef DiagonalAutoDiffBackend < AutoDiffBackend
 
     properties
         modifyOperators = true; % Update the operators and use custom versions that return `DiagonalSubset` instances
+        useMex = false;
     end
     
     methods
@@ -47,8 +48,8 @@ classdef DiagonalAutoDiffBackend < AutoDiffBackend
                 sortIx = struct('C', C, 'J_sorted_index', sortedN, 'I_base', I_base);
                 model.operators.Grad = @(v) twoPointGradient(N, v, gradMat);
                 model.operators.Div = @(v) discreteDivergence(N, v, nc, nf, sortIx, C);
-                model.operators.faceUpstr = @(flag, v) singlePointUpwind(flag, N, v);
-                model.operators.faceAvg = @(v) faceAverage(N, v);
+                model.operators.faceUpstr = @(flag, v) singlePointUpwind(flag, N, v, backend.useMex);
+                model.operators.faceAvg = @(v) faceAverage(N, v, backend.useMex);
             end
         end
         
