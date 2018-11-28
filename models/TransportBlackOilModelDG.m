@@ -149,9 +149,10 @@ classdef TransportBlackOilModelDG < TransportBlackOilModel
             nFill = numel(fillsat);
             assert(nFill == 0 || nFill == 1)
             if nFill == 1
-                % Fill component is whichever saturation is assumed to fill up the rest of
-                % the pores. This is done by setting that increment equal to the
-                % negation of all others so that sum(s) == 0 at end of update
+                % Fill component is whichever saturation is assumed to fill
+                % up the rest of the pores. This is done by setting that
+                % increment equal to the negation of all others so that
+                % sum(s) == 0 at end of update
                 fillsat = fillsat{1};
                 solvedFor = ~strcmpi(saturations, fillsat);
             else
@@ -178,12 +179,12 @@ classdef TransportBlackOilModelDG < TransportBlackOilModel
             ds(ix, ~solvedFor) = tmp;
             % We update all saturations simultanously, since this does not bias the
             % increment towards one phase in particular.
-            state   = model.updateStateFromIncrement(state, ds, problem, 'sdof', inf, model.dsMaxAbs);
+            state   = model.updateStateFromIncrement(state, ds, problem, 'sdof', Inf, model.dsMaxAbs);
             state.s = model.disc.getCellSaturation(state);
             
             if nFill == 1
-                bad = any((state.s > 1 + model.disc.outTolerance) ...
-                        | (state.s < 0 - model.disc.outTolerance), 2);
+                bad = any((state.s > 1 + model.disc.meanTolerance) ...
+                        | (state.s < 0 - model.disc.meanTolerance), 2);
                 if any(bad)
                     state.s(bad, :) = min(state.s(bad, :), 1);
                     state.s(bad, :) = max(state.s(bad, :), 0);
@@ -192,7 +193,7 @@ classdef TransportBlackOilModelDG < TransportBlackOilModel
                     state = dgLimiter(model.disc, state, bad, 'kill');
                 end
             else
-                bad = any(state.s < 0 - model.disc.outTolerance, 2);
+                bad = any(state.s < 0 - model.disc.meanTolerance, 2);
                  if any(bad)
                     state.s(bad, :) = max(state.s(bad, :), 0);
                     state = dgLimiter(model.disc, state, bad, 'kill');

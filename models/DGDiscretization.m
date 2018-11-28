@@ -79,15 +79,18 @@ classdef DGDiscretization < WENODiscretization
             prescision = disc.degree + 1;
             if G.griddim == 2
                 if disc.degree == 0 || disc.useUnstructCubature
-                    disc.volumeCubature = Unstruct2DCubature(G, prescision, disc.internalConn);
+%                     disc.volumeCubature = Unstruct2DCubature(G, prescision, disc.internalConn);
+                    disc.volumeCubature = MomentFitting2DCubature(G, prescision, disc.internalConn);
                 else
                     disc.volumeCubature = TriangleCubature(G, prescision, disc.internalConn);
                 end
                 disc.surfaceCubature = LineCubature(G, prescision, disc.internalConn);
             else
                 if disc.degree == 0 || disc.useUnstructCubature
-                    disc.volumeCubature  = Unstruct3DCubature(G, prescision, disc.internalConn);
-                    disc.surfaceCubature = Unstruct2DCubature(G, prescision, disc.internalConn);
+%                     disc.volumeCubature  = Unstruct3DCubature(G, prescision, disc.internalConn);
+%                     disc.surfaceCubature = Unstruct2DCubature(G, prescision, disc.internalConn);
+                    disc.volumeCubature  = MomentFitting3DCubature(G, prescision, disc.internalConn);
+                    disc.surfaceCubature = MomentFitting2DCubature(G, prescision, disc.internalConn);
                 else
                     disc.volumeCubature  = TetrahedronCubature(G, prescision, disc.internalConn);
                     disc.surfaceCubature = TriangleCubature(G, prescision, disc.internalConn);
@@ -383,7 +386,7 @@ classdef DGDiscretization < WENODiscretization
         end
         
         %-----------------------------------------------------------------%
-        function I = faceFluxInt(disc, fun, cells, state, sdof)
+        function I = faceFluxInt(disc, fun, cells, state, dof)
             % Integrate integrand over all internal faces of each cell in
             % cells
             %
@@ -416,7 +419,7 @@ classdef DGDiscretization < WENODiscretization
                 return
             end
             % Evaluate integrals
-            I = sdof*0;
+            I = dof*0;
             for dofNo = 1:nDofMax                
                 keepCells = nDof(cells) >= dofNo;
                 if any(keepCells)

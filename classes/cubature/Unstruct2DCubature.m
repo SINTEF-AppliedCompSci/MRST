@@ -23,7 +23,7 @@ classdef Unstruct2DCubature < Cubature
             else
                 numParents = G.faces.num;
             end
-            cub.parentPos = (0:cub.numPoints:numParents*cub.numPoints)' + 1;
+            cub.pos = (0:cub.numPoints:numParents*cub.numPoints)' + 1;
 %             cub.parentPos = [0; cumsum(cub.triangulation.nTri*cub.numPoints)] + 1;
 %             if G.griddim == 2
 %                 elements = (1:G.cells.num)';
