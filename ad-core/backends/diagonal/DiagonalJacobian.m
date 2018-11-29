@@ -238,6 +238,7 @@ classdef DiagonalJacobian
                                 end
                                 u = u.expandZero();
                                 if doZero
+                                    u.subset = u.getSubset;
                                     u.subset(s.subs{1}) = vsub;
                                 end
                                 u.diagonal(s.subs{1}, :) = v.diagonal;
