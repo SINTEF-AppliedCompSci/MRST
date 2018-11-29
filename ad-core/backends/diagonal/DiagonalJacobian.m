@@ -244,13 +244,9 @@ classdef DiagonalJacobian
                                 u.diagonal(s.subs{1}, :) = v.diagonal;
                                 return
                             end
-                            if isempty(u.subset)
-                                tmp = [];
-                            else
-                                tmp = u.subset(s.subs{1});
-                            end
-                            if (isempty(u.subset) && ~isempty(v.subset) && u.compareIndices(s.subs{1}, v.subset)) || ...
-                                subsetsEqualNoZeroCheck(u, v, tmp, v.subset)
+
+                            if subsetsEqualNoZeroCheck(u, v) || ... % Subsets are equal
+                                (isempty(u.subset) && ~isempty(v.subset) && u.compareIndices(u, s.subs{1}, v.subset))
                                 u.diagonal(s.subs{1}, :) = v.diagonal;
                             else
                                 u = u.sparse();
@@ -494,16 +490,24 @@ classdef DiagonalJacobian
     end
     
     methods(Static, Access=private)
-        function eq = compareIndices(a, b)
-            if islogical(a) && islogical(b)
-                eq = all(a(:) == b(:));
-                return
-            elseif islogical(b)
-                b = find(b);
-            elseif islogical(a)
-                a = find(a);
+        function eq = compareIndices(u, ind_into_u, b_subset)
+            if isempty(u.subset)
+                % The subset is equal to the indexing
+                u_subset = ind_into_u;
+            else
+                % We get the index of the subset itself
+                u_subset = u.getSubset();
+                u_subset = u_subset(ind_into_u);
             end
-            eq = all(a(:) == b(:));
+            if islogical(u_subset) && islogical(b_subset)
+                eq = all(u_subset(:) == b_subset(:));
+                return
+            elseif islogical(b_subset)
+                b_subset = find(b_subset);
+            elseif islogical(u_subset)
+                u_subset = find(u_subset);
+            end
+            eq = all(u_subset(:) == b_subset(:));
         end
 
         function isZ = isAllZeros(v)
