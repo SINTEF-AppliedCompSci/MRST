@@ -1022,9 +1022,7 @@ classdef EquationOfStateModel < PhysicalModel
                     act = offset(i):offset(i+1)-1;
                     map = cellJacMap(act);
                     map = map(~cellfun(@isempty, map));
-                    if Z.jac{i}.isZero
-                        Z.jac{i} = Z.jac{i}.expandZero();
-                    end
+
                     if isempty(map)
                         if Z.jac{i}.dim(1) ~= numel(z)
                             continue
@@ -1035,8 +1033,13 @@ classdef EquationOfStateModel < PhysicalModel
                         dE0 = E0.jac{i}.diagonal;
 
                         d = -(dE2.*z.^2 + dE1.*z + dE0)./(3*z.^2 + 2*z.*e2 + e1);
-                        Z.jac{i}.diagonal = d;
-                        Z.jac{i}.subset = [];
+                        if any(any(d~=0))
+                            if Z.jac{i}.isZero
+                                Z.jac{i} = Z.jac{i}.expandZero();
+                            end
+                            Z.jac{i}.diagonal = d;
+                            Z.jac{i}.subset = [];
+                        end
                     else
                         % Subset of cells
                         map = map{1};
@@ -1052,9 +1055,13 @@ classdef EquationOfStateModel < PhysicalModel
                         e2i = e2(map);
                         e1i = e1(map);
                         d = -(dE2.*zi.^2 + dE1.*zi + dE0)./(3*zi.^2 + 2*zi.*e2i + e1i);
-
-                        Z.jac{i}.diagonal(map, :) = d;
-                        Z.jac{i}.subset(map) = (1:numel(map))';
+                        if any(any(d~=0))
+                            if Z.jac{i}.isZero
+                                Z.jac{i} = Z.jac{i}.expandZero();
+                            end
+                            Z.jac{i}.diagonal(map, :) = d;
+                            Z.jac{i}.subset(map) = (1:numel(map))';
+                        end
                     end
                 end
                 
