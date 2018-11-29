@@ -46,7 +46,7 @@ classdef DiagonalAutoDiffBackend < AutoDiffBackend
 %                 I_base = I_base(sortedN);
 
                 sortIx = struct('C', C, 'J_sorted_index', sortedN, 'I_base', I_base);
-                model.operators.Grad = @(v) twoPointGradient(N, v, gradMat);
+                model.operators.Grad = @(v) twoPointGradient(N, v, gradMat, backend.useMex);
                 model.operators.Div = @(v) discreteDivergence(N, v, nc, nf, sortIx, C);
                 model.operators.faceUpstr = @(flag, v) singlePointUpwind(flag, N, v, backend.useMex);
                 model.operators.faceAvg = @(v) faceAverage(N, v, backend.useMex);

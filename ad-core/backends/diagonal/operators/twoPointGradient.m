@@ -1,14 +1,14 @@
-function v = twoPointGradient(N, v, M)
+function v = twoPointGradient(N, v, M, useMex)
     % Discrete gradient for the NewAD library
     if isa(v, 'NewAD')
         v.val = gradVal(v.val, N);
-        v.jac = cellfun(@(x) gradJac(x, N, M), v.jac, 'UniformOutput', false);
+        v.jac = cellfun(@(x) gradJac(x, N, M, useMex), v.jac, 'UniformOutput', false);
     else
         v = gradVal(v, N);
     end
 end
 
-function jac = gradJac(jac, N, M)
+function jac = gradJac(jac, N, M, useMex)
     if issparse(jac)
         if nnz(jac)
             jac = jac(N(:, 2), :) - jac(N(:, 1), :);
@@ -22,9 +22,13 @@ function jac = gradJac(jac, N, M)
         if 0
             diagonal = M*jac.diagonal;
         else
-            diagonal = jac.diagonal(N, :);
-            nf = size(N, 1);
-            diagonal(1:nf, :) = -diagonal(1:nf, :);
+            if useMex
+                diagonal = mexTwoPointGradientDiagonalJac(jac.diagonal, N);
+            else
+                diagonal = jac.diagonal(N, :);
+                nf = size(N, 1);
+                diagonal(1:nf, :) = -diagonal(1:nf, :);
+            end
         end
         if isempty(jac.subset)
             jac = DiagonalSubset(diagonal, jac.dim, N);
