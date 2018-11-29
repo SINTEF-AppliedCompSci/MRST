@@ -37,7 +37,9 @@ classdef DiagonalJacobian
             end
             u.diagonal = zeros(n, 0);
             % Unsure if this is the best idea.
-            u.subset = zeros(n, 1);
+            if ~isempty(u.subset)
+                u.subset = zeros(n, 1);
+            end
         end
 
         function u = expandZero(u)
@@ -182,8 +184,12 @@ classdef DiagonalJacobian
                                 u = u.toZero(0);
                             end
                             
-                            if isempty(u.subset) && ~ischar(s(1).subs{1})
-                                u.subset = reshape(s(1).subs{1}, [], 1);
+                            if isempty(u.subset)
+                                if ischar(s(1).subs{1})
+                                    % Do nothing
+                                else
+                                    u.subset = reshape(s(1).subs{1}, [], 1);
+                                end
                             else
                                 subs = u.getSubset();
                                 u.subset = subs(s(1).subs{1});
@@ -220,8 +226,20 @@ classdef DiagonalJacobian
                                 return
                             end
                             if u.isZero
+                                vsub = v.getSubset();
+                                
+                                if isempty(u.subset)
+                                    if islogical(s.subs{1})
+                                        s.subs{1} = find(s.subs{1});
+                                    end
+                                    doZero = ~ischar(s.subs{1}) && ~all(s.subs{1} == vsub);
+                                else
+                                    doZero = true;
+                                end
                                 u = u.expandZero();
-                                u.subset(s.subs{1}) = v.getSubset();
+                                if doZero
+                                    u.subset(s.subs{1}) = vsub;
+                                end
                                 u.diagonal(s.subs{1}, :) = v.diagonal;
                                 return
                             end
@@ -230,9 +248,8 @@ classdef DiagonalJacobian
                             else
                                 tmp = u.subset(s.subs{1});
                             end
-                            if subsetsEqualNoZeroCheck(u, v, tmp, v.subset)
-                                u.diagonal(s.subs{1}, :) = v.diagonal;
-                            elseif isempty(u.subset) && ~isempty(v.subset) && u.compareIndices(s.subs{1}, v.subset)
+                            if (isempty(u.subset) && ~isempty(v.subset) && u.compareIndices(s.subs{1}, v.subset)) || ...
+                                subsetsEqualNoZeroCheck(u, v, tmp, v.subset)
                                 u.diagonal(s.subs{1}, :) = v.diagonal;
                             else
                                 u = u.sparse();

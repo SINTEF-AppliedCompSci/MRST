@@ -18,13 +18,15 @@ function jac = avgJac(jac, N, useMex)
     elseif jac.isZero
         jac = jac.toZero(size(N, 1));
     else
+        tic()
         if useMex
             diagonal = mexFaceAverageDiagonalJac(jac.diagonal, N);
         else
             diagonal = 0.5*jac.diagonal(N, :);
         end
+        toc()
         if isempty(jac.subset)
-            map = 'face';
+            map = N;
         else
             map = jac.subset(N);
         end

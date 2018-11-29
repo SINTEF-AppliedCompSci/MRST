@@ -34,6 +34,7 @@ function [jac, M, DS] = upwindJac(jac, flag, N, M, DS, useMex)
         if jac.isZero
             jac = jac.toZero(size(N, 1));
         else
+            tic()
             if useMex
                 diagonal = mexSinglePointUpwindDiagonalJac(jac.diagonal, N, flag);
             elseif 1
@@ -48,8 +49,9 @@ function [jac, M, DS] = upwindJac(jac, flag, N, M, DS, useMex)
             else
                 diagonal = bsxfun(@times, jac.diagonal(N, :), [flag; ~flag]);
             end
+            toc();
             if isempty(jac.subset)
-                map = 'face';
+                map = N;
             else
                 map = jac.subset(N);
             end
