@@ -1,10 +1,10 @@
 function v = twoPointGradient(N, v, M, useMex)
     % Discrete gradient for the NewAD library
     if isa(v, 'NewAD')
-        v.val = gradVal(v.val, N);
+        v.val = gradVal(v.val, N, useMex);
         v.jac = cellfun(@(x) gradJac(x, N, M, useMex), v.jac, 'UniformOutput', false);
     else
-        v = gradVal(v, N);
+        v = gradVal(v, N, useMex);
     end
 end
 
@@ -38,10 +38,14 @@ function jac = gradJac(jac, N, M, useMex)
     end
 end
 
-function v = gradVal(val, N)
-    if size(val, 2) > 1
-        v = val(N(:, 2), :) - val(N(:, 1), :);
+function v = gradVal(val, N, useMex)
+    if useMex
+        v = mexTwoPointGradientVal(val, N);
     else
-        v = diff(val(N), 1, 2);
+        if size(val, 2) > 1
+            v = val(N(:, 2), :) - val(N(:, 1), :);
+        else
+            v = diff(val(N), 1, 2);
+        end
     end
 end
