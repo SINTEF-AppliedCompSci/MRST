@@ -89,7 +89,11 @@ methods
         
         
         % Define primary variables
-        [dyn_state, primaryVars] = model.getForwardDynamicState(state);
+        if opt.resOnly
+            [dyn_state, primaryVars] = model.getDynamicState(state);
+        else
+            [dyn_state, primaryVars] = model.getForwardDynamicState(state);
+        end
         % State at previous time-step
         
         [eqs, names, types] = equationsBlackOilDynamicState(state0, dyn_state, model, dt, drivingForces);
