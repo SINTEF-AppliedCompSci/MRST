@@ -10,7 +10,7 @@ function p = initializeEquilibriumPressures(model, region)
     
     z = model.G.cells.centroids(cells, 3);
 
-    norm_g = norm(model.gravity());
+    norm_g = norm(model.gravity);
     if norm_g == 0
         warning('Gravity is zero. Initialization results may not be what you expect.');
     end
