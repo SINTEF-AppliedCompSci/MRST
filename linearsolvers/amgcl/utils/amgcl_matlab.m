@@ -50,7 +50,7 @@ function varargout = amgcl_matlab(varargin)
 %
 %   This gateway was last tested with commit
 %
-%      946398e535cf2586ca59f37eaf8aa9e72f43fde4
+%      91348b025144b61a2d3b7417988373d0dc8c8d00
 %
 %   of the AMGCL software (from GitHub: https://github.com/ddemidov/amgcl).
 %
@@ -59,8 +59,8 @@ function varargout = amgcl_matlab(varargin)
 %       Boost 1.63.0
 %
 %   * MS Windows 10 (1607):
-%       MSVC  19.14.26430 (Visual Studio 15.7)
-%       Boost 1.67.0
+%       MSVC  19.16.27024.1 (Visual Studio 15.9)
+%       Boost 1.68.0
 %
 % SEE ALSO:
 %   `callAMGCL`, `getAMGCLMexStruct`.
@@ -126,8 +126,8 @@ function [CXXFLAGS, LINK, LIBS] = setup_machdep_build_params
    if ispc
 
       mwlib = @(lib) ...
-      fullfile(matlabroot, 'extern', 'lib', a, ...
-               'microsoft', ['libmw', lib, '.lib']);
+         fullfile(matlabroot, 'extern', 'lib', a, ...
+                  'microsoft', ['libmw', lib, '.lib']);
 
       % Note explicit /EHsc to enable C++ exception handling
       CXXFLAGS  = { 'COMPFLAGS=/EHsc /MD /openmp' };
@@ -148,6 +148,13 @@ function [CXXFLAGS, LINK, LIBS] = setup_machdep_build_params
 
        iomp5     = { '-liomp5', 'LDFLAGS=$LDFLAGS -fopenmp' };
        libstdcpp = { '-lstdc++' };
+
+   else
+
+      error('Architecture:Unsupported', ...
+            'Computer Architecture ''%s'' is not Supported for %s', ...
+            computer(), mfilename());
+
    end
 
    LIBS = [ iomp5, { mwlib('lapack'), mwlib('blas') }, libstdcpp ];
