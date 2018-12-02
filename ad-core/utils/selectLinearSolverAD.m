@@ -29,12 +29,6 @@ function lsolve = selectLinearSolverAD(model, varargin)
                                    's_relaxation', 'ilu0', ...
                                    solver_arg{:});
         setSolverOrderingReduction(model, lsolve, ncomp, opt);
-    elseif opt.useAMGCL
-        % AMGCL as a preconditioner Krylov solver
-        lsolve = AMGCLSolverAD('preconditioner', 'relaxation',...
-                               'relaxation', 'ilu0', ...
-                               'maxIterations', 50, solver_arg{:});
-        setSolverOrderingReduction(model, lsolve, ncomp, opt);
     elseif opt.useCPR && ~isDiagonal
         % MATLAB CPR + AMGCL, AGMG or backslash for elliptic part
         parg = {'tolerance', 1e-3, 'maxIterations', 25};
@@ -46,6 +40,13 @@ function lsolve = selectLinearSolverAD(model, varargin)
             psolve = BackslashSolverAD();
         end
         lsolve = CPRSolverAD('ellipticSolver', psolve, solver_arg{:});
+    elseif opt.useAMGCL
+        % AMGCL as a preconditioner Krylov solver
+        lsolve = AMGCLSolverAD('preconditioner', 'relaxation',...
+                               'relaxation', 'ilu0', ...
+                               'maxIterations', 50, solver_arg{:});
+        setSolverOrderingReduction(model, lsolve, ncomp, opt);
+
     elseif opt.useILU
         % Matlab GMRES + ILU(0)
         lsolve = GMRES_ILUSolverAD('maxIterations', 100,...
