@@ -137,8 +137,9 @@ methods
             % RS must be supplied for all cells. This may cause an error.
             model.checkProperty(state, 'rs', nc, 1);
             rsMax = model.FlowPropertyFunctions.getProperty(model, state, 'RsMax');
-            [sg, rs] = model.getProps(state, 'sg', 'rs');
+            [sg, so, rs] = model.getProps(state, 'sg', 'so', 'rs');
             rs(sg > 0) = rsMax(sg > 0);
+            rs = rs.*(so > 0);
             state = model.setProp(state, 'rs', rs);
         else
             % RS does not really matter. Assign single value.
@@ -154,8 +155,9 @@ methods
             % RV must be supplied for all cells. This may cause an error.
             model.checkProperty(state, 'rv', nc, 1);
             rvMax = model.FlowPropertyFunctions.getProperty(model, state, 'RvMax');
-            [so, rv] = model.getProps(state, 'so', 'rv');
+            [so, sg, rv] = model.getProps(state, 'so', 'sg', 'rv');
             rv(so > 0) = rvMax(so > 0);
+            rv = rv.*(sg > 0);
             state = model.setProp(state, 'rv', rv);
         else
             % RS does not really matter. Assign single value.
@@ -296,7 +298,9 @@ methods
             if any(isg)
                 bG = b{isg};
             end
-            
+            sat = problem.state.s;
+            rs = rs.*(sat(:, 3) == 0);
+            rv = rv.*(sat(:, 2) == 0);
             for iter = 1:nNames
                 name = lower(names{iter});
                 switch name

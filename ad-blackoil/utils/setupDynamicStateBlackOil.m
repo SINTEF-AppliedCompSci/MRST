@@ -25,6 +25,10 @@ function [state, primaryVars] = setupDynamicStateBlackOil(model, state, useAD)
             [p, x, wellVars{:}] = model.AutoDiffBackend.initVariablesAD(p, x, wellVars{:});
         end
     end
+        % status 1 oil, no gas  : x = rs, sg = 0    , rv = rvMax
+        % status 2 gas, no oil  : x = rv, sg = 1-sw , rs = rsMax
+        % status 3 oil and gas  : x = sg, rs = rsMax, rv = rvMax
+
 %     
 %     if useAD && false
 %         stol = 1e-6;
@@ -39,13 +43,10 @@ function [state, primaryVars] = setupDynamicStateBlackOil(model, state, useAD)
         sW = 0;
     end
     sG = st{2}.*(1-sW) + st{3}.*x;
-    
-    if model.water
-        sO = 1 - sW - sG;
-    else
-        sO = 1 - sG;
-    end
-    
+    sO = st{1}.*(1-sW) + ~st{1}.*(1 - sW - sG);
+%     
+%     sO = 1 - sW - sG;
+
     if model.vapoil
         % No rv, no so -> zero on diagonal in matrix
         bad_oil = double(sO) == 0 & double(rv) == 0;
@@ -73,12 +74,14 @@ function [state, primaryVars] = setupDynamicStateBlackOil(model, state, useAD)
     if model.disgas
         rsSat = model.FlowPropertyFunctions.getProperty(model, state, 'RsMax');
         rs = ~st{1}.*rsSat + st{1}.*x;
+        rs = rs.*(double(sO) > 0);
         state.rs = rs;
     end
     
     if model.vapoil
         rvSat = model.FlowPropertyFunctions.getProperty(model, state, 'RvMax');
         rv = ~st{2}.*rvSat + st{2}.*x;
+        rv = rv.*(double(sG) > 0);
         state.rv = rv;
     end
 end
