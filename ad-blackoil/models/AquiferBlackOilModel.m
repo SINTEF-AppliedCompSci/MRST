@@ -92,7 +92,7 @@ classdef AquiferBlackOilModel < ThreePhaseBlackOilModel
             Q = dt.*Q;
             C = aquiferprops.C;
             p_aq = p_aq - Q./(C.*V_aq);
-            V_aq = V_aq + Q;
+            V_aq = V_aq - Q;
         
             state = model.setProp(state, 'aquiferpressures', p_aq);
             state = model.setProp(state, 'aquifervolumes'  , V_aq);
