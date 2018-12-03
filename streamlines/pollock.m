@@ -321,7 +321,7 @@ function t = computeTime(xi, v)
    t(~ind)    = ds(~ind)./ui(~ind);
 
    % nan happens for ui=ui=0
-   t(arg<0 | isnan(arg))   = inf;
+   t(arg<=0 | isnan(arg))   = inf;
 end
 
 % =========================================================================
