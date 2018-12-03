@@ -1,4 +1,4 @@
-function varargout = readEclipseOutputFileUnFmt(fname)
+function varargout = readEclipseOutputFileUnFmt(fname, varargin)
 %Read unformatted (binary) ECLIPSE output/result file
 %
 % SYNOPSIS:
@@ -41,15 +41,18 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-
-
+    opt = struct('cellOutput', false);
+    opt = merge_options(opt, varargin{:});
    [fid, msg] = fopen(fname, 'rb', 'ieee-be');
    if fid < 0, error([fname, ': ', msg]); end
    
    % skip first 4  
    fseek(fid, 4, 'cof');
-   
-   [varargout{1:nargout}] = readEclipseOutputStream(fid, @readFieldUnFmt);
+   if ~opt.cellOutput
+       [varargout{1:nargout}] = readEclipseOutputStream(fid, @readFieldUnFmt);
+   else
+       [varargout{1:nargout}] = readEclipseOutputStreamCellOutput(fid, @readFieldUnFmt);
+   end
 
    fclose(fid);
 end

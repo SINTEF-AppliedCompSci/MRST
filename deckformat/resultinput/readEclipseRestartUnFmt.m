@@ -23,7 +23,24 @@ function output = readEclipseRestartUnFmt(prefix, spec, steps)
 %   `readEclipseOutputFileFmt`, `readEclipseRestartSpec`.
 
 if nargin < 2 || isempty(spec)
-    spec = processEclipseRestartSpec(prefix);
+    try
+        spec = processEclipseRestartSpec(prefix);
+    catch
+        warning('No restart spesification found, attempting to use potentially inefficient fallback routine')
+        output = readEclipseRestartUnFmt_fallback(prefix);
+        fn = fieldnames(output);
+        if nargin < 3
+            steps = ':';
+        end
+        for k = 1:numel(fn)
+            if isfield(fn{k}, 'values')
+                output.(fn{k}) = output.(fn{k}).values(steps);
+            else
+                output.(fn{k}) = output.(fn{k})(steps);
+            end
+        end
+        return;
+    end
 end
 if nargin < 3 || isempty(steps)
     steps = 1:numel(spec.time);
