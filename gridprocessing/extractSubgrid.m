@@ -155,24 +155,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    H.griddim = G.griddim;
 
    % Preserve 'computeGeometry' fields, if present.
-   if isfield(G.cells, 'volumes'),
-      H.cells.volumes   = G.cells.volumes  (cells(2:end)  );
-   end
-   if isfield(G.cells, 'centroids'),
-      H.cells.centroids = G.cells.centroids(cells(2:end),:);
-   end
-   if isfield(G.faces, 'areas'),
-      H.faces.areas     = G.faces.areas    (faces  );
-   end
-   if isfield(G.faces, 'tag'),
-      H.faces.tag       = G.faces.tag      (faces  );
-   end
-   if isfield(G.faces, 'normals'),
-      H.faces.normals   = G.faces.normals  (faces,:);
-   end
-   if isfield(G.faces, 'centroids'),
-      H.faces.centroids = G.faces.centroids(faces,:);
-   end
+   H = preserve_geometry(H, G, cells, faces);
 
    gcells = find(mc) - 1;
    gfaces = find(fc);
@@ -182,4 +165,32 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    H.cells.global = gcells;
    H.faces.global = gfaces;
    H.nodes.global = gnodes;
+end
+
+%--------------------------------------------------------------------------
+
+function H = preserve_geometry(H, G, cells, faces)
+   if isfield(G.cells, 'volumes')
+      H.cells.volumes = G.cells.volumes(cells(2:end));
+   end
+
+   if isfield(G.cells, 'centroids')
+      H.cells.centroids = G.cells.centroids(cells(2:end), :);
+   end
+
+   if isfield(G.faces, 'areas')
+      H.faces.areas = G.faces.areas(faces);
+   end
+
+   if isfield(G.faces, 'tag')
+      H.faces.tag = G.faces.tag(faces);
+   end
+
+   if isfield(G.faces, 'normals')
+      H.faces.normals = G.faces.normals(faces, :);
+   end
+
+   if isfield(G.faces, 'centroids')
+      H.faces.centroids = G.faces.centroids(faces, :);
+   end
 end
