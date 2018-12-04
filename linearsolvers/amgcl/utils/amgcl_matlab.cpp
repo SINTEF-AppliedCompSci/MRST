@@ -227,6 +227,7 @@ void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries, const mx
     int relax_s_id = mxGetScalar(mxGetField(pa, 0, "s_relaxation"));
     
     bool verbose = mxGetScalar(mxGetField(pa, 0, "verbose"));
+    
 
     /***************************************
      * Start AMGCL-link and select options *
@@ -277,7 +278,15 @@ void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries, const mx
         double ps = mxGetScalar(mxGetField(pa, 0, "drs_eps_ps"));
         prm.put("precond.eps_dd", dd);
         prm.put("precond.eps_ps", ps);
+        
+        mxArray * drs_weights_mx = mxGetField(pa, 0, "drs_row_weights");
+        size_t drs_weights_n = mxGetM(drs_weights_mx);
 
+        if(drs_weights_n>0){
+            double * drs_weights = mxGetPr(drs_weights_mx);
+            prm.put("precond.weights", drs_weights);
+            prm.put("precond.weights_size", drs_weights_n);
+        }
         amgcl::make_solver<
             amgcl::preconditioner::cpr_drs<PPrecond, SPrecond>,
             amgcl::runtime::solver::wrapper<Backend>
@@ -311,98 +320,6 @@ void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries, const mx
         if(verbose){
             std::cout << solve << std::endl;
         }
-    }
-}
-
-void solve_block(int n, mwIndex * cols, mwIndex * rows, double * entries, const mxArray * pa, 
-        std::vector<double> b, std::vector<double> & x, double tolerance,
-        int maxiter, int & iters, double & error){
-
-    int relax_id = mxGetScalar(mxGetField(pa, 0, "relaxation"));
-    int block_size = mxGetScalar(mxGetField(pa, 0, "block_size"));
-    bool verbose = mxGetScalar(mxGetField(pa, 0, "verbose"));
-    int precond_id = mxGetScalar(mxGetField(pa, 0, "preconditioner"));
-    std::string relaxParam;
-    /***************************************
-     * Start AMGCL-link and select options *
-     ***************************************/
-    typedef amgcl::backend::block_crs<double> Backend;
-    Backend::params bprm;
-    bprm.block_size = block_size;
-    if(block_size == 0){
-        mexErrMsgTxt("Block size must be set for block solver!");
-    }
-    if(n % block_size){
-        mexErrMsgTxt("System matrix must be divisible by block_size!");
-    }
-    
-    typedef
-    amgcl::amg<Backend, amgcl::runtime::coarsening::wrapper, amgcl::runtime::relaxation::wrapper>
-        PPrecond;
-
-    typedef
-    amgcl::relaxation::as_preconditioner<Backend, amgcl::runtime::relaxation::wrapper>
-            SPrecond;
-
-    boost::property_tree::ptree prm;
-    /* Set tolerance */
-    prm.put("solver.tol", tolerance);
-    if(maxiter > 0){
-        prm.put("solver.maxiter", maxiter);
-    }
-    switch(precond_id) {
-        case 1:
-            relaxParam = "precond.relax.";
-            prm.put("precond.class", amgcl::runtime::precond_class::amg);
-            break;
-        case 2: 
-            relaxParam = "precond.";
-            prm.put("precond.class", amgcl::runtime::precond_class::relaxation);
-            break;
-        case 3:
-            relaxParam = "precond.relax.";
-            prm.put("precond.class", amgcl::runtime::precond_class::dummy);
-            break;
-        default : mexErrMsgTxt("Unknown precond_id."); 
-    }
-    
-    if(precond_id == 1){
-        /* Select coarsening strategy */
-        amg_opts c_opt;
-        setCoarseningStructMex(c_opt, pa);
-        setCoarseningAMGCL(prm, "precond.", c_opt);
-    }
-    /* Select relaxation strategy for solver */
-    relax_opts pr_opt;
-    pr_opt.relax_id = relax_id;
-    setRelaxationAMGCL(prm, relaxParam, pr_opt);
-    
-    /* Select solver */
-    solver_opts sol_opt;
-    setSolverStructMex(sol_opt, pa);
-    setSolverAMGCL(prm, "solver.", sol_opt);
-
-    /***************************************
-     *        Solve problem                *
-     ***************************************/
-    auto t1 = std::chrono::high_resolution_clock::now();
-
-
-    amgcl::make_solver<
-        amgcl::runtime::preconditioner<Backend>,
-        amgcl::runtime::solver::wrapper<Backend>
-    > solve(amgcl::adapter::zero_copy(n, &cols[0], &rows[0], &entries[0]), prm, bprm);
-    
-    auto t2 = std::chrono::high_resolution_clock::now();
-    if(verbose){
-        std::cout << "Solver setup took "
-                  << (double)std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count()/1000.0
-                  << " seconds\n";
-    }
-    std::tie(iters, error) = solve(b, x);
-
-    if(verbose){
-        std::cout << solve << std::endl;
     }
 }
 
@@ -559,9 +476,6 @@ void mexFunction( int nlhs, mxArray *plhs[],
             break;
         case 2: 
             solve_cpr(M, cols, rows, entries, pa, b, x, tolerance, maxiter, iters, error);
-            break;
-        case 3:
-            solve_block(M, cols, rows, entries, pa, b, x, tolerance, maxiter, iters, error);
             break;
         default : mexErrMsgTxt("Unknown solver_strategy_id."); 
     }
