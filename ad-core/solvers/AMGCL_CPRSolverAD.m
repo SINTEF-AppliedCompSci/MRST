@@ -34,6 +34,10 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
        
        function [result, report] = solveLinearSystem(solver, A, b)
            [result, report] = solver.callAMGCL_MEX(A, b, 2);
+%            bz = solver.amgcl_setup.block_size;
+%            nc = solver.amgcl_setup.cell_size;
+%            
+%            result(1:bz:(nc*bz)) = result(1:bz:(nc*bz))/(1000*barsa);
        end
        
        function [dx, result, report] = solveLinearProblem(solver, problem, model)
@@ -63,27 +67,46 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
                isCell = problem.indexOfType('cell');
                solver.amgcl_setup.block_size = sum(nv(isCell)/n);
            end
+           solver.amgcl_setup.cell_num = model.G.cells.num;
+           
+           if isa(model, 'ThreePhaseBlackOilModel')
+                sw = model.getProp(problem.state, 'sw');
+                bad = double(sw) <= 1e-8;
+                if any(bad)
+                    for ph = 2:size(problem.state.s, 2)
+                        problem.equations{1}(bad) = problem.equations{1}(bad) + problem.equations{ph}(bad);
+                    end
+                end
+           end
+           solver.amgcl_setup.cell_size = n;
+
            
            % Get and apply scaling
-           if solver.doApplyScalingCPR
-               scale = model.getScalingFactorsCPR(problem, problem.equationNames, solver);
-               % Solver will take the sum for us, we just weight each
-               % equation. Note: This is not the entirely correct way
-               % of doing this, as solver could do this by itself.
-               for i = 1:numel(scale)
-                   if ~strcmpi(problem.types{i}, 'cell')
-                       continue
+           if solver.doApplyScalingCPR  && false
+               if 0
+                   scale = model.getScalingFactorsCPR(problem, problem.equationNames, solver);
+                   % Solver will take the sum for us, we just weight each
+                   % equation. Note: This is not the entirely correct way
+                   % of doing this, as solver could do this by itself.
+                   for i = 1:numel(scale)
+                       if ~strcmpi(problem.types{i}, 'cell')
+                           continue
+                       end
+                       ds = double(scale{i});
+                       if (numel(ds) > 1 || any(ds ~= 0))
+                           problem.equations{i} = problem.equations{i}.*scale{i};
+                       end
                    end
-                   if (numel(scale{i}) > 1 || any(scale{i} ~= 0))
-                       problem.equations{i} = problem.equations{i}.*scale{i};
-                   end
-                   
-                   if isa(model, 'ThreePhaseBlackOilModel')
-                        bad = problem.state.s(:, 1) <= 1e-8;
-                        for ph = 2:size(problem.state.s, 2)
-                            problem.equations{1}(bad) = problem.equations{1}(bad) + problem.equations{ph}(bad);
-                        end
-                   end
+               else
+%                    [A, b] = problem.getLinearSystem();
+%                    A(:, 1:model.G.cells.num) = A(:, 1:model.G.cells.num)*(1000*barsa);
+%                    w = getScalingInternalCPR(solver, model, A, b);
+%                    ix = (1:numel(w))';
+%                    D = sparse(ix, ix, w);
+%                    A = D*A;
+%                    b = D*b;
+%                    problem.A = A;
+%                    problem.b = b;
                end
            end
            m = solver.amgcl_setup.block_size;
@@ -107,7 +130,6 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
                ndof = solver.keepNumber;
            end
            
-           
            if isempty(solver.variableOrdering) || numel(solver.variableOrdering) ~= ndof
                if solver.useSYMRCMOrdering
                    sym_ordering = getGridSYMRCMOrdering(model.G);
@@ -121,7 +143,40 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
                end
            end
        end
+       
+        function [A, b, scaling] = applyScaling(solver, A, b)
+            [A, b, scaling] = applyScaling@LinearSolverAD(solver, A, b);
+            
+           w = getScalingInternalCPR(solver, A, b);
+           ix = (1:numel(w))';
+           D = sparse(ix, ix, w);
+           A = D*A;
+           b = D*b;
+
+        end
+        
+        function x = undoScaling(solver, x, scaling)
+            x = undoScaling@LinearSolverAD(solver, x, scaling);
+        end
    end
+end
+
+function w = getScalingInternalCPR(solver, A, b)
+    [ii, jj, vv] = find(A);
+    
+    bz = solver.amgcl_setup.block_size;
+    nc = solver.amgcl_setup.cell_size;
+    ndof = bz*nc;
+    
+    blockNoI = floor((ii-1)/bz)+1;
+    blockNoJ = floor((jj-1)/bz)+1;
+    
+    keep = blockNoJ >= blockNoI & blockNoJ < (blockNoI+1)  & ii <= ndof & jj <= ndof;
+    Ap = sparse(jj(keep), ii(keep), vv(keep), ndof, ndof);
+    q = zeros(ndof, 1);
+    q(1:bz:ndof) = -1;
+    w = Ap\q;
+    w = [w; ones(size(A, 1)-ndof, 1)];
 end
 
 %{
