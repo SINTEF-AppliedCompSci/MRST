@@ -77,7 +77,6 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
 if numel(G) > 1
    error(msgid('Grid:MultiComponent'), ...
          'Cannot plot more than one grid at a time.');
@@ -112,9 +111,11 @@ end
 
 if isempty(cells)
    warning(msgid('SubGrid:Empty'), ...
-          ['Empty cell selection in ''plotCellData''.', ...
-           '  No graphics for you.'])
+          ['Empty cell selection in ''%s''.', ...
+           '  No graphics for you.'], mfilename);
+
    if nargout > 0, varargout{1} = -1; end
+
    return
 end
 
@@ -125,6 +126,7 @@ if ~isempty(varargin)
    assert (all(iscellstr(varargin(1 : 2 : end))), ...
            'All property names must be strings');
 end
+
 assert (size(data, 1) == G.cells.num || ...
         size(data, 1) == numel(cells),  ...
         'The DATA should have one value for each grid cell in output.');
@@ -133,25 +135,32 @@ if G.griddim == 3
    % Define the boundary to be the boundary faces of the selected subset
    % where the values are not nan.
    selectcells = cells;
-   datanan = any(isnan(data), 2);
-   if any(datanan)
-       selectcells = false(G.cells.num, 1);
-       selectcells(cells) = true;
-       selectcells = find(selectcells & ~datanan);
+   data_nan = any(isnan(data), 2);
+
+   if any(data_nan)
+      selectcells        = false(G.cells.num, 1);
+      selectcells(cells) = true;
+
+      selectcells = find(selectcells & ~data_nan);
    end
+
    [f, c] = boundaryFaces(G, selectcells);
+
    if isCoarseGrid(G)
-         [f, i] = getSubFaces(G, f);
-         c = c(i);
+      [f, i] = getSubFaces(G, f);
+      c = c(i);
    end
+
 else
    % For 1D/2D grids, the faces to plot are the actual individual grid cells.
    [f, c] = deal(cells);
+
    if isCoarseGrid(G)
       f = getSubCells(G, cells);
       c = G.partition(f);
    end
 end
+
 if size(data, 1) < G.cells.num
    renum        = zeros([G.cells.num, 1]);
    renum(cells) = 1 : numel(cells);
@@ -180,6 +189,7 @@ end
 if isCoarseGrid(G)
     G = G.parent;
 end
+
 if G.griddim > 1
     h = plotPatches(G, f, data(c, :), varargin{:});
 else
@@ -187,8 +197,9 @@ else
     d = data(c, :);
     h = plot(x, d, varargin{:});
 end
-if G.griddim==3 || isfield(G.cells,'z')
-   set(get(h, 'Parent'), 'ZDir', 'reverse'),
+
+if (G.griddim == 3) || isfield(G.cells, 'z')
+   set(get(h, 'Parent'), 'ZDir', 'reverse')
 end
 
 if nargout > 0, varargout{1} = h; end
@@ -199,6 +210,8 @@ function [subf, fno] = getSubFaces(G, f)
    subf = G.faces.fconn(ix);
    fno  = rldecode(1:numel(f), G.faces.connPos(f+1)-G.faces.connPos(f), 2)';
 end
+
+%--------------------------------------------------------------------------
 
 function subc = getSubCells(G, c)
    ix    = false(G.cells.num, 1);
