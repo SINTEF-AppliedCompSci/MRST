@@ -56,13 +56,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    inc_rec = read_include_record(fid);
 
    if ischar(inc_rec)
-      [inc_fn, terminated] = extract_filename(inc_rec, fid);
-   end
-
-   % Gobble up keyword-closing '/' character if not already consumed from
-   % input stream.
-   if ~terminated
-      finish_include_record_reading(fid);
+      inc_fn = extract_filename(inc_rec, fid);
    end
 
    inc_fid = open_include_file(inc_fn, dirname);
@@ -89,17 +83,21 @@ end
 %--------------------------------------------------------------------------
 
 function rec = read_include_record(fid)
-   rec = '';
+   tmpl = {'|+|*File+++Name*|+|'};
 
-   while ischar(rec) && isempty(strtrim(rec))
-      rec = fgetl(fid);
-      rec = regexprep(rec, '--.*$', '');
-   end
+   % Function readDefaultedRecord knows about quoted substrings that may
+   % contain slash ('/') charaters and informational comments following the
+   % record termination character.  Leverage that support here.
+   rec = readDefaultedRecord(fid, tmpl);
+
+   % Extract actual INCLUDE keyword data.  Trailing termination character
+   % already discarded by readDefaultedRecord.
+   rec = rec{1};
 end
 
 %--------------------------------------------------------------------------
 
-function [inc_fn, terminated] = extract_filename(lin, fid)
+function inc_fn = extract_filename(lin, fid)
    lin = strtrim(lin);
 
    quotes = strfind(lin, '''');
@@ -121,14 +119,6 @@ function [inc_fn, terminated] = extract_filename(lin, fid)
    else
       % Extract first (hopefully only) non-blank portion of 'lin'.
       inc_fn = sscanf(lin, '%s');
-   end
-
-   p = strfind(lin, '/');
-   if isempty(p)
-      terminated = false;
-   else
-      p = p(end);
-      terminated = (p == numel(lin)) || isspace(lin(p + 1));
    end
 end
 
@@ -164,19 +154,5 @@ function inc_fn = normalise_filename(inc_fn, dirname)
    if ~strcmp(inc_fn(1), filesep)
       % Translate relative pathname to absolute pathname.
       inc_fn = fullfile(dirname, inc_fn);
-   end
-end
-
-%--------------------------------------------------------------------------
-
-function finish_include_record_reading(fid)
-   slash = fscanf(fid, '%s', 1);  % Possibly too weak.
-
-   if ~strcmp(slash, '/')
-      fclose(fid);
-
-      error(msgid('Include:WrongfulTermination'), ...
-           ['INCLUDE keyword not correctly terminated at ', ...
-            'position %lu in file ''%s'''], ftell(fid), fopen(fid));
    end
 end
