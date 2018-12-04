@@ -2,7 +2,7 @@ function vec = readVector_textscan(fid, field, nel)
 %Input vector of floating point numbers from ECLIPSE input file.
 %
 % SYNOPSIS:
-%   v = readVector(fid, field, nel)
+%   v = readVector_textscan(fid, field, nel)
 %
 % PARAMETERS:
 %   fid   - File identifier (as defined by FOPEN) of ECLIPSE input file
