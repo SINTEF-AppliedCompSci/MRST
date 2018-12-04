@@ -65,7 +65,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    end
 
    rstfiles  = matchResultFiles(dname, [fp, '\.X\d{4}']);
-   rstrt     = readEclipseRestart(rstfiles, rstReader, opt);
+   if ~isempty(rstfiles)
+       rstrt     = readEclipseRestart(rstfiles, rstReader, opt);
+   else
+       rstfile = fullfile(dname, [fp, '.UNRST']);
+       rstrt   = readEclipseOutputFileUnFmt(rstfile, 'cellOutput', true);
+   end
 
    is_open_post = fopen('all');
 
