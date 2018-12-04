@@ -84,7 +84,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          [flt(i).mult] = multflt{:, 2};
       end
 
-      i = isfinite([ flt.mult ]) | ([ flt.numf ] > 0);
+      i = isfinite([ flt.mult ]) & ([ flt.numf ] > 0);
       if any(~i)
          % Remove any faults which have not been assigned multipliers or
          % which do not contain any faces.
