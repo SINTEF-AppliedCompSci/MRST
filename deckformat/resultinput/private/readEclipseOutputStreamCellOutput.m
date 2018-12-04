@@ -1,4 +1,4 @@
-function [output, outputLGR] = readEclipseOutputStream(fid, readField, varargin)
+function [output, outputLGR] = readEclipseOutputStreamCellOutput(fid, readField, varargin)
 %Read single ECLIPSE output/result stream
 %
 % SYNOPSIS:
