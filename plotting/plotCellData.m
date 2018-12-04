@@ -85,29 +85,7 @@ end
 assert (sum(size(data, 2) == [1, 3]) == 1 || G.griddim, ...
        'Second input, DATA, must have one or three columns.');
 
-% Default to providing graphical output from all cells in the grid model.
-%
-cells = (1 : G.cells.num) .';
-
-if mod(numel(varargin), 2) == 1
-   % Caller requested graphical output from a particular subset of the grid
-   % cells.  Honour that request, but only if it makes sense in context.
-   %
-   if isnumeric(varargin{1})
-      cells = varargin{1};
-   elseif islogical(varargin{1}) && ...
-         numel(varargin{1}) == G.cells.num
-      cells = find(varargin{1});
-   else
-      error(['Third parameter ''cells'' must either be a list of ', ...
-             'explicit cell indices or a logical mask into the '  , ...
-             'grid''s cells.']);
-   end
-
-   % Strip 'cells' argument off of remaining input argument list.
-   %
-   varargin = varargin(2 : end);
-end
+[cells, varargin] = parse_arguments(G, varargin{:});
 
 if isempty(cells)
    warning(msgid('SubGrid:Empty'), ...
@@ -204,6 +182,41 @@ end
 
 if nargout > 0, varargout{1} = h; end
 end
+
+%--------------------------------------------------------------------------
+
+function [cells, varargin] = parse_arguments(G, varargin)
+% Default to providing graphical output from all cells in the grid model.
+%
+   cells = (1 : G.cells.num) .';
+
+   if mod(numel(varargin), 2) == 1
+      % Caller requested graphical output from a particular subset of the
+      % grid cells.  Honour that request, but only if it makes sense in
+      % context.
+      %
+      if isnumeric(varargin{1})
+
+         cells = varargin{1};
+
+      elseif islogical(varargin{1}) && ...
+            (numel(varargin{1}) == G.cells.num)
+
+         cells = find(varargin{1});
+
+      else
+         error(['Third parameter ''cells'' must either be a list of ', ...
+                'explicit cell indices or a logical mask into the '  , ...
+                'grid''s cells.']);
+      end
+
+      % Strip 'cells' argument off of remaining input argument list.
+      %
+      varargin = varargin(2 : end);
+   end
+end
+
+%--------------------------------------------------------------------------
 
 function [subf, fno] = getSubFaces(G, f)
    ix   = mcolon(G.faces.connPos(f), G.faces.connPos(f+1)-1);
