@@ -27,19 +27,23 @@ function [ws, states, reports] = getPackedSimulatorOutput(problem, varargin)
     else
         fprintf('Did not find data for %s\n', sn);
     end
-    
+    wellOutputMissing = wantWells && wh.numelData() == 0;
     for i = 1:ndata
-        if wantWells && opt.readFromDisk
-            ws{i} = wh{i};
-        end
-        if nargout > 1 && opt.readFromDisk;
+        if (nargout > 1 ||  wellOutputMissing) && opt.readFromDisk
             states{i} = sh{i};
+        end
+        if wantWells && opt.readFromDisk
+            if wellOutputMissing
+                ws{i} = states{i}.wellSol;
+            else
+                ws{i} = wh{i};
+            end
         end
         if nargout > 2 && opt.readFromDisk
             reports{i} = rh{i};
         end
     end
-    
+
     if ~opt.readFromDisk
         % Just return handlers instead
         ws = wh;
