@@ -27,7 +27,7 @@ function [pts, pts_o] = getPoints(sgof)
     % Last point
     pts(3) = sgof(end,1);
     
-    % Get OW-scaling
+    % Get OG-scaling
     pts_o = zeros(1, 3);
     pts_o(3) = 1;
     ii = find(sgof(:,3) == 0, 1, 'first');
