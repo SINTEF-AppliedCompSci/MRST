@@ -21,9 +21,11 @@ classdef AquiferBlackOilModel < ThreePhaseBlackOilModel
                 model.gas = true;
                 model.water = true;
               case 'oilwater'
-                model.oil = true;
-                model.gas = false;
-                model.water = true;
+                model.oil    = true;
+                model.water  = true;
+                model.gas    = false;
+                model.disgas = false;
+                model.vapoil = false;
               otherwise
                 error('modeltype not recognized');
             end
