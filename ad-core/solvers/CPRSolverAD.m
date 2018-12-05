@@ -138,7 +138,6 @@ classdef CPRSolverAD < LinearSolverAD
                 % Switch equations for non-elliptic jacobian components with
                 % some other equation that has an elliptic pressure jacobian
                 [r, c] = find(and(isElliptic(bad, :),~isZeroDiag));
-                %[r, c] = find(isElliptic(bad, :));
                 sb = numel(bad);
                 if sb == 1
                     % Find gets confused for a single element
