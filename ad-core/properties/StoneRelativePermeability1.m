@@ -70,16 +70,19 @@ classdef StoneRelativePermeability1 < GridProperty
         end
     end
     
-    function [s_scale, k_max] = scaleSaturation(prop, pts, phase, reg, f, s)
-        k_max = pts.(phase)(:, 4);
+    function [s_scale, k_max] = scaleSaturation(prop, pts, phase, reg, f, s, cells)
+        if nargin  < 7
+            cells = ':';
+        end
+        k_max = pts.(phase)(cells, 4);
         if prop.relpermPoints == 2 % 2-point
-            [m, c, p] = getTwoPointScalers(pts, phase, reg, f);
+            [m, c, p] = getTwoPointScalers(pts, phase, reg, f, cells);
             ix1 = s < p{1};
             ix2 = s >= p{2};
             ix  = ~or(ix1,ix2);
             s_scale = (ix.*m).*s + (ix.*c + ix2);
         elseif prop.relpermPoints == 3
-            [m, c, p] = getThreePointScalers(pts, phase, reg, f);
+            [m, c, p] = getThreePointScalers(pts, phase, reg, f, cells);
             ix1 = and(s >= p{1}, s < p{2});
             ix2 = and(s >= p{2}, s < p{3});
             ix3 = s >= p{3};
@@ -159,8 +162,8 @@ end
 
 
 
-function [m, c, p] = getTwoPointScalers(pts, ph, reg, f)
-    [get, CR, U] = getSatPointPicker(f, pts, reg);
+function [m, c, p] = getTwoPointScalers(pts, ph, reg, f, cells)
+    [get, CR, U] = getSatPointPicker(f, pts, reg, cells);
     switch ph
         case {'w', 'g'}
             [su, SU] = get(ph, U);
@@ -178,8 +181,8 @@ function [m, c, p] = getTwoPointScalers(pts, ph, reg, f)
     p{2} = SU;
 end
 
-function [m, c, p] = getThreePointScalers(pts, ph, reg, f)
-    [get, CR, U, L] = getSatPointPicker(f, pts, reg);
+function [m, c, p] = getThreePointScalers(pts, ph, reg, f, cells)
+    [get, CR, U, L] = getSatPointPicker(f, pts, reg, cells);
     switch ph
         case 'w'
             [sowcr, SOWCR] = get('ow', CR);
@@ -240,13 +243,13 @@ function [m, c, p] = getThreePointScalers(pts, ph, reg, f)
     end
 end
 
-function [get, CR, U, L] = getSatPointPicker(f, pts, reg)
+function [get, CR, U, L] = getSatPointPicker(f, pts, reg, cells)
     L = 1;
     CR = 2;
     U = 3;
     
     tbl = @(phase, index) f.krPts.(phase)(reg, index);
-    scal = @(phase, index) pts.(phase)(:, index);
+    scal = @(phase, index) pts.(phase)(cells, index);
     get = @(phase, index) getPair(phase, index, tbl, scal);
     
 end
