@@ -2,7 +2,7 @@ classdef StoneRelativePermeability1 < GridProperty
     properties
         relpermScaling = false;
         relpermPoints = 2;
-        immobileChop = true;
+        immobileChop = false;
         regions_imbibition = [];
     end
     
@@ -11,7 +11,7 @@ classdef StoneRelativePermeability1 < GridProperty
             if model.water && model.gas && model.oil
                 kr = prop.relPermWOG(model, state);
             elseif model.water && model.oil
-                
+                kr = prop.relPermWO(model, state);
             elseif model.water && model.gas
                 
             elseif model.oil && model.gas
@@ -45,6 +45,18 @@ classdef StoneRelativePermeability1 < GridProperty
             krO  = wg.*krog + ww.*krow;
         end
         kr = {krW, krO, krG};
+    end
+    
+    function kr = relPermWO(prop, model, state)
+        [sw, so] = model.getProps(state, 'sw', 'so');
+        f = model.fluid;
+        krW = evaluatePhaseRelativePermeability(prop, model, 'w', sw);
+        if isfield(f, 'krO')
+            krO = prop.evaluateFunctionOnGrid(f.krO, so);
+        else
+            krO = evaluatePhaseRelativePermeability(prop, model, 'ow', so);
+        end
+        kr = {krW, krO};
     end
     
     function kr = evaluatePhaseRelativePermeability(prop, model, phase, s)

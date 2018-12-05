@@ -18,11 +18,59 @@ classdef TwoPhaseOilWaterModel < ThreePhaseBlackOilModel
 
         % --------------------------------------------------------------------%
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
+            if 0
             [problem, state] = equationsOilWater(state0, state, model,...
                             dt, ...
                             drivingForces,...
                             varargin{:});
+            else
+                opt = struct('Verbose',     mrstVerbose,...
+                            'reverseMode', false,...
+                            'resOnly',     false,...
+                            'iteration',   -1);
+                opt = merge_options(opt, varargin{:});
 
+
+                % Define primary variables
+                if opt.resOnly
+                    [dyn_state, primaryVars] = model.getDynamicState(state);
+                else
+                    [dyn_state, primaryVars] = model.getForwardDynamicState(state);
+                end
+                % State at previous time-step
+
+                [eqs, names, types] = equationsOilWaterDynamicState(state0, dyn_state, model, dt, drivingForces);
+
+                dissolved = model.getDissolutionMatrix(dyn_state.rs, dyn_state.rv);
+                % Add in and setup well equations
+
+                ws_dyn = dyn_state.wellSol;
+                wellVars = ws_dyn.dynamicVariables(1:end-1);
+                wellMap = ws_dyn.wellmap;
+
+                p = dyn_state.pressure;
+                mob = dyn_state.FlowProps.Mobility;
+                rho = dyn_state.FlowProps.Density;
+                [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, state0.wellSol, state.wellSol, wellVars, wellMap, p, mob, rho, dissolved, {}, dt, opt);
+
+                state.FlowProps = dyn_state.FlowProps.reduce();
+
+                problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
+
+            end
+        end
+        
+        function [dyn_state, primaryVariables] = getForwardDynamicState(model, state)
+            [dyn_state, primaryVariables] = setupDynamicStateOilWater(model, state, true);
+        end
+
+        function [dyn_state, primaryVariables] = getDynamicState(model, state)
+            dyn_state = setupDynamicStateOilWater(model, state, false);
+            primaryVariables = {};
+        end
+
+        function [dyn_state, primaryVariables] = getReverseDynamicState(model, state)
+            [dyn_state, primaryVariables] = setupDynamicStateOilWater(model, state, true);
         end
     end
 end
