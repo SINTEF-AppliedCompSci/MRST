@@ -47,7 +47,7 @@ plotGrid(G)
 
 modelSIF = getSequentialModelFromFI(model);
 
-modelASI = AdaptiveSequentialPressureTransportModel(modelSIF.pressureModel, modelSIF.transportModel, model.G, G, model.rock);
+modelASI = AdaptiveSequentialPressureTransportModel(modelSIF.pressureModel, modelSIF.transportModel, G);
 
 if 0
     s = getSmootherFunction('type', 'ilu', 'iterations', 1);
@@ -58,6 +58,7 @@ if 0
                                       modelASI.pressureModel.fluid,...
                                       modelASI.pressureModel, mssolver);
     modelASI.pressureModel = msmodel;
+    modelASI.pressureModel.pressureModel.other
     modelASI.pressureModel.pressureModel.extraStateOutput = true;
 else
     modelASI.pressureModel.extraStateOutput = true;
@@ -72,6 +73,9 @@ state0C = upscaleState(modelSI.pressureModel, modelSIF.pressureModel, state0);
 
 %%
 
+if 1
+    modelASI.plotProgress = true;
+end
 [wsASI, statesASI, rep] = simulateScheduleAD(state0, modelASI, schedule);
 
 %%
@@ -85,10 +89,6 @@ state0C = upscaleState(modelSI.pressureModel, modelSIF.pressureModel, state0);
 %%
 
 [wsSIF, statesSIF, rep] = simulateScheduleAD(state0, modelSIF, schedule);
-
-%%
-
-[wsFV, statesFV, rep] = simulateScheduleAD(state0, modelFV, schedule);
 
 %%
 
@@ -113,8 +113,8 @@ clr = lines(3);
 
 for sNo = 1:numel(statesASI)
     
+    clf
     subplot(1,3,1)
-    cla;
     hold on
     plotCellData(model.G, statesASI{sNo}.s(:,1), 'edgec', 'none')
     plotGrid(statesASI{sNo}.G, 'facecolor', 'none', 'edgealpha', 0.2);
@@ -146,7 +146,7 @@ for sNo = 1:numel(statesASI)
     xlabel('Time (days)')
     legend({'Coarse', 'Adaptive', 'Reference'}, 'location', 'northwest');
 
-    if 1
+    if 0
         rect = [d, d, fig.Position(3:4) - [d,d]];
         M(sNo) = getframe(fig, rect);
     end
@@ -155,6 +155,18 @@ for sNo = 1:numel(statesASI)
     
 end
 
+%%
+
+pth = mrstPath('dg');
+name = 'spe10-refinement';
+duration = 10;
+vo = VideoWriter(fullfile(pth, name));
+vo.FrameRate = numel(stASI)/duration;
+open(vo);
+
+writeVideo(vo, M);
+
+close(vo)
 
 %%
 
