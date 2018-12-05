@@ -1,4 +1,4 @@
-function [G, mappings] = refineGrid(G, GC, GF, cells)
+function [G, mappings, partition] = refineGrid(G, GC, GF, cells)
 
     % Mappings (fine grid) <-> (old grid)
     partition = G.partition;
@@ -26,6 +26,7 @@ function [G, mappings] = refineGrid(G, GC, GF, cells)
     
     G = generateCoarseGrid(GF, partition);
     G = coarsenGeometry(G);
+    G = storeInteractionRegionCart(G);
     
     new2fine = nan(G.cells.num,1);
     new2fine(partition) = (1:GF.cells.num);
