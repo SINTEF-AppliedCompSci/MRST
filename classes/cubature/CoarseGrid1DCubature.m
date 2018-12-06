@@ -30,7 +30,7 @@ classdef CoarseGrid1DCubature < Cubature
             order = cubature.G.faces.fconn;
             p     = rldecode((1:cubature.G.faces.num)', diff(cubature.G.faces.connPos), 1);
             [~, x, w]  = parentCub.getCubature(order, 'face');
-           
+
             np  = diff(parentCub.pos);            
             np  = accumarray(p, np(order));
             pos = [0;cumsum(np)] + 1;

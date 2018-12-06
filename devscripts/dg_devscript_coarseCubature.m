@@ -3,7 +3,7 @@ mrstModule add dg upr
 %%
 
 usePebi = true;
-n       = 100;
+n       = 20;
 
 if usePebi
     % Create 2D PEBI grid
@@ -13,15 +13,16 @@ if usePebi
             -1, 1];
     G2D = pebiGrid(1/sqrt(n), [2,2], 'polybdr', bdr);
     G2D = computeVEMGeometry(G2D);
-    G2D = computeCellDimensions(G2D);
+    G2D = computeCellDimensions2(G2D);
     
     % Cartesian coarse grid
     G_cart = cartGrid([100, 100]);
-    p_cart = partitionUI(G_cart, [10, 10]);
+    p_cart = partitionUI(G_cart, [2, 2]);
     p_cart = sampleFromBox(G2D, reshape(p_cart, G_cart.cartDims));
     G2D = generateCoarseGrid(G2D, p_cart);
     G2D = coarsenGeometry(G2D);
     G2D = addCoarseCenterPoints(G2D);
+    G2D = coarsenCellDimensions(G2D);
     G2D.name = '2D PEBI';
     
     % Create 3D PEBI grid
@@ -71,9 +72,11 @@ for gNo = 1:numel(grids)
     G = grids{gNo};
     fprintf(['\nTesting cubatures on ', G.name, '...\n']);
     
-    for k = 1:kMax
-        
-        if k == 1
+    for k = 0:kMax
+
+        if k == 0
+            stndrdth = 'th';
+        elseif k == 1
             stndrdth = 'st';
         elseif k == 2
             stndrdth = 'nd';
@@ -85,7 +88,7 @@ for gNo = 1:numel(grids)
     
         if G.griddim == 2
             cubVol = CoarseGrid2DCubature(G, k, []);
-            cubSurf = CoarseGridMomentFitting1DCubature(G, k, []);
+            cubSurf = LineCubature(G, k, []);
         else
             cubVol  = TetrahedronCubature(G, k, []);
             cubSurf = TriangleCubature(G, k, []);

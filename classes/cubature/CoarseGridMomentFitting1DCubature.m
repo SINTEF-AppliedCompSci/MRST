@@ -24,12 +24,7 @@ classdef CoarseGridMomentFitting1DCubature < Cubature
             cubature.weights   = w;
             cubature.numPoints = n;
             % Construct cubature position vector
-            if G.griddim == 2
-                numParents = G.cells.num;
-            else
-                numParents = G.faces.num;
-            end
-            cubature.pos = (0:cubature.numPoints:numParents*cubature.numPoints)' + 1;
+            cubature.pos = (0:cubature.numPoints:cubature.G.faces.num*cubature.numPoints)' + 1;
             
         end
            
@@ -40,49 +35,58 @@ classdef CoarseGridMomentFitting1DCubature < Cubature
             dim    = 1;
             G      = cubature.G;
             % Basis functions used in moment-fitting
-            basis  = dgBasis(dim, cubature.prescision, 'legendre');
-            psi    = basis.psi;
-            nDof   = basis.nDof;
+            basis   = dgBasis(1, cubature.prescision, 'legendre');
+            gradPsi = basis.grad_psi;
+            psi     = basis.psi;
+            nDof    = basis.nDof;
 
             % The starting point is a quadrature for a reference square
             % with more than nDof points
-            k = 0;
+            k = cubature.prescision;
             nS = 0;
+            [x, ~, nS, xR] = getLineCubaturePointsAndWeights(k);
             while nS < nDof
-                [x, ~, nS] = getLineCubaturePointsAndWeights(cubature.prescision + k);
                 k = k+1;
+                [x, ~, nS, xR] = getLineCubaturePointsAndWeights(k);
             end
-            n = size(x,1);
-            % Cubature is either for faces or cells
-            if G.griddim > cubature.dim
-                type = 'face';
-                elements = 1:G.faces.num;
-            else
-                type = 'volume';
-                elements = 1:G.cells.num;
-            end
-
+            
+            
+            cub = LineCubature(G, k, cubature.internalConn);
             % We use known cubature to calculate the moments
-            cubTri = TriangleCubature(G, cubature.prescision, cubature.internalConn);
-            [W, xq, wTri, cellNo, faceNo] = cubTri.getCubature(elements, type);
+            parentCub = LineCubature(G.parent, cubature.prescision, cubature.internalConn);
+%             [~, x, w, ~, faceNo] = cub.getCubature((1:G.faces.num)', 'face');
+            
+            faces = G.faces.fconn;
+            
+            [~, xp, wp, ~, fineFaceNo] = parentCub.getCubature(faces, 'face');
             % Map cubature points to reference coordinates
-            if G.griddim == 3
-                % Map to face reference coordinates
-                vec1  = G.faces.coordSys{1}(faceNo,:);
-                vec2  = G.faces.coordSys{2}(faceNo,:);
-                xq    = xq - G.faces.centroids(faceNo,:);
-                xq    = [sum(xq.*vec1,2), sum(xq.*vec2, 2)];
-                xq    = xq./(G.faces.dx(faceNo,:)/2);
-                count = faceNo;
-                num   = G.faces.num;
-            else
-                % Map to cell reference coordiantes
-                xq    = cubature.transformCoords(xq, cellNo);
-                count = cellNo;
-                num   = G.cells.num;
-            end
+            
+%             xp = (xp - G.parent.faces.centroids(fineFaceNo,:))./(G.parent.faces.areas(fineFaceNo)/2);
+            
+            
+            
+            ix = G.parent.faces.nodes(mcolon(G.parent.faces.nodePos(fineFaceNo), ...
+                                             G.parent.faces.nodePos(fineFaceNo+1)-1));
+            xf = G.parent.nodes.coords(ix,:);
+            x0 = xf(1:2:end,:);
+%             x1 = xf(2:2:end,:);
+            
+            xp = sqrt(sum((xp - x0).^2,2))./G.parent.faces.areas(fineFaceNo).*(xR(2) - xR(1)) + xR(1);
+            
+            faceNof   = rldecode((1:G.faces.num)', diff(G.faces.connPos), 1);
+            np  = diff(parentCub.pos);            
+            np  = accumarray(faceNof, np(faces));
+            
+%             cellNo = 
+%             x     = cubature.transformCoords(x, faceNo);
+%             xp    = cubature.transformCoords(xp, fineFaceNo);
+            num   = G.faces.num;
+            sgn = fineToCoarseSign(G);
+            normals = G.parent.faces.normals./G.parent.faces.areas;
+            normals = normals(fineFaceNo,:).*sgn;
             % Moments
-            M = cellfun(@(p) accumarray(count, wTri.*p(xq)), psi, 'unif', false);
+            M = cellfun(@(p) accumarray(faceNof, wp.*p(xp)), psi, 'unif', false);
+%             M{1} = G.faces.areas;
             % Compute right-hand side
             rhs = zeros(nDof, num);
             tol = eps(mean(G.cells.volumes));
@@ -92,38 +96,66 @@ classdef CoarseGridMomentFitting1DCubature < Cubature
                 rhs(dofNo, :) = m;
             end
             moments = rhs(:);
-
-            moments = moments;%./rldecode(G.cells.volumes, nDof, 1);
-            [x,w,n] = fitMoments(x, basis, moments, num);
-%                 w = w;
             
-            % Map from reference to physical coordinates
-            if strcmp(type, 'face')
-                % Face coordinates
-                faceNo = reshape(repmat((1:G.faces.num), n, 1), [], 1);
-                vec1   = G.faces.coordSys{1}(faceNo,:);
-                vec2   = G.faces.coordSys{2}(faceNo,:);
-                x = repmat(x, G.faces.num, 1).*(G.faces.dx(faceNo,:)/2);
-                x = x(:,1).*vec1 + x(:,2).*vec2;
-                x = x + G.faces.centroids(faceNo,:);
-            else
-                % Cell coordinates
-                cellNo = reshape(repmat((1:G.cells.num), n, 1), [], 1);
-                x = repmat(x, G.cells.num, 1);
-                x = cubature.transformCoords(x, cellNo, true);
-            end
+            normals = G.faces.normals./G.faces.areas;
+            [x,w,n] = fitMoments(x, basis, moments, num, 'reduce', false);
+            
+            x = cubature.mapCoords(x, xR);
+%                 w = w;
+
+%             % Map from reference to physical coordinates
+%             if strcmp(type, 'face')
+%                 % Face coordinates
+%                 faceNo = reshape(repmat((1:G.faces.num), n, 1), [], 1);
+%                 vec1   = G.faces.coordSys{1}(faceNo,:);
+%                 vec2   = G.faces.coordSys{2}(faceNo,:);
+%                 x = repmat(x, G.faces.num, 1).*(G.faces.dx(faceNo,:)/2);
+%                 x = x(:,1).*vec1 + x(:,2).*vec2;
+%                 x = x + G.faces.centroids(faceNo,:);
+%             else
+%                 % Cell coordinates
+%                 cellNo = reshape(repmat((1:G.cells.num), n, 1), [], 1);
+%                 x = repmat(x, G.cells.num, 1);
+%                 x = cubature.transformCoords(x, cellNo, true);
+%             end
             
         end
         
         %-----------------------------------------------------------------%
-        function [xhat, translation, scaling] = transformCoords(cubature, x, cells, inverse)
+        function x = mapCoords(cubature, x, xR)
+            % Map cubatureature points from reference to physical coordinates
+            
+            G     = cubature.G;
+            % Number of line vertices
+            nPts  = 2;
+            % Total number of cubatureature points
+            nq    = size(x,1);
+            nodes = G.faces.nodes(:,1);
+            % Total number of lines
+            nLin  = G.faces.num;
+            % Node coordinates
+            xn = G.nodes.coords(nodes,:);
+            x1 = xn(1:2:end,:);
+            x2 = xn(2:2:end,:);
+            
+            vec = rldecode(x2-x1, nq, 1);
+            x1  = rldecode(x1, nq, 1);
+            
+            x = (repmat(x,nLin,1)-xR(1))./(xR(2) - xR(1)).*vec + x1;
+            % Create mapping
+            
+        end
+        
+        %-----------------------------------------------------------------%
+        function [xhat, translation, scaling] = transformCoords(cubature, x, faces, inverse)
+            
             % Transform to/from reference coordinates
-            G = cubature.G;
-            translation = -G.cells.centroids(cells,:);
-            if isfield(G.cells, 'dx')
-                scaling = 1./(G.cells.dx(cells,:)/2);
+            G = cubature.G.parent;
+            translation = -G.faces.centroids(faces,:);
+            if isfield(G.faces, 'dx')
+                scaling = 1./(G.faces.areas(faces)/2);
             else
-                scaling = 1./(G.cells.diameters(cells)/(2*sqrt(G.griddim)));
+                scaling = 1./(G.faces.diameters(faces)/(2*sqrt(G.griddim-1)));
             end
             
             if nargin < 4 || ~inverse

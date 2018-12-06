@@ -26,8 +26,8 @@ function [G, mappings, partition] = refineGrid(G, GC, GF, cells)
     
     G = generateCoarseGrid(GF, partition);
     G = coarsenGeometry(G);
-    G = storeInteractionRegionCart(G);
-    
+%     G = storeInteractionRegionCart(G);
+%     
     new2fine = nan(G.cells.num,1);
     new2fine(partition) = (1:GF.cells.num);
     fine2new = partition;
