@@ -260,4 +260,7 @@ end
 function [v1, v2] = getPair(phase, index, fn1, fn2)
     v1 = fn1(phase, index);
     v2 = fn2(phase, index);
+    % When scaling values are not given, they fall back to tables values
+    ind = isnan(v2);
+    v2(ind) = v1(ind);
 end
