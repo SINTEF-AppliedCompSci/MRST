@@ -138,7 +138,7 @@ function [pts, present] = getRelPermScaling(rock, deck, prefix, phase)
       % OW or OG relperm has same maximum value
       maxv = [prefix, 'KRO'];
    else
-      maxv = [prefix, 'KR', phase, 'U'];
+      maxv = [prefix, 'KR', phase];
    end
 
    flds = {connate, crit, maxs, maxv};
