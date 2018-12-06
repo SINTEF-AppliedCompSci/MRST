@@ -73,6 +73,7 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
                 sw = model.getProp(problem.state, 'sw');
                 bad = double(sw) <= 1e-8;
                 if any(bad)
+                    sum(bad)
                     for ph = 2:size(problem.state.s, 2)
                         problem.equations{1}(bad) = problem.equations{1}(bad) + problem.equations{ph}(bad);
                     end
@@ -83,7 +84,7 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
            
            % Get and apply scaling
            if solver.doApplyScalingCPR  && false
-               if 0
+               if 1
                    scale = model.getScalingFactorsCPR(problem, problem.equationNames, solver);
                    % Solver will take the sum for us, we just weight each
                    % equation. Note: This is not the entirely correct way
@@ -98,15 +99,6 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
                        end
                    end
                else
-%                    [A, b] = problem.getLinearSystem();
-%                    A(:, 1:model.G.cells.num) = A(:, 1:model.G.cells.num)*(1000*barsa);
-%                    w = getScalingInternalCPR(solver, model, A, b);
-%                    ix = (1:numel(w))';
-%                    D = sparse(ix, ix, w);
-%                    A = D*A;
-%                    b = D*b;
-%                    problem.A = A;
-%                    problem.b = b;
                end
            end
            m = solver.amgcl_setup.block_size;
@@ -147,21 +139,38 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
         function [A, b, scaling] = applyScaling(solver, A, b)
             [A, b, scaling] = applyScaling@LinearSolverAD(solver, A, b);
             
-           w = getScalingInternalCPR(solver, A, b);
-           ix = (1:numel(w))';
-           D = sparse(ix, ix, w);
-           A = D*A;
-           b = D*b;
-
+            if solver.amgcl_setup.use_drs
+                [w, ndof] = getScalingInternalCPR(solver, A, b);
+                solver.amgcl_setup.drs_row_weights = w(1:ndof);
+            end
+            if 0
+                w = getScalingInternalCPR(solver, A, b);
+                ix = (1:numel(w))';
+                D = sparse(ix, ix, w);
+                A = D*A;
+                b = D*b;
+            end
         end
         
         function x = undoScaling(solver, x, scaling)
             x = undoScaling@LinearSolverAD(solver, x, scaling);
         end
+        
+        function M = getDiagonalInverse(solver, A)
+            % Reciprocal of diagonal matrix
+            sz = size(A);
+            assert(sz(1) == sz(2), 'Matrix must be square!');
+            n = sz(1);
+%             d = 1./diag(A);
+            d = 1./abs(diag(A));
+            d(~isfinite(d)) = 1;
+            I = (1:n)';
+            M = sparse(I, I, d, n, n);
+        end
    end
 end
 
-function w = getScalingInternalCPR(solver, A, b)
+function [w, ndof] = getScalingInternalCPR(solver, A, b)
     [ii, jj, vv] = find(A);
     
     bz = solver.amgcl_setup.block_size;
@@ -174,7 +183,7 @@ function w = getScalingInternalCPR(solver, A, b)
     keep = blockNoJ >= blockNoI & blockNoJ < (blockNoI+1)  & ii <= ndof & jj <= ndof;
     Ap = sparse(jj(keep), ii(keep), vv(keep), ndof, ndof);
     q = zeros(ndof, 1);
-    q(1:bz:ndof) = -1;
+    q(1:bz:(ndof - bz + 1)) = 1;
     w = Ap\q;
     w = [w; ones(size(A, 1)-ndof, 1)];
 end
