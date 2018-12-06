@@ -116,11 +116,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     phases = {'Water', 'Oil', 'Gas'};
     for it = 1:numel(phases)
         ph = phases{it};
-        if model.(lower(ph));
+        if model.(lower(ph))
             names = [names, [ph, ' viscosity'], ...
                             [ph, ' b-factor']];                            %#ok<AGROW>
             functions = [functions, ...
-                {@(name) plot2D_property(model, {['mu', ph(1)]}, name), ...
+               {@(name) plot2D_property(model, {['mu', ph(1)]}, name), ...
                 @(name) plot2D_property(model, {['b', ph(1)]}, name)}];          %#ok<AGROW>
         end
     end
@@ -151,8 +151,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         axis on
         f = model.fluid;
         p = opt.pressureRange;
-        s = subdiv(0, 1);
-        arg = {'cellInx', ones(size(s))};
+        nval = numel(p);
+        s = subdiv(0, 1, nval);
+        arg = {'cellInx', ones(nval, 1)};
 
         rsMax = 0;
         rvMax = 0;
@@ -338,10 +339,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     function plot3phRelPerm(model, name, ix)                               %#ok<INUSL>
         cla;
-        s = subdiv(0, 1, 50);
+        ns = 50;
+        s = subdiv(0, 1, ns);
         [x, y] = meshgrid(s);
         [krW, krO, krG] = ...
-            model.relPermWOG(x(:), 1-x(:)-y(:), y(:), model.fluid, 'cellInx', 1);
+            model.relPermWOG(x(:), 1-x(:)-y(:), y(:), model.fluid, 'cellInx', ones(ns*ns, 1));
         
         % If sW and sG sum up to more than unity, pad with NaN.
         unphys = x + y > 1;
@@ -377,7 +379,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         if nargin < 3
             n = 100;
         end
-        dx = (stop - start)/n;
+        dx = (stop - start)/(n-1);
         x = (start:dx:stop)';
     end
 
