@@ -5,6 +5,7 @@ function lsolve = selectLinearSolverAD(model, varargin)
                  'useSYMRCMOrdering',   true,...
                  'useCPR',              true, ...
                  'useAMGCLCPR',         true, ...
+                 'BackslashThreshold',  10000, ...
                  'tolerance',           1e-4);
     [opt, solver_arg] = merge_options(opt, varargin{:});
     solver_arg = ['tolerance', opt.tolerance, solver_arg];
@@ -15,13 +16,13 @@ function lsolve = selectLinearSolverAD(model, varargin)
     end
     ncomp = getComponentCount(model);
     ndof = ncomp*model.G.cells.num;
-    if ndof  < 10000
+    if ndof <= opt.BackslashThreshold
         % We do not need a custom linear solver
         return
     end
     isDiagonal = isa(model.AutoDiffBackend, 'DiagonalAutoDiffBackend');
     
-    if opt.useAMGCLCPR && opt.useAMGCL
+    if opt.useAMGCLCPR && opt.useAMGCL && opt.useCPR
         % AMGCL CPR
         lsolve = AMGCL_CPRSolverAD('maxIterations', 50,...
                                    'block_size', ncomp,...
