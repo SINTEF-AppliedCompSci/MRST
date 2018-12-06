@@ -5,33 +5,37 @@ end
 function [krG, krOG, pcOG, pts, pts_o] = getFunctions(f, SGOF, reg)
     [krG, krOG, pcOG] = deal(cell(1, reg.sat));
     
-    [pts, pts_o] = deal(zeros(reg.sat, 3));
+    [pts, pts_o] = deal(zeros(reg.sat, 4));
     for i = 1:reg.sat
         [pts(i, :), pts_o(i, :)] = getPoints(SGOF{i});
-        swof = extendTab(SGOF{i});
-        SG = swof(:, 1);
-        krG{i} = @(sg) interpTable(SG, swof(:, 2), sg);
+        sgof = extendTab(SGOF{i});
+        SG = sgof(:, 1);
+        krG{i} = @(sg) interpTable(SG, sgof(:, 2), sg);
 
-        krOG{i} = @(so) interpTable(SG, swof(:, 3), 1-so-f.krPts.w(i, 1));
-        pcOG{i} = @(sg) interpTable(SG, swof(:, 4), sg);
+        krOG{i} = @(so) interpTable(SG, sgof(:, 3), 1-so-f.krPts.w(i, 1));
+        pcOG{i} = @(sg) interpTable(SG, sgof(:, 4), sg);
     end
 end
 
 function [pts, pts_o] = getPoints(sgof)
     % Connate gas saturation
-    pts = zeros(1, 3);
+    pts = zeros(1, 4);
     pts(1) = sgof(1, 1);
     % Last mobile gas saturation
     ii = find(sgof(:,2)==0, 1, 'last');
     pts(2) = sgof(ii,1);
     % Last point
     pts(3) = sgof(end,1);
+    % Maximum relperm
+    pts(4) = sgof(end,2);
     
     % Get OG-scaling
-    pts_o = zeros(1, 3);
+    pts_o = zeros(1, 4);
     pts_o(3) = 1;
     ii = find(sgof(:,3) == 0, 1, 'first');
     pts_o(2) = 1 - sgof(ii,1);
+    % Maximum oil relperm
+    pts_o(4) = sgof(1,3);
 end
 
 
