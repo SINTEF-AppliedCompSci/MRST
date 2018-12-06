@@ -1,21 +1,19 @@
 function f = assignPVDO(f, pvdo, reg)
-   cfun    = @(f) cellfun(f, pvdo, 'UniformOutput', false);
+    [f.bO, f.muO] = getFunctions(f, pvdo, reg);
+end
 
-   % Compute tables (static data)
-   TbO     = cfun(@(x) [x(:,1), 1 ./ x(:,2)]);
-   TmuO    = cfun(@(x) x(:, [1, 3]));
-   TBOxmuO = cfun(@(x) [x(:,1), prod(x(:, [2, 3]), 2)]);
 
-   % Region mapping
-   regmap = @(po, varargin) ...
-      getRegMap(po, reg.PVTNUM, reg.PVTINX, varargin{:});
-
-   % Region interpolator
-   ireg = @(T, po, varargin) interpReg(T, po, regmap(po, varargin{:}));
-
-   f.bO     = @(po, varargin) ireg(TbO,     po, varargin{:});
-   f.muO    = @(po, varargin) ireg(TmuO,    po, varargin{:});
-   f.BoxmuO = @(po, varargin) ireg(TBOxmuO, po, varargin{:});
+function [bO, muO] = getFunctions(f, PVDO, reg)
+    [bO, muO] = deal(cell(1, reg.pvt));
+    
+    for i = 1:reg.pvt
+        pvdo = PVDO{i};
+        p = pvdo(:, 1);
+        BO = pvdo(:, 2);
+        muo = pvdo(:, 3);
+        bO{i}  = @(po) interpTable(p, 1./BO, po);
+        muO{i} = @(po) interpTable(p, muo, po);
+    end
 end
 
 %{
