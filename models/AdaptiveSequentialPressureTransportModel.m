@@ -123,8 +123,8 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
             
              % Refine grid
             [G, mappings, partition] = refineGrid(GC, GC, GF, cells);
-            
             model.transportModel = upscaleModelTPFA(model.transportModel, partition);
+            model.transportModel.G.cells.ghost = false(G.cells.num,1);
             
             state  = model.upscaleState(state);
             state0 = model.upscaleState(state0);
