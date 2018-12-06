@@ -169,8 +169,16 @@ function [m, c, p, k] = getTwoPointScalers(pts, ph, reg, f, cells)
         case {'w', 'g'}
             [su, SU] = get(ph, U);
         case {'ow', 'og'}
-            [swl, SWL] = get('w', L);
-            [sgl, SGL] = get('g', L);
+            if isfield(f.krPts, 'w')
+                [swl, SWL] = get('w', L);
+            else
+                swl = 0; SWL = 0;
+            end
+            if isfield(f.krPts, 'g')
+                [sgl, SGL] = get('g', L);
+            else
+                sgl = 0; SGL = 0;
+            end
             SU = 1 - SWL - SGL;
             su = 1 - swl - sgl;
     end
