@@ -39,7 +39,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 %     den = 1 - sr_tot;
 %     fn = @(s) kwm*max(min(((s - sr)./den), 1), 0).^n;
-    fn = @(s) coreyRelperm(s, n, sr, kwm, sr_tot);
+    fn = @(s, varargin) coreyRelperm(s, n, sr, kwm, sr_tot);
 end
 
 function kr = coreyRelperm(s, n, sr, kwm, sr_tot)
