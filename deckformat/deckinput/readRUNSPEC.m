@@ -82,6 +82,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                 'UniformOutput', false);
             rspec.(kw) = data;  clear tmpl
 
+         case 'PATHS'
+            if ~isfield(rspec, kw), rspec.(kw) = cell([0, 2]); end
+
+            tmpl       = { '|+|*ALIAS*|+|', '|+|*ACTUAL DIR*|+|' };
+            rspec.(kw) = [ rspec.(kw) ; readDefaultedKW(fid, tmpl) ];
+
+            clear tmpl
+
          case 'REGDIMS',
             tmpl = { '1', '1', '0', '0', '0', '1', '0', '0', '0' };
             data = readDefaultedRecord(fid, tmpl);
@@ -210,11 +218,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
             deck = readGRID(fid, dirname, deck);
 
-         case 'INCLUDE',
+         case 'INCLUDE'
             % Handle 'INCLUDE' (recursion).
             deck = set_state(deck, rspec, miss_kw);
 
-            deck = readEclipseIncludeFile(@readRUNSPEC, fid, dirname, deck);
+            deck = readEclipseIncludeFile(@readRUNSPEC, fid, dirname, ...
+                                          deck.RUNSPEC, deck);
 
             % Prepare for additional reading.
             [rspec, miss_kw] = get_state(deck);

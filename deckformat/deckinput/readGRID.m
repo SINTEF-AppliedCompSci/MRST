@@ -264,11 +264,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
             deck = readPROPS(fid, dirname, deck);
 
-         case 'INCLUDE',
+         case 'INCLUDE'
             % Handle 'INCLUDE' (recursion).
             deck = set_state(deck, grd, miss_kw);
 
-            deck = readEclipseIncludeFile(@readGRID, fid, dirname, deck);
+            deck = readEclipseIncludeFile(@readGRID, fid, dirname, ...
+                                          deck.RUNSPEC, deck);
 
             [grd, miss_kw] = get_state(deck);
 

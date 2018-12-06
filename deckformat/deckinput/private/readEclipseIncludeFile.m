@@ -1,8 +1,8 @@
-function varargout = readEclipseIncludeFile(fun, fid, dirname, varargin)
+function varargout = readEclipseIncludeFile(fun, fid, dirname, rspec, varargin)
 %Read an ECLIPSE INCLUDE file.
 %
 % SYNOPSIS:
-%   [ret{1:nret}] = readEclipseIncludeFile(fun, fid, dirname, ...)
+%   [ret{1:nret}] = readEclipseIncludeFile(fun, fid, dirname, rspec, ...)
 %
 % PARAMETERS:
 %   fun     - Callback function handle.  Assumed to support the syntax
@@ -24,6 +24,9 @@ function varargout = readEclipseIncludeFile(fun, fid, dirname, varargin)
 %
 %   dirname - Complete directory name of file from which the input file
 %             identifier 'fid' was derived through FOPEN.
+%
+%   rspec   - RUNSPEC section of current simulation case.  Needed to handle
+%             pathname aliases entered in the PATHS keyword.
 %
 %   ...     - Additional function parameters.  These parameters will be
 %             passed unchanged on to function 'fun'.
@@ -59,7 +62,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       inc_fn = extract_filename(inc_rec, fid);
    end
 
-   inc_fid = open_include_file(inc_fn, dirname);
+   inc_fid = open_include_file(inc_fn, dirname, rspec);
 
    try
       % Call back to our (likely) caller with the new file.
@@ -124,12 +127,12 @@ end
 
 %--------------------------------------------------------------------------
 
-function inc_fid = open_include_file(inc_fn, dirname)
+function inc_fid = open_include_file(inc_fn, dirname, rspec)
    if strcmp(inc_fn(end), '/')
       inc_fn = inc_fn(1 : end - 1);
    end
 
-   inc_fn = normalise_filename(inc_fn, dirname);
+   inc_fn = normalise_filename(inc_fn, dirname, rspec);
 
    [inc_fid, msg] = fopen(inc_fn, 'rt');
    if inc_fid < 0
@@ -140,11 +143,21 @@ end
 
 %--------------------------------------------------------------------------
 
-function inc_fn = normalise_filename(inc_fn, dirname)
+function inc_fn = normalise_filename(inc_fn, dirname, rspec)
    if ~isempty(regexp(inc_fn, regexptranslate('escape', '\'), 'once'))
       % The filename has Windows-style directory name separators.
       % Guarantee forward slashes only.
       inc_fn = regexprep(inc_fn, regexptranslate('escape', '\'), '/');
+   end
+
+   if ~isempty(regexp(inc_fn, dollar(), 'once'))
+      if isfield(rspec, 'PATHS')
+         inc_fn = substitute_path_aliases(inc_fn, rspec.PATHS);
+      else
+         error('PathAlias:Missing', ...
+              ['Include File Name ''%s'' References a Path Alias ', ...
+               'But Simulation Case Does Not Define PATHS'], inc_fn);
+      end
    end
 
    % Replace forward slashes with native directory name separators (no
@@ -155,4 +168,46 @@ function inc_fn = normalise_filename(inc_fn, dirname)
       % Translate relative pathname to absolute pathname.
       inc_fn = fullfile(dirname, inc_fn);
    end
+end
+
+%--------------------------------------------------------------------------
+
+function inc_fn = substitute_path_aliases(inc_fn, paths)
+   for alias = regexp(inc_fn, [dollar(), '(\w{1,8})'], 'tokens')
+      inc_fn = substitute_single_alias(inc_fn, alias{1}{1}, paths);
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function patt = dollar()
+   patt = regexptranslate('escape', '$');
+end
+
+%--------------------------------------------------------------------------
+
+function inc_fn = substitute_single_alias(inc_fn, alias, paths)
+   i = strcmp(alias, paths(:,1));
+
+   nmatch = sum(i);
+
+   if nmatch == 1
+      inc_fn = strrep(inc_fn, ['$', alias], paths{i, 2});
+   else
+      substitution_failure(nmatch, alias);
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function substitution_failure(nmatch, alias)
+   msg = ['Unable to Substitute Path Alias ''$', alias, ''': '];
+
+   if nmatch < 1
+      msg = [ msg, 'No Matching Alias in PATHS Keyword' ];
+   else
+      msg = [ msg, 'More Than One Matching Alias in PATHS Keyword' ];
+   end
+
+   error('PathAlias:SubstituteFailure', msg);
 end
