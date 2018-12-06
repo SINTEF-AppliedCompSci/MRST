@@ -129,7 +129,7 @@ end
 function [pts, present] = getRelPermScaling(rock, deck, prefix, phase)
    nc = size(rock.poro, 1);
    % Connate, critical, first s for max kr, max kr
-   pts = repmat([0, 0, 1, 1], nc, 1);
+   pts = repmat([NaN, NaN, NaN, NaN], nc, 1);
 
    connate = [prefix, 'S', phase, 'L'];
    crit = [prefix, 'S', phase, 'CR'];
