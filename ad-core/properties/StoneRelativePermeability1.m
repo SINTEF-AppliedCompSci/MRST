@@ -164,14 +164,14 @@ end
 
 
 function [m, c, p, k] = getTwoPointScalers(pts, ph, reg, f, cells)
-    [get, CR, U, ~, KM] = getSatPointPicker(f, pts, reg, cells);
+    [get, CR, U, L, KM] = getSatPointPicker(f, pts, reg, cells);
     switch ph
         case {'w', 'g'}
             [su, SU] = get(ph, U);
         case {'ow', 'og'}
-            [swl, SWL] = get('w', U);
-            [sgl, SGL] = get('g', U);
-            SU   = 1 - SWL - SGL;
+            [swl, SWL] = get('w', L);
+            [sgl, SGL] = get('g', L);
+            SU = 1 - SWL - SGL;
             su = 1 - swl - sgl;
     end
     [scr, SCR] = get(ph, CR);
