@@ -593,7 +593,7 @@ function w = readWPolymer(fid, w)
    data = readDefaultedKW(fid, template);
    data = toDouble(data, numeric);
 
-   w.WPOLYMER = appendSpec(w.WPOLYMER, data, w.WELSPECS(:,1));
+   w.WPOLYMER = appendSpec(w.WPOLYMER, 'WPOLYMER', data, w.WELSPECS(:,1));
 end
 
 %--------------------------------------------------------------------------
@@ -606,7 +606,7 @@ function w = readWSurfact(fid, w)
    data = readDefaultedKW(fid, template);
    data = toDouble(data, numeric);
 
-   w.WSURFACT = appendSpec(w.WSURFACT, data, w.WELSPECS(:,1));
+   w.WSURFACT = appendSpec(w.WSURFACT, 'WSURFACT', data, w.WELSPECS(:,1));
 end
 
 %--------------------------------------------------------------------------
@@ -619,7 +619,7 @@ function w = readWSolvent(fid, w)
    data = readDefaultedKW(fid, template);
    data = toDouble(data, numeric);
 
-   w.WSOLVENT = appendSpec(w.WSOLVENT, data, w.WELSPECS(:,1));
+   w.WSOLVENT = appendSpec(w.WSOLVENT, 'SOLVENT', data, w.WELSPECS(:,1));
 end
 
 %--------------------------------------------------------------------------
@@ -632,7 +632,7 @@ function w = readWTemp(fid, w)
    data = readDefaultedKW(fid, template);
    data = toDouble(data, numeric);
 
-   w.WTEMP = appendSpec(w.WTEMP, data, w.WELSPECS(:,1));
+   w.WTEMP = appendSpec(w.WTEMP, 'WTEMP', data, w.WELSPECS(:,1));
 end
 
 %--------------------------------------------------------------------------
