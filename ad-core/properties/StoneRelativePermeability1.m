@@ -63,25 +63,26 @@ classdef StoneRelativePermeability1 < GridProperty
         fn = model.fluid.(['kr', upper(phase)]);
         f = model.fluid;
         if prop.relpermScaling
-            [ss, kr_max] = prop.scaleSaturation(model.rock.krscale.drainage, phase, prop.regions, f, s);
-            kr = kr_max.*prop.evaluateFunctionOnGrid(fn, ss);
+            [ss, kr_max_m] = prop.scaleSaturation(model.rock.krscale.drainage, phase, prop.regions, f, s);
+            kr = kr_max_m.*prop.evaluateFunctionOnGrid(fn, ss);
         else
             kr = prop.evaluateFunctionOnGrid(fn, s);
         end
     end
     
-    function [s_scale, k_max] = scaleSaturation(prop, pts, phase, reg, f, s, cells)
+    function [s_scale, k_max_m] = scaleSaturation(prop, pts, phase, reg, f, s, cells)
         if nargin  < 7
             cells = ':';
         end
-        k_max = pts.(phase)(cells, 4);
         if prop.relpermPoints == 2 % 2-point
-            [m, c, p] = getTwoPointScalers(pts, phase, reg, f, cells);
+            [m, c, p, k] = getTwoPointScalers(pts, phase, reg, f, cells);
             ix1 = s < p{1};
             ix2 = s >= p{2};
             ix  = ~or(ix1,ix2);
             s_scale = (ix.*m).*s + (ix.*c + ix2);
+            k_max_m = k{2}./k{1};
         elseif prop.relpermPoints == 3
+            warning('max kr scaling not implemented');
             [m, c, p] = getThreePointScalers(pts, phase, reg, f, cells);
             ix1 = and(s >= p{1}, s < p{2});
             ix2 = and(s >= p{2}, s < p{3});
@@ -162,8 +163,8 @@ end
 
 
 
-function [m, c, p] = getTwoPointScalers(pts, ph, reg, f, cells)
-    [get, CR, U] = getSatPointPicker(f, pts, reg, cells);
+function [m, c, p, k] = getTwoPointScalers(pts, ph, reg, f, cells)
+    [get, CR, U, ~, KM] = getSatPointPicker(f, pts, reg, cells);
     switch ph
         case {'w', 'g'}
             [su, SU] = get(ph, U);
@@ -179,6 +180,7 @@ function [m, c, p] = getTwoPointScalers(pts, ph, reg, f, cells)
     m    = (su-scr)./(SU-SCR);
     c    = scr - SCR.*m;
     p{2} = SU;
+    [k{1}, k{2}] = get(ph, KM);
 end
 
 function [m, c, p] = getThreePointScalers(pts, ph, reg, f, cells)
@@ -243,10 +245,11 @@ function [m, c, p] = getThreePointScalers(pts, ph, reg, f, cells)
     end
 end
 
-function [get, CR, U, L] = getSatPointPicker(f, pts, reg, cells)
-    L = 1;
+function [get, CR, U, L, KM] = getSatPointPicker(f, pts, reg, cells)
+    L  = 1;
     CR = 2;
-    U = 3;
+    U  = 3;
+    KM = 4;
     
     tbl = @(phase, index) f.krPts.(phase)(reg, index);
     scal = @(phase, index) pts.(phase)(cells, index);
