@@ -25,7 +25,8 @@ function G = coarsenCellDimensions(G)
     x = x(ix(:),:);
      
     G.nodes.coords = x;
-    G.faces.nodes = (1:size(x,1))';
+    G.nodes.num    = size(x,1);
+    G.faces.nodes  = (1:size(x,1))';
     
     stp = 2*(G.griddim-1);
     

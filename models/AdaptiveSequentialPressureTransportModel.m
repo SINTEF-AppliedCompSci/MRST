@@ -98,17 +98,7 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
                 
                 % Map transport quantities onto fine grid to prepare for
                 % next pressure solve
-                varNames = getTransportVarNames();
-                p     = model.transportModel.G.partition;
-                st    = state;
-                state = statePressure;
-                state.G = st.G;
-                for vNo = 1:numel(varNames)
-                    vn = varNames{vNo};
-                    if isfield(state, vn)
-                        state.(vn) = st.(vn)(p,:);
-                    end
-                end
+                state = model.refineState(state, statePressure);
                 
             else
                 transport_ok = false;
@@ -121,7 +111,8 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
             GF = model.fineTransportModel.G;
             GC = model.coarseTransportModel.G;
             
-             % Refine grid
+            % Refine grid
+            
             [G, mappings, partition] = refineGrid(GC, GC, GF, cells);
             model.transportModel = upscaleModelTPFA(model.transportModel, partition);
             model.transportModel.G.cells.ghost = false(G.cells.num,1);
@@ -179,12 +170,27 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
             state.s        = S*(pvbf.*state.s)./(S*pvbf);
 
             cFsign   = fineToCoarseSign(G);
-            cFacesno = rldecode(1:G.faces.num, diff(G.faces.connPos), 2) .';
+            cFacesno = rldecode(1:G.faces.num, diff(G.faces.connPos), 2).';
             newFlux = zeros(G.faces.num, size(state.flux, 2));
             for i = 1:size(state.flux, 2)
                 newFlux(:, i)   = accumarray(cFacesno, state.flux(G.faces.fconn, i) .* cFsign);
             end
             state.flux = newFlux;
+        end
+        
+        function refineState(model, state, statef)
+            
+            varNames = getTransportVarNames();
+            p     = model.transportModel.G.partition;
+            st    = state;
+            state = statef;
+            state.G = st.G;
+            for vNo = 1:numel(varNames)
+                vn = varNames{vNo};
+                if isfield(state, vn)
+                    state.(vn) = st.(vn)(p,:);
+                end
+            end
         end
 
     end

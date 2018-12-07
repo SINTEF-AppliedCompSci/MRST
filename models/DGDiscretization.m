@@ -1,11 +1,11 @@
-classdef DGDiscretization < WENODiscretization
+classdef DGDiscretization < HyperbolicDiscretization
     
     properties
 
         degree              % Degree of discretization, dG(degree)
         basis               % Type of basis functions. Standard is tensor 
                             % products of Legendre polynomials.
-%         dim                 % Dimension of disc to facilitate e.g. 2D 
+        dim                 % Dimension of disc to facilitate e.g. 2D 
                             % simulations on horizontal slice of 3D
                             % reservoir
         
@@ -40,14 +40,15 @@ classdef DGDiscretization < WENODiscretization
         %-----------------------------------------------------------------%
         function disc = DGDiscretization(model, varargin)
             
-            disc = disc@WENODiscretization(model, model.G.griddim, 'includeBoundary', true);
+%             disc = disc@WENODiscretization(model, model.G.griddim, 'includeBoundary', true);
+            disc = disc@HyperbolicDiscretization(model);
             
             G = disc.G;
             
             % Standard dG properties
             disc.degree = 1;
             disc.basis  = 'legendre';
-%             disc.dim    = G.griddim;
+            disc.dim    = G.griddim;
             
             % Limiter tolerances
             disc.jumpTolerance = 0.2;
@@ -77,25 +78,30 @@ classdef DGDiscretization < WENODiscretization
             
             % Create cubatures
             prescision = disc.degree + 1;
+            isCoarse   = isfield(G, 'parent');
             if G.griddim == 2
-                if disc.degree == 0 || disc.useUnstructCubature
-%                     disc.volumeCubature = Unstruct2DCubature(G, prescision, disc.internalConn);
-                    disc.volumeCubature = MomentFitting2DCubature(G, prescision, disc.internalConn);
+                if isCoarse
+                    volCub  = CoarseGrid2DCubature(G, prescision, disc.internalConn);
                 else
-                    disc.volumeCubature = TriangleCubature(G, prescision, disc.internalConn);
+                    if disc.degree == 0 || disc.useUnstructCubature
+                        volCub = MomentFitting2DCubature(G, prescision, disc.internalConn);
+                    else
+                        volCub = TriangleCubature(G, prescision, disc.internalConn);
+                    end
                 end
-                disc.surfaceCubature = LineCubature(G, prescision, disc.internalConn);
+                surfCub = LineCubature(G, prescision, disc.internalConn);
             else
                 if disc.degree == 0 || disc.useUnstructCubature
-%                     disc.volumeCubature  = Unstruct3DCubature(G, prescision, disc.internalConn);
-%                     disc.surfaceCubature = Unstruct2DCubature(G, prescision, disc.internalConn);
-                    disc.volumeCubature  = MomentFitting3DCubature(G, prescision, disc.internalConn);
-                    disc.surfaceCubature = MomentFitting2DCubature(G, prescision, disc.internalConn);
+                    volCub  = MomentFitting3DCubature(G, prescision, disc.internalConn);
+                    surfCub = MomentFitting2DCubature(G, prescision, disc.internalConn);
                 else
-                    disc.volumeCubature  = TetrahedronCubature(G, prescision, disc.internalConn);
-                    disc.surfaceCubature = TriangleCubature(G, prescision, disc.internalConn);
+                    volCub  = TetrahedronCubature(G, prescision, disc.internalConn);
+                    surfCub = TriangleCubature(G, prescision, disc.internalConn);
                 end
             end
+            
+            disc.volumeCubature  = volCub;
+            disc.surfaceCubature = surfCub;
             
         end
         

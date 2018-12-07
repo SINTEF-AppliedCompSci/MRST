@@ -1,6 +1,6 @@
 mrstModule add dg vem vemmech ad-props ad-core ad-blackoil       ...
     blackoil-sequential gasinjection mrst-gui reorder matlab_bgl ...
-    coarsegrid incomp
+    coarsegrid incomp upr msrsb
 mrstVerbose on;
 
 %%
@@ -25,12 +25,13 @@ p_cart = sampleFromBox(GF, reshape(p_cart, G_cart.cartDims));
 GC = generateCoarseGrid(GF, p_cart);
 GC = coarsenGeometry(GC);
 GC = coarsenCellDimensions(GC);
-GC = storeInteractionRegionCart(GC);
+% GC = storeInteractionRegionCart(GC);
 
 %%
 
 close all
 [G, map1] = refineGrid(GC, GC, GF, [1, GC.cells.num]');
+G = coarsenCellDimensions(G);
 G.cells.ghost = false(G.cells.num,1);
 GF.cells.ghost = false(GF.cells.num,1);
 
@@ -38,17 +39,18 @@ GF.cells.ghost = false(GF.cells.num,1);
 %%
 
 rock  = makeRock(G, 100*milli*darcy, 1);
-
+rockF = makeRock(GF, 100*milli*darcy, 1);
 
 fluid = initSimpleADIFluid('phases', 'WO'                      , ...
                            'rho'   , [1000, 1]*kilogram/meter^3, ...
                            'mu'    , [0.5, 0.5]*centi*poise    , ...
                            'n'     , [1, 1]                    );
 
-modelFIF  = TwoPhaseOilWaterModel(GF, rockF, fluid);
-modelSIF  = getSequentialModelFromFI(modelFIF);                       
+modelFIF = TwoPhaseOilWaterModel(GF, rockF, fluid);
+modelSIF = getSequentialModelFromFI(modelFIF);                       
 modelFI  = TwoPhaseOilWaterModel(G, rock, fluid);
 modelSI  = getSequentialModelFromFI(modelFI);
+modelDG  = getSequentialModelFromFI(modelFI);
 modelASI = AdaptiveSequentialPressureTransportModel(modelSIF.pressureModel, modelSIF.transportModel, G);
 % modelASI.transportModel = TransportOilWaterModel(G, rock, fluid);
 
@@ -65,7 +67,9 @@ if 0
 end
 
 [jt, ot, mt] = deal(Inf);
-degree = 1;
+mt = 1e-3;
+ot = 1e-3;
+degree = 0;
 disc = DGDiscretization(modelASI.transportModel               , ...
                         'degree'               , degree       , ...
                         'basis'                , 'legendre'   , ...
@@ -80,6 +84,23 @@ modelASI.transportModel = TransportOilWaterModelDG(GF, rockF, fluid, ...
                                    'disc'    , disc        , ...
                                    'dsMaxAbs', 0.2, ...
                                    'nonlinearTolerance', 1e-3);
+                               
+discDG = DGDiscretization(modelDG.transportModel               , ...
+                        'degree'               , degree       , ...
+                        'basis'                , 'legendre'   , ...
+                        'useUnstructCubature'  , false        , ...
+                        'jumpTolerance'        , jt           , ...
+                        'outTolerance'         , ot           , ...
+                        'outLimiter'           , 'kill'       , ...
+                        'meanTolerance'        , mt           , ...
+                        'limitAfterConvergence', false        , ...
+                        'plotLimiterProgress'  , false        );
+modelDG.transportModel = TransportOilWaterModelDG(G, rock, fluid, ...
+                                   'disc'    , discDG        , ...
+                                   'dsMaxAbs', 0.2, ...
+                                   'nonlinearTolerance', 1e-3);
+                               
+
 
 % pModel = modelASI.pressureModel;
 % msSolver = MultiscaleVolumeSolverAD(G);
@@ -134,16 +155,32 @@ modelASI.pressureModel.extraStateOutput = true;
 
 %%
 
+state0 = assignDofFromState(modelDG.transportModel.disc, state0);
+[wsDG, stDG, rep] = simulateScheduleAD(state0, modelDG, schedule);
+
+%%
+
 [wsSIF, stSIF, rep] = simulateScheduleAD(state0F, modelSIF, scheduleF);
 
 %%
 
-plotWellSols({wsSI, wsASI, wsSIF});
+plotWellSols({wsSI, wsDG});
 
 %%
 
 close all
 plotToolbar(GF, stASI)
+
+%%
+
+close all
+plotToolbar(G, stDG)
+axis equal tight
+
+%%
+
+close all
+plotToolbar(G, stSI)
 
 %%
 
