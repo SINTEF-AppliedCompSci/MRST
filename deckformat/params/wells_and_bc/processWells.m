@@ -432,11 +432,19 @@ function W = process_wconhist(W, control, G, rock, c2a, well_id, p, opt)
         case 'lrat'
           rates = - ([control.WCONHIST{i, 4:5}]);
           val   = sum(rates);
-          compi = rates./val;
+          if val > 0 
+              compi = rates./val;
+          else
+              compi = [1 1 0]/2;
+          end
         case 'resv'
           rates = - ([control.WCONHIST{i, 4:6}]);
           val   = sum(rates);
-          compi = rates./val;
+          if val > 0
+              compi = rates./val;
+          else
+              compi = [1 1 1]/3;
+          end
         case 'bhp'
           val = control.WCONHIST{i, 10};
 
