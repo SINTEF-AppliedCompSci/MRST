@@ -2,8 +2,10 @@ mrstModule add vemmech coarsegrid msrsb
 
 %%
 
-n = 20;
+n = 50;
 G = pebiGrid(1/n, [1,1]);
+
+G.nodes.coords(:,1) = G.nodes.coords(:,1)*3;
 
 plotGrid(G)
 axis equal tight
@@ -17,15 +19,45 @@ G = computeCellDimensions2(G);
 
 % Cartesian coarse grid
 G_cart = cartGrid([100, 100]);
+t = pi/8;
+R = [cos(t), -sin(t); sin(t), cos(t)];
+G_cart.nodes.coords = G_cart.nodes.coords*R;
+G_cart = computeGeometry(G_cart);
 p_cart = partitionUI(G_cart, [10, 10]);
 p_cart = sampleFromBox(G, reshape(p_cart, G_cart.cartDims));
 GC = generateCoarseGrid(G, p_cart);
 GC = coarsenGeometry(GC);
 GC = addCoarseCenterPoints(GC);
+GC = coarsenCellDimensions(GC);
 
 %%
 
+rock = makeRock(G, 1,1);
+T = computeTrans(G, rock);
+p = partitionMETIS(G, T, 50);
+GC = generateCoarseGrid(G, p);
+GC = coarsenGeometry(GC);
+GC = addCoarseCenterPoints(GC);
 GC = coarsenCellDimensions(GC);
+
+%%
+
+close all
+
+cNo = 30;
+plotGrid(GC)
+plotGrid(GC, cNo, 'facec', 'r');
+hold on
+x = [GC.cells.xMin(cNo,:);GC.cells.xMax(cNo,:)];
+plot([x(1,1), x(2,1), x(2,1), x(1,1), x(1,1)], ...
+     [x(1,2), x(1,2), x(2,2), x(2,2), x(1,2)], 'b', 'linew', 2);
+ 
+f = GC.cells.faces(GC.cells.facePos(cNo):GC.cells.facePos(cNo+1)-1);
+for fNo = 1:numel(f)
+    x = GC.nodes.coords(GC.faces.nodePos(f(fNo)):GC.faces.nodePos(f(fNo)+1)-1,:);
+    plot(x(:,1), x(:,2), '--g', 'linew', 2);
+end
+axis equal tight
 
 %%
 
@@ -41,8 +73,23 @@ plot([x(1,1), x(2,1), x(2,1), x(1,1), x(1,1)], ...
  
 f = GC.cells.faces(GC.cells.facePos(cNo):GC.cells.facePos(cNo+1)-1);
 for fNo = 1:numel(f)
-    x = GC.nodes.coords(GC.faces.nodePos(f(fNo)):GC.faces.nodePos(f(fNo)+1)-1,:);
+    ff = f(fNo);
+    sgn = 1 - 2*(GC.faces.neighbors(ff,1) ~= cNo);
+    n = GC.faces.normals(ff,:)./GC.faces.areas(ff).*sgn;
+    v = [n(2), -n(1)];
+    x = [GC.faces.centroids(ff,:) + GC.faces.areas(ff,:)/2*v;
+         GC.faces.centroids(ff,:) - GC.faces.areas(ff,:)/2*v];
+%      x = GC.faces.centroids(ff,:);
     plot(x(:,1), x(:,2), '--g', 'linew', 2);
+    
+    quiver(GC.faces.centroids(ff,1), GC.faces.centroids(ff,2), n(1),n(2), 0.05, 'linew', 2)
+    
+%     x = [GC.faces.centroids(ff,:);
+%          GC.faces.centroids(ff,:) + GC.faces.areas(ff,:).*n];
+% %      x = GC.faces.centroids(ff,:);
+%     plot(x(:,1), x(:,2), '--g', 'linew', 2);
+    
+    
 end
 axis equal tight
 

@@ -30,8 +30,15 @@ GC = coarsenCellDimensions(GC);
 %%
 
 close all
-[G, map1] = refineGrid(GC, GC, GF, [1, GC.cells.num]');
+
+mappings = getRefinementMappings(GC, GC, GF, [1, GC.cells.num]);
+G        = generateCoarseGrid(GF, mappings.newPartition);
+G        = coarsenGeometry(G);
+G.refined = mappings.refined;
+
+% [G, map1] = refineGrid(GC, GC, GF, [1, GC.cells.num]');
 G = coarsenCellDimensions(G);
+
 G.cells.ghost = false(G.cells.num,1);
 GF.cells.ghost = false(GF.cells.num,1);
 
@@ -69,21 +76,21 @@ end
 [jt, ot, mt] = deal(Inf);
 mt = 1e-3;
 ot = 1e-3;
-degree = 0;
-disc = DGDiscretization(modelASI.transportModel               , ...
-                        'degree'               , degree       , ...
-                        'basis'                , 'legendre'   , ...
-                        'useUnstructCubature'  , false        , ...
-                        'jumpTolerance'        , jt           , ...
-                        'outTolerance'         , ot           , ...
-                        'outLimiter'           , 'orderReduce', ...
-                        'meanTolerance'        , mt           , ...
-                        'limitAfterConvergence', false        , ...
-                        'plotLimiterProgress'  , false        );
-modelASI.transportModel = TransportOilWaterModelDG(GF, rockF, fluid, ...
-                                   'disc'    , disc        , ...
-                                   'dsMaxAbs', 0.2, ...
-                                   'nonlinearTolerance', 1e-3);
+degree = 1;
+% disc = DGDiscretization(modelASI.transportModel               , ...
+%                         'degree'               , degree       , ...
+%                         'basis'                , 'legendre'   , ...
+%                         'useUnstructCubature'  , false        , ...
+%                         'jumpTolerance'        , jt           , ...
+%                         'outTolerance'         , ot           , ...
+%                         'outLimiter'           , 'orderReduce', ...
+%                         'meanTolerance'        , mt           , ...
+%                         'limitAfterConvergence', false        , ...
+%                         'plotLimiterProgress'  , false        );
+% modelASI.transportModel = TransportOilWaterModelDG(GF, rockF, fluid, ...
+%                                    'disc'    , disc        , ...
+%                                    'dsMaxAbs', 0.2, ...
+%                                    'nonlinearTolerance', 1e-3);
                                
 discDG = DGDiscretization(modelDG.transportModel               , ...
                         'degree'               , degree       , ...
@@ -146,6 +153,8 @@ state0F.bfactor = [fluid.bW(state0F.pressure), fluid.bO(state0F.pressure)];
 
 %%
 
+modelASI.storeGrids = true;
+modelASI.plotProgress = true;
 modelASI.pressureModel.extraStateOutput = true;
 [wsASI, stASI, rep] = simulateScheduleAD(state0F, modelASI, scheduleF);
 
@@ -164,7 +173,7 @@ state0 = assignDofFromState(modelDG.transportModel.disc, state0);
 
 %%
 
-plotWellSols({wsSI, wsDG});
+plotWellSols({wsSI, wsSIF, wsASI});
 
 %%
 
@@ -202,6 +211,19 @@ clr = lines(3);
     
 dt = cumsum(schedule.step.val)/day;
 
+% subplot(1,3,3)
+% hold on
+% wc = wcut;
+% wc(2:end,:) = nan;
+% xlim([0, dt(end)]);
+% ylim([0,1]);
+% hold off
+% pbaspect([1,1,1])
+% box on
+% ylabel('Water cut')
+% xlabel('Time (days)')
+% legend({'Coarse', 'Adaptive', 'Reference'}, 'location', 'northwest');
+
 for sNo = 1:numel(stASI)
     
     subplot(1,3,1)
@@ -222,27 +244,30 @@ for sNo = 1:numel(stASI)
     colormap(jet)
     
     subplot(1,3,3)
-    hold on
     wc = wcut;
     wc(sNo+1:end,:) = nan;
+    hold on
     plot(dt, wc(:,1), 'linew', 2, 'color', clr(1,:));
     plot(dt, wc(:,2), 'linew', 2, 'color', clr(2,:));
     plot(dt, wc(:,3), '--', 'linew', 4, 'color', clr(3,:));
-    xlim([0, dt(end)]);
-    ylim([0,1]);
     hold off
     pbaspect([1,1,1])
+    xlim([0, dt(end)]);
+    ylim([0,1]);
     box on
     ylabel('Water cut')
     xlabel('Time (days)')
     legend({'Coarse', 'Adaptive', 'Reference'}, 'location', 'northwest');
+%     for wNo = 1:3
+%         h(wNo).YData = wc(:,wNo);
+%     end
 
     if 0
         rect = [d, d, fig.Position(3:4) - [d,d]];
         M(sNo) = getframe(fig, rect);
     end
     
-    pause(0.1)
+    pause(0.05)
     
 end
 
