@@ -1,4 +1,4 @@
-mrstModule add dg upr
+mrstModule add dg upr vem vemmech coarsegrid msrsb
 
 %%
 
@@ -25,6 +25,7 @@ if usePebi
     G2D = coarsenCellDimensions(G2D);
     G2D.name = '2D PEBI';
     
+    if 0
     % Create 3D PEBI grid
     bdr = [-1, -1, -1;
             1, -1, -1;
@@ -40,6 +41,7 @@ if usePebi
     G3D = computeVEMGeometry(G3D);
     G3D = computeCellDimensions(G3D);
     G3D.name = '3D PEBI';
+    end
 else
     % Create 2D Cartesian grid
     G2D = cartGrid([n,n], [2,2]);
@@ -54,6 +56,7 @@ else
     G3D = computeCellDimensions(G3D);
     G3D.name = '3D Cart';
 end
+G3D = [];
 grids = {G2D, G3D};
 
 %%
@@ -72,7 +75,7 @@ for gNo = 1:numel(grids)
     G = grids{gNo};
     fprintf(['\nTesting cubatures on ', G.name, '...\n']);
     
-    for k = 0:kMax
+    for k = 1:kMax
 
         if k == 0
             stndrdth = 'th';

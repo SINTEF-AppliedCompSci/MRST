@@ -24,23 +24,15 @@ p_cart = partitionUI(G_cart, [10, 10]);
 p_cart = sampleFromBox(GF, reshape(p_cart, G_cart.cartDims));
 GC = generateCoarseGrid(GF, p_cart);
 GC = coarsenGeometry(GC);
-GC = addCoarseCenterPoints(GC);
-
-% GF = computeGeometry(cartGrid([n,n], [l,l]));
-rockF = makeRock(GF, 100*milli*darcy, 1);
-% p = partitionUI(GF, [10,10]);
-
-% GC = generateCoarseGrid(GF, p);
-% GC = coarsenGeometry(GC);
-% GC = storeInteractionRegionCart(GC);
-% GC = assignCoarseNodes(GC);
+GC = coarsenCellDimensions(GC);
+GC = storeInteractionRegionCart(GC);
 
 %%
 
 close all
 [G, map1] = refineGrid(GC, GC, GF, [1, GC.cells.num]');
-plotGrid(G)
-% G = GC;
+G.cells.ghost = false(G.cells.num,1);
+GF.cells.ghost = false(GF.cells.num,1);
 
 
 %%
@@ -57,20 +49,37 @@ modelFIF  = TwoPhaseOilWaterModel(GF, rockF, fluid);
 modelSIF  = getSequentialModelFromFI(modelFIF);                       
 modelFI  = TwoPhaseOilWaterModel(G, rock, fluid);
 modelSI  = getSequentialModelFromFI(modelFI);
-modelASI = AdaptiveSequentialPressureTransportModel(modelSIF.pressureModel, modelSIF.transportModel, G, 'storeGrids', true);
+modelASI = AdaptiveSequentialPressureTransportModel(modelSIF.pressureModel, modelSIF.transportModel, G);
 % modelASI.transportModel = TransportOilWaterModel(G, rock, fluid);
 
-if 0
-s = getSmootherFunction('type', 'ilu', 'iterations', 1);
 
-mssolver = MultiscaleVolumeSolverAD(G, 'getSmoother', s);
-msmodel = MultiscalePressureModel(modelASI.pressureModel.G,...
-                                  modelASI.pressureModel.rock,...
-                                  modelASI.pressureModel.fluid,...
-                                  modelASI.pressureModel, mssolver);
-modelASI.pressureModel = msmodel;
+if 0
+    s = getSmootherFunction('type', 'ilu', 'iterations', 1);
+
+    mssolver = MultiscaleVolumeSolverAD(G, 'getSmoother', s);
+    msmodel = MultiscalePressureModel(modelASI.pressureModel.G,...
+                                      modelASI.pressureModel.rock,...
+                                      modelASI.pressureModel.fluid,...
+                                      modelASI.pressureModel, mssolver);
+    modelASI.pressureModel = msmodel;
 end
-modelASI
+
+[jt, ot, mt] = deal(Inf);
+degree = 1;
+disc = DGDiscretization(modelASI.transportModel               , ...
+                        'degree'               , degree       , ...
+                        'basis'                , 'legendre'   , ...
+                        'useUnstructCubature'  , false        , ...
+                        'jumpTolerance'        , jt           , ...
+                        'outTolerance'         , ot           , ...
+                        'outLimiter'           , 'orderReduce', ...
+                        'meanTolerance'        , mt           , ...
+                        'limitAfterConvergence', false        , ...
+                        'plotLimiterProgress'  , false        );
+modelASI.transportModel = TransportOilWaterModelDG(GF, rockF, fluid, ...
+                                   'disc'    , disc        , ...
+                                   'dsMaxAbs', 0.2, ...
+                                   'nonlinearTolerance', 1e-3);
 
 % pModel = modelASI.pressureModel;
 % msSolver = MultiscaleVolumeSolverAD(G);
