@@ -5,22 +5,41 @@ mrstVerbose on;
 
 %%
 
-n  = 100;
+n  = 50;
 l = 1000;
-GF = computeGeometry(cartGrid([n,n], [l,l]));
-rockF = makeRock(GF, 100*milli*darcy, 1);
-p = partitionUI(GF, [10,10]);
 
-GC = generateCoarseGrid(GF, p);
-GC = coarsenGeometry(GC);
-GC = storeInteractionRegionCart(GC);
-GC = assignCoarseNodes(GC);
+GF = pebiGrid(l/n, [l,l]);
+close all
+plotGrid(GF)
+axis equal tight
 
 %%
 
-% close all
+GF = computeGeometry(GF);
+GF = computeCellDimensions2(GF);
+
+% Cartesian coarse grid
+G_cart = cartGrid([100, 100]);
+p_cart = partitionUI(G_cart, [10, 10]);
+p_cart = sampleFromBox(GF, reshape(p_cart, G_cart.cartDims));
+GC = generateCoarseGrid(GF, p_cart);
+GC = coarsenGeometry(GC);
+GC = addCoarseCenterPoints(GC);
+
+% GF = computeGeometry(cartGrid([n,n], [l,l]));
+rockF = makeRock(GF, 100*milli*darcy, 1);
+% p = partitionUI(GF, [10,10]);
+
+% GC = generateCoarseGrid(GF, p);
+% GC = coarsenGeometry(GC);
+% GC = storeInteractionRegionCart(GC);
+% GC = assignCoarseNodes(GC);
+
+%%
+
+close all
 [G, map1] = refineGrid(GC, GC, GF, [1, GC.cells.num]');
-% plotGrid(G)
+plotGrid(G)
 % G = GC;
 
 
@@ -32,16 +51,16 @@ rock  = makeRock(G, 100*milli*darcy, 1);
 fluid = initSimpleADIFluid('phases', 'WO'                      , ...
                            'rho'   , [1000, 1]*kilogram/meter^3, ...
                            'mu'    , [0.5, 0.5]*centi*poise    , ...
-                           'n'     , [2, 1]                    );
+                           'n'     , [1, 1]                    );
 
 modelFIF  = TwoPhaseOilWaterModel(GF, rockF, fluid);
 modelSIF  = getSequentialModelFromFI(modelFIF);                       
 modelFI  = TwoPhaseOilWaterModel(G, rock, fluid);
 modelSI  = getSequentialModelFromFI(modelFI);
-modelASI = AdaptiveSequentialPressureTransportModel(modelSIF.pressureModel, modelSIF.transportModel, GF, G, rockF);
+modelASI = AdaptiveSequentialPressureTransportModel(modelSIF.pressureModel, modelSIF.transportModel, G, 'storeGrids', true);
 % modelASI.transportModel = TransportOilWaterModel(G, rock, fluid);
 
-
+if 0
 s = getSmootherFunction('type', 'ilu', 'iterations', 1);
 
 mssolver = MultiscaleVolumeSolverAD(G, 'getSmoother', s);
@@ -50,6 +69,8 @@ msmodel = MultiscalePressureModel(modelASI.pressureModel.G,...
                                   modelASI.pressureModel.fluid,...
                                   modelASI.pressureModel, mssolver);
 modelASI.pressureModel = msmodel;
+end
+modelASI
 
 % pModel = modelASI.pressureModel;
 % msSolver = MultiscaleVolumeSolverAD(G);
@@ -72,7 +93,7 @@ W = addWell(W, G, rock, ix, 'type', 'rate', 'val', rate    , 'comp_i', [1,0]);
 [~, ix] = min(d(:,2));
 W = addWell(W, G, rock, ix, 'type', 'bhp' , 'val', 50*barsa, 'comp_i', [1,0]);
 
-dt    = 30*day;
+dt    = 7*day;
 dtvec = rampupTimesteps(time, dt, 0);
 schedule = simpleSchedule(dtvec, 'W', W);
 
@@ -91,6 +112,7 @@ scheduleF = simpleSchedule(dtvec, 'W', WF);
 
 sW      = 0.0;
 state0F = initResSol(GF, 100*barsa, [sW,1-sW]);
+state0F.bfactor = [fluid.bW(state0F.pressure), fluid.bO(state0F.pressure)];
 
 %%
 
