@@ -71,5 +71,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       cg.faces.normals(:,i) = accumarray(faceno, ...
          cg.parent.faces.normals(cg.faces.fconn, i).*sgn);
    end
+   cg.faces.normals   = bsxfun(@rdivide, cg.faces.normals, sqrt(sum(cg.faces.normals.^2,2)));
+   cg.faces.normals   = bsxfun(@times, cg.faces.normals, cg.faces.areas);
    cg.faces.centroids = bsxfun(@rdivide, cg.faces.centroids, cg.faces.areas);
 end
