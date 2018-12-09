@@ -80,10 +80,9 @@ classdef StoneRelativePermeability1 < GridProperty
             ix2 = s >= p{2};
             ix  = ~or(ix1,ix2);
             s_scale = (ix.*m).*s + (ix.*c + ix2);
-            k_max_m = k{2}./k{1};
         elseif prop.relpermPoints == 3
-            warning('max kr scaling not implemented');
-            [m, c, p] = getThreePointScalers(pts, phase, reg, f, cells);
+%             warning('max kr scaling not implemented');
+            [m, c, p, k] = getThreePointScalers(pts, phase, reg, f, cells);
             ix1 = and(s >= p{1}, s < p{2});
             ix2 = and(s >= p{2}, s < p{3});
             ix3 = s >= p{3};
@@ -92,6 +91,8 @@ classdef StoneRelativePermeability1 < GridProperty
         else
             error('Unknown number of scaling points');
         end
+%         k_max_m = 1;
+        k_max_m = k{2}./k{1};
     end
     
     function s_min = getCriticalPhaseSaturations(prop, model, state, drainage)
@@ -191,8 +192,8 @@ function [m, c, p, k] = getTwoPointScalers(pts, ph, reg, f, cells)
     [k{1}, k{2}] = get(ph, KM);
 end
 
-function [m, c, p] = getThreePointScalers(pts, ph, reg, f, cells)
-    [get, CR, U, L] = getSatPointPicker(f, pts, reg, cells);
+function [m, c, p, k] = getThreePointScalers(pts, ph, reg, f, cells)
+    [get, CR, U, L, KM] = getSatPointPicker(f, pts, reg, cells);
     switch ph
         case 'w'
             [sowcr, SOWCR] = get('ow', CR);
@@ -251,6 +252,7 @@ function [m, c, p] = getThreePointScalers(pts, ph, reg, f, cells)
         m{2}(ix) = 0;
         c{2}(ix) = 0;
     end
+    [k{1}, k{2}] = get(ph, KM);
 end
 
 function [get, CR, U, L, KM] = getSatPointPicker(f, pts, reg, cells)
