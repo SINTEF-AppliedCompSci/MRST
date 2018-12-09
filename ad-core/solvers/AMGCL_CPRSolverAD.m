@@ -155,12 +155,22 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
                 
                 I = rldecode((1:bz:ndof)', bz);
                 J = (1:ndof)';
-                D = sparse(I, J, w, ndof, ndof);
                 
-                tmp = D*A;
-                btmp = D*b;
-                A(psub, :) = tmp(psub, :);
-                b(psub) = btmp(psub);
+                if 0
+                    D = sparse(I, J, w, ndof, ndof);
+                    tmp = D*A;
+                    btmp = D*b;
+                    A(psub, :) = tmp(psub, :);
+                    b(psub) = btmp(psub);
+                else
+                    Id = J;
+                    Id(1:bz:(ndof-bz+1)) = [];
+                    D = sparse([I; Id], ...
+                               [J; Id], ...
+                               [w(1:ndof); ones(numel(Id), 1)], ndof, ndof);
+                    A = D*A;
+                    b = D*b;
+                end
                 solver.amgcl_setup.drs_eps_dd = -1e8;
                 solver.amgcl_setup.drs_eps_dd = -1e8;
                 
