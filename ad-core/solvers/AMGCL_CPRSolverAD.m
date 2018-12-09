@@ -146,15 +146,16 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
             [A, b, scaling] = applyScaling@LinearSolverAD(solver, A, b);
             
             if solver.amgcl_setup.use_drs
-                [w, ndof] = getScalingInternalCPR(solver, A, b);
+                [w, ncv] = getScalingInternalCPR(solver, A, b);
                 bz = solver.amgcl_setup.block_size;
                 nc = solver.amgcl_setup.cell_size;
                 psub = (1:bz:(nc*bz - bz + 1))';
                 
-                ndof = bz*nc;
+                ncv = bz*nc;
+                ndof = size(b, 1);
                 
-                I = rldecode((1:bz:ndof)', bz);
-                J = (1:ndof)';
+                I = rldecode((1:bz:ncv)', bz);
+                J = (1:ncv)';
                 
                 if 0
                     D = sparse(I, J, w, ndof, ndof);
@@ -164,17 +165,18 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
                     b(psub) = btmp(psub);
                 else
                     Id = J;
-                    Id(1:bz:(ndof-bz+1)) = [];
+                    Id(1:bz:(ncv-bz+1)) = [];
+                    Id = [Id; ((ncv+1):ndof)'];
                     D = sparse([I; Id], ...
                                [J; Id], ...
-                               [w(1:ndof); ones(numel(Id), 1)], ndof, ndof);
+                               [w(1:ncv); ones(numel(Id), 1)], ndof, ndof);
                     A = D*A;
                     b = D*b;
                 end
                 solver.amgcl_setup.drs_eps_dd = -1e8;
                 solver.amgcl_setup.drs_eps_dd = -1e8;
                 
-                w_override = zeros(ndof, 1);
+                w_override = zeros(ncv, 1);
                 w_override(psub) = 1;
                 solver.amgcl_setup.drs_row_weights = w_override;
             end
