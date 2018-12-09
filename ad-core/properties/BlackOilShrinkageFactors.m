@@ -1,5 +1,6 @@
 classdef BlackOilShrinkageFactors < GridProperty
     properties
+        useSaturatedFlag = true;
     end
     
     methods
@@ -13,6 +14,7 @@ classdef BlackOilShrinkageFactors < GridProperty
             p = model.getProp(state, 'pressure');
             p_phase = getPhasePressures(p, fp.CapillaryPressure);
             
+            
             if model.water
                 wix = phInd == 1;
                 pw = p_phase{wix};
@@ -25,7 +27,12 @@ classdef BlackOilShrinkageFactors < GridProperty
                 po = p_phase{oix};
                 if model.disgas
                     rs = model.getProp(state, 'rs');
-                    flag = false(size(double(p)));
+                    if prop.useSaturatedFlag
+                        rsMax = fp.RsMax;
+                        flag = double(rs) >= double(rsMax);
+                    else
+                        flag = false(size(double(p)));
+                    end
                     bO = prop.evaluateFunctionOnGrid(f.bO, po, rs, flag);
                 else
                     bO = prop.evaluateFunctionOnGrid(f.bO, po);
@@ -38,7 +45,12 @@ classdef BlackOilShrinkageFactors < GridProperty
                 pg = p_phase{gix};
                 if model.vapoil
                     rv = model.getProp(state, 'rv');
-                    flag = false(size(double(p)));
+                    if prop.useSaturatedFlag
+                        rvMax = fp.RvMax;
+                        flag = double(rv) >= double(rvMax);
+                    else
+                        flag = false(size(double(p)));
+                    end
                     bG = prop.evaluateFunctionOnGrid(f.bG, pg, rv, flag);
                 else
                     bG = prop.evaluateFunctionOnGrid(f.bG, pg);

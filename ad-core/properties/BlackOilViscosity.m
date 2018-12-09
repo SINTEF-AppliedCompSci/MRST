@@ -1,5 +1,6 @@
 classdef BlackOilViscosity < GridProperty
     properties
+        useSaturatedFlag = true;
     end
     
     methods
@@ -23,7 +24,12 @@ classdef BlackOilViscosity < GridProperty
                 po = p_phase{oix};
                 if model.disgas
                     rs = model.getProp(state, 'rs');
-                    flag = false(size(double(p)));
+                    if prop.useSaturatedFlag
+                        rsMax = fp.RsMax;
+                        flag = double(rs) >= double(rsMax);
+                    else
+                        flag = false(size(double(p)));
+                    end
                     mu{oix} = prop.evaluateFunctionOnGrid(f.muO, po, rs, flag);
                 else
                     mu{oix} = prop.evaluateFunctionOnGrid(f.muO, po);
@@ -35,7 +41,12 @@ classdef BlackOilViscosity < GridProperty
                 pg = p_phase{gix};
                 if model.vapoil
                     rv = model.getProp(state, 'rv');
-                    flag = false(size(double(p)));
+                    if prop.useSaturatedFlag
+                        rvMax = fp.RvMax;
+                        flag = double(rv) >= double(rvMax);
+                    else
+                        flag = false(size(double(p)));
+                    end
                     mu{gix} = prop.evaluateFunctionOnGrid(f.muG, pg, rv, flag);
                 else
                     mu{gix} = prop.evaluateFunctionOnGrid(f.muG, pg);

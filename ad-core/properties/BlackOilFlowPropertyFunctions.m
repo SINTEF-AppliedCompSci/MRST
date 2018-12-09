@@ -17,6 +17,20 @@ classdef BlackOilFlowPropertyFunctions < FlowPropertyFunctions
             switch name
                 case 'RvMax'
                     state = props.evaluateDependencies(model, state, {'CapillaryPressure'});
+                case 'ShrinkageFactors'
+                    if props.ShrinkageFactors.useSaturatedFlag && model.disgas
+                        state = props.evaluateDependencies(model, state, {'RsMax'});
+                    end
+                    if props.ShrinkageFactors.useSaturatedFlag && model.vapoil
+                        state = props.evaluateDependencies(model, state, {'RvMax'});
+                    end
+                case 'Viscosity'
+                    if props.Viscosity.useSaturatedFlag && model.disgas
+                        state = props.evaluateDependencies(model, state, {'RsMax'});
+                    end
+                    if props.Viscosity.useSaturatedFlag && model.vapoil
+                        state = props.evaluateDependencies(model, state, {'RvMax'});
+                    end
             end
             state = evaluateProperty@FlowPropertyFunctions(props, model, state, name);
         end
