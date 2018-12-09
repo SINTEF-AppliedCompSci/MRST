@@ -153,8 +153,6 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
                 
                 ndof = bz*nc;
                 
-                
-                I = rldecode((1:2:ndof)', bz);
                 I = rldecode((1:bz:ndof)', bz);
                 J = (1:ndof)';
                 D = sparse(I, J, w, ndof, ndof);
@@ -165,6 +163,10 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
                 b(psub) = btmp(psub);
                 solver.amgcl_setup.drs_eps_dd = -1e8;
                 solver.amgcl_setup.drs_eps_dd = -1e8;
+                
+                w_override = zeros(ndof, 1);
+                w_override(psub) = 1;
+                solver.amgcl_setup.drs_row_weights = w_override;
             end
             if 0
                 w = getScalingInternalCPR(solver, A, b);
