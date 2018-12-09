@@ -155,6 +155,7 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
                 
                 
                 I = rldecode((1:2:ndof)', bz);
+                I = rldecode((1:bz:ndof)', bz);
                 J = (1:ndof)';
                 D = sparse(I, J, w, ndof, ndof);
                 
