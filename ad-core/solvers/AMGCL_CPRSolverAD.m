@@ -17,6 +17,7 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
        doApplyScalingCPR
        trueIMPES % Use true impes decoupling strategy (if supported by model)
        useSYMRCMOrdering
+       pressureScaling
    end
    methods
        function solver = AMGCL_CPRSolverAD(varargin)
@@ -59,6 +60,9 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
        
        function problem = prepareProblemCPR(solver, problem, model)
            n = model.G.cells.num;
+           if isempty(solver.pressureScaling)
+               solver.pressureScaling = mean(problem.state.pressure);
+           end
            if solver.amgcl_setup.block_size == 0
                % Solver has not been told about block size, try to compute
                % it from what we are given.
@@ -68,8 +72,10 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
                solver.amgcl_setup.block_size = sum(nv(isCell)/n);
            end
            solver.amgcl_setup.cell_num = model.G.cells.num;
-           
-           if isa(model, 'ThreePhaseBlackOilModel')
+                for ph = 1:size(problem.state.s, 2)
+                    problem.equations{ph} = problem.equations{ph}.*(problem.dt./model.operators.pv);
+                end
+            if isa(model, 'ThreePhaseBlackOilModel') && false
                 sw = model.getProp(problem.state, 'sw');
                 bad = double(sw) <= 1e-8;
                 if any(bad)
@@ -141,7 +147,23 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
             
             if solver.amgcl_setup.use_drs
                 [w, ndof] = getScalingInternalCPR(solver, A, b);
-                solver.amgcl_setup.drs_row_weights = w(1:ndof);
+                bz = solver.amgcl_setup.block_size;
+                nc = solver.amgcl_setup.cell_size;
+                psub = (1:bz:(nc*bz - bz + 1))';
+                
+                ndof = bz*nc;
+                
+                
+                I = rldecode((1:2:ndof)', bz);
+                J = (1:ndof)';
+                D = sparse(I, J, w, ndof, ndof);
+                
+                tmp = D*A;
+                btmp = D*b;
+                A(psub, :) = tmp(psub, :);
+                b(psub) = btmp(psub);
+                solver.amgcl_setup.drs_eps_dd = -1e8;
+                solver.amgcl_setup.drs_eps_dd = -1e8;
             end
             if 0
                 w = getScalingInternalCPR(solver, A, b);
@@ -158,14 +180,23 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
         
         function M = getDiagonalInverse(solver, A)
             % Reciprocal of diagonal matrix
-            sz = size(A);
-            assert(sz(1) == sz(2), 'Matrix must be square!');
-            n = sz(1);
-%             d = 1./diag(A);
-            d = 1./abs(diag(A));
-            d(~isfinite(d)) = 1;
-            I = (1:n)';
-            M = sparse(I, I, d, n, n);
+            if solver.applyRightDiagonalScaling
+                sz = size(A);
+                assert(sz(1) == sz(2), 'Matrix must be square!');
+                bz = solver.amgcl_setup.block_size;
+                nc = solver.amgcl_setup.cell_size;
+                n = sz(1);
+%                 d = 1./abs(diag(A));
+%                 d = 1./diag(A);
+                d = ones(n, 1);
+                d(~isfinite(d)) = 1;
+                psub = 1:bz:(nc*bz - bz + 1);
+                d(psub) = solver.pressureScaling;
+                I = (1:n)';
+                M = sparse(I, I, d, n, n);
+            else
+                M = getDiagonalInverse@LinearSolverAD(solver, A);
+            end
         end
    end
 end
@@ -183,8 +214,19 @@ function [w, ndof] = getScalingInternalCPR(solver, A, b)
     keep = blockNoJ >= blockNoI & blockNoJ < (blockNoI+1)  & ii <= ndof & jj <= ndof;
     Ap = sparse(jj(keep), ii(keep), vv(keep), ndof, ndof);
     q = zeros(ndof, 1);
-    q(1:bz:(ndof - bz + 1)) = 1;
+    p_inx = 1:bz:(ndof - bz + 1);
+%     if solver.applyRightDiagonalScaling
+        q(p_inx) = 1;
+%     else
+%         q(p_inx) = 1e-8;
+%     end
     w = Ap\q;
+%     
+%     tmp = reshape(w, 2, [])';
+%     tmp = 1e-3*tmp./sum(tmp, 2);
+%     tmp = tmp';
+%     w = tmp(:);
+    
     w = [w; ones(size(A, 1)-ndof, 1)];
 end
 
