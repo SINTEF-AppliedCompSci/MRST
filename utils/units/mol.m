@@ -11,7 +11,7 @@ function m = mol()
 %   m - Numerical value of a mole in units of mole (== 1).
 
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
