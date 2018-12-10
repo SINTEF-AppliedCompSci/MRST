@@ -152,81 +152,81 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    if isempty(CACHE), CACHE = cell([0, 2]); end
 
-   if nargin > 0,
+   if nargin > 0
       assert (iscellstr(varargin), 'All parameters must be strings.');
 
       cmd  = varargin{1};
       mods = varargin(2 : end);
 
-      switch lower(cmd),
-         case 'addroot',
-            if ~ (isempty(mods) || all(cellfun(@isempty, mods))),
+      switch lower(cmd)
+         case 'addroot'
+            if ~ (isempty(mods) || all(cellfun(@isempty, mods)))
                mlock
                CACHE = register_root(CACHE, mods);
             else
                munlock;
             end
 
-         case { 'add', 'register' },
+         case { 'add', 'register' }
             % Register a new set of modules.  Assume that 'mods' is a list
             % of key/value pairs.
 
-            if ~ (isempty(mods) || all(cellfun(@isempty, mods))),
+            if ~ (isempty(mods) || all(cellfun(@isempty, mods)))
                mlock
                CACHE = register_modules(CACHE, mods);
             else
                munlock
             end
 
-         case 'clear',
+         case 'clear'
             % Clear cache, thus removing all currently registered modules
             % leaving only the modules that are known by default.
 
             munlock
             CACHE = clear_modules;
 
-         case 'list',
+         case 'list'
 
             list_modules(CACHE);
 
-         case 'remove',
+         case 'remove'
             % Remove a module or set of modules.
 
             CACHE = remove_modules(CACHE, mods);
 
-            if is_empty(CACHE),
+            if is_empty(CACHE)
                munlock
             end
 
-         case 'reregister',
+         case 'reregister'
             % Convenience verb: Remove selected modules, then register new
             % mappings for those modules.
 
             mrstPath('remove'  , mods{1 : 2 : end});
             mrstPath('register', mods{:});
 
-         case 'reset',
+         case 'reset'
             % Convenience verb: Clear existing list, then register new
             % modules.
 
             mrstPath clear
             mrstPath('register', mods{:});
 
-         case { 'query', 'search' },
+         case { 'query', 'search' }
             % Look for a particular module or set of modules.  The 'mods'
             % list is interpreted as a list of modules to search for.
 
             [pth, notfound] = search_modules(CACHE, mods);
 
-            if nargout > 0,
+            if nargout > 0
                lst = repmat({ '' }, [1, numel(mods)]);
                [lst{~notfound}] = pth{:};
 
-               if (nargout == 1) && (numel(lst) ~= 1),
+               if (nargout == 1) && (numel(lst) ~= 1)
 
                   varargout{1} = lst;
 
-               elseif nargout == numel(mods),
+               elseif nargout == numel(mods)
 
                   [varargout{1:numel(mods)}] = lst{:};
 
@@ -250,11 +250,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
       end
 
-   elseif nargout == 0,
+   elseif nargout == 0
 
       mrstPath list
 
-   elseif nargout == 1,
+   elseif nargout == 1
 
       varargout{1} = active_modules(CACHE);
 
@@ -273,7 +273,7 @@ end
 
 function cache = register_root(cache, mods)
    i = cellfun(@isdir, mods);
-   if ~ all(i),
+   if ~ all(i)
       suffix = 'y';  if sum(~i) ~= 1, suffix = 'ies'; end
 
       fprintf(['mrstPath: Director%s Not Found during ', ...
@@ -285,7 +285,7 @@ function cache = register_root(cache, mods)
 
    exclude = { 'data', 'deprecated', 'experimental' };
 
-   for mroot = reshape(mods, 1, []),
+   for mroot = reshape(mods, 1, [])
       m = dir(mroot{1});
       m = { m([ m.isdir ]).name };
       m = m(~ strncmp('.', m, 1));
@@ -293,13 +293,13 @@ function cache = register_root(cache, mods)
       % Don't automatically register modules from the 'exclude' list.
       [excl, excl] = look_for(exclude, m);                      %#ok<ASGLU>
 
-      if mrstVerbose && any(excl),
+      if mrstVerbose && any(excl)
          print_excluded(mroot{1}, m(excl));
       end
 
       m = m(~ excl);
 
-      if isempty(m),
+      if isempty(m)
          % No (non-excluded) modules in 'mroot'.  Proceed to next.
          continue;
       end
@@ -324,7 +324,7 @@ function cache = register_modules(cache, mods)
    canonical   = @canonicalise_dirname;
    dir_is_same = @(d1, d2) cmp(canonical(d1), canonical(d2));
 
-   if ~ dir_is_same(dsrc{1}, root),
+   if ~ dir_is_same(dsrc{1}, root)
       dsrc = [ dsrc , { root } ];
    end
    dsrc = [ dsrc , { '' } ];
@@ -346,10 +346,10 @@ function cache = register_modules(cache, mods)
    i = cellfun(@isdir, t);
    e = any(i, 2);
 
-   if ~ all(e),
+   if ~ all(e)
       nonext = mods(~ e, :);
 
-      if size(nonext, 1) > 1,
+      if size(nonext, 1) > 1
          [pl{1:3}] = deal('s', 'ies', ''  );
       else
          [pl{1:3}] = deal('' , 'y'  , 'es');
@@ -378,7 +378,7 @@ function cache = register_modules(cache, mods)
 
    map = cache_to_map(cache);
    [ii, jj] = look_for(map(:,1), mods(:,1));
-   if ~isempty(ii),
+   if ~isempty(ii)
       map(ii, 2) = mods( jj, 2);
       mods       = mods(~jj, :);
    end
@@ -403,7 +403,7 @@ end
 function list_modules(cache)
    map = cache_to_map(cache);
 
-   if isempty(map),
+   if isempty(map)
       fprintf('No modules registered\n');
    else
       fprintf('Currently registered modules\n');
@@ -506,7 +506,7 @@ end
 %--------------------------------------------------------------------------
 
 function alg = match_algorithm
-   if ispc,
+   if ispc
       % Match module names irrespective of case on PC/WIN.
       alg = @strcmpi;
    else
@@ -521,7 +521,7 @@ function print_list(map)
    [i, i] = sort(map(:,1));                                     %#ok<ASGLU>
    nchar = max(cellfun('prodofsize', map(:,1)));
 
-   for k = reshape(i, 1, []),
+   for k = reshape(i, 1, [])
       fprintf('  * %-*s -> %s\n', nchar, map{k,1}, map{k,2});
    end
 end
@@ -531,7 +531,7 @@ end
 function print_excluded(mroot, excluded)
    [plural{1:2}]    = deal('y'  , 'was' );
 
-   if numel(excluded) ~= 1,
+   if numel(excluded) ~= 1
       [plural{1:2}] = deal('ies', 'were');
    end
 
@@ -539,7 +539,7 @@ function print_excluded(mroot, excluded)
             'explicitly omitted in %s:\n'], ...
             plural{1}, plural{2}, mroot);
 
-   if ispc,
+   if ispc
       [i, i] = sort(upper(excluded));                           %#ok<ASGLU>
    else
       [i, i] = sort(excluded);                                  %#ok<ASGLU>
