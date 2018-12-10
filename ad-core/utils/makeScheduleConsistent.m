@@ -81,7 +81,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             if ~(numel(c) == numel(c_all) && all(c == c_all))
                 % The perforations have changed
                 cellsChangedFlag(ind_all) = true; %#ok
-                if opt.DepthReorder
+                if isempty(opt.DepthReorder)
+                    do_reorder = strcmpi(W(other(j)).dir(1), 'z');
+                else
+                    do_reorder = opt.DepthReorder;
+                end
+                if do_reorder
                     new_cells = [c_all; c];
                     dz = [W_all(ind_all).dZ; W(other(j)).dZ];
                     [~, order] = sort(dz);

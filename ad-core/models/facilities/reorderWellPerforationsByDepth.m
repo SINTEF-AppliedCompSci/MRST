@@ -1,5 +1,11 @@
-function W = reorderWellPerforationsByDepth(W)
+function W = reorderWellPerforationsByDepth(W, active)
+   if nargin == 1
+       active = true(numel(W), 1);
+   end
    for i = 1:numel(W)
+      if ~active(i)
+          continue
+      end
       cells   = W(i).cells;
       WI      = W(i).WI;
       dZ      = W(i).dZ;
