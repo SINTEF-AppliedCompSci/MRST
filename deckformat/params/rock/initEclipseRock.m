@@ -105,52 +105,11 @@ end
 
 function rock = getScaling(rock, deck)
    if isfield(deck.RUNSPEC, 'ENDSCALE')
-       drain = struct();
-       imb = struct();
-       [drain.w, drain.ow, drain.og, drain.g, ok_d] = getThreePhaseScaling(rock, deck, '');
-       [imb.w, imb.ow, imb.og, imb.g, ok_i] = getThreePhaseScaling(rock, deck, 'I');
-       
-       krscale.drainage = drain;
-       krscale.imbibition = imb;
-
-       rock.krscale = krscale;
+       nc = size(rock.poro, 1);
+       rock.krscale = initRelpermScaling(deck, nc);
    end
 end
 
-function [w, ow, og, g, present] = getThreePhaseScaling(rock, deck, prefix)
-   [w, okw] = getRelPermScaling(rock, deck, prefix, 'W');
-   [ow, okow] = getRelPermScaling(rock, deck, prefix, 'OW');
-   [og, okog] = getRelPermScaling(rock, deck, prefix, 'OG');
-   [g, okg] = getRelPermScaling(rock, deck, prefix, 'W');
-   
-   present = okw || okow || okog || okg;
-end
-
-function [pts, present] = getRelPermScaling(rock, deck, prefix, phase)
-   nc = size(rock.poro, 1);
-   % Connate, critical, first s for max kr, max kr
-   pts = repmat([NaN, NaN, NaN, NaN], nc, 1);
-
-   connate = [prefix, 'S', phase, 'L'];
-   crit = [prefix, 'S', phase, 'CR'];
-   maxs = [prefix, 'S', phase, 'U'];
-   if strcmpi(phase, 'wo') || strcmpi(phase, 'og')
-      % OW or OG relperm has same maximum value
-      maxv = [prefix, 'KRO'];
-   else
-      maxv = [prefix, 'KR', phase];
-   end
-
-   flds = {connate, crit, maxs, maxv};
-   present = false;
-   for i = 1:numel(flds)
-       f = flds{i};
-       if isfield(deck.PROPS, f)
-           pts(:, i) = deck.PROPS.(f);
-           present = true;
-       end
-   end
-end
 
 function b = consistent(deck)
    k = false([3, 3]);
