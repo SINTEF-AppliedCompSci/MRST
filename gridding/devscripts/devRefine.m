@@ -20,7 +20,7 @@ GF = computeCellDimensions2(GF);
 
 % Cartesian coarse grid
 G_cart = cartGrid([100, 100]);
-p_cart = partitionUI(G_cart, [10, 10]);
+p_cart = partitionUI(G_cart, [20, 20]);
 p_cart = sampleFromBox(GF, reshape(p_cart, G_cart.cartDims));
 GC = generateCoarseGrid(GF, p_cart);
 GC = coarsenGeometry(GC);
@@ -34,7 +34,7 @@ close all
 mappings = getRefinementMappings(GC, GC, GF, [1, GC.cells.num]);
 G        = generateCoarseGrid(GF, mappings.newPartition);
 G        = coarsenGeometry(G);
-G.refined = mappings.refined;
+G.cells.refined = mappings.refined;
 
 % [G, map1] = refineGrid(GC, GC, GF, [1, GC.cells.num]');
 G = coarsenCellDimensions(G);
@@ -77,20 +77,24 @@ end
 mt = 1e-3;
 ot = 1e-3;
 degree = 1;
-% disc = DGDiscretization(modelASI.transportModel               , ...
-%                         'degree'               , degree       , ...
-%                         'basis'                , 'legendre'   , ...
-%                         'useUnstructCubature'  , false        , ...
-%                         'jumpTolerance'        , jt           , ...
-%                         'outTolerance'         , ot           , ...
-%                         'outLimiter'           , 'orderReduce', ...
-%                         'meanTolerance'        , mt           , ...
-%                         'limitAfterConvergence', false        , ...
-%                         'plotLimiterProgress'  , false        );
-% modelASI.transportModel = TransportOilWaterModelDG(GF, rockF, fluid, ...
-%                                    'disc'    , disc        , ...
-%                                    'dsMaxAbs', 0.2, ...
-%                                    'nonlinearTolerance', 1e-3);
+if 1
+disc = DGDiscretization(modelASI.transportModel               , ...
+                        'degree'               , degree       , ...
+                        'basis'                , 'legendre'   , ...
+                        'useUnstructCubature'  , false        , ...
+                        'jumpTolerance'        , jt           , ...
+                        'outTolerance'         , ot           , ...
+                        'outLimiter'           , 'orderReduce', ...
+                        'meanTolerance'        , mt           , ...
+                        'limitAfterConvergence', false        , ...
+                        'plotLimiterProgress'  , false        );
+transportModel = TransportOilWaterModelDG(GF, rockF, fluid, ...
+                                   'disc'    , disc        , ...
+                                   'dsMaxAbs', 0.2, ...
+                                   'nonlinearTolerance', 1e-3);
+
+modelASI = AdaptiveSequentialPressureTransportModel(modelSIF.pressureModel, transportModel, G);
+end                          
                                
 discDG = DGDiscretization(modelDG.transportModel               , ...
                         'degree'               , degree       , ...
@@ -156,6 +160,21 @@ state0F.bfactor = [fluid.bW(state0F.pressure), fluid.bO(state0F.pressure)];
 modelASI.storeGrids = true;
 modelASI.plotProgress = true;
 modelASI.pressureModel.extraStateOutput = true;
+
+state0F.transportState = state0;
+state0FtransportState.degree = repmat(degree, G.cells.num, 1);
+state0F.transportState.oldPartition = G.partition;
+state0F.transportState.G = G;
+state0F.degree = repmat(degree, G.cells.num, 1);
+
+state0F.transportState.pv = modelASI.transportModel.operators.pv;
+state0F.transportState = disc.updateDofPos(state0F.transportState);
+
+state0 = disc.assignDofFromState(state0);
+state0 = disc.updateDofPos(state0);
+state0F.sdof = state0.sdof;
+state0F.nDof = state0.nDof;
+
 [wsASI, stASI, rep] = simulateScheduleAD(state0F, modelASI, scheduleF);
 
 %%
@@ -179,6 +198,8 @@ plotWellSols({wsSI, wsSIF, wsASI});
 
 close all
 plotToolbar(GF, stASI)
+axis equal tight
+colormap(jet);
 
 %%
 
@@ -190,6 +211,8 @@ axis equal tight
 
 close all
 plotToolbar(G, stSI)
+axis equal tight
+colormap(jet);
 
 %%
 

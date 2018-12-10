@@ -7,6 +7,7 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
         fineTransportModel
         plotProgress
         storeGrids
+        isDG
     end
     
     methods
@@ -14,13 +15,17 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
             model = model@SequentialPressureTransportModel(pressureModel, transportModel, varargin{:});
             model.G0 = G0;
             model.fineTransportModel = transportModel;
-            model.coarseTransportModel = upscaleModelTPFA(transportModel, G0.partition);
-            model.coarseTransportModel.G.refined = G0.refined;
+            model.coarseTransportModel = model.upscaleTransportModelTPFA(G0.partition);
+            model.transportModel = model.coarseTransportModel;
+            model.coarseTransportModel.G.cells.refined = G0.cells.refined;
+            model.coarseTransportModel.G.oldPartition = G0.partition;
             
             model.transportModel = model.coarseTransportModel;
             model.plotProgress = false;
             model.storeGrids   = false;
+            model.isDG = isa(model.transportModel, 'TransportBlackOilModelDG');
             model = merge_options(model, varargin{:});
+            
         end
         
         function [state, pressureReport, transportReport, pressure_ok, transport_ok, forceArg, model] = solvePressureTransport(model, state, state0, dt, drivingForces, iteration)
@@ -37,58 +42,36 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
             
             % First, solve the pressure using the pressure nonlinear
             % solver.
-            [state, pressureReport] = ...
+            [pressureState, pressureReport] = ...
                 psolver.solveTimestep(state0, dt, model.pressureModel,...
                             'initialGuess', state, ...
                             forceArg{:});
             pressure_ok = pressureReport.Converged || psolver.continueOnFailure;
-            statePressure = state;
             
             if pressure_ok
-                % Assemble fine-scale transport residual
+                % Assemble transport residual
+                transportState    = model.upscaleState(pressureState);
+                transportState0   = model.upscaleState(state0);
+                drivingForcesUpsc = model.mapForces(drivingForces, model.G0);
                 
-                if 1
-                    stateUpsc  = upscaleState(model.coarseTransportModel, model.fineTransportModel, state);
-                    stateUpsc0 = upscaleState(model.coarseTransportModel, model.fineTransportModel, state0);
-                    drivingForcesUpsc = model.mapForces(drivingForces, model.G0);
-                else
-                    stateUpsc  = upscaleState(model.transportModel, model.fineTransportModel, state);
-                    stateUpsc0 = upscaleState(model.transportModel, model.fineTransportModel, state0);
-                    drivingForcesUpsc = model.mapForces(drivingForces, model.transportModel.G);
+                problem = model.transportModel.getEquations(transportState0, transportState, ...
+                                               dt, drivingForcesUpsc, 'resOnly', true);
+                residual = horzcat(problem.equations{:});
+                if isprop(model.transportModel, 'disc')
+                    ix = rldecode((1:model.transportModel.G.cells.num)', transportState.nDof, 1);
+                    residual = accumarray(ix, abs(residual));
                 end
 
-                
-                residual = 0;
-                if isfield(state.wellSol, 'flux')
-                    if 1
-                    problem = model.coarseTransportModel.getEquations(stateUpsc0, stateUpsc, ...
-                                               dt, drivingForcesUpsc, 'resOnly', true);
-                    else
-                    problem = model.transportModel.getEquations(stateUpsc0, stateUpsc, ...
-                                               dt, drivingForcesUpsc, 'resOnly', true);
-                    end    
-%                     for eqNo = 1:numel(problem)
-%                         residual = residual + abs(problem.equations{eqNo});
-%                     end 
-                    residual = horzcat(problem.equations{:});
+                % Make sure we dont refine already refined cells
+                if isfield(model.transportModel.G.cells, 'refined')
+                    residual(model.transportModel.G.cells.refined) = 0;
                 end
-
-                % Make sure we dont refine well cells (they should already
-                % be at a suitable refinemnet level)
-%                 wc = model.coarseTransportModel.G.partition([drivingForces.W.cells]);
-%                 residual(wc) = 0;
-                
-                if isfield(model.coarseTransportModel.G.cells, 'refined')
-                    residual(model.coarseTransportModel.G.cells.refined) = 0;
-                end
-                
             
                 tol = 1e-2;
                 cells = find(abs(residual) > tol);
-                [model, state, state0, drivingForces, mappings] ...
-                    = model.refineTransportModel(cells, state, state0, drivingForces);
+                [model, transportState, transportState0, drivingForces] ...
+                    = model.refineTransportModel(cells, pressureState, state0, drivingForces);
                 transportForces = drivingForces;
-                state.forces    = transportForces;
 
                 if ~isempty(drivingForces.bc)
                     isDir = strcmpi(drivingForces.bc.type, 'pressure');
@@ -106,19 +89,19 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
                 end
                 forceArg = model.transportModel.getDrivingForces(transportForces);
                 
-                state.timestep = dt;
-                state.pressure_full = state.pressure;
+                transportState.timestep = dt;
+                transportState.pressure_full = transportState.pressure;
                 
                 % If pressure converged, we proceed to solve the transport
-                [state, transportReport] = ...
-                    tsolver.solveTimestep(state0, dt, model.transportModel,...
-                                'initialGuess', state, ...
+                [transportState, transportReport] = ...
+                    tsolver.solveTimestep(transportState0, dt, model.transportModel,...
+                                'initialGuess', transportState, ...
                                 forceArg{:});
                 transport_ok = transportReport.Converged;
                 
                 % Map transport quantities onto fine grid to prepare for
                 % next pressure solve
-                state = model.refineState(state, statePressure);
+                state = model.refineState(transportState, pressureState);
                 
             else
                 transport_ok = false;
@@ -126,31 +109,28 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
             end 
         end
         
-        function [model, state, state0, forces, mappings] = refineTransportModel(model, cells, state, state0, forces)
+        function [model, transportState, transportState0, forces] ...
+                = refineTransportModel(model, cells, transportState, transportState0, forces)
             
             GF = model.fineTransportModel.G;
             GC = model.coarseTransportModel.G;
-            if isfield(state0, 'G') && isfield(state0.G, 'parent')
-                G = state0.G;
+            if isfield(transportState0, 'G') && isfield(transportState0.G, 'parent')
+                G = transportState0.G;
             else
                 G = GC;
             end
             
             % Refine grid
             mappings = getRefinementMappings(G, GC, GF, cells);
-%             [G, mappings, partition] = refineGrid(GC, GC, GF, cells);
-            tm = upscaleModelTPFA(model.fineTransportModel, mappings.newPartition);%mappings.fine2new);
-%             model.transportModel = upscaleModelTPFA(model.transportModel, mappings.fine2new);
-            tm.G.cells.ghost = false(model.transportModel.G.cells.num,1);
-            tm.G.cells.refined = accumarray(tm.G.partition, ones(G.parent.cells.num,1)) == 1;
-            
+            tm       = model.upscaleTransportModelTPFA(mappings.newPartition);
             
             model.transportModel = tm;
-            state  = model.upscaleState(state);
-            state0 = model.upscaleState(state0);
+            transportState.pv = model.transportModel.operators.pv;
+            transportState  = model.upscaleState(transportState);
+            transportState0 = model.upscaleState(transportState0);
             
             if model.storeGrids
-                state.G = tm.G;
+                transportState.G = tm.G;
             end
 
             forces = model.mapForces(forces, tm.G);
@@ -158,11 +138,11 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
             if model.plotProgress
                 figure(1)
                 clf;
-                plotCellData(tm.G, state.s(:,1), 'edgecolor', 'none');
+                plotCellData(tm.G, transportState.s(:,1), 'edgecolor', 'none');
                 plotGrid(tm.G, 'facec', 'none', 'edgealpha', 0.3);
                 colormap(jet)
                 axis equal tight
-                caxis([0.2,0.8])
+%                 caxis([0.2,0.8])
                 drawnow()
             end
             
@@ -199,10 +179,38 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
             pvbf           = bsxfun(@times, pvf, state.bfactor);
             state.bfactor  = S*pvbf./pv;
             state.pressure = S*(pvf.*state.pressure)./pv;
-            state.s        = S*(pvbf.*state.s)./(S*pvbf);
             
+            % Summation matrix
+            S = S*sparse((1:GF.cells.num)', state.transportState.G.partition, 1);
+%             SS = S*SS';
             
+            pvPrev = state.transportState.pv;
+            pvb = bsxfun(@times, pv, state.bfactor);
+            state.s = S*(pvPrev.*state.transportState.s)./(S*pvPrev);
             
+            ts = state.transportState;
+            
+            if isa(model.transportModel, 'TransportBlackOilModelDG')
+                disc = model.transportModel.disc;
+                state.degree = repmat(disc.degree, G.cells.num, 1);
+                state = disc.updateDofPos(state);
+                sdof = zeros(sum(state.nDof), size(state.s,2));
+                for dofNo = 1:numel(disc.basis.nDof)
+                    ix     = disc.getDofIx(ts, dofNo, 1:size(ts.s,1));
+                    ixNew  = disc.getDofIx(state, dofNo, 1:G.cells.num);
+                    keepRows = state.nDof >= dofNo;
+                    keepCols = ts.nDof >= dofNo;
+                    Stmp = S(keepRows, keepCols);
+                    
+                    sdof(ixNew,:) = Stmp*(pvPrev.*ts.sdof(ix,:))./(Stmp*pvPrev);
+                end
+                state.sdof = sdof;
+                state.degree = repmat(model.transportModel.disc.degree, G.cells.num, 1);            
+            	state        = model.transportModel.disc.assignDofFromState(state);
+            end
+            
+%             if 
+%             state.degree   = repmat(model.transportModel.disc.degree, G.cells.num, 1);
 
             cFsign   = fineToCoarseSign(G);
             cFacesno = rldecode(1:G.faces.num, diff(G.faces.connPos), 2).';
@@ -213,29 +221,86 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
             state.flux = newFlux;
         end
         
-        function state = refineState(model, state, statef)
+        function transportModel = upscaleTransportModelTPFA(model, partition, varargin)
             
-            varNames = getTransportVarNames();
+            transportModel = upscaleModelTPFA(model.fineTransportModel, partition, varargin{:});
+            G = coarsenCellDimensions(transportModel.G);
+            G.cells.ghost   = false(G.cells.num, 1);
+            G.cells.refined = accumarray(G.partition, ones(G.parent.cells.num,1)) == 1;
+            transportModel.G = G;
+            
+            if model.isDG
+                [jt, ot, mt] = deal(Inf);
+                transportModel.disc = DGDiscretization(transportModel     , ...
+                                    'degree'               , model.transportModel.disc.degree, ...
+                                    'basis'                , 'legendre'   , ...
+                                    'useUnstructCubature'  , false        , ...
+                                    'jumpTolerance'        , jt           , ...
+                                    'outTolerance'         , ot           , ...
+                                    'outLimiter'           , 'kill'       , ...
+                                    'meanTolerance'        , mt           , ...
+                                    'limitAfterConvergence', false        , ...
+                                    'plotLimiterProgress'  , false        );
+            end
+            
+        end
+        
+        function state = refineState(model, transportState, pressureState)
+            
+            [varNames, dofVarNames] = getTransportVarNames();
             p     = model.transportModel.G.partition;
-            st    = state;
-            state = statef;
-            state.G = st.G;
+            st    = transportState;
+            
+            
+            state = pressureState;
+%             state.wellSol = transportState.wellSol;
+            
+%             st.pvPrev = model.transportModel.operators.pv;
+%             st.oldPartition = model.transportModel.G.partition;
+
+            state.transportState = transportState;            
+            state.G = transportState.G;
+            
+%             isDG = isfield(transportState, 'sdof');
+            if model.isDG
+                disc = model.transportModel.disc;
+            end
+            
+            nPh = model.water + model.oil + model.gas;
             for vNo = 1:numel(varNames)
-                vn = varNames{vNo};
-                if isfield(state, vn)
-                    state.(vn) = st.(vn)(p,:);
+                vn  = varNames{vNo};
+                dvn = dofVarNames{vNo};
+                if isfield(transportState, vn)
+                    if model.isDG
+                        x = model.fineTransportModel.G.cells.centroids;
+                        x = disc.transformCoords(x, p);
+                        for phNo = 1:nPh
+                            state.(vn)(:,phNo) = disc.evaluateSaturation(x, p, transportState.(dvn)(:, phNo), st);
+                        end
+                    else                        
+                        state.(vn) = transportState.(vn)(p,:);
+                    end
                 end
             end
+ 
         end
 
     end
 end
 
-function varNames = getTransportVarNames()
-
-    varNames = {'s'};
+function [varNames, dofVarNames] = getTransportVarNames()
     
+    varNames    = {'s'   };
+    dofVarNames = {'sdof'};
+
 end
+
+function dgVarNames = getDGVarNames()
+
+    dgVarNames = {'bfactor', 'degree', 'nDof'};
+
+end
+
 
 %{
 Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
