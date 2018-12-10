@@ -1,6 +1,6 @@
 classdef BlackOilViscosity < GridProperty
     properties
-        useSaturatedFlag = true;
+        useSaturatedFlag = false;
     end
     
     methods
