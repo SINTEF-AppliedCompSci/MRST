@@ -48,8 +48,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
     [timesteps, controls] = deal([]);
-    for i = 1:numel(report.ControlstepReports)
-        cr = report.ControlstepReports{i};
+    if isstruct(report)
+        crs = report.ControlstepReports;
+    else
+        crs = report;
+    end
+    for i = 1:numel(crs)
+        cr = crs{i};
         steprep = cr.StepReports(cellfun(@(x) x.Converged, cr.StepReports));
         timesteps = [timesteps; cellfun(@(x) x.Timestep, steprep)]; %#ok
         controls = [controls;...
