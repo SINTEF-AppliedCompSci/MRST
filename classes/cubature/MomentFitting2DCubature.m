@@ -77,8 +77,12 @@ classdef MomentFitting2DCubature < Cubature
                 end
 
                 % We use known cubature to calculate the moments
-                cubTri = TriangleCubature(G, cubature.prescision, cubature.internalConn);
-                [W, xq, wTri, cellNo, faceNo] = cubTri.getCubature(elements, type);
+                if isfield(G, 'parent')
+                    knownCub = CoarseGrid2DCubature(G, cubature.prescision, cubature.internalConn);
+                else
+                    knownCub = TriangleCubature(G, cubature.prescision, cubature.internalConn);
+                end
+                [~, xq, wTri, cellNo, faceNo] = knownCub.getCubature(elements, type);
                 % Map cubature points to reference coordinates
                 if G.griddim == 3
                     % Map to face reference coordinates
@@ -106,18 +110,9 @@ classdef MomentFitting2DCubature < Cubature
                     rhs(dofNo, :) = m;
                 end
                 moments = rhs(:);
-%                 % Matrix of basis functions evalauted at current quadrature
-%                 % points
-%                 P      = reshape(cell2mat(cellfun(@(p) p(x), psi, 'unif', false)), [], nDof)';
-%                 % Compute significance
-%                 significance = sum(P.^2,1);
-%                 % Compute weights
-%                 W = zeros(size(P,2), G.cells.num);
-%                 I = eye(size(P,2));
-                
-                moments = moments;%./rldecode(G.cells.volumes, nDof, 1);
+                moments = moments./rldecode(G.cells.volumes, nDof, 1);
                 [x,w,n] = fitMoments(x, basis, moments, num);
-%                 w = w;
+                w = w.*rldecode(G.cells.volumes, n, 1);
             end
             
             % Map from reference to physical coordinates
