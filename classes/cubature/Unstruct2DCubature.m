@@ -24,16 +24,7 @@ classdef Unstruct2DCubature < Cubature
                 numParents = G.faces.num;
             end
             cub.pos = (0:cub.numPoints:numParents*cub.numPoints)' + 1;
-%             cub.parentPos = [0; cumsum(cub.triangulation.nTri*cub.numPoints)] + 1;
-%             if G.griddim == 2
-%                 elements = (1:G.cells.num)';
-%                 type = 'cell';
-%             else
-%                 elements = (1:G.faces.num)';
-%                 type = 'face';
-%             end
-%             W = cub.getCubature(elements, type);
-            
+
         end
         
         function x = getCubaturePoints(cub)
