@@ -372,7 +372,7 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     %----------------------------------------------------------------------
     
     % Extract subproblem if we are solving subproblem----------------------
-    if isfield(G, 'full')
+    if any(strcmpi(G.type, 'subgrid'));
         ix = disc.getDofIx(state, Inf, ~G.cells.ghost);
         
         for eqNo = 1:numel(problem.equations)

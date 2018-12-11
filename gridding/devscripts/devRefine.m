@@ -45,6 +45,8 @@ GF.cells.ghost = false(GF.cells.num,1);
 
 %%
 
+gravity reset off
+
 rock  = makeRock(G, 100*milli*darcy, 1);
 rockF = makeRock(GF, 100*milli*darcy, 1);
 
@@ -76,8 +78,8 @@ end
 [jt, ot, mt] = deal(Inf);
 mt = 1e-3;
 ot = 1e-3;
-degree = 1;
-if 1
+degree = 3;
+if 0
 disc = DGDiscretization(modelASI.transportModel               , ...
                         'degree'               , degree       , ...
                         'basis'                , 'legendre'   , ...
@@ -99,7 +101,7 @@ end
 discDG = DGDiscretization(modelDG.transportModel               , ...
                         'degree'               , degree       , ...
                         'basis'                , 'legendre'   , ...
-                        'useUnstructCubature'  , false        , ...
+                        'useUnstructCubature'  , true        , ...
                         'jumpTolerance'        , jt           , ...
                         'outTolerance'         , ot           , ...
                         'outLimiter'           , 'kill'       , ...
@@ -161,19 +163,18 @@ modelASI.storeGrids = true;
 modelASI.plotProgress = true;
 modelASI.pressureModel.extraStateOutput = true;
 
-state0F.transportState = state0;
-state0FtransportState.degree = repmat(degree, G.cells.num, 1);
-state0F.transportState.oldPartition = G.partition;
-state0F.transportState.G = G;
-state0F.degree = repmat(degree, G.cells.num, 1);
-
-state0F.transportState.pv = modelASI.transportModel.operators.pv;
-state0F.transportState = disc.updateDofPos(state0F.transportState);
-
+state0F.transportState        = state0;
+state0F.transportState.degree = degree*ones(G.cells.num, 1);
+state0F.transportState.G      = G;
+state0F.transportState.pv     = modelASI.transportModel.operators.pv;
+state0F.transportState        = disc.assignDofFromState(state0F.transportState);
+state0F.transportState        = disc.updateDofPos(state0F.transportState);
+state0F.transportModel        = modelASI.transportModel;
+% 
 state0 = disc.assignDofFromState(state0);
 state0 = disc.updateDofPos(state0);
 state0F.sdof = state0.sdof;
-state0F.nDof = state0.nDof;
+% state0F.nDof = state0.nDof;
 
 [wsASI, stASI, rep] = simulateScheduleAD(state0F, modelASI, scheduleF);
 
@@ -192,7 +193,15 @@ state0 = assignDofFromState(modelDG.transportModel.disc, state0);
 
 %%
 
-plotWellSols({wsSI, wsSIF, wsASI});
+ws = {wsSI, wsDG, wsASI, wsSIF};
+names    = {'Coarse', ['Coarse dG(', num2str(degree), ')'], ...
+            ['Adaptive dG(', num2str(degree), ')'], 'Fine'};
+        
+pIx = [1,3,4];
+ws = ws(pIx);
+names = names(pIx);
+        
+plotWellSols(ws, 'datasetNames', names);
 
 %%
 

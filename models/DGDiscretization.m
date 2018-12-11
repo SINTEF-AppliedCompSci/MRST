@@ -57,7 +57,7 @@ classdef DGDiscretization < HyperbolicDiscretization
             disc.outLimiter    = 'kill';
             disc.meanTolerance = 0.0;
             disc.limitAfterNewtonStep  = true;
-            disc.limitAfterConvergence = true;
+            disc.limitAfterConvergence = false;
             disc.plotLimiterProgress   = false;
             
             % Cubature
@@ -80,7 +80,7 @@ classdef DGDiscretization < HyperbolicDiscretization
             prescision = disc.degree + 1;
             isCoarse   = isfield(G, 'parent');
             if G.griddim == 2
-                if isCoarse
+                if isCoarse && ~disc.useUnstructCubature
                     volCub  = CoarseGrid2DCubature(G, prescision, disc.internalConn);
                 else
                     if disc.degree == 0 || disc.useUnstructCubature
