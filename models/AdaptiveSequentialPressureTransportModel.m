@@ -36,7 +36,7 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
             model.coarseTransportModel.G.oldPartition = G0.partition;
             
             model.plotProgress = false;
-            model.storeGrids   = false;
+            model.storeGrids   = true;
             
 %             tm = model.transportModel;
 %             if model.isReordering
@@ -58,6 +58,7 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
             end
              % Get the forces used in the step
             forceArg = model.pressureModel.getDrivingForces(drivingForces);
+            pressureForceArg = forceArg;
             
             % First, solve the pressure using the pressure nonlinear
             % solver.
@@ -68,6 +69,7 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
             pressure_ok = pressureReport.Converged || psolver.continueOnFailure;
             
             if pressure_ok
+                % If pressure converged, we proceed to solve the transport
                 model.transportModel = state.transportModel;
                 % Assemble transport residual
                 transportState    = model.upscaleState(pressureState);
@@ -118,7 +120,6 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
                 transportState.timestep = dt;
                 transportState.pressure_full = transportState.pressure;
                 
-                % If pressure converged, we proceed to solve the transport
                 [transportState, transportReport] = ...
                     tsolver.solveTimestep(transportState0, dt, model.transportModel,...
                                 'initialGuess', transportState, ...
@@ -150,6 +151,7 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
                 % next pressure solve
                 state = model.refineState(transportState, pressureState);
                 state.transportModel = model.transportModel;
+                forceArg = pressureForceArg;
             else
                 transport_ok = false;
                 transportReport = [];
@@ -221,12 +223,21 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
             pv  = transportModel.operators.pv;
             
             % Summation matrix
-            S = sparse(G.partition, (1:GF.cells.num)', 1);
+            S    = sparse(G.partition, (1:GF.cells.num)', 1);
+%             pvbf          = bsxfun(@times, pvf, state.bfactor);
+%             state.bfactor = S*pvbf./pv;
             
-            % 
-            pvbf           = bsxfun(@times, pvf, state.bfactor);
-            state.bfactor  = S*pvbf./pv;
-            state.pressure = S*(pvf.*state.pressure)./pv;
+            flowVarNames = getFlowVarNames();
+            
+            for fNo = 1:numel(flowVarNames)
+                vn = flowVarNames{fNo};
+                if isfield(state, vn)
+                    state.(vn) = S*(pvf.*state.(vn))./pv;
+                end
+            end
+%             state.mob   = S*(pvf.*state.mob)./pv;
+%             state.dpRel = S*(pvf.*state.dpRel)./pv;
+            
             
             % Mapping from old to new coarse grid
             S = S*sparse((1:GF.cells.num)', state.transportState.G.partition, 1);
@@ -235,6 +246,7 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
 %             pvb = bsxfun(@times, pv, state.bfactor);
             state.s = S*(pvPrev.*state.transportState.s)./(S*pvPrev);
             
+
             ts = state.transportState;
             
             if model.isDG
@@ -302,21 +314,26 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
             p     = transportModel.G.partition;
             
             state = pressureState;
-%             state.wellSol = transportState.wellSol;
+            state.wellSol = transportState.wellSol;
             
 %             st.pvPrev = model.transportModel.operators.pv;
 %             st.oldPartition = model.transportModel.G.partition;
             transportState.transportState = [];
                            
             state.transportState = transportState;
-            state.G = transportState.G;
+            if model.storeGrids
+                state.G = transportState.G;
+            end
             
 %             isDG = isfield(transportState, 'sdof');
             if model.isDG
                 disc = transportModel.disc;
             end
             
-            nPh = model.water + model.oil + model.gas;
+            nPh =   model.pressureModel.water ...
+                  + model.pressureModel.oil   ...
+                  + model.pressureModel.gas;
+                  
             for vNo = 1:numel(varNames)
                 vn  = varNames{vNo};
                 dvn = dofVarNames{vNo};
@@ -349,11 +366,28 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
 end
 
 function [varNames, dofVarNames] = getTransportVarNames()
-    
+
+%     flds = {'pressure', 's', 'x', 'y', 'components', 'K', 'b', 'mob', ...
+%             'rho', 'flag', 'L', 'T', 'Z_L', 'Z_V', 'w', 'bfactor', ...
+%             'w_p', 'dpressure', 'dpRel', 'dpAbs', 'switched', ...
+%             'nDof', 'degree', 'sdof'};
+
     varNames    = {'s'   };
     dofVarNames = {'sdof'};
 
 end
+
+function varNames = getFlowVarNames()
+
+%     flds = {'pressure', 's', 'x', 'y', 'components', 'K', 'b', 'mob', ...
+%             'rho', 'flag', 'L', 'T', 'Z_L', 'Z_V', 'w', 'bfactor', ...
+%             'w_p', 'dpressure', 'dpRel', 'dpAbs', 'switched', ...
+%             'nDof', 'degree', 'sdof'};
+
+    varNames    = {'pressure', 'mob', 'bfactor', 'dpRel', 'rho', 'flag', 'dpressure'};
+
+end
+
 
 function dgVarNames = getDGVarNames()
 

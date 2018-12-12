@@ -1,9 +1,12 @@
 mrstModule add dg vem vemmech ad-props ad-core ad-blackoil ...
-    blackoil-sequential gasinjection reorder matlab_bgl upr coarsegrid
+    blackoil-sequential gasinjection reorder matlab_bgl upr coarsegrid ...
+    mrst-gui
+
+mrstVerbose on
 
 %%
 
-n  = 50;
+n  = 30;
 l = 1000;
 GF = pebiGrid(l/n, [l,l]);
 close all
@@ -58,6 +61,8 @@ modelFI  = TwoPhaseOilWaterModel(G, rock, fluid);
 modelSI  = getSequentialModelFromFI(modelFI);
 modelASI = AdaptiveSequentialPressureTransportModel(modelSIF.pressureModel, modelSIF.transportModel, G);
 
+transportModel = modelSIF.transportModel;
+
 [jt, ot, mt] = deal(Inf);
 mt = 1e-3;
 ot = 1e-3;
@@ -72,17 +77,19 @@ disc = DGDiscretization(modelASI.transportModel               , ...
                         'meanTolerance'        , mt           , ...
                         'limitAfterConvergence', false        , ...
                         'plotLimiterProgress'  , false        );
-transportModel = TransportOilWaterModelDG(GF, rockF, fluid, ...
+transportModelDG = TransportOilWaterModelDG(GF, rockF, fluid, ...
                                    'disc'    , disc        , ...
                                    'dsMaxAbs', 0.2, ...
                                    'nonlinearTolerance', 1e-3);
 
-tm = ReorderingModelDG_ghost(transportModel);
-modelASIreorder = AdaptiveSequentialPressureTransportModel(modelSIF.pressureModel, tm, G);
+modelASIDG = AdaptiveSequentialPressureTransportModel(modelSIF.pressureModel, transportModelDG, G);
+
+tm = ReorderingModelDG_ghost(transportModelDG);
+modelASIDGreorder = AdaptiveSequentialPressureTransportModel(modelSIF.pressureModel, tm, G);
 
 % modelASIreorder = AdaptiveSequentialPressureTransportModel(modelSIF.pressureModel, transportModel, G);
-modelASIreorder.transportModel.chunkSize = 100;
-modelASIreorder.transportModel.parent.extraStateOutput = true;
+modelASIDGreorder.transportModel.chunkSize = 100;
+modelASIDGreorder.transportModel.parent.extraStateOutput = true;
 
 %%
 
@@ -101,7 +108,8 @@ W = addWell(W, G, rock, ix, 'type', 'rate', 'val', rate    , 'comp_i', [1,0]);
 W = addWell(W, G, rock, ix, 'type', 'bhp' , 'val', 50*barsa, 'comp_i', [1,0]);
 
 dt    = 7*day;
-dtvec = rampupTimesteps(time, dt, 0);
+dtvec = rampupTimesteps2(time, dt, 0);
+% dtvec = rampupTimesteps(time, dt, 0);
 schedule = simpleSchedule(dtvec, 'W', W);
 
 sW     = 0.0;
@@ -123,7 +131,7 @@ state0F.bfactor = [fluid.bW(state0F.pressure), fluid.bO(state0F.pressure)];
 %%
 
 modelASI.storeGrids                     = true;
-modelASI.plotProgress                   = false;
+modelASI.plotProgress                   = true;
 modelASI.pressureModel.extraStateOutput = true;
 
 state0F.transportState        = state0;
@@ -140,13 +148,20 @@ state0F.transportModel        = modelASI.transportModel;
 
 %%
 
-modelASIreorder.pressureModel.extraStateOutput = true;
-modelASIreorder.transportModel.plotProgress = true;
-modelASIreorder.transportModel.plotAfterTimestep = false;
-modelASIreorder.storeGrids = true;
-modelASIreorder.plotProgress = false;
-state0F.transportModel        = modelASIreorder.transportModel;
-[wsASIreorder, stASIreorder, rep] = simulateScheduleAD(state0F, modelASIreorder, scheduleF);
+state0F.transportModel  = modelASIDG.transportModel;
+state0F.transportState.G = G;
+[wsASIDG, stASIDG, rep] = simulateScheduleAD(state0F, modelASIDG, scheduleF);
+
+%%
+
+modelASIDGreorder.transportModel.parent.extraStateOutput = true;
+modelASIDGreorder.pressureModel.extraStateOutput = true;
+modelASIDGreorder.transportModel.plotProgress = true;
+modelASIDGreorder.transportModel.plotAfterTimestep = false;
+modelASIDGreorder.storeGrids = true;
+modelASIDGreorder.plotProgress = false;
+state0F.transportModel        = modelASIDGreorder.transportModel;
+[wsASIreorder, stASIreorder, rep] = simulateScheduleAD(state0F, modelASIDGreorder, scheduleF);
 
 %%
 
@@ -158,11 +173,19 @@ state0F.transportModel        = modelASIreorder.transportModel;
 
 %%
 
-ws = {wsSI, wsASI, wsSIF};
+close all
+cmap = mrstColormap('type', 'wateroil');
+
+%%
+
+ws = {wsSI, wsASIreorder, wsASI, wsASIDG, wsSIF};
 names    = {'Coarse', ...
-            ['Adaptive dG(', num2str(degree), ')'], 'Fine'};
+            ['Adaptive dG(', num2str(degree), ') reorder'], ...
+            ['Adaptive dG(0)']       , ...
+            ['Adaptive dG(', num2str(degree), ')']       , ...
+            'Fine'};
         
-pIx = 1:3;
+pIx = 1:4;
 ws = ws(pIx);
 names = names(pIx);
         
@@ -170,10 +193,15 @@ plotWellSols(ws, scheduleF.step.val, 'datasetNames', names);
 
 %%
 
-close all
-cmap = mrstColormap('type', 'wateroil');
 figure
 plotToolbar(GF, stASI)
+axis equal tight
+colormap(cmap);
+
+%%
+
+figure
+plotToolbar(GF, stASIreorder)
 axis equal tight
 colormap(cmap);
 

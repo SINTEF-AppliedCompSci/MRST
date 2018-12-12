@@ -78,7 +78,7 @@ end
 [jt, ot, mt] = deal(Inf);
 mt = 1e-3;
 ot = 1e-3;
-degree = 3;
+degree = 1;
 if 0
 disc = DGDiscretization(modelASI.transportModel               , ...
                         'degree'               , degree       , ...
@@ -159,22 +159,36 @@ state0F.bfactor = [fluid.bW(state0F.pressure), fluid.bO(state0F.pressure)];
 
 %%
 
-modelASI.storeGrids = true;
-modelASI.plotProgress = true;
+% modelASI.storeGrids = true;
+% modelASI.plotProgress = true;
+% modelASI.pressureModel.extraStateOutput = true;
+% 
+% state0F.transportState        = state0;
+% state0F.transportState.degree = degree*ones(G.cells.num, 1);
+% state0F.transportState.G      = G;
+% state0F.transportState.pv     = modelASI.transportModel.operators.pv;
+% state0F.transportState        = disc.assignDofFromState(state0F.transportState);
+% state0F.transportState        = disc.updateDofPos(state0F.transportState);
+% state0F.transportModel        = modelASI.transportModel;
+% % 
+% state0 = disc.assignDofFromState(state0);
+% state0 = disc.updateDofPos(state0);
+% state0F.sdof = state0.sdof;
+% % state0F.nDof = state0.nDof;
+
+
+modelASI.storeGrids                     = true;
+modelASI.plotProgress                   = true;
 modelASI.pressureModel.extraStateOutput = true;
 
 state0F.transportState        = state0;
-state0F.transportState.degree = degree*ones(G.cells.num, 1);
+% state0F.transportState.degree = degree*ones(G.cells.num, 1);
 state0F.transportState.G      = G;
 state0F.transportState.pv     = modelASI.transportModel.operators.pv;
-state0F.transportState        = disc.assignDofFromState(state0F.transportState);
-state0F.transportState        = disc.updateDofPos(state0F.transportState);
+% state0F.transportState        = disc.assignDofFromState(state0F.transportState);
+% state0F.transportState        = disc.updateDofPos(state0F.transportState);
 state0F.transportModel        = modelASI.transportModel;
-% 
-state0 = disc.assignDofFromState(state0);
-state0 = disc.updateDofPos(state0);
-state0F.sdof = state0.sdof;
-% state0F.nDof = state0.nDof;
+
 
 [wsASI, stASI, rep] = simulateScheduleAD(state0F, modelASI, scheduleF);
 
@@ -197,7 +211,7 @@ ws = {wsSI, wsDG, wsASI, wsSIF};
 names    = {'Coarse', ['Coarse dG(', num2str(degree), ')'], ...
             ['Adaptive dG(', num2str(degree), ')'], 'Fine'};
         
-pIx = [1,3,4];
+pIx = [2];
 ws = ws(pIx);
 names = names(pIx);
         
