@@ -73,7 +73,7 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
            end
            solver.amgcl_setup.cell_num = model.G.cells.num;
                 for ph = 1:size(problem.state.s, 2)
-                    problem.equations{ph} = problem.equations{ph}.*(problem.dt./model.operators.pv);
+%                     problem.equations{ph} = problem.equations{ph}.*(problem.dt./model.operators.pv);
                 end
             if isa(model, 'ThreePhaseBlackOilModel') && false
                 sw = model.getProp(problem.state, 'sw');
@@ -81,7 +81,7 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
                 if any(bad)
                     sum(bad)
                     for ph = 2:size(problem.state.s, 2)
-                        problem.equations{1}(bad) = problem.equations{1}(bad) + problem.equations{ph}(bad);
+%                         problem.equations{1}(bad) = problem.equations{1}(bad) + problem.equations{ph}(bad);
                     end
                 end
            end
@@ -201,9 +201,9 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
                 bz = solver.amgcl_setup.block_size;
                 nc = solver.amgcl_setup.cell_size;
                 n = sz(1);
-%                 d = 1./abs(diag(A));
+                d = 1./abs(diag(A));
 %                 d = 1./diag(A);
-                d = ones(n, 1);
+%                 d = ones(n, 1);
                 d(~isfinite(d)) = 1;
                 psub = 1:bz:(nc*bz - bz + 1);
                 d(psub) = solver.pressureScaling;
