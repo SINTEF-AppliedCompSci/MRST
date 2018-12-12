@@ -1,6 +1,6 @@
 mrstModule add dg vem vemmech ad-props ad-core ad-blackoil ...
     blackoil-sequential gasinjection reorder matlab_bgl upr coarsegrid ...
-    mrst-gui
+    mrst-gui mrst-utils
 
 mrstVerbose on
 
@@ -84,7 +84,7 @@ transportModelDG = TransportOilWaterModelDG(GF, rockF, fluid, ...
 
 modelASIDG = AdaptiveSequentialPressureTransportModel(modelSIF.pressureModel, transportModelDG, G);
 
-tm = ReorderingModelDG_ghost(transportModelDG);
+tm = ReorderingModelDG(transportModelDG);
 modelASIDGreorder = AdaptiveSequentialPressureTransportModel(modelSIF.pressureModel, tm, G);
 
 % modelASIreorder = AdaptiveSequentialPressureTransportModel(modelSIF.pressureModel, transportModel, G);
