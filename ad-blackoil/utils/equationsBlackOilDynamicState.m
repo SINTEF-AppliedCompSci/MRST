@@ -48,17 +48,19 @@ T = s.T;
 gdz = model.getGravityGradient();
 
 props = model.FlowPropertyFunctions;
+
 rho = props.getProperty(model, state, 'Density');
 mob = props.getProperty(model, state, 'Mobility');
-b = props.getProperty(model, state, 'ShrinkageFactors');
-pv = props.getProperty(model, state, 'PoreVolume');
+b   = props.getProperty(model, state, 'ShrinkageFactors');
+pv  = props.getProperty(model, state, 'PoreVolume');
+pc  = props.getProperty(model, state, 'CapillaryPressure');
 
-b0 = props.getProperty(model, state0, 'ShrinkageFactors');
+b0  = props.getProperty(model, state0, 'ShrinkageFactors');
 pv0 = props.getProperty(model, state0, 'PoreVolume');
 
 [bW, bO, bG] = deal(b{:});
 [bW0, bO0, bG0] = deal(b0{:});
-p_phase = getPhasePressures(p, state.FlowProps.CapillaryPressure);
+p_phase = getPhasePressures(p, pc);
 nph = 3;
 v = cell(nph, 1);
 upc = false(numel(double(T)), nph);
