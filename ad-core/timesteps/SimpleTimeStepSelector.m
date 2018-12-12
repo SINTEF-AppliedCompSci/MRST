@@ -98,9 +98,9 @@ classdef SimpleTimeStepSelector < handle
             end
         end
         
-        function dt = pickTimestep(selector, dt_prev, dt, model, solver, state_prev, state_curr)
+        function dt = pickTimestep(selector, dt_prev, dt, model, solver, state_prev, state_curr, forces)
             if selector.controlsChanged && ...
-              (selector.resetOnControlsChanged || selector.isFirstStep);
+              (selector.resetOnControlsChanged || selector.isFirstStep)
                 % First relative check
                 dt = min(dt, selector.firstRampupStepRelative*dt);
                 % Then absolute check
@@ -108,7 +108,7 @@ classdef SimpleTimeStepSelector < handle
                 selector.stepLimitedByHardLimits = true;
             end
             dt0 = dt;
-            dt_new = selector.computeTimestep(dt, dt_prev, model, solver, state_prev, state_curr);
+            dt_new = selector.computeTimestep(dt, dt_prev, model, solver, state_prev, state_curr, forces);
 
             % Ensure that step does not change too much
             change = dt_new/dt;
@@ -164,7 +164,7 @@ classdef SimpleTimeStepSelector < handle
             end
         end
 
-        function dt = computeTimestep(selector, dt, dt_prev, model, solver, state_prev, state_curr) %#ok
+        function dt = computeTimestep(selector, dt, dt_prev, model, solver, state_prev, state_curr, forces) %#ok
             % Compute timestep dynamically - does nothing for base class    
         end
     end

@@ -206,7 +206,7 @@ classdef NonLinearSolver < handle
 
             dtMin = dT/(2^solver.maxTimestepCuts);
             while ~done
-                dt_selector = stepsel.pickTimestep(dt_prev, dt, model, solver, state_prev, state0_inner);
+                dt_selector = stepsel.pickTimestep(dt_prev, dt, model, solver, state_prev, state0_inner, drivingForces);
                 dt_model = model.getMaximumTimestep(state, state0_inner, dt_selector, drivingForces);
                 dt_choice = min(dt_selector, dt_model);
                 if t_local + dt_choice >= dT

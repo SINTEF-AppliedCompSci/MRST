@@ -46,9 +46,9 @@ classdef StateChangeTimeStepSelector < IterationCountTimeStepSelector
                    'targetProps must be equal in length to the targets!');
         end
         
-        function dt = computeTimestep(selector, dt, dt_prev, model, solver, state_prev, state_curr)
+        function dt = computeTimestep(selector, dt, dt_prev, model, solver, state_prev, state_curr, forces)
             dt0 = dt;
-            dt = computeTimestep@IterationCountTimeStepSelector(selector, dt, dt_prev, model, solver, state_prev, state_curr);
+            dt = computeTimestep@IterationCountTimeStepSelector(selector, dt, dt_prev, model, solver, state_prev, state_curr, forces);
             
             if isempty(state_prev)
                 if isempty(selector.previousState)
