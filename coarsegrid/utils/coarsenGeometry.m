@@ -62,7 +62,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    % Faces
    faceno = rldecode(1:cg.faces.num, diff(cg.faces.connPos), 2)';
    sgn    = fineToCoarseSign(cg);
-   cg.faces.areas   = accumarray(faceno, cg.parent.faces.areas(cg.faces.fconn));
    for i = 1:size(cg.parent.faces.centroids, 2),
       cg.faces.centroids(:,i) = accumarray(faceno, ...
          cg.parent.faces.centroids(cg.faces.fconn, i).*...
@@ -71,7 +70,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       cg.faces.normals(:,i) = accumarray(faceno, ...
          cg.parent.faces.normals(cg.faces.fconn, i).*sgn);
    end
-   cg.faces.normals   = bsxfun(@rdivide, cg.faces.normals, sqrt(sum(cg.faces.normals.^2,2)));
-   cg.faces.normals   = bsxfun(@times, cg.faces.normals, cg.faces.areas);
-   cg.faces.centroids = bsxfun(@rdivide, cg.faces.centroids, cg.faces.areas);
+   totalareas         = accumarray(faceno, cg.parent.faces.areas(cg.faces.fconn));
+   cg.faces.centroids = bsxfun(@rdivide, cg.faces.centroids, totalareas);
+   cg.faces.areas     = sqrt(sum(cg.faces.normals.^2,2));
+   
 end
