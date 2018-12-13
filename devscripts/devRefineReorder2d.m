@@ -6,7 +6,7 @@ mrstVerbose on
 
 %%
 
-n  = 30;
+n  = 50;
 l = 1000;
 GF = pebiGrid(l/n, [l,l]);
 close all
@@ -20,7 +20,7 @@ GF = computeCellDimensions2(GF);
 
 % Cartesian coarse grid
 G_cart = cartGrid([100, 100]);
-p_cart = partitionUI(G_cart, [10, 10]);
+p_cart = partitionUI(G_cart, [20, 20]);
 p_cart = sampleFromBox(GF, reshape(p_cart, G_cart.cartDims));
 GC = generateCoarseGrid(GF, p_cart);
 GC = coarsenGeometry(GC);
@@ -83,12 +83,13 @@ transportModelDG = TransportOilWaterModelDG(GF, rockF, fluid, ...
                                    'nonlinearTolerance', 1e-3);
 
 modelASIDG = AdaptiveSequentialPressureTransportModel(modelSIF.pressureModel, transportModelDG, G);
+% modelASIDG.pressureModel = PressureOilWaterModelSemiDG(GF, rockF, fluid);
 
 tm = ReorderingModelDG(transportModelDG);
-modelASIDGreorder = AdaptiveSequentialPressureTransportModel(modelSIF.pressureModel, tm, G);
+modelASIDGreorder = AdaptiveSequentialPressureTransportModel(modelASIDG.pressureModel, tm, G);
 
 % modelASIreorder = AdaptiveSequentialPressureTransportModel(modelSIF.pressureModel, transportModel, G);
-modelASIDGreorder.transportModel.chunkSize = 100;
+modelASIDGreorder.transportModel.chunkSize = 50;
 modelASIDGreorder.transportModel.parent.extraStateOutput = true;
 
 %%
@@ -154,10 +155,13 @@ state0F.transportState.G = G;
 
 %%
 
+close all
+figure('Position', [-1000, 0, 800, 800]);
+cmap = mrstColormap();
+colormap(cmap);
 modelASIDGreorder.transportModel.parent.extraStateOutput = true;
 modelASIDGreorder.pressureModel.extraStateOutput = true;
 modelASIDGreorder.transportModel.plotProgress = true;
-modelASIDGreorder.transportModel.plotAfterTimestep = false;
 modelASIDGreorder.storeGrids = true;
 modelASIDGreorder.plotProgress = false;
 state0F.transportModel        = modelASIDGreorder.transportModel;
@@ -181,8 +185,8 @@ cmap = mrstColormap('type', 'wateroil');
 ws = {wsSI, wsASIreorder, wsASI, wsASIDG, wsSIF};
 names    = {'Coarse', ...
             ['Adaptive dG(', num2str(degree), ') reorder'], ...
-            ['Adaptive dG(0)']       , ...
-            ['Adaptive dG(', num2str(degree), ')']       , ...
+            'Adaptive dG(0)'                              , ...
+            ['Adaptive dG(', num2str(degree), ')']        , ...
             'Fine'};
         
 pIx = 1:4;

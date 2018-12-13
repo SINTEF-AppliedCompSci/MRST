@@ -38,11 +38,6 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
             model.plotProgress = false;
             model.storeGrids   = true;
             
-%             tm = model.transportModel;
-%             if model.isReordering
-%                 tm = tm.parent;
-%             end
-            
             model = merge_options(model, varargin{:});
             
         end
