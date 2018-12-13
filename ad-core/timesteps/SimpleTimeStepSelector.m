@@ -164,6 +164,10 @@ classdef SimpleTimeStepSelector < handle
             end
         end
 
+        function dt = cutTimestep(selector, dt_prev, dt, model, solver, state_prev, state_curr, forces)
+            dt = dt/2;
+        end
+        
         function dt = computeTimestep(selector, dt, dt_prev, model, solver, state_prev, state_curr, forces) %#ok
             % Compute timestep dynamically - does nothing for base class    
         end
