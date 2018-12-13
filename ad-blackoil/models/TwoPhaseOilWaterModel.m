@@ -65,8 +65,7 @@ classdef TwoPhaseOilWaterModel < ThreePhaseBlackOilModel
         end
 
         function [dyn_state, primaryVariables] = getDynamicState(model, state)
-            dyn_state = setupDynamicStateOilWater(model, state, false);
-            primaryVariables = {};
+            [dyn_state, primaryVariables] = setupDynamicStateOilWater(model, state, false);
         end
 
         function [dyn_state, primaryVariables] = getReverseDynamicState(model, state)

@@ -6,10 +6,13 @@ function [state, primaryVars] = setupDynamicStateOilWater(model, state, useAD)
     [wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
 
 
-    [p, sW, wellVars{:}] = model.AutoDiffBackend.initVariablesAD(p, sW, wellVars{:});
+    primaryVars = {};
+    if useAD
+        [p, sW, wellVars{:}] = model.AutoDiffBackend.initVariablesAD(p, sW, wellVars{:});
+        primaryVars = {'pressure', 'sW', wellVarNames{:}};
+    end
     sO = 1 - sW;
 
-    primaryVars = {'pressure', 'sW', wellVarNames{:}};
     sat = {sW, sO};
     wellSol = DynamicState(wellSol, [wellVarNames, 'wellmap'], [wellVars, wellMap]);
     
