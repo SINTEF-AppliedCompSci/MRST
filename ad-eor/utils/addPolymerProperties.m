@@ -1,4 +1,5 @@
 function fluid = addPolymerProperties(fluid, varargin)
+    require deckformat
     polyDeck  = readEclipseDeck('POLYMER.DATA');
     polyDeck  = convertDeckUnits(polyDeck);
     polyFluid = initDeckADIFluid(polyDeck);
