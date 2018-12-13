@@ -34,24 +34,42 @@ classdef TwoPhaseOilWaterModel < ThreePhaseBlackOilModel
                 % Define primary variables
                 if opt.resOnly
                     [dyn_state, primaryVars] = model.getDynamicState(state);
+                    [dyn_state0, ~]          = model.getDynamicState(state0);
                 else
-                    [dyn_state, primaryVars] = model.getForwardDynamicState(state);
+                    if ~opt.reverseMode
+                        [dyn_state, primaryVars] = model.getForwardDynamicState(state);
+                        [dyn_state0, ~]          = model.getDynamicState(state0);
+                    else
+                        [dyn_state, ~]            = model.getDynamicState(state);
+                        [dyn_state0, primaryVars] = model.getReverseDynamicState(state0);
+                    end
                 end
-                % State at previous time-step
 
-                [eqs, names, types] = equationsOilWaterDynamicState(state0, dyn_state, model, dt, drivingForces);
+                [eqs, names, types] = equationsOilWaterDynamicState(dyn_state0, ...
+                                                                  dyn_state, ...
+                                                                  model, dt, ...
+                                                                  drivingForces);
 
                 dissolved = model.getDissolutionMatrix(dyn_state.rs, dyn_state.rv);
                 % Add in and setup well equations
 
-                ws_dyn = dyn_state.wellSol;
+                ws_dyn   = dyn_state.wellSol;
                 wellVars = ws_dyn.dynamicVariables(1:end-1);
-                wellMap = ws_dyn.wellmap;
+                wellMap  = ws_dyn.wellmap;
 
-                p = dyn_state.pressure;
+                p   = dyn_state.pressure;
                 mob = dyn_state.FlowProps.Mobility;
                 rho = dyn_state.FlowProps.Density;
-                [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, state0.wellSol, state.wellSol, wellVars, wellMap, p, mob, rho, dissolved, {}, dt, opt);
+                
+                [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, ...
+                                                                  names, types, ...
+                                                                  state0.wellSol, ...
+                                                                  state.wellSol, ...
+                                                                  wellVars, ...
+                                                                  wellMap, p, ...
+                                                                  mob, rho, ...
+                                                                  dissolved, ...
+                                                                  {}, dt, opt);
 
                 state.FlowProps = dyn_state.FlowProps.reduce();
 
@@ -61,15 +79,18 @@ classdef TwoPhaseOilWaterModel < ThreePhaseBlackOilModel
         end
         
         function [dyn_state, primaryVariables] = getForwardDynamicState(model, state)
-            [dyn_state, primaryVariables] = setupDynamicStateOilWater(model, state, true);
+            [dyn_state, primaryVariables] = setupDynamicStateOilWater(model, ...
+                                                              state, true, false);
         end
 
         function [dyn_state, primaryVariables] = getDynamicState(model, state)
-            [dyn_state, primaryVariables] = setupDynamicStateOilWater(model, state, false);
+            [dyn_state, primaryVariables] = setupDynamicStateOilWater(model, ...
+                                                              state, false);
         end
 
         function [dyn_state, primaryVariables] = getReverseDynamicState(model, state)
-            [dyn_state, primaryVariables] = setupDynamicStateOilWater(model, state, true);
+            [dyn_state, primaryVariables] = setupDynamicStateOilWater(model, ...
+                                                              state, true, true);
         end
     end
 end

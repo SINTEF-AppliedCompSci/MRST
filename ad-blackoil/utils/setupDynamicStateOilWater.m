@@ -1,4 +1,5 @@
-function [state, primaryVars] = setupDynamicStateOilWater(model, state, useAD)
+function [state, primaryVars] = setupDynamicStateOilWater(model, state, useAD, ...
+                                                                 reverseMode)
     % Properties at current timestep
     [p, sW, wellSol] = model.getProps(state, ...
         'pressure', 'water', 'wellSol');
@@ -9,7 +10,11 @@ function [state, primaryVars] = setupDynamicStateOilWater(model, state, useAD)
     primaryVars = {};
     if useAD
         [p, sW, wellVars{:}] = model.AutoDiffBackend.initVariablesAD(p, sW, wellVars{:});
-        primaryVars = {'pressure', 'sW', wellVarNames{:}};
+        if reverseMode
+            primaryVars = {'pressure', 'sW'};
+        else
+            primaryVars = {'pressure', 'sW', wellVarNames{:}};
+        end
     end
     sO = 1 - sW;
 
