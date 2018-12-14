@@ -98,9 +98,14 @@ opt = struct('verbose',              mrstVerbose,     ...
              'fix_trans',            false,           ...
              'check_trans',          true,            ...
              'use_average_pressure', true,            ...
+             'LinearSolver',         [],              ...
              'LinSolve',             @mldivide);
 
 opt = merge_options(opt, varargin{:});
+
+if ~isempty(opt.LinearSolver)
+    opt.LinSolve = @(A, b) opt.LinearSolver.solveLinearSystem(A, b);
+end
 
 warnstate = warning('off', 'NumPhase:Inconsistent');
 
@@ -125,10 +130,10 @@ utrans = @(k) calculateUpscaledTransSimple(upscaled{k}, cg, cgwells_cases{k}, fl
                                      
 ext = any(cg.faces.neighbors == 0, 2);
 
-for i = 1 : nr_global,
+for i = 1 : nr_global
    upscaled{i} = utrans(i);
 
-   if isfield(upscaled{i}, 'facePressure'),
+   if isfield(upscaled{i}, 'facePressure')
       % Use one-sided transmissibilities to derive boundary
       % transmissibility
       t = 1 ./ accumarray(cg.cells.faces(:,1), 1 ./ upscaled{i}.htrans);
@@ -191,7 +196,8 @@ function [psolve, obj, isAD] = getPressureSolver(cg, input, opt)
         model.outputFluxes = true;
         model.gravity = [0, 0, 0];
         psolve = @(bcase, wcase) standaloneSolveAD(...
-            init_state, model, opt.dt, 'bc', bcase, 'W', wcase);
+            init_state, model, opt.dt, 'bc', bcase, 'W', wcase, ...
+            'LinearSolver', opt.LinearSolver);
         obj = model;
     else
         if isempty(init_state)
@@ -221,7 +227,7 @@ end
 % make initial CG well structure
 function cgwells = makeCGWells(cg, wells)
    cgwells = wells;
-   for i = 1 : numel(wells),
+   for i = 1 : numel(wells)
       fcells  = wells(i).cells;
       cgcells = cg.partition(fcells);
 
@@ -229,7 +235,7 @@ function cgwells = makeCGWells(cg, wells)
       [cells, n] = rlencode(tab(:,1));
       fcellspos  = cumsum([1 ; n]);
 
-      if cg.griddim > 2,
+      if cg.griddim > 2
          pno = rldecode(1 : numel(cells), n, 2) .';
          cc  = cg.parent.cells.centroids(tab(:,2), 3);
          cv  = cg.parent.cells.volumes  (tab(:,2));
@@ -262,7 +268,7 @@ function upscaled = calculateUpscaledSolution(cg, state, cgwells, opt)
 
     facePressure = [];
 
-    if opt.use_average_pressure,
+    if opt.use_average_pressure
 
        % normal average pressure
        pressure = sparse(cg.partition, 1 : cg.parent.cells.num, ...
@@ -275,7 +281,7 @@ function upscaled = calculateUpscaledSolution(cg, state, cgwells, opt)
        ff = sum(state.flux(cg.faces.fconn, :), 2);
        flux   = accumarray(cfacesno, ff .* cfsign);
 
-       if isfield(state, 'facePressure'),
+       if isfield(state, 'facePressure')
           fp = state.facePressure   (cg.faces.fconn);
           fa = cg.parent.faces.areas(cg.faces.fconn);
 
@@ -306,7 +312,7 @@ function upscaled = calculateUpscaledSolution(cg, state, cgwells, opt)
        ff = sum(state.flux(cg.faces.fconn, :), 2);
        flux   = accumarray(cfacesno, ff .* cfsign);
 
-       if isfield(state, 'facePressure'),
+       if isfield(state, 'facePressure')
           % Define coarse interface pressure as the fine-scale interface
           % pressure of the interface closest to the centroid of each
           % coarse face.
@@ -324,9 +330,9 @@ function upscaled = calculateUpscaledSolution(cg, state, cgwells, opt)
     end
 
     % make upscaled well and well quantities
-    if ~isempty(cgwells),
+    if ~isempty(cgwells)
        wellSol = state.wellSol;
-       for i = 1 : numel(cgwells),
+       for i = 1 : numel(cgwells)
           % need more refinement
           pno = rldecode(1 : numel(cgwells(i).cells), ...
                          diff(cgwells(i).fcellspos), 2) .';
@@ -383,7 +389,7 @@ function [bc, well_cases, cgwells_cases] = setupCases(cg, opt)
          bc{2} = pside([]   , cg.parent, 'North', pmin);
          bc{2} = pside(bc{2}, cg.parent, 'South', pmax);
 
-         if cg.griddim > 2,
+         if cg.griddim > 2
             bc{3} = pside([]   , cg.parent, 'Top'   , pmin);
             bc{3} = pside(bc{3}, cg.parent, 'Bottom', pmax);
          end
@@ -393,7 +399,7 @@ function [bc, well_cases, cgwells_cases] = setupCases(cg, opt)
 
       case 'bc'
          % given bc conditions
-         if isempty(opt.bc),
+         if isempty(opt.bc)
             error('bc_method==bc need nonempty bc option')
          end
 
@@ -404,7 +410,7 @@ function [bc, well_cases, cgwells_cases] = setupCases(cg, opt)
       case 'wells_simple'
          % use all linearly independent well configurations for
          % incompressible flow
-         if isempty(opt.wells),
+         if isempty(opt.wells)
             error('bc_method==wells need nonempty wells option')
          end
 
@@ -418,8 +424,8 @@ function [bc, well_cases, cgwells_cases] = setupCases(cg, opt)
          w_cases    = size(rates, 2);
          well_cases = repmat(opt.wells, [w_cases, 1]);
 
-         for c = 1 : w_cases,
-            for w = 1 : (nw - 1),
+         for c = 1 : w_cases
+            for w = 1 : (nw - 1)
                well_cases{c}(w).type = 'rate';
                well_cases{c}(w).val  = rates(w, c);
             end
@@ -435,11 +441,11 @@ function [bc, well_cases, cgwells_cases] = setupCases(cg, opt)
 
       case 'wells'
          % given wells conditions, need to be valid for incompressible flow
-         if isempty(opt.wells),
+         if isempty(opt.wells)
             error('bc_method==''wells'' needs non-empty ''wells'' option')
          end
 
-         if ~iscell(opt.wells),
+         if ~iscell(opt.wells)
             opt.wells={opt.wells};
          end
 
@@ -476,7 +482,7 @@ function [T_cg, HT_cg, cgwells] = ...
    trans  = alloc(cg.faces.num);
    htrans = alloc(numel(cg.cells.faces(:,1)));
 
-   for i = 1 : nr_global,
+   for i = 1 : nr_global
       trans(:,i)      = upscaled{i}.trans;
       flux(:,i)       = upscaled{i}.flux;
       [cmob, fmob] = getMobility(cg, fluid, upscaled{i});
@@ -486,13 +492,13 @@ function [T_cg, HT_cg, cgwells] = ...
       end
       dpfmob(internal,i) = dpress(upscaled{i}).*fmob;
 
-      for j = 1 : numel(cgwells),
+      for j = 1 : numel(cgwells)
          fluxwells{j}(:,i) = upscaled{i}.fluxwells{j}; %#ok
          dpmobwells{j}(:,i) = upscaled{i}.dpwells{j}.*cmob(cgwells(j).cells); %#ok
       end
    end
 
-   switch opt.match_method,
+   switch opt.match_method
       case 'max_flux'
          % use the transmisibility of the case with largest flux over the
          % face
@@ -507,8 +513,8 @@ function [T_cg, HT_cg, cgwells] = ...
 
          cfun = @(func) cellfun(func, upscaled, 'UniformOutput', false);
 
-         if ~isempty(cgwells),
-            for j = 1 : numel(cgwells),
+         if ~isempty(cgwells)
+            for j = 1 : numel(cgwells)
                bb   = cfun(@(x) x.WI{j});
                wind = [ bb{:} ];
 
@@ -526,13 +532,13 @@ function [T_cg, HT_cg, cgwells] = ...
          % minimize least square flux error over the set of cases
          T_cg  = - sum(flux, 2) ./ sum(dpfmob, 2);
 
-         if ~isempty(cgwells),
-            for j = 1 : numel(cgwells),
+         if ~isempty(cgwells)
+            for j = 1 : numel(cgwells)
                cgwells(j).WI = sum(fluxwells{j}, 2) ./ sum(dpmobwells{j}, 2);
             end
          end
 
-         if any(~isfinite(T_cg)),
+         if any(~isfinite(T_cg))
             T_cg (~ isfinite(T_cg))  = 0;
          end
          HT_cg = T_cg(cg.cells.faces(:, 1));
@@ -546,7 +552,7 @@ end
 % check solution by solving the coarse system with upscaled trans
 function [upscaled, ok] = ...
       checkUpscaledTrans(upscaled, cg, bc, well_cases, fluid)
-   if isempty(bc),
+   if isempty(bc)
       cgbc = [];
    else
       % Extract subfaces on coarse interfaces
@@ -560,7 +566,7 @@ function [upscaled, ok] = ...
 
    cgwells_tmp = well_cases;
    if ~isempty(cgwells_tmp) && isfield(upscaled, 'WI') && ...
-         iscell(upscaled.WI) && (numel(upscaled.WI) == numel(cgwells_tmp)),
+         iscell(upscaled.WI) && (numel(upscaled.WI) == numel(cgwells_tmp))
       [ cgwells_tmp.WI ] = upscaled.WI{:};
    end
 
@@ -587,13 +593,13 @@ function [upscaled, ok] = ...
     ok = all(abs(cgstate.flux(internal) - upscaled.flux(internal)) ./ ...
              max(abs(cgstate.flux)) < 1e-6);
 
-    if ~isempty(cgwells_tmp),
+    if ~isempty(cgwells_tmp)
        ok = ok && ...
           all(abs(vertcat(upscaled.wellSol.flux) - ...
                   vertcat(cgstate.wellSol.flux)) / ...
               max(abs(vertcat(cgstate.wellSol.flux))) < 1e-6);
 
-       for k = 2 : numel(cgwells_tmp),
+       for k = 2 : numel(cgwells_tmp)
           dc = cgstate.wellSol(k) .pressure - cgstate.wellSol(1).pressure;
           df = upscaled.wellSol(k).pressure - upscaled.wellSol(1).pressure;
 
@@ -622,7 +628,7 @@ function upscaled = ...
 
    clear dp int
 
-   if isfield(upscaled, 'facePressure'),
+   if isfield(upscaled, 'facePressure')
       % Calculate one-sided transmissibilities if possible
       cellno = rldecode(1 : cg.cells.num, diff(cg.cells.facePos), 2) .';
       cf     = cg.cells.faces(:,1);
@@ -636,7 +642,7 @@ function upscaled = ...
       clear cellno cf dp sgn hflux
    end
 
-   if ~isempty(cgwells),
+   if ~isempty(cgwells)
       assert (numel(upscaled.wellSol) == numel(cgwells), ...
               'Internal error defning upscaled well quantities');
 
@@ -657,7 +663,7 @@ function upscaled = ...
 
       WI    = (wflux ./ (dp.*mobw));
 
-      for j = 1 : numel(cgwells),
+      for j = 1 : numel(cgwells)
          ix = pos(j) : pos(j + 1) - 1;
 
          upscaled.fluxwells{j} = wflux(ix);
@@ -673,7 +679,7 @@ end
 function [T_cg, HT_cg, cgwells] = fixTrans(cg, T_cg, HT_cg, cgwells, opt)
    ext = any(cg.faces.neighbors == 0, 2);
 
-   if any(strcmp(opt.bc_method, {'wells', 'wells_simple'})),
+   if any(strcmp(opt.bc_method, {'wells', 'wells_simple'}))
       warning('upscaleTransNew:ZeroBoundary', ...
           'Set boundary face trans to zero');
       hf_ext        = ext(cg.cells.faces(:,1));
@@ -681,7 +687,7 @@ function [T_cg, HT_cg, cgwells] = fixTrans(cg, T_cg, HT_cg, cgwells, opt)
       T_cg(ext)     = 0;
    end
 
-   if opt.fix_trans,
+   if opt.fix_trans
       % Set negative and zero transmissibility to the minimum positive
       % (one-sided) transmissibility.
       HT_min = min(HT_cg(HT_cg > 0));
@@ -691,7 +697,7 @@ function [T_cg, HT_cg, cgwells] = fixTrans(cg, T_cg, HT_cg, cgwells, opt)
       HT_cg  = max(HT_cg, HT_min);
       T_cg   = max(T_cg , HT_min);
 
-      if ~isempty(cgwells),
+      if ~isempty(cgwells)
          WI = cellfun(@(x) max(x, 0), { cgwells.WI }, ...
                       'UniformOutput', false);
          [ cgwells.WI ] = WI{:};
