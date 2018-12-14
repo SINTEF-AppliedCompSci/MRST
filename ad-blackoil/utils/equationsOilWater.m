@@ -151,10 +151,6 @@ eqs = {water, oil};
 names = {'water', 'oil'};
 types = {'cell', 'cell'};
 
-% Add in fluxes
-eqs{1} = eqs{1} + s.Div(bWvW);
-eqs{2} = eqs{2} + s.Div(bOvO);
-
 % Add in any fluxes / source terms prescribed as boundary conditions.
 rho = {rhoW, rhoO};
 mob = {mobW, mobO};
@@ -166,6 +162,10 @@ sat = {sW, sO};
                                                                  drivingForces);
 % Finally, add in and setup well equations
 [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, wellVars, wellMap, p, mob, rho, {}, {}, dt, opt);
+% Add in fluxes
+eqs{1} = eqs{1} + s.Div(bWvW);
+eqs{2} = eqs{2} + s.Div(bOvO);
+
 
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 end
