@@ -164,7 +164,7 @@ methods
                problem.A = eqs.jac{1};
                problem.b = -eqs.val;
            else
-               problem.b = eqs;
+               problem.b = -eqs;
            end
        end
     end

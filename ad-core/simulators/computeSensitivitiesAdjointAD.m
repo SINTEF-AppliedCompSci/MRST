@@ -99,7 +99,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         for kp = 1:numel(param)
             for nl = 1:numel(lami)
                 if isa(eqdth{nl}, 'ADI')
-                    sens.(param{kp}) = sens.(param{kp}) - eqdth{nl}.jac{kp}'*lami{nl};
+                    sens.(param{kp}) = sens.(param{kp}) + eqdth{nl}.jac{kp}'*lami{nl};
                 end
             end
         end 

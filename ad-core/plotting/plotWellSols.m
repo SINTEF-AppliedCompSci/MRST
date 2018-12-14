@@ -367,9 +367,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                   get(csum,'Value'), ...
                                   hasTimesteps);
                 ylabel(yl);
-                if doCsum
-                    d = cumtrapz(x*xunit, d);
+                
+                if numel(wellsols{i}) > 0 && isfield(wellsols{i}{1}, 'status')
+                    % Mask away inactive data points
+                    status = getData(wname, all_well_names{i}, 'status', wellsols{i});
+                    active_step = status > 0;
+                else
+                    active_step = true(size(d));
                 end
+                
+                if doCsum
+                    d = cumtrapz(x*xunit, active_step.*d);
+                end
+                d(~active_step, :) = nan;
 
                 if get(abst, 'Value')
                     d = abs(d);
@@ -381,12 +391,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     line = '';
                     linew = 1;
                 end
-                
-                if numel(wellsols{i}) > 0 && isfield(wellsols{i}{1}, 'status')
-                    % Mask away inactive data points
-                    status = getData(wname, all_well_names{i}, 'status', wellsols{i});
-                    d(status == 0, :) = nan;
-                end
+
                 if nw == 1 
                     c = cmap(i, :);
                 else
