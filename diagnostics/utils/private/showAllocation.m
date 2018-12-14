@@ -22,20 +22,42 @@ switch src.Value
         showWellCommunication(d, ax, s3.wsel.getCommunicationStrength());
 
     case 3  % Injector volumes
-        if (~doAvg && numel(ts)~=1) || numel(iIx)~=1
+        if numel(iIx)~=1
             text(0,.1,'Injector volumes:','Parent', ax);
-            text(0,0,'Please select{\bf one} injector and{\bf one} time step (or select average)','Parent',ax);
+            text(0,0,'Please select{\bf one} injector only','Parent',ax);
             axis(ax,'off'); return
         end
-        if doAvg
-            wp = WP_avg;
+        if numel(ts)==1 || doAvg
+            if doAvg
+                wp = WP_avg;
+            else
+                wp = d.Data.diagnostics(ts).WP;
+            end
+            d.plotPie(ax, wp.vols(wp.pairIx(:,1)==iIx), ...
+                arrayfun(@(x) x.label.String, ...
+                d.WellPlot.producers, 'UniformOutput',false), ...
+                d.Data.prodColors);
         else
-            wp = d.Data.diagnostics(ts).WP;
+            names= arrayfun(@(x) x.label.String, d.WellPlot.producers,'UniformOutput',false);    
+            vols = zeros(numel(names),numel(ts));
+            for i=1:numel(ts)
+                wp = d.Data.diagnostics(ts(i)).WP;
+                vols(:,i) = wp.vols(wp.pairIx(:,1)==iIx);
+            end
+            h = area(ax,vols');
+            for i=1:numel(h)
+                set(h(i),'FaceColor', d.Data.prodColors(i,:));
+            end
+            if numel(ts)>10
+                ds = round(numel(ts)/10);
+                ts = ts(1:ds:numel(ts));
+            end
+            set(ax,'XTick', ts, 'XTickLabel', ...
+                {datestr(d.Data.time.cur(ts) , 'mm.dd.yy')});
+            set(ax,'XTickLabelRotation',30,'FontSize',8);
+            axis(ax,'tight')
+            set(h,'HitTest','off');        
         end
-        d.plotPie(ax, wp.vols(wp.pairIx(:,1)==iIx), ...
-            arrayfun(@(x) x.label.String, ...
-            d.WellPlot.producers, 'UniformOutput',false), ...
-            d.Data.prodColors);
         title(ax,d.WellPlot.injectors(iIx).label.String, 'Interpreter','none');
 
     case 4  % Injector allocation
@@ -64,7 +86,11 @@ switch src.Value
             for i=1:numel(h)
                 set(h(i),'FaceColor', d.Data.prodColors(i,:));
             end
-            set(ax,'XTickLabel', ...
+            if numel(ts)>10
+                ds = round(numel(ts)/10);
+                ts = ts(1:ds:numel(ts));
+            end
+            set(ax,'XTick', ts, 'XTickLabel', ...
                 {datestr(d.Data.time.cur(ts) , 'mm.dd.yy')});
             set(ax,'XTickLabelRotation',30,'FontSize',8);
             axis(ax,'tight')
@@ -88,7 +114,11 @@ switch src.Value
             d.plotPLT3D(ax, arrayfun(@(x) x.WP.inj(iIx),...
                 d.Data.diagnostics(ts),'UniformOutput',false), ...
                 false, d.Data.prodColors);
-            set(ax,'XTickLabel', ...
+            if numel(ts)>10
+                ds = round(numel(ts)/10);
+                ts = ts(1:ds:numel(ts));
+            end
+            set(ax,'XTick', ts, 'XTickLabel', ...
                 {datestr(d.Data.time.cur(ts) , 'mm.dd.yy')});
             set(ax,'XTickLabelRotation',-30,'FontSize',8);
         end
@@ -97,20 +127,43 @@ switch src.Value
             arrayfun(@(x) x.label.String, d.WellPlot.producers(pIx),'UniformOutput',false));
 
     case 6  % Producer volumes
-        if (~doAvg && numel(ts)~=1) || numel(pIx)~=1
+        if numel(pIx)~=1
             text(0,.1,'Producer volumes:','Parent', ax);
-            text(0,0,'Please select{\bf one} producer and{\bf one} time step (or select average)','Parent', ax);
+            text(0,0,'Please select{\bf one} producer only','Parent', ax);
             axis(ax,'off'); return
         end
-        if doAvg
-            wp = WP_avg;
+        if numel(ts)==1 || doAvg
+            if doAvg
+                wp = WP_avg;
+            else
+                wp = d.Data.diagnostics(ts).WP;
+            end
+            d.plotPie(ax, wp.vols(wp.pairIx(:,2)==pIx), ...
+                arrayfun(@(x) x.label.String, ...
+                d.WellPlot.injectors,'UniformOutput',false), ...
+                d.Data.injColors);
         else
-            wp = d.Data.diagnostics(ts).WP;
+            names= arrayfun(@(x) x.label.String, d.WellPlot.injectors,'UniformOutput',false);    
+            vols = zeros(numel(names),numel(ts));
+            for i=1:numel(ts)
+                wp = d.Data.diagnostics(ts(i)).WP;
+                vols(:,i) = wp.vols(wp.pairIx(:,2)==pIx);
+            end
+            h = area(ax,vols');
+            for i=1:numel(h)
+                set(h(i),'FaceColor', d.Data.injColors(i,:));
+            end
+            if numel(ts)>10
+                ds = round(numel(ts)/10);
+                ts = ts(1:ds:numel(ts));
+            end
+            set(ax,'XTick', ts, 'XTickLabel', ...
+                {datestr(d.Data.time.cur(ts) , 'mm.dd.yy')});
+            set(ax,'XTickLabelRotation',30,'FontSize',8);
+            axis(ax,'tight')
+            set(h,'HitTest','off');        
         end
-        d.plotPie(ax, wp.vols(wp.pairIx(:,2)==pIx), ...
-            arrayfun(@(x) x.label.String, ...
-            d.WellPlot.injectors,'UniformOutput',false), ...
-            d.Data.injColors);
+            
         title(ax,d.WellPlot.producers(pIx).label.String);
 
     case 7  % Producer allocation
@@ -139,7 +192,11 @@ switch src.Value
             for i=1:numel(h)
                 set(h(i),'FaceColor', d.Data.injColors(i,:));
             end
-            set(ax,'XTickLabel', ...
+            if numel(ts)>10
+                ds = round(numel(ts)/10);
+                ts = ts(1:ds:numel(ts));
+            end
+            set(ax,'XTick', ts, 'XTickLabel', ...
                 {datestr(d.Data.time.cur(ts) , 'mm.dd.yy')});
             set(ax,'XTickLabelRotation',30,'FontSize',8);
             axis(ax,'tight')
@@ -163,7 +220,11 @@ switch src.Value
             d.plotPLT3D(ax,arrayfun(@(x) x.WP.prod(pIx),...
                 d.Data.diagnostics(ts),'UniformOutput',false), ...
                 true, d.Data.injColors);
-            set(ax,'XTickLabel', ...
+            if numel(ts)>10
+                ds = round(numel(ts)/10);
+                ts = ts(1:ds:numel(ts));
+            end
+            set(ax,'XTick', ts, 'XTickLabel', ...
                 {datestr(d.Data.time.cur(ts) , 'mm.dd.yy')});
             set(ax,'XTickLabelRotation',-30,'FontSize',8);
         end
