@@ -60,9 +60,7 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
        
        function problem = prepareProblemCPR(solver, problem, model)
            n = model.G.cells.num;
-           if isempty(solver.pressureScaling)
-               solver.pressureScaling = mean(problem.state.pressure);
-           end
+           solver.pressureScaling = mean(problem.state.pressure);
            if solver.amgcl_setup.block_size == 0
                % Solver has not been told about block size, try to compute
                % it from what we are given.
@@ -143,13 +141,25 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
        end
        
         function [A, b, scaling] = applyScaling(solver, A, b)
-            [A, b, scaling] = applyScaling@LinearSolverAD(solver, A, b);
+            bz = solver.amgcl_setup.block_size;
+            nc = solver.amgcl_setup.cell_size;
+            psub = (1:bz:(nc*bz - bz + 1))';
+
+            if solver.applyLeftDiagonalScaling || solver.applyRightDiagonalScaling
+                [A, b, scaling] = applyScaling@LinearSolverAD(solver, A, b);
+            elseif solver.pressureScaling ~= 1
+                n = size(A, 1);
+                d = ones(n, 1);
+                d(~isfinite(d)) = 1;
+                d(psub) = solver.pressureScaling;
+                I = (1:n)';
+                M = sparse(I, I, d, n, n);
+                A = A*M;
+                scaling.M = M;
+            end
             
             if solver.amgcl_setup.use_drs
                 [w, ncv] = getScalingInternalCPR(solver, A, b);
-                bz = solver.amgcl_setup.block_size;
-                nc = solver.amgcl_setup.cell_size;
-                psub = (1:bz:(nc*bz - bz + 1))';
                 
                 ncv = bz*nc;
                 ndof = size(b, 1);
@@ -201,8 +211,8 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
                 bz = solver.amgcl_setup.block_size;
                 nc = solver.amgcl_setup.cell_size;
                 n = sz(1);
-                d = 1./abs(diag(A));
-%                 d = 1./diag(A);
+%                 d = 1./abs(diag(A));
+                d = 1./diag(A);
 %                 d = ones(n, 1);
                 d(~isfinite(d)) = 1;
                 psub = 1:bz:(nc*bz - bz + 1);
@@ -223,13 +233,31 @@ function [w, ndof] = getScalingInternalCPR(solver, A, b)
     nc = solver.amgcl_setup.cell_size;
     ndof = bz*nc;
     
+    p_inx = 1:bz:(ndof - bz + 1);
+
+    
     blockNoI = floor((ii-1)/bz)+1;
     blockNoJ = floor((jj-1)/bz)+1;
-    
     keep = blockNoJ >= blockNoI & blockNoJ < (blockNoI+1)  & ii <= ndof & jj <= ndof;
-    Ap = sparse(jj(keep), ii(keep), vv(keep), ndof, ndof);
+    if 1
+        % Weights are determined by constant in rhs
+        Ap = sparse(jj(keep), ii(keep), vv(keep), ndof, ndof);    
+    else
+        % Weights sum up to unity
+        isp = false(ndof, 1);
+        isp(p_inx) = true;
+        I = jj(keep);
+        J = ii(keep);
+        V = vv(keep);
+        
+        V(isp(I) & ~isp(J)) = 1;
+        V(isp(I) & isp(J)) = 1;
+        
+        Ap = sparse(I, J, V, ndof, ndof);
+    end
     q = zeros(ndof, 1);
-    p_inx = 1:bz:(ndof - bz + 1);
+    
+    
 %     if solver.applyRightDiagonalScaling
         q(p_inx) = 1;
 %     else
