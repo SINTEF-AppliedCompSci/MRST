@@ -18,6 +18,10 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
        trueIMPES % Use true impes decoupling strategy (if supported by model)
        useSYMRCMOrdering
        pressureScaling
+       diagonalTol = 0.2;
+       couplingTol = 0.02;
+       decoupling = 'quasiIMPES';
+       strategy = 'mrst';
    end
    methods
        function solver = AMGCL_CPRSolverAD(varargin)
@@ -27,7 +31,7 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
             solver.doApplyScalingCPR = true;
             solver.reduceToCell = true;
             solver.tolerance    = 1e-6;
-            solver.useSYMRCMOrdering = true;
+            solver.useSYMRCMOrdering = false;
             
             [solver, extra] = merge_options(solver, varargin{:});
             solver.amgcl_setup = getAMGCLMexStruct(extra{:});
@@ -35,10 +39,6 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
        
        function [result, report] = solveLinearSystem(solver, A, b)
            [result, report] = solver.callAMGCL_MEX(A, b, 2);
-%            bz = solver.amgcl_setup.block_size;
-%            nc = solver.amgcl_setup.cell_size;
-%            
-%            result(1:bz:(nc*bz)) = result(1:bz:(nc*bz))/(1000*barsa);
        end
        
        function [dx, result, report] = solveLinearProblem(solver, problem, model)
@@ -70,39 +70,23 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
                solver.amgcl_setup.block_size = sum(nv(isCell)/n);
            end
            solver.amgcl_setup.cell_num = model.G.cells.num;
-                for ph = 1:size(problem.state.s, 2)
-%                     problem.equations{ph} = problem.equations{ph}.*(problem.dt./model.operators.pv);
-                end
-            if isa(model, 'ThreePhaseBlackOilModel') && false
-                sw = model.getProp(problem.state, 'sw');
-                bad = double(sw) <= 1e-8;
-                if any(bad)
-                    sum(bad)
-                    for ph = 2:size(problem.state.s, 2)
-%                         problem.equations{1}(bad) = problem.equations{1}(bad) + problem.equations{ph}(bad);
-                    end
-                end
-           end
            solver.amgcl_setup.cell_size = n;
 
            
            % Get and apply scaling
-           if solver.doApplyScalingCPR  && false
-               if 1
-                   scale = model.getScalingFactorsCPR(problem, problem.equationNames, solver);
-                   % Solver will take the sum for us, we just weight each
-                   % equation. Note: This is not the entirely correct way
-                   % of doing this, as solver could do this by itself.
-                   for i = 1:numel(scale)
-                       if ~strcmpi(problem.types{i}, 'cell')
-                           continue
-                       end
-                       ds = double(scale{i});
-                       if (numel(ds) > 1 || any(ds ~= 0))
-                           problem.equations{i} = problem.equations{i}.*scale{i};
-                       end
+           if solver.doApplyScalingCPR && strcmpi(solver.decoupling, 'trueimpes')
+               scale = model.getScalingFactorsCPR(problem, problem.equationNames, solver);
+               % Solver will take the sum for us, we just weight each
+               % equation. Note: This is not the entirely correct way
+               % of doing this, as solver could do this by itself.
+               for i = 1:numel(scale)
+                   if ~strcmpi(problem.types{i}, 'cell')
+                       continue
                    end
-               else
+                   ds = double(scale{i});
+                   if (numel(ds) > 1 || any(ds ~= 0))
+                       problem.equations{i} = problem.equations{i}.*scale{i};
+                   end
                end
            end
            m = solver.amgcl_setup.block_size;
@@ -138,6 +122,21 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
                    solver.equationOrdering = ordering;
                end
            end
+           
+           switch lower(solver.strategy)
+               case {'mrst', 'mrst_drs'}
+                   solver.amgcl_setup.use_drs = true;
+                   solver.amgcl_setup.drs_eps_dd = -1e8;
+                   solver.amgcl_setup.drs_eps_dd = -1e8;
+               case 'amgcl'
+                   solver.amgcl_setup.use_drs = false;
+               case 'amgcl_drs'
+                   solver.amgcl_setup.use_drs = true;
+                   solver.amgcl_setup.drs_eps_ps = solver.couplingTol;
+                   solver.amgcl_setup.drs_eps_dd = solver.diagonalTol;
+               otherwise
+                   error('Unknown CPR strategy %s', solver.strategy);
+           end
        end
        
         function [A, b, scaling] = applyScaling(solver, A, b)
@@ -158,8 +157,11 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
                 scaling.M = M;
             end
             
-            if solver.amgcl_setup.use_drs
-                [w, ncv] = getScalingInternalCPR(solver, A, b);
+            useMRST = strcmpi(solver.strategy, 'mrst');
+            useMRST_drs = strcmpi(solver.strategy, 'mrst_drs');
+            
+            if useMRST || useMRST_drs
+                w = getScalingInternalCPR(solver, A, b);
                 
                 ncv = bz*nc;
                 ndof = size(b, 1);
@@ -183,23 +185,15 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
                     A = D*A;
                     b = D*b;
                 end
-                solver.amgcl_setup.drs_eps_dd = -1e8;
-                solver.amgcl_setup.drs_eps_dd = -1e8;
-                
                 w_override = zeros(ncv, 1);
                 w_override(psub) = 1;
                 solver.amgcl_setup.drs_row_weights = w_override;
-            end
-            if 0
-                w = getScalingInternalCPR(solver, A, b);
-                ix = (1:numel(w))';
-                D = sparse(ix, ix, w);
-                A = D*A;
-                b = D*b;
+            elseif strcmpi(solver.strategy, 'amgcl_drs')
+                solver.amgcl_setup.drs_row_weights = getScalingInternalCPR(solver, A, b);
             end
         end
         
-        function x = undoScaling(solver, x, scaling)
+        function x = undoScaling(solver, x, scaling) %#ok
             % Undo effects of scaling applied to linear system
             if isfield(scaling, 'M') && ~isempty(scaling.M)
                 x = scaling.M*x;
@@ -214,9 +208,7 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
                 bz = solver.amgcl_setup.block_size;
                 nc = solver.amgcl_setup.cell_size;
                 n = sz(1);
-%                 d = 1./abs(diag(A));
-                d = 1./diag(A);
-%                 d = ones(n, 1);
+                d = 1./abs(diag(A));
                 d(~isfinite(d)) = 1;
                 psub = 1:bz:(nc*bz - bz + 1);
                 d(psub) = solver.pressureScaling;
@@ -230,50 +222,81 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
 end
 
 function [w, ndof] = getScalingInternalCPR(solver, A, b)
-    [ii, jj, vv] = find(A);
-    
-    bz = solver.amgcl_setup.block_size;
-    nc = solver.amgcl_setup.cell_size;
-    ndof = bz*nc;
-    
-    p_inx = 1:bz:(ndof - bz + 1);
+    switch lower(solver.decoupling)
+        case 'quasiimpes'
+            [ii, jj, vv] = find(A);
 
-    
-    blockNoI = floor((ii-1)/bz)+1;
-    blockNoJ = floor((jj-1)/bz)+1;
-    keep = blockNoJ >= blockNoI & blockNoJ < (blockNoI+1)  & ii <= ndof & jj <= ndof;
-    if 1
-        % Weights are determined by constant in rhs
-        Ap = sparse(jj(keep), ii(keep), vv(keep), ndof, ndof);    
-    else
-        % Weights sum up to unity
-        isp = false(ndof, 1);
-        isp(p_inx) = true;
-        I = jj(keep);
-        J = ii(keep);
-        V = vv(keep);
-        
-        V(isp(I) & ~isp(J)) = 1;
-        V(isp(I) & isp(J)) = 1;
-        
-        Ap = sparse(I, J, V, ndof, ndof);
+            bz = solver.amgcl_setup.block_size;
+            nc = solver.amgcl_setup.cell_size;
+            ndof = bz*nc;
+
+            p_inx = 1:bz:(ndof - bz + 1);
+
+
+            blockNoI = floor((ii-1)/bz)+1;
+            blockNoJ = floor((jj-1)/bz)+1;
+            keep = blockNoJ >= blockNoI & blockNoJ < (blockNoI+1)  & ii <= ndof & jj <= ndof;
+            if 1
+                % Weights are determined by constant in rhs
+                Ap = sparse(jj(keep), ii(keep), vv(keep), ndof, ndof);    
+            else
+                % Weights sum up to unity
+                isp = false(ndof, 1);
+                isp(p_inx) = true;
+                I = jj(keep);
+                J = ii(keep);
+                V = vv(keep);
+
+                V(isp(I) & ~isp(J)) = 1;
+                V(isp(I) & isp(J)) = 1;
+
+                Ap = sparse(I, J, V, ndof, ndof);
+            end
+            q = zeros(ndof, 1);
+            q(p_inx) = 1;
+            w = Ap\q;
+
+            w = [w; ones(size(A, 1)-ndof, 1)];
+            
+            if strcmpi(solver.strategy, 'mrst_drs')
+                isp = false(numel(ii), 1);
+                isp(p_inx) = true;
+                blockNo = ceil(ii./bz);
+                blockConn = ceil(jj./bz);
+                isdp = isp(jj);
+                isdiag = blockConn == blockNo & isdp;
+                
+                is_offdiag_p = isdp & ~isdiag;
+                
+                pd = zeros(ndof, 1);
+                pd(ii(isdiag)) = vv(isdiag);
+                % Check diagonal dominance
+                if isfinite(solver.diagonalTol)
+                    e_dd = solver.diagonalTol;
+                    sum_offdiag = accumarray(ii(is_offdiag_p), abs(vv(is_offdiag_p)), [ndof, 1]);
+                    
+                    ok_dd = pd >= sum_offdiag*e_dd;
+                    cellno = ceil((1:ndof)'/3);
+                else
+                    ok_dd = true(ndof, 1);
+                end
+                ok = ok_dd;
+                % Check for very weak coupling
+                % TODO: implement
+
+                % Check if all cells are bad
+                ok_count = accumarray(cellno, ok_dd);
+                bad = ok_count == 0;
+                if any(bad)
+                    % All equations are somehow not diagonally
+                    % dominant, pick the first entry.
+                    ok((find(bad)-1)*bz+1) = true;
+                end
+                w(~ok) = 0;
+            end
+        otherwise
+            w = 0*b;
     end
-    q = zeros(ndof, 1);
-    
-    
-%     if solver.applyRightDiagonalScaling
-        q(p_inx) = 1;
-%     else
-%         q(p_inx) = 1e-8;
-%     end
-    w = Ap\q;
-%     
-%     tmp = reshape(w, 2, [])';
-%     tmp = 1e-3*tmp./sum(tmp, 2);
-%     tmp = tmp';
-%     w = tmp(:);
-    
-    w = [w; ones(size(A, 1)-ndof, 1)];
 end
 
 %{
