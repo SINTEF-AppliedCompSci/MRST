@@ -258,44 +258,58 @@ function [w, ndof] = getScalingInternalCPR(solver, A, b)
 
             w = [w; ones(size(A, 1)-ndof, 1)];
             
-            if strcmpi(solver.strategy, 'mrst_drs')
-                isp = false(numel(ii), 1);
-                isp(p_inx) = true;
-                blockNo = ceil(ii./bz);
-                blockConn = ceil(jj./bz);
-                isdp = isp(jj);
-                isdiag = blockConn == blockNo & isdp;
-                
-                is_offdiag_p = isdp & ~isdiag;
-                
-                pd = zeros(ndof, 1);
-                pd(ii(isdiag)) = vv(isdiag);
-                % Check diagonal dominance
-                if isfinite(solver.diagonalTol)
-                    e_dd = solver.diagonalTol;
-                    sum_offdiag = accumarray(ii(is_offdiag_p), abs(vv(is_offdiag_p)), [ndof, 1]);
-                    
-                    ok_dd = pd >= sum_offdiag*e_dd;
-                    cellno = ceil((1:ndof)'/3);
-                else
-                    ok_dd = true(ndof, 1);
-                end
-                ok = ok_dd;
-                % Check for very weak coupling
-                % TODO: implement
-
-                % Check if all cells are bad
-                ok_count = accumarray(cellno, ok_dd);
-                bad = ok_count == 0;
-                if any(bad)
-                    % All equations are somehow not diagonally
-                    % dominant, pick the first entry.
-                    ok((find(bad)-1)*bz+1) = true;
-                end
-                w(~ok) = 0;
-            end
         otherwise
-            w = 0*b;
+            w = ones(size(b, 1), 1);
+    end
+    
+    if strcmpi(solver.strategy, 'mrst_drs')
+        % Dynamic row sum strategy by Gries et al, SPE-163608-PA.
+        isp = false(numel(ii), 1);
+        isp(p_inx) = true;
+        blockNo = ceil(ii./bz);
+        blockConn = ceil(jj./bz);
+        isdp = isp(jj);
+        isdiag = blockConn == blockNo & isdp;
+
+        is_offdiag_p = isdp & ~isdiag;
+
+        pd = zeros(ndof, 1);
+        pd(ii(isdiag)) = vv(isdiag);
+        cellno = ceil((1:ndof)'/3);
+        % Check diagonal dominance
+        if isfinite(solver.diagonalTol)
+            e_dd = solver.diagonalTol;
+            sum_offdiag = accumarray(ii(is_offdiag_p), abs(vv(is_offdiag_p)), [ndof, 1]);
+
+            ok_dd = pd >= sum_offdiag*e_dd;
+        else
+            ok_dd = true(ndof, 1);
+        end
+        % Check for very weak coupling
+        if isfinite(solver.couplingTol)
+            e_ps = solver.couplingTol;
+            is_other_p = isdp & blockConn ~= blockNo;
+            sum_other_blocks = accumarray(ii(is_other_p), abs(vv(is_other_p)), [ndof, 1]);
+            ok_ps = sum_other_blocks >= pd*e_ps;
+        else
+            ok_ps = true(ndof, 1);
+        end
+
+        ok = ok_dd & ok_ps;
+        % Check if all cells are bad
+        ok_count = accumarray(cellno, ok);
+        bad = ok_count == 0;
+        if any(bad)
+            % All equations are somehow not diagonally
+            % dominant, pick the first entry.
+            ok((find(bad)-1)*bz+1) = true;
+        end
+        % Always set first entry to true for the time being. We should
+        % probably switch equations if these are not ok, but this is not
+        % implemented.
+        ok(p_inx) = true;
+        
+        w(~ok) = 0;
     end
 end
 
