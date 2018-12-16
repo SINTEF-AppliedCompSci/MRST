@@ -200,7 +200,10 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
         end
         
         function x = undoScaling(solver, x, scaling)
-            x = undoScaling@LinearSolverAD(solver, x, scaling);
+            % Undo effects of scaling applied to linear system
+            if isfield(scaling, 'M') && ~isempty(scaling.M)
+                x = scaling.M*x;
+            end
         end
         
         function M = getDiagonalInverse(solver, A)
