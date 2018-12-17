@@ -61,7 +61,8 @@ function qrho = conn2surf(v, b, r, model)
     nPh = numel(v);
     bv = cell(1,nPh);
     for ph = 1:nPh
-        bv{ph} = reduceToDouble(b{ph}.*v{ph});
+        % bv{ph} = reduceToDouble(b{ph}.*v{ph});
+        bv{ph} = b{ph}.*v{ph};
     end
     qrho = bv;
 
