@@ -35,10 +35,11 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
             
             [solver, extra] = merge_options(solver, varargin{:});
             solver.amgcl_setup = getAMGCLMexStruct(extra{:});
+            solver.amgcl_setup.solver_id = 2;
        end
        
        function [result, report] = solveLinearSystem(solver, A, b)
-           [result, report] = solver.callAMGCL_MEX(A, b, 2);
+           [result, report] = solver.callAMGCL_MEX(A, b, solver.amgcl_setup.solver_id);
        end
        
        function [dx, result, report] = solveLinearProblem(solver, problem, model)
@@ -126,14 +127,22 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
            switch lower(solver.strategy)
                case {'mrst', 'mrst_drs'}
                    solver.amgcl_setup.use_drs = true;
-                   solver.amgcl_setup.drs_eps_dd = -1e8;
+                   solver.amgcl_setup.drs_eps_ps = -1e8;
                    solver.amgcl_setup.drs_eps_dd = -1e8;
                case 'amgcl'
                    solver.amgcl_setup.use_drs = false;
                case 'amgcl_drs'
                    solver.amgcl_setup.use_drs = true;
-                   solver.amgcl_setup.drs_eps_ps = solver.couplingTol;
-                   solver.amgcl_setup.drs_eps_dd = solver.diagonalTol;
+                   if isfinite(solver.couplingTol)
+                       solver.amgcl_setup.drs_eps_ps = solver.couplingTol;
+                   else
+                       solver.amgcl_setup.drs_eps_ps = -1e8;
+                   end
+                   if isfinite(solver.diagonalTol)
+                       solver.amgcl_setup.drs_eps_dd = solver.diagonalTol;
+                   else
+                       solver.amgcl_setup.drs_eps_dd = -1e8;
+                   end
                otherwise
                    error('Unknown CPR strategy %s', solver.strategy);
            end
