@@ -32,10 +32,47 @@
 /* Relaxation */
 struct relax_opts {
     int relax_id;
+    int ilut_p;
+    double ilut_tau;
+    int iluk_k;
+    double ilu_damping;
+    double jacobi_damping;
+    int chebyshev_degree;
+    double chebyshev_lower;
+    int chebyshev_power_iters;
 };
 
-void setRelaxationAMGCL(boost::property_tree::ptree & prm, std::string relaxParam, relax_opts opts){
-    std::string relaxType = relaxParam + "type";
+const char * combine(std::string prefix, std::string suffix){
+    std::string out = prefix + suffix;
+    return out.c_str();
+}
+
+void setRelaxationStructMex(relax_opts &opt, const mxArray * pa, std::string prefix){
+    /* Convert mex struct pointer to struct for amg */
+    std::string tmp;
+    tmp = prefix + "relaxation";
+    opt.relax_id = mxGetScalar(mxGetField(pa, 0, tmp.c_str()));
+    tmp = prefix + "ilut_p";
+    opt.ilut_p = mxGetScalar(mxGetField(pa, 0, tmp.c_str()));
+    tmp = prefix + "ilut_tau";
+    opt.ilut_tau = mxGetScalar(mxGetField(pa, 0, tmp.c_str()));
+    tmp = prefix + "iluk_k";
+    opt.iluk_k = mxGetScalar(mxGetField(pa, 0, tmp.c_str()));
+    tmp = prefix + "ilu_damping";
+    opt.ilu_damping = mxGetScalar(mxGetField(pa, 0, tmp.c_str()));
+    tmp = prefix + "jacobi_damping";
+    opt.jacobi_damping = mxGetScalar(mxGetField(pa, 0, tmp.c_str()));
+    tmp = prefix + "chebyshev_degree";
+    opt.chebyshev_degree = mxGetScalar(mxGetField(pa, 0, tmp.c_str()));
+    tmp = prefix + "chebyshev_lower";
+    opt.chebyshev_lower = mxGetScalar(mxGetField(pa, 0, tmp.c_str()));
+    tmp = prefix + "chebyshev_power_iters";
+    opt.chebyshev_power_iters = mxGetScalar(mxGetField(pa, 0, tmp.c_str()));
+}
+
+
+void setRelaxationAMGCL(boost::property_tree::ptree & prm, std::string prefix, relax_opts opts){
+    std::string relaxType = prefix + "type";
     switch(opts.relax_id) {
         case 1: 
             prm.put(relaxType,  amgcl::runtime::relaxation::spai0);
@@ -45,21 +82,31 @@ void setRelaxationAMGCL(boost::property_tree::ptree & prm, std::string relaxPara
             break;
         case 3: 
             prm.put(relaxType,  amgcl::runtime::relaxation::ilu0);
+            prm.put(prefix + "damping", opts.ilu_damping);
             break;
         case 4: 
             prm.put(relaxType,  amgcl::runtime::relaxation::iluk);
+            prm.put(prefix + "damping", opts.ilu_damping);
+            prm.put(prefix + "k", opts.iluk_k);
             break;
         case 5: 
             prm.put(relaxType,  amgcl::runtime::relaxation::ilut);
+            prm.put(prefix + "damping", opts.ilu_damping);
+            prm.put(prefix + "p", opts.ilut_p);
+            prm.put(prefix + "tau", opts.ilut_tau);
             break;
         case 6: 
             prm.put(relaxType,  amgcl::runtime::relaxation::damped_jacobi);
+            prm.put(prefix + "damping", opts.jacobi_damping);
             break;
         case 7: 
             prm.put(relaxType,  amgcl::runtime::relaxation::spai1);
             break;
         case 8: 
             prm.put(relaxType,  amgcl::runtime::relaxation::chebyshev);
+            prm.put(prefix + "degree", opts.chebyshev_degree);
+            prm.put(prefix + "lower", opts.chebyshev_lower);
+            prm.put(prefix + "power_iters", opts.chebyshev_power_iters);
             break;
         default : mexErrMsgTxt("Unknown relax_id."); 
     }
@@ -281,11 +328,13 @@ void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries, const mx
 
     /* Select relaxation strategy for pressure solver */
     relax_opts pr_opt;
-    pr_opt.relax_id = relax_p_id;
+    // pr_opt.relax_id = relax_p_id;
+    setRelaxationStructMex(pr_opt, pa, "");
     setRelaxationAMGCL(prm, "precond.pprecond.relax.", pr_opt);
     /* Select relaxation strategy for second stage solver */
     relax_opts ps_opt;
-    ps_opt.relax_id = relax_s_id;
+    // ps_opt.relax_id = relax_s_id;
+    setRelaxationStructMex(ps_opt, pa, "s_");
     setRelaxationAMGCL(prm, "precond.sprecond.", ps_opt);
 
     /* Select solver */
@@ -399,7 +448,8 @@ void solve_regular(int n, mwIndex * cols, mwIndex * rows, double * entries, cons
     }
     /* Select relaxation strategy for solver */
     relax_opts pr_opt;
-    pr_opt.relax_id = relax_id;
+    // pr_opt.relax_id = relax_id;
+    setRelaxationStructMex(pr_opt, pa, "");
     setRelaxationAMGCL(prm, relaxParam, pr_opt);
     
     /* Select solver */

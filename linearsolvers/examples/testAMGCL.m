@@ -1,7 +1,7 @@
 %% Example demonstrating AMGCL on a few test problems
 mrstModule add msrsb incomp coarsegrid spe10 linearsolvers
 %% Setup problem
-simple = true;
+simple = false;
 if simple
     % Create n by n grid
     n = 10;
@@ -13,7 +13,7 @@ if simple
     W = addWell(W, G, rock, G.cells.num, 'type', 'bhp', 'val', 0);
 else
     % Take part of SPE10
-    layers = 1:35;
+    layers = 1:5;
     [G, W, rock] = getSPE10setup(layers);
 end
 
@@ -35,25 +35,17 @@ end
 
 %% Call AMGCL in AMG mode
 tic();
-x = callAMGCL(A, b, 'coarsening', 'smoothed_aggregation',...
+x = callAMGCL(A, b, 'coarsening', 'ruge_stuben',...
                     'relaxation', 'spai0', ...
-                    'preconditioner', 'amg');
+                    'preconditioner', 'amg', 'verbose', true);
 t_amg = toc();
 %% Call AMGCL in preconditioner mode
 tic();
 x = callAMGCL(A, b, 'relaxation', 'spai0',...
-                    'preconditioner', 'relaxation');
+                    'preconditioner', 'relaxation', 'verbose', true);
 t_relax = toc();
 %% Plot time taken
 clf;
 bar([t_amg, t_relax, t_agmg])
 set(gca, 'XTicklabel', {'AMGCL-amg', 'AMGCL-relax' 'AGMG'});
 ylabel('Solution time [s]');
-
-%% Test block solver
-nc = size(A, 1);
-Z = sparse([], [], [], nc, nc);
-A_block = [A, Z; Z, A];
-b_block = [b ; b];
-x = callAMGCL_block(A, b, 'relaxation', 'spai0',...
-                    'preconditioner', 'relaxation', 'block_size', 2);
