@@ -75,6 +75,12 @@ struct amg_opts {
     int npre;
     int npost;
     int pre_cycles;
+    double aggr_eps_strong;
+    double aggr_over_interp;
+    double aggr_relax;
+    double rs_eps_strong;
+    double rs_eps_trunc;
+    bool rs_trunc;
 };
 
 void setCoarseningStructMex(amg_opts &c_opt, const mxArray * pa){
@@ -83,10 +89,21 @@ void setCoarseningStructMex(amg_opts &c_opt, const mxArray * pa){
     c_opt.coarse_enough = mxGetScalar(mxGetField(pa, 0, "coarse_enough"));
     c_opt.direct_coarse = mxGetScalar(mxGetField(pa, 0, "direct_coarse"));
     c_opt.max_levels = mxGetScalar(mxGetField(pa, 0, "max_levels"));
+    /* Define cycle */
     c_opt.ncycle = mxGetScalar(mxGetField(pa, 0, "ncycle"));
     c_opt.npre = mxGetScalar(mxGetField(pa, 0, "npre"));
     c_opt.npost = mxGetScalar(mxGetField(pa, 0, "npost"));
     c_opt.pre_cycles = mxGetScalar(mxGetField(pa, 0, "pre_cycles"));
+    /* Coarsening options for general aggregation */
+    c_opt.aggr_eps_strong = mxGetScalar(mxGetField(pa, 0, "aggr_eps_strong"));
+    /* Regular aggregation */
+    c_opt.aggr_over_interp = mxGetScalar(mxGetField(pa, 0, "aggr_over_interp"));
+    /* Smoothed aggregation */
+    c_opt.aggr_relax = mxGetScalar(mxGetField(pa, 0, "aggr_relax"));
+    /* Coarsening options for Ruge-Stuben coarsening */
+    c_opt.rs_eps_strong = mxGetScalar(mxGetField(pa, 0, "rs_eps_strong"));
+    c_opt.rs_trunc = mxGetScalar(mxGetField(pa, 0, "rs_trunc"));
+    c_opt.rs_eps_trunc = mxGetScalar(mxGetField(pa, 0, "rs_eps_trunc"));
 }
 
 void setCoarseningAMGCL(boost::property_tree::ptree & prm, std::string prefix, amg_opts options){
@@ -94,17 +111,25 @@ void setCoarseningAMGCL(boost::property_tree::ptree & prm, std::string prefix, a
     switch(options.coarsen_id) {
         case 1: 
             prm.put(coarsetype,  amgcl::runtime::coarsening::smoothed_aggregation);
+            prm.put(prefix + "coarsening.relax", options.aggr_relax);
             break;
         case 2: 
             prm.put(coarsetype,  amgcl::runtime::coarsening::ruge_stuben);
+            prm.put(prefix + "coarsening.eps_strong", options.rs_eps_strong);
+            prm.put(prefix + "coarsening.do_trunc", options.rs_trunc);
+            prm.put(prefix + "coarsening.eps_trunc", options.rs_eps_trunc);
             break;
         case 3: 
             prm.put(coarsetype,  amgcl::runtime::coarsening::aggregation);
+            prm.put(prefix + "coarsening.over_interp", options.aggr_over_interp);
             break;
         case 4: 
             prm.put(coarsetype,  amgcl::runtime::coarsening::smoothed_aggr_emin);
             break;
         default : mexErrMsgTxt("Unknown coarsen_id: " + options.coarsen_id); 
+    }
+    if(options.coarsen_id != 2){
+        prm.put(prefix + "coarsening.aggr.eps_strong", options.aggr_eps_strong);
     }
     /* When is a level coarse enough */
     if (options.coarse_enough >= 0){
