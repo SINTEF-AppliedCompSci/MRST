@@ -65,8 +65,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
     fluid = model.fluid;
     s = model.operators;
-    satfun = @(varargin) fluid.regions.saturation.evaluateFunction(varargin{:});
-    pvtfun = @(varargin) fluid.regions.pvt.evaluateFunction(varargin{:});
+    pvtfun = @(varargin) model.FlowPropertyFunctions.Density.evaluateFunctionOnGrid(varargin{:});
+    satfun = @(varargin) model.FlowPropertyFunctions.RelativePermeability.evaluateFunctionOnGrid(varargin{:});
+%     satfun = @(varargin) fluid.regions.saturation.evaluateFunction(varargin{:});
+%     pvtfun = @(varargin) fluid.regions.pvt.evaluateFunction(varargin{:});
     % Check for capillary pressure (p_cow)
     pcOW = 0;
     if isfield(fluid, 'pcOW') && ~isempty(sW)
