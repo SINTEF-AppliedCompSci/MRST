@@ -303,6 +303,7 @@ classdef SimpleWell < PhysicalModel
                 w.topo = [(0:(nperf-1))', (1:nperf)'];
             end
             qs = wellSol.cqs; %volumetric in-flux at standard conds
+            qs(qs == 0) = w.sign*1e-12;
             C = well.wb2in(w);            % mapping wb-flux to in-flux
             wbqs  = abs(C\qs);       % solve to get well-bore fluxes at surface conds
             wbqst = sum(wbqs, 2);   % total wb-flux at std conds
