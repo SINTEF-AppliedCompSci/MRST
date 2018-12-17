@@ -376,8 +376,8 @@ if(isfield(deck.SCHEDULE,'RPTSCHED'))
 end
 if isfield(deck.SCHEDULE, 'control'),
     fprintf(org_fid,'%s\n','INCLUDE');
-    fprintf(org_fid,'%s\n','welspecs.txt');
-    fprintf(org_fid,'/\n\n');
+    fprintf(org_fid,'%s/','welspecs.txt');
+    fprintf(org_fid,'\n\n');
     fid = fopen(fullfile(dirname, 'welspecs.txt'), 'wt');
     wspecs = replace_default(deck.SCHEDULE.control(1).WELSPECS).';
     fprintf(fid,'%s\n',upper('welspecs'));
@@ -386,8 +386,8 @@ if isfield(deck.SCHEDULE, 'control'),
     fclose(fid);
     
     fprintf(org_fid,'%s\n','INCLUDE');
-    fprintf(org_fid,'%s\n','compdat.txt');
-    fprintf(org_fid,'/\n\n');
+    fprintf(org_fid,'%s/','compdat.txt');
+    fprintf(org_fid,'\n\n');
     fid = fopen(fullfile(dirname, 'compdat.txt'), 'wt');
     cdat = replace_default(set_WI(G, rock, deck.SCHEDULE.control(1).COMPDAT)) .';
     %cdat = replace_default(deck.SCHEDULE.control(1).COMPDAT);
@@ -400,8 +400,8 @@ if isfield(deck.SCHEDULE, 'control'),
         step_name=['step_',int2str(i),'.txt'];
         
         fprintf(org_fid,'%s\n','INCLUDE');
-        fprintf(org_fid,'%s\n',['wconinje',step_name]);
-        fprintf(org_fid,'/\n\n');
+        fprintf(org_fid,'%s/',['wconinje',step_name]);
+        fprintf(org_fid,'\n\n');
         fid = fopen(fullfile(dirname, ['wconinje',step_name]), 'wt');
         wconinje = replace_default(deck.SCHEDULE.control(i).WCONINJE).';
         fprintf(fid,'%s\n',upper('wconinje'));
@@ -413,8 +413,8 @@ if isfield(deck.SCHEDULE, 'control'),
         fclose(fid);
         
         fprintf(org_fid,'%s\n','INCLUDE');
-        fprintf(org_fid,'%s\n',['wconprod',step_name]);
-        fprintf(org_fid,'/\n\n');
+        fprintf(org_fid,'%s/',['wconprod',step_name]);
+        fprintf(org_fid,'\n\n');
         fid = fopen(fullfile(dirname, ['wconprod',step_name]), 'wt');
         wconprod = replace_default(deck.SCHEDULE.control(i).WCONPROD).';
         fprintf(fid,'%s\n',upper('wconprod'));

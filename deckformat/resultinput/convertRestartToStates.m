@@ -114,6 +114,7 @@ else
                 continue
             end
             tmp = reshape(V,[],ns);
+            %tmp = reshape(V,ns,[]);
 
             if isempty(opt.steps)
                 opt.steps=1:ns;
@@ -126,7 +127,13 @@ else
             opm_s.(fnames{i}) = reshape(tmpc,[],1);
         end
     end
-
+    %% for old opm
+    if isfield(opm_s,'XCON')
+        for i=1:numel(opm_s.XCON)
+            opm_s.XCON{i}=opm_s.XCON{i}';
+        end
+    end
+    
     rstrt = opm_s;
 end
 

@@ -23,7 +23,7 @@ else
     if(opt.do_adjoint)
        % needed for adjoint
        command = [command,' --solve-welleq-initially=true --use-adjoint=true'];
-       command = [command,' --matrix-add-well-contributions=true --preconditioner-add-well-contributions=true '];
+       %command = [command,' --matrix-add-well-contributions=true --preconditioner-add-well-contributions=true '];
        % adjust tolerances
        command = [command,...
 			 ' --flow-linear-solver-verbosity=10  --linear-solver-max-iter=50 ',...
@@ -36,7 +36,7 @@ else
 		          '--tolerance-well-control=1e-7 ',...
 			 '--tolerance-wells=1e-4 '];
         % linear sovler
-        command=[command,'--use-umfpack=true ']
+        %command=[command,'--use-umfpack=true ']
         %command=[command,'--use-amgcl=true --use-amgcl-drs=true ']
         %command=[command,'--use-amg=true -use-cpr=true -use-gmres=true ']
     else
@@ -69,7 +69,8 @@ if(nargout>0)
         init = readEclipseOutputFileUnFmt([casenm,'.INIT']);
         grid = readEclipseOutputFileUnFmt([casenm,'.EGRID']);    
         [G, rock, N, T] = eclOut2mrst(init, grid);
-        extra=struct('G',G,'rock',rock,'N',N,'T',T,'init',init,'grid',grid);
+        extra=struct('G',G,'rock',rock,'N',N,'T',T,'init',init, ...
+                     'grid',grid,'syscomand', command);
         [states_opm,rstrt_opm] = convertRestartToStates(ofile_cap,G,...
         'use_opm',true,'includeWellSols',true,'wellSolsFromRestart',true,...
         'includeFluxes',true,'consistentWellSols',false);
