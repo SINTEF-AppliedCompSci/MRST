@@ -138,7 +138,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       return
    end
 
-   if opt.DepthReorder
+   if isempty(opt.DepthReorder) 
+      active = arrayfun(@(x) strcmpi(x.dir(1), 'z'), W);
+      W = reorderWellPerforationsByDepth(W, active);
+   elseif opt.DepthReorder
       W = reorderWellPerforationsByDepth(W);
    end
 
@@ -432,7 +435,11 @@ function W = process_wconhist(W, control, G, rock, c2a, well_id, p, opt)
         case 'lrat'
           rates = - ([control.WCONHIST{i, 4:5}]);
           val   = sum(rates);
-          compi = rates./val;
+          if val ~= 0
+            compi = rates./val;
+          else
+            compi = ones(size(rates))/numel(rates);
+          end
         case 'resv'
           rates = - ([control.WCONHIST{i, 4:6}]);
           val   = sum(rates);
