@@ -81,7 +81,6 @@ classdef StoneRelativePermeability1 < GridProperty
             ix  = ~or(ix1,ix2);
             s_scale = (ix.*m).*s + (ix.*c + ix2);
         elseif prop.relpermPoints == 3
-%             warning('max kr scaling not implemented');
             [m, c, p, k] = getThreePointScalers(pts, phase, reg, f, cells);
             ix1 = and(s >= p{1}, s < p{2});
             ix2 = and(s >= p{2}, s < p{3});
@@ -91,7 +90,6 @@ classdef StoneRelativePermeability1 < GridProperty
         else
             error('Unknown number of scaling points');
         end
-%         k_max_m = 1;
         k_max_m = k{2}./k{1};
     end
     
