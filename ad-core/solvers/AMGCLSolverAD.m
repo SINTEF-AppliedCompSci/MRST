@@ -54,7 +54,7 @@ classdef AMGCLSolverAD < LinearSolverAD
             [result, res, its] = amgcl_matlab(A', b, solver.amgcl_setup, solver.tolerance, solver.maxIterations, id);
             t_solve = toc(timer);
             if res > solver.tolerance
-                warning('Solver did not converge to specified tolerance of %g in %d iterations. Reported residual estimate was %g', solver.tolerance, its, res);
+                warning('Solver did not converge to specified tolerance of %g in %d iterations. Reported residual estimate was %g after %2.2f seconds', solver.tolerance, its, res, t_solve);
             elseif solver.verbose
                 fprintf('AMGCL solver converged to %f in %2d iterations after %2.2f seconds.\n', res, its, t_solve);
             end
