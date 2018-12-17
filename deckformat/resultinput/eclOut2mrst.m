@@ -38,7 +38,7 @@ G.DZ    = convertFrom(init.DZ.values, u.length);
 
 rock.poro = init.PORO.values;
 rock.ntg  = init.NTG.values;
-rock.perm = convertFrom([init.PERMX.values, init.PERMX.values, init.PERMX.values], u.perm);
+rock.perm = convertFrom([init.PERMX.values, init.PERMY.values, init.PERMZ.values], u.perm);
 
 [N, T] = getTrans(init, grid, actNum, cartDims);
 T      = convertFrom(T, u.trans);

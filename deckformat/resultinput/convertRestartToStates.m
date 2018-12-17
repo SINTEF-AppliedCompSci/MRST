@@ -280,11 +280,13 @@ dispif(mrstVerbose, ',  done\n')
 % check for eMap-field, and if present, reduce data
 
 if isfield(G.cells, 'eMap')
-    fns = {'pressure', 's'};
+    fns = {'pressure', 's', 'rs', 'rv'};
     for k1 = 1:numel(states)
         for k2 = 1:numel(fns)
             fn = fns{k2};
-            states{k1}.(fn) = states{k1}.(fn)(G.cells.eMap, :);
+            if isfield(states{k1}, fn)
+                states{k1}.(fn) = states{k1}.(fn)(G.cells.eMap, :);
+            end
         end
     end
 end
