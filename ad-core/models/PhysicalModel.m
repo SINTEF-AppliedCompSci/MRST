@@ -616,7 +616,7 @@ methods
         dt_steps = schedule.step.val;
 
         current = getState(stepNo);
-        before    = getState(stepNo - 1);        
+        before  = getState(stepNo - 1);        
         dt = dt_steps(stepNo);
 
         lookupCtrl = @(step) schedule.control(schedule.step.control(step));

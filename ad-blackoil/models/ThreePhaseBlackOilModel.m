@@ -91,12 +91,18 @@ methods
         % Define primary variables
         if opt.resOnly
             [dyn_state, primaryVars] = model.getDynamicState(state);
+            [dyn_state0, ~]          = model.getDynamicState(state0);
         else
-            [dyn_state, primaryVars] = model.getForwardDynamicState(state);
+            if ~opt.reverseMode
+                [dyn_state, primaryVars] = model.getForwardDynamicState(state);
+                [dyn_state0, ~]          = model.getDynamicState(state0);
+            else
+                [dyn_state, ~]            = model.getDynamicState(state);
+                [dyn_state0, primaryVars] = model.getReverseDynamicState(state0);
+            end
         end
-        % State at previous time-step
         
-        [eqs, names, types] = equationsBlackOilDynamicState(state0, dyn_state, model, dt, drivingForces);
+        [eqs, names, types] = equationsBlackOilDynamicState(dyn_state0, dyn_state, model, dt, drivingForces);
         
         dissolved = model.getDissolutionMatrix(dyn_state.rs, dyn_state.rv);
         % Add in and setup well equations
@@ -108,7 +114,13 @@ methods
         p = dyn_state.pressure;
         mob = dyn_state.FlowProps.Mobility;
         rho = dyn_state.FlowProps.Density;
-        [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, state0.wellSol, state.wellSol, wellVars, wellMap, p, mob, rho, dissolved, {}, dt, opt);
+        [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, ...
+                                                          names, types, ...
+                                                          state0.wellSol, ...
+                                                          state.wellSol, ...
+                                                          wellVars, wellMap, ...
+                                                          p, mob, rho, dissolved, ...
+                                                          {}, dt, opt);
         
         state.FlowProps = dyn_state.FlowProps.reduce();
                 
@@ -117,17 +129,20 @@ methods
     end
 
     function [dyn_state, primaryVariables] = getForwardDynamicState(model, state)
-        [dyn_state, primaryVariables] = setupDynamicStateBlackOil(model, state, true);
+        [dyn_state, primaryVariables] = setupDynamicStateBlackOil(model, state, ...
+                                                                         true);
     end
 
     function [dyn_state, primaryVariables] = getDynamicState(model, state)
-        dyn_state = setupDynamicStateBlackOil(model, state, false);
-        primaryVariables = {};
+        [dyn_state, primaryVariables] = setupDynamicStateBlackOil(model, state, ...
+                                                                         false);
     end
-    
+
     function [dyn_state, primaryVariables] = getReverseDynamicState(model, state)
-        [dyn_state, primaryVariables] = setupDynamicStateBlackOil(model, state, true);
+        [dyn_state, primaryVariables] = setupDynamicStateBlackOil(model, state, ...
+                                                                         true);
     end
+
     % --------------------------------------------------------------------%
     function state = validateState(model, state)
         % Check parent class

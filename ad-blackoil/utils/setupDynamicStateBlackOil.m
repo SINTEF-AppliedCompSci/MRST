@@ -17,6 +17,7 @@ function [state, primaryVars] = setupDynamicStateBlackOil(model, state, useAD)
         gvar = 'sG';
     end
 
+    primaryVars = {};
     if useAD
         % define primary varible x and initialize
         if model.water
