@@ -2,9 +2,10 @@ function lsolve = selectLinearSolverAD(model, varargin)
     opt = struct('useAMGCL',            true, ...
                  'useAGMG',             true,...
                  'useILU',              true,...
-                 'useSYMRCMOrdering',   true,...
+                 'useSYMRCMOrdering',   false,...
                  'useCPR',              true, ...
                  'useAMGCLCPR',         true, ...
+                 'BackslashThreshold',  10000, ...
                  'tolerance',           1e-4);
     [opt, solver_arg] = merge_options(opt, varargin{:});
     solver_arg = ['tolerance', opt.tolerance, solver_arg];
@@ -15,24 +16,19 @@ function lsolve = selectLinearSolverAD(model, varargin)
     end
     ncomp = getComponentCount(model);
     ndof = ncomp*model.G.cells.num;
-    if ndof  < 10000
+    if ndof <= opt.BackslashThreshold
         % We do not need a custom linear solver
         return
     end
     isDiagonal = isa(model.AutoDiffBackend, 'DiagonalAutoDiffBackend');
     
-    if opt.useAMGCLCPR && opt.useAMGCL
+    if opt.useAMGCLCPR && opt.useAMGCL && opt.useCPR
         % AMGCL CPR
         lsolve = AMGCL_CPRSolverAD('maxIterations', 50,...
-                                   'relaxation', 'ilu0', ...
                                    'block_size', ncomp,...
+                                   'relaxation', 'ilu0', ...
+                                   's_relaxation', 'ilu0', ...
                                    solver_arg{:});
-        setSolverOrderingReduction(model, lsolve, ncomp, opt);
-    elseif opt.useAMGCL
-        % AMGCL as a preconditioner Krylov solver
-        lsolve = AMGCLSolverAD('preconditioner', 'relaxation',...
-                               'relaxation', 'ilu0', ...
-                               'maxIterations', 50, solver_arg{:});
         setSolverOrderingReduction(model, lsolve, ncomp, opt);
     elseif opt.useCPR && ~isDiagonal
         % MATLAB CPR + AMGCL, AGMG or backslash for elliptic part
@@ -45,6 +41,13 @@ function lsolve = selectLinearSolverAD(model, varargin)
             psolve = BackslashSolverAD();
         end
         lsolve = CPRSolverAD('ellipticSolver', psolve, solver_arg{:});
+    elseif opt.useAMGCL
+        % AMGCL as a preconditioner Krylov solver
+        lsolve = AMGCLSolverAD('preconditioner', 'relaxation',...
+                               'relaxation', 'ilu0', ...
+                               'maxIterations', 50, solver_arg{:});
+        setSolverOrderingReduction(model, lsolve, ncomp, opt);
+
     elseif opt.useILU
         % Matlab GMRES + ILU(0)
         lsolve = GMRES_ILUSolverAD('maxIterations', 100,...
@@ -63,15 +66,8 @@ function setSolverOrderingReduction(model, lsolve, ncomp, opt)
         sym_ordering = [];
     end
     
-    if model.water && model.gas && model.oil
-        eq_ordering = [2, 1, 3];
-    else
-        eq_ordering = [];
-    end
-    
     ordering = getCellMajorReordering(G.cells.num, ncomp, ...
         'ndof', ndof, ...
-        'equation_ordering', eq_ordering, ...
         'cell_ordering', sym_ordering);
     lsolve.variableOrdering = ordering;
     lsolve.equationOrdering = ordering;
