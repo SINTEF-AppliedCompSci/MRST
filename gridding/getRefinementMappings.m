@@ -32,9 +32,15 @@ function mappings = getRefinementMappings(G, GC, GF, cells)
         newPartition = G.partition;
         refined      = G.cells.refined;
     end
-        
-    mappings = struct('newPartition', newPartition   , ...
-                      'oldPartition', G.partition, ...
-                      'refined'     , refined    );
+    
+    new2fine = nan(max(newPartition),1);
+    new2fine(newPartition) = (1:GF.cells.num)';
+    new2old = G.partition(new2fine);
+    
+    
+    mappings = struct('newPartition', newPartition, ...
+                      'oldPartition', G.partition , ...
+                      'refined'     , refined     , ...
+                      'new2old'     , new2old     );
 
 end

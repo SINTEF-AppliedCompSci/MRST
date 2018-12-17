@@ -19,16 +19,16 @@ function G = computeCellDimensions2(G)
     if G.griddim == 3
         % Create local coordinate systems on each face
         G.faces.coordSys = faceCoordSys(G);
-        
-        % Map to face coordinate system
-        node2face = rldecode((1:G.faces.num)', nfn, 1);
-        xnf       = zeros(sum(nfn), 2); 
-        for dNo = 1:2
-            vec = G.faces.coordSys{dNo}(node2face,:);
-            xnf(:, dNo) = sum(xn.*vec,2);
-        end
-        xn = xnf;
-        
+%         
+%         % Map to face coordinate system
+%         node2face = rldecode((1:G.faces.num)', nfn, 1);
+%         xnf       = zeros(sum(nfn), 2); 
+%         for dNo = 1:2
+%             vec = G.faces.coordSys{dNo}(node2face,:);
+%             xnf(:, dNo) = sum(xn.*vec,2);
+%         end
+%         xn = xnf;
+%         
     end
         
     % Get minimum and maximum cell coordinates
@@ -37,27 +37,6 @@ function G = computeCellDimensions2(G)
         
      
 end
-
-% function [xMin, xMax] = getMinMax(x, nn)
-% 
-%     % Prepare sparse matrix vectors
-%     num = numel(nn);
-%     ii  = [rldecode((1:num)', nn, 1);
-%            rldecode((1:num)', max(nn) - nn, 1)];
-%     jj  = [mcolon(1, nn)';
-%            mcolon(nn+1, max(nn))'];
-%     nanVec = nan(sum(max(nn) - nn), 1);
-%     
-%     % Compute minimum and maximum cell coordinates
-%     [xMin, xMax] = deal(zeros(num, size(x,2)));
-%     for dNo = 1:size(x,2)
-%         v = [x(:,dNo); nanVec];
-%         xMat = sparse(ii, jj, v, num, max(nn));
-%         xMin(:,dNo) = min(xMat, [], 2);
-%         xMax(:,dNo) = max(xMat, [], 2);
-%     end
-%     
-% end
 
 function coordSys = faceCoordSys(G)
     

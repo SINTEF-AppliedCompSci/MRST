@@ -57,7 +57,9 @@ fluid = initSimpleADIFluid('phases', 'WO'                      , ...
 
 modelFIF = TwoPhaseOilWaterModel(GF, rockF, fluid);
 modelSIF = getSequentialModelFromFI(modelFIF);
-modelFI  = TwoPhaseOilWaterModel(G, rock, fluid);
+
+
+modelFI  = upscaleModelTPFA(modelFIF, G.partition);
 modelSI  = getSequentialModelFromFI(modelFI);
 modelASI = AdaptiveSequentialPressureTransportModel(modelSIF.pressureModel, modelSIF.transportModel, G);
 
@@ -92,10 +94,27 @@ modelASIDGreorder = AdaptiveSequentialPressureTransportModel(modelASIDG.pressure
 modelASIDGreorder.transportModel.chunkSize = 50;
 modelASIDGreorder.transportModel.parent.extraStateOutput = true;
 
+
+disc = DGDiscretization(modelSIF.transportModel               , ...
+                        'degree'               , degree       , ...
+                        'basis'                , 'legendre'   , ...
+                        'useUnstructCubature'  , false        , ...
+                        'jumpTolerance'        , jt           , ...
+                        'outTolerance'         , ot           , ...
+                        'outLimiter'           , 'kill', ...
+                        'meanTolerance'        , mt           , ...
+                        'limitAfterConvergence', false        , ...
+                        'plotLimiterProgress'  , false        );
+transportModelDG = TransportOilWaterModelDG(GF, rockF, fluid, ...
+                                   'disc'    , disc        , ...
+                                   'dsMaxAbs', 0.2, ...
+                                   'nonlinearTolerance', 1e-3);
+modelDG = SequentialPressureTransportModel(modelSIF.pressureModel, transportModelDG);
+
 %%
 
-time = 1*year;
-rate = 1*sum(poreVolume(GF, rockF))/time;
+time = 2*year;
+rate = 1.5*sum(poreVolume(GF, rockF))/time;
 
 xw = [0,0; l,l];
 % xw = G.cells.centroids([1, G.cells.num], :);
@@ -155,6 +174,13 @@ state0F.transportState.G = G;
 
 %%
 
+state0F = assignDofFromState(modelDG.transportModel.disc, state0F);
+[wsDG, stDG, rep] = simulateScheduleAD(state0F, modelDG, scheduleF);
+
+%%
+
+wsASIreorder = [];
+
 close all
 figure('Position', [-1000, 0, 800, 800]);
 cmap = mrstColormap();
@@ -182,14 +208,14 @@ cmap = mrstColormap('type', 'wateroil');
 
 %%
 
-ws = {wsSI, wsASIreorder, wsASI, wsASIDG, wsSIF};
+ws = {wsSI, wsASIreorder wsASI, wsASIDG, wsSIF};
 names    = {'Coarse', ...
             ['Adaptive dG(', num2str(degree), ') reorder'], ...
             'Adaptive dG(0)'                              , ...
             ['Adaptive dG(', num2str(degree), ')']        , ...
             'Fine'};
         
-pIx = 1:4;
+pIx = [1,3:5];
 ws = ws(pIx);
 names = names(pIx);
         
@@ -228,3 +254,129 @@ axis equal tight
 colormap(jet);
 
 %%
+
+dt = cumsum(schedule.step.val)/day;
+wcut = nan(numel(dt,1),3);
+for sNo = 1:numel(stASI)
+    wcut(sNo,:) = [wsSI{sNo}(2).wcut, wsASIDG{sNo}(2).wcut, wsDG{sNo}(2).wcut];
+end
+
+%%
+
+close all
+fig = figure('Position', [-2000, 0, 1500, 600]);
+M = struct('cdata',[],'colormap',[]);
+d = 10;
+
+clr = lines(4);
+    
+
+% subplot(1,3,3)
+% hold on
+% wc = wcut;
+% wc(2:end,:) = nan;
+% xlim([0, dt(end)]);
+% ylim([0,1]);
+% hold off
+% pbaspect([1,1,1])
+% box on
+% ylabel('Water cut')
+% xlabel('Time (days)')
+% legend({'Coarse', 'Adaptive', 'Reference'}, 'location', 'northwest');
+
+for sNo = 1:numel(stASI)
+    
+    subplot(1,3,1)
+    cla;
+    hold on
+    plotCellData(GF, stASI{sNo}.s(:,1), 'edgec', 'none')
+    plotGrid(stASI{sNo}.G, 'facecolor', 'none')
+    hold off
+    caxis([0,1]);
+    title('Adaptive dG(1)')
+    axis equal tight
+    
+    subplot(1,3,2)
+    plotCellData(G, stSI{sNo}.s(:,1), 'edgec', 'none')
+    plotGrid(G, 'facec', 'none', 'edgealpha', 0.2);
+    caxis([0,1]);
+    title('Coarse dG(0)')
+    axis equal tight
+    
+    colormap(cmap)
+    
+    subplot(1,3,3)
+    wc = wcut;
+    wc(sNo+1:end,:) = nan;
+    hold on
+    plot(dt, wc(:,1), 'linew', 2, 'color', clr(1,:));
+    plot(dt, wc(:,2), 'linew', 2, 'color', clr(2,:));
+    plot(dt, wc(:,3), '--', 'linew', 4, 'color', clr(3,:));
+    hold off
+    pbaspect([1,1,1])
+    xlim([0, dt(end)]);
+    ylim([0,1]);
+    box on
+    ylabel('Water cut')
+    xlabel('Time (days)')
+    legend({'Coarse dG(0)', 'Adaptive dG(1)' 'Fine dG(1)'}, 'location', 'northwest');
+%     for wNo = 1:3
+%         h(wNo).YData = wc(:,wNo);
+%     end
+
+    if 1
+        rect = [d, d, fig.Position(3:4) - [d,d]];
+        M(sNo) = getframe(fig, rect);
+    end
+    
+    pause(0.05)
+    
+end
+
+%%
+
+pth = mrstPath('dg');
+name = 'refinement-2';
+duration = 10;
+vo = VideoWriter(fullfile(pth, name));
+vo.FrameRate = numel(stASI)/duration;
+open(vo);
+
+writeVideo(vo, M);
+
+close(vo)
+
+%%
+
+rock = makeRock(GF, 1,1);
+T = computeTrans(GF, rock);
+p = partitionMETIS(GF, T, 50);
+GC = generateCoarseGrid(GF, p);
+GC = coarsenGeometry(GC);
+GC = addCoarseCenterPoints(GC);
+GC = coarsenCellDimensions(GC);
+
+%%
+
+close all
+cNo = 50;
+% plotGrid(G, cNo, 'facec', [1,1,1]*0.3);
+p = (GC.partition == cNo);
+plotGrid(GF, p, 'facec', [1,1,1]*0.8);
+
+hold on
+dx = GC.cells.dx(cNo,:)/2;
+xc = GC.cells.centroids(cNo,:);
+xMin = GC.cells.xMin(cNo,:);
+x = [xc(1) - dx(1), xc(2) - dx(2);
+     xc(1) + dx(1), xc(2) - dx(2); 
+     xc(1) + dx(1), xc(2) + dx(2); 
+     xc(1) - dx(1), xc(2) + dx(2); 
+     xc(1) - dx(1), xc(2) - dx(2)];
+plot(x(:,1), x(:,2), 'k', 'linew', 2);
+plot(xc(1), xc(2), '.k', 'markerSize', 15)
+
+f = 1.2;
+axis([xc(1) - dx(1)*f, xc(1) + dx(1)*f, xc(2) - dx(2)*f, xc(2) + dx(2)*f]);
+
+axis equal 

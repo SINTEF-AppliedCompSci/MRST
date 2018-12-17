@@ -74,12 +74,12 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
                 problem = model.transportModel.getEquations(transportState0, transportState, ...
                                    dt, drivingForcesUpsc, 'resOnly', true);
                 residual = horzcat(problem.equations{:});
+                if model.isReordering
+                    G = model.transportModel.parent.G;
+                else
+                    G = model.transportModel.G;
+                end
                 if model.isDG
-                    if model.isReordering
-                        G = model.transportModel.parent.G;
-                    else
-                        G = model.transportModel.G;
-                    end
                     ix = rldecode((1:G.cells.num)', transportState.nDof, 1);
                     residual = accumarray(ix, abs(residual));
                     residual = residual./transportState.nDof;
@@ -92,6 +92,8 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
             
                 tol = 1e-2;
                 cells = abs(residual) > tol;
+                tol   = 0.25*tol;
+                cells(G.cells.refined & abs(residual) > tol) = true;
                 [model, transportState, transportState0, drivingForces] ...
                     = model.refineTransportModel(cells, pressureState, state0, drivingForces);
                 transportForces = drivingForces;
@@ -279,7 +281,10 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
         function transportModel = upscaleTransportModelTPFA(model, partition, varargin)
             
             transportModel = upscaleModelTPFA(model.fineTransportModel, partition, varargin{:});
-            G = coarsenCellDimensions(transportModel.G);
+            G = transportModel.G;
+            if model.isDG
+                G = coarsenCellDimensions(G);
+            end
             G.cells.ghost   = false(G.cells.num, 1);
             G.cells.refined = accumarray(G.partition, ones(G.parent.cells.num,1)) == 1;
             transportModel.G = G;

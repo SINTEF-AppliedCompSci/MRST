@@ -89,7 +89,7 @@ classdef TriangleCubature < Cubature
         
         %-----------------------------------------------------------------%
         function x = mapCoords(cubature, x, xR)
-            % Map cubature points from Barycentric to physical coordinates
+            % Map cubature points from reference to physical coordinates
             
             G    = cubature.G;
             % Number of triangle vertices

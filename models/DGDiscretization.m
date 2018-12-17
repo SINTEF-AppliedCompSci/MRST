@@ -312,9 +312,12 @@ classdef DGDiscretization < HyperbolicDiscretization
             for dofNo = 1:nDofMax
                 keep = nDof(cells) >= dofNo;
                 ix = disc.getDofIx(state, dofNo, cells(keep));
+%                 S = sparse(1:nnz(keep), ix, 1, nnz(keep), sum(state.nDof));
                 if all(keep)
+%                     sat = sat + (S*dof).*psi{dofNo}(x(keep,:));
                     sat = sat + dof(ix).*psi{dofNo}(x(keep,:));
                 else
+%                     sat(keep) = sat(keep) + (S*dof).*psi{dofNo}(x(keep,:));
                     sat(keep) = sat(keep) + dof(ix).*psi{dofNo}(x(keep,:));
                 end
 
