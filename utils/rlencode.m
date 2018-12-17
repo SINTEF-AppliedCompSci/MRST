@@ -1,12 +1,12 @@
-function [A,n] = rlencode(A, dim)
+function [A, n] = rlencode(A, dim)
 %Compute run length encoding of array A along dimension dim.
 %
 % SYNOPSIS:
-%   [A,n] = rlencode(A)
-%   [A,n] = rlencode(A, dim)
+%   [A, n] = rlencode(A)
+%   [A, n] = rlencode(A, dim)
 %
 % PARAMETERS:
-%   A         - Array
+%   A         - Array.  Numeric or cell array of string ("cellstring").
 %   dim       - dimension of `A` where run length encoding is done.
 %               `dim > 0`, `dim <= ndims(A)`.
 %               OPTIONAL.  Default value: `dim=1`.
@@ -16,16 +16,35 @@ function [A,n] = rlencode(A, dim)
 %   n         - repetition count of repeated layers in original `A`.
 %
 % EXAMPLE:
+%   % 1) Regular numeric matrix
+%   A      = [ 1, 2, 3, 4 ; ...
+%              1, 2, 3, 4 ; ...
+%              3, 4, 5, 6 ; ...
+%              3, 3, 3, 3 ; ...
+%              3, 3, 4, 5 ; ...
+%              3, 3, 4, 5 ];
 %
-%   A = [1,2,3,4;1,2,3,4;3,4,5,6;3,3,3,3;3,3,4,5;3,3,4,5]
-%   [A,n] = rlencode(A,1)
+%   [A, n] = rlencode(A, 1);
 %
+%   assert (isequal(A, [ 1, 2, 3, 4 ; ...
+%                        3, 4, 5, 6 ; ...
+%                        3, 3, 3, 3 ; ...
+%                        3, 3, 4, 5 ]))
+%
+%   assert (isequal(n, [2, 1, 1, 2] .'))
+%
+%   % 2) Cell array of string
+%   S = { 'aaaa' ; 'aaaa' ; 'bb' ; 'cccc' ; 'cccc' ; 'd'; 'd'; 'd' ; 'd' };
+%   [s, n] = rlencode(S);
+%
+%   assert (isequal(s, { 'aaaa' ; 'bb'; 'cccc'; 'd' }))
+%   assert (isequal(n, [ 2; 1; 2; 4 ]))
 %
 % SEE ALSO:
-%   `rldecode`
+%   `rldecode`.
 
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -43,34 +62,43 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
+   if isempty(A)
+      n = 0;
+      return
+   end
 
-if nargin < 2
-  dim = 1;
+   if nargin < 2
+      dim = 1;
+   end
+
+   % Pick out (1:end, :, ...) and (2:end, :, ...) in a multidimensional way
+   %
+   % Take dimension we compress along to be first dimension, i.e., swap
+   % dimensions 1 and dim.
+   d = 1 : ndims(A) ;   d([1, dim]) = [dim, 1];
+   B = permute(A, d);
+
+   % Find positions where layers differ
+   i = [find(any(different_layers(B), 2)) ; size(B, 1)];
+
+   % Compare differences in position to find run length.
+   n = diff([0; i]);
+
+   % Re-swap dimensions 1 and 'dim' to form return value.
+   sz = size(B); sz(1) = numel(i);
+   A  = permute(reshape(B(i,:), sz), d);
 end
 
-if isempty(A), n = 0; return; end
+%--------------------------------------------------------------------------
 
-% Take dimension we compress along to be first dimension,
-% i.e., swap dimensions 1 and dim.
+function d = different_layers(B)
+   top = B(1 : (end - 1), :);
+   bot = B(2 : (end - 0), :);
 
-d      = 1:ndims(A);
-d(1)   = dim;
-d(dim) = 1;
-B      = permute(A,d);
-
-% Pick out (1:end,:,...) and (2:end,:,...) in
-% a multidimensional way
-
-
-% Find positions where layers differ
-nanB = isnan(B);
-%i    = [find(any(B(1:end-1,:) ~= B(2:end,:)), 2); size(B,1)];
-i    = [find(any( xor((B(1:end-1,:) ~= B(2:end,:)) , ...
-                       nanB(1:end-1,:)==1 & nanB(2:end,:)==1), 2)); size(B,1)];
-% compare differences in position to find run length.
-n = diff([0;i]);
-
-% swap dimensions 1 and dim.
-sz = size(B);sz(1)=numel(i);
-A  = permute(reshape(B(i,:), sz),d);
+   if isnumeric(B)
+      d = xor(top ~= bot, isnan(top) & isnan(bot));
+   else
+      % Handles case of cellstring and, in MATLAB >= R2016b, STRING too.
+      d = ~strcmp(top, bot);
+   end
 end

@@ -78,19 +78,19 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
    assert(~isCoarseGrid(G), ...
-      'Do not send coarse grids to plotPatches');
+          'Do not send coarse grids to plotPatches');
 
-   if isempty(faces),
+   if isempty(faces)
       if nargout > 0, varargout(1 : nargout) = { [] }; end
       return
    end
 
    assert(isnumeric(faces) && all(isfinite(faces)) && all(faces > 0), ...
-       'Face list ''faces'' must be an array of finite positive numbers.')
+         ['Face list ''faces'' must be an array of ', ...
+          'finite positive numbers.'])
 
-   if mod(numel(varargin), 2) == 0,
+   if mod(numel(varargin), 2) == 0
       colour   = 'yellow';
    else
       colour   = varargin{1};
@@ -100,11 +100,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    % Extract face topology for subset of grid faces and the coordinates for
    % the actual vertices ('verts') present in this topology.
    %
-   if all(diff(G.faces.nodePos) == 2) || (isfield(G, 'dim') && G.dim == 2), dim = 2;
-   else                                dim = 3;
-   end
+   dim = get_grid_dimension(G);
 
-   if dim == 2,
+   if dim == 2
       nodes = getSortedCellNodes(G);
       pos   = G.cells.facePos;
    else
@@ -168,6 +166,18 @@ end
 
 %--------------------------------------------------------------------------
 % Private helpers follow.
+%--------------------------------------------------------------------------
+
+function dim = get_grid_dimension(G)
+   dim = 3;
+
+   if all(diff(G.faces.nodePos) == 2) || ...
+         (isfield(G, 'dim') && G.dim == 2)
+
+      dim = 2;
+   end
+end
+
 %--------------------------------------------------------------------------
 
 function [f, present] = get_face_topo(nodes, pos, faces)

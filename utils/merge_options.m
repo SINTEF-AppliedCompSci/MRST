@@ -88,7 +88,7 @@ function [prm, varargout] = merge_options(prm, varargin)
 %   `fieldnames`, `warning`, `strcmpi`, `strcmp`.
 
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
