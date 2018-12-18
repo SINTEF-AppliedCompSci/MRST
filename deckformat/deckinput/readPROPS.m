@@ -292,7 +292,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                ...
                'PCW', 'IPCW', 'PCG', 'IPCG', ...
                }
-            prp = readGridBoxArray(prp, fid, kw, prod(dims));
+            prp = readGridBoxArray(prp, fid, kw, prod(dims), NaN);
 
          case {'TLMIXPAR', 'PLMIXPAR'}
             % Note: The following warning is given in ECLIPSE 2013.2 when

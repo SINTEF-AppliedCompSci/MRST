@@ -40,7 +40,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             if deck.RUNSPEC.DUALPORO
                rgn = readGridBoxArrayDP(rgn, fid, kw, nc);
             else
-               rgn = readGridBoxArray(rgn, fid, kw, nc);
+               rgn = readGridBoxArray(rgn, fid, kw, nc, 1);
             end
 
          case {'ADD', 'COPY', 'EQUALS', 'MAXVALUE', ...

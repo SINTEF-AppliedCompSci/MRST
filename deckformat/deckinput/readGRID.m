@@ -74,7 +74,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             grd.(kw) = readVector(fid, kw, np);
 
          case {'DX', 'DY', 'DZ', 'DEPTH', 'TOPS'}
-            grd = readGridBoxArray(grd, fid, kw, nc);
+            grd = readGridBoxArray(grd, fid, kw, nc, NaN);
 
          case {'COORDX', 'COORDY', 'COORDZ'}
             grd.(kw) = readVector(fid, kw, nv);
@@ -157,12 +157,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             if deck.RUNSPEC.DUALPORO
                grd = readGridBoxArray(grd, fid, kw, ncdp);
             else
-               grd = readGridBoxArray(grd, fid, kw, nc);
+               grd = readGridBoxArray(grd, fid, kw, nc, 1);
             end
 
          case {'SIGMAV', 'SIGMADV', 'DZMTRXV'}
             if deck.RUNSPEC.DUALPORO
-               grd = readGridBoxArray(grd, fid, kw, nc);
+               grd = readGridBoxArray(grd, fid, kw, nc, 0.0);
             end
 
          case 'SIGMA'
@@ -170,11 +170,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                %Not handled yet
             end
 
-         case {'NTG'   , 'PORO'  ,  ...
-               'MULTPV',                     ...
-               'MULTX' , 'MULTX-',           ...
-               'MULTY' , 'MULTY-',           ...
-               'MULTZ' , 'MULTZ-',           ...
+         case {'PORO'  , ...
                'PERMX' , 'PERMXY', 'PERMXZ', ...
                'PERMYX', 'PERMY' , 'PERMYZ', ...
                'PERMZX', 'PERMZY', 'PERMZ' , ...
@@ -183,16 +179,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             if deck.RUNSPEC.DUALPORO
                grd = readGridBoxArrayDP(grd, fid, kw, nc);
             else
-               grd = readGridBoxArray(grd, fid, kw, nc);
+               grd = readGridBoxArray(grd, fid, kw, nc, NaN);
             end
 
-         case {'FLUXNUM', 'MULTNUM', 'OPERNUM', 'PINCHNUM'}
-            if ~ isfield(grd, kw), grd.(kw) = ones([nc, 1]); end
-
+         case {'NTG'    , 'MULTPV' ,  ...
+               'MULTX'  , 'MULTX-' ,  ...
+               'MULTY'  , 'MULTY-' ,  ...
+               'MULTZ'  , 'MULTZ-' ,  ...
+               'FLUXNUM', 'MULTNUM', 'OPERNUM', 'PINCHNUM'}
             if deck.RUNSPEC.DUALPORO
                grd = readGridBoxArrayDP(grd, fid, kw, nc);
             else
-               grd = readGridBoxArray(grd, fid, kw, nc);
+               grd = readGridBoxArray(grd, fid, kw, nc, 1.0);
             end
 
          case {'ADD', 'COPY', 'EQUALS', 'MAXVALUE', ...
@@ -213,12 +211,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             grd.(kw) = to_double(data{1});
 
          case 'MINPVV'
-            if ~isfield(grd, kw), grd.(kw) = repmat(1.0e-6, [nc, 1]); end
-
             if deck.RUNSPEC.DUALPORO
                grd = readGridBoxArrayDP(grd, fid, kw, nc);
             else
-               grd = readGridBoxArray(grd, fid, kw, nc);
+               grd = readGridBoxArray(grd, fid, kw, nc, 1.0e-6);
             end
 
          case {'ECHO', 'NOECHO'}

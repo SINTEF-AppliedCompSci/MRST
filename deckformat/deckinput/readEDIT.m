@@ -48,7 +48,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
          case 'MULTPV'
             grd = readGridBoxArray(grd, fid, kw, ...
-                                   prod(deck.RUNSPEC.cartDims));
+                                   prod(deck.RUNSPEC.cartDims), 1);
 
          case {'ADD', 'COPY', 'EQUALS', 'MAXVALUE', ...
                'MINVALUE', 'MULTIPLY'}
