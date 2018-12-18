@@ -92,10 +92,11 @@ function ix = define_subset(varargin)
       [I, J, K] = deal(varargin{:});      % Caller specified box
 
    elseif nargin ~= 0
+      file = mfilename();
       error(['Syntax is\n\t'              , ...
              'rock = %s         %% or\n\t', ...
              'rock = %s(layers) %% or\n\t', ...
-             'rock = %s(I, J, K)'], mfilename, mfilename, mfilename);
+             'rock = %s(I, J, K)'], file, file, file);
    end
 
    validate_range(I, Nx);
@@ -110,7 +111,8 @@ end
 %--------------------------------------------------------------------------
 
 function rock = load_mat_file()
-   rock_file = fullfile(getDatasetPath('spe10'), 'spe10_rock');
+   rdir = getDatasetPath('spe10', 'skipAvailableCheck', true);
+   rock_file = fullfile(rdir, 'spe10_rock');
 
    if ~exist([rock_file, '.mat'], 'file')
       ok = makeSPE10DataAvailable();
