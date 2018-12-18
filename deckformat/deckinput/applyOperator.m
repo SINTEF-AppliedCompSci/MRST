@@ -52,7 +52,6 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
    assert (any(strcmp(kw, {'ADD', 'COPY', 'EQUALS', ...
                            'MAXVALUE', 'MINVALUE', 'MULTIPLY'})), ...
           ['Keyword ''%s'' not amongst supported operators.\n', ...
@@ -74,16 +73,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    [rec, tmpl, b] = get_record(fid, tmpl, gridBox);
 
-   while ~isequal(rec, tmpl),
-      if ~isfield(sect, rec{1}),
-         switch kw,
+   while ~isequal(rec, tmpl)
+      if ~isfield(sect, rec{1})
+         switch kw
             case 'ADD'     , sect.(rec{1}) = zeros([m, 1]);
             case 'MULTIPLY', sect.(rec{1}) = ones ([m, 1]);
             case 'EQUALS'  , sect.(rec{1}) = nan  ([m, 1]);
 
             otherwise
                error (msgid('Default:Unavailable'), ...
-                      'No reasonable initial value for ''%s''.', kw);
+                     ['No reasonable initial value for operator ', ...
+                      '''%s'' applied to undefined array ''%s''.'], ...
+                      kw, rec{1});
          end
       end
 
