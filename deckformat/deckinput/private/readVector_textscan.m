@@ -97,7 +97,9 @@ function [v, pos, complete] = read_vector_elements_simple(fid, nel)
 
    % Defer the heavy lifting and comment handling to TEXTSCAN.  In
    % principle this is FSCANF(FID, '%f'), but TEXTSCAN is easier to use.
-   [arr, pos] = textscan(fid, '%f', 'CommentStyle', '--');
+   [arr, pos] = textscan(fid, '%f', 'CommentStyle', '--', ...
+                         'WhiteSpace', ' \r\n\t', ...
+                         'MultipleDelimsAsOne', true);
 
    % Output ('arr') is single-element cell array of array of floating-point
    % values.  Unpack to get the actual values.
@@ -115,7 +117,7 @@ function [v, pos, complete] = read_vector_elements_simple(fid, nel)
       % Non-finite element count (i.e., called as readVector(..., inf)).
       % Not at EOF.  Vector read complete if next character is terminator
       % ('/').
-      complete = strcmp(fscanf(fid, '%c', 1), '/');
+      complete = strcmp(fscanf(fid, ' %c', 1), '/');
 
       % Reverse back one character to enable surrounding logic to identify
       % termination criterion.
@@ -164,7 +166,8 @@ function tok = read_vector_elements(rpt, pos, fid)
    % Tokenize relevant portion of the input stream.  Read everything up to
    % the vector terminator '/' (or FEOF or input error), split on blanks
    % (space, newline, tab) and ignore comment lines ('--' designator).
-   tok = textscan(fid, '%[^/ \n\t]', 'CommentStyle', '--');
+   tok = textscan(fid, '%[^/ \r\n\t]', 'CommentStyle', '--', ...
+                  'MultipleDelimsAsOne', true);
 
    % Output from TEXTSCAN is single-element cell array of cellstring of
    % tokens.  Get the actual tokens.
