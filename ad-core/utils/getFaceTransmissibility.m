@@ -53,7 +53,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     
     if mod(numel(varargin), 2) == 1
-        varargin = {deck, varargin{:}};
+        varargin = [{deck}, varargin];
         deck = struct('GRID', struct());
         hasDeck = false;
     end
