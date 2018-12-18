@@ -81,7 +81,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        m = [];
        return
    end
-   if size(G.cells.faces, 2) < 2,
+
+   if size(G.cells.faces, 2) < 2
       error(['Function ''%s'' is only supported in corner-point ', ...
              'grids which identify cardinal directions.'], mfilename);
    end
@@ -91,7 +92,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    i = ~cellfun(@isempty, regexpi(multkw, kw_pattern, 'once'));
 
-   if ~any(i),
+   if ~any(i)
       m = [];
    else
       multkw = multkw(i);
@@ -106,10 +107,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       n_exptd = prod(G.cartDims);
 
       j = false([max(G.cells.faces(:,2)), 1]);
-      for kw = reshape(multkw, 1, []),
+      for kw = reshape(multkw, 1, [])
          prop = reshape(rockprop.(kw{1}), [], 1);
 
-         if numel(prop) ~= n_exptd,
+         if numel(prop) ~= n_exptd
             assert (numel(prop) < n_exptd, ...
                    ['Multiplier keyword ''%s'' specifies more values ', ...
                     '(%d) than there are cells in global grid (%d)\n'], ...

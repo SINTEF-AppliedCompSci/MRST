@@ -83,15 +83,15 @@ function ix = define_subset(varargin)
                                           % ()
    [I, J, K]    = deal(1:Nx, 1:Ny, 1:Nz); % Default (entire dataset)
 
-   if nargin == 1,
+   if nargin == 1
                                           % (layers)
       K = varargin{1};                    % Caller specified ind. layers
 
-   elseif nargin == 3,
+   elseif nargin == 3
                                           % (I, J, K)
       [I, J, K] = deal(varargin{:});      % Caller specified box
 
-   elseif nargin ~= 0,
+   elseif nargin ~= 0
       error(['Syntax is\n\t'              , ...
              'rock = %s         %% or\n\t', ...
              'rock = %s(layers) %% or\n\t', ...
@@ -112,10 +112,10 @@ end
 function rock = load_mat_file()
    rock_file = fullfile(getDatasetPath('spe10'), 'spe10_rock');
 
-   if ~exist([rock_file, '.mat'], 'file'),
+   if ~exist([rock_file, '.mat'], 'file')
       ok = makeSPE10DataAvailable();
 
-      if ~ok,
+      if ~ok
          error('SPE10Download:Fail', 'Failed to download SPE 10 dataset');
       end
    end

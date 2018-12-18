@@ -42,6 +42,7 @@ if nargin < 2 || isempty(spec)
         return;
     end
 end
+
 if nargin < 3 || isempty(steps)
     steps = 1:numel(spec.time);
 end
@@ -73,6 +74,7 @@ if strcmp(spec.type, 'unified')
     end
 end
 dispif(mrstVerbose, 'Reading restart:     ')
+
 for ks = 1:numel(steps)
     dispif(mrstVerbose, '\b\b\b\b%3d%%', round(100*ks/numel(steps)));
     step = steps(ks);
@@ -104,6 +106,7 @@ for ks = 1:numel(steps)
         fid = fclose(fid);
     end
 end
+
 if strcmp(spec.type, 'unified')
     fclose(fid);
 end
@@ -118,4 +121,3 @@ function name = fixVarName(name)
         name = genvarname(regexprep(name, '\W', '_'));
     end
 end
-     

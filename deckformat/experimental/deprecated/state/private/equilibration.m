@@ -37,11 +37,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    act_region = @(I) find(accumarray(I(:), 1) > 0);
 
-   for eqreg = reshape(act_region(eqlnum), 1, []),
+   for eqreg = reshape(act_region(eqlnum), 1, [])
       cells  = eqlnum == eqreg;
       pvtreg = act_region(pvtnum(cells));
 
-      if numel(pvtreg) > 1,
+      if numel(pvtreg) > 1
          error(id('EquilReg:InconsistentPVTReg')            , ...
               ['Cells in equilibration region %d reference ', ...
                '%d PVT tables.'], eqreg, numel(pvtreg));
@@ -55,6 +55,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                G.cells.centroids(:,3), G.cells.indexMap);
 
    press = pressure;
+
 %{
    kr = fluid.relperm(s);
 
@@ -74,13 +75,13 @@ end
 %--------------------------------------------------------------------------
 
 function [eqlnum, pvtnum] = regions(deck, G)
-   if isfield(deck, 'REGIONS') && isfield(deck.REGIONS, 'EQLNUM'),
+   if isfield(deck, 'REGIONS') && isfield(deck.REGIONS, 'EQLNUM')
       eqlnum = reshape(deck.REGIONS.EQLNUM(G.cells.indexMap), [], 1);
    else
       eqlnum = ones([G.cells.num, 1]);
    end
 
-   if isfield(deck, 'REGIONS') && isfield(deck.REGIONS, 'PVTNUM'),
+   if isfield(deck, 'REGIONS') && isfield(deck.REGIONS, 'PVTNUM')
       pvtnum = reshape(deck.REGIONS.PVTNUM(G.cells.indexMap), [], 1);
    else
       pvtnum = ones([G.cells.num, 1]);
@@ -114,7 +115,7 @@ function [press, rs, rv] = ...
 
    [rs, rv] = deal(zeros(size(Zc)));
 
-   if all([pix.OIL, pix.GAS] > 0),
+   if all([pix.OIL, pix.GAS] > 0)
       rs = Rs(Zc, press(:, pix.OIL)); % min(Rs(z), Rs(p_oil))
       rv = Rv(Zc, press(:, pix.GAS)); % min(Rv(z), Rv(p_gas))
    end
@@ -125,13 +126,13 @@ end
 function s = initsat(deck, press, pix, Zc, indexMap)
    % Invert capillary pressure function to derive initial saturations.
 
-   if isfield(deck.REGIONS, 'SATNUM'),
+   if isfield(deck.REGIONS, 'SATNUM')
       satnum = deck.REGIONS.SATNUM(indexMap);
    else
       satnum = ones([numel(indexMap), 1]);
    end
 
-   if isfield(deck.REGIONS, 'EQLNUM'),
+   if isfield(deck.REGIONS, 'EQLNUM')
       eqlnum = deck.REGIONS.EQLNUM(indexMap);
    else
       eqlnum = ones([numel(indexMap), 1]);
@@ -144,13 +145,13 @@ function s = initsat(deck, press, pix, Zc, indexMap)
 
    [Pcow, Pcog] = deal(zeros(size(Zc)));
    [ow, go]     = deal(false);
-   if all([pix.WATER, pix.OIL] > 0),
+   if all([pix.WATER, pix.OIL] > 0)
       % Oil and water active
       Pcow = press(:, pix.OIL) - press(:, pix.WATER);   % P_o - P_w
       ow   = true;
    end
 
-   if all([pix.OIL, pix.GAS] > 0),
+   if all([pix.OIL, pix.GAS] > 0)
       % Oil and gas active
       Pcog = press(:, pix.GAS) - press(:, pix.OIL);      % P_g - P_o
       go   = true;
@@ -160,7 +161,7 @@ function s = initsat(deck, press, pix, Zc, indexMap)
 
    [inv_Pcow, inv_Pcog] = pc_inv(deck);
 
-   for i = 1 : size(p, 1),
+   for i = 1 : size(p, 1)
       c = pairs(pos(i) : pos(i + 1) - 1, end);
 
       [er, sr] = deal(p(i,1), p(i,2));
@@ -169,7 +170,7 @@ function s = initsat(deck, press, pix, Zc, indexMap)
       if go, s(c, pix.GAS)   = inv_Pcog{er, sr}(Pcog(c), Zc(c)); end
    end
 
-   if (ow && go) && any(sum(s, 2) > 1),
+   if (ow && go) && any(sum(s, 2) > 1)
       % Three-phase problem (O/W/G) for which the water transition zone
       % extends into the gas transition zone, causing negative oil
       % saturations from simplified view of initial distribution.
@@ -190,7 +191,7 @@ function s = initsat(deck, press, pix, Zc, indexMap)
       % convenience definition only that helps simplify the creation of
       % reverse interpolators through the use of function 'create_invpc'.
       %
-      if all(isfield(deck.PROPS, { 'SWOF', 'SGOF' })),
+      if all(isfield(deck.PROPS, { 'SWOF', 'SGOF' }))
          % Family I
          [wtbl, gtbl] = deal(deck.PROPS.SWOF, deck.PROPS.SGOF);
       else
@@ -200,7 +201,7 @@ function s = initsat(deck, press, pix, Zc, indexMap)
       end
 
       deck.PROPS.SLGOF = cell([1, p(end,2)]);  % p(end,2) == MAX(p(:,2)).
-      for r = reshape(find(accumarray(p(:, 2), 1) > 0), 1, []), % Act. reg.
+      for r = reshape(find(accumarray(p(:, 2), 1) > 0), 1, [])  % Act. reg.
          tw = wtbl{r}(:, [1, end]);
          tg = gtbl{r}(:, [1, end]);
 
@@ -221,7 +222,7 @@ function s = initsat(deck, press, pix, Zc, indexMap)
       iPcgw = create_invpc(iPcgw, deck, phase, kw, ...
                            cntct_ix, is_increasing);
 
-      for r = 1 : size(p, 1),
+      for r = 1 : size(p, 1)
          ix       = pairs(pos(r) : pos(r + 1) - 1, [end - 1, end]);
          [er, sr] = deal(p(r,1), p(r,2));
 
@@ -240,27 +241,27 @@ end
 %--------------------------------------------------------------------------
 
 function Rs = define_dissolution(deck, Z0, P0, Zgoc, eqreg, pvtreg)
-   if isfield(deck.PROPS, 'PVTO'),
+   if isfield(deck.PROPS, 'PVTO')
       PVTO = deck.PROPS.PVTO{pvtreg};
 
       interp_Rs = @(p) interp1(PVTO.data(PVTO.pos(1:end-1), 1), ...
                                PVTO.key                       , ...
                                p, 'linear', 'extrap');
 
-      if     isfield(deck.SOLUTION, 'RSVD'),
+      if     isfield(deck.SOLUTION, 'RSVD')
 
          RSVD = deck.SOLUTION.RSVD{eqreg};
          Rs   = @(z, p) interp1(RSVD(:,1), RSVD(:,2), ...
                                 z, 'linear', 'extrap');
 
-      elseif isfield(deck.SOLUTION, 'PBVD'),
+      elseif isfield(deck.SOLUTION, 'PBVD')
 
          PBVD = deck.SOLUTION.PBVD{eqreg};
          Rs   = @(z, p) interp_Rs(min(p, interp1(PBVD(:,1), PBVD(:,2), ...
                                                  z, 'linear', 'extrap')));
 
       else
-         if Z0 ~= Zgoc,
+         if Z0 ~= Zgoc
             error(id('DefaultRS:DepthMismatch')                  , ...
                  ['Table %d: Datum depth must coincide with GOC ', ...
                   'in absence of explicit solubility data for '  , ...
@@ -280,27 +281,27 @@ end
 %--------------------------------------------------------------------------
 
 function Rv = define_evaporation(deck, Z0, P0, Zgoc, eqreg, pvtreg)
-   if isfield(deck.PROPS, 'PVTG'),
+   if isfield(deck.PROPS, 'PVTG')
       PVTG = deck.PROPS.PVTG{pvtreg};
 
       interp_Rv = @(p) interp1(PVTG.key                       , ...
                                PVTG.data(PVTG.pos(1:end-1), 1), ...
                                p, 'linear', 'extrap');
 
-      if     isfield(deck.SOLUTION, 'RVVD'),
+      if     isfield(deck.SOLUTION, 'RVVD')
 
          RVVD = deck.SOLUTION.RVVD{eqreg};
          Rv   = @(z, p) interp1(RVVD(:,1), RVVD(:,2), ...
                                 z, 'linear', 'extrap');
 
-      elseif isfield(deck.SOLUTION, 'PDVD'),
+      elseif isfield(deck.SOLUTION, 'PDVD')
 
          PDVD = deck.SOLUTION.PDVD{eqreg};
          Rv   = @(z, p) interp_Rv(min(p, interp1(PDVD(:,1), PDVD(:,2), ...
                                                  z, 'linear', 'extrap')));
 
       else
-         if Z0 ~= Zgoc,
+         if Z0 ~= Zgoc
             error(id('DefaultRV:DepthMismatch')                  , ...
                  ['Table %d: Datum depth must coincide with GOC ', ...
                   'in absence of explicit solubility data for '  , ...
@@ -338,38 +339,41 @@ function press = equilibrate_OWG(Zc, bdry, fluid, pix, Rs, Rv, equil)
    G_up = [Zgoc, Zmin];  G_down = [Zgoc, Zmax];
 
    norm_g = norm(gravity());
-   if norm_g == 0
-       warning('Gravity is zero. Initialization results may not be what you expect.');
+   if ~ (norm_g > 0)
+       warning('Gravity:Zero', ...
+              ['Gravity is zero. Initialization results may ', ...
+               'differ from expected behaviour.']);
    end
+
    %- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    % 1a) Oil pressure.
    %
    assert (pix.OIL > 0, 'Oil must be active phase');
-   if norm_g > 0,
+   if norm_g > 0
       dp = @(z, p) dp_o(z, p, fluid.pvt, np, pix, norm_g, Rs);
    else
       dp = @(z, p) 0;
    end
 
    sol_u = [];
-   if ~(Z0 < Zmin) && abs(diff(O_up)) > 0,
+   if ~(Z0 < Zmin) && abs(diff(O_up)) > 0
       sol_u = ode45(dp, O_up, P0, odeopts);
    end
 
    sol_d = [];
-   if ~(Z0 > Zmax) && abs(diff(O_down)) > 0,
+   if ~(Z0 > Zmax) && abs(diff(O_down)) > 0
       sol_d = ode45(dp, O_down, P0, odeopts);
    end
 
    %- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    % 1b) Derive phase pressures at WOC and GOC
    %
-   if     diff(W_up  ) > 0,  % WOC above reservoir   (unexpected)
+   if     diff(W_up  ) > 0   % WOC above reservoir   (unexpected)
       P0w =  inf;
-   elseif diff(W_down) < 0,  % WOC below reservoir
+   elseif diff(W_down) < 0   % WOC below reservoir
       P0w = -inf;
    else                      % WOC in    reservoir
-      if Zwoc < Z0,
+      if Zwoc < Z0
          assert (~isempty(sol_u), ...
                  'Internal error defining oil pressure equilibrium.');
 
@@ -384,12 +388,12 @@ function press = equilibrate_OWG(Zc, bdry, fluid, pix, Rs, Rv, equil)
       end
    end
 
-   if     diff(G_up  ) > 0,  % GOC above reservoir
+   if     diff(G_up  ) > 0   % GOC above reservoir
       P0g = -inf;
-   elseif diff(G_down) < 0,  % GOC below reservoir   (unexpected)
+   elseif diff(G_down) < 0   % GOC below reservoir   (unexpected)
       P0g =  inf;
    else                      % GOC in    reservoir
-      if Zgoc < Z0,
+      if Zgoc < Z0
          assert (~isempty(sol_u), ...
                  'Internal error defining oil pressure equilibrium.');
 
@@ -405,11 +409,12 @@ function press = equilibrate_OWG(Zc, bdry, fluid, pix, Rs, Rv, equil)
    end
 
    cu = Zc < Z0;
-   if any(cu),
+   if any(cu)
       assert (~isempty(sol_u), 'Internal error.');
       press(cu, pix.OIL) = deval(sol_u, Zc( cu));
    end
-   if ~all(cu),
+
+   if ~all(cu)
       cdown = Zc > Z0;
 
       if any(cdown)
@@ -423,14 +428,14 @@ function press = equilibrate_OWG(Zc, bdry, fluid, pix, Rs, Rv, equil)
    %- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    % 2) Water pressure.
    %
-   if pix.WATER > 0,
-      if norm_g > 0,
+   if pix.WATER > 0
+      if norm_g > 0
          dp = @(z, p) dp_w(p, fluid.pvt, np, pix, norm_g);
       else
          dp = @(z, p) 0;
       end
 
-      if isfinite(P0w),
+      if isfinite(P0w)
          % Water present during initialisation/equilibration.
 
          sol_u = ode45(dp, W_up  , P0w, odeopts);
@@ -447,14 +452,14 @@ function press = equilibrate_OWG(Zc, bdry, fluid, pix, Rs, Rv, equil)
    %- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    % 3) Gas pressure.
    %
-   if pix.GAS > 0,
-      if norm_g > 0,
+   if pix.GAS > 0
+      if norm_g > 0
          dp = @(z, p) dp_g(z, p, fluid.pvt, np, pix, norm_g, Rv);
       else
          dp = @(z, p) 0;
       end
 
-      if isfinite(P0g),
+      if isfinite(P0g)
          % Gas present during initialisation/equilibration.
 
          sol_u = ode45(dp, G_up  , P0g, odeopts);
@@ -472,13 +477,13 @@ end
 %--------------------------------------------------------------------------
 
 function [iPcow, iPcog] = pc_inv(deck)
-   if isfield(deck.REGIONS, 'EQLNUM'),
+   if isfield(deck.REGIONS, 'EQLNUM')
       nequilreg = max(deck.REGIONS.EQLNUM);
    else
       nequilreg = 1;
    end
 
-   if isfield(deck.REGIONS, 'SATNUM'),
+   if isfield(deck.REGIONS, 'SATNUM')
       nsatreg = max(deck.REGIONS.SATNUM);
    else
       nsatreg = 1;
@@ -488,13 +493,13 @@ function [iPcow, iPcog] = pc_inv(deck)
    gas   = isfield(deck.RUNSPEC, 'GAS'  ) && logical(deck.RUNSPEC.GAS  );
 
    [iPcow, iPcog] = deal(cell([nequilreg, nsatreg]));
-   if water,
+   if water
       kw    = { 'SWOF', 'SWFN' };
       cntct = 3;  % WOC in EQUIL(:,3)
       iPcow = create_invpc(iPcow, deck, 'Water', kw, cntct, true);
    end
 
-   if gas,
+   if gas
       kw    = { 'SGOF', 'SGFN' };
       cntct = 5;  % GOC in EQUIL(:,5)
       iPcog = create_invpc(iPcog, deck, 'Gas'  , kw, cntct, false);
@@ -506,7 +511,7 @@ end
 function ipc = create_invpc(ipc, deck, phase, kw, cntct_ix, is_increasing)
    i = isfield(deck.PROPS, kw);
 
-   if sum(i) ~= 1,
+   if sum(i) ~= 1
       error(id('Pc:Unsupp'), ...
            ['%s capillary pressure curves must be specified ', ...
             'through either ''%s'' or ''%s'' keywords.'], ...
@@ -521,7 +526,7 @@ function ipc = create_invpc(ipc, deck, phase, kw, cntct_ix, is_increasing)
            'saturation region.']);
 
    cntct = deck.SOLUTION.EQUIL(:, cntct_ix);
-   for sr = 1 : nsatreg,
+   for sr = 1 : nsatreg
       t = sfunc{sr}(:, [1, end]);
 
       ipc(:, sr) = ...
@@ -543,7 +548,7 @@ function dp = dp_o(z, p, pvt, np, pix, norm_g, Rs)
    svol = zeros([1, np]);
    svol(pix.OIL) = 1;
 
-   if pix.GAS > 0,
+   if pix.GAS > 0
       svol(pix.GAS) = Rs(z, p);
    end
 
@@ -569,7 +574,7 @@ function dp = dp_g(z, p, pvt, np, pix, norm_g, Rv)
    svol = zeros([1, np]);
    svol(pix.GAS) = 1;
 
-   if pix.OIL > 0,
+   if pix.OIL > 0
       svol(pix.OIL) = Rv(z, p);
    end
 
@@ -586,7 +591,7 @@ function s = inv_interp(p, d, dc, tbl, is_increasing)
 
    s = nan(size(p));
 
-   if norm(diff(tbl(:,2))) > 0,
+   if norm(diff(tbl(:,2))) > 0
       [min_p, min_i] = min(tbl(:,2));
       [max_p, max_i] = max(tbl(:,2));
 
@@ -595,11 +600,12 @@ function s = inv_interp(p, d, dc, tbl, is_increasing)
       [t2, ii] = unique(tbl(:,2), 'first');
       t1       = tbl(ii, 1);
 
-      if max_p ~= min_p,
+      if max_p ~= min_p
          s(i)      = interp1(t2, t1, p(i));
       end
       s(p < min_p) = tbl(min_i, 1);
       s(p > max_p) = tbl(max_i, 1);
+
    else
       % Constant capillary pressure function.  Use step definition.
 
@@ -608,7 +614,7 @@ function s = inv_interp(p, d, dc, tbl, is_increasing)
 
       i = d < dc;
 
-      if is_increasing,
+      if is_increasing
          s( i) = m; s(~i) = M;
       else
          s(~i) = m; s( i) = M;
