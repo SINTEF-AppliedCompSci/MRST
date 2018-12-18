@@ -645,7 +645,7 @@ methods
             forces_p = model.getDrivingForces(lookupCtrl(stepNo + 1));
             forces_p = merge_options(validforces, forces_p{:});
             problem_p = model.getAdjointEquations(current, after, dt_next, forces_p,...
-                                'iteration', inf, 'reverseMode', true);
+                                'iteration', inf, 'reverseMode', true, 'drivingForces0', forces);
         else
             problem_p = [];
         end

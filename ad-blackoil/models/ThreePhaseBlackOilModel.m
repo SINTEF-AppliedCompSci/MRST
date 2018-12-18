@@ -84,7 +84,8 @@ methods
         opt = struct('Verbose',     mrstVerbose,...
                     'reverseMode', false,...
                     'resOnly',     false,...
-                    'iteration',   -1);
+                    'iteration',   -1, ...
+                    'drivingForces0', []);
         opt = merge_options(opt, varargin{:});
         
         
@@ -97,8 +98,10 @@ methods
                 [dyn_state, primaryVars] = model.getForwardDynamicState(state);
                 [dyn_state0, ~]          = model.getDynamicState(state0);
             else
+
+                [dyn_state0, primaryVars] = model.getReverseDynamicState(state0, opt.drivingForces0);
+                 model = model.validateModel(drivingForces);
                 [dyn_state, ~]            = model.getDynamicState(state);
-                [dyn_state0, primaryVars] = model.getReverseDynamicState(state0);
             end
         end
         
@@ -138,7 +141,9 @@ methods
                                                                          false);
     end
 
-    function [dyn_state, primaryVariables] = getReverseDynamicState(model, state)
+    function [dyn_state, primaryVariables] = getReverseDynamicState(model, state, forces0)
+        assert(~isempty(forces0))
+        model = model.validateModel(forces0);
         [dyn_state, primaryVariables] = setupDynamicStateBlackOil(model, state, ...
                                                                          true);
     end
