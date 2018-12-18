@@ -76,9 +76,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          elm = read_vector_elements(vec(end), pos, fid);
 
          % Parse those elements to numeric values and concatenate to
-         % previously read elements.  The last read element is the first
-         % repeat count, so we must NOT include that value in the final
-         % output returned to the caller.
+         % previously read elements.  Recall that the last read element of
+         % 'vec' is the first repeat count, so we must NOT include that
+         % value in the final output returned to the caller.
          vec = [ vec(1 : (end - 1))         ; ...
                  parse_vector_elements(elm) ];
       else
@@ -99,8 +99,8 @@ function [v, pos, complete] = read_vector_elements_simple(fid, nel)
    % principle this is FSCANF(FID, '%f'), but TEXTSCAN is easier to use.
    [arr, pos] = textscan(fid, '%f', 'CommentStyle', '--');
 
-   % Output is single-element cell array of floating-point values.  Get the
-   % values.
+   % Output ('arr') is single-element cell array of array of floating-point
+   % values.  Unpack to get the actual values.
    v = arr{1};
 
    % Check if we completed the entire vector read.
@@ -157,8 +157,8 @@ function tok = read_vector_elements(rpt, pos, fid)
    ast = fscanf(fid, '%c', 1);
    if ~strcmp(ast, '*') || mod(rpt, 1) ~= 0
       error('RepeatDesignator:Erroneous', ...
-           ['Incorrect Repeat Descriptor.  ', ...
-            'Expected N*, but got %f%c'], rpt, ast);
+           ['Incorrect Repeat Descriptor (''%s'': %d).  ', ...
+            'Expected N*, but got %f%c'], fopen(fid), pos, rpt, ast);
    end
 
    % Tokenize relevant portion of the input stream.  Read everything up to
@@ -241,7 +241,9 @@ function finalize_reading_and_check_state(vec, fid, field, nel)
       % Element reading complete for this vector.  Finish up by skipping
       % the terminator ('/') and anything following that up to and
       % including the next EOL mark.
-      lin = fgetl(fid);
+      pos   = ftell(fid);
+      lin   = fgetl(fid);
+      fname = fopen(fid);
 
       if ischar(lin)
          % Got a set of characters.  If the first character is the vector
@@ -251,7 +253,8 @@ function finalize_reading_and_check_state(vec, fid, field, nel)
          if isempty(regexp(lin, '^\s*/', 'once'))
             warning('Unexpected:Termination', ...
                    ['Expected Vector Terminator (''/''), ', ...
-                    'but Got ''%s'''], lin);
+                    'but Got ''%s'' (''%s'': %d)'], ...
+                    lin, fname, pos);
          end
 
       elseif ~feof(fid)
@@ -261,9 +264,8 @@ function finalize_reading_and_check_state(vec, fid, field, nel)
          % back to our caller and hope they have a way of dealing with it.
 
          errmsg = ferror(fid);
-         fname  = fopen(fid);
-         fprintf('I/O Error Reading Keyword Vector ''%s'' (%s): %s\n', ...
-                 field, fname, errmsg);
+         fprintf(['I/O Error Reading Keyword Vector ', ...
+                  '''%s'' (''%s'': %d): %s\n'], field, fname, pos, errmsg);
       end
    end
 end
