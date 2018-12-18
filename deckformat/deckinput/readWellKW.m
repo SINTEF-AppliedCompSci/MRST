@@ -270,8 +270,8 @@ function w = readWConInjh(fid, w)
    %            1          2          3       4      5      6
    template = {'Default', 'Default', 'OPEN', '0.0', '0.0', '0.0', ...
       ...
-      ...     % 7      8      9    10     11
-               'inf', '0.0', '0', '0.0', '0.0'};
+      ...     % 7    8      9    10     11
+               '0', '0.0', '0', '0.0', '0.0'};
    numeric  = 4 : numel(template);
 
    data = readDefaultedKW(fid, template);
