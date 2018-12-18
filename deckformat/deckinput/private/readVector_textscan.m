@@ -158,7 +158,7 @@ function tok = read_vector_elements(rpt, pos, fid)
    if ~strcmp(ast, '*') || mod(rpt, 1) ~= 0
       error('RepeatDesignator:Erroneous', ...
            ['Incorrect Repeat Descriptor (''%s'': %d).  ', ...
-            'Expected N*, but got %f%c'], fopen(fid), pos, rpt, ast);
+            'Expected N*, but got ''%f%c'''], fopen(fid), pos, rpt, ast);
    end
 
    % Tokenize relevant portion of the input stream.  Read everything up to
