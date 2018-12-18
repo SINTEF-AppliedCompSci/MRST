@@ -94,11 +94,15 @@ function W = define_wells(G, rock, varargin)
    [wtype, wtarget, wrad, wloc, wname, sgn] = well_setup(varargin{:});
 
    W = [];
-   for w = 1 : numel(wtype),
+   for w = 1 : numel(wtype)
+      compi = [ 1, 0, 0 ];
+      if sgn(w) < 0, compi(:) = 1; end
+
       W = verticalWell(W, G, rock, wloc(1,w), wloc(2,w), [], ...
                        'Type', wtype{w}, 'Val', wtarget(w), ...
                        'Radius', wrad(w), 'Name', wname{w}, ...
-                       'Sign', sgn(w), 'InnerProduct', 'ip_tpf');
+                       'Sign', sgn(w), 'InnerProduct', 'ip_tpf', ...
+                       'Comp_i', compi);
    end
 end
 
