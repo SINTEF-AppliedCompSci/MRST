@@ -871,7 +871,8 @@ function data = unique_well_records(data, kw)
 
    if numel(u) < size(data, 1)
       pick   = false([size(data, 1), 1]);  pick(id) = true;
-      mwells = ['{ ', sprintf('''%s'' ', data{~pick, 1}), '}', ];
+      mwells = unique(data(~pick, 1));
+      mwells = ['{ ', sprintf('''%s'' ', mwells{:}), '}', ];
 
       warning('MultiRecord:SameWell', ...
              ['%s: Multiple Records Apply to Same Well/Well-List.\n', ...
