@@ -10,7 +10,7 @@ function varargout = readEclipseOutputFileUnFmt(fname, varargin)
 %              particular result set).
 %
 %              The file represented by 'filename' will be opened using
-%              function 'fopen' in mode ('r','ieee-be').
+%              function 'fopen' in mode ('rb','ieee-be').
 %
 %              Use function 'readEclipseOutputFileFmt' to read formatted
 %              (ASCII) ECLIPSE-compatible results.
@@ -41,18 +41,25 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-    opt = struct('cellOutput', false);
-    opt = merge_options(opt, varargin{:});
+
+   opt = struct('cellOutput', false);
+   opt = merge_options(opt, varargin{:});
+
    [fid, msg] = fopen(fname, 'rb', 'ieee-be');
-   if fid < 0, error([fname, ': ', msg]); end
-   
-   % skip first 4  
-   fseek(fid, 4, 'cof');
-   if ~opt.cellOutput
-       [varargout{1:nargout}] = readEclipseOutputStream(fid, @readFieldUnFmt);
-   else
-       [varargout{1:nargout}] = readEclipseOutputStreamCellOutput(fid, @readFieldUnFmt);
+   if fid < 0
+      error('Open:Failure', ...
+            'Failed to Open Output File ''%s'': %s', fname, msg);
    end
+
+   % Skip first 4
+   fseek(fid, 4, 'cof');
+
+   streamReader = @readEclipseOutputStream;
+   if opt.cellOutput
+      streamReader = @readEclipseOutputStreamCellOutput;
+   end
+
+   [varargout{1 : nargout}] = streamReader(fid, @readFieldUnFmt);
 
    fclose(fid);
 end
