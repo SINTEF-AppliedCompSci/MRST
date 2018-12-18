@@ -52,11 +52,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          case 'ENDBOX'
             endboxKeyword;
             
-          case 'EOS'
-              prp.(kw) = readDefaultedRecord(fid, {'PR'});
+         case 'EOS'
+            prp.(kw) = readDefaultedRecord(fid, {'PR'});
 
-          case 'PRCORR'
-              prp.PRCORR = true;
+         case 'PRCORR'
+            prp.PRCORR = true;
 
          case 'GRAVITY'
             tmpl     = { '45.5', '1.0', '0.7773' };

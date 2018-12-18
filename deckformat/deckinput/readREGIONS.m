@@ -20,35 +20,34 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
    [rgn, miss_kw] = get_state(deck);
 
    kw = getEclipseKeyword(fid);
    in_section = ischar(kw);
-   while in_section,
-      switch kw,
-         case 'BOX',
+   while in_section
+      switch kw
+         case 'BOX'
             boxKeyword(fid);
 
-         case 'ENDBOX',
+         case 'ENDBOX'
             endboxKeyword;
 
-         case {'EQLNUM', 'FIPNUM' , 'IMBNUM', 'PVTNUM', 'SATNUM', 'SURFNUM', ...
-               'ENDNUM', 'ROCKNUM', 'FIPFAC'},
-%             rgn = readGridBoxArray(rgn, fid, kw, ...
-%                                    prod(deck.RUNSPEC.cartDims));
-                         nc=prod(deck.RUNSPEC.cartDims);      
-           if deck.RUNSPEC.DUALPORO
-                rgn  = readGridBoxArrayDP(rgn, fid, kw, nc);
-           else      
-                rgn  = readGridBoxArray(rgn, fid, kw, nc);
-           end
+         case {'EQLNUM', 'FIPNUM' , 'IMBNUM' , ...
+               'PVTNUM', 'SATNUM' , 'SURFNUM', ...
+               'ENDNUM', 'ROCKNUM', 'FIPFAC' }
+
+            nc = prod(deck.RUNSPEC.cartDims);
+            if deck.RUNSPEC.DUALPORO
+               rgn = readGridBoxArrayDP(rgn, fid, kw, nc);
+            else
+               rgn = readGridBoxArray(rgn, fid, kw, nc);
+            end
 
          case {'ADD', 'COPY', 'EQUALS', 'MAXVALUE', ...
-               'MINVALUE', 'MULTIPLY'},
+               'MINVALUE', 'MULTIPLY'}
             rgn = applyOperator(rgn, fid, kw);
 
-         case {'ECHO', 'NOECHO'},
+         case {'ECHO', 'NOECHO'}
             kw = getEclipseKeyword(fid);
             continue;  % Ignore.  Not handled in MRST
 
@@ -56,14 +55,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          % Sectioning keywords below.  Modifies flow of control.
          % Don't change unless absolutely required...
          %
-         case 'END',
+         case 'END'
             % Logical end of input deck.
             % Quite unusual (but nevertheless legal) in REGIONS.
             %
             in_section   = false;
             deck.REGIONS = rgn;
 
-         case 'SOLUTION',
+         case 'SOLUTION'
             % Read next section (always 'SOLUTION').
             in_section   = false;
 
@@ -74,7 +73,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
             deck = readSOLUTION(fid, dirname, deck);
 
-         case 'INCLUDE',
+         case 'INCLUDE'
             % Handle 'INCLUDE' (recursion).
             deck = set_state(deck, rgn, miss_kw);
 
@@ -83,8 +82,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             % Prepare for additional reading.
             [rgn, miss_kw] = get_state(deck);
 
-         otherwise,
-            if ischar(kw),
+         otherwise
+            if ischar(kw)
                miss_kw = [ miss_kw, { kw } ];  %#ok
             end
       end
