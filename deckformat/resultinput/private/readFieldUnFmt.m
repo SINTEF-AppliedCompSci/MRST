@@ -53,7 +53,6 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
    assert (~isempty(fopen(fid)), ...
            'File identifier must point to open stream.');
 
@@ -61,20 +60,20 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    name   = header.name;
    ttype  = header.type;
 
-   if header.ok,
-      switch lower(ttype),
-         case {'inte', 'doub', 'real', 'logi'},
-            values = read_record     (fid, header);
+   if header.ok
+      switch lower(ttype)
+         case {'inte', 'doub', 'real', 'logi'}
+            values = read_record(fid, header);
 
-            if any(strcmpi(ttype, {'DOUB', 'REAL'})),
+            if any(strcmpi(ttype, {'DOUB', 'REAL'}))
                ttype = 'REAL';
             end
 
-         case 'char',
+         case 'char'
             values = read_char_record(fid, header);
 
-         otherwise,
-            if header.number == 0,
+         otherwise
+            if header.number == 0
                data = struct('type', ttype, 'values', {{}});
                return
             else
@@ -101,13 +100,13 @@ function header = read_meta(fid)
    eof = feof(fid);
    err = ferror(fid);
 
-   if eof || ~isempty(err);
+   if eof || ~isempty(err)
       name       = 'Input failure: ';
 
-      if eof,
-         name    = [name, 'End-of-file'];
+      if eof
+         name = [name, 'End-of-file'];
       else
-         name    = [name, err];
+         name = [name, err];
       end
 
       nel        = -1;
@@ -120,9 +119,9 @@ function header = read_meta(fid)
       nel  = fread(fid, 1, 'int32', 'ieee-be');
       type = fread(fid, 4, 'uint8=>char') .';
 
-      name       = strtrim       (name);
+      name = strtrim(name);
 
-      if nel > 0,
+      if nel > 0
          type_size  = get_type_size (type);
          type_prec  = get_type_prec (type);
          block_size = get_block_size(type);
@@ -132,8 +131,10 @@ function header = read_meta(fid)
          block_size = -1;
          type_prec  = NaN;
       end
-      ok         = true;
-      % skip to start of record
+
+      ok = true;
+
+      % Skip to start of record
       fseek(fid, 8, 'cof');
    end
 
@@ -149,13 +150,17 @@ end
 %--------------------------------------------------------------------------
 
 function values = read_record(fid, header)
-   if header.number > 0,
+   if header.number > 0
       n      = header.number;
       prec   = header.prec;
       values = fread(fid, n, prec, 8, 'ieee-be');
-      % skip to start of next header unless n is muliplum of 1000 in which 
-      % case the skip has already been performed 
-      if ~feof(fid) && mod(n,1000)~=0, fseek(fid, 8, 'cof');end   
+
+      % Skip to start of next header unless n is a muliple of 1000 in which
+      % case the skip has already been performed.
+      if ~feof(fid) && (mod(n, 1000) ~= 0)
+         fseek(fid, 8, 'cof');
+      end
+
    else
       values = [];
    end
@@ -164,14 +169,17 @@ end
 %--------------------------------------------------------------------------
 
 function values = read_char_record(fid, header)
-   if header.number > 0,
+   if header.number > 0
       n      = header.number;
       prec   = header.prec;
       a      = reshape(fread(fid, n * header.size, prec, 8), 1, []);
       values = { cellstr(char(reshape(a, 8, []) .')) };
-      % skip to start of next header unless n*size is muliplum of 840 in which 
-      % case the skip has already been performed 
-      if ~feof(fid) && mod(n*header.size, 840)~=0, fseek(fid, 8, 'cof');end
+
+      % Skip to start of next header unless n*size is muliple of 840 in
+      % which case the skip has already been performed.
+      if ~feof(fid) && (mod(n * header.size, 840) ~= 0)
+         fseek(fid, 8, 'cof');
+      end
    else
       values = { [] };
    end
@@ -181,7 +189,7 @@ end
 
 function size = get_type_size(type)
    size = 4;
-   if any(strcmp(type, {'CHAR', 'DOUB'})),
+   if any(strcmp(type, {'CHAR', 'DOUB'}))
       size = 8;
    end
 end
@@ -191,7 +199,7 @@ end
 function max_size = get_block_size(type)
    max_size = 1000;
 
-   if strcmp(type, 'CHAR'),
+   if strcmp(type, 'CHAR')
       max_size = 105;
    end
 end
@@ -199,15 +207,13 @@ end
 %--------------------------------------------------------------------------
 
 function precision = get_type_prec(type)
-   switch type,
+   switch type
       case 'INTE', precision = '1000*int32';
       case 'REAL', precision = '1000*float32';
       case 'DOUB', precision = '1000*float64';
       case 'CHAR', precision = '840*uchar=>char';
       case 'LOGI', precision = '1000*int32';
-      otherwise,
+      otherwise
          error('Field type ''%s'' is unsupported.', type);
    end
 end
-
-
