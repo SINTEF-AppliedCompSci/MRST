@@ -109,9 +109,13 @@ end
 %--------------------------------------------------------------------------
 
 function tf = is_complete(lin)
-   if exist('verLessThan', 'file') && ...
-         ~verLessThan('matlab', '9.1.0') && ...
-         exist('contains', 'file')
+   persistent HAVE_CONTAINS
+
+   if isempty(HAVE_CONTAINS)
+      HAVE_CONTAINS = exist('contains', 'builtin');
+   end
+
+   if HAVE_CONTAINS
       % Contains was introduced in MATLAB 9.1.0 (R2016b)
       tf = contains(lin, '/');
    else
