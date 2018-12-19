@@ -3,7 +3,7 @@
 %   coarseDataToFine - Convert coarse grid dataset into fine grid representation
 %   coarsenBC        - Construct coarse-grid boundary conditions from fine-grid boundary cond.
 %   coarsenFlux      - Compute net flux on coarse faces
-%   coarsenGeometry  - SYNOPSIS:
+%   coarsenGeometry  - Add geometry (centroids, face normals, areas, ...) to a coarse grid
 %   fineToCoarseSign - Compute sign change between fine faces and coarse faces.
 %   invertPartition  - Invert partition (cell->block mapping) to create block->cell mapping.
 %   isSamePartition  - Check if two partition vectors represent the same grid partition

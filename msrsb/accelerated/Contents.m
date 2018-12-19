@@ -1,10 +1,15 @@
-% LAYEREDMODEL
+% ACCELERATED
 %
 % Files
-%   LayeredPolymerExample - Layered Model Polymer Upscaling Example
+%   boundaryNeighbors          - 
+%   cppMultiscaleBasis         - Create MsRSB basis using MEX code
+%   cppMultiscaleBasisFromFile - 
+%   demo_mexMsRSB              - Some different test cases
+%   mex_cppMultiscaleBasis     - Internal build routine for MsRSB accelerated basis functions
+%   setupMexInteractionMapping - Setup mex mapping for cppMultiscaleBasis
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

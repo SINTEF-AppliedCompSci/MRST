@@ -1,10 +1,10 @@
-% LAYEREDMODEL
+% EXAMPLES
 %
 % Files
-%   LayeredPolymerExample - Layered Model Polymer Upscaling Example
+%   upscale_devscript - Workflow example for MRST-AD
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
