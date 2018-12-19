@@ -357,7 +357,7 @@ function [bv_v, bv_g] = composeFlux(f, vT, v_g, b, up_v, up_g, upstr)
 end
 
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
