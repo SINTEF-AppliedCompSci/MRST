@@ -188,7 +188,7 @@ classdef CPRSolverAD < LinearSolverAD
             % ILU0 preconditioner for the non-elliptic part
             [L, U] = ilu(A, struct('type', 'nofill'));
             if isempty(solver.keepNumber)
-                Ap = -problem.equations{pressureIndex}.jac{pressureIndex};
+                Ap = problem.equations{pressureIndex}.jac{pressureIndex};
             else
                 Ap = A(pInx, pInx);
             end
