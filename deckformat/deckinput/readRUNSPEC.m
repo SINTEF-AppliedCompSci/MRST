@@ -115,7 +115,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          case 'TABDIMS'
             %        1    2     3     4     5     6     7    8
             tmpl = {'1', '1', '20', '20',  '1', '20', '20', '1', ...
-                    '1', '1', '10',  '1', '-1',  '0',  '1'};
+               ...
+               ... % 9    10     11    12   13   14   15    16
+                    '1', 'NaN', '10', '1', '-1', '0', '0', 'NaN', ...
+               ...
+               ... % 17    18    19    20    21   22   23   24    25
+                    '10', '10', '10', 'NaN', '5', '5', '5', '0', 'NaN', ...
+                    };
             data = readDefaultedRecord(fid, tmpl);
             rspec.(kw) = to_double(data);  clear tmpl
 
@@ -149,8 +155,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             rspec.(kw) = to_double(data);  clear tmpl data
 
          case 'WELLDIMS'
-            tmpl = {'10', 'inf', '5', '10', '5', '10', ...
-                     '5',   '4', '3',  '0', '1',  '1'};
+            %        1    2    3    4    5     6    7
+            tmpl = {'0', '0', '0', '0', '5', '10', '5', ...
+               ...
+               ... % 8    9   10   11   12    13     14
+                    '4', '3', '0', '1', '1', '10', '201'};
             data = readDefaultedRecord(fid, tmpl);  clear tmpl
 
             rspec.(kw) = to_double(data);
@@ -245,7 +254,7 @@ end
 %--------------------------------------------------------------------------
 
 function [rspec, miss_kw] = get_state(deck)
-   rspec   = deck.RUNSPEC;
+   rspec   = initialise_dimension_arrays(deck.RUNSPEC);
    miss_kw = deck.UnhandledKeywords.RUNSPEC;
 end
 
@@ -254,4 +263,39 @@ end
 function deck = set_state(deck, rspec, miss_kw)
    deck.RUNSPEC                   = rspec;
    deck.UnhandledKeywords.RUNSPEC = unique(miss_kw);
+end
+
+%--------------------------------------------------------------------------
+
+function rspec = initialise_dimension_arrays(rspec)
+   if ~isfield(rspec, 'TABDIMS')
+      rspec.TABDIMS = default_tabdims();
+   end
+
+   if ~isfield(rspec, 'WELLDIMS')
+      rspec.WELLDIMS = default_welldims();
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function tdims = default_tabdims()
+   %        1  2   3   4  5   6   7  8
+   tdims = {1, 1, 20, 20, 1, 20, 20, 1, ...
+      ...
+      ... % 9   10  11  12  13  14  15   16
+            1, NaN, 10,  1, -1,  0,  0, NaN, ...
+      ...
+      ... % 17  18  19   20  21  22  23  24   25
+            10, 10, 10, NaN,  5,  5,  5,  0, NaN };
+end
+
+%--------------------------------------------------------------------------
+
+function wdims = default_welldims()
+   %        1  2  3  4  5   6  7
+   wdims = {0, 0, 0, 0, 5, 10, 5, ...
+      ...
+      ... % 8  9  10  11  12  13   14
+            4, 3,  0,  1,  1, 10, 201};
 end
