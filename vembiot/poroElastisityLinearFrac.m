@@ -2,7 +2,7 @@ function states = poroElastisityLinearFrac(state0, G, problem, schedule, varargi
 %function states = poroElastisityLinear(G, disc, rock, fluid, schedule, varargin)%bc_f, bc_s)
 
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 %}
 opt = struct('do_plot', true, ...
     'linsolve', @mldivide, ...

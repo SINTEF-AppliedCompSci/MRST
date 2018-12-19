@@ -48,7 +48,7 @@ function [x, err, nIter] = callAMGCL_block(A, b, varargin)
 %   `mldivide`, `amgcl_matlab`, `getAMGCLMexStruct`.
 
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

@@ -5,7 +5,7 @@ function grad = computeGradient(W, adjRes, schedule, controls)
 %   grad_p  = (I - A'*inv(A*A')*A)*grad
 
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
