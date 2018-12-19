@@ -2,7 +2,7 @@ function [p, solvetime] = reconstructPressure(partition, pressure, A, rhs)
 % Solve reconstruction problem for multiscale methods
 
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
