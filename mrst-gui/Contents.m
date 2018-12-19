@@ -20,6 +20,7 @@
 %   plotWellData               - {
 %   readStructField            - Read a field from a struct.
 %   setRenderFixes             - Set fixes which may reduce crashes in MATLAB plots.
+%   SummaryViewer              - Simple summary viewer. Usage (name without extension)
 %   visualizeEclipseOutput     - Simple, experimental Eclipse output visualization function.
 
 %{

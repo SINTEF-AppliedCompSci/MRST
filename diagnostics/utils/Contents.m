@@ -1,11 +1,13 @@
 % Files
 %   computeFandPhi               - Compute flow-capacity/storage-capacity diagram (F,Phi)
 %   computeLorenz                - Compute the Lorenz coefficient
+%   computeRTD                   - 
 %   computeSweep                 - Compute sweep efficiency versus dimensionless time (PVI)
 %   computeTOFandTracer          - Compute time-of-flight and tracer distribution using finite-volume scheme.
 %   computeTOFandTracerAverage   - Executes computeTOFandTracer for a series of states and averages
 %   computeTimeOfFlight          - Compute time of flight using finite-volume scheme.
 %   computeWellPairs             - Compute volumes and fluxes associated with each flux pair
+%   estimateRTD                  - 
 %   expandCoarseWellCompletions  - Pseudo-wells for computing flow diagnostics in an upscaled model
 %   expandWellCompletions        - Pseudo-wells for computation of flow diagnostics for completions
 %   interactiveDiagnostics       - Launch an interactive diagnostics session
@@ -14,6 +16,7 @@
 %   plotWellAllocationComparison - Plot a panel comparing well-allocation from models with different resolution
 %   plotWellAllocationPanel      - Plot a panel comparing well-allocation from models with different resolution
 %   plotWellPairConnections      - Plot lines between wells to show relative flux allocation
+%   PostProcessDiagnostics       - 
 %   selectTOFRegion              - Select a subset of cells based on TOF criteria
 %   validateStateForDiagnostics  - Validate and fix state for flow diagnostics
 
