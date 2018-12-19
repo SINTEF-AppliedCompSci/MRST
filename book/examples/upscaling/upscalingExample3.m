@@ -343,7 +343,7 @@ figure, plotWellAllocationComparison(DC2, WPC2, D, WP);%, 'plotrow', true);
 
 % <html>
 % <p><font size="-1">
-% Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+% Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 % </font></p>
 % <p><font size="-1">
 % This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).

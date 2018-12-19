@@ -28,7 +28,7 @@ G = extrudedTriangleGrid(50, true);
 clf, plotGrid(G,'FaceColor',[.8 .8 .8]), view(-30,60), axis tight off
 
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

@@ -28,7 +28,7 @@ plotFaces(G, G.faces.tag>0,'FaceColor','b','FaceAlpha',.4);
 % print -dpng showCPgrid-grid.png;
 
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
