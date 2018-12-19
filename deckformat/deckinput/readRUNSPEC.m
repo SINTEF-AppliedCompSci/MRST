@@ -23,7 +23,6 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
    [rspec, miss_kw] = get_state(deck);
 
    double_conv = @(c) sscanf(regexprep(c, '[dD]', 'e'), '%f');
@@ -31,19 +30,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    kw = getEclipseKeyword(fid);
    in_section = ischar(kw);
-   while in_section,
-      switch kw,
-         case 'AQUDIMS',
+   while in_section
+      switch kw
+         case 'AQUDIMS'
             tmpl = { '1', '1', '1', '36', '1', '1', '0', '0' };
             data = readDefaultedRecord(fid, tmpl);
             rspec.(kw) = to_double(data);  clear tmpl data
 
-         case 'COMPS',
+         case 'COMPS'
             tmpl = {'0'};
             data = readDefaultedRecord(fid, tmpl);
             rspec.(kw) = to_double(data);  clear tmpl
 
-         case 'DIMENS',
+         case 'DIMENS'
             s = removeQuotes(readRecordString(fid));
             rspec.cartDims = reshape(sscanf(s, '%f', 3), 1, []);
             rspec.DIMENS   = rspec.cartDims;
@@ -57,25 +56,25 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             % Set default input box corresponding to entire model.
             defaultBox(rspec.DIMENS);
 
-         case 'ENDSCALE',
+         case 'ENDSCALE'
             tmpl        = { 'NODIR', 'REVERS', '1', '20', '0' };
             data        = readDefaultedRecord(fid, tmpl);
             data(3:end) = num2cell(to_double(data(3:end)));   clear tmpl
             rspec.(kw)  = data;
 
-         case 'EQLDIMS',
+         case 'EQLDIMS'
             tmpl = {'1', '100', '50', '1', '50'};
             data = readDefaultedRecord(fid, tmpl);
             rspec.(kw) = to_double(data);  clear tmpl
 
-         case 'GRIDOPTS',
+         case 'GRIDOPTS'
             tmpl = { 'NO', '0', '0' };
             data = readDefaultedRecord(fid, tmpl);
             data(2:end) = cellfun(double_conv, data(2:end), ...
                                   'UniformOutput', false);
             rspec.(kw) = data;  clear tmpl data
 
-         case 'MISCIBLE',
+         case 'MISCIBLE'
             tmpl = { '1', '20', 'NONE' };
             data = readDefaultedRecord(fid, tmpl);
             data(1:2) = cellfun(double_conv, data(1:2), ...
@@ -90,75 +89,76 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
             clear tmpl
 
-         case 'REGDIMS',
+         case 'REGDIMS'
             tmpl = { '1', '1', '0', '0', '0', '1', '0', '0', '0' };
             data = readDefaultedRecord(fid, tmpl);
             rspec.(kw) = to_double(data);  clear data tmpl
 
-         case 'ROCKCOMP',
+         case 'ROCKCOMP'
             tmpl = { 'REVERS', '1', 'NO', '', '0' };
             data = readDefaultedRecord(fid, tmpl);
             data([2,end]) = cellfun(double_conv, data([2,end]), ...
                                     'UniformOutput', false);
             rspec.(kw) = data;  clear tmpl data
 
-         case 'SATOPTS',
+         case 'SATOPTS'
             rspec.(kw) = readTextFlags(fid, rspec.(kw), kw);
 
-         case 'START',
+         case 'START'
             s = readRecordString(fid);
             s = strrep(removeQuotes(s), 'JLY', 'JUL');
             rspec.START = datenum(s, 'dd mmm yyyy');
 
-         case 'SMRYDIMS',
+         case 'SMRYDIMS'
             rspec.(kw) = readVector(fid, kw, 1);  % Or just ignored...
 
-         case 'TABDIMS',
+         case 'TABDIMS'
+            %        1    2     3     4     5     6     7    8
             tmpl = {'1', '1', '20', '20',  '1', '20', '20', '1', ...
                     '1', '1', '10',  '1', '-1',  '0',  '1'};
             data = readDefaultedRecord(fid, tmpl);
             rspec.(kw) = to_double(data);  clear tmpl
 
-         case 'TITLE',
+         case 'TITLE'
             rspec.(kw) = strtrim(fgetl(fid));
 
-         case 'UDADIMS',
+         case 'UDADIMS'
             tmpl = { '0', '0', '100' };
             data = readDefaultedRecord(fid, tmpl);
             rspec.(kw) = to_double(data);  clear tmpl data
 
-         case 'UDQDIMS',
+         case 'UDQDIMS'
             tmpl = [{ '16', '16' }, repmat({ '0' }, [1, 8]), { 'N' }];
             data = readDefaultedRecord(fid, tmpl);
             data(1:end-1) = cellfun(double_conv, data(1:end-1), ...
                                        'UniformOutput', false);
             rspec.(kw) = data;   clear tmpl data
 
-         case 'VFPIDIMS',
+         case 'VFPIDIMS'
             % VFPIDIMS is a single record of up to three integer items.
             % Default values (=0) from E100.
             tmpl = repmat({ '0' }, [ 1, 3 ]);
             data = readDefaultedRecord(fid, tmpl);
             rspec.(kw) = to_double(data);  clear tmpl data
 
-         case 'VFPPDIMS',
+         case 'VFPPDIMS'
             % VFPPDIMS is a single record of up to six integer items.
             % Default values (=0) from E100.
             tmpl = repmat({ '0' }, [ 1, 6 ]);
             data = readDefaultedRecord(fid, tmpl);
             rspec.(kw) = to_double(data);  clear tmpl data
 
-         case 'WELLDIMS',
+         case 'WELLDIMS'
             tmpl = {'10', 'inf', '5', '10', '5', '10', ...
                      '5',   '4', '3',  '0', '1',  '1'};
             data = readDefaultedRecord(fid, tmpl);  clear tmpl
 
             rspec.(kw) = to_double(data);
-            if ~isfinite(rspec.(kw)(2)),
+            if ~isfinite(rspec.(kw)(2))
                rspec.(kw)(2) = rspec.cartDims(3);
             end
 
-         case 'WSEGDIMS',
+         case 'WSEGDIMS'
             tmpl = { '0', '1', '1', '0' };
             data = readDefaultedRecord(fid, tmpl);
 
@@ -168,15 +168,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                'METRIC', 'FIELD', 'LAB', 'PVT-M', ...
                'WATER' , 'OIL'  , 'GAS', 'SOLVENT', ...
                'DISGAS', 'VAPOIL',       ...
-               'POLYMER', 'SURFACT', 'BRINE', 'TEMP'},
+               'POLYMER', 'SURFACT', 'BRINE', 'TEMP'}
             rspec.(regexprep(kw, '\W', '_')) = true;
 
-         case {'ECHO', 'NOECHO'},
+         case {'ECHO', 'NOECHO'}
             kw = getEclipseKeyword(fid);
             continue;  % Ignore.  Not handled in MRST
 
          % --------------- DP Keywords -------------- 
-         case {'DUALPORO', 'DUALPERM', 'NODPPM'},
+         case {'DUALPORO', 'DUALPERM', 'NODPPM'}
             rspec.(kw) = true;
 
             if strcmp(kw, 'DUALPERM')
@@ -197,7 +197,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          % Sectioning keywords below.  Modifies flow of control.
          % Don't change unless absolutely required...
          %
-         case 'END',
+         case 'END'
             % Logical end of input deck.
             % Quite unusual (but nevertheless legal) in RUNSPEC.
             %
@@ -207,7 +207,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             % Restore default input box at end of section
             gridBox(defaultBox);
 
-         case 'GRID',
+         case 'GRID'
             % Read next section (always 'GRID').
             in_section = false;
 
@@ -228,8 +228,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             % Prepare for additional reading.
             [rspec, miss_kw] = get_state(deck);
 
-         otherwise,
-            if ischar(kw),
+         otherwise
+            if ischar(kw)
                miss_kw = [ miss_kw, { kw } ];  %#ok
             end
       end
