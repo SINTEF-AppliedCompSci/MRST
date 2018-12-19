@@ -1,7 +1,7 @@
 function [V, dVdp] = getPartialVolumes(model, state, varargin)
     opt = struct('type', 'mass', ...
                  'pressure_perturb', mean(state.pressure)*1e-3, ...
-                 'simple_singlephase', true);
+                 'simple_singlephase', false);
     opt = merge_options(opt, varargin{:});
     computeDerivatives = nargout > 1;
     
