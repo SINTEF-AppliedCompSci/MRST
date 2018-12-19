@@ -71,14 +71,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       dim = 1;
    end
 
-   % Pick out (1:end, :, ...) and (2:end, :, ...) in a multidimensional way
-   %
-   % Take dimension we compress along to be first dimension, i.e., swap
-   % dimensions 1 and dim.
+   % Pick out (1:end - 1, :, ...) and (2:end, :, ...) in a multidimensional
+   % way.  In particular, swap dimensions 1 and 'dim' so that we only have
+   % to consider compressing along the first dimension.
    d = 1 : ndims(A) ;   d([1, dim]) = [dim, 1];
    B = permute(A, d);
 
-   % Find positions where layers differ
+   % Find positions where layers differ.
    i = [find(any(different_layers(B), 2)) ; size(B, 1)];
 
    % Compare differences in position to find run length.
