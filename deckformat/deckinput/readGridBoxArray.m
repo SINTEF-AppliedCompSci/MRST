@@ -1,8 +1,9 @@
-function sect = readGridBoxArray(sect, fid, kw, nc)
+function sect = readGridBoxArray(sect, fid, kw, nc, dflt)
 %Input grid array (global cell based) corresponding to current input box
 %
 % SYNOPSIS:
 %   section = readGridBoxArray(section, fid, kw, nc)
+%   section = readGridBoxArray(section, fid, kw, nc, dflt)
 %
 % PARAMETERS:
 %   section - Deck section data structure.  Expected to be one of GRID,
@@ -21,6 +22,13 @@ function sect = readGridBoxArray(sect, fid, kw, nc)
 %             PROD(deck.RUNSPEC.DIMENS).  This number is used for
 %             preallocating the output array ('kw') if it does not already
 %             exist in the input deck section represented by 'section'.
+%
+%   dflt    - Value assigned to unspecified array elements.  This number is
+%             used for preallocating the output array ('kw') if it does not
+%             already exist in the input deck section represented by
+%             'section'.  Treated as zero if unspecified, meaning that the
+%             output array gets allocated and zero-initialized if this
+%             parameter is not specified at the call site.
 %
 % RETURNS:
 %   section - Deck section data structure, modified such that new values
@@ -49,12 +57,15 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
+   if nargin < 5, dflt = 0.0; end
 
    fld = regexprep(kw, '\W', '_');
 
-   if ~isfield(sect, fld), sect.(fld) = zeros([nc, 1]); end
+   if ~isfield(sect, fld)
+      sect.(fld) = repmat(dflt, [nc, 1]);
+   end
 
-   i = boxIndices;
+   i = boxIndices();
 
    values = readVector(fid, kw, numel(i));
 

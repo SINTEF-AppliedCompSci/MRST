@@ -52,11 +52,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          case 'ENDBOX'
             endboxKeyword;
             
-          case 'EOS'
-              prp.(kw) = readDefaultedRecord(fid, {'PR'});
+         case 'EOS'
+            prp.(kw) = readDefaultedRecord(fid, {'PR'});
 
-          case 'PRCORR'
-              prp.PRCORR = true;
+         case 'PRCORR'
+            prp.PRCORR = true;
 
          case 'GRAVITY'
             tmpl     = { '45.5', '1.0', '0.7773' };
@@ -292,7 +292,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                ...
                'PCW', 'IPCW', 'PCG', 'IPCG', ...
                }
-            prp = readGridBoxArray(prp, fid, kw, prod(dims));
+            prp = readGridBoxArray(prp, fid, kw, prod(dims), NaN);
 
          case {'TLMIXPAR', 'PLMIXPAR'}
             % Note: The following warning is given in ECLIPSE 2013.2 when

@@ -31,15 +31,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    kw = getEclipseKeyword(fid);
    in_section = ischar(kw);
-   while in_section,
-      switch kw,
-         case 'BOX',
+   while in_section
+      switch kw
+         case 'BOX'
             boxKeyword(fid);
 
-         case 'ENDBOX',
+         case 'ENDBOX'
             endboxKeyword;
 
-         case 'SPECGRID',
+         case 'SPECGRID'
             s = removeQuotes(readRecordString(fid));
             cartDims = reshape(sscanf(s, '%f', 3), 1, []);
 
@@ -66,26 +66,26 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 grd.cartDims = cartDims;
             end
 
-         case {'DXV', 'DYV', 'DZV'},
+         case {'DXV', 'DYV', 'DZV'}
             ix       = strcmp(kw, {'DXV', 'DYV', 'DZV'});
             grd.(kw) = readVector(fid, kw, dims(ix));
 
-         case 'DEPTHZ',
+         case 'DEPTHZ'
             grd.(kw) = readVector(fid, kw, np);
 
-         case {'DX', 'DY', 'DZ', 'DEPTH', 'TOPS'},
-            grd = readGridBoxArray(grd, fid, kw, nc);
+         case {'DX', 'DY', 'DZ', 'DEPTH', 'TOPS'}
+            grd = readGridBoxArray(grd, fid, kw, nc, NaN);
 
-         case {'COORDX', 'COORDY', 'COORDZ'},
+         case {'COORDX', 'COORDY', 'COORDZ'}
             grd.(kw) = readVector(fid, kw, nv);
 
-         case 'COORD',
+         case 'COORD'
             grd.(kw) = readVector(fid, kw, 6 * np);
 
-         case 'ZCORN',
+         case 'ZCORN'
             grd = read_zcorn(grd, fid, dims, nc);
 
-         case 'FAULTS',
+         case 'FAULTS'
             tmpl(1:8) = { 'Default' };
             data = readDefaultedKW(fid, tmpl);  clear tmpl
             data(:, 2:end-1) = to_double(data(:, 2:end-1));
@@ -93,7 +93,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             if ~isfield(grd, kw), grd.(kw) = cell([0, 8]); end
             grd.(kw) = [grd.(kw); data];
 
-         case 'MAPAXES',
+         case 'MAPAXES'
             s    = removeQuotes(readRecordString(fid));
             data = reshape(sscanf(s, '%f', 6), 1, []);
 
@@ -103,11 +103,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
             grd.(kw) = data;  clear s data
 
-         case 'MAPUNITS',
+         case 'MAPUNITS'
             data     = readDefaultedRecord(fid, { 'METRES' });
             grd.(kw) = data{1};  clear data
 
-         case 'MULTFLT',
+         case 'MULTFLT'
             tmpl = { 'FaultName', '1.0', '1.0' };
             data = readDefaultedKW(fid, tmpl);  clear tmpl
             data(:, 2:end) = to_double(data(:, 2:end));
@@ -115,13 +115,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             if ~isfield(grd, kw), grd.(kw) = cell([0, 3]); end
             grd.(kw) = [grd.(kw); data];
 
-         case 'NNC',
+         case 'NNC'
             tmpl = repmat({ 'NaN' }, [1, 7]);
             data = readDefaultedKW(fid, tmpl);
             data = to_double(data);
             grd.(kw) = reshape([data{:}], size(data));           clear tmpl
 
-         case 'PINCH',
+         case 'PINCH'
             tmpl         = { '1.0e-3', 'GAP', 'Inf', 'TOPBOT', 'TOP' };
             data         = readDefaultedRecord(fid, tmpl);
             data([1, 3]) = to_double(data([1, 3]));  clear tmpl
@@ -153,77 +153,71 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                grd.(kw) = data;
             end
 
-         case {'ACTNUM'},
+         case 'ACTNUM'
             if deck.RUNSPEC.DUALPORO
-               %grd = readGridBoxArrayDP(grd, fid, kw, nc);
                grd = readGridBoxArray(grd, fid, kw, ncdp);
             else
-               grd = readGridBoxArray(grd, fid, kw, nc);
+               grd = readGridBoxArray(grd, fid, kw, nc, 1);
             end
 
-         case {'SIGMAV' , 'SIGMADV', 'DZMTRXV'},
+         case {'SIGMAV', 'SIGMADV', 'DZMTRXV'}
             if deck.RUNSPEC.DUALPORO
-               grd = readGridBoxArray(grd, fid, kw, nc);
+               grd = readGridBoxArray(grd, fid, kw, nc, 0.0);
             end
 
-         case {'SIGMA'},
+         case 'SIGMA'
             if deck.RUNSPEC.DUALPORO
                %Not handled yet
             end
 
-         case {'NTG'   , 'PORO'  ,  ...
-               'MULTPV',                     ...
-               'MULTX' , 'MULTX-',           ...
-               'MULTY' , 'MULTY-',           ...
-               'MULTZ' , 'MULTZ-',           ...
+         case {'PORO'  , ...
                'PERMX' , 'PERMXY', 'PERMXZ', ...
                'PERMYX', 'PERMY' , 'PERMYZ', ...
-               'PERMZX', 'PERMZY', 'PERMZ',  ...
+               'PERMZX', 'PERMZY', 'PERMZ' , ...
                'THCONR', ...
                }
             if deck.RUNSPEC.DUALPORO
                grd = readGridBoxArrayDP(grd, fid, kw, nc);
             else
-               grd = readGridBoxArray(grd, fid, kw, nc);
+               grd = readGridBoxArray(grd, fid, kw, nc, NaN);
             end
 
-         case {'FLUXNUM', 'MULTNUM', 'OPERNUM', 'PINCHNUM'}
-            if ~ isfield(grd, kw), grd.(kw) = ones([nc, 1]); end
-
+         case {'NTG'    , 'MULTPV' ,  ...
+               'MULTX'  , 'MULTX-' ,  ...
+               'MULTY'  , 'MULTY-' ,  ...
+               'MULTZ'  , 'MULTZ-' ,  ...
+               'FLUXNUM', 'MULTNUM', 'OPERNUM', 'PINCHNUM'}
             if deck.RUNSPEC.DUALPORO
                grd = readGridBoxArrayDP(grd, fid, kw, nc);
             else
-               grd = readGridBoxArray(grd, fid, kw, nc);
+               grd = readGridBoxArray(grd, fid, kw, nc, 1.0);
             end
 
          case {'ADD', 'COPY', 'EQUALS', 'MAXVALUE', ...
-               'MINVALUE', 'MULTIPLY'},
+               'MINVALUE', 'MULTIPLY'}
             grd = applyOperator(grd, fid, kw);
 
-         case 'ADDZCORN',
+         case 'ADDZCORN'
             op  = read_zcorn_operator(fid, 'ALL');
             grd = add_zcorn(grd, op, dims);
 
-         case 'EQLZCORN',
+         case 'EQLZCORN'
             op  = read_zcorn_operator(fid, 'TOP');
             grd = assign_zcorn(grd, op, dims);
 
-         case 'MINPV',
+         case 'MINPV'
             tmpl = { '1.0e-6' };  % In all unit systems
             data = readDefaultedRecord(fid, tmpl);
             grd.(kw) = to_double(data{1});
 
-         case 'MINPVV',
-            if ~isfield(grd, kw), grd.(kw) = repmat(1.0e-6, [nc, 1]); end
-            %grd = readGridBoxArray(grd, fid, kw, nc);
-
+         case 'MINPVV'
             if deck.RUNSPEC.DUALPORO
                grd = readGridBoxArrayDP(grd, fid, kw, nc);
             else
-               grd = readGridBoxArray(grd, fid, kw, nc);
+               grd = readGridBoxArray(grd, fid, kw, nc, 1.0e-6);
             end
 
-         case {'ECHO', 'NOECHO'},
+         case {'ECHO', 'NOECHO'}
             kw = getEclipseKeyword(fid);
             continue;  % Ignore.  Not handled in MRST
 
@@ -231,7 +225,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          % Sectioning keywords below.  Modifies flow of control.
          % Don't change unless absolutely required...
          %
-         case 'END',
+         case 'END'
             % Logical end of input deck.
             % Quite unusual (but nevertheless legal) in GRID.
             %
@@ -241,7 +235,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             % Restore default input box at end of section
             gridBox(defaultBox);
 
-         case 'EDIT',
+         case 'EDIT'
             % Read next section (i.e., 'GRID' -> 'EDIT' -> 'PROPS')
             in_section = false;
 
@@ -253,7 +247,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             deck = readEDIT(fid, dirname, deck);
             grd = deck.GRID;
 
-         case 'PROPS',
+         case 'PROPS'
             % Read next section (i.e., 'GRID' -> 'PROPS', no 'EDIT')
             in_section = false;
 
@@ -264,7 +258,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
             deck = readPROPS(fid, dirname, deck);
 
-         case 'INCLUDE',
+         case 'INCLUDE'
             % Handle 'INCLUDE' (recursion).
             deck = set_state(deck, grd, miss_kw);
 
@@ -272,8 +266,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
             [grd, miss_kw] = get_state(deck);
 
-         otherwise,
-            if ischar(kw),
+         otherwise
+            if ischar(kw)
                miss_kw = [ miss_kw, { kw } ];  %#ok
             end
       end
@@ -304,7 +298,7 @@ end
 function v = to_double(v)
    convert = @(s) sscanf(regexprep(s, '[dD]', 'e'), '%f');
 
-   if ischar(v),
+   if ischar(v)
       v = convert(v);
    else
       v = cellfun(convert, v, 'UniformOutput', false);
@@ -331,7 +325,7 @@ function grd = read_zcorn(grd, fid, dims, nc)
    i  = gridBox;
    kw = 'ZCORN';
 
-   if all(i == defaultBox),
+   if all(i == defaultBox)
       % Input box covers entire grid.  This is the common case, so use
       % simple (and efficient) implementation here.
 
@@ -372,7 +366,7 @@ function op = read_zcorn_operator(fid, dflt_action)
    op  = {};
    rec = readDefaultedRecord(fid, tmpl);
 
-   while ~isequal(rec, tmpl),
+   while ~isequal(rec, tmpl)
       op = [ op; rec ];                       %#ok % Willfully ignore MLINT
 
       tmpl(2 : 7) = rec(2 : 7);
@@ -390,7 +384,7 @@ function grd = add_zcorn(grd, addzcorn, dims)
    assert (size(addzcorn, 2) == 12, ...
            '''ZCORN'' operator must have twelve items per row.');
 
-   for r = 1 : size(addzcorn, 1),
+   for r = 1 : size(addzcorn, 1)
       grd.ZCORN = add_zcorn_action(grd.ZCORN, addzcorn(r, :), dims);
    end
 end
@@ -404,7 +398,7 @@ function grd = assign_zcorn(grd, eqlzcorn, dims)
    assert (size(eqlzcorn, 2) == 12, ...
            '''ZCORN'' operator must have twelve items per row.');
 
-   for r = 1 : size(addzcorn, 1),
+   for r = 1 : size(addzcorn, 1)
       grd.ZCORN = assign_zcorn_action(grd.ZCORN, eqlzcorn(r, :), dims);
    end
 end
@@ -416,7 +410,7 @@ function z = add_zcorn_action(z, a, dims)
 
    [i, j, k] = zcorn_box(b, affects);
 
-   if ~any(cellfun('isempty', {i, j, k})),
+   if ~any(cellfun('isempty', {i, j, k}))
       [I, J, K] = ndgrid(i, j, k);
       ix_cont   = zcorn_continuity(dims, cont, b, i, j, k, z);
 
@@ -431,7 +425,7 @@ function z = assign_zcorn_action(z, e, dims)
    [c, b, cont, affects] = zcorn_operator_components(e);
 
    nlayers = b(6) - b(5);
-   if nlayers > 1,
+   if nlayers > 1
       warning('EQLZCORN:MultiLayers', ...
              ['''EQLZCORN'' operator box affects %d layers. Should ', ...
               'normally be a single layer only.'], nlayers);
@@ -439,7 +433,7 @@ function z = assign_zcorn_action(z, e, dims)
 
    [i, j, k] = zcorn_box(b, affects);
 
-   if ~any(cellfun('isempty', {i, j, k})),
+   if ~any(cellfun('isempty', {i, j, k}))
       [I, J, K] = ndgrid(i, j, k);
       ix_cont   = zcorn_continuity(dims, cont, b, i, j, k, z);
 
@@ -483,14 +477,14 @@ function [i, j, k] = zcorn_box(b, affects)
 
    assert (numel(k) >= 2, 'Internal error.');
 
-   switch affects(1),
-      case 'A',  % Operator affects ALL corners
+   switch affects(1)
+      case 'A'  % Operator affects ALL corners
          % Trivial.  Nothing to do.
 
-      case 'B',  % Operator affects BOTTOM corners (TOP in b(5) excluded)
+      case 'B'  % Operator affects BOTTOM corners (TOP in b(5) excluded)
          k = k(2 : end);
 
-      case 'T',  % Operator affects TOP corners (BOTTOM in b(6) excluded)
+      case 'T'  % Operator affects TOP corners (BOTTOM in b(6) excluded)
          k = k(1 : end - 1);
 
       otherwise
@@ -515,25 +509,25 @@ function ix = zcorn_continuity(dims, cont, b, i, j, k, z)
    cont(p) = b(p) + adjust(p);
 
    % Continuous surface modifaction to the left of box, exclude faults
-   if cont(1) == b(1) - 1,
+   if cont(1) == b(1) - 1
       args = {{ 2*cont(1), j, k }, { i(1), j, k }};
       ix   = [ix ; box_boundary(dims, z, 1, args)];
    end
 
    % Continuous surface modifaction to the right of box, exclude faults
-   if cont(2) == b(2) + 1,
+   if cont(2) == b(2) + 1
       args = {{ i(end), j, k }, { 2*cont(2) - 1, j, k }};
       ix   = [ix ; box_boundary(dims, z, 2, args)];
    end
 
    % Continuous surface modifaction to the rear of box, exclude faults
-   if cont(3) == b(3) - 1,
+   if cont(3) == b(3) - 1
       args = {{ i, 2*cont(3), k }, { i, j(1), k }};
       ix   = [ix ; box_boundary(dims, z, 1, args)];
    end
 
    % Continuous surface modifaction to the front of box, exclude faults
-   if cont(3) == b(4) + 1,
+   if cont(3) == b(4) + 1
       args = {{ i, j(end), k }, { i, 2*cont(4) - 1, k }};
       ix   = [ix ; box_boundary(dims, z, 2, args)];
    end
@@ -542,11 +536,11 @@ end
 %--------------------------------------------------------------------------
 
 function i = index_range(lb, ub)
-   if lb == 0,
+   if lb == 0
 
       i = 2*ub - 0;
 
-   elseif ub == 0,
+   elseif ub == 0
 
       i = 2*lb - 1;
 

@@ -20,20 +20,19 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
    [grd, miss_kw] = get_state(deck);
 
    kw = getEclipseKeyword(fid);
    in_section = ischar(kw);
-   while in_section,
-      switch kw,
-         case 'BOX',
+   while in_section
+      switch kw
+         case 'BOX'
             boxKeyword(fid);
 
-         case 'ENDBOX',
+         case 'ENDBOX'
             endboxKeyword;
 
-         case 'MULTFLT',
+         case 'MULTFLT'
             tmpl = { 'FaultName', '1.0', '1.0' };
             data = readDefaultedKW(fid, tmpl);  clear tmpl
             data(:, 2:end) = cellfun(@(s) sscanf(s, '%f'), ...
@@ -43,17 +42,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             if ~isfield(grd, kw), grd.(kw) = cell([0, 3]); end
             grd.(kw) = [grd.(kw); data];
 
-         case {'PORV' , 'MULTPV',          ...
-               'TRANX', 'TRANY' , 'TRANZ', ...
-               },
+         case {'PORV', 'TRANX', 'TRANY' , 'TRANZ' }
             grd = readGridBoxArray(grd, fid, kw, ...
-                                   prod(deck.RUNSPEC.cartDims));
+                                   prod(deck.RUNSPEC.cartDims), NaN);
+
+         case 'MULTPV'
+            grd = readGridBoxArray(grd, fid, kw, ...
+                                   prod(deck.RUNSPEC.cartDims), 1);
 
          case {'ADD', 'COPY', 'EQUALS', 'MAXVALUE', ...
-               'MINVALUE', 'MULTIPLY'},
+               'MINVALUE', 'MULTIPLY'}
             grd = applyOperator(grd, fid, kw);
 
-         case {'ECHO', 'NOECHO'},
+         case {'ECHO', 'NOECHO'}
             kw = getEclipseKeyword(fid);
             continue;  % Ignore.  Not handled in MRST
 
@@ -61,7 +62,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          % Sectioning keywords below.  Modifies flow of control.
          % Don't change unless absolutely required...
          %
-         case 'END',
+         case 'END'
             % Logical end of input deck.
             % Quite unusual (but nevertheless legal) in EDIT.
             %
@@ -71,7 +72,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             % Restore default input box at end of section
             gridBox(defaultBox);
 
-         case 'PROPS',
+         case 'PROPS'
             % Read next section (always 'PROPS'.)
             in_section = false;
 
@@ -82,7 +83,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
             deck = readPROPS(fid, dirname, deck);
 
-         case 'INCLUDE',
+         case 'INCLUDE'
             % Handle 'INCLUDE' (recursion).
             deck = set_state(deck, grd, miss_kw);
 
@@ -91,8 +92,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             % Prepare for additional reading.
             [grd, miss_kw] = get_state(deck);
 
-         otherwise,
-            if ischar(kw),
+         otherwise
+            if ischar(kw)
                miss_kw = [ miss_kw, { kw } ];  %#ok
             end
       end
@@ -110,7 +111,7 @@ end
 function [grd, miss_kw] = get_state(deck)
    grd = deck.GRID;
 
-   if ~isfield(deck.UnhandledKeywords, 'EDIT'),
+   if ~isfield(deck.UnhandledKeywords, 'EDIT')
       miss_kw = {};
    else
       miss_kw = deck.UnhandledKeywords.EDIT;
