@@ -2,7 +2,7 @@ function fluid = addVERelpermCapLinear(fluid, cap_scale, varargin)
 % VE relperm with linear capillary pressure
 
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
