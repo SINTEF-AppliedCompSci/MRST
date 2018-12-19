@@ -1,7 +1,6 @@
 % Models for three-phase compressible fluids.
 %
 % Files
-%   initEclipseFluid    - Construct an MRST fluid object from an ECLIPSE input deck
 %   expandMiscibleTable - Expand Miscible PVT Table Definition to Format Suitable for Visualization
 
 %{
