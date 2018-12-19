@@ -1,27 +1,30 @@
 % UTILS
 %
 % Files
-%   checkComponentMassBalance      - Check mass balance of a simulator run and print to screen
-%   coolPropFluidsStructs          - Fluids taken from CoolProp. Used for lookup of properties.
-%   cubicPositive                  - Straightforward implementation of a cubic root solver for vectorized
-%   ensureMinimumFraction          - Set a minimum value on a composition matrix
-%   equationsCompositional         - Overall composition fully-implicit equations
-%   estimateCFL                    - Estimate CFL
-%   estimateEquilibriumWilson      - Estimate equilibrium constant for a given pressure and temperature
-%   expandMatrixToCell             - Expand a matrix into cell arrays. Typical usage: Converting state
-%   FastAD                         - A very limited AD class for quick EOS assembly
-%   formatMassString               - Small utility which returns a human readable string from mass.
-%   getDefaultFlashNonLinearSolver - Get default nonlinear solver for flash problems.
-%   getNonUnitMassFraction         - Internal utility. Intentionally undocumented.
-%   getNonUnitMoleFraction         - Internal utility. Intentionally undocumented.
-%   initCompositionalState         - Initialize a compositional state given initial composition
-%   initDeckEOSModel               - Set up a EquationOfState model from a parsed deck
-%   initVariablesFastAD            - Initialise FastAD objects used internally in some compositional code
-%   mrstCubic                      - Straightforward implementation of a cubic root solver for vectorized
-%   newtonFugacityEquilibrium      - Single step of the newton update for flash equations
-%   phaseStabilityTest             - Perform a phase stability test for a mixture
-%   solveRachfordRiceVLE           - Solve Rachford Rice equations to find liquid and vapor
-%   standaloneFlash                - Utility for flashing without explicitly forming a state
+%   checkComponentMassBalance         - Check mass balance of a simulator run and print to screen
+%   coolPropFluidsStructs             - Fluids taken from CoolProp. Used for lookup of properties.
+%   cubicPositive                     - Straightforward implementation of a cubic root solver for vectorized
+%   ensureMinimumFraction             - Set a minimum value on a composition matrix
+%   equationsCompositional            - Overall composition fully-implicit equations
+%   estimateCFL                       - Estimate CFL
+%   estimateEquilibriumWilson         - Estimate equilibrium constant for a given pressure and temperature
+%   expandMatrixToCell                - Expand a matrix into cell arrays. Typical usage: Converting state
+%   FastAD                            - A very limited AD class for quick EOS assembly
+%   formatMassString                  - Small utility which returns a human readable string from mass.
+%   getComponentsTwoPhaseSimpleWater  - 
+%   getDefaultFlashNonLinearSolver    - Get default nonlinear solver for flash problems.
+%   getImpesWeightsOverallComposition - 
+%   getNonUnitMassFraction            - Internal utility. Intentionally undocumented.
+%   getNonUnitMoleFraction            - Internal utility. Intentionally undocumented.
+%   getPartialVolumes                 - 
+%   initCompositionalState            - Initialize a compositional state given initial composition
+%   initDeckEOSModel                  - Set up a EquationOfState model from a parsed deck
+%   initVariablesFastAD               - Initialise FastAD objects used internally in some compositional code
+%   mrstCubic                         - Straightforward implementation of a cubic root solver for vectorized
+%   newtonFugacityEquilibrium         - Single step of the newton update for flash equations
+%   phaseStabilityTest                - Perform a phase stability test for a mixture
+%   solveRachfordRiceVLE              - Solve Rachford Rice equations to find liquid and vapor
+%   standaloneFlash                   - Utility for flashing without explicitly forming a state
 
 %{
 Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.

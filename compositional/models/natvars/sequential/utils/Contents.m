@@ -1,20 +1,8 @@
-% INITIALIZATION
+% UTILS
 %
 % Files
-%   getDeckOPMData                        - 
-%   getInitializationRegionsBase          - 
-%   getInitializationRegionsBlackOil      - 
-%   getInitializationRegionsCompositional - 
-%   getInitializationRegionsDeck          - 
-%   getMinimumPhaseSaturations            - 
-%   getMinMaxPhaseSaturations             - 
-%   getMinMaxPhaseSaturationsFromRelPerm  - 
-%   initEclipseProblemAD                  - 
-%   initializeEquilibriumPressures        - 
-%   initializeEquilibriumSaturations      - 
-%   initStateBlackOilAD                   - 
-%   initStateDeck                         - 
-%   plotRegionContacts                    - 
+%   correctSequentialBHP   - 
+%   getUpdatesFromPressure - 
 
 %{
 Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.

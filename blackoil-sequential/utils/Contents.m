@@ -1,9 +1,10 @@
 % UTILS
 %
 % Files
+%   computeSequentialFluxes  - function fluxes = computeSequentialFluxes(model, state, Gw, Go, Gg, vT, mobW, mobO, mobG, bW, bO, bG, rs, rv)
 %   getSaturationUpwind      - Get upwind flags for viscous and gravity parts of flux function.
 %   getSequentialModelFromFI - For a given fully implicit model, output the corresponding pressure/transport model 
-%   hybridUpwind             - Hybrid upwinding - two-phase only at the moment
+%   hybridUpwind             - Hybrid upwinding - seperate gravity/capillary and viscous part
 %   multiphaseUpwindIndices  - Implementation of algorithm from "UPSTREAM DIFFERENCING FOR
 
 %{

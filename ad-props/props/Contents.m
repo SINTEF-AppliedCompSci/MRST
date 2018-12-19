@@ -1,5 +1,6 @@
 % Files
 %   assignDENSITY     - dens of size ntpvtx3
+%   assignGRAVITY     - Define Fluid Densites from API and Specific Fluid Gravity
 %   assignMISC        - 
 %   assignMSFN        - 
 %   assignOILVIST     - Compute tables (static data)
@@ -26,6 +27,7 @@
 %   assignSDENSITY    - dens of size ntpvtx3
 %   assignSGFN        - 
 %   assignSGOF        - 
+%   assignSGWFN       - 
 %   assignSHRATE      - 
 %   assignSLGOF       - 
 %   assignSOF2        - 

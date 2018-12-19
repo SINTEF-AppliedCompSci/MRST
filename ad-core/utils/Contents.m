@@ -20,6 +20,8 @@
 %   fastInterpTable                       - Fast interpolation of table, using griddedInterpolant
 %   getBoundaryConditionFluxesAD          - Get boundary condition fluxes for a given set of values
 %   getCellMajorReordering                - Get equation ordering transforming variable major to cell major ordering
+%   getConvergenceValuesCNV               - Compute convergence based on total mass balance and maximum residual mass balance.
+%   getConvergenceValuesWells             - 
 %   getFaceTransmissibility               - Compute face transmissibilities, accounting for input-specific multipliers
 %   getGridSYMRCMOrdering                 - 
 %   getMultiDimInterpolator               - Get a multidimensional interpolator (with support for ADI varibles)
@@ -43,6 +45,7 @@
 %   refineSchedule                        - Compute a finer schedule, including new time steps but preserving the time steps of the original
 %   reorderForILU                         - Attempt to reorder a set of equations so that the diagonal is non-zero
 %   ResultHandler                         - Class for storing and retrieving simulation results, either in memory or stored to disk
+%   selectLinearSolverAD                  - 
 %   selectModelFromDeck                   - Select simulation model from a ECLIPSE/FrontSim style input deck
 %   setupOperatorsTPFA                    - Set up helper structure for solvers based on automatic differentiation.
 %   setWellSign                           - Ensure that wells have a defined sign. Will attempt to guess based on controls.

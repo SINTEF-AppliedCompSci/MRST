@@ -1,20 +1,13 @@
-% INITIALIZATION
+% SEQUENTIAL
 %
 % Files
-%   getDeckOPMData                        - 
-%   getInitializationRegionsBase          - 
-%   getInitializationRegionsBlackOil      - 
-%   getInitializationRegionsCompositional - 
-%   getInitializationRegionsDeck          - 
-%   getMinimumPhaseSaturations            - 
-%   getMinMaxPhaseSaturations             - 
-%   getMinMaxPhaseSaturationsFromRelPerm  - 
-%   initEclipseProblemAD                  - 
-%   initializeEquilibriumPressures        - 
-%   initializeEquilibriumSaturations      - 
-%   initStateBlackOilAD                   - 
-%   initStateDeck                         - 
-%   plotRegionContacts                    - 
+%   PressureCompositionalModel          - Two phase oil/water system without dissolution
+%   pressureEquationCompositional       - 
+%   PressureOverallCompositionModel     - Two phase oil/water system without dissolution
+%   TransportCompositionalModel         - Two phase oil/water system without dissolution
+%   transportEquationCompositional      - 
+%   transportEquationOverallComposition - 
+%   TransportOverallCompositionModel    - Two phase oil/water system without dissolution
 
 %{
 Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
