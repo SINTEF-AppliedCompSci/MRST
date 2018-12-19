@@ -87,7 +87,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             % Handle 'INCLUDE' (recursion).
             deck = set_state(deck, grd, miss_kw);
 
-            deck = readEclipseIncludeFile(@readEDIT, fid, dirname, deck);
+            deck = readEclipseIncludeFile(@readEDIT, fid, dirname, ...
+                                          deck.RUNSPEC, deck);
 
             % Prepare for additional reading.
             [grd, miss_kw] = get_state(deck);

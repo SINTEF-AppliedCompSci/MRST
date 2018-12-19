@@ -1,8 +1,8 @@
-function varargout = readEclipseIncludeFile(fun, fid, dirname, varargin)
+function varargout = readEclipseIncludeFile(fun, fid, dirname, rspec, varargin)
 %Read an ECLIPSE INCLUDE file.
 %
 % SYNOPSIS:
-%   [ret{1:nret}] = readEclipseIncludeFile(fun, fid, dirname, ...)
+%   [ret{1:nret}] = readEclipseIncludeFile(fun, fid, dirname, rspec, ...)
 %
 % PARAMETERS:
 %   fun     - Callback function handle.  Assumed to support the syntax
@@ -24,6 +24,9 @@ function varargout = readEclipseIncludeFile(fun, fid, dirname, varargin)
 %
 %   dirname - Complete directory name of file from which the input file
 %             identifier 'fid' was derived through FOPEN.
+%
+%   rspec   - RUNSPEC section of current simulation case.  Needed to handle
+%             pathname aliases entered in the PATHS keyword.
 %
 %   ...     - Additional function parameters.  These parameters will be
 %             passed unchanged on to function 'fun'.
@@ -53,63 +56,108 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
+   inc_rec = read_include_record(fid);
 
-   lin = '';
-   while ischar(lin) && isempty(strtrim(lin)),
-      lin = fgetl(fid);
-      lin = regexprep(lin, '--.*$', '');
+   if ischar(inc_rec)
+      inc_fn = extract_filename(inc_rec, fid);
    end
 
-   if ischar(lin),
-      lin = strtrim(lin);
+   inc_fid = open_include_file(inc_fn, dirname, rspec);
 
-      quotes = strfind(lin, '''');
+   try
+      % Call back to our (likely) caller with the new file.
+      [varargout{1:nargout}] = fun(inc_fid, dirname, varargin{:});
 
-      if ~isempty(quotes)
-         % There is a quoted substring somewhere in 'lin'.  Extract that
-         % substring if possible (i.e., if correctly delimited.)
-         if numel(quotes) ~= 2
-            fclose(fid);
-            error('INCLUDE argument (%s) not correctly delimited.', lin);
-         end
+   catch %#ok
+      err = lasterror;  %#ok
 
-         % Extract pathname portion of INCLUDE argument.
-         inc_fn = lin((quotes(1) + 1) : (quotes(2) - 1));
-      else
-         % Extract first (hopefully only) non-blank portion of 'lin'.
-         inc_fn = sscanf(lin, '%s');
+      try  %#ok
+         % Don't leak fids, but don't gripe about a child already closing
+         % the fid.
+         fclose(inc_fid);
       end
 
-      p = strfind(lin, '/');
-      if isempty(p)
-         terminated = false;
-      else
-         p = p(end);
-         terminated = (p == numel(lin)) || isspace(lin(p + 1));
-      end
+      rethrow(err);
    end
 
-   if strcmp(inc_fn(end), '/'), inc_fn = inc_fn(1 : end - 1); end
+   fclose(inc_fid);
+end
 
-   % Gobble up keyword-closing '/' character if not already read.
-   if ~terminated,
-      p     = ftell(fid);
-      fn    = fopen(fid);
+%--------------------------------------------------------------------------
 
-      slash = fscanf(fid, '%s', 1);  % Possibly too weak.
+function rec = read_include_record(fid)
+   tmpl = {'|+|*File+++Name*|+|'};
 
-      if ~strcmp(slash, '/')
+   % Function readDefaultedRecord knows about quoted substrings that may
+   % contain slash ('/') charaters and informational comments following the
+   % record termination character.  Leverage that support here.
+   rec = readDefaultedRecord(fid, tmpl);
+
+   % Extract actual INCLUDE keyword data.  Trailing termination character
+   % already discarded by readDefaultedRecord.
+   rec = rec{1};
+end
+
+%--------------------------------------------------------------------------
+
+function inc_fn = extract_filename(lin, fid)
+   lin = strtrim(lin);
+
+   quotes = strfind(lin, '''');
+
+   if ~isempty(quotes)
+      % There is a quoted substring somewhere in 'lin'.  Extract that
+      % substring if possible (i.e., if correctly delimited.)
+      if numel(quotes) ~= 2
          fclose(fid);
-         error(msgid('Include:WrongfulTermination'), ...
-              ['INCLUDE keyword not correctly terminated at ', ...
-               'position %lu in file ''%s'''], p, fn);
+
+         error(msgid('Include:MissingDelimiter'), ...
+              ['INCLUDE argument (%s) not correctly delimited at ', ...
+               'position %lu in file ''%s''.'], ...
+               lin, ftell(fid), fopen(fid));
       end
+
+      % Extract pathname portion of INCLUDE argument.
+      inc_fn = lin((quotes(1) + 1) : (quotes(2) - 1));
+   else
+      % Extract first (hopefully only) non-blank portion of 'lin'.
+      inc_fn = sscanf(lin, '%s');
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function inc_fid = open_include_file(inc_fn, dirname, rspec)
+   if strcmp(inc_fn(end), '/')
+      inc_fn = inc_fn(1 : end - 1);
    end
 
+   inc_fn = normalise_filename(inc_fn, dirname, rspec);
+
+   [inc_fid, msg] = fopen(inc_fn, 'rt');
+   if inc_fid < 0
+      error('Open:Failed', ...
+            'Failed to Open INCLUDE file ''%s'': %s', inc_fn, msg);
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function inc_fn = normalise_filename(inc_fn, dirname, rspec)
    if ~isempty(regexp(inc_fn, regexptranslate('escape', '\'), 'once'))
       % The filename has Windows-style directory name separators.
       % Guarantee forward slashes only.
       inc_fn = regexprep(inc_fn, regexptranslate('escape', '\'), '/');
+   end
+
+   if ~isempty(regexp(inc_fn, dollar(), 'once'))
+      if isfield(rspec, 'PATHS')
+         inc_fn = substitute_path_aliases(inc_fn, rspec.PATHS);
+      else
+         error('PathAlias:Missing', ...
+              ['Include File Name ''%s'' References a Path Alias ', ...
+               'But Simulation Case Does Not Define PATHS'], inc_fn);
+      end
    end
 
    % Replace forward slashes with native directory name separators (no
@@ -120,23 +168,46 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       % Translate relative pathname to absolute pathname.
       inc_fn = fullfile(dirname, inc_fn);
    end
+end
 
-   [inc_fid, msg] = fopen(inc_fn, 'rt');
-   if inc_fid < 0, error([inc_fn, ': ', msg]); end
+%--------------------------------------------------------------------------
 
-   try
-      % Call back to our (likely) caller with the new file.
-      [varargout{1:nargout}] = fun(inc_fid, ...
-                                   dirname, ...  % or fileparts(inc_fn)
-                                   varargin{:});
-   catch %#ok
-      err = lasterror;  %#ok
-      try  %#ok
-         % Don't leak fids, but don't gripe about a child already closing
-         % the fid.
-         fclose(inc_fid);
-      end
-      rethrow(err);
+function inc_fn = substitute_path_aliases(inc_fn, paths)
+   for alias = regexp(inc_fn, [dollar(), '(\w{1,8})'], 'tokens')
+      inc_fn = substitute_single_alias(inc_fn, alias{1}{1}, paths);
    end
-   fclose(inc_fid);
+end
+
+%--------------------------------------------------------------------------
+
+function patt = dollar()
+   patt = regexptranslate('escape', '$');
+end
+
+%--------------------------------------------------------------------------
+
+function inc_fn = substitute_single_alias(inc_fn, alias, paths)
+   i = strcmp(alias, paths(:,1));
+
+   nmatch = sum(i);
+
+   if nmatch == 1
+      inc_fn = strrep(inc_fn, ['$', alias], paths{i, 2});
+   else
+      substitution_failure(nmatch, alias);
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function substitution_failure(nmatch, alias)
+   msg = ['Unable to Substitute Path Alias ''$', alias, ''': '];
+
+   if nmatch < 1
+      msg = [ msg, 'No Matching Alias in PATHS Keyword' ];
+   else
+      msg = [ msg, 'More Than One Matching Alias in PATHS Keyword' ];
+   end
+
+   error('PathAlias:SubstituteFailure', msg);
 end

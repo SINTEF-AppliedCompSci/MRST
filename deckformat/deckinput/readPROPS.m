@@ -3,7 +3,6 @@ function deck = readPROPS(fid, dirname, deck)
 %
 % Otherwise intentionally undocumented.
 
-
 %{
 Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
 
@@ -350,7 +349,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             % Handle 'INCLUDE' (recursion).
             deck = set_state(deck, prp, miss_kw);
 
-            deck = readEclipseIncludeFile(@readPROPS, fid, dirname, deck);
+            deck = readEclipseIncludeFile(@readPROPS, fid, dirname, ...
+                                          deck.RUNSPEC, deck);
 
             % Prepare for additional reading.
             [prp, miss_kw] = get_state(deck);

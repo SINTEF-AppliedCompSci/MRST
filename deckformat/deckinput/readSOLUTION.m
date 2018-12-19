@@ -135,11 +135,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
             deck = readSCHEDULE(fid, dirname, deck);
 
-         case 'INCLUDE',
+         case 'INCLUDE'
             % Handle 'INCLUDE' (recursion).
             deck = set_state(deck, sln, miss_kw);
 
-            deck = readEclipseIncludeFile(@readSOLUTION, fid, dirname, deck);
+            deck = readEclipseIncludeFile(@readSOLUTION, fid, dirname, ...
+                                          deck.RUNSPEC, deck);
 
             % Prepare for additional reading.
             [sln, miss_kw] = get_state(deck);

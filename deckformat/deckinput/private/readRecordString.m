@@ -47,7 +47,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    p = strfind(data, '/') - 1;
    if ~isempty(p)
-      data = data(1 : p);                  % Exclude terminator character.
+      data = data(1 : p(end));              % Exclude terminator character.
    end
 end
 
@@ -101,8 +101,24 @@ function [data, done] = append_line(data, lin)
       S.unquoted(end) = regexprep(S.unquoted(end), comment, '');
    end
 
+   done = is_complete(S.unquoted{end});                  % Record complete?
+
+   if done
+      % Discard everything after FIRST '/' character in LAST UNquoted
+      % component of 'lin'.  This is to handle cases like
+      %
+      %   EQUALS
+      %      'MULTZ'   0.05  14  25  26  30  10  10  /  C-segm mid/B-2H
+      %
+      % which features a '/' character in otherwise informational text.
+      p = strfind(S.unquoted{end}, '/');
+
+      assert (~isempty(p), 'Internal Logic Error');
+
+      S.unquoted{end} = S.unquoted{end}(1 : p(1));
+   end
+
    lin  = assembleString(S);
-   done = is_complete(lin);                   % Record complete?
    data = [data, ' ', lin];
 end
 
