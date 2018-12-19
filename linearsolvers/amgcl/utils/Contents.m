@@ -2,9 +2,10 @@
 %
 % Files
 %   amgcl_matlab          - MEX-gateway to AMGCL Linear Solver Software
+%   callAMGCL_block       - Invoke AMGCL Linear Solver Software
 %   callAMGCL_cpr         - Invoke AMGCL Linear Solver Software in CPR Mode
 %   getAMGCLMexStruct     - 
-%   translateOptionsAMGCL - 
+%   translateOptionsAMGCL - Translate AMGCL String Option Value to Integer Code
 
 %{
 Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.

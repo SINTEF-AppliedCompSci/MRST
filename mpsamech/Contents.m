@@ -1,11 +1,8 @@
-% PLOTTING
+% MPSAMECH
 %
 % Files
-%   plotCellDataDeformed - SYNOPSIS:
-%   plotFaceDataDeformed - SYNOPSIS:
-%   plotFaces2D          - 
-%   plotGridDeformed     - SYNOPSIS:
-%   plotNodeDataDeformed - SYNOPSIS:
+%   LSMIM_linElast      - 
+%   systemStressMimetic - s = computeMimeticIP(g,rock,varargin{:});
 
 %{
 Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.

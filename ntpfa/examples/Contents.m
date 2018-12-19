@@ -1,11 +1,7 @@
-% PLOTTING
+% EXAMPLES
 %
 % Files
-%   plotCellDataDeformed - SYNOPSIS:
-%   plotFaceDataDeformed - SYNOPSIS:
-%   plotFaces2D          - 
-%   plotGridDeformed     - SYNOPSIS:
-%   plotNodeDataDeformed - SYNOPSIS:
+%   twistedNTPFA - 
 
 %{
 Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
