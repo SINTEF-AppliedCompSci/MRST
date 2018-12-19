@@ -45,7 +45,7 @@ function [cells, segment, param, ptsind, DT] = findWellPathCells(G, wellpath, va
 %   `makeSingleWellpath`, `combineWellPaths`, `getWellFromPath`
 
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

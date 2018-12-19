@@ -4,7 +4,7 @@
 %   initEclipseModel - Initialise basic MRST objects from ECLIPSE input file (*.DATA)
 
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

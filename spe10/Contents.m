@@ -13,7 +13,7 @@
 %   SPE10_setup              - Initialise properties for Model 2 of tenth SPE Comparative Solution Project
 
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
