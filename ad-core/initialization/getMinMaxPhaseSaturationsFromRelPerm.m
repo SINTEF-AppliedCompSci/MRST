@@ -5,7 +5,7 @@ function [s_min, s_max] = getMinMaxPhaseSaturationsFromRelPerm(model, tol, cellI
     
 
     nph = sum(model.getActivePhases());
-    s = 0:tol:1;
+    s = (0:tol:1)';
     
     if nargin < 3
         cellInx = ones(size(s));

@@ -58,6 +58,8 @@ function problem = packSimulationProblem(state0, model, schedule, BaseName, vara
                                           'cleardir', false);
     
 
-    problem.OutputHandlers.states = makeHandler('state');
-    problem.OutputHandlers.reports = makeHandler('report');
+    problem.OutputHandlers.states   = makeHandler('state');
+    problem.OutputHandlers.reports  = makeHandler('report');
+    problem.OutputHandlers.wellSols = makeHandler('wellSols');
+    
 end

@@ -47,18 +47,18 @@ classdef PressureNaturalVariablesModel < NaturalVariablesCompositionalModel
             [state, report] = updateState@NaturalVariablesCompositionalModel(model, state, problem, dv, drivingForces);
         end
         
-        function  [convergence, values, names] = checkConvergence(model, problem)
-            [convergence, values, names] = checkConvergence@NaturalVariablesCompositionalModel(model, problem);
+        function  [values, tolerances, names] = getConvergenceValues(model, problem)
+            [values, tolerances, names] = getConvergenceValues@NaturalVariablesCompositionalModel(model, problem);
             if model.water
                 isWat = strcmpi(names, 'water');
-                convergence = convergence(~isWat);
+                tolerances = tolerances(~isWat);
                 names = names(~isWat);
                 values = values(~isWat);
             end
             if ~model.useIncTolPressure
                 sub = strcmpi(names, 'deltap');
                 values(sub) = norm(problem.b(1:model.G.cells.num), inf);
-                convergence(sub) = values(sub) < model.nonlinearTolerance;
+                tolerances(sub) = model.nonlinearTolerance;
                 names{1} = 'Pressure';
             end
         end

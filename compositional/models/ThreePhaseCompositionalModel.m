@@ -216,24 +216,24 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
         end
     
         
-        function [convergence, values, names] = checkConvergence(model, problem, varargin)
-            [conv_wells, v_wells, namesWell, isWell] = ...
-                model.FacilityModel.checkFacilityConvergence(problem);
+        function [v_eqs, tolerances, names] = getConvergenceValues(model, problem, varargin)
+            [v_wells, tol_wells, names_wells, is_well] = ...
+                model.FacilityModel.getFacilityConvergenceValues(problem);
 
-            values = norm(problem, inf);
+            v_eqs = norm(problem, inf);
             % Check components
-            [conv_comp, v_comp, names_comp, isComponent] = model.checkComponentConvergence(problem);
+            [v_comp, tol_comp, names_comp, is_comp] = model.getComponentConvergenceValues(problem);
             % Check fugacity
-            [conv_f, v_f, names_f, isFugacity] = model.checkFugacityConvergence(problem);
+            [v_f, tol_f, names_f, is_f] = model.getFugacityConvergenceValues(problem);
             % Remaining values use nonlinear tolerances
-            rest = ~(isWell | isFugacity | isComponent);
-            v_rest = values(rest);
-            conv_rest = v_rest <= model.nonlinearTolerance;
+            rest = ~(is_well | is_f | is_comp);
+            v_rest = v_eqs(rest);
+            tol_rest = repmat(model.nonlinearTolerance, size(v_rest));
             names_rest = problem.equationNames(rest);
-
-            convergence = [conv_comp, conv_rest, conv_f, conv_wells];
-            values = [v_comp, v_rest, v_f, v_wells];
-            names = horzcat(names_comp, names_rest, names_f, namesWell);
+            % Define tolerances, values and names
+            tolerances = [tol_comp, tol_rest, tol_f, tol_wells];
+            v_eqs = [v_comp, v_rest, v_f, v_wells];
+            names = horzcat(names_comp, names_rest, names_f, names_wells);
             % Pressure tolerances
             if any(strcmpi(problem.primaryVariables, 'pressure'))
                 if isfield(problem.state, 'dpRel') && problem.iterationNo > 1
@@ -244,12 +244,12 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                 if isfinite(model.incTolPressure)
                     isp = strcmpi(names, 'pressure');
                     if any(isp)
-                        values(isp) = dp;
-                        convergence(isp) = dp <= model.incTolPressure;
+                        v_eqs(isp) = dp;
+                        tolerances(isp) = model.incTolPressure;
                         names{isp} = 'dPressure';
                     else
-                        values = [dp, values];
-                        convergence = [dp <= model.incTolPressure, convergence];
+                        v_eqs = [dp, v_eqs];
+                        tolerances = [model.incTolPressure, tolerances];
                         names = ['deltaP', names];
                     end
                 elseif isa(model, 'PressureNaturalVariablesModel')
@@ -257,8 +257,8 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                     if isempty(pRes)
                         pRes = inf;
                     end
-                    values = [pRes, values];
-                    convergence = [pRes <= model.nonlinearTolerance, convergence];
+                    v_eqs = [pRes, v_eqs];
+                    tolerances = [model.nonlinearTolerance, tolerances];
                     names = ['Pressure', names];
                 end
             end
@@ -425,7 +425,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
     end
     
     methods (Access=protected)
-       function [conv_comp, v_comp, names_comp, isComponent] = checkComponentConvergence(model, problem)
+       function [v_comp, tol_comp, names_comp, isComponent] = getComponentConvergenceValues(model, problem)
             % Check convergence criterion of components
             isComponent = false(size(problem.equations));
             cnames = model.getComponentNames();
@@ -448,16 +448,16 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                 else
                     v_comp = problem.state.dz;
                 end
-                tol_c = model.incTolComposition;
+                tol_comp = model.incTolComposition;
             else
-                tol_c = model.nonlinearTolerance;
+                tol_comp = model.nonlinearTolerance;
                 v_comp = cellfun(@(x) norm(double(x), inf), problem.equations(isComponent));
             end
-            conv_comp = v_comp <= tol_c;
+            tol_comp = repmat(tol_comp, size(v_comp));
             names_comp = names(isComponent);
        end
        
-       function [conv_f, v_f, names_f, isFugacity] = checkFugacityConvergence(model, problem)
+       function [v_f, tol_f, names_f, isFugacity] = getFugacityConvergenceValues(model, problem)
             % Check fugacity constraints if present
             isFugacity = strcmpi(problem.types, 'fugacity');
             if model.water
@@ -467,7 +467,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                 scale = 1;
             end
             v_f = cellfun(@(x) norm(double(x).*scale, inf), problem.equations(isFugacity));
-            conv_f = v_f <= model.fugacityTolerance;
+            tol_f = repmat(model.fugacityTolerance, size(v_f));
             names_f = problem.equationNames(isFugacity);
        end
     end

@@ -9,8 +9,6 @@ function s = initializeEquilibriumSaturations(model, region, pressures)
         if i == refIx
             continue
         end
-        
-%         pc = region.pc_sign(i)*region.pc_functions{i}(sat);
         p = pressures(:, i);
         s(:, i) = solveSaturations(p, p_ref, ...
                          region.pc_functions{i}, region.pc_sign(i),...
@@ -30,9 +28,7 @@ function s = initializeEquilibriumSaturations(model, region, pressures)
         % This may have the wrong sign.
         pc = @(S) (region.pc_sign(first)*region.pc_functions{first}(S) - ...
                    region.pc_sign(last)*region.pc_functions{last}(S));
-        
-        
-        
+
         p_ref = pressures(bad, first);
         p = pressures(bad, last);
         
@@ -45,11 +41,9 @@ end
 
 function s = solveSaturations(p, p_ref, pc_fn, pc_sign, s_min, s_max)
     s = zeros(size(p));
-    
     sat = (0:0.01:1)';
     pc = pc_sign*pc_fn(sat);
     dp =  p - p_ref;
-
     toMax = dp > max(pc);
     toMin = dp <= min(pc);
     if size(s_min, 1) == 1
@@ -62,10 +56,7 @@ function s = solveSaturations(p, p_ref, pc_fn, pc_sign, s_min, s_max)
     else
         s(toMax) = s_max(toMax);
     end
-    
-
     middle = ~(toMin | toMax);
-
     if any(middle)
         s_inv = invertCapillary(dp(middle), pc_fn, pc_sign);
         s(middle) = s_inv;

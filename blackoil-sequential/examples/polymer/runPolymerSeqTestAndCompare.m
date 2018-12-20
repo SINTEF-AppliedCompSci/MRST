@@ -73,7 +73,7 @@ toc
 
 fprintf('Running Oil-Water-Polymer fully implicit model...\n');
 tic;
-[wsPFI, statesPFI] = simulateScheduleAD(state0, modelPFI, scheduleOW);
+[wsPFI, statesPFI] = simulateScheduleAD(state0, modelPFI, scheduleP);
 toc
 
 
@@ -86,7 +86,7 @@ toc
 %%
 fprintf('Running Oil-Water-Polymer sequential model...\n');
 tic;
-[wsPSQ, statesPSQ] = simulateScheduleAD(state0, modelPSQ, scheduleOW);
+[wsPSQ, statesPSQ] = simulateScheduleAD(state0, modelPSQ, scheduleP);
 toc
 
 %% Plot the accumulated water and oil production

@@ -39,7 +39,6 @@ function [pts, pts_o] = getPoints(sgof, swcon)
     pts_o(4) = sgof(1,3);
 end
 
-
 %{
 Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
 
