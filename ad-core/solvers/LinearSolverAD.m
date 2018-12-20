@@ -89,24 +89,32 @@ classdef LinearSolverAD < handle
             end
             A = problemCurr.A;
             b = full(b);
+            stateCurr = problemCurr.state;
+            p = model.getProps(stateCurr, 'pressure');
+            pmax = max(p);
+            np = numel(p);
+            [nz, nz] = size(A);
+            D = speye(nz, nz);
+            ind = sub2ind(size(A), 1 : np, 1 : np);
+            D(ind) = pmax*ones(np, 1);
             % Reduce system (if requested)
-            [A, b, lsys] = solver.reduceLinearSystemAdjoint(A, b);
+            % [A, b, lsys] = solver.reduceLinearSystemAdjoint(A, b);
             % Reorder linear system
-            [A, b] = solver.reorderLinearSystem(A, b);
+            % [A, b] = solver.reorderLinearSystem(A, b);
             % Apply scaling
-            [A, b, scaling] = solver.applyScaling(A, b);
+            % [A, b, scaling] = solver.applyScaling(A, b);
             % Apply transpose
             A = A';
             t_prepare = toc(timer);
             % Solve system
-            [result, report] = solver.solveLinearSystem(A, b);
+            [result, report] = solver.solveLinearSystem(D'*A, D'*b);
             t_solve = toc(timer) - t_prepare;
             % Undo scaling
-            result = solver.undoScalingAdjoint(result, scaling);
+            % result = solver.undoScalingAdjoint(result, scaling);
             % Permute system back
-            result = solver.deorderLinearSystemAdjoint(result);
+            % result = solver.deorderLinearSystemAdjoint(result);
             % Recover eliminated variables on linear level
-            result = solver.recoverLinearSystemAdjoint(result, lsys);
+            % result = solver.recoverLinearSystemAdjoint(result, lsys);
 
             report.SolverTime = toc(timer);
             report.LinearSolutionTime = t_solve;
