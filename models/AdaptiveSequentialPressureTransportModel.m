@@ -9,6 +9,7 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
         storeGrids
         isDG
         isReordering
+        mappings
     end
     
     methods
@@ -24,6 +25,9 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
             model.isDG = isa(tm, 'TransportBlackOilModelDG');
             
             model.fineTransportModel = tm;
+            
+            [model.mappings.newPartition, model.mappings.oldPartition] = deal(G0.partition);
+            
             model.coarseTransportModel = model.upscaleTransportModelTPFA(G0.partition);
             if model.isReordering
                 model.transportModel = transportModel;
@@ -136,7 +140,10 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
                     end
                     G = transportModel.G;
                     plotCellData(G, transportState.s(:,1), 'edgecolor', 'none');
-                    plotGrid(G, 'facec', 'none', 'edgealpha', 0.3);
+%                     plotGrid(G, 'facec', 'none', 'edgealpha', 0.3);
+                    pink = [214, 154, 153]/255;
+                    plotGrid(G, 'facec', 'none', 'edgecolor', pink);
+                    
                     cmap = mrstColormap('type', 'wateroil');
 %                     cmap = jet;
                     colormap(cmap)
@@ -169,6 +176,7 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
             % Refine grid
             mappings = getRefinementMappings(G, GC, GF, cells);
             transportModel = model.upscaleTransportModelTPFA(mappings.newPartition);
+            model.mappings = mappings;
             
             if isa(model.transportModel, 'ReorderingModel')
                 model.transportModel.parent = transportModel;
@@ -290,6 +298,11 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
             transportModel.G = G;
             
             if model.isDG
+                
+                if isCoarseGrid(model.transportModel.G) && 1
+                    cub = model.updateCubature(transportModel);
+                end
+                
                 disc = transportModel.disc;
                 transportModel.disc = DGDiscretization(transportModel, ...
                       'degree'             , disc.degree             , ...
@@ -298,7 +311,8 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
                       'jumpTolerance'      , disc.jumpTolerance      , ...
                       'outTolerance'       , disc.outTolerance       , ...
                       'meanTolerance'      , disc.meanTolerance      , ...
-                      'outLimiter'         , 'kill'                  );
+                      'outLimiter'         , 'kill'                  , ...
+                      'limitAfterConvergence', disc.limitAfterConvergence);
             end
             
         end
@@ -360,6 +374,44 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
                 end
             end
  
+        end
+        
+        function cubature = updateCubature(model, transportModel)
+           
+            GF = model.fineTransportModel.G;
+            Gprev = model.transportModel.G;
+            Gnew  = transportModel.G;
+            
+            
+            newp  = Gnew.partition;
+            prevp = Gprev.partition;
+            
+%             coarseVolumeCub = model.coarseTransportModel.disc.volumeCubature;
+            fineVolumeCub   = model.fineTransportModel.disc.volumeCubature;
+            prevVolumeCub   = model.transportModel.disc.volumeCubature;
+            
+            
+            numCellsNew  = accumarray(newp, ones(GF.cells.num,1));
+            numCellsPrev = accumarray(prevp, ones(GF.cells.num,1));
+            
+            ix = numCellsNew(newp) == numCellsPrev(prevp);
+            
+            
+%             new2fine = nan(max(newp),1);
+%             new2fine(newp) = 1:GF.cells.num;
+%             prev2fine = nan(max(prevp),1);
+%             prev2fine(prevp) = 1:GF.cells.num;
+%             
+%             ix = (prev2fine == new2fine) & (numCellsNew == numCellsPrev);
+%             mappings.newPartition - mappings.oldPartition;
+%             
+%             xPrev = prevVolumeCub.points;
+            
+            cubature = [];
+            
+            
+            
+            
         end
 
     end
