@@ -1,11 +1,11 @@
-classdef DGDiscretization < HyperbolicDiscretization
+classdef DGDiscretization < WENODiscretization
     
     properties
 
         degree              % Degree of discretization, dG(degree)
         basis               % Type of basis functions. Standard is tensor 
                             % products of Legendre polynomials.
-        dim                 % Dimension of disc to facilitate e.g. 2D 
+%         dim                 % Dimension of disc to facilitate e.g. 2D 
                             % simulations on horizontal slice of 3D
                             % reservoir
         
@@ -40,15 +40,15 @@ classdef DGDiscretization < HyperbolicDiscretization
         %-----------------------------------------------------------------%
         function disc = DGDiscretization(model, varargin)
             
-%             disc = disc@WENODiscretization(model, model.G.griddim, 'includeBoundary', true);
-            disc = disc@HyperbolicDiscretization(model);
+            disc = disc@WENODiscretization(model, model.G.griddim, 'includeBoundary', true);
+%             disc = disc@HyperbolicDiscretization(model);
             
             G = disc.G;
             
             % Standard dG properties
             disc.degree = 1;
             disc.basis  = 'legendre';
-            disc.dim    = G.griddim;
+%             disc.dim    = G.griddim;
             
             % Limiter tolerances
             disc.jumpTolerance = 0.2;
@@ -91,12 +91,17 @@ classdef DGDiscretization < HyperbolicDiscretization
                 end
                 surfCub = LineCubature(G, prescision, disc.internalConn);
             else
-                if disc.degree == 0 || disc.useUnstructCubature
-                    volCub  = MomentFitting3DCubature(G, prescision, disc.internalConn);
-                    surfCub = MomentFitting2DCubature(G, prescision, disc.internalConn);
+                if isCoarse && ~disc.useUnstructCubature
+                    volCub  = CoarseGrid3DCubature(G, prescision, disc.internalConn);
+                    surfCub = CoarseGrid2DCubature(G, prescision, disc.internalConn);
                 else
-                    volCub  = TetrahedronCubature(G, prescision, disc.internalConn);
-                    surfCub = TriangleCubature(G, prescision, disc.internalConn);
+                    if disc.degree == 0 || disc.useUnstructCubature
+                        volCub  = MomentFitting3DCubature(G, prescision, disc.internalConn);
+                        surfCub = MomentFitting2DCubature(G, prescision, disc.internalConn);
+                    else
+                        volCub  = TetrahedronCubature(G, prescision, disc.internalConn);
+                        surfCub = TriangleCubature(G, prescision, disc.internalConn);
+                    end
                 end
             end
             
@@ -226,7 +231,11 @@ classdef DGDiscretization < HyperbolicDiscretization
             end
             
             % Coordinates are centered in cell center
-            translation = -G.cells.centroids(cells,:);
+            if any(strcmpi(G.type, 'generateCoarseGrid'))
+                translation = -G.cells.centers(cells,:);
+            else
+                translation = -G.cells.centroids(cells,:);
+            end
             if isfield(G.cells, 'dx')
                 % Scaling found from dimensions of minimum bounding box
                 % aligned with coordinate axes that contains the cell
@@ -307,8 +316,11 @@ classdef DGDiscretization < HyperbolicDiscretization
             nDof    = state.nDof;
             nDofMax = disc.basis.nDof;
             
-            ix = disc.getDofIx(state, 1, cells);
-            sat = dof(ix).*0;
+%             ix = disc.getDofIx(state, 1, cells);
+%             sat = dof(ix).*0;
+            sat = 0;
+            
+%             S = sparse(sum(state.nDof), );
             for dofNo = 1:nDofMax
                 keep = nDof(cells) >= dofNo;
                 ix = disc.getDofIx(state, dofNo, cells(keep));
@@ -380,7 +392,8 @@ classdef DGDiscretization < HyperbolicDiscretization
             [W, x, cellNo, ~] = disc.getCubature(cells, 'volume');
             [x, ~, scaling]   = disc.transformCoords(x, cellNo);
             % Evaluate integrals
-            I = dof*0;
+%             I = dof*0;
+            I = dof;
             for dofNo = 1:nDofMax
                 keepCells = nDof(cells) >= dofNo;
                 if any(keepCells)
@@ -428,7 +441,8 @@ classdef DGDiscretization < HyperbolicDiscretization
                 return
             end
             % Evaluate integrals
-            I = dof*0;
+%             I = dof*0;
+            I = dof;
             for dofNo = 1:nDofMax                
                 keepCells = nDof(cells) >= dofNo;
                 if any(keepCells)
@@ -480,7 +494,9 @@ classdef DGDiscretization < HyperbolicDiscretization
             globCell2BCcell(cells) = 1:numel(cells);
             S = sparse(globCell2BCcell(cells), 1:numel(faces), 1);
             % Evaluate integrals
-            I = getSampleAD(sdof)*0;
+%             I = getSampleAD(sdof)*0;
+%             I = getSampleAD(sdof);
+            I = sdof;
             for dofNo = 1:nDofMax
                 keepCells = nDof(cells) >= dofNo;
                 if any(keepCells)
@@ -644,7 +660,7 @@ classdef DGDiscretization < HyperbolicDiscretization
                         end
                     end
 
-                    if disc.jumpTolerance < Inf && 0
+                    if disc.jumpTolerance < Inf && 1
                         % Cells with interface jumps larger than threshold
                         [jumpVal, ~, cells] = disc.getInterfaceJumps(state.sdof(:,1), state);
                         j = accumarray(cells(:), repmat(jumpVal,2,1) > disc.jumpTolerance) > 0;
