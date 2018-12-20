@@ -19,16 +19,16 @@ function G = computeCellDimensions2(G)
     if G.griddim == 3
         % Create local coordinate systems on each face
         G.faces.coordSys = faceCoordSys(G);
-%         
-%         % Map to face coordinate system
-%         node2face = rldecode((1:G.faces.num)', nfn, 1);
-%         xnf       = zeros(sum(nfn), 2); 
-%         for dNo = 1:2
-%             vec = G.faces.coordSys{dNo}(node2face,:);
-%             xnf(:, dNo) = sum(xn.*vec,2);
-%         end
-%         xn = xnf;
-%         
+        
+        % Map to face coordinate system
+        node2face = rldecode((1:G.faces.num)', nfn, 1);
+        xnf       = zeros(sum(nfn), 2); 
+        for dNo = 1:2
+            vec = G.faces.coordSys{dNo}(node2face,:);
+            xnf(:, dNo) = sum(xn.*vec,2);
+        end
+        xn = xnf;
+        
     end
         
     % Get minimum and maximum cell coordinates
