@@ -28,11 +28,14 @@ classdef CoarseGrid2DCubature < Cubature
             % Sort cubature points and weights according to partition
             if cubature.G.griddim == 2
                 part = cubature.G.partition;
+                [p, order] = sort(part);
+                type = 'volume';
             else
-                part = G.faces.fconn;
+                order = cubature.G.faces.fconn;
+                p     = rldecode((1:cubature.G.faces.num)', diff(cubature.G.faces.connPos), 1);
+                type  = 'face';
             end
-            [p, order] = sort(part);
-            [~, x, w]  = parentCub.getCubature(order, 'volume');
+            [~, x, w]  = parentCub.getCubature(order, type);
 
             np  = diff(parentCub.pos);            
             np  = accumarray(p, np(order));

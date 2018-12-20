@@ -23,8 +23,10 @@ classdef MomentFitting3DCubature < Cubature
             cubature.weights   = w;
             cubature.numPoints = n;
             cubature.dim = 3;
+            cubature.pos = [0; cumsum(n)] + 1;
             % Construct cubature position vector
-            cubature.pos = (0:cubature.numPoints:G.cells.num*cubature.numPoints)' + 1;
+%             cubature.pos = cumsum(
+%             cubature.pos = (0:cubature.numPoints:G.cells.num*cubature.numPoints)' + 1;
             
         end
            
@@ -53,11 +55,17 @@ classdef MomentFitting3DCubature < Cubature
                 % weights based on moment-fitting
                 
                 % We use known cubature to calculate the moments
-                cubTet = TetrahedronCubature(G, cubature.prescision, cubature.internalConn);
-                [W, xq, wTet, cellNo, faceNo] = cubTet.getCubature((1:G.cells.num)', 'volume');
+                                % We use known cubature to calculate the moments
+                if isfield(G, 'parent')
+                    knownCub = CoarseGrid3DCubature(G, cubature.prescision, cubature.internalConn);
+                else
+                    knownCub = TetrahedronCubature(G, cubature.prescision, cubature.internalConn);
+                end
+%                 knownCub = TetrahedronCubature(G, cubature.prescision, cubature.internalConn);
+                [~, xq, wq, cellNo] = knownCub.getCubature((1:G.cells.num)', 'volume');
                 xq     = cubature.transformCoords(xq, cellNo);
                 % Moments
-                M = cellfun(@(p) accumarray(cellNo, wTet.*p(xq)), psi, 'unif', false);
+                M = cellfun(@(p) accumarray(cellNo, wq.*p(xq)), psi, 'unif', false);
                 % Compute right-hand side
                 rhs = zeros(nDof, G.cells.num);
                 tol = eps(mean(G.cells.volumes));
@@ -65,42 +73,17 @@ classdef MomentFitting3DCubature < Cubature
                     m = M{dofNo};
                     m(abs(m) < tol) = 0;
                     rhs(dofNo, :) = m;
+                    M{dofNo} = m;
                 end
-                % Matrix of basis functions evalauted at current quadrature
-                % points
-                P      = reshape(cell2mat(cellfun(@(p) p(x), psi, 'unif', false)), [], nDof)';
-                % Compute significance
-                significance = sum(P.^2,1);
-                % Compute weights
-                w      = reshape((P'/(P*P'))*rhs, [], 1);
-                if cubature.reduce
-                    % Try to eliminate least significant point until we have
-                    % exactly nDof quadrature points
-                    k = n;
-                    tol = 1e-5;
-                    if cubature.reduce
-                        while k > nDof
-                            [~, ix] = sort(significance);
-                            xPrev = x;
-                            wPrev = w;
-                            for m = 1:numel(ix)
-                                x(ix(m),:) = [];
-                                P = reshape(cell2mat(cellfun(@(p) p(x), psi, 'unif', false)), [], nDof)';
-                                A = (P*P');
-                                w = reshape((P'/A)*rhs, [], 1);
-                                if all(isfinite(w)) && rcond(A) > tol
-                                    significance = sum(P.^2,1);
-                                    k = k-1;
-                                    break
-                                else
-                                    x = xPrev;
-                                    w = wPrev;
-                                end
-                            end
-
-                        end
-                    end
-                    n = k;
+                [x,w,n] = fitMoments2(x, basis, M, 'equal', G.equal);
+                
+                if numel(w) == 1
+                    w = repmat(w{:}, G.cells.num, 1);
+                    x = repmat(x{:}, G.cells.num, 1);
+                    n = n*ones(G.cells.num,1);
+                else
+                    w = vertcat(w{:});
+                    x = vertcat(x{:});
                 end
             else
                 n = 1;
@@ -113,8 +96,7 @@ classdef MomentFitting3DCubature < Cubature
             end
             
             % Map from reference to physical coordinates
-            cellNo = reshape(repmat((1:G.cells.num), n, 1), [], 1);
-            x = repmat(x, G.cells.num, 1);
+            cellNo = rldecode((1:G.cells.num)', n, 1);
             x = cubature.transformCoords(x, cellNo, true);
             
         end

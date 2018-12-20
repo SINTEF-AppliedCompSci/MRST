@@ -29,7 +29,8 @@ classdef MomentFitting2DCubature < Cubature
             else
                 numParents = G.faces.num;
             end
-            cubature.pos = (0:cubature.numPoints:numParents*cubature.numPoints)' + 1;
+            cubature.pos = [0; cumsum(n)] + 1;
+%             cubature.pos = (0:cubature.numPoints:numParents*cubature.numPoints)' + 1;
             
         end
            
@@ -71,18 +72,24 @@ classdef MomentFitting2DCubature < Cubature
                 if G.griddim > cubature.dim
                     type = 'face';
                     elements = 1:G.faces.num;
+                    vol = G.faces.areas;
                 else
                     type = 'volume';
                     elements = 1:G.cells.num;
+                    vol = G.faces.volumes;
                 end
 
                 % We use known cubature to calculate the moments
-                if isfield(G, 'parent')
-                    knownCub = CoarseGrid2DCubature(G, cubature.prescision, cubature.internalConn);
+                if 0
+                    if isfield(G, 'parent')
+                        knownCub = CoarseGrid2DCubature(G, cubature.prescision, cubature.internalConn);
+                    else
+                        knownCub = TriangleCubature(G, cubature.prescision, cubature.internalConn);
+                    end
                 else
                     knownCub = TriangleCubature(G, cubature.prescision, cubature.internalConn);
                 end
-                [~, xq, wTri, cellNo, faceNo] = knownCub.getCubature(elements, type);
+                [~, xq, wq, cellNo, faceNo] = knownCub.getCubature(elements, type);
                 % Map cubature points to reference coordinates
                 if G.griddim == 3
                     % Map to face reference coordinates
@@ -100,7 +107,7 @@ classdef MomentFitting2DCubature < Cubature
                     num   = G.cells.num;
                 end
                 % Moments
-                M = cellfun(@(p) accumarray(count, wTri.*p(xq)), psi, 'unif', false);
+                M = cellfun(@(p) accumarray(count, wq.*p(xq)), psi, 'unif', false);
                 % Compute right-hand side
                 rhs = zeros(nDof, num);
                 tol = eps(mean(G.cells.volumes));
@@ -109,20 +116,34 @@ classdef MomentFitting2DCubature < Cubature
                     m(abs(m) < tol) = 0;
                     rhs(dofNo, :) = m;
                 end
-                moments = rhs(:);
-                moments = moments./rldecode(G.cells.volumes, nDof, 1);
-                [x,w,n] = fitMoments(x, basis, moments, num);
-                w = w.*rldecode(G.cells.volumes, n, 1);
+                [x,w,n] = fitMoments2(x,basis, M, 'equal', G.equal);
+                if numel(w) == 1
+                    w = repmat(w{:}, num, 1);
+                    x = repmat(x{:}, num, 1);
+                    n = n*ones(num,1);
+                else
+                    w = vertcat(w{:});
+                    x = vertcat(x{:});
+                end
+%                 moments = rhs(:);
+%                 moments = moments./rldecode(vol, nDof, 1);
+%                 [x,w,n] = fitMoments(x, basis, moments, num);
+%                 w = w.*rldecode(vol, n, 1);
             end
             
             % Map from reference to physical coordinates
             if strcmp(type, 'face')
                 % Face coordinates
-                faceNo = reshape(repmat((1:G.faces.num), n, 1), [], 1);
+%                 faceNo = reshape(repmat((1:G.faces.num), n, 1), [], 1);
+                faceNo = rldecode((1:G.faces.num)', n, 1);
                 vec1   = G.faces.coordSys{1}(faceNo,:);
                 vec2   = G.faces.coordSys{2}(faceNo,:);
-                x = repmat(x, G.faces.num, 1).*(G.faces.dx(faceNo,:)/2);
+%                 x = x.*(G.faces.dx(faceNo,:)/2);
+%                 x = repmat(x, G.faces.num, 1).*(G.faces.dx(faceNo,:)/2);
                 x = x(:,1).*vec1 + x(:,2).*vec2;
+                [xMin, xMax] = getMinMax(G.nodes.coords(G.faces.nodes,:), diff(G.faces.nodePos));
+                dx = xMax - xMin;
+                x = x.*dx(faceNo,:)/2;
                 x = x + G.faces.centroids(faceNo,:);
             else
                 % Cell coordinates
