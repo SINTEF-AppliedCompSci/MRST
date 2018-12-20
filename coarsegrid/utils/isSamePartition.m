@@ -45,7 +45,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    if ~b && isnumeric(p1) && isnumeric(p2) && ...
          is_vector(p1) && is_vector(p2) && ...
-         (numel(p1) == numel(p2)),
+         (numel(p1) == numel(p2))
       % p1 ~= p2, but both numeric vectors and both have the same number of
       % elements.  Check if one is uncompressed permutation of the other.
       %
@@ -54,7 +54,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       [b2c_p1, b2c_1] = block_cells(p1);
       [b2c_p2, b2c_2] = block_cells(p2);
 
-      if sum(diff(b2c_p1) > 0) == sum(diff(b2c_p2) > 0),
+      if sum(diff(b2c_p1) > 0) == sum(diff(b2c_p2) > 0)
          % Same number of active blocks.  Possibly same partition.
          %
          % Check if fine-scale cells partition equally in both vectors.
