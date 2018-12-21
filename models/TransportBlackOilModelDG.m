@@ -181,6 +181,13 @@ classdef TransportBlackOilModelDG < TransportBlackOilModel
             % increment towards one phase in particular.
             state   = model.updateStateFromIncrement(state, ds, problem, 'sdof', Inf, model.dsMaxAbs);
             state.s = model.disc.getCellSaturation(state);
+
+%             ix = any(abs(ds)>model.dsMaxAbs,2);
+%             alph = model.dsMaxAbs./max(abs(ds(ix,:)), [], 2);
+%             
+%             ds(ix,:) = alph.*ds(ix,:);
+%             state   = model.updateStateFromIncrement(state, ds, problem, 'sdof', Inf, Inf);
+%             state.s = model.disc.getCellSaturation(state);            
             
             if nFill == 1
                 bad = any((state.s > 1 + model.disc.meanTolerance) ...
@@ -206,6 +213,56 @@ classdef TransportBlackOilModelDG < TransportBlackOilModel
             end
             
         end
+        
+        function [state, val, val0] = updateStateFromIncrement(model, state, dx, problem, name, relchangemax, abschangemax)
+            
+            if strcmpi(name, 'sdof') && abschangemax < Inf && 1
+                
+                if 0
+                    s0    = state.s;
+
+                    st = state;
+                    st.sdof = st.sdof + dx;
+
+                    s  = model.disc.getCellSaturation(st);
+                    ds = abs(s - s0);
+                    outside = any(ds > abschangemax,2);
+                    alpha = abschangemax./max(ds(outside), [], 2);
+    %                 ix = rldecode(find(outside), state.nDof(outside), 1);
+                    dofIx = model.disc.getDofIx(state, Inf, outside);
+                    dx(dofIx,:) = rldecode(alpha, state.nDof(outside), 1).*dx(dofIx,:);
+
+                    sdof = state.sdof + dx;
+                    state = model.setProp(state, name, sdof);
+                
+                else
+                    
+                    dxOutside = zeros(model.G.cells.num,1);
+                    for dofNo = 1:model.disc.basis.nDof
+                        ix = model.disc.getDofIx(state, dofNo, Inf, true);
+                        
+                        outside = false(model.G.cells.num,1);
+                        outside(ix>0) = any(abs(dx(ix(ix>0),:)) > abschangemax,2);
+
+                        dxOutside(outside) = max(abs(dx(ix(outside))), [], 2);
+                    end
+                    
+                    outside = dxOutside > 0;
+                    alpha = ones(model.G.cells.num,1);
+                    alpha(outside) = abschangemax./dxOutside(outside);
+                    dx = dx.*rldecode(alpha, state.nDof, 1);
+                    sdof = state.sdof + dx;
+                    state = model.setProp(state, name, sdof);
+                
+                end
+
+            else
+                [state, val, val0] ...
+                    = updateStateFromIncrement@TransportBlackOilModel(model, state, dx, problem, name, relchangemax, abschangemax);
+            end
+            
+        end
+        
 
         function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
             % Generic update function for reservoir models containing wells.

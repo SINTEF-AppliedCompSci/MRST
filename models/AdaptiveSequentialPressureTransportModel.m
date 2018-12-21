@@ -10,6 +10,8 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
         isDG
         isReordering
         mappings
+        computeCoarsePressure
+        coarsePressureModel
     end
     
     methods
@@ -41,6 +43,9 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
             
             model.plotProgress = false;
             model.storeGrids   = true;
+            
+            model.computeCoarsePressure = false;
+            model.coarsePressureModel = [];
             
             model = merge_options(model, varargin{:});
             
@@ -101,6 +106,14 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
                 [model, transportState, transportState0, drivingForces] ...
                     = model.refineTransportModel(cells, pressureState, state0, drivingForces);
                 transportForces = drivingForces;
+                
+                if model.computeCoarsePressure
+                    forceArg = model.pressureModel.getDrivingForces(transportForces);
+                    [transportState, pr] = ...
+                        psolver.solveTimestep(transportState0, dt, model.coarsePressureModel,...
+                                    'initialGuess', transportState, ...
+                                     forceArg{:});
+                end
 
                 if ~isempty(drivingForces.bc)
                     isDir = strcmpi(drivingForces.bc.type, 'pressure');
@@ -175,7 +188,7 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
             
             % Refine grid
             mappings = getRefinementMappings(G, GC, GF, cells);
-            transportModel = model.upscaleTransportModelTPFA(mappings.newPartition);
+            [transportModel, pressureModel] = model.upscaleTransportModelTPFA(mappings.newPartition);
             model.mappings = mappings;
             
             if isa(model.transportModel, 'ReorderingModel')
@@ -183,6 +196,7 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
             else
                 model.transportModel = transportModel;
             end
+            model.coarsePressureModel = pressureModel;
             transportState.pv = transportModel.operators.pv;
             transportState  = model.upscaleState(transportState);
             transportState0 = model.upscaleState(transportState0);
@@ -230,16 +244,18 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
             % Summation matrix
             S    = sparse(G.partition, (1:GF.cells.num)', 1);
 %             pvbf          = bsxfun(@times, pvf, state.bfactor);
-%             state.bfactor = S*pvbf./pv;
+%             b = S*(pvf.*state.bfactor)./pv;
+%             bf = state.bfactor;
             
             flowVarNames = getFlowVarNames();
             
             for fNo = 1:numel(flowVarNames)
                 vn = flowVarNames{fNo};
                 if isfield(state, vn)
-                    state.(vn) = S*(pvf.*state.(vn))./pv;
+                    state.(vn) = S*(pvf.*state.(vn))./(pv);
                 end
             end
+            
 %             state.mob   = S*(pvf.*state.mob)./pv;
 %             state.dpRel = S*(pvf.*state.dpRel)./pv;
             
@@ -248,8 +264,9 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
             S = S*sparse((1:GF.cells.num)', state.transportState.G.partition, 1);
             
             pvPrev = state.transportState.pv;
+            bPrev  = state.transportState.bfactor;
 %             pvb = bsxfun(@times, pv, state.bfactor);
-            state.s = S*(pvPrev.*state.transportState.s)./(S*pvPrev);
+            state.s = S*(pvPrev.*bPrev.*state.transportState.s)./(S*(pvPrev.*bPrev));
             
 
             ts = state.transportState;
@@ -286,9 +303,15 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
             state.flux = newFlux;
         end
         
-        function transportModel = upscaleTransportModelTPFA(model, partition, varargin)
+        function [transportModel, pressureModel] = upscaleTransportModelTPFA(model, partition, varargin)
             
             transportModel = upscaleModelTPFA(model.fineTransportModel, partition, varargin{:});
+            pressureModel = [];
+            if model.computeCoarsePressure
+                pressureModel = upscaleModelTPFA(model.pressureModel, partition, varargin{:});
+                pressureModel.extraStateOutput = true;
+            end
+            
             G = transportModel.G;
             if model.isDG
                 G = coarsenCellDimensions(G);

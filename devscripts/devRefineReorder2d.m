@@ -63,13 +63,13 @@ modelFI  = upscaleModelTPFA(modelFIF, G.partition);
 modelSI  = getSequentialModelFromFI(modelFI);
 modelASI = AdaptiveSequentialPressureTransportModel(modelSIF.pressureModel, modelSIF.transportModel, G);
 
-transportModel = modelSIF.transportModel;
+modelASI.transportModel.G = coarsenCellDimensions(modelASI.transportModel.G);
 
 [jt, ot, mt] = deal(Inf);
 mt = 1e-3;
 ot = 1e-3;
 degree = 1;
-disc = DGDiscretization(modelASI.transportModel               , ...
+discDG = DGDiscretization(modelASI.transportModel               , ...
                         'degree'               , degree       , ...
                         'basis'                , 'legendre'   , ...
                         'useUnstructCubature'  , false        , ...
@@ -158,8 +158,8 @@ state0F.transportState        = state0;
 state0F.transportState.degree = degree*ones(G.cells.num, 1);
 state0F.transportState.G      = G;
 state0F.transportState.pv     = modelASI.transportModel.operators.pv;
-state0F.transportState        = disc.assignDofFromState(state0F.transportState);
-state0F.transportState        = disc.updateDofPos(state0F.transportState);
+state0F.transportState        = discDG.assignDofFromState(state0F.transportState);
+state0F.transportState        = discDG.updateDofPos(state0F.transportState);
 state0F.transportModel        = modelASI.transportModel;
 
 %%

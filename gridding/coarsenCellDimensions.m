@@ -2,7 +2,8 @@ function G = coarsenCellDimensions(G, varargin)
 
     opt = struct('scaleDx'    , false, ...
                  'useBBcoords', false, ...
-                 'useQhull'   , true);
+                 'useQhull'   , true , ...
+                 'useFullBB'  , true);
     opt = merge_options(opt, varargin{:});
 
     % Get minimum and maximum cell coordinates
@@ -111,6 +112,7 @@ function G = coarsenCellDimensions(G, varargin)
                 x = x(:,1).*vec1(ix,:) + x(:,2).*vec2(ix,:) + G.faces.centroids(ix,:);
             end
         end
+        
     end
     
     % Assign face nodes
@@ -170,6 +172,22 @@ function G = coarsenCellDimensions(G, varargin)
         end
         
         G.cells.centers = (G.cells.xMin + G.cells.xMax)/2;
+        
+        
+        if opt.useFullBB
+            
+            f   = G.cells.faces(:,1);
+            n   = G.faces.nodes(mcolon(G.faces.nodePos(f), G.faces.nodePos(f+1)-1));
+            x   = G.nodes.coords(n,:);
+            
+            nfn = diff(G.faces.nodePos);
+            ncn = accumarray(rldecode((1:G.cells.num)', diff(G.cells.facePos), 1), nfn(f));
+            
+            [xMin, xMax] = getMinMax(x, ncn);
+            
+            G.cells.dx = xMax - xMin;
+            
+        end
         
     end
     

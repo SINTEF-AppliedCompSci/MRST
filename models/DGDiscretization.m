@@ -186,7 +186,7 @@ classdef DGDiscretization < WENODiscretization
                 % dofNo not given, return ix for all dofs
                 dofNo = 1:disc.basis.nDof;
             elseif nargin < 4 || (numel(cells) == 1 && cells == Inf)
-                % Cells not given, return ix for all cels
+                % Cells not given, return ix for all cells
                 cells = 1:G.cells.num;
             end
             
