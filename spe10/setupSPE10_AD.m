@@ -20,8 +20,8 @@ function [state, model, schedule]  = setupSPE10_AD(varargin)
     
     % Water props
     bW0 = 1./(1.01);
-    fluid.bW = @(p) bW0*exp((p - pRef)*3e-6/psia);
-    fluid.muW = @(p) 0*p + 0.3*centi*poise;
+    fluid.bW = @(p, varargin) bW0*exp((p - pRef)*3e-6/psia);
+    fluid.muW = @(p, varargin) 0*p + 0.3*centi*poise;
     
     % Oil props
     p = [300; 800; 8000; 8001]*psia;
