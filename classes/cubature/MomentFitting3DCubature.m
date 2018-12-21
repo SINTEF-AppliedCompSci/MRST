@@ -86,13 +86,14 @@ classdef MomentFitting3DCubature < Cubature
                     x = vertcat(x{:});
                 end
             else
-                n = 1;
+                n = ones(G.cells.num,1);
                 % Precision is 1, use midpoint rule
-                if G.griddim == 2
+                if G.griddim == 3
                     w = G.cells.volumes;
                 else
                     w = G.faces.areas;
                 end
+                x = repmat(zeros(1,G.griddim), G.cells.num, 1);
             end
             
             % Map from reference to physical coordinates

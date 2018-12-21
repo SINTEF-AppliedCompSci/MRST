@@ -50,10 +50,14 @@ classdef MomentFitting2DCubature < Cubature
                 % Precision is 1, use midpoint rule
                 if G.griddim == 2
                     w = G.cells.volumes;
+                    x = repmat(x, G.cells.num, 1);
+                    n = repmat(n, G.cells.num, 1);
                     type = 'volume';
                 else
                     w = G.faces.areas;
                     type = 'face';
+                    x = repmat(x, G.faces.num, 1);
+                    n = repmat(n, G.faces.num, 1);
                 end
             else
                 % If precision is higher than one, we must calculate
@@ -147,8 +151,9 @@ classdef MomentFitting2DCubature < Cubature
                 x = x + G.faces.centroids(faceNo,:);
             else
                 % Cell coordinates
-                cellNo = reshape(repmat((1:G.cells.num), n, 1), [], 1);
-                x = repmat(x, G.cells.num, 1);
+%                 cellNo = reshape(repmat((1:G.cells.num), n, 1), [], 1);
+                cellNo = rldecode((1:G.cells.num)', n, 1);
+%                 x = repmat(x, G.cells.num, 1);
                 x = cubature.transformCoords(x, cellNo, true);
             end
             

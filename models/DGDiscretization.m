@@ -1,11 +1,11 @@
-classdef DGDiscretization < WENODiscretization
+classdef DGDiscretization < HyperbolicDiscretization
     
     properties
 
         degree              % Degree of discretization, dG(degree)
         basis               % Type of basis functions. Standard is tensor 
                             % products of Legendre polynomials.
-%         dim                 % Dimension of disc to facilitate e.g. 2D 
+        dim                 % Dimension of disc to facilitate e.g. 2D 
                             % simulations on horizontal slice of 3D
                             % reservoir
         
@@ -40,15 +40,15 @@ classdef DGDiscretization < WENODiscretization
         %-----------------------------------------------------------------%
         function disc = DGDiscretization(model, varargin)
             
-            disc = disc@WENODiscretization(model, model.G.griddim, 'includeBoundary', true);
-%             disc = disc@HyperbolicDiscretization(model);
+%             disc = disc@WENODiscretization(model, model.G.griddim, 'includeBoundary', true);
+            disc = disc@HyperbolicDiscretization(model);
             
             G = disc.G;
             
             % Standard dG properties
             disc.degree = 1;
             disc.basis  = 'legendre';
-%             disc.dim    = G.griddim;
+            disc.dim    = G.griddim;
             
             % Limiter tolerances
             disc.jumpTolerance = 0.2;
@@ -567,11 +567,26 @@ classdef DGDiscretization < WENODiscretization
             
             G = disc.G;
             cells = (1:G.cells.num)';
+            
+            if 1
             % Get all quadrature points for all cells
             [~, xSurf, cSurf, ~] = disc.getCubature(cells, 'surface', 'excludeBoundary', false);
             [~, xCell, cCell, ~] = disc.getCubature(cells, 'volume' );
             x = [xSurf; xCell];
             c = [cSurf; cCell];
+            else
+                faces = G.cells.faces(:,1);
+                nodes = G.faces.nodes(mcolon(G.faces.nodePos(faces), G.faces.nodePos(faces+1)-1));
+
+                nfn = diff(G.faces.nodePos);
+                ncf = diff(G.cells.facePos);
+                ncn = accumarray(rldecode((1:numel(cells))', ncf(cells), 1), nfn(faces));
+                c = rldecode(cells, ncn, 1);
+                x = G.nodes.coords(nodes,:);
+                
+            end
+            
+            
             x = disc.transformCoords(x, c);
             % Evaluate saturation
             s = disc.evaluateSaturation(x, c, state.sdof(:,1), state);
