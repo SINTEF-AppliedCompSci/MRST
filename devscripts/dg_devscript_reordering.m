@@ -4,7 +4,7 @@ mrstModule add dg vem vemmech ad-props ad-core ad-blackoil blackoil-sequential g
 
 gravity reset off;
 
-n = 4;
+n = 10;
 l = 1000;
 G = computeGeometry(cartGrid([n,n], [l,l]*meter));
 G = computeVEMGeometry(G);
@@ -22,8 +22,8 @@ modelDG = modelFV;
 
 %%
 jt = 0.6;
-ot = 0.2;
-mt = 0.0;
+ot = 1e-3;
+mt = 1e-3;
 degree = 2;
 disc   = DGDiscretization(modelDG.transportModel, ...
                          'degree', degree, ...
@@ -33,18 +33,18 @@ disc   = DGDiscretization(modelDG.transportModel, ...
                          'outTolerance', ot, ...
                          'meanTolerance', mt, ...
                          'plotLimiterProgress', false);
-modelDG.transportModel = TransportOilWaterModelDG(G, rock, fluid, 'disc', disc, 'dsMaxAbs', 0.05);    
+modelDG.transportModel = TransportOilWaterModelDG(G, rock, fluid, 'disc', disc, 'dsMaxAbs', 0.2);    
 modelDG.pressureModel  = PressureOilWaterModelSemiDG(G, rock, fluid, 'disc', disc);    
 
 %%
 
-time = 2*year;
+time = 1*year;
 rate = 1*sum(poreVolume(G, rock))/time;
 W = [];
 W = addWell(W, G, rock, 1          , 'type', 'rate', 'val', rate    , 'comp_i', [1,0]);
 W = addWell(W, G, rock, G.cells.num, 'type', 'bhp' , 'val', 50*barsa, 'comp_i', [1,0]);
 
-dt    = 30*day;
+dt    = 7*day;
 dtvec = rampupTimesteps(time, dt, 0);
 schedule = simpleSchedule(dtvec, 'W', W);
 
@@ -62,9 +62,9 @@ state0 = assignDofFromState(modelDG.transportModel.disc, state0);
 modelDGreorder = modelDG;
 modelDGreorder.pressureModel.extraStateOutput = true;
 
-modelDGreorder.transportModel = ReorderingModelDG_ghost(modelDGreorder.transportModel, 'plotAfterCellSolve', false);
+modelDGreorder.transportModel = ReorderingModelDG(modelDGreorder.transportModel, 'plotAfterCellSolve', false);
 
-modelDGreorder.transportModel.chunkSize = 1;
+modelDGreorder.transportModel.chunkSize = 20;
 modelDGreorder.transportModel.parent.extraStateOutput = true;
 
 
@@ -158,8 +158,5 @@ close all
 figure
 plotToolbar(G, statesDG); colormap(jet);
 figure
-
-
 plotToolbar(G, statesDGReorder); colormap(jet);
-
 plotWellSols({wsDG, wsDGReorder});
