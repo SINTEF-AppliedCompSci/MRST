@@ -76,11 +76,11 @@ classdef MomentFitting2DCubature < Cubature
                 if G.griddim > cubature.dim
                     type = 'face';
                     elements = 1:G.faces.num;
-                    vol = G.faces.areas;
+%                     vol = G.faces.areas;
                 else
                     type = 'volume';
                     elements = 1:G.cells.num;
-                    vol = G.faces.volumes;
+%                     vol = G.cells.volumes;
                 end
 
                 % We use known cubature to calculate the moments
