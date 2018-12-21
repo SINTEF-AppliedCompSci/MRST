@@ -65,11 +65,22 @@ classdef MomentFitting2DCubature < Cubature
                 
                 % The starting point is a quadrature for a reference square
                 % with more than nDof points
-                k = 0;
-                nS = 0;
-                while nS < nDof
-                    [x, ~, nS] = getSquareCubaturePointsAndWeights(cubature.prescision + k);
-                    k = k+1;
+                if 1
+                    G1 = computeGeometry(cartGrid([1,1], [2,2]));
+                    G1.nodes.coords = G1.nodes.coords - 1;
+                    G1 = computeVEMGeometry(G1);
+                    G1 = computeCellDimensions2(G1);
+                    cubTri = TriangleCubature(G1, cubature.prescision, cubature.internalConn);
+                    [~, x, ~, cellNo, ~] = cubTri.getCubature(1, 'volume');
+                    x = cubTri.transformCoords(x, cellNo);
+                    x = unique(x, 'rows');
+                else
+                    k = 0;
+                    nS = 0;
+                    while nS < nDof
+                        [x, ~, nS] = getSquareCubaturePointsAndWeights(cubature.prescision + k);
+                        k = k+1;
+                    end
                 end
                 n = size(x,1);
                 % Cubature is either for faces or cells

@@ -41,11 +41,22 @@ classdef MomentFitting3DCubature < Cubature
             nDof   = basis.nDof;
             % The starting point is a quadrature for a reference square
             % with more than nDof points
-            k = 0;
-            nS = 0;
-            while nS < nDof
-                [x, ~, nS] = getCubeCubaturePointsAndWeights(cubature.prescision + k);
-                k = k+1;
+            if 1
+                G1 = computeGeometry(cartGrid([1,1,1], [2,2,2]));
+                G1.nodes.coords = G1.nodes.coords - 1;
+                G1 = computeVEMGeometry(G1);
+                G1 = computeCellDimensions2(G1);
+                cubTet = TetrahedronCubature(G1, cubature.prescision, cubature.internalConn);
+                [~, x, ~, cellNo, ~] = cubTet.getCubature(1, 'volume');
+                x = cubTet.transformCoords(x, cellNo);
+                x = unique(x, 'rows');
+             else
+                k = 0;
+                nS = 0;
+                while nS < 2*nDof
+                    [x, ~, nS] = getCubeCubaturePointsAndWeights(cubature.prescision + k);
+                    k = k+1;
+                end
             end
             n = size(x,1);
             G = cubature.G;
