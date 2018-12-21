@@ -84,7 +84,8 @@ classdef DGDiscretization < HyperbolicDiscretization
                     volCub  = CoarseGrid2DCubature(G, prescision, disc.internalConn);
                 else
                     if disc.degree == 0 || disc.useUnstructCubature
-                        volCub = MomentFitting2DCubature(G, prescision, disc.internalConn);
+                        volCub = Unstruct2DCubature(G, prescision, disc.internalConn);
+%                         volCub = MomentFitting2DCubature(G, prescision, disc.internalConn);
                     else
                         volCub = TriangleCubature(G, prescision, disc.internalConn);
                     end
@@ -96,8 +97,10 @@ classdef DGDiscretization < HyperbolicDiscretization
                     surfCub = CoarseGrid2DCubature(G, prescision, disc.internalConn);
                 else
                     if disc.degree == 0 || disc.useUnstructCubature
-                        volCub  = MomentFitting3DCubature(G, prescision, disc.internalConn);
-                        surfCub = MomentFitting2DCubature(G, prescision, disc.internalConn);
+                        volCub = Unstruct3DCubature(G, prescision, disc.internalConn);
+                        surfCub = Unstruct2DCubature(G, prescision, disc.internalConn);
+%                         volCub  = MomentFitting3DCubature(G, prescision, disc.internalConn);
+%                         surfCub = MomentFitting2DCubature(G, prescision, disc.internalConn);
                     else
                         volCub  = TetrahedronCubature(G, prescision, disc.internalConn);
                         surfCub = TriangleCubature(G, prescision, disc.internalConn);
@@ -568,33 +571,29 @@ classdef DGDiscretization < HyperbolicDiscretization
             G = disc.G;
             cells = (1:G.cells.num)';
             
-            if 1
             % Get all quadrature points for all cells
             [~, xSurf, cSurf, ~] = disc.getCubature(cells, 'surface', 'excludeBoundary', false);
             [~, xCell, cCell, ~] = disc.getCubature(cells, 'volume' );
-            x = [xSurf; xCell];
-            c = [cSurf; cCell];
-            else
-                faces = G.cells.faces(:,1);
-                nodes = G.faces.nodes(mcolon(G.faces.nodePos(faces), G.faces.nodePos(faces+1)-1));
-
-                nfn = diff(G.faces.nodePos);
-                ncf = diff(G.cells.facePos);
-                ncn = accumarray(rldecode((1:numel(cells))', ncf(cells), 1), nfn(faces));
-                c = rldecode(cells, ncn, 1);
-                x = G.nodes.coords(nodes,:);
-                
-            end
-            
-            
-            x = disc.transformCoords(x, c);
+%             x = [xSurf; xCell];
+%             c = [cSurf; cCell];
+%             [~, ix] = sort(c);
+%             x = disc.transformCoords(x, c);
             % Evaluate saturation
-            s = disc.evaluateSaturation(x, c, state.sdof(:,1), state);
-            % Find maxium and minimum values for each cell. Minimum values
-            % returned are actually min(s,0)
-            s = sparse(c, (1:numel(s))', s);
-            sMax = full(max(s, [], 2));
-            sMin = full(min(s, [], 2));
+            sSurf = disc.evaluateSaturation(xSurf, cSurf, state.sdof(:,1), state);
+            [~, nSurf] = rlencode(cSurf);
+            [sMins, sMaxs] = getMinMax(sSurf, nSurf);
+            sCell = disc.evaluateSaturation(xCell, cCell, state.sdof(:,1), state);
+            [~, nCell] = rlencode(cCell);
+            [sMinc, sMaxc] = getMinMax(sCell, nCell);
+            sMin = min(sMins, sMinc);
+            sMax = max(sMaxs, sMaxc);
+%             % Evaluate saturation
+% %             s = disc.evaluateSaturation(x, c, state.sdof(:,1), state);
+%             % Find maxium and minimum values for each cell. Minimum values
+%             % returned are actually min(s,0)
+%             s = sparse(c, (1:numel(s))', s);
+%             sMax = full(max(s, [], 2));
+%             sMin = full(min(s, [], 2));
             
         end
         

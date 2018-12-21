@@ -190,8 +190,19 @@ classdef TransportBlackOilModelDG < TransportBlackOilModel
 %             state.s = model.disc.getCellSaturation(state);            
             
             if nFill == 1
+                
+                if 0
                 bad = any((state.s > 1 + model.disc.meanTolerance) ...
                         | (state.s < 0 - model.disc.meanTolerance), 2);
+                
+                else
+                [smin, smax] = model.disc.getMinMaxSaturation(state);
+                over  = smax > 1 + model.disc.meanTolerance;
+                under = smin < 0 - model.disc.meanTolerance;
+                bad = over | under;
+                end
+                    
+                    
                 if any(bad)
                     state.s(bad, :) = min(state.s(bad, :), 1);
                     state.s(bad, :) = max(state.s(bad, :), 0);
@@ -218,8 +229,8 @@ classdef TransportBlackOilModelDG < TransportBlackOilModel
             
             if strcmpi(name, 'sdof') && abschangemax < Inf && 1
                 
-                if 0
-                    s0    = state.s;
+                if 1
+                    s0 = state.s;
 
                     st = state;
                     st.sdof = st.sdof + dx;
@@ -234,6 +245,10 @@ classdef TransportBlackOilModelDG < TransportBlackOilModel
 
                     sdof = state.sdof + dx;
                     state = model.setProp(state, name, sdof);
+                    
+                elseif 0
+                    
+                    
                 
                 else
                     
