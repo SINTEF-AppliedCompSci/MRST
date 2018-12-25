@@ -176,7 +176,9 @@ classdef DiagonalJacobian
                 switch s(1).type
                     case '()'
                         if u.isZero
-                            u = u.toZero(numel(s(1).subs{1}));
+                            if ~ischar(s(1).subs{1})
+                                u = u.toZero(numel(s(1).subs{1}));
+                            end
                         elseif numel(s(1).subs) == 2 && ischar(s(1).subs{2})
                             if any(s(1).subs{1})
                                 u.diagonal = u.diagonal(s(1).subs{1}, :);
