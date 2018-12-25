@@ -29,7 +29,8 @@ classdef DiagonalAutoDiffBackend < AutoDiffBackend
         end
         
         function model = updateDiscreteOperators(backend, model)
-            if isa(model, 'ReservoirModel') && backend.modifyOperators
+            if isa(model, 'ReservoirModel') && backend.modifyOperators ...
+                    && ~isfield(model.operators, 'diag_updated')
                 N = model.operators.N;
                 nc = model.G.cells.num;
                 nf = size(N, 1);
@@ -52,6 +53,7 @@ classdef DiagonalAutoDiffBackend < AutoDiffBackend
                 model.operators.Div = @(v) discreteDivergence(N, v, nc, nf, sortIx, C, prelim, backend.useMex);
                 model.operators.faceUpstr = @(flag, v) singlePointUpwind(flag, N, v, backend.useMex);
                 model.operators.faceAvg = @(v) faceAverage(N, v, backend.useMex);
+                model.operators.diag_updated = true;
             end
         end
         
