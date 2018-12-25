@@ -1,8 +1,8 @@
-function v = discreteDivergence(N, v, nc, nf, sortIx, C)
+function v = discreteDivergence(N, v, nc, nf, sortIx, C, prelim, useMex)
 % Discrete divergence for the NewAD library
     if isa(v, 'NewAD')
         for i = 1:numel(v.jac)
-            v.jac{i} = divJac(v.jac{i}, N, nc, nf, sortIx, C);
+            v.jac{i} = divJac(v.jac{i}, N, nc, nf, sortIx, C, prelim, useMex);
         end
         v.val = accumulate(N, double(v), nc);
     else
@@ -14,7 +14,7 @@ function v = accumulate(N, v, nc)
     v = accumarray(N(:, 1), v, [nc, 1]) - accumarray(N(:, 2), v, [nc, 1]);
 end
 
-function jac = divJac(jac, N, nc, nf, sortIx, C)
+function jac = divJac(jac, N, nc, nf, sortIx, C, prelim, useMex)
     useDivTerm = false;
     if issparse(jac)
         if nnz(jac) > 0
@@ -69,7 +69,11 @@ function jac = divJac(jac, N, nc, nf, sortIx, C)
             jac = DivergenceTerm(I, J, V, nc, prod(jac.dim));
         else
             % Sparse version
-            jac = sortIx.C*jac.sparse();
+            if useMex
+                jac = mexDiscreteDivergenceJac(jac.diagonal, N, prelim.facePos, prelim.faces, prelim.cells, prelim.cellIndex);
+            else
+                jac = sortIx.C*jac.sparse();
+            end
         end
     end
 end

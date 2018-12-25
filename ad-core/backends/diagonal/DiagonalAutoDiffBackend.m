@@ -38,16 +38,18 @@ classdef DiagonalAutoDiffBackend < AutoDiffBackend
 
 
                 C  = sparse(N, [(1:nf)'; (1:nf)'], ones(nf,1)*[1 -1], nc, nf);
-
                 gradMat = sparse((1:2*nf), [n1; n2], rldecode([-1; 1], [nf; nf]), 2*nf, nc);
-
                 [~, sortedN] = sort(repmat(reshape(N, [], 1), 2, 1));
                 I_base = [N(:, 1); N(:, 1); N(:, 2); N(:, 2)];
-%                 I_base = I_base(sortedN);
+                if backend.useMex
+                    prelim = getMexDiscreteDivergenceJacPrecomputes(model);
+                else
+                    prelim = [];
+                end
 
                 sortIx = struct('C', C, 'J_sorted_index', sortedN, 'I_base', I_base);
                 model.operators.Grad = @(v) twoPointGradient(N, v, gradMat, backend.useMex);
-                model.operators.Div = @(v) discreteDivergence(N, v, nc, nf, sortIx, C);
+                model.operators.Div = @(v) discreteDivergence(N, v, nc, nf, sortIx, C, prelim, backend.useMex);
                 model.operators.faceUpstr = @(flag, v) singlePointUpwind(flag, N, v, backend.useMex);
                 model.operators.faceAvg = @(v) faceAverage(N, v, backend.useMex);
             end
