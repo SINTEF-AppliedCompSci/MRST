@@ -54,9 +54,7 @@ function [state, pressures] = initStateBlackOilAD(model, regions, varargin)
             sat{i} = state.s(cells, i);
             pc{i} = region.pc_sign(i)*region.pc_functions{i}(state.s(cells, i));
         end
-        kr = cell(1, nph);
-        [kr{:}] = model.evaluateRelPerm(sat, 'cellInx', cells);
-        kr = [kr{:}];
+        kr = s;
         numberOfMobile = sum(kr > 0, 2);
         maxSat = max(s, [], 2);
         singlePhaseMobile = numberOfMobile <= 1;
