@@ -23,12 +23,7 @@ function jac = avgJac(jac, N, useMex)
         else
             diagonal = 0.5*jac.diagonal(N, :);
         end
-        if isempty(jac.subset)
-            map = N;
-        else
-            map = jac.subset(N);
-        end
-        jac = DiagonalSubset(diagonal, jac.dim, map);
+        jac = DiagonalSubset(diagonal, jac.dim, N, [], jac.subset);
     end
 
 end

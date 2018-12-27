@@ -69,8 +69,8 @@ function jac = divJac(jac, N, nc, nf, sortIx, C, prelim, useMex)
             jac = DivergenceTerm(I, J, V, nc, prod(jac.dim));
         else
             % Sparse version
-            if useMex
-                jac = mexDiscreteDivergenceJac(jac.diagonal, N, prelim.facePos, prelim.faces, prelim.cells, prelim.cellIndex);
+            if useMex && isempty(jac.parentSubset)
+                jac = mexDiscreteDivergenceJac(jac, N, prelim.facePos, prelim.faces, prelim.cells, prelim.cellIndex);
             else
                 jac = sortIx.C*jac.sparse();
             end
