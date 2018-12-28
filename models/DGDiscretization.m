@@ -80,7 +80,7 @@ classdef DGDiscretization < HyperbolicDiscretization
             prescision = disc.degree + 1;
             isCoarse   = isfield(G, 'parent');
             if G.griddim == 2
-                if isCoarse && ~disc.useUnstructCubature
+                if isCoarse %&& ~disc.useUnstructCubature
                     volCub  = CoarseGrid2DCubature(G, prescision, disc.internalConn);
                 else
                     if disc.degree == 0 || disc.useUnstructCubature
@@ -93,8 +93,10 @@ classdef DGDiscretization < HyperbolicDiscretization
                 surfCub = LineCubature(G, prescision, disc.internalConn);
             else
                 if isCoarse && ~disc.useUnstructCubature
-                    volCub  = CoarseGrid3DCubature(G, prescision, disc.internalConn);
-                    surfCub = CoarseGrid2DCubature(G, prescision, disc.internalConn);
+                    volCub = Unstruct3DCubature(G, prescision, disc.internalConn);
+%                     volCub  = CoarseGrid3DCubature(G, prescision, disc.internalConn);
+%                     surfCub = CoarseGrid2DCubature(G, prescision, disc.internalConn);
+                    surfCub = TriangleCubature(G, prescision, disc.internalConn);
                 else
                     if disc.degree == 0 || disc.useUnstructCubature
                         volCub = Unstruct3DCubature(G, prescision, disc.internalConn);

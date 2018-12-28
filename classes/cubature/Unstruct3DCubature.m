@@ -88,12 +88,18 @@ classdef Unstruct3DCubature < Cubature
             if cub.prescision > 1
                 
                 dim = 3;
-                cubTet = TetrahedronCubature(G, cub.prescision, cub.internalConn);
+                if isfield(G, 'parent')
+                    knownCub = CoarseGrid3DCubature(G, cub.prescision, cub.internalConn);
+                else
+                    knownCub = TetrahedronCubature(G, cub.prescision, cub.internalConn);
+                end
+                
+%                 knownCub = TetrahedronCubature(G, cub.prescision, cub.internalConn);
                 basis = dgBasis(dim, cub.prescision, 'legendre');
                 psi = basis.psi;
                 nDof = basis.nDof;
                 P = reshape(cell2mat(cellfun(@(p) p(x), psi, 'unif', false)), nDof, nDof)';
-                [~, xq, w, cellNo, ~] = cubTet.getCubature(1:G.cells.num, 'volume');
+                [~, xq, w, cellNo, ~] = knownCub.getCubature(1:G.cells.num, 'volume');
 
                 xq = cub.transformCoords(xq, cellNo);
                 

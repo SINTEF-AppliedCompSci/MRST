@@ -13,8 +13,14 @@ pw = @(G,W) plot3(G.cells.centroids([W.cells], 1), ...
                  'ok', 'markerSize', 8, 'markerFaceColor', 'w', 'lineWidth', 2);
 
 baseName = 'spe10';
-dataDir  = fullfile('/media/strene/806AB4786AB46C92/mrst-dg/rsc-2019', baseName);
-
+location = 'home';
+switch location
+    case 'work'
+        dataDir  = fullfile('/media/strene/806AB4786AB46C92/mrst-dg/rsc-2019', baseName);
+    case 'home'
+        dataDir  = fullfile('/home/oysteskl/Documents/phd/repositories/mrst-dg/simulation-output/rsc-2019', baseName);
+end
+            
 %% Set up base model
 
 [state0F, model, schedule]  = setupSPE10_AD('layers', 70);
@@ -22,7 +28,7 @@ GF        = model.G;
 rockF     = model.rock;
 fluid     = model.fluid;
 scheduleF = schedule;
-scheduleF.step.val = rampupTimesteps2(sum(schedule.step.val), 20*day, 8);
+scheduleF.step.val = rampupTimesteps(sum(schedule.step.val), 20*day, 8);
 scheduleF.step.control = ones(numel(scheduleF.step.val), 1);
 GF        = computeCellDimensions2(GF);
 GF.equal  = true;
@@ -135,7 +141,7 @@ discDG = DGDiscretization(modelDG.transportModel          , ...
                        'outTolerance'         , ot        , ...
                        'outLimiter'           , 'kill'    , ...
                        'meanTolerance'        , mt        );
-transportModelDG = TransportOilWaterModelDG(GF, rockF, model.fluid, ...
+transportModelDG = TransportOilWaterModelDG(G, modelFI.rock, model.fluid, ...
                                      'disc'              , discDG , ...
                                      'dsMaxAbs'          , 0.1    , ...
                                      'nonlinearTolerance', 1e-3   );
@@ -153,6 +159,7 @@ names  = {'fv'    , 'fv-coarse', 'fv-adapt', 'fv-adapt-reorder', 'dg'    , 'dg-c
 problems = cell(size(models));
 
 state0          = initResSol(G, state0F.pressure(1), state0F.s(1,:));
+state0          = assignDofFromState(discDG, state0);
 state0.bfactor  = [fluid.bW(state0.pressure), fluid.bO(state0.pressure)];
 state0F.bfactor = [fluid.bW(state0F.pressure), fluid.bO(state0F.pressure)];
 state0F         = assignDofFromState(discDGF, state0F);
@@ -186,15 +193,29 @@ end
 
 %% Simulate problems
 
-runIx = [1,2,3,5,6,7];
+runIx = 6;
 for pNo = runIx
     [ok, status] = simulatePackedProblem(problems{pNo});
 end
 
 %%
 
-setup = problems{5}.SimulatorSetup;
+plotIx = 6;
+for pNo = plotIx
+   [ws, st, rep] = getPackedSimulatorOutput(problems{pNo});
+end
 
+%%
+
+close all
+figure
+plotToolbar(GF, st)
+axis equal tight
+colormap(pink)
+
+%%
+
+setup = problems{6}.SimulatorSetup;
 [ws, st, rep] = simulateScheduleAD(setup.state0, setup.model, setup.schedule);
 
 %%
@@ -485,32 +506,102 @@ close(vo)
 clr = lines(3);
 close all
 figure; hold on
-fNo   = floor(rand*(GC.faces.num-1)) + 1;
-faces = GC.faces.fconn(GC.faces.connPos(fNo):GC.faces.connPos(fNo+1)-1);
+fNo   = floor(rand*(G.faces.num-1)) + 1;
+faces = G.faces.fconn(G.faces.connPos(fNo):G.faces.connPos(fNo+1)-1);
 plotFaces(GF, faces, 'facealpha', 0.2);
 axis equal tight
 
-xf = GC.faces.centroids(fNo,:);
-vec1 = GC.faces.coordSys{1}(fNo,:);
-vec2 = GC.faces.coordSys{2}(fNo,:);
-n    = GC.faces.normals(fNo,:)./GC.faces.areas(fNo);
+xf = G.faces.centroids(fNo,:);
+vec1 = G.faces.coordSys{1}(fNo,:);
+vec2 = G.faces.coordSys{2}(fNo,:);
+n    = G.faces.normals(fNo,:)./G.faces.areas(fNo);
 quiver3(xf(:,1), xf(:,2), xf(:,3), vec1(1), vec1(2), vec1(3), 20, 'linew', 2, 'color', clr(1,:));
 quiver3(xf(:,1), xf(:,2), xf(:,3), vec2(1), vec2(2), vec2(3), 20, 'linew', 2, 'color', clr(1,:));
 quiver3(xf(:,1), xf(:,2), xf(:,3), n(1)   , n(2)   , n(3)   , 20 , 'linew', 2, 'color', clr(2,:));
 
 
-n = GC.faces.nodes(mcolon(GC.faces.nodePos(fNo), GC.faces.nodePos(fNo+1)-1));
-x = GC.nodes.coords(n,:);
+n = G.faces.nodes(mcolon(G.faces.nodePos(fNo), G.faces.nodePos(fNo+1)-1));
+x = G.nodes.coords(n,:);
 plot3(x(:,1), x(:,2), x(:,3), '.', 'markerSize', 15);
 
-e = GC.faces.edges(GC.faces.edgePos(fNo):GC.faces.edgePos(fNo+1)-1);
-n = GC.edges.nodes(mcolon(GC.edges.nodePos(e), GC.edges.nodePos(e+1)-1));
-x = GC.nodes.coords(n,:);
+e = G.faces.edges(G.faces.edgePos(fNo):G.faces.edgePos(fNo+1)-1);
+n = G.edges.nodes(mcolon(G.edges.nodePos(e), G.edges.nodePos(e+1)-1));
+x = G.nodes.coords(n,:);
 plot3(x(:,1), x(:,2), x(:,3), 'o', 'markerSize', 15);
 
-x = GC.nodes.coords(GC.faces.nodes(GC.faces.nodePos(fNo):GC.faces.nodePos(fNo+1)-1),:);
+x = G.nodes.coords(G.faces.nodes(G.faces.nodePos(fNo):G.faces.nodePos(fNo+1)-1),:);
 xx = [x; x(1,:)];
 patch(xx(:,1), xx(:,2), xx(:,3), 'r', 'facealpha', 0.2);
 view(3)
 
+%%
 
+clr = lines(3);
+close all
+figure; hold on
+fNo   = floor(rand*(G.faces.num-1)) + 1;
+faces = G.faces.fconn(G.faces.connPos(fNo):G.faces.connPos(fNo+1)-1);
+plotFaces(GF, faces, 'facealpha', 0.2);
+axis equal tight
+
+xf = G.faces.centroids(fNo,:);
+vec1 = G.faces.coordSys{1}(fNo,:);
+vec2 = G.faces.coordSys{2}(fNo,:);
+n    = G.faces.normals(fNo,:)./G.faces.areas(fNo);
+mag = 5;
+quiver3(xf(:,1), xf(:,2), xf(:,3), vec1(1), vec1(2), vec1(3), mag, 'linew', 2, 'color', clr(1,:));
+quiver3(xf(:,1), xf(:,2), xf(:,3), vec2(1), vec2(2), vec2(3), mag, 'linew', 2, 'color', clr(1,:));
+quiver3(xf(:,1), xf(:,2), xf(:,3), n(1)   , n(2)   , n(3)   , mag , 'linew', 2, 'color', clr(2,:));
+
+[~, x] = discDG.surfaceCubature.getCubature(fNo, 'face');
+
+% n = G.faces.nodes(mcolon(G.faces.nodePos(fNo), G.faces.nodePos(fNo+1)-1));
+% x = G.nodes.coords(n,:);
+plot3(x(:,1), x(:,2), x(:,3), '.', 'markerSize', 15);
+
+% e = G.faces.edges(G.faces.edgePos(fNo):G.faces.edgePos(fNo+1)-1);
+% n = G.edges.nodes(mcolon(G.edges.nodePos(e), G.edges.nodePos(e+1)-1));
+% x = G.nodes.coords(n,:);
+% plot3(x(:,1), x(:,2), x(:,3), 'o', 'markerSize', 15);
+% 
+x = G.nodes.coords(G.faces.nodes(G.faces.nodePos(fNo):G.faces.nodePos(fNo+1)-1),:);
+xx = [x; x(1,:)];
+patch(xx(:,1), xx(:,2), xx(:,3), 'r', 'facealpha', 0.2);
+view(3)
+
+%%
+
+clr = lines(3);
+close all
+figure; hold on
+fNo   = floor(rand*(G.faces.num-1)) + 1;
+faces = G.faces.fconn(G.faces.connPos(fNo):G.faces.connPos(fNo+1)-1);
+plotFaces(GF, faces, 'facealpha', 0.2);
+axis equal tight
+
+xf = G.faces.centroids(fNo,:);
+vec1 = G.faces.coordSys{1}(fNo,:);
+vec2 = G.faces.coordSys{2}(fNo,:);
+n    = G.faces.normals(fNo,:)./G.faces.areas(fNo);
+mag = 5;
+quiver3(xf(:,1), xf(:,2), xf(:,3), vec1(1), vec1(2), vec1(3), mag, 'linew', 2, 'color', clr(1,:));
+quiver3(xf(:,1), xf(:,2), xf(:,3), vec2(1), vec2(2), vec2(3), mag, 'linew', 2, 'color', clr(1,:));
+quiver3(xf(:,1), xf(:,2), xf(:,3), n(1)   , n(2)   , n(3)   , mag , 'linew', 2, 'color', clr(2,:));
+
+discDG.surfaceCubature
+% 
+[~, x] = discDG.surfaceCubature.getCubature(fNo, 'face');
+% 
+% n = G.faces.nodes(mcolon(G.faces.nodePos(fNo), G.faces.nodePos(fNo+1)-1));
+% x = G.nodes.coords(n,:);
+plot3(x(:,1), x(:,2), x(:,3), '.', 'markerSize', 15);
+
+% e = G.faces.edges(G.faces.edgePos(fNo):G.faces.edgePos(fNo+1)-1);
+% n = G.edges.nodes(mcolon(G.edges.nodePos(e), G.edges.nodePos(e+1)-1));
+% x = G.nodes.coords(n,:);
+% plot3(x(:,1), x(:,2), x(:,3), 'o', 'markerSize', 15);
+% 
+x = G.nodes.coords(G.faces.nodes(G.faces.nodePos(fNo):G.faces.nodePos(fNo+1)-1),:);
+xx = [x; x(1,:)];
+patch(xx(:,1), xx(:,2), xx(:,3), 'r', 'facealpha', 0.2);
+view(3)

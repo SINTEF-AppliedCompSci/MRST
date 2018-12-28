@@ -89,13 +89,20 @@ classdef Unstruct2DCubature < Cubature
             if cub.prescision > 1
                 
                 dim = 2;
-                cubTri = TriangleCubature(G, cub.prescision, cub.internalConn);
+                if 0
+                if isfield(G, 'parent')
+                    knownCub = CoarseGrid2DCubature(G, cub.prescision, cub.internalConn);
+                else
+                    knownCub = TriangleCubature(G, cub.prescision, cub.internalConn);
+                end
+                end
+                knownCub = TriangleCubature(G, cub.prescision, cub.internalConn);
                 basis = dgBasis(dim, cub.prescision, 'legendre');
                 psi = basis.psi;
                 nDof = basis.nDof;
                 P = reshape(cell2mat(cellfun(@(p) p(x), psi, 'unif', false)), nDof, nDof)';
 
-                [W, xq, w, cellNo, faceNo] = cubTri.getCubature(elements, type);
+                [W, xq, w, cellNo, faceNo] = knownCub.getCubature(elements, type);
                 
                 if G.griddim == 3
                     xq = cub.map2face(xq, faceNo);
