@@ -116,28 +116,6 @@ classdef DGDiscretization < HyperbolicDiscretization
         end
         
         %-----------------------------------------------------------------%
-        function state = assignDofFromState(disc, state)
-            % Assign dofs from state (typically initial state). All dofs
-            % for dofNo > 0 are set to zero.
-            
-            % Set degree to disc.degree in all cells
-            state.degree = repmat(disc.degree, disc.G.cells.num, 1);
-            
-            % Create vector dofPos for position of dofs in state.sdof
-            state = disc.updateDofPos(state);
-            
-            state.nDof  = disc.getnDof(state);
-            sdof        = zeros(sum(state.nDof), size(state.s,2));
-            
-            % Assing constant dof equal to cell saturation in each cell
-            ix          = disc.getDofIx(state, 1);
-            sdof(ix, :) = state.s;
-
-            state.sdof = sdof;
-
-        end
-        
-        %-----------------------------------------------------------------%
         function state = updateDofPos(disc, state)
             % Update dosfPos (position of dofs in state.sdof) based on
             % changes in state.degree, or create dofPos vector if it does
@@ -579,7 +557,8 @@ classdef DGDiscretization < HyperbolicDiscretization
 %             x = [xSurf; xCell];
 %             c = [cSurf; cCell];
 %             [~, ix] = sort(c);
-%             x = disc.transformCoords(x, c);
+            xSurf = disc.transformCoords(xSurf, cSurf);
+            xCell = disc.transformCoords(xCell, cCell);
             % Evaluate saturation
             sSurf = disc.evaluateSaturation(xSurf, cSurf, state.sdof(:,1), state);
             [~, nSurf] = rlencode(cSurf);
@@ -649,7 +628,7 @@ classdef DGDiscretization < HyperbolicDiscretization
                 
                 % Limiters to be applied after each Newton iteration
 %                 if disc.meanTolerance < Inf
-%                     % If the mena cell saturation is outside [0,1],
+%                     % If the mean cell saturation is outside [0,1],
 %                     % something is wrong, and we reduce to order 0
 %                     s = state.s;
 %                     meanOutside = any(s < 0 - disc.meanTolerance | ...

@@ -157,8 +157,8 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
                     pink = [214, 154, 153]/255;
                     plotGrid(G, 'facec', 'none', 'edgecolor', pink);
                     
-                    cmap = mrstColormap('type', 'wateroil');
-%                     cmap = jet;
+%                     cmap = mrstColormap('type', 'wateroil');
+                    cmap = jet;
                     colormap(cmap)
                     axis equal tight
                     drawnow();
@@ -288,11 +288,8 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
                 end
                 state.sdof = sdof;
                 state.degree = repmat(transportModel.disc.degree, G.cells.num, 1);            
-            	state        = transportModel.disc.assignDofFromState(state);
+%             	state        = assignDofFromState(transportModel.disc, state);
             end
-            
-%             if 
-%             state.degree   = repmat(model.transportModel.disc.degree, G.cells.num, 1);
 
             cFsign   = fineToCoarseSign(G);
             cFacesno = rldecode(1:G.faces.num, diff(G.faces.connPos), 2).';

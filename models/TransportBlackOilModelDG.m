@@ -191,7 +191,7 @@ classdef TransportBlackOilModelDG < TransportBlackOilModel
             
             if nFill == 1
                 
-                if 0
+                if 1
                 bad = any((state.s > 1 + model.disc.meanTolerance) ...
                         | (state.s < 0 - model.disc.meanTolerance), 2);
                 
