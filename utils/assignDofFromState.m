@@ -22,5 +22,5 @@ function state = assignDofFromState(disc, state)
 end
 
 function flds = getDofFields()
-    flds = {'s', 'x', 'y'};
+    flds = {'s', 'x', 'y', 'components'};
 end
