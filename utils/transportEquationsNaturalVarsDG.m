@@ -292,18 +292,33 @@ end
 
     % Evaluate saturation/compositions at cubature points------------------
     % Cell cubature points
-    [~, xc, c] = disc.getCubature((1:G.cells.num)', 'volume');
-    xc         = disc.transformCoords(xc, c);
+    xdof0 = expandMatrixToCell(xdof0);
+    ydof0 = expandMatrixToCell(ydof0);
+    [~, xic, c] = disc.getCubature((1:G.cells.num)', 'volume');
+    [xc, yc, xc0, yc0, xOfv, xGfv, yOfv, yGfv] = deal(cell(size(xdof)));
+    [sWc , sOc , sGc , sTc , xc{:} , yc{:} ] = disc.evaluateDGVariable(xic, c, state , ...
+                             sWdof , sOdof , sGdof , sTdof , xdof{:} , ydof{:});
+    [sWc0, sOc0, sGc0, sTc0, xc0{:}, yc0{:}] = disc.evaluateDGVariable(xic, c, state0, ...
+                             sWdof0, sOdof0, sGdof0, sTdof0, xdof0{:}, ydof0{:});
     
-    [sWc , sOc , sGc , sTc] = disc.evaluateDGVariable(xc, c, state, sWdof, sOdof, sGdof, sTdof);
-    [sWc0, sOc0, sGc0]      = disc.evaluateDGVariable(xc, c, state, sWdof, sOdof, sGdof);
-
-
     % Face cubature points
-    [~, xf, ~, f] = disc.getCubature((1:G.cells.num)', 'surface');
+    [~, xif, ~, f] = disc.getCubature((1:G.cells.num)', 'surface');
     % Upstream cells
-    [~, ~, cfV, cfG] = disc.getSaturationUpwind(f, xf, T, flux, g, mob, sdof, state);
-
+    [~, ~, cfv, cfg] = disc.getSaturationUpwind(f, xif, T, flux, g, mob, sdof, state);
+    % Water saturation
+    [sWfv , sTWfv] = disc.evaluateDGVariable(xif, cfv(:,1), state, sWdof, sTdof, xdof{:}, ydof{:});
+    [sWfg , sTWfg] = disc.evaluateDGVariable(xif, cfg(:,1), state, sWdof, sTdof);
+    
+    
+    % Oil saturation
+    [sOfV , sTOfV, xOfv{:}, yOfv{:}] = disc.evaluateDGVariable(xif, cfv(:,2), state, sOdof, sTdof, xdof{:}, ydof{:});
+    [sOfG , sTOfg] = disc.evaluateDGVariable(xif, cfg(:,2), state, sOdof, sTdof);
+    % Gas saturation
+    [sGfV , sTGfV, xGfv{:}, yGfv{:}] = disc.evaluateDGVariable(xif, cfv(:,3), state, sGdof, sTdof, xdof{:}, ydof{:});
+    [sGfG , sTGfg] = disc.evaluateDGVariable(xif, cfg(:,3), state, sGdof, sTdof);
+    
+    
+    
 
 % [xM, yM] = deal(cell(ncom),1);
 % for cNo = 1:ncomp
