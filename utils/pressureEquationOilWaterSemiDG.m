@@ -77,13 +77,12 @@ faces = find(disc.internalConn);
 x = G.faces.centroids(faces,:);
 
 upCellsW = G.faces.neighbors(faces,1).*upcw + G.faces.neighbors(faces,2).*(~upcw); 
-xf = disc.transformCoords(x, upCellsW);
-sWf = disc.evaluateSaturation(xf, upCellsW, sWdof, state);
+sWf = disc.evaluateDGVariable(x, upCellsW, state, sWdof);
+
 vW = vW(sWf, 1, upCellsW);
 
 upCellsO = G.faces.neighbors(faces,1).*upco + G.faces.neighbors(faces,2).*(~upco); 
-xf = disc.transformCoords(x, upCellsO);
-sOf = disc.evaluateSaturation(xf, upCellsO, sOdof, state);
+sOf = disc.evaluateDGVariable(x, upCellsO, state, sOdof);
 vO = vO(sOf, 1, upCellsO);
 
 if otherPropPressure

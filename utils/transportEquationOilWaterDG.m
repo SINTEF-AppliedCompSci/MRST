@@ -142,10 +142,7 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
         
         % Saturations at cubature points
         [~, xcw, cNow] = disc.getCubature(wc, 'volume');
-        xcw = disc.transformCoords(xcw, cNow);
-        sWW = disc.evaluateSaturation(xcw, cNow, sWdof, state);
-        sOW = disc.evaluateSaturation(xcw, cNow, sOdof, state);
-        sTW = disc.evaluateSaturation(xcw, cNow, sTdof, state);
+        [sWW, sOW, sTW] = disc.evaluateDGVariable(xcw, cNow, state, sWdof, sOdof, sTdof);
         
         % Water well contributions
         integrand = @(psi, gradPsi) bW(cNow).*wflux(cNow)...
@@ -173,32 +170,20 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     % Evaluate saturation at cubature points-------------------------------
     % Cell cubature points
     [~, xc, c] = disc.getCubature((1:G.cells.num)', 'volume');
-    xc   = disc.transformCoords(xc, c);
-    sWc  = disc.evaluateSaturation(xc, c, sWdof , state );
-    sWc0 = disc.evaluateSaturation(xc, c, sWdof0, state0);
-    sOc  = disc.evaluateSaturation(xc, c, sOdof , state );
-    sOc0 = disc.evaluateSaturation(xc, c, sOdof0, state0);
-    sTc  = disc.evaluateSaturation(xc, c, sTdof , state );
-    
+    [sWc , sOc , sTc] = disc.evaluateDGVariable(xc, c, state , sWdof , sOdof , sTdof);
+    [sWc0, sOc0]      = disc.evaluateDGVariable(xc, c, state0, sWdof0, sOdof0);
     % Face cubature points
-    [WF, xf, ~, f] = disc.getCubature((1:G.cells.num)', 'surface');
+    [~, xf, ~, f] = disc.getCubature((1:G.cells.num)', 'surface');
     % Upstream cells
     [~, ~, cfV, cfG] = disc.getSaturationUpwind(f, xf, T, flux, ...
                             {gW, gO}, {mobW, mobO}, {sWdof, sOdof}, state);
-    
-    xfV   = disc.transformCoords(xf, cfV(:,1));
-    sWfV  = disc.evaluateSaturation(xfV, cfV(:,1), sWdof, state);
-    sTWfV = disc.evaluateSaturation(xfV, cfV(:,1), sTdof, state);
-    xfG   = disc.transformCoords(xf, cfG(:,1));
-    sWfG  = disc.evaluateSaturation(xfG, cfG(:,1), sWdof, state);
-    sTWfG = disc.evaluateSaturation(xfG, cfG(:,1), sTdof, state);
-                       
-    xfV   = disc.transformCoords(xf, cfV(:,2));
-    sOfV  = disc.evaluateSaturation(xfV, cfV(:,2), sOdof, state);
-    sTOfV = disc.evaluateSaturation(xfV, cfV(:,2), sTdof, state);
-    xfG   = disc.transformCoords(xf, cfG(:,2));
-    sOfG  = disc.evaluateSaturation(xfG, cfG(:,2), sOdof, state);
-    sTOfG = disc.evaluateSaturation(xfG, cfG(:,2), sTdof, state);
+    % Water saturation
+    [sWfV , sTWfV] = disc.evaluateDGVariable(xf, cfV(:,1), state, sWdof, sTdof);
+    [sWfG , sTWfG] = disc.evaluateDGVariable(xf, cfG(:,1), state, sWdof, sTdof);
+    % Oil saturation
+    [sOfV , sTOfV] = disc.evaluateDGVariable(xf, cfV(:,2), state, sOdof, sTdof);
+    [sOfG , sTOfG] = disc.evaluateDGVariable(xf, cfG(:,2), state, sOdof, sTdof);
+    %----------------------------------------------------------------------
     
     % Water equation-------------------------------------------------------
     if opt.solveForWater
@@ -278,7 +263,7 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
         % Face cubature foordinates
         [~, x, ~, fBC] = disc.getCubature(faces, 'face');
         cBC = sum(G.faces.neighbors(fBC,:),2);
-        [xR, ~, ~] = disc.transformCoords(x, cBC);
+%         [xR, ~, ~] = disc.transformCoords(x, cBC);
         % Mapping from BC faces to global faces
         globFace2BCface        = nan(G.faces.num,1);
         globFace2BCface(faces) = 1:numel(faces);        
@@ -287,11 +272,9 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
         sgn = 1 - 2*(G.faces.neighbors(faces, 1) == 0);
         isInj = vT(faces) > 0 & sgn < 0;
         % Upstream saturation
-        sWR  = model.disc.evaluateSaturation(xR, cBC, sWdof, state);
+        [sWR, sOR, sTR]  = disc.evaluateDGVariable(x, cBC, state, sWdof, sOdof, sTdof);
         sWBC = sL(locFaceNo,1).*isInj(locFaceNo) + sWR.*(~isInj(locFaceNo));
-        sOR  = model.disc.evaluateSaturation(xR, cBC, sOdof, state);
         sOBC = sL(locFaceNo,2).*isInj(locFaceNo) + sOR.*(~isInj(locFaceNo));
-        sTR  = model.disc.evaluateSaturation(xR, cBC, sTdof, state);
         sTBC = sum(sL(locFaceNo,:),2).*isInj(locFaceNo) + sTR.*(~isInj(locFaceNo));
         % Frational flow functions
         fWBC = fW(sWBC, sOBC, sTBC, cBC, cBC);

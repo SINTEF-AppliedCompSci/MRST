@@ -24,36 +24,27 @@ function [flagV, flagG, upCellsV, upCellsG, s_v, s_G] = getSaturationUpwindDG(di
     all2int(disc.internalConn) = 1:nnz(disc.internalConn);
     ix      = all2int(faces);
 
-    % Extract cells, trnasmissibilities velocities, total fluxed
-    % and gravity terms
+    % Extract cells, transmissibilities velocities, total fluxes and
+    % gravity terms
     cL = disc.N(ix,1);
     cR = disc.N(ix,2);
     T  = T(ix);
     flux = flux(faces);
     g  = cellfun(@(g) g(faces), g, 'unif', false);
 
-    % Transform to referece coordinates
-    [xL, ~, ~] = disc.transformCoords(x, cL);
-    [xR, ~, ~] = disc.transformCoords(x, cR);
-
     % Evaluate saturations and mobilities on each side of each face
     % at each quadrature point
     nPh = numel(sdof);
-    [sL, sR] = deal(zeros(size(xL,1),nPh));
+    [sL, sR] = deal(zeros(size(x,1),nPh));
     for phNo = 1:nPh
-        sL(:, phNo) = disc.evaluateSaturation(xL, cL, double(sdof{phNo}), state);
-        sR(:, phNo) = disc.evaluateSaturation(xR, cR, double(sdof{phNo}), state);
-%         mob{phNo} = mob{phNo}([sL; sR], [cL; cR]);
+        sL(:, phNo) = disc.evaluateDGVariable(x, cL, state, double(sdof{phNo}));
+        sR(:, phNo) = disc.evaluateDGVariable(x, cR, state, double(sdof{phNo}));
     end        
     s = [sL; sR];
     sT = sum(s,2);
     for phNo = 1:nPh
         mob{phNo} = mob{phNo}(s(:,phNo), sT, [cL; cR]);
     end        
-%     s = disc.evaluateSaturation([xL; xR], [cL; cR], sdof, state);
-%     sL = s(1:numel(cL)); sR = s(numel(cL)+1:end);
-%     mob{1} = mob{1}([sL; sR], [cL; cR]);
-%     mob{2} = mob{2}(1-[sL; sR], [cL; cR]);
 
     % Make fake faceUpstr function
     N = [1:numel(ix); numel(ix)+1:2*numel(ix)]';
@@ -64,20 +55,14 @@ function [flagV, flagG, upCellsV, upCellsG, s_v, s_G] = getSaturationUpwindDG(di
 
     % For each phase, assign upstram cell and corresponding
     % saturation for each quadrature point of each face
-%     nPh = numel(g);
-%     [upCellsV, upCellsG] = deal(repmat({cR}, 1, nPh));
     [upCellsV, upCellsG] = deal(repmat(cR, 1, nPh));    
     [s_v, s_G] = deal(cell(1, nPh));
     [s_v{:},s_G{:}] = deal(sR);
     for phNo = 1:nPh
         % Viscous upstream cell
         upCellsV(flagV(:,phNo), phNo) = cL(flagV(:,phNo));
-%         upCellsV{phNo}(flagV(:,phNo)) = cL(flagV(:,phNo));
-%         s_v{phNo}(flag_v(:,phNo)) = sL(flag_v(:,phNo));
         % Gravity upstram cell
         upCellsG(flagG(:,phNo), phNo) = cL(flagG(:,phNo));
-%         upCellsG{phNo}(flagG(:,phNo)) = cL(flagG(:,phNo));
-%         s_G{phNo}(flag_G(:,phNo)) = sL(flag_G(:,phNo));
     end
 
 end

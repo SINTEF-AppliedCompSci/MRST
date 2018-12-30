@@ -281,43 +281,28 @@ classdef DGDiscretization < HyperbolicDiscretization
         end
         
         %-----------------------------------------------------------------%
-        function sat = evaluateSaturation(disc, x, cells, dof, state)
-            % Evaluate saturation at coordinate x as seen from cell
-            %
-            % PARAMETERS:
-            %   x     - Coordinates in REFERENCE space
-            %   cells - Cells we want saturation value in (saturation
-            %               evaluated at coordinate x(ix,:) in cell(ix)
-            %   dof   - degrees of freedom for the phase we want the
-            %               saturation
-            %   state - State we get our dofs from (only used to get dofIx)
-            %
-            % RETURNS:
-            %   sat - Saturation values at coordinates x as seen from cells
+        function varargout = evaluateDGVariable(disc, x, cells, state, varargin)
             
             psi     = disc.basis.psi;
             nDof    = state.nDof;
             nDofMax = disc.basis.nDof;
             
-%             ix = disc.getDofIx(state, 1, cells);
-%             sat = dof(ix).*0;
-            sat = 0;
-            
-%             S = sparse(sum(state.nDof), );
-            for dofNo = 1:nDofMax
-                keep = nDof(cells) >= dofNo;
-                ix = disc.getDofIx(state, dofNo, cells(keep));
-%                 S = sparse(1:nnz(keep), ix, 1, nnz(keep), sum(state.nDof));
-                if all(keep)
-%                     sat = sat + (S*dof).*psi{dofNo}(x(keep,:));
-                    sat = sat + dof(ix).*psi{dofNo}(x(keep,:));
-                else
-%                     sat(keep) = sat(keep) + (S*dof).*psi{dofNo}(x(keep,:));
-                    sat(keep) = sat(keep) + dof(ix).*psi{dofNo}(x(keep,:));
+            x = disc.transformCoords(x, cells);
+            n = nargout;
+            varargout = cell([1,n]);
+            for vNo = 1:n
+                val = varargin{vNo}(cells)*0;
+                for dofNo = 1:nDofMax
+                    keep = nDof(cells) >= dofNo;
+                    ix = disc.getDofIx(state, dofNo, cells(keep));
+                    if all(keep)
+                        val = val + varargin{vNo}(ix).*psi{dofNo}(x(keep,:));
+                    else
+                        val(keep) = val(keep) + varargin{vNo}(ix).*psi{dofNo}(x(keep,:));
+                    end
                 end
-
+                varargout{vNo} = val;
             end
-            
         end
         
         %-----------------------------------------------------------------%
@@ -326,13 +311,13 @@ classdef DGDiscretization < HyperbolicDiscretization
 
             % Get cubature for all cells, transform coordinates to ref space
             [W, x, cellNo, ~] = disc.getCubature((1:disc.G.cells.num)', 'volume');
-            x = disc.transformCoords(x, cellNo);
+%             x = disc.transformCoords(x, cellNo);
             
             sdof = state.sdof;
             nPh  = size(sdof,2);
             s    = zeros(disc.G.cells.num, nPh);
             for phNo = 1:nPh
-                s(:,phNo) = W*disc.evaluateSaturation(x, cellNo, sdof(:,phNo), state);
+                s(:,phNo) = W*disc.evaluateDGVariable(x, cellNo, state, sdof(:,phNo));
             end
             s = s./disc.G.cells.volumes;
             
@@ -340,6 +325,18 @@ classdef DGDiscretization < HyperbolicDiscretization
             
         end
         
+        %-----------------------------------------------------------------%
+        function val = getCellMean(disc, dof, state)
+            % Get average cell value from dofs
+
+            % Get cubature for all cells
+            [W, x, cellNo, ~] = disc.getCubature((1:disc.G.cells.num)', 'volume');
+            val = W*disc.evaluateDGVariable(x, cellNo, state, dof);
+            val = val./disc.G.cells.volumes;
+            
+        end
+        
+        %-----------------------------------------------------------------%
         function dotProduct = dot(disc,u,v)
             dotProduct = sum(u.*v, 2);
         end
@@ -493,6 +490,7 @@ classdef DGDiscretization < HyperbolicDiscretization
             
         end
         
+        %-----------------------------------------------------------------%
         function [flag_v, flag_G, upCells_v, upCells_G, s_v, s_G] = getSaturationUpwind(disc, faces, x, T, vT, g, mob, sdof, state)
             % Explicit calculation of upstream cells. See getSaturationUpwindDG
             [flag_v, flag_G, upCells_v, upCells_G, s_v, s_G] ...
@@ -554,27 +552,17 @@ classdef DGDiscretization < HyperbolicDiscretization
             % Get all quadrature points for all cells
             [~, xSurf, cSurf, ~] = disc.getCubature(cells, 'surface', 'excludeBoundary', false);
             [~, xCell, cCell, ~] = disc.getCubature(cells, 'volume' );
-%             x = [xSurf; xCell];
-%             c = [cSurf; cCell];
-%             [~, ix] = sort(c);
-            xSurf = disc.transformCoords(xSurf, cSurf);
-            xCell = disc.transformCoords(xCell, cCell);
-            % Evaluate saturation
-            sSurf = disc.evaluateSaturation(xSurf, cSurf, state.sdof(:,1), state);
+            % Evaluate saturation at faces
+            sSurf = disc.evaluateDGVariable(xSurf, cSurf, state, state.sdof(:,1));
             [~, nSurf] = rlencode(cSurf);
             [sMins, sMaxs] = getMinMax(sSurf, nSurf);
-            sCell = disc.evaluateSaturation(xCell, cCell, state.sdof(:,1), state);
+            % Evaluate saturation at cells
+            sCell = disc.evaluateDGVariable(xCell, cCell, state, state.sdof(:,1));
             [~, nCell] = rlencode(cCell);
+            % Find min/max saturation
             [sMinc, sMaxc] = getMinMax(sCell, nCell);
             sMin = min(sMins, sMinc);
             sMax = max(sMaxs, sMaxc);
-%             % Evaluate saturation
-% %             s = disc.evaluateSaturation(x, c, state.sdof(:,1), state);
-%             % Find maxium and minimum values for each cell. Minimum values
-%             % returned are actually min(s,0)
-%             s = sparse(c, (1:numel(s))', s);
-%             sMax = full(max(s, [], 2));
-%             sMin = full(min(s, [], 2));
             
         end
         
@@ -596,18 +584,16 @@ classdef DGDiscretization < HyperbolicDiscretization
             end
             
             % Saturation function
-            s = @(x, c) disc.evaluateSaturation(x, c, sdof, state);                
+            s = @(x, c) disc.evaluateDGVariable(x, c, state, sdof);
             
             % Get reference coordinates
             xF    = G.faces.centroids(faces,:);            
             cells = G.faces.neighbors(faces,:);                
             cL    = cells(:,1);
-            xFL   = disc.transformCoords(xF, cL);
             cR    = cells(:,2);
-            xFR   = disc.transformCoords(xF, cR);
             
             % Find inteface jumps
-            jumpVal = abs(s(xFL, cL) - s(xFR, cR));
+            jumpVal = abs(s(xF, cL) - s(xF, cR));
             
         end
         

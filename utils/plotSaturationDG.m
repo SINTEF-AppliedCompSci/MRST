@@ -33,9 +33,7 @@ function [h, saturation, coords, keep, n] = plotSaturationDG(disc, state, vararg
         keep = keep | in | on;
     end
     
-    xt = disc.transformCoords(x, cellNo);
-    
-    saturation = @(state) disc.evaluateSaturation(xt, cellNo, state.sdof(:,opt.phaseNo), state);
+    saturation = @(state) disc.evaluateDGVariable(x, cellNo, state, state.sdof(:,opt.phaseNo));
     if opt.plot1d
         coords = {x};
     else

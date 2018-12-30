@@ -374,9 +374,10 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
                 if isfield(transportState, vn)
                     if model.isDG
                         x = model.fineTransportModel.G.cells.centroids;
-                        x = disc.transformCoords(x, p);
+%                         x = disc.transformCoords(x, p);
                         for phNo = 1:nPh
-                            state.(vn)(:,phNo) = disc.evaluateSaturation(x, p, transportState.(dvn)(:, phNo), transportState);
+%                             state.(vn)(:,phNo) = disc.evaluateSaturation(x, p, transportState.(dvn)(:, phNo), transportState);
+                            state.(vn)(:,phNo) = disc.evaluateDGVariable(x, p, transportState, transportState.(dvn)(:, phNo));
                         end
                     else                        
                         state.(vn) = transportState.(vn)(p,:);
