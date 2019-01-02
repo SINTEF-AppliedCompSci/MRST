@@ -30,8 +30,40 @@ function [problem, state] = transportEquationsNaturalVarsDG(state0, state, model
     % state.sdof
     state0 = disc.updateDofPos(state0);
     state  = disc.updateDofPos(state);
+    
+    ncomp = model.EOSModel.fluid.getNumberOfComponents();
+    [x,y] = deal(zeros(size(state.x)));
+    for cNo = 1:ncomp
+        x(:,cNo) = model.disc.getCellMean(state.xdof(:,cNo), state);
+        y(:,cNo) = model.disc.getCellMean(state.ydof(:,cNo), state);
+    end
+    dx = state.x./x;
+    dx(isnan(dx)) = 1;
+    state.xdof = state.xdof.*rldecode(dx, state.nDof, 1);
+    for cNo = 1:size(state.x,2)
+        ix = model.disc.getDofIx(state, 1, isinf(dx(:,cNo)));
+        state.xdof(ix,cNo) = state.x(isinf(dx(:,cNo)), cNo);
+    end
+    dy = state.y./y;
+    dy(isnan(dy)) = 1;
+    state.ydof = state.ydof.*rldecode(dy, state.nDof, 1);
+    for cNo = 1:size(state.y,2)
+        ix = model.disc.getDofIx(state, 1, isinf(dy(:,cNo)));
+        state.ydof(ix,cNo) = state.y(isinf(dy(:,cNo)), cNo);
+    end
+    s = zeros(G.cells.num,size(state.s,2));
+    for phNo = 1:size(state.s,2)
+        s(:,phNo) = model.disc.getCellMean(state.sdof(:,phNo), state);
+    end
+    ds = state.s./s;
+    ds(isnan(ds)) = 1;
+    state.sdof = state.sdof.*rldecode(ds, state.nDof, 1);
+    for phNo = 1:size(state.s,2)
+        ix = model.disc.getDofIx(state, 1, isinf(ds(:,phNo)));
+        state.sdof(ix,phNo) = state.s(isinf(ds(:,phNo)), phNo);
+    end
 
-    fluid = model.fluid;
+%     fluid = model.fluid;
     compFluid = model.EOSModel.fluid;
 
     % Properties at current timestep
@@ -51,16 +83,24 @@ function [problem, state] = transportEquationsNaturalVarsDG(state0, state, model
         sO = state.s(:,2);
         sG = state.s(:,3);
         stol = 1e-8;
-        pureWater = sO + sG < stol;
+        pureWater = sO + sG < stol | sG == stol | sO == stol;
         sO(~pureVapor & pureWater) = stol;
+        ix = disc.getDofIx(state, 1, ~pureVapor & pureWater);
+        sOdof(ix) = stol;
         sG(~pureLiquid & pureWater) = stol;
+        ix = disc.getDofIx(state, 1, ~pureLiquid & pureWater);
+        sGdof(ix) = stol;
 
         sO0 = state0.s(:,2);
         sG0 = state0.s(:,3);
         [pureLiquid0, pureVapor0, twoPhase0] = model.getFlag(state0);
-        pureWater0 = sO0 + sG0 < stol;
+        pureWater0 = sO0 + sG0 < stol | sG == stol | sO == stol;
         sO0(~pureVapor0 & pureWater0) = stol;
+        ix = disc.getDofIx(state, 1, ~pureVapor0 & pureWater0);
+        sOdof0(ix) = stol;
         sG0(~pureLiquid0 & pureWater0) = stol;
+        ix = disc.getDofIx(state, 1, ~pureLiquid0 & pureWater0);
+        sGdof0(ix) = stol;
     end
 
 
@@ -74,15 +114,15 @@ function [problem, state] = transportEquationsNaturalVarsDG(state0, state, model
     ix = disc.getDofIx(state, Inf, ~twoPhase);
     xdof(ix, :) = zdof(ix, :);
     ydof(ix, :) = zdof(ix, :);
-    if 0
+    if 1
         % TODO: Make function ensureMinimumFraction for dofs
-        x = ensureMinimumFraction(x);
-        [y, z_tol] = ensureMinimumFraction(y);
+        xdof = ensureMinimumFractionDG(disc, xdof, state);
+        [ydof, z_tol] = ensureMinimumFractionDG(disc, ydof, state);
+%         [y, z_tol] = ensureMinimumFraction(y);
     end
     xdof = expandMatrixToCell(xdof);
     ydof = expandMatrixToCell(ydof);
 
-    ncomp = model.EOSModel.fluid.getNumberOfComponents();
     [xnames, ynames, cnames] = deal(model.EOSModel.fluid.names);
     for i = 1:ncomp
         xnames{i} = ['v_', cnames{i}];
@@ -99,7 +139,8 @@ function [problem, state] = transportEquationsNaturalVarsDG(state0, state, model
     for i = 1:(ncomp-1)
         wdof{i} = ydof{i}(twoPhaseIx);
     end
-    sodof = sOdof(twoPhase);
+%     ix = disc.getDofIx(state, Inf, twoPhaseIx);
+    sodof = sOdof(twoPhaseIx);
 
     X = sGdof;
     ix = disc.getDofIx(state, Inf, pureLiquid);
@@ -114,7 +155,7 @@ if model.water
 
 else
     if ~opt.resOnly
-        [X, xdof{1:ncomp-1}, wdof{1:  ncomp-1}, sodof] = model.AutoDiffBackend.initVariablesAD(...
+        [X, xdof{1:ncomp-1}, wdof{1:ncomp-1}, sodof] = model.AutoDiffBackend.initVariablesAD(...
          X, xdof{1:ncomp-1}, wdof{1:ncomp-1}, sodof);    
     end
     primaryVars = {'sGsO', xnames{1:end-1}, ynames{1:end-1}, 'sato'};
@@ -158,28 +199,37 @@ end
 
 % sOdof0 = sOdof0./sTdof0;
 % sGdof0 = sGdof0./sTdof0;
-ix = disc.getDofIx(state, 1);
 
-[xdof{end}, wdof{end}] = deal(zeros(size(double(xdof{1}))));
+
+xdof{end} = zeros(size(double(xdof{1})));
+ix = disc.getDofIx(state, 1);
 xdof{end}(ix) = 1;
-wdof{end}(ix) = 1;
+
+
+wdof{end} = zeros(size(double(wdof{1})));
+ix = disc.getDofIx(state, 1, twoPhase);
+P = sparse(twoPhaseIx, 1:numel(twoPhaseIx), 1, sum(state.nDof), numel(twoPhaseIx));
+w = P*wdof{end};
+w(ix) = 1;
+wdof{end} = w(twoPhaseIx);
+% wdof{end}(ix) = 1;
 
 % xdof{end} = 1;
 % wdof{end} = 1;
-for i = 1:ncomp-1
-    xdof{end} = xdof{end} - xdof{i};
+for cNo = 1:ncomp-1
+    xdof{end} = xdof{end} - xdof{cNo};
     if any(twoPhase)
-        wdof{end} = wdof{end}-wdof{i};
+        wdof{end} = wdof{end}-wdof{cNo};
     end
 end
 
-for i = 1:ncomp
-    ydof{i} = xdof{i};
+for cNo = 1:ncomp
+    ydof{cNo} = xdof{cNo};
     if any(twoPhase)
-        ydof{i}(twoPhaseIx) = wdof{i};
+        ydof{cNo}(twoPhaseIx) = wdof{cNo};
     end
-    xdof{i}(pureVaporIx) = double(xdof{i}(pureVaporIx));
-    ydof{i}(pureLiquidIx) = double(ydof{i}(pureLiquidIx));
+    xdof{cNo}(pureVaporIx)  = double(xdof{cNo}(pureVaporIx));
+    ydof{cNo}(pureLiquidIx) = double(ydof{cNo}(pureLiquidIx));
 end
 
 cellJacMap = cell(numel(primaryVars), 1);
@@ -190,10 +240,11 @@ if isempty(twoPhaseIx) || opt.resOnly
 else
     % TODO: Implement for dg. Remember twoPhaseIx not the same as in
     % original code
-    n2ph = nnz(twoPhaseIx);
+    tp = find(twoPhase);
+    n2ph = nnz(tp);
     nVars = sum(sample.getNumVars());
     reorder = 1:nVars;
-    start = twoPhaseIx + nc;
+    start = tp + nc;
     stop = (nVars-n2ph+1):nVars;
     
     reorder(start) = stop;
@@ -201,7 +252,7 @@ else
     
     offset = ncomp+model.water;
     for i = 1:ncomp
-        cellJacMap{i + offset} = twoPhaseIx;
+        cellJacMap{i + offset} = tp;
     end
 end
 
@@ -241,6 +292,8 @@ rhoGf = op.faceAvg(sG.*rhoG)./max(op.faceAvg(sG), 1e-8);
 mobO = @(sO,sT,c) mobMult(c).*fluid.krO(sO./sT)./muO(c);
 mobG = @(sG,sT,c) mobMult(c).*fluid.krG(sG./sT)./muG(c);
 
+
+% Gravity flux
 gdz = model.getGravityGradient();
 gO  = rhoOf.*gdz;
 gG  = rhoGf.*gdz;
@@ -250,6 +303,7 @@ end
 P = sparse(find(op.internalConn), 1:nnz(op.internalConn), 1, G.faces.num, nnz(op.internalConn));
 gO = P*gO;
 gG = P*gG;
+
 % g = 
 
 
@@ -267,7 +321,7 @@ if model.water
 
     rhoWf = op.faceAvg(rhoW);
     muW   = fluid.muW(pW);
-    mobW  = @(sW,sT,c) mobMult(c).*fluid.krW(sW./sT)./muG(c);
+    mobW  = @(sW,sT,c) mobMult(c).*fluid.krW(sW./sT)./muW(c);
 
     gW    = rhoWf.*gdz;
 
@@ -290,18 +344,182 @@ else
     pressures = {p, p};
 end
 
+% Add gravity flux where we have BCs to get correct cell values
+bc = drivingForces.bc;
+if ~isempty(bc)
+    BCcells = sum(G.faces.neighbors(bc.face,:), 2);
+    dz = G.cells.centroids(BCcells, :) - G.faces.centroids(bc.face,:);
+    grav = model.getGravityVector();
+    rhoWBC = rhoW(BCcells);
+    rhoOBC = rhoO(BCcells);
+    rhoGBC = rhoG(BCcells);
+    gW(bc.face) = rhoWBC.*(dz*grav');
+    gO(bc.face) = rhoOBC.*(dz*grav');
+    gG(bc.face) = rhoGBC.*(dz*grav');
+    g = {gW, gO, gG};
+end    
+TgW  = T_all.*gW;          % Gravity volumetric flux, water
+TgO  = T_all.*gO;          % Gravity volumetric flux, oil
+TgG  = T_all.*gG;          % Gravity volumetric flux, oil
+% TgWc = flux2Vel(TgW);      % Map to cell velocity
+TgWc = {disc.velocityInterp.D{1}*TgW, disc.velocityInterp.D{2}*TgW, disc.velocityInterp.D{3}*TgW};
+TgWc = SpatialVector(TgWc{:});
+TgOc = {disc.velocityInterp.D{1}*TgO, disc.velocityInterp.D{2}*TgO, disc.velocityInterp.D{3}*TgO};
+TgOc = SpatialVector(TgOc{:});
+TgGc = {disc.velocityInterp.D{1}*TgG, disc.velocityInterp.D{2}*TgG, disc.velocityInterp.D{3}*TgG};
+TgGc = SpatialVector(TgGc{:});
+% TgOc = flux2Vel(TgO);
+TgW  = TgW./G.faces.areas; % Convert to gravity flux
+TgO  = TgO./G.faces.areas;
+TgG  = TgG./G.faces.areas;
+
+    frac = fractionalFlowFunctionsDG(mob);
+    
+    % Well contributions---------------------------------------------------
+    W = drivingForces.W;
+    if ~isempty(W)
+        % Total well flux, composition and mappings
+        perf2well = getPerforationToWellMapping(W);
+        wc        = vertcat(W.cells);
+        [wflux, mflux] = deal(zeros(G.cells.num,1));
+        wflux(wc) = sum(vertcat(wellSol.flux), 2)./G.cells.volumes(wc);
+        mflux(wc) = sum(vertcat(wellSol.components), 2)./G.cells.volumes(wc);
+        w_comp = vertcat(W.components);
+        a = w_comp(perf2well, :).*repmat(compFluid.molarMass, numel(wc), 1);
+        w_comp = zeros(G.cells.num,ncomp);
+        w_comp(wc,:) = bsxfun(@rdivide, a, sum(a, 2));
+        
+        
+        isInj     = wflux > 0;
+        compWell  = vertcat(W.compi);
+        compPerf  = zeros(G.cells.num, 2 + model.water);
+        compPerf(wc,:) = compWell(perf2well,:);
+        
+        % Saturations at cubature points
+        [xW, yW] = deal(cell(size(xdof)));
+        [~, xicw, cNow] = disc.getCubature(wc, 'volume');
+        [sWW, sOW, sGW, sTW, xW{:}, yW{:}] = disc.evaluateDGVariable(xicw, cNow, state, sWdof, sOdof, sGdof, sTdof, xdof{:}, ydof{:});
+        
+        fWW   = frac{1}({sWW,sOW,sGW}, sTW, [cNow, cNow, cNow]);
+        fOW   = frac{2}({sWW,sOW,sGW}, sTW, [cNow, cNow, cNow]);
+        fGW   = frac{3}({sWW,sOW,sGW}, sTW, [cNow, cNow, cNow]);
+        
+        xMW = model.EOSModel.getMassFraction(xW);
+        yMW = model.EOSModel.getMassFraction(yW);
+        
+        % Water well contributions
+        integrand = @(psi, gradPsi) rhoW(cNow).*wflux(cNow)...
+            .*(sTW.*fWW.*(~isInj(cNow)) + compPerf(cNow,1).*isInj(cNow)).*psi;
+        srcWW = disc.cellInt(integrand, wc, state, sWdof);
+         
+        rOqO = rhoO(cNow).*fOW.*wflux(cNow);
+        rGqG = rhoG(cNow).*fGW.*wflux(cNow);
+        rOqO(isInj(cNow)) = compPerf(isInj(cNow), 1 + model.water).*mflux(isInj(cNow));
+        rGqG(isInj(cNow)) = compPerf(isInj(cNow), 2 + model.water).*mflux(isInj(cNow));
+        
+        srcW = cell(1, ncomp + model.water);
+        for cNo = 1:ncomp
+            integrand = @(psi, gradPsi) ...
+            ( ...
+                (rOqO + rGqG).*w_comp(cNow, cNo).*isInj(cNow)     ...
+              + (rOqO.*xMW{cNo} + rGqG.*yMW{cNo}).*(~isInj(cNow)) ...
+            ).*psi;
+            srcW{cNo} = disc.cellInt(integrand, wc, state, sOdof);
+        end
+        
+        srcW{ncomp + 1} = srcWW;
+        
+%         % Store well fluxes
+%         ix     = disc.getDofIx(state, 1, wc);
+%         wfluxW = double(srcWW(ix));
+%         wfluxO = double(srcOW(ix));
+%         for wNo = 1:numel(W)
+%             perfind = perf2well == wNo;
+%             state.wellSol(wNo).qWs = sum(wfluxW(perfind));
+%             state.wellSol(wNo).qOs = sum(wfluxO(perfind));
+%         end
+        
+        isProd = ~isInj;
+        
+        integrand =  @(psi, gradPsi) ...
+            double(rOqO.*(sTW.*isProd(cNow) + ~isProd(cNow)))./fluid.rhoOS;
+        qo = disc.cellInt(integrand, wc, state, state.sdof(:,1));
+        
+        integrand =  @(psi, gradPsi) ...
+            double(rGqG.*(sTW.*isProd(cNow) + ~isProd(cNow)))./fluid.rhoGS;
+        qg = disc.cellInt(integrand, wc, state, state.sdof(:,1));
+
+        
+%         qo(isProd) = qo(isProd);%.*sT(wc(isProd));
+%         qg(isProd) = qg(isProd);%.*sT(wc(isProd));
+        ix = disc.getDofIx(state, 1, wc);
+        qo = qo(ix);
+        qg = qg(ix);
+        if model.water
+            qw = double(srcWW(ix));
+%              integrand =  @(psi, gradPsi) ...
+%             double(rWqW.*(sTW.*isProd(cNow) + ~isProd(cNow)))./fluid.rhoWS;
+%             qw = disc.cellInt(integrand, wc, state, state.sdof(:,1));
+%             qw = double(rWqW)./fluid.rhoWS;
+%             qw(isProd) = qw(isProd).*sT(wc(isProd));
+        end
+        
+        compSrc = cell2mat(cellfun(@double, srcW, 'unif', false));
+        compSrc = compSrc(ix,:);
+        wf = wflux(wc).*G.cells.volumes(wc);
+        for wNo = 1:numel(W)
+            perfIx = perf2well == wNo;
+            state.wellSol(wNo).components = compSrc(perfIx, :);
+            state.wellSol(wNo).qGs        = sum(qg(perfIx));
+            state.wellSol(wNo).qOs        = sum(qo(perfIx));
+            if model.water
+                state.wellSol(wNo).qWs = sum(qw(perfIx));
+            end
+
+            state.wellSol(wNo).qTr    = sum(wf(perfIx));
+            state.wellSol(wNo).status = true;
+            state.wellSol(wNo).type   = W(wNo).type;
+            state.wellSol(wNo).val    = W(wNo).val;
+        end
+%         for i = 1:numel(W)
+%             state.wellSol(i).components = compSrc(perf2well == i, :);
+%             state.wellSol(i).qGs = sum(qg(perf2well == i));
+%             state.wellSol(i).qOs = sum(qo(perf2well == i));
+%             if model.water
+%                 state.wellSol(i).qWs = sum(qw(perf2well == i));
+%             end
+% 
+%             state.wellSol(i).qTr = sum(wflux(perf2well == i));
+%             state.wellSol(i).status = true;
+%             state.wellSol(i).type = W(i).type;
+%             state.wellSol(i).val = W(i).val;
+%         end
+                
+%         % Store well fluxes
+%         ix     = disc.getDofIx(state, 1, wc);
+%         wfluxW = double(srcWW(ix));
+%         wfluxO = double(srcOW(ix));
+%         for wNo = 1:numel(W)
+%             perfind = perf2well == wNo;
+%             state.wellSol(wNo).qWs = sum(wfluxW(perfind));
+%             state.wellSol(wNo).qOs = sum(wfluxO(perfind));
+%         end
+
+    end
+
     % Evaluate saturation/compositions at cubature points------------------
     % Cell cubature points
     xdof0 = expandMatrixToCell(xdof0);
     ydof0 = expandMatrixToCell(ydof0);
-    [~, xic, c] = disc.getCubature((1:G.cells.num)', 'volume');
     [xc, yc, xc0, yc0, xOfv, xGfv, yOfv, yGfv] = deal(cell(size(xdof)));
+    
+    [~, xic, c] = disc.getCubature((1:G.cells.num)', 'volume');
     [sWc , sOc , sGc , sTc , xc{:} , yc{:} ] = disc.evaluateDGVariable(xic, c, state , ...
                              sWdof , sOdof , sGdof , sTdof , xdof{:} , ydof{:});
     [sWc0, sOc0, sGc0, sTc0, xc0{:}, yc0{:}] = disc.evaluateDGVariable(xic, c, state0, ...
                              sWdof0, sOdof0, sGdof0, sTdof0, xdof0{:}, ydof0{:});
     
-    % Face cubature points
+    % Face cubature pointsl
     [~, xif, ~, f] = disc.getCubature((1:G.cells.num)', 'surface');
     % Upstream cells
     [~, ~, cfv, cfg] = disc.getSaturationUpwind(f, xif, T, flux, g, mob, sdof, state);
@@ -309,29 +527,140 @@ end
     [sWfv , sTWfv] = disc.evaluateDGVariable(xif, cfv(:,1), state, sWdof, sTdof, xdof{:}, ydof{:});
     [sWfg , sTWfg] = disc.evaluateDGVariable(xif, cfg(:,1), state, sWdof, sTdof);
     
-    
     % Oil saturation
-    [sOfV , sTOfV, xOfv{:}, yOfv{:}] = disc.evaluateDGVariable(xif, cfv(:,2), state, sOdof, sTdof, xdof{:}, ydof{:});
-    [sOfG , sTOfg] = disc.evaluateDGVariable(xif, cfg(:,2), state, sOdof, sTdof);
+    [sOfv , sTOfv, xOfv{:}, yOfv{:}] = disc.evaluateDGVariable(xif, cfv(:,2), state, sOdof, sTdof, xdof{:}, ydof{:});
+    [sOfg , sTOfg] = disc.evaluateDGVariable(xif, cfg(:,2), state, sOdof, sTdof);
     % Gas saturation
-    [sGfV , sTGfV, xGfv{:}, yGfv{:}] = disc.evaluateDGVariable(xif, cfv(:,3), state, sGdof, sTdof, xdof{:}, ydof{:});
-    [sGfG , sTGfg] = disc.evaluateDGVariable(xif, cfg(:,3), state, sGdof, sTdof);
+    [sGfv , sTGfv, xGfv{:}, yGfv{:}] = disc.evaluateDGVariable(xif, cfv(:,3), state, sGdof, sTdof, xdof{:}, ydof{:});
+    [sGfg , sTGfg] = disc.evaluateDGVariable(xif, cfg(:,3), state, sGdof, sTdof);
     
     
+    %----------------------------------------------------------------------
     
+    xMc   = model.EOSModel.getMassFraction(xc);
+    xMc0  = model.EOSModel.getMassFraction(xc0);
+    xMOfv = model.EOSModel.getMassFraction(xOfv);
+    xMGfv = model.EOSModel.getMassFraction(xGfv);
+    
+    yMc   = model.EOSModel.getMassFraction(yc);
+    yMc0  = model.EOSModel.getMassFraction(yc0);
+    yMOfv = model.EOSModel.getMassFraction(yOfv);
+    yMGfv = model.EOSModel.getMassFraction(yGfv);
+    
+    for cNo = 1:ncomp
+       xMc{cNo} =  xMc{cNo}.*sTc;
+       yMc{cNo} =  yMc{cNo}.*sTc;
+       
+       xMc0{cNo} = xMc0{cNo}.*sTc0;
+       yMc0{cNo} = yMc0{cNo}.*sTc0;
+       
+       xMOfv{cNo} = xMOfv{cNo}.*sTOfv;
+       yMGfv{cNo} = yMGfv{cNo}.*sTGfv;
+    end
+    
+%     fWc   = frac{1}({sWc ,sOc ,sGc }, sTc  , [c,c,c]);
+%     fWv   = frac{1}({sWfv,sOfv,sGfv}, sTWfv, cfv    );
+%     fWg   = frac{1}({sWfg,sOfg,sGfg}, sTWfg, cfg    );
 
-% [xM, yM] = deal(cell(ncom),1);
-% for cNo = 1:ncomp
+%     fOc   = frac{2}({sWc ,sOc ,sGc }, sTc  , [c,c,c]);
+%     fOv   = frac{2}({sWfv,sOfv,sGfv}, sTOfv, cfv    );
+%     fOg   = frac{2}({sWfg,sOfg,sGfg}, sTOfg, cfg    );
 %     
-% end
+%     fGc   = frac{3}({sWc ,sOc ,sGc }, sTc  , [c,c,c]);
+%     fGv   = frac{3}({sWfv,sOfv,sGfv}, sTGfv, cfv    );
+%     fGg   = frac{3}({sWfg,sOfg,sGfg}, sTGfg, cfg    );
+    
+    % Water equation + ncomp component equations
+    [eqs, types, names] = deal(cell(1, 2*ncomp + model.water));
 
-% for i = 1:ncomp
-%     xM{i} = xM{i}.*sT;
-%     yM{i} = yM{i}.*sT;
-%     
-%     xM0{i} = xM0{i}.*sT0;
-%     yM0{i} = yM0{i}.*sT0;
-% end
+    % Water equation-------------------------------------------------------
+    if model.water
+        wIx = ncomp + 1;
+        
+        fWc   = frac{1}({sWc ,sOc ,sGc }, sTc  , [c,c,c]);
+        
+        % Cell values
+        mobOc = mobO(sOc,sTc,c);
+        mobGc = mobO(sGc,sTc,c);
+        % Face values
+        fWfv   = frac{1}({sWfv,sOfv,sGfv}, sTWfv, cfv    );
+        fWfg   = frac{1}({sWfg,sOfg,sGfg}, sTWfg, cfg    );
+        mobWfg = mobW(sWfg,sTWfg,cfg(:,1));
+        mobOfg = mobO(sOfg,sTOfg,cfg(:,2));
+        mobGfg = mobG(sGfg,sTGfg,cfg(:,3));
+        % Accumulation term
+        acc = @(psi) (pvMult(c) .*rock.poro(c).*rhoW(c) .*sWc - ...
+                      pvMult0(c).*rock.poro(c).*rhoW0(c).*sWc0).*psi/dt;
+        % Convection term
+        conv = @(gradPsi) rhoW(c).*fWc.*(disc.dot(vTc(c,:),gradPsi) ...
+                        + mobOc.*disc.dot(TgWc(c,:) - TgOc(c,:),gradPsi) ...
+                        + mobGc.*disc.dot(TgWc(c,:) - TgGc(c,:),gradPsi));
+        integrand = @(psi, gradPsi) acc(psi) - conv(gradPsi);
+        % Integrate integrand*psi{dofNo} over all cells for dofNo = 1:nDof
+        cellIntegralW = disc.cellInt(integrand, [], state, sWdof);
+        % Flux term
+        integrand = @(psi) ...
+            (sTWfv.*rhoW(cfv(:,1)).*fWfv.*vT(f) ...
+                  + rhoW(cfg(:,1)).*fWfg.*mobOfg.*(TgW(f) - TgO(f)) ...
+                  + rhoW(cfg(:,1)).*fWfg.*mobGfg.*(TgW(f) - TgG(f))).*psi;
+        % Integrate integrand*psi{dofNo} over all cells surfaces for dofNo = 1:nDof
+        faceIntegralW = disc.faceFluxInt(integrand, [], state, sWdof);
+        % Sum integrals
+        water = cellIntegralW + faceIntegralW;
+        % Add well contributions
+%         W = [];
+        if ~isempty(W)
+            ix = disc.getDofIx(state, Inf, wc);
+            water(ix) = water(ix) - srcWW(ix);
+        end
+        
+    end
+    
+    %----------------------------------------------------------------------
+    
+    % Component equations--------------------------------------------------
+    fOc   = frac{2}({sWc ,sOc ,sGc }, sTc  , [c,c,c]);
+    fOfv   = frac{2}({sWfv,sOfv,sGfv}, sTOfv, cfv    );
+    fOfg   = frac{2}({sWfg,sOfg,sGfg}, sTOfg, cfg    );
+    
+    fGc   = frac{3}({sWc ,sOc ,sGc }, sTc  , [c,c,c]);
+    fGfv   = frac{3}({sWfv,sOfv,sGfv}, sTGfv, cfv    );
+    fGfg   = frac{3}({sWfg,sOfg,sGfg}, sTGfg, cfg    );
+    for cNo = 1:ncomp
+        acc = @(psi) (pvMult(c) .*rock.poro(c).*rhoO(c) .*sOc./sTc .*xMc{cNo}  - ...
+                      pvMult0(c).*rock.poro(c).*rhoO0(c).*sOc0./sTc0.*xMc0{cNo} + ...     
+                      pvMult(c) .*rock.poro(c).*rhoG(c) .*sGc./sTc .*yMc{cNo}  - ...
+                      pvMult0(c).*rock.poro(c).*rhoG0(c).*sGc0./sTc0.*yMc0{cNo}).*psi/dt;
+
+        conv = @(gradPsi) 0;
+        integrand = @(psi, gradPsi) acc(psi) - conv(gradPsi);
+
+        cellIntegral = disc.cellInt(integrand, [], state, sOdof);
+        integrand = @(psi) ...
+        ( ...
+         sTOfv.*rhoO(cfv(:,2)).*fOfv.*xMOfv{cNo}.*vT(f) ...
+              + rhoO(cfg(:,2)).*fOfg.*xMOfv{cNo}.*mobWfg.*(TgO(f) - TgW(f))   ...
+              + rhoO(cfg(:,2)).*fOfg.*xMOfv{cNo}.*mobGfg.*(TgO(f) - TgG(f)) + ...
+         sTGfv.*rhoG(cfv(:,3)).*fGfv.*yMGfv{cNo}.*vT(f) ...
+              + rhoG(cfg(:,3)).*fGfg.*yMGfv{cNo}.*mobWfg.*(TgG(f) - TgW(f)) ...
+              + rhoG(cfg(:,3)).*fGfg.*yMGfv{cNo}.*mobOfg.*(TgG(f) - TgO(f)) ...
+        ).*psi;
+        % Integrate integrand*psi{dofNo} over all cells surfaces for dofNo = 1:nDof
+        faceIntegral = disc.faceFluxInt(integrand, [], state, sOdof);
+
+        eqs{cNo} = cellIntegral + faceIntegral;
+        if ~isempty(W)
+            ix = disc.getDofIx(state, Inf, wc);
+            eqs{cNo}(ix) = eqs{cNo}(ix) - srcW{cNo}(ix);
+        end
+        names{cNo} = compFluid.names{cNo};
+        types{cNo} = 'cell';
+    end
+    eqs{wIx} = water;
+    names{wIx} = 'water';
+    types{wIx} = 'cell';
+    
+    %----------------------------------------------------------------------
 
 if model.extraStateOutput
     bO = rhoO./fluid.rhoOS;
@@ -341,132 +670,7 @@ if model.extraStateOutput
 end
 state = model.storeDensities(state, rhoW, rhoO, rhoG);
 
-
-components = getComponentsTwoPhaseSimpleWater(model, rho, sWT, xM, yM);
-
-upstr = model.operators.faceUpstr;
-[q_phase, q_components] = computeSequentialFluxes(...
-    state, g, vT, T, mob, rho, components, upstr, model.upwindType);
-
-pv = pvMult.*model.operators.pv;
-pv0 = pvMult0.*model.operators.pv;
-
-compFlux = zeros(size(model.operators.N, 1), ncomp);
-
-% water equation + n component equations
-[eqs, types, names] = deal(cell(1, 2*ncomp + model.water));
-for i = 1:ncomp
-    names{i} = compFluid.names{i};
-    types{i} = 'cell';
-    vi = q_components{i};
-    eqs{i} = (1/dt).*( ...
-                    pv.*rhoO.*sO.*xM{i} - pv0.*rhoO0.*sO0.*xM0{i} + ...
-                    pv.*rhoG.*sG.*yM{i} - pv0.*rhoG0.*sG0.*yM0{i}) + s.Div(vi);
-      
-   compFlux(:, i) = double(vi);
-end
-state.componentFluxes = compFlux;
-
-if model.water
-    wix = ncomp+1;
-    vw = q_components{ncomp+1};
-    eqs{wix} = (1/dt).*(pv.*rhoW.*sW.*sT - pv0.*rhoW0.*sW0.*sT0) + s.Div(vw);
-    names{wix} = 'water';
-    types{wix} = 'cell';
-    state = model.storeFluxes(state, q_phase{:});
-else
-    state = model.storeFluxes(state, [], q_phase{:});
-end
-
-comps = cellfun(@(x, y) {x, y}, xM, yM, 'UniformOutput', false);
-
-[eqs, state] = model.addBoundaryConditionsAndSources(eqs, names, types, state, ...
-                                                 pressures, sat, mob, rho, ...
-                                                 {}, comps, ...
-                                                 drivingForces);
-
-
-% Finally, add in and setup well equations
-if ~isempty(W)
-    mflux = sum(vertcat(wellSol.components), 2);
-    wflux = sum(vertcat(wellSol.flux), 2);
-
-    perf2well = getPerforationToWellMapping(W);
-    wc    = vertcat(W.cells);
-    w_comp = vertcat(W.components);
-    a = w_comp(perf2well, :).*repmat(compFluid.molarMass, numel(wc), 1);
-    w_comp = bsxfun(@rdivide, a, sum(a, 2));
-
-    isInj = wflux > 0;
-    compWell = vertcat(W.compi);
-    compPerf = compWell(perf2well, :);
-
-    x_comp = cellfun(@(v) v(wc), xM, 'UniformOutput', false);
-    y_comp = cellfun(@(v) v(wc), yM, 'UniformOutput', false);
-
-    mobOw = mobO(wc);
-    mobGw = mobG(wc);
-
-    rhoOw = rhoO(wc);
-    rhoGw = rhoG(wc);
-
-    if model.water
-        mobWw = mobW(wc);
-        rhoWw = rhoW(wc);
-        totMobw = mobWw + mobOw + mobGw;
-        f_w_w = mobWw./totMobw;
-        f_w_w = sT(wc).*f_w_w;
-
-        f_w_w(isInj) = compPerf(isInj, 1);
-        rWqW = rhoWw.*f_w_w.*wflux;
-        eqs{wix}(wc) = eqs{wix}(wc) - rWqW;
-    else
-        totMobw = mobOw + mobGw;
-    end
-    f_o_w = mobOw./totMobw;
-    f_g_w = mobGw./totMobw;
-    rOqO = rhoOw.*f_o_w.*wflux;
-    rGqG = rhoGw.*f_g_w.*wflux;
-
-
-    rOqO(isInj) = compPerf(isInj, 1 + model.water).*mflux(isInj);
-    rGqG(isInj) = compPerf(isInj, 2 + model.water).*mflux(isInj);
-
-    sources = cell(ncomp, 1);
-    compSrc = zeros(numel(wc), ncomp);
-    for i = 1:ncomp
-        src =       (rOqO + rGqG).*w_comp(:, i).*isInj...
-                   +(rOqO.*x_comp{i} + rGqG.*y_comp{i}).*~isInj;
-        eqs{i}(wc) = eqs{i}(wc) - src;
-        compSrc(:, i) = double(src);
-        sources{i} = src;    
-    end
-
-    qg = double(rGqG)./fluid.rhoGS;
-    qo = double(rOqO)./fluid.rhoOS;
-
-    isProd = ~isInj;
-    qo(isProd) = qo(isProd).*sT(wc(isProd));
-    qg(isProd) = qg(isProd).*sT(wc(isProd));
-    if model.water
-        qw = double(rWqW)./fluid.rhoWS;
-        qw(isProd) = qw(isProd).*sT(wc(isProd));
-    end
-    for i = 1:numel(W)
-        state.wellSol(i).components = compSrc(perf2well == i, :);
-        state.wellSol(i).qGs = sum(qg(perf2well == i));
-        state.wellSol(i).qOs = sum(qo(perf2well == i));
-        if model.water
-            state.wellSol(i).qWs = sum(qw(perf2well == i));
-        end
-
-        state.wellSol(i).qTr = sum(wflux(perf2well == i));
-        state.wellSol(i).status = true;
-        state.wellSol(i).type = W(i).type;
-        state.wellSol(i).val = W(i).val;
-    end
-end
-
+z_tol = 1e-8;
 for i = 1:ncomp
     ix = i + ncomp + model.water;
     names{ix}= ['f_', compFluid.names{i}];
@@ -481,14 +685,15 @@ for i = 1:ncomp
     end    
 end
 massT = model.getComponentScaling(state0);
-scale = (dt./s.pv)./massT;
+scale = (dt./op.pv)./massT;
 if model.water
-    wscale = dt./(s.pv*mean(double(rhoW0)));
-    eqs{wix} = eqs{wix}.*wscale;
+    wscale = dt./(op.pv*mean(double(rhoW0)));
+    wscale = rldecode(wscale, state.nDof);
+    eqs{wIx} = eqs{wIx}.*wscale;
 end
-
-for i = 1:ncomp
-    eqs{i} = eqs{i}.*scale;
+scale = rldecode(scale, state.nDof);
+for cNo = 1:ncomp
+    eqs{cNo} = eqs{cNo}.*scale;
 end
 
 
@@ -499,9 +704,28 @@ if model.reduceLinearSystem
 else
     problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 end
+
+if 0
+    
+    eqsDG = eqs;
+    load('fv.mat');
+    [d, djac] = deal(cell(size(eqs)));
+    
+    for eqNo = 1:numel(eqs)
+        d{eqNo} = eqs{eqNo} - eqsDG{eqNo};
+        djac{eqNo} = cellfun(@(d) norm(d, 'fro'), d{eqNo}.jac);
+        djacS{eqNo} = cellfun(@(d,e) norm(d, 'fro')./norm(e, 'fro'), d{eqNo}.jac, eqs{eqNo}.jac);
+    end
+    dval = cellfun(@(d) norm(d.val), d);
+    
+    
+%     djac = cellfun(@(d) norm(d.val), d, ');
+    
 end
 
-% Expang single scalar values to one per cell------------------------------
+end
+
+% Expand single scalar values to one per cell------------------------------
 function v = expandSingleValue(v,G)
     if numel(double(v)) == 1
         v = v*ones(G.cells.num,1);

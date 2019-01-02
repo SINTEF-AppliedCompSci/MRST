@@ -1,12 +1,11 @@
-function state = dgLimiter(disc, state, bad, type, varargin)
+function state = dgLimiter(disc, state, bad, var, type, varargin)
 
     opt = struct('plot'  , false);
     opt = merge_options(opt, varargin{:});
     
     nDofMax = disc.basis.nDof;
     G       = disc.G;
-    sdof    = state.sdof;
-    
+    dof    = state.([var, 'dof']);
     
     if opt.plot
         figure(1); clf; hold on
@@ -18,39 +17,39 @@ function state = dgLimiter(disc, state, bad, type, varargin)
          case 'kill'
             % Simple "limiter" that reduces to dG(0) for bad cells
             ix = disc.getDofIx(state, 1, bad);
-            sdof(ix,:) = state.s(bad,:);
+            dof(ix,:) = state.(var)(bad,:);
             % Remove dofs for dofNo > 1
             if disc.degree > 0
                 ix         = disc.getDofIx(state, 2:nDofMax, bad);
-                sdof(ix,:) = [];
+                dof(ix,:) = [];
                 state.degree(bad) = 0;
             end
             % Assign new dofs to state
-            state.sdof = sdof;
+            state.([var, 'dof']) = dof;
 
         case 'tvb'
             % TVB limiter
             
-            nPh = size(sdof,2);
+            nPh = size(dof,2);
             for phNo = 1:nPh
-                dofbar = approximatGradient(sdof(:,phNo), state, disc);
+                dofbar = approximatGradient(dof(:,phNo), state, disc);
                 dofbar = dofbar(bad,:)';
                 dofbar = dofbar(:);
                 dofbar(isnan(dofbar)) = 0;
                 ix = disc.getDofIx(state, (1:G.griddim)+1, bad);
-                sdof(ix,phNo) = dofbar;
+                dof(ix,phNo) = dofbar;
             end
             
             if disc.degree > 1
                 ix = disc.getDofIx(state, (G.griddim+2):nDofMax, bad);
-                sdof(ix,:) = [];
+                dof(ix,:) = [];
                 state.degree(bad) = 1;
             end
-            state.sdof = sdof;
+            state.([var, 'dof']) = dof;
             
         case 'scale'
             
-            s = state.s;
+            s = state.(var);
             [sMin, sMax] = disc.getMinMaxSaturation(state);
             theta = [(s(:,1) - 0)./(s(:,1) - sMin), ...
                      (1 - s(:,1))./(sMax - s(:,1)), ...
@@ -61,13 +60,13 @@ function state = dgLimiter(disc, state, bad, type, varargin)
             
             for dofNo = 2:nDofMax%(1:G.griddim)+1
                 ix = disc.getDofIx(state, dofNo, (1:G.cells.num)', true);
-                sdof(ix(ix>0),:) = sdof(ix(ix>0),:).*theta(ix>0);
+                dof(ix(ix>0),:) = dof(ix(ix>0),:).*theta(ix>0);
             end
             
             satIx = state.degree > 0;
             dofIx = disc.getDofIx(state, 1, satIx);
-            sdof(dofIx,:) = (sdof(dofIx,:) - s(satIx,:)).*theta(satIx) + s(satIx,:);
-            state.sdof = sdof;
+            dof(dofIx,:) = (dof(dofIx,:) - s(satIx,:)).*theta(satIx) + s(satIx,:);
+            state.([var, 'dof']) = dof;
             [sMin, sMax] = disc.getMinMaxSaturation(state);
             if any(sMin < 0 - eps | sMax > 1 + eps)
                 warning('Some saturations still outside [0,1]')
@@ -76,11 +75,11 @@ function state = dgLimiter(disc, state, bad, type, varargin)
             ind = theta < 1;
             if disc.degree > 1 && 0
                 ix = disc.getDofIx(state, (G.griddim+2):nDofMax, ind);
-                sdof(ix,:) = [];
+                dof(ix,:) = [];
                 state.degree(ind & state.degree > 1) = 1;
 %                 sdof(ix,:) = 0;
             end
-            state.sdof = sdof;
+            state.([var, 'dof']) = dof;
             state.scaled = ind;
             
         case 'orderReduce'
@@ -93,10 +92,10 @@ function state = dgLimiter(disc, state, bad, type, varargin)
                   
             if any(bad)
                 ix = disc.getDofIx(state, (G.griddim + 2):nDofMax, bad);
-                sdof(ix,:) = [];
+                dof(ix,:) = [];
                 state.degree(bad) = 1;
 %                 sdof(ix,:) = 0;
-                state.sdof = sdof;
+                state.([var, 'dof']) = dof;
             end
 
     end

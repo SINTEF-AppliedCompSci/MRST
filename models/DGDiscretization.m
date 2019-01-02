@@ -629,14 +629,14 @@ classdef DGDiscretization < HyperbolicDiscretization
                     if disc.outTolerance < Inf && 1
                         % If saturation is outside [0,1], we reduce to order 1
                         if 0
-                            state = dgLimiter(disc, state, check, 'scale', 'plot', disc.plotLimiterProgress);
+                            state = dgLimiter(disc, state, check, 's', 'scale', 'plot', disc.plotLimiterProgress);
                         else
                             [sMin, sMax] = disc.getMinMaxSaturation(state);
                             outside = sMin < 0 - disc.outTolerance | ...
                                       sMax > 1 + disc.outTolerance;
                             bad = outside & check;
                             if any(bad)
-                                state = dgLimiter(disc, state, bad, disc.outLimiter, 'plot', disc.plotLimiterProgress);
+                                state = dgLimiter(disc, state, bad, 's', disc.outLimiter, 'plot', disc.plotLimiterProgress);
                             end
                         end
                     end
@@ -651,7 +651,7 @@ classdef DGDiscretization < HyperbolicDiscretization
 %                         if size(jump,1) == 1; jump = jump'; end
                         bad = jump & check;
                         if any(bad)
-                            state = dgLimiter(disc, state, bad, disc.jumpLimiter, 'plot', disc.plotLimiterProgress);
+                            state = dgLimiter(disc, state, bad, 's', disc.jumpLimiter, 'plot', disc.plotLimiterProgress);
                         end
                     end
                 end
@@ -659,7 +659,7 @@ classdef DGDiscretization < HyperbolicDiscretization
                 % Limiters to be applied after convergence
                 if disc.degree > 0
                     % Scale solutions so that 0 <= s <= 1
-                    state = dgLimiter(disc, state, check, 'scale', 'plot', disc.plotLimiterProgress);
+                    state = dgLimiter(disc, state, check, 's', 'scale', 'plot', disc.plotLimiterProgress);
                     if disc.jumpTolerance < Inf
                         % Limit saturation slope in cells with interface jumps
                         % larger than threshold
