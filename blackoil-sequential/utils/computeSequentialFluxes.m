@@ -78,7 +78,7 @@ function q = computePhaseVolumetricFluxes(vT, T, mob_f, G)
     end
     nph = numel(mob_f);
     q = cell(nph, 1);
-    mob_t = 0;
+    mob_t = zeros(size(vT));
     for i = 1:nph
         mob_t = mob_t + mob_f{i};
     end
@@ -89,7 +89,7 @@ function q = computePhaseVolumetricFluxes(vT, T, mob_f, G)
         if isempty(G)
             q{i} = f.*vT;
         else
-            g = 0;
+            g = zeros(size(vT));
             for j = 1:nph
                 if i == j
                     continue
