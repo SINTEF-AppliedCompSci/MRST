@@ -1,48 +1,44 @@
-mrstModule add msrsb compositional dg gasinjection ad-blackoil ...
-    blackoil-sequential ad-core ad-props coarsegrid mrst-gui vista
-mrstVerbose on
+useWater = true;
+caseName = 'verysimple';
+p = 150*barsa;
+bhp = 100*barsa;
+pvi = 0.2;
+nstep = 30;
+time = 1*year;
+n = 10;
 
-%%
-
-% caseName = 'simple_1d_wat';
-caseName = 'simple_3ph';
-[state0, modelFI, schedule, CG] = setupCompositionalPaperCase(caseName);
-modelFI = NaturalVariablesCompositionalModel(modelFI.G, modelFI.rock, modelFI.fluid, modelFI.EOSModel.fluid);
-
-%%
-
-G     = modelFI.G;
-rock  = modelFI.rock;
-fluid = modelFI.fluid;
-compFluid = modelFI.EOSModel.fluid;
+[G, rock, state0, schedule, fluid, eos] = ...
+    getTest1D_compositional(n, 'water', useWater, ...
+                               'fluid', caseName, ...
+                               'nkr', 2, ...
+                               'nstep', nstep, ...
+                               'pvi', pvi, ...
+                               'pressure', p, ...
+                               'bhp', bhp, ...
+                               'perm', 0.5*darcy, ...
+                               'time', time);
 G = computeCellDimensions2(G);
 G.cells.ghost = false(G.cells.num,1);
-args = {G, rock, fluid, modelFI.EOSModel.fluid, 'water', modelFI.water, 'useIncTolComposition', true};
-useNat = true;
-if useNat
-    model = NaturalVariablesCompositionalModel(args{:});
-    pmodel = PressureNaturalVariablesModel(args{:});
-    tmodel = TransportNaturalVariablesModel(args{:});
-else
-    model = OverallCompositionCompositionalModel(args{:});
-    pmodel = PressureOverallCompositionModel(args{:});
-    tmodel = TransportOverallCompositionModel(args{:});
-end
-modelSeq = SequentialPressureTransportModel(pmodel, tmodel);
 
-%%
+args = {G, rock, fluid, eos.fluid, 'water', useWater, 'useIncTolComposition', true};
+
+pmodel = PressureNaturalVariablesModel(args{:});
+tmodel = TransportNaturalVariablesModel(args{:});
+modelSeq = SequentialPressureTransportModel(pmodel, tmodel);
 
 ix = 1:30;
 subschedule = schedule;
 subschedule.step.val     = subschedule.step.val(ix);
 subschedule.step.control = subschedule.step.control(ix);
+
+%%
+
 [wsFV, stFV, rep] = simulateScheduleAD(state0, modelSeq, subschedule);
 
 %%
 
 close all
-plotToolbar(modelSeq.transportModel.G, st);
-plotWellSols(wsFV);
+plotToolbar(G, stFV, 'plot1d', true)
 
 %%
 
@@ -63,9 +59,9 @@ disc = DGDiscretization(tmodel                                        , ...
                                 'meanTolerance'        , mt           , ...
                                 'limitAfterConvergence', false        , ...
                                 'plotLimiterProgress'  , false        );
-modelDG.transportModel = TransportNaturalVariablesModelDG(G, rock, fluid, compFluid, ...
+modelDG.transportModel = TransportNaturalVariablesModelDG(G, rock, fluid, eos.fluid, ...
                                    'disc'    , disc    , ...
-                                   'dsMaxAbs', 0.2     , ...
+                                   'dsMaxAbs', 0.1     , ...
                                    'nonlinearTolerance', 1e-3, ...
                                    'useIncTolComposition', true);
 % modelDG.pressureModel.disc = disc;
@@ -75,5 +71,9 @@ state0 = assignDofFromState(disc, state0);
 
 %%
 
-plotToolbar(modelDG.transportModel.G, stDG);
-plotWellSols({wsFV, wsDG});
+close all
+figure; plotToolbar(G, stFV, 'plot1d', true)
+figure; plotToolbar(G, stDG, 'plot1d', true)
+
+%%
+plotWellSols({wsFV, wsDG})

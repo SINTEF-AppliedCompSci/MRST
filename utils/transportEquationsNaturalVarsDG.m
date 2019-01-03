@@ -264,16 +264,21 @@ for cNo = 1:ncomp
     y{cNo}   = model.disc.getCellMean(ydof{cNo}, state);
     z(:,cNo) = model.disc.getCellMean(zdof(:,cNo), state);
 end
-if model.water
-    sW = model.disc.getCellMean(sWdof, state);
-end
+
 sO = model.disc.getCellMean(sOdof, state);
 sG = model.disc.getCellMean(sGdof, state);
 sT = model.disc.getCellMean(sTdof, state);
+sO = sO./sT;
+sG = sG./sT;
+if model.water
+    sW = model.disc.getCellMean(sWdof, state);
+    sW = sW./sT;
+end
+
 
 % Compute properties and fugacity
 [xM,  yM,  rhoO,  rhoG,  muO,  muG, f_L, f_V, xM0, yM0, rhoO0, rhoG0] = ...
-                  model.getTimestepPropertiesEoS(state, state0, p, temp, xdof, ydof, zdof, sOdof, sGdof, cellJacMap);
+    model.getTimestepPropertiesEoS(state, state0, p, temp, x, y, z, sO, sG, cellJacMap);
 
 % [pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
 
@@ -329,14 +334,14 @@ if model.water
         gW = gW + op.Grad(fluid.pcOW(sW));
     end
     gW = P*gW;
-    sWT       = sW.*sT;
+    sWt       = sW.*sT;
     g         = {gW, gO, gG};
     mob       = {mobW, mobO, mobG};
     rho       = {rhoW, rhoO, rhoG};
     pressures = {pW, p, p};
     sdof      = {sWdof, sOdof, sGdof};
 else
-    [rhoW, rhoW0, mobW, bW, sWT] = deal([]);
+    [rhoW, rhoW0, mobW, bW, sWt] = deal([]);
     g         = {gO, gG};
     mob       = {mobO, mobG};
     rho       = {rhoO, rhoG};
@@ -524,7 +529,7 @@ TgG  = TgG./G.faces.areas;
     % Upstream cells
     [~, ~, cfv, cfg] = disc.getSaturationUpwind(f, xif, T, flux, g, mob, sdof, state);
     % Water saturation
-    [sWfv , sTWfv] = disc.evaluateDGVariable(xif, cfv(:,1), state, sWdof, sTdof, xdof{:}, ydof{:});
+    [sWfv , sTWfv] = disc.evaluateDGVariable(xif, cfv(:,1), state, sWdof, sTdof);
     [sWfg , sTWfg] = disc.evaluateDGVariable(xif, cfg(:,1), state, sWdof, sTdof);
     
     % Oil saturation
@@ -580,6 +585,7 @@ TgG  = TgG./G.faces.areas;
         fWc   = frac{1}({sWc ,sOc ,sGc }, sTc  , [c,c,c]);
         
         % Cell values
+        mobWc = mobW(sWc,sTc,c);
         mobOc = mobO(sOc,sTc,c);
         mobGc = mobO(sGc,sTc,c);
         % Face values
@@ -600,9 +606,9 @@ TgG  = TgG./G.faces.areas;
         cellIntegralW = disc.cellInt(integrand, [], state, sWdof);
         % Flux term
         integrand = @(psi) ...
-            (sTWfv.*rhoW(cfv(:,1)).*fWfv.*vT(f) ...
-                  + rhoW(cfg(:,1)).*fWfg.*mobOfg.*(TgW(f) - TgO(f)) ...
-                  + rhoW(cfg(:,1)).*fWfg.*mobGfg.*(TgW(f) - TgG(f))).*psi;
+            (sWfv.*sTWfv.*rhoW(cfv(:,1)).*fWfv.*vT(f) ...
+                  + sWfg.*rhoW(cfg(:,1)).*fWfg.*mobOfg.*(TgW(f) - TgO(f)) ...
+                  + sWfg.*rhoW(cfg(:,1)).*fWfg.*mobGfg.*(TgW(f) - TgG(f))).*psi;
         % Integrate integrand*psi{dofNo} over all cells surfaces for dofNo = 1:nDof
         faceIntegralW = disc.faceFluxInt(integrand, [], state, sWdof);
         % Sum integrals
@@ -626,11 +632,12 @@ TgG  = TgG./G.faces.areas;
     fGc   = frac{3}({sWc ,sOc ,sGc }, sTc  , [c,c,c]);
     fGfv   = frac{3}({sWfv,sOfv,sGfv}, sTGfv, cfv    );
     fGfg   = frac{3}({sWfg,sOfg,sGfg}, sTGfg, cfg    );
+    
     for cNo = 1:ncomp
-        acc = @(psi) (pvMult(c) .*rock.poro(c).*rhoO(c) .*sOc./sTc .*xMc{cNo}  - ...
-                      pvMult0(c).*rock.poro(c).*rhoO0(c).*sOc0./sTc0.*xMc0{cNo} + ...     
-                      pvMult(c) .*rock.poro(c).*rhoG(c) .*sGc./sTc .*yMc{cNo}  - ...
-                      pvMult0(c).*rock.poro(c).*rhoG0(c).*sGc0./sTc0.*yMc0{cNo}).*psi/dt;
+        acc = @(psi) (pvMult(c) .*rock.poro(c).*rhoO(c) .*sOc .*xMc{cNo}  - ...
+                      pvMult0(c).*rock.poro(c).*rhoO0(c).*sOc0.*xMc0{cNo} + ...     
+                      pvMult(c) .*rock.poro(c).*rhoG(c) .*sGc .*yMc{cNo}  - ...
+                      pvMult0(c).*rock.poro(c).*rhoG0(c).*sGc0.*yMc0{cNo}).*psi/dt;
 
         conv = @(gradPsi) 0;
         integrand = @(psi, gradPsi) acc(psi) - conv(gradPsi);
@@ -638,12 +645,12 @@ TgG  = TgG./G.faces.areas;
         cellIntegral = disc.cellInt(integrand, [], state, sOdof);
         integrand = @(psi) ...
         ( ...
-         sTOfv.*rhoO(cfv(:,2)).*fOfv.*xMOfv{cNo}.*vT(f) ...
-              + rhoO(cfg(:,2)).*fOfg.*xMOfv{cNo}.*mobWfg.*(TgO(f) - TgW(f))   ...
-              + rhoO(cfg(:,2)).*fOfg.*xMOfv{cNo}.*mobGfg.*(TgO(f) - TgG(f)) + ...
+         sTOfv.*rhoO(cfv(:,2)).*xMOfv{cNo}.*fOfv.*vT(f) ...
+              + rhoO(cfg(:,2)).*xMOfv{cNo}.*fOfg.*(mobWfg.*(TgO(f) - TgW(f)) ...
+                                                 + mobGfg.*(TgO(f) - TgG(f))) + ...
          sTGfv.*rhoG(cfv(:,3)).*fGfv.*yMGfv{cNo}.*vT(f) ...
-              + rhoG(cfg(:,3)).*fGfg.*yMGfv{cNo}.*mobWfg.*(TgG(f) - TgW(f)) ...
-              + rhoG(cfg(:,3)).*fGfg.*yMGfv{cNo}.*mobOfg.*(TgG(f) - TgO(f)) ...
+              + rhoG(cfg(:,3)).*fGfg.*yMGfv{cNo}.*(mobWfg.*(TgG(f) - TgW(f)) ...
+                                                 + mobOfg.*(TgG(f) - TgO(f))) ...
         ).*psi;
         % Integrate integrand*psi{dofNo} over all cells surfaces for dofNo = 1:nDof
         faceIntegral = disc.faceFluxInt(integrand, [], state, sOdof);
@@ -705,7 +712,7 @@ else
     problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 end
 
-if 0
+if 1
     
     eqsDG = eqs;
     load('fv.mat');

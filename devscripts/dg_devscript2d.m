@@ -1,4 +1,5 @@
-mrstModule add dg vem vemmech ad-props ad-core ad-blackoil blackoil-sequential gasinjection mrst-gui reorder matlab_bgl
+mrstModule add dg vem vemmech ad-props ad-core ad-blackoil ...
+    blackoil-sequential vista mrst-gui reorder matlab_bgl weno
 mrstVerbose on;
 
 %%
@@ -53,7 +54,7 @@ degree = 0:5;
 
 
 % degree = [4];
-degree = [1,2];
+degree = [0,1,2];
 [jt, ot, mt] = deal(Inf);
 % 
 % jt = Inf;
@@ -121,7 +122,7 @@ figure('position', [-1000, 0, 800, 600])
 
 azel = [107, 16];
 pba = [5,5,1];
-dNo = 5;
+dNo = 3;
 [h, saturation, coords, keep, n] = plotSaturationDG(disc{dNo}, statesDG{dNo}{1}, 'edgecolor', 'none');
 view(azel);
 pbaspect(pba)
