@@ -286,7 +286,7 @@ end
 
 divTerm = cell(ncomp, 1);
 
-compFlux = zeros(size(model.operators.N, 1), ncomp);
+compFlux = zeros(model.G.faces.num, ncomp);
 for i = 1:ncomp
     names{i} = compFluid.names{i};
     types{i} = 'cell';
@@ -295,17 +295,20 @@ for i = 1:ncomp
                     pv.*rhoG.*sG.*yM{i} - pv0.*rhoG0.*sG0.*yM0{i});
     vi = rOvO.*s.faceUpstr(upco, xM{i}) + rGvG.*s.faceUpstr(upcg, yM{i});
     divTerm{i} = s.Div(vi);
-    compFlux(:,i) = double(vi);
+    compFlux(model.operators.internalConn,i) = double(vi);
     if opt.reduceToPressure
         C{i} = eqs{i};
     end
 end
 state.componentFluxes = compFlux;
 if model.water
-    state.massFlux = [model.fluid.rhoWS.*double(rWvW), double(rOvO), double(rGvG)];
+    mf = [model.fluid.rhoWS.*double(rWvW), double(rOvO), double(rGvG)];
 else
-    state.massFlux = [double(rOvO), double(rGvG)];
+    mf = [double(rOvO), double(rGvG)];
 end
+state.massFlux = zeros(model.G.faces.num, 2 + model.water);
+state.massFlux(model.operators.internalConn, :) = mf;
+
 if model.water
     eqs{ncomp+1} = water;
     names{ncomp+1} = 'water';
