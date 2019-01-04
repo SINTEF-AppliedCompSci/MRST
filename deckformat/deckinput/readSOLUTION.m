@@ -20,7 +20,6 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
    [ncell, ncomp, ntequil, nanaqu] = get_dimensions(deck);
 
    [sln, miss_kw] = get_state(deck);
@@ -29,10 +28,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    kw = getEclipseKeyword(fid);
    in_section = ischar(kw);
-   while in_section,
-      switch kw,
+   while in_section
+      switch kw
 
-         case 'AQUFETP',
+         case 'AQUFETP'
             tmpl(1 : 9) = { 'NaN' };
             tmpl(7) = { '1' };
             tmpl(8) = { '0' };
@@ -41,7 +40,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
             sln.(kw) = cellfun(to_double, data);            clear data tmpl
 
-         case 'AQUCT',
+         case 'AQUCT'
             tmpl(1 : 13) = { 'NaN' };
             tmpl(  9   ) = { '360' };
 
@@ -49,9 +48,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
             sln.(kw) = cellfun(to_double, data);            clear data tmpl
 
-         case 'AQUANCON',
+         case 'AQUANCON'
             tmpl = [ repmat({ 'NaN' }, [1, 7]), ...
-                     { '', 'NaN', '-1', 'NO' } ];         % Negative => unset
+                     { '', 'NaN', '-1', 'NO' } ];       % Negative => unset
 
             cols = [1:7, 9:10];
             data = readDefaultedKW(fid, tmpl);
@@ -61,24 +60,24 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
             sln.(kw) = data;                           clear data cols tmpl
 
-         case 'BOX',
+         case 'BOX'
             boxKeyword(fid);
 
-         case 'ENDBOX',
+         case 'ENDBOX'
             endboxKeyword;
 
-         case 'EQUIL',
+         case 'EQUIL'
             tmpl(1 : 11) = { '0' };
             tmpl(  10  ) = { '1' };
 
             equil = readDefaultedKW(fid, tmpl, 'NRec', ntequil);
             sln.(kw) = cellfun(to_double, equil);                clear tmpl
 
-         case 'DATUM',
+         case 'DATUM'
             s = readRecordString(fid);
             data = to_double(s);
 
-            if numel(data) ~= 1,
+            if numel(data) ~= 1
                error(['DATUM keyword must be followed by a single '  , ...
                       'real number (the datum depth for calculation ', ...
                       'of depth corrected pressures).']);
@@ -86,23 +85,23 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
             sln.(kw) = data;
 
-         case { 'PBVD', 'PDVD', 'RSVD', 'RVVD' },
-            for reg = 1 : ntequil,
+         case { 'PBVD', 'PDVD', 'RSVD', 'RVVD' }
+            for reg = 1 : ntequil
                s             = readRecordString(fid);
                sln.(kw){reg} = reshape(to_double(s), 2, []) .';
             end
 
-         case {'PRESSURE', 'RS', 'RV', 'SGAS', 'SOIL', 'SWAT', 'TEMPI'},
+         case {'PRESSURE', 'RS', 'RV', 'SGAS', 'SOIL', 'SWAT', 'TEMPI'}
             sln.(kw) = readVector(fid, kw, ncell);
 
-         case {'ZMF', 'XMF', 'YMF'},
+         case {'ZMF', 'XMF', 'YMF'}
             sln.(kw) = readVector(fid, kw, ncell*ncomp);
 
          case {'ADD', 'COPY', 'EQUALS', 'MAXVALUE', ...
-               'MINVALUE', 'MULTIPLY'},
+               'MINVALUE', 'MULTIPLY'}
             sln = applyOperator(sln, fid, kw);
 
-         case {'ECHO', 'NOECHO'},
+         case {'ECHO', 'NOECHO'}
             kw = getEclipseKeyword(fid);
             continue;  % Ignore.  Not handled in MRST
 
@@ -110,13 +109,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          % Sectioning keywords below.  Modifies flow of control.
          % Don't change unless absolutely required...
          %
-         case 'END',
+         case 'END'
             % Logical end of input deck.
             %
             in_section   = false;
             deck.SOLUTION = sln;
 
-         case 'SUMMARY',
+         case 'SUMMARY'
             % Read next section (i.e., 'SOLUTION' -> 'SUMMARY' -> 'SCHEDULE')
             in_section = false;
 
@@ -124,7 +123,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
             deck = readSUMMARY(fid, dirname, deck);
 
-         case 'SCHEDULE',
+         case 'SCHEDULE'
             % Read next section (i.e., 'SOLUTION' -> 'SCHEDULE', no 'SUMMARY')
             in_section = false;
 
@@ -145,8 +144,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             % Prepare for additional reading.
             [sln, miss_kw] = get_state(deck);
 
-         otherwise,
-            if ischar(kw),
+         otherwise
+            if ischar(kw)
                miss_kw = [ miss_kw, { kw } ];  %#ok
             end
       end
@@ -169,7 +168,7 @@ function [ncell, ncomp, ntequil, nanaqu] = get_dimensions(deck)
    ncell   = prod(dims);                 % Number of cells
 
    ntequil = 1;
-   if isfield(deck.RUNSPEC, 'EQLDIMS'),
+   if isfield(deck.RUNSPEC, 'EQLDIMS')
       ntequil = deck.RUNSPEC.EQLDIMS(1);
    end
 
@@ -182,6 +181,7 @@ function [ncell, ncomp, ntequil, nanaqu] = get_dimensions(deck)
    if isfield(deck.RUNSPEC, 'COMPS')
       ncomp = deck.RUNSPEC.COMPS;
    end
+
    assert (ntequil >= 1);
 end
 
