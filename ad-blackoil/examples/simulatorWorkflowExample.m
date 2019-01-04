@@ -89,9 +89,8 @@ axis tight
 % We set up a two-phase oil-water simulation model based on automatic
 % differentiation. The resulting object is a special case of a general
 % three-phase model and to instantiate it, we start by constructing a
-% three-phase fluid structure with properties given for oil, water, and
-% gas. (The gas properties will be neglected once we construct the two-phase
-% object). Water is assumed to be incompressible, whereas oil has constant
+% two-phase fluid structure with properties given for oil and water. Water
+% is assumed to be incompressible, whereas oil has constant
 % compressibility, giving a reciprocal formation volume factor of the form,
 % $b_o(p) = b_0 exp[c (p - p_0)]$. To define this relation, we set the 'bo'
 % field of the fluid structure to be an anonymous function that calls the
@@ -101,9 +100,11 @@ axis tight
 % fluid) onto the two-phase oil/water model constructor.
 
 % Three-phase template model
-fluid = initSimpleADIFluid('mu',    [1, 5, 0]*centi*poise, ...
-                           'rho',   [1000, 700, 0]*kilogram/meter^3, ...
-                           'n',     [2, 2, 0]);
+fluid = initSimpleADIFluid('mu',    [1, 5]*centi*poise, ...
+                           'rho',   [1000, 700]*kilogram/meter^3, ...
+                           'n',     [2, 2], ...
+                           'cR',    1e-8/barsa, ...
+                           'phases', 'wo');
 
 % Constant oil compressibility
 c        = 0.001/barsa;
@@ -310,7 +311,7 @@ interactiveDiagnostics(G_c, rock_c, schedule_c.control.W, 'state', states_c2{end
 
 % <html>
 % <p><font size="-1">
-% Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+% Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 % </font></p>
 % <p><font size="-1">
 % This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).

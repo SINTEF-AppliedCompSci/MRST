@@ -138,7 +138,6 @@ classdef CPRSolverAD < LinearSolverAD
                 % Switch equations for non-elliptic jacobian components with
                 % some other equation that has an elliptic pressure jacobian
                 [r, c] = find(and(isElliptic(bad, :),~isZeroDiag));
-                %[r, c] = find(isElliptic(bad, :));
                 sb = numel(bad);
                 if sb == 1
                     % Find gets confused for a single element
@@ -167,7 +166,7 @@ classdef CPRSolverAD < LinearSolverAD
                 % close as possible to M-matrices (because of switching,
                 % which does not actually alter the solution)
                 ok = isElliptic(:, i);
-                if i == pressureIndex || scale{i} == 0
+                if i == pressureIndex || all(scale{i} == 0)
                     continue
                 end
                 problem.equations{pressureIndex} = ...
@@ -189,7 +188,7 @@ classdef CPRSolverAD < LinearSolverAD
             % ILU0 preconditioner for the non-elliptic part
             [L, U] = ilu(A, struct('type', 'nofill'));
             if isempty(solver.keepNumber)
-                Ap = -problem.equations{pressureIndex}.jac{pressureIndex};
+                Ap = problem.equations{pressureIndex}.jac{pressureIndex};
             else
                 Ap = A(pInx, pInx);
             end
@@ -271,7 +270,7 @@ end
 
 
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

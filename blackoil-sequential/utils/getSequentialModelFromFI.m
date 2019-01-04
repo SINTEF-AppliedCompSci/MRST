@@ -52,10 +52,6 @@ function model = getSequentialModelFromFI(fimodel, varargin)
                                                     'oil',     fimodel.oil, ...
                                                     'water',   fimodel.water, ...
                                                     'polymer', fimodel.polymer);
-%             pressureModel.operators = fimodel.operators;
-%             transportModel.operators = fimodel.operators;
-%             model = SequentialPressureTransportModelPolymer(...
-%                 pressureModel, transportModel, varargin{:});
             
         case 'threephaseblackoilpolymermodel'
             pressureModel  = PressureBlackOilPolymerModel(G, rock, fluid, ...
@@ -74,10 +70,14 @@ function model = getSequentialModelFromFI(fimodel, varargin)
                                                     'vapoil', fimodel.vapoil, ...
                                                     'oil',     fimodel.oil, ...
                                                     'polymer', fimodel.polymer);
-%             pressureModel.operators = fimodel.operators;
-%             transportModel.operators = fimodel.operators;
-%             model = SequentialPressureTransportModelPolymer(...
-%                 pressureModel, transportModel, varargin{:});
+        case 'naturalvariablescompositionalmodel'
+            carg = {G, rock, fluid, fimodel.EOSModel, 'water', fimodel.water};
+            pressureModel = PressureNaturalVariablesModel(carg{:});
+            transportModel = TransportNaturalVariablesModel(carg{:});
+        case 'overallcompositioncompositionalmodel'
+            carg = {G, rock, fluid, fimodel.EOSModel, 'water', fimodel.water};
+            pressureModel = PressureOverallCompositionModel(carg{:});
+            transportModel = TransportOverallCompositionModel(carg{:});
         otherwise
             error('mrst:getSequentialModelFromFI', ...
             ['Sequential model not implemented for ''' class(fimodel), '''']);
@@ -89,7 +89,7 @@ function model = getSequentialModelFromFI(fimodel, varargin)
 end
 
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

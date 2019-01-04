@@ -161,10 +161,10 @@ methods
            iseq = cellfun(@(x) ~isempty(x), problem.equations);
            eqs = combineEquations(problem.equations{iseq});
            if isa(eqs, 'ADI')
-               problem.A = -eqs.jac{1};
-               problem.b = eqs.val;
+               problem.A = eqs.jac{1};
+               problem.b = -eqs.val;
            else
-               problem.b = eqs;
+               problem.b = -eqs;
            end
        end
     end
@@ -399,7 +399,7 @@ end
 end
 
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

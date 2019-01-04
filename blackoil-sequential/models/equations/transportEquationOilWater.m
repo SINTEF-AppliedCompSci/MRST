@@ -76,6 +76,7 @@ gp = s.Grad(p);
 Gw = gp - dpW;
 Go = gp - dpO;
 
+
 if model.extraStateOutput
     state = model.storebfactors(state, bW, bO, []);
     state = model.storeMobilities(state, mobW, mobO, []);
@@ -120,45 +121,36 @@ end
 flux = sum(state.flux, 2);
 vT = flux(model.operators.internalConn);
 
-% Stored upstream indices
-[flag_v, flag_g] = getSaturationUpwind(model.upwindType, state, {Gw, Go}, vT, s.T, {mobW, mobO}, s.faceUpstr);
-flag = flag_v;
+rho = {rhoW, rhoO};
+mob = {mobW, mobO};
+sat = {sW, sO};
+G = {Gw, Go};
 
-upcw  = flag(:, 1);
-upco  = flag(:, 2);
 
-upcw_g = flag_g(:, 1);
-upco_g = flag_g(:, 2);
+components = {{sT.*bW,  []}, ...
+              {[],      sT.*bO}};
+upstr = model.operators.faceUpstr;
+[q_phase, q_components] = computeSequentialFluxes(...
+    state, G, vT, T, mob, rho, components, upstr, model.upwindType);
+[waterFlux, oilFlux] = deal(q_components{:});
 
-mobOf = s.faceUpstr(upco, mobO);
-mobWf = s.faceUpstr(upcw, mobW);
 
-totMob = (mobOf + mobWf);
-    
-mobWf_G = s.faceUpstr(upcw_g, mobW);
-mobOf_G = s.faceUpstr(upco_g, mobO);
-mobTf_G = mobWf_G + mobOf_G;
-f_g = mobWf_G.*mobOf_G./mobTf_G;
+if model.outputFluxes
+    state = model.storeFluxes(state, q_phase{:}, []);
+end
+
 if opt.solveForWater
-    f_w = mobWf./totMob;
-    bWvW   = s.faceUpstr(upcw, sT.*bW).*f_w.*vT + s.faceUpstr(upcw_g, bW).*f_g.*s.T.*(Gw - Go);
-
-    wat = (s.pv/dt).*(pvMult.*bW.*sW - pvMult0.*f.bW(p0).*sW0) + s.Div(bWvW);
+    wat = (s.pv/dt).*(pvMult.*bW.*sW - pvMult0.*f.bW(p0).*sW0) + s.Div(waterFlux);
     if ~isempty(W)
         wat(wc) = wat(wc) - bWqW;
     end
-
 end
 
 if opt.solveForOil
-    f_o = mobOf./totMob;
-    bOvO = s.faceUpstr(upco, sT.*bO).*f_o.*vT + s.faceUpstr(upco_g, bO).*f_g.*s.T.*(Go - Gw);
-
-    oil = (s.pv/dt).*( pvMult.*bO.*sO - pvMult0.*f.bO(p0).*sO0 ) + s.Div(bOvO);
+    oil = (s.pv/dt).*( pvMult.*bO.*sO - pvMult0.*f.bO(p0).*sO0 ) + s.Div(oilFlux);
     if ~isempty(W)
         oil(wc) = oil(wc) - bOqO;
     end
-
 end
 
 if solveAllPhases
@@ -176,10 +168,7 @@ else
 end
 
 
-rho = {rhoW, rhoO};
-mob = {mobW, mobO};
-sat = {sW, sO};
-[eqs, ~, src] = addBoundaryConditionsAndSources(model, eqs, names, types, state, ...
+[eqs, state, src] = addBoundaryConditionsAndSources(model, eqs, names, types, state, ...
                                      {pFlow, pFlow}, sat, mob, rho, ...
                                      {}, {}, ...
                                      drivingForces);
@@ -194,7 +183,7 @@ problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 end
 
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

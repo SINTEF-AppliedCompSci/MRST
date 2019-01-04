@@ -17,7 +17,7 @@ function f = assignSGOF(f, sgof, reg)
            sgas = @(so, varargin) 1 - so - selectSubset(f.sWcon, varargin{:});
        end
    else
-       sgas = @(so) 1 - so;
+       sgas = @(so, varargin) 1 - so;
    end
 
    % Region interpolator
@@ -35,7 +35,7 @@ if ~isempty(varargin)
 end
 end
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

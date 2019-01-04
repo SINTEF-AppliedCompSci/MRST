@@ -7,7 +7,7 @@
 %   NewAD                   - NewAD is the testbed for future updates to the ADI class. All
 
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

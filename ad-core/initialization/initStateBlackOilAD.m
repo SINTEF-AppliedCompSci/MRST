@@ -26,8 +26,6 @@ function [state, pressures] = initStateBlackOilAD(model, regions, varargin)
 
     pressures = zeros(G.cells.num, nph);
     touched = false(G.cells.num, 1);
-    singlePhaseMobileGlobal = zeros(G.cells.num, 1);
-    kr_global = zeros(G.cells.num, 3);
     for regNo = 1:numel(regions)
         region = regions{regNo};
         if ischar(region.cells)
@@ -63,9 +61,6 @@ function [state, pressures] = initStateBlackOilAD(model, regions, varargin)
         maxSat = max(s, [], 2);
         singlePhaseMobile = numberOfMobile <= 1;
         
-        singlePhaseMobileGlobal(cells) = singlePhaseMobile;
-        kr_global(cells, :) = kr;
-        
         toOil = true(size(p, 1), 1);
         if model.gas
             % If only gas is mobile, set oil pressure to the gas hydrostatic 
@@ -80,7 +75,9 @@ function [state, pressures] = initStateBlackOilAD(model, regions, varargin)
                 rsMax = model.fluid.rsSat(po, 'cellInx', cells);
                 rs = region.rs(po, z);
                 rs(rs > rsMax) = rsMax(rs > rsMax);
-                state.rs(cells) = rs;
+                sg = s(:, gasIx);
+                rs(sg > 0) = rsMax(sg > 0);
+                state.rs(cells) = rs;             
             end
         end
         if model.oil
@@ -89,6 +86,8 @@ function [state, pressures] = initStateBlackOilAD(model, regions, varargin)
                 rvMax = model.fluid.rvSat(po, 'cellInx', cells);
                 rv = region.rv(pg, z);
                 rv(rv > rvMax) = rvMax(rv > rvMax);
+                so = s(:, oilIx);
+                rv(so > 0) = rvMax(so > 0);
                 state.rv(cells) = rv;
             end
         end

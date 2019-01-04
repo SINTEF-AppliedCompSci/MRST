@@ -255,7 +255,7 @@ upstr = model.operators.faceUpstr;
 pv = pvMult.*model.operators.pv;
 pv0 = pvMult0.*model.operators.pv;
 
-compFlux = zeros(size(model.operators.N, 1), ncomp);
+compFlux = zeros(model.G.faces.num, ncomp);
 
 % water equation + n component equations
 [eqs, types, names] = deal(cell(1, 2*ncomp + model.water));
@@ -267,9 +267,12 @@ for i = 1:ncomp
                     pv.*rhoO.*sO.*xM{i} - pv0.*rhoO0.*sO0.*xM0{i} + ...
                     pv.*rhoG.*sG.*yM{i} - pv0.*rhoG0.*sG0.*yM0{i}) + s.Div(vi);
       
-   compFlux(:, i) = double(vi);
+   compFlux(model.operators.internalConn, i) = double(vi);
 end
 state.componentFluxes = compFlux;
+if isfield(state, 'massFlux')
+    state = rmfield(state, 'massFlux');
+end
 
 if model.water
     wix = ncomp+1;
@@ -408,7 +411,7 @@ end
 
 
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
