@@ -134,7 +134,7 @@ if model.extraStateOutput
 end
 state = model.storeDensities(state, rhoW, rhoO, rhoG);
 
-components = getComponentsTwoPhaseSimpleWater(model, rho, sWt, xM, yM);
+components = getComponentsTwoPhaseSimpleWater(model, rho, sT, xM, yM);
 
 upstr = model.operators.faceUpstr;
 [q_phase, q_components] = computeSequentialFluxes(...
