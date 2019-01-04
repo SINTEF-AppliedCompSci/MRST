@@ -64,7 +64,7 @@ classdef TransportNaturalVariablesModelDG < TransportNaturalVariablesModel
             dx0    = dx;
             vars   = problem.primaryVariables;
             if model.allowLargeSaturations
-                dsMax = max(sum(state.s, 2), 1).*model.dsMaxAbs;
+                dsMax = max(sum(state.sdof, 2), 1).*model.dsMaxAbs;
             else
                 dsMax = model.dsMaxAbs;
             end
@@ -268,7 +268,7 @@ classdef TransportNaturalVariablesModelDG < TransportNaturalVariablesModel
             ncomp  = model.EOSModel.fluid.getNumberOfComponents();
             cnames = model.EOSModel.fluid.names;
             
-            [dx, dy] = deal(zeros(model.G.cells.num, ncomp));
+            [dx, dy] = deal(zeros(sum(state.nDof), ncomp));
             found = false(ncomp, 1);
 
             for i = 1:ncomp
@@ -301,10 +301,11 @@ classdef TransportNaturalVariablesModelDG < TransportNaturalVariablesModel
     
     methods(Access=protected)
         function [ds, dx, vars] = getSatUpdateInternal(model, name, dx, vars, twoPhase, state)
+            twoPhaseIx = model.disc.getDofIx(state, Inf, twoPhase);
             dsgix = strcmpi(vars, name);
             if any(dsgix)
                 ds_tmp = dx{dsgix};
-                if numel(ds_tmp) == nnz(twoPhase)
+                if numel(ds_tmp) == numel(twoPhaseIx)
                     ds = zeros(sum(state.nDof), 1);
                     ix = model.disc.getDofIx(state, Inf, twoPhase);
                     ds(ix) = ds_tmp;

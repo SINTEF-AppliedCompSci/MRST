@@ -12,5 +12,5 @@ function [dof, tol] = ensureMinimumFractionDG(disc, dof, state, tol)
         dof(ix,cNo) = 0;
     end
 
-    dof = bsxfun(@rdivide, dof, sum(dof, 2));
+%     dof = bsxfun(@rdivide, dof, sum(dof, 2));
 end

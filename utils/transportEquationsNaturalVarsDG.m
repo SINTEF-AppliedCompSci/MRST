@@ -12,6 +12,7 @@ function [problem, state] = transportEquationsNaturalVarsDG(state0, state, model
     G        = model.G;
     disc     = model.disc;
     flux2Vel = disc.velocityInterp.faceFlux2cellVelocity;
+    nDofMax  = disc.basis.nDof;
 
     % Prepare state for simulation-----------------------------------------
     if opt.iteration == 1 && ~opt.resOnly 
@@ -43,6 +44,8 @@ function [problem, state] = transportEquationsNaturalVarsDG(state0, state, model
     for cNo = 1:size(state.x,2)
         ix = model.disc.getDofIx(state, 1, isinf(dx(:,cNo)));
         state.xdof(ix,cNo) = state.x(isinf(dx(:,cNo)), cNo);
+        ix = model.disc.getDofIx(state, 2:nDofMax, isinf(dx(:,cNo)));
+        state.xdof(ix,cNo) = 0;
     end
     dy = state.y./y;
     dy(isnan(dy)) = 1;
@@ -50,6 +53,8 @@ function [problem, state] = transportEquationsNaturalVarsDG(state0, state, model
     for cNo = 1:size(state.y,2)
         ix = model.disc.getDofIx(state, 1, isinf(dy(:,cNo)));
         state.ydof(ix,cNo) = state.y(isinf(dy(:,cNo)), cNo);
+        ix = model.disc.getDofIx(state, 2:nDofMax, isinf(dy(:,cNo)));
+        state.ydof(ix,cNo) = 0;
     end
     s = zeros(size(state.s));
     for phNo = 1:size(state.s,2)
@@ -61,6 +66,8 @@ function [problem, state] = transportEquationsNaturalVarsDG(state0, state, model
     for phNo = 1:size(state.s,2)
         ix = model.disc.getDofIx(state, 1, isinf(ds(:,phNo)));
         state.sdof(ix,phNo) = state.s(isinf(ds(:,phNo)), phNo);
+        ix = model.disc.getDofIx(state, 2:nDofMax, isinf(ds(:,phNo)));
+        state.sdof(ix,phNo) = 0;
     end
 
 %     fluid = model.fluid;
@@ -747,13 +754,16 @@ end
 
 if model.reduceLinearSystem
     problem = ReducedLinearizedSystem(eqs, types, names, primaryVars, state, dt);
-    problem.keepNum = model.G.cells.num*(ncomp+model.water);
+    
+    problem.keepNum = sum(state.nDof).*(ncomp + model.water);
+%     problem.keepNum = model.G.cells.num*(ncomp+model.water);
+    
     problem.reorder = reorder;
 else
     problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 end
 
-if 1
+if 0
     
     eqsDG = eqs;
     load('fv.mat');

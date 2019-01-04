@@ -102,7 +102,10 @@ function state = dgLimiter(disc, state, bad, var, type, varargin)
     
     % Update state dofPos and satuarion
     state   = disc.updateDofPos(state);
-    state.s = disc.getCellSaturation(state);
+    state.(var) = zeros(G.cells.num, size(dof,2));
+    for cNo = 1:size(dof,2)
+        state.(var)(:,cNo) = disc.getCellMean(dof(:,cNo), state);
+    end
     
     if opt.plot
         plotSaturationDG(disc, state, 'n', 500, 'plot1d', true, 'color', 'r', 'linew', 4, 'LineStyle', '--'); hold off

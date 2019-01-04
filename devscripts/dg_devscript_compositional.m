@@ -1,6 +1,7 @@
 mrstModule add msrsb compositional dg gasinjection ad-blackoil ...
     blackoil-sequential ad-core ad-props coarsegrid mrst-gui vista vemmech
 mrstVerbose on
+gravity reset off;
 
 %%
 
@@ -33,7 +34,7 @@ modelSeq = SequentialPressureTransportModel(pmodel, tmodel);
 
 %%
 
-ix = 1:numel(schedule.step.val);
+ix = 1:30;%numel(schedule.step.val);
 subschedule = schedule;
 subschedule.step.val     = subschedule.step.val(ix);
 subschedule.step.control = subschedule.step.control(ix);
@@ -47,12 +48,12 @@ plotWellSols(wsFV);
 
 %%
 
-degree = 1;
 [jt, ot, mt] = deal(Inf);
 mt = 0.0;
 % pmodel = PressureNaturalVariablesModelSemiDG(args{:});
 pmodel = PressureNaturalVariablesModel(args{:});
 tmodel = TransportNaturalVariablesModelDG(args{:});
+degree = 1;
 modelDG = SequentialPressureTransportModel(pmodel, tmodel);
 disc = DGDiscretization(tmodel                                        , ...
                                 'degree'               , degree       , ...
@@ -66,10 +67,11 @@ disc = DGDiscretization(tmodel                                        , ...
                                 'plotLimiterProgress'  , false        );
 modelDG.transportModel = TransportNaturalVariablesModelDG(G, rock, fluid, compFluid, ...
                                    'disc'    , disc    , ...
-                                   'dsMaxAbs', 0.2     , ...
+                                   'dsMaxAbs', 0.1     , ...
                                    'water', modelFI.water, ...
                                    'nonlinearTolerance', 1e-4, ...
-                                   'useIncTolComposition', false);
+                                   'useIncTolComposition', false, ...
+                                   'reduceLinearSystem', false);
 % modelDG.pressureModel.disc = disc;
 
 state0 = assignDofFromState(disc, state0);
