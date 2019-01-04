@@ -1,13 +1,14 @@
 mrstModule add msrsb compositional dg gasinjection ad-blackoil ...
-    blackoil-sequential ad-core ad-props coarsegrid mrst-gui vista
+    blackoil-sequential ad-core ad-props coarsegrid mrst-gui vista vemmech
 mrstVerbose on
 
 %%
 
-% caseName = 'simple_1d_wat';
-caseName = 'simple_3ph';
+caseName = 'simple_1d_wat';
+% caseName = 'simple_3ph';
+caseName = 'immiscible_denis'
 [state0, modelFI, schedule, CG] = setupCompositionalPaperCase(caseName);
-modelFI = NaturalVariablesCompositionalModel(modelFI.G, modelFI.rock, modelFI.fluid, modelFI.EOSModel.fluid);
+modelFI = NaturalVariablesCompositionalModel(modelFI.G, modelFI.rock, modelFI.fluid, modelFI.EOSModel.fluid, 'water', modelFI.water);
 
 %%
 
@@ -17,7 +18,7 @@ fluid = modelFI.fluid;
 compFluid = modelFI.EOSModel.fluid;
 G = computeCellDimensions2(G);
 G.cells.ghost = false(G.cells.num,1);
-args = {G, rock, fluid, modelFI.EOSModel.fluid, 'water', modelFI.water, 'useIncTolComposition', true};
+args = {G, rock, fluid, modelFI.EOSModel.fluid, 'water', modelFI.water, 'nonlineartolerance', 1e-4};
 useNat = true;
 if useNat
     model = NaturalVariablesCompositionalModel(args{:});
@@ -32,7 +33,7 @@ modelSeq = SequentialPressureTransportModel(pmodel, tmodel);
 
 %%
 
-ix = 1:30;
+ix = 1:numel(schedule.step.val);
 subschedule = schedule;
 subschedule.step.val     = subschedule.step.val(ix);
 subschedule.step.control = subschedule.step.control(ix);
@@ -41,12 +42,12 @@ subschedule.step.control = subschedule.step.control(ix);
 %%
 
 close all
-plotToolbar(modelSeq.transportModel.G, st);
+plotToolbar(modelSeq.transportModel.G, stFV);
 plotWellSols(wsFV);
 
 %%
 
-degree = 0;
+degree = 1;
 [jt, ot, mt] = deal(Inf);
 mt = 0.0;
 % pmodel = PressureNaturalVariablesModelSemiDG(args{:});
@@ -66,14 +67,15 @@ disc = DGDiscretization(tmodel                                        , ...
 modelDG.transportModel = TransportNaturalVariablesModelDG(G, rock, fluid, compFluid, ...
                                    'disc'    , disc    , ...
                                    'dsMaxAbs', 0.2     , ...
-                                   'nonlinearTolerance', 1e-3, ...
-                                   'useIncTolComposition', true);
+                                   'water', modelFI.water, ...
+                                   'nonlinearTolerance', 1e-4, ...
+                                   'useIncTolComposition', false);
 % modelDG.pressureModel.disc = disc;
 
 state0 = assignDofFromState(disc, state0);
 [wsDG, stDG, rep] = simulateScheduleAD(state0, modelDG, subschedule);
 
 %%
-
+figure
 plotToolbar(modelDG.transportModel.G, stDG);
 plotWellSols({wsFV, wsDG});

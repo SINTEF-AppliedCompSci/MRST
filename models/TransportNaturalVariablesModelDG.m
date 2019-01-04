@@ -24,13 +24,13 @@ classdef TransportNaturalVariablesModelDG < TransportNaturalVariablesModel
             %   :meth:`ad_core.models.PhysicalModel.getVariableField`
             switch(lower(name))
                 case {'swdof'}
-                    index = 1;
+                    index = model.satVarIndex('sWdof');
                     fn = 'sdof';
                 case {'sodof'}
-                    index = 2;
+                    index = model.satVarIndex('sOdof');
                     fn = 'sdof';
                 case {'sgdof'}
-                    index = 3;
+                    index = model.satVarIndex('sGdof');
                     fn = 'sdof';
                 case {'sdof'}
                     index = ':';
@@ -91,7 +91,7 @@ classdef TransportNaturalVariablesModelDG < TransportNaturalVariablesModel
                     ds_relax = bsxfun(@times, w, ds);
                 end
 %                 sdof_uncap = state.sdof + ds_relax;
-                state.sof = state.sdof + ds_relax;
+                state.sdof = state.sdof + ds_relax;
                 state.s = state.s.*0;
                 for phNo = 1:size(state.s,2)
                     state.s(:,phNo) = model.disc.getCellMean(state.sdof(:,phNo), state);
@@ -152,10 +152,12 @@ classdef TransportNaturalVariablesModelDG < TransportNaturalVariablesModel
                 degree = state.degree;
                 state = dgLimiter(model.disc, state, bad, 's', 'kill');
                 state.degree = degree;
-                state.x(bad,:) = max(state.x(bad,:), 0);
+                state.x(bad,:) = capunit(state.x(bad,:));
+                state.x = bsxfun(@rdivide, state.x, sum(state.x, 2));
                 state = dgLimiter(model.disc, state, bad, 'x', 'kill');
                 state.degree = degree;
-                state.y(bad,:) = max(state.y(bad,:), 0);
+                state.y(bad,:) = capunit(state.y(bad,:));
+                state.y = bsxfun(@rdivide, state.y, sum(state.y, 2));
                 state = dgLimiter(model.disc, state, bad, 'y', 'kill');
                 state = model.disc.updateDofPos(state);
             end
@@ -201,12 +203,17 @@ classdef TransportNaturalVariablesModelDG < TransportNaturalVariablesModel
                 state.y(:,cNo) = model.disc.getCellMean(state.ydof(:,cNo), state);
             end
             
+            zdof = bsxfun(@times, state.xdof, rldecode(state.L, state.nDof, 1)) ...
+                 + bsxfun(@times, state.ydof,  rldecode(1-state.L, state.nDof, 1));
+            state.componentsdof = zdof;
+            
             if model.water
                 sT = sum(state.s, 2);
                 space = (sT - state.s(:, 1))./sT;
             else
                 space = 1;
             end
+            
             state.dz = max(max(abs(bsxfun(@times, deltax, space)), bsxfun(@times, deltay, space)));
             dz2 = max(abs(bsxfun(@times, state.components - state0.components, space)));
             state.dz = max(state.dz, dz2);

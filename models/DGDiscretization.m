@@ -291,7 +291,10 @@ classdef DGDiscretization < HyperbolicDiscretization
             n = nargout;
             varargout = cell([1,n]);
             for vNo = 1:n
-                val = varargin{vNo}(cells)*0;
+                val = varargin{vNo};
+                if ~isempty(val)
+                val = val(cells)*0;
+                
                 for dofNo = 1:nDofMax
                     keep = nDof(cells) >= dofNo;
                     ix = disc.getDofIx(state, dofNo, cells(keep));
@@ -300,6 +303,7 @@ classdef DGDiscretization < HyperbolicDiscretization
                     else
                         val(keep) = val(keep) + varargin{vNo}(ix).*psi{dofNo}(x(keep,:));
                     end
+                end
                 end
                 varargout{vNo} = val;
             end
