@@ -20,7 +20,7 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-   [ncell, ncomp, ntequil, nanaqu] = get_dimensions(deck);
+   [ncell, ncomp, ntequil] = get_dimensions(deck);
 
    [sln, miss_kw] = get_state(deck);
 
@@ -36,7 +36,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             tmpl(7) = { '1' };
             tmpl(8) = { '0' };
             
-            data = readDefaultedKW(fid, tmpl, 'NRec', nanaqu);
+            data = readDefaultedKW(fid, tmpl);
 
             sln.(kw) = cellfun(to_double, data);            clear data tmpl
 
@@ -44,7 +44,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             tmpl(1 : 13) = { 'NaN' };
             tmpl(  9   ) = { '360' };
 
-            data = readDefaultedKW(fid, tmpl, 'NRec', nanaqu);
+            data = readDefaultedKW(fid, tmpl);
 
             sln.(kw) = cellfun(to_double, data);            clear data tmpl
 
@@ -160,7 +160,7 @@ end
 
 %--------------------------------------------------------------------------
 
-function [ncell, ncomp, ntequil, nanaqu] = get_dimensions(deck)
+function [ncell, ncomp, ntequil] = get_dimensions(deck)
    assert (isstruct(deck) && isfield(deck, 'RUNSPEC') && ...
            isstruct(deck.RUNSPEC));
 
@@ -170,11 +170,6 @@ function [ncell, ncomp, ntequil, nanaqu] = get_dimensions(deck)
    ntequil = 1;
    if isfield(deck.RUNSPEC, 'EQLDIMS')
       ntequil = deck.RUNSPEC.EQLDIMS(1);
-   end
-
-   nanaqu = 1;
-   if isfield(deck.RUNSPEC, 'AQUDIMS'),
-      nanaqu = deck.RUNSPEC.AQUDIMS(5);
    end
 
    ncomp = 1;
