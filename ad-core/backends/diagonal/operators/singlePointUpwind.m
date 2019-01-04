@@ -39,6 +39,9 @@ function [jac, M, DS] = upwindJac(jac, flag, N, M, DS)
                 map = N;
             else
                 map = jac.subset(N);
+                if size(N, 1) == 1
+                    map = map';
+                end
             end
             if isempty(DS)
                 jac = DiagonalSubset(diagonal, jac.dim, map);

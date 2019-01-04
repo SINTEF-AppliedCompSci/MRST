@@ -1,7 +1,11 @@
 function v = faceAverage(N, v)
     % Face average operator for the NewAD library
     if isa(v, 'NewAD')
-        v.val = 0.5*sum(v.val(N), 2);
+        if size(N, 1) == 1
+            v.val = 0.5*sum(v.val(N), 1);
+        else
+            v.val = 0.5*sum(v.val(N), 2);
+        end
         v.jac = cellfun(@(x) avgJac(x, N), v.jac, 'UniformOutput', false);
     else
         v = 0.5*(v(N(:, 1), :) + v(N(:, 2), :));
@@ -23,6 +27,9 @@ function jac = avgJac(jac, N)
             map = N;
         else
             map = jac.subset(N);
+            if size(N, 1) == 1
+                map = map';
+            end
         end
         jac = DiagonalSubset(diagonal, jac.dim, map);
     end
