@@ -22,7 +22,8 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-   [dims, ntsfun, ntpvt, ntmisc, ntrocc, ncomp] = get_dimensions(deck);
+   [dims, ntsfun, ntpvt, ntmisc, ntrocc, ncomp, nmeosr] = ...
+      get_dimensions(deck);
 
    [prp, miss_kw] = get_state(deck);
 
@@ -52,7 +53,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             endboxKeyword;
             
          case 'EOS'
-            prp.(kw) = readDefaultedRecord(fid, {'PR'});
+            prp.(kw) = readDefaultedKW(fid, {'PR'}, 'NRec', nmeosr);
 
          case 'PRCORR'
             prp.PRCORR = true;
@@ -371,18 +372,20 @@ end
 
 %--------------------------------------------------------------------------
 
-function [dims, ntsfun, ntpvt, ntmisc, ntrocc, ncomp] = get_dimensions(deck)
+function [dims, ntsfun, ntpvt, ntmisc, ntrocc, ncomp, nmeosr] = ...
+      get_dimensions(deck)
    assert (isstruct(deck) && isfield(deck, 'RUNSPEC') && ...
            isstruct(deck.RUNSPEC));
 
    dims = reshape(deck.RUNSPEC.cartDims, 1, []);
 
-   [ntsfun, ntpvt, ntmisc, ncomp] = deal(1);
+   [ntsfun, ntpvt, ntmisc, ncomp, nmeosr] = deal(1);
    ntrocc = -1;
 
    if isfield(deck.RUNSPEC, 'TABDIMS')
-      ntsfun = deck.RUNSPEC.TABDIMS(1);  assert (ntsfun >= 1);
-      ntpvt  = deck.RUNSPEC.TABDIMS(2);  assert (ntpvt  >= 1);
+      ntsfun = deck.RUNSPEC.TABDIMS( 1);  assert (ntsfun >= 1);
+      ntpvt  = deck.RUNSPEC.TABDIMS( 2);  assert (ntpvt  >= 1);
+      nmeosr = deck.RUNSPEC.TABDIMS( 9);  assert (nmeosr >= 1);
       ntrocc = deck.RUNSPEC.TABDIMS(13);
    end
 
