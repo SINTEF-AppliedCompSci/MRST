@@ -154,7 +154,7 @@ classdef TransportNaturalVariablesModelDG < TransportNaturalVariablesModel
                 state.degree = degree;
                 state.x(bad,:) = capunit(state.x(bad,:));
                 state.x = bsxfun(@rdivide, state.x, sum(state.x, 2));
-                state = dgLimiter(model.disc, state, bad, 'x', 'kill');
+                state = dgLimiter(model.disc, state, bad, 'x', 'kill', 'plot', model.disc.plotLimiterProgress);
                 state.degree = degree;
                 state.y(bad,:) = capunit(state.y(bad,:));
                 state.y = bsxfun(@rdivide, state.y, sum(state.y, 2));

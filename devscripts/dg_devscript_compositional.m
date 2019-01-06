@@ -1,15 +1,16 @@
 mrstModule add msrsb compositional dg gasinjection ad-blackoil ...
-    blackoil-sequential ad-core ad-props coarsegrid mrst-gui vista vemmech
+    blackoil-sequential ad-core ad-props coarsegrid mrst-gui vista ...
+    coarsegrid msrsb vemmech vem
 mrstVerbose on
-gravity reset off;
 
 %%
 
-caseName = 'simple_1d_wat';
+% caseName = 'simple_1d_wat';
 % caseName = 'simple_3ph';
-caseName = 'immiscible_denis'
+caseName = 'immiscible_denis';
 [state0, modelFI, schedule, CG] = setupCompositionalPaperCase(caseName);
 modelFI = NaturalVariablesCompositionalModel(modelFI.G, modelFI.rock, modelFI.fluid, modelFI.EOSModel.fluid, 'water', modelFI.water);
+gravity reset off;
 
 %%
 
@@ -71,7 +72,7 @@ modelDG.transportModel = TransportNaturalVariablesModelDG(G, rock, fluid, compFl
                                    'water', modelFI.water, ...
                                    'nonlinearTolerance', 1e-4, ...
                                    'useIncTolComposition', false, ...
-                                   'reduceLinearSystem', false);
+                                   'reduceLinearSystem', true);
 % modelDG.pressureModel.disc = disc;
 
 state0 = assignDofFromState(disc, state0);

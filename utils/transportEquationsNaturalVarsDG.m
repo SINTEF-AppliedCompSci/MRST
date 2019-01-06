@@ -247,11 +247,12 @@ if isempty(twoPhaseIx) || opt.resOnly
 else
     % TODO: Implement for dg. Remember twoPhaseIx not the same as in
     % original code
-    tp = find(twoPhase);
-    n2ph = nnz(tp);
+%     tp = find(twoPhase);
+    nDof = sum(state.nDof);
+    n2ph = nnz(twoPhaseIx);
     nVars = sum(sample.getNumVars());
     reorder = 1:nVars;
-    start = tp + nc;
+    start = twoPhaseIx + nDof;
     stop = (nVars-n2ph+1):nVars;
     
     reorder(start) = stop;
@@ -259,7 +260,7 @@ else
     
     offset = ncomp+model.water;
     for i = 1:ncomp
-        cellJacMap{i + offset} = tp;
+        cellJacMap{i + offset} = find(twoPhase);% twoPhaseIx;
     end
 end
 
@@ -282,10 +283,11 @@ if model.water
     sW = sW./sT;
 end
 
-
 % Compute properties and fugacity
 [xM,  yM,  rhoO,  rhoG,  muO,  muG, f_L, f_V, xM0, yM0, rhoO0, rhoG0] = ...
     model.getTimestepPropertiesEoS(state, state0, p, temp, x, y, z, sO, sG, cellJacMap);
+
+
 
 % [pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
 
@@ -725,18 +727,44 @@ if model.extraStateOutput
 end
 state = model.storeDensities(state, rhoW, rhoO, rhoG);
 
+
+% Fugacity
+% tPhc = find(twoPhase);
+zdof = expandMatrixToCell(zdof);
+[zc] = deal(cell(size(xdof)));
+% [~, xitPhc, tPhcNow] = disc.getCubature(tPhc, 'volume');
+[zc{:}] = disc.evaluateDGVariable(xic, c, state, zdof{:});
+
+
+% Compute properties and fugacity
+[xM,  yM,  rhoO,  rhoG,  muO,  muG, f_L, f_V, xM0, yM0, rhoO0, rhoG0] = ...
+    model.getTimestepPropertiesEoS(state, state0, p(c), temp(c), xc, yc, zc, sOc, sGc, cellJacMap);
+
+% % Compute properties and fugacity
+% [xM,  yM,  rhoO,  rhoG,  muO,  muG, f_L, f_V, xM0, yM0, rhoO0, rhoG0] = ...
+%     model.getTimestepPropertiesEoS(state, state0, p, temp, xtPhc, ytPhc, ztPhc, sOtPhc, sGtPhc, cellJacMap);
+
+
 z_tol = 1e-8;
 for i = 1:ncomp
-    ix = i + ncomp + model.water;
-    names{ix}= ['f_', compFluid.names{i}];
-    types{ix} = 'fugacity';
-    eqs{ix} = (f_L{i}(twoPhase) - f_V{i}(twoPhase))/barsa;
+    cix = i + ncomp + model.water;
+    names{cix}= ['f_', compFluid.names{i}];
+    types{cix} = 'fugacity';
+    
+    integrand = @(psi, gradPsi) (f_L{i} - f_V{i}).*psi/barsa;
+    
+    fugacity = disc.cellInt(integrand, tPhc, state, sOdof);
+    
+    ix = disc.getDofIx(state, Inf, twoPhase);
+    eqs{cix} = fugacity(ix);
+%     eqs{cix} = (f_L{i}(twoPhase) - f_V{i}(twoPhase))/barsa;
     absent = state.components(twoPhase, i) <= 10*z_tol;
     if model.water
         absent = absent | pureWater(twoPhase);
     end
-    if any(absent) && isa(eqs{ix}, 'ADI')
-        eqs{ix}.val(absent) = 0;
+    if any(absent) && isa(eqs{cix}, 'ADI')
+        absIx = disc.getDofIx(state, Inf, absent);
+        eqs{cix}.val(absIx) = 0;
     end    
 end
 massT = model.getComponentScaling(state0);
