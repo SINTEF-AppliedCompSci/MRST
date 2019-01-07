@@ -255,7 +255,7 @@ classdef DGDiscretization < HyperbolicDiscretization
         end
         
         %-----------------------------------------------------------------%
-        function state = mapDofs(disc, state, state0)
+        function state = mapDofs(disc, state, state0, name)
             % Map dofs from state0 to state, typically from one timestep to
             % the next, when we start with maximum number of dofs in all
             % cells.
@@ -263,19 +263,24 @@ classdef DGDiscretization < HyperbolicDiscretization
             % Update dofPos
             state = disc.updateDofPos(state);
             
-            if all(state.nDof == state0.nDof)
-                state.sdof = state0.sdof;
+            if nargin == 3
+                name = 'sdof';
             else
-                sdof = zeros(sum(state.nDof), size(state0.sdof,2));
+                name = [name, 'dof'];
+            end
+            if all(state.nDof == state0.nDof)
+                state.(name) = state0.(name);
+            else
+                dof = zeros(sum(state.nDof), size(state0.(name),2));
                 for dofNo = 1:disc.basis.nDof
                     % We may be solving only a subset of the gridcells, so
                     % we include zeros in dofIx to keep track of where old
                     % dofs maps to new ones.
                     ix  = disc.getDofIx(state , dofNo, (1:disc.G.cells.num)', true);
                     ix0 = disc.getDofIx(state0, dofNo, (1:disc.G.cells.num)', true);
-                    sdof(ix(ix0 > 0 & ix > 0),:) = state0.sdof(ix0(ix0 > 0 & ix > 0),:);
+                    dof(ix(ix0 > 0 & ix > 0),:) = state0.(name)(ix0(ix0 > 0 & ix > 0),:);
                 end
-                state.sdof = sdof;
+                state.(name) = dof;
             end
 
         end

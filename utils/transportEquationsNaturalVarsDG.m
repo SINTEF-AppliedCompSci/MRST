@@ -23,14 +23,18 @@ function [problem, state] = transportEquationsNaturalVarsDG(state0, state, model
         end
         % For cells that previously had less than nDof unknowns, we must
         % map old dofs to new
-        state = disc.mapDofs(state, state0);
-        
+        state = disc.mapDofs(state, state0, 's');
+        state = disc.mapDofs(state, state0, 'x');
+        state = disc.mapDofs(state, state0, 'y');
     end
     % Update discretizaiton information. This is carried by the state
     % variable, and holds the number of dofs per cell + dof position in
     % state.sdof
     state0 = disc.updateDofPos(state0);
     state  = disc.updateDofPos(state);
+    
+    oIx = 1 + model.water;
+    gIx = 2 + model.water;
     
     ncomp = model.EOSModel.fluid.getNumberOfComponents();
     [x,y] = deal(zeros(size(state.x)));
@@ -81,10 +85,26 @@ function [problem, state] = transportEquationsNaturalVarsDG(state0, state, model
     [p0, sWdof0, sOdof0, sGdof0, xdof0, ydof0, temp0, wellSol0] = model.getProps(state0, ...
         'pressure', 'swdof', 'sodof', 'sgdof', 'xdof', 'ydof', 'T', 'wellSol');
 
-    [pureLiquid, pureVapor, twoPhase] = model.getFlag(state);
+    if opt.iteration == 1
+        state.change = zeros(G.cells.num,1);
+    else
+        state.change = state.change + (state.twoPhase ~= state0.twoPhase);
+    end
+    
+    if any(state.change > 4) && 1
+        pureLiquid = state0.pureLiquid;
+        pureVapor  = state0.pureVapor;
+        twoPhase   = state0.twoPhase;
+    else
+        [pureLiquid, pureVapor, twoPhase] = model.getFlag(state);
+    end
+    state.pureLiquid = pureLiquid;
+    state.pureVapor  = pureVapor;
+    state.twoPhase = twoPhase;
+    
     pureLiquidIx = disc.getDofIx(state, Inf, pureLiquid);
     pureVaporIx  = disc.getDofIx(state, Inf, pureVapor);
-    
+
     if 1
         % TODO: Do the same for dofs
         sO = state.s(:,1 + model.water);
@@ -242,12 +262,30 @@ end
 cellJacMap = cell(numel(primaryVars), 1);
 % toReorder = 1:nc;
 
+% if isempty(twoPhaseIx) || opt.resOnly
+%     reorder = [];
+% else
+%     % TODO: Implement for dg. Remember twoPhaseIx not the same as in
+%     % original code
+% %     tp = find(twoPhase);
+%     nDof = sum(state.nDof);
+%     n2ph = nnz(twoPhaseIx);
+%     nVars = sum(sample.getNumVars());
+%     reorder = 1:nVars;
+%     start = twoPhaseIx + nDof;
+%     stop = (nVars-n2ph+1):nVars;
+%     
+%     reorder(start) = stop;
+%     reorder(stop) = start;
+%     
+%     offset = ncomp+model.water;
+%     for i = 1:ncomp
+%         cellJacMap{i + offset} = find(twoPhase);% twoPhaseIx;
+%     end
+% end
 if isempty(twoPhaseIx) || opt.resOnly
     reorder = [];
 else
-    % TODO: Implement for dg. Remember twoPhaseIx not the same as in
-    % original code
-%     tp = find(twoPhase);
     nDof = sum(state.nDof);
     n2ph = nnz(twoPhaseIx);
     nVars = sum(sample.getNumVars());
@@ -260,9 +298,17 @@ else
     
     offset = ncomp+model.water;
     for i = 1:ncomp
-        cellJacMap{i + offset} = find(twoPhase);% twoPhaseIx;
+        cellJacMap{i + offset} = find(twoPhase);
+    end
+    
+%     cellno = rldecode(a, b);
+    cellNo = rldecode((1:G.cells.num)', state.nDof, 1);
+    
+    for i = 2:offset
+        cellJacMap{i} = cellNo;
     end
 end
+
 
 % Get cell averages of dg variables
 [x, y] = deal(cell(ncomp,1));
@@ -441,11 +487,13 @@ TgG  = TgG./G.faces.areas;
             srcWW = disc.cellInt(integrand, wc, state, sWdof);
             srcW{ncomp + 1} = srcWW;
         end
-         
-        rOqO = rhoO(cNow).*fOW.*wflux(cNow);
-        rGqG = rhoG(cNow).*fGW.*wflux(cNow);
-        rOqO(isInj(cNow)) = compPerf(isInj(cNow), 1 + model.water).*mflux(isInj(cNow));
-        rGqG(isInj(cNow)) = compPerf(isInj(cNow), 2 + model.water).*mflux(isInj(cNow));
+        
+        rOqO = rhoO(cNow).*fOW.*wflux(cNow).*(~isInj(cNow)) ...
+               + compPerf(cNow, oIx).*mflux(cNow).*isInj(cNow);
+        rGqG = rhoG(cNow).*fGW.*wflux(cNow) ...
+               + compPerf(cNow, gIx).*mflux(cNow).*isInj(cNow);
+%         rOqO(isInj(cNow)) = 
+%         rGqG(isInj(cNow)) = compPerf(isInj(cNow), 2 + model.water).*mflux(isInj(cNow));
         
         for cNo = 1:ncomp
             integrand = @(psi, gradPsi) ...
@@ -736,9 +784,47 @@ zdof = expandMatrixToCell(zdof);
 [zc{:}] = disc.evaluateDGVariable(xic, c, state, zdof{:});
 
 
+st = state;
+st.T = st.T(c);
+st.Z_L = st.Z_L(c);
+st.Z_V = st.Z_V(c);
+
+st0 = state0;
+st0.T = st0.T(c);
+st0.Z_L = st0.Z_L(c);
+st0.Z_V = st0.Z_V(c);
+st0.x = st0.x(c,:);
+st0.y = st0.y(c,:);
+st0.pressure = st0.pressure(c);
+
+if isempty(twoPhaseIx) || opt.resOnly
+    reorder = [];
+else
+    nDof = sum(state.nDof);
+    n2ph = nnz(twoPhaseIx);
+    nVars = sum(sample.getNumVars());
+    reorder = 1:nVars;
+    start = twoPhaseIx + nDof;
+    stop = (nVars-n2ph+1):nVars;
+    
+    reorder(start) = stop;
+    reorder(stop) = start;
+    
+    offset = ncomp+model.water;
+    for i = 1:ncomp
+        cellJacMap{i + offset} = find(twoPhase);
+    end
+    
+%     cellno = rldecode(a, b);
+    cellNo = rldecode(c, state.nDof(c), 1);
+    
+    for i = 2:offset
+        cellJacMap{i} = cellNo;
+    end
+end
 % Compute properties and fugacity
 [xM,  yM,  rhoO,  rhoG,  muO,  muG, f_L, f_V, xM0, yM0, rhoO0, rhoG0] = ...
-    model.getTimestepPropertiesEoS(state, state0, p(c), temp(c), xc, yc, zc, sOc, sGc, cellJacMap);
+    model.getTimestepPropertiesEoS(st, st0, p(c), temp(c), xc, yc, zc, sOc, sGc, cellJacMap);
 
 % % Compute properties and fugacity
 % [xM,  yM,  rhoO,  rhoG,  muO,  muG, f_L, f_V, xM0, yM0, rhoO0, rhoG0] = ...
@@ -753,7 +839,7 @@ for i = 1:ncomp
     
     integrand = @(psi, gradPsi) (f_L{i} - f_V{i}).*psi/barsa;
     
-    fugacity = disc.cellInt(integrand, tPhc, state, sOdof);
+    fugacity = disc.cellInt(integrand, (1:G.cells.num)', state, sOdof);
     
     ix = disc.getDofIx(state, Inf, twoPhase);
     eqs{cix} = fugacity(ix);
@@ -808,7 +894,13 @@ if 0
 %     djac = cellfun(@(d) norm(d.val), d, ');
     
 end
-[sum(pureLiquid), sum(pureVapor), sum(twoPhase)]
+
+if 1
+    ix = disc.getDofIx(state, 1, Inf);
+    v = eqs{3}(ix);
+    plotToolbar(G, v.val, 'plot1d', true);
+end
+% [sum(pureLiquid), sum(pureVapor), sum(twoPhase)]
 end
 
 % Expand single scalar values to one per cell------------------------------

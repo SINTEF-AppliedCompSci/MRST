@@ -152,14 +152,16 @@ classdef TransportNaturalVariablesModelDG < TransportNaturalVariablesModel
                 degree = state.degree;
                 state = dgLimiter(model.disc, state, bad, 's', 'kill');
                 state.degree = degree;
+                state = model.disc.updateDofPos(state);
                 state.x(bad,:) = capunit(state.x(bad,:));
                 state.x = bsxfun(@rdivide, state.x, sum(state.x, 2));
                 state = dgLimiter(model.disc, state, bad, 'x', 'kill', 'plot', model.disc.plotLimiterProgress);
                 state.degree = degree;
+                state = model.disc.updateDofPos(state);
                 state.y(bad,:) = capunit(state.y(bad,:));
                 state.y = bsxfun(@rdivide, state.y, sum(state.y, 2));
                 state = dgLimiter(model.disc, state, bad, 'y', 'kill');
-                state = model.disc.updateDofPos(state);
+%                 state = model.disc.updateDofPos(state);
             end
             
             if ~isempty(dL)
@@ -244,7 +246,10 @@ classdef TransportNaturalVariablesModelDG < TransportNaturalVariablesModel
         
         % ----------------------------------------------------------------%
         function [ds, dx, vars] = getSaturationIncrements(model, dx, vars, state)
-            [pureLiquid, pureVapor, twoPhase] = model.getFlag(state);
+%             [pureLiquid, pureVapor, twoPhase] = model.getFlag(state);
+            pureLiquid = state.pureLiquid;
+            pureVapor  = state.pureVapor;
+            twoPhase   = state.twoPhase;
             [dsG, dx, vars] = getSatUpdateInternal(model, 'satg', dx, vars, twoPhase, state);
             [dsO, dx, vars] = getSatUpdateInternal(model, 'sato', dx, vars, twoPhase, state);
             [dsW, dx, vars] = getSatUpdateInternal(model, 'satw', dx, vars, twoPhase, state);
@@ -261,7 +266,10 @@ classdef TransportNaturalVariablesModelDG < TransportNaturalVariablesModel
 
         % ----------------------------------------------------------------%
         function [dx, dy, increments, vars] = getPhaseCompositionIncrements(model, increments, vars, state)
-            [pureLiquid, pureVapor, twoPhase] = model.getFlag(state);
+%             [pureLiquid, pureVapor, twoPhase] = model.getFlag(state);
+            pureLiquid = state.pureLiquid;
+            pureVapor  = state.pureVapor;
+            twoPhase   = state.twoPhase;
             pureVaporIx = model.disc.getDofIx(state, Inf, pureVapor);
             twoPhaseIx  = model.disc.getDofIx(state, Inf, twoPhase);
             
