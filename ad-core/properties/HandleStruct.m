@@ -1,4 +1,4 @@
-classdef DynamicStruct < handle
+classdef HandleStruct < handle
     properties (Access = private)
         data = struct();
     end

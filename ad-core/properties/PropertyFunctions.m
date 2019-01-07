@@ -19,7 +19,7 @@ classdef PropertyFunctions
             name = props.structName;
             fld = [props.structFields(:)'; cell(1, numel(props.structFields))];
             s = struct(fld{:});
-            container = DynamicStruct(s);
+            container = HandleStruct(s);
         end
         
         function state = evaluateProperty(props, model, state, name)
