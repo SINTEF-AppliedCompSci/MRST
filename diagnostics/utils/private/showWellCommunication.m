@@ -13,6 +13,10 @@ set(ax, 'XTick', 1.5:numel(pnames)+.5, ...
     'YTickLabel', inames, 'XTickLabelRotation',45, ...
     'XAxisLocation','top','Fontsize',8,'YDir','reverse');
 axis(ax,'on','tight');
-caxis(ax, [0 max(max(val))]);
+maxVal = max(max(val));
+if maxVal == 0 || ~isfinite(maxVal)
+    maxVal = 1;
+end
+caxis(ax, [0 maxVal]);
 colorbar(ax,'southoutside')
 end

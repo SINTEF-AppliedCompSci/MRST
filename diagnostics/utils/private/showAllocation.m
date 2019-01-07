@@ -123,8 +123,10 @@ switch src.Value
             set(ax,'XTickLabelRotation',-30,'FontSize',8);
         end
         title(ax,d.WellPlot.injectors(iIx).label.String);
-        legend(ax, ax.Children(numel(d.WellPlot.producers)+1-pIx), ...
-            arrayfun(@(x) x.label.String, d.WellPlot.producers(pIx),'UniformOutput',false));
+        if ~isempty(pIx)
+            legend(ax, ax.Children(numel(d.WellPlot.producers)+1-pIx), ...
+                arrayfun(@(x) x.label.String, d.WellPlot.producers(pIx),'UniformOutput',false));
+        end
 
     case 6  % Producer volumes
         if numel(pIx)~=1
@@ -229,8 +231,10 @@ switch src.Value
             set(ax,'XTickLabelRotation',-30,'FontSize',8);
         end
         title(ax,d.WellPlot.producers(pIx).label.String);
-        legend(ax, ax.Children(numel(d.WellPlot.injectors)+1-iIx), ...
-            arrayfun(@(x) x.label.String, d.WellPlot.injectors(iIx),'UniformOutput',false));
+        if ~isempty(iIx)
+            legend(ax, ax.Children(numel(d.WellPlot.injectors)+1-iIx), ...
+                arrayfun(@(x) x.label.String, d.WellPlot.injectors(iIx),'UniformOutput',false));
+        end
 
     otherwise
         disp('functionality not implemented yet');

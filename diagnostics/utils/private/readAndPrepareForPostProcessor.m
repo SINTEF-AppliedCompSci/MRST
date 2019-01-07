@@ -40,7 +40,7 @@ end
 valid_ix = isValidState(data.states);
 if ~all(valid_ix)
     ns = nnz(~valid_ix);
-    warning('Current version requires at least one open producer and one open injector.\n Skipping %2.0d of the %2.0d selected restart steps.', ns, numel(valid_ix));
+    warning('Current version requires at least one open well.\n Skipping %2.0d of the %2.0d selected restart steps.', ns, numel(valid_ix));
     data.time.prev = data.time.prev(valid_ix);
     data.time.cur  = data.time.cur(valid_ix);
     data.states    = data.states(valid_ix);
@@ -114,7 +114,7 @@ for k = 1:numel(states)
     stat = and([ws.status], abs([ws.resv])>0);
     openPrd = any(and(stat, [ws.sign]<0));
     openInj = any(and(stat, [ws.sign]>0));
-    flag(k) = openPrd && openInj;
+    flag(k) = openPrd || openInj;
 end
 end
 
