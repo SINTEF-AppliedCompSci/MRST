@@ -2,7 +2,7 @@ function deck = readSOLUTION(fid, dirname, deck)
 % Read solution
 
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -135,11 +135,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
             deck = readSCHEDULE(fid, dirname, deck);
 
-         case 'INCLUDE',
+         case 'INCLUDE'
             % Handle 'INCLUDE' (recursion).
             deck = set_state(deck, sln, miss_kw);
 
-            deck = readEclipseIncludeFile(@readSOLUTION, fid, dirname, deck);
+            deck = readEclipseIncludeFile(@readSOLUTION, fid, dirname, ...
+                                          deck.RUNSPEC, deck);
 
             % Prepare for additional reading.
             [sln, miss_kw] = get_state(deck);

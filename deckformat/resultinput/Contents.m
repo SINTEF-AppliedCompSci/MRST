@@ -1,9 +1,11 @@
 % RESULTINPUT
 %
 % Files
+%   addFluxesToRestartStates         - 
 %   convertRestartToStates           - states = convertRestartToStates(fn, G, varargin)
 %   convertSummaryToWellSols         - [wellSols, time] = convertSummaryToWellSols(fn, unit)
 %   eclOut2mrst                      - 
+%   initGridFromEclipseOutput        - Reads eclipse output files and converts to MRST-compatible datastructures
 %   processEclipseRestartSpec        - Read unformatted (binary) ECLIPSE restart specification file (*RSSPEC) and 
 %   readEclipseOutputFileFmt         - Read formatted (ASCII) ECLIPSE output/result file
 %   readEclipseOutputFileUnFmt       - Read unformatted (binary) ECLIPSE output/result file
@@ -15,7 +17,7 @@
 %   readEclipseSummaryUnFmt_fallback - Read unformatted (binary) ECLIPSE summary data
 
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

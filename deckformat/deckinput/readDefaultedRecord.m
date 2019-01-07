@@ -46,7 +46,7 @@ function rec = readDefaultedRecord(fid, rec)
 %   `readDefaultedKW`, `readWellKW`.
 
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -70,7 +70,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    %
    % Only enter this part if there actually *is* any data.
    %
-   if ~isempty(data) && ~all(isspace(data)),
+   if ~isempty(data) && ~all(isspace(data))
       % Tokenize data.
       data = removeQuotes(tokenizeRecord(strtrim(data)));
 
@@ -78,7 +78,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       is_def = regexp(data, '^(\d+)\*$', 'tokens', 'once');
       i      = ~cellfun(@isempty, is_def);
 
-      if ~all(i),
+      if ~all(i)
          % Compute index offsets for non-defaulted values.
          add    = zeros([numel(rec), 1]);
          add(i) = cellfun(@(c) sscanf(c{1}, '%f'), is_def(i));

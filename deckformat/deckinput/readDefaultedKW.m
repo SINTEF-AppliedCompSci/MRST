@@ -44,7 +44,7 @@ function data = readDefaultedKW(fid, template, varargin)
 %   `readDefaultedRecord`.
 
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -69,7 +69,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    data = [];
    rec  = readDefaultedRecord(fid, template);
    nrec = 1;
-   while ~isequal(rec, template) && nrec < opt.NRec,
+   while ~isequal(rec, template) && nrec < opt.NRec
       % Accumulate data.  We don't know how many records there are, so we
       % can unfortunately not easily pre-allocate storage for this data.
       %
@@ -78,7 +78,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       nrec = nrec + 1;
    end
 
-   if ~isequal(rec, template),
+   if ~isequal(rec, template)
       % Terminated due to maximum number of records read.  Put final record
       % into return data.
       %

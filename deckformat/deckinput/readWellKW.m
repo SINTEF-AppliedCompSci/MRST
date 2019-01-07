@@ -29,7 +29,7 @@ function w  = readWellKW(fid, w, kw)
 %   `readEclipseDeck`, `processWells`.
 
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -270,8 +270,8 @@ function w = readWConInjh(fid, w)
    %            1          2          3       4      5      6
    template = {'Default', 'Default', 'OPEN', '0.0', '0.0', '0.0', ...
       ...
-      ...     % 7      8      9    10     11
-               'inf', '0.0', '0', '0.0', '0.0'};
+      ...     % 7    8      9    10     11
+               '0', '0.0', '0', '0.0', '0.0'};
    numeric  = 4 : numel(template);
 
    data = readDefaultedKW(fid, template);
@@ -593,7 +593,7 @@ function w = readWPolymer(fid, w)
    data = readDefaultedKW(fid, template);
    data = toDouble(data, numeric);
 
-   w.WPOLYMER = appendSpec(w.WPOLYMER, data, w.WELSPECS(:,1));
+   w.WPOLYMER = appendSpec(w.WPOLYMER, 'WPOLYMER', data, w.WELSPECS(:,1));
 end
 
 %--------------------------------------------------------------------------
@@ -606,7 +606,7 @@ function w = readWSurfact(fid, w)
    data = readDefaultedKW(fid, template);
    data = toDouble(data, numeric);
 
-   w.WSURFACT = appendSpec(w.WSURFACT, data, w.WELSPECS(:,1));
+   w.WSURFACT = appendSpec(w.WSURFACT, 'WSURFACT', data, w.WELSPECS(:,1));
 end
 
 %--------------------------------------------------------------------------
@@ -619,7 +619,7 @@ function w = readWSolvent(fid, w)
    data = readDefaultedKW(fid, template);
    data = toDouble(data, numeric);
 
-   w.WSOLVENT = appendSpec(w.WSOLVENT, data, w.WELSPECS(:,1));
+   w.WSOLVENT = appendSpec(w.WSOLVENT, 'SOLVENT', data, w.WELSPECS(:,1));
 end
 
 %--------------------------------------------------------------------------
@@ -632,7 +632,7 @@ function w = readWTemp(fid, w)
    data = readDefaultedKW(fid, template);
    data = toDouble(data, numeric);
 
-   w.WTEMP = appendSpec(w.WTEMP, data, w.WELSPECS(:,1));
+   w.WTEMP = appendSpec(w.WTEMP, 'WTEMP', data, w.WELSPECS(:,1));
 end
 
 %--------------------------------------------------------------------------
@@ -871,7 +871,8 @@ function data = unique_well_records(data, kw)
 
    if numel(u) < size(data, 1)
       pick   = false([size(data, 1), 1]);  pick(id) = true;
-      mwells = ['{ ', sprintf('''%s'' ', data{~pick, 1}), '}', ];
+      mwells = unique(data(~pick, 1));
+      mwells = ['{ ', sprintf('''%s'' ', mwells{:}), '}', ];
 
       warning('MultiRecord:SameWell', ...
              ['%s: Multiple Records Apply to Same Well/Well-List.\n', ...

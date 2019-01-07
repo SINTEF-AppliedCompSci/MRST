@@ -1,11 +1,10 @@
 % Models for three-phase compressible fluids.
 %
 % Files
-%   initEclipseFluid    - Construct an MRST fluid object from an ECLIPSE input deck
 %   expandMiscibleTable - Expand Miscible PVT Table Definition to Format Suitable for Visualization
 
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

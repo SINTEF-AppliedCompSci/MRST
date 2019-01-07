@@ -52,8 +52,9 @@ function [state, model, schedule]  = setupSPE10_AD(varargin)
     j = numel(opt.J);
     assert(i > 0 && i <= 60);
     assert(j > 0 && j <= 220);
-    cartDims = [  i,  j,   nl];
-    physDims = [20*i, 10*j, 2*nl] .* ft();
+
+    cartDims = [ i, j, nl ];
+    physDims = cartDims .* [ 20, 10, 2 ]*ft;
 
     if opt.make2D
         assert(nl == 1);

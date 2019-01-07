@@ -2,7 +2,7 @@ function [deck, varargout] = readSCHEDULE(fid, dirname, deck, varargin)
 % Read schedule
 
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -136,6 +136,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
             [deck, def_ctrl, cno] = ...
                readEclipseIncludeFile(@readSCHEDULE, fid, dirname, ...
+                                      deck.RUNSPEC,                ...
                                       deck, 'ctrl', ctrl,          ...
                                       'def_ctrl', def_ctrl,        ...
                                       'cno', cno);

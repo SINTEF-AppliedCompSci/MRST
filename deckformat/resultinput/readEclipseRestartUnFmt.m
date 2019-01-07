@@ -23,8 +23,26 @@ function output = readEclipseRestartUnFmt(prefix, spec, steps)
 %   `readEclipseOutputFileFmt`, `readEclipseRestartSpec`.
 
 if nargin < 2 || isempty(spec)
-    spec = processEclipseRestartSpec(prefix);
+    try
+        spec = processEclipseRestartSpec(prefix);
+    catch
+        warning('No restart spesification found, attempting to use potentially inefficient fallback routine')
+        output = readEclipseRestartUnFmt_fallback(prefix);
+        fn = fieldnames(output);
+        if nargin < 3 || isempty(steps)
+            steps = ':';
+        end
+        for k = 1:numel(fn)
+            if isfield(output.(fn{k}), 'values')
+                output.(fn{k}) = output.(fn{k}).values(steps);
+            else
+                output.(fn{k}) = output.(fn{k})(steps);
+            end
+        end
+        return;
+    end
 end
+
 if nargin < 3 || isempty(steps)
     steps = 1:numel(spec.time);
 end
@@ -56,6 +74,7 @@ if strcmp(spec.type, 'unified')
     end
 end
 dispif(mrstVerbose, 'Reading restart:     ')
+
 for ks = 1:numel(steps)
     dispif(mrstVerbose, '\b\b\b\b%3d%%', round(100*ks/numel(steps)));
     step = steps(ks);
@@ -87,6 +106,7 @@ for ks = 1:numel(steps)
         fid = fclose(fid);
     end
 end
+
 if strcmp(spec.type, 'unified')
     fclose(fid);
 end
@@ -101,4 +121,3 @@ function name = fixVarName(name)
         name = genvarname(regexprep(name, '\W', '_'));
     end
 end
-     

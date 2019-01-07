@@ -2,7 +2,7 @@ function [sect, replaced] = replaceKeywords(sect, fid, keywords, nc)
 % Replace keywords. Internal function
 
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -20,24 +20,28 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-replaced = false(size(keywords));
-kw = getEclipseKeyword(fid);
-in_section = ischar(kw);
-while in_section,
-    switch kw
-        case {'ADD', 'COPY', 'EQUALS', 'MAXVALUE', ...
-                'MINVALUE', 'MULTIPLY'},
+   replaced = false(size(keywords));
+
+   kw = getEclipseKeyword(fid);
+   in_section = ischar(kw);
+   while in_section
+      switch kw
+         case {'ADD', 'COPY', 'EQUALS', 'MAXVALUE', ...
+               'MINVALUE', 'MULTIPLY'}
             data = applyOperator(data, fid, kw);
-        otherwise
-            data = readGridBoxArray([], fid, kw, nc);
-            
+
+         otherwise
+            data = readGridBoxArray([], fid, kw, nc, 0.0);
+
             iskw = strcmpi(kw, keywords);
+
             if any(iskw)
-                sect.(kw) = data.(kw);
-                replaced(iskw) = true;
+               sect.(kw) = data.(kw);
+               replaced(iskw) = true;
             end
-    end
-    kw = getEclipseKeyword(fid);
-    in_section = ischar(kw);
-end
+      end
+
+      kw = getEclipseKeyword(fid);
+      in_section = ischar(kw);
+   end
 end

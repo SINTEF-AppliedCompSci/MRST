@@ -2,7 +2,7 @@ function opt = readTextFlags(fid, opt, kw)
 % Intentionally undocumented internal helper function
 
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -23,8 +23,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    flags = splitString(removeQuotes(readRecordString(fid)));
    flags = flags(cellfun(@isvarname, flags));
 
-   for f = reshape(flags, 1, []),
-      if isfield(opt, f{1}),
+   for f = reshape(flags, 1, [])
+      if isfield(opt, f{1})
          opt.(f{1}) = true;
       else
          warning(msgid('Flag:Unsupported'), ...

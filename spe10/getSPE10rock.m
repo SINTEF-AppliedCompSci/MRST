@@ -41,7 +41,7 @@ function rock = getSPE10rock(varargin)
 %   `getSPE10setup`, `make_spe10_data`.
 
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -83,19 +83,20 @@ function ix = define_subset(varargin)
                                           % ()
    [I, J, K]    = deal(1:Nx, 1:Ny, 1:Nz); % Default (entire dataset)
 
-   if nargin == 1,
+   if nargin == 1
                                           % (layers)
       K = varargin{1};                    % Caller specified ind. layers
 
-   elseif nargin == 3,
+   elseif nargin == 3
                                           % (I, J, K)
       [I, J, K] = deal(varargin{:});      % Caller specified box
 
-   elseif nargin ~= 0,
+   elseif nargin ~= 0
+      file = mfilename();
       error(['Syntax is\n\t'              , ...
              'rock = %s         %% or\n\t', ...
              'rock = %s(layers) %% or\n\t', ...
-             'rock = %s(I, J, K)'], mfilename, mfilename, mfilename);
+             'rock = %s(I, J, K)'], file, file, file);
    end
 
    validate_range(I, Nx);
@@ -110,12 +111,13 @@ end
 %--------------------------------------------------------------------------
 
 function rock = load_mat_file()
-   rock_file = fullfile(getDatasetPath('spe10'), 'spe10_rock');
+   rdir = getDatasetPath('spe10', 'skipAvailableCheck', true);
+   rock_file = fullfile(rdir, 'spe10_rock');
 
-   if ~exist([rock_file, '.mat'], 'file'),
+   if ~exist([rock_file, '.mat'], 'file')
       ok = makeSPE10DataAvailable();
 
-      if ~ok,
+      if ~ok
          error('SPE10Download:Fail', 'Failed to download SPE 10 dataset');
       end
    end

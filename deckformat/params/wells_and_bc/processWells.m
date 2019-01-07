@@ -69,7 +69,7 @@ function W = processWells(G, rock, control, varargin)
 %   `readSCHEDULE`, `readWellKW`, `addWell`.
 
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -173,7 +173,7 @@ function W = process_wconinj(W, control, G, rock, c2a, well_id, p, opt)
       status = strcmp(control.WCONINJ{i,3}, 'OPEN');
 
       type = lower(control.WCONINJ{i,4});
-      switch type,
+      switch type
         case 'rate', val = control.WCONINJ{i, 5};
         case 'resv', val = control.WCONINJ{i, 6};
         case 'bhp' , val = control.WCONINJ{i, 9};
@@ -187,11 +187,11 @@ function W = process_wconinj(W, control, G, rock, c2a, well_id, p, opt)
       end
 
       % Define injection fluid.  This is a hack.
-      switch lower(control.WCONINJ{i,2}(1)),
+      switch lower(control.WCONINJ{i,2}(1))
         case 'w', compi = [1, 0, 0];  % Water, 1st phase
         case 'o', compi = [0, 1, 0];  % Oil, 2nd phase
         case 'g', compi = [0, 0, 1];  % Gas, 3rd phase
-        otherwise,
+        otherwise
           dispif(opt.Verbose, ...
                  ['Injection phase ''%s'' is unknown.  ', ...
                   'Well ignored.\n'], control.WCONINJ{i,2});
@@ -220,7 +220,7 @@ function W = process_wconinje(W, control, G, rock, c2a, well_id, p, opt)
       status = strcmp(control.WCONINJE{i,3}, 'OPEN');
 
       type = lower(control.WCONINJE{i,4});
-      switch type,
+      switch type
         case 'rate'
           val = control.WCONINJE{i, 5};
         case 'resv'
@@ -241,11 +241,11 @@ function W = process_wconinje(W, control, G, rock, c2a, well_id, p, opt)
 
 
       % Define injection fluid.  This is a hack.
-      switch lower(control.WCONINJE{i,2}(1)),
+      switch lower(control.WCONINJE{i,2}(1))
         case 'w', compi = [1, 0, 0];  % Water, 1st phase
         case 'o', compi = [0, 1, 0];  % Oil, 2nd phase
         case 'g', compi = [0, 0, 1];  % Gas, 3rd phase
-        otherwise,
+        otherwise
           dispif(opt.Verbose, ...
                 ['Injection phase ''%s'' is unknown.  ', ...
                  'Well ignored.\n'], control.WCONINJE{i,2});
@@ -277,11 +277,11 @@ function W = process_wconinjh(W, control, G, rock, c2a, well_id, p, opt)
       val = control.WCONINJH{i, 4};
 
       % Define injection fluid.  This is a hack.
-      switch lower(control.WCONINJH{i,2}(1)),
+      switch lower(control.WCONINJH{i,2}(1))
         case 'w', compi = [1, 0, 0];  % Water, 1st phase
         case 'o', compi = [0, 1, 0];  % Oil, 2nd phase
         case 'g', compi = [0, 0, 1];  % Gas, 3rd phase
-        otherwise,
+        otherwise
           dispif(opt.Verbose, ...
                  ['Injection phase ''%s'' is unknown.  ', ...
                   'Well ignored.\n'], control.WCONINJH{i,2});
@@ -443,7 +443,11 @@ function W = process_wconhist(W, control, G, rock, c2a, well_id, p, opt)
         case 'resv'
           rates = - ([control.WCONHIST{i, 4:6}]);
           val   = sum(rates);
-          compi = rates./val;
+          if val ~= 0
+              compi = rates./val;
+          else
+              compi = [1 1 1]/3;
+          end
         case 'bhp'
           val = control.WCONHIST{i, 10};
 
@@ -461,7 +465,7 @@ function W = process_wconhist(W, control, G, rock, c2a, well_id, p, opt)
                     p, type, val, compi, opt.InnerProduct, -1, opt);
 
       if numel(W) > sizeW
-         switch type,
+         switch type
            case 'orat'
              W(end).lims.orat = -control.WCONHIST{i, 4};
              W(end).lims.wrat = -inf;
@@ -509,37 +513,37 @@ function W = process_wconprod(W, control, G, rock, c2a, well_id, p, opt)
       status = strcmp(control.WCONPROD{i,2}, 'OPEN');
 
       type = lower(control.WCONPROD{i,3});
-      switch type,
-        case 'orat',
+      switch type
+        case 'orat'
           % 'val' is INJECTION rate.
           val = -control.WCONPROD{i, 4};
           compi = [ 0, 1, 0 ];
 
-        case 'wrat',
+        case 'wrat'
           % 'val' is INJECTION rate.
           val = -control.WCONPROD{i, 5};
           compi = [ 1, 0, 0 ];
 
-        case 'grat',
+        case 'grat'
           % 'val' is INJECTION rate.
           val = -control.WCONPROD{i, 6};
           compi = [ 0, 0, 1 ];
 
-        case 'lrat',
+        case 'lrat'
           % 'val' is INJECTION rate.
           val   = -control.WCONPROD{i, 7};
           compi = [ 1, 1, 0 ];  % LIQUID rate == water+oil rate (surface)
 
-        case 'resv',
+        case 'resv'
           % 'val' is INJECTION rate.
           val   = -control.WCONPROD{i, 8};
           compi = [ 1, 1, 1 ];
 
-        case 'bhp',
+        case 'bhp'
           val   = control.WCONPROD{i, 9};
           compi = [1, 1, 1];  % Doesn't matter.
 
-        case 'thp',
+        case 'thp'
           val   = control.WCONPROD{i, 10};
           compi = [1, 1, 1];  % Doesn't matter.
 
@@ -558,13 +562,13 @@ function W = process_wconprod(W, control, G, rock, c2a, well_id, p, opt)
                     p, type, val, compi, opt.InnerProduct, -1, opt);
 
       if numel(W) > sizeW
-         W(end).lims.orat = -control.WCONPROD{i, 4};
-         W(end).lims.wrat = -control.WCONPROD{i, 5};
-         W(end).lims.grat = -control.WCONPROD{i, 6};
-         W(end).lims.lrat = -control.WCONPROD{i, 7};
-         W(end).lims.bhp  = control.WCONPROD{i, 9};
-         W(end).lims.thp  = control.WCONPROD{i, 10};
-         W(end).status    = status;
+         W(end).lims.orat = -control.WCONPROD{i,  4};
+         W(end).lims.wrat = -control.WCONPROD{i,  5};
+         W(end).lims.grat = -control.WCONPROD{i,  6};
+         W(end).lims.lrat = -control.WCONPROD{i,  7};
+         W(end).lims.bhp  =  control.WCONPROD{i,  9};
+         W(end).lims.thp  =  control.WCONPROD{i, 10};
+         W(end).status    =  status;
       end
       W(end).vfp_index = control.WCONPROD{i, 11};
    end
@@ -629,7 +633,8 @@ function W = buildWell(W, G, rock, c2a, control, i, p, ...
    comp  = control.COMPDAT(p(i) : p(i + 1) - 1, :);
    perf  = arrayfun(@(i) active_perf(G, comp(i,:), c2a), ...
                     (1 : size(comp,1)).', 'UniformOutput', false);
-   nperf = reshape(cellfun(@numel, perf), [], 1);
+
+   nperf = reshape(cellfun('prodofsize', perf), [], 1);
 
    wdir  = rldecode([comp{:,13}], nperf, 2) .';
    Kh    = rldecode([comp{:,10}], nperf, 2) .';
@@ -646,20 +651,21 @@ function W = buildWell(W, G, rock, c2a, control, i, p, ...
    Wdiam(~ (Wdiam > 0)) = 1*ft;
 
    assert (all(Wdiam((Kh < 0) & (WI < 0)) > 0), ...
-           ['Well bore diameter must be defined unless productivity ', ...
-            'index is explicitly provided.']);
+          ['Well bore diameter must be defined unless productivity ', ...
+           'index is explicitly provided.']);
 
    RefDepth = control.WELSPECS{i,5};
    assert (isnumeric(RefDepth));
 
-   if isnan(RefDepth),
+   if isnan(RefDepth)
       RefDepth = min(G.cells.centroids(vertcat(perf{:}), 3));
    end
 
    % Remove cells from connection which are shutdown
    perf = vertcat(perf{:});
-   [new_perf, ia, ic] = unique(perf, 'last');
-   ia = sort(ia); % don't want to sort perf accoring to cell-num
+   [ia, ia] = unique(perf, 'last');                             %#ok<ASGLU>
+   ia = sort(ia); % Don't sort well connections according to cell ID
+
    cstatus = strcmp('OPEN', openShutFlag(ia));
    %ia = ia(ia_open);
 
@@ -669,13 +675,15 @@ function W = buildWell(W, G, rock, c2a, control, i, p, ...
    WI    =  WI(ia);
    Wdiam =  Wdiam(ia);
 
-   if sum(nperf) > 0,
+   if sum(nperf) > 0
       sizeW = numel(W);
-      W = addWell(W, G, rock, perf,                       ...
+      W = addWell(W, G, rock, perf,                                   ...
                   'Type', type, 'Val', val, 'Dir', wdir, 'Kh', Kh,    ...
                   'Sign', sgn, 'Wi', WI, 'Comp_i', compi,             ...
                   'Name', control.WELSPECS{i, 1}, 'Radius', Wdiam./2, ...
-                  'RefDepth', RefDepth, 'InnerProduct', ip, 'cellDims', opt.cellDims);
+                  'RefDepth', RefDepth, 'InnerProduct', ip,           ...
+                  'cellDims', opt.cellDims);
+
       if numel(W) > sizeW
          W(end).lims = [];
          W(end).cstatus   = cstatus;

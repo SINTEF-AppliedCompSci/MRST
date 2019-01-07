@@ -41,7 +41,7 @@ function S = splitQuotedString(s)
 %   `private/assembleString`.
 
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -62,7 +62,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    s   = strtrim(s);
    pos = [ 0, strfind(s, ''''), numel(s) + 1 ];
 
-   if numel(pos) > 2,
+   if numel(pos) > 2
       assert (mod(numel(pos), 2) == 0, ...
               'Non-terminated quoted string in input');
 

@@ -50,7 +50,7 @@ function writeDeck(deck, dirname, varargin)
 %              does not exist, it will be created.
 
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -72,6 +72,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    opt = struct('grid', [], 'rock', []);
    opt = merge_options(opt, varargin{:});
 
+   % fixing rock for now for opm runs E300 
+   deck.PROPS.ROCK=deck.PROPS.ROCK(:,1:2);
+   
    if isempty(opt.grid) || isempty(opt.rock)
       require deckformat
    end
@@ -116,8 +119,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    fprintf(fid, '------------------------------------------------------\n');
    dump_runspec(fid,dirname, deck);
    fprintf(fid, '------------------------------------------------------\n');
-   fprintf(fid, '%s\n', 'GRID');
+   fprintf(fid, '%s\n\n', 'GRID');
+   fprintf(fid, '%s\n\n', 'INIT');
    dump_grid(fid,dirname, deck, rock);
+   fprintf(fid, '------------------------------------------------------\n');
+   if(isfield(deck,'EDIT'))
+    fprintf(fid, '%s\n\n', 'EDIT');
+    dump_edit(fid,dirname, deck);
+   end
    fprintf(fid, '------------------------------------------------------\n');
    fprintf(fid, '%s\n', 'PROPS');
    dump_props(fid, dirname, deck);
@@ -155,7 +164,7 @@ function dump_runspec(fid,dirname, deck)
          dump_vector(fid,dirname, lower(myfield), '%9i\n', deck.RUNSPEC.(myfield));
       end
    end
-   myfields={'OIL','WATER','GAS','METRIC','NOGRAV','FIELD'};
+   myfields={'OIL','WATER','GAS','DISGAS','VAPOIL','METRIC','NOGRAV','FIELD','UNIFOUT','FMTOUT'};
    for i=1:numel(myfields)
       myfield=myfields{i};
       if(isfield(deck.RUNSPEC,myfield))
@@ -170,6 +179,18 @@ function dump_runspec(fid,dirname, deck)
    dato=regexp(dato,'-','split');
    fprintf(fid, ' %s ''%s'' %s\n/\n', dato{1}, upper(dato{2}), dato{3});
 end
+
+%-------------------------------------
+function dump_edit(fid,dirname, deck)
+    validkw={'DEPTH','PORV'}
+    for i=1:numel(validkw)
+        if(isfield(deck.EDIT,validkw{i}))
+           dump_vector(fid, dirname, lower(validkw{i}), '%18.16e\n', deck.EDIT.(validkw{i})); 
+        end
+    end
+
+end
+
 
 %--------------------------------------------------------------------------
 
@@ -209,7 +230,13 @@ function dump_grid(fid,dirname, deck, rock)
    dump_vector(fid, dirname, 'permx', '%18.16e\n', K(:,1));
    dump_vector(fid, dirname, 'permy', '%18.16e\n', K(:,5));
    dump_vector(fid, dirname, 'permz', '%18.16e\n', K(:,9));
-   dump_vector(fid, dirname, 'poro' , '%18.16e\n', rock.poro);
+   dump_vector(fid, dirname, 'poro' , '%18.16e\n', rock.poro);   
+   if(isfield(deck.GRID,'NNC'))
+       nnc=deck.GRID.NNC;
+       nnc(:,7)=nnc(:,7)/((centi*poise*meter^3)/(day*barsa));
+      %dump_vector(fid, dirname, 'nnc' , '%d %d %d %d %d %d %18.16e 0 0 0 0 0 0 0 0 0 0\n', nnc');
+      dump_vector(fid, dirname, 'nnc' , '%d %d %d %d %d %d %18.16e /\n', nnc');
+   end
 end
 
 %--------------------------------------------------------------------------
@@ -246,9 +273,13 @@ function dump_props(fid, dirname, deck)
    for fld = reshape(fieldnames(deck.PROPS), 1, []),
       values = deck.PROPS.(fld{1});
 
-      if strcmp(fld{1}, 'PVTO'),
+      if strcmp(fld{1}, {'PVTO'}),
          % Custom output routine
          dump_pvto(fid, dirname, values{1});
+         continue
+      elseif strcmp(fld{1}, {'PVTG'}),
+         % Custom output routine
+         dump_pvtg(fid, dirname, values{1});    
          continue
       end
 
@@ -287,6 +318,29 @@ function dump_pvto(fid, dirname, pvto)
    fclose(fid_pvto);
 end
 
+function dump_pvtg(fid, dirname, pvto)
+   fprintf(fid, 'INCLUDE\npvtg.txt /\n\n');
+
+   [fid_pvto, msg] = fopen(fullfile(dirname, 'pvtg.txt'), 'wt');
+   if fid_pvto < 0,
+      error('Failed to open ''pvto'' output file: %s', msg);
+   end
+
+   assert (numel(pvto.key) + 1 == numel(pvto.pos));
+
+   fprintf(fid_pvto, 'PVTG\n');
+
+   for r = 1 : numel(pvto.pos) - 1,
+      fprintf(fid_pvto, '%.10e\n', pvto.key(r));
+
+      i = pvto.pos(r) : pvto.pos(r + 1) - 1;
+      fprintf(fid_pvto, '%.10e %.10e %.10e\n', pvto.data(i,:).');
+      fprintf(fid_pvto, '/\n');
+   end
+
+   fprintf(fid_pvto, '/\n');
+   fclose(fid_pvto);
+end
 %--------------------------------------------------------------------------
 
 function dump_solution(fid,dirname, deck)
@@ -295,73 +349,102 @@ function dump_solution(fid,dirname, deck)
       myfield=myfields{i};
 
       v = deck.SOLUTION.(myfield);
-      if iscell(v), v = v{1}; end
-
-      dump_vector(fid,dirname, lower(myfield), '%18.16e\n', v);
+      %if iscell(v), v = v{1}; end
+      if(strcmp(myfield,'EQUIL'))
+          %dump_vector(fid,dirname, lower(myfield), '%d\n', v);
+          v=v(:,1:9);
+          dump_vector(fid,dirname, lower(myfield), '%18.16e %18.16e  %18.16e %18.16e %18.16e %18.16e  %d %d %d / \n', v');
+      else
+        dump_vector(fid,dirname, lower(myfield), '%18.16e\n', v);
+      end
+      %dump_vector(fid,dirname, lower(myfield), '%d\n', v);
    end
 end
 
 %--------------------------------------------------------------------------
 
 function dump_schedule(fid,dirname, deck, G, rock)
-   org_fid=fid;
-
-   if isfield(deck.SCHEDULE, 'control'),
-   fprintf(org_fid,'%s\n','INCLUDE');
-   fprintf(org_fid,'%s\n','welspecs.txt');
-   fprintf(org_fid,'/\n\n');
-   fid = fopen(fullfile(dirname, 'welspecs.txt'), 'wt');
-   wspecs = replace_default(deck.SCHEDULE.control(1).WELSPECS).';
-   fprintf(fid,'%s\n',upper('welspecs'));
-   fprintf(fid, '%s %s %d %d %18.16e %s %d %s %s %s %d %s %d/\n', wspecs{:});
-   fprintf(fid, '/\n\n');
-   fclose(fid);
-
-   fprintf(org_fid,'%s\n','INCLUDE');
-   fprintf(org_fid,'%s\n','compdat.txt');
-   fprintf(org_fid,'/\n\n');
-   fid = fopen(fullfile(dirname, 'compdat.txt'), 'wt');
-   cdat = replace_default(set_WI(G, rock, deck.SCHEDULE.control(1).COMPDAT)) .';
-   %cdat = replace_default(deck.SCHEDULE.control(1).COMPDAT);
-   fprintf(fid,'%s\n',upper('compdat'));
-   fprintf(fid, '%s %d %d %d %d %s %d %18.16e %18.16e %18.16e %d %s %s %18.16e/\n', cdat{:});
-   fprintf(fid, '/\n\n');
-   fclose(fid);
-
-   fprintf(org_fid,'%s\n','INCLUDE');
-   fprintf(org_fid,'%s\n','wconinje.txt');
-   fprintf(org_fid,'/\n\n');
-   fid = fopen(fullfile(dirname, 'wconinje.txt'), 'wt');
-   wconinje = replace_default(deck.SCHEDULE.control(1).WCONINJE).';
-   fprintf(fid,'%s\n',upper('wconinje'));
-   s = sprintf(['%s %s %s %s %18.16e %18.16e ', ...
-                '%18.16e %18.16e %d %18.16e ' , ...
-                '%18.16e %18.16e %18.16e %18.16e /\n'], wconinje{:});
-   fprintf(fid, '%s', regexprep(s, 'Inf|NaN', '1*', 'ignorecase'));
-   fprintf(fid, '/\n\n');
-   fclose(fid);
-
-   fprintf(org_fid,'%s\n','INCLUDE');
-   fprintf(org_fid,'%s\n','wconprod.txt');
-   fprintf(org_fid,'/\n\n');
-   fid = fopen(fullfile(dirname, 'wconprod.txt'), 'wt');
-   wconprod = replace_default(deck.SCHEDULE.control(1).WCONPROD).';
-   fprintf(fid,'%s\n',upper('wconprod'));
-   s = sprintf('%s %s %s %18.16e %18.16e %18.16e %18.16e %18.16e %18.16e %d %d %d/\n', wconprod{:});
-   fprintf(fid, '%s', regexprep(s, 'Inf|NaN', '1*', 'ignorecase'));
-   fprintf(fid, '/\n\n');
-   fclose(fid);
-   end
-
-   dump_vector(org_fid,dirname, 'tstep', '%18.16e\n', deck.SCHEDULE.step.val);
+org_fid=fid;
+if(isfield(deck.SCHEDULE,'RPTSCHED'))
+    % only needed to get restart output
+    fprintf(org_fid,'RPTSCHED\n');
+    fprintf(org_fid,'PRES SGAS RS WELLS\n');
+    fprintf(org_fid,'/\n');
+    fprintf(org_fid,'RPTRST\n');
+    fprintf(org_fid,'BASIC=1\n');
+    fprintf(org_fid,'/\n');
+end
+if isfield(deck.SCHEDULE, 'control'),
+    fprintf(org_fid,'%s\n','INCLUDE');
+    fprintf(org_fid,'%s/','welspecs.txt');
+    fprintf(org_fid,'\n\n');
+    fid = fopen(fullfile(dirname, 'welspecs.txt'), 'wt');
+    wspecs = replace_default(deck.SCHEDULE.control(1).WELSPECS).';
+    fprintf(fid,'%s\n',upper('welspecs'));
+    fprintf(fid, '%s %s %d %d %18.16e %s %d %s %s %s %d %s %d/\n', wspecs{:});
+    fprintf(fid, '/\n\n');
+    fclose(fid);
+    
+    fprintf(org_fid,'%s\n','INCLUDE');
+    fprintf(org_fid,'%s/','compdat.txt');
+    fprintf(org_fid,'\n\n');
+    fid = fopen(fullfile(dirname, 'compdat.txt'), 'wt');
+    cdat = replace_default(set_WI(G, rock, deck.SCHEDULE.control(1).COMPDAT)) .';
+    %cdat = replace_default(deck.SCHEDULE.control(1).COMPDAT);
+    fprintf(fid,'%s\n',upper('compdat'));
+    fprintf(fid, '%s %d %d %d %d %s %d %18.16e %18.16e %18.16e %d %s %s %18.16e/\n', cdat{:});
+    fprintf(fid, '/\n\n');
+    fclose(fid);
+    for i=1:numel(deck.SCHEDULE.control)
+        % file name extension for each step
+        step_name=['step_',int2str(i),'.txt'];
+        
+        fprintf(org_fid,'%s\n','INCLUDE');
+        fprintf(org_fid,'%s/',['wconinje',step_name]);
+        fprintf(org_fid,'\n\n');
+        fid = fopen(fullfile(dirname, ['wconinje',step_name]), 'wt');
+        wconinje = replace_default(deck.SCHEDULE.control(i).WCONINJE).';
+        fprintf(fid,'%s\n',upper('wconinje'));
+        s = sprintf(['%s %s %s %s %18.16e %18.16e ', ...
+            '%18.16e %18.16e %d %18.16e ' , ...
+            '%18.16e %18.16e %18.16e %18.16e /\n'], wconinje{:});
+        fprintf(fid, '%s', regexprep(s, 'Inf|NaN', '1*', 'ignorecase'));
+        fprintf(fid, '/\n\n');
+        fclose(fid);
+        
+        fprintf(org_fid,'%s\n','INCLUDE');
+        fprintf(org_fid,'%s/',['wconprod',step_name]);
+        fprintf(org_fid,'\n\n');
+        fid = fopen(fullfile(dirname, ['wconprod',step_name]), 'wt');
+        wconprod = replace_default(deck.SCHEDULE.control(i).WCONPROD).';
+        fprintf(fid,'%s\n',upper('wconprod'));
+        s = sprintf('%s %s %s %18.16e %18.16e %18.16e %18.16e %18.16e %18.16e %d %d %d/\n', wconprod{:});
+        fprintf(fid, '%s', regexprep(s, 'Inf|NaN', '1*', 'ignorecase'));
+        fprintf(fid, '/\n\n');
+        fclose(fid);
+    
+    
+        ind=deck.SCHEDULE.step.control==i;
+        %dump_vector(org_fid,dirname, ['tstep',step_name], '%18.16e\n', deck.SCHEDULE.step.val(ind));
+        fid = fopen(fullfile(dirname, ['tstep',step_name]), 'wt');
+        fprintf(fid, '%s\n', upper('tstep'));
+        fprintf(fid, '%18.16e\n', deck.SCHEDULE.step.val(ind));
+        fprintf(fid, '/\n');
+        fclose(fid);
+        fprintf(org_fid, '%s\n', 'INCLUDE');
+        fprintf(org_fid, '%s\n', ['tstep',step_name]);
+        fprintf(org_fid, '/\n\n');
+        
+    end
+end
 end
 
 %--------------------------------------------------------------------------
 
 function dump_vector(fid, dirname, field, fmt, v)
-   org_fid = fid;
+org_fid = fid;
 
-   fn         = fullfile(dirname, [field, '.txt']);
+fn         = fullfile(dirname, [field, '.txt']);
    [fid, msg] = fopen(fn, 'wt');
    if fid < 0,
       error('Unable to open ''%s'' for writing: %s', fn, msg);
