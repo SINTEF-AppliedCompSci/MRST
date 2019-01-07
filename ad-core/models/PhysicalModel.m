@@ -373,7 +373,7 @@ methods
     end
 
     
-    function [convergence, values, names] = checkConvergence(model, problem, n)
+    function [convergence, values, names] = checkConvergence(model, problem, varargin)
         % Check and report convergence based on residual tolerances
         % 
         % SYNOPSIS:
@@ -410,12 +410,17 @@ methods
         %   criterions and they need not correspond to specific equations
         %   at all.
         %   
+        [values, tolerances, names] = getConvergenceValues(model, problem, varargin{:});
+        convergence = values < tolerances;
+    end
+
+    function [values, tolerances, names] = getConvergenceValues(model, problem, n)
         if nargin == 2
             n = inf;
         end
 
         values = norm(problem, n);
-        convergence = values < model.nonlinearTolerance;
+        tolerances = repmat(model.nonlinearTolerance, size(values));
         names = strcat(problem.equationNames, ' (', problem.types, ')');
     end
 
@@ -467,10 +472,10 @@ methods
         % SEE ALSO:
         %   `NonLinearSolverAD`, `LinearSolverAD`, `simulateScheduleAD`
         %
-        onlyCheckConvergence = iteration > nonlinsolver.maxIterations;
+        outOfIterations = iteration > nonlinsolver.maxIterations;
         timer = tic();
         [problem, state] = model.getEquations(state0, state, dt, drivingForces, ...
-                                   'ResOnly', onlyCheckConvergence, ...
+                                   'ResOnly', outOfIterations, ...
                                    'iteration', iteration, ...
                                    varargin{:});
         problem.iterationNo = iteration;
@@ -488,7 +493,7 @@ methods
         failureMsg = '';
         failure = false;
         [linearReport, updateReport, stabilizeReport] = deal(struct());
-        if (~(all(convergence) && doneMinIts) && ~onlyCheckConvergence)
+        if (~(all(convergence) && doneMinIts) && ~outOfIterations)
             % Get increments for Newton solver
             [dx, ~, linearReport] = linsolver.solveLinearProblem(problem, model);
             if any(cellfun(@(d) ~all(isfinite(d)), dx))
@@ -508,8 +513,12 @@ methods
                 [state, updateReport] = model.updateState(state, problem, dx, drivingForces);
             end
         end
-        isConverged = (all(convergence) && doneMinIts) || model.stepFunctionIsLinear;
-        
+        modelConverged = all(convergence);
+        if outOfIterations && nonlinsolver.acceptanceFactor ~= 1
+            [values, tol, resnames] = model.getConvergenceValues(problem);
+            modelConverged = all(values < nonlinsolver.acceptanceFactor*tol);
+        end
+        isConverged = (modelConverged && doneMinIts) || model.stepFunctionIsLinear;
         % If step function is linear, we need to call a residual-only
         % equation assembly to ensure that indirect/derived quantities are
         % set with the updated values (fluxes, mobilities and so on).

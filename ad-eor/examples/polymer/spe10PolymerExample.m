@@ -99,7 +99,7 @@ W = verticalWell(W, G, rock, prodIJ(1), prodIJ(2), 1:nz, ...
 %
 
 control(1).W = W;
-[W([W.sign] > 0).poly] = 2*kilogram/meter^3;
+[W([W.sign] > 0).c] = 2*kilogram/meter^3;
 control(2).W = W;
 
 polyinj_stop_time  = 150*day;

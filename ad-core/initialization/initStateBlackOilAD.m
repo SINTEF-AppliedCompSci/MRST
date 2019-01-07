@@ -47,11 +47,27 @@ function [state, pressures] = initStateBlackOilAD(model, regions, varargin)
         state.s(cells, :) = s;
         pressures(cells, :) = p;
         
+        % Evalaute rel. perm.
+        sat = cell(1, nph);
+        pc = cell(1, nph);
+        for i = 1:nph
+            sat{i} = state.s(cells, i);
+            pc{i} = region.pc_sign(i)*region.pc_functions{i}(state.s(cells, i));
+        end
+        kr = s;
+        numberOfMobile = sum(kr > 0, 2);
+        maxSat = max(s, [], 2);
+        singlePhaseMobile = numberOfMobile <= 1;
+        
         toOil = true(size(p, 1), 1);
         if model.gas
-            onlyGas = state.s(cells, gasIx) == 1;
+            % If only gas is mobile, set oil pressure to the gas hydrostatic 
+            % pressure minus the capillary pressure
+            onlyGas = (kr(:, gasIx) > 0 & singlePhaseMobile) |...
+                       (s(:, gasIx) == maxSat & numberOfMobile == 0);
+
             toOil(onlyGas) = false;
-            state.pressure(cells(onlyGas)) = p(onlyGas, gasIx);
+            state.pressure(cells(onlyGas)) = p(onlyGas, gasIx) - pc{gasIx}(onlyGas);
             if disgas
                 po = p(:, oilIx);
                 if iscell(model.fluid.rsSat)
@@ -62,7 +78,9 @@ function [state, pressures] = initStateBlackOilAD(model, regions, varargin)
                 rsMax = rsSatF(po);
                 rs = region.rs(po, z);
                 rs(rs > rsMax) = rsMax(rs > rsMax);
-                state.rs(cells) = rs;
+                sg = s(:, gasIx);
+                rs(sg > 0) = rsMax(sg > 0);
+                state.rs(cells) = rs;             
             end
         end
         if model.oil
@@ -76,13 +94,17 @@ function [state, pressures] = initStateBlackOilAD(model, regions, varargin)
                 rvMax = rvSatF(po);
                 rv = region.rv(pg, z);
                 rv(rv > rvMax) = rvMax(rv > rvMax);
+                so = s(:, oilIx);
+                rv(so > 0) = rvMax(so > 0);
                 state.rv(cells) = rv;
             end
         end
         if model.water
-            onlyWat = state.s(cells, watIx) == 1;
+            % onlyWat = state.s(cells, watIx) == 1;
+            onlyWat = (kr(:, watIx) > 0 & singlePhaseMobile) | ...
+                      (s(:, watIx) == maxSat & numberOfMobile == 0);
             toOil(onlyWat) = false;
-            state.pressure(cells(onlyWat)) = p(onlyWat, watIx);
+            state.pressure(cells(onlyWat)) = p(onlyWat, watIx) - pc{watIx}(onlyWat);
         end
         if model.oil
             state.pressure(cells(toOil)) = p(toOil, oilIx);

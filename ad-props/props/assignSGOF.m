@@ -7,17 +7,18 @@ function [krG, krOG, pcOG, pts, pts_o] = getFunctions(f, SGOF, reg)
     
     [pts, pts_o] = deal(zeros(reg.sat, 4));
     for i = 1:reg.sat
-        [pts(i, :), pts_o(i, :)] = getPoints(SGOF{i});
+        swcon = f.krPts.w(i, 1);
+        [pts(i, :), pts_o(i, :)] = getPoints(SGOF{i}, swcon);
         sgof = extendTab(SGOF{i});
         SG = sgof(:, 1);
         krG{i} = @(sg) interpTable(SG, sgof(:, 2), sg);
 
-        krOG{i} = @(so) interpTable(SG, sgof(:, 3), 1-so-f.krPts.w(i, 1));
+        krOG{i} = @(so) interpTable(SG, sgof(:, 3), 1-so-swcon);
         pcOG{i} = @(sg) interpTable(SG, sgof(:, 4), sg);
     end
 end
 
-function [pts, pts_o] = getPoints(sgof)
+function [pts, pts_o] = getPoints(sgof, swcon)
     % Connate gas saturation
     pts = zeros(1, 4);
     pts(1) = sgof(1, 1);
@@ -33,11 +34,10 @@ function [pts, pts_o] = getPoints(sgof)
     pts_o = zeros(1, 4);
     pts_o(3) = 1;
     ii = find(sgof(:,3) == 0, 1, 'first');
-    pts_o(2) = 1 - sgof(ii,1);
+    pts_o(2) = 1 - sgof(ii,1) - swcon;
     % Maximum oil relperm
     pts_o(4) = sgof(1,3);
 end
-
 
 %{
 Copyright 2009-2018 SINTEF ICT, Applied Mathematics.

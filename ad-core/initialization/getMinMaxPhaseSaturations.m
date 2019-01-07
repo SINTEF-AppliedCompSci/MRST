@@ -49,6 +49,8 @@ function [s_min, s_max] = getMinMaxPhaseSaturations(model, satnum)
             else
                 s_min(:, wix) = f.sWcon(satnum);
             end
+            % Water can always be one
+            s_max(:, wix) = 1;
         end
         if model.gas
             % Account for minimum water saturation

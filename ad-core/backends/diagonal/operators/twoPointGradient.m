@@ -30,11 +30,7 @@ function jac = gradJac(jac, N, M, useMex)
                 diagonal(1:nf, :) = -diagonal(1:nf, :);
             end
         end
-        if isempty(jac.subset)
-            jac = DiagonalSubset(diagonal, jac.dim, N);
-        else
-            jac = DiagonalSubset(diagonal, jac.dim, jac.subset(N));
-        end
+        jac = DiagonalSubset(diagonal, jac.dim, N, [], jac.subset);
     end
 end
 

@@ -5,6 +5,7 @@ function [ws, states, reports] = getPackedSimulatorOutput(problem, varargin)
     nstep = numel(problem.SimulatorSetup.schedule.step.val);
     
     sh = problem.OutputHandlers.states;
+    wh = problem.OutputHandlers.wellSols;
     rh = problem.OutputHandlers.reports;
     
     ndata = sh.numelData();
@@ -17,7 +18,6 @@ function [ws, states, reports] = getPackedSimulatorOutput(problem, varargin)
             break
         end
     end
-    statesInMemory = nargout > 1 && opt.readFromDisk;
 
     sn = sprintf('%s (%s)', problem.BaseName, problem.Name);
     if nstep == ndata
@@ -27,22 +27,26 @@ function [ws, states, reports] = getPackedSimulatorOutput(problem, varargin)
     else
         fprintf('Did not find data for %s\n', sn);
     end
-    
+    wellOutputMissing = wantWells && wh.numelData() == 0;
     for i = 1:ndata
-        if wantWells || statesInMemory
-            state = sh{i};
-            ws{i} = state.wellSol;
+        if (nargout > 1 ||  wellOutputMissing) && opt.readFromDisk
+            states{i} = sh{i};
         end
-        if statesInMemory
-            states{i} = state;
+        if wantWells && opt.readFromDisk
+            if wellOutputMissing
+                ws{i} = states{i}.wellSol;
+            else
+                ws{i} = wh{i};
+            end
         end
         if nargout > 2 && opt.readFromDisk
             reports{i} = rh{i};
         end
     end
-    
+
     if ~opt.readFromDisk
         % Just return handlers instead
+        ws = wh;
         states = sh;
         reports = rh;
     end

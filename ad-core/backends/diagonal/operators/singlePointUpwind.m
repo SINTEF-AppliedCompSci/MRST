@@ -51,18 +51,15 @@ function [jac, M, DS] = upwindJac(jac, flag, N, M, DS, useMex)
             else
                 diagonal = bsxfun(@times, jac.diagonal(N, :), [flag; ~flag]);
             end
-            if isempty(jac.subset)
-                map = N;
-            else
-                map = jac.subset(N);
-            end
+
             if isempty(DS)
-                jac = DiagonalSubset(diagonal, jac.dim, map);
+                jac = DiagonalSubset(diagonal, jac.dim, N, [], jac.subset);
                 DS = jac;
             else
                 DS.diagonal = diagonal;
-                DS.map = map;
+                DS.map = N;
                 DS.dim = jac.dim;
+                DS.parentSubset = jac.subset;
                 jac = DS;
             end
         end
