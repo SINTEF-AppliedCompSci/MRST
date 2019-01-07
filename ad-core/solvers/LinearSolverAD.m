@@ -70,7 +70,20 @@ classdef LinearSolverAD < handle
         end
         
         function [grad, result, report] = solveAdjointProblem(solver, problemPrev,...
-                problemCurr, adjVec, objective, model) %#ok
+                problemCurr, adjVec, objective, model, varargin) %#ok
+            
+            opt = struct('scalePressure', false);
+            % For the adjoint problem, the scaling for the rows of the matrix to be inverted
+            % corresponds to pressure and, say, saturation. This bad scaling
+            % triggers typically a warning from Matlab which says that the
+            % matrix ill-conditioned. To prevent that, we can rescale the
+            % pressure. Note that, even if the condition number of the matrix
+            % is unchanged by transposition, no warning is typically
+            % triggered for the forward problem.
+            % The implementation is not necessarily robust with variable/equation reordering
+            % or equation reduction, that is why it is now only implemented as a switch.
+            opt = merge_options(opt, varargin{:});
+            
             % Solve an adjoint problem.
             timer = tic();
             problemCurr = problemCurr.assembleSystem();
@@ -89,32 +102,39 @@ classdef LinearSolverAD < handle
             end
             A = problemCurr.A;
             b = full(b);
-            stateCurr = problemCurr.state;
-            p = model.getProps(stateCurr, 'pressure');
-            pmax = max(p);
-            np = numel(p);
-            [nz, nz] = size(A);
-            D = speye(nz, nz);
-            ind = sub2ind(size(A), 1 : np, 1 : np);
-            D(ind) = pmax*ones(np, 1);
-            % Reduce system (if requested)
-            % [A, b, lsys] = solver.reduceLinearSystemAdjoint(A, b);
-            % Reorder linear system
-            % [A, b] = solver.reorderLinearSystem(A, b);
-            % Apply scaling
-            % [A, b, scaling] = solver.applyScaling(A, b);
-            % Apply transpose
-            A = A';
-            t_prepare = toc(timer);
-            % Solve system
-            [result, report] = solver.solveLinearSystem(D'*A, D'*b);
-            t_solve = toc(timer) - t_prepare;
-            % Undo scaling
-            % result = solver.undoScalingAdjoint(result, scaling);
-            % Permute system back
-            % result = solver.deorderLinearSystemAdjoint(result);
-            % Recover eliminated variables on linear level
-            % result = solver.recoverLinearSystemAdjoint(result, lsys);
+            if opt.scalePressure
+                stateCurr = problemCurr.state;
+                p = model.getProps(stateCurr, 'pressure');
+                pmax = max(p);
+                np = numel(p);
+                [nz, nz] = size(A);
+                D = speye(nz, nz);
+                ind = sub2ind(size(A), 1 : np, 1 : np);
+                D(ind) = pmax*ones(np, 1);
+                t_prepare = toc(timer);
+                % Solve system
+                [result, report] = solver.solveLinearSystem(D'*A, D'*b);
+                t_solve = toc(timer) - t_prepare;
+            else
+                % Reduce system (if requested)
+                [A, b, lsys] = solver.reduceLinearSystemAdjoint(A, b);
+                % Reorder linear system
+                [A, b] = solver.reorderLinearSystem(A, b);
+                % Apply scaling
+                [A, b, scaling] = solver.applyScaling(A, b);
+                % Apply transpose
+                A = A';
+                t_prepare = toc(timer);
+                % Solve system
+                [result, report] = solver.solveLinearSystem(A, b);
+                t_solve = toc(timer) - t_prepare;
+                % Undo scaling
+                result = solver.undoScalingAdjoint(result, scaling);
+                % Permute system back
+                result = solver.deorderLinearSystemAdjoint(result);
+                % Recover eliminated variables on linear level
+                result = solver.recoverLinearSystemAdjoint(result, lsys);
+            end
 
             report.SolverTime = toc(timer);
             report.LinearSolutionTime = t_solve;
