@@ -35,7 +35,7 @@
 % which contains functionality for reading and parsing data files given in
 % the industry-standard ECLIPSE format.
 
-mrstModule add mrst-gui deckformat
+mrstModule add mrst-gui deckformat ad-core
 
 %% Simple Cartesian Model
 %
@@ -203,21 +203,26 @@ view([-32, 22]), xlabel('x'), ylabel('y'), zlabel('Depth'), axis tight
 % construct objects that are usable in an MRST simulation scenario.  This
 % functionality is available in the deckformat module and centred around
 % the functions |readEclipseDeck|, |convertDeckUnits|, |initEclipseGrid|,
-% and |processWells|.  The wrapper function |initEclipseModel| calls these
-% and other related functions in the appropriate order to create a fully
-% initialised simulation model, complete with initial mass and pressure
-% distributions.  We will visualise the initial phase distribution in the
-% well-known Nineth SPE Comparative Solution Project, plotting the oil
-% phase as green, the gas phase as red and the water phase as blue.
+% and |processWells|.  The |initEclipseProblemAD| function available in the
+% |ad-core| module calls those helper functions and others to create a
+% fully formed simulation model object, initial distributions of pressures
+% and masses and a set of dynamic well controls, boundary conditions and
+% source terms known as the simulation |schedule|.  We furthermore remark
+% that the simulation grid is stored as the data field |G| of the |model|
+% object.  Here we visualise the initial phase distribution in the
+% well-known Ninth SPE Comparative Solution Project, plotting the oil phase
+% as green, the gas phase as red and the water phase as blue.
 
 input = fullfile(getDatasetPath('SPE9'), 'BENCH_SPE9.DATA');
+deck  = convertDeckUnits(readEclipseDeck(input));
 
-[G, rock, fluid, state, wells] = initEclipseModel(input);
+[state0, model, schedule] = initEclipseProblemAD(deck);
 
 name_wells = @(prefix, n) ...
    arrayfun(@(i) sprintf('$\\mathit{%s}_{%02d}$', prefix, i), ...
             1 : n, 'UniformOutput', false);
 
+wells  = schedule.control(1).W;
 is_inj = [ wells.sign ] > 0;
 wname  = name_wells('I', sum(is_inj));
 
@@ -229,8 +234,8 @@ wname   = name_wells('P', sum(is_prod));
 [wells(is_prod).name] = wname{:};
 
 clf
-plotCellData(G, state.s(:, [3, 2, 1])), axis tight, grid on
-[htop, htext, hs, hline] = plotWell(G, wells);
+plotCellData(model.G, state0.s(:, [3, 2, 1])), axis tight, grid on
+[htop, htext, hs, hline] = plotWell(model.G, wells);
 view([55, 40]), xlabel('x'), ylabel('y'), zlabel('Depth')
 
 %%

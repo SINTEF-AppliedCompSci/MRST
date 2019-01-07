@@ -6,7 +6,6 @@ function varargout = mrstModule(varargin)
 %      1) mrstModule <command> [module list]
 %      2) modules = mrstModule
 %
-% 
 % PARAMETERS:
 %     command     - *Mode 1 only*: One of the explicit verbs 'add', 'clear',
 %                   'list' or 'reset'. The semantics of the command verbs
@@ -51,7 +50,7 @@ function varargout = mrstModule(varargin)
 %   `mrstPath`.
 
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -78,43 +77,43 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    if isempty(BEHAVIOUR), BEHAVIOUR = 'experimental'; end
 
-   if nargin > 0,
+   if nargin > 0
       assert (iscellstr(varargin), 'All parameters must be strings.');
 
       cmd  = varargin{1};
       mods = varargin(2 : end);
 
-      switch lower(cmd),
-         case 'add',
+      switch lower(cmd)
+         case 'add'
             MODLIST = prune_modules(MODLIST);
 
-            if ~ (isempty(mods) || all(cellfun(@isempty, mods))),
+            if ~ (isempty(mods) || all(cellfun(@isempty, mods)))
                MODLIST = add_modules(MODLIST, mods, BEHAVIOUR);
                mlock
             else
                munlock
             end
 
-         case 'clear',
+         case 'clear'
             munlock
             MODLIST = clear_modules(MODLIST, BEHAVIOUR);
 
-         case 'list',
+         case 'list'
             MODLIST = prune_modules(MODLIST);
 
-            if ~ isempty(MODLIST),
+            if ~ isempty(MODLIST)
                fprintf('Currently active MRST modules\n');
                fprintf('  * %s\n', MODLIST{:});
             else
-               if mislocked, munlock, end;
+               if mislocked, munlock, end
                fprintf('No active MRST modules\n');
             end
 
-         case 'reset',
+         case 'reset'
             munlock
             MODLIST = clear_modules(MODLIST, BEHAVIOUR);
 
-            if ~ (isempty(mods) || all(cellfun(@isempty, mods))),
+            if ~ (isempty(mods) || all(cellfun(@isempty, mods)))
                mlock
                MODLIST = add_modules(MODLIST, mods, BEHAVIOUR);
             end
@@ -122,40 +121,45 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          case 'gui'
             moduleGUI();
 
-          case {'behavior', 'behaviour'}
+         case {'behavior', 'behaviour'}
             if nargin == 1
-                % Print to screen the current behaviour
-                fprintf('Current mrstModule behaviour is "%s".\n', BEHAVIOUR);
+               % Print to screen the current behaviour
+               fprintf('Current mrstModule behaviour is "%s".\n', BEHAVIOUR);
             else
-                % We have been given a new behaviour
-                nextmode = lower(mods{1});
-                if ~strcmp(nextmode, BEHAVIOUR)
-                    % The behaviour has changed.
-                    munlock
-                    assert(strcmp(nextmode, 'experimental') ||...
-                           strcmp(nextmode, 'release'));
-                    mods = MODLIST;
-                    % Clear modules with previous behavior mode
-                    MODLIST = clear_modules(MODLIST, BEHAVIOUR);
-                    % Set new behaviour mode
-                    BEHAVIOUR = nextmode;
-                    % Add modules, this time changing the included/excluded
-                    % folders according to the current directive.
-                    MODLIST = add_modules(MODLIST, mods, BEHAVIOUR);
-                    mlock
-                end
+               % We have been given a new behaviour
+               nextmode = lower(mods{1});
+               if ~strcmp(nextmode, BEHAVIOUR)
+                  % The behaviour has changed.
+                  munlock
+
+                  assert (any(strcmp(nextmode, {'experimental', 'release'})));
+                  mods = MODLIST;
+
+                  % Clear modules with previous behavior mode
+                  MODLIST = clear_modules(MODLIST, BEHAVIOUR);
+
+                  % Set new behaviour mode
+                  BEHAVIOUR = nextmode;
+
+                  % Add modules, this time changing the included/excluded
+                  % folders according to the current directive.
+                  MODLIST = add_modules(MODLIST, mods, BEHAVIOUR);
+
+                  mlock
+               end
             end
-         otherwise,
+
+         otherwise
             error(msgid('Command:Unsupported'), ...
                  ['Command word ''%s'' unsupported. Must be one of ', ...
                   '''add'', ''clear'', ''list'', ''gui'', or ''reset''.'], cmd);
       end
 
-   elseif nargout == 0,
+   elseif nargout == 0
 
       mrstModule list
 
-   elseif nargout == 1,
+   elseif nargout == 1
 
       MODLIST = prune_modules(MODLIST);
       varargout{1} = MODLIST;
@@ -174,7 +178,7 @@ end
 function lst2 = prune_modules(lst)
    lst2 = {};
 
-   if ~isempty(lst),
+   if ~isempty(lst)
       pth  = split_path(path);
       mdir = path_search(lst);
 
@@ -192,23 +196,23 @@ function lst = add_modules(lst, mods, behaviour)
    pth = path_search(mods);
    fnd = ~ cellfun(@isempty, pth);
 
-   if any(~ fnd),
+   if any(~ fnd)
       fprintf('No module mapping found for\n');
       fprintf('  * %s\n', mods{~fnd});
    end
 
-   for k = reshape(find(fnd), 1, []),
+   for k = reshape(find(fnd), 1, [])
       mroot = pth{k};
 
       try
          mload   = fullfile(mroot, 'private', 'modload.m');
          mloadfb = fullfile(mroot, 'private', 'modload_fallback.m');
 
-         if exist(mload, 'file') == 2,
+         if exist(mload, 'file') == 2
             % If module provides a 'modload', then run it
             run(mload);
 
-         elseif exist(mloadfb, 'file') == 2,
+         elseif exist(mloadfb, 'file') == 2
             % Otherwise, if module provides a 'modload_fallback', then run
             % that.  This is an escape clause that supports code generation
             % approaches to constructing 'modload' without putting the
@@ -233,7 +237,7 @@ function lst = add_modules(lst, mods, behaviour)
       end
    end
 
-   if ~ any(fnd),
+   if ~ any(fnd)
       % No pathname known for any of the requested modules (or they all
       % failed to load).  Return without attempting to modify the list of
       % active modules.
@@ -253,11 +257,11 @@ end
 %--------------------------------------------------------------------------
 
 function lst = clear_modules(lst, behaviour)
-   if ~isempty(lst),
+   if ~isempty(lst)
       p = path_search(lst);
       p = p(~ cellfun(@isempty, p));
 
-      for r = reshape(p, 1, []),
+      for r = reshape(p, 1, [])
          dirs = filter_module_dirs(r{1}, behaviour);
          rmpath(dirs{:});
       end
@@ -273,12 +277,12 @@ function pth = path_search(mods)
 
    pth = mrstPath('search', mods{:});
 
-   if ischar(pth),
+   if ischar(pth)
       assert (numel(mods) == 1, 'Internal error in %s', mfilename);
       pth = { pth };
    end
 
-   if isunix,
+   if isunix
       % Implement (partial) tilde expansion akin to FOPEN to avoid false
       % negatives in 'prune_modules'.  Paths of the form '~/<something>' is
       % by far the most common, so that's what we support.  We assume that
@@ -291,7 +295,7 @@ end
 %--------------------------------------------------------------------------
 
 function dirs = filter_module_dirs(root, behaviour)
-   if ~isempty(root),
+   if ~isempty(root)
       dirs  = split_path(genpath(root));
       vcdir = [regexptranslate('escape', filesep), '\.(git|hg|svn)'];
 
