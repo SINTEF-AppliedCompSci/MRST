@@ -35,8 +35,11 @@ classdef TwoPhaseOilWaterModel < ThreePhaseBlackOilModel
                     [dyn_state, primaryVars] = model.getForwardDynamicState(state);
                     [dyn_state0, ~]          = model.getDynamicState(state0);
                 else
-                    [dyn_state, ~]            = model.getDynamicState(state);
                     [dyn_state0, primaryVars] = model.getReverseDynamicState(state0);
+                    % The model must be validated with drivingForces so that the
+                    % FacilityModel gets updated.
+                    model = model.validateModel(drivingForces);
+                    [dyn_state, ~] = model.getDynamicState(state);
                 end
             end
 

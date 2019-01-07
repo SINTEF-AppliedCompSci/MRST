@@ -100,8 +100,10 @@ methods
             else
 
                 [dyn_state0, primaryVars] = model.getReverseDynamicState(state0, opt.drivingForces0);
-                 model = model.validateModel(drivingForces);
-                [dyn_state, ~]            = model.getDynamicState(state);
+                % The model must be validated with drivingForces so that the
+                % FacilityModel gets updated.
+                model = model.validateModel(drivingForces);
+                [dyn_state, ~] = model.getDynamicState(state);
             end
         end
         
