@@ -436,9 +436,9 @@ function W = process_wconhist(W, control, G, rock, c2a, well_id, p, opt)
           rates = - ([control.WCONHIST{i, 4:5}]);
           val   = sum(rates);
           if val ~= 0
-            compi = rates./val;
+            compi = [rates, 0]./val;
           else
-            compi = ones(size(rates))/numel(rates);
+            compi = [1 1 0]/2;
           end
         case 'resv'
           rates = - ([control.WCONHIST{i, 4:6}]);
