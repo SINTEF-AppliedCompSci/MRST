@@ -229,7 +229,8 @@ classdef TransportNaturalVariablesModelDG < TransportNaturalVariablesModel
             [ds, dx, vars] = model.getSaturationIncrements(dx, vars, state);
             [deltax, deltay, dx, vars] = model.getPhaseCompositionIncrements(dx, vars, state);
             
-            [pureLiquid, pureVapor, twoPhase] = model.getFlag(state);
+%             [pureLiquid, pureVapor, twoPhase] = model.getFlag(state);
+            pureLiquid = state.pureLiquid;
             mixvar = strcmpi(vars, 'sGsO');
             if any(mixvar)
                 % Sequential implicit stuff

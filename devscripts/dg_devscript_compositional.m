@@ -6,8 +6,8 @@ mrstVerbose on
 %%
 
 % caseName = 'simple_1d_wat';
-caseName = 'simple_3ph';
-% caseName = 'immiscible_denis';
+% caseName = 'simple_3ph';
+caseName = 'immiscible_denis';
 [state0, modelFI, schedule, CG] = setupCompositionalPaperCase(caseName);
 modelFI = NaturalVariablesCompositionalModel(modelFI.G, modelFI.rock, modelFI.fluid, modelFI.EOSModel.fluid, 'water', modelFI.water);
 gravity reset off;
@@ -20,7 +20,8 @@ fluid = modelFI.fluid;
 compFluid = modelFI.EOSModel.fluid;
 G = computeCellDimensions2(G);
 G.cells.ghost = false(G.cells.num,1);
-args = {G, rock, fluid, modelFI.EOSModel.fluid, 'water', modelFI.water, 'nonlineartolerance', 1e-4};
+args = {G, rock, fluid, modelFI.EOSModel.fluid, 'water', modelFI.water, ...
+                                                'nonlineartolerance', 1e-4};
 useNat = true;
 if useNat
     model = NaturalVariablesCompositionalModel(args{:});
@@ -35,7 +36,7 @@ modelSeq = SequentialPressureTransportModel(pmodel, tmodel);
 
 %%
 
-ix = 1:30;%numel(schedule.step.val);
+ix = 1:45;%numel(schedule.step.val);
 subschedule = schedule;
 subschedule.step.val     = subschedule.step.val(ix);
 subschedule.step.control = subschedule.step.control(ix);
@@ -56,7 +57,7 @@ plotWellSols(wsFV);
 mt = 0.0;
 % pmodel = PressureNaturalVariablesModelSemiDG(args{:});
 pmodel = PressureNaturalVariablesModel(args{:});
-pmodel.incTolPressure = 1e-8;
+pmodel.incTolPressure = 1e-3;
 tmodel = TransportNaturalVariablesModelDG(args{:});
 degree = 1;
 modelDG = SequentialPressureTransportModel(pmodel, tmodel);
@@ -72,8 +73,8 @@ disc = DGDiscretization(tmodel                                        , ...
                                 'plotLimiterProgress'  , false        );
 modelDG.transportModel = TransportNaturalVariablesModelDG(G, rock, fluid, compFluid, ...
                                    'disc'    , disc    , ...
-                                   'dsMaxAbs', 0.05     , ...
-                                   'dzMaxAbs', 0.05     , ...
+                                   'dsMaxAbs', 0.1     , ...
+                                   'dzMaxAbs', 0.1     , ...
                                    'water', modelFI.water, ...
                                    'nonlinearTolerance', 1e-4, ...
                                    'useIncTolComposition', false, ...
@@ -85,6 +86,11 @@ state0.twoPhase = false(G.cells.num,1);
 [wsDG, stDG, rep] = simulateScheduleAD(state0, modelDG, subschedule);
 
 %%
+
 figure
 plotToolbar(modelDG.transportModel.G, stDG);
 plotWellSols({wsFV, wsDG});
+
+%%
+
+stD = cellfun(@(s1, s2) compareStates(s1, s2), stFV, stDG, 'unif', false)

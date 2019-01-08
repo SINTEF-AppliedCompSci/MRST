@@ -91,7 +91,7 @@ function [problem, state] = transportEquationsNaturalVarsDG(state0, state, model
         state.change = state.change + (state.twoPhase ~= state0.twoPhase);
     end
     
-    if any(state.change > 4) && 1
+    if any(state.change > 4) && 0
         pureLiquid = state0.pureLiquid;
         pureVapor  = state0.pureVapor;
         twoPhase   = state0.twoPhase;
@@ -318,6 +318,8 @@ for cNo = 1:ncomp
     y{cNo}   = model.disc.getCellMean(ydof{cNo}, state);
     z(:,cNo) = model.disc.getCellMean(zdof(:,cNo), state);
 end
+% x = ensureMinimumFraction(x);
+% y = ensureMinimumFraction(y);
 
 sO = model.disc.getCellMean(sOdof, state);
 sG = model.disc.getCellMean(sGdof, state);
@@ -464,6 +466,8 @@ TgG  = TgG./G.faces.areas;
         [xW, yW] = deal(cell(size(xdof)));
         [~, xicw, cNow] = disc.getCubature(wc, 'volume');
         [sWW, sOW, sGW, sTW, xW{:}, yW{:}] = disc.evaluateDGVariable(xicw, cNow, state, sWdof, sOdof, sGdof, sTdof, xdof{:}, ydof{:});
+%         xW = ensureMinimumFraction(xW);
+%         yW = ensureMinimumFraction(xW);
         
         if model.water
             fWW   = frac{1}({sWW,sOW,sGW}, sTW, [cNow, cNow, cNow]);
@@ -591,9 +595,12 @@ TgG  = TgG./G.faces.areas;
     [~, xic, c] = disc.getCubature((1:G.cells.num)', 'volume');
     [sWc , sOc , sGc , sTc , xc{:} , yc{:} ] = disc.evaluateDGVariable(xic, c, state , ...
                              sWdof , sOdof , sGdof , sTdof , xdof{:} , ydof{:});
+%     xc = ensureMinimumFraction(xc);
+%     yc = ensureMinimumFraction(yc);
     [sWc0, sOc0, sGc0, sTc0, xc0{:}, yc0{:}] = disc.evaluateDGVariable(xic, c, state0, ...
                              sWdof0, sOdof0, sGdof0, sTdof0, xdof0{:}, ydof0{:});
-    
+%     xc0 = ensureMinimumFraction(xc0);
+%     yc0 = ensureMinimumFraction(yc0);
     % Face cubature pointsl
     [~, xif, ~, f] = disc.getCubature((1:G.cells.num)', 'surface');
     % Upstream cells
@@ -607,12 +614,15 @@ TgG  = TgG./G.faces.areas;
     % Oil saturation
     oind = 1 + model.water;
     [sOfv , sTOfv, xOfv{:}, yOfv{:}] = disc.evaluateDGVariable(xif, cfv(:,oind), state, sOdof, sTdof, xdof{:}, ydof{:});
+%     xOfv = ensureMinimumFraction(xOfv);
+%     yOfv = ensureMinimumFraction(yOfv);
     [sOfg , sTOfg] = disc.evaluateDGVariable(xif, cfg(:,oind), state, sOdof, sTdof);
     % Gas saturation
     gind = 2 + model.water;
     [sGfv , sTGfv, xGfv{:}, yGfv{:}] = disc.evaluateDGVariable(xif, cfv(:,gind), state, sGdof, sTdof, xdof{:}, ydof{:});
     [sGfg , sTGfg] = disc.evaluateDGVariable(xif, cfg(:,gind), state, sGdof, sTdof);
-    
+%     xGfv = ensureMinimumFraction(xGfv);
+%     yGfv = ensureMinimumFraction(yGfv);
     
     %----------------------------------------------------------------------
     
@@ -784,52 +794,67 @@ zdof = expandMatrixToCell(zdof);
 [zc{:}] = disc.evaluateDGVariable(xic, c, state, zdof{:});
 
 
-st = state;
-st.T = st.T(c);
-st.Z_L = st.Z_L(c);
-st.Z_V = st.Z_V(c);
+% if ~isempty(twoPhaseIx) && ~opt.resOnly
+%     offset = ncomp+model.water;
+%     
+%     [~, ~, ctPh] = disc.getCubature(find(twoPhase), 'volume');
+% %     tp = find(twoPhase);
+%     
+%     
+%     for i = 1:ncomp
+%         cellJacMap{i + offset} = ctPh;%find(twoPhase);
+%     end
+%     
+% % %     cellno = rldecode(a, b);
+% %     cellNo = (1:G.cells.num);
+% %     cellNo = cellNo(c);
+%     cellNo = rldecode((1:G.cells.num)', state.nDof, 1);
+%     
+%     for i = 2:offset
+%         cellJacMap{i} = cellNo;
+%     end
+% end
+if 1
+    [~, xic, c] = disc.getCubature((1:G.cells.num)', 'volume');
+    [~,n] = rlencode(c);
 
-st0 = state0;
-st0.T = st0.T(c);
-st0.Z_L = st0.Z_L(c);
-st0.Z_V = st0.Z_V(c);
-st0.x = st0.x(c,:);
-st0.y = st0.y(c,:);
-st0.pressure = st0.pressure(c);
+    [f_L, f_V] = deal(cell(ncomp,1));
+    [f_L{:}, f_V{:}] = deal(sO(c)*0);
 
-if isempty(twoPhaseIx) || opt.resOnly
-    reorder = [];
-else
-    nDof = sum(state.nDof);
-    n2ph = nnz(twoPhaseIx);
-    nVars = sum(sample.getNumVars());
-    reorder = 1:nVars;
-    start = twoPhaseIx + nDof;
-    stop = (nVars-n2ph+1):nVars;
-    
-    reorder(start) = stop;
-    reorder(stop) = start;
-    
-    offset = ncomp+model.water;
-    for i = 1:ncomp
-        cellJacMap{i + offset} = find(twoPhase);
+    for xNo = 1:n(1)
+        ind = xNo:n(1):size(xic,1);
+        xx = xic(ind,:);
+        cc = c(ind);
+
+        [sOc , sGc , xc{:} , yc{:} , zc{:}] = disc.evaluateDGVariable(xx, cc, state , ...
+                                 sOdof , sGdof , xdof{:} , ydof{:}, zdof{:});
+%         xc = ensureMinimumFraction(xc);
+%         yc = ensureMinimumFraction(yc);
+        [xM,  yM,  rhoO,  rhoG,  muO,  muG, f_LL, f_VV, xM0, yM0, rhoO0, rhoG0] = ...
+            model.getTimestepPropertiesEoS(state, state0, p, temp, xc, yc, zc, sOc, sGc, cellJacMap);
+        for cNo = 1:ncomp
+            f_L{cNo}(ind) = f_LL{cNo};
+            f_V{cNo}(ind) = f_VV{cNo};
+        end
     end
-    
-%     cellno = rldecode(a, b);
-    cellNo = rldecode(c, state.nDof(c), 1);
-    
-    for i = 2:offset
-        cellJacMap{i} = cellNo;
-    end
+elseif 0
+    % Compute properties and fugacity
+    st = state;
+    st.T = st.T(c);
+    st.Z_L = st.Z_L(c);
+    st.Z_V = st.Z_V(c);
+
+    st0 = state0;
+    st0.T = st0.T(c);
+    st0.Z_L = st0.Z_L(c);
+    st0.Z_V = st0.Z_V(c);
+    st0.x = st0.x(c,:);
+    st0.y = st0.y(c,:);
+    st0.pressure = st0.pressure(c);
+
+    [xM,  yM,  rhoO,  rhoG,  muO,  muG, f_L, f_V, xM0, yM0, rhoO0, rhoG0] = ...
+        model.getTimestepPropertiesEoS(st, st0, p(c), temp(c), xc, yc, zc, sOc, sGc, cellJacMap);
 end
-% Compute properties and fugacity
-[xM,  yM,  rhoO,  rhoG,  muO,  muG, f_L, f_V, xM0, yM0, rhoO0, rhoG0] = ...
-    model.getTimestepPropertiesEoS(st, st0, p(c), temp(c), xc, yc, zc, sOc, sGc, cellJacMap);
-
-% % Compute properties and fugacity
-% [xM,  yM,  rhoO,  rhoG,  muO,  muG, f_L, f_V, xM0, yM0, rhoO0, rhoG0] = ...
-%     model.getTimestepPropertiesEoS(state, state0, p, temp, xtPhc, ytPhc, ztPhc, sOtPhc, sGtPhc, cellJacMap);
-
 
 z_tol = 1e-8;
 for i = 1:ncomp
@@ -842,7 +867,7 @@ for i = 1:ncomp
     fugacity = disc.cellInt(integrand, (1:G.cells.num)', state, sOdof);
     
     ix = disc.getDofIx(state, Inf, twoPhase);
-    eqs{cix} = fugacity(ix);
+    eqs{cix} = fugacity(ix)./rldecode(G.cells.volumes(twoPhase), state.nDof(twoPhase));
 %     eqs{cix} = (f_L{i}(twoPhase) - f_V{i}(twoPhase))/barsa;
     absent = state.components(twoPhase, i) <= 10*z_tol;
     if model.water
@@ -895,10 +920,12 @@ if 0
     
 end
 
-if 1
-    ix = disc.getDofIx(state, 1, Inf);
-    v = eqs{3}(ix);
-    plotToolbar(G, v.val, 'plot1d', true);
+if 0
+    ix = disc.getDofIx(state, 2, Inf);
+    for eqNo = 1:4
+        v(:,eqNo) = eqs{eqNo}(ix).val;
+    end
+    plotToolbar(G, v, 'plot1d', true);
 end
 % [sum(pureLiquid), sum(pureVapor), sum(twoPhase)]
 end
