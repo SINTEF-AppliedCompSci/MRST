@@ -131,7 +131,12 @@ classdef MomentFitting2DCubature < Cubature
                     m(abs(m) < tol) = 0;
                     rhs(dofNo, :) = m;
                 end
-                [x,w,n] = fitMoments2(x,basis, M, 'equal', G.equal);
+                if G.griddim == 3
+                    equal = G.faces.equal;
+                else
+                    equal = G.cells.equal;
+                end
+                [x,w,n] = fitMoments2(x,basis, M, 'equal', equal);
                 if numel(w) == 1
                     w = repmat(w{:}, num, 1);
                     x = repmat(x{:}, num, 1);
