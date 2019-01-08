@@ -43,7 +43,7 @@ classdef HandleStruct < handle
         end
         
         function disp(ds)
-            fprintf('Dynamic struct with fields:\n');
+            fprintf('HandleStruct with fields:\n');
             disp(ds.data);
         end
     end
