@@ -709,7 +709,7 @@ methods
     end
 
     
-    function p = getProp(model, state, name)
+    function [p, state] = getProp(model, state, name)
         % Get a single property from the nonlinear state
         %
         % SYNOPSIS:
@@ -723,6 +723,7 @@ methods
         %
         % RETURNS:
         %   p     - Property taken from the state.
+        %   state - The state (modified if property evaluation was done)
         %
         % SEE ALSO:
         %   `getProps`
@@ -768,6 +769,9 @@ methods
         %   `getProp`
         varargout = cellfun(@(x) model.getProp(state, x), ...
                             varargin, 'UniformOutput', false);
+        if nargout == nargin - 1
+            varargout{end+1} = state;
+        end
     end
 
     
