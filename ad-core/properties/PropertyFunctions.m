@@ -13,13 +13,21 @@ classdef PropertyFunctions
             props.structFields = properties(props);
         end
         
-        function [container, name] = getPropertyContainer(props)
+        function names = getPropertyNames(props)
+            names = props.structFields;
+        end
+        
+        function [container, name] = getPropertyContainer(props, state)
             % Set up dynamic container (handle class) for storing
             % properties as we go
             name = props.structName;
-            fld = [props.structFields(:)'; cell(1, numel(props.structFields))];
-            s = struct(fld{:});
-            container = HandleStruct(s);
+            if nargin > 1 && isfield(state, name)
+                container = state.(name);
+            else
+                fld = [props.structFields(:)'; cell(1, numel(props.structFields))];
+                s = struct(fld{:});
+                container = HandleStruct(s);
+            end
         end
         
         function state = evaluateProperty(props, model, state, name)
