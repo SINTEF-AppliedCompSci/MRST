@@ -726,9 +726,22 @@ methods
         %
         % SEE ALSO:
         %   `getProps`
-        
+        containers = model.getPropertyFunctions();
+        for i = 1:numel(containers)
+            c = containers{i};
+            nms = c.getPropertyNames();
+            sub = strcmpi(nms, name);
+            if any(sub)
+                p = c.getProperty(model, state, nms{sub});
+                return
+            end
+        end
         [fn, index] = model.getVariableField(name);
         p = state.(fn)(:, index);
+    end
+    
+    function containers = getPropertyFunctions(model, state)
+        containers = {};
     end
 
     

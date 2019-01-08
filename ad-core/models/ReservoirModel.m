@@ -341,6 +341,10 @@ methods
         end
     end
 
+    function containers = getPropertyFunctions(model)
+        containers = getPropertyFunctions@PhysicalModel(model);
+        containers{end+1} = model.FlowPropertyFunctions;
+    end
     % --------------------------------------------------------------------%
     function names = getComponentNames(model) %#ok
         % Get the names of components for the model
