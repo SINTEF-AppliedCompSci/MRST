@@ -22,7 +22,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 % Shorter names for some commonly used parts of the model and forces.
 
 [p, rs, rv, sO, sG] = model.getProps(state, 'pressure', 'rs', 'rv', 'so', 'sg');
-[p0, rs0, rv0, sO0, sG0] = model.getProps(state0, 'pressure', 'rs', 'rv', 'so', 'sg');
+[rs0, rv0, sO0, sG0] = model.getProps(state0, 'rs', 'rv', 'so', 'sg');
 
 if model.water
     sW = model.getProp(state, 'sw');
@@ -47,16 +47,8 @@ T = s.T;
 % Gravity gradient per face
 gdz = model.getGravityGradient();
 
-props = model.FlowPropertyFunctions;
-
-rho = props.getProperty(model, state, 'Density');
-mob = props.getProperty(model, state, 'Mobility');
-b   = props.getProperty(model, state, 'ShrinkageFactors');
-pv  = props.getProperty(model, state, 'PoreVolume');
-pc  = props.getProperty(model, state, 'CapillaryPressure');
-
-b0  = props.getProperty(model, state0, 'ShrinkageFactors');
-pv0 = props.getProperty(model, state0, 'PoreVolume');
+[rho, mob, b, pv, pc] = model.getProps(state, 'Density', 'Mobility', 'ShrinkageFactors', 'PoreVolume', 'CapillaryPressure');
+[b0, pv0] = model.getProps(state0, 'ShrinkageFactors', 'PoreVolume');
 
 [bW, bO, bG] = deal(b{:});
 [bW0, bO0, bG0] = deal(b0{:});
