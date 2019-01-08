@@ -86,7 +86,7 @@ classdef MomentFitting3DCubature < Cubature
                     rhs(dofNo, :) = m;
                     M{dofNo} = m;
                 end
-                [x,w,n] = fitMoments2(x, basis, M, 'equal', G.equal);
+                [x,w,n] = fitMoments2(x, basis, M, 'equal', G.cells.equal);
                 
                 if numel(w) == 1
                     w = repmat(w{:}, G.cells.num, 1);
