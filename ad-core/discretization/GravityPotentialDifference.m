@@ -1,4 +1,4 @@
-classdef FaceGravityPotential < GridProperty
+classdef GravityPotentialDifference < GridProperty
     properties
 
     end
@@ -18,6 +18,5 @@ classdef FaceGravityPotential < GridProperty
                 end
             end
         end
-
     end
 end

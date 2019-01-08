@@ -54,13 +54,16 @@ T = s.T;
 [bW, bO, bG] = deal(b{:});
 [bW0, bO0, bG0] = deal(b0{:});
 
-[rgdz, dp] = model.getProps(state, 'FaceGravityPotential', 'PotentialGradient');
+[rgdz, dp] = model.getProps(state, 'GravityPotentialDifference', 'PressureGradient');
+pot = model.getProp(state, 'PhasePotentialDifference');
+mobf = model.getProp(state, 'FaceMobility');
+% mobf = model.getProp(state, 'PhaseFlux');
 
 nph = 3;
 v = cell(nph, 1);
 upc = false(numel(double(T)), nph);
 for i = 1:nph
-    pot = s.Grad(p_phase{i}) + rgdz{i};
+    pot = dp{i} + rgdz{i};
     
     upc(:, i) = value(pot)<=0;
     

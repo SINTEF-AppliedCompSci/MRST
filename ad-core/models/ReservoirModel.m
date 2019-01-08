@@ -53,6 +53,7 @@ properties
     gravity % Vector for the gravitational force
     FacilityModel % Facility model used to represent wells
     FlowPropertyFunctions % Grouping for flow properties
+    FluxDiscretization % Grouping for flux discretization
 end
 
 methods
@@ -164,6 +165,9 @@ methods
         end
         if isempty(model.FlowPropertyFunctions)
             model.FlowPropertyFunctions = FlowPropertyFunctions(model); %#ok
+        end
+        if isempty(model.FluxDiscretization)
+            model.FluxDiscretization = FluxDiscretization(model); %#ok
         end
         model = validateModel@PhysicalModel(model, varargin{:});
     end
@@ -344,6 +348,7 @@ methods
     function containers = getPropertyFunctions(model)
         containers = getPropertyFunctions@PhysicalModel(model);
         containers{end+1} = model.FlowPropertyFunctions;
+        containers{end+1} = model.FluxDiscretization;
     end
     % --------------------------------------------------------------------%
     function names = getComponentNames(model) %#ok
@@ -872,7 +877,7 @@ methods
         %
         % SEE ALSO:
         %   `relPermWOG`, `relPermWO`, `relPermOG`, `relPermWG`
-
+        warning('evaluateRelPerm is deprecated!');
         active = model.getActivePhases();
         nph = sum(active);
         assert(nph == numel(sat), ...
