@@ -1,4 +1,4 @@
-classdef StoneRelativePermeability1 < GridProperty
+classdef BaseRelativePermeability < GridProperty
     properties
         relpermScaling = false;
         relpermPoints = 2;
