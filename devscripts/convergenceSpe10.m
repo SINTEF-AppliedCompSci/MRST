@@ -1,4 +1,6 @@
-mrstModule add dg vem vemmech ad-props ad-core ad-blackoil blackoil-sequential gasinjection reorder matlab_bgl upr mrst-gui spe10
+mrstModule add dg vem vemmech ad-props ad-core ad-blackoil ...
+    blackoil-sequential gasinjection reorder matlab_bgl upr mrst-gui ...
+    spe10 weno
 mrstVerbose on
 
 %%
@@ -7,7 +9,9 @@ mrstVerbose on
 G = modelFI.G;
 G = computeVEMGeometry(G);
 G = computeCellDimensions(G);
-G.equal = true;
+% G.equal = true;
+G.cells.equal = true;
+G.faces.equal = false;
 modelFI.G = G;
 rock = modelFI.rock;
 fluid = modelFI.fluid;
@@ -104,6 +108,7 @@ for dNo = runIx
                                 'disc'              , disc, ...
                                 'nonlinearTolerance', 1e-3, ...
                                 'dsMaxAbs'          , dsMaxAbs);
+    modelDG.pressureModel.incTolPressure = 1e-8;
     state0 = assignDofFromState(modelDG.transportModel.disc, state0);
     
     ohDG = getOutHandler(['dg', num2str(degree(dNo))]);

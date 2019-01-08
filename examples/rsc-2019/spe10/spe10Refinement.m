@@ -1,6 +1,6 @@
 mrstModule add spe10 vem vemmech dg ad-core ad-props ad-blackoil ...
     blackoil-sequential gasinjection incomp msrsb matlab_bgl coarsegrid ...
-    mrst-gui reorder
+    mrst-gui reorder weno
 
 mrstVerbose on
 
@@ -13,7 +13,8 @@ pw = @(G,W) plot3(G.cells.centroids([W.cells], 1), ...
                  'ok', 'markerSize', 8, 'markerFaceColor', 'w', 'lineWidth', 2);
 
 baseName = 'spe10';
-location = 'home';
+% location = 'home';
+location = 'work';
 switch location
     case 'work'
         dataDir  = fullfile('/media/strene/806AB4786AB46C92/mrst-dg/rsc-2019', baseName);
@@ -23,21 +24,21 @@ end
             
 %% Set up base model
 
-[state0F, model, schedule]  = setupSPE10_AD('layers', 70);
-GF        = model.G;
-rockF     = model.rock;
+[state0, model, schedule]  = setupSPE10_AD('layers', 70);
+G        = model.G;
+rock     = model.rock;
 fluid     = model.fluid;
-scheduleF = schedule;
-scheduleF.step.val = rampupTimesteps(sum(schedule.step.val), 20*day, 8);
-scheduleF.step.control = ones(numel(scheduleF.step.val), 1);
-GF        = computeCellDimensions2(GF);
-GF.equal  = true;
+% schedule = schedule;
+schedule.step.val = rampupTimesteps(sum(schedule.step.val), 20*day, 8);
+schedule.step.control = ones(numel(schedule.step.val), 1);
+G        = computeCellDimensions2(G);
+G.equal  = true;
 
 %% Construct coarse grid
 
-T = computeTrans(GF, rockF);
-p = partitionMETIS(GF, T, 800);
-GC = generateCoarseGrid(GF, p);
+T = computeTrans(G, rock);
+p = partitionMETIS(G, T, 800);
+GC = generateCoarseGrid(G, p);
 GC = coarsenGeometry(GC);
 GC = coarsenCellDimensions(GC, 'useQhull', true);
 GC = storeInteractionRegionCart(GC);
@@ -46,135 +47,190 @@ GC = storeInteractionRegionCart(GC);
 
 time = 2000*day;
 bhp  = 50*barsa;
-rate = 0.25*sum(poreVolume(GF, rockF))/time;
+rate = 0.25*sum(poreVolume(G, rock))/time;
 
 WF = [];
-WF = verticalWell(WF, GF, rockF, 1, 1, []  , ...
+WF = verticalWell(WF, G, rock, 1, 1, []  , ...
                                    'type'  , 'rate', ...
                                    'val'   , rate  , ...
                                    'comp_i', [1,0] , ...
                                    'name'  , 'Inj' );
-WF = verticalWell(WF, GF, rockF, 42, 220, [], ...
+WF = verticalWell(WF, G, rock, 42, 220, [], ...
                                    'type'  , 'bhp' , ...
                                    'val'   , bhp   , ...
                                    'comp_i', [1,0] , ...
                                    'name'  , 'Prod');
-scheduleF.control(1).W = WF;
+schedule.control(1).W = WF;
 
 %% Make coarse grid with refinement around wells
 
-xw = GF.cells.centroids([WF.cells], :);
+xw = G.cells.centroids([WF.cells], :);
 
 d      = pdist2(GC.cells.centroids, xw);
 refine = any(d < 50*meter,2);
 
-mappings = getRefinementMappings(GC, GC, GF, refine);
-G        = generateCoarseGrid(GF, mappings.newPartition);
-G.cells.refined = mappings.refined;
-G        = coarsenGeometry(G);
-G        = coarsenCellDimensions(G, 'useQhull', true);
-G.equal  = false;
+mappings = getRefinementMappings(GC, GC, G, refine);
+GC        = generateCoarseGrid(G, mappings.newPartition);
+GC.cells.refined = mappings.refined;
+GC        = coarsenGeometry(GC);
+GC        = coarsenCellDimensions(GC, 'useQhull', true);
+GC.equal  = false;
 
-%% Make well struct for the coarse grid
-
-wc = GC.partition([WF.cells]);
+% %% Make well struct for the coarse grid
+% 
+% wc = GC.partition([WF.cells]);
 W = WF;
 for wNo = 1:numel(W)
-    W(wNo).cells = G.partition(W(wNo).cells);
+    W(wNo).cells = GC.partition(W(wNo).cells);
 end
-schedule = scheduleF;
-schedule.control(1).W  = W;
+% schedule = schedule;
+% schedule.control(1).W  = W;
 
 %% Plot setup
 
 close all
-plotToolbar(GF, rockF);
-plotGrid(G, 'facec', 'none', 'edgec', [1,1,1]*0.25, 'linew', 1.5);
+plotToolbar(G, rock);
+plotGrid(GC, 'facec', 'none', 'edgec', [1,1,1]*0.25, 'linew', 1.5);
 hold on
-pw(G, W);
+pw(GC, W);
 colormap(pink)
 axis equal tight; ax = gca;
 
 %% Set up models
 
-degree = 1;
+degree = [0,1];
 jt = 0.1; ot = 1e-6; mt = 1e-6;
 
 % Fully implicit fine model
-modelFIF = TwoPhaseOilWaterModel(GF, rockF, model.fluid);
-% Sequential fine model
-modelSIF = getSequentialModelFromFI(modelFIF);                                             
-% Fully implicit coarse model
-modelFI = upscaleModelTPFA(modelFIF, G.partition);
-% Sequential coarse model
-modelSI = getSequentialModelFromFI(modelFI);
-% Adaptive sequential model
-modelASI = AdaptiveSequentialPressureTransportModel(modelSIF.pressureModel, modelSIF.transportModel, G);
-% Adaptive reordering FV model
-transportModelReorder = ReorderingModel(modelSIF.transportModel);
-transportModelReorder.chunkSize = 100;
-modelASIReorder = AdaptiveSequentialPressureTransportModel(modelSIF.pressureModel, transportModelReorder, G);
+G.cells.equal = true;
+G.faces.equal = false;
+GC.cells.equal = false;
+GC.faces.equal = false;
+modelFI = TwoPhaseOilWaterModel(G, rock, model.fluid);
 
-% Fine DG model
-modelDGF = getSequentialModelFromFI(modelFIF);
-discDGF = DGDiscretization(modelDGF.transportModel         , ...
-                        'degree'               , degree    , ...
-                        'basis'                , 'legendre', ...
-                        'useUnstructCubature'  , true      , ...
-                        'jumpTolerance'        , jt        , ...
-                        'outTolerance'         , ot        , ...
-                        'outLimiter'           , 'kill'    , ...
-                        'meanTolerance'        , mt        );
-transportModelDGF = TransportOilWaterModelDG(GF, rockF, model.fluid, ...
-                                      'disc'              , discDGF, ...
-                                      'dsMaxAbs'          , 0.1    , ...
-                                      'nonlinearTolerance', 1e-3   );
-modelDGF.transportModel = transportModelDGF;
-% Coarse DG model
-modelDG = getSequentialModelFromFI(modelFI);
-modelDG.transportModel.G = coarsenCellDimensions(modelDG.transportModel.G);
-discDG = DGDiscretization(modelDG.transportModel          , ...
-                       'degree'               , degree    , ...
-                       'basis'                , 'legendre', ...
-                       'useUnstructCubature'  , true      , ...
-                       'jumpTolerance'        , jt        , ...
-                       'outTolerance'         , ot        , ...
-                       'outLimiter'           , 'kill'    , ...
-                       'meanTolerance'        , mt        );
-transportModelDG = TransportOilWaterModelDG(G, modelFI.rock, model.fluid, ...
-                                     'disc'              , discDG , ...
-                                     'dsMaxAbs'          , 0.1    , ...
-                                     'nonlinearTolerance', 1e-3   );
-modelDG.transportModel = transportModelDG;
-% Adaptive DG model
-modelASIDG = AdaptiveSequentialPressureTransportModel(modelDGF.pressureModel, modelDGF.transportModel, G);
-% Adaptive reordering DG model
-transportModelDGReorder = ReorderingModelDG(modelDGF.transportModel, 'chunkSize', 10);
-modelASIDGReorder = AdaptiveSequentialPressureTransportModel(modelDGF.pressureModel, transportModelDGReorder, G);
+[modelDG, modelDGreorder, modelDGadapt, modelDGadaptReorder] = deal(cell(numel(degree),1));
+
+for dNo = 1:numel(degree)
+    
+    % Assign sequential models
+    [modelDG{dNo}, modelDGreorder{dNo}, modelDGadapt{dNo}, modelDGadaptReorder{dNo}] ...
+        = deal(getSequentialModelFromFI(modelFI));
+
+    % Set up discretization
+    disc = DGDiscretization(modelDG{dNo}.transportModel, ...
+                   'degree'               , degree(dNo), ...
+                   'basis'                , 'legendre' , ...
+                   'useUnstructCubature'  , true       , ...
+                   'jumpTolerance'        , jt         , ...
+                   'outTolerance'         , ot         , ...
+                   'outLimiter'           , 'kill'     , ...
+                   'meanTolerance'        , mt         );
+    % Transport model
+    tmodel = TransportOilWaterModelDG(G, rock, model.fluid, ...
+                                'disc'              , disc, ...
+                                'dsMaxAbs'          , 0.1 , ...
+                                'nonlinearTolerance', 1e-3);
+                            
+    % Reordering model
+    tmodelReorder = ReorderingModelDG(tmodel, 'chunkSize', 1);
+    
+    % Regular model
+    modelDG{dNo}.transportModel = tmodel;
+    
+    % Reordering model
+    modelDGreorder{dNo}.transportModel = tmodelReorder;
+    
+    % Adaptive model
+    modelDGadapt{dNo} ...
+        = AdaptiveSequentialPressureTransportModel(modelDG{dNo}.pressureModel, tmodel, GC);
+                    
+    % Adaptive reordering mdoel
+    modelDGadaptReorder{dNo} ...
+        = AdaptiveSequentialPressureTransportModel(modelDG{dNo}.pressureModel, tmodelReorder, GC);
+    
+end
+
+modelRef = getSequentialModelFromFI(modelFI);
+
+%%
+
+state0.bfactor = [fluid.bW(state0.pressure), fluid.bO(state0.pressure)];
+state0C = initResSol(GC, state0.pressure(1), state0.s(1,:));
+state0C.bfactor = [fluid.bW(state0C.pressure), fluid.bO(state0C.pressure)];
 
 %% Set up problems
+
+names = {'base', 'reorder', 'adapt', 'adapt-reorder'};
+problems = cell(numel(degree), numel(modelDG{1}));
+for dNo = 1:numel(degree)
+    
+    tmodel = modelDG{dNo}.transportModel;
+    state0         = assignDofFromState(tmodel.disc, state0);
+    state0.bfactor = [fluid.bW(state0.pressure), fluid.bO(state0.pressure)];
+    
+    tmodel = modelDGadapt{dNo}.transportModel;
+    state0C = assignDofFromState(tmodel.disc, state0C);
+    pv = tmodel.operators.pv;
+    d = fullfile(dataDir, ['dg', num2str(degree(dNo))]);
+    mdls = {modelDG{dNo}, modelDGreorder{dNo}, modelDGadapt{dNo}, modelDGadaptReorder{dNo}};
+    
+    for mNo = 1:numel(mdls)
+        
+        if isa(mdls{mNo}, 'AdaptiveSequentialPressureTransportModel')
+            tmodel  = mdls{mNo}.transportModel;
+            state0.transportState = state0C;
+            state0.transportState.pv = pv;
+            state0.transportState.G = GC;
+            state0.transportModel = tmodel;
+            mdls{mNo}.computeCoarsePressure = true;
+            mdls{mNo}.plotProgress = true;
+        end
+        mdls{dNo}.pressureModel.extraStateOutput = true;
+        problems{dNo,mNo} = packSimulationProblem(state0, mdls{mNo}, schedule, baseName, 'Directory', d, 'name', names{mNo});
+    end
+end
+
+%%
+
+mdlIx = 1;
+for dNo = 1:2%numel(degree)
+    for mNo = mdlIx
+        [ok, status] = simulatePackedProblem(problems{dNo,mNo});
+    end
+end
+
+%%
+
+setup = problems{1,4}.SimulatorSetup;
+setup.model.plotProgress = true;
+[ws, st, rep] = simulateScheduleAD(setup.state0, setup.model, setup.schedule);
+
+%%
+
+
 
 models = {modelSIF, modelSI    , modelASI  , modelASIReorder   , modelDGF, modelDG    , modelASIDG, modelASIDGReorder};
 names  = {'fv'    , 'fv-coarse', 'fv-adapt', 'fv-adapt-reorder', 'dg'    , 'dg-coarse', 'dg-adapt', 'dg-adapt-reorder'};
 problems = cell(size(models));
 
-state0          = initResSol(G, state0F.pressure(1), state0F.s(1,:));
-state0          = assignDofFromState(discDG, state0);
-state0.bfactor  = [fluid.bW(state0.pressure), fluid.bO(state0.pressure)];
-state0F.bfactor = [fluid.bW(state0F.pressure), fluid.bO(state0F.pressure)];
-state0F         = assignDofFromState(discDGF, state0F);
+state0         = initResSol(G, state0.pressure(1), state0.s(1,:));
+state0         = assignDofFromState(disc, state0);
+state0.bfactor = [fluid.bW(state0.pressure), fluid.bO(state0.pressure)];
+state0.bfactor = [fluid.bW(state0.pressure), fluid.bO(state0.pressure)];
+state0         = assignDofFromState(disc, state0);
+state0C        = initResSol(GC, state0.pressure(1), state0.s(1,:));
 
 
 for mNo = 1:numel(models)
 
-    st0 = state0F;
-    sch = scheduleF;
+    st0 = state0;
+    sch = schedule;
     mdl = models{mNo};
     mdl.extraStateOutput = true;
     if isa(mdl, 'AdaptiveSequentialPressureTransportModel')
         st0.transportState        = state0;
-        st0.transportState.degree = degree*ones(G.cells.num, 1);
-        st0.transportState.G      = G;
+        st0.transportState.degree = degree*ones(GC.cells.num, 1);
+        st0.transportState.G      = GC;
         tm = mdl.transportModel;
         if mdl.isReordering
             tm = tm.parent;
@@ -209,42 +265,39 @@ end
 
 close all
 figure
-plotToolbar(GF, st)
+plotToolbar(G, st)
 axis equal tight
 colormap(pink)
 
 %%
 
-setup = problems{6}.SimulatorSetup;
-[ws, st, rep] = simulateScheduleAD(setup.state0, setup.model, setup.schedule);
-
 %%
 
-problems{1} = packSimulationProblem(state0F, modelSIF, scheduleF);
+problems{1} = packSimulationProblem(state0, modelSIF, schedule);
 
 %%
 
 % Coarse state
-state0 = initResSol(G, state0F.pressure(1), state0F.s(1,:));
+state0 = initResSol(GC, state0.pressure(1), state0.s(1,:));
 
 
 
 
 %%
-state0F.transportState        = state0;
-state0F.transportState.degree = degree*ones(G.cells.num, 1);
-state0F.transportState.G      = G;
-state0F.transportState.pv     = modelASI.transportModel.operators.pv;
+state0.transportState        = state0;
+state0.transportState.degree = degree*ones(GC.cells.num, 1);
+state0.transportState.G      = GC;
+state0.transportState.pv     = modelASI.transportModel.operators.pv;
 
-state0F.transportModel = modelASI.transportModel;
+state0.transportModel = modelASI.transportModel;
 modelASI.plotProgress  = true;
 close all
-[wsASI, stASI, rep] = simulateScheduleAD(state0F, modelASI, scheduleF);
+[wsASI, stASI, rep] = simulateScheduleAD(state0, modelASI, schedule);
 
 %%
 
-state0F.transportModel = modelASI.transportModel;
-[wsSIF, stSIF, rep] = simulateScheduleAD(state0F, modelSIF, scheduleF);
+state0.transportModel = modelASI.transportModel;
+[wsSIF, stSIF, rep] = simulateScheduleAD(state0, modelSIF, schedule);
 
 %%
 
@@ -263,8 +316,8 @@ modelDGF.transportModel.disc.outTolerance = ot;
 modelDGF.transportModel.disc.jumpTolerance = jt;
 
 % state0.degree = degree*ones(G.cells.num,1);
-state0 = initResSol(G, state0F.pressure(1), state0F.s(1,:));
-state0 = assignDofFromState(discDG, state0);
+state0 = initResSol(GC, state0.pressure(1), state0.s(1,:));
+state0 = assignDofFromState(disc, state0);
 [wsSIDG, stSIDG, rep] = simulateScheduleAD(state0, modelDGF, subschedule);
 
 %%
@@ -276,25 +329,25 @@ modelASIDG.transportModel.dsMaxAbs = 0.05;
 modelASIDG.transportModel.disc.limitAfterConvergence = true;
 % modelASIDG.reupdatePressure = true;
 
-state0F.transportState        = state0;
-state0F.transportState.degree = degree*ones(G.cells.num, 1);
-state0F.transportState.G      = G;
-state0F.transportState.pv     = modelASIDG.transportModel.operators.pv;
-state0F.transportState        = discDG.assignDofFromState(state0F.transportState);
-state0F.transportState        = discDG.updateDofPos(state0F.transportState);
-state0F.transportModel        = modelASIDG.transportModel;
+state0.transportState        = state0;
+state0.transportState.degree = degree*ones(GC.cells.num, 1);
+state0.transportState.G      = GC;
+state0.transportState.pv     = modelASIDG.transportModel.operators.pv;
+state0.transportState        = disc.assignDofFromState(state0.transportState);
+state0.transportState        = disc.updateDofPos(state0.transportState);
+state0.transportModel        = modelASIDG.transportModel;
 
 
 
 nls = NonLinearSolver('useLineSearch', false);
 modelASIDG.transportNonLinearSolver = nls;
 
-[wsASIDG, stASIDG, rep] = simulateScheduleAD(state0F, modelASIDG, scheduleF);
+[wsASIDG, stASIDG, rep] = simulateScheduleAD(state0, modelASIDG, schedule);
 
 %%
 
-state0F = assignDofFromState(discDGF, state0F);
-[wsSIFDG, stSIFDG, rep] = simulateScheduleAD(state0F, modelSIFDG, scheduleF);
+state0 = assignDofFromState(disc, state0);
+[wsSIFDG, stSIFDG, rep] = simulateScheduleAD(state0, modelSIFDG, schedule);
 
 %%
 
@@ -302,16 +355,16 @@ modelASI.storeGrids                     = true;
 modelASI.plotProgress                   = true;
 modelASI.pressureModel.extraStateOutput = true;
 
-state0 = initResSol(G, state0F.pressure(1), state0F.s(1,:));
-state0F.transportState        = state0;
-state0F.transportState.degree = degree*ones(G.cells.num, 1);
-state0F.transportState.G      = G;
-state0F.transportState.pv     = modelASIDG.transportModel.operators.pv;
-state0F.transportState        = discDG.assignDofFromState(state0F.transportState);
-state0F.transportState        = discDG.updateDofPos(state0F.transportState);
-state0F.transportModel        = modelASI.transportModel;
+state0 = initResSol(GC, state0.pressure(1), state0.s(1,:));
+state0.transportState        = state0;
+state0.transportState.degree = degree*ones(GC.cells.num, 1);
+state0.transportState.G      = GC;
+state0.transportState.pv     = modelASIDG.transportModel.operators.pv;
+state0.transportState        = disc.assignDofFromState(state0.transportState);
+state0.transportState        = disc.updateDofPos(state0.transportState);
+state0.transportModel        = modelASI.transportModel;
 
-[wsASI, statesASI, rep] = simulateScheduleAD(state0F, modelASI, scheduleF);
+[wsASI, statesASI, rep] = simulateScheduleAD(state0, modelASI, schedule);
 
 %%
 
@@ -320,7 +373,7 @@ state0F.transportModel        = modelASI.transportModel;
 
 %%
 
-plotWellSols({wsSI, wsASI, wsSIF}, cumsum(scheduleF.step.val), 'datasetNames', {'Coarse', 'Adaptive', 'Fine'});
+plotWellSols({wsSI, wsASI, wsSIF}, cumsum(schedule.step.val), 'datasetNames', {'Coarse', 'Adaptive', 'Fine'});
 
 %%
 
@@ -330,7 +383,7 @@ pos = [-1000, 0, 600, 800];
 %%
 
 figure('position', pos)
-plotToolbar(GF, stASI);
+plotToolbar(G, stASI);
 cmap = mrstColormap();
 colormap(cmap);
 axis equal tight; box on;
@@ -338,7 +391,7 @@ axis equal tight; box on;
 %%
 
 figure('position', pos)
-plotToolbar(GF, stSIF);
+plotToolbar(G, stSIF);
 cmap = mrstColormap();
 colormap(cmap);
 axis equal tight; box on;
@@ -346,7 +399,7 @@ axis equal tight; box on;
 %%
 
 figure('position', pos)
-plotToolbar(G, stSI);
+plotToolbar(GC, stSI);
 cmap = mrstColormap();
 colormap(cmap);
 axis equal tight; box on;
@@ -450,7 +503,7 @@ titles = {'dG(1)', 'FV'};
 x = [250, 295];
 for mNo = 1:numel(states)
     subplot(1,3,mNo+1)
-    h(mNo) = plotCellData(G, states{mNo}{1}.s(:,1), 'edgec', 'none');
+    h(mNo) = plotCellData(GC, states{mNo}{1}.s(:,1), 'edgec', 'none');
     colorbar('Location', 'southoutside');
     axis equal off
     text(x(mNo), 20, titles{mNo}, 'fontsize', 25, 'color', 'w'); 
@@ -458,7 +511,7 @@ for mNo = 1:numel(states)
 end
 
 subplot(1,3,1);
-h(3) = plotCellData(G, states{1}{1}.degree, 'edgec', 'none');
+h(3) = plotCellData(GC, states{1}{1}.degree, 'edgec', 'none');
 colormap jet
 caxis([0,1]);
 colorbar('Location', 'southoutside');
@@ -506,30 +559,30 @@ close(vo)
 clr = lines(3);
 close all
 figure; hold on
-fNo   = floor(rand*(G.faces.num-1)) + 1;
-faces = G.faces.fconn(G.faces.connPos(fNo):G.faces.connPos(fNo+1)-1);
-plotFaces(GF, faces, 'facealpha', 0.2);
+fNo   = floor(rand*(GC.faces.num-1)) + 1;
+faces = GC.faces.fconn(GC.faces.connPos(fNo):GC.faces.connPos(fNo+1)-1);
+plotFaces(G, faces, 'facealpha', 0.2);
 axis equal tight
 
-xf = G.faces.centroids(fNo,:);
-vec1 = G.faces.coordSys{1}(fNo,:);
-vec2 = G.faces.coordSys{2}(fNo,:);
-n    = G.faces.normals(fNo,:)./G.faces.areas(fNo);
+xf = GC.faces.centroids(fNo,:);
+vec1 = GC.faces.coordSys{1}(fNo,:);
+vec2 = GC.faces.coordSys{2}(fNo,:);
+n    = GC.faces.normals(fNo,:)./GC.faces.areas(fNo);
 quiver3(xf(:,1), xf(:,2), xf(:,3), vec1(1), vec1(2), vec1(3), 20, 'linew', 2, 'color', clr(1,:));
 quiver3(xf(:,1), xf(:,2), xf(:,3), vec2(1), vec2(2), vec2(3), 20, 'linew', 2, 'color', clr(1,:));
 quiver3(xf(:,1), xf(:,2), xf(:,3), n(1)   , n(2)   , n(3)   , 20 , 'linew', 2, 'color', clr(2,:));
 
 
-n = G.faces.nodes(mcolon(G.faces.nodePos(fNo), G.faces.nodePos(fNo+1)-1));
-x = G.nodes.coords(n,:);
+n = GC.faces.nodes(mcolon(GC.faces.nodePos(fNo), GC.faces.nodePos(fNo+1)-1));
+x = GC.nodes.coords(n,:);
 plot3(x(:,1), x(:,2), x(:,3), '.', 'markerSize', 15);
 
-e = G.faces.edges(G.faces.edgePos(fNo):G.faces.edgePos(fNo+1)-1);
-n = G.edges.nodes(mcolon(G.edges.nodePos(e), G.edges.nodePos(e+1)-1));
-x = G.nodes.coords(n,:);
+e = GC.faces.edges(GC.faces.edgePos(fNo):GC.faces.edgePos(fNo+1)-1);
+n = GC.edges.nodes(mcolon(GC.edges.nodePos(e), GC.edges.nodePos(e+1)-1));
+x = GC.nodes.coords(n,:);
 plot3(x(:,1), x(:,2), x(:,3), 'o', 'markerSize', 15);
 
-x = G.nodes.coords(G.faces.nodes(G.faces.nodePos(fNo):G.faces.nodePos(fNo+1)-1),:);
+x = GC.nodes.coords(GC.faces.nodes(GC.faces.nodePos(fNo):GC.faces.nodePos(fNo+1)-1),:);
 xx = [x; x(1,:)];
 patch(xx(:,1), xx(:,2), xx(:,3), 'r', 'facealpha', 0.2);
 view(3)
@@ -539,21 +592,21 @@ view(3)
 clr = lines(3);
 close all
 figure; hold on
-fNo   = floor(rand*(G.faces.num-1)) + 1;
-faces = G.faces.fconn(G.faces.connPos(fNo):G.faces.connPos(fNo+1)-1);
-plotFaces(GF, faces, 'facealpha', 0.2);
+fNo   = floor(rand*(GC.faces.num-1)) + 1;
+faces = GC.faces.fconn(GC.faces.connPos(fNo):GC.faces.connPos(fNo+1)-1);
+plotFaces(G, faces, 'facealpha', 0.2);
 axis equal tight
 
-xf = G.faces.centroids(fNo,:);
-vec1 = G.faces.coordSys{1}(fNo,:);
-vec2 = G.faces.coordSys{2}(fNo,:);
-n    = G.faces.normals(fNo,:)./G.faces.areas(fNo);
+xf = GC.faces.centroids(fNo,:);
+vec1 = GC.faces.coordSys{1}(fNo,:);
+vec2 = GC.faces.coordSys{2}(fNo,:);
+n    = GC.faces.normals(fNo,:)./GC.faces.areas(fNo);
 mag = 5;
 quiver3(xf(:,1), xf(:,2), xf(:,3), vec1(1), vec1(2), vec1(3), mag, 'linew', 2, 'color', clr(1,:));
 quiver3(xf(:,1), xf(:,2), xf(:,3), vec2(1), vec2(2), vec2(3), mag, 'linew', 2, 'color', clr(1,:));
 quiver3(xf(:,1), xf(:,2), xf(:,3), n(1)   , n(2)   , n(3)   , mag , 'linew', 2, 'color', clr(2,:));
 
-[~, x] = discDG.surfaceCubature.getCubature(fNo, 'face');
+[~, x] = disc.surfaceCubature.getCubature(fNo, 'face');
 
 % n = G.faces.nodes(mcolon(G.faces.nodePos(fNo), G.faces.nodePos(fNo+1)-1));
 % x = G.nodes.coords(n,:);
@@ -564,7 +617,7 @@ plot3(x(:,1), x(:,2), x(:,3), '.', 'markerSize', 15);
 % x = G.nodes.coords(n,:);
 % plot3(x(:,1), x(:,2), x(:,3), 'o', 'markerSize', 15);
 % 
-x = G.nodes.coords(G.faces.nodes(G.faces.nodePos(fNo):G.faces.nodePos(fNo+1)-1),:);
+x = GC.nodes.coords(GC.faces.nodes(GC.faces.nodePos(fNo):GC.faces.nodePos(fNo+1)-1),:);
 xx = [x; x(1,:)];
 patch(xx(:,1), xx(:,2), xx(:,3), 'r', 'facealpha', 0.2);
 view(3)
@@ -574,23 +627,23 @@ view(3)
 clr = lines(3);
 close all
 figure; hold on
-fNo   = floor(rand*(G.faces.num-1)) + 1;
-faces = G.faces.fconn(G.faces.connPos(fNo):G.faces.connPos(fNo+1)-1);
-plotFaces(GF, faces, 'facealpha', 0.2);
+fNo   = floor(rand*(GC.faces.num-1)) + 1;
+faces = GC.faces.fconn(GC.faces.connPos(fNo):GC.faces.connPos(fNo+1)-1);
+plotFaces(G, faces, 'facealpha', 0.2);
 axis equal tight
 
-xf = G.faces.centroids(fNo,:);
-vec1 = G.faces.coordSys{1}(fNo,:);
-vec2 = G.faces.coordSys{2}(fNo,:);
-n    = G.faces.normals(fNo,:)./G.faces.areas(fNo);
+xf = GC.faces.centroids(fNo,:);
+vec1 = GC.faces.coordSys{1}(fNo,:);
+vec2 = GC.faces.coordSys{2}(fNo,:);
+n    = GC.faces.normals(fNo,:)./GC.faces.areas(fNo);
 mag = 5;
 quiver3(xf(:,1), xf(:,2), xf(:,3), vec1(1), vec1(2), vec1(3), mag, 'linew', 2, 'color', clr(1,:));
 quiver3(xf(:,1), xf(:,2), xf(:,3), vec2(1), vec2(2), vec2(3), mag, 'linew', 2, 'color', clr(1,:));
 quiver3(xf(:,1), xf(:,2), xf(:,3), n(1)   , n(2)   , n(3)   , mag , 'linew', 2, 'color', clr(2,:));
 
-discDG.surfaceCubature
+disc.surfaceCubature
 % 
-[~, x] = discDG.surfaceCubature.getCubature(fNo, 'face');
+[~, x] = disc.surfaceCubature.getCubature(fNo, 'face');
 % 
 % n = G.faces.nodes(mcolon(G.faces.nodePos(fNo), G.faces.nodePos(fNo+1)-1));
 % x = G.nodes.coords(n,:);
@@ -601,7 +654,7 @@ plot3(x(:,1), x(:,2), x(:,3), '.', 'markerSize', 15);
 % x = G.nodes.coords(n,:);
 % plot3(x(:,1), x(:,2), x(:,3), 'o', 'markerSize', 15);
 % 
-x = G.nodes.coords(G.faces.nodes(G.faces.nodePos(fNo):G.faces.nodePos(fNo+1)-1),:);
+x = GC.nodes.coords(GC.faces.nodes(GC.faces.nodePos(fNo):GC.faces.nodePos(fNo+1)-1),:);
 xx = [x; x(1,:)];
 patch(xx(:,1), xx(:,2), xx(:,3), 'r', 'facealpha', 0.2);
 view(3)
