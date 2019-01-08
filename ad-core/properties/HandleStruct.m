@@ -4,7 +4,7 @@ classdef HandleStruct < handle
     end
     
     methods
-        function ds = DynamicStruct(s)
+        function ds = HandleStruct(s)
             if nargin > 0
                 ds.data = s;
             end
