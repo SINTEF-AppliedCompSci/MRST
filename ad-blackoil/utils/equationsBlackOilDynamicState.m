@@ -45,19 +45,22 @@ T = s.T;
 % T = s.T.*transMult;
 
 % Gravity gradient per face
-gdz = model.getGravityGradient();
+% gdz = model.getGravityGradient();
 
 [rho, mob, b, pv, p_phase] = model.getProps(state, 'Density', 'Mobility', 'ShrinkageFactors', 'PoreVolume', 'PhasePressures');
 [b0, pv0] = model.getProps(state0, 'ShrinkageFactors', 'PoreVolume');
 
+
 [bW, bO, bG] = deal(b{:});
 [bW0, bO0, bG0] = deal(b0{:});
+
+[rgdz, dp] = model.getProps(state, 'FaceGravityPotential', 'PotentialGradient');
+
 nph = 3;
 v = cell(nph, 1);
 upc = false(numel(double(T)), nph);
 for i = 1:nph
-    rhof  = s.faceAvg(rho{i});
-    pot = s.Grad(p_phase{i}) - rhof.*gdz;
+    pot = s.Grad(p_phase{i}) + rgdz{i};
     
     upc(:, i) = value(pot)<=0;
     

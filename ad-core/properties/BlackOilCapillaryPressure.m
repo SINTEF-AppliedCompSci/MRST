@@ -20,5 +20,10 @@ classdef BlackOilCapillaryPressure < GridProperty
                 pc{phInd == 3} = prop.evaluateFunctionOnGrid(f.pcOG, sG);
             end
         end
+        
+        function anyPresent = pcPresent(prop, model)
+            f = model.fluid;
+            anyPresent = isfield(f, 'pcOW') || isfield(f, 'pcOG');
+        end
     end
 end

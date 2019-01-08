@@ -6,7 +6,6 @@ classdef BlackOilViscosity < GridProperty
     methods
         function mu = evaluateOnGrid(prop, model, state)
             [act, phInd] = model.getActivePhases();
-            fp = state.FlowProps;
             nph = sum(act);
             mu = cell(1, nph);
             
@@ -25,8 +24,8 @@ classdef BlackOilViscosity < GridProperty
                 if model.disgas
                     rs = model.getProp(state, 'rs');
                     if prop.useSaturatedFlag
-                        rsMax = fp.RsMax;
-                        flag = double(rs) >= double(rsMax);
+                        rsMax = state.getProp(state, 'rsMax');
+                        flag = value(rs) >= value(rsMax);
                     else
                         flag = false(nc, 1);
                     end
@@ -42,8 +41,8 @@ classdef BlackOilViscosity < GridProperty
                 if model.vapoil
                     rv = model.getProp(state, 'rv');
                     if prop.useSaturatedFlag
-                        rvMax = fp.RvMax;
-                        flag = double(rv) >= double(rvMax);
+                        rvMax = state.getProp(state, 'rvMax');
+                        flag = value(rv) >= value(rvMax);
                     else
                         flag = false(nc, 1);
                     end
