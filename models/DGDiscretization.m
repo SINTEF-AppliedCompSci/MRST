@@ -84,25 +84,25 @@ classdef DGDiscretization < HyperbolicDiscretization
                     volCub  = CoarseGrid2DCubature(G, prescision, disc.internalConn);
                 else
                     if disc.degree == 0 || disc.useUnstructCubature
-                        volCub = Unstruct2DCubature(G, prescision, disc.internalConn);
-%                         volCub = MomentFitting2DCubature(G, prescision, disc.internalConn);
+%                         volCub = Unstruct2DCubature(G, prescision, disc.internalConn);
+                        volCub = MomentFitting2DCubature(G, prescision, disc.internalConn);
                     else
                         volCub = TriangleCubature(G, prescision, disc.internalConn);
                     end
                 end
                 surfCub = LineCubature(G, prescision, disc.internalConn);
             else
-                if isCoarse && ~disc.useUnstructCubature
-                    volCub = Unstruct3DCubature(G, prescision, disc.internalConn);
-%                     volCub  = CoarseGrid3DCubature(G, prescision, disc.internalConn);
-%                     surfCub = CoarseGrid2DCubature(G, prescision, disc.internalConn);
+                if isCoarse %&& ~disc.useUnstructCubature
+%                     volCub = Unstruct3DCubature(G, prescision, disc.internalConn);
                     surfCub = TriangleCubature(G, prescision, disc.internalConn);
+                    volCub  = CoarseGrid3DCubature(G, prescision, disc.internalConn);
+%                     surfCub = CoarseGrid2DCubature(G, prescision, disc.internalConn);
                 else
                     if disc.degree == 0 || disc.useUnstructCubature
-                        volCub = Unstruct3DCubature(G, prescision, disc.internalConn);
-                        surfCub = Unstruct2DCubature(G, prescision, disc.internalConn);
-%                         volCub  = MomentFitting3DCubature(G, prescision, disc.internalConn);
-%                         surfCub = MomentFitting2DCubature(G, prescision, disc.internalConn);
+%                         volCub = Unstruct3DCubature(G, prescision, disc.internalConn);
+%                         surfCub = Unstruct2DCubature(G, prescision, disc.internalConn);
+                        volCub  = MomentFitting3DCubature(G, prescision, disc.internalConn);
+                        surfCub = MomentFitting2DCubature(G, prescision, disc.internalConn);
                     else
                         volCub  = TetrahedronCubature(G, prescision, disc.internalConn);
                         surfCub = TriangleCubature(G, prescision, disc.internalConn);
