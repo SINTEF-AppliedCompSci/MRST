@@ -38,7 +38,7 @@ classdef PostProcessDiagnostics < handle
                          'maxTOF', 500*year, ...
                          'cleanup',   false, ...
                          'precompute', true);
-            mrstModule add mrst-gui diagnostics deckformat ad-props
+            mrstModule add mrst-gui diagnostics deckformat ad-props coarsegrid
             mrstVerbose(true)
             if mod(numel(varargin), 2) == 1  % file-name provided
                 filenm = varargin{1};
