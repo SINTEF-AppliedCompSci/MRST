@@ -72,7 +72,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if any(subW)
         assert(model.water);
         BW = 1./fluid.bW(state.pressure);
-        RW = double(problem.equations{subW});
+        RW = value(problem.equations{subW});
         BW_avg = sum(BW)/nc;
         CNVW = BW_avg*problem.dt*max(abs(RW)./pv);
         
@@ -96,7 +96,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             BO = 1./fluid.bO(state.pressure);
         end
         
-        RO = double(problem.equations{subO});
+        RO = value(problem.equations{subO});
         BO_avg = sum(BO)/nc;
         CNVO = BO_avg*problem.dt*max(abs(RO)./pv);
         
@@ -116,7 +116,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         else
             BG = 1./fluid.bG(state.pressure);
         end
-        RG = double(problem.equations{subG});
+        RG = value(problem.equations{subG});
         BG_avg = sum(BG)/nc;
         CNVG = BG_avg*problem.dt*max(abs(RG)./pv);
         

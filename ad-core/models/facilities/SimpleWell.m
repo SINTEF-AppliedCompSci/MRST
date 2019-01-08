@@ -228,7 +228,7 @@ classdef SimpleWell < PhysicalModel
             % Update well properties which are not primary variables
             cq_sDb = qMass;
             for i = 1:numel(qMass)
-                cq_sDb{i} = double(qMass{i});
+                cq_sDb{i} = value(qMass{i});
             end
             cq_sDb = cell2mat(cq_sDb);
 
@@ -284,10 +284,10 @@ classdef SimpleWell < PhysicalModel
             end
             [p, mob, rho, dissolved, comp, wellvars] = unpackPerforationProperties(packed);
             for i = 1:numel(rho)
-                rho{i} = double(rho{i});
+                rho{i} = value(rho{i});
                 if ~isempty(dissolved)
                     for j = 1:numel(dissolved{i})
-                        dissolved{i}{j} = double(dissolved{i}{j});
+                        dissolved{i}{j} = value(dissolved{i}{j});
                     end
                 end
             end
@@ -369,7 +369,7 @@ classdef SimpleWell < PhysicalModel
             lims = well.W.lims;
             qs_double = zeros(size(q_s));
             for i = 1:numel(qs_double)
-                qs_double(i) = double(q_s{i});
+                qs_double(i) = value(q_s{i});
             end
             qs_t = sum(qs_double);
 
@@ -394,7 +394,7 @@ classdef SimpleWell < PhysicalModel
                         lims.vrat = -inf;
                     end
 
-                    flags = [double(bhp) > lims.bhp, ...
+                    flags = [value(bhp)  > lims.bhp, ...
                               qs_t       > lims.rate, ...
                               qs_t       < lims.vrat];
                 else
@@ -425,7 +425,7 @@ classdef SimpleWell < PhysicalModel
                     if isprop(model, 'solvent') && model.solvent
                         q_sl = qs_double(solIx);
                     end
-                    flags = [double(bhp) < lims.bhp,  ...
+                    flags = [value(bhp) < lims.bhp,  ...
                         q_o          < lims.orat, ...
                         q_w + q_o    < lims.lrat, ...
                         q_g + q_sl   < lims.grat, ...
@@ -593,7 +593,7 @@ classdef SimpleWell < PhysicalModel
                 else
                     rsSatFn = model.fluid.rsSat;
                 end
-                rsMax = rsSatFn(double(p));
+                rsMax = rsSatFn(value(p));
             else
                 rsMax = 0;
             end
@@ -605,7 +605,7 @@ classdef SimpleWell < PhysicalModel
                     else
                         rvSatFn = model.fluid.rvSat;
                     end
-                    rvMax = rvSatFn(double(p));
+                    rvMax = rvSatFn(value(p));
                 else
                     rvMax = 0;
                 end

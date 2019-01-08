@@ -6,11 +6,12 @@ classdef PropertyFunctions
     properties (Access = protected)
         structName
         structFields
+        excludedFields
     end
     
     methods
         function props = PropertyFunctions()
-            props.structFields = properties(props);
+            props.structFields = setdiff(properties(props), props.excludedFields);
         end
         
         function names = getPropertyNames(props)

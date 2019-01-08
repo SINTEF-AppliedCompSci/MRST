@@ -16,9 +16,9 @@ classdef HandleStruct < handle
             for i = 1:numel(flds)
                 f = flds{i};
                 if isa(s.(f), 'ADI')
-                    s.(f) = double(s.(f));
+                    s.(f) = value(s.(f));
                 elseif iscell(s.(f))
-                    s.(f) = cellfun(@double, s.(f), 'UniformOutput', false);
+                    s.(f) = cellfun(@value, s.(f), 'UniformOutput', false);
                     s.(f) = [s.(f){:}];
                 end
             end
@@ -45,6 +45,11 @@ classdef HandleStruct < handle
         function disp(ds)
             fprintf('HandleStruct with fields:\n');
             disp(ds.data);
+        end
+        
+        function ds2 = copy(ds)
+            % Deep copy
+            ds2 = HandleStruct(ds.data);
         end
     end
 end

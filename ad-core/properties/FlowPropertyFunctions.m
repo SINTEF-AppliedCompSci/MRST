@@ -8,6 +8,7 @@ classdef FlowPropertyFunctions < PropertyFunctions
         ShrinkageFactors
         Mobility
         PoreVolume
+        PhaseComposition
     end
     
     methods

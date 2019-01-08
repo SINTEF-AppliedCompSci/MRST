@@ -12,6 +12,7 @@ classdef BlackOilViscosity < GridProperty
             
             f = model.fluid;
             [p, p_phase] = model.getProps(state, 'pressure', 'phasepressures');
+            nc = numelValue(p);
             if model.water
                 wix = phInd == 1;
                 pw = p_phase{wix};
@@ -27,7 +28,7 @@ classdef BlackOilViscosity < GridProperty
                         rsMax = fp.RsMax;
                         flag = double(rs) >= double(rsMax);
                     else
-                        flag = false(size(double(p)));
+                        flag = false(nc, 1);
                     end
                     mu{oix} = prop.evaluateFunctionOnGrid(f.muO, po, rs, flag);
                 else
@@ -44,7 +45,7 @@ classdef BlackOilViscosity < GridProperty
                         rvMax = fp.RvMax;
                         flag = double(rv) >= double(rvMax);
                     else
-                        flag = false(size(double(p)));
+                        flag = false(nc, 1);
                     end
                     mu{gix} = prop.evaluateFunctionOnGrid(f.muG, pg, rv, flag);
                 else

@@ -709,7 +709,7 @@ classdef FacilityModel < PhysicalModel
             wind = model.ReservoirModel.getPhaseIndex('W');
             srcRes = sources.phaseVolume;
             for i = 1:numel(srcRes)
-                srcRes{i} = double(srcRes{i});
+                srcRes{i} = value(srcRes{i});
             end
             qR = [srcRes{:}];
             if size(qR, 1) ~= numel(p2w)

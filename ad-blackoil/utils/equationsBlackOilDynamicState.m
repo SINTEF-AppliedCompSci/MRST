@@ -47,7 +47,7 @@ T = s.T;
 % Gravity gradient per face
 gdz = model.getGravityGradient();
 
-[rho, mob, b, pv, pc, p_phase] = model.getProps(state, 'Density', 'Mobility', 'ShrinkageFactors', 'PoreVolume', 'CapillaryPressure', 'PhasePressures');
+[rho, mob, b, pv, p_phase] = model.getProps(state, 'Density', 'Mobility', 'ShrinkageFactors', 'PoreVolume', 'PhasePressures');
 [b0, pv0] = model.getProps(state0, 'ShrinkageFactors', 'PoreVolume');
 
 [bW, bO, bG] = deal(b{:});
@@ -59,7 +59,7 @@ for i = 1:nph
     rhof  = s.faceAvg(rho{i});
     pot = s.Grad(p_phase{i}) - rhof.*gdz;
     
-    upc(:, i) = double(pot)<=0;
+    upc(:, i) = value(pot)<=0;
     
     dflux = -T.*pot;
     v{i} = dflux.*s.faceUpstr(upc(:, i), b{i}.*(mob{i}));

@@ -34,13 +34,13 @@ if ~W.status
     % Overwrite equations with trivial equations for inactive wells
     subs = ~wellStatus;
     for ph = 1:numPh
-        eqs{ph}(subs) = q_s{ph}(subs) - double(q_s{ph}(subs));
+        eqs{ph}(subs) = q_s{ph}(subs) - value(q_s{ph}(subs));
     end
 end
 % return mix_s(just values), connection and well status:
 mix_s = mix_s_ad;
 for i = 1:numel(mix_s)
-    mix_s{i} = double(mix_s_ad{i});
+    mix_s{i} = value(mix_s_ad{i});
 end
 
 mix_s   = cell2mat(mix_s);
@@ -140,7 +140,7 @@ function [Tw, isInj, connInjInx, cstatus] = getWellTrans(wellmodel, wellSol, qt_
     % Get well signs, default should be that wells are not allowed to change sign
     % (i.e., prod <-> inj)
     if wellmodel.allowSignChange 
-        isInj = double(qt_s)>0;   % sign determined from solution
+        isInj = value(qt_s)>0;   % sign determined from solution
     else % injector <=> w.sign>0, prod <=> w.sign<0
         isInj = W.sign>0;
     end
@@ -183,7 +183,7 @@ function [cq_vol, cq_s, mix_s] = computePerforationRates(resmodel, wellmodel, co
         % producing connections phase volumerates at standard conditions:
         cq_ps = conn2surf(cq_p, b, dissolved, resmodel);
         
-        isInj = double(qt_s)>0;
+        isInj = value(qt_s)>0;
         wbq = cell(1, numPh);
 
         for ph = 1:numPh
@@ -196,7 +196,7 @@ function [cq_vol, cq_s, mix_s] = computePerforationRates(resmodel, wellmodel, co
             wbqt = wbqt + wbq{ph};
         end
         % check for "dead wells":
-        deadWells = double(wbqt)==0;
+        deadWells = value(wbqt)==0;
         if any(deadWells)
             for ph = 1:numPh
                 wbq{ph} = ~deadWells.*wbq{ph} + compi(ph).*deadWells;

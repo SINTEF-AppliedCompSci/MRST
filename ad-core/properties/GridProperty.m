@@ -7,7 +7,9 @@ classdef GridProperty
     methods
         function prop = GridProperty(backend, regions, varargin)
             prop.AutoDiffBackend = backend;
-            prop.regions = regions;
+            if nargin > 1
+                prop.regions = regions;
+            end
         end
 
         function v = evaluateFunctionOnGrid(prop, fn, varargin)

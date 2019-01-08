@@ -28,7 +28,7 @@ classdef BaseRelativePermeability < GridProperty
         if isfield(f, 'krPts')
             swcon = reshape(f.krPts.w(prop.regions, 1), [], 1);
         end
-        swcon = min(swcon, double(sw)-1e-5);
+        swcon = min(swcon, value(sw)-1e-5);
 
         d  = (sg+sw-swcon);
         ww = (sw-swcon)./d;

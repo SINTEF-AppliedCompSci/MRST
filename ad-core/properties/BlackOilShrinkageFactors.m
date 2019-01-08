@@ -28,9 +28,9 @@ classdef BlackOilShrinkageFactors < GridProperty
                     rs = model.getProp(state, 'rs');
                     if prop.useSaturatedFlag
                         rsMax = fp.RsMax;
-                        flag = double(rs) >= double(rsMax);
+                        flag = value(rs) >= value(rsMax);
                     else
-                        flag = false(size(double(p)));
+                        flag = false(numelValue(p), 1);
                     end
                     bO = prop.evaluateFunctionOnGrid(f.bO, po, rs, flag);
                 else
@@ -46,9 +46,9 @@ classdef BlackOilShrinkageFactors < GridProperty
                     rv = model.getProp(state, 'rv');
                     if prop.useSaturatedFlag
                         rvMax = fp.RvMax;
-                        flag = double(rv) >= double(rvMax);
+                        flag = value(rv) >= value(rvMax);
                     else
-                        flag = false(size(double(p)));
+                        flag = false(numelValue(p), 1);
                     end
                     bG = prop.evaluateFunctionOnGrid(f.bG, pg, rv, flag);
                 else
