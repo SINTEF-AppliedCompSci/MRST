@@ -13,9 +13,10 @@ classdef FluxDiscretization < PropertyFunctions
         function props = FluxDiscretization(model)
             backend = model.AutoDiffBackend;
             upstr = UpstreamFunctionWrapper(model.operators.faceUpstr);
+            tpfa = TwoPointFluxApproximation(model);
 
             props@PropertyFunctions();
-%             props.PermeabilityPotentialGradient = ;
+            props.PermeabilityPotentialGradient = PermeabilityPotentialGradient(backend, tpfa);
             props.PressureGradient = PressureGradient(backend);
             props.GravityPotentialDifference = GravityPotentialDifference(backend);
             props.PhasePotentialDifference = PhasePotentialDifference(backend);

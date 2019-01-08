@@ -54,21 +54,21 @@ T = s.T;
 [bW, bO, bG] = deal(b{:});
 [bW0, bO0, bG0] = deal(b0{:});
 
-[rgdz, dp] = model.getProps(state, 'GravityPotentialDifference', 'PressureGradient');
-pot = model.getProp(state, 'PhasePotentialDifference');
-mobf = model.getProp(state, 'FaceMobility');
-% mobf = model.getProp(state, 'PhaseFlux');
+% [rgdz, dp] = model.getProps(state, 'GravityPotentialDifference', 'PressureGradient');
+% pot = model.getProp(state, 'PhasePotentialDifference');
+% mobf = model.getProp(state, 'FaceMobility');
+[ff, pot] = model.getProps(state, 'PhaseFlux',  'PhasePotentialDifference');
 
 nph = 3;
 v = cell(nph, 1);
 upc = false(numel(double(T)), nph);
 for i = 1:nph
-    pot = dp{i} + rgdz{i};
-    
-    upc(:, i) = value(pot)<=0;
-    
-    dflux = -T.*pot;
-    v{i} = dflux.*s.faceUpstr(upc(:, i), b{i}.*(mob{i}));
+%     pot = dp{i} + rgdz{i};
+%     
+    upc(:, i) = value(pot{i})<=0;
+    dflux = -T.*pot{i};
+%     v{i} = dflux.*s.faceUpstr(upc(:, i), b{i}.*(mob{i}));
+    v{i} = s.faceUpstr(upc(:, i), b{i}).*ff{i};
 end
 [bWvW, bOvO, bGvG] = deal(v{:});
 
