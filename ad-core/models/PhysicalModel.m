@@ -733,7 +733,7 @@ methods
             nms = c.getPropertyNames();
             sub = strcmpi(nms, name);
             if any(sub)
-                p = c.getProperty(model, state, nms{sub});
+                p = c.get(model, state, nms{sub});
                 return
             end
         end

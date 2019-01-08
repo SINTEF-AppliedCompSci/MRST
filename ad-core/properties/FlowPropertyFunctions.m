@@ -4,6 +4,7 @@ classdef FlowPropertyFunctions < PropertyFunctions
         Viscosity
         RelativePermeability
         CapillaryPressure
+        PhasePressures
         ShrinkageFactors
         Mobility
         PoreVolume
@@ -24,7 +25,7 @@ classdef FlowPropertyFunctions < PropertyFunctions
             end
             % Saturation properties
             props.CapillaryPressure = BlackOilCapillaryPressure(model.AutoDiffBackend, sat);
-            props.RelativePermeability = StoneRelativePermeability1(model.AutoDiffBackend, sat);
+            props.RelativePermeability = BaseRelativePermeability(model.AutoDiffBackend, sat);
             props.Mobility = Mobility(model.AutoDiffBackend, sat);
 
             % PVT properties
@@ -32,6 +33,7 @@ classdef FlowPropertyFunctions < PropertyFunctions
             props.Density = BlackOilDensity(model.AutoDiffBackend, pvt);
             props.Viscosity = BlackOilViscosity(model.AutoDiffBackend, pvt);
             props.PoreVolume = MultipliedPoreVolume(model.AutoDiffBackend, pvt);
+            props.PhasePressures = PhasePressures(model.AutoDiffBackend, pvt);
             if ~isempty(model.inputdata)
                 deck = model.inputdata;
                 

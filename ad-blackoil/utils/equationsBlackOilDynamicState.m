@@ -47,12 +47,11 @@ T = s.T;
 % Gravity gradient per face
 gdz = model.getGravityGradient();
 
-[rho, mob, b, pv, pc] = model.getProps(state, 'Density', 'Mobility', 'ShrinkageFactors', 'PoreVolume', 'CapillaryPressure');
+[rho, mob, b, pv, pc, p_phase] = model.getProps(state, 'Density', 'Mobility', 'ShrinkageFactors', 'PoreVolume', 'CapillaryPressure', 'PhasePressures');
 [b0, pv0] = model.getProps(state0, 'ShrinkageFactors', 'PoreVolume');
 
 [bW, bO, bG] = deal(b{:});
 [bW0, bO0, bG0] = deal(b0{:});
-p_phase = getPhasePressures(p, pc);
 nph = 3;
 v = cell(nph, 1);
 upc = false(numel(double(T)), nph);

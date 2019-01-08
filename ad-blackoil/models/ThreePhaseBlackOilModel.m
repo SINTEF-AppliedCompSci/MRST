@@ -158,7 +158,7 @@ methods
         if model.disgas
             % RS must be supplied for all cells. This may cause an error.
             model.checkProperty(state, 'rs', nc, 1);
-            rsMax = model.FlowPropertyFunctions.getProperty(model, state, 'RsMax');
+            rsMax = model.getProp(state, 'rsMax');
             [sg, so, rs] = model.getProps(state, 'sg', 'so', 'rs');
             rs(sg > 0) = rsMax(sg > 0);
             rs = rs.*(so > 0);
@@ -176,7 +176,7 @@ methods
         if model.vapoil
             % RV must be supplied for all cells. This may cause an error.
             model.checkProperty(state, 'rv', nc, 1);
-            rvMax = model.FlowPropertyFunctions.getProperty(model, state, 'RvMax');
+            rvMax = model.getProp(state, 'rvMax');
             [so, sg, rv] = model.getProps(state, 'so', 'sg', 'rv');
             rv(so > 0) = rvMax(so > 0);
             rv = rv.*(sg > 0);
@@ -230,7 +230,7 @@ methods
             dsg = st{3}.*dr - st{2}.*dsw;
 
             if model.disgas
-                rsMax = model.FlowPropertyFunctions.getProperty(model, state, 'RsMax');
+                rsMax = model.getProp(state, 'rsMax');
                 drs_rel = rsMax.*model.drsMaxRel;
                 drs = min(model.drsMaxAbs, drs_rel);
                 state = model.updateStateFromIncrement(state, st{1}.*dr, problem, ...
@@ -238,7 +238,7 @@ methods
             end
 
             if model.vapoil
-                rvMax = model.FlowPropertyFunctions.getProperty(model, state, 'RvMax');
+                rvMax = model.getProp(state, 'rvMax');
                 drv_rel = rvMax.*model.drsMaxRel;
                 drs = min(model.drsMaxAbs, drv_rel);
                 state = model.updateStateFromIncrement(state, st{2}.*dr, problem, ...

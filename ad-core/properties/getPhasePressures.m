@@ -1,4 +1,5 @@
 function p_alpha = getPhasePressures(p, pc)
+    error();
     nph = numel(pc);
     p_alpha = cell(1, nph);
     for i = 1:nph

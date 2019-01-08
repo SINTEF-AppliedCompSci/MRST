@@ -45,7 +45,7 @@ classdef PropertyFunctions
             end
         end
         
-        function v = getProperty(props, model, state, name)
+        function v = get(props, model, state, name)
             % Get a property with lazy evaluation
             state = props.evaluateDependencies(model, state, {name});
             v = state.(props.structName).(name);

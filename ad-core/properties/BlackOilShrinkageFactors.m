@@ -11,8 +11,7 @@ classdef BlackOilShrinkageFactors < GridProperty
             b = cell(1, nph);
             
             f = model.fluid;
-            p = model.getProp(state, 'pressure');
-            p_phase = getPhasePressures(p, fp.CapillaryPressure);
+            [p, p_phase] = model.getProps(state, 'pressure', 'phasepressures');
             
             
             if model.water

@@ -4,9 +4,7 @@ classdef Mobility < GridProperty
     
     methods
         function mob = evaluateOnGrid(prop, model, state)
-            props = model.FlowPropertyFunctions;
-            mu = props.getProperty(model, state, 'Viscosity');
-            kr = props.getProperty(model, state, 'RelativePermeability');
+            [mu, kr] = model.getProps(state, 'Viscosity', 'RelativePermeability');
             mob = cellfun(@(x, y) x./y, kr, mu, 'unif', false);
         end
     end

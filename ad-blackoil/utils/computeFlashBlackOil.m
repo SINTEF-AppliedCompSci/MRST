@@ -77,8 +77,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         gasPresent = true;
     else
         st1 = status{1};
-        rsSat0 = fp.getProperty(model, state0, 'RsMax');
-        rsSat = fp.getProperty(model, state, 'RsMax');
+        rsSat0 = model.getProp(state0, 'RsMax');
+        rsSat = model.getProp(state, 'RsMax');
         gasPresent = or(and( sg > 0 | rs == 0, ~st1), watOnly); % Obvious case
         % Keep oil saturated if previous sg is sufficiently large:
         ix1 = and( sg < 0, sg0 > etol);
@@ -100,8 +100,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         rvSat  = rvSat0;
     else
         st2 = status{2};
-        rvSat0 = fp.getProperty(model, state0, 'RvMax');
-        rvSat = fp.getProperty(model, state, 'RvMax');
+        rvSat0 = model.getProp(state0, 'RvMax');
+        rvSat = model.getProp(state, 'RvMax');
         oilPresent = or(and( so > 0 | rv == 0, ~st2), watOnly); % Obvious case
         % Keep gas saturated if previous so is sufficiently large
         ix1 = and( so < 0, so0 > etol);

@@ -11,8 +11,7 @@ classdef BlackOilViscosity < GridProperty
             mu = cell(1, nph);
             
             f = model.fluid;
-            p = model.getProp(state, 'pressure');
-            p_phase = getPhasePressures(p, fp.CapillaryPressure);
+            [p, p_phase] = model.getProps(state, 'pressure', 'phasepressures');
             if model.water
                 wix = phInd == 1;
                 pw = p_phase{wix};
