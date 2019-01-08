@@ -313,8 +313,10 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
             if model.isDG
                 G = coarsenCellDimensions(G);
             end
-            G.cells.ghost   = false(G.cells.num, 1);
-            G.cells.refined = accumarray(G.partition, ones(G.parent.cells.num,1)) == 1;
+            G.cells.equal    = false;
+            G.faces.equal    = false;
+            G.cells.ghost    = false(G.cells.num, 1);
+            G.cells.refined  = accumarray(G.partition, ones(G.parent.cells.num,1)) == 1;
             transportModel.G = G;
             
             if model.isDG
