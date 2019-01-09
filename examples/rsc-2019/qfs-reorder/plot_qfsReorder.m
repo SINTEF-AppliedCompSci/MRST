@@ -34,7 +34,7 @@ clr = lines(2);
 close all
 frac = 0.8;
 cmap = winter*frac + (1-frac);
-timeSteps = [5, 15, 40, 60];
+timeSteps = [5, 15, 30, 40];
 refFactor = [];
 for tNo = timeSteps
     figure('Position', pos);
@@ -51,11 +51,11 @@ for tNo = timeSteps
     colormap(jet)
     savepng(['qfs-reorder-', num2str(tNo)]);
     
-    figure('Position', pos);
+%     figure('Position', pos);
     order = st.order;
     c = sum(order == order',2) > 1;
-    plotGrid(G, 'facec', 'none');
-    plotGrid(G, c);
+%     plotGrid(G, 'facec', 'none');
+    plotGrid(G, c, 'facec', 'white');
    
 end
 
