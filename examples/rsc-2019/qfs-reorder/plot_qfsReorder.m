@@ -39,33 +39,24 @@ refFactor = [];
 for tNo = timeSteps
     figure('Position', pos);
     hold on
-    plotCellData(GF, states{1}{tNo}.order, 'edgec', 'none');
-    pw(GF, WF)
+    st = states{1}{tNo}; 
+    plotCellData(G, states{1}{tNo}.order, 'edgec', 'none');
+    pw(G, W)
+    s = states{1}{tNo}.s(:,1);
+    unstructuredContour(G, s, 'color', 'w', 'linew', 2);
     hold off
     axis equal tight; box on;
     ax = gca;
     [ax.XTickLabel, ax.YTickLabel] = deal({});
     colormap(jet)
     savepng(['qfs-reorder-', num2str(tNo)]);
+    
+    figure('Position', pos);
+    order = st.order;
+    c = sum(order == order',2) > 1;
+    plotGrid(G, 'facec', 'none');
+    plotGrid(G, c);
+   
 end
-
-%% Plot well solutions
-
-close all
-figure('Position', pos);
-t = cumsum(schedule.step.val/day);
-wcut = cellfun(@(ws) cellfun(@(ws) ws(2).wcut, ws), ws, 'unif', false);
-
-hold on
-plot(t, wcut{1}, 'linew', 2, 'color', clr(1,:));
-plot(t, wcut{2}, '--', 'linew', 4, 'color', clr(2,:));
-box on
-axis([0, t(end), 0, 1])
-xlabel('Time (days)');
-ylabel('Water cut');
-ax = gca;
-ax.FontSize = fontSize;
-legend({'Adaptive', 'Reference'}, 'location', 'northwest');
-saveeps('qfs-adapt-wcut');
 
 %%

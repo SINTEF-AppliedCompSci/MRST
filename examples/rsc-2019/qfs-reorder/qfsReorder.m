@@ -7,8 +7,8 @@ mrstVerbose on
 %% Common stuff
 
 baseName = 'qfs-reorder';
-% location = 'home';
-location = 'work';
+location = 'home';
+% location = 'work';
 switch location
     case 'work'
         dataDir  = fullfile('/media/strene/806AB4786AB46C92/mrst-dg/rsc-2019', baseName);
@@ -30,17 +30,18 @@ G = computeCellDimensions2(G);
 
 %% Set up model
 
-gravity reset off
+gravity reset on
+gravity([0, -9.81]);
 
 rock = makeRock(G, 100*milli*darcy, 1);
 
 fluid = initSimpleADIFluid('phases', 'WO'                        , ...
-                           'rho'   , [1000, 100]*kilogram/meter^3, ...
+                           'rho'   , [100, 1000]*kilogram/meter^3, ...
                            'mu'    , [0.5, 0.5]*centi*poise      , ...
-                           'n'     , [1, 1]                      );
+                           'n'     , [2, 2]                      );
 
 % FI model
-modelFI = TwoPhaseOilWaterModel(G, rock, fluid);
+modelFI = TwoPhaseOilWaterModel(G, rock, fluid, 'gravity', g);
 % Seq model
 modelSI = getSequentialModelFromFI(modelFI);
 % Reordering model
@@ -60,10 +61,9 @@ disc = DGDiscretization(modelSI.transportModel, ...
                'outLimiter'           , 'kill'     , ...
                'meanTolerance'        , mt         );
 modelDG = getSequentialModelFromFI(modelFI);
-modelDG.transportModel = TransportOilWaterModelDG(G, rock, fluid, 'disc', disc);
+modelDG.transportModel = TransportOilWaterModelDG(G, rock, fluid, 'disc', disc, 'gravity', g);
 modelDG.transportModel = ReorderingModelDG(modelDG.transportModel);
 modelDG.transportModel.chunkSize = 50;
-modelDG.transportModel.saveMinisteps = true;
 
 %% Set up schedule
 
@@ -73,17 +73,17 @@ xw = [0,0; l,l];
 
 sW     = 0.0;
 
-WF = [];
+W = [];
 d = pdist2(G.cells.centroids, xw);
 
 [~, ix] = min(d(:,1));
-WF = addWell(WF, G, rock, ix, 'type', 'rate', 'val', rate    , 'comp_i', [1,0]);
+W = addWell(W, G, rock, ix, 'type', 'rate', 'val', rate    , 'comp_i', [1,0]);
 [~, ix] = min(d(:,2));
-WF = addWell(WF, G, rock, ix, 'type', 'bhp' , 'val', 50*barsa, 'comp_i', [1,0]);
+W = addWell(W, G, rock, ix, 'type', 'bhp' , 'val', 50*barsa, 'comp_i', [1,0]);
 
 dt    = 7*day;
-dtvec = rampupTimesteps2(time, dt, 0);
-schedule = simpleSchedule(dtvec, 'W', WF);
+dtvec = rampupTimesteps(time, dt, 0);
+schedule = simpleSchedule(dtvec, 'W', W);
 
 state0 = initResSol(G, 100*barsa, [sW,1-sW]);
 state0 = assignDofFromState(disc, state0);
@@ -101,6 +101,7 @@ problems = {reorder, seq};
 %%
 
 runIx = 1:numel(problems);
+% runIx = 2;
 for pNo = runIx
     [ok, status] = simulatePackedProblem(problems{pNo});
 end
