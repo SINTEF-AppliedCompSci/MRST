@@ -182,7 +182,9 @@ for dNo = 1:numel(degree)
             state0.transportState.pv = pv;
             state0.transportState.G = GC;
             state0.transportModel = tmodel;
-            mdls{mNo}.computeCoarsePressure = true;
+            if isa(mdls{mNo}.transportModel, 'ReorderingModel')
+                mdls{mNo}.computeCoarsePressure = true;
+            end
             mdls{mNo}.plotProgress = true;
         end
         mdls{dNo}.pressureModel.extraStateOutput = true;
@@ -192,7 +194,7 @@ end
 
 %%
 
-mdlIx = 1;
+mdlIx = 3;
 for dNo = 1:2%numel(degree)
     for mNo = mdlIx
         [ok, status] = simulatePackedProblem(problems{dNo,mNo});
@@ -201,7 +203,7 @@ end
 
 %%
 
-setup = problems{1,4}.SimulatorSetup;
+setup = problems{2,3}.SimulatorSetup;
 setup.model.plotProgress = true;
 [ws, st, rep] = simulateScheduleAD(setup.state0, setup.model, setup.schedule);
 
