@@ -155,7 +155,7 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
 
             if solver.applyLeftDiagonalScaling || solver.applyRightDiagonalScaling
                 [A, b, scaling] = applyScaling@LinearSolverAD(solver, A, b);
-            elseif solver.pressureScaling ~= 1
+            elseif numel(solver.pressureScaling) ~= 1 || solver.pressureScaling ~= 1
                 n = size(A, 1);
                 d = ones(n, 1);
                 d(~isfinite(d)) = 1;
@@ -283,7 +283,7 @@ function [w, ndof] = getScalingInternalCPR(solver, A, b)
 
         pd = zeros(ndof, 1);
         pd(ii(isdiag)) = vv(isdiag);
-        cellno = ceil((1:ndof)'/3);
+        cellno = ceil((1:ndof)'/bz);
         % Check diagonal dominance
         if isfinite(solver.diagonalTol)
             e_dd = solver.diagonalTol;
