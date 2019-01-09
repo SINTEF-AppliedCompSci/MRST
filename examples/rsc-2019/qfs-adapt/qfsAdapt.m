@@ -1,0 +1,133 @@
+mrstModule add dg vem vemmech ad-props ad-core ad-blackoil ...
+    blackoil-sequential gasinjection reorder matlab_bgl upr coarsegrid ...
+    mrst-gui mrst-utils weno
+
+mrstVerbose on
+
+%% Common stuff
+
+dz = -3;
+pw = @(G,W) plot3(G.cells.centroids([W.cells], 1), ...
+                  G.cells.centroids([W.cells], 2), ...
+                  G.cells.centroids([W.cells], 3) + dz, ...
+                 'ok', 'markerSize', 8, 'markerFaceColor', 'w', 'lineWidth', 2);
+
+baseName = 'qfs-adapt';
+% location = 'home';
+location = 'work';
+switch location
+    case 'work'
+        dataDir  = fullfile('/media/strene/806AB4786AB46C92/mrst-dg/rsc-2019', baseName);
+    case 'home'
+        dataDir  = fullfile('/home/oysteskl/Documents/phd/repositories/mrst-dg/simulation-output/rsc-2019', baseName);
+end
+
+%% make PEBI grid
+
+n  = 50;
+l = 1000;
+GF = pebiGrid(l/n, [l,l]);
+close all
+plotGrid(GF)
+axis equal tight
+
+%% Make coarse grid
+
+GF = computeGeometry(GF);
+GF = computeCellDimensions2(GF);
+
+% Cartesian coarse grid
+G_cart = cartGrid([100, 100]);
+p_cart = partitionUI(G_cart, [20, 20]);
+p_cart = sampleFromBox(GF, reshape(p_cart, G_cart.cartDims));
+GC = generateCoarseGrid(GF, p_cart);
+GC = coarsenGeometry(GC);
+GC = coarsenCellDimensions(GC);
+
+% Refine well cells
+mappings = getRefinementMappings(GC, GC, GF, [1, GC.cells.num]);
+G        = generateCoarseGrid(GF, mappings.newPartition);
+G        = coarsenGeometry(G);
+G.cells.refined = mappings.refined;
+G = coarsenCellDimensions(G);
+G.cells.ghost  = false(G.cells.num,1);
+GF.cells.ghost = false(GF.cells.num,1);
+
+%% Set up model
+
+gravity reset off
+
+rock  = makeRock(G, 100*milli*darcy, 1);
+rockF = makeRock(GF, 100*milli*darcy, 1);
+
+fluid = initSimpleADIFluid('phases', 'WO'                      , ...
+                           'rho'   , [1000, 1]*kilogram/meter^3, ...
+                           'mu'    , [0.5, 0.5]*centi*poise    , ...
+                           'n'     , [1, 1]                    );
+
+% FI model
+modelFI = TwoPhaseOilWaterModel(GF, rockF, fluid);
+% Seq model
+modelSI = getSequentialModelFromFI(modelFI);
+% ASI model
+modelASI = AdaptiveSequentialPressureTransportModel(modelSI.pressureModel, modelSI.transportModel, G);
+modelASI.transportModel.G = coarsenCellDimensions(modelASI.transportModel.G);
+
+%% Set up schedule
+
+time = 2*year;
+rate = 1.5*sum(poreVolume(GF, rockF))/time;
+xw = [0,0; l,l];
+
+sW     = 0.0;
+state0C = initResSol(G, 100*barsa, [sW,1-sW]);
+state0C.bfactor = [fluid.bW(state0C.pressure), fluid.bO(state0C.pressure)];
+
+WF = [];
+d = pdist2(GF.cells.centroids, xw);
+
+[~, ix] = min(d(:,1));
+WF = addWell(WF, GF, rockF, ix, 'type', 'rate', 'val', rate    , 'comp_i', [1,0]);
+[~, ix] = min(d(:,2));
+WF = addWell(WF, GF, rockF, ix, 'type', 'bhp' , 'val', 50*barsa, 'comp_i', [1,0]);
+
+schedule = simpleSchedule(dtvec, 'W', WF);
+
+state0 = initResSol(GF, 100*barsa, [sW,1-sW]);
+state0.bfactor = [fluid.bW(state0.pressure), fluid.bO(state0.pressure)];
+
+%%
+
+modelASI.storeGrids                     = true;
+modelASI.plotProgress                   = true;
+modelASI.pressureModel.extraStateOutput = true;
+
+state0.transportState        = state0C;
+% state0.transportState.degree = degree*ones(G.cells.num, 1);
+state0.transportState.G      = G;
+state0.transportState.pv     = modelASI.transportModel.operators.pv;
+% state0.transportState        = assignDofFromState(discDG, state0.transportState);
+% state0.transportState        = discDG.updateDofPos(state0.transportState);
+state0.transportModel        = modelASI.transportModel;
+
+%%
+
+adaptive = packSimulationProblem(state0, modelASI, schedule, baseName, ...
+                                                 'Directory', dataDir, ...
+                                                 'Name'     , 'adapt'  );
+seq = packSimulationProblem(state0, modelSI, schedule, baseName, ...
+                                                'Directory', dataDir, ...
+                                                'Name'     , 'seq'  );
+problems = {adaptive, seq};
+
+%%
+
+runIx = 1:numel(problems);
+for pNo = runIx
+    [ok, status] = simulatePackedProblem(problems{pNo});
+end
+
+%%
+                
+setup = problems{1}.SimulatorSetup;
+[ws, st, rep] = simulateScheduleAD(setup.state0, setup.model, setup.schedule);
