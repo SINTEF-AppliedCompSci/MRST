@@ -231,17 +231,13 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
 end
 
 function [w, ndof] = getScalingInternalCPR(solver, A, b)
+    bz = solver.amgcl_setup.block_size;
+    nc = solver.amgcl_setup.cell_size;
+    ndof = bz*nc;
+    p_inx = 1:bz:(ndof - bz + 1);
     switch lower(solver.decoupling)
         case 'quasiimpes'
             [ii, jj, vv] = find(A);
-
-            bz = solver.amgcl_setup.block_size;
-            nc = solver.amgcl_setup.cell_size;
-            ndof = bz*nc;
-
-            p_inx = 1:bz:(ndof - bz + 1);
-
-
             blockNoI = floor((ii-1)/bz)+1;
             blockNoJ = floor((jj-1)/bz)+1;
             keep = blockNoJ >= blockNoI & blockNoJ < (blockNoI+1)  & ii <= ndof & jj <= ndof;
@@ -272,6 +268,9 @@ function [w, ndof] = getScalingInternalCPR(solver, A, b)
     end
     
     if strcmpi(solver.strategy, 'mrst_drs')
+        if not(strcmpi(solver.decoupling, 'quasiimpes'))
+            [ii, jj, vv] = find(A);
+        end
         % Dynamic row sum strategy by Gries et al, SPE-163608-PA.
         isp = false(numel(ii), 1);
         isp(p_inx) = true;
