@@ -61,35 +61,41 @@ classdef ADI
       %--------------------------------------------------------------------
       function h = double(u)
           % Cast to double and thereby remove derivatives:
-          h = u.val;
+          warning('Double on ADI may be deprecated. Use ''value'' instead.');
+          h = value(u);
       end
 
+      %--------------------------------------------------------------------
+      function h = value(u)
+          % Cast to double and thereby remove derivatives:
+          h = u.val;
+      end
       %--------------------------------------------------------------------
 
       function h = ge(u, v)
           % Greater than or equal: `u>=v`
-          h = ge(double(u), double(v));
+          h = ge(value(u), value(v));
       end
 
       %--------------------------------------------------------------------
 
       function h = gt(u, v)
           % Greater than: `u>v`
-          h = gt(double(u), double(v));
+          h = gt(value(u), value(v));
       end
 
       %--------------------------------------------------------------------
 
       function h = le(u, v)
           % Less than or equal: `u<=v`
-          h = le(double(u), double(v));
+          h = le(value(u), value(v));
       end
 
       %--------------------------------------------------------------------
 
       function h = lt(u, v)
           % Less than: `u < v`
-          h = lt(double(u), double(v));
+          h = lt(value(u), value(v));
       end
       %--------------------------------------------------------------------
 
@@ -564,7 +570,7 @@ classdef ADI
       
       function u = subsetPlus(u, v, subs)
           if isa(u, 'ADI')
-              u.val(subs) = u.val(subs) + double(v);
+              u.val(subs) = u.val(subs) + value(v);
               if isa(v, 'ADI')
                   % Both are ADI. We need to update Jacobians
                   for i = 1:numel(u.jac)
