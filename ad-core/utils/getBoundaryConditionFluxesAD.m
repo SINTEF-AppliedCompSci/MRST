@@ -178,7 +178,7 @@ if any(isRF)
     mobC = cell(1, nph);
     for i = 1:nph
         G{i} = dzbc.*rhoAvgF{i};
-        mobC{i} = vertcat(mobF{1, i}, mobF{2, i});
+        mobC{i} = vertcat(mobF{i, 1}, mobF{i, 2});
     end
     vT = sum(bc.value, 2);
     
