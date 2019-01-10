@@ -8,7 +8,7 @@
 %   convertHorizonsToGrid - Build corner-point grid based on a series of horizons
 %   createAugmentedGrid   - Extend grid with mappings needed for the virtual element solver
 %   createGridMappings    - Add preliminary mappings to be used in `createAugmentedGrid`
-%   findEnclosingCell     - Find cells with closest centroid (in Euclidian norm) in a 2D grid.
+%   findEnclosingCell     - Find cell(s) containing points. The cells must be convex.
 %   getCellNoFaces        - Get a list over all half faces, accounting for possible NNC
 %   getConnectivityMatrix - Derive global, undirected connectivity matrix from neighbourship relation.
 %   getNeighbourship      - Retrieve neighbourship relation ("graph") from grid
@@ -32,7 +32,7 @@
 %   volumeByGaussGreens   - Compute cell volume by means of Gauss-Greens' formula
 
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

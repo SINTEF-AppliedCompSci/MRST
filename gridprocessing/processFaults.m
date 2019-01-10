@@ -67,26 +67,25 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
    [faultspec, multflt] = fault_keywords(geomspec);
 
-   if isempty(faultspec),
+   if isempty(faultspec)
       [flt, flt_id] = deal([]);
    else
-      if size(G.cells.faces, 2) < 2,
+      if size(G.cells.faces, 2) < 2
          error(['Function ''%s'' is only supported in corner-point ', ...
                 'grids which identify cardinal directions.'], mfilename);
       end
 
       [flt, flt_id] = build_faults(G, faultspec);
 
-      if ~isempty(multflt),
+      if ~isempty(multflt)
          i             = cellfun(flt_id, multflt(:, 1));
          [flt(i).mult] = multflt{:, 2};
       end
 
-      i = isfinite([ flt.mult ]) | ([ flt.numf ] > 0);
-      if any(~i),
+      i = isfinite([ flt.mult ]) & ([ flt.numf ] > 0);
+      if any(~i)
          % Remove any faults which have not been assigned multipliers or
          % which do not contain any faces.
          %
@@ -105,7 +104,7 @@ function [spec, mult] = fault_keywords(geom)
    fields = fieldnames(geom);
 
    i = exists('^faults$', fields);
-   if any(i),
+   if any(i)
       assert (sum(double(i)) == 1);
       spec = geom.(fields{i});
    else
@@ -113,7 +112,7 @@ function [spec, mult] = fault_keywords(geom)
    end
 
    j = exists('^multflt$', fields);
-   if any(j),
+   if any(j)
       assert (sum(double(j)) == 1);
       mult = geom.(fields{j});
    else
@@ -137,7 +136,7 @@ function [flt, flt_id] = build_faults(G, faultspec)
 
    on_fault = false([G.faces.num, 1]);
 
-   for i = 1 : numel(uflt),
+   for i = 1 : numel(uflt)
       % Fault spec rows defining this individual fault.
       %
       r = rows(p(i) : p(i+1) - 1);
@@ -169,7 +168,7 @@ function [u, id, p, rows] = enumerate_faults(spec)
    try
       % Java's O(1) hash table string search support.
       ht = java.util.Hashtable;
-      for n = 1 : numel(u),
+      for n = 1 : numel(u)
          ht.put(u{n}, n);
       end
       id = @(s) ht.get(s);
@@ -177,7 +176,7 @@ function [u, id, p, rows] = enumerate_faults(spec)
       % Fall back to (probably) linear structure field name search if Java
       % is unavailable.
       ht = struct();
-      for n = 1 : numel(u),
+      for n = 1 : numel(u)
          ht.(regexprep(u{n}, '\W', '_')) = n;
       end
       id = @(s) ht.(regexprep(s, '\W', '_'));
@@ -201,6 +200,7 @@ end
 
 function c = fault_cells(G, i1, i2, j1, j2, k1, k2)
    [i{1:3}] = ndgrid(i1 : i2, j1 : j2, k1 : k2);
+
    c = sub2ind(reshape(G.cartDims,  1, []), ...
                reshape(i{1}      , [],  1), ...
                reshape(i{2}      , [],  1), ...
@@ -212,7 +212,7 @@ end
 function f = stack_faces(G, c, cftag)
    c = c(c > 0);
 
-   if isempty(c),
+   if isempty(c)
       f = [];
    else
       ix = mcolon(G.cells.facePos(c), G.cells.facePos(c + 1) - 1) .';
