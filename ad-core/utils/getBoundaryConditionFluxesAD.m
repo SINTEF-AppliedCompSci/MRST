@@ -174,10 +174,17 @@ end
 if any(isRF)
     mrstModule add blackoil-sequential
     G = cell(1, nph);
+    
+    mobC = cell(1, nph);
     for i = 1:nph
-%         G{i} = dzbc
+        G{i} = dzbc.*rhoAvgF{i};
+        mobC{i} = vertcat(mobF{1, i}, mobF{2, i});
     end
-%     [q_phase, q_components] = computeSequentialFluxes([], G, vT, T, mob, rho, components, upstr, 'potential');
+    vT = sum(bc.value, 2);
+    
+    nf = numel(vT);
+    upstr = @(flag, v) flag.*v(1:nf, :) + ~flag.*v(nf+1:end, :);
+    q_ph = computeSequentialFluxes([], G, vT, T, mobC, {}, {}, upstr, 'potential');
 end
 
 for i = 1:nph
@@ -259,16 +266,15 @@ for i = 1:nph
     if any(isRF)
         % Injection
         if any(subs)
-            tmp = bc_v(subs).*sat(subs, i);
+            tmp = q_ph{i}(subs);
             q_s(subs) = tmp.*bF{i, 1}(subs);
             q_r(subs) = tmp;
         end
         subs = isRF & ~injNeu;
         % Production
         if any(subs)
-            f = mobF{i, 2}(subs)./totMob(subs);
-            tmp = f.*bc_v(subs);
-            q_s(subs) = tmp.*bBC_inside(subs);
+            tmp = q_ph{i}(subs);
+            q_s(subs) = tmp.*bF{i, 2}(subs);
             q_r(subs) = tmp;
         end
     end
