@@ -18,13 +18,14 @@ for k = 1:numel(ix)
     if isempty(precomp)
         dispif(vb, '\b\b\b\b\b%3.0d %%', round(100*k/numel(ix)));
         st = data.states{ix(k)};
+        W = data.wells{ix(k)};
         mrstVerbose('off');
-        D = computeTOFandTracer(st, G, rock, 'wells', st.wellSol, 'maxTOF', maxTOF, 'computeWellTOFs', true, ...
+        D = computeTOFandTracer(st, G, rock, 'wells', W, 'maxTOF', maxTOF, 'computeWellTOFs', true, ...
                                 'processCycles', true, 'firstArrival', true);
         mrstVerbose(vb);
         % set tof to years
         data.diagnostics(ix(k)).D  = D;
-        data.diagnostics(ix(k)).WP = computeWellPairs(st, G, rock, st.wellSol, D );
+        data.diagnostics(ix(k)).WP = computeWellPairs(st, G, rock, W, D );
     else
         data.diagnostics(k) = precomp{k}.diagnostics;
     end

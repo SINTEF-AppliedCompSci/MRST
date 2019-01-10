@@ -16,6 +16,8 @@ if exist(opt.outputdir,'dir')~=7
     end
 end
 
+prefx = problem.BaseName;
+
 
 %[fluid, pvtdeck] = initFluidFromOutput(init);
 
@@ -26,10 +28,15 @@ schedule = problem.SimulatorSetup.schedule;
 % states/wellSols are accessed through handles
 [ws, states, report] = getPackedSimulatorOutput(problem);
 t = cumsum(schedule.step.val);
+for i = 1:numel(schedule.step.val)
+    wells{i} = schedule.control(schedule.step.control(i)).W;
+end
+
 
 startday = 0;
-time.prev = [startday; startday + schedule.step.val(1:end-1)];
-time.cur  = startday + schedule.step.val(1:end-1);
+time.prev = [startday; startday; startday + schedule.step.val(1:end-1)];
+time.cur  = startday + schedule.step.val(:);
+
 
 if opt.multiple
     t0 = tic;
@@ -38,7 +45,7 @@ if opt.multiple
     for k = 1:numel(states)
         fprintf('\b\b\b\b%3.1d%%', round(100*k/numel(states)));
         tmptime = struct('cur', time.cur(k), 'prev', time.prev(k));
-        cur = struct('states', {states(k)}, 'diagnostics', [], 'time', tmptime);
+        cur = struct('states', {states(k)}, 'wells', {wells(k)}, 'diagnostics', [], 'time', tmptime);
         % switch off verbose here
         vb = mrstVerbose;
         mrstVerbose('off');
