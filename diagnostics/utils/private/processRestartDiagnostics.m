@@ -36,6 +36,9 @@ time.cur  = startday + info.time( steps ) - info.time(1);
 states = convertRestartToStates(casenm, Gs, 'restartInfo', info, 'splitWellsOnSignChange', true);
 %states = addFormationVolumeFactors(states, fluid, pvtdeck.RUNSPEC);
 %states = addConnectionPhaseFluxes(states, fluid, pvtdeck.RUNSPEC);
+for i = 1:numel(states)
+    wells{i} = states{i}.wellSol;
+end
 
 if opt.multiple
     t0 = tic;
@@ -44,7 +47,7 @@ if opt.multiple
     for k = 1:numel(states)
         fprintf('\b\b\b\b%3.1d%%', round(100*k/numel(states)));
         tmptime = struct('cur', time.cur(k), 'prev', time.prev(k));
-        cur = struct('states', {states(k)}, 'diagnostics', [], 'time', tmptime);
+        cur = struct('states', {states(k)}, 'wells', {wells(k)}, 'diagnostics', [], 'time', tmptime);
         % switch off verbose here
         vb = mrstVerbose;
         mrstVerbose('off');
