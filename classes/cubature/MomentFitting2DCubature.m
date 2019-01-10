@@ -10,13 +10,14 @@ classdef MomentFitting2DCubature < Cubature
     methods
         
         %-----------------------------------------------------------------%
-        function cubature = MomentFitting2DCubature(G, prescision, internalConn)
+        function cubature = MomentFitting2DCubature(G, prescision, internalConn, varargin)
             % Set up cubatureature
             
             % Basic properties handled by parent class
             cubature = cubature@Cubature(G, prescision, internalConn);
-            cubature.reduce = false;
+            cubature.reduce = true;
             cubature.dim       = 2;
+            cubature = merge_options(cubature, varargin{:});
             % Make cubature points and weights
             [x, w, n] = cubature.makeCubature();
             % Assing properties
@@ -136,7 +137,7 @@ classdef MomentFitting2DCubature < Cubature
                 else
                     equal = G.cells.equal;
                 end
-                [x,w,n] = fitMoments2(x,basis, M, 'equal', equal);
+                [x,w,n] = fitMoments2(x,basis, M, 'equal', equal, 'reduce', cubature.reduce);
                 if numel(w) == 1
                     w = repmat(w{:}, num, 1);
                     x = repmat(x{:}, num, 1);

@@ -1,6 +1,6 @@
 function [points,weights,nPts] = fitMoments2(x, basis, moments, varargin)
 
-    opt = struct('equal', false);
+    opt = struct('equal', false, 'reduce', true);
     opt = merge_options(opt, varargin{:});
 
     psi  = basis.psi;
@@ -40,12 +40,16 @@ function [points,weights,nPts] = fitMoments2(x, basis, moments, varargin)
         k = n0;
         w = zeros(n,1);
         
-        while k > nDof && reduced 
+        while k > 0 && reduced 
         
          % Matrix of basis functions evalauted at current quadrature points
             P = reshape(cell2mat(cellfun(@(p) p(x), psi, 'unif', false)), n, nDof)';
             s = sum(P.^2,1);
-            [~, ix] = sort(s);
+            if opt.reduce
+                [~, ix] = sort(s);
+            else
+                ix = [];
+            end
             reduced = false;
             xPrev = x;
             wPrev = w;
@@ -76,6 +80,10 @@ function [points,weights,nPts] = fitMoments2(x, basis, moments, varargin)
                     w = wPrev;
                     n = nPrev;
                 end    
+            end
+            
+            if ~opt.reduce
+                break
             end
             
         end
