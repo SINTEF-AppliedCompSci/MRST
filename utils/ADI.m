@@ -276,8 +276,10 @@ classdef ADI
           else
               switch s(1).type
                   case '()'
-                      assert(numel(s(1).subs) == 1, ...
-                          'Expected single index, got %d', numel(s(1).subs))
+                      if numel(s(1).subs) > 1
+                          assert(ischar(s(1).subs{2}) && strcmp(s(1).subs{2}, ':'),...
+                              'Multiple indices is not supported')
+                      end
                       subs  = s(1).subs{1};
                       if ischar(s) && strcmp(subs, ':'),
                           h = u;
