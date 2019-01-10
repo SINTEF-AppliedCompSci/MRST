@@ -27,7 +27,7 @@ function G = coarsenCellDimensions(G, varargin)
         x = [G.faces.centroids - G.faces.areas/2.*v;
              G.faces.centroids + G.faces.areas/2.*v];
         ix = [1:G.faces.num; (1:G.faces.num) + G.faces.num];
-        x = x(ix(:),:);
+%         x = x(ix(:),:);
     else
         if ~any(strcmpi(G.type, 'generateHybridCoarseGrid'))
             nodes = G.parent.faces.nodes(mcolon(G.parent.faces.nodePos(G.faces.fconn),...
