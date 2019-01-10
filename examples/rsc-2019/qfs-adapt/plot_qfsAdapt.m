@@ -9,11 +9,6 @@ pw = @(G,W) plot(G.cells.centroids([W.cells], 1)     , ...
                  G.cells.centroids([W.cells], 2)     , ...
                  'ok', 'markerSize', 8, 'markerFaceColor', 'w', 'lineWidth', 2);
 
-% pwn = @(G,W) text(G.cells.centroids([W(1).cells], 1) + 10     , ...
-%                   G.cells.centroids([W(1).cells], 2) + 10    , ...
-%                   G.cells.centroids([W(1).cells], 3) + -3, 'Inj', 'fontSize', 14);
-
-
 % Figures 
 pos  = [-1000, 0, 500, 500];
 posv = [-1000, 0, 500, 500];
@@ -31,7 +26,7 @@ hpos = [0.1300 0.1146 0.7750 0.0727];
 cpos = [0.1300 0.07 0.7750 0.03];
 
 % colors
-gr = [1,1,1]*0.8;
+gray = [1,1,1]*0.5;
 clr = lines(2);
 
 %% Plot saturation on refined grids
@@ -45,8 +40,9 @@ refFactor = [];
 for tNo = timeSteps
     figure('Position', pos);
     hold on
-    plotCellData(GF, states{1}{tNo}.s(:,2), 'edgec', 'none');
-    plotGrid(states{1}{tNo}.G, 'facec', 'none', 'edgec', 'k');
+    unstructuredContour(GF, states{1}{tNo}.s(:,1), 5, 'linew', 2);
+%     plotCellData(GF, states{1}{tNo}.s(:,2), 'edgec', 'none');
+    plotGrid(states{1}{tNo}.G, 'facec', 'none', 'edgec', gray);
     caxis([0,1]);
     pw(GF, WF)
     hold off

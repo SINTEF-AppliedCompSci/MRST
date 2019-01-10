@@ -7,8 +7,8 @@ mrstVerbose on
 %% Common stuff
 
 baseName = 'qfs-reorder';
-location = 'home';
-% location = 'work';
+% location = 'home';
+location = 'work';
 switch location
     case 'work'
         dataDir  = fullfile('/media/strene/806AB4786AB46C92/mrst-dg/rsc-2019', baseName);
@@ -16,9 +16,15 @@ switch location
         dataDir  = fullfile('/home/oysteskl/Documents/phd/repositories/mrst-dg/simulation-output/rsc-2019', baseName);
 end
 
+pack = @(state0, model, schedule, name) ...
+    packSimulationProblem(state0, model, schedule, baseName, ...
+                                       'Name'     , name   , ...
+                                       'Directory', dataDir);
+                                            
+
 %% make PEBI grid
 
-n  = 50;
+n  = 10;
 l = 1000;
 G = pebiGrid(l/n, [l,l]);
 close all
@@ -28,44 +34,14 @@ G = computeGeometry(G);
 G = computeVEMGeometry(G);
 G = computeCellDimensions2(G);
 
-%% Set up model
-
-gravity reset on
-gravity([0, -9.81]);
+%% make rock/fluid, set up schedule
 
 rock = makeRock(G, 100*milli*darcy, 1);
 
 fluid = initSimpleADIFluid('phases', 'WO'                        , ...
-                           'rho'   , [500, 1000]*kilogram/meter^3, ...
+                           'rho'   , [1, 1000]*kilogram/meter^3, ...
                            'mu'    , [0.5, 0.5]*centi*poise      , ...
                            'n'     , [2, 2]                      );
-
-% FI model
-modelFI = TwoPhaseOilWaterModel(G, rock, fluid, 'gravity', g);
-% Seq model
-modelSI = getSequentialModelFromFI(modelFI);
-% Reordering model
-modelReorder = getSequentialModelFromFI(modelFI);
-modelReorder.transportModel = ReorderingModel(modelReorder.transportModel);
-modelReorder.transportModel.chunkSize = 5;
-modelReorder.transportModel.buffer = 0;
-
-% Set up discretization
-[mt, ot, jt] = deal(0);
-disc = DGDiscretization(modelSI.transportModel, ...
-               'degree'               , 0          , ...
-               'basis'                , 'legendre' , ...
-               'useUnstructCubature'  , true       , ...
-               'jumpTolerance'        , jt         , ...
-               'outTolerance'         , ot         , ...
-               'outLimiter'           , 'kill'     , ...
-               'meanTolerance'        , mt         );
-modelDG = getSequentialModelFromFI(modelFI);
-modelDG.transportModel = TransportOilWaterModelDG(G, rock, fluid, 'disc', disc, 'gravity', g);
-modelDG.transportModel = ReorderingModelDG(modelDG.transportModel);
-modelDG.transportModel.chunkSize = 50;
-
-%% Set up schedule
 
 time = 2*year;
 rate = 1.5*sum(poreVolume(G, rock))/time;
@@ -86,17 +62,64 @@ dtvec = rampupTimesteps(time, dt, 0);
 schedule = simpleSchedule(dtvec, 'W', W);
 
 state0 = initResSol(G, 100*barsa, [sW,1-sW]);
+
+%% Set up models
+
+chunk = 1;
+
+gravity reset off
+
+% FI model
+modelFI = TwoPhaseOilWaterModel(G, rock, fluid);
+% Seq model
+modelSI = getSequentialModelFromFI(modelFI);
+% Set up discretization
+[mt, ot, jt] = deal(0);
+disc = DGDiscretization(modelSI.transportModel, ...
+               'degree'               , 0          , ...
+               'basis'                , 'legendre' , ...
+               'useUnstructCubature'  , true       , ...
+               'jumpTolerance'        , jt         , ...
+               'outTolerance'         , ot         , ...
+               'outLimiter'           , 'kill'     , ...
+               'meanTolerance'        , mt         );
 state0 = assignDofFromState(disc, state0);
+modelDG = getSequentialModelFromFI(modelFI);
+modelDG.transportModel = TransportOilWaterModelDG(G, rock, fluid, 'disc', disc);
+% Reordering model
+modelDG.transportModel = ReorderingModelDG(modelDG.transportModel);
+modelDG.transportModel.chunkSize = chunk;
+modelDG.transportModel.plotProgress = false;
+modelDG.transportModel.nonlinearTolerance = 1e-3;
 
-%%
+reorder = pack(state0, modelDG, schedule, 'reorder');
 
-reorder = packSimulationProblem(state0, modelDG, schedule, baseName, ...
-                                                 'Directory', dataDir, ...
-                                                 'Name'     , 'reorder'  );
-seq = packSimulationProblem(state0, modelSI, schedule, baseName, ...
-                                                'Directory', dataDir, ...
-                                                'Name'     , 'seq'  );
-problems = {reorder, seq};
+gravity reset on
+gravity([0, -100]);
+
+% FI model
+modelFI = TwoPhaseOilWaterModel(G, rock, fluid);
+% Seq model
+modelSI = getSequentialModelFromFI(modelFI);
+% Set up discretization
+[mt, ot, jt] = deal(0);
+disc = DGDiscretization(modelSI.transportModel, ...
+               'degree'               , 0          , ...
+               'basis'                , 'legendre' , ...
+               'useUnstructCubature'  , true       , ...
+               'jumpTolerance'        , jt         , ...
+               'outTolerance'         , ot         , ...
+               'outLimiter'           , 'kill'     , ...
+               'meanTolerance'        , mt         );
+modelDG = getSequentialModelFromFI(modelFI);
+modelDG.transportModel = TransportOilWaterModelDG(G, rock, fluid, 'disc', disc);
+% Reordering model
+modelDG.transportModel = ReorderingModelDG(modelDG.transportModel);
+modelDG.transportModel.chunkSize = chunk;
+
+reorderGravity = pack(state0, modelDG, schedule, 'gravity');
+
+problems = {reorder, reorderGravity};
 
 %%
 
@@ -107,6 +130,10 @@ for pNo = runIx
 end
 
 %%
-                
-setup = problems{1}.SimulatorSetup;
-[ws, st, rep] = simulateScheduleAD(setup.state0, setup.model, setup.schedule);
+
+setup = problems{2}.SimulatorSetup;
+[ws, stFI, rep] = simulateScheduleAD(setup.state0, setup.model, setup.schedule);
+
+%%
+
+[ws, stFI, rep] = simulateScheduleAD(state0, modelSI, schedule);

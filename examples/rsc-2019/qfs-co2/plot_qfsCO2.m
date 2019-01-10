@@ -1,11 +1,20 @@
 %% Load results
 
-[ws, states, reports] = getMultiplePackedSimulatorOutputs(problems);
+[ws, states, reports] = getMultiplePackedSimulatorOutputs(problems, 'readFromDisk', false);
 
 %% Get iterations
 
-rIx = strcmpi(name, 'reorder');
-iterations = getReorderingTransportIterations(reports{3});
+rIx = 3;
+iterations = cell(3,1);
+for mNo = 3
+    n   = reports{mNo}.numelData;
+    rep = cell(n,1);
+    for sNo = 1:n
+        rep{sNo} = reports{mNo}{sNo};
+    end
+    iterations{mNo} = getReorderingTransportIterations(rep);
+    reports{mNo} = rep;
+end
 
 %%
 
@@ -36,21 +45,27 @@ cpos = [0.1300 0.07 0.7750 0.03];
 
 %% Plot compositions and 
 
+realTime = cumsum(schedule.step.val)/day;
+
 close all
 
 name = cellfun(@(p) p.Name, problems, 'unif', false);
 st  = states{rIx};
-timeSteps = [5, 10, 25];
+timeSteps = [10, 40, 60, 80, 108];
+
+its = iterations{3};
+itMax = max(cellfun(@max, its));
+
 
 for tNo = timeSteps
     
-    it = iterations{tNo};
+    it = its{tNo};
     c  = it > 0;
     
     figure('position', pos)
-    plotCellData(model.G, st{tNo}.x(c,2), c);
-    colormap(bone);
-    caxis([0,1]);
+%     unstructuredContour(model.G, st{tNo}.x(:,1), 20, 'linew', 2);
+    plotCellData(model.G, st{tNo}.x(:,1), 'edgec', 'none');
+    colormap(copper);
     axis equal tight
     hold on
     pw(G, W)
@@ -60,17 +75,20 @@ for tNo = timeSteps
     savepng(['qfs-co2-x-', num2str(tNo)]);
     
     figure('position', pos)
-    plotCellData(model.G, it(c), c);
+    plotCellData(model.G, it(c), c, 'edgec', 'none');
     colormap(jet);
     axis equal tight
     hold on
     pw(G, W)
+    caxis([1,itMax]);
     ax = gca;
     [ax.XTickLabel, ax.YTickLabel] = deal({});
     box on
     savepng(['qfs-co2-its-', num2str(tNo)]);
     
 end
+
+disp(realTime(timeSteps));
 
 %%
 

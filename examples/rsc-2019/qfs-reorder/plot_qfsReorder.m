@@ -14,7 +14,7 @@ pos  = [-1000, 0, 500, 500];
 posv = [-1000, 0, 500, 500];
 fontSize = 12;
 pth = fullfile(mrstPath('dg'), 'examples', 'rsc-2019', 'qfs-reorder', 'fig');
-if 0
+if 1
     savepng = @(name) print(fullfile(pth, name), '-dpng', '-r300');
     saveeps = @(name) print(fullfile(pth, name), '-depsc');
 else
@@ -31,32 +31,33 @@ clr = lines(2);
 
 %% Plot saturation on refined grids
 
+names = {'reorder', 'gravity'};
+
 close all
 frac = 0.8;
 cmap = winter*frac + (1-frac);
-timeSteps = [5, 15, 30, 40];
+timeSteps = [5, 15, 30, 50, 85];
 refFactor = [];
-for tNo = timeSteps
-    figure('Position', pos);
-    hold on
-    st = states{1}{tNo}; 
-    plotCellData(G, states{1}{tNo}.order, 'edgec', 'none');
-    pw(G, W)
-    s = states{1}{tNo}.s(:,1);
-    unstructuredContour(G, s, 'color', 'w', 'linew', 2);
-    hold off
-    axis equal tight; box on;
-    ax = gca;
-    [ax.XTickLabel, ax.YTickLabel] = deal({});
-    colormap(jet)
-    savepng(['qfs-reorder-', num2str(tNo)]);
-    
-%     figure('Position', pos);
-    order = st.order;
-    c = sum(order == order',2) > 1;
-%     plotGrid(G, 'facec', 'none');
-    plotGrid(G, c, 'facec', 'white');
-   
+for mNo = 1:2
+    for tNo = timeSteps
+        figure('Position', pos);
+        hold on
+        st = states{mNo}{tNo}; 
+        plotCellData(G, states{mNo}{tNo}.order);
+        pw(G, W)
+        s = states{mNo}{tNo}.s(:,1);
+        unstructuredContour(G, s, 7, 'color', 'w', 'linew', 2);
+        order = st.order;
+        c = sum(order == order',2) > 1;
+        plotGrid(G, c, 'facec', 'white');
+        hold off
+        axis equal tight; box on;
+        ax = gca;
+        [ax.XTickLabel, ax.YTickLabel] = deal({});
+        colormap(jet)
+        savepng(['qfs-', names{mNo}, '-', num2str(tNo)]);
+
+    end
 end
 
 %%
