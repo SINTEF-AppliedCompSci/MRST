@@ -7,7 +7,9 @@ if nargin < 4 || isempty(ix)
 end
 
 %  reverse engineer rock-struct so pore-volume matches ECLIPSE
-G.cells.volumes = G.cells.PORV;
+if isfield(G.cells,'PORV')
+    G.cells.volumes = G.cells.PORV;
+end
 rock = struct('poro', ones(G.cells.num, 1));
 
 vb = mrstVerbose && isempty(precomp);
