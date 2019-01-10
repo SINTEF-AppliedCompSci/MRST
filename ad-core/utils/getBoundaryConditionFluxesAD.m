@@ -262,7 +262,8 @@ for i = 1:nph
         end
     end
     % ------ Fluxes given at reservoir conditions ----- %
-    subs = isRF &  injNeu;
+    injNeuR = q_ph{i} > 0;
+    subs = isRF &  injNeuR;
     if any(isRF)
         % Injection
         if any(subs)
@@ -270,7 +271,7 @@ for i = 1:nph
             q_s(subs) = tmp.*bF{i, 1}(subs);
             q_r(subs) = tmp;
         end
-        subs = isRF & ~injNeu;
+        subs = isRF & ~injNeuR;
         % Production
         if any(subs)
             tmp = q_ph{i}(subs);
