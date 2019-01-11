@@ -24,7 +24,7 @@ classdef PreDiagnosticsSelector < UIItem
                          'Title', 'Select time-steps for diagnostics', ...
                          'restartInfo', []);
             [opt, extraOpt] = merge_options(opt, varargin{:});
-                        
+
             % get times in days:
             assert(~isempty(opt.restartInfo), 'Need restart info to select time steps ...')
             info = opt.restartInfo;

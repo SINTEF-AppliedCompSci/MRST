@@ -1,4 +1,7 @@
 function precomp = getPrecomputedDiagnostics(casenm, steps, pdir)
+% Function accepts either casenm for ECLIPSE input or problem structure for
+% MRST input.
+
 % if not given, assume precompted diagnositics lies in caseDir/mrst_diagnostics
 [caseDir, prefix] = fileparts(casenm);
 if nargin < 3

@@ -1,7 +1,8 @@
 function [] = processStatesDiagnostics(problem, varargin)
 opt = struct('outputdir',         [], ...
              'multiple',        true, ...
-             'maxTOF',     500*year);
+             'maxTOF',     500*year, ...
+             'startdate',    [0 0 0]);
 
 datadir = problem.OutputHandlers.states.getDataPath;
 
@@ -32,10 +33,11 @@ for i = 1:numel(schedule.step.val)
     wells{i} = schedule.control(schedule.step.control(i)).W;
 end
 
+startdate = opt.startdate;
 
-startday = 0;
-time.prev = [startday; startday; startday + schedule.step.val(1:end-1)];
-time.cur  = startday + schedule.step.val(:);
+startday = datenum(startdate);
+time.prev = [startday; startday; startday + (schedule.step.val(1:end-1)./day)];
+time.cur  = startday + schedule.step.val(:)./day;
 
 
 if opt.multiple

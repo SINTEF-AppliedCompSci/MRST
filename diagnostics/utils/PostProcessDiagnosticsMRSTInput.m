@@ -4,7 +4,9 @@ opt = struct('style', 'default', ...
     'steps',        [], ...
     'maxTOF', 500*year, ...
     'cleanup',   false, ...
-    'precompute', true);
+    'precompute', true, ...
+    'startdate',    [0 0 0]);
+
 mrstModule add mrst-gui diagnostics deckformat ad-props coarsegrid
 mrstVerbose(true)
 
@@ -29,15 +31,14 @@ if opt.precompute
     end
 end
 
-
-
+info.date = opt.startdate;
+info.time = problem.SimulatorSetup.schedule.step.val(:)./day;
 
 % Select which time-steps to include
-rsspec = processEclipseRestartSpec(casenm, 'all');
 if ~isempty(opt.steps)
     steps = opt.steps;
 else
-    steps = uiPreSelectTimeSteps(rsspec);
+    steps = uiPreSelectTimeSteps(info);
 end
 
 % Setup data for selected steps and load/compute diagnostics
