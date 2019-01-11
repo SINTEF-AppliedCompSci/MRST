@@ -101,7 +101,7 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
                 end
             
                 tol = 1e-2;
-                cells = abs(residual) > tol;
+                cells = any(abs(residual) > tol, 2);
                 tol   = 0.25*tol;
                 cells(G.cells.refined & abs(residual) > tol) = true;
                 [model, transportState, transportState0, drivingForces] ...
