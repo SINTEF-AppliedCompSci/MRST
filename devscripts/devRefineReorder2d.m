@@ -134,6 +134,7 @@ schedule = simpleSchedule(dtvec, 'W', W);
 
 sW     = 0.0;
 state0 = initResSol(G, 100*barsa, [sW,1-sW]);
+state0.bfactor = [fluid.bW(state0.pressure), fluid.bO(state0.pressure)];
 
 WF = [];
 d = pdist2(GF.cells.centroids, xw);
@@ -158,7 +159,7 @@ state0F.transportState        = state0;
 state0F.transportState.degree = degree*ones(G.cells.num, 1);
 state0F.transportState.G      = G;
 state0F.transportState.pv     = modelASI.transportModel.operators.pv;
-state0F.transportState        = discDG.assignDofFromState(state0F.transportState);
+state0F.transportState        = assignDofFromState(discDG, state0F.transportState);
 state0F.transportState        = discDG.updateDofPos(state0F.transportState);
 state0F.transportModel        = modelASI.transportModel;
 

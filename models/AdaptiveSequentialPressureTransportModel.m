@@ -312,6 +312,13 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
 
             else
 
+                for fNo = 1:numel(flowVarNames)
+                    vn = flowVarNames{fNo};
+                    if isfield(state, vn)
+                        state.(vn) = S*(pvf.*state.(vn))./(pv);
+                    end
+                end
+
                 % Mapping from old to new coarse grid
                 S = S*sparse((1:GF.cells.num)', state.transportState.G.partition, 1);
 
@@ -374,7 +381,7 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
             
             if model.isDG
                 
-                if isCoarseGrid(model.transportModel.G) && 1
+                if isCoarseGrid(model.transportModel.G) && 0
                     cub = model.updateCubature(transportModel);
                 end
                 
