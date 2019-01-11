@@ -96,7 +96,7 @@ classdef MomentFitting2DCubature < Cubature
                 end
 
                 % We use known cubature to calculate the moments
-                if 0
+                if 1
                     if isfield(G, 'parent')
                         knownCub = CoarseGrid2DCubature(G, cubature.prescision, cubature.internalConn);
                     else

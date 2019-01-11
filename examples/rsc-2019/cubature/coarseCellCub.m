@@ -1,4 +1,4 @@
-mrstModule add upr dg vem vemmech
+mrstModule add upr dg vem vemmech matlab_bgl agglom coarsegrid incomp
 
 %% Common params
 
@@ -14,9 +14,10 @@ else
     saveeps = @(name) [];
 end
 
-cNo = 100;
+cNo = 7;
 gray = [1,1,1]*0.8;
 cw = @(w,wMax,wMin) 20/(wMax - wMin)*(w - wMin) + 15;
+clr = lines(2);
 
 %% make PEBI grid
 
@@ -36,16 +37,27 @@ G = computeVEMGeometry(G);
 G = computeCellDimensions2(G);
 [G.cells.equal, G.faces.equal] = deal(false);
 
+%% Make coarse grid
+
+rock = makeRock(G, 1,1);
+T = computeTrans(G, rock);
+p = partitionMETIS(G, T, 15);
+GC = generateCoarseGrid(G, p);
+GC = coarsenGeometry(GC);
+GC = coarsenCellDimensions(GC, 'useFullBB', true);
+[GC.cells.equal, GC.faces.equal] = deal(false);
+
 %%
 
-internalConn = ~any(G.faces.neighbors == 0,2);
-cubMom  = MomentFitting2DCubature(G, 3, internalConn);
-cubFull = MomentFitting2DCubature(G, 3, internalConn, 'reduce', false);
-cubTri  = TriangleCubature(G, 3, internalConn);
+internalConn = ~any(GC.faces.neighbors == 0,2);
+cubMom  = MomentFitting2DCubature(GC, 3, internalConn);
+cubFull = MomentFitting2DCubature(GC, 3, internalConn, 'reduce', false);
+cubCoarse = CoarseGrid2DCubature(GC, 3, internalConn);
+cubTri = TriangleCubature(G, 3, []);
 
 %%
 
-[~, x, w1] = cubTri.getCubature(cNo, 'volume');
+[~, x, w1] = cubCoarse.getCubature(cNo, 'volume');
 [~, x, w2] = cubMom.getCubature(cNo, 'volume');
 wMax = max([w1; w2]);
 wMin = min([w1; w2]);
@@ -56,49 +68,70 @@ cw = @(w) 50/(wMax - wMin)*(w - wMin) + 15;
 close all
 figure('Position', pos);
 hold on
-plotGrid(G, cNo, 'facec', gray);
+plotGrid(GC, cNo, 'facec', gray);
+c = GC.partition == cNo;
+plotGrid(G, c, 'linestyle', '--', 'facec', 'none');
 box on;
 axis equal tight
 ax = gca;
 [ax.XTick, ax.YTick] = deal([]);
-saveeps('pebi');
+
+hold on
+faces = GC.cells.faces(GC.cells.facePos(cNo):GC.cells.facePos(cNo+1)-1);
+for f = faces
+    xf = GC.nodes.coords(GC.faces.nodes(GC.faces.nodePos(f):GC.faces.nodePos(f+1)-1),:);
+    plot(xf(:,1), xf(:,2), '-', 'color', clr(1,:), 'linew', 2);
+end
+hold off
+saveeps('coarse-details');
+
+%%
+
+close all
+figure('Position', pos);
+hold on
+plotGrid(GC, cNo, 'facec', gray);
+box on;
+axis equal tight
+ax = gca;
+[ax.XTick, ax.YTick] = deal([]);
+saveeps('coarse');
 
 %%
 
 figure('Position', pos);
 hold on
-plotGrid(G, cNo, 'facec', gray);
-[~, x, w] = cubTri.getCubature(cNo, 'volume');
+plotGrid(GC, cNo, 'facec', gray);
+c = find(GC.partition == cNo);
+
+triNo = mcolon(cubTri.triangulation.triPos(c), cubTri.triangulation.triPos(c+1)-1);
+for t = triNo
+    ix = cubTri.triangulation.ConnectivityList(t,:);
+    xt = cubTri.triangulation.Points(ix,:);
+    xt = [xt; xt(1,:)];
+    plot(xt(:,1), xt(:,2), 'k--');
+end
+
+% plotGrid(G, c, 'facec', 'none', 'linestyle', 'k--');
+[~, x, w] = cubCoarse.getCubature(cNo, 'volume');
 wMax = max(w);
 wMin = min(w);
 for pNo = 1:numel(w)
     plot(x(pNo,1), x(pNo,2), '.', 'markerSize', cw(w(pNo)), 'color', 'k');
 end
 
-f = G.cells.faces(G.cells.facePos(cNo):G.cells.facePos(cNo+1)-1);
-n = G.faces.nodes(mcolon(G.faces.nodePos(f), G.faces.nodePos(f+1)-1));
-n = reshape(n,2,[])';
-sgn = 1 - 2*(G.faces.neighbors(f,1) ~= cNo);
-n(sgn<0,:) = n(sgn<0,[2,1]);
-n = n(:,1);
-xn = G.nodes.coords(n,:);
-xc = G.cells.centroids(cNo,:);
-for nNo = 1:numel(n)
-    xx = [xn(nNo,:); xc];
-    plot(xx(:,1), xx(:,2), '--k');
-end
 
 box on;
 axis equal tight
 ax = gca;
 [ax.XTick, ax.YTick] = deal([]);
-saveeps('pebi-tri');
+saveeps('coarse-tri');
 
 %%
 
 % close all
 figure('Position', pos);
-plotGrid(G, cNo, 'facec', gray);
+plotGrid(GC, cNo, 'facec', gray);
 hold on
 [~, x, w] = cubFull.getCubature(cNo, 'volume');
 
@@ -114,13 +147,13 @@ box on;
 axis equal tight
 ax = gca;
 [ax.XTick, ax.YTick] = deal([]);
-saveeps('pebi-init')
+saveeps('coarse-init')
 
 %%
 
 % close all
 figure('Position', pos);
-plotGrid(G, cNo, 'facec', gray);
+plotGrid(GC, cNo, 'facec', gray);
 hold on
 [~, x, w] = cubMom.getCubature(cNo, 'volume');
 
@@ -139,4 +172,7 @@ box on;
 axis equal tight
 ax = gca;
 [ax.XTick, ax.YTick] = deal([]);
-saveeps('pebi-reduced')
+saveeps('coarse-reduced')
+
+%%
+

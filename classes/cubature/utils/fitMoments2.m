@@ -26,14 +26,15 @@ function [points,weights,nPts] = fitMoments2(x, basis, moments, varargin)
 
     x0     = x;
     n0     = n;
-    parfor cNo = 1:nElements
+    reduce = opt.reduce;
+    for cNo = 1:nElements
         
         fprintf('Compressing quadrature for element %d of %d ... ', cNo, nElements);
         tic;
         
         M = cellfun(@(m)m(cNo), moments);
         vol = M(1);
-%         M = M./vol;
+        M = M./vol;
         reduced = true;
         x = x0;
         n = n0;
@@ -45,7 +46,7 @@ function [points,weights,nPts] = fitMoments2(x, basis, moments, varargin)
          % Matrix of basis functions evalauted at current quadrature points
             P = reshape(cell2mat(cellfun(@(p) p(x), psi, 'unif', false)), n, nDof)';
             s = sum(P.^2,1);
-            if opt.reduce
+            if reduce
                 [~, ix] = sort(s);
             else
                 ix = [];
@@ -90,7 +91,7 @@ function [points,weights,nPts] = fitMoments2(x, basis, moments, varargin)
         
         nPts(cNo)    = n;
         points{cNo}  = x;
-        weights{cNo} = w;%*vol;
+        weights{cNo} = w.*vol;
         
         time = toc;
         fprintf('Compressed from %d to %d points in %f second\n', n0, n, time);
