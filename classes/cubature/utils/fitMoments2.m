@@ -27,7 +27,7 @@ function [points,weights,nPts] = fitMoments2(x, basis, moments, varargin)
     x0     = x;
     n0     = n;
     reduce = opt.reduce;
-    for cNo = 1:nElements
+    parfor cNo = 1:nElements
         
         fprintf('Compressing quadrature for element %d of %d ... ', cNo, nElements);
         tic;
