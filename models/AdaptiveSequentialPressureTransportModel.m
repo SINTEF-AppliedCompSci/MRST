@@ -82,7 +82,8 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
 
                 problem = model.transportModel.getEquations(transportState0, transportState, ...
                                    dt, drivingForcesUpsc, 'resOnly', true);
-                residual = horzcat(problem.equations{:});
+                iscell = strcmpi(problem.types, 'cell');
+                residual = horzcat(problem.equations{iscell});
                 if model.isReordering
                     G = model.transportModel.parent.G;
                 else
@@ -255,7 +256,6 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
                 % Compute coarse masses and mole fractions
                 % 
                 eos = transportModel.EOSModel;
-                sT = sum(state.s, 2);
                 X = eos.getMassFraction(state.x);
                 Y = eos.getMassFraction(state.y);
                 assert(~model.water);
@@ -400,6 +400,7 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
             else
                 transportModel = model.transportModel;
             end
+            iscomp = isa(transportModel, 'ThreePhaseCompositionalModel');
             p     = transportModel.G.partition;
             
             state = pressureState;
@@ -414,42 +415,62 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
                 state.G = transportState.G;
             end
             
-%             isDG = isfield(transportState, 'sdof');
-            if model.isDG
-                disc = transportModel.disc;
-            end
-            
-            nPh =   model.pressureModel.water ...
-                  + model.pressureModel.oil   ...
-                  + model.pressureModel.gas;
-                  
-            for vNo = 1:numel(varNames)
-                vn  = varNames{vNo};
-                dvn = dofVarNames{vNo};
-                if isfield(transportState, vn)
-                    if model.isDG
-                        x = model.fineTransportModel.G.cells.centroids;
-%                         x = disc.transformCoords(x, p);
-                        for phNo = 1:nPh
-%                             state.(vn)(:,phNo) = disc.evaluateSaturation(x, p, transportState.(dvn)(:, phNo), transportState);
-                            state.(vn)(:,phNo) = disc.evaluateDGVariable(x, p, transportState, transportState.(dvn)(:, phNo));
-                        end
-                    else                        
-                        state.(vn) = transportState.(vn)(p,:);
-                    end
+            if iscomp
+                % Downscale compositions
+                eos = transportModel.EOSModel;
+                state.components = transportState.components(p, :);
+                state = transportModel.computeFlash(state, inf);
+                
+                
+                getDensity = @(x, Z) eos.PropertyModel.computeDensity(state.pressure, x, Z, state.T, nan);
+                rhoL = getDensity(state.x, state.Z_L);
+                rhoV = getDensity(state.y, state.Z_V);
+                pvf = model.pressureModel.operators.pv;
+                pvc = model.transportModel.operators.pv;
+                m = pvf.*(rhoL.*state.s(:, 1) + rhoV.*state.s(:, 2));
+                
+                % Integrated mass from the fine grid, on the coarse grid 
+                massF = accumarray(p, m);
+                % Coarse scale mass
+                massC = pvc.*sum(transportState.rho.*transportState.s, 2);
+                % These two should match, compensate by changing
+                % saturations
+                sT_c = massC./massF;
+                state.s = state.s.*sT_c(p);
+            else
+                if model.isDG
+                    disc = transportModel.disc;
                 end
-            end
-            
-            if model.isDG
-                dgVarNames = getDGVarNames();
-                for vNo = 1:numel(dgVarNames)
-                    vn  = dgVarNames{vNo};
+                nPh =   model.pressureModel.water ...
+                      + model.pressureModel.oil   ...
+                      + model.pressureModel.gas;
+                for vNo = 1:numel(varNames)
+                    vn  = varNames{vNo};
+                    dvn = dofVarNames{vNo};
                     if isfield(transportState, vn)
-                        state.(vn) = transportState.(vn)(p,:);
+                        if model.isDG
+                            x = model.fineTransportModel.G.cells.centroids;
+    %                         x = disc.transformCoords(x, p);
+                            for phNo = 1:nPh
+    %                             state.(vn)(:,phNo) = disc.evaluateSaturation(x, p, transportState.(dvn)(:, phNo), transportState);
+                                state.(vn)(:,phNo) = disc.evaluateDGVariable(x, p, transportState, transportState.(dvn)(:, phNo));
+                            end
+                        else                        
+                            state.(vn) = transportState.(vn)(p,:);
+                        end
+                    end
+                end
+
+                if model.isDG
+                    dgVarNames = getDGVarNames();
+                    for vNo = 1:numel(dgVarNames)
+                        vn  = dgVarNames{vNo};
+                        if isfield(transportState, vn)
+                            state.(vn) = transportState.(vn)(p,:);
+                        end
                     end
                 end
             end
- 
         end
         
         function cubature = updateCubature(model, transportModel)
