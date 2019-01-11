@@ -44,11 +44,12 @@ end
 % Setup data for selected steps and load/compute diagnostics
 d.maxTOF = opt.maxTOF;
 if opt.precompute
-    precomp = getPrecomputedDiagnostics(casenm, steps);
+    precomp = getPrecomputedDiagnostics(problem, steps);
 else
     precomp = [];
 end
-[d.G, d.Data, d.Gs, valid_ix] = readAndPrepareForPostProcessor(casenm, steps, rsspec, precomp);
+[d.G, d.Data, d.Gs, valid_ix] = readAndPrepareForPostProcessorMRST(problem, steps, info, precomp);
+
 if ~any(valid_ix)
     return;
 end

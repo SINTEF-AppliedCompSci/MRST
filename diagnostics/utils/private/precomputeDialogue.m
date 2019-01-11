@@ -1,4 +1,4 @@
-function [] = precomputeDialogue(problem, precompDir)
+function [] = precomputeDialogue(casenm, precompDir)
 sp = repmat(' ', [1, 8]);
     widestr = @(str)[sp, str, sp];
     
@@ -7,12 +7,12 @@ answ = questdlg(sprintf('Precompute diagnostics and write to:                   
              widestr('OK'), widestr('skip'), widestr('OK'));
          
 if strcmp(answ, widestr('OK'))
-    if ischar(problem)
+    if ischar(casenm)
         % ECLIPSE
-        processRestartDiagnostics(problem, 'outputdir', precompDir);
-    elseif isstruct(problem)
+        processRestartDiagnostics(casenm, 'outputdir', precompDir);
+    elseif isstruct(casenm)
         % If processing MRST 
-        processStatesDiagnostics(problem, 'outputdir', precompDir);
+        processStatesDiagnostics(casenm, 'outputdir', precompDir);
     end
 end
 end

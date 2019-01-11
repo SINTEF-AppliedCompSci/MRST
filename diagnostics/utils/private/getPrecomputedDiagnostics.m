@@ -2,11 +2,19 @@ function precomp = getPrecomputedDiagnostics(casenm, steps, pdir)
 % Function accepts either casenm for ECLIPSE input or problem structure for
 % MRST input.
 
+
 % if not given, assume precompted diagnositics lies in caseDir/mrst_diagnostics
-[caseDir, prefix] = fileparts(casenm);
+if ischar(casenm) % ECLIPSE Input
+    [caseDir, prefix] = fileparts(casenm);
+elseif isstruct(casenm) % MRST Input
+    caseDir = casenm.OutputHandlers.states.getDataPath;
+    prefix = casenm.BaseName;
+end
+
 if nargin < 3
     pdir = fullfile(caseDir, 'mrst_diagnostics');
 end
+
 if ~isempty(dir(pdir))
     fn = @(n)fullfile(pdir, [prefix, sprintf('_diagn%0.4d.mat', n)]);
     fail = false;
@@ -30,4 +38,3 @@ else
     precomp = [];
 end
 end
-        

@@ -26,7 +26,7 @@ prefx = problem.BaseName;
 G = problem.SimulatorSetup.model.G;
 schedule = problem.SimulatorSetup.schedule;
 
-% states/wellSols are accessed through handles
+
 [ws, states, report] = getPackedSimulatorOutput(problem);
 t = cumsum(schedule.step.val);
 for i = 1:numel(schedule.step.val)
