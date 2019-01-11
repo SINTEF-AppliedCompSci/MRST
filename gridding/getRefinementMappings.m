@@ -30,7 +30,11 @@ function mappings = getRefinementMappings(G, GC, GF, cells)
         
     else
         newPartition = G.partition;
-        refined      = G.cells.refined;
+        if isfield(G.cells, 'refined')
+            refined      = G.cells.refined;
+        else
+            refined = [];
+        end
     end
     
     new2fine = nan(max(newPartition),1);
