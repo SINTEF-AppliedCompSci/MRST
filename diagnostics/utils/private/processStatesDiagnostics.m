@@ -28,16 +28,20 @@ schedule = problem.SimulatorSetup.schedule;
 
 
 [ws, states, report] = getPackedSimulatorOutput(problem);
-t = cumsum(schedule.step.val);
+t = cumsum(schedule.step.val)./day;
 for i = 1:numel(schedule.step.val)
     wells{i} = schedule.control(schedule.step.control(i)).W;
 end
 
 startdate = opt.startdate;
+steps = 1:numel(t);
+startday = datenum(startdate(1, [3 2 1]));
+time.prev = startday + t( max(steps-1,1) ) - t(1);
+time.cur  = startday + t( steps ) - t(1);
 
-startday = datenum(startdate);
-time.prev = [startday; startday; startday + (schedule.step.val(1:end-1)./day)];
-time.cur  = startday + schedule.step.val(:)./day;
+% startday = datenum(startdate);
+% time.prev = [startday; startday; startday + (schedule.step.val(1:end-1)./day)];
+% time.cur  = startday + schedule.step.val(:)./day;
 
 
 if opt.multiple

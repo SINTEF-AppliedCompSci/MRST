@@ -30,6 +30,7 @@ classdef PreDiagnosticsSelector < UIItem
             info = opt.restartInfo;
             startday = datenum(info.date(1, [3 2 1]));
             t        = startday + info.time - info.time(1);
+
             n = numel(t);
             t_date   = cellfun(@(x)datestr(x, 'mmm dd, yyyy'), mat2cell(t, ones(1, n)), 'UniformOutput', false); 
             

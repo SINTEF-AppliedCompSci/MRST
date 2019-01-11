@@ -32,7 +32,7 @@ if opt.precompute
 end
 
 info.date = opt.startdate;
-info.time = problem.SimulatorSetup.schedule.step.val(:)./day;
+info.time = cumsum(problem.SimulatorSetup.schedule.step.val(:))./day;
 
 % Select which time-steps to include
 if ~isempty(opt.steps)
