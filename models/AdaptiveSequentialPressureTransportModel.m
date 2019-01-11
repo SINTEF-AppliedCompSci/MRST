@@ -236,6 +236,7 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
                 transportModel = model.transportModel;
             end
             G  = transportModel.G;
+            iscomp = isa(transportModel, 'ThreePhaseCompositionalModel');
             
             % Pore volumes
             pvf = model.fineTransportModel.operators.pv;
@@ -249,46 +250,98 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
             
             flowVarNames = getFlowVarNames();
             
-            for fNo = 1:numel(flowVarNames)
-                vn = flowVarNames{fNo};
-                if isfield(state, vn)
-                    state.(vn) = S*(pvf.*state.(vn))./(pv);
-                end
-            end
             
-%             state.mob   = S*(pvf.*state.mob)./pv;
-%             state.dpRel = S*(pvf.*state.dpRel)./pv;
-            
-            
-            % Mapping from old to new coarse grid
-            S = S*sparse((1:GF.cells.num)', state.transportState.G.partition, 1);
-            
-            pvPrev = state.transportState.pv;
-            bPrev  = state.transportState.bfactor;
-%             pvb = bsxfun(@times, pv, state.bfactor);
-            state.s = S*(pvPrev.*bPrev.*state.transportState.s)./(S*(pvPrev.*bPrev));
-            
-
-            ts = state.transportState;
-            
-            if model.isDG
+            if iscomp
+                % Compute coarse masses and mole fractions
+                % 
+                eos = transportModel.EOSModel;
+                sT = sum(state.s, 2);
+                X = eos.getMassFraction(state.x);
+                Y = eos.getMassFraction(state.y);
+                assert(~model.water);
+                mass = pvf.*(state.s(:, 1).*state.rho(:, 1).*X + state.s(:, 2).*state.rho(:, 2).*Y);
                 
-                disc = transportModel.disc;
-                state.degree = repmat(disc.degree, G.cells.num, 1);
-                state = disc.updateDofPos(state);
-                sdof = zeros(sum(state.nDof), size(state.s,2));
-                for dofNo = 1:numel(disc.basis.nDof)
-                    ix     = disc.getDofIx(ts, dofNo, 1:size(ts.s,1));
-                    ixNew  = disc.getDofIx(state, dofNo, 1:G.cells.num);
-                    keepRows = state.nDof >= dofNo;
-                    keepCols = ts.nDof >= dofNo;
-                    Stmp = S(keepRows, keepCols);
-                    
-                    sdof(ixNew,:) = Stmp*(pvPrev.*ts.sdof(ix,:))./(Stmp*pvPrev);
+                mass_c = S*mass;
+                
+                state_c = struct();
+                
+                flowVarNames = {'pressure', 'T'};
+                for fNo = 1:numel(flowVarNames)
+                    vn = flowVarNames{fNo};
+                    if isfield(state, vn)
+                        state_c.(vn) = S*(pvf.*state.(vn))./(pv);
+                    end
                 end
-                state.sdof = sdof;
-                state.degree = repmat(transportModel.disc.degree, G.cells.num, 1);            
-%             	state        = assignDofFromState(transportModel.disc, state);
+                state_c.flux = state.flux;
+                state_c.wellSol = state.wellSol;
+                
+                
+                mass_fraction = mass_c./sum(mass_c, 2);
+                state_c.components = eos.getMoleFraction(mass_fraction);
+                state_c = transportModel.computeFlash(state_c, inf);
+                
+                getDensity = @(x, Z) eos.PropertyModel.computeDensity(state_c.pressure, x, Z, state_c.T, nan);
+                
+                rhoL = getDensity(state_c.x, state_c.Z_L);
+                rhoV = getDensity(state_c.y, state_c.Z_V);
+                
+                % Total mass, integrated on fine-scale
+                massT_f = sum(mass_c, 2);
+                
+                % Total mass, on new coarse scale
+                massT_c = pv.*(rhoL.*state_c.s(:, 1) + rhoV.*state_c.s(:, 2));
+                
+                % Compensate for introduced mass-error
+                sT = massT_f./massT_c;
+                state_c.s = state_c.s.*sT;
+                
+                state = state_c;
+                
+%                 rmfields = {'x', 'y', 'mixing', 'switched', 'switchount', 'w', 'b', 'Z_L', 'Z_V'};
+%                 for i = 1:numel(rmfields)
+%                     if isfield(state, rmfields{i})
+%                         state = rmfield(state, rmfields{i});
+%                     end
+%                 end
+                
+                
+%                 disp('marker');
+                
+%                 mass = state.transportState.components.*state.transportState.rho.*sT;
+%                 state.s = S*(pvPrev.*bPrev.*state.transportState.s)./(S*(pvPrev.*bPrev));
+
+            else
+
+                % Mapping from old to new coarse grid
+                S = S*sparse((1:GF.cells.num)', state.transportState.G.partition, 1);
+
+                pvPrev = state.transportState.pv;
+    %             pvb = bsxfun(@times, pv, state.bfactor);
+
+                bPrev  = state.transportState.bfactor;
+                state.s = S*(pvPrev.*bPrev.*state.transportState.s)./(S*(pvPrev.*bPrev));
+
+                ts = state.transportState;
+
+                if model.isDG
+
+                    disc = transportModel.disc;
+                    state.degree = repmat(disc.degree, G.cells.num, 1);
+                    state = disc.updateDofPos(state);
+                    sdof = zeros(sum(state.nDof), size(state.s,2));
+                    for dofNo = 1:numel(disc.basis.nDof)
+                        ix     = disc.getDofIx(ts, dofNo, 1:size(ts.s,1));
+                        ixNew  = disc.getDofIx(state, dofNo, 1:G.cells.num);
+                        keepRows = state.nDof >= dofNo;
+                        keepCols = ts.nDof >= dofNo;
+                        Stmp = S(keepRows, keepCols);
+
+                        sdof(ixNew,:) = Stmp*(pvPrev.*ts.sdof(ix,:))./(Stmp*pvPrev);
+                    end
+                    state.sdof = sdof;
+                    state.degree = repmat(transportModel.disc.degree, G.cells.num, 1);            
+    %             	state        = assignDofFromState(transportModel.disc, state);
+                end
             end
 
             cFsign   = fineToCoarseSign(G);
