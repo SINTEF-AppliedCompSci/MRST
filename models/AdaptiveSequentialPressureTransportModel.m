@@ -15,23 +15,23 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
         refineTol
         coarsenTol
     end
-    
+
     methods
         function model = AdaptiveSequentialPressureTransportModel(pressureModel, transportModel, G0, varargin)
             model = model@SequentialPressureTransportModel(pressureModel, transportModel, varargin{:});
             model.G0 = G0;
-            
+
             model.isReordering = isa(transportModel, 'ReorderingModel');
             tm = transportModel;
             if model.isReordering
                 tm = transportModel.parent;
             end
             model.isDG = isa(tm, 'TransportBlackOilModelDG');
-            
+
             model.fineTransportModel = tm;
-            
+
             [model.mappings.newPartition, model.mappings.oldPartition] = deal(G0.partition);
-            
+
             model.coarseTransportModel = model.upscaleTransportModelTPFA(G0.partition);
             if model.isReordering
                 model.transportModel = transportModel;
@@ -39,23 +39,23 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
             else
                 model.transportModel = model.coarseTransportModel;
             end
-            
+
             model.coarseTransportModel.G.cells.refined = G0.cells.refined;
             model.coarseTransportModel.G.oldPartition = G0.partition;
-            
+
             model.plotProgress = false;
             model.storeGrids   = true;
-            
+
             model.computeCoarsePressure = false;
             model.coarsePressureModel = [];
-            
+
             model.coarsenTol = 1e-2;
             model.refineTol  = 1e-2;
-            
+
             model = merge_options(model, varargin{:});
-            
+
         end
-        
+
         function [state, pressureReport, transportReport, pressure_ok, transport_ok, forceArg] = solvePressureTransport(model, state, state0, dt, drivingForces, iteration)
            % Solve pressure and transport sequentially
             psolver = model.pressureNonLinearSolver;
@@ -68,7 +68,7 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
              % Get the forces used in the step
             forceArg = model.pressureModel.getDrivingForces(drivingForces);
             pressureForceArg = forceArg;
-            
+
             % First, solve the pressure using the pressure nonlinear
             % solver.
             [pressureState, pressureReport] = ...
@@ -76,7 +76,7 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
                             'initialGuess', state, ...
                             forceArg{:});
             pressure_ok = pressureReport.Converged || psolver.continueOnFailure;
-            
+
             if pressure_ok
                 % If pressure converged, we proceed to solve the transport
                 model.transportModel = state.transportModel;
@@ -104,20 +104,13 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
                 if isfield(model.transportModel.G.cells, 'refined') && 0
                     residual(model.transportModel.G.cells.refined) = 0;
                 end
-            
-<<<<<<< HEAD
-                tol = 1e-3;
-                cells = any(abs(residual) > tol, 2);
-                tol   = 0.25*tol;
-                cells(G.cells.refined & abs(residual) > tol) = true;
-=======
+
                 cells = (abs(residual) > model.refineTol) & ~G.cells.refined;
                 cells(G.cells.refined & (abs(residual) > model.coarsenTol)) = true;
->>>>>>> 77641ea579958927190c7022b5b8b9d4bd047dc2
                 [model, transportState, transportState0, drivingForces] ...
                     = model.refineTransportModel(cells, pressureState, state0, drivingForces);
                 transportForces = drivingForces;
-                
+
                 st0 = transportState;
                 if model.computeCoarsePressure && 1
                     forceArg = model.coarsePressureModel.getDrivingForces(transportForces);
@@ -142,16 +135,16 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
                     end
                 end
                 forceArg = model.transportModel.getDrivingForces(transportForces);
-                
+
                 transportState.timestep = dt;
                 transportState.pressure_full = transportState.pressure;
-                
+
                 [transportState, transportReport] = ...
                     tsolver.solveTimestep(transportState0, dt, model.transportModel,...
                                 'initialGuess', transportState, ...
                                 forceArg{:});
                 transport_ok = transportReport.Converged;
-                
+
                 if model.plotProgress
                     if ishandle(1)
                         set(0, 'CurrentFigure', 1);
@@ -168,14 +161,14 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
 %                     plotGrid(G, 'facec', 'none', 'edgealpha', 0.3);
                     pink = [214, 154, 153]/255;
                     plotGrid(G, 'facec', 'none', 'edgecolor', pink);
-                    
+
 %                     cmap = mrstColormap('type', 'wateroil');
                     cmap = jet;
                     colormap(cmap)
                     axis equal tight
                     drawnow();
                 end
-                
+
                 % Map transport quantities onto fine grid to prepare for
                 % next pressure solve
                 state = model.refineState(transportState, pressureState);
@@ -184,12 +177,12 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
             else
                 transport_ok = false;
                 transportReport = [];
-            end 
+            end
         end
-        
+
         function [model, transportState, transportState0, forces] ...
                 = refineTransportModel(model, cells, transportState, transportState0, forces)
-            
+
             GF = model.fineTransportModel.G;
             GC = model.coarseTransportModel.G;
             if isfield(transportState0, 'G') && isfield(transportState0.G, 'parent')
@@ -197,12 +190,12 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
             else
                 G = GC;
             end
-            
+
             % Refine grid
             mappings = getRefinementMappings(G, GC, GF, cells);
             [transportModel, pressureModel] = model.upscaleTransportModelTPFA(mappings.newPartition);
             model.mappings = mappings;
-            
+
             if isa(model.transportModel, 'ReorderingModel')
                 model.transportModel.parent = transportModel;
             else
@@ -212,15 +205,15 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
             transportState.pv = transportModel.operators.pv;
             transportState  = model.upscaleState(transportState);
             transportState0 = model.upscaleState(transportState0);
-            
+
             if model.storeGrids
                 transportState.G = transportModel.G;
             end
 
-            forces = model.mapForces(forces);            
-            
+            forces = model.mapForces(forces);
+
         end
-        
+
         function forces = mapForces(model, forces)
             if model.isReordering
                 G = model.transportModel.parent.G;
@@ -234,48 +227,48 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
                 end
                 forces.W = W;
             end
-            
+
         end
-        
+
         function state = upscaleState(model, state)
-            
+
             % Fine and coarsened grids
             GF = model.fineTransportModel.G;
             if isa(model.transportModel, 'ReorderingModel')
                 transportModel = model.transportModel.parent;
-                
+
             else
                 transportModel = model.transportModel;
             end
             G  = transportModel.G;
             iscomp = isa(transportModel, 'ThreePhaseCompositionalModel');
-            
+
             % Pore volumes
             pvf = model.fineTransportModel.operators.pv;
             pv  = transportModel.operators.pv;
-            
+
             % Summation matrix
             S    = sparse(G.partition, (1:GF.cells.num)', 1);
 %             pvbf          = bsxfun(@times, pvf, state.bfactor);
 %             b = S*(pvf.*state.bfactor)./pv;
 %             bf = state.bfactor;
-            
+
             flowVarNames = getFlowVarNames();
-            
-            
+
+
             if iscomp
                 % Compute coarse masses and mole fractions
-                % 
+                %
                 eos = transportModel.EOSModel;
                 X = eos.getMassFraction(state.x);
                 Y = eos.getMassFraction(state.y);
                 assert(~model.water);
                 mass = pvf.*(state.s(:, 1).*state.rho(:, 1).*X + state.s(:, 2).*state.rho(:, 2).*Y);
-                
+
                 mass_c = S*mass;
-                
+
                 state_c = struct();
-                
+
                 flowVarNames = {'pressure', 'T'};
                 for fNo = 1:numel(flowVarNames)
                     vn = flowVarNames{fNo};
@@ -285,39 +278,39 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
                 end
                 state_c.flux = state.flux;
                 state_c.wellSol = state.wellSol;
-                
-                
+
+
                 mass_fraction = mass_c./sum(mass_c, 2);
                 state_c.components = eos.getMoleFraction(mass_fraction);
                 state_c = transportModel.computeFlash(state_c, inf);
-                
+
                 getDensity = @(x, Z) eos.PropertyModel.computeDensity(state_c.pressure, x, Z, state_c.T, nan);
-                
+
                 rhoL = getDensity(state_c.x, state_c.Z_L);
                 rhoV = getDensity(state_c.y, state_c.Z_V);
-                
+
                 % Total mass, integrated on fine-scale
                 massT_f = sum(mass_c, 2);
-                
+
                 % Total mass, on new coarse scale
                 massT_c = pv.*(rhoL.*state_c.s(:, 1) + rhoV.*state_c.s(:, 2));
-                
+
                 % Compensate for introduced mass-error
                 sT = massT_f./massT_c;
                 state_c.s = state_c.s.*sT;
-                
+
                 state = state_c;
-                
+
 %                 rmfields = {'x', 'y', 'mixing', 'switched', 'switchount', 'w', 'b', 'Z_L', 'Z_V'};
 %                 for i = 1:numel(rmfields)
 %                     if isfield(state, rmfields{i})
 %                         state = rmfield(state, rmfields{i});
 %                     end
 %                 end
-                
-                
+
+
 %                 disp('marker');
-                
+
 %                 mass = state.transportState.components.*state.transportState.rho.*sT;
 %                 state.s = S*(pvPrev.*bPrev.*state.transportState.s)./(S*(pvPrev.*bPrev));
 
@@ -357,7 +350,7 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
                         sdof(ixNew,:) = Stmp*(pvPrev.*ts.sdof(ix,:))./(Stmp*pvPrev);
                     end
                     state.sdof = sdof;
-                    state.degree = repmat(transportModel.disc.degree, G.cells.num, 1);            
+                    state.degree = repmat(transportModel.disc.degree, G.cells.num, 1);
     %             	state        = assignDofFromState(transportModel.disc, state);
                 end
             end
@@ -370,16 +363,16 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
             end
             state.flux = newFlux;
         end
-        
+
         function [transportModel, pressureModel] = upscaleTransportModelTPFA(model, partition, varargin)
-            
+
             transportModel = upscaleModelTPFA(model.fineTransportModel, partition, varargin{:});
             pressureModel = [];
             if model.computeCoarsePressure
                 pressureModel = upscaleModelTPFA(model.pressureModel, partition, varargin{:});
                 pressureModel.extraStateOutput = true;
             end
-            
+
             G = transportModel.G;
             if model.isDG
                 G = coarsenCellDimensions(G);
@@ -389,13 +382,13 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
             G.cells.ghost    = false(G.cells.num, 1);
             G.cells.refined  = accumarray(G.partition, ones(G.parent.cells.num,1)) == 1;
             transportModel.G = G;
-            
+
             if model.isDG
-                
+
                 if isCoarseGrid(model.transportModel.G) && 0
                     cub = model.updateCubature(transportModel);
                 end
-                
+
                 disc = transportModel.disc;
                 transportModel.disc = DGDiscretization(transportModel, ...
                       'degree'             , disc.degree             , ...
@@ -407,11 +400,11 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
                       'outLimiter'         , 'kill'                  , ...
                       'limitAfterConvergence', disc.limitAfterConvergence);
             end
-            
+
         end
-        
+
         function state = refineState(model, transportState, pressureState)
-            
+
             [varNames, dofVarNames] = getTransportVarNames();
             if isa(model.transportModel, 'ReorderingModel')
                 transportModel = model.transportModel.parent;
@@ -420,34 +413,34 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
             end
             iscomp = isa(transportModel, 'ThreePhaseCompositionalModel');
             p     = transportModel.G.partition;
-            
+
             state = pressureState;
             state.wellSol = transportState.wellSol;
-            
+
 %             st.pvPrev = model.transportModel.operators.pv;
 %             st.oldPartition = model.transportModel.G.partition;
             transportState.transportState = [];
-                           
+
             state.transportState = transportState;
             if model.storeGrids
                 state.G = transportState.G;
             end
-            
+
             if iscomp
                 % Downscale compositions
                 eos = transportModel.EOSModel;
                 state.components = transportState.components(p, :);
                 state = transportModel.computeFlash(state, inf);
-                
-                
+
+
                 getDensity = @(x, Z) eos.PropertyModel.computeDensity(state.pressure, x, Z, state.T, nan);
                 rhoL = getDensity(state.x, state.Z_L);
                 rhoV = getDensity(state.y, state.Z_V);
                 pvf = model.pressureModel.operators.pv;
                 pvc = model.transportModel.operators.pv;
                 m = pvf.*(rhoL.*state.s(:, 1) + rhoV.*state.s(:, 2));
-                
-                % Integrated mass from the fine grid, on the coarse grid 
+
+                % Integrated mass from the fine grid, on the coarse grid
                 massF = accumarray(p, m);
                 % Coarse scale mass
                 massC = pvc.*sum(transportState.rho.*transportState.s, 2);
@@ -474,7 +467,7 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
                                   state.(vn)(:,phNo) = transportState.(vn)(p,phNo);
 %                                 state.(vn)(:,phNo) = disc.evaluateDGVariable(x, p, transportState, transportState.(dvn)(:, phNo));
                             end
-                        else                        
+                        else
                             state.(vn) = transportState.(vn)(p,:);
                         end
                     end
@@ -491,43 +484,43 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
                 end
             end
         end
-        
+
         function cubature = updateCubature(model, transportModel)
-           
+
             GF = model.fineTransportModel.G;
             Gprev = model.transportModel.G;
             Gnew  = transportModel.G;
-            
-            
+
+
             newp  = Gnew.partition;
             prevp = Gprev.partition;
-            
+
 %             coarseVolumeCub = model.coarseTransportModel.disc.volumeCubature;
             fineVolumeCub   = model.fineTransportModel.disc.volumeCubature;
             prevVolumeCub   = model.transportModel.disc.volumeCubature;
-            
-            
+
+
             numCellsNew  = accumarray(newp, ones(GF.cells.num,1));
             numCellsPrev = accumarray(prevp, ones(GF.cells.num,1));
-            
+
             ix = numCellsNew(newp) == numCellsPrev(prevp);
-            
-            
+
+
 %             new2fine = nan(max(newp),1);
 %             new2fine(newp) = 1:GF.cells.num;
 %             prev2fine = nan(max(prevp),1);
 %             prev2fine(prevp) = 1:GF.cells.num;
-%             
+%
 %             ix = (prev2fine == new2fine) & (numCellsNew == numCellsPrev);
 %             mappings.newPartition - mappings.oldPartition;
-%             
+%
 %             xPrev = prevVolumeCub.points;
-            
+
             cubature = [];
-            
-            
-            
-            
+
+
+
+
         end
 
     end
