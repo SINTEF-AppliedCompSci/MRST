@@ -100,7 +100,7 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
                     residual(model.transportModel.G.cells.refined) = 0;
                 end
             
-                tol = 1e-2;
+                tol = 1e-3;
                 cells = any(abs(residual) > tol, 2);
                 tol   = 0.25*tol;
                 cells(G.cells.refined & abs(residual) > tol) = true;
@@ -443,6 +443,7 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
                 % These two should match, compensate by changing
                 % saturations
                 sT_c = massC./massF;
+                max(sT_c)
                 state.s = state.s.*sT_c(p);
             else
                 if model.isDG
