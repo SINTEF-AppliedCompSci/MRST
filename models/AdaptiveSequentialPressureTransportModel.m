@@ -12,6 +12,8 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
         mappings
         computeCoarsePressure
         coarsePressureModel
+        refineTol
+        coarsenTol
     end
     
     methods
@@ -46,6 +48,9 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
             
             model.computeCoarsePressure = false;
             model.coarsePressureModel = [];
+            
+            model.coarsenTol = 1e-2;
+            model.refineTol  = 1e-2;
             
             model = merge_options(model, varargin{:});
             
@@ -100,16 +105,22 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
                     residual(model.transportModel.G.cells.refined) = 0;
                 end
             
+<<<<<<< HEAD
                 tol = 1e-3;
                 cells = any(abs(residual) > tol, 2);
                 tol   = 0.25*tol;
                 cells(G.cells.refined & abs(residual) > tol) = true;
+=======
+                cells = (abs(residual) > model.refineTol) & ~G.cells.refined;
+                cells(G.cells.refined & (abs(residual) > model.coarsenTol)) = true;
+>>>>>>> 77641ea579958927190c7022b5b8b9d4bd047dc2
                 [model, transportState, transportState0, drivingForces] ...
                     = model.refineTransportModel(cells, pressureState, state0, drivingForces);
                 transportForces = drivingForces;
                 
-                if model.computeCoarsePressure
-                    forceArg = model.pressureModel.getDrivingForces(transportForces);
+                st0 = transportState;
+                if model.computeCoarsePressure && 1
+                    forceArg = model.coarsePressureModel.getDrivingForces(transportForces);
                     [transportState, pr] = ...
                         psolver.solveTimestep(transportState0, dt, model.coarsePressureModel,...
                                     'initialGuess', transportState, ...
@@ -460,8 +471,8 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
                             x = model.fineTransportModel.G.cells.centroids;
     %                         x = disc.transformCoords(x, p);
                             for phNo = 1:nPh
-    %                             state.(vn)(:,phNo) = disc.evaluateSaturation(x, p, transportState.(dvn)(:, phNo), transportState);
-                                state.(vn)(:,phNo) = disc.evaluateDGVariable(x, p, transportState, transportState.(dvn)(:, phNo));
+                                  state.(vn)(:,phNo) = transportState.(vn)(p,phNo);
+%                                 state.(vn)(:,phNo) = disc.evaluateDGVariable(x, p, transportState, transportState.(dvn)(:, phNo));
                             end
                         else                        
                             state.(vn) = transportState.(vn)(p,:);

@@ -35,6 +35,9 @@ mappings = getRefinementMappings(GC, GC, GF, [1, GC.cells.num]);
 G        = generateCoarseGrid(GF, mappings.newPartition);
 G        = coarsenGeometry(G);
 G.cells.refined = mappings.refined;
+[G.cells.equal, G.faces.equal] = deal(false);
+[GF.cells.equal, GF.faces.equal] = deal(false);
+
 
 % [G, map1] = refineGrid(GC, GC, GF, [1, GC.cells.num]');
 G = coarsenCellDimensions(G);
@@ -66,13 +69,13 @@ modelASI = AdaptiveSequentialPressureTransportModel(modelSIF.pressureModel, mode
 modelASI.transportModel.G = coarsenCellDimensions(modelASI.transportModel.G);
 
 [jt, ot, mt] = deal(Inf);
-mt = 1e-3;
-ot = 1e-3;
+mt = 1e-8;
+ot = 1e-8;
 degree = 1;
 discDG = DGDiscretization(modelASI.transportModel               , ...
                         'degree'               , degree       , ...
                         'basis'                , 'legendre'   , ...
-                        'useUnstructCubature'  , false        , ...
+                        'useUnstructCubature'  , true        , ...
                         'jumpTolerance'        , jt           , ...
                         'outTolerance'         , ot           , ...
                         'outLimiter'           , 'orderReduce', ...
@@ -94,11 +97,10 @@ modelASIDGreorder = AdaptiveSequentialPressureTransportModel(modelASIDG.pressure
 modelASIDGreorder.transportModel.chunkSize = 50;
 modelASIDGreorder.transportModel.parent.extraStateOutput = true;
 
-
 disc = DGDiscretization(modelSIF.transportModel               , ...
                         'degree'               , degree       , ...
                         'basis'                , 'legendre'   , ...
-                        'useUnstructCubature'  , false        , ...
+                        'useUnstructCubature'  , true        , ...
                         'jumpTolerance'        , jt           , ...
                         'outTolerance'         , ot           , ...
                         'outLimiter'           , 'kill', ...
@@ -110,6 +112,11 @@ transportModelDG = TransportOilWaterModelDG(GF, rockF, fluid, ...
                                    'dsMaxAbs', 0.2, ...
                                    'nonlinearTolerance', 1e-3);
 modelDG = SequentialPressureTransportModel(modelSIF.pressureModel, transportModelDG);
+
+tm = ReorderingModel(modelSIF.transportModel, 'chunkSize', 50);
+G.cells.equal = false;
+modelASIreorder = AdaptiveSequentialPressureTransportModel(modelSIF.pressureModel, tm, G);
+    
 
 %%
 
@@ -171,6 +178,7 @@ state0F.transportModel        = modelASI.transportModel;
 
 state0F.transportModel  = modelASIDG.transportModel;
 state0F.transportState.G = G;
+modelASIDG.plotProgress = true;
 [wsASIDG, stASIDG, rep] = simulateScheduleAD(state0F, modelASIDG, scheduleF);
 
 %%
@@ -191,8 +199,19 @@ modelASIDGreorder.pressureModel.extraStateOutput = true;
 modelASIDGreorder.transportModel.plotProgress = true;
 modelASIDGreorder.storeGrids = true;
 modelASIDGreorder.plotProgress = false;
+modelASIDGreorder.computeCoarsePressure = true;
+modelASIDGreorder.transportModel.nonlinearSolver.errorOnFailure = true;
+modelASIDGreorder.transportModel.nonlinearSolver.continueOnFailure = true;
+
 state0F.transportModel        = modelASIDGreorder.transportModel;
 [wsASIreorder, stASIreorder, rep] = simulateScheduleAD(state0F, modelASIDGreorder, scheduleF);
+
+%%
+
+state0F.transportModel = modelASIreorder.transportModel;
+modelASIreorder.plotProgress = true;
+modelASIreorder.computeCoarsePressure = true;
+[wsASIreorder, stASIreorder, rep] = simulateScheduleAD(state0F, modelASIreorder, scheduleF);
 
 %%
 
