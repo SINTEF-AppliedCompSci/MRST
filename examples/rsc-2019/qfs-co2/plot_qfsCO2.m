@@ -58,10 +58,10 @@ realTime = cumsum(schedule.step.val)/day;
 close all
 
 name = cellfun(@(p) p.Name, problems, 'unif', false);
-st  = states{4};
 timeSteps = [10, 40, 60, 80, 108];
-stref = states{2};
-stc   = states{5};
+stRef    = states{2};
+stAdapt  = states{4};
+stCoarse = states{5};
 
 % its = iterations{2};
 % itMax = max(cellfun(@max, its));
@@ -73,51 +73,54 @@ GC = coarsenCellDimensions(GC);
 
 for tNo = timeSteps
     
-    c  = it > 0;
+%     c  = it > 0;
+
+    if ~isempty(stRef{tNo})
+        figure('position', pos, 'Name', 'Reference')
+        hold on
+        unstructuredContour(model.G, stRef{tNo}.x(:,1), 5, 'linew', 2);
+        colormap(copper);
+        axis equal tight
+        pw(G, W)
+        ax = gca;
+        [ax.XTickLabel, ax.YTickLabel] = deal({});
+        box on
+        drawnow();pause(0.5)
+        savepng(['qfs-co2-x-', num2str(tNo), '-ref']);
+    end
     
-    figure('position', pos)
-    hold on
-    unstructuredContour(model.G, st{tNo}.x(:,1), 5, 'linew', 2);
-    plotGrid(st{tNo}.G, 'facec', 'none', 'edgec', gray);
-    colormap(copper);
-    axis equal tight
-    pw(G, W)
-    ax = gca;
-    [ax.XTickLabel, ax.YTickLabel] = deal({});
-    box on
-    drawnow();pause(0.5)
-    savepng(['qfs-co2-x-', num2str(tNo), '-adapt']);
+    if ~isempty(stCoarse{tNo})
+        figure('position', pos, 'Name', 'Coarse')
+        hold on
+        unstructuredContour(GC, stCoarse{tNo}.x(:,1), 5, 'linew', 2);
+        colormap(copper);
+        axis equal tight
+        pw(G, W)
+        ax = gca;
+        [ax.XTickLabel, ax.YTickLabel] = deal({});
+        box on
+        drawnow();pause(0.5)
+        savepng(['qfs-co2-x-', num2str(tNo), '-coarse']);
+    end
     
-    figure('position', pos)
-    hold on
-    unstructuredContour(model.G, stref{tNo}.x(:,1), 5, 'linew', 2);
-    colormap(copper);
-    axis equal tight
-    pw(G, W)
-    ax = gca;
-    [ax.XTickLabel, ax.YTickLabel] = deal({});
-    box on
-    drawnow();pause(0.5)
-    savepng(['qfs-co2-x-', num2str(tNo), '-ref']);
-    
-    figure('position', pos)
-    hold on
-    unstructuredContour(GC, stc{tNo}.x(:,1), 5, 'linew', 2);
-    colormap(copper);
-    axis equal tight
-    pw(G, W)
-    ax = gca;
-    [ax.XTickLabel, ax.YTickLabel] = deal({});
-    box on
-    drawnow();pause(0.5)
-    savepng(['qfs-co2-x-', num2str(tNo), '-coarse']);
-    
-    
+    if ~isempty(stAdapt{tNo})
+        figure('position', pos, 'Name', 'Adaptive')
+        hold on
+        unstructuredContour(model.G, stAdapt{tNo}.x(:,1), 5, 'linew', 2);
+        plotGrid(stAdapt{tNo}.G, 'facec', 'none', 'edgec', gray);
+        colormap(copper);
+        axis equal tight
+        pw(G, W)
+        ax = gca;
+        [ax.XTickLabel, ax.YTickLabel] = deal({});
+        box on
+        drawnow();pause(0.5)
+        savepng(['qfs-co2-x-', num2str(tNo), '-adapt']);
+    end
+            
 end
 
 disp(realTime(timeSteps));
-
-%% Iteration plot
 
 %% Well curves
 
@@ -129,38 +132,76 @@ for mNo = 1:6
     comp{mNo} = abs(vertcat(cmp{:}));
 end
 
-lt = {'-', '-', '-.', '--', ':', '-o'};
+lt = {'', '-', '--', '.', '.'};
+lw = [2,2,4,2,2];
+mz = 10*ones(5,1);
+mz(end) = 10;
 names = cellfun(@(p) p.Description, problems, 'unif', false);
 
-dtt = cumsum(schedule.step.val);
+dtt = cumsum(schedule.step.val)/day;
 clr = copper(3);
-for cNo = 1:size(comp{1},2)
+for cNo = 1:size(comp{2},2)
     figure();
     hold on
+    cMax = -Inf;
     for mNo = 2:6
         cmp = comp{mNo};
-        plot(dtt(3:size(cmp,1)), cmp(3:end,cNo), lt{mNo});
+        if ~isempty(cmp)
+            cMax = max(cMax, max(cmp(:,cNo)));
+            plot(dtt(3:size(cmp,1)), cmp(3:end,cNo), lt{mNo}, 'linew', lw(mNo), 'markerSize', mz(mNo));
+        end
     end
     hold off
-    legend(names(2:6));
+    legend(names(2:6), 'location', 'northwest');
+    box on; grid on;
+    ax = gca;
+    ax.FontSize = fontSize;
+    axis([0, dtt(end), 0, cMax]);
+    xlabel('Time (days)')
+    ylabel('Rate (m^3/s)')
+    saveeps(['qfs-co2-well-', num2str(cNo)]);
+    
 end
 
 %%
 
-close all
-plotWellSols(ws(2:6))
+iterations = cell(numel(problems),1);
 
-%%
+for pNo = 2:numel(problems)
+    
+    if ~isempty(reports{pNo})
+        if contains(problems{pNo}.Description, 'Reordering')
+            iterations{pNo} = getReorderingTransportIterations(reports{pNo});
+        else
+            for sNo = 1:numel(reports{pNo})
+                if isfield(states{pNo}{sNo}, 'G')
+                    g = states{pNo}{sNo}.G;
+                elseif pNo == 5
+                    g = GC;
+                else
+                    g = model.G;
+                end
+                iterations{pNo}{sNo} = ...
+                    repmat(reports{pNo}{sNo}.StepReports{1}.NonlinearReport{1}.TransportSolver.Iterations, g.cells.num, 1);
+            end
+        end
+    end
+end
 
-% figure('position', pos)
-%     plotCellData(model.G, it(c), c, 'edgec', 'none');
-%     colormap(jet);
-%     axis equal tight
-%     hold on
-%     pw(G, W)
-%     caxis([1,itMax]);
-%     ax = gca;
-%     [ax.XTickLabel, ax.YTickLabel] = deal({});
-%     box on
-%     savepng(['qfs-co2-its-', num2str(tNo)]);
+intIts = cellfun(@(its) cellfun(@sum, its), iterations(2:end-1), 'unif', false);
+
+figure('position', [-1000, 0, 600, 300]);
+hold on
+for pNo = 1:4
+    plot(dtt, intIts{pNo}, '-', 'linew', 2)
+end
+hold off
+box on; grid on
+xlim([0, dtt(end)])
+legend({'Sequential', 'Reordered', 'Adaptive', 'Coarse'});
+ax = gca;
+ax.FontSize = fontSize;
+xlabel('Time (days)');
+ylabel('Transport iterations');
+saveeps('qfs-co2-iterations');
 
