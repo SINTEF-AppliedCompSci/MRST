@@ -105,8 +105,8 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
                     residual(model.transportModel.G.cells.refined) = 0;
                 end
 
-                cells = (abs(residual) > model.refineTol) & ~G.cells.refined;
-                cells(G.cells.refined & (abs(residual) > model.coarsenTol)) = true;
+                cells = any(abs(residual) > model.refineTol,2) & ~G.cells.refined;
+                cells(G.cells.refined & any(abs(residual) > model.coarsenTol,2)) = true;
                 [model, transportState, transportState0, drivingForces] ...
                     = model.refineTransportModel(cells, pressureState, state0, drivingForces);
                 transportForces = drivingForces;
