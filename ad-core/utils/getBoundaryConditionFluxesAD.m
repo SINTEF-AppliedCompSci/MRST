@@ -177,12 +177,15 @@ rhoAvgF = cell(nph, 1);
 for i = 1:nph
     if isCompositional && i > model.water        
         if isTransport
-            sTf = sF{i, 1}./sT{1} + sF{i, 2}./sT{2};
+            sL = sF{i, 1}./sT{1};
+            sR = sF{i, 2}./sT{2};
         else
-            sTf = sF{i, 1} + sF{i, 2};
+            sL = sF{i, 1};
+            sR = sF{i, 2};
         end
+        sTf = sL + sR;
         sTf(double(sTf) == 0) = 1e-8;
-        rhoAvgF{i} = (sF{i, 1}.*rhoF{i, 1} + sF{i, 2}.*rhoF{i, 2})./sTf;
+        rhoAvgF{i} = (sL.*rhoF{i, 1} + sR.*rhoF{i, 2})./sTf;
     else
         rhoAvgF{i} = (rhoF{i, 1} + rhoF{i, 2})./2;
     end
@@ -195,17 +198,35 @@ if any(isRF)
     mobC = cell(1, nph);
     for i = 1:nph
         G{i} = dzbc.*rhoAvgF{i};
-        mobC{i} = vertcat(mobF{i, 1}, mobF{i, 2});
+%         double(rhoAvgF{i})
+        mobC{i} = vertcat(mobF{i, 2}, mobF{i, 1});
     end
+    dzbc
     vT = sum(bc.value, 2);
     
     nf = numel(vT);
-%     upstr = @(flag, v) flag.*v(1:nf, :) + ~flag.*v(nf+1:end, :);
-    upstr = @(flag, v) ~flag.*v(1:nf, :) + flag.*v(nf+1:end, :);
-    q_ph = computeSequentialFluxes([], G, -vT, T, mobC, {}, {}, upstr, 'potential');
-    for i = 1:numel(q_ph)
-        q_ph{i} = - q_ph{i};
+    if 0
+        upstr = @(flag, v) flag.*v(1:nf, :) + ~flag.*v(nf+1:end, :);
+        q_ph = computeSequentialFluxes([], G, vT, T, mobC, {}, {}, upstr, 'potential');
+    else
+        upstr = @(flag, v) flag.*v(1:nf, :) + ~flag.*v(nf+1:end, :);
+        q_ph = computeSequentialFluxes([], G, -vT, T, mobC, {}, {}, upstr, 'potential');
+        for i = 1:numel(q_ph)
+            q_ph{i} = - q_ph{i};
+        end
+%         upstr = @(flag, v) ~flag.*v(1:nf, :) + flag.*v(nf+1:end, :);
+%         q_ph = computeSequentialFluxes([], G, -vT, T, mobC, {}, {}, upstr, 'potential');
+%         for i = 1:numel(q_ph)
+%             q_ph{i} = - q_ph{i};
+%         end
     end
+%     gg = cellfun(@double, G, 'unif', false);
+%     disp('G')
+%     disp([gg{:}])
+%     
+%     disp('Mob')
+%     gg = cellfun(@double, mobC, 'unif', false);
+%     disp([gg{:}])
 end
 
 for i = 1:nph
