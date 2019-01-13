@@ -102,8 +102,8 @@ classdef DGDiscretization < HyperbolicDiscretization
 %                         volCub = Unstruct3DCubature(G, prescision, disc.internalConn);
 %                         surfCub = Unstruct2DCubature(G, prescision, disc.internalConn);
                         volCub  = MomentFitting3DCubature(G, prescision, disc.internalConn);
-%                         surfCub = MomentFitting2DCubature(G, prescision, disc.internalConn);
-                        surfCub = TriangleCubature(G, prescision, disc.internalConn);
+                        surfCub = MomentFitting2DCubature(G, prescision, disc.internalConn);
+%                         surfCub = TriangleCubature(G, prescision, disc.internalConn);
                     else
                         volCub  = TetrahedronCubature(G, prescision, disc.internalConn);
                         surfCub = TriangleCubature(G, prescision, disc.internalConn);
