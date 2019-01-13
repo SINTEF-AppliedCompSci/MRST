@@ -108,12 +108,12 @@ hasNoSat = any(noSat);
 % Store total mobility
 
 isCompositional = isa(model, 'ThreePhaseCompositionalModel');
+isTransport = isa(model, 'TransportNaturalVariablesModel');
 
 rhoS = model.getSurfaceDensities();
 
 [pressureF, rhoF, bF, mobF, sF] = deal(cell(nph, 2));
-rhoAvgF = cell(nph, 1);
-totMob = 0;
+totMob = zeros(nbc, 1);
 for i = 1:nph
     % First column is outside, second is inside
     
@@ -162,10 +162,27 @@ for i = 1:nph
     sF{i, 1} = sat(:, i);
     sF{i, 2} = s_inside;
 
-    if isCompositional && i > model.water
-        sT = sF{i, 1} + sF{i, 2};
-        sT(double(sT) == 0) = 1e-8;
-        rhoAvgF{i} = (sF{i, 1}.*rhoF{i, 1} + sF{i, 2}.*rhoF{i, 2})./sT;
+end
+
+if isTransport && isCompositional
+    sT = cell(1, 2);
+    sT{2} = zeros(numel(T), 1);
+    for i = 1:nph
+        sT{2} = sT{2} + sF{i, 2};
+    end
+    sT{1} = sum(sat, 2);
+end
+
+rhoAvgF = cell(nph, 1);
+for i = 1:nph
+    if isCompositional && i > model.water        
+        if isTransport
+            sTf = sF{i, 1}./sT{1} + sF{i, 2}./sT{2};
+        else
+            sTf = sF{i, 1} + sF{i, 2};
+        end
+        sTf(double(sTf) == 0) = 1e-8;
+        rhoAvgF{i} = (sF{i, 1}.*rhoF{i, 1} + sF{i, 2}.*rhoF{i, 2})./sTf;
     else
         rhoAvgF{i} = (rhoF{i, 1} + rhoF{i, 2})./2;
     end
@@ -183,8 +200,12 @@ if any(isRF)
     vT = sum(bc.value, 2);
     
     nf = numel(vT);
-    upstr = @(flag, v) flag.*v(1:nf, :) + ~flag.*v(nf+1:end, :);
-    q_ph = computeSequentialFluxes([], G, vT, T, mobC, {}, {}, upstr, 'potential');
+%     upstr = @(flag, v) flag.*v(1:nf, :) + ~flag.*v(nf+1:end, :);
+    upstr = @(flag, v) ~flag.*v(1:nf, :) + flag.*v(nf+1:end, :);
+    q_ph = computeSequentialFluxes([], G, -vT, T, mobC, {}, {}, upstr, 'potential');
+    for i = 1:numel(q_ph)
+        q_ph{i} = - q_ph{i};
+    end
 end
 
 for i = 1:nph
@@ -262,9 +283,9 @@ for i = 1:nph
         end
     end
     % ------ Fluxes given at reservoir conditions ----- %
-    injNeuR = q_ph{i} > 0;
-    subs = isRF &  injNeuR;
     if any(isRF)
+        injNeuR = q_ph{i} > 0;
+        subs = isRF &  injNeuR;
         % Injection
         if any(subs)
             tmp = q_ph{i}(subs);
@@ -282,5 +303,7 @@ for i = 1:nph
     qSurf{i} = q_s;
     qRes{i} = q_r;
 end
+% disp(double(qRes{1}))
+% disp(double(qRes{2}))
 end
 
