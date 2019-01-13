@@ -56,7 +56,10 @@ GC = generateCoarseGrid(G, p);
 GC = coarsenGeometry(GC);
 GC = coarsenCellDimensions(GC, 'useQhull', true);
 GC = storeInteractionRegionCart(GC);
-GC.cells.refined = false(G.cells.num,1);
+
+d  = pdist2(GC.cells.centroids(:, 1:2), xw(:, 1:2));
+GC.cells.refined = any(d < 300*meter,2);
+
 
 %% Sequential model
 
@@ -70,18 +73,21 @@ modelSeq = getSequential_local(model);
 
 modelAdaptive ...
     = AdaptiveSequentialPressureTransportModel(modelSeq.pressureModel, modelSeq.transportModel, GC);
+modelAdaptive.refineTol = 1e-3;
+modelAdaptive.coarsenTol = 0.5*1e-3;
 tmodel = modelAdaptive.transportModel;
 
-coarsemodel = upscaleModelTPFA(model, GC);
-state0C = upscaleState(coarsemodel, model, state0);
-state0C = ensureDensitiesPresentCompositional(coarsemodel, state0C);
 
 state0a = state0;
 state0a = ensureDensitiesPresentCompositional(model, state0a);
 
+coarsemodel = upscaleModelTPFA(model, GC);
+state0C = upscaleState(tmodel, model, state0a);
+% state0C = ensureDensitiesPresentCompositional(tmodel, state0C);
+
 state0a.transportState = state0C;
 state0a.transportState.pv = tmodel.operators.pv;
-state0a.transportState.G = CG;
+state0a.transportState.G = GC;
 state0a.transportModel = tmodel;
 state0a.wellSol = [];
 
@@ -100,3 +106,8 @@ problems = {seq, adapt};
 for pNo = 2
     [ok, status] = simulatePackedProblem(problems{pNo});
 end
+
+%%
+
+setup = problems{2}.SimulatorSetup;
+[ws, st, rep] = simulateScheduleAD(setup.state0, setup.model, setup.schedule);
