@@ -12,7 +12,7 @@ name = 'qfs_co2_small';
 baseName = 'qfs-CO2';
 
 location = 'work';
-location = 'home';
+% location = 'home';
 switch location
     case 'work'
         dataDir = fullfile('/media/strene/806AB4786AB46C92/mrst-dg/rsc-2019', baseName);
@@ -63,9 +63,12 @@ p = partitionCartGrid(model.G.cartDims, [15,15,1]);
 G = model.G;
 G = computeCellDimensions2(G);
 GC = generateCoarseGrid(G, p);
+GC = coarsenGeometry(GC);
+GC = coarsenCellDimensions(GC);
 m = getRefinementMappings(GC, GC, model.G, [1, GC.cells.num]);
 
 GC = generateCoarseGrid(model.G, m.newPartition);
+GC = coarsenGeometry(GC);
 GC.cells.refined = m.refined;
 
 coarsemodel = upscaleModelTPFA(modeladapt.transportModel, m.newPartition);
@@ -88,7 +91,7 @@ state0.transportState.pv = coarsemodel.operators.pv;
 state0.transportModel = modeladapt.transportModel;
 modeladapt.plotProgress = true;
 modeladapt.refineTol = 1e-2;
-modeladapt.coarsenTol = 0.5*1e-2;
+modeladapt.coarsenTol = 1e-2;
 
 adapt = pack(state0, modeladapt, 'adapt', 'Adaptive');
 
@@ -131,5 +134,5 @@ end
 
 %%
 
-setup = problems{5}.SimulatorSetup;
+setup = problems{4}.SimulatorSetup;
 [ws, st, rep] = simulateScheduleAD(setup.state0, setup.model, setup.schedule);

@@ -65,10 +65,12 @@ stCoarse = states{5};
 
 % its = iterations{2};
 % itMax = max(cellfun(@max, its));
-G  = computeCellDimensions2(model.G);
-GC = generateCoarseGrid(G, coarsemodel.transportModel.G.partition);
-GC = coarsenGeometry(GC);
-GC = coarsenCellDimensions(GC);
+% G  = computeCellDimensions2(model.G);
+% GC = generateCoarseGrid(G, coarsemodel.transportModel.G.partition);
+% GC = coarsenGeometry(GC);
+% GC = coarsenCellDimensions(GC);
+
+nContour = 10;
 
 
 for tNo = timeSteps
@@ -78,13 +80,16 @@ for tNo = timeSteps
     if ~isempty(stRef{tNo})
         figure('position', pos, 'Name', 'Reference')
         hold on
-        unstructuredContour(model.G, stRef{tNo}.x(:,1), 5, 'linew', 2);
+        unstructuredContour(model.G, stRef{tNo}.components(:,2), nContour, 'linew', 2);
+%         unstructuredContour(model.G, stRef{tNo}.x(:,2), nContour, 'linew', 2);
+%         unstructuredContour(model.G, stRef{tNo}.x(:,3), nContour, 'linew', 2);
         colormap(copper);
         axis equal tight
         pw(G, W)
         ax = gca;
         [ax.XTickLabel, ax.YTickLabel] = deal({});
         box on
+        caxis([0,1])
         drawnow();pause(0.5)
         savepng(['qfs-co2-x-', num2str(tNo), '-ref']);
     end
@@ -92,13 +97,14 @@ for tNo = timeSteps
     if ~isempty(stCoarse{tNo})
         figure('position', pos, 'Name', 'Coarse')
         hold on
-        unstructuredContour(GC, stCoarse{tNo}.x(:,1), 5, 'linew', 2);
+        unstructuredContour(GC, stCoarse{tNo}.components(:,2), nContour, 'linew', 2);
         colormap(copper);
         axis equal tight
         pw(G, W)
         ax = gca;
         [ax.XTickLabel, ax.YTickLabel] = deal({});
         box on
+        caxis([0,1])
         drawnow();pause(0.5)
         savepng(['qfs-co2-x-', num2str(tNo), '-coarse']);
     end
@@ -106,7 +112,7 @@ for tNo = timeSteps
     if ~isempty(stAdapt{tNo})
         figure('position', pos, 'Name', 'Adaptive')
         hold on
-        unstructuredContour(model.G, stAdapt{tNo}.x(:,1), 5, 'linew', 2);
+        unstructuredContour(model.G, stAdapt{tNo}.components(:,2), nContour, 'linew', 2);
         plotGrid(stAdapt{tNo}.G, 'facec', 'none', 'edgec', gray);
         colormap(copper);
         axis equal tight
@@ -114,6 +120,7 @@ for tNo = timeSteps
         ax = gca;
         [ax.XTickLabel, ax.YTickLabel] = deal({});
         box on
+        caxis([0,1])
         drawnow();pause(0.5)
         savepng(['qfs-co2-x-', num2str(tNo), '-adapt']);
     end
@@ -122,12 +129,50 @@ end
 
 disp(realTime(timeSteps));
 
+%%
+close all
+its = iterations{3};
+itm = max(cellfun(@max, its(timeSteps)));
+
+for tNo = timeSteps
+    
+%     c  = it > 0;
+
+    if ~isempty(stRef{tNo})
+        figure('position', pos, 'Name', 'Reference')
+        hold on
+        c = its{tNo} > 0;
+        plotCellData(model.G, its{tNo}, c, 'edgec', 'none');
+        colormap(jet);
+        caxis([1, itm]);
+        axis equal tight
+        pw(G, W)
+        ax = gca;
+        [ax.XTickLabel, ax.YTickLabel] = deal({});
+        box on
+        drawnow();pause(0.5)
+        savepng(['qfs-co2-its-', num2str(tNo)]);
+    end
+            
+end
+
+%%
+
+figure();
+colorbar();
+caxis([1,itm]);
+colormap(jet);
+axis off
+ax = gca;
+ax.FontSize = 14;
+savepng(['qfs-co2-its-bar']);
+
 %% Well curves
 
 close all
 
 comp = cell(6,1);
-for mNo = 1:6
+for mNo = 1:5
     cmp = cellfun(@(ws) ws(2).components, ws{mNo}, 'unif', false);
     comp{mNo} = abs(vertcat(cmp{:}));
 end
@@ -144,7 +189,7 @@ for cNo = 1:size(comp{2},2)
     figure();
     hold on
     cMax = -Inf;
-    for mNo = 2:6
+    for mNo = 2:5
         cmp = comp{mNo};
         if ~isempty(cmp)
             cMax = max(cMax, max(cmp(:,cNo)));
@@ -152,7 +197,7 @@ for cNo = 1:size(comp{2},2)
         end
     end
     hold off
-    legend(names(2:6), 'location', 'northwest');
+    legend(names(2:5), 'location', 'northwest');
     box on; grid on;
     ax = gca;
     ax.FontSize = fontSize;
@@ -188,17 +233,17 @@ for pNo = 2:numel(problems)
     end
 end
 
-intIts = cellfun(@(its) cellfun(@sum, its), iterations(2:end-1), 'unif', false);
+intIts = cellfun(@(its) cellfun(@sum, its), iterations(2:end), 'unif', false);
 
 figure('position', [-1000, 0, 600, 300]);
 hold on
 for pNo = 1:4
-    plot(dtt, intIts{pNo}, '-', 'linew', 2)
+    plot(dtt, cumsum(intIts{pNo}/model.G.cells.num), '-', 'linew', 2)
 end
 hold off
 box on; grid on
 xlim([0, dtt(end)])
-legend({'Sequential', 'Reordered', 'Adaptive', 'Coarse'});
+legend({'Sequential', 'Reordered', 'Adaptive', 'Coarse'}, 'location', 'northwest');
 ax = gca;
 ax.FontSize = fontSize;
 xlabel('Time (days)');
