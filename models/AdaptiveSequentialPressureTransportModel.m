@@ -263,7 +263,10 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
                 X = eos.getMassFraction(state.x);
                 Y = eos.getMassFraction(state.y);
                 assert(~model.water);
-                mass = pvf.*(state.s(:, 1).*state.rho(:, 1).*X + state.s(:, 2).*state.rho(:, 2).*Y);
+                
+                rhoL_f = state.rho(:, 1);
+                rhoV_f = state.rho(:, 2);
+                mass = pvf.*(state.s(:, 1).*rhoL_f.*X + state.s(:, 2).*rhoV_f.*Y);
 
                 mass_c = S*mass;
 
@@ -300,20 +303,6 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
                 state_c.s = state_c.s.*sT;
 
                 state = state_c;
-
-%                 rmfields = {'x', 'y', 'mixing', 'switched', 'switchount', 'w', 'b', 'Z_L', 'Z_V'};
-%                 for i = 1:numel(rmfields)
-%                     if isfield(state, rmfields{i})
-%                         state = rmfield(state, rmfields{i});
-%                     end
-%                 end
-
-
-%                 disp('marker');
-
-%                 mass = state.transportState.components.*state.transportState.rho.*sT;
-%                 state.s = S*(pvPrev.*bPrev.*state.transportState.s)./(S*(pvPrev.*bPrev));
-
             else
 
                 for fNo = 1:numel(flowVarNames)
@@ -430,12 +419,19 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
                 % Downscale compositions
                 eos = transportModel.EOSModel;
                 state.components = transportState.components(p, :);
+                if isfield(state, 'rho')
+                    state = rmfield(state, 'rho');
+                end
+                state = rmfield(state, 'L');
+                
                 state = transportModel.computeFlash(state, inf);
 
 
                 getDensity = @(x, Z) eos.PropertyModel.computeDensity(state.pressure, x, Z, state.T, nan);
                 rhoL = getDensity(state.x, state.Z_L);
                 rhoV = getDensity(state.y, state.Z_V);
+                
+                state.rho = [rhoL, rhoV];
                 pvf = model.pressureModel.operators.pv;
                 pvc = model.transportModel.operators.pv;
                 m = pvf.*(rhoL.*state.s(:, 1) + rhoV.*state.s(:, 2));

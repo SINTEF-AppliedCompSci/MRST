@@ -10,7 +10,15 @@ gravity reset off
 
 name = 'qfs_co2_small';
 baseName = 'qfs-CO2';
-dataDir  = fullfile('/media/strene/806AB4786AB46C92/mrst-dg/rsc-2019', baseName);
+
+location = 'work';
+location = 'home';
+switch location
+    case 'work'
+        dataDir = fullfile('/media/strene/806AB4786AB46C92/mrst-dg/rsc-2019', baseName);
+    case 'home'
+        dataDir = fullfile(mrstPath('dg'), 'examples', 'rsc-2019', 'qfs-co2', 'sim-output');
+end
 [state0, model, schedule] = getReorderingCase(name);
 
 pack = @(state0, model, name, desc) ...
@@ -18,7 +26,6 @@ pack = @(state0, model, name, desc) ...
                           'Name'           , name          , ...
                           'Directory'      , dataDir       , ...
                           'Description'    , desc          );
-
 
 %% Fully-implicit
 
@@ -40,7 +47,7 @@ modelreorder.pressureModel.extraStateOutput = true;
 modelreorder.transportModel = ReorderingModel(modelreorder.transportModel);
 modelreorder.transportModel.parent.extraStateOutput = true;
 
-modelreorder.transportModel.chunkSize = 10;
+modelreorder.transportModel.chunkSize = 50;
 modelreorder.transportModel.buffer = 0;
 
 reorder = pack(state0, modelreorder, 'reorder', 'Reordering');
@@ -107,7 +114,7 @@ d = pdist2(coarsemodel.transportModel.G.cells.centroids, model.G.cells.centroids
 for wNo = 1:numel(W)
     WC(wNo).cells = c(wNo);
 end
-
+coarsemodel.transportNonLinearSolver.LinearSolver = BackslashSolverAD();
 coarse = pack(state0C, coarsemodel, 'coarse', 'Coarse');
 coarse.SimulatorSetup.schedule.control(1).W = WC;
 
@@ -124,13 +131,5 @@ end
 
 %%
 
-setup = problems{4}.SimulatorSetup;
+setup = problems{5}.SimulatorSetup;
 [ws, st, rep] = simulateScheduleAD(setup.state0, setup.model, setup.schedule);
-
-
-
-
-
-
-
-
