@@ -14,7 +14,7 @@ pos  = [-1000, 0, 500, 500];
 posv = [-1000, 0, 500, 500];
 fontSize = 12;
 pth = fullfile(mrstPath('dg'), 'examples', 'rsc-2019', 'qfs-reorder', 'fig');
-if 0
+if 1
     savepng = @(name) print(fullfile(pth, name), '-dpng', '-r300');
     saveeps = @(name) print(fullfile(pth, name), '-depsc');
 else
@@ -31,15 +31,15 @@ cmap = parula;
 frac = 0.5;
 cmap = cmap*frac + (1-frac);
 
-%% Plot saturation on refined grids
+%% Plot saturation
 
 names = {'reorder', 'gravity'};
 
 % close all
 frac = 0.8;
-timeSteps = [5, 15, 30, 50, 85];
+
 refFactor = [];
-for mNo = 1:2
+for mNo = 2
     for tNo = timeSteps
         figure('Position', pos);
         hold on
@@ -64,8 +64,8 @@ end
 %% Spyplots
 
 close all
-
-for mNo = 1:2
+timeSteps = [5, 15, 30, 50, 85];
+for mNo = 2
     setup = problems{mNo}.SimulatorSetup;
     model = setup.model.transportModel;
     drivingForces = setup.schedule.control;
@@ -145,7 +145,7 @@ for mNo = 1:2
         figure('Position', pos);
         hold on
         st = states{mNo}{tNo}; 
-        plotCellData(G, states{mNo}{tNo}.order);
+        plotGrid(G, 'facec', 'none');
         for cNo = 1:numel(cycles)
             cycle = cycles(cNo);
             ix = cPos(cycle):cPos(cycle+1)-1;

@@ -24,7 +24,7 @@ pack = @(state0, model, schedule, name) ...
 
 %% make PEBI grid
 
-n  = 10;
+n  = 8;
 l = 1000;
 G = pebiGrid(l/n, [l,l]);
 close all
@@ -67,55 +67,56 @@ state0 = initResSol(G, 100*barsa, [sW,1-sW]);
 
 chunk = 1;
 
-gravity reset off
+% gravity reset off
 
-% FI model
-modelFI = TwoPhaseOilWaterModel(G, rock, fluid);
-% Seq model
-modelSI = getSequentialModelFromFI(modelFI);
-% Set up discretization
-[mt, ot, jt] = deal(0);
-disc = DGDiscretization(modelSI.transportModel, ...
-               'degree'               , 0          , ...
-               'basis'                , 'legendre' , ...
-               'useUnstructCubature'  , true       , ...
-               'jumpTolerance'        , jt         , ...
-               'outTolerance'         , ot         , ...
-               'outLimiter'           , 'kill'     , ...
-               'meanTolerance'        , mt         );
-state0 = assignDofFromState(disc, state0);
-modelDG = getSequentialModelFromFI(modelFI);
-modelDG.transportModel = TransportOilWaterModelDG(G, rock, fluid, 'disc', disc);
-% Reordering model
-modelDG.transportModel = ReorderingModelDG(modelDG.transportModel);
-modelDG.transportModel.chunkSize = chunk;
-modelDG.transportModel.plotProgress = false;
-modelDG.transportModel.nonlinearTolerance = 1e-3;
-
-reorder = pack(state0, modelDG, schedule, 'reorder');
-
+% % FI model
+% modelFI = TwoPhaseOilWaterModel(G, rock, fluid);
+% % Seq model
+% modelSI = getSequentialModelFromFI(modelFI);
+% % Set up discretization
+% [mt, ot, jt] = deal(0);
+% disc = DGDiscretization(modelSI.transportModel, ...
+%                'degree'               , 0          , ...
+%                'basis'                , 'legendre' , ...
+%                'useUnstructCubature'  , true       , ...
+%                'jumpTolerance'        , jt         , ...
+%                'outTolerance'         , ot         , ...
+%                'outLimiter'           , 'kill'     , ...
+%                'meanTolerance'        , mt         );
+% state0 = assignDofFromState(disc, state0);
+% modelDG = getSequentialModelFromFI(modelFI);
+% modelDG.transportModel = TransportOilWaterModelDG(G, rock, fluid, 'disc', disc);
+% % Reordering model
+% modelDG.transportModel = ReorderingModelDG(modelDG.transportModel);
+% modelDG.transportModel.chunkSize = chunk;
+% modelDG.transportModel.plotProgress = false;
+% modelDG.transportModel.nonlinearTolerance = 1e-3;
+% 
+% reorder = pack(state0, modelDG, schedule, 'reorder');
+% 
 gravity reset on
 gravity([0, -100]);
-
-% FI model
-modelFI = TwoPhaseOilWaterModel(G, rock, fluid);
-% Seq model
-modelSI = getSequentialModelFromFI(modelFI);
-% Set up discretization
-[mt, ot, jt] = deal(0);
-disc = DGDiscretization(modelSI.transportModel, ...
-               'degree'               , 0          , ...
-               'basis'                , 'legendre' , ...
-               'useUnstructCubature'  , true       , ...
-               'jumpTolerance'        , jt         , ...
-               'outTolerance'         , ot         , ...
-               'outLimiter'           , 'kill'     , ...
-               'meanTolerance'        , mt         );
+% 
+% % FI model
+% modelFI = TwoPhaseOilWaterModel(G, rock, fluid);
+% % Seq model
+% modelSI = getSequentialModelFromFI(modelFI);
+% % Set up discretization
+% [mt, ot, jt] = deal(0);
+% disc = DGDiscretization(modelSI.transportModel, ...
+%                'degree'               , 0          , ...
+%                'basis'                , 'legendre' , ...
+%                'useUnstructCubature'  , true       , ...
+%                'jumpTolerance'        , jt         , ...
+%                'outTolerance'         , ot         , ...
+%                'outLimiter'           , 'kill'     , ...
+%                'meanTolerance'        , mt         );
 modelDG = getSequentialModelFromFI(modelFI);
-modelDG.transportModel = TransportOilWaterModelDG(G, rock, fluid, 'disc', disc);
+modelDG.transportModel = TransportOilWaterModel(G, rock, fluid, 'disc', disc);
 % Reordering model
-modelDG.transportModel = ReorderingModelDG(modelDG.transportModel);
+modelDG.transportModel = ReorderingModel(modelDG.transportModel);
 modelDG.transportModel.chunkSize = chunk;
+modelDG.pressureModel.extraStateOutput = true;
 
 reorderGravity = pack(state0, modelDG, schedule, 'gravity');
 
