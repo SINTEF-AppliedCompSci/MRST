@@ -111,8 +111,11 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
                     f_res = horzcat(problem.equations{isf});
                     if size(f_res, 1) > 0
                         ratio = model.refineTol./model.transportModel.nonlinearTolerance;
-                        f_tol = model.transportModel.fugacityTolerance;
-                        
+                        if isa(model.transportModel, 'ThreePhaseCompositionalModel')
+                            f_tol = model.transportModel.fugacityTolerance;
+                        else
+                            f_tol = model.transportModel.parent.fugacityTolerance;
+                        end
                         bad_f = any(abs(f_res) > f_tol*ratio, 2);
                         if any(bad_f)
                             twoPh = find(transportState.flag == 0);
