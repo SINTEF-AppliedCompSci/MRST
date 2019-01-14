@@ -99,13 +99,15 @@ axis equal tight; ax = gca;
 %% Set up models
 
 degree = [0,1];
-jt = Inf; ot = 1e-3; mt = 1e-3;
-
-% Fully implicit fine model
+jt = Inf; ot = 1e-6; mt = 1e-6;
 G.cells.equal = true;
 G.faces.equal = false;
 GC.cells.equal = false;
 GC.faces.equal = false;
+
+%%
+
+% Fully implicit fine model
 modelFI = TwoPhaseOilWaterModel(G, rock, model.fluid);
 
 [modelDG, modelDGreorder, modelDGadapt, modelDGadaptReorder] = deal(cell(numel(degree),1));
@@ -167,6 +169,7 @@ for dNo = 1:numel(degree)
     tmodel = modelDG{dNo}.transportModel;
     state0         = assignDofFromState(tmodel.disc, state0);
     state0.bfactor = [fluid.bW(state0.pressure), fluid.bO(state0.pressure)];
+    [state0.posFlux, state0.negFlux] = deal(false);
     
     tmodel = modelDGadapt{dNo}.transportModel;
     state0C = assignDofFromState(tmodel.disc, state0C);
@@ -207,8 +210,57 @@ weno      = packSimulationProblem(state0, modelWENO, schedule, baseName, ...
 
 %%
 
-mdlIx = 1;
-for dNo = 2
+coarseModel = upscaleModelTPFA(modelFI, GC);
+modelDGC = cell(numel(degree),1);
+for dNo = 1:2
+    modelDGC{dNo} = getSequentialModelFromFI(coarseModel);
+
+    % Set up discretization
+    disc = DGDiscretization(modelDGC{dNo}.transportModel, ...
+                   'degree'               , degree(dNo), ...
+                   'basis'                , 'legendre' , ...
+                   'useUnstructCubature'  , true       , ...
+                   'jumpTolerance'        , jt         , ...
+                   'outTolerance'         , ot         , ...
+                   'outLimiter'           , 'kill'     , ...
+                   'meanTolerance'        , mt         );
+    % Transport model
+    tmodel = TransportOilWaterModelDG(coarseModel.G, coarseModel.rock, coarseModel.fluid, ...
+                                'disc'              , disc, ...
+                                'dsMaxAbs'          , 0.1 , ...
+                                'nonlinearTolerance', 1e-3);
+    modelDGC{dNo}.transportModel = tmodel;
+end
+
+%%
+scheduleC = schedule;
+W = scheduleC.control(1).W;
+xw = model.G.cells.centroids([W.cells],:);
+dd = pdist2(GC.cells.centroids, xw);
+[~, ix] = min(dd);
+WC = W;
+for wNo = 1:numel(W)   
+    WC(wNo).cells = ix(wNo);
+end
+scheduleC.control(1).W = WC;
+coarseProblems = cell(2,1);
+for dNo = 1:2
+    d = fullfile(dataDir, ['dg', num2str(degree(dNo))]);
+    state0C = assignDofFromState(modelDGC{dNo}.transportModel.disc, state0C);
+    coarseProblems{dNo} = packSimulationProblem(state0C, modelDGC{dNo}, ...
+                scheduleC, baseName, 'Directory', d, 'name', 'coarse');
+end
+
+%%
+
+for dNo = 1:2
+    [ok, status] = simulatePackedProblem(coarseProblems{dNo});
+end
+
+%%
+
+mdlIx = 2;
+for dNo = 1
     for mNo = mdlIx
         [ok, status] = simulatePackedProblem(problems{dNo,mNo});
     end

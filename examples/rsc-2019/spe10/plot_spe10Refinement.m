@@ -11,12 +11,21 @@ for dNo = 1:numel(degree)
 end
 [wsWENO, statesWENO, reportsWENO] = getPackedSimulatorOutput(weno, 'readFromDisk', false);
 
+%% Load Coarse 
+
+[wsCoarse, statesCoarse, repCoarse] = deal(cell(2,1));
+for dNo = 1:2
+    [wsCoarse{dNo}, statesCoarse{dNo}, repCoarse{dNo}] ...
+        = getPackedSimulatorOutput(coarseProblems{dNo}, 'readFromDisk', false);
+end
+
 %% Get iterations
 
 reports = cell(size(r));
 iterations = cell(numel(degree), 4);
 for dNo = 1:numel(degree)
     for mNo = 1:3
+        fprintf('Getting iterations for %s ... \n', names{mNo});
         n   = r{dNo,mNo}.numelData;
         rep = cell(n,1);
         for sNo = 1:n
@@ -26,6 +35,7 @@ for dNo = 1:numel(degree)
             iterations{dNo, mNo} = getReorderingTransportIterations(rep);
         else
             for sNo = 1:numel(rep)
+                fprintf('Getting iterations for state %d ... \n', sNo);
                 st = states{dNo, mNo}{sNo};
                 if isfield(st, G); g = st.G; else; g = G; end
                 its = repmat(rep{sNo}.StepReports{1}.NonlinearReport{1}.TransportSolver.Iterations, g.cells.num, 1);
@@ -62,6 +72,9 @@ cpos = [0.1300 0.07 0.7750 0.03];
 
 gray = [1,1,1]*0.5;
 clr = lines(5);
+
+cmap = winter;
+cmap = cmap(end:-1:1, :);
 
 %% Plot permeability
 
@@ -123,19 +136,10 @@ savepng('spe10-poro');
 
 close all
 
-rIx = find(contains(names, 'reorder')); rIx = rIx(1);
-st  = states(:, 1);
-rep = reports(:, rIx);
-its = iterations(:, rIx);
+st      = states(:, 1);
+stAdapt = states(:, 3);
 
-timeSteps = [20, 42, 100];
-itMaxdG0 = max(cellfun(@(it) max(it), its{1}(timeSteps)));
-itMaxdG1 = max(cellfun(@(it) max(it), its{2}(timeSteps)));
-itMax = max(itMaxdG0, itMaxdG1);
-% itMax = cellfun(@(it) max(it), cellfun(@(it) max(cellfun(@(it) max(it(timeSteps)), it)), its, 'unif', false));
-% itMax = max(itMax(1:2));
-cmap = winter;
-cmap = cmap(end:-1:1, :);
+timeSteps = [43];
 for tNo = timeSteps
     for dNo = 1:2%numel(degree)
         if ~isempty(st{dNo})
@@ -154,21 +158,19 @@ for tNo = timeSteps
             colormap(cmap)
             savepng(['spe10-sat-', num2str(tNo), '-dg', num2str(degree(dNo))]);
             
-            % Plot reordering iterations
-            figure('position', posv, 'name', ['dG(', num2str(degree(dNo)), ') iterations']);
+            % Plot dG profile
+            figure('position', posv, 'name', ['dG(', num2str(degree(dNo)), ') adaptive']);
 
-            plotGrid(G, 'facec', 'none', 'edgec', 'none')
-            c = its{dNo}{tNo} > 0;
-            plotCellData(G, its{dNo}{tNo}(c), c, 'edgec', 'none'); 
+            unstructuredContour(G, stAdapt{dNo}{tNo}.s(:,1), 10,'linew', 2);
             hold on
             pw(G, WF);
             axis equal tight
             box on
-            caxis([0, itMax]);
+            caxis([0.2, 0.8]);
             ax = gca;
             [ax.XTickLabel, ax.YTickLabel] = deal({});
-            colormap(jet)
-            savepng(['spe10-its-', num2str(tNo), '-dg', num2str(degree(dNo))]);
+            colormap(cmap)
+            savepng(['spe10-sat-', num2str(tNo), '-dg', num2str(degree(dNo)), '-adapt']);
 
         end
     end
@@ -189,6 +191,62 @@ for tNo = timeSteps
         savepng(['spe10-sat-', num2str(tNo), '-weno']);
     end
     
+end
+
+%% Plot saturaiton for coarse
+
+timeSteps = [43];
+
+for dNo = 1:2
+    
+    % Plot dG profile
+    figure('position', posv, 'name', ['dG(', num2str(degree(dNo)), ')']);
+
+    unstructuredContour(GC, statesCoarse{dNo}{tNo}.s(:,1), 10,'linew', 2);
+    hold on
+    pw(G, WF);
+    axis equal tight
+    box on
+    caxis([0.2, 0.8]);
+    ax = gca;
+    [ax.XTickLabel, ax.YTickLabel] = deal({});
+    colormap(cmap)
+%     savepng(['spe10-sat-', num2str(tNo), '-dg', num2str(degree(dNo))]);
+    
+end
+
+%% Plot reordering iterations
+
+rIx = find(contains(names, 'reorder')); rIx = rIx(1);
+rep = reports(:, rIx);
+its = iterations(:, rIx);
+itMaxdG0 = max(cellfun(@(it) max(it), its{1}(timeSteps)));
+itMaxdG1 = max(cellfun(@(it) max(it), its{2}(timeSteps)));
+itMax = max(itMaxdG0, itMaxdG1);
+% itMax = cellfun(@(it) max(it), cellfun(@(it) max(cellfun(@(it) max(it(timeSteps)), it)), its, 'unif', false));
+% itMax = max(itMax(1:2));
+
+timeSteps = [20, 43, 100];
+for tNo = timeSteps
+    for dNo = 1:2
+
+    % Plot reordering iterations
+    figure('position', posv, 'name', ['dG(', num2str(degree(dNo)), ') iterations']);
+
+    plotGrid(G, 'facec', 'none', 'edgec', 'none')
+    c = its{dNo}{tNo} > 0;
+    plotCellData(G, its{dNo}{tNo}(c), c, 'edgec', 'none'); 
+    hold on
+    pw(G, WF);
+    axis equal tight
+    box on
+    caxis([0, itMax]);
+    ax = gca;
+    [ax.XTickLabel, ax.YTickLabel] = deal({});
+    colormap(jet)
+%     savepng(['spe10-its-', num2str(tNo), '-dg', num2str(degree(dNo))]);
+    
+    end
 end
 
 %% Plot adaptive refinement for dG(0) and dG(1)
@@ -236,24 +294,27 @@ dtt    = cumsum(schedule.step.val)/day;
 
 itPos = [-1000, 0, 600, 300];
 for dNo = 1:2
+    iimax = -Inf;
     figure('position', itPos)
     pNames = {['dG(', num2str(dNo-1), ')']           , ...
               ['dG(', num2str(dNo-1), '), reordered'], ...
               ['dG(', num2str(dNo-1), '), adaptive'] , ...
               'WENO'};
     hold on
-    imax = -Inf;
     for mNo = 1:3
-        imax = max(max(intIts{dNo,mNo}), imax);
-        plot(dtt, intIts{dNo,mNo}, '-', 'linew', 2)
+        ii = cumsum(intIts{dNo,mNo}/model.G.cells.num);
+        iimax = max(max(ii), iimax);
+        plot(dtt(1:numel(ii)), ii, '-', 'linew', 2)
     end
     if dNo == 2
-        plot(dtt, intItsWENO, '-', 'linew', 2)
+        ii = cumsum(intItsWENO/model.G.cells.num);
+        iimax = max(iimax, max(ii));
+        plot(dtt, ii, '-', 'linew', 2)
     end
     hold off
-    legend(pNames)
+    legend(pNames, 'location', 'northwest')
     box on; grid on
-    axis([0, dtt(end), 0, imax*1.1]);
+    axis([0, dtt(end), 0, iimax*1.1]);
     ax = gca;
     ax.FontSize = fontSize;
     xlabel('Time (days)');
@@ -324,17 +385,12 @@ xlabel('Time (days)');
 ylabel('Water cut');
 saveeps('spe10-wcut');
 
-%%
+%% Compare states
 
-
-
-
-
-
-
-
-
-
+tIx = 20;
+st  = states{1,1}{tIx};
+str = states{1,2}{tIx};
+sd  = compareStates(st, str);
 
 
 
