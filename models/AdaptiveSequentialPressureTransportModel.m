@@ -51,9 +51,7 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
 
             model.coarsenTol = 1e-2;
             model.refineTol  = 1e-2;
-
             model = merge_options(model, varargin{:});
-
         end
 
         function [state, pressureReport, transportReport, pressure_ok, transport_ok, forceArg] = solvePressureTransport(model, state, state0, dt, drivingForces, iteration)
@@ -106,6 +104,7 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
                 end
 
                 cells = any(abs(residual) > model.refineTol,2) & ~G.cells.refined;
+
                 ix = G.cells.refined & all(abs(residual) < model.coarsenTol,2);
                 
                 
@@ -135,6 +134,32 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
                 end
                 
                 
+                
+%                 cells(G.cells.refined & any(abs(residual) > model.coarsenTol,2)) = true;
+                
+                isf = strcmpi(problem.types, 'fugacity');
+                if any(isf)
+                    f_res = horzcat(problem.equations{isf});
+                    if size(f_res, 1) > 0
+                        ratio = model.refineTol./model.transportModel.nonlinearTolerance;
+                        if isa(model.transportModel, 'ThreePhaseCompositionalModel')
+                            f_tol = model.transportModel.fugacityTolerance;
+                        else
+                            f_tol = model.transportModel.parent.fugacityTolerance;
+                        end
+                        bad_f = any(abs(f_res) > f_tol*ratio, 2);
+                        if any(bad_f)
+                            twoPh = find(transportState.flag == 0);
+                            cells(twoPh(bad_f)) = true;
+                        end
+                    end
+                    if isfield(model.transportModel.G, 'partition')
+                        p = model.transportModel.G.partition;
+                        coarseFlag = transportState.flag(p);
+                        phaseChange = accumarray(p, double(coarseFlag ~= state.flag)) > 0;
+                        cells(phaseChange) = true;
+                    end
+                end
                 
                 [model, transportState, transportState0, drivingForces] ...
                     = model.refineTransportModel(cells, pressureState, state0, drivingForces);
@@ -395,6 +420,7 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
             if model.isDG
                 G = coarsenCellDimensions(G);
             end
+            fprintf('%d fine cells and %d coarse cells\n', model.fineTransportModel.G.cells.num, G.cells.num);
             G.cells.equal    = false;
             G.faces.equal    = false;
             G.cells.ghost    = false(G.cells.num, 1);
@@ -451,8 +477,8 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
                 if isfield(state, 'rho')
                     state = rmfield(state, 'rho');
                 end
-                state = rmfield(state, 'L');
-                
+%                 state = rmfield(state, 'L');
+                state.L = state.L(p);
                 state = transportModel.computeFlash(state, inf);
 
 
@@ -462,7 +488,11 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
                 
                 state.rho = [rhoL, rhoV];
                 pvf = model.pressureModel.operators.pv;
-                pvc = model.transportModel.operators.pv;
+                if model.isReordering
+                    pvc = model.transportModel.parent.operators.pv;
+                else
+                    pvc = model.transportModel.operators.pv;
+                end
                 m = pvf.*(rhoL.*state.s(:, 1) + rhoV.*state.s(:, 2));
 
                 % Integrated mass from the fine grid, on the coarse grid
