@@ -198,10 +198,8 @@ if any(isRF)
     mobC = cell(1, nph);
     for i = 1:nph
         G{i} = dzbc.*rhoAvgF{i};
-%         double(rhoAvgF{i})
         mobC{i} = vertcat(mobF{i, 2}, mobF{i, 1});
     end
-    dzbc
     vT = sum(bc.value, 2);
     
     nf = numel(vT);
