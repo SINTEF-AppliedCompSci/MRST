@@ -37,6 +37,10 @@ else
     data.states = cellfun(@(x)x.states{1}, precomp, 'UniformOutput', false);
 end
 
+for i = 1:numel(data.states)
+    data.wells{i} = data.states{i}.wellSol;
+end
+
 valid_ix = isValidState(data.states);
 if ~all(valid_ix)
     ns = nnz(~valid_ix);
@@ -44,6 +48,7 @@ if ~all(valid_ix)
     data.time.prev = data.time.prev(valid_ix);
     data.time.cur  = data.time.cur(valid_ix);
     data.states    = data.states(valid_ix);
+    data.wells     = data.wells(valid_ix);
 end
 
 % include some more fields from restart later on
