@@ -106,7 +106,36 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
                 end
 
                 cells = any(abs(residual) > model.refineTol,2) & ~G.cells.refined;
-                cells(G.cells.refined & any(abs(residual) > model.coarsenTol,2)) = true;
+                ix = G.cells.refined & all(abs(residual) < model.coarsenTol,2);
+                
+                
+%                 vec = false(GF.cells.num,1);
+                if 1
+                    % Map to fine grid
+                    ix = ix(G.partition);
+                    % Sum up on coarse grid
+                    ll = accumarray(model.G0.partition, ix);
+                    [~, n] = rlencode(sort(model.G0.partition));
+                    % Coarse cell where not all fine-cell residuals are
+                    % below coarsenTol
+                    c = ll < n;
+                    c = c(model.G0.partition);
+                    c = accumarray(G.partition, c)> 0;
+%                     % Map to fine grid again
+%                     c = c(model.G0.partition);
+%                     % Sum up on transport grid
+%                     ll = accumarray(G.partition, c);
+%                     [~, n] = rlencode(sort(G.partition));
+%                     c = ll < n;
+%                     c = accumarray(G.partition, c) > 0;
+                    
+                    cells = cells | (G.cells.refined & c);
+                else
+                    cells(G.cells.refined & any(abs(residual) > model.coarsenTol,2)) = true;
+                end
+                
+                
+                
                 [model, transportState, transportState0, drivingForces] ...
                     = model.refineTransportModel(cells, pressureState, state0, drivingForces);
                 transportForces = drivingForces;

@@ -2,7 +2,7 @@ function mappings = getRefinementMappings(G, GC, GF, cells)
     % G : Current grid
     % GC: Coarse grid
     % GF: Fine grid
-    % cells: Cells in GC to be refined
+    % cells: Cells in G to be refined
 
     
     if nnz(cells) > 0
