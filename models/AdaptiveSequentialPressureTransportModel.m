@@ -119,10 +119,12 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
                             cells(twoPh(bad_f)) = true;
                         end
                     end
-                    p = model.transportModel.G.partition;
-                    coarseFlag = transportState.flag(p);
-                    phaseChange = accumarray(p, double(coarseFlag ~= state.flag)) > 0;
-                    cells(phaseChange) = true;
+                    if isfield(model.transportModel.G, 'partition')
+                        p = model.transportModel.G.partition;
+                        coarseFlag = transportState.flag(p);
+                        phaseChange = accumarray(p, double(coarseFlag ~= state.flag)) > 0;
+                        cells(phaseChange) = true;
+                    end
                 end
                 
                 [model, transportState, transportState0, drivingForces] ...
@@ -452,7 +454,11 @@ classdef AdaptiveSequentialPressureTransportModel < SequentialPressureTransportM
                 
                 state.rho = [rhoL, rhoV];
                 pvf = model.pressureModel.operators.pv;
-                pvc = model.transportModel.operators.pv;
+                if model.isReordering
+                    pvc = model.transportModel.parent.operators.pv;
+                else
+                    pvc = model.transportModel.operators.pv;
+                end
                 m = pvf.*(rhoL.*state.s(:, 1) + rhoV.*state.s(:, 2));
 
                 % Integrated mass from the fine grid, on the coarse grid
