@@ -45,20 +45,6 @@ modelreorder.transportModel.buffer = 0;
 
 reorder = pack(state0, modelreorder, 'reorder', 'Reordering');
 
-%% Sequential-reordering strict tolerance
-
-modelreorder = getSequential_local(model);
-modelreorder.pressureModel.extraStateOutput = true;
-modelreorder.transportModel = ReorderingModel(modelreorder.transportModel);
-modelreorder.transportModel.parent.extraStateOutput = true;
-
-modelreorder.transportModel.chunkSize = 10;
-modelreorder.transportModel.buffer = 0;
-modelreorder.transportNonLinearSolver.LinearSolver = BackslashSolverAD();
-modelreorder.transportModel.parent.nonlinearTolerance = 1e-5;
-
-reorderStrict = pack(state0, modelreorder, 'reorder-strict', 'Reordering Strict');
-
 %% Adaptive
 
 nls = NonLinearSolver();
@@ -80,13 +66,13 @@ state0C = upscaleState(coarsemodel, modeladapt.transportModel, state0);
 modeladapt = AdaptiveSequentialPressureTransportModel(modeladapt.pressureModel, modeladapt.transportModel, GC);
 state0 = ensureDensitiesPresentCompositional(model, state0);
 state0C.rho = repmat(state0.rho(1,:), GC.cells.num,1);
-% state0C.bfactor = state0C.rho./[fluid.rhoOS, fluid.rhoGS];
-% state0C.x = repmat(state0.x(1,:), GC.cells.num, 1);
-% state0C.y = repmat(state0.y(1,:), GC.cells.num, 1);
-% state0C.L = repmat(state0.L(1,:), GC.cells.num, 1);
-% state0C.K = repmat(state0.K(1,:), GC.cells.num, 1);
-% state0C.Z_V = repmat(state0.Z_V(1,:), GC.cells.num, 1);
-% state0C.Z_L = repmat(state0.Z_L(1,:), GC.cells.num, 1);
+state0C.bfactor = state0C.rho./[fluid.rhoOS, fluid.rhoGS];
+state0C.x = repmat(state0.x(1,:), GC.cells.num, 1);
+state0C.y = repmat(state0.y(1,:), GC.cells.num, 1);
+state0C.L = repmat(state0.L(1,:), GC.cells.num, 1);
+state0C.K = repmat(state0.K(1,:), GC.cells.num, 1);
+state0C.Z_V = repmat(state0.Z_V(1,:), GC.cells.num, 1);
+state0C.Z_L = repmat(state0.Z_L(1,:), GC.cells.num, 1);
 
 state0C.components = repmat(state0C.components(1,:), GC.cells.num, 1);
 state0.transportState = state0C;
@@ -127,18 +113,18 @@ coarse.SimulatorSetup.schedule.control(1).W = WC;
 
 %%
 
-problems = {fim, seq, reorder, adapt, coarse, reorderStrict};
+problems = {fim, seq, reorder, adapt, coarse};
 
 %% Simulate problems
 
-runIx = 2:4;
+runIx = 4;
 for pNo = runIx
     [ok, status] = simulatePackedProblem(problems{pNo});
 end
 
 %%
 
-setup = problems{3}.SimulatorSetup;
+setup = problems{4}.SimulatorSetup;
 [ws, st, rep] = simulateScheduleAD(setup.state0, setup.model, setup.schedule);
 
 
