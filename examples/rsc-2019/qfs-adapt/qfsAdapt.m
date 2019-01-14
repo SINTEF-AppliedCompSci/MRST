@@ -38,7 +38,7 @@ GF = computeCellDimensions2(GF);
 
 % Cartesian coarse grid
 G_cart = cartGrid([100, 100]);
-p_cart = partitionUI(G_cart, [20, 20]);
+p_cart = partitionUI(G_cart, [10, 10]);
 p_cart = sampleFromBox(GF, reshape(p_cart, G_cart.cartDims));
 GC = generateCoarseGrid(GF, p_cart);
 GC = coarsenGeometry(GC);
@@ -72,10 +72,17 @@ modelSI = getSequentialModelFromFI(modelFI);
 % ASI model
 modelASI = AdaptiveSequentialPressureTransportModel(modelSI.pressureModel, modelSI.transportModel, G);
 modelASI.transportModel.G = coarsenCellDimensions(modelASI.transportModel.G);
+modelASI.refineTol  = 1*1e-2;
+modelASI.coarsenTol = 3*1e-2;
+% Coarse model
+modelFIC = upscaleModelTPFA(modelFI, G);
+modelSIC = getSequentialModelFromFI(modelFIC);
 
 %% Set up schedule
 
+
 time = 2*year;
+dtvec = rampupTimesteps2(time, 7*day, 0);
 rate = 1.5*sum(poreVolume(GF, rockF))/time;
 xw = [0,0; l,l];
 
@@ -95,6 +102,15 @@ schedule = simpleSchedule(dtvec, 'W', WF);
 
 state0 = initResSol(GF, 100*barsa, [sW,1-sW]);
 state0.bfactor = [fluid.bW(state0.pressure), fluid.bO(state0.pressure)];
+
+WC = [];
+d = pdist2(G.cells.centroids, xw);
+
+[~, ix] = min(d(:,1));
+WC = addWell(WC, G, rock, ix, 'type', 'rate', 'val', rate    , 'comp_i', [1,0]);
+[~, ix] = min(d(:,2));
+WC = addWell(WC, G, rock, ix, 'type', 'bhp' , 'val', 50*barsa, 'comp_i', [1,0]);
+scheduleC = simpleSchedule(dtvec, 'W', WC);
 
 %%
 
@@ -118,7 +134,11 @@ adaptive = packSimulationProblem(state0, modelASI, schedule, baseName, ...
 seq = packSimulationProblem(state0, modelSI, schedule, baseName, ...
                                                 'Directory', dataDir, ...
                                                 'Name'     , 'seq'  );
-problems = {adaptive, seq};
+coarse = packSimulationProblem(state0C, modelSIC, scheduleC, baseName, ...
+                                                'Directory', dataDir, ...
+                                                'Name'     , 'coarse'  );
+
+problems = {adaptive, seq, coarse};
 
 %%
 
@@ -129,5 +149,5 @@ end
 
 %%
                 
-setup = problems{1}.SimulatorSetup;
+setup = problems{3}.SimulatorSetup;
 [ws, st, rep] = simulateScheduleAD(setup.state0, setup.model, setup.schedule);
