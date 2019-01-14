@@ -20,12 +20,15 @@ startday = datenum(info.date(1, [3 2 1]));
 data.time.prev = startday + info.time( max(steps-1,1) ) - info.time(1);
 data.time.cur  = startday + info.time( steps ) - info.time(1);
 
-[ws, states, report] = getPackedSimulatorOutput(problem);
-t = cumsum(schedule.step.val);
-for i = 1:numel(schedule.step.val)
-    wells{i} = schedule.control(schedule.step.control(i)).W;
-end
+[~, states, ~] = getPackedSimulatorOutput(problem);
+states = states(steps);
 
+
+t = cumsum(schedule.step.val);
+for i = 1:numel(schedule.step.val(steps))
+    data.wells{i} = schedule.control(schedule.step.control(i)).W;
+end
+data.wells = data.wells';
 
 
 
@@ -45,6 +48,14 @@ if ~all(valid_ix)
     data.time.prev = data.time.prev(valid_ix);
     data.time.cur  = data.time.cur(valid_ix);
     data.states    = data.states(valid_ix);
+    data.wells     = data.wells(valid_ix);
+end
+
+% add cells to states.wellSol
+for i = 1:numel(data.states)
+    for j = 1:numel(data.states{i}.wellSol)
+        data.states{i}.wellSol(j).cells = data.wells{i}.cells(j);
+    end
 end
 
 % include some more fields from restart later on
