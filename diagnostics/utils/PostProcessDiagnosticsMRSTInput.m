@@ -57,12 +57,9 @@ if ~all(valid_ix) && ~isempty(precomp)
     precomp = precomp(valid_ix);
 end
 
-try
-    d.Data.summary = readEclipseSummaryUnFmt(casenm);
-catch
-    d.Data.summary = [];
-    warning('Not able to read summary for selected case ...\n')
-end
+
+d.Data.summary = generateMRSTSummaryForPostProcessor(d.Data);
+
 
 d = PostProcessDiagnostics(d,precomp,'style',opt.style);
 

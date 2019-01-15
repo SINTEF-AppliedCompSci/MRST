@@ -51,12 +51,12 @@ if ~all(valid_ix)
     data.wells     = data.wells(valid_ix);
 end
 
-% add cells to states.wellSol
-for i = 1:numel(data.states)
-    for j = 1:numel(data.states{i}.wellSol)
-        data.states{i}.wellSol(j).cells = data.wells{i}.cells(j);
-    end
-end
+% % add cells to states.wellSol
+% for i = 1:numel(data.states)
+%     for j = 1:numel(data.states{i}.wellSol)
+%         data.states{i}.wellSol(j).cells = data.wells{i}.cells(j);
+%     end
+% end
 
 % include some more fields from restart later on
 data = setDynamic(G, data, valid_ix);

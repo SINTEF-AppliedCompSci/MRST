@@ -1,4 +1,4 @@
-function [smry, smspec] = generateMRSTSummary(prefix, keyWords)
+function [smry] = generateMRSTSummaryForPostProcessor(problem)
 %Undocumented utility function
 
 %{
@@ -19,6 +19,83 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+
+% Get data from problem
+
+[~, states, ~] = getPackedSimulatorOutput(problem);
+states = states(steps);
+model = problem.SimulatorSetup.model;
+schedule = problem.SimulatorSetup.schedule;
+
+
+
+% Read names
+% Assumes that all wellSols contain the same fields at the wellSol at
+% timestep 1.
+ws = states{1}.wellSol;
+
+for i = 1:numel(ws)
+    name{i} = ws(1).name;
+end
+
+% Read keywords
+kwlist{1} = 'bhp';
+kwlist{2} = 'qWs';
+kwlist{3} = 'qOs';
+kwlist{4} = 'qGs';
+
+
+
+% Generate data matrix
+
+
+for i = 1:numel(states)
+    bhp(:,i) = [states{i}.wellSol.bhp]';
+    qWs(:,i) = [states{i}.wellSol.qWs]';
+    qOs(:,i) = [states{i}.wellSol.qOs]';
+    qGs(:,i) = [states{i}.wellSol.qGs]';
+end
+
+sdata = [bhp;qWs;qOs;qGs];
+
+% need to add time and timesteps
+t = cumsum(schedule.step.val)./day;
+
+
+
+
+% Generate Units (might not need this - just change the get units function)
+
+% Generate keyword indices (kinx)
+
+% Generate name indices (ninx)
+
+% Define functions
+
+d=dd
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 smspec = readEclipseOutputFileUnFmt([prefix, '.SMSPEC']);
 
