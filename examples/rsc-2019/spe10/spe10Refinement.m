@@ -99,7 +99,7 @@ axis equal tight; ax = gca;
 %% Set up models
 
 degree = [0,1];
-jt = Inf; ot = 1e-6; mt = 1e-6;
+jt = 0.1; ot = 1e-2; mt = 1e-6;
 G.cells.equal = true;
 G.faces.equal = false;
 GC.cells.equal = false;
@@ -110,13 +110,13 @@ GC.faces.equal = false;
 % Fully implicit fine model
 modelFI = TwoPhaseOilWaterModel(G, rock, model.fluid);
 
-[modelDG, modelDGreorder, modelDGadapt, modelDGadaptReorder] = deal(cell(numel(degree),1));
+[modelDG, modelDGreorder, modelDGadapt, modelDGreorderStrict, modelDGadaptReorder] = deal(cell(numel(degree),1));
 
 for dNo = 1:numel(degree)
     
     % Assign sequential models
-    [modelDG{dNo}, modelDGreorder{dNo}, modelDGadapt{dNo}, modelDGadaptReorder{dNo}] ...
-        = deal(getSequentialModelFromFI(modelFI));
+    [modelDG{dNo}, modelDGreorder{dNo}, modelDGadapt{dNo}, modelDGadaptReorder{dNo}, modelDGreorderStrict{dNo}] ...
+        = deal(getSequentialModelFromFI(modelFI));  
 
     % Set up discretization
     disc = DGDiscretization(modelDG{dNo}.transportModel, ...
@@ -141,6 +141,9 @@ for dNo = 1:numel(degree)
     
     % Reordering model
     modelDGreorder{dNo}.transportModel = tmodelReorder;
+    modelDGreorderStrict{dNo}.transportModel = tmodelReorder;
+    modelDGreorderStrict{dNo}.transportModel.parent.nonlinearTolerance = 1e-5;
+    modelDGreorderStrict{dNo}.transportModel.chunkSize = 500;
     
     % Adaptive model
     modelDGadapt{dNo} ...
@@ -152,8 +155,6 @@ for dNo = 1:numel(degree)
     
 end
 
-modelRef = getSequentialModelFromFI(modelFI);
-
 %%
 
 state0.bfactor = [fluid.bW(state0.pressure), fluid.bO(state0.pressure)];
@@ -162,8 +163,8 @@ state0C.bfactor = [fluid.bW(state0C.pressure), fluid.bO(state0C.pressure)];
 
 %% Set up problems
 
-names = {'base', 'reorder', 'adapt', 'adapt-reorder'};
-problems = cell(numel(degree), numel(modelDG{1}));
+names = {'base', 'reorder', 'adapt', 'adapt-reorder', 'reorder-strict'};
+problems = cell(numel(degree), numel(names));
 for dNo = 1:numel(degree)
     
     tmodel = modelDG{dNo}.transportModel;
@@ -175,11 +176,14 @@ for dNo = 1:numel(degree)
     state0C = assignDofFromState(tmodel.disc, state0C);
     pv = tmodel.operators.pv;
     d = fullfile(dataDir, ['dg', num2str(degree(dNo))]);
-    mdls = {modelDG{dNo}, modelDGreorder{dNo}, modelDGadapt{dNo}, modelDGadaptReorder{dNo}};
+%     modelDGreorderStrict{dNo}.transportModel.parent.nonlinearTolerance = 1e-5;
+%     modelDGreorderStrict{dNo}.transportModel.chunkSize = 500;
+    mdls = {modelDG{dNo}, modelDGreorder{dNo}, modelDGadapt{dNo}, modelDGadaptReorder{dNo}, modelDGreorderStrict{dNo}};
     
     for mNo = 1:numel(mdls)
         
         if isa(mdls{mNo}, 'AdaptiveSequentialPressureTransportModel')
+            mdls{mNo}.coarsenTol = mdls{mNo}.refineTol*0.5;
             tmodel  = mdls{mNo}.transportModel;
             state0.transportState = state0C;
             state0.transportState.pv = pv;
@@ -259,8 +263,8 @@ end
 
 %%
 
-mdlIx = 2;
-for dNo = 1
+mdlIx = 5;
+for dNo = 2
     for mNo = mdlIx
         [ok, status] = simulatePackedProblem(problems{dNo,mNo});
     end
@@ -272,9 +276,13 @@ end
 
 %% Debug
 
-% setup = problems{2,3}.SimulatorSetup;
+% setup = baseProblems{2}.SimulatorSetup;
+% h     = baseProblems{2}.OutputHandlers.states;
+setup = problems{1,5}.SimulatorSetup;
 % setup.model.plotProgress = true;
-setup = weno.SimulatorSetup;
+% setup = weno.SimulatorSetup;
+% rIx = 79;
+% st0 = h{rIx-1};
 [ws, st, rep] = simulateScheduleAD(setup.state0, setup.model, setup.schedule);
 
 

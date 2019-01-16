@@ -1,8 +1,8 @@
 %% Load results
 
-[ws, states, r] = deal(cell(numel(degree), 4));
+[ws, states, r] = deal(cell(numel(degree), 5));
 
-mdlIx = 1:4;
+mdlIx = 1:5;
 for dNo = 1:numel(degree)
     for mNo = mdlIx
         [ws{dNo, mNo}, states{dNo, mNo}, r{dNo, mNo}] ...
@@ -37,7 +37,7 @@ for dNo = 1:numel(degree)
             for sNo = 1:numel(rep)
                 fprintf('Getting iterations for state %d ... \n', sNo);
                 st = states{dNo, mNo}{sNo};
-                if isfield(st, G); g = st.G; else; g = G; end
+                if isfield(st, 'G'); g = st.G; else; g = G; end
                 its = repmat(rep{sNo}.StepReports{1}.NonlinearReport{1}.TransportSolver.Iterations, g.cells.num, 1);
                 iterations{dNo, mNo}{sNo} = its;
             end
@@ -59,7 +59,7 @@ pos  = [-1000, 0, 800, 500];
 posv = [-1000, 0, 500, 800];
 fontSize = 12;
 pth = fullfile(mrstPath('dg'), 'examples', 'rsc-2019', 'spe10', 'fig');
-if 1
+if 0
     savepng = @(name) print(fullfile(pth, name), '-dpng', '-r300');
     saveeps = @(name) print(fullfile(pth, name), '-depsc');
 else
@@ -76,70 +76,14 @@ clr = lines(5);
 cmap = winter;
 cmap = cmap(end:-1:1, :);
 
-%% Plot permeability
-
-close all
-
-figure('name', 'Perm', 'position', pos);
-
-plotGrid(GC, 'facec', 'none');
-
-perm = rock.perm(:,1);
-plotCellData(G, log10(perm), 'edgec', 'none');
-axis equal tight
-view([90, 90])
-colormap(pink)
-hold on; pw(G, WF);
-
-ax = gca;
-ax.FontSize = fontSize;
-
-[c, h] = colorbarHist(perm, [min(perm), max(perm)], 'South', 50, true);
-h.Position = hpos;
-c.Position = cpos;
-c.Ticks = linspace(min(log10(perm)), max(log10(perm)), 5);
-lbl = (10.^c.Ticks)/(100*milli*darcy);
-c.TickLabels = round(lbl*1000)/1000;
-c.FontSize = fontSize;
-
-savepng('spe10-perm');
-
-%% Plot porosity
-
-close all
-
-figure('name', 'Perm', 'position', pos);
-
-plotGrid(GC, 'facec', 'none');
-
-poro = rock.poro;
-plotCellData(G, poro, 'edgec', 'none');
-axis equal tight
-view([90, 90])
-colormap(pink)
-hold on; pw(G, WF);
-
-ax = gca;
-ax.FontSize = fontSize;
-
-[c, h] = colorbarHist(poro, [min(poro), max(poro)], 'South', 50);
-h.Position = hpos;
-c.Position = cpos;
-c.Ticks = linspace(min(poro), max(poro), 5);
-lbl = c.Ticks;
-c.TickLabels = round(lbl*1000)/1000;
-c.FontSize = fontSize;
-
-savepng('spe10-poro');
-
-%% Plot Saturation profiles for dG(0) and dG(1) reordered
+%% Plot Saturation profiles for dG(0), dG(1) and WENO
 
 close all
 
 st      = states(:, 1);
 stAdapt = states(:, 3);
 
-timeSteps = [43];
+timeSteps = [42];
 for tNo = timeSteps
     for dNo = 1:2%numel(degree)
         if ~isempty(st{dNo})
@@ -193,29 +137,9 @@ for tNo = timeSteps
     
 end
 
-%% Plot saturaiton for coarse
-
-timeSteps = [43];
-
-for dNo = 1:2
-    
-    % Plot dG profile
-    figure('position', posv, 'name', ['dG(', num2str(degree(dNo)), ')']);
-
-    unstructuredContour(GC, statesCoarse{dNo}{tNo}.s(:,1), 10,'linew', 2);
-    hold on
-    pw(G, WF);
-    axis equal tight
-    box on
-    caxis([0.2, 0.8]);
-    ax = gca;
-    [ax.XTickLabel, ax.YTickLabel] = deal({});
-    colormap(cmap)
-%     savepng(['spe10-sat-', num2str(tNo), '-dg', num2str(degree(dNo))]);
-    
-end
-
 %% Plot reordering iterations
+
+close all
 
 rIx = find(contains(names, 'reorder')); rIx = rIx(1);
 rep = reports(:, rIx);
@@ -223,10 +147,8 @@ its = iterations(:, rIx);
 itMaxdG0 = max(cellfun(@(it) max(it), its{1}(timeSteps)));
 itMaxdG1 = max(cellfun(@(it) max(it), its{2}(timeSteps)));
 itMax = max(itMaxdG0, itMaxdG1);
-% itMax = cellfun(@(it) max(it), cellfun(@(it) max(cellfun(@(it) max(it(timeSteps)), it)), its, 'unif', false));
-% itMax = max(itMax(1:2));
 
-timeSteps = [20, 43, 100];
+timeSteps = [20, 42, 100];
 for tNo = timeSteps
     for dNo = 1:2
 
@@ -240,14 +162,25 @@ for tNo = timeSteps
     pw(G, WF);
     axis equal tight
     box on
-    caxis([0, itMax]);
+    caxis([1, itMax]);
     ax = gca;
     [ax.XTickLabel, ax.YTickLabel] = deal({});
     colormap(jet)
-%     savepng(['spe10-its-', num2str(tNo), '-dg', num2str(degree(dNo))]);
+    savepng(['spe10-its-', num2str(tNo), '-dg', num2str(degree(dNo))]);
     
     end
 end
+
+%% Colorbar for iterations
+
+figure('position', [-1000,0,230,400]);
+colorbar();
+caxis([1,itMax]);
+colormap(jet)
+ax = gca;
+ax.FontSize = 14;
+axis off
+savepng(['spe10-its-bar']);
 
 %% Plot adaptive refinement for dG(0) and dG(1)
 
@@ -255,20 +188,20 @@ close all
 
 aIx = find(contains(names, 'adapt')); aIx = aIx(1);
 st  = states(:, aIx);
-rep = reports(:, aIx);
-its = iterations(:, aIx);
-timeSteps = [20, 42, 60];
+% rep = reports(:, aIx);
+% its = iterations(:, aIx);
+timeSteps = [15, 30, 43];
 
 for tNo = timeSteps
     for dNo = 1:2
-        if ~isempty(st{dNo})
+        if ~isempty(st{dNo}) && st{dNo}.numelData >= tNo
 
             figure('position', posv, 'name', ['dG(', num2str(degree(dNo)), ')']);
 
 %              pink = [214, 154, 153]/255;
             hold on
             plotGrid(st{dNo}{tNo}.G, 'facec', 'none', 'edgecolor', gray);
-            unstructuredContour(G, st{dNo}{tNo}.s(:,1), 10, 'linewidth', 2);
+            unstructuredContour(G, st{dNo}{tNo}.s(:,1), 10, 'linewidth', 2, 'useNodeMax', true);
 %             plotCellData(G, st{dNo}{tNo}.s(:,1), 'edgec', 'none'); 
             pw(G, WF);
             axis equal tight
@@ -324,9 +257,9 @@ end
 
 %% Plot well curves
 
-[wellSols, wcut] = deal(cell(2, 3));
+[wellSols, wcut] = deal(cell(2, 4));
 for dNo = 1:2
-    for mNo = 1:3
+    for mNo = [1:3,5]
         if ws{dNo, mNo}.numelData > 0
             wellSols{dNo, mNo} =  {ws{dNo, mNo}{1:ws{dNo,mNo}.numelData}};
             wcut{dNo, mNo} = cellfun(@(ws) ws(2).wcut, wellSols{dNo,mNo});
@@ -335,6 +268,10 @@ for dNo = 1:2
 end
 wellSolsWENO = {wsWENO{1:wsWENO.numelData}};
 wcutWENO     = cellfun(@(ws) ws(2).wcut, wellSolsWENO);
+for dNo = 1:2
+    wellSolsBase{dNo} = {wsBase{dNo}{1:wsBase{dNo}.numelData}};
+    wcutBase{dNo}     = cellfun(@(ws) ws(2).wcut, wellSolsBase{dNo});
+end
 
 %%
 
@@ -353,7 +290,7 @@ for dNo = 1:2
               'WENO'};
     hold on
     for mNo = 1:3
-        plot(dtt, wcut{dNo,mNo}, mStyle{mNo}, 'linew', lw(mNo), 'markerSize', mSize);
+        plot(dtt(1:numel(wcut{dNo,mNo})), wcut{dNo,mNo}, mStyle{mNo}, 'linew', lw(mNo), 'markerSize', mSize);
     end
     hold off
     legend(pNames, 'location', 'northwest')
@@ -371,7 +308,7 @@ figure('position', wcutPos)
 hold on
 for dNo = 1:2
     for mNo = 1
-        plot(dtt, wcut{dNo,mNo}, mStyle{mNo}, 'linew', lw(mNo), 'markerSize', mSize);
+        plot(dtt(1:numel(wcut{dNo,mNo})), wcut{dNo,mNo}, mStyle{mNo}, 'linew', lw(mNo), 'markerSize', mSize);
     end
 end
 plot(dtt, wcutWENO, 'linew', lw(mNo), 'markerSize', mSize, 'color', clr(4,:));
@@ -393,10 +330,21 @@ str = states{1,2}{tIx};
 sd  = compareStates(st, str);
 
 
+%%
 
-
-
-
+mIx = 1;
+dIx = 2;
+st = cell(size(states));
+for dNo = dIx
+    for mNo = mIx
+        n = states{dNo,mNo}.numelData;
+        st{dNo,mNo} = cell(n,1);
+        for sNo = 1:n
+            fprintf('Getting state %d of %s dG(%d) ... \n', sNo, names{mNo}, degree(dNo));
+            st{dNo,mNo}{sNo} = states{dNo,mNo}{sNo};
+        end
+    end
+end
 
 
 
