@@ -6,14 +6,14 @@
 
 rIx = 3;
 iterations = cell(4,1);
-for mNo = 1:4
+for mNo = 1:6
 %     n   = reports{mNo}.numelData;
     rep = reports{mNo};
 %     rep = cell(n,1);
 %     for sNo = 1:n
 %         rep{sNo} = reports{mNo}{sNo};
 %     end
-    if mNo == 3
+    if mNo == 3 || mNo == 6
         iterations{mNo} = getReorderingTransportIterations(rep);
     elseif mNo > 1
         iterations{mNo} = cellfun(@(rep) rep.StepReports{1}.NonlinearReport{1}.TransportSolver.Iterations, rep);
@@ -38,7 +38,7 @@ pw = @(G,W) plot3(G.cells.centroids([W.cells], 1)     , ...
 pos = [-1000, 0, 500, 500];
 fontSize = 12;
 pth = fullfile(mrstPath('dg'), 'examples', 'rsc-2019', 'qfs-co2', 'fig');
-if 1
+if 0
     savepng = @(name) print(fullfile(pth, name), '-dpng', '-r300');
     saveeps = @(name) print(fullfile(pth, name), '-depsc');
 else
@@ -50,6 +50,9 @@ hpos = [0.1300 0.1146 0.7750 0.0727];
 cpos = [0.1300 0.07 0.7750 0.03];
 
 gray = [1,1,1]*0.5;
+
+cmap = winter;
+cmap = cmap(end:-1:1, :);
 
 %% Plot co2 compositions for adaptive
 
@@ -123,11 +126,40 @@ for tNo = timeSteps
         caxis([0,1])
         drawnow();pause(0.5)
         savepng(['qfs-co2-x-', num2str(tNo), '-adapt']);
+        
+        figure('position', pos, 'Name', 'Adaptive two-phase')
+        hold on
+        disp(stAdapt{tNo}.G.cells.num/model.G.cells.num);
+        [~, ~, twoPhase] = modeladapt.transportModel.getFlag(stAdapt{tNo});
+        plotCellData(model.G, stAdapt{tNo}.s(:,2), 'edgec', 'none');
+%         plotGrid(stAdapt{tNo}.G, 'facec', 'none', 'edgec', gray);
+        colormap(spring);
+        axis equal tight
+        pw(G, W)
+        ax = gca;
+        [ax.XTickLabel, ax.YTickLabel] = deal({});
+        box on
+        caxis([0,1])
+        drawnow();pause(0.5)
+        savepng(['qfs-co2-sat-', num2str(tNo), '-adapt']);
+        
     end
-            
+    
 end
 
 disp(realTime(timeSteps));
+
+%%
+
+rf = cellfun(@(st) st.G.cells.num/model.G.cells.num, stAdapt(timeSteps));
+figure('position', [-1000, 0, 230, 400])
+colorbar();
+caxis([0,1]);
+colormap(spring);
+ax = gca;
+ax.FontSize = 14;
+axis off
+savepng('qfs-co2-sat-bar');
 
 %%
 close all
@@ -215,7 +247,7 @@ iterations = cell(numel(problems),1);
 for pNo = 2:numel(problems)
     
     if ~isempty(reports{pNo})
-        if contains(problems{pNo}.Description, 'Reordering')
+        if pNo == 3 || pNo == 6
             iterations{pNo} = getReorderingTransportIterations(reports{pNo});
         else
             for sNo = 1:numel(reports{pNo})
@@ -238,7 +270,7 @@ intIts = cellfun(@(its) cellfun(@sum, its), iterations(2:end), 'unif', false);
 figure('position', [-1000, 0, 600, 300]);
 hold on
 for pNo = 1:4
-    plot(dtt, cumsum(intIts{pNo}/model.G.cells.num), '-', 'linew', 2)
+    plot(dtt(1:numel(intIts{pNo})), cumsum(intIts{pNo}/model.G.cells.num), '-', 'linew', 2)
 end
 hold off
 box on; grid on
@@ -249,4 +281,35 @@ ax.FontSize = fontSize;
 xlabel('Time (days)');
 ylabel('Transport iterations');
 saveeps('qfs-co2-iterations');
+
+%%
+
+figure('position', [-1000, 0, 600, 300]);
+hold on
+for pNo = 1:4
+    plot(dtt(1:numel(intIts{pNo})), intIts{pNo}/model.G.cells.num, '-', 'linew', 2)
+end
+hold off
+box on; grid on
+xlim([0, dtt(end)])
+legend({'Sequential', 'Reordered', 'Adaptive', 'Coarse'}, 'location', 'northwest');
+ax = gca;
+ax.FontSize = fontSize;
+xlabel('Time (days)');
+ylabel('Transport iterations');
+saveeps('qfs-co2-iterations-pointw');
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

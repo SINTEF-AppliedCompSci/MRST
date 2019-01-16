@@ -30,6 +30,7 @@ pack = @(state0, model, name, desc) ...
 %% Fully-implicit
 
 model.AutoDiffBackend = DiagonalAutoDiffBackend();
+fluid = model.fluid;
 
 fim = pack(state0, model, 'fim', 'Fully-implicit');
 
@@ -95,11 +96,10 @@ modeladapt.coarsenTol = 1e-2;
 
 adapt = pack(state0, modeladapt, 'adapt', 'Adaptive');
 
-%%
+%% Coarse 
 
 coarsemodel = upscaleModelTPFA(model, m.newPartition);
 
-fluid = model.fluid;
 state0C.bfactor = state0C.rho./[fluid.rhoOS, fluid.rhoGS];
 state0C.x = repmat(state0.x(1,:), GC.cells.num, 1);
 state0C.y = repmat(state0.y(1,:), GC.cells.num, 1);
@@ -121,18 +121,40 @@ coarsemodel.transportNonLinearSolver.LinearSolver = BackslashSolverAD();
 coarse = pack(state0C, coarsemodel, 'coarse', 'Coarse');
 coarse.SimulatorSetup.schedule.control(1).W = WC;
 
+%% Adaptive reordering
+
+nls = NonLinearSolver();
+
+modeladaptreorder = getSequential_local(model);
+modeladaptreorder.pressureModel.extraStateOutput = true;
+modeladaptreorder.transportModel = ReorderingModel(modeladaptreorder.transportModel);
+modeladaptreorder.transportModel.chunkSize = 5;
+
+modeladaptreorder = AdaptiveSequentialPressureTransportModel(modeladaptreorder.pressureModel, modeladaptreorder.transportModel, GC);
+
+state0.transportState = state0C;
+state0.transportState.G = GC;
+state0.transportState.pv = modeladaptreorder.transportModel.parent.operators.pv;
+state0.transportModel = modeladaptreorder.transportModel;
+modeladaptreorder.plotProgress = true;
+modeladaptreorder.computeCoarsePressure = true;
+modeladaptreorder.refineTol = 1e-2;
+modeladaptreorder.coarsenTol = 1e-2;
+
+adaptreorder = pack(state0, modeladaptreorder, 'adapt-reorder', 'Adaptive reordering');
+
 %%
 
-problems = {fim, seq, reorder, adapt, coarse};
+problems = {fim, seq, reorder, adapt, coarse, adaptreorder};
 
 %% Simulate problems
 
-runIx = 4;
+runIx = 6;
 for pNo = runIx
     [ok, status] = simulatePackedProblem(problems{pNo});
 end
 
 %%
 
-setup = problems{4}.SimulatorSetup;
+setup = problems{6}.SimulatorSetup;
 [ws, st, rep] = simulateScheduleAD(setup.state0, setup.model, setup.schedule);
