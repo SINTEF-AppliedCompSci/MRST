@@ -58,7 +58,7 @@ if ~all(valid_ix) && ~isempty(precomp)
 end
 
 
-d.Data.summary = generateMRSTSummaryForPostProcessor(d.Data);
+d.Data.summary = generateMRSTSummaryForPostProcessor(problem, info);
 
 
 d = PostProcessDiagnostics(d,precomp,'style',opt.style);

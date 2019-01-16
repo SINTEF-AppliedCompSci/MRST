@@ -176,6 +176,32 @@ classdef SummarySelector < UIItem
 end
 
 function [names, props, time, name2prop] = processSummary(smry)
+
+if isfield(smry, 'MRST')
+    [names, props, time, name2prop] = processSummaryMRST(smry);
+else
+    [names, props, time, name2prop] = processSummaryECLIPSE(smry);
+end
+end
+
+
+function [names, props, time, name2prop] = processSummaryMRST(smry)
+
+ % Use this for field name because any name could be used to get time and
+ % timestep data but this is unlikely to be the name of an actual field in 
+ % an MRST wellSol.
+specFld = ':+:+:+:+';
+time  = datenum(smry.STARTDAT) + smry.get(specFld, 'TIME', ':');
+names = smry.WGNAMES;
+props = smry.KEYWORDS(1:end-2);
+numwells = numel(smry.WGNAMES);
+numkws = numel(props);
+name2prop = ones(numwells,numkws);
+end
+
+
+
+function [names, props, time, name2prop] = processSummaryECLIPSE(smry)
 specFld = ':+:+:+:+';
 time  = datenum(smry.STARTDAT) + smry.get(specFld, 'TIME', ':');
 nmIx  = ~strcmp(specFld, smry.WGNAMES);

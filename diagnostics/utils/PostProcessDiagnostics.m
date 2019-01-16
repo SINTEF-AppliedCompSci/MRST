@@ -205,7 +205,9 @@ classdef PostProcessDiagnostics < handle
             d = addExtraTools(d);
 
             % finally wells
-            d.WellPlot = WellPlotHandle(d.G, d.Data.states{1}.wellSol, ...
+%             d.WellPlot = WellPlotHandle(d.G, d.Data.states{1}.wellSol, ...
+%                'Visible', 'off', 'Parent', d.Axes3D);            
+            d.WellPlot = WellPlotHandle(d.G, d.Data.wells{1}, ...
                'Visible', 'off', 'Parent', d.Axes3D);
             for i=1:numel(d.WellPlot.producers)
                 d.WellPlot.producers(i).label.FontSize = 8;
@@ -556,7 +558,7 @@ classdef PostProcessDiagnostics < handle
                 end
             end
             [nms, prps] = deal(s2.ssel.curNames, s2.ssel.curProps);
-
+  
             if isempty(prps)
                 %axis(ax,'off');
             else

@@ -13,14 +13,14 @@ init.DEPTH.values = G.cells.centroids(:,3);
 init.PORV.values = G.cells.volumes;
 
 % more fields from init might be interesting
-data = setStatic([], init, {'PORO', 'PERMX', 'PERMY', 'PERMZ', 'NTG', 'DEPTH', 'PORV'});
+data = setStatic([], init, {'PORO', 'PERMX', 'PERMY', 'PERMZ', 'DEPTH', 'PORV'});
 
 % time in days (start and end of restart step)
 startday = datenum(info.date(1, [3 2 1]));
 data.time.prev = startday + info.time( max(steps-1,1) ) - info.time(1);
 data.time.cur  = startday + info.time( steps ) - info.time(1);
 
-[~, states, ~] = getPackedSimulatorOutput(problem);
+[ws, states, ~] = getPackedSimulatorOutput(problem);
 states = states(steps);
 
 
