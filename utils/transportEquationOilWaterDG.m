@@ -18,6 +18,7 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     G        = model.G;
     disc     = model.disc;
     flux2Vel = disc.velocityInterp.faceFlux2cellVelocity;
+    W        = drivingForces.W;
     
     % We may solve for both oil and water simultaneously
     solveAllPhases = opt.solveForWater && opt.solveForOil;
@@ -28,6 +29,9 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
             % If we are at the first iteration, we try to solve using
             % maximum degree in all cells
             state.degree(~G.cells.ghost) = disc.degree;
+        end
+        if ~isempty(W)
+            state.degree(vertcat(W.cells)) = 0;
         end
         % For cells that previously had less than nDof unknowns, we must
         % map old dofs to new
@@ -128,7 +132,6 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     %----------------------------------------------------------------------
     
     % Well contributions---------------------------------------------------
-    W = drivingForces.W;
     if ~isempty(W)
         % Total well flux, composition and mappings
         perf2well = getPerforationToWellMapping(W);
