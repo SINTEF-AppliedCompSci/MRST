@@ -621,8 +621,8 @@ classdef PostProcessDiagnostics < handle
                     ax = d.Axes2DR;
                 end
             end
-            [prps] = deal(s2.ssel.curProps);
-            nameIx = s2.ssel.nameIx;
+            [nms, prps] = deal(s2.ssel.curNames, s2.ssel.curProps);
+
             propIx = s2.ssel.propIx;
   
             if isempty(prps)
@@ -633,14 +633,15 @@ classdef PostProcessDiagnostics < handle
                 end
                 leg = {};
                 hold(ax, 'on')
-                for k = 1:numel(nameIx)
+                for k = 1:numel(nms)
+                    nameIx = find(strcmp(d.Data.wsdata.wellNames, nms(k)));
                     for l = 1:numel(prps)
                         
-                        values = d.Data.wsdata.(prps{l})(:,nameIx(k));
+                        values = d.Data.wsdata.(prps{l})(:,nameIx);
                         time =  d.Data.wsdata.times;
                         
                         plot(ax, time, values, 'LineWidth', 2);
-                        leg = [leg, {[d.Data.wsdata.wellNames{nameIx(k)},' - ', prps{l}, ...
+                        leg = [leg, {[d.Data.wsdata.wellNames{nameIx},' - ', prps{l}, ...
                             ' [', d.Data.wsdata.units{propIx(l)}, ']']}]; %#ok
                         
                     end
