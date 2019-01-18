@@ -12,6 +12,8 @@ mrstVerbose(true)
 
 opt = merge_options(opt, varargin{:});
 pth = problem.OutputHandlers.states.getDataPath();
+wsHandler = problem.OutputHandlers.wellSols;
+
 
 % precompute options
 precompDir = fullfile(pth, 'mrst_diagnostics');
@@ -57,9 +59,10 @@ if ~all(valid_ix) && ~isempty(precomp)
     precomp = precomp(valid_ix);
 end
 
-
-d.Data.summary = generateMRSTSummaryForPostProcessor(problem, info);
-
+d.Data.wsdata = readwellSolDataForPostProcessor(problem, 'wellSolFields',{'bhp','qWs','qGs','qOs'}', ...
+    'startdate', opt.startdate);
+% d.Data.wsdata = readwellSolDataForPostProcessor(problem, 'startdate', opt.startdate);
+d.Data.ws = wsHandler(:);
 
 d = PostProcessDiagnostics(d,precomp,'style',opt.style);
 

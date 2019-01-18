@@ -1,4 +1,4 @@
-function [smry] = generateMRSTSummaryForPostProcessor(problem, info)
+function [wsdata] = readwellSolDataForPostProcessor(problem, timedatinfo)
 %Undocumented utility function
 
 %{
@@ -21,8 +21,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 % Get data from problem
-
-[~, states, ~] = getPackedSimulatorOutput(problem);
+wellSolHandler = problem.OutputHandlers.wellSols;
+ws = wellSolHandler(:);
 
 schedule = problem.SimulatorSetup.schedule;
 for i = 1:numel(schedule.step.val)

@@ -20,12 +20,10 @@ startday = datenum(info.date(1, [3 2 1]));
 data.time.prev = startday + info.time( max(steps-1,1) ) - info.time(1);
 data.time.cur  = startday + info.time( steps ) - info.time(1);
 
-[ws, states, ~] = getPackedSimulatorOutput(problem);
-states = states(steps);
+statesHandler = problem.OutputHandlers.states;
+states = statesHandler(steps);
 
-
-t = cumsum(schedule.step.val);
-for i = 1:numel(schedule.step.val(steps))
+for i = 1:numel(steps)
     data.wells{i} = schedule.control(schedule.step.control(i)).W;
 end
 data.wells = data.wells';

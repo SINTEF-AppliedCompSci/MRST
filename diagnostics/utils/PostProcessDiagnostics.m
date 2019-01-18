@@ -29,11 +29,13 @@ classdef PostProcessDiagnostics < handle
                               'distAxisHeight',   150, ...
                               'itemSpace',         25, ...
                               'includeToolTips', true);
+        simOrigin
     end
 
     methods
         function d = PostProcessDiagnostics(dinput,precomp,varargin)
             opt = struct('style', 'default');
+            
             
             % Combine structures
             f = fieldnames(dinput);
@@ -41,6 +43,14 @@ classdef PostProcessDiagnostics < handle
                 d.(f{i}) = dinput.(f{i});
             end
 
+            
+            if isfield(d.Data, 'wsdata')
+                d.simOrigin = 'MRST';
+            else
+                d.simOrigin = 'ECLIPSE';
+            end
+                
+            
             d.Data = computeDiagnostics(d.Gs, d.Data, d.maxTOF, [], precomp);
 
 
@@ -109,7 +119,13 @@ classdef PostProcessDiagnostics < handle
                 'includeAvgSwitch', true, itemOpts{:});
 
             % ------ Selector for summary output  -------------------------
-            selector2D.ssel = SummarySelector(d.Data.summary, itemOpts{:});
+            if (strcmp(d.simOrigin,'ECLIPSE'))
+                selector2D.ssel = SummarySelector(d.Data.summary, itemOpts{:});
+            else
+                selector2D.ssel = WellSolSelector(d.Data.wsdata.wellNames, ...
+                    d.Data.wsdata.props, d.Data.wsdata.times, itemOpts{:});
+            end
+                
 
             % ------ Selector for RTD distribution  -----------------------
             selector2D.dsel = TracerSelector(itemOpts{:});
@@ -227,7 +243,12 @@ classdef PostProcessDiagnostics < handle
             % ------ Set callbacks for 2D axes ----------------------------
             selector2D.msel.Callback      = @(src, event)d.measureCallback(src, event, selector2D, selector3D);
             selector2D.asel.Callback      = @(src, event)d.allocationCallback(src, event, selector2D, selector3D);
-            selector2D.ssel.Callback      = @(src, event)summaryCallback(d, src, event, selector2D);
+            if strcmp(d.simOrigin, 'ECLIPSE')
+                selector2D.ssel.Callback      = @(src, event)summaryCallback(d, src, event, selector2D);
+            else
+                selector2D.ssel.Callback      = @(src, event)wellSolCallback(d, src, event, selector2D);
+                selector2D.ssel.plotWellSolCallback      = @(src, event)plotWellSolCallback(d, src, event);
+            end
             selector2D.ssel.regCallback   = @(src, event)selectWellsForSummary(d, src, event, selector2D, selector3D);
             selector2D.dsel.Callback      = @(src, event)d.distributionCallback(src, event, selector2D, selector3D);
 
@@ -528,14 +549,19 @@ classdef PostProcessDiagnostics < handle
                         return
                     case 2 % estimate
                         %
-                        dist = estimateRTD(d.Gs.cells.PORV, d.Data.diagnostics(tsel.ix).D, ...
+                        dist = estimateRTD(d.Gs.cells.volumes, d.Data.diagnostics(tsel.ix).D, ...
                                            d.Data.diagnostics(tsel.ix).WP, ...
                                            'injectorIx', iIx, 'producerIx', pIx);
                     case 3 % compute
-                        dist = computeRTD(d.Data.states{tsel.ix}, d.Gs, d.Gs.cells.PORV, ...
+%                         dist = computeRTD(d.Data.states{tsel.ix}, d.Gs, d.Gs.cells.volumes, ...
+%                                           d.Data.diagnostics(tsel.ix).D, d.Data.diagnostics(tsel.ix).WP, ...
+%                                           d.Data.states{tsel.ix}.wellSol, ...
+%                                          'injectorIx', iIx, 'producerIx', pIx);
+                                     
+                        dist = computeRTD(d.Data.states{tsel.ix}, d.Gs, d.Gs.cells.volumes, ...
                                           d.Data.diagnostics(tsel.ix).D, d.Data.diagnostics(tsel.ix).WP, ...
-                                          d.Data.states{tsel.ix}.wellSol, ...
-                                         'injectorIx', iIx, 'producerIx', pIx);
+                                          d.Data.wells{tsel.ix}, ...
+                                         'injectorIx', iIx, 'producerIx', pIx);                                     
                 end
                 for k = 1:numel(pIx)
                     line(ax, dist.t(:,k)/year, dist.values(:,k), ...
@@ -558,6 +584,7 @@ classdef PostProcessDiagnostics < handle
                 end
             end
             [nms, prps] = deal(s2.ssel.curNames, s2.ssel.curProps);
+            
   
             if isempty(prps)
                 %axis(ax,'off');
@@ -569,8 +596,11 @@ classdef PostProcessDiagnostics < handle
                 hold(ax, 'on')
                 for k = 1:numel(nms)
                     for l = 1:numel(prps)
-                        if any(strcmp(prps{l}, d.Data.summary.getKws(nms{k})))
-                            plot(ax, s2.ssel.time, d.Data.summary.get(nms{k}, prps{l}, ':'), 'LineWidth', 2);
+                        kws = d.Data.summary.getKws(nms{k});
+                        if any(strcmp(prps{l}, kws))
+                            time = s2.ssel.time;
+                            data = d.Data.summary.get(nms{k}, prps{l}, ':');
+                            plot(ax, time, data, 'LineWidth', 2);
                             leg = [leg, {[nms{k},' - ', prps{l},' [', strtrim(d.Data.summary.getUnit(nms{k}, prps{l})), ']']}]; %#ok
                         end
                     end
@@ -582,6 +612,50 @@ classdef PostProcessDiagnostics < handle
                 end
             end
         end
+        % -----------------------------------------------------------------
+        function wellSolCallback(d, src, event, s2, ax)
+            if nargin < 5
+                if s2.ssel.panelNo == 1
+                    ax = d.Axes2DL;
+                else
+                    ax = d.Axes2DR;
+                end
+            end
+            [prps] = deal(s2.ssel.curProps);
+            nameIx = s2.ssel.nameIx;
+            propIx = s2.ssel.propIx;
+  
+            if isempty(prps)
+                %axis(ax,'off');
+            else
+                if nargin < 5
+                    cla(ax, 'reset');
+                end
+                leg = {};
+                hold(ax, 'on')
+                for k = 1:numel(nameIx)
+                    for l = 1:numel(prps)
+                        
+                        values = d.Data.wsdata.(prps{l})(:,nameIx(k));
+                        time =  d.Data.wsdata.times;
+                        
+                        plot(ax, time, values, 'LineWidth', 2);
+                        leg = [leg, {[d.Data.wsdata.wellNames{nameIx(k)},' - ', prps{l}, ...
+                            ' [', d.Data.wsdata.units{propIx(l)}, ']']}]; %#ok
+                        
+                    end
+                    if ~isempty(leg)
+                        %xlabel('time [years]')
+                        legend(ax, leg, 'Interpreter', 'none')
+                        xtickangle(ax, 30)
+                    end
+                end
+            end
+        end        
+        
+       function plotWellSolCallback(d, src, event)
+           plotWellSols(d.Data.ws,d.Data.wsdata.times);
+       end
         % -----------------------------------------------------------------
         function selectWellsForSummary(d, src, event, s2, s3)
             prd = s3.wsel.prodSelector.String(s3.wsel.producerIx);
