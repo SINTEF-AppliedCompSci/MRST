@@ -73,6 +73,24 @@ methods
         model.stepFunctionIsLinear = false;
     end
 
+    function [vars, names] = getPrimaryVariables(model, state)
+        % Get primary variables from state
+        vars = {};
+        names = {};
+    end
+    
+    function [state, names] = getStateAD(model, state)
+        % Get the AD state for this model
+        [vars, names] = model.getPrimaryVariables(state);
+        state = model.initStateAD(state, vars, names);
+    end
+    
+    function state = initStateAD(model, state, vars, names)
+        % Initialize AD state from double state
+        for i = 1:numel(names)
+            state = model.setProp(state, names{i}, vars{i});
+        end
+    end
     
     function [problem, state] = getEquations(model, state0, state, dt, forces, varargin)
         % Get the set of linearized model equations with possible Jacobians
@@ -827,7 +845,11 @@ methods
         %   state = model.setProp(state, 'pressure', 5);
         
         [fn, index] = model.getVariableField(name);
-        state.(fn)(:, index) = value;
+        if ischar(index) && strcmp(index, ':')
+            state.(fn) = value;
+        else
+            state.(fn)(:, index) = value;
+        end
     end
 
     
