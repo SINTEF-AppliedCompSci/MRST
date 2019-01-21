@@ -851,6 +851,14 @@ methods
             state.(fn)(:, index) = value;
         end
     end
+    
+    function state = setProps(model, state, names, values)
+        n = numel(values);
+        assert(numel(names) == n);
+        for i = 1:n
+            state = model.setProp(state, names{i}, values{i});
+        end
+    end
 
     
     function dv = getIncrement(model, dx, problem, name)
