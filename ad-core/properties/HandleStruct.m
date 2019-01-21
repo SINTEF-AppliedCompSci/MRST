@@ -38,6 +38,10 @@ classdef HandleStruct < handle
             u = v.data;
         end
         
+        function u = value(v)
+            u = v.data;
+        end
+        
         function u = subsasgn(u,varargin)
             u.data = builtin('subsasgn',u.data, varargin{:});
         end
