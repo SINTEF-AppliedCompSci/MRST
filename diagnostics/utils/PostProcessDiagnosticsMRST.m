@@ -25,6 +25,10 @@ function [d] = PostProcessDiagnosticsMRST(problem,varargin)
 %   precompute - true or false. Precompute flow diagnostics for all
 %                timesteps. Default is true.
 %
+%   startdate - optionally specify a start date of the format 
+%                [day month year] e.g. [1 1 2000] for the 1st January
+%                2000.
+%
 %
 % RETURNS:
 %   d      - Handle to PostProcessDiagnostics object.
