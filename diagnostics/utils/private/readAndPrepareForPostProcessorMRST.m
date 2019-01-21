@@ -3,14 +3,15 @@ function [G, data, Gs, valid_ix] = readAndPrepareForPostProcessorMRST(problem, s
 model = problem.SimulatorSetup.model;
 schedule = problem.SimulatorSetup.schedule;
 G = model.G;
-Gs = model.G;
+G.cells.PORV = poreVolume(G,model.rock);
+Gs = G;
 
 init.PORO.values = model.rock.poro;
 init.PERMX.values = model.rock.perm(:,1);
 init.PERMY.values = model.rock.perm(:,2);
 init.PERMZ.values = model.rock.perm(:,3);
 init.DEPTH.values = G.cells.centroids(:,3);
-init.PORV.values = G.cells.volumes;
+init.PORV.values = G.cells.PORV;
 
 % more fields from init might be interesting
 data = setStatic([], init, {'PORO', 'PERMX', 'PERMY', 'PERMZ', 'DEPTH', 'PORV'});
@@ -97,7 +98,6 @@ else
             'limits' , [minv, maxv]);
     end
     
-% Maybe include this in future for MRST input.
 %     % additional fields of size corressponding to G.cells.num
 %     ix = structfun(@(fld)all(cellfun(@numel, fld)==G.cells.num), rstrt);
 %     fn = fieldnames(rstrt);

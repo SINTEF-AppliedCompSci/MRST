@@ -11,7 +11,7 @@ if strcmp(answ, widestr('OK'))
         % ECLIPSE
         processRestartDiagnostics(casenm, 'outputdir', precompDir);
     elseif isstruct(casenm)
-        % If processing MRST 
+        % If processing MRST. NB casenm = problem for MRST input
         processStatesDiagnostics(casenm, 'outputdir', precompDir);
     end
 end

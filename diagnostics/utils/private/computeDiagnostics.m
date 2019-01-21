@@ -9,8 +9,11 @@ end
 %  reverse engineer rock-struct so pore-volume matches ECLIPSE
 if isfield(G.cells,'PORV')
     G.cells.volumes = G.cells.PORV;
+    rock = struct('poro', ones(G.cells.num, 1));
+else
+    rock = data.rock;
 end
-rock = struct('poro', ones(G.cells.num, 1));
+
 
 vb = mrstVerbose && isempty(precomp);
 dispif(vb, 'Computing diagnostics:     ');

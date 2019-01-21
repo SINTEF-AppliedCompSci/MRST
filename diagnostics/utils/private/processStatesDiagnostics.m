@@ -51,7 +51,8 @@ if opt.multiple
     for k = 1:numel(states)
         fprintf('\b\b\b\b%3.1d%%', round(100*k/numel(states)));
         tmptime = struct('cur', time.cur(k), 'prev', time.prev(k));
-        cur = struct('states', {states(k)}, 'wells', {wells(k)}, 'diagnostics', [], 'time', tmptime);
+        cur = struct('rock',problem.SimulatorSetup.model.rock, ...
+            'states', {states(k)}, 'wells', {wells(k)}, 'diagnostics', [], 'time', tmptime);
         % switch off verbose here
         vb = mrstVerbose;
         mrstVerbose('off');
