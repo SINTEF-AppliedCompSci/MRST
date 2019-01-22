@@ -1,5 +1,5 @@
 function [ws, states, reports] = getPackedSimulatorOutput(problem, varargin)
-    opt = struct('readFromDisk', true);
+    opt = struct('readFromDisk', true, 'readWellSolsFromDisk', true);
     opt = merge_options(opt, varargin{:});
     
     nstep = numel(problem.SimulatorSetup.schedule.step.val);
@@ -32,22 +32,33 @@ function [ws, states, reports] = getPackedSimulatorOutput(problem, varargin)
         if (nargout > 1 ||  wellOutputMissing) && opt.readFromDisk
             states{i} = sh{i};
         end
-        if wantWells && opt.readFromDisk
+        if wantWells && opt.readWellSolsFromDisk
             if wellOutputMissing
                 ws{i} = states{i}.wellSol;
             else
-                ws{i} = wh{i};
+                try
+                    ws{i} = wh{i};
+                catch
+                    ws{i} = states{i}.wellSol;
+                end
             end
         end
         if nargout > 2 && opt.readFromDisk
-            reports{i} = rh{i};
+            try
+                reports{i} = rh{i};
+            catch
+                reports{i} = [];
+            end
         end
     end
 
     if ~opt.readFromDisk
         % Just return handlers instead
-        ws = wh;
         states = sh;
         reports = rh;
+    end
+    
+    if ~opt.readWellSolsFromDisk
+        ws = wh;
     end
 end
