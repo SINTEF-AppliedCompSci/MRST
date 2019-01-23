@@ -347,6 +347,8 @@ methods
 
     function containers = getPropertyFunctions(model)
         containers = getPropertyFunctions@PhysicalModel(model);
+        assert(not(isempty(model.FlowPropertyFunctions)), ...
+            'PropertyFunctions not initialized - did you call "validateModel"?');
         containers{end+1} = model.FlowPropertyFunctions;
         containers{end+1} = model.FluxDiscretization;
     end
