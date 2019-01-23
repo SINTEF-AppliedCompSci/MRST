@@ -89,7 +89,7 @@ methods
         if init
             [vars{:}] = model.AutoDiffBackend.initVariablesAD(vars{:});
         end
-        state = model.initStateAD(state, vars, names);
+        state = model.initStateAD(state, vars, names, origin);
     end
     
     function [state, names, origin] = getReverseStateAD(model, varargin)
@@ -97,7 +97,7 @@ methods
     end
     
     
-    function state = initStateAD(model, state, vars, names)
+    function state = initStateAD(model, state, vars, names, origin)
         % Initialize AD state from double state
         for i = 1:numel(names)
             state = model.setProp(state, names{i}, vars{i});

@@ -85,9 +85,6 @@ methods
         [p, sW, sG, rs, rv] = model.getProps(state, ...
             'pressure', 'water', 'gas', 'rs', 'rv');
 
-%         [wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
-
-
         %Initialization of primary variables ----------------------------------
         st  = model.getCellStatusVO(state,  1-sW-sG, sW, sG);
         if model.disgas || model.vapoil
@@ -102,9 +99,16 @@ methods
         names = {'pressure', 'sW', gvar};
         origin = cell(1, numel(vars));
         [origin{:}] = deal(class(model));
+        
+        if not(isempty(model.FacilityModel))
+            [v, n, o] = model.FacilityModel.getPrimaryVariables(state.wellSol);
+            vars = [vars, v];
+            names = [names, n];
+            origin = [origin, o];
+        end
     end
 
-    function state = initStateAD(model, state, vars, names)
+    function state = initStateAD(model, state, vars, names, origin)
         removed = false(size(vars));
         if model.disgas || model.vapoil
             isw = strcmpi(names, 'sw');
@@ -113,14 +117,21 @@ methods
             sW = vars{isw};
             x = vars{isx};
             sG = model.getProps(state, 'sg');
-            sO = 1-sW-sG;
-            st  = model.getCellStatusVO(state, sO, sW, sG);
+            st  = model.getCellStatusVO(state, 1-sW-sG, sW, sG);
             sG = st{2}.*(1-sW) + st{3}.*x;
-            sO = st{1}.*(1-sW) + ~st{1}.*sO;
+            sO = st{1}.*(1-sW) + ~st{1}.*(1 - sW - sG);
             
             state = model.setProp(state, 's', {sW, sO, sG});
             removed = removed | isx | isw;
         end
+        if not(isempty(model.FacilityModel))
+            % Temporary code...
+            fm = class(model.FacilityModel);
+            isF = strcmp(origin, fm);
+            state.FacilityState = struct('primaryVariables', {vars(isF)}, 'names', {names(isF)});
+            removed = removed | isF;
+        end
+        
         % Set up state with remaining variables
         state = initStateAD@ReservoirModel(model, state, vars(~removed), names(~removed));
         % Account for dissolution changing variables
@@ -152,7 +163,7 @@ methods
         
         % Define primary variables
         if opt.resOnly
-            
+            [state, primaryVars, origin] = model.getStateAD(state, false);
         else
             if ~opt.reverseMode
                 [state, primaryVars, origin] = model.getStateAD(state);
@@ -170,9 +181,12 @@ methods
         dissolved = model.getDissolutionMatrix(state.rs, state.rv);
         % Add in and setup well equations
         
-        ws_dyn = state.wellSol;
-        wellVars = ws_dyn.dynamicVariables(1:end-1);
-        wellMap = ws_dyn.wellmap;
+        wellVars = state.FacilityState.primaryVariables;
+        w = state.FacilityState.names;
+        nw = numel(state.wellSol);
+        wellMap = struct('isBHP', strcmp(w, 'bhp'), 'isRate', ...
+                          ismember(w, {'qOs', 'qGs', 'qWs'}), ...
+                         'extraMap', zeros(nw, nw));
         
         p = state.pressure;
         mob = state.FlowProps.Mobility;
@@ -184,11 +198,8 @@ methods
                                                           wellVars, wellMap, ...
                                                           p, mob, rho, dissolved, ...
                                                           {}, dt, opt);
-        
-        state.FlowProps = state.FlowProps.reduce();
-                
-        problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
         state = value(state);
+        problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
     end
 
 %     function [dyn_state, primaryVariables] = getForwardDynamicState(model, state)

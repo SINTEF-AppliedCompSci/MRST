@@ -15,7 +15,7 @@ function xv = value(x)
         for i = 1:numel(fn)
             f = fn{i};
             for j = 1:numel(x)
-                x(j).(f) = value(x.(f));
+                x(j).(f) = value(x(j).(f));
             end
         end
         xv = x;

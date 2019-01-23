@@ -239,6 +239,13 @@ classdef FacilityModel < PhysicalModel
             act = reshape(actModel, [], 1) & reshape(actWellSol, [], 1);
         end
 
+        function [variables, names, origin] = getPrimaryVariables(model, wellSol)
+            [variables, names] = model.getAllPrimaryVariables(wellSol);
+            origin = cell(size(variables));
+            [origin{:}] = deal(class(model));
+        end
+
+        
         function names = getPrimaryVariableNames(model)
             % Get the names of primary variables present in all wells
             %
