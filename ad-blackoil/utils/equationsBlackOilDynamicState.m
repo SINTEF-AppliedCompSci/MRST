@@ -66,7 +66,7 @@ for i = 1:nph
 %     pot = dp{i} + rgdz{i};
 %     
     upc(:, i) = value(pot{i})<=0;
-    dflux = -T.*pot{i};
+%     dflux = -T.*pot{i};
 %     v{i} = dflux.*s.faceUpstr(upc(:, i), b{i}.*(mob{i}));
     v{i} = s.faceUpstr(upc(:, i), b{i}).*ff{i};
 end

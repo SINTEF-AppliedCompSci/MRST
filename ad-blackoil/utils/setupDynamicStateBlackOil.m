@@ -68,11 +68,13 @@ function [state, primaryVars] = setupDynamicStateBlackOil(model, state, useAD)
     
     wellSol = DynamicState(wellSol, [wellVarNames, 'wellmap'], [wellVars, wellMap]);
     
-    [fp, fpname] = model.FlowPropertyFunctions.getPropertyContainer();
-    [fd, fdname] = model.FluxDiscretization.getPropertyContainer();
+%     state = model.getStateAD(state);
     
-    state = DynamicState(state, {'pressure', 's', 'rv', 'rs', 'wellSol', fpname, fdname},...
-                                {p, sat, rv, rs, wellSol, fp, fd});
+%     [fp, fpname] = model.FlowPropertyFunctions.getPropertyContainer();
+%     [fd, fdname] = model.FluxDiscretization.getPropertyContainer();
+%     
+%     state = DynamicState(state, {'pressure', 's', 'rv', 'rs', 'wellSol', fpname, fdname},...
+%                                 {p, sat, rv, rs, wellSol, fp, fd});
     if model.disgas
         rsSat = model.getProp(state, 'RsMax');
         rs = ~st{1}.*rsSat + st{1}.*x;

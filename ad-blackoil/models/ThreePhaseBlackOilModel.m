@@ -79,6 +79,67 @@ methods
         end
     end
     
+    function [vars, names, origin] = getPrimaryVariables(model, state)
+        % Get primary variables from state
+        % Properties at current timestep
+        [p, sW, sG, rs, rv] = model.getProps(state, ...
+            'pressure', 'water', 'gas', 'rs', 'rv');
+
+%         [wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
+
+
+        %Initialization of primary variables ----------------------------------
+        st  = model.getCellStatusVO(state,  1-sW-sG, sW, sG);
+        if model.disgas || model.vapoil
+            % X is either Rs, Rv or Sg, depending on each cell's saturation status
+            x = st{1}.*rs + st{2}.*rv + st{3}.*sG;
+            gvar = 'x';
+        else
+            x = sG;
+            gvar = 'sG';
+        end
+        vars = {p, sW, x};
+        names = {'pressure', 'sW', gvar};
+        origin = cell(1, numel(vars));
+        [origin{:}] = deal(class(model));
+    end
+
+    function state = initStateAD(model, state, vars, names)
+        removed = false(size(vars));
+        if model.disgas || model.vapoil
+            isw = strcmpi(names, 'sw');
+            isx = strcmpi(names, 'x');
+            
+            sW = vars{isw};
+            x = vars{isx};
+            sG = model.getProps(state, 'sg');
+            sO = 1-sW-sG;
+            st  = model.getCellStatusVO(state, sO, sW, sG);
+            sG = st{2}.*(1-sW) + st{3}.*x;
+            sO = st{1}.*(1-sW) + ~st{1}.*sO;
+            
+            state = model.setProp(state, 's', {sW, sO, sG});
+            removed = removed | isx | isw;
+        end
+        % Set up state with remaining variables
+        state = initStateAD@ReservoirModel(model, state, vars(~removed), names(~removed));
+        % Account for dissolution changing variables
+        if model.disgas
+            rsSat = model.getProp(state, 'RsMax');
+            rs = ~st{1}.*rsSat + st{1}.*x;
+            rs = rs.*(value(sO) > 0);
+            state.rs = rs;
+            state = model.setProp(state, 'rs', rs);
+        end
+
+        if model.vapoil
+            rvSat = model.getProp(state, 'RvMax');
+            rv = ~st{2}.*rvSat + st{2}.*x;
+            rv = rv.*(value(sG) > 0);
+            state = model.setProp(state, 'rv', rv);
+        end
+    end
+    
     % --------------------------------------------------------------------%
     function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
         opt = struct('Verbose',     mrstVerbose,...
@@ -91,34 +152,31 @@ methods
         
         % Define primary variables
         if opt.resOnly
-            [dyn_state, primaryVars] = model.getDynamicState(state);
-            [dyn_state0, ~]          = model.getDynamicState(state0);
+            
         else
             if ~opt.reverseMode
-                [dyn_state, primaryVars] = model.getForwardDynamicState(state);
-                [dyn_state0, ~]          = model.getDynamicState(state0);
+                [state, primaryVars, origin] = model.getStateAD(state);
             else
-
-                [dyn_state0, primaryVars] = model.getReverseDynamicState(state0, opt.drivingForces0);
+                [state0, primaryVars, origin] = model.getReverseStateAD(state0);
                 % The model must be validated with drivingForces so that the
                 % FacilityModel gets updated.
                 model = model.validateModel(drivingForces);
-                [dyn_state, ~] = model.getDynamicState(state);
+                state = model.getStateAD(state, false);
             end
         end
         
-        [eqs, names, types] = equationsBlackOilDynamicState(dyn_state0, dyn_state, model, dt, drivingForces);
+        [eqs, names, types] = equationsBlackOilDynamicState(state0, state, model, dt, drivingForces);
         
-        dissolved = model.getDissolutionMatrix(dyn_state.rs, dyn_state.rv);
+        dissolved = model.getDissolutionMatrix(state.rs, state.rv);
         % Add in and setup well equations
         
-        ws_dyn = dyn_state.wellSol;
+        ws_dyn = state.wellSol;
         wellVars = ws_dyn.dynamicVariables(1:end-1);
         wellMap = ws_dyn.wellmap;
         
-        p = dyn_state.pressure;
-        mob = dyn_state.FlowProps.Mobility;
-        rho = dyn_state.FlowProps.Density;
+        p = state.pressure;
+        mob = state.FlowProps.Mobility;
+        rho = state.FlowProps.Density;
         [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, ...
                                                           names, types, ...
                                                           state0.wellSol, ...
@@ -127,28 +185,28 @@ methods
                                                           p, mob, rho, dissolved, ...
                                                           {}, dt, opt);
         
-        state.FlowProps = dyn_state.FlowProps.reduce();
+        state.FlowProps = state.FlowProps.reduce();
                 
         problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
-        state = rmfield(state, 'FlowProps');
+        state = value(state);
     end
 
-    function [dyn_state, primaryVariables] = getForwardDynamicState(model, state)
-        [dyn_state, primaryVariables] = setupDynamicStateBlackOil(model, state, ...
-                                                                         true);
-    end
-
-    function [dyn_state, primaryVariables] = getDynamicState(model, state)
-        [dyn_state, primaryVariables] = setupDynamicStateBlackOil(model, state, ...
-                                                                         false);
-    end
-
-    function [dyn_state, primaryVariables] = getReverseDynamicState(model, state, forces0)
-        assert(~isempty(forces0))
-        model = model.validateModel(forces0);
-        [dyn_state, primaryVariables] = setupDynamicStateBlackOil(model, state, ...
-                                                                         true);
-    end
+%     function [dyn_state, primaryVariables] = getForwardDynamicState(model, state)
+%         [dyn_state, primaryVariables] = setupDynamicStateBlackOil(model, state, ...
+%                                                                          true);
+%     end
+% 
+%     function [dyn_state, primaryVariables] = getDynamicState(model, state)
+%         [dyn_state, primaryVariables] = setupDynamicStateBlackOil(model, state, ...
+%                                                                          false);
+%     end
+% 
+%     function [dyn_state, primaryVariables] = getReverseDynamicState(model, state, forces0)
+%         assert(~isempty(forces0))
+%         model = model.validateModel(forces0);
+%         [dyn_state, primaryVariables] = setupDynamicStateBlackOil(model, state, ...
+%                                                                          true);
+%     end
 
     % --------------------------------------------------------------------%
     function state = validateState(model, state)

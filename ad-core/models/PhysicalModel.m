@@ -73,17 +73,29 @@ methods
         model.stepFunctionIsLinear = false;
     end
 
-    function [vars, names] = getPrimaryVariables(model, state)
+    function [vars, names, origin] = getPrimaryVariables(model, state)
         % Get primary variables from state
         vars = {};
         names = {};
+        origin = {};
     end
     
-    function [state, names] = getStateAD(model, state)
+    function [state, names, origin] = getStateAD(model, state, init)
+        if nargin < 3
+            init = true;
+        end
         % Get the AD state for this model
-        [vars, names] = model.getPrimaryVariables(state);
+        [vars, names, origin] = model.getPrimaryVariables(state);
+        if init
+            [vars{:}] = model.AutoDiffBackend.initVariablesAD(vars{:});
+        end
         state = model.initStateAD(state, vars, names);
     end
+    
+    function [state, names, origin] = getReverseStateAD(model, varargin)
+        [state, names, origin] = model.getStateAD(varargin{:});
+    end
+    
     
     function state = initStateAD(model, state, vars, names)
         % Initialize AD state from double state
