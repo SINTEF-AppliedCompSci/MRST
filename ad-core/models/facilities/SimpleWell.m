@@ -525,7 +525,7 @@ classdef SimpleWell < PhysicalModel
             end
         end
 
-        function [fn, index] = getVariableField(model, name)
+        function [fn, index] = getVariableField(model, name, varargin)
             index = 1;
             switch(lower(name))
                 case 'bhp'
@@ -540,7 +540,7 @@ classdef SimpleWell < PhysicalModel
                     fn = 'qSs';
                 otherwise
                     % This will throw an error for us
-                    [fn, index] = getVariableField@PhysicalModel(model, name);
+                    [fn, index] = getVariableField@PhysicalModel(model, name, varargin{:});
             end
         end
 

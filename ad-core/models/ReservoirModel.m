@@ -310,7 +310,7 @@ methods
     end
 
     % --------------------------------------------------------------------%
-    function [fn, index] = getVariableField(model, name)
+    function [fn, index] = getVariableField(model, name, varargin)
         % Map variables to state field.
         %
         % SEE ALSO:
@@ -341,7 +341,7 @@ methods
                 fn = 'wellSol';
             otherwise
                 % This will throw an error for us
-                [fn, index] = getVariableField@PhysicalModel(model, name);
+                [fn, index] = getVariableField@PhysicalModel(model, name, varargin{:});
         end
     end
 
@@ -349,8 +349,7 @@ methods
         containers = getPropertyFunctions@PhysicalModel(model);
         assert(not(isempty(model.FlowPropertyFunctions)), ...
             'PropertyFunctions not initialized - did you call "validateModel"?');
-        containers{end+1} = model.FlowPropertyFunctions;
-        containers{end+1} = model.FluxDiscretization;
+        containers = [containers, {model.FlowPropertyFunctions, model.FluxDiscretization}];
     end
     % --------------------------------------------------------------------%
     function names = getComponentNames(model) %#ok

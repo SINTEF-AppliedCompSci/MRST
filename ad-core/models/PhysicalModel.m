@@ -766,21 +766,26 @@ methods
         %
         % SEE ALSO:
         %   `getProps`
-        containers = model.getPropertyFunctions();
-        for i = 1:numel(containers)
-            c = containers{i};
-            nms = c.getPropertyNames();
-            sub = strcmpi(nms, name);
-            if any(sub)
-                p = c.get(model, state, nms{sub});
-                return
+        [fn, index] = model.getVariableField(name, false);
+        if isempty(fn)
+            % Not known - check property functions
+            containers = model.getPropertyFunctions();
+            for i = 1:numel(containers)
+                c = containers{i};
+                nms = c.getPropertyNames();
+                sub = strcmpi(nms, name);
+                if any(sub)
+                    p = c.get(model, state, nms{sub});
+                    return
+                end
             end
-        end
-        [fn, index] = model.getVariableField(name);
-        if iscell(state.(fn))
-            p = state.(fn){index};
+            error('Unknown variable field %s', name);
         else
-            p = state.(fn)(:, index);
+            if iscell(state.(fn))
+                p = state.(fn){index};
+            else
+                p = state.(fn)(:, index);
+            end
         end
     end
     

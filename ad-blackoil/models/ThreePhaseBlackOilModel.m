@@ -66,7 +66,7 @@ methods
         model = validateModel@ReservoirModel(model, varargin{:});
     end
     % --------------------------------------------------------------------%
-    function [fn, index] = getVariableField(model, name)
+    function [fn, index] = getVariableField(model, name, varargin)
         switch(lower(name))
             case {'rs', 'rv'}
                 % RS and RV for gas dissolving into the oil phase and oil
@@ -75,7 +75,7 @@ methods
                 index = 1;
             otherwise
                 % Basic phases are known to the base class
-                [fn, index] = getVariableField@ReservoirModel(model, name);
+                [fn, index] = getVariableField@ReservoirModel(model, name, varargin{:});
         end
     end
     
