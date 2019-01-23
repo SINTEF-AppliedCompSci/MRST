@@ -120,8 +120,8 @@ methods
             st  = model.getCellStatusVO(state, 1-sW-sG, sW, sG);
             sG = st{2}.*(1-sW) + st{3}.*x;
             sO = st{1}.*(1-sW) + ~st{1}.*(1 - sW - sG);
-            
-            state = model.setProp(state, 's', {sW, sO, sG});
+            sat =  {sW, sO, sG};
+            state = model.setProp(state, 's', sat);
             removed = removed | isx | isw;
         end
         if not(isempty(model.FacilityModel))
@@ -133,13 +133,12 @@ methods
         end
         
         % Set up state with remaining variables
-        state = initStateAD@ReservoirModel(model, state, vars(~removed), names(~removed));
+        state = initStateAD@ReservoirModel(model, state, vars(~removed), names(~removed), origin(~removed));
         % Account for dissolution changing variables
         if model.disgas
             rsSat = model.getProp(state, 'RsMax');
             rs = ~st{1}.*rsSat + st{1}.*x;
             rs = rs.*(value(sO) > 0);
-            state.rs = rs;
             state = model.setProp(state, 'rs', rs);
         end
 
@@ -274,6 +273,7 @@ methods
             % The VO model is a bit complicated, handle this part
             % explicitly.
             state0 = state;
+            state = model.initPropertyContainers(state);
 
             state = model.updateStateFromIncrement(state, dx, problem, 'pressure', model.dpMaxRel, model.dpMaxAbs);
             state = model.capProperty(state, 'pressure', model.minimumPressure, model.maximumPressure);

@@ -102,6 +102,10 @@ methods
         for i = 1:numel(names)
             state = model.setProp(state, names{i}, vars{i});
         end
+        state = model.initPropertyContainers(state);
+    end
+    
+    function state = initPropertyContainers(model, state)
         pf = model.getPropertyFunctions();
         for i = 1:numel(pf)
             [f, name] = pf{i}.getPropertyContainer();
