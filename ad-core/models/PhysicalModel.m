@@ -90,6 +90,11 @@ methods
         for i = 1:numel(names)
             state = model.setProp(state, names{i}, vars{i});
         end
+        pf = model.getPropertyFunctions();
+        for i = 1:numel(pf)
+            [f, name] = pf{i}.getPropertyContainer();
+            state.(name) = f;
+        end
     end
     
     function [problem, state] = getEquations(model, state0, state, dt, forces, varargin)
@@ -756,7 +761,11 @@ methods
             end
         end
         [fn, index] = model.getVariableField(name);
-        p = state.(fn)(:, index);
+        if iscell(state.(fn))
+            p = state.(fn){index};
+        else
+            p = state.(fn)(:, index);
+        end
     end
     
     function containers = getPropertyFunctions(model, state)
@@ -845,10 +854,23 @@ methods
         %   state = model.setProp(state, 'pressure', 5);
         
         [fn, index] = model.getVariableField(name);
-        if ischar(index) && strcmp(index, ':')
+        present = isfield(state, fn);
+        unit = present && (size(state.(fn), 2) == 1);
+        if ischar(index) && strcmp(index, ':') || unit
             state.(fn) = value;
         else
-            state.(fn)(:, index) = value;
+            assert(present);
+            if isa(value, 'ADI') && ~iscell(state.(fn))
+                % Expand to cell array since AD does not support matrices
+                sz = size(state.(fn), 2);
+                state.(fn) = arrayfun(@(x) state.(fn)(:, x), 1:sz, ...
+                                          'UniformOutput', false);
+            end
+            if iscell(state.(fn))
+                state.(fn){index} = value;
+            else
+                state.(fn)(:, index) = value;
+            end
         end
     end
     
