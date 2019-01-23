@@ -39,7 +39,7 @@ classdef HandleStruct < handle
         end
         
         function u = value(v)
-            u = v.data;
+            u = value(v.data);
         end
         
         function u = subsasgn(u,varargin)
