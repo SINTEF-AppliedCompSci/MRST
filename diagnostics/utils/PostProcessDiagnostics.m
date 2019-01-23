@@ -351,7 +351,9 @@ classdef PostProcessDiagnostics < handle
                 end
             end
             d.Patch.colorData = displayVals;
-            if diff(lims) ~= 0
+            % use computed color limits only if default statistic (mean) is selected
+            % and if computed limits defines non-empty range
+            if s3.psel.statIx == 1 && diff(lims) ~= 0
                 d.Axes3D.CLim = lims;
             else
                 d.Axes3D.CLimMode = 'auto';
