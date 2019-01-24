@@ -10,12 +10,13 @@ classdef FaceMobility < GridProperty & UpwindProperty
         end
         
         function fmob = evaluateOnDomain(prop, model, state)
-            [mob, pot] = model.getProps(state, 'Mobility', 'PhasePotentialDifference');
+            [mob, flag] = model.getProps(state, 'Mobility', 'PhaseUpwindFlag');
             nph = numel(mob);
             fmob = cell(1, nph);
             for i = 1:nph
-                flag = pot{i} <= 0;
-                fmob{i} = prop.faceUpstream(state, flag, mob{i});
+                
+%                 flag = pot{i} <= 0;
+                fmob{i} = prop.faceUpstream(state, flag{i}, mob{i});
             end
         end
     end

@@ -161,21 +161,18 @@ methods
         
         
         % Define primary variables
-        if opt.resOnly
-            [state, primaryVars, origin] = model.getStateAD(state, false);
+        if opt.reverseMode
+            [state0, primaryVars] = model.getReverseStateAD(state0);
+            % The model must be validated with drivingForces so that the
+            % FacilityModel gets updated.
+            model = model.validateModel(drivingForces);
+            state = model.getStateAD(state, false);
         else
-            if ~opt.reverseMode
-                [state, primaryVars, origin] = model.getStateAD(state);
-            else
-                [state0, primaryVars, origin] = model.getReverseStateAD(state0);
-                % The model must be validated with drivingForces so that the
-                % FacilityModel gets updated.
-                model = model.validateModel(drivingForces);
-                state = model.getStateAD(state, false);
-            end
+            [state, primaryVars] = model.getStateAD(state, ~opt.resOnly);
         end
+
         
-        [eqs, names, types] = equationsBlackOilDynamicState(state0, state, model, dt, drivingForces);
+        [eqs, divTerms, names, types] = conservationEquationsBlackOil(state0, state, model, dt, drivingForces);
         
         dissolved = model.getDissolutionMatrix(state.rs, state.rv);
         % Add in and setup well equations
@@ -190,6 +187,14 @@ methods
         p = state.pressure;
         mob = state.FlowProps.Mobility;
         rho = state.FlowProps.Density;
+        sat = state.s;
+        pressures = state.FlowProps.PhasePressures;
+        
+
+        [eqs, state] = model.addBoundaryConditionsAndSources(eqs, names, types, state, ...
+                                                         pressures, sat, mob, rho, ...
+                                                         dissolved, {}, ...
+                                                         drivingForces);
         [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, ...
                                                           names, types, ...
                                                           state0.wellSol, ...
@@ -197,6 +202,9 @@ methods
                                                           wellVars, wellMap, ...
                                                           p, mob, rho, dissolved, ...
                                                           {}, dt, opt);
+        for i = 1:numel(divTerms)
+            eqs{i} = eqs{i} + divTerms{i};
+        end
         state = value(state);
         problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
     end

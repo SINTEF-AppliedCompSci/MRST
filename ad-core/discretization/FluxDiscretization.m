@@ -6,6 +6,7 @@ classdef FluxDiscretization < PropertyFunctions
         PhasePotentialDifference % (grad p_alpha + dpdz)
         FaceMobility % Mobility on the face (for advective transport)
         PhaseFlux % Phase volumetric fluxes
+        PhaseUpwindFlag
         ComponentMassFlux
         Transmissibility
     end
@@ -25,6 +26,7 @@ classdef FluxDiscretization < PropertyFunctions
             props.FaceMobility = FaceMobility(backend, upstr);
             props.PhaseFlux = PhaseFlux(backend);
             props.ComponentMassFlux = [];
+            props.PhaseUpwindFlag = PhaseUpwindFlag(backend);
 
             
             % Define storage
