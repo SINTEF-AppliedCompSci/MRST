@@ -26,8 +26,11 @@ classdef FluxDiscretization < PropertyFunctions
             props.GravityPotentialDifference = GravityPotentialDifference(backend);
             props.PhasePotentialDifference = PhasePotentialDifference(backend);
             props.FaceMobility = FaceMobility(backend, upstr);
+            props.FaceComponentMobility = FaceComponentMobility(backend, upstr);
+            
             props.PhaseFlux = PhaseFlux(backend);
-            props.ComponentMassFlux = [];
+            props.ComponentFlux = ComponentFlux(backend);
+            props.ComponentMass = ComponentMass(backend);
             props.PhaseUpwindFlag = PhaseUpwindFlag(backend);
 
             props.ComponentUpstreamDiscretization = upstr;
@@ -52,6 +55,10 @@ classdef FluxDiscretization < PropertyFunctions
         function v = faceUpstreamComponent(fd, state, flag, cellvalue)
             % Upstream-weighting (to be used for individual components)
             v = fd.ComponentUpstreamDiscretization.faceUpstream(state, flag, cellvalue);
+        end
+        
+        function [acc, v] = componentConservation(state0, state, dt)
+            
         end
     end
 end

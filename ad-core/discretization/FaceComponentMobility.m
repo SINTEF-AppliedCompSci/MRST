@@ -1,16 +1,16 @@
-classdef FaceMobility < GridProperty & UpwindProperty
+classdef FaceComponentMobility < GridProperty & UpwindProperty
     properties
         
     end
     
     methods
-        function fm = FaceMobility(backend, upwinding)
+        function fm = FaceComponentMobility(backend, upwinding)
             fm@GridProperty(backend);
             fm@UpwindProperty(upwinding)
         end
         
         function fmob = evaluateOnDomain(prop, model, state)
-            [mob, flag] = model.getProps(state, 'Mobility', 'PhaseUpwindFlag');
+            [mob, flag] = model.getProps(state, 'ComponentMobility', 'PhaseUpwindFlag');
             nph = numel(mob);
             fmob = cell(1, nph);
             for i = 1:nph

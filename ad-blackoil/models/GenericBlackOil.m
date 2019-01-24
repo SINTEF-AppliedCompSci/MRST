@@ -87,19 +87,7 @@ classdef GenericBlackOil < ThreePhaseBlackOilModel & ExtendedReservoirModel
                         c{oix} = 1;
                     end
                 case 'gas'
-                    gix = strcmpi(ph, 'g');
-                    if model.disgas
-                        [b, rs] = model.getProps(state, 'ShrinkageFactors', 'rs');
-                        rhoS = model.getSurfaceDensities();
-                        oix = strcmpi(ph, 'o');
-                        rhoGS = rhoS(gix);
-                        bO = b{oix};
-                        bG = b{gix};
-                        c{oix} = rs.*rhoGS.*bO;
-                        c{gix} = rhoGS.*bG;
-                    else
-                        c{gix} = 1;
-                    end
+                    error();
                 otherwise
                     c = getComponentDensity@ExtendedReservoirModel(model, state, name, ph);
             end
