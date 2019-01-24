@@ -37,10 +37,12 @@ classdef FluxDiscretization < PropertyFunctions
         end
         
         function v = faceUpstreamPhase(fd, state, flag, cellvalue)
+            % Upstream-weighting (to be used for e.g. phase mobilities)
             v = fd.PhaseUpstreamDiscretization.faceUpstream(state, flag, cellvalue);
         end
         
         function v = faceUpstreamComponent(fd, state, flag, cellvalue)
+            % Upstream-weighting (to be used for individual components)
             v = fd.ComponentUpstreamDiscretization.faceUpstream(state, flag, cellvalue);
         end
     end
