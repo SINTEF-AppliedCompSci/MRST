@@ -7,6 +7,7 @@ classdef FluxDiscretization < PropertyFunctions
         FaceMobility % Mobility on the face (for advective transport)
         PhaseFlux % Phase volumetric fluxes
         ComponentMassFlux
+        Transmissibility
     end
     
     methods
@@ -16,6 +17,7 @@ classdef FluxDiscretization < PropertyFunctions
             tpfa = TwoPointFluxApproximation(model);
 
             props@PropertyFunctions();
+            props.Transmissibility = Transmissibility(backend);
             props.PermeabilityPotentialGradient = PermeabilityPotentialGradient(backend, tpfa);
             props.PressureGradient = PressureGradient(backend);
             props.GravityPotentialDifference = GravityPotentialDifference(backend);

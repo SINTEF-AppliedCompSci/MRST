@@ -15,7 +15,7 @@ classdef PermeabilityPotentialGradient < GridProperty
             kgrad = prop.PermeabilityGradientDiscretization;
             v = cell(1, nph);
             for i = 1:nph
-                v{i} = kgrad.getPermeabilityGradient(state, pot{i});
+                v{i} = kgrad.getPermeabilityGradient(model, state, pot{i});
             end
         end
     end
