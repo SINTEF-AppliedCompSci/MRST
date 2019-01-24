@@ -9,6 +9,8 @@ classdef FluxDiscretization < PropertyFunctions
         PhaseUpwindFlag
         ComponentMassFlux
         Transmissibility
+        PhaseUpstreamDiscretization
+        ComponentUpstreamDiscretization
     end
     
     methods
@@ -28,6 +30,8 @@ classdef FluxDiscretization < PropertyFunctions
             props.ComponentMassFlux = [];
             props.PhaseUpwindFlag = PhaseUpwindFlag(backend);
 
+            props.ComponentUpstreamDiscretization = upstr;
+            props.PhaseUpstreamDiscretization = upstr;
             
             % Define storage
             props.structName = 'FluxProps';

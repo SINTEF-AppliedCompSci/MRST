@@ -21,41 +21,31 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 % Shorter names for some commonly used parts of the model and forces.
 
-[p, rs, rv, sO, sG] = model.getProps(state, 'pressure', 'rs', 'rv', 'so', 'sg');
-[rs0, rv0, sO0, sG0] = model.getProps(state0, 'rs', 'rv', 'so', 'sg');
-
-if model.water
-    sW = model.getProp(state, 'sw');
-    sW0 = model.getProp(state0, 'sw');
-else
-    [sW, sW0] = deal(0);
-end
-
-s = model.operators;
+[rs, rv, sO, sG, sW] = model.getProps(state, 'rs', 'rv', 'so', 'sg', 'sw');
+[rs0, rv0, sO0, sG0, sW0] = model.getProps(state0, 'rs', 'rv', 'so', 'sg', 'sw');
 
 
-[rho, mob, b, pv, p_phase] = model.getProps(state, 'Density', 'Mobility', 'ShrinkageFactors', 'PoreVolume', 'PhasePressures');
+[b, pv] = model.getProps(state, 'ShrinkageFactors', 'PoreVolume');
 [b0, pv0] = model.getProps(state0, 'ShrinkageFactors', 'PoreVolume');
-
-
-[bW, bO, bG] = deal(b{:});
-[bW0, bO0, bG0] = deal(b0{:});
-
 [ff, flags] = model.getProps(state, 'PhaseFlux',  'PhaseUpwindFlag');
+upstream = @(flag, value) model.FluxDiscretization.faceUpstreamComponent(state, flag, value);
+Div = model.operators.Div;
 
 nph = 3;
 v = cell(nph, 1);
 for i = 1:nph
-    v{i} = s.faceUpstr(flags{i}, b{i}).*ff{i};
+    v{i} = upstream(flags{i}, b{i}).*ff{i};
 end
 [bWvW, bOvO, bGvG] = deal(v{:});
+[bW, bO, bG] = deal(b{:});
+[bW0, bO0, bG0] = deal(b0{:});
 
 % The first equation is the conservation of the water phase. This equation is
 % straightforward, as water is assumed to remain in the aqua phase in the
 % black oil model.
 if model.water
     water = (1/dt).*( pv.*bW.*sW - pv0.*bW0.*sW0 );
-    divWater = s.Div(bWvW);
+    divWater = Div(bWvW);
 end
 
 % Second equation: mass conservation equation for the oil phase at surface
@@ -65,28 +55,28 @@ if model.vapoil
     % The model allows oil to vaporize into the gas phase. The conservation
     % equation for oil must then include the fraction present in the gas
     % phase.
-    rvbGvG = s.faceUpstr(flags{3}, rv).*bGvG;
+    rvbGvG = upstream(flags{3}, rv).*bGvG;
     % Final equation
     oil = (1/dt).*( pv .* (bO.* sO  + rv.* bG.* sG) - ...
                     pv0.* (bO0.*sO0 + rv0.*bG0.*sG0));
-    divOil = s.Div(bOvO + rvbGvG);
+    divOil = Div(bOvO + rvbGvG);
 else
     oil = (1/dt).*( pv.*bO.*sO - pv0.*bO0.*sO0 );
-    divOil = s.Div(bOvO);
+    divOil = Div(bOvO);
 end
 
 % Conservation of mass for gas. Again, we have two cases depending on
 % whether the model allows us to dissolve the gas phase into the oil phase.
 if model.disgas
     % The gas transported in the oil phase.
-    rsbOvO = s.faceUpstr(flags{2}, rs).*bOvO;
+    rsbOvO = upstream(flags{2}, rs).*bOvO;
     
     gas = (1/dt).*( pv.* (bG.* sG  + rs.* bO.* sO) - ...
                     pv0.*(bG0.*sG0 + rs0.*bO0.*sO0 ));
-    divGas = s.Div(bGvG + rsbOvO);
+    divGas = Div(bGvG + rsbOvO);
 else
     gas = (1/dt).*( pv.*bG.*sG - pv0.*bG0.*sG0 );
-    divGas = s.Div(bGvG);
+    divGas = Div(bGvG);
 end
 
 % Put the set of equations into cell arrays along with their names/types.
