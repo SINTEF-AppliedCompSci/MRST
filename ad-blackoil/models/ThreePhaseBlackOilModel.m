@@ -1,4 +1,3 @@
-
 classdef ThreePhaseBlackOilModel < ReservoirModel
     % Three phase with optional dissolved gas and vaporized oil
 properties
@@ -209,22 +208,6 @@ methods
         problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
     end
 
-%     function [dyn_state, primaryVariables] = getForwardDynamicState(model, state)
-%         [dyn_state, primaryVariables] = setupDynamicStateBlackOil(model, state, ...
-%                                                                          true);
-%     end
-% 
-%     function [dyn_state, primaryVariables] = getDynamicState(model, state)
-%         [dyn_state, primaryVariables] = setupDynamicStateBlackOil(model, state, ...
-%                                                                          false);
-%     end
-% 
-%     function [dyn_state, primaryVariables] = getReverseDynamicState(model, state, forces0)
-%         assert(~isempty(forces0))
-%         model = model.validateModel(forces0);
-%         [dyn_state, primaryVariables] = setupDynamicStateBlackOil(model, state, ...
-%                                                                          true);
-%     end
 
     % --------------------------------------------------------------------%
     function state = validateState(model, state)

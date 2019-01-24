@@ -87,7 +87,7 @@ if model.water
     types    = {'cell', 'cell', 'cell'};
 else
     acc      = {oil, gas};
-    div = {divOil, divGas};
+    flux = {divOil, divGas};
     names    = {'oil', 'gas'};
     types    = {'cell', 'cell'};
 end
