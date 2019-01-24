@@ -3,7 +3,7 @@ classdef BlackOilDensity < GridProperty
     end
     
     methods
-        function rho = evaluateOnGrid(prop, model, state)
+        function rho = evaluateOnDomain(prop, model, state)
             rhoS = model.getSurfaceDensities();
             fp = state.FlowProps;
             nph = numel(rhoS);

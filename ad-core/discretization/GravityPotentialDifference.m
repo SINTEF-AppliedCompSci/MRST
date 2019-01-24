@@ -4,7 +4,7 @@ classdef GravityPotentialDifference < GridProperty
     end
     
     methods
-        function gRhoDz = evaluateOnGrid(prop, model, state)
+        function gRhoDz = evaluateOnDomain(prop, model, state)
             act = model.getActivePhases();
             nph = sum(act);
             

@@ -1,4 +1,5 @@
 classdef GridProperty
+    % Class for gridded domain properties
     properties
         regions
         AutoDiffBackend

@@ -4,7 +4,7 @@ classdef PhasePotentialDifference < GridProperty
     end
     
     methods
-        function v = evaluateOnGrid(prop, model, state)
+        function v = evaluateOnDomain(prop, model, state)
             dp = model.getProp(state, 'PressureGradient');
             v = dp;
             if norm(model.gravity) > 0

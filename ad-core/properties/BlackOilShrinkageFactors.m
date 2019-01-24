@@ -4,7 +4,7 @@ classdef BlackOilShrinkageFactors < GridProperty
     end
     
     methods
-        function b = evaluateOnGrid(prop, model, state)
+        function b = evaluateOnDomain(prop, model, state)
             [act, phInd] = model.getActivePhases();
             fp = state.FlowProps;
             nph = sum(act);

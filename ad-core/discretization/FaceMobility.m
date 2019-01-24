@@ -9,7 +9,7 @@ classdef FaceMobility < GridProperty & UpwindProperty
             fm@UpwindProperty(upwinding)
         end
         
-        function fmob = evaluateOnGrid(prop, model, state)
+        function fmob = evaluateOnDomain(prop, model, state)
             [mob, pot] = model.getProps(state, 'Mobility', 'PhasePotentialDifference');
             nph = numel(mob);
             fmob = cell(1, nph);

@@ -4,7 +4,7 @@ classdef PhaseFlux < GridProperty
     end
     
     methods
-        function v = evaluateOnGrid(prop, model, state)
+        function v = evaluateOnDomain(prop, model, state)
             [mob, kgrad] = model.getProps(state, 'FaceMobility', 'PermeabilityPotentialGradient');
             nph = numel(mob);
             v = cell(1, nph);

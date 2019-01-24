@@ -9,7 +9,7 @@ classdef PermeabilityPotentialGradient < GridProperty
             pp.PermeabilityGradientDiscretization = kgrad;
         end
         
-        function v = evaluateOnGrid(prop, model, state)
+        function v = evaluateOnDomain(prop, model, state)
             pot = model.getProps(state, 'PhasePotentialDifference');
             nph = numel(pot);
             kgrad = prop.PermeabilityGradientDiscretization;

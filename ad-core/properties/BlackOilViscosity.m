@@ -4,7 +4,7 @@ classdef BlackOilViscosity < GridProperty
     end
     
     methods
-        function mu = evaluateOnGrid(prop, model, state)
+        function mu = evaluateOnDomain(prop, model, state)
             [act, phInd] = model.getActivePhases();
             nph = sum(act);
             mu = cell(1, nph);

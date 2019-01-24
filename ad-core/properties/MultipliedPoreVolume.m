@@ -3,7 +3,7 @@ classdef MultipliedPoreVolume < GridProperty
     end
     
     methods
-        function pv = evaluateOnGrid(prop, model, state)
+        function pv = evaluateOnDomain(prop, model, state)
             f = model.fluid;
             pv = model.operators.pv;
             if isfield(f, 'pvMultR')

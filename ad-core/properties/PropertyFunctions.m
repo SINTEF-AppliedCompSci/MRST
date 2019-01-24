@@ -40,7 +40,7 @@ classdef PropertyFunctions
             else
                 props_struct = state.(struct_name);
             end
-            props_struct.(name) = props.(name).evaluateOnGrid(model, state);
+            props_struct.(name) = props.(name).evaluateOnDomain(model, state);
             if nargout > 0
                 state.(struct_name) = props_struct;
             end

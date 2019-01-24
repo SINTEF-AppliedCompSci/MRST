@@ -4,7 +4,7 @@ classdef PressureGradient < GridProperty
     end
     
     methods
-        function dp = evaluateOnGrid(prop, model, state)
+        function dp = evaluateOnDomain(prop, model, state)
             act = model.getActivePhases();
             nph = sum(act);
             Grad = model.operators.Grad;

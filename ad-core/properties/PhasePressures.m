@@ -3,7 +3,7 @@ classdef PhasePressures < GridProperty
     end
     
     methods
-        function p_phase = evaluateOnGrid(prop, model, state)
+        function p_phase = evaluateOnDomain(prop, model, state)
             [pc, p] = model.getProps(state, 'CapillaryPressure', 'Pressure');
             
             nph = numel(pc);

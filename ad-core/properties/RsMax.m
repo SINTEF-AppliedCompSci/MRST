@@ -3,7 +3,7 @@ classdef RsMax < GridProperty
     end
     
     methods
-        function rsSat = evaluateOnGrid(prop, model, state)
+        function rsSat = evaluateOnDomain(prop, model, state)
             p = model.getProp(state, 'pressure');
             if model.disgas
                 f = model.fluid;

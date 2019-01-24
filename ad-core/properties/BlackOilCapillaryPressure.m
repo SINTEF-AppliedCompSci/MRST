@@ -3,7 +3,7 @@ classdef BlackOilCapillaryPressure < GridProperty
     end
     
     methods
-        function pc = evaluateOnGrid(prop, model, state)
+        function pc = evaluateOnDomain(prop, model, state)
             [act, phInd] = model.getActivePhases();
             nph = sum(act);
             pc = cell(1, nph);
