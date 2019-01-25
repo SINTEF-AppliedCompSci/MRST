@@ -28,7 +28,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 [b, pv] = model.getProps(state, 'ShrinkageFactors', 'PoreVolume');
 [b0, pv0] = model.getProps(state0, 'ShrinkageFactors', 'PoreVolume');
 [ff, flags] = model.getProps(state, 'PhaseFlux',  'PhaseUpwindFlag');
-upstream = @(flag, value) model.FluxDiscretization.faceUpstreamComponent(state, flag, value);
+upstream = @(flag, value) model.FluxDiscretization.PhaseFlux.faceUpstream(state, flag, value);
 Div = model.operators.Div;
 
 nph = 3;

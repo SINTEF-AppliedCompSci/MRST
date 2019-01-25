@@ -4,13 +4,11 @@ classdef FluxDiscretization < PropertyFunctions
         PressureGradient % Gradient of phase pressures
         GravityPotentialDifference % rho * g * dz term
         PhasePotentialDifference % (grad p_alpha + dpdz)
-        FaceMobility % Mobility on the face (for advective transport)
         PhaseFlux % Phase volumetric fluxes
         PhaseUpwindFlag
-        ComponentMassFlux
+        ComponentFlux
+        ComponentMass
         Transmissibility
-        PhaseUpstreamDiscretization
-        ComponentUpstreamDiscretization
     end
     
     methods
@@ -20,22 +18,22 @@ classdef FluxDiscretization < PropertyFunctions
             tpfa = TwoPointFluxApproximation(model);
 
             props@PropertyFunctions();
+            % Darcy flux
             props.Transmissibility = Transmissibility(backend);
             props.PermeabilityPotentialGradient = PermeabilityPotentialGradient(backend, tpfa);
             props.PressureGradient = PressureGradient(backend);
             props.GravityPotentialDifference = GravityPotentialDifference(backend);
+            
+            % Phase flux
             props.PhasePotentialDifference = PhasePotentialDifference(backend);
-            props.FaceMobility = FaceMobility(backend, upstr);
-            props.FaceComponentMobility = FaceComponentMobility(backend, upstr);
-            
-            props.PhaseFlux = PhaseFlux(backend);
-            props.ComponentFlux = ComponentFlux(backend);
-            props.ComponentMass = ComponentMass(backend);
             props.PhaseUpwindFlag = PhaseUpwindFlag(backend);
-
-            props.ComponentUpstreamDiscretization = upstr;
-            props.PhaseUpstreamDiscretization = upstr;
+            % Components
+            props.ComponentMass = ComponentMass(backend);
             
+            % Fluxes - these are upwinded properties
+            props.ComponentFlux = ComponentFlux(backend, upstr);
+            props.PhaseFlux = PhaseFlux(backend, upstr);
+
             % Define storage
             props.structName = 'FluxProps';
         end
@@ -45,20 +43,6 @@ classdef FluxDiscretization < PropertyFunctions
 
             end
             state = evaluateProperty@PropertyFunctions(props, model, state, name);
-        end
-        
-        function v = faceUpstreamPhase(fd, state, flag, cellvalue)
-            % Upstream-weighting (to be used for e.g. phase mobilities)
-            v = fd.PhaseUpstreamDiscretization.faceUpstream(state, flag, cellvalue);
-        end
-        
-        function v = faceUpstreamComponent(fd, state, flag, cellvalue)
-            % Upstream-weighting (to be used for individual components)
-            v = fd.ComponentUpstreamDiscretization.faceUpstream(state, flag, cellvalue);
-        end
-        
-        function [acc, v] = componentConservation(state0, state, dt)
-            
         end
     end
 end
