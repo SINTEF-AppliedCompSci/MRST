@@ -9,6 +9,9 @@ classdef FlowPropertyFunctions < PropertyFunctions
         Mobility
         PoreVolume
         PhaseComposition
+        
+        ComponentMass
+        ComponentMobility
     end
     
     methods
@@ -24,17 +27,23 @@ classdef FlowPropertyFunctions < PropertyFunctions
                     pvt = r.regions.pvt;
                 end
             end
+            ad = model.AutoDiffBackend;
             % Saturation properties
-            props.CapillaryPressure = BlackOilCapillaryPressure(model.AutoDiffBackend, sat);
-            props.RelativePermeability = BaseRelativePermeability(model.AutoDiffBackend, sat);
-            props.Mobility = Mobility(model.AutoDiffBackend, sat);
+            props.CapillaryPressure = BlackOilCapillaryPressure(ad, sat);
+            props.RelativePermeability = BaseRelativePermeability(ad, sat);
+            props.Mobility = Mobility(ad, sat);
 
             % PVT properties
-            props.ShrinkageFactors = BlackOilShrinkageFactors(model.AutoDiffBackend, pvt);
-            props.Density = BlackOilDensity(model.AutoDiffBackend, pvt);
-            props.Viscosity = BlackOilViscosity(model.AutoDiffBackend, pvt);
-            props.PoreVolume = MultipliedPoreVolume(model.AutoDiffBackend, pvt);
-            props.PhasePressures = PhasePressures(model.AutoDiffBackend, pvt);
+            props.ShrinkageFactors = BlackOilShrinkageFactors(ad, pvt);
+            props.Density = BlackOilDensity(ad, pvt);
+            props.Viscosity = BlackOilViscosity(ad, pvt);
+            props.PoreVolume = MultipliedPoreVolume(ad, pvt);
+            props.PhasePressures = PhasePressures(ad, pvt);
+            
+            % Components
+            props.ComponentMass = ComponentMass(ad);
+            props.ComponentMobility = ComponentMobility(ad);
+
             if ~isempty(model.inputdata)
                 deck = model.inputdata;
                 

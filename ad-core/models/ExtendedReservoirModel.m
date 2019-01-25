@@ -4,7 +4,6 @@ classdef ExtendedReservoirModel
     end
     
     methods
-        
 
     end
 end

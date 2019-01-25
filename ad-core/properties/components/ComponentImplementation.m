@@ -23,15 +23,27 @@ classdef ComponentImplementation
         end
         
         function mass = getComponentMass(component, model, state, varargin)
-            c = component.getComponentDensity(model, state, varargin{:});
             pv = model.getProp(state, 'PoreVolume');
-            mass = cellfun(@(x) x.*pv, c, 'UniformOutput', false);
+            mass = component.getComponentDensity(model, state, varargin{:});
+            for i = 1:numel(mass)
+                if ~isempty(mass{i})
+                    mass{i} = pv.*mass{i};
+                end
+            end
         end
         
-        function mass = getComponentMobility(component, model, state, varargin)
-            c = component.getComponentDensity(model, state, varargin{:});
+        function cmob = getComponentMobility(component, model, state, varargin)
+            mass = component.getComponentDensity(model, state, varargin{:});
             mob = model.getProp(state, 'Mobility');
-            mass = cellfun(@(x) x.*mob, c, 'UniformOutput', false);
+            
+            ncomp = numel(mass);
+            cmob = cell(1, ncomp);
+            for i = 1:ncomp
+                if ~isempty(mass{i})
+                    cmob{i} = mob{i}.*mass{i};
+                end
+            end
         end
+
     end
 end

@@ -23,9 +23,9 @@ classdef GenericBlackOil < ThreePhaseBlackOilModel & ExtendedReservoirModel
             else
                 [state, primaryVars] = model.getStateAD(state, ~opt.resOnly);
             end
+             [eqs, divTerms, names, types] = model.FluxDiscretization.componentConservationEquations(model, state, state0, dt);
 
-
-            [eqs, divTerms, names, types] = conservationEquationsBlackOil(state0, state, model, dt, drivingForces);
+%             [eqs, divTerms, names, types] = conservationEquationsBlackOil(state0, state, model, dt, drivingForces);
 
             dissolved = model.getDissolutionMatrix(state.rs, state.rv);
             % Add in and setup well equations
@@ -43,11 +43,11 @@ classdef GenericBlackOil < ThreePhaseBlackOilModel & ExtendedReservoirModel
             sat = state.s;
             pressures = state.FlowProps.PhasePressures;
 
-
-            [eqs, state] = model.addBoundaryConditionsAndSources(eqs, names, types, state, ...
-                                                             pressures, sat, mob, rho, ...
-                                                             dissolved, {}, ...
-                                                             drivingForces);
+% 
+%             [eqs, state] = model.addBoundaryConditionsAndSources(eqs, names, types, state, ...
+%                                                              pressures, sat, mob, rho, ...
+%                                                              dissolved, {}, ...
+%                                                              drivingForces);
             [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, ...
                                                               names, types, ...
                                                               state0.wellSol, ...
@@ -61,36 +61,52 @@ classdef GenericBlackOil < ThreePhaseBlackOilModel & ExtendedReservoirModel
             state = value(state);
             problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
         end
-
         
+        function names = getComponentNames(model)
+            names = cellfun(@(x) x.name, model.Components, 'UniformOutput', false);
+        end
         
-        function c = getComponentDensity(model, state, name, ph)
-            if nargin < 4
-                ph = model.getPhaseNames();
-            end
-            nph = numel(ph);
+        function n = getNumberOfComponents(model)
+            n = numel(model.Components);
+        end
+        
+        function n = getNumberOfPhases(model)
+            n = model.water + model.oil + model.gas;
+        end
+        
+        % Various hacked versions of functions to bootstrap coming changes
+        
+    function [eqs, names, types, wellSol, src] = insertWellEquations(model, eqs, names, ...
+                                                     types, wellSol0, wellSol, ...
+                                                     wellVars, wellMap, ...
+                                                     p, mob, rho, ...
+                                                     dissolved, components, ...
+                                                     dt, opt)
+        if model.FacilityModel.getNumberOfActiveWells(wellSol) == 0
+            src = [];
+            return
+        end
+        fm = model.FacilityModel;
+        nPh = nnz(model.getActivePhases);
+        [src, wellsys, wellSol] = ...
+            fm.getWellContributions(wellSol0, wellSol, wellVars, ...
+                                    wellMap, p, mob, rho, dissolved, components, ...
+                                    dt, opt.iteration);
 
-            c = cell(nph, 1);
-            switch name
-                case 'oil'
-                    oix = strcmpi(ph, 'o');
-                    if model.vapoil
-                        [b, rv] = model.getProps(state, 'ShrinkageFactors', 'rv');
-                        rhoS = model.getSurfaceDensities();
-                        gix = strcmpi(ph, 'g');
-                        rhoOS = rhoS(oix);
-                        bO = b{oix};
-                        bG = b{gix};
-                        c{oix} = rhoOS.*bO;
-                        c{gix} = rv.*rhoOS.*bG;
-                    else
-                        c{oix} = 1;
-                    end
-                case 'gas'
-                    error();
-                otherwise
-                    c = getComponentDensity@ExtendedReservoirModel(model, state, name, ph);
+        rhoS = model.getSurfaceDensities();
+        wc = src.sourceCells;
+        [~, longNames] = getPhaseNames(model);
+        % Treat phase pseudocomponent source terms from wells
+        for i = 1:nPh
+            sub = strcmpi(names, longNames{i});
+            if any(sub)
+                assert(strcmpi(types{sub}, 'cell'), 'Unable to add source terms to equation that is not per cell.');
+                eqs{sub}(wc) = eqs{sub}(wc) - src.phaseMass{i};
             end
         end
+        eqs = horzcat(eqs, wellsys.wellEquations, {wellsys.controlEquation});
+        names = horzcat(names, wellsys.names, 'closureWells');
+        types = horzcat(types, wellsys.types, 'well');
+    end
     end
 end
