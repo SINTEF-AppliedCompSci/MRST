@@ -25,9 +25,12 @@ classdef ComponentImplementation
         function mass = getComponentMass(component, model, state, varargin)
             pv = model.getProp(state, 'PoreVolume');
             mass = component.getComponentDensity(model, state, varargin{:});
+            ph = model.getPhaseNames();
+            % Iterate over phases and weight by pore-volume and saturation
             for i = 1:numel(mass)
                 if ~isempty(mass{i})
-                    mass{i} = pv.*mass{i};
+                    s = model.getProp(state, ['s', ph(i)]);
+                    mass{i} = s.*pv.*mass{i};
                 end
             end
         end
