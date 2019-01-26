@@ -10,7 +10,8 @@ classdef FlowPropertyFunctions < PropertyFunctions
         PoreVolume
         PhaseComposition
         
-        ComponentMass
+        ComponentTotalMass % Total component mass
+        ComponentPhaseMass % Component mass in each phase
         ComponentMobility
     end
     
@@ -41,7 +42,8 @@ classdef FlowPropertyFunctions < PropertyFunctions
             props.PhasePressures = PhasePressures(ad, pvt);
             
             % Components
-            props.ComponentMass = ComponentMass(ad);
+            props.ComponentPhaseMass = ComponentPhaseMass(ad);
+            props.ComponentTotalMass = ComponentTotalMass(ad);
             props.ComponentMobility = ComponentMobility(ad);
 
             if ~isempty(model.inputdata)

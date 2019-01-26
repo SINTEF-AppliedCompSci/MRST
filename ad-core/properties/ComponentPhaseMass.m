@@ -1,4 +1,4 @@
-classdef ComponentMass < GridProperty
+classdef ComponentPhaseMass < GridProperty
     properties
 
     end

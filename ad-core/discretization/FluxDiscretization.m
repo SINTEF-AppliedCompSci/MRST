@@ -6,10 +6,14 @@ classdef FluxDiscretization < PropertyFunctions
         PhasePotentialDifference % (grad p_alpha + dpdz)
         PhaseFlux % Phase volumetric fluxes
         PhaseUpwindFlag
-        ComponentFlux
+        ComponentTotalFlux % Total mass flux for each component
+        ComponentPhaseFlux % Phase fluxes for each component
         Transmissibility
     end
-    
+
+    properties (Access = private)
+        
+    end
     methods
         function props = FluxDiscretization(model)
             backend = model.AutoDiffBackend;
@@ -28,7 +32,8 @@ classdef FluxDiscretization < PropertyFunctions
             props.PhaseUpwindFlag = PhaseUpwindFlag(backend);
             
             % Fluxes - these are upwinded properties
-            props.ComponentFlux = ComponentFlux(backend, upstr);
+            props.ComponentPhaseFlux = ComponentPhaseFlux(backend, upstr);
+            props.ComponentTotalFlux = ComponentTotalFlux(backend);
             props.PhaseFlux = PhaseFlux(backend, upstr);
 
             % Define storage
@@ -44,36 +49,18 @@ classdef FluxDiscretization < PropertyFunctions
         
         function [acc, div, names, types] = componentConservationEquations(fd, model, state, state0, dt)
             ncomp = model.getNumberOfComponents;
-            nph = model.getNumberOfPhases;
-
             acc = cell(ncomp, 1);
             div = cell(ncomp, 1);
             names = model.getComponentNames();
             types = cell(ncomp, 1);
             [types{:}] = deal('cell');
-            
-            [mass, v] = model.getProps(state, 'ComponentMass', 'ComponentFlux');
-            mass0 = model.getProps(state, 'ComponentMass');
-            
+            mass = model.getProps(state, 'ComponentTotalMass');
+            mass0 = model.getProps(state0, 'ComponentTotalMass');
+            v = model.getProps(state, 'ComponentTotalFlux');
             Div = model.operators.Div;
             for c = 1:ncomp
-                % Loop over phases where the component may be present
-                for ph = 1:nph
-                    % Check if present
-                    if ~isempty(mass{c, ph})
-                        accumulated = (mass{c, ph} - mass0{c, ph});
-                        dflux = Div(v{c, ph});
-                        
-                        if isempty(acc{c})
-                            acc{c} = accumulated;
-                            div{c} = dflux;
-                        else
-                            acc{c} = acc{c} + accumulated;
-                            div{c} = div{c} + dflux;
-                        end
-                    end
-                end
-                acc{c} = acc{c}./dt;
+                acc{c} = (mass{c} - mass0{c})./dt;
+                div{c} = Div(v{c});
             end
         end
     end
