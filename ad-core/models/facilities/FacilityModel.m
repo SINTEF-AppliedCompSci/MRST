@@ -31,6 +31,7 @@ classdef FacilityModel < PhysicalModel
 
     properties
         WellModels % Cell array of instansiated wells
+        FacilityFluxDiscretization
 
         toleranceWellBHP % Convergence tolerance for BHP-type controls
         toleranceWellRate % Convergence tolerance for rate-type controls
@@ -59,6 +60,7 @@ classdef FacilityModel < PhysicalModel
             model = merge_options(model, varargin{:});
             model.ReservoirModel = reservoirModel;
             model.WellModels = {};
+            model.FacilityFluxDiscretization = FacilityFluxDiscretization(model);
         end
 
         function model = setupWells(model, W, wellmodels)
@@ -237,6 +239,11 @@ classdef FacilityModel < PhysicalModel
             actWellSol = arrayfun(@(x) x.status, wellSol);
             
             act = reshape(actModel, [], 1) & reshape(actWellSol, [], 1);
+        end
+
+        function state = initStateAD(model, state, vars, names, origin)
+            state.FacilityState = struct('primaryVariables', {vars}, 'names', {names});
+            state = initStateAD@PhysicalModel(model, state, {}, {}, {});
         end
 
         function [variables, names, origin] = getPrimaryVariables(model, wellSol)
@@ -672,7 +679,7 @@ classdef FacilityModel < PhysicalModel
             wc = vertcat(c{:});
         end
 
-        function wc = getActiveWellCells(model, wellSol)
+        function [wc, p2w] = getActiveWellCells(model, wellSol)
             % Get the perforated cells in active wells and perforations
             %
             % SYNOPSIS:
@@ -689,6 +696,11 @@ classdef FacilityModel < PhysicalModel
             c = cellfun(@(x) x.W.cells(x.W.cstatus > 0), model.WellModels, 'UniformOutput', false);
             active = model.getWellStatusMask(wellSol);
             wc = vertcat(c{active});
+            if nargout > 1
+                p2w = getPerforationToWellMapping(model.getWellStruct());
+                % Map into active wells
+                p2w = p2w(active(p2w));
+            end
         end
 
         function ws = setWellSolStatistics(model, ws, sources)

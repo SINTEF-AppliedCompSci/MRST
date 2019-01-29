@@ -351,6 +351,95 @@ classdef SimpleWell < PhysicalModel
             end
             wellSol.cdp = cdp;
         end
+        
+        function wellSol = updateConnectionPressureDropState(well, model, wellSol, rho_res, rho_well)
+            % Simpler version
+            if ~well.doUpdatePressureDrop
+                return
+            end
+%             rho = model.getProp(state, 'rho')
+%             [p, mob, rho, dissolved, comp, wellvars] = unpackPerforationProperties(packed);
+%             for i = 1:numel(rho)
+%                 rho{i} = value(rho{i});
+%                 if ~isempty(dissolved)
+%                     for j = 1:numel(dissolved{i})
+%                         dissolved{i}{j} = value(dissolved{i}{j});
+%                     end
+%                 end
+%             end
+%             rho     = cell2mat(rho);
+            active = model.getActivePhases();
+            numPh = nnz(active);
+
+%             rhoS = model.getSurfaceDensities();
+%             b = phaseDensitiesTobfactor(rho, rhoS, dissolved);
+            w = well.W;
+            if ~isfield(w, 'topo')
+                nperf = numel(w.cells);
+                w.topo = [(0:(nperf-1))', (1:nperf)'];
+            end
+            if isfield(wellSol, 'flux')
+                q = wellSol.flux; %volumetric in-flux at standard conds
+                q(q == 0) = w.sign*1e-12;
+            else
+                sgn = w.sign;
+                if sgn == 0
+                    sgn = 1;
+                end
+                q = sgn*ones(size(rho_res));
+            end
+            % Injection flux
+            in = q > 0;
+            qm = bsxfun(@times, q, rho_well).*in + bsxfun(@times, q, rho_res).*~in;
+            C = well.wb2in(w);      % mapping wb-flux to in-flux
+            wbqs  = abs(C\qm);      % solve to get well-bore mass flux
+            wbqst = sum(wbqs, 2);   % total wb- mass flux 
+            % if flux is zero - just use compi
+            zi = wbqst == 0;
+            if any( zi )
+                wbqs(zi,:)  = ones(nnz(zi),1)*(w.compi.*mean(rho_well));
+                wbqst(zi,:) = sum(wbqs(zi,:), 2);
+            end
+            % Mass fractions
+            mixs = wbqs ./ (wbqst*ones(1,numPh));
+            % compute volume ratio Vr/Vs
+%             volRat = mixs./rho_res;
+%             volRat = well.compVolRat(mixs, p, b, model);
+            % Mixture density at connection conds (by using static b's)
+            rhoMix = sum(rho_res.*mixs, 2);
+%             rhoMix = (mixs*rhoS')./volRat;
+            % rhoMix is now density between neighboring segments given by
+            % topo(:,1)-topo(:,2) computed by using conditions in well-cell
+            % topo(:,2). This is probably sufficiently accurate.
+
+            % get dz between segment nodes and bh-node1. This is a simple
+            % hydrostatic distribution.
+            dpt = [0; w.dZ];
+            dz  = diff(dpt);
+            g   = norm(gravity);
+            ddp = g*rhoMix.*dz; % p-diff between connection neighbors
+            % well topology assumes we can traverse from top down, but we
+            % use a loop just in case of crazy ordering. If this loop does
+            % not converge, the solver will throw an error.
+            cdp    = nan(size(ddp));
+            cdp(1) = ddp(1);
+            its = 0; maxIts = 100;
+            while and(any(isnan(cdp)), its<maxIts)
+                its = its +1;
+                % Traverse from top node and down with the pressure
+                % differentials found earlier.
+                for cnr = 2:numel(cdp)
+                    cdp(w.topo(cnr,2)) = cdp(w.topo(cnr,1)) + ddp(cnr);
+                end
+            end
+            if its == maxIts
+                % If this loop did not converge, something is wrong with
+                % either the densities or the well itself. Regardless of
+                % reason, we throw an error.
+                error(['Problem with topology for well: ', wellSol.name, '. Segments appear not to be connected'])
+            end
+            wellSol.cdp = cdp;
+        end
 
         function [q_s, bhp, wellSol, withinLimits] = updateLimits(well, wellSol0, wellSol, model, q_s, bhp, wellvars, p, mob, rho, dissolved, comp, dt, iteration)
             % Update solution variables and wellSol based on the well
