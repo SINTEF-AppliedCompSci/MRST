@@ -60,5 +60,12 @@ classdef GenericBlackOil < ThreePhaseBlackOilModel & ExtendedReservoirModel
         function n = getNumberOfPhases(model)
             n = model.water + model.oil + model.gas;
         end
+        
+        function [state, report] = updateState(model, state, problem, dx, forces) 
+            [state, report] = updateState@ThreePhaseBlackOilModel(model, state, problem, dx, forces);
+            if ~isempty(model.FacilityModel)
+                state = model.FacilityModel.applyWellLimits(state);
+            end
+        end
     end
 end

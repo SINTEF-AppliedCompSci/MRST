@@ -62,6 +62,15 @@ classdef ExtendedFacilityModel < FacilityModel
             names{end} = 'closureWells';
             types{end} = 'well';
         end
+        
+        function state = applyWellLimits(fm, state)
+            active = fm.getIndicesOfActiveWells(state.wellSol);
+            for i = 1:numel(active)
+                w = active(i);
+                well = fm.WellModels{w};
+                state.wellSol(w) = fm.applyWellLimitsWellSol(well, state.wellSol(w));
+            end
+        end
 
         function [model, state] = prepareTimestep(model, state, state0, dt, drivingForces)
             [model, state] = prepareTimestep@FacilityModel(model, state, state0, dt, drivingForces);
@@ -83,6 +92,8 @@ classdef ExtendedFacilityModel < FacilityModel
                     wellSol(wellNo) = wm.updateConnectionPressureDropState(model.ReservoirModel, wellSol(wellNo), rho_i, rho_i);
                 end
             end
+            state.wellSol = wellSol;
+            state = model.applyWellLimits(state);
         end
         
         function containers = getPropertyFunctions(model)
@@ -95,6 +106,125 @@ classdef ExtendedFacilityModel < FacilityModel
         function [p, T] = getSurfaceConditions(fm)
             p = 1*atm;
             T = 273.15 + 30;
+        end
+        
+        function wellSol = applyWellLimitsWellSol(fm, well, wellSol)
+            % Update solution variables and wellSol based on the well
+            % limits. If limits have been reached, this function will
+            % attempt to re-initialize the values and change the controls
+            % so that the next step keeps within the prescribed ranges.
+            withinLimits = true;
+            if ~well.allowControlSwitching
+                % We cannot change controls, so we return
+                return
+            end
+            if isfield(well.W, 'status') && ~well.W.status
+                % Well is inactive
+                return
+            end
+            lims = well.W.lims;
+            model = fm.ReservoirModel;
+
+            if ~isnumeric(lims)
+                phases = model.getPhaseNames();
+            
+                qs_t = 0;
+                for i = 1:numel(phases)
+                    qs_t = qs_t + wellSol.(['q', phases(i), 's']);
+                end
+                bhp = wellSol.bhp;
+            
+                if well.isInjector()
+                    % Injectors have three possible limits:
+                    % bhp:  Upper limit on pressure.
+                    % rate: Upper limit on total surface rate.
+                    % vrat: Lower limit on total surface rate.
+                    modes   = {'bhp', 'rate', 'vrat'};
+                    lims = well.setMissingLimits(lims, modes, inf);
+                    if ~isfinite(lims.vrat)
+                        % VRAT is lower limit, switch default sign
+                        lims.vrat = -inf;
+                    end
+
+                    flags = [value(bhp)  > lims.bhp, ...
+                              qs_t       > lims.rate, ...
+                              qs_t       < lims.vrat];
+                else
+                    % Producers have several possible limits:
+                    % bhp:  Lower limit on pressure.
+                    % orat: Lower limit on surface oil rate
+                    % lrat: Lower limit on surface liquid (water + oil) rate
+                    % grat: Lower limit on surface gas rate
+                    % wrat: Lower limit on surface water rate
+                    % vrat: Upper limit on total volumetric surface rate
+
+                    modes   = {'bhp', 'orat', 'lrat', 'grat', 'wrat', 'vrat'};
+                    lims = fm.setMissingLimits(lims, modes, -inf);
+                    if ~isfinite(lims.vrat)
+                        % VRAT is upper limit, switch default sign
+                        lims.vrat = inf;
+                    end
+                    [q_w, q_o, q_g, q_sl] = deal(0);
+                    if model.water
+                        q_w = wellSol.qWs;
+                    end
+                    if model.oil
+                        q_o = wellSol.qOs;
+                    end
+                    if model.gas
+                        q_g = wellSol.qGs;
+                    end
+                    if isprop(model, 'solvent') && model.solvent
+                        q_sl = wellSol.qSs;
+                    end
+                    flags = [value(bhp) < lims.bhp,  ...
+                        q_o          < lims.orat, ...
+                        q_w + q_o    < lims.lrat, ...
+                        q_g + q_sl   < lims.grat, ...
+                        q_w          < lims.wrat, ...
+                        qs_t         > lims.vrat];
+                end
+            else
+                modes = {};
+                flags = false;
+                assert(isempty(lims) || isinf(lims))
+            end
+            % limits we need to check (all others than w.type):
+            chkInx = ~strcmp(wellSol.type, modes);
+            vltInx = find(flags(chkInx), 1);
+            if ~isempty(vltInx)
+                withinLimits = false;
+                modes  = modes(chkInx);
+                switchMode = modes{vltInx};
+                fprintf('Well %s: Control mode changed from %s to %s.\n', wellSol.name, wellSol.type, switchMode);
+                wellSol.type = switchMode;
+                wellSol.val  = lims.(switchMode);
+            end
+
+            if ~withinLimits
+                v  = wellSol.val;
+                switch wellSol.type
+                    case 'bhp'
+                        wellSol.bhp = bhp;
+                    case 'rate'
+                        for ix = 1:numel(phases)
+                            wellSol.(['q', phases(ix), 's']) = v*well.W.compi(ix);
+                        end
+                    case 'orat'
+                        wellSol.qOs = v;
+                    case 'wrat'
+                        wellSol.qWs = v;
+                    case 'grat'
+                        wellSol.qGs = v;
+                end % No good guess for qOs, etc...
+            end
+        end
+        
+        function lims = setMissingLimits(fm, lims, modes, val)
+            missing_fields = {modes{~cellfun(@(x) isfield(lims, x), modes)}};
+            for f = missing_fields
+               lims = setfield(lims, f{:}, val);
+            end
         end
     end
 end

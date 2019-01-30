@@ -636,6 +636,13 @@ classdef SimpleWell < PhysicalModel
         function ws = ensureWellSolConsistency(well, ws) %#ok
             % Run after the update step to ensure consistency of wellSol
         end
+        
+        function lims = setMissingLimits(well, lims, modes, val)
+            missing_fields = {modes{~cellfun(@(x) isfield(lims, x), modes)}};
+            for f = missing_fields
+               lims = setfield(lims, f{:}, val);
+            end
+        end
     end
     
     methods (Static, Access = protected)
@@ -735,13 +742,6 @@ classdef SimpleWell < PhysicalModel
                  end
               end
            end
-        end
-
-        function lims = setMissingLimits(lims, modes, val)
-            missing_fields = {modes{~cellfun(@(x) isfield(lims, x), modes)}};
-            for f = missing_fields
-               lims = setfield(lims, f{:}, val);
-            end
         end
     end
 end
