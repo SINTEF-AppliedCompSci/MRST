@@ -28,7 +28,7 @@ classdef WellPhaseFlux < GridProperty
             end
             q_ph = cell(1, nph);
             for i = 1:nph
-                q_ph{i} = mobw{i}.*wi.*dp;
+                q_ph{i} = -mobw{i}.*wi.*dp;
             end
         end
     end
