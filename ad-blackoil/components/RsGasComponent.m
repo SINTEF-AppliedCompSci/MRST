@@ -1,11 +1,12 @@
-classdef RsGasComponent < ComponentImplementation
+classdef RsGasComponent < ImmiscibleComponent
     properties
         phaseIndex % Index of phase this component belongs to
     end
     
     methods
-        function [c, phasenames] = getComponentDensity(component, model, state, varargin)
-            [c, phasenames] = getComponentDensity@ComponentImplementation(component, model, state, varargin{:});
+        function c = getComponentDensity(component, model, state)
+            c = getComponentDensity@ComponentImplementation(component, model, state);
+            phasenames = model.getPhaseNames();
             gix = phasenames == 'G';
             oix = phasenames == 'O';
             [b, rs] = model.getProps(state, 'ShrinkageFactors', 'rs');

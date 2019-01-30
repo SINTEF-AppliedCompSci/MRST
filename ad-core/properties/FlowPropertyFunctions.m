@@ -13,6 +13,7 @@ classdef FlowPropertyFunctions < PropertyFunctions
         ComponentTotalMass % Total component mass
         ComponentPhaseMass % Component mass in each phase
         ComponentMobility
+        ComponentPhaseDensity
     end
     
     methods
@@ -45,6 +46,7 @@ classdef FlowPropertyFunctions < PropertyFunctions
             props.ComponentPhaseMass = ComponentPhaseMass(ad);
             props.ComponentTotalMass = ComponentTotalMass(ad);
             props.ComponentMobility = ComponentMobility(ad);
+            props.ComponentPhaseDensity = ComponentPhaseDensity(ad);
 
             if ~isempty(model.inputdata)
                 deck = model.inputdata;

@@ -8,16 +8,20 @@ classdef ComponentImplementation
             c.name = name;
         end
         
-        function [c, phasenames] = getComponentDensity(component, model, state, phasenames)
-            if nargin < 4
-                phasenames = model.getPhaseNames();
-            end
-            nph = numel(phasenames);
+        function c = getComponentDensity(component, model, state)
+            % Density of component in each phase
+            nph = model.getNumberOfPhases();
             c = cell(nph, 1);
         end
 
-        function c = getPhaseComposition(component, model, state, varargin)
-            c = component.getComponentDensity(model, state, varargin{:});
+        function c = getPhaseCompositionWell(component, model, state, W)
+            % ?????
+            nph = model.getNumberOfPhases();
+            c = cell(nph, 1);
+        end
+
+        function c = getPhaseComposition(component, model, state)
+            c = component.getComponentDensity(model);
             rho = model.getProp(state, 'Density');
             c = cellfun(@rdivide, c, rho, 'UniformOutput', false);
         end
