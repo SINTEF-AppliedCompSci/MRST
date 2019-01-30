@@ -39,6 +39,11 @@ classdef GenericBlackOil < ThreePhaseBlackOilModel & ExtendedReservoirModel
                 eqs{i}(src.cells) = eqs{i}(src.cells) + src.value{i};
             end
             [weqs, wnames, wtypes, state] = model.FacilityModel.getModelEquations(state0, state, dt, drivingForces);
+            
+            rhoS = model.getSurfaceDensities();
+            for i = 1:numel(divTerms)
+                eqs{i} = eqs{i}./rhoS(i);
+            end
             eqs = [eqs, weqs];
             names = [names, wnames];
             types = [types, wtypes];

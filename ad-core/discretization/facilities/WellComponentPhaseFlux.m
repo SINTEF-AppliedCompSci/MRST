@@ -23,12 +23,10 @@ classdef WellComponentPhaseFlux < GridProperty
             
             % Figure out if things are going into or out from well
             flowIntoWell = false(numel(wc), nph);
-            crossFlow = false(numel(wc), nph);
             
             perforationDensity = cell(nph, 1);
             for ph = 1:nph
-                flowIntoWell(:, ph) = phaseFlux{ph} > 0;
-                crossFlow(:, ph) = flowIntoWell(:, ph) & isInjectorPerforation;
+                flowIntoWell(:, ph) = phaseFlux{ph} < 0;
                 if any(isInj)
                     perforationDensity{ph} = massDensity{ph}(wc);
                 end
@@ -40,20 +38,26 @@ classdef WellComponentPhaseFlux < GridProperty
                 end
                 for ph = 1:nph
                     q = phaseFlux{ph};
-                    if ~isempty(componentDensity{ph, c})
-                        outflow = ~flowIntoWell(:, ph) & isInjectorPerforation;
-                        rhoc = componentDensity{ph, c}(wc);
+                    if ~isempty(componentDensity{c, ph})
+                        allowCrossFlow = false;
+                        outflow = ~flowIntoWell(:, ph);
+                        if allowCrossFlow
+                            outflow = outflow & isInjectorPerforation;
+                            crossflow = outflow & ~isInjectorPerforation;
+                        else
+                            crossflow = outflow & false;
+                        end
+                        rhoc = componentDensity{c, ph}(wc);
                         % Compute production fluxes
                         source = rhoc.*q;
                         % Compute injection fluxes
                         if isempty(wcomp{ph})
                             source(outflow) = 0;
                         else
-                            source(outflow) = wcomp{ph}.*perforationDensity{ph}(outflow);
+                            source(outflow) = wcomp{ph}.*perforationDensity{ph}(outflow).*q(outflow);
                         end
                         % Compute cross-flow fluxes
-                        
-                        cflux{ph, c} = source;
+                        cflux{c, ph} = source;
                     end
                 end
             end

@@ -1,9 +1,9 @@
-classdef RsGasComponent < ImmiscibleComponent
+classdef OilComponent < ImmiscibleComponent
     properties
     end
     
     methods
-        function c = RsGasComponent(name, gasIndex)
+        function c = OilComponent(name, gasIndex)
             c@ImmiscibleComponent(name, gasIndex);
         end
         
@@ -12,13 +12,14 @@ classdef RsGasComponent < ImmiscibleComponent
             phasenames = model.getPhaseNames();
             gix = phasenames == 'G';
             oix = phasenames == 'O';
-            [b, rs] = model.getProps(state, 'ShrinkageFactors', 'rs');
-            rhoS = model.getSurfaceDensities();
-            rhoGS = rhoS(gix);
-            bO = b{oix};
-            bG = b{gix};
-            c{oix} = rs.*rhoGS.*bO;
-            c{gix} = rhoGS.*bG;
+            if model.disgas
+                b = model.getProps(state, 'ShrinkageFactors');
+                rhoS = model.getSurfaceDensities();
+                rhoOS = rhoS(oix);
+                bO = b{oix};
+                c{oix} = rhoOS.*bO;
+            end
+            assert(~model.vapoil);
         end
     end
 end

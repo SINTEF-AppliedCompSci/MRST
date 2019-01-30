@@ -18,11 +18,11 @@ classdef BlackOilDensity < GridProperty
                 oix = names == 'O';
                 gix = names == 'G';
                 
-                if model.oil && model.disgas
+                if model.disgas
                     rs = model.getProp(state, 'rs');
                     rho{oix} = rho{oix} + rs.*b{oix}.*rhoS(gix);
                 end
-                if model.oil && model.disgas
+                if model.vapoil
                     rv = model.getProp(state, 'rv');
                     rho{gix} = rho{gix} + rv.*b{gix}.*rhoS(oix);
                 end
