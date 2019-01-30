@@ -49,10 +49,8 @@ classdef FluxDiscretization < PropertyFunctions
         
         function [acc, div, names, types] = componentConservationEquations(fd, model, state, state0, dt)
             ncomp = model.getNumberOfComponents;
-            acc = cell(ncomp, 1);
-            div = cell(ncomp, 1);
+            [acc, div, types] = deal(cell(1, ncomp));
             names = model.getComponentNames();
-            types = cell(ncomp, 1);
             [types{:}] = deal('cell');
             mass = model.getProps(state, 'ComponentTotalMass');
             mass0 = model.getProps(state0, 'ComponentTotalMass');

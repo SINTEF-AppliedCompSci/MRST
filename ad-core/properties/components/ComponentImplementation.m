@@ -15,7 +15,11 @@ classdef ComponentImplementation
         end
 
         function c = getPhaseCompositionWell(component, model, state, W)
-            % ?????
+            nph = model.getNumberOfPhases();
+            c = cell(nph, 1);
+        end
+        
+        function c = getPhaseCompositionSurface(component, model, state, pressure, temperature)
             nph = model.getNumberOfPhases();
             c = cell(nph, 1);
         end

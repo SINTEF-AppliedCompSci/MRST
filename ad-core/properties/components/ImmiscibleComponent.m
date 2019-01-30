@@ -21,6 +21,10 @@ classdef ImmiscibleComponent < ComponentImplementation
             c{component.phaseIndex} = 1;
         end
         
+        function c = getPhaseCompositionSurface(component, model, state, pressure, temperature)
+            c = component.getPhaseComposition(model, state);
+        end
+        
         function c = getPhaseCompositionWell(component, model, state, W)
             nph = model.getNumberOfPhases();
             c = cell(nph, 1);

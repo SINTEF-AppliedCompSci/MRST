@@ -38,7 +38,10 @@ classdef GenericBlackOil < ThreePhaseBlackOilModel & ExtendedReservoirModel
                 eqs{i} = eqs{i} + divTerms{i};
                 eqs{i}(src.cells) = eqs{i}(src.cells) + src.value{i};
             end
-            [weqs, names, types, state] = model.FacilityModel.getModelEquations(state0, state, dt, drivingForces);
+            [weqs, wnames, wtypes, state] = model.FacilityModel.getModelEquations(state0, state, dt, drivingForces);
+            eqs = [eqs, weqs];
+            names = [names, wnames];
+            types = [types, wtypes];
         end
         
         function names = getComponentNames(model)
@@ -51,40 +54,6 @@ classdef GenericBlackOil < ThreePhaseBlackOilModel & ExtendedReservoirModel
         
         function n = getNumberOfPhases(model)
             n = model.water + model.oil + model.gas;
-        end
-        
-        % Various hacked versions of functions to bootstrap coming changes
-        function [eqs, names, types, wellSol, src] = insertWellEquations(model, eqs, names, ...
-                                                         types, wellSol0, wellSol, ...
-                                                         wellVars, wellMap, ...
-                                                         p, mob, rho, ...
-                                                         dissolved, components, ...
-                                                         dt, opt)
-            if model.FacilityModel.getNumberOfActiveWells(wellSol) == 0
-                src = [];
-                return
-            end
-            fm = model.FacilityModel;
-            nPh = nnz(model.getActivePhases);
-            [src, wellsys, wellSol] = ...
-                fm.getWellContributions(wellSol0, wellSol, wellVars, ...
-                                        wellMap, p, mob, rho, dissolved, components, ...
-                                        dt, opt.iteration);
-
-            rhoS = model.getSurfaceDensities();
-            wc = src.sourceCells;
-            [~, longNames] = getPhaseNames(model);
-            % Treat phase pseudocomponent source terms from wells
-            for i = 1:nPh
-                sub = strcmpi(names, longNames{i});
-                if any(sub)
-                    assert(strcmpi(types{sub}, 'cell'), 'Unable to add source terms to equation that is not per cell.');
-                    eqs{sub}(wc) = eqs{sub}(wc) - src.phaseMass{i};
-                end
-            end
-            eqs = horzcat(eqs, wellsys.wellEquations, {wellsys.controlEquation});
-            names = horzcat(names, wellsys.names, 'closureWells');
-            types = horzcat(types, wellsys.types, 'well');
         end
     end
 end

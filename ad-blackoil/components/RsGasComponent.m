@@ -3,8 +3,8 @@ classdef RsGasComponent < ImmiscibleComponent
     end
     
     methods
-        function c = RsGasComponent(name)
-            c@ImmiscibleComponent(name, []);
+        function c = RsGasComponent(name, gasIndex)
+            c@ImmiscibleComponent(name, gasIndex);
         end
         
         function c = getComponentDensity(component, model, state)
