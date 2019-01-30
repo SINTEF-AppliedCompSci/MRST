@@ -36,7 +36,7 @@ classdef GenericBlackOil < ThreePhaseBlackOilModel & ExtendedReservoirModel
             src = model.FacilityModel.getComponentSources(state);
             for i = 1:numel(divTerms)
                 eqs{i} = eqs{i} + divTerms{i};
-                eqs{i}(src.cells) = eqs{i}(src.cells) + src.value{i};
+                eqs{i}(src.cells) = eqs{i}(src.cells) - src.value{i};
             end
             [weqs, wnames, wtypes, state] = model.FacilityModel.getModelEquations(state0, state, dt, drivingForces);
             
