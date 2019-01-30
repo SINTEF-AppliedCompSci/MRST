@@ -6,22 +6,18 @@ classdef WellPhaseFlux < GridProperty
     methods
 
         function q_ph = evaluateOnDomain(prop, model, state)
-            [wc, p2w] = getActiveWellCells(model, state.wellSol);
-            active = model.getIndicesOfActiveWells(state.wellSol);
-            W = model.getWellStruct(active);
-
-            
-            
+            map = model.getProp(state, 'FacilityWellMapping');
+            W = map.W;
             [dp, wi] = model.getProps(state, 'PerforationPressureGradient', 'WellIndex');
             mob = model.ReservoirModel.getProps(state, 'Mobility');
             
-            mobw = cellfun(@(x) x(wc), mob, 'UniformOutput', false);
+            mobw = cellfun(@(x) x(map.cells), mob, 'UniformOutput', false);
             nph = numel(mob);
             
             isInj = dp < 0;
             if any(isInj)
                 compi = vertcat(W.compi);
-                compi_perf = compi(p2w, :);
+                compi_perf = compi(map.perf2well, :);
                 mobt = zeros(sum(isInj), 1);
                 for i = 1:nph
                     mobt = mobt + mobw{i}(isInj);

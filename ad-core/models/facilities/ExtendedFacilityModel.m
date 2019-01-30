@@ -13,8 +13,9 @@ classdef ExtendedFacilityModel < FacilityModel
             n = fm.ReservoirModel.getNumberOfPhases();
         end
         
-        function src = getComponentSourceTerm(fm, state, name)
-            
+        function src = getComponentSources(fm, state)
+            [val, map] = fm.getProps(state, 'ComponentTotalFlux', 'FacilityWellMapping');
+            src = struct('value', {val}, 'cells', map.cells);
         end
         
         function [eqs, names, types, state] = getModelEquations(model, state0, state, dt, drivingForces)

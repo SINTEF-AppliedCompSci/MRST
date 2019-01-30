@@ -6,17 +6,15 @@ classdef PerforationPressureGradient < GridProperty
     methods
 
         function dp = evaluateOnDomain(prop, model, state)
+            map = model.getProp(state, 'FacilityWellMapping');
             wellSol = state.wellSol;
-            actWellIx = model.getIndicesOfActiveWells(wellSol);
-            [wc, p2w] = getActiveWellCells(model, wellSol);
-            
             p = model.ReservoirModel.getProps(state, 'pressure');
             
             % Temporary
             isbhp = strcmpi(state.FacilityState.names, 'bhp');
-            bhp = state.FacilityState.primaryVariables{isbhp}(p2w);
-            cp = bhp + vertcat(wellSol(actWellIx).cdp);
-            dp = p(wc) - cp;
+            bhp = state.FacilityState.primaryVariables{isbhp}(map.perf2well);
+            cp = bhp + vertcat(wellSol(map.active).cdp);
+            dp = p(map.cells) - cp;
         end
     end
 end

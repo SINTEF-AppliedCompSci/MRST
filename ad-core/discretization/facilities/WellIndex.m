@@ -6,10 +6,10 @@ classdef WellIndex < GridProperty
     methods
 
         function WI = evaluateOnDomain(prop, model, state)
+            map = model.getProp(state, 'FacilityWellMapping');
             wellSol = state.wellSol;
-            active = model.getIndicesOfActiveWells(wellSol);
-            W = model.getWellStruct(active);
-            cstatus = vertcat(wellSol(active).cstatus);
+            W = model.getWellStruct(map.active);
+            cstatus = vertcat(wellSol(map.active).cstatus);
             WI = vertcat(W.WI).*cstatus;
         end
     end

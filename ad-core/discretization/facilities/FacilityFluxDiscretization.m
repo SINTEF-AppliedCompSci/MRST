@@ -5,6 +5,7 @@ classdef FacilityFluxDiscretization < PropertyFunctions
         ComponentPhaseFlux
         PerforationPressureGradient
         WellIndex
+        FacilityWellMapping
     end
     
     methods
@@ -16,6 +17,7 @@ classdef FacilityFluxDiscretization < PropertyFunctions
             props.ComponentPhaseFlux = WellComponentPhaseFlux(model);
             props.PerforationPressureGradient = PerforationPressureGradient(model);
             props.WellIndex = WellIndex(model);
+            props.FacilityWellMapping = FacilityWellMapping(model);
         end
     end
 end

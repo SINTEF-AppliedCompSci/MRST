@@ -26,7 +26,10 @@ classdef ImmiscibleComponent < ComponentImplementation
             c = cell(nph, 1);
             comp_i = vertcat(W.compi);
             for i = 1:nph
-                c{i} = comp_i(:, i);
+                ci = comp_i(:, i);
+                if any(ci ~= 0)
+                    c{i} = ci;
+                end
             end
         end
     end

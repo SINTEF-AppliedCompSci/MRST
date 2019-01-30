@@ -1,9 +1,12 @@
 classdef RsGasComponent < ImmiscibleComponent
     properties
-        phaseIndex % Index of phase this component belongs to
     end
     
     methods
+        function c = RsGasComponent(name)
+            c@ImmiscibleComponent(name, []);
+        end
+        
         function c = getComponentDensity(component, model, state)
             c = getComponentDensity@ComponentImplementation(component, model, state);
             phasenames = model.getPhaseNames();

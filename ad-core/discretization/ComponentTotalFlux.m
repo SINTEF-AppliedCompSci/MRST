@@ -6,8 +6,8 @@ classdef ComponentTotalFlux < GridProperty
     methods
 
         function v = evaluateOnDomain(prop, model, state)
-            ncomp = model.getNumberOfComponents;
-            nph = model.getNumberOfPhases;
+            ncomp = model.getNumberOfComponents();
+            nph = model.getNumberOfPhases();
             v = cell(ncomp, 1);
             phase_flux = model.getProps(state, 'ComponentPhaseFlux');
             
