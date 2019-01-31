@@ -63,13 +63,13 @@ classdef PropertyFunctions
         
         function ok = isPropertyEvaluated(props, model, state, name)
             % Check if property is present in cache
-            if isstruct(state) && ~isfield(state, props.structName)
-                % Cache object is missing, we have no properties
-                ok = false;
-            else
+            if isfield(state, props.structName)
                 % Cache is present, but this specific property is not
                 % necessarily present
-                ok = ~isempty(state.(props.structName).(name));
+                ok = structPropEvaluated(state.(props.structName), name);
+            else
+                % Cache object is missing, we have no properties
+                ok = false;
             end
         end
         

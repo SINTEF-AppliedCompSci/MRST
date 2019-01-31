@@ -55,5 +55,9 @@ classdef HandleStruct < handle
             % Deep copy
             ds2 = HandleStruct(ds.data);
         end
+        
+        function ok = structPropEvaluated(s, name)
+            ok = ~isempty(s.data.(name));
+        end
     end
 end
