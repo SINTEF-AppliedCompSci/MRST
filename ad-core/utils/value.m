@@ -3,12 +3,10 @@ function xv = value(x)
         xv = x;
     elseif iscell(x)
         sz = size(x);
+        xv = cellfun(@value, x, 'UniformOutput', false);
         if sz(1) == 1 && sz(2) > 1
             % Cell arrays are converted to matrices
-            x = cellfun(@value, x, 'UniformOutput', false);
-            xv = [x{:}];
-        else
-            xv = x;
+            xv = [xv{:}];
         end
     elseif isstruct(x)
         fn = fieldnames(x);
