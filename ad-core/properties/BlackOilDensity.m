@@ -27,6 +27,12 @@ classdef BlackOilDensity < GridProperty
                     rho{gix} = rho{gix} + rv.*b{gix}.*rhoS(oix);
                 end
             end
+            
+            mv = cellfun(@(x) min(value(x)), rho);
+            if any(mv <= 0)
+            	warning('Negative densities detected! Capping to 1e-12.')
+                rho = cellfun(@(x) max(x, 1e-12), rho, 'UniformOutput', false);
+            end
         end
     end
 end

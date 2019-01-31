@@ -12,6 +12,11 @@ classdef Mobility < GridProperty
                 mult = model.fluid.tranMultR(p);
                 mob = cellfun(@(x) x.*mult, mob, 'UniformOutput', false);
             end
+            mv = cellfun(@(x) min(value(x)), mob);
+            if any(mv < 0)
+            	warning('Negative mobilities detected! Capping to zero.')
+                mob = cellfun(@(x) max(x, 0), mob, 'UniformOutput', false);
+            end
         end
     end
 end

@@ -39,7 +39,7 @@ classdef WellComponentPhaseFlux < GridProperty
                 for ph = 1:nph
                     q = phaseFlux{ph};
                     if ~isempty(componentDensity{c, ph})
-                        allowCrossFlow = false;
+                        allowCrossFlow = true;
                         outflow = ~flowIntoWell(:, ph);
                         if allowCrossFlow
                             outflow = outflow & isInjectorPerforation;
