@@ -44,7 +44,7 @@ classdef ExtendedFacilityModel < FacilityModel
             [sn, phnames] = model.getPhaseNames();
             for ph = 1:nph
                 surfaceRates{ph} = surfaceRates{ph}./rhoS(ph);
-                eqs{ph} = surfaceRates{ph} - q_s{ph};
+                eqs{ph} = q_s{ph} - surfaceRates{ph};
                 names{ph} = [phnames{ph}, 'Wells'];
                 types{ph} = 'perf';
             end
@@ -99,7 +99,7 @@ classdef ExtendedFacilityModel < FacilityModel
         function containers = getPropertyFunctions(model)
             containers = getPropertyFunctions@PhysicalModel(model);
             assert(not(isempty(model.FacilityFluxDiscretization)), ...
-                'PropertyFunctions not initialized - did you call "validateModel"?');
+                'FacilityFluxDiscretization not initialized - did you call "validateModel"?');
             containers = [containers, {model.FacilityFluxDiscretization}];
         end
         

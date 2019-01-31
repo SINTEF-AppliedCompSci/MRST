@@ -270,7 +270,7 @@ methods
     end
     
     function [model, state] = prepareTimestep(model, state, state0, dt, drivingForces)
-        % Prepare state and model (temporarily) before solving a times-tep
+        % Prepare state and model (temporarily) before solving a time-step
         %
         % SYNOPSIS:
         %   [model, state] = model.prepareTimestep(state, state0, dt, drivingForces)

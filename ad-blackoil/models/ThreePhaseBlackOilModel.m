@@ -172,7 +172,7 @@ methods
         end
 
         
-        [eqs, divTerms, names, types] = conservationEquationsBlackOil(state0, state, model, dt, drivingForces);
+        [acc, divTerms, names, types] = conservationEquationsBlackOil(state0, state, model, dt, drivingForces);
         
         dissolved = model.getDissolutionMatrix(state.rs, state.rv);
         % Add in and setup well equations
@@ -189,7 +189,7 @@ methods
         rho = state.FlowProps.Density;
         sat = state.s;
         pressures = state.FlowProps.PhasePressures;
-        
+        eqs = acc;
 
         [eqs, state] = model.addBoundaryConditionsAndSources(eqs, names, types, state, ...
                                                          pressures, sat, mob, rho, ...

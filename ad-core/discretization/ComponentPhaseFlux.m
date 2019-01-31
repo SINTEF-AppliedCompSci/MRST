@@ -20,7 +20,7 @@ classdef ComponentPhaseFlux < GridProperty & UpwindProperty
                 mob = model.Components{i}.getComponentMobility(model, state);
                 for j = 1:nph
                     if ~isempty(mob{j})
-                        v{i, j} = prop.faceUpstream(state, flag{j}, mob{i}).*kgrad{j};
+                        v{i, j} = prop.faceUpstream(state, flag{j}, -mob{i}).*kgrad{j};
                     end
                 end
             end
