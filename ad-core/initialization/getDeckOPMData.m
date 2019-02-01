@@ -37,10 +37,10 @@ function output = getOutputOPM(deck, fldr, caseName, unit)
         smry_prefix = fullfile(fldr, 'opm-simulation-reference', 'flow_legacy', caseName);
     end
 
-    ws = convertSummaryToWellSols(smry_prefix, unit);
+    [ws, wstime] = convertSummaryToWellSols(smry_prefix, unit);
     states = convertRestartToStates(smry_prefix, G, 'use_opm', true, 'consistentWellSols', false);
 
-    output = struct('wellSols', {ws}, 'states', {states}, 'G', G, 'location', smry_prefix);
+    output = struct('wellSols', {ws}, 'states', {states}, 'G', G, 'location', smry_prefix, 'time', wstime);
 end
 
 function output = getOutputEclipse(deck, fldr, caseName, unit)
