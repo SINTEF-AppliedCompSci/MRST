@@ -24,7 +24,7 @@ classdef BlackOilViscosity < GridProperty
                 if model.disgas
                     rs = model.getProp(state, 'rs');
                     if prop.useSaturatedFlag
-                        rsMax = state.getProp(state, 'rsMax');
+                        rsMax = model.getProp(state, 'rsMax');
                         flag = value(rs) >= value(rsMax);
                     else
                         flag = false(nc, 1);
@@ -41,7 +41,7 @@ classdef BlackOilViscosity < GridProperty
                 if model.vapoil
                     rv = model.getProp(state, 'rv');
                     if prop.useSaturatedFlag
-                        rvMax = state.getProp(state, 'rvMax');
+                        rvMax = model.getProp(state, 'rvMax');
                         flag = value(rv) >= value(rvMax);
                     else
                         flag = false(nc, 1);
