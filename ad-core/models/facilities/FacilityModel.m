@@ -968,6 +968,7 @@ classdef FacilityModel < PhysicalModel
                 for i = 1:numel(resvIx)
                     global_well_ix = actIx(resvIx(i));
                     model.WellModels{global_well_ix}.W.val = newRates(i);
+                    state.wellSol(global_well_ix).val = newRates(i);
                     model.WellModels{global_well_ix}.W.type = 'volume';
                     state.wellSol(global_well_ix).type = 'volume';
                 end

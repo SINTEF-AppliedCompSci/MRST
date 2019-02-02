@@ -60,7 +60,7 @@ classdef ExtendedFacilityModel < FacilityModel
                 wrates = backend.convertToAD(zeros(nact, 1), bhp);
                 
                 well_controls = {state.wellSol(map.active).type}';
-                targets = vertcat(state.wellSol.val);
+                targets = vertcat(state.wellSol(map.active).val);
 
                 % Handle bhp
                 is_bhp = strcmp(well_controls, 'bhp');
