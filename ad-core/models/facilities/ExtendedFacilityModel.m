@@ -103,6 +103,17 @@ classdef ExtendedFacilityModel < FacilityModel
             %   :meth:`ad_core.models.PhysicalModel.updateAfterConvergence`
 
             [state, report] = updateAfterConvergence@FacilityModel(model, state0, state, dt, drivingForces);
+            map = state.FacilityFluxProps.FacilityWellMapping;
+            cf = state.FacilityFluxProps.ComponentTotalFlux;
+            if iscell(cf)
+                cf = [cf{:}];
+            end
+            for i = 1:numel(map.active)
+                wi = map.active(i);
+                act = map.perf2well == i;
+                state.wellSol(wi).flux = state.FacilityFluxProps.PhaseFlux(act, :);
+                state.wellSol(wi).ComponentTotalFlux = cf(act, :);
+            end
         end
         
         function containers = getPropertyFunctions(model)

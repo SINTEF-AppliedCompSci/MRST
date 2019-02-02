@@ -357,29 +357,16 @@ classdef SimpleWell < PhysicalModel
             if ~well.doUpdatePressureDrop
                 return
             end
-%             rho = model.getProp(state, 'rho')
-%             [p, mob, rho, dissolved, comp, wellvars] = unpackPerforationProperties(packed);
-%             for i = 1:numel(rho)
-%                 rho{i} = value(rho{i});
-%                 if ~isempty(dissolved)
-%                     for j = 1:numel(dissolved{i})
-%                         dissolved{i}{j} = value(dissolved{i}{j});
-%                     end
-%                 end
-%             end
-%             rho     = cell2mat(rho);
             active = model.getActivePhases();
             numPh = nnz(active);
 
-%             rhoS = model.getSurfaceDensities();
-%             b = phaseDensitiesTobfactor(rho, rhoS, dissolved);
             w = well.W;
             if ~isfield(w, 'topo')
                 nperf = numel(w.cells);
                 w.topo = [(0:(nperf-1))', (1:nperf)'];
             end
-            if isfield(wellSol, 'flux')
-                q = wellSol.flux; %volumetric in-flux at standard conds
+            if isfield(wellSol, 'ComponentTotalFlux')
+                q = wellSol.ComponentTotalFlux; % Total mass flux
                 q(q == 0) = w.sign*1e-12;
             else
                 sgn = w.sign;
@@ -387,12 +374,11 @@ classdef SimpleWell < PhysicalModel
                     sgn = 1;
                 end
                 q = sgn*ones(size(rho_res));
+                in = q > 0;
+                q = bsxfun(@times, q, rho_well).*in + bsxfun(@times, q, rho_res).*~in;
             end
-            % Injection flux
-            in = q > 0;
-            qm = bsxfun(@times, q, rho_well).*in + bsxfun(@times, q, rho_res).*~in;
             C = well.wb2in(w);      % mapping wb-flux to in-flux
-            wbqs  = abs(C\qm);      % solve to get well-bore mass flux
+            wbqs  = abs(C\q);      % solve to get well-bore mass flux
             wbqst = sum(wbqs, 2);   % total wb- mass flux 
             % if flux is zero - just use compi
             zi = wbqst == 0;
