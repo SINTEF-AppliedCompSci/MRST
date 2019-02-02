@@ -8,7 +8,7 @@ classdef OilComponent < ImmiscibleComponent
         end
         
         function c = getComponentDensity(component, model, state)
-            c = getComponentDensity@ComponentImplementation(component, model, state);
+            c = getComponentDensity@ImmiscibleComponent(component, model, state);
             if model.disgas || model.vapoil
                 phasenames = model.getPhaseNames();
                 gix = phasenames == 'G';
