@@ -60,11 +60,9 @@ classdef ExtendedFacilityModel < FacilityModel
                 types{ph} = 'perf';
             end
             
-            mixs = value(surfaceRates);
+            mixs = value(q_s);
             nact = numel(map.active);
-            ctrl = cell(nact, 1);
-            
-            
+
             if true
                 backend = model.AutoDiffBackend;
                 ctrl_eq = backend.convertToAD(zeros(nact, 1), bhp);
