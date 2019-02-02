@@ -36,7 +36,7 @@ classdef GridProperty
                 % We have multiple regions and have to evaluate for each
                 % subregion
                 nc = size(prop.regions, 1);
-                isCell = cellfun(@(x) numel(double(x)) == nc, varargin);
+                isCell = cellfun(@(x) numelValue(x) == nc, varargin);
                 assert(~isempty(prop.regions))
                 [sample, isAD] = getSampleAD(varargin{:});
                 v = zeros(numel(local_region), 1);
