@@ -9,17 +9,26 @@ classdef OilComponent < ImmiscibleComponent
         
         function c = getComponentDensity(component, model, state)
             c = getComponentDensity@ComponentImplementation(component, model, state);
-            phasenames = model.getPhaseNames();
-            gix = phasenames == 'G';
-            oix = phasenames == 'O';
-            if model.disgas
+            if model.disgas || model.vapoil
+                phasenames = model.getPhaseNames();
+                gix = phasenames == 'G';
+                oix = phasenames == 'O';
+
                 b = model.getProps(state, 'ShrinkageFactors');
                 rhoS = model.getSurfaceDensities();
-                rhoOS = rhoS(oix);
-                bO = b{oix};
-                c{oix} = rhoOS.*bO;
+                
+                if model.disgas
+                    rhoOS = rhoS(oix);
+                    bO = b{oix};
+                    c{oix} = rhoOS.*bO;
+                end
+                
+                if model.vapoil
+                    bG = b{gix};
+                    rv = model.getProp(state, 'rv');
+                    c{gix} = rv.*rhoOS.*bG;
+                end
             end
-            assert(~model.vapoil);
         end
     end
 end

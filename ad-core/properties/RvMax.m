@@ -3,7 +3,7 @@ classdef RvMax < GridProperty
     end
     
     methods
-        function rsSat = evaluateOnGrid(prop, model, state)
+        function rsSat = evaluateOnDomain(prop, model, state)
             p = model.getProp(state, 'pressure');
             pc = state.FlowProps.CapillaryPressure{model.water + model.oil + model.gas};
             if model.disgas
