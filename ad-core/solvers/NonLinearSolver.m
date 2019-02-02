@@ -205,8 +205,13 @@ classdef NonLinearSolver < handle
             stepsel.newControlStep(drivingForces);
 
             dtMin = dT/(2^solver.maxTimestepCuts);
+            timestepFailure = false;
             while ~done
-                dt_selector = stepsel.pickTimestep(dt_prev, dt, model, solver, state_prev, state0_inner);
+                if timestepFailure
+                    dt_selector = stepsel.cutTimestep(dt_prev, dt, model, solver, state_prev, state0_inner, drivingForces);
+                else
+                    dt_selector = stepsel.pickTimestep(dt_prev, dt, model, solver, state_prev, state0_inner, drivingForces);
+                end
                 dt_model = model.getMaximumTimestep(state, state0_inner, dt_selector, drivingForces);
                 dt_choice = min(dt_selector, dt_model);
                 if t_local + dt_choice >= dT
@@ -258,6 +263,7 @@ classdef NonLinearSolver < handle
                         end
                         ministates{acceptCount} = state;
                     end
+                    timestepFailure = false;
                 else
                     % Model did not converge, we are in some kind of
                     % trouble.
@@ -306,9 +312,9 @@ classdef NonLinearSolver < handle
                             % Beat timestep with a hammer
                             warning([solver.getId(), 'Solver did not converge, cutting timestep'])
                         end
+                        timestepFailure = true;
                         cuttingCount = cuttingCount + 1;
-                        dt = dt/2;
-                    end
+                   end
                     isFinalMinistep = false;
                 end
                 done = isFinalMinistep && converged;
@@ -566,7 +572,7 @@ classdef NonLinearSolver < handle
 end
 
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

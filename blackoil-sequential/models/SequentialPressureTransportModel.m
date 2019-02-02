@@ -109,7 +109,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
             
             if model.reupdatePressure && converged
                 state = ...
-                    psolver.solveTimestep(state0, dt, model.pressureModel,...
+                    model.pressureNonLinearSolver.solveTimestep(state0, dt, model.pressureModel,...
                             'initialGuess', state, ...
                             forceArg{:});
                 [~, state] = model.transportModel.getEquations(state0, state, dt, drivingForces, 'resOnly', true, 'iteration', inf);
@@ -259,7 +259,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
 end
 
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

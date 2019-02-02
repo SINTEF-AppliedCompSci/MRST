@@ -48,31 +48,14 @@ deck = readEclipseDeck(files{1});
 % The deck is using metric system, MRST uses SI unit internally
 deck = convertDeckUnits(deck);
 
-% Process the grid
-G = initEclipseGrid(deck);
-G = computeGeometry(G);
+% Construct physical model, initial state and dynamic well controls.
+[state0, model, schedule] = initEclipseProblemAD(deck);
 
-% rock properties, including permeability, porosity, compressibility
-rock  = initEclipseRock(deck);
-rock  = compressRock(rock, G.cells.indexMap);
+% Add polymer concentration
+state0.c   = zeros([model.G.cells.num, 1]);
 
-% fluid properties, such as densities, viscosities, relative
-% permeability, etc.
-fluid          = initDeckADIFluid(deck);
-
-% Constructing the physical model used for this simulation
-% Here, we use three phase blackoil-polymer model
-model = ThreePhaseBlackOilPolymerModel(G, rock, fluid, 'inputdata', deck);
-
-% Set initial equilibrium saturation and polymer related two variables
-state0         = initEclipseState(G, deck, initEclipseFluid(deck));
-% polymer concentration
-state0.c       = zeros([G.cells.num, 1]);
 % maximum polymer concentration, used to handle the polymer adsorption
-state0.cmax    = zeros([G.cells.num, 1]);
-
-% Convert the deck schedule into a MRST schedule by parsing the wells
-schedule = convertDeckScheduleToMRST(model, deck);
+state0.cmax= zeros([model.G.cells.num, 1]);
 
 %% Select nonlinear and linear solvers
 
@@ -351,7 +334,7 @@ fprintf('The simulation has been finished! \n');
 
 % <html>
 % <p><font size="-1">
-% Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+% Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 % </font></p>
 % <p><font size="-1">
 % This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).

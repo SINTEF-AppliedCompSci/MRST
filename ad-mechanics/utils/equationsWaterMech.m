@@ -33,7 +33,7 @@ function [eqs, names, types, state] = equationsWaterMech(p0, state0, p, wellVars
 % SEE ALSO: equationsWater
 %
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

@@ -3,23 +3,23 @@ function [up, theta, r] = multiphaseUpwindIndices(G, vT, T, K, upstr)
     % MULTIPHASE FLOW IN RESERVOIR SIMULATIONS" by Brenier & Jaffre
     nPh = numel(G);
     nF  = numel(T);
+    r = zeros(nF, 1);
+    theta = repmat(vT, 1, nPh);
+    if nF == 0
+        up = true(nF, nPh);
+        return
+    end
     G = flattenAndMakeDouble(G);
     K = flattenAndMakeDouble(K);
-
     % Sort phases for each interface by potential
     [G, sortInd] = sort(G, 2);
     % Get the linear index for this sorting
     subs = sub2ind([nF, nPh], repmat((1:nF)', 1, nPh), sortInd);
-    
-    theta = repmat(vT, 1, nPh);
     flag = true(nF, 1);
-    
     left_upwind = upstr(flag, K);
     right_upwind = upstr(~flag, K);
-    
     left_upwind = left_upwind(subs);
     right_upwind = right_upwind(subs);
-
     for l = 1:nPh
         for j = 1:nPh
             if j == l
@@ -38,7 +38,6 @@ function [up, theta, r] = multiphaseUpwindIndices(G, vT, T, K, upstr)
     end
     % r is zero if all thetas are positive, otherwise it is the last phase
     % with negative value
-    r = zeros(nF, 1);
     for l = 1:nPh
         r(theta(:, l) <= 0) = l;
     end
@@ -56,7 +55,7 @@ function d = flattenAndMakeDouble(d)
 end
 
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

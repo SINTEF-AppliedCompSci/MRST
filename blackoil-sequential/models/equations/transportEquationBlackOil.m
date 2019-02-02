@@ -139,7 +139,6 @@ Gg = gp - dpG;
 rho = {rhoW, rhoO, rhoG};
 mob = {mobW, mobO, mobG};
 G = {Gw, Go, Gg};
-components = {};
 
 components = {{sT.*bW,  [],         []}, ...
               {[],      sT.*bO,     sT.*rv.*bG}, ...
@@ -147,9 +146,12 @@ components = {{sT.*bW,  [],         []}, ...
 upstr = model.operators.faceUpstr;
 [q_phase, q_components] = computeSequentialFluxes(...
     state, G, vT, T, mob, rho, components, upstr, model.upwindType);
-% upwindType, state, G, vT, T, mob, rho, components, upstr, upwindType
-% [waterFlux, oilFlux, gasFlux] = getFluxes(model, state, Gw, Go, Gg, vT, mobW, mobO, mobG, sT.*bW, sT.*bO, sT.*bG, rs, rv);
 [waterFlux, oilFlux, gasFlux] = deal(q_components{:});
+
+
+if model.outputFluxes
+    state = model.storeFluxes(state, q_phase{:});
+end
 
 if model.extraStateOutput
     state = model.storebfactors(state, bW, bO, bG);
@@ -266,7 +268,7 @@ mob = {mobW, mobO, mobG};
 sat = {sW, sO, sG};
 dissolved = model.getDissolutionMatrix(rs, rv);
 
-eqs = addBoundaryConditionsAndSources(model, eqs, names, types, state, ...
+[eqs, state] = addBoundaryConditionsAndSources(model, eqs, names, types, state, ...
                                      {pW, p, pG}, sat, mob, rho, ...
                                      dissolved, {}, ...
                                      drivingForces);
@@ -357,7 +359,7 @@ function [bv_v, bv_g] = composeFlux(f, vT, v_g, b, up_v, up_g, upstr)
 end
 
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

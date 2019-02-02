@@ -1,4 +1,4 @@
-function [problem, state] = transportEquationOverallComposition(state0, state, model, dt, drivingForces, varargin)
+function [problem, state] = transportEquationsNaturalVars(state0, state, model, dt, drivingForces, varargin)
 opt = struct('Verbose',     mrstVerbose,...
             'reverseMode', false,...
             'resOnly',     false,...
@@ -15,19 +15,26 @@ fluid = model.fluid;
 compFluid = model.EOSModel.fluid;
 
 % Properties at current timestep
-[sT, p, sW, z, temp, wellSol] = model.getProps(state, ...
-    'sT', 'pressure', 'water', 'z', 'T', 'wellSol');
-[p0, sW0, sO0, sG0, z0, temp0] = model.getProps(state0, ...
-    'pressure', 'water', 'oil', 'gas', 'z', 'T');
+[p, sW, sO, sG, x, y, temp, wellSol] = model.getProps(state, ...
+    'pressure', 'water', 'so', 'sg', 'x', 'y', 'T', 'wellSol');
+assert(all(p>0), 'Pressure must be positive for compositional model');
 
-z = ensureMinimumFraction(z);
-z0 = ensureMinimumFraction(z0);
+[p0, sW0, sO0, sG0, x0, y0, temp0, wellSol0] = model.getProps(state0, ...
+    'pressure', 'water', 'so', 'sg', 'x', 'y', 'T', 'wellSol');
 
-z = expandMatrixToCell(z);
-z0 = expandMatrixToCell(z0);
+[pureLiquid, pureVapor, twoPhase] = model.getFlag(state);
+if 1
+    stol = 1e-8;
+    pureWater = sO + sG < stol;
+    sO(~pureVapor & pureWater) = stol;
+    sG(~pureLiquid & pureWater) = stol;
 
-ncomp = numel(z);
-cnames = model.EOSModel.fluid.names;
+    [pureLiquid0, pureVapor0, twoPhase0] = model.getFlag(state0);
+    pureWater0 = sO0 + sG0 < stol;
+    sO0(~pureVapor0 & pureWater0) = stol;
+    sG0(~pureLiquid0 & pureWater0) = stol;
+end
+
 
 % if isfield(state, 'timestep') && opt.iteration == 1
 %     p = state.pressure_full;
@@ -35,28 +42,119 @@ cnames = model.EOSModel.fluid.names;
 %     state.pressure = p.*dt_frac + p0.*(1-dt_frac);
 % end
 
-if model.EOSModel.fastDerivatives
-    state.eos.packed = model.EOSModel.getPropertiesFastAD(state.pressure, state.T, state.x, state.y, state.components);
-else
-    state.eos.packed = struct();
-end
+z = state.components;
+x(~twoPhase, :) = z(~twoPhase, :);
+y(~twoPhase, :) = z(~twoPhase, :);
+x = ensureMinimumFraction(x);
+[y, z_tol] = ensureMinimumFraction(y);
+x = expandMatrixToCell(x);
+y = expandMatrixToCell(y);
 
+ncomp = model.EOSModel.fluid.getNumberOfComponents();
+[xnames, ynames, cnames] = deal(model.EOSModel.fluid.names);
+for i = 1:ncomp
+    xnames{i} = ['v_', cnames{i}];
+    ynames{i} = ['w_', cnames{i}];
+end
+twoPhaseIx = find(twoPhase);
+
+wtmp = ones(nnz(twoPhase), 1);
+w = cell(ncomp, 1);
+[w{:}] = deal(wtmp);
+
+nc = model.G.cells.num;
+for i = 1:(ncomp-1)
+    w{i} = y{i}(twoPhase);
+end
+so = sO(twoPhase);
+
+X = sG;
+X(pureLiquid) = sO(pureLiquid);
 
 if model.water
-    [sT, z{1:ncomp-1}, sW] = initVariablesADI(sT, z{1:ncomp-1}, sW);
-    primaryVars = {'sT', cnames{1:end-1}, 'sW'};
+    if ~opt.resOnly
+        [X, x{1:ncomp-1}, sW, w{1:ncomp-1}, so] = model.AutoDiffBackend.initVariablesAD(...
+         X, x{1:ncomp-1}, sW, w{1:ncomp-1}, so);
+    end
+    primaryVars = {'sGsO', xnames{1:end-1}, 'satw', ynames{1:end-1}, 'sato'};
+
 else
-    [sT, z{1:ncomp-1}] = initVariablesADI(sT, z{1:ncomp-1});
-    primaryVars = {'sT', cnames{1:end-1}};
+    if ~opt.resOnly
+        [X, x{1:ncomp-1}, w{1:ncomp-1}, so] = model.AutoDiffBackend.initVariablesAD(...
+         X, x{1:ncomp-1}, w{1:ncomp-1}, so);
+    end
+    primaryVars = {'sGsO', xnames{1:end-1}, ynames{1:end-1}, 'sato'};
+
 end
-z{end} = 1;
-for i = 1:(ncomp-1)
-    z{end} = z{end} - z{i};
+
+sample = x{1};
+
+sO = model.AutoDiffBackend.convertToAD(sO, sample);
+sO(twoPhase) = so;
+sO(pureLiquid) = X(pureLiquid);
+sG = model.AutoDiffBackend.convertToAD(sG, sample);
+sG(~pureLiquid) = X(~pureLiquid);
+
+if model.water
+    sT = sO + sG + sW;
+    sT0 = sO0 + sG0 + sW0;
+    sW = sW./sT;
+    sW0 = sW0./sT0;
+else
+    sT = sO + sG;
+    sT0 = sO0 + sG0;
+end
+sT = max(sT, 1e-8);
+sT0 = max(sT0, 1e-8);
+
+sO = sO./sT;
+sG = sG./sT;
+
+sO0 = sO0./sT0;
+sG0 = sG0./sT0;
+x{end} = 1;
+w{end} = 1;
+for i = 1:ncomp-1
+    x{end} = x{end} - x{i};
+    if any(twoPhase)
+        w{end} = w{end}-w{i};
+    end
+end
+
+for i = 1:ncomp
+    y{i} = x{i};
+    if any(twoPhase)
+        y{i}(twoPhase) = w{i};
+    end
+    x{i}(pureVapor) = double(x{i}(pureVapor));
+    y{i}(pureLiquid) = double(y{i}(pureLiquid));
+end
+
+cellJacMap = cell(numel(primaryVars), 1);
+% toReorder = 1:nc;
+
+if isempty(twoPhaseIx) || opt.resOnly
+    reorder = [];
+else
+    n2ph = nnz(twoPhase);
+    nVars = sum(sample.getNumVars());
+    reorder = 1:nVars;
+    start = twoPhaseIx + nc;
+    stop = (nVars-n2ph+1):nVars;
+    
+    reorder(start) = stop;
+    reorder(stop) = start;
+    
+    offset = ncomp+model.water;
+    for i = 1:ncomp
+        cellJacMap{i + offset} = twoPhaseIx;
+    end
 end
 
 
-[xM,  yM,  sO,  sG,  rhoO,  rhoG, muO, muG] = model.computeTwoPhaseFlowProps(state, p, temp, z);
-[xM0, yM0, ~, ~, rhoO0, rhoG0]          = model.computeTwoPhaseFlowProps(state0, p0, temp0, z0);
+% Compute properties and fugacity
+[xM,  yM,  rhoO,  rhoG,  muO,  muG, f_L, f_V, xM0, yM0, rhoO0, rhoG0] = ...
+                  model.getTimestepPropertiesEoS(state, state0, p, temp, x, y, z, sO, sG, cellJacMap);
 
 [pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
 
@@ -72,14 +170,18 @@ if model.water
 else
     [krO, krG] = model.evaluateRelPerm(sat);
 end
-
 krO = mobMult.*krO;
 krG = mobMult.*krG;
+
 
 for i = 1:ncomp
     xM{i} = xM{i}.*sT;
     yM{i} = yM{i}.*sT;
+    
+    xM0{i} = xM0{i}.*sT0;
+    yM0{i} = yM0{i}.*sT0;
 end
+
 % Compute transmissibility
 T = transMult.*s.T;
 
@@ -87,14 +189,24 @@ T = transMult.*s.T;
 gdz = model.getGravityGradient();
 rhoOf  = s.faceAvg(sO.*rhoO)./max(s.faceAvg(sO), 1e-8);
 rhoGf  = s.faceAvg(sG.*rhoG)./max(s.faceAvg(sG), 1e-8);
-% Phase mobility
+
+% Oil flux
 mobO   = krO./muO;
+
+% Gas flux
 mobG   = krG./muG;
 
+
+% splitting starts here
 Go = rhoOf.*gdz;
 Gg = rhoGf.*gdz;
+if isfield(fluid, 'pcOG')
+    Gg = Gg - s.Grad(fluid.pcOG(sG));
+end
 
 vT = sum(state.flux(model.operators.internalConn, :), 2);
+
+
 if model.water
     pW = p;
     pW0 = p0;
@@ -125,50 +237,47 @@ else
     pressures = {p, p};
 end
 
+
 if model.extraStateOutput
     bO = rhoO./fluid.rhoOS;
     bG = rhoG./fluid.rhoGS;
-
     state = model.storebfactors(state, bW, bO, bG);
     state = model.storeMobilities(state, mobW, mobO, mobG);
 end
 state = model.storeDensities(state, rhoW, rhoO, rhoG);
 
-components = getComponentsTwoPhaseSimpleWater(model, rho, sWt, xM, yM);
+components = getComponentsTwoPhaseSimpleWater(model, rho, sT, xM, yM);
 
 upstr = model.operators.faceUpstr;
 [q_phase, q_components] = computeSequentialFluxes(...
     state, gg, vT, T, mob, rho, components, upstr, model.upwindType);
 
-
 pv = pvMult.*model.operators.pv;
 pv0 = pvMult0.*model.operators.pv;
 
+compFlux = zeros(model.G.faces.num, ncomp);
+
 % water equation + n component equations
-[eqs, types, names] = deal(cell(1, ncomp + model.water));
+[eqs, types, names] = deal(cell(1, 2*ncomp + model.water));
 for i = 1:ncomp
     names{i} = compFluid.names{i};
     types{i} = 'cell';
     vi = q_components{i};
     eqs{i} = (1/dt).*( ...
                     pv.*rhoO.*sO.*xM{i} - pv0.*rhoO0.*sO0.*xM0{i} + ...
-                    pv.*rhoG.*sG.*yM{i} - pv0.*rhoG0.*sG0.*yM0{i}) ...
-          + s.Div(vi);
+                    pv.*rhoG.*sG.*yM{i} - pv0.*rhoG0.*sG0.*yM0{i}) + s.Div(vi);
       
-    if model.water
-        pureWater = double(sG) == 0 & double(sO) == 0;
-        if any(pureWater)
-            % Cells with pure water should just retain their composition to
-            % avoid singular systems
-            eqs{i}(pureWater) = eqs{i}(pureWater) + ...
-                            1e-3*(xM{i}(pureWater) - double(xM{i}(pureWater)));
-        end
-    end
+   compFlux(model.operators.internalConn, i) = double(vi);
 end
+state.componentFluxes = compFlux;
+if isfield(state, 'massFlux')
+    state = rmfield(state, 'massFlux');
+end
+
 if model.water
     wix = ncomp+1;
     vw = q_components{ncomp+1};
-    eqs{wix} = (1/dt).*(pv.*rhoW.*sW.*sT - pv0.*rhoW0.*sW0.*sW) + s.Div(vw);
+    eqs{wix} = (1/dt).*(pv.*rhoW.*sW.*sT - pv0.*rhoW0.*sW0.*sT0) + s.Div(vw);
     names{wix} = 'water';
     types{wix} = 'cell';
     state = model.storeFluxes(state, q_phase{:});
@@ -212,7 +321,6 @@ if ~isempty(W)
         mobWw = mobW(wc);
         rhoWw = rhoW(wc);
         totMobw = mobWw + mobOw + mobGw;
-        totMobw = max(totMobw, 1e-8);
         f_w_w = mobWw./totMobw;
         f_w_w = sT(wc).*f_w_w;
 
@@ -221,7 +329,6 @@ if ~isempty(W)
         eqs{wix}(wc) = eqs{wix}(wc) - rWqW;
     else
         totMobw = mobOw + mobGw;
-        totMobw = max(totMobw, 1e-8);
     end
     f_o_w = mobOw./totMobw;
     f_g_w = mobGw./totMobw;
@@ -267,26 +374,44 @@ if ~isempty(W)
     end
 end
 
+for i = 1:ncomp
+    ix = i + ncomp + model.water;
+    names{ix}= ['f_', compFluid.names{i}];
+    types{ix} = 'fugacity';
+    eqs{ix} = (f_L{i}(twoPhase) - f_V{i}(twoPhase))/barsa;
+    absent = state.components(twoPhase, i) <= 10*z_tol;
+    if model.water
+        absent = absent | pureWater(twoPhase);
+    end
+    if any(absent) && isa(eqs{ix}, 'ADI')
+        eqs{ix}.val(absent) = 0;
+    end    
+end
+massT = model.getComponentScaling(state0);
+scale = (dt./s.pv)./massT;
 if model.water
     wscale = dt./(s.pv*mean(double(rhoW0)));
     eqs{wix} = eqs{wix}.*wscale;
 end
-
-massT = model.getComponentScaling(state0);
-scale = (dt./s.pv)./massT;
 
 for i = 1:ncomp
     eqs{i} = eqs{i}.*scale;
 end
 
 
-problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
+if model.reduceLinearSystem
+    problem = ReducedLinearizedSystem(eqs, types, names, primaryVars, state, dt);
+    problem.keepNum = model.G.cells.num*(ncomp+model.water);
+    problem.reorder = reorder;
+else
+    problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
+end
 end
 
 
 
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

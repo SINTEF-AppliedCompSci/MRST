@@ -61,7 +61,7 @@ function q_c = computeComponentFluxes(q, components)
     nph = numel(q);
     nc = numel(components);
     q_c = cell(nc, 1);
-    [q_c{:}] = deal(0);
+    [q_c{:}] = deal(zeros(size(double(q{1}))));
     for c = 1:nc
         for p = 1:nph
             component_in_phase = components{c}{p};
@@ -78,7 +78,7 @@ function q = computePhaseVolumetricFluxes(vT, T, mob_f, G)
     end
     nph = numel(mob_f);
     q = cell(nph, 1);
-    mob_t = 0;
+    mob_t = zeros(size(vT));
     for i = 1:nph
         mob_t = mob_t + mob_f{i};
     end
@@ -89,7 +89,7 @@ function q = computePhaseVolumetricFluxes(vT, T, mob_f, G)
         if isempty(G)
             q{i} = f.*vT;
         else
-            g = 0;
+            g = zeros(size(vT));
             for j = 1:nph
                 if i == j
                     continue

@@ -17,7 +17,7 @@ function [L, x, y, Z_L, Z_V, rhoL, rhoV] = standaloneFlash(p, T, z, EOSModel)
 %   `EquationOfStateModel`
 
 %{
-Copyright 2009-2017 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

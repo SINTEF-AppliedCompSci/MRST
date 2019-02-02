@@ -42,21 +42,6 @@ classdef WaterThermalModel < WaterModel
             rhoS = cellfun(@(x) model.fluid.(x), props(active));
         end
         
-        function [state, report] = updateState(model, state, problem, dx, drivingForces)
-            % Parent class handles almost everything for us
-            [state, report] = updateState@ReservoirModel(model, state, problem, dx, drivingForces);
-            
-            % Update wells based on black oil specific properties
-            saturations = model.saturationVarNames;
-            wi = strcmpi(saturations, 'sw');
-            oi = strcmpi(saturations, 'so');
-            gi = strcmpi(saturations, 'sg');
-            
-            W = drivingForces.W;
-            state.wellSol = assignWellValuesFromControl(model, state.wellSol, W, wi, oi, gi);
-            
-        end
-        
         function [eqs, names, types, wellSol] = insertWellEquations(model, eqs, names, types, wellSol0, wellSol, wellVars, wellMap, p, mob, rho, hW,components, dt, opt)
             % Utility function for setting up the well equations and adding
             % source terms for black-oil like models. Note that this currently
@@ -106,7 +91,7 @@ classdef WaterThermalModel < WaterModel
 end
 
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

@@ -95,7 +95,7 @@ classdef LinearSolverAD < handle
             end
             objective = combineEquations(objective);
             assert(isa(objective, 'ADI'), 'Objective function was not of type ADI.');
-            b = -(objective.jac{1})';
+            b = objective.jac{1}';
             if ~isempty(adjVec)
                 problemPrev = problemPrev.assembleSystem();
                 b = b - problemPrev.A'*adjVec;
@@ -500,7 +500,7 @@ classdef LinearSolverAD < handle
 end
 
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

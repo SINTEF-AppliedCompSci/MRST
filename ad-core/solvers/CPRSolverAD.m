@@ -188,7 +188,7 @@ classdef CPRSolverAD < LinearSolverAD
             % ILU0 preconditioner for the non-elliptic part
             [L, U] = ilu(A, struct('type', 'nofill'));
             if isempty(solver.keepNumber)
-                Ap = -problem.equations{pressureIndex}.jac{pressureIndex};
+                Ap = problem.equations{pressureIndex}.jac{pressureIndex};
             else
                 Ap = A(pInx, pInx);
             end
@@ -270,7 +270,7 @@ end
 
 
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

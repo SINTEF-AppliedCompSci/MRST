@@ -257,6 +257,9 @@ for stage = 1:2
         [m{:}] = initVariablesADI(m{:});
     end
 end
+if isnumeric(model.operators.pv)
+    model.operators.pv = double2ADI(model.operators.pv, m{1});
+end
 end
 
 

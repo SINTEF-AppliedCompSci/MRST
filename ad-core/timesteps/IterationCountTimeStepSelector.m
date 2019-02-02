@@ -42,7 +42,7 @@ classdef IterationCountTimeStepSelector < SimpleTimeStepSelector
             selector = merge_options(selector, varargin{:});
         end
         
-        function dt = computeTimestep(selector, dt, dt_prev, model, solver, state_prev, state_curr)
+        function dt = computeTimestep(selector, dt, dt_prev, model, solver, state_prev, state_curr, forces)
             % Dynamically compute timestep
             hist = selector.history;
             nHist = numel(hist);
@@ -98,7 +98,7 @@ end
 
 
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

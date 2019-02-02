@@ -1,5 +1,6 @@
 % Files
 %   assignDENSITY     - dens of size ntpvtx3
+%   assignGRAVITY     - Define Fluid Densites from API and Specific Fluid Gravity
 %   assignMISC        - 
 %   assignMSFN        - 
 %   assignOILVIST     - Compute tables (static data)
@@ -26,6 +27,7 @@
 %   assignSDENSITY    - dens of size ntpvtx3
 %   assignSGFN        - 
 %   assignSGOF        - 
+%   assignSGWFN       - 
 %   assignSHRATE      - 
 %   assignSLGOF       - 
 %   assignSOF2        - 
@@ -46,7 +48,7 @@
 %   initDeckADIFluid  - Initialize AD-solver fluid from ECLIPSE-style input deck
 
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
