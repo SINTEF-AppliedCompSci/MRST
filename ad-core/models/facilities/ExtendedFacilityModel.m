@@ -52,13 +52,65 @@ classdef ExtendedFacilityModel < FacilityModel
             mixs = value(surfaceRates);
             nact = numel(map.active);
             ctrl = cell(nact, 1);
-            for i = 1:nact
-                w = map.active(i);
-                well = facility.WellModels{w};
-                qs = cellfun(@(x) x(i), q_s, 'UniformOutput', false);
-                ctrl{i} =  setupWellControlEquationsSingleWell(well, state0.wellSol(w), state.wellSol(w), bhp(i), qs, true, mixs(i, :), model);
+            
+            
+            if false
+                backend = model.AutoDiffBackend;
+                ctrl_eq = backend.convertToAD(zeros(nact, 1), bhp);
+                wrates = backend.convertToAD(zeros(nact, 1), bhp);
+                
+                well_controls = {state.wellSol(map.active).type}';
+                targets = vertcat(state.wellSol.val);
+
+                % Handle bhp
+                is_bhp = strcmp(well_controls, 'bhp');
+                ctrl_eq(is_bhp) = bhp(is_bhp) - targets(is_bhp);
+                
+                % Rate controls
+                is_rate = strcmp(well_controls, 'rate') | strcmpi(well_controls, 'vrat');
+                is_orat = strcmp(well_controls, 'orat');
+                is_wrat = strcmp(well_controls, 'wrat');
+                is_grat = strcmp(well_controls, 'grat');
+                is_lrat = strcmp(well_controls, 'lrat');
+                phases = model.getPhaseNames();
+                is_surface_control = false(nact, 1);
+                
+                qs_t = zeros(nact, 1);
+                for i = 1:nph
+                    switch phases(i)
+                        case 'W'
+                            act = is_rate | is_wrat | is_lrat;
+                        case 'O'
+                            act = is_rate | is_orat | is_lrat;
+                        case 'G'
+                            act = is_rate | is_grat;
+                    end
+                    is_surface_control(act) = true;
+                    wrates(act) = wrates(act) + q_s{ph}(act);
+                    qs_t(act) = qs_t(act) + mixs(act, i);
+                end
+                ctrl_eq(is_surface_control) = wrates(is_surface_control) - targets(is_surface_control);
+                
+                zeroRates = qs_t == 0;
+                if any(zeroRates)
+                    q_t = 0;
+                    for i = 1:nph
+                        q_t = q_t + q_s{i}(zeroRates);
+                    end
+                    ctrl_eq(zeroRates) = q_t;
+                end
+                
+                assert(all(is_surface_control | is_bhp));
+            else
+                for i = 1:nact
+                    w = map.active(i);
+                    well = facility.WellModels{w};
+                    qs = cellfun(@(x) x(i), q_s, 'UniformOutput', false);
+                    ctrl{i} = setupWellControlEquationsSingleWell(well, state0.wellSol(w), state.wellSol(w), bhp(i), qs, true, mixs(i, :), model);
+                end
+                ctrl_eq = vertcat(ctrl{:});
             end
-            eqs{end} = vertcat(ctrl{:});
+            eqs{end} = ctrl_eq;
             names{end} = 'closureWells';
             types{end} = 'well';
         end
@@ -88,7 +140,7 @@ classdef ExtendedFacilityModel < FacilityModel
                     wm = model.WellModels{wellNo};
                     % Possible index error for i here - should it be
                     % wellno?
-                    rho_i = rho(perf2well == i, :);
+                    rho_i = rho(perf2well == wellNo, :);
                     wellSol(wellNo) = wm.updateConnectionPressureDropState(model.ReservoirModel, wellSol(wellNo), rho_i, rho_i);
                 end
             end

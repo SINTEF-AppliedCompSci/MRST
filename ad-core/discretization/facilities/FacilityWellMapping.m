@@ -8,8 +8,9 @@ classdef FacilityWellMapping < GridProperty
         function s = evaluateOnDomain(prop, model, state)
             wellSol = state.wellSol;
             actWellIx = model.getIndicesOfActiveWells(wellSol);
-            [wc, p2w] = getActiveWellCells(model, wellSol);
+            wc = getActiveWellCells(model, wellSol);
             W = model.getWellStruct(actWellIx);
+            p2w = getPerforationToWellMapping(W);
             isInj = vertcat(W.sign) > 0;
             
             wsum = sparse(p2w, (1:numel(p2w))', 1);

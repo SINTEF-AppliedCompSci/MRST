@@ -4,9 +4,9 @@ function v = discreteDivergence(N, v, nc, nf, sortIx, C, prelim, useMex)
         for i = 1:numel(v.jac)
             v.jac{i} = divJac(v.jac{i}, N, nc, nf, sortIx, C, prelim, useMex);
         end
-        v.val = accumulate(N, double(v), nc);
+        v.val = accumulate(N, value(v), nc);
     else
-        v = accumulate(N, double(v), nc);
+        v = accumulate(N, value(v), nc);
     end
 end
 

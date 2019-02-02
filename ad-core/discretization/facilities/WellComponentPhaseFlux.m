@@ -51,10 +51,12 @@ classdef WellComponentPhaseFlux < GridProperty
                         % Compute production fluxes
                         source = rhoc.*q;
                         % Compute injection fluxes
-                        if isempty(wcomp{ph})
-                            source(outflow) = 0;
-                        else
-                            source(outflow) = wcomp{ph}.*perforationDensity{ph}(outflow).*q(outflow);
+                        if any(isInj)
+                            if isempty(wcomp{ph})
+                                source(outflow) = 0;
+                            else
+                                source(outflow) = wcomp{ph}.*perforationDensity{ph}(outflow).*q(outflow);
+                            end
                         end
                         % Compute cross-flow fluxes
                         if any(crossflow)
