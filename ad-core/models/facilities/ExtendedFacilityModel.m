@@ -96,6 +96,15 @@ classdef ExtendedFacilityModel < FacilityModel
             state = model.applyWellLimits(state);
         end
         
+        function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
+            % Generic update function for reservoir models containing wells.
+            %
+            % SEE ALSO:
+            %   :meth:`ad_core.models.PhysicalModel.updateAfterConvergence`
+
+            [state, report] = updateAfterConvergence@FacilityModel(model, state0, state, dt, drivingForces);
+        end
+        
         function containers = getPropertyFunctions(model)
             containers = getPropertyFunctions@PhysicalModel(model);
             assert(not(isempty(model.FacilityFluxDiscretization)), ...

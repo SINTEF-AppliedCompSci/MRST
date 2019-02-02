@@ -50,6 +50,8 @@ methods
                 error('Unknown dataset format!')
             end
         end
+        % Needed for model equations
+        model.OutputProperties = {'PoreVolume', 'ShrinkageFactors'};
     end
 
     % --------------------------------------------------------------------%

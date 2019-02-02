@@ -230,11 +230,13 @@ methods
         %
         % SEE ALSO:
         %   :meth:`ad_core.models.PhysicalModel.updateAfterConvergence`
-
-        [state, report] = updateAfterConvergence@PhysicalModel(model, state0, state, dt, drivingForces);
         if ~isempty(model.FacilityModel)
-            state.wellSol = model.FacilityModel.updateWellSolAfterStep(state.wellSol, state0.wellSol);
+            [state, f_report] = model.FacilityModel.updateAfterConvergence(state0, state, dt, drivingForces);
+        else
+            f_report = [];
         end
+        [state, report] = updateAfterConvergence@PhysicalModel(model, state0, state, dt, drivingForces);
+        report.FacilityReport = f_report;
     end
 
     % --------------------------------------------------------------------%

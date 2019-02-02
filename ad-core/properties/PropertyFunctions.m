@@ -18,10 +18,14 @@ classdef PropertyFunctions
             names = props.structFields;
         end
         
+        function name = getPropertyContainerName(props)
+            name = props.structName;
+        end
+        
         function [container, name] = getPropertyContainer(props, state)
             % Set up dynamic container (handle class) for storing
             % properties as we go
-            name = props.structName;
+            name = props.getPropertyContainerName();
             if nargin > 1 && isfield(state, name)
                 container = state.(name);
             else

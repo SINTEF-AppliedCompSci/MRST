@@ -60,6 +60,7 @@ properties
     % certain that it is the case, as this removes several tolerance
     % checks.
     AutoDiffBackend
+    OutputProperties = {};
 end
 
 methods
@@ -409,6 +410,30 @@ methods
         %   report - Report containing information about the update.
         %
         report = [];
+        propfn = model.getPropertyFunctions();
+        for i = 1:numel(propfn)
+            p = propfn{i};
+            names = p.getPropertyNames();
+            struct_name = p.getPropertyContainerName();
+            if isempty(model.OutputProperties)
+                current = {};
+            else
+                current = intersect(names, model.OutputProperties);
+            end
+            nc = numel(current);
+            kept = nc;
+            if kept
+                for j = 1:numel(names)
+                    name = names{j};
+                    if ~any(strcmp(name, current))
+                        % Remove unkept variables
+                        state.(struct_name).(name) = [];
+                    end
+                end
+            else
+                state = rmfield(state, struct_name);
+            end
+        end
     end
 
     

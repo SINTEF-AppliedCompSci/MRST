@@ -658,6 +658,16 @@ classdef FacilityModel < PhysicalModel
                 wellSol(wno) = wm.updateWellSolAfterStep(model.ReservoirModel, wellSol(wno), wellSol0(wno));
             end
         end
+        
+    function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
+        % Generic update function for reservoir models containing wells.
+        %
+        % SEE ALSO:
+        %   :meth:`ad_core.models.PhysicalModel.updateAfterConvergence`
+
+        state.wellSol = model.updateWellSolAfterStep(state.wellSol, state0.wellSol);
+        report = [];
+    end
 
         function wc = getWellCells(model, subs)
             % Get the perforated cells of all wells, regardless of status

@@ -4,6 +4,11 @@ classdef GenericBlackOil < ThreePhaseBlackOilModel & ExtendedReservoirModel
     end
     
     methods
+    function model = GenericBlackOil(G, rock, fluid, varargin)
+        model = model@ThreePhaseBlackOilModel(G, rock, fluid, varargin{:});
+        model.OutputProperties = {'ComponentTotalMass'};
+    end
+        
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
             opt = struct('Verbose',     mrstVerbose,...
                         'reverseMode', false,...
