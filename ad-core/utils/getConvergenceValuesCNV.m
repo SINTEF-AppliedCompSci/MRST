@@ -71,7 +71,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     active = [false, false, false];
     if any(subW)
         assert(model.water);
-        BW = 1./fluid.bW(state.pressure);
+        bW = fluid.bW;
+        if iscell(fluid.bW)
+            bW = bW{1};
+        end
+        BW = 1./bW(state.pressure);
         RW = value(problem.equations{subW});
         BW_avg = sum(BW)/nc;
         CNVW = BW_avg*problem.dt*max(abs(RW)./pv);
@@ -87,13 +91,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % OIL
     if any(subO)
         assert(model.oil);
+        bO = fluid.bO;
+        if iscell(fluid.bW)
+            bO = bO{1};
+        end
         if isprop(model, 'disgas') && model.disgas
             % If we have liveoil, BO is defined not only by pressure, but
             % also by oil solved in gas which must be calculated in cells
             % where gas saturation is > 0.
-            BO = 1./fluid.bO(state.pressure, state.rs, state.s(:, 3)>0);
+            BO = 1./bO(state.pressure, state.rs, state.s(:, 3)>0);
         else
-            BO = 1./fluid.bO(state.pressure);
+            BO = 1./bO(state.pressure);
         end
         
         RO = value(problem.equations{subO});
@@ -111,10 +119,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % GAS
     if any(subG)
         assert(model.gas);
+        bG = fluid.bG;
+        if iscell(fluid.bW)
+            bG = bG{1};
+        end
         if isprop(model, 'vapoil') && model.vapoil
-            BG = 1./fluid.bG(state.pressure, state.rv, state.s(:,2)>0); % need to fix index...
+            BG = 1./bG(state.pressure, state.rv, state.s(:,2)>0); % need to fix index...
         else
-            BG = 1./fluid.bG(state.pressure);
+            BG = 1./bG(state.pressure);
         end
         RG = value(problem.equations{subG});
         BG_avg = sum(BG)/nc;

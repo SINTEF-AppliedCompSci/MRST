@@ -93,7 +93,9 @@ end
 
 function ncomp = getComponentCount(model)
     names = model.getComponentNames();
-    if isa(model, 'ThreePhaseBlackOilModel')
+    if isa(model, 'GenericBlackOil')
+        ncomp = numel(names);
+    elseif isa(model, 'ThreePhaseBlackOilModel')
         ncomp = numel(names) + sum(model.getActivePhases);
     else
         % Probably compositional
