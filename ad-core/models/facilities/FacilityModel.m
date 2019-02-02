@@ -690,7 +690,7 @@ classdef FacilityModel < PhysicalModel
         end
 
         function [wc, p2w] = getActiveWellCells(model, wellSol)
-            % Get the perforated cells in active wells and perforations
+            % Get the perforated cells in active wells
             %
             % SYNOPSIS:
             %   wc = model.getActiveWellCells()
@@ -702,8 +702,7 @@ classdef FacilityModel < PhysicalModel
             %   wc   - Array of well cells that are active, and belong to
             %          active wells.
             %
-
-            c = cellfun(@(x) x.W.cells(x.W.cstatus > 0), model.WellModels, 'UniformOutput', false);
+            c = cellfun(@(x) x.W.cells, model.WellModels, 'UniformOutput', false);
             active = model.getWellStatusMask(wellSol);
             wc = vertcat(c{active});
             if nargout > 1
@@ -969,8 +968,8 @@ classdef FacilityModel < PhysicalModel
                 for i = 1:numel(resvIx)
                     global_well_ix = actIx(resvIx(i));
                     model.WellModels{global_well_ix}.W.val = newRates(i);
-                    model.WellModels{global_well_ix}.W.type = 'rate';
-                    state.wellSol(global_well_ix).type = 'rate';
+                    model.WellModels{global_well_ix}.W.type = 'volume';
+                    state.wellSol(global_well_ix).type = 'volume';
                 end
             end
         end
