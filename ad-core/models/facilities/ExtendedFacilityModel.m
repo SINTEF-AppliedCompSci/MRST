@@ -54,7 +54,7 @@ classdef ExtendedFacilityModel < FacilityModel
             ctrl = cell(nact, 1);
             
             
-            if false
+            if true
                 backend = model.AutoDiffBackend;
                 ctrl_eq = backend.convertToAD(zeros(nact, 1), bhp);
                 wrates = backend.convertToAD(zeros(nact, 1), bhp);
@@ -86,12 +86,12 @@ classdef ExtendedFacilityModel < FacilityModel
                             act = is_rate | is_grat;
                     end
                     is_surface_control(act) = true;
-                    wrates(act) = wrates(act) + q_s{ph}(act);
+                    wrates(act) = wrates(act) + q_s{i}(act);
                     qs_t(act) = qs_t(act) + mixs(act, i);
                 end
                 ctrl_eq(is_surface_control) = wrates(is_surface_control) - targets(is_surface_control);
                 
-                zeroRates = qs_t == 0;
+                zeroRates = qs_t == 0 & is_surface_control;
                 if any(zeroRates)
                     q_t = 0;
                     for i = 1:nph
