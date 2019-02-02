@@ -13,14 +13,25 @@ classdef ExtendedFacilityModel < FacilityModel
             n = fm.ReservoirModel.getNumberOfPhases();
         end
         
-        function src = getComponentSources(fm, state)
-            [val, map] = fm.getProps(state, 'ComponentTotalFlux', 'FacilityWellMapping');
+        function src = getComponentSources(facility, state)
+            map = facility.getProps(state, 'FacilityWellMapping');
+            if isempty(map.W)
+                val = [];
+            else
+                val = facility.getProps(state, 'ComponentTotalFlux');
+            end
             src = struct('value', {val}, 'cells', map.cells);
         end
         
         function [eqs, names, types, state] = getModelEquations(facility, state0, state, dt, drivingForces)
             model = facility.ReservoirModel;
-            [map, cflux] = facility.getProps(state, 'FacilityWellMapping', 'ComponentTotalFlux');
+            map = facility.getProps(state, 'FacilityWellMapping');
+            if isempty(map.W)
+                [eqs, names, types] = deal({});
+                return
+            end
+            cflux = facility.getProps(state, 'ComponentTotalFlux');
+            
             [p, T] = facility.getSurfaceConditions();
             nph = model.getNumberOfPhases();
             surfaceRates = cell(1, nph);

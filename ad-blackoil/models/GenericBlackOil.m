@@ -57,7 +57,9 @@ classdef GenericBlackOil < ThreePhaseBlackOilModel & ExtendedReservoirModel
             % Assemble equations and add in sources
             for i = 1:numel(divTerms)
                 eqs{i} = eqs{i} + divTerms{i};
-                eqs{i}(src.cells) = eqs{i}(src.cells) - src.value{i};
+                if ~isempty(src.cells)
+                    eqs{i}(src.cells) = eqs{i}(src.cells) - src.value{i};
+                end
             end
             % Get facility equations
             [weqs, wnames, wtypes, state] = model.FacilityModel.getModelEquations(state0, state, dt, drivingForces);

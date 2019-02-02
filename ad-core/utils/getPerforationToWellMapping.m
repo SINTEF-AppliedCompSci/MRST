@@ -32,6 +32,11 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+    if isempty(w)
+        perf2well = [];
+        Rw = [];
+        return
+    end
     nw = numel(w);
     nConn       = cellfun(@numel, {w.cells})'; % # connections of each well
     perf2well   = rldecode((1:nw)', nConn);

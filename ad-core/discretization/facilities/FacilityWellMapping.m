@@ -11,10 +11,12 @@ classdef FacilityWellMapping < GridProperty
             wc = getActiveWellCells(model, wellSol);
             W = model.getWellStruct(actWellIx);
             p2w = getPerforationToWellMapping(W);
-            isInj = vertcat(W.sign) > 0;
-            
+            if isempty(W)
+                isInj = [];
+            else
+                isInj = vertcat(W.sign) > 0;
+            end
             wsum = sparse(p2w, (1:numel(p2w))', 1);
-            
             s = struct('active', actWellIx,... % Indices of active wells
                        'cells', wc, ... % Cells where wells are perforated
                        'perf2well', p2w, ... % Perf to well-map
