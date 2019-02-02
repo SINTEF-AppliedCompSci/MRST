@@ -121,6 +121,25 @@ methods
             st  = model.getCellStatusVO(state, 1-sW-sG, sW, sG);
             sG = st{2}.*(1-sW) + st{3}.*x;
             sO = st{1}.*(1-sW) + ~st{1}.*(1 - sW - sG);
+            % Account for dissolution changing variables
+            if model.disgas
+                rsSat = model.getProp(state, 'RsMax');
+                rs = ~st{1}.*rsSat + st{1}.*x;
+                rs = rs.*(value(sO) > 0);
+                state = model.setProp(state, 'rs', rs);
+            end
+            
+            if model.vapoil
+                % No rv, no so -> zero on diagonal in matrix
+                rvSat = model.getProp(state, 'RvMax');
+                rv = ~st{2}.*rvSat + st{2}.*x;
+                rv = rv.*(value(sG) > 0);
+                bad_oil = value(sO) == 0 & value(rv) == 0;
+                if any(bad_oil)
+                    sO(bad_oil) = 1 - sW(bad_oil) - value(sG(bad_oil));
+                end
+                state = model.setProp(state, 'rv', rv);
+            end
             sat =  {sW, sO, sG};
             state = model.setProp(state, 's', sat);
             removed = removed | isx | isw;
@@ -136,20 +155,6 @@ methods
         
         % Set up state with remaining variables
         state = initStateAD@ReservoirModel(model, state, vars(~removed), names(~removed), origin(~removed));
-        % Account for dissolution changing variables
-        if model.disgas
-            rsSat = model.getProp(state, 'RsMax');
-            rs = ~st{1}.*rsSat + st{1}.*x;
-            rs = rs.*(value(sO) > 0);
-            state = model.setProp(state, 'rs', rs);
-        end
-
-        if model.vapoil
-            rvSat = model.getProp(state, 'RvMax');
-            rv = ~st{2}.*rvSat + st{2}.*x;
-            rv = rv.*(value(sG) > 0);
-            state = model.setProp(state, 'rv', rv);
-        end
     end
     
     % --------------------------------------------------------------------%
