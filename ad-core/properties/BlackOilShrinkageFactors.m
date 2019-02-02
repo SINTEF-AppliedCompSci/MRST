@@ -1,12 +1,11 @@
 classdef BlackOilShrinkageFactors < GridProperty
     properties
-        useSaturatedFlag = false;
+        useSaturatedFlag = true;
     end
     
     methods
         function b = evaluateOnDomain(prop, model, state)
             [act, phInd] = model.getActivePhases();
-            fp = state.FlowProps;
             nph = sum(act);
             b = cell(1, nph);
             
@@ -27,8 +26,8 @@ classdef BlackOilShrinkageFactors < GridProperty
                 if model.disgas
                     rs = model.getProp(state, 'rs');
                     if prop.useSaturatedFlag
-                        rsMax = fp.RsMax;
-                        flag = value(rs) >= value(rsMax);
+                        sG = model.getProp(state, 'sg');
+                        flag = sG > 0;
                     else
                         flag = false(numelValue(p), 1);
                     end
@@ -45,8 +44,8 @@ classdef BlackOilShrinkageFactors < GridProperty
                 if model.vapoil
                     rv = model.getProp(state, 'rv');
                     if prop.useSaturatedFlag
-                        rvMax = fp.RvMax;
-                        flag = value(rv) >= value(rvMax);
+                        sO = model.getProp(state, 'so');
+                        flag = sO > 0;
                     else
                         flag = false(numelValue(p), 1);
                     end
