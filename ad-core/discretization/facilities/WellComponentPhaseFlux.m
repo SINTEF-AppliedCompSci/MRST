@@ -57,6 +57,9 @@ classdef WellComponentPhaseFlux < GridProperty
                             source(outflow) = wcomp{ph}.*perforationDensity{ph}(outflow).*q(outflow);
                         end
                         % Compute cross-flow fluxes
+                        if any(crossflow)
+                            warning('Crossflow not yet implemented in %s', class(prop));
+                        end
                         cflux{c, ph} = source;
                     end
                 end
