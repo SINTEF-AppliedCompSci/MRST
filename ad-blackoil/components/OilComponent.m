@@ -13,16 +13,13 @@ classdef OilComponent < ImmiscibleComponent
                 phasenames = model.getPhaseNames();
                 gix = phasenames == 'G';
                 oix = phasenames == 'O';
-
                 b = model.getProps(state, 'ShrinkageFactors');
                 rhoS = model.getSurfaceDensities();
-                
+                rhoOS = rhoS(oix);
                 if model.disgas
-                    rhoOS = rhoS(oix);
                     bO = b{oix};
                     c{oix} = rhoOS.*bO;
                 end
-                
                 if model.vapoil
                     bG = b{gix};
                     rv = model.getProp(state, 'rv');
