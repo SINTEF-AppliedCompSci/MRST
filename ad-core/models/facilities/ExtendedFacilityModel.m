@@ -90,7 +90,7 @@ classdef ExtendedFacilityModel < FacilityModel
                     qs_t(act) = qs_t(act) + mixs(act, i);
                 end
                 ctrl_eq(is_surface_control) = wrates(is_surface_control) - targets(is_surface_control);
-                
+                % Zero surface rate conditions
                 zeroRates = qs_t == 0 & is_surface_control;
                 if any(zeroRates)
                     q_t = 0;
@@ -100,7 +100,19 @@ classdef ExtendedFacilityModel < FacilityModel
                     ctrl_eq(zeroRates) = q_t;
                 end
                 
-                assert(all(is_surface_control | is_bhp));
+                % Volume flux
+                is_volume = strcmp(well_controls, 'volume');
+                if any(is_volume)
+                    phase_flux = facility.getProps(state, 'PhaseFlux');
+                    total_flux = 0;
+                    for i = 1:numel(phase_flux)
+                        total_flux = total_flux + phase_flux{i};
+                    end
+                    well_total_flux = wsum*total_flux;
+                    ctrl_eq(is_volume) = well_total_flux(is_volume) - targets(is_volume);
+                end
+                
+                assert(all(is_surface_control | is_bhp | is_volume));
             else
                 for i = 1:nact
                     w = map.active(i);
