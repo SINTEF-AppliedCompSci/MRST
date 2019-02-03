@@ -97,10 +97,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         b = b(ordering);
     end
 
+    t = timer();
     [x, err, nIter] = ...
        amgcl_matlab(A, b, amg_opt, opt.tolerance, opt.maxIterations, 2);
-    
+    t_solve = toc(t);
     if ~opt.cellMajorOrder
         x(ordering) = x;
+    end
+    
+    if err > opt.tolerance
+        warning('Solver did not converge to specified tolerance of %e in %d iterations. Reported residual estimate was %e after %2.2f seconds', opt.tolerance, nIter, err, t_solve);
+    elseif mrstVerbose()
+        fprintf('AMGCL solver converged to %e in %2d iterations after %2.2f seconds.\n', err, nIter, t_solve);
     end
 end

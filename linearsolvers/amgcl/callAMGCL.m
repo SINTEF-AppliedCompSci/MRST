@@ -78,7 +78,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if ~opt.isTransposed
         A = A';
     end
-
+    t = tic();
     [x, err, nIter] = ...
        amgcl_matlab(A, b, amg_opt, opt.tolerance, opt.maxIterations, 1);
+    t_solve = toc(t);
+    if nargout == 1
+        if err > opt.tolerance
+            warning('Solver did not converge to specified tolerance of %e in %d iterations. Reported residual estimate was %e after %2.2f seconds', opt.tolerance, nIter, err, t_solve);
+        elseif mrstVerbose()
+            fprintf('AMGCL solver converged to %e in %2d iterations after %2.2f seconds.\n', err, nIter, t_solve);
+        end
+    end
 end
