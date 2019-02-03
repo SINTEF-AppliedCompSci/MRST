@@ -97,7 +97,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         b = b(ordering);
     end
 
-    t = timer();
+    t = tic();
     [x, err, nIter] = ...
        amgcl_matlab(A, b, amg_opt, opt.tolerance, opt.maxIterations, 2);
     t_solve = toc(t);
