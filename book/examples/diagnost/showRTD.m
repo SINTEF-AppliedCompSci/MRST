@@ -48,8 +48,8 @@ for n=1:2
     
     
     % --- Compute RTD
-    D   = computeTOFandTracerFirstArrival(rS, G, rock, 'wells', W, ...
-        'maxTOF', inf,'computeWellTOFs', true);
+    D   = computeTOFandTracer(rS, G, rock, 'wells', W, ...
+        'maxTOF', inf,'computeWellTOFs', true, 'firstArrival', true);
     WP  = computeWellPairs(rS, G, rock, W, D);
     rtd = computeRTD(rS, G, pv, D, WP, W, 'nsteps',5000);
     RTD = estimateRTD(pv, D, WP);
@@ -63,7 +63,7 @@ for n=1:2
     vm  = max(RTD.values);
     plot([tfa tfa], [0 vm], ':k', [tm tm], [0 vm], '-k');
     legend('Simulated pulse','From averaged TOF');    
-    set(gca,'XLim',[0 10],'YLim',[0 8e-12],'FontSize',14); 
+    set(gca,'XLim',[0 10],'YLim',[0 5e-8],'FontSize',14); 
     xlabel('Time [years]')
     hold off
     
@@ -73,7 +73,7 @@ for n=1:2
     
     % --- F-Phi diagram
     [F, Phi] = computeFandPhi(pv, D.tof);
-    [f, phi] = computeFandPhiFromDist(rtd, 'sum', true);
+    [f, phi] = computeFandPhi(rtd, 'sum', true);
 
     figure
     plot(phi,f, '-', Phi,F, '--', 'LineWidth',2);
@@ -121,8 +121,8 @@ for n=1:2
     for i=1:numel(rS.wellSol), rS.wellSol(i).sign = sgn(i); end
     
     % --- Compute RTD
-    D   = computeTOFandTracerFirstArrival(rS, G, rock, 'wells', W, ...
-        'maxTOF', inf, 'computeWellTOFs', true);
+    D   = computeTOFandTracer(rS, G, rock, 'wells', W, ...
+        'maxTOF', inf, 'computeWellTOFs', true, 'firstArrival', true);
     WP  = computeWellPairs(rS, G, rock, W, D);
     rtd = computeRTD(rS, G, pv, D, WP, W, 'nsteps',2500);
     RTD = estimateRTD(pv, D, WP);
@@ -152,8 +152,8 @@ for n=1:2
     hold off
     
     % --- F-Phi diagram
-    [f, phi ] = computeFandPhiFromDist(rtd);
-    [tf,tphi] = computeFandPhiFromDist(rtd, 'sum', true);
+    [f, phi ] = computeFandPhi(rtd);
+    [tf,tphi] = computeFandPhi(rtd, 'sum', true);
 
     figure, hold on
     plot(phi,f, '-', tphi, tf, '-','LineWidth',2);
