@@ -18,8 +18,8 @@ function [F,Phi] = computeFandPhi(arg1, varargin)
 %       integral of the product of time and RTD values).
 %   Making an analogue to 1D displacement theory, the F-Phi curve is the
 %   equivalent to a plot of the fractional flow versus saturation.
-%   Technical description: see Chapter 13.2-13.3 in the MRST book, Shavali
-%   et al. (SPE 146446), Shook and Mitchell (SPE 124625)
+%   Technical description: see Section 13.2-13.3 in the MRST book, Shavali
+%   et al. (SPE 146446), and Shook and Mitchell (SPE 124625)
 %
 % PARAMETERS:
 %   vol - pore volume, one value per cell
