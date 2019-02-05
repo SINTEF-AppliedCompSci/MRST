@@ -289,12 +289,13 @@ if opt.computeWellTOFs
 
     if opt.firstArrival
       if verLessThan('matlab','8.6')
-	warning('Computing first arrival requires MATLAB R2015b or later');
+	    warning('Computing first arrival requires MATLAB R2015b or later');
+        T  = [T, X];  % add dummy data equal TOF  
       else
-	n(out<0, [1 2]) = n(out<0, [2 1]);
-	% add edges for well-to-connection cell
-	nconn = cellfun(@numel, tr);
-	wnum  = rldecode((1:numel(tr))', nconn(:));
+	    n(out<0, [1 2]) = n(out<0, [2 1]);
+        % add edges for well-to-connection cell
+        nconn = cellfun(@numel, tr);
+        wnum  = rldecode((1:numel(tr))', nconn(:));
         wc    = vertcat(tr{:});
         n1    = [n(:,1); wnum+nc];
         n2    = [n(:,2); wc];
