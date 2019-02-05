@@ -90,7 +90,7 @@ mexFunction(int nlhs,       mxArray *plhs[],
                 "[Sbd, pos] = %s(...)",
                 mexFunctionName(),
                 mexFunctionName(),
-                mexFunctionName();
+                mexFunctionName());
 
         mexErrMsgTxt(errmsg);
     }
