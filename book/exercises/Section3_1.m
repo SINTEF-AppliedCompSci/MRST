@@ -48,7 +48,7 @@ view(80,80); axis tight off
 
 %%
 % A famous mouse grid
-img = imread('mickey.png'); img=double(img);
+img = imread(fullfile('img','mickey.png')); img=double(img);
 G = cartGrid(size(img));
 img = img(:)/max(img(:));
 G = removeCells(G,img==1);
@@ -59,7 +59,7 @@ clf, plotCellData(G,rock.perm,'EdgeAlpha',.3); view(53,80); axis tight off
 %%
 % Version with only n cells in vertical direction
 n = 10;
-img = imread('mickey.png'); img=double(img(:,:,1));
+img = imread(fullfile('img','mickey.png')); img=double(img(:,:,1));
 G = cartGrid([size(img),n]);
 img = img(:)/max(img(:));
 G = removeCells(G,repmat(img==1,n,1));
