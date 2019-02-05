@@ -1,4 +1,36 @@
 function [dist] = estimateRTD(pv, D, WP, varargin)
+% Estimate residence time distributions based on computed tof-values
+% SYNOPSIS:
+%   dist = estimateRTD(pv, D, WP, 'pn1', pv1, ...)
+% 
+% DESCRIPTION:
+%  This function estmates well-pair RTDs based on computed TOFs and tracer
+%  fields. The RDT approximates an imaginary tracer which ditributes equally 
+%  among all phases (follows the total flux-field). A tracer pulse is 
+%  injected at injector i at time zero and produced at producer p. The RTD
+%  is scaled such that
+%     RTD_{ip}(t) ~= (rate producer p / total tracer mass) * c_p(t), 
+%  where c_p(t) is the tracer concentration in producer p. 
+% 
+%  With the above scaling the RTD has units [s]^-1
+%   * the integral of the RTD approximates fractional recovery 
+%    (produced mass/injected mass) 
+%   * the mean of the RTD time i-to-p allocation approximates the i-to-p 
+%     allocation volume
+%
+% RETURNS:
+%  dist - structure with fields
+%    pairIx            nreg x 2 each row index to injector/producer 
+%    t                 nbin x 1 discrete times
+%    values            nbin x 1 discrete RTD-values
+%    volumes           nreg x 1 interaction volume for each well pair
+%    allocations       nreg x 1 interaction allocation for each well pair
+%    injectorFlux      ninj injector total rates
+%    producerFlux      nprod producer total rates
+%
+% SEE ALSO
+%  computeRTD
+
 opt = struct('injectorIx', [], ...
              'producerIx', [], ...
              'nbins',      100, ...
@@ -18,10 +50,22 @@ if isempty(injectorIx), injectorIx = (1:numel(D.inj))'; end
 nreg = numel(producerIx).*numel(injectorIx);
 
 % create output structure
-dist = struct('pairIx', zeros(nreg, 2), 't', nan(opt.nbins, nreg), ...
-              'volumes', zeros(nreg, 1), 'allocations',  zeros(nreg,1), ...
-              'values', nan(opt.nbins, nreg) );              
+dist = struct('pairIx',            nan(nreg, 2), ...
+              't',                 nan(opt.nbins, nreg), ...
+              'volumes',           nan(nreg, 1), ...
+              'allocations',       nan(nreg,1), ...
+              'values',            nan(opt.nbins, nreg), ...
+              'injectorFlux',      nan(numel(injectorIx),1), ...
+              'producerFlux',      nan(numel(producerIx),1));
+% 
+for ik = 1:numel(injectorIx)
+    dist.injectorFlux(ik) = sum( sum(WP.inj(injectorIx(ik)).alloc) );
+end
 
+for pk = 1:numel(producerIx)
+    dist.producerFlux(pk) = sum( sum(WP.prod(producerIx(pk)).alloc) );
+end          
+          
           
 ix = 0;          
 for ik = 1:numel(injectorIx)

@@ -1,4 +1,35 @@
 function dist = computeRTD(state, G, pv, D, WP, W, varargin)
+% Compute residence time distributions based on computed tof-values
+% SYNOPSIS:
+%   dist = computeRTD(state, G, pv, D, WP, W, 'pn1', pv1, ...)
+% 
+% DESCRIPTION:
+%  This function computes well-pair RTDs by simulating an imaginary tracer 
+%  which ditributes equally among all phases (follows the total flux-field), 
+%  and follows the flux field given by state. A tracer pulse is injected at 
+%  injector i at time zero and produced at producer p. The RTD is scaled 
+%  such that
+%     RTD_{ip}(t) = (rate producer p / total tracer mass) * c_p(t), 
+%  where c_p(t) is the tracer concentration in producer p. 
+% 
+%  With the above scaling the RTD has units [s]^-1
+%   * the integral of the RTD approximates fractional recovery 
+%    (produced mass/injected mass) 
+%   * the mean of the RTD time i-to-p allocation approximates the i-to-p 
+%     allocation volume
+%
+% RETURNS:
+% dist - structure with fields
+%    pairIx            nreg x 2 each row index to injector/producer 
+%    t                 nbin x 1 discrete times
+%    values            nbin x 1 discrete RTD-values
+%    volumes           nreg x 1 interaction volume for each well pair
+%    allocations       nreg x 1 interaction allocation for each well pair
+%    injectorFlux      ninj injector total rates
+%    producerFlux      nprod producer total rates
+%
+% SEE ALSO
+%  estimateRTD
 opt = struct('injectorIx', [], ...
              'producerIx', [], ...
              'nsteps',     50);
@@ -11,9 +42,24 @@ if isempty(iix), iix = (1:numel(D.inj))'; end
 
 % create output struct
 nreg = numel(pix).*numel(iix);
-dist = struct('pairIx', zeros(nreg, 2), 't', zeros(2*opt.nsteps+1, nreg), ...
-              'volumes', zeros(nreg, 1), 'allocations',  zeros(nreg,1), ...
-              'values', zeros(2*opt.nsteps+1, nreg) ); 
+dist = struct('pairIx',         nan(nreg, 2), ...
+              't',              nan(2*opt.nsteps+1, nreg), ...
+              'volumes',        nan(nreg, 1), ...
+              'allocations',    nan(nreg,1), ...
+              'values',         nan(2*opt.nsteps+1, nreg), ...
+              'injectorFlux',   nan(numel(iix),1), ...
+              'producerFlux',   nan(numel(pix),1)); 
+          
+
+% 
+for ik = 1:numel(iix)
+    dist.injectorFlux(ik) = sum( sum(WP.inj(iix(ik)).alloc) );
+end
+
+for pk = 1:numel(pix)
+    dist.producerFlux(pk) = sum( sum(WP.prod(pix(pk)).alloc) );
+end
+
 ix = 0;          
 for ik = 1:numel(iix)
     for pk = 1:numel(pix)
