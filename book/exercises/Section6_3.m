@@ -1,4 +1,10 @@
-%% Quarter five spot
+%% Exercise 6.3.1
+mrstModule add mimetic
+edit mimeticExample1
+
+
+%% Exercise 6.3.2
+% Revisit the quarter five spot
 mrstModule add mimetic incomp
 [nx,ny] = deal(64);
 G = cartGrid([nx,ny],[500,500]);
@@ -8,7 +14,7 @@ rock.perm = ones(G.cells.num, 1)*100*milli*darcy;
 rock.poro = ones(G.cells.num, 1)*.2;
 
 S = computeMimeticIP(G, rock);
-hT = computeTrans(G, rock);
+% hT = computeTrans(G, rock);
 
 gravity reset off
 fluid = initSingleFluid('mu', 1*centi*poise,'rho', 1014*kilogram/meter^3);
@@ -19,7 +25,7 @@ src = addSource(src, G.cells.num, -pv);
 
 state = initResSol(G, 0.0, 1.0);
 state = incompMimetic(state, G, S, fluid, 'src', src);
-%state = incompTPFA(state, G, hT, fluid, 'src',src);
+% state = incompTPFA(state, G, hT, fluid, 'src',src);
 
 clf,
 plotCellData(G, state.pressure);
@@ -43,8 +49,8 @@ set([hf; hb],'Color',.7*[1 1 1]);
 plotGrid(G,src.cell,'FaceColor','w');
 
 
-%% Stencil comparison
-%
+%% Exercise 6.3.3
+% Stencil comparison on the unstructured seamount grid
 load seamount
 T = triangleGrid([x(:) y(:)], delaunay(x,y));
 [Tmin,Tmax] = deal(min(T.nodes.coords), max(T.nodes.coords));
@@ -147,7 +153,8 @@ h=colorbar('Location','South');
 set(h,'position',[0.13 0.01 0.8 0.03],'YTick',1,'YTickLabel','[year]');
 
 
-%% Shallow-marine case: set up model
+%% Exercise 6.3.4
+% Compare TPFA and mimetic for the SAIGUP model
 % Grid
 grdecl = fullfile(getDatasetPath('SAIGUP'), 'SAIGUP.GRDECL');
 if ~exist(grdecl, 'file'),
