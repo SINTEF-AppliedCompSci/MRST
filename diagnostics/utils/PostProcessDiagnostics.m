@@ -417,8 +417,8 @@ classdef PostProcessDiagnostics < handle
                             fval = d.Data.computed(s3.fsel.propIx).values;
                             %lims        = d.Data.computed(s3.psel.propIx).limits;
                         else % no computed properties return to static
-                            s3.psel.typeIx = 1;
-                            s3.psel.propPopup.String = {d.Data.static.name};
+                            s3.fsel.typeIx = 1;
+                            s3.fsel.propPopup.String = {d.Data.static.name};
                             return
                         end
                 end

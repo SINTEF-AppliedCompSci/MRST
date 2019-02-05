@@ -287,12 +287,14 @@ classdef PropertyDisplaySelector < UIItem
         
         function updateSlideBars(s, src, event)
             tp = s.typePopup.String{s.typeIx};
-            lims = s.props.(tp).limits{s.propIx};
-            if s.logSwitch
-                lims = makeLogCompatible(lims);
+            if ~isempty(s.props.(tp).limits)
+                lims = s.props.(tp).limits{s.propIx};
+                if s.logSwitch
+                    lims = makeLogCompatible(lims);
+                end
+                s.Min = lims(1);
+                s.Max = lims(2);
             end
-            s.Min = lims(1);
-            s.Max = lims(2);
         end
         
         function sliderCallback(s, src, event)
