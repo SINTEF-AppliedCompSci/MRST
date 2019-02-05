@@ -1,4 +1,5 @@
-%% Upscale additive properties from SAIGUP
+%% Exercise 15.2.1
+% Upscale additive properties from SAIGUP
 mrstModule add libgeometry opm_gridprocessing coarsegrid
 grdecl=readGRDECL(fullfile(getDatasetPath('SAIGUP'),'SAIGUP.GRDECL'));
 G = mcomputeGeometry(processgrid(grdecl));
@@ -81,7 +82,8 @@ set(get(gca,'Children'), pargs{:}); axis tight, set(gca,'XLim',px);
 err3 = sum(abs(rock.poro - crock3.poro(CG3.partition)))/sum(rock.poro)*100;
 title(['8x24x20: ' num2str(err3) '%']);
 
-%% Upscale model from BedModels1 dataset
+%% Exercise 15.2.2
+% Upscale model from BedModels1 dataset
 grdecl=readGRDECL(fullfile(getDatasetPath('BedModels1'),'mortarTestModel.grdecl'));
 G = computeGeometry(processGRDECL(grdecl));
 rock = grdecl2Rock(grdecl,G.cells.indexMap);
