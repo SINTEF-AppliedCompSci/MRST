@@ -3,8 +3,8 @@ classdef TransportBlackOilModelDG < TransportBlackOilModel
     % Galerking discretization
     
     properties
-        disc % DG discretization
-        tryMaxDegree
+        disc         % DG discretization
+        tryMaxDegree % 
     end
 
     methods
@@ -18,11 +18,11 @@ classdef TransportBlackOilModelDG < TransportBlackOilModel
             % part of the discretization, and which cells that are included
             % to get fluxes correct
             model.G.cells.ghost = false(G.cells.num,1);
-            model = merge_options(model, varargin{:});
+            [model, discArgs] = merge_options(model, varargin{:});
             
             % Construct discretization
             if isempty(model.disc)
-                model.disc = DGDiscretization(model, G.griddim);
+                model.disc = DGDiscretization(model, discArgs{:});
             end
 
         end
@@ -30,7 +30,7 @@ classdef TransportBlackOilModelDG < TransportBlackOilModel
         % ----------------------------------------------------------------%
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
             [problem, state] ...
-                = transportEquationOilWaterDG(state0, state, model, dt, drivingForces, ...
+                = transportEquationBlackOilDG(state0, state, model, dt, drivingForces, ...
                                   'solveForOil'  , model.conserveOil  , ...
                                   'solveForWater', model.conserveWater, ...
                                   'solveForGas'  , model.conserveGas  , ...
@@ -44,7 +44,7 @@ classdef TransportBlackOilModelDG < TransportBlackOilModel
             %
             % SEE ALSO:
             %   :meth:`ad_core.models.PhysicalModel.getVariableField`
-            switch(lower(name))
+            switch lower(name)
                 case {'swdof'}
                     index = 1;
                     fn = 'sdof';
@@ -57,6 +57,9 @@ classdef TransportBlackOilModelDG < TransportBlackOilModel
                 case{'sdof'}
                     index = ':';
                     fn = 'sdof';
+                case {'rsdof', 'rvdof'}
+                    fn = lower(name);
+                    index = 1;
                 otherwise
                     % This will throw an error for us
                     [fn, index] = getVariableField@TransportBlackOilModel(model, name);
