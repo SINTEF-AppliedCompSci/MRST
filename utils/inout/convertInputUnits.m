@@ -39,27 +39,28 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
-   for kw = reshape(fieldnames(grdecl), 1, []),
+   for kw = reshape(fieldnames(grdecl), 1, [])
       key = kw{1};
 
-      switch key,
+      switch key
          case {'PERMX' , 'PERMXY', 'PERMXZ', ...
                'PERMYX', 'PERMY' , 'PERMYZ', ...
-               'PERMZX', 'PERMZY', 'PERMZ' },
+               'PERMZX', 'PERMZY', 'PERMZ' }
             grdecl.(key) = convertFrom(grdecl.(key), u.perm);
 
          case {'DXV'   , 'DYV'   , 'DZV'   , 'DEPTHZ', ...
-               'COORD' , 'ZCORN'                     },
+               'COORD' , 'ZCORN'                     }
             grdecl.(key) = convertFrom(grdecl.(key), u.length);
 
-         case {'TRANX', 'TRANY', 'TRANZ'},
+         case {'TRANX', 'TRANY', 'TRANZ'}
             grdecl.(key) = convertFrom(grdecl.(key), u.trans);
 
          case {'cartDims',                        ...  % MRST specific
                'ACTNUM', 'NTG', 'PORO', 'SATNUM', ...
                'FAULTS', 'MULTFLT',               ...
-               'MULTX' , 'MULTX_', 'MULTY', 'MULTY_', 'MULTZ', 'MULTZ_'},
+               'MULTX' , 'MULTX_' ,               ...
+               'MULTY' , 'MULTY_' ,               ...
+               'MULTZ' , 'MULTZ_' }
             continue;  % No unit conversion needed.
 
          otherwise

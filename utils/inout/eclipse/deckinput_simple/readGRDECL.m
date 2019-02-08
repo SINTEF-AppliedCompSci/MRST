@@ -88,8 +88,6 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
-
 opt = struct('verbose'        , mrstVerbose, ...
              'cartDims'       , []         , ...
              'grdecl'         , []         , ...
@@ -97,7 +95,7 @@ opt = struct('verbose'        , mrstVerbose, ...
              'missing_include', @error);
 opt = merge_options(opt, varargin{:});
 
-if isempty(opt.grdecl),
+if isempty(opt.grdecl)
    grdecl = struct;
 else
    grdecl = opt.grdecl;
@@ -112,9 +110,9 @@ numCell  = numCell(1 + double(~isempty(cartDims)));
 
 unrec = [];
 
-while ~feof(fid),
+while ~feof(fid)
    lin = fgetl(fid);
-   if lin == -1,
+   if lin == -1
       msg = ferror(fid, 'clear');
       fclose(fid);
       error('readGRDECL:Input:Empty', ...
@@ -124,19 +122,19 @@ while ~feof(fid),
 
    % Loop until next keyword
    kw = regexp(lin, '^[A-Z][A-Z0-9]{0,7}(|/)', 'match', 'once');
-   while isempty(kw) && ~feof(fid),
+   while isempty(kw) && ~feof(fid)
       lin = fgetl(fid);
-      if lin ~= -1,
+      if lin ~= -1
          kw = regexp(lin, '^[A-Z][A-Z0-9]{0,7}(|/)', 'match', 'once');
       end
    end
 
-   if ~feof(fid),
+   if ~feof(fid)
       dispif(opt.verbose, 'Reading keyword ''%s''\n', kw);
-      switch kw,
-         case {'SPECGRID', 'DIMENS'},
+      switch kw
+         case {'SPECGRID', 'DIMENS'}
             t = fscanf(fid, '%f', 3) .';
-            if isempty(cartDims),
+            if isempty(cartDims)
                cartDims = t;
             elseif ~all(cartDims == t)
                error(msgid('Grid:Initialized'), ...
@@ -146,7 +144,7 @@ while ~feof(fid),
             trash    = fgetl(fid); %#ok
             grdecl.cartDims = reshape(cartDims, 1, []);
 
-         case 'INCLUDE',
+         case 'INCLUDE'
             % checkDim(cartDims, numCell, kw, fid);
             inc_fn_tmp = fscanf(fid, '%s', 1);
             inc_fn = regexp(inc_fn_tmp, '[''"]?([-./\w]+)[''"]?', ...
@@ -157,16 +155,16 @@ while ~feof(fid),
             if inc_fn(end) == '/', inc_fn = inc_fn(1:end-1); end
 
             % Gobble up keyword-closing '/' character if not already read.
-            if ~terminated,
+            if ~terminated
                slash = fscanf(fid, '%s', 1);
-               if ~strcmp(slash, '/'),
+               if ~strcmp(slash, '/')
                   error(msgid('Include:WrongfulTermination'), ...
                         'INCLUDE keyword not correctly terminated.');
                end
             end
 
             inc_fn(inc_fn == '/') = filesep;
-            if inc_fn(1) ~= filesep,
+            if inc_fn(1) ~= filesep
                % Translate relative pathname to absolute pathname.
                inc_fn = fullfile(fileparts(fn), inc_fn);
             end
@@ -185,17 +183,17 @@ while ~feof(fid),
             dispif(opt.verbose, ' <- ''%s''\n', inc_fn);
 
             if isempty(cartDims) && isfield(grdecl, 'cartDims') && ...
-                  numel(grdecl.cartDims) == 3,
+                  numel(grdecl.cartDims) == 3
                cartDims        = reshape(grdecl.cartDims, 1, []);
                grdecl.cartDims = cartDims;
             end
 
-         case 'COORD',
+         case 'COORD'
             checkDim(cartDims, numCell, kw, fid);
             grdecl.COORD = readVector(fid, kw, ...
                                       6 * prod(cartDims(1:2) + 1));
 
-         case 'ZCORN',
+         case 'ZCORN'
             checkDim(cartDims, numCell, kw, fid);
             grdecl.ZCORN = readVector(fid, kw, 8 * numCell);
 
@@ -208,25 +206,25 @@ while ~feof(fid),
                'MULTY' , 'MULTY-',           ...
                'MULTZ' , 'MULTZ-',           ...
                'NTG'
-               },
+               }
             checkDim(cartDims, numCell, kw, fid);
             grdecl.(regexprep(kw, '\W', '_')) = ...
                readVector(fid, kw, numCell);
 
-         case {'DXV', 'DYV', 'DZV'},
+         case {'DXV', 'DYV', 'DZV'}
             ix          = strcmp(kw, {'DXV', 'DYV', 'DZV'});
             grdecl.(kw) = readVector(fid, kw, cartDims(ix));
 
-         case 'DEPTHZ',
+         case 'DEPTHZ'
             checkDim(cartDims, numCell, kw, fid);
             grdecl.(kw) = readVector(fid, kw, prod(cartDims(1:2) + 1));
 
          case {'ADD', 'COPY', 'EQUALS', 'MAXVALUE', ...
-               'MINVALUE', 'MULTIPLY'},
+               'MINVALUE', 'MULTIPLY'}
             grdecl = ...
                 applyOperatorSimple(grdecl, fid, cartDims, cartDims, kw);
 
-         case 'FAULTS',
+         case 'FAULTS'
             tmpl(1:8) = { 'Default' };
             data = readDefaultedKW(fid, tmpl);  clear tmpl
             data(:, 2:end-1) = to_double(data(:, 2:end-1));
@@ -234,7 +232,7 @@ while ~feof(fid),
             if ~isfield(grdecl, kw), grdecl.(kw) = cell([0, 8]); end
             grdecl.(kw) = [grdecl.(kw); data];
 
-         case 'MULTFLT',
+         case 'MULTFLT'
             tmpl = { 'FaultName', '1.0', '1.0' };
             data = readDefaultedKW(fid, tmpl);  clear tmpl
             data(:, 2:end) = to_double(data(:, 2:end));
@@ -242,7 +240,7 @@ while ~feof(fid),
             if ~isfield(grdecl, kw), grdecl.(kw) = cell([0, 3]); end
             grdecl.(kw) = [grdecl.(kw); data];
 
-         otherwise,
+         otherwise
             if ~isempty(opt.keywords) && any(strcmp(kw, opt.keywords))
                checkDim(cartDims, numCell, kw, fid);
                grdecl.(genvarname(kw)) = readVector(fid, kw, numCell);
@@ -255,7 +253,7 @@ end
 unrec = unique(unrec);
 
 fclose(fid);
-if isfield(grdecl, 'ACTNUM'),
+if isfield(grdecl, 'ACTNUM')
    grdecl.ACTNUM = int32(grdecl.ACTNUM);
 end
 
@@ -264,7 +262,7 @@ end
 %--------------------------------------------------------------------------
 
 function checkDim(cartDims, numCell, kw, fid)
-if isempty(cartDims) || numCell < 1 || any(cartDims < 1),
+if isempty(cartDims) || numCell < 1 || any(cartDims < 1)
    % Don't leave open fd's in MATLAB's workspace when erroring out.
    fclose(fid);
    error('readGRDECL:Input:NoDim', ...
@@ -275,7 +273,7 @@ end
 
 function v = to_double(v)
 convert = @(s) sscanf(s, '%f');
-if ischar(v),
+if ischar(v)
    v = convert(v);
 else
    v = cellfun(convert, v, 'UniformOutput', false);
