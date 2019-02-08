@@ -84,7 +84,7 @@ function w = getXCON(w, xcon, ih)
 d = @(k)(k-1)*ih.nxcon*ih.ncwma;
 for k = 1:ih.nwell
     dc = (0:(w(k).ncon-1))*ih.nxcon;
-    w(k).cqs  = - xcon(bsxfun(@plus, dc(:), 1:3) + d(k));
+    w(k).cqs  = - reshape(xcon(bsxfun(@plus, dc(:), 1:3) + d(k)), [], 3);
     w(k).cqr  = - xcon( 50 + dc + d(k));
 end
 end
