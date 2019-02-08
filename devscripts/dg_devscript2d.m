@@ -14,7 +14,7 @@ l = 1000;
 G = computeGeometry(cartGrid([n,n], [l,l]*meter));
 G = computeVEMGeometry(G);
 G = computeCellDimensions(G);
-G.equal = true;
+[G.cells.equal, G.faces.equal] = deal(true);
 
 rock = makeRock(G, 100*milli*darcy, 1);
 fluid = initSimpleADIFluid('phases', 'WO'                   , ...
