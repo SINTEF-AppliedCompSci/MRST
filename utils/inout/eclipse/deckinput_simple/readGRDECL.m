@@ -64,7 +64,9 @@ function [grdecl, unrec] = readGRDECL(fn, varargin)
 %            'PERMXZ', 'PERMY', 'PERMYX', 'PERMYZ', 'PERMZ', 'PERMZX',
 %            'PERMZY', 'PORO', 'SATNUM', 'ZCORN'
 %
-%   unrec -  Cell array with unrecognized keywords
+%   unrec -  Cell array with unrecognized keywords.  For convenience and
+%            greater transparency, this data is also provided as the field
+%            `UnhandledKeywords` of `grdecl` itself.
 %
 % SEE ALSO:
 %   `processGRDECL`.
@@ -176,11 +178,14 @@ while ~feof(fid)
             end
 
             dispif(opt.verbose, ' -> ''%s''\n', inc_fn);
-            grdecl = readGRDECL(inc_fn, 'cartDims', cartDims, ...
-                                'verbose', opt.verbose,       ...
-                                'grdecl', grdecl,             ...
-                                'missing_include', opt.missing_include);
+            [grdecl, u] = readGRDECL(inc_fn, 'cartDims', cartDims, ...
+                                     'verbose', opt.verbose,       ...
+                                     'grdecl', grdecl,             ...
+                                     'missing_include', ...
+                                     opt.missing_include);
             dispif(opt.verbose, ' <- ''%s''\n', inc_fn);
+
+            unrec = [ unrec, u ];                               %#ok<AGROW>
 
             if isempty(cartDims) && isfield(grdecl, 'cartDims') && ...
                   numel(grdecl.cartDims) == 3
@@ -251,6 +256,8 @@ while ~feof(fid)
    end
 end
 unrec = unique(unrec);
+
+grdecl.UnhandledKeywords = unrec;
 
 fclose(fid);
 if isfield(grdecl, 'ACTNUM')
