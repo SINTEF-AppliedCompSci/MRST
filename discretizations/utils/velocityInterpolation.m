@@ -14,16 +14,21 @@ function vi = velocityInterpolation(G, type)
                 D{dNo} = sparse(cellNo, faceNo, X(:,dNo).*sgn, G.cells.num, G.faces.num)./G.cells.volumes;
             end
 
-            if G.griddim == 2
-                faceFlux2CellVelocity = @(v) [D{1}*v, D{2}*v];
-            else
-                faceFlux2CellVelocity = @(v) [D{1}*v, D{2}*v, D{3}*v];
-            end
-
-            vi = struct('D', {D}, 'faceFlux2cellVelocity', faceFlux2CellVelocity);
+            f2c = @(v) faceFlux2cellVelocity(D,v);
+            vi = struct('D', {D}, 'faceFlux2cellVelocity', f2c);
             
         otherwise
                 error('Unknown velocity interpolation type')
     end
+
+end
+
+function vc = faceFlux2cellVelocity(D, v)
+    
+    vc = cell(1,numel(D));
+    for dNo = 1:numel(D)
+        vc{dNo} = D{dNo}*v;
+    end
+    vc = SpatialVector(vc{:});
 
 end
