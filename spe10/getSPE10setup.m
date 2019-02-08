@@ -79,7 +79,7 @@ end
 function [cartDims, physDims, layers] = define_layers(varargin)
    layers = (1 : 85) .';
 
-   if nargin > 0 && isnumeric(varargin{1}) && ~isempty(varargin{1}),
+   if nargin > 0 && isnumeric(varargin{1}) && ~isempty(varargin{1})
       layers = varargin{1};
    end
 
@@ -119,7 +119,7 @@ function [wtype, wtarget, wrad, wloc, wname, sgn] = well_setup(varargin)
    wname   = {'P1', 'P2', 'P3', 'P4', 'I1'};
    sgn     = [ -1 ,  -1 ,  -1 ,  -1 ,   1 ];
 
-   if nargin > 1 && isnumeric(varargin{2}),
+   if nargin > 1 && isnumeric(varargin{2})
       wloc = varargin{2};
    end
 end
