@@ -230,7 +230,7 @@ classdef DGDiscretization < HyperbolicDiscretization
             else
                 % If it G.cells.dx is not computed, we use approximation
                 dx = G.cells.volumes(cells).^(1/G.griddim);
-                scaling = 1./(dx/2);
+                scaling = repmat(1./(dx/2), 1, disc.dim)
             end
             
             if ~inverse
@@ -324,7 +324,6 @@ classdef DGDiscretization < HyperbolicDiscretization
 
             % Get cubature for all cells, transform coordinates to ref space
             [W, x, cellNo, ~] = disc.getCubature((1:disc.G.cells.num)', 'volume');
-%             x = disc.transformCoords(x, cellNo);
             
             sdof = state.sdof;
             nPh  = size(sdof,2);
@@ -339,13 +338,15 @@ classdef DGDiscretization < HyperbolicDiscretization
         end
         
         %-----------------------------------------------------------------%
-        function val = getCellMean(disc, dof, state)
+        function varargout = getCellMean(disc, state, varargin)
             % Get average cell value from dofs
 
             % Get cubature for all cells
             [W, x, cellNo, ~] = disc.getCubature((1:disc.G.cells.num)', 'volume');
-            val = W*disc.evaluateDGVariable(x, cellNo, state, dof);
-            val = val./disc.G.cells.volumes;
+            val = cell(numel(varargin),1);
+            [val{:}] = disc.evaluateDGVariable(x, cellNo, state, varargin{:});
+            val = cellfun(@(v) W*v./disc.G.cells.volumes, val, 'unif', false);
+            varargout = val;
             
         end
         
