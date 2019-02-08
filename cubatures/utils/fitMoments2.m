@@ -1,6 +1,6 @@
 function [points,weights,nPts] = fitMoments2(x, basis, moments, varargin)
 
-    opt = struct('equal', false, 'reduce', true, 'tolerance', 1e-12);
+    opt = struct('equal', false, 'reduce', true, 'tol', 1e-12);
     opt = merge_options(opt, varargin{:});
 
     psi  = basis.psi;
