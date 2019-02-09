@@ -1,6 +1,6 @@
 function [points,weights,nPts] = fitMoments2(x, basis, moments, varargin)
 
-    opt = struct('equal', false, 'reduce', true);
+    opt = struct('equal', false, 'reduce', true, 'tol', 1e-12);
     opt = merge_options(opt, varargin{:});
 
     psi  = basis.psi;
@@ -66,8 +66,7 @@ function [points,weights,nPts] = fitMoments2(x, basis, moments, varargin)
 %                 [w, ~, ~, flag] = lsqlin(I, o, I, r, P  , M, o, r, [], opts);
                 [w, ~, residual, flag] = lsqnonneg(P, M);
 %                 tol = 1e-15;
-                tol = 1e-12;
-                flag = flag && all(abs(residual)<tol);
+                flag = flag && all(abs(residual)<opt.tol);
 %                 PP = P*P';
 %                 w = P'*(PP\M);
 %                 tol = 0.01;

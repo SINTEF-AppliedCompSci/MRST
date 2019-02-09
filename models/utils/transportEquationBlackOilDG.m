@@ -1,12 +1,12 @@
-function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt, drivingForces, varargin)
+function [problem, state] = transportEquationBlackOilDG(state0, state, model, dt, drivingForces, varargin)
 
     opt = struct('Verbose'      , mrstVerbose, ...
-                 'reverseMode'  , false      ,...
-                 'scaling'      , []         ,...
-                 'resOnly'      , false      ,...
-                 'history'      , []         ,...
-                 'solveForWater', true       , ...
-                 'solveForOil'  , false      , ...
+                 'reverseMode'  , false      , ...
+                 'scaling'      , []         , ...
+                 'resOnly'      , false      , ...
+                 'solveForWater', false      , ...
+                 'solveForOil'  , true       , ...
+                 'solveForGas'  , true       , ...
                  'iteration'    , -1         , ...
                  'stepOptions'  , []         ); % Compatibility only
     opt      = merge_options(opt, varargin{:});
@@ -19,9 +19,11 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     disc     = model.disc;
     flux2Vel = disc.velocityInterp.faceFlux2cellVelocity;
     W        = drivingForces.W;
+    disgas   = model.disgas;
+    vapoil   = model.vapoil;
     
     % We may solve for both oil and water simultaneously
-    solveAllPhases = opt.solveForWater && opt.solveForOil;
+    solveAllPhases = opt.solveForWater && opt.solveForOil && solveForGas;
     
     % Prepare state for simulation-----------------------------------------
     if opt.iteration == 1 && ~opt.resOnly 
@@ -46,10 +48,10 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     %----------------------------------------------------------------------
     
     % Properties from current and previous timestep------------------------
-    [p , sWdof , sOdof , wellSol] = model.getProps(state , ...
-                  'pressure', 'swdof', 'sodof', 'wellsol');
-    [p0, sWdof0, sOdof0,        ] = model.getProps(state0, ...
-                  'pressure', 'swdof', 'sodof'           );
+    [p , sWdof , sOdof , sGdof , rsDof , rvDof , wellSol] = model.getProps(state , ...
+                  'pressure', 'swdof', 'sodof', 'sgdof', 'rsdof', 'rvdof', 'wellsol');
+    [p0, sWdof0, sOdof0, sGdof0, rsDof0, svDof0         ] = model.getProps(state0, ...
+                  'pressure', 'swdof', 'sodof', 'sgdof', 'rsdof', 'rvdof'           );
     % If timestep has been split relative to pressure, linearly interpolate
     % in pressure.
     if isfield(state, 'timestep')
@@ -59,24 +61,63 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     %----------------------------------------------------------------------
     
     % Initialization of independent variables -----------------------------
+    
+    [sW , sO , sG ] = model.getProps(state , 'water', 'oil', 'gas');
+    [sW0, sO0, sG0] = model.getProps(state0, 'water', 'oil', 'gas');
+    st  = model.getCellStatusVO(state , sO ,  sW , sG );
+    st0 = model.getCellStatusVO(state0, sO0,  sW0, sG0);
+    
+    if disgas || vapoil
+        st  = cellfun(rldecode(st, state.nDof, 1), st);
+        st0 = cellfun(rldecode(st, state.nDof, 1), st);
+        xDof = st{1}.*rsDof + st{2}.*rvDof + st{3}.*sGDof;
+        gVar = 'xDof';
+    else
+        gVar = 'sGdof';
+    end
+    
     assert(~opt.reverseMode, 'Backwards solver not supported for splitting');
     if solveAllPhases
         if ~opt.resOnly
-            [sWdof, sOdof] = model.AutoDiffBackend.initVariablesAD(sWdof, sOdof);
+            if disgas || vapoil
+                [sWdof, sOdof, xDof] = model.AutoDiffBackend.initVariablesAD(sWdof, sOdof, xDof);
+            else
+                [sWdof, sOdof, sGdof] = model.AutoDiffBackend.initVariablesAD(sWdof, sOdof, sGdof);
+            end
         end
-        primaryVars = {'sWdof', 'sOdof'};
-        sTdof = sOdof + sWdof;
+        primaryVars = {'sWdof', 'sOdof', gVar};
+        sTdof = sOdof + sWdof + sGdof;
     else
         if ~opt.resOnly
-            sWdof = model.AutoDiffBackend.initVariablesAD(sWdof);
+            if disgas || vapoil
+                [sWdof, xDof] = model.AutoDiffBackend.initVariablesAD(sWdof, xDof);
+            else
+                [sWdof, sGdof] = model.AutoDiffBackend.initVariablesAD(sWdof, sGdof);
+            end
         end
-        primaryVars = {'sWdof'};
-        sOdof     = -sWdof;
+        primaryVars = {'sWdof', gVar};
+        sOdof     = -(sWdof + sGdof);
         ix        = disc.getDofIx(state, 1, Inf);
         sOdof(ix) = 1 + sOdof(ix);
         sTdof     = zeros(size(double(sWdof)));
         sTdof(ix) = 1;
     end
+    
+    if disgas || vapoil
+        sGdof = st{2}.*(-sWdof);
+        ix    = disc.getDofIx(state, 1, Inf);
+        sGdof(ix) = sGdof(ix) + 1;
+        sGdof = sGdof + st{3}.*xDof;
+        if disgas
+            rsSat = rldecode(fluid.rsSat(p), state.nDof, 1);
+            rsDof = (~st{1}).*rsSat + st{1}.*xDof;
+        end
+        if disgas
+            rvSat = rldecode(fluid.rvSat(p), state.nDof, 1);
+            rvDof = (~st{2}).*rvSat + st{2}.*xDof;
+        end
+    end
+    
     %----------------------------------------------------------------------
 
     % Pressure and saturation dependent properties-------------------------
@@ -86,44 +127,70 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     pvMult0 = expandSingleValue(pvMult0, G);
     mobMult = expandSingleValue(mobMult, G);
     T       = op.T.*transMult;
-    T_all   = model.operators.T_all;
+    tm = ones(G.faces.num,1);
+    tm(op.internalConn) = transMult;
+    T_all   = model.operators.T_all.*tm;
     
     % Phase properties
     gdz = model.getGravityGradient();
-    [vW, bW, mobW, rhoW, pW, upcW, dpW, muW] ...
-                             = getPropsWater_DG(model, p, T, gdz, mobMult);
-    [vO, bO, mobO, rhoO, pO, upcO, dpO, muO] ...
-                             = getPropsOil_DG(model, p, T, gdz, mobMult  );
+    [b, mu, rho, mob, f] = getDerivedPropertyFunctionsBO(model, p, mobMult, st);
+    bW   = b{1};   bO   = b{2};   bG   = b{3};
+    rhoW = rho{1}; rhoO = rho{2}; rhoG = rho{3};
+    mobW = mob{1}; mobO = mob{2}; mobG = mob{3};
+    
     bW0 = fluid.bW(p0);
     bO0 = fluid.bO(p0);
-    
-                           
-    % Fractional flow functions
-    fW = @(sW, sO, sT, cW, cO) mobW(sW, sT, cW)./(mobW(sW, sT, cW) + mobO(sO, sT, cO));
-    fO = @(sW, sO, sT, cW, cO) mobO(sO, sT, cO)./(mobW(sW, sT, cW) + mobO(sO, sT, cO));
+    bG0 = fluid.bO(p0);
+
+    [sW, sO, sG] = disc.getCellMean(state, sWdof, sOdof, sGdof);
     
     % Gravity flux
     gp = op.Grad(p);
-    [gW, gO] = deal(zeros(G.faces.num, 1));
-    gW(op.internalConn) = gp - dpW;
-    gO(op.internalConn) = gp - dpO;
+    
+    xf = G.faces.centroids(disc.internalConn);
+    cL = disc.N(:,1);
+    cR = disc.N(:,2);
+    [sWL, sOL, sGL, rsL, rvL] = disc.evaluateDGVariable(xf, cL, state, sWdof, sOdof, sGdof, rsDof, rvDof);
+    [sWR, sOR, sGR, rsR, rvR] = disc.evaluateDGVariable(xf, cR, state, sWdof, sOdof, sGdof, rsDof, rvDof); 
+    
+    gW = (rhoW(sWL, cL) + rhoW(sWR, cR))/2.*gdz;
+    if isfield(fluid, 'pcOW')
+        gW = gW - op.Grad(fluid.pcOW(sW));
+    end
+    gO = (rhoO(rsL, cL) + rhoO(rsR, cR))/2.*gdz;
+    gG = (rhoG(sGL, rvL, cL) + rhoG(sGR, rvR, cR))/2.*gdz;
+    if isfield(fluid, 'pcOW')
+        gG = gG + op.Grad(fluid.pcOW(sW));
+    end
+    P = sparse(find(op.internalConn), 1:nnz(op.internalConn), 1, G.faces.num, nnz(op.internalConn));
+    gW = P*gW;
+    gO = P*gO;
+    gG = P*gG;
+%     [gW, gO] = deal(zeros(G.faces.num, 1));
+%     gW(op.internalConn) = gp - dpW;
+%     gO(op.internalConn) = gp - dpO;
     % Add gravity flux where we have BCs to get correct cell values
     bc = drivingForces.bc;
     if ~isempty(bc)
+        error('bcs not implemented');
         BCcells = sum(G.faces.neighbors(bc.face,:), 2);
         dz = G.cells.centroids(BCcells, :) - G.faces.centroids(bc.face,:);
         g = model.getGravityVector();
         rhoWBC = rhoW(BCcells);
         rhoOBC = rhoO(BCcells);
+        rhoGBC = rhoO(BCcells);
         gW(bc.face) = rhoWBC.*(dz*g');
         gO(bc.face) = rhoOBC.*(dz*g');
     end    
     TgW  = T_all.*gW;          % Gravity volumetric flux, water
     TgO  = T_all.*gO;          % Gravity volumetric flux, oil
+    TgG  = T_all.*gG;          % Gravity volumetric flux, gas
     TgWc = flux2Vel(TgW);      % Map to cell velocity
     TgOc = flux2Vel(TgO);
+    TgGc = flux2Vel(TgG);
     TgW  = TgW./G.faces.areas; % Convert to gravity flux
     TgO  = TgO./G.faces.areas;
+    TgG  = TgG./G.faces.areas;
     
     % Viscous flux
     flux  = sum(state.flux,2);   % Total volumetric flux
@@ -140,31 +207,55 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
         wflux(wc) = sum(vertcat(wellSol.flux), 2)./G.cells.volumes(wc);
         isInj     = wflux > 0;
         compWell  = vertcat(W.compi);
-        compPerf  = zeros(G.cells.num, 2);
+        compPerf  = zeros(G.cells.num, 3);
         compPerf(wc,:) = compWell(perf2well,:);
         
         % Saturations at cubature points
-        [~, xcw, cNow] = disc.getCubature(wc, 'volume');
-        [sWW, sOW, sTW] = disc.evaluateDGVariable(xcw, cNow, state, sWdof, sOdof, sTdof);
+        [~, xcw, wcNo] = disc.getCubature(wc, 'volume');
+        [sWW, sOW, sGW, sTW, rsW, rvW] = disc.evaluateDGVariable(xcw, wcNo, state, sWdof, sOdof, sGdof, sTdof, rsDof, rvDof);
+        
+        mobWW = mobW(sWW, sTW, wcNo);
+        mobOW = mobO(sOW, sTW, rsW, wcNo);
+        mobGW = mobG(sGW, sTW, rvW, wcNo);
+        mobTW = mobWW + mobOW + mobGW;
+        
+        fWW = sTW.*mobWW./mobTW;
+        fOW = sTW.*mobOW./mobTW;
+        fGW = sTW.*mobGW./mobTW;
+        
+        bWW = bW(sWW, wcNo);
+        bOW = bO(rsW, wcNo);
+        bGW = bG(sGW, rvW, wcNo);
+        
+        qWW = wflux(wcNo).*sTW.*fWW;
+        qOW = wflux(wcNo).*sTW.*fOW;
+        qGW = wflux(wcNo).*sTW.*fGW;
         
         % Water well contributions
-        integrand = @(psi, gradPsi) bW(cNow).*wflux(cNow)...
-            .*(sTW.*fW(sWW, sOW, sTW, cNow, cNow).*(~isInj(cNow)) + compPerf(cNow,1).*isInj(cNow)).*psi;
-        srcWW = disc.cellInt(integrand, wc, state, sWdof);
+        integrandW = @(psi, gradPsi) (~isInj(wcNo).*(qWW) ...
+                                     + isInj(wcNo).*compPerf(wcNo,1)).*psi;
+        srcWW = disc.cellInt(integrandW, wc, state, sWdof);
         
         % Oil well contributions
-        integrand = @(psi, gradPsi) bO(cNow).*wflux(cNow)...
-            .*(sTW.*fO(sWW, sOW, sTW, cNow, cNow).*(~isInj(cNow)) + compPerf(cNow,2).*isInj(cNow)).*psi;
-        srcOW = disc.cellInt(integrand, wc, state, sOdof);
-                
+        integrandO = @(psi, gradPsi) (~isInj(wcNo).*(qOW + rvW.*qGW) ...
+                                     + isInj(wcNo).*compPerf(wcNo,2)).*psi;
+        srcOW = disc.cellInt(integrandO, wc, state, sWdof);
+        
+        % Oil well contributions
+        integrandG = @(psi, gradPsi) (~isInj(wcNo).*(qGW + rsW.*qOW) ...
+                                     + isInj(wcNo).*compPerf(wcNo,2)).*psi;
+        srcGW = disc.cellInt(integrandG, wc, state, sWdof);
+                                 
         % Store well fluxes
         ix     = disc.getDofIx(state, 1, wc);
         wfluxW = double(srcWW(ix));
         wfluxO = double(srcOW(ix));
+        wfluxG = double(srcGW(ix));
         for wNo = 1:numel(W)
             perfind = perf2well == wNo;
             state.wellSol(wNo).qWs = sum(wfluxW(perfind));
             state.wellSol(wNo).qOs = sum(wfluxO(perfind));
+            state.wellSol(wNo).qGs = sum(wfluxG(perfind));
         end
 
     end

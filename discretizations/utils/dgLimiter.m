@@ -104,7 +104,7 @@ function state = dgLimiter(disc, state, bad, var, type, varargin)
     state   = disc.updateDofPos(state);
     state.(var) = zeros(G.cells.num, size(dof,2));
     for cNo = 1:size(dof,2)
-        state.(var)(:,cNo) = disc.getCellMean(dof(:,cNo), state);
+        state.(var)(:,cNo) = disc.getCellMean(state, dof(:,cNo));
     end
     
     if opt.plot
