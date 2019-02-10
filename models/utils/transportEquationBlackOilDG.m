@@ -153,12 +153,12 @@ function [problem, state] = transportEquationBlackOilDG(state0, state, model, dt
     [sWL, sOL, sGL, rsL, rvL] = disc.evaluateDGVariable(xf, cL, state, sWdof, sOdof, sGdof, rsDof, rvDof);
     [sWR, sOR, sGR, rsR, rvR] = disc.evaluateDGVariable(xf, cR, state, sWdof, sOdof, sGdof, rsDof, rvDof); 
     
-    gW = (rhoW(sWL, cL) + rhoW(sWR, cR))/2.*gdz;
+    gW = (rhoW(cL, sWL) + rhoW(cR, sWR))/2.*gdz;
     if isfield(fluid, 'pcOW')
         gW = gW - op.Grad(fluid.pcOW(sW));
     end
-    gO = (rhoO(rsL, cL) + rhoO(rsR, cR))/2.*gdz;
-    gG = (rhoG(sGL, rvL, cL) + rhoG(sGR, rvR, cR))/2.*gdz;
+    gO = (rhoO(cL, rsL) + rhoO(cR, rsR))/2.*gdz;
+    gG = (rhoG(cL, sGL, rvL) + rhoG(cR, sGR, rvR))/2.*gdz;
     if isfield(fluid, 'pcOW')
         gG = gG + op.Grad(fluid.pcOW(sW));
     end
@@ -214,18 +214,18 @@ function [problem, state] = transportEquationBlackOilDG(state0, state, model, dt
         [~, xcw, wcNo] = disc.getCubature(wc, 'volume');
         [sWW, sOW, sGW, sTW, rsW, rvW] = disc.evaluateDGVariable(xcw, wcNo, state, sWdof, sOdof, sGdof, sTdof, rsDof, rvDof);
         
-        mobWW = mobW(sWW, sTW, wcNo);
-        mobOW = mobO(sOW, sTW, rsW, wcNo);
-        mobGW = mobG(sGW, sTW, rvW, wcNo);
+        mobWW = mobW(wcNo, sWW, sTW);
+        mobOW = mobO(wcNo, sOW, sTW, rsW);
+        mobGW = mobG(wcNo, sGW, sTW, rvW);
         mobTW = mobWW + mobOW + mobGW;
         
         fWW = sTW.*mobWW./mobTW;
         fOW = sTW.*mobOW./mobTW;
         fGW = sTW.*mobGW./mobTW;
         
-        bWW = bW(sWW, wcNo);
-        bOW = bO(rsW, wcNo);
-        bGW = bG(sGW, rvW, wcNo);
+        bWW = bW(wcNo, sWW);
+        bOW = bO(wcNo, rsW);
+        bGW = bG(wcNo, sGW, rvW);
         
         qWW = wflux(wcNo).*sTW.*fWW;
         qOW = wflux(wcNo).*sTW.*fOW;
@@ -269,8 +269,8 @@ function [problem, state] = transportEquationBlackOilDG(state0, state, model, dt
     % Face cubature points
     [~, xf, ~, f] = disc.getCubature((1:G.cells.num)', 'surface');
     % Upstream cells
-    [~, ~, cfV, cfG] = disc.getSaturationUpwind(f, xf, T, flux, ...
-                            {gW, gO}, {mobW, mobO}, {sWdof, sOdof}, state);
+    [~, ~, cfV, cfG] = disc.getSaturationUpwind(f, xf, T, flux, state, ...
+                            {gW, gO, gG}, {mobW, mobO, mobG}, {sWdof, sOdof, sGdof}, {rsDof, rvDof});
     % Water saturation
     [sWfV , sTWfV] = disc.evaluateDGVariable(xf, cfV(:,1), state, sWdof, sTdof);
     [sWfG , sTWfG] = disc.evaluateDGVariable(xf, cfG(:,1), state, sWdof, sTdof);

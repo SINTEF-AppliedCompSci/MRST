@@ -1,4 +1,4 @@
-function [flagV, flagG, upCellsV, upCellsG, s_v, s_G] = getSaturationUpwindDG(disc, faces, x, T, flux, g, mob, sdof, state)
+function [flagV, flagG, upCellsV, upCellsG, s_v, s_G] = getSaturationUpwindDG(disc, faces, x, T, flux, state, g, mob, sdof, rdof)
     % Explicit calculation of upstream cells (Bernier & Jaffre)
     % for each quadrature point x on each face in faces.
     %
@@ -36,15 +36,23 @@ function [flagV, flagG, upCellsV, upCellsG, s_v, s_G] = getSaturationUpwindDG(di
     % at each quadrature point
     nPh = numel(sdof);
     [sL, sR] = deal(zeros(size(x,1),nPh));
+    [rL, rR] = deal(zeros(size(x,1),nPh));
     for phNo = 1:nPh
         sL(:, phNo) = disc.evaluateDGVariable(x, cL, state, double(sdof{phNo}));
         sR(:, phNo) = disc.evaluateDGVariable(x, cR, state, double(sdof{phNo}));
-    end        
+    end
+    if ~isempty(rdof)
+        for rNo = 2:3
+            rL(:, rNo) = disc.evaluateDGVariable(x, cL, state, double(rdof{rNo-1}));
+            rR(:, rNo) = disc.evaluateDGVariable(x, cR, state, double(rdof{rNo-1}));
+        end
+    end
     s = [sL; sR];
     sT = sum(s,2);
+    r = [rL; rR];
     for phNo = 1:nPh
-        mob{phNo} = mob{phNo}(s(:,phNo), sT, [cL; cR]);
-    end        
+        mob{phNo} = mob{phNo}([cL; cR], s(:,phNo), sT, r(:,phNo));
+    end
 
     % Make fake faceUpstr function
     N = [1:numel(ix); numel(ix)+1:2*numel(ix)]';
@@ -66,3 +74,26 @@ function [flagV, flagG, upCellsV, upCellsG, s_v, s_G] = getSaturationUpwindDG(di
     end
 
 end
+% 
+% function mob = evaluateMobilities(model, mob, x, cL, cR, sdof, rsdof, rvdof)
+%     
+%     nPh = numel(mob);
+%     for phNo = 1:nPh
+%         sL(:, phNo) = disc.evaluateDGVariable(x, cL, state, double(sdof{phNo}));
+%         sR(:, phNo) = disc.evaluateDGVariable(x, cR, state, double(sdof{phNo}));
+%     end
+%     s = [sL;sR];
+%     sT = sum(s, 2);
+%     if model.vapoil || model.disgas
+%         rsL = disc.evaluateDGVariable(x, cL, state, double(rsdof));
+%         rsR = disc.evaluateDGVariable(x, cR, state, double(rsdof));
+%         rvL = disc.evaluateDGVariable(x, cL, state, double(rvdof));
+%         rvR = disc.evaluateDGVariable(x, cR, state, double(rvdof));
+%         mob{1} = 
+%     else
+%         for phNo = 1:nPh
+%             mob{phNo} = mob{phNo}(s(:,phNo), sT, [cL; cR]);
+%         end
+%     end
+%     
+% end

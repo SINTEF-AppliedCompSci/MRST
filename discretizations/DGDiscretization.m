@@ -505,10 +505,10 @@ classdef DGDiscretization < HyperbolicDiscretization
         end
         
         %-----------------------------------------------------------------%
-        function [flag_v, flag_G, upCells_v, upCells_G, s_v, s_G] = getSaturationUpwind(disc, faces, x, T, vT, g, mob, sdof, state)
+        function [flag_v, flag_G, upCells_v, upCells_G, s_v, s_G] = getSaturationUpwind(disc, faces, x, T, vT, state, g, mob, sdof, rdof)
             % Explicit calculation of upstream cells. See getSaturationUpwindDG
             [flag_v, flag_G, upCells_v, upCells_G, s_v, s_G] ...
-                = getSaturationUpwindDG(disc, faces, x, T, vT, g, mob, sdof, state);
+                = getSaturationUpwindDG(disc, faces, x, T, vT, state, g, mob, sdof, rdof);
         end
         
         %-----------------------------------------------------------------%

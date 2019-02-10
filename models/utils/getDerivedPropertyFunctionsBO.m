@@ -13,45 +13,47 @@ function [b, mu, rho, mob, f] = getDerivedPropertyFunctionsBO(model, pO, mobMult
     
     % Water----------------------------------------------------------------
     if isfield(fluid, 'pcOW')
-        pW = @(sW, c) pO(c) - fluid.pcOW(sW);
+        pW = @(c, sW) pO(c) - fluid.pcOW(sW);
     else
-        pW = @(sW, c) pO(c);
+        pW = @(c, varargin) pO(c);
     end
-    bW   = @(sW, c) fluid.bW(pW(sW, c));
-    muW  = @(sW, c) fluid.muW(pW(sW, c));
-    rhoW = @(sW, c) bW(sW, c).*fluid.rhoWS;
-    mobW = @(sW, sT, c) mobMult(c).*fluid.krW(sW./sT)./muW(sW, c);
+    bW   = @(c, sW, varargin) fluid.bW(pW(c, sW));
+    muW  = @(c, sW, varargin) fluid.muW(pW(c, sW));
+    rhoW = @(c, sW, varargin) bW(c, sW).*fluid.rhoWS;
+    mobW = @(c, sW, sT, varargin) mobMult(c).*fluid.krW(sW./sT)./muW(c, sW);
     %----------------------------------------------------------------------
     
     % Oil------------------------------------------------------------------
     if disgas
-        bO   = @(rs, c) fluid.bO(pO(c), rs, isSatO(c));
-        muO  = @(rs, c) fluid.muO(pO(c), rs, isSatO(c));
-        rhoO = @(rs, c) bO(rs, c).*(rs.*fluid.rhoGS + fluid.rhoOS);
+        bO   = @(c, rs, varargin) fluid.bO(pO(c), rs, isSatO(c));
+        muO  = @(c, rs, varargin) fluid.muO(pO(c), rs, isSatO(c));
+        rhoO = @(c, rs, varargin) bO(c, rs).*(rs.*fluid.rhoGS + fluid.rhoOS);
+        mobO = @(c, sO, sT, varargin) mobMult(c).*fluid.krO(sO./sT)./muO(c, rs);
     else
-        bO   = @(rs, c) fluid.bO(pO(c));
-        muO  = @(rs, c) fluid.muO(pO(c));
-        rhoO = @(rs, c) fluid.bO(pO(c)).*fluid.rhoOS;
+        bO   = @(c, varargin) fluid.bO(pO(c));
+        muO  = @(c, varargin) fluid.muO(pO(c));
+        rhoO = @(c, varargin) fluid.bO(pO(c)).*fluid.rhoOS;
+        mobO = @(c, sO, sT, varargin) mobMult(c).*fluid.krO(sO./sT)./muO(c, varargin);
     end
-    mobO = @(sO, sT, rs, c) mobMult(c).*fluid.krO(sO./sT)./muO(rs, c);
     %----------------------------------------------------------------------
     
     % Gas------------------------------------------------------------------
     if isfield(fluid, 'pcOG')
-        pG = @(sG, c) pO(c) + fluid.pcOG(sG);
+        pG = @(c, sG) pO(c) + fluid.pcOG(sG);
     else
-        pG = @(sG, c) pO(c);
+        pG = @(c, varargin) pO(c);
     end
     if disgas
-        bG   = @(sG, rv, c) fluid.bG(pG(sG, c), rv, isSatG(c));
-        muG  = @(sG, rv, c) fluid.muG(pG(sG, c), rv, isSatG(c));
-        rhoG = @(sG, rv, c) bG(rs, c).*(rs.*fluid.rhoGS + fluid.rhoOS);
+        bG   = @(c, sG, rv) fluid.bG(pG(sG, c), rv, isSatG(c));
+        muG  = @(c, sG, rv) fluid.muG(pG(sG, c), rv, isSatG(c));
+        rhoG = @(c, sG, rv) bG(rs, c).*(rs.*fluid.rhoGS + fluid.rhoOS);
+        mobG = @(c, sG, sT, rv) mobMult(c).*fluid.krG(sG./sT)./muG(c, sG, rv);
     else
-        bG   = @(sG, rv, c) fluid.bG(pG(sG, c));
-        muG  = @(sG, rv, c) fluid.muG(pG(sG, c));
-        rhoG = @(sG, rv, c) fluid.bG(pG(sG, c)).*fluid.rhoGS;
+        bG   = @(c, sG, varargin) fluid.bG(pG(c, sG, varargin));
+        muG  = @(c, sG, varargin) fluid.muG(pG(c, sG, varargin));
+        rhoG = @(c, sG, varargin) fluid.bG(pG(c, sG, varargin)).*fluid.rhoGS;
+        mobG = @(c, sG, sT, varargin) mobMult(c).*fluid.krG(sG./sT)./muG(c, sG, varargin);
     end
-    mobG = @(sG, sT, rv, c) mobMult(c).*fluid.krG(sG./sT)./muG(sG, rv, c);
     %----------------------------------------------------------------------
     
     % Fractional flow functions--------------------------------------------
