@@ -27,6 +27,12 @@
 #include <amgcl/preconditioner/cpr.hpp>
 #include <amgcl/preconditioner/cpr_drs.hpp>
 
+#include <boost/program_options.hpp>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
+#include <boost/preprocessor/seq/for_each.hpp>
+#include <boost/range/iterator_range_core.hpp>
+
 /* MEX interfaces */
 #include "amgcl_mex_utils.cpp"
 
@@ -156,8 +162,8 @@ void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries, const mx
     }
 }
 
-void solve_regular(int n, mwIndex * cols, mwIndex * rows, double * entries, const mxArray * pa,
-        std::vector<double> b, std::vector<double> & x, double tolerance,
+void solve_regular(int n, const mwIndex * cols, mwIndex const * rows, const double * entries, const mxArray * pa,
+        const std::vector<double> & b, std::vector<double> & x, double tolerance,
         int maxiter, int & iters, double & error){
 
     int relax_id = mxGetScalar(mxGetField(pa, 0, "relaxation"));
@@ -221,8 +227,7 @@ void solve_regular(int n, mwIndex * cols, mwIndex * rows, double * entries, cons
      ***************************************/
     auto t1 = std::chrono::high_resolution_clock::now();
 
-    int block_size = 1;
-    const int bz = 3;
+    int block_size = 3;
 
     const auto matrix = amgcl::adapter::zero_copy(n, &cols[0], &rows[0], &entries[0]);
     switch(block_size){
@@ -245,14 +250,19 @@ void solve_regular(int n, mwIndex * cols, mwIndex * rows, double * entries, cons
             std::cout << solve << std::endl;
         }
       }
-      case bz:
+      case 3:
       {
+        mwIndex const bz = 3;
         Backend::params bprm;
         typedef amgcl::backend::builtin<amgcl::static_matrix<double, bz, bz> > BBackend;
         amgcl::make_block_solver<
             amgcl::runtime::preconditioner<BBackend>,
             amgcl::runtime::solver::wrapper<BBackend>
         > solve(*matrix, prm, bprm);
+        //auto f = Backend::copy_vector(b, bprm);
+        //auto x = Backend::create_vector(b.size(), bprm);
+        // auto y = BBackend::create_vector(b.size(), bprm);
+
 
 
         // auto t2 = std::chrono::high_resolution_clock::now();
@@ -261,7 +271,9 @@ void solve_regular(int n, mwIndex * cols, mwIndex * rows, double * entries, cons
         //               << (double)std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count()/1000.0
         //               << " seconds\n";
         // }
-        // std::tie(iters, error) = solve(b, x);
+        // solve(*f, *x);
+        //solve(b, x);
+        std::tie(iters, error) = solve(b, x);
         //
         // if(verbose){
         //     std::cout << solve << std::endl;
