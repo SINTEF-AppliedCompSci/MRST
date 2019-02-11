@@ -34,7 +34,7 @@ function [flagV, flagG, upCellsV, upCellsG, s_v, s_G] = getSaturationUpwindDG(di
 
     % Evaluate saturations and mobilities on each side of each face
     % at each quadrature point
-    nPh = numel(sdof);
+    nPh = numel(mob);
     [sL, sR] = deal(zeros(size(x,1),nPh));
     [rL, rR] = deal(zeros(size(x,1),nPh));
     for phNo = 1:nPh
@@ -42,9 +42,9 @@ function [flagV, flagG, upCellsV, upCellsG, s_v, s_G] = getSaturationUpwindDG(di
         sR(:, phNo) = disc.evaluateDGVariable(x, cR, state, double(sdof{phNo}));
     end
     if ~isempty(rdof)
-        for rNo = 2:3
-            rL(:, rNo) = disc.evaluateDGVariable(x, cL, state, double(rdof{rNo-1}));
-            rR(:, rNo) = disc.evaluateDGVariable(x, cR, state, double(rdof{rNo-1}));
+        for phNo = 1:nPh
+            rL(:, phNo) = disc.evaluateDGVariable(x, cL, state, double(rdof{phNo}));
+            rR(:, phNo) = disc.evaluateDGVariable(x, cR, state, double(rdof{phNo}));
         end
     end
     s = [sL; sR];

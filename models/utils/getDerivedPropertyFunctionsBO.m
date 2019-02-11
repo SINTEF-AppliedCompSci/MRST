@@ -25,10 +25,10 @@ function [b, mu, rho, mob, f] = getDerivedPropertyFunctionsBO(model, pO, mobMult
     
     % Oil------------------------------------------------------------------
     if disgas
-        bO   = @(c, rs, varargin) fluid.bO(pO(c), rs, isSatO(c));
-        muO  = @(c, rs, varargin) fluid.muO(pO(c), rs, isSatO(c));
-        rhoO = @(c, rs, varargin) bO(c, rs).*(rs.*fluid.rhoGS + fluid.rhoOS);
-        mobO = @(c, sO, sT, varargin) mobMult(c).*fluid.krO(sO./sT)./muO(c, rs);
+        bO   = @(c, rv, varargin) fluid.bO(pO(c), rs, isSatO(c));
+        muO  = @(c, rv, varargin) fluid.muO(pO(c), rs, isSatO(c));
+        rhoO = @(c, rv, varargin) bO(c, rs).*(rs.*fluid.rhoGS + fluid.rhoOS);
+        mobO = @(c, sO, sT, rv, varargin) mobMult(c).*fluid.krO(sO./sT)./muO(c, rv);
     else
         bO   = @(c, varargin) fluid.bO(pO(c));
         muO  = @(c, varargin) fluid.muO(pO(c));
@@ -44,10 +44,10 @@ function [b, mu, rho, mob, f] = getDerivedPropertyFunctionsBO(model, pO, mobMult
         pG = @(c, varargin) pO(c);
     end
     if disgas
-        bG   = @(c, sG, rv) fluid.bG(pG(sG, c), rv, isSatG(c));
-        muG  = @(c, sG, rv) fluid.muG(pG(sG, c), rv, isSatG(c));
-        rhoG = @(c, sG, rv) bG(rs, c).*(rs.*fluid.rhoGS + fluid.rhoOS);
-        mobG = @(c, sG, sT, rv) mobMult(c).*fluid.krG(sG./sT)./muG(c, sG, rv);
+        bG   = @(c, sG, rs) fluid.bG(pG(sG, c), rs, isSatG(c));
+        muG  = @(c, sG, rs) fluid.muG(pG(sG, c), rs, isSatG(c));
+        rhoG = @(c, sG, rs) bG(rs, c).*(rs.*fluid.rhoGS + fluid.rhoOS);
+        mobG = @(c, sG, sT, rs) mobMult(c).*fluid.krG(sG./sT)./muG(c, sG, rs);
     else
         bG   = @(c, sG, varargin) fluid.bG(pG(c, sG, varargin));
         muG  = @(c, sG, varargin) fluid.muG(pG(c, sG, varargin));

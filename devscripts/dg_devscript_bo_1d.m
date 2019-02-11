@@ -3,8 +3,8 @@ mrstVerbose on
 
 %%
 
-n     = 3;
-G     = computeGeometry(cartGrid([n, 1], [1000, 1]));
+n     = 10;
+G     = computeGeometry(cartGrid([n, 1], [1000, 100]));
 G     = computeCellDimensions2(G);
 rock  = makeRock(G, 100*milli*darcy, 0.4);
 fluid = initSimpleADIFluid();
@@ -12,7 +12,11 @@ fluid.pcOW = @(s) (1-s)*barsa;
 
 modelFI  = ThreePhaseBlackOilModel(G, rock, fluid);
 modelSI = getSequentialModelFromFI(modelFI);
-transportModel = TransportBlackOilModelDG(G, rock, fluid);
+modelSI.transportModel.conserveWater = true;
+
+
+transportModel = TransportBlackOilModelDG(G, rock, fluid, 'degree', 1);
+transportModel.conserveWater = true;
 modelDG  = SequentialPressureTransportModelDG(modelSI.pressureModel, transportModel);
 modelDG.pressureModel.extraWellSolOutput = true;
 
@@ -34,4 +38,18 @@ schedule = simpleSchedule(dtvec, 'W', W);
 
 %%
 
-[ws, st, rep] = simulateScheduleAD(state0, modelDG, schedule);
+[wsDG, stDG, repDG] = simulateScheduleAD(state0, modelDG, schedule);
+
+%%
+
+[wsFV, stFV, repFV] = simulateScheduleAD(state0, modelSI, schedule);
+
+%%
+
+plotWellSols({wsFV, wsDG}, schedule.step.val)
+
+%%
+
+close all
+plotToolbar(G, stDG)
+

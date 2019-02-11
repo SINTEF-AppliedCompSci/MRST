@@ -23,7 +23,7 @@ function [problem, state] = transportEquationBlackOilDG(state0, state, model, dt
     vapoil   = model.vapoil;
     
     % We may solve for both oil and water simultaneously
-    solveAllPhases = opt.solveForWater && opt.solveForOil && solveForGas;
+    solveAllPhases = opt.solveForWater && opt.solveForOil && opt.solveForGas;
     
     % Prepare state for simulation-----------------------------------------
     if opt.iteration == 1 && ~opt.resOnly 
@@ -50,7 +50,7 @@ function [problem, state] = transportEquationBlackOilDG(state0, state, model, dt
     % Properties from current and previous timestep------------------------
     [p , sWdof , sOdof , sGdof , rsDof , rvDof , wellSol] = model.getProps(state , ...
                   'pressure', 'swdof', 'sodof', 'sgdof', 'rsdof', 'rvdof', 'wellsol');
-    [p0, sWdof0, sOdof0, sGdof0, rsDof0, svDof0         ] = model.getProps(state0, ...
+    [p0, sWdof0, sOdof0, sGdof0, rsDof0, rvDof0         ] = model.getProps(state0, ...
                   'pressure', 'swdof', 'sodof', 'sgdof', 'rsdof', 'rvdof'           );
     % If timestep has been split relative to pressure, linearly interpolate
     % in pressure.
@@ -223,6 +223,10 @@ function [problem, state] = transportEquationBlackOilDG(state0, state, model, dt
         fOW = sTW.*mobOW./mobTW;
         fGW = sTW.*mobGW./mobTW;
         
+        fWW = ~isInj(wcNo).*fWW + isInj(wcNo).*compPerf(wcNo,1);
+        fOW = ~isInj(wcNo).*fOW + isInj(wcNo).*compPerf(wcNo,2);
+        fGW = ~isInj(wcNo).*fGW + isInj(wcNo).*compPerf(wcNo,3);
+        
         bWW = bW(wcNo, sWW);
         bOW = bO(wcNo, rsW);
         bGW = bG(wcNo, sGW, rvW);
@@ -232,18 +236,15 @@ function [problem, state] = transportEquationBlackOilDG(state0, state, model, dt
         qGW = wflux(wcNo).*sTW.*fGW;
         
         % Water well contributions
-        integrandW = @(psi, gradPsi) (~isInj(wcNo).*(qWW) ...
-                                     + isInj(wcNo).*compPerf(wcNo,1)).*psi;
+        integrandW = @(psi, gradPsi) qWW.*bWW.*psi;
         srcWW = disc.cellInt(integrandW, wc, state, sWdof);
         
         % Oil well contributions
-        integrandO = @(psi, gradPsi) (~isInj(wcNo).*(qOW + rvW.*qGW) ...
-                                     + isInj(wcNo).*compPerf(wcNo,2)).*psi;
+        integrandO = @(psi, gradPsi) (qOW.*bOW + rvW.*qGW.*bGW).*psi;
         srcOW = disc.cellInt(integrandO, wc, state, sWdof);
         
         % Oil well contributions
-        integrandG = @(psi, gradPsi) (~isInj(wcNo).*(qGW + rsW.*qOW) ...
-                                     + isInj(wcNo).*compPerf(wcNo,2)).*psi;
+        integrandG = @(psi, gradPsi) (qGW.*bGW + rsW.*qOW.*bOW).*psi;
         srcGW = disc.cellInt(integrandG, wc, state, sWdof);
                                  
         % Store well fluxes
@@ -264,43 +265,71 @@ function [problem, state] = transportEquationBlackOilDG(state0, state, model, dt
     % Evaluate saturation at cubature points-------------------------------
     % Cell cubature points
     [~, xc, c] = disc.getCubature((1:G.cells.num)', 'volume');
-    [sWc , sOc , sTc] = disc.evaluateDGVariable(xc, c, state , sWdof , sOdof , sTdof);
-    [sWc0, sOc0]      = disc.evaluateDGVariable(xc, c, state0, sWdof0, sOdof0);
+    [sWc , sOc , sGc , sTc , rvc , rsc] = disc.evaluateDGVariable(xc, c, state , sWdof , sOdof , sGdof , sTdof , rvDof , rsDof);
+    [sWc0, sOc0, sGc0, rvc0, rsc0]      = disc.evaluateDGVariable(xc, c, state0, sWdof0, sOdof0, sGdof0, rvDof0, rsDof0);
     % Face cubature points
     [~, xf, ~, f] = disc.getCubature((1:G.cells.num)', 'surface');
     % Upstream cells
     [~, ~, cfV, cfG] = disc.getSaturationUpwind(f, xf, T, flux, state, ...
-                            {gW, gO, gG}, {mobW, mobO, mobG}, {sWdof, sOdof, sGdof}, {rsDof, rvDof});
+                            {gW, gO, gG}, {mobW, mobO, mobG}, {sWdof, sOdof, sGdof}, {0*rsDof, rsDof, rvDof});
     % Water saturation
     [sWfV , sTWfV] = disc.evaluateDGVariable(xf, cfV(:,1), state, sWdof, sTdof);
     [sWfG , sTWfG] = disc.evaluateDGVariable(xf, cfG(:,1), state, sWdof, sTdof);
     % Oil saturation
-    [sOfV , sTOfV] = disc.evaluateDGVariable(xf, cfV(:,2), state, sOdof, sTdof);
-    [sOfG , sTOfG] = disc.evaluateDGVariable(xf, cfG(:,2), state, sOdof, sTdof);
+    [sOfV , sTOfV, rsfV] = disc.evaluateDGVariable(xf, cfV(:,2), state, sOdof, sTdof, rsDof);
+    [sOfG , sTOfG, rsfG] = disc.evaluateDGVariable(xf, cfG(:,2), state, sOdof, sTdof, rsDof);
+    % Gas saturation
+    [sGfV , sTGfV, rvfV] = disc.evaluateDGVariable(xf, cfV(:,3), state, sGdof, sTdof, rvDof);
+    [sGfG , sTGfG, rvfG] = disc.evaluateDGVariable(xf, cfG(:,3), state, sGdof, sTdof, rvDof);
+    
     %----------------------------------------------------------------------
     
+    mobWc = mobW(c, sWc, sTc);
+    mobOc = mobO(c, sOc, sTc, rvc);
+    mobGc = mobG(c, sGc, sTc, rsc);
+    mobTc = mobWc + mobOc + mobGc;
+    
+    mobWfV = mobW(cfV(:,1), sWfV, sTWfV);
+    mobOfV = mobO(cfV(:,2), sOfV, sTOfV);
+    mobGfV = mobG(cfV(:,3), sGfV, sTGfV);
+    mobTfV = mobWfV + mobOfV + mobGfV;
+    
+    mobWfG = mobW(cfG(:,1), sWfG, sTWfG);
+    mobOfG = mobO(cfG(:,2), sOfG, sTOfG);
+    mobGfG = mobG(cfG(:,3), sGfG, sTGfG);
+    mobTfG = mobWfG + mobOfG + mobGfG;
+    
+    [eqs, names, types] = deal(cell(1,2 + solveAllPhases));
+    [types{:}] = deal('cell');
+    
+    eqNo = 1;
     % Water equation-------------------------------------------------------
     if opt.solveForWater
         % Cell values
-        fWc   = fW(sWc,sOc,sTc,c,c);
-        mobOc = mobO(sOc,sTc,c);
-        % Face values
-        fWfV   = fW(sWfV, sOfV, sTWfV, cfV(:,1), cfV(:,2));
-        fWfG   = fW(sWfG, sOfG, sTWfG, cfG(:,1), cfG(:,2));
-        mobOfG = mobO(sOfG,sTOfG,cfG(:,2));
+        fWc  = sTc.*mobWc./mobTc;
+        bWc  = bW(c, sWc);
+        bWc0 = bW0(c);
+         
+        fWfV = mobWfV./mobTfV;
+        fWfG = mobWfG./mobTfG;
+        bWfV = bW(cfV(:,1), sWfV, sTWfV);
+        bWfG = bW(cfV(:,1), sWfG, sTWfG);
+        
         % Accumulation term
-        acc = @(psi) (pvMult(c) .*rock.poro(c).*bW(c) .*sWc - ...
-                      pvMult0(c).*rock.poro(c).*bW0(c).*sWc0).*psi/dt;
+        acc = @(psi) (pvMult(c) .*rock.poro(c).*bWc .*sWc - ...
+                      pvMult0(c).*rock.poro(c).*bWc0.*sWc0).*psi/dt;
         % Convection term
-        conv = @(gradPsi) bW(c).*fWc.*(disc.dot(vTc(c,:),gradPsi) ...
-                        + mobOc.*disc.dot(TgWc(c,:) - TgOc(c,:),gradPsi));
+        conv = @(gradPsi) bWc.*fWc.*(disc.dot(vTc(c,:) ...
+                            + mobOc.*(TgWc(c,:) - TgOc(c,:)) ...
+                            + mobGc.*(TgWc(c,:) - TgGc(c,:)),gradPsi));
         integrand = @(psi, gradPsi) acc(psi) - conv(gradPsi);
         % Integrate integrand*psi{dofNo} over all cells for dofNo = 1:nDof
         cellIntegralW = disc.cellInt(integrand, [], state, sWdof);
         % Flux term
         integrand = @(psi) ...
-            (sTWfV.*bW(cfV(:,1)).*fWfV.*vT(f) ...
-                  + bW(cfG(:,1)).*fWfG.*mobOfG.*(TgW(f) - TgO(f))).*psi;
+            (sTWfV.*bWfV.*fWfV.*vT(f) + bWfG.*fWfG.*( ...
+                            mobOfG.*(TgW(f) - TgO(f)) ...
+                          + mobGfG.*(TgW(f) - TgG(f)))).*psi;
         % Integrate integrand*psi{dofNo} over all cells surfaces for dofNo = 1:nDof
         faceIntegralW = disc.faceFluxInt(integrand, [], state, sWdof);
         % Sum integrals
@@ -310,32 +339,40 @@ function [problem, state] = transportEquationBlackOilDG(state0, state, model, dt
             ix = disc.getDofIx(state, Inf, wc);
             water(ix) = water(ix) - srcWW(ix);
         end
-        
+        eqs{eqNo}   = water;
+        names{eqNo} = 'water';
+        eqNo        = eqNo + 1;
     end
     %----------------------------------------------------------------------
     
     % Oil equation---------------------------------------------------------
     if opt.solveForOil
-         % Cell values
-        fOc   = fO(sWc,sOc,sTc,c,c);
-        mobWc = mobW(sWc,sTc,c);
-        % Face values
-        fOfV   = fO(sWfV, sOfV, sTOfV, cfV(:,1), cfV(:,2));
-        fOfG   = fO(sWfG, sOfG, sTOfG, cfG(:,1), cfG(:,2));
-        mobWfG = mobW(sWfG,sTWfG,cfG(:,1));
+        % Cell values
+        
+        fOc  = sTc.*mobOc./mobTc;
+        bOc  = bO(c, sWc);
+        bOc0 = bO0(c);
+         
+        fOfV = mobOfV./mobTfV;
+        fOfG = mobOfG./mobTfG;
+        bOfV = bO(cfV(:,2), sWfV, sTWfV);
+        bOfG = bO(cfV(:,2), sWfG, sTWfG);
+        
         % Accumulation term
-        acc = @(psi) (pvMult(c) .*rock.poro(c).*bO(c) .*sOc - ...
-                      pvMult0(c).*rock.poro(c).*bO0(c).*sOc0).*psi/dt;
+        acc = @(psi) (pvMult(c) .*rock.poro(c).*bOc .*sOc - ...
+                      pvMult0(c).*rock.poro(c).*bOc0.*sOc0).*psi/dt;
         % Convection term
-        conv = @(gradPsi) bO(c).*fOc.*(disc.dot(vTc(c,:),gradPsi) ...
-                        + mobWc.*disc.dot(TgOc(c,:) - TgWc(c,:),gradPsi));
+        conv = @(gradPsi) bOc.*fOc.*(disc.dot(vTc(c,:) ...
+                            + mobWc.*(TgOc(c,:) - TgWc(c,:)) ...
+                            + mobGc.*(TgOc(c,:) - TgGc(c,:)),gradPsi));
         integrand = @(psi, gradPsi) acc(psi) - conv(gradPsi);
         % Integrate integrand*psi{dofNo} over all cells for dofNo = 1:nDof
         cellIntegralO = disc.cellInt(integrand, [], state, sOdof);
         % Flux term
         integrand = @(psi) ...
-            (sTOfV.*bO(cfV(:,2)).*fOfV.*vT(f) ...
-                  + bO(cfG(:,2)).*fOfG.*mobWfG.*(TgO(f) - TgW(f))).*psi;
+            (sTOfV.*bOfV.*fOfV.*vT(f) + bOfG.*fOfG.*( ...
+                            mobWfG.*(TgO(f) - TgW(f)) ...
+                          + mobGfG.*(TgO(f) - TgG(f)))).*psi;
         % Integrate integrand*psi{dofNo} over all cells surfaces for dofNo = 1:nDof
         faceIntegralO = disc.faceFluxInt(integrand, [], state, sOdof);
         % Sum integrals
@@ -345,9 +382,55 @@ function [problem, state] = transportEquationBlackOilDG(state0, state, model, dt
             ix = disc.getDofIx(state, Inf, wc);
             oil(ix) = oil(ix) - srcOW(ix);
         end
+        eqs{eqNo}   = oil;
+        names{eqNo} = 'oil';
+        eqNo        = eqNo + 1;
     end
     %----------------------------------------------------------------------
 
+    % Gas equation---------------------------------------------------------
+    if opt.solveForGas
+        % Cell values
+        
+        fGc  = sTc.*mobGc./mobTc;
+        bGc  = bG(c, sGc);
+        bGc0 = bG0(c);
+         
+        fGfV = mobGfV./mobTfV;
+        fGfG = mobGfG./mobTfG;
+        bGfV = bG(cfV(:,3), sGfV, sTGfV);
+        bGfG = bG(cfV(:,3), sGfG, sTGfG);
+        
+        % Accumulation term
+        acc = @(psi) (pvMult(c) .*rock.poro(c).*bGc .*sGc - ...
+                      pvMult0(c).*rock.poro(c).*bGc0.*sGc0).*psi/dt;
+        % Convection term
+        conv = @(gradPsi) bGc.*fGc.*(disc.dot(vTc(c,:) ...
+                            + mobWc.*(TgGc(c,:) - TgWc(c,:)) ...
+                            + mobOc.*(TgGc(c,:) - TgOc(c,:)),gradPsi));
+        integrand = @(psi, gradPsi) acc(psi) - conv(gradPsi);
+        % Integrate integrand*psi{dofNo} over all cells for dofNo = 1:nDof
+        cellIntegralG = disc.cellInt(integrand, [], state, sOdof);
+        % Flux term
+        integrand = @(psi) ...
+            (sTGfV.*bGfV.*fGfV.*vT(f) + bGfG.*fGfG.*( ...
+                            mobWfG.*(TgG(f) - TgW(f)) ...
+                          + mobOfG.*(TgG(f) - TgO(f)))).*psi;
+        % Integrate integrand*psi{dofNo} over all cells surfaces for dofNo = 1:nDof
+        faceIntegralG = disc.faceFluxInt(integrand, [], state, sOdof);
+        % Sum integrals
+        gas = cellIntegralG + faceIntegralG;
+        % Add well contributions
+        if ~isempty(W)
+            ix = disc.getDofIx(state, Inf, wc);
+            gas(ix) = gas(ix) - srcGW(ix);
+        end
+        eqs{eqNo}   = gas;
+        names{eqNo} = 'gas';
+    end
+    %----------------------------------------------------------------------
+    
+    
     % Add BCs--------------------------------------------------------------
     if ~isempty(bc)
         % Boundary faces
@@ -418,24 +501,10 @@ function [problem, state] = transportEquationBlackOilDG(state0, state, model, dt
     %----------------------------------------------------------------------
     
     % Make Linearized problem----------------------------------------------
-    % Define equations, names and types
-    if solveAllPhases
-        eqs = {water, oil};
-        names = {'water', 'oil'};    
-        types = {'cell', 'cell'};
-    elseif opt.solveForWater
-        eqs   = {water  };
-        names = {'water'};
-        types = {'cell' };
-    elseif opt.solveForOil
-        eqs   = {oil   };
-        names = {'oil' };
-        types = {'cell'};
-    end
     % Scale equations
     if ~model.useCNVConvergence
         pv = rldecode(op.pv, state.nDof, 1);
-        for eqNo = 1:(opt.solveForOil+opt.solveForWater)
+        for eqNo = 1:numel(eqs)
             eqs{eqNo} = eqs{eqNo}.*(dt./pv);
         end
     end
@@ -449,7 +518,7 @@ function [problem, state] = transportEquationBlackOilDG(state0, state, model, dt
     %----------------------------------------------------------------------
     
     % Extract subproblem if we are solving subproblem----------------------
-    if any(strcmpi(G.type, 'subgrid'));
+    if any(strcmpi(G.type, 'subgrid'))
         ix = disc.getDofIx(state, Inf, ~G.cells.ghost);
         
         for eqNo = 1:numel(problem.equations)
