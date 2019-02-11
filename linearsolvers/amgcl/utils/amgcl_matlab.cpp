@@ -167,7 +167,6 @@ void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries, const mx
   case B:                                                                        \
   {                                                                              \
   Backend::params bprm;                                                          \
-  std::cout << B << "!" << std::endl;                                            \
   typedef amgcl::backend::builtin<amgcl::static_matrix<double, B, B> > BBackend; \
   amgcl::make_block_solver<                                                      \
       amgcl::runtime::preconditioner<BBackend>,                                  \
@@ -250,11 +249,10 @@ void solve_regular(int n, const mwIndex * cols, mwIndex const * rows, const doub
      *        Solve problem                *
      ***************************************/
     auto t1 = std::chrono::high_resolution_clock::now();
-
-    int block_size = 3;
-
+    int block_size = mxGetScalar(mxGetField(pa, 0, "block_size"));
     const auto matrix = amgcl::adapter::zero_copy(n, &cols[0], &rows[0], &entries[0]);
     switch(block_size){
+      case 0:
       case 1:
       {
         amgcl::make_solver<
