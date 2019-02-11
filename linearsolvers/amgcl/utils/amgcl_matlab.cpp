@@ -42,6 +42,8 @@
 #include <amgcl/value_type/static_matrix.hpp>
 #include <amgcl/adapter/block_matrix.hpp>
 #include <amgcl/make_block_solver.hpp>
+#include <amgcl/adapter/crs_tuple.hpp>
+
 typedef amgcl::backend::builtin<double> Backend;
 
 void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries, const mxArray * pa,
@@ -220,13 +222,16 @@ void solve_regular(int n, mwIndex * cols, mwIndex * rows, double * entries, cons
     auto t1 = std::chrono::high_resolution_clock::now();
 
     int block_size = 1;
+    const int bz = 3;
+
+    const auto matrix = amgcl::adapter::zero_copy(n, &cols[0], &rows[0], &entries[0]);
     switch(block_size){
       case 1:
       {
         amgcl::make_solver<
             amgcl::runtime::preconditioner<Backend>,
             amgcl::runtime::solver::wrapper<Backend>
-        > solve(amgcl::adapter::zero_copy(n, &cols[0], &rows[0], &entries[0]), prm);
+        > solve(* matrix, prm);
 
         auto t2 = std::chrono::high_resolution_clock::now();
         if(verbose){
@@ -239,6 +244,28 @@ void solve_regular(int n, mwIndex * cols, mwIndex * rows, double * entries, cons
         if(verbose){
             std::cout << solve << std::endl;
         }
+      }
+      case bz:
+      {
+        Backend::params bprm;
+        typedef amgcl::backend::builtin<amgcl::static_matrix<double, bz, bz> > BBackend;
+        amgcl::make_block_solver<
+            amgcl::runtime::preconditioner<BBackend>,
+            amgcl::runtime::solver::wrapper<BBackend>
+        > solve(*matrix, prm, bprm);
+
+
+        // auto t2 = std::chrono::high_resolution_clock::now();
+        // if(verbose){
+        //     std::cout << "Solver setup took "
+        //               << (double)std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count()/1000.0
+        //               << " seconds\n";
+        // }
+        // std::tie(iters, error) = solve(b, x);
+        //
+        // if(verbose){
+        //     std::cout << solve << std::endl;
+        // }
       }
     }
 }
