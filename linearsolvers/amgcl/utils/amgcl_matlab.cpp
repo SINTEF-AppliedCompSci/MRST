@@ -38,7 +38,7 @@
 
 /* Block system support */
 #ifndef AMGCL_BLOCK_SIZES
-#  define AMGCL_BLOCK_SIZES (2)(3)(4)(5)
+#  define AMGCL_BLOCK_SIZES (2)(3)
 #endif
 
 #ifndef SOLVER_BACKEND_BUILTIN
@@ -162,6 +162,30 @@ void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries, const mx
     }
 }
 
+
+#define AMGCL_BLOCK_SOLVER(z, data, B)                                           \
+  case B:                                                                        \
+  {                                                                              \
+  Backend::params bprm;                                                          \
+  std::cout << B << "!" << std::endl;                                            \
+  typedef amgcl::backend::builtin<amgcl::static_matrix<double, B, B> > BBackend; \
+  amgcl::make_block_solver<                                                      \
+      amgcl::runtime::preconditioner<BBackend>,                                  \
+      amgcl::runtime::solver::wrapper<BBackend>                                  \
+  > solve(*matrix, prm, bprm);                                                   \
+  auto t2 = std::chrono::high_resolution_clock::now();                           \
+  if(verbose){                                                                   \
+      std::cout << "Solver setup took "                                          \
+                << (double)std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count()/1000.0 \
+                << " seconds\n";                                                 \
+  }                                                                              \
+  std::tie(iters, error) = solve(b, x);                                          \
+  if(verbose){                                                                   \
+      std::cout << solve << std::endl;                                           \
+  }                                                                              \
+} break;
+
+
 void solve_regular(int n, const mwIndex * cols, mwIndex const * rows, const double * entries, const mxArray * pa,
         const std::vector<double> & b, std::vector<double> & x, double tolerance,
         int maxiter, int & iters, double & error){
@@ -249,36 +273,10 @@ void solve_regular(int n, const mwIndex * cols, mwIndex const * rows, const doub
         if(verbose){
             std::cout << solve << std::endl;
         }
-      }
-      case 3:
-      {
-        mwIndex const bz = 3;
-        Backend::params bprm;
-        typedef amgcl::backend::builtin<amgcl::static_matrix<double, bz, bz> > BBackend;
-        amgcl::make_block_solver<
-            amgcl::runtime::preconditioner<BBackend>,
-            amgcl::runtime::solver::wrapper<BBackend>
-        > solve(*matrix, prm, bprm);
-        //auto f = Backend::copy_vector(b, bprm);
-        //auto x = Backend::create_vector(b.size(), bprm);
-        // auto y = BBackend::create_vector(b.size(), bprm);
-
-
-
-        // auto t2 = std::chrono::high_resolution_clock::now();
-        // if(verbose){
-        //     std::cout << "Solver setup took "
-        //               << (double)std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count()/1000.0
-        //               << " seconds\n";
-        // }
-        // solve(*f, *x);
-        //solve(b, x);
-        std::tie(iters, error) = solve(b, x);
-        //
-        // if(verbose){
-        //     std::cout << solve << std::endl;
-        // }
-      }
+      } break;
+#if defined(SOLVER_BACKEND_BUILTIN)
+        BOOST_PP_SEQ_FOR_EACH(AMGCL_BLOCK_SOLVER, ~, AMGCL_BLOCK_SIZES)
+#endif
     }
 }
 
