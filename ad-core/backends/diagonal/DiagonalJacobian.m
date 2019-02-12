@@ -99,9 +99,13 @@ classdef DiagonalJacobian
         end
         
         function s = sparse(D)
-            [I, J, V, n, m] = D.getSparseArguments();
-            % s = accumarray([I(:), J(:)], V(:), [n, m], [], [], true);
-             s = sparse(I, J, V, n, m);
+            if D.useMex && isempty(D.subset)
+                s = mexDiagonalSparse(D.diagonal, D.subset, D.dim);
+            else
+                [I, J, V, n, m] = D.getSparseArguments();
+                % s = accumarray([I(:), J(:)], V(:), [n, m], [], [], true);
+                 s = sparse(I, J, V, n, m);
+            end
         end
         
         function s = double(D)
