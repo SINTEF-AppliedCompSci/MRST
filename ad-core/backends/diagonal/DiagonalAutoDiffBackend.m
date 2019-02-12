@@ -68,7 +68,7 @@ classdef DiagonalAutoDiffBackend < AutoDiffBackend
         function varargout = initVariablesAD(backend, varargin)
            n         = nargout;
            varargout = cell([1, n]);
-           if nargout ~= nargin
+           if nargin > nargout + 1
                opts = varargin{end};
                varargin = varargin(1:end-1);
            else
