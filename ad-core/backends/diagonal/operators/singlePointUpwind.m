@@ -1,22 +1,22 @@
 function v = singlePointUpwind(flag, N, v, useMex)
     % Single-point upwind for the NewAD library
-    vD = double(v);
+    vD = value(v);
     if useMex
-        value = mexSinglePointUpwindVal(vD, N, flag);
+        val = mexSinglePointUpwindVal(vD, N, flag);
     else
         cells = N(:, 2);
         cells(flag) = N(flag, 1);
-        value = vD(cells, :);
+        val = vD(cells, :);
     end
     if isa(v, 'NewAD')
         M = [];
         DS = [];
-        v.val = value;
+        v.val = val;
         for jacNo = 1:numel(v.jac)
             [v.jac{jacNo}, M, DS] = upwindJac(v.jac{jacNo}, flag, N, M, DS, useMex);
         end
     else
-        v = value;
+        v = val;
     end
 end
 
