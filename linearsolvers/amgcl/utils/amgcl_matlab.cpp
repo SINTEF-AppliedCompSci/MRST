@@ -27,7 +27,6 @@
 #include <amgcl/preconditioner/cpr.hpp>
 #include <amgcl/preconditioner/cpr_drs.hpp>
 
-#include <boost/program_options.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/preprocessor/seq/for_each.hpp>
@@ -111,7 +110,7 @@ void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries, const mx
      *        Solve problem                *
      ***************************************/
     auto t1 = std::chrono::high_resolution_clock::now();
-
+    const auto matrix = amgcl::adapter::zero_copy(n, &cols[0], &rows[0], &entries[0]);
     if(use_drs){
         double dd = mxGetScalar(mxGetField(pa, 0, "drs_eps_dd"));
         double ps = mxGetScalar(mxGetField(pa, 0, "drs_eps_ps"));
@@ -129,7 +128,7 @@ void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries, const mx
         amgcl::make_solver<
             amgcl::preconditioner::cpr_drs<PPrecond, SPrecond>,
             amgcl::runtime::solver::wrapper<Backend>
-            > solve(amgcl::adapter::zero_copy(n, &cols[0], &rows[0], &entries[0]), prm);
+            > solve(matrix, prm);
         auto t2 = std::chrono::high_resolution_clock::now();
 
         if(verbose){
@@ -146,7 +145,7 @@ void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries, const mx
         amgcl::make_solver<
             amgcl::preconditioner::cpr<PPrecond, SPrecond>,
             amgcl::runtime::solver::wrapper<Backend>
-            > solve(amgcl::adapter::zero_copy(n, &cols[0], &rows[0], &entries[0]), prm);
+            > solve(matrix, prm);
 
         auto t2 = std::chrono::high_resolution_clock::now();
         if(verbose){
