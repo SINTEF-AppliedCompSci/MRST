@@ -251,8 +251,17 @@ classdef DiagonalJacobian
                                 return
                             end
 
-                            if subsetsEqualNoZeroCheck(u, v) || ... % Subsets are equal
-                                (isempty(u.subset) && ~isempty(v.subset) && u.compareIndices(u, s.subs{1}, v.subset))
+                            if subsetsEqualNoZeroCheck(u, v)
+                                allowDiag = true;
+                            elseif isempty(u.subset)
+                                allowDiag = ~isempty(v.subset) && u.compareIndices(u, s.subs{1}, v.subset);
+                            else
+                                % u.subset is not zero
+                                allowDiag = u.compareIndices(u, s.subs{1}, u.subset(s.subs{1})) &&...
+                                            u.compareIndices(u, s.subs{1}, v.subset);
+                            end
+                            
+                            if allowDiag
                                 u.diagonal(s.subs{1}, :) = v.diagonal;
                             else
                                 u = u.sparse();
