@@ -4,10 +4,28 @@ classdef NewAD < ADI
     properties
         numVars
         offsets
+        useMex = false;
     end
     methods
-        function ad = NewAD(varargin)
-            ad = ad@ADI(varargin{:});
+        function ad = NewAD(val, jac, numVars, offset, useMex)
+            ad@ADI();
+            if nargin
+                ad.val = val;
+                if iscell(jac)
+                    ad.jac = jac;
+                else
+                    ad.jac = {jac};
+                end
+                if nargin > 2
+                    ad.numVars = numVars;
+                    if nargin > 3
+                        ad.offsets = offset;
+                        if nargin > 4
+                            ad.useMex = useMex;
+                        end
+                    end
+                end
+            end
         end
         
       %--------------------------------------------------------------------

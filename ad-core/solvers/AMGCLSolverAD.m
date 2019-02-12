@@ -56,7 +56,7 @@ classdef AMGCLSolverAD < LinearSolverAD
             if res > solver.tolerance
                 warning('Solver did not converge to specified tolerance of %g in %d iterations. Reported residual estimate was %g after %2.2f seconds', solver.tolerance, its, res, t_solve);
             elseif solver.verbose
-                fprintf('AMGCL solver converged to %f in %2d iterations after %2.2f seconds.\n', res, its, t_solve);
+                fprintf('AMGCL solver converged to %g in %2d iterations after %2.2f seconds.\n', res, its, t_solve);
             end
             report = struct('converged',  res <= solver.tolerance, ...
                             'residual',   res,...

@@ -68,8 +68,13 @@ classdef DiagonalAutoDiffBackend < AutoDiffBackend
         function varargout = initVariablesAD(backend, varargin)
            n         = nargout;
            varargout = cell([1, n]);
-           
-           [varargout{:}] = initVariablesAD_diagonal(varargin{:});
+           if nargout ~= nargin
+               opts = varargin{end};
+               varargin = varargin(1:end-1);
+           else
+               opts = struct('useMex', backend.useMex, 'types', []);
+           end
+           [varargout{:}] = initVariablesAD_diagonal(varargin{:}, opts);
         end
         
         function v = convertToAD(backend, v, sample)

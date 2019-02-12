@@ -4,10 +4,11 @@ classdef DiagonalJacobian
         diagonal % Dense matrix of diagonal derivatives
         subset % Indices corresponding to the subset (if empty, class contains the full set)
         dim % Vector: First dimension is the number of variables in block, while the second is the number of columns
+        useMex = false;
     end
     
     methods
-        function D = DiagonalJacobian(d, dim, subset)
+        function D = DiagonalJacobian(d, dim, subset, useMex)
             if nargin == 0
                 return
             end
@@ -19,6 +20,9 @@ classdef DiagonalJacobian
             D.diagonal = d;
             D.dim = dim;
             D.subset = subset;
+            if nargin > 3
+                D.useMex = useMex;
+            end
         end
         
         function sub = getSubset(u)
