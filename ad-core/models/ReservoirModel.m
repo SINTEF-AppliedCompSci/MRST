@@ -149,6 +149,7 @@ methods
         %
         % SEE ALSO:
         %   :meth:`ad_core.models.PhysicalModel.validateModel`
+        model = validateModel@PhysicalModel(model, varargin{:});
 
         if isempty(model.FacilityModel)
             model.FacilityModel = FacilityModel(model); %#ok
@@ -169,7 +170,6 @@ methods
         if isempty(model.FluxDiscretization)
             model.FluxDiscretization = FluxDiscretization(model); %#ok
         end
-        model = validateModel@PhysicalModel(model, varargin{:});
     end
 
     % --------------------------------------------------------------------%
