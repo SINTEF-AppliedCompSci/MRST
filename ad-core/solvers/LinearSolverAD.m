@@ -146,6 +146,8 @@ classdef LinearSolverAD < handle
         function [dx, result, report] = solveLinearProblem(solver, problem, model)
             % Solve a linearized problem
             timer = tic();
+            lsys = [];
+            eliminated = {};
             keepNumber0 = solver.keepNumber;
             if solver.reduceToCell && isempty(solver.keepNumber)
                 % Eliminate non-cell variables (well equations etc)
@@ -158,8 +160,51 @@ classdef LinearSolverAD < handle
                     nk = sum(keep);
                     assert(all(keep(1:nk)) & ~any(keep(nk+1:end)), ...
                         'Cell variables must all combine first in the ordering for this AutodiffBackend.');
-                    nv =  s.getNumVars();
-                    solver.keepNumber = sum(nv(keep));
+                    if 1
+                        % In-place Schur complement
+                        ngroups = numel(s.offsets)-1;
+                        varno = rldecode((1:ngroups)', diff(s.offsets));
+                        
+                        keepEq = problem.equations(keep);
+                        elimEq = problem.equations(~keep);
+                        
+                        keepVar = unique(varno(keep));
+                        elimVar = setdiff(varno, keepVar);
+                        
+                        B_eq = keepEq;
+                        C_eq = B_eq;
+                        for i = 1:numel(B_eq)
+                            B_eq{i}.jac = B_eq{i}.jac(keepVar);
+                            C_eq{i}.jac = C_eq{i}.jac(elimVar);
+                        end
+                        D_eq = elimEq;
+                        E_eq = D_eq;
+                        for i = 1:numel(D_eq)
+                            D_eq{i}.jac = D_eq{i}.jac(keepVar);
+                            E_eq{i}.jac = E_eq{i}.jac(elimVar);
+                        end
+                        
+                        B_eq = combineEquations(B_eq{:});
+                        C_eq = combineEquations(C_eq{:});
+                        D_eq = combineEquations(D_eq{:});
+                        E_eq = combineEquations(E_eq{:});
+                        
+                        
+                        lsys = struct('B', B_eq.jac{1}, ...
+                                      'C', C_eq.jac{1}, ...
+                                      'D', D_eq.jac{1}, ...
+                                      'E', E_eq.jac{1},...
+                                      'f', -B_eq.val, ...
+                                      'h', -D_eq.val, ...
+                                      'E_L', [], ...
+                                      'E_U', []);
+                        [lsys.E_L, lsys.E_U] = lu(lsys.E);
+                        problem.A = lsys.B - lsys.C*(lsys.E_U\(lsys.E_L\lsys.D));
+                        problem.b = lsys.f - lsys.C*(lsys.E_U\(lsys.E_L\lsys.h));
+                    else
+                        nv =  s.getNumVars();
+                        solver.keepNumber = sum(nv(keep));
+                    end
                 else
                     [problem, eliminated] = solver.reduceToVariable(problem, keep);
                 end
@@ -169,8 +214,10 @@ classdef LinearSolverAD < handle
 
             % Get linearized system
             [A, b] = problem.getLinearSystem();
-            % Reduce system (if requested)
-            [A, b, lsys] = solver.reduceLinearSystem(A, b);
+            % Reduce system (if not already done)
+            if isempty(lsys)
+                [A, b, lsys] = solver.reduceLinearSystem(A, b);
+            end
             % Reorder linear system
             [A, b] = solver.reorderLinearSystem(A, b);
             % Apply scaling
@@ -199,7 +246,7 @@ classdef LinearSolverAD < handle
                 result(isinf(result)) = solver.replacementInf;
             end
             dx = solver.storeIncrements(problem, result);
-            if solver.reduceToCell && isempty(solver.keepNumber)
+            if ~isempty(eliminated)
                 dx = solver.recoverResult(dx, eliminated, keep);
             end
             solver.keepNumber = keepNumber0;
