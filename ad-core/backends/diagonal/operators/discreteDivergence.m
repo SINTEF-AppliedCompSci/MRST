@@ -70,7 +70,7 @@ function jac = divJac(jac, N, nc, nf, sortIx, C, prelim, useMex)
         else
             % Sparse version
             if useMex && (isempty(jac.parentSubset) || all(jac.parentSubset == (1:jac.dim(1))'))
-                jac = mexDiscreteDivergenceJac(jac, N, prelim.facePos, prelim.faces, prelim.cells, prelim.cellIndex);
+                jac = mexDiscreteDivergenceJac(jac.diagonal, N, prelim.facePos, prelim.faces, prelim.cells, prelim.cellIndex);
             else
                 jac = sortIx.C*jac.sparse();
             end
