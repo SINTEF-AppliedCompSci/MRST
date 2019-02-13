@@ -52,19 +52,19 @@ classdef GenericBlackOil < ThreePhaseBlackOilModel & ExtendedReservoirModel
         end
         
         function [eqs, names, types, state] = getModelEquations(model, state0, state, dt, drivingForces)
-            [eqs, divTerms, names, types] = model.FluxDiscretization.componentConservationEquations(model, state, state0, dt);
+            [eqs, flux, names, types] = model.FluxDiscretization.componentConservationEquations(model, state, state0, dt);
             src = model.FacilityModel.getComponentSources(state);
             % Assemble equations and add in sources
-            for i = 1:numel(divTerms)
+            for i = 1:numel(eqs)
                 if ~isempty(src.cells)
                     eqs{i}(src.cells) = eqs{i}(src.cells) - src.value{i};
                 end
-                eqs{i} = eqs{i} + divTerms{i};
+                eqs{i} = model.operators.AccDiv(eqs{i}, flux{i});
             end
             % Get facility equations
             [weqs, wnames, wtypes, state] = model.FacilityModel.getModelEquations(state0, state, dt, drivingForces);
             rhoS = model.getSurfaceDensities();
-            for i = 1:numel(divTerms)
+            for i = 1:numel(eqs)
                 eqs{i} = eqs{i}./rhoS(i);
             end
             eqs = [eqs, weqs];

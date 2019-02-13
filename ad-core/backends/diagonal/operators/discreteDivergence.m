@@ -1,12 +1,23 @@
-function v = discreteDivergence(N, v, nc, nf, sortIx, C, prelim, useMex)
+function v = discreteDivergence(acc, N, v, nc, nf, sortIx, C, prelim, useMex)
 % Discrete divergence for the NewAD library
+    hasAcc = not(isempty(acc));
     if isa(v, 'NewAD')
-        for i = 1:numel(v.jac)
-            v.jac{i} = divJac(v.jac{i}, N, nc, nf, sortIx, C, prelim, useMex);
+        if hasAcc
+            for i = 1:numel(v.jac)
+                v.jac{i} = divJac(v.jac{i}, N, nc, nf, sortIx, C, prelim, useMex) + acc.jac{i};
+            end
+            v.val = accumulate(N, value(v), nc) + value(acc);
+        else
+            for i = 1:numel(v.jac)
+                v.jac{i} = divJac(v.jac{i}, N, nc, nf, sortIx, C, prelim, useMex);
+            end
+            v.val = accumulate(N, value(v), nc);
         end
-        v.val = accumulate(N, value(v), nc);
     else
         v = accumulate(N, value(v), nc);
+        if hasAcc
+            v = v + value(acc);
+        end
     end
 end
 
@@ -15,7 +26,6 @@ function v = accumulate(N, v, nc)
 end
 
 function jac = divJac(jac, N, nc, nf, sortIx, C, prelim, useMex)
-    useDivTerm = false;
     if issparse(jac)
         if nnz(jac) > 0
             if isempty(C)
@@ -23,30 +33,16 @@ function jac = divJac(jac, N, nc, nf, sortIx, C, prelim, useMex)
             end
             jac = C*jac;
         else
-            if useDivTerm
-                jac = DivergenceTerm([], [], [], nc, prod(jac.dim));
-            else
-                jac = sparse([], [], [], nc, matrixDims(jac, 2));
-            end
+            jac = sparse([], [], [], nc, matrixDims(jac, 2));
         end
     elseif jac.isZero
-%         jac = DiagonalJacobian();
-%         if useDivTerm
-%             jac = DivergenceTerm([], [], [], nc, prod(jac.dim));
-%         else
             jac = sparse([], [], [], nc, prod(jac.dim));
-%         end
         return
     else
-        if useDivTerm
-            jac = DivergenceTerm(jac, N, sortIx.C, prelim, useMex);
+        if useMex && (isempty(jac.parentSubset) || all(jac.parentSubset == (1:jac.dim(1))'))
+            jac = mexDiscreteDivergenceJac(jac.diagonal, N, prelim.facePos, prelim.faces, prelim.cells, prelim.cellIndex);
         else
-            % Sparse version
-            if useMex && (isempty(jac.parentSubset) || all(jac.parentSubset == (1:jac.dim(1))'))
-                jac = mexDiscreteDivergenceJac(jac.diagonal, N, prelim.facePos, prelim.faces, prelim.cells, prelim.cellIndex);
-            else
-                jac = sortIx.C*jac.sparse();
-            end
+            jac = sortIx.C*jac.sparse();
         end
     end
 end

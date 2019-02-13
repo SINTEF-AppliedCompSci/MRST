@@ -47,18 +47,16 @@ classdef FluxDiscretization < PropertyFunctions
             state = evaluateProperty@PropertyFunctions(props, model, state, name);
         end
         
-        function [acc, div, names, types] = componentConservationEquations(fd, model, state, state0, dt)
+        function [acc, v, names, types] = componentConservationEquations(fd, model, state, state0, dt)
             ncomp = model.getNumberOfComponents;
-            [acc, div, types] = deal(cell(1, ncomp));
+            [acc, types] = deal(cell(1, ncomp));
             names = model.getComponentNames();
             [types{:}] = deal('cell');
             mass = model.getProps(state, 'ComponentTotalMass');
             mass0 = model.getProps(state0, 'ComponentTotalMass');
             v = model.getProps(state, 'ComponentTotalFlux');
-            Div = model.operators.Div;
             for c = 1:ncomp
                 acc{c} = (mass{c} - mass0{c})./dt;
-                div{c} = Div(v{c});
             end
         end
     end
