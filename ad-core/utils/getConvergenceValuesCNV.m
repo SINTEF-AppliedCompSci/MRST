@@ -155,6 +155,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     % Combine
     tolerances = [repmat(tol_cnv, size(CNV)), repmat(tol_mb, size(MB))];
-    values = [CNV, MB];
+    if isa(model, 'GenericBlackOil')
+        rhoS = model.getSurfaceDensities();
+        values = [CNV./rhoS, MB./rhoS];
+    else
+        values = [CNV, MB];
+    end
     names = [cnv_names, mb_names];
 end

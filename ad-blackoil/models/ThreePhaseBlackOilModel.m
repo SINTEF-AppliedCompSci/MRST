@@ -130,7 +130,6 @@ methods
             fm = class(model.FacilityModel);
             isF = strcmp(origin, fm);
             state = model.FacilityModel.initStateAD(state, vars(isF), names(isF), origin(isF));
-%             state.FacilityState = struct('primaryVariables', {vars(isF)}, 'names', {names(isF)});
             removed = removed | isF;
         end
         
