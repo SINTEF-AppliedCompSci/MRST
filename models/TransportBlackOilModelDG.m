@@ -217,7 +217,7 @@ classdef TransportBlackOilModelDG < TransportBlackOilModel
                 bad = any(state.s < 0 - model.disc.meanTolerance, 2);
                  if any(bad)
                     state.s(bad, :) = max(state.s(bad, :), 0);
-                    state = dgLimiter(model.disc, state, bad, 'kill');
+                    state = dgLimiter(model.disc, state, bad, 's', 'kill');
                  end
             end
 
