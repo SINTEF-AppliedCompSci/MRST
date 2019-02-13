@@ -62,7 +62,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 
    % Check consistency.
-   if ~consistent(grdecl),
+   if ~consistent(grdecl)
       error(msgid('Tensor:Inconsistent'), ...
             'Input tensor is not structurally consistent.');
    else
@@ -73,9 +73,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    % Other properties.
    rockprop = {'PORO', 'NTG'};
-   for i = 1 : numel(rockprop),
+   for i = 1 : numel(rockprop)
       prop = regexprep(rockprop{i}, '\W', '_');
-      if isfield(grdecl, prop),
+      if isfield(grdecl, prop)
          rock.(lower(prop)) = reshape(grdecl.(prop)(actmap), [], 1);
       end
    end
@@ -112,13 +112,13 @@ function [perm, actmap] = getTensor(grdecl, varargin)
    [vals, comp] = tensorValues(grdecl);
 
    actmap = (1 : size(vals,1)) .';
-   if nargin > 1,
-      if isnumeric(varargin{1}),
+   if nargin > 1
+      if isnumeric(varargin{1})
          actmap = varargin{1};
       elseif isstruct(varargin{1})          && ...
             isfield  (varargin{1}, 'cells') && ...
             isstruct (varargin{1}.  cells ) && ...
-            isfield  (varargin{1}.  cells , 'indexMap'),
+            isfield  (varargin{1}.  cells , 'indexMap')
          % varargin{1} is likely to be a grid_structure.
          % Treat as such and extract its 'indexMap' field.
          actmap = varargin{1}.cells.indexMap;
@@ -126,7 +126,7 @@ function [perm, actmap] = getTensor(grdecl, varargin)
    end
 
    [i, j] = find(comp > 1);
-   if all(i == j),
+   if all(i == j)
       % Diagonal.
       assert (numel(i) == 3);
    else
@@ -137,7 +137,7 @@ function [perm, actmap] = getTensor(grdecl, varargin)
    end
 
    comp = comp(sub2ind([3, 3], i, j));
-   if numel(comp) == 3 && all(diff(comp) == 0),
+   if numel(comp) == 3 && all(diff(comp) == 0)
       % Return only single-component tensor when isotropic.
       comp = comp(1);
    end
@@ -164,8 +164,8 @@ function [vals, comp] = tensorValues(grdecl)
    %- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    % Extract first row [k_{xx}, k_{xy}, k_{xz}] from input data.
    %
-   if isfield(grdecl, 'PERMX') || isfield(grdecl, 'PERMXX'),
-      if isfield(grdecl, 'PERMX'),
+   if isfield(grdecl, 'PERMX') || isfield(grdecl, 'PERMXX')
+      if isfield(grdecl, 'PERMX')
          vals   = [vals, grdecl.PERMX ];
       else
          vals   = [vals, grdecl.PERMXX];
@@ -174,12 +174,12 @@ function [vals, comp] = tensorValues(grdecl)
       comp      = setDiagonalComponents(comp, 1, 2, 3);
    end
 
-   if isfield(grdecl, 'PERMXY'),
+   if isfield(grdecl, 'PERMXY')
       vals      = [vals, grdecl.PERMXY];
       comp(1,2) = size(vals,2); comp(2,1) = comp(1,2);
    end
 
-   if isfield(grdecl, 'PERMXZ'),
+   if isfield(grdecl, 'PERMXZ')
       vals      = [vals, grdecl.PERMXZ];
       comp(1,3) = size(vals,2); comp(3,1) = comp(1,3);
    end
@@ -188,13 +188,13 @@ function [vals, comp] = tensorValues(grdecl)
 
    % Extract second row [k_{yx}, k_{yy}, k_{yz}] from input data.
    %
-   if isfield(grdecl, 'PERMYX'),
+   if isfield(grdecl, 'PERMYX')
       vals      = [vals, grdecl.PERMYX];
       comp(2,1) = size(vals,2); comp(1,2) = comp(2,1);
    end
 
-   if isfield(grdecl, 'PERMY') || isfield(grdecl, 'PERMYY'),
-      if isfield(grdecl, 'PERMY'),
+   if isfield(grdecl, 'PERMY') || isfield(grdecl, 'PERMYY')
+      if isfield(grdecl, 'PERMY')
          vals   = [vals, grdecl.PERMY ];
       else
          vals   = [vals, grdecl.PERMYY];
@@ -203,7 +203,7 @@ function [vals, comp] = tensorValues(grdecl)
       comp      = setDiagonalComponents(comp, 2, 3, 1);
    end
 
-   if isfield(grdecl, 'PERMYZ'),
+   if isfield(grdecl, 'PERMYZ')
       vals      = [vals, grdecl.PERMYZ];
       comp(2,3) = size(vals,2); comp(3,2) = comp(2,3);
    end
@@ -212,18 +212,18 @@ function [vals, comp] = tensorValues(grdecl)
 
    % Extract third row [k_{zx}, k_{zy}, k_{zz}] from input data.
    %
-   if isfield(grdecl, 'PERMZX'),
+   if isfield(grdecl, 'PERMZX')
       vals      = [vals, grdecl.PERMZX];
       comp(3,1) = size(vals,2); comp(1,3) = comp(3,1);
    end
 
-   if isfield(grdecl, 'PERMZY'),
+   if isfield(grdecl, 'PERMZY')
       vals      = [vals, grdecl.PERMZY];
       comp(3,2) = size(vals,2); comp(2,3) = comp(3,2);
    end
 
-   if isfield(grdecl, 'PERMZ') || isfield(grdecl, 'PERMZZ'),
-      if isfield(grdecl, 'PERMZ'),
+   if isfield(grdecl, 'PERMZ') || isfield(grdecl, 'PERMZZ')
+      if isfield(grdecl, 'PERMZ')
          vals   = [vals, grdecl.PERMZ ];
       else
          vals   = [vals, grdecl.PERMZZ];
