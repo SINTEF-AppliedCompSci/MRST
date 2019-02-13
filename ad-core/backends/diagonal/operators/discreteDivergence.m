@@ -2,21 +2,26 @@ function v = discreteDivergence(acc, N, v, nc, nf, sortIx, C, prelim, useMex)
 % Discrete divergence for the NewAD library
     hasAcc = not(isempty(acc));
     if isa(v, 'NewAD')
-        if hasAcc
+        v.val = accumulate(N, value(v), nc);
+        if hasAcc && isa(acc, 'NewAD')
+            % Both present, both are AD
             for i = 1:numel(v.jac)
-                v.jac{i} = divJac(v.jac{i}, N, nc, nf, sortIx, C, prelim, useMex) + acc.jac{i};
+                v.jac{i} = accDivJac(acc.jac{i}, v.jac{i}, N, nc, nf, sortIx, C, prelim, useMex);
             end
-            v.val = accumulate(N, value(v), nc) + value(acc);
+            v.val = v.val + acc.val;
         else
             for i = 1:numel(v.jac)
                 v.jac{i} = divJac(v.jac{i}, N, nc, nf, sortIx, C, prelim, useMex);
             end
-            v.val = accumulate(N, value(v), nc);
+            if hasAcc
+                % Acc is not AD
+                v.val = v.val + acc;
+            end
         end
     else
         v = accumulate(N, value(v), nc);
         if hasAcc
-            v = v + value(acc);
+            v = v + acc;
         end
     end
 end
@@ -40,9 +45,36 @@ function jac = divJac(jac, N, nc, nf, sortIx, C, prelim, useMex)
         return
     else
         if useMex && (isempty(jac.parentSubset) || all(jac.parentSubset == (1:jac.dim(1))'))
-            jac = mexDiscreteDivergenceJac(jac.diagonal, N, prelim.facePos, prelim.faces, prelim.cells, prelim.cellIndex);
+            jac = mexDiscreteDivergenceJac([], jac.diagonal, N, prelim.facePos, prelim.faces, prelim.cells, prelim.cellIndex);
         else
             jac = sortIx.C*jac.sparse();
+        end
+    end
+end
+
+function jac = accDivJac(acc, jac, N, nc, nf, sortIx, C, prelim, useMex)
+    if issparse(jac)
+        if nnz(jac) > 0
+            if isempty(C)
+                C  = sparse(N, [(1:nf)'; (1:nf)'], ones(nf,1)*[1 -1], nc, nf);
+            end
+            jac = C*jac + acc;
+        else
+            jac = acc;
+        end
+    elseif jac.isZero
+            jac = acc;
+        return
+    else
+        if useMex && (isempty(jac.parentSubset) || all(jac.parentSubset == (1:jac.dim(1))'))
+            if isa(acc, 'DiagonalJacobian')
+                % NB currently not checking subset here - bug
+                jac = mexDiscreteDivergenceJac(acc.diagonal, jac.diagonal, N, prelim.facePos, prelim.faces, prelim.cells, prelim.cellIndex);
+            else
+                jac = acc + mexDiscreteDivergenceJac([], jac.diagonal, N, prelim.facePos, prelim.faces, prelim.cells, prelim.cellIndex);
+            end
+        else
+            jac = acc + sortIx.C*jac.sparse();
         end
     end
 end
