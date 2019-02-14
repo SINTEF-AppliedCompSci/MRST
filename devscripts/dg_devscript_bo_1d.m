@@ -63,6 +63,7 @@ scheduleWO = simpleSchedule(dtvec, 'W', WWO);
 
 %%
 
+close all
 plotWellSols({wsFV, wsDG_bo, wsDG_ow}, schedule.step.val)
 
 %%
