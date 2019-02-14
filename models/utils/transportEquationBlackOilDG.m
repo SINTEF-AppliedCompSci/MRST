@@ -37,7 +37,9 @@ function [problem, state] = transportEquationBlackOilDG(state0, state, model, dt
         end
         % For cells that previously had less than nDof unknowns, we must
         % map old dofs to new
-        state = disc.mapDofs(state, state0);
+        state = disc.mapDofs(state, state0, 's');
+        state = disc.mapDofs(state, state0, 'rs');
+        state = disc.mapDofs(state, state0, 'rv');
         
     end
     % Update discretizaiton information. This is carried by the state
@@ -48,9 +50,9 @@ function [problem, state] = transportEquationBlackOilDG(state0, state, model, dt
     %----------------------------------------------------------------------
     
     % Properties from current and previous timestep------------------------
-    [p , sWdof , sOdof , sGdof , rsDof , rvDof , wellSol] = model.getProps(state , ...
+    [p , sWdof , sOdof , sGdof , rSdof , rVdof , wellSol] = model.getProps(state , ...
                   'pressure', 'swdof', 'sodof', 'sgdof', 'rsdof', 'rvdof', 'wellsol');
-    [p0, sWdof0, sOdof0, sGdof0, rsDof0, rvDof0         ] = model.getProps(state0, ...
+    [p0, sWdof0, sOdof0, sGdof0, rSdof0, rVdof0         ] = model.getProps(state0, ...
                   'pressure', 'swdof', 'sodof', 'sgdof', 'rsdof', 'rvdof'           );
     % If timestep has been split relative to pressure, linearly interpolate
     % in pressure.
@@ -68,9 +70,11 @@ function [problem, state] = transportEquationBlackOilDG(state0, state, model, dt
     st0 = model.getCellStatusVO(state0, sO0,  sW0, sG0);
     
     if disgas || vapoil
-        st  = cellfun(rldecode(st, state.nDof, 1), st);
-        st0 = cellfun(rldecode(st, state.nDof, 1), st);
-        xDof = st{1}.*rsDof + st{2}.*rvDof + st{3}.*sGDof;
+        st  = cellfun(@(st) expandSingleValue(st, G), st , 'unif', false);
+        st0 = cellfun(@(st) expandSingleValue(st, G), st0, 'unif', false);
+        st  = cellfun(@(st) rldecode(st, state.nDof, 1), st, 'unif', false);
+        st0 = cellfun(@(st) rldecode(st, state.nDof, 1), st0, 'unif', false);
+        xDof = st{1}.*rSdof + st{2}.*rVdof + st{3}.*sGdof;
         gVar = 'xDof';
     else
         gVar = 'sGdof';
@@ -110,11 +114,11 @@ function [problem, state] = transportEquationBlackOilDG(state0, state, model, dt
         sGdof = sGdof + st{3}.*xDof;
         if disgas
             rsSat = rldecode(fluid.rsSat(p), state.nDof, 1);
-            rsDof = (~st{1}).*rsSat + st{1}.*xDof;
+            rSdof = (~st{1}).*rsSat + st{1}.*xDof;
         end
-        if disgas
+        if vapoil
             rvSat = rldecode(fluid.rvSat(p), state.nDof, 1);
-            rvDof = (~st{2}).*rvSat + st{2}.*xDof;
+            rVdof = (~st{2}).*rvSat + st{2}.*xDof;
         end
     end
     
@@ -133,14 +137,10 @@ function [problem, state] = transportEquationBlackOilDG(state0, state, model, dt
     
     % Phase properties
     gdz = model.getGravityGradient();
-    [b, mu, rho, mob, f] = getDerivedPropertyFunctionsBO(model, p, mobMult, st);
+    [b, mu, rho, mob] = getDerivedPropertyFunctionsBO(model, p, mobMult, st);
     bW   = b{1};   bO   = b{2};   bG   = b{3};
     rhoW = rho{1}; rhoO = rho{2}; rhoG = rho{3};
     mobW = mob{1}; mobO = mob{2}; mobG = mob{3};
-    
-    bW0 = fluid.bW(p0);
-    bO0 = fluid.bO(p0);
-    bG0 = fluid.bO(p0);
 
     [sW, sO, sG] = disc.getCellMean(state, sWdof, sOdof, sGdof);
     
@@ -150,8 +150,8 @@ function [problem, state] = transportEquationBlackOilDG(state0, state, model, dt
     xf = G.faces.centroids(disc.internalConn);
     cL = disc.N(:,1);
     cR = disc.N(:,2);
-    [sWL, sOL, sGL, rsL, rvL] = disc.evaluateDGVariable(xf, cL, state, sWdof, sOdof, sGdof, rsDof, rvDof);
-    [sWR, sOR, sGR, rsR, rvR] = disc.evaluateDGVariable(xf, cR, state, sWdof, sOdof, sGdof, rsDof, rvDof); 
+    [sWL, sOL, sGL, rsL, rvL] = disc.evaluateDGVariable(xf, cL, state, sWdof, sOdof, sGdof, rSdof, rVdof);
+    [sWR, sOR, sGR, rsR, rvR] = disc.evaluateDGVariable(xf, cR, state, sWdof, sOdof, sGdof, rSdof, rVdof); 
     
     gW = (rhoW(cL, sWL) + rhoW(cR, sWR))/2.*gdz;
     if isfield(fluid, 'pcOW')
@@ -163,12 +163,7 @@ function [problem, state] = transportEquationBlackOilDG(state0, state, model, dt
         gG = gG + op.Grad(fluid.pcOW(sW));
     end
     P = sparse(find(op.internalConn), 1:nnz(op.internalConn), 1, G.faces.num, nnz(op.internalConn));
-    gW = P*gW;
-    gO = P*gO;
-    gG = P*gG;
-%     [gW, gO] = deal(zeros(G.faces.num, 1));
-%     gW(op.internalConn) = gp - dpW;
-%     gO(op.internalConn) = gp - dpO;
+    gW = P*gW; gO = P*gO; gG = P*gG;
     % Add gravity flux where we have BCs to get correct cell values
     bc = drivingForces.bc;
     if ~isempty(bc)
@@ -212,7 +207,7 @@ function [problem, state] = transportEquationBlackOilDG(state0, state, model, dt
         
         % Saturations at cubature points
         [~, xcw, wcNo] = disc.getCubature(wc, 'volume');
-        [sWW, sOW, sGW, sTW, rsW, rvW] = disc.evaluateDGVariable(xcw, wcNo, state, sWdof, sOdof, sGdof, sTdof, rsDof, rvDof);
+        [sWW, sOW, sGW, sTW, rsW, rvW] = disc.evaluateDGVariable(xcw, wcNo, state, sWdof, sOdof, sGdof, sTdof, rSdof, rVdof);
         
         mobWW = mobW(wcNo, sWW, sTW);
         mobOW = mobO(wcNo, sOW, sTW, rsW);
@@ -265,22 +260,22 @@ function [problem, state] = transportEquationBlackOilDG(state0, state, model, dt
     % Evaluate saturation at cubature points-------------------------------
     % Cell cubature points
     [~, xc, c] = disc.getCubature((1:G.cells.num)', 'volume');
-    [sWc , sOc , sGc , sTc , rvc , rsc] = disc.evaluateDGVariable(xc, c, state , sWdof , sOdof , sGdof , sTdof , rvDof , rsDof);
-    [sWc0, sOc0, sGc0, rvc0, rsc0]      = disc.evaluateDGVariable(xc, c, state0, sWdof0, sOdof0, sGdof0, rvDof0, rsDof0);
+    [sWc , sOc , sGc , sTc , rvc , rsc] = disc.evaluateDGVariable(xc, c, state , sWdof , sOdof , sGdof , sTdof , rVdof , rSdof);
+    [sWc0, sOc0, sGc0, rvc0, rsc0]      = disc.evaluateDGVariable(xc, c, state0, sWdof0, sOdof0, sGdof0, rVdof0, rSdof0);
     % Face cubature points
     [~, xf, ~, f] = disc.getCubature((1:G.cells.num)', 'surface');
     % Upstream cells
     [~, ~, cfV, cfG] = disc.getSaturationUpwind(f, xf, T, flux, state, ...
-                            {gW, gO, gG}, {mobW, mobO, mobG}, {sWdof, sOdof, sGdof}, {0*rsDof, rsDof, rvDof});
+                            {gW, gO, gG}, {mobW, mobO, mobG}, {sWdof, sOdof, sGdof}, {0*rSdof, rSdof, rVdof});
     % Water saturation
     [sWfV , sTWfV] = disc.evaluateDGVariable(xf, cfV(:,1), state, sWdof, sTdof);
     [sWfG , sTWfG] = disc.evaluateDGVariable(xf, cfG(:,1), state, sWdof, sTdof);
     % Oil saturation
-    [sOfV , sTOfV, rsfV] = disc.evaluateDGVariable(xf, cfV(:,2), state, sOdof, sTdof, rsDof);
-    [sOfG , sTOfG, rsfG] = disc.evaluateDGVariable(xf, cfG(:,2), state, sOdof, sTdof, rsDof);
+    [sOfV , sTOfV, rsfV] = disc.evaluateDGVariable(xf, cfV(:,2), state, sOdof, sTdof, rSdof);
+    [sOfG , sTOfG, rsfG] = disc.evaluateDGVariable(xf, cfG(:,2), state, sOdof, sTdof, rSdof);
     % Gas saturation
-    [sGfV , sTGfV, rvfV] = disc.evaluateDGVariable(xf, cfV(:,3), state, sGdof, sTdof, rvDof);
-    [sGfG , sTGfG, rvfG] = disc.evaluateDGVariable(xf, cfG(:,3), state, sGdof, sTdof, rvDof);
+    [sGfV , sTGfV, rvfV] = disc.evaluateDGVariable(xf, cfV(:,3), state, sGdof, sTdof, rVdof);
+    [sGfG , sTGfG, rvfG] = disc.evaluateDGVariable(xf, cfG(:,3), state, sGdof, sTdof, rVdof);
     
     %----------------------------------------------------------------------
     
@@ -308,7 +303,7 @@ function [problem, state] = transportEquationBlackOilDG(state0, state, model, dt
         % Cell values
         fWc  = sTc.*mobWc./mobTc;
         bWc  = bW(c, sWc);
-        bWc0 = bW0(c);
+        bWc0 = bW(c, sWc0);
          
         fWfV = mobWfV./mobTfV;
         fWfG = mobWfG./mobTfG;
@@ -350,8 +345,8 @@ function [problem, state] = transportEquationBlackOilDG(state0, state, model, dt
         % Cell values
         
         fOc  = sTc.*mobOc./mobTc;
-        bOc  = bO(c, sWc);
-        bOc0 = bO0(c);
+        bOc  = bO(c, rvc);
+        bOc0 = bO(c, rvc0);
          
         fOfV = mobOfV./mobTfV;
         fOfG = mobOfG./mobTfG;
@@ -394,7 +389,7 @@ function [problem, state] = transportEquationBlackOilDG(state0, state, model, dt
         
         fGc  = sTc.*mobGc./mobTc;
         bGc  = bG(c, sGc);
-        bGc0 = bG0(c);
+        bGc0 = bG(c, sGc0);
          
         fGfV = mobGfV./mobTfV;
         fGfG = mobGfG./mobTfG;

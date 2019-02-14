@@ -15,13 +15,13 @@ modelSI = getSequentialModelFromFI(modelFI);
 modelSI.transportModel.conserveWater = true;
 
 
-transportModel = TransportBlackOilModelDG(G, rock, fluid, 'degree', 1);
+transportModel = TransportBlackOilModelDG(G, rock, fluid, 'degree', 4);
 transportModel.conserveWater = true;
 modelDG  = SequentialPressureTransportModelDG(modelSI.pressureModel, transportModel);
 modelDG.pressureModel.extraWellSolOutput = true;
 
 time = 1*year;
-rate = sum(poreVolume(G, rock))/time;
+rate = 2*sum(poreVolume(G, rock))/time;
 bhp = 50*barsa;
 
 W = [];
@@ -46,10 +46,9 @@ schedule = simpleSchedule(dtvec, 'W', W);
 
 %%
 
-plotWellSols({wsFV, wsDG}, schedule.step.val)
+plotWellSols({wsFV, wsDG, wsDG1}, schedule.step.val)
 
 %%
 
 close all
 plotToolbar(G, stDG)
-
