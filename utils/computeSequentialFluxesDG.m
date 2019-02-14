@@ -1,27 +1,27 @@
 function [q_c, q_f, r_c, r_fg] = computeSequentialFluxesDG(disc, model, state, T, T_all, g, mob, b, sdof, rdof)
 
     G = model.G;
-    [~, xf, ~, f] = disc.getCubature((1:G.cells.num)', 'surface');
+    [~, x_f, ~, f] = disc.getCubature((1:G.cells.num)', 'surface');
     flux = sum(state.flux,2);
     % Upstream cells
-    [~, ~, c_fv, c_fg] = disc.getSaturationUpwind(f, xf, T, flux, state, g, mob, sdof, rdof);
-    [~, xc, c]    = disc.getCubature((1:G.cells.num)', 'volume');
+    [~, ~, c_fv, c_fg] = disc.getSaturationUpwind(f, x_f, T, flux, state, g, mob, sdof, rdof);
+    [~, x_c, c]    = disc.getCubature((1:G.cells.num)', 'volume');
     
     nPh = numel(mob);
     [s_c, sT_c, s_fv, sT_fv, s_fg, sT_fg] = deal(cell(nPh, 1));
     for phNo = 1:nPh
-        [s_c{phNo} , sT_c{phNo} ] = disc.evaluateDGVariable(xc, c           , state, sdof{phNo}, sdof{end});
-        [s_fv{phNo}, sT_fv{phNo}] = disc.evaluateDGVariable(xf, c_fv(:,phNo), state, sdof{phNo}, sdof{end});
-        [s_fg{phNo}, sT_fg{phNo}] = disc.evaluateDGVariable(xf, c_fg(:,phNo), state, sdof{phNo}, sdof{end});
+        [s_c{phNo} , sT_c{phNo} ] = disc.evaluateDGVariable(x_c, c           , state, sdof{phNo}, sdof{end});
+        [s_fv{phNo}, sT_fv{phNo}] = disc.evaluateDGVariable(x_f, c_fv(:,phNo), state, sdof{phNo}, sdof{end});
+        [s_fg{phNo}, sT_fg{phNo}] = disc.evaluateDGVariable(x_f, c_fg(:,phNo), state, sdof{phNo}, sdof{end});
     end
     
     [r_c, r_fv, r_fg] = deal(cell(nPh, 1));
     [r_fv{:}, r_fg{:}] = deal(0);
     if ~isempty(rdof)
         for phNo = 1:nPh
-            r_c{phNo}  = disc.evaluateDGVariable(xc, c           , state, rdof{phNo});
-            r_fv{phNo} = disc.evaluateDGVariable(xf, c_fv(:,phNo), state, rdof{phNo});
-            r_fg{phNo} = disc.evaluateDGVariable(xf, c_fg(:,phNo), state, rdof{phNo});
+            r_c{phNo}  = disc.evaluateDGVariable(x_c, c           , state, rdof{phNo});
+            r_fv{phNo} = disc.evaluateDGVariable(x_f, c_fv(:,phNo), state, rdof{phNo});
+            r_fg{phNo} = disc.evaluateDGVariable(x_f, c_fg(:,phNo), state, rdof{phNo});
         end
     end
     
@@ -60,14 +60,14 @@ function [q_c, q_f, r_c, r_fg] = computeSequentialFluxesDG(disc, model, state, T
     vT   = flux./G.faces.areas;
     [q_c, q_f] = deal(cell(nPh,1));
     for alpha = 1:nPh
-        q_vc = sT_c{alpha}.*b_c{alpha}.*f_c{alpha}.*vT_c(c,:);
-        q_vf = sT_fv{alpha}.*b_fv{alpha}.*f_fv{alpha}.*vT(f);
+        q_vc = b_c{alpha}.*f_c{alpha}.*vT_c(c,:);
+        q_vf = b_fv{alpha}.*f_fv{alpha}.*vT(f);
         q_gc = 0;
         q_gf = 0;
         for beta = 1:nPh
             if beta ~= alpha
-                q_gc = q_gc + sT_c{alpha}.*b_c{alpha}.*f_c{alpha}.*mob_c{beta}.*(Kg_c{alpha}(c,:) - Kg_c{beta}(c,:));
-                q_gf = q_gf + sT_fg{alpha}.*b_fg{alpha}.*f_fg{alpha}.*mob_fg{beta}.*(Kg_f{alpha}(f) - Kg_f{beta}(f));
+                q_gc = q_gc + b_c{alpha}.*f_c{alpha}.*mob_c{beta}.*(Kg_c{alpha}(c,:) - Kg_c{beta}(c,:));
+                q_gf = q_gf + b_fg{alpha}.*f_fg{alpha}.*mob_fg{beta}.*(Kg_f{alpha}(f) - Kg_f{beta}(f));
             end
         end
         q_c{alpha} = q_vc + q_gc;
