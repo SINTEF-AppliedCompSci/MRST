@@ -16,7 +16,6 @@ void mexFunction( int nlhs, mxArray *plhs[],
      
 { 
     auto t0 = std::chrono::high_resolution_clock::now();
-    int i, j;
     // s = mexDiagonalSparse(D.diagonal, D.subset, D.dim);
     // In: 
     // diagonal (m x n)

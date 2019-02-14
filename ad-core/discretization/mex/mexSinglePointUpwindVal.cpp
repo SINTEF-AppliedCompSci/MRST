@@ -13,7 +13,6 @@ void mexFunction( int nlhs, mxArray *plhs[],
 		  int nrhs, const mxArray *prhs[] )
      
 { 
-    int i;
     // In: Cell value (nc x 1), N (nf x 2), flag (nf x 1) bool
     // Out: Face value of (nf x 1)
     if (nrhs != 3) { 
@@ -34,7 +33,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     double * result = mxGetPr(plhs[0]);
     
     #pragma omp parallel for
-    for(i=0;i<nf;i++){
+    for(int i=0;i<nf;i++){
         int cell_inx;
         if(flag[i]){
             cell_inx = N[i]-1;

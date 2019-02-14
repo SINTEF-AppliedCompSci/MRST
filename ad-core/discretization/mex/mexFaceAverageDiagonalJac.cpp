@@ -13,7 +13,6 @@ void mexFunction( int nlhs, mxArray *plhs[],
 		  int nrhs, const mxArray *prhs[] )
      
 { 
-    int i, j;
     // In: diagonal (nc x m), N (nf x 2)
     // Out: Face diagonal of (2*nf x m)
     if (nrhs != 2) { 
@@ -27,21 +26,13 @@ void mexFunction( int nlhs, mxArray *plhs[],
     int nc = mxGetM(prhs[0]);
     int m = mxGetN(prhs[0]);
     int nf = mxGetM(prhs[1]);
-    
-    // printf("%d cells with %d faces and %d derivatives \n", nc, nf, m);
-    
+        
     plhs[0] = mxCreateDoubleMatrix(2*nf, m, mxREAL);
     double * result = mxGetPr(plhs[0]);
-// 
-//     for(i=0;i<2*nf;i++){
-//         int cell_inx = N[i]-1;
-//         for(j=0;j<m;j++){
-//             result[j*2*nf + i] = diagonal[nc*j + cell_inx]/2.0;
-//         }
-//     }
-    for(j=0;j<m;j++){
+
+    for(int j=0;j<m;j++){
         #pragma omp parallel for
-        for(i=0;i<2*nf;i++){
+        for(int i=0;i<2*nf;i++){
             int cell_inx = N[i]-1;
             result[j*2*nf + i] = diagonal[nc*j + cell_inx]/2.0;
         }
