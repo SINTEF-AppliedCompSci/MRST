@@ -33,7 +33,7 @@ function [b, mu, rho, mob] = getDerivedPropertyFunctionsBO(model, pO, mobMult, s
         if disgas
             b{phNo}   = @(c, sO, rS, varargin) fluid.bO(pO(c), rS, isSatO(c));
             mu{phNo}  = @(c, sO, rS, varargin) fluid.muO(pO(c), rS, isSatO(c));
-            rho{phNo} = @(c, sO, rS, varargin) b{phNo}(c, rS, isSatO(c)).*(rS.*fluid.rhoGS + fluid.rhoOS);
+            rho{phNo} = @(c, sO, rS, varargin) b{phNo}(c, sO, rS, isSatO(c)).*(rS.*fluid.rhoGS + fluid.rhoOS);
             mob{phNo} = @(c, sO, sT, rS, varargin) mobMult(c).*fluid.krO(sO./sT)./mu{phNo}(c, rS);
         else
             b{phNo}   = @(c, varargin) fluid.bO(pO(c));
