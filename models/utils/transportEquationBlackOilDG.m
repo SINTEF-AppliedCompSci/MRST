@@ -266,8 +266,8 @@ function [problem, state] = transportEquationBlackOilDG(state0, state, model, dt
     % Water equation-------------------------------------------------------
     if opt.solveForWater
 
-        mW  = pvMult(c).*rock.poro(c).*bW_c .*sW_c;
-        mW0 = pvMult(c).*rock.poro(c).*bW0_c.*sW0_c;
+        mW  = pvMult(c) .*rock.poro(c).*bW_c .*sW_c;
+        mW0 = pvMult0(c).*rock.poro(c).*bW0_c.*sW0_c;
 
         water =   disc.inner((mW - mW0)/dt, psi    , 'dV') ...
                 - disc.inner(bWvW_c       , gradPsi, 'dV') ...
@@ -288,8 +288,8 @@ function [problem, state] = transportEquationBlackOilDG(state0, state, model, dt
     if opt.solveForOil
         % Cell values
                 
-        mO  = pvMult(c).*rock.poro(c).*(bO_c .*sO_c  + rV_c .*bG_c .*sG_c );
-        mO0 = pvMult(c).*rock.poro(c).*(bO0_c.*sO0_c + rV0_c.*bG0_c.*sG0_c);
+        mO  = pvMult(c) .*rock.poro(c).*(bO_c .*sO_c  + rV_c .*bG_c .*sG_c );
+        mO0 = pvMult0(c).*rock.poro(c).*(bO0_c.*sO0_c + rV0_c.*bG0_c.*sG0_c);
         
         oil =   disc.inner((mO - mO0)/dt        , psi    , 'dV') ...
               - disc.inner(bOvO_c + rV_c.*bGvG_c, gradPsi, 'dV') ...
@@ -310,8 +310,8 @@ function [problem, state] = transportEquationBlackOilDG(state0, state, model, dt
     if opt.solveForGas
         % Cell values
         
-        mG  = pvMult(c).*rock.poro(c).*(bG_c .*sG_c  + rS_c .*bO_c .*sO_c );
-        mG0 = pvMult(c).*rock.poro(c).*(bG0_c.*sG0_c + rS0_c.*bO0_c.*sO0_c);
+        mG  = pvMult(c) .*rock.poro(c).*(bG_c .*sG_c  + rS_c .*bO_c .*sO_c );
+        mG0 = pvMult0(c).*rock.poro(c).*(bG0_c.*sG0_c + rS0_c.*bO0_c.*sO0_c);
         
         gas =   disc.inner((mG - mG0)/dt        , psi    , 'dV') ...
               - disc.inner(bGvG_c + rS_c.*bOvO_c, gradPsi, 'dV') ...
