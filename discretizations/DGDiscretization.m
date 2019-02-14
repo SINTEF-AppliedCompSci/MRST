@@ -32,6 +32,10 @@ classdef DGDiscretization < HyperbolicDiscretization
         internalConnParent  % If we only solve on subset of full grid, we
                             % must keep tract of internal connections in 
                             % the full grid.
+                            
+        nDof
+        dofPos
+        sample
         
     end
     
@@ -120,7 +124,7 @@ classdef DGDiscretization < HyperbolicDiscretization
         end
         
         %-----------------------------------------------------------------%
-        function state = updateDofPos(disc, state)
+        function [state, disc] = updateDofPos(disc, state)
             % Update dosfPos (position of dofs in state.sdof) based on
             % changes in state.degree, or create dofPos vector if it does
             % not exist. Dofs for cell i are found in
@@ -148,6 +152,8 @@ classdef DGDiscretization < HyperbolicDiscretization
             
             state.nDof   = nd;
             state.dofPos = dp;
+            disc.nDof    = nd;
+            disc.dofPos  = dp;
             
         end
         
@@ -353,6 +359,118 @@ classdef DGDiscretization < HyperbolicDiscretization
         %-----------------------------------------------------------------%
         function dotProduct = dot(disc,u,v)
             dotProduct = sum(u.*v, 2);
+        end
+        
+        %-----------------------------------------------------------------%
+        function ip = inner(disc, u, v, differential, cells)
+            
+            if nargin < 5
+                cells = (1:disc.G.cells.num)';
+            end
+                
+            switch differential
+                case 'dV'
+                    ip = disc.cellInt2(u, v, cells);
+                case 'dS'
+                    ip = disc.faceFluxInt2(u, v, cells);
+            end
+            
+        end
+        
+        %-----------------------------------------------------------------%
+        function I = cellInt2(disc, u, v, cells)
+            % Integrate integrand over cells
+            %
+            % PARAMETERS:
+            %   model    - Model, which contains information on how the
+            %              integrand looks like
+            %   fun      - Integrand function handle
+            %   cells    - Cells over which we will integrate fun
+            %   state, state0 - States from current and prev timestep,
+            %              to be used for dofPos
+            %   varargin - Variables passed to model for integrand
+            %              evalauation. varargin{1} MUST be an AD object of
+            %              dofs for all cells in the grid.
+            %
+            % RETURNS:
+            %   I - Integrals int(fun*psi{dofNo}) for dofNo = 1:nDof over
+            %       all cells
+            
+%             psi      = disc.basis.psi;      % Basis functions
+%             gradPsi  = disc.basis.grad_psi; % Gradient of basis functions
+            nDofMax  = disc.basis.nDof;     % Maximum number of dofs
+            % Empty cells means all cells in grid
+            if isempty(cells)
+                cells = (1:disc.G.cells.num)';
+            end
+            % Get cubature for all cells, transform coordinates to ref space
+            [W, x, cellNo, ~] = disc.getCubature(cells, 'volume');
+            [x, ~, scaling]   = disc.transformCoords(x, cellNo);
+            % Evaluate integrals
+%             I = dof*0;
+            I = disc.sample;
+            for dofNo = 1:nDofMax
+                keepCells = disc.nDof(cells) >= dofNo;
+                if any(keepCells)
+                    ix = disc.getDofIx(disc, dofNo, cells(keepCells));
+                    if isa(u, 'SpatialVector')
+                        i = W*disc.dot(u,v{dofNo}(x).*scaling);
+                    else
+                        i = W*(u.*v{dofNo}(x));
+                    end
+                    I(ix) = i(keepCells);
+                elseif numel(cells) == disc.G.cells.num
+                    warning('No cells with %d dofs', dofNo);
+                end
+            end
+            I = disc.trimValues(I);
+        end
+        
+                %-----------------------------------------------------------------%
+        function I = faceFluxInt2(disc, u, v, cells)
+            % Integrate integrand over all internal faces of each cell in
+            % cells
+            %
+            % PARAMETERS:
+            %   model    - Model, which contains information on how the
+            %              integrand looks like
+            %   fun      - Integrand function handle
+            %   cells    - Cells over which we will integrate fun
+            %   state    - State to be used for dofPos
+            %   varargin - Variables passed to model for integrand
+            %              evalauation. varargin{1} MUST be an AD object of
+            %              dofs for all cells in the grid.
+            %
+            % RETURNS:
+            %   I - Integrals int(fun*psi{dofNo}) for dofNo = 1:nDof over
+            %       all cell surfaces of all cells
+            
+            nDofMax = disc.basis.nDof; % maximum number of dofs
+            % Empty cells means all cells in grid
+            if isempty(cells)
+                cells = (1:disc.G.cells.num)';
+            end
+            % Get cubature for all cells, transform coordinates to ref space
+            [W, x, cellNo, faceNo] = disc.getCubature(cells, 'surface');
+            [xc, ~, ~] = disc.transformCoords(x, cellNo);
+            if isempty(faceNo)
+                I = 0;
+                return
+            end
+            % Evaluate integrals
+%             I = dof*0;
+            I = disc.sample;
+            for dofNo = 1:nDofMax                
+                keepCells = disc.nDof(cells) >= dofNo;
+                if any(keepCells)
+                    ix = disc.getDofIx(disc, dofNo, cells(keepCells)');
+                    i  = W*(u.*v{dofNo}(xc));
+                    I(ix) = i(keepCells);
+                elseif numel(cells) == disc.G.cells.num
+                    warning('No cells with %d dofs', dofNo);
+                end
+            end
+            I = disc.trimValues(I);
         end
         
         %-----------------------------------------------------------------%
