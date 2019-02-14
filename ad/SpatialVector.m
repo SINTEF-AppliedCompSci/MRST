@@ -89,7 +89,24 @@ classdef SpatialVector
         
         function r = plus(u,v)
             r = u;
-            r.vals = cellfun(@plus, u.vals, v.vals, 'uniformOutput', false);
+            if ~isa(u, 'SpatialVector')
+                r = plus(v,u);
+            else
+                if ~isa(v, 'SpatialVector')
+                    if isa(v, 'double')                    
+                        sz = size(v);
+                        v = mat2cell(v, sz(1), ones(1, sz(2)));
+                        if numel(v) < numel(u.vals)
+                            v = repmat(v, 1, size(u,2));
+                        end
+                    elseif isa(v, 'ADI')
+                        v = repmat({v}, 1, u.dim);
+                    end
+                else
+                    v = v.vals;
+                end
+                r.vals = cellfun(@plus, u.vals, v, 'uniformOutput', false);
+            end
         end
         
         function r = minus(u,v)

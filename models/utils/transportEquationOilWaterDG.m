@@ -95,7 +95,6 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     muW = mu{1}; muO = mu{2};
     rhoW = rho{1}; rhoO = rho{2};
     mobW = mob{1}; mobO = mob{2};
-    
 %     [vW, bW, mobW, rhoW, pW, upcW, dpW, muW] ...
 %                              = getPropsWater_DG(model, p, T, gdz, mobMult);
 %     [vO, bO, mobO, rhoO, pO, upcO, dpO, muO] ...
@@ -212,25 +211,29 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     % Water equation-------------------------------------------------------
     if opt.solveForWater
         % Cell values
-        fWc   = fW(sWc,sOc,sTc,c,c);
+        fWc  = fW(sWc,sOc,sTc,c,c);
+        bW_c  = bW(c, sWc);
+        bW0_c = bW(c, sWc0);
+        bW_fv = bW(cfV(:,1), sWc);
+        bW_fg = bW(cfG(:,1), sWc);
         mobOc = mobO(c, sOc,sTc);
         % Face values
         fWfV   = fW(sWfV, sOfV, sTWfV, cfV(:,1), cfV(:,2));
         fWfG   = fW(sWfG, sOfG, sTWfG, cfG(:,1), cfG(:,2));
         mobOfG = mobO(cfG(:,2), sOfG, sTOfG);
         % Accumulation term
-        acc = @(psi) (pvMult(c) .*rock.poro(c).*bW(c) .*sWc - ...
-                      pvMult0(c).*rock.poro(c).*bW0(c).*sWc0).*psi/dt;
+        acc = @(psi) (pvMult(c) .*rock.poro(c).*bW_c .*sWc - ...
+                      pvMult0(c).*rock.poro(c).*bW0_c.*sWc0).*psi/dt;
         % Convection term
-        conv = @(gradPsi) bW(c).*fWc.*(disc.dot(vTc(c,:),gradPsi) ...
+        conv = @(gradPsi) bW_c.*fWc.*(disc.dot(vTc(c,:),gradPsi) ...
                         + mobOc.*disc.dot(TgWc(c,:) - TgOc(c,:),gradPsi));
         integrand = @(psi, gradPsi) acc(psi) - conv(gradPsi);
         % Integrate integrand*psi{dofNo} over all cells for dofNo = 1:nDof
         cellIntegralW = disc.cellInt(integrand, [], state, sWdof);
         % Flux term
         integrand = @(psi) ...
-            (sTWfV.*bW(cfV(:,1)).*fWfV.*vT(f) ...
-                  + bW(cfG(:,1)).*fWfG.*mobOfG.*(TgW(f) - TgO(f))).*psi;
+            (sTWfV.*bW_fv.*fWfV.*vT(f) ...
+                  + bW_fg.*fWfG.*mobOfG.*(TgW(f) - TgO(f))).*psi;
         % Integrate integrand*psi{dofNo} over all cells surfaces for dofNo = 1:nDof
         faceIntegralW = disc.faceFluxInt(integrand, [], state, sWdof);
         % Sum integrals
@@ -247,25 +250,29 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     % Oil equation---------------------------------------------------------
     if opt.solveForOil
          % Cell values
-        fOc   = fO(sWc,sOc,sTc,c,c);
+        fO_c   = fO(sWc,sOc,sTc,c,c);
+        bO_c  = bO(c, sWc);
+        bO0_c = bO(c, sWc0);
+        bO_fv = bO(cfV(:,2));
+        bO_fg = bO(cfG(:,2));
         mobWc = mobW(c, sWc,sTc);
         % Face values
         fOfV   = fO(sWfV, sOfV, sTOfV, cfV(:,1), cfV(:,2));
         fOfG   = fO(sWfG, sOfG, sTOfG, cfG(:,1), cfG(:,2));
-        mobWfG = mobW(cfG(:,1), sWfG, sTWfG);
+        mobW_fg = mobW(cfG(:,1), sWfG, sTWfG);
         % Accumulation term
-        acc = @(psi) (pvMult(c) .*rock.poro(c).*bO(c) .*sOc - ...
-                      pvMult0(c).*rock.poro(c).*bO0(c).*sOc0).*psi/dt;
+        acc = @(psi) (pvMult(c) .*rock.poro(c).*bO_c .*sOc - ...
+                      pvMult0(c).*rock.poro(c).*bO0_c.*sOc0).*psi/dt;
         % Convection term
-        conv = @(gradPsi) bO(c).*fOc.*(disc.dot(vTc(c,:),gradPsi) ...
+        conv = @(gradPsi) bO_c.*fO_c.*(disc.dot(vTc(c,:),gradPsi) ...
                         + mobWc.*disc.dot(TgOc(c,:) - TgWc(c,:),gradPsi));
         integrand = @(psi, gradPsi) acc(psi) - conv(gradPsi);
         % Integrate integrand*psi{dofNo} over all cells for dofNo = 1:nDof
         cellIntegralO = disc.cellInt(integrand, [], state, sOdof);
         % Flux term
         integrand = @(psi) ...
-            (sTOfV.*bO(cfV(:,2)).*fOfV.*vT(f) ...
-                  + bO(cfG(:,2)).*fOfG.*mobWfG.*(TgO(f) - TgW(f))).*psi;
+            (sTOfV.*bO_fv.*fOfV.*vT(f) ...
+                  + bO_fg.*fOfG.*mobW_fg.*(TgO(f) - TgW(f))).*psi;
         % Integrate integrand*psi{dofNo} over all cells surfaces for dofNo = 1:nDof
         faceIntegralO = disc.faceFluxInt(integrand, [], state, sOdof);
         % Sum integrals
@@ -379,7 +386,7 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     %----------------------------------------------------------------------
     
     % Extract subproblem if we are solving subproblem----------------------
-    if any(strcmpi(G.type, 'subgrid'));
+    if any(strcmpi(G.type, 'subgrid'))
         ix = disc.getDofIx(state, Inf, ~G.cells.ghost);
         
         for eqNo = 1:numel(problem.equations)

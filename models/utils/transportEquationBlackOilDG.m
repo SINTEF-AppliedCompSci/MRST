@@ -145,7 +145,6 @@ function [problem, state] = transportEquationBlackOilDG(state0, state, model, dt
     [sW, sO, sG] = disc.getCellMean(state, sWdof, sOdof, sGdof);
     
     % Gravity flux
-    gp = op.Grad(p);
     
     xf = G.faces.centroids(disc.internalConn);
     cL = disc.N(:,1);
@@ -159,8 +158,8 @@ function [problem, state] = transportEquationBlackOilDG(state0, state, model, dt
     end
     gO = (rhoO(cL, rsL) + rhoO(cR, rsR))/2.*gdz;
     gG = (rhoG(cL, sGL, rvL) + rhoG(cR, sGR, rvR))/2.*gdz;
-    if isfield(fluid, 'pcOW')
-        gG = gG + op.Grad(fluid.pcOW(sW));
+    if isfield(fluid, 'pcOG')
+        gG = gG + op.Grad(fluid.pcOG(sG));
     end
     P = sparse(find(op.internalConn), 1:nnz(op.internalConn), 1, G.faces.num, nnz(op.internalConn));
     gW = P*gW; gO = P*gO; gG = P*gG;
@@ -191,7 +190,9 @@ function [problem, state] = transportEquationBlackOilDG(state0, state, model, dt
     flux  = sum(state.flux,2);   % Total volumetric flux
     vT    = flux./G.faces.areas; % Total flux 
     vTc   = flux2Vel(flux);      % Map face fluxes to cell velocities
-    %----------------------------------------------------------------------
+%     
+%     [qb_c, qb_f, r_c, r_fg] = computeSequentialFluxesDG(disc, model, state, T, T_all, ...
+%         {gW, gO, gG}, {mobW, mobO, mobG}, {bW, bO, bG}, {sWdof, sOdof, sGdof, sTdof}, {0*rSdof, rSdof, rVdof});
     
     % Well contributions---------------------------------------------------
     if ~isempty(W)
@@ -207,46 +208,46 @@ function [problem, state] = transportEquationBlackOilDG(state0, state, model, dt
         
         % Saturations at cubature points
         [~, xcw, wcNo] = disc.getCubature(wc, 'volume');
-        [sWW, sOW, sGW, sTW, rsW, rvW] = disc.evaluateDGVariable(xcw, wcNo, state, sWdof, sOdof, sGdof, sTdof, rSdof, rVdof);
+        [sW_w, sO_w, sG_w, sT_w, rS_w, rV_w] = disc.evaluateDGVariable(xcw, wcNo, state, sWdof, sOdof, sGdof, sTdof, rSdof, rVdof);
         
-        mobWW = mobW(wcNo, sWW, sTW);
-        mobOW = mobO(wcNo, sOW, sTW, rsW);
-        mobGW = mobG(wcNo, sGW, sTW, rvW);
+        mobWW = mobW(wcNo, sW_w, sT_w);
+        mobOW = mobO(wcNo, sO_w, sT_w, rS_w);
+        mobGW = mobG(wcNo, sG_w, sT_w, rV_w);
         mobTW = mobWW + mobOW + mobGW;
         
-        fWW = sTW.*mobWW./mobTW;
-        fOW = sTW.*mobOW./mobTW;
-        fGW = sTW.*mobGW./mobTW;
+        fWW = ~isInj(wcNo).*sT_w.*mobWW./mobTW + isInj(wcNo).*compPerf(wcNo,1);
+        fOW = ~isInj(wcNo).*sT_w.*mobOW./mobTW + isInj(wcNo).*compPerf(wcNo,2);
+        fGW = ~isInj(wcNo).*sT_w.*mobGW./mobTW + isInj(wcNo).*compPerf(wcNo,3);
         
         fWW = ~isInj(wcNo).*fWW + isInj(wcNo).*compPerf(wcNo,1);
         fOW = ~isInj(wcNo).*fOW + isInj(wcNo).*compPerf(wcNo,2);
         fGW = ~isInj(wcNo).*fGW + isInj(wcNo).*compPerf(wcNo,3);
         
-        bWW = bW(wcNo, sWW);
-        bOW = bO(wcNo, rsW);
-        bGW = bG(wcNo, sGW, rvW);
+        bWW = bW(wcNo, sW_w);
+        bOW = bO(wcNo, rS_w);
+        bGW = bG(wcNo, sG_w, rV_w);
         
-        qWW = wflux(wcNo).*sTW.*fWW;
-        qOW = wflux(wcNo).*sTW.*fOW;
-        qGW = wflux(wcNo).*sTW.*fGW;
+        qWW = wflux(wcNo).*sT_w.*fWW;
+        qOW = wflux(wcNo).*sT_w.*fOW;
+        qGW = wflux(wcNo).*sT_w.*fGW;
         
         % Water well contributions
         integrandW = @(psi, gradPsi) qWW.*bWW.*psi;
-        srcWW = disc.cellInt(integrandW, wc, state, sWdof);
+        srcW_w = disc.cellInt(integrandW, wc, state, sWdof);
         
         % Oil well contributions
-        integrandO = @(psi, gradPsi) (qOW.*bOW + rvW.*qGW.*bGW).*psi;
-        srcOW = disc.cellInt(integrandO, wc, state, sWdof);
+        integrandO = @(psi, gradPsi) (qOW.*bOW + rV_w.*qGW.*bGW).*psi;
+        srcO_w = disc.cellInt(integrandO, wc, state, sWdof);
         
         % Oil well contributions
-        integrandG = @(psi, gradPsi) (qGW.*bGW + rsW.*qOW.*bOW).*psi;
-        srcGW = disc.cellInt(integrandG, wc, state, sWdof);
+        integrandG = @(psi, gradPsi) (qGW.*bGW + rS_w.*qOW.*bOW).*psi;
+        srcG_w = disc.cellInt(integrandG, wc, state, sWdof);
                                  
         % Store well fluxes
         ix     = disc.getDofIx(state, 1, wc);
-        wfluxW = double(srcWW(ix));
-        wfluxO = double(srcOW(ix));
-        wfluxG = double(srcGW(ix));
+        wfluxW = double(srcW_w(ix));
+        wfluxO = double(srcO_w(ix));
+        wfluxG = double(srcG_w(ix));
         for wNo = 1:numel(W)
             perfind = perf2well == wNo;
             state.wellSol(wNo).qWs = sum(wfluxW(perfind));
@@ -332,7 +333,7 @@ function [problem, state] = transportEquationBlackOilDG(state0, state, model, dt
         % Add well contributions
         if ~isempty(W)
             ix = disc.getDofIx(state, Inf, wc);
-            water(ix) = water(ix) - srcWW(ix);
+            water(ix) = water(ix) - srcW_w(ix);
         end
         eqs{eqNo}   = water;
         names{eqNo} = 'water';
@@ -375,7 +376,7 @@ function [problem, state] = transportEquationBlackOilDG(state0, state, model, dt
         % Add well contributions
         if ~isempty(W)
             ix = disc.getDofIx(state, Inf, wc);
-            oil(ix) = oil(ix) - srcOW(ix);
+            oil(ix) = oil(ix) - srcO_w(ix);
         end
         eqs{eqNo}   = oil;
         names{eqNo} = 'oil';
@@ -418,13 +419,12 @@ function [problem, state] = transportEquationBlackOilDG(state0, state, model, dt
         % Add well contributions
         if ~isempty(W)
             ix = disc.getDofIx(state, Inf, wc);
-            gas(ix) = gas(ix) - srcGW(ix);
+            gas(ix) = gas(ix) - srcG_w(ix);
         end
         eqs{eqNo}   = gas;
         names{eqNo} = 'gas';
     end
     %----------------------------------------------------------------------
-    
     
     % Add BCs--------------------------------------------------------------
     if ~isempty(bc)
@@ -444,8 +444,8 @@ function [problem, state] = transportEquationBlackOilDG(state0, state, model, dt
         sgn = 1 - 2*(G.faces.neighbors(faces, 1) == 0);
         isInj = vT(faces) > 0 & sgn < 0;
         % Upstream saturation
-        [sWR, sOR, sTR]  = disc.evaluateDGVariable(x, cBC, state, sWdof, sOdof, sTdof);
-        sWBC = sL(locFaceNo,1).*isInj(locFaceNo) + sWR.*(~isInj(locFaceNo));
+        [sW_r, sOR, sTR]  = disc.evaluateDGVariable(x, cBC, state, sWdof, sOdof, sTdof);
+        sWBC = sL(locFaceNo,1).*isInj(locFaceNo) + sW_r.*(~isInj(locFaceNo));
         sOBC = sL(locFaceNo,2).*isInj(locFaceNo) + sOR.*(~isInj(locFaceNo));
         sTBC = sum(sL(locFaceNo,:),2).*isInj(locFaceNo) + sTR.*(~isInj(locFaceNo));
         % Frational flow functions
@@ -528,7 +528,7 @@ function [problem, state] = transportEquationBlackOilDG(state0, state, model, dt
         end
     end
     %----------------------------------------------------------------------
-
+    
 end
 
 % Expang single scalar values to one per cell------------------------------

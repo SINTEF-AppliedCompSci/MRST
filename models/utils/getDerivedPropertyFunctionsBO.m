@@ -1,4 +1,4 @@
-function [b, mu, rho, mob, f] = getDerivedPropertyFunctionsBO(model, pO, mobMult, status)
+function [b, mu, rho, mob] = getDerivedPropertyFunctionsBO(model, pO, mobMult, status)
 
     fluid  = model.fluid;
     disgas = model.disgas;
@@ -31,10 +31,10 @@ function [b, mu, rho, mob, f] = getDerivedPropertyFunctionsBO(model, pO, mobMult
     % Oil------------------------------------------------------------------
     if model.oil
         if disgas
-            b{phNo}   = @(c, rs, varargin) fluid.bO(pO(c), rs, isSatO(c));
-            mu{phNo}  = @(c, rs, varargin) fluid.muO(pO(c), rs, isSatO(c));
-            rho{phNo} = @(c, rs, varargin) b{phNo}(c, rs, isSatO(c)).*(rs.*fluid.rhoGS + fluid.rhoOS);
-            mob{phNo} = @(c, sO, sT, rs, varargin) mobMult(c).*fluid.krO(sO./sT)./mu{phNo}(c, rv);
+            b{phNo}   = @(c, rS, varargin) fluid.bO(pO(c), rS, isSatO(c));
+            mu{phNo}  = @(c, rS, varargin) fluid.muO(pO(c), rS, isSatO(c));
+            rho{phNo} = @(c, rS, varargin) b{phNo}(c, rS, isSatO(c)).*(rS.*fluid.rhoGS + fluid.rhoOS);
+            mob{phNo} = @(c, sO, sT, rS, varargin) mobMult(c).*fluid.krO(sO./sT)./mu{phNo}(c, rS);
         else
             b{phNo}   = @(c, varargin) fluid.bO(pO(c));
             mu{phNo}  = @(c, varargin) fluid.muO(pO(c));
@@ -53,10 +53,10 @@ function [b, mu, rho, mob, f] = getDerivedPropertyFunctionsBO(model, pO, mobMult
             pG = @(c, varargin) pO(c);
         end
         if vapoil
-            b{phNo}   = @(c, sG, rs) fluid.bG(pG(sG, c), rs, isSatG(c));
-            mu{phNo}  = @(c, sG, rs) fluid.muG(pG(sG, c), rs, isSatG(c));
-            rho{phNo} = @(c, sG, rs) b{phNo}(rs, c).*(rs.*fluid.rhoGS + fluid.rhoOS);
-            mob{phNo} = @(c, sG, sT, rs) mobMult(c).*fluid.krG(sG./sT)./mu{phNo}(c, sG, rs);
+            b{phNo}   = @(c, sG, rV) fluid.bG(pG(sG, c), rV, isSatG(c));
+            mu{phNo}  = @(c, sG, rV) fluid.muG(pG(sG, c), rV, isSatG(c));
+            rho{phNo} = @(c, sG, rV) b{phNo}(rV, c).*(rV.*fluid.rhoOS + fluid.rhoGS);
+            mob{phNo} = @(c, sG, sT, rV) mobMult(c).*fluid.krG(sG./sT)./mu{phNo}(c, sG, rV);
         else
             b{phNo}   = @(c, sG, varargin) fluid.bG(pG(c, sG));
             mu{phNo}  = @(c, sG, varargin) fluid.muG(pG(c, sG));
