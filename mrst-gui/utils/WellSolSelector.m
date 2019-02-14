@@ -37,7 +37,10 @@ classdef WellSolSelector < UIItem
             [opt, extraOpt] = merge_options(opt, varargin{:});
             
             %[names, props, time, name2prop] = processSummary(smry);         
-            
+            wellHeader    = uicontrol('Parent', [], 'Style', 'text', ...
+                'Value', [], 'String', 'Wells', 'Visible', 'off');
+            propHeader   = uicontrol('Parent', [], 'Style', 'text', ...
+                'Value', [], 'String', 'Properties', 'Visible', 'off');
             nameSelector = uicontrol('Parent', [], 'Style', 'listbox',  'Max', 2, 'Min', 0, ...
                                      'Value', [], 'String', namelist, 'Visible', 'off');
             propSelector = uicontrol('Parent', [], 'Style', 'listbox',  'Max', 2, 'Min', 0, ...
@@ -54,8 +57,8 @@ classdef WellSolSelector < UIItem
             plotWSButton = uicontrol('Parent', [], 'Style', 'pushbutton', 'String', 'plotWellSols', ...
                                      'Visible', 'off');
                                
-            controls      = {{nameSelector, propSelector}, {leftButton, rightButton}, {regionSwitch}, {plotWSButton, []}};
-            controlLayout = {[.5, nan],[.5, nan], nan, [.5 nan]}; 
+            controls      = {{wellHeader,      propHeader},{nameSelector, propSelector}, {leftButton, rightButton}, {regionSwitch}, {plotWSButton, []}};
+            controlLayout = {[.5 .5],[.5, nan],[.5, nan], nan, [.5 nan]}; 
             
                
             s = s@UIItem('Parent', opt.Parent, 'controls', controls, ...
