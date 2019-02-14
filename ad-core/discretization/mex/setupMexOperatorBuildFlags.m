@@ -7,7 +7,7 @@ function [CXXFLAGS, LINK, LIBS] = setupMexOperatorBuildFlags()
                'microsoft', ['libmw', lib, '.lib']);
 
       % Note explicit /EHsc to enable C++ exception handling
-      CXXFLAGS  = { 'COMPFLAGS=/EHsc /MD /openmp' };
+      CXXFLAGS  = { 'COMPFLAGS=/EHsc /MD /openmp /O2' };
       LINK      = { ['-L', fullfile(matlabroot, 'bin', a) ]};
       iomp5     = { ['LINKFLAGS=$LINKFLAGS ', ...
                      '/nodefaultlib:vcomp libiomp5md.lib' ]};
