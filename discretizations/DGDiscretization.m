@@ -77,7 +77,7 @@ classdef DGDiscretization < HyperbolicDiscretization
             disc.upwindType     = 'potential';
             
             % Create cubatures
-            prescision = disc.degree + 1;
+            prescision = 2*disc.degree;
             isCoarse   = isfield(G, 'parent');
             if G.griddim == 2
                 if isCoarse %&& ~disc.useUnstructCubature
