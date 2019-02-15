@@ -32,7 +32,11 @@ void mexFunction( int nlhs, mxArray *plhs[],
     
     plhs[0] = mxCreateDoubleMatrix(2*nf, m, mxREAL);
     double * result = mxGetPr(plhs[0]);
-    #pragma omp parallel for collapse(2)
+    #ifdef _WIN32
+        #pragma omp parallel for
+    #else
+        #pragma omp parallel for collapse(2)
+    #endif
     for(int j=0;j<m;j++){
         for(int i=0;i<2*nf;i++){
             int cell_inx = N[i]-1;
