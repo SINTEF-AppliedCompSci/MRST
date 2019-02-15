@@ -366,7 +366,8 @@ classdef SimpleWell < PhysicalModel
                 w.topo = [(0:(nperf-1))', (1:nperf)'];
             end
             if isfield(wellSol, 'ComponentTotalFlux') && ~isempty(wellSol.ComponentTotalFlux)
-                q = wellSol.ComponentTotalFlux; % Total mass flux
+%                 q = wellSol.ComponentTotalFlux; % Total mass flux
+                q = wellSol.flux;
                 q(q == 0) = w.sign*1e-12;
             else
                 sgn = w.sign;
@@ -388,15 +389,7 @@ classdef SimpleWell < PhysicalModel
             end
             % Mass fractions
             mixs = wbqs ./ (wbqst*ones(1,numPh));
-            % compute volume ratio Vr/Vs
-%             volRat = mixs./rho_res;
-%             volRat = well.compVolRat(mixs, p, b, model);
-            % Mixture density at connection conds (by using static b's)
             rhoMix = sum(rho_res.*mixs, 2);
-%             rhoMix = (mixs*rhoS')./volRat;
-            % rhoMix is now density between neighboring segments given by
-            % topo(:,1)-topo(:,2) computed by using conditions in well-cell
-            % topo(:,2). This is probably sufficiently accurate.
 
             % get dz between segment nodes and bh-node1. This is a simple
             % hydrostatic distribution.
