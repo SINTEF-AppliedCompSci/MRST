@@ -88,12 +88,12 @@ end
 function b = consistent(grdecl)
    k = false([3, 3]);
 
-   k(1,1) = isfield(grdecl, 'PERMX' ) || isfield(grdecl, 'PERMXX');
+   k(1,1) = isfield(grdecl, 'PERMX' ) || isfield(grdecl, 'PERMXX') || isfield(grdecl, 'PERMH');
    k(1,2) = isfield(grdecl, 'PERMXY') || isfield(grdecl, 'PERMYX');
    k(1,3) = isfield(grdecl, 'PERMXZ') || isfield(grdecl, 'PERMZX');
 
    k(2,1) = isfield(grdecl, 'PERMYX') || isfield(grdecl, 'PERMXY');
-   k(2,2) = isfield(grdecl, 'PERMY' ) || isfield(grdecl, 'PERMYY');
+   k(2,2) = isfield(grdecl, 'PERMY' ) || isfield(grdecl, 'PERMYY') || isfield(grdecl, 'PERMH');
    k(2,3) = isfield(grdecl, 'PERMYZ') || isfield(grdecl, 'PERMZY');
 
    k(3,1) = isfield(grdecl, 'PERMZX') || isfield(grdecl, 'PERMXZ');
@@ -151,6 +151,7 @@ function [vals, comp] = tensorValues(grdecl)
    nc = 0;
    if nc == 0 && isfield(grdecl, 'PERMX' ), nc = numel(grdecl.PERMX ); end
    if nc == 0 && isfield(grdecl, 'PERMY' ), nc = numel(grdecl.PERMY ); end
+   if nc == 0 && isfield(grdecl, 'PERMH' ), nc = numel(grdecl.PERMH ); end
    if nc == 0 && isfield(grdecl, 'PERMZ' ), nc = numel(grdecl.PERMZ ); end
    if nc == 0 && isfield(grdecl, 'PERMXX'), nc = numel(grdecl.PERMXX); end
    if nc == 0 && isfield(grdecl, 'PERMYY'), nc = numel(grdecl.PERMYY); end
@@ -164,9 +165,11 @@ function [vals, comp] = tensorValues(grdecl)
    %- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    % Extract first row [k_{xx}, k_{xy}, k_{xz}] from input data.
    %
-   if isfield(grdecl, 'PERMX') || isfield(grdecl, 'PERMXX')
+   if isfield(grdecl, 'PERMX') || isfield(grdecl, 'PERMXX') || isfield(grdecl, 'PERMH')
       if isfield(grdecl, 'PERMX')
          vals   = [vals, grdecl.PERMX ];
+      elseif isfield(grdecl, 'PERMH')
+         vals   = [vals, grdecl.PERMH];
       else
          vals   = [vals, grdecl.PERMXX];
       end
@@ -193,9 +196,11 @@ function [vals, comp] = tensorValues(grdecl)
       comp(2,1) = size(vals,2); comp(1,2) = comp(2,1);
    end
 
-   if isfield(grdecl, 'PERMY') || isfield(grdecl, 'PERMYY')
+   if isfield(grdecl, 'PERMY') || isfield(grdecl, 'PERMYY') || isfield(grdecl, 'PERMH')
       if isfield(grdecl, 'PERMY')
          vals   = [vals, grdecl.PERMY ];
+      elseif isfield(grdecl, 'PERMH')
+         vals   = [vals, grdecl.PERMH];
       else
          vals   = [vals, grdecl.PERMYY];
       end
