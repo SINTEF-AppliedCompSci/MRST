@@ -1,4 +1,3 @@
-% hello
 function [eqs, state, hst] = eqsfiOW(state0, state, dt, G, W, system, f, varargin)
 
 opt = struct('Verbose', mrstVerbose, ...
