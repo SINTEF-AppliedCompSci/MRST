@@ -46,8 +46,6 @@ classdef GenericBlackOil < ThreePhaseBlackOilModel & ExtendedReservoirModel
                 [state, primaryVars] = model.getStateAD(state, ~opt.resOnly);
             end
             [eqs, names, types, state] = model.getModelEquations(state0, state, dt, drivingForces);
-
-            state = value(state);
             problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
         end
         

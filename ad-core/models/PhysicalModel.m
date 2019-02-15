@@ -382,6 +382,22 @@ methods
         %
     end
     
+    function state = reduceState(model, state, removeContainers)
+        % Reduce state to doubles, and optionally remove the property
+        % containers to reduce storage space
+        if nargin < 3 || removeContainers
+            propfn = model.getPropertyFunctions();
+            for i = 1:numel(propfn)
+                p = propfn{i};
+                struct_name = p.getPropertyContainerName();
+                if isfield(state, struct_name)
+                    state = rmfield(state, struct_name);
+                end
+            end
+        end
+        state = value(state);
+    end
+    
     function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
         % Final update to the state after convergence has been achieved
         %
@@ -567,7 +583,9 @@ methods
             % Let the nonlinear solver decide what to do with the
             % increments to get the best convergence
             [dx, stabilizeReport] = nonlinsolver.stabilizeNewtonIncrements(model, problem, dx);
-
+            % Remove AD from state, and remove property containers to avoid
+            % caching issues in update function
+            state = model.reduceState(state, true);
             if (nonlinsolver.useLinesearch && nonlinsolver.convergenceIssues) || ...
                 nonlinsolver.alwaysUseLinesearch
                 [state, updateReport, stabilizeReport.linesearch] = nonlinsolver.applyLinesearch(model, state0, state, problem, dx, drivingForces, varargin{:});
@@ -576,6 +594,11 @@ methods
                 % properties are actually physically reasonable.
                 [state, updateReport] = model.updateState(state, problem, dx, drivingForces);
             end
+        else
+            % Remove AD from state, but keep property containers. The
+            % fine-grained mechanism for keeping properties to the next
+            % step is found in updateAfterConvergence.
+            state = model.reduceState(state, false);
         end
         modelConverged = all(convergence);
         if outOfIterations && nonlinsolver.acceptanceFactor ~= 1
