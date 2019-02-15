@@ -299,8 +299,10 @@ classdef NewAD < ADI
         
         function h = cat(varargin)
             if 1
-                h = vertcat(varargin{:});
-                h.jac = {h.horzcatJac(h.jac{:})};
+                val = cellfun(@(x) x.val, varargin, 'Unif', false);
+                jac = cellfun(@(x) vertcat(x.jac{:}), varargin, 'Unif', false);
+                h.val = vertcat(val{:});
+                h.jac = {vertcat(jac{:})};
             else
                 n = nargin;
                 nj = numel(varargin{1}.jac);
