@@ -13,7 +13,6 @@ void mexFunction( int nlhs, mxArray *plhs[],
 		  int nrhs, const mxArray *prhs[] )
      
 { 
-    int i, j;
     // In: diagonal (nc x m), N (nf x 2)
     // Out: Face diagonal of (2*nf x m)
     if (nrhs != 2) { 
@@ -32,10 +31,9 @@ void mexFunction( int nlhs, mxArray *plhs[],
     
     plhs[0] = mxCreateDoubleMatrix(2*nf, m, mxREAL);
     double * result = mxGetPr(plhs[0]);
-
-    for(j=0;j<m;j++){
-        #pragma omp parallel for
-        for(i=0;i<2*nf;i++){
+    #pragma omp parallel for collapse(2)
+    for(int j=0;j<m;j++){
+        for(int i=0;i<2*nf;i++){
             int sgn;
             int cell_inx = N[i]-1;
             if(i<nf){

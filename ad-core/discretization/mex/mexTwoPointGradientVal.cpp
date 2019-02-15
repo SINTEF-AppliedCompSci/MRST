@@ -13,7 +13,6 @@ void mexFunction( int nlhs, mxArray *plhs[],
 		  int nrhs, const mxArray *prhs[] )
      
 { 
-    int i, j;
     // In: value (nc x m), N (nf x 2)
     // Out: nf gradient
     if (nrhs != 2) { 
@@ -31,9 +30,9 @@ void mexFunction( int nlhs, mxArray *plhs[],
     plhs[0] = mxCreateDoubleMatrix(nf, m, mxREAL);
     double * result = mxGetPr(plhs[0]);
     
-    for(j=0;j<m;j++){
-        #pragma omp parallel for
-        for(i=0;i<2*nf;i++){
+    #pragma omp parallel for collapse(2)
+    for(int j=0;j<m;j++){
+        for(int i=0;i<2*nf;i++){
             int cell_inx = N[i]-1;
             double v = value[cell_inx +  j*nc];
             if(i<nf){

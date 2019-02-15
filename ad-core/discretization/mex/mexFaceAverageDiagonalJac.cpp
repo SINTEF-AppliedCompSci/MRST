@@ -29,9 +29,8 @@ void mexFunction( int nlhs, mxArray *plhs[],
         
     plhs[0] = mxCreateDoubleMatrix(2*nf, m, mxREAL);
     double * result = mxGetPr(plhs[0]);
-
+    #pragma omp parallel for collapse(2)
     for(int j=0;j<m;j++){
-        #pragma omp parallel for
         for(int i=0;i<2*nf;i++){
             int cell_inx = N[i]-1;
             result[j*2*nf + i] = diagonal[nc*j + cell_inx]/2.0;

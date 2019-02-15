@@ -16,7 +16,6 @@ void mexFunction( int nlhs, mxArray *plhs[],
      
 { 
     auto t0 = std::chrono::high_resolution_clock::now();
-    int i, j;
     // In: 
     // cell diagonal (nc x m) or empty
     // diagonal (nf x m)
