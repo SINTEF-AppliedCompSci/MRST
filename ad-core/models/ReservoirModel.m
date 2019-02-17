@@ -149,7 +149,7 @@ methods
             'FacilityModel not set up. Call model.validateModel before calling equations with wells.');
             [model.FacilityModel, state] = model.FacilityModel.prepareTimestep(state, state0, dt, drivingForces);
         end
-        [model.FluxDiscretization, state] = model.FluxDiscretization.prepareTimestep(model, state, state0, drivingForces);
+        [model.FluxDiscretization, state] = model.FluxDiscretization.prepareTimestep(model, state, state0, dt, drivingForces);
     end
 
     % --------------------------------------------------------------------%

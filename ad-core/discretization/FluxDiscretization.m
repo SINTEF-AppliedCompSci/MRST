@@ -37,7 +37,7 @@ classdef FluxDiscretization < PropertyFunctions
             props.FaceComponentMobility = FaceComponentMobility(backend, upstr);
             props.FaceMobility = FaceMobility(backend, upstr);
             % 
-            props.ComponentPhaseFlux = ComponentPhaseFlux(backend, upstr);
+            props.ComponentPhaseFlux = ComponentPhaseFlux(backend);
             props.ComponentTotalFlux = ComponentTotalFlux(backend);
             props.PhaseFlux = PhaseFlux(backend);
 
@@ -85,8 +85,9 @@ classdef FluxDiscretization < PropertyFunctions
             dt = fd.FlowStateBuilder.getMaximumTimestep(fd, model, state, state0, dt, forces);
         end
         
-        function [fd, state] = prepareTimestep(fd, model, state, state0, drivingForces)
+        function [fd, state] = prepareTimestep(fd, model, state, state0, dt, drivingForces)
             % Called before each time-step solve
+            [fd.FlowStateBuilder, state] = fd.FlowStateBuilder.prepareTimestep(fd, model, state, state0, dt, drivingForces);
         end
     end
 end

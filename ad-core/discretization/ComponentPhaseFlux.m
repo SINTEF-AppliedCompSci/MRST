@@ -1,4 +1,4 @@
-classdef ComponentPhaseFlux < GridProperty & UpwindProperty
+classdef ComponentPhaseFlux < GridProperty
     properties
 
     end
@@ -6,7 +6,6 @@ classdef ComponentPhaseFlux < GridProperty & UpwindProperty
     methods
         function cf = ComponentPhaseFlux(backend, upwinding)
             cf@GridProperty(backend);
-            cf@UpwindProperty(upwinding)
         end
 
         

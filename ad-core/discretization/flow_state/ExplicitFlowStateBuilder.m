@@ -2,7 +2,8 @@ classdef ExplicitFlowStateBuilder < FlowStateBuilder
     properties
         saturationCFL = 1;
         compositionCFL = 1;
-        explicitFlowProps = {'FaceMobility', 'FaceComponentMobility'};
+        explicitFlowProps = {'FaceMobility', 'FaceComponentMobility',...
+                             'CapillaryPressure', 'GravityPotentialDifference'};
         implicitFlowProps = {'PressureGradient'};
         initialStep = 1*day;
     end
@@ -39,6 +40,10 @@ classdef ExplicitFlowStateBuilder < FlowStateBuilder
                 f = model.getProps(state0, prop);
                 flowState.(name).(prop) = f;
             end
+        end
+        
+        function [builder, state] = prepareTimestep(builder, fd, model, state, state0, dt, drivingForces)
+            assert(model.outputFluxes, 'model.outputFluxes must be true for explicit solver');
         end
     end
 end
