@@ -79,12 +79,6 @@ classdef GenericBlackOil < ThreePhaseBlackOilModel & ExtendedReservoirModel
         end
         
         function [state, report] = updateState(model, state, problem, dx, forces)
-            if model.outputFluxes
-                f = model.getProp(state, 'PhaseFlux');
-                nph = numel(f);
-                state.flux = zeros(model.G.faces.num, nph);
-                state.flux(model.operators.internalConn, :) = [f{:}];
-            end
             [state, report] = updateState@ThreePhaseBlackOilModel(model, state, problem, dx, forces);
             if ~isempty(model.FacilityModel)
                 state = model.FacilityModel.applyWellLimits(state);
@@ -98,6 +92,16 @@ classdef GenericBlackOil < ThreePhaseBlackOilModel & ExtendedReservoirModel
             %   :meth:`ad_core.models.PhysicalModel.validateModel`
             model.FacilityModel = ExtendedFacilityModel(model);
             model = validateModel@ThreePhaseBlackOilModel(model, varargin{:});
+        end
+        
+        function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
+            [state, report] = updateAfterConvergence@ReservoirModel(model, state0, state, dt, drivingForces);
+            if model.outputFluxes
+                f = model.getProp(state, 'PhaseFlux');
+                nph = numel(f);
+                state.flux = zeros(model.G.faces.num, nph);
+                state.flux(model.operators.internalConn, :) = [f{:}];
+            end
         end
     end
 end
