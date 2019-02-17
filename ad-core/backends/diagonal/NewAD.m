@@ -154,7 +154,7 @@ classdef NewAD < ADI
         
         function x = incrementSubset(x, subs, v)
             if isa(x, 'NewAD')
-                x.val(subs) = x.val(subs) + double(v);
+                x.val(subs) = x.val(subs) + value(v);
                 if isa(v, 'NewAD')
                     for i = 1:numel(x.jac)
                         x.jac{i} = incrementSubset(x.jac{i}, subs, v.jac{i});
