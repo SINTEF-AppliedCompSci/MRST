@@ -78,7 +78,13 @@ classdef GenericBlackOil < ThreePhaseBlackOilModel & ExtendedReservoirModel
             n = model.water + model.oil + model.gas;
         end
         
-        function [state, report] = updateState(model, state, problem, dx, forces) 
+        function [state, report] = updateState(model, state, problem, dx, forces)
+            if model.outputFluxes
+                f = model.getProp(state, 'PhaseFlux');
+                nph = numel(f);
+                state.flux = zeros(model.G.faces.num, nph);
+                state.flux(model.operators.internalConn, :) = [f{:}];
+            end
             [state, report] = updateState@ThreePhaseBlackOilModel(model, state, problem, dx, forces);
             if ~isempty(model.FacilityModel)
                 state = model.FacilityModel.applyWellLimits(state);
