@@ -188,7 +188,9 @@ methods
         p = state.pressure;
         mob = state.FlowProps.Mobility;
         rho = state.FlowProps.Density;
-        sat = state.s;
+        
+        sat = cell(1, 3);
+        [sat{1}, sat{2}, sat{3}] = model.getProps(state, 'sw', 'so', 'sg');
         pressures = state.FlowProps.PhasePressures;
         eqs = acc;
 

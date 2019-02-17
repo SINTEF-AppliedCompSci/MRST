@@ -70,10 +70,10 @@ end
 function F = findLargestEigenvalue(F)
     if size(F, 2) > 1
         nc = size(F, 1);
-        nph = sqrt(size(F, 2)) + 1;
+        nph = sqrt(size(F, 2));
         tmp = zeros(nc, 1);
         for i = 1:nc
-            M = reshape(F(i, :), nph-1, nph-1);
+            M = reshape(F(i, :), nph, nph);
             tmp(i) = max(abs(eig(M)));
         end
         F = tmp;
