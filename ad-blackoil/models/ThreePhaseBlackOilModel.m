@@ -111,20 +111,25 @@ methods
 
     function state = initStateAD(model, state, vars, names, origin)
         removed = false(size(vars));
+        isw = strcmpi(names, 'sw');
+        sW = vars{isw};
         if model.disgas || model.vapoil
-            isw = strcmpi(names, 'sw');
             isx = strcmpi(names, 'x');
-            
-            sW = vars{isw};
             x = vars{isx};
             sG = model.getProps(state, 'sg');
             st  = model.getCellStatusVO(state, 1-sW-sG, sW, sG);
             sG = st{2}.*(1-sW) + st{3}.*x;
             sO = st{1}.*(1-sW) + ~st{1}.*(1 - sW - sG);
-            sat =  {sW, sO, sG};
-            state = model.setProp(state, 's', sat);
             removed = removed | isx | isw;
+        else
+            isg = strcmpi(names, 'sg');
+            sG = vars{isg};
+            sO = 1 - sW - sG;
+            removed = removed | isg | isw;
         end
+        sat =  {sW, sO, sG};
+        state = model.setProp(state, 's', sat);
+        
         if not(isempty(model.FacilityModel))
             % Temporary code...
             fm = class(model.FacilityModel);
