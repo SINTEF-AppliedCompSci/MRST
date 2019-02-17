@@ -13,14 +13,14 @@ classdef ComponentPhaseFlux < GridProperty & UpwindProperty
         function v = evaluateOnDomain(prop, model, state)
             ncomp = model.getNumberOfComponents;
             nph = model.getNumberOfPhases;
-            [kgrad, flag] = model.getProps(state,...
-                'PermeabilityPotentialGradient', 'PhaseUpwindFlag');
+            [kgrad, compMob] = model.getProps(state,...
+                'PermeabilityPotentialGradient', 'FaceComponentMobility');
             v = cell(ncomp, nph);
             for c = 1:ncomp
-                mob = model.Components{c}.getComponentMobility(model, state);
                 for ph = 1:nph
-                    if ~isempty(mob{ph})
-                        v{c, ph} = prop.faceUpstream(state, flag{ph}, -mob{ph}).*kgrad{ph};
+                    mob = compMob{c, ph};
+                    if ~isempty(mob)
+                        v{c, ph} = -mob.*kgrad{ph};
                     end
                 end
             end

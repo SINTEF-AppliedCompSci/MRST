@@ -5,10 +5,11 @@ classdef ComponentMobility < GridProperty
     
     methods
         function v = evaluateOnDomain(prop, model, state)
-            ncomp = numel(model.Components);
-            v = cell(1, ncomp);
+            ncomp = model.getNumberOfComponents;
+            nph = model.getNumberOfPhases;
+            v = cell(ncomp, nph);
             for i = 1:ncomp
-                v{i} = model.Components{i}.getComponentMobility(model, state);
+                v(i, :) = model.Components{i}.getComponentMobility(model, state);
             end
         end
     end

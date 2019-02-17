@@ -9,12 +9,16 @@ classdef FaceComponentMobility < GridProperty & UpwindProperty
             fm@UpwindProperty(upwinding)
         end
         
-        function fmob = evaluateOnDomain(prop, model, state)
+        function mobf = evaluateOnDomain(prop, model, state)
             [mob, flag] = model.getProps(state, 'ComponentMobility', 'PhaseUpwindFlag');
-            nph = numel(mob);
-            fmob = cell(1, nph);
-            for i = 1:nph
-                fmob{i} = prop.faceUpstream(state, flag{i}, mob{i});
+            [ncomp, nph] = size(mob);
+            mobf = cell(ncomp, nph);
+            for c = 1:ncomp
+                for ph = 1:nph
+                    if ~isempty(mob{c, ph})
+                        mobf{c, ph} = prop.faceUpstream(state, flag{ph}, mob{c, ph});
+                    end
+                end
             end
         end
     end

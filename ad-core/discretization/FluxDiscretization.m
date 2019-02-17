@@ -5,14 +5,16 @@ classdef FluxDiscretization < PropertyFunctions
         GravityPotentialDifference % rho * g * dz term
         PhasePotentialDifference % (grad p_alpha + dpdz)
         PhaseFlux % Phase volumetric fluxes
+        FaceMobility % Phase mobility on face
+        FaceComponentMobility % Composition * mobility on face
         PhaseUpwindFlag
         ComponentTotalFlux % Total mass flux for each component
         ComponentPhaseFlux % Phase fluxes for each component
         Transmissibility
     end
 
-    properties (Access = private)
-        
+    properties (Access = protected)
+        FlowStateBuilder
     end
     methods
         function props = FluxDiscretization(model)
@@ -31,15 +33,29 @@ classdef FluxDiscretization < PropertyFunctions
             props.PhasePotentialDifference = PhasePotentialDifference(backend);
             props.PhaseUpwindFlag = PhaseUpwindFlag(backend);
             
-            % Fluxes - these are upwinded properties
+            % Face values - typically upwinded
+            props.FaceComponentMobility = FaceComponentMobility(backend, upstr);
+            props.FaceMobility = FaceMobility(backend, upstr);
+            % 
             props.ComponentPhaseFlux = ComponentPhaseFlux(backend, upstr);
             props.ComponentTotalFlux = ComponentTotalFlux(backend);
-            props.PhaseFlux = PhaseFlux(backend, upstr);
+            props.PhaseFlux = PhaseFlux(backend);
 
+            % Flow discretizer
+            props.FlowStateBuilder = ImplicitFlowStateBuilder();
+            
             % Define storage
             props.structName = 'FluxProps';
         end
 
+        function fd = setFlowStateBuilder(fd, fb)
+            fd.FlowStateBuilder = fb;
+        end
+        
+        function fb = getFlowStateBuilder(fd)
+            fb = fd.FlowStateBuilder;
+        end
+        
         function state = evaluateProperty(props, model, state, name)
             switch name
 
@@ -54,10 +70,23 @@ classdef FluxDiscretization < PropertyFunctions
             [types{:}] = deal('cell');
             mass = model.getProps(state, 'ComponentTotalMass');
             mass0 = model.getProps(state0, 'ComponentTotalMass');
-            v = model.getProps(state, 'ComponentTotalFlux');
+            flowState = fd.buildFlowState(model, state, state0, dt);
+            v = model.getProps(flowState, 'ComponentTotalFlux');
             for c = 1:ncomp
                 acc{c} = (mass{c} - mass0{c})./dt;
             end
+        end
+
+        function flowState = buildFlowState(fd, model, state, state0, dt)
+            flowState = fd.FlowStateBuilder.build(fd, model, state, state0, dt);
+        end
+        
+        function dt = getMaximumTimestep(fd, model, state, state0, dt, forces)
+            dt = fd.FlowStateBuilder.getMaximumTimestep(fd, model, state, state0, dt, forces);
+        end
+        
+        function [fd, state] = prepareTimestep(fd, model, state, state0, drivingForces)
+            % Called before each time-step solve
         end
     end
 end

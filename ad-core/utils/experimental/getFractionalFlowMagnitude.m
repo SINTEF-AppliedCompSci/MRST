@@ -4,169 +4,66 @@ function [F, Q] = getFractionalFlowMagnitude(model, state)
     
     if nph == 1
         F = ones(nc, 1);
-    elseif nph == 2
-        if model.oil
-            if model.gas
-                [F, Q] = getFractionalFlowMagnitudeOG(model, state);
-            elseif model.water
-                [F, Q] = getFractionalFlowMagnitudeOW(model, state);
-            end
-        else
-            error('Not supported');
-        end
     else
-        [F, Q] = getFractionalFlowMagnitudeWOG(model, state);
+        [F, Q] = getFractionalFlowMagnitudeInternal(model, state);
     end
     
     F = findLargestEigenvalue(F);
     Q = findLargestEigenvalue(Q);
 end
 
-function [F, Q] = getFractionalFlowMagnitudeWOG(model, state)
-    assert(model.water && model.oil && model.gas)
+function [F, Q] = getFractionalFlowMagnitudeInternal(model, state)
+    s = model.getProp(state, 'saturation');
+    nph = size(s, 2);
+    s = arrayfun(@(x) s(:, x), 1:nph, 'UniformOutput', false);
     
-    [sW, sG] = model.getProps(state, 'sW', 'sG');
-    [sW, sG] = initVariablesADI(sW, sG);
-    sO = 1 - sW - sG;
-    
-    [krW, krO, krG] = model.evaluateRelPerm({sW, sO, sG});
-    muW = getViscosity(model, state, 'w');
-    muO = getViscosity(model, state, 'o');
-    muG = getViscosity(model, state, 'g');
-    
-    mobW = krW./muW;
-    mobO = krO./muO;
-    mobG = krG./muG;
-    
-    mobT = mobO + mobG + mobW;
-    
-    f_g = mobG./mobT;
-    f_w = mobW./mobT;
-    
-    J = @(x, i) full(diag(x.jac{i}));
-    F = [J(f_w, 1), J(f_g, 1), J(f_w, 2), J(f_g, 2)];
-    
-    f = model.fluid;
-    hasOW = isfield(f, 'pcOW');
-    hasOG = isfield(f, 'pcOG');
-    
-    if hasOW || hasOG
-    	Q = zeros(model.G.cells.num, 4);
-        mobOW = double(mobO.*mobW)./double(mobT);
-        mobOG = double(mobO.*mobG)./double(mobT);
-        mobWG = double(mobW.*mobG)./double(mobT);
-        if hasOW
-            pcow = f.pcOW(sW);
-            dow = J(pcow, 1);
-            Q(:, 1) =  dow.*mobWG;
-            Q(:, 2) = -dow.*(mobWG + mobOW);
-        end
-        if hasOG
-            pcog = f.pcOG(sG);
-            dog = J(pcog, 2);
-            Q(:, 3) =  dog.*(mobOG + mobWG);
-            Q(:, 4) = -dog.*mobWG;
-        end
-    else
-        Q = [];
+    [s{1:end-1}] = initVariablesAD_diagonal(s{1:end-1});
+    s{end} = 1;
+    for i = 1:nph-1
+        s{end} = s{end} - s{i};
     end
-end
-
-
-
-function [F, Q] = getFractionalFlowMagnitudeOG(model, state)
-    assert(~model.water && model.oil && model.gas)
+    state = model.setProp(state, 'saturation', s);
     
-    sG = model.getProp(state, 'sG');
-    sG = initVariablesADI(sG);
-    sO = 1 - sG;
-    
-    [krO, krG] = model.evaluateRelPerm({sO, sG});
-    muG = getViscosity(model, state, 'g');
-    muO = getViscosity(model, state, 'o');
+    mob = model.getProps(state, 'Mobility');
 
-    mobG = krG./muG;
-    mobO = krO./muO;
-    
-    mobT = mobO + mobG;
-    
-    f_g = mobG./mobT;
-    J = @(x) full(diag(x.jac{1}));
-
-    F = J(f_g);
-    
-    f = model.fluid;
-    hasOG = isfield(f, 'pcOG');
-    if hasOG
-    	Q = zeros(model.G.cells.num, 1);
-        mobOG = double(mobO.*mobG)./double(mobT);
-        if hasOG
-            pcog = f.pcOG(sG);
-            dog = J(pcog);
-            Q(:, 1) = dog.*mobOG;
-        end
-    else
-        Q = [];
+    mobT = 0;
+    for i = 1:nph
+        mobT = mobT + mob{i};
     end
-
-end
-
-function [F, Q] = getFractionalFlowMagnitudeOW(model, state)
-    assert(model.water && model.oil && ~model.gas)
+    nc = model.G.cells.num;
     
-    sW = model.getProp(state, 'sW');
-    sW = initVariablesADI(sW);
-    sO = 1 - sW;
-    
-    [krW, krO] = model.evaluateRelPerm({sW, sO});
-    muW = getViscosity(model, state, 'w');
-    muO = getViscosity(model, state, 'o');
-
-    mobW = krW./muW;
-    mobO = krO./muO;
-    
-    mobT = mobO + mobW;
-    
-    f_w = mobW./mobT;
-    
-    J = @(x) full(diag(x.jac{1}));
-    F = J(f_w);
-    
-    f = model.fluid;
-    hasOW = isfield(f, 'pcOW');
-    
-    if hasOW 
-    	Q = zeros(model.G.cells.num, 1);
-        mobOW = double(mobO.*mobW)./double(mobT);
-        pcow = f.pcOW(sW);
-        dow = J(pcow);
-        Q(:, 1) =  dow.*mobOW;
-    else
-        Q = [];
+    F = zeros(nc, (nph-1)*(nph-1));
+    for i = 1:nph-1
+        frac = mob{i}./mobT;
+        
+        offset = (nph-1)*(i-1)+1;
+        F(:, offset:offset+(nph-2)) = frac.jac{1}.diagonal;
     end
-
-end
-
-
-function mu = getViscosity(model, state, name)
-    isOil = strcmpi(name, 'o');
-    isGas = strcmpi(name, 'g');
+    pc = model.getProp(state, 'CapillaryPressure');
+    Q = [];
+    % Note to self: Fix capillary pressure here
     
-    p = model.getProps(state, 'pressure');
-    if isa(model, 'ThreePhaseCompositionalModel') && (isOil || isGas)
-        pm = model.EOSModel.PropertyModel;
-        isLiquid = strcmpi(name, 'o');
-        if isLiquid
-            [xy, T, Z] = model.getProps(state, 'x', 'T', 'Z_L');
-        else
-            [xy, T, Z] = model.getProps(state, 'y', 'T', 'Z_V');
-        end
-        mu = pm.computeViscosity(p, xy, Z, T, isLiquid);
-    else
-        fn_name = ['mu', upper(name)];
-        mu = model.fluid.(fn_name)(p);
-    end
-
+%     if hasOW || hasOG
+%         assert(false, 'Not (re)-implemented yet!');
+%     	Q = zeros(model.G.cells.num, 4);
+%         mobOW = double(mobO.*mobW)./double(mobT);
+%         mobOG = double(mobO.*mobG)./double(mobT);
+%         mobWG = double(mobW.*mobG)./double(mobT);
+%         if hasOW
+%             pcow = f.pcOW(sW);
+%             dow = J(pcow, 1);
+%             Q(:, 1) =  dow.*mobWG;
+%             Q(:, 2) = -dow.*(mobWG + mobOW);
+%         end
+%         if hasOG
+%             pcog = f.pcOG(sG);
+%             dog = J(pcog, 2);
+%             Q(:, 3) =  dog.*(mobOG + mobWG);
+%             Q(:, 4) = -dog.*mobWG;
+%         end
+%     else
+%         Q = [];
+%     end
 end
 
 
