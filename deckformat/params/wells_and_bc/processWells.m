@@ -448,6 +448,8 @@ function W = process_wconhist(W, control, G, rock, c2a, well_id, p, opt)
           else
               compi = [1 1 1]/3;
           end
+          % Historical RESV control
+          type = 'RESV_HISTORY';
         case 'bhp'
           val = control.WCONHIST{i, 10};
 
