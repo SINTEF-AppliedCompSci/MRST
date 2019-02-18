@@ -444,7 +444,8 @@ function W = process_wconhist(W, control, G, rock, c2a, well_id, p, opt)
           rates = - ([control.WCONHIST{i, 4:6}]);
           val   = sum(rates);
           if val ~= 0
-              compi = rates./val;
+              % Account for OWG ordering. MRST uses WOG.
+              compi = rates([2, 1, 3])./val;
           else
               compi = [1 1 1]/3;
           end
