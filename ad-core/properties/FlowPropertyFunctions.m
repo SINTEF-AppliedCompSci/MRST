@@ -59,7 +59,7 @@ classdef FlowPropertyFunctions < PropertyFunctions
                     % Endpoint capillary pressure is defined
                     props.CapillaryPressure =...
                         props.CapillaryPressure.setWaterEndpointScaling...
-                                                (model, model.rock.sw, []);
+                                                (model, model.rock.sw, 1);
                 end
             end
             

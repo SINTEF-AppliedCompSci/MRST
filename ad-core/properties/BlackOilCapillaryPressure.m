@@ -29,12 +29,13 @@ classdef BlackOilCapillaryPressure < GridProperty
                     pcmin = prop.pcOWMin;
                     pcmax = prop.pcOWMax;
                     pcw = prop.endpointPCOW;
-                    if ~isempty(prop.region)
-                        pcmin = pcmin(prop.region);
-                        pcmax = pcmax(prop.region);
-                        pcw = pcw(prop.region);
+                    reg = prop.regions;
+                    if ~isempty(reg)
+                        pcmin = pcmin(reg);
+                        pcmax = pcmax(reg);
+                        pcw = pcw(reg);
                     end
-                    pc_scale = (pcow - pcmin)./(pcmax - pmin);
+                    pc_scale = (pcow - pcmin)./(pcmax - pcmin);
                     switch prop.endpointOptionSW
                         case 1
                             % Initial water is interpreted as maximum pc
