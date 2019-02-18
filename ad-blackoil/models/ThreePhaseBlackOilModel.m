@@ -153,6 +153,12 @@ methods
             rv = ~st{2}.*rvSat + st{2}.*x;
             rv = rv.*(value(sG) > 0);
             state = model.setProp(state, 'rv', rv);
+            % No rv, no so -> zero on diagonal in matrix
+            bad_oil = value(sO) == 0 & value(rv) == 0;
+            if any(bad_oil)
+                sO(bad_oil) = 1 - sW(bad_oil) - value(sG(bad_oil));
+                state = model.setProp(state, 'sO', sO);
+            end
         end
     end
     
