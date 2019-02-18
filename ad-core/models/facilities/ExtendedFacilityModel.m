@@ -75,12 +75,23 @@ classdef ExtendedFacilityModel < FacilityModel
                 is_bhp = strcmp(well_controls, 'bhp');
                 ctrl_eq(is_bhp) = bhp(is_bhp) - targets(is_bhp);
                 
-                % Rate controls
+                % Different types of rate controls
+                
+                % Surface total rates
                 is_rate = strcmp(well_controls, 'rate') | strcmpi(well_controls, 'vrat');
+                % Surface oil rates
                 is_orat = strcmp(well_controls, 'orat');
+                % Surface water rates
                 is_wrat = strcmp(well_controls, 'wrat');
+                % Surface gas rates
                 is_grat = strcmp(well_controls, 'grat');
+                % Surface liquid rates (water + oil)
                 is_lrat = strcmp(well_controls, 'lrat');
+                % Reservoir rates (at averaged conditions from previous step)
+                is_resv = strcmp(well_controls, 'resv');
+                % Reservoir rates (at current conditions for each perf.)
+                is_volume = strcmp(well_controls, 'volume');
+                
                 phases = model.getPhaseNames();
                 is_surface_control = false(nact, 1);
                 
@@ -99,6 +110,20 @@ classdef ExtendedFacilityModel < FacilityModel
                     qs_t(act) = qs_t(act) + mixs(act, i);
                 end
                 ctrl_eq(is_surface_control) = wrates(is_surface_control) - targets(is_surface_control);
+                
+                if any(is_resv)
+                    map = facility.getProp(state, 'FacilityWellMapping');
+                    rho = cellfun(@(x) x.ControlDensity, facility.WellModels(map.active), 'UniformOutput', false);
+                    rho = vertcat(rho{is_resv});
+                    
+                    ratio = bsxfun(@rdivide, rhoS, rho);
+                    q_resv = 0;
+                    for ph = 1:nph
+                        q_resv = q_resv + surfaceRates{ph}(is_resv).*ratio(ph);
+                    end
+                    ctrl_eq(is_resv) = q_resv - targets(is_resv);
+                end
+                
                 % Zero surface rate conditions
                 zeroRates = qs_t == 0 & is_surface_control;
                 if any(zeroRates)
@@ -108,9 +133,8 @@ classdef ExtendedFacilityModel < FacilityModel
                     end
                     ctrl_eq(zeroRates) = q_t;
                 end
+
                 
-                % Volume flux
-                is_volume = strcmp(well_controls, 'volume');
                 if any(is_volume)
                     phase_flux = facility.getProps(state, 'PhaseFlux');
                     total_flux = 0;
@@ -121,7 +145,7 @@ classdef ExtendedFacilityModel < FacilityModel
                     ctrl_eq(is_volume) = well_total_flux(is_volume) - targets(is_volume);
                 end
                 
-                assert(all(is_surface_control | is_bhp | is_volume));
+                assert(all(is_surface_control | is_bhp | is_volume | is_resv));
             else
                 for i = 1:nact
                     w = map.active(i);

@@ -897,7 +897,7 @@ classdef FacilityModel < PhysicalModel
             active = model.getWellStatusMask(state.wellSol);
             isRESVHist = cellfun(@(x) strcmpi(x.W.type, 'resv_history'), model.WellModels(active));
             isRESVNow = cellfun(@(x) strcmpi(x.W.type, 'resv'), model.WellModels(active));
-            isRESV = isRESVHist | isRESVHist;
+            isRESV = isRESVHist | isRESVNow;
             if any(isRESV)
                 % Local index
                 W = model.getWellStruct(active);
@@ -940,10 +940,11 @@ classdef FacilityModel < PhysicalModel
                 else
                     shrink = 1;
                 end
-                disp('marker!')
                 cells = arrayfun(@(x) x.cells(1), W(isRESV));
                 nc = numel(cells);
                 flowProps = model.ReservoirModel.FlowPropertyFunctions.subset(cells);
+                % Avoid using flag for interpolation
+                flowProps.ShrinkageFactors.useSaturatedFlag = false;
                 substate = struct('pressure', mean(state.pressure), ...
                                   's', repmat([0, 1, 0], nc, 1), ...
                                   'rs', rs, ...
@@ -977,14 +978,18 @@ classdef FacilityModel < PhysicalModel
                     end
                     newRates = newRates + grat./(bG.*shrink);
                 end
-                resvIx = find(isRESVHist);
+                resvIx = find(isRESV);
                 actIx = find(active);
                 for i = 1:numel(resvIx)
-                    global_well_ix = actIx(resvIx(i));
-                    model.WellModels{global_well_ix}.W.val = newRates(i);
-                    state.wellSol(global_well_ix).val = newRates(i);
-                    model.WellModels{global_well_ix}.W.type = 'resv';
-                    state.wellSol(global_well_ix).type = 'resv';
+                    I = resvIx(i);
+                    global_well_ix = actIx(I);
+                    if isRESVHist(I)
+                        model.WellModels{global_well_ix}.W.val = newRates(i);
+                        state.wellSol(global_well_ix).val = newRates(i);
+                        model.WellModels{global_well_ix}.W.type = 'resv';
+                        state.wellSol(global_well_ix).type = 'resv';
+                    end
+                    model.WellModels{global_well_ix}.ControlDensity = rho(i, :);
                 end
             end
         end

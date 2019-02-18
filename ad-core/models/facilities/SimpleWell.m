@@ -33,6 +33,7 @@ classdef SimpleWell < PhysicalModel
         dsMaxAbs % Maximum allowable change in well composition/saturation
         VFPTable % Vertical lift table. EXPERIMENTAL.
         doUpdatePressureDrop
+        ControlDensity
     end
 
     methods
