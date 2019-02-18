@@ -1,5 +1,6 @@
 function regions = getInitializationRegionsDeck(model, deck)
     n = size(deck.SOLUTION.EQUIL, 1);
+    model = model.validateModel();
 
     regions = cell(n, 1);
     for regionIx = 1:n

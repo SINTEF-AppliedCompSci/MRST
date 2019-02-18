@@ -63,10 +63,7 @@ function region = getInitializationRegionsBlackOil(model, contacts, varargin)
     else
         ref_index = 1;
     end
-    
-    
-    [s_min, s_max] = getMinMaxPhaseSaturations(model, satnum);
-    
+    [s_min, s_max] = getMinMaxPhaseSaturations(model, satnum, opt.cells);
     region = getInitializationRegionsBase(model, rho, contacts, ...
         'rho',              rho, ...
         'cells',            opt.cells, ...
