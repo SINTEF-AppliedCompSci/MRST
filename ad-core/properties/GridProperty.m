@@ -56,5 +56,11 @@ classdef GridProperty
                 v = fn(varargin{:});
             end
         end
+        
+        function property = subset(property, cell_subset)
+            if ~isempty(property.regions)
+                property.regions = property.regions(cell_subset);
+            end
+        end
     end
 end

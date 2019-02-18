@@ -86,5 +86,15 @@ classdef PropertyFunctions
                 end
             end
         end
+        
+        function props = subset(props, cell_subset)
+            names = props.structFields;
+            for i = 1:numel(names)
+                pn = names{i};
+                if ~isempty(props.(pn))
+                    props.(pn) = props.(pn).subset(cell_subset);
+                end
+            end
+        end
     end
 end

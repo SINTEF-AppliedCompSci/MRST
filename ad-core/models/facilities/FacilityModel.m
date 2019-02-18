@@ -895,19 +895,24 @@ classdef FacilityModel < PhysicalModel
 
         function [model, state] = prepareTimestep(model, state, state0, dt, drivingForces)
             active = model.getWellStatusMask(state.wellSol);
-            isResv = cellfun(@(x) strcmpi(x.W.type, 'resv'), model.WellModels(active));
-            if any(isResv)
+            isRESVHist = cellfun(@(x) strcmpi(x.W.type, 'resv_history'), model.WellModels(active));
+            isRESVNow = cellfun(@(x) strcmpi(x.W.type, 'resv'), model.WellModels(active));
+            isRESV = isRESVHist | isRESVHist;
+            if any(isRESV)
+                % Local index
                 W = model.getWellStruct(active);
+                
+                isHist = isRESVHist(isRESV);
                 compi = vertcat(W.compi);
-                compi = compi(isResv, :);
+                compi = compi(isRESV, :);
                 
                 rates = vertcat(W.val);
-                rates = rates(isResv);
+                rates = rates(isRESV);
                 
                 qs = bsxfun(@times, rates, compi);
                 
                 newRates = 0*rates;
-                n_resv = sum(isResv);
+                n_resv = sum(isRESV);
                 p = repmat(mean(state0.pressure), n_resv, 1);
                 rmodel = model.ReservoirModel;
                 
@@ -918,12 +923,16 @@ classdef FacilityModel < PhysicalModel
                 wix = rmodel.getPhaseIndex('W');
                 f = rmodel.fluid;
                 if disgas
-                    mrs = repmat(mean(state.rs), n_resv, 1);
-                    rs = min(qs(:, gix)./qs(:, oix), mrs);
+                    rs = repmat(mean(state.rs), n_resv, 1);
+                    rs(isHist) = min(qs(isHist, gix)./qs(isHist, oix), rs);
+                else
+                    rs = 0;
                 end
                 if vapoil
-                    mrv = repmat(mean(state.rv), n_resv, 1);
-                    rv = min(qs(:, oix)./qs(:, gix), mrv);
+                    rv = repmat(mean(state.rv), n_resv, 1);
+                    rv(isHist) = min(qs(isHist, oix)./qs(isHist, gix), rv);
+                else
+                    rv = 0;
                 end
                 
                 if disgas && vapoil
@@ -931,19 +940,29 @@ classdef FacilityModel < PhysicalModel
                 else
                     shrink = 1;
                 end
+                disp('marker!')
+                cells = arrayfun(@(x) x.cells(1), W(isRESV));
+                nc = numel(cells);
+                flowProps = model.ReservoirModel.FlowPropertyFunctions.subset(cells);
+                substate = struct('pressure', mean(state.pressure), ...
+                                  's', repmat([0, 1, 0], nc, 1), ...
+                                  'rs', rs, ...
+                                  'rv', rv);
+                substate = flowProps.evaluateProperty(model.ReservoirModel, substate, 'Density');
+                substate = flowProps.evaluateProperty(model.ReservoirModel, substate, 'ShrinkageFactors');
                 
-                evalpvt = @(varargin) model.ReservoirModel.FlowPropertyFunctions.Density.evaluateFunctionSingleRegion(varargin{1}, 1, varargin{2:end});
+                rhoS = model.ReservoirModel.getSurfaceDensities();
+                rho = substate.FlowProps.Density;
+                rho = [rho{:}];
+                rho = max(rho, repmat(rhoS, nc, 1));
+                b = substate.FlowProps.ShrinkageFactors;
+                
                 if rmodel.water
-                    bW = evalpvt(f.bW, p);
+                    bW = b{wix};
                     newRates = newRates + qs(:, wix)./bW;
                 end
                 if rmodel.oil
-                    if disgas
-                        rssat = evalpvt(f.rsSat, p);
-                        bO = evalpvt(f.bO, p, rs, rs >= rssat);
-                    else
-                        bO = evalpvt(f.bO, p);
-                    end
+                    bO = b{oix};
                     orat = qs(:, oix);
                     if vapoil
                         orat = orat - rv.*qs(:, gix);
@@ -951,26 +970,21 @@ classdef FacilityModel < PhysicalModel
                     newRates = newRates + orat./(bO.*shrink);
                 end
                 if rmodel.gas
-                    if vapoil
-                        rvsat = evalpvt(f.rvSat, p);
-                        bG = evalpvt(f.bG, p, rv, rv >= rvsat);
-                    else
-                        bG = evalpvt(f.bG, p);
-                    end
+                    bG = b{gix};
                     grat = qs(:, gix);
                     if vapoil
                         grat = grat - rs.*qs(:, oix);
                     end
                     newRates = newRates + grat./(bG.*shrink);
                 end
-                resvIx = find(isResv);
+                resvIx = find(isRESVHist);
                 actIx = find(active);
                 for i = 1:numel(resvIx)
                     global_well_ix = actIx(resvIx(i));
                     model.WellModels{global_well_ix}.W.val = newRates(i);
                     state.wellSol(global_well_ix).val = newRates(i);
-                    model.WellModels{global_well_ix}.W.type = 'volume';
-                    state.wellSol(global_well_ix).type = 'volume';
+                    model.WellModels{global_well_ix}.W.type = 'resv';
+                    state.wellSol(global_well_ix).type = 'resv';
                 end
             end
         end
