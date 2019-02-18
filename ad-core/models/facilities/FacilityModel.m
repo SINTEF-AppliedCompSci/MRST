@@ -911,17 +911,13 @@ classdef FacilityModel < PhysicalModel
                 
                 qs = bsxfun(@times, rates, compi);
                 
-                newRates = 0*rates;
                 n_resv = sum(isRESV);
-                p = repmat(mean(state0.pressure), n_resv, 1);
                 rmodel = model.ReservoirModel;
                 
                 disgas = isprop(rmodel, 'disgas') && rmodel.disgas;
                 vapoil = isprop(rmodel, 'vapoil') && rmodel.vapoil;
                 oix = rmodel.getPhaseIndex('O');
                 gix = rmodel.getPhaseIndex('G');
-                wix = rmodel.getPhaseIndex('W');
-                f = rmodel.fluid;
                 if disgas
                     rs = repmat(mean(state.rs), n_resv, 1);
                     rs(isHist) = min(qs(isHist, gix)./qs(isHist, oix), rs);
@@ -934,51 +930,22 @@ classdef FacilityModel < PhysicalModel
                 else
                     rv = 0;
                 end
-                
-                if disgas && vapoil
-                    shrink = 1 - rs.*rv;
-                else
-                    shrink = 1;
-                end
+
                 cells = arrayfun(@(x) x.cells(1), W(isRESV));
                 nc = numel(cells);
                 flowProps = model.ReservoirModel.FlowPropertyFunctions.subset(cells);
                 % Avoid using flag for interpolation
                 flowProps.ShrinkageFactors.useSaturatedFlag = false;
-                pm = mean(state.pressure);
+                pm = mean(state0.pressure);
                 substate = struct('pressure', repmat(pm, nc, 1), ...
                                   's', repmat([0, 1, 0], nc, 1), ...
                                   'rs', rs, ...
                                   'rv', rv);
-                substate = flowProps.evaluateProperty(model.ReservoirModel, substate, 'Density');
-                substate = flowProps.evaluateProperty(model.ReservoirModel, substate, 'ShrinkageFactors');
-                
+                substate = flowProps.evaluateProperty(model.ReservoirModel, substate, 'Density');                
                 rhoS = model.ReservoirModel.getSurfaceDensities();
                 rho = substate.FlowProps.Density;
                 rho = [rho{:}];
-                rho = max(rho, repmat(rhoS, nc, 1));
-                b = substate.FlowProps.ShrinkageFactors;
-                
-                if rmodel.water
-                    bW = b{wix};
-                    newRates = newRates + qs(:, wix)./bW;
-                end
-                if rmodel.oil
-                    bO = b{oix};
-                    orat = qs(:, oix);
-                    if vapoil
-                        orat = orat - rv.*qs(:, gix);
-                    end
-                    newRates = newRates + orat./(bO.*shrink);
-                end
-                if rmodel.gas
-                    bG = b{gix};
-                    grat = qs(:, gix);
-                    if vapoil
-                        grat = grat - rs.*qs(:, oix);
-                    end
-                    newRates = newRates + grat./(bG.*shrink);
-                end
+                newRates = sum(qs.*rhoS./rho, 2);
                 resvIx = find(isRESV);
                 actIx = find(active);
                 for i = 1:numel(resvIx)

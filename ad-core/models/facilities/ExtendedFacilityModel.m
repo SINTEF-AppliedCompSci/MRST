@@ -119,7 +119,7 @@ classdef ExtendedFacilityModel < FacilityModel
                     ratio = bsxfun(@rdivide, rhoS, rho);
                     q_resv = 0;
                     for ph = 1:nph
-                        q_resv = q_resv + surfaceRates{ph}(is_resv).*ratio(ph);
+                        q_resv = q_resv + surfaceRates{ph}(is_resv).*ratio(:, ph);
                     end
                     ctrl_eq(is_resv) = q_resv - targets(is_resv);
                 end
