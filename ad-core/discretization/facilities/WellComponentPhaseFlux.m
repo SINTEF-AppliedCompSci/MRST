@@ -34,7 +34,7 @@ classdef WellComponentPhaseFlux < GridProperty
             for c = 1:ncomp
                 component = model.Components{c};
                 if any(isInj)
-                    wcomp = component.getPhaseCompositionWell(model, state, W(isInj));
+                    wcomp = component.getPhaseCompositionWell(model, state, W);
                 end
                 for ph = 1:nph
                     q = phaseFlux{ph};
@@ -55,7 +55,8 @@ classdef WellComponentPhaseFlux < GridProperty
                             if isempty(wcomp{ph})
                                 source(outflow) = 0;
                             else
-                                source(outflow) = wcomp{ph}.*perforationDensity{ph}(outflow).*q(outflow);
+                                wi = wcomp{ph}(map.perf2well(outflow));
+                                source(outflow) = wi.*perforationDensity{ph}(outflow).*q(outflow);
                             end
                         end
                         % Compute cross-flow fluxes
