@@ -91,11 +91,9 @@ function rock = getRegions(rock, deck)
        if hasPVT
            regions.pvt = deck.REGIONS.PVTNUM;
        end
-       
        if hasSAT
            regions.saturation = deck.REGIONS.SATNUM;
        end
-       
        if hasIMB
            regions.imbibition = deck.REGIONS.IMBNUM;
        end
@@ -107,6 +105,12 @@ function rock = getScaling(rock, deck)
    if isfield(deck.RUNSPEC, 'ENDSCALE')
        nc = size(rock.poro, 1);
        rock.krscale = initRelpermScaling(deck, nc);
+       if isfield(deck.PROPS, 'SWATINIT')
+           % We have initial water saturation specified, the capillary
+           % pressure will be adjusted to honor the initial distribution
+           sw = deck.PROPS.SWATINIT;
+           rock.sw = max(sw, rock.krscale.drainage.w(:, 1));
+       end
    end
 end
 
