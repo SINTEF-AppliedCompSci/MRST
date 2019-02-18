@@ -55,6 +55,12 @@ classdef FlowPropertyFunctions < PropertyFunctions
                 three_point = isfield(deck.PROPS, 'SCALECRS') && strcmpi(deck.PROPS.SCALECRS{1}(1), 'y');
                 props.RelativePermeability.relpermScaling = do_scaling;
                 props.RelativePermeability.relpermPoints = 2 + three_point;
+                if isfield(model.rock, 'sw')
+                    % Endpoint capillary pressure is defined
+                    props.CapillaryPressure =...
+                        props.CapillaryPressure.setWaterEndpointScaling...
+                                                (model, model.rock.sw, []);
+                end
             end
             
             % Define storage

@@ -40,6 +40,12 @@ function [s_min, s_max] = getMinMaxPhaseSaturations(model, satnum, cells)
                 s_min(:, wix) = f.sWcon(satnum);
             end
         end
+        if isfield(model.rock, 'sw')
+            assert(~isempty(cells));
+            assert(hasEndpoints, 'Requires endpoint scaling');
+            s_min(:, wix) = model.rock.sw(cells);
+        end
+        
         % Water can always be one
         s_max(:, wix) = 1;
         if model.gas
