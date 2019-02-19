@@ -894,13 +894,13 @@ classdef FacilityModel < PhysicalModel
         end
 
         function [model, state] = prepareTimestep(model, state, state0, dt, drivingForces)
-            active = model.getWellStatusMask(state.wellSol);
-            isRESVHist = cellfun(@(x) strcmpi(x.W.type, 'resv_history'), model.WellModels(active));
-            isRESVNow = cellfun(@(x) strcmpi(x.W.type, 'resv'), model.WellModels(active));
+            activeWellMask = model.getWellStatusMask(state.wellSol);
+            isRESVHist = cellfun(@(x) strcmpi(x.W.type, 'resv_history'), model.WellModels(activeWellMask));
+            isRESVNow = cellfun(@(x) strcmpi(x.W.type, 'resv'), model.WellModels(activeWellMask));
             isRESV = isRESVHist | isRESVNow;
             if any(isRESV)
                 % Local index
-                W = model.getWellStruct(active);
+                W = model.getWellStruct(activeWellMask);
                 
                 isHist = isRESVHist(isRESV);
                 compi = vertcat(W.compi);
@@ -911,43 +911,59 @@ classdef FacilityModel < PhysicalModel
                 
                 qs = bsxfun(@times, rates, compi);
                 
-                n_resv = sum(isRESV);
                 rmodel = model.ReservoirModel;
-                
                 disgas = isprop(rmodel, 'disgas') && rmodel.disgas;
                 vapoil = isprop(rmodel, 'vapoil') && rmodel.vapoil;
                 oix = rmodel.getPhaseIndex('O');
                 gix = rmodel.getPhaseIndex('G');
-                if disgas
-                    rs = repmat(mean(state.rs), n_resv, 1);
-                    rs(isHist) = min(qs(isHist, gix)./qs(isHist, oix), rs);
-                else
-                    rs = 0;
+                
+                pvt_reg = model.ReservoirModel.FlowPropertyFunctions.Density.regions;
+                if isempty(pvt_reg)
+                    pvt_reg = ones(model.ReservoirModel.G.cells.num, 1);
                 end
-                if vapoil
-                    rv = repmat(mean(state.rv), n_resv, 1);
-                    rv(isHist) = min(qs(isHist, oix)./qs(isHist, gix), rv);
-                else
-                    rv = 0;
-                end
-
                 cells = arrayfun(@(x) x.cells(1), W(isRESV));
                 nc = numel(cells);
-                flowProps = model.ReservoirModel.FlowPropertyFunctions.subset(cells);
-                % Avoid using flag for interpolation
-                flowProps.ShrinkageFactors.useSaturatedFlag = false;
-                pm = mean(state0.pressure);
-                substate = struct('pressure', repmat(pm, nc, 1), ...
+                regNo = pvt_reg(cells);
+                
+                rs = zeros(nc, 1);
+                rv = zeros(nc, 1);
+                pm = zeros(nc, 1);
+                for reg = 1:max(regNo)
+                    subs = regNo == reg;
+                    local = pvt_reg == reg;
+                    pm = sum(state.pressure.*local)/sum(local);
+                    if disgas
+                        oilPresent = state.s(:, oix) > 0;
+                        active = oilPresent & local;
+                        rs(subs) = sum(state.rs.*active)/sum(active);
+                    end
+                    if vapoil
+                        gasPresent = state.s(:, gix) > 0;
+                        active = gasPresent & local;
+                        rv(subs) = sum(state.rv.*active)/sum(active);
+                    end
+                end
+                if disgas
+                    rs(isHist) = min(qs(isHist, gix)./qs(isHist, oix), rs);
+                end
+                if vapoil
+                    rv(isHist) = min(qs(isHist, oix)./qs(isHist, gix), rv);
+                end
+                substate = struct('pressure', pm, ...
                                   's', repmat([0, 1, 0], nc, 1), ...
                                   'rs', rs, ...
                                   'rv', rv);
+
+                flowProps = model.ReservoirModel.FlowPropertyFunctions.subset(cells);
+                % Avoid using flag for interpolation
+                flowProps.ShrinkageFactors.useSaturatedFlag = false;
                 substate = flowProps.evaluateProperty(model.ReservoirModel, substate, 'Density');                
                 rhoS = model.ReservoirModel.getSurfaceDensities();
                 rho = substate.FlowProps.Density;
                 rho = [rho{:}];
                 newRates = sum(qs.*rhoS./rho, 2);
                 resvIx = find(isRESV);
-                actIx = find(active);
+                actIx = find(activeWellMask);
                 for i = 1:numel(resvIx)
                     I = resvIx(i);
                     global_well_ix = actIx(I);
