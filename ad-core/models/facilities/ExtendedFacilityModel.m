@@ -149,8 +149,6 @@ classdef ExtendedFacilityModel < FacilityModel
             eqs{end} = ctrl_eq;
             names{end} = 'closureWells';
             types{end} = 'well';
-            
-            value(q_s{2}.val(2))
         end
         
         function state = applyWellLimits(fm, state)
