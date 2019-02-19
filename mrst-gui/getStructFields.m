@@ -66,7 +66,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             hasNode = size(s, 1) == nodeNum;
         end
         return
-    elseif iscell(s) && all(cellfun(@numel, s) == nc | cellfun(@numel, s) == nodeNum)
+    elseif iscell(s) && any(size(s) == 1) && all(cellfun(@numel, s) == nc | cellfun(@numel, s) == nodeNum)
         flds = arrayfun(@(x) [name, ':', num2str(x)], (1:numel(s)).', ...
                     'UniformOutput', false);
         hasCell = true;
