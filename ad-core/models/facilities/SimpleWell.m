@@ -367,7 +367,6 @@ classdef SimpleWell < PhysicalModel
                 w.topo = [(0:(nperf-1))', (1:nperf)'];
             end
             if isfield(wellSol, 'ComponentTotalFlux') && ~isempty(wellSol.ComponentTotalFlux)
-%                 q = wellSol.ComponentTotalFlux; % Total mass flux
                 q = wellSol.flux;
                 q(q == 0) = w.sign*1e-12;
             else

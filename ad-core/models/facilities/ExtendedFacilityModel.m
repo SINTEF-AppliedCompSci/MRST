@@ -63,98 +63,89 @@ classdef ExtendedFacilityModel < FacilityModel
             mixs = value(q_s);
             nact = numel(map.active);
 
-            if true
-                backend = model.AutoDiffBackend;
-                ctrl_eq = backend.convertToAD(zeros(nact, 1), bhp);
-                wrates = backend.convertToAD(zeros(nact, 1), bhp);
-                
-                well_controls = {state.wellSol(map.active).type}';
-                targets = vertcat(state.wellSol(map.active).val);
+            backend = model.AutoDiffBackend;
+            ctrl_eq = backend.convertToAD(zeros(nact, 1), bhp);
+            wrates = backend.convertToAD(zeros(nact, 1), bhp);
 
-                % Handle bhp
-                is_bhp = strcmp(well_controls, 'bhp');
-                ctrl_eq(is_bhp) = bhp(is_bhp) - targets(is_bhp);
-                
-                % Different types of rate controls
-                
-                % Surface total rates
-                is_rate = strcmp(well_controls, 'rate') | strcmpi(well_controls, 'vrat');
-                % Surface oil rates
-                is_orat = strcmp(well_controls, 'orat');
-                % Surface water rates
-                is_wrat = strcmp(well_controls, 'wrat');
-                % Surface gas rates
-                is_grat = strcmp(well_controls, 'grat');
-                % Surface liquid rates (water + oil)
-                is_lrat = strcmp(well_controls, 'lrat');
-                % Reservoir rates (at averaged conditions from previous step)
-                is_resv = strcmp(well_controls, 'resv');
-                % Reservoir rates (at current conditions for each perf.)
-                is_volume = strcmp(well_controls, 'volume');
-                
-                phases = model.getPhaseNames();
-                is_surface_control = false(nact, 1);
-                
-                qs_t = zeros(nact, 1);
-                for i = 1:nph
-                    switch phases(i)
-                        case 'W'
-                            act = is_rate | is_wrat | is_lrat;
-                        case 'O'
-                            act = is_rate | is_orat | is_lrat;
-                        case 'G'
-                            act = is_rate | is_grat;
-                    end
-                    is_surface_control(act) = true;
-                    wrates(act) = wrates(act) + q_s{i}(act);
-                    qs_t(act) = qs_t(act) + mixs(act, i);
-                end
-                ctrl_eq(is_surface_control) = wrates(is_surface_control) - targets(is_surface_control);
-                
-                if any(is_resv)
-                    map = facility.getProp(state, 'FacilityWellMapping');
-                    rho = cellfun(@(x) x.ControlDensity, facility.WellModels(map.active), 'UniformOutput', false);
-                    rho = vertcat(rho{is_resv});
-                    
-                    ratio = bsxfun(@rdivide, rhoS, rho);
-                    q_resv = 0;
-                    for ph = 1:nph
-                        q_resv = q_resv + q_s{ph}(is_resv).*ratio(:, ph);
-                    end
-                    ctrl_eq(is_resv) = q_resv - targets(is_resv);
-                end
-                
-                % Zero surface rate conditions
-                zeroRates = qs_t == 0 & is_surface_control;
-                if any(zeroRates)
-                    q_t = 0;
-                    for i = 1:nph
-                        q_t = q_t + q_s{i}(zeroRates);
-                    end
-                    ctrl_eq(zeroRates) = q_t;
-                end
+            well_controls = {state.wellSol(map.active).type}';
+            targets = vertcat(state.wellSol(map.active).val);
 
-                
-                if any(is_volume)
-                    phase_flux = facility.getProps(state, 'PhaseFlux');
-                    total_flux = 0;
-                    for i = 1:numel(phase_flux)
-                        total_flux = total_flux + phase_flux{i};
-                    end
-                    well_total_flux = wsum*total_flux;
-                    ctrl_eq(is_volume) = well_total_flux(is_volume) - targets(is_volume);
+            % Handle bhp
+            is_bhp = strcmp(well_controls, 'bhp');
+            ctrl_eq(is_bhp) = bhp(is_bhp) - targets(is_bhp);
+
+            % Different types of rate controls
+
+            % Surface total rates
+            is_rate = strcmp(well_controls, 'rate') | strcmpi(well_controls, 'vrat');
+            % Surface oil rates
+            is_orat = strcmp(well_controls, 'orat');
+            % Surface water rates
+            is_wrat = strcmp(well_controls, 'wrat');
+            % Surface gas rates
+            is_grat = strcmp(well_controls, 'grat');
+            % Surface liquid rates (water + oil)
+            is_lrat = strcmp(well_controls, 'lrat');
+            % Reservoir rates (at averaged conditions from previous step)
+            is_resv = strcmp(well_controls, 'resv');
+            % Reservoir rates (at current conditions for each perf.)
+            is_volume = strcmp(well_controls, 'volume');
+
+            phases = model.getPhaseNames();
+            is_surface_control = false(nact, 1);
+
+            qs_t = zeros(nact, 1);
+            for i = 1:nph
+                switch phases(i)
+                    case 'W'
+                        act = is_rate | is_wrat | is_lrat;
+                    case 'O'
+                        act = is_rate | is_orat | is_lrat;
+                    case 'G'
+                        act = is_rate | is_grat;
                 end
-                
-                assert(all(is_surface_control | is_bhp | is_volume | is_resv));
-            else
-                for i = 1:nact
-                    w = map.active(i);
-                    well = facility.WellModels{w};
-                    qs = cellfun(@(x) x(i), q_s, 'UniformOutput', false);
-                    ctrl{i} = setupWellControlEquationsSingleWell(well, state0.wellSol(w), state.wellSol(w), bhp(i), qs, true, mixs(i, :), model);
-                end
-                ctrl_eq = vertcat(ctrl{:});
+                is_surface_control(act) = true;
+                wrates(act) = wrates(act) + q_s{i}(act);
+                qs_t(act) = qs_t(act) + mixs(act, i);
             end
+            ctrl_eq(is_surface_control) = wrates(is_surface_control) - targets(is_surface_control);
+
+            if any(is_resv)
+                map = facility.getProp(state, 'FacilityWellMapping');
+                rho = cellfun(@(x) x.ControlDensity, facility.WellModels(map.active), 'UniformOutput', false);
+                rho = vertcat(rho{is_resv});
+
+                ratio = bsxfun(@rdivide, rhoS, rho);
+                q_resv = 0;
+                for ph = 1:nph
+                    q_resv = q_resv + q_s{ph}(is_resv).*ratio(:, ph);
+                end
+                ctrl_eq(is_resv) = q_resv - targets(is_resv);
+            end
+
+            % Zero surface rate conditions
+            zeroRates = qs_t == 0 & is_surface_control;
+            if any(zeroRates)
+                q_t = 0;
+                for i = 1:nph
+                    q_t = q_t + q_s{i}(zeroRates);
+                end
+                ctrl_eq(zeroRates) = q_t;
+            end
+
+
+            if any(is_volume)
+                phase_flux = facility.getProps(state, 'PhaseFlux');
+                total_flux = 0;
+                for i = 1:numel(phase_flux)
+                    total_flux = total_flux + phase_flux{i};
+                end
+                well_total_flux = wsum*total_flux;
+                ctrl_eq(is_volume) = well_total_flux(is_volume) - targets(is_volume);
+            end
+
+            assert(all(is_surface_control | is_bhp | is_volume | is_resv));
+
             eqs{end} = ctrl_eq;
             names{end} = 'closureWells';
             types{end} = 'well';
