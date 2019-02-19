@@ -38,6 +38,7 @@ classdef WellComponentPhaseFlux < GridProperty
                 switched_well = switched_well | all_perf_switched;
             end
             isInj = isInj | switched_well;
+            crossflow(switched_well(map.perf2well), :) = false;
             for ph = 1:nph
                 if any(isInj)
                     perforationDensity{ph} = massDensity{ph}(wc);
