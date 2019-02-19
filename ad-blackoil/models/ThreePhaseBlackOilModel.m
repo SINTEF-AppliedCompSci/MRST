@@ -144,14 +144,14 @@ methods
         if model.disgas
             rsSat = model.getProp(state, 'RsMax');
             rs = ~st{1}.*rsSat + st{1}.*x;
-            rs = rs.*(value(sO) > 0);
+            % rs = rs.*(value(sO) > 0);
             state = model.setProp(state, 'rs', rs);
         end
 
         if model.vapoil
             rvSat = model.getProp(state, 'RvMax');
             rv = ~st{2}.*rvSat + st{2}.*x;
-            rv = rv.*(value(sG) > 0);
+            % rv = rv.*(value(sG) > 0);
             state = model.setProp(state, 'rv', rv);
             % No rv, no so -> zero on diagonal in matrix
             bad_oil = value(sO) == 0 & value(rv) == 0;

@@ -94,7 +94,7 @@ classdef ExtendedFacilityModel < FacilityModel
             phases = model.getPhaseNames();
             is_surface_control = false(nact, 1);
 
-            qs_t = zeros(nact, 1);
+            % qs_t = zeros(nact, 1);
             for i = 1:nph
                 switch phases(i)
                     case 'W'
@@ -106,7 +106,7 @@ classdef ExtendedFacilityModel < FacilityModel
                 end
                 is_surface_control(act) = true;
                 wrates(act) = wrates(act) + q_s{i}(act);
-                qs_t(act) = qs_t(act) + mixs(act, i);
+                % qs_t(act) = qs_t(act) + mixs(act, i);
             end
             ctrl_eq(is_surface_control) = wrates(is_surface_control) - targets(is_surface_control);
 
@@ -124,7 +124,7 @@ classdef ExtendedFacilityModel < FacilityModel
             end
 
             % Zero surface rate conditions
-            zeroRates = qs_t == 0 & is_surface_control;
+            zeroRates = targets == 0 & (is_surface_control | is_resv);
             if any(zeroRates)
                 q_t = 0;
                 for i = 1:nph
@@ -149,6 +149,8 @@ classdef ExtendedFacilityModel < FacilityModel
             eqs{end} = ctrl_eq;
             names{end} = 'closureWells';
             types{end} = 'well';
+            
+            value(q_s{2}.val(2))
         end
         
         function state = applyWellLimits(fm, state)
@@ -161,7 +163,100 @@ classdef ExtendedFacilityModel < FacilityModel
         end
 
         function [model, state] = prepareTimestep(model, state, state0, dt, drivingForces)
-            [model, state] = prepareTimestep@FacilityModel(model, state, state0, dt, drivingForces);
+            % Treat RESV
+            activeWellMask = model.getWellStatusMask(state.wellSol);
+            isRESVHist = cellfun(@(x) strcmpi(x.W.type, 'resv_history'), model.WellModels(activeWellMask));
+            isRESVNow = cellfun(@(x) strcmpi(x.W.type, 'resv'), model.WellModels(activeWellMask));
+            isRESV = isRESVHist | isRESVNow;
+            if any(isRESV)
+                % Local index
+                W = model.getWellStruct(activeWellMask);
+                
+                isHist = isRESVHist(isRESV);
+                compi = vertcat(W.compi);
+                compi = compi(isRESV, :);
+                
+                rates = vertcat(W.val);
+                rates = rates(isRESV);
+                
+                qs = bsxfun(@times, rates, compi);
+                
+                rmodel = model.ReservoirModel;
+                disgas = isprop(rmodel, 'disgas') && rmodel.disgas;
+                vapoil = isprop(rmodel, 'vapoil') && rmodel.vapoil;
+                oix = rmodel.getPhaseIndex('O');
+                gix = rmodel.getPhaseIndex('G');
+                
+                pvt_reg = rmodel.FlowPropertyFunctions.Density.regions;
+                if isempty(pvt_reg)
+                    pvt_reg = ones(rmodel.G.cells.num, 1);
+                end
+                cells = arrayfun(@(x) x.cells(1), W(isRESV));
+                nc = numel(cells);
+                regNo = pvt_reg(cells);
+                
+                rs = zeros(nc, 1);
+                rv = zeros(nc, 1);
+                pm = zeros(nc, 1);
+                pv = rmodel.getProp(state, 'PoreVolume');
+                if rmodel.water
+                    sw = rmodel.getProp(state, 'sw');
+                    pv = pv.*(1-sw);
+                end
+                for reg = 1:max(regNo)
+                    subs = regNo == reg;
+                    local = pvt_reg == reg;
+                    pvi = pv.*local;
+                    pm = sum(state.pressure.*pvi)/sum(pvi);
+                    if disgas
+%                         oilPresent = state.s(:, oix) > 0;
+%                         active = oilPresent & local;
+                        active = local;
+                        pvi = pv.*active;
+                        rs(subs) = sum(state.rs.*pvi)/sum(pvi);
+                    end
+                    if vapoil
+%                         gasPresent = state.s(:, gix) > 0;
+%                         active = gasPresent & local;
+                        active = local;
+                        pvi = pv.*active;
+                        rv(subs) = sum(state.rv.*pvi)/sum(pvi);
+                    end
+                end
+                if disgas
+                    rs(isHist) = min(qs(isHist, gix)./qs(isHist, oix), rs);
+                end
+                if vapoil
+                    rv(isHist) = min(qs(isHist, oix)./qs(isHist, gix), rv);
+                end
+                substate = struct('pressure', pm, ...
+                                  's', repmat([0, 1, 0], nc, 1), ...
+                                  'rs', rs, ...
+                                  'rv', rv);
+
+                flowProps = model.ReservoirModel.FlowPropertyFunctions.subset(cells);
+                % Avoid using flag for interpolation
+                flowProps.ShrinkageFactors.useSaturatedFlag = false;
+                substate = flowProps.evaluateProperty(model.ReservoirModel, substate, 'Density');                
+                rhoS = model.ReservoirModel.getSurfaceDensities();
+                rho = substate.FlowProps.Density;
+                rho = [rho{:}];
+                newRates = sum(qs.*rhoS./rho, 2);
+                resvIx = find(isRESV);
+                actIx = find(activeWellMask);
+                for i = 1:numel(resvIx)
+                    I = resvIx(i);
+                    global_well_ix = actIx(I);
+                    if isRESVHist(I)
+                        model.WellModels{global_well_ix}.W.val = newRates(i);
+                        state.wellSol(global_well_ix).val = newRates(i);
+                        model.WellModels{global_well_ix}.W.type = 'resv';
+                        state.wellSol(global_well_ix).type = 'resv';
+                    end
+                    model.WellModels{global_well_ix}.ControlDensity = rho(i, :);
+                end
+            end
+            % Update pressure drop
             wellSol = state.wellSol;
             actWellIx = model.getIndicesOfActiveWells(wellSol);
             nw = numel(actWellIx);

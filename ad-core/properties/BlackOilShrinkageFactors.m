@@ -1,6 +1,6 @@
 classdef BlackOilShrinkageFactors < GridProperty
     properties
-        useSaturatedFlag = true;
+        useSaturatedFlag = false;
     end
     
     methods
