@@ -49,6 +49,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     opt = struct('StepLimit',        inf, ...
                  'useCpGeometry',    size(model.G.faces, 2) > 1, ...
                  'DepthReorder',     false, ...
+                 'ReorderStrategy',  '', ...
                  'EnsureConsistent', true);
     [opt, wellArg] = merge_options(opt, varargin{:});
 
@@ -119,6 +120,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     
     if opt.EnsureConsistent
-        scheduleMRST = makeScheduleConsistent(scheduleMRST, 'DepthReorder', opt.DepthReorder);
+        scheduleMRST = makeScheduleConsistent(scheduleMRST, 'DepthReorder', opt.DepthReorder, 'ReorderStrategy', opt.ReorderStrategy);
     end
 end

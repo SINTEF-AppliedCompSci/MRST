@@ -42,6 +42,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
     opt = struct('perforationFields', {{'WI', 'dZ'}}, ...
                  'DepthReorder',      false, ...
+                 'ReorderStrategy',   {{}}, ...
+                 'ReservoirModel',    [], ...
                  'fixSign',           true);
 
     opt = merge_options(opt, varargin{:});
@@ -54,7 +56,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     cellsChangedFlag = [];
     
     perffields = opt.perforationFields;
-    
+    schedule0 = schedule;
     % First, we loop over all controls, adding any wells we haven't seen
     % before to the superset of all wells. If there are mismatches in the
     % perforated cells, we try to reconcile the differences without
@@ -81,17 +83,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             if ~(numel(c) == numel(c_all) && all(c == c_all))
                 % The perforations have changed
                 cellsChangedFlag(ind_all) = true; %#ok
-                if isempty(opt.DepthReorder)
-                    do_reorder = strcmpi(W(other(j)).dir(1), 'z');
-                else
-                    do_reorder = opt.DepthReorder;
-                end
-                if do_reorder
-                    new_cells = [c_all; c];
-                    dz = [W_all(ind_all).dZ; W(other(j)).dZ];
-                    [~, order] = sort(dz);
-                    new_cells = uniqueStable(new_cells(order));
-                elseif (numel(c_all)<numel(c)) && all(c_all == c(1:numel(c_all)))
+                if (numel(c_all)<numel(c)) && all(c_all == c(1:numel(c_all)))
                     % c differs from c_all by simple appendage
                     new_cells = c;
                 else
@@ -194,5 +186,85 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         W(~active) = W_closed(~active);
         schedule.control(i).W = setWellSign(W);
     end
+    
+    if isempty(opt.ReorderStrategy)
+        if opt.DepthReorder
+            % Backwards compatibility
+            opt.ReorderStrategy = 'depth';
+        else
+            opt.ReorderStrategy = 'none';
+        end
+    end
+    % One strategy per well is supported
+    nw = numel(schedule.control(1).W);
+    order = opt.ReorderStrategy;
+    if numel(order) == 1
+        order = cell(nw, 1);
+        [order{:}] = deal(opt.ReorderStrategy{1});
+    end
+    
+    for wNo = 1:nw
+        schedule = setUniformDZ(schedule, wNo);
+        switch lower(order{wNo})
+            case 'depth'
+                schedule = depthReorder(schedule, wNo, opt);
+            case 'direction'
+                schedule = directionReorder(schedule, wNo, opt);
+            case 'none'
+            otherwise
+                error('Unknown ordering strategy %s', opt.ReorderStrategy);
+        end
+    end
+end
+
+function schedule = setUniformDZ(schedule, wellNo)
+    nc = numel(schedule.control(1).W(wellNo).cells);
+    dz = zeros(nc, 1);
+    % Find all defined dZ values
+    for i = 1:numel(schedule.control)
+        w = schedule.control(i).W(wellNo);
+        defaulted = dz == 0 & w.dZ ~= 0;
+        dz(defaulted) = w.dZ(defaulted);
+    end
+    % Set uniform dZ
+    for i = 1:numel(schedule.control)
+        schedule.control(i).W(wellNo).dZ = dz;
+    end
+end
+
+function schedule = reorderCellFields(schedule, wellNo, opt, sortIx)
+    flds = [opt.perforationFields, 'cells', 'cstatus'];
+    for i = 1:numel(schedule.control)
+        w = schedule.control(i).W(wellNo);
+        for j = 1:numel(flds)
+            f = flds{j};
+            if isfield(w, f)
+                w.(f) = w.(f)(sortIx);
+            end
+        end
+        schedule.control(i).W(wellNo) = w;
+    end
+end
+
+function schedule = depthReorder(schedule, wellNo, opt)
+    dz = schedule.control(1).W(wellNo).dZ;
+    if issorted(dz)
+        return
+    end
+    [~, sortIx] = sort(dz);
+    schedule = reorderCellFields(schedule, wellNo, opt, sortIx);
+    assert(issorted(schedule.control(1).W(wellNo).dZ))
+end
+
+function schedule = directionReorder(schedule, wellNo, opt)
+    G = opt.ReservoirModel.G;
+    w = schedule.control(1).W;
+    nc = numel(w.cells);
+    if issorted(dz)
+        return
+    end
+    [~, sortIx] = sort(dz);
+    schedule = reorderCellFields(schedule, wellNo, opt, sortIx);
+    assert(issorted(schedule.control(1).W(wellNo).dZ))
 end
 
