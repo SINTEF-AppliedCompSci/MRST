@@ -29,11 +29,10 @@ classdef ImmiscibleComponent < ComponentImplementation
             nph = model.getNumberOfPhases();
             c = cell(nph, 1);
             comp_i = vertcat(W.compi);
-            for i = 1:nph
-                ci = comp_i(:, i);
-                if any(ci ~= 0)
-                    c{i} = ci;
-                end
+            index = component.phaseIndex;
+            ci = comp_i(:, index);
+            if any(ci ~= 0)
+                c{index} = ci;
             end
         end
     end
