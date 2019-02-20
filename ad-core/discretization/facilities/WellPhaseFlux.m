@@ -22,7 +22,7 @@ classdef WellPhaseFlux < GridProperty
             if any(injection)
                 compi = vertcat(W.compi);
                 if any(crossflow)
-                    warning('Crossflow occuring in %d perforations', sum(crossflow));
+                    % warning('Crossflow occuring in %d perforations', sum(crossflow));
                     % Compute cross flow for this phase. The approach here
                     % is to calculate (as doubles) the volumetric inflow of
                     % all phases into the well-bore. If a well has
@@ -58,6 +58,11 @@ classdef WellPhaseFlux < GridProperty
             for i = 1:nph
                 q_ph{i} = mobw{i}.*Tdp;
             end
+%             
+%             if any(injection)
+%                 compi
+%                 value(q_ph)
+%             end
         end
     end
 end

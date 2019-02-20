@@ -25,7 +25,7 @@ classdef ImmiscibleComponent < ComponentImplementation
             c = component.getPhaseComposition(model, state);
         end
         
-        function c = getPhaseCompositionWell(component, model, state, W)
+        function c = getPhaseComponentFractionWell(component, model, state, W)
             nph = model.getNumberOfPhases();
             c = cell(nph, 1);
             comp_i = vertcat(W.compi);
