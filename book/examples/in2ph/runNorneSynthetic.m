@@ -25,7 +25,7 @@ gravity reset on
 % process that subset. See the <matlab:edit('showNorne.m')
 % showNorne> script for a more detailed walkthrough of the model.
 
-if ~ (makeNorneSubsetAvailable() && makeNorneGRDECL()),
+if ~ (makeNorneSubsetAvailable() && makeNorneGRDECL())
    error('Unable to obtain simulation model subset');
 end
 grdecl = fullfile(getDatasetPath('norne'), 'NORNE.GRDECL');
@@ -112,7 +112,7 @@ I = [ 9, 26,  8, 25, 35, 10];
 J = [14, 14, 35, 35, 68, 75];
 R = [ 4,  4,  4,  4,  4,  4]*1000*meter^3/day;
 nIW = 1:numel(I); W = [];
-for i = 1 : numel(I),
+for i = 1 : numel(I)
    W = verticalWell(W, G, rock, I(i), J(i), nz-11:nz, 'Type', 'rate', ...
                     'InnerProduct', 'ip_tpf', ...
                     'Val', R(i), 'Radius', 0.1, 'Comp_i', [1, 0], ...
@@ -124,7 +124,7 @@ I = [17, 12, 25, 35, 15];
 J = [23, 51, 51, 95, 94];
 P = [300, 300, 300, 200, 200];
 nPW = (1:numel(I))+max(nIW);
-for i = 1 : numel(I),
+for i = 1 : numel(I)
    W = verticalWell(W, G, rock, I(i), J(i), 1:14, 'Type', 'bhp', ...
                     'InnerProduct', 'ip_tpf', ...
                     'Val', 300*barsa(), 'Radius', 0.1, 'refDepth', 2500, ...
