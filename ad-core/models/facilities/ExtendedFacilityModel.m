@@ -205,7 +205,7 @@ classdef ExtendedFacilityModel < FacilityModel
                     subs = regNo == reg;
                     local = pvt_reg == reg;
                     pvi = pv.*local;
-                    pm = sum(state.pressure.*pvi)/sum(pvi);
+                    pm(subs) = sum(state.pressure.*pvi)/sum(pvi);
                     if disgas
 %                         oilPresent = state.s(:, oix) > 0;
 %                         active = oilPresent & local;
