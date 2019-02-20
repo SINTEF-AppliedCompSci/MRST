@@ -252,6 +252,12 @@ classdef FacilityModel < PhysicalModel
             [origin{:}] = deal(class(model));
         end
 
+        function model = validateModel(model, varargin)
+            if nargin > 1
+                W = varargin{1}.W;
+                model = model.setupWells(W);
+            end
+        end
         
         function names = getPrimaryVariableNames(model)
             % Get the names of primary variables present in all wells

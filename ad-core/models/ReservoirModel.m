@@ -143,10 +143,16 @@ methods
         dt = model.FluxDiscretization.getMaximumTimestep(model, state, state0, dt, drivingForces);
     end
     
-    function [model, state] = prepareTimestep(model, state, state0, dt, drivingForces)
+    function [model, state] = prepareReportstep(model, state, state0, dt, drivingForces)
         if ~isempty(drivingForces.W)
             assert(~isempty(model.FacilityModel), ...
             'FacilityModel not set up. Call model.validateModel before calling equations with wells.');
+            [model.FacilityModel, state] = model.FacilityModel.prepareReportstep(state, state0, dt, drivingForces);
+        end
+    end
+        
+    function [model, state] = prepareTimestep(model, state, state0, dt, drivingForces)
+        if ~isempty(drivingForces.W)
             [model.FacilityModel, state] = model.FacilityModel.prepareTimestep(state, state0, dt, drivingForces);
         end
         [model.FluxDiscretization, state] = model.FluxDiscretization.prepareTimestep(model, state, state0, dt, drivingForces);
@@ -169,10 +175,8 @@ methods
         assert(~isempty(model.operators),...
             'Operators must be set up before simulation. See model.setupOperators for more details.');
         
-        if nargin > 1
-            W = varargin{1}.W;
-            model.FacilityModel = model.FacilityModel.setupWells(W);
-        end
+        model.FacilityModel = model.FacilityModel.validateModel(varargin{:});
+
         if isempty(model.FlowPropertyFunctions)
             model.FlowPropertyFunctions = FlowPropertyFunctions(model); %#ok
         end
