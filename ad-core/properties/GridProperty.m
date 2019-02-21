@@ -13,6 +13,10 @@ classdef GridProperty
             end
         end
 
+        function value = evaluateOnDomain(prop, model, state)
+
+        end
+
         function v = evaluateFunctionOnGrid(prop, fn, varargin)
             v = prop.evaluateFunctionCellSubset(fn, ':', varargin{:});
         end

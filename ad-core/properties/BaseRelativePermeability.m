@@ -33,15 +33,15 @@ classdef BaseRelativePermeability < GridProperty
         d  = (sg+sw-swcon);
         ww = (sw-swcon)./d;
         
-        krW = evaluatePhaseRelativePermeability(prop, model, 'w', sw);
-        krG = evaluatePhaseRelativePermeability(prop, model, 'g', sg);
+        krW = prop.evaluatePhaseRelativePermeability(model, 'w', sw);
+        krG = prop.evaluatePhaseRelativePermeability(model, 'g', sg);
 
         wg = 1-ww;
         if isfield(f, 'krO')
             krO = prop.evaluateFunctionOnGrid(f.krO, so);
         else
-            krow = evaluatePhaseRelativePermeability(prop, model, 'ow', so);
-            krog = evaluatePhaseRelativePermeability(prop, model, 'og', so);
+            krow = prop.evaluatePhaseRelativePermeability(model, 'ow', so);
+            krog = prop.evaluatePhaseRelativePermeability(model, 'og', so);
             krO  = wg.*krog + ww.*krow;
         end
         kr = {krW, krO, krG};
@@ -54,19 +54,26 @@ classdef BaseRelativePermeability < GridProperty
         if isfield(f, 'krO')
             krO = prop.evaluateFunctionOnGrid(f.krO, so);
         else
-            krO = evaluatePhaseRelativePermeability(prop, model, 'ow', so);
+            krO = prop.evaluatePhaseRelativePermeability(model, 'ow', so);
         end
         kr = {krW, krO};
     end
     
-    function kr = evaluatePhaseRelativePermeability(prop, model, phase, s)
+    function kr = evaluatePhaseRelativePermeability(prop, model, phase, s, cells)
+        if nargin < 5
+            cells = ':';
+        end
         fn = model.fluid.(['kr', upper(phase)]);
         f = model.fluid;
         if prop.relpermScaling
-            [ss, kr_max_m] = prop.scaleSaturation(model.rock.krscale.drainage, phase, prop.regions, f, s);
-            kr = kr_max_m.*prop.evaluateFunctionOnGrid(fn, ss);
+            reg = prop.regions;
+            if ~isempty(reg)
+                reg = reg(cells);
+            end
+            [ss, kr_max_m] = prop.scaleSaturation(model.rock.krscale.drainage, phase, reg, f, s, cells);
+            kr = kr_max_m.*prop.evaluateFunctionCellSubset(fn, cells, ss);
         else
-            kr = prop.evaluateFunctionOnGrid(fn, s);
+            kr = prop.evaluateFunctionCellSubset(fn, cells, s);
         end
     end
     
