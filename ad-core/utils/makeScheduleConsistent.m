@@ -57,42 +57,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     % Account for positional order in controls
     [~, ctrl_order] = unique(schedule.step.control);
+    % Calculate the superset of all wells
     [W_all, cellsChangedFlag] = getWellSuperset(schedule, ctrl_order, opt);
+    % Update the schedule with superset of wells, setting inactive/active
+    % wells and perforations
     schedule = updateSchedule(schedule, ctrl_order, W_all, cellsChangedFlag, opt);
-
-    if isempty(opt.ReorderStrategy)
-        if opt.DepthReorder
-            % Backwards compatibility
-            opt.ReorderStrategy = 'depth';
-        else
-            opt.ReorderStrategy = 'origin';
-        end
-    end
-    % One strategy per well is supported
-    nw = numel(schedule.control(1).W);
-    order = opt.ReorderStrategy;
-    if ischar(order)
-        order = {order};
-    end
-    if numel(order) == 1
-        order = cell(nw, 1);
-        [order{:}] = deal(order{1});
-    end
-    
-    for wNo = 1:nw
-        schedule = setUniformDZ(schedule, wNo);
-        switch lower(order{wNo})
-            case 'origin'
-                schedule = originReorder(schedule, wNo, opt);
-            case 'depth'
-                schedule = depthReorder(schedule, wNo, opt);
-            case 'direction'
-                schedule = directionReorder(schedule, wNo, opt);
-            case 'none'
-            otherwise
-                error('Unknown ordering strategy %s', order{wNo});
-        end
-    end
+    % Perform alternate ordering of well cells
+    schedule = reorderWellsPerforations(schedule, opt);
 end
 
 
@@ -256,6 +227,40 @@ function schedule = updateSchedule(schedule, ctrl_order, W_all, cellsChangedFlag
     
 end
 
+function schedule = reorderWellsPerforations(schedule, opt)
+    if isempty(opt.ReorderStrategy)
+        if opt.DepthReorder
+            % Backwards compatibility
+            opt.ReorderStrategy = {'depth'};
+        else
+            opt.ReorderStrategy = {'origin'};
+        end
+    end
+    % One strategy per well is supported
+    nw = numel(schedule.control(1).W);
+    order = opt.ReorderStrategy;
+    if numel(order) == 1
+        val = order{1};
+        order = cell(nw, 1);
+        [order{:}] = deal(val);
+    end
+    assert(numel(order) == nw);
+    
+    for wNo = 1:nw
+        schedule = setUniformDZ(schedule, wNo);
+        switch lower(order{wNo})
+            case 'origin'
+                schedule = originReorder(schedule, wNo, opt);
+            case 'depth'
+                schedule = depthReorder(schedule, wNo, opt);
+            case 'direction'
+                schedule = directionReorder(schedule, wNo, opt);
+            case 'none'
+            otherwise
+                error('Unknown ordering strategy %s', order{wNo});
+        end
+    end
+end
 
 function schedule = setUniformDZ(schedule, wellNo)
     nc = numel(schedule.control(1).W(wellNo).cells);
@@ -284,6 +289,12 @@ function schedule = reorderCellFields(schedule, wellNo, opt, sortIx)
         end
         schedule.control(i).W(wellNo) = w;
     end
+end
+
+function schedule = originReorder(schedule, wellNo, opt)
+    W = schedule.control(1).W(wellNo);
+    [~, sortIx] = sort(W.cell_origin);
+    schedule = reorderCellFields(schedule, wellNo, opt, sortIx);
 end
 
 function schedule = depthReorder(schedule, wellNo, opt)
