@@ -193,7 +193,9 @@ function schedule = updateSchedule(schedule, ctrl_order, W_all, cellsChangedFlag
                     pf = perffields{k};
                     % Take the values from the active perforations
                     if any(isActivePerf)
-                        W_all(j).(pf)(isActivePerf, :) = W(sub).(pf)(order, :);
+                        if not(isempty(W(sub).(pf)))
+                            W_all(j).(pf)(isActivePerf, :) = W(sub).(pf)(order, :);
+                        end
                     end
                 end
                 % Treat rest of the fields, whatever they may be
@@ -289,7 +291,7 @@ function schedule = reorderCellFields(schedule, wellNo, opt, sortIx)
         w = schedule.control(i).W(wellNo);
         for j = 1:numel(flds)
             f = flds{j};
-            if isfield(w, f)
+            if isfield(w, f) && not(isempty(w.(f)))
                 w.(f) = w.(f)(sortIx);
             end
         end
