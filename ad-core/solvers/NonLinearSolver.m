@@ -170,7 +170,8 @@ classdef NonLinearSolver < handle
             drivingForces = merge_options(drivingForces, forcesArg{:});
             % Prepare report-step
             [model, state] = model.prepareReportstep(state, state0, dT, drivingForces);
-
+            % We may reuse the initial guess in case of timestep cuts.
+            opt.initialGuess = state;
             assert(dT >= 0, [solver.getId(), 'Negative timestep detected.']);
 
             converged = false;
