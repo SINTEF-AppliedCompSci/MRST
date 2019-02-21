@@ -40,10 +40,10 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-    opt = struct('perforationFields', {{'WI', 'dZ'}}, ...
+    opt = struct('perforationFields', {{'WI', 'dZ', 'dir', 'r', 'rR'}}, ...
                  'DepthReorder',      false, ...
-                 'ReorderStrategy',   {{}}, ...
-                 'ReservoirModel',    [], ...
+                 'ReorderStrategy',   {{'origin'}}, ...
+                 'G',                 [], ...
                  'fixSign',           true);
 
     opt = merge_options(opt, varargin{:});
@@ -106,17 +106,6 @@ function [W_all, cellsChangedFlag] = getWellSuperset(schedule, ctrl_order, opt)
                 W_all(ind_all).cell_origin = [W_all(ind_all).cell_origin; ...
                                              repmat(i, size(new_cells))]; %#ok
             end
-%             if ~(numel(c) == numel(c_all) && all(c == c_all))
-                % The perforations have changed
-%                 cellsChangedFlag(ind_all) = true; %#ok
-%                 if (numel(c_all)<numel(c)) && all(c_all == c(1:numel(c_all)))
-%                     % c differs from c_all by simple appendage
-%                     new_cells = c;
-%                 else
-%                     % attempt merging
-%                     new_cells = mergeOrderedArrays(c_all, c);
-%                 end
-%             end
         end
         
         % Wells that are new to us
@@ -139,7 +128,21 @@ function [W_all, cellsChangedFlag] = getWellSuperset(schedule, ctrl_order, opt)
         % Assign zero perforation values that will be filled in as we go
         for j = 1:numel(perffields)
             pf  = perffields{j};
-            W_all(i).(pf) = zeros(numel(c),  size(W_all(i).(pf), 2)); %#ok
+            sample = W_all(i).(pf);
+            d2 = size(W_all(i).(pf), 2);
+            if isnumeric(sample)
+                fn = @zeros;
+            elseif islogical(sample)
+                fn = @false;
+            elseif iscell(sample)
+                fn = @cell;
+            elseif ischar(sample)
+                fn = @(d1, d2) repmat(' ', d1, d2);
+            else
+                error('Unknown type %s', class(sample));
+            end
+            new_fld = fn(numel(c), d2);
+            W_all(i).(pf) = new_fld;
         end
         W_all(i).cstatus = false(numel(c), 1);
         W_all(i).status = false; 
@@ -247,6 +250,8 @@ function schedule = reorderWellsPerforations(schedule, opt)
     assert(numel(order) == nw);
     
     for wNo = 1:nw
+        dispif(mrstVerbose(), 'Ordering well %d (%s) with strategy "%s".\n', ...
+                                wNo, schedule.control(1).W(1).name, order{wNo})
         schedule = setUniformDZ(schedule, wNo);
         switch lower(order{wNo})
             case 'origin'
@@ -256,6 +261,7 @@ function schedule = reorderWellsPerforations(schedule, opt)
             case 'direction'
                 schedule = directionReorder(schedule, wNo, opt);
             case 'none'
+                % We are leaving everything to chance!
             otherwise
                 error('Unknown ordering strategy %s', order{wNo});
         end
@@ -308,14 +314,31 @@ function schedule = depthReorder(schedule, wellNo, opt)
 end
 
 function schedule = directionReorder(schedule, wellNo, opt)
-    G = opt.ReservoirModel.G;
-    w = schedule.control(1).W;
+    G = opt.G;
+    assert(not(isempty(G)), 'Grid must be provided for directional ordering');
+    w = schedule.control(1).W(wellNo);
     nc = numel(w.cells);
-    if issorted(dz)
-        return
+    sortIx = nan(nc, 1);
+    % Always start with first perforation
+    sortIx(1) = 1;
+    dir = lower(w.dir);
+    if numel(dir) == 1
+        dir = repmat(dir, nc, 1);
     end
-    [~, sortIx] = sort(dz);
+    convention = 'xyz';
+    pts = G.cells.centroids(w.cells, :);
+    current_pt = pts(1, :);
+    pts(1, :) = inf;
+    % Loop over all segments. Assume that direction in previous cell is
+    % used to define direction. Take closest point in xyz direction.
+    for i = 2:nc
+        coord = convention == dir(i-1);
+        dist = sum((current_pt(:, coord) - pts(:, coord)).^2, 2);
+        [tmp, pos] = min(dist);
+        sortIx(i) = pos;
+        current_pt = pts(pos, :);
+        pts(pos, :) = inf;
+    end
     schedule = reorderCellFields(schedule, wellNo, opt, sortIx);
-    assert(issorted(schedule.control(1).W(wellNo).dZ))
 end
 
