@@ -48,13 +48,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     opt = merge_options(opt, varargin{:});
     
-    % Find superset of well names
-    W_all = [];
-    % Names of all wells in the whole schedule
-    names = [];
-    % Flag indicating if a well has changing wells 
-    cellsChangedFlag = [];
-    
+
     perffields = opt.perforationFields;
     schedule0 = schedule;
     % First, we loop over all controls, adding any wells we haven't seen
@@ -62,59 +56,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % perforated cells, we try to reconcile the differences without
     % changing the ordering. Other properties are ignored: These will be
     % replicated afterwards.
-    for i = 1:numel(schedule.control)
-        W = schedule.control(i).W;
-        currentNames = {W.name};
-        
-        [newNames, subs] = setdiff(currentNames, names);
-        
-        % Wells we have seen before
-        other = true(size(W));
-        other(subs) = false;
-        other = find(other);
-
-        for j = 1:numel(other)
-            ind_all = find(strcmp(names, currentNames{other(j)}));
-            c_all = W_all(ind_all).cells;
-            c = W(other(j)).cells;
-            
-            % The number of cells / the actual cells have changed. We call
-            % the remap function and hope for the best.
-            if ~(numel(c) == numel(c_all) && all(c == c_all))
-                % The perforations have changed
-                cellsChangedFlag(ind_all) = true; %#ok
-                if (numel(c_all)<numel(c)) && all(c_all == c(1:numel(c_all)))
-                    % c differs from c_all by simple appendage
-                    new_cells = c;
-                else
-                    % attempt merging
-                    new_cells = mergeOrderedArrays(c_all, c);
-                end
-                W_all(ind_all).cells = new_cells;%#ok
-            end
-        end
-        
-        % Wells that are new to us
-        if ~isempty(newNames)
-            names = [names, newNames]; %#ok
-            W_all = [W_all; W(subs)]; %#ok
-            cellsChangedFlag = [cellsChangedFlag; false(numel(subs), 1)]; %#ok
-        end
-    end
     
-    % Create disabled/closed wells where neither the well nor the
-    % perforations are flagged as active, but with the otherwise correct
-    % dimensions.
-    for i = 1:numel(W_all)
-        c = W_all(i).cells;
-        % Assign zero perforation values that will be filled in as we go
-        for j = 1:numel(perffields)
-            pf  = perffields{j};
-            W_all(i).(pf) = zeros(numel(c),  size(W_all(i).(pf), 2)); %#ok
-        end
-        W_all(i).cstatus = false(numel(c), 1);
-        W_all(i).status = false; %#ok
-    end
+    [W_all, cellsChangedFlag] = getWellSuperset(schedule, opt);
     W_closed = W_all;
     
     % The schedule can now be updated from the original schedule, using the
@@ -142,11 +85,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     % Only some perforations are actually active.
                     isActivePerf = ismember(W_all(j).cells, w.cells(w.cstatus));
                 else
-                    % This well does not change the number of completions
+                    % This well has the same number of perforations across
+                    % all time-steps. We do not really need to do anything.
                     isActivePerf = true(size(W_all(j).cells));
                 end
+                % Set cstatus for any cells that are present
+                [W_all(j).cstatus, loc_ix] = ismember(W_all(j).cells, w.cells(w.cstatus));
                 
-                W_all(j).cstatus = ismember(W_all(j).cells, w.cells(w.cstatus)); %#ok
+                % Mapping bug here??
                 for k = 1:numel(perffields)
                     pf = perffields{k};
                     % Take the values from the active perforations
@@ -212,10 +158,76 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 schedule = directionReorder(schedule, wNo, opt);
             case 'none'
             otherwise
-                error('Unknown ordering strategy %s', opt.ReorderStrategy);
+                error('Unknown ordering strategy %s', opt.ReorderStrategy{wNo});
         end
     end
 end
+
+
+function [W_all, cellsChangedFlag] = getWellSuperset(schedule, opt)
+    perffields = opt.perforationFields;
+    % Find superset of well names
+    W_all = [];
+    % Names of all wells in the whole schedule
+    names = [];
+    % Flag indicating if a well has changing wells 
+    cellsChangedFlag = [];
+    
+    for i = 1:numel(schedule.control)
+        W = schedule.control(i).W;
+        currentNames = {W.name};
+        
+        [newNames, subs] = setdiff(currentNames, names);
+        
+        % Wells we have seen before
+        other = true(size(W));
+        other(subs) = false;
+        other = find(other);
+
+        for j = 1:numel(other)
+            ind_all = find(strcmp(names, currentNames{other(j)}));
+            c_all = W_all(ind_all).cells;
+            c = W(other(j)).cells;
+            
+            % The number of cells / the actual cells have changed. We call
+            % the remap function and hope for the best.
+            if ~(numel(c) == numel(c_all) && all(c == c_all))
+                % The perforations have changed
+                cellsChangedFlag(ind_all) = true; %#ok
+                if (numel(c_all)<numel(c)) && all(c_all == c(1:numel(c_all)))
+                    % c differs from c_all by simple appendage
+                    new_cells = c;
+                else
+                    % attempt merging
+                    new_cells = mergeOrderedArrays(c_all, c);
+                end
+                W_all(ind_all).cells = new_cells;%#ok
+            end
+        end
+        
+        % Wells that are new to us
+        if ~isempty(newNames)
+            names = [names, newNames]; %#ok
+            W_all = [W_all; W(subs)]; %#ok
+            cellsChangedFlag = [cellsChangedFlag; false(numel(subs), 1)]; %#ok
+        end
+    end
+    
+    % Create disabled/closed wells where neither the well nor the
+    % perforations are flagged as active, but with the otherwise correct
+    % dimensions.
+    for i = 1:numel(W_all)
+        c = W_all(i).cells;
+        % Assign zero perforation values that will be filled in as we go
+        for j = 1:numel(perffields)
+            pf  = perffields{j};
+            W_all(i).(pf) = zeros(numel(c),  size(W_all(i).(pf), 2)); %#ok
+        end
+        W_all(i).cstatus = false(numel(c), 1);
+        W_all(i).status = false; 
+    end
+end
+
 
 function schedule = setUniformDZ(schedule, wellNo)
     nc = numel(schedule.control(1).W(wellNo).cells);
