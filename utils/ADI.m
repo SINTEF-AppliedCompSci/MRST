@@ -524,8 +524,8 @@ classdef ADI
           % Interpolate special PVT table with region support
           if ~isa(x,'ADI') %u is a scalar/matrix
               h = v;
-              [h.val, dydx] = interpPVT(T, x, v.val, flag);
-              h.jac = ADI.lMultDiag(dydx, v.jac);
+              [h.val, ~, dydv] = interpPVT(T, x, v.val, flag);
+              h.jac = ADI.lMultDiag(dydv, v.jac);
           elseif ~isa(v,'ADI') %v is a scalar
               h = x;
               [h.val, dydx] = interpPVT(T, x.val, v, flag);
@@ -541,8 +541,8 @@ classdef ADI
           % Interpolate special PVT table with region support
           if ~isa(x,'ADI') %u is a scalar/matrix
               h = v;
-              [h.val, dydx] = interpRegPVT(T, x, v.val, flag, reginx);
-              h.jac = ADI.lMultDiag(dydx, v.jac);
+              [h.val, ~, dydv] = interpRegPVT(T, x, v.val, flag, reginx);
+              h.jac = ADI.lMultDiag(dydv, v.jac);
           elseif ~isa(v,'ADI') %v is a scalar
               h = x;
               [h.val, dydx] = interpRegPVT(T, x.val, v, flag, reginx);
