@@ -19,6 +19,7 @@ classdef PropertyDisplaySelector < UIItem
         props
         enableSwitch = true;
         logSwitchBox
+        statisticsForAll = false;
     end
     properties (Dependent)
         typeIx
@@ -50,7 +51,8 @@ classdef PropertyDisplaySelector < UIItem
                          'includeFilter', false, ...
                          'includePlayer', false, ...
                          'includeEnableSwitch', false, ...
-                         'includeLogSwitch', false);
+                         'includeLogSwitch', false, ...
+                         'statisticsForAll', false);
             [opt, extraOpt] = merge_options(opt, varargin{:});
              
             typePopup = uicontrol('Parent', [], 'Style', 'popup', 'String', fieldnames(opt.props), ...
@@ -129,6 +131,10 @@ classdef PropertyDisplaySelector < UIItem
             propPopup.Callback = @s.propCallback;
             statPopup.Callback = @s.statCallback;
             
+            if opt.statisticsForAll
+                s.statisticsForAll = true;
+            end
+            
             if opt.includeEnableSwitch
                 s.enableSwitch = false;
                 enableSwitch.Callback = @s.eswitchCallback;
@@ -169,6 +175,7 @@ classdef PropertyDisplaySelector < UIItem
                enableSwitch.Enable = 'on';
             end
             
+            s.setTypeEnable(s);
         end
         
         function set.typeIx(s, val)
@@ -411,7 +418,7 @@ classdef PropertyDisplaySelector < UIItem
     methods (Static)
         function setTypeEnable(s)
             curType  = s.typePopup.String{s.typeIx};
-            if strcmp(curType, 'static') || s.singleStep
+            if (strcmp(curType, 'static') && ~s.statisticsForAll) || s.singleStep
                 s.statPopup.Enable = 'off';
                 s.statPopup.Value  = 1;
                 s.statPopup.String = 'n/a';
