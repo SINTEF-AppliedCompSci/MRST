@@ -32,7 +32,8 @@ classdef WellSolSelector < UIItem
                          'plotWellSolCallback',     @(src, event)disp('plotWellSol-callback unset'), ...
                          'Position',        [10 10 200 200], ...
                          'Visible',         'on', ...
-                         'Title',           'Simulation output');
+                         'Title',           'Simulation output',...
+                         'showPlotWSButton', true);
             
             [opt, extraOpt] = merge_options(opt, varargin{:});
             
@@ -56,9 +57,16 @@ classdef WellSolSelector < UIItem
              
             plotWSButton = uicontrol('Parent', [], 'Style', 'pushbutton', 'String', 'plotWellSols', ...
                                      'Visible', 'off');
-                               
-            controls      = {{wellHeader,      propHeader},{nameSelector, propSelector}, {leftButton, rightButton}, {regionSwitch}, {plotWSButton, []}};
-            controlLayout = {[.5 .5],[.5, nan],[.5, nan], nan, [.5 nan]}; 
+            if opt.showPlotWSButton                   
+                controls      = {{wellHeader,      propHeader},{nameSelector, propSelector},...
+                    {leftButton, rightButton}, {regionSwitch}, {plotWSButton, []}};
+                controlLayout = {[.5 .5],[.5, nan],[.5, nan], nan, [.5 nan]}; 
+            else
+                controls      = {{wellHeader,      propHeader},{nameSelector, propSelector},...
+                    {leftButton, rightButton}, {regionSwitch}};
+                controlLayout = {[.5 .5],[.5, nan],[.5, nan], nan}; 
+            end
+            
             
                
             s = s@UIItem('Parent', opt.Parent, 'controls', controls, ...
