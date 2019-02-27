@@ -91,7 +91,7 @@ function [W_all, cellsChangedFlag] = getWellSuperset(schedule, ctrl_order, opt)
         for j = 1:numel(other)
             ind_all = find(strcmp(names, currentNames{other(j)}));
             c_all = W_all(ind_all).cells;
-            c = W(other(j)).cells;
+            c = W(other(j)).cells(W(other(j)).cstatus);
             
             % The number of cells / the actual cells have changed.
             if numel(c) == numel(c_all) && ...
