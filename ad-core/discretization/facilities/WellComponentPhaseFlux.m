@@ -33,7 +33,7 @@ classdef WellComponentPhaseFlux < GridProperty
             % Compute flags for flow into well and cross-flow indicators.
             
             for ph = 1:nph
-                crossflow(:, ph) = perforationSign(:, ph) > 0 & ~isInjectorPerforation;
+                crossflow(:, ph) = perforationSign(:, ph) >= 0 & ~isInjectorPerforation;
                 all_perf_switched = accumarray(map.perf2well, crossflow(:, ph)) == ncell;
                 switched_well = switched_well | all_perf_switched;
             end
