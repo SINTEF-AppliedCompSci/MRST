@@ -57,7 +57,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
           ['Well keyword ''%s'' encountered before any wells have ', ...
            'been declared using ''WELSPECS''.'], kw);
 
-   switch kw,
+   switch kw
       % Keywords related to individual wells
       case 'COMPDAT' , w = readCompDat (fid, w);
       case 'COMPSEGS', w = readCompSegs(fid, w);
@@ -66,14 +66,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       case 'WCONINJE', w = readWConInje(fid, w);
       case 'WCONINJH', w = readWConInjh(fid, w);
       case 'WCONPROD', w = readWConProd(fid, w);
-      case 'WELOPEN' , w = readWelOpen (fid, w);
+      case {'WELOPEN', 'WELLOPEN'},...
+                       w = readWelOpen (fid, w);
       case 'WELSEGS' , w = readWelSegs (fid, w);
       case 'WELSPECS', w = readWellSpec(fid, w);
       case 'WPOLYMER', w = readWPolymer(fid, w);
       case 'WSURFACT', w = readWSurfact(fid, w);
       case 'WSOLVENT', w = readWSolvent(fid, w);
       case 'WTEMP'   , w = readWTemp   (fid, w);
-      case {'WELTARG', 'WELLTARG'},
+      case {'WELTARG', 'WELLTARG'}
          w = readWelTarg(fid, w);
 
       % -------------------------------------------------------------------
