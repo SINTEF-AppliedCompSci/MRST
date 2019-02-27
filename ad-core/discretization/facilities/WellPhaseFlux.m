@@ -17,7 +17,7 @@ classdef WellPhaseFlux < GridProperty
             isInjector = map.isInjector(map.perf2well);
             
             Tdp = -wi.*dp;
-            injection = Tdp > 0;
+            injection = Tdp >= 0;
             crossflow = injection & ~isInjector;
             if any(injection)
                 compi = vertcat(W.compi);
