@@ -66,7 +66,8 @@ classdef ExtendedFacilityModel < FacilityModel
             backend = model.AutoDiffBackend;
             ctrl_eq = backend.convertToAD(zeros(nact, 1), bhp);
             wrates = backend.convertToAD(zeros(nact, 1), bhp);
-
+            resv_rates = backend.convertToAD(zeros(nact, 1), bhp);
+            
             well_controls = {state.wellSol(map.active).type}';
             targets = vertcat(state.wellSol(map.active).val);
 
@@ -109,22 +110,27 @@ classdef ExtendedFacilityModel < FacilityModel
                 % qs_t(act) = qs_t(act) + mixs(act, i);
             end
             ctrl_eq(is_surface_control) = wrates(is_surface_control) - targets(is_surface_control);
-
             if any(is_resv)
                 map = facility.getProp(state, 'FacilityWellMapping');
                 rho = cellfun(@(x) x.ControlDensity, facility.WellModels(map.active), 'UniformOutput', false);
                 rho = vertcat(rho{is_resv});
-
                 ratio = bsxfun(@rdivide, rhoS, rho);
-                q_resv = 0;
                 for ph = 1:nph
-                    q_resv = q_resv + q_s{ph}(is_resv).*ratio(:, ph);
+                    resv_rates(is_resv) = resv_rates(is_resv) + q_s{ph}(is_resv).*ratio(:, ph);
                 end
-                ctrl_eq(is_resv) = q_resv - targets(is_resv);
+                ctrl_eq(is_resv) = resv_rates(is_resv) - targets(is_resv);
             end
 
             % Zero surface rate conditions
-            zeroRates = targets == 0 & (is_surface_control | is_resv);
+            wsign = vertcat(map.W.sign);
+            resv_value = value(resv_rates);
+            surface_value = value(wrates);
+            
+            zeroTarget = targets == 0 & (is_surface_control | is_resv);
+            zeroSurface = (is_surface_control & sign(surface_value) ~= wsign & wsign ~= 0);
+            zeroRESV = (is_resv & sign(resv_value) ~= wsign & wsign ~= 0);
+            
+            zeroRates = zeroTarget | zeroSurface | zeroRESV;
             if any(zeroRates)
                 q_t = 0;
                 for i = 1:nph
