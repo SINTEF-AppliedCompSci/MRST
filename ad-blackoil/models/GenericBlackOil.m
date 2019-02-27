@@ -90,7 +90,9 @@ classdef GenericBlackOil < ThreePhaseBlackOilModel & ExtendedReservoirModel
             %
             % SEE ALSO:
             %   :meth:`ad_core.models.PhysicalModel.validateModel`
-            model.FacilityModel = ExtendedFacilityModel(model);
+            if isempty(model.FacilityModel) || ~isa(model.FacilityModel, 'ExtendedFacilityModel')
+                model.FacilityModel = ExtendedFacilityModel(model);
+            end
             model = validateModel@ThreePhaseBlackOilModel(model, varargin{:});
         end
         
