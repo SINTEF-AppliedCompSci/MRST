@@ -1,4 +1,5 @@
-mrstModule add dg ad-core ad-props ad-blackoil blackoil-sequential weno vem vemmech
+mrstModule add dg ad-core ad-props ad-blackoil blackoil-sequential weno ...
+    vem vemmech mrst-gui
 mrstVerbose on
 
 %%
@@ -25,7 +26,7 @@ modelSI = getSequentialModelFromFI(model);
 transportModel = TransportBlackOilModelDG(G, rock, fluid, ...
                                'disgas', modelSI.transportModel.disgas, ...
                                'vapoil', modelSI.transportModel.vapoil, ...
-                               'degree', 0);
+                               'degree', 1);
 modelDG        = SequentialPressureTransportModelDG(modelSI.pressureModel, transportModel);
 
 [wsDG, stDG, repDG] = simulateScheduleAD(state0, modelDG, schedule);
@@ -33,3 +34,9 @@ modelDG        = SequentialPressureTransportModelDG(modelSI.pressureModel, trans
 %%
 
 plotWellSols({wsDG, wsFV})
+
+%%
+
+sd = cellfun(@(s1, s2) compareStates(s1, s2), stFV, stDG, 'unif', false);
+close all
+plotToolbar(G, sd);
