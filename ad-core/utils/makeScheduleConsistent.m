@@ -73,7 +73,7 @@ function [W_all, cellsChangedFlag] = getWellSuperset(schedule, ctrl_order, opt)
     W_all = [];
     % Names of all wells in the whole schedule
     names = [];
-    % Flag indicating if a well has changing wells 
+    % Flag indicating if a well has changing wells
     cellsChangedFlag = [];
     
     for i = 1:numel(ctrl_order)
@@ -91,21 +91,23 @@ function [W_all, cellsChangedFlag] = getWellSuperset(schedule, ctrl_order, opt)
         for j = 1:numel(other)
             ind_all = find(strcmp(names, currentNames{other(j)}));
             c_all = W_all(ind_all).cells;
-            c = W(other(j)).cells(W(other(j)).cstatus);
+            c = W(other(j)).cells;
             
             % The number of cells / the actual cells have changed.
             if numel(c) == numel(c_all) && ...
                (all(c == c_all) || all(sort(c) == sort(c_all)))
                 % The two arrays are (possibly permuted) versions of
                 % each other. No new cells are encountered. We continue.
+                flag = ~all(W(other(j)).cstatus);
             else
-                new_cells = setdiff(c, c_all);
-                cellsChangedFlag(ind_all) = true;
+                new_cells = setdiff(c, c_all, 'stable');
+                flag = true;
                 % Expand cells and cell_origin
                 W_all(ind_all).cells = [W_all(ind_all).cells; new_cells];
                 W_all(ind_all).cell_origin = [W_all(ind_all).cell_origin; ...
                                              repmat(i, size(new_cells))]; %#ok
             end
+            cellsChangedFlag(ind_all) = cellsChangedFlag(ind_all) | flag;
         end
         
         % Wells that are new to us
@@ -116,7 +118,8 @@ function [W_all, cellsChangedFlag] = getWellSuperset(schedule, ctrl_order, opt)
                 W_new(j).cell_origin = repmat(i, numel(W_new(j).cells), 1);
             end
             W_all = [W_all; W_new]; %#ok
-            cellsChangedFlag = [cellsChangedFlag; false(numel(subs), 1)]; %#ok
+            changed_new = arrayfun(@(x) ~all(x.cstatus), W_new);
+            cellsChangedFlag = [cellsChangedFlag; changed_new]; %#ok
         end
     end
     
