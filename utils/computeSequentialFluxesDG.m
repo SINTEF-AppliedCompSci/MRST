@@ -1,4 +1,4 @@
-function [q_c, q_f, r_c, r_fg] = computeSequentialFluxesDG(disc, model, state, T, T_all, g, mob, b, sdof, rdof)
+function [q_c, q_f, r_fg] = computeSequentialFluxesDG(disc, model, state, T, T_all, g, mob, b, sdof, rdof)
 
     G = model.G;
     [~, x_f, ~, f] = disc.getCubature((1:G.cells.num)', 'surface');
