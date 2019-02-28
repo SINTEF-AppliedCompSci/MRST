@@ -39,6 +39,23 @@ classdef TransportBlackOilModelDG < TransportBlackOilModel
         end
         
         % ----------------------------------------------------------------%
+        function kr = evaluateRelPerm(model, phase, sat, varargin)
+            
+            switch phase
+                case 'W'
+                    name = 'W';
+                case 'O'
+                    name = ['O_', model.getPhaseNames()];
+                case 'G'
+                    name = 'G';
+            end
+            
+            fn = ['relPerm', name];
+            kr = model.(fn)(sat, varargin{:});
+            
+        end
+        
+        % ----------------------------------------------------------------%
         function [fn, index] = getVariableField(model, name)
             % Map variables to state field.
             %
@@ -105,35 +122,100 @@ classdef TransportBlackOilModelDG < TransportBlackOilModel
             restVars = vars(~isSatDof & ~isWells);
         end
         
+        % --------------------------------------------------------------------%
+        function [state, report] = updateState(model, state, problem, dx, drivingForces)
+            vars = problem.primaryVariables;
+            removed = false(size(vars));
+            if model.disgas || model.vapoil
+                % The VO model is a bit complicated, handle this part
+                % explicitly.
+                state0 = state;
+
+                state = model.updateStateFromIncrement(state, dx, problem, 'pressure', model.dpMaxRel, model.dpMaxAbs);
+                state = model.capProperty(state, 'pressure', model.minimumPressure, model.maximumPressure);
+
+                [vars, ix] = model.stripVars(vars, 'pressure');
+                removed(~removed) = removed(~removed) | ix;
+
+                % Black oil with dissolution
+                sOdof = model.getProp(state, 'sOdof');
+                sGdof = model.getProp(state, 'sGdof');
+                if model.water
+                    sWdof = model.getProp(state, 'sWdof');
+                    dsW = model.getIncrement(dx, problem, 'sWdof');
+                else
+                    sWdof = 0;
+                    dsW = 0;
+                end
+                % Magic status flag, see inside for doc
+                [sW, sO, sG] = model.disc.getCellMean(state, sWdof, sOdof, sGdof);
+                st = model.getCellStatusVO(state0, sO, sW, sG);
+                stt = st;
+                st  = cellfun(@(st) expandSingleValue(st, model.G), st , 'unif', false);
+                st  = cellfun(@(st) rldecode(st, state.nDof, 1), st, 'unif', false);
+                
+                dr = model.getIncrement(dx, problem, 'xDof');
+                % Interpretation of "gas" phase varies from cell to cell, remove
+                % everything that isn't sG updates
+                dsG = st{3}.*dr - st{2}.*dsW;
+
+                if model.disgas
+                    state = model.updateStateFromIncrement(state, st{1}.*dr, problem, ...
+                                                           'rSdof', model.drsMaxRel, model.drsMaxAbs);
+                    state.rs = model.disc.getCellMean(state, state.rsdof);
+                end
+
+                if model.vapoil
+                    state = model.updateStateFromIncrement(state, st{2}.*dr, problem, ...
+                                                           'rVdof', model.drsMaxRel, model.drsMaxAbs);
+                    state.rv = model.disc.getCellMean(state, state.rvdof);
+                end
+
+                dsO = -(dsG + dsW);
+                nPh = nnz(model.getActivePhases());
+
+                ds = zeros(numel(sOdof), nPh);
+                phIndices = model.getPhaseIndices();
+                if model.water
+                    ds(:, phIndices(1)) = dsW;
+                end
+                if model.oil
+                    ds(:, phIndices(2)) = dsO;
+                end
+                if model.gas
+                    ds(:, phIndices(3)) = dsG;
+                end
+
+                state = model.updateStateFromIncrement(state, ds, problem, 'sDof', inf, model.dsMaxAbs);
+                state.s = model.disc.getCellSaturation(state);
+                % We should *NOT* be solving for oil saturation for this to make sense
+                assert(~any(strcmpi(vars, 'sOdof')));
+                state = computeFlashBlackOil(state, state0, model, stt);
+                sT = sum(state.s, 2);
+                state.sdof = bsxfun(@rdivide, state.sdof, rldecode(sT, state.nDof,1));
+                state.s    = bsxfun(@rdivide, state.s, sT);
+
+                %  We have explicitly dealt with rs/rv properties, remove from list
+                %  meant for autoupdate.
+                [vars, ix] = model.stripVars(vars, {'sWdof', 'sOdof', 'sGdof', 'rSdof', 'rVdof', 'xDof'});
+                removed(~removed) = removed(~removed) | ix;
+
+            end
+
+            % We may have solved for a bunch of variables already if we had
+            % disgas / vapoil enabled, so we remove these from the
+            % increment and the linearized problem before passing them onto
+            % the generic reservoir update function.
+            problem.primaryVariables = vars;
+            dx(removed) = [];
+
+            % Parent class handles almost everything for us
+            [state, report] = updateState@ReservoirModel(model, state, problem, dx, drivingForces);
+        end
+        
+        
         % ----------------------------------------------------------------%
         function state = updateSaturations(model, state, dx, problem, satDofVars)
-            % Update of phase-saturations
-            %
-            % SYNOPSIS:
-            %   state = model.updateSaturations(state, dx, problem, satVars)
-            %
-            % DESCRIPTION:
-            %   Update saturations (likely state.s) under the constraint that
-            %   the sum of volume fractions is always equal to 1. This
-            %   assumes that we have solved for n - 1 phases when n phases
-            %   are present.
-            %
-            % PARAMETERS:
-            %   model   - Class instance
-            %   state   - State to be updated
-            %   dx      - Cell array of increments, some of which correspond 
-            %             to saturations
-            %   problem - `LinearizedProblemAD` class instance from which `dx`
-            %             was obtained.
-            %   satVars - Cell array with the names of the saturation
-            %             variables.
-            %
-            % RETURNS:
-            %   state - Updated state with saturations within physical
-            %           constraints.
-            %
-            % SEE ALSO:
-            %   `splitPrimaryVariables`
 
             if nargin < 5
                 % Get the saturation names directly from the problem
@@ -294,8 +376,72 @@ classdef TransportBlackOilModelDG < TransportBlackOilModel
                 % Postprocess using limiter(s)
                 state = model.disc.limiter(model, state, state0, false);    
             end
-        end             
+        end
         
+        function krW = relPermW(model, sat, varargin)
+            sW  = sat{model.getPhaseIndex('W')};
+            krW = model.fluid.krW(sW, varargin{:});
+        end
+
+        function krO = relPermO_O(model, sat, varargin)
+            sO  = sat{model.getPhaseIndex('O')};
+            krO = model.fluid.krO(sO, varargin{:});
+        end
+
+        function krO = relPermO_WO(model, sat, varargin)
+            sO = sat{model.getPhaseIndex('O')};
+            if isfield(model.fluid, 'krO')
+                krO = model.fluid.krO(sO, varargin{:});
+            else
+                krO = model.fluid.krOW(sO, varargin{:});
+            end
+        end
+
+        function krO = relPermO_OG(model, sat, varargin)
+            sO = sat{model.getPhaseIndex('O')};
+            if isfield(model.fluid, 'krO')
+                krO = model.fluid.krO(sO, varargin{:});
+            else
+                krO = model.fluid.krOG(sO, varargin{:});
+            end
+        end
+
+        function krO = relPermO_WOG(model, sat, varargin)
+            sWcon = 0;
+            fluid = model.fluid;
+            if isfield(fluid, 'sWcon')
+                if isempty(varargin) || numel(fluid.sWcon) == 1
+                    sWcon = fluid.sWcon;
+                else
+                    assert(strcmp(varargin{1}, 'cellInx'))
+                    sWcon = fluid.sWcon(varargin{2});
+                end
+            end
+            sW = sat{model.getPhaseIndex('W')};
+            sO = sat{model.getPhaseIndex('O')};
+            sG = sat{model.getPhaseIndex('G')};
+            sWcon = min(sWcon, double(sW)-1e-5);
+
+            wW = (sW-sWcon)./(sG+sW-sWcon);
+            wG = 1-wW;
+
+            krOW = fluid.krOW(sO, varargin{:});
+            krOG = fluid.krOG(sO,  varargin{:});
+            krO  = wG.*krOG + wW.*krOW;
+
+        end      
+
+        function krG = relPermG(model, sat, varargin)
+            sG  = sat{model.getPhaseIndex('G')};
+            krG = model.fluid.krG(sG, varargin{:});
+        end
+        
+    end
+end
+
+function v = expandSingleValue(v,G)
+    if numel(double(v)) == 1
+        v = v*ones(G.cells.num,1);
     end
 end
 
