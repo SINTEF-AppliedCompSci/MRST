@@ -190,7 +190,8 @@ classdef TransportBlackOilModelDG < TransportBlackOilModel
                 state.s = model.disc.getCellSaturation(state);
                 % We should *NOT* be solving for oil saturation for this to make sense
                 assert(~any(strcmpi(vars, 'sOdof')));
-                state = computeFlashBlackOil(state, state0, model, stt);
+                state = computeFlashBlackOilDG(state, state0, model, stt);
+                
                 sT = sum(state.s, 2);
                 state.sdof = bsxfun(@rdivide, state.sdof, rldecode(sT, state.nDof,1));
                 state.s    = bsxfun(@rdivide, state.s, sT);
