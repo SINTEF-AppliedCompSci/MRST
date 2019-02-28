@@ -12,9 +12,11 @@ function [b, mu, rho, mob] = getDerivedPropertyFunctionsBO(model, pO, mobMult, s
     end
     
     [b, mu, rho, mob] = deal(cell(model.water + model.oil + model.gas,1));
+    
     phNo = 1;
     % Water----------------------------------------------------------------
     if model.water
+        krW = @(s) model.evaluateRelPerm('W', s);
         if isfield(fluid, 'pcOW')
             pW = @(c, sW) pO(c) - fluid.pcOW(sW);
         else
@@ -23,23 +25,24 @@ function [b, mu, rho, mob] = getDerivedPropertyFunctionsBO(model, pO, mobMult, s
         b{phNo}   = @(c, sW, varargin) fluid.bW(pW(c, sW));
         mu{phNo}  = @(c, sW, varargin) fluid.muW(pW(c, sW));
         rho{phNo} = @(c, sW, varargin) b{phNo}(c, sW).*fluid.rhoWS;
-        mob{phNo} = @(c, sW, sT, varargin) mobMult(c).*fluid.krW(sW./sT)./mu{phNo}(c, sW);
+        mob{phNo} = @(c, s , varargin) mobMult(c).*krW(s)./mu{phNo}(c, s{1});
         phNo = phNo + 1;
     end
     %----------------------------------------------------------------------
     
     % Oil------------------------------------------------------------------
     if model.oil
+        krO = @(s) model.evaluateRelPerm('O', s);
         if disgas
             b{phNo}   = @(c, sO, rS, varargin) fluid.bO(pO(c), rS, isSatO(c));
             mu{phNo}  = @(c, sO, rS, varargin) fluid.muO(pO(c), rS, isSatO(c));
-            rho{phNo} = @(c, sO, rS, varargin) b{phNo}(c, sO, rS, isSatO(c)).*(rS.*fluid.rhoGS + fluid.rhoOS);
-            mob{phNo} = @(c, sO, sT, rS, varargin) mobMult(c).*fluid.krO(sO./sT)./mu{phNo}(c, rS);
+            rho{phNo} = @(c, sO, rS, varargin) b{phNo}(c, sO, rS).*(rS.*fluid.rhoGS + fluid.rhoOS);
+            mob{phNo} = @(c, s , rS, varargin) mobMult(c).*krO(s)./mu{phNo}(c, s{2}, rS);
         else
             b{phNo}   = @(c, varargin) fluid.bO(pO(c));
             mu{phNo}  = @(c, varargin) fluid.muO(pO(c));
             rho{phNo} = @(c, varargin) fluid.bO(pO(c)).*fluid.rhoOS;
-            mob{phNo} = @(c, sO, sT, varargin) mobMult(c).*fluid.krO(sO./sT)./mu{phNo}(c);
+            mob{phNo} = @(c, s, varargin) mobMult(c).*krO(s)./mu{phNo}(c);
         end
         phNo = phNo + 1;
     end
@@ -47,38 +50,24 @@ function [b, mu, rho, mob] = getDerivedPropertyFunctionsBO(model, pO, mobMult, s
     
     % Gas------------------------------------------------------------------
     if model.gas
+        krG = @(s) model.evaluateRelPerm('G', s);
         if isfield(fluid, 'pcOG')
             pG = @(c, sG) pO(c) + fluid.pcOG(sG);
         else
             pG = @(c, varargin) pO(c);
         end
         if vapoil
-            b{phNo}   = @(c, sG, rV) fluid.bG(pG(sG, c), rV, isSatG(c));
-            mu{phNo}  = @(c, sG, rV) fluid.muG(pG(sG, c), rV, isSatG(c));
-            rho{phNo} = @(c, sG, rV) b{phNo}(rV, c).*(rV.*fluid.rhoOS + fluid.rhoGS);
-            mob{phNo} = @(c, sG, sT, rV) mobMult(c).*fluid.krG(sG./sT)./mu{phNo}(c, sG, rV);
+            b{phNo}   = @(c, sG, rV) fluid.bG(pG(c, sG), rV, isSatG(c));
+            mu{phNo}  = @(c, sG, rV) fluid.muG(pG(c, sG), rV, isSatG(c));
+            rho{phNo} = @(c, sG, rV) b{phNo}(c, sG, rV).*(rV.*fluid.rhoOS + fluid.rhoGS);
+            mob{phNo} = @(c, s , rV) mobMult(c).*krG(s)./mu{phNo}(c, sG, rV);
         else
             b{phNo}   = @(c, sG, varargin) fluid.bG(pG(c, sG));
             mu{phNo}  = @(c, sG, varargin) fluid.muG(pG(c, sG));
             rho{phNo} = @(c, sG, varargin) fluid.bG(pG(c, sG)).*fluid.rhoGS;
-            mob{phNo} = @(c, sG, sT, varargin) mobMult(c).*fluid.krG(sG./sT)./mu{phNo}(c, sG);
+            mob{phNo} = @(c, s , varargin) mobMult(c).*krG(s)./mu{phNo}(c, s{3});
         end
     end
     %----------------------------------------------------------------------
-    
-%     % Fractional flow functions--------------------------------------------
-%     mobT = @(sW, sO, sG, sT, cW, cO, cG) mobW(sW, sT, cW) + mobO(sO, sT, cO) + mobG(sG, sT, cG);
-%     fW   = @(sW, sO, sG, sT, cW, cO, cG) mobW(sW, sT, cW)./mobT(sW, sO, sG, sT, cW, cO, cG);
-%     fO   = @(sW, sO, sG, sT, cW, cO, cG) mobO(sO, sT, cO)./mobT(sW, sO, sG, sT, cW, cO, cG);
-%     fG   = @(sW, sO, sG, sT, cW, cO, cG) mobG(sG, sT, cG)./mobT(sW, sO, sG, sT, cW, cO, cG);
-%     %----------------------------------------------------------------------
-%     
-%     % Gather output--------------------------------------------------------
-%     b   = {bW  , bO  , bG  };
-%     mu  = {muW , muO , muG };
-%     rho = {rhoW, rhoO, rhoG};
-%     mob = {mobW, mobO, mobG};
-%     f   = {fW  , fO  , fG  };
-%     %----------------------------------------------------------------------
     
 end

@@ -49,9 +49,10 @@ function [flagV, flagG, upCellsV, upCellsG, s_v, s_G] = getSaturationUpwindDG(di
     end
     s = [sL; sR];
     sT = sum(s,2);
+    s = mat2cell(s./sT, size(s,1), ones(size(s,2),1));
     r = [rL; rR];
     for phNo = 1:nPh
-        mob{phNo} = mob{phNo}([cL; cR], s(:,phNo), sT, r(:,phNo));
+        mob{phNo} = mob{phNo}([cL; cR], s, r(:,phNo));
     end
 
     % Make fake faceUpstr function

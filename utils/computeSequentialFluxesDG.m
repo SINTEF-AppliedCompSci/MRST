@@ -26,10 +26,11 @@ function [q_c, q_f, r_c, r_fg] = computeSequentialFluxesDG(disc, model, state, T
     end
     
     [mob_c, mob_fv, mob_fg, b_c, b_fv, b_fg] = deal(cell(nPh, 1));
+    sn = @(s, sT) cellfun(@(s, sT) s./sT, s, sT, 'unif', false);
     for phNo = 1:nPh
-        mob_c{phNo}  = mob{phNo}(c            , s_c{phNo} , sT_c{phNo} , r_c{phNo} );
-        mob_fv{phNo} = mob{phNo}(c_fv(:, phNo), s_fv{phNo}, sT_fv{phNo}, r_fv{phNo});
-        mob_fg{phNo} = mob{phNo}(c_fg(:, phNo), s_fg{phNo}, sT_fg{phNo}, r_fg{phNo});
+        mob_c{phNo}  = mob{phNo}(c            , sn(s_c, sT_c)  , r_c{phNo} );
+        mob_fv{phNo} = mob{phNo}(c_fv(:, phNo), sn(s_fv, sT_fv), r_fv{phNo});
+        mob_fg{phNo} = mob{phNo}(c_fg(:, phNo), sn(s_fg, sT_fg), r_fg{phNo});
         b_c{phNo}    = b{phNo}(c, s_c{phNo}, r_c{phNo});
         b_fv{phNo}   = b{phNo}(c_fv(:,phNo), s_fv{phNo}, r_fv{phNo});
         b_fg{phNo}   = b{phNo}(c_fg(:,phNo), s_fg{phNo}, r_fg{phNo});
