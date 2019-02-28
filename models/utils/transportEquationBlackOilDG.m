@@ -224,17 +224,12 @@ function [problem, state] = transportEquationBlackOilDG(state0, state, model, dt
         bGqG_w = bG(c_w, sG_w, rV_w).*wflux(c_w).*sT_w.*fG_w;
         
         % Water well contributions
-        integrandW = @(psi, gradPsi) bWqW_w.*psi;
-        srcW_w = disc.cellInt(integrandW, wc, state, sWdof);
-        
+        srcW_w = disc.inner(bWqW_w, psi, 'dV', wc);
         % Oil well contributions
-        integrandO = @(psi, gradPsi) (bOqO_w + rV_w.*bGqG_w).*psi;
-        srcO_w = disc.cellInt(integrandO, wc, state, sWdof);
-        
+        srcO_w = disc.inner(bOqO_w + rV_w.*bGqG_w, psi, 'dV', wc);
         % Oil well contributions
-        integrandG = @(psi, gradPsi) (bGqG_w + rS_w.*bOqO_w).*psi;
-        srcG_w = disc.cellInt(integrandG, wc, state, sWdof);
-                                 
+        srcG_w = disc.inner(bGqG_w + rS_w.*bOqO_w, psi, 'dV', wc);
+                                  
         % Store well fluxes
         ix     = disc.getDofIx(state, 1, wc);
         wfluxW = double(srcW_w(ix));
