@@ -199,32 +199,32 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             'sb',sb...%defines the mpfa boundary faces
             );
    %
-   % the usefull trans for  other methods are
-   %Trans =d1'*iDoBDo*Do';
-   % resdused Trans for neumann baundary
-   nc=size(C,2);
-   iface=~sb;
-   Trans=cf_mtrans;%iDoBDo*Do'*[C, -D(:,sb)];
-   A=Trans(iface,1:nc);
-   B=Trans(iface,nc+1:end);
-   C=Trans(~iface,1:nc);
-   D=Trans(~iface,nc+1:end);
-   rTrans = A-B*inv(D)*C;
-   % reduce to internal normal
-   
-   %
-   intfaces=~any(g.faces.neighbors==0,2);
-   rTrans = d1(iface,intfaces)'*rTrans; % mpfa trans from cell pressure to internal fluxes
-   N=g.faces.neighbors(intfaces,:);
-   
-   % gravity contributaion 
-   gTrans = iDoBDo*d1; % note that this maps from gravity differences over faces including outer faces.
-   % gravity trans ???
-   rgTrans = gTrans(iface,:) + B*(D\gTrans(~iface,:));
-   rgTrans = d1(iface,intfaces)'*rgTrans;   
-   % Create transmissibility as a hidden, undocumented output
    if nargout > 1
-      T_noflow=struct('rTrans',rTrans,...%calculate K\grad from cell pressures assuming no flow boundary 
+       % the usefull trans for  other methods are
+       %Trans =d1'*iDoBDo*Do';
+       % resdused Trans for neumann baundary
+       nc=size(C,2);
+       iface=~sb;
+       Trans=cf_mtrans;%iDoBDo*Do'*[C, -D(:,sb)];
+       A=Trans(iface,1:nc);
+       B=Trans(iface,nc+1:end);
+       C=Trans(~iface,1:nc);
+       D=Trans(~iface,nc+1:end);
+       rTrans = A-B*(D\C);
+       % reduce to internal normal
+
+       %
+       intfaces=~any(g.faces.neighbors==0,2);
+       rTrans = d1(iface,intfaces)'*rTrans; % mpfa trans from cell pressure to internal fluxes
+       N=g.faces.neighbors(intfaces,:);
+   
+       % Create transmissibility as a hidden, undocumented output
+       % gravity contributaion 
+       gTrans = iDoBDo*d1; % note that this maps from gravity differences over faces including outer faces.
+       % gravity trans ???
+       rgTrans = gTrans(iface,:) + B*(D\gTrans(~iface,:));
+       rgTrans = d1(iface,intfaces)'*rgTrans;   
+       T_noflow=struct('rTrans',rTrans,...%calculate K\grad from cell pressures assuming no flow boundary 
        'rgTrans',rgTrans','N',N);%calculate mpfa gravity contribution from "gravity difference between cells and cells to bounary faces" to internal face flux 
    end
 end
