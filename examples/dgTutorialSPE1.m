@@ -1,3 +1,8 @@
+mrstModule add dg ad-core ad-props ad-blackoil blackoil-sequential weno vem vemmech
+mrstVerbose on
+
+%%
+
 [G, rock, fluid, deck, state0] = setupSPE1();
 G = computeCellDimensions2(G);
 
@@ -20,7 +25,11 @@ modelSI = getSequentialModelFromFI(model);
 transportModel = TransportBlackOilModelDG(G, rock, fluid, ...
                                'disgas', modelSI.transportModel.disgas, ...
                                'vapoil', modelSI.transportModel.vapoil, ...
-                               'degree', 1);
+                               'degree', 0);
 modelDG        = SequentialPressureTransportModelDG(modelSI.pressureModel, transportModel);
 
 [wsDG, stDG, repDG] = simulateScheduleAD(state0, modelDG, schedule);
+
+%%
+
+plotWellSols({wsDG, wsFV})
