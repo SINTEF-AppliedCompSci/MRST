@@ -362,7 +362,7 @@ classdef DGDiscretization < HyperbolicDiscretization
         end
         
         %-----------------------------------------------------------------%
-        function ip = inner(disc, u, v, differential, cells)
+        function ip = inner(disc, u, v, differential, cells, bc)
             
             if nargin < 5
                 cells = (1:disc.G.cells.num)';
@@ -373,6 +373,8 @@ classdef DGDiscretization < HyperbolicDiscretization
                     ip = disc.cellInt2(u, v, cells);
                 case 'dS'
                     ip = disc.faceFluxInt2(u, v, cells);
+                case 'dSbc'
+                    ip = disc.faceFluxIntBC2(u, v, bc);
             end
             
         end
@@ -471,6 +473,56 @@ classdef DGDiscretization < HyperbolicDiscretization
                 end
             end
             I = disc.trimValues(I);
+        end
+        
+         %-----------------------------------------------------------------%
+        function I = faceFluxIntBC2(disc, u, v, bc)
+            % Integrate integrand over all faces where bcs are defined
+            %
+            % PARAMETERS:
+            %   model    - Model, which contains information on how the
+            %              integrand looks like
+            %   fun      - Integrand function handle
+            %   bc       - Boundary condition struct from schedule
+            %   state    - State to be used for dofPos
+            %   varargin - Variables passed to model for integrand
+            %              evalauation. varargin{1} MUST be an AD object of
+            %              dofs for all cells in the grid.
+            %
+            % RETURNS:
+            %   I - All integrals int(fun*psi{dofNo}) for dofNo = 1:nDof
+            %       over all bc faces for each cell
+            
+            G       = disc.G;          % Grid
+            nDofMax = disc.basis.nDof; % Maximum number of dofs
+            % Get faces and corresponding cells where BCs are defined
+            faces = bc.face;
+            cells = sum(G.faces.neighbors(faces,:),2);
+            % Get cubature for each face, find corresponding cells, and
+            % transform to reference coords
+            [W, x, ~, faceNo] = disc.getCubature(faces, 'face');
+            cellNo = sum(G.faces.neighbors(faceNo,:),2);
+            [x_r, ~, ~] = disc.transformCoords(x, cellNo);
+            % Ensure that we have the right sign for the integrals
+            sgn = 1 - 2*(G.faces.neighbors(faces, 1) == 0);
+            W = W.*sgn;
+            % Mappings from global cell numbers to bc face/cell numbers
+            globCell2BCcell = nan(G.cells.num,1);
+            globCell2BCcell(cells) = 1:numel(cells);
+            S = sparse(globCell2BCcell(cells), 1:numel(faces), 1);
+            % Evaluate integrals
+            I = disc.sample;
+            for dofNo = 1:nDofMax
+                keepCells = disc.nDof(cells) >= dofNo;
+                if any(keepCells)
+                    ix = disc.getDofIx(disc, dofNo, cells(keepCells)');
+                    i  = W*(u.*v{dofNo}(x_r));
+                    i  = S*i;
+                    I(ix) = i(keepCells);
+                end
+            end
+            I = disc.trimValues(I);
+            
         end
         
         %-----------------------------------------------------------------%
