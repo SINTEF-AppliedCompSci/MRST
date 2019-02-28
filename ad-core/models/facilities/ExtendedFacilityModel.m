@@ -396,17 +396,11 @@ classdef ExtendedFacilityModel < FacilityModel
                     pvi = pv.*local;
                     pm(subs) = sum(state.pressure.*pvi)/sum(pvi);
                     if disgas
-%                         oilPresent = state.s(:, oix) > 0;
-%                         active = oilPresent & local;
-                        active = local;
-                        pvi = pv.*active;
+                        pvi = pv.*local;
                         rs(subs) = sum(state.rs.*pvi)/sum(pvi);
                     end
                     if vapoil
-%                         gasPresent = state.s(:, gix) > 0;
-%                         active = gasPresent & local;
-                        active = local;
-                        pvi = pv.*active;
+                        pvi = pv.*local;
                         rv(subs) = sum(state.rv.*pvi)/sum(pvi);
                     end
                 end
