@@ -192,10 +192,28 @@ classdef TransportBlackOilModelDG < TransportBlackOilModel
                 assert(~any(strcmpi(vars, 'sOdof')));
                 state = computeFlashBlackOilDG(state, state0, model, stt);
                 
+                bad = any((state.s > 1 + model.disc.meanTolerance) ...
+                        | (state.s < 0 - model.disc.meanTolerance), 2);    
+                    
+                if any(bad)
+                    state.s(bad, :) = min(state.s(bad, :), 1);
+                    state.s(bad, :) = max(state.s(bad, :), 0);
+                    state.s(bad, :) = bsxfun(@rdivide, state.s(bad, :), ...
+                                                  sum(state.s(bad, :), 2));
+                    state = dgLimiter2(model.disc, state, bad);
+                end
                 sT = sum(state.s, 2);
                 state.sdof = bsxfun(@rdivide, state.sdof, rldecode(sT, state.nDof,1));
                 state.s    = bsxfun(@rdivide, state.s, sT);
-
+                
+                if model.disc.limitAfterNewtonStep
+                    [sMin, sMax] = model.disc.getMinMaxSaturation(state);
+                    bad = sMin < 0 - model.disc.outTolerance | ...
+                          sMax > 1 + model.disc.outTolerance;
+                    if any(bad)
+                       state = dgLimiter2(model.disc, state, bad);
+                    end
+                end
                 %  We have explicitly dealt with rs/rv properties, remove from list
                 %  meant for autoupdate.
                 [vars, ix] = model.stripVars(vars, {'sWdof', 'sOdof', 'sGdof', 'rSdof', 'rVdof', 'xDof'});
