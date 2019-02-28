@@ -16,6 +16,7 @@ function [b, mu, rho, mob] = getDerivedPropertyFunctionsBO(model, pO, mobMult, s
     phNo = 1;
     % Water----------------------------------------------------------------
     if model.water
+        ix = model.getPhaseIndex('W');
         krW = @(s) model.evaluateRelPerm('W', s);
         if isfield(fluid, 'pcOW')
             pW = @(c, sW) pO(c) - fluid.pcOW(sW);
@@ -25,19 +26,20 @@ function [b, mu, rho, mob] = getDerivedPropertyFunctionsBO(model, pO, mobMult, s
         b{phNo}   = @(c, sW, varargin) fluid.bW(pW(c, sW));
         mu{phNo}  = @(c, sW, varargin) fluid.muW(pW(c, sW));
         rho{phNo} = @(c, sW, varargin) b{phNo}(c, sW).*fluid.rhoWS;
-        mob{phNo} = @(c, s , varargin) mobMult(c).*krW(s)./mu{phNo}(c, s{1});
+        mob{phNo} = @(c, s , varargin) mobMult(c).*krW(s)./mu{phNo}(c, s{ix});
         phNo = phNo + 1;
     end
     %----------------------------------------------------------------------
     
     % Oil------------------------------------------------------------------
     if model.oil
+        ix = model.getPhaseIndex('O');
         krO = @(s) model.evaluateRelPerm('O', s);
         if disgas
             b{phNo}   = @(c, sO, rS, varargin) fluid.bO(pO(c), rS, isSatO(c));
             mu{phNo}  = @(c, sO, rS, varargin) fluid.muO(pO(c), rS, isSatO(c));
             rho{phNo} = @(c, sO, rS, varargin) b{phNo}(c, sO, rS).*(rS.*fluid.rhoGS + fluid.rhoOS);
-            mob{phNo} = @(c, s , rS, varargin) mobMult(c).*krO(s)./mu{phNo}(c, s{2}, rS);
+            mob{phNo} = @(c, s , rS, varargin) mobMult(c).*krO(s)./mu{phNo}(c, s{ix}, rS);
         else
             b{phNo}   = @(c, varargin) fluid.bO(pO(c));
             mu{phNo}  = @(c, varargin) fluid.muO(pO(c));
@@ -50,6 +52,7 @@ function [b, mu, rho, mob] = getDerivedPropertyFunctionsBO(model, pO, mobMult, s
     
     % Gas------------------------------------------------------------------
     if model.gas
+        ix = model.getPhaseIndex('G');
         krG = @(s) model.evaluateRelPerm('G', s);
         if isfield(fluid, 'pcOG')
             pG = @(c, sG) pO(c) + fluid.pcOG(sG);
@@ -60,12 +63,12 @@ function [b, mu, rho, mob] = getDerivedPropertyFunctionsBO(model, pO, mobMult, s
             b{phNo}   = @(c, sG, rV) fluid.bG(pG(c, sG), rV, isSatG(c));
             mu{phNo}  = @(c, sG, rV) fluid.muG(pG(c, sG), rV, isSatG(c));
             rho{phNo} = @(c, sG, rV) b{phNo}(c, sG, rV).*(rV.*fluid.rhoOS + fluid.rhoGS);
-            mob{phNo} = @(c, s , rV) mobMult(c).*krG(s)./mu{phNo}(c, sG, rV);
+            mob{phNo} = @(c, s , rV) mobMult(c).*krG(s)./mu{phNo}(c, s{ix}, rV);
         else
             b{phNo}   = @(c, sG, varargin) fluid.bG(pG(c, sG));
             mu{phNo}  = @(c, sG, varargin) fluid.muG(pG(c, sG));
             rho{phNo} = @(c, sG, varargin) fluid.bG(pG(c, sG)).*fluid.rhoGS;
-            mob{phNo} = @(c, s , varargin) mobMult(c).*krG(s)./mu{phNo}(c, s{3});
+            mob{phNo} = @(c, s , varargin) mobMult(c).*krG(s)./mu{phNo}(c, s{ix});
         end
     end
     %----------------------------------------------------------------------
