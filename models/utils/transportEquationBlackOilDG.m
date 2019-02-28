@@ -12,16 +12,16 @@ function [problem, state] = transportEquationBlackOilDG(state0, state, model, dt
     opt      = merge_options(opt, varargin{:});
     
     % Frequently used properties
-    op       = model.operators;
-    fluid    = model.fluid;
-    rock     = model.rock;
-    G        = model.G;
-    disc     = model.disc;
-    W        = drivingForces.W;
-    disgas   = model.disgas;
-    vapoil   = model.vapoil;
-    psi      = disc.basis.psi;
-    gradPsi  = disc.basis.grad_psi;
+    op      = model.operators;
+    fluid   = model.fluid;
+    rock    = model.rock;
+    G       = model.G;
+    disc    = model.disc;
+    W       = drivingForces.W;
+    disgas  = model.disgas;
+    vapoil  = model.vapoil;
+    psi     = disc.basis.psi;
+    gradPsi = disc.basis.grad_psi;
     
     % We may solve for both oil and water simultaneously
     solveAllPhases = opt.solveForWater && opt.solveForOil && opt.solveForGas;
@@ -46,8 +46,8 @@ function [problem, state] = transportEquationBlackOilDG(state0, state, model, dt
     % Update discretizaiton information. This is carried by the state
     % variable, and holds the number of dofs per cell + dof position in
     % state.sdof
-    state0 = disc.updateDofPos(state0);
-    [state, disc]  = disc.updateDofPos(state);
+    state0        = disc.updateDofPos(state0);
+    [state, disc] = disc.updateDofPos(state);
     %----------------------------------------------------------------------
     
     % Properties from current and previous timestep------------------------
@@ -123,7 +123,6 @@ function [problem, state] = transportEquationBlackOilDG(state0, state, model, dt
         end
     end
     disc.sample = sWdof;
-    
     %----------------------------------------------------------------------
 
     % Pressure and saturation dependent properties-------------------------
@@ -143,20 +142,14 @@ function [problem, state] = transportEquationBlackOilDG(state0, state, model, dt
     [bW, bO, bG, rhoW, rhoO, rhoG, mobW, mobO, mobG] = deal(b{:}, rho{:}, mob{:});
     [b0, mu0, rho0, mob0] = getDerivedPropertyFunctionsBO(model, p0, mobMult, stt0);
     [bW0, bO0, bG0, rhoW0, rhoO0, rhoG0, mobW0, mobO0, mobG0] = deal(b0{:}, rho0{:}, mob0{:});
-%     bW   = b{1};   bO   = b{2};   bG   = b{3};
-%     rhoW = rho{1}; rhoO = rho{2}; rhoG = rho{3};
-%     mobW = mob{1}; mobO = mob{2}; mobG = mob{3};
-
-    [sW, sG] = disc.getCellMean(state, sWdof, sGdof);
     
     % Gravity flux
-    
     x_f = G.faces.centroids(disc.internalConn);
     c_l = disc.N(:,1);
     c_r = disc.N(:,2);
     [sW_l, sO_l, sG_l, rS_l, rV_l] = disc.evaluateDGVariable(x_f, c_l, state, sWdof, sOdof, sGdof, rSdof, rVdof);
     [sW_r, sO_r, sG_r, rS_r, rV_r] = disc.evaluateDGVariable(x_f, c_r, state, sWdof, sOdof, sGdof, rSdof, rVdof); 
-    
+    [sW, sG] = disc.getCellMean(state, sWdof, sGdof);
     gW = (rhoW(c_l, sW_l) + rhoW(c_r, sW_r))/2.*gdz;
     if isfield(fluid, 'pcOW')
         gW = gW - op.Grad(fluid.pcOW(sW));
@@ -183,7 +176,7 @@ function [problem, state] = transportEquationBlackOilDG(state0, state, model, dt
         gG(bc.face) = rhoGBC.*(dz*g');
     end    
 
-    [bv_c, bv_f, r_c, r_fg] = computeSequentialFluxesDG(disc, model, state, T, T_all, ...
+    [bv_c, bv_f, r_fg] = computeSequentialFluxesDG(disc, model, state, T, T_all, ...
         {gW, gO, gG}, {mobW, mobO, mobG}, {bW, bO, bG}, {sWdof, sOdof, sGdof, sTdof}, {0*rSdof, rSdof, rVdof});
     [bWvW_c, bOvO_c, bGvG_c] = deal(bv_c{:});
     [bWvW_f, bOvO_f, bGvG_f] = deal(bv_f{:});
@@ -201,9 +194,6 @@ function [problem, state] = transportEquationBlackOilDG(state0, state, model, dt
         compWell  = vertcat(W.compi);
         compPerf  = zeros(G.cells.num, 3);
         compPerf(wc,:) = compWell(perf2well,:);
-        
-        cqs = zeros(G.cells.num,3);
-        cqs(wc,:) = vertcat(wellSol.cqs);
         
         % Saturations at cubature points
         [~, x_w, c_w] = disc.getCubature(wc, 'volume');
@@ -250,15 +240,14 @@ function [problem, state] = transportEquationBlackOilDG(state0, state, model, dt
     [~, x_c, c] = disc.getCubature((1:G.cells.num)', 'volume');
     [sW_c , sO_c , sG_c , rV_c , rS_c]  = disc.evaluateDGVariable(x_c, c, state , sWdof , sOdof , sGdof, rVdof , rSdof);
     [sW0_c, sO0_c, sG0_c, rV0_c, rS0_c] = disc.evaluateDGVariable(x_c, c, state0, sWdof0, sOdof0, sGdof0, rVdof0, rSdof0); 
-    
+    % B-factors at current timestep
     bW_c  = bW(c, sW_c);
     bO_c  = bO(c, sO0_c, rS_c);
     bG_c  = bG(c, sG0_c, rV_c);
-    
+    % B-factors at previous timestep
     bW0_c = bW0(c, sW0_c);
     bO0_c = bO0(c, sO0_c, rS0_c);
     bG0_c = bG0(c, sG0_c, rV0_c);
-    
     %----------------------------------------------------------------------
     
     [eqs, names, types] = deal(cell(1,2 + solveAllPhases));
@@ -267,14 +256,13 @@ function [problem, state] = transportEquationBlackOilDG(state0, state, model, dt
     eqNo = 1;
     % Water equation-------------------------------------------------------
     if opt.solveForWater
-
+        % Mass terms
         mW  = pvMult(c) .*rock.poro(c).*bW_c .*sW_c;
         mW0 = pvMult0(c).*rock.poro(c).*bW0_c.*sW0_c;
-
+        % Assemble inner products
         water =   disc.inner((mW - mW0)/dt, psi    , 'dV') ...
                 - disc.inner(bWvW_c       , gradPsi, 'dV') ...
                 + disc.inner(bWvW_f       , psi    , 'dS');
-
         % Add well contributions
         if ~isempty(W)
             ix = disc.getDofIx(state, Inf, wc);
@@ -288,15 +276,13 @@ function [problem, state] = transportEquationBlackOilDG(state0, state, model, dt
     
     % Oil equation---------------------------------------------------------
     if opt.solveForOil
-        % Cell values
-                
+        % Mass terms
         mO  = pvMult(c) .*rock.poro(c).*(bO_c .*sO_c  + rV_c .*bG_c .*sG_c );
         mO0 = pvMult0(c).*rock.poro(c).*(bO0_c.*sO0_c + rV0_c.*bG0_c.*sG0_c);
-        
+        % Assemble inner products
         oil =   disc.inner((mO - mO0)/dt        , psi    , 'dV') ...
               - disc.inner(bOvO_c + rV_c.*bGvG_c, gradPsi, 'dV') ...
               + disc.inner(bOvO_f + rV_f.*bGvG_f, psi    , 'dS');
-        
         % Add well contributions
         if ~isempty(W)
             ix = disc.getDofIx(state, Inf, wc);
