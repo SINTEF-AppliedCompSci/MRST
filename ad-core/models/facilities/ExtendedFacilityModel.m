@@ -184,7 +184,7 @@ classdef ExtendedFacilityModel < FacilityModel
 
         function [model, state] = prepareReportstep(model, state, state0, dt, drivingForces)
             [model, state] = prepareReportstep@FacilityModel(model, state, state0, dt, drivingForces);
-            [model, state] = model.updateRESVControls(state);
+            [model, state] = model.updateRESVControls(state, state0);
         end
         
         function [model, state] = prepareTimestep(model, state, state0, dt, drivingForces)
@@ -192,7 +192,6 @@ classdef ExtendedFacilityModel < FacilityModel
             wellSol = state.wellSol;
             actWellIx = model.getIndicesOfActiveWells(wellSol);
             nw = numel(actWellIx);
-            
             if nw > 0
                 rho = model.ReservoirModel.getProps(state, 'Density');
                 rho = [rho{:}];
@@ -362,7 +361,7 @@ classdef ExtendedFacilityModel < FacilityModel
             end
         end
         
-        function [model, state] = updateRESVControls(model, state)
+        function [model, state] = updateRESVControls(model, state, state0)
             % Treat RESV
             activeWellMask = model.getWellStatusMask(state.wellSol);
             isRESVHist = cellfun(@(x) strcmpi(x.W.type, 'resv_history'), model.WellModels(activeWellMask));
@@ -396,30 +395,32 @@ classdef ExtendedFacilityModel < FacilityModel
                 rs = zeros(nc, 1);
                 rv = zeros(nc, 1);
                 pm = zeros(nc, 1);
-                pv = rmodel.getProp(state, 'PoreVolume');
+                pv = rmodel.getProp(state0, 'PoreVolume');
                 if rmodel.water
-                    sw = rmodel.getProp(state, 'sw');
+                    sw = rmodel.getProp(state0, 'sw');
                     pv = pv.*(1-sw);
                 end
                 for reg = 1:max(regNo)
                     subs = regNo == reg;
                     local = pvt_reg == reg;
                     pvi = pv.*local;
-                    pm(subs) = sum(state.pressure.*pvi)/sum(pvi);
+                    pm(subs) = sum(state0.pressure.*pvi)/sum(pvi);
                     if disgas
                         pvi = pv.*local;
-                        rs(subs) = sum(state.rs.*pvi)/sum(pvi);
+                        rs(subs) = sum(state0.rs.*pvi)/sum(pvi);
                     end
                     if vapoil
                         pvi = pv.*local;
-                        rv(subs) = sum(state.rv.*pvi)/sum(pvi);
+                        rv(subs) = sum(state0.rv.*pvi)/sum(pvi);
                     end
                 end
-                if disgas
-                    rs(isHist) = min(qs(isHist, gix)./qs(isHist, oix), rs);
-                end
-                if vapoil
-                    rv(isHist) = min(qs(isHist, oix)./qs(isHist, gix), rv);
+                if any(isHist)
+                    if disgas
+                        rs(isHist) = min(qs(isHist, gix)./qs(isHist, oix), rs);
+                    end
+                    if vapoil
+                        rv(isHist) = min(qs(isHist, oix)./qs(isHist, gix), rv);
+                    end
                 end
                 substate = struct('pressure', pm, ...
                                   's', repmat([1, 0, 0], nc, 1), ...
