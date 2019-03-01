@@ -25,7 +25,13 @@ classdef BaseRelativePermeability < GridProperty
         [sw, so, sg] = model.getProps(state, 'sw', 'so', 'sg');
         f = model.fluid;
         swcon = 0;
-        if isfield(f, 'krPts')
+        if prop.relpermScaling && ...
+                isfield(model.rock, 'krscale') && ...
+                isfield(model.rock.krscale.drainage, 'w')
+            % Connate water in rock, endpoint scaling
+            swcon = model.rock.krscale.drainage.w(:, 1);
+        elseif isfield(f, 'krPts')
+            % Connate water from rel perm table
             swcon = reshape(f.krPts.w(prop.regions, 1), [], 1);
         end
         swcon = min(swcon, value(sw)-1e-5);
@@ -214,7 +220,7 @@ function [m, c, p, k] = getThreePointScalers(pts, ph, reg, f, cells)
             SR = 1 - SOGCR - SWL;
             sr = 1 - sogcr - swl;
             
-            [su, SU] = get('g', U);  
+            [su, SU] = get('g', U);
         case 'ow'
             [swcr, SWCR] = get('w', CR);
             [sgl, SGL] = get('g', L);
