@@ -672,6 +672,13 @@ function soln = convertSOLUTION(soln, u)
          case 'TEMPI'
             soln.(key) = convertFrom(soln.(key), u.temp);
 
+
+         case 'THPRES'
+            unt = [1, 1, u.press];
+            for t = 1 : size(soln.(key), 1)
+                soln.(key)(t, :) = convertFrom(soln.(key)(t, :), unt);
+            end
+
          otherwise
             error(id('SOLUTION:NoConverter'), ...
                   'No known unit conversion in SOLUTION for ''%s''.', key);
