@@ -16,7 +16,7 @@ function [w, ow, og, g, present] = getThreePhaseScaling(deck, nc, prefix)
    [w, okw] = getRelPermScaling(deck, nc, prefix, 'W');
    [ow, okow] = getRelPermScaling(deck, nc, prefix, 'OW');
    [og, okog] = getRelPermScaling(deck, nc, prefix, 'OG');
-   [g, okg] = getRelPermScaling(deck, nc, prefix, 'W');
+   [g, okg] = getRelPermScaling(deck, nc, prefix, 'G');
    
    present = okw || okow || okog || okg;
 end
