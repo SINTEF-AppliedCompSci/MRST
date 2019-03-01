@@ -1,9 +1,10 @@
 classdef RvMax < GridProperty
     properties
+        rvReduction = 0;
     end
     
     methods
-        function rsSat = evaluateOnDomain(prop, model, state)
+        function rvSat = evaluateOnDomain(prop, model, state)
             p = model.getProp(state, 'pressure');
             pc = state.FlowProps.CapillaryPressure{model.water + model.oil + model.gas};
             if model.disgas
@@ -12,9 +13,15 @@ classdef RvMax < GridProperty
                 if ~isempty(pc)
                     pg = pg + pc;
                 end
-                rsSat = prop.evaluateFunctionOnGrid(f.rvSat, pg);
+                rvSat = prop.evaluateFunctionOnGrid(f.rvSat, pg);
+                if prop.rvReduction > 0 && isfield(state, 'sMax')
+                    [sOMax, sO] = model.getProps(state, 'somax', 'so');
+                    factor = (sOMax./sO);
+                    factor(value(sO) == 0) = 1;
+                    rvSat = rvSat.*factor.^prop.rvReduction;
+                end
             else
-                rsSat = 0*p;
+                rvSat = 0*p;
             end
         end
     end
