@@ -49,7 +49,7 @@ function [pts, pts_o] = getPoints(swof)
     pts = zeros(1, 4);
     % Connate water saturation
     pts(1) = swof(1, 1);
-    % Last mobile water saturation
+    % Last immobile water saturation
     ii = find(swof(:,2)==0, 1, 'last');
     pts(2) = swof(ii,1);
     % Last point
