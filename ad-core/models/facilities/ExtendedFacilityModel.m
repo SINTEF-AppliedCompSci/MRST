@@ -115,7 +115,7 @@ classdef ExtendedFacilityModel < FacilityModel
                 rho = cellfun(@(x) x.ControlDensity, facility.WellModels(map.active), 'UniformOutput', false);
                 rho = vertcat(rho{is_resv});
                 ratio = bsxfun(@rdivide, rhoS, rho);
-                if true
+                if false
                     for ph = 1:nph
                         resv_rates(is_resv) = resv_rates(is_resv) + q_s{ph}(is_resv).*ratio(:, ph);
                     end
@@ -123,9 +123,10 @@ classdef ExtendedFacilityModel < FacilityModel
                 else
                     resv_rates = 0;
                     phaseRates = facility.getProps(state, 'PhaseFlux');
+                    rhoR = model.getProps(state, 'Density');
                     for ph = 1:nph
-                        tmp = wsum*phaseRates{ph};
-                        resv_rates = resv_rates + tmp(is_resv).*ratio(:, ph);
+                        tmp = wsum*(phaseRates{ph}.*rhoR{ph}(map.cells));
+                        resv_rates = resv_rates + tmp(is_resv)./rho(:, ph);
                     end
                     ctrl_eq(is_resv) = resv_rates - targets(is_resv);
                 end
