@@ -115,10 +115,20 @@ classdef ExtendedFacilityModel < FacilityModel
                 rho = cellfun(@(x) x.ControlDensity, facility.WellModels(map.active), 'UniformOutput', false);
                 rho = vertcat(rho{is_resv});
                 ratio = bsxfun(@rdivide, rhoS, rho);
-                for ph = 1:nph
-                    resv_rates(is_resv) = resv_rates(is_resv) + q_s{ph}(is_resv).*ratio(:, ph);
+                if true
+                    for ph = 1:nph
+                        resv_rates(is_resv) = resv_rates(is_resv) + q_s{ph}(is_resv).*ratio(:, ph);
+                    end
+                    ctrl_eq(is_resv) = resv_rates(is_resv) - targets(is_resv);
+                else
+                    resv_rates = 0;
+                    phaseRates = facility.getProps(state, 'PhaseFlux');
+                    for ph = 1:nph
+                        tmp = wsum*phaseRates{ph};
+                        resv_rates = resv_rates + tmp(is_resv).*ratio(:, ph);
+                    end
+                    ctrl_eq(is_resv) = resv_rates - targets(is_resv);
                 end
-                ctrl_eq(is_resv) = resv_rates(is_resv) - targets(is_resv);
             end
 
             % Zero surface rate conditions
@@ -411,18 +421,48 @@ classdef ExtendedFacilityModel < FacilityModel
                     rv(isHist) = min(qs(isHist, oix)./qs(isHist, gix), rv);
                 end
                 substate = struct('pressure', pm, ...
-                                  's', repmat([0, 1, 0], nc, 1), ...
+                                  's', repmat([1, 0, 0], nc, 1), ...
                                   'rs', rs, ...
                                   'rv', rv);
 
                 flowProps = model.ReservoirModel.FlowPropertyFunctions.subset(cells);
                 % Avoid using flag for interpolation
-                flowProps.ShrinkageFactors.useSaturatedFlag = false;
+                flowProps.ShrinkageFactors.useSaturatedFlag = true;
                 substate = flowProps.evaluateProperty(model.ReservoirModel, substate, 'Density');                
                 rhoS = model.ReservoirModel.getSurfaceDensities();
                 rho = substate.FlowProps.Density;
                 rho = [rho{:}];
-                newRates = sum(qs.*rhoS./rho, 2);
+                if false
+                    newRates = sum(qs.*rhoS./rho, 2);
+                else
+                    shrink = 1 - rs.*rv;
+                    b = substate.FlowProps.ShrinkageFactors;
+                    newRates = 0;
+                    if rmodel.water
+                        wix = 1;
+                        bW = b{wix};
+                        newRates = newRates + qs(:, wix)./bW;
+                    end
+                    if rmodel.oil
+                        bO = b{oix};
+                        orat = qs(:, oix);
+                        if vapoil
+                            orat = orat - rv.*qs(:, gix);
+                        end
+                        newRates = newRates + orat./(bO.*shrink);
+                    end
+                    if rmodel.gas
+                        bG = b{gix};
+                        grat = qs(:, gix);
+                        if vapoil
+                            grat = grat - rs.*qs(:, oix);
+                        end
+                        newRates = newRates + grat./(bG.*shrink);
+                        
+                        newRates0 = sum(qs.*rhoS./rho, 2);
+                        newRates./newRates0
+                    end
+                end
                 resvIx = find(isRESV);
                 actIx = find(activeWellMask);
                 for i = 1:numel(resvIx)
