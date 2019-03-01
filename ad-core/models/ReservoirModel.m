@@ -127,6 +127,9 @@ methods
         if ~isempty(model.FacilityModel)
             state = model.FacilityModel.validateState(state);
         end
+        if ~isfield(state, 'sMax')
+            state.sMax = state.s;
+        end
     end
 
     function vars = getSaturationVarNames(model)
@@ -250,6 +253,7 @@ methods
         end
         [state, report] = updateAfterConvergence@PhysicalModel(model, state0, state, dt, drivingForces);
         report.FacilityReport = f_report;
+        state.sMax = max(state.sMax, state.s);
     end
 
     % --------------------------------------------------------------------%
@@ -334,6 +338,12 @@ methods
             case {'t', 'temperature'}
                 fn = 'T';
                 index = 1;
+            case {'swmax', 'somax', 'sgmax'}
+                fn = 'sMax';
+                index = model.satVarIndex(name(1:2)); 
+            case 'smax'
+                fn = 'sMax';
+                index = ':';
             case {'sw', 'water'}
                 index = model.satVarIndex('sw');
                 fn = 's';
