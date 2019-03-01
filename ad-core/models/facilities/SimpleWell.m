@@ -359,37 +359,30 @@ classdef SimpleWell < PhysicalModel
                 return
             end
             active = model.getActivePhases();
-            numPh = nnz(active);
-
             w = well.W;
             if ~isfield(w, 'topo')
                 nperf = numel(w.cells);
                 w.topo = [(0:(nperf-1))', (1:nperf)'];
             end
             if isfield(wellSol, 'ComponentTotalFlux') && ~isempty(wellSol.ComponentTotalFlux)
-                q = wellSol.flux;
-                q(q == 0) = w.sign*1e-12;
+                qVol = wellSol.flux;
+                qVol(qVol == 0) = w.sign*1e-12;
+                qMass = wellSol.ComponentTotalFlux;
+                qMass(qMass == 0) = w.sign*1e-12;
             else
                 sgn = w.sign;
                 if sgn == 0
                     sgn = 1;
                 end
-                q = sgn*ones(size(rho_res));
-                in = q > 0;
-                q = bsxfun(@times, q, rho_well).*in + bsxfun(@times, q, rho_res).*~in;
+                qVol = sgn*ones(size(rho_res));
+                in = qVol > 0;
+                qMass = bsxfun(@times, qVol, rho_well).*in + bsxfun(@times, qVol, rho_res).*~in;
             end
             C = well.wb2in(w);      % mapping wb-flux to in-flux
-            wbqs  = abs(C\q);      % solve to get well-bore mass flux
-            wbqst = sum(wbqs, 2);   % total wb- mass flux 
-            % if flux is zero - just use compi
-            zi = wbqst == 0;
-            if any( zi )
-                wbqs(zi,:)  = ones(nnz(zi),1)*(w.compi.*mean(rho_well));
-                wbqst(zi,:) = sum(wbqs(zi,:), 2);
-            end
-            % Mass fractions
-            mixs = wbqs ./ (wbqst*ones(1,numPh));
-            rhoMix = sum(rho_res.*mixs, 2);
+            wbMassFlux  = abs(C\qMass);  % solve to get well-bore mass flux
+            wbVolumeFlux  = abs(C\qVol); % solve to get well-bore volume flux
+            
+            rhoMix = sum(wbMassFlux, 2)./sum(wbVolumeFlux, 2);
 
             % get dz between segment nodes and bh-node1. This is a simple
             % hydrostatic distribution.
