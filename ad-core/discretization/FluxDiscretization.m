@@ -24,7 +24,12 @@ classdef FluxDiscretization < PropertyFunctions
 
             props@PropertyFunctions();
             % Darcy flux
-            props.Transmissibility = Transmissibility(backend);
+            if ~isempty(model.inputdata) && isfield(model.inputdata.SOLUTION, 'THPRES')
+                trans = ThresholdedTransmissibility(backend, model);
+            else
+                trans = Transmissibility(backend);
+            end
+            props.Transmissibility = trans;
             props.PermeabilityPotentialGradient = PermeabilityPotentialGradient(backend, tpfa);
             props.PressureGradient = PressureGradient(backend);
             props.GravityPotentialDifference = GravityPotentialDifference(backend);
