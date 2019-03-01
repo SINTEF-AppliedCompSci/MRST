@@ -780,7 +780,7 @@ function ctrl = convertControl(ctrl, u)
                ctrl.(key) = convertWellSegs(ctrl.(key), u);
             end
 
-         case {'GRUPTREE', 'WGRUPCON', 'RPTSCHED'}
+         case {'GRUPTREE', 'WGRUPCON', 'RPTSCHED', 'VAPPARS'}
             continue; % No conversion necessary
 
          case 'GRUPNET'
