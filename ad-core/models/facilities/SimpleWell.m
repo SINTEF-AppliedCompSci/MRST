@@ -387,7 +387,7 @@ classdef SimpleWell < PhysicalModel
             % get dz between segment nodes and bh-node1. This is a simple
             % hydrostatic distribution.
             dpt = [0; w.dZ];
-            dz  = diff(dpt);
+            dz  = diff(dpt).*w.cstatus;
             g   = norm(gravity);
             ddp = g*rhoMix.*dz; % p-diff between connection neighbors
             % well topology assumes we can traverse from top down, but we
