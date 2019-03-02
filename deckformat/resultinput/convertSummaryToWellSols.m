@@ -7,9 +7,11 @@ if nargin < 2
     warning('No unit given, assuming metric')
     unit = 'metric';
 end
-[dr,nm] = fileparts(fn);
-%smry  = readSummaryLocal(fullfile(dr,nm));
-smry = readEclipseSummaryUnFmt(fn);
+if isstruct(fn)
+    smry = fn;
+else
+    smry = readEclipseSummaryUnFmt(fn);
+end
 % units:
 if ischar(unit)
     u = getUnits(unit);
