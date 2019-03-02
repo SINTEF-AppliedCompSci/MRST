@@ -675,9 +675,7 @@ function soln = convertSOLUTION(soln, u)
 
          case 'THPRES'
             unt = [1, 1, u.press];
-            for t = 1 : size(soln.(key), 1)
-                soln.(key)(t, :) = convertFrom(soln.(key)(t, :), unt);
-            end
+            soln.(key) = convertFrom(soln.(key), unt);
 
          otherwise
             error(id('SOLUTION:NoConverter'), ...
