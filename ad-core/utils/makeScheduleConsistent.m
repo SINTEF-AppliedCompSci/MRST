@@ -277,15 +277,20 @@ end
 function schedule = setUniformDZ(schedule, wellNo)
     nc = numel(schedule.control(1).W(wellNo).cells);
     dz = zeros(nc, 1);
+    dir = repmat(' ', nc, 1);
     % Find all defined dZ values
     for i = 1:numel(schedule.control)
         w = schedule.control(i).W(wellNo);
         defaulted = dz == 0 & w.dZ ~= 0;
         dz(defaulted) = w.dZ(defaulted);
+        ok_dir = w.dir ~= ' ';
+        dir(ok_dir) = w.dir(ok_dir);
     end
+    dir(dir == ' ') = 'Z';
     % Set uniform dZ
     for i = 1:numel(schedule.control)
         schedule.control(i).W(wellNo).dZ = dz;
+        schedule.control(i).W(wellNo).dir = dir;
     end
 end
 
@@ -326,12 +331,14 @@ function schedule = directionReorder(schedule, wellNo, opt)
     nc = numel(w.cells);
     sortIx = nan(nc, 1);
     % Always start with first perforation
-    sortIx(1) = 1;
+    mO = min(w.cell_origin);
+    sortIx(1) = find(w.cell_origin == mO, 1, 'first');
     dir = lower(w.dir);
     if numel(dir) == 1
         dir = repmat(dir, nc, 1);
     end
     convention = 'xyz';
+    assert(all(ismember(dir, convention)))
     pts = G.cells.centroids(w.cells, :);
     current_pt = pts(1, :);
     pts(1, :) = inf;
