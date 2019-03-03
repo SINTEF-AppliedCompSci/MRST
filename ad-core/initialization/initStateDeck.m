@@ -16,6 +16,15 @@ function state = initStateDeck(model, deck)
             ['Initialisation scheme specified in ', ...
             '''deck'' is not supported.']);
     end
+    if isfield(deck.PROPS, 'SWATINIT')
+        s = state.s;
+        s(:, 1) = deck.PROPS.SWATINIT(model.G.cells.indexMap);
+        s(:, 2) = 0;
+        s(:, 2) = 1 - sum(s, 2);
+        s(:, 2) = max(s(:, 2), 0);
+        s = bsxfun(@rdivide, s, sum(s, 2));
+        state.s = s;
+    end
 end
 
 function state = directAssignment(model, deck)
