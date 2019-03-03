@@ -57,7 +57,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         
 %         d  = (sg+sw-swcon);
 %         ww = (sw-swcon)./d;
-        
+%% 求Nc、m 不需要改动   
     isSft = (double(c) > 0);
     m = 0*c;
     if nnz(isSft) > 0
@@ -67,6 +67,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        m(isSft) = fluid.miscfact(logNc, 'cellInx', find(isSft));
     end
 
+%% 求饱和度横坐标端点，需要加上与swcon对应的sorw，而sgr与sorg不需要改动。
+%  此外，需要调出assign中表活剂计算相渗的文件，看明白代码，修改sorw，加上krog和krg。
+%  此处可能会需要用到data文件中的东西，进一步需要看TD。
+    
     sWcon    = fluid.sWcon;    % Residual water saturation   without surfactant
     sOres    = fluid.sOres;    % Residual oil saturation     without surfactant
     sWconSft = fluid.sWconSft; % Residual water saturation   with    surfactant
@@ -78,16 +82,22 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     sNcEff = (sW - sNcWcon)./(1 - sNcWcon - sNcOres);
 
+ %% 求表活剂条件下krW和krOW
+    
     % Rescaling of the saturation - without surfactant
     sNcWnoSft = (1 - sWcon - sOres).*sNcEff + sWcon;
     krNcWnoSft = fluid.krW(sNcWnoSft);
     krNcOnoSft = fluid.krOW(1 - sNcWnoSft);
 
+ %% 求无表活剂条件下krW和krOW
+    
     % Rescaling of the saturation - with surfactant
     sNcWSft =  (1 - sWconSft - sOresSft).*sNcEff + sWconSft;
     krNcWSft = fluid.krW(sNcWSft);
     krNcOSft = fluid.krOW(1 - sNcWSft);
 
+ %% 求kr，加上krg和krog（这两个值维持原黑油模型不变），kro计算需要ww和wg。
+    
     krW = m.*krNcWSft + (1 - m).*krNcWnoSft;
     krO = m.*krNcOSft + (1 - m).*krNcOnoSft;
     krG = fluid.krG(sG)
