@@ -16,6 +16,7 @@ classdef RvMax < GridProperty
                 rvSat = prop.evaluateFunctionOnGrid(f.rvSat, pg);
                 if prop.rvReduction > 0 && isfield(state, 'sMax')
                     [sOMax, sO] = model.getProps(state, 'somax', 'so');
+                    sOMax = max(sOMax, sO);
                     factor = (sO + 1e-4)./(sOMax + 1e-4);
                     rvSat = rvSat.*(factor.^prop.rvReduction);
                 end
