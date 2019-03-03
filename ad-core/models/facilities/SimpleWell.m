@@ -369,6 +369,11 @@ classdef SimpleWell < PhysicalModel
                 qVol(qVol == 0) = w.sign*1e-12;
                 qMass = wellSol.ComponentTotalFlux;
                 qMass(qMass == 0) = w.sign*1e-12;
+                
+                if w.sign == 1
+                    qMass = qMass.*w.compi;
+                    qVol = qVol.*w.compi;
+                end
             else
                 sgn = w.sign;
                 if sgn == 0
@@ -387,7 +392,7 @@ classdef SimpleWell < PhysicalModel
             % get dz between segment nodes and bh-node1. This is a simple
             % hydrostatic distribution.
             dpt = [0; w.dZ];
-            dz  = diff(dpt).*w.cstatus;
+            dz  = diff(dpt);%.*w.cstatus;
             g   = norm(gravity);
             ddp = g*rhoMix.*dz; % p-diff between connection neighbors
             % well topology assumes we can traverse from top down, but we
