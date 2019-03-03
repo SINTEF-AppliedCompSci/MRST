@@ -197,7 +197,8 @@ function schedule = updateSchedule(schedule, ctrl_order, W_all, cellsChangedFlag
                     % Take the values from the active perforations
                     if any(isActivePerf)
                         if not(isempty(W(sub).(pf)))
-                            W_all(j).(pf)(isActivePerf, :) = W(sub).(pf)(order, :);
+                            tmp = W(sub).(pf)(W(sub).cstatus, :);
+                            W_all(j).(pf)(isActivePerf, :) = tmp(order, :);
                         end
                     end
                 end
@@ -256,7 +257,7 @@ function schedule = reorderWellsPerforations(schedule, opt)
     
     for wNo = 1:nw
         dispif(mrstVerbose(), 'Ordering well %d (%s) with strategy "%s".\n', ...
-                                wNo, schedule.control(1).W(1).name, order{wNo})
+                                wNo, schedule.control(1).W(wNo).name, order{wNo})
         schedule = setUniformDZ(schedule, wNo);
         switch lower(order{wNo})
             case 'origin'
