@@ -14,7 +14,9 @@ end
 
 methods
     function model = ThreePhaseBlackOilModel(G, rock, fluid, varargin)
-        model = model@ReservoirModel(G, rock, fluid);
+        opt = struct('inputdata', []);
+        [opt, extra] = merge_options(opt, varargin{:});
+        model = model@ReservoirModel(G, rock, fluid, 'inputdata', opt.inputdata);
 
         % Typical black oil is disgas / dead oil, but all combinations
         % are supported
@@ -33,7 +35,7 @@ methods
         model.gas = true;
         model.water = true;
 
-        model = merge_options(model, varargin{:});
+        model = merge_options(model, extra{:});
 
         d = model.inputdata;
         if ~isempty(d)
