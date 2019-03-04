@@ -314,9 +314,9 @@ classdef DGDiscretization < HyperbolicDiscretization
                     keep = nDof(cells) >= dofNo;
                     ix = disc.getDofIx(state, dofNo, cells(keep));
                     if all(keep)
-                        val = val + varargin{vNo}(ix).*psi{dofNo}(x(keep,:));
+                        val = val + varargin{vNo}(ix,:).*psi{dofNo}(x(keep,:));
                     else
-                        val(keep) = val(keep) + varargin{vNo}(ix).*psi{dofNo}(x(keep,:));
+                        val(keep, :) = val(keep, :) + varargin{vNo}(ix,:).*psi{dofNo}(x(keep,:));
                     end
                 end
                 end
@@ -675,10 +675,10 @@ classdef DGDiscretization < HyperbolicDiscretization
         end
         
         %-----------------------------------------------------------------%
-        function [flag_v, flag_G, upCells_v, upCells_G, s_v, s_G] = getSaturationUpwind(disc, faces, x, T, vT, state, g, mob, sdof, rdof)
+        function [flag_v, flag_G, upCells_v, upCells_G, s_v, s_G] = getSaturationUpwind(disc, faces, x, T, vT, state, g, mob, sdof, rdof, cdof)
             % Explicit calculation of upstream cells. See getSaturationUpwindDG
             [flag_v, flag_G, upCells_v, upCells_G, s_v, s_G] ...
-                = getSaturationUpwindDG(disc, faces, x, T, vT, state, g, mob, sdof, rdof);
+                = getSaturationUpwindDG(disc, faces, x, T, vT, state, g, mob, sdof, rdof, cdof);
         end
         
         %-----------------------------------------------------------------%
