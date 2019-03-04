@@ -88,6 +88,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     fluid = model.fluid;
 
     % Capillary pressure
+    %% need to add pcOG
     pcOW = 0;
     if isfield(fluid, 'pcOW')
         pcOW  = fluid.pcOW(sW);
@@ -95,10 +96,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     pcOW = pcOW.*fluid.ift(c)/fluid.ift(0);
     pO = p;
     pW = pO - pcOW;
+    pG = pO + pcOG;
 
     bW0 = fluid.bW(p0);
     bO0 = fluid.bO(p0);
+    bG0 = fluid.bG(p0);
 
+  %%  
     % Water flux and properties
     bW      = fluid.bW(p);
     rhoW    = bW.*fluid.rhoWS;
@@ -122,11 +126,28 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     dpO  = op.Grad(pO) - rhoOf.*gdz;
     upcO = (double(dpO)<=0);
 
-    dp  = {dpW, dpO};
-    mob = {mobW, mobO};
-    rho = {rhoW, rhoO};
-    upc = {upcW, upcO};
-    b   = {bW, bO};
-    b0  = {bW0, bO0};
+    %% need to check the properties according to threephasepolymer file
+    % and figure out what upc means
+    
+    % Gas flux and properties
+    bG    = fluid.bG(pG);
+    rhoG  = bG.*fluid.rhoGS;
+    rhoGf = op.faceAvg(rhoG);
+    if isfield(fluid, 'BOxmuO')
+        muO = fluid.BOxmuO(pO).*bO;
+    else
+        muO = fluid.muO(pO);
+    end
+    mobG = krG./muG;
+    dpG  = op.Grad(pG) - rhoGf.*gdz;
+    upcG = (double(dpG)<=0);
+
+    %%
+    dp  = {dpW, dpO, dpG};
+    mob = {mobW, mobO, mobG};
+    rho = {rhoW, rhoO, rhoG};
+    upc = {upcW, upcO, upcG};
+    b   = {bW, bO, bG};
+    b0  = {bW0, bO0, bG0};
 
 end
