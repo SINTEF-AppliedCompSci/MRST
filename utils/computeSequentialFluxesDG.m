@@ -97,7 +97,7 @@ function [q_c, q_f, r_fg, qP_c, qP_f] = computeSequentialFluxesDG(disc, model, s
     end
     
     [qP_c, qP_f] = deal(0);
-    if model.polymer
+    if isfield(model, 'polymer') && model.polymer
         fluid   = model.fluid;
         wIx = model.getPhaseIndex('W');
         a   = fluid.muWMult(fluid.cmax).^(1-fluid.mixPar);
