@@ -3,16 +3,17 @@ function state = dgLimiter2(disc, state, bad)
     nDofMax = disc.basis.nDof;
     G       = disc.G;
     
-    varNames = {'s', 'rs', 'rv'};
+    varNames = {'s', 'rs', 'rv', 'c'};
     for vNo = 1:numel(varNames)
         v    = varNames{vNo};
         if isfield(state, v)
             vdof = [v, 'dof'];
-            if size(state.(v),1) == disc.G.cells.num
+            isActive = size(state.(v),1) == disc.G.cells.num;
+            if isActive
                 ix = disc.getDofIx(state, 1, bad);
                 state.(vdof)(ix,:) = state.(v)(bad,:);
             end
-            if disc.degree > 0
+            if disc.degree > 0 && isActive
                 ix = disc.getDofIx(state, 2:nDofMax, bad);
                 state.(vdof)(ix,:) = [];
             end
