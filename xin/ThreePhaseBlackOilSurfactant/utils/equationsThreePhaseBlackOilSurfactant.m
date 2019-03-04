@@ -122,7 +122,7 @@ primaryVars = {'pressure', 'sW', gvar, 'surfactant', wellVarNames{:}};
 pBH = wellVars{wellMap.isBHP};
 % Compute fluxes and other properties for oil and water.
 [dp, mob, upc, b, rho, pvMult, b0, pvMult0, T] = ...
-    computeFluxAndPropsThreePhaseBlackOilSurfactant(model, p0, p, sW, c, pBH, W);
+    computeFluxAndPropsThreePhaseBlackOilSurfactant(model, p0, p, sW, sG, c, pBH, W);
 
 % divide to water/surfactant-oil-gas three parts
 

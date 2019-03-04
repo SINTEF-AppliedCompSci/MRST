@@ -1,5 +1,5 @@
 function [dp, mob, upc, b, rho, pvMult, b0, pvMult0, T] =  ...
-    computeFluxAndPropsThreePhaseBlackOilSurfactant(model, p0, p, sW, c, ...
+    computeFluxAndPropsThreePhaseBlackOilSurfactant(model, p0, p, sW, sG, c, ...
                                                       pBH, W, varargin)
 %
 %
@@ -14,7 +14,8 @@ function [dp, mob, upc, b, rho, pvMult, b0, pvMult0, T] =  ...
 %   model    - Model instance
 %   p0       - Pressure at previous time step
 %   p        - Pressure at current time step
-%   sW       - Saturation
+%   sW       - Water Saturation
+%   sG       - Gas Saturation
 %   c        - Surfactant concentration
 %   pBH      - bottom hole pressure
 %   W        - Well structure
@@ -68,7 +69,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     op    = model.operators;
 
     Nc = computeCapillaryNumber(p, c, pBH, W, fluid, G, op, 'velocCompMethod', opt.velocCompMethod);
-    [krW, krO, krG] = computeThreePhaseRelPermSft(sW, sO, sG, c, Nc, fluid);
+    [krW, krO, krG] = computeThreePhaseRelPermSft(sW, sG, c, Nc, fluid);
 
     % Multipliers for properties
     [pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
