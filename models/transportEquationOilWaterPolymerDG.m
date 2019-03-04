@@ -1,12 +1,13 @@
-function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt, drivingForces, varargin)
+function [problem, state] = transportEquationOilWaterPolymerDG(state0, state, model, dt, drivingForces, varargin)
 
     opt = struct('Verbose'      , mrstVerbose, ...
                  'reverseMode'  , false      , ...
                  'scaling'      , []         , ...
                  'resOnly'      , false      , ...
                  'history'      , []         , ...
-                 'solveForWater', true       , ...
-                 'solveForOil'  , false      , ...
+                 'solveForWater', false      , ...
+                 'solveForOil'  , true       , ...
+                 'solveForPolymer', true     , ...
                  'iteration'    , -1         , ...
                  'stepOptions'  , []         ); % Compatibility only
     opt      = merge_options(opt, varargin{:});
@@ -35,8 +36,9 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
             state.degree(vertcat(W.cells)) = 0;
         end
         % For cells that previously had less than nDof unknowns, we must
-        % map old dofs to new
-        state = disc.mapDofs(state, state0);
+        % map old dofs to new 
+        state = disc.mapDofs(state, state0, 's');
+        state = disc.mapDofs(state, state0, 'c');
         
     end
     % Update discretizaiton information. This is carried by the state
@@ -47,10 +49,10 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     %----------------------------------------------------------------------
     
     % Properties from current and previous timestep------------------------
-    [p , sWdof , sOdof , wellSol] = model.getProps(state , ...
-                  'pressure', 'swdof', 'sodof', 'wellsol');
-    [p0, sWdof0, sOdof0,        ] = model.getProps(state0, ...
-                  'pressure', 'swdof', 'sodof'           );
+    [p , sWdof , sOdof , cDof, cMax, wellSol] = model.getProps(state , ...
+                  'pressure', 'swdof', 'sodof', 'cdof', 'polymermax', 'wellsol');
+    [p0, sWdof0, sOdof0, cDof0, cMax0       ] = model.getProps(state0, ...
+                  'pressure', 'swdof', 'sodof', 'cdof', 'polymermax'           );
     % If timestep has been split relative to pressure, linearly interpolate
     % in pressure.
     if isfield(state, 'timestep')
@@ -63,15 +65,15 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     assert(~opt.reverseMode, 'Backwards solver not supported for splitting');
     if solveAllPhases
         if ~opt.resOnly
-            [sWdof, sOdof] = model.AutoDiffBackend.initVariablesAD(sWdof, sOdof);
+            [sWdof, sOdof, cDof] = model.AutoDiffBackend.initVariablesAD(sWdof, sOdof, cDof);
         end
-        primaryVars = {'sWdof', 'sOdof'};
+        primaryVars = {'sWdof', 'sOdof', 'cDof'};
         sTdof = sOdof + sWdof;
     else
         if ~opt.resOnly
-            sWdof = model.AutoDiffBackend.initVariablesAD(sWdof);
+            [sWdof, cDof] = model.AutoDiffBackend.initVariablesAD(sWdof, cDof);
         end
-        primaryVars = {'sWdof'};
+        primaryVars = {'sWdof', 'cDof'};
         sOdof     = -sWdof;
         ix        = disc.getDofIx(state, 1, Inf);
         sOdof(ix) = 1 + sOdof(ix);
@@ -96,6 +98,10 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     [bW, bO, muW, muO, rhoW, rhoO, mobW, mobO] = deal(b{:}, mu{:}, rho{:}, mob{:});
     [b0, mu0, rho0, mob0] = getDerivedPropertyFunctionsBO(model, p0, mobMult, []);
     [bW0, bO0, muW0, muO0, rhoW0, rhoO0, mobW0, mobO0] = deal(b0{:}, mu0{:}, rho0{:}, mob0{:});
+    
+    [muWMult, a, cbar] = getMobilityMultipliers(model, cMax);
+    mobW = @(e, s, r, c) mobW(e, s)./muWMult(e, c);
+    mobP = @(e, s, r, c) mobW(e, s, r, c)./(a + (1-a).*cbar(c));
     
     x_f = G.faces.centroids(disc.internalConn);
     c_l = disc.N(:,1);
@@ -122,8 +128,12 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
         [gW, gO] = deal(g{:});
     end
     
-    [bv_c, bv_f] = computeSequentialFluxesDG(disc, model, state, T, T_all, ...
-        {gW, gO}, {mobW, mobO}, {bW, bO}, {sWdof, sOdof, sTdof}, {});
+    [bv_c, bv_f, ~, bWvP_c, bWvP_f] ...
+        = computeSequentialFluxesDG(disc, model, state, T, T_all, ...
+        {gW, gO}, {mobW, mobO}, {bW, bO}, {sWdof, sOdof, sTdof}, {}, cDof);
+
+    
+    
     [bWvW_c, bOvO_c] = deal(bv_c{:});
     [bWvW_f, bOvO_f] = deal(bv_f{:});
     %----------------------------------------------------------------------
@@ -141,33 +151,42 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
         compPerf(wc,:) = compWell(perf2well,:);
         
         % Saturations at cubature points
-        [~, x_w, c_w] = disc.getCubature(wc, 'volume');
-        [sW_w, sO_w, sT_w] = disc.evaluateDGVariable(x_w, c_w, state, sWdof, sOdof, sTdof);
+        [~, x_w, e_w] = disc.getCubature(wc, 'volume');
+        [sW_w, sO_w, sT_w, c_w] = disc.evaluateDGVariable(x_w, e_w, state, sWdof, sOdof, sTdof, cDof);
         s_w = {sW_w./sT_w, sO_w./sT_w};
         
-        mobW_w = mobW(c_w, s_w);
-        mobO_w = mobO(c_w, s_w);
+        mobW_w = mobW(e_w, s_w, 0, c_w);
+        mobO_w = mobO(e_w, s_w);
         mobT_w = mobW_w + mobO_w;
         
-        fW_w = ~isInj(c_w).*sT_w.*mobW_w./mobT_w + isInj(c_w).*compPerf(c_w,1);
-        fO_w = ~isInj(c_w).*sT_w.*mobO_w./mobT_w + isInj(c_w).*compPerf(c_w,2);
+        fW_w = ~isInj(e_w).*sT_w.*mobW_w./mobT_w + isInj(e_w).*compPerf(e_w,1);
+        fO_w = ~isInj(e_w).*sT_w.*mobO_w./mobT_w + isInj(e_w).*compPerf(e_w,2);
         
-        bWqW_w = bW(c_w, sW_w).*wflux(c_w).*sT_w.*fW_w;
-        bOqO_w = bO(c_w, sO_w).*wflux(c_w).*sT_w.*fO_w;
+        bWqW_w = bW(e_w, sW_w).*wflux(e_w).*sT_w.*fW_w;
+        bOqO_w = bO(e_w, sO_w).*wflux(e_w).*sT_w.*fO_w;
+        
+        % Polymer well equations
+        [~, wciPoly, iInxW] = getWellPolymer(W);
+        c_w(iInxW) = wciPoly;
+        bWqP_w     = c_w.*bWqW_w;
         
         % Water well contributions
         srcW_w = disc.inner(bWqW_w, psi, 'dV', wc);
         % Oil well contributions
         srcO_w = disc.inner(bOqO_w, psi, 'dV', wc);
-                
+        % Polymer well contributions
+        srcP_w = disc.inner(bWqP_w, psi, 'dV', wc);
+        
         % Store well fluxes
         ix     = disc.getDofIx(state, 1, wc);
         wfluxW = double(srcW_w(ix));
         wfluxO = double(srcO_w(ix));
+        wfluxP = double(srcP_w(ix));
         for wNo = 1:numel(W)
             perfind = perf2well == wNo;
             state.wellSol(wNo).qWs = sum(wfluxW(perfind));
             state.wellSol(wNo).qOs = sum(wfluxO(perfind));
+            state.wellSol(wNo).qPs = sum(wfluxP(perfind));
         end
 
     end
@@ -175,23 +194,27 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
 
     % Evaluate saturation at cubature points-------------------------------
     % Cell cubature points
-    [~, xc, c] = disc.getCubature((1:G.cells.num)', 'volume');
-    [sW_c , sO_c , sT_c] = disc.evaluateDGVariable(xc, c, state , sWdof , sOdof , sTdof);
-    [sW0_c, sO0_c]      = disc.evaluateDGVariable(xc, c, state0, sWdof0, sOdof0);
+    [~, x_e, e] = disc.getCubature((1:G.cells.num)', 'volume');
+    [sW_c , sO_c , sT_c] = disc.evaluateDGVariable(x_e, e, state , sWdof , sOdof , sTdof);
+    [sW0_c, sO0_c]      = disc.evaluateDGVariable(x_e, e, state0, sWdof0, sOdof0);
     % B-factors at current timestep
-    bW_c  = bW(c, sW_c);
-    bO_c  = bO(c, sO0_c);
+    bW_c  = bW(e, sW_c);
+    bO_c  = bO(e, sO0_c);
     % B-factors at previous timestep
-    bW0_c = bW0(c, sW0_c);
-    bO0_c = bO0(c, sO0_c);
+    bW0_c = bW0(e, sW0_c);
+    bO0_c = bO0(e, sO0_c);
+    
+    poro = rock.poro;
     %----------------------------------------------------------------------
     
+    [eqs, names, types] = deal(cell(2 + solveAllPhases,1));
+    [types{:}] = deal('cell');
     eqNo = 1;
     % Water equation-------------------------------------------------------
     if opt.solveForWater
         % Mass terms
-        mW  = pvMult(c) .*rock.poro(c).*bW_c .*sW_c;
-        mW0 = pvMult0(c).*rock.poro(c).*bW0_c.*sW0_c;
+        mW  = pvMult(e) .*poro(e).*bW_c .*sW_c;
+        mW0 = pvMult0(e).*poro(e).*bW0_c.*sW0_c;
         % Assemble inner products
         water =   disc.inner((mW - mW0)/dt, psi    , 'dV') ...
                 - disc.inner(bWvW_c       , gradPsi, 'dV') ...
@@ -210,8 +233,8 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     % Oil equation---------------------------------------------------------
     if opt.solveForOil
         % Cell values
-        mO  = pvMult(c) .*rock.poro(c).*(bO_c .*sO_c);
-        mO0 = pvMult0(c).*rock.poro(c).*(bO0_c.*sO0_c);
+        mO  = pvMult(e) .*poro(e).*(bO_c .*sO_c);
+        mO0 = pvMult0(e).*poro(e).*(bO0_c.*sO0_c);
         % Assmeble inner products
         oil =   disc.inner((mO - mO0)/dt, psi    , 'dV') ...
               - disc.inner(bOvO_c       , gradPsi, 'dV') ...
@@ -223,9 +246,62 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
         end
         eqs{eqNo}   = oil;
         names{eqNo} = 'oil';
+        eqNo = eqNo + 1;
     end
     %----------------------------------------------------------------------
 
+    % Polymer equation-----------------------------------------------------
+    if opt.solveForPolymer
+        c_e    = disc.evaluateDGVariable(x_e, e, state, cDof);
+        c0_e   = disc.evaluateDGVariable(x_e, e, state0, cDof0);
+        ads_e  = effads(c_e, cMax(e), model);
+        ads0_e = effads(c0_e, cMax0(e), model);
+        % Cell values
+        mP  = (1-fluid.dps).*pvMult(e) .*poro(e).*bW_c .*sW_c .*c_e;
+        mP0 = (1-fluid.dps).*pvMult0(e).*poro(e).*bW0_c.*sW0_c.*c0_e;
+        
+        ads  = fluid.rhoR.*(1-poro(e)).*ads_e;
+        ads0 = fluid.rhoR.*(1-poro(e)).*ads0_e;
+        
+        % Assmeble inner products
+        polymer =   disc.inner((mP  - mP0 )/dt, psi    , 'dV') ...
+                  + disc.inner((ads - ads0)/dt, psi    , 'dV') ...
+                  - disc.inner(bWvP_c         , gradPsi, 'dV') ...
+                  + disc.inner(bWvP_f         , psi    , 'dS');
+        if 0
+            ACCDG = disc.inner((mP  - mP0 )/dt, psi    , 'dV');
+            ADSGD = disc.inner((ads - ads0)/dt, psi    , 'dV');
+            FLUXDG = disc.inner(bWvP_f         , psi    , 'dS');
+            load('fv.mat')
+            
+        end
+        % Add well contributions
+        if ~isempty(W)
+            ix = disc.getDofIx(state, Inf, wc);
+            polymer(ix) = polymer(ix) - srcP_w(ix);
+        end
+        
+        c = disc.getCellMean(state, cDof);
+        
+        if isa(polymer, 'ADI')
+            isPolymer = strcmpi(primaryVars, 'cDof');
+            epsilon = 1.e-8;
+            epsilon = sqrt(epsilon)*mean(abs(diag(polymer.jac{isPolymer})));
+            bad     = abs(diag(polymer.jac{isPolymer})) < epsilon;
+            polymer(bad) = cDof(bad);
+        end
+        
+        bad = double(sW) == 0;
+        if any(bad)
+            ix  = disc.getDofIx(state, Inf, bad);
+            polymer(ix) = cDof(ix);
+        end
+        eqs{eqNo}   = polymer;
+        names{eqNo} = 'polymer';
+    end
+    %----------------------------------------------------------------------
+    
+    
     % Add BCs--------------------------------------------------------------
     if ~isempty(bc)
         if opt.solveForWater
@@ -268,24 +344,12 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     %----------------------------------------------------------------------
     
     % Make Linearized problem----------------------------------------------
-    % Define equations, names and types
-    if solveAllPhases
-        eqs = {water, oil};
-        names = {'water', 'oil'};    
-        types = {'cell', 'cell'};
-    elseif opt.solveForWater
-        eqs   = {water  };
-        names = {'water'};
-        types = {'cell' };
-    elseif opt.solveForOil
-        eqs   = {oil   };
-        names = {'oil' };
-        types = {'cell'};
-    end
     % Scale equations
+    isPolymer = strcmpi(names, 'polymer');
+    eqs{isPolymer} = eqs{isPolymer}./fluid.cmax;
     if ~model.useCNVConvergence
         pv = rldecode(op.pv, state.nDof, 1);
-        for eqNo = 1:(opt.solveForOil+opt.solveForWater)
+        for eqNo = 1:(2 + solveAllPhases)
             eqs{eqNo} = eqs{eqNo}.*(dt./pv);
         end
     end
@@ -315,6 +379,11 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     end
     %----------------------------------------------------------------------
 
+    if 0
+        eqsDG = eqs;
+        save('dgEqs.mat', 'eqsDG');
+    end
+    
 end
 
 % Expang single scalar values to one per cell------------------------------
@@ -322,5 +391,30 @@ function v = expandSingleValue(v,G)
     if numel(double(v)) == 1
         v = v*ones(G.cells.num,1);
     end
+end
+%--------------------------------------------------------------------------
+
+% Effective adsorption, depending of desorption or not
+function y = effads(c, cmax, model)
+   if model.fluid.adsInx == 2
+      y = model.fluid.ads(max(c, cmax));
+   else
+      y = model.fluid.ads(c);
+   end
+end
+%--------------------------------------------------------------------------
+
+% Multipliers due to polymer-----------------------------------------------
+function [muWMult, a, cbar] = getMobilityMultipliers(model, cMax)
+    fluid = model.fluid;
+    ads = @(e, c) effads(c, cMax(e), model);
+    mixpar = fluid.mixPar;
+    cbar   = @(c) c/fluid.cmax;
+    a = fluid.muWMult(fluid.cmax).^(1-mixpar);
+    b = @(c) 1./(1-cbar(c)+cbar(c)./a);
+    % The viscosity multiplier only result from the polymer mixing.
+    muWeffMult = @(c) b(c).*fluid.muWMult(c).^mixpar;
+    permRed = @(e, c) 1 + ((fluid.rrf-1)./fluid.adsMax).*ads(e, c);
+    muWMult = @(e, c) muWeffMult(c).*permRed(e, c);
 end
 %--------------------------------------------------------------------------
