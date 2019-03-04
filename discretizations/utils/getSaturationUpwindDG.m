@@ -1,4 +1,4 @@
-function [flagV, flagG, upCellsV, upCellsG, s_v, s_G] = getSaturationUpwindDG(disc, faces, x, T, flux, state, g, mob, sdof, rdof)
+function [flagV, flagG, upCellsV, upCellsG, s_v, s_G] = getSaturationUpwindDG(disc, faces, x, T, flux, state, g, mob, sdof, rdof, xdof)
     % Explicit calculation of upstream cells (Bernier & Jaffre)
     % for each quadrature point x on each face in faces.
     %
@@ -47,12 +47,19 @@ function [flagV, flagG, upCellsV, upCellsG, s_v, s_G] = getSaturationUpwindDG(di
             rR(:, phNo) = disc.evaluateDGVariable(x, cR, state, double(rdof{phNo}));
         end
     end
+    [xL, xR] = deal(zeros(size(x,1),1));
+    if ~isempty(xdof)
+        xL = disc.evaluateDGVariable(x, cL, state, double(xdof));
+        xR = disc.evaluateDGVariable(x, cR, state, double(xdof));
+    end
     s = [sL; sR];
     sT = sum(s,2);
     s = mat2cell(s./sT, size(s,1), ones(size(s,2),1));
     r = [rL; rR];
+    x = [xL; xR];
+    
     for phNo = 1:nPh
-        mob{phNo} = mob{phNo}([cL; cR], s, r(:,phNo));
+        mob{phNo} = mob{phNo}([cL; cR], s, r(:,phNo), x);
     end
 
     % Make fake faceUpstr function
