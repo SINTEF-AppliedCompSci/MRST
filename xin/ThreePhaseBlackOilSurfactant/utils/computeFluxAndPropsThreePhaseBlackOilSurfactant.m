@@ -160,7 +160,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     dpG  = op.Grad(pG) - rhoGf.*gdz;
     upcG = (double(dpG)<=0);
 
-    %%
     dp  = {dpW, dpO, dpG};
     mob = {mobW, mobO, mobG};
     rho = {rhoW, rhoO, rhoG};

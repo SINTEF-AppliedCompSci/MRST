@@ -56,11 +56,10 @@ opt = struct('Verbose', mrstVerbose, ...
     'iteration', -1 );
 opt = merge_options(opt, varargin{:});
 
-%% Shorter names for some commonly used parts of the model and forces.
+% Shorter names for some commonly used parts of the model and forces.
 W     = drivingForces.W;
 fluid = model.fluid;
 op    = model.operators;
-G     = model.G;
 
 % Properties at current timestep
 [p, sW, sG, rs, rv, c, cmax, wellSol] = model.getProps(state, ...
@@ -77,7 +76,7 @@ G     = model.G;
 %  - the surfactant concentrations, at injection and production wells,
 %    contained in the wellVars, wellVarNames, wellMap structures
 
-%% Initialization of primary variables ----------------------------------
+% Initialization of primary variables ----------------------------------
 st  = model.getCellStatusVO(state,  1-sW-sG,   sW,  sG);
 st0 = model.getCellStatusVO(state0, 1-sW0-sG0, sW0, sG0);
 
@@ -99,7 +98,7 @@ if ~opt.resOnly
         x0 = st0{1}.*rs0 + st0{2}.*rv0 + st0{3}.*sG0;
         % Set initial gradient to zero
         wellVars0 = model.FacilityModel.getAllPrimaryVariables(wellSol0);
-        [p0, sW0, x0, c0, wellVars0{:}] = initVariablesADI(p0, sW0, x0, c0, wellVars0{:}); %#ok
+        [p0, sW0, x0, c0, wellVars0{:}] = initVariablesADI(p0, sW0, x0, c0, wellVars0{:});
         clear zw;
         [sG0, rs0, rv0] = calculateHydrocarbonsFromStatusBO(model, st0, 1-sW, x0, rs0, rv0, p0);
     end
@@ -118,7 +117,7 @@ primaryVars = {'pressure', 'sW', gvar, 'surfactant', wellVarNames{:}};
 
 
 
-%% EQUATIONS ---------------------------------------------------------------
+% EQUATIONS ---------------------------------------------------------------
 pBH = wellVars{wellMap.isBHP};
 % Compute fluxes and other properties for oil and water.
 [dp, mob, upc, b, rho, pvMult, b0, pvMult0, T] = ...
@@ -126,12 +125,12 @@ pBH = wellVars{wellMap.isBHP};
 
 % divide to water/surfactant-oil-gas three parts
 
-dpW  = dp{1} ; dpO  = dp{2};
-mobW = mob{1}; mobO = mob{2};
-rhoW = rho{1}; rhoO = rho{2};
-upcW = upc{1}; upcO = upc{2};
-bW   = b{1}  ; bO   = b{2};
-bW0  = b0{1} ; bO0  = b0{2};
+dpW  = dp{1} ; dpO  = dp{2};  dpG  = dp{3};
+mobW = mob{1}; mobO = mob{2}; mobG = mob{3};
+rhoW = rho{1}; rhoO = rho{2}; rhoG = rho{3};
+upcW = upc{1}; upcO = upc{2}; upcG = upc{3};
+bW   = b{1}  ; bO   = b{2};   bG   = b{3};
+bW0  = b0{1} ; bO0  = b0{2};  bG0  = b0{3};
 mobSft =  mobW.*c;
 
 % Upstream weight b factors and multiply by interface fluxes to obtain the
@@ -142,20 +141,19 @@ vG     = -op.faceUpstr(upcG, mobG).*T.*dpG;
 vSft   = -op.faceUpstr(upcW, mobSft).*T.*dpW;
 bOvO   =  op.faceUpstr(upcO, bO).*vO;
 bWvW   =  op.faceUpstr(upcW, bW).*vW;
-bGvG   =  op.faceUpstr(upcg, bG).*vG;
+bGvG   =  op.faceUpstr(upcG, bG).*vG;
 bWvSft =  op.faceUpstr(upcW, bW).*vSft;
 
-
-%% Conservation of mass for water
+% Conservation of mass for water
 water = (op.pv/dt).*(pvMult.*bW.*sW - pvMult0.*bW0.*sW0) + op.Div(bWvW);
 
-%% Conservation of mass for oil
+% Conservation of mass for oil
 sO  = 1 - sW - sG;
 sO0 = 1 - sW0 - sG0;
 if model.vapoil
-    % The model allows oil to vaporize into the gas phase. The conservation
-    % equation for oil must then include the fraction present in the gas
-    % phase.
+% The model allows oil to vaporize into the gas phase. The conservation
+% equation for oil must then include the fraction present in the gas
+% phase.
     rvbGvG = op.faceUpstr(upcg, rv).*bGvG;
     % Final equation
     oil = (op.pv/dt).*( pvMult.* (bO.* sO  + rv.* bG.* sG) - ...
@@ -165,29 +163,27 @@ else
     oil = (op.pv/dt).*( pvMult.*bO.*sO - pvMult0.*bO0.*sO0 ) + op.Div(bOvO);
 end
 
-%% Conservation of mass for gas
+% Conservation of mass for gas
 if model.disgas
     % The gas transported in the oil phase.
-    rsbOvO = og.faceUpstr(upco, rs).*bOvO;
+    rsbOvO = op.faceUpstr(upco, rs).*bOvO;
 
-    gas = (og.pv/dt).*( pvMult.* (bG.* sG  + rs.* bO.* sO) - ...
+    gas = (op.pv/dt).*( pvMult.* (bG.* sG  + rs.* bO.* sO) - ...
         pvMult0.*(bG0.*sG0 + rs0.*bO0.*sO0 ) ) + ...
-        og.Div(bGvG + rsbOvO);
+        op.Div(bGvG + rsbOvO);
 else
-    gas = (og.pv/dt).*( pvMult.*bG.*sG - pvMult0.*bG0.*sG0 ) + og.Div(bGvG);
+    gas = (op.pv/dt).*( pvMult.*bG.*sG - pvMult0.*bG0.*sG0 ) + op.Div(bGvG);
 end
 
-%% Computation of adsoprtion term
+% Computation of adsoprtion term
 poro = model.rock.poro;
 ads  = effads(c, cmax, fluid);
 ads0 = effads(c0, cmax0, fluid);
 ads_term = fluid.rhoRSft.*((1-poro)./poro).*(ads - ads0);
 
-%% Conservation of surfactant in water:
+% Conservation of surfactant in water:
 surfactant = (op.pv/dt).*((pvMult.*bW.*sW.*c - pvMult0.*bW0.*sW0.*c0) +  ads_term) + ...
     op.Div(bWvSft);
-
-%%
 
 if model.extraStateOutput
     sigma = fluid.ift(c);
@@ -206,6 +202,7 @@ dissolved = model.getDissolutionMatrix(rs, rv);
     {pW, p, pG}, sat, mob, rho, ...
     dissolved, {c}, ...
     drivingForces);
+
 % Finally, add in and setup well equations
 [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, ...
     names, types, wellSol0, ...
