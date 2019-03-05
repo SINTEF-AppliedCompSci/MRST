@@ -50,12 +50,13 @@ classdef CellDataPatch < handle
                cells = (1:G.cells.num)';   % assume all cells
                [opt, patchOpt] = merge_options(opt, varargin{:});
            end
-           h.patchOpt = [{'Parent', opt.Parent}, patchOpt];
            
            if isempty(opt.Parent)
                opt.Parent = gca;
            end
 
+           h.patchOpt = [{'Parent', opt.Parent}, patchOpt];
+           
            if isempty(colorData)  % just use a vector of ones ...
                colorData = ones(G.cells.num,1);
            end
