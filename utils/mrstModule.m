@@ -68,7 +68,6 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
    persistent MODLIST
    persistent BEHAVIOUR
 
@@ -86,6 +85,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       switch lower(cmd)
          case 'add'
             MODLIST = prune_modules(MODLIST);
+
+            mods = deduplicate(cmd, mods);
 
             if ~ (isempty(mods) || all(cellfun(@isempty, mods)))
                MODLIST = add_modules(MODLIST, mods, BEHAVIOUR);
@@ -114,6 +115,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             MODLIST = clear_modules(MODLIST, BEHAVIOUR);
 
             if ~ (isempty(mods) || all(cellfun(@isempty, mods)))
+               mods = deduplicate(cmd, mods);
+
                mlock
                MODLIST = add_modules(MODLIST, mods, BEHAVIOUR);
             end
@@ -143,6 +146,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
                   % Add modules, this time changing the included/excluded
                   % folders according to the current directive.
+                  mods = deduplicate(cmd, mods);
+
                   MODLIST = add_modules(MODLIST, mods, BEHAVIOUR);
 
                   mlock
@@ -171,6 +176,38 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             mfilename, ' <command> [module list]  or\n\t', ...
             'mods = ', mfilename]);
    end
+end
+
+%--------------------------------------------------------------------------
+
+function mods = deduplicate(cmd, mods)
+   [umod, iu, iu] = unique(mods);                               %#ok<ASGLU>
+
+   if numel(umod) == numel(mods)
+      % No duplicates in module list (common case).  Return input list
+      % unaltered.
+      return
+   end
+
+   % If we get here, the list ist of input modules contains duplicates.
+   % Prune those (moderately expensive) and warn that we've altered the
+   % list (to preserve the *last* of each duplicated entry).
+
+   dup = umod(accumarray(iu, 1) > 1);
+
+   assert (~isempty(dup), 'Internal Logic Error');
+   pl = ''; if numel(dup) ~= 1, pl = 's'; end
+
+   warnmsg = sprintf(['Encountered Duplicated Module%s in ''%s'' ', ...
+                      'Command Verb ''%s'' (Using Last Duplicated ', ...
+                      'Entry):\n'], pl, mfilename, cmd);
+   warnmsg = [ warnmsg, sprintf('  * %s\n', dup{:}) ];
+
+   warning('ModuleNames:Duplicated', warnmsg);
+
+   [i, i] = sort(accumarray(reshape(iu, [], 1), (1 : numel(iu)).', ...
+                            [numel(umod), 1], @max));           %#ok<ASGLU>
+   mods   = umod(i);
 end
 
 %--------------------------------------------------------------------------
