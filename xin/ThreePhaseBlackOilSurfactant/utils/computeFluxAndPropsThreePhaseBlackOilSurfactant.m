@@ -1,11 +1,11 @@
 function [dp, mob, upc, b, rho, pvMult, b0, pvMult0, T] =  ...
     computeFluxAndPropsThreePhaseBlackOilSurfactant(model, p0, p, sW, sG, c, ...
-                                                      pBH, W, varargin)
+                                                      pBH, W, rs, rv, st, varargin)
 %
 %
 % SYNOPSIS:
 %   function [dpO, dpW, mobO, mobW, upco, upcw, bO, bW, pvMult, bO0, bW0, pvMult0, T] =  
-%   computeFluxAndPropsThreePhaseBlackOilSurfactant(model, p0, p, sW, c, pBH, W, varargin)
+%   computeFluxAndPropsThreePhaseBlackOilSurfactant(model, p0, p, sW, c, pBH, W, rs, rv, st, varargin)
 %
 % DESCRIPTION: Given the state variable (pressure, saturation and
 % concentration), compute fluxes and other properties, as listed below.
@@ -88,10 +88,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     fluid = model.fluid;
 
     % Capillary pressure
-    %% need to add pcOG
     pcOW = 0;
-    if isfield(fluid, 'pcOW')
+    pcOG = 0;
+    if isfield(fluid, 'pcOW') 
         pcOW  = fluid.pcOW(sW);
+    end
+    if isfield(fluid, 'pcOG') && ~isempty(sG)
+        pcOG  = fluid.pcOG(sG);
     end
     pcOW = pcOW.*fluid.ift(c)/fluid.ift(0);
     pO = p;
@@ -102,7 +105,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     bO0 = fluid.bO(p0);
     bG0 = fluid.bG(p0);
 
-  %%  
     % Water flux and properties
     bW      = fluid.bW(p);
     rhoW    = bW.*fluid.rhoWS;
@@ -114,30 +116,46 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     upcW    = (double(dpW)<=0);
 
     % Oil flux and properties
-    bO    = fluid.bO(pO);
-    rhoO  = bO.*fluid.rhoOS;
-    rhoOf = op.faceAvg(rhoO);
-    if isfield(fluid, 'BOxmuO')
-        muO = fluid.BOxmuO(pO).*bO;
-    else
-        muO = fluid.muO(pO);
+    isSat = ~st{1};
+    disgas = isprop(model, 'disgas') && model.disgas;
+    
+    if nargin < 7
+        assert(~disgas, 'RS and saturated flag must be supplied for disgas model');
+        rs = 0;
     end
+    if disgas
+        bO  = fluid.bO(p,  rs, isSat);
+        muO = fluid.muO(p, rs, isSat);
+        rhoO   = bO.*(rs*fluid.rhoGS + fluid.rhoOS);
+    else
+        bO  = fluid.bO(p);
+        if isfield(fluid, 'BOxmuO')
+            muO = fluid.BOxmuO(p).*bO;
+        else
+            muO = fluid.muO(p);
+        end
+        rhoO   = bO.*fluid.rhoOS;
+    end
+    
+    rhoOf = op.faceAvg(rhoO);
     mobO = krO./muO;
     dpO  = op.Grad(pO) - rhoOf.*gdz;
     upcO = (double(dpO)<=0);
-
-    %% need to check the properties according to threephasepolymer file
-    % and figure out what upc means
-    
+   
     % Gas flux and properties
-    bG    = fluid.bG(pG);
-    rhoG  = bG.*fluid.rhoGS;
-    rhoGf = op.faceAvg(rhoG);
-    if isfield(fluid, 'BOxmuO')
-        muO = fluid.BOxmuO(pO).*bO;
+    isSat = ~st{2};
+    if model.vapoil
+        bG  = fluid.bG(pG, rv, isSat);
+        muG = fluid.muG(pG, rv, isSat);
     else
-        muO = fluid.muO(pO);
+        bG  = fluid.bG(pG);
+        muG = fluid.muG(pG);
     end
+    if any(bG < 0)
+        warning('Negative gas compressibility present!')
+    end
+    rhoG   = bG.*(rv*fluid.rhoOS + fluid.rhoGS);
+    rhoGf  = s.faceAvg(rhoG);
     mobG = krG./muG;
     dpG  = op.Grad(pG) - rhoGf.*gdz;
     upcG = (double(dpG)<=0);
