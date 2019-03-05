@@ -1,15 +1,15 @@
 function [problem, state] = transportEquationOilWaterPolymerDG(state0, state, model, dt, drivingForces, varargin)
 
-    opt = struct('Verbose'      , mrstVerbose, ...
-                 'reverseMode'  , false      , ...
-                 'scaling'      , []         , ...
-                 'resOnly'      , false      , ...
-                 'history'      , []         , ...
-                 'solveForWater', false      , ...
-                 'solveForOil'  , true       , ...
-                 'solveForPolymer', true     , ...
-                 'iteration'    , -1         , ...
-                 'stepOptions'  , []         ); % Compatibility only
+    opt = struct('Verbose'        , mrstVerbose, ...
+                 'reverseMode'    , false      , ...
+                 'scaling'        , []         , ...
+                 'resOnly'        , false      , ...
+                 'history'        , []         , ...
+                 'solveForWater'  , false      , ...
+                 'solveForOil'    , true       , ...
+                 'solveForPolymer', true       , ...
+                 'iteration'      , -1         , ...
+                 'stepOptions'    , []         ); % Compatibility only
     opt      = merge_options(opt, varargin{:});
     
     % Frequently used properties
@@ -49,9 +49,9 @@ function [problem, state] = transportEquationOilWaterPolymerDG(state0, state, mo
     %----------------------------------------------------------------------
     
     % Properties from current and previous timestep------------------------
-    [p , sWdof , sOdof , cDof, cMax, wellSol] = model.getProps(state , ...
+    [p , sWdof , sOdof , cDof , cMax , wellSol] = model.getProps(state , ...
                   'pressure', 'swdof', 'sodof', 'cdof', 'polymermax', 'wellsol');
-    [p0, sWdof0, sOdof0, cDof0, cMax0       ] = model.getProps(state0, ...
+    [p0, sWdof0, sOdof0, cDof0, cMax0         ] = model.getProps(state0, ...
                   'pressure', 'swdof', 'sodof', 'cdof', 'polymermax'           );
     % If timestep has been split relative to pressure, linearly interpolate
     % in pressure.
@@ -101,7 +101,6 @@ function [problem, state] = transportEquationOilWaterPolymerDG(state0, state, mo
     
     [muWMult, a, cbar] = getMobilityMultipliers(model, cMax);
     mobW = @(e, s, r, c) mobW(e, s)./muWMult(e, c);
-    mobP = @(e, s, r, c) mobW(e, s, r, c)./(a + (1-a).*cbar(c));
     
     x_f = G.faces.centroids(disc.internalConn);
     c_l = disc.N(:,1);
@@ -131,9 +130,6 @@ function [problem, state] = transportEquationOilWaterPolymerDG(state0, state, mo
     [bv_c, bv_f, ~, bWvP_c, bWvP_f] ...
         = computeSequentialFluxesDG(disc, model, state, T, T_all, ...
         {gW, gO}, {mobW, mobO}, {bW, bO}, {sWdof, sOdof, sTdof}, {}, cDof);
-
-    
-    
     [bWvW_c, bOvO_c] = deal(bv_c{:});
     [bWvW_f, bOvO_f] = deal(bv_f{:});
     %----------------------------------------------------------------------
@@ -167,8 +163,9 @@ function [problem, state] = transportEquationOilWaterPolymerDG(state0, state, mo
         
         % Polymer well equations
         [~, wciPoly, iInxW] = getWellPolymer(W);
-        c_w(iInxW) = wciPoly;
-        bWqP_w     = c_w.*bWqW_w;
+        ix = disc.getDofIx(state, Inf, wc(iInxW));
+        c_w(ix) = wciPoly;
+        bWqP_w  = c_w.*bWqW_w;
         
         % Water well contributions
         srcW_w = disc.inner(bWqW_w, psi, 'dV', wc);
@@ -271,7 +268,7 @@ function [problem, state] = transportEquationOilWaterPolymerDG(state0, state, mo
         if 0
             ACCDG = disc.inner((mP  - mP0 )/dt, psi    , 'dV');
             ADSGD = disc.inner((ads - ads0)/dt, psi    , 'dV');
-            FLUXDG = disc.inner(bWvP_f         , psi    , 'dS');
+            FLUXDG = disc.inner(bWvP_f        , psi    , 'dS');
             load('fv.mat')
             
         end
@@ -280,8 +277,6 @@ function [problem, state] = transportEquationOilWaterPolymerDG(state0, state, mo
             ix = disc.getDofIx(state, Inf, wc);
             polymer(ix) = polymer(ix) - srcP_w(ix);
         end
-        
-        c = disc.getCellMean(state, cDof);
         
         if isa(polymer, 'ADI')
             isPolymer = strcmpi(primaryVars, 'cDof');
@@ -293,7 +288,7 @@ function [problem, state] = transportEquationOilWaterPolymerDG(state0, state, mo
         
         bad = double(sW) == 0;
         if any(bad)
-            ix  = disc.getDofIx(state, Inf, bad);
+            ix          = disc.getDofIx(state, Inf, bad);
             polymer(ix) = cDof(ix);
         end
         eqs{eqNo}   = polymer;
@@ -359,6 +354,7 @@ function [problem, state] = transportEquationOilWaterPolymerDG(state0, state, mo
         state.cfl = dt.*sum(abs(vTc)./G.cells.dx,2);
     end
     % Linearize
+    state.cmax0 = cMax0;
     problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
     %----------------------------------------------------------------------
     
