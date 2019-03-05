@@ -328,6 +328,7 @@ classdef TransportBlackOilModelDG < TransportBlackOilModel
             
         end
         
+        %{
         function [state, val, vdof0] = updateStateFromIncrement(model, state, dx, problem, name, relchangemax, abschangemax)
             
             if any(strcmpi(name, {'sdof', 'cdof'})) && 0
@@ -413,6 +414,7 @@ classdef TransportBlackOilModelDG < TransportBlackOilModel
 %             state = model.setProp(state, n, v);
             
         end
+        %}
         
         function state = setProp(model, state, name, val)
             state = setProp@TransportBlackOilModel(model, state, name, val);
