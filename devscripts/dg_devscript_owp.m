@@ -7,7 +7,7 @@ mrstVerbose on
 
 gravity reset off
 
-n = 3;
+n = 5;
 l = 1000*meter;
 G = computeGeometry(cartGrid([n,1], [1, 0.01]*l));
 G = computeVEMGeometry(G);
@@ -26,17 +26,28 @@ modelDG = modelFV;
 
 %%
 
-time = 5*year;
-rate = 1.2*sum(poreVolume(G, rock))/time;
+time = 0.5*year;
+rate = 0.5*sum(poreVolume(G, rock))/time;
 W = [];
 W = addWell(W, G, rock, 1          , 'type', 'rate', 'val', rate    , 'comp_i', [1,0]);
 W = addWell(W, G, rock, G.cells.num, 'type', 'bhp' , 'val', 50*barsa, 'comp_i', [1,0]);
-[W.c] = deal(fluid.cmax);
+[W.c] = deal(0);
 
-
-dt       = 30*day;
+dt       = 10*day;
 dtvec    = rampupTimesteps(time, dt, 0);
-schedule = simpleSchedule(dtvec, 'W', W);
+schedule_w = simpleSchedule(dtvec, 'W', W);
+schedule_p = schedule_w;
+schedule_p.step.control = schedule_p.step.control + 1;
+schedule = schedule_w;
+schedule.step.val     = [schedule_w.step.val; ...
+                         schedule_p.step.val; ...
+                         schedule_w.step.val];
+schedule.step.control = [schedule_w.step.control; ...
+                         schedule_p.step.control; ...
+                         schedule_w.step.control];
+schedule.control(2) = schedule.control(1);
+[schedule.control(2).W.c] = deal(fluid.cmax);
+% [schedule.control(1).W.c] = deal(fluid.cmax);
 
 sW          = 0.0;
 state0      = initResSol(G, 100*barsa, [sW,1-sW]);
@@ -45,7 +56,8 @@ state0.cmax = zeros([model.G.cells.num, 1]);
 
 %%
 
-ix = 1:numel(schedule.step.val);
+ix = ':';
+% ix = 1:10;
 subschedule = schedule;
 subschedule.step.val = subschedule.step.val(ix);
 subschedule.step.control= subschedule.step.control(ix);
@@ -66,16 +78,11 @@ ot = 0.01;
 
 [wsDG, stDG] = deal(cell(numel(degree),1));
 for dNo = 1:numel(degree)
-%     disc = DGDiscretization(modelDG.transportModel, ...
-%                                     'degree', degree(dNo), ...
-%                                     'basis'              , 'legendre', ...
-%                                     'useUnstructCubature', false, ...
-%                                     'jumpTolerance', jt, ...
-%                                     'outTolerance', ot, ...
-%                                     'meanTolerance', mt);
     modelDG.transportModel = TransportOilWaterPolymerModelDG(G, rock, fluid, ...
-                                             'dsMaxAbs', 0.2, ...
-                                             'degree', 1);
+                                             'dsMaxAbs'     , 0.2        , ...
+                                             'degree'       , degree(dNo), ...
+                                             'meanTolerance', 1e-3       , ...
+                                             'outTolerance' , 1e-3       );
 
     state0 = assignDofFromState(modelDG.transportModel.disc, state0);
     [wsDG{dNo}, stDG{dNo}, rep] = simulateScheduleAD(state0, modelDG, subschedule);
