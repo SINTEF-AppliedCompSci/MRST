@@ -162,9 +162,8 @@ function [problem, state] = transportEquationOilWaterPolymerDG(state0, state, mo
         bOqO_w = bO(e_w, sO_w).*wflux(e_w).*sT_w.*fO_w;
         
         % Polymer well equations
-        [~, wciPoly, iInxW] = getWellPolymer(W);
-        ix = disc.getDofIx(state, Inf, wc(iInxW));
-        c_w(ix) = wciPoly;
+        c_winj = getWellPolymerDG(G, W, perf2well, e_w);
+        c_w = c_w.*(~isInj(e_w)) + c_winj.*(isInj(e_w));
         bWqP_w  = c_w.*bWqW_w;
         
         % Water well contributions
@@ -249,35 +248,28 @@ function [problem, state] = transportEquationOilWaterPolymerDG(state0, state, mo
 
     % Polymer equation-----------------------------------------------------
     if opt.solveForPolymer
+        % Cell values
         c_e    = disc.evaluateDGVariable(x_e, e, state, cDof);
         c0_e   = disc.evaluateDGVariable(x_e, e, state0, cDof0);
         ads_e  = effads(c_e, cMax(e), model);
         ads0_e = effads(c0_e, cMax0(e), model);
-        % Cell values
+        % Mass terms
         mP  = (1-fluid.dps).*pvMult(e) .*poro(e).*bW_c .*sW_c .*c_e;
         mP0 = (1-fluid.dps).*pvMult0(e).*poro(e).*bW0_c.*sW0_c.*c0_e;
-        
+        % Adsorption terms
         ads  = fluid.rhoR.*(1-poro(e)).*ads_e;
         ads0 = fluid.rhoR.*(1-poro(e)).*ads0_e;
-        
         % Assmeble inner products
         polymer =   disc.inner((mP  - mP0 )/dt, psi    , 'dV') ...
                   + disc.inner((ads - ads0)/dt, psi    , 'dV') ...
                   - disc.inner(bWvP_c         , gradPsi, 'dV') ...
                   + disc.inner(bWvP_f         , psi    , 'dS');
-        if 0
-            ACCDG = disc.inner((mP  - mP0 )/dt, psi    , 'dV');
-            ADSGD = disc.inner((ads - ads0)/dt, psi    , 'dV');
-            FLUXDG = disc.inner(bWvP_f        , psi    , 'dS');
-            load('fv.mat')
-            
-        end
         % Add well contributions
         if ~isempty(W)
             ix = disc.getDofIx(state, Inf, wc);
             polymer(ix) = polymer(ix) - srcP_w(ix);
         end
-        
+        % Fix model weakness
         if isa(polymer, 'ADI')
             isPolymer = strcmpi(primaryVars, 'cDof');
             epsilon = 1.e-8;
@@ -285,7 +277,6 @@ function [problem, state] = transportEquationOilWaterPolymerDG(state0, state, mo
             bad     = abs(diag(polymer.jac{isPolymer})) < epsilon;
             polymer(bad) = cDof(bad);
         end
-        
         bad = double(sW) == 0;
         if any(bad)
             ix          = disc.getDofIx(state, Inf, bad);
@@ -295,7 +286,6 @@ function [problem, state] = transportEquationOilWaterPolymerDG(state0, state, mo
         names{eqNo} = 'polymer';
     end
     %----------------------------------------------------------------------
-    
     
     % Add BCs--------------------------------------------------------------
     if ~isempty(bc)

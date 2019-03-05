@@ -7,7 +7,7 @@ mrstVerbose on
 
 gravity reset off
 
-n = 5;
+n = 50;
 l = 1000*meter;
 G = computeGeometry(cartGrid([n,1], [1, 0.01]*l));
 G = computeVEMGeometry(G);
@@ -68,7 +68,7 @@ subschedule.step.control= subschedule.step.control(ix);
 
 %%
 
-degree = [1];
+degree = [0];
 
 [jt, ot, mt] = deal(Inf);
 % 
