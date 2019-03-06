@@ -45,13 +45,13 @@ classdef ThreePhaseBlackOilSurfactantModel < ThreePhaseBlackOilModel
         end
 
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
-            [problem, state] = equationsThreePhaseBlackOilSurfactant(state0, state, model, dt, drivingForces, ...
-                                                           varargin{:});
+            [problem, state] = equationsThreePhaseBlackOilSurfactant(state0, state,...
+                model, dt, drivingForces, varargin{:});
         end
 
         function [state, report] = updateState(model, state, problem, dx, drivingForces)
-            [state, report] = updateState@TwoPhaseOilWaterModel(model, state, problem,  dx, ...
-                                                              drivingForces);
+            [state, report] = updateState@ThreePhaseBlackOilModel(model,...
+                state, problem,  dx, drivingForces);
             % cap the concentration (only if implicit solver for concentration)
             if model.surfactant
                 c = model.getProp(state, 'surfactant');
@@ -60,8 +60,8 @@ classdef ThreePhaseBlackOilSurfactantModel < ThreePhaseBlackOilModel
         end
 
         function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
-            [state, report] = updateAfterConvergence@TwoPhaseOilWaterModel(model, state0, state, dt, ...
-                                                              drivingForces);
+            [state, report] = updateAfterConvergence@ThreePhaseBlackOilModel(model,...
+                state0, state, dt, drivingForces);
               if model.surfactant
                   c     = model.getProp(state, 'surfactant');
                   cmax  = model.getProp(state, 'surfactantmax');
@@ -74,7 +74,7 @@ classdef ThreePhaseBlackOilSurfactantModel < ThreePhaseBlackOilModel
         end
 
         function state = validateState(model, state)
-            state = validateState@TwoPhaseOilWaterModel(model, state);
+            state = validateState@ThreePhaseBlackOilModel(model, state);
             nc = model.G.cells.num;
             model.checkProperty(state, 'Surfactant', [nc, 1], [1, 2]);
             model.checkProperty(state, 'SurfactantMax', [nc, 1], [1, 2]);
@@ -92,13 +92,13 @@ classdef ThreePhaseBlackOilSurfactantModel < ThreePhaseBlackOilModel
                     index = 1;
                     fn = 'qWSft';
                 otherwise
-                    [fn, index] = getVariableField@TwoPhaseOilWaterModel(...
+                    [fn, index] = getVariableField@ThreePhaseBlackOilModel(...
                         model, name);
             end
         end
 
         function names = getComponentNames(model)
-            names = getComponentNames@TwoPhaseOilWaterModel(model);
+            names = getComponentNames@ThreePhaseBlackOilModel(model);
             if model.surfactant
                 names{end+1} = 'surfactant';
             end
@@ -114,7 +114,7 @@ classdef ThreePhaseBlackOilSurfactantModel < ThreePhaseBlackOilModel
         end
 
         function [names, types] = getExtraWellEquationNames(model)
-            [names, types] = getExtraWellEquationNames@TwoPhaseOilWaterModel(model);
+            [names, types] = getExtraWellEquationNames@ThreePhaseBlackOilModel(model);
             if model.surfactant
                 names{end+1} = 'surfactantWells';
                 types{end+1} = 'perf';
@@ -122,7 +122,7 @@ classdef ThreePhaseBlackOilSurfactantModel < ThreePhaseBlackOilModel
         end
 
         function names = getExtraWellPrimaryVariableNames(model)
-            names = getExtraWellPrimaryVariableNames@TwoPhaseOilWaterModel(model);
+            names = getExtraWellPrimaryVariableNames@ThreePhaseBlackOilModel(model);
             if model.surfactant
                 names{end+1} = 'qWSft';
             end
@@ -175,7 +175,7 @@ classdef ThreePhaseBlackOilSurfactantModel < ThreePhaseBlackOilModel
         end        
         
         function [compEqs, compSrc, compNames, wellSol] = getExtraWellContributions(model, well, wellSol0, wellSol, q_s, bh, packed, qMass, qVol, dt, iteration)
-            [compEqs, compSrc, compNames, wellSol] = getExtraWellContributions@TwoPhaseOilWaterModel(model, well, wellSol0, wellSol, q_s, bh, packed, qMass, qVol, dt, iteration);
+            [compEqs, compSrc, compNames, wellSol] = getExtraWellContributions@ThreePhaseBlackOilModel(model, well, wellSol0, wellSol, q_s, bh, packed, qMass, qVol, dt, iteration);
             if model.surfactant
                 % Implementation of surfactant source terms.
                 %
