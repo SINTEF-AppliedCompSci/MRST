@@ -1,0 +1,91 @@
+RUNSPEC
+
+TITLE
+   SIMPLE LAB OWP PROBLEM 
+
+METRIC
+
+DIMENS
+   31   31    3  /
+
+OIL
+WATER
+POLYMER 
+
+TABDIMS
+-- NTSFUN  NTPVT   NSSFUN   NPPVT   NTFIP   NRPVT
+      1      1       16       12      1       12 /
+
+GRID   ===============================================================
+
+
+PROPS  ===============================================================
+
+SWOF
+    0.1500       0.0    1.0000         0.0
+    0.2000    0.0059    0.8521         0.0
+    0.2500    0.0237    0.7160         0.0
+    0.3000    0.0533    0.5917         0.0
+    0.3500    0.0947    0.4793         0.0
+    0.4000    0.1479    0.3787         0.0
+    0.4500    0.2130    0.2899         0.0
+    0.5000    0.2899    0.2130         0.0
+    0.5500    0.3787    0.1479         0.0
+    0.6000    0.4793    0.0947         0.0
+    0.6500    0.5917    0.0533         0.0
+    0.7000    0.7160    0.0237         0.0
+    0.7500    0.8521    0.0059         0.0
+    0.8000    1.0000       0.0         0.0
+/ 
+ 
+
+DENSITY
+--   O       W     G
+    962    1080   0.82   /
+
+
+PVTW
+-- REF.PRES.  REF. FVF  COMPRESSIBILITY  REF.VISC.  VISCOSIBILITY
+     234        1.012       4.28e-5        0.48       0.00E+00 /
+ 
+PVCDO
+-- REF.PRES.   FVF      COMPRESSIBILITY  REF.VISC.  VISCOSIBILITY
+     234        1.065       6.65e-5         5.0        1.9e-3   /
+
+ROCK
+-- REF.PRES   COMPRESSIBILITY
+     234        3.0e-5       /
+
+-- PLYVISC: Viscosity multiplier. Defined as PLYVISC=u/uw, where uw is water viscosity.
+PLYVISC
+0      1.0
+0.5    3.0
+1.0    6.0
+1.5   12.0
+2.0   24.0
+3.0   48.0 /
+
+PLYROCK
+--IPV  RRF  dens  AI  max ads
+ 0.05  1.2  2500  2  0.000025 /
+
+
+--PLYADS: Adsorption isotherm
+PLYADS
+-- conc  adsorb-conc
+ 0.000   0.000000
+ 0.250   0.000012
+ 0.500   0.000016
+ 0.750   0.000019
+ 1.000   0.000020
+ 1.250   0.000021
+ 1.500   0.000023
+ 1.750   0.000025
+ 3.000   0.000025 /
+--Polymer: Todd-Longstaff mixing parameter. 1 = full mixing
+TLMIXPAR
+ 1.0  /
+
+--Max. concentration to be used in the mixing calculation
+PLYMAX
+ 3.00  0  /
