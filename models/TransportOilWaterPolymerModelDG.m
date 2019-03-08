@@ -84,18 +84,22 @@ classdef TransportOilWaterPolymerModelDG < TransportOilWaterModelDG
             end
             state = model.updateStateFromIncrement(state, ds, problem, 'sDof', inf, model.dsMaxAbs);
             bad = any((state.s > 1 + model.disc.meanTolerance) ...
-                    | (state.s < 0 - model.disc.meanTolerance), 2);    
-                    
+                    | (state.s < 0 - model.disc.meanTolerance), 2);
+            
+            cMax = model.fluid.cmax;
+            cBad = any((state.c > cMax*(1 + model.disc.meanTolerance)) ...
+                     | (state.c < cMax*(0 - model.disc.meanTolerance)));
+            bad = bad | cBad;
+                
             if any(bad)
                 state.s(bad, :) = min(state.s(bad, :), 1);
                 state.s(bad, :) = max(state.s(bad, :), 0);
                 state.s(bad, :) = bsxfun(@rdivide, state.s(bad, :), ...
                                               sum(state.s(bad, :), 2));
+                state.c(bad)    = min(state.c(bad), cMax);
+                state.c(bad)    = max(state.c(bad), 0);
                 state = dgLimiter2(model.disc, state, bad);
             end
-%             sT = sum(state.s, 2);
-%             state.sdof = bsxfun(@rdivide, state.sdof, rldecode(sT, state.nDof,1));
-%             state.s    = bsxfun(@rdivide, state.s, sT);
                 
             if model.disc.limitAfterNewtonStep
                 [sMin, sMax] = model.disc.getMinMaxSaturation(state);
@@ -103,6 +107,22 @@ classdef TransportOilWaterPolymerModelDG < TransportOilWaterModelDG
                       sMax > 1 + model.disc.outTolerance;
                 if any(bad)
                    state = dgLimiter2(model.disc, state, bad);
+                end
+                
+                if model.disc.jumpTolerance < Inf
+                    [cJump, ~, cells] = model.disc.getInterfaceJumps(state.cdof, state);
+                    sJump = model.disc.getInterfaceJumps(state.sdof(:,1), state);
+                    sJumpTol = model.disc.jumpTolerance;
+                    cJumpTol = model.disc.jumpTolerance*model.fluid.cmax;
+                    sj = accumarray(cells(:), repmat(sJump,2,1) > sJumpTol) > 0;
+                    cj = accumarray(cells(:), repmat(cJump,2,1) > cJumpTol) > 0;
+                    j  = sj | cj;
+                    jump = false(model.G.cells.num,1);
+                    jump(cells(:)) = j(cells(:));
+                    bad = jump & state.degree > 0;
+                    if any(bad)
+                        state = dgLimiter2(model.disc, state, bad);
+                    end
                 end
             end
             
@@ -121,9 +141,10 @@ classdef TransportOilWaterPolymerModelDG < TransportOilWaterModelDG
             % Parent class handles almost everything for us
             [state, report] = updateState@TransportOilWaterModelDG(model, state, problem, dx, drivingForces);
             
-            if model.polymer
+            if model.polymer && 0
                 
-                state = model.capProperty(state, 'c', 0, model.fluid.cmax);
+                tol = 1e-3;
+                state = model.capProperty(state, 'c', -tol, model.fluid.cmax + tol);
                 state.c_prev = cdof_prev;
 
                 % Shear Thinning Report
@@ -142,6 +163,7 @@ classdef TransportOilWaterPolymerModelDG < TransportOilWaterModelDG
         function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
             [state, report] = updateAfterConvergence@TransportOilWaterModelDG(model, state0, state, dt, drivingForces);
             if model.polymer
+%                 state = model.capProperty(state, 'c', 0, model.fluid.cmax);
                 c     = model.getProp(state, 'polymer');
                 cmax  = model.getProp(state, 'polymermax');
                 state = model.setProp(state, 'polymermax', max(cmax, c));
