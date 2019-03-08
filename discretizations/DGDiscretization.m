@@ -751,7 +751,7 @@ classdef DGDiscretization < HyperbolicDiscretization
         end
         
         %-----------------------------------------------------------------%
-        function [jumpVal, faces, cells] = getInterfaceJumps(disc, sdof, state)
+        function [jumpVal, faces, cells] = getInterfaceJumps(disc, dof, state)
             % Get interface jumps for all internal connections in grid
             
             G     = disc.G;
@@ -768,7 +768,7 @@ classdef DGDiscretization < HyperbolicDiscretization
             end
             
             % Saturation function
-            s = @(x, c) disc.evaluateDGVariable(x, c, state, sdof);
+            s = @(x, c) disc.evaluateDGVariable(x, c, state, dof);
             
             % Get reference coordinates
             xF    = G.faces.centroids(faces,:);            
