@@ -258,8 +258,8 @@ for i = 1:nph
         if any(~injDir)
             % Write out the flux equation over the interface
             subs = isP & ~injP;
-            q_res = mobF{i, 2}.*T(subs).*dP(~injDir);
-            q_s(subs) = bF{i, 2}.*q_res;
+            q_res = mobF{i, 2}(subs).*T(subs).*dP(~injDir);
+            q_s(subs) = bF{i, 2}(subs).*q_res;
             q_r(subs) = q_res;
             clear subs
         end
@@ -269,11 +269,11 @@ for i = 1:nph
             % determined by the sat field
             subs = isP & injP;
             if hasOutsideMob
-                q_res = mobF{i, 1}.*T(subs).*dP(~injDir);
+                q_res = mobF{i, 1}(subs).*T(subs).*dP(~injDir);
             else
                 q_res = totMob(subs).*T(subs).*dP(injDir).*sat(subs, i);
             end
-            q_s(subs) = bF{i, 1}.*q_res;
+            q_s(subs) = bF{i, 1}(subs).*q_res;
             q_r(subs) = q_res;
             clear subs
         end
