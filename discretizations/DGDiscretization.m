@@ -3,6 +3,7 @@ classdef DGDiscretization < HyperbolicDiscretization
     properties
 
         degree              % Degree of discretization, dG(degree)
+        degree0
         basis               % Type of basis functions. Standard is tensor 
                             % products of Legendre polynomials.
         dim                 % Dimension of disc to facilitate e.g. 2D 
@@ -51,6 +52,7 @@ classdef DGDiscretization < HyperbolicDiscretization
             
             % Standard dG properties
             disc.degree = 1;
+            disc.degree0 = [];
             disc.basis  = 'legendre';
             disc.dim    = G.griddim;
             
@@ -511,7 +513,7 @@ classdef DGDiscretization < HyperbolicDiscretization
             globCell2BCcell(cells) = 1:numel(cells);
             S = sparse(globCell2BCcell(cells), 1:numel(faces), 1);
             % Evaluate integrals
-            I = disc.sample;
+            I = disc.sample*0;
             for dofNo = 1:nDofMax
                 keepCells = disc.nDof(cells) >= dofNo;
                 if any(keepCells)
