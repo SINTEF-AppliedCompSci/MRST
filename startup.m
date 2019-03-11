@@ -91,13 +91,13 @@ end
 function load_compat_modules(mlist)
    p = mrstPath('search', mlist{:});
 
-   if isempty(p),
+   if isempty(p)
       mlist = {};
-   elseif iscellstr(p),
+   elseif iscellstr(p)
       mlist = mlist(~ cellfun(@isempty, p));
    end
 
-   if ~isempty(mlist),
+   if ~isempty(mlist)
       pl = 's'; if numel(mlist) == 1, pl = ''; end
 
       fprintf(['Note: Automatically loading selected ', ...
