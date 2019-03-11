@@ -89,6 +89,8 @@ end
 %--------------------------------------------------------------------------
 
 function load_compat_modules(mlist)
+   if isempty(mlist), return, end
+
    p = mrstPath('search', mlist{:});
 
    if isempty(p)
