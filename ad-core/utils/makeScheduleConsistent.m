@@ -56,7 +56,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % replicated afterwards.
     
     % Account for positional order in controls
-    [~, ctrl_order] = unique(schedule.step.control);
+    ctrl_order = getControlOrdering(schedule);
     % Calculate the superset of all wells
     [W_all, cellsChangedFlag] = getWellSuperset(schedule, ctrl_order, opt);
     % Update the schedule with superset of wells, setting inactive/active
@@ -66,6 +66,23 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     schedule = reorderWellsPerforations(schedule, opt);
 end
 
+function ctrl_order = getControlOrdering(schedule)
+    nctrl = numel(schedule.control);
+    found = false(nctrl, 1);
+    ctrl_order = nan(nctrl, 1);
+    pos = 1;
+    for i = 1:numel(schedule.step.val)
+        ctrl = schedule.step.control(i);
+        if ~found(ctrl)
+            ctrl_order(pos) = ctrl;
+            found(ctrl) = true;
+            pos = pos + 1;
+        end
+        if pos > nctrl
+            break
+        end
+    end
+end
 
 function [W_all, cellsChangedFlag] = getWellSuperset(schedule, ctrl_order, opt)
     perffields = opt.perforationFields;
