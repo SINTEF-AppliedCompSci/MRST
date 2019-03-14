@@ -65,7 +65,7 @@ classdef UIItem < handle
             
             [opt, extraOpt] = merge_options(opt, varargin{:}); % extra assumed to be props
             % currently requires at least one non-epmty child
-            if isempty(opt.controls{1}{1})
+            if all(cellfun(@isempty, opt.controls{1}))
                 opt.controls{1}{1} = uicontrol('Style', 'text', 'String', char(9786*ones(1,10)));
             end
             
@@ -550,10 +550,10 @@ classdef UIItem < handle
                                     l{m}.Extent(3);
                                 case 'listbox'
                                     itemHeight(m) = nan;
-                                    numLinesUseful(m) = max(numLinesUseful(m), numel(l{m}.String));
+                                    %numLinesUseful(m) = max(numLinesUseful(m), numel(l{m}.String));
                                 case 'popupmenu' % popupmenu requires extra height
                                     itemHeight(m) = lineHeightPopup;
-                                    numLinesUseful(m) = max(numLinesUseful(m), numel(l{m}.String));
+                                    %numLinesUseful(m) = max(numLinesUseful(m), numel(l{m}.String));
                                 case 'pushbutton'
                                     rowItemWidths(m) = 1.6*lineHeight;
                             end
