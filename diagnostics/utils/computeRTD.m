@@ -32,7 +32,8 @@ function dist = computeRTD(state, G, pv, D, WP, W, varargin)
 %  estimateRTD
 opt = struct('injectorIx', [], ...
              'producerIx', [], ...
-             'nsteps',     50);
+             'nsteps',     50, ...
+             'nbase',       5);
 opt = merge_options(opt, varargin{:});
 
 [pix, iix] = deal(opt.producerIx, opt.injectorIx);         
@@ -79,10 +80,18 @@ end
 % extract relevat subset
 sub = sum(D.itracer(:, iix), 2) > 1e-5;
 
-% devide into two simulation periods
-% 1. For 0 <= t < 3PVI (t1)
-% 2. For 3PVI <= t <= maxtof (t2)
+% devide into two or more simulation periods
+% 1. 0  <= t <   t1 = min(vol/alloc)  , i.e., minimal interaction mean RT
+% 2. t1 <= t < nbase*t1
+%     |
+% n. nbase^(n-2)*t1 <= t <=  maxtof
+
+% only check allocations > total*10^-3
+checkIx = dist.allocations > 1e-3*sum(dist.allocations);
+t1 = min(dist.volumes(checkIx)./dist.allocations(checkIx));
+% total pvi
 pvi = sum(dist.volumes)/sum(dist.allocations);
+
 if isfield(D, 'itof')
     itof =  D.itof(sub, iix);
 else
@@ -90,9 +99,19 @@ else
 end
 itof(~isfinite(itof)) = 0;
 maxTOF = max(max(itof));
+t2 = min(maxTOF, 100*pvi);
 
-t  = [1*pvi, min(maxTOF, 100*pvi)];
-dt = t/opt.nsteps;
+% find number of simulation periods
+n = ceil(log(t2/t1)/log(opt.nbase));
+t = t2./(opt.nbase.^(n:-1:0));
+dt = diff([0 t], 1, 2)./opt.nsteps;
+
+% allocate 
+[dist.t, dist.values] = deal(nan((n+1)*opt.nsteps+1, nreg));
+
+
+%t  = [1*pvi, min(maxTOF, 100*pvi)];
+%dt = t/opt.nsteps;
 
 % setup system
 [sysmat, qp_well, tr0] = setupSystemComponents(state, G, pv, W, sub, inj, prod);
@@ -100,11 +119,11 @@ dt = t/opt.nsteps;
 tr = tr0;
 vals = cell(1, numel(iix));
 for k = 1:numel(vals)
-    vals{k} = zeros(2*opt.nsteps+1, numel(pix));
+    vals{k} = zeros((n+1)*opt.nsteps+1, numel(pix));
 end
 h = waitbar(0, 'Computing distribution(s) ...');
 cnt = 0;
-for ti = 1:2
+for ti = 1:numel(dt)
     A = sysmat(dt(ti));
     for k = 1:opt.nsteps
         cnt = cnt+1;
@@ -113,12 +132,13 @@ for ti = 1:2
             curvals  = -(tr(:, tn)'*qp_well);
             curvals(~isfinite(curvals)) = 0;
             vals{tn}(cnt+1,:) = curvals;
-            waitbar(cnt/(2*opt.nsteps), h);
+            waitbar(cnt/((n+1)*opt.nsteps), h);
         end
     end
 end
 close(h);
-t = cumsum([0; repmat(dt(1), opt.nsteps, 1); repmat(dt(2), opt.nsteps, 1)]);
+t = arrayfun(@(x)repmat(x, [opt.nsteps, 1]), dt, 'UniformOutput', false);
+t = cumsum([0; vertcat(t{:})]);
 dist.t = repmat(t, [1, nreg]);
 ix = 0;          
 for ik = 1:numel(iix)
