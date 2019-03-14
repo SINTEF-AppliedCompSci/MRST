@@ -3,6 +3,10 @@ classdef RsMax < GridProperty
     end
     
     methods
+        function gp = RsMax(varargin)
+            gp@GridProperty(varargin{:});
+        end
+        
         function rsSat = evaluateOnDomain(prop, model, state)
             p = model.getProp(state, 'pressure');
             if model.disgas

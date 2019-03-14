@@ -4,6 +4,9 @@ classdef PhasePotentialDifference < GridProperty
     end
     
     methods
+        function gp = PhasePotentialDifference(varargin)
+            gp@GridProperty(varargin{:});
+        end
         function v = evaluateOnDomain(prop, model, state)
             dp = model.getProp(state, 'PressureGradient');
             v = dp;

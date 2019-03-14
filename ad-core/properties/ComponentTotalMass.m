@@ -4,6 +4,9 @@ classdef ComponentTotalMass < GridProperty
     end
     
     methods
+        function gp = ComponentTotalMass(varargin)
+            gp@GridProperty(varargin{:});
+        end
         function mass = evaluateOnDomain(prop, model, state)
             ncomp = model.getNumberOfComponents;
             nph = model.getNumberOfPhases;

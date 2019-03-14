@@ -3,6 +3,9 @@ classdef BlackOilDensity < GridProperty
     end
     
     methods
+        function gp = BlackOilDensity(varargin)
+            gp@GridProperty(varargin{:});
+        end
         function rho = evaluateOnDomain(prop, model, state)
             rhoS = model.getSurfaceDensities();
             fp = state.FlowProps;

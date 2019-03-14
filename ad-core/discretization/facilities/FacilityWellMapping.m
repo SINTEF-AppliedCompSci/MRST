@@ -4,7 +4,9 @@ classdef FacilityWellMapping < GridProperty
     end
     
     methods
-
+        function gp = FacilityWellMapping(varargin)
+            gp@GridProperty(varargin{:});
+        end
         function s = evaluateOnDomain(prop, model, state)
             wellSol = state.wellSol;
             actWellIx = model.getIndicesOfActiveWells(wellSol);

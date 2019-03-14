@@ -7,6 +7,9 @@ classdef BaseRelativePermeability < GridProperty
     end
     
     methods
+        function gp = BaseRelativePermeability(varargin)
+            gp@GridProperty(varargin{:});
+        end
         function kr = evaluateOnDomain(prop, model, state)
             if model.water && model.gas && model.oil
                 kr = prop.relPermWOG(model, state);

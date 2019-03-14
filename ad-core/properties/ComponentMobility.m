@@ -4,6 +4,9 @@ classdef ComponentMobility < GridProperty
     end
     
     methods
+        function gp = ComponentMobility(varargin)
+            gp@GridProperty(varargin{:});
+        end
         function v = evaluateOnDomain(prop, model, state)
             ncomp = model.getNumberOfComponents;
             nph = model.getNumberOfPhases;

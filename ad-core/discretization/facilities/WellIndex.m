@@ -4,7 +4,9 @@ classdef WellIndex < GridProperty
     end
     
     methods
-
+        function gp = WellIndex(varargin)
+            gp@GridProperty(varargin{:});
+        end
         function WI = evaluateOnDomain(prop, model, state)
             map = model.getProp(state, 'FacilityWellMapping');
             wellSol = state.wellSol;

@@ -4,6 +4,10 @@ classdef RvMax < GridProperty
     end
     
     methods
+        function gp = RvMax(varargin)
+            gp@GridProperty(varargin{:});
+        end
+        
         function rvSat = evaluateOnDomain(prop, model, state)
             p = model.getProp(state, 'pressure');
             pc = state.FlowProps.CapillaryPressure{model.water + model.oil + model.gas};

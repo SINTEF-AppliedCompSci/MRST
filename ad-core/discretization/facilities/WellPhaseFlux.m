@@ -4,7 +4,10 @@ classdef WellPhaseFlux < GridProperty
     end
     
     methods
-
+        function gp = WellPhaseFlux(varargin)
+            gp@GridProperty(varargin{:});
+        end
+        
         function q_ph = evaluateOnDomain(prop, model, state)
             map = model.getProp(state, 'FacilityWellMapping');
             W = map.W;

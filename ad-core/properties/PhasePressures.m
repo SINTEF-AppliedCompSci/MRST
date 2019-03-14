@@ -3,6 +3,10 @@ classdef PhasePressures < GridProperty
     end
     
     methods
+        function gp = PhasePressures(varargin)
+            gp@GridProperty(varargin{:});
+        end
+        
         function p_phase = evaluateOnDomain(prop, model, state)
             [pc, p] = model.getProps(state, 'CapillaryPressure', 'Pressure');
             

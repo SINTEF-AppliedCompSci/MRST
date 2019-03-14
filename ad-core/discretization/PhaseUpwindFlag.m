@@ -4,6 +4,9 @@ classdef PhaseUpwindFlag < GridProperty
     end
     
     methods
+        function gp = PhaseUpwindFlag(varargin)
+            gp@GridProperty(varargin{:});
+        end
         function flags = evaluateOnDomain(prop, model, state)
             pot = model.getProp(state, 'PhasePotentialDifference');
             nph = numel(pot);

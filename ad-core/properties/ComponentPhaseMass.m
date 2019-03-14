@@ -4,6 +4,9 @@ classdef ComponentPhaseMass < GridProperty
     end
     
     methods
+        function gp = ComponentPhaseMass(varargin)
+            gp@GridProperty(varargin{:});
+        end
         function v = evaluateOnDomain(prop, model, state)
             ncomp = model.getNumberOfComponents;
             nph = model.getNumberOfPhases;

@@ -4,6 +4,10 @@ classdef BlackOilViscosity < GridProperty
     end
     
     methods
+        function gp = BlackOilViscosity(varargin)
+            gp@GridProperty(varargin{:});
+        end
+        
         function mu = evaluateOnDomain(prop, model, state)
             [act, phInd] = model.getActivePhases();
             nph = sum(act);

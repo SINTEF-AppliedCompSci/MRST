@@ -4,7 +4,9 @@ classdef PerforationPressureGradient < GridProperty
     end
     
     methods
-
+        function gp = PerforationPressureGradient(varargin)
+            gp@GridProperty(varargin{:});
+        end
         function dp = evaluateOnDomain(prop, model, state)
             map = model.getProp(state, 'FacilityWellMapping');
             wellSol = state.wellSol;

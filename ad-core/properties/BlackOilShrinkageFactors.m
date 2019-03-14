@@ -4,6 +4,9 @@ classdef BlackOilShrinkageFactors < GridProperty
     end
     
     methods
+        function gp = BlackOilShrinkageFactors(varargin)
+            gp@GridProperty(varargin{:});
+        end
         function b = evaluateOnDomain(prop, model, state)
             [act, phInd] = model.getActivePhases();
             nph = sum(act);

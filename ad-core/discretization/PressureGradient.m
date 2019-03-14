@@ -4,6 +4,9 @@ classdef PressureGradient < GridProperty
     end
     
     methods
+        function gp = PressureGradient(varargin)
+            gp@GridProperty(varargin{:});
+        end
         function dp = evaluateOnDomain(prop, model, state)
             act = model.getActivePhases();
             nph = sum(act);

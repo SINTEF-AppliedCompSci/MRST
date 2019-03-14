@@ -4,7 +4,9 @@ classdef WellComponentPhaseFlux < GridProperty
     end
     
     methods
-
+        function gp = WellComponentPhaseFlux(varargin)
+            gp@GridProperty(varargin{:});
+        end
         function cflux = evaluateOnDomain(prop, facility, state)
             model = facility.ReservoirModel;
             ncomp = model.getNumberOfComponents();
