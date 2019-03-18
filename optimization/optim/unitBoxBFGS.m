@@ -230,6 +230,12 @@ if d'*g0 < 0
     fprintf('All controls on constraints or function decreasing along gradient\n')
     d = [];
 end
+
+if max(abs(d)) < sqrt(eps)
+   fprintf('Gradient too small to allow computation ot steplength\n');
+   d = [];
+end
+
 end
 %--------------------------------------------------------------------------
 
