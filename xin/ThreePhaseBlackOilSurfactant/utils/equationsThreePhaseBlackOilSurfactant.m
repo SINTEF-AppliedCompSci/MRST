@@ -120,11 +120,12 @@ primaryVars = {'pressure', 'sW', gvar, 'surfactant', wellVarNames{:}};
 % EQUATIONS ---------------------------------------------------------------
 pBH = wellVars{wellMap.isBHP};
 % Compute fluxes and other properties for oil and water.
-[dp, mob, upc, b, rho, pvMult, b0, pvMult0, T] = ...
-    computeFluxAndPropsThreePhaseBlackOilSurfactant(model, p0, p, sW, sG, c, pBH, W, rs, rv, st);
+[p1, dp, mob, upc, b, rho, pvMult, b0, pvMult0, T] = ...
+    computeFluxAndPropsThreePhaseBlackOilSurfactant(model, p0, p, sW, sG, c, pBH, W, rs, rv, st, st0);
 
 % divide to water/surfactant-oil-gas three parts
 
+pW  =  p1{1} ; pO   = p1{2};  pG   = p1{3};
 dpW  = dp{1} ; dpO  = dp{2};  dpG  = dp{3};
 mobW = mob{1}; mobO = mob{2}; mobG = mob{3};
 rhoW = rho{1}; rhoO = rho{2}; rhoG = rho{3};
@@ -154,7 +155,7 @@ if model.vapoil
 % The model allows oil to vaporize into the gas phase. The conservation
 % equation for oil must then include the fraction present in the gas
 % phase.
-    rvbGvG = op.faceUpstr(upcg, rv).*bGvG;
+    rvbGvG = op.faceUpstr(upcG, rv).*bGvG;
     % Final equation
     oil = (op.pv/dt).*( pvMult.* (bO.* sO  + rv.* bG.* sG) - ...
         pvMult0.*(bO0.*sO0 + rv0.*bG0.*sG0) ) + ...
@@ -166,7 +167,7 @@ end
 % Conservation of mass for gas
 if model.disgas
     % The gas transported in the oil phase.
-    rsbOvO = op.faceUpstr(upco, rs).*bOvO;
+    rsbOvO = op.faceUpstr(upcO, rs).*bOvO;
 
     gas = (op.pv/dt).*( pvMult.* (bG.* sG  + rs.* bO.* sO) - ...
         pvMult0.*(bG0.*sG0 + rs0.*bO0.*sO0 ) ) + ...
@@ -199,7 +200,7 @@ sat = {sW, sO, sG};
 dissolved = model.getDissolutionMatrix(rs, rv);
 
 [eqs, state] = addBoundaryConditionsAndSources(model, eqs, names, types, state, ...
-    {pW, p, pG}, sat, mob, rho, ...
+    {pW, pO, pG}, sat, mob, rho, ...
     dissolved, {c}, ...
     drivingForces);
 

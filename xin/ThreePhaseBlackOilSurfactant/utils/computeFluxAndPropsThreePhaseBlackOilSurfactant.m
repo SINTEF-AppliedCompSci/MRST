@@ -1,11 +1,11 @@
-function [dp, mob, upc, b, rho, pvMult, b0, pvMult0, T] =  ...
+function [p1, dp, mob, upc, b, rho, pvMult, b0, pvMult0, T] =  ...
     computeFluxAndPropsThreePhaseBlackOilSurfactant(model, p0, p, sW, sG, c, ...
-                                                      pBH, W, rs, rv, st, varargin)
+                                                      pBH, W, rs, rv, st, st0, varargin)
 %
 %
 % SYNOPSIS:
-%   function [dpO, dpW, mobO, mobW, upco, upcw, bO, bW, pvMult, bO0, bW0, pvMult0, T] =  
-%   computeFluxAndPropsThreePhaseBlackOilSurfactant(model, p0, p, sW, c, pBH, W, rs, rv, st, varargin)
+%   function [p, dpO, dpW, mobO, mobW, upco, upcw, bO, bW, pvMult, bO0, bW0, pvMult0, T] =  
+%   computeFluxAndPropsThreePhaseBlackOilSurfactant(model, p0, p, sW, c, pBH, W, rs, rv, st, st0, varargin)
 %
 % DESCRIPTION: Given the state variable (pressure, saturation and
 % concentration), compute fluxes and other properties, as listed below.
@@ -102,8 +102,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     pG = pO + pcOG;
 
     bW0 = fluid.bW(p0);
-    bO0 = fluid.bO(p0);
-    bG0 = fluid.bG(p0);
+%     bO0 = fluid.bO(p0);
+    if isprop(model, 'disgas') && model.disgas
+        bO0 = fluid.bO(p0, rs, ~st0{1});
+    else
+        bO0 = fluid.bO(p0);
+    end
+    
+%     bG0 = fluid.bG(p0);
+    if model.vapoil
+        bG0 = fluid.bG(p0, rv, ~st0{2});
+    else
+        bG0 = fluid.bG(p0);
+    end
 
     % Water flux and properties
     bW      = fluid.bW(p);
@@ -155,11 +166,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         warning('Negative gas compressibility present!')
     end
     rhoG   = bG.*(rv*fluid.rhoOS + fluid.rhoGS);
-    rhoGf  = s.faceAvg(rhoG);
+    rhoGf  = op.faceAvg(rhoG);
     mobG = krG./muG;
     dpG  = op.Grad(pG) - rhoGf.*gdz;
     upcG = (double(dpG)<=0);
-
+    
+    p1  = {pW, pO, pG};
     dp  = {dpW, dpO, dpG};
     mob = {mobW, mobO, mobG};
     rho = {rhoW, rhoO, rhoG};
