@@ -140,7 +140,7 @@ classdef ExtendedFacilityModel < FacilityModel
             zeroTarget = targets == 0 & (is_surface_control | is_resv);
             % zeroSurface = (is_surface_control & sign(surface_value) ~= wsign & wsign ~= 0);
             % zeroRESV = (is_resv & sign(resv_value) ~= wsign & wsign ~= 0);
-            zeroBHP = (is_bhp & sign(surface_value) ~= wsign & wsign ~= 0);
+            zeroBHP = (is_bhp & sign(surface_value) ~= wsign & wsign ~= 0 & surface_value ~= 0);
 %             zeroRates = zeroTarget | zeroSurface | zeroRESV | zeroBHP;
             zeroRates = zeroTarget | zeroBHP;
             if any(zeroRates)
