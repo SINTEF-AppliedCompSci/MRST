@@ -139,194 +139,179 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 % Written by Jostein R. Natvig, SINTEF ICT, 2009.
 
-   opt = struct('bc', [], 'src', [], 'wells', [], ...
-                'W', [], ...
-                'LinSolve',     @mldivide,        ...
-                'MatrixOutput', false,            ...
-                'Verbose',mrstVerbose);
-   opt = merge_options(opt, varargin{:});
-   opt = treatLegacyForceOptions(opt);
+    opt = struct('bc', [], 'src', [], 'wells', [],...
+                 'W', [], ...
+                 'LinSolve', @mldivide,...
+                 'MatrixOutput', false,...
+                 'Verbose', mrstVerbose); 
+    opt = merge_options(opt, varargin{:});
+    opt = treatLegacyForceOptions(opt);
 
-   g_vec   = gravity();
-   no_grav = ~(norm(g_vec) > 0); %(1 : size(g.nodes.coords,2))) > 0);
-   if all([isempty(opt.bc)   , ...
-           isempty(opt.src)  , ...
-           isempty(opt.wells), no_grav]) && ~opt.MatrixOutput
-      warning(id('DrivingForce:Missing'),                       ...
-              ['No external driving forces present in model--', ...
-               'state remains unchanged.\n']);
-   end
+    g_vec = gravity(); 
+    no_grav =~ (norm(g_vec) > 0); % (1 : size(g.nodes.coords, 2))) > 0); 
+    if all([isempty(opt.bc),...
+            isempty(opt.src),...
+            isempty(opt.wells), no_grav])
+        warning(id('DrivingForce:Missing'),...
+                ['No external driving forces present in model -- ',...
+                 'state remains unchanged.\n']); 
+    end
+    
+    nc = g.cells.num; 
+    nw = length(opt.wells); 
 
-   
-   nc     = g.cells.num;
-   nw     = length(opt.wells);
+    [mob, totmob, omega, rho] = dynamic_quantities(state, fluid); 
 
-   [mob, totmob, omega, rho] = dynamic_quantities(state, fluid);
+    % Needed after introduction of gravity
+    TT = T; 
+    totFace_mob = ...
+        1 ./ accumarray(g.cells.faces(:, 1), 1 ./ totmob(rldecode([1:g.cells.num]', diff(g.cells.facePos)))); 
+    b = any(g.faces.neighbors == 0, 2); 
+    totFace_mob(~b) = totFace_mob(~b); 
+    n = size(TT.d1, 1); 
+    tothface_mob_mat = sparse(1:n, 1:n, TT.d1 * totFace_mob); 
+    % Tg = Tg * totmob_mat; 
 
-   % Needed after introduction of gravity
-   TT=T;
-   totFace_mob=...
-   1./accumarray(g.cells.faces(:,1),1./totmob(rldecode([1:g.cells.num]', diff(g.cells.facePos))));
-   b  = any(g.faces.neighbors==0, 2);
-   totFace_mob(~b)=totFace_mob(~b);
-   n = size(TT.d1, 1);
-   tothface_mob_mat = sparse(1:n, 1:n, TT.d1 * totFace_mob);
-   %Tg     = Tg * totmob_mat;
+    % Boundary conditions and source terms.
+    % Note: Function 'computeRHS' is a modified version of function
+    % 'computePressureRHS' which was originally written to support the
+    % hybrid mimetic method.
+    [~, gg, hh, ~, dF, ~] = computePressureRHS(g, omega, opt.bc, opt.src); 
+    
+    if any(~dF)
+        % Account for each face being subdivided
+        hh(~dF) = hh(~dF) ./ TT.counts(~dF); 
+    end
+    % add gravity contribution for each mpfa half face
+    grav = -omega(TT.cno) .* (TT.R * reshape(g_vec(1:g.griddim), [], 1)); 
+    
+    b = any(g.faces.neighbors == 0, 2); 
+    cf_mtrans = TT.cf_trans; 
+    % Define div operaor form mpfa sides to cell values in addtion to the fluxes
+    % out of boundary.  e_div = [TT.C,- TT.D(:, sb)]' * TT.Do;
+    e_div = TT.e_div; 
+    % Multiply fluxes with harmonic mean of mobility in order to avoid for
+    % re-asssembly. For coupled reservoir simulation the value of
+    % the sum of upwind mobility should be used.
+    A = e_div * tothface_mob_mat * cf_mtrans; 
+    dghf = TT.cf_trans_g * grav; 
+    rhs_g = e_div * tothface_mob_mat * dghf; 
+    
+    hh_tmp = TT.d1 * hh; 
+    rhs = [gg;- hh_tmp(TT.sb)]; 
+    rhs = rhs + rhs_g; 
+    % Dirichlet condition. If there are Dirichlet conditions, move contribution to
+    % rhs.  Replace equations for the unknowns by speye( * ) * x(dF) = dC.
 
-   % identify internal faces
-   
+    factor = A(1, 1); 
+    assert (factor > 0)
+    if any(dF)
+        dF_tmp = TT.d1(TT.sb, :) * dF; 
+        ind = [false(g.cells.num, 1); dF_tmp>0]; 
+        is_press = strcmpi('pressure', opt.bc.type); 
+        face = opt.bc.face (is_press); 
+        bcval = opt.bc.value (is_press); 
+        dC_tmp = TT.d1(TT.sb, face) * bcval; 
+        rhs = rhs - A(:, g.cells.num + 1:end) * dC_tmp; 
+        rhs(ind) = factor * dC_tmp(dF_tmp>0); 
+        A(ind, :) = 0; 
+        A(:, ind) = 0; 
+        A(ind, ind) = factor * speye(sum(ind)); 
+    end
+    nnp = length(rhs); 
+    rhs = [rhs; zeros(nw, 1)]; 
 
-   % Boundary conditions and source terms.
-   % Note: Function 'computeRHS' is a modified version of function
-   % 'computePressureRHS' which was originally written to support the
-   % hybrid mimetic method.
-   [~, gg, hh, ~, dF, ~] = computePressureRHS(g, omega, ...
-                                                   opt.bc, opt.src);
-   
-   if any(~dF)
-       % Account for each face being subdivided
-       hh(~dF) = hh(~dF)./TT.counts(~dF);
-   end
-   % add gravity contribution for each mpfa half face
-   grav     = -omega(TT.cno) .* (TT.R * reshape(g_vec(1:g.griddim), [], 1));  
-   
-   b  = any(g.faces.neighbors==0, 2);
-   %D  = sparse(1:size(g.cells.faces,1), double(g.cells.faces(:,1)), 1);
-   %D=TT.D;
-   % find outer boundary mpfa faces (two times the normal number of faces
-   % in 2D)
-   %sb = full(sum(TT.D, 1)) == 1;
-   %cf_mtrans=TT.Do'*TT.hfhf*[TT.C, -TT.D(:,sb)];
-   cf_mtrans = TT.cf_trans;
-   % define div operaor form mfpa sides to celle values in addtion to the
-   % fluxes out of boundary.
-   %e_div =  [TT.C, -TT.D(:,sb)]'*TT.Do;
-   e_div = TT.e_div;
-   % multiply fluxes with harmonic mean of mobility
-   % this to avid for re asssembly
-   % to be equivalent coupled reservoir simulation the value of
-   % sum of upwind mobility should be used.
-   A=e_div*tothface_mob_mat*cf_mtrans;
-   dghf= TT.cf_trans_g * grav;
-   rhs_g= e_div*tothface_mob_mat*dghf;
- 
-   hh_tmp = TT.d1*hh;
-   rhs = [gg; -hh_tmp(TT.sb)];
-   rhs = rhs+rhs_g;
-   % Dirichlet condition
-   % If there are Dirichlet conditions, move contribution to rhs.  Replace
-   % equations for the unknowns by speye(*)*x(dF) = dC.
+    %%%%%%%%%%%%%%%%%%% 
+    % add well equations
+    C = cell (nnp, 1); 
+    D = zeros(nnp, 1); 
+    W = opt.wells; 
+    d = zeros(g.cells.num, 1); 
+    for k = 1 : nw
+        wc = W(k).cells; 
+        nwc = numel(wc); 
+        w = k + nnp; 
 
-   factor = A(1,1);
-   assert (factor > 0)
-   if any(dF)
-      dF_tmp     = TT.d1(TT.sb,:)*dF;
-      ind        = [false(g.cells.num, 1) ; dF_tmp>0];
-      is_press   = strcmpi('pressure', opt.bc.type);
-      face       = opt.bc.face (is_press);
-      bcval      = opt.bc.value (is_press);
-      dC_tmp     = TT.d1(TT.sb,face)*bcval;
-      rhs        = rhs - A(:,g.cells.num+1:end)*dC_tmp;
-      rhs(ind)   = factor*dC_tmp(dF_tmp>0);
-      A(ind,:)   = 0;
-      A(:,ind)   = 0;
-      A(ind,ind) = factor * speye(sum(ind));
-   end
-   nnp=length(rhs);
-   rhs=[rhs;zeros(nw, 1)];
+        wi = W(k).WI .* totmob(wc); 
 
-   %%%%%%%%%%%%%%%%%%%
-   % add well equations
-   C    = cell (nnp, 1);
-   D    = zeros(nnp, 1);
-   W    = opt.wells;
-   d  = zeros(g.cells.num, 1);
-   for k = 1 : nw
-      wc       = W(k).cells;
-      nwc      = numel(wc);
-      w        = k + nnp;
+        dp = computeIncompWellPressureDrop(W(k), mob, rho, norm(gravity)); 
+        d   (wc) = d   (wc) + wi; 
+        state.wellSol(k).cdp = dp; 
+        if strcmpi(W(k).type, 'bhp')
+            ww = max(wi); 
+            rhs (w) = rhs (w) + ww * W(k).val; 
+            rhs (wc) = rhs (wc) + wi .* (W(k).val + dp); 
+            C{k} = -sparse(1, nnp); 
+            D(k) = ww; 
 
-      wi       = W(k).WI .* totmob(wc);
+        elseif strcmpi(W(k).type, 'rate')
+            rhs (w) = rhs (w) + W(k).val; 
+            rhs (wc) = rhs (wc) + wi .* dp; 
 
-      dp       = computeIncompWellPressureDrop(W(k), mob, rho, norm(gravity));
-      d   (wc) = d   (wc) + wi;
-      state.wellSol(k).cdp = dp;
-      if strcmpi(W(k).type, 'bhp')
-         ww=max(wi);
-         rhs (w)  = rhs (w)  + ww*W(k).val;
-         rhs (wc) = rhs (wc) + wi.*(W(k).val + dp);
-         C{k}     = -sparse(1, nnp);
-         D(k)     = ww;
+            C{k} = -sparse(ones(nwc, 1), wc, wi, 1, nnp); 
+            D(k) = sum(wi); 
 
-      elseif strcmpi(W(k).type, 'rate')
-         rhs (w)  = rhs (w)  + W(k).val;
-         rhs (wc) = rhs (wc) + wi.*dp;
+            rhs (w) = rhs (w) - wi.' * dp; 
 
-         C{k}     =-sparse(ones(nwc, 1), wc, wi, 1, nnp);
-         D(k)     = sum(wi);
+        else
+            error('Unsupported well type.'); 
+        end
+    end
 
-         rhs (w)  = rhs (w) - wi.'*dp;
+    C = vertcat(C{:}); 
+    D = spdiags(D, 0, nw, nw); 
+    A = [A, C'; C D]; 
+    A = A + sparse(1:nc, 1:nc, d, size(A, 1), size(A, 2)); 
 
-      else
-         error('Unsupported well type.');
-      end
-   end
+    if ~any(dF) && (isempty(W) || ~any(strcmpi({W.type }, 'bhp')))
+        A(1) = 2*A(1); 
+    end
+    ticif(opt.Verbose); 
+    p = opt.LinSolve(A, rhs); 
 
-   C = vertcat(C{:});
-   D = spdiags(D, 0, nw, nw);
-   A = [A, C'; C D];
-   A = A+sparse(1:nc,1:nc,d,size(A,1),size(A,2));
+    tocif(opt.Verbose); 
 
-  
-   if ~any(dF) && (isempty(W) || ~any(strcmpi({W.type }, 'bhp')))
-      A(1) = A(1)*2;
-   end
-   ticif(opt.Verbose);
-   p = opt.LinSolve(A, rhs);
+    % --------------------------------------------------------------------- 
+    dispif(opt.Verbose, 'Computing fluxes, face pressures etc...\t\t'); 
+    ticif (opt.Verbose); 
+    state.pressure(1 : nc) = p(1 : nc); 
+    % Reconstruct face pressures and fluxes.
+    b = any(g.faces.neighbors == 0, 2); 
+    state.flux = TT.d1' * (tothface_mob_mat * cf_mtrans * p(1:nnp) - tothface_mob_mat * dghf); % 
+    state.flux(~b) = state.flux(~b) / 2; 
+    state.boundaryPressure = p(nc + 1 : nnp); 
 
-   tocif(opt.Verbose);
+    for k = 1 : nw
+        wc = W(k).cells; 
+        dp = state.wellSol(k).cdp; 
+        state.wellSol(k).flux = W(k).WI .* totmob(wc) .* (p(nnp + k) + dp - p(wc)); 
+        state.wellSol(k).pressure = p(nnp + k); 
+    end
 
-   % ---------------------------------------------------------------------
-   dispif(opt.Verbose, 'Computing fluxes, face pressures etc...\t\t');
-   ticif (opt.Verbose);
-   state.pressure(1 : nc) = p(1 : nc);
-   % Reconstruct face pressures and fluxes.
-   b         = any(g.faces.neighbors==0, 2);   
-   state.flux = TT.d1'*(tothface_mob_mat*cf_mtrans*p(1:nnp) - tothface_mob_mat*dghf);%
-   state.flux(~b)=state.flux(~b)/2;
-   state.boundaryPressure = p(nc + 1 : nnp);
+    if opt.MatrixOutput
+        state.A = A; 
+        state.rhs = rhs; 
+    end
 
-   for k = 1 : nw
-      wc = W(k).cells;
-      dp = state.wellSol(k).cdp;
-      state.wellSol(k).flux = W(k).WI.*totmob(wc).*(p(nnp+k) + dp - p(wc));
-      state.wellSol(k).pressure = p(nnp + k);
-   end
-
-   if opt.MatrixOutput
-      state.A   = A;
-      state.rhs = rhs;
-   end
-
-   tocif(opt.Verbose);
+    tocif(opt.Verbose); 
 end
 
-%--------------------------------------------------------------------------
+% -------------------------------------------------------------------------- 
 % Helpers follow.
-%--------------------------------------------------------------------------
+% -------------------------------------------------------------------------- 
 
 function s = id(s)
-   s = ['incompMPFA:', s];
+    s = ['incompMPFA:', s]; 
 end
 
-%--------------------------------------------------------------------------
+% -------------------------------------------------------------------------- 
 
 function [mob, totmob, omega, rho] = dynamic_quantities(state, fluid)
-   [mu, rho] = fluid.properties(state);
-   s         = fluid.saturation(state);
-   kr        = fluid.relperm(s, state);
+    [mu, rho] = fluid.properties(state); 
+    s = fluid.saturation(state); 
+    kr = fluid.relperm(s, state); 
 
-   mob    = bsxfun(@rdivide, kr, mu);
-   totmob = sum(mob, 2);
-   omega  = sum(bsxfun(@times, mob, rho), 2) ./ totmob;
+    mob = bsxfun(@rdivide, kr, mu); 
+    totmob = sum(mob, 2); 
+    omega = sum(bsxfun(@times, mob, rho), 2) ./ totmob; 
 end
