@@ -50,10 +50,10 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-opt = struct('Verbose', mrstVerbose, ...
-    'reverseMode', false, ...
-    'resOnly', false, ...
-    'iteration', -1 );
+opt = struct('Verbose',        mrstVerbose, ...
+             'reverseMode',    false, ...
+             'resOnly',        false, ...
+             'iteration',      -1 );
 opt = merge_options(opt, varargin{:});
 
 % Shorter names for some commonly used parts of the model and forces.
@@ -63,11 +63,11 @@ op    = model.operators;
 
 % Properties at current timestep
 [p, sW, sG, rs, rv, c, cmax, wellSol] = model.getProps(state, ...
-    'pressure', 'water', 'gas', 'rs', 'rv', 'surfactant', 'surfactantmax', 'wellsol');
+    'pressure', 'water', 'gas', 'rs', 'rv', 'surfactant', 'surfactantmax', 'wellSol');
 
 % Properties at previous timestep
 [p0, sW0, sG0, rs0, rv0, c0, cmax0, wellSol0] = model.getProps(state0, ...
-    'pressure', 'water', 'gas', 'rs', 'rv', 'surfactant', 'surfactantmax', 'wellsol');
+    'pressure', 'water', 'gas', 'rs', 'rv', 'surfactant', 'surfactantmax', 'wellSol');
 
 [wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
 % Typically the primary well variables are :
@@ -99,8 +99,8 @@ if ~opt.resOnly
         % Set initial gradient to zero
         wellVars0 = model.FacilityModel.getAllPrimaryVariables(wellSol0);
         [p0, sW0, x0, c0, wellVars0{:}] = initVariablesADI(p0, sW0, x0, c0, wellVars0{:});
-        clear zw;
-        [sG0, rs0, rv0] = calculateHydrocarbonsFromStatusBO(model, st0, 1-sW, x0, rs0, rv0, p0);
+%         clear zw;
+        [sG0, rs0, rv0] = calculateHydrocarbonsFromStatusBO(model, st0, 1-sW0, x0, rs0, rv0, p0);
     end
 end
 
@@ -121,7 +121,7 @@ primaryVars = {'pressure', 'sW', gvar, 'surfactant', wellVarNames{:}};
 pBH = wellVars{wellMap.isBHP};
 % Compute fluxes and other properties for oil and water.
 [p1, dp, mob, upc, b, rho, pvMult, b0, pvMult0, T] = ...
-    computeFluxAndPropsThreePhaseBlackOilSurfactant(model, p0, p, sW, sG, c, pBH, W, rs, rv, st, st0);
+    computeFluxAndPropsThreePhaseBlackOilSurfactant(model, p0, p, sW, sG, c, pBH, W, rs, rs0, rv, rv0, st, st0);
 
 % divide to water/surfactant-oil-gas three parts
 
@@ -158,8 +158,8 @@ if model.vapoil
     rvbGvG = op.faceUpstr(upcG, rv).*bGvG;
     % Final equation
     oil = (op.pv/dt).*( pvMult.* (bO.* sO  + rv.* bG.* sG) - ...
-        pvMult0.*(bO0.*sO0 + rv0.*bG0.*sG0) ) + ...
-        op.Div(bOvO + rvbGvG);
+                        pvMult0.*(bO0.*sO0 + rv0.*bG0.*sG0) ) + ...
+           op.Div(bOvO + rvbGvG);
 else
     oil = (op.pv/dt).*( pvMult.*bO.*sO - pvMult0.*bO0.*sO0 ) + op.Div(bOvO);
 end
@@ -170,8 +170,8 @@ if model.disgas
     rsbOvO = op.faceUpstr(upcO, rs).*bOvO;
 
     gas = (op.pv/dt).*( pvMult.* (bG.* sG  + rs.* bO.* sO) - ...
-        pvMult0.*(bG0.*sG0 + rs0.*bO0.*sO0 ) ) + ...
-        op.Div(bGvG + rsbOvO);
+                        pvMult0.*(bG0.*sG0 + rs0.*bO0.*sO0 ) ) + ...
+           op.Div(bGvG + rsbOvO);
 else
     gas = (op.pv/dt).*( pvMult.*bG.*sG - pvMult0.*bG0.*sG0 ) + op.Div(bGvG);
 end
@@ -197,20 +197,21 @@ types = {'cell', 'cell', 'cell', 'cell'};
 rho = {rhoW, rhoO, rhoG};
 mob = {mobW, mobO, mobG};
 sat = {sW, sO, sG};
+pressures = {pW, pO, pG};
 dissolved = model.getDissolutionMatrix(rs, rv);
 
 [eqs, state] = addBoundaryConditionsAndSources(model, eqs, names, types, state, ...
-    {pW, pO, pG}, sat, mob, rho, ...
-    dissolved, {c}, ...
-    drivingForces);
+                                                  pressures, sat, mob, rho, ...
+                                                  dissolved, {c}, ...
+                                                  drivingForces);
 
 % Finally, add in and setup well equations
 [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, ...
-    names, types, wellSol0, ...
-    wellSol, ...
-    wellVars, wellMap, ...
-    p, mob, rho, dissolved, ...
-    {c}, dt, opt);
+                                                               names, types, wellSol0, ...
+                                                               wellSol, ...
+                                                               wellVars, wellMap, ...
+                                                               p, mob, rho, dissolved, ...
+                                                               {c}, dt, opt);
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 
 end

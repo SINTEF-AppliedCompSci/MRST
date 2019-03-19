@@ -1,6 +1,6 @@
 function [p1, dp, mob, upc, b, rho, pvMult, b0, pvMult0, T] =  ...
     computeFluxAndPropsThreePhaseBlackOilSurfactant(model, p0, p, sW, sG, c, ...
-                                                      pBH, W, rs, rv, st, st0, varargin)
+                                                      pBH, W, rs, rs0, rv, rv0, st, st0, varargin)
 %
 %
 % SYNOPSIS:
@@ -104,20 +104,20 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     bW0 = fluid.bW(p0);
 %     bO0 = fluid.bO(p0);
     if isprop(model, 'disgas') && model.disgas
-        bO0 = fluid.bO(p0, rs, ~st0{1});
+        bO0 = fluid.bO(p0, rs0, ~st0{1});
     else
         bO0 = fluid.bO(p0);
     end
     
 %     bG0 = fluid.bG(p0);
     if model.vapoil
-        bG0 = fluid.bG(p0, rv, ~st0{2});
+        bG0 = fluid.bG(p0, rv0, ~st0{2});
     else
         bG0 = fluid.bG(p0);
     end
 
     % Water flux and properties
-    bW      = fluid.bW(p);
+    bW      = fluid.bW(pW);
     rhoW    = bW.*fluid.rhoWS;
     rhoWf   = op.faceAvg(rhoW);
     muW     = fluid.muWSft(c);
@@ -135,17 +135,21 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         rs = 0;
     end
     if disgas
-        bO  = fluid.bO(p,  rs, isSat);
-        muO = fluid.muO(p, rs, isSat);
+        bO  = fluid.bO(pO,  rs, isSat);
+        muO = fluid.muO(pO, rs, isSat);
         rhoO   = bO.*(rs*fluid.rhoGS + fluid.rhoOS);
     else
-        bO  = fluid.bO(p);
+        bO  = fluid.bO(pO);
         if isfield(fluid, 'BOxmuO')
-            muO = fluid.BOxmuO(p).*bO;
+            muO = fluid.BOxmuO(pO).*bO;
         else
-            muO = fluid.muO(p);
+            muO = fluid.muO(pO);
         end
         rhoO   = bO.*fluid.rhoOS;
+    end
+    
+    if any(bO < 0)
+        warning('Negative oil compressibility present!')
     end
     
     rhoOf = op.faceAvg(rhoO);
