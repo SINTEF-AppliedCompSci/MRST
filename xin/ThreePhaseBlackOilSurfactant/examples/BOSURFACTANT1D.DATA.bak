@@ -599,7 +599,7 @@ SOLUTION ==================================================================
 
 -- Initial pressure for each grid cell
 PRESSURE
-100*280 /
+100*600 /
 -- Initial water saturation for each grid cell
 SWAT
 100*0.25
@@ -612,6 +612,10 @@ RS
 /
 RV
 100*0
+/
+-- Initial pressure for each cell
+PRESSURE
+100*280
 /
 
 -- Create initial restart file
