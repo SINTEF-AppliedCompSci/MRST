@@ -70,12 +70,12 @@ G = computeGeometry(G);
 % The fluid has density 1000 kg/m^3 and viscosity 1 cP.
 % We make a non diagonal rock tensor
 theta=30*pi/180;
-U=[cos(theta),sin(theta);-sin(theta),cos(theta)];
+U = [cos(theta),sin(theta);-sin(theta),cos(theta)];
 rocktensor = U'*diag([0.1,10])*U;
-rocktensor =[rocktensor(1,1),rocktensor(1,2),rocktensor(2,2)];
+rocktensor = [rocktensor(1,1),rocktensor(1,2),rocktensor(2,2)];
 rock = makeRock(G, rocktensor .* 1e-3*darcy, 1);
-fluid     = initSingleFluid('mu' ,    1*centi*poise     , ...
-                            'rho', 1014*kilogram/meter^3);
+fluid = initSingleFluid('mu' , 1*centi*poise , ...
+                        'rho', 1014*kilogram/meter^3);
 
 gravity off
 

@@ -232,48 +232,47 @@ end
 %--------------------------------------------------------------------------
 
 function [cno, nno, hfno, fno, subfno, subhfno] = createMapping(g)
-   % Create mapping from sub-half-face to cell, node, face, half-face and
-   % sub-face
-   cellno   = rldecode(1:g.cells.num, diff(g.cells.facePos), 2) .';
-   col      = 1+(cellno == g.faces.neighbors(g.cells.faces(:,1), 2));
-   nhfaces  = g.cells.facePos(end)-1;
-   hfaces   = accumarray([g.cells.faces(:,1), col], 1:nhfaces);
-   hfaces   = rldecode(hfaces, diff(g.faces.nodePos));
+% Create mapping from sub - half - face to cell, node, face, half - face and
+% sub - face
+    cellno  = rldecode(1 : g.cells.num, diff(g.cells.facePos), 2) .'; 
+    col     = 1 + (cellno == g.faces.neighbors(g.cells.faces(:, 1), 2)); 
+    nhfaces = g.cells.facePos(end) - 1; 
+    hfaces  = accumarray([g.cells.faces(:, 1), col], 1 : nhfaces); 
+    hfaces  = rldecode(hfaces, diff(g.faces.nodePos)); 
 
 
-   cells    =  rldecode(g.faces.neighbors, diff(g.faces.nodePos));
-   nodes    =  repmat(g.faces.nodes, [2,1]);
-   faces    =  repmat(rldecode(1:g.faces.num, diff(g.faces.nodePos),2)', [2,1]);
-   subfaces =  repmat((1:size(g.faces.nodes,1))', [2,1]);
-   i        =  cells~=0;
-   w        =  [cells(i), nodes(i), hfaces(i), faces(i), subfaces(i)];
-   w        =  double(sortrows(w));
+    cells    = rldecode(g.faces.neighbors, diff(g.faces.nodePos)); 
+    nodes    = repmat(g.faces.nodes, [2, 1]); 
+    faces    = repmat(rldecode(1:g.faces.num, diff(g.faces.nodePos), 2)', [2, 1]); 
+    subfaces = repmat((1:size(g.faces.nodes, 1))', [2, 1]); 
+    i        = cells ~= 0; 
+    w        = [cells(i), nodes(i), hfaces(i), faces(i), subfaces(i)]; 
+    w        = double(sortrows(w)); 
 
-
-   cno     = w(:,1);
-   nno     = w(:,2);
-   hfno    = w(:,3);
-   fno     = w(:,4);
-   subfno  = w(:,5);
-   subhfno = (1:numel(cno))';
+    cno     = w(:, 1); 
+    nno     = w(:, 2); 
+    hfno    = w(:, 3); 
+    fno     = w(:, 4); 
+    subfno  = w(:, 5); 
+    subhfno = (1:numel(cno))'; 
 end
 
-function [B,Rvec] = computeLocalFluxMimeticIP(g, rock, cno, fno, nno, subhfno, opt)
+function [B, Rvec] = computeLocalFluxMimeticIP(g, rock, cno, fno, nno, subhfno, opt)
    [a, blocksz] = rlencode([cno,nno]);
    dims         = size(g.nodes.coords, 2);
    assert(all(blocksz==dims));
    % Expand centroid differences, normals, signs and permeabilities to
-   %  block-diagonal matrices such that B may be constructed by matrix-matrix
-   %  multiplications:
-   [i,j] = ndgrid(subhfno, 1:dims);
-   j     = bsxfun(@plus, j, rldecode(cumsum(blocksz)-blocksz(1), blocksz));
+   % block-diagonal matrices such that B may be constructed by matrix-matrix
+   % multiplications:
+   [i, j] = ndgrid(subhfno, 1:dims);
+   j      = bsxfun(@plus, j, rldecode(cumsum(blocksz)-blocksz(1), blocksz));
 
    % Use original face centroids and cell centroids, NOT actual subface
    % centroids.  This corresponds to an MPFA method (O-method)
    %R     = g.faces.centroids(fno,:) - g.cells.centroids(cno,:);
-   Rvec      = g.faces.centroids(fno,:) - g.cells.centroids(cno,:)+...
-            opt.eta*(g.nodes.coords(nno,:)-g.faces.centroids(fno,:));
-   R     = sparse(i,j,Rvec);
+   Rvec = g.faces.centroids(fno,:) - g.cells.centroids(cno,:)+...
+          opt.eta*(g.nodes.coords(nno,:)-g.faces.centroids(fno,:));
+   R    = sparse(i,j,Rvec);
 
    % Subface sign == face sign
    sgn   = 2*(cno == g.faces.neighbors(fno,1)) -1;
