@@ -61,6 +61,10 @@ switch example_name
     krOW = fluid.krOW(s, 'cellInx', 1);
     krWSft = fluid.krWSft(s, 'cellInx', 1);
     krOWSft = fluid.krOWSft(s, 'cellInx', 1);
+    if all(isfield(fluid,{'krG','krOG'}))
+       krG = fluid.krG(s, 'cellInx', 1);
+       krOG = fluid.krOG(s, 'cellInx', 1);
+    end
   case 'spe10'
     krW = fluid.krW(s);
     krOW = fluid.krOW(s);
@@ -68,24 +72,53 @@ switch example_name
     krOWSft = fluid.krOWSft(s);
 end
 
-figure()
-plot(s, krW, s, krWSft, 'LineWidth',2);
-xlabel('Water saturation');
-ylabel('Relative permeability');
-title('Water Relative Permeabilities');
-legend({'$kr_w^{\textrm{nosurf}}$ (no surfactant)', ['$kr_w^{\textrm{surf}}$ ' ...
-                    '(fully-mixed with surfactant)']}, 'interpreter', 'latex', ...
+if all(isfield(fluid,{'krG','krOG'}))
+    
+    figure()
+    plot(s, krW, s, krWSft, 'LineWidth',2);
+    xlabel('Water saturation');
+    ylabel('Relative permeability');
+    title('Water Relative Permeabilities');
+    legend({'$kr_w^{\textrm{nosurf}}$ (no surfactant)', ['$kr_w^{\textrm{surf}}$ ' ...
+        '(fully-mixed with surfactant)']}, 'interpreter', 'latex', ...
         'location', 'best')
-
-figure()
-plot(1 - s, krOW, 1 - s, krOWSft,'LineWidth',2);
-xlabel('Water saturation');
-ylabel('Relative permeability');
-title('Oil Relative Permeabilities');
-legend({'$kr_o^{\textrm{nosurf}}$ (no surfactant)', ['$kr_o^{\textrm{surf}}$ ' ...
-                    '(fully-mixed with surfactant)']}, 'interpreter', 'latex', ...
-       'location', 'best')
-
+    
+    figure()
+    plot(1 - s, krOW, 1 - s, krOWSft,'LineWidth',2);
+    xlabel('Water saturation');
+    ylabel('Relative permeability');
+    title('Oil Relative Permeabilities');
+    legend({'$kr_ow^{\textrm{nosurf}}$ (no surfactant)', ['$kr_ow^{\textrm{surf}}$ ' ...
+        '(fully-mixed with surfactant)']}, 'interpreter', 'latex', ...
+        'location', 'best')
+    
+    figure()
+    plot(s, krG, 1 - s, krOG,'LineWidth',2);
+    xlabel('Gas saturation');
+    ylabel('Relative permeability');
+    title('Gas Relative Permeabilities');
+    legend({'$kr_g$ ', '$kr_o$ '}, 'interpreter', 'latex', ...
+        'location', 'best')
+else
+    figure()
+    plot(s, krW, s, krWSft, 'LineWidth',2);
+    xlabel('Water saturation');
+    ylabel('Relative permeability');
+    title('Water Relative Permeabilities');
+    legend({'$kr_w^{\textrm{nosurf}}$ (no surfactant)', ['$kr_w^{\textrm{surf}}$ ' ...
+        '(fully-mixed with surfactant)']}, 'interpreter', 'latex', ...
+        'location', 'best')
+    
+    figure()
+    plot(1 - s, krOW, 1 - s, krOWSft,'LineWidth',2);
+    xlabel('Water saturation');
+    ylabel('Relative permeability');
+    title('Oil Relative Permeabilities');
+    legend({'$kr_o^{\textrm{nosurf}}$ (no surfactant)', ['$kr_o^{\textrm{surf}}$ ' ...
+        '(fully-mixed with surfactant)']}, 'interpreter', 'latex', ...
+        'location', 'best')
+    
+end
 %% Interfacial tension
 % The interfacial tension decreases as the surfactant concentration increases
 % data from SPE paper 145036
