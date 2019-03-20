@@ -83,7 +83,7 @@ close all;
 % the system struct.
 
 [wellSolsSurfactant, statesSurfactant, reportSurfactant] = simulateScheduleAD(state0, model, ...
-                                                  schedule, 'NonLinearSolver', solver);
+                                                  schedule);
 %%
 figure()
 plotToolbar(G, statesSurfactant, 'startplayback', true, 'plot1d', true, 'field', 's:1');

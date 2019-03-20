@@ -605,10 +605,10 @@ SWAT
 3*0.25
 /
 SGAS
-3*0 
+3*0.01
 /
 RS
-3*0.1
+3*1.5
 /
 RV
 3*0
@@ -660,13 +660,13 @@ COMPDAT
 WCONPROD
 --      WELL     OPEN/  CNTL   OIL  WATER   GAS  LIQU   RES   BHP
 --      NAME     SHUT   MODE  RATE   RATE  RATE  RATE  RATE
-       'PROD'   'OPEN'  'BHP'   5*                            280/
+       'PROD'   'OPEN'  'BHP'   5*                            60/
 /
 
 WCONINJE
 --      WELL     INJ   OPEN/   CNTL    FLOW   RESV   BHP
 --      NAME    TYPE   SHUT    MODE    RATE   RATE   LIMIT
-       'INJ'  'WATER'  'OPEN'  'BHP'     2*           320 /
+       'INJ'  'WATER'  'OPEN'  'BHP'     2*           450 /
 /
 
 WSURFACT
@@ -674,7 +674,7 @@ WSURFACT
 /
 
 TSTEP
-10*1
+10*0.01 10*0.5
 /
 
 ---------------------------------------------------------------------------
@@ -683,13 +683,13 @@ TSTEP
 WCONPROD
 --      WELL     OPEN/  CNTL   OIL  WATER   GAS  LIQU   RES   BHP
 --      NAME     SHUT   MODE  RATE   RATE  RATE  RATE  RATE
-       'PROD'   'OPEN'  'BHP'   5*                            280/
+       'PROD'   'OPEN'  'BHP'   5*                            160/
 /
 
 WCONINJE
 --      WELL     INJ   OPEN/   CNTL    FLOW   RESV   BHP
 --      NAME    TYPE   SHUT    MODE    RATE   RATE   LIMIT
-       'INJ' 'WATER' 'OPEN' 'BHP'     2*            320 /
+       'INJ' 'WATER' 'OPEN' 'BHP'     2*            380 /
 /
 
 WSURFACT
