@@ -74,19 +74,20 @@ example_name = '1D';
 vizSurfactantModel;
 
 close all;
-
+%%
+% solver = NonLinearSolver('maxTimestepCuts', 16);
 %% Run the schedule
 %
 % We use the function simulateScheduleAD to run the simulation
 % Options such as maximum non-linear iterations and tolerance can be set in
 % the system struct.
 
-[wellSolsSurfactant, statesSurfactant] = simulateScheduleAD(state0, model, ...
-                                                  schedule);
-
+[wellSolsSurfactant, statesSurfactant, reportSurfactant] = simulateScheduleAD(state0, model, ...
+                                                  schedule, 'NonLinearSolver', solver);
+%%
 figure()
 plotToolbar(G, statesSurfactant, 'startplayback', true, 'plot1d', true, 'field', 's:1');
-
+ylim([0, 1])
 %% Copyright notice
 
 % <html>

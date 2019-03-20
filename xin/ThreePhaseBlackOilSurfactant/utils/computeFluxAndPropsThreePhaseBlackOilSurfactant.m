@@ -71,6 +71,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     Nc = computeCapillaryNumber(p, c, pBH, W, fluid, G, op, 'velocCompMethod', opt.velocCompMethod);
     [krW, krO, krG] = computeThreePhaseRelPermSft(sW, sG, c, Nc, fluid);
 
+    if any(sW > 0.95)
+        1;
+    end
+    
+    
     % Multipliers for properties
     [pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
 

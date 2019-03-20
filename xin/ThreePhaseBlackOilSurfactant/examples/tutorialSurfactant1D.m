@@ -76,7 +76,7 @@ close all;
 % Options such as maximum non-linear iterations and tolerance can be set in
 % the system struct.
 
-[wellSolsSurfactant, statesSurfactant] = simulateScheduleAD(state0, model, ...
+[wellSolsSurfactant, statesSurfactant, reportSurfactant] = simulateScheduleAD(state0, model, ...
                                                   schedule);
 
 figure()
