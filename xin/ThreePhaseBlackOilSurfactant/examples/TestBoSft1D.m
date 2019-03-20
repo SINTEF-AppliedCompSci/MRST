@@ -1,6 +1,6 @@
 %% 1D Tutorial For a Oil-Water-Surfactant system
 % The input data is read from a deck using Eclipse format
-% (SURFACTANT1D.DATA). The surfactant property (see file surfact.inc) are taken
+% (BLACKOILSURFACTANT1D.DATA). The surfactant property (see file surfact.inc) are taken
 % from SPE paper 145036.
 %
 % Surfactant is added to water in order to decrease the surface tension so that,
@@ -9,6 +9,7 @@
 %
 % In this example, water and surfactant are injected at the left-hand side and
 % oil is produced at the right-hand side at a given pressure.
+%
 % In a first period, only water is injected. Then, for a second period,
 % surfactant is added to the water.
 
@@ -22,7 +23,7 @@ mrstModule add ad-core ad-blackoil ad-eor ad-props deckformat mrst-gui
 % 
 
 current_dir = fileparts(mfilename('fullpath'));
-fn = fullfile(current_dir, 'SURFACTANT1D.DATA');
+fn = fullfile(current_dir, 'TestBoSft1D.DATA');
 gravity off
 
 deck = readEclipseDeck(fn);
@@ -40,7 +41,11 @@ rock  = compressRock(rock, G.cells.indexMap);
 %
 
 nc = G.cells.num;
-state0 = initResSol(G, 300*barsa, [ .2, .8]); % residual water saturation is 0.2
+state0.pressure = deck.SOLUTION.PRESSURE;
+state0.s = [deck.SOLUTION.SWAT, 1-deck.SOLUTION.SWAT-deck.SOLUTION.SGAS, deck.SOLUTION.SGAS];
+state0.rs = deck.SOLUTION.RS;
+state0.rv = deck.SOLUTION.RV;
+% state0 = initResSol(G, 300*barsa, [ .2, .8]); % residual water saturation is 0.2
 state0.c    = zeros(G.cells.num, 1);
 state0.cmax = state0.c;
 
@@ -51,7 +56,7 @@ state0.cmax = state0.c;
 %
 
 
-model = OilWaterSurfactantModel(G, rock, fluid, ...
+model = ThreePhaseBlackOilSurfactantModel(G, rock, fluid, ...
                                                   'inputdata', deck, ...
                                                   'extraStateOutput', true);
 
