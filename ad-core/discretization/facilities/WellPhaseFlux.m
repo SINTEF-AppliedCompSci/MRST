@@ -20,9 +20,11 @@ classdef WellPhaseFlux < GridProperty
             isInjector = map.isInjector(map.perf2well);
             
             Tdp = -wi.*dp;
-            injection = Tdp >= 0;
+            vTdp = value(Tdp);
+            injection = vTdp > 0;
+            production = ~injection & vTdp ~= 0;
             crossflow = (injection & ~isInjector) | ...
-                        (~injection & isInjector);
+                        (production & isInjector);
             if any(injection)
                 compi = vertcat(W.compi);
                 if any(crossflow)
@@ -34,7 +36,7 @@ classdef WellPhaseFlux < GridProperty
                     % cross-flowing volume is assumed to reflect the inflow
                     % conditions, neglecting density change throughout the
                     % wellbore.
-                    q_wb = bsxfun(@times, value(mobw), value(Tdp));
+                    q_wb = bsxfun(@times, value(mobw), vTdp);
                     compi = crossFlowMixture(q_wb, compi, map);
                 end
                 compi_perf = compi(map.perf2well, :);

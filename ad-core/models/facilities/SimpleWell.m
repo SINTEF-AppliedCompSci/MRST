@@ -358,7 +358,6 @@ classdef SimpleWell < PhysicalModel
             if ~well.doUpdatePressureDrop
                 return
             end
-            active = model.getActivePhases();
             w = well.W;
             if ~isfield(w, 'topo')
                 nperf = numel(w.cells);
@@ -371,8 +370,8 @@ classdef SimpleWell < PhysicalModel
                 qMass(qMass == 0) = w.sign*1e-12;
                 
                 if w.sign == 1
-                    qMass = qMass.*w.compi;
-                    qVol = qVol.*w.compi;
+%                     qMass = qMass.*w.compi;
+%                     qVol = qVol.*w.compi;
                 end
             else
                 sgn = w.sign;
