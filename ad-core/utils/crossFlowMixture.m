@@ -1,6 +1,9 @@
 function compi = crossFlowMixture(flux, compi, map)
     % Into wellbore
     flux_in = -min(flux, 0);
+    if all(flux_in == 0)
+        return
+    end
 
     % Find net flux - this is what is possibily injected from the
     % surface connection with the top composition
