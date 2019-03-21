@@ -248,22 +248,24 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
     cellfacenodetbl.nodes = facenodetbl.nodes(colind);
     cellfacenodetbl.num = numel(cellfacenodetbl.cells);
 
+    nn = G.nodes.num;
     cfn = cellfacenodetbl;
-    op = sparse(cfn.cells, cfn.nodes, 1, nc, nf);
+    op = sparse(cfn.cells, cfn.nodes, 1, nc, nn);
     [cind, nind] = find(op);
     cellnodetbl.cells = cind;
     cellnodetbl.nodes = nind;
 
     % nodal scalar product is stored in vector nodeM
-    % matcellnodetbl is the table which specifies how nodeM is stored.
+    % mattbl is the table which specifies how nodeM is stored: a matrix for
+    % each "corner" (cell-node pair).
     [~, colind, rowind] = setupTableMapping(cellfacenodetbl, cellfacenodetbl, ...
                                                           'cells', 'nodes'); 
-    matcellnodetbl.cells  = cellfacenodetbl.cells(colind);
-    matcellnodetbl.nodes  = cellfacenodetbl.nodes(colind);
-    matcellnodetbl.faces1 = cellfacenodetbl.faces(colind);
-    matcellnodetbl.faces2 = cellfacenodetbl.faces(rowind);
-    matcellnodetbl.num = numel(matcellnodetbl.cells);
-    nodeM = zeros(matcellnodetbl.num, 1);
+    mattbl.cells  = cellfacenodetbl.cells(colind);
+    mattbl.nodes  = cellfacenodetbl.nodes(colind);
+    mattbl.faces1 = cellfacenodetbl.faces(colind);
+    mattbl.faces2 = cellfacenodetbl.faces(rowind);
+    mattbl.num = numel(mattbl.cells);
+    nodeM = zeros(mattbl.num, 1);
     
     dim = G.griddim;
 
@@ -274,7 +276,7 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
     % Assemble facePermNormals which corresponds to $Kn$ where n are the
     % normals at the facets.
     [K, r, c] = permTensor(rock, G.griddim);
-    error('fix sign of the normals');
+    error('fix the sign of the normals');
     cno = cellfacenodetbl.cells;
     Kn = bsxfun(@times, K(cno, :), facetNormal(:, c));
     Kn = rldecode(Kn, dim*ones(numel(cno, 1)));
@@ -322,32 +324,22 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
         loctbl.cells = cell*ones(loctblNum, 1);
         loctbl.nodes = node*ones(loctblNum, 1);
         
-        [~, colind, ~] = setupTableMapping(loctbl, matcellnodetbl, 'cells', ...
+        [~, colind, ~] = setupTableMapping(loctbl, mattbl, 'cells', ...
                                                    'nodes', 'faces1', ...
                                                    'faces2');
         nodeM(colind) = locM;
     
     end
     
-    facenodetbl.faces1 = facenodetbl.faces;
-    facenodetbl.faces2 = facenodetbl.faces;
     
-    [~, colind1, rowind1] = setupTableMapping(facenodetbl, matcellnodetbl, 'nodes', ...
-                                                           'faces1');
-    facenodeind1 = zeros(matcellnodetbl.num, 1);
-    
-    facenodeind2(colind2) = rowind2;
-    [~, colind2, rowind2] = setupTableMapping(facenodetbl, matcellnodetbl, 'nodes', ...
-                                                           'faces2');
-    facenodeind2 = zeros(matcellnodetbl.num, 2);
-    facenodeind2(colind2) = rowind2;
-    
-    nfn = facenodetbl.num;
-    
-    B = accumarray([facenodeind1, facenodeind2], ...
-                   nodeM, ...
-                   [nfn, nfn], [], [], true);
-    
+    [~, colind, rowind] = setupTableMapping(facenodetbl, facenodetbl, 'nodes');
+    redmattbl.nodes  = facenodetbl.nodes(colind);
+    redmattbl.faces1 = facenodetbl.faces(colind);
+    redmattbl.faces2 = facenodetbl.faces(rowind);
+
+    op = setupTableMapping(redmattbl, mattbl, 'nodes', 'faces1', 'faces2');
+    B = op'*nodeM*op;
+
     tbls = struct('cellfacenodetbl', cellfacenodetbl, ...
                   'cellnodetbl'    , cellnodetbl    , ...
                   'facenodetbl'    , facenodetbl)
