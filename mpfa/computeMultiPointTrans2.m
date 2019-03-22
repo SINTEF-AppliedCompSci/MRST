@@ -1,4 +1,4 @@
-function [T, T_noflow] = computeMultiPointTrans2(g, rock, varargin)
+function T = computeMultiPointTrans2(G, rock, varargin)
 %Compute multi-point transmissibilities.
 %
 % SYNOPSIS:
@@ -88,8 +88,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-% Written by Jostein R. Natvig, SINTEF ICT, 2009.
-
    opt = struct('verbose',      mrstVerbose,   ...
                 'facetrans',    zeros([0, 2]), ...
                 'invertBlocks', 'matlab',...
@@ -98,48 +96,27 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    opt = merge_options(opt, varargin{:});
    opt.invertBlocks = blockInverter(opt);
 
-
    if opt.verbose
       fprintf('Computing inner product on sub-half-faces ...\t');
       t0 = tic;
+   else
+      t0 = [];
    end
 
-   [B, tables] = robustComputeLocalFluxMimeticIP(g, rock, opt);
-
+   [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt);
+   
+   tocif(opt.verbose, t0);
+   
    if opt.verbose
       fprintf('Computing inverse mixed innerproduct ...\t');
       t0 = tic;
    end
-
-   % Create matrices needed to compute transmissibilities
-   s  = 2*(cno == g.faces.neighbors(fno,1)) - 1;
-   D  = sparse(subhfno, subfno, 1); % Hybrid D matrix
-   Do = sparse(subhfno, subfno, s); % Mixed D matrix
-   C  = sparse(subhfno, cno, 1);
-
-   % c1 adds up sub-half-face contributions for each half-face
-   % c1 = sparse(subhfno, hfno, 1);
-
-   % d1 adds up sub-face contributions for each face.
-   counts = accumarray(fno, 1, [g.faces.num, 1]);
-   d1     = sparse(subfno, fno, 1);
-
-   % Note that c1'*D*d1 is equal to the regular mimetic D matrix.
-
-   % Construct the inverse of the mixed B
-   % In the local-flux mimetic method, the mixed mass matrix DoBDo is block
-   % diagonal with n_i x n_i blocks due to the special form of the hybrid
-   % mass matrix.  Here n_i is the number of cells adjacent to a node in
-   % the grid.
-   DoBDo = Do'*B*Do;
-
-   % Invert DoBDo
-   tmp      = unique([nno, subfno], 'rows');
-   p        = tmp(:,2);
-   P        = sparse(1:numel(p), p, 1, numel(p), numel(p));
-   [sz, sz] = rlencode(tmp(:,1));
-   iDoBDo   = P' * opt.invertBlocks(DoBDo(p, p), sz) * P;
-   clear tmp sz P p
+   % The face-node degrees of freedom, as specified by the facenodetbl table, are
+   % ordered by nodes first (see implementation below). It means in particular
+   % that the matrix B is (or should be!) already block diagonal.
+   facenodetbl = tbls.facenodetbl;
+   [~, sz] = rlencode(facenodetbl.nodes); 
+   iB   = opt.invertBlocks(B, sz);
 
    tocif(opt.verbose, t0);
 
@@ -148,94 +125,73 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       t0 = tic;
    end
 
-
-   % Compute multi-point transmissibilities
-   % for all faces in terms of cell pressures and outer boundary pressures.
-  
-   %T = c1'*Dm*inv(Dm'*B*Dm)*Dm'*[C, -D(:,b)*d1(b,:)];
-    %if(nargout==2)
-  
-   tocif(opt.verbose, t0);
-   % c1'*D*d1 har samme struktur som vanlig D.
-   % T er feil størrelse å returnere dersom gravitasjon skal håndteres
-   % skikkelig.  Gravitasjonsleddet kommer inn som c1'*Dm*iDmBDm*Dm'*f.
-   % Siden gravitasjonsbidraget for all subfaces er likt kan de sikkert
-   % skrives om til c1'*Dm*iDmBDm*Dm'*F*g der F*G=f.
-   %T=struct('T',T,'Tg',Tg,'hfhf',Do*iDoBDo*Do','c1',c1,'D',D,'d1',d1,'C',C,'Do',Do,'R',R,'cno',cno);
-   %{
-    %old structure
-    b = full(sum(D, 1)) == 1;
-    Tg=c1'*Do*iDoBDo*Do';
-    %end
-    T = Tg*[C, -D(:,b)*d1(b,:)];
-    Tg=Tg*c1;
-    T=struct('T',T,'Tg',Tg,'hfhf',Do*iDoBDo*Do','c1',c1,'D',D,'d1',d1,'C',C,'Do',Do,'R',R,'cno',cno);
-   %}
-   sb = full(sum(D, 1)) == 1;
-   %cf_mtrans=Do'*Do*iDoBDo*Do'*[C, -D(:,sb)];
-   cf_mtrans=iDoBDo*Do'*[C, -D(:,sb)];
-   % define div operaor
-   e_div =  [C, -D(:,sb)]'*Do;
-   % multiply fluxes with harmonic mean of mobility this to avoid for re asssembly
-   % to be equivalent coupled reservoir simulation the value of sum of upwind
-   % mobility should be used.
-   % cf_trans_g = Do'*Do*iDoBDo*Do';
-   cf_trans_g = iDoBDo*Do';
-   T = struct('cf_trans'  , cf_mtrans ,... % transmisibility calculate K\grad on mpfa faces from cell pressures and boundary pressures
-              'e_div'     , e_div     ,... % calulate div on cells and mpfa fluxes at boundary from mpfa fluxes
-              'cf_trans_g', cf_trans_g,... % calulate gravity contribution form gravity diferences from mpfa half faces
-              'd1'        , d1        ,... % map from mpfa faces to faces
-              'R'         , R         ,... % the continuity points fo for calculating gravity contricutions
-              'cno'       , cno       ,... % cno for mpfa faces
-              'counts'    , counts    , ...
-              'sb'        , sb ... % defines the mpfa boundary faces
-            );
-   %
-   if nargout > 1
-       % the usefull trans for  other methods are
-       % Trans =d1'*iDoBDo*Do';
-       % reduced Trans for neumann baundary
-       nc=size(C,2);
-       iface=~sb;
-       Trans=cf_mtrans; % iDoBDo*Do'*[C, -D(:,sb)];
-       A=Trans(iface,1:nc);
-       B=Trans(iface,nc+1:end);
-       C=Trans(~iface,1:nc);
-       D=Trans(~iface,nc+1:end);
-       rTrans = A-B*(D\C);
-       % reduce to internal normal
-
-       %
-       intfaces=~any(g.faces.neighbors==0,2);
-       rTrans = d1(iface,intfaces)'*rTrans; % mpfa trans from cell pressure to internal fluxes
-       N=g.faces.neighbors(intfaces,:);
+   % Assembly of the divergence operator, from face-node faces to cell. We consider
+   % only the internal faces for the moment (corresponds to Neumann boundary
+   % condition).
+   cellfacenodetbl = tbls.cellfacenodetbl;
+   fno = cellfacenodetbl.faces;
+   intfno = (G.faces.neighbors(fno, 1) ~= 0) & (G.faces.neighbors(fno, 2) ~= 0);
    
-       % Create transmissibility as a hidden, undocumented output
-       % gravity contributaion 
-       gTrans = iDoBDo*d1; % note that this maps from gravity differences over faces including outer faces.
-       % gravity trans ???
-       rgTrans = gTrans(iface,:) + B*(D\gTrans(~iface,:));
-       rgTrans = d1(iface,intfaces)'*rgTrans;   
-       T_noflow=struct('rTrans',rTrans,...%calculate K\grad from cell pressures assuming no flow boundary 
-       'rgTrans',rgTrans','N',N);%calculate mpfa gravity contribution from "gravity difference between cells and cells to bounary faces" to internal face flux 
-   end
+   intcellfacenodetbl.faces = cellfacenodetbl.faces(intfno);
+   intcellfacenodetbl.cells = cellfacenodetbl.cells(intfno);
+   intcellfacenodetbl.nodes = cellfacenodetbl.nodes(intfno);
+   intcellfacenodetbl.num = numel(intcellfacenodetbl.faces);
+   
+   % aliases
+   ifno = intcellfacenodetbl.faces; 
+   icno = intcellfacenodetbl.cells;
+   sgn = 2*(icno == G.faces.neighbors(ifno, 1)) - 1;
+   div = sparse(intcellfacenodetbl.cells, ...
+                (1 : intcellfacenodetbl.num)', ...
+                sgn, ...
+                G.cells.num, ...
+                intcellfacenodetbl.num);
+   
+   fno = facenodetbl.faces;
+   intfno = (G.faces.neighbors(fno, 1) ~= 0) & (G.faces.neighbors(fno, 2) ~= 0);
+   intfacenodetbl.faces = facenodetbl.faces(intfno);
+   intfacenodetbl.nodes = facenodetbl.nodes(intfno);
+   intfacenodetbl.num = numel(intfacenodetbl.faces);
+   
+   op = setupTableMapping(intfacenodetbl, intcellfacenodetbl, 'faces');   
+   div = div*op;
+   
+   % We setup mapping S which sums up "face-node" face-fluxes  (sometimes
+   % called half fluxes) to face-fluxes
+   faces = (1 : G.faces.num)';
+   isintfaces = (G.faces.neighbors(faces, 1) ~= 0) & (G.faces.neighbors(faces, 2) ~= 0);
+   intfaces = faces(isintfaces);
+   tmptbl.faces = intfaces;
+   
+   S = setupTableMapping(intfacenodetbl, tmptbl, 'faces');
+   
+   % mapping from internal to all for cell-face-nodes faces
+   op = setupTableMapping(intcellfacenodetbl, cellfacenodetbl, ...
+                                        'cells', 'faces', 'nodes');
+   % Assembly of transmissibility
+   
+   T = S*op'*iB*op*div';
+
 end
 
 %--------------------------------------------------------------------------
 
 function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
 
+    % Some short aliases 
     nc = G.cells.num;
+    nf = G.faces.num;
+    dim = G.griddim;
+   
     cellfacetbl.cells = rldecode((1 : nc)', diff(G.cells.facePos)); 
     cellfacetbl.faces = G.cells.faces(:, 1);
 
-    nf = G.faces.num;
     faces = rldecode((1 : nf)', diff(G.faces.nodePos)); 
     nodes = G.faces.nodes;
-    % we setup the face-node table and it is ordered along ascending node numbers so
+    % We setup the face-node table and it is ordered along ascending node numbers so
     % that we will have a block structure for the nodal scalar product.
     collatefacenode = [nodes, faces];
-    collatefacenode = sortrow(collatefacenode, 1);
+    collatefacenode = sortrows(collatefacenode, 1);
     facenodetbl.nodes = collatefacenode(:, 1);
     facenodetbl.faces = collatefacenode(:, 2);
     facenodetbl.num = numel(facenodetbl.faces);
@@ -243,19 +199,27 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
     [op, colind, rowind] = setupTableMapping(cellfacetbl, facenodetbl, ...
                                                           'faces');
 
+    % We setup the cell-face-node table, cellfacenodetbl. Each entry determine a
+    % unique facet in a corner
     cellfacenodetbl.cells = cellfacetbl.cells(rowind);
     cellfacenodetbl.faces = cellfacetbl.faces(rowind);
     cellfacenodetbl.nodes = facenodetbl.nodes(colind);
     cellfacenodetbl.num = numel(cellfacenodetbl.cells);
-
-    nn = G.nodes.num;
+    % Some shortcuts
+    cno = cellfacenodetbl.cells;
+    fno = cellfacenodetbl.faces;
+    nno = cellfacenodetbl.nodes;
+    
+    % We setup the cell-node table, cellnodetbl. Each entry determine
+    % a unique corner
     cfn = cellfacenodetbl;
-    op = sparse(cfn.cells, cfn.nodes, 1, nc, nn);
-    [cind, nind] = find(op);
-    cellnodetbl.cells = cind;
-    cellnodetbl.nodes = nind;
-
-    % nodal scalar product is stored in vector nodeM
+    cellnode = [cfn.nodes, cfn.cells];
+    cellnode = unique(cellnode, 'rows');
+    cellnodetbl.nodes = cellnode(:, 1);
+    cellnodetbl.cells = cellnode(:, 2);
+    cellnodetbl.num   = numel(cellnodetbl.nodes);
+    
+    % Nodal scalar product is stored in vector nodeM
     % mattbl is the table which specifies how nodeM is stored: a matrix for
     % each "corner" (cell-node pair).
     [~, colind, rowind] = setupTableMapping(cellfacenodetbl, cellfacenodetbl, ...
@@ -267,18 +231,18 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
     mattbl.num = numel(mattbl.cells);
     nodeM = zeros(mattbl.num, 1);
     
-    dim = G.griddim;
-
-    faceNormals = bsxfun(@divide, G.faces.normals, G.faces.areas);
-    fno = cellfacenodetbl.faces;
-    facetNormals = faceNormals(fno, :);
+    numnodes = double(diff(G.faces.nodePos));
+    numnodes = numnodes(fno);
+    facetNormals = G.faces.normals(fno, :);
+    facetNormals = bsxfun(@ldivide, numnodes, facetNormals);
     
-    % Assemble facePermNormals which corresponds to $Kn$ where n are the
+    sgn = 2*(cno == G.faces.neighbors(fno, 1)) - 1;
+    facetNormals = sgn.*facetNormals; % outward normals.
+    
+    % Assemble facePermNormals which corresponds to $Kn$ where n are the *outward*
     % normals at the facets.
-    [K, r, c] = permTensor(rock, G.griddim);
-    error('fix the sign of the normals');
-    cno = cellfacenodetbl.cells;
-    Kn = bsxfun(@times, K(cno, :), facetNormal(:, c));
+    [perm, r, c] = permTensor(rock, G.griddim);
+    Kn = bsxfun(@times, perm(cno, :), facetNormals(:, c));
     Kn = rldecode(Kn, dim*ones(numel(cno, 1)));
     coef = sparse(r, (1 : dim*dim)', ones(dim*dim, 1), dim, dim*dim);
     coef = repmat(coef, numel(cno), 1);
@@ -288,19 +252,19 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
     
     facePermNormals = Kn;
     
-    % Use original face centroids and cell centroids, NOT actual subface
-    % centroids.  This corresponds to an MPFA method (O-method)
-    % R = G.faces.centroids(fno,:) - G.cells.centroids(cno,:);
+    % Default option (opt.eta = 0): Use original face centroids and cell centroids,
+    % NOT actual subface centroids. This corresponds to an MPFA method
+    % (O-method) R = G.faces.centroids(fno,:) - G.cells.centroids(cno,:);
     cellFacetVec = G.faces.centroids(fno,:) - G.cells.centroids(cno,:) + ...
         opt.eta*(G.nodes.coords(nno,:) - G.faces.centroids(fno,:));
     
     % set up areas and volumes
     areas = G.faces.areas(fno);
-    vols  = G.cells.volumes(cfo);
+    vols  = G.cells.volumes(cno);
     
     op = setupTableMapping(cellfacenodetbl, cellnodetbl, 'cells', 'nodes'); 
 
-    for i = 1 : cellnodes.num
+    for i = 1 : cellnodetbl.num
         
         logfacets = logical(op(i, :)');
         
@@ -309,13 +273,18 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
         a = areas(logfacets);
         v = vols(logfacets);
         
-        cell = cellnode.cells(i);
-        node = cellnode.nodes(i);
+        cell = cellnodetbl.cells(i);
+        node = cellnodetbl.nodes(i);
         faces  = cellfacenodetbl.faces(logfacets);
         
+        K = reshape(perm(cell, :), [dim, dim]);
+        
         % Assemble local nodal scalar product
-        locM = node_ip(a, v, N, R);
-        locM = reshape(M, [], 1);
+        locM = node_ip(a, v, ...
+                       full(N), ...
+                       full(R), ...
+                       K);
+        locM = reshape(locM, [], 1);
     
         nfaces = nnz(logfacets);
         loctbl.faces1 = repmat(faces, nfaces, 1);
@@ -330,23 +299,56 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
         nodeM(colind) = locM;
     
     end
-    
-    
+
+    % Recover global sign for facets
+    sgn1 = 2*(mattbl.cells == G.faces.neighbors(mattbl.faces1, 1)) - 1;
+    sgn2 = 2*(mattbl.cells == G.faces.neighbors(mattbl.faces2, 1)) - 1;
+    nodeM = nodeM.*sgn1.*sgn2;   
+
+    % Condensate on nodes (accumulation cells).
     [~, colind, rowind] = setupTableMapping(facenodetbl, facenodetbl, 'nodes');
     redmattbl.nodes  = facenodetbl.nodes(colind);
     redmattbl.faces1 = facenodetbl.faces(colind);
     redmattbl.faces2 = facenodetbl.faces(rowind);
-
-    op = setupTableMapping(redmattbl, mattbl, 'nodes', 'faces1', 'faces2');
-    B = op'*nodeM*op;
-
+    redmattbl.num    = numel(redmattbl.nodes);
+    redmattbl.ind    = (1 : redmattbl.num)';
+    op = setupTableMapping(mattbl, redmattbl, 'nodes', 'faces1', 'faces2');
+    
+    nodeM = op*nodeM;
+    
+    % Setup matrix
+    % First set up facet indices in the redmattbl table
+    mat1tbl.nodes  = facenodetbl.nodes;
+    mat1tbl.faces1 = facenodetbl.faces;
+    mat1tbl.ind    = (1 : facenodetbl.num)';
+    [op, colind, rowind] = setupTableMapping(redmattbl, mat1tbl, 'nodes', 'faces1');
+    facetind1 = zeros(redmattbl.num, 1);
+    facetind1(rowind) = mat1tbl.ind(colind);
+    redmattbl.facetind1 = facetind1;
+    
+    mat2tbl.nodes  = facenodetbl.nodes;
+    mat2tbl.faces2 = facenodetbl.faces;
+    mat2tbl.ind    = (1 : facenodetbl.num)';
+    [op, colind, rowind] = setupTableMapping(redmattbl, mat2tbl, 'nodes', 'faces2');
+    facetind2 = zeros(redmattbl.num, 1);
+    facetind2(rowind) = mat2tbl.ind(colind);
+    redmattbl.facetind2 = facetind2;
+    
+    % Assembly of B
+    B = sparse(redmattbl.facetind1, ...
+               redmattbl.facetind2, ...
+               nodeM, ...
+               facenodetbl.num, ...
+               facenodetbl.num);
+               
     tbls = struct('cellfacenodetbl', cellfacenodetbl, ...
+                  'cellfacetbl'    , cellfacetbl    , ...
                   'cellnodetbl'    , cellnodetbl    , ...
-                  'facenodetbl'    , facenodetbl)
+                  'facenodetbl'    , facenodetbl);
     
 end
 
-function M = node_ip(a, v, N, R)
+function M = node_ip(a, v, N, R, K)
 % a : areas of the facets
 % v : volume of the corner (for the moment we use volume of cell)
 % N : permeability*(facets' normals), corresponds to $\tilde N_c$ in paper of
@@ -360,13 +362,13 @@ function M = node_ip(a, v, N, R)
     
     Dp = D(1 : dim, 1 : dim);
     d = diag(Dp);
-    assert(prod(diagDp)>0, 'cannot assemble mpfa, need extra fix'); 
+    assert(prod(d)>0, 'cannot assemble mpfa, need extra fix'); 
     invd = 1./d;
     H = [diag(invd), zeros(fnum - dim)];
     M = R*V*H*U';
     
     % Add stabilization term S
-    S = blkdiag(zeros(dim), eyes(fnum - dim));
+    S = blkdiag(zeros(dim), eye(fnum - dim));
     U = diag(a)*U;
     t = 6 * sum(diag(K)) / size(K, 2);
     M = M + (t/v)*U*S*U';
