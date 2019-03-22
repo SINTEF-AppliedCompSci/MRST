@@ -30,7 +30,7 @@ TABDIMS
 WELLDIMS
 --    MAX     CONN              WELLS IN
 --   WELLS   PR WELL   GROUPS     GROUP
-       2        1        1          2  /
+       2        10        1          2  /
 
 START
   1 'MAR' 2019  /
@@ -49,16 +49,15 @@ GRID    ================================================================
 INIT
 --     ARRAY  VALUE     ------- BOX ------
 EQUALS
-      'DX'       100      /
-      'DY'       100      /
+      'DX'       200      /
+      'DY'       200      /
       'DZ'       25      /
       'PORO'     0.3    /
       'PERMX'  100      /
       'PERMY'  100      /
       'PERMZ'   20      /
-      'TOPS'  2500      /
+      'TOPS'   2500  /
 /
-
 
 PROPS    ===============================================================
 
@@ -636,8 +635,8 @@ WELSPECS
 COMPDAT
 -- WELL  -LOCATION-      OPEN/   SAT  CONN  WELL
 -- NAME  I    J  K1  K2  SHUT    TAB  FACT  DIAM
-'PROD'   20   1  1    2    'OPEN'  2*         0.3/
-'INJ'    1    1  4    5    'OPEN'  2*         0.3/
+'PROD'   20   1  1   2    'OPEN'  1*   200   0.5/
+'INJ'    1    1  4   5    'OPEN'  1*   200   0.5/
 /
 
 
@@ -647,13 +646,13 @@ COMPDAT
 WCONPROD
 --      WELL     OPEN/  CNTL   OIL  WATER   GAS  LIQU   RES   BHP
 --      NAME     SHUT   MODE  RATE   RATE  RATE  RATE  RATE
-       'PROD'   'OPEN'  'BHP'   5*                            260/
+       'PROD'   'OPEN'  'BHP'   5*                            260 /
 /
 
 WCONINJE
 --      WELL     INJ   OPEN/   CNTL    FLOW   RESV   BHP
 --      NAME    TYPE   SHUT    MODE    RATE   RATE   LIMIT
-       'INJ'  'WATER'  'OPEN'  'RATE'     1000 1*           450 /
+       'INJ'  'WATER'  'OPEN'  'RATE'  1000    1*     450 /
 /
 
 WSURFACT
@@ -661,7 +660,7 @@ WSURFACT
 /
 
 TSTEP
-30*1
+50*10
 /
 
 ---------------------------------------------------------------------------
@@ -670,13 +669,13 @@ TSTEP
 WCONPROD
 --      WELL     OPEN/  CNTL   OIL  WATER   GAS  LIQU   RES   BHP
 --      NAME     SHUT   MODE  RATE   RATE  RATE  RATE  RATE
-       'PROD'   'OPEN'  'BHP'   5*                            260/
+       'PROD'   'OPEN'  'BHP'   5*                            260 /
 /
 
 WCONINJE
 --      WELL     INJ   OPEN/   CNTL    FLOW   RESV   BHP
 --      NAME    TYPE   SHUT    MODE    RATE   RATE   LIMIT
-       'INJ' 'WATER' 'OPEN'    'BHP'    2*           450 /
+       'INJ'  'WATER'  'OPEN'  'RATE'  1000    1*     450 /
 /
 
 WSURFACT
@@ -684,7 +683,7 @@ WSURFACT
 /
 
 TSTEP
-30*0.5 30*1
+50*10
 /
 
 
