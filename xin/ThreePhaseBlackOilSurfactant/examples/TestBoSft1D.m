@@ -15,6 +15,7 @@
 
 %% We load the necessary modules
 %
+clear
 
 mrstModule add ad-core ad-blackoil ad-eor ad-props deckformat mrst-gui
 
@@ -24,7 +25,7 @@ mrstModule add ad-core ad-blackoil ad-eor ad-props deckformat mrst-gui
 
 current_dir = fileparts(mfilename('fullpath'));
 fn = fullfile(current_dir, 'TestBoSft1D.DATA');
-gravity off
+gravity on
 
 deck = readEclipseDeck(fn);
 deck = convertDeckUnits(deck);
@@ -39,15 +40,17 @@ rock  = compressRock(rock, G.cells.indexMap);
 %% Set up the initial state
 % Constant pressure, residual water saturation, no surfactant
 %
+% [state0, model, schedule] = initEclipseProblemAD(deck);
 
 nc = G.cells.num;
-state0.pressure = deck.SOLUTION.PRESSURE;
-state0.s = [deck.SOLUTION.SWAT, 1-deck.SOLUTION.SWAT-deck.SOLUTION.SGAS, deck.SOLUTION.SGAS];
-state0.rs = deck.SOLUTION.RS;
-state0.rv = deck.SOLUTION.RV;
-% state0 = initResSol(G, 300*barsa, [ .2, .8]); % residual water saturation is 0.2
-state0.c    = zeros(G.cells.num, 1);
-state0.cmax = state0.c;
+% N = ones(nc, 1);
+% state0.pressure = 300 * barsa * N;
+% state0.s =  [0.25 * N, 0.65 * N, 0.1 * N];
+% state0.rs = 0 * N;
+% state0.rv = 0 * N;
+% % state0 = initResSol(G, 300*barsa, [ .2, .8]); % residual water saturation is 0.2
+% state0.c    = zeros(G.cells.num, 1);
+% state0.cmax = state0.c;
 
 %% Set up the model
 % 
@@ -56,7 +59,7 @@ state0.cmax = state0.c;
 %
 
 
-model = ThreePhaseBlackOilSurfactantModel(G, rock, fluid, ...
+model = ThreePhaseBlackOilModel(G, rock, fluid, ...
                                                   'inputdata', deck, ...
                                                   'extraStateOutput', true);
 
@@ -64,7 +67,7 @@ model = ThreePhaseBlackOilSurfactantModel(G, rock, fluid, ...
 %
 
 schedule = convertDeckScheduleToMRST(model, deck);
-
+state0 = initStateDeck(model,deck);
 
 %% Visualize some properties of the model we have setup
 %
@@ -88,6 +91,7 @@ close all;
 figure()
 plotToolbar(G, statesSurfactant, 'startplayback', true, 'plot1d', true, 'field', 's:1');
 ylim([0, 1])
+plotWellSols(wellSolsSurfactant)
 %% Copyright notice
 
 % <html>

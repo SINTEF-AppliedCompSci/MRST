@@ -6,7 +6,7 @@ TITLE
 METRIC
 
 DIMENS
-   20   1    5  /
+   3   1    100  /
 
 OIL
 
@@ -30,7 +30,7 @@ TABDIMS
 WELLDIMS
 --    MAX     CONN              WELLS IN
 --   WELLS   PR WELL   GROUPS     GROUP
-       2        10        1          2  /
+       2        1        1          2  /
 
 START
   1 'MAR' 2019  /
@@ -49,15 +49,16 @@ GRID    ================================================================
 INIT
 --     ARRAY  VALUE     ------- BOX ------
 EQUALS
-      'DX'       200      /
-      'DY'       200      /
-      'DZ'       25      /
+      'DX'       100      /
+      'DY'       100      /
+      'DZ'       100      /
       'PORO'     0.3    /
       'PERMX'  100      /
       'PERMY'  100      /
       'PERMZ'   20      /
-      'TOPS'   2500  /
+      'TOPS'  2500      /
 /
+
 
 PROPS    ===============================================================
 
@@ -587,10 +588,10 @@ INCLUDE
 REGIONS ===================================================================
 
 SATNUM
-100*1 /
+3*1 /
 
 SURFNUM
-100*2 /
+3*2 /
 
 
 SOLUTION ==================================================================
@@ -598,7 +599,7 @@ SOLUTION ==================================================================
 
 EQUIL
 -- Datum    P     woc     Pc   goc    Pc  Rsvd  Rvvd
-    2550.  270  2600   0.0 2550.0  0.0   1*   0   0/   E: Garn
+    2525.  270  2550   0.0 2525.0  0.0   1*   0   0/   E: Garn
 
 -- Create initial restart file
 RPTSOL
@@ -628,15 +629,15 @@ RPTRST
 WELSPECS
 --     WELL   GROUP   LOCATION   BHP    PI
 --     NAME   NAME    I    J     DEPTH  DEFN
-    'PROD'    'G'     20   1     1*   'OIL'  /
+    'PROD'    'G'     3    1     1*   'OIL'  /
     'INJ'     'G'     1    1     1*   'WAT'  /
 /
 
 COMPDAT
 -- WELL  -LOCATION-      OPEN/   SAT  CONN  WELL
 -- NAME  I    J  K1  K2  SHUT    TAB  FACT  DIAM
-'PROD'   20   1  1   2    'OPEN'  1*   200   0.5/
-'INJ'    1    1  4   5    'OPEN'  1*   200   0.5/
+'PROD'   3    1  1   1   'OPEN'  2*         0.3/
+'INJ'    1    1  1   1   'OPEN'  2*         0.3/
 /
 
 
@@ -646,13 +647,13 @@ COMPDAT
 WCONPROD
 --      WELL     OPEN/  CNTL   OIL  WATER   GAS  LIQU   RES   BHP
 --      NAME     SHUT   MODE  RATE   RATE  RATE  RATE  RATE
-       'PROD'   'OPEN'  'BHP'   5*                            260 /
+       'PROD'   'OPEN'  'BHP'   5*                            260/
 /
 
 WCONINJE
 --      WELL     INJ   OPEN/   CNTL    FLOW   RESV   BHP
 --      NAME    TYPE   SHUT    MODE    RATE   RATE   LIMIT
-       'INJ'  'WATER'  'OPEN'  'BHP'    2*     280 /
+       'INJ'  'WATER'  'OPEN'  'RATE'     1000 1*           450 /
 /
 
 WSURFACT
@@ -660,7 +661,7 @@ WSURFACT
 /
 
 TSTEP
-200*5
+10*0.5
 /
 
 ---------------------------------------------------------------------------
@@ -669,13 +670,13 @@ TSTEP
 WCONPROD
 --      WELL     OPEN/  CNTL   OIL  WATER   GAS  LIQU   RES   BHP
 --      NAME     SHUT   MODE  RATE   RATE  RATE  RATE  RATE
-       'PROD'   'OPEN'  'BHP'   5*                            260 /
+       'PROD'   'OPEN'  'BHP'   5*                            260/
 /
 
 WCONINJE
 --      WELL     INJ   OPEN/   CNTL    FLOW   RESV   BHP
 --      NAME    TYPE   SHUT    MODE    RATE   RATE   LIMIT
-       'INJ'  'WATER'  'OPEN'  'BHP'    2*     280 /
+       'INJ' 'WATER' 'OPEN'    'BHP'    2*           380 /
 /
 
 WSURFACT
@@ -683,7 +684,7 @@ WSURFACT
 /
 
 TSTEP
-80*5
+10*0.5 10*1
 /
 
 
