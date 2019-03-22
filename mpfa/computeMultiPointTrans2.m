@@ -128,48 +128,49 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    % Assembly of the divergence operator, from face-node faces to cell. We consider
    % only the internal faces for the moment (corresponds to Neumann boundary
    % condition).
+   
+   % setup table for internal faces
+   % setup for intcellfacenodetbl
    cellfacenodetbl = tbls.cellfacenodetbl;
    fno = cellfacenodetbl.faces;
    intfno = (G.faces.neighbors(fno, 1) ~= 0) & (G.faces.neighbors(fno, 2) ~= 0);
-   
    intcellfacenodetbl.faces = cellfacenodetbl.faces(intfno);
    intcellfacenodetbl.cells = cellfacenodetbl.cells(intfno);
    intcellfacenodetbl.nodes = cellfacenodetbl.nodes(intfno);
    intcellfacenodetbl.num = numel(intcellfacenodetbl.faces);
-   
-   % aliases
-   ifno = intcellfacenodetbl.faces; 
-   icno = intcellfacenodetbl.cells;
+   % setup for intfacenodetbl   
+   facenodetbl = tbls.facenodetbl;
+   fno = facenodetbl.faces;
+   intfno = (G.faces.neighbors(fno, 1) ~= 0) & (G.faces.neighbors(fno, 2) ~= 0);
+   intfacenodetbl.faces = facenodetbl.faces(intfno);
+   intfacenodetbl.nodes = facenodetbl.nodes(intfno);
+   intfacenodetbl.num = numel(intfacenodetbl.faces);
+   % assembly of div (first signed contribution on each cell-face-node faces)
+   ifno = intcellfacenodetbl.faces; %alias
+   icno = intcellfacenodetbl.cells; %alias
    sgn = 2*(icno == G.faces.neighbors(ifno, 1)) - 1;
    div = sparse(intcellfacenodetbl.cells, ...
                 (1 : intcellfacenodetbl.num)', ...
                 sgn, ...
                 G.cells.num, ...
                 intcellfacenodetbl.num);
-   
-   fno = facenodetbl.faces;
-   intfno = (G.faces.neighbors(fno, 1) ~= 0) & (G.faces.neighbors(fno, 2) ~= 0);
-   intfacenodetbl.faces = facenodetbl.faces(intfno);
-   intfacenodetbl.nodes = facenodetbl.nodes(intfno);
-   intfacenodetbl.num = numel(intfacenodetbl.faces);
-   
-   op = setupTableMapping(intfacenodetbl, intcellfacenodetbl, 'faces');   
+   % reduce from cell-face-node to face-node (equivalent to removing hybridization)
+   op = setupTableMapping(intfacenodetbl, intcellfacenodetbl, 'faces', ...
+                                        'nodes');
    div = div*op;
    
-   % We setup mapping S which sums up "face-node" face-fluxes  (sometimes
-   % called half fluxes) to face-fluxes
+   % We setup the mapping S which sums up "face-node" fluxes to "face" fluxes
+   % (done only for internal faces).
    faces = (1 : G.faces.num)';
    isintfaces = (G.faces.neighbors(faces, 1) ~= 0) & (G.faces.neighbors(faces, 2) ~= 0);
    intfaces = faces(isintfaces);
    tmptbl.faces = intfaces;
-   
    S = setupTableMapping(intfacenodetbl, tmptbl, 'faces');
    
-   % mapping from internal to all for cell-face-nodes faces
-   op = setupTableMapping(intcellfacenodetbl, cellfacenodetbl, ...
-                                        'cells', 'faces', 'nodes');
-   % Assembly of transmissibility
+   % Mapping from internal to internal+external face-nodes faces
+   op = setupTableMapping(intfacenodetbl, facenodetbl, 'faces', 'nodes');
    
+   % Assembly of transmissibility
    T = S*op'*iB*op*div';
 
 end
@@ -305,7 +306,7 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
     sgn2 = 2*(mattbl.cells == G.faces.neighbors(mattbl.faces2, 1)) - 1;
     nodeM = nodeM.*sgn1.*sgn2;   
 
-    % Condensate on nodes (accumulation cells).
+    % Condensate on nodes (sum up cell contributions for give node).
     [~, colind, rowind] = setupTableMapping(facenodetbl, facenodetbl, 'nodes');
     redmattbl.nodes  = facenodetbl.nodes(colind);
     redmattbl.faces1 = facenodetbl.faces(colind);
