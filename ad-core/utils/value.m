@@ -4,7 +4,7 @@ function xv = value(x)
     elseif iscell(x)
         sz = size(x);
         xv = cellfun(@value, x, 'UniformOutput', false);
-        if sz(1) == 1 && sz(2) > 1
+        if sz(1) == 1
             % Cell arrays are converted to matrices
             xv = [xv{:}];
         end
