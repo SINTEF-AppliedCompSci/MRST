@@ -67,9 +67,21 @@ function [model, states] = runNorneExample(varargin)
     grdecl = convertInputUnits(grdecl, usys);
     switch opt.norne_case
       case 'full'
-        grdecl = cutGrdecl(grdecl, [10 25; 35 55; 1 22]);
+        grdeclo = cutGrdecl(grdecl, [10 25; 35 55; 1 22]); 
+      case 'full padded'
+        grdeclo = cutGrdecl(grdecl, [10 25; 35 55; 1 22]); 
+        oncells = prod(grdeclo.cartDims);
+        oindex = 1:oncells; 
+        oindex = reshape(oindex, grdeclo.cartDims); 
+        grdecl = padGrdecl(grdeclo, [true, true, true], [[60 50; 40 40] * 10; 10 10], 'relative', true); 
+        grdecl.ACTNUM = ones(prod(grdecl.cartDims), 1); 
+        indexmapn = zeros(grdecl.cartDims); 
+        indexmapn(2:end - 1, 2:end - 1, 2:end - 1) = oindex; 
+        indexmapn(indexmapn == 0) = prod(grdeclo.cartDims) + 1; 
+        ocells = indexmapn < prod(grdeclo.cartDims);
+        oindex = indexmapn;
       case 'mini Norne'
-        grdecl = cutGrdecl(grdecl, [10 20; 35 45; 1 5]);
+        grdecl = cutGrdecl(grdecl, [10 20; 35 45; 1 5]); 
       otherwise
         error('norne_case not recognized');
     end
@@ -80,9 +92,23 @@ function [model, states] = runNorneExample(varargin)
 
     %% Setup rock parameters (for flow)
 
-    perm = [grdecl.PERMX, grdecl.PERMY, grdecl.PERMZ];
-    rock.perm = perm(G.cells.indexMap, :);
-    rock.poro = max(grdecl.PORO(G.cells.indexMap), 0.1);
+    switch opt.norne_case
+      case {'full', 'mini Norne'}
+        perm = [grdecl.PERMX, grdecl.PERMY, grdecl.PERMZ];
+        rock.perm = perm(G.cells.indexMap, :);
+        rock.poro = max(grdecl.PORO(G.cells.indexMap), 0.1);
+      case 'full padded'
+        perm = [grdeclo.PERMX, grdeclo.PERMY, grdeclo.PERMZ;
+                [1 1 1]*milli*darcy ];
+        poro = [grdeclo.PORO;0.1];    
+        rock.perm = perm(oindex(G.cells.indexMap), :);
+        rock.poro = max(poro(oindex(G.cells.indexMap)), 0.1);
+        [i, j, k] = ind2sub(G.cartDims, G.cells.indexMap); 
+        ind = (k>1 & k<G.cartDims(3) &  oindex(G.cells.indexMap) == numel(poro)); 
+        rock.perm(ind, :) = rock.perm(ind, :) * 100;
+      otherwise
+        error('norne_case not recognized');
+    end
 
 
     %% Setup fluid parameters from SPE1
@@ -262,14 +288,23 @@ function [model, states] = runNorneExample(varargin)
         error('modeltype not recognized.');
     end
 
-
-
     %% Setup wells
     W = [];
     refdepth = G.cells.centroids(1, 3); % for example...
     injcell  = 10; % for example...
-    prodcell = G.cells.num; % for example...
-
+    prodcell = G.cells.num;
+    
+    if strcmp(opt.norne_case, 'full padded')
+        injcello = 10; % for example
+        pos = [0.457517456153883   7.321672863418036   0.002564025720821] * 1e6; 
+        [~, injcell] = min(sum(bsxfun(@minus, G.cells.centroids, pos).^2, 2))
+        injcell = find(oindex(:) == injcello);
+        prodcello = 7392; % for example
+        pos = [0.458944373173747   7.322630019653659   0.002783994408426] * 1e6; 
+        [~, prodcell] = min(sum(bsxfun(@minus, G.cells.centroids, pos).^2, 2)); 
+        prodcell = find(oindex(:) == prodcello);
+    end
+    
     W = addWell(W, G, rock, injcell, ...
                 'Type'    , 'rate', ...
                 'Val'     , 2.5e6/day, ...
@@ -278,6 +313,7 @@ function [model, states] = runNorneExample(varargin)
                 'Name'    , 'inj',  ...
                 'refDepth', refdepth);
 
+    
     W = addWell(W, G, rock, prodcell, ...
                 'Type'    ,'bhp', ...
                 'Val'     , pRef, ...
