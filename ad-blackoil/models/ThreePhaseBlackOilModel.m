@@ -83,23 +83,42 @@ methods
     end
     
     function [vars, names, origin] = getPrimaryVariables(model, state)
-        % Get primary variables from state
-        % Properties at current timestep
-        [p, sW, sG, rs, rv] = model.getProps(state, ...
-            'pressure', 'water', 'gas', 'rs', 'rv');
-
-        %Initialization of primary variables ----------------------------------
-        st  = model.getCellStatusVO(state,  1-sW-sG, sW, sG);
-        if model.disgas || model.vapoil
-            % X is either Rs, Rv or Sg, depending on each cell's saturation status
-            x = st{1}.*rs + st{2}.*rv + st{3}.*sG;
-            gvar = 'x';
+        % Get primary variables from state, before a possible
+        % initialization as AD.
+        phases = model.getPhaseNames();
+        nph = numel(phases);
+        if model.oil
+            ix = find(phases == 'O');
         else
-            x = sG;
-            gvar = 'sG';
+            ix = nph;
         end
-        vars = {p, sW, x};
-        names = {'pressure', 'sW', gvar};
+        phases(ix) = [];
+        
+        snames = arrayfun(@(x) ['s', x], phases, 'UniformOutput', false);
+        s = cell(1, nph-1);
+        [p, s{:}, rs, rv] = model.getProps(state, ...
+            'pressure', snames{:}, 'rs', 'rv');
+
+        if model.disgas || model.vapoil
+            % In this case, gas saturation is replaced with rs/rv in cells
+            % where free gas is not present
+            assert(model.oil, 'Cannot have disgas/vapoil without oil phase.');
+            assert(model.gas, 'Cannot have disgas/vapoil without gas phase.');
+            % X is either Rs, Rv or Sg, depending on each cell's saturation status
+            if model.water
+                sW = s{phases == 'W'};
+            else
+                sW = 0;
+            end
+            isG = phases == 'G';
+            sG = s{isG};
+            st  = model.getCellStatusVO(state,  1-sW-sG, sW, sG);
+            x = st{1}.*rs + st{2}.*rv + st{3}.*sG;
+            s{isG} = x;
+            snames{isG} = 'x';
+        end
+        vars = [p, s];
+        names = ['pressure', snames];
         origin = cell(1, numel(vars));
         [origin{:}] = deal(class(model));
         
@@ -113,27 +132,52 @@ methods
 
     function state = initStateAD(model, state, vars, names, origin)
         removed = false(size(vars));
-        isw = strcmpi(names, 'sw');
-        sW = vars{isw};
         if model.disgas || model.vapoil
+            % Black-oil specific variable switching
+            if model.water
+                isw = strcmpi(names, 'sw');
+                sW = vars{isw};
+                removed = removed | isw;
+            else
+                sW = 0;
+            end
+
             isx = strcmpi(names, 'x');
             x = vars{isx};
             sG = model.getProps(state, 'sg');
             st  = model.getCellStatusVO(state, 1-sW-sG, sW, sG);
             sG = st{2}.*(1-sW) + st{3}.*x;
             sO = st{1}.*(1-sW) + ~st{1}.*(1 - sW - sG);
-            removed = removed | isx | isw;
+            if model.water
+                sat = {sW, sO, sG};
+            else
+                sat = {sO, sG};
+            end
         else
-            isg = strcmpi(names, 'sg');
-            sG = vars{isg};
-            sO = 1 - sW - sG;
-            removed = removed | isg | isw;
+            % Without variable switching
+            phases = model.getPhaseNames();
+            nph = numel(phases);
+            sat = cell(1, nph);
+            fill = ones(model.G.cells.num, 1);
+            removed_sat = false(1, nph);
+            for i = 1:numel(phases)
+                sub = strcmpi(names, ['s', phases(i)]);
+                if any(sub)
+                    fill = fill - vars{sub};
+                    removed = removed | sub;
+                    removed_sat(i) = true;
+                    sat{i} = vars{sub};
+                end
+            end
+            if any(~removed_sat)
+                sat{~removed_sat} = fill;
+            end
         end
-        sat =  {sW, sO, sG};
         state = model.setProp(state, 's', sat);
         
         if not(isempty(model.FacilityModel))
-            % Temporary code...
+            % Select facility model variables and pass them off to attached
+            % class.
             fm = class(model.FacilityModel);
             isF = strcmp(origin, fm);
             state = model.FacilityModel.initStateAD(state, vars(isF), names(isF), origin(isF));
