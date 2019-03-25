@@ -11,20 +11,27 @@ classdef BaseRelativePermeability < GridProperty
             gp@GridProperty(varargin{:});
         end
         function kr = evaluateOnDomain(prop, model, state)
-            if model.water && model.gas && model.oil
-                kr = prop.relPermWOG(model, state);
-            elseif model.water && model.oil
-                kr = prop.relPermWO(model, state);
-            elseif model.water && model.gas
-                
-            elseif model.oil && model.gas
-                
+            nph = model.water + model.oil + model.gas;
+            if nph < 2
+                kr = {ones(model.G.cells.num, 1)};
+            else
+                if model.oil
+                    if model.gas && model.water
+                        kr = prop.relPermWOG(model, state);
+                    elseif model.gas
+                        kr = prop.relPermOG(model, state);
+                    elseif model.water
+                        kr = prop.relPermWO(model, state);
+                    end
+                else
+                    kr = prop.relPermUnified(model, state);
+                end
             end
-            
         end
 
     % --------------------------------------------------------------------%
     function kr = relPermWOG(prop, model, state)
+        % Three-phase system
         [sw, so, sg] = model.getProps(state, 'sw', 'so', 'sg');
         f = model.fluid;
         swcon = 0;
@@ -57,6 +64,7 @@ classdef BaseRelativePermeability < GridProperty
     end
     
     function kr = relPermWO(prop, model, state)
+        % Water-oil system
         [sw, so] = model.getProps(state, 'sw', 'so');
         f = model.fluid;
         krW = evaluatePhaseRelativePermeability(prop, model, 'w', sw);
@@ -66,6 +74,32 @@ classdef BaseRelativePermeability < GridProperty
             krO = prop.evaluatePhaseRelativePermeability(model, 'ow', so);
         end
         kr = {krW, krO};
+    end
+    
+    function kr = relPermOG(prop, model, state)
+        % Oil-gas system
+        [sg, so] = model.getProps(state, 'sg', 'so');
+        f = model.fluid;
+        krG = evaluatePhaseRelativePermeability(prop, model, 'g', sg);
+        if isfield(f, 'krO')
+            krO = prop.evaluateFunctionOnGrid(f.krO, so);
+        else
+            krO = prop.evaluatePhaseRelativePermeability(model, 'og', so);
+        end
+        kr = {krO, krG};
+    end
+    
+    function kr = relPermUnified(prop, model, state)
+        % Rel.perm without special oil treatment
+        phases = model.getPhaseNames();
+        snames = arrayfun(@(x) ['s', x], phases);
+        nph = numel(phases);
+        s = cell(1, nph);
+        kr = cell(1, nph);
+        [s{:}] = model.getProps(state, snames{:});
+        for i = 1:nph
+            kr{i} = prop.evaluatePhaseRelativePermeability(model, 'g', s{i});
+        end
     end
     
     function kr = evaluatePhaseRelativePermeability(prop, model, phase, s, cells)
