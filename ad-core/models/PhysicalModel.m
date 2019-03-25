@@ -467,7 +467,7 @@ methods
                         state.(struct_name).(name) = [];
                     end
                 end
-            else
+            elseif isfield(state, struct_name)
                 state = rmfield(state, struct_name);
             end
         end

@@ -674,7 +674,7 @@ methods
 
         internal = model.operators.internalConn;
         state.flux = zeros(numel(internal), sum(isActive));
-        phasefluxes = {double(vW), double(vO), double(vG)};
+        phasefluxes = {value(vW), value(vO), value(vG)};
         state = model.setPhaseData(state, phasefluxes, 'flux', internal);
     end
 
@@ -705,7 +705,7 @@ methods
         if ~isfield(forces, 'bc') || isempty(forces.bc)
             return
         end
-        phasefluxes = {double(qW), double(qO), double(qG)};
+        phasefluxes = {value(qW), value(qO), value(qG)};
         faces = forces.bc.face;
         % Compensate for sign. Boundary fluxes have signs that correspond
         % to in/out of the reservoir. This does not necessarily correspond
@@ -745,7 +745,7 @@ methods
         isActive = model.getActivePhases();
 
         state.mob = zeros(model.G.cells.num, sum(isActive));
-        mob = {double(mobW), double(mobO), double(mobG)};
+        mob = {value(mobW), value(mobO), value(mobG)};
         state = model.setPhaseData(state, mob, 'mob');
     end
 
@@ -808,7 +808,7 @@ methods
         isActive = model.getActivePhases();
 
         state.rho = zeros(model.G.cells.num, sum(isActive));
-        rho = {double(rhoW), double(rhoO), double(rhoG)};
+        rho = {value(rhoW), value(rhoO), value(rhoG)};
         state = model.setPhaseData(state, rho, 'rho');
     end
     % --------------------------------------------------------------------%
@@ -837,7 +837,7 @@ methods
         isActive = model.getActivePhases();
 
         state.bfactor = zeros(model.G.cells.num, sum(isActive));
-        b = {double(bW), double(bO), double(bG)};
+        b = {value(bW), value(bO), value(bG)};
         state = model.setPhaseData(state, b, 'bfactor');
     end
 
@@ -903,7 +903,6 @@ methods
         %
         % SEE ALSO:
         %   `relPermWOG`, `relPermWO`, `relPermOG`, `relPermWG`
-        warning('evaluateRelPerm is deprecated!');
         active = model.getActivePhases();
         nph = sum(active);
         assert(nph == numel(sat), ...
@@ -1343,18 +1342,10 @@ methods (Static)
 
         d  = (sg+sw-swcon);
         ww = (sw-swcon)./d;
-        
-%         satfun = @(varargin) f.regions.saturation.evaluateFunction(varargin{:});
-%         
-%         krW = satfun(f.krW, sw);
         krW = f.krW(sw, varargin{:});
 
         wg = 1-ww;
-%         krG = satfun(f.krG, sg);
         krG = f.krG(sg, varargin{:});
-
-%         krow = satfun(f.krOW, so);
-%         krog = satfun(f.krOG, so);
 
         krow = f.krOW(so, varargin{:});
         krog = f.krOG(so,  varargin{:});
