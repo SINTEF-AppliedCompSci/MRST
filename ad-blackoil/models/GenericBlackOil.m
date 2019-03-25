@@ -4,49 +4,30 @@ classdef GenericBlackOil < ThreePhaseBlackOilModel & ExtendedReservoirModel
     end
     
     methods
-    function model = GenericBlackOil(G, rock, fluid, varargin)
-        model = model@ThreePhaseBlackOilModel(G, rock, fluid, varargin{:});
-        model.OutputProperties = {'ComponentTotalMass'};
-        
-        nph = model.getNumberOfPhases();
-        model.Components = cell(1, nph);
-        names = model.getPhaseNames();
-        for ph = 1:nph
-            switch names(ph)
-                case 'W'
-                    c = ImmiscibleComponent('water', ph);
-                case 'O'
-                    c = OilComponent('oil', ph);
-                case 'G'
-                    c = GasComponent('gas', ph);
-                otherwise
-                    error('Unknown phase');
+        function model = GenericBlackOil(G, rock, fluid, varargin)
+            model = model@ThreePhaseBlackOilModel(G, rock, fluid, varargin{:});
+            model.OutputProperties = {'ComponentTotalMass'};
+
+            nph = model.getNumberOfPhases();
+            model.Components = cell(1, nph);
+            names = model.getPhaseNames();
+            for ph = 1:nph
+                switch names(ph)
+                    case 'W'
+                        c = ImmiscibleComponent('water', ph);
+                    case 'O'
+                        c = OilComponent('oil', ph);
+                    case 'G'
+                        c = GasComponent('gas', ph);
+                    otherwise
+                        error('Unknown phase');
+                end
+                model.Components{ph} = c;
             end
-            model.Components{ph} = c;
         end
-    end
         
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
-            opt = struct('Verbose',     mrstVerbose,...
-                        'reverseMode', false,...
-                        'resOnly',     false,...
-                        'iteration',   -1, ...
-                        'drivingForces0', []);
-            opt = merge_options(opt, varargin{:});
-
-
-            % Define primary variables
-            if opt.reverseMode
-                [state0, primaryVars] = model.getReverseStateAD(state0);
-                % The model must be validated with drivingForces so that the
-                % FacilityModel gets updated.
-                model = model.validateModel(drivingForces);
-                state = model.getStateAD(state, false);
-            else
-                [state, primaryVars] = model.getStateAD(state, ~opt.resOnly);
-            end
-            [eqs, names, types, state] = model.getModelEquations(state0, state, dt, drivingForces);
-            problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
+            [problem, state] = getEquations@ReservoirModel(model, state0, state, dt, drivingForces, varargin{:});
         end
         
         function [eqs, names, types, state] = getModelEquations(model, state0, state, dt, drivingForces)

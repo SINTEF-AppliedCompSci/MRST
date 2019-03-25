@@ -211,63 +211,64 @@ methods
     
     % --------------------------------------------------------------------%
     function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
-        opt = struct('Verbose',     mrstVerbose,...
-                    'reverseMode', false,...
-                    'resOnly',     false,...
-                    'iteration',   -1, ...
-                    'drivingForces0', []);
-        opt = merge_options(opt, varargin{:});
-        
-        
-        % Define primary variables
-        if opt.reverseMode
-            [state0, primaryVars] = model.getReverseStateAD(state0);
-            % The model must be validated with drivingForces so that the
-            % FacilityModel gets updated.
-            model = model.validateModel(drivingForces);
-            state = model.getStateAD(state, false);
-        else
-            [state, primaryVars] = model.getStateAD(state, ~opt.resOnly);
-        end
-
-        
-        [acc, divTerms, names, types] = conservationEquationsBlackOil(state0, state, model, dt, drivingForces);
-        
-        dissolved = model.getDissolutionMatrix(state.rs, state.rv);
-        % Add in and setup well equations
-        
-        wellVars = state.FacilityState.primaryVariables;
-        w = state.FacilityState.names;
-        nw = numel(state.wellSol);
-        wellMap = struct('isBHP', strcmp(w, 'bhp'), 'isRate', ...
-                          ismember(w, {'qOs', 'qGs', 'qWs'}), ...
-                         'extraMap', zeros(nw, nw));
-        
-        p = state.pressure;
-        mob = state.FlowProps.Mobility;
-        rho = state.FlowProps.Density;
-        
-        sat = cell(1, 3);
-        [sat{1}, sat{2}, sat{3}] = model.getProps(state, 'sw', 'so', 'sg');
-        pressures = state.FlowProps.PhasePressures;
-        eqs = acc;
-
-        [eqs, state] = model.addBoundaryConditionsAndSources(eqs, names, types, state, ...
-                                                         pressures, sat, mob, rho, ...
-                                                         dissolved, {}, ...
-                                                         drivingForces);
-        [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, ...
-                                                          names, types, ...
-                                                          state0.wellSol, ...
-                                                          state.wellSol, ...
-                                                          wellVars, wellMap, ...
-                                                          p, mob, rho, dissolved, ...
-                                                          {}, dt, opt);
-        for i = 1:numel(divTerms)
-            eqs{i} = eqs{i} + divTerms{i};
-        end
-        state = value(state);
-        problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
+        [problem, state] = equationsBlackOil(state0, state, model, dt, drivingForces, varargin{:});
+%         opt = struct('Verbose',     mrstVerbose,...
+%                     'reverseMode', false,...
+%                     'resOnly',     false,...
+%                     'iteration',   -1, ...
+%                     'drivingForces0', []);
+%         opt = merge_options(opt, varargin{:});
+%         
+%         
+%         % Define primary variables
+%         if opt.reverseMode
+%             [state0, primaryVars] = model.getReverseStateAD(state0);
+%             % The model must be validated with drivingForces so that the
+%             % FacilityModel gets updated.
+%             model = model.validateModel(drivingForces);
+%             state = model.getStateAD(state, false);
+%         else
+%             [state, primaryVars] = model.getStateAD(state, ~opt.resOnly);
+%         end
+% 
+%         
+%         [acc, divTerms, names, types] = conservationEquationsBlackOil(state0, state, model, dt, drivingForces);
+%         
+%         dissolved = model.getDissolutionMatrix(state.rs, state.rv);
+%         % Add in and setup well equations
+%         
+%         wellVars = state.FacilityState.primaryVariables;
+%         w = state.FacilityState.names;
+%         nw = numel(state.wellSol);
+%         wellMap = struct('isBHP', strcmp(w, 'bhp'), 'isRate', ...
+%                           ismember(w, {'qOs', 'qGs', 'qWs'}), ...
+%                          'extraMap', zeros(nw, nw));
+%         
+%         p = state.pressure;
+%         mob = state.FlowProps.Mobility;
+%         rho = state.FlowProps.Density;
+%         
+%         sat = cell(1, 3);
+%         [sat{1}, sat{2}, sat{3}] = model.getProps(state, 'sw', 'so', 'sg');
+%         eqs = acc;
+% 
+%         [eqs, state] = model.addBoundaryConditionsAndSources(eqs, names, types, state, ...
+%                                                          state.FlowProps.PhasePressures,...
+%                                                          sat, mob, rho, ...
+%                                                          dissolved, {}, ...
+%                                                          drivingForces);
+%         [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, ...
+%                                                           names, types, ...
+%                                                           state0.wellSol, ...
+%                                                           state.wellSol, ...
+%                                                           wellVars, wellMap, ...
+%                                                           p, mob, rho, dissolved, ...
+%                                                           {}, dt, opt);
+%         for i = 1:numel(divTerms)
+%             eqs{i} = eqs{i} + divTerms{i};
+%         end
+%         state = value(state);
+%         problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
     end
 
 

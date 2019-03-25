@@ -156,7 +156,23 @@ methods
         % SEE ALSO:
         %   `getAdjointEquations`
         %
-        error('Base class not meant for direct use')
+        opt = struct('Verbose',     mrstVerbose,...
+                    'reverseMode', false,...
+                    'resOnly',     false,...
+                    'iteration',   -1, ...
+                    'drivingForces0', []);
+        opt = merge_options(opt, varargin{:});
+
+
+        % Define primary variables
+        if opt.reverseMode
+            [state0, primaryVars] = model.getReverseStateAD(state0);
+            state = model.getStateAD(state, false);
+        else
+            [state, primaryVars] = model.getStateAD(state, ~opt.resOnly);
+        end
+        [eqs, names, types, state] = model.getModelEquations(state0, state, dt, forces);
+        problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
     end
 
     function [problem, state] = getAdjointEquations(model, state0, state, dt, forces, varargin)
