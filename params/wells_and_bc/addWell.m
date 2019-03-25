@@ -346,8 +346,11 @@ function rr = radiusRep(G, radius, welldir, cells)
 
 if(isfield(G,'nodes'))
    [dx, dy, dz] = cellDims(G, cells);
-else
+elseif isfield(G.faces, 'centroids')
    [dx, dy, dz] = cellDimsCG(G, cells);
+else
+   warning('Face geometry missing, will not compute representative radius')
+   [dx, dy, dz] = deal(nan(G.cells.num, 1));
 end
 
 welldir = lower(welldir);

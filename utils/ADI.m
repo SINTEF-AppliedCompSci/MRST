@@ -61,35 +61,41 @@ classdef ADI
       %--------------------------------------------------------------------
       function h = double(u)
           % Cast to double and thereby remove derivatives:
-          h = u.val;
+          warning('Double on ADI may be deprecated. Use ''value'' instead.');
+          h = value(u);
       end
 
+      %--------------------------------------------------------------------
+      function h = value(u)
+          % Cast to double and thereby remove derivatives:
+          h = u.val;
+      end
       %--------------------------------------------------------------------
 
       function h = ge(u, v)
           % Greater than or equal: `u>=v`
-          h = ge(double(u), double(v));
+          h = ge(value(u), value(v));
       end
 
       %--------------------------------------------------------------------
 
       function h = gt(u, v)
           % Greater than: `u>v`
-          h = gt(double(u), double(v));
+          h = gt(value(u), value(v));
       end
 
       %--------------------------------------------------------------------
 
       function h = le(u, v)
           % Less than or equal: `u<=v`
-          h = le(double(u), double(v));
+          h = le(value(u), value(v));
       end
 
       %--------------------------------------------------------------------
 
       function h = lt(u, v)
           % Less than: `u < v`
-          h = lt(double(u), double(v));
+          h = lt(value(u), value(v));
       end
       %--------------------------------------------------------------------
 
@@ -276,9 +282,14 @@ classdef ADI
           else
               switch s(1).type
                   case '()'
-                      if numel(s(1).subs) > 1
-                          assert(ischar(s(1).subs{2}) && strcmp(s(1).subs{2}, ':'),...
-                              'Multiple indices is not supported')
+                      ns = numel(s(1).subs);
+                      if ns > 1
+                          if ns == 2
+                              assert(s(1).subs{2} == 1 || ischar(s(1).subs{2}),...
+                                  'Invalid indexing for AD-variable. Object can only be indexed as a column-vector');
+                          else
+                              error('More than 2 inputs recieved to AD variable.');
+                          end
                       end
                       subs  = s(1).subs{1};
                       if ischar(s) && strcmp(subs, ':'),
@@ -509,13 +520,29 @@ classdef ADI
       end
 
       %--------------------------------------------------------------------
-
+      function h = interpPVT(T, x, v, flag)
+          % Interpolate special PVT table with region support
+          if ~isa(x,'ADI') %u is a scalar/matrix
+              h = v;
+              [h.val, ~, dydv] = interpPVT(T, x, v.val, flag);
+              h.jac = ADI.lMultDiag(dydv, v.jac);
+          elseif ~isa(v,'ADI') %v is a scalar
+              h = x;
+              [h.val, dydx] = interpPVT(T, x.val, v, flag);
+              h.jac = ADI.lMultDiag(dydx, x.jac);
+          else
+              h = x;
+              [h.val, dydx, dydv] = interpPVT(T, x.val, v.val, flag);
+              h.jac = ADI.timesJac(dydx, dydv, v.jac, x.jac); % note order of input
+          end
+      end
+      
       function h = interpRegPVT(T, x, v, flag, reginx)
           % Interpolate special PVT table with region support
           if ~isa(x,'ADI') %u is a scalar/matrix
               h = v;
-              [h.val, dydx] = interpRegPVT(T, x, v.val, flag, reginx);
-              h.jac = ADI.lMultDiag(dydx, v.jac);
+              [h.val, ~, dydv] = interpRegPVT(T, x, v.val, flag, reginx);
+              h.jac = ADI.lMultDiag(dydv, v.jac);
           elseif ~isa(v,'ADI') %v is a scalar
               h = x;
               [h.val, dydx] = interpRegPVT(T, x.val, v, flag, reginx);
@@ -543,7 +570,7 @@ classdef ADI
       
       function u = subsetPlus(u, v, subs)
           if isa(u, 'ADI')
-              u.val(subs) = u.val(subs) + double(v);
+              u.val(subs) = u.val(subs) + value(v);
               if isa(v, 'ADI')
                   % Both are ADI. We need to update Jacobians
                   for i = 1:numel(u.jac)
