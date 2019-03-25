@@ -15,5 +15,5 @@ switch flowtype
         error(['Unknown flow type: ', flowtype]);
 end
 
-dp = - (sign(double(v)).*rho.*v.^2)./(2*dischargeCoeff.^2);
+dp = - (sign(value(v)).*rho.*v.^2)./(2*dischargeCoeff.^2);
 end
