@@ -57,7 +57,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
           ['Well keyword ''%s'' encountered before any wells have ', ...
            'been declared using ''WELSPECS''.'], kw);
 
-   switch kw,
+   switch kw
       % Keywords related to individual wells
       case 'COMPDAT' , w = readCompDat (fid, w);
       case 'COMPSEGS', w = readCompSegs(fid, w);
@@ -66,14 +66,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       case 'WCONINJE', w = readWConInje(fid, w);
       case 'WCONINJH', w = readWConInjh(fid, w);
       case 'WCONPROD', w = readWConProd(fid, w);
-      case 'WELOPEN' , w = readWelOpen (fid, w);
+      case {'WELOPEN', 'WELLOPEN'},...
+                       w = readWelOpen (fid, w);
       case 'WELSEGS' , w = readWelSegs (fid, w);
       case 'WELSPECS', w = readWellSpec(fid, w);
       case 'WPOLYMER', w = readWPolymer(fid, w);
       case 'WSURFACT', w = readWSurfact(fid, w);
       case 'WSOLVENT', w = readWSolvent(fid, w);
       case 'WTEMP'   , w = readWTemp   (fid, w);
-      case {'WELTARG', 'WELLTARG'},
+      case {'WELTARG', 'WELLTARG'}
          w = readWelTarg(fid, w);
 
       % -------------------------------------------------------------------
@@ -325,29 +326,57 @@ function w = readWelOpen(fid, w)
    assert (~ isempty(data), 'Internal error processing ''WELOPEN''.');
 
    data = toDouble(data, numeric);
+   
+   % If all perforation IJK ranges are defaulted, we should instead change
+   % the well itself.
+   change_well = all([data{3:end}] < 0);
+   
+   if change_well
+       for kw = { 'WCONINJ', 'WCONINJE', 'WCONINJH' },
+          if isfield(w, kw{1}) && ...
+                ~ (isempty(data) || isempty(w.(kw{1}))),
 
-   for kw = { 'WCONINJ', 'WCONINJE', 'WCONINJH' },
-      if isfield(w, kw{1}) && ...
-            ~ (isempty(data) || isempty(w.(kw{1}))),
+             [ix, pos, rec] = matchWells(data(:,1), w.(kw{1})(:,1));
 
-         [ix, pos, rec] = matchWells(data(:,1), w.(kw{1})(:,1));
+             w.(kw{1})(rec, 3) = rldecode(data(ix, 2), diff(pos));
 
-         w.(kw{1})(rec, 3) = rldecode(data(ix, 2), diff(pos));
+             data(ix, :) = [];
+          end
+       end
 
-         data(ix, :) = [];
-      end
-   end
+       for kw = { 'WCONPROD', 'WCONHIST' },
+          if isfield(w, kw{1}) && ...
+                ~ (isempty(data) || isempty(w.(kw{1}))),
 
-   for kw = { 'WCONPROD', 'WCONHIST' },
-      if isfield(w, kw{1}) && ...
-            ~ (isempty(data) || isempty(w.(kw{1}))),
+             [ix, pos, rec] = matchWells(data(:,1), w.(kw{1})(:,1));
 
-         [ix, pos, rec] = matchWells(data(:,1), w.(kw{1})(:,1));
+             w.(kw{1})(rec, 2) = rldecode(data(ix, 2), diff(pos));
 
-         w.(kw{1})(rec, 2) = rldecode(data(ix, 2), diff(pos));
+             data(ix, :) = [];
+          end
+       end
+   else
+       for recNo = 1:size(data, 1)
+           well_name = data{recNo, 1};
+           [ix, pos, rec] = matchWells({well_name}, w.COMPDAT(:,1));
+           active = true(size(rec));
 
-         data(ix, :) = [];
-      end
+           for i = 2:4
+               ijk_lim = data{recNo, i+1};
+               ijk = vertcat(w.COMPDAT{rec, i});
+               active = active & (ijk == ijk_lim | ijk_lim == 0);
+           end
+           low_bnd = data{recNo, 6};
+           hi_bnd = data{recNo, 7};
+
+           if hi_bnd < 0
+               hi_bnd = inf;
+           end
+           perfnum = (1:numel(rec))';
+           active = active & (perfnum >= low_bnd & perfnum <= hi_bnd);
+           [w.COMPDAT{rec(active), 6}] = deal(data{recNo, 2});
+       end
+       data = [];
    end
 
    if ~ isempty(data),

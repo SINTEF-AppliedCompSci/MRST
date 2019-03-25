@@ -41,7 +41,7 @@ opt     = merge_options(opt, varargin{:});
 
 N    = opt.neighbors;
 if isempty(N)
-    N = G.faces.neighbors;
+    N = G(1).faces.neighbors;
 end
 
 [dr,nm] = fileparts(fn);

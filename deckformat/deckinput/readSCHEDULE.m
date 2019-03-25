@@ -72,6 +72,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             [tid, vfpinj]    = readVFPINJ(fid);
             ctrl.VFPINJ{tid} = vfpinj;   clear tid vfpinj
 
+         case 'VAPPARS'
+            if ~def_ctrl
+               def_ctrl = true;
+               cno      = cno + 1;
+               ctrl     = defaultControl(ctrl);
+            end
+            data = readDefaultedRecord(fid, {'0', '0'});
+            data = cellfun(@str2num, data);
+            ctrl.VAPPARS = data;
+             
          case 'VFPPROD'
             if ~def_ctrl
                def_ctrl = true;
@@ -108,7 +118,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             end
             ctrl.(kw) = data;                                    clear data
 
-            if isfinite(ctrl.DRSDT{1})
+            if isfinite(ctrl.DRSDT{1}) && isfinite(ctrl.DRSDT{1}) > 0
                fprintf([...
                   '\n\n', ...
                   '@ The black-oil model currently implemented ' ,  ...
@@ -216,6 +226,7 @@ function control = defaultControl(varargin)
                     'VFPINJ'  , [], ...
                     'VFPPROD' , [], ...
                     'WTEMP'   , [], ...
+                    'VAPPARS',  [0, 0], ...
                     'DRSDT'   , {{ inf, 'ALL' }});
    if nargin > 0
       control.WELSPECS = [control.WELSPECS; varargin{1}.WELSPECS];

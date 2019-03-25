@@ -73,11 +73,47 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    if isfield(deck.PROPS, 'ROCK')
       [rock.cr, rock.pref] = rock_compressibility(deck.PROPS);
    end
+   
+   rock = getRegions(rock, deck);
+   rock = getScaling(rock, deck);
 end
 
 %--------------------------------------------------------------------------
 % Private helpers follow.
 %--------------------------------------------------------------------------
+
+function rock = getRegions(rock, deck)
+   hasPVT = isfield(deck.REGIONS, 'PVTNUM') && max(deck.REGIONS.PVTNUM) > 1;
+   hasSAT = isfield(deck.REGIONS, 'SATNUM') && max(deck.REGIONS.SATNUM) > 1;
+   hasIMB = isfield(deck.REGIONS, 'IMBNUM') && max(deck.REGIONS.IMBNUM) > 1;
+   if hasPVT || hasSAT || hasIMB
+       regions = struct();
+       if hasPVT
+           regions.pvt = deck.REGIONS.PVTNUM;
+       end
+       if hasSAT
+           regions.saturation = deck.REGIONS.SATNUM;
+       end
+       if hasIMB
+           regions.imbibition = deck.REGIONS.IMBNUM;
+       end
+       rock.regions = regions;
+   end
+end
+
+function rock = getScaling(rock, deck)
+   if isfield(deck.RUNSPEC, 'ENDSCALE')
+       nc = size(rock.poro, 1);
+       rock.krscale = initRelpermScaling(deck, nc);
+       if isfield(deck.PROPS, 'SWATINIT')
+           % We have initial water saturation specified, the capillary
+           % pressure will be adjusted to honor the initial distribution
+           sw = deck.PROPS.SWATINIT;
+           rock.sw = max(sw, rock.krscale.drainage.w(:, 1));
+       end
+   end
+end
+
 
 function b = consistent(deck)
    k = false([3, 3]);

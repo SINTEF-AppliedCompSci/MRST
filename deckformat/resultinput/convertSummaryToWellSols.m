@@ -1,25 +1,29 @@
 function [wellSols, time] = convertSummaryToWellSols(fn, unit)
 % [wellSols, time] = convertSummaryToWellSols(fn, unit)
-% Create wellSols with fields qOs, qWs, qGs and bhp from from eclipse 
+% Create wellSols with fields qOs, qWs, qGs and bhp from from eclipse
 % summary file fn. Supperted units are 'metric', 'field'.
 
-   if nargin < 2
-      warning('No unit given, assuming metric')
-      unit = 'metric';
-   end
+    if nargin < 2
+        warning('No unit given, assuming metric')
+        unit = 'metric';
+    end
 
-   smry = readEclipseSummaryUnFmt(fn);
+    if isstruct(fn)
+        smry = fn;
+    else
+        smry = readEclipseSummaryUnFmt(fn);
+    end
 
-   % units:
-   if ischar(unit)
-      u = getUnits(unit);
-   else
-      u = unit;
-   end
+    % units:
+    if ischar(unit)
+        u = getUnits(unit);
+    else
+        u = unit;
+    end
 
-   [qOs, qWs, qGs, bhp, wns, time] = extract_quantities(smry, u);
+    [qOs, qWs, qGs, bhp, wns, time] = extract_quantities(smry, u);
 
-   wellSols = assign_wellsols(smry, qOs, qWs, qGs, bhp, wns);
+    wellSols = assign_wellsols(smry, qOs, qWs, qGs, bhp, wns);
 end
 
 %--------------------------------------------------------------------------
