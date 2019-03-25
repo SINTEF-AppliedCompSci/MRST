@@ -169,14 +169,16 @@ state = model.initPropertyContainers(state);
 [vW, vO, vG] = deal(phaseFlux{:});
 [upcw, upco, upcg] = deal(flags{:});
 
+[pressures, mob, rho] = model.getProps(state, 'PhasePressures', 'Mobility', 'Density');
+
+
 % Store fluxes / properties for debugging / plotting, if requested.
 if model.outputFluxes
     state = model.storeFluxes(state, vW, vO, vG);
 end
 if model.extraStateOutput
     state = model.storebfactors(state, bW, bO, bG);
-    state = model.storeDensity(state, rhoW, rhoO, rhoG);
-    state = model.storeMobilities(state, mobW, mobO, mobG);
+    state = model.storeMobilities(state, mob{:});
     state = model.storeUpstreamIndices(state, upcw, upco, upcg);
 end
 % EQUATIONS -----------------------------------------------------------
@@ -226,7 +228,6 @@ else
 end
 
 % Put the set of equations into cell arrays along with their names/types.
-[pressures, mob, rho] = model.getProps(state, 'PhasePressures', 'Mobility', 'Density');
 eqs      = {water, oil, gas};
 divTerms = {divWater, divOil, divGas};
 names    = {'water', 'oil', 'gas'};
