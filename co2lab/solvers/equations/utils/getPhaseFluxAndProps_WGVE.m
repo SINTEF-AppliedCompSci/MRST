@@ -50,7 +50,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    dpX  = s.Grad(pX) - rhoXf .* gdz;
 
    % Identifying upstream side
-   upc = double(dpX) <= 0;
+   upc = value(dpX) <= 0;
 
    % Computing flux
    vX = -s.faceUpstr(upc, mobX) .* T .* dpX;
