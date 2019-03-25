@@ -4,9 +4,11 @@ function [state0, model, schedule, nonlinear] = initEclipseProblemAD(deck, varar
 
     opt = struct('useMexGeometry', false, ...
                  'TimestepStrategy', 'iteration', ...
+                 'useMex',          false, ...
                  'AutoDiffBackend',  [], ...
                  'UniformFacilityModel', false, ...
                  'model',           [], ...
+                 'G',               [], ...
                  'getSchedule',     true, ...
                  'getInitialState', true, ...
                  'SplitDisconnected', false);
@@ -22,12 +24,18 @@ function [state0, model, schedule, nonlinear] = initEclipseProblemAD(deck, varar
     if isempty(opt.AutoDiffBackend) 
         if (isa(model, 'NaturalVariablesCompositionalModel') || ...
             isa(model, 'ThreePhaseBlackOilModel')) && model.G.cells.num > 1000
-            opt.AutoDiffBackend = 'diagonal';
+            if opt.useMex
+                opt.AutoDiffBackend = 'diagonal-mex';
+            else
+                opt.AutoDiffBackend = 'diagonal';
+            end
         else
             opt.AutoDiffBackend = 'sparse';
         end
     end
     switch lower(opt.AutoDiffBackend)
+        case 'diagonal-mex'
+            model.AutoDiffBackend = DiagonalAutoDiffBackend('useMex', true);
         case 'diagonal'
             model.AutoDiffBackend = DiagonalAutoDiffBackend();
         case 'sparse'
@@ -96,20 +104,25 @@ end
 function model = initializeModel(deck, opt)
     % Set up grid
     rock  = initEclipseRock(deck);
-    if isfield(deck.GRID, 'ACTNUM')
-        if isfield(rock, 'ntg')
-            pv = rock.poro.*rock.ntg;
-        else
-            pv = rock.poro;
+    
+    if isempty(opt.G)
+        if isfield(deck.GRID, 'ACTNUM')
+            if isfield(rock, 'ntg')
+                pv = rock.poro.*rock.ntg;
+            else
+                pv = rock.poro;
+            end
+            perm_ok = ~all(rock.perm == 0, 2);
+            deck.GRID.ACTNUM = double(deck.GRID.ACTNUM > 0 & pv > 0 & perm_ok);
         end
-        perm_ok = ~all(rock.perm == 0, 2);
-        deck.GRID.ACTNUM = double(deck.GRID.ACTNUM > 0 & pv > 0 & perm_ok);
-    end
 
-    G = initEclipseGrid(deck, 'SplitDisconnected', opt.SplitDisconnected);
-    if numel(G) > 1
-        warning('Multiple disconnected grids found. Picking largest.');
-        G = G(1);
+        G = initEclipseGrid(deck, 'SplitDisconnected', opt.SplitDisconnected);
+        if numel(G) > 1
+            warning('Multiple disconnected grids found. Picking largest.');
+            G = G(1);
+        end
+    else
+        G = opt.G;
     end
     if opt.useMexGeometry
         mrstModule add libgeometry
