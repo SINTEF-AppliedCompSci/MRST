@@ -153,6 +153,7 @@ methods
             else
                 sat = {sO, sG};
             end
+            removed(isx) = true;
         else
             % Without variable switching
             phases = model.getPhaseNames();
