@@ -8,7 +8,6 @@ classdef FlowPropertyFunctions < PropertyFunctions
         ShrinkageFactors
         Mobility
         PoreVolume
-        PhaseComposition
         
         ComponentTotalMass % Total component mass
         ComponentPhaseMass % Component mass in each phase
