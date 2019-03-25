@@ -131,13 +131,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    
    % setup table for internal faces
    % setup for intcellfacenodetbl
-   cellfacenodetbl = tbls.cellfacenodetbl;
-   fno = cellfacenodetbl.faces;
+   cellnodefacetbl = tbls.cellnodefacetbl;
+   fno = cellnodefacetbl.faces;
    intfno = (G.faces.neighbors(fno, 1) ~= 0) & (G.faces.neighbors(fno, 2) ~= 0);
-   intcellfacenodetbl.faces = cellfacenodetbl.faces(intfno);
-   intcellfacenodetbl.cells = cellfacenodetbl.cells(intfno);
-   intcellfacenodetbl.nodes = cellfacenodetbl.nodes(intfno);
-   intcellfacenodetbl.num = numel(intcellfacenodetbl.faces);
+   intcellnodefacetbl.faces = cellnodefacetbl.faces(intfno);
+   intcellnodefacetbl.cells = cellnodefacetbl.cells(intfno);
+   intcellnodefacetbl.nodes = cellnodefacetbl.nodes(intfno);
+   intcellnodefacetbl.num = numel(intcellnodefacetbl.faces);
    % setup for intfacenodetbl   
    facenodetbl = tbls.facenodetbl;
    fno = facenodetbl.faces;
@@ -146,16 +146,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    intfacenodetbl.nodes = facenodetbl.nodes(intfno);
    intfacenodetbl.num = numel(intfacenodetbl.faces);
    % assembly of div (first signed contribution on each cell-face-node faces)
-   ifno = intcellfacenodetbl.faces; %alias
-   icno = intcellfacenodetbl.cells; %alias
+   ifno = intcellnodefacetbl.faces; %alias
+   icno = intcellnodefacetbl.cells; %alias
    sgn = 2*(icno == G.faces.neighbors(ifno, 1)) - 1;
-   div = sparse(intcellfacenodetbl.cells, ...
-                (1 : intcellfacenodetbl.num)', ...
+   div = sparse(intcellnodefacetbl.cells, ...
+                (1 : intcellnodefacetbl.num)', ...
                 sgn, ...
                 G.cells.num, ...
-                intcellfacenodetbl.num);
+                intcellnodefacetbl.num);
    % reduce from cell-face-node to face-node (equivalent to removing hybridization)
-   op = setupTableMapping(intfacenodetbl, intcellfacenodetbl, 'faces', ...
+   op = setupTableMapping(intfacenodetbl, intcellnodefacetbl, 'faces', ...
                                         'nodes');
    div = div*op;
    
@@ -218,20 +218,28 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
     [op, colind, rowind] = setupTableMapping(cellfacetbl, facenodetbl, ...
                                                           'faces');
 
-    % We setup the cell-face-node table, cellfacenodetbl. Each entry determine a
+    % We setup the cell-face-node table, cellnodefacetbl. Each entry determine a
     % unique facet in a corner
-    cellfacenodetbl.cells = cellfacetbl.cells(rowind);
-    cellfacenodetbl.faces = cellfacetbl.faces(rowind);
-    cellfacenodetbl.nodes = facenodetbl.nodes(colind);
-    cellfacenodetbl.num = numel(cellfacenodetbl.cells);
-    % Some shortcuts
-    cno = cellfacenodetbl.cells;
-    fno = cellfacenodetbl.faces;
-    nno = cellfacenodetbl.nodes;
+    cellnodefacetbl.cells = cellfacetbl.cells(rowind);
+    cellnodefacetbl.faces = cellfacetbl.faces(rowind);
+    cellnodefacetbl.nodes = facenodetbl.nodes(colind);
+    cellnodefacetbl.num = numel(cellnodefacetbl.cells);
+    % We order cellfacenode in cell-node-face order
+    orderingmat = [cellnodefacetbl.cells, cellnodefacetbl.nodes, ...
+                   cellnodefacetbl.faces];
+    orderingmat = sortrows(orderingmat);
+    cellnodefacetbl.cells = orderingmat(:, 1);
+    cellnodefacetbl.nodes = orderingmat(:, 2);
+    cellnodefacetbl.faces = orderingmat(:, 3);
+    
+    % Somer shortcuts
+    cno = cellnodefacetbl.cells;
+    fno = cellnodefacetbl.faces;
+    nno = cellnodefacetbl.nodes;
     
     % We setup the cell-node table, cellnodetbl. Each entry determine
     % a unique corner
-    cfn = cellfacenodetbl;
+    cfn = cellnodefacetbl;
     cellnode = [cfn.nodes, cfn.cells];
     cellnode = unique(cellnode, 'rows');
     cellnodetbl.nodes = cellnode(:, 1);
@@ -241,12 +249,12 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
     % Nodal scalar product is stored in vector nodeM
     % mattbl is the table which specifies how nodeM is stored: a matrix for
     % each "corner" (cell-node pair).
-    [~, colind, rowind] = setupTableMapping(cellfacenodetbl, cellfacenodetbl, ...
+    [~, colind, rowind] = setupTableMapping(cellnodefacetbl, cellnodefacetbl, ...
                                                           'cells', 'nodes'); 
-    mattbl.cells  = cellfacenodetbl.cells(colind);
-    mattbl.nodes  = cellfacenodetbl.nodes(colind);
-    mattbl.faces1 = cellfacenodetbl.faces(colind);
-    mattbl.faces2 = cellfacenodetbl.faces(rowind);
+    mattbl.cells  = cellnodefacetbl.cells(colind);
+    mattbl.nodes  = cellnodefacetbl.nodes(colind);
+    mattbl.faces1 = cellnodefacetbl.faces(colind);
+    mattbl.faces2 = cellnodefacetbl.faces(rowind);
     mattbl.num = numel(mattbl.cells);
     nodeM = zeros(mattbl.num, 1);
     
@@ -281,9 +289,15 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
     areas = G.faces.areas(fno);
     vols  = G.cells.volumes(cno);
     
-    op = setupTableMapping(cellfacenodetbl, cellnodetbl, 'cells', 'nodes'); 
+    op = setupTableMapping(cellnodefacetbl, cellnodetbl, 'cells', 'nodes'); 
+    numfaces = diag(op*op');
+    cellnodetbl.numfaces = numfaces;
 
+
+    indNodeM = 1;
     for i = 1 : cellnodetbl.num
+       
+        numfaces = cellnodetbl.numfaces(i);
         
         logfacets = logical(op(i, :)');
         
@@ -294,7 +308,7 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
         
         cell = cellnodetbl.cells(i);
         node = cellnodetbl.nodes(i);
-        faces  = cellfacenodetbl.faces(logfacets);
+        faces  = cellnodefacetbl.faces(logfacets);
         
         K = reshape(perm(cell, :), [dim, dim]);
         
@@ -312,11 +326,10 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
         loctbl.cells = cell*ones(loctblNum, 1);
         loctbl.nodes = node*ones(loctblNum, 1);
         
-        [~, colind, ~] = setupTableMapping(loctbl, mattbl, 'cells', ...
-                                                   'nodes', 'faces1', ...
-                                                   'faces2');
-        nodeM(colind) = locM;
-    
+        ind = indNodeM : (indNodeM + numfaces*numfaces - 1);
+        nodeM(ind) = locM;
+        indNodeM = indNodeM + numfaces*numfaces;
+        
     end
 
     % Recover global sign for facets
@@ -360,7 +373,7 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
                facenodetbl.num, ...
                facenodetbl.num);
                
-    tbls = struct('cellfacenodetbl', cellfacenodetbl, ...
+    tbls = struct('cellnodefacetbl', cellnodefacetbl, ...
                   'cellfacetbl'    , cellfacetbl    , ...
                   'cellnodetbl'    , cellnodetbl    , ...
                   'facenodetbl'    , facenodetbl);
@@ -383,7 +396,7 @@ function M = node_ip(a, v, N, R, K)
     d = diag(Dp);
     assert(prod(d)>0, 'cannot assemble mpfa, need extra fix'); 
     invd = 1./d;
-    H = [diag(invd), zeros(fnum - dim)];
+    H = [diag(invd), zeros(dim, fnum - dim)];
     M = R*V*H*U';
     
     % Add stabilization term S
@@ -391,6 +404,6 @@ function M = node_ip(a, v, N, R, K)
     U = diag(a)*U;
     t = 6 * sum(diag(K)) / size(K, 2);
     M = M + (t/v)*U*S*U';
-    
+
 end
 
