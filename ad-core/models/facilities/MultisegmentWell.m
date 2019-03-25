@@ -100,7 +100,7 @@ classdef MultisegmentWell < SimpleWell
             ctrlEq =  setupWellControlEquationsSingleWell(well, wellSol0, wellSol, bh, q_s, status, alpha_s, resmodel);
             
             % Update well properties which are not primary variables
-            toDouble = @(x)cellfun(@double, x, 'UniformOutput', false);
+            toDouble = @(x)cellfun(@value, x, 'UniformOutput', false);
             cq_sDb = cell2mat(toDouble(qSurf));
             
             wellSol.cqs     = cq_sDb;
@@ -109,7 +109,7 @@ classdef MultisegmentWell < SimpleWell
         end
         
 
-        function [fn, index] = getVariableField(model, name)
+        function [fn, index] = getVariableField(model, name, varargin)
             % Get the index/name mapping for the model (such as where
             % pressure or water saturation is located in state)
             index = 1;
@@ -129,7 +129,7 @@ classdef MultisegmentWell < SimpleWell
                     fn = 'segmentFlux';
                     index = 1;
                 otherwise
-                    [fn, index] = getVariableField@SimpleWell(model, name);
+                    [fn, index] = getVariableField@SimpleWell(model, name, varargin{:});
             end
         end
 
@@ -204,7 +204,7 @@ classdef MultisegmentWell < SimpleWell
                 sc = state.s(wc,:);
                 pc = state.pressure(wc);
                 % compute connecting cells props:
-                [krw, kro, krg] = resmodel.relPermWOG(sc(:,1), sc(:,2), sc(:,3), resmodel.fluid, 'cellInx', wc);
+                [krw, kro, krg] = resmodel.relPermWOG(sc(:,1), sc(:,2), sc(:,3), resmodel.fluid);
                 muw = resmodel.fluid.muW(pc);
                 bw = resmodel.fluid.bW(pc);
                 if resmodel.disgas

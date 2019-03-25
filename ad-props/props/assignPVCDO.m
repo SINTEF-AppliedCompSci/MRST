@@ -1,57 +1,24 @@
 function f = assignPVCDO(f, pvcdo, reg)
-ntpvt = numel(reg.PVTINX);
-if ntpvt == 1
-    f.cO  = pvcdo(1, 3);
-else
-    f.cO  = pvcdo(reg.PVTNUM, 3);
-end
-f.bO     = @(po, varargin)bO(po, pvcdo, reg, varargin{:});
-f.BOxmuO = @(po, varargin)BOxmuO(po, pvcdo, reg, varargin{:});
-
-f.muO = @(po, varargin) bO(po, pvcdo, reg, varargin{:}).*...
-                    BOxmuO(po, pvcdo, reg, varargin{:});
+    [f.bO, f.muO] = getFunctions(f, pvcdo, reg);
 end
 
-function v = BO(po, pvcdo, reg, varargin)
-v = 1./bO(po, pvcdo, reg, varargin{:});
-end
+function [bO, muO] = getFunctions(f, PVCDO, reg)
+    [bO, muO] = deal(cell(1, reg.pvt));
+    
+    for i = 1:reg.pvt
+        pvcdo = PVCDO(i, :);
+        
+        por  = pvcdo(1); % ref pres
+        bor  = pvcdo(2); % ref fvf
+        co   = pvcdo(3); % compress
+        muor = pvcdo(4); % ref visc
+        vbo  = pvcdo(5); % viscosibility
 
-function v = bO(po, pvcdo, reg, varargin)
-pvtnum = getPVTNUM(po, reg, varargin{:});
-
-por  = pvcdo(pvtnum,1); % ref pres
-bor  = pvcdo(pvtnum,2); % ref fvf
-co   = pvcdo(pvtnum,3); % compress
-X = co.*(po-por);
-v = exp(X)./bor;
-end
-
-function v = BOxmuO(po, pvcdo, reg, varargin)
-pvtnum = getPVTNUM(po, reg, varargin{:});
-
-por  = pvcdo(pvtnum,1); % ref pres
-bor  = pvcdo(pvtnum,2); % ref fvf
-co   = pvcdo(pvtnum,3); % compress
-muor = pvcdo(pvtnum,4); % ref visc
-vbo  = pvcdo(pvtnum,5); % viscosibility
-Y = (co-vbo).*(po-por);
-v = bor.*muor.*exp(-Y);
-end
-
-
-function pvtnum= getPVTNUM(po, reg, varargin)
-pvtinx = getRegMap(po, reg.PVTNUM, reg.PVTINX, varargin{:});
-
-if strcmp(pvtinx{1}, ':')
-   pvtnum=ones(size(po));
-   assert(numel(pvtinx)==1);
-else
-    pvtnum=nan(size(po));
-    for i=1:numel(pvtinx)
-       pvtnum(pvtinx{i})=i;
+        bO{i}  = @(po) exp(co.*(po-por))./bor;
+        muO{i} = @(po) muor.*exp(-(co-vbo).*(po-por));
     end
 end
-end
+
 
 %{
 Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.

@@ -26,7 +26,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     evaluated = (isperf | iswell | isseg | isnode | isalpha);
 
-    values = cellfun(@(x) norm(double(x), inf), problem.equations(evaluated));
+    values = cellfun(@(x) norm(value(x), inf), problem.equations(evaluated));
     
     tmp = find(evaluated);
     isperf = isperf(tmp);
@@ -35,7 +35,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     isnode = isnode(tmp);
     isalpha  = isalpha(tmp);
     
-    tolerances = false(size(tmp));
+    tolerances = zeros(size(tmp));
     tolerances(isperf)  = model.toleranceWellRate;
     tolerances(iswell)  = model.toleranceWellBHP;
     tolerances(isseg)   = model.toleranceWellMS;

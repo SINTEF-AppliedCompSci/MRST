@@ -14,7 +14,9 @@ end
 
 methods
     function model = ThreePhaseBlackOilModel(G, rock, fluid, varargin)
-        model = model@ReservoirModel(G, rock, fluid);
+        opt = struct('inputdata', []);
+        [opt, extra] = merge_options(opt, varargin{:});
+        model = model@ReservoirModel(G, rock, fluid, 'inputdata', opt.inputdata);
 
         % Typical black oil is disgas / dead oil, but all combinations
         % are supported
@@ -33,7 +35,7 @@ methods
         model.gas = true;
         model.water = true;
 
-        model = merge_options(model, varargin{:});
+        model = merge_options(model, extra{:});
 
         d = model.inputdata;
         if ~isempty(d)
@@ -50,10 +52,24 @@ methods
                 error('Unknown dataset format!')
             end
         end
+        % Needed for model equations
+        model.OutputProperties = {'PoreVolume', 'ShrinkageFactors'};
     end
-    
+
     % --------------------------------------------------------------------%
-    function [fn, index] = getVariableField(model, name)
+    function model = validateModel(model, varargin)
+        % Validate model.
+        %
+        % SEE ALSO:
+        %   :meth:`ad_core.models.PhysicalModel.validateModel`
+
+        if isempty(model.FlowPropertyFunctions)
+            model.FlowPropertyFunctions = BlackOilFlowPropertyFunctions(model);
+        end
+        model = validateModel@ReservoirModel(model, varargin{:});
+    end
+    % --------------------------------------------------------------------%
+    function [fn, index] = getVariableField(model, name, varargin)
         switch(lower(name))
             case {'rs', 'rv'}
                 % RS and RV for gas dissolving into the oil phase and oil
@@ -62,16 +78,199 @@ methods
                 index = 1;
             otherwise
                 % Basic phases are known to the base class
-                [fn, index] = getVariableField@ReservoirModel(model, name);
+                [fn, index] = getVariableField@ReservoirModel(model, name, varargin{:});
+        end
+    end
+    
+    function [vars, names, origin] = getPrimaryVariables(model, state)
+        % Get primary variables from state, before a possible
+        % initialization as AD.
+        phases = model.getPhaseNames();
+        nph = numel(phases);
+        if model.oil
+            ix = find(phases == 'O');
+        else
+            ix = nph;
+        end
+        phases(ix) = [];
+        
+        snames = arrayfun(@(x) ['s', x], phases, 'UniformOutput', false);
+        s = cell(1, nph-1);
+        [p, s{:}, rs, rv] = model.getProps(state, ...
+            'pressure', snames{:}, 'rs', 'rv');
+
+        if model.disgas || model.vapoil
+            % In this case, gas saturation is replaced with rs/rv in cells
+            % where free gas is not present
+            assert(model.oil, 'Cannot have disgas/vapoil without oil phase.');
+            assert(model.gas, 'Cannot have disgas/vapoil without gas phase.');
+            % X is either Rs, Rv or Sg, depending on each cell's saturation status
+            if model.water
+                sW = s{phases == 'W'};
+            else
+                sW = 0;
+            end
+            isG = phases == 'G';
+            sG = s{isG};
+            st  = model.getCellStatusVO(state,  1-sW-sG, sW, sG);
+            x = st{1}.*rs + st{2}.*rv + st{3}.*sG;
+            s{isG} = x;
+            snames{isG} = 'x';
+        end
+        vars = [p, s];
+        names = ['pressure', snames];
+        origin = cell(1, numel(vars));
+        [origin{:}] = deal(class(model));
+        
+        if not(isempty(model.FacilityModel))
+            [v, n, o] = model.FacilityModel.getPrimaryVariables(state.wellSol);
+            vars = [vars, v];
+            names = [names, n];
+            origin = [origin, o];
+        end
+    end
+
+    function state = initStateAD(model, state, vars, names, origin)
+        removed = false(size(vars));
+        if model.disgas || model.vapoil
+            % Black-oil specific variable switching
+            if model.water
+                isw = strcmpi(names, 'sw');
+                sW = vars{isw};
+                removed = removed | isw;
+            else
+                sW = 0;
+            end
+
+            isx = strcmpi(names, 'x');
+            x = vars{isx};
+            sG = model.getProps(state, 'sg');
+            st  = model.getCellStatusVO(state, 1-sW-sG, sW, sG);
+            sG = st{2}.*(1-sW) + st{3}.*x;
+            sO = st{1}.*(1-sW) + ~st{1}.*(1 - sW - sG);
+            if model.water
+                sat = {sW, sO, sG};
+            else
+                sat = {sO, sG};
+            end
+            removed(isx) = true;
+        else
+            % Without variable switching
+            phases = model.getPhaseNames();
+            nph = numel(phases);
+            sat = cell(1, nph);
+            fill = ones(model.G.cells.num, 1);
+            removed_sat = false(1, nph);
+            for i = 1:numel(phases)
+                sub = strcmpi(names, ['s', phases(i)]);
+                if any(sub)
+                    fill = fill - vars{sub};
+                    removed = removed | sub;
+                    removed_sat(i) = true;
+                    sat{i} = vars{sub};
+                end
+            end
+            if any(~removed_sat)
+                sat{~removed_sat} = fill;
+            end
+        end
+        state = model.setProp(state, 's', sat);
+        
+        if not(isempty(model.FacilityModel))
+            % Select facility model variables and pass them off to attached
+            % class.
+            fm = class(model.FacilityModel);
+            isF = strcmp(origin, fm);
+            state = model.FacilityModel.initStateAD(state, vars(isF), names(isF), origin(isF));
+            removed = removed | isF;
+        end
+        
+        % Set up state with remaining variables
+        state = initStateAD@ReservoirModel(model, state, vars(~removed), names(~removed), origin(~removed));
+        % Account for dissolution changing variables
+        if model.disgas
+            rsSat = model.getProp(state, 'RsMax');
+            rs = ~st{1}.*rsSat + st{1}.*x;
+            % rs = rs.*(value(sO) > 0);
+            state = model.setProp(state, 'rs', rs);
+        end
+
+        if model.vapoil
+            rvSat = model.getProp(state, 'RvMax');
+            rv = ~st{2}.*rvSat + st{2}.*x;
+            % rv = rv.*(value(sG) > 0);
+            state = model.setProp(state, 'rv', rv);
+            % No rv, no so -> zero on diagonal in matrix
+            bad_oil = value(sO) == 0 & value(rv) == 0;
+            if any(bad_oil)
+                sO(bad_oil) = 1 - sW(bad_oil) - value(sG(bad_oil));
+                state = model.setProp(state, 'sO', sO);
+            end
         end
     end
     
     % --------------------------------------------------------------------%
     function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
-        [problem, state] = equationsBlackOil(state0, state, model, dt, ...
-                        drivingForces, varargin{:});
-
+        [problem, state] = equationsBlackOil(state0, state, model, dt, drivingForces, varargin{:});
+%         opt = struct('Verbose',     mrstVerbose,...
+%                     'reverseMode', false,...
+%                     'resOnly',     false,...
+%                     'iteration',   -1, ...
+%                     'drivingForces0', []);
+%         opt = merge_options(opt, varargin{:});
+%         
+%         
+%         % Define primary variables
+%         if opt.reverseMode
+%             [state0, primaryVars] = model.getReverseStateAD(state0);
+%             % The model must be validated with drivingForces so that the
+%             % FacilityModel gets updated.
+%             model = model.validateModel(drivingForces);
+%             state = model.getStateAD(state, false);
+%         else
+%             [state, primaryVars] = model.getStateAD(state, ~opt.resOnly);
+%         end
+% 
+%         
+%         [acc, divTerms, names, types] = conservationEquationsBlackOil(state0, state, model, dt, drivingForces);
+%         
+%         dissolved = model.getDissolutionMatrix(state.rs, state.rv);
+%         % Add in and setup well equations
+%         
+%         wellVars = state.FacilityState.primaryVariables;
+%         w = state.FacilityState.names;
+%         nw = numel(state.wellSol);
+%         wellMap = struct('isBHP', strcmp(w, 'bhp'), 'isRate', ...
+%                           ismember(w, {'qOs', 'qGs', 'qWs'}), ...
+%                          'extraMap', zeros(nw, nw));
+%         
+%         p = state.pressure;
+%         mob = state.FlowProps.Mobility;
+%         rho = state.FlowProps.Density;
+%         
+%         sat = cell(1, 3);
+%         [sat{1}, sat{2}, sat{3}] = model.getProps(state, 'sw', 'so', 'sg');
+%         eqs = acc;
+% 
+%         [eqs, state] = model.addBoundaryConditionsAndSources(eqs, names, types, state, ...
+%                                                          state.FlowProps.PhasePressures,...
+%                                                          sat, mob, rho, ...
+%                                                          dissolved, {}, ...
+%                                                          drivingForces);
+%         [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, ...
+%                                                           names, types, ...
+%                                                           state0.wellSol, ...
+%                                                           state.wellSol, ...
+%                                                           wellVars, wellMap, ...
+%                                                           p, mob, rho, dissolved, ...
+%                                                           {}, dt, opt);
+%         for i = 1:numel(divTerms)
+%             eqs{i} = eqs{i} + divTerms{i};
+%         end
+%         state = value(state);
+%         problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
     end
+
 
     % --------------------------------------------------------------------%
     function state = validateState(model, state)
@@ -81,6 +280,11 @@ methods
         if model.disgas
             % RS must be supplied for all cells. This may cause an error.
             model.checkProperty(state, 'rs', nc, 1);
+            rsMax = model.getProp(state, 'rsMax');
+            [sg, so, rs] = model.getProps(state, 'sg', 'so', 'rs');
+            rs(sg > 0) = rsMax(sg > 0);
+            rs = rs.*(so > 0);
+            state = model.setProp(state, 'rs', rs);
         else
             % RS does not really matter. Assign single value.
             fn = model.getVariableField('rs');
@@ -94,6 +298,11 @@ methods
         if model.vapoil
             % RV must be supplied for all cells. This may cause an error.
             model.checkProperty(state, 'rv', nc, 1);
+            rvMax = model.getProp(state, 'rvMax');
+            [so, sg, rv] = model.getProps(state, 'so', 'sg', 'rv');
+            rv(so > 0) = rvMax(so > 0);
+            rv = rv.*(sg > 0);
+            state = model.setProp(state, 'rv', rv);
         else
             % RS does not really matter. Assign single value.
             fn = model.getVariableField('rv');
@@ -118,6 +327,7 @@ methods
             % The VO model is a bit complicated, handle this part
             % explicitly.
             state0 = state;
+            state = model.initPropertyContainers(state);
 
             state = model.updateStateFromIncrement(state, dx, problem, 'pressure', model.dpMaxRel, model.dpMaxAbs);
             state = model.capProperty(state, 'pressure', model.minimumPressure, model.maximumPressure);
@@ -126,8 +336,7 @@ methods
             removed(~removed) = removed(~removed) | ix;
 
             % Black oil with dissolution
-            so = model.getProp(state, 'so');
-            sg = model.getProp(state, 'sg');
+            [so, sg] = model.getProps(state, 'so', 'sg');
             if model.water
                 sw = model.getProp(state, 'sw');
                 dsw = model.getIncrement(dx, problem, 'sw');
@@ -144,13 +353,19 @@ methods
             dsg = st{3}.*dr - st{2}.*dsw;
 
             if model.disgas
+                rsMax = model.getProp(state, 'rsMax');
+                drs_rel = rsMax.*model.drsMaxRel;
+                drs = min(model.drsMaxAbs, drs_rel);
                 state = model.updateStateFromIncrement(state, st{1}.*dr, problem, ...
-                                                       'rs', model.drsMaxRel, model.drsMaxAbs);
+                                                       'rs', inf, drs);
             end
 
             if model.vapoil
+                rvMax = model.getProp(state, 'rvMax');
+                drv_rel = rvMax.*model.drsMaxRel;
+                drs = min(model.drsMaxAbs, drv_rel);
                 state = model.updateStateFromIncrement(state, st{2}.*dr, problem, ...
-                                                       'rv', model.drsMaxRel, model.drsMaxAbs);
+                                                       'rv', inf, drs);
             end
 
             dso = -(dsg + dsw);
@@ -169,6 +384,10 @@ methods
             end
 
             state = model.updateStateFromIncrement(state, ds, problem, 's', inf, model.dsMaxAbs);
+            
+            kr = model.FlowPropertyFunctions.RelativePermeability;
+            state = kr.applyImmobileChop(model, state, state0);
+
             % We should *NOT* be solving for oil saturation for this to make sense
             assert(~any(strcmpi(vars, 'so')));
             state = computeFlashBlackOil(state, state0, model, st);
@@ -178,7 +397,6 @@ methods
             %  meant for autoupdate.
             [vars, ix] = model.stripVars(vars, {'sw', 'so', 'sg', 'rs', 'rv', 'x'});
             removed(~removed) = removed(~removed) | ix;
-
         end
 
         % We may have solved for a bunch of variables already if we had
@@ -205,79 +423,80 @@ methods
         fluid = model.fluid;
         if (isprop(solver, 'trueIMPES') || isfield(solver, 'trueIMPES')) && solver.trueIMPES
             % Rigorous pressure equation (requires lots of evaluations)
-            p = state.pressure;
             rs = state.rs;
             rv = state.rv;
             cfac = 1./(1 - model.disgas*model.vapoil*rs.*rv);
+            fp = model.FlowPropertyFunctions;
+            b = fp.getProperty(model, state, 'ShrinkageFactors');
+            ph = model.getPhaseNames();
+            
+            iso = ph == 'O';
+            isg = ph == 'G';
+            isw = ph == 'W';
+            [bO, bW, bG] = deal(1);
+            if any(isw)
+                bW = b{isw};
+            end
+            if any(iso)
+                bO = b{iso};
+            end
+            if any(isg)
+                bG = b{isg};
+            end
+            sat = problem.state.s;
+            rs = rs.*(sat(:, 3) == 0);
+            rv = rv.*(sat(:, 2) == 0);
             for iter = 1:nNames
                 name = lower(names{iter});
                 switch name
                     case 'oil'
-                        if model.disgas
-                           bO = fluid.bO(p, rs, rs >= fluid.rsSat(p));
-                        else
-                           bO = fluid.bO(p);
-                        end
-                        bG = 1;
-                        if model.vapoil
-                            bG = fluid.bG(p, rv, rv >= fluid.rvSat(p));
-                        elseif model.gas
-                            bG = fluid.bG(p);
-                        end
                         s = cfac.*(1./bO - model.disgas*rs./bG);
                     case 'water'
-                        bW = fluid.bW(p);
                         s = 1./bW;
                     case 'gas'
-                        if model.disgas
-                           bO = fluid.bO(p, rs, rs >= fluid.rsSat(p));
-                        else
-                           bO = fluid.bO(p);
-                        end
-                        if model.vapoil
-                            bG = fluid.bG(p, rv, rv >= fluid.rvSat(p));
-                        elseif model.gas
-                            bG = fluid.bG(p);
-                        end
                         s = cfac.*(1./bG - model.vapoil*rv./bO);
                     otherwise
                         continue
                 end
                 sub = strcmpi(problem.equationNames, name);
-
                 scaling{iter} = s;
                 handled(sub) = true;
             end
         else
             % Very simple scaling factors, uniform over grid
             p = mean(state.pressure);
+            useReg = iscell(fluid.bO);
+            if useReg
+                call = @(x, varargin) x{1}(varargin{:});
+            else
+                call = @(x, varargin) x(varargin{:});
+            end
             for iter = 1:nNames
                 name = lower(names{iter});
                 switch name
                     case 'oil'
                         if model.disgas
-                           rs = fluid.rsSat(p);
-                           bO = fluid.bO(p, rs, true);
+                           rs = call(fluid.rsSat, p);
+                           bO = call(fluid.bO,p, rs, true);
                         else
-                           bO = fluid.bO(p);
+                           bO = call(fluid.bO,p);
                         end
                         s = 1./bO;
                     case 'water'
-                        bW = fluid.bW(p);
+                        bW = call(fluid.bW,p);
                         s = 1./bW;
                     case 'gas'
                         if model.vapoil
-                            rv = fluid.rvSat(p);
-                            bG = fluid.bG(p, rv, true);
+                            rv = call(fluid.rvSat, p);
+                            bG = call(fluid.bG, p, rv, true);
                         elseif model.gas
-                            bG = fluid.bG(p);
+                            bG = call(fluid.bG, p);
                         end
                         s = 1./bG;
                     otherwise
                         continue
                 end
                 sub = strcmpi(problem.equationNames, name);
-
                 scaling{iter} = s;
                 handled(sub) = true;
             end

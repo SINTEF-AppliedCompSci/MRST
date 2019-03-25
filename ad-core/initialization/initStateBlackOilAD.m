@@ -54,9 +54,7 @@ function [state, pressures] = initStateBlackOilAD(model, regions, varargin)
             sat{i} = state.s(cells, i);
             pc{i} = region.pc_sign(i)*region.pc_functions{i}(state.s(cells, i));
         end
-        kr = cell(1, nph);
-        [kr{:}] = model.evaluateRelPerm(sat, 'cellInx', cells);
-        kr = [kr{:}];
+        kr = s;
         numberOfMobile = sum(kr > 0, 2);
         maxSat = max(s, [], 2);
         singlePhaseMobile = numberOfMobile <= 1;
@@ -72,7 +70,12 @@ function [state, pressures] = initStateBlackOilAD(model, regions, varargin)
             state.pressure(cells(onlyGas)) = p(onlyGas, gasIx) - pc{gasIx}(onlyGas);
             if disgas
                 po = p(:, oilIx);
-                rsMax = model.fluid.rsSat(po, 'cellInx', cells);
+                if iscell(model.fluid.rsSat)
+                    rsSatF = model.fluid.rsSat{region.pvt_region};
+                else
+                    rsSatF = model.fluid.rsSat;
+                end
+                rsMax = rsSatF(po);
                 rs = region.rs(po, z);
                 rs(rs > rsMax) = rsMax(rs > rsMax);
                 sg = s(:, gasIx);
@@ -83,7 +86,12 @@ function [state, pressures] = initStateBlackOilAD(model, regions, varargin)
         if model.oil
             if vapoil
                 pg = p(:, gasIx);
-                rvMax = model.fluid.rvSat(po, 'cellInx', cells);
+                if iscell(model.fluid.rvSat)
+                    rvSatF = model.fluid.rvSat{region.pvt_region};
+                else
+                    rvSatF = model.fluid.rvSat;
+                end
+                rvMax = rvSatF(po);
                 rv = region.rv(pg, z);
                 rv(rv > rvMax) = rvMax(rv > rvMax);
                 so = s(:, oilIx);

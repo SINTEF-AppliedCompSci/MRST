@@ -125,7 +125,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     vols = w.nodes.vol;
     
 
-    up = (double(vmix) >= 0);
+    up = value(vmix) >= 0;
     % Pressure drop relation
     ddz = op.grad(w.nodes.depth);
     %rhoSeg = rhom(w.segments.topo(:,2));
@@ -146,18 +146,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     % bhp0 = wellSol0(wellNo).bhp;
     if ~isa(w.segments.flowModel, 'function_handle')
-        eqsMS{numPh + 1} = (op.grad([bhp; pN]) - dph - wm.pressureDropModel(pN, vmix, alpha, rho_s, rhoSeg))/double(bhp); % Use mixture density
+        eqsMS{numPh + 1} = (op.grad([bhp; pN]) - dph - wm.pressureDropModel(pN, vmix, alpha, rho_s, rhoSeg))/value(bhp); % Use mixture density
     else % use new form
-        eqsMS{numPh + 1} = (op.grad([bhp; pN]) - dph - w.segments.flowModel(vmix, rhoSeg, muSeg))/double(bhp);
+        eqsMS{numPh + 1} = (op.grad([bhp; pN]) - dph - w.segments.flowModel(vmix, rhoSeg, muSeg))/value(bhp);
     end
     eqsMS{end} = 1;
     for i = 1:numPh
         eqsMS{end} = eqsMS{end} - alpha{i};
     end
     % Update these if necessary
-    [status, cstatus, cq_r] = deal(true, true(size(double(pr))), cellfun(@double, cq, 'UniformOutput', false));
+    [status, cstatus, cq_r] = deal(true, true(size(value(pr))), cellfun(@value, cq, 'UniformOutput', false));
     % return mix_s(just values):
-    mix_s   = cell2mat( cellfun(@double, mix_s, 'UniformOutput', false));
+    mix_s   = cell2mat( cellfun(@value, mix_s, 'UniformOutput', false));
 end
 
 % -------------------------------------------------------------------------
@@ -201,10 +201,10 @@ function [b, r, mu, mixr, volRatio] = computeNodeProps(model, p, mixs)
     if dg
         rsMax = fluid.rsSat(p);
         gor = max(abs(fg./fo), 0);
-        gor(isnan(double(gor))) = inf;
+        gor(isnan(value(gor))) = inf;
         rs = min(rsMax, gor);
-        b{oix}  = fluid.bO(p, rs, double(rs)>=double(rsMax));
-        mu{oix} = fluid.muO(p, rs, double(rs)>=double(rsMax));
+        b{oix}  = fluid.bO(p, rs, value(rs)>=value(rsMax));
+        mu{oix} = fluid.muO(p, rs, value(rs)>=value(rsMax));
     else
         rs = 0;
     end
@@ -212,10 +212,10 @@ function [b, r, mu, mixr, volRatio] = computeNodeProps(model, p, mixs)
     if vo
         rvMax = fluid.rvSat(p);
         ogr = max(abs(fo./fg), 0);
-        ogr(isnan(double(gor))) = inf;
+        ogr(isnan(value(gor))) = inf;
         rv = min(rvMax, ogr);
-        b{gix}  = fluid.bG(p, rv, double(rv)>=double(rvMax));
-        mu{gix} = fluid.muG(p, rv, double(rv)>=double(rvMax));
+        b{gix}  = fluid.bG(p, rv, value(rv)>=value(rvMax));
+        mu{gix} = fluid.muG(p, rv, value(rv)>=value(rvMax));
     else
         rv = 0;
     end

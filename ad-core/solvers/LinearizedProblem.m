@@ -197,7 +197,7 @@ methods
     % --------------------------------------------------------------------%
     function values = norm(problem, varargin)
         % Get the norm of each equation. This is an overloaded function.
-        values = cellfun(@(x) norm(double(x), varargin{:}), problem.equations);
+        values = cellfun(@(x) norm(value(x), varargin{:}), problem.equations);
     end
     
     % --------------------------------------------------------------------%

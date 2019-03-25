@@ -110,8 +110,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         warning(['Unknown field ''', opt.field, '''.']);
         fnIndex = 1;
     end
+    all_well_names = cell(numel(wellsols), 1);
+    for ind = 1:numel(wellsols)
+        all_well_names{ind} = arrayfun(@(x) x.name, wellsols{ind}{1}, 'UniformOutput', false);
+    end
     
-    wellnames = arrayfun(@(x) x.name, wellsols{1}{1}, 'UniformOutput', false);
+    wellnames = all_well_names{1};
     
     if isempty(opt.datasetnames)
         % If datasets are not actually named, just assign them data1,
@@ -211,59 +215,64 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
               'Position',[leftOffset, .2, blocksz, .6]);
 
     % Show minor grid to make plot easier to read.
+    toggle_h = 1./(10 + double(hasTimesteps || nargout > 1));
     gridtog = uicontrol('Units', 'normalized', 'Parent', bg,...
               'Style', 'checkbox', 'Value', true, ...
               'String','Grid on', 'Callback', @drawPlot, ...
-              'Position',[xmargin, .9, 1-xmargin .1]);
+              'Position',[xmargin, 1 - toggle_h, 1-xmargin .1]);
     % Log transform x axis
     logx = uicontrol('Units', 'normalized', 'Parent', bg,...
               'Style', 'checkbox', ...
               'String','Log (x)', 'Callback', @drawPlot, ...
-              'Position',[xmargin, .8, 1-xmargin .1]);
+              'Position',[xmargin, 1 - 2*toggle_h, 1-xmargin .1]);
     % Log transform y axis
     logy = uicontrol('Units', 'normalized', 'Parent', bg,...
               'Style', 'checkbox', ...
               'String','Log (y)', 'Callback', @drawPlot, ...
-              'Position',[xmargin, .7, 1-xmargin .1]);
+              'Position',[xmargin, 1 - 3*toggle_h, 1-xmargin .1]);
     % Draw markers
     hasmarker = uicontrol('Units', 'normalized', 'Parent', bg,...
               'Style', 'checkbox', ...
               'String','Markers', 'Callback', @drawPlot, ...
-              'Position',[xmargin, .6, 1-xmargin .1]);
+              'Position',[xmargin, 1 - 4*toggle_h, 1-xmargin .1]);
     % Show legend with well and dataset names
     useleg = uicontrol('Units', 'normalized', 'Parent', bg,...
               'Style', 'checkbox', 'Value', 1, ...
               'String','Legend', 'Callback', @drawPlot, ...
-              'Position',[xmargin, .5, 1-xmargin .1]);
+              'Position',[xmargin, 1 - 5*toggle_h, 1-xmargin .1]);
     legh = nan;
     % Cumulative sum - used for for example water production, but does not
     % necessarily make sense for pressure.
     csum = uicontrol('Units', 'normalized', 'Parent', bg,...
               'Style', 'checkbox', 'Value', 0, ...
               'String','Cumulative sum', 'Callback', @drawPlot, ...
-              'Position',[xmargin, .4, 1-xmargin .1]);
+              'Position',[xmargin, 1 - 6*toggle_h, 1-xmargin .1]);
     % Take abs value of data.
     abst = uicontrol('Units', 'normalized', 'Parent', bg,...
               'Style', 'checkbox', 'Value', 1, ...
               'String','Absolute value', 'Callback', @drawPlot, ...
-              'Position',[xmargin, .3, 1-xmargin .1]);
+              'Position',[xmargin, 1 - 7*toggle_h, 1-xmargin .1]);
           
     % Zoom to data range
     zoomt = uicontrol('Units', 'normalized', 'Parent', bg,...
               'Style', 'checkbox', 'Value', 0, ...
               'String','Zoom to data', 'Callback', @drawPlot, ...
-              'Position',[xmargin, .2, 1-xmargin .1]);
+              'Position',[xmargin, 1 - 8*toggle_h, 1-xmargin .1]);
     stairplot = uicontrol('Units', 'normalized', 'Parent', bg,...
               'Style', 'checkbox', 'Value', 0 ,...
               'String','Stair-step plot', 'Callback', @drawPlot, ...
-              'Position',[xmargin, .1, 1-xmargin .1]);
+              'Position',[xmargin, 1 - 9*toggle_h, 1-xmargin .1]);
+    ctrlplot = uicontrol('Units', 'normalized', 'Parent', bg,...
+              'Style', 'checkbox', 'Value', 0 ,...
+              'String','Show control changes', 'Callback', @drawPlot, ...
+              'Position',[xmargin, 1 - 10*toggle_h, 1-xmargin .1]);
     if hasTimesteps || nargout > 1
         % Toggle to use timesteps for spacing, otherwise the x nodes will
         % be equidistant.
         showdt = uicontrol('Units', 'normalized', 'Parent', bg,...
                   'Style', 'checkbox', 'Value', hasTimesteps ,...
                   'String','Use timesteps', 'Callback', @drawPlot, ...
-                  'Position',[xmargin, 0, 1-xmargin .1]);
+                  'Position',[xmargin, 1 - 11*toggle_h, 1-xmargin .1]);
     end
     % Line width of the plot
     uicontrol('Units', 'normalized', 'Parent', ctrlpanel,...
@@ -343,7 +352,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 line = linestyles{mod(i-1, numel(linestyles)) + 1};
                 m = markerstyles{mod(i-1, numel(markerstyles)) + 1};
                 
-                d = getData(wname, wellnames, fld, wellsols{i});
+                [d, wpos] = getData(wname, all_well_names{i}, fld, wellsols{i});
                 if hasTimesteps && get(showdt, 'Value')
                     timescaleix = get(timesel, 'Value');
                     nowTime = timechoices{timescaleix};
@@ -363,9 +372,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                   get(csum,'Value'), ...
                                   hasTimesteps);
                 ylabel(yl);
-                if doCsum
-                    d = cumtrapz(x*xunit, d);
+                
+                if numel(wellsols{i}) > 0 && isfield(wellsols{i}{1}, 'status')
+                    % Mask away inactive data points
+                    status = getData(wname, all_well_names{i}, 'status', wellsols{i});
+                    active_step = status > 0;
+                else
+                    active_step = true(size(d));
                 end
+                
+                if doCsum
+                    d = cumtrapz(x*xunit, active_step.*d);
+                end
+                d(~active_step, :) = nan;
 
                 if get(abst, 'Value')
                     d = abs(d);
@@ -377,12 +396,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     line = '';
                     linew = 1;
                 end
-                
-                if numel(wellsols{i}) > 0 && isfield(wellsols{i}{1}, 'status')
-                    % Mask away inactive data points
-                    status = getData(wname, wellnames, 'status', wellsols{i});
-                    d(status == 0, :) = nan;
-                end
+
                 if nw == 1 
                     c = cmap(i, :);
                 else
@@ -397,6 +411,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 pltfn(x, d, [m, line], 'LineWidth', linew, 'color', c, plotvararg{:});
                 Mv = max(Mv, max(d));
                 mv = min(mv, min(d));
+                if get(ctrlplot, 'Value') && isfield(wellsols{i}{1}, 'type')
+                    type = cellfun(@(ws) ws(wpos).type, wellsols{i}, 'UniformOutput', false);
+                    [types, tmp, ctrl_id] = unique(type);
+                    switched = find(diff(ctrl_id, 1) ~= 0);
+                    for switch_step = 1:numel(switched)
+                        six = switched(switch_step);
+                        text(x(six), d(six), [type{six}, '->', type{six+1}], ...
+                            'HorizontalAlignment', 'center', 'BackgroundColor', [1, 1, 1]*0.7,...
+                            'LineStyle', line, 'edgecolor', c, 'linewidth', 2);
+                    end
+                end
                 
                 tmp = wname;
                 if ndata > 1
@@ -702,7 +727,7 @@ function f = getFieldString(handle, issingle)
     end
 end
 
-function d = getData(wellname, wellnames, field, ws)
+function [d, ind] = getData(wellname, wellnames, field, ws)
     ind = find(strcmpi(wellname, wellnames));
     assert(numel(ind) == 1, 'Multiple wells with same name!');
     d = cellfun(@(x) x(ind).(field), ws);

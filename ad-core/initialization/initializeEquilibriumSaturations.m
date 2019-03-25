@@ -59,7 +59,7 @@ function s = solveSaturations(p, p_ref, pc_fn, pc_sign, s_min, s_max)
     middle = ~(toMin | toMax);
     if any(middle)
         s_inv = invertCapillary(dp(middle), pc_fn, pc_sign);
-        s(middle) = s_inv;
+        s(middle) = max(s_inv, s_min(middle));
     end
 end
 

@@ -1,95 +1,71 @@
 classdef (InferiorClasses = {?DiagonalJacobian,?DiagonalSubset}) DivergenceTerm
     % Very experimental divergence term
     properties
-        I
-        J
-        V
-        n
-        m
-        other
+        flux
+        accumulation
+        N
+        C
+        mexPrelim
+        useMex
     end
     
     methods
-        function D = DivergenceTerm(I, J, V, N, M)
-            D.I = I; D.J = J; D.V = V; D.n = N; D.m = M;
-        end
-        
-        function [I, J, V, n, m] = getSparseBlocks(D, varargin)
-            if isempty(D.other)
-                I = D.I;
-                J = D.J;
-                V = D.V;
-            else
-                [Io, Jo, Vo] = getSparseBlocks(D.other);
-                I = [D.I(:); Io(:)];
-                J = [D.J(:); Jo(:)];
-                V = [D.V(:); Vo(:)];
-            end
-            n = D.n;
-            m = D.m;
-            if nargin > 1
-                I = I + varargin{1};
-                if nargin > 2
-                    J = J + varargin{2};
-                end
-            end
-        end
-
-        
-        function [I, J, V, n, m] = getSparseArguments(D, varargin)
-            [I, J, V, n, m] = getSparseBlocks(D);
-            
-            act = V ~= 0;
-            I = I(act);
-            J = J(act);
-            V = V(act);
-            if nargin > 1
-                I = I + varargin{1};
-                if nargin > 2
-                    J = J + varargin{2};
-                end
-            end
+        function D = DivergenceTerm(v, n, c, prelim, useMex)
+            D.flux = v;
+            D.N = n;
+            D.C = c;
+            D.mexPrelim = prelim;
+            D.useMex = useMex;
         end
         
         function s = sparse(D)
-            [i, j, v, nn, mm] = D.getSparseArguments();
-            s = sparse(i, j, v, nn, mm);
-        end
-        function D = mtimes(D, v)
-            if isa(D, 'DivergenceTerm')
-                D = D.sparse();
+            jac = D.flux;
+            if D.useMex && (isempty(jac.parentSubset) || all(jac.parentSubset == (1:jac.dim(1))'))
+                prelim = D.mexPrelim;
+                s = mexDiscreteDivergenceJac(jac.diagonal, D.N, prelim.facePos, prelim.faces, prelim.cells, prelim.cellIndex);
             else
-                v = v.sparse();
+                s = D.C*jac.sparse();
             end
-            D = D*v;
-        end
-        function D = plus(D, v)
-            if isa(D, 'DivergenceTerm')
-                D.other = v;
-            else
-                v.other = D;
-                D = v;
+            if ~isempty(D.accumulation)
+                s = s + D.accumulation.sparse();
             end
-        end
-        
-        function v = nnz(D)
-            v = nnz(D.other) + nnz(D.V);
         end
         
         function [x, D] = diagMult(v, x, D)
-            x.V = x.V.*v(x.I);
-            if ~isempty(x.other)
-                [x.other, D] = diagMult(v, x.other, D);
+            [x.flux, D] = diagMult(v, x.flux, D);
+            if ~isempty(x.accumulation)
+                [x.accumulation, D] = diagMult(v, x.accumulation, D);
             end
+        end
+
+        function D = mtimes(D, V)
+            if isa(D, 'DivergenceTerm')
+                D = D.sparse();
+            else
+                V = V.sparse();
+            end
+            D = mtimes(D, V);
         end
         
         function D = uminus(D)
-            D.V = -D.V;
-            D.other = -D.other;
+            D.flux = -D.flux;
+            D.accumulation = -D.accumulation;
+        end
+
+        function u = plus(u,v)
+            if isa(u, 'DivergenceTerm')
+                if isempty(u.accumulation)
+                    u.accumulation = v;
+                else
+                    u.accumulation = u.accumulation + v;
+                end
+            else
+                u = plus(v, u);
+            end
         end
         
         function varargout = matrixDims(D, n)
-            dims = [D.n, D.m];
+            dims = [numel(D.mexPrelim.cellIndex), D.flux.dim(2)];
             if nargout == 1
                 varargout{1} = dims;
                 if nargin > 1
@@ -99,5 +75,6 @@ classdef (InferiorClasses = {?DiagonalJacobian,?DiagonalSubset}) DivergenceTerm
                 varargout = {dims(1), dims(2)};
             end
         end
+
     end
 end

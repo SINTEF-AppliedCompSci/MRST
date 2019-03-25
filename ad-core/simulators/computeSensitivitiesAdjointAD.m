@@ -67,6 +67,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'ParameterTypes', [], ...
                  'Regularization', [], ...
                  'LinearSolver',     [], ...
+                 'initStateSensitivity', false, ...
                  'modelBase', []);
     opt = merge_options(opt, varargin{:});
     
@@ -79,7 +80,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     
     [param, pTypes]  = checkParam(opt.Parameters, opt.ParameterTypes);
-   
+         
     sens = struct;
     for k = 1:numel(param)
         sens.(param{k}) = 0;
@@ -104,6 +105,30 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             end
         end 
     end
+    
+    % compute partial derivative of first eq wrt init state and compute
+    % initial state sensitivities
+    if opt.initStateSensitivity
+        state0 = model.validateState(state0);
+        % set wellSols just to make subsequent function-calls happy, sensitivities wrt wellSols doesn't make sense anyway
+        state0.wellSol = states{1}.wellSol;
+        dt = schedule.step.val(1);
+        forces = model.getDrivingForces(schedule.control(schedule.step.control(1)));
+        forces = merge_options(model.getValidDrivingForces(), forces{:});
+        problem = model.getAdjointEquations(state0, states{1}, dt, forces,...
+            'iteration', inf, 'reverseMode', true, 'drivingForces0', forces);
+        pnm = problem.primaryVariables;
+        for kn = 1:numel(pnm)
+            for nl = 1:numel(lami)
+                if isa(problem.equations{nl}, 'ADI')
+                    sens.init.(pnm{kn}) = problem.equations{nl}.jac{kn}'*lami{nl};
+                end
+            end
+        end
+    end
+                            
+        
+        
     
     % multiply by value if type is multiplier:
     multIx = find(strcmp(pTypes, 'multiplier'));
@@ -202,9 +227,10 @@ for stage = 1:2
                     model.operators.T = 1./(M(ie,:)*(1./(th{1}+th{2}+th{3})));
                 end
             case 'conntrans'
-                % assume wells are the same throughout sim
+                % assume wells are the same throughout sim and
                 if stage == 1
-                    m{k} = vertcat(schedule.control(1).W.WI);
+                    %m{k} = collectConnectionFactors(schedule.control);
+                    m{k} = vertcat(schedule.control(end).W.WI);
                 else
                     W    = schedule.control(1).W;
                     ncon = arrayfun(@(x)numel(x.WI), W);

@@ -105,7 +105,30 @@ classdef TestPhysicalModelMembers < matlab.unittest.TestCase
             test.assertEqual(state.x, x);
             test.assertEqual(state.y, y);
         end
+        
+        function testInsertionAD(test)
+            model = MockPhysicalModel();
+            d = rand(10, 2);
+            state = struct('x', d, 'y', 2*d(:,1));
+            
+            tmp = initVariablesADI(d(:, 1));
+            state = model.setProp(state, 'x2', tmp);
+            
+            x2 = model.getProp(state, 'x2');
+            test.assertEqual(x2, tmp)
+        end
+        
+        function testSingleAD(test)
+            model = MockPhysicalModel();
+            d = rand(10, 2);
+            state = struct('x', d, 'y', 2*d(:,1));
+            
+            tmp = initVariablesADI(d(:, 1));
+            state = model.setProp(state, 'y', tmp);
+            
+            y = model.getProp(state, 'y');
+            test.assertEqual(y, tmp)
+        end
     end
-    
 end
 

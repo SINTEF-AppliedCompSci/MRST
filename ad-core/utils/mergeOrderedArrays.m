@@ -5,7 +5,8 @@ function ind = mergeOrderedArrays(old, new)
     %
     % This is done by having two simple pointers that are incremented as we
     % go along trying to merge the two sets.
-    N = numel(unique([old; new]));
+    combined = unique([old; new]);
+    N = numel(combined);
     if isempty(old)
         ind = new;
         return
@@ -44,7 +45,9 @@ function ind = mergeOrderedArrays(old, new)
                 ind(i) = nv;
                 iNew = iNew + 1;
             else
-                error('Unable to correctly reassign indices based on given data. Consider sorting them first.')
+                warning('Unable to correctly reassign indices based on given data. Consider sorting them first.')
+                ind = unique([old; new]);
+                return
             end
             assert(~(isinf(oOld) && isinf(oNew)));
         end

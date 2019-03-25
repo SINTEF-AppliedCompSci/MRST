@@ -85,7 +85,6 @@ opt = merge_options(opt, varargin{:});
 
 % Shorter names for some commonly used parts of the model and forces.
 s = model.operators;
-f = model.fluid;
 
 % Properties at current timestep
 [p, sW, sG, rs, rv, wellSol] = model.getProps(state, ...
@@ -142,48 +141,36 @@ end
 if ~opt.reverseMode
     % Compute values from status flags. If we are in reverse mode, these
     % values have already converged in the forward simulation.
-    [sG, rs, rv, rsSat, rvSat] = calculateHydrocarbonsFromStatusBO(model, st, 1-sW, x, rs, rv, p);
+    [sG, rs, rv] = calculateHydrocarbonsFromStatusBO(model, st, 1-sW, x, rs, rv, p);
 end
-% Multipliers for properties
-[pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
-
 % Evaluate relative permeability
 sO  = 1 - sW  - sG;
 sO0 = 1 - sW0 - sG0;
 if model.water
     sat = {sW, sO, sG};
-    [krW, krO, krG] = model.evaluateRelPerm(sat);
-    % Mobility multiplier for water
-    krW = mobMult.*krW;
+    sat0 = {sW0, sO0, sG0};
 else
     sat = {sO, sG};
-    [krO, krG] = model.evaluateRelPerm(sat);
+    sat0 = {sO0, sG0};
 end
 
-% Modifiy relperm by mobility multiplier (if any)
-krO = mobMult.*krO; krG = mobMult.*krG;
+% Update state with AD-variables
+state = model.setProps(state, {'s', 'pressure', 'rs', 'rv'}, {sat, p, rs, rv});
+state0 = model.setProps(state0, {'s', 'pressure', 'rs', 'rv'}, {sat0, p0, rs0, rv0});
+% Set up properties
+state = model.initPropertyContainers(state);
 
-% Compute transmissibility
-T = s.T.*transMult;
+[b, pv] = model.getProps(state, 'ShrinkageFactors', 'PoreVolume');
+[b0, pv0] = model.getProps(state0, 'ShrinkageFactors', 'PoreVolume');
+[phaseFlux, flags] = model.getProps(state, 'PhaseFlux',  'PhaseUpwindFlag');
 
-% Gravity gradient per face
-gdz = model.getGravityGradient();
+[bW, bO, bG] = deal(b{:});
+[bW0, bO0, bG0] = deal(b0{:});
+[vW, vO, vG] = deal(phaseFlux{:});
+[upcw, upco, upcg] = deal(flags{:});
 
-% Evaluate water properties
-if model.water
-    [vW, bW, mobW, rhoW, pW, upcw] = getFluxAndPropsWater_BO(model, p, sW, krW, T, gdz);
-    bW0 = f.bW(p0);
-else
-    [vW, bW, mobW, rhoW, pW, upcw] = deal([]);
-end
+[pressures, mob, rho] = model.getProps(state, 'PhasePressures', 'Mobility', 'Density');
 
-% Evaluate oil properties
-[vO, bO, mobO, rhoO, p, upco] = getFluxAndPropsOil_BO(model, p, sO, krO, T, gdz, rs, ~st{1});
-bO0 = getbO_BO(model, p0, rs0, ~st0{1});
-
-% Evaluate gas properties
-bG0 = getbG_BO(model, p0, rv0, ~st0{2});
-[vG, bG, mobG, rhoG, pG, upcg] = getFluxAndPropsGas_BO(model, p, sG, krG, T, gdz, rv, ~st{2});
 
 % Store fluxes / properties for debugging / plotting, if requested.
 if model.outputFluxes
@@ -191,26 +178,23 @@ if model.outputFluxes
 end
 if model.extraStateOutput
     state = model.storebfactors(state, bW, bO, bG);
-    state = model.storeDensity(state, rhoW, rhoO, rhoG);
-    state = model.storeMobilities(state, mobW, mobO, mobG);
+    state = model.storeMobilities(state, mob{:});
     state = model.storeUpstreamIndices(state, upcw, upco, upcg);
 end
-
 % EQUATIONS -----------------------------------------------------------
 
 % Upstream weight b factors and multiply by interface fluxes to obtain the
 % fluxes at standard conditions.
+
 bOvO = s.faceUpstr(upco, bO).*vO;
 bGvG = s.faceUpstr(upcg, bG).*vG;
 
 % The first equation is the conservation of the water phase. This equation is
 % straightforward, as water is assumed to remain in the aqua phase in the
 % black oil model.
-if model.water
-    bWvW = s.faceUpstr(upcw, bW).*vW;
-    water = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 );
-    divWater = s.Div(bWvW);
-end
+bWvW = s.faceUpstr(upcw, bW).*vW;
+water = (1/dt).*(pv.*bW.*sW - pv0.*bW0.*sW0 );
+divWater = s.Div(bWvW);
 
 % Second equation: mass conservation equation for the oil phase at surface
 % conditions. This is any liquid oil at reservoir conditions, as well as
@@ -221,11 +205,11 @@ if model.vapoil
     % phase.
     rvbGvG = s.faceUpstr(upcg, rv).*bGvG;
     % Final equation
-    oil = (s.pv/dt).*( pvMult .* (bO.* sO  + rv.* bG.* sG) - ...
-                       pvMult0.*(bO0.*sO0 + rv0.*bG0.*sG0));
+    oil = (1/dt).*( pv .*(bO.* sO  + rv.* bG.* sG) - ...
+                    pv0.*(bO0.*sO0 + rv0.*bG0.*sG0));
     divOil = s.Div(bOvO + rvbGvG);
 else
-    oil = (s.pv/dt).*( pvMult.*bO.*sO - pvMult0.*bO0.*sO0 );
+    oil = (1/dt).*(pv.*bO.*sO - pv0.*bO0.*sO0 );
     divOil = s.Div(bOvO);
 end
 
@@ -235,32 +219,20 @@ if model.disgas
     % The gas transported in the oil phase.
     rsbOvO = s.faceUpstr(upco, rs).*bOvO;
     
-    gas = (s.pv/dt).*( pvMult.* (bG.* sG  + rs.* bO.* sO) - ...
-                       pvMult0.*(bG0.*sG0 + rs0.*bO0.*sO0 ));
+    gas = (1/dt).*(pv.* (bG.* sG  + rs.* bO.* sO) - ...
+                   pv0.*(bG0.*sG0 + rs0.*bO0.*sO0 ));
     divGas = s.Div(bGvG + rsbOvO);
 else
-    gas = (s.pv/dt).*( pvMult.*bG.*sG - pvMult0.*bG0.*sG0 );
+    gas = (1/dt).*(pv.*bG.*sG - pv0.*bG0.*sG0 );
     divGas = s.Div(bGvG);
 end
 
 % Put the set of equations into cell arrays along with their names/types.
-if model.water
-    eqs      = {water, oil, gas};
-    divTerms = {divWater, divOil, divGas};
-    names    = {'water', 'oil', 'gas'};
-    types    = {'cell', 'cell', 'cell'};
-    rho      = {rhoW, rhoO, rhoG};
-    mob      = {mobW, mobO, mobG};
-    pressures = {pW, p, pG};
-else
-    eqs      = {oil, gas};
-    divTerms = {divOil, divGas};
-    names    = {'oil', 'gas'};
-    types    = {'cell', 'cell'};
-    rho      = {rhoO, rhoG};
-    mob      = {mobO, mobG};
-    pressures = {p, pG};
-end
+eqs      = {water, oil, gas};
+divTerms = {divWater, divOil, divGas};
+names    = {'water', 'oil', 'gas'};
+types    = {'cell', 'cell', 'cell'};
+
 % Add in any fluxes / source terms prescribed as boundary conditions.
 dissolved = model.getDissolutionMatrix(rs, rv);
 

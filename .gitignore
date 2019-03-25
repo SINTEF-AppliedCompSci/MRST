@@ -3,3 +3,5 @@ ad-fi/cache/
 ad-unittest/output/
 optimization/examples/model2D/schedule_opt.mat
 *.m~
+*.mexw64
+*.mexa64
