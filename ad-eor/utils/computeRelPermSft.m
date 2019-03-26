@@ -69,8 +69,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     % Rescaling of the saturation - with surfactant
     sNcWSft =  (1 - sWconSft - sOresSft).*sNcEff + sWconSft;
-    krNcWSft = fluid.krW(sNcWSft);
-    krNcOSft = fluid.krOW(1 - sNcWSft);
+    krNcWSft = fluid.krWSft(sNcWSft);
+    krNcOSft = fluid.krOWSft(1 - sNcWSft);
 
     krW = m.*krNcWSft + (1 - m).*krNcWnoSft;
     krO = m.*krNcOSft + (1 - m).*krNcOnoSft;
