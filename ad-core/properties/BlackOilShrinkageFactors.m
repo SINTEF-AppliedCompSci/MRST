@@ -10,10 +10,20 @@ classdef BlackOilShrinkageFactors < GridProperty
             gp@GridProperty(model, varargin{:});
             if isprop(model, 'disgas')
                 gp.disgas = model.disgas;
+                if gp.disgas
+                    gp = gp.dependsOn({'RsMax'});
+                    gp = gp.dependsOn({'Rs'}, 'state');
+                end
             end
             if isprop(model, 'vapoil')
                 gp.vapoil = model.vapoil;
+                if gp.vapoil
+                    gp = gp.dependsOn({'RvMax'});
+                    gp = gp.dependsOn({'Rv'}, 'state');
+                end
             end
+            gp = gp.dependsOn({'PhasePressures'});
+            gp = gp.dependsOn({'Pressure'}, 'state');
         end
 
         function b = evaluateOnDomain(prop, model, state)
@@ -22,9 +32,8 @@ classdef BlackOilShrinkageFactors < GridProperty
             b = cell(1, nph);
             
             f = model.fluid;
-            [p, p_phase] = model.getProps(state, 'pressure', 'phasepressures');
-            
-            
+            p = model.getProp(state, 'pressure');
+            p_phase = prop.getEvaluatedDependencies(state, 'PhasePressures');
             if model.water
                 wix = phInd == 1;
                 pw = p_phase{wix};

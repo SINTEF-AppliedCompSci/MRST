@@ -5,9 +5,10 @@ classdef Mobility < GridProperty
     methods
         function gp = Mobility(varargin)
             gp@GridProperty(varargin{:});
+            gp = gp.dependsOn({'RelativePermeability', 'Viscosity'});
         end
         function mob = evaluateOnDomain(prop, model, state)
-            [mu, kr] = model.getProps(state, 'Viscosity', 'RelativePermeability');
+            [mu, kr] = prop.getEvaluatedDependencies(state, 'Viscosity', 'RelativePermeability');
             mob = cellfun(@(x, y) x./y, kr, mu, 'UniformOutput', false);
             if isfield(model.fluid, 'tranMultR')
                 % Pressure dependent mobility multiplier 

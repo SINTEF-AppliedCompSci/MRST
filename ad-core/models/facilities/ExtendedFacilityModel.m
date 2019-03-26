@@ -422,7 +422,7 @@ classdef ExtendedFacilityModel < FacilityModel
                 flowProps = model.ReservoirModel.FlowPropertyFunctions.subset(cells);
                 % Avoid using flag for interpolation
                 flowProps.ShrinkageFactors.useSaturatedFlag = true;
-                substate = flowProps.evaluateProperty(model.ReservoirModel, substate, 'Density');                
+                substate = flowProps.evaluatePropertyWithDependencies(model.ReservoirModel, substate, 'Density');
                 rho = substate.FlowProps.Density;
                 rho = [rho{:}];
                 if false

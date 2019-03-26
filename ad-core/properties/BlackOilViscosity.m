@@ -10,10 +10,18 @@ classdef BlackOilViscosity < GridProperty
             gp@GridProperty(model, varargin{:});
             if isprop(model, 'disgas')
                 gp.disgas = model.disgas;
+                if gp.disgas
+                    gp = gp.dependsOn({'rs'}, 'state');
+                end
             end
             if isprop(model, 'vapoil')
                 gp.vapoil = model.vapoil;
+                if gp.vapoil
+                    gp = gp.dependsOn({'rv'}, 'state');
+                end
             end
+            gp = gp.dependsOn({'pressure'}, 'state');
+            gp = gp.dependsOn({'PhasePressures'});
         end
         
         function mu = evaluateOnDomain(prop, model, state)
@@ -22,7 +30,8 @@ classdef BlackOilViscosity < GridProperty
             mu = cell(1, nph);
             
             f = model.fluid;
-            [p, p_phase] = model.getProps(state, 'pressure', 'phasepressures');
+            p = model.getProps(state, 'pressure');
+            p_phase = prop.getEvaluatedDependencies(state, 'PhasePressures');
             nc = numelValue(p);
             if model.water
                 wix = phInd == 1;

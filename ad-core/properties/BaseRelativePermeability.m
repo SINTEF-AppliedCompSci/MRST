@@ -9,6 +9,7 @@ classdef BaseRelativePermeability < GridProperty
     methods
         function gp = BaseRelativePermeability(varargin)
             gp@GridProperty(varargin{:});
+            gp = gp.dependsOn({'s', 'sMax'}, 'state');
         end
         function kr = evaluateOnDomain(prop, model, state)
             nph = model.water + model.oil + model.gas;

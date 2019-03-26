@@ -28,7 +28,6 @@ classdef FlowPropertyFunctions < PropertyFunctions
                     pvt = r.regions.pvt;
                 end
             end
-            ad = model.AutoDiffBackend;
             % Saturation properties
             props.CapillaryPressure = BlackOilCapillaryPressure(model, sat);
             props.RelativePermeability = BaseRelativePermeability(model, sat);
@@ -64,18 +63,6 @@ classdef FlowPropertyFunctions < PropertyFunctions
             
             % Define storage
             props.structName = 'FlowProps';
-        end
-
-        function state = evaluateProperty(props, model, state, name)
-            switch name
-                case 'Mobility'
-                    state = props.evaluateDependencies(model, state, {'Viscosity', 'RelativePermeability'});
-                case {'Viscosity', 'ShrinkageFactors'}
-                    state = props.evaluateDependencies(model, state, {'CapillaryPressure'});
-                case {'Density'}
-                    state = props.evaluateDependencies(model, state, {'ShrinkageFactors'});
-            end
-            state = evaluateProperty@PropertyFunctions(props, model, state, name);
         end
     end
 end

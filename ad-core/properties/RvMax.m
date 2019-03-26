@@ -6,17 +6,14 @@ classdef RvMax < GridProperty
     methods
         function gp = RvMax(varargin)
             gp@GridProperty(varargin{:});
+            gp = gp.dependsOn('PhasePressures');
         end
         
         function rvSat = evaluateOnDomain(prop, model, state)
-            p = model.getProp(state, 'pressure');
-            pc = state.FlowProps.CapillaryPressure{model.water + model.oil + model.gas};
-            if model.disgas
+            p_phase = prop.getEvaluatedDependencies(state, 'PhasePressures');
+            pg = p_phase{model.water + model.oil + model.gas};
+            if model.vapoil
                 f = model.fluid;
-                pg = p;
-                if ~isempty(pc)
-                    pg = pg + pc;
-                end
                 rvSat = prop.evaluateFunctionOnGrid(f.rvSat, pg);
                 if prop.rvReduction > 0 && isfield(state, 'sMax')
                     [sOMax, sO] = model.getProps(state, 'somax', 'so');
@@ -25,7 +22,7 @@ classdef RvMax < GridProperty
                     rvSat = rvSat.*(factor.^prop.rvReduction);
                 end
             else
-                rvSat = 0*p;
+                rvSat = 0*pg;
             end
         end
     end

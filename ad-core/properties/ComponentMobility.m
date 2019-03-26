@@ -1,4 +1,5 @@
 classdef ComponentMobility < GridProperty
+    % Class implementing the mobility for a specific component
     properties
 
     end
