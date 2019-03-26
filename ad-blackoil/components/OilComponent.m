@@ -5,6 +5,7 @@ classdef OilComponent < ImmiscibleComponent
     methods
         function c = OilComponent(name, gasIndex)
             c@ImmiscibleComponent(name, gasIndex);
+            c.dependencies = {'ShrinkageFactors'};
         end
         
         function c = getComponentDensity(component, model, state)

@@ -1,12 +1,14 @@
 classdef ImmiscibleComponent < ComponentImplementation
     properties
         phaseIndex % Index of phase this component belongs to
+        dependencies = {};
     end
     
     methods
         function c = ImmiscibleComponent(name, phase)
             c@ComponentImplementation(name);
             c.phaseIndex = phase;
+            c.dependencies = {'Density'};
         end
         
         function c = getComponentDensity(component, model, state, varargin)
