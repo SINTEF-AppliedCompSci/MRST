@@ -1,11 +1,19 @@
 classdef BlackOilViscosity < GridProperty
     properties
         useSaturatedFlag = false;
+        disgas = false;
+        vapoil = false;
     end
     
     methods
-        function gp = BlackOilViscosity(varargin)
-            gp@GridProperty(varargin{:});
+        function gp = BlackOilViscosity(model, varargin)
+            gp@GridProperty(model, varargin{:});
+            if isprop(model, 'disgas')
+                gp.disgas = model.disgas;
+            end
+            if isprop(model, 'vapoil')
+                gp.vapoil = model.vapoil;
+            end
         end
         
         function mu = evaluateOnDomain(prop, model, state)
@@ -25,7 +33,7 @@ classdef BlackOilViscosity < GridProperty
             if model.oil
                 oix = phInd == 2;
                 po = p_phase{oix};
-                if model.disgas
+                if prop.disgas
                     rs = model.getProp(state, 'rs');
                     if prop.useSaturatedFlag
                         sG = model.getProp(state, 'sg');
@@ -42,7 +50,7 @@ classdef BlackOilViscosity < GridProperty
             if model.gas
                 gix = phInd == 3;
                 pg = p_phase{gix};
-                if model.vapoil
+                if prop.vapoil
                     rv = model.getProp(state, 'rv');
                     if prop.useSaturatedFlag
                         sO = model.getProp(state, 'so');
