@@ -23,7 +23,6 @@ classdef BlackOilShrinkageFactors < GridProperty
                 end
             end
             gp = gp.dependsOn({'PhasePressures'});
-            gp = gp.dependsOn({'pressure'}, 'state');
         end
 
         function b = evaluateOnDomain(prop, model, state)
@@ -32,7 +31,6 @@ classdef BlackOilShrinkageFactors < GridProperty
             b = cell(1, nph);
             
             f = model.fluid;
-            p = model.getProp(state, 'pressure');
             p_phase = prop.getEvaluatedDependencies(state, 'PhasePressures');
             if model.water
                 wix = phInd == 1;
@@ -50,7 +48,7 @@ classdef BlackOilShrinkageFactors < GridProperty
                         sG = model.getProp(state, 'sg');
                         flag = sG > 0;
                     else
-                        flag = false(numelValue(p), 1);
+                        flag = false(numelValue(po), 1);
                     end
                     bO = prop.evaluateFunctionOnGrid(f.bO, po, rs, flag);
                 else
@@ -68,7 +66,7 @@ classdef BlackOilShrinkageFactors < GridProperty
                         sO = model.getProp(state, 'so');
                         flag = sO > 0;
                     else
-                        flag = false(numelValue(p), 1);
+                        flag = false(numelValue(pg), 1);
                     end
                     bG = prop.evaluateFunctionOnGrid(f.bG, pg, rv, flag);
                 else

@@ -20,7 +20,6 @@ classdef BlackOilViscosity < GridProperty
                     gp = gp.dependsOn({'rv'}, 'state');
                 end
             end
-            gp = gp.dependsOn({'pressure'}, 'state');
             gp = gp.dependsOn({'PhasePressures'});
         end
         
@@ -30,9 +29,8 @@ classdef BlackOilViscosity < GridProperty
             mu = cell(1, nph);
             
             f = model.fluid;
-            p = model.getProps(state, 'pressure');
             p_phase = prop.getEvaluatedDependencies(state, 'PhasePressures');
-            nc = numelValue(p);
+            nc = numelValue(p_phase{1});
             if model.water
                 wix = phInd == 1;
                 pw = p_phase{wix};

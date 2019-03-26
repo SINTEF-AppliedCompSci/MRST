@@ -24,14 +24,9 @@ classdef GridProperty
             error('Base class should not be evaluated')
         end
 
-        function prop = dependsOn(prop, name, grouping)
+        function prop = dependsOn(prop, varargin)
             % Document dependencies and external dependencies
-            if nargin < 3 || isempty(grouping)
-                prop.dependencies = [prop.dependencies; name];
-            else
-                s = struct('name', name, 'grouping', grouping);
-                prop.externals = [prop.externals; s];
-            end
+            prop = addPropertyDependence(prop, varargin{:});
         end
         
         function v = evaluateFunctionOnGrid(prop, fn, varargin)

@@ -1,11 +1,11 @@
-classdef ComponentTotalMass < GridProperty
+classdef ComponentTotalMass <  GridProperty & ComponentProperty
     properties
 
     end
     
     methods
-        function gp = ComponentTotalMass(varargin)
-            gp@GridProperty(varargin{:});
+        function gp = ComponentTotalMass(model, varargin)
+            gp@GridProperty(model, varargin{:});
             gp = gp.dependsOn('ComponentPhaseMass');
         end
         function mass = evaluateOnDomain(prop, model, state)

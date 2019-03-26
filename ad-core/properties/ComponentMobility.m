@@ -1,12 +1,13 @@
-classdef ComponentMobility < GridProperty
+classdef ComponentMobility < GridProperty & ComponentProperty
     % Class implementing the mobility for a specific component
     properties
 
     end
     
     methods
-        function gp = ComponentMobility(varargin)
-            gp@GridProperty(varargin{:});
+        function gp = ComponentMobility(model, varargin)
+            gp@GridProperty(model, varargin{:});
+            gp@ComponentProperty(model);
         end
         function v = evaluateOnDomain(prop, model, state)
             ncomp = model.getNumberOfComponents;
