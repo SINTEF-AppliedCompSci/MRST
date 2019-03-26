@@ -33,26 +33,14 @@ classdef PropertyFunctions
                 s = struct(fld{:});
                 container = HandleStruct(s);
             end
-        end
-        
-        function state = evaluateProperty(props, model, state, name)
-            % Force evaluation of a property, assuming all dependencies are
-            % met
-            struct_name = props.structName;
-            if isstruct(state) && ~isfield(state, struct_name)
-                props_struct = props.getPropertyContainer();
-            else
-                props_struct = state.(struct_name);
-            end
-            props_struct.(name) = props.(name).evaluateOnDomain(model, state);
-            if nargout > 0
-                state.(struct_name) = props_struct;
-            end
-        end
-        
+        end        
+
         function v = get(props, model, state, name)
-            % Get a property with lazy evaluation
-            state = props.evaluateDependencies(model, state, {name});
+            % Get value of a property (possibily triggering several function
+            % evaluations if required.
+            if ~props.isPropertyEvaluated(model, state, name)
+                state = props.evaluatePropertyWithDependencies(model, state, name);
+            end
             v = state.(props.structName).(name);
 
             if isnumeric(v) && size(v, 2) > 1
@@ -64,9 +52,34 @@ classdef PropertyFunctions
                 v = out;
             end
         end
+
+        function state = evaluateProperty(props, model, state, name)
+            % Force evaluation of a property, assuming all dependencies are
+            % met. If all dependencies are not met, use
+            % evaluatePropertyWithDependencies or simply get.
+            struct_name = props.structName;
+            if isstruct(state) && ~isfield(state, struct_name)
+                props_struct = props.getPropertyContainer();
+            else
+                props_struct = state.(struct_name);
+            end
+            if isempty(props.(name).structName)
+                props.(name).structName = props.structName;
+            end
+            props_struct.(name) = props.(name).evaluateOnDomain(model, state);
+            if nargout > 0
+                state.(struct_name) = props_struct;
+            end
+        end
+        
+        function state = evaluatePropertyWithDependencies(props, model, state, name)
+            % Evaluate property, and all required dependencies in state.
+            state = props.evaluateDependencies(model, state, props.(name).dependencies);
+            state = props.evaluateProperty(model, state, name);
+        end
         
         function ok = isPropertyEvaluated(props, model, state, name)
-            % Check if property is present in cache
+            % Check if property is present in cache.
             if isfield(state, props.structName)
                 % Cache is present, but this specific property is not
                 % necessarily present
@@ -82,7 +95,7 @@ classdef PropertyFunctions
             for i = 1:numel(names)
                 name = names{i};
                 if ~isPropertyEvaluated(props, model, state, name)
-                    state = props.evaluateProperty(model, state, name);
+                    state = props.evaluatePropertyWithDependencies(model, state, name);
                 end
             end
         end
