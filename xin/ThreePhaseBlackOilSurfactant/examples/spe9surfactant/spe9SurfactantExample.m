@@ -99,7 +99,7 @@ scheduleW.control(2).W(2).c = 0;
 % plotToolbar(G, statesSurfactant, 'startplayback', true, 'field', 's:1');
 % ylim([0, 1])
 %%
-T = (50:30:300);
+T = (1:4:35);
 
 min( cellfun(@(x)min(x.s(:,2)), statesSurfactant) );
 max( cellfun(@(x)max(x.s(:,2)), statesSurfactant) );
@@ -108,11 +108,11 @@ figure
 for i = 1 : length(T)
     subplot(3,3,i)
     plotCellData(G, statesSurfactant{T(i)}.s(:,2))
-    plotWell(G, schedule.control(1).W)
+%     plotWell(G, schedule.control(1).W)
     axis tight
     colormap(jet)
     view(3)
-    caxis([0, 0.79])
+    caxis([0.11, 0.84])
     title(['T = ', num2str(T(i))])
 end
 figure
@@ -129,6 +129,7 @@ end
 %%
 
 plotWellSols({wellSolsSurfactant, wellSols})
+plotWellSols(wellSolsSurfactant)
 %% Copyright notice
 
 % <html>
