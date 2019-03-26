@@ -79,9 +79,13 @@ close all;
 [wellSolsSurfactant, statesSurfactant, reportSurfactant] = simulateScheduleAD(state0, model, ...
                                                   schedule);
 
-figure()
-plotToolbar(G, statesSurfactant, 'startplayback', true, 'plot1d', true, 'field', 's:1');
-
+scheduleW = schedule;
+scheduleW.control(2).W(1).c = 0;
+scheduleW.control(2).W(2).c = 0;
+[wellSols, states, report] = simulateScheduleAD(state0, model, scheduleW);                                 
+% figure()
+% plotToolbar(G, statesSurfactant, 'startplayback', true, 'plot1d', true, 'field', 's:1');
+plotWellSols({wellSolsSurfactant, wellSols})
 %% Copyright notice
 
 % <html>

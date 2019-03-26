@@ -16,7 +16,7 @@
 %% We load the necessary modules
 %
 clear
-
+clc
 mrstModule add ad-core ad-blackoil ad-eor ad-props deckformat mrst-gui
 
 
@@ -42,7 +42,7 @@ rock  = compressRock(rock, G.cells.indexMap);
 %
 % [state0, model, schedule] = initEclipseProblemAD(deck);
 
-nc = G.cells.num;
+% nc = G.cells.num;
 % N = ones(nc, 1);
 % state0.pressure = 300 * barsa * N;
 % state0.s =  [0.25 * N, 0.65 * N, 0.1 * N];
@@ -59,7 +59,7 @@ nc = G.cells.num;
 %
 
 
-model = ThreePhaseBlackOilModel(G, rock, fluid, ...
+model = ThreePhaseBlackOilSurfactantModel(G, rock, fluid, ...
                                                   'inputdata', deck, ...
                                                   'extraStateOutput', true);
 
@@ -68,7 +68,8 @@ model = ThreePhaseBlackOilModel(G, rock, fluid, ...
 
 schedule = convertDeckScheduleToMRST(model, deck);
 state0 = initStateDeck(model,deck);
-
+state0.c    = zeros(G.cells.num, 1);
+state0.cmax = state0.c;
 %% Visualize some properties of the model we have setup
 %
 
@@ -85,13 +86,47 @@ close all;
 % Options such as maximum non-linear iterations and tolerance can be set in
 % the system struct.
 
-[wellSolsSurfactant, statesSurfactant, reportSurfactant] = simulateScheduleAD(state0, model, ...
-                                                  schedule);
+[wellSolsSurfactant, statesSurfactant, reportSurfactant] = simulateScheduleAD(state0, model, schedule);
+
+scheduleW = schedule;
+scheduleW.control(2).W(1).c = 0;
+scheduleW.control(2).W(2).c = 0;
+[wellSols, states, report] = simulateScheduleAD(state0, model, scheduleW);                                              
 %%
 figure()
-plotToolbar(G, statesSurfactant, 'startplayback', true, 'plot1d', true, 'field', 's:1');
+plotToolbar(G, statesSurfactant, 'startplayback', true, 'field', 's:1');
 ylim([0, 1])
-plotWellSols(wellSolsSurfactant)
+%%
+T = (50:30:300);
+
+min( cellfun(@(x)min(x.s(:,2)), statesSurfactant) );
+max( cellfun(@(x)max(x.s(:,2)), statesSurfactant) );
+
+figure
+for i = 1 : length(T)
+    subplot(3,3,i)
+    plotCellData(G, statesSurfactant{T(i)}.s(:,2))
+    plotWell(G, schedule.control(1).W)
+    axis tight
+    colormap(jet)
+    view(3)
+    caxis([0, 0.79])
+    title(['T = ', num2str(T(i))])
+end
+figure
+for i = 1 : length(T)
+    subplot(3,3,i)
+    plotCellData(G, states{T(i)}.s(:,2))
+    plotWell(G, schedule.control(1).W)
+    axis tight
+    colormap(jet)
+    view(3)
+    caxis([0, 0.79])
+    title(['T = ', num2str(T(i))])
+end
+%%
+
+plotWellSols({wellSolsSurfactant, wellSols})
 %% Copyright notice
 
 % <html>

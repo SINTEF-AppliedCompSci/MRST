@@ -1,6 +1,6 @@
-%% 1D Tutorial For a Oil-Water-Surfactant system
+%% 2D Tutorial For ad BlackOil-Surfactant system
 % The input data is read from a deck using Eclipse format
-% (BLACKOILSURFACTANT1D.DATA). The surfactant property (see file surfact.inc) are taken
+% (BLACKOILSURFACTANT2D.DATA). The surfactant property (see file surfact.inc) are taken
 % from SPE paper 145036.
 %
 % Surfactant is added to water in order to decrease the surface tension so that,
@@ -15,7 +15,8 @@
 
 %% We load the necessary modules
 %
-
+clear
+clc
 mrstModule add ad-core ad-blackoil ad-eor ad-props deckformat mrst-gui
 
 
@@ -23,8 +24,8 @@ mrstModule add ad-core ad-blackoil ad-eor ad-props deckformat mrst-gui
 % 
 
 current_dir = fileparts(mfilename('fullpath'));
-fn = fullfile(current_dir, 'BOSURFACTANT1D.DATA');
-gravity off
+fn = fullfile(current_dir, 'TestBoSft1D.DATA');
+gravity on
 
 deck = readEclipseDeck(fn);
 deck = convertDeckUnits(deck);
@@ -35,19 +36,6 @@ G = computeGeometry(G);
 rock  = initEclipseRock(deck);
 rock  = compressRock(rock, G.cells.indexMap);
 
-
-%% Set up the initial state
-% Constant pressure, residual water saturation, no surfactant
-%
-
-nc = G.cells.num;
-state0.pressure = deck.SOLUTION.PRESSURE;
-state0.s = [deck.SOLUTION.SWAT, 1-deck.SOLUTION.SWAT-deck.SOLUTION.SGAS, deck.SOLUTION.SGAS];
-state0.rs = deck.SOLUTION.RS;
-state0.rv = deck.SOLUTION.RV;
-% state0 = initResSol(G, 300*barsa, [ .2, .8]); % residual water saturation is 0.2
-state0.c    = zeros(G.cells.num, 1);
-state0.cmax = state0.c;
 
 %% Set up the model
 % 
@@ -64,8 +52,9 @@ model = ThreePhaseBlackOilSurfactantModel(G, rock, fluid, ...
 %
 
 schedule = convertDeckScheduleToMRST(model, deck);
-
-
+state0 = initStateDeck(model,deck);
+state0.c    = zeros(G.cells.num, 1);
+state0.cmax = state0.c;
 %% Visualize some properties of the model we have setup
 %
 
@@ -74,19 +63,57 @@ example_name = '1D';
 vizSurfactantModel;
 
 close all;
-
+%%
+% solver = NonLinearSolver('maxTimestepCuts', 16);
 %% Run the schedule
 %
 % We use the function simulateScheduleAD to run the simulation
 % Options such as maximum non-linear iterations and tolerance can be set in
 % the system struct.
 
-[wellSolsSurfactant, statesSurfactant] = simulateScheduleAD(state0, model, ...
-                                                  schedule);
+[wellSolsSurfactant, statesSurfactant, reportSurfactant] = simulateScheduleAD(state0, model, schedule);
 
+scheduleW = schedule;
+scheduleW.control(2).W(1).c = 0;
+scheduleW.control(2).W(2).c = 0;
+[wellSols, states, report] = simulateScheduleAD(state0, model, scheduleW);                                              
+%%
 figure()
-plotToolbar(G, statesSurfactant, 'startplayback', true, 'plot1d', true, 'field', 's:1');
+plotToolbar(G, statesSurfactant, 'startplayback', true, 'field', 's:1');
+ylim([0, 1])
+close all;
+%%
+T = (60:30:300);
 
+min( cellfun(@(x)min(x.s(:,2)), statesSurfactant) );
+max( cellfun(@(x)max(x.s(:,2)), statesSurfactant) );
+
+figure
+for i = 1 : length(T)
+    subplot(3,3,i)
+    plotCellData(G, statesSurfactant{T(i)}.s(:,2))
+    plotWell(G, schedule.control(1).W)
+    axis tight
+    colormap(jet)
+    view(3)
+    caxis([0, 0.79])
+    title(['T = ', num2str(T(i))])
+end
+
+figure
+for i = 1 : length(T)
+    subplot(3,3,i)
+    plotCellData(G, states{T(i)}.s(:,2))
+    plotWell(G, schedule.control(1).W)
+    axis tight
+    colormap(jet)
+    view(3)
+    caxis([0, 0.79])
+    title(['T = ', num2str(T(i))])
+end
+%%
+
+plotWellSols({wellSolsSurfactant, wellSols})
 %% Copyright notice
 
 % <html>

@@ -69,10 +69,6 @@ classdef ThreePhaseBlackOilSurfactantModel < ThreePhaseBlackOilModel
               end
         end
 
-        function varargout = evaluateRelPerm(model, sat, varargin)
-            error('function evaluateRelPerm is not implemented for surfactant model')
-        end
-
         function state = validateState(model, state)
             state = validateState@ThreePhaseBlackOilModel(model, state);
             nc = model.G.cells.num;
