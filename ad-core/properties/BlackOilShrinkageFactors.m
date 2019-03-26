@@ -12,18 +12,18 @@ classdef BlackOilShrinkageFactors < GridProperty
                 gp.disgas = model.disgas;
                 if gp.disgas
                     gp = gp.dependsOn({'RsMax'});
-                    gp = gp.dependsOn({'Rs'}, 'state');
+                    gp = gp.dependsOn({'rs'}, 'state');
                 end
             end
             if isprop(model, 'vapoil')
                 gp.vapoil = model.vapoil;
                 if gp.vapoil
                     gp = gp.dependsOn({'RvMax'});
-                    gp = gp.dependsOn({'Rv'}, 'state');
+                    gp = gp.dependsOn({'rv'}, 'state');
                 end
             end
             gp = gp.dependsOn({'PhasePressures'});
-            gp = gp.dependsOn({'Pressure'}, 'state');
+            gp = gp.dependsOn({'pressure'}, 'state');
         end
 
         function b = evaluateOnDomain(prop, model, state)

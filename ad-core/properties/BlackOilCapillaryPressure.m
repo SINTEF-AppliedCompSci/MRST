@@ -13,7 +13,7 @@ classdef BlackOilCapillaryPressure < GridProperty
     methods
         function prop = BlackOilCapillaryPressure(model, varargin)
             prop = prop@GridProperty(model, varargin{:});
-            prop = prop.dependsOn('saturation', 'state');
+            prop = prop.dependsOn('s', 'state');
         end
         
         function pc = evaluateOnDomain(prop, model, state)
