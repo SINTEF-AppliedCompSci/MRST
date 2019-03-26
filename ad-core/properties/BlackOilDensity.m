@@ -9,7 +9,7 @@ classdef BlackOilDensity < GridProperty
         function rho = evaluateOnDomain(prop, model, state)
             rhoS = model.getSurfaceDensities();
             fp = state.FlowProps;
-            nph = numel(rhoS);
+            nph = size(rhoS, 2);
             rho = cell(1, nph);
             b = fp.ShrinkageFactors;
             
@@ -23,11 +23,11 @@ classdef BlackOilDensity < GridProperty
                 
                 if model.disgas
                     rs = model.getProp(state, 'rs');
-                    rho{oix} = rho{oix} + rs.*b{oix}.*rhoS(gix);
+                    rho{oix} = rho{oix} + rs.*b{oix}.*rhoS(prop.regions, gix);
                 end
                 if model.vapoil
                     rv = model.getProp(state, 'rv');
-                    rho{gix} = rho{gix} + rv.*b{gix}.*rhoS(oix);
+                    rho{gix} = rho{gix} + rv.*b{gix}.*rhoS(prop.regions, oix);
                 end
             end
             

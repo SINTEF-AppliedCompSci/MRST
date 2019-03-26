@@ -68,9 +68,20 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     MB = zeros(1, nph);
     [shortPhase, phaseNames] = model.getPhaseNames();
     dt = problem.dt;
+    isMass = isa(model, 'GenericBlackOil');
+    if isMass
+        rhoS = model.getSurfaceDensities();
+        if size(rhoS, 1) > 1
+            pvtreg =  model.FlowPropertyFunctions.Density.regions;
+            rhoS = rhoS(pvtreg, :);
+        end
+    end
     for ph = 1:nph
         eq_ix = problem.indexOfEquationName(phaseNames{ph});
         eq = value(problem.equations{eq_ix});
+        if isMass
+            eq = eq.*rhoS(:, ph);
+        end
         B = 1./value(b{ph});
         B_avg = mean(B);
         % Volume error: Maximum point-wise saturation error, scaled to
@@ -85,11 +96,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     % Combine
     tolerances = [repmat(tol_cnv, size(CNV)), repmat(tol_mb, size(MB))];
-    if isa(model, 'GenericBlackOil')
-        rhoS = model.getSurfaceDensities();
-        values = [CNV./rhoS, MB./rhoS];
-    else
-        values = [CNV, MB];
-    end
+    values = [CNV, MB];
     names = [cnv_names, mb_names];
 end

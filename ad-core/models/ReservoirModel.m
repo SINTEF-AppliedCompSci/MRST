@@ -1227,9 +1227,9 @@ methods
         % ordering (WOG, with any inactive phases removed).
         %
         % RETURNS:
-        %   rhoS - 1 x n double array of surface densities.
+        %   rhoS - pvt x n double array of surface densities.
         names = model.getPhaseNames();
-        rhoS = arrayfun(@(x) model.fluid.(['rho', x, 'S']), names);
+        rhoS = value(arrayfun(@(x) model.fluid.(['rho', x, 'S'])', names, 'UniformOutput', false));
     end
 
     function [compEqs, compSrc, eqNames, wellSol] = getExtraWellContributions(model, well, wellSol0, wellSol, q_s, bh, packed, qMass, qVol, dt, iteration)
