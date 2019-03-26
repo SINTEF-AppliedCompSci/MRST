@@ -17,7 +17,9 @@ function [s_min, s_max] = getMinMaxPhaseSaturations(model, satnum, cells)
             pts = model.fluid.krPts;
             [s_min, s_max] = getBounds(model, pts, satnum);
         else
-            [s_min, s_max] = getMinMaxPhaseSaturationsFromRelPerm(model, 1e-6, cellInx(1));
+            model = model.validateModel();
+            sat_reg = model.FlowPropertyFunctions.RelativePermeability.regions(cells(1));
+            [s_min, s_max] = getMinMaxPhaseSaturationsFromRelPerm(model, 1e-6, sat_reg);
         end
         s_min = repmat(s_min, nc, 1);
         s_max = repmat(s_max, nc, 1);
