@@ -7,10 +7,10 @@ classdef FluxDiscretization < PropertyFunctions
         PhaseFlux % Phase volumetric fluxes
         FaceMobility % Phase mobility on face
         FaceComponentMobility % Composition * mobility on face
-        PhaseUpwindFlag
+        PhaseUpwindFlag % Upwind flag for each phase
         ComponentTotalFlux % Total mass flux for each component
         ComponentPhaseFlux % Phase fluxes for each component
-        Transmissibility
+        Transmissibility % Face-based transmissibility
     end
 
     properties (Access = protected)
@@ -18,33 +18,32 @@ classdef FluxDiscretization < PropertyFunctions
     end
     methods
         function props = FluxDiscretization(model)
-            backend = model.AutoDiffBackend;
             upstr = UpstreamFunctionWrapper(model.operators.faceUpstr);
             tpfa = TwoPointFluxApproximation(model);
 
             props@PropertyFunctions();
             % Darcy flux
             if ~isempty(model.inputdata) && isfield(model.inputdata.SOLUTION, 'THPRES')
-                trans = ThresholdedTransmissibility(backend, model);
+                trans = ThresholdedTransmissibility(model, model);
             else
-                trans = Transmissibility(backend);
+                trans = Transmissibility(model);
             end
             props.Transmissibility = trans;
-            props.PermeabilityPotentialGradient = PermeabilityPotentialGradient(backend, tpfa);
-            props.PressureGradient = PressureGradient(backend);
-            props.GravityPotentialDifference = GravityPotentialDifference(backend);
+            props.PermeabilityPotentialGradient = PermeabilityPotentialGradient(model, tpfa);
+            props.PressureGradient = PressureGradient(model);
+            props.GravityPotentialDifference = GravityPotentialDifference(model);
             
             % Phase flux
-            props.PhasePotentialDifference = PhasePotentialDifference(backend);
-            props.PhaseUpwindFlag = PhaseUpwindFlag(backend);
+            props.PhasePotentialDifference = PhasePotentialDifference(model);
+            props.PhaseUpwindFlag = PhaseUpwindFlag(model);
             
             % Face values - typically upwinded
-            props.FaceComponentMobility = FaceComponentMobility(backend, upstr);
-            props.FaceMobility = FaceMobility(backend, upstr);
+            props.FaceComponentMobility = FaceComponentMobility(model, upstr);
+            props.FaceMobility = FaceMobility(model, upstr);
             % 
-            props.ComponentPhaseFlux = ComponentPhaseFlux(backend);
-            props.ComponentTotalFlux = ComponentTotalFlux(backend);
-            props.PhaseFlux = PhaseFlux(backend);
+            props.ComponentPhaseFlux = ComponentPhaseFlux(model);
+            props.ComponentTotalFlux = ComponentTotalFlux(model);
+            props.PhaseFlux = PhaseFlux(model);
 
             % Flow discretizer
             props.FlowStateBuilder = ImplicitFlowStateBuilder();

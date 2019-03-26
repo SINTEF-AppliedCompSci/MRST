@@ -6,9 +6,9 @@ classdef GridProperty
     end
 
     methods
-        function prop = GridProperty(backend, regions, varargin)
+        function prop = GridProperty(model, regions, varargin)
             if nargin > 0
-                prop.AutoDiffBackend = backend;
+                prop.AutoDiffBackend = model.AutoDiffBackend;
                 if nargin > 1
                     prop.regions = regions;
                 end
