@@ -134,6 +134,6 @@ function model = initializeModel(deck, opt)
     gravity reset on;
     
     rock  = compressRock(rock, G.cells.indexMap);
-
     model = selectModelFromDeck(G, rock, fluid, deck);
+    model.dpMaxRel = 0.2;
 end

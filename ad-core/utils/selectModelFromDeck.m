@@ -78,19 +78,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         assert(~haspoly, 'Surfactant model does not support polymer');
         assert(haswat, 'Surfactant model requires water phase to be present');
         model = OilWaterSurfactantModel(arg{:});
-    elseif hasgas && hasoil && haswat
-        % Blackoil three phase
-        model = ThreePhaseBlackOilModel(arg{:});
-    elseif hasoil && haswat
-        % Two-phase oil-water
-        model = TwoPhaseOilWaterModel(arg{:});
-    elseif haswat && hasgas
-        % Two-phase water-gas (Note: Model tailored for CO2 storage, uses
-        % CO2lab module).
-        mrstModule add co2lab
-        model = TwoPhaseWaterGasModel(G, [], fluid, nan, nan, varargin{:});
     else
-        error('Did not find matching model');
+        % Blackoil three phase
+        model = GenericBlackOil(arg{:}, 'water', haswat, 'oil', hasoil, 'gas', hasgas);
     end
     % Set blackoil specific features
     if isa(model, 'ThreePhaseBlackOilModel') && isfield(deck, 'RUNSPEC')
