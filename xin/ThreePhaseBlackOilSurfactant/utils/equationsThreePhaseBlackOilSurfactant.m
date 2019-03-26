@@ -134,6 +134,8 @@ bW   = b{1}  ; bO   = b{2};   bG   = b{3};
 bW0  = b0{1} ; bO0  = b0{2};  bG0  = b0{3};
 mobSft =  mobW.*c;
 
+
+
 % Upstream weight b factors and multiply by interface fluxes to obtain the
 % fluxes at standard conditions.
 vO     = -op.faceUpstr(upcO, mobO).*T.*dpO;
@@ -144,6 +146,12 @@ bOvO   =  op.faceUpstr(upcO, bO).*vO;
 bWvW   =  op.faceUpstr(upcW, bW).*vW;
 bGvG   =  op.faceUpstr(upcG, bG).*vG;
 bWvSft =  op.faceUpstr(upcW, bW).*vSft;
+
+
+if model.outputFluxes
+    state = model.storeFluxes(state, vW, vO, vG);
+end
+
 
 % Conservation of mass for water
 water = (op.pv/dt).*(pvMult.*bW.*sW - pvMult0.*bW0.*sW0) + op.Div(bWvW);
@@ -213,6 +221,9 @@ dissolved = model.getDissolutionMatrix(rs, rv);
                                                                p, mob, rho, dissolved, ...
                                                                {c}, dt, opt);
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
+
+
+
 
 end
 
