@@ -5,6 +5,7 @@ classdef RsMax < GridProperty
     methods
         function gp = RsMax(varargin)
             gp@GridProperty(varargin{:});
+            gp = gp.dependsOn('pressure', 'state');
         end
         
         function rsSat = evaluateOnDomain(prop, model, state)

@@ -6,6 +6,8 @@ classdef WellComponentPhaseFlux < GridProperty
     methods
         function gp = WellComponentPhaseFlux(varargin)
             gp@GridProperty(varargin{:});
+            gp = gp.dependsOn({'FacilityWellMapping', 'PhaseFlux'});
+            gp = gp.dependsOn({'ComponentPhaseDensity', 'Density'}, 'FlowPropertyFunctions');
         end
         function componentPhaseFlux = evaluateOnDomain(prop, facility, state)
             % Preliminaries
@@ -14,7 +16,7 @@ classdef WellComponentPhaseFlux < GridProperty
             nph = model.getNumberOfPhases();
             
             % Get fluxes and densities + well map needed
-            [map, phaseFlux] = facility.getProps(state, 'FacilityWellMapping', 'PhaseFlux');
+            [map, phaseFlux] = prop.getEvaluatedDependencies(state, 'FacilityWellMapping', 'PhaseFlux');
             componentDensity = model.getProps(state, 'ComponentPhaseDensity');
             wc = map.cells;
             W = map.W;
