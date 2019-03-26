@@ -4,13 +4,14 @@ classdef PhaseFlux < GridProperty
     end
     
     methods
-        function fm = PhaseFlux(backend)
-            fm@GridProperty(backend);
+        function fm = PhaseFlux(model)
+            fm@GridProperty(model);
+            fm = fm.dependsOn({'FaceMobility', 'PermeabilityPotentialGradient'});
         end
 
         
         function v = evaluateOnDomain(prop, model, state)
-            [mob, kgrad] = model.getProps(state, ...
+            [mob, kgrad] = prop.getEvaluatedDependencies(state,...
                 'FaceMobility', 'PermeabilityPotentialGradient');
             nph = numel(mob);
             v = cell(1, nph);

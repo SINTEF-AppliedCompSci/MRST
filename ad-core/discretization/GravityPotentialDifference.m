@@ -6,6 +6,7 @@ classdef GravityPotentialDifference < GridProperty
     methods
         function gp = GravityPotentialDifference(varargin)
             gp@GridProperty(varargin{:});
+            gp = gp.dependsOn('Density', 'FlowPropertyFunctions');
         end
         function gRhoDz = evaluateOnDomain(prop, model, state)
             act = model.getActivePhases();

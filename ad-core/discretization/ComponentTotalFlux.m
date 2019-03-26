@@ -6,13 +6,14 @@ classdef ComponentTotalFlux < GridProperty
     methods
         function gp = ComponentTotalFlux(varargin)
             gp@GridProperty(varargin{:});
+            gp = gp.dependsOn('ComponentPhaseFlux');
         end
         
         function v = evaluateOnDomain(prop, model, state)
             ncomp = model.getNumberOfComponents();
             nph = model.getNumberOfPhases();
             v = cell(ncomp, 1);
-            phase_flux = model.getProps(state, 'ComponentPhaseFlux');
+            phase_flux = prop.getEvaluatedDependencies(state, 'ComponentPhaseFlux');
             
             for c = 1:ncomp
                 % Loop over phases where the component may be present

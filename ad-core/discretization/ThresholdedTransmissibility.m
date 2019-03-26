@@ -6,6 +6,9 @@ classdef ThresholdedTransmissibility < Transmissibility
     methods
         function pp = ThresholdedTransmissibility(backend, model)
             pp@Transmissibility(backend);
+            if isempty(pp.externals)
+                pp = pp.dependsOn('pressure', 'state');
+            end
             equil = model.inputdata.REGIONS.EQLNUM(model.G.cells.indexMap);
             thpres = model.inputdata.SOLUTION.THPRES;
             N = model.operators.N;
