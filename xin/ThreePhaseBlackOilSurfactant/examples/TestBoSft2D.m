@@ -24,7 +24,7 @@ mrstModule add ad-core ad-blackoil ad-eor ad-props deckformat mrst-gui
 % 
 
 current_dir = fileparts(mfilename('fullpath'));
-fn = fullfile(current_dir, 'TestBoSft1D.DATA');
+fn = fullfile(current_dir, 'TestBoSft2D.DATA');
 gravity on
 
 deck = readEclipseDeck(fn);
@@ -85,17 +85,19 @@ close all;
 % We use the function simulateScheduleAD to run the simulation
 % Options such as maximum non-linear iterations and tolerance can be set in
 % the system struct.
+fn = getPlotAfterStep(state0, model, schedule, 'plotWell', true, ...
+                      'plotReservoir', false);
 
-[wellSolsSurfactant, statesSurfactant, reportSurfactant] = simulateScheduleAD(state0, model, schedule);
+[wellSolsSurfactant, statesSurfactant, reportSurfactant] = simulateScheduleAD(state0, model, schedule, 'afterStepFn', fn);
 
 scheduleW = schedule;
 scheduleW.control(2).W(1).c = 0;
 scheduleW.control(2).W(2).c = 0;
-[wellSols, states, report] = simulateScheduleAD(state0, model, scheduleW);                                              
+[wellSols, states, report] = simulateScheduleAD(state0, model, scheduleW, 'afterStepFn', fn);                                              
 %%
-figure()
-plotToolbar(G, statesSurfactant, 'startplayback', true, 'field', 's:1');
-ylim([0, 1])
+% figure()
+% plotToolbar(G, statesSurfactant, 'startplayback', true, 'field', 's:1');
+% ylim([0, 1])
 %%
 T = (50:30:300);
 

@@ -1,6 +1,6 @@
-%% 2D Tutorial For ad BlackOil-Surfactant system
+%% 1D Tutorial For a Oil-Water-Surfactant system
 % The input data is read from a deck using Eclipse format
-% (BLACKOILSURFACTANT2D.DATA). The surfactant property (see file surfact.inc) are taken
+% (BLACKOILSURFACTANT1D.DATA). The surfactant property (see file surfact.inc) are taken
 % from SPE paper 145036.
 %
 % Surfactant is added to water in order to decrease the surface tension so that,
@@ -14,15 +14,17 @@
 % surfactant is added to the water.
 
 %% We load the necessary modules
-
+%
 clear
 clc
 mrstModule add ad-core ad-blackoil ad-eor ad-props deckformat mrst-gui
 
+
 %% We load the input data and setup the grid, rock and fluid structures
+% 
 
 current_dir = fileparts(mfilename('fullpath'));
-fn = fullfile(current_dir, 'BOSURFACTANT2D.DATA');
+fn = fullfile(current_dir, 'Sft_SPE9.DATA');
 gravity on
 
 deck = readEclipseDeck(fn);
@@ -34,31 +36,51 @@ G = computeGeometry(G);
 rock  = initEclipseRock(deck);
 rock  = compressRock(rock, G.cells.indexMap);
 
+
+%% Set up the initial state
+% Constant pressure, residual water saturation, no surfactant
+%
+% [state0, model, schedule] = initEclipseProblemAD(deck);
+
+% nc = G.cells.num;
+% N = ones(nc, 1);
+% state0.pressure = 300 * barsa * N;
+% state0.s =  [0.25 * N, 0.65 * N, 0.1 * N];
+% state0.rs = 0 * N;
+% state0.rv = 0 * N;
+% % state0 = initResSol(G, 300*barsa, [ .2, .8]); % residual water saturation is 0.2
+% state0.c    = zeros(G.cells.num, 1);
+% state0.cmax = state0.c;
+
 %% Set up the model
 % 
 % The model object contains the grid, the fluid and rock properties and the
 % modeling equations. See simulatorWorkFlowExample.
+%
+
 
 model = ThreePhaseBlackOilSurfactantModel(G, rock, fluid, ...
                                                   'inputdata', deck, ...
                                                   'extraStateOutput', true);
 
 %% Convert the deck schedule into a MRST schedule by parsing the wells
+%
 
 schedule = convertDeckScheduleToMRST(model, deck);
 state0 = initStateDeck(model,deck);
 state0.c    = zeros(G.cells.num, 1);
 state0.cmax = state0.c;
-
 %% Visualize some properties of the model we have setup
 %
+
 % We gathered visualizing command for this tutorial in the following script
-example_name = '2D';
+example_name = '1D';
 vizSurfactantModel;
 
 close all;
-
-%% Run the schedule and set up the initial state
+%%
+% solver = NonLinearSolver('maxTimestepCuts', 16);
+%% Run the schedule
 %
 % We use the function simulateScheduleAD to run the simulation
 % Options such as maximum non-linear iterations and tolerance can be set in
@@ -68,15 +90,16 @@ fn = getPlotAfterStep(state0, model, schedule, 'plotWell', true, ...
 
 [wellSolsSurfactant, statesSurfactant, reportSurfactant] = simulateScheduleAD(state0, model, schedule, 'afterStepFn', fn);
 
-% we use schedulew to run the three phase black oil water flooding simulation.
 scheduleW = schedule;
 scheduleW.control(2).W(1).c = 0;
 scheduleW.control(2).W(2).c = 0;
-[wellSols, states, report] = simulateScheduleAD(state0, model, scheduleW, 'afterStepFn', fn);
-                                       
-%% Plot cell oil saturation in different tsteps of surfactant flooding and water flooding
-
-T = (60:30:300);
+[wellSols, states, report] = simulateScheduleAD(state0, model, scheduleW, 'afterStepFn', fn);                                              
+%%
+% figure()
+% plotToolbar(G, statesSurfactant, 'startplayback', true, 'field', 's:1');
+% ylim([0, 1])
+%%
+T = (50:30:300);
 
 min( cellfun(@(x)min(x.s(:,2)), statesSurfactant) );
 max( cellfun(@(x)max(x.s(:,2)), statesSurfactant) );
@@ -92,10 +115,6 @@ for i = 1 : length(T)
     caxis([0, 0.79])
     title(['T = ', num2str(T(i))])
 end
-
-min( cellfun(@(x)min(x.s(:,2)), states) );
-max( cellfun(@(x)max(x.s(:,2)), states) );
-
 figure
 for i = 1 : length(T)
     subplot(3,3,i)
@@ -107,8 +126,7 @@ for i = 1 : length(T)
     caxis([0, 0.79])
     title(['T = ', num2str(T(i))])
 end
-
-%% Plot well solutions
+%%
 
 plotWellSols({wellSolsSurfactant, wellSols})
 %% Copyright notice
