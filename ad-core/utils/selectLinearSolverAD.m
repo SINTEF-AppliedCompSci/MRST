@@ -93,6 +93,7 @@ function ok = checkAMGCL()
 end
 
 function ncomp = getComponentCount(model)
+    model = model.validateModel();
     names = model.getComponentNames();
     if isa(model, 'GenericBlackOil')
         ncomp = numel(names);
