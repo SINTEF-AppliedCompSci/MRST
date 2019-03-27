@@ -317,7 +317,7 @@ else
     delta = inf;
 end
 
-if max(dZ) > delta*direction(1:dims).'
+if max(dZ) > delta*direction(1:dims).' && norm(gravity()) > 0
     msg = ['Pressure drop distance from BHP reference depth to ', ...
            'selected perforation exceeds total thickness of model ', ...
            'in well ''%s''.'];
