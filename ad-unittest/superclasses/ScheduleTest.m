@@ -169,7 +169,6 @@ classdef ScheduleTest < matlab.unittest.TestCase
         end
                 
         function states = CPR_AGMG(test)
-
             name = test.getIdentifier('cpr_agmg');
             mrstModule add agmg
             try
@@ -180,6 +179,11 @@ classdef ScheduleTest < matlab.unittest.TestCase
                 return
             end
             states = test.runSchedule(name, 'useCPR', true, 'useAGMG', true);
+        end
+        function states = selectLinearSolver(test)
+            name = test.getIdentifier('select_linear_solver');
+            mrstModule add linearsolvers
+            states = test.runSchedule(name, 'selectLinearSolver', true);
         end
     end
 end

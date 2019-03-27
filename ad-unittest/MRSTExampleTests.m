@@ -31,16 +31,27 @@ function mods = getTestModules()
 end
 
 function [names, modules] = getTestNamesInternal()
+    [skip, skip_mod] = getSkippedTests();
     mods = mrstPath();
+    mods = setdiff(mods, skip_mod);
     
     testNames = cell(numel(mods), 1);
     modNames = cell(numel(mods), 1);
     for i = 1:numel(mods)
         ex = mrstExamples(mods{i});
         examples = ex{1};
+        keep = true(numel(examples), 1);
         for j = 1:numel(examples)
+            test_parts = strsplit(examples{j}, filesep);
+            testname = test_parts{end};
+            % Filter specifically skipped tests
+            toSkip = any(strcmpi(skip, testname));
+            % Filter experimental folders
+            isExperimental = any(strcmpi(test_parts, 'experimental'));
+            keep(j) = not(toSkip || isExperimental);
             [~, examples{j}] = fileparts(examples{j});
         end
+        examples = examples(keep);
         testNames{i} = examples;
         tmp = cell(size(examples));
         [tmp{:}] = deal(mods{i});
@@ -49,6 +60,14 @@ function [names, modules] = getTestNamesInternal()
     
     names = horzcat(testNames{:});
     modules = horzcat(modNames{:});
+end
+
+function [names, modules] = getSkippedTests()
+    names = {
+        'showOptionsAMGCL.m', ... % Does not work due to uiwait
+        'SPE10SubsetADIExample.m', ... % Takes too long to run, ad-fi
+            };
+    modules = {'matlab_bgl'};
 end
 
 function [m, g, v, d, p] = clear_env
