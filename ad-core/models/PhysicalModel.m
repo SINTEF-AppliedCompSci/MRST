@@ -452,23 +452,30 @@ methods
             p = propfn{i};
             names = p.getPropertyNames();
             struct_name = p.getPropertyContainerName();
-            if isempty(model.OutputProperties)
-                current = {};
-            else
-                current = intersect(names, model.OutputProperties);
-            end
-            nc = numel(current);
-            kept = nc;
-            if kept
-                for j = 1:numel(names)
-                    name = names{j};
-                    if ~any(strcmp(name, current))
-                        % Remove unkept variables
-                        state.(struct_name).(name) = [];
-                    end
+            if isfield(state, struct_name)
+                if isempty(model.OutputProperties)
+                    current = {};
+                else
+                    current = intersect(names, model.OutputProperties);
                 end
-            elseif isfield(state, struct_name)
-                state = rmfield(state, struct_name);
+                nc = numel(current);
+                kept = nc;
+                if kept
+                    % Some values are to be kept. We set all which are not
+                    % kept to emtpy to ensure that the storage is
+                    % normalized with missing values.
+                    for j = 1:numel(names)
+                        name = names{j};
+                        if ~any(strcmp(name, current))
+                            % Remove unkept variables
+                            state.(struct_name).(name) = [];
+                        end
+                    end
+                else
+                    % We did not keep any properties from this group.
+                    % Remove the struct alltogether.
+                    state = rmfield(state, struct_name);
+                end
             end
         end
     end
