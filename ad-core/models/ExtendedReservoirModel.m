@@ -1,6 +1,6 @@
 classdef ExtendedReservoirModel
     properties
-        Components
+        Components = {};
     end
     
     methods
