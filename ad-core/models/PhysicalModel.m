@@ -855,7 +855,8 @@ methods
                     return
                 end
             end
-            error('Unknown variable field %s', name);
+            error('PhysicalModel:UnknownVariable', ...
+                'Unknown variable field %s', name);
         else
             if iscell(state.(fn))
                 p = state.(fn){index};
