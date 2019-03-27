@@ -46,6 +46,8 @@ bc = pside(bc, G, 'xmax', 0*barsa, 'sat', [0, 1]);
 % manual loop, where you explicitly call a nonlinear solver to solve each
 % implicit time step
 solver = NonLinearSolver();
+% Validate the model to prepare for simulation
+model = model.validateModel();
 
 n  = 25;
 dT = (500/n)*day;
