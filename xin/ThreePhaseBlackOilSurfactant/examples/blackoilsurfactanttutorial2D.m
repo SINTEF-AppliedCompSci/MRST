@@ -53,10 +53,10 @@ state0.cmax = state0.c;
 %% Visualize some properties of the model we have setup
 %
 % We gathered visualizing command for this tutorial in the following script
+
 example_name = '2D';
 vizSurfactantModel;
-
-close all;
+% close all;
 
 %% Run the schedule and set up the initial state
 %
@@ -111,6 +111,7 @@ end
 %% Plot well solutions
 
 plotWellSols({wellSolsSurfactant, wellSols})
+
 %% Copyright notice
 
 % <html>

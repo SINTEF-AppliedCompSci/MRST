@@ -24,6 +24,13 @@ switch example_name
   case '2D'
     plotGrid(G, 'FaceColor', 'none')
     view(70, 30);
+  case 'spe9'
+    plotCellData(G, log10(rock.perm(:, 1)),'EdgeColor','none')
+    logColorbar();
+    title('Permeability (x-direction), spe10')
+    set(gca,'dataasp',[60 60 1]);
+    axis tight,
+    view(30, 86);
   case 'spe10'
     plotCellData(G, log10(rock.perm(:, 1)),'EdgeColor','none')
     logColorbar();
@@ -57,6 +64,15 @@ switch example_name
     % We use deck input. For such input, different relative permeabilities can be
     % assigned to different cell. In our case, they are the same everywhere and
     % we choose the first cell to comput them for plotting.
+    krW = fluid.krW(s, 'cellInx', 1);
+    krOW = fluid.krOW(s, 'cellInx', 1);
+    krWSft = fluid.krWSft(s, 'cellInx', 1);
+    krOWSft = fluid.krOWSft(s, 'cellInx', 1);
+    if all(isfield(fluid,{'krG','krOG'}))
+       krG = fluid.krG(s, 'cellInx', 1);
+       krOG = fluid.krOG(s, 'cellInx', 1);
+    end
+  case 'spe9'
     krW = fluid.krW(s, 'cellInx', 1);
     krOW = fluid.krOW(s, 'cellInx', 1);
     krWSft = fluid.krWSft(s, 'cellInx', 1);
