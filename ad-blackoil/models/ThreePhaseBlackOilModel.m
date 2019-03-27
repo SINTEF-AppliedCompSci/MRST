@@ -407,7 +407,7 @@ methods
             end
         else
             % Very simple scaling factors, uniform over grid
-            p = mean(state.pressure);
+            p = mean(value(state.pressure));
             useReg = iscell(fluid.bO);
             if useReg
                 call = @(x, varargin) x{1}(varargin{:});

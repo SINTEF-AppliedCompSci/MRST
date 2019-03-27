@@ -254,7 +254,9 @@ methods
         end
         [state, report] = updateAfterConvergence@PhysicalModel(model, state0, state, dt, drivingForces);
         report.FacilityReport = f_report;
-        state.sMax = max(state.sMax, state.s);
+        if isfield(state, 'sMax')
+            state.sMax = max(state.sMax, state.s);
+        end
     end
 
     % --------------------------------------------------------------------%
