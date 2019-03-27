@@ -96,7 +96,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             scaling(wT  < 1e-3) = 1e6;
         end
 
-        function [fn, index] = getVariableField(model, name)
+        function [fn, index] = getVariableField(model, name, varargin)
             switch(lower(name))
                 case {'z', 'components'}
                     % Overall mole fraction
@@ -129,7 +129,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                         index = find(sub);
                     else
                         % This will throw an error for us
-                        [fn, index] = getVariableField@ReservoirModel(model, name);
+                        [fn, index] = getVariableField@ReservoirModel(model, name, varargin{:});
                     end
             end
         end
