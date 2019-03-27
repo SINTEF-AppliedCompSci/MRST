@@ -38,6 +38,6 @@ function [vO, bO, mobO, rhoO, p, upco, dpO] = getFluxAndPropsOil_BO_BCP(...
     end
     
     % oil upstream-index
-    upco = (double(dpO)<=0);
+    upco = (value(dpO)<=0);
     vO   = - s.faceUpstr(upco, mobO).*T.*dpO;
 end

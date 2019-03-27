@@ -42,6 +42,7 @@ regnum(ijk{3}==2) = 2;
 
 % Rock
 K = [100 0.1].*milli*darcy;
+clear rock
 rock.perm = K(1).*ones(G.cells.num,1);
 rock.perm(regnum==2) = K(2);
 rock.poro = 0.1.*ones(G.cells.num,1);
