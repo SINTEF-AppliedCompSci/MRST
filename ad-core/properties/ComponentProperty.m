@@ -18,10 +18,12 @@ classdef ComponentProperty
                 gp = gp.dependsOn(deps); %#ok virtual class
                 % Manage external dependencies
                 exts = vertcat(exts{~cellfun(@isempty, exts)});
-                names = {exts.name};
-                [~, pos] = unique(names);
-                exts = exts(pos);
-                gp = gp.dependsOn(exts); %#ok virtual class
+                if ~isempty(exts)
+                    names = {exts.name};
+                    [~, pos] = unique(names);
+                    exts = exts(pos);
+                    gp = gp.dependsOn(exts); %#ok virtual class
+                end
             end
         end
     end
