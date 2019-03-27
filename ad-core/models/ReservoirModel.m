@@ -144,7 +144,9 @@ methods
         % Define the maximum allowable time-step based on physics or
         % discretization choice
         dt = getMaximumTimestep@PhysicalModel(model, state, state0, dt, drivingForces);
-        dt = model.FluxDiscretization.getMaximumTimestep(model, state, state0, dt, drivingForces);
+        if ~isempty(model.FluxDiscretization)
+            dt = model.FluxDiscretization.getMaximumTimestep(model, state, state0, dt, drivingForces);
+        end
     end
     
     function [model, state] = prepareReportstep(model, state, state0, dt, drivingForces)
@@ -159,7 +161,9 @@ methods
         if ~isempty(drivingForces.W)
             [model.FacilityModel, state] = model.FacilityModel.prepareTimestep(state, state0, dt, drivingForces);
         end
-        [model.FluxDiscretization, state] = model.FluxDiscretization.prepareTimestep(model, state, state0, dt, drivingForces);
+        if ~isempty(model.FluxDiscretization)
+            [model.FluxDiscretization, state] = model.FluxDiscretization.prepareTimestep(model, state, state0, dt, drivingForces);
+        end
     end
 
     % --------------------------------------------------------------------%
@@ -375,9 +379,9 @@ methods
 
     function containers = getPropertyFunctions(model)
         containers = getPropertyFunctions@PhysicalModel(model);
-        assert(not(isempty(model.FlowPropertyFunctions)), ...
-            'PropertyFunctions not initialized - did you call "validateModel"?');
-        containers = [containers, {model.FlowPropertyFunctions, model.FluxDiscretization}];
+        extra = {model.FlowPropertyFunctions, model.FluxDiscretization};
+        extra = extra(~cellfun(@isempty, extra));
+        containers = [containers, extra];
     end
     % --------------------------------------------------------------------%
     function names = getComponentNames(model) %#ok
