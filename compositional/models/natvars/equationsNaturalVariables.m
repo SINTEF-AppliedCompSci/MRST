@@ -168,14 +168,14 @@ for i = 1:ncomp-1
 end
 
 for i = 1:ncomp
-    y{i} = ~pureLiquid.*x{i} + double(x{i}).*pureLiquid;
+    y{i} = ~pureLiquid.*x{i} + value(x{i}).*pureLiquid;
     if any(twoPhase)
         if ~opt.resOnly
             assert(isa(y{i}, 'ADI'));
         end
         y{i}(twoPhase) = w{i};
     end
-    x{i}(pureVapor) = double(x{i}(pureVapor));
+    x{i}(pureVapor) = value(x{i}(pureVapor));
 end
 
 
@@ -206,7 +206,7 @@ gdz = model.getGravityGradient();
 rhoOf  = s.faceAvg(sO.*rhoO)./max(s.faceAvg(sO), 1e-8);
 mobO   = krO./muO;
 dpO    = s.Grad(p) - rhoOf.*gdz;
-upco  = (double(dpO)<=0);
+upco  = (value(dpO)<=0);
 vO = -s.faceUpstr(upco, mobO).*T.*dpO;
 
 % Gas flux
@@ -220,7 +220,7 @@ else
 end
 dpG    = s.Grad(pG) - rhoGf.*gdz;
 
-upcg  = (double(dpG)<=0);
+upcg  = (value(dpG)<=0);
 vG = -s.faceUpstr(upcg, mobG).*T.*dpG;
 
 rOvO = s.faceUpstr(upco, rhoO).*vO;
@@ -253,7 +253,7 @@ if model.water
     mobW   = krW./muW;
 
     dpW    = s.Grad(p - pcOW) - rhoWf.*gdz;
-    upcw  = (double(dpW)<=0);
+    upcw  = (value(dpW)<=0);
     vW = -s.faceUpstr(upcw, mobW).*T.*dpW;
     rWvW = s.faceUpstr(upcw, bW).*vW;
     water = (1/dt).*(pv.*bW.*sW - pv0.*bW0.*sW0);
@@ -295,16 +295,16 @@ for i = 1:ncomp
                     pv.*rhoG.*sG.*yM{i} - pv0.*rhoG0.*sG0.*yM0{i});
     vi = rOvO.*s.faceUpstr(upco, xM{i}) + rGvG.*s.faceUpstr(upcg, yM{i});
     divTerm{i} = s.Div(vi);
-    compFlux(model.operators.internalConn,i) = double(vi);
+    compFlux(model.operators.internalConn,i) = value(vi);
     if opt.reduceToPressure
         C{i} = eqs{i};
     end
 end
 state.componentFluxes = compFlux;
 if model.water
-    mf = [model.fluid.rhoWS.*double(rWvW), double(rOvO), double(rGvG)];
+    mf = [model.fluid.rhoWS.*value(rWvW), value(rOvO), value(rGvG)];
 else
-    mf = [double(rOvO), double(rGvG)];
+    mf = [value(rOvO), value(rGvG)];
 end
 state.massFlux = zeros(model.G.faces.num, 2 + model.water);
 state.massFlux(model.operators.internalConn, :) = mf;
@@ -423,7 +423,7 @@ else
     end
     
     if model.water
-        eqs{ncomp+1} = eqs{ncomp+1}.*(dt./(s.pv.*model.fluid.rhoWS.*double(bW)));
+        eqs{ncomp+1} = eqs{ncomp+1}.*(dt./(s.pv.*model.fluid.rhoWS.*value(bW)));
     end
     if model.reduceLinearSystem
         problem = ReducedLinearizedSystem(eqs, types, names, primaryVars, state, dt);

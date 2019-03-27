@@ -96,6 +96,10 @@ classdef FastAD
             v = v.val;
         end
         
+        function v = value(v)
+            v = v.val;
+        end
+        
         function h = power(u,v)% '.^'
             if ~isa(v,'FastAD') % v is a scalar
                 vv = u.val.^v;
