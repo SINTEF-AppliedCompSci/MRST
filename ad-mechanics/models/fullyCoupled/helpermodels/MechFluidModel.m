@@ -94,13 +94,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             error('Base class function not meant for direct use.');
         end
 
-        function [fn, index] = getVariableField(model, name)
+        function [fn, index] = getVariableField(model, name, varargin)
             if ismember(name, model.fluidfds)
                 [fn, index] = model.fluidModel.getVariableField(name);
             elseif ismember(name, model.mechfds)
                 [fn, index] = model.mechModel.getVariableField(name);
             else
-                [fn, index] = getVariableField@ReservoirModel(model, name);
+                [fn, index] = getVariableField@ReservoirModel(model, name, varargin{:});
             end
         end
 

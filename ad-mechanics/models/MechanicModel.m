@@ -153,7 +153,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             forces.fluidp = [];
         end
 
-        function [fn, index] = getVariableField(model, name)
+        function [fn, index] = getVariableField(model, name, varargin)
         % Get the index/name mapping for the model (such as where
         % pressure or water saturation is located in state)
             switch(lower(name))
@@ -185,7 +185,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 index = ':';
               otherwise
                 % This will throw an error for us
-                [fn, index] = getVariableField@PhysicalModel(model, name);
+                [fn, index] = getVariableField@PhysicalModel(model, name, varargin{:});
             end
         end
 
