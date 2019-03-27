@@ -54,6 +54,7 @@ properties
     FacilityModel % Facility model used to represent wells
     FlowPropertyFunctions % Grouping for flow properties
     FluxDiscretization % Grouping for flux discretization
+    Components = {};
 end
 
 methods
@@ -513,6 +514,15 @@ methods
         index = find(active == phasename);
     end
 
+    % --------------------------------------------------------------------%
+    function n = getNumberOfComponents(model)
+        n = numel(model.Components);
+    end
+        
+    function n = getNumberOfPhases(model)
+        n = sum(model.getActivePhases());
+    end
+        
     % --------------------------------------------------------------------%
     function state = updateSaturations(model, state, dx, problem, satVars)
         % Update of phase-saturations

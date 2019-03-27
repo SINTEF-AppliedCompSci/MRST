@@ -33,15 +33,7 @@ classdef GenericBlackOil < ThreePhaseBlackOilModel & ExtendedReservoirModel
         function names = getComponentNames(model)
             names = cellfun(@(x) x.name, model.Components, 'UniformOutput', false);
         end
-        
-        function n = getNumberOfComponents(model)
-            n = numel(model.Components);
-        end
-        
-        function n = getNumberOfPhases(model)
-            n = model.water + model.oil + model.gas;
-        end
-        
+
         function [state, report] = updateState(model, state, problem, dx, forces)
             [state, report] = updateState@ThreePhaseBlackOilModel(model, state, problem, dx, forces);
             if ~isempty(model.FacilityModel)
