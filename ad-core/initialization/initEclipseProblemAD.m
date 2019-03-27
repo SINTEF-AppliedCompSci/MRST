@@ -45,7 +45,7 @@ function [state0, model, schedule, nonlinear] = initEclipseProblemAD(deck, varar
     % the uniform facility model, which is vectorized and faster when many
     % wells are present
     cnames = model.getComponentNames();
-    if isempty(cnames) && opt.UniformFacilityModel
+    if isempty(cnames) && opt.UniformFacilityModel && ~isa(model, 'ExtendedReservoirModel')
         model.FacilityModel = UniformFacilityModel(model);
     end
     % Set up schedule
