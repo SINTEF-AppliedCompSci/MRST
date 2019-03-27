@@ -260,6 +260,9 @@ end
 
 % Add well to well structure. ---------------------------------------------
 %
+if numel(opt.Radius) == 1
+    opt.Radius = repmat(opt.Radius, numC, 1);
+end
 W  = [W; struct('cells'    , reshape(cellInx, [], 1), ...
                 'type'     , opt.Type,             ...
                 'val'      , opt.Val,              ...
