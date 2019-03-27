@@ -9,8 +9,8 @@ function [up, theta, r] = multiphaseUpwindIndices(G, vT, T, K, upstr)
         up = true(nF, nPh);
         return
     end
-    G = flattenAndMakeDouble(G);
-    K = flattenAndMakeDouble(K);
+    G = value(G);
+    K = value(K);
     % Sort phases for each interface by potential
     [G, sortInd] = sort(G, 2);
     % Get the linear index for this sorting
@@ -47,11 +47,6 @@ function [up, theta, r] = multiphaseUpwindIndices(G, vT, T, K, upstr)
     end
     % Permute back to original ordering
     up(subs) = up;
-end
-
-function d = flattenAndMakeDouble(d)
-    d = cellfun(@double, d, 'UniformOutput', false);
-    d = [d{:}];
 end
 
 %{
