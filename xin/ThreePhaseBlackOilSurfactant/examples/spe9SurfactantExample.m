@@ -1,16 +1,13 @@
-%% 1D Tutorial For a Oil-Water-Surfactant system
+%% SPE9 model For ad BlackOil-Surfactant system
 % The input data is read from a deck using Eclipse format
-% (BLACKOILSURFACTANT1D.DATA). The surfactant property (see file surfact.inc) are taken
+% (Sft_SPE9.DATA, Sft_SPE9.GRDECL, Sft_INITSOL.INC). The surfactant property (see file surfact.inc) are taken
 % from SPE paper 145036.
 %
 % Surfactant is added to water in order to decrease the surface tension so that,
 % in particular, the residual oil is mobilized. See more detail about the
 % modeling equations in ad-eor/docs
 %
-% In this example, water and surfactant are injected at the left-hand side and
-% oil is produced at the right-hand side at a given pressure.
-%
-% In a first period, only water is injected. Then, for a second period,
+% In a first period, only water is injected. Then, for the second and third period,
 % surfactant is added to the water.
 
 %% We load the necessary modules
