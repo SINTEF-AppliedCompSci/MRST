@@ -82,7 +82,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         if isMass
             eq = eq.*rhoS(:, ph);
         end
-        B = 1./value(b{ph});
+        if isempty(b{ph})
+            B = 1;
+        else
+            B = 1./value(b{ph});
+        end
         B_avg = mean(B);
         % Volume error: Maximum point-wise saturation error, scaled to
         % surface volume via average b-factor for phase
