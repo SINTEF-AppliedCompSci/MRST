@@ -91,14 +91,14 @@ function [sor, sgc] = solveSr(fluid, p)
     
     tol = 1e-10;
     eqs = fun(sor);
-    err = norm(double(eqs), inf);
+    err = norm(value(eqs), inf);
     while err > tol
         
         dsr = -eqs.jac{1}\eqs.val;
         sor = sor + dsr;
         
         eqs = fun(sor);
-        err = norm(double(eqs), inf);
+        err = norm(value(eqs), inf);
         
     end
     
@@ -110,18 +110,18 @@ function [sor, sgc] = solveSr(fluid, p)
     sgc = initVariablesADI(fluid.sGc_i*ones(n,1));
     
     eqs = fun(sgc);
-    err = norm(double(eqs), inf);
+    err = norm(value(eqs), inf);
     while err > tol
         
         dsc = -eqs.jac{1}\eqs.val;
         sgc = sgc + dsc;
         
         eqs = fun(sgc);
-        err = norm(double(eqs), inf);
+        err = norm(value(eqs), inf);
         
     end
-    
-    
+    sor = value(sor);
+    sgc = value(sgc);
 end
                  
                  
