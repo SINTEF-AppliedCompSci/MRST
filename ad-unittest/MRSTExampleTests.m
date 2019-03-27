@@ -64,13 +64,15 @@ end
 
 function [names, modules] = getSkippedTests()
     names = {
-        'showOptionsAMGCL.m', ... % Does not work due to uiwait
-        'SPE10SubsetADIExample.m', ... % Takes too long to run, ad-fi
+        'showOptionsAMGCL', ... % Does not work due to uiwait
+        'SPE10SubsetADIExample', ... % Takes too long to run, ad-fi
             };
+    names = cellfun(@(x) [x, '.m'], names, 'UniformOutput', false);
     modules = {'matlab_bgl'};
 end
 
 function [m, g, v, d, p] = clear_env
+   close all;
    m = mrstModule;
    g = gravity;
    v = mrstVerbose;
@@ -90,6 +92,7 @@ end
 %--------------------------------------------------------------------------
 
 function restore_env(m, g, v, d, p)
+   close all;
    mrstVerbose(v);
 
    gravity(g)
