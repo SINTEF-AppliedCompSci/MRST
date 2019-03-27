@@ -5,7 +5,7 @@ classdef MockPhysicalModel < PhysicalModel
             model = model@PhysicalModel([]);
         end
         
-        function [fn, index] = getVariableField(model, name)
+        function [fn, index] = getVariableField(model, name, varargin)
             % Get the index/name mapping for the model (such as where
             % pressure or water saturation is located in state)
             switch(lower(name))
@@ -23,7 +23,7 @@ classdef MockPhysicalModel < PhysicalModel
                     index = 1;
                 otherwise
                     % This will throw an error for us
-                    [fn, index] = getVariableField@PhysicalModel(model, name);
+                    [fn, index] = getVariableField@PhysicalModel(model, name, varargin{:});
             end
         end
     end
