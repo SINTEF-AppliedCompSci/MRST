@@ -57,8 +57,8 @@ switch example_name
     % We use deck input. For such input, different relative permeabilities can be
     % assigned to different cell. In our case, they are the same everywhere and
     % we choose the first cell to comput them for plotting.
-    krW = fluid.krW(s, 'cellInx', 1);
-    krOW = fluid.krOW(s, 'cellInx', 1);
+    krW = fluid.krW{1}(s);
+    krOW = fluid.krOW{1}(s);
     krWSft = fluid.krWSft(s, 'cellInx', 1);
     krOWSft = fluid.krOWSft(s, 'cellInx', 1);
   case 'spe10'
