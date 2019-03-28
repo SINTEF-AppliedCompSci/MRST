@@ -87,7 +87,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     dpW    = s.Grad(pW) - rhoWf.*gdz;
     
     % water upstream-index
-    upcw  = (double(dpW)<=0);
+    upcw  = (value(dpW)<=0);
     [krWf, krW   ] = s.splitFaceCellValue(s, upcw, krW);
     [muWf, muWeff] = s.splitFaceCellValue(s, upcw, muWeff);
     mobW   = krW./muWeff;
