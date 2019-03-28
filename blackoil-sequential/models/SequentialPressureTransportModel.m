@@ -256,8 +256,8 @@ classdef SequentialPressureTransportModel < ReservoirModel
             return
         end
 
-        function [fn, index] = getVariableField(model, name)
-            [fn, index] = model.pressureModel.getVariableField(name);
+        function [fn, index] = getVariableField(model, name, varargin)
+            [fn, index] = model.pressureModel.getVariableField(name, varargin{:});
         end
     end
 end
