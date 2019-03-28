@@ -170,7 +170,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 % same as 'u' but the degree of freedom where the Dirichlet conditions (fixed
                 % displacement) are removed
                 fn = 'xd';
-                index = 1;
+                index = ':';
               case {'stress'}
                 % Stress tensor (Voigt notation, one column per component)
                 fn = 'stress';
