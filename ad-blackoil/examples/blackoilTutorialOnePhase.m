@@ -38,7 +38,8 @@ fluid = initSimpleADIFluid('phases','W',           ... % Fluid phase: water
 % vector pointing in the negative y-direction.
 gravity reset on
 wModel = WaterModel(G, rock, fluid,'gravity',[0 -norm(gravity)]);
-
+% Prepare the model for simulation.
+wModel = wModel.validateModel();
 %% Drive mechansims and schedule
 % The second thing we need to specify is the mechanisms that will drive
 % flow in the reservoir, i.e., the wells and boundary conditions. These may
@@ -68,12 +69,12 @@ schedule2 = simpleSchedule(diff(linspace(0,5*day,41)), 'W', W);
 % state also includes the phase saturations and compositions. In our case,
 % we first set a constant pressure, and call on a solver from |ad-core| to
 % compute vertical equilibrium.
-state.pressure = ones(G.cells.num,1)*pR;                % Constant pressure
+state = initResSol(G, pR); % Constant pressure
 state.wellSol  = initWellSolAD([], wModel, state);      % No well initially
 
 % Vertical equilibrium
 verbose = false;
-nonlinear = NonLinearSolver;
+nonlinear = NonLinearSolver();
 state = nonlinear.solveTimestep(state, 10000*day, wModel, 'bc', bc);
 
 clf,

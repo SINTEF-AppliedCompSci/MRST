@@ -19,7 +19,7 @@ mrstModule add ad-blackoil ad-props deckformat ad-core mrst-gui
 [G, rock, fluid, deck, state] = setupSPE1();
 [nx, ny] = deal(G.cartDims(1),G.cartDims(2));
 
-model = selectModelFromDeck(G, rock, fluid, deck);
+model = ThreePhaseBlackOilModel(G, rock, fluid, 'inputdata', deck);
 % Add extra output
 model.extraStateOutput = true;
 
@@ -122,6 +122,10 @@ schedule.control.W = W;
 % simulator, but we do it explicitly on the outside to view the output
 % classes. This approach is practical if per-well adjustments to e.g.
 % tolerances are desired.
+
+% First, validate the model to set up a FacilityModel
+model = model.validateModel();
+% Then apply the new wells to the FacilityModel
 model.FacilityModel = model.FacilityModel.setupWells(W);
 
 % View the simple injector
