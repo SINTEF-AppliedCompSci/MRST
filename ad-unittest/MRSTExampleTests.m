@@ -72,7 +72,9 @@ function [names, modules] = getSkippedTests()
         'runNorneExample' ... % Takes too long to run
             };
     names = cellfun(@(x) [x, '.m'], names, 'UniformOutput', false);
-    modules = {'matlab_bgl', 'octave'};
+    modules = {'matlab_bgl', 'octave', ...
+               'stokes-brinkman', 'mrst-experimental',...
+               'impes', 'ad-fi'};
 end
 
 function [m, g, v, d, p] = clear_env
