@@ -4,7 +4,7 @@ function [states, failure] = runSimulationProblem(model, state0, schedule, varar
                  'useAGMG', false, ...
                  'selectLinearSolver', false, ...
                  'stepcount',   inf, ...
-                 'cprTol', 1e-2 ...
+                 'cprTol', 1e-3 ...
                 );
    
     opt = merge_options(opt, varargin{:});
@@ -17,7 +17,7 @@ function [states, failure] = runSimulationProblem(model, state0, schedule, varar
     if opt.useCPR
         if opt.useAGMG
             mrstModule add agmg
-            ellipSolver = AGMGSolverAD();
+            ellipSolver = AGMGSolverAD('tolerance', 1e-2');
         else
             ellipSolver = BackslashSolverAD();
         end
