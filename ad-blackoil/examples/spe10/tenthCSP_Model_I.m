@@ -68,9 +68,9 @@ fluid = initSimpleADIFluid('mu'    , [  1, 0.01]*centi*poise, ...
 %%
 % Replace the synthetic relative permeability curves created through
 % function |initSimpleADIFluid| with the real benchmark values.
-fluid_kr  = initDeckADIFluid(kr_deck);  clear kr_deck
-fluid.krG = fluid_kr.krG;
-fluid.krO = fluid_kr.krOG;              clear fluid_kr
+fluid_kr = assignSGOF(fluid, kr_deck.PROPS.SGOF, struct('sat', 1));
+fluid.krG = fluid_kr.krG{1};
+fluid.krO = fluid_kr.krOG{1};              clear fluid_kr
 
 %%
 % The <matlab:mrstModule('add','spe10') SPE 10 module> contains the special
@@ -79,7 +79,8 @@ fluid.krO = fluid_kr.krOG;              clear fluid_kr
 
 %% Form Reservoir Model
 % This is an incompressible, immiscible oil/gas system.
-model = TwoPhaseOilGasModel(G, rock, fluid, 'gravity', gravity);
+model = GenericBlackOil(G, rock, fluid, 'gravity', gravity, 'disgas', false,...
+    'vapoil', false, 'water', false, 'oil', true, 'gas', true);
 
 %% Initialise Formation
 % Formation is initially filled with oil and the initial pressure at the

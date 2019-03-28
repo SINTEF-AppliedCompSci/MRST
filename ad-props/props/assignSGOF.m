@@ -7,7 +7,12 @@ function [krG, krOG, pcOG, pts, pts_o] = getFunctions(f, SGOF, reg)
     
     [pts, pts_o] = deal(zeros(reg.sat, 4));
     for i = 1:reg.sat
-        swcon = f.krPts.w(i, 1);
+        if isfield(f, 'krPts')
+            swcon = f.krPts.w(i, 1);
+        else
+            warning('No relperm points found in assignment of SGOF.');
+            swcon = 0;
+        end
         [pts(i, :), pts_o(i, :)] = getPoints(SGOF{i}, swcon);
         sgof = extendTab(SGOF{i});
         SG = sgof(:, 1);
