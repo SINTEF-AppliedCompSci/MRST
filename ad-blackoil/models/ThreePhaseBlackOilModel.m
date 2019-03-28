@@ -369,8 +369,7 @@ methods
             rs = state.rs;
             rv = state.rv;
             cfac = 1./(1 - model.disgas*model.vapoil*rs.*rv);
-            fp = model.FlowPropertyFunctions;
-            b = fp.getProperty(model, state, 'ShrinkageFactors');
+            [b, rs, rv] = model.getProps(state, 'ShrinkageFactors', 'rs', 'rv');
             ph = model.getPhaseNames();
             
             iso = ph == 'O';
@@ -386,9 +385,6 @@ methods
             if any(isg)
                 bG = b{isg};
             end
-            sat = problem.state.s;
-            rs = rs.*(sat(:, 3) == 0);
-            rv = rv.*(sat(:, 2) == 0);
             for iter = 1:nNames
                 name = lower(names{iter});
                 switch name
