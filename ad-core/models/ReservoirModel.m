@@ -1354,7 +1354,7 @@ methods (Static)
                 swcon = f.sWcon(varargin{2});
             end
         end
-        swcon = min(swcon, double(sw)-1e-5);
+        swcon = min(swcon, value(sw)-1e-5);
 
         d  = (sg+sw-swcon);
         ww = (sw-swcon)./d;

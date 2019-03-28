@@ -44,13 +44,13 @@ classdef TransportOverallCompositionModel < OverallCompositionCompositionalModel
             state.sT = ones(model.G.cells.num, 1);
         end
         
-        function [fn, index] = getVariableField(model, name)
+        function [fn, index] = getVariableField(model, name, varargin)
             switch(lower(name))
                 case {'st'}
                     fn = 'sT';
                     index = 1;
                 otherwise
-                    [fn, index] = getVariableField@OverallCompositionCompositionalModel(model, name);
+                    [fn, index] = getVariableField@OverallCompositionCompositionalModel(model, name, varargin{:});
             end
         end
         

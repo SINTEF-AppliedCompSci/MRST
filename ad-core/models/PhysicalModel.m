@@ -854,7 +854,8 @@ methods
                     return
                 end
             end
-            error('Unknown variable field %s', name);
+            error('PhysicalModel:UnknownVariable', ...
+                'Unknown variable field %s', name);
         else
             if iscell(state.(fn))
                 p = state.(fn){index};
@@ -955,7 +956,6 @@ methods
         if ischar(index) && strcmp(index, ':') || unit
             state.(fn) = value;
         else
-            assert(present);
             if isa(value, 'ADI') && ~iscell(state.(fn))
                 % Expand to cell array since AD does not support matrices
                 sz = size(state.(fn), 2);

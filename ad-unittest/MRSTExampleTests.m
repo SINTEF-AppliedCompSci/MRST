@@ -15,8 +15,7 @@ classdef MRSTExampleTests < matlab.unittest.TestCase
             disp(name)
             [m, g, v, d, p] = clear_env();
             mrstModule('add', module);
-            disp(module)
-            run(name);
+            runScoped(name);
             restore_env(m, g, v, d, p);
         end
     end
@@ -24,6 +23,10 @@ end
 
 function names = getTestNames()
     names = getTestNamesInternal();
+end
+
+function runScoped(name)
+    run(name);
 end
 
 function mods = getTestModules()
@@ -64,13 +67,15 @@ end
 
 function [names, modules] = getSkippedTests()
     names = {
-        'showOptionsAMGCL.m', ... % Does not work due to uiwait
-        'SPE10SubsetADIExample.m', ... % Takes too long to run, ad-fi
+        'showOptionsAMGCL', ... % Does not work due to uiwait
+        'SPE10SubsetADIExample', ... % Takes too long to run, ad-fi
             };
-    modules = {'matlab_bgl'};
+    names = cellfun(@(x) [x, '.m'], names, 'UniformOutput', false);
+    modules = {'matlab_bgl', 'octave'};
 end
 
 function [m, g, v, d, p] = clear_env
+   close all;
    m = mrstModule;
    g = gravity;
    v = mrstVerbose;
@@ -90,16 +95,14 @@ end
 %--------------------------------------------------------------------------
 
 function restore_env(m, g, v, d, p)
+   close all;
    mrstVerbose(v);
 
    gravity(g)
    if norm(g) > 0
       gravity on
    end
-
    mrstModule('reset', m{:});
-
    mrstDataDirectory(d);
-
    pause(p);
 end

@@ -112,7 +112,7 @@ gdz = model.getGravityGradient();
 rhoOf  = s.faceAvg(sO.*rhoO)./max(s.faceAvg(sO), 1e-8);
 mobO   = krO./muO;
 dpO    = s.Grad(p) - rhoOf.*gdz;
-upco  = (double(dpO)<=0);
+upco  = (value(dpO)<=0);
 vO = -s.faceUpstr(upco, mobO).*T.*dpO;
 
 % Gas flux
@@ -125,7 +125,7 @@ else
     pG = p;
 end
 dpG    = s.Grad(pG) - rhoGf.*gdz;
-upcg  = (double(dpG)<=0);
+upcg  = (value(dpG)<=0);
 vG = -s.faceUpstr(upcg, mobG).*T.*dpG;
 
 rOvO = s.faceUpstr(upco, rhoO).*vO;
@@ -151,7 +151,7 @@ if model.water
         pW = p;
     end
     dpW    = s.Grad(pW) - rhoWf.*gdz;
-    upcw  = (double(dpW)<=0);
+    upcw  = (value(dpW)<=0);
     vW = -s.faceUpstr(upcw, mobW).*T.*dpW;
     rWvW = s.faceUpstr(upcw, bW).*vW;
     water = (s.pv/dt).*( bW.*pvMult.*sW - bW0.*pvMult0.*sW0 ) + s.Div(rWvW);
@@ -191,12 +191,12 @@ for i = 1:ncomp
     eqs{i+woffset} = acc{i+woffset} ...
           + s.Div(rOvO.*s.faceUpstr(upco, xM{i}) + rGvG.*s.faceUpstr(upcg, yM{i}));
     if model.water
-        pureWater = double(sW) == 1;
+        pureWater = value(sW) == 1;
         if any(pureWater)
             % Cells with pure water should just retain their composition to
             % avoid singular systems
             eqs{i+woffset}(pureWater) = eqs{i+woffset}(pureWater) + ...
-                            1e-3*(z{i}(pureWater) - double(z{i}(pureWater)));
+                            1e-3*(z{i}(pureWater) - value(z{i}(pureWater)));
         end
     end
 end
@@ -237,7 +237,7 @@ end
 
 if ~opt.pressure
     if model.water
-        wscale = dt./(s.pv*mean(double(bW)));
+        wscale = dt./(s.pv*mean(value(bW)));
         eqs{1} = eqs{1}.*wscale;
     end
     massT = model.getComponentScaling(state0);
@@ -283,7 +283,7 @@ if opt.pressure
             w = w./sum(state.rho.*state.s, 2);
             for i = 1:ncomp+wat
                 wi = w(:, i);
-                if opt.iteration == 1 || isa(p, 'double') 
+                if opt.iteration == 1 || isa(p, 'value') 
                     Wp = wi;
                 else
                     ddp = (state.pressure - state.pressurePrev);

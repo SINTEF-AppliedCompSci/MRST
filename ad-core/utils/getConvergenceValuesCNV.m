@@ -76,30 +76,34 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             rhoS = rhoS(pvtreg, :);
         end
     end
+    active = true(nph, 1);
     for ph = 1:nph
         eq_ix = problem.indexOfEquationName(phaseNames{ph});
-        eq = value(problem.equations{eq_ix});
-        if isMass
-            eq = eq.*rhoS(:, ph);
+        active(ph) = any(eq_ix);
+        if active(ph)
+            eq = value(problem.equations{eq_ix});
+            if isMass
+                eq = eq.*rhoS(:, ph);
+            end
+            if isempty(b{ph})
+                B = 1;
+            else
+                B = 1./value(b{ph});
+            end
+            B_avg = mean(B);
+            % Volume error: Maximum point-wise saturation error, scaled to
+            % surface volume via average b-factor for phase
+            CNV(ph) = B_avg*dt*max(abs(eq)./pv);
+            % Total mass balance error
+            MB(ph) = abs(B_avg*sum(eq))/pvt;
+            evaluated(eq_ix) = true;
         end
-        if isempty(b{ph})
-            B = 1;
-        else
-            B = 1./value(b{ph});
-        end
-        B_avg = mean(B);
-        % Volume error: Maximum point-wise saturation error, scaled to
-        % surface volume via average b-factor for phase
-        CNV(ph) = B_avg*dt*max(abs(eq)./pv);
-        % Total mass balance error
-        MB(ph) = abs(B_avg*sum(eq))/pvt;
-        evaluated(eq_ix) = true;
     end
     mb_names = arrayfun(@(x) ['MB_', x], shortPhase, 'UniformOutput', false);
     cnv_names = arrayfun(@(x) ['CNV_', x], shortPhase, 'UniformOutput', false);
 
     % Combine
-    tolerances = [repmat(tol_cnv, size(CNV)), repmat(tol_mb, size(MB))];
-    values = [CNV, MB];
-    names = [cnv_names, mb_names];
+    tolerances = [repmat(tol_cnv, 1, sum(active)), repmat(tol_mb, 1, sum(active))];
+    values = [CNV(active), MB(active)];
+    names = [cnv_names(active), mb_names(active)];
 end

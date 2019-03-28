@@ -81,15 +81,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          N = numel(opt.cellInx);
       end
    else
-      N = numel(double(val));
+      N = numelValue(val);
    end
 
-   if isempty(opt.cellInx),
-      if nt == 1,
+   if isempty(opt.cellInx)
+      if nt == 1
          reginx = { ':' };
       else
          % Entire domain.
-         if N ~= numel(REGNUM),
+         if N ~= numel(REGNUM)
             % Do not use NUMEL in case of ADI.
             error('Region reference for input undefined');
          end
@@ -103,13 +103,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       cellInx = opt.cellInx;
       regnum  = REGNUM(cellInx);
       if numel(cellInx) > 1
-         if N ~= numel(cellInx),
+         if N ~= numel(cellInx)
             % Do not use NUMEL in case of ADI.
             error('Number of cell indices must be same as input values');
          end
          reginx = arrayfun(@(x) find(x == regnum), 1 : nt, ...
                            'UniformOutput', false);
-      elseif numel(cellInx) == 1,
+      elseif numel(cellInx) == 1
          % Allow single input (for exploring single cell functions).
          reginx         = cell(1, nt);
          reginx(regnum) = {(1:N)'};

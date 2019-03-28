@@ -25,11 +25,13 @@ classdef ScheduleTest < matlab.unittest.TestCase
             gravity reset off
 
             test.outputPath = fullfile(...
-                mrstOutputDirectory,...
+                mrstOutputDirectory(),...
                 'TestOutput', ...
                 'ScheduleTest'...
                 );
-            
+            if ~exist(test.outputPath, 'dir')
+                mkdir(test.outputPath);
+            end
             test = merge_options(test, varargin{:});
             
             if ~(exist(test.outputPath, 'dir') == 7)
@@ -83,11 +85,11 @@ classdef ScheduleTest < matlab.unittest.TestCase
             % Store well sols
             if isfield(res_states{1}, 'wellSol')
                 d = clock();
-                clockstr = [sprintf('%02d', d(4)), ':', sprintf('%02d', d(5))];
+                clockstr = [sprintf('%02d', d(4)), sprintf('%02d', d(5))];
                 datestr = [date(), '-', clockstr];
                 
                 fn = [fullfile(test.outputPath, [name, '-wellsols-', datestr]), '.mat'];
-                timesteps = test.schedule.step.val; %#ok 
+                timesteps = test.schedule.step.val;
                 wellSols = cellfun(@(x) x.wellSol, res_states, 'UniformOutput', false); %#ok
                 save(fn, 'wellSols', 'timesteps');
             end

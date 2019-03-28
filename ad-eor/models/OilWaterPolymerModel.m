@@ -101,7 +101,7 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
         end
 
 
-        function [fn, index] = getVariableField(model, name)
+        function [fn, index] = getVariableField(model, name, varargin)
             % Get the index/name mapping for the model (such as where
             % pressure or water saturation is located in state)
             index = 1;
@@ -116,7 +116,7 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
                     end
                 otherwise
                     [fn, index] = getVariableField@TwoPhaseOilWaterModel(...
-                                    model, name);
+                                    model, name, varargin{:});
             end
         end
 

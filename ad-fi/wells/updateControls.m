@@ -10,8 +10,8 @@ function [sol, withinLims] = updateControls(W, sol, pBH, q_s, model, varargin)
       nwells     = numel(sol);
       withinLims = true(nwells,1);
 
-      pBH   = double(pBH);
-      q_s   = cell2mat( cellfun(@double, q_s, 'UniformOutput', false) );
+      pBH   = value(pBH);
+      q_s   = cell2mat( cellfun(@value, q_s, 'UniformOutput', false) );
       q_s = getRatesWOG(q_s, model);
 
       for wnr = 1:numel(sol)
