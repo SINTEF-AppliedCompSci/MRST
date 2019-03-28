@@ -83,7 +83,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         if active(ph)
             eq = value(problem.equations{eq_ix});
             if isMass
-                eq = eq.*rhoS(:, ph);
+                eq = eq./rhoS(:, ph);
             end
             if isempty(b{ph})
                 B = 1;
