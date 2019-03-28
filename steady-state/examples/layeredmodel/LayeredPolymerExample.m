@@ -20,7 +20,7 @@
 mrstModule add steady-state
 
 % We rely on the following MRST modules
-mrstModule add incomp upscaling ad-props ad-core ad-blackoil ad-fi
+mrstModule add incomp upscaling ad-props ad-core ad-blackoil
 
 %% Open a new figure and make it wide
 

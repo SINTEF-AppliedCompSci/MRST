@@ -10,9 +10,6 @@ opt = struct(...
     );
 opt = merge_options(opt, varargin{:});
 
-require ad-fi
-
-
 % Properties
 
 Lz      = opt.Lz;
@@ -203,11 +200,11 @@ iter = 0;
 while ~converged
     iter = iter + 1;
     x  = initVariablesADI(x0);
-    eqs{1} = f(x);
-    dx = SolveEqsADI(eqs, []);
-    x0 = x0 + dx{1};
+    eq = f(x);
+    dx = -eq.jac{1}\eq.val;
+    x0 = x0 + dx;
     
-    if norm(eqs{1}.val, Inf) < 1e-12
+    if norm(eq.val, Inf) < 1e-12
         converged = true;
     end
     if iter >= iterMax
