@@ -364,17 +364,21 @@ methods
         % Take averaged pressure for scaling factors
         state = problem.state;
         fluid = model.fluid;
+        isMass = isa(model, 'ExtendedReservoirModel');
+        if isMass
+            rhoS = model.getSurfaceDensities();
+        end
+        ph = model.getPhaseNames();
+        iso = ph == 'O';
+        isg = ph == 'G';
+        isw = ph == 'W';
+
         if (isprop(solver, 'trueIMPES') || isfield(solver, 'trueIMPES')) && solver.trueIMPES
             % Rigorous pressure equation (requires lots of evaluations)
             rs = state.rs;
             rv = state.rv;
             cfac = 1./(1 - model.disgas*model.vapoil*rs.*rv);
             [b, rs, rv] = model.getProps(state, 'ShrinkageFactors', 'rs', 'rv');
-            ph = model.getPhaseNames();
-            
-            iso = ph == 'O';
-            isg = ph == 'G';
-            isw = ph == 'W';
             [bO, bW, bG] = deal(1);
             if any(isw)
                 bW = b{isw};
@@ -390,10 +394,19 @@ methods
                 switch name
                     case 'oil'
                         s = cfac.*(1./bO - model.disgas*rs./bG);
+                        if isMass
+                            s = s./rhoS(1, iso);
+                        end
                     case 'water'
                         s = 1./bW;
+                        if isMass
+                            s = s./rhoS(1, isw);
+                        end
                     case 'gas'
                         s = cfac.*(1./bG - model.vapoil*rv./bO);
+                        if isMass
+                            s = s./rhoS(1, isg);
+                        end
                     otherwise
                         continue
                 end
@@ -421,9 +434,18 @@ methods
                            bO = call(fluid.bO,p);
                         end
                         s = 1./bO;
+                        if isMass
+                            s = s./rhoS(1, isg);
+                        end
+                        if isMass
+                            s = s./rhoS(1, iso);
+                        end
                     case 'water'
                         bW = call(fluid.bW,p);
                         s = 1./bW;
+                        if isMass
+                            s = s./rhoS(1, isw);
+                        end
                     case 'gas'
                         if model.vapoil
                             rv = call(fluid.rvSat, p);
@@ -432,6 +454,9 @@ methods
                             bG = call(fluid.bG, p);
                         end
                         s = 1./bG;
+                        if isMass
+                            s = s./rhoS(1, isg);
+                        end
                     otherwise
                         continue
                 end
