@@ -15,7 +15,7 @@
 %  46-71, 2016. DOI: 10.1016/j.jcp.2015.10.010
 
 % Load modules
-mrstModule add msrsb incomp coarsegrid mrst-gui msfvm
+mrstModule add msrsb incomp coarsegrid mrst-gui msfvm matlab_bgl
 
 %% We set up the domain
 % The domain consists of 65 by 65 fine cells and a permeability field that

@@ -59,7 +59,7 @@ CG = coarsenGeometry(CG);
 % Store the support of each cell (used by multiscale basis construction)
 CG = storeInteractionRegionCart(CG);
 
-mrstModule add msfvm
+mrstModule add msfvm matlab_bgl
 DG = partitionUIdual(CG, coarsedims);
 DG = makeExplicitDual(CG, DG);
 CG.dual = DG;
