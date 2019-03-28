@@ -69,6 +69,7 @@ function [names, modules] = getSkippedTests()
     names = {
         'showOptionsAMGCL', ... % Does not work due to uiwait
         'SPE10SubsetADIExample', ... % Takes too long to run, ad-fi
+        'runNorneExample' ... % Takes too long to run
             };
     names = cellfun(@(x) [x, '.m'], names, 'UniformOutput', false);
     modules = {'matlab_bgl', 'octave'};
