@@ -17,11 +17,9 @@ mrstModule add deckformat ad-blackoil ad-core blackoil-sequential diagnostics
 model = PressureOilWaterModel(G, rock, fluid);
 schedule = convertDeckScheduleToMRST(model, deck);
 W = schedule.control(1).W;
-state0.wellSol = initWellSolAD(W, model, state0);
 
 % Solve base case
-solver = NonLinearSolver();
-state = solver.solveTimestep(state0, 1*year, model, 'W', W);
+state = standaloneSolveAD(state0, model, 1*year, 'W', W);
 
 %% Go through the different cases and store the diagnostics output
 % There are 100 additional realizatiosn included, for a total of 101
@@ -57,7 +55,8 @@ for i = 1:n
     rock  = initEclipseRock(deck);
     rock = compressRock(rock, G.cells.indexMap);
     model = PressureOilWaterModel(G, rock, fluid);
-    state = solver.solveTimestep(state0, 1*year, model, 'W', W);
+    state = standaloneSolveAD(state0, model, 1*year, 'W', W);
+
     % Compute diagnostics
     tic();
     D = computeTOFandTracer(state, G, rock, 'wells', W);
