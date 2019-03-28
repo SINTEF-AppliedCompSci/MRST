@@ -20,7 +20,10 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
     D = formReconstructionMatrix(A, partition);
-    
+    n = size(A, 1);
+    % Add a tiny bit of noise to overcome a Matlab UMFPACK issue in MRST
+    % 2018b and onwards
+    D = D - sparse(1:n, 1:n, min(diag(A))*1e-12, n, n);
     tmp1 = warning('query','MATLAB:nearlySingularMatrix');
     tmp2 = warning('query','MATLAB:singularMatrix');
     warning('off','MATLAB:nearlySingularMatrix')
