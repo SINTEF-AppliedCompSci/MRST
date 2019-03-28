@@ -71,7 +71,7 @@ function [names, modules] = getSkippedTests()
         'SPE10SubsetADIExample', ... % Takes too long to run, ad-fi
             };
     names = cellfun(@(x) [x, '.m'], names, 'UniformOutput', false);
-    modules = {'matlab_bgl'};
+    modules = {'matlab_bgl', 'octave'};
 end
 
 function [m, g, v, d, p] = clear_env
