@@ -89,10 +89,9 @@ classdef ThreePhaseBlackOilPolymerModel < ThreePhaseBlackOilModel
         end
 
         % --------------------------------------------------------------------%
-        function [fn, index] = getVariableField(model, name)
+        function [fn, index] = getVariableField(model, name, varargin)
             % Get the index/name mapping for the model (such as where
             % pressure or water saturation is located in state)
-            index = 1;
             switch(lower(name))
                 case {'polymer', 'polymermax'}
                     c = model.getComponentNames();
@@ -104,9 +103,10 @@ classdef ThreePhaseBlackOilPolymerModel < ThreePhaseBlackOilModel
                     end
                 case 'qwpoly'
                     fn = 'qWPoly';
+                    index = ':';
                 otherwise
                     [fn, index] = getVariableField@ThreePhaseBlackOilModel(...
-                                    model, name);
+                                    model, name, varargin{:});
             end
         end
 
