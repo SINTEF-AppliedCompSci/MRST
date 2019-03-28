@@ -71,7 +71,7 @@ opt = struct('G',              [], ...
  
 opt = merge_options(opt,varargin{:});
 % reg = handleRegions(deck, opt.G);
-reg = getRegions(deck);
+reg = getRegions(deck, opt);
 
 fluid = struct();
 
@@ -98,8 +98,12 @@ for i = 1:numel(fn)
 end
 end
 
-function reg = getRegions(deck)
-    reg = struct('sat', 1', 'pvt', 1);
+function reg = getRegions(deck, opt)
+    % Legacy regions
+    reg = handleRegions(deck, opt.G);
+    % Modern region treatment
+    reg.sat = 1;
+    reg.pvt = 1;
     if isfield(deck.RUNSPEC, 'TABDIMS')
         tab = deck.RUNSPEC.TABDIMS;
         reg.sat = tab(1);
