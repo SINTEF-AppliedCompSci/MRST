@@ -15,8 +15,7 @@ classdef MRSTExampleTests < matlab.unittest.TestCase
             disp(name)
             [m, g, v, d, p] = clear_env();
             mrstModule('add', module);
-            disp(module)
-            run(name);
+            runScoped(name);
             restore_env(m, g, v, d, p);
         end
     end
@@ -24,6 +23,10 @@ end
 
 function names = getTestNames()
     names = getTestNamesInternal();
+end
+
+function runScoped(name)
+    run(name);
 end
 
 function mods = getTestModules()
@@ -99,10 +102,7 @@ function restore_env(m, g, v, d, p)
    if norm(g) > 0
       gravity on
    end
-
    mrstModule('reset', m{:});
-
    mrstDataDirectory(d);
-
    pause(p);
 end
