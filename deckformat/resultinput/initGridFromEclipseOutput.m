@@ -158,6 +158,18 @@ NY = M(1:end-1, 2:end, 1:end-1); NY = NY(actNum);
 NZ = M(1:end-1, 1:end-1, 2:end); NZ = NZ(actNum);
 clear M
 
+% if transmissibilities are not given in init-file, but NNC's are given,
+% then set TRANNNC to inf and issue warning
+if ~isfield(init, 'TRANNNC') && (isfield(grid, 'NNC1') || isfield(init, 'NNC1'))
+    warning('Transmissibilities for NNCs not given, values are set to inf!');
+    if isfield(grid, 'NNC1')
+        n = numel(grid.NNC1.values);
+    else
+        n = numel(init.NNC1.values);
+    end
+    init.TRANNNC.values = inf(n,1);
+end
+
 %non-neighbouring connections (indices given in full grid -> map to active):
 if isfield(init, 'TRANNNC')
     if isfield(grid, 'NNC1')
