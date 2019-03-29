@@ -95,7 +95,7 @@ if opt.assign_coords
    catch
        error('Dataset:Missing', ...
             ['Reading of M9X1.grdecl failed. Data is missing from %s.'], ...
-            fullfile(mrstDataDirectory(), 'Sleipner'));
+            sdir);
    end
 end
 
