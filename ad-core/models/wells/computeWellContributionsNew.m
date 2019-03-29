@@ -80,7 +80,7 @@ if ~wellmodel.allowWellSignChange % injector <=> w.sign>0, prod <=> w.sign<0
     isInj = vertcat(W.sign)>0;
 else
     %qt_s =sol.qWs+sol.qOs+sol.qGs;
-    isInj = double(qt_s)>0;   % sign determined from solution
+    isInj = value(qt_s)>0;   % sign determined from solution
 end
 
 %--------------------------------------------------------------------------
@@ -116,7 +116,7 @@ for ph = 1:numPh
     q_ps{ph} = Rw'*cq_ps{ph};
 end
 
-isInj = double(qt_s)>0;
+isInj = value(qt_s)>0;
 % compute avg wellbore phase volumetric rates at std conds.
 qt_s_inj = isInj.*qt_s;
 wbq = cell(1, numPh);
@@ -129,7 +129,7 @@ for ph = 2:numPh
     wbqt = wbqt + wbq{ph};
 end
 % check for "dead wells":
-deadWells = double(wbqt)==0;
+deadWells = value(wbqt)==0;
 if any(deadWells)
     for ph = 1:numPh
         wbq{ph} = wbq{ph}.*(~deadWells) + compi(:, ph).*deadWells;
@@ -176,11 +176,11 @@ if ~all(wellStatus)
     % Overwrite equations with trivial equations for inactive wells
     subs = ~wellStatus;
     for ph = 1:numPh
-        eqs{ph}(subs) = q_s{ph}(subs) - double(q_s{ph}(subs));
+        eqs{ph}(subs) = q_s{ph}(subs) - value(q_s{ph}(subs));
     end
 end
 % return mix_s(just values), connection and well status:
-mix_s   = cell2mat( cellfun(@double, mix_s, 'UniformOutput', false));
+mix_s   = cell2mat( cellfun(@value, mix_s, 'UniformOutput', false));
 cstatus = ~closedConns;
 % For now, don't change status here
 status = vertcat(sol.status);

@@ -46,9 +46,9 @@ classdef UniformFacilityModel < FacilityModel
             wc = model.getWellCells(actWellIx);
             [basenames, basetypes] = model.WellModels{1}.getWellEquationNames(resModel);
             
-            toDouble = @(x)cellfun(@double, x, 'UniformOutput', false);
+            toDouble = @(x)cellfun(@value, x, 'UniformOutput', false);
             
-            p_d = double(p);
+            p_d = value(p);
             mob_d = toDouble(mob);
             rho_d = toDouble(rho);
             wellvars_d = toDouble(wellvars);
