@@ -18,7 +18,15 @@ classdef FluxDiscretization < PropertyFunctions
     end
     methods
         function props = FluxDiscretization(model)
-            upstr = UpstreamFunctionWrapper(model.operators.faceUpstr);
+            if isempty(model.operators)
+                N = getNeighbourship(model.G);
+                nc = model.G.cells.num;
+                nf = size(N, 1);
+                up = @(flag, x)faceUpstr(flag, x, N, [nf, nc]);
+            else
+                up = model.operators.faceUpstr;
+            end
+            upstr = UpstreamFunctionWrapper(up);
             tpfa = TwoPointFluxApproximation(model);
 
             props@PropertyFunctions();

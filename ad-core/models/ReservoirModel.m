@@ -364,7 +364,7 @@ methods
                 index = ':';
                 fn = 's';
             case {'pressure', 'p'}
-                index = 1;
+                index = ':';
                 fn = 'pressure';
             case 'wellsol'
                 % Use colon to get all variables, since the wellsol may
@@ -604,9 +604,13 @@ methods
         ds(:, ~solvedFor) = tmp;
         % We update all saturations simultanously, since this does not bias the
         % increment towards one phase in particular.
-        kr = model.FlowPropertyFunctions.RelativePermeability;
         state = model.updateStateFromIncrement(state, ds, problem, 's', inf, model.dsMaxAbs);
-        [state, chopped] = kr.applyImmobileChop(model, state, state_init);
+        if isempty(model.FlowPropertyFunctions)
+            chopped = false(model.G.cells.num, 1);
+        else
+            kr = model.FlowPropertyFunctions.RelativePermeability;
+            [state, chopped] = kr.applyImmobileChop(model, state, state_init);
+        end
         if n_fill == 1
             % Ensure that values are within zero->one interval, and
             % re-normalize if any values were capped
