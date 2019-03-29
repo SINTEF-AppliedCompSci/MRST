@@ -67,7 +67,7 @@ function [model, states] = runNorneExample(varargin)
     grdecl = convertInputUnits(grdecl, usys);
     switch opt.norne_case
       case 'full'
-        grdeclo = cutGrdecl(grdecl, [10 25; 35 55; 1 22]); 
+        grdecl = cutGrdecl(grdecl, [10 25; 35 55; 1 22]); 
       case 'full padded'
         grdeclo = cutGrdecl(grdecl, [10 25; 35 55; 1 22]); 
         oncells = prod(grdeclo.cartDims);

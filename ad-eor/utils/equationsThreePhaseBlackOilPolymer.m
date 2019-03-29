@@ -213,7 +213,7 @@ if model.usingShear || model.usingShearLog || model.usingShearLogshrate
 
     % The water flux for the wells.
     cqs = vertcat(state.wellSol.cqs);
-    fluxWaterWell = double(cqs(:, 1));
+    fluxWaterWell = value(cqs(:, 1));
 
     poroW = poro(wc);
 
@@ -237,10 +237,10 @@ if model.usingShear || model.usingShearLog || model.usingShearLogshrate
 
     VwW = bW(wc).*fluxWaterWell./(poroW .* rR .* thicknessWell * 2 * pi);
 
-    muWMultW = double(muWMultW);
-    VwW = double(VwW);
-    muWMultf = double(muWMultf);
-    Vw = double(Vw);
+    muWMultW = value(muWMultW);
+    VwW = value(VwW);
+    muWMultf = value(muWMultf);
+    Vw = value(Vw);
 
 
     if model.usingShearLogshrate
@@ -504,7 +504,7 @@ function v = computeShearMult(fluid, Vw, muWMultf)
     shFunc = @(x) x.*(1+(muWMultf-1.).*plyshearMult(x))-muWMultf.*Vw;
     eqs = shFunc(Vsh);
 
-    resnorm = norm(double(eqs), 'inf');
+    resnorm = norm(value(eqs), 'inf');
     iter = 0;
     maxit = 30;
     abstol = 1.e-15;
@@ -516,7 +516,7 @@ function v = computeShearMult(fluid, Vw, muWMultf)
       Vsh.val = Vsh.val + dVsh;
 
       eqs = shFunc(Vsh);
-      resnorm = norm(double(eqs), 'inf');
+      resnorm = norm(value(eqs), 'inf');
 
       iter = iter + 1;
 

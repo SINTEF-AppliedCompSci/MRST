@@ -121,7 +121,6 @@ schedule = refineSchedule(0, day*ones(10, 1), schedule);
 
 %% Setup the initial state
 %
-sWcon = fluid.sWcon;
 nc = G.cells.num;
 state0.pressure = ones(nc, 1)*bhpProd;
 state0.s        = ones(nc, 1)*[0, 0, 1];

@@ -261,6 +261,9 @@ methods
         if isfield(state, 'sMax')
             state.sMax = max(state.sMax, state.s);
         end
+        if isfield(state, 'FacilityState')
+            state = rmfield(state, 'FacilityState');
+        end
     end
 
     % --------------------------------------------------------------------%
@@ -364,7 +367,7 @@ methods
                 index = ':';
                 fn = 's';
             case {'pressure', 'p'}
-                index = 1;
+                index = ':';
                 fn = 'pressure';
             case 'wellsol'
                 % Use colon to get all variables, since the wellsol may
@@ -380,6 +383,10 @@ methods
     function containers = getPropertyFunctions(model)
         containers = getPropertyFunctions@PhysicalModel(model);
         extra = {model.FlowPropertyFunctions, model.FluxDiscretization};
+        if ~isempty(model.FacilityModel)
+            fm_props = model.FacilityModel.getPropertyFunctions();
+            extra = [extra, fm_props];
+        end
         extra = extra(~cellfun(@isempty, extra));
         containers = [containers, extra];
     end
@@ -604,9 +611,13 @@ methods
         ds(:, ~solvedFor) = tmp;
         % We update all saturations simultanously, since this does not bias the
         % increment towards one phase in particular.
-        kr = model.FlowPropertyFunctions.RelativePermeability;
         state = model.updateStateFromIncrement(state, ds, problem, 's', inf, model.dsMaxAbs);
-        [state, chopped] = kr.applyImmobileChop(model, state, state_init);
+        if isempty(model.FlowPropertyFunctions)
+            chopped = false(model.G.cells.num, 1);
+        else
+            kr = model.FlowPropertyFunctions.RelativePermeability;
+            [state, chopped] = kr.applyImmobileChop(model, state, state_init);
+        end
         if n_fill == 1
             % Ensure that values are within zero->one interval, and
             % re-normalize if any values were capped
