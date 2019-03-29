@@ -261,6 +261,9 @@ methods
         if isfield(state, 'sMax')
             state.sMax = max(state.sMax, state.s);
         end
+        if isfield(state, 'FacilityState')
+            state = rmfield(state, 'FacilityState');
+        end
     end
 
     % --------------------------------------------------------------------%
@@ -380,6 +383,10 @@ methods
     function containers = getPropertyFunctions(model)
         containers = getPropertyFunctions@PhysicalModel(model);
         extra = {model.FlowPropertyFunctions, model.FluxDiscretization};
+        if ~isempty(model.FacilityModel)
+            fm_props = model.FacilityModel.getPropertyFunctions();
+            extra = [extra, fm_props];
+        end
         extra = extra(~cellfun(@isempty, extra));
         containers = [containers, extra];
     end
