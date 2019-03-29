@@ -69,8 +69,8 @@ end
 
 % Read data
 % First loading: to get cartDims, COORD, ZCORN, ACTNUM, PERMX, PERMZ, PORO
+sdir = fullfile(mrstDataDirectory, 'Sleipner');
 try
-   sdir = fullfile(mrstPath('co2lab'), 'data', 'sleipner');
    disp([' -> Reading data from: ' sdir]);
    grdecl = readGRDECL(fullfile(sdir, 'SLEIPNER.DATA'));
 catch
@@ -84,7 +84,7 @@ end
 if opt.assign_coords
    try
        moduleCheck('deckformat', 'mex');
-       sl_file = fullfile(mrstPath('co2lab'), 'data', 'sleipner', 'M9X1.grdecl'); % IEAGHG
+       sl_file = fullfile(sdir, 'M9X1.grdecl'); % IEAGHG
        fn      = fopen(sl_file);
        gr      = readGRID(fn, fileparts(sl_file), initializeDeck());
        fclose(fn);
@@ -94,9 +94,8 @@ if opt.assign_coords
        clear gr sl_file
    catch
        error('Dataset:Missing', ...
-            ['Reading of M9X1.grdecl failed, please download data ', ...
-             'manually following instructions in\n    ''%s'''], ...
-             fullfile(sdir,'README'));
+            ['Reading of M9X1.grdecl failed. Data is missing from %s.'], ...
+            fullfile(mrstDataDirectory(), 'Sleipner'));
    end
 end
 
