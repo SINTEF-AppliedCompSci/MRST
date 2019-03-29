@@ -170,7 +170,7 @@ function obj = pressurePenalizer(model, states, schedule, penalty, plim, varargi
       else
           [P, PLIM] = deal(p, plim);
       end
-      PD = double(P); % we take double here to get cinx of possible ADI
+      PD = value(P); % we take double here to get cinx of possible ADI
       max_amount_surp(step) = max(0,max(PD-PLIM));
       if max_amount_surp(step) > 0
           [~,cinx] = max(PD-PLIM);

@@ -201,7 +201,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    leaked_from_outside_catchments = freeMov_0;
    leaked_from_outside_catchments( ta.trap_regions ~=0 ) = 0;
    
-   assert( all((double(freeMov_0) - double(leaked_from_outside_catchments) - double(spillable)) == 0) )
+   assert( all((value(freeMov_0) - value(leaked_from_outside_catchments) - value(spillable)) == 0) )
 
 
    %% 3. Spill masses along trees
@@ -241,7 +241,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       % Compare trap_vols (m3 pore space of traps) with trapcap_vol
       % (m3 reservoir co2). NB: we must account for residual water (sw).
       trap_co2_vols = trap_vols' .* (1-sw);
-      trapcap_tmp = cellfun( @(x) double(x), {trapcap_vol{trap_ixs}})';
+      trapcap_tmp = cellfun( @(x) value(x), {trapcap_vol{trap_ixs}})';
       assert( all( abs( trap_co2_vols - trapcap_tmp )./abs(trap_co2_vols) < 1e-8 ) ) % syntax handles cell array trapcap
       
       % Spill masses along a tree...
@@ -249,9 +249,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       for j = 1:numel(trap_ixs)
          dispif(mrstVerbose, ' Looking at trap %d... \n', trap_ixs(j));
          dispif(mrstVerbose, '  Trap %d has an available capacity of %d (kg co2). \n', ...
-                trap_ixs(j), double(avail_trapcap_per_trap{trap_ixs(j)}) );
+                trap_ixs(j), value(avail_trapcap_per_trap{trap_ixs(j)}) );
          dispif(mrstVerbose, '  Trap region %d currently has %d (kg co2) spillable. \n', ...
-                trap_ixs(j), double(mass_added_per_trap_region{trap_ixs(j)}) );
+                trap_ixs(j), value(mass_added_per_trap_region{trap_ixs(j)}) );
          
          
          % Computing the mass that will spill out of trap_ixs(j),
@@ -269,16 +269,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             % spill mass to the next trap down the spill-tree
             % (i.e., trap_ixs(j+1))
             dispif(mrstVerbose, '  Thus %d (kg co2) spills out of trap %d, and into trap %d.\n', ...
-                   double(spill_mass), trap_ixs(j), trap_ixs(j+1));
+                   value(spill_mass), trap_ixs(j), trap_ixs(j+1));
             mass_added_per_trap_region{trap_ixs(j+1)} = mass_added_per_trap_region{trap_ixs(j+1)} + spill_mass; % may be an ADI var
             dispif(mrstVerbose, '  Trap %d now has %d (kg co2). \n', ...
-                   trap_ixs(j+1), double(mass_added_per_trap_region{trap_ixs(j+1)}) );
+                   trap_ixs(j+1), value(mass_added_per_trap_region{trap_ixs(j+1)}) );
          else
             % We've reached the end of the spill-tree, thus the
             % spill_mass goes out of the spill-tree (i.e., out of
             % the domain)
             dispif(mrstVerbose, '  Thus %d (kg co2) spills out of trap %d, and out of tree %d.\n', ...
-                   double(spill_mass), trap_ixs(j), i);
+                   value(spill_mass), trap_ixs(j), i);
             mass_leaked_per_tree{i} = spill_mass;                     % may be an ADI var
             
          end
@@ -310,7 +310,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    % Predicted amount of leaked co2:
    % (ADI not preserved)
-   will_leak = sum(double(leaked_from_outside_catchments)) + ...
+   will_leak = sum(value(leaked_from_outside_catchments)) + ...
                sum_cellArray_of_ADI(mass_leaked_per_tree); 
 
    % Varargout:
@@ -318,7 +318,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    
    % we ensure balance of mass inventory within tolerance of 0.1% of total
    % mass
-   assert( abs( sum(masses) - ( double(will_stay) + will_leak ) ) < 1e-3 * sum(masses), ...
+   assert( abs( sum(masses) - ( value(will_stay) + will_leak ) ) < 1e-3 * sum(masses), ...
        'There is a mismatch between mass calculations')
    
    %% 5. Reporting (optional)
@@ -336,17 +336,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    dispif(mrstVerbose, ...
           '%5.3f Mt co2 is currently within formation. \n', sum(masses)/1e9);
    dispif(mrstVerbose, ...
-          '   --- %5.3f Mt will remain: \n', (double(stay_straps) + double(stay_resid))/1e9)
+          '   --- %5.3f Mt will remain: \n', (value(stay_straps) + value(stay_resid))/1e9)
    dispif(mrstVerbose, ...
           '       --- %5.3f Mt structurally (%5.3f perc. of strap capacity) \n', ...
-          double(stay_straps)/1e9, double(stay_straps)/(sum(strap_co2_vol)*fluid.rhoGS) * 100);
+          value(stay_straps)/1e9, value(stay_straps)/(sum(strap_co2_vol)*fluid.rhoGS) * 100);
    dispif(mrstVerbose, ...
           '       --- %5.3f Mt residually (%5.3f perc. of resid capacity) \n', ...
-          double(stay_resid)/1e9, double(stay_resid)/(sum(btrap_res_co2_vol)*fluid.rhoGS) * 100);
+          value(stay_resid)/1e9, value(stay_resid)/(sum(btrap_res_co2_vol)*fluid.rhoGS) * 100);
    dispif(mrstVerbose, ...
           '   --- %5.3f Mt will leak: \n', will_leak/1e9);
    dispif(mrstVerbose, ...
-          '       --- %5.3f Mt from outside catchments \n', sum(double(leaked_from_outside_catchments))/1e9);
+          '       --- %5.3f Mt from outside catchments \n', sum(value(leaked_from_outside_catchments))/1e9);
    dispif(mrstVerbose, ...
           '       --- %5.3f Mt from trees \n', sum_cellArray_of_ADI(mass_leaked_per_tree)/1e9);
    
@@ -355,7 +355,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    if opt.plotsOn
       % Pie to show breakdown of leaked and remaining:
-      will_leak_out_catch = sum(double(leaked_from_outside_catchments));
+      will_leak_out_catch = sum(value(leaked_from_outside_catchments));
       will_leak_via_trees = sum_cellArray_of_ADI(mass_leaked_per_tree);
       if ~ishandle(opt.h)
          figure(opt.h);
@@ -366,11 +366,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       % NB: max(X,eps) is used as hack to make pie chart plot "0" values
       ph = pie(max([  will_leak_out_catch, ...
                       will_leak_via_trees, ...
-                      double(stay_straps), ...
-                      double(stay_resid)       ], eps));
+                      value(stay_straps), ...
+                      value(stay_resid)       ], eps));
       % A work-around way to display with decimal point precision
       tots = will_leak_out_catch + will_leak_via_trees + ...
-             double(stay_straps) + double(stay_resid);
+             value(stay_straps) + value(stay_resid);
       chld = get(gca,'Children');
       set(chld(7), 'String', [num2str(will_leak_out_catch/tots*100,'%2.1f'), '%']);
       if will_leak_via_trees/tots*100 < 0.1
@@ -378,8 +378,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       else
          set(chld(5), 'String', [num2str(will_leak_via_trees/tots*100,'%2.1f'), '%']);
       end
-      set(chld(3), 'String', [num2str(double(stay_straps)/tots*100,'%2.1f'), '%']);
-      set(chld(1), 'String', [num2str(double(stay_resid)/tots*100,'%2.1f'), '%']);
+      set(chld(3), 'String', [num2str(value(stay_straps)/tots*100,'%2.1f'), '%']);
+      set(chld(1), 'String', [num2str(value(stay_resid)/tots*100,'%2.1f'), '%']);
       set(chld(8),'FaceColor','m');
       set(chld(6),'FaceColor','r');
       set(chld(4),'FaceColor','y');
@@ -398,6 +398,6 @@ end
 function total = sum_cellArray_of_ADI( ADI_cellArray )
    total = 0;
    for i = 1:numel(ADI_cellArray)
-      total = total + double(ADI_cellArray{i});
+      total = total + value(ADI_cellArray{i});
    end
 end
