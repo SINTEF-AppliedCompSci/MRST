@@ -31,7 +31,9 @@ end
 
 % Remove previous tests
 tap_folder = fullfile(mrstPath('query', 'ad-unittest'), 'output', 'TAP');
-rmdir(tap_folder, 's')
+if exist(tap_folder, 'dir')
+    rmdir(tap_folder, 's')
+end
 
 mrstModule add ad-unittest ad-core ad-blackoil
 runTestsAD('runIntegration', true, 'runUnit', true, 'runExamples', true, 'writeToDisk', true)
