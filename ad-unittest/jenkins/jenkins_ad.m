@@ -25,7 +25,7 @@ mrstPath('addroot', names{:});
 % Ensure Matlab BGL is available
 bgl_dir = fullfile(ROOTDIR(), 'utils', '3rdparty','matlab_bgl');
 if ~exist(fullfile(bgl_dir, 'matlab_bgl'), 'dir')
-    run(bgl_dir,'downloadMBGL')
+    run(fullfile(bgl_dir,'downloadMBGL'))
 end
 
 
