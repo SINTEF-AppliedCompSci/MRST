@@ -82,6 +82,10 @@ function ctrl_order = getControlOrdering(schedule)
             break
         end
     end
+    % NaN means entries were not found, we assign them increasing values
+    not_found = isnan(ctrl_order);
+    last_found = max(max(ctrl_order), 0);
+    ctrl_order(not_found) = last_found + (1:sum(not_found))';
 end
 
 function [W_all, cellsChangedFlag] = getWellSuperset(schedule, ctrl_order, opt)
