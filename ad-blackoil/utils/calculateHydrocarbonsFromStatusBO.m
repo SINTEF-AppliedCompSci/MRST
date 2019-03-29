@@ -63,13 +63,22 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     sG = status{2}.*sO + status{3}.*x;
     if disgas
-        rsSat = fluid.rsSat(pressure);
+        if iscell(fluid.rsSat)
+            rsSat = fluid.rsSat{1}(pressure);
+        else
+            rsSat = fluid.rsSat(pressure);
+        end
         rs = (~status{1}).*rsSat + status{1}.*x;
     else % otherwise rs = rsSat = const
         rsSat = rs;
     end
     if vapoil
-        rvSat = fluid.rvSat(pressure);
+        % Note: This is a hack.
+        if iscell(fluid.rvSat)
+            rvSat = fluid.rvSat{1}(pressure);
+        else
+            rvSat = fluid.rvSat(pressure);
+        end
         rv = (~status{2}).*rvSat + status{2}.*x;
     else % otherwise rv = rvSat = const
         rvSat = rv;

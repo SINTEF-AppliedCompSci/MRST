@@ -103,7 +103,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     rhoGf  = s.faceAvg(rhoG);
     dpG    = s.Grad(pG) - rhoGf.*gdz;
     % gas upstream-index
-    upcg    = (double(dpG)<=0);
+    upcg    = (value(dpG)<=0);
     
     [krGf, krG] = s.splitFaceCellValue(s, upcg, krG);
     [muGf, muG] = s.splitFaceCellValue(s, upcg, muG);

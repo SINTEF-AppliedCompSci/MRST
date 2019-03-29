@@ -175,6 +175,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     opt = merge_options(opt, varargin{:});
 
     %----------------------------------------------------------------------
+    tm = [0 ; reshape(cumsum(schedule.step.val), [], 1)];
     if opt.restartStep ~= 1
         nStep = numel(schedule.step.val);
         assert(numel(opt.restartStep) == 1 && ...
@@ -184,15 +185,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         schedule.step.control = schedule.step.control(opt.restartStep:end);
         schedule.step.val = schedule.step.val(opt.restartStep:end);
     end
-    
-    dt = schedule.step.val;
-    tm = [0 ; reshape(cumsum(dt), [], 1)];
-
-    if opt.Verbose,
-       simulation_header(numel(dt), tm(end));
+    if opt.Verbose
+       simulation_header(numel(tm)-1, tm(end));
     end
 
-    step_header = create_step_header(opt.Verbose, tm);
+    step_header = create_step_header(opt.Verbose, tm, opt.restartStep);
 
     solver = opt.NonLinearSolver;
     if isempty(solver)
@@ -210,7 +207,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % Reset timestep selector in case it was used previously.
     solver.timeStepSelector.reset();
 
-    nSteps = numel(dt);
+    nSteps = numel(schedule.step.val);
     [wellSols, states, reports] = deal(cell(nSteps, 1));
     wantStates = nargout > 1;
     wantReport = nargout > 2 || ~isempty(opt.afterStepFn);
@@ -248,13 +245,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             guess = model.validateState(opt.initialGuess{i});
             extraArg = {'initialGuess', guess};
         end
-
+        dt = schedule.step.val(i);
         timer = tic();
         if opt.OutputMinisteps
-            [state, report, ministeps] = solver.solveTimestep(state0, dt(i), model, ...
+            [state, report, ministeps] = solver.solveTimestep(state0, dt, model, ...
                                             forces{:}, 'controlId', currControl, extraArg{:});
         else
-            [state, report] = solver.solveTimestep(state0, dt(i), model,...
+            [state, report] = solver.solveTimestep(state0, dt, model,...
                                             forces{:}, 'controlId', currControl, extraArg{:});
         end
 
@@ -276,7 +273,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             end
         end
         
-        if opt.Verbose,
+        if opt.Verbose
            disp_step_convergence(report.Iterations, t);
         end
         % Handle massaging of output to correct expectation
@@ -366,11 +363,11 @@ end
 
 %--------------------------------------------------------------------------
 
-function header = create_step_header(verbose, tm)
+function header = create_step_header(verbose, tm, rsrt)
    nSteps  = numel(tm) - 1;
    nDigits = floor(log10(nSteps)) + 1;
 
-   if verbose,
+   if verbose
       % Verbose mode.  Don't align '->' token in report-step range
       nChar = 0;
    else
@@ -380,7 +377,7 @@ function header = create_step_header(verbose, tm)
 
    header = @(i) ...
       fprintf('Solving timestep %0*d/%0*d: %-*s -> %s\n', ...
-              nDigits, i, nDigits, nSteps, nChar, ...
+              nDigits, i + rsrt - 1, nDigits, nSteps, nChar, ...
               formatTimeRange(tm(i + 0), 2), ...
               formatTimeRange(tm(i + 1), 2));
 end

@@ -4,10 +4,11 @@ classdef DiagonalJacobian
         diagonal % Dense matrix of diagonal derivatives
         subset % Indices corresponding to the subset (if empty, class contains the full set)
         dim % Vector: First dimension is the number of variables in block, while the second is the number of columns
+        useMex = false;
     end
     
     methods
-        function D = DiagonalJacobian(d, dim, subset)
+        function D = DiagonalJacobian(d, dim, subset, useMex)
             if nargin == 0
                 return
             end
@@ -19,6 +20,9 @@ classdef DiagonalJacobian
             D.diagonal = d;
             D.dim = dim;
             D.subset = subset;
+            if nargin > 3
+                D.useMex = useMex;
+            end
         end
         
         function sub = getSubset(u)
@@ -37,7 +41,9 @@ classdef DiagonalJacobian
             end
             u.diagonal = zeros(n, 0);
             % Unsure if this is the best idea.
-            u.subset = zeros(n, 1);
+            if ~isempty(u.subset)
+                u.subset = zeros(n, 1);
+            end
         end
 
         function u = expandZero(u)
@@ -93,9 +99,13 @@ classdef DiagonalJacobian
         end
         
         function s = sparse(D)
-            [I, J, V, n, m] = D.getSparseArguments();
-            % s = accumarray([I(:), J(:)], V(:), [n, m], [], [], true);
-             s = sparse(I, J, V, n, m);
+            if D.useMex && isempty(D.subset)
+                s = mexDiagonalSparse(D.diagonal, D.subset, D.dim);
+            else
+                [I, J, V, n, m] = D.getSparseArguments();
+                % s = accumarray([I(:), J(:)], V(:), [n, m], [], [], true);
+                 s = sparse(I, J, V, n, m);
+            end
         end
         
         function s = double(D)
@@ -174,7 +184,9 @@ classdef DiagonalJacobian
                 switch s(1).type
                     case '()'
                         if u.isZero
-                            u = u.toZero(numel(s(1).subs{1}));
+                            if ~ischar(s(1).subs{1})
+                                u = u.toZero(numel(s(1).subs{1}));
+                            end
                         elseif numel(s(1).subs) == 2 && ischar(s(1).subs{2})
                             if any(s(1).subs{1})
                                 u.diagonal = u.diagonal(s(1).subs{1}, :);
@@ -183,7 +195,11 @@ classdef DiagonalJacobian
                             end
                             
                             if isempty(u.subset)
-                                u.subset = reshape(s(1).subs{1}, [], 1);
+                                if ischar(s(1).subs{1})
+                                    % Do nothing
+                                else
+                                    u.subset = reshape(s(1).subs{1}, [], 1);
+                                end
                             else
                                 subs = u.getSubset();
                                 u.subset = subs(s(1).subs{1});
@@ -220,14 +236,36 @@ classdef DiagonalJacobian
                                 return
                             end
                             if u.isZero
+                                vsub = v.getSubset();
+                                
+                                if isempty(u.subset)
+                                    if islogical(s.subs{1})
+                                        s.subs{1} = find(s.subs{1});
+                                    end
+                                    doZero = ~ischar(s.subs{1}) && ~all(s.subs{1} == vsub);
+                                else
+                                    doZero = true;
+                                end
                                 u = u.expandZero();
-                                u.subset(s.subs{1}) = v.getSubset();
+                                if doZero
+                                    u.subset = u.getSubset;
+                                    u.subset(s.subs{1}) = vsub;
+                                end
                                 u.diagonal(s.subs{1}, :) = v.diagonal;
                                 return
                             end
+
                             if subsetsEqualNoZeroCheck(u, v)
-                                u.diagonal(s.subs{1}, :) = v.diagonal;
-                            elseif isempty(u.subset) && ~isempty(v.subset) && u.compareIndices(s.subs{1}, v.subset)
+                                allowDiag = true;
+                            elseif isempty(u.subset)
+                                allowDiag = ~isempty(v.subset) && u.compareIndices(u, s.subs{1}, v.subset);
+                            else
+                                % u.subset is not zero
+                                allowDiag = u.compareIndices(u, s.subs{1}, u.subset(s.subs{1})) &&...
+                                            u.compareIndices(u, s.subs{1}, v.subset);
+                            end
+                            
+                            if allowDiag
                                 u.diagonal(s.subs{1}, :) = v.diagonal;
                             else
                                 u = u.sparse();
@@ -471,16 +509,24 @@ classdef DiagonalJacobian
     end
     
     methods(Static, Access=private)
-        function eq = compareIndices(a, b)
-            if islogical(a) && islogical(b)
-                eq = all(a(:) == b(:));
-                return
-            elseif islogical(b)
-                b = find(b);
-            elseif islogical(a)
-                a = find(a);
+        function eq = compareIndices(u, ind_into_u, b_subset)
+            if isempty(u.subset)
+                % The subset is equal to the indexing
+                u_subset = ind_into_u;
+            else
+                % We get the index of the subset itself
+                u_subset = u.getSubset();
+                u_subset = u_subset(ind_into_u);
             end
-            eq = all(a(:) == b(:));
+            if islogical(u_subset) && islogical(b_subset)
+                eq = all(u_subset(:) == b_subset(:));
+                return
+            elseif islogical(b_subset)
+                b_subset = find(b_subset);
+            elseif islogical(u_subset)
+                u_subset = find(u_subset);
+            end
+            eq = all(u_subset(:) == b_subset(:));
         end
 
         function isZ = isAllZeros(v)

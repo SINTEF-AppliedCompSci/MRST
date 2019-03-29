@@ -1,12 +1,15 @@
 function cfl = estimateSaturationCFL(model, state, dt, varargin)
     opt = struct('forces', []);
     opt = merge_options(opt, varargin{:});
-    
+    if isfield(state, 'flux')
+        v = state.flux(model.operators.internalConn, :);
+    else
+        v = value(model.getProps(state, 'PhaseFlux'));
+    end
     pv = model.operators.pv;
     
     [F, Q] = getFractionalFlowMagnitude(model, state);
     
-    v = state.flux(model.operators.internalConn, :);
     vT = sum(v, 2);
     
     xflow = ~(all(v >= 0, 2) | all(v <= 0, 2));
@@ -30,8 +33,9 @@ function cfl = estimateSaturationCFL(model, state, dt, varargin)
     rate_cell = accumarray(l, rate_face.*( flag | xflow), [nc, 1]) +...
                 accumarray(r, rate_face.*(~flag | xflow), [nc, 1]);
     if ~isempty(opt.forces)
+        wflux = sum(vertcat(state.wellSol.flux), 2);
         wc = vertcat(opt.forces.W.cells);
-        rate_cell(wc) = 0;
+        rate_cell(wc) = rate_cell(wc) + abs(wflux).*F(wc);
     end
     cfl = (dt./pv).*rate_cell;
 end

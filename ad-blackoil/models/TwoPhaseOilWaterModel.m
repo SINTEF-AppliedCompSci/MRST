@@ -1,5 +1,5 @@
 classdef TwoPhaseOilWaterModel < ThreePhaseBlackOilModel
-    % Two phase oil/water system without dissolution
+% Two phase oil/water system without dissolution
     properties
 
     end
@@ -18,11 +18,7 @@ classdef TwoPhaseOilWaterModel < ThreePhaseBlackOilModel
 
         % --------------------------------------------------------------------%
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
-            [problem, state] = equationsOilWater(state0, state, model,...
-                            dt, ...
-                            drivingForces,...
-                            varargin{:});
-
+            [problem, state] = equationsOilWater(state0, state, model, dt, drivingForces, varargin{:});
         end
     end
 end

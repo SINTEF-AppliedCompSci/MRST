@@ -122,7 +122,7 @@ function [eqs, state] = eqsfiVO(state0, state, dt, G, W, system, f, varargin)
     mobW   = trMult.*krW./f.muW(p);
     dpW    = s.grad(p-pcOW) - g*(rhoWf.*dz);
     % water upstream-index
-    upc  = (double(dpW)>=0);
+    upc  = (value(dpW)>=0);
     bWvW = s.faceUpstr(upc, bW.*mobW).*s.T.*dpW;
 
     % OIL PROPS
@@ -138,7 +138,7 @@ function [eqs, state] = eqsfiVO(state0, state, dt, G, W, system, f, varargin)
     mobO   = trMult.*krO./muO;
     dpO    = s.grad(p) - g*(rhoOf.*dz);
     % oil upstream-index
-    upc = (double(dpO)>=0);
+    upc = (value(dpO)>=0);
     bOvO   = s.faceUpstr(upc, bO.*mobO).*s.T.*dpO;
     if disgas, rsbOvO = s.faceUpstr(upc, rs).*bOvO;end
 
@@ -155,7 +155,7 @@ function [eqs, state] = eqsfiVO(state0, state, dt, G, W, system, f, varargin)
     mobG   = trMult.*krG./muG;
     dpG    = s.grad(p+pcOG) - g*(rhoGf.*dz);
     % gas upstream-index
-    upc    = (double(dpG)>=0);
+    upc    = (value(dpG)>=0);
     bGvG   = s.faceUpstr(upc, bG.*mobG).*s.T.*dpG;
     if vapoil, rvbGvG = s.faceUpstr(upc, rv).*bGvG; end
 

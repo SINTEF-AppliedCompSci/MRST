@@ -65,7 +65,7 @@ if opt.iteration < 0
              'this may indicate welbore pressure-drop will never be updated']);
 end
 % check for non-initialized bhp due to non-default reference depth:
-if any(~isfinite(double(pBH)))
+if any(~isfinite(value(pBH)))
     [sol, pBH] = initializeBHP(sol, pBH, p);
 end
 
@@ -92,7 +92,7 @@ eqs{nPh+1} = getControlEquations(sol, pBH, q_s, status, mix_s, model);
 % Update well properties which are not primary variables
 nConn       = cellfun(@numel, {W.cells})'; % # connections of each well
 perf2well   = rldecode((1:numel(W))', nConn);
-toDb = @(x)cellfun(@double, x, 'UniformOutput', false);
+toDb = @(x)cellfun(@value, x, 'UniformOutput', false);
 cq_sDb = cell2mat(toDb(cq_s));
 for wnr = 1:numel(sol)
     ix = perf2well==wnr;
@@ -141,7 +141,7 @@ end
 
 function [sol, pBH] = initializeBHP(sol, pBH, p)
 % We should have sol(k).bhp = pBH(k) at this point
-pd   = double(p);
+pd   = value(p);
 for k = 1:numel(sol)
     if ~isfinite(sol(k).bhp)
         v = pd(k) + 5*sol(k).sign*barsa - sol(k).cdp(1);

@@ -4,7 +4,7 @@ function varargout = tableByPressureLinearAD(pRef, varargin)
         v = varargin{i};
         v = reshape(v, [], 1);
         assert(numel(v) == numel(pRef), 'Inconsistent table dimensions');
-        varargout{i} = @(p) interpTable(pRef, v, p);
+        varargout{i} = @(p, varargin) interpTable(pRef, v, p);
     end
 end
 

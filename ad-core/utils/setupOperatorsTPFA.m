@@ -177,6 +177,7 @@ C  = sparse( [(1:nf)'; (1:nf)'], N, ones(nf,1)*[1 -1], nf, nc);
 s.C = C;
 s.Grad = @(x) -C*x;
 s.Div  = @(x) C'*x;
+s.AccDiv = @(acc, flux) acc + C'*flux;
 
 % faceAvg - as multiplication with matrix
 M  = sparse((1:nf)'*[1 1], N, .5*ones(nf,2), nf, nc);

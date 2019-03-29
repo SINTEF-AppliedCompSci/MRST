@@ -156,12 +156,12 @@ for i = 1:ncomp
           + s.Div(vi);
       
     if model.water
-        pureWater = double(sG) == 0 & double(sO) == 0;
+        pureWater = value(sG) == 0 & value(sO) == 0;
         if any(pureWater)
             % Cells with pure water should just retain their composition to
             % avoid singular systems
             eqs{i}(pureWater) = eqs{i}(pureWater) + ...
-                            1e-3*(xM{i}(pureWater) - double(xM{i}(pureWater)));
+                            1e-3*(xM{i}(pureWater) - value(xM{i}(pureWater)));
         end
     end
 end
@@ -238,19 +238,20 @@ if ~isempty(W)
         src =       (rOqO + rGqG).*w_comp(:, i).*isInj...
                    +(rOqO.*x_comp{i} + rGqG.*y_comp{i}).*~isInj;
         eqs{i}(wc) = eqs{i}(wc) - src;
-        compSrc(:, i) = double(src);
+        compSrc(:, i) = value(src);
         sources{i} = src;    
     end
 
-    qg = double(rGqG)./fluid.rhoGS;
-    qo = double(rOqO)./fluid.rhoOS;
+    qg = value(rGqG)./fluid.rhoGS;
+    qo = value(rOqO)./fluid.rhoOS;
 
     isProd = ~isInj;
-    qo(isProd) = qo(isProd).*sT(wc(isProd));
-    qg(isProd) = qg(isProd).*sT(wc(isProd));
+    sTw = value(sT(wc(isProd)));
+    qo(isProd) = qo(isProd).*sTw;
+    qg(isProd) = qg(isProd).*sTw;
     if model.water
-        qw = double(rWqW)./fluid.rhoWS;
-        qw(isProd) = qw(isProd).*sT(wc(isProd));
+        qw = value(rWqW)./fluid.rhoWS;
+        qw(isProd) = qw(isProd).*sTw;
     end
     for i = 1:numel(W)
         state.wellSol(i).components = compSrc(perf2well == i, :);
@@ -268,7 +269,7 @@ if ~isempty(W)
 end
 
 if model.water
-    wscale = dt./(s.pv*mean(double(rhoW0)));
+    wscale = dt./(s.pv*mean(value(rhoW0)));
     eqs{wix} = eqs{wix}.*wscale;
 end
 

@@ -119,7 +119,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             error('Base class function not meant for direct use.');
         end
 
-        function [fn, index] = getVariableField(model, name)
+        function [fn, index] = getVariableField(model, name, varargin)
             switch(lower(name))
               case {'xd'}
                 fn = 'xd';
@@ -141,7 +141,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 index = ':';
               otherwise
                 % This will throw an error for us
-                [fn, index] = model.fluidModel.getVariableField(name);
+                [fn, index] = model.fluidModel.getVariableField(name, varargin{:});
             end
         end
 

@@ -27,7 +27,8 @@ classdef SourceAndBCTest < matlab.unittest.TestCase
             fluid = initSimpleADIFluid();
             model = TwoPhaseOilWaterModel(G, rock, fluid);
             state0 = initResSol(G, 0, [.5, .5]);
-            state0.wellSol = initWellSolAD([], model, state0);
+            model = model.validateModel();
+            state0 = validateState(model, state0);
         end
         
         function [state0, model] = getSimpleBO(test)
@@ -37,9 +38,8 @@ classdef SourceAndBCTest < matlab.unittest.TestCase
             fluid = initSimpleADIFluid();
             model = ThreePhaseBlackOilModel(G, rock, fluid);
             state0 = initResSol(G, 0, [1 1 1]/3);
-            state0.rs = 0;
-            state0.rv = 0;
-            state0.wellSol = initWellSolAD([], model, state0);
+            model = model.validateModel();
+            state0 = validateState(model, state0);
         end
         
         function bc = linearPressureDrop(test, G, sat)

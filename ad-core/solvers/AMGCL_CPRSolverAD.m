@@ -32,21 +32,21 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
             solver.reduceToCell = true;
             solver.tolerance    = 1e-6;
             solver.useSYMRCMOrdering = false;
-            
+
             [solver, extra] = merge_options(solver, varargin{:});
             solver.amgcl_setup = getAMGCLMexStruct(extra{:});
             solver.amgcl_setup.solver_id = 2;
        end
-       
+
        function [result, report] = solveLinearSystem(solver, A, b)
            [result, report] = solver.callAMGCL_MEX(A, b, solver.amgcl_setup.solver_id);
        end
-       
+
        function [dx, result, report] = solveLinearProblem(solver, problem, model)
            problem = solver.prepareProblemCPR(problem, model);
            [dx, result, report] = solveLinearProblem@LinearSolverAD(solver, problem, model);
        end
-       
+
        function [dx, result, report] = solveAdjointProblem(solver, problemPrev,problemCurr, adjVec, objective, model)
            if ~isempty(problemPrev)
                 problemPrev = solver.prepareProblemCPR(problemPrev, model);
@@ -58,10 +58,10 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
        function setSRelaxation(solver, v)
            solver.amgcl_setup.s_relaxation = translateOptionsAMGCL('relaxation', v);
        end
-       
+
        function problem = prepareProblemCPR(solver, problem, model)
            n = model.G.cells.num;
-           solver.pressureScaling = mean(problem.state.pressure);
+           solver.pressureScaling = mean(value(problem.state.pressure));
            if solver.amgcl_setup.block_size == 0
                % Solver has not been told about block size, try to compute
                % it from what we are given.
@@ -73,7 +73,7 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
            solver.amgcl_setup.cell_num = model.G.cells.num;
            solver.amgcl_setup.cell_size = n;
 
-           
+
            % Get and apply scaling
            if solver.doApplyScalingCPR && strcmpi(solver.decoupling, 'trueimpes')
                scale = model.getScalingFactorsCPR(problem, problem.equationNames, solver);
@@ -92,7 +92,7 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
            end
            m = solver.amgcl_setup.block_size;
            assert(m > 0);
-           
+
            if isempty(solver.keepNumber)
                if solver.reduceToCell
                    % Will be reduced to ncell by block_size syste,
@@ -110,7 +110,7 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
            else
                ndof = solver.keepNumber;
            end
-           
+
            if isempty(solver.variableOrdering) || numel(solver.variableOrdering) ~= ndof
                if solver.useSYMRCMOrdering
                    sym_ordering = getGridSYMRCMOrdering(model.G);
@@ -123,7 +123,7 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
                    solver.equationOrdering = ordering;
                end
            end
-           
+
            switch lower(solver.strategy)
                case {'mrst', 'mrst_drs'}
                    solver.amgcl_setup.use_drs = true;
@@ -147,7 +147,7 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
                    error('Unknown CPR strategy %s', solver.strategy);
            end
        end
-       
+
         function [A, b, scaling] = applyScaling(solver, A, b)
             bz = solver.amgcl_setup.block_size;
             nc = solver.amgcl_setup.cell_size;
@@ -165,19 +165,19 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
                 A = A*M;
                 scaling.M = M;
             end
-            
+
             useMRST = strcmpi(solver.strategy, 'mrst');
             useMRST_drs = strcmpi(solver.strategy, 'mrst_drs');
-            
+
             if useMRST || useMRST_drs
                 w = getScalingInternalCPR(solver, A, b);
-                
+
                 ncv = bz*nc;
                 ndof = size(b, 1);
-                
+
                 I = rldecode((1:bz:ncv)', bz);
                 J = (1:ncv)';
-                
+
                 if 0
                     D = sparse(I, J, w, ndof, ndof);
                     tmp = D*A;
@@ -201,14 +201,14 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
                 solver.amgcl_setup.drs_row_weights = getScalingInternalCPR(solver, A, b);
             end
         end
-        
+
         function x = undoScaling(solver, x, scaling) %#ok
             % Undo effects of scaling applied to linear system
             if isfield(scaling, 'M') && ~isempty(scaling.M)
                 x = scaling.M*x;
             end
         end
-        
+
         function M = getDiagonalInverse(solver, A)
             % Reciprocal of diagonal matrix
             if solver.applyRightDiagonalScaling
@@ -243,7 +243,7 @@ function [w, ndof] = getScalingInternalCPR(solver, A, b)
             keep = blockNoJ >= blockNoI & blockNoJ < (blockNoI+1)  & ii <= ndof & jj <= ndof;
             if 1
                 % Weights are determined by constant in rhs
-                Ap = sparse(jj(keep), ii(keep), vv(keep), ndof, ndof);    
+                Ap = sparse(jj(keep), ii(keep), vv(keep), ndof, ndof);
             else
                 % Weights sum up to unity
                 isp = false(ndof, 1);
@@ -262,11 +262,11 @@ function [w, ndof] = getScalingInternalCPR(solver, A, b)
             w = Ap\q;
 
             w = [w; ones(size(A, 1)-ndof, 1)];
-            
+
         otherwise
             w = ones(size(b, 1), 1);
     end
-    
+
     if strcmpi(solver.strategy, 'mrst_drs')
         if not(strcmpi(solver.decoupling, 'quasiimpes'))
             [ii, jj, vv] = find(A);
@@ -316,7 +316,7 @@ function [w, ndof] = getScalingInternalCPR(solver, A, b)
         % probably switch equations if these are not ok, but this is not
         % implemented.
         ok(p_inx) = true;
-        
+
         w(~ok) = 0;
     end
 end

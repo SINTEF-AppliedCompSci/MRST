@@ -48,14 +48,9 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-    fluid = model.fluid;
-    
     disgas = model.disgas;
     vapoil = model.vapoil;
-    
-    p = model.getProp(state, 'p');
-    p0 = model.getProp(state0, 'p');
-    
+
     so = model.getProp(state, 'so');
     so0 = model.getProp(state0, 'so');
     
@@ -74,23 +69,23 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     etol = sqrt(eps);
     % Determine status of updated cells -----------------------------------------
     watOnly  = sw > 1-etol;
-
     % phase transitions sg <-> rs  --------------------------------------------
+    fp = model.FlowPropertyFunctions;
     if ~disgas
         rsSat0 = rs0;
         rsSat  = rsSat0; 
         gasPresent = true;
     else
         st1 = status{1};
-        rsSat0 = fluid.rsSat(p0);
-        rsSat  = fluid.rsSat(p);
-        gasPresent = or(and( sg > 0, ~st1), watOnly); % Obvious case
+        rsSat0 = model.getProp(state0, 'RsMax');
+        rsSat = model.getProp(state, 'RsMax');
+        gasPresent = or(and( sg > 0 | rs == 0, ~st1), watOnly); % Obvious case
         % Keep oil saturated if previous sg is sufficiently large:
         ix1 = and( sg < 0, sg0 > etol);
         gasPresent = or(gasPresent, ix1);
         % Set oil saturated if previous rs is sufficiently large
         ix2 = and( and(rs > rsSat*(1+etol), st1), rs0 > rsSat0*(1-etol) );
-        assert(all(sg(ix2)==0))
+        sg(ix2) = 0;
         gasPresent = or(gasPresent, ix2);
     end
     ix = sg < 0;
@@ -105,15 +100,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         rvSat  = rvSat0;
     else
         st2 = status{2};
-        rvSat0   = fluid.rvSat(p0);
-        rvSat    = fluid.rvSat(p);
-        oilPresent = or(and( so > 0, ~st2), watOnly); % Obvious case
+        rvSat0 = model.getProp(state0, 'RvMax');
+        rvSat = model.getProp(state, 'RvMax');
+        oilPresent = or(and( so > 0 | rv == 0, ~st2), watOnly); % Obvious case
         % Keep gas saturated if previous so is sufficiently large
         ix1 = and( so < 0, so0 > etol);
         oilPresent = or(oilPresent, ix1);
         % Set gas saturated if previous rv is sufficiently large
         ix2 = and( and(rv > rvSat*(1+etol), st2), rv0 > rvSat0*(1-etol) );
-        assert(all(so(ix2)==0))
+        so(ix2) = 0;
         oilPresent = or(oilPresent, ix2);
     end
     ix = so < 0;

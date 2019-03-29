@@ -153,7 +153,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         p = opt.pressureRange;
         nval = numel(p);
         s = subdiv(0, 1, nval);
-        arg = {'cellInx', ones(nval, 1)};
+        arg = {};
 
         rsMax = 0;
         rvMax = 0;
@@ -343,7 +343,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         s = subdiv(0, 1, ns);
         [x, y] = meshgrid(s);
         [krW, krO, krG] = ...
-            model.relPermWOG(x(:), 1-x(:)-y(:), y(:), model.fluid, 'cellInx', ones(ns*ns, 1));
+            model.relPermWOG(x(:), 1-x(:)-y(:), y(:), model.fluid);
         
         % If sW and sG sum up to more than unity, pad with NaN.
         unphys = x + y > 1;

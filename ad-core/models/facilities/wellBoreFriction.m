@@ -24,7 +24,7 @@ switch flowtype
 end
 
 % small perturbation to prevent division by zero
-isZero = double(v) == 0;
+isZero = value(v) == 0;
 v(isZero) = eps; 
 
 re = abs(rho.*v.*(Do-Di)./mu);
@@ -49,7 +49,7 @@ if ~assumeTurbulent % divide into laminar, intermediate and tubulent regions as 
     end
 end 
 
-dp = -(2*sign(double(v)).*L./(Do-Di)).*(f.*rho.*v.^2);
+dp = -(2*sign(value(v)).*L./(Do-Di)).*(f.*rho.*v.^2);
 
 % set dp-value for zero velocity segments, but keep derivative
 if isa(dp, 'ADI')

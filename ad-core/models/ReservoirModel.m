@@ -52,6 +52,9 @@ properties
     % Coupling to forces and other models
     gravity % Vector for the gravitational force
     FacilityModel % Facility model used to represent wells
+    FlowPropertyFunctions % Grouping for flow properties
+    FluxDiscretization % Grouping for flux discretization
+    Components = {};
 end
 
 methods
@@ -125,6 +128,9 @@ methods
         if ~isempty(model.FacilityModel)
             state = model.FacilityModel.validateState(state);
         end
+        if ~isfield(state, 'sMax')
+            state.sMax = state.s;
+        end
     end
 
     function vars = getSaturationVarNames(model)
@@ -132,12 +138,31 @@ methods
         ph = model.getActivePhases();
         vars = vars(ph);
     end
+
     % --------------------------------------------------------------------%
-    function [model, state] = prepareTimestep(model, state, state0, dt, drivingForces)
+    function dt = getMaximumTimestep(model, state, state0, dt, drivingForces)
+        % Define the maximum allowable time-step based on physics or
+        % discretization choice
+        dt = getMaximumTimestep@PhysicalModel(model, state, state0, dt, drivingForces);
+        if ~isempty(model.FluxDiscretization)
+            dt = model.FluxDiscretization.getMaximumTimestep(model, state, state0, dt, drivingForces);
+        end
+    end
+    
+    function [model, state] = prepareReportstep(model, state, state0, dt, drivingForces)
         if ~isempty(drivingForces.W)
             assert(~isempty(model.FacilityModel), ...
             'FacilityModel not set up. Call model.validateModel before calling equations with wells.');
+            [model.FacilityModel, state] = model.FacilityModel.prepareReportstep(state, state0, dt, drivingForces);
+        end
+    end
+        
+    function [model, state] = prepareTimestep(model, state, state0, dt, drivingForces)
+        if ~isempty(drivingForces.W)
             [model.FacilityModel, state] = model.FacilityModel.prepareTimestep(state, state0, dt, drivingForces);
+        end
+        if ~isempty(model.FluxDiscretization)
+            [model.FluxDiscretization, state] = model.FluxDiscretization.prepareTimestep(model, state, state0, dt, drivingForces);
         end
     end
 
@@ -147,6 +172,7 @@ methods
         %
         % SEE ALSO:
         %   :meth:`ad_core.models.PhysicalModel.validateModel`
+        model = validateModel@PhysicalModel(model, varargin{:});
 
         if isempty(model.FacilityModel)
             model.FacilityModel = FacilityModel(model); %#ok
@@ -157,12 +183,14 @@ methods
         assert(~isempty(model.operators),...
             'Operators must be set up before simulation. See model.setupOperators for more details.');
         
-        if nargin > 1
-            W = varargin{1}.W;
-            model.FacilityModel = model.FacilityModel.setupWells(W);
+        model.FacilityModel = model.FacilityModel.validateModel(varargin{:});
+
+        if isempty(model.FlowPropertyFunctions)
+            model.FlowPropertyFunctions = FlowPropertyFunctions(model); %#ok
         end
-        model = validateModel@PhysicalModel(model, varargin{:});
-        return
+        if isempty(model.FluxDiscretization)
+            model.FluxDiscretization = FluxDiscretization(model); %#ok
+        end
     end
 
     % --------------------------------------------------------------------%
@@ -223,10 +251,18 @@ methods
         %
         % SEE ALSO:
         %   :meth:`ad_core.models.PhysicalModel.updateAfterConvergence`
-
-        [state, report] = updateAfterConvergence@PhysicalModel(model, state0, state, dt, drivingForces);
         if ~isempty(model.FacilityModel)
-            state.wellSol = model.FacilityModel.updateWellSolAfterStep(state.wellSol, state0.wellSol);
+            [state, f_report] = model.FacilityModel.updateAfterConvergence(state0, state, dt, drivingForces);
+        else
+            f_report = [];
+        end
+        [state, report] = updateAfterConvergence@PhysicalModel(model, state0, state, dt, drivingForces);
+        report.FacilityReport = f_report;
+        if isfield(state, 'sMax')
+            state.sMax = max(state.sMax, state.s);
+        end
+        if isfield(state, 'FacilityState')
+            state = rmfield(state, 'FacilityState');
         end
     end
 
@@ -303,7 +339,7 @@ methods
     end
 
     % --------------------------------------------------------------------%
-    function [fn, index] = getVariableField(model, name)
+    function [fn, index] = getVariableField(model, name, varargin)
         % Map variables to state field.
         %
         % SEE ALSO:
@@ -312,6 +348,12 @@ methods
             case {'t', 'temperature'}
                 fn = 'T';
                 index = 1;
+            case {'swmax', 'somax', 'sgmax'}
+                fn = 'sMax';
+                index = model.satVarIndex(name(1:2)); 
+            case 'smax'
+                fn = 'sMax';
+                index = ':';
             case {'sw', 'water'}
                 index = model.satVarIndex('sw');
                 fn = 's';
@@ -325,7 +367,7 @@ methods
                 index = ':';
                 fn = 's';
             case {'pressure', 'p'}
-                index = 1;
+                index = ':';
                 fn = 'pressure';
             case 'wellsol'
                 % Use colon to get all variables, since the wellsol may
@@ -334,10 +376,20 @@ methods
                 fn = 'wellSol';
             otherwise
                 % This will throw an error for us
-                [fn, index] = getVariableField@PhysicalModel(model, name);
+                [fn, index] = getVariableField@PhysicalModel(model, name, varargin{:});
         end
     end
 
+    function containers = getPropertyFunctions(model)
+        containers = getPropertyFunctions@PhysicalModel(model);
+        extra = {model.FlowPropertyFunctions, model.FluxDiscretization};
+        if ~isempty(model.FacilityModel)
+            fm_props = model.FacilityModel.getPropertyFunctions();
+            extra = [extra, fm_props];
+        end
+        extra = extra(~cellfun(@isempty, extra));
+        containers = [containers, extra];
+    end
     % --------------------------------------------------------------------%
     function names = getComponentNames(model) %#ok
         % Get the names of components for the model
@@ -476,6 +528,15 @@ methods
     end
 
     % --------------------------------------------------------------------%
+    function n = getNumberOfComponents(model)
+        n = numel(model.Components);
+    end
+        
+    function n = getNumberOfPhases(model)
+        n = sum(model.getActivePhases());
+    end
+        
+    % --------------------------------------------------------------------%
     function state = updateSaturations(model, state, dx, problem, satVars)
         % Update of phase-saturations
         %
@@ -514,6 +575,7 @@ methods
             % No saturations passed, nothing to do here.
             return
         end
+        state_init = state;
         % Solution variables should be saturations directly, find the missing
         % link
         saturations = lower(model.getSaturationVarNames);
@@ -550,10 +612,16 @@ methods
         % We update all saturations simultanously, since this does not bias the
         % increment towards one phase in particular.
         state = model.updateStateFromIncrement(state, ds, problem, 's', inf, model.dsMaxAbs);
+        if isempty(model.FlowPropertyFunctions)
+            chopped = false(model.G.cells.num, 1);
+        else
+            kr = model.FlowPropertyFunctions.RelativePermeability;
+            [state, chopped] = kr.applyImmobileChop(model, state, state_init);
+        end
         if n_fill == 1
             % Ensure that values are within zero->one interval, and
             % re-normalize if any values were capped
-            bad = any((state.s > 1) | (state.s < 0), 2);
+            bad = any((state.s > 1) | (state.s < 0) | chopped, 2);
             if any(bad)
                 state.s(bad, :) = min(state.s(bad, :), 1);
                 state.s(bad, :) = max(state.s(bad, :), 0);
@@ -633,7 +701,7 @@ methods
 
         internal = model.operators.internalConn;
         state.flux = zeros(numel(internal), sum(isActive));
-        phasefluxes = {double(vW), double(vO), double(vG)};
+        phasefluxes = {value(vW), value(vO), value(vG)};
         state = model.setPhaseData(state, phasefluxes, 'flux', internal);
     end
 
@@ -664,7 +732,7 @@ methods
         if ~isfield(forces, 'bc') || isempty(forces.bc)
             return
         end
-        phasefluxes = {double(qW), double(qO), double(qG)};
+        phasefluxes = {value(qW), value(qO), value(qG)};
         faces = forces.bc.face;
         % Compensate for sign. Boundary fluxes have signs that correspond
         % to in/out of the reservoir. This does not necessarily correspond
@@ -704,7 +772,7 @@ methods
         isActive = model.getActivePhases();
 
         state.mob = zeros(model.G.cells.num, sum(isActive));
-        mob = {double(mobW), double(mobO), double(mobG)};
+        mob = {value(mobW), value(mobO), value(mobG)};
         state = model.setPhaseData(state, mob, 'mob');
     end
 
@@ -767,7 +835,7 @@ methods
         isActive = model.getActivePhases();
 
         state.rho = zeros(model.G.cells.num, sum(isActive));
-        rho = {double(rhoW), double(rhoO), double(rhoG)};
+        rho = {value(rhoW), value(rhoO), value(rhoG)};
         state = model.setPhaseData(state, rho, 'rho');
     end
     % --------------------------------------------------------------------%
@@ -796,7 +864,7 @@ methods
         isActive = model.getActivePhases();
 
         state.bfactor = zeros(model.G.cells.num, sum(isActive));
-        b = {double(bW), double(bO), double(bG)};
+        b = {value(bW), value(bO), value(bG)};
         state = model.setPhaseData(state, b, 'bfactor');
     end
 
@@ -862,7 +930,6 @@ methods
         %
         % SEE ALSO:
         %   `relPermWOG`, `relPermWO`, `relPermOG`, `relPermWG`
-
         active = model.getActivePhases();
         nph = sum(active);
         assert(nph == numel(sat), ...
@@ -1187,9 +1254,9 @@ methods
         % ordering (WOG, with any inactive phases removed).
         %
         % RETURNS:
-        %   rhoS - 1 x n double array of surface densities.
+        %   rhoS - pvt x n double array of surface densities.
         names = model.getPhaseNames();
-        rhoS = arrayfun(@(x) model.fluid.(['rho', x, 'S']), names);
+        rhoS = value(arrayfun(@(x) model.fluid.(['rho', x, 'S'])', names, 'UniformOutput', false));
     end
 
     function [compEqs, compSrc, eqNames, wellSol] = getExtraWellContributions(model, well, wellSol0, wellSol, q_s, bh, packed, qMass, qVol, dt, iteration)
@@ -1298,7 +1365,7 @@ methods (Static)
                 swcon = f.sWcon(varargin{2});
             end
         end
-        swcon = min(swcon, double(sw)-1e-5);
+        swcon = min(swcon, value(sw)-1e-5);
 
         d  = (sg+sw-swcon);
         ww = (sw-swcon)./d;

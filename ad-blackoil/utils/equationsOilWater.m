@@ -99,39 +99,36 @@ end
 primaryVars = {'pressure', 'sW', wellVarNames{:}};
 % We will solve for pressure, water saturation (oil saturation follows via
 % the definition of saturations) and well rates + bhp.
-
-% Evaluate relative permeability
 sO  = 1 - sW;
 sO0 = 1 - sW0;
 
-[krW, krO] = model.evaluateRelPerm({sW, sO});
+sat = {sW, sO};
+sat0 = {sW0, sO0};
 
-% Multipliers for properties
-[pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
+% Update state with AD-variables
+state = model.setProps(state, {'s', 'pressure'}, {sat, p});
+state0 = model.setProps(state0, {'s', 'pressure'}, {sat0, p0});
+% Set up properties
+state = model.initPropertyContainers(state);
 
-% Modifiy relperm by mobility multiplier (if any)
-krW = mobMult.*krW; krO = mobMult.*krO;
+[b, pv] = model.getProps(state, 'ShrinkageFactors', 'PoreVolume');
+[b0, pv0] = model.getProps(state0, 'ShrinkageFactors', 'PoreVolume');
+[phaseFlux, flags] = model.getProps(state, 'PhaseFlux',  'PhaseUpwindFlag');
 
-% Compute transmissibility
-T = s.T.*transMult;
+[bW, bO] = deal(b{:});
+[bW0, bO0] = deal(b0{:});
+[vW, vO] = deal(phaseFlux{:});
+[upcw, upco] = deal(flags{:});
 
-% Gravity contribution
-gdz = model.getGravityGradient();
+[pressures, mob, rho] = model.getProps(state, 'PhasePressures', 'Mobility', 'Density');
 
-% Evaluate water properties
-[vW, bW, mobW, rhoW, pW, upcw] = getFluxAndPropsWater_BO(model, p, sW, krW, T, gdz);
-bW0 = model.fluid.bW(p0);
-
-% Evaluate oil properties
-[vO, bO, mobO, rhoO, p, upco] = getFluxAndPropsOil_BO(model, p, sO, krO, T, gdz);
-bO0 = getbO_BO(model, p0);
 
 if model.outputFluxes
     state = model.storeFluxes(state, vW, vO, []);
 end
 if model.extraStateOutput
     state = model.storebfactors(state, bW, bO, []);
-    state = model.storeMobilities(state, mobW, mobO, []);
+    state = model.storeMobilities(state, mob{:}, []);
     state = model.storeUpstreamIndices(state, upcw, upco, []);
 end
 
@@ -142,22 +139,18 @@ bOvO = s.faceUpstr(upco, bO).*vO;
 bWvW = s.faceUpstr(upcw, bW).*vW;
 
 % Conservation of mass for water
-water = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 );
+water = (1/dt).*( pv.*bW.*sW - pv0.*bW0.*sW0 );
 
 % Conservation of mass for oil
-oil = (s.pv/dt).*( pvMult.*bO.*sO - pvMult0.*bO0.*sO0 );
+oil = (1/dt).*( pv.*bO.*sO - pv0.*bO0.*sO0 );
 
 eqs = {water, oil};
 names = {'water', 'oil'};
 types = {'cell', 'cell'};
 
 % Add in any fluxes / source terms prescribed as boundary conditions.
-rho = {rhoW, rhoO};
-mob = {mobW, mobO};
-sat = {sW, sO};
-
 [eqs, state] = addBoundaryConditionsAndSources(model, eqs, names, types, state, ...
-                                                                 {pW, p}, sat, mob, rho, ...
+                                                                 pressures, sat, mob, rho, ...
                                                                  {}, {}, ...
                                                                  drivingForces);
 % Finally, add in and setup well equations

@@ -45,7 +45,7 @@ else
     end
     primaryVars = {'sW'};
     sO = 1 - sW;
-    sT = ones(size(double(sW)));
+    sT = ones(size(value(sW)));
     [krW, krO] = model.evaluateRelPerm({sW, sO});
 end
 
@@ -106,8 +106,8 @@ if ~isempty(W)
     bOqO = bO(wc).*f_o_w.*wflux;
 
     % Store well fluxes
-    wflux_O = double(bOqO);
-    wflux_W = double(bWqW);
+    wflux_O = value(bOqO);
+    wflux_W = value(bWqW);
     
     for i = 1:numel(W)
         perfind = perf2well == i;

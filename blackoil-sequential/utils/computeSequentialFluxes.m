@@ -10,7 +10,9 @@ function [q_phase, q_components] = computeSequentialFluxes(state, G, vT, T, mob,
     mob_f = upstreamWeightPhases(mob, upstr, flag_v, nph);
     if isEqual
         q_phase = computePhaseVolumetricFluxes(vT, T, mob_f, G);
-        q_components = computeComponentFluxes(q_phase, components_f);
+        if nargout > 1
+            q_components = computeComponentFluxes(q_phase, components_f);
+        end
     else
         % Different upwinding for potentials and viscous flux
         q_visc = computePhaseVolumetricFluxes(vT, T, mob_f);
@@ -22,16 +24,18 @@ function [q_phase, q_components] = computeSequentialFluxes(state, G, vT, T, mob,
         for i = 1:nph
             q_phase{i} = q_phase{i} + q_grav{i};
         end
-        if strcmpi(upwindType, 'hybrid_combined')
-            % Take volumetric flux to be fixed
-            q_components = computeComponentFluxes(q_phase, components_f);
-        else
-            % Take each term separately
-            q_components_v = computeComponentFluxes(q_visc, components_f);
-            q_components_g = computeComponentFluxes(q_grav, components_f);
-            q_components = q_components_v;
-            for i = 1:ncomp
-                q_components{i} = q_components{i} + q_components_g{i};
+        if nargout > 1
+            if strcmpi(upwindType, 'hybrid_combined')
+                % Take volumetric flux to be fixed
+                q_components = computeComponentFluxes(q_phase, components_f);
+            else
+                % Take each term separately
+                q_components_v = computeComponentFluxes(q_visc, components_f);
+                q_components_g = computeComponentFluxes(q_grav, components_f);
+                q_components = q_components_v;
+                for i = 1:ncomp
+                    q_components{i} = q_components{i} + q_components_g{i};
+                end
             end
         end
     end
@@ -61,7 +65,7 @@ function q_c = computeComponentFluxes(q, components)
     nph = numel(q);
     nc = numel(components);
     q_c = cell(nc, 1);
-    [q_c{:}] = deal(zeros(size(double(q{1}))));
+    [q_c{:}] = deal(zeros(size(value(q{1}))));
     for c = 1:nc
         for p = 1:nph
             component_in_phase = components{c}{p};

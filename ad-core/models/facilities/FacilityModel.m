@@ -31,6 +31,7 @@ classdef FacilityModel < PhysicalModel
 
     properties
         WellModels % Cell array of instansiated wells
+        FacilityFluxDiscretization
 
         toleranceWellBHP % Convergence tolerance for BHP-type controls
         toleranceWellRate % Convergence tolerance for rate-type controls
@@ -59,6 +60,7 @@ classdef FacilityModel < PhysicalModel
             model = merge_options(model, varargin{:});
             model.ReservoirModel = reservoirModel;
             model.WellModels = {};
+            model.FacilityFluxDiscretization = FacilityFluxDiscretization(model);
         end
 
         function model = setupWells(model, W, wellmodels)
@@ -239,6 +241,24 @@ classdef FacilityModel < PhysicalModel
             act = reshape(actModel, [], 1) & reshape(actWellSol, [], 1);
         end
 
+        function state = initStateAD(model, state, vars, names, origin)
+            state.FacilityState = struct('primaryVariables', {vars}, 'names', {names});
+            state = initStateAD@PhysicalModel(model, state, {}, {}, {});
+        end
+
+        function [variables, names, origin] = getPrimaryVariables(model, wellSol)
+            [variables, names] = model.getAllPrimaryVariables(wellSol);
+            origin = cell(size(variables));
+            [origin{:}] = deal(class(model));
+        end
+
+        function model = validateModel(model, varargin)
+            if nargin > 1
+                W = varargin{1}.W;
+                model = model.setupWells(W);
+            end
+        end
+        
         function names = getPrimaryVariableNames(model)
             % Get the names of primary variables present in all wells
             %
@@ -644,6 +664,16 @@ classdef FacilityModel < PhysicalModel
                 wellSol(wno) = wm.updateWellSolAfterStep(model.ReservoirModel, wellSol(wno), wellSol0(wno));
             end
         end
+        
+    function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
+        % Generic update function for reservoir models containing wells.
+        %
+        % SEE ALSO:
+        %   :meth:`ad_core.models.PhysicalModel.updateAfterConvergence`
+
+        state.wellSol = model.updateWellSolAfterStep(state.wellSol, state0.wellSol);
+        report = [];
+    end
 
         function wc = getWellCells(model, subs)
             % Get the perforated cells of all wells, regardless of status
@@ -665,8 +695,8 @@ classdef FacilityModel < PhysicalModel
             wc = vertcat(c{:});
         end
 
-        function wc = getActiveWellCells(model, wellSol)
-            % Get the perforated cells in active wells and perforations
+        function [wc, p2w] = getActiveWellCells(model, wellSol)
+            % Get the perforated cells in active wells
             %
             % SYNOPSIS:
             %   wc = model.getActiveWellCells()
@@ -678,10 +708,14 @@ classdef FacilityModel < PhysicalModel
             %   wc   - Array of well cells that are active, and belong to
             %          active wells.
             %
-
-            c = cellfun(@(x) x.W.cells(x.W.cstatus > 0), model.WellModels, 'UniformOutput', false);
+            c = cellfun(@(x) x.W.cells, model.WellModels, 'UniformOutput', false);
             active = model.getWellStatusMask(wellSol);
             wc = vertcat(c{active});
+            if nargout > 1
+                p2w = getPerforationToWellMapping(model.getWellStruct());
+                % Map into active wells
+                p2w = p2w(active(p2w));
+            end
         end
 
         function ws = setWellSolStatistics(model, ws, sources)
@@ -709,7 +743,7 @@ classdef FacilityModel < PhysicalModel
             wind = model.ReservoirModel.getPhaseIndex('W');
             srcRes = sources.phaseVolume;
             for i = 1:numel(srcRes)
-                srcRes{i} = double(srcRes{i});
+                srcRes{i} = value(srcRes{i});
             end
             qR = [srcRes{:}];
             if size(qR, 1) ~= numel(p2w)
@@ -863,84 +897,6 @@ classdef FacilityModel < PhysicalModel
                 counts = cellfun(@(x) x.getVariableCounts(wf), model.WellModels(act));
             end
             isVarWell = rldecode((1:nnz(act))', counts);
-        end
-
-        function [model, state] = prepareTimestep(model, state, state0, dt, drivingForces)
-            active = model.getWellStatusMask(state.wellSol);
-            isResv = cellfun(@(x) strcmpi(x.W.type, 'resv'), model.WellModels(active));
-            if any(isResv)
-                W = model.getWellStruct(active);
-                compi = vertcat(W.compi);
-                compi = compi(isResv, :);
-                
-                rates = vertcat(W.val);
-                rates = rates(isResv);
-                
-                qs = bsxfun(@times, rates, compi);
-                
-                newRates = 0*rates;
-                n_resv = sum(isResv);
-                p = repmat(mean(state0.pressure), n_resv, 1);
-                rmodel = model.ReservoirModel;
-                
-                disgas = isprop(rmodel, 'disgas') && rmodel.disgas;
-                vapoil = isprop(rmodel, 'vapoil') && rmodel.vapoil;
-                oix = rmodel.getPhaseIndex('O');
-                gix = rmodel.getPhaseIndex('G');
-                wix = rmodel.getPhaseIndex('W');
-                f = rmodel.fluid;
-                if disgas
-                    mrs = repmat(mean(state.rs), n_resv, 1);
-                    rs = min(qs(:, gix)./qs(:, oix), mrs);
-                end
-                if vapoil
-                    mrv = repmat(mean(state.rv), n_resv, 1);
-                    rv = min(qs(:, oix)./qs(:, gix), mrv);
-                end
-                
-                if disgas && vapoil
-                    shrink = 1 - rs.*rv;
-                else
-                    shrink = 1;
-                end
-                
-                if rmodel.water
-                    bW = f.bW(p);
-                    newRates = newRates + qs(:, wix)./bW;
-                end
-                if rmodel.oil
-                    if disgas
-                        bO = f.bO(p, rs, rs >= f.rsSat(p));
-                    else
-                        bO = f.bO(p);
-                    end
-                    orat = qs(:, oix);
-                    if vapoil
-                        orat = orat - rv.*qs(:, gix);
-                    end
-                    newRates = newRates + orat./(bO.*shrink);
-                end
-                if rmodel.gas
-                    if vapoil
-                        bG = f.bG(p, rv, rv >= f.rvSat(p));
-                    else
-                        bG = f.bG(p);
-                    end
-                    grat = qs(:, gix);
-                    if vapoil
-                        grat = grat - rs.*qs(:, oix);
-                    end
-                    newRates = newRates + grat./(bG.*shrink);
-                end
-                resvIx = find(isResv);
-                actIx = find(active);
-                for i = 1:numel(resvIx)
-                    global_well_ix = actIx(resvIx(i));
-                    model.WellModels{global_well_ix}.W.val = newRates(i);
-                    model.WellModels{global_well_ix}.W.type = 'rate';
-                    state.wellSol(global_well_ix).type = 'rate';
-                end
-            end
         end
         
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)

@@ -58,13 +58,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 % Basic quanitites
 T = model.operators.T_all(bc.face);
 G = model.G;
-nPh = sum(model.getActivePhases);
+nph = sum(model.getActivePhases);
 N = G.faces.neighbors(bc.face,:);
 
 % Validation
-assert(size(bc.sat, 2) == nPh, ...
+assert(size(bc.sat, 2) == nph, ...
     ['Wrong number of columns in BC sat field: Expected columns', ...
-    num2str(nPh), ', but input had ', num2str(size(bc.sat, 2)), ' columns.']);
+    num2str(nph), ', but input had ', num2str(size(bc.sat, 2)), ' columns.']);
 assert(~any(all(N > 0, 2)),'bc on internal boundary');
 
 hasOutsideMob = isfield(bc, 'mob');
@@ -98,7 +98,7 @@ isP = reshape(strcmpi(bc.type, 'pressure'), [], 1);
 isSF = reshape(strcmpi(bc.type, 'flux'), [], 1);
 isRF = ~(isP | isSF);
 
-[qSurf, qRes] = deal(cell(nPh,1));
+[qSurf, qRes] = deal(cell(nph,1));
 
 % Use sat field to determine what any inflow cells produce.
 sat = bc.sat;
@@ -106,17 +106,132 @@ noSat = all(sat == 0, 2);
 hasNoSat = any(noSat);
 
 % Store total mobility
-totMob = zeros(size(sat, 1), 1);
-for i = 1:nPh
-    totMob = totMob + cellToBCMap*mob{i};
-end
+
+isCompositional = isa(model, 'ThreePhaseCompositionalModel');
+isTransport = isa(model, 'TransportNaturalVariablesModel');
 
 rhoS = model.getSurfaceDensities();
-for i = 1:nPh
+
+[pressureF, rhoF, bF, mobF, sF] = deal(cell(nph, 2));
+totMob = zeros(nbc, 1);
+for i = 1:nph
+    % First column is outside, second is inside
+    
+    % Store pressure on inside and outside
+    p_inside   = cellToBCMap*pressure{i};
+    p_bnd = p_inside;
+    if size(bc.value, 2) > 1
+        p_bnd(isP, i) = bc.value(isP, i);
+    else
+        p_bnd(isP) = bc.value(isP);
+    end
+    pressureF{i, 1} = p_bnd;
+    pressureF{i, 2} = p_inside;
+    % Density and b-factors
+    bBC_inside = cellToBCMap*b{i};
+    rhoBC_inside = cellToBCMap*rho{i};
+    if hasOutsideRho
+        rhoBC_bnd = bc.rho(:, i);
+        bBC_bnd = rhoBC_bnd./rhoS(i);
+    else
+        rhoBC_bnd = rhoBC_inside;
+        bBC_bnd = bBC_inside;
+    end
+    rhoF{i, 1} = rhoBC_bnd;
+    rhoF{i, 2} = rhoBC_inside;
+    bF{i, 1} = bBC_bnd;
+    bF{i, 2} = bBC_inside;
+    % Mobility
+    mob_inside = cellToBCMap*mob{i};
+    if hasOutsideMob
+        mob_bnd = bc.mob(:, i);
+    else
+        mob_bnd = mob_inside;
+    end
+    mobF{i, 1} = mob_bnd;
+    mobF{i, 2} = mob_inside;
+    totMob = totMob + mob_inside;
+    % Saturation
+    s_inside   = cellToBCMap*s{i};
+    if hasNoSat
+        % If no saturations are defined, we explicitly set it to mirror the
+        % cell values on the other side of the interface
+        s_inside = double(s_inside);
+        sat(noSat, i) = s_inside(noSat);
+    end
+    sF{i, 1} = sat(:, i);
+    sF{i, 2} = s_inside;
+
+end
+
+if isTransport && isCompositional
+    sT = cell(1, 2);
+    sT{2} = zeros(numel(T), 1);
+    for i = 1:nph
+        sT{2} = sT{2} + sF{i, 2};
+    end
+    sT{1} = sum(sat, 2);
+end
+
+rhoAvgF = cell(nph, 1);
+for i = 1:nph
+    if isCompositional && i > model.water        
+        if isTransport
+            sL = sF{i, 1}./sT{1};
+            sR = sF{i, 2}./sT{2};
+        else
+            sL = sF{i, 1};
+            sR = sF{i, 2};
+        end
+        sTf = sL + sR;
+        sTf(double(sTf) == 0) = 1e-8;
+        rhoAvgF{i} = (sL.*rhoF{i, 1} + sR.*rhoF{i, 2})./sTf;
+    else
+        rhoAvgF{i} = (rhoF{i, 1} + rhoF{i, 2})./2;
+    end
+end
+
+if any(isRF)
+    mrstModule add blackoil-sequential
+    G = cell(1, nph);
+    
+    mobC = cell(1, nph);
+    for i = 1:nph
+        G{i} = dzbc.*rhoAvgF{i};
+        mobC{i} = vertcat(mobF{i, 2}, mobF{i, 1});
+    end
+    vT = sum(bc.value, 2);
+    
+    nf = numel(vT);
+    if 0
+        upstr = @(flag, v) flag.*v(1:nf, :) + ~flag.*v(nf+1:end, :);
+        q_ph = computeSequentialFluxes([], G, vT, T, mobC, {}, {}, upstr, 'potential');
+    else
+        upstr = @(flag, v) flag.*v(1:nf, :) + ~flag.*v(nf+1:end, :);
+        q_ph = computeSequentialFluxes([], G, -vT, T, mobC, {}, {}, upstr, 'potential');
+        for i = 1:numel(q_ph)
+            q_ph{i} = - q_ph{i};
+        end
+%         upstr = @(flag, v) ~flag.*v(1:nf, :) + flag.*v(nf+1:end, :);
+%         q_ph = computeSequentialFluxes([], G, -vT, T, mobC, {}, {}, upstr, 'potential');
+%         for i = 1:numel(q_ph)
+%             q_ph{i} = - q_ph{i};
+%         end
+    end
+%     gg = cellfun(@double, G, 'unif', false);
+%     disp('G')
+%     disp([gg{:}])
+%     
+%     disp('Mob')
+%     gg = cellfun(@double, mobC, 'unif', false);
+%     disp([gg{:}])
+end
+
+for i = 1:nph
     if size(bc.value, 2) == 1
         bc_v = bc.value;
     else
-        assert(size(bc.value, 2) == nPh, ...
+        assert(size(bc.value, 2) == nph, ...
         'Boundary conditions should have either one value or one value per phase, for each face');
         bc_v = bc.value(:, i);
     end
@@ -129,43 +244,10 @@ for i = 1:nPh
     zeroAD = model.AutoDiffBackend.convertToAD(zeros(nbc, 1), sample);
     [q_s, q_r] = deal(zeroAD);
     
-    pBC   = cellToBCMap*pressure{i};
-    bBC_in = cellToBCMap*b{i};
-    rhoBC_in = cellToBCMap*rho{i};
-    mobBC_in = cellToBCMap*mob{i};
-    
-    if hasOutsideRho
-        rhoBC_out = bc.rho(:, i);
-        bBC_out = rhoBC_out./rhoS(i);
-    else
-        rhoBC_out = rhoBC_in;
-        bBC_out = bBC_in;
-    end
-    if hasOutsideMob
-        mobBC_out = bc.mob(:, i);
-    else
-        mobBC_out = mobBC_in;
-    end
-    
-    sBC   = cellToBCMap*s{i};
-    
-    if hasNoSat
-        % If no saturations are defined, we explicitly set it to mirror the
-        % cell values on the other side of the interface
-        sBC = double(sBC);
-        sat(noSat, i) = sBC(noSat);
-    end
-    
     if any(isP)
         % Treat pressure BC
-        if isa(model, 'ThreePhaseCompositionalModel') && i > model.water
-            sT = (sBC(isP) + sat(isP, i));
-            sT(double(sT) == 0) = 1e-8;
-            rhoF = (sBC(isP).*rhoBC_in(isP) + sat(isP, i).*rhoBC_out(isP))./sT;
-        else
-            rhoF = (rhoBC_in(isP) + rhoBC_out(isP))./2;
-        end
-        dP = bc_v(isP) - pBC(isP) - rhoF.*dzbc(isP);
+        rhoF = rhoAvgF{i}(isP);
+        dP = pressureF{i, 1}(isP) - pressureF{i, 2}(isP) - rhoF.*dzbc(isP);
         
         % Determine if pressure bc are injecting or producing
         injDir = dP > 0;
@@ -176,8 +258,8 @@ for i = 1:nPh
         if any(~injDir)
             % Write out the flux equation over the interface
             subs = isP & ~injP;
-            q_res = mobBC_in(subs).*T(subs).*dP(~injDir);
-            q_s(subs) = bBC_in(subs).*q_res;
+            q_res = mobF{i, 2}(subs).*T(subs).*dP(~injDir);
+            q_s(subs) = bF{i, 2}(subs).*q_res;
             q_r(subs) = q_res;
             clear subs
         end
@@ -187,11 +269,11 @@ for i = 1:nPh
             % determined by the sat field
             subs = isP & injP;
             if hasOutsideMob
-                q_res = mobBC_out(subs).*T(subs).*dP(injDir);
+                q_res = mobF{i, 1}(subs).*T(subs).*dP(~injDir);
             else
                 q_res = totMob(subs).*T(subs).*dP(injDir).*sat(subs, i);
             end
-            q_s(subs) = bBC_out(subs).*q_res;
+            q_s(subs) = bF{i, 1}(subs).*q_res;
             q_r(subs) = q_res;
             clear subs
         end
@@ -200,43 +282,47 @@ for i = 1:nPh
     
     % ------ Fluxes given at surface conditions ----- %
     injNeu = bc_v > 0;
-    
-    subs = isSF &  injNeu;
-    % Injection
-    if any(subs)
-        q_s(subs) = bc_v(subs).*sat(subs, i);
-        q_r(subs) = bc_v(subs).*sat(subs, i)./bBC_in(subs);
-    end
-    
-    subs = isSF & ~injNeu;
-    % Production
-    if any(subs)
-        % Production fluxes, use fractional flow of total mobility to
-        % estimate how much mass will be removed.
-        f = mobBC_in(subs)./totMob(subs);
-        tmp = f.*bc_v(subs);
-        q_s(subs) = tmp;
-        q_r(subs) = tmp./bBC_in(subs);
+    if any(isSF)
+        subs = isSF &  injNeu;
+        % Injection
+        if any(subs)
+            q_s(subs) = bc_v(subs).*sat(subs, i);
+            q_r(subs) = bc_v(subs).*sat(subs, i)./bF{i, 1}(subs);
+        end
+
+        subs = isSF & ~injNeu;
+        % Production
+        if any(subs)
+            % Production fluxes, use fractional flow of total mobility to
+            % estimate how much mass will be removed.
+            f = mobF{i, 2}(subs)./totMob(subs);
+            tmp = f.*bc_v(subs);
+            q_s(subs) = tmp;
+            q_r(subs) = tmp./bF{i, 2}(subs);
+        end
     end
     % ------ Fluxes given at reservoir conditions ----- %
-    subs = isRF &  injNeu;
-    % Injection
-    if any(subs)
-        tmp = bc_v(subs).*sat(subs, i);
-        q_s(subs) = tmp.*bBC_in(subs);
-        q_r(subs) = tmp;
+    if any(isRF)
+        injNeuR = q_ph{i} > 0;
+        subs = isRF &  injNeuR;
+        % Injection
+        if any(subs)
+            tmp = q_ph{i}(subs);
+            q_s(subs) = tmp.*bF{i, 1}(subs);
+            q_r(subs) = tmp;
+        end
+        subs = isRF & ~injNeuR;
+        % Production
+        if any(subs)
+            tmp = q_ph{i}(subs);
+            q_s(subs) = tmp.*bF{i, 2}(subs);
+            q_r(subs) = tmp;
+        end
     end
-    subs = isRF & ~injNeu;
-    % Production
-    if any(subs)
-        f = mobBC_in(subs)./totMob(subs);
-        tmp = f.*bc_v(subs);
-        q_s(subs) = tmp.*bBC_in(subs);
-        q_r(subs) = tmp;
-    end
-
     qSurf{i} = q_s;
     qRes{i} = q_r;
 end
+% disp(double(qRes{1}))
+% disp(double(qRes{2}))
 end
 

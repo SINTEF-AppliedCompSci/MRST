@@ -2,10 +2,11 @@ classdef DiagonalSubset < DiagonalJacobian
     % Structured subset of a diagonal jacobian 
     properties
         map % Map to the underlying DiagonalJacobian representation. Two DiagonalSubsets of the same map can be multiplied together, etc.
+        parentSubset
     end
     
     methods
-        function D = DiagonalSubset(d, dims, map, subset)
+        function D = DiagonalSubset(d, dims, map, subset, parentSubset)
             if nargin == 0
                 return
             end
@@ -17,6 +18,9 @@ classdef DiagonalSubset < DiagonalJacobian
                     subset = find(subset);
                 end
                 D.subset = subset;
+                if nargin > 4
+                    D.parentSubset = parentSubset;
+                end
             end
         end
 
@@ -77,6 +81,9 @@ classdef DiagonalSubset < DiagonalJacobian
                 jmap = reshape(D.map, [], 1);
             else
                 jmap = reshape(D.map(D.subset, :), [], 1);
+            end
+            if ~isempty(D.parentSubset)
+                jmap = D.parentSubset(jmap);
             end
             V = D.diagonal;
             if m == 1

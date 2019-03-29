@@ -52,97 +52,58 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    fluid = model.fluid;
     state = problem.state;
-    nc = model.G.cells.num;
-    pv = model.operators.pv;
-    pvsum = sum(pv);
-
     % Grab tolerances
     tol_mb = model.toleranceMB;
     tol_cnv = model.toleranceCNV;
 
     evaluated = false(1, numel(problem));
+    [b, pv] = model.getProps(state, 'ShrinkageFactors', 'PoreVolume');
+    % Value of pore-volume and total pore-volume
+    pv = value(pv);
+    pvt = sum(pv);
     
-    subW = problem.indexOfEquationName('water');
-    subO = problem.indexOfEquationName('oil');
-    subG = problem.indexOfEquationName('gas');
-    
-    active = [false, false, false];
-    if any(subW)
-        assert(model.water);
-        BW = 1./fluid.bW(state.pressure);
-        RW = double(problem.equations{subW});
-        BW_avg = sum(BW)/nc;
-        CNVW = BW_avg*problem.dt*max(abs(RW)./pv);
-        
-        evaluated(subW) = true;
-        active(1) = true;
-    else
-        BW_avg = 0;
-        CNVW   = 0;
-        RW     = 0;
-    end
-
-    % OIL
-    if any(subO)
-        assert(model.oil);
-        if isprop(model, 'disgas') && model.disgas
-            % If we have liveoil, BO is defined not only by pressure, but
-            % also by oil solved in gas which must be calculated in cells
-            % where gas saturation is > 0.
-            BO = 1./fluid.bO(state.pressure, state.rs, state.s(:, 3)>0);
-        else
-            BO = 1./fluid.bO(state.pressure);
+    nph = numel(b);
+    CNV = zeros(1, nph);
+    MB = zeros(1, nph);
+    [shortPhase, phaseNames] = model.getPhaseNames();
+    dt = problem.dt;
+    isMass = isa(model, 'GenericBlackOil');
+    if isMass
+        rhoS = model.getSurfaceDensities();
+        if size(rhoS, 1) > 1
+            pvtreg =  model.FlowPropertyFunctions.Density.regions;
+            rhoS = rhoS(pvtreg, :);
         end
-        
-        RO = double(problem.equations{subO});
-        BO_avg = sum(BO)/nc;
-        CNVO = BO_avg*problem.dt*max(abs(RO)./pv);
-        
-        evaluated(subO) = true;
-        active(2) = true;
-    else
-        BO_avg = 0;
-        CNVO   = 0;
-        RO     = 0;
     end
-
-    % GAS
-    if any(subG)
-        assert(model.gas);
-        if isprop(model, 'vapoil') && model.vapoil
-            BG = 1./fluid.bG(state.pressure, state.rv, state.s(:,2)>0); % need to fix index...
-        else
-            BG = 1./fluid.bG(state.pressure);
+    active = true(nph, 1);
+    for ph = 1:nph
+        eq_ix = problem.indexOfEquationName(phaseNames{ph});
+        active(ph) = any(eq_ix);
+        if active(ph)
+            eq = value(problem.equations{eq_ix});
+            if isMass
+                eq = eq./rhoS(:, ph);
+            end
+            if isempty(b{ph})
+                B = 1;
+            else
+                B = 1./value(b{ph});
+            end
+            B_avg = mean(B);
+            % Volume error: Maximum point-wise saturation error, scaled to
+            % surface volume via average b-factor for phase
+            CNV(ph) = B_avg*dt*max(abs(eq)./pv);
+            % Total mass balance error
+            MB(ph) = abs(B_avg*sum(eq))/pvt;
+            evaluated(eq_ix) = true;
         end
-        RG = double(problem.equations{subG});
-        BG_avg = sum(BG)/nc;
-        CNVG = BG_avg*problem.dt*max(abs(RG)./pv);
-        
-        evaluated(subG) = true;
-        active(3) = true;
-    else
-        BG_avg = 0;
-        CNVG   = 0;
-        RG     = 0;
     end
+    mb_names = arrayfun(@(x) ['MB_', x], shortPhase, 'UniformOutput', false);
+    cnv_names = arrayfun(@(x) ['CNV_', x], shortPhase, 'UniformOutput', false);
 
-    % Check if material balance for each phase fullfills residual
-    % convergence criterion
-    MB = problem.dt*abs([BW_avg*sum(RW), BO_avg*sum(RO), BG_avg*sum(RG)])/pvsum;
-    mb_names = {'MB_W', 'MB_O', 'MB_G'};
-    MB = MB(active);
-    mb_names = mb_names(active);
-    % Check maximum normalized residuals (maximum mass error)
-    CNV = [CNVW CNVO CNVG];
-    cnv_names = {'CNV_W', 'CNV_O', 'CNV_G'};
-
-    CNV = CNV(active);
-    cnv_names = cnv_names(active);
-    
     % Combine
-    tolerances = [repmat(tol_cnv, size(CNV)), repmat(tol_mb, size(MB))];
-    values = [CNV, MB];
-    names = [cnv_names, mb_names];
+    tolerances = [repmat(tol_cnv, 1, sum(active)), repmat(tol_mb, 1, sum(active))];
+    values = [CNV(active), MB(active)];
+    names = [cnv_names(active), mb_names(active)];
 end
