@@ -19,7 +19,7 @@ names = {'test-datasets'};
 names = cellfun(@(x) fullfile(ROOTDIR, '..', x), names, ...
                     'UniformOutput', false);
 mrstPath('register', 'co2lab', fullfile(ROOTDIR, '..', 'mrst-co2lab', 'co2lab'));
-mrstPath('register', 'agmg', 'hnil-agmg');
+mrstPath('register', 'agmg', fullfile('..', 'hnil-agmg'));
 mrstPath('addroot', names{:});
 
 % Ensure Matlab BGL is available
