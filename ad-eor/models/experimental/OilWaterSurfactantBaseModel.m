@@ -55,7 +55,7 @@ classdef OilWaterSurfactantBaseModel < TwoPhaseOilWaterModel
             model.checkProperty(state, 'SurfactantMax', [nc, 1], [1, 2]);
         end
 
-        function [fn, index] = getVariableField(model, name)
+        function [fn, index] = getVariableField(model, name, varargin)
         % Get the index/name mapping for the model (such as where
         % pressure or water saturation is located in state)
             switch(lower(name))
@@ -73,7 +73,7 @@ classdef OilWaterSurfactantBaseModel < TwoPhaseOilWaterModel
                 fn = 'cmax';
               otherwise
                 [fn, index] = getVariableField@TwoPhaseOilWaterModel(...
-                    model, name);
+                    model, name, varargin{:});
             end
         end
 

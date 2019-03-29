@@ -44,14 +44,14 @@ classdef BlackOilSolventModel < ThreePhaseBlackOilModel
         end
 
         % --------------------------------------------------------------------%
-        function [fn, index] = getVariableField(model, name)
+        function [fn, index] = getVariableField(model, name, varargin)
             switch(lower(name))
                 case {'solvent', 'ss'}
                     index = 4;
                     fn = 's';
                 otherwise
                     % Basic phases are known to the base class
-                    [fn, index] = getVariableField@ThreePhaseBlackOilModel(model, name);
+                    [fn, index] = getVariableField@ThreePhaseBlackOilModel(model, name, varargin{:});
             end
         end
 
@@ -200,7 +200,7 @@ classdef BlackOilSolventModel < ThreePhaseBlackOilModel
 
             internal = model.operators.internalConn;
             state.flux = zeros(numel(internal), sum(isActive));
-            phasefluxes = {double(vW), double(vO), double(vG), double(vS)};
+            phasefluxes = {value(vW), value(vO), value(vG), value(vS)};
             state = model.setPhaseData(state, phasefluxes, 'flux', internal);
         end
 
@@ -210,7 +210,7 @@ classdef BlackOilSolventModel < ThreePhaseBlackOilModel
             isActive = model.getActivePhases();
 
             state.mob = zeros(model.G.cells.num, sum(isActive));
-            mob = {double(mobW), double(mobO), double(mobG), double(mobS)};
+            mob = {value(mobW), value(mobO), value(mobG), value(mobS)};
             state = model.setPhaseData(state, mob, 'mob');
         end
 
@@ -233,7 +233,7 @@ classdef BlackOilSolventModel < ThreePhaseBlackOilModel
             isActive = model.getActivePhases();
 
             state.rho = zeros(model.G.cells.num, sum(isActive));
-            rho = {double(rhoW), double(rhoO), double(rhoG), double(rhoS)};
+            rho = {value(rhoW), value(rhoO), value(rhoG), value(rhoS)};
             state = model.setPhaseData(state, rho, 'rho');
         end
 
@@ -244,7 +244,7 @@ classdef BlackOilSolventModel < ThreePhaseBlackOilModel
             isActive = model.getActivePhases();
 
             state.bfactor = zeros(model.G.cells.num, sum(isActive));
-            b = {double(bW), double(bO), double(bG), double(bS)};
+            b = {value(bW), value(bO), value(bG), value(bS)};
             state = model.setPhaseData(state, b, 'bfactor');
         end
     end

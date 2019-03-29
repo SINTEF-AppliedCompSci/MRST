@@ -8,7 +8,7 @@ nConn       = cellfun(@numel, {W.cells})'; % # connections of each well
 perf2well   = rldecode((1:numel(W))', nConn);
 
 % convert to matrices of doubles
-toDb  = @(x)cellfun(@double, x, 'UniformOutput', false);
+toDb  = @(x)cellfun(@value, x, 'UniformOutput', false);
 b     = cell2mat(toDb(b));
 rMax  = cell2mat(toDb(rMax));
 numPh = size(b,2);

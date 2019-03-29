@@ -28,24 +28,23 @@ classdef FlowPropertyFunctions < PropertyFunctions
                     pvt = r.regions.pvt;
                 end
             end
-            ad = model.AutoDiffBackend;
             % Saturation properties
-            props.CapillaryPressure = BlackOilCapillaryPressure(ad, sat);
-            props.RelativePermeability = BaseRelativePermeability(ad, sat);
-            props.Mobility = Mobility(ad, sat);
+            props.CapillaryPressure = BlackOilCapillaryPressure(model, sat);
+            props.RelativePermeability = BaseRelativePermeability(model, sat);
+            props.Mobility = Mobility(model, sat);
 
             % PVT properties
-            props.ShrinkageFactors = BlackOilShrinkageFactors(ad, pvt);
-            props.Density = BlackOilDensity(ad, pvt);
-            props.Viscosity = BlackOilViscosity(ad, pvt);
-            props.PoreVolume = MultipliedPoreVolume(ad, pvt);
-            props.PhasePressures = PhasePressures(ad, pvt);
+            props.ShrinkageFactors = BlackOilShrinkageFactors(model, pvt);
+            props.Density = BlackOilDensity(model, pvt);
+            props.Viscosity = BlackOilViscosity(model, pvt);
+            props.PoreVolume = MultipliedPoreVolume(model, pvt);
+            props.PhasePressures = PhasePressures(model, pvt);
             
             % Components
-            props.ComponentPhaseMass = ComponentPhaseMass(ad);
-            props.ComponentTotalMass = ComponentTotalMass(ad);
-            props.ComponentMobility = ComponentMobility(ad);
-            props.ComponentPhaseDensity = ComponentPhaseDensity(ad);
+            props.ComponentPhaseMass = ComponentPhaseMass(model);
+            props.ComponentTotalMass = ComponentTotalMass(model);
+            props.ComponentMobility = ComponentMobility(model);
+            props.ComponentPhaseDensity = ComponentPhaseDensity(model);
 
             if ~isempty(model.inputdata)
                 deck = model.inputdata;
@@ -64,18 +63,6 @@ classdef FlowPropertyFunctions < PropertyFunctions
             
             % Define storage
             props.structName = 'FlowProps';
-        end
-
-        function state = evaluateProperty(props, model, state, name)
-            switch name
-                case 'Mobility'
-                    state = props.evaluateDependencies(model, state, {'Viscosity', 'RelativePermeability'});
-                case {'Viscosity', 'ShrinkageFactors'}
-                    state = props.evaluateDependencies(model, state, {'CapillaryPressure'});
-                case {'Density'}
-                    state = props.evaluateDependencies(model, state, {'ShrinkageFactors'});
-            end
-            state = evaluateProperty@PropertyFunctions(props, model, state, name);
         end
     end
 end

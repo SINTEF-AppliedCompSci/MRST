@@ -233,14 +233,14 @@ if 0
     flux(:,4)    = op.Div(bSvS);
     state.flux   = flux;
     
-    state.mu = [double(muW), double(muO), double(muG), double(muS)];
-    state.kr = [double(krW), double(krO), double(krG), double(krS)];
+    state.mu = [value(muW), value(muO), value(muG), value(muS)];
+    state.kr = [value(krW), value(krO), value(krG), value(krS)];
     
 end
 
-state.sr = [double(sOr), double(sGc)];
-state.sOr = double(sOr);
-state.sGc = double(sGc);
+state.sr = [value(sOr), value(sGc)];
+state.sOr = value(sOr);
+state.sGc = value(sGc);
 
 
 eqs   = {water, oil, gas, solvent};
@@ -268,7 +268,7 @@ function varargout = getWellValue(wellCells, varargin)
     
     for i = 1:numel(varargin)
         v = varargin{i};
-        if numel(double(v)) == 1
+        if numel(value(v)) == 1
             varargout{i} = v;
         else
             varargout{i} = v(wellCells);

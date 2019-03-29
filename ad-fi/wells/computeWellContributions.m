@@ -25,7 +25,7 @@ else
    for ph = 2:numPh
       qt_s = qt_s + q_s{ph};
    end
-    isInj = double(qt_s)>0;   % sign determined from solution
+    isInj = value(qt_s)>0;   % sign determined from solution
 end
 
 %--------------------------------------------------------------------------
@@ -63,7 +63,7 @@ qt_s = q_s{1};
 for ph = 2:numPh
     qt_s = qt_s + q_s{ph};
 end
-isInj = double(qt_s)>0;
+isInj = value(qt_s)>0;
 % compute avg wellbore phase volumetric rates at std conds.
 wbq = cell(1, numPh);
 for ph = 1:numPh
@@ -76,7 +76,7 @@ for ph = 2:numPh
     wbqt = wbqt + wbq{ph};
 end
 % check for "dead wells":
-deadWells =  double(wbqt)==0;
+deadWells =  value(wbqt)==0;
 % compute wellbore mixture at std conds
 mix_s = cell(1, numPh);
 for ph = 1:numPh
@@ -111,7 +111,7 @@ for ph = 1:numPh
     eqs{ph} = q_s{ph} - Rw'*cq_s{ph};
 end
 % return mix_s(just values), connection and well status:
-mix_s   = cell2mat( cellfun(@double, mix_s, 'UniformOutput', false));
+mix_s   = cell2mat( cellfun(@value, mix_s, 'UniformOutput', false));
 cstatus = ~closedConns;
 status  = ~deadWells; %any(~deadWells, Rw'*cstatus); % 0 if dead or all conns closed
 if mrstVerbose && any(deadWells),

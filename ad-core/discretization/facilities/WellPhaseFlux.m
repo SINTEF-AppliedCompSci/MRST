@@ -6,12 +6,14 @@ classdef WellPhaseFlux < GridProperty
     methods
         function gp = WellPhaseFlux(varargin)
             gp@GridProperty(varargin{:});
+            gp = gp.dependsOn({'FacilityWellMapping', 'PerforationPressureGradient', 'WellIndex'});
+            gp = gp.dependsOn({'Mobility'}, 'FlowPropertyFunctions');
         end
         
         function q_ph = evaluateOnDomain(prop, model, state)
-            map = model.getProp(state, 'FacilityWellMapping');
+            map = prop.getEvaluatedDependencies(state, 'FacilityWellMapping');
             W = map.W;
-            [dp, wi] = model.getProps(state, 'PerforationPressureGradient', 'WellIndex');
+            [dp, wi] = prop.getEvaluatedDependencies(state, 'PerforationPressureGradient', 'WellIndex');
             mob = model.ReservoirModel.getProps(state, 'Mobility');
             
             mobw = cellfun(@(x) x(map.cells), mob, 'UniformOutput', false);

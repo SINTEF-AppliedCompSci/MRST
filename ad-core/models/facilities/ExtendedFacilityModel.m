@@ -114,22 +114,14 @@ classdef ExtendedFacilityModel < FacilityModel
                 map = facility.getProp(state, 'FacilityWellMapping');
                 rho = cellfun(@(x) x.ControlDensity, facility.WellModels(map.active), 'UniformOutput', false);
                 rho = vertcat(rho{is_resv});
-                ratio = bsxfun(@rdivide, rhoS, rho);
-                if false
-                    for ph = 1:nph
-                        resv_rates(is_resv) = resv_rates(is_resv) + q_s{ph}(is_resv).*ratio(:, ph);
-                    end
-                    ctrl_eq(is_resv) = resv_rates(is_resv) - targets(is_resv);
-                else
-                    resv_rates = 0;
-                    phaseRates = facility.getProps(state, 'PhaseFlux');
-                    rhoR = model.getProps(state, 'Density');
-                    for ph = 1:nph
-                        tmp = wsum*(phaseRates{ph}.*rhoR{ph}(map.cells));
-                        resv_rates = resv_rates + tmp(is_resv)./rho(:, ph);
-                    end
-                    ctrl_eq(is_resv) = resv_rates - targets(is_resv);
+                resv_rates = 0;
+                phaseRates = facility.getProps(state, 'PhaseFlux');
+                rhoR = model.getProps(state, 'Density');
+                for ph = 1:nph
+                    tmp = wsum*(phaseRates{ph}.*rhoR{ph}(map.cells));
+                    resv_rates = resv_rates + tmp(is_resv)./rho(:, ph);
                 end
+                ctrl_eq(is_resv) = resv_rates - targets(is_resv);
             end
 
             % Zero surface rate conditions
@@ -430,8 +422,7 @@ classdef ExtendedFacilityModel < FacilityModel
                 flowProps = model.ReservoirModel.FlowPropertyFunctions.subset(cells);
                 % Avoid using flag for interpolation
                 flowProps.ShrinkageFactors.useSaturatedFlag = true;
-                substate = flowProps.evaluateProperty(model.ReservoirModel, substate, 'Density');                
-                rhoS = model.ReservoirModel.getSurfaceDensities();
+                substate = flowProps.evaluatePropertyWithDependencies(model.ReservoirModel, substate, 'Density');
                 rho = substate.FlowProps.Density;
                 rho = [rho{:}];
                 if false
@@ -460,9 +451,6 @@ classdef ExtendedFacilityModel < FacilityModel
                             grat = grat - rs.*qs(:, oix);
                         end
                         newRates = newRates + grat./(bG.*shrink);
-                        
-                        newRates0 = sum(qs.*rhoS./rho, 2);
-                        newRates./newRates0
                     end
                 end
                 resvIx = find(isRESV);

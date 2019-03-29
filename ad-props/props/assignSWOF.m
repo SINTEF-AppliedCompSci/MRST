@@ -6,7 +6,7 @@ if isfield(reg, 'SURFNUM')
    f.krWSft  = @(sw, varargin)krWSft(sw, swof, reg, varargin{:});
    f.krOWSft  = @(so, varargin)krOWSft(so, swof, reg, varargin{:});
    % Assign residual water saturation for surfactant
-   f.sWconSft = swcon(reg.SURFNUM);
+   f.sWconSft = f.krPts.w(reg.SURFNUM, 1);
    % Assign residual oil saturation
    sOres  = cellfun(@(x)x(end, 1), swof);
    f.sOres = 1 - sOres(reg.SATNUM);

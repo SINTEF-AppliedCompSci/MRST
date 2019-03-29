@@ -7,10 +7,13 @@ classdef FaceComponentMobility < GridProperty & UpwindProperty
         function fm = FaceComponentMobility(backend, upwinding)
             fm@GridProperty(backend);
             fm@UpwindProperty(upwinding)
+            fm = fm.dependsOn('ComponentMobility', 'FlowPropertyFunctions');
+            fm = fm.dependsOn('PhaseUpwindFlag');
         end
         
         function mobf = evaluateOnDomain(prop, model, state)
-            [mob, flag] = model.getProps(state, 'ComponentMobility', 'PhaseUpwindFlag');
+            flag = prop.getEvaluatedDependencies(state, 'PhaseUpwindFlag');
+            mob = model.getProps(state, 'ComponentMobility');
             [ncomp, nph] = size(mob);
             mobf = cell(ncomp, nph);
             for c = 1:ncomp

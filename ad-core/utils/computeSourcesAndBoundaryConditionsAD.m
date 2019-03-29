@@ -104,7 +104,7 @@ function src = getContributionsStruct(force, q_s, b, rhoS, cells, dissolved, map
         q_s0 = q_s;
         q_t = 0;
         for i = 1:numel(q_s)
-            q_t = q_t + double(q_s{i});
+            q_t = q_t + value(q_s{i});
         end
         isInj = q_t > 0;
         for i = 1:nPh

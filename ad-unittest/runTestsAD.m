@@ -40,6 +40,4 @@ function results = runTestsAD(varargin)
             writeTestsTAP_YAMLISH(res, tapFile)
         end
     end
-    
-
 end

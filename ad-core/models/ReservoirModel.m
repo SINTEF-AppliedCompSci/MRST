@@ -54,6 +54,7 @@ properties
     FacilityModel % Facility model used to represent wells
     FlowPropertyFunctions % Grouping for flow properties
     FluxDiscretization % Grouping for flux discretization
+    Components = {};
 end
 
 methods
@@ -143,7 +144,9 @@ methods
         % Define the maximum allowable time-step based on physics or
         % discretization choice
         dt = getMaximumTimestep@PhysicalModel(model, state, state0, dt, drivingForces);
-        dt = model.FluxDiscretization.getMaximumTimestep(model, state, state0, dt, drivingForces);
+        if ~isempty(model.FluxDiscretization)
+            dt = model.FluxDiscretization.getMaximumTimestep(model, state, state0, dt, drivingForces);
+        end
     end
     
     function [model, state] = prepareReportstep(model, state, state0, dt, drivingForces)
@@ -158,7 +161,9 @@ methods
         if ~isempty(drivingForces.W)
             [model.FacilityModel, state] = model.FacilityModel.prepareTimestep(state, state0, dt, drivingForces);
         end
-        [model.FluxDiscretization, state] = model.FluxDiscretization.prepareTimestep(model, state, state0, dt, drivingForces);
+        if ~isempty(model.FluxDiscretization)
+            [model.FluxDiscretization, state] = model.FluxDiscretization.prepareTimestep(model, state, state0, dt, drivingForces);
+        end
     end
 
     % --------------------------------------------------------------------%
@@ -253,7 +258,12 @@ methods
         end
         [state, report] = updateAfterConvergence@PhysicalModel(model, state0, state, dt, drivingForces);
         report.FacilityReport = f_report;
-        state.sMax = max(state.sMax, state.s);
+        if isfield(state, 'sMax')
+            state.sMax = max(state.sMax, state.s);
+        end
+        if isfield(state, 'FacilityState')
+            state = rmfield(state, 'FacilityState');
+        end
     end
 
     % --------------------------------------------------------------------%
@@ -357,7 +367,7 @@ methods
                 index = ':';
                 fn = 's';
             case {'pressure', 'p'}
-                index = 1;
+                index = ':';
                 fn = 'pressure';
             case 'wellsol'
                 % Use colon to get all variables, since the wellsol may
@@ -372,9 +382,13 @@ methods
 
     function containers = getPropertyFunctions(model)
         containers = getPropertyFunctions@PhysicalModel(model);
-        assert(not(isempty(model.FlowPropertyFunctions)), ...
-            'PropertyFunctions not initialized - did you call "validateModel"?');
-        containers = [containers, {model.FlowPropertyFunctions, model.FluxDiscretization}];
+        extra = {model.FlowPropertyFunctions, model.FluxDiscretization};
+        if ~isempty(model.FacilityModel)
+            fm_props = model.FacilityModel.getPropertyFunctions();
+            extra = [extra, fm_props];
+        end
+        extra = extra(~cellfun(@isempty, extra));
+        containers = [containers, extra];
     end
     % --------------------------------------------------------------------%
     function names = getComponentNames(model) %#ok
@@ -514,6 +528,15 @@ methods
     end
 
     % --------------------------------------------------------------------%
+    function n = getNumberOfComponents(model)
+        n = numel(model.Components);
+    end
+        
+    function n = getNumberOfPhases(model)
+        n = sum(model.getActivePhases());
+    end
+        
+    % --------------------------------------------------------------------%
     function state = updateSaturations(model, state, dx, problem, satVars)
         % Update of phase-saturations
         %
@@ -588,9 +611,13 @@ methods
         ds(:, ~solvedFor) = tmp;
         % We update all saturations simultanously, since this does not bias the
         % increment towards one phase in particular.
-        kr = model.FlowPropertyFunctions.RelativePermeability;
         state = model.updateStateFromIncrement(state, ds, problem, 's', inf, model.dsMaxAbs);
-        [state, chopped] = kr.applyImmobileChop(model, state, state_init);
+        if isempty(model.FlowPropertyFunctions)
+            chopped = false(model.G.cells.num, 1);
+        else
+            kr = model.FlowPropertyFunctions.RelativePermeability;
+            [state, chopped] = kr.applyImmobileChop(model, state, state_init);
+        end
         if n_fill == 1
             % Ensure that values are within zero->one interval, and
             % re-normalize if any values were capped
@@ -1227,9 +1254,9 @@ methods
         % ordering (WOG, with any inactive phases removed).
         %
         % RETURNS:
-        %   rhoS - 1 x n double array of surface densities.
+        %   rhoS - pvt x n double array of surface densities.
         names = model.getPhaseNames();
-        rhoS = arrayfun(@(x) model.fluid.(['rho', x, 'S']), names);
+        rhoS = value(arrayfun(@(x) model.fluid.(['rho', x, 'S'])', names, 'UniformOutput', false));
     end
 
     function [compEqs, compSrc, eqNames, wellSol] = getExtraWellContributions(model, well, wellSol0, wellSol, q_s, bh, packed, qMass, qVol, dt, iteration)
@@ -1338,7 +1365,7 @@ methods (Static)
                 swcon = f.sWcon(varargin{2});
             end
         end
-        swcon = min(swcon, double(sw)-1e-5);
+        swcon = min(swcon, value(sw)-1e-5);
 
         d  = (sg+sw-swcon);
         ww = (sw-swcon)./d;

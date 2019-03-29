@@ -6,13 +6,13 @@ classdef ComponentPhaseFlux < GridProperty
     methods
         function cf = ComponentPhaseFlux(backend, upwinding)
             cf@GridProperty(backend);
+            cf = cf.dependsOn({'PermeabilityPotentialGradient', 'FaceComponentMobility'});
         end
 
-        
         function v = evaluateOnDomain(prop, model, state)
             ncomp = model.getNumberOfComponents;
             nph = model.getNumberOfPhases;
-            [kgrad, compMob] = model.getProps(state,...
+            [kgrad, compMob] = prop.getEvaluatedDependencies(state,...
                 'PermeabilityPotentialGradient', 'FaceComponentMobility');
             v = cell(ncomp, nph);
             for c = 1:ncomp

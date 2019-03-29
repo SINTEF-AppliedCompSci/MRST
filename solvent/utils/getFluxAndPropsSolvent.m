@@ -30,14 +30,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     mobW   = krW./muW;
     dpW    = op.Grad(pW) - rhoWf.*gdz;
     % water upstream-index
-    upcW  = (double(dpW)<=0);
+    upcW  = (value(dpW)<=0);
     vW = -op.faceUpstr(upcW, mobW).*T.*dpW;
     
     rhoOf  = op.faceAvg(rhoO);
     mobO   = krO./muO;
     dpO    = op.Grad(pO) - rhoOf.*gdz;
     % oil upstream-index
-    upcO = (double(dpO)<=0);
+    upcO = (value(dpO)<=0);
     vO   = - op.faceUpstr(upcO, mobO).*T.*dpO;
     
     pcOG = 0;
@@ -54,14 +54,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     mobG  = krG./muG;
     dpG   = op.Grad(pG) - rhoGf.*gdz;
     % gas upstream-index
-    upcG  = (double(dpG)<=0);
+    upcG  = (value(dpG)<=0);
     vG    = - op.faceUpstr(upcG, mobG).*T.*dpG;
     
     rhoSf  = op.faceAvg(rhoS);
     mobS   = krS./muS;
     dpS    = op.Grad(pS) - rhoSf.*gdz;
     % solvent upstream-index
-    upcS    = (double(dpS)<=0);
+    upcS    = (value(dpS)<=0);
     vS = - op.faceUpstr(upcS, mobS).*T.*dpS;
     
     

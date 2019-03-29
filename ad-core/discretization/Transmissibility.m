@@ -4,8 +4,11 @@ classdef Transmissibility < GridProperty
     end
     
     methods
-        function pp = Transmissibility(backend)
-            pp@GridProperty(backend);
+        function pp = Transmissibility(model)
+            pp@GridProperty(model);
+            if isfield(model.fluid, 'transMult')
+                pp = pp.dependsOn('pressure', 'state');
+            end
         end
         
         function v = evaluateOnDomain(prop, model, state)

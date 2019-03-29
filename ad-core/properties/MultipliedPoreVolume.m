@@ -3,8 +3,11 @@ classdef MultipliedPoreVolume < GridProperty
     end
     
     methods
-        function gp = MultipliedPoreVolume(varargin)
-            gp@GridProperty(varargin{:});
+        function gp = MultipliedPoreVolume(model, varargin)
+            gp@GridProperty(model, varargin{:});
+            if isfield(model.fluid, 'pvMultR')
+                gp = gp.dependsOn({'pressure'}, 'state');
+            end
         end
         function pv = evaluateOnDomain(prop, model, state)
             f = model.fluid;

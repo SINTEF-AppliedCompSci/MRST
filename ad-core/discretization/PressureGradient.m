@@ -6,6 +6,8 @@ classdef PressureGradient < GridProperty
     methods
         function gp = PressureGradient(varargin)
             gp@GridProperty(varargin{:});
+            gp = gp.dependsOn('PhasePressures', 'FlowPropertyFunctions');
+            gp = gp.dependsOn('pressure', 'state');
         end
         function dp = evaluateOnDomain(prop, model, state)
             act = model.getActivePhases();

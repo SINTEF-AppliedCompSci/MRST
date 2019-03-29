@@ -20,7 +20,7 @@ fn = getPlotAfterStep(state0, model, schedule, 'plotWell', true,...
                                                'plotReservoir', false);
 disp(fn)
 %% Run the simulation with plotting function
-linsolve = CPRSolverAD();
+linsolve = selectLinearSolverAD(model);
 [wellSols, states, report] = simulateScheduleAD(state0, model, schedule, ...
     'Verbose', true, 'afterStepFn', fn, 'linearsolver', linsolve);
 

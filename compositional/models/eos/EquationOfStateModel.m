@@ -117,18 +117,18 @@ classdef EquationOfStateModel < PhysicalModel
 
         function Z = computeCompressibilityZ(model, p, xy, A, B, Si, Bi, isLiquid)
             if iscell(xy)
-                xy = cellfun(@double, xy, 'UniformOutput', false);
+                xy = cellfun(@value, xy, 'UniformOutput', false);
                 xy = [xy{:}];
             end
             if iscell(Si)
-                Si = cellfun(@double, Si, 'UniformOutput', false);
+                Si = cellfun(@value, Si, 'UniformOutput', false);
                 Si = [Si{:}];
             end
             if iscell(Bi)
-                Bi = cellfun(@double, Bi, 'UniformOutput', false);
+                Bi = cellfun(@value, Bi, 'UniformOutput', false);
                 Bi = [Bi{:}];
             end
-            p = double(p); A = double(A); B = double(B);
+            p = value(p); A = value(A); B = value(B);
                 
             if ~model.selectGibbsMinimum
                 if isLiquid
@@ -475,12 +475,12 @@ classdef EquationOfStateModel < PhysicalModel
         function eosdata = getPropertiesFastAD(model, P, T, x, y, z, Z_L, Z_V)
             % Get packed properties (fugacity, Z-factors) with FastAD type
             % to easily get derivatives
-            P = double(P);
-            T = double(T);
+            P = value(P);
+            T = value(T);
             if iscell(x)
                 assert(iscell(y))
-                x = cellfun(@double, x, 'UniformOutput', false);
-                y = cellfun(@double, y, 'UniformOutput', false);
+                x = cellfun(@value, x, 'UniformOutput', false);
+                y = cellfun(@value, y, 'UniformOutput', false);
             else
                 x = expandMatrixToCell(x);
                 y = expandMatrixToCell(y);
@@ -558,11 +558,11 @@ classdef EquationOfStateModel < PhysicalModel
                 x0 = x;
                 y0 = y;
                 P0 = P;
-                ncell = numel(double(P));
+                ncell = numel(value(P));
 
                 ncomp = model.fluid.getNumberOfComponents();
-                Z_L0 = double2ADI(double(Z_L), s);
-                Z_V0 = double2ADI(double(Z_V), s);
+                Z_L0 = double2ADI(value(Z_L), s);
+                Z_V0 = double2ADI(value(Z_V), s);
                 
                 hasx = isa(x0{1}, 'ADI');
                 hasy = isa(y0{1}, 'ADI');
@@ -571,8 +571,8 @@ classdef EquationOfStateModel < PhysicalModel
                 if wantFugacity
                     [f_L0, f_V0] = deal(cell(1, ncomp));
                     for i = 1:ncomp
-                        f_L0{i} = double2ADI(double(f_L{i}), s);
-                        f_V0{i} = double2ADI(double(f_V{i}), s);
+                        f_L0{i} = double2ADI(value(f_L{i}), s);
+                        f_V0{i} = double2ADI(value(f_V{i}), s);
                     end
                 end
                 vx = (1:ncell)';
@@ -729,10 +729,10 @@ classdef EquationOfStateModel < PhysicalModel
             timer = tic();
             eqs = cell(1, 2*ncomp + 1);
             sample = getSampleAD(P, T, x{:}, y{:});
-            emptyJac = double2ADI(zeros(size(double(P))), sample);
+            emptyJac = double2ADI(zeros(size(value(P))), sample);
             
-            isLiq = double(L) == 1;
-            isVap = double(L) == 0;
+            isLiq = value(L) == 1;
+            isVap = value(L) == 0;
             isPure = isLiq | isVap;
             eqs{end} = emptyJac + (isLiq | isVap);
             for i = 1:ncomp
@@ -760,7 +760,7 @@ classdef EquationOfStateModel < PhysicalModel
             % Compute derivatives for values obtained by solving the
             % equilibrium equations (molar fractions in each phase, liquid
             % mole fraction).
-            twoPhase = true(size(double(pP)));
+            twoPhase = true(size(value(pP)));
 
             % This function currently only works for the full set of
             % variables, making the local systems a bit too large. The root
@@ -807,7 +807,7 @@ classdef EquationOfStateModel < PhysicalModel
             
             L = state.L(twoPhase);
             K = state.K(twoPhase, :);
-            zD = cellfun(@double, zP, 'UniformOutput', false);
+            zD = cellfun(@value, zP, 'UniformOutput', false);
             % Compute secondary variables as pure doubles
             xD = expandMatrixToCell(state.x(twoPhase, :));
             yD = expandMatrixToCell(state.y(twoPhase, :));
@@ -826,8 +826,8 @@ classdef EquationOfStateModel < PhysicalModel
             xP = xD;
             yP = yD;
 
-            pS = double(pP);
-            TS = double(TP);
+            pS = value(pP);
+            TS = value(TP);
             LP = L;
             
             eqsPrim  = model.equationsEquilibrium(pP, TP, xP, yP, zP, LP, Z_L, Z_V, K, subpacked);
@@ -905,11 +905,11 @@ classdef EquationOfStateModel < PhysicalModel
                     bad = ~isfinite(K{i});
                     y{i} = K{i}.*z{i}./(L + (1-L).*K{i});
                     y{i}(bad) = 0;
-                    sv = sv + double(y{i});
+                    sv = sv + value(y{i});
                 end
                 y = cellfun(@(k, zi) k.*zi./(L + (1-L).*k), K, z, 'UniformOutput', false);
                 y = cellfun(@(x) x./sv, y, 'UniformOutput', false);
-                assert(all(cellfun(@(x) all(isfinite(double(x))), y)));
+                assert(all(cellfun(@(x) all(isfinite(value(x))), y)));
             else
                 y = K.*z./bsxfun(@plus, L, bsxfun(@times, 1-L, K));
                 y(~isfinite(K)) = z(~isfinite(K));
@@ -930,10 +930,10 @@ classdef EquationOfStateModel < PhysicalModel
                     bad = ~isfinite(K{i});
                     x{i} = z{i}./(L + (1-L).*K{i});
                     x{i}(bad) = 0;
-                    sv = sv + double(x{i});
+                    sv = sv + value(x{i});
                 end
                 x = cellfun(@(x) x./sv, x, 'UniformOutput', false);
-                assert(all(cellfun(@(x) all(isfinite(double(x))), x)));
+                assert(all(cellfun(@(x) all(isfinite(value(x))), x)));
             else
                 tmp = bsxfun(@times, 1-L, K);
                 x = z./bsxfun(@plus, L, tmp);
@@ -1013,9 +1013,9 @@ classdef EquationOfStateModel < PhysicalModel
                 end
             end
             [E2, E1, E0] = model.getCubicCoefficients(A, B);
-            e2 = double(E2);
-            e1 = double(E1);
-            z = double(Z);
+            e2 = value(E2);
+            e1 = value(E1);
+            z = value(Z);
             if isa(Z, 'NewAD')
                 offset = Z.offsets;
                 for i = 1:numel(Z.jac)

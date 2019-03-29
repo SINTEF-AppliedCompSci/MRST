@@ -92,11 +92,11 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             wL(wT == 0) = state.L(wT == 0);
             wV(wT == 0) = 1 - state.L(wT == 0);
 
-            scaling = wL.*double(rhoO) + wV.*double(rhoG);
+            scaling = wL.*value(rhoO) + wV.*value(rhoG);
             scaling(wT  < 1e-3) = 1e6;
         end
 
-        function [fn, index] = getVariableField(model, name)
+        function [fn, index] = getVariableField(model, name, varargin)
             switch(lower(name))
                 case {'z', 'components'}
                     % Overall mole fraction
@@ -129,7 +129,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                         index = find(sub);
                     else
                         % This will throw an error for us
-                        [fn, index] = getVariableField@ReservoirModel(model, name);
+                        [fn, index] = getVariableField@ReservoirModel(model, name, varargin{:});
                     end
             end
         end
@@ -269,7 +269,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             isActive = model.getActivePhases();
 
             state.rho = zeros(model.G.cells.num, sum(isActive));
-            rho = {double(rhoW), double(rhoO), double(rhoG)};
+            rho = {value(rhoW), value(rhoO), value(rhoG)};
             state = model.setPhaseData(state, rho, 'rho');
         end
         
@@ -286,7 +286,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             vix = lix + 1;
             cqLs = qMass{lix};
             cqVs = qMass{vix};
-            ncell = numel(double(cqLs));
+            ncell = numel(value(cqLs));
 
             N = numel(compSrc);
             compSrc = [compSrc, cell(1, ncomp)];
@@ -305,7 +305,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
 
 
                 compSrc{N+cNo} = q_i;
-                wellSol.components(:, cNo) = double(q_i);
+                wellSol.components(:, cNo) = value(q_i);
             end
         end
 
@@ -451,7 +451,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                 tol_comp = model.incTolComposition;
             else
                 tol_comp = model.nonlinearTolerance;
-                v_comp = cellfun(@(x) norm(double(x), inf), problem.equations(isComponent));
+                v_comp = cellfun(@(x) norm(value(x), inf), problem.equations(isComponent));
             end
             tol_comp = repmat(tol_comp, size(v_comp));
             names_comp = names(isComponent);
@@ -466,7 +466,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             else
                 scale = 1;
             end
-            v_f = cellfun(@(x) norm(double(x).*scale, inf), problem.equations(isFugacity));
+            v_f = cellfun(@(x) norm(value(x).*scale, inf), problem.equations(isFugacity));
             tol_f = repmat(model.fugacityTolerance, size(v_f));
             names_f = problem.equationNames(isFugacity);
        end

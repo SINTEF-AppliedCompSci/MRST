@@ -5,11 +5,13 @@ classdef PhasePressures < GridProperty
     methods
         function gp = PhasePressures(varargin)
             gp@GridProperty(varargin{:});
+            gp = gp.dependsOn({'CapillaryPressure'});
+            gp = gp.dependsOn({'pressure'}, 'state');
         end
         
         function p_phase = evaluateOnDomain(prop, model, state)
-            [pc, p] = model.getProps(state, 'CapillaryPressure', 'Pressure');
-            
+            p = model.getProps(state, 'Pressure');
+            pc = prop.getEvaluatedDependencies(state, 'CapillaryPressure');
             nph = numel(pc);
             p_phase = cell(1, nph);
             for i = 1:nph

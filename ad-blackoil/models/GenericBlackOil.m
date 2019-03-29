@@ -7,23 +7,6 @@ classdef GenericBlackOil < ThreePhaseBlackOilModel & ExtendedReservoirModel
         function model = GenericBlackOil(G, rock, fluid, varargin)
             model = model@ThreePhaseBlackOilModel(G, rock, fluid, varargin{:});
             model.OutputProperties = {'ComponentTotalMass'};
-
-            nph = model.getNumberOfPhases();
-            model.Components = cell(1, nph);
-            names = model.getPhaseNames();
-            for ph = 1:nph
-                switch names(ph)
-                    case 'W'
-                        c = ImmiscibleComponent('water', ph);
-                    case 'O'
-                        c = OilComponent('oil', ph);
-                    case 'G'
-                        c = GasComponent('gas', ph);
-                    otherwise
-                        error('Unknown phase');
-                end
-                model.Components{ph} = c;
-            end
         end
         
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
@@ -50,15 +33,7 @@ classdef GenericBlackOil < ThreePhaseBlackOilModel & ExtendedReservoirModel
         function names = getComponentNames(model)
             names = cellfun(@(x) x.name, model.Components, 'UniformOutput', false);
         end
-        
-        function n = getNumberOfComponents(model)
-            n = numel(model.Components);
-        end
-        
-        function n = getNumberOfPhases(model)
-            n = model.water + model.oil + model.gas;
-        end
-        
+
         function [state, report] = updateState(model, state, problem, dx, forces)
             [state, report] = updateState@ThreePhaseBlackOilModel(model, state, problem, dx, forces);
             if ~isempty(model.FacilityModel)
@@ -73,6 +48,34 @@ classdef GenericBlackOil < ThreePhaseBlackOilModel & ExtendedReservoirModel
             %   :meth:`ad_core.models.PhysicalModel.validateModel`
             if isempty(model.FacilityModel) || ~isa(model.FacilityModel, 'ExtendedFacilityModel')
                 model.FacilityModel = ExtendedFacilityModel(model);
+            end
+            if isempty(model.Components)
+                nph = model.getNumberOfPhases();
+                model.Components = cell(1, nph);
+                names = model.getPhaseNames();
+                disgas = model.disgas;
+                vapoil = model.vapoil;
+                for ph = 1:nph
+                    switch names(ph)
+                        case 'W'
+                            c = ImmiscibleComponent('water', ph);
+                        case 'O'
+                            if disgas || vapoil
+                                c = OilComponent('oil', ph, disgas, vapoil);
+                            else
+                                c = ImmiscibleComponent('oil', ph);
+                            end
+                        case 'G'
+                            if disgas || vapoil
+                                c = GasComponent('gas', ph, disgas, vapoil);
+                            else
+                                c = ImmiscibleComponent('gas', ph);
+                            end
+                        otherwise
+                            error('Unknown phase');
+                    end
+                    model.Components{ph} = c;
+                end
             end
             model = validateModel@ThreePhaseBlackOilModel(model, varargin{:});
         end

@@ -11,10 +11,10 @@ classdef BlackOilCapillaryPressure < GridProperty
     end
     
     methods
-        function prop = BlackOilCapillaryPressure(backend, varargin)
-            prop = prop@GridProperty(backend, varargin{:});
+        function prop = BlackOilCapillaryPressure(model, varargin)
+            prop = prop@GridProperty(model, varargin{:});
+            prop = prop.dependsOn('s', 'state');
         end
-
         
         function pc = evaluateOnDomain(prop, model, state)
             [act, phInd] = model.getActivePhases();

@@ -212,63 +212,6 @@ methods
     % --------------------------------------------------------------------%
     function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
         [problem, state] = equationsBlackOil(state0, state, model, dt, drivingForces, varargin{:});
-%         opt = struct('Verbose',     mrstVerbose,...
-%                     'reverseMode', false,...
-%                     'resOnly',     false,...
-%                     'iteration',   -1, ...
-%                     'drivingForces0', []);
-%         opt = merge_options(opt, varargin{:});
-%         
-%         
-%         % Define primary variables
-%         if opt.reverseMode
-%             [state0, primaryVars] = model.getReverseStateAD(state0);
-%             % The model must be validated with drivingForces so that the
-%             % FacilityModel gets updated.
-%             model = model.validateModel(drivingForces);
-%             state = model.getStateAD(state, false);
-%         else
-%             [state, primaryVars] = model.getStateAD(state, ~opt.resOnly);
-%         end
-% 
-%         
-%         [acc, divTerms, names, types] = conservationEquationsBlackOil(state0, state, model, dt, drivingForces);
-%         
-%         dissolved = model.getDissolutionMatrix(state.rs, state.rv);
-%         % Add in and setup well equations
-%         
-%         wellVars = state.FacilityState.primaryVariables;
-%         w = state.FacilityState.names;
-%         nw = numel(state.wellSol);
-%         wellMap = struct('isBHP', strcmp(w, 'bhp'), 'isRate', ...
-%                           ismember(w, {'qOs', 'qGs', 'qWs'}), ...
-%                          'extraMap', zeros(nw, nw));
-%         
-%         p = state.pressure;
-%         mob = state.FlowProps.Mobility;
-%         rho = state.FlowProps.Density;
-%         
-%         sat = cell(1, 3);
-%         [sat{1}, sat{2}, sat{3}] = model.getProps(state, 'sw', 'so', 'sg');
-%         eqs = acc;
-% 
-%         [eqs, state] = model.addBoundaryConditionsAndSources(eqs, names, types, state, ...
-%                                                          state.FlowProps.PhasePressures,...
-%                                                          sat, mob, rho, ...
-%                                                          dissolved, {}, ...
-%                                                          drivingForces);
-%         [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, ...
-%                                                           names, types, ...
-%                                                           state0.wellSol, ...
-%                                                           state.wellSol, ...
-%                                                           wellVars, wellMap, ...
-%                                                           p, mob, rho, dissolved, ...
-%                                                           {}, dt, opt);
-%         for i = 1:numel(divTerms)
-%             eqs{i} = eqs{i} + divTerms{i};
-%         end
-%         state = value(state);
-%         problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
     end
 
 
@@ -421,18 +364,21 @@ methods
         % Take averaged pressure for scaling factors
         state = problem.state;
         fluid = model.fluid;
+        isMass = isa(model, 'ExtendedReservoirModel');
+        if isMass
+            rhoS = model.getSurfaceDensities();
+        end
+        ph = model.getPhaseNames();
+        iso = ph == 'O';
+        isg = ph == 'G';
+        isw = ph == 'W';
+
         if (isprop(solver, 'trueIMPES') || isfield(solver, 'trueIMPES')) && solver.trueIMPES
             % Rigorous pressure equation (requires lots of evaluations)
             rs = state.rs;
             rv = state.rv;
             cfac = 1./(1 - model.disgas*model.vapoil*rs.*rv);
-            fp = model.FlowPropertyFunctions;
-            b = fp.getProperty(model, state, 'ShrinkageFactors');
-            ph = model.getPhaseNames();
-            
-            iso = ph == 'O';
-            isg = ph == 'G';
-            isw = ph == 'W';
+            [b, rs, rv] = model.getProps(state, 'ShrinkageFactors', 'rs', 'rv');
             [bO, bW, bG] = deal(1);
             if any(isw)
                 bW = b{isw};
@@ -443,18 +389,24 @@ methods
             if any(isg)
                 bG = b{isg};
             end
-            sat = problem.state.s;
-            rs = rs.*(sat(:, 3) == 0);
-            rv = rv.*(sat(:, 2) == 0);
             for iter = 1:nNames
                 name = lower(names{iter});
                 switch name
                     case 'oil'
                         s = cfac.*(1./bO - model.disgas*rs./bG);
+                        if isMass
+                            s = s./rhoS(1, iso);
+                        end
                     case 'water'
                         s = 1./bW;
+                        if isMass
+                            s = s./rhoS(1, isw);
+                        end
                     case 'gas'
                         s = cfac.*(1./bG - model.vapoil*rv./bO);
+                        if isMass
+                            s = s./rhoS(1, isg);
+                        end
                     otherwise
                         continue
                 end
@@ -464,7 +416,7 @@ methods
             end
         else
             % Very simple scaling factors, uniform over grid
-            p = mean(state.pressure);
+            p = mean(value(state.pressure));
             useReg = iscell(fluid.bO);
             if useReg
                 call = @(x, varargin) x{1}(varargin{:});
@@ -482,9 +434,18 @@ methods
                            bO = call(fluid.bO,p);
                         end
                         s = 1./bO;
+                        if isMass
+                            s = s./rhoS(1, isg);
+                        end
+                        if isMass
+                            s = s./rhoS(1, iso);
+                        end
                     case 'water'
                         bW = call(fluid.bW,p);
                         s = 1./bW;
+                        if isMass
+                            s = s./rhoS(1, isw);
+                        end
                     case 'gas'
                         if model.vapoil
                             rv = call(fluid.rvSat, p);
@@ -493,6 +454,9 @@ methods
                             bG = call(fluid.bG, p);
                         end
                         s = 1./bG;
+                        if isMass
+                            s = s./rhoS(1, isg);
+                        end
                     otherwise
                         continue
                 end

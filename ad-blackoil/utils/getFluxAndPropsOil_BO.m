@@ -102,7 +102,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     rhoOf  = s.faceAvg(rhoO);
     dpO    = s.Grad(p) - rhoOf.*gdz;
     % oil upstream-index
-    upco = (double(dpO)<=0);
+    upco = (value(dpO)<=0);
     
     [krOf, krO] = s.splitFaceCellValue(s, upco, krO);
     [muOf, muO] = s.splitFaceCellValue(s, upco, muO);

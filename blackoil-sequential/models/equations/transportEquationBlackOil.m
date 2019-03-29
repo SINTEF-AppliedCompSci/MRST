@@ -73,7 +73,7 @@ else
     % Evaluate relative permeability
     sO  = 1 - sW  - sG;
     sO0 = 1 - sW0 - sG0;
-    sT = ones(size(double(sW)));
+    sT = ones(size(value(sW)));
     [krW, krO, krG] = model.evaluateRelPerm({sW, sO, sG});
 end
 
@@ -210,9 +210,9 @@ if ~isempty(W)
 
     for i = 1:numel(W)
         perfind = perf2well == i;
-        state.wellSol(i).qOs = sum(double(wflux_O(perfind)));
-        state.wellSol(i).qWs = sum(double(wflux_W(perfind)));
-        state.wellSol(i).qGs = sum(double(wflux_G(perfind)));
+        state.wellSol(i).qOs = sum(value(wflux_O(perfind)));
+        state.wellSol(i).qWs = sum(value(wflux_W(perfind)));
+        state.wellSol(i).qGs = sum(value(wflux_G(perfind)));
     end
 end
 

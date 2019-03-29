@@ -7,10 +7,14 @@ classdef PermeabilityPotentialGradient < GridProperty
         function pp = PermeabilityPotentialGradient(backend, kgrad)
             pp@GridProperty(backend);
             pp.PermeabilityGradientDiscretization = kgrad;
+            pp = pp.dependsOn('PhasePotentialDifference');
+            if isa(kgrad, 'TwoPointFluxApproximation')
+                pp = pp.dependsOn('Transmissibility');
+            end
         end
         
         function v = evaluateOnDomain(prop, model, state)
-            pot = model.getProps(state, 'PhasePotentialDifference');
+            pot = prop.getEvaluatedDependencies(state, 'PhasePotentialDifference');
             nph = numel(pot);
             kgrad = prop.PermeabilityGradientDiscretization;
             v = cell(1, nph);

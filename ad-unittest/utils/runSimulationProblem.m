@@ -2,13 +2,12 @@ function [states, failure] = runSimulationProblem(model, state0, schedule, varar
 
     opt = struct('useCPR',  false, ...
                  'useAGMG', false, ...
+                 'selectLinearSolver', false, ...
                  'stepcount',   inf, ...
-                 'cprTol', 1e-2 ...
+                 'cprTol', 1e-3 ...
                 );
    
     opt = merge_options(opt, varargin{:});
-    
-    mrstModule add ad-fi ad-refactor
     
     if isfinite(opt.stepcount)
         schedule.step.val = schedule.step.val(1:opt.stepcount);
@@ -18,12 +17,14 @@ function [states, failure] = runSimulationProblem(model, state0, schedule, varar
     if opt.useCPR
         if opt.useAGMG
             mrstModule add agmg
-            ellipSolver = AGMGSolverAD();
+            ellipSolver = AGMGSolverAD('tolerance', 1e-2');
         else
             ellipSolver = BackslashSolverAD();
         end
         linsolve = CPRSolverAD('ellipticSolver', ellipSolver, ...
                                'relativeTolerance', opt.cprTol);
+    elseif opt.selectLinearSolver
+        linsolve = selectLinearSolverAD(model);
     else
         linsolve = BackslashSolverAD();
     end

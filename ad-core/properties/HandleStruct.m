@@ -25,9 +25,7 @@ classdef HandleStruct < handle
         end
         
         function h = subsref(ds,s)
-            if strcmp(s(1).type, '.') && ...
-               ischar(s(1).subs) && ...
-               isfield(ds.data, s(1).subs)
+            if isfield(ds.data, s(1).subs)
                 h = builtin('subsref', ds.data, s);
             else
                 h = builtin('subsref', ds, s);

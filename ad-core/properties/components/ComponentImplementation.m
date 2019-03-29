@@ -6,6 +6,8 @@ classdef ComponentImplementation
     methods
         function c = ComponentImplementation(name)
             c.name = name;
+            c = c.dependsOn({'PoreVolume', 'Density', 'Mobility'});
+            c = c.dependsOn('s', 'state');
         end
         
         function c = getComponentDensity(component, model, state)
@@ -56,5 +58,9 @@ classdef ComponentImplementation
             end
         end
 
+        function prop = dependsOn(prop, varargin)
+            % Document dependencies and external dependencies
+            prop = addPropertyDependence(prop, varargin{:});
+        end
     end
 end

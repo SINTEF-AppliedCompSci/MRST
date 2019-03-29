@@ -126,8 +126,8 @@ for i = 1:ncomp
     if any(twoPhase)
         y{i}(twoPhase) = w{i};
     end
-    x{i}(pureVapor) = double(x{i}(pureVapor));
-    y{i}(pureLiquid) = double(y{i}(pureLiquid));
+    x{i}(pureVapor) = value(x{i}(pureVapor));
+    y{i}(pureLiquid) = value(y{i}(pureLiquid));
 end
 
 cellJacMap = cell(numel(primaryVars), 1);
@@ -267,7 +267,7 @@ for i = 1:ncomp
                     pv.*rhoO.*sO.*xM{i} - pv0.*rhoO0.*sO0.*xM0{i} + ...
                     pv.*rhoG.*sG.*yM{i} - pv0.*rhoG0.*sG0.*yM0{i}) + s.Div(vi);
       
-   compFlux(model.operators.internalConn, i) = double(vi);
+   compFlux(model.operators.internalConn, i) = value(vi);
 end
 state.componentFluxes = compFlux;
 if isfield(state, 'massFlux')
@@ -345,19 +345,20 @@ if ~isempty(W)
         src =       (rOqO + rGqG).*w_comp(:, i).*isInj...
                    +(rOqO.*x_comp{i} + rGqG.*y_comp{i}).*~isInj;
         eqs{i}(wc) = eqs{i}(wc) - src;
-        compSrc(:, i) = double(src);
+        compSrc(:, i) = value(src);
         sources{i} = src;    
     end
 
-    qg = double(rGqG)./fluid.rhoGS;
-    qo = double(rOqO)./fluid.rhoOS;
+    qg = value(rGqG)./fluid.rhoGS;
+    qo = value(rOqO)./fluid.rhoOS;
 
     isProd = ~isInj;
-    qo(isProd) = qo(isProd).*sT(wc(isProd));
-    qg(isProd) = qg(isProd).*sT(wc(isProd));
+    sTw = value(sT(wc(isProd)));
+    qo(isProd) = qo(isProd).*sTw;
+    qg(isProd) = qg(isProd).*sTw;
     if model.water
-        qw = double(rWqW)./fluid.rhoWS;
-        qw(isProd) = qw(isProd).*sT(wc(isProd));
+        qw = value(rWqW)./fluid.rhoWS;
+        qw(isProd) = qw(isProd).*sTw;
     end
     for i = 1:numel(W)
         state.wellSol(i).components = compSrc(perf2well == i, :);
@@ -390,7 +391,7 @@ end
 massT = model.getComponentScaling(state0);
 scale = (dt./s.pv)./massT;
 if model.water
-    wscale = dt./(s.pv*mean(double(rhoW0)));
+    wscale = dt./(s.pv*mean(value(rhoW0)));
     eqs{wix} = eqs{wix}.*wscale;
 end
 

@@ -12,13 +12,12 @@ classdef FacilityFluxDiscretization < PropertyFunctions
         function props = FacilityFluxDiscretization(model)
             props.structName = 'FacilityFluxProps';
             
-            backend = model.AutoDiffBackend;
-            props.PhaseFlux = WellPhaseFlux(backend);
-            props.ComponentTotalFlux = ComponentTotalFlux(backend);
-            props.ComponentPhaseFlux = WellComponentPhaseFlux(backend);
-            props.PerforationPressureGradient = PerforationPressureGradient(backend);
-            props.WellIndex = WellIndex(backend);
-            props.FacilityWellMapping = FacilityWellMapping(backend);
+            props.PhaseFlux = WellPhaseFlux(model);
+            props.ComponentTotalFlux = ComponentTotalFlux(model);
+            props.ComponentPhaseFlux = WellComponentPhaseFlux(model);
+            props.PerforationPressureGradient = PerforationPressureGradient(model);
+            props.WellIndex = WellIndex(model);
+            props.FacilityWellMapping = FacilityWellMapping(model);
         end
     end
 end

@@ -62,7 +62,7 @@ classdef TracerModel < ReservoirModel
    
         
         
-        function [fn, index] = getVariableField(model, name)
+        function [fn, index] = getVariableField(model, name, varargin)
             tsub = strcmpi(model.tracerNames, name);
             if any(tsub)
                 fn = 'tracer';
@@ -74,7 +74,7 @@ classdef TracerModel < ReservoirModel
                         index = ':';
                     otherwise
                         % Basic phases are known to the base class
-                        [fn, index] = getVariableField@ReservoirModel(model, name);
+                        [fn, index] = getVariableField@ReservoirModel(model, name, varargin{:});
                 end
             end
         end

@@ -1,11 +1,26 @@
 classdef BlackOilViscosity < GridProperty
     properties
         useSaturatedFlag = false;
+        disgas = false;
+        vapoil = false;
     end
     
     methods
-        function gp = BlackOilViscosity(varargin)
-            gp@GridProperty(varargin{:});
+        function gp = BlackOilViscosity(model, varargin)
+            gp@GridProperty(model, varargin{:});
+            if isprop(model, 'disgas')
+                gp.disgas = model.disgas;
+                if gp.disgas
+                    gp = gp.dependsOn({'rs'}, 'state');
+                end
+            end
+            if isprop(model, 'vapoil')
+                gp.vapoil = model.vapoil;
+                if gp.vapoil
+                    gp = gp.dependsOn({'rv'}, 'state');
+                end
+            end
+            gp = gp.dependsOn({'PhasePressures'});
         end
         
         function mu = evaluateOnDomain(prop, model, state)
@@ -14,8 +29,8 @@ classdef BlackOilViscosity < GridProperty
             mu = cell(1, nph);
             
             f = model.fluid;
-            [p, p_phase] = model.getProps(state, 'pressure', 'phasepressures');
-            nc = numelValue(p);
+            p_phase = prop.getEvaluatedDependencies(state, 'PhasePressures');
+            nc = numelValue(p_phase{1});
             if model.water
                 wix = phInd == 1;
                 pw = p_phase{wix};
@@ -25,7 +40,7 @@ classdef BlackOilViscosity < GridProperty
             if model.oil
                 oix = phInd == 2;
                 po = p_phase{oix};
-                if model.disgas
+                if prop.disgas
                     rs = model.getProp(state, 'rs');
                     if prop.useSaturatedFlag
                         sG = model.getProp(state, 'sg');
@@ -42,7 +57,7 @@ classdef BlackOilViscosity < GridProperty
             if model.gas
                 gix = phInd == 3;
                 pg = p_phase{gix};
-                if model.vapoil
+                if prop.vapoil
                     rv = model.getProp(state, 'rv');
                     if prop.useSaturatedFlag
                         sO = model.getProp(state, 'so');

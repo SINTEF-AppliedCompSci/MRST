@@ -1,11 +1,12 @@
-classdef ComponentPhaseDensity < GridProperty
+classdef ComponentPhaseDensity < GridProperty & ComponentProperty
     properties
 
     end
     
     methods
-        function gp = ComponentPhaseDensity(varargin)
-            gp@GridProperty(varargin{:});
+        function gp = ComponentPhaseDensity(model, varargin)
+            gp@GridProperty(model, varargin{:});
+            gp@ComponentProperty(model);
         end
         function v = evaluateOnDomain(prop, model, state)
             ncomp = model.getNumberOfComponents;
