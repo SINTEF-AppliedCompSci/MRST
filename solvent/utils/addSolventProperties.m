@@ -125,9 +125,15 @@ function fluid = assignProp(fluid, name, value, type, overwrite)
 end
 
 function F = satFrac(sX, sY, smin)
-
     F     = sX;
     ii    = sX + sY > smin;
+    if isnumeric(F) && isa(sY, 'ADI')
+        if isa(sY, 'NewAD')
+            F = double2NewAD(F, sY);
+        else
+            F = double2ADI(F, sY);
+        end
+    end
     F(ii) = sX(ii)./sY(ii);
     F = min(max(F, 0),1);
     

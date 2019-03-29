@@ -33,6 +33,7 @@ classdef SimpleWell < PhysicalModel
         dsMaxAbs % Maximum allowable change in well composition/saturation
         VFPTable % Vertical lift table. EXPERIMENTAL.
         doUpdatePressureDrop
+        ControlDensity
     end
 
     methods
@@ -228,7 +229,7 @@ classdef SimpleWell < PhysicalModel
             % Update well properties which are not primary variables
             cq_sDb = qMass;
             for i = 1:numel(qMass)
-                cq_sDb{i} = double(qMass{i});
+                cq_sDb{i} = value(qMass{i});
             end
             cq_sDb = cell2mat(cq_sDb);
 
@@ -284,10 +285,10 @@ classdef SimpleWell < PhysicalModel
             end
             [p, mob, rho, dissolved, comp, wellvars] = unpackPerforationProperties(packed);
             for i = 1:numel(rho)
-                rho{i} = double(rho{i});
+                rho{i} = value(rho{i});
                 if ~isempty(dissolved)
                     for j = 1:numel(dissolved{i})
-                        dissolved{i}{j} = double(dissolved{i}{j});
+                        dissolved{i}{j} = value(dissolved{i}{j});
                     end
                 end
             end
@@ -303,6 +304,7 @@ classdef SimpleWell < PhysicalModel
                 w.topo = [(0:(nperf-1))', (1:nperf)'];
             end
             qs = wellSol.cqs; %volumetric in-flux at standard conds
+            qs(qs == 0) = w.sign*1e-12;
             C = well.wb2in(w);            % mapping wb-flux to in-flux
             wbqs  = abs(C\qs);       % solve to get well-bore fluxes at surface conds
             wbqst = sum(wbqs, 2);   % total wb-flux at std conds
@@ -350,6 +352,70 @@ classdef SimpleWell < PhysicalModel
             end
             wellSol.cdp = cdp;
         end
+        
+        function wellSol = updateConnectionPressureDropState(well, model, wellSol, rho_res, rho_well)
+            % Simpler version
+            if ~well.doUpdatePressureDrop
+                return
+            end
+            w = well.W;
+            if ~isfield(w, 'topo')
+                nperf = numel(w.cells);
+                w.topo = [(0:(nperf-1))', (1:nperf)'];
+            end
+            if isfield(wellSol, 'ComponentTotalFlux') && ~isempty(wellSol.ComponentTotalFlux)
+                qVol = wellSol.flux;
+                qVol(qVol == 0) = w.sign*1e-12;
+                qMass = wellSol.ComponentTotalFlux;
+                qMass(qMass == 0) = w.sign*1e-12;
+                
+                if w.sign == 1
+%                     qMass = qMass.*w.compi;
+%                     qVol = qVol.*w.compi;
+                end
+            else
+                sgn = w.sign;
+                if sgn == 0
+                    sgn = 1;
+                end
+                qVol = sgn*ones(size(rho_res));
+                in = qVol > 0;
+                qMass = bsxfun(@times, qVol, rho_well).*in + bsxfun(@times, qVol, rho_res).*~in;
+            end
+            C = well.wb2in(w);      % mapping wb-flux to in-flux
+            wbMassFlux  = abs(C\qMass);  % solve to get well-bore mass flux
+            wbVolumeFlux  = abs(C\qVol); % solve to get well-bore volume flux
+            
+            rhoMix = sum(wbMassFlux, 2)./sum(wbVolumeFlux, 2);
+
+            % get dz between segment nodes and bh-node1. This is a simple
+            % hydrostatic distribution.
+            dpt = [0; w.dZ];
+            dz  = diff(dpt);%.*w.cstatus;
+            g   = norm(gravity);
+            ddp = g*rhoMix.*dz; % p-diff between connection neighbors
+            % well topology assumes we can traverse from top down, but we
+            % use a loop just in case of crazy ordering. If this loop does
+            % not converge, the solver will throw an error.
+            cdp    = nan(size(ddp));
+            cdp(1) = ddp(1);
+            its = 0; maxIts = 100;
+            while and(any(isnan(cdp)), its<maxIts)
+                its = its +1;
+                % Traverse from top node and down with the pressure
+                % differentials found earlier.
+                for cnr = 2:numel(cdp)
+                    cdp(w.topo(cnr,2)) = cdp(w.topo(cnr,1)) + ddp(cnr);
+                end
+            end
+            if its == maxIts
+                % If this loop did not converge, something is wrong with
+                % either the densities or the well itself. Regardless of
+                % reason, we throw an error.
+                error(['Problem with topology for well: ', wellSol.name, '. Segments appear not to be connected'])
+            end
+            wellSol.cdp = cdp;
+        end
 
         function [q_s, bhp, wellSol, withinLimits] = updateLimits(well, wellSol0, wellSol, model, q_s, bhp, wellvars, p, mob, rho, dissolved, comp, dt, iteration)
             % Update solution variables and wellSol based on the well
@@ -368,7 +434,7 @@ classdef SimpleWell < PhysicalModel
             lims = well.W.lims;
             qs_double = zeros(size(q_s));
             for i = 1:numel(qs_double)
-                qs_double(i) = double(q_s{i});
+                qs_double(i) = value(q_s{i});
             end
             qs_t = sum(qs_double);
 
@@ -393,7 +459,7 @@ classdef SimpleWell < PhysicalModel
                         lims.vrat = -inf;
                     end
 
-                    flags = [double(bhp) > lims.bhp, ...
+                    flags = [value(bhp)  > lims.bhp, ...
                               qs_t       > lims.rate, ...
                               qs_t       < lims.vrat];
                 else
@@ -424,7 +490,7 @@ classdef SimpleWell < PhysicalModel
                     if isprop(model, 'solvent') && model.solvent
                         q_sl = qs_double(solIx);
                     end
-                    flags = [double(bhp) < lims.bhp,  ...
+                    flags = [value(bhp) < lims.bhp,  ...
                         q_o          < lims.orat, ...
                         q_w + q_o    < lims.lrat, ...
                         q_g + q_sl   < lims.grat, ...
@@ -516,7 +582,8 @@ classdef SimpleWell < PhysicalModel
             end
 
             switched = ~strcmpi(wellSol.type, wellSol0.type);
-            if switched && well.verbose && ~strcmpi(wellSol0.type, 'resv')
+            if switched && well.verbose && ...
+                    ~(strcmpi(wellSol0.type, 'resv_history') && strcmpi(wellSol.type, 'resv'))
                 fprintf('Step complete: Well %s was switched from %s to %s controls.\n',...
                                                                  w.name, ...
                                                                  wellSol0.type, ...
@@ -524,7 +591,7 @@ classdef SimpleWell < PhysicalModel
             end
         end
 
-        function [fn, index] = getVariableField(model, name)
+        function [fn, index] = getVariableField(model, name, varargin)
             index = 1;
             switch(lower(name))
                 case 'bhp'
@@ -539,12 +606,19 @@ classdef SimpleWell < PhysicalModel
                     fn = 'qSs';
                 otherwise
                     % This will throw an error for us
-                    [fn, index] = getVariableField@PhysicalModel(model, name);
+                    [fn, index] = getVariableField@PhysicalModel(model, name, varargin{:});
             end
         end
 
         function ws = ensureWellSolConsistency(well, ws) %#ok
             % Run after the update step to ensure consistency of wellSol
+        end
+        
+        function lims = setMissingLimits(well, lims, modes, val)
+            missing_fields = {modes{~cellfun(@(x) isfield(lims, x), modes)}};
+            for f = missing_fields
+               lims = setfield(lims, f{:}, val);
+            end
         end
     end
     
@@ -587,14 +661,24 @@ classdef SimpleWell < PhysicalModel
             o = mixs(:, isoil);
 
             if dg
-                rsMax = model.fluid.rsSat(double(p));
+                if iscell(model.fluid.rsSat)
+                    rsSatFn = model.fluid.rsSat{1};
+                else
+                    rsSatFn = model.fluid.rsSat;
+                end
+                rsMax = rsSatFn(value(p));
             else
                 rsMax = 0;
             end
             if isa(model, 'ThreePhaseBlackOilModel')
                 % Vapoil/disgas
                 if vo
-                    rvMax = model.fluid.rvSat(double(p));
+                    if iscell(model.fluid.rvSat)
+                        rvSatFn = model.fluid.rvSat{1};
+                    else
+                        rvSatFn = model.fluid.rvSat;
+                    end
+                    rvMax = rvSatFn(value(p));
                 else
                     rvMax = 0;
                 end
@@ -635,13 +719,6 @@ classdef SimpleWell < PhysicalModel
                  end
               end
            end
-        end
-
-        function lims = setMissingLimits(lims, modes, val)
-            missing_fields = {modes{~cellfun(@(x) isfield(lims, x), modes)}};
-            for f = missing_fields
-               lims = setfield(lims, f{:}, val);
-            end
         end
     end
 end

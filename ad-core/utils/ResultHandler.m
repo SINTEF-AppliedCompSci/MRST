@@ -254,13 +254,28 @@ classdef ResultHandler < handle
             end
         end
         
-        function resetData(handler)
-            handler.data = {};
-
-            if handler.writeToDisk
-                p = handler.getDataPath();
-                fp = fullfile(p, [handler.dataPrefix, '*.mat']);
-                delete(fp);
+        function resetData(handler, subs)
+            if nargin == 1
+                handler.data = {};
+                if handler.writeToDisk
+                    p = handler.getDataPath();
+                    fp = fullfile(p, [handler.dataPrefix, '*.mat']);
+                    delete(fp);
+                end
+            else
+                if handler.storeInMemory
+                    [handler.data{subs}] = deal([]);
+                end
+                if handler.writeToDisk
+                    if islogical(subs)
+                        subs = find(subs);
+                    end
+                    p = handler.getDataPath();
+                    for i = 1:numel(subs)
+                        fp = fullfile(p, [handler.dataPrefix, num2str(subs(i)), '.mat']);
+                        delete(fp);
+                    end
+                end
             end
         end
         

@@ -43,7 +43,7 @@ end
 
 function [krW, krO, krG] = relPermWOG(sw, sg, f, varargin)
 swcon = f.sWcon;
-swcon = min(swcon, double(sw)-1e-5);
+swcon = min(swcon, value(sw)-1e-5);
 
 d  = (sg+sw-swcon);
 ww = (sw-swcon)./d;

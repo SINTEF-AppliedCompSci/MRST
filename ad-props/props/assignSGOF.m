@@ -1,39 +1,49 @@
 function f = assignSGOF(f, sgof, reg)
-   cfun  = @(f) cellfun(f, sgof, 'UniformOutput', false);
-
-   % Compute tables (static data)
-   Tkrg  = extendTab( cfun(@(x) x(:, [1, 2])) );
-   Tkro  = extendTab( cfun(@(x) x(:, [1, 3])) );
-   Tpcog = extendTab( cfun(@(x) x(:, [1, 4])) );
-
-   % Region mapping
-   regmap = @(sw, varargin) ...
-      getRegMap(sw, reg.SATNUM, reg.SATINX, varargin{:});
-
-   if isfield(f, 'sWcon')
-       if numel(f.sWcon) == 1
-           sgas = @(so, varargin) 1 - so - f.sWcon;
-       else
-           sgas = @(so, varargin) 1 - so - selectSubset(f.sWcon, varargin{:});
-       end
-   else
-       sgas = @(so, varargin) 1 - so;
-   end
-
-   % Region interpolator
-   ireg = @(T, sg, varargin) interpReg(T, sg, regmap(sg, varargin{:}));
-
-   f.krG  = @(sg, varargin) ireg(Tkrg , sg                   , varargin{:});
-   f.krOG = @(so, varargin) ireg(Tkro , sgas(so, varargin{:}), varargin{:});
-   f.pcOG = @(sg, varargin) ireg(Tpcog, sg                   , varargin{:});
+    [f.krG, f.krOG, f.pcOG, f.krPts.g, f.krPts.og] = getFunctions(f, sgof, reg);
 end
 
-function v = selectSubset(v, varargin)
-if ~isempty(varargin)
-    subset = varargin{2};
-    v = v(subset);
+function [krG, krOG, pcOG, pts, pts_o] = getFunctions(f, SGOF, reg)
+    [krG, krOG, pcOG] = deal(cell(1, reg.sat));
+    
+    [pts, pts_o] = deal(zeros(reg.sat, 4));
+    for i = 1:reg.sat
+        if isfield(f, 'krPts')
+            swcon = f.krPts.w(i, 1);
+        else
+            warning('No relperm points found in assignment of SGOF.');
+            swcon = 0;
+        end
+        [pts(i, :), pts_o(i, :)] = getPoints(SGOF{i}, swcon);
+        sgof = extendTab(SGOF{i});
+        SG = sgof(:, 1);
+        krG{i} = @(sg) interpTable(SG, sgof(:, 2), sg);
+
+        krOG{i} = @(so) interpTable(SG, sgof(:, 3), 1-so-swcon);
+        pcOG{i} = @(sg) interpTable(SG, sgof(:, 4), sg);
+    end
 end
+
+function [pts, pts_o] = getPoints(sgof, swcon)
+    % Connate gas saturation
+    pts = zeros(1, 4);
+    pts(1) = sgof(1, 1);
+    % Last mobile gas saturation
+    ii = find(sgof(:,2)==0, 1, 'last');
+    pts(2) = sgof(ii,1);
+    % Last point
+    pts(3) = sgof(end,1);
+    % Maximum relperm
+    pts(4) = sgof(end,2);
+    
+    % Get OG-scaling
+    pts_o = zeros(1, 4);
+    pts_o(3) = 1;
+    ii = find(sgof(:,3) == 0, 1, 'first');
+    pts_o(2) = 1 - sgof(ii,1) - swcon;
+    % Maximum oil relperm
+    pts_o(4) = sgof(1,3);
 end
+
 %{
 Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 

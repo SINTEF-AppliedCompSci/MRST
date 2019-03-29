@@ -97,7 +97,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     mobW   = trMult./f.muW(p);
     dpW     = s.Grad(p) - rhoWf.*gdz;
     % water upstream-index
-    upcw = (double(dpW)<=0);
+    upcw = (value(dpW)<=0);
     vW = - s.faceUpstr(upcw, mobW).*trans.*dpW;
     bWvW = s.faceUpstr(upcw, bW).*vW;
 

@@ -25,11 +25,13 @@ classdef ScheduleTest < matlab.unittest.TestCase
             gravity reset off
 
             test.outputPath = fullfile(...
-                mrstPath('query', 'ad-unittest'),...
-                'output', ...
-                'schedule'...
+                mrstOutputDirectory(),...
+                'TestOutput', ...
+                'ScheduleTest'...
                 );
-            
+            if ~exist(test.outputPath, 'dir')
+                mkdir(test.outputPath);
+            end
             test = merge_options(test, varargin{:});
             
             if ~(exist(test.outputPath, 'dir') == 7)
@@ -83,11 +85,11 @@ classdef ScheduleTest < matlab.unittest.TestCase
             % Store well sols
             if isfield(res_states{1}, 'wellSol')
                 d = clock();
-                clockstr = [sprintf('%02d', d(4)), ':', sprintf('%02d', d(5))];
+                clockstr = [sprintf('%02d', d(4)), sprintf('%02d', d(5))];
                 datestr = [date(), '-', clockstr];
                 
                 fn = [fullfile(test.outputPath, [name, '-wellsols-', datestr]), '.mat'];
-                timesteps = test.schedule.step.val; %#ok 
+                timesteps = test.schedule.step.val;
                 wellSols = cellfun(@(x) x.wellSol, res_states, 'UniformOutput', false); %#ok
                 save(fn, 'wellSols', 'timesteps');
             end
@@ -169,7 +171,6 @@ classdef ScheduleTest < matlab.unittest.TestCase
         end
                 
         function states = CPR_AGMG(test)
-
             name = test.getIdentifier('cpr_agmg');
             mrstModule add agmg
             try
@@ -180,6 +181,11 @@ classdef ScheduleTest < matlab.unittest.TestCase
                 return
             end
             states = test.runSchedule(name, 'useCPR', true, 'useAGMG', true);
+        end
+        function states = selectLinearSolver(test)
+            name = test.getIdentifier('select_linear_solver');
+            mrstModule add linearsolvers
+            states = test.runSchedule(name, 'selectLinearSolver', true);
         end
     end
 end

@@ -165,10 +165,13 @@ classdef NonLinearSolver < handle
             drivingForces.controlId = nan;
 
             [opt, forcesArg] = merge_options(opt, varargin{:});
+            state = opt.initialGuess;
             % Merge in forces as varargin
             drivingForces = merge_options(drivingForces, forcesArg{:});
-            model = model.validateModel(drivingForces);
-
+            % Prepare report-step
+            [model, state] = model.prepareReportstep(state, state0, dT, drivingForces);
+            % We may reuse the initial guess in case of timestep cuts.
+            opt.initialGuess = state;
             assert(dT >= 0, [solver.getId(), 'Negative timestep detected.']);
 
             converged = false;
@@ -196,9 +199,6 @@ classdef NonLinearSolver < handle
 
             wantMinistates = nargout > 2;
             [reports, ministates] = deal(cell(min(2^solver.maxTimestepCuts, 128), 1));
-
-            state = opt.initialGuess;
-
             % Let the step selector know that we are at start of timestep
             % and what the current driving forces are
             stepsel = solver.timeStepSelector;

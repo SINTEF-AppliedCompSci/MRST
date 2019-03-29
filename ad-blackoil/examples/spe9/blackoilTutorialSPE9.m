@@ -445,7 +445,7 @@ compplot = @(data) plot(Tcomp, data, 'ro', 'linewidth', 2);
 %% Plot two different producers
 % We plot the bottom-hole pressures for two somewhat arbitrarily chosen
 % producers to show the accuracy of the pressure.
-clf
+figure;
 names = {'PROD13', 'PROD18'};
 nn = numel(names);
 for i = 1:nn
@@ -470,7 +470,8 @@ legend({'MRST', 'ECLIPSE'})
 
 %% Plot the gas production rate
 % We plot the gas production rate (at surface conditions).
-clf
+figure;
+
 for i = 1:nn
     name = names{i};
     comp = convertFrom(smry.get(name, 'WGPR', compd), 1000*ft^3/day);

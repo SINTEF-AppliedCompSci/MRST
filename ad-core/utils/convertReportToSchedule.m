@@ -53,7 +53,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     else
         crs = report;
     end
-    for i = 1:numel(crs)
+    if iscell(crs)
+        n = numel(crs);
+    else
+        n = crs.numelData();
+    end
+    for i = 1:n
         cr = crs{i};
         steprep = cr.StepReports(cellfun(@(x) x.Converged, cr.StepReports));
         timesteps = [timesteps; cellfun(@(x) x.Timestep, steprep)]; %#ok

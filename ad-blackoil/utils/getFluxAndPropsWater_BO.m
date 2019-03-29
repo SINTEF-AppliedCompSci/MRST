@@ -65,21 +65,28 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
     fluid = model.fluid;
     s = model.operators;
+    fp = model.FlowPropertyFunctions();
+    if isempty(fp)
+        fp_sat = GridProperty(model);
+        fp_pvt = fp_sat;
+    end
+    pvtfun = @(varargin) fp_pvt.evaluateFunctionOnGrid(varargin{:});
+    satfun = @(varargin) fp_sat.evaluateFunctionOnGrid(varargin{:});
     % Check for capillary pressure (p_cow)
     pcOW = 0;
     if isfield(fluid, 'pcOW') && ~isempty(sW)
-        pcOW  = fluid.pcOW(sW);
+        pcOW  = satfun(fluid.pcOW, sW);
     end
     pW = pO - pcOW;
-    muW = fluid.muW(pW);
+    muW = pvtfun(fluid.muW, pW);
     
-    bW     = fluid.bW(pW);
+    bW     = pvtfun(fluid.bW, pW);
     rhoW   = bW.*fluid.rhoWS;
     % rhoW on face, average of neighboring cells
     rhoWf  = s.faceAvg(rhoW);
     dpW    = s.Grad(pW) - rhoWf.*gdz;
     % water upstream-index
-    upcw  = (double(dpW)<=0);
+    upcw  = (value(dpW)<=0);
     [krWf, krW] = s.splitFaceCellValue(s, upcw, krW);
     [muWf, muW] = s.splitFaceCellValue(s, upcw, muW);
     mobW   = krW./muW;

@@ -60,6 +60,7 @@ properties
     % certain that it is the case, as this removes several tolerance
     % checks.
     AutoDiffBackend
+    OutputProperties = {};
 end
 
 methods
@@ -73,6 +74,45 @@ methods
         model.stepFunctionIsLinear = false;
     end
 
+    function [vars, names, origin] = getPrimaryVariables(model, state)
+        % Get primary variables from state
+        vars = {};
+        names = {};
+        origin = {};
+    end
+    
+    function [state, names, origin] = getStateAD(model, state, init)
+        if nargin < 3
+            init = true;
+        end
+        % Get the AD state for this model
+        [vars, names, origin] = model.getPrimaryVariables(state);
+        if init
+            [vars{:}] = model.AutoDiffBackend.initVariablesAD(vars{:});
+        end
+        state = model.initStateAD(state, vars, names, origin);
+    end
+    
+    function [state, names, origin] = getReverseStateAD(model, varargin)
+        [state, names, origin] = model.getStateAD(varargin{:});
+    end
+    
+    
+    function state = initStateAD(model, state, vars, names, origin)
+        % Initialize AD state from double state
+        for i = 1:numel(names)
+            state = model.setProp(state, names{i}, vars{i});
+        end
+        state = model.initPropertyContainers(state);
+    end
+    
+    function state = initPropertyContainers(model, state)
+        pf = model.getPropertyFunctions();
+        for i = 1:numel(pf)
+            [f, name] = pf{i}.getPropertyContainer();
+            state.(name) = f;
+        end
+    end
     
     function [problem, state] = getEquations(model, state0, state, dt, forces, varargin)
         % Get the set of linearized model equations with possible Jacobians
@@ -116,7 +156,22 @@ methods
         % SEE ALSO:
         %   `getAdjointEquations`
         %
-        error('Base class not meant for direct use')
+        opt = struct('Verbose',     mrstVerbose,...
+                    'reverseMode', false,...
+                    'resOnly',     false,...
+                    'iteration',   -1);
+        opt = merge_options(opt, varargin{:});
+
+
+        % Define primary variables
+        if opt.reverseMode
+            [state0, primaryVars] = model.getReverseStateAD(state0);
+            state = model.getStateAD(state, false);
+        else
+            [state, primaryVars] = model.getStateAD(state, ~opt.resOnly);
+        end
+        [eqs, names, types, state] = model.getModelEquations(state0, state, dt, forces);
+        problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
     end
 
     function [problem, state] = getAdjointEquations(model, state0, state, dt, forces, varargin)
@@ -230,8 +285,13 @@ methods
         return
     end
     
-    function [model, state] = prepareTimestep(model, state, state0, dt, drivingForces)
-        % Prepare state and model (temporarily) before solving a times-tep
+        function [model, state] = prepareReportstep(model, state, state0, dT, drivingForces)
+            % Prepare state and model (temporarily) before solving a report-step
+            model = model.validateModel(drivingForces);
+        end
+        
+        function [model, state] = prepareTimestep(model, state, state0, dt, drivingForces)
+        % Prepare state and model (temporarily) before solving a time-step
         %
         % SYNOPSIS:
         %   [model, state] = model.prepareTimestep(state, state0, dt, drivingForces)
@@ -342,6 +402,22 @@ methods
         %
     end
     
+    function state = reduceState(model, state, removeContainers)
+        % Reduce state to doubles, and optionally remove the property
+        % containers to reduce storage space
+        if nargin < 3 || removeContainers
+            propfn = model.getPropertyFunctions();
+            for i = 1:numel(propfn)
+                p = propfn{i};
+                struct_name = p.getPropertyContainerName();
+                if isfield(state, struct_name)
+                    state = rmfield(state, struct_name);
+                end
+            end
+        end
+        state = value(state);
+    end
+    
     function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
         % Final update to the state after convergence has been achieved
         %
@@ -370,6 +446,37 @@ methods
         %   report - Report containing information about the update.
         %
         report = [];
+        propfn = model.getPropertyFunctions();
+        for i = 1:numel(propfn)
+            p = propfn{i};
+            names = p.getPropertyNames();
+            struct_name = p.getPropertyContainerName();
+            if isfield(state, struct_name)
+                if isempty(model.OutputProperties)
+                    current = {};
+                else
+                    current = intersect(names, model.OutputProperties);
+                end
+                nc = numel(current);
+                kept = nc;
+                if kept
+                    % Some values are to be kept. We set all which are not
+                    % kept to emtpy to ensure that the storage is
+                    % normalized with missing values.
+                    for j = 1:numel(names)
+                        name = names{j};
+                        if ~any(strcmp(name, current))
+                            % Remove unkept variables
+                            state.(struct_name).(name) = [];
+                        end
+                    end
+                else
+                    % We did not keep any properties from this group.
+                    % Remove the struct alltogether.
+                    state = rmfield(state, struct_name);
+                end
+            end
+        end
     end
 
     
@@ -503,7 +610,9 @@ methods
             % Let the nonlinear solver decide what to do with the
             % increments to get the best convergence
             [dx, stabilizeReport] = nonlinsolver.stabilizeNewtonIncrements(model, problem, dx);
-
+            % Remove AD from state, and remove property containers to avoid
+            % caching issues in update function
+            state = model.reduceState(state, true);
             if (nonlinsolver.useLinesearch && nonlinsolver.convergenceIssues) || ...
                 nonlinsolver.alwaysUseLinesearch
                 [state, updateReport, stabilizeReport.linesearch] = nonlinsolver.applyLinesearch(model, state0, state, problem, dx, drivingForces, varargin{:});
@@ -512,6 +621,11 @@ methods
                 % properties are actually physically reasonable.
                 [state, updateReport] = model.updateState(state, problem, dx, drivingForces);
             end
+        else
+            % Remove AD from state, but keep property containers. The
+            % fine-grained mechanism for keeping properties to the next
+            % step is found in updateAfterConvergence.
+            state = model.reduceState(state, false);
         end
         modelConverged = all(convergence);
         if outOfIterations && nonlinsolver.acceptanceFactor ~= 1
@@ -625,7 +739,7 @@ methods
         dt_steps = schedule.step.val;
 
         current = getState(stepNo);
-        before    = getState(stepNo - 1);        
+        before  = getState(stepNo - 1);        
         dt = dt_steps(stepNo);
 
         lookupCtrl = @(step) schedule.control(schedule.step.control(step));
@@ -709,7 +823,7 @@ methods
     end
 
     
-    function p = getProp(model, state, name)
+    function [p, state] = getProp(model, state, name)
         % Get a single property from the nonlinear state
         %
         % SYNOPSIS:
@@ -723,12 +837,36 @@ methods
         %
         % RETURNS:
         %   p     - Property taken from the state.
+        %   state - The state (modified if property evaluation was done)
         %
         % SEE ALSO:
         %   `getProps`
-        
-        [fn, index] = model.getVariableField(name);
-        p = state.(fn)(:, index);
+        [fn, index] = model.getVariableField(name, false);
+        if isempty(fn)
+            % Not known - check property functions
+            containers = model.getPropertyFunctions();
+            for i = 1:numel(containers)
+                c = containers{i};
+                nms = c.getPropertyNames();
+                sub = strcmpi(nms, name);
+                if any(sub)
+                    p = c.get(model, state, nms{sub});
+                    return
+                end
+            end
+            error('PhysicalModel:UnknownVariable', ...
+                'Unknown variable field %s', name);
+        else
+            if iscell(state.(fn))
+                p = state.(fn){index};
+            else
+                p = state.(fn)(:, index);
+            end
+        end
+    end
+    
+    function containers = getPropertyFunctions(model, state)
+        containers = {};
     end
 
     
@@ -755,6 +893,9 @@ methods
         %   `getProp`
         varargout = cellfun(@(x) model.getProp(state, x), ...
                             varargin, 'UniformOutput', false);
+        if nargout == nargin - 1
+            varargout{end+1} = state;
+        end
     end
 
     
@@ -810,7 +951,31 @@ methods
         %   state = model.setProp(state, 'pressure', 5);
         
         [fn, index] = model.getVariableField(name);
-        state.(fn)(:, index) = value;
+        present = isfield(state, fn);
+        unit = present && (size(state.(fn), 2) == 1);
+        if ischar(index) && strcmp(index, ':') || unit
+            state.(fn) = value;
+        else
+            if isa(value, 'ADI') && ~iscell(state.(fn))
+                % Expand to cell array since AD does not support matrices
+                sz = size(state.(fn), 2);
+                state.(fn) = arrayfun(@(x) state.(fn)(:, x), 1:sz, ...
+                                          'UniformOutput', false);
+            end
+            if iscell(state.(fn))
+                state.(fn){index} = value;
+            else
+                state.(fn)(:, index) = value;
+            end
+        end
+    end
+    
+    function state = setProps(model, state, names, values)
+        n = numel(values);
+        assert(numel(names) == n);
+        for i = 1:n
+            state = model.setProp(state, names{i}, values{i});
+        end
     end
 
     

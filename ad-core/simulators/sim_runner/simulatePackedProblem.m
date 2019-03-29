@@ -36,7 +36,7 @@ function [ok, status] = simulatePackedProblem(problems, varargin)
         firstLine = sprintf(' Case "%s" (%s)',...
                 problem.BaseName, problem.Name);
         secondLine = sprintf(' Description: "%s"',...
-                problem.Description, problem.Name);
+                problem.Description);
         
         n1 = numel(firstLine);
         n2 = numel(secondLine);

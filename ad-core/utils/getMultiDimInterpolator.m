@@ -78,7 +78,7 @@ function Ye = interpTableND(Y, dY, varargin)
         ad = ad{1};
         
         % Create double as input for the function evaluation
-        Yqd = cellfun(@double, Yq, 'UniformOutput', false);
+        Yqd = cellfun(@value, Yq, 'UniformOutput', false);
         Ye = Y(Yqd{:});
         % Cast to ADI
         if any(isnewad)

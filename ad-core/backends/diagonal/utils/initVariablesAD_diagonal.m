@@ -2,13 +2,22 @@ function varargout = initVariablesAD_diagonal(varargin)
 % Diagonal AD initializer
     assert(nargout == nargin || nargout == nargin - 1);
     
-    values = varargin(1:nargout);
-    types = ones(nargin, 1);
-    numVals = cellfun(@numel, values);
-    if nargin > nargout
-        types = varargin{end};
+    n_in = nargin;
+    if n_in > nargout
+        opts = varargin{nargout+1};
+        varargin = varargin(1:end-1);
+        n_in = n_in - 1;
+        types = opts.types;
+        useMex = opts.useMex;
     else
-        for i = 2:nargin
+        types = [];
+        useMex = false;
+    end
+    numVals = cellfun(@numel, varargin)';
+
+    if isempty(types)
+        types = ones(n_in, 1);
+        for i = 2:n_in
             if numVals(i) ~= numVals(i-1)
                 types(i) = types(i-1) + 1;
             else
@@ -40,11 +49,9 @@ function varargout = initVariablesAD_diagonal(varargin)
             nval = nv(1);
             dim = [nval, nnz(sub)];
             d = zeros(numVals(i), 0);
-            zerojac{j} = DiagonalJacobian(d, dim, zeros(numVals(i), 1));
+            zerojac{j} = DiagonalJacobian(d, dim, zeros(numVals(i), 1), useMex);
         end
-        varargout{i} = NewAD(varargin{i}, zerojac);
-        varargout{i}.numVars = numVals';
-        varargout{i}.offsets = offset;
+        varargout{i} = NewAD(varargin{i}, zerojac, numVals, offset, useMex);
     end
     for type = 1:ntypes
         sub = find(types == type);
@@ -53,13 +60,12 @@ function varargout = initVariablesAD_diagonal(varargin)
         nsub = numel(sub);
         
         assert(all(nv == nval));
+        djac = DiagonalJacobian(zeros(nval, nsub), [nval, nsub], [], useMex);
         for i = 1:nsub
             s = sub(i);
-            tmp = zeros(nval, nsub);
-            tmp(:, i) = 1;
-            
-            dim = [nval, nsub];
-            varargout{s}.jac{type} = DiagonalJacobian(tmp, dim);
+            J = djac;
+            J.diagonal(:, i) = 1;
+            varargout{s}.jac{type} = J;
         end
     end
 end

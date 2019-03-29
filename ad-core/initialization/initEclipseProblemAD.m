@@ -4,23 +4,38 @@ function [state0, model, schedule, nonlinear] = initEclipseProblemAD(deck, varar
 
     opt = struct('useMexGeometry', false, ...
                  'TimestepStrategy', 'iteration', ...
+                 'useMex',          false, ...
                  'AutoDiffBackend',  [], ...
                  'UniformFacilityModel', false, ...
+                 'model',           [], ...
+                 'G',               [], ...
+                 'getSchedule',     true, ...
+                 'getInitialState', true, ...
                  'SplitDisconnected', false);
     [opt, extra] = merge_options(opt, varargin{:});
-    model = initializeModel(deck, opt);
+    if isempty(opt.model)
+        model = initializeModel(deck, opt);
+    else
+        model = opt.model;
+    end
     
     % Set faster backend if grid is sufficiently large and supported by the
     % model.
     if isempty(opt.AutoDiffBackend) 
         if (isa(model, 'NaturalVariablesCompositionalModel') || ...
             isa(model, 'ThreePhaseBlackOilModel')) && model.G.cells.num > 1000
-            opt.AutoDiffBackend = 'diagonal';
+            if opt.useMex
+                opt.AutoDiffBackend = 'diagonal-mex';
+            else
+                opt.AutoDiffBackend = 'diagonal';
+            end
         else
             opt.AutoDiffBackend = 'sparse';
         end
     end
     switch lower(opt.AutoDiffBackend)
+        case 'diagonal-mex'
+            model.AutoDiffBackend = DiagonalAutoDiffBackend('useMex', true);
         case 'diagonal'
             model.AutoDiffBackend = DiagonalAutoDiffBackend();
         case 'sparse'
@@ -30,13 +45,21 @@ function [state0, model, schedule, nonlinear] = initEclipseProblemAD(deck, varar
     % the uniform facility model, which is vectorized and faster when many
     % wells are present
     cnames = model.getComponentNames();
-    if isempty(cnames) && opt.UniformFacilityModel
+    if isempty(cnames) && opt.UniformFacilityModel && ~isa(model, 'ExtendedReservoirModel')
         model.FacilityModel = UniformFacilityModel(model);
     end
     % Set up schedule
-    schedule = convertDeckScheduleToMRST(model, deck, extra{:});
+    if opt.getSchedule
+        schedule = convertDeckScheduleToMRST(model, deck, extra{:});
+    else
+        schedule = [];
+    end
     % Set up state
-    state0 = initStateDeck(model, deck);
+    if opt.getInitialState
+        state0 = initStateDeck(model, deck);
+    else
+        state0 = [];
+    end
     
     if nargout > 3
         nonlinear = NonLinearSolver();
@@ -81,14 +104,25 @@ end
 function model = initializeModel(deck, opt)
     % Set up grid
     rock  = initEclipseRock(deck);
-    if isfield(deck.GRID, 'ACTNUM')
-        deck.GRID.ACTNUM = double(deck.GRID.ACTNUM > 0 & rock.poro > 0);
-    end
+    
+    if isempty(opt.G)
+        if isfield(deck.GRID, 'ACTNUM')
+            if isfield(rock, 'ntg')
+                pv = rock.poro.*rock.ntg;
+            else
+                pv = rock.poro;
+            end
+            perm_ok = ~all(rock.perm == 0, 2);
+            deck.GRID.ACTNUM = double(deck.GRID.ACTNUM > 0 & pv > 0 & perm_ok);
+        end
 
-    G = initEclipseGrid(deck, 'SplitDisconnected', opt.SplitDisconnected);
-    if numel(G) > 1
-        warning('Multiple disconnected grids found. Picking largest.');
-        G = G(1);
+        G = initEclipseGrid(deck, 'SplitDisconnected', opt.SplitDisconnected);
+        if numel(G) > 1
+            warning('Multiple disconnected grids found. Picking largest.');
+            G = G(1);
+        end
+    else
+        G = opt.G;
     end
     if opt.useMexGeometry
         mrstModule add libgeometry
@@ -100,6 +134,6 @@ function model = initializeModel(deck, opt)
     gravity reset on;
     
     rock  = compressRock(rock, G.cells.indexMap);
-
     model = selectModelFromDeck(G, rock, fluid, deck);
+    model.dpMaxRel = 0.2;
 end

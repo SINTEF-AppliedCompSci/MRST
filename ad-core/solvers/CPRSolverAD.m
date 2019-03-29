@@ -34,10 +34,10 @@ classdef CPRSolverAD < LinearSolverAD
             
             % Default options
             solver.ellipticSolver = [];
-            solver.relativeTolerance = 1e-2;
+            solver.relativeTolerance = 1e-4;
             solver.pressureScaling = 1/(200*barsa);
             solver.diagonalTol = 1e-2;
-            solver.trueIMPES = false;
+            solver.trueIMPES = true;
             solver.ellipticVarName = 'pressure';
             solver.reduceToCell = true;
             
@@ -104,7 +104,7 @@ classdef CPRSolverAD < LinearSolverAD
             scale = model.getScalingFactorsCPR(problem, problem.equationNames, solver);
             
             for i = 1:numel(scale)
-                if numel(scale{i}) > 1 || scale{i} ~= 0
+                if numelValue(scale{i}) > 1 || scale{i} ~= 0
                      problem.equations{i} = problem.equations{i}.*scale{i};
                 end
             end
@@ -166,7 +166,7 @@ classdef CPRSolverAD < LinearSolverAD
                 % close as possible to M-matrices (because of switching,
                 % which does not actually alter the solution)
                 ok = isElliptic(:, i);
-                if i == pressureIndex || all(scale{i} == 0)
+                if i == pressureIndex || all(value(scale{i}) == 0)
                     continue
                 end
                 problem.equations{pressureIndex} = ...

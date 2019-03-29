@@ -52,6 +52,41 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    [values, names, tolerances, evaluated] = getConvergenceValuesCNV(model, problem);
-    converged = values <= tolerances;
+    state = problem.state;
+    pv = model.operators.pv;
+    pvsum = sum(pv);
+
+    % Grab tolerances
+    tol_mb = model.toleranceMB;
+    tol_cnv = model.toleranceCNV;
+
+    evaluated = false(1, numel(problem));
+    
+    b = model.FlowPropertyFunctions.getProperty(model, state, 'ShrinkageFactors');
+    dt = problem.dt;
+    [ph, phase_names] = model.getPhaseNames();
+    
+    [CNV, MB] = deal(zeros(1, numel(ph)));
+    for i = 1:numel(b)
+        sub = problem.indexOfEquationName(phase_names{i});
+        B = 1./b{i};
+        R = double(problem.equations{sub});
+        B_avg = mean(B);
+        CNV(i) = B_avg*dt*max(abs(R)./pv);
+        MB(i) = dt*abs(B_avg*sum(R))/pvsum;
+        evaluated(sub) = true;
+    end
+
+    % Check if material balance for each phase fullfills residual
+    % convergence criterion
+    converged_MB  = MB <= tol_mb;
+
+    % Check maximum normalized residuals (maximum mass error)
+    converged_CNV = CNV <= tol_cnv;
+
+    converged = [converged_CNV, converged_MB];
+    values = [CNV, MB];
+    cnv_names = arrayfun(@(x) ['CNV_', x], ph, 'UniformOutput', false);
+    mb_names = arrayfun(@(x) ['MB_', x], ph, 'UniformOutput', false);
+    names = horzcat(cnv_names, mb_names);
 end
