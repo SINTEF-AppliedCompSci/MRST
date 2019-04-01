@@ -215,15 +215,10 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
     facenodetbl.faces = collatefacenode(:, 2);
     facenodetbl.num = numel(facenodetbl.faces);
     
-    [op, colind, rowind] = setupTableMapping(cellfacetbl, facenodetbl, ...
-                                                          'faces');
+    [op, cellnodefacetbl] = setupTableMapping(cellfacetbl, facenodetbl, 'faces');
 
     % We setup the cell-face-node table, cellnodefacetbl. Each entry determine a
     % unique facet in a corner
-    cellnodefacetbl.cells = cellfacetbl.cells(rowind);
-    cellnodefacetbl.faces = cellfacetbl.faces(rowind);
-    cellnodefacetbl.nodes = facenodetbl.nodes(colind);
-    cellnodefacetbl.num = numel(cellnodefacetbl.cells);
     % We order cellfacenode in cell-node-face order
     orderingmat = [cellnodefacetbl.cells, cellnodefacetbl.nodes, ...
                    cellnodefacetbl.faces];
@@ -249,8 +244,10 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
     % Nodal scalar product is stored in vector nodeM
     % mattbl is the table which specifies how nodeM is stored: a matrix for
     % each "corner" (cell-node pair).
-    [~, colind, rowind] = setupTableMapping(cellnodefacetbl, cellnodefacetbl, ...
-                                                          'cells', 'nodes'); 
+    op = setupTableMapping(cellnodefacetbl, cellnodefacetbl, 'cells', ...
+                                         'nodes');
+    [colind, rowind] = find(op);
+         
     mattbl.cells  = cellnodefacetbl.cells(colind);
     mattbl.nodes  = cellnodefacetbl.nodes(colind);
     mattbl.faces1 = cellnodefacetbl.faces(colind);
@@ -295,6 +292,7 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
 
 
     indNodeM = 1;
+    
     for i = 1 : cellnodetbl.num
        
         numfaces = cellnodetbl.numfaces(i);
@@ -338,14 +336,15 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
     nodeM = nodeM.*sgn1.*sgn2;   
 
     % Condensate on nodes (sum up cell contributions for give node).
-    [~, colind, rowind] = setupTableMapping(facenodetbl, facenodetbl, 'nodes');
+    op = setupTableMapping(facenodetbl, facenodetbl, 'nodes');
+    [colind, rowind] = find(op);
     redmattbl.nodes  = facenodetbl.nodes(colind);
     redmattbl.faces1 = facenodetbl.faces(colind);
     redmattbl.faces2 = facenodetbl.faces(rowind);
     redmattbl.num    = numel(redmattbl.nodes);
     redmattbl.ind    = (1 : redmattbl.num)';
-    op = setupTableMapping(mattbl, redmattbl, 'nodes', 'faces1', 'faces2');
     
+    op = setupTableMapping(mattbl, redmattbl, 'nodes', 'faces1', 'faces2');
     nodeM = op*nodeM;
     
     % Setup matrix
@@ -353,7 +352,8 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
     mat1tbl.nodes  = facenodetbl.nodes;
     mat1tbl.faces1 = facenodetbl.faces;
     mat1tbl.ind    = (1 : facenodetbl.num)';
-    [op, colind, rowind] = setupTableMapping(redmattbl, mat1tbl, 'nodes', 'faces1');
+    op = setupTableMapping(redmattbl, mat1tbl, 'nodes', 'faces1');
+    [colind, rowind] = find(op);
     facetind1 = zeros(redmattbl.num, 1);
     facetind1(rowind) = mat1tbl.ind(colind);
     redmattbl.facetind1 = facetind1;
@@ -361,7 +361,8 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
     mat2tbl.nodes  = facenodetbl.nodes;
     mat2tbl.faces2 = facenodetbl.faces;
     mat2tbl.ind    = (1 : facenodetbl.num)';
-    [op, colind, rowind] = setupTableMapping(redmattbl, mat2tbl, 'nodes', 'faces2');
+    op = setupTableMapping(redmattbl, mat2tbl, 'nodes', 'faces2');
+    [colind, rowind] = find(op);
     facetind2 = zeros(redmattbl.num, 1);
     facetind2(rowind) = mat2tbl.ind(colind);
     redmattbl.facetind2 = facetind2;
