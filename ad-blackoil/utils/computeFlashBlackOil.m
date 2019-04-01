@@ -54,8 +54,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     so = model.getProp(state, 'so');
     so0 = model.getProp(state0, 'so');
     
-    sw = model.getProp(state, 'sw');
-    % sw0 = model.getProp(state0, 'sw');
+    if model.water
+        sw = model.getProp(state, 'sw');
+    else
+        sw = zeros(model.G.cells.num, 1);
+    end
     
     sg = model.getProp(state, 'sg');
     sg0 = model.getProp(state0, 'sg');
@@ -70,7 +73,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % Determine status of updated cells -----------------------------------------
     watOnly  = sw > 1-etol;
     % phase transitions sg <-> rs  --------------------------------------------
-    fp = model.FlowPropertyFunctions;
     if ~disgas
         rsSat0 = rs0;
         rsSat  = rsSat0; 
