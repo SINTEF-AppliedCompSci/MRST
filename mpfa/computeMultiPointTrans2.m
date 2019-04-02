@@ -1,4 +1,4 @@
-function [T, e_div] = computeMultiPointTrans2(G, rock, varargin)
+function mpfastruct = computeMultiPointTrans2(G, rock, varargin)
 %Compute multi-point transmissibilities.
 %
 % SYNOPSIS:
@@ -149,6 +149,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    e_sgn = op*sgn;
    tmpind = find(bcmap'*ones(nbcdof, 1));
    e_div(np + (1 : nbcdof), :) = sparse(1 : nbcdof, tmpind, e_sgn, nbcdof, nfacenode);
+   
+   tbls.faceexttbl = faceexttbl;
+   tbls.facenodeexttbl = facenodeexttbl;
+   
+   mpfastruct = struct('T'    , T    , ...
+                       'e_div', e_div, ...
+                       'tbls' , tbls);
    
 end
 
