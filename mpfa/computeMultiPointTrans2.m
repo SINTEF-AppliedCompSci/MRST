@@ -263,8 +263,9 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
         
         K = reshape(perm(cell, :), [dim, dim]);
         
-        % Assemble local nodal scalar product
-        locM = node_ip2(a, v, ...
+        % Assemble local nodal scalar product ( function node_ip2 below handle case when
+        % N is invertible)
+        locM = node_ip(a, v, ...
                        full(N), ...
                        full(R), ...
                        K);
@@ -360,13 +361,6 @@ function M = node_ip(a, v, N, R, K)
 end
 
 function M = node_ip2(a, v, N, R, K)
-% a : areas of the facets
-% v : volume of the corner (for the moment we use volume of cell)
-% N : permeability*(facets' normals), corresponds to $\tilde N_c$ in paper of
-%     Lipnikov et al (2009)
-% R : vector of cell's to facets' centroids, corresponds to $R_c$ in paper of
-%     Lipnikov et al (2009)
     M = R*inv(N);
-
 end
 
