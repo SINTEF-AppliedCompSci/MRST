@@ -185,7 +185,8 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
 
     % We setup the cell-face-node table, cellnodefacetbl. Each entry determine a
     % unique facet in a corner
-    % We order cellfacenode in cell-node-face order
+    % We order cellfacenode in cell-node-face order. This is node to optimize
+    % for-end loop below.
     orderingmat = [cellnodefacetbl.cells, cellnodefacetbl.nodes, ...
                    cellnodefacetbl.faces];
     orderingmat = sortrows(orderingmat);
@@ -213,6 +214,16 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
     duplicate = {'faces', {'faces1', 'faces2'}};
     [~, mattbl] = setupTableMapping(cellnodefacetbl, cellnodefacetbl, {'cells', 'nodes'}, ...
                                          'duplicate', {duplicate});
+    % We order mattbl in cell-node-face1-face2 order
+    % This is done to optimize for-end loop below
+    orderingmat = [mattbl.cells, mattbl.nodes, ...
+                   mattbl.faces1, mattbl.faces2];
+    orderingmat = sortrows(orderingmat);
+    mattbl.cells  = orderingmat(:, 1);
+    mattbl.nodes  = orderingmat(:, 2);
+    mattbl.faces1 = orderingmat(:, 3);    
+    mattbl.faces2 = orderingmat(:, 4);    
+    
     nodeM = zeros(mattbl.num, 1);
     
     numnodes = double(diff(G.faces.nodePos));
@@ -247,19 +258,24 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
     vols  = G.cells.volumes(cno);
     
     map = setupTableMapping(cellnodetbl, cellnodefacetbl, {'cells', 'nodes'}); 
+    nfaces = diag(map'*map);
+    
+    cnf_i = 1; % start indice for the cellnodefacetbl index
+    mat_i = 1; % start indice for the mattbl index
     
     for i = 1 : cellnodetbl.num
         
-        logfacets = logical(map(:, i));
+        nface = nfaces(i);
+        cnfind = cnf_i : (cnf_i + (nface - 1));
         
-        N = facePermNormals(logfacets, :); 
-        R = cellFacetVec(logfacets, :);
-        a = areas(logfacets);
-        v = vols(logfacets);
+        N     = facePermNormals(cnfind, :); 
+        R     = cellFacetVec(cnfind, :);
+        a     = areas(cnfind);
+        v     = vols(cnfind);
+        faces = cellnodefacetbl.faces(cnfind);
         
         cell = cellnodetbl.cells(i);
         node = cellnodetbl.nodes(i);
-        faces  = cellnodefacetbl.faces(logfacets);
         
         K = reshape(perm(cell, :), [dim, dim]);
         
@@ -270,17 +286,13 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
                        full(R), ...
                        K);
         locM = reshape(locM, [], 1);
-    
-        loctbl = struct('faces', faces);
-        loctbl.num = numel(faces);
-        % OBS : ordering in the duplicate matters!!
-        duplicate = {'faces', {'faces2', 'faces1'}};
-        [~, loctbl] = setupTableMapping(loctbl, loctbl, {}, 'duplicate', {duplicate});
-        loctbl.cells = cell*ones(loctbl.num, 1);
-        loctbl.nodes = node*ones(loctbl.num, 1);
         
-        op = setupTableMapping(loctbl, mattbl, {'cells', 'nodes', 'faces1', 'faces2'});
-        nodeM = nodeM + op*locM;
+        matind = mat_i : (mat_i + (nface*nface - 1));
+        nodeM(matind) = nodeM(matind) + locM;
+        
+        % increment start indices
+        cnf_i = cnf_i + nface;
+        mat_i = mat_i + nface*nface;        
         
     end
 
