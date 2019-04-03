@@ -1,4 +1,4 @@
-function coSet = getCollactionSet(G, rock)
+function coSet = getCollocationSet(G, rock)
     if nargin == 1
         rock = makeRock(G, 1, 1);
     end

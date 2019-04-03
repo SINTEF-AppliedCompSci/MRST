@@ -16,7 +16,7 @@ classdef PressureOilWaterModelNTPFA < PressureOilWaterModel
             model = merge_options(model, varargin{:});
             model.fluxType = 'ntpfa';
             
-            model.operators.collocationSet = getCollactionSet(G, model.rock);
+            model.operators.collocationSet = getCollocationSet(G, model.rock);
         end
         
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)

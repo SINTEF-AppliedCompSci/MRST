@@ -3,7 +3,7 @@
 % Files
 %   adjacentFacesForFace         - 
 %   computeNonLinearTrans        - 
-%   getCollactionSet             - 
+%   getCollocationSet            - 
 %   getFaceFromCellInterpolator  - Get nodes
 %   getFaceFromCellInterpolatorN - 
 %   getInterpolationOperator     - Pcell = speye(G.cells.num);
