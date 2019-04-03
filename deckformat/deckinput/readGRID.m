@@ -66,6 +66,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 grd.cartDims = cartDims;
             end
 
+         case 'GDORIENT'
+            tmpl = {'INC', 'INC', 'INC', 'DOWN', 'RIGHT'};
+
+            grd.(kw) = readDefaultedRecord(fid, tmpl);           clear tmpl
+
          case {'DXV', 'DYV', 'DZV'}
             ix       = strcmp(kw, {'DXV', 'DYV', 'DZV'});
             grd.(kw) = readVector(fid, kw, dims(ix));
