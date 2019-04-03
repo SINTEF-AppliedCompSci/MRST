@@ -133,29 +133,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    op = setupTableMapping(facenodetbl, cellnodefacetbl, {'faces', 'nodes'});
    div = div*op;
    
-   extfaces = (G.faces.neighbors(:, 1) == 0) |(G.faces.neighbors(:, 2) == 0);
-   faceexttbl.faces = find(extfaces);
-   [~, facenodeexttbl, bcmap, ~]= setupTableMapping(facenodetbl, faceexttbl, {'faces'});
-   nbcdof = size(bcmap, 1);
-   np = G.cells.num;
-   nfacenode = facenodetbl.num;
-   T = sparse(nfacenode, np + nbcdof);
-   T(:, 1 : np) = iB*div';
-   T(:, np + (1 : nbcdof)) = -iB*(bcmap');
-   
-   e_div = sparse(np + nbcdof, nfacenode);
-   e_div(1 : np, :) = div;
-   op = setupTableMapping(cellnodefacetbl, facenodeexttbl, {'faces', 'nodes'});
-   e_sgn = op*sgn;
-   tmpind = find(bcmap'*ones(nbcdof, 1));
-   e_div(np + (1 : nbcdof), :) = sparse(1 : nbcdof, tmpind, e_sgn, nbcdof, nfacenode);
-   
-   tbls.faceexttbl = faceexttbl;
-   tbls.facenodeexttbl = facenodeexttbl;
-   
-   mpfastruct = struct('T'    , T    , ...
-                       'e_div', e_div, ...
-                       'tbls' , tbls);
+   mpfastruct = struct('T'   , T  , ...
+                       'div' , div, ...
+                       'tbls', tbls);
    
 end
 
@@ -266,7 +246,7 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
     
     for i = 1 : cellnodetbl.num
         
-        tic
+        tic;
         
         nface = nfaces(cnf_i);
         cnfind = cnf_i : (cnf_i + (nface - 1));
@@ -297,6 +277,8 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
         cnf_i = cnf_i + nface;
         mat_i = mat_i + nface*nface;        
         
+        t = toc;
+        fprintf('assembly cellnode %d took %g sec\n', i, t);
     end
 
     sgn1 = 2*(mattbl.cells == G.faces.neighbors(mattbl.faces1, 1)) - 1;
