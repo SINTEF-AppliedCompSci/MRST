@@ -259,13 +259,16 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
     
     map = setupTableMapping(cellnodetbl, cellnodefacetbl, {'cells', 'nodes'}); 
     nfaces = diag(map'*map);
+    nfaces = map*nfaces;
     
     cnf_i = 1; % start indice for the cellnodefacetbl index
     mat_i = 1; % start indice for the mattbl index
     
     for i = 1 : cellnodetbl.num
         
-        nface = nfaces(i);
+        tic
+        
+        nface = nfaces(cnf_i);
         cnfind = cnf_i : (cnf_i + (nface - 1));
         
         N     = facePermNormals(cnfind, :); 
@@ -274,9 +277,9 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
         v     = vols(cnfind);
         faces = cellnodefacetbl.faces(cnfind);
         
-        cell = cellnodetbl.cells(i);
-        node = cellnodetbl.nodes(i);
-        
+        cell = cellnodefacetbl.cells(cnf_i);
+        node = cellnodefacetbl.nodes(cnf_i);
+
         K = reshape(perm(cell, :), [dim, dim]);
         
         % Assemble local nodal scalar product ( function node_ip2 below handle case when
