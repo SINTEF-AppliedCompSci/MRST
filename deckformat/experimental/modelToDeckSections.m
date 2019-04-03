@@ -1,4 +1,4 @@
-function deckmrst = modelToDeckSections(model, state0)
+function deckmrst = modelToDeckSections(model, state0, schedulemrst)
 nc=model.G.cells.num;
 nif=size(model.operators.N(:,1),1);
 
@@ -18,7 +18,7 @@ RUNSPEC.DISGAS=model.disgas;
 RUNSPEC.VAPOIL=model.vapoil;
 RUNSPEC.UNIFOUT= 1;
 RUNSPEC.METRIC=1;
-%RUNSPEC.WELLDIMS = [10 3 10 20 5 10 5 4 3 0 1 1];
+RUNSPEC.WELLDIMS = [10 3 10 20 5 10 5 4 3 0 1 1];
 %RUNSPEC.REGDIMS= [1 1 1 0 0 1 0 0 0];
 %RUNSPEC.EQLDIMS= [1 100 50 1 50];
 RUNSPEC.START=734813;
@@ -39,10 +39,14 @@ GRID.DZV=2*1e3;
 %GRID.PORO
 GRID.ACTNUM=int32(ones(nc,1));
 GRID.cartDims=RUNSPEC.DIMENS;
-GRID.NNC=[model.operators.N(:,1),ones(nif,2),model.operators.N(:,2),ones(nif,2),model.operators.T];
+T = model.operators.T;
+T = T/((centi*poise*meter^3)/(day*barsa));
+GRID.NNC=[model.operators.N(:,1),ones(nif,2),model.operators.N(:,2),ones(nif,2), T];
 % model to edit
 EDIT.PORV=model.operators.pv;
 EDIT.DEPTH=model.G.cells.centroids(:,3);
+
+
 
 %%
 REGIONS=struct();
@@ -68,3 +72,18 @@ deckmrst.REGIONS=REGIONS;
 deckmrst.SUMMARY=SUMMARY;
 deckmrst.SOLUTION=SOLUTION;
 deckmrst.UnhandledKeywords=UnhandledKeywords;
+%%
+%deckmrst_unstr.PROPS=deck_mrst_org.PROPS;% need to be implmented
+%deckmrst_unstr.SCHEDULE=deck_mrst_org.SCHEDULE;
+deckmrst.RUNSPEC.UNIFOUT=1;
+deckmrst.GRID.INIT=1;
+deckmrst.SCHEDULE.RPTSCHED=1;
+G_unstr=model.G;
+G_unstr.type={'unstr'};
+G_unstr.cartDims=[G_unstr.cells.num,1,1];
+G_unstr.cells.indexMap=1:G_unstr.cells.num;
+for i=1:numel(schedulemrst.control)
+    deckmrst.SCHEDULE.control(i)=mrstWellToControl(schedulemrst.control(i).W, G_unstr, struct() ,deckmrst.RUNSPEC,'add_wellindex',true);
+end
+deckmrst.SCHEDULE.step = schedulemrst.step;
+deckmrst.SCHEDULE.step.val = deckmrst.SCHEDULE.step.val/day;

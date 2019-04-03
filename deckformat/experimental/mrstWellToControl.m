@@ -66,7 +66,11 @@ for i=1:numel(W)
         else
             COMPDAT{count,6}='SHUT';
         end
-        COMPDAT{count,9}=W(i).r*2;
+        if ( numel(W(i).r) == numel(W(i).cells) )
+            COMPDAT{count,9}=W(i).r(j)*2;
+        else
+            COMPDAT{count,9}=W(i).r*2;
+        end
         if(opt.add_wellindex)
             COMPDAT{count,8}=W(i).WI(j)/((centi*poise*meter^3)/(day*barsa));
         end
@@ -116,7 +120,7 @@ for i=1:numel(W)
                 error('Not done');
         end 
         if(~isempty(W(i).lims))
-            error('Limits not done');
+            warning('Limits not done');
             %WCONINJE{i,5:7}
         end
         count=count+1;
@@ -170,7 +174,7 @@ for i=1:numel(W)
         end 
                 
         if(~isempty(W(i).lims))
-            error('Limits not done');
+            warning('Limits not done');
             %WCONPROD{i,4:13}
         end
         count = count+1;

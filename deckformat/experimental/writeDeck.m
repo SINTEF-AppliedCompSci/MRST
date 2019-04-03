@@ -182,7 +182,7 @@ end
 
 %-------------------------------------
 function dump_edit(fid,dirname, deck)
-    validkw={'DEPTH','PORV'}
+    validkw={'DEPTH','PORV'};
     for i=1:numel(validkw)
         if(isfield(deck.EDIT,validkw{i}))
            dump_vector(fid, dirname, lower(validkw{i}), '%18.16e\n', deck.EDIT.(validkw{i})); 
@@ -233,7 +233,7 @@ function dump_grid(fid,dirname, deck, rock)
    dump_vector(fid, dirname, 'poro' , '%18.16e\n', rock.poro);   
    if(isfield(deck.GRID,'NNC'))
        nnc=deck.GRID.NNC;
-       nnc(:,7)=nnc(:,7)/((centi*poise*meter^3)/(day*barsa));
+       nnc(:,7)=nnc(:,7);%%/((centi*poise*meter^3)/(day*barsa));
       %dump_vector(fid, dirname, 'nnc' , '%d %d %d %d %d %d %18.16e 0 0 0 0 0 0 0 0 0 0\n', nnc');
       dump_vector(fid, dirname, 'nnc' , '%d %d %d %d %d %d %18.16e /\n', nnc');
    end

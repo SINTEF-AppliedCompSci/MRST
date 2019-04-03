@@ -42,7 +42,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             if ~isfield(grd, kw), grd.(kw) = cell([0, 3]); end
             grd.(kw) = [grd.(kw); data];
 
-         case {'PORV', 'TRANX', 'TRANY' , 'TRANZ' }
+         case {'DEPTH','PORV', 'TRANX', 'TRANY' , 'TRANZ' }
             grd = readGridBoxArray(grd, fid, kw, ...
                                    prod(deck.RUNSPEC.cartDims), NaN);
 

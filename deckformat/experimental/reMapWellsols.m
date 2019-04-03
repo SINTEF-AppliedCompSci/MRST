@@ -25,3 +25,16 @@ for i=1:numel(wellsols)
         end
     end
 end
+%% clean fields
+ff = intersect(fields(wellsols{2}{1}(1)),fields(wellsols{1}{1}(1)));
+
+for i=1:numel(wellsols)
+    ws = wellsols{i}    
+    for j = 1:numel(ws)
+        w = ws{j};
+        fn = fields(w);
+        rmf = fn(~ismember(fn,ff));
+        ws{j} = rmfield(w,rmf);
+    end
+    wellsols{i} = ws;
+end
