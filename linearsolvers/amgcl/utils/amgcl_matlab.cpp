@@ -26,7 +26,7 @@
 
 #include <amgcl/preconditioner/cpr.hpp>
 #include <amgcl/preconditioner/cpr_drs.hpp>
-
+#include <boost/property_tree/json_parser.hpp>
 
 
 /* Relaxation */
@@ -361,6 +361,11 @@ void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries, const mx
             prm.put("precond.weights", drs_weights);
             prm.put("precond.weights_size", drs_weights_n);
         }
+        if(verbose){
+            std::cout << "Writing amgcl setup file to mrst_amgcl_cpr_drs_setup.json" << std::endl;
+            std::ofstream file("mrst_amgcl_drs_setup.json");
+            boost::property_tree::json_parser::write_json(file, prm);
+        }
         amgcl::make_solver<
             amgcl::preconditioner::cpr_drs<PPrecond, SPrecond>,
             amgcl::runtime::solver::wrapper<Backend>
@@ -378,6 +383,11 @@ void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries, const mx
             std::cout << solve << std::endl;
         }
     }else{
+         if(verbose){
+            std::cout << "Writing amgcl setup file to mrst_amgcl_cpr_setup.json" << std::endl;
+            std::ofstream file("mrst_amgcl_setup.json");
+            boost::property_tree::json_parser::write_json(file, prm);
+        }
         amgcl::make_solver<
             amgcl::preconditioner::cpr<PPrecond, SPrecond>,
             amgcl::runtime::solver::wrapper<Backend>
@@ -461,6 +471,11 @@ void solve_regular(int n, mwIndex * cols, mwIndex * rows, double * entries, cons
      *        Solve problem                *
      ***************************************/
     auto t1 = std::chrono::high_resolution_clock::now();
+    if(verbose){
+      std::cout << "Writing amgcl setup file to mrst_amgcl_cpr_setup.json" << std::endl;
+      std::ofstream file("mrst_regular_setup.json");
+      boost::property_tree::json_parser::write_json(file, prm);
+    }
 
 
     amgcl::make_solver<

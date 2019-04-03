@@ -91,7 +91,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    global AMGCLPATH
    global BOOSTPATH
-
    if ~valid_global_path(AMGCLPATH)
       error(['Cannot Build AMGCL MEX Gateway Unless GLOBAL ', ...
              '''AMGCLPATH'' Variable is Set in Current MATLAB Session.', ...
