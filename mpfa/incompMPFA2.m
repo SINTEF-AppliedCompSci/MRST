@@ -105,16 +105,39 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'state remains unchanged.\n']); 
     end
     
-    T     = mpfastruct.T;
-    e_div = mpfastruct.e_div;
-    tbls  = mpfastruct.tbls;
+    iB   = mpfastruct.iB;
+    div  = mpfastruct.div;
+    tbls = mpfastruct.tbls;
     
     is_well_posed = false; % changed to true if pressure is set through well
                            % or boundary conditions.
     nc = G.cells.num; 
     
-    A = e_div*T;
+    cellnodefacetbl = tbls.cellnodefacetbl;
+    facenodetbl     = tbls.facenodetbl;
+    fno = cellnodefacetbl.faces; %alias
+    cno = cellnodefacetbl.cells; %alias
+    sgn = 2*(cno == G.faces.neighbors(fno, 1)) - 1;
+
+    extfaces = (G.faces.neighbors(:, 1) == 0) | (G.faces.neighbors(:, 2) == 0);
+    faceexttbl.faces = find(extfaces);
+    faceexttbl.num   = numel(faceexttbl.faces);
+    [~, facenodeexttbl] = setupTableMapping(facenodetbl, faceexttbl, {'faces'});
+    
+    op     = setupTableMapping(cellnodefacetbl, facenodeexttbl, {'faces', 'nodes'});
+    fn_sgn = op*sgn;
+    map = setupTableMapping(facenodetbl, facenodeexttbl, {'faces', 'nodes'});
+    P = diag(fn_sgn)*map;
+   
+    A11 = div*iB*div';
+    A12 = -div*iB*P';
+    A21 = P*iB*div';
+    A22 = -P*iB*P';
+    
+    A = [[A11, A12]; [A21, A22]];
+    
     rhs = zeros(size(A, 1), 1);
+    
     
     if ~isempty(opt.bc)
         
@@ -174,36 +197,36 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             wi = W(k).WI; 
 
             d(wc) = d(wc) + wi;
-            dp = zeros(nwc, 1); % no gravity
-            state.wellSol(k).cdp = dp;
             if strcmpi(W(k).type, 'bhp')
                 is_well_posed = true;
-                ww = max(wi); 
-                rhs(w) = rhs(w) + ww*W(k).val; 
-                rhs(wc) = rhs(wc) + wi.*(W(k).val + dp); 
-                C{k} = -sparse(1, nnp); 
-                D(k) = ww; 
-
+                bhp = W(k).val;
+                % wimax = max(wi);
+                wimax = 1;
+                rhs(w)  = rhs(w) + wimax*sum(wi)*bhp; 
+                rhs(wc) = rhs(wc) + wi.*bhp; 
+                C{k}    = wimax*sparse(ones(nwc, 1), wc, wi, 1, nnp);
+                B{k}    = sparse(nnp, 1);
+                D(k)    = wimax; 
             elseif strcmpi(W(k).type, 'rate')
-                rhs(w) = rhs(w) + W(k).val; 
-                rhs(wc) = rhs(wc) + wi .* dp; 
-
-                C{k} = -sparse(ones(nwc, 1), wc, wi, 1, nnp); 
-                D(k) = sum(wi); 
-
-                rhs(w) = rhs(w) - wi.'* dp; 
-
+                rate   = W(k).val;
+                rhs(w) = rhs(w) - rate;
+                B{k}   = -sparse(wc, ones(nwc, 1), wi, nnp, 1);
+                C{k}   = sparse(ones(nwc, 1), wc, wi, 1, nnp);
+                D(k)   = -sum(wi); 
             else
                 error('Unsupported well type.'); 
             end
         end
-
-        C = vertcat(C{:}); 
-        D = spdiags(D, 0, nw, nw); 
-        A = [A, C'; C D]; 
-        A = A + sparse(1:nc, 1:nc, d, size(A, 1), size(A, 2)); 
         
+        
+        C = vertcat(C{:}); 
+        B = horzcat(B{:}); 
+        D = spdiags(D, 0, nw, nw); 
+        A = [A, B; C D]; 
+        A = A + sparse(1:nc, 1:nc, d, size(A, 1), size(A, 2)); 
+
     end
+        
 
     if ~is_well_posed
         A(1) = 2*A(1); 
@@ -217,23 +240,22 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     pressure = p(1 : nc); 
     e_pressure = p(1 : nnp);
     
-    flux = T*e_pressure;
-    extfaces = any(G.faces.neighbors == 0, 2);
-    intfacetbl.faces = find(~extfaces);
-    intfacetbl.num   = numel(intfacetbl.faces);
-    facenodetbl = tbls.facenodetbl;
-    map = setupTableMapping(facenodetbl, intfacetbl, {'faces'});
-    intflux = map*flux;
+    % flux = T*e_pressure;
+    % extfaces = any(G.faces.neighbors == 0, 2);
+    % intfacetbl.faces = find(~extfaces);
+    % intfacetbl.num   = numel(intfacetbl.faces);
+    % facenodetbl = tbls.facenodetbl;
+    % map = setupTableMapping(facenodetbl, intfacetbl, {'faces'});
+    % intflux = map*flux;
 
     state.pressure = pressure;
-    state.flux = intflux;
-
-    for k = 1 : nw
-        wc = W(k).cells; 
-        dp = state.wellSol(k).cdp; 
-        state.wellSol(k).flux = W(k).WI.*(p(nnp + k) + dp - p(wc)); 
-        state.wellSol(k).pressure = p(nnp + k); 
-    end
+    % state.flux = intflux;
+    % 
+    % for k = 1 : nw
+        % wc = W(k).cells; 
+        % state.wellSol(k).flux = W(k).WI.*(p(nnp + k) - p(wc)); 
+        % state.wellSol(k).pressure = p(nnp + k); 
+    % end
 
 end
 
