@@ -210,9 +210,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             elseif strcmpi(W(k).type, 'rate')
                 rate   = W(k).val;
                 rhs(w) = rhs(w) - rate;
-                B{k}   = -sparse(wc, ones(nwc, 1), wi, nnp, 1);
+                B{k}   = - sparse(wc, ones(nwc, 1), wi, nnp, 1);
                 C{k}   = sparse(ones(nwc, 1), wc, wi, 1, nnp);
-                D(k)   = -sum(wi); 
+                D(k)   = - sum(wi); 
             else
                 error('Unsupported well type.'); 
             end

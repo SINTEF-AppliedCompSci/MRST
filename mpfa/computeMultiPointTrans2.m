@@ -133,7 +133,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    op = setupTableMapping(facenodetbl, cellnodefacetbl, {'faces', 'nodes'});
    div = div*op;
    
-   mpfastruct = struct('T'   , T  , ...
+   mpfastruct = struct('iB'   , iB  , ...
                        'div' , div, ...
                        'tbls', tbls);
    
@@ -246,7 +246,7 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
     
     for i = 1 : cellnodetbl.num
         
-        tic;
+        % tic;
         
         nface = nfaces(cnf_i);
         cnfind = cnf_i : (cnf_i + (nface - 1));
@@ -277,8 +277,8 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
         cnf_i = cnf_i + nface;
         mat_i = mat_i + nface*nface;        
         
-        t = toc;
-        fprintf('assembly cellnode %d took %g sec\n', i, t);
+        % t = toc;
+        % fprintf('assembly cellnode %d took %g sec\n', i, t);
     end
 
     sgn1 = 2*(mattbl.cells == G.faces.neighbors(mattbl.faces1, 1)) - 1;
