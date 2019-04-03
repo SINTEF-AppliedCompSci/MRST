@@ -127,7 +127,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     op     = setupTableMapping(cellnodefacetbl, facenodeexttbl, {'faces', 'nodes'});
     fn_sgn = op*sgn;
     map = setupTableMapping(facenodetbl, facenodeexttbl, {'faces', 'nodes'});
-    P = diag(fn_sgn)*map;
+    nfne = facenodeexttbl.num;
+    P = sparse(1 : nfne, 1 : nfne, fn_sgn, nfne, nfne)*map;
    
     A11 = div*iB*div';
     A12 = -div*iB*P';
