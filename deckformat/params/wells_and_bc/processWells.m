@@ -138,7 +138,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       return
    end
 
-   if opt.DepthReorder
+   if isempty(opt.DepthReorder) 
+      active = arrayfun(@(x) strcmpi(x.dir(1), 'z'), W);
+      W = reorderWellPerforationsByDepth(W, active);
+   elseif opt.DepthReorder
       W = reorderWellPerforationsByDepth(W);
    end
 
@@ -177,7 +180,8 @@ function W = process_wconinj(W, control, G, rock, c2a, well_id, p, opt)
         case 'thp' , val = control.WCONINJ{i, 10};
 
         otherwise
-          dispif(opt.Verbose, ...
+          val = 0;
+          dispif(opt.Verbose && status, ...
                  ['Control mode ''%s'' unsupported for injector ', ...
                   '''%s''.  Ignored.\n'], upper(type), nm);
           continue
@@ -220,12 +224,7 @@ function W = process_wconinje(W, control, G, rock, c2a, well_id, p, opt)
       switch type
         case 'rate'
           val = control.WCONINJE{i, 5};
-        case 'resv'
-          dispif(opt.Verbose, ...
-                 ['Control mode ''%s'' unsupported for injector ', ...
-                  '''%s''.  Ignored.\n'], upper(type), nm);
-          continue
-          % val = control.WCONINJE{i, 6};
+        case 'resv', val = control.WCONINJE{i, 6};
         case 'bhp' , val = control.WCONINJE{i, 7};
         case 'thp' , val = control.WCONINJE{i, 8};
         otherwise
@@ -432,27 +431,29 @@ function W = process_wconhist(W, control, G, rock, c2a, well_id, p, opt)
         case 'lrat'
           rates = - ([control.WCONHIST{i, 4:5}]);
           val   = sum(rates);
-          if val ~= 0 
-              compi = rates./val;
+          if val ~= 0
+            compi = [rates, 0]./val;
           else
-              compi = [1 1 0]/2;
+            compi = [1 1 0]/2;
           end
         case 'resv'
           rates = - ([control.WCONHIST{i, 4:6}]);
           val   = sum(rates);
           if val ~= 0
-              compi = rates./val;
+              % Account for OWG ordering. MRST uses WOG.
+              compi = rates([2, 1, 3])./val;
           else
               compi = [1 1 1]/3;
           end
+          % Historical RESV control
+          type = 'RESV_HISTORY';
         case 'bhp'
           val = control.WCONHIST{i, 10};
 
         otherwise
-          dispif(opt.Verbose, ...
+          dispif(opt.Verbose && status, ...
                  ['Control mode ''%s'' unsupported for producer ', ...
                   '''%s''.  Ignored.\n'], upper(type), nm);
-          %continue
           val = 0;
       end
 
@@ -496,9 +497,6 @@ function W = process_wconhist(W, control, G, rock, c2a, well_id, p, opt)
          end
          W(end).status    = status;
       end
-      %W(end).lims  = [];
-
-      %W(end).bhpLimit = 1*atm;
    end
 end
 
@@ -545,11 +543,10 @@ function W = process_wconprod(W, control, G, rock, c2a, well_id, p, opt)
           compi = [1, 1, 1];  % Doesn't matter.
 
         otherwise
-          dispif(opt.Verbose, ...
+          dispif(opt.Verbose && status, ...
                  ['Control mode ''%s'' unsupported for producer ', ...
                   '''%s''.  Ignored.\n'], upper(type), nm);
-          %continue
-          val = [];
+          val = 0;
           compi = [0 1 0]; 
       end
 

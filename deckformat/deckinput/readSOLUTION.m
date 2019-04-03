@@ -101,6 +101,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                'MINVALUE', 'MULTIPLY'}
             sln = applyOperator(sln, fid, kw);
 
+          case 'THPRES'
+            templ = {'NaN', 'NaN', 'NaN'};
+            sln.(kw) = readDefaultedKW(fid, templ);
+            sln.(kw) = cellfun(to_double, sln.(kw));
+            
          case {'ECHO', 'NOECHO'}
             kw = getEclipseKeyword(fid);
             continue;  % Ignore.  Not handled in MRST

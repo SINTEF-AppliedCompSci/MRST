@@ -68,6 +68,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             data      = readDefaultedKW(fid, tmpl, 'NRec', ntpvt);
             prp.(kw)  = to_double(data);  clear tmpl
 
+         case 'SCALECRS'
+            tmpl        = { 'NO' };
+            data        = readDefaultedRecord(fid, tmpl);
+            prp.(kw)    = data;
+            
          case 'SDENSITY'
             tmpl(1) = { '0.0' };
             data      = readDefaultedKW(fid, tmpl, 'NRec', ntpvt);
@@ -206,7 +211,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          case {'STONE' , 'STONE1', 'STONE2', 'SIMPLE'}
             prp.(kw) = true;
 
-         case {'SWL'   ,            'ISWL' ,           ...
+         case {'KRW'   , 'KRO'    , 'KRG'  ,           ...
+               'SWL'   ,            'ISWL' ,           ...
                'SWLX'  , 'SWLX-'  , 'ISWLX', 'ISWLX-', ...
                'SWLY'  , 'SWLY-'  , 'ISWLY', 'ISWLY-', ...
                'SWLZ'  , 'SWLZ-'  , 'ISWLZ', 'ISWLZ-', ...
