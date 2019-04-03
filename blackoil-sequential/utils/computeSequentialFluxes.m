@@ -44,7 +44,14 @@ end
 function mob_f = upstreamWeightPhases(value, upstr, flag, nph)
     mob_f = cell(nph, 1);
     for i = 1:nph
-        mob_f{i} = upstr(flag(:, i), value{i});
+        v = value{i};
+        if numelValue(v) == size(flag, 1)
+            % Already upwinded
+            mob_f{i} = v;
+        else
+            % Cell-value, must be upwinded
+            mob_f{i} = upstr(flag(:, i), v);
+        end
     end
 end
 
