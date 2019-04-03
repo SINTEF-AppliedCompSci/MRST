@@ -246,6 +246,11 @@ while ~feof(fid)
             if ~isfield(grdecl, kw), grdecl.(kw) = cell([0, 3]); end
             grdecl.(kw) = [grdecl.(kw); data];
 
+         case 'GDORIENT'
+            tmpl = {'INC', 'INC', 'INC', 'DOWN', 'RIGHT'};
+
+            grdecl.(kw) = readDefaultedRecord(fid, tmpl);        clear tmpl
+
          otherwise
             if ~isempty(opt.keywords) && any(strcmp(kw, opt.keywords))
                checkDim(cartDims, numCell, kw, fid);
