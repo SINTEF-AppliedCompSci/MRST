@@ -213,7 +213,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     x = opt.LinSolve(A, rhs); 
 
-
     % --------------------------------------------------------------------- 
     dispif(opt.Verbose, 'Computing fluxes, face pressures etc...\t\t'); 
     pressure    = x(1 : nc); 
@@ -222,21 +221,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     wellvars    = x((nnp + 1) : end);
     
     flux = F*e_pressure;
-    extfaces = any(G.faces.neighbors == 0, 2);
-    intfacetbl.faces = find(~extfaces);
-    intfacetbl.num   = numel(intfacetbl.faces);
-    facetbl.faces = (1 : G.faces.num)';
-    facetbl.num   = G.faces.num;
-    map = setupTableMapping(facetbl, intfacetbl, {'faces'});
-    intflux = map*flux;
 
     state.pressure = pressure;
     state.bc_pressure = bc_pressure;
-    state.flux = intflux;
+    state.flux = flux;
     
-    %% TODO
     % return well values.
-
     if ~isempty(opt.wells)
         for k = 1 : nw
             if strcmpi(W(k).type, 'bhp')
