@@ -259,7 +259,11 @@ methods
         [state, report] = updateAfterConvergence@PhysicalModel(model, state0, state, dt, drivingForces);
         report.FacilityReport = f_report;
         if isfield(state, 'sMax')
-            state.sMax = max(state.sMax, state.s);
+            if ~all(size(state.sMax) == size(state.s))
+                state.sMax = state.s;
+            else
+                state.sMax = max(state.sMax, state.s);
+            end
         end
         if isfield(state, 'FacilityState')
             state = rmfield(state, 'FacilityState');

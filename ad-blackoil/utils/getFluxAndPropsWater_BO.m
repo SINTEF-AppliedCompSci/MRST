@@ -69,6 +69,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if isempty(fp)
         fp_sat = GridProperty(model);
         fp_pvt = fp_sat;
+    else
+        fp_pvt = fp.Density;
+        fp_sat = fp.RelativePermeability;
     end
     pvtfun = @(varargin) fp_pvt.evaluateFunctionOnGrid(varargin{:});
     satfun = @(varargin) fp_sat.evaluateFunctionOnGrid(varargin{:});

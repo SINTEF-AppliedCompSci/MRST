@@ -10,7 +10,9 @@ function [q_phase, q_components] = computeSequentialFluxes(state, G, vT, T, mob,
     mob_f = upstreamWeightPhases(mob, upstr, flag_v, nph);
     if isEqual
         q_phase = computePhaseVolumetricFluxes(vT, T, mob_f, G);
-        q_components = computeComponentFluxes(q_phase, components_f);
+        if nargout > 1
+            q_components = computeComponentFluxes(q_phase, components_f);
+        end
     else
         % Different upwinding for potentials and viscous flux
         q_visc = computePhaseVolumetricFluxes(vT, T, mob_f);
@@ -22,16 +24,18 @@ function [q_phase, q_components] = computeSequentialFluxes(state, G, vT, T, mob,
         for i = 1:nph
             q_phase{i} = q_phase{i} + q_grav{i};
         end
-        if strcmpi(upwindType, 'hybrid_combined')
-            % Take volumetric flux to be fixed
-            q_components = computeComponentFluxes(q_phase, components_f);
-        else
-            % Take each term separately
-            q_components_v = computeComponentFluxes(q_visc, components_f);
-            q_components_g = computeComponentFluxes(q_grav, components_f);
-            q_components = q_components_v;
-            for i = 1:ncomp
-                q_components{i} = q_components{i} + q_components_g{i};
+        if nargout > 1
+            if strcmpi(upwindType, 'hybrid_combined')
+                % Take volumetric flux to be fixed
+                q_components = computeComponentFluxes(q_phase, components_f);
+            else
+                % Take each term separately
+                q_components_v = computeComponentFluxes(q_visc, components_f);
+                q_components_g = computeComponentFluxes(q_grav, components_f);
+                q_components = q_components_v;
+                for i = 1:ncomp
+                    q_components{i} = q_components{i} + q_components_g{i};
+                end
             end
         end
     end
@@ -40,7 +44,14 @@ end
 function mob_f = upstreamWeightPhases(value, upstr, flag, nph)
     mob_f = cell(nph, 1);
     for i = 1:nph
-        mob_f{i} = upstr(flag(:, i), value{i});
+        v = value{i};
+        if numelValue(v) == size(flag, 1)
+            % Already upwinded
+            mob_f{i} = v;
+        else
+            % Cell-value, must be upwinded
+            mob_f{i} = upstr(flag(:, i), v);
+        end
     end
 end
 

@@ -159,8 +159,7 @@ methods
         opt = struct('Verbose',     mrstVerbose,...
                     'reverseMode', false,...
                     'resOnly',     false,...
-                    'iteration',   -1, ...
-                    'drivingForces0', []);
+                    'iteration',   -1);
         opt = merge_options(opt, varargin{:});
 
 
@@ -769,7 +768,7 @@ methods
             forces_p = model.getDrivingForces(lookupCtrl(stepNo + 1));
             forces_p = merge_options(validforces, forces_p{:});
             problem_p = model.getAdjointEquations(current, after, dt_next, forces_p,...
-                                'iteration', inf, 'reverseMode', true, 'drivingForces0', forces);
+                                'iteration', inf, 'reverseMode', true);
         else
             problem_p = [];
         end
