@@ -237,6 +237,21 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     %% TODO
     % return well values.
 
+    if ~isempty(opt.wells)
+        for k = 1 : nw
+            if strcmpi(W(k).type, 'bhp')
+                pw = W(k).val;
+            elseif strcmpi(W(k).type, 'rate')
+                pw = wellvars(k);
+            else
+                error('Unsupported well type.'); 
+            end
+            wc = W(k).cells;
+            wi = W(k).WI;
+            state.wellSol(k).flux = wi.*(pw - pressure(wc));
+            state.wellSol(k).pressure = pw;
+        end
+    end
 end
 
 % -------------------------------------------------------------------------- 
