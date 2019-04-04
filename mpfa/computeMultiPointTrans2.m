@@ -116,7 +116,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       t0 = tic;
    end
 
-   % Assembly of the divergence operator, from face-node faces to cell. We consider
+   % Assemble of the divergence operator, from face-node faces to cell. We consider
    % only the internal faces for the moment (corresponds to Neumann boundary
    % condition).
    
@@ -133,8 +133,46 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    op = setupTableMapping(facenodetbl, cellnodefacetbl, {'faces', 'nodes'});
    div = div*op;
    
-   mpfastruct = struct('iB'   , iB  , ...
-                       'div' , div, ...
+   % Assemble the projection operator from facenode values to facenode values
+   % on the external faces.
+   fno = cellnodefacetbl.faces; %alias
+   cno = cellnodefacetbl.cells; %alias
+   sgn = 2*(cno == G.faces.neighbors(fno, 1)) - 1;
+
+   extfaces = (G.faces.neighbors(:, 1) == 0) | (G.faces.neighbors(:, 2) == 0);
+   faceexttbl.faces = find(extfaces);
+   faceexttbl.num   = numel(faceexttbl.faces);
+   [~, facenodeexttbl] = setupTableMapping(facenodetbl, faceexttbl, {'faces'});
+   
+   op     = setupTableMapping(cellnodefacetbl, facenodeexttbl, {'faces', 'nodes'});
+   fn_sgn = op*sgn;
+   map = setupTableMapping(facenodetbl, facenodeexttbl, {'faces', 'nodes'});
+   nfne = facenodeexttbl.num;
+   Pext = sparse(1 : nfne, 1 : nfne, fn_sgn, nfne, nfne)*map;
+   
+   % Assemble the flux operator: From pressure values at the cell center and
+   % at the external facenode, compute the fluxes at the faces
+   F1 = iB*div';
+   F2 = - iB*Pext';
+   F  = [F1, F2];
+   facetbl.faces = (1 : G.faces.num)';
+   facetbl.num   = G.faces.num;
+   map = setupTableMapping(facenodetbl, facetbl, {'faces'});
+   F = map*F;
+   
+   % Assemble the system matrix operaror: The degrees of freedom are the pressure
+   % values at the cell center and at the external facenode.
+   A11 = div*iB*div';
+   A12 = -div*iB*Pext';
+   A21 = Pext*iB*div';
+   A22 = -Pext*iB*Pext';
+   A = [[A11, A12]; [A21, A22]];
+
+   mpfastruct = struct('iB'  , iB  , ...
+                       'div' , div , ...
+                       'Pext', Pext, ...
+                       'F'   , F   , ...
+                       'A'   , A   , ...
                        'tbls', tbls);
    
 end

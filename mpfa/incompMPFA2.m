@@ -105,40 +105,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'state remains unchanged.\n']); 
     end
     
-    iB   = mpfastruct.iB;
-    div  = mpfastruct.div;
-    tbls = mpfastruct.tbls;
+
     
     is_well_posed = false; % changed to true if pressure is set through well
                            % or boundary conditions.
     nc = G.cells.num; 
     
-    cellnodefacetbl = tbls.cellnodefacetbl;
-    facenodetbl     = tbls.facenodetbl;
-    fno = cellnodefacetbl.faces; %alias
-    cno = cellnodefacetbl.cells; %alias
-    sgn = 2*(cno == G.faces.neighbors(fno, 1)) - 1;
-
-    extfaces = (G.faces.neighbors(:, 1) == 0) | (G.faces.neighbors(:, 2) == 0);
-    faceexttbl.faces = find(extfaces);
-    faceexttbl.num   = numel(faceexttbl.faces);
-    [~, facenodeexttbl] = setupTableMapping(facenodetbl, faceexttbl, {'faces'});
-    
-    op     = setupTableMapping(cellnodefacetbl, facenodeexttbl, {'faces', 'nodes'});
-    fn_sgn = op*sgn;
-    map = setupTableMapping(facenodetbl, facenodeexttbl, {'faces', 'nodes'});
-    nfne = facenodeexttbl.num;
-    P = sparse(1 : nfne, 1 : nfne, fn_sgn, nfne, nfne)*map;
-   
-    A11 = div*iB*div';
-    A12 = -div*iB*P';
-    A21 = P*iB*div';
-    A22 = -P*iB*P';
-    
-    A = [[A11, A12]; [A21, A22]];
+    div  = mpfastruct.div;
+    A    = mpfastruct.A;
+    F    = mpfastruct.F;
+    tbls = mpfastruct.tbls;
     
     rhs = zeros(size(A, 1), 1);
-    
     
     if ~isempty(opt.bc)
         
