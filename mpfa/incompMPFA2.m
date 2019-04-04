@@ -211,30 +211,31 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         A(1) = 2*A(1); 
     end
 
-    p = opt.LinSolve(A, rhs); 
+    x = opt.LinSolve(A, rhs); 
 
 
     % --------------------------------------------------------------------- 
     dispif(opt.Verbose, 'Computing fluxes, face pressures etc...\t\t'); 
-    pressure = p(1 : nc); 
-    e_pressure = p(1 : nnp);
+    pressure    = x(1 : nc); 
+    e_pressure  = x(1 : nnp); % include pressure at boundary
+    bc_pressure = x((nc + 1) : nnp); % pressure at boundary
+    wellvars    = x((nnp + 1) : end);
     
-    % flux = T*e_pressure;
-    % extfaces = any(G.faces.neighbors == 0, 2);
-    % intfacetbl.faces = find(~extfaces);
-    % intfacetbl.num   = numel(intfacetbl.faces);
-    % facenodetbl = tbls.facenodetbl;
-    % map = setupTableMapping(facenodetbl, intfacetbl, {'faces'});
-    % intflux = map*flux;
+    flux = F*e_pressure;
+    extfaces = any(G.faces.neighbors == 0, 2);
+    intfacetbl.faces = find(~extfaces);
+    intfacetbl.num   = numel(intfacetbl.faces);
+    facetbl.faces = (1 : G.faces.num)';
+    facetbl.num   = G.faces.num;
+    map = setupTableMapping(facetbl, intfacetbl, {'faces'});
+    intflux = map*flux;
 
     state.pressure = pressure;
-    % state.flux = intflux;
-    % 
-    % for k = 1 : nw
-        % wc = W(k).cells; 
-        % state.wellSol(k).flux = W(k).WI.*(p(nnp + k) - p(wc)); 
-        % state.wellSol(k).pressure = p(nnp + k); 
-    % end
+    state.bc_pressure = bc_pressure;
+    state.flux = intflux;
+    
+    %% TODO
+    % return well values.
 
 end
 
