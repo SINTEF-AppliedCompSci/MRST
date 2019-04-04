@@ -60,6 +60,25 @@ mpfastruct = computeMultiPointTrans2(G, rock, 'eta', 1/3);
 %% Solve MPFA pressure
 state = incompMPFA2(G, mpfastruct, 'wells', W);
 pressure = state.pressure;
+flux = state.flux; % internal fluxes
+
+%% check mass conservation
+extfaces = any(G.faces.neighbors == 0, 2);
+intfacetbl.faces = find(~extfaces);
+intfacetbl.num   = numel(intfacetbl.faces);
+tbls = mpfastruct.tbls;
+cellfacetbl = tbls.cellfacetbl;
+cfc = cellfacetbl.cells;
+cff = cellfacetbl.faces;
+sgn = 2*(cfc == G.faces.neighbors(cff, 1)) - 1;
+op1 = setupTableMapping(intfacetbl, cellfacetbl, {'faces'});
+op1 = sparse(1 : cellfacetbl.num, 1 : cellfacetbl.num, sgn)*op1;
+celltbl.cells = (1 : G.cells.num)';
+celltbl.num   = G.cells.num;
+op2 = setupTableMapping(cellfacetbl, celltbl, {'cells'});
+div = op2*op1;
+
+massbal = div*flux;
 
 %% plotting
 
@@ -69,6 +88,13 @@ plotCellData(G, pressure ./ barsa());
 title('Pressure: MPFA'); view(2), axis tight off
 colorbar('Location','SouthOutside');
 
+figure(2)
+clf
+plotCellData(G, massbal);
+title('Mass balance'); view(2), axis tight off
+colorbar('Location','SouthOutside');
+
+%% solve for mimetic
 
 IP = computeMimeticIP(G, rock, 'InnerProduct', 'ip_simple');
 resSol2 = initState(G, W, 0);
@@ -77,7 +103,7 @@ resSol2 = initState(G, W, 0);
 resSol2 = incompMimetic(resSol2, G, IP, fluid, 'wells', W);
 pressure = resSol2.pressure;
 
-figure(2)
+figure(3)
 clf
 plotCellData(G, pressure ./ barsa());
 title('Pressure: mimetic'); view(2), axis tight off
