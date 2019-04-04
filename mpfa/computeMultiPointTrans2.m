@@ -2,7 +2,7 @@ function mpfastruct = computeMultiPointTrans2(G, rock, varargin)
 %Compute multi-point transmissibilities.
 %
 % SYNOPSIS:
-%   T = computeMultiPointTrans(G, rock)
+%   T = computeMultiPointTrans2(G, rock)
 %
 % REQUIRED PARAMETERS:
 %   G       - Grid data structure as described by grid_structure.
@@ -34,8 +34,6 @@ function mpfastruct = computeMultiPointTrans2(G, rock, varargin)
 %               computational process.  Default value depending on the
 %               settings of function 'mrstVerbose'.
 %
-%   facetrans -
-%
 %   invertBlocks -
 %               Method by which to invert a sequence of small matrices that
 %               arise in the discretisation.  String.  Must be one of
@@ -50,14 +48,21 @@ function mpfastruct = computeMultiPointTrans2(G, rock, varargin)
 %                              the required MEX functions.
 %
 % RETURNS:
-%   iB 
-%   b          : defines the mpfa boundary faces
+%  
+%   mpfastruct with fields:
 %
+%               'iB'  : inverse of scalar product (facenode degrees of freedom)
+%               'div' : divergence operator (facenode values to cell values)
+%               'Pext': projection operator on external facenode values
+%               'F'   : flux operator (from cell and external facenode values to facenode values)
+%               'A'   : system matrix (cell and external facenode degrees of freedom)
+%               'tbls': table structure
+   
 % COMMENTS:
 %   PLEASE NOTE: Face normals have length equal to face areas.
 %
 % SEE ALSO:
-%   `incompMPFA`, `mrstVerbose`.
+%   `incompMPFA2`, `mrstVerbose`.
 
 %{
 Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
@@ -102,9 +107,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       fprintf('Computing inverse mixed innerproduct ...\t');
       t0 = tic;
    end
-   % The face-node degrees of freedom, as specified by the facenodetbl table, are
+   
+   %% Invert matrix B
+   % The facenode degrees of freedom, as specified by the facenodetbl table, are
    % ordered by nodes first (see implementation below). It means in particular
-   % that the matrix B is (or should be!) already block diagonal.
+   % that the matrix B is, by construction, block diagonal.
    facenodetbl = tbls.facenodetbl;
    [~, sz] = rlencode(facenodetbl.nodes); 
    iB   = opt.invertBlocks(B, sz);
@@ -116,10 +123,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       t0 = tic;
    end
 
-   % Assemble of the divergence operator, from face-node faces to cell. We consider
-   % only the internal faces for the moment (corresponds to Neumann boundary
-   % condition).
-   
+   %% Assemble of the divergence operator, from facenode values to cell value.
    cellnodefacetbl = tbls.cellnodefacetbl;
    fno = cellnodefacetbl.faces; %alias
    cno = cellnodefacetbl.cells; %alias
@@ -133,7 +137,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    op = setupTableMapping(facenodetbl, cellnodefacetbl, {'faces', 'nodes'});
    div = div*op;
    
-   % Assemble the projection operator from facenode values to facenode values
+   %% Assemble the projection operator from facenode values to facenode values
    % on the external faces.
    fno = cellnodefacetbl.faces; %alias
    cno = cellnodefacetbl.cells; %alias
@@ -150,7 +154,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    nfne = facenodeexttbl.num;
    Pext = sparse(1 : nfne, 1 : nfne, fn_sgn, nfne, nfne)*map;
    
-   % Assemble the flux operator: From pressure values at the cell center and
+   %% Assemble the flux operator: From pressure values at the cell center and
    % at the external facenode, compute the fluxes at the faces
    F1 = iB*div';
    F2 = - iB*Pext';
@@ -160,7 +164,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    map = setupTableMapping(facenodetbl, facetbl, {'faces'});
    F = map*F;
    
-   % Assemble the system matrix operaror: The degrees of freedom are the pressure
+   %% Assemble the system matrix operaror: The degrees of freedom are the pressure
    % values at the cell center and at the external facenode.
    A11 = div*iB*div';
    A12 = -div*iB*Pext';
@@ -188,6 +192,7 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
    
     cellfacetbl.cells = rldecode((1 : nc)', diff(G.cells.facePos)); 
     cellfacetbl.faces = G.cells.faces(:, 1);
+    cellfacetbl.num   = numel(cellfacetbl.cells);
 
     faces = rldecode((1 : nf)', diff(G.faces.nodePos)); 
     nodes = G.faces.nodes;
