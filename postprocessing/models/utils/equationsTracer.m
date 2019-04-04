@@ -31,7 +31,7 @@ function [problem, state] = equationsTracer(state0, state, model, dt, drivingFor
         t = tracers{i};
         t0 = tracers0{i};
         vi = op.faceUpstr(flag, t).*vT;
-        % Conservatio neqn
+        % Conservation eqn
         eqs{i} = (op.pv./dt).*(t - t0) + op.Div(vi);
         
         % Composition source terms
