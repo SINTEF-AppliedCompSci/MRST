@@ -161,7 +161,12 @@ for i = 1:nph
     end
     sF{i, 1} = sat(:, i);
     sF{i, 2} = s_inside;
+end
 
+if ~hasOutsideMob
+    for i = 1:nph
+        mobF{i, 1} = totMob.*sF{i, 1};
+    end
 end
 
 if isTransport && isCompositional
