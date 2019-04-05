@@ -11,8 +11,9 @@ classdef TracerModel < ReservoirModel
         end
         
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
+        % see function equationsTracer for specification of drivingForces.bc
             [problem, state] = equationsTracer(state0, state, model, dt, ...
-                            drivingForces, varargin{:});
+                                               drivingForces, varargin{:});
 
         end
 
