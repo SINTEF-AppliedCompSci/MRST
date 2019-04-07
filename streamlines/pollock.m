@@ -213,7 +213,7 @@ end
 % =========================================================================
 
 function xyz = globalCoordinate(G, c, p)
-% Compute global coordinate corresponding to local coorinate p in cells c
+% Compute global coordinate corresponding to local coordinate p in cells c
 % p  - local positions == [xi,eta,zeta] in 3D
 % c  -
 
@@ -271,6 +271,9 @@ function [pos, tof, xyz] = step(pos, flux, neighbors, nsubsteps)
    % IF at boundary, mark dir with NaN to avoid changing local coordinate
    % below.
    ind         = n(t)==0;
+   % Also, if there is no finite time to escape the current cell, set NaN
+   % value to indicate that the streamline has terminated.
+   ind         = ind | all(~isfinite(T), 2);
    pos(~ind,1) = n(t(~ind));
    dir (ind)   = nan;
 
