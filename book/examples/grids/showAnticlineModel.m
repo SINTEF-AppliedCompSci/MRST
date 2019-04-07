@@ -11,7 +11,6 @@ mrstModule add coarsegrid diagnostics incomp spe10
 G = cartGrid([nx ny nz], [nx ny nz].*[20 10 2]*ft);
 
 rock = getSPE10rock(1:nx,1:ny,nz:-1:1);
-rock.perm = convertFrom(rock.perm, milli*darcy);
 rock.poro(rock.poro==0) = 1e-5;
 
 %% Make anticline structure
@@ -51,8 +50,8 @@ W = verticalWell(W,  G, rock, 34, 32, [], args{:}, 'name', 'P2');
 
 % injectors
 args = {'Type', 'bhp', 'Val', 150*barsa, 'Comp_i', [1 0], 'sign', 1};
-W = verticalWell(W,  G, rock,  18,  18, [], args{:}, 'name', 'I1');
-W = verticalWell(W,  G, rock,  18, 44, [], args{:}, 'name', 'I2');
+W = verticalWell(W,  G, rock, 18, 18, [], args{:}, 'name', 'I1');
+W = verticalWell(W,  G, rock, 18, 44, [], args{:}, 'name', 'I2');
 W = verticalWell(W,  G, rock, 44, 44, [], args{:}, 'name', 'I4');
 subplot(1,3,1)
 plotWell(G,W,'Color','k','FontSize',12); axis tight off
