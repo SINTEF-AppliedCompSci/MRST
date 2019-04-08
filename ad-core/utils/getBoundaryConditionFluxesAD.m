@@ -262,7 +262,7 @@ for i = 1:nph
             % determined by the sat field
             subs = isP & injP;
             if hasOutsideMob
-                q_res = mobF{i, 1}(subs).*T(subs).*dP(~injDir);
+                q_res = mobF{i, 1}(subs).*T(subs).*dP(injDir);
             else
                 q_res = totMob(subs).*T(subs).*dP(injDir).*sat(subs, i);
             end
