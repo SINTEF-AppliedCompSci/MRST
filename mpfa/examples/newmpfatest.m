@@ -55,7 +55,8 @@ gravity off
 
 
 % Compute the transmisibility matrix for mpfa
-mpfastruct = computeMultiPointTrans2(G, rock, 'eta', 1/3);
+mpfastruct = computeBlockMultiPointTrans(G, rock, 'eta', 1/3, 'blocksize', ...
+                                         100, 'verbose', true);
 
 %% Solve MPFA pressure
 state = incompMPFA2(G, mpfastruct, 'wells', W);
