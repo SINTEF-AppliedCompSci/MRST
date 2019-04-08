@@ -225,11 +225,15 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
     % We setup the cell-node table, cellnodetbl. Each entry determine
     % a unique corner
     cfn = cellnodefacetbl;
-    cellnode = [cfn.nodes, cfn.cells];
+    cellnode = [cfn.cells, cfn.nodes];
     cellnode = unique(cellnode, 'rows');
-    cellnodetbl.nodes = cellnode(:, 1);
-    cellnodetbl.cells = cellnode(:, 2);
+    cellnodetbl.cells = cellnode(:, 1);
+    cellnodetbl.nodes = cellnode(:, 2);
     cellnodetbl.num   = numel(cellnodetbl.nodes);
+    orderingmat = [cellnodetbl.cells, cellnodetbl.nodes];
+    orderingmat = sortrows(orderingmat);
+    cellnodetbl.cells = orderingmat(:, 1);
+    cellnodetbl.nodes = orderingmat(:, 2);    
     
     % Nodal scalar product is stored in vector nodeM
     % mattbl is the table which specifies how nodeM is stored: a matrix for
@@ -281,9 +285,8 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
     vols  = G.cells.volumes(cno);
     
     map = setupTableMapping(cellnodetbl, cellnodefacetbl, {'cells', 'nodes'}); 
-    nfaces = diag(map'*map);
-    nfaces = full(map*nfaces);
-    
+    nfaces1 = diag(map'*map);
+    nfaces2 = full(map*nfaces1);
     
     blocksize = opt.blocksize;
     ncn = cellnodetbl.num;
@@ -294,7 +297,6 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
     blockinds = cumsum([1; blocksizes]);
     nodeMs = cell(nblocks, 1);
 
-    cn_i  = 1; % start indice for the cellnode index
     cnf_i = 1; % start indice for the cellnodefacetbl index
     
     if opt.verbose
@@ -305,7 +307,7 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
         
         blocksize = blocksizes(i);
         ind = [blockinds(i) : (blockinds(i + 1) - 1)];
-        nblockfaces = nfaces(ind);
+        nblockfaces = nfaces1(ind);
         nodeMs{i} = zeros(sum(nblockfaces.^2), 1);
         mat_i = 1;
 
@@ -315,8 +317,7 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
         
         for j = 1 : blocksize
             
-            nface = nfaces(cnf_i);
-            fprintf('%d\n', nface);
+            nface = nfaces2(cnf_i);
             cnfind = cnf_i : (cnf_i + (nface - 1));
             
             N     = facePermNormals(cnfind, :); 
@@ -341,7 +342,6 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
             matind = mat_i : (mat_i + (nface*nface - 1));
             nodeMs{i}(matind) = nodeMs{i}(matind) + locM;
             
-            cn_i  = cn_i + 1;
             cnf_i = cnf_i + nface;
             mat_i = mat_i + nface*nface;        
             
