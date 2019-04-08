@@ -50,26 +50,7 @@ function state = incompMPFA2(G, mpfastruct, varargin)
 
 %
 % RETURNS:
-%   xr - Reservoir solution structure with new values for the fields:
-%          - pressure     -- Pressure values for all cells in the
-%                            discretised reservoir model, 'G'.
-%          - boundaryPressure --
-%                            Pressure values for all boundary interfaces in
-%                            the discretised reservoir model, 'G'.
-%          - flux         -- Flux across global interfaces corresponding to
-%                            the rows of 'G.faces.neighbors'.
-%          - A            -- System matrix.  Only returned if specifically
-%                            requested by setting option 'MatrixOutput'.
-%
-%   xw - Well solution structure array, one element for each well in the
-%        model, with new values for the fields:
-%           - flux     -- Perforation fluxes through all perforations for
-%                         corresponding well.  The fluxes are interpreted
-%                         as injection fluxes, meaning positive values
-%                         correspond to injection into reservoir while
-%                         negative values mean production/extraction out of
-%                         reservoir.
-%           - pressure -- Well pressure.
+
 %
 % SEE ALSO:
 %   `computeMultiPointTrans2`, `addBC`, `addSource`, `addWell`
