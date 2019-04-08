@@ -93,19 +93,21 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    opt.invertBlocks = blockInverter(opt);
 
    if opt.verbose
-      fprintf('Computing inner product on sub-half-faces ...\t');
-      t0 = tic;
-   else
-      t0 = [];
+       fprintf('Computing inner product on sub-half-faces ...\n');
+       t0 = tic();
    end
 
    [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt);
    
+   if opt.verbose
+       t0 = toc(t0);
+       fprintf('Computing inner product on sub-half-faces done in %g sec\n', t0);
+   end
    tocif(opt.verbose, t0);
    
    if opt.verbose
-      fprintf('Computing inverse mixed innerproduct ...\t');
-      t0 = tic;
+       fprintf('Computing inverse mixed innerproduct\n');
+       t0 = tic();   
    end
    
    %% Invert matrix B
@@ -116,11 +118,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    [~, sz] = rlencode(facenodetbl.nodes); 
    iB   = opt.invertBlocks(B, sz);
 
-   tocif(opt.verbose, t0);
-
    if opt.verbose
-      fprintf('Computing multi-point transmissibilities ...\t');
-      t0 = tic;
+       t0 = toc(t0);   
+       fprintf('Computing inverse mixed innerproduct done in %g sec\n', t0);
    end
 
    %% Assemble of the divergence operator, from facenode values to cell value.
@@ -289,7 +289,9 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
     
     for i = 1 : cellnodetbl.num
         
-        % tic;
+        if opt.verbose
+            t0 = tic;
+        end
         
         nface = nfaces(cnf_i);
         cnfind = cnf_i : (cnf_i + (nface - 1));
@@ -320,8 +322,11 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
         cnf_i = cnf_i + nface;
         mat_i = mat_i + nface*nface;        
         
-        % t = toc;
-        % fprintf('assembly cellnode %d took %g sec\n', i, t);
+        if opt.verbose
+            t0 = toc;
+            fprintf('assembly cellnode %d / %d took %g sec\n', i, cellnodetbl.num, ...
+                    t0);
+        end
     end
 
     sgn1 = 2*(mattbl.cells == G.faces.neighbors(mattbl.faces1, 1)) - 1;
