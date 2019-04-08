@@ -128,7 +128,7 @@ methods
         if ~isempty(model.FacilityModel)
             state = model.FacilityModel.validateState(state);
         end
-        if ~isfield(state, 'sMax')
+        if ~isfield(state, 'sMax') && isfield(state, 's')
             state.sMax = state.s;
         end
     end
