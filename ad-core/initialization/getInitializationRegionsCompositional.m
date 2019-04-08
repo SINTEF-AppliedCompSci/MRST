@@ -4,19 +4,12 @@ function region = getInitializationRegionsCompositional(model, contacts, varargi
                  'x',       [], ...
                  'y',       []);
     [opt, args] = merge_options(opt, varargin{:});
-    cells = opt.cells;
     x = opt.x;
     y = opt.y;
     T = opt.T;
     actPh = model.getActivePhases();
     nPh = sum(actPh);
-    
-    if ischar(cells)
-        getRegCell = @(x) repmat(1, size(double(x)));
-    else
-        getRegCell = @(x) repmat(cells(1), size(double(x)));
-    end
-    
+
     rho = cell(1, nPh);
     PC = cell(1, nPh);
     pc_sign = ones(1, nPh);
@@ -24,13 +17,24 @@ function region = getInitializationRegionsCompositional(model, contacts, varargi
     
     
     f = model.fluid;
+    [satnum, pvtnum] = deal(1);
+    if isfield(model.rock, 'regions')
+        if isfield(model.rock.regions, 'saturation')
+            satnum = model.rock.regions.saturation(cc);
+        end
+        if isfield(model.rock.regions, 'pvt')
+            pvtnum = model.rock.regions.pvt(cc);
+        end
+    end
     if model.water
         ix = model.getPhaseIndex('W');
         
-        rho{ix} = @(p, z) f.bW(p, 'cellInx', getRegCell(p)).*f.rhoWS;
+        bW = getFunction(f, 'bW', pvtnum);
+        rho{ix} = @(p, z) bW(p).*f.rhoWS(pvtnum);
         pc_sign(ix) = -1;
         if isfield(model.fluid, 'pcOW')
-            PC{ix} = @(S) model.fluid.pcOW(S, 'cellInx', getRegCell(S));
+            pcOW = getFunction(f, 'pcOW', satnum);
+            PC{ix} = @(S) pcOW(S);
         else
             PC{ix} = @(S) 0*S;
         end
@@ -38,23 +42,27 @@ function region = getInitializationRegionsCompositional(model, contacts, varargi
     
     if model.oil
         ix = model.getPhaseIndex('O');
-        rho{ix} = @(p, z) getDensity(model, p, T, z, x, true, 'cellInx', getRegCell(p));
+        rho{ix} = @(p, z) getDensity(model, p, T, z, x, true);
         PC{ix} = @(S) 0*S;
     end
     
     if model.gas
         ix = model.getPhaseIndex('G');
-        rho{ix} = @(p, z) getDensity(model, p, T, z, y, false, 'cellInx', getRegCell(p));
+        rho{ix} = @(p, z) getDensity(model, p, T, z, y, false);
         pc_sign(ix) = 1;
         if isfield(model.fluid, 'pcOG')
-            PC{ix} = @(S) model.fluid.pcOG(S, 'cellInx', getRegCell(S));
+            pcOG = getFunction(f, 'pcOG', satnum);
+            PC{ix} = @(S) pcOG(S);
+        elseif ~model.oil && isfield(model.fluid, 'pcWG')
+            pcWG = getFunction(f, 'pcWG', satnum);
+            PC{ix} = @(S) pcWG(S);
         else
             PC{ix} = @(S) 0*S;
         end
     end
     ref_index = model.getPhaseIndex('O');
     
-    [s_min, s_max] = getMinMaxPhaseSaturations(model, cells);
+    [s_min, s_max] = getMinMaxPhaseSaturations(model, satnum, opt.cells);
     
     region = getInitializationRegionsBase(model, rho, contacts, ...
         'rho',              rho, ...
@@ -77,4 +85,11 @@ function rho = getDensity(model, p, T, z, x, isLiquid, varargin)
         Z = model.EOSModel.computeCompressibilityZ(p, x, A, B, Si, Bi, isLiquid);
     end
     rho = model.EOSModel.PropertyModel.computeDensity(p, x, Z, T, isLiquid);
+end
+
+function f = getFunction(fluid, fld, reg)
+    f = fluid.(fld);
+    if iscell(f)
+        f = f{reg};
+    end 
 end
