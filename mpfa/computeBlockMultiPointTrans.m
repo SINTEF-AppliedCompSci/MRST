@@ -103,7 +103,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        t0 = toc(t0);
        fprintf('Computing inner product on sub-half-faces done in %g sec\n', t0);
    end
-   tocif(opt.verbose, t0);
    
    if opt.verbose
        fprintf('Computing inverse mixed innerproduct\n');
@@ -285,8 +284,8 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
     vols  = G.cells.volumes(cno);
     
     map = setupTableMapping(cellnodetbl, cellnodefacetbl, {'cells', 'nodes'}); 
-    nfaces1 = diag(map'*map);
-    nfaces2 = full(map*nfaces1);
+    nfaces1 = full(diag(map'*map));
+    nfaces2 = map*nfaces1;
     
     blocksize = opt.blocksize;
     ncn = cellnodetbl.num;
@@ -349,7 +348,7 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
 
         if opt.verbose
             t0 = toc(t0);
-            fprintf('Assembly of block %d done in %g\n', i, t0);
+            fprintf('Assembly of block %d (block matrix size : %d) done in %g\n', i, sum(nblockfaces), t0);
         end
         
     end
