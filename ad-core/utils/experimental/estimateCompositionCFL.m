@@ -3,7 +3,8 @@ function cfl = estimateCompositionCFL(model, state, dt, varargin)
     opt = merge_options(opt, varargin{:});
     
     pv = model.operators.pv;
-    v = state.flux(model.operators.internalConn, :);
+    internal = model.operators.internalConn;
+    v = state.flux(internal, :);
     vT = sum(v, 2);
     
     xflow = ~(all(v >= 0, 2) | all(v <= 0, 2));
@@ -16,7 +17,7 @@ function cfl = estimateCompositionCFL(model, state, dt, varargin)
     oix = 1+model.water;
     gix = oix+1;
     
-    q = state.componentFluxes;
+    q = state.componentFluxes(internal, :);
     so = state.s(:, oix);
     sg = state.s(:, gix);
     
