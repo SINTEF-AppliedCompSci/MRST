@@ -103,10 +103,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        t0 = toc(t0);
        fprintf('Computing inner product on sub-half-faces done in %g sec\n', t0);
    end
-   tocif(opt.verbose, t0);
    
    if opt.verbose
-       fprintf('Computing inverse mixed innerproduct\n');
+       fprintf('Computing inverse mixed innerproduct...\n');
        t0 = tic();   
    end
    
@@ -120,7 +119,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    if opt.verbose
        t0 = toc(t0);   
-       fprintf('Computing inverse mixed innerproduct done in %g sec\n', t0);
+       fprintf('... computing inverse mixed innerproduct done in %g sec\n', t0);
    end
 
    %% Assemble of the divergence operator, from facenode values to cell value.
@@ -153,6 +152,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    map = setupTableMapping(facenodetbl, facenodeexttbl, {'faces', 'nodes'});
    nfne = facenodeexttbl.num;
    Pext = sparse(1 : nfne, 1 : nfne, fn_sgn, nfne, nfne)*map;
+   
+   tbls.facenodeexttbl = facenodeexttbl;
    
    %% Assemble the flux operator: From pressure values at the cell center and
    % at the external facenode, compute the fluxes at the faces

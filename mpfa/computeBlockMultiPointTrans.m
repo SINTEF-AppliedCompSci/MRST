@@ -87,7 +87,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    opt = struct('verbose'     , mrstVerbose, ...
                 'blocksize'   , 10000      , ...
                 'invertBlocks', 'matlab'   , ...
-                'eta'         ,0);
+                'eta'         , 0);
 
    opt = merge_options(opt, varargin{:});
    opt.invertBlocks = blockInverter(opt);
@@ -153,6 +153,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    nfne = facenodeexttbl.num;
    Pext = sparse(1 : nfne, 1 : nfne, fn_sgn, nfne, nfne)*map;
    
+   tbls.facenodeexttbl = facenodeexttbl;
+
    %% Assemble the flux operator: From pressure values at the cell center and
    % at the external facenode, compute the fluxes at the faces
    F1 = iB*div';
