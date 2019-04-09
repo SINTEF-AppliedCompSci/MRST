@@ -76,8 +76,7 @@ else
         if strcmp(restartAmount, 'default')
             subix = subix( fieldIx(nms, {}) );
         end
-        %keywords{k} = cellfun(@fixVarName, rsspec.NAME.values( subix ), ...
-        %                      'UniformOutput', false);
+
         keywords{k} = rsspec.NAME.values( subix );
 
         % Pointer 'B' is high address, 'pointer' is low address.
