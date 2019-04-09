@@ -1,6 +1,4 @@
 
-verbose = false;
-MODS = mrstModule;
 mrstModule add mimetic mpfa incomp
 
 %% Define and process geometry
@@ -40,28 +38,26 @@ fluid = initSingleFluid('mu' , 1*centi*poise , ...
                         'rho', 1014*kilogram/meter^3);
 
 gravity off
-% 
-% T_mpfa = computeMultiPointTrans(G, rock,'eta',1/3);
-% resSol3 = initState(G, W, 0);
-
-%% Solve MPFA pressure
-% resSol3 = incompMPFA(resSol3, G, T_mpfa, fluid, 'wells', W);
-% pressure = resSol3.pressure;
-
-% clf
-% plotCellData(G, pressure ./ barsa());
-% title('Pressure: MPFA'); view(2), axis tight off
-% colorbar('Location','SouthOutside');
-
 
 % Compute the transmisibility matrix for mpfa
-mpfastruct = computeBlockMultiPointTrans(G, rock, 'eta', 1/3, 'blocksize', ...
-                                         100, 'verbose', true);
+mpfastruct = computeMultiPointTrans2(G, rock, 'eta', 1/3);
+
+% mpfastruct = computeBlockMultiPointTrans(G, rock, 'eta', 1/3, 'blocksize', ...
+                                         % 100, 'verbose', true);
 
 %% Solve MPFA pressure
 state = incompMPFA2(G, mpfastruct, 'wells', W);
 pressure = state.pressure;
 flux = state.flux; % internal fluxes
+
+%% Plotting
+figure(1)
+clf
+plotCellData(G, pressure ./ barsa());
+title('Pressure: MPFA'); view(2), axis tight off
+colorbar('Location','SouthOutside');
+
+return
 
 %% check mass conservation
 extfaces = any(G.faces.neighbors == 0, 2);
@@ -83,11 +79,7 @@ massbal = div*flux;
 
 %% plotting
 
-figure(1)
-clf
-plotCellData(G, pressure ./ barsa());
-title('Pressure: MPFA'); view(2), axis tight off
-colorbar('Location','SouthOutside');
+
 
 figure(2)
 clf
