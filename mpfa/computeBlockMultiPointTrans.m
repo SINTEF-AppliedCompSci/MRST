@@ -101,11 +101,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    
    if opt.verbose
        t0 = toc(t0);
-       fprintf('Computing inner product on sub-half-faces done in %g sec\n', t0);
+       fprintf('... computing inner product on sub-half-faces done in %g sec\n', t0);
    end
    
    if opt.verbose
-       fprintf('Computing inverse mixed innerproduct\n');
+       fprintf('Computing inverse mixed innerproduct ...\n');
        t0 = tic();   
    end
    
@@ -119,7 +119,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    if opt.verbose
        t0 = toc(t0);   
-       fprintf('Computing inverse mixed innerproduct done in %g sec\n', t0);
+       fprintf('... computing inverse mixed innerproduct done in %g sec\n', t0);
    end
 
    %% Assemble of the divergence operator, from facenode values to cell value.
@@ -250,7 +250,6 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
     mattbl.faces1 = orderingmat(:, 3);    
     mattbl.faces2 = orderingmat(:, 4);    
     
-    % nodeM = zeros(mattbl.num, 1);
     
     numnodes = double(diff(G.faces.nodePos));
     numnodes = numnodes(fno);
@@ -303,7 +302,7 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
     end
     
     for i = 1 : nblocks
-        
+    
         blocksize = blocksizes(i);
         ind = [blockinds(i) : (blockinds(i + 1) - 1)];
         nblockfaces = nfaces1(ind);
@@ -313,22 +312,22 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
         if opt.verbose
             t0 = tic;
         end
-        
+    
         for j = 1 : blocksize
-            
+    
             nface = nfaces2(cnf_i);
             cnfind = cnf_i : (cnf_i + (nface - 1));
-            
+    
             N     = facePermNormals(cnfind, :); 
             R     = cellFacetVec(cnfind, :);
             a     = areas(cnfind);
             v     = vols(cnfind);
             faces = cellnodefacetbl.faces(cnfind);
-            
+    
             cellno = cellnodefacetbl.cells(cnf_i);
 
             K = reshape(perm(cellno, :), [dim, dim]);
-            
+    
             % Assemble local nodal scalar product ( function node_ip2 below handle case when
             % N is invertible)
             locM = node_ip(a, v, ...
@@ -336,28 +335,22 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
                            full(R), ...
                            K);
             locM = reshape(locM, [], 1);
-            
+    
             assert(numel(locM) == nface*nface, 'mismatch');
             matind = mat_i : (mat_i + (nface*nface - 1));
             nodeMs{i}(matind) = nodeMs{i}(matind) + locM;
-            
+    
             cnf_i = cnf_i + nface;
             mat_i = mat_i + nface*nface;        
-            
+    
         end
 
         if opt.verbose
             t0 = toc(t0);
             fprintf('Assembly of block %d (block matrix size : %d) done in %g\n', i, sum(nblockfaces), t0);
         end
-        
-    end
     
-    nodeM = vertcat(nodeMs{:});
-
-    sgn1 = 2*(mattbl.cells == G.faces.neighbors(mattbl.faces1, 1)) - 1;
-    sgn2 = 2*(mattbl.cells == G.faces.neighbors(mattbl.faces2, 1)) - 1;
-    nodeM = nodeM.*sgn1.*sgn2;   
+    end
 
     % Condensate on nodes (sum up cell contributions for give node).
     op = setupTableMapping(facenodetbl, facenodetbl, {'nodes'});
@@ -366,9 +359,37 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
     redmattbl.faces1 = facenodetbl.faces(colind);
     redmattbl.faces2 = facenodetbl.faces(rowind);
     redmattbl.num    = numel(redmattbl.nodes);
+    nodeM = zeros(redmattbl.num, 1);
     
-    op = setupTableMapping(mattbl, redmattbl, {'nodes', 'faces1', 'faces2'});
-    nodeM = op*nodeM;
+    mat_i = 1;
+    for i = 1 : nblocks
+        if opt.verbose
+            t0 = tic;
+        end
+        blocksize = blocksizes(i);
+        ind = [blockinds(i) : (blockinds(i + 1) - 1)];
+        nblockfaces = nfaces1(ind);
+        nblockfacessq = sum(nblockfaces.*nblockfaces);
+        mat_i2 = mat_i + nblockfacessq - 1;
+        ind = mat_i : mat_i2;
+        blockmattbl.cells  = mattbl.cells(ind);
+        blockmattbl.nodes  = mattbl.nodes(ind);
+        blockmattbl.faces1 = mattbl.faces1(ind);
+        blockmattbl.faces2 = mattbl.faces2(ind);
+        sgn1 = 2*(blockmattbl.cells == G.faces.neighbors(blockmattbl.faces1, 1)) - 1;
+        sgn2 = 2*(blockmattbl.cells == G.faces.neighbors(blockmattbl.faces2, 1)) - 1;
+        nodeMs{i} = nodeMs{i}.*sgn1.*sgn2;
+        op = setupTableMapping(blockmattbl, redmattbl, {'nodes', 'faces1', 'faces2'});
+        nodeM = nodeM + op*nodeMs{i};
+        mat_i = mat_i2 + 1;
+        if opt.verbose
+            t0 = toc(t0);
+            fprintf('reduction of block %d done in %g sec\n', i, t0);
+        end
+    end
+
+    % load('/home/xavier/Matlab/Projects/project-eni/tests/temp.mat');
+    
     
     % Setup matrix
     % First set up facet indices in the redmattbl table
