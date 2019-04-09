@@ -132,16 +132,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             nc = G.cells.num;
             e_ind = nc + ind;
             A(e_ind, :) = 0;
-            A(:, e_ind) = 0;
             A(e_ind, e_ind) = factor*speye(numel(ind));
             next = facenodeexttbl.num;
             rhs(nc + (1 : next)) = rhs(nc + (1 : next)) + factor*pressvals;
         end
     end
+    nnp = length(rhs); 
 
     % Add well equations
     if ~isempty(opt.wells)
-        nnp = length(rhs); 
         nw  = length(opt.wells); 
         rhs = [rhs; zeros(nw, 1)]; 
         
@@ -199,7 +198,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     pressure    = x(1 : nc); 
     e_pressure  = x(1 : nnp); % include pressure at boundary
     bc_pressure = x((nc + 1) : nnp); % pressure at boundary
-    wellvars    = x((nnp + 1) : end);
+    if ~isempty(opt.wells)
+        wellvars = x((nnp + 1) : end);
+    end
     
     flux = F*e_pressure;
 
