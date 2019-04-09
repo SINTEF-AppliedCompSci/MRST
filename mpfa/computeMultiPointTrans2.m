@@ -253,27 +253,48 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
     facetbl.faces = (1 : G.faces.num)';
     facetbl.num   = G.faces.num;
     op = setupTableMapping(facetbl, facenodetbl, {'faces'});
-    numnodes = diag(op'*op); % number of node per face
+    numnodes = diag(op'*op); % Number of node per face
     op = setupTableMapping(facetbl, cellnodefacetbl, {'faces'});
     numnodes = op*numnodes;
     facetNormals = G.faces.normals(fno, :);
     facetNormals = bsxfun(@ldivide, numnodes, facetNormals);
-    
     sgn = 2*(cno == G.faces.neighbors(fno, 1)) - 1;
-    facetNormals = sgn.*facetNormals; % outward normals.
+    facetNormals = sgn.*facetNormals; % Outward normals with respect to cell
+                                      % in cellnodeface.
+    cnfnum = cellnodefacetbl.num; %alias
+    cellnodefacecoltbl.cells = rldecode(cno, dim*ones(cnfnum, 1));
+    cellnodefacecoltbl.faces = rldecode(fno, dim*ones(cnfnum, 1));
+    cellnodefacecoltbl.nodes = rldecode(nno, dim*ones(cnfnum, 1));
+    cellnodefacecoltbl.coldim = repmat((1 : dim)', cnfnum, 1);
+    facetNormals = reshape(facetNormals', [], 1);
     
     % Assemble facePermNormals which corresponds to $Kn$ where n are the *outward*
     % normals at the facets.
-    [perm, r, c] = permTensor(rock, G.griddim);
-    Kn = bsxfun(@times, perm(cno, :), facetNormals(:, c));
-    Kn = rldecode(Kn, dim*ones(numel(cno, 1)));
-    coef = sparse(r, (1 : dim*dim)', ones(dim*dim, 1), dim, dim*dim);
-    coef = repmat(coef, numel(cno), 1);
-    Kn = coef.*Kn;
-    Kn = sum(Kn, 2);
-    Kn = reshape(Kn, dim, [])';
-    
-    facePermNormals = Kn;
+    permmat = permTensor(rock, G.griddim);
+    perm = reshape(permmat', [], 1);
+    % setup cellcolrow table for the vector perm
+    ind = (1 : dim)';
+    col = repmat(ind, dim, 1);
+    row = rldecode(ind, dim*ones(dim, 1));
+    cellcolrowtbl.cells = rldecode((1 : nc)', dim^2*ones(nc, 1));
+    cellcolrowtbl.coldim = repmat(col, nc, 1);
+    cellcolrowtbl.rowdim = repmat(row, nc, 1);
+    cellcolrowtbl.num = numel(cellcolrowtbl.cells);
+    % dispatch perm on cellnodeface
+    [~, cellnodefacecolrowtbl, op] = setupTableMapping(cellcolrowtbl, cellnodefacetbl, ...
+                                                                     {'cells'});
+    perm = op*perm;
+    % multiply perm with facetNormals
+    map = setupTableMapping(cellnodefacecoltbl, cellnodefacecolrowtbl, {'cells', ...
+                        'faces', 'nodes', 'coldim'});
+    Kn = map'*(perm.*(map*facetNormals));
+
+    % store Kn in matrix form in facePermNormals.
+    op = setupTableMapping(cellnodefacecoltbl, cellnodefacetbl, {'cells', ...
+                        'faces', 'nodes'});
+    [ind1, ind2] = find(op); 
+    ind2 = cellnodefacecoltbl.coldim(ind2);
+    facePermNormals = sparse(ind1, ind2, Kn, cnfnum, dim);
     
     % Default option (opt.eta = 0): Use original face centroids and cell centroids,
     % NOT actual subface centroids. This corresponds to an MPFA method
@@ -310,7 +331,7 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
         cell = cellnodefacetbl.cells(cnf_i);
         node = cellnodefacetbl.nodes(cnf_i);
 
-        K = reshape(perm(cell, :), [dim, dim]);
+        K = reshape(permmat(cell, :), [dim, dim]);
         
         % Assemble local nodal scalar product ( function node_ip2 below handle case when
         % N is invertible)
