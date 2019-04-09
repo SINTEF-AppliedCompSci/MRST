@@ -84,10 +84,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-   opt = struct('verbose',      mrstVerbose,   ...
-                'facetrans',    zeros([0, 2]), ...
-                'invertBlocks', 'matlab',...
-                'eta',0);
+   opt = struct('verbose'     , mrstVerbose, ...
+                'facetrans'   , zeros([0, 2]), ...
+                'invertBlocks', 'matlab', ...
+                'eta'         , 0);
 
    opt = merge_options(opt, varargin{:});
    opt.invertBlocks = blockInverter(opt);
@@ -209,7 +209,7 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
 
     % We setup the cell-face-node table, cellnodefacetbl. Each entry determine a
     % unique facet in a corner
-    % We order cellfacenode in cell-node-face order. This is node to optimize
+    % We order cellnodeface in cell-node-face order. This is node to optimize
     % for-end loop below.
     orderingmat = [cellnodefacetbl.cells, cellnodefacetbl.nodes, ...
                    cellnodefacetbl.faces];
@@ -231,6 +231,11 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
     cellnodetbl.nodes = cellnode(:, 1);
     cellnodetbl.cells = cellnode(:, 2);
     cellnodetbl.num   = numel(cellnodetbl.nodes);
+    % following reordering should not matter ...
+    orderingmat = [cellnodetbl.cells, cellnodetbl.nodes];
+    orderingmat = sortrows(orderingmat);
+    cellnodetbl.cells = orderingmat(:, 1);
+    cellnodetbl.nodes = orderingmat(:, 2);
     
     % Nodal scalar product is stored in vector nodeM
     % mattbl is the table which specifies how nodeM is stored: a matrix for
