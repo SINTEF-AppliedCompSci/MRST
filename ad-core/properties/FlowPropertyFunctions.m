@@ -14,20 +14,13 @@ classdef FlowPropertyFunctions < PropertyFunctions
         ComponentMobility
         ComponentPhaseDensity
     end
-    
+
     methods
         function props = FlowPropertyFunctions(model)
-            r = model.rock;
+            
             props@PropertyFunctions();
-            [sat, pvt] = deal(ones(model.G.cells.num, 1));
-            if isfield(r, 'regions')
-                if isfield(r.regions, 'saturation')
-                    sat = r.regions.saturation;
-                end
-                if isfield(r.regions, 'pvt')
-                    pvt = r.regions.pvt;
-                end
-            end
+            sat = props.getRegionSaturation(model);
+            pvt = props.getRegionPVT(model);
             % Saturation properties
             props.CapillaryPressure = BlackOilCapillaryPressure(model, sat);
             props.RelativePermeability = BaseRelativePermeability(model, sat);
@@ -63,6 +56,26 @@ classdef FlowPropertyFunctions < PropertyFunctions
             
             % Define storage
             props.structName = 'FlowProps';
+        end
+        
+        function sat = getRegionSaturation(props, model)
+            r = model.rock;
+            sat = ones(model.G.cells.num, 1);
+            if isfield(r, 'regions')
+                if isfield(r.regions, 'saturation')
+                    sat = r.regions.saturation;
+                end
+            end
+        end
+        
+        function pvt = getRegionPVT(props, model)
+            r = model.rock;
+            pvt = ones(model.G.cells.num, 1);
+            if isfield(r, 'regions')
+                if isfield(r.regions, 'pvt')
+                    pvt = r.regions.pvt;
+                end
+            end
         end
     end
 end

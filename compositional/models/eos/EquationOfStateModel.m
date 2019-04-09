@@ -972,11 +972,19 @@ classdef EquationOfStateModel < PhysicalModel
                 ncomp = numel(molfraction);
                 mass = cell(1, ncomp);
                 totMass = 0;
-                for i = 1:numel(molfraction)
-                    mass{i} = model.fluid.molarMass(i).*molfraction{i};
-                    totMass = totMass + mass{i};
+                for i = 1:ncomp
+                    mi = molfraction{i};
+                    if ~isempty(mi)
+                        mass{i} = model.fluid.molarMass(i).*molfraction{i};
+                        totMass = totMass + mass{i};
+                    end
                 end
-                frac = cellfun(@(x) x./totMass, mass, 'UniformOutput', false);
+                frac = cell(size(mass));
+                for i = 1:ncomp
+                    if ~isempty(mass{i})
+                        frac{i} = mass{i}./totMass;
+                    end
+                end
             else
                 mass = bsxfun(@times, molfraction, model.fluid.molarMass);
                 frac = bsxfun(@rdivide, mass, sum(mass, 2));
