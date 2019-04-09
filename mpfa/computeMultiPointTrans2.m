@@ -218,7 +218,7 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
     cellnodefacetbl.nodes = orderingmat(:, 2);
     cellnodefacetbl.faces = orderingmat(:, 3);
     
-    % Somer shortcuts
+    % Some shortcuts
     cno = cellnodefacetbl.cells;
     fno = cellnodefacetbl.faces;
     nno = cellnodefacetbl.nodes;
@@ -250,8 +250,12 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
     
     nodeM = zeros(mattbl.num, 1);
     
-    numnodes = double(diff(G.faces.nodePos));
-    numnodes = numnodes(fno);
+    facetbl.faces = (1 : G.faces.num)';
+    facetbl.num   = G.faces.num;
+    op = setupTableMapping(facetbl, facenodetbl, {'faces'});
+    numnodes = diag(op'*op); % number of node per face
+    op = setupTableMapping(facetbl, cellnodefacetbl, {'faces'});
+    numnodes = op*numnodes;
     facetNormals = G.faces.normals(fno, :);
     facetNormals = bsxfun(@ldivide, numnodes, facetNormals);
     
