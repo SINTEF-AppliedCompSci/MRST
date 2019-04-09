@@ -303,8 +303,8 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
         
         N     = facePermNormals(cnfind, :); 
         R     = cellFacetVec(cnfind, :);
-        a     = areas(cnfind);
-        v     = vols(cnfind);
+        a     = areas(cnfind); % areas of the faces the facets belong to
+        v     = vols(cnf_i); % volume of the current cell
         faces = cellnodefacetbl.faces(cnfind);
         
         cell = cellnodefacetbl.cells(cnf_i);
@@ -391,7 +391,11 @@ function M = node_ip(a, v, N, R, K)
 % R : vector of cell's to facets' centroids, corresponds to $R_c$ in paper of
 %     Lipnikov et al (2009)
     
+    k = 6 * sum(diag(K)) / size(K, 2);
+    scalfact = k*sum(a)/numel(a);
+    N = (1/scalfact)*N;
     [U, D, V] = svd(N);
+    D = scalfact*D;
     fnum = size(N, 1);
     dim = size(N, 2);
     
@@ -405,9 +409,11 @@ function M = node_ip(a, v, N, R, K)
     % Add stabilization term S
     S = blkdiag(zeros(dim), eye(fnum - dim));
     U = diag(a)*U;
-    t = 6 * sum(diag(K)) / size(K, 2);
-    M = M + (t/v)*U*S*U';
-
+    t = 6 * v^(5/3) * sum(diag(K)) / size(K, 2);
+    regM = (1/t)*U*S*U';
+    % fprintf('norm main: %g, norm reg: %g\n', norm(M), norm(regM));
+    M = M + regM;
+    % fprintf('condition number: %g\n', condest(M));
 end
 
 function M = node_ip2(a, v, N, R, K)
