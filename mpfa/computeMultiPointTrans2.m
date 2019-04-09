@@ -324,7 +324,7 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
         mat_i = mat_i + nface*nface;        
         
         if opt.verbose
-            t0 = toc;
+            t0 = toc(t0);
             fprintf('assembly cellnode %d / %d took %g sec\n', i, cellnodetbl.num, ...
                     t0);
         end
