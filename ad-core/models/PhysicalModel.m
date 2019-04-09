@@ -858,7 +858,11 @@ methods
                 'Unknown variable field %s', name);
         else
             if iscell(state.(fn))
-                p = state.(fn){index};
+                if ischar(index)
+                    p = state.(fn);
+                else
+                    p = state.(fn){index};
+                end
             else
                 p = state.(fn)(:, index);
             end
