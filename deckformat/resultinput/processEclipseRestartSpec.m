@@ -67,10 +67,7 @@ if ~(numel(nf)==nSteps)
     [keywords, pointers, prec, num] = deal({});
 else
     [keywords, pointers, prec, num] = deal(cell(1, nSteps));
-    % check and repair pointers if # > 2^31 (only if unified)
-    if strcmp(type, 'unified')
-        rsspec = pointersToDouble(rsspec);
-    end
+
     ix = [nf; numel(rsspec.NAME.values)+1];
     for k = 1:nSteps
         subix = ix(k) : (ix(k+1)-1);
@@ -82,7 +79,11 @@ else
         %keywords{k} = cellfun(@fixVarName, rsspec.NAME.values( subix ), ...
         %                      'UniformOutput', false);
         keywords{k} = rsspec.NAME.values( subix );
-        pointers{k} = rsspec.POINTER.values( subix );
+
+        % Pointer 'B' is high address, 'pointer' is low address.
+        pointers{k} = pow2(rsspec.POINTERB.values(subix), 31) + ...
+                      rsspec.POINTER.values(subix);
+
         prec{k}     = mapPrec(rsspec.TYPE.values( subix ));
         num{k}      = rsspec.NUMBER.values( subix );
     end
@@ -230,21 +231,3 @@ function ix = fieldIx(nms, additionalFields)
         ix = or(ix, strncmp(inc{k}, nms, numel(inc{k})));
     end
 end
-
-%--------------------------------------------------------------------------
-
-function rsspec = pointersToDouble(rsspec)
-% repair pointer values exceeding single precision maximum
-    jmp = diff(rsspec.POINTER.values)<0;
-    if any(jmp)
-        fx = [0 ; cumsum(jmp)];
-        rsspec.POINTER.values = rsspec.POINTER.values + fx*2^31;
-    end
-end
-
-    
-              
-              
-
-        
-    
