@@ -187,8 +187,8 @@ end
 function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
 
     % Some short aliases 
-    nc = G.cells.num;
-    nf = G.faces.num;
+    nc  = G.cells.num;
+    nf  = G.faces.num;
     dim = G.griddim;
    
     cellfacetbl.cells = rldecode((1 : nc)', diff(G.cells.facePos)); 
@@ -351,11 +351,11 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
         
         % Assemble local nodal scalar product ( function node_ip2 below handle case when
         % N is invertible)
-        locM = node_ip(a, v, ...
-                       full(N), ...
-                       full(R), ...
-                       K);
-        locM = reshape(locM, [], 1);
+        locM = node_ip2(a, v, ...
+                        full(N), ...
+                        full(R), ...
+                        K);
+        locM = reshape(locM', [], 1);
         
         matind = mat_i : (mat_i + (nface*nface - 1));
         nodeM(matind) = nodeM(matind) + locM;
@@ -374,7 +374,7 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
     sgn1 = 2*(mattbl.cells == G.faces.neighbors(mattbl.faces1, 1)) - 1;
     sgn2 = 2*(mattbl.cells == G.faces.neighbors(mattbl.faces2, 1)) - 1;
     nodeM = nodeM.*sgn1.*sgn2;   
-
+    
     % Condensate on nodes (sum up cell contributions for give node).
     op = setupTableMapping(facenodetbl, facenodetbl, {'nodes'});
     [colind, rowind] = find(op);
@@ -388,27 +388,26 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
     
     % Setup matrix
     % First set up facet indices in the redmattbl table
-    mat1tbl.nodes  = facenodetbl.nodes;
-    mat1tbl.faces1 = facenodetbl.faces;
-    mat1tbl.ind    = (1 : facenodetbl.num)';
-    op = setupTableMapping(redmattbl, mat1tbl, {'nodes', 'faces1'});
+    clear tmptbl;
+    tmptbl.nodes  = redmattbl.nodes;
+    tmptbl.faces  = redmattbl.faces1;
+    tmptbl.faces2 = redmattbl.faces2;
+    op = setupTableMapping(tmptbl, facenodetbl, {'nodes', 'faces'});
     [colind, rowind] = find(op);
-    facetind1 = zeros(redmattbl.num, 1);
-    facetind1(rowind) = mat1tbl.ind(colind);
-    redmattbl.facetind1 = facetind1;
+    facesind1(rowind) = colind;
+
+    clear tmptbl;
+    tmptbl.nodes  = redmattbl.nodes;
+    tmptbl.faces1 = redmattbl.faces1;
+    tmptbl.faces  = redmattbl.faces2;
+    op = setupTableMapping(tmptbl, facenodetbl, {'nodes', 'faces'});
+    [colind, rowind] = find(op);
+    facesind2(rowind) = colind;
     
-    mat2tbl.nodes  = facenodetbl.nodes;
-    mat2tbl.faces2 = facenodetbl.faces;
-    mat2tbl.ind    = (1 : facenodetbl.num)';
-    op = setupTableMapping(redmattbl, mat2tbl, {'nodes', 'faces2'});
-    [colind, rowind] = find(op);
-    facetind2 = zeros(redmattbl.num, 1);
-    facetind2(rowind) = mat2tbl.ind(colind);
-    redmattbl.facetind2 = facetind2;
     
     % Assembly of B
-    B = sparse(redmattbl.facetind1, ...
-               redmattbl.facetind2, ...
+    B = sparse(facesind1, ...
+               facesind2, ...
                nodeM, ...
                facenodetbl.num, ...
                facenodetbl.num);

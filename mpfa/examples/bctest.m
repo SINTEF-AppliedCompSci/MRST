@@ -6,9 +6,16 @@ mrstModule add ad-core ad-props incomp mrst-gui mpfa postprocessing eni
 % general unstructured grids, the Cartesian grid is here represented using
 % an unstructured formate in which cells, faces, nodes, etc. are given
 % explicitly.
-nx = 4; ny = 3; nz = 5;
-G = cartGrid([nx, ny, nz]);
-% G = twister(G, 0.1); 
+dimcase = 3;
+switch dimcase
+  case 2
+    nx = 10; ny = 10;
+    G = cartGrid([nx, ny]);
+  case 3
+    nx = 4; ny = 3; nz = 5;
+    G = cartGrid([nx, ny, nz]);
+end
+G = twister(G, 0.1); 
 G = computeGeometry(G);
 nc = G.cells.num;
 
@@ -43,19 +50,16 @@ bc.value = value;
 
 %% Pressure run
 
-clear states
+states = cell(2, 1); 
+vecs = cell(2, 1); 
+
 mpfastruct = computeMultiPointTrans2(G, rock, 'eta', 1/3);
 states{1} = incompMPFA2(G, mpfastruct, 'bc', bc);
 
 p = states{1}.pressure;
 z = G.cells.centroids(:, dim);
 vec = [z, p];
-vec = sortrows(vec);
-
-figure
-plot(vec(:, 1), vec(:, 2));
-xlabel('z');
-ylabel('pressure');
+vecs{1} = sortrows(vec);
 
 T_mpfa = computeMultiPointTrans(G, rock,'eta',1/3);
 states{2} = initResSol(G, 0, 1);
@@ -64,10 +68,12 @@ states{2} = incompMPFA(states{2}, G, T_mpfa, fluid, 'bc', bc);
 p = states{2}.pressure;
 z = G.cells.centroids(:, dim);
 vec = [z, p];
-vec = sortrows(vec);
+vecs{2} = sortrows(vec);
 
 figure
-plot(vec(:, 1), vec(:, 2));
+hold on
+plot(vecs{1}(:, 1), vecs{1}(:, 2));
+plot(vecs{2}(:, 1), vecs{2}(:, 2));
 xlabel('z');
 ylabel('pressure');
 
