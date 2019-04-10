@@ -266,16 +266,20 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
     sgn = 2*(cno == G.faces.neighbors(fno, 1)) - 1;
     facetNormals = sgn.*facetNormals; % Outward normals with respect to cell
                                       % in cellnodeface.
+
+    % Assemble facePermNormals which corresponds to $Kn$ where n are the *outward*
+    % normals at the facets.
     cnfnum = cellnodefacetbl.num; %alias
-    cellnodefacecoltbl.cells = rldecode(cno, dim*ones(cnfnum, 1));
-    cellnodefacecoltbl.faces = rldecode(fno, dim*ones(cnfnum, 1));
-    cellnodefacecoltbl.nodes = rldecode(nno, dim*ones(cnfnum, 1));
-    cellnodefacecoltbl.coldim = repmat((1 : dim)', cnfnum, 1);
+    cellnodefacerowtbl.cells = rldecode(cno, dim*ones(cnfnum, 1));
+    cellnodefacerowtbl.faces = rldecode(fno, dim*ones(cnfnum, 1));
+    cellnodefacerowtbl.nodes = rldecode(nno, dim*ones(cnfnum, 1));
+    cellnodefacerowtbl.rowdim = repmat((1 : dim)', cnfnum, 1);
     facetNormals = reshape(facetNormals', [], 1);
     
     % Assemble facePermNormals which corresponds to $Kn$ where n are the *outward*
     % normals at the facets.
-    permmat = permTensor(rock, G.griddim);
+    [perm, r, c] = permTensor(rock, G.griddim);
+    permmat = perm;
     perm = reshape(permmat', [], 1);
     % setup cellcolrow table for the vector perm
     ind = (1 : dim)';
@@ -286,14 +290,21 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
     cellcolrowtbl.rowdim = repmat(row, nc, 1);
     cellcolrowtbl.num = numel(cellcolrowtbl.cells);
     % dispatch perm on cellnodeface
-    [~, cellnodefacecolrowtbl, op] = setupTableMapping(cellcolrowtbl, cellnodefacetbl, ...
-                                                                     {'cells'});
+    [~, cellnodefacecolrowtbl] = setupTableMapping(cellcolrowtbl, cellnodefacetbl, ...
+                                                                 {'cells'});
+    op = setupTableMapping(cellcolrowtbl, cellnodefacecolrowtbl, {'cells', ...
+                        'coldim', 'rowdim'});
     perm = op*perm;
-    % multiply perm with facetNormals
-    map = setupTableMapping(cellnodefacecoltbl, cellnodefacecolrowtbl, {'cells', ...
+    % Multiply perm with facetNormals
+    map1 = setupTableMapping(cellnodefacerowtbl, cellnodefacecolrowtbl, {'cells', ...
+                        'faces', 'nodes', 'rowdim'});
+    Kn = perm.*(map1*facetNormals);
+    
+    cellnodefacecoltbl = replacefield(cellnodefacerowtbl, 'rowdim', 'coldim');
+    map2 = setupTableMapping(cellnodefacecolrowtbl, cellnodefacecoltbl, {'cells', ...
                         'faces', 'nodes', 'coldim'});
-    Kn = map'*(perm.*(map*facetNormals));
-
+    Kn = map2*Kn;
+    
     % store Kn in matrix form in facePermNormals.
     op = setupTableMapping(cellnodefacecoltbl, cellnodefacetbl, {'cells', ...
                         'faces', 'nodes'});
