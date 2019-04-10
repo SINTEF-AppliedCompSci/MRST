@@ -75,6 +75,7 @@ function [map, tbl, map1, map2] = setupTableMapping(tbl1, tbl2, crossfields, var
     end
     
     if nargout > 2
+        error('not working for moment')
         map1 = setupTableMapping(tbl1, tbl, fds);
         map2 = setupTableMapping(tbl2, tbl, fds);
     end
