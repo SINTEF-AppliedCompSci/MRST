@@ -68,9 +68,20 @@ classdef TestGenericCompositional < matlab.unittest.TestCase
                     error('Unknown backend %s', opt.backend);
             end
             
-            model = GenericNaturalVariables(G, rock, fluid, eos, ...
+            arg = {G, rock, fluid, eos, ...
                 'water', includeWater, ...
-                'AutoDiffBackend', auto);
+                'AutoDiffBackend', auto};
+            switch lower(modelType)
+                case 'natural'
+                    model = GenericNaturalVariables(arg{:});
+                case 'natural-legacy'
+                    model = NaturalVariablesCompositionalModel(arg{:});
+                otherwise
+                    error('%s is unknown', modelType);
+            end
+            
+            
+            
             
             time = 1*year;
             irate = sum(model.operators.pv)/time;

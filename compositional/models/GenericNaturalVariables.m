@@ -39,7 +39,7 @@ classdef GenericNaturalVariables < NaturalVariablesCompositionalModel & Extended
             s_closure = [];
             if any(twoPhase)
                 for i = 1:n_hc
-                    f_eqs{i} = (f{1}(twoPhase) - f{2}(twoPhase))/barsa;
+                    f_eqs{i} = (f{i, 1}(twoPhase) - f{i, 2}(twoPhase))/barsa;
                     f_names{i} = ['f_', cnames{i}];
                     f_types{i} = 'fugacity';
                 end
@@ -139,16 +139,23 @@ classdef GenericNaturalVariables < NaturalVariablesCompositionalModel & Extended
                 xnames{i} = ['v_', cnames{i}];
                 ynames{i} = ['w_', cnames{i}];
             end
-
-            wtmp = ones(nnz(twoPhase), 1);
-            w = cell(1, ncomp-1);
-            [w{:}] = deal(wtmp);
+            n2ph = sum(twoPhase);
             
-            for i = 1:(ncomp-1)
-                w{i} = y{i}(twoPhase);
+            if n2ph > 0
+                wtmp = ones(n2ph, 1);
+                w = cell(1, ncomp-1);
+                [w{:}] = deal(wtmp);
+
+                for i = 1:(ncomp-1)
+                    w{i} = y{i}(twoPhase);
+                end
+                so = sO(twoPhase);
+                sg = sG(twoPhase);
+            else
+                w = cell(1, ncomp-1);
+                so = {[]};
+                sg = {[]};
             end
-            so = sO(twoPhase);
-            sg = sG(twoPhase);
 
             if not(isempty(model.FacilityModel))
                 [v, n, o] = model.FacilityModel.getPrimaryVariables(state.wellSol);
@@ -174,26 +181,35 @@ classdef GenericNaturalVariables < NaturalVariablesCompositionalModel & Extended
 
         function state = initStateAD(model, state, vars, names, origin)
             [pureLiquid, pureVapor, twoPhase] = model.getFlag(state);
+            twoPhaseIx = find(twoPhase);
+            nvar = numel(vars);
             removed = false(size(vars));
+            cellJacMap = cell(nvar, 1);
             
             is_so = strcmp(names, 'sato');
             is_sg = strcmp(names, 'satg');
             
             % Deal with saturations
             [sO, sG] = model.getProps(state, 'sO', 'sG');
-            % Set oil/liquid saturation in two-phase cells
-            so = vars{is_so};
-            sO = model.AutoDiffBackend.convertToAD(sO, so);
-            sO(twoPhase) = so;
-            % Set gas/vapor saturation in two-phase cells
-            sg = vars{is_sg};
-            sG = model.AutoDiffBackend.convertToAD(sG, sg);
-            sG(twoPhase) = sg;
+            if any(twoPhase)
+                % Set oil/liquid saturation in two-phase cells
+                so = vars{is_so};
+                sO = model.AutoDiffBackend.convertToAD(sO, so);
+                sO(twoPhase) = so;
+                % Set gas/vapor saturation in two-phase cells
+                sg = vars{is_sg};
+                sG = model.AutoDiffBackend.convertToAD(sG, sg);
+                sG(twoPhase) = sg;
+                cellJacMap{is_sg} = twoPhaseIx;
+                cellJacMap{is_so} = twoPhaseIx;
+            end
             removed(is_sg | is_so) = true;
             
             if model.water
                 is_sw = strcmp(names, 'satw');
                 sW = vars{is_sw};
+                
+                [sO, sG] = setMinimumTwoPhaseSaturations(model, state, sW, sO, sG, pureVapor, pureLiquid);
                 removed(is_sw) = true;
                 sat = {sW, sO, sG};
             else
@@ -220,6 +236,8 @@ classdef GenericNaturalVariables < NaturalVariablesCompositionalModel & Extended
                     w{end} = w{end}-w{i};
                 end
                 removed(is_x | is_w) = true;
+                % We note that this is a two-phase subset
+                cellJacMap{is_w} = twoPhaseIx;
             end
 
             for i = 1:ncomp
@@ -232,7 +250,7 @@ classdef GenericNaturalVariables < NaturalVariablesCompositionalModel & Extended
             state = model.setProps(state, ...
                 {'liquidMoleFractions', 'vaporMoleFractions'}, {x, y});
             
-            if not(isempty(model.FacilityModel))
+            if ~isempty(model.FacilityModel)
                 % Select facility model variables and pass them off to attached
                 % class.
                 fm = class(model.FacilityModel);
@@ -240,9 +258,34 @@ classdef GenericNaturalVariables < NaturalVariablesCompositionalModel & Extended
                 state = model.FacilityModel.initStateAD(state, vars(isF), names(isF), origin(isF));
                 removed = removed | isF;
             end
-
+            state.cellJacMap = cellJacMap;
             % Set up state with remaining variables
             state = initStateAD@ReservoirModel(model, state, vars(~removed), names(~removed), origin(~removed));
+        end
+        
+        
+        function [sO, sG] = setMinimumTwoPhaseSaturations(model, state, sW, sO, sG, pureVapor, pureLiquid)
+            stol = 1e-8;
+            if model.water
+                sT = sum(state.s, 2);
+                if any(pureVapor)
+                    sG(pureVapor) = sT(pureVapor) - sW(pureVapor);
+                    if isa(sG, 'ADI')
+                        sG.val(pureVapor) = max(sG.val(pureVapor), stol);
+                    else
+                        sG(pureVapor) = max(sG(pureVapor), stol);
+                    end
+                end
+
+                if any(pureLiquid)
+                    sO(pureLiquid) = sT(pureLiquid) - sW(pureLiquid);
+                    if isa(sO, 'ADI')
+                        sO.val(pureLiquid) = max(sO.val(pureLiquid), stol);
+                    else
+                        sO(pureLiquid) = max(sO(pureLiquid), stol);
+                    end
+                end
+            end
         end
     end
 end

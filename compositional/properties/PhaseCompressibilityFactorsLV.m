@@ -30,15 +30,20 @@ classdef PhaseCompressibilityFactorsLV < GridProperty
             Z_L = model.AutoDiffBackend.convertToAD(Z_L, s);
             Z_V = model.AutoDiffBackend.convertToAD(Z_V, s);
 
-            Z_L = eos.setZDerivatives(Z_L, L_mix.A, L_mix.B);%, varargin{:});
-            Z_V = eos.setZDerivatives(Z_V, V_mix.A, V_mix.B);%, varargin{:});
-%             f_L = model.computeFugacity(P, x, Z_L, A_L, B_L, Si_L, Bi);
-%             f_V = model.computeFugacity(P, y, Z_V, A_V, B_V, Si_V, Bi);
-
+            if isfield(state, 'cellJacMap')
+                arg = {state.cellJacMap};
+            else
+                arg = {};
+            end
+            Z_L = eos.setZDerivatives(Z_L, L_mix.A, L_mix.B, arg{:});
+            Z_V = eos.setZDerivatives(Z_V, V_mix.A, V_mix.B, arg{:});
             
             v = cell(1, nph);
             v{L_ix} = Z_L;
             v{V_ix} = Z_V;
+            if model.water
+                v{1} = ones(numelValue(Z_L));
+            end
         end
     end
 end

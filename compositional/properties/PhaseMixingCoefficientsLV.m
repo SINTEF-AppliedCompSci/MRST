@@ -20,9 +20,9 @@ classdef PhaseMixingCoefficientsLV < GridProperty
             L = struct('Si', {Si_L}, 'A', {A_L}, 'B', {B_L}, 'Bi', {Bi}, 'A_ij', {A_ij});
             V = struct('Si', {Si_V}, 'A', {A_V}, 'B', {B_V}, 'Bi', {Bi}, 'A_ij', {A_ij});
             if model.water
-                v = {struct(), L, V};
+                v = {struct(); L; V};
             else
-                v = {L, V};
+                v = {L; V};
             end
         end
     end
