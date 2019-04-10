@@ -175,6 +175,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
             if ~isempty(model.parentModel)
                 state.s = bsxfun(@rdivide, state.s, sum(state.s, 2));
                 [problem, state] = model.parentModel.getEquations(state0, state, dt, drivingForces, 'resOnly', true, 'iteration', inf);
+                state = model.parentModel.reduceState(state, false);
                 [converged, values, resnames] = model.parentModel.checkConvergence(problem);
                 if model.verbose
                     printConvergenceReport(resnames, values, converged, iteration);
@@ -191,7 +192,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
                         [problem, state_normalized] = model.transportModel.getEquations(state0, state_normalized, dt, drivingForces, 'resOnly', true, 'iteration', inf);
                         conv_t = model.transportModel.checkConvergence(problem);
                         if all(conv_t)
-                            state = state_normalized;
+                            state = model.parentModel.reduceState(state_normalized, false);
                             values = 0;
                         end
                     end
