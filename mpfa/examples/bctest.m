@@ -50,39 +50,52 @@ bc.value = value;
 
 %% Pressure run
 
-states = cell(3, 1); 
-vecs = cell(3, 1); 
+
+titles = {'mpfa - jostein', 'mpfa - standard', 'mpfa - block'};
 z = G.cells.centroids(:, dim);
+eta = 1/3;
+blocksize = 10;
 
-mpfastruct = computeMultiPointTrans2(G, rock, 'eta', 1/3);
-states{1} = incompMPFA2(G, mpfastruct, 'bc', bc);
+clear vecs
+caseno = 1;
 
-p = states{1}.pressure;
+% mpfa - jostein
+T_mpfa = computeMultiPointTrans(G, rock, 'eta', eta);
+state = initResSol(G, 0, 1);
+state = incompMPFA(state, G, T_mpfa, fluid, 'bc', bc);
+p = state.pressure;
 vec = [z, p];
-vecs{1} = sortrows(vec);
+vecs{caseno} = sortrows(vec);
+caseno = caseno + 1;
 
-T_mpfa = computeMultiPointTrans(G, rock,'eta',1/3);
-states{2} = initResSol(G, 0, 1);
-states{2} = incompMPFA(states{2}, G, T_mpfa, fluid, 'bc', bc);
-
-p = states{2}.pressure;
-z = G.cells.centroids(:, dim);
-vecs{2} = sortrows(vec);
-
-mpfastruct = computeBlockMultiPointTrans(G, rock, 'eta', 1/3, 'blocksize', 5);
-states{3} = incompMPFA2(G, mpfastruct, 'bc', bc);
-
-p = states{3}.pressure;
+% mpfa - standard
+mpfastruct = computeMultiPointTrans2(G, rock, 'eta', eta, 'verbose', true);
+state = incompMPFA2(G, mpfastruct, 'bc', bc);
+p = state.pressure;
 vec = [z, p];
-vecs{3} = sortrows(vec);
+vecs{caseno} = sortrows(vec);
+caseno = caseno + 1;
 
-figure
-hold on
-plot(vecs{1}(:, 1), vecs{1}(:, 2));
-plot(vecs{2}(:, 1), vecs{2}(:, 2));
-plot(vecs{3}(:, 1), vecs{3}(:, 2));
-xlabel('z');
-ylabel('pressure');
+
+% mpfa - block
+mpfastruct = computeMultiPointTrans2(G, rock, 'eta', eta, 'blocksize', ...
+                                      blocksize, 'verbose', true);
+state = incompMPFA2(G, mpfastruct, 'bc', bc);
+p = state.pressure;
+vec = [z, p];
+vecs{caseno} = sortrows(vec);
+caseno = caseno + 1;
+
+
+for i = 1 : numel(vecs)
+    figure(i)
+    clf
+    plot(vecs{i}(:, 1), vecs{i}(:, 2));
+    xlabel('z');
+    ylabel('pressure');
+    title(titles{i});
+end
+
 
 return
 
