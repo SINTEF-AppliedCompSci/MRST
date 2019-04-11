@@ -24,6 +24,10 @@ function grdecl = convertHorizonsToGrid(horizons, varargin)
 %  'layers' - A vector specifying the number of grid layers to be inserted
 %             in between each pair of horizon surfaces
 %
+%  'repairFunction' - Function handle to repair inter-layer collisions. Can
+%                     be e.g. @max or @min to take either the top or bottom
+%                     layer for a segment.
+%
 % DESCRIPTION:
 %   The function uses 'interp2' to interpolate between pairs of horizons.
 %   The interpolation region is set to be the minimum rectangle that
@@ -71,7 +75,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
     opt = struct('dims', [],... % X and Y resolution
-                 'layers', []); % Number of cells in each layer
+                 'layers', [], ... % Number of cells in each layer
+                 'repairFunction', []...
+                 ); 
     opt = merge_options(opt, varargin{:});
     n_horizons = numel(horizons);
     
@@ -102,17 +108,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     % Go through each layer between a pair of horizons and add 
     z_horizons = cellfun(@(h) interpolate(h, x, y), horizons, 'UniformOutput', false);
+    if ~isempty(opt.repairFunction)
+        for i = 2:numel(horizons)
+            z_horizons{i} = opt.repairFunction(z_horizons{i}, z_horizons{i-1});
+        end
+    end
     z_prev = z_horizons{1};
-%     z_prev = interpolate(horizons{1}, x, y);
     layerIndex = 1;
-%     Z(:, :, 1) = z_prev;
     
     for horizonIndex = 2:n_horizons
         z_next = z_horizons{horizonIndex};
         nLocal = opt.layers(horizonIndex-1);
         dz = (z_next - z_prev)/nLocal;
-        checkDeltaZ(dz)
-        
+        checkDeltaZ(dz);
         for ix = 1:nLocal
             Z(:, :, layerIndex) = z_prev + (ix-1)*dz;
             layerIndex = layerIndex + 1;
