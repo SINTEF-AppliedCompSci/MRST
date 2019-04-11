@@ -643,7 +643,7 @@ methods
                                    varargin{:});
         end
         if model.verbose
-            printConvergenceReport(resnames, values, convergence, iteration);
+            printConvergenceReport(resnames, values, convergence, iteration, isConverged);
         end
         report = model.makeStepReport(...
                         'LinearSolver', linearReport, ...
