@@ -26,7 +26,7 @@ injcells  =  1 : 3;
 prodcells =  nc : -1 : (nc - 2);
 radius    = 0.1;
 
-rate = 1e-4*meter^3/day; 
+rate = 1e-4*meter^3/day;
 bhp  = 1*barsa;
 
 W = addWell([], G, rock, injcells, 'Comp_i', 1, 'Type', 'rate', 'Val', rate, ...
@@ -34,28 +34,67 @@ W = addWell([], G, rock, injcells, 'Comp_i', 1, 'Type', 'rate', 'Val', rate, ...
 W = addWell(W, G, rock, prodcells, 'Comp_i', 1, 'Type', 'bhp', 'Val', bhp, ...
             'sign', -1, 'Radius', radius);
 
-fluid = initSingleFluid('mu' , 1*centi*poise , ...
-                        'rho', 1014*kilogram/meter^3);
+fluid = initSingleFluid('mu' , 1 , ...
+                        'rho', 1*kilogram/meter^3);
 
 gravity off
 
-% Compute the transmisibility matrix for mpfa
-mpfastruct = computeMultiPointTrans2(G, rock, 'eta', 1/3);
+titles = {'mpfa - jostein', 'mpfa - standard', 'mpfa - block', 'mpfa - well', 'mpfa - well - block'};
+eta = 1/3;
+blocksize = 10;
 
-% mpfastruct = computeBlockMultiPointTrans(G, rock, 'eta', 1/3, 'blocksize', ...
-                                         % 100, 'verbose', true);
+clear mpfastructs states pressures fluxes
+caseno = 1;
 
-%% Solve MPFA pressure
-state = incompMPFA2(G, mpfastruct, 'wells', W);
-pressure = state.pressure;
-flux = state.flux; % internal fluxes
+
+% mpfa - jostein
+T_mpfa = computeMultiPointTrans(G, rock, 'eta', eta);
+states{caseno} = initResSol(G, 0, 1);
+states{caseno} = incompMPFA(states{caseno}, G, T_mpfa, fluid, 'wells', W);
+pressures{caseno} = states{caseno}.pressure;
+caseno = caseno + 1;
+
+% mpfa - standard
+mpfastructs{caseno} = computeMultiPointTrans2(G, rock, 'eta', eta, 'verbose', ...
+                                              true);
+states{caseno} = incompMPFA2(G, mpfastructs{caseno}, 'wells', W);
+pressures{caseno} = states{caseno}.pressure;
+fluxes{caseno} = states{caseno}.flux;
+caseno = caseno + 1;
+
+
+% mpfa - block
+mpfastructs{caseno} = computeMultiPointTrans2(G, rock, 'eta', eta, 'blocksize', ...
+                                              blocksize, 'verbose', true);
+states{caseno} = incompMPFA2(G, mpfastructs{caseno}, 'wells', W);
+pressures{caseno} = states{caseno}.pressure;
+fluxes{caseno} = states{caseno}.flux;
+caseno = caseno + 1;
+
+% mpfa - well
+mpfastructs{caseno} = computeMultiPointTransInt(G, rock, 'eta', eta, 'verbose', true);
+states{caseno} = incompMPFA3(G, mpfastructs{caseno}, W);
+pressures{caseno} = states{caseno}.pressure;
+fluxes{caseno} = states{caseno}.flux;
+caseno = caseno + 1;
+
+% mpfa - well - block
+mpfastructs{caseno} = computeMultiPointTransInt(G, rock, 'eta', 1/3, 'verbose', true);
+states{caseno} = incompMPFA3(G, mpfastructs{caseno}, W);
+pressures{caseno} = states{caseno}.pressure;
+fluxes{caseno} = states{caseno}.flux;
+caseno = caseno + 1;
+
+
 
 %% Plotting
-figure(1)
-clf
-plotCellData(G, pressure ./ barsa());
-title('Pressure: MPFA'); view(2), axis tight off
-colorbar('Location','SouthOutside');
+for i = 1 : numel(pressures)
+    figure(i)
+    clf
+    plotCellData(G, pressures{i} ./ barsa());
+    title(titles{i});
+    colorbar
+end
 
 return
 
@@ -78,8 +117,6 @@ div = op2*op1;
 massbal = div*flux;
 
 %% plotting
-
-
 
 figure(2)
 clf
