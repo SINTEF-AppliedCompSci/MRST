@@ -89,7 +89,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     for k = 1 : nw
         wc = W(k).cells; 
         nwc = numel(wc); 
-        w = k + nnp; 
+        w = k + nc; 
         wi = W(k).WI; 
 
         d(wc) = d(wc) + wi;
@@ -100,14 +100,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             wimax = 1;
             rhs(w)  = rhs(w) + wimax*sum(wi)*bhp; 
             rhs(wc) = rhs(wc) + wi.*bhp; 
-            C{k}    = wimax*sparse(ones(nwc, 1), wc, wi, 1, nnp);
-            B{k}    = sparse(nnp, 1);
+            C{k}    = wimax*sparse(ones(nwc, 1), wc, wi, 1, nc);
+            B{k}    = sparse(nc, 1);
             D(k)    = wimax; 
         elseif strcmpi(W(k).type, 'rate')
             rate   = W(k).val;
             rhs(w) = rhs(w) - rate;
-            B{k}   = - sparse(wc, ones(nwc, 1), wi, nnp, 1);
-            C{k}   = sparse(ones(nwc, 1), wc, wi, 1, nnp);
+            B{k}   = - sparse(wc, ones(nwc, 1), wi, nc, 1);
+            C{k}   = sparse(ones(nwc, 1), wc, wi, 1, nc);
             D(k)   = - sum(wi); 
         else
             error('Unsupported well type.'); 
