@@ -309,7 +309,7 @@ function [B, tbls] = robustComputeLocalFluxMimeticIP(G, rock, opt)
                        full(N), ...
                        full(R), ...
                        K);
-        locM = reshape(locM, [], 1);
+        locM = reshape(locM', [], 1);
         
         matind = mat_i : (mat_i + (nface*nface - 1));
         nodeM(matind) = nodeM(matind) + locM;

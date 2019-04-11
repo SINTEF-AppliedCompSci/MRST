@@ -1,4 +1,4 @@
-mrstModule add ad-core ad-props incomp mrst-gui mpfa postprocessing eni
+mrstModule add ad-core ad-props incomp mrst-gui mpfa postprocessing
 
 %% Define and process geometry
 % Construct a Cartesian grid of size 10-by-10-by-4 cells, where each cell
@@ -50,14 +50,14 @@ bc.value = value;
 
 %% Pressure run
 
-states = cell(2, 1); 
-vecs = cell(2, 1); 
+states = cell(3, 1); 
+vecs = cell(3, 1); 
+z = G.cells.centroids(:, dim);
 
 mpfastruct = computeMultiPointTrans2(G, rock, 'eta', 1/3);
 states{1} = incompMPFA2(G, mpfastruct, 'bc', bc);
 
 p = states{1}.pressure;
-z = G.cells.centroids(:, dim);
 vec = [z, p];
 vecs{1} = sortrows(vec);
 
@@ -67,13 +67,20 @@ states{2} = incompMPFA(states{2}, G, T_mpfa, fluid, 'bc', bc);
 
 p = states{2}.pressure;
 z = G.cells.centroids(:, dim);
-vec = [z, p];
 vecs{2} = sortrows(vec);
+
+mpfastruct = computeBlockMultiPointTrans(G, rock, 'eta', 1/3, 'blocksize', 5);
+states{3} = incompMPFA2(G, mpfastruct, 'bc', bc);
+
+p = states{3}.pressure;
+vec = [z, p];
+vecs{3} = sortrows(vec);
 
 figure
 hold on
 plot(vecs{1}(:, 1), vecs{1}(:, 2));
 plot(vecs{2}(:, 1), vecs{2}(:, 2));
+plot(vecs{3}(:, 1), vecs{3}(:, 2));
 xlabel('z');
 ylabel('pressure');
 
