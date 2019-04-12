@@ -28,6 +28,12 @@ function grdecl = convertHorizonsToGrid(horizons, varargin)
 %                     be e.g. @max or @min to take either the top or bottom
 %                     layer for a segment.
 %
+%  'method' - Method to use for interpolating between points. Can use any
+%             of the choices available for griddedInterpolant. Defaults to
+%             linear.
+%
+%  'extrapMethod' - Extrapolation method. Defaults to 'none'.
+%
 % DESCRIPTION:
 %   The function uses 'interp2' to interpolate between pairs of horizons.
 %   The interpolation region is set to be the minimum rectangle that
@@ -74,9 +80,11 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    opt = struct('dims', [],... % X and Y resolution
-                 'layers', [], ... % Number of cells in each layer
-                 'repairFunction', []...
+    opt = struct('dims',            [],... % X and Y resolution
+                 'layers',          [], ... % Number of cells in each layer
+                 'method',          'linear', ...
+                 'extrapMethod',    'none', ...
+                 'repairFunction',  []...
                  ); 
     opt = merge_options(opt, varargin{:});
     n_horizons = numel(horizons);
@@ -107,10 +115,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     y = squeeze(Y(:, :, 2));
     
     % Go through each layer between a pair of horizons and add 
-    z_horizons = cellfun(@(h) interpolate(h, x, y), horizons, 'UniformOutput', false);
+    z_horizons = cellfun(@(h) interpolate(h, x, y, opt), horizons, 'UniformOutput', false);
     if ~isempty(opt.repairFunction)
         for i = 2:numel(horizons)
+            bad = isnan(z_horizons{i});
             z_horizons{i} = opt.repairFunction(z_horizons{i}, z_horizons{i-1});
+            % Preserve NaN values
+            z_horizons{i}(bad) = nan;
         end
     end
     z_prev = z_horizons{1};
@@ -159,11 +170,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     grdecl.COORD(isnan(grdecl.COORD)) = inf;
 end
 
-function F = interpolate(horizon, x, y)
+function F = interpolate(horizon, x, y, opt)
     X = horizon.x;
     Y = horizon.y;
     Z = horizon.z;
-    F = interp2(X', Y', Z', x, y);              
+    T = griddedInterpolant(X, Y, Z, opt.method, opt.extrapMethod);
+    F = T(x, y);
 end
 
 function checkDeltaZ(dz)
