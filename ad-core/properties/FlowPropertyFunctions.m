@@ -8,6 +8,7 @@ classdef FlowPropertyFunctions < PropertyFunctions
         ShrinkageFactors
         Mobility
         PoreVolume
+        PressureReductionFactors
         
         ComponentTotalMass % Total component mass
         ComponentPhaseMass % Component mass in each phase
@@ -32,6 +33,7 @@ classdef FlowPropertyFunctions < PropertyFunctions
             props.Viscosity = BlackOilViscosity(model, pvt);
             props.PoreVolume = MultipliedPoreVolume(model, pvt);
             props.PhasePressures = PhasePressures(model, pvt);
+            props.PressureReductionFactors = BlackOilPressureReductionFactors(model);
             
             % Components
             props.ComponentPhaseMass = ComponentPhaseMass(model);
