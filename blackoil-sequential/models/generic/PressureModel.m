@@ -12,6 +12,7 @@ classdef PressureModel < WrapperModel
             end
             model = model@WrapperModel(parent);
             model = merge_options(model, varargin{:});
+            model.AutoDiffBackend = parent.AutoDiffBackend;
         end
         
         function [state, names, origin] = getStateAD(model, state, init)
