@@ -1,5 +1,5 @@
 function v = singlePointUpwind(flag, N, v, useMex)
-    % Single-point upwind for the NewAD library
+    % Single-point upwind for the GenericAD library
     vD = value(v);
     if useMex
         val = mexSinglePointUpwindVal(vD, N, flag);
@@ -8,7 +8,7 @@ function v = singlePointUpwind(flag, N, v, useMex)
         cells(flag) = N(flag, 1);
         val = vD(cells, :);
     end
-    if isa(v, 'NewAD')
+    if isa(v, 'GenericAD')
         M = [];
         DS = [];
         v.val = val;

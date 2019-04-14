@@ -12,7 +12,7 @@ function results = testMexDiagonalOperators(model, varargin)
     nc = model.G.cells.num;
     d = rand(opt.nc, opt.block_size);
     flag = rand(nf, 1) > 0.5;
-    cell_value = NewAD(rand(opt.nc, 1), DiagonalJacobian(d, size(d), []));
+    cell_value = GenericAD(rand(opt.nc, 1), DiagonalJacobian(d, size(d), []));
     % Perform tests
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

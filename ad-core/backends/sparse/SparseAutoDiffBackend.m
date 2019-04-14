@@ -47,7 +47,7 @@ classdef SparseAutoDiffBackend < AutoDiffBackend
             if backend.useBlocks
                 v = double2ADI(v, sample);
             else
-                v = double2NewAD(v, sample);
+                v = double2GenericAD(v, sample);
             end
         end
     end

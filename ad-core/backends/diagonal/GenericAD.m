@@ -1,5 +1,5 @@
-classdef NewAD < ADI
-    % NewAD is the testbed for future updates to the ADI class. All
+classdef GenericAD < ADI
+    % GenericAD is the testbed for future updates to the ADI class. All
     % features herein are subject to rapid change.
     properties
         numVars
@@ -7,7 +7,7 @@ classdef NewAD < ADI
         useMex = false;
     end
     methods
-        function ad = NewAD(val, jac, numVars, offset, useMex)
+        function ad = GenericAD(val, jac, numVars, offset, useMex)
             ad@ADI();
             if nargin
                 ad.val = val;
@@ -53,7 +53,7 @@ classdef NewAD < ADI
                 if numel(u.val) == numel(v.val)
                     h = u;
                     h.val = u.val + v.val;
-                    h.jac = NewAD.plusJac(h.jac, v.jac);
+                    h.jac = GenericAD.plusJac(h.jac, v.jac);
                     if isempty(h.jac)
                         h = h.val;
                     end
@@ -70,7 +70,7 @@ classdef NewAD < ADI
             if ~isa(u,'ADI') %u is a scalar/matrix
                 h = v;
                 h.val = u*h.val;
-                h.jac = NewAD.mtimesJac(u, h.jac);
+                h.jac = GenericAD.mtimesJac(u, h.jac);
                 if isempty(h.jac)
                     h = h.val;
                 end
@@ -80,11 +80,11 @@ classdef NewAD < ADI
                 if numel(u.val) == 1
                     h = u;
                     h.val = times(u.val, v.val);
-                    h.jac = NewAD.timesJacUnit(u.val, v.val, u.jac, v.jac);
+                    h.jac = GenericAD.timesJacUnit(u.val, v.val, u.jac, v.jac);
                 elseif numel(v.val) == 1
                     h = u;
                     h.val = times(u.val, v.val);
-                    h.jac = NewAD.timesJacUnit(v.val, u.val, v.jac, u.jac);
+                    h.jac = GenericAD.timesJacUnit(v.val, u.val, v.jac, u.jac);
                 else
                     error('Operation not supported');
                 end
@@ -95,7 +95,7 @@ classdef NewAD < ADI
                 if numel(u)==numel(v.val)
                     h = v;
                     h.val = u.*h.val;
-                    h.jac = NewAD.lMultDiag(u, h.jac);
+                    h.jac = GenericAD.lMultDiag(u, h.jac);
                 else
                     h = mtimes(u,v);
                 end
@@ -104,7 +104,7 @@ classdef NewAD < ADI
             else
                 if numel(u.val)==numel(v.val)
                     h = u;
-                    h.jac = NewAD.timesJac(h.val, v.val, h.jac, v.jac);
+                    h.jac = GenericAD.timesJac(h.val, v.val, h.jac, v.jac);
                     h.val = h.val.*v.val;
                 elseif numel(v.val)==1 || numel(u.val)==1
                     h = mtimes(u,v);
@@ -117,17 +117,17 @@ classdef NewAD < ADI
             if ~isa(v,'ADI') % v is a scalar
                 h = u;
                 h.val = h.val.^v;
-                h.jac = NewAD.lMultDiag(v.*u.val.^(v-1), u.jac);
+                h.jac = GenericAD.lMultDiag(v.*u.val.^(v-1), u.jac);
             elseif ~isa(u,'ADI') % u is a scalar
                 h = v;
                 h.val = u.^v.val;
-                h.jac = NewAD.lMultDiag((u.^v.val).*log(u), v.jac);
+                h.jac = GenericAD.lMultDiag((u.^v.val).*log(u), v.jac);
             else % u and v are both ADI
                 h = u;
                 h.val = u.val.^v.val;
-                h.jac = NewAD.plusJac( ...
-                    NewAD.lMultDiag((u.val.^v.val).*(v.val./u.val), u.jac), ...
-                    NewAD.lMultDiag((u.val.^v.val).*log(u.val),     v.jac) );
+                h.jac = GenericAD.plusJac( ...
+                    GenericAD.lMultDiag((u.val.^v.val).*(v.val./u.val), u.jac), ...
+                    GenericAD.lMultDiag((u.val.^v.val).*log(u.val),     v.jac) );
             end
         end
         
@@ -153,9 +153,9 @@ classdef NewAD < ADI
         end
         
         function x = incrementSubset(x, subs, v)
-            if isa(x, 'NewAD')
+            if isa(x, 'GenericAD')
                 x.val(subs) = x.val(subs) + value(v);
-                if isa(v, 'NewAD')
+                if isa(v, 'GenericAD')
                     for i = 1:numel(x.jac)
                         x.jac{i} = incrementSubset(x.jac{i}, subs, v.jac{i});
                     end
@@ -170,14 +170,14 @@ classdef NewAD < ADI
             eu = exp(u.val);
             h = u;
             h.val = eu;
-            h.jac = NewAD.lMultDiag(eu, u.jac);
+            h.jac = GenericAD.lMultDiag(eu, u.jac);
         end
         %
         function h = log(u)
             logu = log(u.val);
             h = u;
             h.val = logu;
-            h.jac = NewAD.lMultDiag(1./u.val, u.jac);
+            h.jac = GenericAD.lMultDiag(1./u.val, u.jac);
         end
         function h = max(u,v) % this function should be expanded
             if(nargin==1)
@@ -195,7 +195,7 @@ classdef NewAD < ADI
                 inx   = ~bsxfun(@gt,  u, v.val) + 1; % Pick 'v' if u <= v
                 h  = v;
                 h.val = value;
-                h.jac = NewAD.lMultDiag(inx==2, v.jac);
+                h.jac = GenericAD.lMultDiag(inx==2, v.jac);
                 if isempty(h.jac)
                     h = h.val;
                 end
@@ -206,14 +206,14 @@ classdef NewAD < ADI
                 inx   = u.val > v.val;
                 h = u;
                 h.val = value;
-                h.jac = NewAD.plusJac(NewAD.lMultDiag(inx, u.jac),NewAD.lMultDiag(~inx, v.jac));
+                h.jac = GenericAD.plusJac(GenericAD.lMultDiag(inx, u.jac),GenericAD.lMultDiag(~inx, v.jac));
                 if isempty(h.jac)
                     h = h.val;
                 end
             end
         end
         function u = abs(u)
-            u.jac = NewAD.lMultDiag(sign(u.val), u.jac);
+            u.jac = GenericAD.lMultDiag(sign(u.val), u.jac);
             u.val = abs(u.val);
             if isempty(u.jac)
                 u = u.val;
@@ -227,7 +227,7 @@ classdef NewAD < ADI
                 sampleAD = sampleAD{1};
                 for i = 1:numel(isD)
                     if isD(i)
-                        varargin{i} = double2NewAD(varargin{i}, sampleAD);
+                        varargin{i} = double2GenericAD(varargin{i}, sampleAD);
                     end
                 end
             end
@@ -243,7 +243,7 @@ classdef NewAD < ADI
                 for k1 = 1:nv
                     sjacs{k1} = varargin{k1}.jac{k};
                 end
-                jacs{k} = NewAD.vertcatJac(sjacs{:});
+                jacs{k} = GenericAD.vertcatJac(sjacs{:});
             end
             h = varargin{1};
             h.val = vertcat(vals{:});
@@ -256,7 +256,7 @@ classdef NewAD < ADI
                 sampleAD = sampleAD{1};
                 for i = 1:numel(isD)
                     if isD(i)
-                        varargin{i} = double2NewAD(varargin{i}, sampleAD);
+                        varargin{i} = double2GenericAD(varargin{i}, sampleAD);
                     end
                 end
             end
@@ -349,7 +349,7 @@ classdef NewAD < ADI
         function u = interpReg(T, u, reginx)
             [y, dydu] = interpReg(T, u.val, reginx);
             u.val = y;
-            u.jac = NewAD.lMultDiag(dydu, u.jac);
+            u.jac = GenericAD.lMultDiag(dydu, u.jac);
             if isempty(u.jac)
                 u = u.val;
             end
@@ -361,15 +361,15 @@ classdef NewAD < ADI
             if ~isa(x,'ADI') %u is a scalar/matrix
                 h = v;
                 [h.val, ~, dydv] = interpPVT(T, x, v.val, flag);
-                h.jac = NewAD.lMultDiag(dydv, v.jac);
+                h.jac = GenericAD.lMultDiag(dydv, v.jac);
             elseif ~isa(v,'ADI') %v is a scalar
                 h = x;
                 [h.val, dydx] = interpPVT(T, x.val, v, flag);
-                h.jac = NewAD.lMultDiag(dydx, x.jac);
+                h.jac = GenericAD.lMultDiag(dydx, x.jac);
             else
                 h = x;
                 [h.val, dydx, dydv] = interpPVT(T, x.val, v.val, flag);
-                h.jac = NewAD.timesJac(dydx, dydv, v.jac, x.jac); % note order of input
+                h.jac = GenericAD.timesJac(dydx, dydv, v.jac, x.jac); % note order of input
             end
         end
         
@@ -377,15 +377,15 @@ classdef NewAD < ADI
             if ~isa(x,'ADI') %u is a scalar/matrix
                 h = v;
                 [h.val, ~, dydv] = interpRegPVT(T, x, v.val, flag, reginx);
-                h.jac = NewAD.lMultDiag(dydv, v.jac);
+                h.jac = GenericAD.lMultDiag(dydv, v.jac);
             elseif ~isa(v,'ADI') %v is a scalar
                 h = x;
                 [h.val, dydx] = interpRegPVT(T, x.val, v, flag, reginx);
-                h.jac = NewAD.lMultDiag(dydx, x.jac);
+                h.jac = GenericAD.lMultDiag(dydx, x.jac);
             else
                 h = x;
                 [h.val, dydx, dydv] = interpRegPVT(T, x.val, v.val, flag, reginx);
-                h.jac = NewAD.timesJac(dydx, dydv, v.jac, x.jac); % note order of input
+                h.jac = GenericAD.timesJac(dydx, dydv, v.jac, x.jac); % note order of input
             end
             if isempty(h.jac)
                 h = h.val;
@@ -395,7 +395,7 @@ classdef NewAD < ADI
         function h = interpTable(X, Y, x, varargin)
             h = x;
             h.val = interpTable(X, Y, x.val, varargin{:});
-            h.jac = NewAD.lMultDiag(dinterpTable(X,Y, x.val, varargin{:}), x.jac);
+            h.jac = GenericAD.lMultDiag(dinterpTable(X,Y, x.val, varargin{:}), x.jac);
         end
         function numVars = getNumVars(ad)
             numVars = ad.numVars;
@@ -430,7 +430,7 @@ classdef NewAD < ADI
                     end
                 else % nv2 = 1
                     assert(nv2 == 1)
-                    J = NewAD.plusJac(J2, J1);
+                    J = GenericAD.plusJac(J2, J1);
                 end
             end
         end
@@ -460,7 +460,7 @@ classdef NewAD < ADI
                     J{k} = repmat(J1{k}, [nv2, 1])*J2{k};
                 end
             elseif nv2 == 1
-                J = NewAD.mtimesScalarJac(J2, J1);
+                J = GenericAD.mtimesScalarJac(J2, J1);
             else
                 error('Not supported')
             end

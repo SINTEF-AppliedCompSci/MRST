@@ -71,7 +71,7 @@ function Ye = interpTableND(Y, dY, varargin)
     assert(numel(Yq) == nvar);
     
     isad = cellfun(@(x) isa(x, 'ADI'), Yq);
-    isnewad = cellfun(@(x) isa(x, 'NewAD'), Yq);
+    isnewad = cellfun(@(x) isa(x, 'GenericAD'), Yq);
     if any(isad)
         % Get a sample variable
         ad = Yq(isad);
@@ -82,7 +82,7 @@ function Ye = interpTableND(Y, dY, varargin)
         Ye = Y(Yqd{:});
         % Cast to ADI
         if any(isnewad)
-            Ye = double2NewAD(Ye, ad);
+            Ye = double2GenericAD(Ye, ad);
         else
             Ye = double2ADI(Ye, ad);
         end

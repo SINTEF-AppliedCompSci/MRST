@@ -51,7 +51,7 @@ function varargout = initVariablesAD_diagonal(varargin)
             d = zeros(numVals(i), 0);
             zerojac{j} = DiagonalJacobian(d, dim, zeros(numVals(i), 1), useMex);
         end
-        varargout{i} = NewAD(varargin{i}, zerojac, numVals, offset, useMex);
+        varargout{i} = GenericAD(varargin{i}, zerojac, numVals, offset, useMex);
     end
     for type = 1:ntypes
         sub = find(types == type);

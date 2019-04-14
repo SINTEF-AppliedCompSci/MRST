@@ -80,7 +80,7 @@ classdef DiagonalAutoDiffBackend < AutoDiffBackend
         end
         
         function v = convertToAD(backend, v, sample)
-           v = double2NewAD(v, sample);
+           v = double2GenericAD(v, sample);
         end
     end
 end

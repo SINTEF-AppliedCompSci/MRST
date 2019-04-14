@@ -82,7 +82,7 @@ classdef CPRSolverAD < LinearSolverAD
             if solver.reduceToCell && isempty(solver.keepNumber)
                 % Eliminate non-cell variables (well equations etc)
                 isCurrent = problem.indexOfType('cell');
-                if isa(s, 'NewAD')
+                if isa(s, 'GenericAD')
                     % If we are working with block AD, we use the built-in
                     % keepNumber property of the linear solver to perform a
                     % full block Schur complement

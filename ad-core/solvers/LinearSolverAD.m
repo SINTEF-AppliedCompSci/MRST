@@ -153,7 +153,7 @@ classdef LinearSolverAD < handle
                 % Eliminate non-cell variables (well equations etc)
                 s = getSampleAD(problem.equations{:});
                 keep = problem.indexOfType('cell');
-                if isa(s, 'NewAD')
+                if isa(s, 'GenericAD')
                     % If we are working with block AD, we use the built-in
                     % keepNumber property of the linear solver to perform a
                     % full block Schur complement

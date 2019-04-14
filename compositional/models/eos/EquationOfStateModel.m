@@ -524,9 +524,9 @@ classdef EquationOfStateModel < PhysicalModel
             end
             if iscell(x)
                 s = getSampleAD(P, T, x{:}, y{:});
-                if isa(s, 'NewAD')
-                    Z_L = double2NewAD(Z_L, s);
-                    Z_V = double2NewAD(Z_V, s);
+                if isa(s, 'GenericAD')
+                    Z_L = double2GenericAD(Z_L, s);
+                    Z_V = double2GenericAD(Z_V, s);
                 elseif isa(s, 'ADI')
                     Z_L = double2ADI(Z_L, s);
                     Z_V = double2ADI(Z_V, s);
@@ -1012,7 +1012,7 @@ classdef EquationOfStateModel < PhysicalModel
             % derivatives without making any assumptions other than the EOS
             % being a cubic polynomial
             if nargin < 5
-                if isa(Z, 'NewAD')
+                if isa(Z, 'GenericAD')
                     cellJacMap = cell(Z.offsets(end)-1, 1);
                 elseif isa(Z, 'ADI')
                     cellJacMap = cell(numel(Z.jac), 1);
@@ -1024,7 +1024,7 @@ classdef EquationOfStateModel < PhysicalModel
             e2 = value(E2);
             e1 = value(E1);
             z = value(Z);
-            if isa(Z, 'NewAD')
+            if isa(Z, 'GenericAD')
                 offset = Z.offsets;
                 for i = 1:numel(Z.jac)
                     act = offset(i):offset(i+1)-1;

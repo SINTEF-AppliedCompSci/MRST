@@ -1,6 +1,6 @@
 function v = faceAverage(N, v, useMex)
-    % Face average operator for the NewAD library
-    if isa(v, 'NewAD')
+    % Face average operator for the GenericAD library
+    if isa(v, 'GenericAD')
         if size(N, 1) == 1
             v.val = 0.5*sum(v.val(N), 1);
         else

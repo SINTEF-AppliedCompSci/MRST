@@ -130,8 +130,8 @@ function [V, dVdp] = getSinglePhaseVolumes(model, state, liquid, vapor, computeD
     T = state.T(singlePhase);
     if computeDerivatives
         p = initVariablesAD_diagonal(p);
-        Z_L = double2NewAD(Z_L, p);
-        Z_V = double2NewAD(Z_V, p);
+        Z_L = double2GenericAD(Z_L, p);
+        Z_V = double2GenericAD(Z_V, p);
         eos = model.EOSModel;
         zc = expandMatrixToCell(z);
         [Si_L, Si_V, A_L, A_V, B_L, B_V] =...
