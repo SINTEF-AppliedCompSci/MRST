@@ -17,7 +17,12 @@ classdef PerforationPressureGradient < GridProperty
             
             % Temporary
             isbhp = strcmpi(state.FacilityState.names, 'bhp');
-            bhp = state.FacilityState.primaryVariables{isbhp}(map.perf2well);
+            if any(isbhp)
+                bhp = state.FacilityState.primaryVariables{isbhp}(map.perf2well);
+            else
+                bhp = vertcat(wellSol(map.active).bhp);
+                bhp = bhp(map.perf2well);
+            end
             cp = bhp + vertcat(wellSol(map.active).cdp);
             dp = p(map.cells) - cp;
         end

@@ -7,14 +7,11 @@ classdef PressureModel < WrapperModel
     
     methods
         function model = PressureModel(parent, varargin)
+            if isprop(parent, 'useCNVConvergence')
+                parent.useCNVConvergence = false;
+            end
             model = model@WrapperModel(parent);
-            % Reasonable defaults
-%             model.incTolPressure = 1e-3;
-%             model.useIncTol = true;
             model = merge_options(model, varargin{:});
-
-            % Ensure simple tolerances
-%             model.useCNVConvergence = false;
         end
         
         function [state, names, origin] = getStateAD(model, state, init)

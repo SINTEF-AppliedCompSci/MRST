@@ -80,9 +80,18 @@ classdef TestGenericBO < matlab.unittest.TestCase
                     end
                     pv = model.operators.pv;
                 case 'si'
+                    model = GenericBlackOilModel(arg{:}, ...
+                        'water', water, ...
+                        'oil', oil, ...
+                        'gas', gas);
+                    pv = model.operators.pv;
+
                     if water + oil + gas  < 2
                         return
                     end
+                    pmodel = PressureModel(model);
+                    tmodel = TransportModel(model);
+                    model = SequentialPressureTransportModel(pmodel, tmodel, 'parentModel', model);
                     
                 case 'si-legacy'
                     if water + oil + gas  < 2
