@@ -1,5 +1,6 @@
 classdef TestGenericBO < matlab.unittest.TestCase
     properties (TestParameter)
+        strategy = {'fi', 'fi-legacy', 'si', 'si-legacy'};
         phases = {'wog', 'wo', 'og', 'w', 'o', 'g'};
         backend = {'diagonal', 'diagonal-mex', 'sparse'};
     end
@@ -7,10 +8,10 @@ classdef TestGenericBO < matlab.unittest.TestCase
     methods
         function test = TestGenericBO()
             mrstModule reset
-            mrstModule add ad-unittest ad-core ad-blackoil ad-props
+            mrstModule add ad-unittest ad-core ad-blackoil ad-props blackoil-sequential
         end
 
-        function testMultiPhase(test, phases, backend, varargin)
+        function testMultiPhase(test, strategy, phases, backend, varargin)
             gravity reset on
             opt = struct('dims', [2, 2, 2], ...
                          'physDims', [1000, 1000, 10], ...
@@ -60,15 +61,43 @@ classdef TestGenericBO < matlab.unittest.TestCase
                     error('Unknown backend %s', opt.backend);
             end
             
-            model = GenericBlackOilModel(G, rock, fluid, ...
-                'disgas', false, 'vapoil', false, ...
-                'water', any(phases == 'w'), ...
-                'oil', any(phases == 'o'), ...
-                'gas', any(phases == 'g'), ...
-                'AutoDiffBackend', auto);
+            water = any(phases == 'w');
+            oil = any(phases == 'o');
+            gas = any(phases == 'g');
             
+            arg = {G, rock, fluid, 'disgas', false, 'vapoil', false, 'AutoDiffBackend', auto};
+            switch strategy
+                case 'fi'
+                    model = GenericBlackOilModel(arg{:}, ...
+                        'water', water, ...
+                        'oil', oil, ...
+                        'gas', gas);
+                    pv = model.operators.pv;
+                case 'fi-legacy'
+                    model = getLegacy(water, oil, gas, arg);
+                    if ~isa(model, 'PhysicalModel')
+                        return
+                    end
+                    pv = model.operators.pv;
+                case 'si'
+                    if water + oil + gas  < 2
+                        return
+                    end
+                    
+                case 'si-legacy'
+                    if water + oil + gas  < 2
+                        return
+                    end
+                    model_fi = getLegacy(water, oil, gas, arg);
+                    if ~isa(model_fi, 'PhysicalModel')
+                        return
+                    else
+                        model = getSequentialModelFromFI(model_fi);
+                    end
+                    pv = model.pressureModel.operators.pv;
+            end
             time = 1*year;
-            irate = sum(model.operators.pv)/time;
+            irate = sum(pv)/time;
             
             
             W = [];
@@ -84,8 +113,25 @@ classdef TestGenericBO < matlab.unittest.TestCase
     end
     
     methods (Test)
-        function immiscibleMultiPhaseTest(test, phases, backend)
-            testMultiPhase(test, phases, backend);
+        function immiscibleMultiPhaseTest(test, strategy, phases, backend)
+            testMultiPhase(test, strategy, phases, backend);
         end
+    end
+end
+
+function model = getLegacy(water, oil, gas, arg)
+    if water && oil && gas
+        model = ThreePhaseBlackOilModel(arg{:});
+    elseif water && oil
+        model = TwoPhaseOilWaterModel(arg{:});
+    elseif water && gas
+        mrstModule add co2lab
+        model = TwoPhaseWaterGasModel(arg{:});
+    elseif water
+        model = WaterModel(arg{:});
+    else
+        disp('Pseudocomponent combination not implemented in legacy solvers. Test automatically successful.')
+        model = nan;
+        return
     end
 end
