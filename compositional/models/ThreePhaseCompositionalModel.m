@@ -427,6 +427,13 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
 %                 end
 %             end
         end
+
+        function model = validateModel(model, varargin)
+            if isempty(model.FlowPropertyFunctions)
+                model.FlowPropertyFunctions = CompositionalFlowPropertyFunctions(model);
+            end
+            model = validateModel@ReservoirModel(model, varargin{:});
+        end
     end
     
     methods (Access=protected)
