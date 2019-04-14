@@ -11,7 +11,7 @@ function model = getSequentialModelFromFI(fimodel, varargin)
     G     = fimodel.G;
     
     switch lower(class(fimodel))
-        case 'genericblackoil'
+        case 'genericblackoilmodel'
             if fimodel.gas
                 pressureModel  = PressureBlackOilModel(G, rock, fluid, ...
                                                         'oil',    fimodel.oil, ...

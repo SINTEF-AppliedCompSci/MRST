@@ -1,7 +1,7 @@
 function facility = selectFacilityFromDeck(deck, model)
     % Pick FacilityModel from input deck
     if isempty(model.FacilityModel)
-        if isa(model, 'GenericBlackOil')
+        if isa(model, 'GenericBlackOilModel')
             facility = ExtendedFacilityModel(model);
         else
             facility = FacilityModel(model);

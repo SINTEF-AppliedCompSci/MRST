@@ -79,7 +79,7 @@ fluid.krO = fluid_kr.krOG{1};              clear fluid_kr
 
 %% Form Reservoir Model
 % This is an incompressible, immiscible oil/gas system.
-model = GenericBlackOil(G, rock, fluid, 'gravity', gravity, 'disgas', false,...
+model = GenericBlackOilModel(G, rock, fluid, 'gravity', gravity, 'disgas', false,...
     'vapoil', false, 'water', false, 'oil', true, 'gas', true);
 
 %% Initialise Formation

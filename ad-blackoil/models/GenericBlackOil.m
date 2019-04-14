@@ -1,18 +1,18 @@
-classdef GenericBlackOil < ThreePhaseBlackOilModel & ExtendedReservoirModel
+classdef GenericBlackOilModel < ThreePhaseBlackOilModel & ExtendedReservoirModel
     properties
-        
+
     end
-    
+
     methods
-        function model = GenericBlackOil(G, rock, fluid, varargin)
+        function model = GenericBlackOilModel(G, rock, fluid, varargin)
             model = model@ThreePhaseBlackOilModel(G, rock, fluid, varargin{:});
             model.OutputProperties = {'ComponentTotalMass'};
         end
-        
+
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
             [problem, state] = getEquations@ReservoirModel(model, state0, state, dt, drivingForces, varargin{:});
         end
-        
+
         function [eqs, names, types, state] = getModelEquations(model, state0, state, dt, drivingForces)
             [eqs, flux, names, types] = model.FluxDiscretization.componentConservationEquations(model, state, state0, dt);
             src = model.FacilityModel.getComponentSources(state);
@@ -29,7 +29,7 @@ classdef GenericBlackOil < ThreePhaseBlackOilModel & ExtendedReservoirModel
             names = [names, wnames];
             types = [types, wtypes];
         end
-        
+
         function names = getComponentNames(model)
             names = cellfun(@(x) x.name, model.Components, 'UniformOutput', false);
         end
@@ -40,7 +40,7 @@ classdef GenericBlackOil < ThreePhaseBlackOilModel & ExtendedReservoirModel
                 state = model.FacilityModel.applyWellLimits(state);
             end
         end
-        
+
         function model = validateModel(model, varargin)
             % Validate model.
             %
@@ -79,7 +79,7 @@ classdef GenericBlackOil < ThreePhaseBlackOilModel & ExtendedReservoirModel
             end
             model = validateModel@ThreePhaseBlackOilModel(model, varargin{:});
         end
-        
+
         function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
             [state, report] = updateAfterConvergence@ReservoirModel(model, state0, state, dt, drivingForces);
             if model.outputFluxes
