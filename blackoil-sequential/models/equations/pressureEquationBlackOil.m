@@ -51,59 +51,42 @@ if ~opt.resOnly
             if disgas
                 rsSat = f.rsSat(p_prop);
                 rs = (~st{1}).*rsSat + st{1}.*x;
+                state = model.setProp(state, 'rs', rs);
             end
             if vapoil
                 rvSat = f.rvSat(p_prop);
                 rv = (~st{2}).*rvSat + st{2}.*x;
+                state = model.setProp(state, 'rv', rv);
             end
         end
     else
         assert(0, 'Backwards solver not supported for splitting');
     end
-else % resOnly-case compute rsSat and rvSat for use in well eqs
-    if isempty(p_prop)
-        p_prop = p;
-    end
 end
 
-primaryVars = {'pressure', wellVarNames{:}};
-
-% FLIUD PROPERTIES ---------------------------------------------------
-[krW, krO, krG] = model.evaluateRelPerm({sW, sO, sG});
-
-% Multipliers for properties
-[pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p_prop, p0);
-
-% Modifiy relperm by mobility multiplier (if any)
-krW = mobMult.*krW; krO = mobMult.*krO; krG = mobMult.*krG;
-
-% Compute transmissibility
-T = s.T.*transMult;
-
-% Gravity gradient per face
-gdz = model.getGravityGradient();
-
-% Evaluate water properties
-[vW, bW, mobW, rhoW, pW, upcw, dpW] = getFluxAndPropsWater_BO(model, p_prop, sW, krW, T, gdz);
-bW0 = f.bW(p0);
-
-% Evaluate oil properties
-[vO, bO, mobO, rhoO, pO, upco, dpO] = getFluxAndPropsOil_BO(model, p_prop, sO, krO, T, gdz, rs, ~st{1});
-bO0 = getbO_BO(model, p0, rs0, ~st0{1});
-
-% Evaluate gas properties
-bG0 = getbG_BO(model, p0, rv0, ~st0{2});
-[vG, bG, mobG, rhoG, pG, upcg, dpG] = getFluxAndPropsGas_BO(model, p_prop, sG, krG, T, gdz, rv, ~st{2});
-
-if otherPropPressure
-    % We have used a different pressure for property evaluation, undo the
-    % effects of this on the fluxes.
-    dp_diff = s.Grad(p) - s.Grad(p_prop);
-    
-    vW = -s.faceUpstr(upcw, mobW).*s.T.*(dpW + dp_diff);
-    vO = -s.faceUpstr(upco, mobO).*s.T.*(dpO + dp_diff);
-    vG = -s.faceUpstr(upcg, mobG).*s.T.*(dpG + dp_diff);
+primaryVars = [{'pressure'}, wellVarNames];
+p_prop = opt.propsPressure;
+if isempty(p_prop)
+    state.pressure = p;
+else
+    state.pressure = p_prop;
 end
+
+[b, pv] = model.getProps(state, 'ShrinkageFactors', 'PoreVolume');
+[b0, pv0] = model.getProps(state0, 'ShrinkageFactors', 'PoreVolume');
+
+[bW, bO, bG] = deal(b{:});
+[bW0, bO0, bG0] = deal(b0{:});
+
+[rho, mob, pPhase] = model.getProps(state, 'Density', 'Mobility', 'PhasePressures');
+
+if ~isempty(p_prop)
+    state.pressure = p;
+end
+[phaseFlux, flags] = model.getProps(state, 'PhaseFlux',  'PhaseUpwindFlag');
+[vW, vO, vG] = deal(phaseFlux{:});
+[upcw, upco, upcg] = deal(flags{:});
+
 
 
 % These are needed in transport solver, so we output them regardless of
@@ -125,7 +108,7 @@ bGvG = s.faceUpstr(upcg, bG).*vG;
 % The first equation is the conservation of the water phase. This equation is
 % straightforward, as water is assumed to remain in the aqua phase in the
 % black oil model.
-wat = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 ) + s.Div(bWvW);
+wat = (1/dt).*( pv.*bW.*sW - pv0.*bW0.*sW0);
 
 % Second equation: mass conservation equation for the oil phase at surface
 % conditions. This is any liquid oil at reservoir conditions, as well as
@@ -136,11 +119,12 @@ if model.vapoil
     % phase.
     rvbGvG = s.faceUpstr(upcg, rv).*bGvG;
     % Final equation
-    oil = (s.pv/dt).*( pvMult.* (bO.* sO  + rv.* bG.* sG) - ...
-        pvMult0.*(bO0.*sO0 + rv0.*bG0.*sG0) ) + ...
-        s.Div(bOvO + rvbGvG);
+    oil = (1/dt).*( pv.* (bO.* sO  + rv.* bG.* sG) - ...
+        pv0.*(bO0.*sO0 + rv0.*bG0.*sG0));
+    oilFlux = bOvO + rvbGvG;
 else
-    oil = (s.pv/dt).*( pvMult.*bO.*sO - pvMult0.*bO0.*sO0 ) + s.Div(bOvO);
+    oil = (1/dt).*( pv.*bO.*sO - pv0.*bO0.*sO0 );
+    oilFlux = bOvO;
 end
 
 % Conservation of mass for gas. Again, we have two cases depending on
@@ -149,23 +133,22 @@ if model.disgas
     % The gas transported in the oil phase.
     rsbOvO = s.faceUpstr(upco, rs).*bOvO;
     
-    gas = (s.pv/dt).*( pvMult.* (bG.* sG  + rs.* bO.* sO) - ...
-        pvMult0.*(bG0.*sG0 + rs0.*bO0.*sO0 ) ) + ...
-        s.Div(bGvG + rsbOvO);
+    gas = (1/dt).*( pv.* (bG.* sG  + rs.* bO.* sO) - ...
+        pv0.*(bG0.*sG0 + rs0.*bO0.*sO0 ));
+    gasFlux = bGvG + rsbOvO;
 else
-    gas = (s.pv/dt).*( pvMult.*bG.*sG - pvMult0.*bG0.*sG0 ) + s.Div(bGvG);
+    gas = (1/dt).*( pv.*bG.*sG - pv0.*bG0.*sG0 );
+    gasFlux = bGvG;
 end
 eqs = {wat, oil, gas};
 names = {'water', 'oil', 'gas'};
 types = {'cell', 'cell', 'cell'};
 
-rho = {rhoW, rhoO, rhoG};
-mob = {mobW, mobO, mobG};
 sat = {sW, sO, sG};
 dissolved = model.getDissolutionMatrix(rs, rv);
 
 [eqs, state] = addBoundaryConditionsAndSources(model, eqs, names, types, state, ...
-                                             {pW, p, pG}, sat, mob, rho, ...
+                                             pPhase, sat, mob, rho, ...
                                              dissolved, {}, ...
                                              drivingForces);
 
@@ -179,9 +162,9 @@ a_w = 1./bW;
 a_o = cfac.*(1./bO - disgas*rs./bG);
 a_g = cfac.*(1./bG - vapoil*rv./bO);
 
-wat = eqs{1};
-oil = eqs{2};
-gas = eqs{3};
+wat = s.AccDiv(eqs{1}, bWvW);
+oil = s.AccDiv(eqs{2}, oilFlux);
+gas = s.AccDiv(eqs{3}, gasFlux);
 
 eqs{1} = (dt./s.pv).*(oil.*a_o + wat.*a_w + gas.*a_g);
 names{1} = 'pressure';
