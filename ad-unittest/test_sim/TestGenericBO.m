@@ -103,6 +103,8 @@ classdef TestGenericBO < matlab.unittest.TestCase
                     else
                         model = getSequentialModelFromFI(model_fi);
                     end
+                    model.pressureModel.AutoDiffBackend = auto;
+                    model.transportModel.AutoDiffBackend = auto;
                     pv = model.pressureModel.operators.pv;
             end
             time = 1*year;
@@ -112,7 +114,7 @@ classdef TestGenericBO < matlab.unittest.TestCase
             W = [];
             W = verticalWell(W, G, rock, 1, 1, [], 'comp_i', inj, ...
                             'val', irate, 'type', 'rate');
-            W = verticalWell(W, G, rock, opt.dims(1), opt.dims(1), [], ...
+            W = verticalWell(W, G, rock, opt.dims(1), opt.dims(2), [], ...
                             'comp_i', inj, 'val', p_w, 'type', 'bhp');
             
             schedule = simpleSchedule(time, 'W', W);
