@@ -11,10 +11,11 @@ classdef TestGenericBO < matlab.unittest.TestCase
             mrstModule add ad-unittest ad-core ad-blackoil ad-props blackoil-sequential
         end
 
-        function testMultiPhase(test, strategy, phases, backend, varargin)
+        function [ws, states, rep] = testMultiPhase(test, strategy, phases, backend, varargin)
             gravity reset on
             opt = struct('dims', [2, 2, 2], ...
                          'physDims', [1000, 1000, 10], ...
+                         'pvi', 1, ...
                          'useAMGCL', false);
             opt = merge_options(opt, varargin{:});
 
@@ -108,7 +109,7 @@ classdef TestGenericBO < matlab.unittest.TestCase
                     pv = model.pressureModel.operators.pv;
             end
             time = 1*year;
-            irate = sum(pv)/time;
+            irate = opt.pvi*sum(pv)/time;
             
             
             W = [];

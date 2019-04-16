@@ -27,6 +27,7 @@ if solveAllPhases
     primaryVars = {'sW', 'sO'};
     sT = sO + sW;
     s = {sW./sT, sO./sT};
+    s0 = state.s;
 else
     if ~opt.resOnly
         sW = model.AutoDiffBackend.initVariablesAD(sW);
@@ -47,15 +48,17 @@ state = model.initPropertyContainers(state);
                                                'GravityPotentialDifference', ...
                                                'Density', ...
                                                'Transmissibility');
-
+if solveAllPhases
+    state.s = s0;
+end
 [bW, bO] = deal(b{:});
 [bW0, bO0] = deal(b0{:});
 [mobW, mobO] = deal(mob{:});
 
-Gw = rhogdz{1};
-Go = rhogdz{2};
+Gw = -rhogdz{1};
+Go = -rhogdz{2};
 if ~isempty(pc{1})
-    Gw = Gw + op.Grad(pc{1});
+    Gw = Gw - op.Grad(pc{1});
 end
 
 if model.extraStateOutput

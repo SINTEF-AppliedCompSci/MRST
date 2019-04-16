@@ -25,6 +25,7 @@ if ~opt.resOnly
         assert(0, 'Reverse mode not supported for splitting solvers');
     end
 end
+state = model.initPropertyContainers(state);
 primaryVars = [{'pressure'}, wellVarNames];
 p_prop = opt.propsPressure;
 if isempty(p_prop)

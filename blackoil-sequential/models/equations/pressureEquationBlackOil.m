@@ -63,6 +63,7 @@ if ~opt.resOnly
         assert(0, 'Backwards solver not supported for splitting');
     end
 end
+state = model.initPropertyContainers(state);
 
 primaryVars = [{'pressure'}, wellVarNames];
 p_prop = opt.propsPressure;
@@ -87,8 +88,6 @@ end
 [vW, vO, vG] = deal(phaseFlux{:});
 [upcw, upco, upcg] = deal(flags{:});
 
-
-
 % These are needed in transport solver, so we output them regardless of
 % any flags set in the model.
 state = model.storeFluxes(state, vW, vO, vG);
@@ -101,8 +100,8 @@ end
 
 % Upstream weight b factors and multiply by interface fluxes to obtain the
 % fluxes at standard conditions.
-bOvO = s.faceUpstr(upco, bO).*vO;
 bWvW = s.faceUpstr(upcw, bW).*vW;
+bOvO = s.faceUpstr(upco, bO).*vO;
 bGvG = s.faceUpstr(upcg, bG).*vG;
 
 % The first equation is the conservation of the water phase. This equation is

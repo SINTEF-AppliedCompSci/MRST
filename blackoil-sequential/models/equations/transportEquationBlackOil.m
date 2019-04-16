@@ -53,8 +53,6 @@ if solveAllPhases
         end
     end
     primaryVars = {'sW', 'sO', gvar};
-    sT = sO + sW + sG;
-    s = {sW./sT, sO./sT, sG./sT};
 else
     if ~opt.resOnly
         if disgas || vapoil
@@ -67,16 +65,10 @@ else
     % Evaluate relative permeability
     sO  = 1 - sW  - sG;
     sO0 = 1 - sW0 - sG0;
-    sT = ones(size(value(sW)));
-    s = {sW, sO, sG};
 end
-state = model.setProp(state, 's', s);
-
-
 if disgas || vapoil
     % define sG, rs and rv in terms of x
     sG = st{2}.*(1-sW) + st{3}.*x;
-
     if disgas
         rsSat = f.rsSat(p);
         rs = (~st{1}).*rsSat + st{1}.*x;
@@ -88,6 +80,17 @@ if disgas || vapoil
         state = model.setProp(state, 'rv', rv);
     end
 end
+
+if solveAllPhases
+    sT = sO + sW + sG;
+    s = {sW./sT, sO./sT, sG./sT};
+    s0 = state.s;
+else
+    sT = ones(size(value(sW)));
+    s = {sW, sO, sG};
+end
+state = model.initPropertyContainers(state);
+state = model.setProp(state, 's', s);
 
 if ~opt.resOnly
     if ~opt.reverseMode
@@ -104,14 +107,18 @@ end
                                                'Density', ...
                                                'Transmissibility', ...
                                                'PhasePressures');
+if solveAllPhases
+    state.s = s0;
+end
 [bW, bO, bG] = deal(b{:});
 [bW0, bO0, bG0] = deal(b0{:});
 [mobW, mobO, mobG] = deal(mob{:});
 nph = numel(mob);
-G = rhogdz;
+G = cell(1, nph);
 for i = 1:nph
+    G{i} = -rhogdz{i};
     if ~isempty(pc{i})
-        G{i} = G{i} + op.Grad{pc{i}};
+        G{i} = G{i} - op.Grad(pc{i});
     end
 end
 % Get total flux from state
@@ -200,7 +207,7 @@ end
 ix = 1;
 if opt.solveForWater
     % water eq:
-    wat = (1/dt).*( pv.*bW.*sW - pvMult0.*bW0.*sW0 );
+    wat = (1/dt).*( pv.*bW.*sW - pv0.*bW0.*sW0 );
     if ~isempty(W)
         wat(wc) = wat(wc) - wflux_W;
     end
