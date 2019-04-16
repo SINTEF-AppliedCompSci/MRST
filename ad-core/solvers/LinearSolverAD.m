@@ -153,60 +153,59 @@ classdef LinearSolverAD < handle
                 % Eliminate non-cell variables (well equations etc)
                 s = getSampleAD(problem.equations{:});
                 keep = problem.indexOfType('cell');
-                if isa(s, 'GenericAD')
-                    % If we are working with block AD, we use the built-in
-                    % keepNumber property of the linear solver to perform a
-                    % full block Schur complement
-                    nk = sum(keep);
-                    assert(all(keep(1:nk)) & ~any(keep(nk+1:end)), ...
-                        'Cell variables must all combine first in the ordering for this AutodiffBackend.');
-                    if 1
-                        % In-place Schur complement
-                        ngroups = numel(s.offsets)-1;
-                        varno = rldecode((1:ngroups)', diff(s.offsets));
-                        
-                        keepEq = problem.equations(keep);
-                        elimEq = problem.equations(~keep);
-                        
-                        keepVar = unique(varno(keep));
-                        elimVar = setdiff(varno, keepVar);
-                        
-                        B_eq = keepEq;
-                        C_eq = B_eq;
-                        for i = 1:numel(B_eq)
-                            B_eq{i}.jac = B_eq{i}.jac(keepVar);
-                            C_eq{i}.jac = C_eq{i}.jac(elimVar);
+                if ~all(keep)
+                    if isa(s, 'GenericAD')
+                        % If we are working with block AD, we use the built-in
+                        % keepNumber property of the linear solver to perform a
+                        % full block Schur complement
+                        nk = sum(keep);
+                        assert(all(keep(1:nk)) & ~any(keep(nk+1:end)), ...
+                            'Cell variables must all combine first in the ordering for this AutodiffBackend.');
+                        if 1
+                            % In-place Schur complement
+                            ngroups = numel(s.offsets)-1;
+                            varno = rldecode((1:ngroups)', diff(s.offsets));
+
+                            keepEq = problem.equations(keep);
+                            elimEq = problem.equations(~keep);
+
+                            keepVar = unique(varno(keep));
+                            elimVar = setdiff(varno, keepVar);
+
+                            B_eq = keepEq;
+                            C_eq = B_eq;
+                            for i = 1:numel(B_eq)
+                                B_eq{i}.jac = B_eq{i}.jac(keepVar);
+                                C_eq{i}.jac = C_eq{i}.jac(elimVar);
+                            end
+                            D_eq = elimEq;
+                            E_eq = D_eq;
+                            for i = 1:numel(D_eq)
+                                D_eq{i}.jac = D_eq{i}.jac(keepVar);
+                                E_eq{i}.jac = E_eq{i}.jac(elimVar);
+                            end
+                            B_eq = combineEquations(B_eq{:});
+                            C_eq = combineEquations(C_eq{:});
+                            D_eq = combineEquations(D_eq{:});
+                            E_eq = combineEquations(E_eq{:});
+                            lsys = struct('B', B_eq.jac{1}, ...
+                                          'C', C_eq.jac{1}, ...
+                                          'D', D_eq.jac{1}, ...
+                                          'E', E_eq.jac{1},...
+                                          'f', -B_eq.val, ...
+                                          'h', -D_eq.val, ...
+                                          'E_L', [], ...
+                                          'E_U', []);
+                            [lsys.E_L, lsys.E_U] = lu(lsys.E);
+                            problem.A = lsys.B - lsys.C*(lsys.E_U\(lsys.E_L\lsys.D));
+                            problem.b = lsys.f - lsys.C*(lsys.E_U\(lsys.E_L\lsys.h));
+                        else
+                            nv =  s.getNumVars();
+                            solver.keepNumber = sum(nv(keep));
                         end
-                        D_eq = elimEq;
-                        E_eq = D_eq;
-                        for i = 1:numel(D_eq)
-                            D_eq{i}.jac = D_eq{i}.jac(keepVar);
-                            E_eq{i}.jac = E_eq{i}.jac(elimVar);
-                        end
-                        
-                        B_eq = combineEquations(B_eq{:});
-                        C_eq = combineEquations(C_eq{:});
-                        D_eq = combineEquations(D_eq{:});
-                        E_eq = combineEquations(E_eq{:});
-                        
-                        
-                        lsys = struct('B', B_eq.jac{1}, ...
-                                      'C', C_eq.jac{1}, ...
-                                      'D', D_eq.jac{1}, ...
-                                      'E', E_eq.jac{1},...
-                                      'f', -B_eq.val, ...
-                                      'h', -D_eq.val, ...
-                                      'E_L', [], ...
-                                      'E_U', []);
-                        [lsys.E_L, lsys.E_U] = lu(lsys.E);
-                        problem.A = lsys.B - lsys.C*(lsys.E_U\(lsys.E_L\lsys.D));
-                        problem.b = lsys.f - lsys.C*(lsys.E_U\(lsys.E_L\lsys.h));
                     else
-                        nv =  s.getNumVars();
-                        solver.keepNumber = sum(nv(keep));
+                        [problem, eliminated] = solver.reduceToVariable(problem, keep);
                     end
-                else
-                    [problem, eliminated] = solver.reduceToVariable(problem, keep);
                 end
             end
             problem = problem.assembleSystem();
