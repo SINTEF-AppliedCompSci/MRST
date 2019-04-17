@@ -1,12 +1,15 @@
 gravity off
 mrstModule add ntpfa ad-core ad-blackoil ad-props ...
-               blackoil-sequential mimetic incomp
+               blackoil-sequential mimetic incomp vem upr
 
 dims = [15, 15];
 pdims = [1, 1];
-
 G = cartGrid(dims, pdims);
-G = twister(G, 0.1);
+
+G = twister(G, 0.05);
+
+%G = producerInjectorGrid();
+
 G = computeGeometry(G);
 fluid = initSimpleADIFluid();
 

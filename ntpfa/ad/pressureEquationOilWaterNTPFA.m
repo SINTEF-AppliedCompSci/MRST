@@ -51,7 +51,7 @@ T = s.T.*transMult;
 pW = p;
 
 dp = s.Grad(p);
-upc  = (double(dp)<=0);
+upc = (dp.value <= 0);
 [upcw, upco] = deal(upc);
 
 mobW = krW./f.muW(p);
