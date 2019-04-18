@@ -4,12 +4,9 @@ mrstModule add ntpfa ad-core ad-blackoil ad-props ...
 
 dims = [15, 15];
 pdims = [1, 1];
+
 G = cartGrid(dims, pdims);
-
-G = twister(G, 0.05);
-
-%G = producerInjectorGrid();
-
+G = twister(G, 0.1);
 G = computeGeometry(G);
 fluid = initSimpleADIFluid();
 
