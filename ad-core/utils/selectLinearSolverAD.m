@@ -95,7 +95,7 @@ end
 function ncomp = getComponentCount(model)
     model = model.validateModel();
     names = model.getComponentNames();
-    if isa(model, 'GenericBlackOil')
+    if isa(model, 'GenericBlackOilModel')
         ncomp = numel(names);
     elseif isa(model, 'ThreePhaseBlackOilModel')
         ncomp = numel(names) + sum(model.getActivePhases);
