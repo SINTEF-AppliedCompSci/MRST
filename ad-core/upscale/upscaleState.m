@@ -66,8 +66,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         L = state_f.L;
         
         N = L.*rhoL.*state_f.x + (1-L).*rhoV.*state_f.y;
-        
-%         z = state.components;
         N_f = bsxfun(@times, N, pvf);
         ncomp = size(state.components, 2);
         state.components = zeros(CG.cells.num, ncomp);
@@ -112,5 +110,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             newflux(:, i)   = accumarray(cfacesno, state.flux(CG.faces.fconn, i) .* cfsign);
         end
         state.flux = newflux;
+    end
+    if isfield(state, 'FlowProps')
+        state = rmfield(state, 'FlowProps');
     end
 end
