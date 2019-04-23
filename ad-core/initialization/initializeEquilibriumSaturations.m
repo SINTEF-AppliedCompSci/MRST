@@ -61,8 +61,10 @@ function s = solveSaturations(p, p_ref, pc_fn, pc_sign, s_min, s_max)
         s_inv = invertCapillary(dp(middle), pc_fn, pc_sign);
         if numel(s_min) == 1
             s_min = repmat(s_min, size(s_inv));
+        else
+            s_min = s_min(middle);
         end
-        s(middle) = max(s_inv, s_min(middle));
+        s(middle) = max(s_inv, s_min);
     end
 end
 
