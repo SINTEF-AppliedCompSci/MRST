@@ -80,7 +80,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         model = OilWaterSurfactantModel(arg{:});
     else
         % Blackoil three phase
-        model = GenericBlackOil(arg{:}, 'water', haswat, 'oil', hasoil, 'gas', hasgas);
+        model = GenericBlackOilModel(arg{:}, 'water', haswat, 'oil', hasoil, 'gas', hasgas);
     end
     % Set blackoil specific features
     if isa(model, 'ThreePhaseBlackOilModel') && isfield(deck, 'RUNSPEC')
