@@ -16,7 +16,7 @@ classdef ComponentPhaseMoleFractionsLV < GridProperty
                 y = expandMatrixToCell(y);
             end
             if model.water
-                ncomp = model.getNumberOfComponents();
+                ncomp = numel(x) + 1;
                 nc = model.G.cells.num;
                 u = ones(nc, 1);
                 x = [{[]}, x];
