@@ -157,12 +157,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 end
 
 function dump_runspec(fid,dirname, deck)
-   myfields={'DIMENS','EQLDIMS','TABDIMS','WELLDIMS'};%,'NUPCOL'}
+   myfields={'DIMENS','EQLDIMS'}%,'WELLDIMS'};%,'NUPCOL'}
    for i=1:numel(myfields)
       myfield=myfields{i};
       if(isfield(deck.RUNSPEC,myfield))
          dump_vector(fid,dirname, lower(myfield), '%9i\n', deck.RUNSPEC.(myfield));
       end
+   end
+   if(isfield(deck.RUNSPEC,'TABDIMS'))
+      dump_vector(fid,dirname, 'tabdims', '%9i\n', deck.RUNSPEC.TABDIMS(1:6));
+   end
+   if(isfield(deck.RUNSPEC,'WELLDIMS'))
+      dump_vector(fid,dirname, 'welldims', '%9i\n', deck.RUNSPEC.WELLDIMS(1:4));
    end
    myfields={'OIL','WATER','GAS','DISGAS','VAPOIL','METRIC','NOGRAV','FIELD','UNIFOUT','FMTOUT'};
    for i=1:numel(myfields)
@@ -355,7 +361,11 @@ function dump_solution(fid,dirname, deck)
           v=v(:,1:9);
           dump_vector(fid,dirname, lower(myfield), '%18.16e %18.16e  %18.16e %18.16e %18.16e %18.16e  %d %d %d / \n', v');
       else
-        dump_vector(fid,dirname, lower(myfield), '%18.16e\n', v);
+        values=v;
+        if iscell(values),
+            values = values{1};
+        end 
+        dump_vector(fid,dirname, lower(myfield), '%18.16e\n', values');
       end
       %dump_vector(fid,dirname, lower(myfield), '%d\n', v);
    end
@@ -411,17 +421,19 @@ if isfield(deck.SCHEDULE, 'control'),
         fprintf(fid, '%s', regexprep(s, 'Inf|NaN', '1*', 'ignorecase'));
         fprintf(fid, '/\n\n');
         fclose(fid);
+        if(~isempty(deck.SCHEDULE.control(i).WCONPROD))
+            fprintf(org_fid,'%s\n','INCLUDE');  
+            fprintf(org_fid,'%s/',['wconprod',step_name]);
+            fprintf(org_fid,'\n\n');
+            fid = fopen(fullfile(dirname, ['wconprod',step_name]), 'wt');
+            wconprod = replace_default(deck.SCHEDULE.control(i).WCONPROD).';
+            fprintf(fid,'%s\n',upper('wconprod'));
+            s = sprintf('%s %s %s %18.16e %18.16e %18.16e %18.16e %18.16e %18.16e %d %d %d/\n', wconprod{:});
+            fprintf(fid, '%s', regexprep(s, 'Inf|NaN', '1*', 'ignorecase'));
+            fprintf(fid, '/\n\n');
+            fclose(fid);
+        end
         
-        fprintf(org_fid,'%s\n','INCLUDE');
-        fprintf(org_fid,'%s/',['wconprod',step_name]);
-        fprintf(org_fid,'\n\n');
-        fid = fopen(fullfile(dirname, ['wconprod',step_name]), 'wt');
-        wconprod = replace_default(deck.SCHEDULE.control(i).WCONPROD).';
-        fprintf(fid,'%s\n',upper('wconprod'));
-        s = sprintf('%s %s %s %18.16e %18.16e %18.16e %18.16e %18.16e %18.16e %d %d %d/\n', wconprod{:});
-        fprintf(fid, '%s', regexprep(s, 'Inf|NaN', '1*', 'ignorecase'));
-        fprintf(fid, '/\n\n');
-        fclose(fid);
     
     
         ind=deck.SCHEDULE.step.control==i;
