@@ -137,7 +137,7 @@ else
     rstrt = opm_s;
 end
 
-[opt, phn, unit, tr, na] = checkAndProcessInput(fn, rstrt, opt);
+[opt, phn, unit, tr, na, isECLIPSE] = checkAndProcessInput(fn, rstrt, opt);
 
 if opt.includeFluxes
     % check if magic index-map is present in grid, if not compute it
@@ -168,8 +168,9 @@ if opt.includeFluxes
         end
         ix = eclFaceToFace(G, NNC, 'neighbors', opt.neighbors);
     end
+ 
     % Get all reservoir flux fieldnames in rstrt
-    fluxNms = getResFluxNms(phn);
+    fluxNms = getResFluxNms(phn, isECLIPSE);
 end
 
 if opt.includeWellSols
@@ -257,11 +258,11 @@ for k = 1:numel(tr)
         nbad = nnz(~isfinite(f));
         if nbad > 0
             dispif(mrstVerbose, ...
-              'Reading restart resulted in %d non-finite flux-values.\n', nbad);
+                'Reading restart resulted in %d non-finite flux-values.\n', nbad);
             f(~isfinite(f)) = 0;
         end
         states{k}.flux = convertFrom(f, unit.qr);
-    end
+        end
 
     % wellSols
     if opt.includeWellSols
@@ -351,20 +352,28 @@ end
 
 %--------------------------------------------------------------------------
 
-function fluxNms = getResFluxNms(phns)
+function fluxNms = getResFluxNms(phns, isECLIPSE)
 nph  = numel(phns);
 fluxNms = repmat( struct('I', '', 'J', '', 'K', '', 'N', ''), [nph, 1] );
-for phi = 1:nph
-    fluxNms(phi).I = fixVarName( ['FLR', phns{phi}, 'I+'] );
-    fluxNms(phi).J = fixVarName( ['FLR', phns{phi}, 'J+'] );
-    fluxNms(phi).K = fixVarName( ['FLR', phns{phi}, 'K+'] );
-    fluxNms(phi).N = fixVarName( ['FLR', phns{phi}, 'N+'] );
+if isECLIPSE
+    prefix  = 'FLR';
+else % assume tNav
+    prefix = 'FLO';
 end
+
+for phi = 1:nph
+    fluxNms(phi).I = fixVarName( [prefix, phns{phi}, 'I+'] );
+    fluxNms(phi).J = fixVarName( [prefix, phns{phi}, 'J+'] );
+    fluxNms(phi).K = fixVarName( [prefix, phns{phi}, 'K+'] );
+    fluxNms(phi).N = fixVarName( [prefix, phns{phi}, 'N+'] );
+end
+
 end
 
 %--------------------------------------------------------------------------
 
-function [opt, phn, unit, tr, na] = checkAndProcessInput(fn, rstrt, opt)
+function [opt, phn, unit, tr, na, isECLIPSE] = checkAndProcessInput(fn, rstrt, opt)
+isECLIPSE = ismember(rstrt.INTEHEAD{1}(95), [100, 300, 500, 700]);
 % Get first non-empty intehead-data for general info
 ix = find(cellfun(@isempty, rstrt.INTEHEAD)==false, 1);
 ih = rstrt.INTEHEAD{ix};
@@ -404,13 +413,18 @@ tr = cellfun(@(x)x(1), rstrt.DOUBHEAD).';
 
 % Check that reservoir fluxes are present in output if desired
 if opt.includeFluxes
-    fluxesProvided = isfield(rstrt, fixVarName(['FLR',phn{1},'I+'])); %#ok
+    if isECLIPSE
+        prefix = 'FLR';
+    else
+        prefix = 'FLO';
+    end
+    fluxesProvided = isfield(rstrt, fixVarName([prefix ,phn{1},'I+']));
     if ~fluxesProvided
         dispif(mrstVerbose, 'Reservoir fluxes not found in RSTRT-file\n');
         opt.includeFluxes = false;
     else
         % Check that GRID/EGRID and INIT files are present in case of NNC
-        opt.nncPresent = isfield(rstrt, fixVarName(['FLR',phns{1},'N+'])); %#ok
+        opt.nncPresent = isfield(rstrt, fixVarName(['FLR',phns{1},'N+']));
         if opt.nncPresent
             req = {'EGRID', 'GRID', 'INIT'};
             chk = cellfun(@(x)~isempty(dir([fn, '.', x])), req);

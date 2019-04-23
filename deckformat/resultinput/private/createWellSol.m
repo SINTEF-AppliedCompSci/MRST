@@ -58,7 +58,7 @@ for k = 1 : numel(w)
             else
                 compi = vals(1:3)/sum(vals(1:3));
             end
-            if w(k).cntr <= numel(types)
+            if w(k).cntr <= numel(types) && w(k).cntr > 0
                 val = vals(w(k).cntr);
                 if w(k).cntr <= 3
                     type = 'rate';
