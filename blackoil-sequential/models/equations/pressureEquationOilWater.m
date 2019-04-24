@@ -8,16 +8,10 @@ opt = struct('Verbose', mrstVerbose, ...
              'iteration', -1);
 
 opt = merge_options(opt, varargin{:});
-
-W = drivingForces.W;
-
-% assert(isempty(drivingForces.bc) && isempty(drivingForces.src))
-
 s = model.operators;
-f = model.fluid;
 
 [p, sW, sO, wellSol] = model.getProps(state, 'pressure', 'water', 'oil', 'wellsol');
-[p0, sW0, sO0, wellSol0] = model.getProps(state0, 'pressure', 'water', 'oil', 'wellsol');
+[sW0, sO0, wellSol0] = model.getProps(state0, 'water', 'oil', 'wellsol');
 
 [wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
 
@@ -28,49 +22,32 @@ if ~opt.resOnly
     if ~opt.reverseMode
         [p, wellVars{:}] = model.AutoDiffBackend.initVariablesAD(p, wellVars{:});
     else
-        assert(0, 'Backwards solver not supported for splitting');
+        assert(0, 'Reverse mode not supported for splitting solvers');
     end
 end
-primaryVars = {'pressure', wellVarNames{:}};
-
+state = model.initPropertyContainers(state);
+primaryVars = [{'pressure'}, wellVarNames];
 p_prop = opt.propsPressure;
-otherPropPressure = ~isempty(p_prop);
-if ~otherPropPressure
-    p_prop = p;
+if isempty(p_prop)
+    state.pressure = p;
+else
+    state.pressure = p_prop;
 end
-
 % -------------------------------------------------------------------------
-[krW, krO] = model.evaluateRelPerm({sW, sO});
+[b, pv] = model.getProps(state, 'ShrinkageFactors', 'PoreVolume');
+[b0, pv0] = model.getProps(state0, 'ShrinkageFactors', 'PoreVolume');
 
-% Multipliers for properties
-[pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p_prop, p0);
+[bW, bO] = deal(b{:});
+[bW0, bO0] = deal(b0{:});
 
-% Modifiy relperm by mobility multiplier (if any)
-krW = mobMult.*krW; krO = mobMult.*krO;
+[rho, mob, pPhase] = model.getProps(state, 'Density', 'Mobility', 'PhasePressures');
 
-% Compute transmissibility
-T = s.T.*transMult;
-
-% Gravity contribution
-gdz = model.getGravityGradient();
-
-
-% Evaluate water properties
-[vW, bW, mobW, rhoW, pW, upcw, dpW] = getFluxAndPropsWater_BO(model, p_prop, sW, krW, T, gdz);
-bW0 = f.bW(p0);
-
-% Evaluate oil properties
-[vO, bO, mobO, rhoO, pO, upco, dpO] = getFluxAndPropsOil_BO(model, p_prop, sO, krO, T, gdz);
-bO0 = getbO_BO(model, p0);
-
-if otherPropPressure
-    % We have used a different pressure for property evaluation, undo the
-    % effects of this on the fluxes.
-    dp_diff = s.Grad(p) - s.Grad(p_prop);
-    
-    vW = -s.faceUpstr(upcw, mobW).*s.T.*(dpW + dp_diff);
-    vO = -s.faceUpstr(upco, mobO).*s.T.*(dpO + dp_diff);
+if ~isempty(p_prop)
+    state.pressure = p;
 end
+[phaseFlux, flags] = model.getProps(state, 'PhaseFlux',  'PhaseUpwindFlag');
+[vW, vO] = deal(phaseFlux{:});
+[upcw, upco] = deal(flags{:});
 
 % These are needed in transport solver, so we output them regardless of
 % any flags set in the model.
@@ -86,21 +63,17 @@ end
 bOvO = s.faceUpstr(upco, bO).*vO;
 bWvW = s.faceUpstr(upcw, bW).*vW;
 
-
-oil = (s.pv/dt).*( pvMult.*bO.*sO - pvMult0.*bO0.*sO0) + s.Div(bOvO);
-% water:
-water = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 ) + s.Div(bWvW);
+% Oil/water pseudocomponents
+oil = (1/dt).*( pv.*bO.*sO - pv.*bO0.*sO0);
+water = (1/dt).*( pv.*bW.*sW - pv0.*bW0.*sW0);
 
 eqs = {water, oil};
-
-rho = {rhoW, rhoO};
-mob = {mobW, mobO};
 sat = {sW, sO};
 
 names = {'water', 'oil'};
 types = {'cell', 'cell'};
 [eqs, state] = addBoundaryConditionsAndSources(model, eqs, names, types, state, ...
-                                                                 {pW, p}, sat, mob, rho, ...
+                                                                 pPhase, sat, mob, rho, ...
                                                                  {}, {}, ...
                                                                  drivingForces);
 % Finally, add in and setup well equations
@@ -108,7 +81,10 @@ dissolved = {};
 [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, ...
     wellSol0, wellSol, wellVars, wellMap, p, mob, rho, dissolved, {}, dt, opt);
 
-eqs{1} = (dt./s.pv).*(eqs{1}./bW + eqs{2}./bO);
+water = s.AccDiv(eqs{1}, bWvW);
+oil = s.AccDiv(eqs{2}, bOvO);
+
+eqs{1} = (dt./s.pv).*(water./bW + oil./bO);
 names{1} = 'pressure';
 types{1} = 'cell';
 eqs = eqs([1, 3:end]);

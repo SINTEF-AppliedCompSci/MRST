@@ -1,4 +1,4 @@
-function printConvergenceReport(names, values, converged, iteration)
+function printConvergenceReport(names, values, converged, iteration, endOfBlock)
 % Print a neatly formatted convergence report
 %
 % SYNOPSIS:
@@ -41,7 +41,9 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-
+    if nargin < 5
+        endOfBlock = all(converged) && iteration > 1;
+    end
     nl = cellfun(@numel, names);
     sep = repmat('=', 1, sum(max(nl, 8)) + 3*numel(nl) + 8);
     if iteration == 1
@@ -62,7 +64,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         fprintf(['%-', num2str(linen), '.2e '], values(i));
     end
     fprintf('|\n')
-    if all(converged & iteration > 1)
+    if all(endOfBlock)
         fprintf('%s\n', sep);
     end
 end

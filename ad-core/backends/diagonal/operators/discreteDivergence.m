@@ -1,9 +1,9 @@
 function v = discreteDivergence(acc, N, v, nc, nf, sortIx, C, prelim, useMex)
-% Discrete divergence for the NewAD library
+% Discrete divergence for the GenericAD library
     hasAcc = not(isempty(acc));
-    if isa(v, 'NewAD')
+    if isa(v, 'GenericAD')
         v.val = accumulate(N, value(v), nc);
-        if hasAcc && isa(acc, 'NewAD')
+        if hasAcc && isa(acc, 'GenericAD')
             % Both present, both are AD
             for i = 1:numel(v.jac)
                 v.jac{i} = accDivJac(acc.jac{i}, v.jac{i}, N, nc, nf, sortIx, C, prelim, useMex);

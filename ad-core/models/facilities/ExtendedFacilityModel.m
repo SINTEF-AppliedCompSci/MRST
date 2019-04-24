@@ -4,6 +4,9 @@ classdef ExtendedFacilityModel < FacilityModel
     end
     
     methods
+        function model = ExtendedFacilityModel(varargin)
+            model@FacilityModel(varargin{:});
+        end
         
         function n = getNumberOfComponents(fm)
             n = fm.ReservoirModel.getNumberOfComponents();

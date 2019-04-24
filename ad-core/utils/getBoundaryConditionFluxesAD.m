@@ -156,12 +156,17 @@ for i = 1:nph
     if hasNoSat
         % If no saturations are defined, we explicitly set it to mirror the
         % cell values on the other side of the interface
-        s_inside = double(s_inside);
+        s_inside = value(s_inside);
         sat(noSat, i) = s_inside(noSat);
     end
     sF{i, 1} = sat(:, i);
     sF{i, 2} = s_inside;
+end
 
+if ~hasOutsideMob
+    for i = 1:nph
+        mobF{i, 1} = totMob.*sF{i, 1};
+    end
 end
 
 if isTransport && isCompositional
@@ -184,7 +189,7 @@ for i = 1:nph
             sR = sF{i, 2};
         end
         sTf = sL + sR;
-        sTf(double(sTf) == 0) = 1e-8;
+        sTf(value(sTf) == 0) = 1e-8;
         rhoAvgF{i} = (sL.*rhoF{i, 1} + sR.*rhoF{i, 2})./sTf;
     else
         rhoAvgF{i} = (rhoF{i, 1} + rhoF{i, 2})./2;
@@ -212,19 +217,7 @@ if any(isRF)
         for i = 1:numel(q_ph)
             q_ph{i} = - q_ph{i};
         end
-%         upstr = @(flag, v) ~flag.*v(1:nf, :) + flag.*v(nf+1:end, :);
-%         q_ph = computeSequentialFluxes([], G, -vT, T, mobC, {}, {}, upstr, 'potential');
-%         for i = 1:numel(q_ph)
-%             q_ph{i} = - q_ph{i};
-%         end
     end
-%     gg = cellfun(@double, G, 'unif', false);
-%     disp('G')
-%     disp([gg{:}])
-%     
-%     disp('Mob')
-%     gg = cellfun(@double, mobC, 'unif', false);
-%     disp([gg{:}])
 end
 
 for i = 1:nph
@@ -269,7 +262,7 @@ for i = 1:nph
             % determined by the sat field
             subs = isP & injP;
             if hasOutsideMob
-                q_res = mobF{i, 1}(subs).*T(subs).*dP(~injDir);
+                q_res = mobF{i, 1}(subs).*T(subs).*dP(injDir);
             else
                 q_res = totMob(subs).*T(subs).*dP(injDir).*sat(subs, i);
             end
@@ -322,7 +315,5 @@ for i = 1:nph
     qSurf{i} = q_s;
     qRes{i} = q_r;
 end
-% disp(double(qRes{1}))
-% disp(double(qRes{2}))
 end
 

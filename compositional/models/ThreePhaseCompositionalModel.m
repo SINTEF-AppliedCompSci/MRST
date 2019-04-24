@@ -102,11 +102,11 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                     % Overall mole fraction
                     fn = 'components';
                     index = ':';
-                case {'x', 'liquidmf'}
+                case {'x', 'liquidmf', 'liquidmolefractions'}
                     % Liquid phase mole fraction
                     fn = 'x';
                     index = ':';
-                case {'y', 'vapormf'}
+                case {'y', 'vapormf', 'vapormolefractions'}
                     % Vapor phase mole fraction
                     fn = 'y';
                     index = ':';
@@ -123,7 +123,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                     fn = 'Z_V';
                     index = 1;
                 otherwise
-                    sub = strcmpi(model.getComponentNames(), name);
+                    sub = strcmpi(model.EOSModel.fluid.names, name);
                     if any(sub)
                         fn = 'components';
                         index = find(sub);
@@ -427,6 +427,13 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
 %                 end
 %             end
         end
+
+        function model = validateModel(model, varargin)
+            if isempty(model.FlowPropertyFunctions)
+                model.FlowPropertyFunctions = CompositionalFlowPropertyFunctions(model);
+            end
+            model = validateModel@ReservoirModel(model, varargin{:});
+        end
     end
     
     methods (Access=protected)
@@ -467,7 +474,8 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             isFugacity = strcmpi(problem.types, 'fugacity');
             if model.water
                 state = problem.state;
-                scale = sum(state.s(state.flag == 0, model.water+1:end), 2);
+                s = value(model.getProp(state, 's'));
+                scale = sum(s(state.flag == 0, model.water+1:end), 2);
             else
                 scale = 1;
             end

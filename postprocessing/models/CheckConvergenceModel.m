@@ -11,7 +11,7 @@ classdef CheckConvergenceModel < PhysicalModel
         function [state, report] = stepFunction(model, state, state0, dt,...
                                                 drivingForces, linsolve, nonlinsolve,...
                                                 iteration, varargin)
-            [problem,state] = model.parentModel.getEquations(state0, state, dt, drivingForces, 'resOnly', true, 'iteration', inf);
+            [problem, state] = model.parentModel.getEquations(state0, state, dt, drivingForces, 'resOnly', true, 'iteration', inf);
             [convergence, values, names] = model.parentModel.checkConvergence(problem);
             report = model.makeStepReport(...
                                     'Failure',         false, ...
@@ -19,8 +19,11 @@ classdef CheckConvergenceModel < PhysicalModel
                                     'ResidualsConverged', true(size(convergence)), ...
                                     'Residuals',       values ...
                                     );
+            state = model.parentModel.reduceState(state, false);
+            state = model.parentModel.updateAfterConvergence(state0, state, dt, drivingForces);
+            
             state.convergenceStatus = struct('Residuals', values, 'ResidualsConverged', convergence,...
-                                             'Converged', all(convergence), 'Names', {names});
+                                             'Converged', all(convergence), 'Names', {names'});
         end
         
         function varargout = getActivePhases(model)
@@ -47,6 +50,13 @@ classdef CheckConvergenceModel < PhysicalModel
             [fn, index] = model.parentModel.getVariableField(name);
         end
 
+        function [model, state] = prepareReportstep(model, state, varargin)
+            model.parentModel = model.parentModel.prepareReportstep(state, varargin{:});
+        end
+
+        function [model, state] = prepareTimestep(model, state, varargin)
+            model.parentModel = model.parentModel.prepareReportstep(state, varargin{:});
+        end
     end
     
 end

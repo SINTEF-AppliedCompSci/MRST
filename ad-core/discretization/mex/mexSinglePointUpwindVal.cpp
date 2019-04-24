@@ -24,12 +24,13 @@ void mexFunction( int nlhs, mxArray *plhs[],
     double * N = mxGetPr(prhs[1]);
     mxLogical  * flag = mxGetLogicals(prhs[2]);
 
+    int dim = mxGetN(prhs[0]);
     int nc = mxGetM(prhs[0]);
     int nf = mxGetM(prhs[1]);
     
     // printf("%d cells with %d faces and %d derivatives \n", nc, nf, m);
     
-    plhs[0] = mxCreateDoubleMatrix(nf, 1, mxREAL);
+    plhs[0] = mxCreateDoubleMatrix(nf*dim, 1, mxREAL);
     double * result = mxGetPr(plhs[0]);
     
     #pragma omp parallel for
@@ -41,7 +42,9 @@ void mexFunction( int nlhs, mxArray *plhs[],
         else{
             cell_inx = N[i + nf]-1;
         }
-        result[i] = value[cell_inx];
+        for(int j =0; j<dim; j++){
+            result[i+nf*j] = value[cell_inx + nc*j];
+        }
     }
     return;
 }

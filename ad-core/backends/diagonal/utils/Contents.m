@@ -2,7 +2,7 @@
 %
 % Files
 %   diagMult                 - Internal function for diagonal multiplication in AD code
-%   double2NewAD             - Convert a double to NewAD variable, using a sample NewAD variable for dimensions
+%   double2GenericAD             - Convert a double to GenericAD variable, using a sample GenericAD variable for dimensions
 %   getSparseArguments       - Get sparse matrix indices
 %   getSparseBlocks          - Get sparse blocks
 %   incrementSubset          - Update a subset directly

@@ -48,10 +48,15 @@ classdef SequentialPressureTransportModel < ReservoirModel
             model = merge_options(model, varargin{:});
             
             % Transport model determines the active phases
-            model.water = model.transportModel.water;
-            model.oil   = model.transportModel.oil;
-            model.gas   = model.transportModel.gas;
-            
+            if isempty(model.parentModel)
+                model.water = model.transportModel.water;
+                model.oil   = model.transportModel.oil;
+                model.gas   = model.transportModel.gas;
+            else
+                model.water = model.parentModel.water;
+                model.oil   = model.parentModel.oil;
+                model.gas   = model.parentModel.gas;
+            end
             if isempty(model.pressureNonLinearSolver)
                 model.pressureNonLinearSolver = NonLinearSolver();
             end
@@ -175,6 +180,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
             if ~isempty(model.parentModel)
                 state.s = bsxfun(@rdivide, state.s, sum(state.s, 2));
                 [problem, state] = model.parentModel.getEquations(state0, state, dt, drivingForces, 'resOnly', true, 'iteration', inf);
+                state = model.parentModel.reduceState(state, false);
                 [converged, values, resnames] = model.parentModel.checkConvergence(problem);
                 if model.verbose
                     printConvergenceReport(resnames, values, converged, iteration);
@@ -191,7 +197,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
                         [problem, state_normalized] = model.transportModel.getEquations(state0, state_normalized, dt, drivingForces, 'resOnly', true, 'iteration', inf);
                         conv_t = model.transportModel.checkConvergence(problem);
                         if all(conv_t)
-                            state = state_normalized;
+                            state = model.parentModel.reduceState(state_normalized, false);
                             values = 0;
                         end
                     end
@@ -232,6 +238,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
         function state = validateState(model, state)
             % Pressure comes first, so validate that.
             state = model.pressureModel.validateState(state);
+            state = model.transportModel.validateState(state);
         end
 
         function [model, state] = updateForChangedControls(model, state, forces)
@@ -247,7 +254,9 @@ classdef SequentialPressureTransportModel < ReservoirModel
         end
 
         function model = validateModel(model, varargin)
-            model.pressureModel.extraWellSolOutput = true;
+            if isprop(model.pressureModel, 'extraWellSolOutput')
+                model.pressureModel.extraWellSolOutput = true;
+            end
             model.pressureModel = model.pressureModel.validateModel(varargin{:});
             model.transportModel = model.transportModel.validateModel(varargin{:});
             if ~isempty(model.parentModel)

@@ -1,6 +1,6 @@
 function v = twoPointGradient(N, v, M, useMex)
     % Discrete gradient for the NewAD library
-    if isa(v, 'NewAD')
+    if isa(v, 'GenericAD')
         v.val = gradVal(v.val, N, useMex);
         v.jac = cellfun(@(x) gradJac(x, N, M, useMex), v.jac, 'UniformOutput', false);
     else

@@ -29,12 +29,16 @@ function [ws, states, reports] = getPackedSimulatorOutput(problem, varargin)
     end
     wellOutputMissing = wantWells && wh.numelData() == 0;
     for i = 1:ndata
-        if (nargout > 1 ||  wellOutputMissing) && opt.readFromDisk
+        if nargout > 1 && opt.readFromDisk
             states{i} = sh{i};
         end
         if wantWells && opt.readWellSolsFromDisk
             if wellOutputMissing
-                ws{i} = states{i}.wellSol;
+                if isempty(states{i})
+                    ws{i} = sh{i}.wellSol;
+                else
+                    ws{i} = states{i}.wellSol;
+                end
             else
                 try
                     ws{i} = wh{i};

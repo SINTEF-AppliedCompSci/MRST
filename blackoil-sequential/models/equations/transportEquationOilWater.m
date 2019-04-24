@@ -13,24 +13,12 @@ opt = struct('Verbose', mrstVerbose, ...
 opt = merge_options(opt, varargin{:});
 W = drivingForces.W;
 
-s = model.operators;
-f = model.fluid;
-
+op = model.operators;
 solveAllPhases = opt.solveForWater && opt.solveForOil;
-
 [p, sW, sO, wellSol] = model.getProps(state, 'pressure', 'water', 'oil', 'wellsol');
+[sW0, sO0] = model.getProps(state0, 'water', 'oil');
 
-[p0, sW0, sO0] = model.getProps(state0, 'pressure', 'water', 'oil');
-
-% If timestep has been split relative to pressure, linearly interpolate in
-% pressure.
-pFlow = p;
-if isfield(state, 'timestep')
-    dt_frac = dt/state.timestep;
-    p = p.*dt_frac + p0.*(1-dt_frac);
-end
-%Initialization of independent variables ----------------------------------
-
+% Initialization of independent variables ----------------------------------
 assert(~opt.reverseMode, 'Backwards solver not supported for splitting');
 if solveAllPhases
     if ~opt.resOnly
@@ -38,7 +26,8 @@ if solveAllPhases
     end
     primaryVars = {'sW', 'sO'};
     sT = sO + sW;
-    [krW, krO] = model.evaluateRelPerm({sW./sT, sO./sT});
+    s = {sW./sT, sO./sT};
+    s0 = state.s;
 else
     if ~opt.resOnly
         sW = model.AutoDiffBackend.initVariablesAD(sW);
@@ -46,36 +35,31 @@ else
     primaryVars = {'sW'};
     sO = 1 - sW;
     sT = ones(size(value(sW)));
-    [krW, krO] = model.evaluateRelPerm({sW, sO});
+    s = {sW, sO};
 end
-
-
-clear tmp
-
+state = model.setProp(state, 's', s);
+state = model.initPropertyContainers(state);
 % -------------------------------------------------------------------------
+[b, pv] = model.getProps(state, 'ShrinkageFactors', 'PoreVolume');
+[b0, pv0] = model.getProps(state0, 'ShrinkageFactors', 'PoreVolume');
 
-% Multipliers for properties
-[pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
+[mob, pc, rhogdz, rho, T] = model.getProps(state, 'Mobility', ...
+                                               'CapillaryPressure', ...
+                                               'GravityPotentialDifference', ...
+                                               'Density', ...
+                                               'Transmissibility');
+if solveAllPhases
+    state.s = s0;
+end
+[bW, bO] = deal(b{:});
+[bW0, bO0] = deal(b0{:});
+[mobW, mobO] = deal(mob{:});
 
-% Modifiy relperm by mobility multiplier (if any)
-krW = mobMult.*krW; krO = mobMult.*krO;
-
-% Compute transmissibility
-T = s.T.*transMult;
-
-% Gravity gradient per face
-gdz = model.getGravityGradient();
-
-% Evaluate water properties
-[vW, bW, mobW, rhoW, pW, upcw, dpW] = getFluxAndPropsWater_BO(model, p, sW, krW, T, gdz);
-
-% Evaluate oil properties
-[vO, bO, mobO, rhoO, pO, upco, dpO] = getFluxAndPropsOil_BO(model, p, sO, krO, T, gdz);
-
-gp = s.Grad(p);
-Gw = gp - dpW;
-Go = gp - dpO;
-
+Gw = -rhogdz{1};
+Go = -rhogdz{2};
+if ~isempty(pc{1})
+    Gw = Gw - op.Grad(pc{1});
+end
 
 if model.extraStateOutput
     state = model.storebfactors(state, bW, bO, []);
@@ -116,16 +100,12 @@ if ~isempty(W)
     end
 
 end
-
 % Get total flux from state
 flux = sum(state.flux, 2);
 vT = flux(model.operators.internalConn);
 
-rho = {rhoW, rhoO};
-mob = {mobW, mobO};
 sat = {sW, sO};
 G = {Gw, Go};
-
 
 components = {{sT.*bW,  []}, ...
               {[],      sT.*bO}};
@@ -134,20 +114,19 @@ upstr = model.operators.faceUpstr;
     state, G, vT, T, mob, rho, components, upstr, model.upwindType);
 [waterFlux, oilFlux] = deal(q_components{:});
 
-
 if model.outputFluxes
     state = model.storeFluxes(state, q_phase{:}, []);
 end
 
 if opt.solveForWater
-    wat = (s.pv/dt).*(pvMult.*bW.*sW - pvMult0.*f.bW(p0).*sW0) + s.Div(waterFlux);
+    wat = (1/dt).*(pv.*bW.*sW - pv0.*bW0.*sW0);
     if ~isempty(W)
         wat(wc) = wat(wc) - bWqW;
     end
 end
 
 if opt.solveForOil
-    oil = (s.pv/dt).*( pvMult.*bO.*sO - pvMult0.*f.bO(p0).*sO0 ) + s.Div(oilFlux);
+    oil = (1/dt).*(pv.*bO.*sO - pv0.*bO0.*sO0);
     if ~isempty(W)
         oil(wc) = oil(wc) - bOqO;
     end
@@ -155,27 +134,30 @@ end
 
 if solveAllPhases
     eqs = {wat, oil};
+    fluxes = {waterFlux, oilFlux};
     names = {'water', 'oil'};    
     types = {'cell', 'cell'};
 elseif opt.solveForOil
     eqs = {oil};
+    fluxes = {oilFlux};
     names = {'oil'};
     types = {'cell'};
 else
     eqs = {wat};
+    fluxes = {waterFlux};
     names = {'water'};
     types = {'cell'};
 end
 
 
-[eqs, state, src] = addBoundaryConditionsAndSources(model, eqs, names, types, state, ...
-                                     {pFlow, pFlow}, sat, mob, rho, ...
+[eqs, state] = addBoundaryConditionsAndSources(model, eqs, names, types, state, ...
+                                     {p, p}, sat, mob, rho, ...
                                      {}, {}, ...
                                      drivingForces);
-
-if ~model.useCNVConvergence
-    for i = 1:(opt.solveForOil+opt.solveForWater)
-        eqs{i} = eqs{i}.*(dt./s.pv);
+for i = 1:numel(eqs)
+    eqs{i} = op.AccDiv(eqs{i}, fluxes{i});
+    if ~model.useCNVConvergence
+        eqs{i} = eqs{i}.*(dt./op.pv);
     end
 end
 

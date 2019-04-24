@@ -9,25 +9,29 @@ function results = runTestsAD(varargin)
     
     import matlab.unittest.TestRunner;
 
-    suites = {};
-    names = {};
+    ix = 1;
+    [names, suites] = deal(cell(opt.runUnit + opt.runIntegration, 1));
     if opt.runUnit
-        suites{end+1} = getUnitTestSuiteMRST();
-        names{end+1} = 'unit';
+        suites{ix} = getUnitTestSuiteMRST();
+        names{ix} = 'unit';
+        ix = ix+1;
     end
     
     if opt.runIntegration
-        suites{end+1} = getIntegrationTestSuiteMRST();
-        names{end+1} = 'integration';
+        suites{ix} = getIntegrationTestSuiteMRST();
+        names{ix} = 'integration';
+        ix = ix+1;
     end
     
     if opt.runExamples
-        suites{end+1} = getExampleIntegrationTestSuiteMRST();
-        names{end+1} = 'examples';
+        [suite, nm] = getExampleIntegrationTestSuiteMRST(mrstPath(), 'seperateModules', true);
+        suites = [suites; suite];
+        names = [names; nm];
     end
     
     results = [];
     for i = 1:numel(suites)
+        fprintf('Running test suite %d of %d: %s\n', i, numel(suites), names{i});
         runner = TestRunner.withTextOutput;
         res = runner.run(suites{i});
         results = [results, res]; %#ok
@@ -36,6 +40,7 @@ function results = runTestsAD(varargin)
             if exist(outd, 'dir') == 0
                 mkdir(outd);
             end
+            mrstModule add ad-unittest
             tapFile = fullfile(outd, [names{i}, '.tap']);
             writeTestsTAP_YAMLISH(res, tapFile)
         end

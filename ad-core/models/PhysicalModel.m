@@ -643,7 +643,7 @@ methods
                                    varargin{:});
         end
         if model.verbose
-            printConvergenceReport(resnames, values, convergence, iteration);
+            printConvergenceReport(resnames, values, convergence, iteration, isConverged);
         end
         report = model.makeStepReport(...
                         'LinearSolver', linearReport, ...
@@ -858,7 +858,11 @@ methods
                 'Unknown variable field %s', name);
         else
             if iscell(state.(fn))
-                p = state.(fn){index};
+                if ischar(index)
+                    p = state.(fn);
+                else
+                    p = state.(fn){index};
+                end
             else
                 p = state.(fn)(:, index);
             end

@@ -27,6 +27,15 @@ function out = getMexDiscreteDivergenceJacPrecomputes(model)
 
 
     [c, ps] = rlencode(cellNo);
+    if numel(ps) ~= G.cells.num
+        % we have some neighborless cells, insert zeros in ps accordingly
+        cix = false(G.cells.num, 1);
+        cix(cellNo) = true;
+        tmp = ps;
+        ps = zeros(G.cells.num,1);
+        ps(cix) = tmp;
+    end
+        
     facePos = cumsum([1; ps]);
 
     localCellIndex = zeros(G.cells.num, 1);

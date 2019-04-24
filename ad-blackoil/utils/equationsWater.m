@@ -91,13 +91,13 @@ f = model.fluid;
 
 %Initialization of independent variables ----------------------------------
 
-if ~opt.resOnly,
+if ~opt.resOnly
     % ADI variables needed since we are not only computing residuals.
-    if ~opt.reverseMode,
-        [p, wellVars{:}] = initVariablesADI(p, wellVars{:});
+    if ~opt.reverseMode
+        [p, wellVars{:}] = model.AutoDiffBackend.initVariablesAD(p, wellVars{:});
     else
         wellVars0 = model.FacilityModel.getAllPrimaryVariables(wellSol0);
-        [p0, wellVars0{:}] = initVariablesADI(p0, sW0, wellVars0{:});  %#ok
+        [p0, wellVars0{:}] = model.AutoDiffBackend.initVariablesAD(p0, sW0, wellVars0{:});  %#ok
     end
 end
 primaryVars = {'pressure', wellVarNames{:}};

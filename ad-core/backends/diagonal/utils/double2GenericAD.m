@@ -1,22 +1,22 @@
-function u = double2NewAD(u, sample)
-% Convert a double to NewAD variable, using a sample NewAD variable for dimensions
+function u = double2GenericAD(u, sample)
+% Convert a double to GenericAD variable, using a sample GenericAD variable for dimensions
 %
 % SYNOPSIS:
-%   u = double2NewAD(u, adivar)
+%   u = double2GenericAD(u, adivar)
 %
 % REQUIRED PARAMETERS:
-%   u      - Double to be converted to NewAD.
+%   u      - Double to be converted to GenericAD.
 %
-%   sample - Sample variable of the type NewAD to be used.
+%   sample - Sample variable of the type GenericAD to be used.
 % RETURNS:
 %
 %   u      - Variable with same type as sample and same value as u
-%            initially had. If u is a NewAD class instance, u will have zero
+%            initially had. If u is a GenericAD class instance, u will have zero
 %            jacobians with the same number of primary variables as the
 %            jacobians of sample.
 %
 % SEE ALSO:
-%   `NewAD`
+%   `GenericAD`
 
 %{
 Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
@@ -48,7 +48,7 @@ nval  = numel(u);
 jac  = cellfun(@(j) makeZero(j, nval), ...
                sample.jac, 'UniformOutput', false);
 
-u = NewAD(u,jac);
+u = GenericAD(u,jac);
 u.numVars = sample.numVars;
 u.offsets = sample.offsets;
 end

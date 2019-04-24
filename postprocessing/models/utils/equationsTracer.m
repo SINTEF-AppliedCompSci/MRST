@@ -1,6 +1,7 @@
 function [problem, state] = equationsTracer(state0, state, model, dt, drivingForces, varargin)
 
     nt = model.getNumberOfTracers();
+    op = model.operators;
     
     [tracers, tracers0] = deal(cell(nt, 1));
     primaryVars = model.tracerNames;
@@ -8,35 +9,67 @@ function [problem, state] = equationsTracer(state0, state, model, dt, drivingFor
     [tracers0{:}] = model.getProps(state0, primaryVars{:});
     
     [tracers{:}] = initVariablesADI(tracers{:});
-    W = drivingForces.W;
-    aw=find([W.status]);
     %[vT, qT] = getFlux(model, state); 
-    vT = sum(state.flux(model.operators.internalConn, :), 2);
-    qT = sum(vertcat(state.wellSol(aw).flux), 2);
+    vT = sum(state.flux(op.internalConn, :), 2);
     
     [eqs, types] = deal(cell(1, nt));
     names = primaryVars;
-    op = model.operators;
     flag = vT > 0;
     
+    W = drivingForces.W;
+    if ~isempty(W)
+        aw = find([W.status]);
+        qT = sum(vertcat(state.wellSol(aw).flux), 2);
+        wc = vertcat(W(aw).cells);
+        p2w = getPerforationToWellMapping(W(aw));
+        comp = vertcat(W(aw).tracer);
+        comp = comp(p2w, :);
+        cmap = sparse(wc,[1:numel(wc)]',1,model.G.cells.num,numel(wc));
+        inj = qT > 0;
+    end
+
+    bc = drivingForces.bc;
+    % bc term requires following fields
+    % - flux2qextmap : mapping from flux values to flux on external faces
+    %                  oriented towards outer domain
+    % - flux2qbcmap : mapping from flux values to flux on the source face
+    %                  oriented towards outer domain
+    % - bc2extmap : mapping from values at source faces to external faces
+    % - ext2cellmap : mapping from values at external faces to adjacent cell
+    %                 (used to compute influx)
+    % - tracers : concentration of the tracers at the source faces.
     
-    wc = vertcat(W(aw).cells);
-    p2w = getPerforationToWellMapping(W(aw));
-    comp = vertcat(W(aw).tracer);
-    comp = comp(p2w, :);
-    
-    cmap=sparse(wc,[1:numel(wc)]',1,model.G.cells.num,numel(wc));
-    inj = qT > 0;
-    for i = 1:nt
+    if ~isempty(bc)
+        flux2qextmap = bc.flux2qextmap;
+        flux2qbcmap  = bc.flux2qbcmap;
+        bc2extmap    = bc.bc2extmap;
+        qext2cellmap = bc.qext2cellmap;
+        qext = flux2qextmap*state.flux;
+        qext(qext < 0) = 0;
+        qbc = flux2qbcmap*state.flux;
+        qbc(qbc > 0) = 0;
+    end
+
+    for i = 1 : nt
         t = tracers{i};
         t0 = tracers0{i};
         vi = op.faceUpstr(flag, t).*vT;
-        % Conservatio neqn
+        % Conservation eqn
         eqs{i} = (op.pv./dt).*(t - t0) + op.Div(vi);
         
-        % Composition source terms
-        qi = (inj.*comp(:, i) + ~inj.*t(wc)).*qT;
-        eqs{i} = eqs{i} - cmap*qi;
+        if ~isempty(W)
+            % Composition source terms
+            qi = (inj.*comp(:, i) + ~inj.*t(wc)).*qT;
+            eqs{i} = eqs{i} - cmap*qi;
+        end
+        
+        if ~isempty(bc)
+            % Composition source terms
+            conc = qext2cellmap'*t;
+            bcconc = bc.tracers{i};
+            q = qext2cellmap*(conc.*qext + bc2extmap*(bcconc.*qbc));
+            eqs{i} = eqs{i} + q;
+        end
         
         types{i} = 'cell';
     end
