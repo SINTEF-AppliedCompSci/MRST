@@ -294,7 +294,7 @@ function ti = perm2directionalTrans(model, p, cdir)
 assert(size(p,2)==1, ...
        'Input p should be single column representing permeability in direction cdir');
 % make perm represent diag perm tensor with zero perm orthogonal to cdir
-dp = double(p);
+dp = value(p);
 r.perm = zeros(numel(dp), 3);
 r.perm(:, cdir) = dp;
 ti = computeTrans(model.G, r);
