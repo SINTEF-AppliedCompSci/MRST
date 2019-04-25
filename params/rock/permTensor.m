@@ -52,7 +52,7 @@ function [K, r, c] = permTensor(rock, dim)
 %   nKg = sum(cfn(:,r) .* bsxfun(@times, K(cellNo,:), g(c)), 2);
 %
 % SEE ALSO:
-%   `computeMimeticIP`, `computeTrans`.
+%   `computeTrans`.
 
 %{
 Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
@@ -73,72 +73,30 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
-   if isempty(rock) || ~isfield(rock, 'perm'),
+   if isempty(rock) || ~isfield(rock, 'perm')
       error(msgid('Rock:Empty'), ...
             '''rock'' structure must contain valid field ''perm''.')
    end
 
    [nc, nk] = size(rock.perm);
-   if dim == 1,
-      assert(nk==1, ...
-      'A one dimensional domain does not support multi-component tensors.');
+   if dim == 1
+      assert (nk == 1, ...
+             ['A one dimensional domain does not support ', ...
+              'multi-component tensors.']);
 
       K = rock.perm;
       r = 1;
       c = 1;
 
-   elseif dim == 2,
-      switch nk,
-         case 1,
-            % Isotropic.
-
-            K = rock.perm * [1, 0, 1];
-
-         case 2,
-            % Diagonal.
-
-            K = [rock.perm(:,1), zeros([nc,1]), rock.perm(:,2)];
-
-         case 3,
-            % Full, symmetric, 2-by-2.
-
-            K = rock.perm;
-
-         otherwise,
-            error(msgid('PermDim:Unsupported'), ...
-                 ['%d-component permeability value is not supported ', ...
-                  'in two space dimensions.'], nk);
-      end
+   elseif dim == 2
+      K = symmetric_2D(rock, nk, nc);
 
       K = K(:, [1, 2, 2, 3]);
       r =      [1, 1, 2, 2] ;
       c =      [1, 2, 1, 2] ;
 
-   elseif dim == 3,
-      switch nk,
-         case 1,
-            % Isotropic.
-
-            K = rock.perm * [1, 0, 0, 1, 0, 1];
-
-         case 3,
-            % Diagonal.
-
-            K = [rock.perm(:,1), zeros([nc,2]), ...
-                 rock.perm(:,2), zeros([nc,1]), ...
-                 rock.perm(:,3)];
-
-         case 6,
-            % Full, symmetric, 3-by-3.
-
-            K = rock.perm;
-
-         otherwise,
-            error(msgid('PermDim:Unsupported'), ...
-                 ['%d-component permeability value is not supported ', ...
-                  'in three space dimensions.'], nk);
-      end
+   elseif dim == 3
+      K = symmetric_3D(rock, nk, nc);
 
       K = K(:, [1, 2, 3, 2, 4, 5, 3, 5, 6]);
       r =      [1, 1, 1, 2, 2, 2, 3, 3, 3] ;
@@ -147,5 +105,59 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    else
       error(msgid('PermDim:Unsupported'), ...
             '%d space dimensions are unsupported at this time.', dim);
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function K = symmetric_2D(rock, nk, nc)
+   switch nk
+      case 1
+         % Isotropic.
+
+         K = rock.perm * [1, 0, 1];
+
+      case 2
+         % Diagonal.
+
+         K = [rock.perm(:,1), zeros([nc,1]), rock.perm(:,2)];
+
+      case 3
+         % Full, symmetric, 2-by-2.
+
+         K = rock.perm;
+
+      otherwise
+         error(msgid('PermDim:Unsupported'), ...
+              ['%d-component permeability value is not supported ', ...
+               'in two space dimensions.'], nk);
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function K = symmetric_3D(rock, nk, nc)
+   switch nk
+      case 1
+         % Isotropic.
+
+         K = rock.perm * [1, 0, 0, 1, 0, 1];
+
+      case 3
+         % Diagonal.
+
+         K = [rock.perm(:,1), zeros([nc,2]), ...
+              rock.perm(:,2), zeros([nc,1]), ...
+              rock.perm(:,3)];
+
+      case 6
+         % Full, symmetric, 3-by-3.
+
+         K = rock.perm;
+
+      otherwise
+         error(msgid('PermDim:Unsupported'), ...
+              ['%d-component permeability value is not supported ', ...
+               'in three space dimensions.'], nk);
    end
 end
