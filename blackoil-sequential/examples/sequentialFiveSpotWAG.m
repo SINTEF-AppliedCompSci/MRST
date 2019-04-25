@@ -87,7 +87,7 @@ schedule.control = [struct('W', W_water);... % Water control 1
 % Set timesteps
 schedule.step.val = dt;
 % Alternate between the gas and water controls every 90 days
-schedule.step.control = (mod(cumsum(dt), 2*dT_target) > dT_target) + 1;
+schedule.step.control = (mod(cumsum(dt), 2*dT_target) >= dT_target) + 1;
 
 % Plot the changes in schedule control
 figure(1), clf
@@ -95,6 +95,7 @@ ctrl = repmat(schedule.step.control', 2, 1);
 x = repmat(cumsum(dt/year)', 2, 1);
 y = repmat([0; 1], 1, size(ctrl, 2));
 surf(x, y, ctrl)
+colormap(jet)
 view(0, 90)
 axis equal tight
 set(gca, 'YTick', []);
