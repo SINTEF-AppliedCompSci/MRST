@@ -214,8 +214,8 @@ sol = repmat(struct('time', [], 'pressure', [], 'bhp', [], 'qS', []), ...
              [numSteps + 1, 1]);
 
 % Initial state
-sol(1)  = struct('time', 0, 'pressure', double(p_ad), ...
-                 'bhp', double(bhp_ad), 'qS', double(qS_ad));
+sol(1)  = struct('time', 0, 'pressure', value(p_ad), ...
+                 'bhp', value(bhp_ad), 'qS', value(qS_ad));
 
 %% Main loop
 t = 0; step = 0;
@@ -227,7 +227,7 @@ while t < totTime,
 
    % Newton loop
    converged = false;
-   p0  = double(p_ad); % Previous step pressure
+   p0  = value(p_ad); % Previous step pressure
    nit = 0;
    while ~converged && (nit < maxits),
       % Add source terms to homogeneous pressure equation:
@@ -260,8 +260,8 @@ while t < totTime,
    if ~ converged,
       error('Newton solves did not converge')
    else % store solution
-      sol(step+1)  = struct('time', t, 'pressure', double(p_ad), ...
-                            'bhp', double(bhp_ad), 'qS', double(qS_ad));
+      sol(step+1)  = struct('time', t, 'pressure', value(p_ad), ...
+                            'bhp', value(bhp_ad), 'qS', value(qS_ad));
    end
 end
 
