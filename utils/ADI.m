@@ -61,7 +61,13 @@ classdef ADI
       %--------------------------------------------------------------------
       function h = double(u)
           % Cast to double and thereby remove derivatives:
-          warning('Double on ADI may be deprecated. Use ''value'' instead.');
+          iname = inputname(1);
+          if isempty(iname), iname = 'expression'; end
+
+          warning('Future:Deprecation', ...
+                 ['Method ADI/double may become deprecated. Use ', ...
+                  '''value(%s)'' instead.'], iname);
+
           h = value(u);
       end
 
