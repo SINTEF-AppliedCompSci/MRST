@@ -54,6 +54,7 @@ end
 [bW, bO] = deal(b{:});
 [bW0, bO0] = deal(b0{:});
 [mobW, mobO] = deal(mob{:});
+[rhoW, rhoO] = deal(rho{:});
 
 Gw = -rhogdz{1};
 Go = -rhogdz{2};
