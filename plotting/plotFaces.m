@@ -86,7 +86,6 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
    % Split input and options, assuming first string input is an option
    i     = cellfun(@ischar, varargin);
    first = find(i, 1, 'first');
@@ -144,105 +143,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    assert (max(faces) <= G.faces.num, ...
            'Faces in face list exceed number of faces in grid.');
 
-   if G.griddim == 3,
-      % If G is a coarsegrid, lookup finegrid data in parent
-      if isCoarseGrid(G),
-         [f, fno] = getSubFaces(G, faces);
-         if mod(numel(varargin), 2), varargin{1} = varargin{1}(fno);end
+   if G.griddim == 3
 
-         % Marker-related otions are collected in marker_opts
-         ix          = rldecode(strncmpi('marker', varargin(1:2:end), 6), 2);
-         marker_opts = varargin(ix);
-         varargin    = varargin(~ix);
-
-         % Edge-related options are collected in edge_opts
-         ix = rldecode(strncmpi('edge', varargin(1:2:end), 4)', 2) | ...
-            rldecode(strncmpi('line', varargin(1:2:end), 4)', 2);
-         edge_opts = varargin(ix);
-         varargin  = varargin(~ix);
-
-
-         h = plotPatches(G.parent, f, 'edgec', 'none', varargin{:});
-         set(get(h, 'Parent'), 'ZDir', 'reverse')
-         h = [h; plotFaceOutline(G, faces, edge_opts{:})];
-
-         if numel(marker_opts) > 0,
-            CG = G;
-            G  = G.parent;
-
-            ff = CG.faces.fconn;
-            ffno = rldecode(1:CG.faces.num, diff(CG.faces.connPos), 2)';
-
-            % Bug here:  A node is shared by two (or more) faces in 2D and
-            % three (or more faces) in 3D.  This definition does not
-            % coincide with "shared by two edges" hack above.
-
-            % This check must be done per block: Check implementation of
-            % cellNodes!
-
-            [d, p] = copyRowsFromPackedData(G.faces.nodes, G.faces.nodePos, ff);
-            fedges = [d, d(rot(p, 1))];
-            faceno = rldecode(ffno, diff(p));
-            tmp    = rlencode(sortrows([faceno, fedges(:,1); faceno, fedges(:,2)], [2,1]));
-            [n,n]  = rlencode(tmp(:,2)); N=rldecode(n,n);
-            nodes  = rlencode(tmp(N>2, :));
-
-            holdstate   = ishold;
-            hold on;
-            %plot3(G.nodes.coords(nodes,1), G.nodes.coords(nodes, 2), G.nodes.coords(nodes, 3), 'linestyle','none', marker_opts{:});
-            if ~holdstate, hold off; end
-
-            %warning('Nodes in 3d is currently not supported');
-         end
-
-      else
-         h = plotPatches(G, faces, color, 'EdgeColor', 'k', varargin{:});
-         set(get(h, 'Parent'), 'ZDir', 'reverse')
-      end
+      h = plotFaces3D(G, faces, color, varargin{:});
 
    else
 
-      % If G is a coarsegrid, lookup finegrid data in parent
-      if isCoarseGrid(G),
-         CG = G;
-         f  = getSubFaces(G, faces);
-         G  = G.parent;
-      else
-         f  = faces;
-      end
+      h = plotFaces2D(G, faces, varargin{:});
 
-      % Separate otions: marker-related stuff is sent to separate plotting
-      ix          = rldecode(strncmpi('marker', varargin(1:2:end), 6), 2);
-      marker_opts = varargin(ix);
-      varargin    = varargin(~ix);
-
-      % Plot fine grid edges specified by either coarse or fine grid.
-      ix          = mcolon(G.faces.nodePos(f), G.faces.nodePos(f+1)-1);
-      edges       = reshape(G.faces.nodes(ix), 2, []) .';
-      h           = plotLineSegments(G, edges, varargin{:});
-      set(get(h, 'Parent'), 'ZDir', 'reverse');
-
-      % Find unique endpoints - if varargin contains 'marker*'
-      if numel(marker_opts) > 0
-         try
-            faceno = rldecode(faces(:), (CG.faces.connPos(faces+1)-CG.faces.connPos(faces))*2, 1);
-         catch %#ok
-            faceno = rldecode(faces(:), 2);
-         end
-
-         e     = reshape(G.faces.nodes, 2, [])';
-         e     = reshape(e(f,:)', [], 1);
-         [E,n] = rlencode(sortrows([faceno, e]));
-         nodes = E(n==1,2);
-
-         holdstate = ishold;
-
-         hold on;
-         patch('vertices', G.nodes.coords(nodes,:), ...
-               'faces'   , (1:numel(nodes)) .', marker_opts{:});
-
-         if ~holdstate, hold off; end
-      end
    end
    
    if plotOutline,
@@ -259,17 +167,138 @@ end
 
 %--------------------------------------------------------------------------
 
+function h = plotFaces3D(G, faces, color, varargin)
+   % If G is a coarsegrid, lookup finegrid data in parent
+   if isCoarseGrid(G)
+      h = plotFaces3DCoarseGrid(G, faces, varargin{:});
+   else
+      h = plotPatches(G, faces, color, 'EdgeColor', 'k', varargin{:});
+      set(get(h, 'Parent'), 'ZDir', 'reverse')
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function h = plotFaces2D(G, faces, varargin)
+   % If G is a coarsegrid, lookup finegrid data in parent
+   if isCoarseGrid(G)
+      CG = G;
+      f  = getSubFaces(G, faces);
+      G  = G.parent;
+   else
+      f  = faces;
+   end
+
+   % Separate otions: marker-related stuff is sent to separate plotting
+   ix          = rldecode(strncmpi('marker', varargin(1:2:end), 6), 2);
+   marker_opts = varargin(ix);
+   varargin    = varargin(~ix);
+
+   % Plot fine grid edges specified by either coarse or fine grid.
+   ix          = mcolon(G.faces.nodePos(f), G.faces.nodePos(f+1)-1);
+   edges       = reshape(G.faces.nodes(ix), 2, []) .';
+   h           = plotLineSegments(G, edges, varargin{:});
+   set(get(h, 'Parent'), 'ZDir', 'reverse');
+
+   % Find unique endpoints - if varargin contains 'marker*'
+   if numel(marker_opts) > 0
+      try
+         faceno = rldecode(faces(:), (CG.faces.connPos(faces+1)-CG.faces.connPos(faces))*2, 1);
+      catch %#ok
+         faceno = rldecode(faces(:), 2);
+      end
+
+      e     = reshape(G.faces.nodes, 2, [])';
+      e     = reshape(e(f,:)', [], 1);
+      [E,n] = rlencode(sortrows([faceno, e]));
+      nodes = E(n==1,2);
+
+      holdstate = ishold;
+
+      hold on;
+      patch('vertices', G.nodes.coords(nodes,:), ...
+            'faces'   , (1:numel(nodes)) .', marker_opts{:});
+
+      if ~holdstate, hold off; end
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function h = plotFaces3DCoarseGrid(G, faces, varargin)
+   [f, fno] = getSubFaces(G, faces);
+
+   if mod(numel(varargin), 2), varargin{1} = varargin{1}(fno); end
+
+   % Marker-related otions are collected in marker_opts
+   ix          = rldecode(strncmpi('marker', varargin(1:2:end), 6), 2);
+   %marker_opts = varargin(ix);
+   varargin    = varargin(~ix);
+
+   % Edge-related options are collected in edge_opts
+   ix = rldecode(strncmpi('edge', varargin(1:2:end), 4)', 2) | ...
+        rldecode(strncmpi('line', varargin(1:2:end), 4)', 2);
+
+   edge_opts = varargin(ix);
+   varargin  = varargin(~ix);
+
+   h = plotPatches(G.parent, f, 'EdgeColor', 'none', varargin{:});
+   set(get(h, 'Parent'), 'ZDir', 'reverse')
+
+   h = [h; plotFaceOutline(G, faces, edge_opts{:})];
+
+%{
+   if numel(marker_opts) > 0
+      CG = G;
+      G  = G.parent;
+
+      ff = CG.faces.fconn;
+      ffno = rldecode(1:CG.faces.num, diff(CG.faces.connPos), 2)';
+
+      % Bug here:  A node is shared by two (or more) faces in 2D and three
+      % (or more faces) in 3D.  This definition does not coincide with
+      % "shared by two edges" hack above.
+
+      % This check must be done per block: Check implementation of
+      % cellNodes!
+
+      [d, p] = copyRowsFromPackedData(G.faces.nodes, G.faces.nodePos, ff);
+      fedges = [d, d(rot(p, 1))];
+      faceno = rldecode(ffno, diff(p));
+
+      tmp    = rlencode(sortrows([faceno, fedges(:,1); faceno, fedges(:,2)], [2,1]));
+
+      [n,n]  = rlencode(tmp(:,2));
+      N      = rldecode(n, n);
+      nodes  = rlencode(tmp(N > 2, :));
+
+      holdstate = ishold;
+      hold on;
+
+      %plot3(G.nodes.coords(nodes,1), G.nodes.coords(nodes, 2), G.nodes.coords(nodes, 3), 'linestyle','none', marker_opts{:});
+
+      if ~holdstate, hold off; end
+
+      %warning('Nodes in 3d is currently not supported');
+   end
+%}
+end
+
+%--------------------------------------------------------------------------
+
 function h = plotLineSegments(G, e, varargin)
 % Plot all line segments given by node pairs in each row in e.
    e = unique([e ; fliplr(e)], 'rows');
+
    if isfield(G.nodes, 'z')
-       % Grid is 2d, but contains z coordinates in extra field.
-       coord = [G.nodes.coords, G.nodes.z];
+      % Grid is 2d, but contains z coordinates in extra field.
+      coord = [G.nodes.coords, G.nodes.z];
    else
-       % Expected case.
-       coord = G.nodes.coords;
+      % Expected case.
+      coord = G.nodes.coords;
    end
-   h = patch('vertices', coord, 'faces', e, varargin{:});
+
+   h = patch('Vertices', coord, 'Faces', e, varargin{:});
 end
 
 %--------------------------------------------------------------------------
@@ -283,6 +312,7 @@ end
 
 %--------------------------------------------------------------------------
 
+%{
 function ix = rot(pos, offset)
    num    = diff(pos);
    offset = mod(offset, num); % net offset
@@ -294,13 +324,16 @@ function ix = rot(pos, offset)
    ix(mcolon(pos(1:end-1) + num - offset, pos(2:end) - 1)) = ...
       mcolon(pos(1:end-1), pos(2:end) - 1 - num + offset);
 end
+%}
 
 %--------------------------------------------------------------------------
 
+%{
 function [d, p] = copyRowsFromPackedData(d, p, rows)
    d = d(mcolon(p(rows), p(rows+1) - 1));
    p = cumsum([1 ; double(p(rows+1) - p(rows))]);
 end
+%}
 
 %--------------------------------------------------------------------------
 
