@@ -110,10 +110,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       pos   = G.faces.nodePos;
    end
 
-   [f, verts] = get_face_topo     (nodes, pos, faces);
+   [f, verts] = get_face_topo(nodes, pos, faces);
    v          = G.nodes.coords(verts, :);
-   if(isfield(G.nodes,'z'))
-      v= [v,G.nodes.z(verts)];
+   if isfield(G.nodes, 'z')
+      v = [v, G.nodes.z(verts)];
    end
 
    if ~strcmpi(get(gcf, 'Renderer'), 'OpenGL') && ...
@@ -140,14 +140,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    end
 
    if size(f, 1) == size(v, 1)
-       % plotPatches uses FaceVertexCData to plot face data. The internal
-       % MATLAB patch function decides if the data is given per vertex or
-       % face based on a check of lengths. However, if the sizes are
-       % exactly *equal* it defaults to vertex data. This can happen when
-       % dynamically plotting subsets of fronts. In this case, we add a
-       % dummy vertex consisting of NaN which has no influence on the plot,
-       % but ensures that the data is interpreted as face data.
-       v = [v; NaN(1, size(v, 2))];
+      % plotPatches uses FaceVertexCData to plot face data.  MATLAB's PATCH
+      % function decides if the data is given per vertex or face based on a
+      % check of lengths.  However if the sizes are exactly *equal*, PATCH
+      % defaults to interpreting the property as vertex data.  In MRST,
+      % this can happen when dynamically plotting subsets of fronts.  Work
+      % around this behaviour by adding a single dummy vertex with all NaN
+      % coordinates.  This has no influence on the plot, but ensures that
+      % the 'colour' data is correctly interpreted as face-related.
+      v = [v; NaN([1, size(v, 2)])];
    end
 
    % Build final patch for graphical output (Note: added to GCA).
