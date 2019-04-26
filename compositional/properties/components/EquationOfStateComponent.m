@@ -43,7 +43,9 @@ classdef EquationOfStateComponent < ComponentImplementation
             index = component.componentIndex - model.water;
             ci = comp_i(:, index);
             if any(ci ~= 0)
-                c{index} = ci;
+                for i = (1+model.water):nph
+                    c{i} = ci;
+                end
             end
         end
     end
