@@ -117,7 +117,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    end
 
    if ~strcmpi(get(gcf, 'Renderer'), 'OpenGL') && ...
-         need_render_fixes(varargin{:}),
+         need_render_fixes(varargin{:})
       set(gcf, 'Renderer', 'OpenGL');
    end
 
@@ -132,9 +132,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    %
    if ischar(colour), colour = get_rgb(colour); end
 
-   if any(size(colour,1) == [1, numel(faces)]),
+   if any(size(colour,1) == [1, numel(faces)])
       fc     = 'flat';
-   elseif size(colour,1) == G.nodes.num,
+   elseif size(colour,1) == G.nodes.num
       colour = colour(verts,:);
       fc     = 'interp';
    end
@@ -151,7 +151,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    end
 
    % Build final patch for graphical output (Note: added to GCA).
-   if size(colour,1) == 1,
+   if size(colour,1) == 1
       % Separate one-colour treatment to enable vector graphics (e.g.,
       % PRINT('-depsc2', ...)).
       h = patch('Faces'    , f     , 'Vertices', v, ...
@@ -220,7 +220,7 @@ end
 function b = need_render_fixes(varargin)
    b = false;
 
-   if (ispc || ismac) && ~isempty(varargin),
+   if (ispc || ismac) && ~isempty(varargin)
       % Render fixes (possibly) needed on Microsoft Windows and MacOS X.
       opt = varargin(1 : 2 : end);
       val = varargin(2 : 2 : end);
@@ -229,7 +229,7 @@ function b = need_render_fixes(varargin)
       % whether or not we need to override rendering options.
       %
       i = find(strncmpi('facea', opt, numel('facea')), 1, 'last');
-      if ~isempty(i),
+      if ~isempty(i)
          % Render fixes needed for non-scalar 'FaceAlpha' or when
          % FaceAlpha < 1.
          b = (numel(val{i}) > 1) || ...
@@ -241,7 +241,7 @@ end
 %--------------------------------------------------------------------------
 
 function rgb = get_rgb(colour)
-   switch lower(colour),
+   switch lower(colour)
       case {'y', 'yellow' }, rgb = [1, 1, 0];
       case {'m', 'magenta'}, rgb = [1, 0, 1];
       case {'c', 'cyan'   }, rgb = [0, 1, 1];
