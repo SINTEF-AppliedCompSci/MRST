@@ -14,8 +14,13 @@ classdef GenericNaturalVariables < NaturalVariablesCompositionalModel & Extended
         end
         
         function [eqs, names, types, state] = getModelEquations(model, state0, state, dt, drivingForces)
+            % Discretize
             [eqs, flux, names, types] = model.FluxDiscretization.componentConservationEquations(model, state, state0, dt);
             src = model.FacilityModel.getComponentSources(state);
+            % Define helper variables
+            wat = model.water;
+            ncomp = numel(names);
+            n_hc = ncomp - wat;
             % Assemble equations and add in sources
             for i = 1:numel(eqs)
                 if ~isempty(src.cells)
@@ -23,14 +28,23 @@ classdef GenericNaturalVariables < NaturalVariablesCompositionalModel & Extended
                 end
                 eqs{i} = model.operators.AccDiv(eqs{i}, flux{i});
             end
-            wat = model.water;
-            ncomp = numel(names);
-            
+            if false
+                cMass = value(model.getProp(state0, 'ComponentTotalMass')');
+                massT = sum(cMass, 2);
+                scale = (dt./massT);
+                for i = 1:ncomp
+                    eqs{i} = eqs{i}.*scale;
+                end
+            else
+                massT = model.getComponentScaling(state0);
+                scale = (dt./model.operators.pv)./massT;
+                for i = 1:ncomp
+                    eqs{i} = eqs{i}.*scale;
+                end
+            end
             % Natural variables part
             [pureLiquid, pureVapor, twoPhase] = model.getFlag(state);
-            n_hc = ncomp - wat;
             cnames = model.EOSModel.fluid.names;
-            
             f = model.getProps(state, 'Fugacity');
             f_eqs = cell(1, n_hc);
             f_names = cell(1, n_hc);
