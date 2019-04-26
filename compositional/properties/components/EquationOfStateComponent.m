@@ -1,8 +1,6 @@
 classdef EquationOfStateComponent < ComponentImplementation
     properties
         componentIndex % Global component numbering
-        dependencies = {};
-        externals = [];
     end
     
     methods
