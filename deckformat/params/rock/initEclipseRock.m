@@ -100,10 +100,10 @@ function rock = getRegions(rock, deck)
        end
        if hasSURF
            % relative permeability with surfactant are given as saturation
-           % tables. Therefore, we need to process the SATNUM field (if not
-           % done before)
+           % tables. Therefore, we need to process the SATNUM field (if it has
+           % not been done before)
            regions.surfactant = deck.REGIONS.SURFNUM;
-           if ~hasSAT
+           if ~hasSAT && isfield(deck.REGIONS, 'SATNUM')
                regions.saturation = deck.REGIONS.SATNUM;
            end
        end
