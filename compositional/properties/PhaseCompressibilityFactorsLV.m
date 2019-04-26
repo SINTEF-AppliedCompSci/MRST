@@ -23,7 +23,7 @@ classdef PhaseCompressibilityFactorsLV < GridProperty
             V_mix = mix{V_ix};
             
             Z_L = eos.computeCompressibilityZ(p, x, L_mix.A, L_mix.B, L_mix.Si, L_mix.Bi, true);
-            Z_V = eos.computeCompressibilityZ(p, y, V_mix.A, V_mix.B, V_mix.Si, V_mix.Bi, true);
+            Z_V = eos.computeCompressibilityZ(p, y, V_mix.A, V_mix.B, V_mix.Si, V_mix.Bi, false);
             
             s = getSampleAD(p, x{:}, y{:});
             
