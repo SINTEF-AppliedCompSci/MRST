@@ -1,8 +1,6 @@
 classdef ImmiscibleComponent < ComponentImplementation
     properties
         phaseIndex % Index of phase this component belongs to
-        dependencies = {};
-        externals = [];
     end
     
     methods
