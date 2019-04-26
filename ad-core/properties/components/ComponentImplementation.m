@@ -1,6 +1,8 @@
 classdef ComponentImplementation
     properties
         name
+        dependencies = {};
+        externals = [];
     end
     
     methods
