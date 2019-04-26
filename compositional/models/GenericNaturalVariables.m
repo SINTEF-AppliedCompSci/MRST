@@ -113,6 +113,7 @@ classdef GenericNaturalVariables < NaturalVariablesCompositionalModel & Extended
                 model.FlowPropertyFunctions = CompositionalFlowPropertyFunctions(model);
             end
             model = validateModel@NaturalVariablesCompositionalModel(model, varargin{:});
+            model.FluxDiscretization.GravityPotentialDifference.saturationWeighting = true;
         end
         
         function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)

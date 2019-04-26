@@ -26,7 +26,7 @@ classdef CompositionalViscosityLV < GridProperty
             oix = phInd == 2;
             mu{oix} = pm.computeViscosity(p, x, Z{oix}, T, true);
             gix = phInd == 3;
-            mu{gix} = pm.computeViscosity(p, y, Z{oix}, T, false);
+            mu{gix} = pm.computeViscosity(p, y, Z{gix}, T, false);
         end
     end
 end
