@@ -83,10 +83,11 @@ end
 %--------------------------------------------------------------------------
 
 function rock = getRegions(rock, deck)
-   hasPVT = isfield(deck.REGIONS, 'PVTNUM') && max(deck.REGIONS.PVTNUM) > 1;
-   hasSAT = isfield(deck.REGIONS, 'SATNUM') && max(deck.REGIONS.SATNUM) > 1;
-   hasIMB = isfield(deck.REGIONS, 'IMBNUM') && max(deck.REGIONS.IMBNUM) > 1;
-   if hasPVT || hasSAT || hasIMB
+   hasPVT  = isfield(deck.REGIONS, 'PVTNUM') && max(deck.REGIONS.PVTNUM) > 1;
+   hasSAT  = isfield(deck.REGIONS, 'SATNUM') && max(deck.REGIONS.SATNUM) > 1;
+   hasIMB  = isfield(deck.REGIONS, 'IMBNUM') && max(deck.REGIONS.IMBNUM) > 1;
+   hasSURF = isfield(deck.REGIONS, 'SURFNUM');
+   if hasPVT || hasSAT || hasIMB || hasSURF
        regions = struct();
        if hasPVT
            regions.pvt = deck.REGIONS.PVTNUM;
@@ -97,8 +98,18 @@ function rock = getRegions(rock, deck)
        if hasIMB
            regions.imbibition = deck.REGIONS.IMBNUM;
        end
+       if hasSURF
+           % relative permeability with surfactant are given as saturation
+           % tables. Therefore, we need to process the SATNUM field (if not
+           % done before)
+           regions.surfactant = deck.REGIONS.SURFNUM;
+           if ~hasSAT
+               regions.saturation = deck.REGIONS.SATNUM;
+           end
+       end
        rock.regions = regions;
    end
+
 end
 
 function rock = getScaling(rock, deck)
