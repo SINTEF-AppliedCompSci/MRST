@@ -12,7 +12,7 @@ classdef ComponentTotalMass <  GridProperty & ComponentProperty
             ncomp = model.getNumberOfComponents;
             nph = model.getNumberOfPhases;
             mass = cell(ncomp, 1);
-            phase_mass = state.(prop.structName).ComponentPhaseMass;
+            phase_mass = prop.getEvaluatedDependencies(state, 'ComponentPhaseMass');
             for c = 1:ncomp
                 % Loop over phases where the component may be present
                 for ph = 1:nph
