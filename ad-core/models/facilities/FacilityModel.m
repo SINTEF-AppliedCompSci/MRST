@@ -30,7 +30,7 @@ classdef FacilityModel < PhysicalModel
     %   `ReservoirModel`, `PhysicalModel`, `SimpleWell`
 
     properties
-        WellModels % Cell array of instansiated wells
+        WellModels % Cell array of instantiated wells
         FacilityFluxDiscretization
 
         toleranceWellBHP % Convergence tolerance for BHP-type controls
