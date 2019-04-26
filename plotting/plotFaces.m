@@ -91,7 +91,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    first = find(i, 1, 'first');
    if mod(numel(varargin)-first+1, 2), first = first + 1; end
 
-   if any(first),
+   if any(first)
       other_input = varargin(1:first-1);
       varargin    = varargin(first:end);
    else
@@ -105,15 +105,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    [plotOutline, varargin] = do_outline_p(varargin{:});
    
    color = 'y';
-   switch numel(other_input),
-      case 0,
-         if G.griddim == 2,
+   switch numel(other_input)
+      case 0
+         if G.griddim == 2
             faces = 1:G.faces.num;
          else
             faces = boundaryFaces(G, 1:G.cells.num);
          end
 
-         if ~any(strcmpi(varargin, 'FaceColor')),
+         if ~any(strcmpi(varargin, 'FaceColor'))
             varargin = [varargin, {'FaceColor', 'y'}];
          end
       case 1
@@ -122,7 +122,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             assert(numel(faces) == G.faces.num);
             faces = find(faces);
          end
-         if ~any(strcmpi(varargin, 'FaceColor')),
+         if ~any(strcmpi(varargin, 'FaceColor'))
             varargin = [varargin, {'FaceColor', 'y'}];
          end
       case 2
@@ -135,7 +135,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          error('What!?');
    end
    
-   if isempty(faces),
+   if isempty(faces)
       if nargout > 0, varargout(1 : nargout) = { [] }; end
       return
    end
@@ -153,7 +153,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    end
    
-   if plotOutline,
+   if plotOutline
       pts = findFaceOutline(G, faces);
       do_hold = ishold();
       hold on, plot3(pts(:,1), pts(:,2), pts(:,3), 'k');
@@ -369,7 +369,7 @@ function pts = findFaceOutline(g, faces)
    fe = fe (fi(faceNo),:);
    nodes = double(fe(all(nodeflag(fe), 2), :));
 
-   if numel(nodes) > 0,
+   if numel(nodes) > 0
       % Remove edges which appear more than once.  These edges are
       % considered internal in the collection of faces.  The remaining
       % edges are on the outer boundary.
