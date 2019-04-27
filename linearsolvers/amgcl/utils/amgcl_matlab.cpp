@@ -38,7 +38,7 @@
 
 /* Block system support */
 #ifndef AMGCL_BLOCK_SIZES
-#  define AMGCL_BLOCK_SIZES (2)(3)
+#  define AMGCL_BLOCK_SIZES (2)(3)(4)(5)(6)(7)(8)(9)(10)
 #endif
 
 #ifndef SOLVER_BACKEND_BUILTIN
@@ -292,6 +292,8 @@ void solve_regular(int n, const mwIndex * cols, mwIndex const * rows, const doub
 #if defined(SOLVER_BACKEND_BUILTIN)
         BOOST_PP_SEQ_FOR_EACH(AMGCL_BLOCK_SOLVER, ~, AMGCL_BLOCK_SIZES)
 #endif
+        default:
+            mexErrMsgIdAndTxt("AMGCL:UndefBlockSize", "Failure: Block size not supported.");
     }
 }
 
