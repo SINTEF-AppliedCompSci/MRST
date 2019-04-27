@@ -32,7 +32,7 @@ else
     msz = size(mat)
     fprintf(fn,'%d ',msz(1));
     fprintf(fn,'%d ',msz(2));
-    fprintf(fn,'%d',size(mat,1));
+    %fprintf(fn,'%d',size(mat,1));
     fprintf(fn,'\n');
     fprintf(fn,'%g\n',mat);
     fclose(fn)

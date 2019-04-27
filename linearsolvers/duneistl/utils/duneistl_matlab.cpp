@@ -15,16 +15,17 @@
 #include <iomanip>
 #include <cmath>
 #include <limits>
+#include "mrst_duneistl.hpp"
 //#include <boost/program_options.hpp>
-#include <dune/common/parallel/mpihelper.hh>
-#include <dune/istl/bcrsmatrix.hh>
-#include <dune/istl/matrixmarket.hh>
-#include <dune/common/fmatrix.hh>
-#include <dune/istl/solvers.hh>
-#include <dune/istl/preconditioners.hh>
-#include <dune/istl/umfpack.hh>
-#include <dune/istl/solvers.hh>
-/* MEX gateway */
+// #include <dune/common/parallel/mpihelper.hh>
+// #include <dune/istl/bcrsmatrix.hh>
+// #include <dune/istl/matrixmarket.hh>
+// #include <dune/common/fmatrix.hh>
+// #include <dune/istl/solvers.hh>
+// #include <dune/istl/preconditioners.hh>
+// #include <dune/istl/umfpack.hh>
+// #include <dune/istl/solvers.hh>
+
 
 void mexFunction( int nlhs, mxArray *plhs[],
 		  int nrhs, const mxArray *prhs[] )
@@ -80,71 +81,32 @@ void mexFunction( int nlhs, mxArray *plhs[],
     // double tolerance = mxGetScalar(prhs[3]);
     // int maxiter = mxGetScalar(prhs[4]);
     // int solver_strategy_id = mxGetScalar(prhs[5]);
-    constexpr int bz = 3;
-    char *matrixfilename = mxArrayToString(prhs[0]);
-    std::string matrixfile(matrixfilename);
-    char *rhsfilename = mxArrayToString(prhs[1]);
-    std::string rhsfile(rhsfilename);
-    std::cout << matrixfile << std::endl;
-    typedef Dune::BCRSMatrix< Dune::FieldMatrix< double, bz, bz > > MatrixType;
-    typedef Dune::BlockVector< Dune::FieldVector< double, bz > > VectorType;
-    MatrixType matrix;
-    VectorType rhs;
-    {
-      std::ifstream infile(rhsfile);
-      if(!infile){
-	throw std::runtime_error("Rhs file not read");
-      }
-      Dune::readMatrixMarket(rhs,infile);
-    }
-    {
-      std::ifstream infile(matrixfile);
-      if(!infile){
-	throw std::runtime_error("Matrix file not read");
-      }
-      Dune::readMatrixMarket(matrix,infile);
-    }
-    Dune::Timer perfTimer;
-    perfTimer.start();
-    double tol = 1e-4;
-    int maxiter = 200;
-    int verbosity = 10;
-    Dune::SeqILU0<MatrixType, VectorType, VectorType> preconditioner(matrix, 1.0);
-    Dune::MatrixAdapter<MatrixType, VectorType, VectorType> linearOperator(matrix);
-    Dune::BiCGSTABSolver<VectorType> linsolver(linearOperator,
-					       preconditioner,
-					       tol, // desired residual reduction factor
-					       maxiter, // maximum number of iterations
-					       verbosity); 
     
-
-    int m = bz*rhs.size();
+    char *matrixfilename = mxArrayToString(prhs[0]);
+    char *rhsfilename = mxArrayToString(prhs[1]);
+    //int m  = mxArrayToInt(prhs[2]);
+    double mm = mxGetScalar(prhs[2]);
+    int m(mm);
+    double bzm = mxGetScalar(prhs[3]);
+    int bz(bzm);
+    /* Assign a pointer to the output */
+    //y = mxGetDoubles(plhs[0]);
+    std::string rhsfile(rhsfilename);
+    std::string matrixfile(matrixfilename);
     plhs[0] = mxCreateDoubleMatrix(m, 1, mxREAL);
     double* result = mxGetPr(plhs[0]);
-    VectorType x(rhs.size());
-    Dune::InverseOperatorResult res;
-    linsolver.apply(x, rhs, res);
-    double time = perfTimer.stop();
-//x[0]=5;
-    int i = 0;
-    for(size_t ic = 0; ic < rhs.size(); ic++){
-        for(size_t ib = 0; ib < bz; ib++){
-         result[i] = x[ic][ib];
-          i++;
-         }
+
+    if(bz==1){    
+      mrst::BlockIlu0Solver<1> solver;
+      solver.solve(result,matrixfile,rhsfile);
+    }else if(bz == 2){
+      mrst::BlockIlu0Solver<2> solver;
+      solver.solve(result,matrixfile,rhsfile); 
+    }else if(bz ==3){
+      mrst::BlockIlu0Solver<3> solver;
+      solver.solve(result,matrixfile,rhsfile); 
+    }else{
+      std::cout<< "BlockIlu0 solver not implemented for blocksize " << bz << std::endl;
     }
-    // int    iters;
-    // double error;
-    // std::vector<double> x(M, 0.0);
-    
-   
-    
-    // for(int ix=0; ix < M; ix++){
-    //     result[ix] = x[ix];
-    // }
-    // x.clear();
-    // b.clear();
-    // err[0] = error;
-    // it_count[0] = iters;
     return;
 }
