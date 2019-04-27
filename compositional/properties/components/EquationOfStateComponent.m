@@ -25,10 +25,13 @@ classdef EquationOfStateComponent < ComponentImplementation
         function c = getPhaseComposition(component, model, state, varargin)
             mw = model.EOSModel.fluid.molarMass;
             nph = model.getNumberOfPhases();
+            wat = model.water;
             c = cell(nph, 1);
             ix = component.componentIndex - model.water;
             % Just put "lighter" components in gas phase by default
-            c{component.componentIndex} = double(mw(ix) > mean(mw));
+            isHeavy = mw(ix) > mean(mw);
+            c{1 + wat} = double(isHeavy);
+            c{2 + wat} = double(~isHeavy);
         end
         
         function c = getPhaseCompositionSurface(component, model, state, pressure, temperature)
