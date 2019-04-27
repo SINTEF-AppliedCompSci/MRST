@@ -249,7 +249,6 @@ methods
         return
     end
 
-    
     function model = validateModel(model, varargin)
         % Validate model and check if it is ready for simulation
         %
@@ -285,6 +284,43 @@ methods
         return
     end
     
+    function schedule = validateSchedule(model, schedule)
+        assert(isfield(schedule, 'control'), ...
+            'Schedule is missing .control field. Cannot define driving forces.')
+        assert(isfield(schedule, 'step'), ...
+            'Schedule is missing .step field. Cannot define time-steps.')
+        assert(isfield(schedule.step, 'val'), ...
+            'Schedule is missing .step.val field. Cannot define time-steps.')
+        assert(isfield(schedule.step, 'control'), ...
+            'Schedule is missing .step.control field. Cannot define controls for each time-step.')
+        steps = schedule.step;
+        assert(numel(steps.val) == numel(steps.control), ...
+            'The time-steps in schedule.step.val and control indices in schedule.step.control must have the same size.');
+        nctrl = numel(schedule.control);
+        mctrl = max(schedule.step.control);
+        if nctrl < mctrl
+            error('schedule.control has length %d, but the largest control in schedule.step.control was %d.', nctrl, mctrl);
+        end
+        assert(min(schedule.step.control) > 0, ...
+            'schedule.step.control must be non-negative indices into schedule.control.');
+        assert(all(schedule.step.val >= 0), ...
+            'Negative time-steps present in schedule.step.val');
+        for i = 1:numel(schedule.control)
+            schedule.control(i) = model.validateDrivingForces(schedule.control(i));
+        end
+    end
+    
+    function forces = validateDrivingForces(model, forces)
+        validforces = model.getValidDrivingForces();
+        fn_valid = fieldnames(validforces);
+        fn = fieldnames(forces);
+        for i = 1:numel(fn)
+            if ~any(strcmp(fn{i}, fn_valid))
+                error('Provided driving force field "%s" is not present in the output from model.getValidDrivingForces().', fn{i});
+            end
+        end
+    end
+
     function [model, state] = prepareReportstep(model, state, state0, dT, drivingForces)
         % Prepare state and model (temporarily) before solving a report-step
         model = model.validateModel(drivingForces);
