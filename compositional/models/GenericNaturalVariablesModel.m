@@ -1,10 +1,10 @@
-classdef GenericNaturalVariables < NaturalVariablesCompositionalModel & ExtendedReservoirModel
+classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & ExtendedReservoirModel
     properties
         
     end
     
     methods
-        function model = GenericNaturalVariables(varargin)
+        function model = GenericNaturalVariablesModel(varargin)
             model = model@NaturalVariablesCompositionalModel(varargin{:});
             model.OutputProperties = {'ComponentTotalMass'};
         end
@@ -92,19 +92,32 @@ classdef GenericNaturalVariables < NaturalVariablesCompositionalModel & Extended
             end
             if isempty(model.Components)
                 f = model.EOSModel.fluid;
-                names = f.names;
+                names_hc = f.names;
+                n_hc = numel(names_hc);
                 if model.water
-                    names = ['water', names];
+                    names = ['water', names_hc];
+                else
+                    names = names_hc;
                 end
                 nc = numel(names);
                 model.Components = cell(1, nc);
-                
+                p = model.FacilityModel.pressure;
+                T = model.FacilityModel.T;
                 for ci = 1:nc
-                    switch names{ci}
+                    name = names{ci};
+                    switch name
                         case 'water'
                             c = ImmiscibleComponent('water', 1);
                         otherwise
-                            c = EquationOfStateComponent(names{ci}, ci);
+                            z = zeros(1, n_hc);
+                            z(strcmp(names_hc, name)) = 1;
+                            L = standaloneFlash(p, T, z, model.EOSModel);
+                            if model.water
+                                frac = [0, L, 1-L];
+                            else
+                                frac = [L, 1-L];
+                            end
+                            c = EquationOfStateComponent(names{ci}, ci, frac);
                     end
                     model.Components{ci} = c;
                 end

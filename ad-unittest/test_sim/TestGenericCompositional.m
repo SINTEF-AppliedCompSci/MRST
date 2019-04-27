@@ -77,7 +77,7 @@ classdef TestGenericCompositional < matlab.unittest.TestCase
                 'AutoDiffBackend', auto};
             switch lower(modelType)
                 case 'natural'
-                    model = GenericNaturalVariables(arg{:});
+                    model = GenericNaturalVariablesModel(arg{:});
                 case 'natural-legacy'
                     model = NaturalVariablesCompositionalModel(arg{:});
                 otherwise
