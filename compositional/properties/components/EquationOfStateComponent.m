@@ -1,12 +1,14 @@
 classdef EquationOfStateComponent < ComponentImplementation
     properties
         componentIndex % Global component numbering
+        surfacePhaseMassFractions % Mass fraction for each phase
     end
     
     methods
-        function c = EquationOfStateComponent(name, cindex)
+        function c = EquationOfStateComponent(name, cindex, surfaceMassFractions)
             c@ComponentImplementation(name);
             c.componentIndex = cindex;
+            c.surfacePhaseMassFractions = surfaceMassFractions;
             c = c.dependsOn({'Density', 'ComponentPhaseMassFractions'});
         end
         
@@ -28,10 +30,9 @@ classdef EquationOfStateComponent < ComponentImplementation
             wat = model.water;
             c = cell(nph, 1);
             ix = component.componentIndex - model.water;
-            % Just put "lighter" components in gas phase by default
-            isHeavy = mw(ix) > mean(mw);
-            c{1 + wat} = double(isHeavy);
-            c{2 + wat} = double(~isHeavy);
+            for i = 1:nph
+                c{i} = component.surfacePhaseMassFractions(i);
+            end
         end
         
         function c = getPhaseCompositionSurface(component, model, state, pressure, temperature)
