@@ -329,9 +329,9 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Ext
                 eos = model.EOSModel;
                 for i = 1:numel(forces.W)
                     z = forces.W(i).components;
+                    [L, x, y, Z_L, Z_V, rhoL, rhoV] = standaloneFlash(p, T, z, eos);
                     if false
                         % Use flash
-                        [L, x, y, Z_L, Z_V, rhoL, rhoV] = standaloneFlash(p, T, z, eos);
                         [sL, sV] = eos.computeSaturations(rhoL, rhoV, x, y, L, Z_L, Z_V);
                         % compi is a mass-fraction in practice
                         L_mass = sL.*rhoL./(sL.*rhoL + sV.*rhoV);
@@ -339,8 +339,6 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Ext
                     else
                         % Use the pre-computed definition of light/heavy
                         % components to determine "compi"
-                        % TODO: Also correct the rates so that they match
-                        % the prescribed mass-rates defined by rhoS.
                         Z = eos.getMassFraction(z);
                         isEOS = cellfun(@(x) isa(x, 'EquationOfStateComponent'), model.Components);
                         val = cellfun(@(x) x.surfacePhaseMassFractions, model.Components(isEOS), 'UniformOutput', false)';
@@ -353,8 +351,12 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Ext
                             'W.compi must be present for compositional flow with water phase.');
                         sW = forces.W(i).compi(1);
                         comp = [sW, comp.*(1-sW)];
+                        rho = [model.fluid.rhoWS, rhoL, rhoV];
+                    else
+                        rho = [rhoL, rhoV];
                     end
                     forces.W(i).compi = comp;
+                    forces.W(i).rhoS = rho;
                 end
             end
         end

@@ -45,7 +45,7 @@ classdef TestGenericCompositional < matlab.unittest.TestCase
             
             nkr = [2, 3, 4];
             mu = [1, 5, 0.1]*centi*poise;
-            rhoS = [1000, 700, 10];
+            rhoS = [1000, 10, 10];
             c = [0, 1e-7, 1e-4]/barsa;
             
             ph = 'wog';
