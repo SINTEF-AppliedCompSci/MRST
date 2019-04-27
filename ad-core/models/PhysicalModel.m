@@ -285,12 +285,12 @@ methods
         return
     end
     
-        function [model, state] = prepareReportstep(model, state, state0, dT, drivingForces)
-            % Prepare state and model (temporarily) before solving a report-step
-            model = model.validateModel(drivingForces);
-        end
+    function [model, state] = prepareReportstep(model, state, state0, dT, drivingForces)
+        % Prepare state and model (temporarily) before solving a report-step
+        model = model.validateModel(drivingForces);
+    end
         
-        function [model, state] = prepareTimestep(model, state, state0, dt, drivingForces)
+    function [model, state] = prepareTimestep(model, state, state0, dt, drivingForces)
         % Prepare state and model (temporarily) before solving a time-step
         %
         % SYNOPSIS:
