@@ -48,7 +48,7 @@ classdef WellComponentTotalFlux < GridProperty
                 compi = vertcat(W.compi);
                 if any(crossflow)
                     % allready been disp'ed in WellPhaseFlux
-                    compi = crossFlowMixture(vd, compi, map);
+                    compi = crossFlowMixture(vd, compi, map, true);
                 end
                 compi_perf = compi(map.perf2well, :);
                 vt = zeros(sum(injection), 1);

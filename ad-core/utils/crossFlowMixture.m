@@ -1,4 +1,7 @@
-function compi = crossFlowMixture(flux, compi, map)
+function compi = crossFlowMixture(flux, compi, map, conserveMass)
+    if nargin < 4
+        conserveMass = false;
+    end
     % Into wellbore
     flux_in = -min(flux, 0);
     if all(flux_in == 0)
@@ -11,13 +14,22 @@ function compi = crossFlowMixture(flux, compi, map)
     net_injection = max(net_flux, 0);
     % Flux into well-bore plus net injection weighted with topside
     % composition
-    comp = sum_perf(flux_in, map) + bsxfun(@times, net_injection, compi);
-
-    % Normalize to get fractions
+    sum_in = sum_perf(flux_in, map);
+    top_in =  bsxfun(@times, net_injection, compi);
+    comp = sum_in + top_in;
     compT = sum(comp, 2);
-    comp = bsxfun(@rdivide, comp, compT);
 
-    active = compT > 0;
+    if conserveMass
+        % Ensure exact re-injection with "fractions" which are not in unit
+        % range
+        comp = top_in./sum(max(net_flux, 0), 2);
+        comp(comp == 0 | ~isfinite(comp)) = 0;
+        active = any(comp > 0, 2);
+    else
+        % Normalize to get fractions
+        comp = bsxfun(@rdivide, comp, compT);
+        active = compT > 0;
+    end
     compi(active, :) = comp(active, :);
 end
 
