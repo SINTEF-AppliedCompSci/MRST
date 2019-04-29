@@ -41,20 +41,21 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     Mgc = max(G.cells.centroids);
     mgc = min(G.cells.centroids);
-    crange = Mgc - mgc;
+    crange = (Mgc - mgc)/2;
+    agc    = (mgc + Mgc)/2;
 
 
-    pts = bsxfun(@rdivide, bsxfun(@minus, G.cells.centroids, mgc), crange);
+    pts = bsxfun(@rdivide, bsxfun(@minus, G.cells.centroids, agc), crange);
 
 
-    x = createSlider([-.5 1.5], [.05  0 .90 .1], .4);
+    x = createSlider([-2 2], [.05  0 .90 .1], 0);
     createText('Translate', [.3  .1 .4 .05])
 
-    phi = createSlider([0 180],  [.05  .15 .90 .1], 0);
-    createText('Rotate (x-axis)', [.3  .25 .4 .05])
+    theta = createSlider([-90 90],  [.05  .15 .90 .1], 0);
+    createText('Rotate (around z-axis)', [.3  .25 .4 .05])
 
-    theta = createSlider([0 180], [.05  .30 .90 .1], 0);
-    createText('Rotate (y-axis)', [.3  .4 .4 .05])
+    phi = createSlider([-90 90], [.05  .30 .90 .1], 0);
+    createText('Rotate (around y-axis)', [.3  .4 .4 .05])
 
     thickness = createSlider([0 1], [.05  .45 .90 .1], 0.05);
     createText('Selection thickness', [.3  .55 .4 .05])
@@ -78,15 +79,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
         deleteHandle([planeh, outlineh])
         xv = get(x, 'value');
-        pt0 = repmat(xv, 1, 3);
-        th = get(theta, 'value')*2*pi/360;
+        thv = get(theta, 'value')*2*pi/360;
         phv = get(phi, 'value')*2*pi/360;
-        pt1 = [pt0(1) , pt0(2:3) + [sin(th),  cos(th)]];
-        pt2 = [pt0(1:2) + [sin(phv),  cos(phv)], pt0(3)];
-        N = cross(pt1 - pt0, pt2 - pt0);
-        N = N./norm(N);
-
+        rot1 = [[cos(thv) -sin(thv) 0]; [sin(thv) cos(thv), 0]; [0 0 1]];
+        rot2 = [[cos(phv) 0 -sin(phv)]; [0 1 0]; [sin(phv) 0 cos(phv)]];
+        rot = rot2*rot1;
+        N = rot(:, 1)';
+        
+        pt0 = bsxfun(@times, xv, N);
         tmp = bsxfun(@minus, pts, pt0);
+        
         switch get(selecttype, 'Value')
             case 1
                 filterfun = @(x,y) abs(x) < y;
@@ -97,10 +99,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
         subset = filterfun(sum(bsxfun(@(x,y) (x.*y), tmp, N), 2), get(thickness, 'Value'));
         % Outline plane
-        outlinepts = [0 0; 0 1; 1 1; 1 0];
-        outlinez = (sum(repmat(N(1:2), 4, 1).*(repmat(pt0(1:2), 4, 1) - outlinepts(:, 1:2)), 2) + N(3)*pt0(3))/N(3);
-        outlinepts = [outlinepts, outlinez];
-        outlinepts = bsxfun(@plus, bsxfun(@times, outlinepts, crange), mgc);
+        outlinepts = 1.2*[[-1; -1], [-1; 1], [1; 1], [1; -1]];
+        outlinepts = [zeros(1, 4); outlinepts];
+        outlinepts = bsxfun(@plus, pt0', rot*outlinepts);
+        outlinepts = bsxfun(@plus, bsxfun(@times, outlinepts', crange), agc);
 
         if isempty(opt.Callback)
             planeh = plotCellData(G, data, subset);
