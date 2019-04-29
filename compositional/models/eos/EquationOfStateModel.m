@@ -789,15 +789,19 @@ classdef EquationOfStateModel < PhysicalModel
             end
             subpacked = packed;
             if isfield(subpacked, 'Z_L')
-                subpacked.Z_L.val = subpacked.Z_L.val(twoPhase);
-                subpacked.Z_L.jac = subpacked.Z_L.jac(twoPhase, :);
-                subpacked.Z_V.val = subpacked.Z_V.val(twoPhase);
-                subpacked.Z_V.jac = subpacked.Z_V.jac(twoPhase, :);
-                for i = 1:numel(subpacked.f_L)
-                    subpacked.f_L{i}.val = subpacked.f_L{i}.val(twoPhase);
-                    subpacked.f_L{i}.jac = subpacked.f_L{i}.jac(twoPhase, :);
-                    subpacked.f_V{i}.val = subpacked.f_V{i}.val(twoPhase);
-                    subpacked.f_V{i}.jac = subpacked.f_V{i}.jac(twoPhase, :);
+                if isnumeric(subpacked.Z_L)
+                    subpacked = [];
+                else
+                    subpacked.Z_L.val = subpacked.Z_L.val(twoPhase);
+                    subpacked.Z_L.jac = subpacked.Z_L.jac(twoPhase, :);
+                    subpacked.Z_V.val = subpacked.Z_V.val(twoPhase);
+                    subpacked.Z_V.jac = subpacked.Z_V.jac(twoPhase, :);
+                    for i = 1:numel(subpacked.f_L)
+                        subpacked.f_L{i}.val = subpacked.f_L{i}.val(twoPhase);
+                        subpacked.f_L{i}.jac = subpacked.f_L{i}.jac(twoPhase, :);
+                        subpacked.f_V{i}.val = subpacked.f_V{i}.val(twoPhase);
+                        subpacked.f_V{i}.jac = subpacked.f_V{i}.jac(twoPhase, :);
+                    end
                 end
             end
             z0 = cellfun(@(x) x(twoPhase), z0, 'UniformOutput', false);
