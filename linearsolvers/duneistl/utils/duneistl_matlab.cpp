@@ -32,79 +32,85 @@ void mexFunction( int nlhs, mxArray *plhs[],
 
 {
   
-    // double *result;
-    // double *rhs;
-    // double *err;
-    // double *it_count;
-    // mwSize m,n,nnz;
-    // mwIndex * cols;
-    // mwIndex * rows;
+
+    //mxDouble *rhs;
+    double *rhs;
+    double *err;
+    double *it_count;
+    mwSize nnz;
+    //mxDouble * id;
+    //mxDouble * jd;
+    //mxDouble * vald;
+    double * id;
+    double * jd;
+    double * vald;
     // const mxArray * pa;
 
-    // double * entries;
-    // std::string relaxParam;
-    // std::string coarsenParam;
+    if (nrhs != 7) {
+     	    mexErrMsgTxt("7 input arguments required.");
+    } else if (nlhs > 3) {
+     	    mexErrMsgTxt("Wrong number of output arguments.");
+    }
 
-    // if (nrhs != 6) {
-    // 	    mexErrMsgTxt("6 input arguments required.");
-    // } else if (nlhs > 3) {
-    // 	    mexErrMsgTxt("Wrong number of output arguments.");
-    // }
-
-    // m = mxGetM(prhs[0]);
-    // n = mxGetN(prhs[0]);
-    // int M = (int)m;
-
-    // if (!mxIsDouble(prhs[0]) || mxIsComplex(prhs[0]) ||  !mxIsSparse(prhs[0]) ) {
-    // 	    mexErrMsgTxt("Matrix should be a real sparse matrix.");
-    //     return;
-    // }
-    // if (!mxIsDouble(prhs[1]) || mxIsComplex(prhs[1])) {
-    // 	    mexErrMsgTxt("Right hand side must be real double column vector.");
-    //     return;
-    // }
-    // // main();
-    // plhs[1] = mxCreateDoubleMatrix(1, 1, mxREAL);
-    // plhs[2] = mxCreateDoubleMatrix(1, 1, mxREAL);
-
-    //input_buf = mxArrayToString(prhs[0]);
-    // result = mxGetPr(plhs[0]);
-    // err = mxGetPr(plhs[1]);
-    // it_count = mxGetPr(plhs[2]);
-
-    // cols    = mxGetJc(prhs[0]);
-    // rows    = mxGetIr(prhs[0]);
-    // entries = mxGetPr(prhs[0]);
-    // nnz  = mxGetNzmax(prhs[0]);
-    // rhs     = mxGetPr(prhs[1]);
-    // pa = prhs[2];
-    // double tolerance = mxGetScalar(prhs[3]);
-    // int maxiter = mxGetScalar(prhs[4]);
-    // int solver_strategy_id = mxGetScalar(prhs[5]);
-    
-    char *matrixfilename = mxArrayToString(prhs[0]);
-    char *rhsfilename = mxArrayToString(prhs[1]);
-    //int m  = mxArrayToInt(prhs[2]);
-    double mm = mxGetScalar(prhs[2]);
-    int m(mm);
-    double bzm = mxGetScalar(prhs[3]);
-    int bz(bzm);
+    //id = mxGetDoubles(prhs[0]);
+    //jd = mxGetDoubles(prhs[1]);
+    //vald = mxGetDoubles(prhs[2]);
+    id = mxGetPr(prhs[0]);
+    jd = mxGetPr(prhs[1]);
+    vald = mxGetPr(prhs[2]);
+    nnz = mxGetM(prhs[0]);
+    //rhs = mxGetDoubles(prhs[3]);
+    rhs = mxGetPr(prhs[3]);
+    size_t rows = mxGetM(prhs[3]);
+    //double mm = mxGetScalar(prhs[4]);
+    //int m(mm);
+    double bzm = mxGetScalar(prhs[4]);
+    size_t bz(bzm);
+    double tol = mxGetScalar(prhs[5]);
+    double dmaxiter = mxGetScalar(prhs[6]);
+    int maxiter(dmaxiter);
+    std::cout << "All values set" << std::endl;
     /* Assign a pointer to the output */
     //y = mxGetDoubles(plhs[0]);
-    std::string rhsfile(rhsfilename);
-    std::string matrixfile(matrixfilename);
-    plhs[0] = mxCreateDoubleMatrix(m, 1, mxREAL);
-    double* result = mxGetPr(plhs[0]);
+    
+    std::vector<int> i(nnz);
+    std::vector<int> j(nnz);
+    std::vector<double> val(nnz);
+    for(size_t kk=0; kk<val.size(); ++kk){
+      i[kk] = id[kk];
+      j[kk] = jd[kk];
+      val[kk] = vald[kk];
+    }
+    std::vector<double> orhs(rows);
+    for(size_t kk=0; kk<orhs.size(); ++kk){
+      orhs[kk] = rhs[kk];
+    }
+    // std::cout << "Start solving " << std::endl;
+    // std::cout << "Eq size " << rows << std::endl;
+    // std::cout << "nnz org " << val.size() << std::endl;
+    // std::cout << "tol " << tol << std::endl;
+    // std::cout << "maxiter " << maxiter << std::endl;
+    // std::cout << "******rhs*********" << std::endl;
+    // for(auto x : orhs){
+    //   std::cout << x << std::endl;
+    // }
+    // std::cout << "*******matrix**********" << std::endl;
+    // for(int kk=0; kk < val.size(); ++kk){
+    //   std::cout << i[kk] << " " << j[kk] << " " << val[kk] << std::endl;
+    // }
+    // std::cout << "**********************" << std::endl;
 
+    plhs[0] = mxCreateDoubleMatrix(orhs.size(), 1, mxREAL);
+    double* result = mxGetPr(plhs[0]);
     if(bz==1){    
       mrst::BlockIlu0Solver<1> solver;
-      solver.solve(result,matrixfile,rhsfile);
+      solver.solve(result, i, j, val, rows, orhs, tol, maxiter);
     }else if(bz == 2){
       mrst::BlockIlu0Solver<2> solver;
-      solver.solve(result,matrixfile,rhsfile); 
+      solver.solve(result, i, j, val, rows, orhs, tol, maxiter); 
     }else if(bz ==3){
       mrst::BlockIlu0Solver<3> solver;
-      solver.solve(result,matrixfile,rhsfile); 
+      solver.solve(result, i, j, val, rows, orhs, tol, maxiter); 
     }else{
       std::cout<< "BlockIlu0 solver not implemented for blocksize " << bz << std::endl;
     }

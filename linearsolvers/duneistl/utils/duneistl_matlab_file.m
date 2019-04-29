@@ -1,26 +1,30 @@
-function varargout = duneistl_matlab(varargin)
-%MEX-gateway to dune istl Linear Solver Software
+function varargout = duneistl_matlab_file(varargin)
+%MEX-gateway to AMGCL Linear Solver Software
 %
-% For more information about duneistl, please see:
-% Documentation: ??
-% GitHub repository: ??
+% For more information about AMGCL, please see:
+% Documentation: http://amgcl.readthedocs.io/en/latest/
+% GitHub repository: https://github.com/ddemidov/amgcl/tree/master/examples
 %
 % SYNOPSIS:
-%    x              = duneistl_matlab(i, j, val, b,  tol, maxIter)
-%   [x, err]        = duneistl_matlab(...)
-%   [x, err, nIter] = dunestl_matlab(...)
+%    x              = amgcl_matlab(A, b, amg_opt, tol, maxIter, id)
+%   [x, err]        = amgcl_matlab(...)
+%   [x, err, nIter] = amgcl_matlab(...)
 %
 % PARAMETERS:
-%   [i,j,val] = sparse(A)       - Sparse coefficient matrix of system of simultaneous linear
+%   A       - Sparse coefficient matrix of system of simultaneous linear
 %             equations.
 %
 %   b       - System right-hand side.
 %
+%   amg_opt - AMGCL options structure as defined by function
+%             `getAMGCLMexStruct`.
 %
 %   tol     - Relative residual reduction tolerance.  Positive scalar.
 %
 %   maxIter - Maximum number of linear iterations.
 %
+%   id      - Solver method ID.  Integer.  Supported values are `1` for the
+%             regular solver and `2` for the CPR solver.
 %
 % RETURNS:
 %   x     - Solution vector.
@@ -101,16 +105,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    INCLUDE = strcat('-I', { BOOSTPATH, AMGCLPATH });
 
-   OPTS = { '-O'};
+   OPTS = { '-O' };
 
-   SRC = {'duneistl_matlab.cpp'};
+   SRC = {'duneistl_matlab_file.cpp'};
 
    [CXXFLAGS, LINK, LIBS] = setup_machdep_build_params();
 
    buildmex(OPTS{:}, INCLUDE{:}, CXXFLAGS{:}, SRC{:}, LINK{:}, LIBS{:});
 
    % Call MEX'ed edition.
-   [varargout{1:nargout}] = duneistl_matlab(varargin{:});
+   [varargout{1:nargout}] = duneistl_matlab_file(varargin{:});
 end
 
 %--------------------------------------------------------------------------
