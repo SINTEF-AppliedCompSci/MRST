@@ -18,18 +18,18 @@ function compi = crossFlowMixture(flux, compi, map, conserveMass)
     top_in =  bsxfun(@times, net_injection, compi);
     comp = sum_in + top_in;
     compT = sum(comp, 2);
-
+    % Normalize to get fractions
+    comp = bsxfun(@rdivide, comp, compT);
     if conserveMass
         % Ensure exact re-injection with "fractions" which are not in unit
-        % range
-        comp = top_in./sum(max(net_flux, 0), 2);
-        comp(comp == 0 | ~isfinite(comp)) = 0;
-        active = any(comp > 0, 2);
-    else
-        % Normalize to get fractions
-        comp = bsxfun(@rdivide, comp, compT);
-        active = compT > 0;
+        % range for injectors
+        act = sum(top_in, 2) > 0;
+        % Top net injected composition + sum of composition into well-bore,
+        % divided by total flux out from well-bore
+        tmp = (top_in(act, :) + sum_in(act, :))./sum(max(net_flux(act, :), 0), 2);
+        compi(act, :) = tmp;
     end
+    active = compT > 0;
     compi(active, :) = comp(active, :);
 end
 
