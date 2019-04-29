@@ -164,8 +164,9 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
             end
             z{fill} = z_end;
             state = model.setProp(state, 'components', z);
-            
-            [state.x, state.y, state.L] = model.EOSModel.getPhaseFractionAsADI(state, state.pressure, state.T, state.components);
+            if isa(state.pressure, 'ADI') || isa(z{1}, 'ADI')
+                [state.x, state.y, state.L] = model.EOSModel.getPhaseFractionAsADI(state, state.pressure, state.T, state.components);
+            end
             if ~isempty(model.FacilityModel)
                 % Select facility model variables and pass them off to attached
                 % class.
