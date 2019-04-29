@@ -351,7 +351,7 @@ methods
         switch(lower(name))
             case {'t', 'temperature'}
                 fn = 'T';
-                index = 1;
+                index = ':';
             case {'swmax', 'somax', 'sgmax'}
                 fn = 'sMax';
                 index = model.satVarIndex(name(1:2)); 
