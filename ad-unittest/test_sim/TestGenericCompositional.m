@@ -3,7 +3,7 @@ classdef TestGenericCompositional < matlab.unittest.TestCase
         includeWater = {true, false};
         backend = {'diagonal', 'diagonal-mex', 'sparse'};
         fluidSystem = {'simple'};
-        modelType = {'natural','natural-legacy'};
+        modelType = {'natural','natural-legacy','overall','overall-legacy'};
     end
     
     methods
@@ -80,6 +80,10 @@ classdef TestGenericCompositional < matlab.unittest.TestCase
                     model = GenericNaturalVariablesModel(arg{:});
                 case 'natural-legacy'
                     model = NaturalVariablesCompositionalModel(arg{:});
+                case 'overall'
+                    model = GenericOverallCompositionModel(arg{:});
+                case 'overall-legacy'
+                    model = OverallCompositionCompositionalModel(arg{:});
                 otherwise
                     error('%s is unknown', modelType);
             end
