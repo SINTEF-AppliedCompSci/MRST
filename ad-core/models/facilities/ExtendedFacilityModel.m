@@ -63,10 +63,11 @@ classdef ExtendedFacilityModel < FacilityModel
             q_s = state.FacilityState.primaryVariables(1:nph);
             bhp = state.FacilityState.primaryVariables{nph+1};
             [sn, phnames] = model.getPhaseNames();
-            rhoAvg = mean(value(model.getProps(state0, 'Density')));
+            % Approximate scaling to get the 
+            rhoScale = mean(rhoS, 1)./mean(value(model.getProps(state0, 'Density')), 1);
             for ph = 1:nph
                 surfaceRates{ph} = surfaceRates{ph}./rhoS(:, ph);
-                eqs{ph} = (q_s{ph} - surfaceRates{ph})./rhoAvg(ph);
+                eqs{ph} = (q_s{ph} - surfaceRates{ph}).*rhoScale(ph);
                 names{ph} = [phnames{ph}, 'Wells'];
                 types{ph} = 'perf';
             end
