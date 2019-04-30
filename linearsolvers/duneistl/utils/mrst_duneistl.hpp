@@ -18,6 +18,8 @@
 #include <dune/istl/umfpack.hh>
 #include <dune/istl/solvers.hh>
 
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp> 
 
 namespace Dune
 {
@@ -98,43 +100,25 @@ namespace mrst{
   template <int  bz>
   class BlockIlu0Solver{
   public:
-    BlockIlu0Solver(){};
+    typedef Dune::BCRSMatrix< Dune::FieldMatrix< double, bz, bz > > MatrixType;
+    typedef Dune::BlockVector< Dune::FieldVector< double, bz > > VectorType;
+    
+    BlockIlu0Solver(boost::property_tree::ptree prm): prm_(prm){};
+
+    
     void solve(double* result,std::string matrixfile,std::string rhsfile){
       std::cout << matrixfile << std::endl;
       std::cout << rhsfile << std::endl;
-      typedef Dune::BCRSMatrix< Dune::FieldMatrix< double, bz, bz > > MatrixType;
-      typedef Dune::BlockVector< Dune::FieldVector< double, bz > > VectorType;
-      MatrixType matrix;
-      VectorType rhs;
-      {
-	std::ifstream infile(rhsfile);
-	if(!infile){
-	  throw std::runtime_error("Rhs file not read");
-	}
-	Dune::readMatrixMarket(rhs,infile);
-	//Dune::writeMatrixMarket(rhs,std::cout);
-      }
-      {
-	std::ifstream infile(matrixfile);
-	if(!infile){
-	  throw std::runtime_error("Matrix file not read");
-	}
-	Dune::readMatrixMarket(matrix,infile);
-	std::string tmpmatrix("matrixtmp.txt");
-	std::ofstream outfile(tmpmatrix);
-	if(!outfile){
-	  throw std::runtime_error("Could not write");
-	}
-	Dune::writeMatrixMarket(matrix,outfile);
-      }
+      makeSystem(matrixfile, rhsfile);
+           
       Dune::Timer perfTimer;
       perfTimer.start();
       double tol = 1e-4;
       int maxiter = 200;
       int verbosity = 10;
-      Dune::SeqILU0<MatrixType, VectorType, VectorType> preconditioner(matrix, 1.0);
-      Dune::MatrixAdapter<MatrixType, VectorType, VectorType> linearOperator(matrix);
-      Dune::BiCGSTABSolver<VectorType> linsolver(linearOperator,
+      Dune::SeqILU0<MatrixType, VectorType, VectorType> preconditioner(matrix_, 1.0);
+      Dune::MatrixAdapter<MatrixType, VectorType, VectorType> linearoperator(matrix_);
+      Dune::BiCGSTABSolver<VectorType> linsolver(linearoperator,
 						 preconditioner,
 						 tol, // desired residual reduction factor
 						 maxiter, // maximum number of iterations
@@ -142,23 +126,17 @@ namespace mrst{
     
     
 
-      int m = bz*rhs.size();
+      int m = bz*rhs_.size();
       //plhs[0] = mxCreateDoubleMatrix(m, 1, mxREAL);
       //double* result = mxGetPr(plhs[0]);
-      VectorType x(rhs.size());
+      VectorType x(rhs_.size());
       Dune::InverseOperatorResult res;
-      linsolver.apply(x, rhs, res);
+      linsolver.apply(x, rhs_, res);
       double time = perfTimer.stop();
       //x[0]=5;
-      int i = 0;
-      for(size_t ic = 0; ic < rhs.size(); ic++){
-        for(size_t ib = 0; ib < bz; ib++){
-	  result[i] = x[ic][ib];
-          i++;
-	}
-      }
+      this->makeResult(result,x);
     }
-    
+
     void solve(double* result,
 	       std::vector<int>& i,
 	       std::vector<int>& j,
@@ -167,62 +145,105 @@ namespace mrst{
 	       std::vector<double>& orhs,
 	       double tol,
 	       int maxiter){
-      typedef Dune::BCRSMatrix< Dune::FieldMatrix< double, bz, bz > > MatrixType;
-      typedef Dune::BlockVector< Dune::FieldVector< double, bz > > VectorType;
-      
-      // copy rhs to block vector
-      VectorType rhs(rows/bz);
-      {
-	int lind=0;
-	for(size_t ic = 0; ic < rhs.size(); ic++){
-	  for(size_t ib = 0; ib < bz; ib++){
-	    rhs[ic][ib] = orhs[lind];
-	    lind++;
-	  }
-	}
-      }
-      
-      // make block matrix
-      MatrixType matrix;
-      makeMatrixMarket(matrix,
-		       i,j,val,
+      this->makeSystem(i,
+		       j,
+		       val,
 		       rows,
-		       rows,
-		       val.size());
-  
+		       orhs);
       Dune::Timer perfTimer;
       perfTimer.start();
       //double tol = 1e-4;
       //int maxiter = 200;
       int verbosity = 10;
-      Dune::SeqILU0<MatrixType, VectorType, VectorType> preconditioner(matrix, 1.0);
-      Dune::MatrixAdapter<MatrixType, VectorType, VectorType> linearOperator(matrix);
-      Dune::BiCGSTABSolver<VectorType> linsolver(linearOperator,
-						 preconditioner,
+      preconditioner_.reset(new Dune::SeqILU0<MatrixType, VectorType, VectorType>(matrix_,1.0));
+      //Dune::SeqILU0<MatrixType, VectorType, VectorType> preconditioner(matrix_, 1.0);
+      //Dune::MatrixAdapter<MatrixType, VectorType, VectorType> linearOperator(matrix_);
+      linearoperator_.reset(new Dune::MatrixAdapter<MatrixType, VectorType, VectorType>(matrix_));
+      Dune::BiCGSTABSolver<VectorType> linsolver(*linearoperator_,
+						 *preconditioner_,
 						 tol, // desired residual reduction factor
 						 maxiter, // maximum number of iterations
 						 verbosity); 
     
     
 
-      int m = bz*rhs.size();
+      int m = bz*rhs_.size();
       //plhs[0] = mxCreateDoubleMatrix(m, 1, mxREAL);
       //double* result = mxGetPr(plhs[0]);
-      VectorType x(rhs.size());
+      VectorType x(rhs_.size());
       Dune::InverseOperatorResult res;
-      linsolver.apply(x, rhs, res);
+      linsolver.apply(x, rhs_, res);
       double time = perfTimer.stop();
       //x[0]=5;
-      {
-	int lind = 0;
-	for(size_t ic = 0; ic < rhs.size(); ic++){
-	  for(size_t ib = 0; ib < bz; ib++){
-	    result[lind] = x[ic][ib];
-	    lind++;
-	  }
+      this->makeResult(result,x);
+    }
+  private:
+    void makeResult(double* result,VectorType& x){
+      int i = 0;
+      for(size_t ic = 0; ic < rhs_.size(); ic++){
+        for(size_t ib = 0; ib < bz; ib++){
+	  result[i] = x[ic][ib];
+          i++;
 	}
       }
     }
+    
+    void makeSystem(std::vector<int>& i,
+		    std::vector<int>& j,
+		    std::vector<double>& val,
+		    size_t rows,
+		    std::vector<double>& orhs){
+      // copy rhs to block vector
+      rhs_.resize(rows/bz);
+      {
+	int lind=0;
+	for(size_t ic = 0; ic < rhs_.size(); ic++){
+	  for(size_t ib = 0; ib < bz; ib++){
+	    rhs_[ic][ib] = orhs[lind];
+	    lind++;
+	  }
+	}
+      }    
+      
+      // make block matrix
+      makeMatrixMarket(matrix_,
+		       i,j,val,
+		       rows,
+		       rows,
+		       val.size());
+    
+    }
+    
+    void makeSystem(std::string matrixfile,std::string rhsfile){
+      {
+	std::ifstream infile(rhsfile);
+	if(!infile){
+	  throw std::runtime_error("Rhs file not read");
+	}
+	Dune::readMatrixMarket(rhs_,infile);
+	//Dune::writeMatrixMarket(rhs,std::cout);
+      }
+      {
+	std::ifstream infile(matrixfile);
+	if(!infile){
+	  throw std::runtime_error("Matrix file not read");
+	}
+	Dune::readMatrixMarket(matrix_,infile);
+	std::string tmpmatrix("matrixtmp.txt");
+	std::ofstream outfile(tmpmatrix);
+	if(!outfile){
+	  throw std::runtime_error("Could not write");
+	}
+	Dune::writeMatrixMarket(matrix_,outfile);
+      }
+    }
+
+
+    boost::property_tree::ptree prm_;
+    MatrixType matrix_;
+    VectorType rhs_;
+    std::shared_ptr< Dune::Preconditioner<VectorType,VectorType> > preconditioner_;
+    std::shared_ptr< Dune::MatrixAdapter<MatrixType, VectorType, VectorType> > linearoperator_;
   };
 }
 #endif /* MRST_DUNEISTL_HPP */

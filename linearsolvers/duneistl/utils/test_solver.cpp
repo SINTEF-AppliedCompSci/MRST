@@ -1,11 +1,20 @@
 #include "mrst_duneistl.hpp"
 #include <fstream>
 #include <iostream>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
 int main()
 {
+  namespace pt = boost::property_tree;
+  pt::ptree prm;
+  {
+    std::ifstream file("options.json");
+    pt::read_json(file, prm);
+    pt::write_json(std::cout, prm);
+  }
   std::cout << "Hello, World!";
   constexpr int bz=3;
-  mrst::BlockIlu0Solver<bz> solver;
+  mrst::BlockIlu0Solver<bz> solver(prm);
   std::string matrixfile("matrix_istl.txt");
   std::string rhsfile("rhs_istl.txt");
   std::vector<double> res(9);
@@ -58,11 +67,15 @@ int main()
     std::getline(file,line);
     std::cout << line << std::endl;    
     file >> rows;
-    file >> cols;
+    int tcols;
+    file >> tcols;
     rhs.resize(rows);
+    std::cout << "******** new rhs **********" << std::endl;
     for(int kk=0; kk < rows; ++kk){
       file >> rhs[kk];
+      std::cout << rhs[kk] << std::endl;
      }
+   
   }
   Dune::BCRSMatrix< Dune::FieldMatrix<double,bz,bz> > matrix;
   makeMatrixMarket(matrix,
