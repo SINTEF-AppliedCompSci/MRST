@@ -5,6 +5,7 @@ function [substate0, substate, submodel, subforces, mappings] = getSubsetProblem
     % Create subproblem defined by subs
     isComp = isa(model, 'ThreePhaseCompositionalModel');
     assert(islogical(subs));
+    state = value(state);
     if all(subs)
        substate0 = state0;
        substate = state;
@@ -85,6 +86,7 @@ function [substate0, substate, submodel, subforces, mappings] = getSubsetProblem
         end
         op.Grad = @(x) -C*x;
         op.faceAvg = @(x) M*x;
+        op.AccDiv = @(acc, flux) acc + C'*flux;
         op.splitFaceCellValue = @(operators, flag, x) splitFaceCellValue(operators, flag, x, [nf, nc]);
         if isfield(op, 'diag_updated')
             op = rmfield(op, 'diag_updated');
