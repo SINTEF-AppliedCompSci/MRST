@@ -1,16 +1,16 @@
-function [state, varargout] = solveStationaryPressure(G, state, system, W, fluid, pv, T, varargin)
+function [state, varargout] = solveStationaryPressure(G, state, operators, W, fluid, pv, T, varargin)
 %Solve incompressible, stationary pressure without gravity with optional TOF output
 %
 % SYNOPSIS:
 %  % Compute pressure
-%  state = solveStationaryPressure(G, state, system, W, f, pv, T)
+%  state = solveStationaryPressure(G, state, ops, W, f, pv, T)
 %
 %  % Compute pressure and time of flight / well tracers
-%  [state, D] = solveStationaryPressure(G, state, system, W, f, pv, T)
+%  [state, D] = solveStationaryPressure(G, state, ops, W, f, pv, T)
 %
 %  % Compute pressure, tof/tracer and the well control gradients wrt some
 %  objective function
-%  [state, D, grad] = solveStationaryPressure(G, state, system, W, f, pv, T, 'objective', obj)
+%  [state, D, grad] = solveStationaryPressure(G, state, ops, W, f, pv, T, 'objective', obj)
 %
 %
 % DESCRIPTION:
@@ -30,7 +30,7 @@ function [state, varargout] = solveStationaryPressure(G, state, system, W, fluid
 %            'incompTPFA' and, possibly, a transport solver such as
 %            function 'implicitTransport'.
 %
-%   system - Valid ad solver system as defined by initADISystem.
+%   ops    - Operators from e.g. setupOperatorsTPFA
 %
 %   W      - The well configuration to be used. Unlike many of the other
 %            solvers in MRST, the wells are required and are the only way
@@ -127,8 +127,6 @@ opt = struct('objective',       [],...
 
 opt = merge_options(opt, varargin{:});
 
-s = system.s;
-
 converged = false;
 j = 0;
 perf2well = wellPerf(W);
@@ -148,7 +146,7 @@ while ~converged && j < opt.maxiter
     [pressure, fluxes, bhp]  = initVariablesADI(state.pressure, fluxes, bhp);
 
     % Assemble and solve the pressure
-    [eq_p, faceMob] = assemblePressureEq(state, G, W, T, pressure, fluid, s, fluxes, bhp, pv, opt, [], []);
+    [eq_p, faceMob] = assemblePressureEq(state, G, W, T, pressure, fluid, operators, fluxes, bhp, pv, opt, [], []);
     if opt.computeBasisOnly
         assert(nargout==1)
         state = computeBasis(state, eq_p, opt.linsolve);
@@ -156,7 +154,7 @@ while ~converged && j < opt.maxiter
     end
         
 
-    converged = all(cellfun(@(x) norm(double(x), inf), eq_p) < 1e-5);
+    converged = all(cellfun(@(x) norm(value(x), inf), eq_p) < 1e-5);
     % Currently this is a simple incompressible solver
     j = j + 1;
     if j > 1; break; end
@@ -166,7 +164,7 @@ while ~converged && j < opt.maxiter
     % Update state
     pressure = pressure + sol{1};
     state.pressure = pressure.val;
-    flux = faceMob.*s.grad(pressure);
+    flux = -faceMob.*operators.Grad(pressure);
 
     state.flux(~any(G.faces.neighbors == 0, 2)) = flux.val;
     state.flux = reshape(state.flux, [], 1);
@@ -181,8 +179,8 @@ end
 
 if nargout > 1
     % If requested, solve time of flight equations as well
-    [pressure, fluxes, bhp, tau_forward, tau_backward]  = initVariablesADI(state.pressure, double(fluxes), double(bhp), zeros(G.cells.num, 1), zeros(G.cells.num, 1));
-    [eq, faceMob] = assemblePressureEq(state, G, W, T, pressure, fluid, s, fluxes, bhp, pv, opt, tau_forward, tau_backward);
+    [pressure, fluxes, bhp, tau_forward, tau_backward]  = initVariablesADI(state.pressure, value(fluxes), value(bhp), zeros(G.cells.num, 1), zeros(G.cells.num, 1));
+    [eq, faceMob] = assemblePressureEq(state, G, W, T, pressure, fluid, operators, fluxes, bhp, pv, opt, tau_forward, tau_backward);
 
 
     D = SolveTOFEqsADI(eq, state, W, opt.computeTracer, opt.linsolveTOF);
@@ -195,8 +193,8 @@ if nargout > 2
         ['To output gradients, an objective function must be provided '...
         'under the optional ''''objective'''' keyword!']);
     scaling.well = getWellScaling(W);
-    [pressure, fluxes, bhp, tau_forward, tau_backward]  = initVariablesADI(state.pressure, double(fluxes), double(bhp), D.tof(:,1), D.tof(:,2));
-    [eq, faceMob] = assemblePressureEq(state, G, W, T, pressure, fluid, s, fluxes, bhp, pv, opt, tau_forward, tau_backward);
+    [pressure, fluxes, bhp, tau_forward, tau_backward]  = initVariablesADI(state.pressure, value(fluxes), value(bhp), D.tof(:,1), D.tof(:,2));
+    [eq, faceMob] = assemblePressureEq(state, G, W, T, pressure, fluid, operators, fluxes, bhp, pv, opt, tau_forward, tau_backward);
     varargout{2} = SolveAdjointTOFEqs(eq, D, opt.objective(state, D), scaling, opt.msbasis, opt.linsolve, opt.linsolveTOF);
 end
 
@@ -226,12 +224,12 @@ tm2 = totMob(fn(:,2)).*T(f2hf(:, 2));
 faceTransMob = 1 ./ (1./tm1 + 1./tm2);
 
 
-flux = faceTransMob.*s.grad(pressure);
-pressureeq = s.div(flux) - opt.src;
+flux = -faceTransMob.*s.Grad(pressure);
+pressureeq = s.Div(flux) - opt.src;
 
 if findTof
-    forward_tof  = s.div(flux.*s.faceUpstr(s.grad(pressure) >= 0, tau_forward)) - pv;
-    backward_tof = s.div(-flux.*s.faceUpstr(s.grad(pressure) < 0, tau_backward)) - pv;
+    forward_tof  = s.Div(flux.*s.faceUpstr(s.Grad(pressure) < 0, tau_forward)) - pv;
+    backward_tof = s.Div(-flux.*s.faceUpstr(s.Grad(pressure) >= 0, tau_backward)) - pv;
     isInj = arrayfun(@(x) sum(x.flux) >= 0, state.wellSol) .';
     isProd = ~isInj;
 end
@@ -491,7 +489,7 @@ function f2hf = face2halfface(G)
 nf     = diff(G.cells.facePos);
 cellno = rldecode(1 : G.cells.num, nf, 2) .';
 t      = G.faces.neighbors(G.cells.faces(:,1), 1) == cellno;
-f2hf   = accumarray([double(G.cells.faces(:,1)), double(2 - t)], ...
+f2hf   = accumarray([value(G.cells.faces(:,1)), value(2 - t)], ...
     (1 : numel(cellno)) .', [G.faces.num, 2]);
 
 end
