@@ -10,7 +10,7 @@ classdef GenericBlackOilModel < ThreePhaseBlackOilModel & ExtendedReservoirModel
         end
 
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
-            [problem, state] = getEquations@ReservoirModel(model, state0, state, dt, drivingForces, varargin{:});
+            [problem, state] = getEquations@PhysicalModel(model, state0, state, dt, drivingForces, varargin{:});
         end
 
         function [eqs, names, types, state] = getModelEquations(model, state0, state, dt, drivingForces)

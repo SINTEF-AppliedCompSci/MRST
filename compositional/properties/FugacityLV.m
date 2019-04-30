@@ -17,7 +17,7 @@ classdef FugacityLV < GridProperty
             f = cell(ncomp, 2);
             wat = model.water;
             for i = 1:2
-                xy = mf((1+wat):end, i + wat);
+                xy = mf((1+wat):end, i + wat)';
                 m = mix{i+wat};
                 
                 f(:, i) = model.EOSModel.computeFugacity(p, xy, Z{i+wat}, m.A, m.B, m.Si, m.Bi);

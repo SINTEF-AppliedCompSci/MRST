@@ -1,10 +1,10 @@
-classdef GenericNaturalVariables < NaturalVariablesCompositionalModel & ExtendedReservoirModel
+classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & ExtendedReservoirModel
     properties
         
     end
     
     methods
-        function model = GenericNaturalVariables(varargin)
+        function model = GenericNaturalVariablesModel(varargin)
             model = model@NaturalVariablesCompositionalModel(varargin{:});
             model.OutputProperties = {'ComponentTotalMass'};
         end
@@ -14,8 +14,13 @@ classdef GenericNaturalVariables < NaturalVariablesCompositionalModel & Extended
         end
         
         function [eqs, names, types, state] = getModelEquations(model, state0, state, dt, drivingForces)
+            % Discretize
             [eqs, flux, names, types] = model.FluxDiscretization.componentConservationEquations(model, state, state0, dt);
             src = model.FacilityModel.getComponentSources(state);
+            % Define helper variables
+            wat = model.water;
+            ncomp = numel(names);
+            n_hc = ncomp - wat;
             % Assemble equations and add in sources
             for i = 1:numel(eqs)
                 if ~isempty(src.cells)
@@ -23,14 +28,23 @@ classdef GenericNaturalVariables < NaturalVariablesCompositionalModel & Extended
                 end
                 eqs{i} = model.operators.AccDiv(eqs{i}, flux{i});
             end
-            wat = model.water;
-            ncomp = numel(names);
-            
+            if false
+                cMass = value(model.getProp(state0, 'ComponentTotalMass')');
+                massT = sum(cMass, 2);
+                scale = (dt./massT);
+                for i = 1:ncomp
+                    eqs{i} = eqs{i}.*scale;
+                end
+            else
+                massT = model.getComponentScaling(state0);
+                scale = (dt./model.operators.pv)./massT;
+                for i = 1:ncomp
+                    eqs{i} = eqs{i}.*scale;
+                end
+            end
             % Natural variables part
             [pureLiquid, pureVapor, twoPhase] = model.getFlag(state);
-            n_hc = ncomp - wat;
             cnames = model.EOSModel.fluid.names;
-            
             f = model.getProps(state, 'Fugacity');
             f_eqs = cell(1, n_hc);
             f_names = cell(1, n_hc);
@@ -78,19 +92,32 @@ classdef GenericNaturalVariables < NaturalVariablesCompositionalModel & Extended
             end
             if isempty(model.Components)
                 f = model.EOSModel.fluid;
-                names = f.names;
+                names_hc = f.names;
+                n_hc = numel(names_hc);
                 if model.water
-                    names = ['water', names];
+                    names = ['water', names_hc];
+                else
+                    names = names_hc;
                 end
                 nc = numel(names);
                 model.Components = cell(1, nc);
-                
+                p = model.FacilityModel.pressure;
+                T = model.FacilityModel.T;
                 for ci = 1:nc
-                    switch names{ci}
+                    name = names{ci};
+                    switch name
                         case 'water'
                             c = ImmiscibleComponent('water', 1);
                         otherwise
-                            c = EquationOfStateComponent(names{ci}, ci);
+                            z = zeros(1, n_hc);
+                            z(strcmp(names_hc, name)) = 1;
+                            L = standaloneFlash(p, T, z, model.EOSModel);
+                            if model.water
+                                frac = [0, L, 1-L];
+                            else
+                                frac = [L, 1-L];
+                            end
+                            c = EquationOfStateComponent(names{ci}, ci, frac);
                     end
                     model.Components{ci} = c;
                 end
@@ -99,6 +126,7 @@ classdef GenericNaturalVariables < NaturalVariablesCompositionalModel & Extended
                 model.FlowPropertyFunctions = CompositionalFlowPropertyFunctions(model);
             end
             model = validateModel@NaturalVariablesCompositionalModel(model, varargin{:});
+            model.FluxDiscretization.GravityPotentialDifference.saturationWeighting = true;
         end
         
         function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
@@ -284,6 +312,51 @@ classdef GenericNaturalVariables < NaturalVariablesCompositionalModel & Extended
                     else
                         sO(pureLiquid) = max(sO(pureLiquid), stol);
                     end
+                end
+            end
+        end
+        
+        function forces = validateDrivingForces(model, forces)
+            forces = validateDrivingForces@NaturalVariablesCompositionalModel(model, forces);
+            if ~isempty(forces.W) && numel(forces.W) > 0
+                assert(~isempty(model.FacilityModel), ...
+                    'FacilityModel must be set up before validating driving forces for a compositional problem with wells!');
+                T = model.FacilityModel.T;
+                p = model.FacilityModel.pressure;
+                wat = model.water;
+                assert(isfield(forces.W, 'components'), ...
+                    'Wells must have field .components for a compositional model.');
+                eos = model.EOSModel;
+                for i = 1:numel(forces.W)
+                    z = forces.W(i).components;
+                    [L, x, y, Z_L, Z_V, rhoL, rhoV] = standaloneFlash(p, T, z, eos);
+                    if false
+                        % Use flash
+                        [sL, sV] = eos.computeSaturations(rhoL, rhoV, x, y, L, Z_L, Z_V);
+                        % compi is a mass-fraction in practice
+                        L_mass = sL.*rhoL./(sL.*rhoL + sV.*rhoV);
+                        comp = [L_mass, 1-L_mass];
+                    else
+                        % Use the pre-computed definition of light/heavy
+                        % components to determine "compi"
+                        Z = eos.getMassFraction(z);
+                        isEOS = cellfun(@(x) isa(x, 'EquationOfStateComponent'), model.Components);
+                        val = cellfun(@(x) x.surfacePhaseMassFractions, model.Components(isEOS), 'UniformOutput', false)';
+                        val = vertcat(val{:});
+                        val = val(:, (1+wat):end);
+                        comp = sum(bsxfun(@times, val, Z'), 1);
+                    end
+                    if wat
+                        assert(~isempty(forces.W(i).compi), ...
+                            'W.compi must be present for compositional flow with water phase.');
+                        sW = forces.W(i).compi(1);
+                        comp = [sW, comp.*(1-sW)];
+                        rho = [model.fluid.rhoWS, rhoL, rhoV];
+                    else
+                        rho = [rhoL, rhoV];
+                    end
+                    forces.W(i).compi = comp;
+                    forces.W(i).rhoS = rho;
                 end
             end
         end

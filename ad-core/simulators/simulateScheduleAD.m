@@ -157,9 +157,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     assert (isa(model, 'PhysicalModel'), ...
             'The model must be derived from PhysicalModel');
-
-    validateSchedule(schedule);
-
     opt = struct('Verbose',           mrstVerbose(),...
                  'OutputMinisteps',   false, ...
                  'initialGuess',      {{}}, ...
@@ -218,7 +215,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     [forces, fstruct] = model.getDrivingForces(ctrl);
     model = model.validateModel(fstruct);
     dispif(opt.Verbose, 'Model ready for simulation...\n')
-    
+    % Validate schedule
+    dispif(opt.Verbose, 'Preparing schedule for simulation...\n')
+    schedule = model.validateSchedule(schedule);
+    dispif(opt.Verbose, 'Schedule ready for simulation...\n')
+
     % Check if initial state is reasonable
     dispif(opt.Verbose, 'Validating initial state...\n')
     state = model.validateState(initState);
@@ -335,19 +336,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     fprintf('*** Simulation complete. Solved %d control steps in %s ***\n',...
                                   nSteps, formatTimeRange((sum(simtime))));
-end
-
-function validateSchedule(schedule)
-    assert (all(isfield(schedule, {'control', 'step'})));
-
-    steps = schedule.step;
-
-    assert (all(isfield(steps, {'val', 'control'})));
-
-    assert(numel(steps.val) == numel(steps.control));
-    assert(numel(schedule.control) >= max(schedule.step.control))
-    assert(min(schedule.step.control) > 0);
-    assert(all(schedule.step.val > 0));
 end
 
 %--------------------------------------------------------------------------

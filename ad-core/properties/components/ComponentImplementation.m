@@ -1,6 +1,8 @@
 classdef ComponentImplementation
     properties
         name
+        dependencies = {};
+        externals = [];
     end
     
     methods
@@ -49,9 +51,9 @@ classdef ComponentImplementation
             mass = component.getComponentDensity(model, state, varargin{:});
             mob = model.getProp(state, 'Mobility');
             
-            ncomp = numel(mass);
-            cmob = cell(1, ncomp);
-            for i = 1:ncomp
+            nphase = numel(mass);
+            cmob = cell(1, nphase);
+            for i = 1:nphase
                 if ~isempty(mass{i})
                     cmob{i} = mob{i}.*mass{i};
                 end

@@ -1,14 +1,14 @@
 classdef EquationOfStateComponent < ComponentImplementation
     properties
         componentIndex % Global component numbering
-        dependencies = {};
-        externals = [];
+        surfacePhaseMassFractions % Mass fraction for each phase
     end
     
     methods
-        function c = EquationOfStateComponent(name, cindex)
+        function c = EquationOfStateComponent(name, cindex, surfaceMassFractions)
             c@ComponentImplementation(name);
             c.componentIndex = cindex;
+            c.surfacePhaseMassFractions = surfaceMassFractions;
             c = c.dependsOn({'Density', 'ComponentPhaseMassFractions'});
         end
         
@@ -27,10 +27,12 @@ classdef EquationOfStateComponent < ComponentImplementation
         function c = getPhaseComposition(component, model, state, varargin)
             mw = model.EOSModel.fluid.molarMass;
             nph = model.getNumberOfPhases();
+            wat = model.water;
             c = cell(nph, 1);
             ix = component.componentIndex - model.water;
-            % Just put "lighter" components in gas phase by default
-            c{component.componentIndex} = double(mw(ix) > mean(mw));
+            for i = 1:nph
+                c{i} = component.surfacePhaseMassFractions(i);
+            end
         end
         
         function c = getPhaseCompositionSurface(component, model, state, pressure, temperature)
@@ -45,7 +47,9 @@ classdef EquationOfStateComponent < ComponentImplementation
             index = component.componentIndex - model.water;
             ci = comp_i(:, index);
             if any(ci ~= 0)
-                c{index} = ci;
+                for i = (1+model.water):nph
+                    c{i} = ci;
+                end
             end
         end
     end

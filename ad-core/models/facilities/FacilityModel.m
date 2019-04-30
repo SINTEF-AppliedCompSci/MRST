@@ -30,7 +30,7 @@ classdef FacilityModel < PhysicalModel
     %   `ReservoirModel`, `PhysicalModel`, `SimpleWell`
 
     properties
-        WellModels % Cell array of instansiated wells
+        WellModels % Cell array of instantiated wells
         FacilityFluxDiscretization
 
         toleranceWellBHP % Convergence tolerance for BHP-type controls
@@ -104,8 +104,6 @@ classdef FacilityModel < PhysicalModel
                     end
                     wm.dsMaxAbs = model.ReservoirModel.dsMaxAbs;
                     wm.dpMaxAbs = model.ReservoirModel.dpMaxAbs;
-                    wm.dpMaxRel = model.ReservoirModel.dpMaxRel;
-
                     if isfield(W(i), 'vfp_index')
                         vfp_ix = W(i).vfp_index;
                         if vfp_ix > 0

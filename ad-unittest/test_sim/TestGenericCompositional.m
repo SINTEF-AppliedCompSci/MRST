@@ -3,7 +3,7 @@ classdef TestGenericCompositional < matlab.unittest.TestCase
         includeWater = {true, false};
         backend = {'diagonal', 'diagonal-mex', 'sparse'};
         fluidSystem = {'simple'};
-        modelType = {'natural'};
+        modelType = {'natural','natural-legacy','overall','overall-legacy'};
     end
     
     methods
@@ -12,12 +12,17 @@ classdef TestGenericCompositional < matlab.unittest.TestCase
             mrstModule add ad-unittest ad-core ad-blackoil ad-props compositional
         end
 
-        function testMultiPhase(test, modelType, includeWater, fluidSystem, backend, varargin)
-            gravity reset on
+        function [state0, model, schedule] = buildTestCase(test, modelType, includeWater, fluidSystem, backend, varargin)
             opt = struct('dims', [2, 2, 2], ...
                          'physDims', [1000, 1000, 10], ...
+                         'gravity', true, ...
                          'useAMGCL', false);
             opt = merge_options(opt, varargin{:});
+            if opt.gravity
+                gravity reset on
+            else
+                gravity reset off
+            end
 
             G = cartGrid(opt.dims, opt.physDims);
             G = computeGeometry(G);
@@ -31,17 +36,16 @@ classdef TestGenericCompositional < matlab.unittest.TestCase
             s = nph:-1:1;
             s = s./sum(s);
             
-            p = 100*barsa;
-            p_w = p/2;
-            
-            
             [compfluid, info] = getCompositionalFluidCase(fluidSystem);
+            p = info.pressure;
+            p_w = p/2;
+
             eos = EquationOfStateModel(G, compfluid);
             state0 = initCompositionalState(G, info.pressure, info.temp, s, info.initial, eos);
             
             nkr = [2, 3, 4];
             mu = [1, 5, 0.1]*centi*poise;
-            rhoS = [1000, 700, 10];
+            rhoS = [1000, 10, 10];
             c = [0, 1e-7, 1e-4]/barsa;
             
             ph = 'wog';
@@ -73,37 +77,42 @@ classdef TestGenericCompositional < matlab.unittest.TestCase
                 'AutoDiffBackend', auto};
             switch lower(modelType)
                 case 'natural'
-                    model = GenericNaturalVariables(arg{:});
+                    model = GenericNaturalVariablesModel(arg{:});
                 case 'natural-legacy'
                     model = NaturalVariablesCompositionalModel(arg{:});
+                case 'overall'
+                    model = GenericOverallCompositionModel(arg{:});
+                case 'overall-legacy'
+                    model = OverallCompositionCompositionalModel(arg{:});
                 otherwise
                     error('%s is unknown', modelType);
             end
-            
-            
-            
-            
+
             time = 1*year;
-            irate = sum(model.operators.pv)/time;
-            
-            
+            irate = 0.1*sum(model.operators.pv)/time;
+
             W = [];
             W = verticalWell(W, G, rock, 1, 1, [], 'comp_i', inj, ...
                             'val', irate, 'type', 'rate');
-            W = verticalWell(W, G, rock, opt.dims(1), opt.dims(1), [], ...
+            W = verticalWell(W, G, rock, opt.dims(1), opt.dims(2), [], ...
                             'comp_i', inj, 'val', p_w, 'type', 'bhp');
             for i = 1:numel(W)
                 W(i).components = info.injection;
             end
             schedule = simpleSchedule(time, 'W', W);
-            
-            [ws, states, rep] = simulateScheduleAD(state0, model, schedule);
+        end
+        
+        function [ws, states, reports] = testMultiPhase(test, modelType, includeWater, fluidSystem, backend, varargin)
+            fprintf('Testing fluid "%s" with %s model and %s backend\n', fluidSystem, modelType, backend);
+            [state0, model, schedule] = test.buildTestCase(modelType, includeWater, fluidSystem, backend, varargin{:});
+            [ws, states, reports] = simulateScheduleAD(state0, model, schedule);
         end
     end
     
     methods (Test)
-        function compositionalTest(test, modelType, includeWater, fluidSystem, backend)
-            testMultiPhase(test, modelType, includeWater, fluidSystem, backend);
+        function varargout = compositionalTest(test, modelType, includeWater, fluidSystem, backend)
+            varargout = cell(nargout, 1);
+            [varargout{:}] = testMultiPhase(test, modelType, includeWater, fluidSystem, backend);
         end
     end
 end

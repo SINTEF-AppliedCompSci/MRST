@@ -1,6 +1,7 @@
 classdef ExtendedFacilityModel < FacilityModel
     properties
-        
+        T = 288.15; % Metric standard conditions
+        pressure = 101.325*kilo*Pascal; % Metric standard pressure
     end
     
     methods
@@ -49,27 +50,32 @@ classdef ExtendedFacilityModel < FacilityModel
                     end
                 end
             end
-            rhoS = model.getSurfaceDensities();
+            W = facility.getWellStruct(map.active);
+            if isfield(W, 'rhoS')
+                rhoS = vertcat(W.rhoS);
+            else
+                rhoS = model.getSurfaceDensities();
+                rhoS = repmat(rhoS, numel(W), 1);
+            end
             [eqs, names, types] = deal(cell(1, nph+1));
             
             % This is a temporary hack!
             q_s = state.FacilityState.primaryVariables(1:nph);
             bhp = state.FacilityState.primaryVariables{nph+1};
             [sn, phnames] = model.getPhaseNames();
+            % Approximate scaling to get the 
+            rhoScale = mean(rhoS, 1)./mean(value(model.getProps(state0, 'Density')), 1);
             for ph = 1:nph
-                surfaceRates{ph} = surfaceRates{ph}./rhoS(ph);
-                eqs{ph} = q_s{ph} - surfaceRates{ph};
+                surfaceRates{ph} = surfaceRates{ph}./rhoS(:, ph);
+                eqs{ph} = (q_s{ph} - surfaceRates{ph}).*rhoScale(ph);
                 names{ph} = [phnames{ph}, 'Wells'];
                 types{ph} = 'perf';
             end
-            
-            mixs = value(q_s);
             nact = numel(map.active);
 
             backend = model.AutoDiffBackend;
             ctrl_eq = backend.convertToAD(zeros(nact, 1), bhp);
             wrates = backend.convertToAD(zeros(nact, 1), bhp);
-            resv_rates = backend.convertToAD(zeros(nact, 1), bhp);
             
             well_controls = {state.wellSol(map.active).type}';
             targets = vertcat(state.wellSol(map.active).val);
@@ -233,8 +239,8 @@ classdef ExtendedFacilityModel < FacilityModel
         end
         
         function [p, T] = getSurfaceConditions(fm)
-            p = 1*atm;
-            T = 273.15 + 30;
+            p = fm.pressure;
+            T = fm.T;
         end
         
         function wellSol = applyWellLimitsWellSol(fm, well, wellSol)
