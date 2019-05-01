@@ -14,7 +14,8 @@ assert(ms(1)==ms(2));
 assert(ms(1)==vs(1));
 assert(vs(2)==1);
 assert(mod(vs(1),opt.blocksize) == 0);
-sopt=struct('solver','blockilu0');
+amg = struct('maxlevel',4,'coarsenTarget',1000)
+sopt=struct('preconditioner','ILU0','w',1.0,'n',1,'amg',amg);
 options = jsonencode(sopt);
 
 x = duneistl_matlab(i,j,val, rhs, opt.blocksize, opt.tol, opt.maxiter, options); 

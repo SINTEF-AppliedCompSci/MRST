@@ -188,24 +188,8 @@ namespace mrst{
     
     void makeSolver(double tol, int maxiter){
       linearoperator_.reset(new Dune::MatrixAdapter<MatrixType, VectorType, VectorType>(matrix_));
-      //preconditioner_ = getSeqPreconditioner<MatrixType,VectorType>(matrix_,prm_);
-      int verbosity = 10;
-      double w=prm_.get<int>("w");;
-      int n=prm_.get<int>("n");
-      if(prm_.get<std::string>("preconditioner") == "ILU0"){
-	preconditioner_.reset(new Dune::SeqILU0<MatrixType, VectorType, VectorType>(matrix_,w));
-      }else if(prm_.get<std::string>("preconditioner") == "Jac"){
-	preconditioner_.reset(new Dune::SeqJac<MatrixType, VectorType, VectorType>(matrix_,n, w));
-      }else if(prm_.get<std::string>("preconditioner") == "GS"){
-	preconditioner_.reset(new Dune::SeqGS<MatrixType, VectorType, VectorType>(matrix_,n, w));
-      }else if(prm_.get<std::string>("preconditioner") == "SOR"){
-	preconditioner_.reset(new Dune::SeqSOR<MatrixType, VectorType, VectorType>(matrix_,n, w));
-      }else if(prm_.get<std::string>("preconditioner") == "SSOR"){
-	preconditioner_.reset(new Dune::SeqSSOR<MatrixType, VectorType, VectorType>(matrix_,n, w));
-      }else if(prm_.get<std::string>("preconditioner") == "ILUn"){
-	preconditioner_.reset(new Dune::SeqILUn<MatrixType, VectorType, VectorType>(matrix_,n, w));
-      }else if((prm_.get<std::string>("preconditioner") == "famg") or
-	       (prm_.get<std::string>("preconditioner") == "amg") ){
+      if((prm_.get<std::string>("preconditioner") == "famg") or
+	 (prm_.get<std::string>("preconditioner") == "amg") ){
 	pt prm = prm_.get_child("amg");
 	typedef Dune::Amg::AggregationCriterion<
 	  Dune::Amg::SymmetricMatrixDependency<MatrixType,Dune::Amg::FirstDiagonal> > CriterionBase;
@@ -218,14 +202,11 @@ namespace mrst{
 	criterion.setBeta(1.0e-4);
 	criterion.setMaxLevel(ml);
 	criterion.setSkipIsolated(false);
-	//Dune::SeqScalarProduct<VectorType> sp;
-	//typedef Dune::Amg::FastAMG<OperatorType,VectorType> AMG;
 	Dune::Amg::Parameters parms;
-	//AMG amg(fop, criterion, parms);
 	if(prm_.get<std::string>("preconditioner") == "famg"){ 
 	  preconditioner_.reset(new Dune::Amg::FastAMG<OperatorType,VectorType>(*linearoperator_, criterion, parms));
         }else{
-	  typedef Dune::SeqSSOR<MatrixType,VectorType,VectorType> Smoother;
+	  typedef Dune::SeqILU0<MatrixType,VectorType,VectorType> Smoother;
 	  //typedef Dune::SeqSOR<BCRSMat,Vector,Vector> Smoother;
 	  //typedef Dune::SeqJac<BCRSMat,Vector,Vector> Smoother;
 	  //typedef Dune::SeqOverlappingSchwarz<BCRSMat,Vector,Dune::MultiplicativeSchwarzMode> Smoother;
@@ -247,10 +228,9 @@ namespace mrst{
 	}
 	
       }else{
-	std::string msg("Now such preconditioner : ");
-	msg += prm_.get<std::string>("preconditioner");
-	throw std::runtime_error(msg);;
+	preconditioner_ = getSeqPreconditioner<MatrixType,VectorType>(matrix_,prm_);
       }
+      int verbosity = 10;
       linsolver_.reset(new Dune::BiCGSTABSolver<VectorType>(*linearoperator_,
 							 *preconditioner_,
 							 tol, // desired residual reduction factor

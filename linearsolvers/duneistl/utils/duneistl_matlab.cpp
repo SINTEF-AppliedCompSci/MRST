@@ -114,13 +114,13 @@ void mexFunction( int nlhs, mxArray *plhs[],
   plhs[0] = mxCreateDoubleMatrix(orhs.size(), 1, mxREAL);
   double* result = mxGetPr(plhs[0]);
   if(bz==1){    
-    mrst::BlockIlu0Solver<1> solver;
+    mrst::BlockIlu0Solver<1> solver(prm);
     solver.solve(result, i, j, val, rows, orhs, tol, maxiter);
   }else if(bz == 2){
-    mrst::BlockIlu0Solver<2> solver;
+    mrst::BlockIlu0Solver<2> solver(prm);
     solver.solve(result, i, j, val, rows, orhs, tol, maxiter); 
   }else if(bz ==3){
-    mrst::BlockIlu0Solver<3> solver;
+    mrst::BlockIlu0Solver<3> solver(prm);
     solver.solve(result, i, j, val, rows, orhs, tol, maxiter); 
   }else{
     std::cout<< "BlockIlu0 solver not implemented for blocksize " << bz << std::endl;
