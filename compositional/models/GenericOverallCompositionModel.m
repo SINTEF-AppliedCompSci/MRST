@@ -22,6 +22,16 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
             ncomp = numel(names);
             n_hc = ncomp - wat;
             % Assemble equations and add in sources
+            
+            [pressures, sat, mob, rho, X] = model.getProps(state, 'PhasePressures', 's', 'Mobility', 'Density', 'ComponentPhaseMassFractions');
+            comps = cellfun(@(x, y) {x, y}, X(:, 1+model.water), X(:, 2+model.water), 'UniformOutput', false);
+            
+            
+            eqs = model.addBoundaryConditionsAndSources(eqs, names, types, state, ...
+                                                             pressures, sat, mob, rho, ...
+                                                             {}, comps, ...
+                                                             drivingForces);
+            
             for i = 1:numel(eqs)
                 if ~isempty(src.cells)
                     eqs{i}(src.cells) = eqs{i}(src.cells) - src.value{i};

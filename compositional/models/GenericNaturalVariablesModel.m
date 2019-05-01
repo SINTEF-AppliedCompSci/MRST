@@ -21,6 +21,16 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Ext
             wat = model.water;
             ncomp = numel(names);
             n_hc = ncomp - wat;
+            
+            [pressures, sat, mob, rho, X] = model.getProps(state, 'PhasePressures', 's', 'Mobility', 'Density', 'ComponentPhaseMassFractions');
+            comps = cellfun(@(x, y) {x, y}, X(:, 1+model.water), X(:, 2+model.water), 'UniformOutput', false);
+            
+            
+            eqs = model.addBoundaryConditionsAndSources(eqs, names, types, state, ...
+                                                             pressures, sat, mob, rho, ...
+                                                             {}, comps, ...
+                                                             drivingForces);
+            
             % Assemble equations and add in sources
             for i = 1:numel(eqs)
                 if ~isempty(src.cells)
