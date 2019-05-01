@@ -21,6 +21,8 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp> 
 
+#include <dune/istl/paamg/fastamg.hh>
+#include <dune/istl/paamg/amg.hh>
 namespace Dune
 {
 
@@ -97,12 +99,42 @@ namespace Dune
 
 
 namespace mrst{
+  template<class MatrixType,class VectorType>
+  std::shared_ptr< Dune::Preconditioner<VectorType,VectorType> > getSeqPreconditioner(MatrixType& matrix,
+										      boost::property_tree::ptree& prm){
+    std::shared_ptr< Dune::Preconditioner<VectorType,VectorType> > preconditioner;
+    int verbosity = 10;
+    double w=prm.get<int>("w");;
+    int n=prm.get<int>("n");
+    if(prm.get<std::string>("preconditioner") == "ILU0"){
+      preconditioner.reset(new Dune::SeqILU0<MatrixType, VectorType, VectorType>(matrix,w));
+    }else if(prm.get<std::string>("preconditioner") == "Jac"){
+      preconditioner.reset(new Dune::SeqJac<MatrixType, VectorType, VectorType>(matrix,n, w));
+    }else if(prm.get<std::string>("preconditioner") == "GS"){
+      preconditioner.reset(new Dune::SeqGS<MatrixType, VectorType, VectorType>(matrix,n, w));
+    }else if(prm.get<std::string>("preconditioner") == "SOR"){
+      preconditioner.reset(new Dune::SeqSOR<MatrixType, VectorType, VectorType>(matrix,n, w));
+    }else if(prm.get<std::string>("preconditioner") == "SSOR"){
+      preconditioner.reset(new Dune::SeqSSOR<MatrixType, VectorType, VectorType>(matrix,n, w));
+    }else if(prm.get<std::string>("preconditioner") == "ILUn"){
+      preconditioner.reset(new Dune::SeqILUn<MatrixType, VectorType, VectorType>(matrix,n, w));
+    }else{
+      std::string msg("Now such seq preconditioner : ");
+      msg += prm.get<std::string>("preconditioner");
+	throw std::runtime_error(msg);;
+    }
+    return preconditioner;
+  }
+
+
+  
   template <int  bz>
   class BlockIlu0Solver{
   public:
+    typedef boost::property_tree::ptree pt;
     typedef Dune::BCRSMatrix< Dune::FieldMatrix< double, bz, bz > > MatrixType;
     typedef Dune::BlockVector< Dune::FieldVector< double, bz > > VectorType;
-    
+    typedef Dune::MatrixAdapter<MatrixType, VectorType, VectorType> OperatorType;    
     BlockIlu0Solver(boost::property_tree::ptree prm): prm_(prm){};
 
     
@@ -115,25 +147,12 @@ namespace mrst{
       perfTimer.start();
       double tol = 1e-4;
       int maxiter = 200;
-      int verbosity = 10;
-      Dune::SeqILU0<MatrixType, VectorType, VectorType> preconditioner(matrix_, 1.0);
-      Dune::MatrixAdapter<MatrixType, VectorType, VectorType> linearoperator(matrix_);
-      Dune::BiCGSTABSolver<VectorType> linsolver(linearoperator,
-						 preconditioner,
-						 tol, // desired residual reduction factor
-						 maxiter, // maximum number of iterations
-						 verbosity); 
-    
-    
-
+      this->makeSolver(tol, maxiter);      
       int m = bz*rhs_.size();
-      //plhs[0] = mxCreateDoubleMatrix(m, 1, mxREAL);
-      //double* result = mxGetPr(plhs[0]);
       VectorType x(rhs_.size());
       Dune::InverseOperatorResult res;
-      linsolver.apply(x, rhs_, res);
+      linsolver_->apply(x, rhs_, res);
       double time = perfTimer.stop();
-      //x[0]=5;
       this->makeResult(result,x);
     }
 
@@ -154,30 +173,92 @@ namespace mrst{
       perfTimer.start();
       //double tol = 1e-4;
       //int maxiter = 200;
-      int verbosity = 10;
-      preconditioner_.reset(new Dune::SeqILU0<MatrixType, VectorType, VectorType>(matrix_,1.0));
-      //Dune::SeqILU0<MatrixType, VectorType, VectorType> preconditioner(matrix_, 1.0);
-      //Dune::MatrixAdapter<MatrixType, VectorType, VectorType> linearOperator(matrix_);
-      linearoperator_.reset(new Dune::MatrixAdapter<MatrixType, VectorType, VectorType>(matrix_));
-      Dune::BiCGSTABSolver<VectorType> linsolver(*linearoperator_,
-						 *preconditioner_,
-						 tol, // desired residual reduction factor
-						 maxiter, // maximum number of iterations
-						 verbosity); 
-    
-    
-
+      this->makeSolver(tol, maxiter);    
       int m = bz*rhs_.size();
-      //plhs[0] = mxCreateDoubleMatrix(m, 1, mxREAL);
-      //double* result = mxGetPr(plhs[0]);
       VectorType x(rhs_.size());
       Dune::InverseOperatorResult res;
-      linsolver.apply(x, rhs_, res);
+      linsolver_->apply(x, rhs_, res);
       double time = perfTimer.stop();
-      //x[0]=5;
       this->makeResult(result,x);
+      // result is returned
     }
+    
   private:
+
+    
+    void makeSolver(double tol, int maxiter){
+      linearoperator_.reset(new Dune::MatrixAdapter<MatrixType, VectorType, VectorType>(matrix_));
+      //preconditioner_ = getSeqPreconditioner<MatrixType,VectorType>(matrix_,prm_);
+      int verbosity = 10;
+      double w=prm_.get<int>("w");;
+      int n=prm_.get<int>("n");
+      if(prm_.get<std::string>("preconditioner") == "ILU0"){
+	preconditioner_.reset(new Dune::SeqILU0<MatrixType, VectorType, VectorType>(matrix_,w));
+      }else if(prm_.get<std::string>("preconditioner") == "Jac"){
+	preconditioner_.reset(new Dune::SeqJac<MatrixType, VectorType, VectorType>(matrix_,n, w));
+      }else if(prm_.get<std::string>("preconditioner") == "GS"){
+	preconditioner_.reset(new Dune::SeqGS<MatrixType, VectorType, VectorType>(matrix_,n, w));
+      }else if(prm_.get<std::string>("preconditioner") == "SOR"){
+	preconditioner_.reset(new Dune::SeqSOR<MatrixType, VectorType, VectorType>(matrix_,n, w));
+      }else if(prm_.get<std::string>("preconditioner") == "SSOR"){
+	preconditioner_.reset(new Dune::SeqSSOR<MatrixType, VectorType, VectorType>(matrix_,n, w));
+      }else if(prm_.get<std::string>("preconditioner") == "ILUn"){
+	preconditioner_.reset(new Dune::SeqILUn<MatrixType, VectorType, VectorType>(matrix_,n, w));
+      }else if((prm_.get<std::string>("preconditioner") == "famg") or
+	       (prm_.get<std::string>("preconditioner") == "amg") ){
+	pt prm = prm_.get_child("amg");
+	typedef Dune::Amg::AggregationCriterion<
+	  Dune::Amg::SymmetricMatrixDependency<MatrixType,Dune::Amg::FirstDiagonal> > CriterionBase;
+	typedef Dune::Amg::CoarsenCriterion<CriterionBase> Criterion;
+	int coarsenTarget = prm.get<int>("coarsenTarget");
+        int ml = prm.get<int>("maxlevel");
+	Criterion criterion(15,coarsenTarget);
+	criterion.setDefaultValuesIsotropic(2);
+	criterion.setAlpha(.67);
+	criterion.setBeta(1.0e-4);
+	criterion.setMaxLevel(ml);
+	criterion.setSkipIsolated(false);
+	//Dune::SeqScalarProduct<VectorType> sp;
+	//typedef Dune::Amg::FastAMG<OperatorType,VectorType> AMG;
+	Dune::Amg::Parameters parms;
+	//AMG amg(fop, criterion, parms);
+	if(prm_.get<std::string>("preconditioner") == "famg"){ 
+	  preconditioner_.reset(new Dune::Amg::FastAMG<OperatorType,VectorType>(*linearoperator_, criterion, parms));
+        }else{
+	  typedef Dune::SeqSSOR<MatrixType,VectorType,VectorType> Smoother;
+	  //typedef Dune::SeqSOR<BCRSMat,Vector,Vector> Smoother;
+	  //typedef Dune::SeqJac<BCRSMat,Vector,Vector> Smoother;
+	  //typedef Dune::SeqOverlappingSchwarz<BCRSMat,Vector,Dune::MultiplicativeSchwarzMode> Smoother;
+	  //typedef Dune::SeqOverlappingSchwarz<BCRSMat,Vector,Dune::SymmetricMultiplicativeSchwarzMode> Smoother;
+	  //typedef Dune::SeqOverlappingSchwarz<BCRSMat,Vector> Smoother;
+	  typedef typename Dune::Amg::SmootherTraits<Smoother>::Arguments SmootherArgs;
+	  SmootherArgs smootherArgs;
+	  smootherArgs.iterations = 1;
+	  //smootherArgs.overlap=SmootherArgs::vertex;
+	  //smootherArgs.overlap=SmootherArgs::none;
+	  //smootherArgs.overlap=SmootherArgs::aggregate;
+	  smootherArgs.relaxationFactor = 1;
+	  Smoother smoother(matrix_, 1, 1);
+	  preconditioner_.reset(
+				new
+				Dune::Amg::AMG<OperatorType,VectorType,Smoother>(*linearoperator_,
+										 criterion,
+										 smootherArgs));	  
+	}
+	
+      }else{
+	std::string msg("Now such preconditioner : ");
+	msg += prm_.get<std::string>("preconditioner");
+	throw std::runtime_error(msg);;
+      }
+      linsolver_.reset(new Dune::BiCGSTABSolver<VectorType>(*linearoperator_,
+							 *preconditioner_,
+							 tol, // desired residual reduction factor
+							 maxiter, // maximum number of iterations
+							 verbosity));   
+    }
+   
+    
     void makeResult(double* result,VectorType& x){
       int i = 0;
       for(size_t ic = 0; ic < rhs_.size(); ic++){
@@ -244,6 +325,7 @@ namespace mrst{
     VectorType rhs_;
     std::shared_ptr< Dune::Preconditioner<VectorType,VectorType> > preconditioner_;
     std::shared_ptr< Dune::MatrixAdapter<MatrixType, VectorType, VectorType> > linearoperator_;
+    std::shared_ptr< Dune::IterativeSolver<VectorType,VectorType> > linsolver_;
   };
 }
 #endif /* MRST_DUNEISTL_HPP */
