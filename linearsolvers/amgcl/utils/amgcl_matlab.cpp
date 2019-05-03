@@ -38,7 +38,7 @@
 
 /* Block system support */
 #ifndef AMGCL_BLOCK_SIZES
-#  define AMGCL_BLOCK_SIZES (2)(3)
+#  define AMGCL_BLOCK_SIZES (2)(3)(4)(5)(6)(7)(8)(9)(10)
 #endif
 
 #ifndef SOLVER_BACKEND_BUILTIN
@@ -65,6 +65,7 @@ void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries, const mx
     int relax_s_id = mxGetScalar(mxGetField(pa, 0, "s_relaxation"));
 
     bool verbose = mxGetScalar(mxGetField(pa, 0, "verbose"));
+    bool write_params = mxGetScalar(mxGetField(pa, 0, "write_params"));
 
 
     /***************************************
@@ -126,7 +127,7 @@ void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries, const mx
             prm.put("precond.weights", drs_weights);
             prm.put("precond.weights_size", drs_weights_n);
         }
-        if(verbose){
+        if(write_params){
             std::cout << "Writing amgcl setup file to mrst_amgcl_cpr_drs_setup.json" << std::endl;
             std::ofstream file("mrst_amgcl_drs_setup.json");
             boost::property_tree::json_parser::write_json(file, prm);
@@ -148,7 +149,7 @@ void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries, const mx
             std::cout << solve << std::endl;
         }
     }else{
-         if(verbose){
+         if(write_params){
             std::cout << "Writing amgcl setup file to mrst_amgcl_cpr_setup.json" << std::endl;
             std::ofstream file("mrst_amgcl_setup.json");
             boost::property_tree::json_parser::write_json(file, prm);
@@ -201,6 +202,7 @@ void solve_regular(int n, const mwIndex * cols, mwIndex const * rows, const doub
 
     int relax_id = mxGetScalar(mxGetField(pa, 0, "relaxation"));
     bool verbose = mxGetScalar(mxGetField(pa, 0, "verbose"));
+    bool write_params = mxGetScalar(mxGetField(pa, 0, "write_params"));
     int precond_id = mxGetScalar(mxGetField(pa, 0, "preconditioner"));
     std::string relaxParam;
     /***************************************
@@ -259,7 +261,7 @@ void solve_regular(int n, const mwIndex * cols, mwIndex const * rows, const doub
      *        Solve problem                *
      ***************************************/
     auto t1 = std::chrono::high_resolution_clock::now();
-    if(verbose){
+    if(write_params){
       std::cout << "Writing amgcl setup file to mrst_amgcl_cpr_setup.json" << std::endl;
       std::ofstream file("mrst_regular_setup.json");
       boost::property_tree::json_parser::write_json(file, prm);
@@ -290,6 +292,8 @@ void solve_regular(int n, const mwIndex * cols, mwIndex const * rows, const doub
 #if defined(SOLVER_BACKEND_BUILTIN)
         BOOST_PP_SEQ_FOR_EACH(AMGCL_BLOCK_SOLVER, ~, AMGCL_BLOCK_SIZES)
 #endif
+        default:
+            mexErrMsgIdAndTxt("AMGCL:UndefBlockSize", "Failure: Block size not supported.");
     }
 }
 

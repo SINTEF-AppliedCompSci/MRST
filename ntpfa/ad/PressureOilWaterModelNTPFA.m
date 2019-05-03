@@ -48,9 +48,9 @@ classdef PressureOilWaterModelNTPFA < PressureOilWaterModel
             case 'ntpfa'
                 assert(isfield(model.operators, 'collocationSet'));
                 if model.fixPointIteration
-                    p = double(p);
+                    p = p.value;
                 end
-                nc = numel(double(p));
+                nc = numel(p.value);
                 N = model.operators.N;
                 intx = model.operators.internalConn;
 
