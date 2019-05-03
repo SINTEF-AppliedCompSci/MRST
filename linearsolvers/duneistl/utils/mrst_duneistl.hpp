@@ -219,7 +219,6 @@ namespace mrst{
 	  //smootherArgs.overlap=SmootherArgs::none;
 	  //smootherArgs.overlap=SmootherArgs::aggregate;
 	  smootherArgs.relaxationFactor = 1;
-	  Smoother smoother(matrix_, 1, 1);
 	  preconditioner_.reset(
 				new
 				Dune::Amg::AMG<OperatorType,VectorType,Smoother>(*linearoperator_,
