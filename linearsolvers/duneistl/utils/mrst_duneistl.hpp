@@ -23,8 +23,8 @@
 
 #include <dune/istl/paamg/fastamg.hh>
 #include <dune/istl/paamg/amg.hh>
-//#include "PressureSolverPolicy.hpp"
-//#include "PressureTransferPolicy.hpp"
+#include "PressureSolverPolicy.hpp"
+#include "PressureTransferPolicy.hpp"
 
 namespace Dune
 {
@@ -327,21 +327,7 @@ namespace mrst{
     // for cpr
     typedef Dune::BCRSMatrix< Dune::FieldMatrix< double, 1, 1 > > PressureMatrixType;
     typedef Dune::BlockVector< Dune::FieldVector< double, 1 > > PressureVectorType;
-    typedef Dune::MatrixAdapter<PressureMatrixType, PressureVectorType, PressureVectorType> CoarseOperatorType;
-    // using Communication =  Dune::Amg::SequentialInformation;
-    // using Criterion  =
-    //   Dune::Amg::CoarsenCriterion<Dune::Amg::SymmetricCriterion<PressureMatrixType,
-    //     							Dune::Amg::FirstDiagonal> >;
-    
-    //constexpr int pressureVarIndex = 0;
-    // using LevelTransferPolicy = Opm::PressureTransferPolicy<OperatorType,
-    //     						    CoarseOperatorType,
-    //     						    Communication,
-    //     						    0>;
-    // using CoarseSolverPolicy   =
-    //   Dune::Amg::PressureSolverPolicy<CoarseOperatorType,
-    //     			      LevelTransferPolicy>;
-        
+    typedef Dune::MatrixAdapter<PressureMatrixType, PressureVectorType, PressureVectorType> CoarseOperatorType;       
     
     BlockIlu0Solver(boost::property_tree::ptree prm): prm_(prm){};
 
@@ -486,10 +472,17 @@ namespace mrst{
     std::shared_ptr< Dune::MatrixAdapter<MatrixType, VectorType, VectorType> > linearoperator_;
     std::shared_ptr< Dune::IterativeSolver<VectorType,VectorType> > linsolver_;
     // or cpr
+<<<<<<< HEAD
     // std::shared_ptr< Dune::Preconditioner<VectorType,VectorType> > finesmoother_;
     // std::unique_ptr<CoarseSolverPolicy> coarseSolverPolicy_;
     // std::unique_ptr<LevelTransferPolicy> levelTransferPolicy_;
     // VectorType weights_;
+=======
+    std::shared_ptr< Dune::Preconditioner<VectorType,VectorType> > finesmoother_;
+    std::unique_ptr<CoarseSolverPolicy> coarseSolverPolicy_;
+    std::unique_ptr<LevelTransferPolicy> levelTransferPolicy_;
+    VectorType weights_;
+>>>>>>> origin/add_duneistlsolver
     
     };
 }
