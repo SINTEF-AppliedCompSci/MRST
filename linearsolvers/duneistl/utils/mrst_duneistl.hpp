@@ -106,7 +106,6 @@ namespace mrst{
   {
     auto& matrix = linearoperator.getmat();
     std::shared_ptr< Dune::Preconditioner<VectorType,VectorType> > preconditioner;
-    int verbosity = 10;
     double w=prm.get<int>("w");;
     int n=prm.get<int>("n");
     std::string precond(prm.get<std::string>("preconditioner"));
@@ -148,6 +147,7 @@ namespace mrst{
       criterion.setBeta(prm.get<double>("beta"));
       criterion.setMaxLevel(ml);
       criterion.setSkipIsolated(false);
+      criterion.setDebugLevel(prm.get<int>("verbosity"));
       Dune::Amg::Parameters parms;
       if(global_prm.get<std::string>("preconditioner") == "famg"){ 
 	preconditioner.reset(new Dune::Amg::FastAMG<OperatorType,VectorType>(linearoperator, criterion, parms));
@@ -178,7 +178,6 @@ namespace mrst{
   makeAmgPreconditioners(Dune::MatrixAdapter<MatrixType, VectorType, VectorType> & linearoperator,
 			 boost::property_tree::ptree& prm){
     std::shared_ptr< Dune::Preconditioner<VectorType,VectorType> > preconditioner;
-    int verbosity = 10;
     std::string precond = prm.get<std::string>("amg.smoother");
     if(precond == "ILU0"){
       preconditioner = makeAmgPreconditioner<
@@ -436,7 +435,7 @@ namespace mrst{
       linearoperator_.reset(new Dune::MatrixAdapter<MatrixType, VectorType, VectorType>(matrix_));
       preconditioner_ = makePreconditioner<MatrixType, VectorType, bz>(*linearoperator_,prm_);
       int verbosity = prm_.get<int>("verbosity");
-      std::string solvor_type = prm_.get<std::string>("bicgstab"); 
+      std::string solver_type = prm_.get<std::string>("solver"); 
       if( solver_type == "bicgstab" ){
 	linsolver_.reset(new Dune::BiCGSTABSolver<VectorType>(*linearoperator_,
 							      *preconditioner_,
@@ -452,7 +451,7 @@ namespace mrst{
       }else{
 	std::string msg("Solver not known ");
 	msg += solver_type;
-	throw
+	throw std::runtime_error(msg);
       }
     }
     
