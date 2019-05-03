@@ -17,9 +17,10 @@
 //#include <boost/property_tree/json_parser.hpp>
 //namespace po = boost::program_options;
 //#include "mrst_duneistl.hpp"
+
 namespace mrst{
   template<int n>
-  class BlockIlu0Solver(boost::property_tree::ptree& prm);
+  class BlockIlu0Solver;//(boost::property_tree::ptree& prm);
 }
 
 namespace pt = boost::property_tree;
@@ -59,41 +60,38 @@ namespace Dune{
       struct PressureInverseOperator : public Dune::InverseOperator<X,X>
       {
         PressureInverseOperator(Operator& op,
-				const boost::property_tree::ptree& prm)
-	  :  linsolver_(), op_(op)//, prm_(prm)
-        {
-	  boost::property_tree::ptree lprm = prm.get_child("pressuresolver");
-	  linsolver_.reset(new mrst::BlockIlu0Solver<1>(lprm));
-	  int maxiter = lprm.get<int>("maxiter");
-	  double tol = lprm.get<double>("tol");
-	  linsolver_->makeSolver(tol, maxiter, op_.getmat());	  			   
-        }
+				const boost::property_tree::ptree& prm);
+	//   :  linsolver_(), op_(op)//, prm_(prm)
+        // {
+	//   boost::property_tree::ptree lprm = prm.get_child("pressuresolver");
+	//   linsolver_.reset(new mrst::BlockIlu0Solver<1>(lprm));
+	//   int maxiter = lprm.get<int>("maxiter");
+	//   double tol = lprm.get<double>("tol");
+	//   linsolver_->makeSolver(tol, maxiter, op_.getmat());	  			   
+        // }
 	
-#if DUNE_VERSION_NEWER(DUNE_ISTL, 2, 6)
          Dune::SolverCategory::Category category() const override
         {
-	  return std::is_same<Communication, Dune::Amg::SequentialInformation>::value ?
-	    Dune::SolverCategory::sequential : Dune::SolverCategory::overlapping;
+            return Dune::SolverCategory::sequential;
         }
-#endif
 	
 
-        void apply(X& x, X& b, double reduction, Dune::InverseOperatorResult& res)
-        {
-	  linsolver_->apply(x,b);	    
-        }
+          void apply(X& x, X& b, double reduction, Dune::InverseOperatorResult& res) override;
+        // {
+	//   linsolver_->apply(x,b);	    
+        // }
 
-        void apply(X& x, X& b, Dune::InverseOperatorResult& res)
-        {
-	  return apply(x,b,1e-8,res);
-        }
+          void apply(X& x, X& b, Dune::InverseOperatorResult& res) override;
+        // {
+	//   return apply(x,b,1e-8,res);
+        // }
 
-        ~PressureInverseOperator()
-        {}
-        PressureInverseOperator(const PressureInverseOperator& other)
-	  : x_(other.x_), linearsovler_(other.linearsolver_)
-        {
-        }
+        // ~PressureInverseOperator()
+        // {}
+        // PressureInverseOperator(const PressureInverseOperator& other)
+	//   : linearsovler_(other.linearsolver_)
+        // {
+        // }
       private:
 	std::shared_ptr< mrst::BlockIlu0Solver<1> > linsolver_;
 	Operator& op_;
