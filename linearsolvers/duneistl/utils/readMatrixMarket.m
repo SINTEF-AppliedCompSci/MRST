@@ -3,7 +3,7 @@ if(is_matrix)
     fid = fopen(filename);
     lin= fgetl(fid);
     lin= fgetl(fid);
-    lin = split(lin)
+    lin = split(lin);
     bz(1)= str2num(lin{4});
     bz(2)= str2num(lin{5});
     ss = fscanf(fid,'%d',3)';
@@ -16,13 +16,13 @@ else
     fid = fopen(filename);
     lin= fgetl(fid);
     lin= fgetl(fid);
-    lin = split(lin)
+    lin = split(lin);
     bz(1)= str2num(lin{4});
     bz(2)= str2num(lin{5});
     assert(str2num(lin{5})==1);
     sss = fscanf(fid,'%d',2)';
     rhs = fscanf(fid,'%f', sss(1));
     fclose(fid)
-    val = rhs
+    val = rhs;
     mat= val;
 end

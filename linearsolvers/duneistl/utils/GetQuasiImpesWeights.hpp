@@ -22,7 +22,7 @@ namespace Opm{
       //Vector weights(rhs_->size());
       typedef typename Vector::block_type BlockVector;
       //typedef typename Matrix::MatrixBlock MatrixBlockType;
-      typedef Dune::FieldMatrix<double, 3, 3> MatrixBlockType;
+      typedef typename Matrix::block_type MatrixBlockType;
       BlockVector rhs(0.0);
       rhs[pressureVarIndex] = 1;
       const auto endi = A.end();

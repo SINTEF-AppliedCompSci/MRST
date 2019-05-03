@@ -15,6 +15,8 @@ int main()
   std::cout << "Hello, World!";
   constexpr int bz=3;
   mrst::BlockIlu0Solver<bz> solver(prm);
+  mrst::BlockIlu0Solver<2> solver2(prm);
+  mrst::BlockIlu0Solver<1> solver1(prm);
   std::string matrixfile("matrix_istl.txt");
   std::string rhsfile("rhs_istl.txt");
   std::vector<double> res(9);
@@ -88,7 +90,24 @@ int main()
   }
   double tol= 1e-2;
   int maxiter = 200;
-  solver.solve(res.data(), i, j, val, rows, rhs, tol, maxiter);
+  if( rhs.size() % 3 == 0){
+    solver.solve(res.data(), i, j, val, rows, rhs, tol, maxiter);
+    std::cout << "**********Result new*************" << std::endl;
+    for(auto x: res){
+      std::cout << x << std::endl;
+    }
+  }
+  if( rhs.size() % 2 == 0){
+    std::cout << "*********************************" << std::endl;
+    solver2.solve(res.data(), i, j, val, rows, rhs, tol, maxiter);
+    std::cout << "**********Result new*************" << std::endl;
+    for(auto x: res){
+      std::cout << x << std::endl;
+    }
+  }
+
+  std::cout << "*********************************" << std::endl;
+  solver1.solve(res.data(), i, j, val, rows, rhs, tol, maxiter);
   std::cout << "**********Result new*************" << std::endl;
   for(auto x: res){
     std::cout << x << std::endl;
