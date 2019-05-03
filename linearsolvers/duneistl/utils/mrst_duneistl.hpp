@@ -388,16 +388,22 @@ namespace mrst{
 	       std::vector<double>& orhs,
 	       double tol,
 	       int maxiter){
+      Dune::Timer buildTimer;
       this->makeSystem(i,
 		       j,
 		       val,
 		       rows,
 		       orhs);
+      double btime = buildTimer.stop();
+      std::cout << "Dune build matrix time " << btime << std::endl;
       Dune::Timer perfTimer;
       perfTimer.start();
       //double tol = 1e-4;
       //int maxiter = 200;
-      this->makeSolver(tol, maxiter);    
+      Dune::Timer sperfTimer;
+      this->makeSolver(tol, maxiter);
+      double stime = sperfTimer.stop();
+      std::cout << "Dune setup time " << stime << std::endl;
       int m = bz*rhs_.size();
       VectorType x(rhs_.size());
       Dune::InverseOperatorResult res;
@@ -430,11 +436,24 @@ namespace mrst{
       linearoperator_.reset(new Dune::MatrixAdapter<MatrixType, VectorType, VectorType>(matrix_));
       preconditioner_ = makePreconditioner<MatrixType, VectorType, bz>(*linearoperator_,prm_);
       int verbosity = prm_.get<int>("verbosity");
-      linsolver_.reset(new Dune::BiCGSTABSolver<VectorType>(*linearoperator_,
-							 *preconditioner_,
-							 tol, // desired residual reduction factor
-							 maxiter, // maximum number of iterations
-							 verbosity));   
+      std::string solvor_type = prm_.get<std::string>("bicgstab"); 
+      if( solver_type == "bicgstab" ){
+	linsolver_.reset(new Dune::BiCGSTABSolver<VectorType>(*linearoperator_,
+							      *preconditioner_,
+							      tol, // desired residual reduction factor
+							      maxiter, // maximum number of iterations
+							      verbosity));
+      }else if( solver_type == "loopsolver"){
+	linsolver_.reset(new Dune::LoopSolver<VectorType>(*linearoperator_,
+							  *preconditioner_,
+							  tol, // desired residual reduction factor
+							  maxiter, // maximum number of iterations
+							  verbosity));
+      }else{
+	std::string msg("Solver not known ");
+	msg += solver_type;
+	throw
+      }
     }
     
     
