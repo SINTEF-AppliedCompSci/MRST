@@ -386,7 +386,8 @@ namespace mrst{
 	       size_t rows,
 	       std::vector<double>& orhs,
 	       double tol,
-	       int maxiter){
+	       int maxiter,
+	       boost::property_tree::ptree& out){
       Dune::Timer buildTimer;
       this->makeSystem(i,
 		       j,
@@ -394,14 +395,17 @@ namespace mrst{
 		       rows,
 		       orhs);
       double btime = buildTimer.stop();
+      out.put("time.matrixtime",btime);
       std::cout << "Dune build matrix time " << btime << std::endl;
       Dune::Timer perfTimer;
       perfTimer.start();
       //double tol = 1e-4;
       //int maxiter = 200;
       Dune::Timer sperfTimer;
+      
       this->makeSolver(tol, maxiter);
       double stime = sperfTimer.stop();
+      out.put("time.setup",stime);
       std::cout << "Dune setup time " << stime << std::endl;
       int m = bz*rhs_.size();
       VectorType x(rhs_.size());
@@ -410,6 +414,13 @@ namespace mrst{
       double time = perfTimer.stop();
       this->makeResult(result,x);
       std::cout << "Dune Solver time " << time << std::endl;
+      out.put("time.solvetime",time-stime);
+      out.put("time.solvetotal",time);
+      out.put("res.iterations",res.iterations);
+      out.put("res.reduction",res.reduction);
+      out.put("res.conv_rate",res.conv_rate);
+      out.put("res.elapsed",res.elapsed);
+      
       // result is returned
     }
 

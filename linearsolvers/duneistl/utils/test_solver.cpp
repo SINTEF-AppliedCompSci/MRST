@@ -7,6 +7,7 @@ int main()
 {
   namespace pt = boost::property_tree;
   pt::ptree prm;
+
   {
     std::ifstream file("options.json");
     pt::read_json(file, prm);
@@ -91,7 +92,8 @@ int main()
   double tol= 1e-2;
   int maxiter = 200;
   if( rhs.size() % 3 == 0){
-    solver.solve(res.data(), i, j, val, rows, rhs, tol, maxiter);
+    pt::ptree out;
+    solver.solve(res.data(), i, j, val, rows, rhs, tol, maxiter,out);
     std::cout << "**********Result new*************" << std::endl;
     for(auto x: res){
       std::cout << x << std::endl;
@@ -99,16 +101,19 @@ int main()
   }
   if( rhs.size() % 2 == 0){
     std::cout << "*********************************" << std::endl;
-    solver2.solve(res.data(), i, j, val, rows, rhs, tol, maxiter);
+      pt::ptree out;
+      solver2.solve(res.data(), i, j, val, rows, rhs, tol, maxiter,out);
     std::cout << "**********Result new*************" << std::endl;
     for(auto x: res){
       std::cout << x << std::endl;
     }
   }
-
-  std::cout << "*********************************" << std::endl;
-  solver1.solve(res.data(), i, j, val, rows, rhs, tol, maxiter);
-  std::cout << "**********Result new*************" << std::endl;
+  {
+    pt::ptree out;
+    std::cout << "*********************************" << std::endl;
+    solver1.solve(res.data(), i, j, val, rows, rhs, tol, maxiter,out);
+    std::cout << "**********Result new*************" << std::endl;
+  }
   for(auto x: res){
     std::cout << x << std::endl;
   }

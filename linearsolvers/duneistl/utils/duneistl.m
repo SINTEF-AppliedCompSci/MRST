@@ -1,4 +1,4 @@
-function x = duneistl(mat, rhs, varargin)
+function [x,extra] = duneistl(mat, rhs, varargin)
 opt = struct('blocksize',1,...
              'tol', 1e-3,...
              'maxiter',200,...
@@ -28,5 +28,7 @@ else
     options = jsonencode(opt.istloptions);
 end
 
-x = duneistl_matlab(i,j,val, rhs, opt.blocksize, opt.tol, opt.maxiter, options); 
+[x,ext] = duneistl_matlab(i,j,val, rhs, opt.blocksize, opt.tol, ...
+                          opt.maxiter, options);
+extra = jsondecode(ext);
 end
