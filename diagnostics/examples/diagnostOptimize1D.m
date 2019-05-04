@@ -3,7 +3,7 @@
 % framework on a very simple 1D problem with two injectors and a single
 % producer.
 %
-mrstModule add ad-fi diagnostics ad-props incomp
+mrstModule add diagnostics ad-props incomp ad-core
 
 %% Setup model
 % We consider a rectangular 10-by-1-by-1 m^3 discretized into 101 cells. We
@@ -53,11 +53,11 @@ W = verticalWell(W, G, rock, mid, 1, [], ...  % Producer: Center
 state0 = initResSol(G, 0*barsa, [1 0 0]);
 % state0.wellSol = initWellSol(W, 0);
 
-% Reservoir fluid and ad-system
+% Reservoir fluid
 fluid_ad = initSimpleADIFluid('mu',[1 1 1], 'n', [1 1 1]);
 
-s = initADISystem({'Oil', 'Water'}, G, rock, fluid_ad);
-
+% Set up discrete operators
+op = setupOperatorsTPFA(G, rock);
 %% Define objective function and plot domain
 % The Lorenz coefficient is used here, which will have values between 0
 % (homogenous displacement, perfect sweep) and 1 (infinitely hetereogenous
@@ -105,7 +105,7 @@ xlabel('X coordinates')
 % between iterations is less than 5%. During the optimization, the progress
 % will be plotted.
 clf
-[D_best, W_best, history] = optimizeTOF(G, W, fluid_ad, pv, T, s,...
+[D_best, W_best, history] = optimizeTOF(G, W, fluid_ad, pv, T, op,...
                                      state0, minRate, objective, ...
                                      'plotProgress', true, ...
                                      'verbose', true, ...

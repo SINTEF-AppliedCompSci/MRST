@@ -1,4 +1,4 @@
-function [D_best, W_best, history] = optimizeTOF(G, W, fluid, pv, T, s, state, minRates, objective, varargin)
+function [D_best, W_best, history] = optimizeTOF(G, W, fluid, pv, T, op, state, minRates, objective, varargin)
 %Optimize well rates based on diagnostics-based objective function
 %
 % SYNOPSIS:
@@ -33,7 +33,7 @@ function [D_best, W_best, history] = optimizeTOF(G, W, fluid, pv, T, s, state, m
 %
 %   pv    - Pore volume. Typicall output from poreVolume(G, rock).
 %
-%   s     - AD system. See initADISystem.
+%   op    - Operators from setupOperatorsTPFA
 %
 %   state - Reservoir state as defined by initResSol.
 %
@@ -142,7 +142,7 @@ opt = struct('maxiter', 25, ...
 
 opt = merge_options(opt, varargin{:});
 
-[st, D, grad] = solveStationaryPressure(G, state, s, W, fluid, pv, T, 'objective', objective,...
+[st, D, grad] = solveStationaryPressure(G, state, op, W, fluid, pv, T, 'objective', objective,...
                     'linsolve', opt.linsolve, 'msbasis', opt.msbasis);
 if isempty(opt.targets)
     tmp = false(numel(W), 1);
@@ -204,7 +204,7 @@ while true
 
         % Calculate time of flight and gradients
         [st, D, gradnew] = solveStationaryPressure(G, state, ...
-           s, W, fluid, pv, T, 'objective', objective, 'linsolve', opt.linsolve);
+           op, W, fluid, pv, T, 'objective', objective, 'linsolve', opt.linsolve);
         newobj = gradnew.objective.val;
 
 
