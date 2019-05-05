@@ -16,7 +16,7 @@ namespace Opm{
   }
   namespace Amg{
     template<class Matrix, class Vector>
-    void getQuasiImpesWeights(const Matrix& matrix,const int pressureVarIndex, Vector& weights)
+    void getQuasiImpesWeights(const Matrix& matrix,const int pressureVarIndex, Vector& weights,bool transpose=false)
     {
       const Matrix& A = matrix;
       //Vector weights(rhs_->size());
@@ -36,8 +36,12 @@ namespace Opm{
 	  }
 	}
 	BlockVector bweights;
-	auto diag_block_transpose = Opm::Details::transposeDenseMatrix(diag_block);
-	diag_block_transpose.solve(bweights, rhs);
+	if(transpose){
+	  diag_block.solve(bweights, rhs);
+	}else{
+	  auto diag_block_transpose = Opm::Details::transposeDenseMatrix(diag_block);
+	  diag_block_transpose.solve(bweights, rhs);
+	}
 	double abs_max =
 	  *std::max_element(
 			    bweights.begin(),

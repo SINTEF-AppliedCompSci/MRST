@@ -82,7 +82,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     pt::read_json(str, prm);
     std::cout << "options in prm" << std::endl;
     std::ofstream file("options.json");
-    pt::write_json(std::cout, prm);
+    //pt::write_json(std::cout, prm);
     pt::write_json(file, prm);
   }
   std::vector<int> i(nnz);
@@ -128,7 +128,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
   }
   std::stringstream ss;
   boost::property_tree::json_parser::write_json(ss, out);
-  std::cout << ss.str() << std::endl;
+  //std::cout << ss.str() << std::endl;
   plhs[1] = mxCreateString(ss.str().c_str());
   
   return;

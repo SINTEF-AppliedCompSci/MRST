@@ -106,7 +106,7 @@ namespace mrst{
   {
     auto& matrix = linearoperator.getmat();
     std::shared_ptr< Dune::Preconditioner<VectorType,VectorType> > preconditioner;
-    double w=prm.get<int>("w");;
+    double w=prm.get<double>("w");;
     int n=prm.get<int>("n");
     std::string precond(prm.get<std::string>("preconditioner"));
     if(precond == "ILU0"){
@@ -154,11 +154,11 @@ namespace mrst{
       }else{
 	typedef typename Dune::Amg::SmootherTraits<Smoother>::Arguments SmootherArgs;
 	SmootherArgs smootherArgs;
-	smootherArgs.iterations = 1;
+	smootherArgs.iterations = prm.get<int>("n");
 	//smootherArgs.overlap=SmootherArgs::vertex;
 	//smootherArgs.overlap=SmootherArgs::none;
 	//smootherArgs.overlap=SmootherArgs::aggregate;
-	smootherArgs.relaxationFactor = 1;
+	smootherArgs.relaxationFactor = prm.get<double>("w");;
 	//Smoother smoother(linearoperator.getmat(), 1);// 1);
 	preconditioner.reset(
 			     new
@@ -178,6 +178,14 @@ namespace mrst{
   makeAmgPreconditioners(Dune::MatrixAdapter<MatrixType, VectorType, VectorType> & linearoperator,
 			 boost::property_tree::ptree& prm){
     std::shared_ptr< Dune::Preconditioner<VectorType,VectorType> > preconditioner;
+    if(prm.get<std::string>("preconditioner") == "famg"){
+      // smoother type should not be used
+      preconditioner = makeAmgPreconditioner<
+	Dune::SeqILU0<MatrixType, VectorType, VectorType>,
+	MatrixType, VectorType>(linearoperator,prm);
+      return preconditioner;
+    }
+    
     std::string precond = prm.get<std::string>("amg.smoother");
     if(precond == "ILU0"){
       preconditioner = makeAmgPreconditioner<
