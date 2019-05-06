@@ -23,8 +23,10 @@
 
 #include <dune/istl/paamg/fastamg.hh>
 #include <dune/istl/paamg/amg.hh>
+//#include "twolevelmethodtranspose.hh"
 #include "PressureSolverPolicy.hpp"
 #include "PressureTransferPolicy.hpp"
+#include "PressureTransferPolicyTranspose.hpp"
 #include "GetQuasiImpesWeights.hpp"
 namespace Dune
 {
@@ -295,6 +297,75 @@ namespace mrst{
         CoarseSolverPolicy coarseSolverPolicy_;
         TwoLevelMethod twolevel_method_;
     };
+
+       template <int bz>
+       class OwningTwoLevelPreconditionerTranspose : public Dune::Preconditioner<Dune::BlockVector< Dune::FieldVector< double, bz > >,
+										 Dune::BlockVector< Dune::FieldVector< double, bz > >>
+       {
+       public:
+	 typedef boost::property_tree::ptree pt;
+	 typedef Dune::BCRSMatrix< Dune::FieldMatrix< double, bz, bz > > MatrixType;
+	 typedef Dune::BlockVector< Dune::FieldVector< double, bz > > VectorType;
+	 typedef Dune::MatrixAdapter<MatrixType, VectorType, VectorType> OperatorType;
+	 
+	 OwningTwoLevelPreconditionerTranspose(OperatorType& linearoperator, pt& prm)
+            : finesmoother_(makePreconditioner<MatrixType, VectorType, bz>(linearoperator, prm.get_child("finesmoother")))
+            , comm_()
+            , weights_(Opm::Amg::getQuasiImpesWeights<MatrixType, VectorType>(linearoperator.getmat(), pressureVarIndex, true)) // TODO
+	    , levelTransferPolicy_(comm_, weights_)
+            , coarseSolverPolicy_(prm.get_child("coarsesolver"))
+            , twolevel_method_(linearoperator,
+                               finesmoother_,
+                               levelTransferPolicy_,
+                               coarseSolverPolicy_,
+                               1,
+                               0)	      
+        {
+	  Opm::Amg::getQuasiImpesWeights(linearoperator.getmat(),pressureVarIndex, weights_, true);
+        }
+
+        virtual void pre(VectorType& x, VectorType& b) override
+        {
+            twolevel_method_.pre(x, b);
+        }
+        virtual void apply(VectorType& v, const VectorType& d) override
+        {
+            twolevel_method_.apply(v, d);
+        }
+        virtual void post(VectorType& x) override
+        {
+            twolevel_method_.post(x);
+        }
+        virtual Dune::SolverCategory::Category category() const override
+        {
+            return Dune::SolverCategory::sequential;
+        }
+    private:
+        // for cpr
+        typedef Dune::BCRSMatrix< Dune::FieldMatrix< double, 1, 1 > > PressureMatrixType;
+        typedef Dune::BlockVector< Dune::FieldVector< double, 1 > > PressureVectorType;
+        typedef Dune::MatrixAdapter<PressureMatrixType, PressureVectorType, PressureVectorType> CoarseOperatorType;
+        using Communication =  Dune::Amg::SequentialInformation;
+        constexpr static int pressureVarIndex = 1;
+        using LevelTransferPolicy = Opm::PressureTransferPolicyTranspose<OperatorType,
+									 CoarseOperatorType,
+									 Communication,
+									 pressureVarIndex>;
+        using CoarseSolverPolicy   =
+          Dune::Amg::PressureSolverPolicy<CoarseOperatorType,
+                                          LevelTransferPolicy>;
+        using TwoLevelMethod =
+            Dune::Amg::TwoLevelMethod<OperatorType,
+                                      CoarseSolverPolicy,
+                                      Dune::Preconditioner<VectorType,VectorType>>;
+
+        std::shared_ptr< Dune::Preconditioner<VectorType,VectorType> > finesmoother_;
+        Communication comm_;
+        VectorType weights_;
+        LevelTransferPolicy levelTransferPolicy_;
+        CoarseSolverPolicy coarseSolverPolicy_;
+        TwoLevelMethod twolevel_method_;
+    };
     // template <>
     // class OwningTwoLevelPreconditioner<1> : public Dune::Preconditioner<Dune::BlockVector< Dune::FieldVector< double, 1 > >,
     // 									 Dune::BlockVector< Dune::FieldVector< double, 1 > >>
@@ -331,8 +402,15 @@ namespace mrst{
                                boost::property_tree::ptree& global_prm)
     {
          boost::property_tree::ptree prm = global_prm.get_child("cpr");
-         std::shared_ptr< Dune::Preconditioner<VectorType,VectorType> > preconditioner;
-         preconditioner.reset(new OwningTwoLevelPreconditioner<bz>(linearoperator, prm));
+	 std::shared_ptr< Dune::Preconditioner<VectorType,VectorType> > preconditioner;
+	 if( global_prm.get<std::string>("preconditioner") == "cpr" ){
+	   preconditioner.reset(new OwningTwoLevelPreconditioner<bz>(linearoperator, prm));
+	 }else if( global_prm.get<std::string>("preconditioner") == "cprt" ) {
+	   preconditioner.reset(new OwningTwoLevelPreconditionerTranspose<bz>(linearoperator, prm));
+	 }else{
+	   std::string msg("Wrong cpr Should not happen");
+	   throw std::runtime_error(msg);
+	 }
          return preconditioner;
     }
 
@@ -344,7 +422,8 @@ namespace mrst{
         if ((prm.get<std::string>("preconditioner") == "famg") or
             (prm.get<std::string>("preconditioner") == "amg")) {
             return makeAmgPreconditioners<MatrixType, VectorType>(linearoperator, prm);
-        } else if( prm.get<std::string>("preconditioner") == "cpr") {
+        } else if( (prm.get<std::string>("preconditioner") == "cpr") or
+		   (prm.get<std::string>("preconditioner") == "cprt") ){
             return makeTwoLevelPreconditioner<MatrixType, VectorType, bz>(linearoperator, prm);
         } else {
             return getSeqPreconditioner<MatrixType,VectorType>(linearoperator, prm);
