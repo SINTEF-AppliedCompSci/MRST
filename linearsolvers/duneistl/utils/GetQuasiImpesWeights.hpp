@@ -52,9 +52,9 @@ namespace Opm{
       //return weights;
     }
     template<class Matrix, class Vector>
-    Vector getQuasiImpesWeights(const Matrix& matrix,const int pressureVarIndex){
+    Vector getQuasiImpesWeights(const Matrix& matrix,const int pressureVarIndex,bool transpose=false){
       Vector weights(matrix.N());
-      getQuasiImpesWeights(matrix, pressureVarIndex, weights);
+      getQuasiImpesWeights(matrix, pressureVarIndex, weights, transpose);
       return weights;
     }
 
