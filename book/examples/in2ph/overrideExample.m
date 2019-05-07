@@ -76,7 +76,7 @@ colormap(flipud(winter))
 wellSols = cell(numel(dT),1);
 set(gca,'XTick',[],'Ytick',[],'ZTick',[]);
 %
-for i=1:numel(dT),
+for i=1:numel(dT)
    rSol = implicitTransport(rSol, G, dT(i), rock, fluid, 'wells', W);
 
    % Check for inconsistent saturations
