@@ -52,10 +52,16 @@ classdef ExtendedFacilityModel < FacilityModel
             end
             W = facility.getWellStruct(map.active);
             if isfield(W, 'rhoS')
+                % Surface density is given on a per-well-basis
                 rhoS = vertcat(W.rhoS);
             else
+                % We take the surface density for the first well cell,
+                % regardless of active or inactive status for that
+                % perforation.
+                topcell = arrayfun(@(x) x.cells(1), W);
+                reg = model.FlowPropertyFunctions.Density.regions;
                 rhoS = model.getSurfaceDensities();
-                rhoS = repmat(rhoS, numel(W), 1);
+                rhoS = rhoS(reg(topcell), :);
             end
             [eqs, names, types] = deal(cell(1, nph+1));
             
