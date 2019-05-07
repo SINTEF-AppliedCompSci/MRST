@@ -25,7 +25,8 @@
 // #include <dune/istl/preconditioners.hh>
 // #include <dune/istl/umfpack.hh>
 // #include <dune/istl/solvers.hh>
-
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
 
 void mexFunction( int nlhs, mxArray *plhs[],
 		  int nrhs, const mxArray *prhs[] )
@@ -44,15 +45,25 @@ void mexFunction( int nlhs, mxArray *plhs[],
     std::string matrixfile(matrixfilename);
     plhs[0] = mxCreateDoubleMatrix(m, 1, mxREAL);
     double* result = mxGetPr(plhs[0]);
-
+    namespace pt = boost::property_tree;
+    pt::ptree prm;
+    {
+      char *chopt = mxArrayToString(prhs[4]);  
+      std::istringstream str(chopt);
+      pt::read_json(str, prm);
+      std::cout << "options in prm" << std::endl;
+      std::ofstream file("options.json");
+      //pt::write_json(std::cout, prm);
+      pt::write_json(file, prm);
+    }
     if(bz==1){    
-      mrst::BlockIlu0Solver<1> solver;
+      mrst::BlockIlu0Solver<1> solver(prm);
       solver.solve(result,matrixfile,rhsfile);
     }else if(bz == 2){
-      mrst::BlockIlu0Solver<2> solver;
+      mrst::BlockIlu0Solver<2> solver(prm);
       solver.solve(result,matrixfile,rhsfile); 
     }else if(bz ==3){
-      mrst::BlockIlu0Solver<3> solver;
+      mrst::BlockIlu0Solver<3> solver(prm);
       solver.solve(result,matrixfile,rhsfile); 
     }else{
       std::cout<< "BlockIlu0 solver not implemented for blocksize " << bz << std::endl;

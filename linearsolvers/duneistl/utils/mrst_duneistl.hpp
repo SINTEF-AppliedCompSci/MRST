@@ -23,11 +23,13 @@
 
 #include <dune/istl/paamg/fastamg.hh>
 #include <dune/istl/paamg/amg.hh>
-//#include "twolevelmethodtranspose.hh"
+
 #include "PressureSolverPolicy.hpp"
 #include "PressureTransferPolicy.hpp"
 #include "PressureTransferPolicyTranspose.hpp"
 #include "GetQuasiImpesWeights.hpp"
+
+#include "twolevelmethodtranspose.hh"
 namespace Dune
 {
  
@@ -355,7 +357,7 @@ namespace mrst{
           Dune::Amg::PressureSolverPolicy<CoarseOperatorType,
                                           LevelTransferPolicy>;
         using TwoLevelMethod =
-            Dune::Amg::TwoLevelMethod<OperatorType,
+            Dune::Amg::TwoLevelMethodTranspose<OperatorType,
                                       CoarseSolverPolicy,
                                       Dune::Preconditioner<VectorType,VectorType>>;
 
@@ -546,6 +548,14 @@ namespace mrst{
 							  tol, // desired residual reduction factor
 							  maxiter, // maximum number of iterations
 							  verbosity));
+      }else if( solver_type == "gmres"){
+	int restart = prm_.get<int>("restart"); 
+	linsolver_.reset(new Dune::RestartedGMResSolver<VectorType>(*linearoperator_,
+								    *preconditioner_,
+								    tol,
+								    restart, // desired residual reduction factor
+								    maxiter, // maximum number of iterations
+								    verbosity)); 	
       }else{
 	std::string msg("Solver not known ");
 	msg += solver_type;
