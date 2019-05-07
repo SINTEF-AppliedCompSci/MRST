@@ -44,6 +44,16 @@ function varargout = pollock(G, state, varargin)
 %               cell in the grid `G`.  Makes the physical interpretation of
 %               time-of-flight appropriate for non-uniform porosity fields.
 %
+%   isoutflow - Cell-wise boolean indicator which indicates if a streamline
+%               should terminate upon reaching that cell. Defaults to
+%               false(G.cells.num, 1) and is useful in the presence of many
+%               weak source terms (which do not lead to inflow or outflow
+%               over all faces for a given source term).
+%
+%   blocksize - Internal parameter indicating how many streamlines are
+%               processed simultaneously. Larger values give faster
+%               processing, at a higher memory cost. Default: 1000.
+%
 % RETURNS:
 %
 %  S      - Cell array of individual streamlines suitable for calls like
@@ -101,10 +111,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       varargin = varargin(2:end);
    end
 
-   opt = struct('substeps', 5,     ...
-                'maxsteps', 1000,  ...
-                'reverse' , false, ...
-                'pvol'    , ones([G.cells.num, 1]));
+   opt = struct('substeps'  , 5,     ...
+                'maxsteps'  , 1000,  ...
+                'reverse'   , false, ...
+                'isoutflow' , false(G.cells.num, 1), ...
+                'blocksize' , 1000,  ...
+                'pvol'      , ones([G.cells.num, 1]));
    opt = merge_options(opt, varargin{:});
 
    if size(state.flux, 2) > 1
@@ -144,7 +156,7 @@ function varargout = trace(G, state, pos, opt)
 
    neighbors  = findNeighbors(G);
 
-   magic  = 1000;
+   magic  = opt.blocksize;
    XYZ    = nan(numStreamlines, d, magic);
    T      = nan(numStreamlines, magic);
    C      = nan(numStreamlines, magic);
@@ -179,10 +191,12 @@ function varargout = trace(G, state, pos, opt)
       C(active, i-1+(1:opt.substeps)) = repmat(pos(active, 1), [1, opt.substeps]);
 
       % Update active flag
-      active(active)    =  pos(active,1) ~= current_cell;
+      active(active)    =  pos(active,1) ~= current_cell & ~opt.isoutflow(current_cell);
 
       i = i+opt.substeps;
-      if i > opt.maxsteps, break;end
+      if i > opt.maxsteps
+          break;
+      end
    end
 
    % Pack coordinates in list with streamlines separated by NaN.
