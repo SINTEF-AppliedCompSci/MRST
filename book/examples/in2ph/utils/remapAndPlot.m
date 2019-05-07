@@ -1,7 +1,7 @@
 function [x] = remapAndPlot(Gi, xi, mx, cval, varargin)
 % Remap between a parallel and a diagonal grid and plot contours
 %
-if nargin>=5,
+if nargin>=5
   fig = gcf;
   figure
   subplot(1,2,1),

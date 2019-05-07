@@ -36,7 +36,7 @@ IP   = computeMimeticIP(G, rock);
 % Symmetric well pattern
 wcells = findEnclosingCell(G,[200 97.5; 50 2.5; 350 2.5]);
 rate   = sum(poreVolume(G,rock));
-if exmpl==1,
+if exmpl==1
     W = addWell([], G, rock, wcells(1), 'Type', 'bhp', ...
         'Val', 200*barsa, 'name', 'I', 'radius', .1, 'Comp_i', [1 0]);
     W = addWell(W, G, rock, wcells(2), 'Type', 'bhp', ...

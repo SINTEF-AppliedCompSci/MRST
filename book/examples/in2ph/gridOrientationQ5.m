@@ -19,7 +19,7 @@ pvi      = [0.3 0.6 0.7];
 cartDim  = [32 32 1];
 nstep    = 16;
 set(gcf,'Position',[250 450 1100 360]);
-for n=1:3,
+for n=1:3
     fluid = initSimpleFluid('mu', mu(n,:).*centi*poise, ...
         'rho', [1000,  850].* kilogram/meter^3, 'n', [2, 2]);
     subplot(1,3,n)

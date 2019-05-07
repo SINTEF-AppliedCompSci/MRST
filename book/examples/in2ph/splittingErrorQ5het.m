@@ -71,7 +71,7 @@ for n=1:3
         end
         
         % Compute discrepancy from reference solution
-        if m==8,
+        if m==8
             sref = x.s(:,1); snorm = sum(abs(sref).*pv);
         else
             err(n,m) = sum(abs(x.s(:,1)-sref).*pv)/snorm;
@@ -80,7 +80,7 @@ for n=1:3
         % Plot contour plot of solution
         subplot(3,7,sub2ind([7,3],min(m,7),n))
         plotData(x); axis equal; axis([0 domain(1) 0 domain(2)]);
-        if n==1,
+        if n==1
             title(sprintf('%d steps',2^m));
         else
             pos=get(gca,'position');

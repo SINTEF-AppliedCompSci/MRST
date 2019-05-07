@@ -75,7 +75,7 @@ for n=1:N
        fprintf(1,'%d, ',m);
     end
     fprintf(1,'\n');
-    if n>4, continue, end;
+    if n>4, continue, end
     
     % Plot multiphase solution
     subplot(2,4,n);

@@ -71,7 +71,7 @@ caxis([0 1]); colormap(cm), axis equal tight off
 % For accuracy, the time step is gradually ramped up
 dT = [.5, .5, 1, 1, 1, 2, 2, 2, 5, 5, 10, 10, 15, 20, repmat(25,[1,97])].*day;
 [t, ip] = deal(0,1);
-for k = 1 : numel(dT),
+for k = 1 : numel(dT)
    xr = implicitTransport(xr, G, dT(k), rock, fluid, 'Verbose', false);
 
    % Check for inconsistent saturations

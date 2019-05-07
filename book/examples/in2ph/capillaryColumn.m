@@ -7,7 +7,7 @@ mrstModule add incomp
 gravity reset on
 exmpl = 1;
 G  = computeGeometry(cartGrid([20, 1, 40], [100 1 100]));
-if exmpl==1,
+if exmpl==1
    perm  = @(x) (350*x/100 + 50).*milli*darcy;
    rock  = makeRock(G, perm(G.cells.centroids(:,1)), .1);
    dT    = .01;
@@ -39,7 +39,7 @@ xr.s(G.cells.centroids(:,3)>50) = 1.0;
 clf, set(gcf,'Position',[0   450  1280   370]);
 cax1 = subplot(1,3,1);
 colormap(cax1, parula);
-if exmpl==2,
+if exmpl==2
     plotCellData(G,log10(rock.perm),'EdgeColor','none'); view(0,0), axis tight
     [h,az] = colorbarHist(log10(rock.perm),[-14 -12],'South');
     set(h,'XTick',-14:-12,'XTickLabel',{'10', '100', '1000'});
@@ -57,7 +57,7 @@ colormap(cax2, [zeros(128,1) linspace(.8,0,128)' linspace(0,.7,128)']);
 dt = dT*[1 1 2 2 3 3 4 4 repmat(5,[1,96])]*year;
 dt = [dt(1).*sort(repmat(2.^-[1:5 5],1,1)) dt(2:end)];
 s  = xr.s(:,1); 
-for k = 1 : numel(dt),
+for k = 1 : numel(dt)
    xr = incompTPFA(xr, G, hT, fluid);
    xr = implicitTransport(xr, G, dt(k), rock, fluid);
    t  = t+dt(k);
@@ -70,7 +70,7 @@ for k = 1 : numel(dt),
    drawnow
    
    ds = norm(s - xr.s(:,1),inf);
-   if ds<1e-4, break, end;
+   if ds<1e-4, break, end
    fprintf('%e\n',ds);
    s = xr.s(:,1);
    

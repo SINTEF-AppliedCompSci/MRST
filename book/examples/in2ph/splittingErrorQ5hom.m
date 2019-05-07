@@ -68,7 +68,7 @@ for n=0:6
     err(n+1,1) = norm((xr.s(:,1) - x.s(:,1)).*pv, 1)/l1s;
     err(n+1,2) = norm((xr.pressure - x.pressure).^2.*pv, 1)/l2p;
 
-    if rem(n,2), continue, end;
+    if rem(n,2), continue, end
     
     subplot(1,4,n/2+1);
     contourf(reshape(G.cells.centroids(:,1), G.cartDims),...

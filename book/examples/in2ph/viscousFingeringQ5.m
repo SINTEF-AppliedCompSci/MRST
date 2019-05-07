@@ -59,7 +59,7 @@ for n=1:3
             subplot(3,5,is); ip=ip+1; is=is+1;
             plotData(x); axis equal; axis([0 domain(1) 0 domain(2)]);
             set(gca,'XTick',[],'YTick',[]);
-            if n==1,
+            if n==1
                 title(sprintf('%.0f years', sum(dt)/year));
             else
                 set(gca,'position',get(gca,'position')+(n-1)*[0 .05 0 0]);
