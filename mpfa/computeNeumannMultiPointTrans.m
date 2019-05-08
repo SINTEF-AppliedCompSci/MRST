@@ -1,4 +1,4 @@
-function mpfastruct = computeMultiPointTransInt(G, rock, varargin)
+function mpfastruct = computeNeumannMultiPointTrans(G, rock, varargin)
 % Compute multi-point transmissibilities for Neumann boundary condition.
 % Require incompMPFA3 solver
 %
