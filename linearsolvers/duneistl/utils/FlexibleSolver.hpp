@@ -301,34 +301,5 @@ private:
 } // namespace Dune
 
 
-template <class O, class P>
-Dune::Amg::PressureSolverPolicy<O, P>::PressureInverseOperator::PressureInverseOperator(
-    Operator& op, const boost::property_tree::ptree& prm)
-    : linsolver_()
-    , op_(op) //, prm_(prm)
-{
-    // boost::property_tree::ptree lprm = prm.get_child("pressuresolver");
-    linsolver_.reset(new Dune::FlexibleSolver<1>(prm));
-    int maxiter = prm.get<int>("maxiter");
-    double tol = prm.get<double>("tol");
-    linsolver_->makeSolver(tol, maxiter, op_.getmat());
-}
-
-template <class O, class P>
-void
-Dune::Amg::PressureSolverPolicy<O, P>::PressureInverseOperator::apply(
-    X& x, X& b, double /*reduction*/, Dune::InverseOperatorResult& res)
-{
-    linsolver_->apply(x, b, res);
-}
-
-template <class O, class P>
-void
-Dune::Amg::PressureSolverPolicy<O, P>::PressureInverseOperator::apply(X& x, X& b, Dune::InverseOperatorResult& res)
-{
-    linsolver_->apply(x, b, res);
-}
-
-
 
 #endif /* FLEXIBLESOLVER_HPP */

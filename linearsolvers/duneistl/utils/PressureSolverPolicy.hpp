@@ -7,17 +7,11 @@
 
 namespace Dune
 {
-template <int n> class FlexibleSolver;
-}
-
-
-namespace Dune
-{
 namespace Amg
 {
     namespace pt = boost::property_tree;
 
-    template <class O, class P> class PressureSolverPolicy
+    template <class O, class P, class S> class PressureSolverPolicy
     {
     public:
 
@@ -26,6 +20,8 @@ namespace Amg
         typedef O Operator;
         /** @brief The type of the range and domain of the operator. */
         typedef typename O::range_type X;
+        /** @brief The type of the solver for the pressure system. */
+        typedef S Solver;
         /**
          * @brief Constructs the coarse solver policy.
          * @param args The arguments used for constructing the smoother.
@@ -50,17 +46,30 @@ namespace Amg
          * the coarse level system.
          */
         struct PressureInverseOperator : public Dune::InverseOperator<X, X> {
-            PressureInverseOperator(Operator& op, const boost::property_tree::ptree& prm);
+            PressureInverseOperator(Operator& op, const boost::property_tree::ptree& prm)
+                : linsolver_()
+                , op_(op) //, prm_(prm)
+            {
+                linsolver_.reset(new Solver(prm));
+                int maxiter = prm.get<int>("maxiter");
+                double tol = prm.get<double>("tol");
+                linsolver_->makeSolver(tol, maxiter, op_.getmat());
+            }
 
             Dune::SolverCategory::Category category() const override { return Dune::SolverCategory::sequential; }
 
+            void apply(X& x, X& b, double reduction, Dune::InverseOperatorResult& res) override
+            {
+                linsolver_->apply(x, b, res);
+            }
 
-            void apply(X& x, X& b, double reduction, Dune::InverseOperatorResult& res) override;
-
-            void apply(X& x, X& b, Dune::InverseOperatorResult& res) override;
+            void apply(X& x, X& b, Dune::InverseOperatorResult& res) override
+            {
+                linsolver_->apply(x, b, res);
+            }
 
         private:
-            std::shared_ptr<Dune::FlexibleSolver<1>> linsolver_;
+            std::shared_ptr<Solver> linsolver_;
             Operator& op_;
         };
 
@@ -94,4 +103,6 @@ namespace Amg
     };
 } // namespace Amg
 } // namespace Dune
+
+
 #endif

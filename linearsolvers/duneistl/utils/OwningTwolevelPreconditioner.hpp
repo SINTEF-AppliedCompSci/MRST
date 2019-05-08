@@ -30,8 +30,9 @@ template <class MatrixType, class VectorType, int bz>
 std::shared_ptr<Dune::Preconditioner<VectorType, VectorType>> makePreconditioner(
     Dune::MatrixAdapter<MatrixType, VectorType, VectorType>& linearoperator, boost::property_tree::ptree& prm);
 
-
-
+// Must forward-declare FlexibleSolver as we want to use it as solver for the pressure system.
+template <int bz>
+class FlexibleSolver;
 
 template <int bz>
 class OwningTwoLevelPreconditioner : public Dune::Preconditioner<
@@ -70,7 +71,7 @@ private:
     constexpr static int pressureVarIndex = 1;
     using LevelTransferPolicy
         = Opm::PressureTransferPolicy<OperatorType, CoarseOperatorType, Communication, pressureVarIndex>;
-    using CoarseSolverPolicy = Dune::Amg::PressureSolverPolicy<CoarseOperatorType, LevelTransferPolicy>;
+    using CoarseSolverPolicy = Dune::Amg::PressureSolverPolicy<CoarseOperatorType, LevelTransferPolicy, FlexibleSolver<1>>;
     using TwoLevelMethod
         = Dune::Amg::TwoLevelMethod<OperatorType, CoarseSolverPolicy, Dune::Preconditioner<VectorType, VectorType>>;
 
@@ -119,7 +120,7 @@ private:
     constexpr static int pressureVarIndex = 1;
     using LevelTransferPolicy
         = Opm::PressureTransferPolicyTranspose<OperatorType, CoarseOperatorType, Communication, pressureVarIndex>;
-    using CoarseSolverPolicy = Dune::Amg::PressureSolverPolicy<CoarseOperatorType, LevelTransferPolicy>;
+    using CoarseSolverPolicy = Dune::Amg::PressureSolverPolicy<CoarseOperatorType, LevelTransferPolicy, FlexibleSolver<1>>;
     using TwoLevelMethod = Dune::Amg::
         TwoLevelMethodTranspose<OperatorType, CoarseSolverPolicy, Dune::Preconditioner<VectorType, VectorType>>;
 
