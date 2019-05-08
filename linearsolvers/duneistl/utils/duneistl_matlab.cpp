@@ -13,7 +13,7 @@
 #include <sstream>
 /* MEX interfaces */
 /* Block system support */
-#include "mrst_duneistl.hpp"
+#include "FlexibleSolver.hpp"
 #include <cmath>
 #include <iomanip>
 #include <limits>
@@ -114,16 +114,16 @@ void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[])
     double* result = mxGetPr(plhs[0]);
     pt::ptree out;
     if (bz == 1) {
-        mrst::BlockIlu0Solver<1> solver(prm);
+        Dune::FlexibleSolver<1> solver(prm);
         solver.solve(result, i, j, val, rows, orhs, tol, maxiter, out);
     } else if (bz == 2) {
-        mrst::BlockIlu0Solver<2> solver(prm);
+        Dune::FlexibleSolver<2> solver(prm);
         solver.solve(result, i, j, val, rows, orhs, tol, maxiter, out);
     } else if (bz == 3) {
-        mrst::BlockIlu0Solver<3> solver(prm);
+        Dune::FlexibleSolver<3> solver(prm);
         solver.solve(result, i, j, val, rows, orhs, tol, maxiter, out);
     } else {
-        std::cout << "BlockIlu0 solver not implemented for blocksize " << bz << std::endl;
+        std::cout << "Flexible solver not implemented for blocksize " << bz << std::endl;
     }
     std::stringstream ss;
     boost::property_tree::json_parser::write_json(ss, out);

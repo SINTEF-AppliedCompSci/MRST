@@ -1,4 +1,4 @@
-#include "mrst_duneistl.hpp"
+#include "FlexibleSolver.hpp"
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <fstream>
@@ -15,9 +15,9 @@ int main()
     }
     std::cout << "Hello, World!";
     constexpr int bz = 3;
-    mrst::BlockIlu0Solver<bz> solver(prm);
-    mrst::BlockIlu0Solver<2> solver2(prm);
-    mrst::BlockIlu0Solver<1> solver1(prm);
+    Dune::FlexibleSolver<bz> solver(prm);
+    Dune::FlexibleSolver<2> solver2(prm);
+    Dune::FlexibleSolver<1> solver1(prm);
     std::string matrixfile("matrix_istl.txt");
     std::string rhsfile("rhs_istl.txt");
     std::vector<double> res(9);

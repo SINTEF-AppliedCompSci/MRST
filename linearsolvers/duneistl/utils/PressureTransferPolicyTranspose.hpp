@@ -1,20 +1,8 @@
 #ifndef OPM_PRESSURE_TRANSFER_POLICY_TRANSPOSE_HEADER_INCLUDED
 #define OPM_PRESSURE_TRANSFER_POLICY_TRANSPOSE_HEADER_INCLUDED
 
-//#include <opm/autodiff/ParallelOverlappingILU0.hpp>
-//#include <opm/autodiff/FlowLinearSolverParameters.hpp>
-//#include <opm/autodiff/CPRPreconditioner.hpp>
-#include <dune/common/fmatrix.hh>
-#include <dune/common/fvector.hh>
-#include <dune/istl/bcrsmatrix.hh>
-#include <dune/istl/bvector.hh>
-#include <dune/istl/operators.hh>
-#include <dune/istl/paamg/aggregates.hh>
-#include <dune/istl/paamg/twolevelmethod.hh>
-#include <dune/istl/preconditioners.hh>
-#include <dune/istl/scalarproducts.hh>
-#include <dune/istl/schwarz.hh>
 
+#include <dune/istl/paamg/twolevelmethod.hh>
 
 
 namespace Opm

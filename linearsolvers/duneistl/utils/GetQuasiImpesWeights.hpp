@@ -1,8 +1,12 @@
 #ifndef OPM_GET_QUASI_IMPES_WEIGHTS_HEADER_INCLUDED
 #define OPM_GET_QUASI_IMPES_WEIGHTS_HEADER_INCLUDED
 
+#include <algorithm>
+#include <cmath>
+
 namespace Opm
 {
+
 namespace Details
 {
     template <class DenseMatrix> DenseMatrix transposeDenseMatrix(const DenseMatrix& M)
@@ -15,18 +19,17 @@ namespace Details
         return tmp;
     }
 } // namespace Details
+
 namespace Amg
 {
     template <class Matrix, class Vector>
     void getQuasiImpesWeights(const Matrix& matrix, const int pressureVarIndex, Vector& weights, bool transpose = false)
     {
+        using VectorBlockType = typename Vector::block_type;
+        using MatrixBlockType = typename Matrix::block_type;
         const Matrix& A = matrix;
-        // Vector weights(rhs_->size());
-        typedef typename Vector::block_type BlockVector;
-        // typedef typename Matrix::MatrixBlock MatrixBlockType;
-        typedef typename Matrix::block_type MatrixBlockType;
-        BlockVector rhs(0.0);
-        rhs[pressureVarIndex] = 1;
+        VectorBlockType rhs(0.0);
+        rhs[pressureVarIndex] = 1.0;
         const auto endi = A.end();
         for (auto i = A.begin(); i != endi; ++i) {
             const auto endj = (*i).end();
@@ -37,7 +40,7 @@ namespace Amg
                     break;
                 }
             }
-            BlockVector bweights;
+            VectorBlockType bweights;
             if (transpose) {
                 diag_block.solve(bweights, rhs);
             } else {
@@ -45,12 +48,13 @@ namespace Amg
                 diag_block_transpose.solve(bweights, rhs);
             }
             double abs_max = *std::max_element(
-                bweights.begin(), bweights.end(), [](double a, double b) { return std::abs(a) < std::abs(b); });
-            bweights /= std::abs(abs_max);
+                bweights.begin(), bweights.end(), [](double a, double b) { return std::fabs(a) < std::fabs(b); });
+            bweights /= std::fabs(abs_max);
             weights[i.index()] = bweights;
         }
         // return weights;
     }
+
     template <class Matrix, class Vector>
     Vector getQuasiImpesWeights(const Matrix& matrix, const int pressureVarIndex, bool transpose = false)
     {
@@ -60,5 +64,6 @@ namespace Amg
     }
 
 } // namespace Amg
+
 } // namespace Opm
 #endif

@@ -3,14 +3,11 @@
 #ifndef DUNE_ISTL_TWOLEVELMETHOD_TRANSPOSE_HH
 #define DUNE_ISTL_TWOLEVELMETHOD_TRANSPOSE_HH
 
-#include <tuple>
 
 #include<dune/istl/operators.hh>
-//#include"amg.hh"
-//#include"galerkin.hh"
 #include<dune/istl/solver.hh>
-
 #include<dune/common/unused.hh>
+
 
 /**
  * @addtogroup ISTL_PAAMG
