@@ -1,6 +1,7 @@
 % run field model
 clear;close all;clc
-mrstModule add incomp mimetic 
+mrstModule add incomp mimetic  ad-blackoil ad-core glpk ntpfa_glpk ...
+    ad-props mpfa
 %% Grid and rock
 %grdecl=readGRDECL('NORNE.grdecl');
 grdecl = readGRDECL(fullfile(getDatasetPath('norne'), 'NORNE.GRDECL'));
@@ -53,8 +54,12 @@ subplot(2,2,4),plotCellData(G,log10(convertTo(rock.perm(:,end),milli*darcy)),'ed
 view(-5,55);h=colorbar;h.Label.String='log_{10}(\itk_{\rmV})';axis tight off;set(h,'fontsize',12)
 subplot(2,2,2),plotCellData(G,rock.poro,'edgecolor','none');
 view(-5,55);h=colorbar;h.Label.String='\phi';axis tight off;set(h,'fontsize',12)
-fluid=initSingleFluid('mu',1,'rho',1);
+drawnow
+mu_value = 1;
+rho_value = 1;
+fluid=initSingleFluid('mu',mu_value,'rho',rho_value);
 %% linear TPFA
+disp('tpfa')
 stp=FlowTPFA(G,TransTPFA(G,rock,bc),fluid,Wtp);
 figure,plotCellData(G,stp.pressure/1e6);plotWell(G,Wtp);view(3)
 title('Pressure-TPFA');h=colorbar;h.Label.String='Pressure[MPa]';clear h;
@@ -62,8 +67,17 @@ Qinj=sum(stp.wellSol(1).flux);tt=pv/Qinj;nstep=100;dt=tt/nstep;
 stp=tracerTransport_implicit(G,rock,Wtp,stp,dt,nstep);
 figure, plotCellData(G,stp.cres(:,end));plotWell(G,Wtp);
 view(3);colorbar;title('Concentration-TPFA');
+drawnow
+
+% mrst version
+p0 = 15e6; % from FlowNTPFA call below
+T = computeTrans(G,rock);
+state0 = initState(G, Wtp, p0);
+stpmrst = incompTPFA(state0, G, T, fluid, 'wells', Wtp);
+stpmrst=tracerTransport_implicit(G,rock,Wtp,stpmrst,dt,nstep);
 
 %% MFD
+disp('mfd')
 sm=incompMimetic(initState(G,Wtp,0),G,computeMimeticIP(G,rock),fluid,'wells',Wtp);
 figure, plotCellData(G,sm.pressure/1e6);plotWell(G,Wtp);view(3);
 title('Pressure-MFD');h=colorbar;h.Label.String='Pressure[MPa]';clear h;
@@ -71,8 +85,10 @@ Qinj=sum(sm.wellSol(1).flux);tt=pv/Qinj;nstep=100;dt=tt/nstep;
 sm=tracerTransport_implicit(G,rock,Wtp,sm,dt,nstep);
 figure, plotCellData(G,sm.cres(:,end));plotWell(G,Wtp);
 view(3);colorbar;title('Concentration-MFD');
+drawnow
 
 %%
+disp('nonlinear TPFA')
 interpFace=findHAP(G,rock,bc);
 disp(interpFace.percentage);
 interpFace=correctHAP(G,interpFace);
@@ -85,16 +101,38 @@ Qinj=sum(sntp.wellSol(1).flux);tt=pv/Qinj;nstep=100;dt=tt/nstep;
 sntp=tracerTransport_implicit(G,rock,Wtp,sntp,dt,nstep);
 figure, plotCellData(G,sntp.cres(:,end));plotWell(G,Wtp);
 view(3);colorbar;title('Concentration-NTPFA');
+drawnow
+
+% NTPFA from new framework doesn't converge
+% mrstVerbose off
+% mrstDebug on
+% fluidad = initSimpleADIFluid('phases', 'W', 'mu' , mu_value, 'rho', rho_value);
+% model = GenericBlackOilModel(G, rock, fluidad, 'water', true, 'oil', false, 'gas', false);
+% model = model.validateModel();
+% model.FluxDiscretization.PermeabilityPotentialGradient.PermeabilityGradientDiscretization = NonlinearTwoPointFluxApproximation(model);
+% model.FacilityModel = model.FacilityModel.setupWells(Wtp);
+% schedule = simpleSchedule(1.0, 'W', Wtp);
+% [wellSols, states] = simulateScheduleAD(state0, model, schedule);
+% state = states{1};
+% sntpmrst = state;
+% sntpmrst = tracerTransport_implicit(G,rock,Wtp,sntpmrst,dt,nstep);
+
 
 %% nonlinear MPFA
-% snmp=NewtonMPFA(G,fluid,Wtp,OSflux,1e-9,100);
-% snmp=FlowNMPFA(G,bc,fluid,Wtp,OSflux,1e-9,100);
-% figure,plotCellData(G,snmp.pressure/1e6);plotWell(G,Wtp);axis image;view(3)
-% title('Pressure-NMPFA');h=colorbar;h.Label.String='Pressure[MPa]';clear h;
-% Qinj=sum(snmp.wellSol(1).flux);tt=1.5*pv/Qinj;nstep=100;dt=tt/nstep;
-% snmp=tracerTransport_implicit(G,rock,Wtp,snmp,dt,nstep);
-% figure, plotCellData(G,snmp.cres(:,end));plotWell(G,Wtp);
-% view(3);axis image;colorbar;title('Concentration-NMPFA');
+disp('nonlinear MPFA')
+%snmp=NewtonMPFA(G,fluid,Wtp,OSflux,1e-9,100);
+snmp=FlowNMPFA(G,bc,fluid,Wtp,OSflux,1e-9,100);
+figure,plotCellData(G,snmp.pressure/1e6);plotWell(G,Wtp);axis image;view(3)
+title('Pressure-NMPFA');h=colorbar;h.Label.String='Pressure[MPa]';clear h;
+Qinj=sum(snmp.wellSol(1).flux);tt=1.5*pv/Qinj;nstep=100;dt=tt/nstep;
+snmp=tracerTransport_implicit(G,rock,Wtp,snmp,dt,nstep);
+figure, plotCellData(G,snmp.cres(:,end));plotWell(G,Wtp);
+view(3);axis image;colorbar;title('Concentration-NMPFA');
+
+% MPFA Xavier style (memory)
+%mpfastruct = computeNeumannMultiPointTrans(G, rock);
+%smpfa = incompMPFA3(G, mpfastruct, Wtp);
+%smpfa = tracerTransport_implicit(G,rock,Wtp,smpfa,dt,nstep);
 
 %%
 data1=abs(stp.pressure-sm.pressure)./1e6;
@@ -119,6 +157,17 @@ subplot(1,2,2),plotCellData(G,data,'edgealpha',0.2);view(-80,50);axis tight off
 h=colorbar('horiz');h.Label.String='Concentration';h.Label.FontSize=15;caxis([0 1]);
 title('\mid\itC_{\rmntpfa}-\itC_{\rmmfd}\rm\mid','fontsize',20);clear data h
 
-figure, plot((1:nstep)'/nstep,[stp.cwell sm.cwell sntp.cwell],'linewidth',2);
-legend({'TPFA','MFD','NTPFA'});xlabel('pore volume injected');ylabel('concentration');
+figure, plot((1:nstep)'/nstep,...
+             [stp.cwell ...
+              stpmrst.cwell ...
+              sm.cwell ...
+              sntp.cwell ...
+              snmp.cwell],'linewidth',2);
+legend({'TPFA',...
+        'mrst TPFA', ...
+        'mrst MFD',...
+        'NTPFA', ...
+        'NMPFA'});
+xlabel('pore volume injected');
+ylabel('concentration');
 
