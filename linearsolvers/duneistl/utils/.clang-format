@@ -1,0 +1,17 @@
+{
+        BasedOnStyle: WebKit,
+        AlignAfterOpenBracket: AlwaysBreak,
+        AlignConsecutiveAssignments: false,
+        AlignConsecutiveDeclarations: false,
+        AllowShortBlocksOnASingleLine: false,
+        AlwaysBreakAfterReturnType: TopLevelDefinitions,
+        BinPackArguments: false,
+        BinPackParameters: false,
+        BreakBeforeBraces: Linux,
+        BreakConstructorInitializers: BeforeComma,
+        ColumnLimit: 120,
+        Cpp11BracedListStyle: true,
+        FixNamespaceComments: true,
+        MaxEmptyLinesToKeep: 5,
+        NamespaceIndentation: Inner,
+}
