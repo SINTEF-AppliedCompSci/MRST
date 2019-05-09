@@ -11,10 +11,10 @@ namespace Amg
 {
     namespace pt = boost::property_tree;
 
-    template <class O, class P, class S> class PressureSolverPolicy
+    template <class O, class P, class S>
+    class PressureSolverPolicy
     {
     public:
-
         typedef P LevelTransferPolicy;
         /** @brief The type of the linear operator used. */
         typedef O Operator;
@@ -56,7 +56,10 @@ namespace Amg
                 linsolver_->makeSolver(tol, maxiter, op_.getmat());
             }
 
-            Dune::SolverCategory::Category category() const override { return Dune::SolverCategory::sequential; }
+            Dune::SolverCategory::Category category() const override
+            {
+                return Dune::SolverCategory::sequential;
+            }
 
             void apply(X& x, X& b, double reduction, Dune::InverseOperatorResult& res) override
             {
@@ -83,11 +86,13 @@ namespace Amg
          * @param transferPolicy The policy describing the transfer between levels.
          * @return A pointer to the constructed coarse level solver.
          */
-        template <class LTP> void setCoarseOperator(LTP& transferPolicy)
+        template <class LTP>
+        void setCoarseOperator(LTP& transferPolicy)
         {
             coarseOperator_ = transferPolicy.getCoarseLevelOperator();
         }
-        template <class LTP> CoarseLevelSolver* createCoarseLevelSolver(LTP& transferPolicy)
+        template <class LTP>
+        CoarseLevelSolver* createCoarseLevelSolver(LTP& transferPolicy)
         {
             coarseOperator_ = transferPolicy.getCoarseLevelOperator();
             const LevelTransferPolicy& transfer = reinterpret_cast<const LevelTransferPolicy&>(transferPolicy);

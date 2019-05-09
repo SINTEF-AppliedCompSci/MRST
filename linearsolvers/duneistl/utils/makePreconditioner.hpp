@@ -30,8 +30,8 @@ namespace Dune
 
 template <class MatrixType, class VectorType>
 std::shared_ptr<Dune::Preconditioner<VectorType, VectorType>>
-makeSeqPreconditioner(
-    Dune::MatrixAdapter<MatrixType, VectorType, VectorType>& linearoperator, boost::property_tree::ptree& prm)
+makeSeqPreconditioner(Dune::MatrixAdapter<MatrixType, VectorType, VectorType>& linearoperator,
+                      boost::property_tree::ptree& prm)
 {
     auto& matrix = linearoperator.getmat();
     std::shared_ptr<Dune::Preconditioner<VectorType, VectorType>> preconditioner;
@@ -62,8 +62,8 @@ makeSeqPreconditioner(
 
 template <class Smoother, class MatrixType, class VectorType>
 std::shared_ptr<Dune::Preconditioner<VectorType, VectorType>>
-makeAmgPreconditioner(
-    Dune::MatrixAdapter<MatrixType, VectorType, VectorType>& linearoperator, boost::property_tree::ptree& global_prm)
+makeAmgPreconditioner(Dune::MatrixAdapter<MatrixType, VectorType, VectorType>& linearoperator,
+                      boost::property_tree::ptree& global_prm)
 {
     boost::property_tree::ptree prm = global_prm.get_child("amg");
     typedef Dune::MatrixAdapter<MatrixType, VectorType, VectorType> OperatorType;
@@ -104,8 +104,8 @@ makeAmgPreconditioner(
 
 template <class MatrixType, class VectorType>
 std::shared_ptr<Dune::Preconditioner<VectorType, VectorType>>
-makeAmgPreconditioners(
-    Dune::MatrixAdapter<MatrixType, VectorType, VectorType>& linearoperator, boost::property_tree::ptree& prm)
+makeAmgPreconditioners(Dune::MatrixAdapter<MatrixType, VectorType, VectorType>& linearoperator,
+                       boost::property_tree::ptree& prm)
 {
     std::shared_ptr<Dune::Preconditioner<VectorType, VectorType>> preconditioner;
     if (prm.get<std::string>("preconditioner") == "famg") {
@@ -152,8 +152,8 @@ makeAmgPreconditioners(
 
 template <class MatrixType, class VectorType, int bz>
 std::shared_ptr<Dune::Preconditioner<VectorType, VectorType>>
-makeTwoLevelPreconditioner(
-    Dune::MatrixAdapter<MatrixType, VectorType, VectorType>& linearoperator, boost::property_tree::ptree& global_prm)
+makeTwoLevelPreconditioner(Dune::MatrixAdapter<MatrixType, VectorType, VectorType>& linearoperator,
+                           boost::property_tree::ptree& global_prm)
 {
     boost::property_tree::ptree prm = global_prm.get_child("cpr");
     std::shared_ptr<Dune::Preconditioner<VectorType, VectorType>> preconditioner;
@@ -170,13 +170,13 @@ makeTwoLevelPreconditioner(
 
 template <class MatrixType, class VectorType, int bz>
 std::shared_ptr<Dune::Preconditioner<VectorType, VectorType>>
-makePreconditioner(
-    Dune::MatrixAdapter<MatrixType, VectorType, VectorType>& linearoperator, boost::property_tree::ptree& prm)
+makePreconditioner(Dune::MatrixAdapter<MatrixType, VectorType, VectorType>& linearoperator,
+                   boost::property_tree::ptree& prm)
 {
     if ((prm.get<std::string>("preconditioner") == "famg") or (prm.get<std::string>("preconditioner") == "amg")) {
         return makeAmgPreconditioners<MatrixType, VectorType>(linearoperator, prm);
-    } else if (
-        (prm.get<std::string>("preconditioner") == "cpr") or (prm.get<std::string>("preconditioner") == "cprt")) {
+    } else if ((prm.get<std::string>("preconditioner") == "cpr")
+               or (prm.get<std::string>("preconditioner") == "cprt")) {
         return makeTwoLevelPreconditioner<MatrixType, VectorType, bz>(linearoperator, prm);
     } else {
         return makeSeqPreconditioner<MatrixType, VectorType>(linearoperator, prm);

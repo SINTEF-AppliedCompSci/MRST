@@ -114,9 +114,15 @@ public:
         }
     }
 
-    PressureTransferPolicyTranspose* clone() const { return new PressureTransferPolicyTranspose(*this); }
+    PressureTransferPolicyTranspose* clone() const
+    {
+        return new PressureTransferPolicyTranspose(*this);
+    }
 
-    const Communication& getCoarseLevelCommunication() const { return *coarseLevelCommunication_; }
+    const Communication& getCoarseLevelCommunication() const
+    {
+        return *coarseLevelCommunication_;
+    }
 
 private:
     Communication* communication_;

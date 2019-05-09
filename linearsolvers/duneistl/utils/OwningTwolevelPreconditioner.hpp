@@ -27,17 +27,17 @@ namespace Dune
 // and OwningTwoLevelPreconditioner [which uses makePreconditioner() to choose the fine-level smoother]
 // must be broken, accomplished by forward-declaration here.
 template <class MatrixType, class VectorType, int bz>
-std::shared_ptr<Dune::Preconditioner<VectorType, VectorType>> makePreconditioner(
-    Dune::MatrixAdapter<MatrixType, VectorType, VectorType>& linearoperator, boost::property_tree::ptree& prm);
+std::shared_ptr<Dune::Preconditioner<VectorType, VectorType>>
+makePreconditioner(Dune::MatrixAdapter<MatrixType, VectorType, VectorType>& linearoperator,
+                   boost::property_tree::ptree& prm);
 
 // Must forward-declare FlexibleSolver as we want to use it as solver for the pressure system.
 template <int bz>
 class FlexibleSolver;
 
 template <int bz>
-class OwningTwoLevelPreconditioner : public Dune::Preconditioner<
-                                         Dune::BlockVector<Dune::FieldVector<double, bz>>,
-                                         Dune::BlockVector<Dune::FieldVector<double, bz>>>
+class OwningTwoLevelPreconditioner : public Dune::Preconditioner<Dune::BlockVector<Dune::FieldVector<double, bz>>,
+                                                                 Dune::BlockVector<Dune::FieldVector<double, bz>>>
 {
 public:
     typedef boost::property_tree::ptree pt;
@@ -57,10 +57,22 @@ public:
         Opm::Amg::getQuasiImpesWeights(linearoperator.getmat(), pressureVarIndex, weights_);
     }
 
-    virtual void pre(VectorType& x, VectorType& b) override { twolevel_method_.pre(x, b); }
-    virtual void apply(VectorType& v, const VectorType& d) override { twolevel_method_.apply(v, d); }
-    virtual void post(VectorType& x) override { twolevel_method_.post(x); }
-    virtual Dune::SolverCategory::Category category() const override { return Dune::SolverCategory::sequential; }
+    virtual void pre(VectorType& x, VectorType& b) override
+    {
+        twolevel_method_.pre(x, b);
+    }
+    virtual void apply(VectorType& v, const VectorType& d) override
+    {
+        twolevel_method_.apply(v, d);
+    }
+    virtual void post(VectorType& x) override
+    {
+        twolevel_method_.post(x);
+    }
+    virtual Dune::SolverCategory::Category category() const override
+    {
+        return Dune::SolverCategory::sequential;
+    }
 
 private:
     // for cpr
@@ -71,7 +83,8 @@ private:
     constexpr static int pressureVarIndex = 1;
     using LevelTransferPolicy
         = Opm::PressureTransferPolicy<OperatorType, CoarseOperatorType, Communication, pressureVarIndex>;
-    using CoarseSolverPolicy = Dune::Amg::PressureSolverPolicy<CoarseOperatorType, LevelTransferPolicy, FlexibleSolver<1>>;
+    using CoarseSolverPolicy
+        = Dune::Amg::PressureSolverPolicy<CoarseOperatorType, LevelTransferPolicy, FlexibleSolver<1>>;
     using TwoLevelMethod
         = Dune::Amg::TwoLevelMethod<OperatorType, CoarseSolverPolicy, Dune::Preconditioner<VectorType, VectorType>>;
 
@@ -84,9 +97,9 @@ private:
 };
 
 template <int bz>
-class OwningTwoLevelPreconditionerTranspose : public Dune::Preconditioner<
-                                                  Dune::BlockVector<Dune::FieldVector<double, bz>>,
-                                                  Dune::BlockVector<Dune::FieldVector<double, bz>>>
+class OwningTwoLevelPreconditionerTranspose
+    : public Dune::Preconditioner<Dune::BlockVector<Dune::FieldVector<double, bz>>,
+                                  Dune::BlockVector<Dune::FieldVector<double, bz>>>
 {
 public:
     typedef boost::property_tree::ptree pt;
@@ -106,10 +119,22 @@ public:
         Opm::Amg::getQuasiImpesWeights(linearoperator.getmat(), pressureVarIndex, weights_, true);
     }
 
-    virtual void pre(VectorType& x, VectorType& b) override { twolevel_method_.pre(x, b); }
-    virtual void apply(VectorType& v, const VectorType& d) override { twolevel_method_.apply(v, d); }
-    virtual void post(VectorType& x) override { twolevel_method_.post(x); }
-    virtual Dune::SolverCategory::Category category() const override { return Dune::SolverCategory::sequential; }
+    virtual void pre(VectorType& x, VectorType& b) override
+    {
+        twolevel_method_.pre(x, b);
+    }
+    virtual void apply(VectorType& v, const VectorType& d) override
+    {
+        twolevel_method_.apply(v, d);
+    }
+    virtual void post(VectorType& x) override
+    {
+        twolevel_method_.post(x);
+    }
+    virtual Dune::SolverCategory::Category category() const override
+    {
+        return Dune::SolverCategory::sequential;
+    }
 
 private:
     // for cpr
@@ -120,7 +145,8 @@ private:
     constexpr static int pressureVarIndex = 1;
     using LevelTransferPolicy
         = Opm::PressureTransferPolicyTranspose<OperatorType, CoarseOperatorType, Communication, pressureVarIndex>;
-    using CoarseSolverPolicy = Dune::Amg::PressureSolverPolicy<CoarseOperatorType, LevelTransferPolicy, FlexibleSolver<1>>;
+    using CoarseSolverPolicy
+        = Dune::Amg::PressureSolverPolicy<CoarseOperatorType, LevelTransferPolicy, FlexibleSolver<1>>;
     using TwoLevelMethod = Dune::Amg::
         TwoLevelMethodTranspose<OperatorType, CoarseSolverPolicy, Dune::Preconditioner<VectorType, VectorType>>;
 

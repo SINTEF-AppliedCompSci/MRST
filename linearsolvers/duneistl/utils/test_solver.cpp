@@ -3,7 +3,8 @@
 #include <boost/property_tree/ptree.hpp>
 #include <fstream>
 #include <iostream>
-int main()
+int
+main()
 {
     namespace pt = boost::property_tree;
     pt::ptree prm;

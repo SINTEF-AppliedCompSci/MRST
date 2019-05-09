@@ -9,7 +9,8 @@ namespace Opm
 
 namespace Details
 {
-    template <class DenseMatrix> DenseMatrix transposeDenseMatrix(const DenseMatrix& M)
+    template <class DenseMatrix>
+    DenseMatrix transposeDenseMatrix(const DenseMatrix& M)
     {
         DenseMatrix tmp;
         for (int i = 0; i < M.rows; ++i)

@@ -31,13 +31,12 @@ namespace Dune
 namespace MatrixMarketImpl
 {
     template <typename T, typename A, int brows, int bcols, typename D>
-    void makeSparseEntries(
-        Dune::BCRSMatrix<Dune::FieldMatrix<T, brows, bcols>, A>& matrix,
-        std::vector<int>& i,
-        std::vector<int>& j,
-        std::vector<double>& val,
-        std::size_t entries,
-        const D&)
+    void makeSparseEntries(Dune::BCRSMatrix<Dune::FieldMatrix<T, brows, bcols>, A>& matrix,
+                           std::vector<int>& i,
+                           std::vector<int>& j,
+                           std::vector<double>& val,
+                           std::size_t entries,
+                           const D&)
     {
         // addapted from readSparseEntries
         typedef Dune::BCRSMatrix<Dune::FieldMatrix<T, brows, bcols>, A> Matrix;
@@ -75,14 +74,13 @@ namespace MatrixMarketImpl
 
 template <typename T, typename A, int brows, int bcols>
 void
-makeMatrixMarket(
-    Dune::BCRSMatrix<Dune::FieldMatrix<T, brows, bcols>, A>& matrix,
-    std::vector<int> i,
-    std::vector<int> j,
-    std::vector<T> val,
-    size_t rows,
-    size_t cols,
-    size_t entries)
+makeMatrixMarket(Dune::BCRSMatrix<Dune::FieldMatrix<T, brows, bcols>, A>& matrix,
+                 std::vector<int> i,
+                 std::vector<int> j,
+                 std::vector<T> val,
+                 size_t rows,
+                 size_t cols,
+                 size_t entries)
 {
     // addapted from readMatrixMarket
     using namespace MatrixMarketImpl;
@@ -138,16 +136,15 @@ public:
     }
 
 
-    void solve(
-        double* result,
-        std::vector<int>& i,
-        std::vector<int>& j,
-        std::vector<double>& val,
-        size_t rows,
-        std::vector<double>& orhs,
-        double tol,
-        int maxiter,
-        boost::property_tree::ptree& out)
+    void solve(double* result,
+               std::vector<int>& i,
+               std::vector<int>& j,
+               std::vector<double>& val,
+               size_t rows,
+               std::vector<double>& orhs,
+               double tol,
+               int maxiter,
+               boost::property_tree::ptree& out)
     {
         Dune::Timer buildTimer;
         this->makeSystem(i, j, val, rows, orhs);
@@ -187,7 +184,10 @@ public:
         linsolver_->apply(x, rhs, res);
     }
 
-    void apply(VectorType& x, VectorType& rhs, Dune::InverseOperatorResult& res) { linsolver_->apply(x, rhs, res); }
+    void apply(VectorType& x, VectorType& rhs, Dune::InverseOperatorResult& res)
+    {
+        linsolver_->apply(x, rhs, res);
+    }
 
     void makeSolver(double tol, int maxiter, const MatrixType& matrix)
     {
@@ -203,28 +203,25 @@ private:
         int verbosity = prm_.get<int>("verbosity");
         std::string solver_type = prm_.get<std::string>("solver");
         if (solver_type == "bicgstab") {
-            linsolver_.reset(new Dune::BiCGSTABSolver<VectorType>(
-                *linearoperator_,
-                *preconditioner_,
-                tol, // desired residual reduction factor
-                maxiter, // maximum number of iterations
-                verbosity));
+            linsolver_.reset(new Dune::BiCGSTABSolver<VectorType>(*linearoperator_,
+                                                                  *preconditioner_,
+                                                                  tol, // desired residual reduction factor
+                                                                  maxiter, // maximum number of iterations
+                                                                  verbosity));
         } else if (solver_type == "loopsolver") {
-            linsolver_.reset(new Dune::LoopSolver<VectorType>(
-                *linearoperator_,
-                *preconditioner_,
-                tol, // desired residual reduction factor
-                maxiter, // maximum number of iterations
-                verbosity));
+            linsolver_.reset(new Dune::LoopSolver<VectorType>(*linearoperator_,
+                                                              *preconditioner_,
+                                                              tol, // desired residual reduction factor
+                                                              maxiter, // maximum number of iterations
+                                                              verbosity));
         } else if (solver_type == "gmres") {
             int restart = prm_.get<int>("restart");
-            linsolver_.reset(new Dune::RestartedGMResSolver<VectorType>(
-                *linearoperator_,
-                *preconditioner_,
-                tol,
-                restart, // desired residual reduction factor
-                maxiter, // maximum number of iterations
-                verbosity));
+            linsolver_.reset(new Dune::RestartedGMResSolver<VectorType>(*linearoperator_,
+                                                                        *preconditioner_,
+                                                                        tol,
+                                                                        restart, // desired residual reduction factor
+                                                                        maxiter, // maximum number of iterations
+                                                                        verbosity));
         } else {
             std::string msg("Solver not known ");
             msg += solver_type;
