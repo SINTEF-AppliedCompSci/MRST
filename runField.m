@@ -90,7 +90,7 @@ drawnow
 %%
 disp('nonlinear TPFA')
 interpFace=findHAP(G,rock,bc);
-disp(interpFace.percentage);
+disp(['faces with centroids outside convex hull ', num2str(interpFace.percentage)]);
 interpFace=correctHAP(G,interpFace);
 OSflux=findOSflux(G,rock,bc,interpFace);
 %% nonlinear TPFA
