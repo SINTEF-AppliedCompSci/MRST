@@ -1,46 +1,34 @@
 {
-    "preconditioner": "cpr",
+    "preconditioner": "cprt",
     "w": "1",
     "n": "1",
-    "amg": {
-        "maxlevel": "4",
-        "coarsenTarget": "1000",
-        "smoother": "ILU0",
-        "alpha": "0.67",
-        "beta": "0.0001",
-        "verbosity": "10",
-        "n": "1",
-        "w": "1"
-    },
+    "amg": "",
     "cpr": {
         "finesmoother": {
             "preconditioner": "ILU0",
             "w": "1",
-            "n": "1",
-            "verbosity": "10"
+            "n": "1"
         },
         "coarsesolver": {
-            "tol": "0.01",
-            "maxiter": "100",
+            "tol": "0.5",
+            "maxiter": "20",
             "preconditioner": "amg",
             "amg": {
-                "maxlevel": "4",
+                "maxlevel": "5",
                 "coarsenTarget": "1000",
                 "smoother": "ILU0",
-                "alpha": "0.67",
+                "alpha": "0.2",
                 "beta": "0.0001",
-                "verbosity": "10",
+                "verbosity": "0",
                 "n": "1",
                 "w": "1"
             },
-            "verbosity": "10",
-            "n": "1",
-            "w": "1",
+            "verbosity": "0",
             "solver": "bicgstab"
         },
-        "verbosity": "10"
+        "verbosity": "11"
     },
     "verbosity": "10",
     "solver": "bicgstab",
-    "restart": "10"
+    "restart": "20"
 }
