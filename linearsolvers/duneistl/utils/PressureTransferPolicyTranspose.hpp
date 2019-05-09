@@ -43,7 +43,7 @@ public:
             for (auto col = row->begin(), cend = row->end(); col != cend; ++col, ++coarseCol) {
                 assert(col.index() == coarseCol.index());
                 double matrix_el = 0;
-                auto bw = weights_[row.index()];
+                auto bw = weights_[col.index()];
                 for (int i = 0; i < bw.size(); ++i) {
                     matrix_el += (*col)[VARIABLE_INDEX][i] * bw[i];
                 }

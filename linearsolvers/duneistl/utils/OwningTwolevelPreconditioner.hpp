@@ -9,7 +9,6 @@
 #include "PressureSolverPolicy.hpp"
 #include "PressureTransferPolicy.hpp"
 #include "PressureTransferPolicyTranspose.hpp"
-#include "twolevelmethodtranspose.hh"
 
 #include <dune/common/fmatrix.hh>
 #include <dune/istl/bcrsmatrix.hh>
@@ -54,7 +53,13 @@ public:
         , coarseSolverPolicy_(prm.get_child("coarsesolver"))
         , twolevel_method_(linearoperator, finesmoother_, levelTransferPolicy_, coarseSolverPolicy_, 0, 1)
     {
-        Opm::Amg::getQuasiImpesWeights(linearoperator.getmat(), pressureVarIndex, weights_);
+      if(prm.get<int>("verbosity")>10){
+	std::ofstream outfile("weight_cpr.txt");
+	if(!outfile){
+	  throw std::runtime_error("Could not write weights");
+	}
+	Dune::writeMatrixMarket(weights_,outfile);
+      }
     }
 
     virtual void pre(VectorType& x, VectorType& b) override
@@ -116,7 +121,13 @@ public:
         , coarseSolverPolicy_(prm.get_child("coarsesolver"))
         , twolevel_method_(linearoperator, finesmoother_, levelTransferPolicy_, coarseSolverPolicy_, 1, 0)
     {
-        Opm::Amg::getQuasiImpesWeights(linearoperator.getmat(), pressureVarIndex, weights_, true);
+      if(prm.get<int>("verbosity")>10){
+	std::ofstream outfile("weight_cprt.txt");
+	if(!outfile){
+	  throw std::runtime_error("Could not write weights");
+	}
+	Dune::writeMatrixMarket(weights_,outfile);
+      }
     }
 
     virtual void pre(VectorType& x, VectorType& b) override
@@ -148,7 +159,7 @@ private:
     using CoarseSolverPolicy
         = Dune::Amg::PressureSolverPolicy<CoarseOperatorType, LevelTransferPolicy, FlexibleSolver<1>>;
     using TwoLevelMethod = Dune::Amg::
-        TwoLevelMethodTranspose<OperatorType, CoarseSolverPolicy, Dune::Preconditioner<VectorType, VectorType>>;
+        TwoLevelMethod<OperatorType, CoarseSolverPolicy, Dune::Preconditioner<VectorType, VectorType>>;
 
     std::shared_ptr<Dune::Preconditioner<VectorType, VectorType>> finesmoother_;
     Communication comm_;

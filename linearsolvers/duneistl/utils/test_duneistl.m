@@ -37,9 +37,9 @@ a_1b=duneistl_matlab_file('matrix_1b.txt','rhs_1b.txt', m, 1,opts)
 %%
 simple_prec= struct('preconditioner','ILU0','w',1.0,'n',1,'verbosity',10);
 amg = struct('maxlevel',4,'coarsenTarget',1000,'smoother','ILU0','alpha',0.67,'beta',1e-4,'verbosity',10,'n',1,'w',1);
-amg_solver = struct('preconditioner','cpr','w',1.0,'n',1,'amg',amg);
-coarsesolver_simple = struct('tol',1e-2,'maxiter',100,'preconditioner','ILU0','w',1.0,'n',1)
+amg_solver = struct('preconditioner','cpr','w',1.0,'n',1,'amg',amg,'verbosity',10);
+coarsesolver_simple = struct('tol',1e-2,'maxiter',100,'preconditioner','ILU0','w',1.0,'n',1,'verbosity',10)
 coarsesolver_amg = struct('tol',1e-2,'maxiter',100,'preconditioner','amg','amg',amg,'verbosity',10,'n',1,'w',1,'solver','bicgstab');
-cpr = struct('finesmoother',simple_prec,'coarsesolver',coarsesolver_amg);
-opt=struct('preconditioner','cpr','w',1.0,'n',1,'amg',amg,'cpr',cpr,'verbosity',10,'solver','bicgstab');   
+cpr = struct('finesmoother',simple_prec,'coarsesolver',coarsesolver_amg,'verbosity',10);
+opt=struct('preconditioner','cpr','w',1.0,'n',1,'amg',amg,'cpr',cpr,'verbosity',10,'solver','bicgstab','restart',10);   
 x = duneistl(mat,rhs,'blocksize',3,'tol',1e-4,'maxiter',100,'istloptions',opt)

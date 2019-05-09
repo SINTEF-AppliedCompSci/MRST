@@ -37,8 +37,10 @@
             "n": "1",
             "w": "1",
             "solver": "bicgstab"
-        }
+        },
+        "verbosity": "10"
     },
     "verbosity": "10",
-    "solver": "bicgstab"
+    "solver": "bicgstab",
+    "restart": "10"
 }

@@ -60,7 +60,7 @@ namespace Amg
     Vector getQuasiImpesWeights(const Matrix& matrix, const int pressureVarIndex, bool transpose = false)
     {
         Vector weights(matrix.N());
-        getQuasiImpesWeights(matrix, pressureVarIndex, weights, transpose);
+        getQuasiImpesWeights(matrix, pressureVarIndex, weights, transpose);	
         return weights;
     }
 
