@@ -13,8 +13,8 @@ void mexFunction( int nlhs, mxArray *plhs[],
 		  int nrhs, const mxArray *prhs[] )
      
 { 
-    // In: Cell value (nc x 1), N (nf x 2), flag (nf x 1) bool
-    // Out: Face value of (nf x 1)
+    // In: Cell value (nc x d), N (nf x 2), flag (nf x 1) bool
+    // Out: Face value of (nf x d)
     if (nrhs != 3) { 
 	    mexErrMsgTxt("3 input arguments required."); 
     } else if (nlhs > 1) {
@@ -30,7 +30,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     
     // printf("%d cells with %d faces and %d derivatives \n", nc, nf, m);
     
-    plhs[0] = mxCreateDoubleMatrix(nf*dim, 1, mxREAL);
+    plhs[0] = mxCreateDoubleMatrix(nf, dim, mxREAL);
     double * result = mxGetPr(plhs[0]);
     
     #pragma omp parallel for
