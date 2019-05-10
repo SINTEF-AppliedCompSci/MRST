@@ -1,5 +1,5 @@
 {
-    "preconditioner": "cprt",
+    "preconditioner": "cpr",
     "w": "1",
     "n": "1",
     "amg": "",
@@ -10,7 +10,7 @@
             "n": "1"
         },
         "coarsesolver": {
-            "tol": "0.5",
+            "tol": "0.01",
             "maxiter": "20",
             "preconditioner": "amg",
             "amg": {
@@ -26,7 +26,8 @@
             "verbosity": "0",
             "solver": "bicgstab"
         },
-        "verbosity": "11"
+        "verbosity": "11",
+        "pressure_var_index": "1"
     },
     "verbosity": "10",
     "solver": "bicgstab",
