@@ -38,7 +38,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-
+    isDesktop = usejava('desktop');
     fprintf('Welcome to the Matlab Reservoir Simulation Toolbox (MRST)!\nYou are using ')
     githead = fullfile(ROOTDIR, '.git', 'refs', 'heads', 'master');
     if exist(githead, 'file')
@@ -49,29 +49,63 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     else
         % User is using a specific release. Give a bit of extra output.
         fprintf(['the release version 2018b. To download other versions of MRST\n',...
-            'and view examples and relevant publications, please visit',...
-            ' <a href="http://www.sintef.no/mrst">www.sintef.no/mrst</a>.\n']);
+            'and view examples and relevant publications, please visit ']);
+        printLink(isDesktop, 'www.mrst.no', 'www.mrst.no');
+        fprintf('\n');
     end
     fprintf('\nUseful commands for getting started:\n');
-    fprintf([' - List all introductory examples:   '...
-        '<a href="matlab:mrstExamples()">mrstExamples()</a>\n']);
-    fprintf([' - List all modules:                 ',...
-        '<a href="matlab:mrstPath(''list'')">mrstPath(''list'')</a>\n']);
-    fprintf([' - Load modules using GUI:           ',...
-        '<a href="matlab:mrstModule(''gui'')">mrstModule(''gui'')</a>\n']);
-    fprintf([' - Explore all available data sets   ',...
-        '<a href="matlab:mrstDatasetGUI()">mrstDatasetGUI()</a>\n']);
-    fprintf([' - List examples of a module:        ',...
-        '<a href="matlab:mrstExamples(''ad-blackoil'')">mrstExamples(''ad-blackoil'')</a>\n']);
-    fprintf([' - Show all examples in all modules: ',...
-        '<a href="matlab:mrstExamples(''all'')">mrstExamples(''all'')</a>\n']);
-    fprintf([' - Explore modules and publications: ',...
-        '<a href="matlab:mrstExploreModules()">mrstExploreModules()</a>\n']);
-    fprintf([' - Display this message:             ',...
-        '<a href="matlab:mrstStartupMessage()">mrstStartupMessage()</a>\n']);
-    fprintf(['\nFor assistance and discussions about MRST, please visit our mailing list at\n',...
-        '\t<a href="http://www.sintef.no/projectweb/mrst/forum/">www.sintef.no/projectweb/mrst/forum/</a>'...
-        ' (<a href="mailto:sintef-mrst@googlegroups.com">sintef-mrst@googlegroups.com</a>)\n']);
-    fprintf(['For some common queries, see our FAQ: ',...
-        '<a href="http://www.sintef.no/projectweb/mrst/faq/">www.sintef.no/projectweb/mrst/faq/</a>\n']);
+    fprintf(' - List all introductory examples:   ');
+    printMatlabLink(isDesktop, 'mrstExamples()');
+    
+    fprintf(' - List all modules:                 ');
+    printMatlabLink(isDesktop, 'mrstPath(''list'')');
+
+    fprintf(' - Load modules using GUI:           ');
+    printMatlabLink(isDesktop, 'mrstModule(''gui'')');
+
+    fprintf(' - Explore all available data sets   ');
+    printMatlabLink(isDesktop, 'mrstDatasetGUI()');
+
+    fprintf(' - List examples of a module:        ');
+    printMatlabLink(isDesktop, 'mrstExamples(''ad-blackoil'')');
+
+    fprintf(' - Explore modules and publications: ');
+    printMatlabLink(isDesktop, 'mrstExploreModules()');
+
+    fprintf(' - Show all examples in all modules: ');
+    printMatlabLink(isDesktop, 'mrstExamples(''all'')');
+
+    fprintf(' - Display this message:             ');
+    printMatlabLink(isDesktop, 'mrstStartupMessage()');
+    
+    fprintf('\nFor assistance and discussions about MRST, please visit our mailing list at\n');
+    fprintf('\t');
+    printLink(isDesktop, 'www.sintef.no/projectweb/mrst/forum/', 'http://www.sintef.no/projectweb/mrst/forum/');
+    fprintf(' (');
+    printLink(isDesktop, 'sintef-mrst@googlegroups.com', 'mailto:sintef-mrst@googlegroups.com');
+    fprintf(')\n');
+    fprintf('For some common queries, see our FAQ: ')
+    printLink(isDesktop, 'www.sintef.no/projectweb/mrst/faq/', 'http://www.sintef.no/projectweb/mrst/faq/');
+    fprintf('\n');
+end
+
+function printMatlabLink(isDesktop, text, endl)
+    if nargin == 2
+        endl = true;
+    end
+    printLink(isDesktop, text, ['matlab:', text])
+    if endl
+        fprintf('\n');
+    end
+end
+
+
+function printLink(isDesktop, text, link)
+    if isDesktop
+        fprintf('<a href = "%s">', link);
+    end
+    fprintf('%s', text);
+    if isDesktop
+        fprintf('</a>');
+    end
 end
