@@ -23,7 +23,7 @@
 #include <cmath>
 #include <iomanip>
 #include <limits>
-
+#include "MakeXXXPreconditioner.hpp"
 
 namespace Dune
 {
@@ -178,6 +178,8 @@ makePreconditioner(Dune::MatrixAdapter<MatrixType, VectorType, VectorType>& line
     } else if ((prm.get<std::string>("preconditioner") == "cpr")
                or (prm.get<std::string>("preconditioner") == "cprt")) {
         return makeTwoLevelPreconditioner<MatrixType, VectorType, bz>(linearoperator, prm);
+    } else if (	prm.get<std::string>("preconditioner") == "xxx"){
+      return XXX::makePreconditioner<bz>(linearoperator, prm);
     } else {
         return makeSeqPreconditioner<MatrixType, VectorType>(linearoperator, prm);
     }
