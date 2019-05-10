@@ -1,27 +1,61 @@
 classdef PropertyFunctions
+    % A PropertyFunctions class is a grouping of interdependent properties.
+    % Inside each grouping, dependencies are handled and all grouped
+    % properties are stored in the same normalized field on the state.
+    %
+    % Each grouping has intrinsic propreties which must be defined and
+    % typically represent external interfaces. These are given as
+    % properties on the inherited subclass, with name corresponding to the
+    % name of the property.
+    %
+    % In addition, property functionscan be added to the class instance.
+    % These functions represent additional properties which can be
+    % dependencies of the intrinsics properties.
     properties
         
     end
     
     properties (Access = protected)
-        structName
-        structFields
-        excludedFields
+        structName % Name of the struct where the properties should be stored on state
+        propertyNames % Base name of all properties (i.e. what they implement)
+        propertyTypes % Indicator of property (0 for class member "intrinsic", 1 for stored)
+        extraProperties = {}; % Additional properties, not present as class properties
+        excludedFields % Class properties which are not intended as functions
     end
     
     methods
         function props = PropertyFunctions()
-            props.structFields = setdiff(properties(props), props.excludedFields);
+            props.propertyNames = setdiff(properties(props), props.excludedFields);
+            props.propertyTypes = zeros(size(props.propertyNames));
         end
-        
-        function names = getPropertyNames(props)
-            names = props.structFields;
+        % ----------------------- Getters --------------------------------%
+        function [names, types] = getPropertyNames(props)
+            % Get the names of all properties in collection. If a second
+            % output argument is requested, it will give the internal
+            % indicators if a property is intrinsic to the class (and will
+            % always be present) or if it has been added (and cannot be
+            % depended upon).
+            names = props.propertyNames;
+            types = props.propertyTypes;
+        end
+
+        function prop = getPropertyFunction(props, name)
+            % Get named property function (case-sensitive)
+            sub = strcmp(props.propertyNames, name);
+            if props.propertyTypes(sub) == 0
+                prop = props.(name);
+            else
+                extrasub = sub(props.propertyTypes == 1);
+                prop = props.extraProperties{extrasub};
+            end
         end
         
         function name = getPropertyContainerName(props)
+            % Get the name of the proprety container used to store
+            % evaluated properties on state.
             name = props.structName;
         end
-        
+
         function [container, name] = getPropertyContainer(props, state)
             % Set up dynamic container (handle class) for storing
             % properties as we go
@@ -29,12 +63,58 @@ classdef PropertyFunctions
             if nargin > 1 && isfield(state, name)
                 container = state.(name);
             else
-                fld = [props.structFields(:)'; cell(1, numel(props.structFields))];
+                fld = [props.propertyNames(:)'; cell(1, numel(props.propertyNames))];
                 s = struct(fld{:});
                 container = HandleStruct(s);
             end
-        end        
+        end
+        % ----------------------- Setters --------------------------------%
+        function props = setPropertyFunction(props, prop, name)
+            % Set or replace a property function
+            sub = strcmp(props.propertyNames, name);
+            if any(sub)
+                % We are replacing an existing property
+                ptypes = props.propertyTypes;
+                type = ptypes(sub);
+                if type == 0
+                    % Class property ("intrinsic"), just replace directly
+                    props.(name) = prop;
+                else
+                    % This property was not found, we are adding extending
+                    % the list of extra properties
+                    assert(type == 1);
+                    props.extraProperties{sub(ptypes == 1)} = prop;
+                end
+            else
+                % We are adding a new property and must extend the
+                % corresponding internal datastructures.
+                props.propertyNames = [props.propertyNames; name];
+                props.propertyTypes = [props.propertyTypes; 1];
+                props.extraProperties{end+1, 1} = prop;
+            end
+        end
 
+        function props = removePropertyFunction(props, name)
+            % Remove a property function from the list. Only allowed for
+            % non-intrinsic functions.
+            sub = strcmp(props.propertyNames, name);
+            if any(sub)
+                ptypes = props.propertyTypes;
+                type = ptypes(sub);
+                if type == 0
+                    error('Cannot remove intrinsic property %s', name);
+                else
+                    assert(type == 1);
+                    extrasub = sub(ptypes == 1);
+                    props.extraProperties = props.extraProperties(~extrasub);
+                    props.propertyTypes = props.propertyTypes(~sub);
+                    props.propertyNames = props.propertyNames(~sub);
+                end
+            else
+                warning('Property %s was not found, and cannot be removed.', name);
+            end
+        end
+        % --------------- Evaluation functions ---------------------------%
         function v = get(props, model, state, name)
             % Get value of a property (possibily triggering several function
             % evaluations if required.
@@ -63,10 +143,11 @@ classdef PropertyFunctions
             else
                 props_struct = state.(struct_name);
             end
-            if isempty(props.(name).structName)
-                props.(name).structName = props.structName;
+            prop = props.getPropertyFunction(name);
+            if isempty(prop.structName)
+                prop.structName = props.structName;
             end
-            props_struct.(name) = props.(name).evaluateOnDomain(model, state);
+            props_struct.(name) = prop.evaluateOnDomain(model, state);
             if nargout > 0
                 state.(struct_name) = props_struct;
             end
@@ -74,7 +155,8 @@ classdef PropertyFunctions
         
         function state = evaluatePropertyWithDependencies(props, model, state, name)
             % Evaluate property, and all required dependencies in state.
-            state = props.evaluateDependencies(model, state, props.(name).dependencies);
+            prop = props.getPropertyFunction(name);
+            state = props.evaluateDependencies(model, state, prop.dependencies);
             state = props.evaluateProperty(model, state, name);
         end
         
@@ -101,12 +183,16 @@ classdef PropertyFunctions
         end
         
         function props = subset(props, cell_subset)
-            names = props.structFields;
+            % Take the subset of all the properties (reducing regions etc
+            % to the new local domain defined by cell_subset).
+            names = props.propertyNames;
             for i = 1:numel(names)
-                pn = names{i};
-                if ~isempty(props.(pn))
-                    props.(pn) = props.(pn).subset(cell_subset);
+                name = names{i};
+                prop = props.getPropertyFunction(name);
+                if ~isempty(prop)
+                    prop = prop.subset(cell_subset);
                 end
+                props.setPropertyFunction(prop, name);
             end
         end
     end
