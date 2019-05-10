@@ -7,7 +7,7 @@
 
 namespace Opm
 {
-template <class FineOperator, class CoarseOperator, class Communication, std::size_t VARIABLE_INDEX>
+  template <class FineOperator, class CoarseOperator, class Communication>// std::size_t VARIABLE_INDEX>
 class PressureTransferPolicyTranspose : public Dune::Amg::LevelTransferPolicy<FineOperator, CoarseOperator>
 {
 public:
@@ -16,9 +16,10 @@ public:
     typedef typename FineOperator::domain_type FineVectorType;
 
 public:
-    PressureTransferPolicyTranspose(const Communication& comm, const FineVectorType& weights)
+  PressureTransferPolicyTranspose(const Communication& comm, const FineVectorType& weights,int pressure_var_index)
         : communication_(&const_cast<Communication&>(comm))
         , weights_(weights)
+	, pressure_var_index_(pressure_var_index)  
     {
     }
 
@@ -45,7 +46,7 @@ public:
                 double matrix_el = 0;
                 auto bw = weights_[col.index()];
                 for (int i = 0; i < bw.size(); ++i) {
-                    matrix_el += (*col)[VARIABLE_INDEX][i] * bw[i];
+                    matrix_el += (*col)[pressure_var_index_][i] * bw[i];
                 }
                 *coarseCol = matrix_el;
             }
@@ -72,7 +73,7 @@ public:
                 double matrix_el = 0;
                 auto bw = weights_[i];
                 for (int ii = 0; ii < bw.size(); ++ii) {
-                    matrix_el += (*entry)[VARIABLE_INDEX][ii] * bw[ii];
+                    matrix_el += (*entry)[pressure_var_index_][ii] * bw[ii];
                 }
                 const auto& j = entry.index();
                 (*coarseLevelMatrix_)[i][j] = matrix_el;
@@ -93,7 +94,7 @@ public:
             // for(int i = 0; i < block->size(); ++i ){
             //  rhs_el += (*block)[i]*bw[i];
             //}
-            rhs_el = (*block)[VARIABLE_INDEX];
+            rhs_el = (*block)[pressure_var_index_];
             this->rhs_[block - begin] = rhs_el;
         }
 
@@ -129,6 +130,7 @@ private:
     const FineVectorType& weights_;
     std::shared_ptr<Communication> coarseLevelCommunication_;
     std::shared_ptr<typename CoarseOperator::matrix_type> coarseLevelMatrix_;
+    const int pressure_var_index_;
 };
 
 } // namespace Opm

@@ -48,8 +48,8 @@ public:
         : finesmoother_(makePreconditioner<MatrixType, VectorType, bz>(linearoperator, prm.get_child("finesmoother")))
         , comm_()
         , weights_(
-              Opm::Amg::getQuasiImpesWeights<MatrixType, VectorType>(linearoperator.getmat(), pressureVarIndex)) // TODO
-        , levelTransferPolicy_(comm_, weights_)
+		   Opm::Amg::getQuasiImpesWeights<MatrixType, VectorType>(linearoperator.getmat(), prm.get<int>("pressure_var_index"))) // TODO
+        , levelTransferPolicy_(comm_, weights_, prm.get<int>("pressure_var_index"))
         , coarseSolverPolicy_(prm.get_child("coarsesolver"))
         , twolevel_method_(linearoperator, finesmoother_, levelTransferPolicy_, coarseSolverPolicy_, 0, 1)
     {
@@ -87,7 +87,7 @@ private:
     using Communication = Dune::Amg::SequentialInformation;
     constexpr static int pressureVarIndex = 1;
     using LevelTransferPolicy
-        = Opm::PressureTransferPolicy<OperatorType, CoarseOperatorType, Communication, pressureVarIndex>;
+    = Opm::PressureTransferPolicy<OperatorType, CoarseOperatorType, Communication>;// pressureVarIndex>;
     using CoarseSolverPolicy
         = Dune::Amg::PressureSolverPolicy<CoarseOperatorType, LevelTransferPolicy, FlexibleSolver<1>>;
     using TwoLevelMethod
@@ -116,8 +116,8 @@ public:
         : finesmoother_(makePreconditioner<MatrixType, VectorType, bz>(linearoperator, prm.get_child("finesmoother")))
         , comm_()
         , weights_(
-              Opm::Amg::getQuasiImpesWeights<MatrixType, VectorType>(linearoperator.getmat(), pressureVarIndex, true))
-        , levelTransferPolicy_(comm_, weights_)
+              Opm::Amg::getQuasiImpesWeights<MatrixType, VectorType>(linearoperator.getmat(), prm.get<int>("pressure_var_index"), true))
+        , levelTransferPolicy_(comm_, weights_, prm.get<int>("pressure_var_index"))
         , coarseSolverPolicy_(prm.get_child("coarsesolver"))
         , twolevel_method_(linearoperator, finesmoother_, levelTransferPolicy_, coarseSolverPolicy_, 1, 0)
     {
@@ -153,9 +153,9 @@ private:
     typedef Dune::BlockVector<Dune::FieldVector<double, 1>> PressureVectorType;
     typedef Dune::MatrixAdapter<PressureMatrixType, PressureVectorType, PressureVectorType> CoarseOperatorType;
     using Communication = Dune::Amg::SequentialInformation;
-    constexpr static int pressureVarIndex = 1;
+  //constexpr static int pressureVarIndex = 1;
     using LevelTransferPolicy
-        = Opm::PressureTransferPolicyTranspose<OperatorType, CoarseOperatorType, Communication, pressureVarIndex>;
+    = Opm::PressureTransferPolicyTranspose<OperatorType, CoarseOperatorType, Communication>;// pressureVarIndex>;
     using CoarseSolverPolicy
         = Dune::Amg::PressureSolverPolicy<CoarseOperatorType, LevelTransferPolicy, FlexibleSolver<1>>;
     using TwoLevelMethod = Dune::Amg::
