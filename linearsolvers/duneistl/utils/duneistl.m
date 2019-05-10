@@ -26,7 +26,8 @@ if(isempty(opt.istloptions))
                               'amg',amg,...
                              'verbosity',0,...
                               'solver','bicgstab');
-    cpr = struct('finesmoother',simple_prec,'coarsesolver',coarsesolver_amg,'verbosity',11);
+    cpr = struct('finesmoother',simple_prec,'coarsesolver', ...
+                 coarsesolver_amg,'verbosity',11, 'pressure_var_index',1);
     sopt=struct('preconditioner','cpr','w',1.0,'n',1,'amg',[],'cpr',cpr,'verbosity',10,'solver','gmres','restart',20);
     options = jsonencode(sopt);
 else
