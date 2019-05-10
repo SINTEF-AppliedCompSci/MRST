@@ -116,16 +116,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 'reverse'   , false, ...
                 'isoutflow' , false(G.cells.num, 1), ...
                 'blocksize' , 1000,  ...
-                'pvol'      , ones([G.cells.num, 1]));
+                'pvol'      , ones([G.cells.num, 1]), ...
+                'flux'      , [], ... % See getInteriorFluxesStreamlines
+                'neighbors' , []);    % See findStreamlineNeighborshipCart
    opt = merge_options(opt, varargin{:});
-
-   if size(state.flux, 2) > 1
-      state.flux = sum(state.flux, 2);
-   end
-
-   if opt.reverse
-      state.flux = -state.flux;
-   end
 
    if ~all(opt.pvol > 0)
       error('PoreVol:NonPositive', ...
@@ -148,13 +142,15 @@ function varargout = trace(G, state, pos, opt)
    end
 
    % Make array face fluxes for each cell in grid (Not outer).
-   cellNo = rldecode(1:G.cells.num, diff(G.cells.facePos), 2) .';
-   cf     = G.cells.faces;
-   flux   = accumarray([cellNo, cf(:,2)], state.flux(cf(:,1)));
-   flux   = bsxfun(@rdivide, flux, opt.pvol);
-   clear cf cellNo
+   flux = opt.flux;
+   if isempty(flux)
+      flux = getInteriorFluxesStreamlines(G, state, opt.pvol, opt.reverse);
+   end
 
-   neighbors  = findNeighbors(G);
+   neighbors = opt.neighbors;
+   if isempty(neighbors)
+      neighbors  = findStreamlineNeighborshipCart(G);
+   end
 
    magic  = opt.blocksize;
    XYZ    = nan(numStreamlines, d, magic);
@@ -245,8 +241,7 @@ function xyz = globalCoordinate(G, c, p)
    % Compute weighted average of corner points
    xyz = zeros(size(p,1), d);
    for i=1:d
-      xi       = G.nodes.coords(:,i);
-      xyz(:,i) = sum(w .* reshape(xi(G.cellNodes(c, :))', 2^d, [])', 2);
+      xyz(:,i) = sum(w .* reshape(G.nodes.coords(G.cellNodes(c, :), i)', 2^d, [])', 2);
    end
 end
 
@@ -295,16 +290,6 @@ function [pos, tof, xyz] = step(pos, flux, neighbors, nsubsteps)
    k = sub2ind(size(d), (1:size(dir,1))', dir);
    k = k(~isnan(k));
    pos(numel(dir) + k ) = 2-d(k);
-end
-
-% =========================================================================
-
-function N = findNeighbors(G)
-% Build (n x 2*d) -array of neighbors for each cell in (Cartesian) grid G.
-   cellNo = rldecode(1:G.cells.num, diff(G.cells.facePos), 2)';
-   col    = 1 +   (cellNo == G.faces.neighbors(G.cells.faces(:,1), 1));
-   c      = G.faces.neighbors(double(G.cells.faces(:,1)) + G.faces.num* (col-1));
-   N      = accumarray([cellNo, G.cells.faces(:,2)], c);
 end
 
 % =========================================================================
