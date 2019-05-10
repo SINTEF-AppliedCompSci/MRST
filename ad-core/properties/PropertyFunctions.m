@@ -195,5 +195,45 @@ classdef PropertyFunctions
                 props.setPropertyFunction(prop, name);
             end
         end
+        
+        function disp(props)
+            % Custom display function
+            fprintf('  ');
+            name = class(props);
+            isDesktop = usejava('desktop');
+            if isDesktop
+                fprintf('<a href="matlab:helpPopup %s">%s</a> (<a href="matlab:edit %s.m">edit</a>)', name, name, name);
+            else
+                fprintf('%s', class(props));
+            end
+            fprintf(' property function grouping instance.\n');
+            names = props.propertyNames;
+            types = props.propertyTypes;
+            
+            len = max(cellfun(@numel, names))+1;
+            
+            for type = 0:1
+                if type == 0
+                    fprintf('\n  Intrinsic properties (Class properties for %s):\n\n', class(props));
+                else
+                    fprintf('\n  Extra properties (Added to class instance):\n\n');
+                end
+                typeIndices = find(types == type);
+                for i = 1:numel(typeIndices)
+                    index = typeIndices(i);
+                    fn = props.getPropertyFunction(names{index});
+
+                    cl = class(fn);
+                    fprintf('%*s: ', len, names{index});
+                    if isDesktop
+                        fprintf('<a href="matlab:helpPopup %s">%s</a>', cl, cl);
+                        fprintf(' (<a href="matlab:edit %s.m">edit</a>)', cl);
+                    else
+                        fprintf('%s', class(fn));
+                    end
+                    fprintf('\n');
+                end
+            end
+        end
     end
 end
