@@ -78,15 +78,17 @@ function [substate0, substate, submodel, subforces, mappings] = getSubsetProblem
         op.M = M;
         upstr =  @(flag, x) faceUpstr(flag, x, N, [nf, nc]);
         op.faceUpstr = upstr;
-        if nc == 1
-            % Some kind of bug in AD?
-            op.Div = @(x) 0;
-        else
-            op.Div = @(x) C'*x;
-        end
         op.Grad = @(x) -C*x;
         op.faceAvg = @(x) M*x;
-        op.AccDiv = @(acc, flux) acc + C'*flux;
+        if nf == 0
+            % We have zero faces. Account for Matlab's preference for
+            % reducing expressions of type a + [] to [].
+            op.AccDiv = @(acc, flux) acc;
+            op.Div = @(x) zeros(nc, 1);
+        else
+            op.AccDiv = @(acc, flux) acc + C'*flux;
+            op.Div = @(x) C'*x;
+        end
         op.splitFaceCellValue = @(operators, flag, x) splitFaceCellValue(operators, flag, x, [nf, nc]);
         if isfield(op, 'diag_updated')
             op = rmfield(op, 'diag_updated');
