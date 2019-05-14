@@ -259,6 +259,9 @@ function w = getWeights(problem, subs)
     end
     c = combineEquations(acc{:});
     if isnumeric(c)
+        if nargin > 1
+            ncell = sum(subs);
+        end
         w = ones(ncell, ncomp);
         return;
     end
