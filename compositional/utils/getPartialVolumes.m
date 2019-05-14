@@ -96,8 +96,10 @@ function [V, dVdp] = getPartialVolumesWrapper(model, problem, opt, subs, strateg
     switch lower(dstrategy)
         case 'numerical'
             if opt.iteration > 1 && isfield(state, 'w_p')
+                V = normalize(V);
+                V_prev = normalize(state.w);
                 dp = state.pressure - state.w_p;
-                dV = V - state.w;
+                dV = V - V_prev;
                 dVdp = bsxfun(@rdivide, dV, dp);
                 dVdp(~isfinite(dVdp)) = 0;
             else
@@ -112,6 +114,10 @@ function [V, dVdp] = getPartialVolumesWrapper(model, problem, opt, subs, strateg
         otherwise
             error('Unknown derivative strategy %s', dstrategy);
     end
+end
+
+function x = normalize(x)
+    x = bsxfun(@rdivide, x, sum(abs(x), 2));
 end
 
 function [V, dVdp] = getPartialVolumesInternal(model, state, opt, subs, computeDerivatives)
@@ -161,17 +167,13 @@ function V = getTwoPhaseVolumes(model, state, pv)
     end
     
     V = 1 - L;
-    
     sL = state.s(:, 1+model.water);
     sV = state.s(:, 2+model.water);
-    
     rhoL = model.EOSModel.PropertyModel.computeMolarDensity(p, x, Z_L, T, true);
     rhoV = model.EOSModel.PropertyModel.computeMolarDensity(p, y, Z_V, T, false);
-
     N_L = pv.*rhoL.*sL;
     N_V = pv.*rhoV.*sV;
     N_T = N_L.*L + N_V.*V;
-    
     z = expandMatrixToCell(z);
     N = z;
     for i = 1:ncomp
@@ -232,7 +234,7 @@ function [V, dVdp] = getSinglePhaseVolumes(model, state, liquid, vapor, computeD
     vapor = vapor(singlePhase);
 
     Z = Z_L.*liquid + Z_V.*vapor;
-    rho = model.EOSModel.PropertyModel.computeMolarDensity(p, z, Z, T, nan);
+    rho = model.EOSModel.PropertyModel.computeDensity(p, z, Z, T, nan);
     
     V = 1./rho;
     ncomp = model.EOSModel.fluid.getNumberOfComponents();
@@ -277,14 +279,11 @@ function w = getWeights(problem, subs)
     [B, C, D, E] = getBlocks(J, ndof);
     [L, U] = lu(E);
     A = B - C*(U\(L\D));
-%             A = B - C*(E\D);
     b = zeros(ndof, 1);
     b(1:ncell) = 1/barsa;
 
     w = (A')\b;
     w = reshape(w, [], ncomp);
-    w = bsxfun(@rdivide, w, sum(abs(w), 2));
-    w = bsxfun(@rdivide, w, sum(state.rho.*state.s, 2));
     if nargin > 1
         w = w(subs, :);
     end
@@ -292,7 +291,6 @@ end
 
 function [B, C, D, E] = getBlocks(J, ndof)
     start = 1:ndof;
-
     if 0
         stop = (ndof+1):size(J, 2);
         B = J(start, start);
