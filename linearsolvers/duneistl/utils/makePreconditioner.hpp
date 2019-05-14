@@ -23,7 +23,9 @@
 #include <cmath>
 #include <iomanip>
 #include <limits>
+#ifdef EXTRA_PRECONDITIONERS
 #include "MakeXXXPreconditioner.hpp"
+#endif
 
 namespace Dune
 {
@@ -178,8 +180,10 @@ makePreconditioner(Dune::MatrixAdapter<MatrixType, VectorType, VectorType>& line
     } else if ((prm.get<std::string>("preconditioner") == "cpr")
                or (prm.get<std::string>("preconditioner") == "cprt")) {
         return makeTwoLevelPreconditioner<MatrixType, VectorType, bz>(linearoperator, prm);
+#ifdef EXTRA_PRECONDITIONERS	
     } else if (	prm.get<std::string>("preconditioner") == "xxx"){
       return XXX::makePreconditioner<bz>(linearoperator, prm);
+#endif
     } else {
         return makeSeqPreconditioner<MatrixType, VectorType>(linearoperator, prm);
     }
