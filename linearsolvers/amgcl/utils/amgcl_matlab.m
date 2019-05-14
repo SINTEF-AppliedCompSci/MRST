@@ -146,7 +146,7 @@ function [CXXFLAGS, LINK, LIBS] = setup_machdep_build_params
 
        LINK = { ['-L', fullfile(matlabroot, 'sys', 'os', a)] };
 
-       iomp5     = { '-liomp5', 'LDFLAGS=$LDFLAGS -fopenmp' };
+       iomp5     = { '-liomp5' };
        libstdcpp = { '-lstdc++' };
 
    else
