@@ -29,21 +29,6 @@ classdef PressureReducedLinearSystem < ReducedLinearizedSystem
                     'singlePhaseDifferentiation', pmodel.singlePhaseDifferentiation, ...
                     'twoPhaseDifferentiation',    pmodel.twoPhaseDifferentiation);
                 
-
-%                 analyticalWeights = isprop(pmodel, 'usePartialVolumeWeights') && ...
-%                                     pmodel.usePartialVolumeWeights;
-%                 if analyticalWeights
-%                     [weights, dwdp] = getPartialVolumes(pmodel, problem.state, 'simple_singlephase', false, 'pressure_perturb', 0.1*psia);
-%                 else
-%                     weights = problem.getWeights();
-%                     if problem.iterationNo == 1 || ~isfield(problem.state, 'w_p')
-%                         dwdp = [];
-%                     else
-%                         dp = problem.state.pressure - problem.state ;
-%                         dwdp = bsxfun(@rdivide, (weights - problem.state.w), dp);
-%                         dwdp(~isfinite(dwdp)) = 0;
-%                     end
-%                 end
                 problem.w = weights;
                 Ap = sparse(0);
                 
