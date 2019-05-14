@@ -25,7 +25,10 @@ function [V, dVdp] = getPartialVolumes(model, problem, varargin)
     % - Perturbation (Only valid for EOS at the moment)
     % - Analytical (Only for single-phase)
     % - None
-    computeDerivatives = nargout > 1;
+    if nargout == 1
+        opt.twoPhaseDifferentiation    = 'none';
+        opt.singlePhaseDifferentiation = 'none';
+    end
     
     ncell = numelValue(state.pressure);
     ncomp = model.water + numel(model.EOSModel.fluid.names);
@@ -41,6 +44,9 @@ function [V, dVdp] = getPartialVolumes(model, problem, varargin)
     uniform = onlySingle || onlyMulti || equalStrategy;
     
     if uniform
+        % All cells are either in the same phase state, or we have the same
+        % strategy everywhere. We can do a single call to get the correct
+        % values.
         if equalStrategy || onlySingle
             s = opt.singlePhaseStrategy;
             ds = opt.singlePhaseDifferentiation;
@@ -53,18 +59,15 @@ function [V, dVdp] = getPartialVolumes(model, problem, varargin)
     else
         V = nan(ncell, ncomp);
         dVdp = nan(ncell, ncomp);
+        % Treat single-phase
         [V(singlePhase, :), dVdp(singlePhase, :)] = getPartialVolumesWrapper(model, problem, opt, singlePhase, ...
                                     opt.singlePhaseStrategy, opt.singlePhaseDifferentiation);
-
+        % Treat two-phase
         assert(~strcmpi(opt.twoPhaseStrategy, 'analytical'));
         [V(twoPhase, :), dVdp(twoPhase, :)] = getPartialVolumesWrapper(model, problem, opt, twoPhase, ...
                                     opt.twoPhaseStrategy, opt.twoPhaseDifferentiation);
                                 
     end
-    
-    
-    % Get partial molar volumes
-%     [V, dVdp] = getPartialVolumesInternal(model, state, opt, computeDerivatives);
 end
 
 function [V, dVdp] = getPartialVolumesWrapper(model, problem, opt, subs, strategy, dstrategy)
@@ -72,7 +75,6 @@ function [V, dVdp] = getPartialVolumesWrapper(model, problem, opt, subs, strateg
     if ~all(subs)
         state = makeSubstate(state, subs);
     end
-    nc = sum(subs);
     switch lower(strategy)
         case 'numerical'
             V = getWeights(problem, subs);
@@ -102,24 +104,20 @@ function [V, dVdp] = getPartialVolumesWrapper(model, problem, opt, subs, strateg
                 dVdp = 0*V; 
             end
         case 'eos'
-            % ??
+            % Already computed if valid
         case 'none'
-            dVdp = 0*V;
+            dVdp = zeros(size(V));
+        case 'analytical'
+            % Already computed if valid
+        otherwise
+            error('Unknown derivative strategy %s', dstrategy);
     end
 end
 
 function [V, dVdp] = getPartialVolumesInternal(model, state, opt, subs, computeDerivatives)
-%     nc = sum(subs);
-%     ncomp = model.EOSModel.fluid.getNumberOfComponents();
-%     [V, dVdp] = deal(zeros(nc, ncomp));
-    % Single phase regime can get derivatives from eos in regular wau
-%     [V(~twoPhase, :), dVdp(~twoPhase, :)] = getSinglePhaseVolumes(model, state, pureLiquid, pureVapor, computeDerivatives);
-    
-    % Numerical perturbation w/flash to get two-phase region weights
-%     substate = makeSubstate(state, twoPhase);
     pv = model.operators.pv(subs);
     V = getTwoPhaseVolumes(model, state, pv);
-    if computeDerivatives
+    if computeDerivatives && nargout > 1
         state_perturb = state;
         dp = opt.pressureEpsilon;
         state_perturb.pressure = state_perturb.pressure - dp;
@@ -152,9 +150,6 @@ function state = makeSubstate(state, flag)
 end
 
 function V = getTwoPhaseVolumes(model, state, pv)
-%     state = makeSubstate(state, twoPhase);
-%     pv = model.operators.pv(twoPhase);
-    
     [x, y, p, T, Z_L, Z_V, L] = ...
         model.getProps(state, ...
         'x', 'y', 'pressure', 'T', 'Z_L', 'Z_V', 'L');
@@ -173,7 +168,6 @@ function V = getTwoPhaseVolumes(model, state, pv)
     rhoL = model.EOSModel.PropertyModel.computeMolarDensity(p, x, Z_L, T, true);
     rhoV = model.EOSModel.PropertyModel.computeMolarDensity(p, y, Z_V, T, false);
 
-    
     N_L = pv.*rhoL.*sL;
     N_V = pv.*rhoV.*sV;
     N_T = N_L.*L + N_V.*V;
