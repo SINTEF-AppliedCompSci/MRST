@@ -1,43 +1,137 @@
-function [V, dVdp] = getPartialVolumes(model, state, varargin)
-    opt = struct('type', 'mass', ...
-                 'pressure_perturb', mean(state.pressure)*1e-3, ...
-                 'simple_singlephase', false);
+function [V, dVdp] = getPartialVolumes(model, problem, varargin)
+    state = problem.state;
+    opt = struct('units', 'mass', ...
+                 'pressureEpsilon', 0.1*psia, ...
+                 'singlePhaseStrategy', 'numerical', ...
+                 'twoPhaseStrategy', [], ...
+                 'iteration', nan, ...
+                 'singlePhaseDifferentiation', 'numerical', ...
+                 'twoPhaseDifferentiation', []);
     opt = merge_options(opt, varargin{:});
+    
+    if isempty(opt.twoPhaseDifferentiation)
+        opt.twoPhaseDifferentiation = opt.singlePhaseDifferentiation;
+    end
+    if isempty(opt.twoPhaseStrategy)
+        opt.twoPhaseStrategy = opt.singlePhaseStrategy;
+    end
+    % Choices for strategy:
+    % - Numerical (compute from matrix)
+    % - Analytical (1/rho). At the moment, only for single-phase
+    % - EOS (use flash)
+    %
+    % Differentation:
+    % - Numerical
+    % - Perturbation (Only valid for EOS at the moment)
+    % - Analytical (Only for single-phase)
+    % - None
     computeDerivatives = nargout > 1;
     
+    ncell = numelValue(state.pressure);
+    ncomp = model.water + numel(model.EOSModel.fluid.names);
+    
+    [liquid, vapor, twoPhase] = model.getFlag(state);
+    singlePhase = liquid | vapor;
+    
+    equalStrategy = strcmpi(opt.twoPhaseDifferentiation, opt.singlePhaseDifferentiation) && ...
+                    strcmpi(opt.singlePhaseStrategy, opt.twoPhaseStrategy);
+    
+    onlySingle = all(singlePhase);
+    onlyMulti = all(twoPhase);
+    uniform = onlySingle || onlyMulti || equalStrategy;
+    
+    if uniform
+        if equalStrategy || onlySingle
+            s = opt.singlePhaseStrategy;
+            ds = opt.singlePhaseDifferentiation;
+        else
+            s = opt.twoPhaseStrategy;
+            ds = opt.twoPhaseDifferentiation;
+        end
+        subs = true(ncell, 1);
+        [V, dVdp] = getPartialVolumesWrapper(model, problem, opt, subs, s, ds);
+    else
+        V = nan(ncell, ncomp);
+        dVdp = nan(ncell, ncomp);
+        [V(singlePhase, :), dVdp(singlePhase, :)] = getPartialVolumesWrapper(model, problem, opt, singlePhase, ...
+                                    opt.singlePhaseStrategy, opt.singlePhaseDifferentiation);
+
+        assert(~strcmpi(opt.twoPhaseStrategy, 'analytical'));
+        [V(twoPhase, :), dVdp(twoPhase, :)] = getPartialVolumesWrapper(model, problem, opt, twoPhase, ...
+                                    opt.twoPhaseStrategy, opt.twoPhaseDifferentiation);
+                                
+    end
+    
+    
     % Get partial molar volumes
-    [V, dVdp] = getPartialVolumesInternal(model, state, opt, computeDerivatives);
+%     [V, dVdp] = getPartialVolumesInternal(model, state, opt, computeDerivatives);
 end
 
-function [V, dVdp] = getPartialVolumesInternal(model, state, opt, computeDerivatives)
-    nc = model.G.cells.num;
-    if opt.simple_singlephase
-        [pureLiquid, pureVapor, twoPhase] = model.getFlag(state);
-    else
-        pureLiquid = false(nc, 1);
-        pureVapor = false(nc, 1);
-        twoPhase = true(nc, 1);
+function [V, dVdp] = getPartialVolumesWrapper(model, problem, opt, subs, strategy, dstrategy)
+    state = problem.state;
+    if ~all(subs)
+        state = makeSubstate(state, subs);
     end
-    ncomp = model.EOSModel.fluid.getNumberOfComponents();
-    [V, dVdp] = deal(zeros(nc, ncomp));
+    nc = sum(subs);
+    switch lower(strategy)
+        case 'numerical'
+            V = getWeights(problem, subs);
+        case 'eos'
+            computeDerivatives = strcmpi(dstrategy, 'eos');
+            [V, dVdp] = getPartialVolumesInternal(model, state, opt, subs, computeDerivatives);
+            if ~computeDerivatives
+                % Analytical weights not possible
+                assert(strcmpi(dstrategy, 'none') || strcmpi(dstrategy, 'numerical'));
+            end
+        case 'analytical'
+            computeDerivatives = strcmpi(dstrategy, 'analytical');
+            pureLiquid = state.L > 0.5;
+            pureVapor = not(pureLiquid);
+            [V, dVdp] = getSinglePhaseVolumes(model, state, pureLiquid, pureVapor, computeDerivatives);
+        otherwise
+            error('Unsupported strategy %s.', strategy);
+    end
+    switch lower(dstrategy)
+        case 'numerical'
+            if opt.iteration > 1 && isfield(state, 'w_p')
+                dp = state.pressure - state.w_p;
+                dV = V - state.w;
+                dVdp = bsxfun(@rdivide, dV, dp);
+                dVdp(~isfinite(dVdp)) = 0;
+            else
+                dVdp = 0*V; 
+            end
+        case 'eos'
+            % ??
+        case 'none'
+            dVdp = 0*V;
+    end
+end
+
+function [V, dVdp] = getPartialVolumesInternal(model, state, opt, subs, computeDerivatives)
+%     nc = sum(subs);
+%     ncomp = model.EOSModel.fluid.getNumberOfComponents();
+%     [V, dVdp] = deal(zeros(nc, ncomp));
     % Single phase regime can get derivatives from eos in regular wau
-    [V(~twoPhase, :), dVdp(~twoPhase, :)] = getSinglePhaseVolumes(model, state, pureLiquid, pureVapor, computeDerivatives);
+%     [V(~twoPhase, :), dVdp(~twoPhase, :)] = getSinglePhaseVolumes(model, state, pureLiquid, pureVapor, computeDerivatives);
     
     % Numerical perturbation w/flash to get two-phase region weights
-    substate = makeSubstate(state, twoPhase);
-    pv = model.operators.pv(twoPhase);
-    V(twoPhase, :) = getTwoPhaseVolumes(model, substate, pv);
+%     substate = makeSubstate(state, twoPhase);
+    pv = model.operators.pv(subs);
+    V = getTwoPhaseVolumes(model, state, pv);
     if computeDerivatives
-        state_perturb = substate;
-        dp = opt.pressure_perturb;
+        state_perturb = state;
+        dp = opt.pressureEpsilon;
         state_perturb.pressure = state_perturb.pressure - dp;
         state_perturb = model.computeFlash(state_perturb, inf);
         
         V_lower = getTwoPhaseVolumes(model, state_perturb, pv);
-        dVdp(twoPhase, :) = (V(twoPhase, :) - V_lower)./dp;
+        dVdp = (V - V_lower)./dp;
+    else
+        dVdp = 0*V;
     end
-    
-    switch lower(opt.type)
+
+    switch lower(opt.units)
         case 'mass'
             V = bsxfun(@rdivide, V, model.EOSModel.fluid.molarMass);
         case 'moles'
@@ -151,13 +245,83 @@ function [V, dVdp] = getSinglePhaseVolumes(model, state, liquid, vapor, computeD
     if computeDerivatives
         dVdp = V.jac{1}.diagonal;
         dVdp = repmat(dVdp, 1, ncomp);
-        V = double(V);
+        V = value(V);
     end
     V = repmat(V, 1, ncomp);
 end
 
 function flds = getCompCellFields()
     flds = {'pressure', 's', 'x', 'y', 'components', 'K', ...
-            'mob', 'rho', 'flag', 'L', 'T', 'Z_L', 'Z_V'};
+            'mob', 'rho', 'flag', 'L', 'T', 'Z_L', 'Z_V', 'w_p', 'w'};
 end
 
+function w = getWeights(problem, subs)
+    acc = problem.accumulationTerms;
+    state = problem.state;
+    [ncell, ncomp] = size(problem.state.components);
+    hasWater = size(state.s, 2) == 3;
+    if hasWater
+        ncomp = ncomp + 1;
+    end
+    c = combineEquations(acc{:});
+    if isnumeric(c)
+        w = ones(ncell, ncomp);
+        return;
+    end
+    J = c.jac{1};
+
+    if ~isempty(problem.reorder)
+        J = J(:, problem.reorder);
+    end
+
+    J(:, problem.wellVarIndices) = [];
+
+    ndof = ncell*ncomp;
+    [B, C, D, E] = getBlocks(J, ndof);
+    [L, U] = lu(E);
+    A = B - C*(U\(L\D));
+%             A = B - C*(E\D);
+    b = zeros(ndof, 1);
+    b(1:ncell) = 1/barsa;
+
+    w = (A')\b;
+    w = reshape(w, [], ncomp);
+    w = bsxfun(@rdivide, w, sum(abs(w), 2));
+    w = bsxfun(@rdivide, w, sum(state.rho.*state.s, 2));
+    if nargin > 1
+        w = w(subs, :);
+    end
+end
+
+function [B, C, D, E] = getBlocks(J, ndof)
+    start = 1:ndof;
+
+    if 0
+        stop = (ndof+1):size(J, 2);
+        B = J(start, start);
+        C = J(start, stop);
+        D = J(stop, start);
+        E = J(stop, stop);
+    else
+       [ix, jx, vx] = find(J);
+       n = size(J, 2);
+       keep = false(n, 1);
+       keep(start) = true;
+       nk = ndof;
+
+       keepRow = keep(ix);
+       keepCol = keep(jx);
+       kb = keepRow & keepCol;
+       B = sparse(ix(kb), jx(kb), vx(kb), nk, nk);
+
+       kc = keepRow & ~keepCol;
+       C = sparse(ix(kc), jx(kc) - nk, vx(kc), nk, n - nk);
+
+       kd = ~keepRow & keepCol;
+       D = sparse(ix(kd) - nk, jx(kd), vx(kd), n - nk, nk);
+
+       ke = ~keepRow & ~keepCol;
+       E = sparse(ix(ke) - nk, jx(ke) - nk, vx(ke), n - nk, n - nk);
+    end
+
+end

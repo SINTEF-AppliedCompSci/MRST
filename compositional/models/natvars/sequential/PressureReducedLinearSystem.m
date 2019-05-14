@@ -22,20 +22,28 @@ classdef PressureReducedLinearSystem < ReducedLinearizedSystem
             if ~problem.assembled
                 problem = assembleSystem@ReducedLinearizedSystem(problem);
                 pmodel = problem.model;
-                analyticalWeights = isprop(pmodel, 'usePartialVolumeWeights') && ...
-                                    pmodel.usePartialVolumeWeights;
-                if analyticalWeights
-                    [weights, dwdp] = getPartialVolumes(pmodel, problem.state, 'simple_singlephase', true);
-                else
-                    weights = problem.getWeights();
-                    if problem.iterationNo == 1 || ~isfield(problem.state, 'w_p')
-                        dwdp = [];
-                    else
-                        dp = problem.state.pressure - problem.state.w_p;
-                        dwdp = bsxfun(@rdivide, (weights - problem.state.w), dp);
-                        dwdp(~isfinite(dwdp)) = 0;
-                    end
-                end
+                [weights, dwdp] = getPartialVolumes(pmodel, problem, ...
+                    'iteration',                  problem.iterationNo, ...
+                    'singlePhaseStrategy',        pmodel.singlePhaseStrategy, ...
+                    'twoPhaseStrategy',           pmodel.twoPhaseStrategy, ...
+                    'singlePhaseDifferentiation', pmodel.singlePhaseDifferentiation, ...
+                    'twoPhaseDifferentiation',    pmodel.twoPhaseDifferentiation);
+                
+
+%                 analyticalWeights = isprop(pmodel, 'usePartialVolumeWeights') && ...
+%                                     pmodel.usePartialVolumeWeights;
+%                 if analyticalWeights
+%                     [weights, dwdp] = getPartialVolumes(pmodel, problem.state, 'simple_singlephase', false, 'pressure_perturb', 0.1*psia);
+%                 else
+%                     weights = problem.getWeights();
+%                     if problem.iterationNo == 1 || ~isfield(problem.state, 'w_p')
+%                         dwdp = [];
+%                     else
+%                         dp = problem.state.pressure - problem.state ;
+%                         dwdp = bsxfun(@rdivide, (weights - problem.state.w), dp);
+%                         dwdp(~isfinite(dwdp)) = 0;
+%                     end
+%                 end
                 problem.w = weights;
                 Ap = sparse(0);
                 
@@ -183,72 +191,6 @@ classdef PressureReducedLinearSystem < ReducedLinearizedSystem
             end
         end
 
-        function w = getWeights(problem)
-            acc = problem.accumulationTerms;
-            state = problem.state;
-            [ncell, ncomp] = size(problem.state.components);
-            hasWater = size(state.s, 2) == 3;
-            if hasWater
-                ncomp = ncomp + 1;
-            end
-            c = combineEquations(acc{:});
-            if isnumeric(c)
-                w = ones(ncell, ncomp);
-                return;
-            end
-            J = c.jac{1};
-
-            if ~isempty(problem.reorder)
-                J = J(:, problem.reorder);
-            end
-            
-            J(:, problem.wellVarIndices) = [];
-            
-            ndof = ncell*ncomp;
-            [B, C, D, E] = getBlocks(J, ndof);
-            [L, U] = lu(E);
-            A = B - C*(U\(L\D));
-%             A = B - C*(E\D);
-            b = zeros(ndof, 1);
-            b(1:ncell) = 1/barsa;
-
-            w = (A')\b;
-            w = reshape(w, [], ncomp);
-            w = bsxfun(@rdivide, w, sum(abs(w), 2));
-            w = bsxfun(@rdivide, w, sum(state.rho.*state.s, 2));
-        end
     end
 end
 
-function [B, C, D, E] = getBlocks(J, ndof)
-    start = 1:ndof;
-
-    if 0
-        stop = (ndof+1):size(J, 2);
-        B = J(start, start);
-        C = J(start, stop);
-        D = J(stop, start);
-        E = J(stop, stop);
-    else
-       [ix, jx, vx] = find(J);
-       n = size(J, 2);
-       keep = false(n, 1);
-       keep(start) = true;
-       nk = ndof;
-
-       keepRow = keep(ix);
-       keepCol = keep(jx);
-       kb = keepRow & keepCol;
-       B = sparse(ix(kb), jx(kb), vx(kb), nk, nk);
-
-       kc = keepRow & ~keepCol;
-       C = sparse(ix(kc), jx(kc) - nk, vx(kc), nk, n - nk);
-
-       kd = ~keepRow & keepCol;
-       D = sparse(ix(kd) - nk, jx(kd), vx(kd), n - nk, nk);
-
-       ke = ~keepRow & ~keepCol;
-       E = sparse(ix(ke) - nk, jx(ke) - nk, vx(ke), n - nk, n - nk);
-    end
-
-end

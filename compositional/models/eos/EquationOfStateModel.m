@@ -728,7 +728,7 @@ classdef EquationOfStateModel < PhysicalModel
             ncomp = numel(x);
             timer = tic();
             eqs = cell(1, 2*ncomp + 1);
-            sample = getSampleAD(P, T, x{:}, y{:});
+            sample = getSampleAD(P, T, x{:}, y{:}, z{:});
             emptyJac = double2ADI(zeros(size(value(P))), sample);
             
             isLiq = value(L) == 1;
