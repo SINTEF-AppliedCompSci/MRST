@@ -1072,7 +1072,9 @@ classdef EquationOfStateModel < PhysicalModel
                                 Z.jac{i} = Z.jac{i}.expandZero();
                             end
                             Z.jac{i}.diagonal(map, :) = d;
-                            Z.jac{i}.subset(map) = (1:numel(map))';
+                            if ~isempty(Z.jac{i}.subset)
+                                Z.jac{i}.subset(map) = (1:numel(map))';
+                            end
                         end
                     end
                 end
