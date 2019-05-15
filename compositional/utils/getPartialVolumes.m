@@ -124,9 +124,15 @@ function [V, dVdp] = getPartialVolumesInternal(model, state, opt, subs, computeD
     pv = model.operators.pv(subs);
     V = getTwoPhaseVolumes(model, state, pv);
     if computeDerivatives && nargout > 1
-        state_perturb = state;
+        if 0
+            state_perturb = state;
+        else
+            state_perturb = struct();
+            state_perturb.T = state.T;
+            state_perturb.components = state.components;
+        end
         dp = opt.pressureEpsilon;
-        state_perturb.pressure = state_perturb.pressure - dp;
+        state_perturb.pressure = state.pressure - dp;
         state_perturb = model.computeFlash(state_perturb, inf);
         
         V_lower = getTwoPhaseVolumes(model, state_perturb, pv);
@@ -213,15 +219,19 @@ function [V, dVdp] = getSinglePhaseVolumes(model, state, liquid, vapor, computeD
         [V, dVdp] = deal(zeros(0, size(state.components, 2)));
         return
     end
-    z = state.components(singlePhase, :);
-    p = state.pressure(singlePhase);
-    Z_L = state.Z_L(singlePhase);
-    Z_V = state.Z_V(singlePhase);
-    T = state.T(singlePhase);
+    z = state.components;
+    p = state.pressure;
+    nc = numel(p);
+    Z_L = state.Z_L;
+    Z_V = state.Z_V;
+    T = state.T;
+    
+    rho = zeros(nc, 1);
     if computeDerivatives
         p = initVariablesAD_diagonal(p);
         Z_L = double2GenericAD(Z_L, p);
         Z_V = double2GenericAD(Z_V, p);
+        rho = double2GenericAD(rho, p);
         eos = model.EOSModel;
         zc = expandMatrixToCell(z);
         [Si_L, Si_V, A_L, A_V, B_L, B_V] =...
@@ -229,12 +239,10 @@ function [V, dVdp] = getSinglePhaseVolumes(model, state, liquid, vapor, computeD
         Z_L = eos.setZDerivatives(Z_L, A_L, B_L);
         Z_V = eos.setZDerivatives(Z_V, A_V, B_V);
     end
-    
-    liquid = liquid(singlePhase);
-    vapor = vapor(singlePhase);
 
-    Z = Z_L.*liquid + Z_V.*vapor;
-    rho = model.EOSModel.PropertyModel.computeDensity(p, z, Z, T, nan);
+    
+    rho(liquid) = model.EOSModel.PropertyModel.computeDensity(p(liquid), z(liquid, :), Z_L(liquid), T(liquid), true);
+    rho(vapor) = model.EOSModel.PropertyModel.computeDensity(p(vapor), z(vapor, :), Z_V(vapor), T(vapor), false);
     
     V = 1./rho;
     ncomp = model.EOSModel.fluid.getNumberOfComponents();
