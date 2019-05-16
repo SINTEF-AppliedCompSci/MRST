@@ -1,7 +1,7 @@
 #ifndef FLEXIBLESOLVER_HPP
 #define FLEXIBLESOLVER_HPP
 
-#include "makePreconditioner.hpp"
+
 
 #include <fstream>
 #include <iostream>
@@ -24,9 +24,50 @@
 
 #include <dune/istl/paamg/amg.hh>
 #include <dune/istl/paamg/fastamg.hh>
-
+#include "makePreconditioner.hpp"
 namespace Dune
 {
+
+    
+  template <class Preconditioner>
+  class Preconditoner2InverseOperator :
+    public Dune::InverseOperator<typename Preconditioner::domain_type,
+				 typename Preconditioner::range_type>
+  {
+  public:
+    typedef typename Preconditioner::domain_type domain_type;
+    //! \brief The range type of the preconditioner.
+    typedef typename Preconditioner::range_type range_type;
+    typedef typename Preconditioner::field_type field_type;
+    using X = domain_type;
+    using Y = range_type;
+    Preconditoner2InverseOperator(Preconditioner& preconditioner):
+      preconditioner_(preconditioner)
+    {
+    }
+    
+    
+    virtual void apply (X& v, Y& d, InverseOperatorResult& res){
+      preconditioner_.pre(v,d);
+      preconditioner_.apply(v,d);
+      preconditioner_.post(v);
+    }
+    
+    virtual void apply (X& v, Y& d,double reduction, InverseOperatorResult& res){
+      this->apply(v,d, res);
+    }
+
+    virtual SolverCategory::Category category() const{
+      return preconditioner_.category();
+    }
+  private:
+    Preconditioner& preconditioner_;  
+
+  };
+
+
+  
+
 
 namespace MatrixMarketImpl
 {
@@ -222,13 +263,25 @@ private:
                                                                         restart, // desired residual reduction factor
                                                                         maxiter, // maximum number of iterations
                                                                         verbosity));
+#if HAVE_SUITESPARSE_UMFPACK
+ 	} else if (solver_type == "umfpack"){
+ 	  bool dummy = false;
+ 	  linsolver_.reset(new Dune::UMFPack<MatrixType>(linearoperator_->getmat(),verbosity, dummy) );
+#endif
+	} else if (solver_type == "precond"){
+	  
+	  linsolver_.reset(new
+			   Dune::Preconditoner2InverseOperator<
+			   Dune::Preconditioner<VectorType, VectorType>
+			   >(*preconditioner_));
+	  
         } else {
             std::string msg("Solver not known ");
             msg += solver_type;
             throw std::runtime_error(msg);
         }
     }
-
+ 
 
 
     void makeResult(double* result, VectorType& x)
@@ -292,7 +345,8 @@ private:
     VectorType rhs_;
     std::shared_ptr<Dune::Preconditioner<VectorType, VectorType>> preconditioner_;
     std::shared_ptr<Dune::MatrixAdapter<MatrixType, VectorType, VectorType>> linearoperator_;
-    std::shared_ptr<Dune::IterativeSolver<VectorType, VectorType>> linsolver_;
+  //std::shared_ptr<Dune::IterativeSolver<VectorType, VectorType>> linsolver_;
+    std::shared_ptr<Dune::InverseOperator<VectorType, VectorType>> linsolver_;
 };
 
 } // namespace Dune
