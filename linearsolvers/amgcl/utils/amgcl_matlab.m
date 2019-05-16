@@ -129,7 +129,8 @@ function [CXXFLAGS, LINK, LIBS] = setup_machdep_build_params
                   'microsoft', ['libmw', lib, '.lib']);
 
       % Note explicit /EHsc to enable C++ exception handling
-      CXXFLAGS  = { 'COMPFLAGS=/EHsc /MD /DAMGCL_ASYNC_SETUP /openmp /wd4715 /fp:fast /bigobj' };
+      CXXFLAGS  = { ['COMPFLAGS=/EHsc /MD /DAMGCL_ASYNC_SETUP ', ...
+                     '/openmp /wd4715 /fp:fast /bigobj'] };
       LINK      = { ['-L', fullfile(matlabroot, 'bin', a) ]};
       iomp5     = { ['LINKFLAGS=$LINKFLAGS ', ...
                      '/nodefaultlib:vcomp libiomp5md.lib' ]};
@@ -140,12 +141,12 @@ function [CXXFLAGS, LINK, LIBS] = setup_machdep_build_params
        mwlib = @(lib) ['-lmw', lib];
 
        CXXFLAGS = ...
-          { ['CXXFLAGS=$CXXFLAGS -D_GNU_SOURCE -DAMGCL_ASYNC_SETUP -fPIC -O3 ', ...
-             '-std=c++11 -ffast-math -march=native -fopenmp'] };
+          { ['CXXFLAGS=$CXXFLAGS -D_GNU_SOURCE -DAMGCL_ASYNC_SETUP ', ...
+             '-fPIC -O3 -std=c++11 -ffast-math -march=native -fopenmp'] };
 
        LINK = { ['-L', fullfile(matlabroot, 'sys', 'os', a)] };
 
-       iomp5     = { '-liomp5', 'LDFLAGS=$LDFLAGS -fopenmp' };
+       iomp5     = { '-liomp5' };
        libstdcpp = { '-lstdc++' };
 
    else
