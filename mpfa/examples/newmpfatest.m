@@ -1,6 +1,8 @@
 
 mrstModule add mimetic mpfa incomp
 
+isverbose = false;
+
 %% Define and process geometry
 % Construct a Cartesian grid of size 10-by-10-by-4 cells, where each cell
 % has dimension 1-by-1-by-1. Because our flow solvers are applicable for
@@ -56,7 +58,7 @@ caseno = caseno + 1;
 
 % mpfa - standard
 mpfastructs{caseno} = computeMultiPointTrans2(G, rock, 'eta', eta, 'verbose', ...
-                                              true);
+                                              isverbose);
 states{caseno} = incompMPFA2(G, mpfastructs{caseno}, 'wells', W);
 pressures{caseno} = states{caseno}.pressure;
 fluxes{caseno} = states{caseno}.flux;
@@ -65,21 +67,21 @@ caseno = caseno + 1;
 
 % mpfa - block
 mpfastructs{caseno} = computeMultiPointTrans2(G, rock, 'eta', eta, 'blocksize', ...
-                                              blocksize, 'verbose', true);
+                                              blocksize, 'verbose', isverbose);
 states{caseno} = incompMPFA2(G, mpfastructs{caseno}, 'wells', W);
 pressures{caseno} = states{caseno}.pressure;
 fluxes{caseno} = states{caseno}.flux;
 caseno = caseno + 1;
 
 % mpfa - well
-mpfastructs{caseno} = computeMultiPointTransInt(G, rock, 'eta', eta, 'verbose', true);
+mpfastructs{caseno} = computeNeumannMultiPointTrans(G, rock, 'eta', eta, 'verbose', isverbose);
 states{caseno} = incompMPFA3(G, mpfastructs{caseno}, W);
 pressures{caseno} = states{caseno}.pressure;
 fluxes{caseno} = states{caseno}.flux;
 caseno = caseno + 1;
 
 % mpfa - well - block
-mpfastructs{caseno} = computeMultiPointTransInt(G, rock, 'eta', 1/3, 'verbose', true);
+mpfastructs{caseno} = computeNeumannMultiPointTrans(G, rock, 'eta', 1/3, 'verbose', isverbose);
 states{caseno} = incompMPFA3(G, mpfastructs{caseno}, W);
 pressures{caseno} = states{caseno}.pressure;
 fluxes{caseno} = states{caseno}.flux;
