@@ -17,7 +17,7 @@ function [map, tbl, map1, map2] = setupTableMapping(tbl1, tbl2, crossfields, var
             tbl2 = rmfield(tbl2, fd);
         end
     end
-    
+
     fds = crossfields; %alias
     nfds = numel(fds);
     
@@ -28,26 +28,38 @@ function [map, tbl, map1, map2] = setupTableMapping(tbl1, tbl2, crossfields, var
         map = ones(n2, n1);
     end
     
+    inds1   = cell(nfds, 1);
+    inds2   = cell(nfds, 1);
+    maxinds = cell(nfds, 1);
+    prodmaxinds    = cell(nfds, 1);
+    prodmaxinds{1} = 1;
     for ifield = 1 : nfds
         fieldname = fds{ifield};
-        
-        ind1 = tbl1.(fieldname);
-        ind2 = tbl2.(fieldname);
-        
-        n1 = numel(ind1);
-        n2 = numel(ind2);
-        n = max([ind1; ind2]);
-        
-        imap1 = sparse(ind1, (1 : n1)', 1, n, n1);
-        imap2 = sparse(ind2, (1 : n2)', 1, n, n2);
-        
-        imap = imap2'*imap1;
-        if ifield == 1
-            map = imap;
-        else
-            map = map.*imap;
+        inds1{ifield} = tbl1.(fieldname);
+        inds2{ifield} = tbl2.(fieldname);
+        maxinds{ifield} = max(max(inds1{ifield}), max(inds2{ifield})) + 1;
+        if ifield > 1
+            prodmaxinds{ifield} = prodmaxinds{ifield - 1}*maxinds{ifield - 1};
         end
     end
+    
+    n1 = tbl1.num; 
+    n2 = tbl2.num;
+    globind1 = ones(n1, 1);
+    globind2 = ones(n2, 1);
+    for ifield = 1 : nfds
+        globind1 = globind1 + inds1{ifield}*prodmaxinds{ifield};
+        globind2 = globind2 + inds2{ifield}*prodmaxinds{ifield};
+    end
+
+    globind = [globind1; globind2];
+    [c, ia, ic]= unique(globind);
+    globind1 = ic(1 : n1);
+    globind2 = ic(n1 + 1 : n1 + n2);
+    n = numel(c);
+    imap1 = sparse(globind1, (1 : n1)', 1, n, n1);
+    imap2 = sparse(globind2, (1 : n2)', 1, n, n2);    
+    map = imap2'*imap1;
 
     if nargout > 1
         [ind2, ind1] = find(map);
