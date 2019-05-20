@@ -88,6 +88,7 @@ function [B, tbls] = robustComputeLocalFluxMimetic(G, rock, opt)
     cellnodefacerowtbl.faces = rldecode(fno, dim*ones(cnfnum, 1));
     cellnodefacerowtbl.nodes = rldecode(nno, dim*ones(cnfnum, 1));
     cellnodefacerowtbl.rowdim = repmat((1 : dim)', cnfnum, 1);
+    cellnodefacerowtbl.num = numel(cellnodefacerowtbl.cells);
     facetNormals = reshape(facetNormals', [], 1);
     
     % Assemble facePermNormals which corresponds to $Kn$ where n are the *outward*
@@ -206,6 +207,7 @@ function [B, tbls] = robustComputeLocalFluxMimetic(G, rock, opt)
     tmptbl.nodes  = redmattbl.nodes;
     tmptbl.faces  = redmattbl.faces1;
     tmptbl.faces2 = redmattbl.faces2;
+    tmptbl.num = numel(tmptbl.nodes);
     op = setupTableMapping(tmptbl, facenodetbl, {'nodes', 'faces'});
     [colind, rowind] = find(op);
     facesind1(rowind) = colind;
@@ -214,6 +216,7 @@ function [B, tbls] = robustComputeLocalFluxMimetic(G, rock, opt)
     tmptbl.nodes  = redmattbl.nodes;
     tmptbl.faces1 = redmattbl.faces1;
     tmptbl.faces  = redmattbl.faces2;
+    tmptbl.num  = numel(tmptbl.nodes);
     op = setupTableMapping(tmptbl, facenodetbl, {'nodes', 'faces'});
     [colind, rowind] = find(op);
     facesind2(rowind) = colind;
