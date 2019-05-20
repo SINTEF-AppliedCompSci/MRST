@@ -105,8 +105,10 @@ function [B, tbls] = robustComputeBlockLocalFluxMimetic(G, rock, opt)
     blocksize = opt.blocksize;
     ncn = cellnodetbl.num;
     nblocks = floor(ncn/blocksize);
-    blocksizes = [repmat(blocksize, nblocks, 1); ...
-                  ncn - nblocks*blocksize];
+    blocksizes = repmat(blocksize, nblocks, 1); 
+    if ncn > nblocks*blocksize
+        blocksizes = [blocksizes; ncn - nblocks*blocksize];
+    end
     nblocks = numel(blocksizes);
     blockinds = cumsum([1; blocksizes]);
     nodeMs = cell(nblocks, 1);
@@ -192,6 +194,7 @@ function [B, tbls] = robustComputeBlockLocalFluxMimetic(G, rock, opt)
         blockmattbl.nodes  = mattbl.nodes(ind);
         blockmattbl.faces1 = mattbl.faces1(ind);
         blockmattbl.faces2 = mattbl.faces2(ind);
+        blockmattbl.num = numel(blockmattbl.cells);
         sgn1 = 2*(blockmattbl.cells == G.faces.neighbors(blockmattbl.faces1, 1)) - 1;
         sgn2 = 2*(blockmattbl.cells == G.faces.neighbors(blockmattbl.faces2, 1)) - 1;
         nodeMs{i} = nodeMs{i}.*sgn1.*sgn2;
@@ -209,6 +212,7 @@ function [B, tbls] = robustComputeBlockLocalFluxMimetic(G, rock, opt)
     mat1tbl.nodes  = facenodetbl.nodes;
     mat1tbl.faces1 = facenodetbl.faces;
     mat1tbl.ind    = (1 : facenodetbl.num)';
+    mat1tbl.num    = numel(mat1tbl.nodes);
     op = setupTableMapping(redmattbl, mat1tbl, {'nodes', 'faces1'});
     [colind, rowind] = find(op);
     facetind1 = zeros(redmattbl.num, 1);
@@ -218,6 +222,7 @@ function [B, tbls] = robustComputeBlockLocalFluxMimetic(G, rock, opt)
     mat2tbl.nodes  = facenodetbl.nodes;
     mat2tbl.faces2 = facenodetbl.faces;
     mat2tbl.ind    = (1 : facenodetbl.num)';
+    mat2tbl.num    = numel(mat2tbl.nodes);
     op = setupTableMapping(redmattbl, mat2tbl, {'nodes', 'faces2'});
     [colind, rowind] = find(op);
     facetind2 = zeros(redmattbl.num, 1);
