@@ -204,9 +204,6 @@ function [B, tbls] = robustComputeBlockLocalFluxMimetic(G, rock, opt)
         end
     end
 
-    % load('/home/xavier/Matlab/Projects/project-eni/tests/temp.mat');
-    
-    
     % Setup matrix
     % First set up facet indices in the redmattbl table
     mat1tbl.nodes  = facenodetbl.nodes;
