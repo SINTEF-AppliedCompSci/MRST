@@ -3,7 +3,7 @@ function mpfastruct = computeNeumannMultiPointTrans(G, rock, varargin)
 % Require incompMPFA3 solver
 %
 % SYNOPSIS:
-%   T = computeMultiPointTransInt(G, rock)
+%   T = computeNeumannMultiPointTrans(G, rock)
 %
 % REQUIRED PARAMETERS:
 %   G       - Grid data structure as described by grid_structure.
