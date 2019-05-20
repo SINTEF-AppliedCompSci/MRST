@@ -6,6 +6,7 @@ iter=0;
 res=zeros(maxiter+1,1);
 res(1)=norm(A*u0-b,inf);
 while(res(iter+1)>tol*res(1)&&iter<maxiter)
+    dispif(mrstVerbose, [num2str(iter), ' ', num2str(res(iter+1)), '\n'])
     u=A\b;
     T=TransNTPFA(u);
     [A,b]=AssemAb(T);
