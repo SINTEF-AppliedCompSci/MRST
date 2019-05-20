@@ -2,6 +2,8 @@
 mrstModule add mimetic mpfa incomp
 
 isverbose = false;
+eta       = 1/3;
+blocksize = 1000;
 
 %% Define and process geometry
 % Construct a Cartesian grid of size 10-by-10-by-4 cells, where each cell
@@ -9,7 +11,7 @@ isverbose = false;
 % general unstructured grids, the Cartesian grid is here represented using
 % an unstructured formate in which cells, faces, nodes, etc. are given
 % explicitly.
-nx = 10; ny = 10;
+nx = 100; ny = 100;
 G = cartGrid([nx, ny]);
 G = twister(G, 0.1);
 G = computeGeometry(G);
@@ -42,49 +44,61 @@ fluid = initSingleFluid('mu' , 1 , ...
 gravity off
 
 titles = {'mpfa - jostein', 'mpfa - standard', 'mpfa - block', 'mpfa - well', 'mpfa - well - block'};
-eta = 1/3;
-blocksize = 10;
 
 clear mpfastructs states pressures fluxes
 caseno = 1;
 
-
 % mpfa - jostein
+tic
 T_mpfa = computeMultiPointTrans(G, rock, 'eta', eta);
+texec = toc;
 states{caseno} = initResSol(G, 0, 1);
 states{caseno} = incompMPFA(states{caseno}, G, T_mpfa, fluid, 'wells', W);
 pressures{caseno} = states{caseno}.pressure;
+fprintf('Done with %s in %g sec\n', titles{caseno}, texec);
 caseno = caseno + 1;
 
 % mpfa - standard
+tic
 mpfastructs{caseno} = computeMultiPointTrans2(G, rock, 'eta', eta, 'verbose', ...
                                               isverbose);
+texec = toc;
 states{caseno} = incompMPFA2(G, mpfastructs{caseno}, 'wells', W);
 pressures{caseno} = states{caseno}.pressure;
 fluxes{caseno} = states{caseno}.flux;
+fprintf('Done with %s in %g sec\n', titles{caseno}, texec);
 caseno = caseno + 1;
 
 
 % mpfa - block
+tic
 mpfastructs{caseno} = computeMultiPointTrans2(G, rock, 'eta', eta, 'blocksize', ...
                                               blocksize, 'verbose', isverbose);
+texec = toc;
 states{caseno} = incompMPFA2(G, mpfastructs{caseno}, 'wells', W);
 pressures{caseno} = states{caseno}.pressure;
 fluxes{caseno} = states{caseno}.flux;
+fprintf('Done with %s in %g sec\n', titles{caseno}, texec);
 caseno = caseno + 1;
 
 % mpfa - well
+tic
 mpfastructs{caseno} = computeNeumannMultiPointTrans(G, rock, 'eta', eta, 'verbose', isverbose);
+texec = toc;
 states{caseno} = incompMPFA3(G, mpfastructs{caseno}, W);
 pressures{caseno} = states{caseno}.pressure;
 fluxes{caseno} = states{caseno}.flux;
+fprintf('Done with %s in %g sec\n', titles{caseno}, texec);
 caseno = caseno + 1;
 
 % mpfa - well - block
+tic
 mpfastructs{caseno} = computeNeumannMultiPointTrans(G, rock, 'eta', 1/3, 'verbose', isverbose);
+texec = toc;
 states{caseno} = incompMPFA3(G, mpfastructs{caseno}, W);
 pressures{caseno} = states{caseno}.pressure;
 fluxes{caseno} = states{caseno}.flux;
+fprintf('Done with %s in %g sec\n', titles{caseno}, texec);
 caseno = caseno + 1;
 
 
