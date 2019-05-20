@@ -1,45 +1,91 @@
 % run field model
 clear;close all;clc
 mrstModule add incomp mimetic  ad-blackoil ad-core glpk ntpfa_glpk ...
-    ad-props mpfa
-%% Grid and rock
-%grdecl=readGRDECL('NORNE.grdecl');
-grdecl = readGRDECL(fullfile(getDatasetPath('norne'), 'NORNE.GRDECL'));
-usys=getUnitSystem('METRIC');
-grdecl=convertInputUnits(grdecl,usys);
-G=processGRDECL(grdecl,'Tolerance',0.05);G=G(1);G=computeGeometry(G);
-rock=grdecl2Rock(grdecl,G.cells.indexMap);
-is_pos=rock.perm(:,3)>0;rock.perm(~is_pos,3)=1e-6*min(rock.perm(is_pos,3));
-is_pos=rock.perm(:,2)>0;rock.perm(~is_pos,2)=1e-6*min(rock.perm(is_pos,2));
-is_pos=rock.perm(:,1)>0;rock.perm(~is_pos,1)=1e-6*min(rock.perm(is_pos,1));
-figure, plotGrid(G);view(3);clear grdecl usys GG is_pos
-% ----------------------------------------------------------------------
-x=G.cells.centroids(:,1);y=G.cells.centroids(:,2);
-ind=x>4.59e5|y>7.324e6;[~,~,K]=ind2sub(G.cartDims,G.cells.indexMap);
-ind=ind|K<4;cells=find(ind);G=removeCells(G,cells);clear cells K
-rock.perm=rock.perm(~ind,:);rock.poro=rock.poro(~ind);rock.ntg=rock.ntg(~ind);
-% -------------------------------------------------------------------------------
-figure,subplot(1,2,1);
-plotCellData(G,log10(rock.perm(:,1)),'edgecolor','none');view(3);
-c=colorbar('southoutside');c.Label.String='log_{10}(\itk_{\rmH})';
-subplot(1,2,2);
-plotCellData(G,log10(rock.perm(:,3)),'edgecolor','none');view(3)
-c=colorbar('southoutside');c.Label.String='log_{10}(\itk_{\rmV})';clear c;
-% ----------------------------------------------------------------
-x=4.562e5;y=7.3205e6;
-d=bsxfun(@minus,G.cells.centroids(:,1:2),[x y]);
-d=sqrt(dot(d,d,2));[~,inj]=min(d);
-x=4.583e5;y=7.3234e6;
-d=bsxfun(@minus,G.cells.centroids(:,1:2),[x y]);
-d=sqrt(dot(d,d,2));[~,pro]=min(d);
-nz=G.cartDims(3);
-[I,J,~]=ind2sub(G.cartDims,G.cells.indexMap(inj));
-Wtp=verticalWell([],G,rock,I,J,1:nz,'type','bhp','val',20e6,'name','I','Comp_i', 1,'refDepth',min(G.cells.centroids(:,end)));
-Wm=verticalWell([],G,rock,I,J,1:nz,'type','bhp','val',20e6,'name','I','Comp_i', 1,'innerproduct','ip_quasirt','refDepth',min(G.cells.centroids(:,end)));
-[I,J,~]=ind2sub(G.cartDims,G.cells.indexMap(pro));
-Wtp=verticalWell(Wtp,G,rock,I,J,1:nz,'type','bhp','val',10e6,'name','P','Comp_i', 1,'refDepth',min(G.cells.centroids(:,end)));
-Wm=verticalWell(Wm,G,rock,I,J,1:nz,'type','bhp','val',10e6,'name','P','Comp_i', 1,'innerproduct','ip_quasirt','refDepth',min(G.cells.centroids(:,end)));
-clear x y d ind inj pro I J nz
+    ad-props mpfa eni
+
+% $$$ %% Grid and rock
+% $$$ %grdecl=readGRDECL('NORNE.grdecl');
+% $$$ grdecl = readGRDECL(fullfile(getDatasetPath('norne'), 'NORNE.GRDECL'));
+% $$$ usys=getUnitSystem('METRIC');
+% $$$ grdecl=convertInputUnits(grdecl,usys);
+% $$$ G=processGRDECL(grdecl,'Tolerance',0.05);G=G(1);G=computeGeometry(G);
+% $$$ rock=grdecl2Rock(grdecl,G.cells.indexMap);
+% $$$ is_pos=rock.perm(:,3)>0;rock.perm(~is_pos,3)=1e-6*min(rock.perm(is_pos,3));
+% $$$ is_pos=rock.perm(:,2)>0;rock.perm(~is_pos,2)=1e-6*min(rock.perm(is_pos,2));
+% $$$ is_pos=rock.perm(:,1)>0;rock.perm(~is_pos,1)=1e-6*min(rock.perm(is_pos,1));
+% $$$ figure, plotGrid(G);view(3);clear grdecl usys GG is_pos
+% $$$ % ----------------------------------------------------------------------
+% $$$ x=G.cells.centroids(:,1);y=G.cells.centroids(:,2);
+% $$$ ind=x>4.59e5|y>7.324e6;[~,~,K]=ind2sub(G.cartDims,G.cells.indexMap);
+% $$$ ind=ind|K<4;cells=find(ind);G=removeCells(G,cells);clear cells K
+% $$$ rock.perm=rock.perm(~ind,:);rock.poro=rock.poro(~ind);rock.ntg=rock.ntg(~ind);
+% $$$ % -------------------------------------------------------------------------------
+% $$$ figure,subplot(1,2,1);
+% $$$ plotCellData(G,log10(rock.perm(:,1)),'edgecolor','none');view(3);
+% $$$ c=colorbar('southoutside');c.Label.String='log_{10}(\itk_{\rmH})';
+% $$$ subplot(1,2,2);
+% $$$ plotCellData(G,log10(rock.perm(:,3)),'edgecolor','none');view(3)
+% $$$ c=colorbar('southoutside');c.Label.String='log_{10}(\itk_{\rmV})';clear c;
+% $$$ % ----------------------------------------------------------------
+% $$$ x=4.562e5;y=7.3205e6;
+% $$$ d=bsxfun(@minus,G.cells.centroids(:,1:2),[x y]);
+% $$$ d=sqrt(dot(d,d,2));[~,inj]=min(d);
+% $$$ x=4.583e5;y=7.3234e6;
+% $$$ d=bsxfun(@minus,G.cells.centroids(:,1:2),[x y]);
+% $$$ d=sqrt(dot(d,d,2));[~,pro]=min(d);
+% $$$ nz=G.cartDims(3);
+% $$$ [I,J,~]=ind2sub(G.cartDims,G.cells.indexMap(inj));
+% $$$ Wtp=verticalWell([],G,rock,I,J,1:nz,'type','bhp','val',20e6,'name','I','Comp_i', 1,'refDepth',min(G.cells.centroids(:,end)));
+% $$$ Wm=verticalWell([],G,rock,I,J,1:nz,'type','bhp','val',20e6,'name','I','Comp_i', 1,'innerproduct','ip_quasirt','refDepth',min(G.cells.centroids(:,end)));
+% $$$ [I,J,~]=ind2sub(G.cartDims,G.cells.indexMap(pro));
+% $$$ Wtp=verticalWell(Wtp,G,rock,I,J,1:nz,'type','bhp','val',10e6,'name','P','Comp_i', 1,'refDepth',min(G.cells.centroids(:,end)));
+% $$$ Wm=verticalWell(Wm,G,rock,I,J,1:nz,'type','bhp','val',10e6,'name','P','Comp_i', 1,'innerproduct','ip_quasirt','refDepth',min(G.cells.centroids(:,end)));
+% $$$ clear x y d ind inj pro I J nz
+
+
+
+% overwrite
+nx = 10;
+ny = 10;
+nz = 5;
+G = cartGrid([nx, ny, nz]);
+G = computeGeometry(G);
+
+
+
+    parentdir = 'data/two_faults_small/HYBRID_GRID/MATFILE';
+    workdatadir = fullfile(parentdir, 'working_data');
+    filename = fullfile(parentdir, 'HG_MRSTGrid.mat');
+    load(filename);
+    G = G_2;
+    volume_hmin = min(G.cells.volumes.^(1/3));
+    area_hmin = min(sqrt(G.faces.areas));
+    hmin = min(volume_hmin, area_hmin);
+    G = removePinch(G, max(eps, 1e-6*hmin));
+    G = computeGeometry(G);
+
+% $$$     % G = createHexTetGrid(nx, ny, nz, [nx, 0, 0]);
+% $$$     G = tetrahedralGrid(G.nodes.coords);
+% $$$     G = computeGeometry(G);
+
+rock = makeRock(G, 100*milli*darcy, 1);
+
+
+val1 = 20e6;
+val2 = 10e6;
+radius = 0.01;
+cellsWell1 = well_cells(G, '1');
+Wtp = addWell([], G, rock, cellsWell1, 'Type', 'bhp', ...
+              'InnerProduct', 'ip_quasirt', ...
+              'comp_i', [1], ...
+              'Val', val1, 'Radius', radius, 'name', 'I');
+cellsWell2 = well_cells(G, '2');
+Wtp = addWell(Wtp, G, rock, cellsWell2, 'Type', 'bhp', ...
+            'InnerProduct', 'ip_quasirt', ...
+            'comp_i', [1], ...
+            'Val', val2, 'Radius', radius, 'Dir', 'y', 'name', 'P');
+
+
 
 pv=sum(poreVolume(G,rock));
 bc.face=boundaryFaces(G);
@@ -130,6 +176,7 @@ figure, plotCellData(G,snmp.cres(:,end));plotWell(G,Wtp);
 view(3);axis image;colorbar;title('Concentration-NMPFA');
 
 % MPFA Xavier style (memory)
+%disp('mpfa xavier')
 %mpfastruct = computeNeumannMultiPointTrans(G, rock);
 %smpfa = incompMPFA3(G, mpfastruct, Wtp);
 %smpfa = tracerTransport_implicit(G,rock,Wtp,smpfa,dt,nstep);
