@@ -2,11 +2,9 @@ classdef PressureNaturalVariablesModel < NaturalVariablesCompositionalModel
     % Two phase oil/water system without dissolution
     properties
         useIncTolPressure
-        usePartialVolumeWeights
-        
         singlePhaseStrategy = 'numerical';
         twoPhaseStrategy = 'numerical';
-        singlePhaseDifferentiation = 'analytical';
+        singlePhaseDifferentiation = 'numerical';
         twoPhaseDifferentiation = 'numerical';
     end
     

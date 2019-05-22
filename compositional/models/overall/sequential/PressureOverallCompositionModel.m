@@ -2,7 +2,10 @@ classdef PressureOverallCompositionModel < OverallCompositionCompositionalModel
     % Two phase oil/water system without dissolution
     properties
         useIncTolPressure
-        usePartialVolumeWeights
+        singlePhaseStrategy = 'numerical';
+        twoPhaseStrategy = 'numerical';
+        singlePhaseDifferentiation = 'numerical';
+        twoPhaseDifferentiation = 'numerical';
     end
     
     methods
@@ -10,7 +13,6 @@ classdef PressureOverallCompositionModel < OverallCompositionCompositionalModel
             
             model = model@OverallCompositionCompositionalModel(G, rock, fluid, compFluid);
             model.useIncTolPressure = true;
-            model.usePartialVolumeWeights = false;
             model = merge_options(model, varargin{:});
             model.outputFluxes = true;
             model.useIncTolComposition = false;

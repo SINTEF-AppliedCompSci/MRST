@@ -1,9 +1,10 @@
-function [V, dVdp] = getPartialVolumes(model, problem, varargin)
-    state = problem.state;
+function [V, dVdp] = getPartialVolumes(model, state, acc, varargin)
     opt = struct('units', 'mass', ...
                  'pressureEpsilon', 0.1*psia, ...
                  'singlePhaseStrategy', 'numerical', ...
                  'twoPhaseStrategy', [], ...
+                 'reorder', [], ...
+                 'wellVarIndices', [], ...
                  'iteration', nan, ...
                  'singlePhaseDifferentiation', 'numerical', ...
                  'twoPhaseDifferentiation', []);
@@ -55,29 +56,28 @@ function [V, dVdp] = getPartialVolumes(model, problem, varargin)
             ds = opt.twoPhaseDifferentiation;
         end
         subs = true(ncell, 1);
-        [V, dVdp] = getPartialVolumesWrapper(model, problem, opt, subs, s, ds);
+        [V, dVdp] = getPartialVolumesWrapper(model, state, acc, opt, subs, s, ds);
     else
         V = nan(ncell, ncomp);
         dVdp = nan(ncell, ncomp);
         % Treat single-phase
-        [V(singlePhase, :), dVdp(singlePhase, :)] = getPartialVolumesWrapper(model, problem, opt, singlePhase, ...
+        [V(singlePhase, :), dVdp(singlePhase, :)] = getPartialVolumesWrapper(model, state, acc, opt, singlePhase, ...
                                     opt.singlePhaseStrategy, opt.singlePhaseDifferentiation);
         % Treat two-phase
         assert(~strcmpi(opt.twoPhaseStrategy, 'analytical'));
-        [V(twoPhase, :), dVdp(twoPhase, :)] = getPartialVolumesWrapper(model, problem, opt, twoPhase, ...
+        [V(twoPhase, :), dVdp(twoPhase, :)] = getPartialVolumesWrapper(model, state, acc, opt, twoPhase, ...
                                     opt.twoPhaseStrategy, opt.twoPhaseDifferentiation);
                                 
     end
 end
 
-function [V, dVdp] = getPartialVolumesWrapper(model, problem, opt, subs, strategy, dstrategy)
-    state = problem.state;
+function [V, dVdp] = getPartialVolumesWrapper(model, state, acc, opt, subs, strategy, dstrategy)
     if ~all(subs)
         state = makeSubstate(state, subs);
     end
     switch lower(strategy)
         case 'numerical'
-            V = getWeights(problem, subs);
+            V = getWeights(state, acc, opt, subs);
         case 'eos'
             computeDerivatives = strcmpi(dstrategy, 'eos');
             [V, dVdp] = getPartialVolumesInternal(model, state, opt, subs, computeDerivatives);
@@ -89,7 +89,7 @@ function [V, dVdp] = getPartialVolumesWrapper(model, problem, opt, subs, strateg
             computeDerivatives = strcmpi(dstrategy, 'analytical');
             pureLiquid = state.L > 0.5;
             pureVapor = not(pureLiquid);
-            [V, dVdp] = getSinglePhaseVolumes(model, state, pureLiquid, pureVapor, computeDerivatives);
+            [V, dVdp] = getSinglePhaseVolumes(model, state, pureLiquid, pureVapor, opt, computeDerivatives);
         otherwise
             error('Unsupported strategy %s.', strategy);
     end
@@ -213,13 +213,15 @@ function V = getTwoPhaseVolumes(model, state, pv)
     end
 end
 
-function [V, dVdp] = getSinglePhaseVolumes(model, state, liquid, vapor, computeDerivatives)
+function [V, dVdp] = getSinglePhaseVolumes(model, state, liquid, vapor, opt, computeDerivatives)
     singlePhase = liquid | vapor;
     if ~any(singlePhase)
         [V, dVdp] = deal(zeros(0, size(state.components, 2)));
         return
     end
     z = state.components;
+    ncomp = size(z, 2);
+    zc = expandMatrixToCell(z);
     p = state.pressure;
     nc = numel(p);
     Z_L = state.Z_L;
@@ -227,31 +229,44 @@ function [V, dVdp] = getSinglePhaseVolumes(model, state, liquid, vapor, computeD
     T = state.T;
     
     rho = zeros(nc, 1);
-    if computeDerivatives
-        p = initVariablesAD_diagonal(p);
-        Z_L = double2GenericAD(Z_L, p);
-        Z_V = double2GenericAD(Z_V, p);
-        rho = double2GenericAD(rho, p);
-        eos = model.EOSModel;
-        zc = expandMatrixToCell(z);
-        [Si_L, Si_V, A_L, A_V, B_L, B_V] =...
-            eos.getMixtureFugacityCoefficients(p, T, zc, zc, eos.fluid.acentricFactors);
-        Z_L = eos.setZDerivatives(Z_L, A_L, B_L);
-        Z_V = eos.setZDerivatives(Z_V, A_V, B_V);
-    end
+    [p, zc{:}] = initVariablesAD_diagonal(p, zc{:});
+    Z_L = double2GenericAD(Z_L, p);
+    Z_V = double2GenericAD(Z_V, p);
+    rho = double2GenericAD(rho, p);
+    eos = model.EOSModel;
+    
+    [Si_L, Si_V, A_L, A_V, B_L, B_V] =...
+        eos.getMixtureFugacityCoefficients(p, T, zc, zc, eos.fluid.acentricFactors);
+    Z_L = eos.setZDerivatives(Z_L, A_L, B_L);
+    Z_V = eos.setZDerivatives(Z_V, A_V, B_V);
 
+    zl = cellfun(@(x) x(liquid), zc, 'UniformOutput', false);
+    zv = cellfun(@(x) x(vapor), zc, 'UniformOutput', false);
+    rho(liquid) = model.EOSModel.PropertyModel.computeMolarDensity(p(liquid), zl, Z_L(liquid), T(liquid), true);
+    rho(vapor) = model.EOSModel.PropertyModel.computeMolarDensity(p(vapor), zv, Z_V(vapor), T(vapor), false);
     
-    rho(liquid) = model.EOSModel.PropertyModel.computeDensity(p(liquid), z(liquid, :), Z_L(liquid), T(liquid), true);
-    rho(vapor) = model.EOSModel.PropertyModel.computeDensity(p(vapor), z(vapor, :), Z_V(vapor), T(vapor), false);
+    dRhoDx = rho.jac{1}.diagonal(:, 2:end);
     
-    V = 1./rho;
-    ncomp = model.EOSModel.fluid.getNumberOfComponents();
-    if computeDerivatives
-        dVdp = V.jac{1}.diagonal;
-        dVdp = repmat(dVdp, 1, ncomp);
-        V = value(V);
+    rhoInv = 1./rho;
+    rhoInv2 = 1./(rho.^2);
+    
+    V = zeros(nc, ncomp);
+    dVdp = zeros(nc, ncomp);
+    for i = 1:ncomp
+        v = rhoInv - rhoInv2.*dRhoDx(:, i);
+        V(:, i) = value(v);
+        if computeDerivatives
+            dVdp(:, i) = v.jac{1}.diagonal(:, 1);
+        end
     end
-    V = repmat(V, 1, ncomp);
+    switch lower(opt.units)
+        case 'mass'
+            V = bsxfun(@rdivide, V, model.EOSModel.fluid.molarMass);
+        case 'moles'
+            % Nothing to do here
+        otherwise
+            error('Unknown system %s', opt.type);
+    end
 end
 
 function flds = getCompCellFields()
@@ -259,10 +274,9 @@ function flds = getCompCellFields()
             'mob', 'rho', 'flag', 'L', 'T', 'Z_L', 'Z_V', 'w_p', 'w'};
 end
 
-function w = getWeights(problem, subs)
-    acc = problem.accumulationTerms;
-    state = problem.state;
-    [ncell, ncomp] = size(problem.state.components);
+function w = getWeights(state, acc, opt, subs)
+    [~, ncomp] = size(state.components);
+    ncell = numelValue(acc{1});
     hasWater = size(state.s, 2) == 3;
     if hasWater
         ncomp = ncomp + 1;
@@ -277,11 +291,11 @@ function w = getWeights(problem, subs)
     end
     J = c.jac{1};
 
-    if ~isempty(problem.reorder)
-        J = J(:, problem.reorder);
+    if ~isempty(opt.reorder)
+        J = J(:, opt.reorder);
     end
 
-    J(:, problem.wellVarIndices) = [];
+    J(:, opt.wellVarIndices) = [];
 
     ndof = ncell*ncomp;
     [B, C, D, E] = getBlocks(J, ndof);
@@ -292,7 +306,7 @@ function w = getWeights(problem, subs)
 
     w = (A')\b;
     w = reshape(w, [], ncomp);
-    if nargin > 1
+    if nargin > 3
         w = w(subs, :);
     end
 end
