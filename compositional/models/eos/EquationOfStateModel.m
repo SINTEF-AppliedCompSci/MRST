@@ -728,7 +728,7 @@ classdef EquationOfStateModel < PhysicalModel
             ncomp = numel(x);
             timer = tic();
             eqs = cell(1, 2*ncomp + 1);
-            sample = getSampleAD(P, T, x{:}, y{:});
+            sample = getSampleAD(P, T, x{:}, y{:}, z{:});
             emptyJac = double2ADI(zeros(size(value(P))), sample);
             
             isLiq = value(L) == 1;
@@ -1072,7 +1072,9 @@ classdef EquationOfStateModel < PhysicalModel
                                 Z.jac{i} = Z.jac{i}.expandZero();
                             end
                             Z.jac{i}.diagonal(map, :) = d;
-                            Z.jac{i}.subset(map) = (1:numel(map))';
+                            if ~isempty(Z.jac{i}.subset)
+                                Z.jac{i}.subset(map) = (1:numel(map))';
+                            end
                         end
                     end
                 end

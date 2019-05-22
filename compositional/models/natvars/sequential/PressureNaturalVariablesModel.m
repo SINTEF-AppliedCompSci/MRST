@@ -2,7 +2,10 @@ classdef PressureNaturalVariablesModel < NaturalVariablesCompositionalModel
     % Two phase oil/water system without dissolution
     properties
         useIncTolPressure
-        usePartialVolumeWeights
+        singlePhaseStrategy = 'numerical';
+        twoPhaseStrategy = 'numerical';
+        singlePhaseDifferentiation = 'numerical';
+        twoPhaseDifferentiation = 'numerical';
     end
     
     methods
@@ -13,7 +16,6 @@ classdef PressureNaturalVariablesModel < NaturalVariablesCompositionalModel
             model.useIncTolComposition = true;
             model.allowLargeSaturations = true;
             model.maxPhaseChangesNonLinear = 20;
-            model.usePartialVolumeWeights = false;
             model = merge_options(model, varargin{:});
             model.EOSModel.fastDerivatives = false;
             model.outputFluxes = true;

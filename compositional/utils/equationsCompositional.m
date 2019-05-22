@@ -61,6 +61,8 @@ z0 = expandMatrixToCell(z0);
 
 ncomp = numel(z);
 cnames = model.EOSModel.fluid.names;
+
+nwellvar = sum(cellfun(@numel, wellVars));
 if model.water
     [p, z{1:ncomp-1}, sW, wellVars{:}] = initVariablesADI(p, z{1:ncomp-1}, sW, wellVars{:});
     primaryVars = {'pressure', cnames{1:end-1}, 'sW', wellVarNames{:}};
@@ -254,50 +256,33 @@ if opt.pressure
         [weights{:}] = deal(1);
     else
         state = model.storeDensities(state, rhoW, rhoO, rhoG);
-        [ncell, ncomp] = size(state.components);
-        analyticalWeights = isprop(model, 'usePartialVolumeWeights') && ...
-                                   model.usePartialVolumeWeights;
-        weights = cell(ncomp, 1);
-        if analyticalWeights
-            assert(~model.water)
-            [part_vol, dwdp] = getPartialVolumes(model, state);
-            for i = 1:ncomp
-                w = double2ADI(part_vol(:, i), p);
-                w.jac{1} = sparse((1:ncell)', (1:ncell)', dwdp(:, i), ncell, ncell);
-                weights{i} = w;
-            end
-        else
-            e = vertcat(acc{:});
-            e.jac = e.jac(1:ncomp+wat);
-            c = cat(e);
-            A = c.jac{1};
-            ndof = ncell*(ncomp+wat);
+        ncell = model.G.cells.num;
+        ndof = ncell*(ncomp+wat);
+        wellVarIndices = (ndof+1):(ndof+nwellvar);
+        
+        [w, dwdp] = getPartialVolumes(model, state, acc, ...
+            'iteration',                  opt.iteration, ...
+            'wellVarIndices',             wellVarIndices, ...
+            'singlePhaseStrategy',        model.singlePhaseStrategy, ...
+            'twoPhaseStrategy',           model.twoPhaseStrategy, ...
+            'singlePhaseDifferentiation', model.singlePhaseDifferentiation, ...
+            'twoPhaseDifferentiation',    model.twoPhaseDifferentiation);
 
-            b = zeros(ndof, 1);
-            b(1:ncell) = 1/barsa;
-
-            Ap = A';
-            w = Ap\b;
-            w = reshape(w, [], ncomp+woffset);
-            w = w./sum(abs(w), 2);
-            w = w./sum(state.rho.*state.s, 2);
-            for i = 1:ncomp+wat
-                wi = w(:, i);
-                if opt.iteration == 1 || isa(p, 'value') 
-                    Wp = wi;
-                else
-                    ddp = (state.pressure - state.pressurePrev);
-                    dwdp = (wi - state.w(:, i))./ddp;
-                    dwdp(~isfinite(dwdp)) = 0;
-                    Wp = double2ADI(wi, p);
-                    Wp.jac{1} = sparse(1:ncell, 1:ncell, dwdp, ncell, ncell);
-                end
-                weights{i} = Wp;
+        weights = cell(ncomp+wat, 1);
+        for i = 1:ncomp+wat
+            wi = w(:, i);
+            if any(dwdp)
+                Wp = double2ADI(wi, p);
+                Wp.jac{1} = sparse(1:ncell, 1:ncell, dwdp(:, i), ncell, ncell);
+            else
+                Wp = wi;
             end
-            state.w = w;
-            state.pressurePrev = state.pressure;
+            weights{i} = Wp;
         end
     end
+    state.w = w;
+    state.w_p = state.pressure;
+    
     peq = 0;
     for i = 1:ncomp
         peq = peq + weights{i}.*eqs{i};
@@ -312,10 +297,7 @@ if opt.pressure
     for i = 1:numel(eqs)
         eqs{i}.jac = eqs{i}.jac(active);
     end
-    
     names{1} = 'pressure';
-
-
     primaryVars = primaryVars(active);
     names = names(active);
     types = types(active);
