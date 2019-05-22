@@ -1,11 +1,11 @@
-classdef ComponentPhaseMass < GridProperty & ComponentProperty
+classdef ComponentPhaseMass < AutoDiffFunction & ComponentProperty
     properties
 
     end
     
     methods
         function gp = ComponentPhaseMass(model, varargin)
-            gp@GridProperty(model, varargin{:});
+            gp@AutoDiffFunction(model, varargin{:});
             gp@ComponentProperty(model);
         end
         function v = evaluateOnDomain(prop, model, state)

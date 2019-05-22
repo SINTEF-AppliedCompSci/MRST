@@ -1,11 +1,11 @@
-classdef ComponentPhaseDensity < GridProperty & ComponentProperty
+classdef ComponentPhaseDensity < AutoDiffFunction & ComponentProperty
     properties
 
     end
     
     methods
         function gp = ComponentPhaseDensity(model, varargin)
-            gp@GridProperty(model, varargin{:});
+            gp@AutoDiffFunction(model, varargin{:});
             gp@ComponentProperty(model);
         end
         function v = evaluateOnDomain(prop, model, state)

@@ -1,10 +1,10 @@
-classdef DensityDerivedShrinkageFactors < GridProperty
+classdef DensityDerivedShrinkageFactors < AutoDiffFunction
     properties
     end
     
     methods
         function gp = DensityDerivedShrinkageFactors(model, varargin)
-            gp@GridProperty(model, varargin{:});
+            gp@AutoDiffFunction(model, varargin{:});
             gp = gp.dependsOn({'Density'});
         end
 

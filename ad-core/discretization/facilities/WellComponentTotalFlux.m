@@ -1,11 +1,11 @@
-classdef WellComponentTotalFlux < GridProperty
+classdef WellComponentTotalFlux < AutoDiffFunction
     properties
 
     end
     
     methods
         function gp = WellComponentTotalFlux(varargin)
-            gp@GridProperty(varargin{:});
+            gp@AutoDiffFunction(varargin{:});
             gp = gp.dependsOn({'FacilityWellMapping'});
             gp = gp.dependsOn('ComponentPhaseFlux');
         end

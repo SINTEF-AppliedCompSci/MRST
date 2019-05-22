@@ -1,11 +1,11 @@
-classdef ComponentPhaseFlux < GridProperty
+classdef ComponentPhaseFlux < AutoDiffFunction
     properties
 
     end
     
     methods
         function cf = ComponentPhaseFlux(backend, upwinding)
-            cf@GridProperty(backend);
+            cf@AutoDiffFunction(backend);
             cf = cf.dependsOn({'PermeabilityPotentialGradient', 'FaceComponentMobility'});
         end
 

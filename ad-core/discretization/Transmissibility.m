@@ -1,11 +1,11 @@
-classdef Transmissibility < GridProperty
+classdef Transmissibility < AutoDiffFunction
     properties
         
     end
     
     methods
         function pp = Transmissibility(model)
-            pp@GridProperty(model);
+            pp@AutoDiffFunction(model);
             if isfield(model.fluid, 'transMult')
                 pp = pp.dependsOn('pressure', 'state');
             end

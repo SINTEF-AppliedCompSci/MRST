@@ -1,5 +1,5 @@
-classdef PropertyFunctions
-    % A PropertyFunctions class is a grouping of interdependent properties.
+classdef AutoDiffFunctionGrouping
+    % A AutoDiffFunctions class is a grouping of interdependent properties.
     % Inside each grouping, dependencies are handled and all grouped
     % properties are stored in the same normalized field on the state.
     %
@@ -8,7 +8,7 @@ classdef PropertyFunctions
     % properties on the inherited subclass, with name corresponding to the
     % name of the property.
     %
-    % In addition, property functionscan be added to the class instance.
+    % In addition, property functions can be added to the class instance.
     % These functions represent additional properties which can be
     % dependencies of the intrinsics properties.
     properties
@@ -24,7 +24,7 @@ classdef PropertyFunctions
     end
     
     methods
-        function props = PropertyFunctions()
+        function props = AutoDiffFunctionGrouping()
             props.propertyNames = setdiff(properties(props), props.excludedFields);
             props.propertyTypes = zeros(size(props.propertyNames));
         end

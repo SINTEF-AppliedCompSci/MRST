@@ -1,11 +1,11 @@
-classdef FacilityWellMapping < GridProperty
+classdef FacilityWellMapping < AutoDiffFunction
     properties
 
     end
     
     methods
         function gp = FacilityWellMapping(varargin)
-            gp@GridProperty(varargin{:});
+            gp@AutoDiffFunction(varargin{:});
         end
         function s = evaluateOnDomain(prop, model, state)
             wellSol = state.wellSol;

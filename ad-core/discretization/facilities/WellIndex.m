@@ -1,11 +1,11 @@
-classdef WellIndex < GridProperty
+classdef WellIndex < AutoDiffFunction
     properties
 
     end
     
     methods
         function gp = WellIndex(varargin)
-            gp@GridProperty(varargin{:});
+            gp@AutoDiffFunction(varargin{:});
             gp = gp.dependsOn('FacilityWellMapping');
         end
         function WI = evaluateOnDomain(prop, model, state)

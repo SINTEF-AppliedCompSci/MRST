@@ -1,10 +1,10 @@
-classdef ComponentPhaseMoleFractionsLV < GridProperty
+classdef ComponentPhaseMoleFractionsLV < AutoDiffFunction
     properties
     end
     
     methods
         function gp = ComponentPhaseMoleFractionsLV(model, varargin)
-            gp@GridProperty(model, varargin{:});
+            gp@AutoDiffFunction(model, varargin{:});
         end
 
         function v = evaluateOnDomain(prop, model, state)

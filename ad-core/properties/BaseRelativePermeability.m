@@ -1,4 +1,4 @@
-classdef BaseRelativePermeability < GridProperty
+classdef BaseRelativePermeability < AutoDiffFunction
     properties
         relpermScaling = false;
         relpermPoints = 2;
@@ -8,7 +8,7 @@ classdef BaseRelativePermeability < GridProperty
     
     methods
         function gp = BaseRelativePermeability(varargin)
-            gp@GridProperty(varargin{:});
+            gp@AutoDiffFunction(varargin{:});
             gp = gp.dependsOn({'s', 'sMax'}, 'state');
         end
         function kr = evaluateOnDomain(prop, model, state)

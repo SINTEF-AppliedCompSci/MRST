@@ -1,10 +1,10 @@
-classdef PhaseMixingCoefficientsLV < GridProperty
+classdef PhaseMixingCoefficientsLV < AutoDiffFunction
     properties
     end
     
     methods
         function gp = PhaseMixingCoefficientsLV(model, varargin)
-            gp@GridProperty(model, varargin{:});
+            gp@AutoDiffFunction(model, varargin{:});
         end
 
         function v = evaluateOnDomain(prop, model, state)

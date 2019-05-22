@@ -1,11 +1,11 @@
-classdef PhaseUpwindFlag < GridProperty
+classdef PhaseUpwindFlag < AutoDiffFunction
     properties
 
     end
     
     methods
         function gp = PhaseUpwindFlag(varargin)
-            gp@GridProperty(varargin{:});
+            gp@AutoDiffFunction(varargin{:});
             gp = gp.dependsOn('PhasePotentialDifference');
         end
 

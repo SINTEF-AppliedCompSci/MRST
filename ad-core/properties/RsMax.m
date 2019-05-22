@@ -1,10 +1,10 @@
-classdef RsMax < GridProperty
+classdef RsMax < AutoDiffFunction
     properties
     end
     
     methods
         function gp = RsMax(varargin)
-            gp@GridProperty(varargin{:});
+            gp@AutoDiffFunction(varargin{:});
             gp = gp.dependsOn('pressure', 'state');
         end
         

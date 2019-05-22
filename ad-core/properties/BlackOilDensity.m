@@ -1,4 +1,4 @@
-classdef BlackOilDensity < GridProperty
+classdef BlackOilDensity < AutoDiffFunction
     properties
         disgas = false;
         vapoil = false;
@@ -6,7 +6,7 @@ classdef BlackOilDensity < GridProperty
     
     methods
         function gp = BlackOilDensity(model, varargin)
-            gp@GridProperty(model, varargin{:});
+            gp@AutoDiffFunction(model, varargin{:});
             if isprop(model, 'disgas')
                 gp.disgas = model.disgas;
                 gp = gp.dependsOn({'rs'}, 'state');

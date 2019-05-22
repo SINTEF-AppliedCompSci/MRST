@@ -1,11 +1,11 @@
-classdef WellComponentPhaseFlux < GridProperty
+classdef WellComponentPhaseFlux < AutoDiffFunction
     properties
 
     end
     
     methods
         function gp = WellComponentPhaseFlux(varargin)
-            gp@GridProperty(varargin{:});
+            gp@AutoDiffFunction(varargin{:});
             gp = gp.dependsOn({'FacilityWellMapping', 'PhaseFlux'});
             gp = gp.dependsOn({'ComponentPhaseDensity', 'Density'}, 'FlowPropertyFunctions');
         end
@@ -57,8 +57,6 @@ classdef WellComponentPhaseFlux < GridProperty
                     end
                 end
             end
-            
-            
             if any(perfIsInjector)
                 massDensity = model.getProp(state, 'Density');
                 injPerforationDensity = cellfun(@(x) x(wc(perfInjecting)), massDensity, 'UniformOutput', false);

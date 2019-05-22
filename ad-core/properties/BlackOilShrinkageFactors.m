@@ -1,4 +1,4 @@
-classdef BlackOilShrinkageFactors < GridProperty
+classdef BlackOilShrinkageFactors < AutoDiffFunction
     properties
         useSaturatedFlag = false;
         disgas = false;
@@ -7,7 +7,7 @@ classdef BlackOilShrinkageFactors < GridProperty
     
     methods
         function gp = BlackOilShrinkageFactors(model, varargin)
-            gp@GridProperty(model, varargin{:});
+            gp@AutoDiffFunction(model, varargin{:});
             if isprop(model, 'disgas')
                 gp.disgas = model.disgas;
                 if gp.disgas

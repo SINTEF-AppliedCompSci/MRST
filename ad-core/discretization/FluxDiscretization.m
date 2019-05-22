@@ -1,4 +1,7 @@
-classdef FluxDiscretization < PropertyFunctions
+classdef FluxDiscretization < AutoDiffFunctionGrouping
+    % Function grouping for Darcy-type flux discretization. The defaults
+    % gives a industry-standard single-point upwind scheme with a two-point
+    % flux discretization which emphasizes robustness and efficiency.
     properties
         PermeabilityPotentialGradient % K * (grad(p) + rho g dz)
         PressureGradient % Gradient of phase pressures
@@ -16,6 +19,7 @@ classdef FluxDiscretization < PropertyFunctions
     properties (Access = protected)
         FlowStateBuilder
     end
+    
     methods
         function props = FluxDiscretization(model)
             if isempty(model.operators)
@@ -29,7 +33,7 @@ classdef FluxDiscretization < PropertyFunctions
             upstr = UpstreamFunctionWrapper(up);
             tpfa = TwoPointFluxApproximation(model);
 
-            props@PropertyFunctions();
+            props@AutoDiffFunctionGrouping();
             % Darcy flux
             if ~isempty(model.inputdata) && isfield(model.inputdata.SOLUTION, 'THPRES')
                 trans = ThresholdedTransmissibility(model, model);
@@ -66,13 +70,6 @@ classdef FluxDiscretization < PropertyFunctions
         
         function fb = getFlowStateBuilder(fd)
             fb = fd.FlowStateBuilder;
-        end
-        
-        function state = evaluateProperty(props, model, state, name)
-            switch name
-
-            end
-            state = evaluateProperty@PropertyFunctions(props, model, state, name);
         end
         
         function [acc, v, names, types] = componentConservationEquations(fd, model, state, state0, dt)

@@ -1,10 +1,10 @@
-classdef CompositionalViscosityLV < GridProperty
+classdef CompositionalViscosityLV < AutoDiffFunction
     properties
     end
     
     methods
         function gp = CompositionalViscosityLV(model, varargin)
-            gp@GridProperty(model, varargin{:});
+            gp@AutoDiffFunction(model, varargin{:});
             gp = gp.dependsOn({'PhasePressures', 'PhaseCompressibilityFactors'});
         end
         

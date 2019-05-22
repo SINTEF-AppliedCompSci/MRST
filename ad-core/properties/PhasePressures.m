@@ -1,10 +1,10 @@
-classdef PhasePressures < GridProperty
+classdef PhasePressures < AutoDiffFunction
     properties
     end
     
     methods
         function gp = PhasePressures(varargin)
-            gp@GridProperty(varargin{:});
+            gp@AutoDiffFunction(varargin{:});
             gp = gp.dependsOn({'CapillaryPressure'});
             gp = gp.dependsOn({'pressure'}, 'state');
         end

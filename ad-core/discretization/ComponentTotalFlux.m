@@ -1,11 +1,11 @@
-classdef ComponentTotalFlux < GridProperty
+classdef ComponentTotalFlux < AutoDiffFunction
     properties
 
     end
     
     methods
         function gp = ComponentTotalFlux(varargin)
-            gp@GridProperty(varargin{:});
+            gp@AutoDiffFunction(varargin{:});
             gp = gp.dependsOn('ComponentPhaseFlux');
         end
         

@@ -1,11 +1,11 @@
-classdef WellPhaseFlux < GridProperty
+classdef WellPhaseFlux < AutoDiffFunction
     properties
 
     end
     
     methods
         function gp = WellPhaseFlux(varargin)
-            gp@GridProperty(varargin{:});
+            gp@AutoDiffFunction(varargin{:});
             gp = gp.dependsOn({'FacilityWellMapping', 'PerforationPressureGradient', 'WellIndex'});
             gp = gp.dependsOn({'Mobility'}, 'FlowPropertyFunctions');
         end

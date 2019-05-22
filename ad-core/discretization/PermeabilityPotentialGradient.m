@@ -1,11 +1,11 @@
-classdef PermeabilityPotentialGradient < GridProperty
+classdef PermeabilityPotentialGradient < AutoDiffFunction
     properties
         PermeabilityGradientDiscretization
     end
     
     methods
         function pp = PermeabilityPotentialGradient(backend, kgrad)
-            pp@GridProperty(backend);
+            pp@AutoDiffFunction(backend);
             pp.PermeabilityGradientDiscretization = kgrad;
             pp = pp.dependsOn('PhasePotentialDifference');
             if isa(kgrad, 'TwoPointFluxApproximation')

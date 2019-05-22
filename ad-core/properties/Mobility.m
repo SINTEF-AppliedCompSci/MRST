@@ -1,10 +1,10 @@
-classdef Mobility < GridProperty
+classdef Mobility < AutoDiffFunction
     properties
     end
     
     methods
         function gp = Mobility(varargin)
-            gp@GridProperty(varargin{:});
+            gp@AutoDiffFunction(varargin{:});
             gp = gp.dependsOn({'RelativePermeability', 'Viscosity'});
         end
         function mob = evaluateOnDomain(prop, model, state)

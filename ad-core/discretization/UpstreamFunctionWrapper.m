@@ -1,4 +1,5 @@
 classdef UpstreamFunctionWrapper
+    % Simple wrapper
     properties (Access = protected)
         function_handle
     end

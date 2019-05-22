@@ -1,4 +1,4 @@
-classdef FlowPropertyFunctions < PropertyFunctions
+classdef FlowPropertyFunctions < AutoDiffFunctionGrouping
     properties
         Density
         Viscosity
@@ -18,8 +18,7 @@ classdef FlowPropertyFunctions < PropertyFunctions
 
     methods
         function props = FlowPropertyFunctions(model)
-            
-            props@PropertyFunctions();
+            props@AutoDiffFunctionGrouping();
             sat = props.getRegionSaturation(model);
             pvt = props.getRegionPVT(model);
             % Saturation properties

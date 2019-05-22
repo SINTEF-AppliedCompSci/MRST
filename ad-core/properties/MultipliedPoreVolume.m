@@ -1,10 +1,10 @@
-classdef MultipliedPoreVolume < GridProperty
+classdef MultipliedPoreVolume < AutoDiffFunction
     properties
     end
     
     methods
         function gp = MultipliedPoreVolume(model, varargin)
-            gp@GridProperty(model, varargin{:});
+            gp@AutoDiffFunction(model, varargin{:});
             if isfield(model.fluid, 'pvMultR')
                 gp = gp.dependsOn({'pressure'}, 'state');
             end

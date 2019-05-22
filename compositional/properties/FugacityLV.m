@@ -1,10 +1,10 @@
-classdef FugacityLV < GridProperty
+classdef FugacityLV < AutoDiffFunction
     properties
     end
     
     methods
         function gp = FugacityLV(model, varargin)
-            gp@GridProperty(model, varargin{:});
+            gp@AutoDiffFunction(model, varargin{:});
             gp = gp.dependsOn({'PhaseMixingCoefficients', 'ComponentPhaseMoleFractions', 'PhaseCompressibilityFactors'});
         end
 

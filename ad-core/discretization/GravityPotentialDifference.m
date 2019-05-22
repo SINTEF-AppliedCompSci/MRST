@@ -1,11 +1,11 @@
-classdef GravityPotentialDifference < GridProperty
+classdef GravityPotentialDifference < AutoDiffFunction
     properties
         saturationWeighting = false;
     end
     
     methods
         function gp = GravityPotentialDifference(varargin)
-            gp@GridProperty(varargin{:});
+            gp@AutoDiffFunction(varargin{:});
             gp = gp.dependsOn('Density', 'FlowPropertyFunctions');
             if gp.saturationWeighting
                 gp = gp.dependsOn('s', 'state');

@@ -1,11 +1,11 @@
-classdef PhaseFlux < GridProperty
+classdef PhaseFlux < AutoDiffFunction
     properties
 
     end
     
     methods
         function fm = PhaseFlux(model)
-            fm@GridProperty(model);
+            fm@AutoDiffFunction(model);
             fm = fm.dependsOn({'FaceMobility', 'PermeabilityPotentialGradient'});
         end
 

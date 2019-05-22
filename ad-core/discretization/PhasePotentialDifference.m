@@ -1,11 +1,11 @@
-classdef PhasePotentialDifference < GridProperty
+classdef PhasePotentialDifference < AutoDiffFunction
     properties
 
     end
     
     methods
         function gp = PhasePotentialDifference(model, varargin)
-            gp@GridProperty(model, varargin{:});
+            gp@AutoDiffFunction(model, varargin{:});
             gp = gp.dependsOn('PressureGradient');
             if norm(model.gravity) > 0
                 gp = gp.dependsOn('GravityPotentialDifference');
