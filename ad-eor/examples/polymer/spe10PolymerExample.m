@@ -1,7 +1,6 @@
 %% Black-Oil Polymer System for a Layer of the SPE10 Model
 %
-mrstModule add ad-core ad-blackoil ad-eor ad-props deckformat mrst-gui spe10 ...
-    ad-fi
+mrstModule add ad-core ad-blackoil ad-eor ad-props deckformat mrst-gui spe10
 
 %% Use setupSPE10_AD to Fetch the SPE10 model
 % We pick up only one layer 
