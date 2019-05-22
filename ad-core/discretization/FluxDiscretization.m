@@ -30,7 +30,7 @@ classdef FluxDiscretization < AutoDiffFunctionGrouping
             else
                 up = model.operators.faceUpstr;
             end
-            upstr = UpstreamFunctionWrapper(up);
+            upstr = UpwindFunctionWrapperDiscretization(up);
             tpfa = TwoPointFluxApproximation(model);
 
             props@AutoDiffFunctionGrouping();

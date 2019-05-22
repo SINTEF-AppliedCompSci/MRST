@@ -1,15 +1,16 @@
 classdef UpwindProperty
+    % Base class which adds the faceUpstream function to derived classes
     properties
-        UpstreamDiscretization
+        UpwindDiscretization % Class instance
     end
     
     methods
         function up = UpwindProperty(upstream)
-            up.UpstreamDiscretization = upstream;
+            up.UpwindDiscretization = upstream;
         end
         
         function v = faceUpstream(prop, state, flag, cellvalue)
-            v = prop.UpstreamDiscretization.faceUpstream(state, flag, cellvalue);
+            v = prop.UpwindDiscretization.faceUpstream(state, flag, cellvalue);
         end
     end
 end

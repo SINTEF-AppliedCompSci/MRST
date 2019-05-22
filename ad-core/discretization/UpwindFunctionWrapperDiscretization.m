@@ -1,11 +1,12 @@
-classdef UpstreamFunctionWrapper
+classdef UpwindFunctionWrapperDiscretization < UpwindDiscretization
     % Simple wrapper
     properties (Access = protected)
         function_handle
     end
     
     methods
-        function ufn = UpstreamFunctionWrapper(fn)
+        function ufn = UpwindFunctionWrapperDiscretization(fn)
+            ufn@UpwindDiscretization();
             assert(isa(fn, 'function_handle'));
             ufn.function_handle = fn;
         end
