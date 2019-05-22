@@ -118,7 +118,7 @@ W = [];
     'comp_i', [1 0], 'val', rate, 'type', 'rate', 'sign', 1, 'Name', 'Injector');
 
 %% Set up simulation model
-mrstModule add ad-core ad-blackoil ad-fi ad-props
+mrstModule add ad-core ad-blackoil ad-props
 
 fluid = initSimpleADIFluid('rho', [1000, 700, 100]*kilogram/meter^3, ...
                            'mu', [1, 10 1]*centi*poise);
