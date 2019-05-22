@@ -17,7 +17,7 @@ classdef FaceMobility < AutoDiffFunction & UpwindProperty
             nph = numel(mob);
             fmob = cell(1, nph);
             for i = 1:nph
-                fmob{i} = prop.faceUpstream(state, flag{i}, mob{i});
+                fmob{i} = prop.faceUpstream(model, state, flag{i}, mob{i});
             end
         end
     end

@@ -22,15 +22,7 @@ classdef FluxDiscretization < AutoDiffFunctionGrouping
     
     methods
         function props = FluxDiscretization(model)
-            if isempty(model.operators)
-                N = getNeighbourship(model.G);
-                nc = model.G.cells.num;
-                nf = size(N, 1);
-                up = @(flag, x)faceUpstr(flag, x, N, [nf, nc]);
-            else
-                up = model.operators.faceUpstr;
-            end
-            upstr = UpwindFunctionWrapperDiscretization(up);
+            upstr = UpwindFunctionWrapperDiscretization(model);
             tpfa = TwoPointFluxApproximation(model);
 
             props@AutoDiffFunctionGrouping();

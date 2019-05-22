@@ -19,7 +19,7 @@ classdef FaceComponentMobility < AutoDiffFunction & UpwindProperty
             for c = 1:ncomp
                 for ph = 1:nph
                     if ~isempty(mob{c, ph})
-                        mobf{c, ph} = prop.faceUpstream(state, flag{ph}, mob{c, ph});
+                        mobf{c, ph} = prop.faceUpstream(model, state, flag{ph}, mob{c, ph});
                     end
                 end
             end

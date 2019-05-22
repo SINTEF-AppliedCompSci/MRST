@@ -9,8 +9,8 @@ classdef UpwindProperty
             up.UpwindDiscretization = upstream;
         end
         
-        function v = faceUpstream(prop, state, flag, cellvalue)
-            v = prop.UpwindDiscretization.faceUpstream(state, flag, cellvalue);
+        function v = faceUpstream(prop, model, state, flag, cellvalue)
+            v = prop.UpwindDiscretization.faceUpstream(model, state, flag, cellvalue);
         end
     end
 end
