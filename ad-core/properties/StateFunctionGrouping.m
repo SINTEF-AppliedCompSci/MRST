@@ -1,5 +1,5 @@
 classdef StateFunctionGrouping
-    % A StateFunctions class is a grouping of interdependent properties.
+    % A StateFunctionGrouping class is a grouping of interdependent properties.
     % Inside each grouping, dependencies are handled and all grouped
     % properties are stored in the same normalized field on the state.
     %
@@ -29,7 +29,7 @@ classdef StateFunctionGrouping
             props.propertyTypes = zeros(size(props.propertyNames));
         end
         % ----------------------- Getters --------------------------------%
-        function [names, types] = getPropertyNames(props)
+        function [names, types] = getNamesOfStateFunctions(props)
             % Get the names of all properties in collection. If a second
             % output argument is requested, it will give the internal
             % indicators if a property is intrinsic to the class (and will
@@ -39,7 +39,7 @@ classdef StateFunctionGrouping
             types = props.propertyTypes;
         end
 
-        function prop = getPropertyFunction(props, name)
+        function prop = getStateFunction(props, name)
             % Get named property function (case-sensitive)
             sub = strcmp(props.propertyNames, name);
             if props.propertyTypes(sub) == 0
@@ -69,7 +69,7 @@ classdef StateFunctionGrouping
             end
         end
         % ----------------------- Setters --------------------------------%
-        function props = setPropertyFunction(props, prop, name)
+        function props = setStateFunction(props, prop, name)
             % Set or replace a property function
             sub = strcmp(props.propertyNames, name);
             if any(sub)
@@ -94,7 +94,7 @@ classdef StateFunctionGrouping
             end
         end
 
-        function props = removePropertyFunction(props, name)
+        function props = removeStateFunction(props, name)
             % Remove a property function from the list. Only allowed for
             % non-intrinsic functions.
             sub = strcmp(props.propertyNames, name);
@@ -118,8 +118,8 @@ classdef StateFunctionGrouping
         function v = get(props, model, state, name)
             % Get value of a property (possibily triggering several function
             % evaluations if required.
-            if ~props.isPropertyEvaluated(model, state, name)
-                state = props.evaluatePropertyWithDependencies(model, state, name);
+            if ~props.isStateFunctionEvaluated(model, state, name)
+                state = props.evaluateStateFunctionWithDependencies(model, state, name);
             end
             v = state.(props.structName).(name);
 
@@ -133,17 +133,17 @@ classdef StateFunctionGrouping
             end
         end
 
-        function state = evaluateProperty(props, model, state, name)
+        function state = evaluateStateFunction(props, model, state, name)
             % Force evaluation of a property, assuming all dependencies are
             % met. If all dependencies are not met, use
-            % evaluatePropertyWithDependencies or simply get.
+            % evaluateStateFunctionWithDependencies or simply get.
             struct_name = props.structName;
             if isstruct(state) && ~isfield(state, struct_name)
                 props_struct = props.getStateFunctionContainer();
             else
                 props_struct = state.(struct_name);
             end
-            prop = props.getPropertyFunction(name);
+            prop = props.getStateFunction(name);
             if isempty(prop.structName)
                 prop.structName = props.structName;
             end
@@ -153,14 +153,14 @@ classdef StateFunctionGrouping
             end
         end
         
-        function state = evaluatePropertyWithDependencies(props, model, state, name)
+        function state = evaluateStateFunctionWithDependencies(props, model, state, name)
             % Evaluate property, and all required dependencies in state.
-            prop = props.getPropertyFunction(name);
+            prop = props.getStateFunction(name);
             state = props.evaluateDependencies(model, state, prop.dependencies);
-            state = props.evaluateProperty(model, state, name);
+            state = props.evaluateStateFunction(model, state, name);
         end
         
-        function ok = isPropertyEvaluated(props, model, state, name)
+        function ok = isStateFunctionEvaluated(props, model, state, name)
             % Check if property is present in cache.
             if isfield(state, props.structName)
                 % Cache is present, but this specific property is not
@@ -176,8 +176,8 @@ classdef StateFunctionGrouping
             % Evaluate dependencies (order dependent)
             for i = 1:numel(names)
                 name = names{i};
-                if ~isPropertyEvaluated(props, model, state, name)
-                    state = props.evaluatePropertyWithDependencies(model, state, name);
+                if ~isStateFunctionEvaluated(props, model, state, name)
+                    state = props.evaluateStateFunctionWithDependencies(model, state, name);
                 end
             end
         end
@@ -188,11 +188,11 @@ classdef StateFunctionGrouping
             names = props.propertyNames;
             for i = 1:numel(names)
                 name = names{i};
-                prop = props.getPropertyFunction(name);
+                prop = props.getStateFunction(name);
                 if ~isempty(prop)
                     prop = prop.subset(cell_subset);
                 end
-                props.setPropertyFunction(prop, name);
+                props.setStateFunction(prop, name);
             end
         end
         
@@ -206,7 +206,7 @@ classdef StateFunctionGrouping
             else
                 fprintf('%s', class(props));
             end
-            fprintf(' property function grouping instance.\n');
+            fprintf(' state function grouping instance.\n');
             names = props.propertyNames;
             types = props.propertyTypes;
             
@@ -221,7 +221,7 @@ classdef StateFunctionGrouping
                 typeIndices = find(types == type);
                 for i = 1:numel(typeIndices)
                     index = typeIndices(i);
-                    fn = props.getPropertyFunction(names{index});
+                    fn = props.getStateFunction(names{index});
 
                     cl = class(fn);
                     fprintf('%*s: ', len, names{index});

@@ -48,7 +48,7 @@ classdef PhysicalModel
     % SEE ALSO:
     %   `ReservoirModel`, `ThreePhaseBlackOilModel`,
     %   `TwoPhaseOilWaterModel`
-    
+
 properties
     operators % Operators used for construction of systems
     nonlinearTolerance % Inf norm tolerance for checking residuals
@@ -80,7 +80,7 @@ methods
         names = {};
         origin = {};
     end
-    
+
     function [state, names, origin] = getStateAD(model, state, init)
         if nargin < 3
             init = true;
@@ -92,12 +92,12 @@ methods
         end
         state = model.initStateAD(state, vars, names, origin);
     end
-    
+
     function [state, names, origin] = getReverseStateAD(model, varargin)
         [state, names, origin] = model.getStateAD(varargin{:});
     end
-    
-    
+
+
     function state = initStateAD(model, state, vars, names, origin)
         % Initialize AD state from double state
         for i = 1:numel(names)
@@ -105,7 +105,7 @@ methods
         end
         state = model.initStateFunctionContainers(state);
     end
-    
+
     function state = initStateFunctionContainers(model, state)
         pf = model.getStateFunctionGroupings();
         for i = 1:numel(pf)
@@ -113,7 +113,7 @@ methods
             state.(name) = f;
         end
     end
-    
+
     function [problem, state] = getEquations(model, state0, state, dt, forces, varargin)
         % Get the set of linearized model equations with possible Jacobians
         %
@@ -176,7 +176,7 @@ methods
 
     function [problem, state] = getAdjointEquations(model, state0, state, dt, forces, varargin)
         % Get the adjoint equations (please read note before use!)
-        % 
+        %
         % SYNOPSIS:
         %   [problem, state] = model.getAdjointEquations(state0, state, dt, drivingForces)
         %
@@ -200,7 +200,7 @@ methods
         %              linearized equations used for the adjoint problem.
         %              This function is normally `getEquations` and assumes
         %              that the function supports the `reverseMode`
-        %              argument. 
+        %              argument.
         %   state   -  State. Possibly updated. See `getEquations` for
         %              details.
         %
@@ -218,7 +218,7 @@ methods
         [problem, state] = model.getEquations(state0, state, dt, forces, varargin{:});
     end
 
-    
+
     function state = validateState(model, state)
         % Validate state and check if it is ready for simulation
         %
@@ -243,7 +243,7 @@ methods
         %   state  - `struct`. If returned, this state is ready for
         %           simulation with `model`. It may have been changed in
         %           the process.
-        %   
+        %
 
         % Any state is valid for base class
         return
@@ -276,14 +276,14 @@ methods
         % RETURNS:
         %   model - Class instance. If returned, this model is ready for
         %           simulation. It may have been changed in the process.
-        %   
+        %
 
         % Base class is always suitable, but we call the AD backend and
         % allow it to modify any discrete operators (if applicable)
         model = model.AutoDiffBackend.updateDiscreteOperators(model);
         return
     end
-    
+
     function schedule = validateSchedule(model, schedule)
         assert(isfield(schedule, 'control'), ...
             'Schedule is missing .control field. Cannot define driving forces.')
@@ -309,7 +309,7 @@ methods
             schedule.control(i) = model.validateDrivingForces(schedule.control(i));
         end
     end
-    
+
     function forces = validateDrivingForces(model, forces)
         validforces = model.getValidDrivingForces();
         fn_valid = fieldnames(validforces);
@@ -325,7 +325,7 @@ methods
         % Prepare state and model (temporarily) before solving a report-step
         model = model.validateModel(drivingForces);
     end
-        
+
     function [model, state] = prepareTimestep(model, state, state0, dt, drivingForces)
         % Prepare state and model (temporarily) before solving a time-step
         %
@@ -357,8 +357,8 @@ methods
         %   as enforced by the NonLinearSolver. Any changes will not apply
         %   to the next time-step.
     end
-    
-    function [state, report] = updateState(model, state, problem, dx, forces) 
+
+    function [state, report] = updateState(model, state, problem, dx, forces)
         % Update the state based on increments of the primary values
         %
         % SYNOPSIS:
@@ -399,7 +399,7 @@ methods
         %   updated simultaneously. For many problems, updates can not be
         %   done separately and all changes in the primary variables must
         %   considered together for the optimal performance.
-        %   
+        %
         for i = 1:numel(problem.primaryVariables)
              p = problem.primaryVariables{i};
              % Update the state
@@ -429,7 +429,7 @@ methods
         %   model  - Class instance.
         %   state  - `struct` holding the current solution state.
         %   forces - The new driving forces to be used in subsequent calls
-        %            to `getEquations`. See `getDrivingForces`. 
+        %            to `getEquations`. See `getDrivingForces`.
         % RETURNS:
         %   model  - Updated class instance.
         %   state  - Updated `struct` holding the current solution state
@@ -437,7 +437,7 @@ methods
         %            provide e.g. primary variables.
         %
     end
-    
+
     function state = reduceState(model, state, removeContainers)
         % Reduce state to doubles, and optionally remove the property
         % containers to reduce storage space
@@ -453,13 +453,13 @@ methods
         end
         state = value(state);
     end
-    
+
     function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
         % Final update to the state after convergence has been achieved
         %
         % SYNOPSIS:
         %   [state, report] = model.updateAfterConvergence(state0, state, dt, forces)
-        %   
+        %
         % DESCRIPTION:
         %   Update state based on nonlinear increment after timestep has
         %   converged. Defaults to doing nothing since not all models
@@ -485,7 +485,7 @@ methods
         propfn = model.getStateFunctionGroupings();
         for i = 1:numel(propfn)
             p = propfn{i};
-            names = p.getPropertyNames();
+            names = p.getNamesOfStateFunctions();
             struct_name = p.getStateFunctionContainerName();
             if isfield(state, struct_name)
                 if isempty(model.OutputStateFunctions)
@@ -515,10 +515,10 @@ methods
         end
     end
 
-    
+
     function [convergence, values, names] = checkConvergence(model, problem, varargin)
         % Check and report convergence based on residual tolerances
-        % 
+        %
         % SYNOPSIS:
         %   [convergence, values, names] = model.checkConvergence(problem)
         %
@@ -552,7 +552,7 @@ methods
         %   However, subclasses are free to produce any number of convergence
         %   criterions and they need not correspond to specific equations
         %   at all.
-        %   
+        %
         [values, tolerances, names] = getConvergenceValues(model, problem, varargin{:});
         convergence = values < tolerances;
     end
@@ -567,7 +567,7 @@ methods
         names = strcat(problem.equationNames, ' (', problem.types, ')');
     end
 
-    
+
     function [state, report] = stepFunction(model, state, state0, dt, drivingForces, linsolver, nonlinsolver, iteration, varargin)
         % Perform a step that ideally brings the state closer to convergence
         %
@@ -624,9 +624,9 @@ methods
         problem.iterationNo = iteration;
         problem.drivingForces = drivingForces;
         t_assembly = toc(timer);
-        
+
         [convergence, values, resnames] = model.checkConvergence(problem);
-        
+
         % Minimum number of iterations can be prescribed, i.e., we
         % always want at least one set of updates regardless of
         % convergence criterion.
@@ -693,7 +693,7 @@ methods
                         'ResidualsConverged', convergence);
     end
 
-    
+
     function report = makeStepReport(model, varargin)
         % Get the standardized report all models provide from `stepFunction`
         %
@@ -730,14 +730,14 @@ methods
         report = merge_options(report, varargin{:});
     end
 
-    
+
     function [gradient, result, report] = solveAdjoint(model, solver, getState,...
                                 getObj, schedule, gradient, stepNo)
         % Solve a single linear adjoint step to obtain the gradient
         %
         % SYNOPSIS:
         %   gradient = model.solveAdjoint(solver, getState, ...
-        %                           getObjective, schedule, gradient, itNo)  
+        %                           getObjective, schedule, gradient, itNo)
         %
         % DESCRIPTION:
         %  This solves the linear adjoint equations. This is the backwards
@@ -770,12 +770,12 @@ methods
         %
         % SEE ALSO:
         %   `computeGradientAdjointAD`
-        %   
+        %
         validforces = model.getValidDrivingForces();
         dt_steps = schedule.step.val;
 
         current = getState(stepNo);
-        before  = getState(stepNo - 1);        
+        before  = getState(stepNo - 1);
         dt = dt_steps(stepNo);
 
         lookupCtrl = @(step) schedule.control(schedule.step.control(step));
@@ -783,12 +783,12 @@ methods
         forces = model.getDrivingForces(lookupCtrl(stepNo));
         forces = merge_options(validforces, forces{:});
         model = model.validateModel(forces);
-        
+
         % Initial state typically lacks wellSol-field, so add if needed
         if stepNo == 1
             before = model.validateState(before);
         end
-        
+
         % We get the forward equations via the reverseMode flag. This is
         % slightly hacky (we should use the forward equations instead), but
         % we assume that the reverseMode flag takes care of this for us.
@@ -815,7 +815,7 @@ methods
         report.LinearSolverReport = rep;
     end
 
-    
+
     function [fn, index] = getVariableField(model, name, throwError)
         % Map known variable by name to field and column index in `state`
         %
@@ -825,7 +825,7 @@ methods
         % DESCRIPTION:
         %   Get the index/name mapping for the model (such as where
         %   pressure or water saturation is located in state). For this
-        %   parent class, this always result in an error, as this model 
+        %   parent class, this always result in an error, as this model
         %   knows of no variables.
         %
         %   For subclasses, however, this function is the primary method
@@ -846,7 +846,7 @@ methods
         %
         % SEE ALSO:
         %   `getProp`, `setProp`
-        %   
+        %
         [fn, index] = deal([]);
 
         if nargin < 3
@@ -858,7 +858,7 @@ methods
         end
     end
 
-    
+
     function [p, state] = getProp(model, state, name)
         % Get a single property from the nonlinear state
         %
@@ -883,7 +883,7 @@ methods
             containers = model.getStateFunctionGroupings();
             for i = 1:numel(containers)
                 c = containers{i};
-                nms = c.getPropertyNames();
+                nms = c.getNamesOfStateFunctions();
                 sub = strcmpi(nms, name);
                 if any(sub)
                     p = c.get(model, state, nms{sub});
@@ -904,12 +904,12 @@ methods
             end
         end
     end
-    
+
     function groupings = getStateFunctionGroupings(model)
         groupings = {};
     end
 
-    
+
     function varargout = getProps(model, state, varargin)
         % Get multiple properties from state in one go
         %
@@ -938,7 +938,7 @@ methods
         end
     end
 
-    
+
     function state = incrementProp(model, state, name, increment)
         % Increment named state property by given value
         %
@@ -958,16 +958,16 @@ methods
         % EXAMPLE:
         %   % For a model which knows of the field 'pressure', increment
         %   % the value by 7 so that the final value is 10 (=3+7).
-        %   state = struct(‘pressure’, 3); 
+        %   state = struct(‘pressure’, 3);
         %   state = model.incrementProp(state, ‘pressure’, 7);
 
-        
+
         [fn, index] = model.getVariableField(name);
         p = state.(fn)(:, index)  + increment;
         state.(fn)(:, index) = p;
     end
 
-    
+
     function state = setProp(model, state, name, value)
         % Set named state property to given value
         %
@@ -989,7 +989,7 @@ methods
         %   % result in an error.
         %   state = struct('pressure', 0);
         %   state = model.setProp(state, 'pressure', 5);
-        
+
         [fn, index] = model.getVariableField(name);
         present = isfield(state, fn);
         unit = present && (size(state.(fn), 2) == 1);
@@ -1009,7 +1009,7 @@ methods
             end
         end
     end
-    
+
     function state = setProps(model, state, names, values)
         n = numel(values);
         assert(numel(names) == n);
@@ -1018,7 +1018,7 @@ methods
         end
     end
 
-    
+
     function dv = getIncrement(model, dx, problem, name)
         % Get specific named increment from a list of different increments.
         %
@@ -1039,7 +1039,7 @@ methods
         %   problem - Instance of `LinearizedProblem` from which the
         %             increments were computed.
         %   name    - Name of the variable for which the increment is to be
-        %             extracted. 
+        %             extracted.
         %
         % RETURNS:
         %   dv      - The value of the increment, if it is found. Otherwise
@@ -1053,7 +1053,7 @@ methods
         end
     end
 
-    
+
     function [state, val, val0] = updateStateFromIncrement(model, state, dx, problem, name, relchangemax, abschangemax)
         % Update value in state, with optional limits on update magnitude
         %
@@ -1100,7 +1100,7 @@ methods
         %   the relative updates can delay convergence for smooth problems
         %   with analytic properties and will, in particular, prevent zero
         %   states from being updated, so use with care.
-        
+
         if iscell(dx)
             % We have cell array of increments, use the problem to
             % determine where we can actually find it.
@@ -1119,14 +1119,14 @@ methods
         end
         if nargin > 6
             [~, changeAbs] = model.limitUpdateAbsolute(dv, abschangemax);
-        end            
-        % Limit update by lowest of the relative and absolute limits 
+        end
+        % Limit update by lowest of the relative and absolute limits
         change = min(changeAbs, changeRel);
 
         val   = val0 + dv.*repmat(change, 1, size(dv, 2));
         state = model.setProp(state, name, val);
     end
-    
+
     function state = capProperty(model, state, name, minvalue, maxvalue)
         % Ensure that a property is within a specific range by capping.
         %
@@ -1162,8 +1162,8 @@ methods
         end
         state = model.setProp(state, name, v);
     end
-    
-    
+
+
     function [vararg, control] = getDrivingForces(model, control)
         % Get driving forces in expanded format.
         %
@@ -1189,8 +1189,8 @@ methods
         vrg = [fieldnames(control), struct2cell(control)];
         vararg = reshape(vrg', 1, []);
     end
-    
-    
+
+
     function forces = getValidDrivingForces(model)
         % Get a struct with the default valid driving forces for the model
         %
@@ -1212,8 +1212,8 @@ methods
         %
         forces = struct();
     end
-    
-    
+
+
     function checkProperty(model, state, property, n_el, dim)
         % Check dimensions of property and throw error if dims do not match
         %
@@ -1234,7 +1234,7 @@ methods
         %
         if numel(dim) > 1
             assert(numel(n_el) == numel(dim));
-            % Recursively check all dimensions 
+            % Recursively check all dimensions
             for i = 1:numel(dim)
                 model.checkProperty(state, property, n_el(i), dim(i));
             end
@@ -1260,21 +1260,21 @@ methods
 end
 
 methods (Static)
-    
+
     function [dv, change] = limitUpdateRelative(dv, val, maxRelCh)
         % Limit a update by relative limit
         biggestChange = max(abs(dv./val), [], 2);
         change = min(maxRelCh./biggestChange, 1);
         dv = dv.*repmat(change, 1, size(dv, 2));
     end
-    
+
     function [dv, change] = limitUpdateAbsolute(dv, maxAbsCh)
         % Limit a update by absolute limit
         biggestChange = max(abs(dv), [], 2);
         change = min(maxAbsCh./biggestChange, 1);
         dv = dv.*repmat(change, 1, size(dv, 2));
     end
-    
+
     function [vars, isRemoved] = stripVars(vars, names)
         isRemoved = cellfun(@(x) any(strcmpi(names, x)), vars);
         vars(isRemoved) = [];
@@ -1300,4 +1300,3 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-
