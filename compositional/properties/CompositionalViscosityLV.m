@@ -20,7 +20,7 @@ classdef CompositionalViscosityLV < StateFunction
                 f = model.fluid;
                 wix = phInd == 1;
                 pw = p_phase{wix};
-                mu{wix} = prop.evaluateFunctionOnGrid(f.muW, pw);
+                mu{wix} = prop.evaluateFunctionOnDomainWithArguments(f.muW, pw);
             end
             pm = model.EOSModel.PropertyModel;
             oix = phInd == 2;

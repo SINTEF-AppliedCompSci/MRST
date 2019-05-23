@@ -35,7 +35,7 @@ classdef BlackOilShrinkageFactors < StateFunction
             if model.water
                 wix = phInd == 1;
                 pw = p_phase{wix};
-                bW = prop.evaluateFunctionOnGrid(f.bW, pw);
+                bW = prop.evaluateFunctionOnDomainWithArguments(f.bW, pw);
                 b{wix} = bW;
             end
             
@@ -50,9 +50,9 @@ classdef BlackOilShrinkageFactors < StateFunction
                     else
                         flag = false(numelValue(po), 1);
                     end
-                    bO = prop.evaluateFunctionOnGrid(f.bO, po, rs, flag);
+                    bO = prop.evaluateFunctionOnDomainWithArguments(f.bO, po, rs, flag);
                 else
-                    bO = prop.evaluateFunctionOnGrid(f.bO, po);
+                    bO = prop.evaluateFunctionOnDomainWithArguments(f.bO, po);
                 end
                 b{oix} = bO;
             end
@@ -68,9 +68,9 @@ classdef BlackOilShrinkageFactors < StateFunction
                     else
                         flag = false(numelValue(pg), 1);
                     end
-                    bG = prop.evaluateFunctionOnGrid(f.bG, pg, rv, flag);
+                    bG = prop.evaluateFunctionOnDomainWithArguments(f.bG, pg, rv, flag);
                 else
-                    bG = prop.evaluateFunctionOnGrid(f.bG, pg);
+                    bG = prop.evaluateFunctionOnDomainWithArguments(f.bG, pg);
                 end
                 b{gix} = bG;
             end

@@ -30,13 +30,13 @@ classdef StateFunction
             prop = addPropertyDependence(prop, varargin{:});
         end
         
-        function v = evaluateFunctionOnGrid(prop, fn, varargin)
-            % Evaluate function handle on the entire grid, with specified
+        function v = evaluateFunctionOnDomainWithArguments(prop, fn, varargin)
+            % Evaluate function handle on the entire domain, with specified
             % input arguments
             v = prop.evaluateFunctionCellSubset(fn, ':', varargin{:});
         end
 
-        function v = evaluateFunctionSingleRegion(prop, fn, region_index, varargin)
+        function v = evaluateFunctionSingleRegionWithArgumentsWithArguments(prop, fn, region_index, varargin)
             % Evaluate function on a single specific region, with specified
             % input arguments
             assert(region_index <= numel(fn), 'Region index exceeds maximum number of regions.');

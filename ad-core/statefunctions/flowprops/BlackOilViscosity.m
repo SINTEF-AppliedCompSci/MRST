@@ -34,7 +34,7 @@ classdef BlackOilViscosity < StateFunction
             if model.water
                 wix = phInd == 1;
                 pw = p_phase{wix};
-                mu{wix} = prop.evaluateFunctionOnGrid(f.muW, pw);
+                mu{wix} = prop.evaluateFunctionOnDomainWithArguments(f.muW, pw);
             end
             
             if model.oil
@@ -48,9 +48,9 @@ classdef BlackOilViscosity < StateFunction
                     else
                         flag = false(nc, 1);
                     end
-                    mu{oix} = prop.evaluateFunctionOnGrid(f.muO, po, rs, flag);
+                    mu{oix} = prop.evaluateFunctionOnDomainWithArguments(f.muO, po, rs, flag);
                 else
-                    mu{oix} = prop.evaluateFunctionOnGrid(f.muO, po);
+                    mu{oix} = prop.evaluateFunctionOnDomainWithArguments(f.muO, po);
                 end
             end
             
@@ -65,9 +65,9 @@ classdef BlackOilViscosity < StateFunction
                     else
                         flag = false(nc, 1);
                     end
-                    mu{gix} = prop.evaluateFunctionOnGrid(f.muG, pg, rv, flag);
+                    mu{gix} = prop.evaluateFunctionOnDomainWithArguments(f.muG, pg, rv, flag);
                 else
-                    mu{gix} = prop.evaluateFunctionOnGrid(f.muG, pg);
+                    mu{gix} = prop.evaluateFunctionOnDomainWithArguments(f.muG, pg);
                 end
             end
         end

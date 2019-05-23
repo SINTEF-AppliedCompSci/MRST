@@ -55,7 +55,7 @@ classdef BaseRelativePermeability < StateFunction
 
         wg = 1-ww;
         if isfield(f, 'krO')
-            krO = prop.evaluateFunctionOnGrid(f.krO, so);
+            krO = prop.evaluateFunctionOnDomainWithArguments(f.krO, so);
         else
             krow = prop.evaluatePhaseRelativePermeability(model, 'ow', so);
             krog = prop.evaluatePhaseRelativePermeability(model, 'og', so);
@@ -70,7 +70,7 @@ classdef BaseRelativePermeability < StateFunction
         f = model.fluid;
         krW = evaluatePhaseRelativePermeability(prop, model, 'w', sw);
         if isfield(f, 'krO')
-            krO = prop.evaluateFunctionOnGrid(f.krO, so);
+            krO = prop.evaluateFunctionOnDomainWithArguments(f.krO, so);
         else
             krO = prop.evaluatePhaseRelativePermeability(model, 'ow', so);
         end
@@ -83,7 +83,7 @@ classdef BaseRelativePermeability < StateFunction
         f = model.fluid;
         krG = evaluatePhaseRelativePermeability(prop, model, 'g', sg);
         if isfield(f, 'krO')
-            krO = prop.evaluateFunctionOnGrid(f.krO, so);
+            krO = prop.evaluateFunctionOnDomainWithArguments(f.krO, so);
         else
             krO = prop.evaluatePhaseRelativePermeability(model, 'og', so);
         end

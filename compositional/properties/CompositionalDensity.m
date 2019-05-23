@@ -25,7 +25,7 @@ classdef CompositionalDensity < StateFunction
             
             if hasWater
                 f = model.fluid;
-                bW = prop.evaluateFunctionOnGrid(f.bW, p_phase{1});
+                bW = prop.evaluateFunctionOnDomainWithArguments(f.bW, p_phase{1});
                 rhoW = f.rhoWS.*bW;
                 rho = {rhoW, rhoL, rhoV};
             else

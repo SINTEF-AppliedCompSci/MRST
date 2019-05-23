@@ -24,7 +24,7 @@ classdef BlackOilCapillaryPressure < StateFunction
             f = model.fluid;
             if model.water && model.oil && isfield(f, 'pcOW')
                 sW = model.getProp(state, 'sw');
-                pcow = prop.evaluateFunctionOnGrid(f.pcOW, sW);
+                pcow = prop.evaluateFunctionOnDomainWithArguments(f.pcOW, sW);
                 if ~isempty(prop.endpointOptionSW)
                     pcmin = prop.pcOWMin;
                     pcmax = prop.pcOWMax;
@@ -50,7 +50,7 @@ classdef BlackOilCapillaryPressure < StateFunction
             
             if model.gas && model.oil && isfield(f, 'pcOG')
                 sG = model.getProp(state, 'sg');
-                pc{phInd == 3} = prop.evaluateFunctionOnGrid(f.pcOG, sG);
+                pc{phInd == 3} = prop.evaluateFunctionOnDomainWithArguments(f.pcOG, sG);
             end
         end
         
@@ -78,7 +78,7 @@ classdef BlackOilCapillaryPressure < StateFunction
                 prop.pcOWMax(i) = max(v);
             end
             prop.endpointOptionSW = option;
-            pc_min = prop.evaluateFunctionOnGrid(model.fluid.pcOW, sw_prescribed);
+            pc_min = prop.evaluateFunctionOnDomainWithArguments(model.fluid.pcOW, sw_prescribed);
             prop.endpointSW = sw_prescribed;
             prop.endpointPCOW = pc_min;
         end

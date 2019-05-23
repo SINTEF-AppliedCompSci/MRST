@@ -14,7 +14,7 @@ classdef RvMax < StateFunction
             pg = p_phase{model.water + model.oil + model.gas};
             if model.vapoil
                 f = model.fluid;
-                rvSat = prop.evaluateFunctionOnGrid(f.rvSat, pg);
+                rvSat = prop.evaluateFunctionOnDomainWithArguments(f.rvSat, pg);
                 if prop.rvReduction > 0 && isfield(state, 'sMax')
                     [sOMax, sO] = model.getProps(state, 'somax', 'so');
                     sOMax = max(sOMax, sO);
