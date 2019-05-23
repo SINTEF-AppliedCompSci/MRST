@@ -905,7 +905,7 @@ methods
         end
     end
     
-    function groupings = getStateFunctionGroupings(model, state)
+    function groupings = getStateFunctionGroupings(model)
         groupings = {};
     end
 
