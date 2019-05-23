@@ -55,6 +55,12 @@ classdef FlowPropertyFunctions < StateFunctionGrouping
                 end
             end
             
+            if isprop(model, 'disgas') && model.disgas
+                props = props.setStateFunction('RsMax', RsMax(model, pvt));
+            end
+            if isprop(model, 'vapoil') && model.vapoil
+                props = props.setStateFunction('RvMax', RvMax(model, pvt));
+            end
             % Define storage
             props.structName = 'FlowProps';
         end
