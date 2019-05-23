@@ -69,8 +69,14 @@ classdef StateFunctionGrouping
             end
         end
         % ----------------------- Setters --------------------------------%
-        function props = setStateFunction(props, prop, name)
-            % Set or replace a property function
+        function props = setStateFunction(props, name, prop)
+            % Set or replace a property function.
+            % INPUT:
+            %   - props (class instance, automatic)
+            %   - name. Canonical name of property.
+            %   - prop. Property implementation (StateFunction instance)
+            assert(isa(prop, 'StateFunction'));
+            assert(ischar(name));
             sub = strcmp(props.propertyNames, name);
             if any(sub)
                 % We are replacing an existing property
@@ -192,7 +198,7 @@ classdef StateFunctionGrouping
                 if ~isempty(prop)
                     prop = prop.subset(cell_subset);
                 end
-                props.setStateFunction(prop, name);
+                props.setStateFunction(name, prop);
             end
         end
         
