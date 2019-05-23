@@ -28,7 +28,7 @@ classdef ExplicitFlowStateBuilder < FlowStateBuilder
             model.getProps(state, builder.implicitFlowProps{:});
             flowState = state;
             props = builder.explicitFlowProps;
-            name = fd.getPropertyContainerName();
+            name = fd.getStateFunctionContainerName();
             for i = 1:numel(props)
                 if isfield(state0, name)
                     % Remove cached entries

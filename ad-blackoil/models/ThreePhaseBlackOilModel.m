@@ -53,7 +53,7 @@ methods
             end
         end
         % Needed for model equations
-        model.OutputProperties = {'PoreVolume', 'ShrinkageFactors'};
+        model.OutputStateFunctions = {'PoreVolume', 'ShrinkageFactors'};
     end
 
     % --------------------------------------------------------------------%
@@ -270,7 +270,7 @@ methods
             % The VO model is a bit complicated, handle this part
             % explicitly.
             state0 = state;
-            state = model.initPropertyContainers(state);
+            state = model.initStateFunctionContainers(state);
 
             state = model.updateStateFromIncrement(state, dx, problem, 'pressure', model.dpMaxRel, model.dpMaxAbs);
             state = model.capProperty(state, 'pressure', model.minimumPressure, model.maximumPressure);

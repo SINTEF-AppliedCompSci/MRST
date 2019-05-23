@@ -113,7 +113,7 @@ methods
 
     % --------------------------------------------------------------------%
     function state = validateState(model, state)
-        % Validate initial state. 
+        % Validate initial state.
         %
         % SEE ALSO:
         %   :meth:`ad_core.models.PhysicalModel.validateState`
@@ -148,7 +148,7 @@ methods
             dt = model.FluxDiscretization.getMaximumTimestep(model, state, state0, dt, drivingForces);
         end
     end
-    
+
     function [model, state] = prepareReportstep(model, state, state0, dt, drivingForces)
         if ~isempty(drivingForces.W)
             assert(~isempty(model.FacilityModel), ...
@@ -156,7 +156,7 @@ methods
             [model.FacilityModel, state] = model.FacilityModel.prepareReportstep(state, state0, dt, drivingForces);
         end
     end
-        
+
     function [model, state] = prepareTimestep(model, state, state0, dt, drivingForces)
         if ~isempty(drivingForces.W)
             [model.FacilityModel, state] = model.FacilityModel.prepareTimestep(state, state0, dt, drivingForces);
@@ -179,10 +179,10 @@ methods
         else
             model.FacilityModel.ReservoirModel = model;
         end
-        
+
         assert(~isempty(model.operators),...
             'Operators must be set up before simulation. See model.setupOperators for more details.');
-        
+
         model.FacilityModel = model.FacilityModel.validateModel(varargin{:});
 
         if isempty(model.FlowPropertyFunctions)
@@ -203,7 +203,7 @@ methods
         %
         % SEE ALSO:
         %   :meth:`ad_core.models.PhysicalModel.updateForChangedControls`
-        
+
         % Called whenever controls change. Since this model can be used
         % with wells, we call the facility model's setup routine.
         model.FacilityModel = model.FacilityModel.setupWells(forces.W);
@@ -303,7 +303,7 @@ methods
     end
 
     % --------------------------------------------------------------------%
-        
+
     function [values, tolerances, names] = getConvergenceValues(model, problem, varargin)
         % Check convergence criterion. Relies on `FacilityModel` to check
         % wells.
@@ -354,7 +354,7 @@ methods
                 index = ':';
             case {'swmax', 'somax', 'sgmax'}
                 fn = 'sMax';
-                index = model.satVarIndex(name(1:2)); 
+                index = model.satVarIndex(name(1:2));
             case 'smax'
                 fn = 'sMax';
                 index = ':';
@@ -384,11 +384,11 @@ methods
         end
     end
 
-    function containers = getPropertyFunctions(model)
-        containers = getPropertyFunctions@PhysicalModel(model);
+    function containers = getStateFunctionGroupings(model)
+        containers = getStateFunctionGroupings@PhysicalModel(model);
         extra = {model.FlowPropertyFunctions, model.FluxDiscretization};
         if ~isempty(model.FacilityModel)
-            fm_props = model.FacilityModel.getPropertyFunctions();
+            fm_props = model.FacilityModel.getStateFunctionGroupings();
             extra = [extra, fm_props];
         end
         extra = extra(~cellfun(@isempty, extra));
@@ -470,9 +470,9 @@ methods
         %   isActive - Total number of known phases array with booleans
         %              indicating if that phase is present. MRST uses a
         %              ordering of water, oil and then gas.
-        %   
+        %
         %   phInd    - Indices of the phases present. For instance, if
-        %              water and gas are the only ones present, 
+        %              water and gas are the only ones present,
         %              `phInd = [1, 3]`
 
         isActive = [model.water, model.oil, model.gas];
@@ -494,7 +494,7 @@ methods
         % RETURNS:
         %   phNames   - Cell array containing the short hanes ('W', 'O',
         %               G') of the phases present
-        %   
+        %
         %   longNames - Longer names ('water', 'oil', 'gas') of the phases
         %               present.
         tmp = 'WOG';
@@ -535,11 +535,11 @@ methods
     function n = getNumberOfComponents(model)
         n = numel(model.Components);
     end
-        
+
     function n = getNumberOfPhases(model)
         n = sum(model.getActivePhases());
     end
-        
+
     % --------------------------------------------------------------------%
     function state = updateSaturations(model, state, dx, problem, satVars)
         % Update of phase-saturations
@@ -556,7 +556,7 @@ methods
         % PARAMETERS:
         %   model   - Class instance
         %   state   - State to be updated
-        %   dx      - Cell array of increments, some of which correspond 
+        %   dx      - Cell array of increments, some of which correspond
         %             to saturations
         %   problem - `LinearizedProblemAD` class instance from which `dx`
         %             was obtained.
@@ -584,7 +584,7 @@ methods
         % link
         saturations = lower(model.getSaturationVarNames);
         fillsat = setdiff(saturations, lower(satVars));
-        
+
         n_fill = numel(fillsat);
         assert(n_fill == 1 || n_fill == 0)
         if n_fill == 1
@@ -687,7 +687,7 @@ methods
         %   state = model.storeFluxes(state, vW, vO, vG);
         %   % Only water and gas in model:
         %   state = model.storeFluxes(state, vW, [], vG);
-        %   
+        %
         %
         % PARAMETERS:
         %   model - Class instance
@@ -717,7 +717,7 @@ methods
         %   state = model.storeBoundaryFluxes(state, vW, vO, vG, forces);
         %   % Only water and gas in model:
         %   state = model.storeBoundaryFluxes(state, vW, [], vG, forces);
-        %   
+        %
         %
         % PARAMETERS:
         %   model  - Class instance
@@ -760,7 +760,7 @@ methods
         %   state = model.storebfactors(state, mobW, mobO, mobG);
         %   % Only water and gas in model:
         %   state = model.storebfactors(state, mobW, [], mobG);
-        %   
+        %
         %
         % PARAMETERS:
         %   model - Class instance
@@ -789,7 +789,7 @@ methods
         %   state = model.storeUpstreamIndices(state, upcw, upco, upcg);
         %   % Only water and gas in model:
         %   state = model.storeUpstreamIndices(state, upcw, [], upcg);
-        %   
+        %
         %
         % PARAMETERS:
         %   model  - Class instance
@@ -822,7 +822,7 @@ methods
         %   state = model.storeDensity(state, rhoW, rhoO, rhoG);
         %   % Only water and gas in model:
         %   state = model.storeDensity(state, rhoW, [], rhoG);
-        %   
+        %
         %
         % PARAMETERS:
         %   model - Class instance
@@ -851,7 +851,7 @@ methods
         %   state = model.storebfactors(state, bW, bO, bG);
         %   % Only water and gas in model:
         %   state = model.storebfactors(state, bW, [], bG);
-        %   
+        %
         %
         % PARAMETERS:
         %   model - Class instance
@@ -864,7 +864,7 @@ methods
         %
         % SEE ALSO:
         %   `storeDensities`
-        
+
         isActive = model.getActivePhases();
 
         state.bfactor = zeros(model.G.cells.num, sum(isActive));
@@ -902,7 +902,7 @@ methods
         %   name  - Name of component.
         %
         % RETURNS:
-        %   index - Index of the component for this model. Empty if 
+        %   index - Index of the component for this model. Empty if
         %           saturation was not known to model.
         %
         i = find(strcmpi(model.componentVarNames, name));
@@ -994,7 +994,7 @@ methods
         %
         % SEE ALSO:
         %   `gravity`
-        
+
         assert(isfield(model.G, 'cells'), 'Missing cell field on grid');
         assert(isfield(model.G.cells, 'centroids'),...
             'Missing centroids field on grid. Consider using computeGeometry first.');
@@ -1018,7 +1018,7 @@ methods
         %
         % RETURNS:
         %   scaling - Cell array with either a scalar scaling factor for
-        %             each equation, or a vector of equal length to that 
+        %             each equation, or a vector of equal length to that
         %             equation.
         %
         % SEE ALSO
@@ -1149,7 +1149,7 @@ methods
         %  pseudocomponents (if the model equations are named "oil", "gas"
         %  or water) and true components existing in multiple phases.
         %  Mixing the two behaviors can lead to unexpected source terms.
-        
+
         [src_terms, bnd_cond] = computeSourcesAndBoundaryConditionsAD(model, p, s, mob, rho, dissolved, forces);
         [~, longNames] = getPhaseNames(model);
         rhoS = model.getSurfaceDensities();
@@ -1170,7 +1170,7 @@ methods
                 if ~isempty(sc)
                     eqs{sub}(sc) = eqs{sub}(sc) - src_terms.phaseMass{i}./rhoS(i);
                 end
-                
+
                 if isfield(forces.bc, 'phaseMass')
                     bnd_cond.phaseMass{i} = forces.bc.phaseMass(:, i);
                 end
@@ -1250,7 +1250,7 @@ methods
         %            or source terms can accurately by estimated.
 
             error('This function is not valid for the base class. It should be implemented for the derived classes that contain components');
-            
+
     end
 
     function rhoS = getSurfaceDensities(model)
@@ -1274,7 +1274,7 @@ methods
         % function in :class:`ad_eor.models.OilWaterPolymerModel` in the
         % `ad-eor` module), this function should assemble any additional
         % equations and corresponding source terms. It is also possible to
-        % add source terms without actually adding well equations. 
+        % add source terms without actually adding well equations.
         %
         % RETURNS:
         %
@@ -1285,7 +1285,7 @@ methods
         %             the same length as the output from
         %             `ReservoirModel.getComponentNames`.
         %   eqNames - Names of the added equations. Must correspond to the
-        %             same entries as `getExtraWellEquationNames` (but does 
+        %             same entries as `getExtraWellEquationNames` (but does
         %             not have to maintain the same ordering).
         %
         % NOTE:
@@ -1307,10 +1307,10 @@ methods
         % RETURNS:
         %   names - Cell array of additional well equations.
         %   types - Cell array of corresponding types to `names`.
-        % 
+        %
         % SEE ALSO:
         %   `getExtraWellContributions`
-        
+
         [names, types] = deal({});
     end
 
@@ -1522,4 +1522,3 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-

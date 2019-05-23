@@ -60,7 +60,7 @@ properties
     % certain that it is the case, as this removes several tolerance
     % checks.
     AutoDiffBackend
-    OutputProperties = {};
+    OutputStateFunctions = {};
 end
 
 methods
@@ -103,13 +103,13 @@ methods
         for i = 1:numel(names)
             state = model.setProp(state, names{i}, vars{i});
         end
-        state = model.initPropertyContainers(state);
+        state = model.initStateFunctionContainers(state);
     end
     
-    function state = initPropertyContainers(model, state)
-        pf = model.getPropertyFunctions();
+    function state = initStateFunctionContainers(model, state)
+        pf = model.getStateFunctionGroupings();
         for i = 1:numel(pf)
-            [f, name] = pf{i}.getPropertyContainer();
+            [f, name] = pf{i}.getStateFunctionContainer();
             state.(name) = f;
         end
     end
@@ -442,10 +442,10 @@ methods
         % Reduce state to doubles, and optionally remove the property
         % containers to reduce storage space
         if nargin < 3 || removeContainers
-            propfn = model.getPropertyFunctions();
+            propfn = model.getStateFunctionGroupings();
             for i = 1:numel(propfn)
                 p = propfn{i};
-                struct_name = p.getPropertyContainerName();
+                struct_name = p.getStateFunctionContainerName();
                 if isfield(state, struct_name)
                     state = rmfield(state, struct_name);
                 end
@@ -482,16 +482,16 @@ methods
         %   report - Report containing information about the update.
         %
         report = [];
-        propfn = model.getPropertyFunctions();
+        propfn = model.getStateFunctionGroupings();
         for i = 1:numel(propfn)
             p = propfn{i};
             names = p.getPropertyNames();
-            struct_name = p.getPropertyContainerName();
+            struct_name = p.getStateFunctionContainerName();
             if isfield(state, struct_name)
-                if isempty(model.OutputProperties)
+                if isempty(model.OutputStateFunctions)
                     current = {};
                 else
-                    current = intersect(names, model.OutputProperties);
+                    current = intersect(names, model.OutputStateFunctions);
                 end
                 nc = numel(current);
                 kept = nc;
@@ -880,7 +880,7 @@ methods
         [fn, index] = model.getVariableField(name, false);
         if isempty(fn)
             % Not known - check property functions
-            containers = model.getPropertyFunctions();
+            containers = model.getStateFunctionGroupings();
             for i = 1:numel(containers)
                 c = containers{i};
                 nms = c.getPropertyNames();
@@ -905,8 +905,8 @@ methods
         end
     end
     
-    function containers = getPropertyFunctions(model, state)
-        containers = {};
+    function groupings = getStateFunctionGroupings(model, state)
+        groupings = {};
     end
 
     

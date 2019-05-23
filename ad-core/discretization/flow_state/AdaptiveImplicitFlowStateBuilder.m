@@ -25,7 +25,7 @@ classdef AdaptiveImplicitFlowStateBuilder < ExplicitFlowStateBuilder
             props = builder.explicitFlowProps;
             
             fp = model.FlowPropertyFunctions;
-            name = fp.getPropertyContainerName();
+            name = fp.getStateFunctionContainerName();
             for i = 1:numel(props)
                 prop = props{i};
                 if isfield(state0, name)

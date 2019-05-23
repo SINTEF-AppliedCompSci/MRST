@@ -237,8 +237,8 @@ classdef ExtendedFacilityModel < FacilityModel
             end
         end
         
-        function containers = getPropertyFunctions(model)
-            containers = getPropertyFunctions@PhysicalModel(model);
+        function containers = getStateFunctionGroupings(model)
+            containers = getStateFunctionGroupings@PhysicalModel(model);
             assert(not(isempty(model.FacilityFluxDiscretization)), ...
                 'FacilityFluxDiscretization not initialized - did you call "validateModel"?');
             containers = [containers, {model.FacilityFluxDiscretization}];

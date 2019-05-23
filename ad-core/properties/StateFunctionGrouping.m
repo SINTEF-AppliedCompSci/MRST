@@ -50,16 +50,16 @@ classdef StateFunctionGrouping
             end
         end
         
-        function name = getPropertyContainerName(props)
+        function name = getStateFunctionContainerName(props)
             % Get the name of the proprety container used to store
             % evaluated properties on state.
             name = props.structName;
         end
 
-        function [container, name] = getPropertyContainer(props, state)
+        function [container, name] = getStateFunctionContainer(props, state)
             % Set up dynamic container (handle class) for storing
             % properties as we go
-            name = props.getPropertyContainerName();
+            name = props.getStateFunctionContainerName();
             if nargin > 1 && isfield(state, name)
                 container = state.(name);
             else
@@ -139,7 +139,7 @@ classdef StateFunctionGrouping
             % evaluatePropertyWithDependencies or simply get.
             struct_name = props.structName;
             if isstruct(state) && ~isfield(state, struct_name)
-                props_struct = props.getPropertyContainer();
+                props_struct = props.getStateFunctionContainer();
             else
                 props_struct = state.(struct_name);
             end
