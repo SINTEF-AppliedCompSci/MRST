@@ -143,7 +143,7 @@ function [b, mob, fluxS, fluxR, upc] = compMFlux(p, bfun, mufun, rhoS, trMult, k
     rhoFace = s.faceAvg(b*rhoS);
     
     dp   = s.Grad(p) - rhoFace .* model.getGravityGradient();
-    upc  = (double(dp)<=0);
+    upc  = (value(dp)<=0);
     fluxR = -s.faceUpstr(upc, mob) .* trans .* dp;
     fluxS = s.faceUpstr(upc, b) .* fluxR;
 end
