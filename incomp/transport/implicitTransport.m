@@ -55,7 +55,7 @@ function [state, report] = implicitTransport(state, G, tf, ...
 %   verbose  - Whether or not time integration progress should be
 %              reported to the screen. Default value: verbose = mrstVerbose.
 %
-%   wells    - Well structure as defined by function 'addWell'.  May be
+%   W        - Well structure as defined by function 'addWell'.  May be
 %              empty (i.e., W = []) which is interpreted as a model without
 %              any wells.
 %
@@ -142,6 +142,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       'tsref'   ,         12    , ...  % Time step refinement
       'resred'  ,         0.99  , ...  % Residual reduction factor
       'wells'   ,         []    ,  ...
+      'W'       ,         []    ,  ...
       'src'     ,         []    ,  ...
       'bc'      ,         []    ,  ...
       'Trans'   ,         []    ,  ...
@@ -152,6 +153,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        );
 
    opt = merge_options(opt, varargin{:});
+   opt = treatLegacyForceOptions(opt);
 
 
    % Error checking -------------------------------------------------------
