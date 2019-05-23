@@ -1,11 +1,11 @@
-classdef RvMax < AutoDiffFunction
+classdef RvMax < StateFunction
     properties
         rvReduction = 0;
     end
     
     methods
         function gp = RvMax(varargin)
-            gp@AutoDiffFunction(varargin{:});
+            gp@StateFunction(varargin{:});
             gp = gp.dependsOn('PhasePressures');
         end
         

@@ -1,11 +1,11 @@
-classdef FacilityWellMapping < AutoDiffFunction
+classdef FacilityWellMapping < StateFunction
     properties
 
     end
     
     methods
         function gp = FacilityWellMapping(varargin)
-            gp@AutoDiffFunction(varargin{:});
+            gp@StateFunction(varargin{:});
         end
         function s = evaluateOnDomain(prop, model, state)
             wellSol = state.wellSol;

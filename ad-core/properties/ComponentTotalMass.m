@@ -1,11 +1,11 @@
-classdef ComponentTotalMass <  AutoDiffFunction & ComponentProperty
+classdef ComponentTotalMass <  StateFunction & ComponentProperty
     properties
 
     end
     
     methods
         function gp = ComponentTotalMass(model, varargin)
-            gp@AutoDiffFunction(model, varargin{:});
+            gp@StateFunction(model, varargin{:});
             gp = gp.dependsOn('ComponentPhaseMass');
         end
         function mass = evaluateOnDomain(prop, model, state)

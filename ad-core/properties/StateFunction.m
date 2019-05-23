@@ -1,4 +1,4 @@
-classdef AutoDiffFunction
+classdef StateFunction
     % Class for gridded domain properties
     properties
         regions
@@ -9,7 +9,7 @@ classdef AutoDiffFunction
     end
 
     methods
-        function prop = AutoDiffFunction(model, regions, varargin)
+        function prop = StateFunction(model, regions, varargin)
             assert(isa(model, 'PhysicalModel'), 'Model must be derived from PhysicalModel base class');
             if nargin > 0
                 prop.AutoDiffBackend = model.AutoDiffBackend;

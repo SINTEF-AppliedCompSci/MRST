@@ -1,11 +1,11 @@
-classdef WellComponentPhaseFlux < AutoDiffFunction
+classdef WellComponentPhaseFlux < StateFunction
     properties
 
     end
     
     methods
         function gp = WellComponentPhaseFlux(varargin)
-            gp@AutoDiffFunction(varargin{:});
+            gp@StateFunction(varargin{:});
             gp = gp.dependsOn({'FacilityWellMapping', 'PhaseFlux'});
             gp = gp.dependsOn({'ComponentPhaseDensity', 'Density'}, 'FlowPropertyFunctions');
         end

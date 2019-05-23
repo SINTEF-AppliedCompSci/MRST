@@ -1,10 +1,10 @@
-classdef PhaseMixingCoefficientsLV < AutoDiffFunction
+classdef PhaseMixingCoefficientsLV < StateFunction
     properties
     end
     
     methods
         function gp = PhaseMixingCoefficientsLV(model, varargin)
-            gp@AutoDiffFunction(model, varargin{:});
+            gp@StateFunction(model, varargin{:});
         end
 
         function v = evaluateOnDomain(prop, model, state)

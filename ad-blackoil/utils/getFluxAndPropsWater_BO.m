@@ -67,7 +67,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     s = model.operators;
     fp = model.FlowPropertyFunctions();
     if isempty(fp)
-        fp_sat = AutoDiffFunction(model);
+        fp_sat = StateFunction(model);
         fp_pvt = fp_sat;
     else
         fp_pvt = fp.Density;

@@ -1,5 +1,5 @@
-classdef AutoDiffFunctionGrouping
-    % A AutoDiffFunctions class is a grouping of interdependent properties.
+classdef StateFunctionGrouping
+    % A StateFunctions class is a grouping of interdependent properties.
     % Inside each grouping, dependencies are handled and all grouped
     % properties are stored in the same normalized field on the state.
     %
@@ -24,7 +24,7 @@ classdef AutoDiffFunctionGrouping
     end
     
     methods
-        function props = AutoDiffFunctionGrouping()
+        function props = StateFunctionGrouping()
             props.propertyNames = setdiff(properties(props), props.excludedFields);
             props.propertyTypes = zeros(size(props.propertyNames));
         end

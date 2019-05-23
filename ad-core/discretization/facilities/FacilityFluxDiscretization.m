@@ -1,4 +1,4 @@
-classdef FacilityFluxDiscretization < AutoDiffFunctionGrouping
+classdef FacilityFluxDiscretization < StateFunctionGrouping
     properties
         PhaseFlux
         ComponentTotalFlux

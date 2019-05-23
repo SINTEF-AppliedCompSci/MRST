@@ -1,4 +1,4 @@
-classdef BlackOilPressureReductionFactors < AutoDiffFunction
+classdef BlackOilPressureReductionFactors < StateFunction
     properties
         useSaturatedFlag = false;
         disgas = false;
@@ -7,7 +7,7 @@ classdef BlackOilPressureReductionFactors < AutoDiffFunction
     
     methods
         function gp = BlackOilPressureReductionFactors(model, varargin)
-            gp@AutoDiffFunction(model, varargin{:});
+            gp@StateFunction(model, varargin{:});
             if isprop(model, 'disgas')
                 gp.disgas = model.disgas;
                 if gp.disgas

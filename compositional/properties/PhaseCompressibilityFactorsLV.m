@@ -1,10 +1,10 @@
-classdef PhaseCompressibilityFactorsLV < AutoDiffFunction
+classdef PhaseCompressibilityFactorsLV < StateFunction
     properties
     end
     
     methods
         function gp = PhaseCompressibilityFactorsLV(model, varargin)
-            gp@AutoDiffFunction(model, varargin{:});
+            gp@StateFunction(model, varargin{:});
             gp = gp.dependsOn({'PhaseMixingCoefficients', 'ComponentPhaseMoleFractions'});
         end
 

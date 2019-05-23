@@ -1,11 +1,11 @@
-classdef ComponentPhaseFlux < AutoDiffFunction
+classdef ComponentPhaseFlux < StateFunction
     properties
 
     end
     
     methods
         function cf = ComponentPhaseFlux(backend, upwinding)
-            cf@AutoDiffFunction(backend);
+            cf@StateFunction(backend);
             cf = cf.dependsOn({'PermeabilityPotentialGradient', 'FaceComponentMobility'});
         end
 

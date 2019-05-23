@@ -1,4 +1,4 @@
-classdef BlackOilCapillaryPressure < AutoDiffFunction
+classdef BlackOilCapillaryPressure < StateFunction
     properties
     end
     
@@ -12,7 +12,7 @@ classdef BlackOilCapillaryPressure < AutoDiffFunction
     
     methods
         function prop = BlackOilCapillaryPressure(model, varargin)
-            prop = prop@AutoDiffFunction(model, varargin{:});
+            prop = prop@StateFunction(model, varargin{:});
             prop = prop.dependsOn('s', 'state');
         end
         

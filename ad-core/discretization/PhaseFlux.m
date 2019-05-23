@@ -1,11 +1,11 @@
-classdef PhaseFlux < AutoDiffFunction
+classdef PhaseFlux < StateFunction
     properties
 
     end
     
     methods
         function fm = PhaseFlux(model)
-            fm@AutoDiffFunction(model);
+            fm@StateFunction(model);
             fm = fm.dependsOn({'FaceMobility', 'PermeabilityPotentialGradient'});
         end
 

@@ -1,10 +1,10 @@
-classdef RsMax < AutoDiffFunction
+classdef RsMax < StateFunction
     properties
     end
     
     methods
         function gp = RsMax(varargin)
-            gp@AutoDiffFunction(varargin{:});
+            gp@StateFunction(varargin{:});
             gp = gp.dependsOn('pressure', 'state');
         end
         

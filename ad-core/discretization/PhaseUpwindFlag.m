@@ -1,11 +1,11 @@
-classdef PhaseUpwindFlag < AutoDiffFunction
+classdef PhaseUpwindFlag < StateFunction
     properties
 
     end
     
     methods
         function gp = PhaseUpwindFlag(varargin)
-            gp@AutoDiffFunction(varargin{:});
+            gp@StateFunction(varargin{:});
             gp = gp.dependsOn('PhasePotentialDifference');
         end
 

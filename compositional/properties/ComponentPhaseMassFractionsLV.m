@@ -1,10 +1,10 @@
-classdef ComponentPhaseMassFractionsLV < AutoDiffFunction
+classdef ComponentPhaseMassFractionsLV < StateFunction
     properties
     end
     
     methods
         function gp = ComponentPhaseMassFractionsLV(model, varargin)
-            gp@AutoDiffFunction(model, varargin{:});
+            gp@StateFunction(model, varargin{:});
             gp = gp.dependsOn({'ComponentPhaseMoleFractions'});
         end
 

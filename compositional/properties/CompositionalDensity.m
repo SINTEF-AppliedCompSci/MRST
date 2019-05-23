@@ -1,10 +1,10 @@
-classdef CompositionalDensity < AutoDiffFunction
+classdef CompositionalDensity < StateFunction
     properties
     end
     
     methods
         function gp = CompositionalDensity(model, varargin)
-            gp@AutoDiffFunction(model, varargin{:});
+            gp@StateFunction(model, varargin{:});
             gp = gp.dependsOn({'PhasePressures', 'PhaseCompressibilityFactors', 'ComponentPhaseMoleFractions'});
         end
 

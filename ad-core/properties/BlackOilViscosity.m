@@ -1,4 +1,4 @@
-classdef BlackOilViscosity < AutoDiffFunction
+classdef BlackOilViscosity < StateFunction
     properties
         useSaturatedFlag = false;
         disgas = false;
@@ -7,7 +7,7 @@ classdef BlackOilViscosity < AutoDiffFunction
     
     methods
         function gp = BlackOilViscosity(model, varargin)
-            gp@AutoDiffFunction(model, varargin{:});
+            gp@StateFunction(model, varargin{:});
             if isprop(model, 'disgas')
                 gp.disgas = model.disgas;
                 if gp.disgas

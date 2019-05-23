@@ -1,11 +1,11 @@
-classdef FaceComponentMobility < AutoDiffFunction & UpwindProperty
+classdef FaceComponentMobility < StateFunction & UpwindProperty
     properties
         
     end
     
     methods
         function fm = FaceComponentMobility(backend, upwinding)
-            fm@AutoDiffFunction(backend);
+            fm@StateFunction(backend);
             fm@UpwindProperty(upwinding)
             fm = fm.dependsOn('ComponentMobility', 'FlowPropertyFunctions');
             fm = fm.dependsOn('PhaseUpwindFlag');

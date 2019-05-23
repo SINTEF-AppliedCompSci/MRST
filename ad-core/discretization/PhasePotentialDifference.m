@@ -1,11 +1,11 @@
-classdef PhasePotentialDifference < AutoDiffFunction
+classdef PhasePotentialDifference < StateFunction
     properties
 
     end
     
     methods
         function gp = PhasePotentialDifference(model, varargin)
-            gp@AutoDiffFunction(model, varargin{:});
+            gp@StateFunction(model, varargin{:});
             gp = gp.dependsOn('PressureGradient');
             if norm(model.gravity) > 0
                 gp = gp.dependsOn('GravityPotentialDifference');

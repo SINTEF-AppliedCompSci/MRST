@@ -1,11 +1,11 @@
-classdef PerforationPressureGradient < AutoDiffFunction
+classdef PerforationPressureGradient < StateFunction
     properties
 
     end
     
     methods
         function gp = PerforationPressureGradient(varargin)
-            gp@AutoDiffFunction(varargin{:});
+            gp@StateFunction(varargin{:});
             gp = gp.dependsOn('FacilityWellMapping');
             gp = gp.dependsOn('pressure', 'state');
             gp = gp.dependsOn('bhp', 'wellSol');

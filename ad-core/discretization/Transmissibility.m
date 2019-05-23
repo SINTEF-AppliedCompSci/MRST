@@ -1,11 +1,11 @@
-classdef Transmissibility < AutoDiffFunction
+classdef Transmissibility < StateFunction
     properties
         
     end
     
     methods
         function pp = Transmissibility(model)
-            pp@AutoDiffFunction(model);
+            pp@StateFunction(model);
             if isfield(model.fluid, 'transMult')
                 pp = pp.dependsOn('pressure', 'state');
             end

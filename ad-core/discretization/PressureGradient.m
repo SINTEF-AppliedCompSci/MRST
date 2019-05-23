@@ -1,11 +1,11 @@
-classdef PressureGradient < AutoDiffFunction
+classdef PressureGradient < StateFunction
     properties
 
     end
     
     methods
         function gp = PressureGradient(varargin)
-            gp@AutoDiffFunction(varargin{:});
+            gp@StateFunction(varargin{:});
             gp = gp.dependsOn('PhasePressures', 'FlowPropertyFunctions');
             gp = gp.dependsOn('pressure', 'state');
         end

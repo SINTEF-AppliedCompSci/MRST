@@ -1,4 +1,4 @@
-classdef FluxDiscretization < AutoDiffFunctionGrouping
+classdef FluxDiscretization < StateFunctionGrouping
     % Function grouping for Darcy-type flux discretization. The defaults
     % gives a industry-standard single-point upwind scheme with a two-point
     % flux discretization which emphasizes robustness and efficiency.
@@ -25,7 +25,7 @@ classdef FluxDiscretization < AutoDiffFunctionGrouping
             upstr = UpwindFunctionWrapperDiscretization(model);
             tpfa = TwoPointFluxApproximation(model);
 
-            props@AutoDiffFunctionGrouping();
+            props@StateFunctionGrouping();
             % Darcy flux
             if ~isempty(model.inputdata) && isfield(model.inputdata.SOLUTION, 'THPRES')
                 trans = ThresholdedTransmissibility(model, model);

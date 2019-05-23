@@ -1,10 +1,10 @@
-classdef PhasePressures < AutoDiffFunction
+classdef PhasePressures < StateFunction
     properties
     end
     
     methods
         function gp = PhasePressures(varargin)
-            gp@AutoDiffFunction(varargin{:});
+            gp@StateFunction(varargin{:});
             gp = gp.dependsOn({'CapillaryPressure'});
             gp = gp.dependsOn({'pressure'}, 'state');
         end

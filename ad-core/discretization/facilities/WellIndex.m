@@ -1,11 +1,11 @@
-classdef WellIndex < AutoDiffFunction
+classdef WellIndex < StateFunction
     properties
 
     end
     
     methods
         function gp = WellIndex(varargin)
-            gp@AutoDiffFunction(varargin{:});
+            gp@StateFunction(varargin{:});
             gp = gp.dependsOn('FacilityWellMapping');
         end
         function WI = evaluateOnDomain(prop, model, state)

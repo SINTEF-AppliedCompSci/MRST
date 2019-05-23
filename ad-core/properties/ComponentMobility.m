@@ -1,4 +1,4 @@
-classdef ComponentMobility < AutoDiffFunction & ComponentProperty
+classdef ComponentMobility < StateFunction & ComponentProperty
     % Class implementing the mobility for a specific component
     properties
 
@@ -6,7 +6,7 @@ classdef ComponentMobility < AutoDiffFunction & ComponentProperty
     
     methods
         function gp = ComponentMobility(model, varargin)
-            gp@AutoDiffFunction(model, varargin{:});
+            gp@StateFunction(model, varargin{:});
             gp@ComponentProperty(model);
         end
         function v = evaluateOnDomain(prop, model, state)
