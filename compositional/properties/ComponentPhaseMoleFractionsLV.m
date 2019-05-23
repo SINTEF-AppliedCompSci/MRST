@@ -1,10 +1,10 @@
-classdef ComponentPhaseMoleFractionsLV < GridProperty
+classdef ComponentPhaseMoleFractionsLV < StateFunction
     properties
     end
     
     methods
         function gp = ComponentPhaseMoleFractionsLV(model, varargin)
-            gp@GridProperty(model, varargin{:});
+            gp@StateFunction(model, varargin{:});
         end
 
         function v = evaluateOnDomain(prop, model, state)

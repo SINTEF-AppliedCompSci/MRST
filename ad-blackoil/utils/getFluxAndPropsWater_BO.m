@@ -67,14 +67,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     s = model.operators;
     fp = model.FlowPropertyFunctions();
     if isempty(fp)
-        fp_sat = GridProperty(model);
+        fp_sat = StateFunction(model);
         fp_pvt = fp_sat;
     else
         fp_pvt = fp.Density;
         fp_sat = fp.RelativePermeability;
     end
-    pvtfun = @(varargin) fp_pvt.evaluateFunctionOnGrid(varargin{:});
-    satfun = @(varargin) fp_sat.evaluateFunctionOnGrid(varargin{:});
+    pvtfun = @(varargin) fp_pvt.evaluateFunctionOnDomainWithArguments(varargin{:});
+    satfun = @(varargin) fp_sat.evaluateFunctionOnDomainWithArguments(varargin{:});
     % Check for capillary pressure (p_cow)
     pcOW = 0;
     if isfield(fluid, 'pcOW') && ~isempty(sW)

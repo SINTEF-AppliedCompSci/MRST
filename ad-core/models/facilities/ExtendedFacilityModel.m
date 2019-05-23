@@ -237,8 +237,8 @@ classdef ExtendedFacilityModel < FacilityModel
             end
         end
         
-        function containers = getPropertyFunctions(model)
-            containers = getPropertyFunctions@PhysicalModel(model);
+        function containers = getStateFunctionGroupings(model)
+            containers = getStateFunctionGroupings@PhysicalModel(model);
             assert(not(isempty(model.FacilityFluxDiscretization)), ...
                 'FacilityFluxDiscretization not initialized - did you call "validateModel"?');
             containers = [containers, {model.FacilityFluxDiscretization}];
@@ -437,7 +437,7 @@ classdef ExtendedFacilityModel < FacilityModel
                 flowProps = model.ReservoirModel.FlowPropertyFunctions.subset(cells);
                 % Avoid using flag for interpolation
                 flowProps.ShrinkageFactors.useSaturatedFlag = true;
-                substate = flowProps.evaluatePropertyWithDependencies(model.ReservoirModel, substate, 'Density');
+                substate = flowProps.evaluateStateFunctionWithDependencies(model.ReservoirModel, substate, 'Density');
                 rho = substate.FlowProps.Density;
                 rho = [rho{:}];
                 if false

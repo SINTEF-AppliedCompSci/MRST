@@ -1,10 +1,10 @@
-classdef CompositionalDensity < GridProperty
+classdef CompositionalDensity < StateFunction
     properties
     end
     
     methods
         function gp = CompositionalDensity(model, varargin)
-            gp@GridProperty(model, varargin{:});
+            gp@StateFunction(model, varargin{:});
             gp = gp.dependsOn({'PhasePressures', 'PhaseCompressibilityFactors', 'ComponentPhaseMoleFractions'});
         end
 
@@ -25,7 +25,7 @@ classdef CompositionalDensity < GridProperty
             
             if hasWater
                 f = model.fluid;
-                bW = prop.evaluateFunctionOnGrid(f.bW, p_phase{1});
+                bW = prop.evaluateFunctionOnDomainWithArguments(f.bW, p_phase{1});
                 rhoW = f.rhoWS.*bW;
                 rho = {rhoW, rhoL, rhoV};
             else

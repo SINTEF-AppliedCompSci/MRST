@@ -1,10 +1,10 @@
-classdef CompositionalViscosityLV < GridProperty
+classdef CompositionalViscosityLV < StateFunction
     properties
     end
     
     methods
         function gp = CompositionalViscosityLV(model, varargin)
-            gp@GridProperty(model, varargin{:});
+            gp@StateFunction(model, varargin{:});
             gp = gp.dependsOn({'PhasePressures', 'PhaseCompressibilityFactors'});
         end
         
@@ -20,7 +20,7 @@ classdef CompositionalViscosityLV < GridProperty
                 f = model.fluid;
                 wix = phInd == 1;
                 pw = p_phase{wix};
-                mu{wix} = prop.evaluateFunctionOnGrid(f.muW, pw);
+                mu{wix} = prop.evaluateFunctionOnDomainWithArguments(f.muW, pw);
             end
             pm = model.EOSModel.PropertyModel;
             oix = phInd == 2;

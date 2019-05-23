@@ -130,7 +130,7 @@ function [substate0, substate, submodel, subforces, mappings] = getSubsetProblem
         % Face average
         propstate = state;
         propstate.s = propstate.s./sum(propstate.s, 2);
-        propstate = model.initPropertyContainers(propstate);
+        propstate = model.initStateFunctionContainers(propstate);
         p_phase = model.getProp(propstate, 'PhasePressures');
         p_phase = value(p_phase);
         src_pressure = p_phase(global_cells, :);

@@ -1,10 +1,10 @@
-classdef FugacityLV < GridProperty
+classdef FugacityLV < StateFunction
     properties
     end
     
     methods
         function gp = FugacityLV(model, varargin)
-            gp@GridProperty(model, varargin{:});
+            gp@StateFunction(model, varargin{:});
             gp = gp.dependsOn({'PhaseMixingCoefficients', 'ComponentPhaseMoleFractions', 'PhaseCompressibilityFactors'});
         end
 
