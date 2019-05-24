@@ -120,7 +120,7 @@ for i = 1:nPh
     if hasNoSat
         % If no saturations are defined, we explicitly set it to mirror the
         % cell values on the other side of the interface
-        sBC = double(sBC);
+        sBC = value(sBC);
         sat(noSat, i) = sBC(noSat);
     end
     

@@ -128,7 +128,7 @@ function kr= krG(sg, Gt, opt,varargin)
         error('Unknown surface topology')
     end
 
-    if(any(double(kr)<0))
+    if(any(value(kr)<0))
        kr(kr<0) = 0.0 .* sg_free(kr<0); 
     end
     assert(all(kr >= 0)); 
