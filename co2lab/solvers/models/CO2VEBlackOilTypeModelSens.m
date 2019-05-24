@@ -114,7 +114,7 @@ function forces = getValidDrivingForces(model)
 end
 
 % ------------------------------------------------------------------------
-   function [fn, index] = getVariableField(model, name)
+   function [fn, index] = getVariableField(model, name, varargin)
       
       switch(lower(name))
         case {'sgmax'}
@@ -136,7 +136,7 @@ end
             index = 1;
             fn = 'porofac';
         otherwise
-          [fn, index] = getVariableField@ReservoirModel(model, name);
+          [fn, index] = getVariableField@ReservoirModel(model, name, varargin{:});
       end
    end
 
