@@ -28,15 +28,31 @@ function [map, tbl, map1, map2] = setupTableMapping(tbl1, tbl2, crossfields, var
         map = ones(n2, n1);
     end
     
+    fds1 = cell(nfds, 1);
+    fds2 = cell(nfds, 1);
+    canCreateNewtbl = true;
+    for ifield = 1 : nfds
+        fd = fds{ifield};
+        if iscell(fd)
+            fds1{ifield} = fd{1};
+            fds2{ifield} = fd{2};
+            canCreateNewtbl = false;
+        else
+            fds1{ifield} = fd;            
+            fds2{ifield} = fd;                        
+        end
+    end
+    
     inds1   = cell(nfds, 1);
     inds2   = cell(nfds, 1);
     maxinds = cell(nfds, 1);
     prodmaxinds    = cell(nfds, 1);
     prodmaxinds{1} = 1;
     for ifield = 1 : nfds
-        fieldname = fds{ifield};
-        inds1{ifield} = tbl1.(fieldname);
-        inds2{ifield} = tbl2.(fieldname);
+        fieldname1 = fds1{ifield};
+        fieldname2 = fds2{ifield};
+        inds1{ifield} = tbl1.(fieldname1);
+        inds2{ifield} = tbl2.(fieldname2);
         maxinds{ifield} = max(max(inds1{ifield}), max(inds2{ifield})) + 1;
         if ifield > 1
             prodmaxinds{ifield} = prodmaxinds{ifield - 1}*maxinds{ifield - 1};
@@ -62,6 +78,8 @@ function [map, tbl, map1, map2] = setupTableMapping(tbl1, tbl2, crossfields, var
     map = imap2'*imap1;
 
     if nargout > 1
+        assert(canCreateNewtbl, 'cannot create table because ambiguous name.');
+        
         [ind2, ind1] = find(map);
     
         ofields1 = getOtherFields(tbl1, fds);
