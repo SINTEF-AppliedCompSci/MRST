@@ -101,9 +101,11 @@ view(-5,55);h=colorbar;h.Label.String='log_{10}(\itk_{\rmV})';axis tight off;set
 subplot(2,2,2),plotCellData(G,rock.poro,'edgecolor','none');
 view(-5,55);h=colorbar;h.Label.String='\phi';axis tight off;set(h,'fontsize',12)
 drawnow
+
 mu_value = 1;
 rho_value = 1;
 fluid=initSingleFluid('mu',mu_value,'rho',rho_value);
+
 %% linear TPFA
 disp('tpfa')
 stp=FlowTPFA(G,TransTPFA(G,rock,bc),fluid,Wtp);
@@ -133,13 +135,13 @@ figure, plotCellData(G,sm.cres(:,end));plotWell(G,Wtp);
 view(3);colorbar;title('Concentration-MFD');
 drawnow
 
-%%
+%% nonlinear TPFA
 disp('nonlinear TPFA')
 interpFace=findHAP(G,rock,bc);
-disp(['faces with centroids outside convex hull ', num2str(interpFace.percentage)]);
+disp(['fraction of faces with centroids outside convex hull ', num2str(interpFace.percentage)]);
 interpFace=correctHAP(G,interpFace);
 OSflux=findOSflux(G,rock,bc,interpFace);
-%% nonlinear TPFA
+
 sntp=FlowNTPFA(G,bc,fluid,Wtp,OSflux,15e6*ones(G.cells.num,1),1e-7,1000);
 figure,plotCellData(G,sntp.pressure/1e6);plotWell(G,Wtp);view(3)
 title('Pressure-NTPFA');h=colorbar;h.Label.String='Pressure[MPa]';clear h;
