@@ -30,13 +30,11 @@ function [map, tbl, map1, map2] = setupTableMapping(tbl1, tbl2, crossfields, var
     
     fds1 = cell(nfds, 1);
     fds2 = cell(nfds, 1);
-    canCreateNewtbl = true;
     for ifield = 1 : nfds
         fd = fds{ifield};
         if iscell(fd)
             fds1{ifield} = fd{1};
             fds2{ifield} = fd{2};
-            canCreateNewtbl = false;
         else
             fds1{ifield} = fd;            
             fds2{ifield} = fd;                        
@@ -78,15 +76,14 @@ function [map, tbl, map1, map2] = setupTableMapping(tbl1, tbl2, crossfields, var
     map = imap2'*imap1;
 
     if nargout > 1
-        assert(canCreateNewtbl, 'cannot create table because ambiguous name.');
         
         [ind2, ind1] = find(map);
     
-        ofields1 = getOtherFields(tbl1, fds);
-        ofields2 = getOtherFields(tbl2, fds);
+        ofields1 = getOtherFields(tbl1, fds1);
+        ofields2 = getOtherFields(tbl2, fds2);
     
         for ifield = 1 : nfds
-            fieldname = fds{ifield};
+            fieldname = fds1{ifield};
             tbl.(fieldname) = tbl1.(fieldname)(ind1);
         end
         
@@ -100,8 +97,7 @@ function [map, tbl, map1, map2] = setupTableMapping(tbl1, tbl2, crossfields, var
             tbl.(fieldname) = tbl2.(fieldname)(ind2);
         end
         
-        % get dimension of table (may not be so robust, to be check...).
-        tbl.num = numel(tbl.(ofields1{1}));
+        tbl.num = numel(ind1);
     end
     
     if nargout > 2
