@@ -2,7 +2,7 @@ classdef NFVM < PermeabilityGradientDiscretization
     properties
         interpFace % Harmonic averaging points
         OSflux % One side fluxes
-        %bc % boundary conditions (own struct)
+        bc % boundary conditions (own struct)
     end
     
     methods
@@ -14,20 +14,22 @@ classdef NFVM < PermeabilityGradientDiscretization
             rock = model.rock;
             
             % Setup nfvm members
-            %nfvm.bc = bc;
+            nfvm.bc = bc;
             nfvm.interpFace = nfvm.findHAP(G, rock);
             disp(['fraction of faces with centroids outside convex hull ', num2str(nfvm.interpFace.percentage)]);
             nfvm.interpFace = nfvm.correctHAP(G);
             nfvm.OSflux = nfvm.findOSflux(G, rock,bc,nfvm.interpFace);
         end
         
-        function v = getPermeabilityGradient(nfvm, model, state, ~)
+        function v = getPermeabilityGradient(nfvm, model, state, dp)
             
             maxiter = 100;
             tol = 1e-10;
             
             % Skip ADI
-            u0 = state.pressure.val;
+            %u0 = state.pressure.val;
+            u0 = dp.val;
+            keyboard
             
             T = nfvm.TransNTPFA(model, u0);
             [A, b] = nfvm.AssemAb(model, T, u0); % provide u0 for mu
@@ -76,27 +78,27 @@ classdef NFVM < PermeabilityGradientDiscretization
                     T(i_face,1)=(mu1*t1(1,2)+mu2*t2(2,2))/mu;
                     T(i_face,2)=(mu1*t1(2,2)+mu2*t2(1,2))/mu;
                 else
-                    %                     ind=find(nfvm.bc.face==i_face,1);
-                    %                     if(strcmpi(nfvm.bc.type{ind},'pressure'))
-                    %                         t1=nfvm.OSflux{i_face,1};t2=nfvm.OSflux{i_face,2};
-                    %                         t11=t1(1,2);t12=t1(2,2);
-                    %                         t22=t2(1,2);t21=t2(2,2);
-                    %                         r1=t1(3:end-1,2)'*u(t1(3:end-1,1))+t1(end,2);
-                    %                         r2=t2(end,2);
-                    %                         eps=1e-12*max(abs([t1(:,end);t2(:,end)]));
-                    %                         if(abs(r1)<=eps),r1=0;end
-                    %                         if(abs(r2)<=eps),r2=0;end
-                    %                         if(abs(r1+r2)>eps)
-                    %                             mu1=r2/(r1+r2);mu2=1-mu1;
-                    %                         else
-                    %                             mu1=0.5;mu2=0.5;
-                    %                         end
-                    %                         T(i_face,1)=mu1*t11+mu2*t21;
-                    %                         T(i_face,2)=(mu1*t12+mu2*t22)*nfvm.bc.value{ind}(G.faces.centroids(i_face,:));
-                    %                     else
-                    %                         T(i_face,2)=-G.faces.areas(i_face)*...
-                    %                             nfvm.bc.value{ind}(G.faces.centroids(i_face,:));
-                    %                     end
+                    ind=find(nfvm.bc.face==i_face,1);
+                    if(strcmpi(nfvm.bc.type{ind},'pressure'))
+                        t1=nfvm.OSflux{i_face,1};t2=nfvm.OSflux{i_face,2};
+                        t11=t1(1,2);t12=t1(2,2);
+                        t22=t2(1,2);t21=t2(2,2);
+                        r1=t1(3:end-1,2)'*u(t1(3:end-1,1))+t1(end,2);
+                        r2=t2(end,2);
+                        eps=1e-12*max(abs([t1(:,end);t2(:,end)]));
+                        if(abs(r1)<=eps),r1=0;end
+                        if(abs(r2)<=eps),r2=0;end
+                        if(abs(r1+r2)>eps)
+                            mu1=r2/(r1+r2);mu2=1-mu1;
+                        else
+                            mu1=0.5;mu2=0.5;
+                        end
+                        T(i_face,1)=mu1*t11+mu2*t21;
+                        T(i_face,2)=(mu1*t12+mu2*t22)*nfvm.bc.value{ind}(G.faces.centroids(i_face,:));
+                    else
+                        T(i_face,2)=-G.faces.areas(i_face)*...
+                            nfvm.bc.value{ind}(G.faces.centroids(i_face,:));
+                    end
                 end
             end
         end
@@ -123,20 +125,20 @@ classdef NFVM < PermeabilityGradientDiscretization
                 end
             end
             %----------------------------------------------------------
-            %             W = nfvm.getWells(model);
-            %             for i=1:numel(W)
-            %                 if(strcmpi(W(i).type,'bhp'))
-            %                     pbh=W(i).val;dZ=W(i).dZ;
-            %                     for j=1:numel(W(i).cells)
-            %                         mycell=W(i).cells(j);
-            %                         I(k)=mycell;J(k)=mycell;V(k)=W(i).WI(j)/mu;k=k+1;
-            %                         b(mycell)=b(mycell)+W(i).WI(j)/mu*(pbh+model.fluid.rhoWS*9.81*dZ(j));
-            %                     end
-            %                 else
-            %                     % write code here bababababababbababaabababababababababababababba
-            %                     error('code under development!')
-            %                 end
-            %             end
+%             W = nfvm.getWells(model);
+%             for i=1:numel(W)
+%                 if(strcmpi(W(i).type,'bhp'))
+%                     pbh=W(i).val;dZ=W(i).dZ;
+%                     for j=1:numel(W(i).cells)
+%                         mycell=W(i).cells(j);
+%                         I(k)=mycell;J(k)=mycell;V(k)=W(i).WI(j)/mu;k=k+1;
+%                         b(mycell)=b(mycell)+W(i).WI(j)/mu*(pbh+model.fluid.rhoWS*9.81*dZ(j));
+%                     end
+%                 else
+%                     % write code here bababababababbababaabababababababababababababba
+%                     error('code under development!')
+%                 end
+%             end
             %-------------------------------------------------------
             I(k:end)=[];J(k:end)=[];V(k:end)=[];
             A=sparse(I,J,V,nc,nc);
@@ -146,8 +148,8 @@ classdef NFVM < PermeabilityGradientDiscretization
             
             G = model.G;
             %W = nfvm.getWells(model);
-            rho = model.fluid.rhoWS;
-            mu = nfvm.getMuValue(model, u);
+            %rho = model.fluid.rhoWS;
+            %mu = nfvm.getMuValue(model, u);
             
             flux=zeros(G.faces.num,1);
             ind=all(G.faces.neighbors~=0,2);
@@ -218,23 +220,23 @@ classdef NFVM < PermeabilityGradientDiscretization
                     interpFace.weights(i_face,1)=w1/(w1+w2);
                     interpFace.weights(i_face,2)=w2/(w1+w2);
                 else
-                    %                     ind=find(nfvm.bc.face==i_face,1);
-                    %                     if(strcmpi(nfvm.bc.type{ind},'pressure'))
-                    %                         interpFace.coords(i_face,:)=xf';
-                    %                         interpFace.weights(i_face,(c2==0)+1)=nfvm.bc.value{ind}(xf);
-                    %                     else
-                    %                         c=max(c1,c2);
-                    %                         K1=K(:,:,c);
-                    %                         fn=G.faces.normals(i_face,:)';
-                    %                         w1=K1*fn;
-                    %                         x1=G.cells.centroids(c,:)';
-                    %                         xA=x1+dot(xf-x1,fn)/dot(w1,fn)*w1;
-                    %                         interpFace.coords(i_face,:)=xA';
-                    %                         a=norm(w1)/norm(x1-xA);
-                    %                         gN=nfvm.bc.value{ind}(xf)*G.faces.areas(i_face);
-                    %                         interpFace.weights(i_face,(c1==0)+1)=1;
-                    %                         interpFace.weights(i_face,(c2==0)+1)=-gN/a;
-                    %                     end
+                    ind=find(nfvm.bc.face==i_face,1);
+                    if(strcmpi(nfvm.bc.type{ind},'pressure'))
+                        interpFace.coords(i_face,:)=xf';
+                        interpFace.weights(i_face,(c2==0)+1)=nfvm.bc.value{ind}(xf);
+                    else
+                        c=max(c1,c2);
+                        K1=K(:,:,c);
+                        fn=G.faces.normals(i_face,:)';
+                        w1=K1*fn;
+                        x1=G.cells.centroids(c,:)';
+                        xA=x1+dot(xf-x1,fn)/dot(w1,fn)*w1;
+                        interpFace.coords(i_face,:)=xA';
+                        a=norm(w1)/norm(x1-xA);
+                        gN=nfvm.bc.value{ind}(xf)*G.faces.areas(i_face);
+                        interpFace.weights(i_face,(c1==0)+1)=1;
+                        interpFace.weights(i_face,(c2==0)+1)=-gN/a;
+                    end
                 end
             end
             
@@ -403,41 +405,41 @@ classdef NFVM < PermeabilityGradientDiscretization
                             trans=nfvm.uniqueTrans(container);
                             OSflux(i_face,2)={trans};clear trans;
                         else  %--------------------------------------------boudary face
-                            %                             ind=find(bc.face==i_face,1);
-                            %                             if(strcmpi(bc.type{ind},'pressure'))
-                            %                                 c1=max(G.faces.neighbors(i_face,:));
-                            %                                 cf=G.cells.num+i_face;
-                            %                                 K1=K(:,:,c1);
-                            %                                 fn=G.faces.normals(i_face,:)';
-                            %                                 if(c1~=G.faces.neighbors(i_face,1)),fn=-fn;end
-                            %                                 w1=K1*fn;
-                            %                                 [a,faceA,faceB]=nfvm.findAB(G,interpFace,c1,w1);
-                            %                                 if(i_face==faceA)
-                            %                                     interpB=[G.faces.neighbors(faceB,:)' interpFace.weights(faceB,:)'];
-                            %                                     interpB(:,2)=-interpB(:,2)*a(2);
-                            %                                     container=[c1;cf;interpB(:,1);0];
-                            %                                     container(:,2)=[sum(a);-a(1);interpB(:,2);0];
-                            %                                 elseif(i_face==faceB)
-                            %                                     interpA=[G.faces.neighbors(faceA,:)' interpFace.weights(faceA,:)'];
-                            %                                     interpA(:,2)=-interpA(:,2)*a(1);
-                            %                                     container=[c1;cf;interpA(:,1);0];
-                            %                                     container(:,2)=[sum(a);-a(2);interpA(:,2);0];
-                            %                                 else
-                            %                                     interpA=[G.faces.neighbors(faceA,:)' interpFace.weights(faceA,:)'];
-                            %                                     interpB=[G.faces.neighbors(faceB,:)' interpFace.weights(faceB,:)'];
-                            %                                     interpA(:,2)=-a(1)*interpA(:,2);
-                            %                                     interpB(:,2)=-a(2)*interpB(:,2);
-                            %                                     container=[c1;cf;interpA(:,1);interpB(:,1);0];
-                            %                                     container(:,2)=[sum(a);0;interpA(:,2);interpB(:,2);0];
-                            %                                 end
-                            %                                 trans=nfvm.uniqueTrans(container);
-                            %                                 OSflux(i_face,1)={trans};clear trans
-                            %
-                            %                                 [a,xD]=findDnode(G,c1,i_face,-w1);
-                            %                                 uD=bc.value{ind}(xD);
-                            %                                 temp=[cf sum(a);c1 a(1);0 a(2)*uD];
-                            %                                 OSflux(i_face,2)={temp};clear temp;
-                            %                             end
+                            ind=find(bc.face==i_face,1);
+                            if(strcmpi(bc.type{ind},'pressure'))
+                                c1=max(G.faces.neighbors(i_face,:));
+                                cf=G.cells.num+i_face;
+                                K1=K(:,:,c1);
+                                fn=G.faces.normals(i_face,:)';
+                                if(c1~=G.faces.neighbors(i_face,1)),fn=-fn;end
+                                w1=K1*fn;
+                                [a,faceA,faceB]=nfvm.findAB(G,interpFace,c1,w1);
+                                if(i_face==faceA)
+                                    interpB=[G.faces.neighbors(faceB,:)' interpFace.weights(faceB,:)'];
+                                    interpB(:,2)=-interpB(:,2)*a(2);
+                                    container=[c1;cf;interpB(:,1);0];
+                                    container(:,2)=[sum(a);-a(1);interpB(:,2);0];
+                                elseif(i_face==faceB)
+                                    interpA=[G.faces.neighbors(faceA,:)' interpFace.weights(faceA,:)'];
+                                    interpA(:,2)=-interpA(:,2)*a(1);
+                                    container=[c1;cf;interpA(:,1);0];
+                                    container(:,2)=[sum(a);-a(2);interpA(:,2);0];
+                                else
+                                    interpA=[G.faces.neighbors(faceA,:)' interpFace.weights(faceA,:)'];
+                                    interpB=[G.faces.neighbors(faceB,:)' interpFace.weights(faceB,:)'];
+                                    interpA(:,2)=-a(1)*interpA(:,2);
+                                    interpB(:,2)=-a(2)*interpB(:,2);
+                                    container=[c1;cf;interpA(:,1);interpB(:,1);0];
+                                    container(:,2)=[sum(a);0;interpA(:,2);interpB(:,2);0];
+                                end
+                                trans=nfvm.uniqueTrans(container);
+                                OSflux(i_face,1)={trans};clear trans
+                                
+                                [a,xD]=findDnode(G,c1,i_face,-w1);
+                                uD=bc.value{ind}(xD);
+                                temp=[cf sum(a);c1 a(1);0 a(2)*uD];
+                                OSflux(i_face,2)={temp};clear temp;
+                            end
                         end
                     end
                 case 3
@@ -467,46 +469,46 @@ classdef NFVM < PermeabilityGradientDiscretization
                             trans=nfvm.uniqueTrans(container);
                             OSflux(i_face,2)={trans};clear trans;
                         else  %----------------------------------------------------boudary face
-                            %                             ind=find(bc.face==i_face,1);
-                            %                             if(strcmpi(bc.type{ind},'pressure'))
-                            %                                 c1=max(G.faces.neighbors(i_face,:));
-                            %                                 cf=G.cells.num+i_face;
-                            %                                 K1=K(:,:,c1);fn=G.faces.normals(i_face,:)';
-                            %                                 if(c1~=G.faces.neighbors(i_face,1)),fn=-fn;end
-                            %                                 w1=K1*fn;
-                            %
-                            %                                 [a,faceA,faceB,faceC]=nfvm.findABC(G,interpFace,c1,w1);
-                            %                                 if(faceA==i_face)
-                            %                                     interpB=G.faces.neighbors(faceB,:)';weightB=-a(2).*interpFace.weights(faceB,:)';
-                            %                                     interpC=G.faces.neighbors(faceC,:)';weightC=-a(3).*interpFace.weights(faceC,:)';
-                            %                                     container=[c1;cf;interpB;interpC;0];
-                            %                                     container(:,2)=[sum(a);-a(1);weightB;weightC;0];
-                            %                                 elseif(faceB==i_face)
-                            %                                     interpA=G.faces.neighbors(faceA,:)';weightA=-a(1).*interpFace.weights(faceA,:)';
-                            %                                     interpC=G.faces.neighbors(faceC,:)';weightC=-a(3).*interpFace.weights(faceC,:)';
-                            %                                     container=[c1;cf;interpA;interpC;0];
-                            %                                     container(:,2)=[sum(a);-a(2);weightA;weightC;0];
-                            %                                 elseif(faceC==i_face)
-                            %                                     interpA=G.faces.neighbors(faceA,:)';weightA=-a(1).*interpFace.weights(faceA,:)';
-                            %                                     interpB=G.faces.neighbors(faceB,:)';weightB=-a(2).*interpFace.weights(faceB,:)';
-                            %                                     container=[c1;cf;interpA;interpB;0];
-                            %                                     container(:,2)=[sum(a);-a(3);weightA;weightB;0];
-                            %                                 else
-                            %                                     interpA=G.faces.neighbors(faceA,:)';weightA=-a(1).*interpFace.weights(faceA,:)';
-                            %                                     interpB=G.faces.neighbors(faceB,:)';weightB=-a(2).*interpFace.weights(faceB,:)';
-                            %                                     interpC=G.faces.neighbors(faceC,:)';weightC=-a(3).*interpFace.weights(faceC,:)';
-                            %                                     container=[c1;cf;interpA;interpB;interpC;0];
-                            %                                     container(:,2)=[sum(a);0;weightA;weightB;weightC;0];
-                            %                                 end
-                            %                                 trans=nfvm.uniqueTrans(container);
-                            %                                 OSflux(i_face,1)={trans};clear trans;
-                            %
-                            %                                 [a,xA,xB]=findDnodes(G,c1,i_face,-w1);
-                            %                                 uA=bc.value{ind}(xA);
-                            %                                 uB=bc.value{ind}(xB);
-                            %                                 temp=[cf sum(a);c1 a(1);0 a(2)*uA+a(3)*uB];
-                            %                                 OSflux(i_face,2)={temp};clear temp;
-                            %                             end
+                            ind=find(bc.face==i_face,1);
+                            if(strcmpi(bc.type{ind},'pressure'))
+                                c1=max(G.faces.neighbors(i_face,:));
+                                cf=G.cells.num+i_face;
+                                K1=K(:,:,c1);fn=G.faces.normals(i_face,:)';
+                                if(c1~=G.faces.neighbors(i_face,1)),fn=-fn;end
+                                w1=K1*fn;
+                                
+                                [a,faceA,faceB,faceC]=nfvm.findABC(G,interpFace,c1,w1);
+                                if(faceA==i_face)
+                                    interpB=G.faces.neighbors(faceB,:)';weightB=-a(2).*interpFace.weights(faceB,:)';
+                                    interpC=G.faces.neighbors(faceC,:)';weightC=-a(3).*interpFace.weights(faceC,:)';
+                                    container=[c1;cf;interpB;interpC;0];
+                                    container(:,2)=[sum(a);-a(1);weightB;weightC;0];
+                                elseif(faceB==i_face)
+                                    interpA=G.faces.neighbors(faceA,:)';weightA=-a(1).*interpFace.weights(faceA,:)';
+                                    interpC=G.faces.neighbors(faceC,:)';weightC=-a(3).*interpFace.weights(faceC,:)';
+                                    container=[c1;cf;interpA;interpC;0];
+                                    container(:,2)=[sum(a);-a(2);weightA;weightC;0];
+                                elseif(faceC==i_face)
+                                    interpA=G.faces.neighbors(faceA,:)';weightA=-a(1).*interpFace.weights(faceA,:)';
+                                    interpB=G.faces.neighbors(faceB,:)';weightB=-a(2).*interpFace.weights(faceB,:)';
+                                    container=[c1;cf;interpA;interpB;0];
+                                    container(:,2)=[sum(a);-a(3);weightA;weightB;0];
+                                else
+                                    interpA=G.faces.neighbors(faceA,:)';weightA=-a(1).*interpFace.weights(faceA,:)';
+                                    interpB=G.faces.neighbors(faceB,:)';weightB=-a(2).*interpFace.weights(faceB,:)';
+                                    interpC=G.faces.neighbors(faceC,:)';weightC=-a(3).*interpFace.weights(faceC,:)';
+                                    container=[c1;cf;interpA;interpB;interpC;0];
+                                    container(:,2)=[sum(a);0;weightA;weightB;weightC;0];
+                                end
+                                trans=nfvm.uniqueTrans(container);
+                                OSflux(i_face,1)={trans};clear trans;
+                                
+                                [a,xA,xB]=findDnodes(G,c1,i_face,-w1);
+                                uA=bc.value{ind}(xA);
+                                uB=bc.value{ind}(xB);
+                                temp=[cf sum(a);c1 a(1);0 a(2)*uA+a(3)*uB];
+                                OSflux(i_face,2)={temp};clear temp;
+                            end
                         end
                     end
             end
