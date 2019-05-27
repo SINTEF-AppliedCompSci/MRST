@@ -9,7 +9,6 @@ classdef NFVM < PermeabilityGradientDiscretization
         
         function nfvm = NFVM(model, bc)
             
-            
             G = model.G;
             rock = model.rock;
             
@@ -21,18 +20,17 @@ classdef NFVM < PermeabilityGradientDiscretization
             nfvm.OSflux = nfvm.findOSflux(G, rock,bc,nfvm.interpFace);
         end
         
-        function v = getPermeabilityGradient(nfvm, model, state, dp)
+        function v = getPermeabilityGradient(nfvm, model, state, ~)
             
             maxiter = 100;
             tol = 1e-10;
             
             % Skip ADI
-            %u0 = state.pressure.val;
-            u0 = dp.val;
-            keyboard
-            
+            u0 = state.pressure.val;
+            %u0 = dp.val;
+                        
             T = nfvm.TransNTPFA(model, u0);
-            [A, b] = nfvm.AssemAb(model, T, u0); % provide u0 for mu
+            [A, b] = nfvm.AssemAb(model, T, u0); % u0 is needed for mu
             iter = 0;
             res = zeros(maxiter+1,1);
             res(1) = norm(A*u0-b,inf);
@@ -153,10 +151,13 @@ classdef NFVM < PermeabilityGradientDiscretization
             
             flux=zeros(G.faces.num,1);
             ind=all(G.faces.neighbors~=0,2);
-            c1=G.faces.neighbors(ind,1);c2=G.faces.neighbors(ind,2);
+            c1=G.faces.neighbors(ind,1);
+            c2=G.faces.neighbors(ind,2);
             flux(ind)=T(ind,1).*u(c1)-T(ind,2).*u(c2);
+            
             c1=max(G.faces.neighbors(~ind,:),[],2);
             flux(~ind)=T(~ind,1).*u(c1)-T(~ind,2);
+            
             ind=G.faces.neighbors(:,1)==0;
             flux(ind)=-flux(ind);
             
@@ -404,7 +405,7 @@ classdef NFVM < PermeabilityGradientDiscretization
                             container(:,2)=[sum(a);0;interpA(:,2);interpB(:,2);0];
                             trans=nfvm.uniqueTrans(container);
                             OSflux(i_face,2)={trans};clear trans;
-                        else  %--------------------------------------------boudary face
+                        else  %--------------------------------------------boundary face
                             ind=find(bc.face==i_face,1);
                             if(strcmpi(bc.type{ind},'pressure'))
                                 c1=max(G.faces.neighbors(i_face,:));
@@ -468,7 +469,7 @@ classdef NFVM < PermeabilityGradientDiscretization
                             container(:,2)=[sum(a);0;interpA(:,2);interpB(:,2);interpC(:,2);0];
                             trans=nfvm.uniqueTrans(container);
                             OSflux(i_face,2)={trans};clear trans;
-                        else  %----------------------------------------------------boudary face
+                        else  %----------------------------------------------------boundary face
                             ind=find(bc.face==i_face,1);
                             if(strcmpi(bc.type{ind},'pressure'))
                                 c1=max(G.faces.neighbors(i_face,:));
