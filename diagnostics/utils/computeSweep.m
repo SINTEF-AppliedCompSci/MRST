@@ -38,7 +38,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 % remove any null segments (to avoid division by zero)
 hit        = true(size(F));
-hit(2:end) = F(1:end-1)~=F(2:end);
+hit(2:end) = F(1:end-1) <= F(2:end) - sqrt(eps);
 F          = F(hit);
 Phi        = Phi(hit);
 
