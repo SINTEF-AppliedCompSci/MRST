@@ -6,7 +6,7 @@ classdef GenericBlackOilModel < ThreePhaseBlackOilModel & ExtendedReservoirModel
     methods
         function model = GenericBlackOilModel(G, rock, fluid, varargin)
             model = model@ThreePhaseBlackOilModel(G, rock, fluid, varargin{:});
-            model.OutputProperties = {'ComponentTotalMass'};
+            model.OutputStateFunctions = {'ComponentTotalMass'};
         end
 
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)

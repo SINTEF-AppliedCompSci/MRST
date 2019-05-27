@@ -89,7 +89,7 @@ else
     sT = ones(size(value(sW)));
     s = {sW, sO, sG};
 end
-state = model.initPropertyContainers(state);
+state = model.initStateFunctionContainers(state);
 state = model.setProp(state, 's', s);
 
 if ~opt.resOnly

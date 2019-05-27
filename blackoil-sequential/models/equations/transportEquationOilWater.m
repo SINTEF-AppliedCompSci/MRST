@@ -38,7 +38,7 @@ else
     s = {sW, sO};
 end
 state = model.setProp(state, 's', s);
-state = model.initPropertyContainers(state);
+state = model.initStateFunctionContainers(state);
 % -------------------------------------------------------------------------
 [b, pv] = model.getProps(state, 'ShrinkageFactors', 'PoreVolume');
 [b0, pv0] = model.getProps(state0, 'ShrinkageFactors', 'PoreVolume');

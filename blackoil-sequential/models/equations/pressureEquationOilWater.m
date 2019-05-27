@@ -25,7 +25,7 @@ if ~opt.resOnly
         assert(0, 'Reverse mode not supported for splitting solvers');
     end
 end
-state = model.initPropertyContainers(state);
+state = model.initStateFunctionContainers(state);
 primaryVars = [{'pressure'}, wellVarNames];
 p_prop = opt.propsPressure;
 if isempty(p_prop)
@@ -48,6 +48,8 @@ end
 [phaseFlux, flags] = model.getProps(state, 'PhaseFlux',  'PhaseUpwindFlag');
 [vW, vO] = deal(phaseFlux{:});
 [upcw, upco] = deal(flags{:});
+[mobW, mobO] = deal(mob{:});
+[rhoW, rhoO] = deal(rho{:});
 
 % These are needed in transport solver, so we output them regardless of
 % any flags set in the model.
@@ -56,6 +58,7 @@ state = model.storeUpstreamIndices(state, upcw, upco, []);
 if model.extraStateOutput
     state = model.storebfactors(state, bW, bO, []);
     state = model.storeMobilities(state, mobW, mobO, []);
+    state = model.storeDensity(state, rhoW, rhoO, []);
 end
 % EQUATIONS ---------------------------------------------------------------
 % Upstream weight b factors and multiply by interface fluxes to obtain the

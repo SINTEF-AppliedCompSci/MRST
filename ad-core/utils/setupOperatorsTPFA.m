@@ -1,4 +1,4 @@
-function s = setupOperatorsTPFA(G, rock, varargin)
+function op = setupOperatorsTPFA(G, rock, varargin)
 % Set up helper structure for solvers based on automatic differentiation.
 %
 % SYNOPSIS:
@@ -100,6 +100,7 @@ opt = merge_options(opt, varargin{:});
 T = opt.trans;
 N = opt.neighbors;
 
+op = struct();
 if isempty(T)
     % half-trans -> trans and reduce to interior
     T = getFaceTransmissibility(G, rock, opt.deck);
@@ -107,7 +108,7 @@ if isempty(T)
     N=G.faces.neighbors;
     intInx = all(N ~= 0, 2);
     N  = N(intInx, :);
-    s.T_all = T;
+    op.T_all = T;
     T = T(intInx);
 else
     % transmissibility is given    
@@ -137,13 +138,13 @@ else
    
     if numel(T) == n_if
         % Internal interface transmissibility
-        s.T_all = zeros(size(intInx));
-        s.T_all(intInx) = T;
-        s.T = T;
+        op.T_all = zeros(size(intInx));
+        op.T_all(intInx) = T;
+        op.T = T;
     else
         % All transmissibilities given
         assert(numel(T) == numel(intInx));
-        s.T_all = T;
+        op.T_all = T;
         T = T(intInx);
     end
         
@@ -151,7 +152,7 @@ end
 if any(T<0)
     warning('Negative transmissibilities detected.')
 end
-s.T = T;
+op.T = T;
 
 pv = opt.porv;
 if isempty(pv)
@@ -166,33 +167,41 @@ if isempty(pv)
             ' cells. Consider adjusting poro / ntg fields or grid.']);
     end
 end
-s.pv = pv;
+op.pv = pv;
 
 % C - (transpose) divergence matrix
 nf = size(N,1);
-nc = numel(s.pv);
+nc = numel(op.pv);
 assert(nc == G.cells.num, ...
     'Dimension mismatch between grid and supplied pore-volumes.');
 C  = sparse( [(1:nf)'; (1:nf)'], N, ones(nf,1)*[1 -1], nf, nc);
-s.C = C;
-s.Grad = @(x) -C*x;
-s.Div  = @(x) C'*x;
-s.AccDiv = @(acc, flux) acc + C'*flux;
+op.C = C;
+op.Grad = @(x) -C*x;
+op.Div  = @(x) C'*x;
+if nf == 0
+    % We have zero faces. Account for Matlab's preference for
+    % reducing expressions of type a + [] to [].
+    op.AccDiv = @(acc, flux) acc;
+    op.Div = @(x) zeros(nc, 1);
+else
+    op.AccDiv = @(acc, flux) acc + C'*flux;
+    op.Div = @(x) C'*x;
+end
 
 % faceAvg - as multiplication with matrix
 M  = sparse((1:nf)'*[1 1], N, .5*ones(nf,2), nf, nc);
-s.M = M;
-s.faceAvg = @(x)M*x;
+op.M = M;
+op.faceAvg = @(x)M*x;
 
 % faceUpstr - as multiplication with matrix
 upw = @(flag, x)faceUpstr(flag, x, N, [nf, nc]);
-s.faceUpstr = upw;
+op.faceUpstr = upw;
 
-s.splitFaceCellValue = @(operators, flag, x) splitFaceCellValue(operators, flag, x, [nf, nc]);
+op.splitFaceCellValue = @(operators, flag, x) splitFaceCellValue(operators, flag, x, [nf, nc]);
 
 % Include neighbor relations
-s.N = N;
-s.internalConn = intInx;
+op.N = N;
+op.internalConn = intInx;
 
 end
 

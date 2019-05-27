@@ -62,7 +62,6 @@
 \newcommand{\abs}[1]{\left| #1\right|}
 \newcommand{\norm}[1]{\left\| #1\right\|}
 
-\newcommand{\Sdpv}{\ensuremath{S_\text{dpv}} }
 \newcommand{\fracpar}[2]{\frac{\partial #1}{\partial #2}}
 
 \setlength{\parindent}{0cm}
@@ -172,31 +171,14 @@ adsorption of polymer is then taken into account by replacing \eqref{eq:conserva
   \fracpar{}{t}\left(\rho_{r, \text{ref}}(1-\phi_\text{ref})\cads\right)+\nabla\cdot(c
   \rho_{w} \vec{v}_{wp})  = 0.
 \end{equation}
-It is natural to assume that $\cads$ is an increasing function of $c$. Polymer cannot reach the
-smallest pores and, as a result, the effective pore volume for the polymer solution is smaller than
-the pore volume of the rock. This effect can be modeled by replacing
-\eqref{eq:conservation_laws2_withads} with
-\begin{equation}
-  \label{eq:sdpv1}
-  \frac{\partial}{\partial t} (\rho_{w}\phi (1-\Sdpv)S_w c)+
-  \fracpar{}{t}\left(\rho_{r, \text{ref}}(1-\phi_\text{ref})\cads\right)+\nabla\cdot(c
-  \rho_{w} \vec{v}_{wp})  = 0.
-\end{equation}
-where \Sdpv denotes the fraction of the pore volume which is not accessible to polymer. The
-introduction of dead pore volume has the effect to increase the mobility of the polymer
-solution. However, the model equation \eqref{eq:sdpv1} yields to instabilities because it allows
-polymer to go faster than its solvent (water). Actually a consistent way to introduce dead pore
-volume may be given by replacing the definition of the effective water viscosity given by
-\eqref{eq:defmuweff} by
-\begin{equation}
-  \label{eq:newdefmuweff}
-  \frac{1}{\mu_{w,\eff}}=\frac{1-c/\cmax}{\mu_{w,e}}+\frac{c/\cmax}{(1 - \Sdpv)\mu_{p,\eff}}.
-\end{equation}
-In this case, the polymer mobility factor becomes
+It is natural to assume that $\cads$ is an increasing function of $c$. Polymer
+cannot reach the smallest pores and, as a result, the effective pore volume for
+the polymer solution is smaller than the pore volume of the rock. The polymer
+mobility factor becomes
 \begin{equation}
   \label{eq:defmdps}
   m(c) = \frac{\mu_{w,\eff}}{\mu_{p,\eff}} = \Bigl[\Bigl(1 -\frac{c}{\cmax}\Bigr)
-  \Bigl(\frac{\mu_p}{\mu_w}\Bigr)^{1-\omega}(1-\Sdpv) + \frac{c}{\cmax}\Bigr]^{-1}.
+  \Bigl(\frac{\mu_p}{\mu_w}\Bigr)^{1-\omega} + \frac{c}{\cmax}\Bigr]^{-1}.
 \end{equation}
 Finally the modeling equations are
 \begin{subequations}

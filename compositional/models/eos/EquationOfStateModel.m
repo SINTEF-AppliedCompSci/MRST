@@ -728,7 +728,7 @@ classdef EquationOfStateModel < PhysicalModel
             ncomp = numel(x);
             timer = tic();
             eqs = cell(1, 2*ncomp + 1);
-            sample = getSampleAD(P, T, x{:}, y{:});
+            sample = getSampleAD(P, T, x{:}, y{:}, z{:});
             emptyJac = double2ADI(zeros(size(value(P))), sample);
             
             isLiq = value(L) == 1;
@@ -789,15 +789,19 @@ classdef EquationOfStateModel < PhysicalModel
             end
             subpacked = packed;
             if isfield(subpacked, 'Z_L')
-                subpacked.Z_L.val = subpacked.Z_L.val(twoPhase);
-                subpacked.Z_L.jac = subpacked.Z_L.jac(twoPhase, :);
-                subpacked.Z_V.val = subpacked.Z_V.val(twoPhase);
-                subpacked.Z_V.jac = subpacked.Z_V.jac(twoPhase, :);
-                for i = 1:numel(subpacked.f_L)
-                    subpacked.f_L{i}.val = subpacked.f_L{i}.val(twoPhase);
-                    subpacked.f_L{i}.jac = subpacked.f_L{i}.jac(twoPhase, :);
-                    subpacked.f_V{i}.val = subpacked.f_V{i}.val(twoPhase);
-                    subpacked.f_V{i}.jac = subpacked.f_V{i}.jac(twoPhase, :);
+                if isnumeric(subpacked.Z_L)
+                    subpacked = [];
+                else
+                    subpacked.Z_L.val = subpacked.Z_L.val(twoPhase);
+                    subpacked.Z_L.jac = subpacked.Z_L.jac(twoPhase, :);
+                    subpacked.Z_V.val = subpacked.Z_V.val(twoPhase);
+                    subpacked.Z_V.jac = subpacked.Z_V.jac(twoPhase, :);
+                    for i = 1:numel(subpacked.f_L)
+                        subpacked.f_L{i}.val = subpacked.f_L{i}.val(twoPhase);
+                        subpacked.f_L{i}.jac = subpacked.f_L{i}.jac(twoPhase, :);
+                        subpacked.f_V{i}.val = subpacked.f_V{i}.val(twoPhase);
+                        subpacked.f_V{i}.jac = subpacked.f_V{i}.jac(twoPhase, :);
+                    end
                 end
             end
             z0 = cellfun(@(x) x(twoPhase), z0, 'UniformOutput', false);
@@ -1068,7 +1072,9 @@ classdef EquationOfStateModel < PhysicalModel
                                 Z.jac{i} = Z.jac{i}.expandZero();
                             end
                             Z.jac{i}.diagonal(map, :) = d;
-                            Z.jac{i}.subset(map) = (1:numel(map))';
+                            if ~isempty(Z.jac{i}.subset)
+                                Z.jac{i}.subset(map) = (1:numel(map))';
+                            end
                         end
                     end
                 end

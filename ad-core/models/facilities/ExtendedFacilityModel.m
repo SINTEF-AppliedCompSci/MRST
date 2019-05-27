@@ -52,10 +52,16 @@ classdef ExtendedFacilityModel < FacilityModel
             end
             W = facility.getWellStruct(map.active);
             if isfield(W, 'rhoS')
+                % Surface density is given on a per-well-basis
                 rhoS = vertcat(W.rhoS);
             else
+                % We take the surface density for the first well cell,
+                % regardless of active or inactive status for that
+                % perforation.
+                topcell = arrayfun(@(x) x.cells(1), W);
+                reg = model.FlowPropertyFunctions.Density.regions;
                 rhoS = model.getSurfaceDensities();
-                rhoS = repmat(rhoS, numel(W), 1);
+                rhoS = rhoS(reg(topcell), :);
             end
             [eqs, names, types] = deal(cell(1, nph+1));
             
@@ -231,8 +237,8 @@ classdef ExtendedFacilityModel < FacilityModel
             end
         end
         
-        function containers = getPropertyFunctions(model)
-            containers = getPropertyFunctions@PhysicalModel(model);
+        function containers = getStateFunctionGroupings(model)
+            containers = getStateFunctionGroupings@PhysicalModel(model);
             assert(not(isempty(model.FacilityFluxDiscretization)), ...
                 'FacilityFluxDiscretization not initialized - did you call "validateModel"?');
             containers = [containers, {model.FacilityFluxDiscretization}];
@@ -431,7 +437,7 @@ classdef ExtendedFacilityModel < FacilityModel
                 flowProps = model.ReservoirModel.FlowPropertyFunctions.subset(cells);
                 % Avoid using flag for interpolation
                 flowProps.ShrinkageFactors.useSaturatedFlag = true;
-                substate = flowProps.evaluatePropertyWithDependencies(model.ReservoirModel, substate, 'Density');
+                substate = flowProps.evaluateStateFunctionWithDependencies(model.ReservoirModel, substate, 'Density');
                 rho = substate.FlowProps.Density;
                 rho = [rho{:}];
                 if false

@@ -63,7 +63,7 @@ if ~opt.resOnly
         assert(0, 'Backwards solver not supported for splitting');
     end
 end
-state = model.initPropertyContainers(state);
+state = model.initStateFunctionContainers(state);
 
 primaryVars = [{'pressure'}, wellVarNames];
 p_prop = opt.propsPressure;

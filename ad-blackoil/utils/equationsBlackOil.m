@@ -158,7 +158,7 @@ end
 state = model.setProps(state, {'s', 'pressure', 'rs', 'rv'}, {sat, p, rs, rv});
 state0 = model.setProps(state0, {'s', 'pressure', 'rs', 'rv'}, {sat0, p0, rs0, rv0});
 % Set up properties
-state = model.initPropertyContainers(state);
+state = model.initStateFunctionContainers(state);
 
 [b, pv] = model.getProps(state, 'ShrinkageFactors', 'PoreVolume');
 [b0, pv0] = model.getProps(state0, 'ShrinkageFactors', 'PoreVolume');
