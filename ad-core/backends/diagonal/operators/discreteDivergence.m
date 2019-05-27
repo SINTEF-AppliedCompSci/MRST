@@ -19,7 +19,8 @@ function v = discreteDivergence(acc, N, v, nc, nf, sortIx, C, prelim, useMex)
             end
         end
     else
-        v = accumulate(N, value(v), nc);
+        v = C*v;
+        %v = accumulate(N, value(v), nc);
         if hasAcc
             v = v + acc;
         end
