@@ -1,5 +1,5 @@
 function flux = getInteriorFluxesStreamlines(G, state, pvol, reverse)
-   if nargin < 3
+   if nargin < 4
        reverse = false;
    end
    if size(state.flux, 2) > 1

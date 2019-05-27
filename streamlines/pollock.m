@@ -241,7 +241,8 @@ function xyz = globalCoordinate(G, c, p)
    % Compute weighted average of corner points
    xyz = zeros(size(p,1), d);
    for i=1:d
-      xyz(:,i) = sum(w .* reshape(G.nodes.coords(G.cellNodes(c, :), i)', 2^d, [])', 2);
+      xi       = G.nodes.coords(:,i);
+      xyz(:,i) = sum(w .* reshape(xi(G.cellNodes(c, :))', 2^d, [])', 2);
    end
 end
 
