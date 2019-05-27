@@ -97,6 +97,31 @@ classdef LinearSolverAD < handle
             assert(isa(objective, 'ADI'), 'Objective function was not of type ADI.');
             b = objective.jac{1}';
             if ~isempty(adjVec)
+                % hack
+                ix = find(cellfun(@(x)isa(x, 'GenericAD'), problemPrev.equations));
+                if any(ix)
+                    mismatch = numel(b) - sum(problemPrev.equations{ix(1)}.numVars);
+                    if mismatch ~= 0
+                        % adjust size of jacobians
+                        nd = numel(problemPrev.equations) - numel(ix);
+                        assert(mod(mismatch, nd)==0, 'Unable to resolve jacobian mismatch');
+                        for k = 1:numel(ix)
+                            problemPrev.equations{ix(k)}.jac{2}.dim(1) = ...    
+                                problemPrev.equations{ix(k)}.jac{2}.dim(1) + mismatch/nd;
+                        end
+                    end
+                    nad = cellfun(@numval, problemPrev.equations(ix));
+                    ix = find(cellfun(@(x)isa(x, 'double'), problemPrev.equations));
+                    nd  = cellfun(@numel, problemPrev.equations(ix));
+                    mismatch = numel(adjVec) - sum(nad) - sum(nd);
+                    if mismatch ~= 0
+                        assert(mod(mismatch, numel(ix))==0, 'Unable to resolve jacobian mismatch');
+                        for k  =1:numel(ix)
+                            problemPrev.equations{ix(k)} = zeros(nd(k) + mismatch/numel(ix),1);
+                        end
+                    end
+                end
+                        
                 problemPrev = problemPrev.assembleSystem();
                 b = b - problemPrev.A'*adjVec;
             end
