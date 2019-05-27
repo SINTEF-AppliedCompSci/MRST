@@ -63,6 +63,10 @@ function fluid = initSimpleADIFluid(varargin)
 %           where pv_ref is the pore volume specified by the grid and rock
 %           models
 %
+%   smin - Minimal (connate) saturations for each phase. If > 0, these will 
+%          scale rel-perms such that krX=0 for s <= smin(X) and krX = 1 for
+%          s >= 1 - sum(smin) + smin(X)
+%
 %   pRef - Reference pressure used in conjunction with rock and fluid
 %          compressibility factors c and cr, i.e::
 %
@@ -129,6 +133,7 @@ opt = struct('mu',      [1, 1, 1], ...
              'c',       [], ...
              'pRef',    0, ...
              'cR',      [], ...
+             'smin',    [0 0 0], ...
              'phases',  'WOG');
 opt = merge_options(opt, varargin{:});
 
@@ -137,6 +142,7 @@ assert(all(ismember(double(names), double('WOG'))), ...
     'Input phases must be some combination of W for water, O for oil and G for gas!');
 nPh = numel(names);
 assert(nPh == numel(unique(double(names))), 'Duplicate phases detected.');
+assert(sum(opt.smin) < .99, 'Sum of connate/critical saturations must be smaller than 1');
 for i = 1:nPh
     n = names(i);
     b = opt.b(i);
@@ -152,7 +158,13 @@ for i = 1:nPh
         end
         bf = @(p, varargin) b*exp((p-opt.pRef)*c);
     end
-    kr = @(s, varargin) s.^opt.n(i);
+    if all(opt.smin == 0)
+        kr = @(s, varargin) s.^opt.n(i);
+    else
+        sl = opt.smin(i);
+        su = 1 - sum(opt.smin) + sl;
+        kr = @(s, varargin) max(0, min(1, (s-sl)/(su-sl) )).^opt.n(i);
+    end
     
     fluid.(['rho', n, 'S']) = opt.rho(i);
     fluid.(['b', n]) = bf;
