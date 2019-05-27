@@ -88,6 +88,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     % inititialize parameters to ADI
     [modelParam, scheduleParam, paramValues] = initModelParametersADI(model, schedule, param);
+    % reset discretization/flow functions to account for AD-parameters
+    modelParam.FluxDiscretization = [];
+    modelParam.FlowPropertyFunctions = [];
+    modelParam = validateModel(modelParam);
+    
     
     nstep = numel(schedule.step.val);
     lambda = [];
@@ -116,7 +121,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         forces = model.getDrivingForces(schedule.control(schedule.step.control(1)));
         forces = merge_options(model.getValidDrivingForces(), forces{:});
         problem = model.getAdjointEquations(state0, states{1}, dt, forces,...
-            'iteration', inf, 'reverseMode', true, 'drivingForces0', forces);
+            'iteration', inf, 'reverseMode', true);
         pnm = problem.primaryVariables;
         for kn = 1:numel(pnm)
             for nl = 1:numel(lami)
