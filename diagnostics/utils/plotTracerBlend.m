@@ -38,8 +38,11 @@ function varargout = plotTracerBlend(G, partition, maxconc, varargin)
 %                    blend these colors with white to brigthen the
 %                    colormap.
 %
-%                  - cells' --
+%                  - cells --
 %                    List of cells as expected by plotCellData()
+%
+%                  - cmap --
+%                    Colormap. Defaults to colorcube 
 %
 %   Any non-matching parameter is passed through to plotCellData(). 
 %
@@ -85,7 +88,7 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    opt = struct('p', 1, 'alpha', 1, 'cells', []);
+    opt = struct('p', 1, 'alpha', 1, 'cells', [], 'cmap', []);
     [opt, unrecognized] = merge_options(opt, varargin{:});
 
     % Safeguard against partition containing zero values (which correspond
@@ -94,7 +97,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         partition = partition + 1;
     end
     nreg = max(partition);
-    cmap = colorcube(max(nreg, 8));
+    if isempty(opt.cmap) || size(opt.cmap,1)<nreg
+        cmap = colorcube(max(nreg, 8));
+    else
+        cmap = opt.cmap;
+    end
     
     assert(opt.alpha>0 & opt.alpha<=1,'Alpha must be in the interval (0,1]');
     cmap = opt.alpha *cmap + (1-opt.alpha)*ones(size(cmap));

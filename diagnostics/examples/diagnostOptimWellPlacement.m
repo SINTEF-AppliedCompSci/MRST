@@ -8,7 +8,7 @@
 % Different options can be changed for different results. The default is to
 % optimize the placement of the wells, but not their rates.
 
-mrstModule add ad-fi ad-props diagnostics spe10 incomp
+mrstModule add ad-core ad-props diagnostics spe10 incomp
 close all
 
 %% Parameters that determine the setup
@@ -53,11 +53,11 @@ T = computeTrans(G, rock);
 
 % State
 
-% Fluid, ad system
+% Fluid
 fluid_ad = initSimpleADIFluid('mu', [1,1,1].*centi*poise, 'n', [1,1,1]);
 
-% Create AD system
-sys = initADISystem({'Oil', 'Water'}, G, rock, fluid_ad);
+% Build discrete operators
+ops = setupOperatorsTPFA(G, rock);
 
 
 %% Set up wells
@@ -105,7 +105,7 @@ objective = getObjectiveDiagnostics(G, rock, 'minlorenz');
 % Handle for pressure solver
 state0 = initResSol(G, 0*barsa, [0 1 0]);
 solvePressure = @(W, varargin) ... 
-   solveStationaryPressure(G, state0, sys, W, fluid_ad, pv, T, ...
+   solveStationaryPressure(G, state0, ops, W, fluid_ad, pv, T, ...
    'objective', objective, varargin{:});
 
 % Solve pressure and display objective value
@@ -115,7 +115,7 @@ solvePressure = @(W, varargin) ...
 if optimizePlacement
     [W_opt, wellHistory, optHistory] = ...
         optimizeWellPlacementDiagnostics(G, W, rock, objective, targets, ...
-               D, minRate, state0, fluid_ad, pv,T, sys, ...
+               D, minRate, state0, fluid_ad, pv,T, ops, ...
                'optimizesubsteps', optimizeSubsteps, ...
                'searchRadius', wradius, 'wellSteps', 1, ...
                'plotProgress', true);
@@ -123,7 +123,7 @@ if optimizePlacement
         solvePressure(W_opt, 'linsolve', @mldivide);
 else
     [D_best, W_best, history] = ...
-        optimizeTOF(G, W, fluid_ad, pv, T, sys,state0, minRate, ...
+        optimizeTOF(G, W, fluid_ad, pv, T, ops,state0, minRate, ...
                objective, 'targets', targets, 'plotProgress', true); %#ok<UNRCH>
     wellHistory = [];
 end

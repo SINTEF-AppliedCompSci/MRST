@@ -206,8 +206,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         G.cartDims = ones(1, G.griddim);
     end
     
-    if G.griddim == 2 && isfield(G.faces, 'nodes')
-        G.cells.sortedCellNodes = getSortedCellNodes(G);
+    if G.griddim == 2
+        if isfield(G.faces, 'nodes')
+            G.cells.sortedCellNodes = getSortedCellNodes(G);
+        elseif isfield(G, 'parent') && isfield(G.parent, 'nodes')
+            G.parent.cells.sortedCellNodes = getSortedCellNodes(G.parent);
+        end
     end
     
     ijk = cell(size(G.cartDims));
