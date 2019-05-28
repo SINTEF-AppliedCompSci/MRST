@@ -9,25 +9,19 @@ classdef NFVM < PermeabilityGradientDiscretization
         
         function nfvm = NFVM(model, bc)
             
-            G = model.G;
-            rock = model.rock;
-            
             % Setup nfvm members
             nfvm.bc = bc;
-            nfvm.interpFace = nfvm.findHAP(G, rock);
+            nfvm.interpFace = nfvm.findHAP(model.G, model.rock);
             disp(['fraction of faces with centroids outside convex hull ', num2str(nfvm.interpFace.percentage)]);
-            nfvm.interpFace = nfvm.correctHAP(G);
-            nfvm.OSflux = nfvm.findOSflux(G, rock,nfvm.interpFace);
+            nfvm.interpFace = nfvm.correctHAP(model.G);
+            nfvm.OSflux = nfvm.findOSflux(model.G, model.rock, nfvm.interpFace);
         end
         
         function v = getPermeabilityGradient(nfvm, model, state, dp)
             
-            maxiter = 100;
-            tol = 1e-12;
-            
-            u0 = state.pressure;
-            T = nfvm.TransNTPFA(model, value(u0));
-            v = nfvm.computeFlux(u0,T,model);
+            u0 = state.pressure; 
+            T = nfvm.TransNTPFA(model, value(u0)); 
+            v = nfvm.computeFlux(u0, T, model);
             
             % Reduce to interior
             ii = sum(model.G.faces.neighbors ~= 0, 2) == 2;
@@ -39,13 +33,15 @@ classdef NFVM < PermeabilityGradientDiscretization
         
         function T = TransNTPFA(nfvm, model, u)
             
-            mu = nfvm.getMuValue(model, u);
             G = model.G;
+            OSflux = nfvm.OSflux;
+            bc = nfvm.bc;
+            
             T=zeros(G.faces.num,2);
             for i_face=1:G.faces.num
                 if(all(G.faces.neighbors(i_face,:)~=0))
-                    t1=nfvm.OSflux{i_face,1};
-                    t2=nfvm.OSflux{i_face,2};
+                    t1=OSflux{i_face,1};
+                    t2=OSflux{i_face,2};
                     r1=t1(3:end-1,2)'*u(t1(3:end-1,1))+t1(end,2);
                     r2=t2(3:end-1,2)'*u(t2(3:end-1,1))+t2(end,2);
                     eps=1e-12*max(abs([t1(:,end);t2(:,end)]));
@@ -55,14 +51,14 @@ classdef NFVM < PermeabilityGradientDiscretization
                     if(abs(r1+r2)>eps)
                         mu1=r2/(r1+r2);mu2=1-mu1;
                     else
-                        mu1=0.5; mu2=0.5;
+                        mu1=0.5;mu2=0.5;
                     end
-                    T(i_face,1)=(mu1*t1(1,2)+mu2*t2(2,2))/mu;
-                    T(i_face,2)=(mu1*t1(2,2)+mu2*t2(1,2))/mu;
+                    T(i_face,1)=mu1*t1(1,2)+mu2*t2(2,2);
+                    T(i_face,2)=mu1*t1(2,2)+mu2*t2(1,2);
                 else
-                    ind=find(nfvm.bc.face==i_face,1);
-                    if(strcmpi(nfvm.bc.type{ind},'pressure'))
-                        t1=nfvm.OSflux{i_face,1};t2=nfvm.OSflux{i_face,2};
+                    ind=find(bc.face==i_face,1);
+                    if(strcmpi(bc.type{ind},'pressure'))
+                        t1=OSflux{i_face,1};t2=OSflux{i_face,2};
                         t11=t1(1,2);t12=t1(2,2);
                         t22=t2(1,2);t21=t2(2,2);
                         r1=t1(3:end-1,2)'*u(t1(3:end-1,1))+t1(end,2);
@@ -76,10 +72,10 @@ classdef NFVM < PermeabilityGradientDiscretization
                             mu1=0.5;mu2=0.5;
                         end
                         T(i_face,1)=mu1*t11+mu2*t21;
-                        T(i_face,2)=(mu1*t12+mu2*t22)*nfvm.bc.value{ind}(G.faces.centroids(i_face,:));
+                        T(i_face,2)=(mu1*t12+mu2*t22)*bc.value{ind}(G.faces.centroids(i_face,:));
                     else
                         T(i_face,2)=-G.faces.areas(i_face)*...
-                            nfvm.bc.value{ind}(G.faces.centroids(i_face,:));
+                            bc.value{ind}(G.faces.centroids(i_face,:));
                     end
                 end
             end
@@ -88,33 +84,16 @@ classdef NFVM < PermeabilityGradientDiscretization
         function [flux,wellsol]=computeFlux(nfvm,u,T,model)
             
             G = model.G;
-            %W = nfvm.getWells(model);
-            %rho = model.fluid.rhoWS;
-            %mu = nfvm.getMuValue(model, u);
+            
             flux=zeros(G.faces.num,1);
             flux=model.AutoDiffBackend.convertToAD(flux, u);
             ind=all(G.faces.neighbors~=0,2);
-            c1=G.faces.neighbors(ind,1);
-            c2=G.faces.neighbors(ind,2);
+            c1=G.faces.neighbors(ind,1);c2=G.faces.neighbors(ind,2);
             flux(ind)=T(ind,1).*u(c1)-T(ind,2).*u(c2);
-            
             c1=max(G.faces.neighbors(~ind,:),[],2);
             flux(~ind)=T(~ind,1).*u(c1)-T(~ind,2);
-            
             ind=G.faces.neighbors(:,1)==0;
             flux(ind)=-flux(ind);
-            
-            %             wellsol=repmat(struct('pressure',[],'flux',[]),[numel(W) 1]);
-            %             for i=1:numel(W)
-            %                 if(strcmpi(W(i).type,'bhp'))
-            %                     pbh=W(i).val;dZ=W(i).dZ;
-            %                     wellsol(i).pressure=pbh+rho*9.81*dZ;
-            %                     wellsol(i).flux=W(i).WI./mu.*(wellsol(i).pressure-u(W(i).cells));
-            %                 else
-            %                     error('code under development!');
-            %                     % write code here babbabababaababababababababababababababababababab
-            %                 end
-            %             end
         end
         
         %         function W = getWells(nfvm, model)
@@ -125,12 +104,12 @@ classdef NFVM < PermeabilityGradientDiscretization
         %             end
         %         end
         
-        function mu = getMuValue(nfvm, model, u)
-            % FIXME choose upstream cell for mu or what?
-            op = model.operators;
-            mu = op.splitFaceCellValue(op, true, model.fluid.muW(u));
-            mu = mu(1);
-        end
+%         function mu = getMuValue(nfvm, model, u)
+%             % FIXME choose upstream cell for mu or what?
+%             op = model.operators;
+%             mu = op.splitFaceCellValue(op, true, model.fluid.muW(u));
+%             mu = mu(1);
+%         end
         
         function interpFace=findHAP(nfvm,G,rock)
             %find harmonic averaging points for 2D and 3D grids. Considering both
