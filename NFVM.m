@@ -196,7 +196,7 @@ classdef NFVM < PermeabilityGradientDiscretization
                         xv=hap(ind,1);yv=hap(ind,2);
                         counter(i)=inpolygon(xc(1),xc(2),xv,yv);
                     case 3
-                        counter(i)=nfvm.inhull(nfvm,xc,hap,ind,-1e-5);
+                        counter(i)=nfvm.inhull(xc,hap,ind,-1e-5);
                 end
             end
             interpFace.percentage=1-sum(counter)/G.cells.num;
@@ -286,7 +286,7 @@ classdef NFVM < PermeabilityGradientDiscretization
                         theFaces=G.cells.faces(G.cells.facePos(thecell):G.cells.facePos(thecell+1)-1);
                         hap=interpFace.coords(theFaces,:);
                         ind=convhull(hap);
-                        in=nfvm.inhull(nfvm,xc,hap,ind,-1e-5);
+                        in=nfvm.inhull(xc,hap,ind,-1e-5);
                         %             in=inpolyhedron(ind,hap,xc);
                         if(~in),flag=thecell;break;end
                     end
