@@ -17,33 +17,17 @@ classdef NFVM < PermeabilityGradientDiscretization
             nfvm.interpFace = nfvm.findHAP(G, rock);
             disp(['fraction of faces with centroids outside convex hull ', num2str(nfvm.interpFace.percentage)]);
             nfvm.interpFace = nfvm.correctHAP(G);
-            nfvm.OSflux = nfvm.findOSflux(G, rock,bc,nfvm.interpFace);
+            nfvm.OSflux = nfvm.findOSflux(G, rock,nfvm.interpFace);
         end
         
-        function v = getPermeabilityGradient(nfvm, model, state, ~)
+        function v = getPermeabilityGradient(nfvm, model, state, dp)
             
             maxiter = 100;
-            tol = 1e-10;
+            tol = 1e-12;
             
-            % Skip ADI
-            u0 = state.pressure.val;
-            %u0 = dp.val;
-                        
-            T = nfvm.TransNTPFA(model, u0);
-            [A, b] = nfvm.AssemAb(model, T, u0); % u0 is needed for mu
-            iter = 0;
-            res = zeros(maxiter+1,1);
-            res(1) = norm(A*u0-b,inf);
-            while(res(iter+1)>tol*res(1)&&iter<maxiter)
-                dispif(mrstVerbose, [num2str(iter), ' ', num2str(res(iter+1)), '\n'])
-                u=A\b;
-                T=nfvm.TransNTPFA(model, u);
-                [A,b]=nfvm.AssemAb(model, T, u);
-                iter=iter+1;
-                res(iter+1)=norm(A*u-b,inf);
-            end
-            
-            v = nfvm.computeFlux(u,T,model);
+            u0 = state.pressure;
+            T = nfvm.TransNTPFA(model, value(u0));
+            v = nfvm.computeFlux(u0,T,model);
             
             % Reduce to interior
             ii = sum(model.G.faces.neighbors ~= 0, 2) == 2;
@@ -148,8 +132,8 @@ classdef NFVM < PermeabilityGradientDiscretization
             %W = nfvm.getWells(model);
             %rho = model.fluid.rhoWS;
             %mu = nfvm.getMuValue(model, u);
-            
             flux=zeros(G.faces.num,1);
+            flux=model.AutoDiffBackend.convertToAD(flux, u);
             ind=all(G.faces.neighbors~=0,2);
             c1=G.faces.neighbors(ind,1);
             c2=G.faces.neighbors(ind,2);
@@ -365,7 +349,7 @@ classdef NFVM < PermeabilityGradientDiscretization
             end
         end
         
-        function OSflux=findOSflux(nfvm,G,rock,bc,interpFace)
+        function OSflux=findOSflux(nfvm,G,rock,interpFace)
             %Construct one-side fluxes for 2D and 3D grids. Considering general
             %boundary conditions, appending a constant at the last row of
             %transmissibility matrix
@@ -406,8 +390,8 @@ classdef NFVM < PermeabilityGradientDiscretization
                             trans=nfvm.uniqueTrans(container);
                             OSflux(i_face,2)={trans};clear trans;
                         else  %--------------------------------------------boundary face
-                            ind=find(bc.face==i_face,1);
-                            if(strcmpi(bc.type{ind},'pressure'))
+                            ind=find(nfvm.bc.face==i_face,1);
+                            if(strcmpi(nfvm.bc.type{ind},'pressure'))
                                 c1=max(G.faces.neighbors(i_face,:));
                                 cf=G.cells.num+i_face;
                                 K1=K(:,:,c1);
@@ -437,7 +421,7 @@ classdef NFVM < PermeabilityGradientDiscretization
                                 OSflux(i_face,1)={trans};clear trans
                                 
                                 [a,xD]=findDnode(G,c1,i_face,-w1);
-                                uD=bc.value{ind}(xD);
+                                uD=nfvm.bc.value{ind}(xD);
                                 temp=[cf sum(a);c1 a(1);0 a(2)*uD];
                                 OSflux(i_face,2)={temp};clear temp;
                             end
@@ -470,8 +454,8 @@ classdef NFVM < PermeabilityGradientDiscretization
                             trans=nfvm.uniqueTrans(container);
                             OSflux(i_face,2)={trans};clear trans;
                         else  %----------------------------------------------------boundary face
-                            ind=find(bc.face==i_face,1);
-                            if(strcmpi(bc.type{ind},'pressure'))
+                            ind=find(nfvm.bc.face==i_face,1);
+                            if(strcmpi(nfvm.bc.type{ind},'pressure'))
                                 c1=max(G.faces.neighbors(i_face,:));
                                 cf=G.cells.num+i_face;
                                 K1=K(:,:,c1);fn=G.faces.normals(i_face,:)';
@@ -505,8 +489,8 @@ classdef NFVM < PermeabilityGradientDiscretization
                                 OSflux(i_face,1)={trans};clear trans;
                                 
                                 [a,xA,xB]=findDnodes(G,c1,i_face,-w1);
-                                uA=bc.value{ind}(xA);
-                                uB=bc.value{ind}(xB);
+                                uA=nfvm.bc.value{ind}(xA);
+                                uB=nfvm.bc.value{ind}(xB);
                                 temp=[cf sum(a);c1 a(1);0 a(2)*uA+a(3)*uB];
                                 OSflux(i_face,2)={temp};clear temp;
                             end
