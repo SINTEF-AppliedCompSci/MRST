@@ -29,8 +29,8 @@ function state = incompTPFA(state, G, T, fluid, varargin)
 %   fluid  - Fluid object as defined by function 'initSimpleFluid'.
 %
 % OPTIONAL PARAMETERS:
-%   wells  - Well structure as defined by function 'addWell'.  May be empty
-%            (i.e., W = struct([])) which is interpreted as a model without
+%   W      - Well structure as defined by function 'addWell'.  May be empty
+%            (i.e., W = []) which is interpreted as a model without
 %            any wells.
 %
 %   bc     - Boundary condition structure as defined by function 'addBC'.
@@ -151,7 +151,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 
    opt = struct('bc', [], 'src', [], 'wells', [], ...
-                'bcp',[],...
+                'W', [], 'bcp',[],...
                 'LinSolve',     @mldivide,        ...
                 'MatrixOutput', false, ...
                 'Verbose',      mrstVerbose,...
@@ -161,6 +161,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 'use_trans',false);
 
    opt = merge_options(opt, varargin{:});
+   opt = treatLegacyForceOptions(opt);
    do_solve = checkDrivingForcesIncomp(G, opt);
    if ~do_solve
        return

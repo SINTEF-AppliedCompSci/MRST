@@ -29,7 +29,7 @@ function state = incompMPFA(state, g, T, fluid, varargin)
 %   fluid  - Fluid object as defined by function 'initSimpleFluid'.
 %
 % OPTIONAL PARAMETERS:
-%   wells  - Well structure as defined by functions 'addWell' and
+%   W      - Well structure as defined by functions 'addWell' and
 %            'assembleWellSystem'.  May be empty (i.e., W = struct([]))
 %            which is interpreted as a model without any wells.
 %
@@ -109,7 +109,7 @@ function state = incompMPFA(state, g, T, fluid, varargin)
 %
 %    state = initState(G, W, 100*barsa);
 %    state = incompMPFA(state, G, T, f, 'bc', bc, 'src', src, ...
-%                       'wells', W, 'MatrixOutput',true);
+%                       'W', W, 'MatrixOutput',true);
 %
 %    plotCellData(G, xr.pressure);
 %
@@ -140,10 +140,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 % Written by Jostein R. Natvig, SINTEF ICT, 2009.
 
    opt = struct('bc', [], 'src', [], 'wells', [], ...
+                'W', [], ...
                 'LinSolve',     @mldivide,        ...
                 'MatrixOutput', false,            ...
                 'Verbose',mrstVerbose);
    opt = merge_options(opt, varargin{:});
+   opt = treatLegacyForceOptions(opt);
 
    g_vec   = gravity();
    no_grav = ~(norm(g_vec) > 0); %(1 : size(g.nodes.coords,2))) > 0);
