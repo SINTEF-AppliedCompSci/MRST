@@ -51,7 +51,12 @@ public:
 		   Opm::Amg::getQuasiImpesWeights<MatrixType, VectorType>(linearoperator.getmat(), prm.get<int>("pressure_var_index"))) // TODO
         , levelTransferPolicy_(comm_, weights_, prm.get<int>("pressure_var_index"))
         , coarseSolverPolicy_(prm.get_child("coarsesolver"))
-        , twolevel_method_(linearoperator, finesmoother_, levelTransferPolicy_, coarseSolverPolicy_, 0, 1)
+        , twolevel_method_(linearoperator,
+			   finesmoother_,
+			   levelTransferPolicy_,
+			   coarseSolverPolicy_,
+			   prm.get<int>("pre_smooth"),
+			   prm.get<int>("post_smooth"))
     {
       if(prm.get<int>("verbosity")>10){
 	std::ofstream outfile("weight_cpr.txt");

@@ -82,6 +82,8 @@ makeAmgPreconditioner(Dune::MatrixAdapter<MatrixType, VectorType, VectorType>& l
     criterion.setMaxLevel(ml);
     criterion.setSkipIsolated(false);
     criterion.setDebugLevel(prm.get<int>("verbosity"));
+    criterion.setNoPreSmoothSteps(prm.get<int>("pre_smooth"));
+    criterion.setNoPostSmoothSteps(prm.get<int>("post_smooth"));
     Dune::Amg::Parameters parms;
     if (global_prm.get<std::string>("preconditioner") == "famg") {
         preconditioner.reset(new Dune::Amg::FastAMG<OperatorType, VectorType>(linearoperator, criterion, parms));

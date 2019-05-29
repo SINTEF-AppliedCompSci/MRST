@@ -33,7 +33,16 @@ if(isempty(opt.istloptions))
 else
     options = jsonencode(opt.istloptions);
 end
+bb=opt.blocksize;
+rows=[floor(i/bb),floor(j/bb),mod(i,bb),mod(j,bb)];
+[~,ind] = sortrows(rows);
 
+%[i,ind] = sort(i);
+%%{
+i=i(ind);
+j=j(ind);
+val=val(ind);
+%}
 [x,ext] = duneistl_matlab(i,j,val, rhs, opt.blocksize, opt.tol, ...
                           opt.maxiter, options);
 extra = jsondecode(ext);

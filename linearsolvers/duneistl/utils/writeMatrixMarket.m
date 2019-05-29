@@ -1,6 +1,6 @@
 function writeMatrixMarket(mat, bz, filename,is_matrix)
 if(is_matrix)
-    [i,j,s] = find(mat)
+    [i,j,s] = find(mat);
     bmat=[i,j,s];
     fn = fopen(filename,'w');
     fprintf(fn,'%%%%MatrixMarket matrix coordinate real general\n');
