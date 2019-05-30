@@ -15,10 +15,10 @@ COMPDAT_org={'INJE01'    [1]    [1]    [1]    [1]    'OPEN'    [-1]...
 
 v=Inf
 WCONINJE_org={'Injector2'    'WATER'    'OPEN'    'rate'    [v] ...
-    [v]    [v]    [v]    [-1]    [v]    [v]    [v]    [v]    [v]};
+    [v]    [v]    [v]    [0]    [v]    [v]    [v]    [v]    [v]};
 
 WCONPROD_org={'Producer1'    'OPEN'    'bhp'    [v]    [v]    [v]    [v]...
-    [v]    [v]    [v]    [-1]    [v]};
+    [v]    [v]    [v]    [0]    [v]};
 
 
 cartDims=g.cartDims;
