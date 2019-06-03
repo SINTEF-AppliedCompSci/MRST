@@ -10,28 +10,14 @@
 %
 % Apr. 2019
 
-mrstModule add ad-blackoil ad-core deckformat mrst-gui ad-props 
+mrstModule add ad-blackoil ad-core deckformat mrst-gui ad-props diagnostics
 deck = getDeckEGG('realization',1);
-
+gravity reset on
 
 %% Setup model, schedule and initial state
 G = initEclipseGrid(deck);
 G = extractSubgrid(G, logical(deck.GRID.ACTNUM));
-G = computeGeometry(G);
-
-rock  = initEclipseRock(deck);
-rock  = compressRock(rock, G.cells.indexMap);
-
-fluid = initDeckADIFluid(deck);
-
-model = selectModelFromDeck(G, rock, fluid, deck);
-
-nonlinear = NonLinearSolver('verbose',false);
-nonlinear.LinearSolver = selectLinearSolverAD(model);
-
-schedule = convertDeckScheduleToMRST(model, deck);
-state0 = initStateDeck(model, deck);
-
+[state0, model, schedule, nonlinear] = initEclipseProblemAD(deck, 'G', G);
 %% Define/pack simulation problem
 problem = packSimulationProblem(state0, model, schedule, 'egg_model_FlowDiagnostics','NonLinearSolver',nonlinear);
 
