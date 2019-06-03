@@ -121,7 +121,12 @@ classdef UIItem < handle
         %------------------------------------------------------------------
         function set.Position(d,val)
             om = d.layout.params.outerMargins;
-            d.panel.Position = val + [om(1), om(3), -(om(1)+om(2)), -(om(3)+om(4))];
+            newpos = val + [om(1), om(3), -(om(1)+om(2)), -(om(3)+om(4))];
+            d.panel.Position = newpos;
+            ipos = d.panel.InnerPosition;
+            if ipos(end) == 0
+                d.panel.SizeChangedFcn();
+            end
             if ~isempty(d.dummyPanel)
                 dom     = d.layout.params.dummyOuterMargins;
                 if strcmp('top', d.dummyStack)

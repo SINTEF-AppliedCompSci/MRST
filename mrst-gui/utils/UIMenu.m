@@ -127,7 +127,10 @@ classdef UIMenu < handle
             end
             om = d.layout.params.outerMargins;
             d.panel.Position = val + [om(1), om(3), -(om(1)+om(2)), -(om(3)+om(4))];
-            
+            ipos = d.panel.InnerPosition;
+            if ipos(end) == 0
+                d.panel.SizeChangedFcn();
+            end
             %             if isempty(d.dummyPanel)
             %                 d.panel.Position = val;
             %             else
