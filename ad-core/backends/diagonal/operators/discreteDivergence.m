@@ -19,8 +19,8 @@ function v = discreteDivergence(acc, N, v, nc, nf, sortIx, C, prelim, useMex)
             end
         end
     else
-        v = C*v;
-        %v = accumulate(N, value(v), nc);
+        assert(isnumeric(v), 'Expected numeric vector, but got ''%s''\n', class(v))
+        v = accumulate(N, v, nc);
         if hasAcc
             v = v + acc;
         end
