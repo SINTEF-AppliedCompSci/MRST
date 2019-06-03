@@ -61,18 +61,17 @@ classdef WaterThermalModel < WaterModel
             rhoS = model.getSurfaceDensities();
             rhoS=rhoS(active);
             wc = fm.getWellCells();
+            actw = fm.getWellStatusMask(wellSol);
+            W = fm.getWellStruct(actw);
            
             % get the entalphy of the wells
             % should probably be moved into a separate well facility model
-            nw = fm.getNumberOfWells();
-            nwc=nan(nw,1);
-            hWW=nan(nw,1);
+            nw = numel(W);
+            nwc = nan(nw,1);
+            hWW = nan(nw,1);
             for i = 1:nw
-                wm = fm.WellModels{i};
-                W = wm.W;
-                wc = W.cells;
-                nwc(i)=numel(W(i).cells);
-                hWW(i)=W(i).hW;
+                nwc(i) = numel(W(i).cells);
+                hWW(i) = W(i).hW;
             end
             hWW=rldecode(vertcat(hWW),nwc);
             % hard code well part for energy equation use upwind
@@ -86,7 +85,6 @@ classdef WaterThermalModel < WaterModel
             eqs{2}(wc)= eqs{2}(wc) - hFw.*cqs;
             
         end
-        
     end
 end
 
