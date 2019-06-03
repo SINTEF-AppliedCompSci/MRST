@@ -11,10 +11,15 @@ function [map, tbl, map1, map2] = setupTableMapping(tbl1, tbl2, crossfields, var
             fd = dup{1};
             fd1 = dup{2}{1};            
             fd2 = dup{2}{2};
-            tbl1.(fd1) = tbl1.(fd);
+            
+            ind1 = tbl1.(fd);
+            ind2 = tbl2.(fd);
+            
             tbl1 = rmfield(tbl1, fd);
-            tbl2.(fd2) = tbl2.(fd);
             tbl2 = rmfield(tbl2, fd);
+            
+            tbl1.(fd1) = ind1;
+            tbl2.(fd2) = ind2;
         end
     end
 
