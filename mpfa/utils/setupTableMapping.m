@@ -1,5 +1,7 @@
 function [map, tbl, map1, map2] = setupTableMapping(tbl1, tbl2, crossfields, varargin)
-    
+
+% TODO: not supported situtation, the same fieldname is in "other fields" and
+% appears as a replacement field name (see below)
     opt = struct('duplicate', []);
     opt = merge_options(opt, varargin{:});
     
@@ -8,6 +10,7 @@ function [map, tbl, map1, map2] = setupTableMapping(tbl1, tbl2, crossfields, var
         ndups = numel(dups);
         for i = 1 : ndups
             dup = dups{i};
+            
             fd = dup{1};
             fd1 = dup{2}{1};            
             fd2 = dup{2}{2};
@@ -17,7 +20,7 @@ function [map, tbl, map1, map2] = setupTableMapping(tbl1, tbl2, crossfields, var
             
             tbl1 = rmfield(tbl1, fd);
             tbl2 = rmfield(tbl2, fd);
-            
+
             tbl1.(fd1) = ind1;
             tbl2.(fd2) = ind2;
         end
@@ -38,6 +41,7 @@ function [map, tbl, map1, map2] = setupTableMapping(tbl1, tbl2, crossfields, var
     for ifield = 1 : nfds
         fd = fds{ifield};
         if iscell(fd)
+            % handle case with change in replacement field name.
             fds1{ifield} = fd{1};
             fds2{ifield} = fd{2};
         else
