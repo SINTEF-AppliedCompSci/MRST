@@ -126,7 +126,11 @@ function W = addTrajectories(W, G, np)
 % quadratic curve
 
 for k = 1:numel(W)
-    c  = G.cells.centroids(W(k).cells,:);
+    c  = G.cells.centroids(W(k).cells, :);
+    dim = G.griddim;
+    if dim < 3
+        c = [c, zeros(size(c, 1), 3 - dim)];
+    end
     if ~strcmp(W(k).type, 'aquifer')
         nc = size(c,1);
         c0 = c(1,:);

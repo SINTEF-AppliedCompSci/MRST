@@ -7,10 +7,18 @@ G.cells.PORV = poreVolume(G,model.rock);
 Gs = G;
 
 init.PORO.values = model.rock.poro;
-init.PERMX.values = model.rock.perm(:,1);
-init.PERMY.values = model.rock.perm(:,2);
-init.PERMZ.values = model.rock.perm(:,3);
-init.DEPTH.values = G.cells.centroids(:,3);
+if size(model.rock.perm, 2) == 3
+    init.PERMX.values = model.rock.perm(:,1);
+    init.PERMY.values = model.rock.perm(:,2);
+    init.PERMZ.values = model.rock.perm(:,3);
+else
+    [init.PERMX.values, init.PERMY.values, init.PERMZ.values] = deal(model.rock.perm(:,1));
+end
+if G.griddim == 3
+    init.DEPTH.values = G.cells.centroids(:,3);
+else
+    init.DEPTH.values = zeros(G.cells.num, 1);
+end
 init.PORV.values = G.cells.PORV;
 
 % more fields from init might be interesting
