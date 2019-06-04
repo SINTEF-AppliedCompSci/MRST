@@ -39,10 +39,11 @@ function [B, tbls] = robustComputeBlockLocalFluxMimetic(G, rock, opt)
     % We setup the cell-node table, cellnodetbl. Each entry determine
     % a unique corner
     cfn = cellnodefacetbl;
-    cellnode = convertTableToArray(cellnodefacetbl, {'nodes', 'cells'});
+    cellnode = convertTableToArray(cellnodefacetbl, {'cells', 'nodes'});
     cellnode = cellnode(:, [1, 2]);
     cellnode = unique(cellnode, 'rows');
-    cellnodetbl = convertArrayToTable(cellnode, {'nodes', 'cells'});
+    cellnode = sortrows(cellnode); % same ordering as in cellnodefacetbl
+    cellnodetbl = convertArrayToTable(cellnode, {'cells', 'nodes'});
     
     % Nodal scalar product is stored in vector nodeM
     % mattbl is the table which specifies how nodeM is stored: a matrix for
