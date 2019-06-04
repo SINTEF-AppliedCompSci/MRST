@@ -34,7 +34,7 @@ function [B, tbls] = robustComputeLocalFluxMimetic(G, rock, opt)
     orderingmat = convertTableToArray(cellnodefacetbl, {'cells', 'nodes', 'faces'});
     orderingmat = sortrows(orderingmat);
     cellnodefacetbl = convertArrayToTable(orderingmat, {'cells', 'nodes', 'faces'});
-    
+    cellnodefacetbl = addLocInd(cellnodefacetbl, 'cnfind');    
     % We setup the cell-node table, cellnodetbl. Each entry determine
     % a unique corner
     cfn = cellnodefacetbl;
@@ -56,6 +56,10 @@ function [B, tbls] = robustComputeLocalFluxMimetic(G, rock, opt)
     mattbl = convertArrayToTable(orderingmat, {'cells', 'nodes', 'faces1', 'faces2'});
     
     nodeM = zeros(mattbl.num, 1);
+
+    if opt.verbose
+        fprintf('assemble facet normals ...\n');
+    end
     
     facetbl.faces = (1 : G.faces.num)';
     facetbl.num   = G.faces.num;
@@ -71,8 +75,16 @@ function [B, tbls] = robustComputeLocalFluxMimetic(G, rock, opt)
     facetNormals = sgn.*facetNormals; % Outward normals with respect to cell
                                       % in cellnodeface.
     [~, cellnodefacecoltbl] = setupTableMapping(cellnodefacetbl, coltbl, []);
+    a = convertTableToArray(cellnodefacecoltbl, {'cells', 'nodes', 'faces', ...
+                        'coldim', 'cnfind'});
+    a = sortrows(a);
+    cellnodefacecoltbl = convertArrayToTable(a, {'cells', 'nodes', 'faces', ...
+                        'coldim', 'cnfind'});
     facetNormals = reshape(facetNormals', [], 1);
     
+    if opt.verbose
+        fprintf('assemble facet K*normals ...\n');
+    end
     % Assemble facePermNormals which corresponds to $Kn$ where n are the *outward*
     % normals at the facets.
     [perm, r, c] = permTensor(rock, G.griddim);
@@ -92,18 +104,16 @@ function [B, tbls] = robustComputeLocalFluxMimetic(G, rock, opt)
                         'coldim', 'rowdim'});
     perm = op*perm;
     % Multiply perm with facetNormals
-    map1 = setupTableMapping(cellnodefacecoltbl, cellnodefacecolrowtbl, {'cells', ...
-                        'faces', 'nodes', 'coldim'});
+    map1 = setupTableMapping(cellnodefacecoltbl, cellnodefacecolrowtbl, ...
+                                           {'cnfind', 'coldim'});
     Kn = perm.*(map1*facetNormals);
     
-    map2 = setupTableMapping(cellnodefacecolrowtbl, cellnodefacecoltbl, {'cells', ...
-                        'faces', 'nodes', {'rowdim', 'coldim'}});
+    map2 = setupTableMapping(cellnodefacecolrowtbl, cellnodefacecoltbl, {'cnfind', {'rowdim', 'coldim'}});
     Kn = map2*Kn;
     
     % store Kn in matrix form in facePermNormals.
-    op = setupTableMapping(cellnodefacetbl, cellnodefacecoltbl, {'cells', ...
-                        'faces', 'nodes'});
-    ind1 = (1 : cellnodefacetbl.num)';
+    op = setupTableMapping(cellnodefacetbl, cellnodefacecoltbl, {'cnfind'});
+    ind1 = cellnodefacetbl.cnfind;
     ind1 = op*ind1;
     op = setupTableMapping(coltbl, cellnodefacecoltbl, {'coldim'});
     ind2 = (1 : coltbl.num)';
@@ -166,17 +176,23 @@ function [B, tbls] = robustComputeLocalFluxMimetic(G, rock, opt)
         cnf_i = cnf_i + nface;
         mat_i = mat_i + nface*nface;        
         
-        % if opt.verbose 
-            % t0 = toc(t0);
-            % fprintf('assembly cellnode %d / %d took %g sec\n', i, cellnodetbl.num, ...
-                    % t0);
-        % end
+        if opt.verbose 
+            t0 = toc(t0);
+            fprintf('assembly cellnode %d / %d took %g sec\n', i, cellnodetbl.num, ...
+                    t0);
+        end
     end
-
+    
+    if opt.verbose
+        fprintf('include face sign ...\n');
+    end
     sgn1 = 2*(mattbl.cells == G.faces.neighbors(mattbl.faces1, 1)) - 1;
     sgn2 = 2*(mattbl.cells == G.faces.neighbors(mattbl.faces2, 1)) - 1;
     nodeM = nodeM.*sgn1.*sgn2;   
     
+    if opt.verbose
+        fprintf('Condensate on nodes ...\n');
+    end    
     % Condensate on nodes (sum up cell contributions for given node).
     [~, redmattbl] = setupTableMapping(facenodetbl, facenodetbl, {'nodes'}, ...
                                                'duplicate', {{'faces', {'faces1', ...
@@ -184,6 +200,9 @@ function [B, tbls] = robustComputeLocalFluxMimetic(G, rock, opt)
     op = setupTableMapping(mattbl, redmattbl, {'nodes', 'faces1', 'faces2'});
     nodeM = op*nodeM;
     
+    if opt.verbose
+        fprintf('Set up matrix ...\n');
+    end    
     % Setup matrix
     % First set up facet indices in the redmattbl table
     op = setupTableMapping(facenodetbl, redmattbl, {'nodes', {'faces', ...
