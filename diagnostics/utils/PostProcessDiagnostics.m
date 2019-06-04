@@ -714,8 +714,8 @@ classdef PostProcessDiagnostics < handle
             % aPosCB = [fip(3)-2*cbw-sp, fip(4)-cbh-sp, cbw, cbh];
             % aPosHA = [fip(3)-cbw-sp+5, fip(4)-cbh-sp, cbw, cbh];
             d.Menu.Position     = mPos;
-            d.Axes2DL.Position  = aPos2DL;
-            d.Axes2DR.Position  = aPos2DR;
+            d.Axes2DL.Position  = max(0,aPos2DL);
+            d.Axes2DR.Position  = max(0,aPos2DR);
             d.Axes3D.Position   = max(0,aPos3D);
             d.colorBar.Position = aPosCB;
             d.colorHAx.Position = aPosHA;
