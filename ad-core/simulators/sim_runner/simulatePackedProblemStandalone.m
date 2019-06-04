@@ -1,11 +1,10 @@
 function simulatePackedProblemStandalone(pth)
-    m_path = fullfile(pth, 'modlist.mat');
-    tmp = load(m_path);
-    mrstModule('reset', tmp.modlist{:});
-
     p_path = fullfile(pth, 'problem.mat');
-    tmp = load(p_path);
-    
+    % Load just the modules
+    tmp = load(p_path, 'modlist');
+    mrstModule('reset', tmp.modlist{:});
+    % Now we can load the whole problem
+    tmp = load(p_path, 'problem');
     lockpath = fullfile(pth, 'lock.mrst');
     if exist(lockpath, 'dir')
         error('This simulation is already running!')

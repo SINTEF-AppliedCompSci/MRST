@@ -15,8 +15,7 @@ function info = simulatePackedProblemBackground(problem, varargin)
     fn = makepath(basepath);
     logfile = makepath(fn, 'simulation.log');
     modlist = problem.Modules;
-    save(makepath(fn, 'problem'), 'problem');
-    save(makepath(fn, 'modlist'), 'modlist');
+    save(makepath(fn, 'problem'), 'problem', 'modlist');
     matlab_options = build_matlab_options(opt);
     str = sprintf('matlab %s -sd "%s" -logfile %s -r "mrstModule add ad-core; simulatePackedProblemStandalone(''%s''); exit()" &', ...
         matlab_options, ...% Matlab options
