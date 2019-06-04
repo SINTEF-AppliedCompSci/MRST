@@ -45,6 +45,9 @@ function [B, tbls] = robustComputeBlockLocalFluxMimetic(G, rock, opt)
     cellnode = sortrows(cellnode); % same ordering as in cellnodefacetbl
     cellnodetbl = convertArrayToTable(cellnode, {'cells', 'nodes'});
     
+    % number of nodes per face
+    numnodes = double(diff(G.faces.nodePos));
+    
     % Nodal scalar product is stored in vector nodeM
     % mattbl is the table which specifies how nodeM is stored: a matrix for
     % each "corner" (cell-node pair).
@@ -56,86 +59,12 @@ function [B, tbls] = robustComputeBlockLocalFluxMimetic(G, rock, opt)
     orderingmat = convertTableToArray(mattbl, {'cells', 'nodes', 'faces1', 'faces2'});
     orderingmat = sortrows(orderingmat);
     mattbl = convertArrayToTable(orderingmat, {'cells', 'nodes', 'faces1', 'faces2'});
-    mattbl = addLocInd(mattbl, 'mind');
     
-    fno = cellnodefacetbl.faces;
-    cno = cellnodefacetbl.cells;
-    numnodes = double(diff(G.faces.nodePos));
-    numnodes = numnodes(fno);
-    facetNormals = G.faces.normals(fno, :);
-    facetNormals = bsxfun(@ldivide, numnodes, facetNormals);
-    
-    sgn = 2*(cno == G.faces.neighbors(fno, 1)) - 1;
-    facetNormals = sgn.*facetNormals; % outward normals.
-    
-        [~, cellnodefacecoltbl] = setupTableMapping(cellnodefacetbl, coltbl, []);
-    a = convertTableToArray(cellnodefacecoltbl, {'cells', 'nodes', 'faces', ...
-                        'coldim', 'cnfind'});
-    a = sortrows(a);
-    cellnodefacecoltbl = convertArrayToTable(a, {'cells', 'nodes', 'faces', ...
-                        'coldim', 'cnfind'});
-    facetNormals = reshape(facetNormals', [], 1);
-    
-    if opt.verbose
-        fprintf('assemble facet K*normals ...\n');
-    end
-    % Assemble facePermNormals which corresponds to $Kn$ where n are the *outward*
-    % normals at the facets.
     [perm, r, c] = permTensor(rock, G.griddim);
     permmat = perm;
     perm = reshape(permmat', [], 1);
     % setup cellcolrow table for the vector perm
     [~, colrowtbl] = setupTableMapping(coltbl, rowtbl, []);
-    [~, cellcolrowtbl] = setupTableMapping(colrowtbl, celltbl, []);
-    a = convertTableToArray(cellcolrowtbl, {'cells', 'coldim', 'rowdim'});
-    a = sortrows(a);
-    cellcolrowtbl = convertArrayToTable(a, {'cells', 'coldim', 'rowdim'});
-    cellcolrowtbl = addLocInd(cellcolrowtbl, 'ccrind');
-    
-    % dispatch perm on cellnodeface
-    
-    [~, cellnodefacecolrowtbl] = setupTableMapping(cellcolrowtbl, cellnodefacetbl, ...
-                                                                 {'cells'});
-    op = reduceDispatchMapping(cellcolrowtbl, cellnodefacecolrowtbl, 'ccrind');
-    perm = op*perm;
-    % Multiply perm with facetNormals
-    map1 = setupTableMapping(cellnodefacecoltbl, cellnodefacecolrowtbl, ...
-                                           {'cnfind', 'coldim'}, 'fastunstable', ...
-                                           true);
-    Kn = perm.*(map1*facetNormals);
-    
-    map2 = setupTableMapping(cellnodefacecolrowtbl, cellnodefacecoltbl, ...
-                                           {'cnfind', {'rowdim', 'coldim'}}, ...
-                                           'fastunstable', true);
-    Kn = map2*Kn;
-    
-    % store Kn in matrix form in facePermNormals.
-    op = reduceDispatchMapping(cellnodefacetbl, cellnodefacecoltbl, 'cnfind');
-    ind1 = cellnodefacetbl.cnfind;
-    ind1 = op*ind1;
-    op = reduceDispatchMapping(coltbl, cellnodefacecoltbl, 'coldim');
-    ind2 = (1 : coltbl.num)';
-    ind2 = op*ind2;    
-    facePermNormals = sparse(ind1, ind2, Kn, cellnodefacetbl.num, ...
-                             coltbl.num);
-
-    % Some shortcuts
-    cno = cellnodefacetbl.cells;
-    fno = cellnodefacetbl.faces;
-    nno = cellnodefacetbl.nodes;    
-    % Default option (opt.eta = 0): Use original face centroids and cell centroids,
-    % NOT actual subface centroids. This corresponds to an MPFA method
-    % (O-method) R = G.faces.centroids(fno,:) - G.cells.centroids(cno,:);
-    cellFacetVec = G.faces.centroids(fno,:) - G.cells.centroids(cno,:) + ...
-        opt.eta*(G.nodes.coords(nno,:) - G.faces.centroids(fno,:));
-    
-    % set up areas and volumes
-    areas = G.faces.areas(fno);
-    vols  = G.cells.volumes(cno);
-    
-    map = setupTableMapping(cellnodetbl, cellnodefacetbl, {'cells', 'nodes'}); 
-    nfaces1 = full(diag(map'*map));
-    nfaces2 = map*nfaces1;
     
     blocksize = opt.blocksize;
     ncn = cellnodetbl.num;
@@ -148,36 +77,131 @@ function [B, tbls] = robustComputeBlockLocalFluxMimetic(G, rock, opt)
     blockinds = cumsum([1; blocksizes]);
     nodeMs = cell(nblocks, 1);
 
-    cnf_i = 1; % start indice for the cellnodefacetbl index
-    
     if opt.verbose
         fprintf('Number of blocks: %d\n', nblocks);
     end
     
-    for i = 1 : nblocks
+    cellnodearray = convertTableToArray(cellnodetbl, {'cells', 'nodes'});
     
-        blocksize = blocksizes(i);
-        ind = [blockinds(i) : (blockinds(i + 1) - 1)];
-        nblockfaces = nfaces1(ind);
-        nodeMs{i} = zeros(sum(nblockfaces.^2), 1);
-        mat_i = 1;
+    blockcellnodetbls      = cell(nblocks, 1);
+    blockcellnodefacetbls  = cell(nblocks, 1);
+    blockcellnodeface2tbls = cell(nblocks, 1);
+    nblockfaces            = cell(nblocks, 1);
+    
+    for iblock = 1 : nblocks
+        ind = [blockinds(iblock) : (blockinds(iblock + 1) - 1)];
+        blockcellnodearray = cellnodearray(ind, :);
+        blockcellnodetbl = convertArrayToTable(blockcellnodearray, {'cells', ...
+                            'nodes'});
+        blockcellnodetbls{iblock} = blockcellnodetbl;
+        
+        [~, blockcellnodefacetbl] = setupTableMapping(blockcellnodetbl, ...
+                                                      cellnodefacetbl, {'cells', ...
+                            'nodes'});
+        blockcellnodefacearray = convertTableToArray(blockcellnodefacetbl, ...
+                                                    {'cells', 'nodes', 'faces'});
+        blockcellnodefacearray = sortrows(blockcellnodefacearray);
+        blockcellnodefacetbl = convertArrayToTable(blockcellnodefacearray, ...
+                                                   {'cells', 'nodes', 'faces'});
+        blockcellfacenodetbls{iblock} = blockcellnodefacetbl;
+        
+        map = setupTableMapping(blockcellnodetbl, blockcellnodefacetbl, {'cells', 'nodes'}); 
+        nblockface = full(diag(map'*map)); % number of faces per cellnode
+        nblockfaces{iblock} = nblockface;
+        
+        nodeMs{iblock} = zeros(sum(nblockface.^2), 1);
+        
+        fno = blockcellnodefacetbl.faces;
+        cno = blockcellnodefacetbl.cells;
+        blocknumnodes = numnodes(fno);
+        facetNormals = G.faces.normals(fno, :);
+        facetNormals = bsxfun(@ldivide, blocknumnodes, facetNormals);
+        
+        sgn = 2*(cno == G.faces.neighbors(fno, 1)) - 1;
+        facetNormals = sgn.*facetNormals; % outward normals.
+        [~, blockcellnodefacecoltbl] = setupTableMapping(blockcellnodefacetbl, ...
+                                                         coltbl, []);  
+        a = convertTableToArray(blockcellnodefacecoltbl, {'cells', 'nodes', ...
+                            'faces', 'coldim'});
+        a = sortrows(a);
+        blockcellnodefacecoltbl = convertArrayToTable(a, {'cells', 'nodes', ...
+                            'faces', 'coldim'});
+        blockFacetNormals = reshape(facetNormals', [], 1); % belongs to blockcellnodefacecoltbl
+        
+        blockcelltbl = projTable(blockcellnodetbl, {'cells'});
+        cno = blockcelltbl.cells;
+        perm = permmat(cno, :);
+        [~, blockcellcolrowtbl] = setupTableMapping(colrowtbl, blockcelltbl, []);
+        a = convertTableToArray(blockcellcolrowtbl, {'cells', 'coldim', 'rowdim'});
+        a = sortrows(a);
+        blockcellcolrowtbl = convertArrayToTable(a, {'cells', 'coldim', ...
+                            'rowdim'});
+        perm = reshape(perm', [], 1);
 
+        [~, blockcellnodefacecolrowtbl] = setupTableMapping(blockcellcolrowtbl, ...
+                                                          blockcellnodefacetbl, ...
+                                                          {'cells'});
+        op = setupTableMapping(blockcellcolrowtbl, blockcellnodefacecolrowtbl, ...
+                                             {'cells', 'coldim', 'rowdim'});
+        perm = op*perm;
+        
+        map1 = setupTableMapping(blockcellnodefacecoltbl, blockcellnodefacecolrowtbl, ...
+                                               {'cells', 'nodes', 'faces', ...
+                            'coldim'});
+        Kn = perm.*(map1*blockFacetNormals);
+        
+        map2 = setupTableMapping(blockcellnodefacecolrowtbl, blockcellnodefacecoltbl, ...
+                                               {'cells', 'nodes', 'faces', ...
+                            {'rowdim', 'coldim'}});
+        
+        Kn = map2*Kn; % belongs to blockcellnodefacecoltbl
+        
+        % store Kn in matrix form in blockFacetPermNormals.
+        op = setupTableMapping(blockcellnodefacetbl, blockcellnodefacecoltbl, ...
+                                   {'cells', 'nodes', 'faces'});
+        ind1 = (1 : blockcellnodefacetbl.num)';
+        ind1 = op*ind1;
+        op = reduceDispatchMapping(coltbl, blockcellnodefacecoltbl, 'coldim');
+        ind2 = (1 : coltbl.num)';
+        ind2 = op*ind2;    
+        blockFacetPermNormals = sparse(ind1, ind2, Kn, cellnodefacetbl.num, ...
+                             coltbl.num);
+        
+        cno = blockcellnodefacetbl.cells;
+        fno = blockcellnodefacetbl.faces;
+        nno = blockcellnodefacetbl.nodes;    
+        % Default option (opt.eta = 0): Use original face centroids and cell centroids,
+        % NOT actual subface centroids. This corresponds to an MPFA method
+        % (O-method) R = G.faces.centroids(fno,:) - G.cells.centroids(cno,:);
+        blockCellFacetVec = G.faces.centroids(fno,:) - G.cells.centroids(cno,:) + ...
+            opt.eta*(G.nodes.coords(nno,:) - G.faces.centroids(fno,:));
+
+        blockAreas = G.faces.areas(fno);
+        blockVols  = G.cells.volumes(cno);
+        
         if opt.verbose
             t0 = tic;
         end
-    
+
+        bcnf_i = 1;
+        mat_i  = 1;
+        
+        nodeMs{iblock} = zeros(sum(nblockface.^2), 1);
+        blocksize = blocksizes(iblock);
+        
         for j = 1 : blocksize
     
-            nface = nfaces2(cnf_i);
-            cnfind = cnf_i : (cnf_i + (nface - 1));
+            nface = nblockface(j);
+            cnfind = bcnf_i : (bcnf_i + (nface - 1));
+            matind = mat_i : (mat_i + (nface*nface - 1));
     
-            N     = facePermNormals(cnfind, :); 
-            R     = cellFacetVec(cnfind, :);
-            a     = areas(cnfind);
-            v     = vols(cnfind);
-            faces = cellnodefacetbl.faces(cnfind);
+            N = blockFacetPermNormals(cnfind, :);
+            R = blockCellFacetVec(cnfind, :);
+            a = blockAreas(cnfind);
+            v = blockVols(cnfind);
+            faces = blockcellnodefacetbl.faces(cnfind);
     
-            cellno = cellnodefacetbl.cells(cnf_i);
+            cellno = blockcellnodetbl.cells(j);
             K = reshape(permmat(cellno, :), [dim, dim]);
     
             % Assemble local nodal scalar product ( function node_ip2 below handle case when
@@ -189,17 +213,16 @@ function [B, tbls] = robustComputeBlockLocalFluxMimetic(G, rock, opt)
             locM = reshape(locM', [], 1);
     
             assert(numel(locM) == nface*nface, 'mismatch');
-            matind = mat_i : (mat_i + (nface*nface - 1));
-            nodeMs{i}(matind) = nodeMs{i}(matind) + locM;
+            nodeMs{iblock}(matind) = nodeMs{iblock}(matind) + locM;
     
-            cnf_i = cnf_i + nface;
+            bcnf_i = bcnf_i + nface;
             mat_i = mat_i + nface*nface;        
     
         end
 
         if opt.verbose
             t0 = toc(t0);
-            fprintf('Assembly of block %d (block matrix size : %d) done in %g\n', i, sum(nblockfaces), t0);
+            fprintf('Assembly of block %d (block matrix size : %d) done in %g\n', iblock, sum(nblockface), t0);
         end
     
     end
@@ -211,14 +234,12 @@ function [B, tbls] = robustComputeBlockLocalFluxMimetic(G, rock, opt)
     nodeM = zeros(redmattbl.num, 1);
     
     mat_i = 1;
-    for i = 1 : nblocks
+    for iblock = 1 : nblocks
         if opt.verbose
             t0 = tic;
         end
-        blocksize = blocksizes(i);
-        ind = [blockinds(i) : (blockinds(i + 1) - 1)];
-        nblockfaces = nfaces1(ind);
-        nblockfacessq = sum(nblockfaces.*nblockfaces);
+        nblockface = nblockfaces{iblock};
+        nblockfacessq = sum(nblockface.*nblockface);
         mat_i2 = mat_i + nblockfacessq - 1;
         
         ind = mat_i : mat_i2;
@@ -228,9 +249,9 @@ function [B, tbls] = robustComputeBlockLocalFluxMimetic(G, rock, opt)
         
         sgn1 = 2*(blockmattbl.cells == G.faces.neighbors(blockmattbl.faces1, 1)) - 1;
         sgn2 = 2*(blockmattbl.cells == G.faces.neighbors(blockmattbl.faces2, 1)) - 1;
-        nodeMs{i} = nodeMs{i}.*sgn1.*sgn2;
+        nodeMs{iblock} = nodeMs{iblock}.*sgn1.*sgn2;
         op = setupTableMapping(blockmattbl, redmattbl, {'nodes', 'faces1', 'faces2'});
-        nodeM = nodeM + op*nodeMs{i};
+        nodeM = nodeM + op*nodeMs{iblock};
         mat_i = mat_i2 + 1;
         if opt.verbose
             t0 = toc(t0);
