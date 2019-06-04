@@ -47,7 +47,8 @@ function [B, tbls] = blockLocalFluxMimeticAssembly(G, rock, nodes, opt)
 
     % We set up cell table (only cells that belong to the block).
     celltbl = projTable(cellnodetbl, {'cells'});
-    
+    celltbl = addLocInd(celltbl, 'cind');
+
     % Nodal scalar product is stored in vector nodeM mattbl is the table which
     % specifies how nodeM is stored: a matrix for each "corner" (cell-node
     % pair).
