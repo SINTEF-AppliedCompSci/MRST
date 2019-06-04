@@ -2,7 +2,7 @@ function [map, tbl, map1, map2] = setupTableMapping(tbl1, tbl2, crossfields, var
 
 % TODO: not supported situtation, the same fieldname is in "other fields" and
 % appears as a replacement field name (see below)
-    opt = struct('duplicate', []);
+    opt = struct('duplicate', [], 'fastunstable', false);
     opt = merge_options(opt, varargin{:});
     
     if ~isempty(opt.duplicate)
@@ -55,8 +55,13 @@ function [map, tbl, map1, map2] = setupTableMapping(tbl1, tbl2, crossfields, var
     for ifield = 1 : nfds
         fieldname1 = fds1{ifield};
         fieldname2 = fds2{ifield};
-        inds1{ifield} = uint64(tbl1.(fieldname1));
-        inds2{ifield} = uint64(tbl2.(fieldname2));
+        if opt.fastunstable
+            inds1{ifield} = tbl1.(fieldname1);
+            inds2{ifield} = tbl2.(fieldname2);
+        else
+            inds1{ifield} = uint64(tbl1.(fieldname1));
+            inds2{ifield} = uint64(tbl2.(fieldname2));
+        end
         maxinds{ifield} = max(max(inds1{ifield}), max(inds2{ifield})) + 1;
         if ifield > 1
             prodmaxinds{ifield} = prodmaxinds{ifield - 1}*maxinds{ifield - 1};
@@ -65,18 +70,29 @@ function [map, tbl, map1, map2] = setupTableMapping(tbl1, tbl2, crossfields, var
     
     n1 = tbl1.num; 
     n2 = tbl2.num;
-    globind1 = ones(n1, 1, 'uint64');
-    globind2 = ones(n2, 1, 'uint64');
+    if opt.fastunstable
+        globind1 = ones(n1, 1);
+        globind2 = ones(n2, 1);
+    else
+        globind1 = ones(n1, 1, 'uint64');
+        globind2 = ones(n2, 1, 'uint64');
+    end
+    
     for ifield = 1 : nfds
         globind1 = globind1 + inds1{ifield}*prodmaxinds{ifield};
         globind2 = globind2 + inds2{ifield}*prodmaxinds{ifield};
     end
 
-    globind = [globind1; globind2];
-    [c, ia, ic]= unique(globind);
-    globind1 = ic(1 : n1);
-    globind2 = ic(n1 + 1 : n1 + n2);
-    n = numel(c);
+    if opt.fastunstable
+        n = max(max(globind1), max(globind2));
+    else
+        globind = [globind1; globind2];
+        [c, ia, ic]= unique(globind);
+        globind1 = ic(1 : n1);
+        globind2 = ic(n1 + 1 : n1 + n2);
+        n = numel(c);
+    end
+        
     imap1 = sparse(globind1, (1 : n1)', 1, n, n1);
     imap2 = sparse(globind2, (1 : n2)', 1, n, n2);    
     map = imap2'*imap1;
