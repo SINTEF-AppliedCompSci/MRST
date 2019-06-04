@@ -36,7 +36,7 @@ classdef StateFunction
             v = prop.evaluateFunctionCellSubset(fn, ':', varargin{:});
         end
 
-        function v = evaluateFunctionSingleRegionWithArgumentsWithArguments(prop, fn, region_index, varargin)
+        function v = evaluateFunctionSingleRegionWithArguments(prop, fn, region_index, varargin)
             % Evaluate function on a single specific region, with specified
             % input arguments
             assert(region_index <= numel(fn), 'Region index exceeds maximum number of regions.');
