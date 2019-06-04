@@ -96,26 +96,30 @@ function [B, tbls] = robustComputeLocalFluxMimetic(G, rock, opt)
     a = convertTableToArray(cellcolrowtbl, {'cells', 'coldim', 'rowdim'});
     a = sortrows(a);
     cellcolrowtbl = convertArrayToTable(a, {'cells', 'coldim', 'rowdim'});
+    cellcolrowtbl = addLocInd(cellcolrowtbl, 'ccrind');
     
     % dispatch perm on cellnodeface
+    
     [~, cellnodefacecolrowtbl] = setupTableMapping(cellcolrowtbl, cellnodefacetbl, ...
                                                                  {'cells'});
-    op = setupTableMapping(cellcolrowtbl, cellnodefacecolrowtbl, {'cells', ...
-                        'coldim', 'rowdim'});
+    op = reduceDispatchMapping(cellcolrowtbl, cellnodefacecolrowtbl, 'ccrind');
     perm = op*perm;
     % Multiply perm with facetNormals
     map1 = setupTableMapping(cellnodefacecoltbl, cellnodefacecolrowtbl, ...
-                                           {'cnfind', 'coldim'});
+                                           {'cnfind', 'coldim'}, 'fastunstable', ...
+                                           true);
     Kn = perm.*(map1*facetNormals);
     
-    map2 = setupTableMapping(cellnodefacecolrowtbl, cellnodefacecoltbl, {'cnfind', {'rowdim', 'coldim'}});
+    map2 = setupTableMapping(cellnodefacecolrowtbl, cellnodefacecoltbl, ...
+                                           {'cnfind', {'rowdim', 'coldim'}}, ...
+                                           'fastunstable', true);
     Kn = map2*Kn;
     
     % store Kn in matrix form in facePermNormals.
-    op = setupTableMapping(cellnodefacetbl, cellnodefacecoltbl, {'cnfind'});
+    op = reduceDispatchMapping(cellnodefacetbl, cellnodefacecoltbl, 'cnfind');
     ind1 = cellnodefacetbl.cnfind;
     ind1 = op*ind1;
-    op = setupTableMapping(coltbl, cellnodefacecoltbl, {'coldim'});
+    op = reduceDispatchMapping(coltbl, cellnodefacecoltbl, 'coldim');
     ind2 = (1 : coltbl.num)';
     ind2 = op*ind2;    
     facePermNormals = sparse(ind1, ind2, Kn, cellnodefacetbl.num, coltbl.num);
