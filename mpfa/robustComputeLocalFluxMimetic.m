@@ -61,19 +61,17 @@ function [B, tbls] = robustComputeLocalFluxMimetic(G, rock, opt)
         fprintf('assemble facet normals ...\n');
     end
     
-    facetbl.faces = (1 : G.faces.num)';
-    facetbl.num   = G.faces.num;
-    op = setupTableMapping(facetbl, facenodetbl, {'faces'});
-    numnodes = diag(op'*op); % Number of node per face
-    op = setupTableMapping(facetbl, cellnodefacetbl, {'faces'});
-    numnodes = op*numnodes;
     fno = cellnodefacetbl.faces;
     cno = cellnodefacetbl.cells;
+    numnodes = double(diff(G.faces.nodePos));
+    numnodes = numnodes(fno);
     facetNormals = G.faces.normals(fno, :);
     facetNormals = bsxfun(@ldivide, numnodes, facetNormals);
+    
     sgn = 2*(cno == G.faces.neighbors(fno, 1)) - 1;
     facetNormals = sgn.*facetNormals; % Outward normals with respect to cell
                                       % in cellnodeface.
+    
     [~, cellnodefacecoltbl] = setupTableMapping(cellnodefacetbl, coltbl, []);
     a = convertTableToArray(cellnodefacecoltbl, {'cells', 'nodes', 'faces', ...
                         'coldim', 'cnfind'});
@@ -147,9 +145,9 @@ function [B, tbls] = robustComputeLocalFluxMimetic(G, rock, opt)
     
     for i = 1 : cellnodetbl.num
         
-        if opt.verbose
-            t0 = tic();
-        end
+        % if opt.verbose
+            % t0 = tic();
+        % end
         
         nface = nfaces(cnf_i);
         cnfind = cnf_i : (cnf_i + (nface - 1));
@@ -160,10 +158,8 @@ function [B, tbls] = robustComputeLocalFluxMimetic(G, rock, opt)
         v     = vols(cnf_i); % volume of the current cell
         faces = cellnodefacetbl.faces(cnfind);
         
-        cell = cellnodefacetbl.cells(cnf_i);
-        node = cellnodefacetbl.nodes(cnf_i);
-
-        K = reshape(permmat(cell, :), [dim, dim]);
+        cellno = cellnodefacetbl.cells(cnf_i);
+        K = reshape(permmat(cellno, :), [dim, dim]);
         
         % Assemble local nodal scalar product ( function node_ip2 below handle case when
         % N is invertible)
@@ -180,11 +176,11 @@ function [B, tbls] = robustComputeLocalFluxMimetic(G, rock, opt)
         cnf_i = cnf_i + nface;
         mat_i = mat_i + nface*nface;        
         
-        if opt.verbose 
-            t0 = toc(t0);
-            fprintf('assembly cellnode %d / %d took %g sec\n', i, cellnodetbl.num, ...
-                    t0);
-        end
+        % if opt.verbose 
+            % t0 = toc(t0);
+            % fprintf('assembly cellnode %d / %d took %g sec\n', i, cellnodetbl.num, ...
+                    % t0);
+        % end
     end
     
     if opt.verbose
