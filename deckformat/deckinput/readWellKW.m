@@ -210,16 +210,40 @@ function w = readCompSegs(fid, w)
    numeric  = [1:6, 8:numel(template)];
    compsegs = toDouble(readDefaultedKW(fid, template), numeric);
 
-   if isempty(w.COMPSEGS),
+   if isempty(w.COMPSEGS)
       w.COMPSEGS = { well, compsegs };
    else
       i = strcmp(w.COMPSEGS(:,1), well);
 
-      if any(i),
+      if any(i)
          assert (sum(i) == 1, ...
                  'Well ''%s'' Specified More Than Once in COMPSEGS', well);
-
-         w.COMPSEGS(i, 2) = compsegs;
+         % Match based on IJK + branch ID
+         % Freshly encountered values
+         Ic = vertcat(compsegs{:, 1});
+         Jc = vertcat(compsegs{:, 2});
+         Kc = vertcat(compsegs{:, 3});
+         Bc = vertcat(compsegs{:, 4});
+         % Previously encountered values
+         I = vertcat(w.COMPSEGS{i, 2}{:, 1});
+         J = vertcat(w.COMPSEGS{i, 2}{:, 2});
+         K = vertcat(w.COMPSEGS{i, 2}{:, 3});
+         B = vertcat(w.COMPSEGS{i, 2}{:, 4});
+         nc = size(Ic, 1);
+         replaced = false(nc, 1);
+         for index = 1:nc
+             found = I == Ic(index) & J == Jc(index) & K == Kc(index) & B == Bc(index);
+             if any(found)
+                w.COMPSEGS{i, 2}(found, :) = compsegs(index, :);
+                replaced(index) = true;
+             end
+         end
+         append = ~replaced;
+         if any(append)
+            % We have some entires that did not match previously
+            % encountered values. Add them to the end.
+            w.COMPSEGS{i,2} = [w.COMPSEGS{i,2}; compsegs(append, :)];
+         end
       else
          w.COMPSEGS = [ w.COMPSEGS ; { well, compsegs } ];
       end
