@@ -39,5 +39,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     c_other( isInt) = N( isInt, 2);
     c_other(~isInt) = N(~isInt, 1);
+    c_self = unique(c_self);
+    c_other = unique(c_other);
 
 end
