@@ -58,7 +58,7 @@ n = 35;
 states = cell(n+1, 1);
 states{1} = state0;
 for i = 1:n
-    state = solver.solveTimestep(states{i}, dT, model, 'bcp', bcp);
+    state = standaloneSolveAD(states{i}, model, dT, 'bcp', bcp);
     states{i+1} = state;
 end
 

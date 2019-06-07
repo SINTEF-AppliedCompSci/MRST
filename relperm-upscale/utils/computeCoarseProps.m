@@ -4,6 +4,8 @@ function states = computeCoarseProps(model, model_f, states, schedule, schedule_
     
     fluid = model.fluid;
     gdz = model.getGravityGradient();
+    model = model.validateModel();
+    model_f = model_f.validateModel();
     for k = 1:numel(states)
         state = upscaleState(model, model_f, states{k});
         

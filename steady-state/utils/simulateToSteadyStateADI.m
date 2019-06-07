@@ -79,6 +79,7 @@ if polymer
 else
     model  = TwoPhaseOilWaterModel_BCP(G, rock, fluid);
 end
+model = model.validateModel();
 state0 = initResSol(G, 50*barsa, [sW0 1-sW0]);
 state0.wellSol = initWellSolAD([], model, state0);
 

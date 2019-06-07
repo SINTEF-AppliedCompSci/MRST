@@ -26,7 +26,7 @@ function [vW, bW, mobW, rhoW, pW, upcw, dpW] = getFluxAndPropsWater_BO_BCP(...
     end
     
     % water upstream-index
-    upcw  = (double(dpW)<=0);
+    upcw  = (value(dpW)<=0);
     vW = -s.faceUpstr(upcw, mobW).*T.*dpW;
     if any(bW < 0)
         warning('Negative water compressibility present!')

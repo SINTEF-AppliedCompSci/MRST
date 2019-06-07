@@ -15,7 +15,7 @@
 %  46-71, 2016. DOI: 10.1016/j.jcp.2015.10.010
 
 % Load modules
-mrstModule add msrsb incomp coarsegrid mrst-gui msfvm
+mrstModule add msrsb incomp coarsegrid mrst-gui msfvm matlab_bgl
 
 %% We set up the domain
 % The domain consists of 65 by 65 fine cells and a permeability field that
@@ -164,7 +164,7 @@ outlineCoarseGrid(G, CG2.partition, 'w', 'linewidth', 1)
 
 % <html>
 % <p><font size="-1">
-% Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+% Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 % </font></p>
 % <p><font size="-1">
 % This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).

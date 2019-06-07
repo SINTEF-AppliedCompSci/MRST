@@ -55,7 +55,7 @@ function p = applySuccessivePart(p, G, indicator, NU, pfixed)
 %   `compressPartition`, `processPartition`
 
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -93,17 +93,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
           ['Fixed background partition array must contain one ', ...
            'value for each grid cell.']);
 
-   if numel(pfixed) == G.cells.num,
+   if numel(pfixed) == G.cells.num
       pfixed = reshape(pfixed, [], 1);
    end
 
-   for i = 1 : size(pfixed, 2),
+   for i = 1 : size(pfixed, 2)
       nblk = max(p);
 
       bfix = false([nblk, 1]);
       bfix(blockIndicator > upper_bound) = true;
 
-      if ~any(bfix),
+      if ~any(bfix)
          % No blocks violate upper bound so there is no need to consider
          % further background partitions.  Terminate refinement to omit
          % moderatly costly and otherwise idempotent updates to partition

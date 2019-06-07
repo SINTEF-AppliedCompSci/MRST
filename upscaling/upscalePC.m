@@ -1,6 +1,6 @@
 function [pc_upsc, pc_max, pc_min, sat_min, sat_max] = upscalePC(G, fluid, pv)
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

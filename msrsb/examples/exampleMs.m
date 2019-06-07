@@ -59,7 +59,7 @@ CG = coarsenGeometry(CG);
 % Store the support of each cell (used by multiscale basis construction)
 CG = storeInteractionRegionCart(CG);
 
-mrstModule add msfvm
+mrstModule add msfvm matlab_bgl
 DG = partitionUIdual(CG, coarsedims);
 DG = makeExplicitDual(CG, DG);
 CG.dual = DG;
@@ -128,7 +128,7 @@ title('Convergence of GMRES')
 
 % <html>
 % <p><font size="-1">
-% Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+% Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 % </font></p>
 % <p><font size="-1">
 % This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).

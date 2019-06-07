@@ -1,9 +1,7 @@
+% EXAMPLES
+%
 % Files
-%   readUpscaledRelperm.m     - [T_w, T_o] = readUpscaledRelperm(do_plot, 'fixed', norm(gravity)~=0);
-%   testReadCurves.m          - figure
-%   transUpscaleExample.m     - Set up grid and create partition
-%   transUpscaleExample_old.m - Set up grid and create partition
-%   upscaleTransNew.m         - Calculate upscaled transmissibilities for a coarse model
+%   upscale_devscript - Workflow example for MRST-AD
 
 %{
 Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.

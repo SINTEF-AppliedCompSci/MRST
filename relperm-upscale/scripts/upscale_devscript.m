@@ -1,7 +1,28 @@
+%% Workflow example for MRST-AD
+% This example aims to show the complete workflow for creating, running and
+% analyzing a simulation model. Unlike the other examples, we will create
+% all features of the model manually to get a self-contained script without
+% any input files required.
+%
+% The model we setup is a slightly compressible two-phase oil/water model
+% with multiple wells. The reservoir has a layered strategraphy and
+% contains four intersecting faults.
+%
+% Note that this example features a simple conceptual model designed to
+% show the workflow rather than a problem representing a realistic scenario
+% in terms of well locations and fluid physics.
 mrstModule add ad-core ad-blackoil ad-props mrst-gui
 close all;
 
 %% Reservoir geometry and petrophysical properties
+% We begin by setting up the grid and rock structures. The grid is created
+% by "makeModel3", which creates a structured model with intersecting
+% faults. We assume a layered permeability structure with 300, 100, and 500
+% md in the lower, middle, and top layers. respectively.
+
+% Define grid
+% grdecl = makeModel3([50, 50, 5], [1000, 1000, 5]*meter);
+% G = processGRDECL(grdecl);
 if 0
     G = cartGrid([100, 100, 1], [1000, 1000, 30]*meter);
     G = computeGeometry(G);

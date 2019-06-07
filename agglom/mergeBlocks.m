@@ -48,7 +48,7 @@ function p = mergeBlocks(p, G, IVol, IFlw, NL, varargin)
 %   `segmentPartition`, `refineBlocks`
 
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -93,7 +93,9 @@ blockIFlw = accumarray(p, IFlw)./blockIVol;
 
 cells_nothingToDo = zeros(length(p), 1);
 
-%  Merging algorithm
+%--------------------------------------------------------------------------
+% Merging algorithm
+%
 % As long as we have blocks with too small indicator value, we attempt to
 % find a neighbor with similar indicator value (may be different than the
 % first indicator) and merge the block to the neighbor.

@@ -21,7 +21,7 @@ function cg = coarsenGeometry(cg)
 %   `generateCoarseGrid`, `computeGeometry`
 
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -62,7 +62,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    % Faces
    faceno = rldecode(1:cg.faces.num, diff(cg.faces.connPos), 2)';
    sgn    = fineToCoarseSign(cg);
-   cg.faces.areas   = accumarray(faceno, cg.parent.faces.areas(cg.faces.fconn));
    for i = 1:size(cg.parent.faces.centroids, 2),
       cg.faces.centroids(:,i) = accumarray(faceno, ...
          cg.parent.faces.centroids(cg.faces.fconn, i).*...
@@ -71,5 +70,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       cg.faces.normals(:,i) = accumarray(faceno, ...
          cg.parent.faces.normals(cg.faces.fconn, i).*sgn);
    end
-   cg.faces.centroids = bsxfun(@rdivide, cg.faces.centroids, cg.faces.areas);
+   totalareas         = accumarray(faceno, cg.parent.faces.areas(cg.faces.fconn));
+   cg.faces.centroids = bsxfun(@rdivide, cg.faces.centroids, totalareas);
+   cg.faces.areas     = sqrt(sum(cg.faces.normals.^2,2));
+   
 end

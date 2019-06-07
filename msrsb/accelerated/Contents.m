@@ -1,9 +1,12 @@
+% ACCELERATED
+%
 % Files
-%   readUpscaledRelperm.m     - [T_w, T_o] = readUpscaledRelperm(do_plot, 'fixed', norm(gravity)~=0);
-%   testReadCurves.m          - figure
-%   transUpscaleExample.m     - Set up grid and create partition
-%   transUpscaleExample_old.m - Set up grid and create partition
-%   upscaleTransNew.m         - Calculate upscaled transmissibilities for a coarse model
+%   boundaryNeighbors          - 
+%   cppMultiscaleBasis         - Create MsRSB basis using MEX code
+%   cppMultiscaleBasisFromFile - 
+%   demo_mexMsRSB              - Some different test cases
+%   mex_cppMultiscaleBasis     - Internal build routine for MsRSB accelerated basis functions
+%   setupMexInteractionMapping - Setup mex mapping for cppMultiscaleBasis
 
 %{
 Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
