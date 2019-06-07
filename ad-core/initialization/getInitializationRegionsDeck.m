@@ -20,7 +20,6 @@ function regions = getInitializationRegionsDeck(model, deck)
         
         sub_regions = cell(nreg_comb, 1);
         for j = 1:nreg_comb
-            
             satnum = pairs(j, 1);
             pvtnum = pairs(j, 2);
             subcells = cells(sat == satnum & pvt == pvtnum);
@@ -53,9 +52,41 @@ end
 function region = getRegion(model, deck, eql, cells, regionIx, satnum, pvtnum)
     rs_method = eql(7);
     rv_method = eql(8);
-    
+    contacts = eql([3, 5]);
+    contacts_pc = eql([4, 6]);
     p_datum = eql(2);
-    if isprop(model, 'disgas') && model.disgas
+    if model.water && model.gas && ~model.oil
+        act = [true, false, false];
+    else
+        act = [model.water & model.oil, model.oil & model.gas];
+    end
+    % Handle specifics
+    hasVapoil = isprop(model, 'vapoil') && model.vapoil;
+    hasDisgas = isprop(model, 'disgas') && model.disgas;
+    hasEOS = isprop(model, 'EOSModel');
+    if hasEOS
+    end
+    
+    if hasEOS
+        z_method = eql(10);
+        assert(z_method == 1);
+        zvd = deck.PROPS.ZMFVD{regionIx};
+        z_fn = @(p, z) interp1(zvd(:, 1), zvd(:, 2:end), z);
+        tvd = deck.PROPS.TEMPVD{regionIx};
+        T_fn = @(p, z) interp1(tvd(:, 1), tvd(:, 2), z);
+
+        region = getInitializationRegionsCompositional(model, contacts(act),...
+            'cells', cells, 'datum_pressure', p_datum, ...
+            'datum_depth', eql(1), 'contacts_pc', contacts_pc(act), ...
+            'x', z_fn, 'y', z_fn, 'T', T_fn);
+        region.T = T_fn;
+        region.z = z_fn;
+    else
+        region = getInitializationRegionsBlackOil(model, contacts(act),...
+            'cells', cells, 'datum_pressure', p_datum, ...
+            'datum_depth', eql(1), 'contacts_pc', contacts_pc(act));
+    end
+    if hasDisgas
         if rs_method <= 0
             rsSat = model.fluid.rsSat;
             if iscell(rsSat)
@@ -69,11 +100,10 @@ function region = getRegion(model, deck, eql, cells, regionIx, satnum, pvtnum)
             F = griddedInterpolant(rsvd(:, 1), rsvd(:, 2), 'linear', 'nearest');
             rs = @(p, z) F(z);
         end
-    else
-        rs = 0;
+        region.rs = rs;
     end
     
-    if isprop(model, 'vapoil') && model.vapoil
+    if hasVapoil
         if rv_method <= 0
             % Oil pressure at gas-oil contact + capillary pressure there
             pg_goc = p_datum + eql(6);
@@ -89,18 +119,6 @@ function region = getRegion(model, deck, eql, cells, regionIx, satnum, pvtnum)
             F = griddedInterpolant(rvvd(:, 1), rvvd(:, 2), 'linear', 'nearest');
             rv = @(p, z) F(z);
         end
-    else
-        rv = 0;
+        region.rv = rv;
     end
-    
-    contacts = eql([3, 5]);
-    contacts_pc = eql([4, 6]);
-    if model.water && model.gas && ~model.oil
-        act = [true, false, false];
-    else
-        act = [model.water & model.oil, model.oil & model.gas];
-    end
-    region = getInitializationRegionsBlackOil(model, contacts(act),...
-        'cells', cells, 'datum_pressure', p_datum, ...
-        'datum_depth', eql(1), 'contacts_pc', contacts_pc(act), 'rs', rs, 'rv', rv);
 end

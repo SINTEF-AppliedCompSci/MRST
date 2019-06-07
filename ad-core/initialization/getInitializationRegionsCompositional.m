@@ -1,12 +1,15 @@
 function region = getInitializationRegionsCompositional(model, contacts, varargin)
     opt = struct('cells',   (1:model.G.cells.num)', ...
-                 'T',       303.15, ...
+                 'T',       [], ...
                  'x',       [], ...
                  'y',       []);
     [opt, args] = merge_options(opt, varargin{:});
-    x = opt.x;
-    y = opt.y;
-    T = opt.T;
+    x = makeFunction(opt.x);
+    y = makeFunction(opt.y);
+    if isempty(opt.T)
+        opt.T = 303.15;
+    end
+    T = makeFunction(opt.T);
     actPh = model.getActivePhases();
     nPh = sum(actPh);
 
@@ -20,10 +23,10 @@ function region = getInitializationRegionsCompositional(model, contacts, varargi
     [satnum, pvtnum] = deal(1);
     if isfield(model.rock, 'regions')
         if isfield(model.rock.regions, 'saturation')
-            satnum = model.rock.regions.saturation(cc);
+            satnum = model.rock.regions.saturation(opt.cells);
         end
         if isfield(model.rock.regions, 'pvt')
-            pvtnum = model.rock.regions.pvt(cc);
+            pvtnum = model.rock.regions.pvt(opt.cells);
         end
     end
     if model.water
@@ -42,13 +45,13 @@ function region = getInitializationRegionsCompositional(model, contacts, varargi
     
     if model.oil
         ix = model.getPhaseIndex('O');
-        rho{ix} = @(p, z) getDensity(model, p, T, z, x, true);
+        rho{ix} = @(p, z) getDensity(model, p, T(p, z), z, x(p, z), true);
         PC{ix} = @(S) 0*S;
     end
     
     if model.gas
         ix = model.getPhaseIndex('G');
-        rho{ix} = @(p, z) getDensity(model, p, T, z, y, false);
+        rho{ix} = @(p, z) getDensity(model, p, T(p, z), z, y(p, z), false);
         pc_sign(ix) = 1;
         if isfield(model.fluid, 'pcOG')
             pcOG = getFunction(f, 'pcOG', satnum);
@@ -85,6 +88,12 @@ function rho = getDensity(model, p, T, z, x, isLiquid, varargin)
         Z = model.EOSModel.computeCompressibilityZ(p, x, A, B, Si, Bi, isLiquid);
     end
     rho = model.EOSModel.PropertyModel.computeDensity(p, x, Z, T, isLiquid);
+end
+
+function f = makeFunction(f)
+    if ~isa(f, 'function_handle')
+        f = @(p, z) 0*z + f;
+    end
 end
 
 function f = getFunction(fluid, fld, reg)

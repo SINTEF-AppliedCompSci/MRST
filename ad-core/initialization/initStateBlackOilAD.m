@@ -9,17 +9,22 @@ function [state, pressures] = initStateBlackOilAD(model, regions, varargin)
     [rs, rv] = deal(0);
     vapoil = isprop(model, 'vapoil') && model.vapoil;
     disgas = isprop(model, 'disgas') && model.disgas;
+    compositional = isprop(model, 'EOSModel');
 
     G = model.G;
-    if disgas
-        rs = zeros(G.cells.num, 1);
-    end
-    if disgas
-        rv = zeros(G.cells.num, 1);
-    end
     nph = sum(model.getActivePhases());
-    state = struct('pressure', zeros(G.cells.num, 1), 'rs', rs, 'rv', rv, 's', zeros(G.cells.num, nph));
-    
+    state = struct('pressure', zeros(G.cells.num, 1), 's', zeros(G.cells.num, nph));
+    if disgas
+        state.rs = zeros(G.cells.num, 1);
+    end
+    if vapoil
+        state.rv = zeros(G.cells.num, 1);
+    end
+    if compositional
+        ncomp = model.EOSModel.fluid.getNumberOfComponents();
+        state.components = zeros(G.cells.num, ncomp);
+        state.T = zeros(G.cells.num, 1);
+    end
     watIx = model.getPhaseIndex('W');
     oilIx = model.getPhaseIndex('O');
     gasIx = model.getPhaseIndex('G');
@@ -108,6 +113,15 @@ function [state, pressures] = initStateBlackOilAD(model, regions, varargin)
         end
         if model.oil
             state.pressure(cells(toOil)) = p(toOil, oilIx);
+        end
+        
+        if compositional
+            if isfield(region, 'z')
+                state.components(cells, :) = region.z(state.pressure(cells), z);
+            end
+            if isfield(region, 'T')
+                state.T(cells, :) = region.T(state.pressure(cells), z);
+            end
         end
     end
     if ~all(touched)
