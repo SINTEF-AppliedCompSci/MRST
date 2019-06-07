@@ -386,6 +386,11 @@ function props = convertPROPS(props, u)
             unt         = [u.concentr, u.concentr];
             props.(key) = convertFrom(props.(key), unt);
 
+         case 'PARACHOR'
+            % Always the same units
+            unt         = (((centi*meter)^3)/mol)*(dyne/(centi*meter)).^(-1/4);
+            props.(key) = convertFrom(props.(key), unt);
+
          case 'PLYROCK'
             unt         = [1, 1, u.concentr, 1, 1];
             props.(key) = convertFrom(props.(key), unt);
@@ -467,6 +472,20 @@ function props = convertPROPS(props, u)
          case 'RSCONSTT'
             unt         = [u.gasvol_s/u.liqvol_s, u.press];
             props.(key) = convertFrom(props.(key), unt);
+
+         case 'STCOND'
+            d = props.(key);
+            if u.temp == 1
+                % Always C, shift to Kelvin
+                d(1) = d(1) + 273.15;
+            else
+                % Farenheit
+                d(1) = convertFrom(d(1) + 459.67, u.temp);
+            end
+            d(2) = convertFrom(d(2), u.press);
+            def = [288.7100, 1.01325*barsa];
+            d(isnan(d)) = def(isnan(d));
+            props.(key) = d;
 
          case {'SGFN', 'SWFN'}
             unt = [1, 1, u.press];
@@ -593,6 +612,7 @@ function props = convertPROPS(props, u)
                'SURFCAPD', ...
                ...
                'ACF', 'BIC', 'CNAMES', 'ROCKOPTS', 'EOS', 'PRCORR', ...
+               'ZMFVD', 'TEMPVD', 'SSHIFT',...
                ...
                'MISC', 'MSFN', 'SSFN', 'SCALECRS', ...
                ...
