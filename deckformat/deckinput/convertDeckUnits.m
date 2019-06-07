@@ -512,6 +512,22 @@ function props = convertPROPS(props, u)
          case 'TCRIT'
             unt         = u.temp;
             props.(key) = convertFrom(props.(key), unt);
+            
+         case {'TEMPVD', 'ZMFVD'}
+            for i = 1:numel(props.(key))
+                d = props.(key){i};
+                if strcmp(key, 'TEMPVD')
+                    if u.temp == 1
+                        % Always C, shift to Kelvin
+                        d(:, 2) = d(:, 2) + 273.15;
+                    else
+                        % Farenheit
+                        d(:, 2) = convertFrom(d(:, 2) + 459.67, u.temp);
+                    end
+                end
+                d(:, 1) = convertFrom(d(:, 1), u.length);
+                props.(key){i} = d;
+            end
 
          case 'VCRIT'
             unt         = u.density / (u.mass*u.mol);
@@ -612,7 +628,7 @@ function props = convertPROPS(props, u)
                'SURFCAPD', ...
                ...
                'ACF', 'BIC', 'CNAMES', 'ROCKOPTS', 'EOS', 'PRCORR', ...
-               'ZMFVD', 'TEMPVD', 'SSHIFT',...
+               'SSHIFT',...
                ...
                'MISC', 'MSFN', 'SSFN', 'SCALECRS', ...
                ...
