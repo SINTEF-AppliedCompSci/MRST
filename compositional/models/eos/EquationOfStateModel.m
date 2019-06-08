@@ -590,120 +590,38 @@ classdef EquationOfStateModel < PhysicalModel
             end
         end
 
-        function [x, y, LL] = getPhaseFractionAsADI(model, state, pP, TP, zP)
+        function [x, y, L] = getPhaseFractionAsADI(model, state, p, T, z)
             % Compute derivatives for values obtained by solving the
             % equilibrium equations (molar fractions in each phase, liquid
             % mole fraction).
             singlePhase = model.getSinglePhase(state);
             twoPhase = ~singlePhase;
-%             [x, y] = deal(zP);
-%             LL = state.L;
             
-%             sampleVar = getSampleAD(pP, TP, zP{:});
-%             for i = 1:numel(x)
-%                 if ~isa(x{i}, 'ADI')
-%                     x{i} = double2ADI(x{i}, sampleVar);
-%                     y{i} = double2ADI(y{i}, sampleVar);
-%                 end
-%             end
-%             if ~isa(LL, 'ADI')
-%                 LL = double2ADI(LL, sampleVar);
-%             end
+            x = z;
+            y = z;
+            L = state.L;
             if ~any(twoPhase)
                 return
             end
-%             x2ph = state.x(twoPhase, :);
-%             y2ph = state.y(twoPhase, :);
-%             L2ph = state.L(twoPhase, :);
-%             
-%             
-            
+            sample = getSampleAD(p, T, z{:});
             [dLdpTz, dxdpTz, dydpTz] = model.getPhaseFractionDerivativesPTZ(state, twoPhase);
+            ncomp = model.fluid.getNumberOfComponents();
             
-            zP = cellfun(@(x) x(twoPhase), zP, 'UniformOutput', false);
-            pP = pP(twoPhase);
-            TP = TP(twoPhase);
+            p2ph = p(twoPhase);
+            T2ph = T(twoPhase);
+            z2ph = cellfun(@(x) x(twoPhase), z, 'UniformOutput', false);
             
-            L = state.L(twoPhase);
-            zD = cellfun(@value, zP, 'UniformOutput', false);
-            % Compute secondary variables as pure doubles
-            xD = expandMatrixToCell(state.x(twoPhase, :));
-            yD = expandMatrixToCell(state.y(twoPhase, :));
-            ncomp = numel(xD);
-            Z_L = state.Z_L(twoPhase);
-            Z_V = state.Z_V(twoPhase);
-
-            xS = cell(1, ncomp);
-            yS = cell(1, ncomp);
-            zS = zD;
-            
-            % Secondary as primary variables to get equilibrium jacobian
-            % with respect to them.
-            [xS{:}, yS{:}, LS] = model.AutoDiffBackend.initVariablesAD(xD{:}, yD{:}, L);
-
-            xP = xD;
-            yP = yD;
-
-            pS = value(pP);
-            TS = value(TP);
-            LP = L;
-            
-            eqsPrim  = model.equationsEquilibrium(pP, TP, xP, yP, zP, LP, Z_L, Z_V);
-            eqsSec = model.equationsEquilibrium(pS, TS, xS, yS, zS, LS, Z_L, Z_V);
-            
-            ep = combineEquations(eqsPrim{:});
-            es = combineEquations(eqsSec{:});
-            
-            % Let F ble the equilibrium equations (fugacity balance,
-            % vapor/liquid balance etc). We can then write by the chain
-            % rule (and using partial derivatives instead of total
-            % derivatives),
-            % DF / Dp = dF / dp +  dF / ds * ds/dp.
-            % where p is the primary variables and s the secondary
-            % variables. We then obtain 
-            % ds / dp = -inv(dF / ds)*(DF / Dp)
-            dFdp = ep.jac{1};
-            dFds = es.jac{1};
-            % We really want: dsdp = dFds\dFdp, but right hand side is
-            % large so we just use LU factorization since it is much faster
-            [dFds_L, dFds_U] = lu(dFds);
-            dsdp = -(dFds_U\(dFds_L\dFdp));
-
-            % We now have a big lumped matrix of all the derivatives, which
-            % we can then extract into the regular ADI format of cell
-            % arrays
-            [I, J, V] = find(dsdp);
-            jSz = cellfun(@(x) size(x, 2), sampleVar.jac);
-            V(~isfinite(V)) = 0;
-
-            jOffset = cumsum([0, jSz]);
-            jump = numel(L);
-            nj = numel(sampleVar.jac);
+            L = model.AutoDiffBackend.convertToAD(L, sample);
+            L(twoPhase) = model.addDerivativePTZ(L(twoPhase), dLdpTz, p2ph, T2ph, z2ph);
             for i = 1:ncomp
-                startIx = jump*(i-1);
-                endIx = jump*i;
-                startIy = startIx + ncomp*jump;
-                endIy = endIx + ncomp*jump;
-                for j = 1:nj
-                    startJ = jOffset(j);
-                    endJ = jOffset(j+1);
-
-                    actx = I > startIx & I <= endIx & J > startJ & J <= endJ;
-                    acty = I > startIy & I <= endIy & J > startJ & J <= endJ;
-                    
-                    x{i}.jac{j}(twoPhase, :) = sparse(I(actx) - startIx, J(actx) - startJ, V(actx), endIx-startIx, endJ-startJ);
-                    y{i}.jac{j}(twoPhase, :) = sparse(I(acty) - startIy, J(acty) - startJ, V(acty), endIy-startIy, endJ-startJ);
+                x{i}(singlePhase) = state.x(singlePhase, i);
+                y{i}(singlePhase) = state.y(singlePhase, i);
+                if ~isa(z{i}, 'ADI')
+                    x{i} = model.AutoDiffBackend.convertToAD(x{i}, sample);
+                    y{i} = model.AutoDiffBackend.convertToAD(y{i}, sample);
                 end
-                x{i}.val(twoPhase) = xD{i};
-                y{i}.val(twoPhase) = yD{i};
-            end
-            startI = 2*ncomp*jump;
-            endI = startI + jump;
-            for i = 1:nj
-                startJ = jOffset(i);
-                endJ = jOffset(i+1);
-                actL = I > startI & J > startJ & J <= endJ;
-                LL.jac{i}(twoPhase, :) = sparse(I(actL) - startI, J(actL) - startJ, V(actL), endI-startI, endJ-startJ);
+                x{i}(twoPhase) = model.addDerivativePTZ(x{i}(twoPhase), dxdpTz{i}, p2ph, T2ph, z2ph);
+                y{i}(twoPhase) = model.addDerivativePTZ(y{i}(twoPhase), dydpTz{i}, p2ph, T2ph, z2ph);
             end
         end
 
@@ -1100,6 +1018,28 @@ classdef EquationOfStateModel < PhysicalModel
             Z = zeros(n, 3);
             for i = 1:n
                 Z(i, :) = roots([1, E2(i), E1(i), E0(i)]);
+            end
+        end
+        
+        function result = addDerivativePTZ(result, dvdptz, p, T, z)
+            if ~isa(result, 'ADI')
+                return
+            end
+            nJac = numel(result.jac);
+            for jacNo = 1:nJac
+                result.jac{jacNo} = 0*result.jac{jacNo};
+            end
+            variables = [{p}, {T}, z];
+            for varNo = 1:numel(variables)
+                v = variables{varNo};
+                if isa(v, 'ADI')
+                    v_der = dvdptz(:, varNo);
+                    D = [];
+                    for jacNo = 1:nJac
+                        [inc, D] = diagMult(v_der, v.jac{jacNo}, D);
+                        result.jac{jacNo} = result.jac{jacNo} + inc;
+                    end
+                end
             end
         end
     end
