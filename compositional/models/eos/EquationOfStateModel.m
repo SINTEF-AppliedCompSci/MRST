@@ -590,44 +590,41 @@ classdef EquationOfStateModel < PhysicalModel
             end
         end
 
-        function [x, y, LL] = getPhaseFractionAsADI(model, state, pP, TP, z0)
+        function [x, y, LL] = getPhaseFractionAsADI(model, state, pP, TP, zP)
             % Compute derivatives for values obtained by solving the
             % equilibrium equations (molar fractions in each phase, liquid
             % mole fraction).
-            twoPhase = true(size(value(pP)));
-
-            % This function currently only works for the full set of
-            % variables, making the local systems a bit too large. The root
-            % cause of this is that the derivatives must be massaged to
-            % take subsets.
+            singlePhase = model.getSinglePhase(state);
+            twoPhase = ~singlePhase;
+%             [x, y] = deal(zP);
+%             LL = state.L;
             
-            % [~, ~, twoPhase] = model.getFlag(state);
-            % twoPhase = state.L > 0 & state.L < 1;
-
-            [x, y] = deal(z0);
-            LL = state.L;
-            
-            primVar = getSampleAD(pP, TP, z0{:});
-            for i = 1:numel(x)
-                if ~isa(x{i}, 'ADI')
-                    x{i} = double2ADI(x{i}, primVar);
-                    y{i} = double2ADI(y{i}, primVar);
-                end
-            end
-            if ~isa(LL, 'ADI')
-                LL = double2ADI(LL, primVar);
-            end
+%             sampleVar = getSampleAD(pP, TP, zP{:});
+%             for i = 1:numel(x)
+%                 if ~isa(x{i}, 'ADI')
+%                     x{i} = double2ADI(x{i}, sampleVar);
+%                     y{i} = double2ADI(y{i}, sampleVar);
+%                 end
+%             end
+%             if ~isa(LL, 'ADI')
+%                 LL = double2ADI(LL, sampleVar);
+%             end
             if ~any(twoPhase)
                 return
             end
-
-            z0 = cellfun(@(x) x(twoPhase), z0, 'UniformOutput', false);
+%             x2ph = state.x(twoPhase, :);
+%             y2ph = state.y(twoPhase, :);
+%             L2ph = state.L(twoPhase, :);
+%             
+%             
+            
+            [dLdpTz, dxdpTz, dydpTz] = model.getPhaseFractionDerivativesPTZ(state, twoPhase);
+            
+            zP = cellfun(@(x) x(twoPhase), zP, 'UniformOutput', false);
             pP = pP(twoPhase);
             TP = TP(twoPhase);
-            zP = z0;
             
             L = state.L(twoPhase);
-            K = state.K(twoPhase, :);
             zD = cellfun(@value, zP, 'UniformOutput', false);
             % Compute secondary variables as pure doubles
             xD = expandMatrixToCell(state.x(twoPhase, :));
@@ -642,7 +639,7 @@ classdef EquationOfStateModel < PhysicalModel
             
             % Secondary as primary variables to get equilibrium jacobian
             % with respect to them.
-            [xS{:}, yS{:}, LS] = initVariablesADI(xD{:}, yD{:}, L);
+            [xS{:}, yS{:}, LS] = model.AutoDiffBackend.initVariablesAD(xD{:}, yD{:}, L);
 
             xP = xD;
             yP = yD;
@@ -676,12 +673,12 @@ classdef EquationOfStateModel < PhysicalModel
             % we can then extract into the regular ADI format of cell
             % arrays
             [I, J, V] = find(dsdp);
-            jSz = cellfun(@(x) size(x, 2), primVar.jac);
+            jSz = cellfun(@(x) size(x, 2), sampleVar.jac);
             V(~isfinite(V)) = 0;
 
             jOffset = cumsum([0, jSz]);
             jump = numel(L);
-            nj = numel(primVar.jac);
+            nj = numel(sampleVar.jac);
             for i = 1:ncomp
                 startIx = jump*(i-1);
                 endIx = jump*i;
@@ -710,6 +707,82 @@ classdef EquationOfStateModel < PhysicalModel
             end
         end
 
+        function [dLdpTz, dxdpTz, dydpTz] = getPhaseFractionDerivativesPTZ(model, state, cells)
+            if nargin < 3
+                cells = ':';
+            end
+            tic()
+            % Will get derivatives of these
+            L = state.L(cells);
+            x = expandMatrixToCell(state.x(cells, :));
+            y = expandMatrixToCell(state.y(cells, :));
+            % With respect to these
+            p = state.pressure(cells);
+            T = state.T(cells);
+            z = expandMatrixToCell(state.components(cells, :));
+            % And we need these
+            Z_L = state.Z_L(cells);
+            Z_V = state.Z_V(cells);
+            % A few constants
+            ncell = numel(p);
+            ncomp = model.fluid.getNumberOfComponents();
+            nprimary = 2 + ncomp;
+            nsecondary = 1 + 2*ncomp;
+            [xAD, yAD, zAD] = deal(cell(1, ncomp));
+            
+            [pAD, TAD, zAD{:}] = model.AutoDiffBackend.initVariablesAD(p, T, z{:});
+            [xAD{:}, yAD{:}, LAD] = model.AutoDiffBackend.initVariablesAD(x{:}, y{:}, L);
+
+            
+            eqsPrim  = model.equationsEquilibrium(pAD, TAD, x, y, zAD, L, Z_L, Z_V);
+            eqsSec = model.equationsEquilibrium(p, T, xAD, yAD, z, LAD, Z_L, Z_V);
+            ep = combineEquations(eqsPrim{:});
+            es = combineEquations(eqsSec{:});
+            
+            % Let F ble the equilibrium equations (fugacity balance,
+            % vapor/liquid balance etc). We can then write by the chain
+            % rule (and using partial derivatives instead of total
+            % derivatives),
+            % DF / Dp = dF / dp +  dF / ds * ds/dp.
+            % where p is the primary variables and s the secondary
+            % variables. We then obtain 
+            % ds / dp = -inv(dF / ds)*(DF / Dp)
+            dFdp = ep.jac{1};
+            dFds = es.jac{1};
+            % We really want: dsdp = dFds\dFdp, but right hand side is
+            % large so we just use LU factorization since it is much faster
+            [dFds_L, dFds_U] = lu(dFds);
+            dsdp = -(dFds_U\(dFds_L\dFdp));
+            [I, J, V] = find(dsdp);
+            toc()
+            
+            % P, T and each component
+            dLdpTz = zeros(ncell, nprimary);
+            dxdpTz = cell(1, ncomp);
+            [dxdpTz{:}] = deal(zeros(ncell, nprimary));
+            dydpTz = dxdpTz;
+            
+            I = I-1;
+            J = J-1;
+            cellNo = mod(I, ncell)+1;
+            secondaryNo = floor(I/ncell)+1;
+            primaryNo = floor(J/ncell)+1;
+            
+            isdL = secondaryNo == 1;
+            
+            makeSub = @(act) sub2ind([ncell, nprimary], cellNo(act), primaryNo(act));
+            dLdpTz(makeSub(isdL)) = V(isdL);
+            % Equivialent version - if there are no zeros!
+            % dLdpTz = reshape(V(isdL), ncell, nprimary);
+            for i = 1:ncomp
+                isdx = secondaryNo == 1 + i;
+                dxdpTz{i}(makeSub(isdx)) = V(isdx);
+                isdy = secondaryNo == ncomp + 1 + i;
+                dydpTz{i}(makeSub(isdy)) = V(isdy);
+            end
+            toc()
+        end
+        
         function L = solveRachfordRice(model, L, K, z) %#ok
             L = solveRachfordRiceVLE(L, K, z);
         end
@@ -976,6 +1049,13 @@ classdef EquationOfStateModel < PhysicalModel
         end
     end
 
+    methods(Access = protected)
+        function [m1, m2] = getEOSCoefficients(model)
+            m1 = model.eosA;
+            m2 = model.eosB;
+        end
+    end
+    
     methods (Static, Access=protected)
         function dx = getJac(x, ix)
             if isa(x, 'ADI')
@@ -1021,11 +1101,6 @@ classdef EquationOfStateModel < PhysicalModel
             for i = 1:n
                 Z(i, :) = roots([1, E2(i), E1(i), E0(i)]);
             end
-        end
-
-        function [m1, m2] = getEOSCoefficients(model)
-            m1 = model.eosA;
-            m2 = model.eosB;
         end
     end
 end
