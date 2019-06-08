@@ -109,17 +109,17 @@ function [map, tbl, map1, map2] = setupTableMapping(tbl1, tbl2, crossfields, var
     
         for ifield = 1 : nfds
             fieldname = fds1{ifield};
-            tbl.(fieldname) = tbl1.(fieldname)(ind1);
+            tbl.(fieldname) = tbl1.(fieldname)(ind1, 1);
         end
         
         for ifield = 1 : numel(ofields1)
             fieldname = ofields1{ifield};
-            tbl.(fieldname) = tbl1.(fieldname)(ind1);
+            tbl.(fieldname) = tbl1.(fieldname)(ind1, 1);
         end
 
         for ifield = 1 : numel(ofields2)
             fieldname = ofields2{ifield};
-            tbl.(fieldname) = tbl2.(fieldname)(ind2);
+            tbl.(fieldname) = tbl2.(fieldname)(ind2, 1);
         end
         
         tbl.num = numel(ind1);

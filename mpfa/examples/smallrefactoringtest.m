@@ -1,9 +1,10 @@
+close all
 
 mrstModule add mimetic mpfa incomp
 
 isverbose = true;
 eta       = 1/3;
-blocksize = 1000;
+blocksize = 10;
 
 %% Define and process geometry
 % Construct a Cartesian grid of size 10-by-10-by-4 cells, where each cell
@@ -11,7 +12,7 @@ blocksize = 1000;
 % general unstructured grids, the Cartesian grid is here represented using
 % an unstructured formate in which cells, faces, nodes, etc. are given
 % explicitly.
-nx = 100; ny = 100;
+nx = 10; ny = 10;
 G = cartGrid([nx, ny]);
 G = twister(G, 0.1);
 G = computeGeometry(G);
@@ -27,5 +28,6 @@ rock = makeRock(G, 1e-3*darcy, 1);
 opt.verbose = true;
 opt.eta = 1/3;
 
-nodes = (1 : 10)';
-[B, tbls] = blockLocalFluxMimeticAssembly(G, rock, nodes, opt);
+% nodes = (1 : 10)';
+% [B, tbls] = blockLocalFluxMimeticAssembly(G, rock, nodes, opt);
+mpfastruct = blockComputeMultiPointTrans(G, rock, 'blocksize', blocksize);
