@@ -38,14 +38,6 @@ W = drivingForces.W;
 fluid = model.fluid;
 compFluid = model.EOSModel.fluid;
 
-if isempty(opt.propsPressure)
-    if model.EOSModel.fastDerivatives
-        state.eos.packed = model.EOSModel.getPropertiesFastAD(state.pressure, state.T, state.x, state.y, state.components);
-    else
-        state.eos.packed = struct();
-    end
-end
-
 % Properties at current timestep
 [p, sW, z, temp, wellSol] = model.getProps(state, ...
     'pressure', 'water', 'z', 'T', 'wellSol');
