@@ -7,7 +7,6 @@ classdef EquationOfStateModel < PhysicalModel
         omegaA % Parameter for EOS
         omegaB % Parameter for EOS
         useNewton % Use Newton based solver for flash. If set to false, successive substitution if used instead.
-        fastDerivatives % Use FastAD to compute EOS derivatives.
         PropertyModel % Model to be used for property evaluations
         selectGibbsMinimum = true; % Use minimum Gibbs energy to select Z
         alpha = [];
@@ -937,19 +936,11 @@ classdef EquationOfStateModel < PhysicalModel
                         Z.jac{i} = sparse(map, (1:m)', d, n, m);
                     end
                 end
-            elseif isa(Z, 'FastAD')
-                for i = 1:size(Z.jac, 2)
-                    dE2 = model.getJac(E2, i);
-                    dE1 = model.getJac(E1, i);
-                    dE0 = model.getJac(E0, i);
-                    Z.jac(:, i) = -(dE2.*z.^2 + dE1.*z + dE0)./(3*z.^2 + 2*z.*e2 + e1);
-                end
             end
         end
 
         function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
             [state, report] = updateAfterConvergence@PhysicalModel(model, state0, state, dt, drivingForces);
-            
             state = model.setFlag(state);
             state.x = model.computeLiquid(state);
             state.y = model.computeVapor(state);
@@ -994,8 +985,6 @@ classdef EquationOfStateModel < PhysicalModel
         function dx = getJac(x, ix)
             if isa(x, 'ADI')
                 dx = diag(x.jac{ix});
-            elseif isa(x, 'FastAD')
-                dx = x.jac(:, ix);
             else
                 dx = 0;
             end
