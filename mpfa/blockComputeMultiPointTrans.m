@@ -177,6 +177,21 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
            clear mapneg
        end
 
+       % plot div sparsity
+       thiscelltbl = projTable(loccellfacenodetbl, {'cells'});
+       thiscelltbl = addLocInd(thiscelltbl, 'cind');
+       thisfacenodetbl = projTable(loccellfacenodetbl, {'faces', 'nodes'});
+       thisfacenodetbl = addLocInd(thisfacenodetbl, 'fnind');
+       map1 = setupTableMapping(thiscelltbl, loccellfacenodetbl, {'cells'});
+       map2 = setupTableMapping(thisfacenodetbl, loccellfacenodetbl, {'faces', ...
+                           'nodes'});
+       ind1 = map1*thiscelltbl.cind;
+       ind2 = map2*thisfacenodetbl.fnind;
+       divmat = sparse(ind1, ind2, div, thiscelltbl.num, ...
+                       thisfacenodetbl.num);
+       figure
+       spy(divmat);
+       
        % Table loccell_1face_1nodetbl for div mapping from facenode to cell
        loccell_1face_1nodetbl = replacefield(loccellfacenodetbl, 'faces', ...
                                            'faces1');
@@ -208,17 +223,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                            'faces2', 'nodes'});
        locA = reducemap*locA; % mapping in loccell_1face_1nodetbl
 
-       % figure
-       % tbl1 = projTable(loccell_1face_2nodetbl, {'cells1'});
-       % tbl1 = addLocInd(tbl1, 'cind');
-       % tbl2 = projTable(loccell_1face_2nodetbl, {'faces2', 'nodes'});
-       % tbl2 = addLocInd(tbl2, 'fnind');
-       % map1 = setupTableMapping(tbl1, loccell_1face_2nodetbl, {'cells1'});
-       % ind1 = map1*tbl1.cind;
-       % map2 = setupTableMapping(tbl2, loccell_1face_2nodetbl, {'faces2', 'nodes'});
-       % ind2 = map2*tbl2.fnind;
-       % locAmat = sparse(ind1, ind2, locA, tbl1.num, tbl2.num);
-       % spy(locAmat);
+       figure
+       tbl1 = projTable(loccell_1face_2nodetbl, {'cells1'});
+       tbl1 = addLocInd(tbl1, 'cind');
+       tbl2 = projTable(loccell_1face_2nodetbl, {'faces2', 'nodes'});
+       tbl2 = addLocInd(tbl2, 'fnind');
+       map1 = setupTableMapping(tbl1, loccell_1face_2nodetbl, {'cells1'});
+       ind1 = map1*tbl1.cind;
+       map2 = setupTableMapping(tbl2, loccell_1face_2nodetbl, {'faces2', 'nodes'});
+       ind2 = map2*tbl2.fnind;
+       locAmat = sparse(ind1, ind2, locA, tbl1.num, tbl2.num);
+       spy(locAmat);
 
        [~, prodmattbl] = setupTableMapping(loccell_2face_2nodetbl, ...
                                         loccell_1face_2nodetbl, {'faces2', ...
