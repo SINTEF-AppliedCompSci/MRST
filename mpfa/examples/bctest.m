@@ -51,7 +51,7 @@ bc.value = value;
 %% Pressure run
 
 
-titles = {'mpfa - jostein', 'mpfa - standard', 'mpfa - block'};
+titles = {};
 z = G.cells.centroids(:, dim);
 eta = 1/3;
 blocksize = 10;
@@ -66,6 +66,7 @@ state = incompMPFA(state, G, T_mpfa, fluid, 'bc', bc);
 p = state.pressure;
 vec = [z, p];
 vecs{caseno} = sortrows(vec);
+titles{caseno} = 'mpfa - jostein';
 caseno = caseno + 1;
 
 % mpfa - standard
@@ -74,8 +75,8 @@ state = incompMPFA2(G, mpfastruct, 'bc', bc);
 p = state.pressure;
 vec = [z, p];
 vecs{caseno} = sortrows(vec);
+titles{caseno} = 'mpfa - standard';
 caseno = caseno + 1;
-
 
 % mpfa - block
 mpfastruct = computeMultiPointTrans2(G, rock, 'eta', eta, 'blocksize', ...
@@ -84,6 +85,17 @@ state = incompMPFA2(G, mpfastruct, 'bc', bc);
 p = state.pressure;
 vec = [z, p];
 vecs{caseno} = sortrows(vec);
+titles{caseno} = 'mpfa - block';
+icaseno = caseno + 1;
+
+% mpfa - block
+mpfastruct = blockComputeMultiPointTrans(G, rock, 'eta', eta, 'blocksize', ...
+                                         blocksize, 'verbose', true);
+state = incompMPFA2(G, mpfastruct, 'bc', bc);
+p = state.pressure;
+vec = [z, p];
+vecs{caseno} = sortrows(vec);
+titles{caseno} = 'mpfa - new block';
 caseno = caseno + 1;
 
 

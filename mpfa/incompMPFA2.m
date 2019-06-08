@@ -88,11 +88,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
 
     
-    is_well_posed = false; % changed to true if pressure is set through well
-                           % or boundary conditions.
+    is_well_posed = false; % changed to true if pressure is set through well or
+                           % boundary conditions.
     nc = G.cells.num; 
     
-    div  = mpfastruct.div;
     A    = mpfastruct.A;
     F    = mpfastruct.F;
     tbls = mpfastruct.tbls;
