@@ -565,7 +565,7 @@ classdef EquationOfStateModel < PhysicalModel
             timer = tic();
             eqs = cell(1, 2*ncomp + 1);
             sample = getSampleAD(P, T, x{:}, y{:}, z{:});
-            emptyJac = double2ADI(zeros(size(value(P))), sample);
+            emptyJac = model.AutoDiffBackend.convertToAD(zeros(numelValue(P), 1), sample);
             
             isLiq = value(L) == 1;
             isVap = value(L) == 0;
