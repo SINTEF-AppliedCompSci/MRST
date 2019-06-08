@@ -432,6 +432,8 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             if isempty(model.FlowPropertyFunctions)
                 model.FlowPropertyFunctions = CompositionalFlowPropertyFunctions(model);
             end
+            % Use matching AD backends for EOS and for flow model
+            model.EOSModel.AutoDiffBackend = model.AutoDiffBackend;
             model = validateModel@ReservoirModel(model, varargin{:});
         end
     end
