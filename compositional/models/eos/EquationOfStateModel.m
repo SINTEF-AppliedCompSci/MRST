@@ -109,11 +109,6 @@ classdef EquationOfStateModel < PhysicalModel
             end
         end
 
-        function [m1, m2] = getEOSCoefficients(model)
-            m1 = model.eosA;
-            m2 = model.eosB;
-        end
-
         function Z = computeCompressibilityZ(model, p, xy, A, B, Si, Bi, isLiquid)
             if iscell(xy)
                 xy = cellfun(@value, xy, 'UniformOutput', false);
@@ -981,7 +976,7 @@ classdef EquationOfStateModel < PhysicalModel
         end
     end
 
-    methods (Static, Access=private)
+    methods (Static, Access=protected)
         function dx = getJac(x, ix)
             if isa(x, 'ADI')
                 dx = diag(x.jac{ix});
@@ -1026,6 +1021,11 @@ classdef EquationOfStateModel < PhysicalModel
             for i = 1:n
                 Z(i, :) = roots([1, E2(i), E1(i), E0(i)]);
             end
+        end
+
+        function [m1, m2] = getEOSCoefficients(model)
+            m1 = model.eosA;
+            m2 = model.eosB;
         end
     end
 end
