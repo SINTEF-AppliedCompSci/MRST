@@ -97,42 +97,174 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    nn = G.nodes.num;
    nblocks = floor(nn/blocksize);
    blocksizes = repmat(blocksize, nblocks, 1); 
-   if ncn > nblocks*blocksize
+   if nn > nblocks*blocksize
        blocksizes = [blocksizes; nn - nblocks*blocksize];
    end
    nblocks = numel(blocksizes);
    blockinds = cumsum([1; blocksizes]);
    
-   extfaces = (G.faces.neighbors(:, 1) == 0) | (G.faces.neighbors(:, 2) == 0);
+   nc  = G.cells.num;
+   nf  = G.faces.num;
+   dim = G.griddim;
+
+   N = G.faces.neighbors;
+   faces = (1 : nf)';
+   extfaces = (N(:, 1) == 0) | (N(:, 2) == 0);
    intfaces = find(~extfaces);
    globintfacetbl.faces = intfaces;
    globintfacetbl.num   = numel(intfaces);
    
+
+   % celltbl.cells = (1 : nc)';
+   % celltbl.num = (1 : nc)';
+   % [~, cell2tbl] = setupTableMapping(celltbl, celltbl, [], 'duplicate', ...
+   %                                            {{'cells', {'cells1', ...
+   %                     'cells2'}}});
+   cellfacetbl.cells = rldecode((1 : nc)', diff(G.cells.facePos)); 
+   cellfacetbl.faces = G.cells.faces(:, 1);
+   cellfacetbl.num   = numel(cellfacetbl.cells);
+   
+   facenodetbl.faces = rldecode((1 : nf)', diff(G.faces.nodePos)); 
+   facenodetbl.nodes = G.faces.nodes;    
+   facenodetbl.num = numel(facenodetbl.faces);    
+   
+   [~, cellfacenodetbl] = setupTableMapping(cellfacetbl, facenodetbl, ...
+                                                         {'faces'});
+
+   A = sparse(nc, nc);
+   
    for iblock = 1 : nblocks
-       nodes = [blockinds(iblock) : (blockinds(iblock + 1) - 1)];
+       
+       nodes = [blockinds(iblock) : (blockinds(iblock + 1) - 1)]';
        [B, tbls] = blockLocalFluxMimeticAssembly(G, rock, nodes, opt);
        
-       facenodetbl = tbls.facenodetbl
-       [~, sz] = rlencode(facenodetbl.nodes); 
-       iB   = opt.invertBlocks(B, sz);
+       locfacenodetbl     = tbls.facenodetbl;
+       locface2nodetbl    = tbls.face2nodetbl;
+       loccellfacenodetbl = tbls.cellfacenodetbl;
+       loccellnodetbl     = tbls.cellnodetbl;
        
-       % Assemble block divergence operator, from facenode values to cell value.
-       cellnodefacetbl = tbls.cellnodefacetbl;
-       celltbl = tbls.celltbl;
-       fno = cellnodefacetbl.faces; %alias
-       cno = cellnodefacetbl.cells; %alias
-       sgn = 2*(cno == G.faces.neighbors(fno, 1)) - 1;
+       % Assembly of B
+       Bmat = sparse(locface2nodetbl.fnind1, locface2nodetbl.fnind2, B, ...
+                     locfacenodetbl.num, locfacenodetbl.num);
+       [~, sz] = rlencode(locfacenodetbl.nodes); 
+       iBmat   = opt.invertBlocks(Bmat, sz);
+       clear locmattbl
+       locmattbl.fnind = (1 : locfacenodetbl.num)';
+       locmattbl.num = locfacenodetbl.num;
+       [~, locmattbl] = setupTableMapping(locmattbl, locmattbl, [], 'duplicate', ...
+                                                     {{'fnind', {'fnind1', ...
+                           'fnind2'}}});
+       locmattbl = sortTable(locmattbl, {'fnind2', 'fnind1'});
+       iB = iBmat(:);
+       map = setupTableMapping(locmattbl, locface2nodetbl, {'fnind1', 'fnind2'});
+       iB = map*iB;
+       clear map;
        
-       map = setupTableMapping(celltbl, cellnodefacetbl, {'cells'});
-       cind = map*(celltbl.cind);
+       div        = zeros(loccellfacenodetbl.num, 1);
+       locfacetbl = projTable(locfacenodetbl, {'faces'});
+       locfaces   = locfacetbl.faces;
        
-       div = sparse(cind, cellnodefacetbl.cnfind, sgn, celltbl.num, ...
-                    cellnodefacetbl.num);
-       % reduce from cell-face-node to face-node (equivalent to removing hybridization)
-       op = setupTableMapping(facenodetbl, cellnodefacetbl, {'faces', 'nodes'});
-       div = div*op;
+       intn = (N(locfaces, 1) > 0);
+       if any(intn)
+           clear locposcellfacetbl
+           locposcellfacetbl.cells = N(locfaces(intn), 1);
+           locposcellfacetbl.faces = locfaces(intn);
+           locposcellfacetbl.num   = numel(locposcellfacetbl.cells);
+           mappos = setupTableMapping(locposcellfacetbl, loccellfacenodetbl, {'cells', 'faces'});
+           div = div + mappos*ones(locposcellfacetbl.num, 1);
+           clear mappos
+       end
+       
+       intn = (N(locfaces, 2) > 0);
+       if any(intn)
+           clear locnegcellfacetbl
+           locnegcellfacetbl.cells = N(locfaces(intn), 2);
+           locnegcellfacetbl.faces = locfaces(intn);
+           locnegcellfacetbl.num   = numel(locnegcellfacetbl.cells);
+           mapneg = setupTableMapping(locnegcellfacetbl, loccellfacenodetbl, {'cells', 'faces'});
+           div = div - mapneg*ones(locnegcellfacetbl.num, 1);
+           clear mapneg
+       end
+
+       % Table loccell_1face_1nodetbl for div mapping from facenode to cell
+       loccell_1face_1nodetbl = replacefield(loccellfacenodetbl, 'faces', ...
+                                           'faces1');
+       loccell_1face_1nodetbl = replacefield(loccell_1face_1nodetbl, 'cells', ...
+                                             'cells1');
+       loccell_1face_1nodefds = {'cells1', 'faces1', 'nodes'};
+       
+       % Table loccell_2face_2nodetbl for div' mapping from cell to facenode
+       loccell_2face_2nodetbl = replacefield(loccellfacenodetbl, 'faces', ...
+                                           'faces2');
+       loccell_2face_2nodetbl = replacefield(loccell_2face_2nodetbl, 'cells', ...
+                                             'cells2');
+       loccell_2face_2nodefds = {'cells2', 'faces2', 'nodes'};
+       
+       [~, prodmattbl] = setupTableMapping(loccell_1face_1nodetbl, locface2nodetbl, ...
+                                                       {'faces1', 'nodes'});
+       map1 = setupTableMapping(loccell_1face_1nodetbl, prodmattbl, {'faces1', ...
+                           'cells1', 'nodes'});
+       map2 = setupTableMapping(locface2nodetbl, prodmattbl, {'faces1', ...
+                           'nodes'});
+       locA = (map1*div).*(map2*iB);
+       
+       % Table loccell_1face_2nodetbl for div*iB mapping (-> locA) from facenode to cell
+       loccell_1face_2nodetbl = projTable(prodmattbl, {'cells1', 'faces2', ...
+                           'nodes'});
+       loccell_1face_2nodefds = {'cells1', 'faces2', 'nodes'};
+       
+       reducemap = setupTableMapping(prodmattbl, loccell_1face_2nodetbl, {'cells1', ...
+                           'faces2', 'nodes'});
+       locA = reducemap*locA; % mapping in loccell_1face_1nodetbl
+
+       figure
+       tbl1 = projTable(loccell_1face_2nodetbl, {'cells1'});
+       tbl1 = addLocInd(tbl1, 'cind');
+       tbl2 = projTable(loccell_1face_2nodetbl, {'faces2', 'nodes'});
+       tbl2 = addLocInd(tbl2, 'fnind');       
+       map1 = setupTableMapping(tbl1, loccell_1face_2nodetbl, {'cells1'});
+       ind1 = map1*tbl1.cind;
+       map2 = setupTableMapping(tbl2, loccell_1face_2nodetbl, {'faces2', 'nodes'});
+       ind2 = map2*tbl2.fnind;
+       locAmat = sparse(ind1, ind2, locA, tbl1.num, tbl2.num);
+       spy(locAmat);
+      
+       [~, prodmattbl] = setupTableMapping(loccell_2face_2nodetbl, ...
+                                        loccell_1face_2nodetbl, {'faces2', ...
+                           'nodes'});
+       map1 = setupTableMapping(loccell_1face_2nodetbl, prodmattbl, ...
+                                              {'cells1', 'faces2', 'nodes'});
+       map2 = setupTableMapping(loccell_2face_2nodetbl, prodmattbl, ...
+                                              {'cells2', 'faces2', 'nodes'});
+       locA = (map1*locA).*(map2*div);
+       clear map1 map2
+
+       % Table loccell2tbl for div*iB*div' (-> locA) from cell to cell
+       loccell2tbl = projTable(prodmattbl, {'cells1', 'cells2'});
+       loccell2fds = {'cells1', 'cells2'};       
+       reducemap = setupTableMapping(prodmattbl, loccell2tbl, {'cells1', ...
+                           'cells2'});
+       locA = reducemap*locA;
+       clear reducemap
+       
+       % Assemble sparse matrix
+       locA = sparse(loccell2tbl.cells1, loccell2tbl.cells2, locA, nc, nc);
+       
+       A = A + locA;
+       
    end
    
+   mpfastruct.A = A;
+   
+   return
+   % Assemble block divergence operator, from facenode values to cell value.
+   cellnodefacetbl = tbls.cellnodefacetbl;
+   celltbl = tbls.celltbl;
+   fno = cellnodefacetbl.faces; %alias
+   cno = cellnodefacetbl.cells; %alias
+   sgn = 2*(cno == G.faces.neighbors(fno, 1)) - 1;
+   
+   map = setupTableMapping(celltbl, cellnodefacetbl, {'cells'});
    
    %% Assemble the projection operator from facenode values to facenode values
    % on the external faces.
