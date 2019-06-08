@@ -66,7 +66,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
     opt = struct('LinSolve', @mldivide,...
-                 'Verbose', mrstVerbose); 
+                 'Verbose', mrstVerbose, ...
+                 'outputFlux', false); 
     opt = merge_options(opt, varargin{:}); 
 
     
@@ -74,9 +75,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                            % or boundary conditions.
     nc = G.cells.num; 
     
-    div  = mpfastruct.div;
     A    = mpfastruct.A;
-    F    = mpfastruct.F;
     tbls = mpfastruct.tbls;
     
     nw  = length(W); 
@@ -133,11 +132,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     pressure = x(1 : nc); 
     wellvars = x((nc + 1) : end);
     
-    flux = F*pressure;
 
     state.pressure = pressure;
-    state.flux = flux;
-
+    if opt.outputFlux 
+        F    = mpfastruct.F;
+        flux = F*pressure;
+        state.flux = flux;
+    end
+    
     for k = 1 : nw
         if strcmpi(W(k).type, 'bhp')
             pw = W(k).val;
