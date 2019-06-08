@@ -56,6 +56,7 @@ states{caseno} = initResSol(G, 0, 1);
 states{caseno} = incompMPFA(states{caseno}, G, T_mpfa, fluid, 'wells', W);
 pressures{caseno} = states{caseno}.pressure;
 fprintf('Done with %s in %g sec\n', titles{caseno}, texec);
+titles{caseno} = 'mpfa - jostein';
 caseno = caseno + 1;
 
 % mpfa - standard
@@ -67,6 +68,7 @@ states{caseno} = incompMPFA2(G, mpfastructs{caseno}, 'wells', W);
 pressures{caseno} = states{caseno}.pressure;
 fluxes{caseno} = states{caseno}.flux;
 fprintf('Done with %s in %g sec\n', titles{caseno}, texec);
+titles{caseno} = 'mpfa - standard';
 caseno = caseno + 1;
 
 
@@ -79,6 +81,7 @@ states{caseno} = incompMPFA2(G, mpfastructs{caseno}, 'wells', W);
 pressures{caseno} = states{caseno}.pressure;
 fluxes{caseno} = states{caseno}.flux;
 fprintf('Done with %s in %g sec\n', titles{caseno}, texec);
+titles{caseno} = 'mpfa - block';
 caseno = caseno + 1;
 
 % mpfa - well
@@ -89,6 +92,7 @@ states{caseno} = incompMPFA3(G, mpfastructs{caseno}, W);
 pressures{caseno} = states{caseno}.pressure;
 fluxes{caseno} = states{caseno}.flux;
 fprintf('Done with %s in %g sec\n', titles{caseno}, texec);
+titles{caseno} = 'mpfa - well';
 caseno = caseno + 1;
 
 % mpfa - well - block
@@ -99,6 +103,7 @@ states{caseno} = incompMPFA3(G, mpfastructs{caseno}, W);
 pressures{caseno} = states{caseno}.pressure;
 fluxes{caseno} = states{caseno}.flux;
 fprintf('Done with %s in %g sec\n', titles{caseno}, texec);
+titles{caseno} = 'mpfa - well - block';
 caseno = caseno + 1;
 
 
