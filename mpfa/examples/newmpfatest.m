@@ -88,7 +88,7 @@ caseno = caseno + 1;
 tic
 mpfastructs{caseno} = computeNeumannMultiPointTrans(G, rock, 'eta', eta, 'verbose', isverbose);
 texec = toc;
-states{caseno} = incompMPFA3(G, mpfastructs{caseno}, W);
+states{caseno} = incompMPFA3(G, mpfastructs{caseno}, W, 'outputFlux', true);
 pressures{caseno} = states{caseno}.pressure;
 fluxes{caseno} = states{caseno}.flux;
 fprintf('Done with %s in %g sec\n', titles{caseno}, texec);
@@ -99,7 +99,7 @@ caseno = caseno + 1;
 tic
 mpfastructs{caseno} = computeNeumannMultiPointTrans(G, rock, 'eta', 1/3, 'verbose', isverbose);
 texec = toc;
-states{caseno} = incompMPFA3(G, mpfastructs{caseno}, W);
+states{caseno} = incompMPFA3(G, mpfastructs{caseno}, W, 'outputFlux', true);
 pressures{caseno} = states{caseno}.pressure;
 fluxes{caseno} = states{caseno}.flux;
 fprintf('Done with %s in %g sec\n', titles{caseno}, texec);

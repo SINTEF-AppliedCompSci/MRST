@@ -252,15 +252,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    F    = bcstructs.F;
    Aold = bcstructs.A;
-   A11  = bcstructs.A11;
    A12  = bcstructs.A12;
    A21  = bcstructs.A21;
    A22  = bcstructs.A22;
 
+   A11  = A;
    A = [[A11, A12]; [A21, A22]];
    
-   mpfastruct = struct('F'   , F   , ...
-                       'A'   , A   , ...
+   mpfastruct = struct('F'   , F  , ...
+                       'A'   , A  , ...
+                       'A11' , A11, ...
                        'tbls', tbls);
 end
 
