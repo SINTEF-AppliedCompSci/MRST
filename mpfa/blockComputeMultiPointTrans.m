@@ -48,7 +48,7 @@ function mpfastruct = blockComputeMultiPointTrans(G, rock, varargin)
 %                              the required MEX functions.
 %
 % RETURNS:
-%  
+%
 %   mpfastruct with fields:
 %
 %               'iB'  : inverse of scalar product (facenode degrees of freedom)
@@ -57,7 +57,7 @@ function mpfastruct = blockComputeMultiPointTrans(G, rock, varargin)
 %               'F'   : flux operator (from cell and external facenode values to facenode values)
 %               'A'   : system matrix (cell and external facenode degrees of freedom)
 %               'tbls': table structure
-   
+
 % COMMENTS:
 %   PLEASE NOTE: Face normals have length equal to face areas.
 %
@@ -83,7 +83,6 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
    opt = struct('verbose'     , mrstVerbose, ...
                 'blocksize'   , []      , ...
                 'invertBlocks', 'matlab', ...
@@ -93,16 +92,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    opt.invertBlocks = blockInverter(opt);
    blocksize = opt.blocksize;
 
-
    nn = G.nodes.num;
    nblocks = floor(nn/blocksize);
-   blocksizes = repmat(blocksize, nblocks, 1); 
+   blocksizes = repmat(blocksize, nblocks, 1);
    if nn > nblocks*blocksize
        blocksizes = [blocksizes; nn - nblocks*blocksize];
    end
    nblocks = numel(blocksizes);
    blockinds = cumsum([1; blocksizes]);
-   
+
    nc  = G.cells.num;
    nf  = G.faces.num;
    dim = G.griddim;
@@ -113,40 +111,33 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    intfaces = find(~extfaces);
    globintfacetbl.faces = intfaces;
    globintfacetbl.num   = numel(intfaces);
-   
 
-   % celltbl.cells = (1 : nc)';
-   % celltbl.num = (1 : nc)';
-   % [~, cell2tbl] = setupTableMapping(celltbl, celltbl, [], 'duplicate', ...
-   %                                            {{'cells', {'cells1', ...
-   %                     'cells2'}}});
-   cellfacetbl.cells = rldecode((1 : nc)', diff(G.cells.facePos)); 
+   cellfacetbl.cells = rldecode((1 : nc)', diff(G.cells.facePos));
    cellfacetbl.faces = G.cells.faces(:, 1);
    cellfacetbl.num   = numel(cellfacetbl.cells);
-   
-   facenodetbl.faces = rldecode((1 : nf)', diff(G.faces.nodePos)); 
-   facenodetbl.nodes = G.faces.nodes;    
-   facenodetbl.num = numel(facenodetbl.faces);    
-   
+
+   facenodetbl.faces = rldecode((1 : nf)', diff(G.faces.nodePos));
+   facenodetbl.nodes = G.faces.nodes;
+   facenodetbl.num = numel(facenodetbl.faces);
+
    [~, cellfacenodetbl] = setupTableMapping(cellfacetbl, facenodetbl, ...
                                                          {'faces'});
-
    A = sparse(nc, nc);
-   
+
    for iblock = 1 : nblocks
-       
+
        nodes = [blockinds(iblock) : (blockinds(iblock + 1) - 1)]';
        [B, tbls] = blockLocalFluxMimeticAssembly(G, rock, nodes, opt);
-       
+
        locfacenodetbl     = tbls.facenodetbl;
        locface2nodetbl    = tbls.face2nodetbl;
        loccellfacenodetbl = tbls.cellfacenodetbl;
        loccellnodetbl     = tbls.cellnodetbl;
-       
+
        % Assembly of B
        Bmat = sparse(locface2nodetbl.fnind1, locface2nodetbl.fnind2, B, ...
                      locfacenodetbl.num, locfacenodetbl.num);
-       [~, sz] = rlencode(locfacenodetbl.nodes); 
+       [~, sz] = rlencode(locfacenodetbl.nodes);
        iBmat   = opt.invertBlocks(Bmat, sz);
        clear locmattbl
        locmattbl.fnind = (1 : locfacenodetbl.num)';
@@ -159,11 +150,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        map = setupTableMapping(locmattbl, locface2nodetbl, {'fnind1', 'fnind2'});
        iB = map*iB;
        clear map;
-       
+
        div        = zeros(loccellfacenodetbl.num, 1);
        locfacetbl = projTable(locfacenodetbl, {'faces'});
        locfaces   = locfacetbl.faces;
-       
+
        intn = (N(locfaces, 1) > 0);
        if any(intn)
            clear locposcellfacetbl
@@ -174,7 +165,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
            div = div + mappos*ones(locposcellfacetbl.num, 1);
            clear mappos
        end
-       
+
        intn = (N(locfaces, 2) > 0);
        if any(intn)
            clear locnegcellfacetbl
@@ -192,14 +183,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        loccell_1face_1nodetbl = replacefield(loccell_1face_1nodetbl, 'cells', ...
                                              'cells1');
        loccell_1face_1nodefds = {'cells1', 'faces1', 'nodes'};
-       
+
        % Table loccell_2face_2nodetbl for div' mapping from cell to facenode
        loccell_2face_2nodetbl = replacefield(loccellfacenodetbl, 'faces', ...
                                            'faces2');
        loccell_2face_2nodetbl = replacefield(loccell_2face_2nodetbl, 'cells', ...
                                              'cells2');
        loccell_2face_2nodefds = {'cells2', 'faces2', 'nodes'};
-       
+
        [~, prodmattbl] = setupTableMapping(loccell_1face_1nodetbl, locface2nodetbl, ...
                                                        {'faces1', 'nodes'});
        map1 = setupTableMapping(loccell_1face_1nodetbl, prodmattbl, {'faces1', ...
@@ -207,28 +198,28 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        map2 = setupTableMapping(locface2nodetbl, prodmattbl, {'faces1', ...
                            'nodes'});
        locA = (map1*div).*(map2*iB);
-       
+
        % Table loccell_1face_2nodetbl for div*iB mapping (-> locA) from facenode to cell
        loccell_1face_2nodetbl = projTable(prodmattbl, {'cells1', 'faces2', ...
                            'nodes'});
        loccell_1face_2nodefds = {'cells1', 'faces2', 'nodes'};
-       
+
        reducemap = setupTableMapping(prodmattbl, loccell_1face_2nodetbl, {'cells1', ...
                            'faces2', 'nodes'});
        locA = reducemap*locA; % mapping in loccell_1face_1nodetbl
 
-       figure
-       tbl1 = projTable(loccell_1face_2nodetbl, {'cells1'});
-       tbl1 = addLocInd(tbl1, 'cind');
-       tbl2 = projTable(loccell_1face_2nodetbl, {'faces2', 'nodes'});
-       tbl2 = addLocInd(tbl2, 'fnind');       
-       map1 = setupTableMapping(tbl1, loccell_1face_2nodetbl, {'cells1'});
-       ind1 = map1*tbl1.cind;
-       map2 = setupTableMapping(tbl2, loccell_1face_2nodetbl, {'faces2', 'nodes'});
-       ind2 = map2*tbl2.fnind;
-       locAmat = sparse(ind1, ind2, locA, tbl1.num, tbl2.num);
-       spy(locAmat);
-      
+       % figure
+       % tbl1 = projTable(loccell_1face_2nodetbl, {'cells1'});
+       % tbl1 = addLocInd(tbl1, 'cind');
+       % tbl2 = projTable(loccell_1face_2nodetbl, {'faces2', 'nodes'});
+       % tbl2 = addLocInd(tbl2, 'fnind');
+       % map1 = setupTableMapping(tbl1, loccell_1face_2nodetbl, {'cells1'});
+       % ind1 = map1*tbl1.cind;
+       % map2 = setupTableMapping(tbl2, loccell_1face_2nodetbl, {'faces2', 'nodes'});
+       % ind2 = map2*tbl2.fnind;
+       % locAmat = sparse(ind1, ind2, locA, tbl1.num, tbl2.num);
+       % spy(locAmat);
+
        [~, prodmattbl] = setupTableMapping(loccell_2face_2nodetbl, ...
                                         loccell_1face_2nodetbl, {'faces2', ...
                            'nodes'});
@@ -241,74 +232,119 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
        % Table loccell2tbl for div*iB*div' (-> locA) from cell to cell
        loccell2tbl = projTable(prodmattbl, {'cells1', 'cells2'});
-       loccell2fds = {'cells1', 'cells2'};       
+       loccell2fds = {'cells1', 'cells2'};
        reducemap = setupTableMapping(prodmattbl, loccell2tbl, {'cells1', ...
                            'cells2'});
        locA = reducemap*locA;
        clear reducemap
-       
+
        % Assemble sparse matrix
        locA = sparse(loccell2tbl.cells1, loccell2tbl.cells2, locA, nc, nc);
-       
+
        A = A + locA;
-       
+
    end
-   
-   mpfastruct.A = A;
-   
-   return
-   % Assemble block divergence operator, from facenode values to cell value.
-   cellnodefacetbl = tbls.cellnodefacetbl;
-   celltbl = tbls.celltbl;
-   fno = cellnodefacetbl.faces; %alias
-   cno = cellnodefacetbl.cells; %alias
-   sgn = 2*(cno == G.faces.neighbors(fno, 1)) - 1;
-   
-   map = setupTableMapping(celltbl, cellnodefacetbl, {'cells'});
-   
-   %% Assemble the projection operator from facenode values to facenode values
-   % on the external faces.
-   fno = cellnodefacetbl.faces; %alias
-   cno = cellnodefacetbl.cells; %alias
-   sgn = 2*(cno == G.faces.neighbors(fno, 1)) - 1;
 
-   extfaces = (G.faces.neighbors(:, 1) == 0) | (G.faces.neighbors(:, 2) == 0);
-   faceexttbl.faces = find(extfaces);
-   faceexttbl.num   = numel(faceexttbl.faces);
-   [~, facenodeexttbl] = setupTableMapping(facenodetbl, faceexttbl, {'faces'});
-   
-   op     = setupTableMapping(cellnodefacetbl, facenodeexttbl, {'faces', 'nodes'});
-   fn_sgn = op*sgn;
-   map = setupTableMapping(facenodetbl, facenodeexttbl, {'faces', 'nodes'});
-   nfne = facenodeexttbl.num;
-   Pext = sparse(1 : nfne, 1 : nfne, fn_sgn, nfne, nfne)*map;
-   
-   tbls.facenodeexttbl = facenodeexttbl;
-   
-   %% Assemble the flux operator: From pressure values at the cell center and
-   % at the external facenode, compute the fluxes at the faces
-   F1 = iB*div';
-   F2 = - iB*Pext';
-   F  = [F1, F2];
-   facetbl.faces = (1 : G.faces.num)';
-   facetbl.num   = G.faces.num;
-   map = setupTableMapping(facenodetbl, facetbl, {'faces'});
-   F = map*F;
-   
-   %% Assemble the system matrix operators: The degrees of freedom are the pressure
-   % values at the cell center and at the external facenode.
-   A11 = div*iB*div';
-   A12 = -div*iB*Pext';
-   A21 = Pext*iB*div';
-   A22 = -Pext*iB*Pext';
+   tbls = struct('facenodetbl', facenodetbl, 'cellfacenodetbl', ...
+                 cellfacenodetbl);
+
+   [bcstructs, tbls] = boundaryStructures(G, rock, tbls, 'eta', opt.eta);
+
+   F    = bcstructs.F;
+   Aold = bcstructs.A;
+   A11  = bcstructs.A11;
+   A12  = bcstructs.A12;
+   A21  = bcstructs.A21;
+   A22  = bcstructs.A22;
+
    A = [[A11, A12]; [A21, A22]];
+   
+   mpfastruct = struct('F'   , F   , ...
+                       'A'   , A   , ...
+                       'tbls', tbls);
+end
 
-   mpfastruct = struct('iB'  , iB  , ...
+function [bcstructs, tbls] = boundaryStructures(G, rock, tbls, varargin)
+
+    opt = struct('verbose'     , mrstVerbose, ...
+                 'invertBlocks', 'matlab', ...
+                 'eta'         , 0);
+
+    opt = merge_options(opt, varargin{:});
+    opt.invertBlocks = blockInverter(opt);
+
+    [B, rtbls] = robustComputeLocalFluxMimetic(G, rock, opt);
+
+    %% Invert matrix B
+    % The facenode degrees of freedom, as specified by the facenodetbl table, are
+    % ordered by nodes first (see implementation below). It means in particular
+    % that the matrix B is, by construction, block diagonal.
+    rfacenodetbl = rtbls.facenodetbl;
+    [~, sz] = rlencode(rfacenodetbl.nodes);
+    iB   = opt.invertBlocks(B, sz);
+
+    facenodetbl = tbls.facenodetbl;
+    map = setupTableMapping(facenodetbl, rfacenodetbl, {'faces', 'nodes'});
+    iB = map'*iB*map;
+
+    %% Assemble of the divergence operator, from facenode values to cell value.
+    cellfacenodetbl = tbls.cellfacenodetbl;
+    fno = cellfacenodetbl.faces; %alias
+    cno = cellfacenodetbl.cells; %alias
+    sgn = 2*(cno == G.faces.neighbors(fno, 1)) - 1;
+    div = sparse(cellfacenodetbl.cells, ...
+                 (1 : cellfacenodetbl.num)', ...
+                 sgn, ...
+                 G.cells.num, ...
+                 cellfacenodetbl.num);
+    % reduce from cell-face-node to face-node (equivalent to removing hybridization)
+    op = setupTableMapping(facenodetbl, cellfacenodetbl, {'faces', 'nodes'});
+    div = div*op;
+
+    %% Assemble the projection operator from facenode values to facenode values
+    % on the external faces.
+    fno = cellfacenodetbl.faces; %alias
+    cno = cellfacenodetbl.cells; %alias
+    sgn = 2*(cno == G.faces.neighbors(fno, 1)) - 1;
+
+    extfaces = (G.faces.neighbors(:, 1) == 0) | (G.faces.neighbors(:, 2) == 0);
+    faceexttbl.faces = find(extfaces);
+    faceexttbl.num   = numel(faceexttbl.faces);
+    [~, facenodeexttbl] = setupTableMapping(facenodetbl, faceexttbl, {'faces'});
+
+    op     = setupTableMapping(cellfacenodetbl, facenodeexttbl, {'faces', 'nodes'});
+    fn_sgn = op*sgn;
+    map = setupTableMapping(facenodetbl, facenodeexttbl, {'faces', 'nodes'});
+    nfne = facenodeexttbl.num;
+    Pext = sparse(1 : nfne, 1 : nfne, fn_sgn, nfne, nfne)*map;
+
+    tbls.facenodeexttbl = facenodeexttbl;
+
+    %% Assemble the flux operator: From pressure values at the cell center and
+    % at the external facenode, compute the fluxes at the faces
+    F1 = iB*div';
+    F2 = - iB*Pext';
+    F  = [F1, F2];
+    facetbl.faces = (1 : G.faces.num)';
+    facetbl.num   = G.faces.num;
+    map = setupTableMapping(facenodetbl, facetbl, {'faces'});
+    F = map*F;
+
+    %% Assemble the system matrix operaror: The degrees of freedom are the pressure
+    % values at the cell center and at the external facenode.
+    A11 = div*iB*div';
+    A12 = -div*iB*Pext';
+    A21 = Pext*iB*div';
+    A22 = -Pext*iB*Pext';
+    A = [[A11, A12]; [A21, A22]];
+
+    bcstructs = struct('iB'  , iB  , ...
                        'div' , div , ...
                        'Pext', Pext, ...
                        'F'   , F   , ...
                        'A'   , A   , ...
-                       'tbls', tbls);
-   
+                       'A11' , A11 , ...
+                       'A12' , A12 , ...
+                       'A21' , A21 , ...
+                       'A22' , A22);
 end
-
