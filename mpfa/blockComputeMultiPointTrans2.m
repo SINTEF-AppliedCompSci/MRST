@@ -139,16 +139,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                      locfacenodetbl.num, locfacenodetbl.num);
        [~, sz] = rlencode(locfacenodetbl.nodes);
        iBmat   = opt.invertBlocks(Bmat, sz);
+       [fnind1, fnind2] = find(iBmat);
        clear locmattbl
-       locmattbl.fnind = (1 : locfacenodetbl.num)';
-       locmattbl.num = locfacenodetbl.num;
-       [~, locmattbl] = setupTableMapping(locmattbl, locmattbl, [], 'duplicate', ...
-                                                     {{'fnind', {'fnind1', ...
-                           'fnind2'}}});
-       locmattbl = sortTable(locmattbl, {'fnind2', 'fnind1'});
-       iB = iBmat(:);
+       locmattbl.fnind1 = fnind1;
+       locmattbl.fnind2 = fnind2;
+       locmattbl.num = numel(locmattbl.fnind1);
        map = setupTableMapping(locmattbl, locface2nodetbl, {'fnind1', 'fnind2'});
-       iB = map*iB;
+       iB = map*iB*map';
        clear map;
 
        div        = zeros(loccellfacenodetbl.num, 1);
