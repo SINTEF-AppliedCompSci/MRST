@@ -67,7 +67,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    for iblock = 1 : nblocks
 
        if opt.verbose
-           fprintf('Starting with block %d...\n', iblock);
+           fprintf('Starting with block %d/%d ...\n', iblock, nblocks);
        end
        nodes = [blockinds(iblock) : (blockinds(iblock + 1) - 1)]';
        [B, tbls] = blockLocalFluxMimeticAssembly(G, rock, nodes, 'eta', opt.eta);
