@@ -100,9 +100,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        
        % remove from local table the external faces
        locfacenodetbl = intlocfacenodetbl;
+       locfacenodetbl = addLocInd(locfacenodetbl, 'fnind');
        [~, loccellfacenodetbl] = setupTableMapping(loccellfacenodetbl, intfacetbl, ...
                                                                  {'faces'});
-       locfacenodetbl = addLocInd(locfacenodetbl, 'fnind');
        % generate locface2nodetbl
        [~, locface2nodetbl] = setupTableMapping(locfacenodetbl, locfacenodetbl, ...
                                                               {'nodes'}, ...
@@ -110,19 +110,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                                               {{'faces', ...
                            {'faces1', 'faces2'}}, {'fnind', {'fnind1', ...
                            'fnind2'}}});
-       
+       [fnind1, fnind2, iB] = find(iBmat);
        clear locmattbl
-       locmattbl.fnind = (1 : locfacenodetbl.num)';
-       locmattbl.num   = locfacenodetbl.num;
-       [~, locmattbl] = setupTableMapping(locmattbl, locmattbl, [], 'duplicate', ...
-                                                     {{'fnind', {'fnind1', ...
-                           'fnind2'}}});
-       locmattbl = sortTable(locmattbl, {'fnind2', 'fnind1'});
-       
-       iB = iBmat(:);
+       locmattbl.fnind1 = fnind1;
+       locmattbl.fnind2 = fnind2;
+       locmattbl.num = numel(locmattbl.fnind1);
        map = setupTableMapping(locmattbl, locface2nodetbl, {'fnind1', 'fnind2'});
        iB = map*iB;
        clear map;
+       
 
        div        = zeros(loccellfacenodetbl.num, 1);
        locfacetbl = projTable(locfacenodetbl, {'faces'});

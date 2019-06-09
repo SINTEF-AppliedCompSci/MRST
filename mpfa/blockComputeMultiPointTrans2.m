@@ -127,7 +127,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    for iblock = 1 : nblocks
 
        nodes = [blockinds(iblock) : (blockinds(iblock + 1) - 1)]';
-       [B, tbls] = blockLocalFluxMimeticAssembly(G, rock, nodes, opt);
+       [B, tbls] = blockLocalFluxMimeticAssembly(G, rock, nodes, 'eta', opt.eta);
 
        locfacenodetbl     = tbls.facenodetbl;
        locface2nodetbl    = tbls.face2nodetbl;
@@ -139,13 +139,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                      locfacenodetbl.num, locfacenodetbl.num);
        [~, sz] = rlencode(locfacenodetbl.nodes);
        iBmat   = opt.invertBlocks(Bmat, sz);
-       [fnind1, fnind2] = find(iBmat);
+       [fnind1, fnind2, iB] = find(iBmat);
        clear locmattbl
        locmattbl.fnind1 = fnind1;
        locmattbl.fnind2 = fnind2;
        locmattbl.num = numel(locmattbl.fnind1);
        map = setupTableMapping(locmattbl, locface2nodetbl, {'fnind1', 'fnind2'});
-       iB = map*iB*map';
+       iB = map*iB;
        clear map;
 
        div        = zeros(loccellfacenodetbl.num, 1);
