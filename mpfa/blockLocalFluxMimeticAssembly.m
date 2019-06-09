@@ -24,7 +24,7 @@ function [B, tbls] = blockLocalFluxMimeticAssembly(G, rock, nodes, varargin)
 
     % Restrict cellnodetbl to the nodes blocks (nodes that are sent as argument)
     [~, cellnodetbl] = setupTableMapping(cellnodetbl, nodetbl, {'nodes'});
-    if cellnodetbl.num = 0
+    if cellnodetbl.num == 0
         % may happens when grid contains nodes that do not belong to any faces.
         B = [];
         tbls = [];
