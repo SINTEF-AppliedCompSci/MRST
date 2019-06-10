@@ -613,8 +613,8 @@ classdef EquationOfStateModel < PhysicalModel
             L = model.AutoDiffBackend.convertToAD(L, sample);
             L(twoPhase) = model.addDerivativePTZ(L(twoPhase), dLdpTz, p2ph, T2ph, z2ph);
             for i = 1:ncomp
-                x{i}(singlePhase) = state.x(singlePhase, i);
-                y{i}(singlePhase) = state.y(singlePhase, i);
+                x{i}(twoPhase) = state.x(twoPhase, i);
+                y{i}(twoPhase) = state.y(twoPhase, i);
                 if ~isa(z{i}, 'ADI')
                     x{i} = model.AutoDiffBackend.convertToAD(x{i}, sample);
                     y{i} = model.AutoDiffBackend.convertToAD(y{i}, sample);
@@ -628,7 +628,6 @@ classdef EquationOfStateModel < PhysicalModel
             if nargin < 3
                 cells = ':';
             end
-            tic()
             % Will get derivatives of these
             L = state.L(cells);
             x = expandMatrixToCell(state.x(cells, :));
@@ -651,8 +650,6 @@ classdef EquationOfStateModel < PhysicalModel
                 [pAD, TAD, zAD{:}] = model.AutoDiffBackend.initVariablesAD(p, T, z{:});
                 nprimary = 2 + ncomp;
             else
-%                 [pAD, zAD{1:end-1}] = model.AutoDiffBackend.initVariablesAD(p, z{1:end-1});
-%                 TAD = T;
                 [pAD, TAD, zAD{1:end-1}] = model.AutoDiffBackend.initVariablesAD(p, T, z{1:end-1});
                 zAD{end} = 1;
                 for i = 1:ncomp-1
@@ -684,8 +681,6 @@ classdef EquationOfStateModel < PhysicalModel
             [dFds_L, dFds_U] = lu(dFds);
             dsdp = -(dFds_U\(dFds_L\dFdp));
             [I, J, V] = find(dsdp);
-            toc()
-            
             % P, T and each component
             dLdpTz = zeros(ncell, nprimary);
             dxdpTz = cell(1, ncomp);
