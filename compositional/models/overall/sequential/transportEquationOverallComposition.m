@@ -29,19 +29,6 @@ z0 = expandMatrixToCell(z0);
 ncomp = numel(z);
 cnames = model.EOSModel.fluid.names;
 
-% if isfield(state, 'timestep') && opt.iteration == 1
-%     p = state.pressure_full;
-%     dt_frac = dt/state.timestep;
-%     state.pressure = p.*dt_frac + p0.*(1-dt_frac);
-% end
-
-if model.EOSModel.fastDerivatives
-    state.eos.packed = model.EOSModel.getPropertiesFastAD(state.pressure, state.T, state.x, state.y, state.components);
-else
-    state.eos.packed = struct();
-end
-
-
 if model.water
     [sT, z{1:ncomp-1}, sW] = initVariablesADI(sT, z{1:ncomp-1}, sW);
     primaryVars = {'sT', cnames{1:end-1}, 'sW'};

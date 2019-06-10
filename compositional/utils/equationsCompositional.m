@@ -218,8 +218,9 @@ else
                                                      dt, opt);
 end
 
-acc = eqs;
-for i = 1:(ncomp+woffset)
+conservationindices = 1:(ncomp+woffset);
+acc = eqs(conservationindices);
+for i = conservationindices
     eqs{i} = s.AccDiv(eqs{i}, fluxes{i});
     if model.water && i > woffset
         pureWater = value(sW) == 1;

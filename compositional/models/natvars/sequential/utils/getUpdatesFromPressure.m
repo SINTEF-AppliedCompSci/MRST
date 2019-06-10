@@ -31,10 +31,10 @@ function [dx, dy, ds, dL, twoPhase, w] = getUpdatesFromPressure(model, state, dp
     temp = state.T(twoPhase);
     p = state.pressure(twoPhase);
 
-    
-    Z_L = state.Z_L(twoPhase);
-    Z_V = state.Z_V(twoPhase);
-    L0 = state.L(twoPhase);
+    Z_L = value(state.Z_L);
+    Z_V = value(state.Z_V);
+    Z_L = Z_L(twoPhase);
+    Z_V = Z_V(twoPhase);
     sO = state.s(twoPhase, 1+model.water);
     sG = state.s(twoPhase, 2+model.water);
     if model.water
@@ -44,15 +44,12 @@ function [dx, dy, ds, dL, twoPhase, w] = getUpdatesFromPressure(model, state, dp
     end
     includeWater = model.water;
     if includeWater
-        [p, x{1:end}, y{1:end}, sW, sO, sG] = initVariablesAD_diagonal(p, x{1:end}, y{1:end}, sW, sO, sG);
+        [p, x{1:end}, y{1:end}, sW, sO, sG] = model.AutoDiffBackend.initVariablesAD(p, x{1:end}, y{1:end}, sW, sO, sG);
     else
-        [p, x{1:end}, y{1:end}, sO, sG] = initVariablesAD_diagonal(p, x{1:end}, y{1:end}, sO, sG);
+        [p, x{1:end}, y{1:end}, sO, sG] = model.AutoDiffBackend.initVariablesAD(p, x{1:end}, y{1:end}, sO, sG);
     end
-    
     eos = model.EOSModel;
-    
-    tmp = struct('Z_L', Z_L, 'Z_V', Z_V);
-    [Z_L, Z_V, f_L, f_V] = eos.getProperties(p, temp, x, y, z, sO, sG, tmp);
+    [Z_L, Z_V, f_L, f_V] = eos.getCompressibilityAndFugacity(p, temp, x, y, z, Z_L, Z_V);
     rhoO_m = model.PropertyModel.computeMolarDensity(p, x, Z_L, temp, true);
     rhoG_m = model.PropertyModel.computeMolarDensity(p, y, Z_V, temp, false);
     

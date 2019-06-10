@@ -17,7 +17,6 @@ classdef PressureNaturalVariablesModel < NaturalVariablesCompositionalModel
             model.allowLargeSaturations = true;
             model.maxPhaseChangesNonLinear = 20;
             model = merge_options(model, varargin{:});
-            model.EOSModel.fastDerivatives = false;
             model.outputFluxes = true;
         end
 
