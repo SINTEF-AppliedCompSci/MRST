@@ -61,12 +61,13 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Ext
             f_types = cell(1, n_hc);
             
             s_closure = [];
-            if any(twoPhase)
-                for i = 1:n_hc
+            
+            for i = 1:n_hc
+                if any(twoPhase)
                     f_eqs{i} = (f{i, 1}(twoPhase) - f{i, 2}(twoPhase))/barsa;
-                    f_names{i} = ['f_', cnames{i}];
-                    f_types{i} = 'fugacity';
                 end
+                f_names{i} = ['f_', cnames{i}];
+                f_types{i} = 'fugacity';
                 s = model.getProp(state, 's');
                 s_closure = 1;
                 for i = 1:numel(s)
