@@ -124,11 +124,6 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
             % Get saturation and composition updates
             
             [ds, deltax, deltay, dL, dx, vars] = model.getHyperbolicUpdates(problem, dx, vars, state);
-            % dsTol = 2*dsMax;
-            % for i = 1:size(ds, 2)
-            %    subs = abs(ds(:, i)) > dsTol;
-            %    ds(subs, i) = dsTol(subs).*sign(ds(subs, i));
-            % end
             w_sat = min(dsMax./max(abs(ds), [], 2), 1);
             w_x = min(dxMax./max(abs(deltax), [], 2), 1);
             w_y = min(dyMax./max(abs(deltay), [], 2), 1);
@@ -371,7 +366,7 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
             temp = state.T;
 
             eos = model.EOSModel;
-            [Z_L, Z_V] = eos.getCompressibilityAndFugacity(p, temp, x, y, z, state.Z_L, state.Z_V);
+            [Z_L, Z_V] = eos.getCompressibilityAndFugacity(p, temp, x, y, z, [], []);
             if isa(model, 'PressureNaturalVariablesModel')
                 twoPhase = state.flag == 0;
                 [~, mv] = max(state.z0, [], 2);
