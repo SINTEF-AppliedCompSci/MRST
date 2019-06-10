@@ -29,7 +29,6 @@ classdef EquationOfStateModel < PhysicalModel
             model.fluid = fluid;
             model.nonlinearTolerance = 1e-4;
             model.useNewton = false;
-            model.fastDerivatives = true;
             model.PropertyModel = CompositionalPropertyModel(fluid);
             model = model.setType(eosname);
         end
@@ -644,12 +643,25 @@ classdef EquationOfStateModel < PhysicalModel
             % A few constants
             ncell = numel(p);
             ncomp = model.fluid.getNumberOfComponents();
-            nprimary = 2 + ncomp;
             nsecondary = 1 + 2*ncomp;
             [xAD, yAD, zAD] = deal(cell(1, ncomp));
             
-            [pAD, TAD, zAD{:}] = model.AutoDiffBackend.initVariablesAD(p, T, z{:});
-            [xAD{:}, yAD{:}, LAD] = model.AutoDiffBackend.initVariablesAD(x{:}, y{:}, L);
+            fullZ = true;
+            if fullZ
+                [pAD, TAD, zAD{:}] = model.AutoDiffBackend.initVariablesAD(p, T, z{:});
+                nprimary = 2 + ncomp;
+            else
+%                 [pAD, zAD{1:end-1}] = model.AutoDiffBackend.initVariablesAD(p, z{1:end-1});
+%                 TAD = T;
+                [pAD, TAD, zAD{1:end-1}] = model.AutoDiffBackend.initVariablesAD(p, T, z{1:end-1});
+                zAD{end} = 1;
+                for i = 1:ncomp-1
+                    zAD{end} = zAD{end} - zAD{i};
+                end
+                nprimary = 1 + ncomp;
+                nprimary = nprimary + 1;
+            end
+            [LAD, xAD{:}, yAD{:}] = model.AutoDiffBackend.initVariablesAD(L, x{:}, y{:});
 
             
             eqsPrim  = model.equationsEquilibrium(pAD, TAD, x, y, zAD, L, Z_L, Z_V);
@@ -687,18 +699,27 @@ classdef EquationOfStateModel < PhysicalModel
             primaryNo = floor(J/ncell)+1;
             
             isdL = secondaryNo == 1;
-            
             makeSub = @(act) sub2ind([ncell, nprimary], cellNo(act), primaryNo(act));
             dLdpTz(makeSub(isdL)) = V(isdL);
+            if ~fullZ
+                dLdpTz(:, end) = -sum(dLdpTz(:, 3:end), 2);
+            end
+            
             % Equivialent version - if there are no zeros!
             % dLdpTz = reshape(V(isdL), ncell, nprimary);
             for i = 1:ncomp
                 isdx = secondaryNo == 1 + i;
                 dxdpTz{i}(makeSub(isdx)) = V(isdx);
+                if ~fullZ
+                    dxdpTz{i}(:, end) = -sum(dxdpTz{i}(:, 3:end), 2);
+                end
+                
                 isdy = secondaryNo == ncomp + 1 + i;
                 dydpTz{i}(makeSub(isdy)) = V(isdy);
+                if ~fullZ
+                    dydpTz{i}(:, end) = -sum(dydpTz{i}(:, 3:end), 2);
+                end
             end
-            toc()
         end
         
         function L = solveRachfordRice(model, L, K, z) %#ok
