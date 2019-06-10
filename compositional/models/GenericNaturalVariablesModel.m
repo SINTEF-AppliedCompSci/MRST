@@ -227,35 +227,7 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Ext
             
             is_so = strcmp(names, 'sato');
             is_sg = strcmp(names, 'satg');
-            
-            % Deal with saturations
-            [sO, sG] = model.getProps(state, 'sO', 'sG');
-            if any(twoPhase)
-                % Set oil/liquid saturation in two-phase cells
-                so = vars{is_so};
-                sO = model.AutoDiffBackend.convertToAD(sO, so);
-                sO(twoPhase) = so;
-                % Set gas/vapor saturation in two-phase cells
-                sg = vars{is_sg};
-                sG = model.AutoDiffBackend.convertToAD(sG, sg);
-                sG(twoPhase) = sg;
-                cellJacMap{is_sg} = twoPhaseIx;
-                cellJacMap{is_so} = twoPhaseIx;
-            end
-            removed(is_sg | is_so) = true;
-            
-            if model.water
-                is_sw = strcmp(names, 'satw');
-                sW = vars{is_sw};
-                
-                [sO, sG] = setMinimumTwoPhaseSaturations(model, state, sW, sO, sG, pureVapor, pureLiquid);
-                removed(is_sw) = true;
-                sat = {sW, sO, sG};
-            else
-                sat = {sO, sG};
-            end
-            state = model.setProp(state, 's', sat);
-            
+                        
             cnames = model.EOSModel.fluid.names;
             ncomp = numel(cnames);
             x = cell(1, ncomp);
@@ -288,7 +260,34 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Ext
             end
             state = model.setProps(state, ...
                 {'liquidMoleFractions', 'vaporMoleFractions'}, {x, y});
+            % Deal with saturations
+            [sO, sG] = model.getProps(state, 'sO', 'sG');
+            if any(twoPhase)
+                % Set oil/liquid saturation in two-phase cells
+                so = vars{is_so};
+                sO = model.AutoDiffBackend.convertToAD(sO, x{1});
+                sO(twoPhase) = so;
+                % Set gas/vapor saturation in two-phase cells
+                sg = vars{is_sg};
+                sG = model.AutoDiffBackend.convertToAD(sG, x{1});
+                sG(twoPhase) = sg;
+                cellJacMap{is_sg} = twoPhaseIx;
+                cellJacMap{is_so} = twoPhaseIx;
+            end
+            removed(is_sg | is_so) = true;
             
+            if model.water
+                is_sw = strcmp(names, 'satw');
+                sW = vars{is_sw};
+                
+                [sO, sG] = setMinimumTwoPhaseSaturations(model, state, sW, sO, sG, pureVapor, pureLiquid);
+                removed(is_sw) = true;
+                sat = {sW, sO, sG};
+            else
+                sat = {sO, sG};
+            end
+            state = model.setProp(state, 's', sat);
+
             if ~isempty(model.FacilityModel)
                 % Select facility model variables and pass them off to attached
                 % class.
