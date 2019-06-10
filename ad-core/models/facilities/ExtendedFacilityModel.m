@@ -69,8 +69,11 @@ classdef ExtendedFacilityModel < FacilityModel
             q_s = state.FacilityState.primaryVariables(1:nph);
             bhp = state.FacilityState.primaryVariables{nph+1};
             [sn, phnames] = model.getPhaseNames();
-            % Approximate scaling to get the 
-            rhoScale = mean(rhoS, 1)./mean(value(model.getProps(state0, 'Density')), 1);
+            % Approximate scaling to get the tolerance in terms of
+            % reservoir rates. Otherwise, e.g. gas phases may be very
+            % differently scaled.
+            rhoR = value(model.getProps(state0, 'Density'));
+            rhoScale = mean(rhoS, 1)./mean(rhoR, 1);
             for ph = 1:nph
                 surfaceRates{ph} = surfaceRates{ph}./rhoS(:, ph);
                 eqs{ph} = (q_s{ph} - surfaceRates{ph}).*rhoScale(ph);
