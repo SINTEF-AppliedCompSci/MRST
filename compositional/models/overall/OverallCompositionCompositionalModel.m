@@ -44,7 +44,7 @@ classdef OverallCompositionCompositionalModel < ThreePhaseCompositionalModel
                 [x, y, L] = model.EOSModel.getPhaseFractionAsADI(state, p, temp, z);
                 report.t_derivatives = toc(t1);
                 t2 = tic();
-                [Z_L, Z_V] = model.EOSModel.getCompressibilityAndFugacity(p, temp, x, y, z);
+                [Z_L, Z_V] = model.EOSModel.getCompressibilityAndFugacity(p, temp, x, y, z, [], []);
                 report.t_compressibility = toc(t2);
             else
                 [x, y, L, Z_L, Z_V] = model.getProps(state, 'x', 'y', 'L', 'Z_L', 'Z_V');

@@ -384,7 +384,7 @@ classdef EquationOfStateModel < PhysicalModel
             [Pr, Tr] = model.getReducedPT(P, T, useCell);
 
             if useCell
-                [Ai, Bi] = deal(cell(1, ncomp));
+                [sAi, Bi] = deal(cell(1, ncomp));
                 [oA, oB] = deal(cell(1, ncomp));
                 [oB{:}] = deal(model.omegaB);
             else
@@ -438,13 +438,12 @@ classdef EquationOfStateModel < PhysicalModel
             if useCell
                 A_ij = cell(ncomp, ncomp);
                 for i = 1:ncomp
-                    tmp = Pr{i}./Tr{i};
-                    Ai{i} = oA{i}.*tmp./Tr{i};
-                    Bi{i} = oB{i}.*tmp;
+                    sAi{i} = ((oA{i}.*Pr{i}).^(1/2))./Tr{i};
+                    Bi{i} = oB{i}.*Pr{i}./Tr{i};
                 end
                 for i = 1:ncomp
                     for j = i:ncomp
-                        A_ij{i, j} = (Ai{i}.*Ai{j}).^(1/2).*(1 - bic(i, j));
+                        A_ij{i, j} = (sAi{i}.*sAi{j}).*(1 - bic(i, j));
                         A_ij{j, i} = A_ij{i, j};
                     end
                 end
@@ -465,29 +464,19 @@ classdef EquationOfStateModel < PhysicalModel
             [Si_V, A_V, B_V] = model.getPhaseMixCoefficients(y, A_ij, Bi);
         end
       
-        function [Z_L, Z_V, f_L, f_V] = getCompressibilityAndFugacity(model, P, T, x, y, z, sO, sG, state, varargin)
-            if nargin < 9
-                state = [];
-            end
+        function [Z_L, Z_V, f_L, f_V] = getCompressibilityAndFugacity(model, P, T, x, y, z, Z_L, Z_V, varargin)
             [Si_L, Si_V, A_L, A_V, B_L, B_V, Bi] = model.getMixtureFugacityCoefficients(P, T, x, y, model.fluid.acentricFactors);
-            if isfield(state, 'Z_L')
-                Z_L = state.Z_L;
-            else
+            if isempty(Z_L)
                 Z_L = model.computeCompressibilityZ(P, x, A_L, B_L, Si_L, Bi, true);
             end
-            if isfield(state, 'Z_V')
-                Z_V = state.Z_V;
-            else
+            if isempty(Z_V)
                 Z_V = model.computeCompressibilityZ(P, y, A_V, B_V, Si_V, Bi, false);
             end
             if iscell(x)
                 s = getSampleAD(P, T, x{:}, y{:});
-                if isa(s, 'GenericAD')
-                    Z_L = double2GenericAD(Z_L, s);
-                    Z_V = double2GenericAD(Z_V, s);
-                elseif isa(s, 'ADI')
-                    Z_L = double2ADI(Z_L, s);
-                    Z_V = double2ADI(Z_V, s);
+                if isa(s, 'ADI')
+                    Z_L = model.AutoDiffBackend.convertToAD(Z_L, s);
+                    Z_V = model.AutoDiffBackend.convertToAD(Z_V, s);
                 end
             end
             Z_L = model.setZDerivatives(Z_L, A_L, B_L, varargin{:});
@@ -557,23 +546,17 @@ classdef EquationOfStateModel < PhysicalModel
         end
 
         function [eqs, f_L, f_V, Z_L, Z_V] = equationsEquilibrium(model, P, T, x, y, z, L, Z_L, Z_V)
-            t1 = tic();
             [Z_L, Z_V, f_L, f_V] = model.getCompressibilityAndFugacity(P, T, x, y, z, Z_L, Z_V);
-            
             ncomp = numel(x);
-            timer = tic();
             eqs = cell(1, 2*ncomp + 1);
-            sample = getSampleAD(P, T, x{:}, y{:}, z{:});
-            emptyJac = model.AutoDiffBackend.convertToAD(zeros(numelValue(P), 1), sample);
-            
             isLiq = value(L) == 1;
             isVap = value(L) == 0;
             isPure = isLiq | isVap;
-            eqs{end} = emptyJac + (isLiq | isVap);
+            eqs{end} = double(isLiq | isVap);
             for i = 1:ncomp
-                eqs{i} = z{i} - L.*x{i} - (1-L).*y{i} + emptyJac;
-                eqs{i+ncomp} = (f_V{i} - f_L{i}) + emptyJac;
-                eqs{end} = eqs{end} - ~isLiq.*y{i} + ~isVap.*x{i} + emptyJac;
+                eqs{i} = z{i} - L.*x{i} - (1-L).*y{i};
+                eqs{i+ncomp} = (f_V{i} - f_L{i});
+                eqs{end} = eqs{end} - ~isLiq.*y{i} + ~isVap.*x{i};
                 
                 if any(isPure)
                     % Treat pure phase behavior
@@ -628,14 +611,21 @@ classdef EquationOfStateModel < PhysicalModel
             if nargin < 3
                 cells = ':';
             end
+            % Locally remove AD-context
+            L = value(state.L);
+            x = value(state.x);
+            y = value(state.y);
+            p = value(state.pressure);
+            T = value(state.T);
+            z = value(state.components);
             % Will get derivatives of these
-            L = state.L(cells);
-            x = expandMatrixToCell(state.x(cells, :));
-            y = expandMatrixToCell(state.y(cells, :));
+            L = L(cells);
+            x = expandMatrixToCell(x(cells, :));
+            y = expandMatrixToCell(y(cells, :));
             % With respect to these
-            p = state.pressure(cells);
-            T = state.T(cells);
-            z = expandMatrixToCell(state.components(cells, :));
+            p = p(cells);
+            T = T(cells);
+            z = expandMatrixToCell(z(cells, :));
             % And we need these
             Z_L = state.Z_L(cells);
             Z_V = state.Z_V(cells);
@@ -660,7 +650,6 @@ classdef EquationOfStateModel < PhysicalModel
             end
             [LAD, xAD{:}, yAD{:}] = model.AutoDiffBackend.initVariablesAD(L, x{:}, y{:});
 
-            
             eqsPrim  = model.equationsEquilibrium(pAD, TAD, x, y, zAD, L, Z_L, Z_V);
             eqsSec = model.equationsEquilibrium(p, T, xAD, yAD, z, LAD, Z_L, Z_V);
             ep = combineEquations(eqsPrim{:});

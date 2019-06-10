@@ -129,6 +129,10 @@ rGvG = s.faceUpstr(upcg, rhoG).*vG;
 bO = rhoO./fluid.rhoOS;
 bG = rhoG./fluid.rhoGS;
 % EQUATIONS -----------------------------------------------------------
+% water equation + n component equations
+[eqs, fluxes, types, names] = deal(cell(1, ncomp + model.water));
+
+woffset = model.water;
 if model.water
     % Water flux
     muW = f.muW(p_prop);
@@ -148,10 +152,15 @@ if model.water
     upcw  = (value(dpW)<=0);
     vW = -s.faceUpstr(upcw, mobW).*T.*dpW;
     rWvW = s.faceUpstr(upcw, bW).*vW;
-    water = (s.pv/dt).*( bW.*pvMult.*sW - bW0.*pvMult0.*sW0 ) + s.Div(rWvW);
+    
+    eqs{1} = (s.pv/dt).*( bW.*pvMult.*sW - bW0.*pvMult0.*sW0);
+    names{1} = 'water';
+    types{1} = 'cell';
+    fluxes{1} = rWvW;
 else
     [vW, mobW, upcw, bW, rhoW] = deal([]);
 end
+
 if model.outputFluxes
     state = model.storeFluxes(state, vW, vO, vG);
 end
@@ -162,37 +171,17 @@ if model.extraStateOutput
     state = model.storeDensities(state, rhoW, rhoO, rhoG);
 end
 
-
-% water equation + n component equations
-[eqs, types, names] = deal(cell(1, ncomp + model.water));
-
-woffset = model.water;
-acc = cell(1, ncomp+woffset);
 if woffset
-    eqs{1} = water;
-    names{1} = 'water';
-    types{1} = 'cell';
-    acc{1} = (s.pv/dt).*( bW.*pvMult.*sW - bW0.*pvMult0.*sW0 );
 end
 
 for i = 1:ncomp
     names{i+woffset} = compFluid.names{i};
     types{i+woffset} = 'cell';
 
-    acc{i+woffset} = (s.pv/dt).*( ...
+    eqs{i+woffset} = (s.pv/dt).*( ...
                     rhoO.*pvMult.*sO.*xM{i} - rhoO0.*pvMult0.*sO0.*xM0{i} + ...
                     rhoG.*pvMult.*sG.*yM{i} - rhoG0.*pvMult0.*sG0.*yM0{i});
-    eqs{i+woffset} = acc{i+woffset} ...
-          + s.Div(rOvO.*s.faceUpstr(upco, xM{i}) + rGvG.*s.faceUpstr(upcg, yM{i}));
-    if model.water
-        pureWater = value(sW) == 1;
-        if any(pureWater)
-            % Cells with pure water should just retain their composition to
-            % avoid singular systems
-            eqs{i+woffset}(pureWater) = eqs{i+woffset}(pureWater) + ...
-                            1e-3*(z{i}(pureWater) - value(z{i}(pureWater)));
-        end
-    end
+    fluxes{i+woffset} = rOvO.*s.faceUpstr(upco, xM{i}) + rGvG.*s.faceUpstr(upcg, yM{i});
 end
 
 
@@ -227,6 +216,20 @@ else
                                                      wellMap, p, mob, rho, ...
                                                      {}, comps, ...
                                                      dt, opt);
+end
+
+acc = eqs;
+for i = 1:(ncomp+woffset)
+    eqs{i} = s.AccDiv(eqs{i}, fluxes{i});
+    if model.water && i > woffset
+        pureWater = value(sW) == 1;
+        if any(pureWater)
+            % Cells with pure water should just retain their composition to
+            % avoid singular systems
+            eqs{i}(pureWater) = eqs{i}(pureWater) + ...
+                            1e-3*(z{i}(pureWater) - value(z{i}(pureWater)));
+        end
+    end
 end
 
 if ~opt.pressure
