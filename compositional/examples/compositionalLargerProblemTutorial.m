@@ -6,7 +6,7 @@
 mrstModule add compositional ad-core linearsolvers ad-props
 useBC = false; % Use BC instead of wells
 includeWater = false; % Include aqueous phase
-useNatural = true;
+useNatural = true; % Use natural variables formulation
 % Define a problem
 gravity reset on
 nx = 30;
@@ -75,7 +75,7 @@ sparse_backend = SparseAutoDiffBackend();
 if useNatural
     constructor = @GenericNaturalVariablesModel;
 else
-    constructor = @OverallCompositionCompositionalModel;
+    constructor = @GenericOverallCompositionModel;
 end
 
 modelSparseAD = constructor(arg{:}, 'AutoDiffBackend', sparse_backend);
@@ -121,7 +121,7 @@ end
 [~, ~, reportDirect] = simulateScheduleAD(state0, modelSparseAD, shortSchedule);
 
 %% Plot the time taken to solve a single step
-figure(1); clf
+figure(1 + useNatural); clf
 
 getTime = @(report) [sum(cellfun(@(x) x.AssemblyTime, report.ControlstepReports{1}.StepReports{1}.NonlinearReport)), ... % Assembly
                      sum(cellfun(@(x) x.LinearSolver.SolverTime, report.ControlstepReports{1}.StepReports{1}.NonlinearReport(1:end-1))),... % Linear solver
@@ -131,12 +131,16 @@ time_sparse = getTime(reportSparse);
 time_diagonal = getTime(reportDiagonal);
 time_direct = getTime(reportDirect);
 if isempty(reportMexDiagonal)
-    bar([time_sparse; time_diagonal; time_direct])
+    time = [time_sparse; time_diagonal; time_direct];
+    bar(time)
     set(gca, 'XTickLabel', {'Sparse', 'Diagonal', 'Sparse+Direct solver'});
 else
     time_mex = getTime(reportMexDiagonal);
-    bar([time_sparse; time_diagonal; time_mex; time_direct])
+    time = [time_sparse; time_diagonal; time_mex; time_direct];
+    bar(time)
     set(gca, 'XTickLabel', {'Sparse', 'Diagonal', 'Diagonal with Mex', 'Sparse+Direct solver'});
 end
 legend('Equation assembly', 'Linear solver', 'Total time', 'Location', 'NorthWest')
-
+%% Zoom in on assembly time
+assembly_time = time(:, 1);
+ylim([0, 1.2*max(assembly_time)]);
