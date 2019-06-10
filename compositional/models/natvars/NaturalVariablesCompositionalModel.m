@@ -371,7 +371,7 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
             temp = state.T;
 
             eos = model.EOSModel;
-            [Z_L, Z_V] = eos.getProperties(p, temp, x, y, z, sO, sG);
+            [Z_L, Z_V] = eos.getCompressibilityAndFugacity(p, temp, x, y, z, state.Z_L, state.Z_V);
             if isa(model, 'PressureNaturalVariablesModel')
                 twoPhase = state.flag == 0;
                 [~, mv] = max(state.z0, [], 2);
@@ -395,7 +395,7 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
                   xM0, yM0, rhoO0, rhoG0] = ...
                   getTimestepPropertiesEoS(model, state, state0, p, temp, x, y, z, sO, sG, cellJacMap)
             eos = model.EOSModel;
-            [Z_L, Z_V, f_L, f_V] = eos.getProperties(p, temp, x, y, z, sO, sG, state, cellJacMap);
+            [Z_L, Z_V, f_L, f_V] = eos.getCompressibilityAndFugacity(p, temp, x, y, z, state.Z_L, state.Z_V, cellJacMap);
 
             [xM, rhoO, muO] = model.getFlowPropsNatural(p, x, Z_L, temp, true);
             [yM, rhoG, muG] = model.getFlowPropsNatural(p, y, Z_V, temp, false);
