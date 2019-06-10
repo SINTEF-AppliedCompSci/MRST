@@ -34,31 +34,6 @@ classdef EquilibriumConstantModel < EquationOfStateModel
             end
         end
 
-        function eosdata = getPropertiesFastAD(model, P, T, x, y, z, Z_L, Z_V)
-            % Get packed properties (fugacity, Z-factors) with FastAD type
-            % to easily get derivatives
-            P = double(P);
-            T = double(T);
-            if iscell(x)
-                assert(iscell(y))
-                x = cellfun(@double, x, 'UniformOutput', false);
-                y = cellfun(@double, y, 'UniformOutput', false);
-            else
-                x = expandMatrixToCell(x);
-                y = expandMatrixToCell(y);
-            end
-            
-            
-            [P, x{:}, y{:}] = initVariablesFastAD(P, x{:}, y{:});
-            [Z_L, Z_V, f_L, f_V] = model.getProperties(P, T, x, y, z, [], []);
-            
-            eosdata = struct();
-            eosdata.Z_L = Z_L;
-            eosdata.Z_V = Z_V;
-            eosdata.f_L = f_L;
-            eosdata.f_V = f_V;
-        end
-
         function [stable, x, y, L] = performPhaseStabilityTest(model, P, T, z, varargin)
             if isempty(P)
                 [stable, x, y] = deal([]);
