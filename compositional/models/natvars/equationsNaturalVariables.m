@@ -257,7 +257,6 @@ if model.water
     vW = -s.faceUpstr(upcw, mobW).*T.*dpW;
     rWvW = s.faceUpstr(upcw, bW).*vW;
     water = (1/dt).*(pv.*bW.*sW - pv0.*bW0.*sW0);
-    divWater = s.Div(rWvW);
 else
     [vW, mobW, upcw, bW, rhoW] = deal([]);
 end
@@ -284,7 +283,7 @@ if opt.reduceToPressure
     C = cell(2*ncomp + model.water, 1);
 end
 
-divTerm = cell(ncomp, 1);
+fluxes = cell(ncomp, 1);
 
 compFlux = zeros(model.G.faces.num, ncomp);
 for i = 1:ncomp
@@ -294,7 +293,7 @@ for i = 1:ncomp
                     pv.*rhoO.*sO.*xM{i} - pv0.*rhoO0.*sO0.*xM0{i} + ...
                     pv.*rhoG.*sG.*yM{i} - pv0.*rhoG0.*sG0.*yM0{i});
     vi = rOvO.*s.faceUpstr(upco, xM{i}) + rGvG.*s.faceUpstr(upcg, yM{i});
-    divTerm{i} = s.Div(vi);
+    fluxes{i} = vi;
     compFlux(model.operators.internalConn,i) = value(vi);
     if opt.reduceToPressure
         C{i} = eqs{i};
@@ -350,7 +349,7 @@ end
 
 eq_offset = nwelleqs + ncomp + model.water;
 for i = 1:ncomp
-    eqs{i} = eqs{i} + divTerm{i};
+    eqs{i} = s.AccDiv(eqs{i}, fluxes{i});
     ix = i + eq_offset;
     names{ix}= ['f_', compFluid.names{i}];
     types{ix} = 'fugacity';
@@ -376,7 +375,7 @@ for i = 1:ncomp
 end
 
 if model.water
-    eqs{ncomp+1} = eqs{ncomp+1} + divWater;
+    eqs{ncomp+1} = s.AccDiv(eqs{ncomp+1}, rWvW);
 end
 
 cloix = eq_offset + ncomp + 1;
