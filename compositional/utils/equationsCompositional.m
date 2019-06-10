@@ -56,10 +56,10 @@ cnames = model.EOSModel.fluid.names;
 
 nwellvar = sum(cellfun(@numel, wellVars));
 if model.water
-    [p, z{1:ncomp-1}, sW, wellVars{:}] = initVariablesADI(p, z{1:ncomp-1}, sW, wellVars{:});
+    [p, z{1:ncomp-1}, sW, wellVars{:}] = model.AutoDiffBackend.initVariablesAD(p, z{1:ncomp-1}, sW, wellVars{:});
     primaryVars = {'pressure', cnames{1:end-1}, 'sW', wellVarNames{:}};
 else
-    [p, z{1:ncomp-1}, wellVars{:}] = initVariablesADI(p, z{1:ncomp-1}, wellVars{:});
+    [p, z{1:ncomp-1}, wellVars{:}] = model.AutoDiffBackend.initVariablesAD(p, z{1:ncomp-1}, wellVars{:});
     primaryVars = {'pressure', cnames{1:end-1}, wellVarNames{:}};
 end
 % Property pressure different from flow potential
