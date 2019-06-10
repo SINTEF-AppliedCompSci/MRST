@@ -99,7 +99,7 @@ classdef DiagonalJacobian
         end
         
         function s = sparse(D)
-            if D.useMex && isempty(D.subset)
+            if D.useMex && isempty(D.subset) && ~isempty(D.diagonal)
                 s = mexDiagonalSparse(D.diagonal, D.subset, D.dim);
             else
                 [I, J, V, n, m] = D.getSparseArguments();
