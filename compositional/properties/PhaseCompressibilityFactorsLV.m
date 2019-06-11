@@ -42,7 +42,7 @@ classdef PhaseCompressibilityFactorsLV < StateFunction
             v{L_ix} = Z_L;
             v{V_ix} = Z_V;
             if model.water
-                v{1} = ones(numelValue(Z_L));
+                v{1} = ones(numelValue(Z_L), 1);
             end
         end
     end
