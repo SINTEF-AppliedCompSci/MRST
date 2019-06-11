@@ -849,7 +849,7 @@ classdef EquationOfStateModel < PhysicalModel
                     map = map(~cellfun(@isempty, map));
 
                     if isempty(map)
-                        if Z.jac{i}.dim(1) ~= numel(z)
+                        if Z.jac{i}.dim(1) ~= numel(z) && numel(Z.jac{i}.subset) ~= numel(z)
                             continue
                         end
                         % All cells
@@ -863,7 +863,9 @@ classdef EquationOfStateModel < PhysicalModel
                                 Z.jac{i} = Z.jac{i}.expandZero();
                             end
                             Z.jac{i}.diagonal = d;
-                            Z.jac{i}.subset = [];
+                            if all(Z.jac{i}.subset == 0)
+                                Z.jac{i}.subset = [];
+                            end
                         end
                     else
                         % Subset of cells
