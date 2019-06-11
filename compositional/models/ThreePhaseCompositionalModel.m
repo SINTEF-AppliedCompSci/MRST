@@ -323,8 +323,6 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                     if isfield(force, 'xM')
                         assert(isfield(force, 'yM'))
                         massFractions = {force.xM, force.yM};
-%                         sum(force.xM, 2)
-% 
                     elseif isfield(force, 'x')
                         assert(isfield(force, 'y'))
                         [x_bc, y_bc] = model.getProps(force, 'x', 'y');
