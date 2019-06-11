@@ -1,5 +1,6 @@
 classdef CompositionalDensity < StateFunction
     properties
+        useCompactEvaluation = true;
     end
     
     methods
@@ -21,7 +22,14 @@ classdef CompositionalDensity < StateFunction
             y = mf((1+model.water):end, V_ix);
 
             rhoL = model.EOSModel.PropertyModel.computeDensity(p, x, Z{L_ix}, T, true);
-            rhoV = model.EOSModel.PropertyModel.computeDensity(p, y, Z{V_ix}, T, false);
+            if prop.useCompactEvaluation
+                rhoV = rhoL;
+                [~, ~, twoPhase] = model.getFlag(state);
+                y2ph = cellfun(@(x) x(twoPhase), y, 'UniformOutput', false);
+                rhoV(twoPhase) = model.EOSModel.PropertyModel.computeDensity(p(twoPhase), y2ph, Z{V_ix}(twoPhase), T(twoPhase), false);
+            else
+                rhoV = model.EOSModel.PropertyModel.computeDensity(p, y, Z{V_ix}, T, false);
+            end
             
             if hasWater
                 f = model.fluid;
