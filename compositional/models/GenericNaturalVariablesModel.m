@@ -328,45 +328,9 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Ext
         
         function forces = validateDrivingForces(model, forces)
             forces = validateDrivingForces@NaturalVariablesCompositionalModel(model, forces);
-            if ~isempty(forces.W) && numel(forces.W) > 0
-                assert(~isempty(model.FacilityModel), ...
-                    'FacilityModel must be set up before validating driving forces for a compositional problem with wells!');
-                T = model.FacilityModel.T;
-                p = model.FacilityModel.pressure;
-                wat = model.water;
-                assert(isfield(forces.W, 'components'), ...
-                    'Wells must have field .components for a compositional model.');
-                eos = model.EOSModel;
-                for i = 1:numel(forces.W)
-                    z = forces.W(i).components;
-                    [L, x, y, Z_L, Z_V, rhoL, rhoV] = standaloneFlash(p, T, z, eos);
-                    if false
-                        % Use flash
-                        [sL, sV] = eos.computeSaturations(rhoL, rhoV, x, y, L, Z_L, Z_V);
-                        % compi is a mass-fraction in practice
-                        L_mass = sL.*rhoL./(sL.*rhoL + sV.*rhoV);
-                        comp = [L_mass, 1-L_mass];
-                    else
-                        % Use the pre-computed definition of light/heavy
-                        % components to determine "compi"
-                        Z = eos.getMassFraction(z);
-                        isEOS = cellfun(@(x) isa(x, 'EquationOfStateComponent'), model.Components);
-                        val = cellfun(@(x) x.surfacePhaseMassFractions, model.Components(isEOS), 'UniformOutput', false)';
-                        val = vertcat(val{:});
-                        val = val(:, (1+wat):end);
-                        comp = sum(bsxfun(@times, val, Z'), 1);
-                    end
-                    if wat
-                        assert(~isempty(forces.W(i).compi), ...
-                            'W.compi must be present for compositional flow with water phase.');
-                        sW = forces.W(i).compi(1);
-                        comp = [sW, comp.*(1-sW)];
-                        rho = [model.fluid.rhoWS, rhoL, rhoV];
-                    else
-                        rho = [rhoL, rhoV];
-                    end
-                    forces.W(i).compi = comp;
-                    forces.W(i).rhoS = rho;
+            forces = validateCompositionalForces(model, forces);
+        end
+        
                 end
             end
         end
