@@ -69,7 +69,7 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Ext
                 f_names{i} = ['f_', cnames{i}];
                 f_types{i} = 'fugacity';
                 s = model.getProp(state, 's');
-                s_closure = zeros(sum(twoPhase), 1);
+                s_closure = ones(sum(twoPhase), 1);
                 for phNo = 1:numel(s)
                     s_closure = s_closure - s{phNo}(twoPhase);
                 end
@@ -334,26 +334,24 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Ext
         
         function problem = setupLinearizedProblem(model, eqs, types, names, primaryVars, state, dt)
             s = eqs{1};
-            if false && model.reduceLinearSystem && isa(s, 'ADI') && any(state.flag == 0)
+            if model.reduceLinearSystem && isa(s, 'ADI')
                 problem = ReducedLinearizedSystem(eqs, types, names, primaryVars, state, dt);
                 [~, ~, twoPhase] = model.getFlag(state);
-                if isa(s, 'ADI') && any(twoPhase)
-                    % Switch first composition and first saturation in
-                    % two-phase region to ensure invertible
-                    % Schur-complement
-                    twoPhaseIx = find(twoPhase);
-                    cn = model.EOSModel.fluid.names;
-                    xInd = strcmpi(primaryVars, ['v_', cn{1}]);
-                    sInd = strcmpi(primaryVars, 'sato');
-                    offsets = cumsum([0; s.getNumVars()]);
-                    reorder = 1:offsets(end);
-                    start = offsets(xInd) + twoPhaseIx;
-                    stop = offsets(sInd) + (1:sum(twoPhase));
-                    reorder(start) = stop;
-                    reorder(stop) = start;
-                    problem.reorder = reorder;
-                    problem.keepNum = offsets(sInd);
-                end
+                % Switch first composition and first saturation in
+                % two-phase region to ensure invertible
+                % Schur-complement
+                twoPhaseIx = find(twoPhase);
+                cn = model.EOSModel.fluid.names;
+                xInd = strcmpi(primaryVars, ['v_', cn{1}]);
+                sInd = strcmpi(primaryVars, 'sato');
+                offsets = cumsum([0; s.getNumVars()]);
+                reorder = 1:offsets(end);
+                start = offsets(xInd) + twoPhaseIx;
+                stop = offsets(sInd) + (1:sum(twoPhase));
+                reorder(start) = stop;
+                reorder(stop) = start;
+                problem.reorder = reorder;
+                problem.keepNum = offsets(sInd);
             else
                 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
             end
