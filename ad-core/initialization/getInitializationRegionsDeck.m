@@ -71,9 +71,9 @@ function region = getRegion(model, deck, eql, cells, regionIx, satnum, pvtnum)
         z_method = eql(10);
         assert(z_method == 1);
         zvd = deck.PROPS.ZMFVD{regionIx};
-        z_fn = @(p, z) interp1(zvd(:, 1), zvd(:, 2:end), z);
+        z_fn = @(p, z) interpolateDepthTable(zvd(:, 1), zvd(:, 2:end), z);
         tvd = deck.PROPS.TEMPVD{regionIx};
-        T_fn = @(p, z) interp1(tvd(:, 1), tvd(:, 2), z);
+        T_fn = @(p, z) interpolateDepthTable(tvd(:, 1), tvd(:, 2), z);
 
         region = getInitializationRegionsCompositional(model, contacts(act),...
             'cells', cells, 'datum_pressure', p_datum, ...
@@ -120,5 +120,15 @@ function region = getRegion(model, deck, eql, cells, regionIx, satnum, pvtnum)
             rv = @(p, z) F(z);
         end
         region.rv = rv;
+    end
+end
+
+function fq = interpolateDepthTable(x, f, xq)
+    nd = size(f, 2);
+    n = size(xq, 1);
+    fq = zeros(n, nd);
+    for i = 1:nd
+        T = griddedInterpolant(x, f(:, i), 'linear', 'nearest');
+        fq(:, i) = T(xq);
     end
 end
