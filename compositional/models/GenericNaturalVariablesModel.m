@@ -69,9 +69,9 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Ext
                 f_names{i} = ['f_', cnames{i}];
                 f_types{i} = 'fugacity';
                 s = model.getProp(state, 's');
-                s_closure = 1;
-                for i = 1:numel(s)
-                    s_closure = s_closure - s{i}(twoPhase);
+                s_closure = zeros(sum(twoPhase), 1);
+                for phNo = 1:numel(s)
+                    s_closure = s_closure - s{phNo}(twoPhase);
                 end
             end
             % Get facility equations
@@ -224,6 +224,7 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Ext
             nvar = numel(vars);
             removed = false(size(vars));
             cellJacMap = cell(nvar, 1);
+            s = getSampleAD(vars{:});
             
             is_so = strcmp(names, 'sato');
             is_sg = strcmp(names, 'satg');
@@ -262,14 +263,14 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Ext
                 {'liquidMoleFractions', 'vaporMoleFractions'}, {x, y});
             % Deal with saturations
             [sO, sG] = model.getProps(state, 'sO', 'sG');
+            sO = model.AutoDiffBackend.convertToAD(sO, x{1});
+            sG = model.AutoDiffBackend.convertToAD(sG, x{1});
             if any(twoPhase)
                 % Set oil/liquid saturation in two-phase cells
                 so = vars{is_so};
-                sO = model.AutoDiffBackend.convertToAD(sO, x{1});
                 sO(twoPhase) = so;
                 % Set gas/vapor saturation in two-phase cells
                 sg = vars{is_sg};
-                sG = model.AutoDiffBackend.convertToAD(sG, x{1});
                 sG(twoPhase) = sg;
                 cellJacMap{is_sg} = twoPhaseIx;
                 cellJacMap{is_so} = twoPhaseIx;
@@ -331,7 +332,30 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Ext
             forces = validateCompositionalForces(model, forces);
         end
         
+        function problem = setupLinearizedProblem(model, eqs, types, names, primaryVars, state, dt)
+            s = eqs{1};
+            if false && model.reduceLinearSystem && isa(s, 'ADI') && any(state.flag == 0)
+                problem = ReducedLinearizedSystem(eqs, types, names, primaryVars, state, dt);
+                [~, ~, twoPhase] = model.getFlag(state);
+                if isa(s, 'ADI') && any(twoPhase)
+                    % Switch first composition and first saturation in
+                    % two-phase region to ensure invertible
+                    % Schur-complement
+                    twoPhaseIx = find(twoPhase);
+                    cn = model.EOSModel.fluid.names;
+                    xInd = strcmpi(primaryVars, ['v_', cn{1}]);
+                    sInd = strcmpi(primaryVars, 'sato');
+                    offsets = cumsum([0; s.getNumVars()]);
+                    reorder = 1:offsets(end);
+                    start = offsets(xInd) + twoPhaseIx;
+                    stop = offsets(sInd) + (1:sum(twoPhase));
+                    reorder(start) = stop;
+                    reorder(stop) = start;
+                    problem.reorder = reorder;
+                    problem.keepNum = offsets(sInd);
                 end
+            else
+                problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
             end
         end
     end
