@@ -1,5 +1,6 @@
 classdef CompositionalViscosityLV < StateFunction
     properties
+        useCompactEvaluation = true;
     end
     
     methods
@@ -24,9 +25,20 @@ classdef CompositionalViscosityLV < StateFunction
             end
             pm = model.EOSModel.PropertyModel;
             oix = phInd == 2;
-            mu{oix} = pm.computeViscosity(p, x, Z{oix}, T, true);
+            mu{oix} = pm.computeViscosity(p, x, Z{oix}, T, nan);
             gix = phInd == 3;
-            mu{gix} = pm.computeViscosity(p, y, Z{gix}, T, false);
+            mu{gix} = mu{oix};
+            [~, ~, twoPhase] = model.getFlag(state);
+            if prop.useCompactEvaluation
+                if iscell(y)
+                    y = cellfun(@(x) x(twoPhase), y, 'uniformoutput', false);
+                else
+                    y = y(twoPhase, :);
+                end
+                mu{gix}(twoPhase) = pm.computeViscosity(p(twoPhase), y, Z{gix}(twoPhase), T(twoPhase), nan);
+            else
+                mu{gix} = pm.computeViscosity(p, y, Z{gix}, T, nan);
+            end
         end
     end
 end
