@@ -171,7 +171,7 @@ methods
             [state, primaryVars] = model.getStateAD(state, ~opt.resOnly);
         end
         [eqs, names, types, state] = model.getModelEquations(state0, state, dt, forces);
-        problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
+        problem = model.setupLinearizedProblem(eqs, types, names, primaryVars, state, dt);
     end
 
     function [problem, state] = getAdjointEquations(model, state0, state, dt, forces, varargin)
@@ -217,7 +217,6 @@ methods
         %
         [problem, state] = model.getEquations(state0, state, dt, forces, varargin{:});
     end
-
 
     function state = validateState(model, state)
         % Validate state and check if it is ready for simulation
@@ -1256,6 +1255,10 @@ methods
             ['Dimension mismatch for ', sn, ' of property "', property, ...
             '" (state.', fn, '): Expected ', sn, ' to have ', num2str(n_el), ...
             ' entries but state had ', num2str(n_actual), ' instead.'])
+    end
+    
+    function problem = setupLinearizedProblem(model, eqs, types, names, primaryVars, state, dt)
+        problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
     end
 end
 
