@@ -220,6 +220,7 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Ext
 
         function state = initStateAD(model, state, vars, names, origin)
             [pureLiquid, pureVapor, twoPhase] = model.getFlag(state);
+            singlePhase = pureLiquid | pureVapor;
             twoPhaseIx = find(twoPhase);
             nvar = numel(vars);
             removed = false(size(vars));
@@ -253,11 +254,10 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Ext
             end
 
             for i = 1:ncomp
-                y{i} = ~pureLiquid.*x{i} + value(x{i}).*pureLiquid;
+                y{i} = singlePhase.*x{i};
                 if any(twoPhase)
                     y{i}(twoPhase) = w{i};
                 end
-                x{i}(pureVapor) = value(x{i}(pureVapor));
             end
             state = model.setProps(state, ...
                 {'liquidMoleFractions', 'vaporMoleFractions'}, {x, y});
