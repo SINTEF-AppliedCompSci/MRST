@@ -972,6 +972,13 @@ classdef EquationOfStateModel < PhysicalModel
             isVapor = flag == 2;
             is2ph = ~(isLiquid | isVapor);
         end
+        
+        function is2ph = getTwoPhaseFlag(model, state)
+            if ~isfield(state, 'flag')
+                state = model.setFlag(state);
+            end
+            is2ph = state.flag == 0;
+        end
     end
 
     methods(Access = protected)

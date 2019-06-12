@@ -390,6 +390,10 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             [isLiquid, isVapor, is2ph] = model.EOSModel.getFlag(state);
         end
         
+        function is2ph = getTwoPhaseFlag(model, state)
+            is2ph = model.EOSModel.getTwoPhaseFlag(state);
+        end
+        
         function m = PropertyModel(model)
             m = model.EOSModel.PropertyModel;
         end
