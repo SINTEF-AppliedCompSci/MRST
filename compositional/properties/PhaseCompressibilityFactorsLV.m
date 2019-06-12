@@ -35,22 +35,23 @@ classdef PhaseCompressibilityFactorsLV < StateFunction
             if prop.useCompactEvaluation
                 Z_V = Z_L;
                 [~, ~, twoPhase] = model.getFlag(state);
-                p = p(twoPhase);
-                if iscell(y)
-                    y = cellfun(@(x) x(twoPhase), y, 'UniformOutput', false);
-                else
-                    y = y(twoPhase, :);
+                if any(twoPhase)
+                    p = p(twoPhase);
+                    if iscell(y)
+                        y = cellfun(@(x) x(twoPhase), y, 'UniformOutput', false);
+                    else
+                        y = y(twoPhase, :);
+                    end
+                    if iscell(V_mix.Si)
+                        Si = cellfun(@(x) x(twoPhase), V_mix.Si, 'UniformOutput', false);
+                        Bi = cellfun(@(x) x(twoPhase), V_mix.Bi, 'UniformOutput', false);
+                    else
+                        Si = V_mix.Si(twoPhase, :);
+                        Bi = V_mix.Bi(twoPhase, :);
+                    end
+                    Z_V(twoPhase) = eos.computeCompressibilityZ(p, y, V_mix.A(twoPhase), V_mix.B(twoPhase), Si, Bi, false);
+                    Z_V(twoPhase) = eos.setZDerivatives(Z_V(twoPhase), V_mix.A(twoPhase), V_mix.B(twoPhase));
                 end
-                
-                if iscell(V_mix.Si)
-                    Si = cellfun(@(x) x(twoPhase), V_mix.Si, 'UniformOutput', false);
-                    Bi = cellfun(@(x) x(twoPhase), V_mix.Bi, 'UniformOutput', false);
-                else
-                    Si = V_mix.Si(twoPhase, :);
-                    Bi = V_mix.Bi(twoPhase, :);
-                end
-                Z_V(twoPhase) = eos.computeCompressibilityZ(p, y, V_mix.A(twoPhase), V_mix.B(twoPhase), Si, Bi, false);
-                Z_V(twoPhase) = eos.setZDerivatives(Z_V(twoPhase), V_mix.A(twoPhase), V_mix.B(twoPhase));
             else
                 Z_V = eos.computeCompressibilityZ(p, y, V_mix.A, V_mix.B, V_mix.Si, V_mix.Bi, false);
                 Z_V = model.AutoDiffBackend.convertToAD(Z_V, s);

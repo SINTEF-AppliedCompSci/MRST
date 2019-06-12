@@ -17,16 +17,18 @@ classdef PhaseMixingCoefficientsLV < StateFunction
             [A_ij, Bi] = eos.getMixingParameters(p, T, acf, iscell(x));
             [Si_L, A_L, B_L] = eos.getPhaseMixCoefficients(x, A_ij, Bi);
             if prop.useCompactEvaluation && iscell(y)
-                twoPhase = state.flag == 0;
+                [~, ~, twoPhase] = model.getFlag(state);
                 Si_V = Si_L;
                 A_V = A_L;
                 B_V = B_L;
-                A_ij_2ph = cellfun(@(x) x(twoPhase), A_ij, 'UniformOutput', false);
-                Bi_2ph = cellfun(@(x) x(twoPhase), Bi, 'UniformOutput', false);
-                y_2ph = cellfun(@(x) x(twoPhase), y, 'UniformOutput', false);
-                [Si_V_2ph, A_V(twoPhase), B_V(twoPhase)] = eos.getPhaseMixCoefficients(y_2ph, A_ij_2ph, Bi_2ph);
-                for i = 1:numel(Si_V_2ph)
-                    Si_V{i}(twoPhase) = Si_V_2ph{i};
+                if any(twoPhase)
+                    A_ij_2ph = cellfun(@(x) x(twoPhase), A_ij, 'UniformOutput', false);
+                    Bi_2ph = cellfun(@(x) x(twoPhase), Bi, 'UniformOutput', false);
+                    y_2ph = cellfun(@(x) x(twoPhase), y, 'UniformOutput', false);
+                    [Si_V_2ph, A_V(twoPhase), B_V(twoPhase)] = eos.getPhaseMixCoefficients(y_2ph, A_ij_2ph, Bi_2ph);
+                    for i = 1:numel(Si_V_2ph)
+                        Si_V{i}(twoPhase) = Si_V_2ph{i};
+                    end
                 end
             else
                 [Si_V, A_V, B_V] = eos.getPhaseMixCoefficients(y, A_ij, Bi);

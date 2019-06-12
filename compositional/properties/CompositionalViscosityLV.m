@@ -30,12 +30,14 @@ classdef CompositionalViscosityLV < StateFunction
             mu{gix} = mu{oix};
             [~, ~, twoPhase] = model.getFlag(state);
             if prop.useCompactEvaluation
-                if iscell(y)
-                    y = cellfun(@(x) x(twoPhase), y, 'uniformoutput', false);
-                else
-                    y = y(twoPhase, :);
+                if any(twoPhase)
+                    if iscell(y)
+                        y = cellfun(@(x) x(twoPhase), y, 'uniformoutput', false);
+                    else
+                        y = y(twoPhase, :);
+                    end
+                    mu{gix}(twoPhase) = pm.computeViscosity(p(twoPhase), y, Z{gix}(twoPhase), T(twoPhase), nan);
                 end
-                mu{gix}(twoPhase) = pm.computeViscosity(p(twoPhase), y, Z{gix}(twoPhase), T(twoPhase), nan);
             else
                 mu{gix} = pm.computeViscosity(p, y, Z{gix}, T, nan);
             end

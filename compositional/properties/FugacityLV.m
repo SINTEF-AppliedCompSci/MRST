@@ -23,13 +23,14 @@ classdef FugacityLV < StateFunction
                 if i == 2 && prop.useCompactEvaluation
                     [~, ~, twoPhase] = model.getFlag(state);
                     fi = f(:, 1);
-                    
-                    xy = cellfun(@(x) x(twoPhase), xy, 'UniformOutput', false);
-                    Si = cellfun(@(x) x(twoPhase), m.Si, 'UniformOutput', false);
-                    Bi = cellfun(@(x) x(twoPhase), m.Bi, 'UniformOutput', false);
-                    f_2ph = model.EOSModel.computeFugacity(p(twoPhase), xy, Z{i+wat}(twoPhase), m.A(twoPhase), m.B(twoPhase), Si, Bi);
-                    for j = 1:numel(fi)
-                        fi{j}(twoPhase) = f_2ph{j};
+                    if any(twoPhase)
+                        xy = cellfun(@(x) x(twoPhase), xy, 'UniformOutput', false);
+                        Si = cellfun(@(x) x(twoPhase), m.Si, 'UniformOutput', false);
+                        Bi = cellfun(@(x) x(twoPhase), m.Bi, 'UniformOutput', false);
+                        f_2ph = model.EOSModel.computeFugacity(p(twoPhase), xy, Z{i+wat}(twoPhase), m.A(twoPhase), m.B(twoPhase), Si, Bi);
+                        for j = 1:numel(fi)
+                            fi{j}(twoPhase) = f_2ph{j};
+                        end
                     end
                     f(:, i) = fi;
                 else

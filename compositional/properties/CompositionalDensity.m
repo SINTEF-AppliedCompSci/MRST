@@ -25,8 +25,10 @@ classdef CompositionalDensity < StateFunction
             if prop.useCompactEvaluation
                 rhoV = rhoL;
                 [~, ~, twoPhase] = model.getFlag(state);
-                y2ph = cellfun(@(x) x(twoPhase), y, 'UniformOutput', false);
-                rhoV(twoPhase) = model.EOSModel.PropertyModel.computeDensity(p(twoPhase), y2ph, Z{V_ix}(twoPhase), T(twoPhase), false);
+                if any(twoPhase)
+                    y2ph = cellfun(@(x) x(twoPhase), y, 'UniformOutput', false);
+                    rhoV(twoPhase) = model.EOSModel.PropertyModel.computeDensity(p(twoPhase), y2ph, Z{V_ix}(twoPhase), T(twoPhase), false);
+                end
             else
                 rhoV = model.EOSModel.PropertyModel.computeDensity(p, y, Z{V_ix}, T, false);
             end
