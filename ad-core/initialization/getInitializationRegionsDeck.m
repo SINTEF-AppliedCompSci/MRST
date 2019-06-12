@@ -74,6 +74,7 @@ function region = getRegion(model, deck, eql, cells, regionIx, satnum, pvtnum)
         z_fn = @(p, z) interpolateDepthTable(zvd(:, 1), zvd(:, 2:end), z);
         tvd = deck.PROPS.TEMPVD{regionIx};
         T_fn = @(p, z) interpolateDepthTable(tvd(:, 1), tvd(:, 2), z);
+        contacts(2) = min(model.G.cells.centroids(:, 3)) - 10;
 
         region = getInitializationRegionsCompositional(model, contacts(act),...
             'cells', cells, 'datum_pressure', p_datum, ...
