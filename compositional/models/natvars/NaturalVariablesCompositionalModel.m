@@ -433,6 +433,14 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
                 state = rmfield(state, 'eos');
             end
         end
+        
+        function state = validateState(model, state)
+            state = validateState@ThreePhaseCompositionalModel(model, state);
+            [pureLiquid, pureVapor] = model.getFlag(state);
+            singlePhase = pureLiquid | pureVapor;
+            state.x(singlePhase, :) = state.components(singlePhase, :);
+            state.y(singlePhase, :) = state.components(singlePhase, :);
+        end
     end
     
     methods(Access=protected)
