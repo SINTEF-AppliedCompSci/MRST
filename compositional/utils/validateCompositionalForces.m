@@ -19,7 +19,6 @@ function forces = validateCompositionalForces(model, forces)
 
                 for i = 1:numel(wellIndices)
                     wNo = wellIndices(i);
-                    fprintf('%d of %d\n', i, numel(forces.W));
                     [rho, comp] = getSurfaceParameters(model, forces.W(wNo), rhoL(i), rhoV(i), x(i, :), y(i, :), L(i), Z_L(i), Z_V(i), Z(i, :));
                     forces.W(wNo).compi = comp;
                     forces.W(wNo).rhoS = rho;
