@@ -32,9 +32,9 @@ classdef PhaseCompressibilityFactorsLV < StateFunction
             Z_L = eos.computeCompressibilityZ(p, x, L_mix.A, L_mix.B, L_mix.Si, L_mix.Bi, true);
             Z_L = model.AutoDiffBackend.convertToAD(Z_L, s);
             Z_L = eos.setZDerivatives(Z_L, L_mix.A, L_mix.B, arg{:});
-            if prop.useCompactEvaluation
+            twoPhase = model.getTwoPhaseFlag(state);
+            if prop.useCompactEvaluation && ~all(twoPhase) 
                 Z_V = Z_L;
-                [~, ~, twoPhase] = model.getFlag(state);
                 if any(twoPhase)
                     p = p(twoPhase);
                     if iscell(y)

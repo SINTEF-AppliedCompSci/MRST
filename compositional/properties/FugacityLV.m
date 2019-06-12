@@ -17,10 +17,11 @@ classdef FugacityLV < StateFunction
             ncomp = numel(eos.fluid.names);
             f = cell(ncomp, 2);
             wat = model.water;
+            twoPhase = model.getTwoPhaseFlag(state);
             for i = 1:2
                 xy = mf((1+wat):end, i + wat)';
                 m = mix{i+wat};
-                if i == 2 && prop.useCompactEvaluation
+                if i == 2 && prop.useCompactEvaluation && ~all(twoPhase)
                     [~, ~, twoPhase] = model.getFlag(state);
                     fi = f(:, 1);
                     if any(twoPhase)

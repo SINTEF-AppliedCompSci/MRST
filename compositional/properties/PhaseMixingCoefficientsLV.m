@@ -16,8 +16,8 @@ classdef PhaseMixingCoefficientsLV < StateFunction
             
             [A_ij, Bi] = eos.getMixingParameters(p, T, acf, iscell(x));
             [Si_L, A_L, B_L] = eos.getPhaseMixCoefficients(x, A_ij, Bi);
-            if prop.useCompactEvaluation && iscell(y)
-                [~, ~, twoPhase] = model.getFlag(state);
+            twoPhase = model.getTwoPhaseFlag(state);
+            if prop.useCompactEvaluation && iscell(y) && ~all(twoPhase)
                 Si_V = Si_L;
                 A_V = A_L;
                 B_V = B_L;
