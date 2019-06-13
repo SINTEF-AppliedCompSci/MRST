@@ -85,11 +85,32 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-   opt = struct('verbose',      mrstVerbose,   ...
-                'blocksize'   , []      , ...
-                'invertBlocks', 'matlab',...
-                'eta', 0);
+   opt = struct('verbose'      , mrstVerbose, ...
+                'blocksize'    , []         , ...
+                'ip_compmethod', 'general'  , ...
+                'invertBlocks' , 'matlab'   , ...
+                'eta'          , 0);
 
+   % possible options for ip_compmethod
+   % 'general'       : general case, no special requirements on corner
+   % 'nicecorner'    : case where at each corner, number of faces is equal to G.griddim
+   % 'directinverse' : case where at each corner, number of faces is equal to
+   %                   G.griddim AND eta is value such that N*R is diagonal (see Lipnikov paper)
+   
+   switch opt.ip_compmethod
+     case {'general', 'nicecorner'}
+     case 'directinverse'
+       isOk = false;
+       if (G.griddim == 2) & (opt.eta == 1/3), isOk = true, end
+       if (G.griddim == 3) & (opt.eta == 1/4), isOk = true, end
+       if ~isOk
+           error(['option values for ip_compmethod and eta are not ' ...
+                  'compatible']);
+       end
+     otherwise
+       error('value of option nodeompcase is not recognized.');
+   end
+   
    opt = merge_options(opt, varargin{:});
    opt.invertBlocks = blockInverter(opt);
    blocksize = opt.blocksize;
@@ -156,8 +177,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                        'nodes'});
    
    B = map'*B*map;
+   % if we know - a priori - that matrix is symmetric, then we remove
+   % symmetry loss that has been introduced in assembly.
+   if strcmp(opt.ip_compmethod, 'directinverse')
+       B = 0.5*(B + B');
+   end
+   
    [~, sz] = rlencode(intfacenodetbl.nodes); 
    iB   = opt.invertBlocks(B, sz);
+   % if we know - a priori - that matrix is symmetric, then we remove the loss of
+   % symmetry that may have been introduced by the numerical inversion.
+   if strcmp(opt.ip_compmethod, 'directinverse')
+       iB = 0.5*(iB + iB');
+   end
    
    if opt.verbose
        t0 = toc(t0);   

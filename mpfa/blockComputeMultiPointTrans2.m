@@ -137,8 +137,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        % Assembly of B
        Bmat = sparse(locface2nodetbl.fnind1, locface2nodetbl.fnind2, B, ...
                      locfacenodetbl.num, locfacenodetbl.num);
+       % if we know - a priori - that matrix is symmetric, then we remove
+       % symmetry loss that has been introduced in assembly.
+       if strcmp(opt.ip_compmethod, 'directinverse')
+           Bmat = 0.5*(Bmat + Bmat');
+       end
        [~, sz] = rlencode(locfacenodetbl.nodes);
        iBmat   = opt.invertBlocks(Bmat, sz);
+       % if we know - a priori - that matrix is symmetric, then we remove the loss of
+       % symmetry that may have been induced by the numerical inversion.
+       if strcmp(opt.ip_compmethod, 'directinverse')
+           iBmat = 0.5*(iBmat + iBmat');
+       end
        [fnind1, fnind2, iB] = find(iBmat);
        clear locmattbl
        locmattbl.fnind1 = fnind1;

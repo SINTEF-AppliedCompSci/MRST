@@ -1,7 +1,8 @@
 function [B, tbls] = blockLocalFluxMimeticAssembly(G, rock, nodes, varargin)
 
-    opt = struct('verbose', mrstVerbose, ...
-                 'eta'    , 0);
+    opt = struct('verbose'      , mrstVerbose, ...
+                 'ip_compmethod', 'general'  , ...
+                 'eta'          , 0);
     opt = merge_options(opt, varargin{:});
     
     nodetbl.nodes = nodes;
@@ -182,12 +183,19 @@ function [B, tbls] = blockLocalFluxMimeticAssembly(G, rock, nodes, varargin)
         cellno = cellfacenodetbl.cells(cnf_i);
         K = reshape(fullpermmat(cellno, :), [dim, dim]);
 
-        % Assemble local nodal scalar product ( function node_ip2 below handle case when
-        % N is invertible)
-        locM = node_ip(a, v, ...
-                       full(N), ...
-                       full(R), ...
-                       K);
+        % Assemble local nodal scalar product 
+        switch opt.ip_compmethod
+          case 'general'
+            locM = node_ip(a, v, full(N), full(R), K);
+          case 'nicecorner'
+            locM = node_ip2(full(N), full(R));
+          case 'directinverse'
+            volE = G.cells.volumes(cellno);
+            locM = node_ip3(full(N), K, G.griddim, volE);
+          otherwise
+            error('ip_compmethod not recognized');
+        end
+        
         locM = reshape(locM', [], 1);
 
         matind = mat_i : (mat_i + (nface*nface - 1));
@@ -267,6 +275,23 @@ function M = node_ip(a, v, N, R, K)
     % fprintf('condition number: %g\n', condest(M));
 end
 
-function M = node_ip2(a, v, N, R, K)
+function M = node_ip2(N, R)
     M = R*inv(N);
+end
+
+function M = node_ip3(N, K, d, volE)
+% volE : volume of cell
+% d    : Spatial dimension (2 or 3)
+% K    : permeability tensor    
+    invN = inv(N);
+    switch d
+      case 2
+        mE = 3;
+      case 3
+        mE = 4;
+      otherwise
+        error('wrong spatial dimension (should be equal to 2 or 3)');
+    end
+    
+    M = (volE/mE)*(invN'*K*invN);
 end
