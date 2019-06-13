@@ -21,10 +21,12 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-   opt = struct('verbose'     , mrstVerbose, ...
-                'invertBlocks', 'matlab', ...
-                'eta'         , 0);
+   opt = struct('verbose'      , mrstVerbose, ...
+                'invertBlocks' , 'matlab'   , ...
+                'ip_compmethod', 'general'  , ...
+                'eta'          , 0);
 
+   % for more on option ip_compmethod, see computeNeumannMultiPointTrans
    opt = merge_options(opt, varargin{:});
    opt.invertBlocks = blockInverter(opt);
 
@@ -70,7 +72,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
            fprintf('Starting with block %d/%d ...\n', iblock, nblocks);
        end
        nodes = [blockinds(iblock) : (blockinds(iblock + 1) - 1)]';
-       [B, tbls] = blockLocalFluxMimeticAssembly(G, rock, nodes, 'eta', opt.eta);
+       [B, tbls] = blockLocalFluxMimeticAssembly(G, rock, nodes, 'eta', opt.eta, ...
+                                                 'ip_compmethod', opt.ip_compmethod);
        
        if isempty(B)
            % handle case when the nodes do not belong to any faces.
