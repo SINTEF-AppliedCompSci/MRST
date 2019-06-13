@@ -122,6 +122,9 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                     % Vapor compressibility
                     fn = 'Z_V';
                     index = 1;
+                case {'k', 'equilibriumconstants'}
+                    fn = 'K';
+                    index = ':';
                 otherwise
                     sub = strcmpi(model.EOSModel.fluid.names, name);
                     if any(sub)

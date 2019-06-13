@@ -206,7 +206,7 @@ classdef EquationOfStateModel < PhysicalModel
                 [~, ~, twoPhase] = model.getFlag(state);
                 initSingle = ~twoPhase;
                 stable = initSingle;
-                [stable(initSingle), x0(initSingle, :), y0(initSingle, :)] = model.performPhaseStabilityTest(state.pressure(initSingle), state.T(initSingle), state.components(initSingle, :));
+                [stable(initSingle), x0(initSingle, :), y0(initSingle, :)] = model.performPhaseStabilityTest(state.pressure(initSingle), state.T(initSingle), state.components(initSingle, :), state.K(initSingle, :));
                 acf = model.fluid.acentricFactors;
                 [Si_L, Si_V, A_L, A_V, B_L, B_V, Bi] = model.getMixtureFugacityCoefficients(P, T, x0, y0, acf);
                 % Solve EOS for each phase
@@ -268,8 +268,6 @@ classdef EquationOfStateModel < PhysicalModel
             state.Z_L = Z0_L;
             state.Z_V = Z0_V;
 
-            state.mixing.K = state.K;
-
             failure = false;
             failureMsg = '';
             
@@ -306,16 +304,16 @@ classdef EquationOfStateModel < PhysicalModel
             K(~isfinite(K)) = 1;
         end
 
-        function [stable, x, y] = performPhaseStabilityTest(model, P, T, z, cells)
+        function [stable, x, y] = performPhaseStabilityTest(model, P, T, z, K)
             if nargin < 5
-                cells = [];
+                K = [];
             end
             if isempty(z)
                 stable = [];
                 [x, y] = deal(zeros(0, size(z, 2)));
             else
                 z = ensureMinimumFraction(z, model.minimumComposition);
-                [stable, x, y] = phaseStabilityTest(model, z, P, T, z, z);
+                [stable, x, y] = phaseStabilityTest(model, z, P, T, K);
             end
         end
 
@@ -332,11 +330,6 @@ classdef EquationOfStateModel < PhysicalModel
 
             if ~isfield(state, 'K')
                 state.K = estimateEquilibriumWilson(model, state.pressure, state.T);
-            else
-                pure = state.L == 1 | state.L == 0;
-                if any(pure)
-                    state.K(pure, :) = estimateEquilibriumWilson(model, state.pressure(pure), state.T(pure));
-                end
             end
             
             if ~isfield(state, 'Z_V')

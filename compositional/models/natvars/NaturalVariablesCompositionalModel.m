@@ -162,7 +162,10 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
 
                 state.y = capunit(state.y);
                 state.y = bsxfun(@rdivide, state.y, sum(state.y, 2));
-                
+                % Update K-values
+                isTwoPhase = model.getTwoPhaseFlag(state);
+                state.K(isTwoPhase, :) = state.y(isTwoPhase, :)./state.x(isTwoPhase, :);
+
                 xyUpdated = true;
             else
                 xyUpdated = false;
@@ -193,48 +196,42 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
             
             oilIndex = 1 + model.water;
             gasIndex = 2 + model.water;
-
-            p = state.pressure;
-            T = state.T;
+            % Get pressure, temperature and compositions
+            [p, T, K, x, y] = model.getProps(state, 'pressure', 'temperature', 'K', 'x', 'y');
+            % Get indicators for phase state at linearization which gave us
+            % updates. The pure liquid or pure vapor cells are candidates
+            % for a transition to the two-phase region.
             [isLiquid0, isVapor0, isTwoPh0] = model.getFlag(state);
-            if isPressure
-                x = state.x;
-                y = state.y;
-                z = bsxfun(@times, x, state.L) + bsxfun(@times, 1-state.L, y);
-            else
-                x = state.x;
-                y = state.y;
+            % Compute z
+            z = bsxfun(@times, x, state.L) + bsxfun(@times, 1-state.L, y);
+            if ~isPressure
                 z = bsxfun(@times, x, state.L) + bsxfun(@times, 1-state.L, y);
                 z(isLiquid0, :) = state.x(isLiquid0, :);
                 z(isVapor0, :) = state.y(isVapor0, :);
                 z = bsxfun(@rdivide, z, sum(z, 2));
             end
-            
             if iteration == 1
                 state.switchCount = 0*state.pressure;
             end
-            
-            if 0
-                [stable, x, y] = phaseStabilityTest(model.EOSModel, z, p, T);
-            else
-                x = state.x;
-                y = state.y;
-                act = ~isTwoPh0;
-                stable = act;
-                [stable(act), x(act, :), y(act, :)] =...
-                    model.EOSModel.performPhaseStabilityTest(p(act, :), T(act, :), z(act, :), act);
-            end
-            
+            % Check phase stability for single-phase cells
+            act = ~isTwoPh0;
+            stable = act;
+            [stable(act), x(act, :), y(act, :)] =...
+                model.EOSModel.performPhaseStabilityTest(p(act, :), T(act, :), z(act, :), K(act, :));
+            % Special check - we lock cells in single-phase region if a
+            % slightly dangerous debug option is enabled.
             locked = state.switchCount > model.maxPhaseChangesNonLinear;
             stable(locked) = true;
-            
+            % Begun calculating new saturations
             sO = state.s(:, oilIndex);
             sG = state.s(:, gasIndex);
             tol = 1e-8;
-
+            % We introduce a small amount of the previously missing fluid
+            % in the unstable cells
             toEpsOil = isVapor0 & ~stable;
             toEpsGas = isLiquid0 & ~stable;
-            
+            % Un-capped saturation (indicating phase transition to
+            % single-phase state)
             sO_uncap = s_uncap(:, oilIndex);
             sG_uncap = s_uncap(:, gasIndex);
             if model.water
@@ -242,13 +239,15 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
             else
                 sW = 0*sO;
             end
+            % Transition to single-phase
             toOnlyOil = isTwoPh0 & sG_uncap <= 0;
             toOnlyGas = isTwoPh0 & sO_uncap <= 0;
-            
+            % Optionally check if we are transitionining INTO a stable
+            % state.
             if model.checkStableTransition
                 toPure = toOnlyOil | toOnlyGas;
                 stable_next = false(size(toOnlyGas));
-                stable_next(toPure) = model.EOSModel.performPhaseStabilityTest(p(toPure, :), T(toPure, :), z(toPure, :));
+                stable_next(toPure) = model.EOSModel.performPhaseStabilityTest(p(toPure, :), T(toPure, :), z(toPure, :), K(toPure, :));
                 
                 badGas = ~stable_next & toOnlyGas;
                 badOil = ~stable_next & toOnlyOil;
@@ -259,7 +258,8 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
                 toEpsOil(badGas) = true;
                 toEpsGas(badOil) = true;
             end
-
+            % Something very strange is going on - pick the liquid or vapor
+            % state arbitrarily
             bad = toOnlyOil & toOnlyGas;
             if any(bad)
                 gasLargest = abs(state0.s(:, oilIndex)) < abs(state0.s(:, gasIndex));
@@ -268,23 +268,31 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
                 toOnlyOil(bad & ~gasLargest) = true;
                 toOnlyOil(bad &  gasLargest) = false;
             end
-            
+            % New phase flags
             isPureLiquid = (stable & isLiquid0) | toOnlyOil;
             isPureVapor  = (stable & isVapor0 & ~isPureLiquid)  | toOnlyGas;
-
-            switched = toEpsOil | toEpsGas;
-            if any(switched)
-                state.x(switched, :) = x(switched, :);
-                state.y(switched, :) = y(switched, :);
+            % Cells switched to two-phase
+            switched_to_twophase = toEpsOil | toEpsGas;
+            if any(switched_to_twophase)
+                x_switched = x(switched_to_twophase, :);
+                y_switched = y(switched_to_twophase, :);
+                % Update K-value
+                state.K(switched_to_twophase, :) = y_switched./x_switched;
+                % Insert new values
+                state.x(switched_to_twophase, :) = x_switched;
+                state.y(switched_to_twophase, :) = y_switched;
             end
-            state.switchCount = state.switchCount + double(switched | toOnlyGas | toOnlyOil);
-            if isa(model, 'TransportNaturalVariablesModel')
+            state.switchCount = state.switchCount + double(switched_to_twophase | toOnlyGas | toOnlyOil);
+            % What is the maximum allowable total saturation?
+            if model.allowLargeSaturations
                 sMax = sum(state.s, 2);
             else
                 sMax = ones(model.G.cells.num, 1);
             end
+            % From this, define the minimum saturation
             sMin = tol.*sMax;
             if model.water
+                % Ensure that there is a little bit of everything
                 sMax = sMax - sW;
                 sMax = max(sMax, 1e-8);
             end
@@ -297,11 +305,11 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
 
             sO(toEpsOil) = ds_oswitch;
             sG(toEpsGas) = ds_gswitch;
-            
-
+            % Set single-phase saturations
             sO(isPureVapor) = 0;
             sG(isPureLiquid) = 0;
             if isTransport
+                % Specific logic for transport model
                 sO(toOnlyOil) = sMax(toOnlyOil);
                 sG(toOnlyGas) = sMax(toOnlyGas);
             else
@@ -317,24 +325,29 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
             state = model.setFlag(state, isPureLiquid, isPureVapor);
             
             if isPressure
+                % Ensure total mole fractions are kept fixed
                 pure = isPureVapor | isPureLiquid;
                 state.x(pure, :) = state.z0(pure, :);
                 state.y(pure, :) = state.z0(pure, :);
             else
+                % Going to single-phase implies that we end up with the
+                % correct value.
                 state.x(isPureVapor, :) = state.y(isPureVapor, :);
                 state.y(isPureLiquid, :) = state.x(isPureLiquid, :);                
             end
-
             state = model.updateSecondaryProperties(state);
-            
-            [isLiquid, isVapor, isTwoPh] = model.getFlag(state);
+            isTwoPh = model.getTwoPhaseFlag(state);
             state.switched = (isTwoPh0 ~= isTwoPh);
-
+            % Enforce minimum composition
             state.x = ensureMinimumFraction(state.x, model.EOSModel.minimumComposition);
             state.y = ensureMinimumFraction(state.y, model.EOSModel.minimumComposition);
             if any(xyUpdated)
+                % Finally update total composition to be consistent with
+                % liquid fraction
                 state.components = bsxfun(@times, state.x, state.L) + bsxfun(@times, state.y, (1-state.L));
             end
+            % Check if we have any disasterous cells. Should not really
+            % happen.
             bad = all(state.s == 0, 2);
             if any(bad)
                 unset = sMax;
@@ -343,8 +356,10 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
                 state.s(bad & isTwoPh, gasIndex) = unset(bad & isTwoPh)/2;
                 state.s(bad & isTwoPh, oilIndex) = unset(bad & isTwoPh)/2;
             end
-            dispif(model.verbose > 1, '%d 2ph, %d oil, %d gas [%d switched, %d locked]\n', ...
+            if model.verbose > 1
+                fprintf('%d 2ph, %d oil, %d gas [%d switched, %d locked]\n', ...
                 nnz(state.flag == 0), nnz(state.flag == 1), nnz(state.flag == 2), nnz(state.switched), nnz(locked));
+            end
             
         end
         

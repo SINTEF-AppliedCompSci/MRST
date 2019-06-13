@@ -1,8 +1,8 @@
-function [stable, x, y] = phaseStabilityTest(eos, z, p, T, x, y, varargin)
+function [stable, x, y] = phaseStabilityTest(eos, z, p, T, K, varargin)
 % Perform a phase stability test for a mixture
 %
 % SYNOPSIS:
-%   [stable, x, y] = phaseStabilityTest(eos, z, p, T, x, y)
+%   [stable, x, y] = phaseStabilityTest(eos, z, p, T, K)
 %
 % DESCRIPTION:
 %   Perform a phase stability test for a multicomponent 
@@ -13,12 +13,8 @@ function [stable, x, y] = phaseStabilityTest(eos, z, p, T, x, y, varargin)
 %         of components.
 %   p   - Pressures as a column vector
 %   T   - Temperatures as a column vector
-%   x   - Initial guess for liquid mole fractions as a matrix with number
-%         of rows equal to the number of components. For the most general
-%         case, this is equal to z.
-%   y   - Initial guess for vapor mole fractions as a matrix with number
-%         of rows equal to the number of components. For the most general
-%         case, this is equal to z.
+%   K   - Initial guess for equilibrium constants. Will be estimated with
+%         Wilson's correlation if K = [].
 %
 % OPTIONAL PARAMETERS:
 %
@@ -67,27 +63,27 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     opt = struct('tol_equil',       1e-10, ...
                  'alpha',           [], ...
                  'tol_trivial',     1e-5, ...
+                 'maxIterations',   20000, ...
                  'solve_both',      nargout > 1);
     assert(all(p > 0 & isfinite(p)), 'Positive, finite pressures required for phase stability test.');
     if numel(varargin)
         opt = merge_options(opt, varargin{:});
     end
-    if nargin < 5
-        x = z;
-        y = z;
+    if isempty(K)
+        K = estimateEquilibriumWilson(eos, p, T);
     end
     S_tol = opt.tol_trivial;
     nc = numel(p);
     active = true(nc, 1);
     
     z = ensureMinimumFraction(z);
-    [y, S_V, isTrivialV] = checkStability(eos, z, y, p, T, true, active, opt);
+    [y, S_V, isTrivialV] = checkStability(eos, z, K, p, T, true, active, opt);
     V_stable = S_V <= 1 + S_tol | isTrivialV;
     
     if ~opt.solve_both
         active = V_stable;
     end
-    [x, S_L, isTrivialL] = checkStability(eos, z, x, p, T, false, active, opt);
+    [x, S_L, isTrivialL] = checkStability(eos, z, K, p, T, false, active, opt);
     L_stable = S_L <= 1 + S_tol | isTrivialL;
 
     stable = (L_stable & V_stable);
@@ -108,7 +104,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 end
 
-function [xy, S, trivialSolution, K] = checkStability(eos, z, xy, p, T, insidePhaseIsVapor, active, opt)
+function [xy, S, trivialSolution, K] = checkStability(eos, z, K, p, T, insidePhaseIsVapor, active, opt)
     tol_trivial = opt.tol_trivial;
     tol_equil = opt.tol_equil;
     nc = numel(p);
@@ -116,8 +112,6 @@ function [xy, S, trivialSolution, K] = checkStability(eos, z, xy, p, T, insidePh
     [A_ij, Bi] = eos.getMixingParameters(p, T, eos.fluid.acentricFactors, false);
     
     f_z = getFugacity(eos, A_ij, Bi, z, p, insidePhaseIsVapor);
-    
-    K = estimateEquilibriumWilson(eos, p, T);
     % xy is either x or y, depending on context for phase test
     S = zeros(nc, 1);
     trivialSolution = false(nc, 1);
@@ -131,7 +125,12 @@ function [xy, S, trivialSolution, K] = checkStability(eos, z, xy, p, T, insidePh
     Ki = K(active, :);
     Bi_loc = Bi(active, :);
     f_zi = f_z(active, :);
-    for stepNo = 1:20000
+    if insidePhaseIsVapor
+        xy = K.*z;
+    else
+        xy = z./K;
+    end
+    for stepNo = 1:opt.maxIterations
         if insidePhaseIsVapor
             xy_loc = Ki.*z_loc;
         else
