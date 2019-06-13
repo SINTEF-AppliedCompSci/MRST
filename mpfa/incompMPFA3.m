@@ -80,10 +80,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     nw  = length(W); 
 
-    rhs = zeros(nc + nw, 1); 
-    C   = cell(nc, 1); 
-    D   = zeros(nc, 1); 
-    d   = zeros(G.cells.num, 1);
+    rhs = sparse(nc + nw, 1); 
+    C   = cell(nw, 1); 
+    B   = cell(nw, 1);
+    D   = sparse(nc, 1); 
+    d   = sparse(nc, 1);
     
     for k = 1 : nw
         wc = W(k).cells; 
@@ -125,6 +126,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         A(1) = 2*A(1); 
     end
 
+    rhs = full(rhs);
     x = opt.LinSolve(A, rhs); 
 
     % --------------------------------------------------------------------- 
