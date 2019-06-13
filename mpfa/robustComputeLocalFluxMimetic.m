@@ -161,7 +161,7 @@ function [B, tbls] = robustComputeLocalFluxMimetic(G, rock, opt)
         cellno = cellnodefacetbl.cells(cnf_i);
         K = reshape(permmat(cellno, :), [dim, dim]);
         
-        % Assemble local nodal scalar product ( function node_ip2 below handle case when
+        % Assemble local nodal scalar product (function node_ip2 below handle case when
         % N is invertible)
         locM = node_ip(a, v, ...
                        full(N), ...
