@@ -124,22 +124,23 @@ function [xy, S, trivialSolution, K] = checkStability(eos, z, xy, p, T, insidePh
     if ~any(active)
         return
     end
+    % Init local parameters for eos
+    A_ij_loc = cellfun(@(x) x(active, :), A_ij, 'UniformOutput', false);
+    p_loc = p(active);
+    z_loc = z(active, :);
+    Ki = K(active, :);
+    Bi_loc = Bi(active, :);
+    f_zi = f_z(active, :);
     for stepNo = 1:20000
-        zi = z(active, :);
-        ki = K(active, :);
-        A_ij_loc = cellfun(@(x) x(active, :), A_ij, 'UniformOutput', false);
-        Bi_loc = Bi(active, :);
-        
         if insidePhaseIsVapor
-            xy_loc = ki.*zi;
+            xy_loc = Ki.*z_loc;
         else
-            xy_loc = zi./ki;
+            xy_loc = z_loc./Ki;
         end
         S_loc = sum(xy_loc, 2);
         xy_loc = bsxfun(@rdivide, xy_loc, S_loc);
         
-        f_xy = getFugacity(eos, A_ij_loc, Bi_loc, xy_loc, p(active), ~insidePhaseIsVapor);
-        f_zi = f_z(active, :);
+        f_xy = getFugacity(eos, A_ij_loc, Bi_loc, xy_loc, p_loc, ~insidePhaseIsVapor);
         if insidePhaseIsVapor
             % f_xy is vapor fugacity
             R = bsxfun(@rdivide, f_zi./f_xy, S_loc);
@@ -147,22 +148,35 @@ function [xy, S, trivialSolution, K] = checkStability(eos, z, xy, p, T, insidePh
             % f_xy is liquid fugacity
             R = bsxfun(@times, f_xy./f_zi, S_loc);
         end
-
-        K(active, :) = K(active, :).*R;
+        Ki = Ki.*R;
         R_norm = sum((R-1).^2, 2);
-        K_norm = sum(log(K(active, :)).^2, 2);
-
+        K_norm = sum(log(Ki).^2, 2);
+        
         trivial = K_norm < tol_trivial;
         converged = R_norm < tol_equil;
         done = trivial | converged;
-        S(active) = S_loc;
-        trivialSolution(active) = trivial;
-        xy(active, :) = xy_loc;
+        keep = ~done;
+        % Store converged entries
+        replace = active;
+        replace(active) = done;
+        K(replace, :) = Ki(done, :);
+        S(replace) = S_loc(done, :);
+        trivialSolution(replace) = trivial(done);
+        xy(replace, :) = xy_loc(done, :);
+        % Update active flag
         active(active) = ~done;
+        
         if all(done)
             dispif(mrstVerbose() > 1, 'Stability done in %d iterations\n', stepNo);
             break
         end
+        % Update local vectors for eos parameters
+        A_ij_loc = cellfun(@(x) x(keep, :), A_ij_loc, 'UniformOutput', false);
+        p_loc = p_loc(keep);
+        z_loc = z_loc(keep, :);
+        Ki = Ki(keep, :);
+        Bi_loc = Bi_loc(keep, :);
+        f_zi = f_zi(keep, :);
     end
     if ~all(done)
         warning('Stability test did not converge');
