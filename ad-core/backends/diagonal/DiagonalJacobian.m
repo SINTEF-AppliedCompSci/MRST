@@ -37,13 +37,18 @@ classdef DiagonalJacobian
 
         function u = toZero(u, n)
             if nargin == 1
+                % The function is not taking a subset, just converting an
+                % existing subset to zero type if present.
                 n = size(u.diagonal, 1);
-            end
-            u.diagonal = zeros(n, 0);
-            % Unsure if this is the best idea.
-            if ~isempty(u.subset)
+                if ~isempty(u.subset)
+                    u.subset = zeros(n, 1);
+                end
+            else
+                % We recieved a subset - set it to zeros to indicate that
+                % it is arbitrary, but present.
                 u.subset = zeros(n, 1);
             end
+            u.diagonal = zeros(n, 0);
         end
 
         function u = expandZero(u)
