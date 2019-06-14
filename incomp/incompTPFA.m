@@ -158,6 +158,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 'gravity',      gravity(), ...
                 'condition_number',false,...
                 'pc_form','nonwetting',...
+                'reduce',false,...
                 'use_trans',false);
 
    opt = merge_options(opt, varargin{:});
@@ -316,8 +317,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    J  = [neighborship(i,2); neighborship(i,1); (1:nc)'];
    V  = [-ft(i); -ft(i); d]; clear d;
    A  = sparse(double(I), double(J), V, nc, nc);
-   A = [A, C'; C D]; clear I J V C D;
+   A = [A, C'; C D]; 
+   if(~opt.reduce)
+    clear I J V C D;
+   end
    tocif(opt.Verbose, t0);
+   
+   % if reduce to cells
 
 
    % ---------------------------------------------------------------------
@@ -342,7 +348,22 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       state.A   = A;
       state.rhs = rhs;
    end
-   p = opt.LinSolve(A, rhs);
+   
+   if(opt.reduce)
+      rhs_r = rhs(1:nc);
+      A_r = A(1:nc,1:nc);
+      rhs_w = rhs(nc+1:end);
+      rhs_r = rhs_r - C'*(D\ rhs_w);
+      A_r = A_r - C'*(D\C);
+      state.A = A_r;
+      state.rhs = rhs_r;
+      p_r = opt.LinSolve(A_r, rhs_r);
+      p = nan(size(rhs));
+      p(1:nc) = p_r;
+      p(nc+1:end) = D\(rhs_w - C*p_r);
+   else 
+    p = opt.LinSolve(A, rhs);
+   end 
    tocif(opt.Verbose, t0);
 
    clear A rhs;

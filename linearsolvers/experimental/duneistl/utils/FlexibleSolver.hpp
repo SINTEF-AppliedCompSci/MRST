@@ -82,7 +82,7 @@ namespace MatrixMarketImpl
         // addapted from readSparseEntries
         typedef Dune::BCRSMatrix<Dune::FieldMatrix<T, brows, bcols>, A> Matrix;
         std::vector<std::set<IndexData<D>>> rows(matrix.N() * brows);
-        for (int kk = 0; kk < i.size(); ++kk) {
+        for (size_t kk = 0; kk < i.size(); ++kk) {
             std::size_t row;
             IndexData<D> data;
             row = i[kk];
@@ -130,9 +130,9 @@ makeMatrixMarket(Dune::BCRSMatrix<Dune::FieldMatrix<T, brows, bcols>, A>& matrix
     // std::tie(blockrows, blockcols, nnz) = calculateNNZ<brows, bcols>(rows, cols, entries, header);
     std::size_t blockrows = rows / brows;
     std::size_t blockcols = cols / bcols;
-    std::size_t blocksize = brows * bcols;
-    std::size_t blockentries = 0;
-    blockentries = entries / blocksize; // nnz
+    //std::size_t blocksize = brows * bcols;
+    //std::size_t blockentries = 0;
+    //blockentries = entries / blocksize; // nnz
     matrix.setSize(blockrows, blockcols);
     matrix.setBuildMode(Dune::BCRSMatrix<Dune::FieldMatrix<T, brows, bcols>, A>::row_wise);
     makeSparseEntries(matrix, i, j, val, entries, NumericWrapper<T>());
@@ -202,7 +202,7 @@ public:
         double stime = sperfTimer.stop();
         out.put("time.setup", stime);
         std::cout << "Dune setup time " << stime << std::endl;
-        int m = bz * rhs_.size();
+        //int m = bz * rhs_.size();
         VectorType x(rhs_.size());
         Dune::InverseOperatorResult res;
         linsolver_->apply(x, rhs_, res);
@@ -286,7 +286,7 @@ private:
 
     void makeResult(double* result, VectorType& x)
     {
-        int i = 0;
+        size_t i = 0;
         for (size_t ic = 0; ic < rhs_.size(); ic++) {
             for (size_t ib = 0; ib < bz; ib++) {
                 result[i] = x[ic][ib];
@@ -301,7 +301,7 @@ private:
         // copy rhs to block vector
         rhs_.resize(rows / bz);
         {
-            int lind = 0;
+            size_t lind = 0;
             for (size_t ic = 0; ic < rhs_.size(); ic++) {
                 for (size_t ib = 0; ib < bz; ib++) {
                     rhs_[ic][ib] = orhs[lind];

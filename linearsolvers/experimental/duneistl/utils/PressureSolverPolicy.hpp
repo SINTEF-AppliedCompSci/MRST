@@ -95,7 +95,7 @@ namespace Amg
         CoarseLevelSolver* createCoarseLevelSolver(LTP& transferPolicy)
         {
             coarseOperator_ = transferPolicy.getCoarseLevelOperator();
-            const LevelTransferPolicy& transfer = reinterpret_cast<const LevelTransferPolicy&>(transferPolicy);
+            //const LevelTransferPolicy& transfer = reinterpret_cast<const LevelTransferPolicy&>(transferPolicy);
             PressureInverseOperator* inv = new PressureInverseOperator(*coarseOperator_, prm_);
 
             return inv; // std::shared_ptr<InverseOperator<X,X> >(inv);

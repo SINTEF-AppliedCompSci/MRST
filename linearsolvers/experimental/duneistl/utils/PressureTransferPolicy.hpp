@@ -1,5 +1,5 @@
-#ifndef OPM_PRESSURE_TRANSFER_POLICY_TRANSPOSE_HEADER_INCLUDED
-#define OPM_PRESSURE_TRANSFER_POLICY_TRANSPOSE_HEADER_INCLUDED
+#ifndef OPM_PRESSURE_TRANSFER_POLICY_HEADER_INCLUDED
+#define OPM_PRESSURE_TRANSFER_POLICY_HEADER_INCLUDED
 
 
 #include <dune/istl/paamg/twolevelmethod.hh>
@@ -8,7 +8,7 @@
 namespace Opm
 {
   template <class FineOperator, class CoarseOperator, class Communication>// std::size_t VARIABLE_INDEX>
-class PressureTransferPolicyTranspose : public Dune::Amg::LevelTransferPolicy<FineOperator, CoarseOperator>
+class PressureTransferPolicy : public Dune::Amg::LevelTransferPolicy<FineOperator, CoarseOperator>
 {
 public:
     typedef Dune::Amg::LevelTransferPolicy<FineOperator, CoarseOperator> FatherType;
@@ -16,10 +16,10 @@ public:
     typedef typename FineOperator::domain_type FineVectorType;
 
 public:
-  PressureTransferPolicyTranspose(const Communication& comm, const FineVectorType& weights,int pressure_var_index)
+  PressureTransferPolicy(const Communication& comm, const FineVectorType& weights,int pressure_var_index)
         : communication_(&const_cast<Communication&>(comm))
         , weights_(weights)
-	, pressure_var_index_(pressure_var_index)  
+	, pressure_var_index_(pressure_var_index)
     {
     }
 
@@ -44,9 +44,9 @@ public:
             for (auto col = row->begin(), cend = row->end(); col != cend; ++col, ++coarseCol) {
                 assert(col.index() == coarseCol.index());
                 double matrix_el = 0;
-                auto bw = weights_[col.index()];
-                for (int i = 0; i < bw.size(); ++i) {
-                    matrix_el += (*col)[pressure_var_index_][i] * bw[i];
+                auto bw = weights_[row.index()];
+                for (size_t i = 0; i < bw.size(); ++i) {
+                    matrix_el += (*col)[i][pressure_var_index_] * bw[i];
                 }
                 *coarseCol = matrix_el;
             }
@@ -72,8 +72,8 @@ public:
             for (auto entry = row->begin(), entryEnd = row->end(); entry != entryEnd; ++entry) {
                 double matrix_el = 0;
                 auto bw = weights_[i];
-                for (int ii = 0; ii < bw.size(); ++ii) {
-                    matrix_el += (*entry)[pressure_var_index_][ii] * bw[ii];
+                for (size_t ii = 0; ii < bw.size(); ++ii) {
+                    matrix_el += (*entry)[ii][pressure_var_index_] * bw[ii];
                 }
                 const auto& j = entry.index();
                 (*coarseLevelMatrix_)[i][j] = matrix_el;
@@ -91,10 +91,9 @@ public:
         for (auto block = begin; block != end; ++block) {
             auto bw = weights_[block.index()];
             double rhs_el = 0.0;
-            // for(int i = 0; i < block->size(); ++i ){
-            //  rhs_el += (*block)[i]*bw[i];
-            //}
-            rhs_el = (*block)[pressure_var_index_];
+            for (size_t i = 0; i < block->size(); ++i) {
+                rhs_el += (*block)[i] * bw[i];
+            }
             this->rhs_[block - begin] = rhs_el;
         }
 
@@ -108,16 +107,13 @@ public:
         auto end = fine.end(), begin = fine.begin();
 
         for (auto block = begin; block != end; ++block) {
-            auto bw = weights_[block.index()];
-            for (int i = 0; i < block->size(); ++i) {
-                (*block)[i] = this->lhs_[block - begin] * bw[i];
-            }
+            (*block)[pressure_var_index_] = this->lhs_[block - begin];
         }
     }
 
-    PressureTransferPolicyTranspose* clone() const
+    PressureTransferPolicy* clone() const
     {
-        return new PressureTransferPolicyTranspose(*this);
+        return new PressureTransferPolicy(*this);
     }
 
     const Communication& getCoarseLevelCommunication() const
@@ -128,9 +124,9 @@ public:
 private:
     Communication* communication_;
     const FineVectorType& weights_;
+    const int pressure_var_index_;
     std::shared_ptr<Communication> coarseLevelCommunication_;
     std::shared_ptr<typename CoarseOperator::matrix_type> coarseLevelMatrix_;
-    const int pressure_var_index_;
 };
 
 } // namespace Opm

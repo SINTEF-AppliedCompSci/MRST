@@ -1,7 +1,0 @@
-{
-    "preconditioner": "xxx",
-    "w": "1",
-    "n": "1",
-    "verbosity": "10",
-    "solver": "bicgstab"
-}
