@@ -66,9 +66,9 @@ function [B, tbls] = blockLocalFluxMimeticAssembly(G, rock, nodes, varargin)
     % Nodal scalar product is stored in vector B. The table mattbl
     % specifies how B is stored: a matrix for each "corner" (cell-node
     % pair).
-    duplicate = {'faces', {'faces1', 'faces2'}};
+    crossextend = {'faces', {'faces1', 'faces2'}};
     [~, mattbl] = setupTableMapping(cellfacenodetbl, cellfacenodetbl, {'cells', 'nodes'}, ...
-                                         'duplicate', {duplicate});
+                                         'crossextend', {crossextend});
     % We order mattbl in cell-node-face1-face2 order. This is done to optimize
     % for-end loop below
     orderingmat = convertTableToArray(mattbl, {'cells', 'nodes', 'faces1', 'faces2'});
@@ -224,7 +224,7 @@ function [B, tbls] = blockLocalFluxMimeticAssembly(G, rock, nodes, varargin)
     end
     % Condensate on nodes (sum up cell contributions for given node).
     [~, face2nodetbl] = setupTableMapping(facenodetbl, facenodetbl, {'nodes'}, ...
-                                               'duplicate', {{'faces', {'faces1', ...
+                                               'crossextend', {{'faces', {'faces1', ...
                         'faces2'}}, {'fnind', {'fnind1', 'fnind2'}}});
     op = setupTableMapping(mattbl, face2nodetbl, {'nodes', 'faces1', 'faces2'});
     B = op*B;
