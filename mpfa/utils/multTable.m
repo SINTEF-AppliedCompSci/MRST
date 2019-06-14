@@ -1,4 +1,4 @@
-function [prodAB, restbl] = setupTableMultOperators(Acell, Bcell, fds)
+function [prodAB, restbl] = multTable(Acell, Bcell, fds)
     
     A    = Acell{1};
     tblA = Acell{2};
