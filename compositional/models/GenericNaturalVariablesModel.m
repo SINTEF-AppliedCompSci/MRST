@@ -255,8 +255,8 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Ext
                 {'liquidMoleFractions', 'vaporMoleFractions'}, {x, y});
             % Deal with saturations
             [sO, sG] = model.getProps(state, 'sO', 'sG');
-            sO = model.AutoDiffBackend.convertToAD(sO, x{1});
-            sG = model.AutoDiffBackend.convertToAD(sG, x{1});
+            sO = model.AutoDiffBackend.convertToAD(sO, s);
+            sG = model.AutoDiffBackend.convertToAD(sG, s);
             if any(twoPhase)
                 % Set oil/liquid saturation in two-phase cells
                 so = vars{is_so};
