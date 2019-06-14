@@ -57,7 +57,7 @@ function [B, tbls] = blockLocalFluxMimeticAssembly(G, rock, nodes, varargin)
     coltbl.coldim = (1 : dim)';
     coltbl.num = dim;
     rowtbl = coltbl;
-    rowtbl = replacefield(rowtbl, 'coldim', 'rowdim');
+    rowtbl = replacefield(rowtbl, {'coldim', 'rowdim'});
 
     % We set up cell table (only cells that belong to the block).
     celltbl = projTable(cellnodetbl, {'cells'});

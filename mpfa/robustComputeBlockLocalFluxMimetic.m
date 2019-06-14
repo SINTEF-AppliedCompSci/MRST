@@ -8,7 +8,7 @@ function [B, tbls] = robustComputeBlockLocalFluxMimetic(G, rock, opt)
     coltbl.coldim = (1 : dim)';
     coltbl.num = dim;
     rowtbl = coltbl;
-    rowtbl = replacefield(rowtbl, 'coldim', 'rowdim');
+    rowtbl = replacefield(rowtbl, {'coldim', 'rowdim'});
 
     celltbl.cells = (1 : nc)';
     celltbl.num = nc;
