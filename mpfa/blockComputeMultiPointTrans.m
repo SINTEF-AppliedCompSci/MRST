@@ -127,7 +127,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    for iblock = 1 : nblocks
 
        nodes = [blockinds(iblock) : (blockinds(iblock + 1) - 1)]';
-       [B, tbls] = blockLocalFluxMimeticAssembly(G, rock, nodes, opt);
+       [B, tbls] = blockLocalFluxMimeticAssembly(G, rock, nodes, 'eta', opt.eta);
 
        locfacenodetbl     = tbls.facenodetbl;
        locface2nodetbl    = tbls.face2nodetbl;
@@ -137,16 +137,23 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        % Assembly of B
        Bmat = sparse(locface2nodetbl.fnind1, locface2nodetbl.fnind2, B, ...
                      locfacenodetbl.num, locfacenodetbl.num);
+       % if we know - a priori - that matrix is symmetric, then we remove
+       % symmetry loss that has been introduced in assembly.
+       if strcmp(opt.ip_compmethod, 'directinverse')
+           Bmat = 0.5*(Bmat + Bmat');
+       end
        [~, sz] = rlencode(locfacenodetbl.nodes);
        iBmat   = opt.invertBlocks(Bmat, sz);
+       % if we know - a priori - that matrix is symmetric, then we remove the loss of
+       % symmetry that may have been induced by the numerical inversion.
+       if strcmp(opt.ip_compmethod, 'directinverse')
+           iBmat = 0.5*(iBmat + iBmat');
+       end
+       [fnind1, fnind2, iB] = find(iBmat);
        clear locmattbl
-       locmattbl.fnind = (1 : locfacenodetbl.num)';
-       locmattbl.num = locfacenodetbl.num;
-       [~, locmattbl] = setupTableMapping(locmattbl, locmattbl, [], 'duplicate', ...
-                                                     {{'fnind', {'fnind1', ...
-                           'fnind2'}}});
-       locmattbl = sortTable(locmattbl, {'fnind2', 'fnind1'});
-       iB = iBmat(:);
+       locmattbl.fnind1 = fnind1;
+       locmattbl.fnind2 = fnind2;
+       locmattbl.num = numel(locmattbl.fnind1);
        map = setupTableMapping(locmattbl, locface2nodetbl, {'fnind1', 'fnind2'});
        iB = map*iB;
        clear map;
@@ -177,21 +184,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
            clear mapneg
        end
 
-       % plot div sparsity
-       thiscelltbl = projTable(loccellfacenodetbl, {'cells'});
-       thiscelltbl = addLocInd(thiscelltbl, 'cind');
-       thisfacenodetbl = projTable(loccellfacenodetbl, {'faces', 'nodes'});
-       thisfacenodetbl = addLocInd(thisfacenodetbl, 'fnind');
-       map1 = setupTableMapping(thiscelltbl, loccellfacenodetbl, {'cells'});
-       map2 = setupTableMapping(thisfacenodetbl, loccellfacenodetbl, {'faces', ...
-                           'nodes'});
-       ind1 = map1*thiscelltbl.cind;
-       ind2 = map2*thisfacenodetbl.fnind;
-       divmat = sparse(ind1, ind2, div, thiscelltbl.num, ...
-                       thisfacenodetbl.num);
-       figure
-       spy(divmat);
-       
        % Table loccell_1face_1nodetbl for div mapping from facenode to cell
        loccell_1face_1nodetbl = replacefield(loccellfacenodetbl, 'faces', ...
                                            'faces1');
@@ -208,50 +200,22 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
        [~, prodmattbl] = setupTableMapping(loccell_1face_1nodetbl, locface2nodetbl, ...
                                                        {'faces1', 'nodes'});
+       [~, prodmattbl] = setupTableMapping(prodmattbl, loccell_2face_2nodetbl, ...
+                                                       {'faces2', 'nodes'});
+       
+       
        map1 = setupTableMapping(loccell_1face_1nodetbl, prodmattbl, {'faces1', ...
                            'cells1', 'nodes'});
-       map2 = setupTableMapping(locface2nodetbl, prodmattbl, {'faces1', ...
+       map2 = setupTableMapping(locface2nodetbl, prodmattbl, {'faces1','faces2', ...
                            'nodes'});
-       locA = (map1*div).*(map2*iB);
+       map3 = setupTableMapping(loccell_2face_2nodetbl, prodmattbl, {'faces2', ...
+                           'cells2', 'nodes'});
+       locA = (map1*div).*(map2*iB).*(map3*div);
 
-       % Table loccell_1face_2nodetbl for div*iB mapping (-> locA) from facenode to cell
-       loccell_1face_2nodetbl = projTable(prodmattbl, {'cells1', 'faces2', ...
-                           'nodes'});
-       loccell_1face_2nodefds = {'cells1', 'faces2', 'nodes'};
-
-       reducemap = setupTableMapping(prodmattbl, loccell_1face_2nodetbl, {'cells1', ...
-                           'faces2', 'nodes'});
-       locA = reducemap*locA; % mapping in loccell_1face_1nodetbl
-
-       figure
-       tbl1 = projTable(loccell_1face_2nodetbl, {'cells1'});
-       tbl1 = addLocInd(tbl1, 'cind');
-       tbl2 = projTable(loccell_1face_2nodetbl, {'faces2', 'nodes'});
-       tbl2 = addLocInd(tbl2, 'fnind');
-       map1 = setupTableMapping(tbl1, loccell_1face_2nodetbl, {'cells1'});
-       ind1 = map1*tbl1.cind;
-       map2 = setupTableMapping(tbl2, loccell_1face_2nodetbl, {'faces2', 'nodes'});
-       ind2 = map2*tbl2.fnind;
-       locAmat = sparse(ind1, ind2, locA, tbl1.num, tbl2.num);
-       spy(locAmat);
-
-       [~, prodmattbl] = setupTableMapping(loccell_2face_2nodetbl, ...
-                                        loccell_1face_2nodetbl, {'faces2', ...
-                           'nodes'});
-       map1 = setupTableMapping(loccell_1face_2nodetbl, prodmattbl, ...
-                                              {'cells1', 'faces2', 'nodes'});
-       map2 = setupTableMapping(loccell_2face_2nodetbl, prodmattbl, ...
-                                              {'cells2', 'faces2', 'nodes'});
-       locA = (map1*locA).*(map2*div);
-       clear map1 map2
-
-       % Table loccell2tbl for div*iB*div' (-> locA) from cell to cell
        loccell2tbl = projTable(prodmattbl, {'cells1', 'cells2'});
-       loccell2fds = {'cells1', 'cells2'};
-       reducemap = setupTableMapping(prodmattbl, loccell2tbl, {'cells1', ...
-                           'cells2'});
+       reducemap = setupTableMapping(prodmattbl, loccell2tbl, {'cells1', 'cells2'});
+
        locA = reducemap*locA;
-       clear reducemap
 
        % Assemble sparse matrix
        locA = sparse(loccell2tbl.cells1, loccell2tbl.cells2, locA, nc, nc);
