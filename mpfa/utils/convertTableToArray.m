@@ -1,4 +1,4 @@
-function A = convertTableToArray(tbl, fdsfirst)
+function [A, fds] = convertTableToArray(tbl, fdsfirst)
     
     fds = fieldnames(tbl);
     
