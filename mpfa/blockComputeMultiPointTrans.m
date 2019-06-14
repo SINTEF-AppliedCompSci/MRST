@@ -201,17 +201,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        div = sgn; % the two are equivalent as "operators"
        
        % Table loccell_1face_1nodetbl for div mapping from facenode to cell
-       loccell_1face_1nodetbl = replacefield(loccellfacenodetbl, 'faces', ...
-                                           'faces1');
-       loccell_1face_1nodetbl = replacefield(loccell_1face_1nodetbl, 'cells', ...
-                                             'cells1');
+       loccell_1face_1nodetbl = replacefield(loccellfacenodetbl, {{'faces', ...
+                           'faces1'}, {'cells', 'cells1'}});
        loccell_1face_1nodefds = {'cells1', 'faces1', 'nodes'};
 
        % Table loccell_2face_2nodetbl for div' mapping from cell to facenode
-       loccell_2face_2nodetbl = replacefield(loccellfacenodetbl, 'faces', ...
-                                           'faces2');
-       loccell_2face_2nodetbl = replacefield(loccell_2face_2nodetbl, 'cells', ...
-                                             'cells2');
+       loccell_2face_2nodetbl = replacefield(loccellfacenodetbl, {{'faces', ...
+                           'faces2'}, {'cells', 'cells2'}});
        loccell_2face_2nodefds = {'cells2', 'faces2', 'nodes'};
 
        % Assemble part corresponding to A11 = div*iB*div'
@@ -314,13 +310,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
            [~, prodmattbl] = setupTableMapping(locextfaceface_2nodetbl, ...
                                                locface2nodetbl, {'faces2', ...
                                'nodes'});
-           prodmattbl = replacefield(prodmattbl, 'extfnind', 'extfnind2');
-           prodmattbl = replacefield(prodmattbl, 'extfaces', 'extfaces2');
+           prodmattbl = replacefield(prodmattbl, {'extfnind', 'extfnind2'});
+           prodmattbl = replacefield(prodmattbl, {'extfaces', 'extfaces2'});
            [~, prodmattbl] = setupTableMapping(prodmattbl, locextfaceface_1nodetbl, ...
                                                            {'faces1', ...
                                'nodes'});
-           prodmattbl = replacefield(prodmattbl, 'extfnind', 'extfnind1');
-           prodmattbl = replacefield(prodmattbl, 'extfaces', 'extfaces1');
+           prodmattbl = replacefield(prodmattbl, {'extfnind', 'extfnind1'});
+           prodmattbl = replacefield(prodmattbl, {'extfaces', 'extfaces1'});
            
            map1 = setupTableMapping(locextfaceface_1nodetbl, prodmattbl, ...
                                                   {'faces1', {'extfnind', ...
