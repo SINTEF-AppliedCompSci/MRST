@@ -1,4 +1,4 @@
-function [prodAB, restbl] = multTable(Acell, Bcell, fds)
+function [prodAB, restbl] = contractTable(Acell, Bcell, fds)
     
     A    = Acell{1};
     tblA = Acell{2};
@@ -13,7 +13,7 @@ function [prodAB, restbl] = multTable(Acell, Bcell, fds)
     afds2 = fieldnames(tblB);
     
     %% sanity checks
-    % first check: we should have fds1 (fds2) included ofds1 (ofds2).
+    % first check: we should have fds1 (fds2) equal to ofds1 (ofds2).
     ofds1 = afds1;
     fdsToRemove = {fdscross{:}, 'ind', 'num'};
     for ifield = 1 : numel(fdsToRemove)
@@ -26,7 +26,10 @@ function [prodAB, restbl] = multTable(Acell, Bcell, fds)
         ofds2 = ofds2(~strcmp(ofds2, fdsToRemove{ifield}));
     end
     
-    isdiff = (numel(setdiff(fds1, ofds1)) > 0) | (numel(setdiff(fds2, ofds2)) > 0);
+    isdiff = (numel(setdiff(fds1, ofds1)) > 0) | ...
+             (numel(setdiff(ofds1, fds1)) > 0) | ...
+             (numel(setdiff(fds2, ofds2)) > 0) | ...
+             (numel(setdiff(ofds2, fds2)) > 0);
     assert(~isdiff, 'mismatch in table matrix multipication');
     % second check: we do not support for the moment when fds1 and fds2 have
     % common field names (in this case they should be given different names,
