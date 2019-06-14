@@ -2,11 +2,11 @@ function [map, tbl, map1, map2] = setupTableMapping(tbl1, tbl2, crossfields, var
 
 % TODO: not supported situtation, the same fieldname is in "other fields" and
 % appears as a replacement field name (see below)
-    opt = struct('duplicate', [], 'fastunstable', false);
+    opt = struct('crossextend', [], 'fastunstable', false);
     opt = merge_options(opt, varargin{:});
     
-    if ~isempty(opt.duplicate)
-        dups = opt.duplicate;
+    if ~isempty(opt.crossextend)
+        dups = opt.crossextend;
         ndups = numel(dups);
         for i = 1 : ndups
             dup = dups{i};
