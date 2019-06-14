@@ -8,7 +8,7 @@ if(is_matrix)
     fprintf(fn,'%d ',bz(1));
     fprintf(fn,'%d',bz(2));
     fprintf(fn,'\n');
-    msz = size(mat)
+    msz = size(mat);
     fprintf(fn,'%d ',msz(1));
     fprintf(fn,'%d ',msz(2));
     fprintf(fn,'%d',size(bmat,1));
@@ -20,7 +20,7 @@ if(is_matrix)
         fprintf(fn,'%g\n',bmat(k,3));
     end
 %fprintf(fn,'\n');
-   fclose(fn)
+   fclose(fn);
 else
     assert(bz(2)==1);
     fn = fopen(filename,'w');
@@ -29,11 +29,11 @@ else
     fprintf(fn,'%d ',bz(1));
     fprintf(fn,'%d',bz(2));
     fprintf(fn,'\n');
-    msz = size(mat)
+    msz = size(mat);
     fprintf(fn,'%d ',msz(1));
     fprintf(fn,'%d ',msz(2));
     %fprintf(fn,'%d',size(mat,1));
     fprintf(fn,'\n');
     fprintf(fn,'%g\n',mat);
-    fclose(fn)
+    fclose(fn);
 end
