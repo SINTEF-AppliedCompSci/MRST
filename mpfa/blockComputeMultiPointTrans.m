@@ -83,10 +83,11 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-   opt = struct('verbose'     , mrstVerbose, ...
-                'blocksize'   , []      , ...
-                'invertBlocks', 'matlab', ...
-                'eta'         , 0);
+   opt = struct('verbose'      , mrstVerbose, ...
+                'blocksize'    , []         , ...
+                'ip_compmethod', 'general'  , ...
+                'invertBlocks' , 'matlab'   , ...
+                'eta'          , 0);
 
    opt = merge_options(opt, varargin{:});
    opt.invertBlocks = blockInverter(opt);
@@ -122,8 +123,22 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    [~, cellfacenodetbl] = setupTableMapping(cellfacetbl, facenodetbl, ...
                                                          {'faces'});
-   A = sparse(nc, nc);
-
+   % tables for the degrees of freedom on the external faces
+   fno = cellfacenodetbl.faces; %alias
+   cno = cellfacenodetbl.cells; %alias
+   sgn = 2*(cno == G.faces.neighbors(fno, 1)) - 1;
+   
+   extfaces = (G.faces.neighbors(:, 1) == 0) | (G.faces.neighbors(:, 2) == 0);
+   extfacetbl.faces = find(extfaces);
+   extfacetbl.num   = numel(extfacetbl.faces);
+   [~, extfacenodetbl] = setupTableMapping(facenodetbl, extfacetbl, {'faces'});
+   next = extfacenodetbl.num;
+   
+   A11 = sparse(nc  , nc);
+   A12 = sparse(nc  , next);
+   A21 = sparse(next, nc);
+   A22 = sparse(next, next);
+   
    for iblock = 1 : nblocks
 
        nodes = [blockinds(iblock) : (blockinds(iblock + 1) - 1)]';
@@ -158,7 +173,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        iB = map*iB;
        clear map;
 
-       div        = zeros(loccellfacenodetbl.num, 1);
+       sgn        = zeros(loccellfacenodetbl.num, 1);
        locfacetbl = projTable(locfacenodetbl, {'faces'});
        locfaces   = locfacetbl.faces;
 
@@ -169,7 +184,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
            locposcellfacetbl.faces = locfaces(intn);
            locposcellfacetbl.num   = numel(locposcellfacetbl.cells);
            mappos = setupTableMapping(locposcellfacetbl, loccellfacenodetbl, {'cells', 'faces'});
-           div = div + mappos*ones(locposcellfacetbl.num, 1);
+           sgn = sgn + mappos*ones(locposcellfacetbl.num, 1);
            clear mappos
        end
 
@@ -180,10 +195,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
            locnegcellfacetbl.faces = locfaces(intn);
            locnegcellfacetbl.num   = numel(locnegcellfacetbl.cells);
            mapneg = setupTableMapping(locnegcellfacetbl, loccellfacenodetbl, {'cells', 'faces'});
-           div = div - mapneg*ones(locnegcellfacetbl.num, 1);
+           sgn = sgn - mapneg*ones(locnegcellfacetbl.num, 1);
            clear mapneg
        end
-
+       div = sgn; % the two are equivalent as "operators"
+       
        % Table loccell_1face_1nodetbl for div mapping from facenode to cell
        loccell_1face_1nodetbl = replacefield(loccellfacenodetbl, 'faces', ...
                                            'faces1');
@@ -198,6 +214,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                              'cells2');
        loccell_2face_2nodefds = {'cells2', 'faces2', 'nodes'};
 
+       % Assemble part corresponding to A11 = div*iB*div'
+
        [~, prodmattbl] = setupTableMapping(loccell_1face_1nodetbl, locface2nodetbl, ...
                                                        {'faces1', 'nodes'});
        [~, prodmattbl] = setupTableMapping(prodmattbl, loccell_2face_2nodetbl, ...
@@ -210,18 +228,123 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                            'nodes'});
        map3 = setupTableMapping(loccell_2face_2nodetbl, prodmattbl, {'faces2', ...
                            'cells2', 'nodes'});
-       locA = (map1*div).*(map2*iB).*(map3*div);
+       locA11 = (map1*div).*(map2*iB).*(map3*div);
 
        loccell2tbl = projTable(prodmattbl, {'cells1', 'cells2'});
        reducemap = setupTableMapping(prodmattbl, loccell2tbl, {'cells1', 'cells2'});
 
-       locA = reducemap*locA;
+       locA11 = reducemap*locA11;
 
-       % Assemble sparse matrix
-       locA = sparse(loccell2tbl.cells1, loccell2tbl.cells2, locA, nc, nc);
+       locA11 = sparse(loccell2tbl.cells1, loccell2tbl.cells2, locA11, nc, nc);
 
-       A = A + locA;
+       A11 = A11 + locA11;
 
+       % Assemble parts corresponding to the boundary conditions
+       
+       locfacetbl = projTable(locfacenodetbl, {'faces'});
+       locfaces = locfacetbl.faces;
+       locextfaces = (G.faces.neighbors(locfaces, 1) == 0) | (G.faces.neighbors(locfaces, 2) == 0);
+       if any(locextfaces)
+           clear locfacexttbl
+           locextfacetbl.faces = locfaces(locextfaces);
+           locextfacetbl.num   = numel(locextfacetbl.faces);
+           [~, locextfacenodetbl] = setupTableMapping(locfacenodetbl, locextfacetbl, ...
+                                                                    {'faces'});
+           locextfacenodetbl = addLocInd(locextfacenodetbl, 'extfnind');
+           op = setupTableMapping(loccellfacenodetbl, locextfacenodetbl, {'faces', 'nodes'});
+           extsgn = op*sgn;
+           
+           % Table locextfaceface_1nodetbl for Pext
+           locextfaceface_1nodetbl = duplicatefield(locextfacenodetbl, {'faces', ...
+                               {'faces1', 'extfaces'}});
+           % Table locextfaceface_2nodetbl for Pext'
+           locextfaceface_2nodetbl = duplicatefield(locextfacenodetbl, {'faces', ...
+                               {'faces2', 'extfaces'}});
+           
+           % We assemble the part corresponding to A21 = Pext*iB*div';
+           [~, prodmattbl] = setupTableMapping(locextfaceface_1nodetbl, locface2nodetbl, ...
+                                                             {'faces1', 'nodes'});
+           [~, prodmattbl] = setupTableMapping(prodmattbl, loccell_2face_2nodetbl, ...
+                                                           {'faces2', 'nodes'});
+           
+           map1 = setupTableMapping(locextfaceface_1nodetbl, prodmattbl, {'faces1', ...
+                               'extfaces', 'nodes'});
+           map2 = setupTableMapping(locface2nodetbl, prodmattbl, {'faces1','faces2', ...
+                               'nodes'});
+           map3 = setupTableMapping(loccell_2face_2nodetbl, prodmattbl, {'faces2', ...
+                               'cells2', 'nodes'});
+           locA21 = (map1*extsgn).*(map2*iB).*(map3*div);
+
+           locextfacecells_2tbl = projTable(prodmattbl, {'extfaces', 'extfnind', ...
+                               'cells2'});
+           reducemap = setupTableMapping(prodmattbl, locextfacecells_2tbl, {'extfaces', 'cells2'});
+
+           locA21 = reducemap*locA21;
+           
+           tbl = locextfacecells_2tbl; %alias
+           locA21 = sparse(tbl.extfnind, tbl.cells2, locA21, next, nc);
+           A21 = A21 + locA21;
+           
+           % We assemble the part corresponding to A12 = -div*iB*Pext';
+           [~, prodmattbl] = setupTableMapping(locextfaceface_2nodetbl, locface2nodetbl, ...
+                                                             {'faces2', 'nodes'});
+           [~, prodmattbl] = setupTableMapping(prodmattbl, loccell_1face_1nodetbl, ...
+                                                           {'faces1', 'nodes'});
+           
+           map1 = setupTableMapping(loccell_1face_1nodetbl, prodmattbl, {'faces1', ...
+                               'cells1', 'nodes'});
+           map2 = setupTableMapping(locface2nodetbl, prodmattbl, {'faces1','faces2', ...
+                               'nodes'});
+           map3 = setupTableMapping(locextfaceface_2nodetbl, prodmattbl, {'faces2', ...
+                               'extfaces', 'nodes'});
+           locA12 = (map1*div).*(map2*iB).*(map3*extsgn);
+
+           locextfacecells_1tbl = projTable(prodmattbl, {'extfaces', 'extfnind', ...
+                               'cells1'});
+           reducemap = setupTableMapping(prodmattbl, locextfacecells_1tbl, ...
+                                                     {'cells1', 'extfaces'});
+
+           locA12 = reducemap*locA12;
+           
+           tbl = locextfacecells_1tbl; %alias
+           locA12 = sparse(tbl.cells1, tbl.extfnind,locA12, nc, next);
+           A12 = A12 - locA12;
+           
+           % We assemble the part corresponding to A22 = -Pext*iB*Pext';
+           [~, prodmattbl] = setupTableMapping(locextfaceface_2nodetbl, ...
+                                               locface2nodetbl, {'faces2', ...
+                               'nodes'});
+           prodmattbl = replacefield(prodmattbl, 'extfnind', 'extfnind2');
+           prodmattbl = replacefield(prodmattbl, 'extfaces', 'extfaces2');
+           [~, prodmattbl] = setupTableMapping(prodmattbl, locextfaceface_1nodetbl, ...
+                                                           {'faces1', ...
+                               'nodes'});
+           prodmattbl = replacefield(prodmattbl, 'extfnind', 'extfnind1');
+           prodmattbl = replacefield(prodmattbl, 'extfaces', 'extfaces1');
+           
+           map1 = setupTableMapping(locextfaceface_1nodetbl, prodmattbl, ...
+                                                  {'faces1', {'extfnind', ...
+                               'extfnind1'}, 'nodes'});
+           map2 = setupTableMapping(locface2nodetbl, prodmattbl, {'faces1', ...
+                               'faces2', 'nodes'});
+           map3 = setupTableMapping(locextfaceface_2nodetbl, prodmattbl, ...
+                                                  {'faces2', {'extfnind', ...
+                               'extfnind2'}, 'nodes'});
+           locA22 = (map1*extsgn).*(map2*iB).*(map3*extsgn);
+
+           locextface2tbl = projTable(prodmattbl, {'extfaces1', 'extfnind1', ...
+                               'extfaces2', 'extfnind2'});
+           reducemap = setupTableMapping(prodmattbl, locextface2tbl, {'extfaces1', ...
+                               'extfaces2'});
+
+           locA22 = reducemap*locA22;
+           
+           tbl = locextface2tbl; %alias
+           locA22 = sparse(tbl.fnind1, tbl.fnind2, locA22, next, next);
+           A22 = A22 - locA22;
+           
+       end
+       
    end
 
    tbls = struct('facenodetbl', facenodetbl, 'cellfacenodetbl', ...
