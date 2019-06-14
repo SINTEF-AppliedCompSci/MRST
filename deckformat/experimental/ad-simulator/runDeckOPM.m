@@ -18,7 +18,7 @@ else
     if(opt.force_timestep)
         command=[opt.simulator,'  --full-time-step-initially=true --enable-adaptive-time-stepping=false --flow-newton-max-iterations=100 '];
     else
-        command=[opt.simulator,' --use-tuning=true --flow-newton-max-iterations=100 '];
+        command=[opt.simulator,' --enable-tuning=true --flow-newton-max-iterations=100 '];
     end
     if(opt.do_adjoint)
        % needed for adjoint
@@ -41,10 +41,10 @@ else
         %command=[command,'--use-amg=true -use-cpr=true -use-gmres=true ']
     else
       if(opt.verbose)
-        command = [command,'--linear-solver-verbose=1e-10 ']
+        command = [command,' --flow-linear-solver-verbosity=1 ']
       end
     end
-    command = [command,'--output-dir=',opt.outputdir,' ',deckfile];
+    command = [command,' --output-dir=',opt.outputdir,' ',deckfile];
 end
 if(opt.no_output)
     command = [command,' >& /dev/null'];
