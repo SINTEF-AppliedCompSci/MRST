@@ -74,9 +74,13 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    opt = struct('bc', [], 'src', [], 'wells', [],...
-                 'LinSolve', @mldivide,...
-                 'Verbose', mrstVerbose); 
+    opt = struct('bc'        , []         , ...
+                 'src'       , []         , ...
+                 'wells'     , []         , ...
+                 'LinSolve'  , @mldivide  , ...
+                 'Verbose'   , mrstVerbose, ...
+                 'outputFlux', false);
+    
     opt = merge_options(opt, varargin{:}); 
 
 
@@ -93,7 +97,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     nc = G.cells.num; 
     
     A    = mpfastruct.A;
-    F    = mpfastruct.F;
     tbls = mpfastruct.tbls;
     
     rhs = zeros(size(A, 1), 1);
@@ -121,18 +124,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             is_well_posed = true;
             factor = A(1, 1); 
             assert(factor > 0)
-            facenodeexttbl = tbls.facenodeexttbl;
+            extfacenodetbl = tbls.extfacenodetbl;
             bcpresstbl.faces = bc.face(is_press);
             bcpresstbl.num = numel(bcpresstbl.faces);
             pressvals = bc.value(is_press);
-            map = setupTableMapping(bcpresstbl, facenodeexttbl, {'faces'});
+            map = setupTableMapping(bcpresstbl, extfacenodetbl, {'faces'});
             pressvals = map*pressvals;
             [ind, ~] = find(map);
             nc = G.cells.num;
             e_ind = nc + ind;
             A(e_ind, :) = 0;
             A(e_ind, e_ind) = factor*speye(numel(ind));
-            next = facenodeexttbl.num;
+            next = extfacenodetbl.num;
             rhs(nc + (1 : next)) = rhs(nc + (1 : next)) + factor*pressvals;
         end
     end
@@ -201,11 +204,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         wellvars = x((nnp + 1) : end);
     end
     
-    flux = F*e_pressure;
-
     state.pressure = pressure;
     state.bc_pressure = bc_pressure;
-    state.flux = flux;
+    if opt.outputFlux 
+        F    = mpfastruct.F;
+        flux = F*pressure;
+        state.flux = flux;
+    end
     
     % return well values.
     if ~isempty(opt.wells)
