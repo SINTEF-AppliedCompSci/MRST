@@ -107,12 +107,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    dim = G.griddim;
 
    N = G.faces.neighbors;
-   faces = (1 : nf)';
-   extfaces = (N(:, 1) == 0) | (N(:, 2) == 0);
-   intfaces = find(~extfaces);
-   globintfacetbl.faces = intfaces;
-   globintfacetbl.num   = numel(intfaces);
-
+   
+   facetbl.tbl = (1 : nf)';
+   facetbl.num = nf;
+   
    cellfacetbl.cells = rldecode((1 : nc)', diff(G.cells.facePos));
    cellfacetbl.faces = G.cells.faces(:, 1);
    cellfacetbl.num   = numel(cellfacetbl.cells);
@@ -123,10 +121,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    [~, cellfacenodetbl] = setupTableMapping(cellfacetbl, facenodetbl, ...
                                                          {'faces'});
-   % tables for the degrees of freedom on the external faces
-   fno = cellfacenodetbl.faces; %alias
-   cno = cellfacenodetbl.cells; %alias
-   sgn = 2*(cno == G.faces.neighbors(fno, 1)) - 1;
+   
    
    extfaces = (G.faces.neighbors(:, 1) == 0) | (G.faces.neighbors(:, 2) == 0);
    extfacetbl.faces = find(extfaces);
@@ -139,6 +134,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    A12 = sparse(nc  , next);
    A21 = sparse(next, nc);
    A22 = sparse(next, next);
+   F1  = sparse(nf  , nc);
+   F2  = sparse(nf  , next);
    
    for iblock = 1 : nblocks
 
@@ -152,6 +149,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
        loccellfacenodetbl = rmfield(loccellfacenodetbl, 'cnfind');
        locfacenodetbl = rmfield(locfacenodetbl, 'fnind');
+       % Used in assembly of F:
+       locfacecelltbl = projTable(loccellfacenodetbl, {'cells', 'faces'}); 
        
        % Assembly of B
        Bmat = sparse(locface2nodetbl.fnind1, locface2nodetbl.fnind2, B, ...
@@ -219,26 +218,34 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                            'faces2'}, {'cells', 'cells2'}, {'nodes', ...
                            'nodes2'}});
 
-       [diviB, loccell_1facenode_2tbl] = contractTable({div, loccell_1facenode_1tbl}, ...
-                                                       {iB, locface2nodetbl}, ...
-                                                       {{'cells1'}, {'faces2', ...
-                           'nodes2'}, {'faces1', 'nodes1'}, });
+       [iBdiv, locfacenode_1cell_2tbl] = contractTable({iB, locface2nodetbl}, ...
+                                                       {div, loccell_2facenode_2tbl}, ...
+                                                       {{'nodes1', 'faces1'}, ...
+                           {'cells2'}, {'faces2', 'nodes2'}});
 
-       [diviBdiv, loccell_1cell_2tbl] = contractTable({diviB, ...
-                           loccell_1facenode_2tbl}, {div, loccell_2facenode_2tbl}, ...
-                                                      {{'cells1'}, {'cells2'}, ...
-                           {'faces2', 'nodes2'}, });
-       % Assemble sparse matrix
+
+       [diviBdiv, loccell_1cell_2tbl] = contractTable({div, loccell_1facenode_1tbl}, ...
+                                                      {iBdiv, ...
+                           locfacenode_1cell_2tbl}, {{'cells1'}, {'cells2'}, ...
+                           {'faces1', 'nodes1'}});
+       % Aggregate contribution in A11
        tbl = loccell_1cell_2tbl; %alias
        locA11 = sparse(tbl.cells1, tbl.cells2, diviBdiv, nc, nc);
-
        A11 = A11 + locA11;
-
+       % Aggregate contribution in F1
+       map = setupTableMapping(locfacenode_1cell_2tbl, locfacecelltbl, ...
+                                             {{'faces1', 'faces'}, {'cells2', ...
+                           'cells'}});
+       locF1 = map*iBdiv;
+       locF1 = sparse(locfacecelltbl.faces, locfacecelltbl.cells, locF1, nf, nc);
+       F1 = F1 + locF1;
+       
        % Assemble parts corresponding to the boundary conditions
        
        locfacetbl = projTable(locfacenodetbl, {'faces'});
        locfaces = locfacetbl.faces;
        locextfaces = (G.faces.neighbors(locfaces, 1) == 0) | (G.faces.neighbors(locfaces, 2) == 0);
+       % if there are any boundary in this block partition
        if any(locextfaces)
            clear locfacexttbl
            locextfacetbl.faces = locfaces(locextfaces);
@@ -280,6 +287,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                'nodes2'}});
 
            
+           % Aggregate contribution in A21
            [~, tbl] = setupTableMapping(locextfacenode_1cell_2tbl, extfacenodetbl, ...
                                                       {{'extfaces1', 'faces'}, ...
                                {'extnodes1', 'nodes'}}); 
@@ -287,21 +295,39 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
            A21 = A21 + locA21;
            
            % We assemble the part corresponding to A12 = -div*iB*Pext';
-           [diviB, loccell_1facenode_2tbl] = contractTable({div, ...
-                               loccell_1facenode_1tbl}, {iB, locface2nodetbl}, ...
-                                                           {{'cells1'}, ...
-                               {'faces2', 'nodes2'}, {'faces1', 'nodes1'}, });
-           [diviBPext, loccell_1extfacenode_2tbl] = contractTable({diviB, ...
-                               loccell_1facenode_2tbl}, {extsgn, ...
-                               locextfacenode_2facenode_2tbl}, {{'cells1'}, ...
-                               {'extfaces2', 'extnodes2'}, {'faces2', 'nodes2'}, ...
-                   });
+           [iBPext, locfacenode_1extfacenode_2tbl] = contractTable({iB, ...
+                               locface2nodetbl}, {extsgn, ...
+                               locextfacenode_2facenode_2tbl}, {{'faces1', ...
+                               'nodes1'}, {'extfaces2', 'extnodes2'}, {'faces2', ...
+                               'nodes2'}});
+           [diviBPext, loccell_1extfacenode_2tbl] = contractTable({div, ...
+                               loccell_1facenode_1tbl}, {iBPext, ...
+                               locfacenode_1extfacenode_2tbl}, {{'cells1'}, ...
+                               {'extfaces2', 'extnodes2'}, {'faces1', ...
+                               'nodes1'}});
            
+           % Aggregate contribution in A12
            [~, tbl] = setupTableMapping(loccell_1extfacenode_2tbl, extfacenodetbl, ...
                                                       {{'extfaces2', 'faces'}, ...
                                {'extnodes2', 'nodes'}}); 
            locA12 = sparse(tbl.cells1, tbl.extfnind, diviBPext, nc, next);
            A12 = A12 - locA12;
+           
+           % Aggregate contribution in F2
+
+           locface_1extfacenode_2tbl = projTable(locfacenode_1extfacenode_2tbl, ...
+                                                 {'faces1', 'extfaces2', ...
+                               'extnodes2'});
+           map = setupTableMapping(locfacenode_1extfacenode_2tbl, ...
+                                   locface_1extfacenode_2tbl, {'faces1', ...
+                               'extfaces2', 'extnodes2'});
+           iBPext = map*iBPext;            
+           tbl = locfacenode_1extfacenode_2tbl; %alias 
+           [~, tbl] = setupTableMapping(tbl, extfacenodetbl, {{'extfaces2', ...
+                               'faces'}, {'extnodes2', 'nodes'}});           
+           locF2 = sparse(tbl.faces1, tbl.extfnind, iBPext, nf, next);
+           
+           F2 = F2 - locF2;
            
            % We assemble the part corresponding to A22 = -Pext*iB*Pext';
            [PextiB, locextfacenode_1facenode_2tbl] = contractTable({extsgn, ...
@@ -335,7 +361,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'extfacenodetbl' , extfacenodetbl);
 
    A = [[A11, A12]; [A21, A22]];
+   F = [F1, F2];
    
-   mpfastruct = struct('A'   , A  , ...
+   mpfastruct = struct('A'   , A, ...
+                       'F'   , F, ...
                        'tbls', tbls);
 end
