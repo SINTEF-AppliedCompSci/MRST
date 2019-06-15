@@ -84,12 +84,34 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-   opt = struct('verbose'     , mrstVerbose, ...
-                'blocksize'   , []      , ...
-                'invertBlocks', 'matlab', ...
-                'eta'         , 0);
+   opt = struct('verbose'      , mrstVerbose, ...
+                'blocksize'    , []         , ...
+                'ip_compmethod', 'general'  , ...
+                'invertBlocks' , 'matlab'   , ...
+                'eta'          , 0)
 
    opt = merge_options(opt, varargin{:});
+   % possible options for ip_compmethod
+   % 'general'       : general case, no special requirements on corner
+   % 'nicecorner'    : case where at each corner, number of faces is equal to G.griddim
+   % 'directinverse' : case where at each corner, number of faces is equal to
+   %                   G.griddim AND eta is value such that N*R is diagonal (see Lipnikov paper)
+   
+   opt = merge_options(opt, varargin{:});
+   switch opt.ip_compmethod
+     case {'general', 'nicecorner'}
+     case 'directinverse'
+       isOk = false;
+       if (G.griddim == 2) & (opt.eta == 1/3), isOk = true, end
+       if (G.griddim == 3) & (opt.eta == 1/4), isOk = true, end
+       if ~isOk
+           error(['option values for ip_compmethod and eta are not ' ...
+                  'compatible']);
+       end
+     otherwise
+       error('value of option nodeompcase is not recognized.');
+   end
+
    opt.invertBlocks = blockInverter(opt);
    blocksize = opt.blocksize;
 
@@ -150,15 +172,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    extfaces = (G.faces.neighbors(:, 1) == 0) | (G.faces.neighbors(:, 2) == 0);
    faceexttbl.faces = find(extfaces);
    faceexttbl.num   = numel(faceexttbl.faces);
-   [~, facenodeexttbl] = setupTableMapping(facenodetbl, faceexttbl, {'faces'});
+   [~, extfacenodetbl] = setupTableMapping(facenodetbl, faceexttbl, {'faces'});
    
-   op     = setupTableMapping(cellnodefacetbl, facenodeexttbl, {'faces', 'nodes'});
+   op     = setupTableMapping(cellnodefacetbl, extfacenodetbl, {'faces', 'nodes'});
    fn_sgn = op*sgn;
-   map = setupTableMapping(facenodetbl, facenodeexttbl, {'faces', 'nodes'});
-   nfne = facenodeexttbl.num;
+   map = setupTableMapping(facenodetbl, extfacenodetbl, {'faces', 'nodes'});
+   nfne = extfacenodetbl.num;
    Pext = sparse(1 : nfne, 1 : nfne, fn_sgn, nfne, nfne)*map;
    
-   tbls.facenodeexttbl = facenodeexttbl;
+   tbls.extfacenodetbl = extfacenodetbl;
    
    %% Assemble the flux operator: From pressure values at the cell center and
    % at the external facenode, compute the fluxes at the faces
