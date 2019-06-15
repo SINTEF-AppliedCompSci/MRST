@@ -90,8 +90,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'state remains unchanged.\n']); 
     end
     
-
-    
     is_well_posed = false; % changed to true if pressure is set through well or
                            % boundary conditions.
     nc = G.cells.num; 
@@ -179,7 +177,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             end
         end
         
-        
         C = vertcat(C{:}); 
         B = horzcat(B{:}); 
         D = spdiags(D, 0, nw, nw); 
@@ -187,7 +184,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         A = A + sparse(1:nc, 1:nc, d, size(A, 1), size(A, 2)); 
 
     end
-        
 
     if ~is_well_posed
         A(1) = 2*A(1); 
@@ -204,11 +200,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         wellvars = x((nnp + 1) : end);
     end
     
-    state.pressure = pressure;
+    state.pressure    = pressure;
     state.bc_pressure = bc_pressure;
+    
     if opt.outputFlux 
-        F    = mpfastruct.F;
-        flux = F*pressure;
+        F = mpfastruct.F;
+        p = [pressure; bc_pressure];
+        flux = F*p;
         state.flux = flux;
     end
     
