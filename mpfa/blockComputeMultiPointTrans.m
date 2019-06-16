@@ -108,7 +108,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    N = G.faces.neighbors;
    
-   facetbl.tbl = (1 : nf)';
+   facetbl.faces = (1 : nf)';
    facetbl.num = nf;
    
    cellfacetbl.cells = rldecode((1 : nc)', diff(G.cells.facePos));
@@ -233,11 +233,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        locA11 = sparse(tbl.cells1, tbl.cells2, diviBdiv, nc, nc);
        A11 = A11 + locA11;
        % Aggregate contribution in F1
-       map = setupTableMapping(locfacenode_1cell_2tbl, locfacecelltbl, ...
-                                             {{'faces1', 'faces'}, {'cells2', ...
-                           'cells'}});
+       locface_1cell_2tbl = projTable(locfacenode_1cell_2tbl, {'faces1', ...
+                           'cells2'});
+       map = setupTableMapping(locfacenode_1cell_2tbl, locface_1cell_2tbl, ...
+                                             {'faces1', 'cells2'});
        locF1 = map*iBdiv;
-       locF1 = sparse(locfacecelltbl.faces, locfacecelltbl.cells, locF1, nf, nc);
+       tbl = locface_1cell_2tbl; %alias
+       locF1 = sparse(tbl.faces1, tbl.cells2, locF1, nf, nc);
        F1 = F1 + locF1;
        
        % Assemble parts corresponding to the boundary conditions
