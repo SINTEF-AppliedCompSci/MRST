@@ -1,6 +1,6 @@
 classdef BlackOilViscosity < StateFunction
     properties
-        useSaturatedFlag = false;
+        useSaturatedFlag = true;
         disgas = false;
         vapoil = false;
     end
