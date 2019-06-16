@@ -103,7 +103,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     multmuW = fluid.muW(p)/fluid.muWr;
     mobW    = krW./(muW.*multmuW);
     dpW     = op.Grad(pW) - rhoWf.*gdz;
-    upcW    = (double(dpW)<=0);
+    upcW    = value(dpW)<=0;
 
     % Oil flux and properties
     bO    = fluid.bO(pO);
@@ -116,7 +116,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     mobO = krO./muO;
     dpO  = op.Grad(pO) - rhoOf.*gdz;
-    upcO = (double(dpO)<=0);
+    upcO = (value(dpO)<=0);
 
     dp  = {dpW, dpO};
     mob = {mobW, mobO};
