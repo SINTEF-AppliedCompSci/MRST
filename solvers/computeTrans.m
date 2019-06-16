@@ -42,6 +42,11 @@ function T = computeTrans(G, rock, varargin)
 %                     `cellFaceCenters` rather then default
 %                     `G.faces.centroids(G.cells.faces(:,1), :)`
 %
+%   fixNegative     - Take absolute value of negative transmissibilities if
+%                     present. This typically happens if the grid cell
+%                     geometry is degenerate, for instance with a centroid
+%                     outside the cell. Default: true.
+%
 % RETURNS:
 %   T - half-transmissibilities for each local face of each grid cell in
 %       the grid.  The number of half-transmissibilities equals the number
@@ -77,6 +82,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 'grdecl'         , []   , ...
                 'K_system'       , 'xyz', ...
                 'cellCenters'    , []   , ...
+                'fixNegative'    , true, ...
                 'cellFaceCenters', []   );
    opt = merge_options(opt, varargin{:});
 
@@ -92,9 +98,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                'Unknown permeability coordinate system ''%s''.', ...
                opt.K_system);
    end
-
-   T = handle_negative_trans(T, opt);
-
+   if opt.fixNegative
+      T = handle_negative_trans(T, opt);
+   end
    T = handle_ntg(T, rock, G);
    
    if isstruct(opt.grdecl) && numel(opt.grdecl) == 1
