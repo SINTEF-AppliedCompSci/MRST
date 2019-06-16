@@ -23,13 +23,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     n = size(A, 1);
     % Add a tiny bit of noise to overcome a Matlab UMFPACK issue in MRST
     % 2018b and onwards
-    D = D - sparse(1:n, 1:n, min(diag(A))*1e-12, n, n);
+    d = diag(A);
+    D = D - sparse(1:n, 1:n, min(d)*1e-8, n, n);
     tmp1 = warning('query','MATLAB:nearlySingularMatrix');
     tmp2 = warning('query','MATLAB:singularMatrix');
     warning('off','MATLAB:nearlySingularMatrix')
     warning('off','MATLAB:singularMatrix')
     t = tic();
     p = mldivide(D, rhs - (A - D)*pressure);
+    assert(all(isfinite(p)))
     solvetime = toc(t);
     warning(tmp1.state,'MATLAB:nearlySingularMatrix')
     warning(tmp2.state,'MATLAB:singularMatrix')
