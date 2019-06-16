@@ -88,7 +88,7 @@ vecs{caseno} = sortrows(vec);
 titles{caseno} = 'mpfa - block';
 icaseno = caseno + 1;
 
-% mpfa - block
+% mpfa - new block
 mpfastruct = blockComputeMultiPointTrans(G, rock, 'eta', eta, 'blocksize', ...
                                          blocksize, 'verbose', true);
 state = incompMPFA2(G, mpfastruct, 'bc', bc);
