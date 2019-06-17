@@ -1,4 +1,52 @@
 function [ok, status] = simulatePackedProblem(problems, varargin)
+%Simulate one or more packed simulation problems
+%
+% SYNOPSIS:
+%   [ok, status] = simulatePackedProblem(problems)
+%   [ok, status] = simulatePackedProblem(problems, 'continueOnError',false)
+%
+% REQUIRED PARAMETERS:
+%   problems - Either a single packed problem from 'packSimulationProblem'
+%              or multiple as a cell array, e.g. {problem1, problem2, ...}
+%
+% OPTIONAL PARAMETERS:
+%   checkTooMany - Check if there exists more output than report steps.
+%                  This can indicate re-definition of a simulation case and
+%                  may lead to malformed output.
+%
+%   continueOnError - If true, errors occurring during simulation will not
+%                     result in an error. Useful when trying to simulate
+%                     multiple problems in sequence.
+%
+% RETURNS:
+%   ok     - Flag for each case indicating a successful run.
+%   status - Structs containing some information about each case (possible
+%            error message, time spent, etc).
+% EXAMPLE:
+%   demoPackedProblems
+%
+% SEE ALSO:
+%   packSimulationProblem, getPackedSimulatorOutput
+
+%{
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
     opt = struct('checkTooMany', true, ...
                  'continueOnError', true);
     opt = merge_options(opt, varargin{:});

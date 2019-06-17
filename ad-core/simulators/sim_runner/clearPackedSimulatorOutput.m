@@ -1,4 +1,52 @@
 function clearPackedSimulatorOutput(problems, varargin)
+%Remove stored data for one or more packed simulation problem
+%
+% SYNOPSIS:
+%   clearPackedSimulatorOutput(problems)
+%   clearPackedSimulatorOutput(problem)
+%   clearPackedSimulatorOutput(problems, 'Prompt', false);
+%
+% REQUIRED PARAMETERS:
+%   problems - Either a single packed problem or multiple as a cell array.
+%
+% OPTIONAL PARAMETERS:
+%
+%   Prompt  - Should we prompt before deleting results? Default: true.
+%
+%   Default - Default choice for prompt. Either 'y' or 'n'. Default: 'n'.
+%
+%   start   - Delete all entries from step 'start' onwards. Default: 1.
+%
+%   stop    - Delete all entries up to and including 'stop. Default is the
+%             all data present above start.
+% RETURNS:
+%   Nothing.
+%
+% EXAMPLE:
+%   demoPackedProblems
+%
+% SEE ALSO:
+%   packSimulationProblem
+
+%{
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
     opt = struct('Prompt', true,...
                  'Default', 'n', ...
                  'start', 1, ...
