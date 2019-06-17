@@ -127,38 +127,31 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        fprintf('Computing inner product on sub-half-faces done in %g sec\n', t0);
    end
    
-
-
-   %% Assemble of the divergence operator, from interior facenode values to cell value.
+   %% Assemble of the divergence operator, from facenode values to cell value.
+   cellnodefacetbl = tbls.cellnodefacetbl;
    facenodetbl = tbls.facenodetbl;
+   facenodetbl = addLocInd(facenodetbl, 'fnind');
+   
    extfaces = (G.faces.neighbors(:, 1) == 0) | (G.faces.neighbors(:, 2) == 0);
    intfaces = find(~extfaces);
+   clear intfacetbl
    intfacetbl.faces = intfaces;
-   intfacetbl.num   = numel(intfaces);
+   intfacetbl.num = numel(intfaces);
    
-   [~, intfacenodetbl] = setupTableMapping(facenodetbl, intfacetbl, {'faces'});
-   % we reorder intfacenode by node so that we get the block structure for
-   % the matrix B
-   orderingmat = [intfacenodetbl.nodes, intfacenodetbl.faces];
-   orderingmat = sortrows(orderingmat);
-   intfacenodetbl.nodes = orderingmat(:, 1);
-   intfacenodetbl.faces = orderingmat(:, 2);
+   % setup table with only internal faces
+   [~, cellintnodefacetbl] = setupTableMapping(cellnodefacetbl, intfacetbl, ...
+                                                             {'faces'});
+   % add facenode indexing
+   [~, cellintnodefacetbl] = setupTableMapping(cellintnodefacetbl, facenodetbl, ...
+                                                             {'faces', ...
+                       'nodes'});
    
-   cellnodefacetbl = tbls.cellnodefacetbl;
-   fno = cellnodefacetbl.faces; %alias
-   cno = cellnodefacetbl.cells; %alias
-   sgn = 2*(cno == G.faces.neighbors(fno, 1)) - 1;
-   div = sparse(cellnodefacetbl.cells, ...
-                (1 : cellnodefacetbl.num)', ...
-                sgn, ...
-                G.cells.num, ...
-                cellnodefacetbl.num);
-   % reduce from cell-face-node to face-node (equivalent to removing hybridization)
-   op = setupTableMapping(intfacenodetbl, cellnodefacetbl, {'faces', 'nodes'});
-   div = div*op;
-   
+   fino = cellintnodefacetbl.faces; %alias
+   cino = cellintnodefacetbl.cells; %alias
+   sgn = 2*(cino == G.faces.neighbors(fino, 1)) - 1;
+   tbl = cellintnodefacetbl; %alias
+   div = sparse(tbl.cells, tbl.fnind, sgn, G.cells.num, facenodetbl.num);
 
-   
    %% Invert matrix B
    % The facenode degrees of freedom, as specified by the facenodetbl table, are
    % ordered by nodes first (see implementation below). It means in particular
@@ -169,18 +162,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        t0 = tic();   
    end
 
-   map = setupTableMapping(intfacenodetbl, facenodetbl, {'faces', ...
-                       'nodes'});
-   
-   B = map'*B*map;
    % if we know - a priori - that matrix is symmetric, then we remove
    % symmetry loss that has been introduced in assembly.
    if strcmp(opt.ip_compmethod, 'directinverse')
        B = 0.5*(B + B');
    end
    
-   [~, sz] = rlencode(intfacenodetbl.nodes); 
-   iB   = opt.invertBlocks(B, sz);
+   [~, sz] = rlencode(facenodetbl.nodes); 
+   iB = opt.invertBlocks(B, sz);
    % if we know - a priori - that matrix is symmetric, then we remove the loss of
    % symmetry that may have been introduced by the numerical inversion.
    if strcmp(opt.ip_compmethod, 'directinverse')
@@ -192,19 +181,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        fprintf('... computing inverse mixed innerproduct done in %g sec\n', t0);
    end
    
+   %% Assemble the system matrix operaror: The degrees of freedom are the pressure
+   % values at the cell center and at the external facenode.
+   A = div*iB*div';
    
    %% Assemble the flux operator: From pressure values at the cell center and
    % at the external facenode, compute the fluxes at the faces
    F = iB*div';
-   map = setupTableMapping(intfacenodetbl, intfacetbl, {'faces'});
-   F = map*F;
-   
-   %% Assemble the system matrix operaror: The degrees of freedom are the pressure
-   % values at the cell center and at the external facenode.
-   A = div*iB*div';
 
-   mpfastruct = struct('iB'  , iB  , ...
-                       'div' , div , ...
+   mpfastruct = struct('div' , div , ...
                        'F'   , F   , ...
                        'A'   , A   , ...
                        'tbls', tbls);
