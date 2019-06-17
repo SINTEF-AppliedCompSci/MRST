@@ -155,12 +155,4 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 end
 
-% -------------------------------------------------------------------------- 
-% Helpers follow.
-% -------------------------------------------------------------------------- 
-
-function s = id(s)
-    s = ['incompMPFA:', s]; 
-end
-
 
