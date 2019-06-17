@@ -1,4 +1,4 @@
-function mpfastruct = blockComputeNeumannMultiPointTrans(G, rock, blocksize, varargin)
+function mpfastruct = blockComputeNeumannMultiPointTrans(G, rock, varargin)
 % Compute multi-point transmissibilities by block around nodes.
 
 
@@ -22,12 +22,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
    opt = struct('verbose'     , mrstVerbose, ...
-                'invertBlocks', 'matlab', ...
+                'blocksize'   , []         , ...
+                'invertBlocks', 'matlab'   , ...
                 'eta'         , 0);
 
    opt = merge_options(opt, varargin{:});
    opt.invertBlocks = blockInverter(opt);
-
+   blocksize = opt.blocksize;
+   
    nn = G.nodes.num;
    nblocks = floor(nn/blocksize);
    blocksizes = repmat(blocksize, nblocks, 1);
