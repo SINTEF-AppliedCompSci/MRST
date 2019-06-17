@@ -139,6 +139,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    
    for iblock = 1 : nblocks
 
+       if opt.verbose
+           fprintf('Starting with block %d/%d ... ', iblock, nblocks);
+           tic
+       end
        nodes = [blockinds(iblock) : (blockinds(iblock + 1) - 1)]';
        [B, tbls] = blockLocalFluxMimeticAssembly(G, rock, nodes, 'eta', opt.eta, ...
                                                  'ip_compmethod', opt.ip_compmethod ...
@@ -357,6 +361,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
            locA22 = sparse(ind1, ind2, PextiBPext, next, next);
            A22 = A22 - locA22;
            
+       end
+       if opt.verbose
+           fprintf('%g seconds\n', toc);
        end
        
    end
