@@ -70,13 +70,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'outputFlux', false); 
     opt = merge_options(opt, varargin{:}); 
 
-    
     is_well_posed = false; % changed to true if pressure is set through well
                            % or boundary conditions.
     nc = G.cells.num; 
     
-    A    = mpfastruct.A;
-    tbls = mpfastruct.tbls;
+    A = mpfastruct.A;
     
     nw  = length(W); 
 
