@@ -149,8 +149,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
        loccellfacenodetbl = rmfield(loccellfacenodetbl, 'cnfind');
        locfacenodetbl = rmfield(locfacenodetbl, 'fnind');
-       % Used in assembly of F:
-       locfacecelltbl = projTable(loccellfacenodetbl, {'cells', 'faces'}); 
        
        % Assembly of B
        Bmat = sparse(locface2nodetbl.fnind1, locface2nodetbl.fnind2, B, ...
