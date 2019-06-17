@@ -1,27 +1,21 @@
-function [B, tbls] = blockLocalFluxMimeticAssembly(G, rock, nodes, varargin)
+function [B, tbls] = blockLocalFluxMimeticAssembly(G, rock, globtbls, nodes, varargin)
 
     opt = struct('verbose'      , mrstVerbose, ...
                  'ip_compmethod', 'general'  , ...
                  'eta'          , 0);
     opt = merge_options(opt, varargin{:});
-    
+
     nodetbl.nodes = nodes;
     nodetbl.num = numel(nodes);
 
     nc  = G.cells.num;
     nf  = G.faces.num;
     dim = G.griddim;
-
-    % Setup cellnodetbl for *whole* grid (this could be moved out of this function)
-    cellfacetbl.cells = rldecode((1 : nc)', diff(G.cells.facePos));
-    cellfacetbl.faces = G.cells.faces(:, 1);
-    cellfacetbl.num   = numel(cellfacetbl.cells);
-    facenodetbl.faces = rldecode((1 : nf)', diff(G.faces.nodePos));
-    facenodetbl.nodes = G.faces.nodes;
-    facenodetbl.num = numel(facenodetbl.faces);
-    [~, cellfacenodetbl] = setupTableMapping(cellfacetbl, facenodetbl, ...
-                                                          {'faces'});
-    cellnodetbl = projTable(cellfacenodetbl, {'cells', 'nodes'});
+    
+    cellfacetbl     = globtbls.cellfacetbl;
+    facenodetbl     = globtbls.facenodetbl;
+    cellfacenodetbl = globtbls.cellfacenodetbl;
+    cellnodetbl     = globtbls.cellnodetbl;
 
     % Restrict cellnodetbl to the nodes blocks (nodes that are sent as argument)
     [~, cellnodetbl] = setupTableMapping(cellnodetbl, nodetbl, {'nodes'});
@@ -183,7 +177,7 @@ function [B, tbls] = blockLocalFluxMimeticAssembly(G, rock, nodes, varargin)
         cellno = cellfacenodetbl.cells(cnf_i);
         K = reshape(fullpermmat(cellno, :), [dim, dim]);
 
-        % Assemble local nodal scalar product 
+        % Assemble local nodal scalar product
         switch opt.ip_compmethod
           case 'general'
             locM = node_ip(a, v, full(N), full(R), K);
@@ -195,7 +189,7 @@ function [B, tbls] = blockLocalFluxMimeticAssembly(G, rock, nodes, varargin)
           otherwise
             error('ip_compmethod not recognized');
         end
-        
+
         locM = reshape(locM', [], 1);
 
         matind = mat_i : (mat_i + (nface*nface - 1));
@@ -282,7 +276,7 @@ end
 function M = node_ip3(N, K, d, volE)
 % volE : volume of cell
 % d    : Spatial dimension (2 or 3)
-% K    : permeability tensor    
+% K    : permeability tensor
     invN = inv(N);
     switch d
       case 2
@@ -292,6 +286,6 @@ function M = node_ip3(N, K, d, volE)
       otherwise
         error('wrong spatial dimension (should be equal to 2 or 3)');
     end
-    
+
     M = (volE/mE)*(invN'*K*invN);
 end

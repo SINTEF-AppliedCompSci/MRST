@@ -122,7 +122,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    [~, cellfacenodetbl] = setupTableMapping(cellfacetbl, facenodetbl, ...
                                                          {'faces'});
    
-   
+   cellnodetbl = projTable(cellfacenodetbl, {'cells', 'nodes'});   
+  
    extfaces = (G.faces.neighbors(:, 1) == 0) | (G.faces.neighbors(:, 2) == 0);
    extfacetbl.faces = find(extfaces);
    extfacetbl.num   = numel(extfacetbl.faces);
@@ -137,6 +138,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    F1  = sparse(nf  , nc);
    F2  = sparse(nf  , next);
    
+   clear globtbls
+   globtbls.cellfacetbl     = cellfacetbl;
+   globtbls.facenodetbl     = facenodetbl;
+   globtbls.cellfacenodetbl = cellfacenodetbl;
+   globtbls.cellnodetbl     = cellnodetbl;
+   
    for iblock = 1 : nblocks
 
        if opt.verbose
@@ -144,14 +151,21 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
            tic
        end
        nodes = [blockinds(iblock) : (blockinds(iblock + 1) - 1)]';
-       [B, tbls] = blockLocalFluxMimeticAssembly(G, rock, nodes, 'eta', opt.eta, ...
-                                                 'ip_compmethod', opt.ip_compmethod ...
-                                                 );
+       [B, tbls] = blockLocalFluxMimeticAssembly(G, rock, globtbls, nodes, ...
+                                                 'eta', opt.eta, 'ip_compmethod', ...
+                                                 opt.ip_compmethod );
 
+       if isempty(B)
+           % handle case when the nodes do not belong to any faces.
+           if opt.verbose
+               fprintf('%g seconds\n', toc);
+           end
+           break
+       end
+       
        locfacenodetbl     = tbls.facenodetbl;
        locface2nodetbl    = tbls.face2nodetbl;
        loccellfacenodetbl = tbls.cellfacenodetbl;
-       loccellnodetbl     = tbls.cellnodetbl;
 
        loccellfacenodetbl = rmfield(loccellfacenodetbl, 'cnfind');
        locfacenodetbl = rmfield(locfacenodetbl, 'fnind');

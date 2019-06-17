@@ -43,30 +43,37 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    nc  = G.cells.num;
    nf  = G.faces.num;
    dim = G.griddim;
-
+   
    N = G.faces.neighbors;
-   faces = (1 : nf)';
-   extfaces = (N(:, 1) == 0) | (N(:, 2) == 0);
-   intfaces = find(~extfaces);
-   intfacetbl.faces = intfaces;
-   intfacetbl.num = numel(intfacetbl.faces);
+   
+   facetbl.faces = (1 : nf)';
+   facetbl.num = nf;
    
    cellfacetbl.cells = rldecode((1 : nc)', diff(G.cells.facePos));
    cellfacetbl.faces = G.cells.faces(:, 1);
    cellfacetbl.num   = numel(cellfacetbl.cells);
 
-   [~, cellfacetbl] = setupTableMapping(cellfacetbl, intfacetbl, {'faces'});
-   
    facenodetbl.faces = rldecode((1 : nf)', diff(G.faces.nodePos));
    facenodetbl.nodes = G.faces.nodes;
    facenodetbl.num = numel(facenodetbl.faces);
 
-   [~, facenodetbl] = setupTableMapping(facenodetbl, intfacetbl, {'faces'});
-   
    [~, cellfacenodetbl] = setupTableMapping(cellfacetbl, facenodetbl, ...
                                                          {'faces'});
+   
+   cellnodetbl = projTable(cellfacenodetbl, {'cells', 'nodes'});      
+   
+   extfaces = (G.faces.neighbors(:, 1) == 0) | (G.faces.neighbors(:, 2) == ...
+                                                0);
+   intfaces = ~extfaces;
+   
    A = sparse(nc, nc);
    F = sparse(nf, nc);
+
+   clear globtbls
+   globtbls.cellfacetbl     = cellfacetbl;
+   globtbls.facenodetbl     = facenodetbl;
+   globtbls.cellfacenodetbl = cellfacenodetbl;
+   globtbls.cellnodetbl     = cellnodetbl;
    
    for iblock = 1 : nblocks
 
@@ -75,9 +82,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
            tic
        end
        nodes = [blockinds(iblock) : (blockinds(iblock + 1) - 1)]';
-       [B, tbls] = blockLocalFluxMimeticAssembly(G, rock, nodes, 'eta', opt.eta, ...
-                                                 'ip_compmethod', opt.ip_compmethod);
-       
+       [B, tbls] = blockLocalFluxMimeticAssembly(G, rock, globtbls, nodes, ...
+                                                 'eta', opt.eta, 'ip_compmethod', ...
+                                                 opt.ip_compmethod);
        if isempty(B)
            % handle case when the nodes do not belong to any faces.
            if opt.verbose
@@ -97,49 +104,23 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        Bmat = sparse(locface2nodetbl.fnind1, locface2nodetbl.fnind2, B, ...
                      locfacenodetbl.num, locfacenodetbl.num);
 
-       [~, intlocfacenodetbl] = setupTableMapping(locfacenodetbl, intfacetbl, ...
-                                                                {'faces'});
-       if intlocfacenodetbl.num == 0
-           if opt.verbose
-               fprintf('%g seconds\n', toc);
-           end
-           break
+       % if we know - a priori - that matrix is symmetric, then we remove
+       % symmetry loss that has been introduced in assembly.
+       if strcmp(opt.ip_compmethod, 'directinverse')
+           Bmat = 0.5*(Bmat + Bmat');
        end
-       
-       % we order by node face to get block diagonal structure of the
-       % resulting matrix
-       intlocfacenodetbl = sortTable(intlocfacenodetbl, {'nodes', 'faces'});
-       
-
-       
-       map = setupTableMapping(intlocfacenodetbl, locfacenodetbl, {'faces', ...
-                           'nodes'});
-       Bmat = map'*Bmat*map;
-       [~, sz] = rlencode(intlocfacenodetbl.nodes);
+       [~, sz] = rlencode(locfacenodetbl.nodes);
        iBmat   = opt.invertBlocks(Bmat, sz);
-       
-       % remove from local table the external faces
-       locfacenodetbl = intlocfacenodetbl;
-       [~, loccellfacenodetbl] = setupTableMapping(loccellfacenodetbl, intfacetbl, ...
-                                                                 {'faces'});
-       locfacenodetbl = addLocInd(locfacenodetbl, 'fnind');
-       % generate locface2nodetbl
-       [~, locface2nodetbl] = setupTableMapping(locfacenodetbl, locfacenodetbl, ...
-                                                              {'nodes'}, ...
-                                                              'crossextend', ...
-                                                              {{'faces', ...
-                           {'faces1', 'faces2'}}, {'fnind', {'fnind1', ...
-                           'fnind2'}}});
-       
+       % if we know - a priori - that matrix is symmetric, then we remove the loss of
+       % symmetry that may have been induced by the numerical inversion.
+       if strcmp(opt.ip_compmethod, 'directinverse')
+           iBmat = 0.5*(iBmat + iBmat');
+       end
+       [fnind1, fnind2, iB] = find(iBmat);
        clear locmattbl
-       locmattbl.fnind = (1 : locfacenodetbl.num)';
-       locmattbl.num   = locfacenodetbl.num;
-       [~, locmattbl] = setupTableMapping(locmattbl, locmattbl, [], 'crossextend', ...
-                                                     {{'fnind', {'fnind1', ...
-                           'fnind2'}}});
-       locmattbl = sortTable(locmattbl, {'fnind2', 'fnind1'});
-       
-       iB = iBmat(:);
+       locmattbl.fnind1 = fnind1;
+       locmattbl.fnind2 = fnind2;
+       locmattbl.num = numel(locmattbl.fnind1);
        map = setupTableMapping(locmattbl, locface2nodetbl, {'fnind1', 'fnind2'});
        iB = map*iB;
        clear map;
@@ -149,6 +130,29 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                            'nodes2'}});
        locface2nodetbl = rmfield(locface2nodetbl, 'fnind1');
        locface2nodetbl = rmfield(locface2nodetbl, 'fnind2');
+       
+       % remove external faces from loccellfacenodetbl and locfacenodetbl
+       a = convertTableToArray(loccellfacenodetbl, {'faces', 'cells', ...
+                           'nodes'});
+       locfaces = a(:, 1);
+       isintface = (intfaces(locfaces) > 0);
+       a = a(isintface, :);
+       loccellfacenodetbl = convertArrayToTable(a, {'faces', 'cells', ...
+                           'nodes'});
+       
+       a = convertTableToArray(locfacenodetbl, {'faces', 'nodes'});
+       locfaces = a(:, 1);
+       isintface = (intfaces(locfaces) > 0);
+       a = a(isintface, :);
+       locfacenodetbl = convertArrayToTable(a, {'faces', 'nodes'});
+
+       if locfacenodetbl.num == 0
+           % handle case when all faces are external
+           if opt.verbose
+               fprintf('%g seconds\n', toc);
+           end
+           break  
+       end
        
        div        = zeros(loccellfacenodetbl.num, 1);
        locfacetbl = projTable(locfacenodetbl, {'faces'});
@@ -191,7 +195,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                                        {{'nodes1', 'faces1'}, ...
                            {'cells2'}, {'faces2', 'nodes2'}});
 
-
        [diviBdiv, loccell_1cell_2tbl] = contractTable({div, loccell_1facenode_1tbl}, ...
                                                       {iBdiv, ...
                            locfacenode_1cell_2tbl}, {{'cells1'}, {'cells2'}, ...
@@ -202,8 +205,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        locA = sparse(tbl.cells1, tbl.cells2, diviBdiv, nc, nc);
        A = A + locA;
        
+       % Aggregate contribution in F
        locface_1cell_2tbl = projTable(locfacenode_1cell_2tbl, {'faces1', ...
                            'cells2'});
+       % remove external faces
+       a = convertTableToArray(locface_1cell_2tbl, {'faces1', 'cells2'});
+       locfaces = a(:, 1);
+       isintface = (intfaces(locfaces) > 0);
+       a = a(isintface, :);
+       locface_1cell_2tbl = convertArrayToTable(a, {'faces1', 'cells2'});
+       
        map = setupTableMapping(locfacenode_1cell_2tbl, locface_1cell_2tbl, ...
                                              {'faces1', 'cells2'});
        locF = map*iBdiv;
