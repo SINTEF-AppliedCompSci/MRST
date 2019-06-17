@@ -43,9 +43,7 @@ fluid = initSingleFluid('mu' , 1 , ...
 
 gravity off
 
-titles = {'mpfa - jostein', 'mpfa - standard', 'mpfa - block', 'mpfa - well', 'mpfa - well - block'};
-
-clear mpfastructs states pressures fluxes
+clear mpfastructs states pressures fluxes titles
 caseno = 1;
 
 % mpfa - jostein
@@ -55,8 +53,8 @@ texec = toc;
 states{caseno} = initResSol(G, 0, 1);
 states{caseno} = incompMPFA(states{caseno}, G, T_mpfa, fluid, 'wells', W);
 pressures{caseno} = states{caseno}.pressure;
-fprintf('Done with %s in %g sec\n', titles{caseno}, texec);
 titles{caseno} = 'mpfa - jostein';
+fprintf('Done with %s in %g sec\n', titles{caseno}, texec);
 caseno = caseno + 1;
 
 % mpfa - standard
@@ -67,8 +65,8 @@ texec = toc;
 states{caseno} = incompMPFA2(G, mpfastructs{caseno}, 'wells', W);
 pressures{caseno} = states{caseno}.pressure;
 fluxes{caseno} = states{caseno}.flux;
-fprintf('Done with %s in %g sec\n', titles{caseno}, texec);
 titles{caseno} = 'mpfa - standard';
+fprintf('Done with %s in %g sec\n', titles{caseno}, texec);
 caseno = caseno + 1;
 
 
@@ -80,8 +78,8 @@ texec = toc;
 states{caseno} = incompMPFA2(G, mpfastructs{caseno}, 'wells', W);
 pressures{caseno} = states{caseno}.pressure;
 fluxes{caseno} = states{caseno}.flux;
-fprintf('Done with %s in %g sec\n', titles{caseno}, texec);
 titles{caseno} = 'mpfa - block';
+fprintf('Done with %s in %g sec\n', titles{caseno}, texec);
 caseno = caseno + 1;
 
 % mpfa - well
@@ -91,8 +89,8 @@ texec = toc;
 states{caseno} = incompMPFA3(G, mpfastructs{caseno}, W, 'outputFlux', true);
 pressures{caseno} = states{caseno}.pressure;
 fluxes{caseno} = states{caseno}.flux;
-fprintf('Done with %s in %g sec\n', titles{caseno}, texec);
 titles{caseno} = 'mpfa - well';
+fprintf('Done with %s in %g sec\n', titles{caseno}, texec);
 caseno = caseno + 1;
 
 % mpfa - well - block
@@ -102,10 +100,21 @@ texec = toc;
 states{caseno} = incompMPFA3(G, mpfastructs{caseno}, W, 'outputFlux', true);
 pressures{caseno} = states{caseno}.pressure;
 fluxes{caseno} = states{caseno}.flux;
-fprintf('Done with %s in %g sec\n', titles{caseno}, texec);
 titles{caseno} = 'mpfa - well - block';
+fprintf('Done with %s in %g sec\n', titles{caseno}, texec);
 caseno = caseno + 1;
 
+% mpfa - well - new block
+tic
+mpfastructs{caseno} = blockComputeNeumannMultiPointTrans2(G, rock, blocksize, ...
+                                                  'eta', 1/3, 'verbose', ...
+                                                  isverbose);
+texec = toc;
+states{caseno} = incompMPFA3(G, mpfastructs{caseno}, W, 'outputFlux', false);
+pressures{caseno} = states{caseno}.pressure;
+titles{caseno} = 'mpfa - well - new block';
+fprintf('Done with %s in %g sec\n', titles{caseno}, texec);
+caseno = caseno + 1;
 
 
 %% Plotting
