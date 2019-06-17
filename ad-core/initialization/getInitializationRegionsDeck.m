@@ -64,9 +64,40 @@ function region = getRegion(model, deck, eql, cells, regionIx, satnum, pvtnum)
     hasVapoil = isprop(model, 'vapoil') && model.vapoil;
     hasDisgas = isprop(model, 'disgas') && model.disgas;
     hasEOS = isprop(model, 'EOSModel');
-    if hasEOS
+    [rs, rv] = deal([]);
+    if hasDisgas
+        if rs_method <= 0
+            rsSat = model.fluid.rsSat;
+            if iscell(rsSat)
+                rs =  @(p, z) 0*p + model.fluid.rsSat{pvtnum}(p_datum);
+            else
+                rs =  @(p, z) 0*p + model.fluid.rsSat(p_datum);
+            end
+        else
+            assert(isfield(deck.SOLUTION, 'RSVD'));
+            rsvd = deck.SOLUTION.RSVD{regionIx};
+            F = griddedInterpolant(rsvd(:, 1), rsvd(:, 2), 'linear', 'nearest');
+            rs = @(p, z) F(z);
+        end
     end
-    
+    if hasVapoil
+        if rv_method <= 0
+            % Oil pressure at gas-oil contact + capillary pressure there
+            pg_goc = p_datum + eql(6);
+            rvSat = model.fluid.rvSat;
+            if iscell(rvSat)
+                rv =  @(p, z) 0*p + model.fluid.rvSat{pvtnum}(pg_goc);
+            else
+                rv =  @(p, z) 0*p + model.fluid.rvSat(pg_goc);
+            end
+        else
+            assert(isfield(deck.SOLUTION, 'RVVD'));
+            rvvd = deck.SOLUTION.RVVD{regionIx};
+            F = griddedInterpolant(rvvd(:, 1), rvvd(:, 2), 'linear', 'nearest');
+            rv = @(p, z) F(z);
+        end
+    end
+
     if hasEOS
         z_method = eql(10);
         assert(z_method == 1);
@@ -85,41 +116,14 @@ function region = getRegion(model, deck, eql, cells, regionIx, satnum, pvtnum)
     else
         region = getInitializationRegionsBlackOil(model, contacts(act),...
             'cells', cells, 'datum_pressure', p_datum, ...
-            'datum_depth', eql(1), 'contacts_pc', contacts_pc(act));
+            'datum_depth', eql(1), 'contacts_pc', contacts_pc(act), ...
+            'rs', rs, 'rv', rv);
     end
     if hasDisgas
-        if rs_method <= 0
-            rsSat = model.fluid.rsSat;
-            if iscell(rsSat)
-                rs =  @(p, z) 0*p + model.fluid.rsSat{pvtnum}(p_datum);
-            else
-                rs =  @(p, z) 0*p + model.fluid.rsSat(p_datum);
-            end
-        else
-            assert(isfield(deck.SOLUTION, 'RSVD'));
-            rsvd = deck.SOLUTION.RSVD{regionIx};
-            F = griddedInterpolant(rsvd(:, 1), rsvd(:, 2), 'linear', 'nearest');
-            rs = @(p, z) F(z);
-        end
         region.rs = rs;
     end
     
     if hasVapoil
-        if rv_method <= 0
-            % Oil pressure at gas-oil contact + capillary pressure there
-            pg_goc = p_datum + eql(6);
-            rvSat = model.fluid.rvSat;
-            if iscell(rvSat)
-                rv =  @(p, z) 0*p + model.fluid.rvSat{pvtnum}(pg_goc);
-            else
-                rv =  @(p, z) 0*p + model.fluid.rvSat(pg_goc);
-            end
-        else
-            assert(isfield(deck.SOLUTION, 'RVVD'));
-            rvvd = deck.SOLUTION.RVVD{regionIx};
-            F = griddedInterpolant(rvvd(:, 1), rvvd(:, 2), 'linear', 'nearest');
-            rv = @(p, z) F(z);
-        end
         region.rv = rv;
     end
 end
