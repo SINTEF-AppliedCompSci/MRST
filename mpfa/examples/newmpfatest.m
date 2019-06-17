@@ -53,6 +53,7 @@ texec = toc;
 states{caseno}    = initResSol(G, 0, 1);
 states{caseno}    = incompMPFA(states{caseno}, G, T_mpfa, fluid, 'wells', W);
 pressures{caseno} = states{caseno}.pressure;
+fluxes{caseno}    = states{caseno}.flux;
 titles{caseno}    = 'mpfa - jostein';
 fprintf('Done with %s in %g sec\n', titles{caseno}, texec);
 caseno = caseno + 1;
@@ -86,7 +87,7 @@ caseno = caseno + 1;
 
 % mpfa - well
 tic
-mpfastructs{caseno} = computeNeumannMultiPointTrans2(G, rock, 'eta', eta, 'verbose', isverbose);
+mpfastructs{caseno} = computeNeumannMultiPointTrans(G, rock, 'eta', eta, 'verbose', isverbose);
 texec = toc;
 states{caseno}    = incompMPFA3(G, mpfastructs{caseno}, W, 'outputFlux', true);
 pressures{caseno} = states{caseno}.pressure;
@@ -104,10 +105,9 @@ texec = toc;
 states{caseno} = incompMPFA3(G, mpfastructs{caseno}, W, 'outputFlux', true);
 pressures{caseno} = states{caseno}.pressure;
 fluxes{caseno} = states{caseno}.flux;
-titles{caseno} = 'mpfa - well - block';
+titles{caseno} = 'mpfa - Neumann - block';
 fprintf('Done with %s in %g sec\n', titles{caseno}, texec);
 caseno = caseno + 1;
-
 
 %% Plotting
 for i = 1 : numel(pressures)
@@ -118,45 +118,53 @@ for i = 1 : numel(pressures)
     colorbar
 end
 
-return
+%% check flux computations by computing mass directly mass conservation in
+%% each cell
 
-%% check mass conservation
-extfaces = any(G.faces.neighbors == 0, 2);
-intfacetbl.faces = find(~extfaces);
-intfacetbl.num   = numel(intfacetbl.faces);
-tbls = mpfastruct.tbls;
-cellfacetbl = tbls.cellfacetbl;
-cfc = cellfacetbl.cells;
-cff = cellfacetbl.faces;
-sgn = 2*(cfc == G.faces.neighbors(cff, 1)) - 1;
-op1 = setupTableMapping(intfacetbl, cellfacetbl, {'faces'});
-op1 = sparse(1 : cellfacetbl.num, 1 : cellfacetbl.num, sgn)*op1;
-celltbl.cells = (1 : G.cells.num)';
-celltbl.num   = G.cells.num;
-op2 = setupTableMapping(cellfacetbl, celltbl, {'cells'});
-div = op2*op1;
+nc = G.cells.num;
+nf = G.faces.num;
 
-massbal = div*flux;
+N = G.faces.neighbors;
 
-%% plotting
+cellfacetbl.cells = rldecode((1 : nc)', diff(G.cells.facePos));
+cellfacetbl.faces = G.cells.faces(:, 1);
+cellfacetbl.num   = numel(cellfacetbl.cells);
 
-figure(2)
-clf
-plotCellData(G, massbal);
-title('Mass balance'); view(2), axis tight off
-colorbar('Location','SouthOutside');
+facetbl.faces = (1 : nf)';
+facetbl.num   = nf;
 
-%% solve for mimetic
+sgn = zeros(cellfacetbl.num, 1);
 
-IP = computeMimeticIP(G, rock, 'InnerProduct', 'ip_simple');
-resSol2 = initState(G, W, 0);
+faces = find(N(facetbl.faces, 1) > 0);
+clear poscellfacetbl
+poscellfacetbl.cells = N(faces, 1);
+poscellfacetbl.faces = faces;
+poscellfacetbl.num   = numel(poscellfacetbl.cells);
+mappos = setupTableMapping(poscellfacetbl, cellfacetbl, {'cells', 'faces'});
+sgn = sgn + mappos*ones(poscellfacetbl.num, 1);
 
-%% Solve mimetic linear hybrid system
-resSol2 = incompMimetic(resSol2, G, IP, fluid, 'wells', W);
-pressure = resSol2.pressure;
+faces = find(N(facetbl.faces, 2) > 0);
+clear negcellfacetbl
+negcellfacetbl.cells = N(faces, 2);
+negcellfacetbl.faces = faces;
+negcellfacetbl.num   = numel(negcellfacetbl.cells);
+mapneg = setupTableMapping(negcellfacetbl, cellfacetbl, {'cells', 'faces'});
+sgn = sgn - mapneg*ones(negcellfacetbl.num, 1);
 
-figure(3)
-clf
-plotCellData(G, pressure ./ barsa());
-title('Pressure: mimetic'); view(2), axis tight off
-colorbar('Location','SouthOutside');
+tbl = cellfacetbl; % alias
+div = sparse(tbl.cells, tbl.faces, sgn, nc, nf);
+
+clear qs;
+for i = 1 : numel(fluxes)
+    qs{i} = div*(fluxes{i});
+    figure
+    plotCellData(G, qs{i});
+    title(['mass conservation - ', titles{i}]);
+    colorbar
+    figure
+    plot(qs{i}, '*');
+    title(['mass conservation - ', titles{i}]);
+    xlabel('cell number');
+end
+
+

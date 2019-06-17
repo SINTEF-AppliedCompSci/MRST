@@ -6,7 +6,7 @@ mrstModule add ad-core ad-props incomp mrst-gui mpfa postprocessing
 % general unstructured grids, the Cartesian grid is here represented using
 % an unstructured formate in which cells, faces, nodes, etc. are given
 % explicitly.
-dimcase = 3;
+dimcase = 2;
 switch dimcase
   case 2
     nx = 10; ny = 10;
@@ -56,7 +56,7 @@ z = G.cells.centroids(:, dim);
 eta = 1/3;
 blocksize = 10;
 
-clear vecs
+clear vecs fluxes
 caseno = 1;
 
 % mpfa - jostein
@@ -66,70 +66,91 @@ state = incompMPFA(state, G, T_mpfa, fluid, 'bc', bc);
 p              = state.pressure;
 vec            = [z, p];
 vecs{caseno}   = sortrows(vec);
+fluxes{caseno} = state.flux;
 titles{caseno} = 'mpfa - jostein';
 caseno         = caseno + 1;
 
 % mpfa - standard
 mpfastruct = computeMultiPointTrans2(G, rock, 'eta', eta, 'verbose', true);
-state = incompMPFA2(G, mpfastruct, 'bc', bc);
+state = incompMPFA2(G, mpfastruct, 'bc', bc, 'outputFlux', true);
 p              = state.pressure;
 vec            = [z, p];
 vecs{caseno}   = sortrows(vec);
+fluxes{caseno} = state.flux;
 titles{caseno} = 'mpfa - standard';
 caseno         = caseno + 1;
 
 % mpfa - block
 mpfastruct = computeMultiPointTrans2(G, rock, 'eta', eta, 'blocksize', ...
                                       blocksize, 'verbose', true);
-state = incompMPFA2(G, mpfastruct, 'bc', bc);
+state = incompMPFA2(G, mpfastruct, 'bc', bc, 'outputFlux', true);
 p              = state.pressure;
 vec            = [z, p];
 vecs{caseno}   = sortrows(vec);
+fluxes{caseno} = state.flux;
 titles{caseno} = 'mpfa - block';
 caseno         = caseno + 1;
 
 % mpfa - new block
 mpfastruct = blockComputeMultiPointTrans(G, rock, 'eta', eta, 'blocksize', ...
                                          blocksize, 'verbose', true);
-state = incompMPFA2(G, mpfastruct, 'bc', bc);
+state = incompMPFA2(G, mpfastruct, 'bc', bc, 'outputFlux', true);
 p              = state.pressure;
 vec            = [z, p];
 vecs{caseno}   = sortrows(vec);
+fluxes{caseno} = state.flux;
 titles{caseno} = 'mpfa - new block';
 caseno         = caseno + 1;
-
 
 close all
 for i = 1 : numel(vecs)
     figure
-    clf
     plot(vecs{i}(:, 1), vecs{i}(:, 2));
     xlabel('z');
     ylabel('pressure');
     title(titles{i});
 end
 
+%% check flux computations by computing mass directly mass conservation in
+%% each cell
 
-return
+nc = G.cells.num;
+nf = G.faces.num;
 
-%% setup tracer bc
+N = G.faces.neighbors;
 
-conc = ones(numel(bottomfaces), 1);
-bctracer = setupBC(G, bottomfaces, conc);
+cellfacetbl.cells = rldecode((1 : nc)', diff(G.cells.facePos));
+cellfacetbl.faces = G.cells.faces(:, 1);
+cellfacetbl.num   = numel(cellfacetbl.cells);
 
-%% Setup schedule
-time  = 2.8e8*day;
-% time  = 10*day;
-dt    = 1e6*day;
-dtvec = rampupTimesteps(time, dt, 20);
-schedule = simpleSchedule(dtvec, 'bc', bctracer);
+facetbl.faces = (1 : nf)';
+facetbl.num   = nf;
 
-%% Setup tracer model
+sgn = zeros(cellfacetbl.num, 1);
 
-tracermodel = TracerModel(G, rock, fluid, 'tracerNames', {'tracer'});
-state0.tracer = zeros(G.cells.num, 1);
+faces = find(N(facetbl.faces, 1) > 0);
+clear poscellfacetbl
+poscellfacetbl.cells = N(faces, 1);
+poscellfacetbl.faces = faces;
+poscellfacetbl.num   = numel(poscellfacetbl.cells);
+mappos = setupTableMapping(poscellfacetbl, cellfacetbl, {'cells', 'faces'});
+sgn = sgn + mappos*ones(poscellfacetbl.num, 1);
 
-[~, states] = simulateScheduleAD(state0, tracermodel, schedule);
+faces = find(N(facetbl.faces, 2) > 0);
+clear negcellfacetbl
+negcellfacetbl.cells = N(faces, 2);
+negcellfacetbl.faces = faces;
+negcellfacetbl.num   = numel(negcellfacetbl.cells);
+mapneg = setupTableMapping(negcellfacetbl, cellfacetbl, {'cells', 'faces'});
+sgn = sgn - mapneg*ones(negcellfacetbl.num, 1);
 
-%% plotting
-clf, plotToolbar(G, states)
+tbl = cellfacetbl; % alias
+div = sparse(tbl.cells, tbl.faces, sgn, nc, nf);
+
+for i = 1 : numel(fluxes)
+    figure
+    q = div*(fluxes{i});
+    plotCellData(G, q);
+    title(['mass conservation - ', titles{i}]);
+    colorbar
+end
