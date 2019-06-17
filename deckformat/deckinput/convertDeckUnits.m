@@ -670,10 +670,16 @@ function soln = convertSOLUTION(soln, u)
          case 'FIELDSEP'
             unt = [1, u.temp, u.press, 1, 1, 1, 1, 1, u.temp, u.press];
             off = [0, u.tempoffset, 0, 0, 0, 0, 0, 0, u.tempoffset, 0];
-            act = 1:size(soln.(key), 2);
+            def = [nan, 288.71, 1*atm];
+            ncol = size(soln.(key), 2);
+            act = 1:ncol;
             unt = unt(act);
             off = off(act);
             soln.(key) = convertFrom(soln.(key) + off, unt);
+            for i = 1:min(ncol, 3)
+                defaulted = isnan(soln.(key)(:, i));
+                soln.(key)(defaulted, i) = def(i);
+            end
 
          case 'DATUM'
             soln.(key) = convertFrom(soln.(key), u.length);
