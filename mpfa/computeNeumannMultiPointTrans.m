@@ -128,6 +128,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    end
    
    %% Assemble of the divergence operator, from facenode values to cell value.
+   nf = G.faces.num;
    cellnodefacetbl = tbls.cellnodefacetbl;
    facenodetbl = tbls.facenodetbl;
    facenodetbl = addLocInd(facenodetbl, 'fnind');
@@ -188,6 +189,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    %% Assemble the flux operator: From pressure values at the cell center and
    % at the external facenode, compute the fluxes at the faces
    F = iB*div';
+   % mapping from facenode to face
+   [~, intfacenodetbl] = setupTableMapping(facenodetbl, intfacetbl, ...
+                                                        {'faces'});
+   tbl = intfacenodetbl; %alias
+   map = sparse(tbl.faces, tbl.fnind, ones(tbl.num, 1), nf, facenodetbl.num);
+   F = map*F;
 
    mpfastruct = struct('div' , div , ...
                        'F'   , F   , ...
