@@ -88,7 +88,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 'blocksize'    , []         , ...
                 'ip_compmethod', 'general'  , ...
                 'invertBlocks' , 'matlab'   , ...
-                'eta'          , 0)
+                'eta'          , 0);
 
    opt = merge_options(opt, varargin{:});
    % possible options for ip_compmethod
@@ -116,23 +116,25 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    blocksize = opt.blocksize;
 
    if opt.verbose
-       fprintf('Computing inner product on sub-half-faces ...\n');
+       fprintf('Computing inner product on sub-half-faces ... ');
        t0 = tic();
    end
 
-   if isempty(blocksize)
-       [B, tbls] = robustComputeLocalFluxMimetic(G, rock, opt);
-   else
-       [B, tbls] = robustComputeBlockLocalFluxMimetic(G, rock, opt);
+   [B, tbls] = robustComputeLocalFluxMimetic(G, rock, opt);
+   
+   % if we know - a priori - that matrix is symmetric, then we remove
+   % symmetry loss that has been introduced in assembly.
+   if strcmp(opt.ip_compmethod, 'directinverse')
+       B = 0.5*(B + B');
    end
    
    if opt.verbose
        t0 = toc(t0);
-       fprintf('Computing inner product on sub-half-faces done in %g sec\n', t0);
+       fprintf('%g sec\n', t0);
    end
    
    if opt.verbose
-       fprintf('Computing inverse mixed innerproduct...\n');
+       fprintf('Computing inverse mixed innerproduct... ');
        t0 = tic();   
    end
    
@@ -142,13 +144,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    % that the matrix B is, by construction, block diagonal.
    facenodetbl = tbls.facenodetbl;
    [~, sz] = rlencode(facenodetbl.nodes); 
-   iB   = opt.invertBlocks(B, sz);
+   iB = opt.invertBlocks(B, sz);
 
    if opt.verbose
        t0 = toc(t0);   
-       fprintf('... computing inverse mixed innerproduct done in %g sec\n', t0);
+       fprintf('%g sec\n', t0);
    end
-
+   % if we know - a priori - that matrix is symmetric, then we remove the loss of
+   % symmetry that may have been introduced by the numerical inversion.
+   if strcmp(opt.ip_compmethod, 'directinverse')
+       iB = 0.5*(iB + iB');
+   end
+   
    %% Assemble of the divergence operator, from facenode values to cell value.
    cellnodefacetbl = tbls.cellnodefacetbl;
    fno = cellnodefacetbl.faces; %alias
@@ -200,12 +207,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    A22 = -Pext*iB*Pext';
    A = [[A11, A12]; [A21, A22]];
 
-   mpfastruct = struct('iB'  , iB  , ...
-                       'div' , div , ...
-                       'Pext', Pext, ...
+   mpfastruct = struct('div' , div , ...
                        'F'   , F   , ...
                        'A'   , A   , ...
-                       'A11' , A11 , ...
                        'tbls', tbls);
    
 end
