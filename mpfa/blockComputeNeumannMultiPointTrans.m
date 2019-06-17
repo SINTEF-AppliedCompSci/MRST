@@ -66,7 +66,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    [~, cellfacenodetbl] = setupTableMapping(cellfacetbl, facenodetbl, ...
                                                          {'faces'});
    A = sparse(nc, nc);
-
+   F = sparse(nf, nc);
+   
    for iblock = 1 : nblocks
 
        if opt.verbose
@@ -89,6 +90,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        locface2nodetbl    = tbls.face2nodetbl;
        loccellfacenodetbl = tbls.cellfacenodetbl;
 
+       loccellfacenodetbl = rmfield(loccellfacenodetbl, 'cnfind');
+       locfacenodetbl = rmfield(locfacenodetbl, 'fnind');
+       
        % Assembly of B
        Bmat = sparse(locface2nodetbl.fnind1, locface2nodetbl.fnind2, B, ...
                      locfacenodetbl.num, locfacenodetbl.num);
@@ -139,7 +143,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        map = setupTableMapping(locmattbl, locface2nodetbl, {'fnind1', 'fnind2'});
        iB = map*iB;
        clear map;
-
+       
+       % clean-up and prepare locface2nodetbl for further use in contraction operations
+       locface2nodetbl = duplicatefield(locface2nodetbl, {'nodes', {'nodes1', ...
+                           'nodes2'}});
+       locface2nodetbl = rmfield(locface2nodetbl, 'fnind1');
+       locface2nodetbl = rmfield(locface2nodetbl, 'fnind2');
+       
        div        = zeros(loccellfacenodetbl.num, 1);
        locfacetbl = projTable(locfacenodetbl, {'faces'});
        locfaces   = locfacetbl.faces;
@@ -166,55 +176,40 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
            clear mapneg
        end
 
-       % Table loccell_1face_1nodetbl for div mapping from facenode to cell
-       loccell_1face_1nodetbl = replacefield(loccellfacenodetbl, {{'faces', ...
-                           'faces1'}, {'cells', 'cells1'}});
-       loccell_1face_1nodefds = {'cells1', 'faces1', 'nodes'};
+       % Table loccell_1facenode_1tbl for div mapping from facenode to cell
+       loccell_1facenode_1tbl = replacefield(loccellfacenodetbl, {{'faces', ...
+                           'faces1'}, {'cells', 'cells1'}, {'nodes', ...
+                           'nodes1'}});
 
-       % Table loccell_2face_2nodetbl for div' mapping from cell to facenode
-       loccell_2face_2nodetbl = replacefield(loccellfacenodetbl, {{'faces', ...
-                           'faces2'}, {'cells', 'cells2'}});
-       loccell_2face_2nodefds = {'cells2', 'faces2', 'nodes'};
+       % Table loccell_2facenode_2tbl for div' mapping from cell to facenode
+       loccell_2facenode_2tbl = replacefield(loccellfacenodetbl, {{'faces', ...
+                           'faces2'}, {'cells', 'cells2'}, {'nodes', ...
+                           'nodes2'}});
+       
+       [iBdiv, locfacenode_1cell_2tbl] = contractTable({iB, locface2nodetbl}, ...
+                                                       {div, loccell_2facenode_2tbl}, ...
+                                                       {{'nodes1', 'faces1'}, ...
+                           {'cells2'}, {'faces2', 'nodes2'}});
 
-       [~, prodmattbl] = setupTableMapping(loccell_1face_1nodetbl, locface2nodetbl, ...
-                                                       {'faces1', 'nodes'});
-       map1 = setupTableMapping(loccell_1face_1nodetbl, prodmattbl, {'faces1', ...
-                           'cells1', 'nodes'});
-       map2 = setupTableMapping(locface2nodetbl, prodmattbl, {'faces1', ...
-                           'nodes'});
-       locA = (map1*div).*(map2*iB);
 
-       % Table loccell_1face_2nodetbl for div*iB mapping (-> locA) from facenode to cell
-       loccell_1face_2nodetbl = projTable(prodmattbl, {'cells1', 'faces2', ...
-                           'nodes'});
-       loccell_1face_2nodefds = {'cells1', 'faces2', 'nodes'};
+       [diviBdiv, loccell_1cell_2tbl] = contractTable({div, loccell_1facenode_1tbl}, ...
+                                                      {iBdiv, ...
+                           locfacenode_1cell_2tbl}, {{'cells1'}, {'cells2'}, ...
+                           {'faces1', 'nodes1'}});
 
-       reducemap = setupTableMapping(prodmattbl, loccell_1face_2nodetbl, {'cells1', ...
-                           'faces2', 'nodes'});
-       locA = reducemap*locA; % mapping in loccell_1face_1nodetbl
-
-       [~, prodmattbl] = setupTableMapping(loccell_2face_2nodetbl, ...
-                                        loccell_1face_2nodetbl, {'faces2', ...
-                           'nodes'});
-       map1 = setupTableMapping(loccell_1face_2nodetbl, prodmattbl, ...
-                                              {'cells1', 'faces2', 'nodes'});
-       map2 = setupTableMapping(loccell_2face_2nodetbl, prodmattbl, ...
-                                              {'cells2', 'faces2', 'nodes'});
-       locA = (map1*locA).*(map2*div);
-       clear map1 map2
-
-       % Table loccell2tbl for div*iB*div' (-> locA) from cell to cell
-       loccell2tbl = projTable(prodmattbl, {'cells1', 'cells2'});
-       loccell2fds = {'cells1', 'cells2'};
-       reducemap = setupTableMapping(prodmattbl, loccell2tbl, {'cells1', ...
-                           'cells2'});
-       locA = reducemap*locA;
-       clear reducemap
-
-       % Assemble sparse matrix
-       locA = sparse(loccell2tbl.cells1, loccell2tbl.cells2, locA, nc, nc);
-
+       % Aggregate contribution in A
+       tbl = loccell_1cell_2tbl; %alias
+       locA = sparse(tbl.cells1, tbl.cells2, diviBdiv, nc, nc);
        A = A + locA;
+       
+       locface_1cell_2tbl = projTable(locfacenode_1cell_2tbl, {'faces1', ...
+                           'cells2'});
+       map = setupTableMapping(locfacenode_1cell_2tbl, locface_1cell_2tbl, ...
+                                             {'faces1', 'cells2'});
+       locF = map*iBdiv;
+       tbl  = locface_1cell_2tbl; %alias
+       locF = sparse(tbl.faces1, tbl.cells2, locF, nf, nc);
+       F    = F + locF;
        
        if opt.verbose
            fprintf('%g seconds\n', toc);
@@ -225,6 +220,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'cellfacenodetbl', cellfacenodetbl);
    
    mpfastruct = struct('A'   , A   , ...
+                       'F'   , F   , ...
                        'tbls', tbls);
 end
 
