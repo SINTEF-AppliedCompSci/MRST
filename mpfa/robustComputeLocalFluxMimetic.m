@@ -8,7 +8,7 @@ function [B, tbls] = robustComputeLocalFluxMimetic(G, rock, opt)
     coltbl.coldim = (1 : dim)';
     coltbl.num = dim;
     rowtbl = coltbl;
-    rowtbl = replacefield(rowtbl, 'coldim', 'rowdim');
+    rowtbl = replacefield(rowtbl, {'coldim', 'rowdim'});
 
     celltbl.cells = (1 : nc)';
     celltbl.num = nc;
@@ -46,9 +46,9 @@ function [B, tbls] = robustComputeLocalFluxMimetic(G, rock, opt)
     % Nodal scalar product is stored in vector nodeM
     % mattbl is the table which specifies how nodeM is stored: a matrix for
     % each "corner" (cell-node pair).
-    duplicate = {'faces', {'faces1', 'faces2'}};
+    crossextend = {'faces', {'faces1', 'faces2'}};
     [~, mattbl] = setupTableMapping(cellnodefacetbl, cellnodefacetbl, {'cells', 'nodes'}, ...
-                                         'duplicate', {duplicate});
+                                         'crossextend', {crossextend});
     % We order mattbl in cell-node-face1-face2 order
     % This is done to optimize for-end loop below
     orderingmat = convertTableToArray(mattbl, {'cells', 'nodes', 'faces1', 'faces2'});
@@ -202,7 +202,7 @@ function [B, tbls] = robustComputeLocalFluxMimetic(G, rock, opt)
     end    
     % Condensate on nodes (sum up cell contributions for given node).
     [~, redmattbl] = setupTableMapping(facenodetbl, facenodetbl, {'nodes'}, ...
-                                               'duplicate', {{'faces', {'faces1', ...
+                                               'crossextend', {{'faces', {'faces1', ...
                         'faces2'}}});
     op = setupTableMapping(mattbl, redmattbl, {'nodes', 'faces1', 'faces2'});
     nodeM = op*nodeM;

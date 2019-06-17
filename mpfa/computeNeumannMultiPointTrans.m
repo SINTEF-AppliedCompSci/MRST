@@ -97,6 +97,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    % 'directinverse' : case where at each corner, number of faces is equal to
    %                   G.griddim AND eta is value such that N*R is diagonal (see Lipnikov paper)
    
+   opt = merge_options(opt, varargin{:});
    switch opt.ip_compmethod
      case {'general', 'nicecorner'}
      case 'directinverse'
@@ -111,7 +112,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        error('value of option nodeompcase is not recognized.');
    end
    
-   opt = merge_options(opt, varargin{:});
    opt.invertBlocks = blockInverter(opt);
    blocksize = opt.blocksize;
    
