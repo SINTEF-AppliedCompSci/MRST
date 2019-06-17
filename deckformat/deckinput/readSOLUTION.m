@@ -73,6 +73,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             equil = readDefaultedKW(fid, tmpl, 'NRec', ntequil);
             sln.(kw) = cellfun(to_double, equil);                clear tmpl
 
+         case 'FIELDSEP'
+            templ = {'NaN', 'NaN', 'NaN', '0', '0', '0', '0', '0', 'NaN', 'NaN'};
+            sln.(kw) = readDefaultedKW(fid, templ);
+            sln.(kw) = cellfun(to_double, sln.(kw));
+
          case 'DATUM'
             s = readRecordString(fid);
             data = to_double(s);

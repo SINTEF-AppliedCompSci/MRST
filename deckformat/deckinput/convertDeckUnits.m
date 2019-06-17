@@ -93,6 +93,7 @@ function u = unit_system(rspec)
                  'density'     , kilogram / meter^3  , ...
                  'press'       , barsa               , ...
                  'temp'        , Kelvin              , ... % Abs. temp
+                 'tempoffset'  , 273.15              , ... % Rel. Temp
                  'mol'         , kilo                , ...
                  'mass'        , kilogram            , ...
                  'concentr'    , kilogram / meter^3  , ... % Concentration
@@ -118,6 +119,7 @@ function u = unit_system(rspec)
                  'density'     , pound / ft^3, ...
                  'press'       , psia        , ...
                  'temp'        , Rankine     , ...
+                 'tempoffset'  , 459.67      , ... % Rel. Temp
                  'mol'         , pound*kilo  , ...
                  'mass'        , pound       , ...
                  'concentr'    , pound / stb , ... % Concentration
@@ -143,6 +145,7 @@ function u = unit_system(rspec)
                  'density'     , gram / (centi*meter)^3, ...
                  'press'       , atm                   , ...
                  'temp'        , Kelvin                , ...
+                 'tempoffset'  , 273.15              , ... % Rel. Temp
                  'mol'         , 1                     , ...
                  'mass'        , gram*kilo             , ...
                  'concentr'    , gram / (centi*meter)^3, ...
@@ -168,6 +171,7 @@ function u = unit_system(rspec)
                  'density'     , kilogram / meter^3  , ...
                  'press'       , atm                 , ...
                  'temp'        , Kelvin              , ... % Abs. temp
+                 'tempoffset'  , 273.15              , ... % Rel. Temp
                  'mol'         , kilo                , ...
                  'mass'        , kilogram            , ...
                  'concentr'    , kilogram / meter^3  , ... % Concentration
@@ -194,6 +198,7 @@ function u = unit_system(rspec)
                  'density'     , 1, ...
                  'press'       , 1, ...
                  'temp'        , 1, ...
+                 'tempoffset'  , 0, ... % Always Kelvin
                  'mol'         , 1, ...
                  'mass'        , 1, ...
                  'concentr'    , 1, ...
@@ -475,13 +480,7 @@ function props = convertPROPS(props, u)
 
          case 'STCOND'
             d = props.(key);
-            if u.temp == 1
-                % Always C, shift to Kelvin
-                d(1) = d(1) + 273.15;
-            else
-                % Farenheit
-                d(1) = convertFrom(d(1) + 459.67, u.temp);
-            end
+            d(1) = convertFrom(d(1) + u.tempoffset, u.temp);
             d(2) = convertFrom(d(2), u.press);
             def = [288.7100, 1.01325*barsa];
             d(isnan(d)) = def(isnan(d));
@@ -517,13 +516,7 @@ function props = convertPROPS(props, u)
             for i = 1:numel(props.(key))
                 d = props.(key){i};
                 if strcmp(key, 'TEMPVD')
-                    if u.temp == 1
-                        % Always C, shift to Kelvin
-                        d(:, 2) = d(:, 2) + 273.15;
-                    else
-                        % Farenheit
-                        d(:, 2) = convertFrom(d(:, 2) + 459.67, u.temp);
-                    end
+                    d(:, 2) = convertFrom(d(:, 2) + u.tempoffset, u.temp);
                 end
                 d(:, 1) = convertFrom(d(:, 1), u.length);
                 props.(key){i} = d;
@@ -673,6 +666,14 @@ function soln = convertSOLUTION(soln, u)
 
             unt        = unt(1 : size(soln.(key), 2));
             soln.(key) = convertFrom(soln.(key), unt);
+
+         case 'FIELDSEP'
+            unt = [1, u.temp, u.press, 1, 1, 1, 1, 1, u.temp, u.press];
+            off = [0, u.tempoffset, 0, 0, 0, 0, 0, 0, u.tempoffset, 0];
+            act = 1:size(soln.(key), 2);
+            unt = unt(act);
+            off = off(act);
+            soln.(key) = convertFrom(soln.(key) + off, unt);
 
          case 'DATUM'
             soln.(key) = convertFrom(soln.(key), u.length);
