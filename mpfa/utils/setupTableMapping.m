@@ -62,8 +62,16 @@ function [map, tbl, map1, map2] = setupTableMapping(tbl1, tbl2, crossfields, var
             inds1{ifield} = tbl1.(fieldname1);
             inds2{ifield} = tbl2.(fieldname2);
         else
-            inds1{ifield} = uint64(tbl1.(fieldname1));
-            inds2{ifield} = uint64(tbl2.(fieldname2));
+            ind1 = tbl1.(fieldname1);
+            ind2 = tbl2.(fieldname2);
+            nind1 = numel(ind1);
+            nind2 = numel(ind2);
+            ind = [ind1; ind2];
+            [c, ia, ic]= unique(ind);
+            ind1 = ic(1 : nind1);
+            ind2 = ic((nind1 + 1) : (nind1 + nind2));
+            inds1{ifield} = uint64(ind1); 
+            inds2{ifield} = uint64(ind2);
         end
         maxinds{ifield} = max(max(inds1{ifield}), max(inds2{ifield})) + 1;
         if ifield > 1
