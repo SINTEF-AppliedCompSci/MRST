@@ -1,9 +1,9 @@
 
 mrstModule add mimetic mpfa incomp
 
-isverbose = false;
+isverbose = true;
 eta       = 1/3;
-blocksize = 1000;
+blocksize = 10;
 
 %% Define and process geometry
 % Construct a Cartesian grid of size 10-by-10-by-4 cells, where each cell
@@ -11,7 +11,7 @@ blocksize = 1000;
 % general unstructured grids, the Cartesian grid is here represented using
 % an unstructured formate in which cells, faces, nodes, etc. are given
 % explicitly.
-nx = 100; ny = 100;
+nx = 10; ny = 10;
 G = cartGrid([nx, ny]);
 G = twister(G, 0.1);
 G = computeGeometry(G);
@@ -50,10 +50,10 @@ caseno = 1;
 tic
 T_mpfa = computeMultiPointTrans(G, rock, 'eta', eta);
 texec = toc;
-states{caseno} = initResSol(G, 0, 1);
-states{caseno} = incompMPFA(states{caseno}, G, T_mpfa, fluid, 'wells', W);
+states{caseno}    = initResSol(G, 0, 1);
+states{caseno}    = incompMPFA(states{caseno}, G, T_mpfa, fluid, 'wells', W);
 pressures{caseno} = states{caseno}.pressure;
-titles{caseno} = 'mpfa - jostein';
+titles{caseno}    = 'mpfa - jostein';
 fprintf('Done with %s in %g sec\n', titles{caseno}, texec);
 caseno = caseno + 1;
 
@@ -62,57 +62,49 @@ tic
 mpfastructs{caseno} = computeMultiPointTrans2(G, rock, 'eta', eta, 'verbose', ...
                                               isverbose);
 texec = toc;
-states{caseno} = incompMPFA2(G, mpfastructs{caseno}, 'wells', W);
+states{caseno}    = incompMPFA2(G, mpfastructs{caseno}, 'wells', W, 'outputFlux', ...
+                             true);
 pressures{caseno} = states{caseno}.pressure;
-fluxes{caseno} = states{caseno}.flux;
-titles{caseno} = 'mpfa - standard';
+fluxes{caseno}    = states{caseno}.flux;
+titles{caseno}    = 'mpfa - standard';
 fprintf('Done with %s in %g sec\n', titles{caseno}, texec);
 caseno = caseno + 1;
 
 
 % mpfa - block
 tic
-mpfastructs{caseno} = computeMultiPointTrans2(G, rock, 'eta', eta, 'blocksize', ...
+mpfastructs{caseno} = blockComputeMultiPointTrans(G, rock, 'eta', eta, 'blocksize', ...
                                               blocksize, 'verbose', isverbose);
 texec = toc;
-states{caseno} = incompMPFA2(G, mpfastructs{caseno}, 'wells', W);
+states{caseno}    = incompMPFA2(G, mpfastructs{caseno}, 'wells', W, 'outputFlux', ...
+                                true);
 pressures{caseno} = states{caseno}.pressure;
-fluxes{caseno} = states{caseno}.flux;
-titles{caseno} = 'mpfa - block';
+fluxes{caseno}    = states{caseno}.flux;
+titles{caseno}    = 'mpfa - block';
 fprintf('Done with %s in %g sec\n', titles{caseno}, texec);
 caseno = caseno + 1;
 
 % mpfa - well
 tic
-mpfastructs{caseno} = computeNeumannMultiPointTrans(G, rock, 'eta', eta, 'verbose', isverbose);
+mpfastructs{caseno} = computeNeumannMultiPointTrans2(G, rock, 'eta', eta, 'verbose', isverbose);
 texec = toc;
-states{caseno} = incompMPFA3(G, mpfastructs{caseno}, W, 'outputFlux', true);
+states{caseno}    = incompMPFA3(G, mpfastructs{caseno}, W, 'outputFlux', true);
 pressures{caseno} = states{caseno}.pressure;
-fluxes{caseno} = states{caseno}.flux;
-titles{caseno} = 'mpfa - well';
+fluxes{caseno}    = states{caseno}.flux;
+titles{caseno}    = 'mpfa - Neumann';
 fprintf('Done with %s in %g sec\n', titles{caseno}, texec);
 caseno = caseno + 1;
 
 % mpfa - well - block
 tic
-mpfastructs{caseno} = computeNeumannMultiPointTrans(G, rock, 'eta', 1/3, 'verbose', isverbose);
+mpfastructs{caseno} = blockComputeNeumannMultiPointTrans(G, rock, 'blocksize', ...
+                                                  blocksize,  'eta', 1/3, ...
+                                                  'verbose', isverbose);
 texec = toc;
 states{caseno} = incompMPFA3(G, mpfastructs{caseno}, W, 'outputFlux', true);
 pressures{caseno} = states{caseno}.pressure;
 fluxes{caseno} = states{caseno}.flux;
 titles{caseno} = 'mpfa - well - block';
-fprintf('Done with %s in %g sec\n', titles{caseno}, texec);
-caseno = caseno + 1;
-
-% mpfa - well - new block
-tic
-mpfastructs{caseno} = blockComputeNeumannMultiPointTrans2(G, rock, blocksize, ...
-                                                  'eta', 1/3, 'verbose', ...
-                                                  isverbose);
-texec = toc;
-states{caseno} = incompMPFA3(G, mpfastructs{caseno}, W, 'outputFlux', false);
-pressures{caseno} = states{caseno}.pressure;
-titles{caseno} = 'mpfa - well - new block';
 fprintf('Done with %s in %g sec\n', titles{caseno}, texec);
 caseno = caseno + 1;
 
