@@ -69,10 +69,21 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    for iblock = 1 : nblocks
 
+       if opt.verbose
+           fprintf('Starting with block %d/%d ... ', iblock, nblocks);
+           tic
+       end
        nodes = [blockinds(iblock) : (blockinds(iblock + 1) - 1)]';
        [B, tbls] = blockLocalFluxMimeticAssembly(G, rock, nodes, 'eta', opt.eta, ...
-                                                 'ip_compmethod', opt.ip_compmethod ...
-                                                 );
+                                                 'ip_compmethod', opt.ip_compmethod);
+       
+       if isempty(B)
+           % handle case when the nodes do not belong to any faces.
+           if opt.verbose
+               fprintf('%g seconds\n', toc);
+           end
+           break
+       end
 
        locfacenodetbl     = tbls.facenodetbl;
        locface2nodetbl    = tbls.face2nodetbl;
@@ -85,6 +96,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        [~, intlocfacenodetbl] = setupTableMapping(locfacenodetbl, intfacetbl, ...
                                                                 {'faces'});
        if intlocfacenodetbl.num == 0
+           if opt.verbose
+               fprintf('%g seconds\n', toc);
+           end
            break
        end
        
@@ -179,18 +193,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                            'faces2', 'nodes'});
        locA = reducemap*locA; % mapping in loccell_1face_1nodetbl
 
-       % figure
-       % tbl1 = projTable(loccell_1face_2nodetbl, {'cells1'});
-       % tbl1 = addLocInd(tbl1, 'cind');
-       % tbl2 = projTable(loccell_1face_2nodetbl, {'faces2', 'nodes'});
-       % tbl2 = addLocInd(tbl2, 'fnind');
-       % map1 = setupTableMapping(tbl1, loccell_1face_2nodetbl, {'cells1'});
-       % ind1 = map1*tbl1.cind;
-       % map2 = setupTableMapping(tbl2, loccell_1face_2nodetbl, {'faces2', 'nodes'});
-       % ind2 = map2*tbl2.fnind;
-       % locAmat = sparse(ind1, ind2, locA, tbl1.num, tbl2.num);
-       % spy(locAmat);
-
        [~, prodmattbl] = setupTableMapping(loccell_2face_2nodetbl, ...
                                         loccell_1face_2nodetbl, {'faces2', ...
                            'nodes'});
@@ -213,7 +215,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        locA = sparse(loccell2tbl.cells1, loccell2tbl.cells2, locA, nc, nc);
 
        A = A + locA;
-
+       
+       if opt.verbose
+           fprintf('%g seconds\n', toc);
+       end
    end
 
    tbls = struct('facenodetbl'    , facenodetbl, ...
