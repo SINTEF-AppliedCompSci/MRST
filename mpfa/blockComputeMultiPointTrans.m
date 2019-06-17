@@ -140,7 +140,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    for iblock = 1 : nblocks
 
        nodes = [blockinds(iblock) : (blockinds(iblock + 1) - 1)]';
-       [B, tbls] = blockLocalFluxMimeticAssembly(G, rock, nodes, 'eta', opt.eta);
+       [B, tbls] = blockLocalFluxMimeticAssembly(G, rock, nodes, 'eta', opt.eta, ...
+                                                 'ip_compmethod', opt.ip_compmethod ...
+                                                 );
 
        locfacenodetbl     = tbls.facenodetbl;
        locface2nodetbl    = tbls.face2nodetbl;
