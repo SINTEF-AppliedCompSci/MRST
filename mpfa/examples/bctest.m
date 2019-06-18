@@ -72,7 +72,7 @@ caseno         = caseno + 1;
 
 % mpfa - standard
 mpfastruct = computeMultiPointTrans2(G, rock, 'eta', eta, 'verbose', true);
-state = incompMPFA2(G, mpfastruct, 'bc', bc, 'outputFlux', true);
+state = incompMPFAbc(G, mpfastruct, bc, 'outputFlux', true);
 p              = state.pressure;
 vec            = [z, p];
 vecs{caseno}   = sortrows(vec);
@@ -83,7 +83,7 @@ caseno         = caseno + 1;
 % mpfa - block
 mpfastruct = computeMultiPointTrans2(G, rock, 'eta', eta, 'blocksize', ...
                                       blocksize, 'verbose', true);
-state = incompMPFA2(G, mpfastruct, 'bc', bc, 'outputFlux', true);
+state = incompMPFAbc(G, mpfastruct, bc, 'outputFlux', true);
 p              = state.pressure;
 vec            = [z, p];
 vecs{caseno}   = sortrows(vec);
@@ -94,7 +94,7 @@ caseno         = caseno + 1;
 % mpfa - new block
 mpfastruct = blockComputeMultiPointTrans(G, rock, 'eta', eta, 'blocksize', ...
                                          blocksize, 'verbose', true);
-state = incompMPFA2(G, mpfastruct, 'bc', bc, 'outputFlux', true);
+state = incompMPFAbc(G, mpfastruct, bc, 'outputFlux', true);
 p              = state.pressure;
 vec            = [z, p];
 vecs{caseno}   = sortrows(vec);

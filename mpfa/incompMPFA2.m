@@ -104,29 +104,23 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         bc = opt.bc;
         bctbl.faces = bc.face;
         bctbl.num   = numel(bctbl.faces);
+        extfacenodetbl = tbls.extfacenodetbl;
+        extfacenodetbl = addLocInd(extfacenodetbl, 'efnind');
         
-        is_flux = strcmpi('flux', bc.type);
-        if any(is_flux)
-            facenodetbl = tbls.facenodetbl;
-            bcfluxtbl.faces = bc.faces(is_flux);
-            bcfluxtbl.num = numel(bcfluxtbl.faces);
-            fluxvals = bc.value(is_flux);
-            map = setupTableMapping(bcfluxtbl, facenodetbl, {'faces'});
-            fluxterm = map*fluxval;
-            
-            rhs = rhs - fluxterm;
-        end
-    
         is_press = strcmpi('pressure', bc.type);
         if any(is_press)
             is_well_posed = true;
-            factor = A(1, 1); 
-            assert(factor > 0)
-            extfacenodetbl = tbls.extfacenodetbl;
             bcpresstbl.faces = bc.face(is_press);
-            bcpresstbl.num = numel(bcpresstbl.faces);
+            bcpresstbl.num   = numel(bcpresstbl.faces);
             pressvals = bc.value(is_press);
-            map = setupTableMapping(bcpresstbl, extfacenodetbl, {'faces'});
+            [~, bcpresstbl] = setupTableMapping(extfacenodetbl, bcpresstbl, ...
+                                                              {'faces'});
+            unknownbcpind = true(extfacenodetbl.num, 1);
+            unknownbcpind(bcpresstbl.efnind) = false;
+            unknownbcpind = find(unknownbcpind);
+            
+            A = 
+            
             pressvals = map*pressvals;
             [ind, ~] = find(map);
             nc = G.cells.num;
@@ -135,7 +129,20 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             A(e_ind, e_ind) = factor*speye(numel(ind));
             next = extfacenodetbl.num;
             rhs(nc + (1 : next)) = rhs(nc + (1 : next)) + factor*pressvals;
+        end        
+        
+        is_flux = strcmpi('flux', bc.type);
+        if any(is_flux)
+            facenodetbl = tbls.facenodetbl;
+            bcfluxtbl.faces = bc.faces(is_flux);
+            bcfluxtbl.num   = numel(bcfluxtbl.faces);
+            fluxvals = bc.value(is_flux);
+            map = setupTableMapping(bcfluxtbl, facenodetbl, {'faces'});
+            fluxterm = map*fluxval;
+            
+            rhs = rhs - fluxterm;
         end
+
     end
     nnp = length(rhs); 
 
