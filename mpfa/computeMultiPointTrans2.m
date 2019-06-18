@@ -203,8 +203,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    % values at the cell center and at the external facenode.
    A11 = div*iB*div';
    A12 = -div*iB*Pext';
-   A21 = Pext*iB*div';
-   A22 = -Pext*iB*Pext';
+   A21 = -Pext*iB*div';
+   A22 = Pext*iB*Pext';
    A = [[A11, A12]; [A21, A22]];
 
    mpfastruct = struct('div' , div , ...
