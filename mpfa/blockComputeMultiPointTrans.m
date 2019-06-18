@@ -312,7 +312,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                                       {{'extfaces1', 'faces'}, ...
                                {'extnodes1', 'nodes'}}); 
            locA21 = sparse(tbl.extfnind, tbl.cells2, PextiBdiv, next, nc);
-           A21 = A21 + locA21;
+           A21 = A21 - locA21;
            
            % We assemble the part corresponding to A12 = -div*iB*Pext';
            [iBPext, locfacenode_1extfacenode_2tbl] = contractTable({iB, ...
@@ -373,7 +373,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                {'extnodes2', 'nodes'}});
            ind2 = tbl.extfnind;
            locA22 = sparse(ind1, ind2, PextiBPext, next, next);
-           A22 = A22 - locA22;
+           A22 = A22 + locA22;
            
        end
        if opt.verbose
