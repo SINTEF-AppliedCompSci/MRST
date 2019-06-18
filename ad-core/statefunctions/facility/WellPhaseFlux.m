@@ -1,4 +1,5 @@
 classdef WellPhaseFlux < StateFunction
+    % Get phase-flux between well-bore and reservoir
     properties
 
     end

@@ -65,6 +65,23 @@ classdef FluxDiscretization < StateFunctionGrouping
         end
         
         function [acc, v, names, types] = componentConservationEquations(fd, model, state, state0, dt)
+            % Compute discretized conservation equations in the interior of the domain.
+            % REQUIRED PARAMETERS:
+            %   model  - ReservoirModel derived class
+            %   state  - State corresponding to the given model at the end
+            %            of the current time-integration interval.
+            %   state0 - State at previous time-step.
+            %   dt     - Time-step length.
+            % RETURNS:
+            %   acc    - Cell array of component accumulation terms
+            %            discretized with a first order finite-difference
+            %            scheme.
+            %   v      - Cell array of component fluxes in the interior of
+            %            the domain.
+            %   names  - The names of each equation (corresponds to
+            %            component names.
+            %   types  - Types of each equation (defaults to 'cell', to
+            %            indicate cell-wise equations on the whole domain)
             ncomp = model.getNumberOfComponents;
             [acc, types] = deal(cell(1, ncomp));
             names = model.getComponentNames();

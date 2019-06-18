@@ -1,4 +1,5 @@
 classdef WellComponentPhaseFlux < StateFunction
+    % Component flux in each phase for wells
     properties
 
     end

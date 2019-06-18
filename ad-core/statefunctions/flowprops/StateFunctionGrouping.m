@@ -123,7 +123,9 @@ classdef StateFunctionGrouping
         % --------------- Evaluation functions ---------------------------%
         function v = get(props, model, state, name)
             % Get value of a property (possibily triggering several function
-            % evaluations if required.
+            % evaluations if required. Repeated calls to get within the
+            % same AD-initialization of state for the same property will
+            % not result in evaluations (caching)
             if ~props.isStateFunctionEvaluated(model, state, name)
                 state = props.evaluateStateFunctionWithDependencies(model, state, name);
             end
@@ -179,7 +181,13 @@ classdef StateFunctionGrouping
         end
         
         function state = evaluateDependencies(props, model, state, names)
-            % Evaluate dependencies (order dependent)
+            % Internal function for evaluating a list of dependencies, in
+            % an ordered fashion.
+            % PARAMETERS:
+            %   props - class instance
+            %   model - model instance used to initialize the state
+            %   state - state used to evaluate dependencies
+            %   names - ordered cell array of all dependencies
             for i = 1:numel(names)
                 name = names{i};
                 if ~isStateFunctionEvaluated(props, model, state, name)
@@ -188,7 +196,7 @@ classdef StateFunctionGrouping
             end
         end
         
-        function props = subset(props, cell_subset)
+        function props = subset(props, subset)
             % Take the subset of all the properties (reducing regions etc
             % to the new local domain defined by cell_subset).
             names = props.propertyNames;
@@ -196,7 +204,7 @@ classdef StateFunctionGrouping
                 name = names{i};
                 prop = props.getStateFunction(name);
                 if ~isempty(prop)
-                    prop = prop.subset(cell_subset);
+                    prop = prop.subset(subset);
                 end
                 props.setStateFunction(name, prop);
             end

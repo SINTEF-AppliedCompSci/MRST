@@ -1,4 +1,6 @@
 classdef WellIndex < StateFunction
+    % Get the well index (productivity or injectivity index, equivialent to
+    % a transmissibility between the reservoir and the wellbore).
     properties
 
     end

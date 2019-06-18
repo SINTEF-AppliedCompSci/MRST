@@ -1,4 +1,5 @@
 classdef MultipliedPoreVolume < StateFunction
+    % Effective pore-volume after pressure-multiplier
     properties
     end
     
@@ -10,6 +11,8 @@ classdef MultipliedPoreVolume < StateFunction
             end
         end
         function pv = evaluateOnDomain(prop, model, state)
+            % Get effective pore-volume, accounting for possible
+            % rock-compressibility
             f = model.fluid;
             pv = model.operators.pv;
             if isfield(f, 'pvMultR')

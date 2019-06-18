@@ -1,5 +1,6 @@
 classdef UpwindFunctionWrapperDiscretization < UpwindDiscretization
-    % Simple wrapper
+    % Simple wrapper for function handles for upwinding (classical MRST
+    % style)
     properties (Access = protected)
         function_handle
     end

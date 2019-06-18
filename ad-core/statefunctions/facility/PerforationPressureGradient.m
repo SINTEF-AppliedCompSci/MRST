@@ -1,4 +1,7 @@
 classdef PerforationPressureGradient < StateFunction
+    % Calculate the pressure difference between the reservoir cells and the
+    % well-bore pressure (assuming pre-computed static connection
+    % pressure-drop in wellSol.cdp)
     properties
 
     end

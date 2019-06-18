@@ -1,4 +1,5 @@
 classdef ImmiscibleComponent < ComponentImplementation
+    % Specialized interface for immiscible component
     properties
         phaseIndex % Index of phase this component belongs to
     end
@@ -27,6 +28,8 @@ classdef ImmiscibleComponent < ComponentImplementation
         end
         
         function c = getPhaseComponentFractionWell(component, model, state, W)
+            % Get the fraction of the component in each phase (when
+            % injecting from outside the domain)
             nph = model.getNumberOfPhases();
             c = cell(nph, 1);
             comp_i = vertcat(W.compi);

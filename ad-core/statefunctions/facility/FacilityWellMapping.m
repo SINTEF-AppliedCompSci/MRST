@@ -1,4 +1,6 @@
 classdef FacilityWellMapping < StateFunction
+    % Generate a struct containing a bunch of useful mappings for a given
+    % set of active wells
     properties
 
     end

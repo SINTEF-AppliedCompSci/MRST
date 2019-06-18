@@ -1,4 +1,6 @@
 classdef AdaptiveImplicitFlowStateBuilder < ExplicitFlowStateBuilder
+    % AIM - adaptive implicit flow state builder. Takes certain cells to be
+    % implicit based on estimated CFl.
     properties
         
     end

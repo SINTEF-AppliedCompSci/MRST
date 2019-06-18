@@ -1,4 +1,5 @@
 classdef WellComponentTotalFlux < StateFunction
+    % Component total flux for wells (with treatment for cross-flow)
     properties
 
     end
