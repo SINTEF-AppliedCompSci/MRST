@@ -68,8 +68,16 @@ classdef OilWaterSurfactantModel < TwoPhaseOilWaterModel
               end
         end
 
-        function varargout = evaluateRelPerm(model, sat, varargin)
-            error('function evaluateRelPerm is not implemented for surfactant model')
+
+        % --------------------------------------------------------------------%
+        function model = validateModel(model, varargin)
+            if isempty(model.FlowPropertyFunctions)
+                model.FlowPropertyFunctions = SurfactantPolymerFlowPropertyFunctions(model);
+            end
+            if isempty(model.FluxDiscretization)
+                model.FluxDiscretization = PolymerFluxDiscretization(model);
+            end
+            model = validateModel@ThreePhaseBlackOilModel(model, varargin{:});
         end
 
         function state = validateState(model, state)

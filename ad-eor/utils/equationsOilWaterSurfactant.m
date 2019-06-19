@@ -97,25 +97,30 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % bhp.
     primaryVars = {'pressure', 'sW', 'surfactant', wellVarNames{:}};
 
-
+    sO  = 1 - sW;
+    sO0 = 1 - sW0;
+    sat = {sW, sO};
 
     % EQUATIONS ---------------------------------------------------------------
     pBH = wellVars{wellMap.isBHP};
-    % Compute fluxes and other properties for oil and water.
-    [dp, mob, upc, b, rho, pvMult, b0, pvMult0, T] = ...
-        computeFluxAndPropsOilWaterSurfactant(model, p0, p, sW, c, pBH, W);
+    Nc = computeCapillaryNumber(p, c, pBH, W, fluid, G, s, 'velocCompMethod', ...
+                                opt.velocCompMethod);
+    state.CapillaryNumber = Nc;
 
-    dpW  = dp{1} ; dpO  = dp{2};
-    mobW = mob{1}; mobO = mob{2};
-    rhoW = rho{1}; rhoO = rho{2};
-    upcW = upc{1}; upcO = upc{2};
-    bW   = b{1}  ; bO   = b{2};
-    bW0  = b0{1} ; bO0  = b0{2};
+    [b, pv] = model.getProps(state, 'ShrinkageFactors', 'PoreVolume');
+    [b0, pv0] = model.getProps(state0, 'ShrinkageFactors', 'PoreVolume');
+    [phaseFlux, flags] = model.getProps(state, 'SurfactantPhaseFlux',  'PhaseUpwindFlag');
+    [pressures, mob, rho] = model.getProps(state, 'PhasePressures', 'Mobility', 'Density');
 
-
+    [bW, bO]     = deal(b{:});
+    [bW0, bO0]   = deal(b0{:});
+    [vW, vO]     = deal(phaseFlux{:});
+    [upcw, upco] = deal(flags{:});
+    [mobW, mobO] = deal(mob{:});
+    
     % Upstream weight b factors and multiply by interface fluxes to obtain the
     % fluxes at standard conditions.
-    vO     =  -op.faceUpstr(upcO, mobO).*T.*dpO;
+    vO     = -op.faceUpstr(upcO, mobO).*T.*dpO;
     vW     = -op.faceUpstr(upcW, mobW).*T.*dpW;
     bOvO   = op.faceUpstr(upcO, bO).*vO;
     bWvW   = op.faceUpstr(upcW, bW).*vW;
@@ -130,39 +135,37 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     % Computation of adsoprtion term
     poro = model.rock.poro;
-    ads  = effads(c, cmax, fluid);
-    ads0 = effads(c0, cmax0, fluid);
+    ads  = model.getProp(state , 'SurfactantAdsorption');
+    ads0 = model.getProp(state0, 'SurfactantAdsorption');
     ads_term = fluid.rhoRSft.*((1-poro)./poro).*(ads - ads0);
 
     % Conservation of surfactant in water:
-    mobSft = mobW.*c;
-    vSft   = -op.faceUpstr(upcW, mobSft).*T.*dpW;
-    bWvSft = op.faceUpstr(upcW, bW).*vSft;
-    surfactant = (op.pv/dt).*((pvMult.*bW.*sW.*c - pvMult0.*bW0.*sW0.*c0) +  ads_term) + ...
-        op.Div(bWvSft);
-
+    vSft   = s.faceUpstr(upcw, c).*vW;
+    bWvSft = s.faceUpstr(upcw, bW).*vSft;
+    surfactant = (1/dt)*((pv.*bW.*sW.*cs - pv0.*bW0.*sW0.*cs0) + ads_term);
+    divSurfactant = s.Div(bWvSft);
+    
     if model.extraStateOutput
         sigma = fluid.ift(c);
     end
 
-    eqs   = {water, oil, surfactant};
-    names = {'water', 'oil', 'surfactant'};
-    types = {'cell', 'cell', 'cell'};
-
-    rho = {rhoW, rhoO};
-    mob = {mobW, mobO};
-    sat = {sW, sO};
-    [eqs, state] = addBoundaryConditionsAndSources(model, eqs, names, types, state, ...
-                                                                     {p, p}, sat, mob, rho, ...
-                                                                     {}, {c}, ...
-                                                                     drivingForces);
+    eqs        = {water, oil, gas, surfactant};
+    divTerms   = {divWater, divOil, divSurfactant};
+    names      = {'water', 'oil', 'surfactant'};
+    types      = {'cell', 'cell', 'cell'};
+    components = {c};
+    
+    [eqs, state] = addBoundaryConditionsAndSources(model, eqs, names, types, ...
+                                                   state, pressures, sat, mob, ...
+                                                   rho, {}, components, ...
+                                                   drivingForces);
     % Finally, add in and setup well equations
-    [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, ...
-                                                      names, types, wellSol0, ...
-                                                      wellSol, ...
-                                                      wellVars, wellMap, ...
-                                                      p, mob, rho, {}, ...
-                                                      {c}, dt, opt);
+    [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, ...
+                                                      types, wellSol0, wellSol, ...
+                                                      wellVars, wellMap, p, ...
+                                                      mob, rho, {}, components, dt, ...
+                                                      opt);
+    
     problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 
 end
