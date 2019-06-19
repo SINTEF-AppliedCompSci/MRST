@@ -115,9 +115,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                 opt.velocCompMethod);
     state.CapillaryNumber = Nc;
 
-    [b, pv] = model.getProps(state, 'ShrinkageFactors', 'PoreVolume');
-    [b0, pv0] = model.getProps(state0, 'ShrinkageFactors', 'PoreVolume');
-    [phaseFlux, flags] = model.getProps(state, 'PhaseFlux',  'PhaseUpwindFlag');
+    [b, pv]               = model.getProps(state, 'ShrinkageFactors','PoreVolume');
+    [b0, pv0]             = model.getProps(state0, 'ShrinkageFactors', 'PoreVolume');
+    [phaseFlux, flags]    = model.getProps(state, 'PhaseFlux', 'PhaseUpwindFlag');
     [pressures, mob, rho] = model.getProps(state, 'PhasePressures', 'Mobility', 'Density');
 
     [bW, bO]     = deal(b{:});
@@ -128,16 +128,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     % Upstream weight b factors and multiply by interface fluxes to obtain the
     % fluxes at standard conditions.
-    bOvO   = op.faceUpstr(upco, bO).*vO;
-    bWvW   = op.faceUpstr(upcw, bW).*vW;
+    bOvO = op.faceUpstr(upco, bO).*vO;
+    bWvW = op.faceUpstr(upcw, bW).*vW;
 
     % Conservation of mass for water
     water = (1/dt).*( pv.*bW.*sW - pv0.*bW0.*sW0 );
     divWater = op.Div(bWvW);
+    water = water + divWater;
     
     % Conservation of mass for oil
     oil = (1/dt).*( pv.*bO.*sO - pv0.*bO0.*sO0 );
     divOil = op.Div(bOvO);
+    oil = oil + divOil;
     
     % Computation of adsoprtion term
     poro = model.rock.poro;
@@ -148,17 +150,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % Conservation of surfactant in water:
     vSft   = op.faceUpstr(upcw, c).*vW;
     bWvSft = op.faceUpstr(upcw, bW).*vSft;
-    surfactant = (1/dt)*((pv.*bW.*sW.*c - pv0.*bW0.*sW0.*c0) + ads_term);
+    surfactant    = (1/dt)*((pv.*bW.*sW.*c - pv0.*bW0.*sW0.*c0) + ads_term);
     divSurfactant = op.Div(bWvSft);
+    surfactant = surfactant + divSurfactant;
     
     if model.extraStateOutput
         sigma = fluid.ift(c);
     end
 
-    eqs        = {water   , oil   , surfactant};
-    divTerms   = {divWater, divOil, divSurfactant};
-    names      = {'water' , 'oil' , 'surfactant'};
-    types      = {'cell'  , 'cell', 'cell'};
+    eqs      = {water   , oil   , surfactant};
+    names    = {'water' , 'oil' , 'surfactant'};
+    types    = {'cell'  , 'cell', 'cell'};
     components = {c};
     
     [eqs, state] = addBoundaryConditionsAndSources(model, eqs, names, types, ...
@@ -169,18 +171,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, ...
                                                       types, wellSol0, wellSol, ...
                                                       wellVars, wellMap, p, ...
-                                                      mob, rho, {}, components, dt, ...
-                                                      opt);
-    
+                                                      mob, rho, {}, components, ...
+                                                      dt, opt);
+
     problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 
 end
 
-% Effective adsorption, depending of desorption or not
-function y = effads(c, cmax, fluid)
-   if fluid.adsInxSft == 2
-      y = fluid.surfads(max(c, cmax));
-   else
-      y = fluid.surfads(c);
-   end
-end
+

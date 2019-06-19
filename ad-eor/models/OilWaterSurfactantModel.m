@@ -20,7 +20,7 @@ classdef OilWaterSurfactantModel < TwoPhaseOilWaterModel
     %
     % EXAMPLE:
     %
-    % SEE ALSO: equationsOilWaterSurfactant, ImplicitExplicitOilWaterSurfactantModel
+    % SEE ALSO: equationsOilWaterSurfactant,
     %
 
     properties
@@ -34,17 +34,20 @@ classdef OilWaterSurfactantModel < TwoPhaseOilWaterModel
             model = model@TwoPhaseOilWaterModel(G, rock, fluid, varargin{:});
             model = model.setupOperators(G, rock, varargin{:});
             model.surfactant = true;
+            
             model = merge_options(model, varargin{:});
 
         end
 
         function model = setupOperators(model, G, rock, varargin)
-            model.operators.veloc = computeVelocTPFA(G, model.operators.internalConn);
+            model.operators.veloc   = computeVelocTPFA(G, model.operators.internalConn);
             model.operators.sqVeloc = computeSqVelocTPFA(G, model.operators.internalConn);
         end
 
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
-            [problem, state] = equationsOilWaterSurfactant(state0, state, model, dt, drivingForces, ...
+            [problem, state] = equationsOilWaterSurfactant(state0, state, ...
+                                                           model, dt, ...
+                                                           drivingForces, ...
                                                            varargin{:});
         end
 
