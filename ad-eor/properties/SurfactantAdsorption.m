@@ -3,9 +3,9 @@ classdef SurfactantAdsorption < StateFunction
     end
 
     methods
-        function gp = SurfactantAdsorption(model, varargin)
-            gp@StateFunction(model, varargin{:});
-            gp = gp.dependsOn({'surfactant', 'surfactantmax'}, 'state'); % check mechanism
+        function prop = SurfactantAdsorption(model, varargin)
+            prop@StateFunction(model, varargin{:});
+            prop = prop.dependsOn({'surfactant', 'surfactantmax'}, 'state'); % check mechanism
         end
 
         function ads = evaluateOnDomain(prop, model, state)
