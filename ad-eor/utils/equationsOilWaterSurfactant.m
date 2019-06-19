@@ -107,7 +107,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     state = model.setProps(state  , {'s', 'pressure', 'surfactant'}, {sat , p , c});
     state0 = model.setProps(state0, {'s', 'pressure', 'surfactant'}, {sat0, p0, c0});
     % Set up properties
-    state = model.initPropertyContainers(state);
+    state = model.initStateFunctionContainers(state);
     
     % EQUATIONS ---------------------------------------------------------------
     pBH = wellVars{wellMap.isBHP};
@@ -117,7 +117,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     [b, pv] = model.getProps(state, 'ShrinkageFactors', 'PoreVolume');
     [b0, pv0] = model.getProps(state0, 'ShrinkageFactors', 'PoreVolume');
-    [phaseFlux, flags] = model.getProps(state, 'SurfactantPhaseFlux',  'PhaseUpwindFlag');
+    [phaseFlux, flags] = model.getProps(state, 'PhaseFlux',  'PhaseUpwindFlag');
     [pressures, mob, rho] = model.getProps(state, 'PhasePressures', 'Mobility', 'Density');
 
     [bW, bO]     = deal(b{:});
@@ -128,19 +128,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     % Upstream weight b factors and multiply by interface fluxes to obtain the
     % fluxes at standard conditions.
-    vO     = -op.faceUpstr(upcO, mobO).*T.*dpO;
-    vW     = -op.faceUpstr(upcW, mobW).*T.*dpW;
-    bOvO   = op.faceUpstr(upcO, bO).*vO;
-    bWvW   = op.faceUpstr(upcW, bW).*vW;
+    bOvO   = op.faceUpstr(upco, bO).*vO;
+    bWvW   = op.faceUpstr(upcw, bW).*vW;
 
     % Conservation of mass for water
-    water = (op.pv/dt).*(pvMult.*bW.*sW - pvMult0.*bW0.*sW0) + op.Div(bWvW);
-
+    water = (1/dt).*( pv.*bW.*sW - pv0.*bW0.*sW0 );
+    divWater = op.Div(bWvW);
+    
     % Conservation of mass for oil
-    sO  = 1 - sW;
-    sO0 = 1 - sW0;
-    oil = (op.pv/dt).*(pvMult.*bO.*sO - pvMult0.*bO0.*sO0) + op.Div(bOvO);
-
+    oil = (1/dt).*( pv.*bO.*sO - pv0.*bO0.*sO0 );
+    divOil = op.Div(bOvO);
+    
     % Computation of adsoprtion term
     poro = model.rock.poro;
     ads  = model.getProp(state , 'SurfactantAdsorption');
@@ -148,19 +146,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     ads_term = fluid.rhoRSft.*((1-poro)./poro).*(ads - ads0);
 
     % Conservation of surfactant in water:
-    vSft   = s.faceUpstr(upcw, c).*vW;
-    bWvSft = s.faceUpstr(upcw, bW).*vSft;
-    surfactant = (1/dt)*((pv.*bW.*sW.*cs - pv0.*bW0.*sW0.*cs0) + ads_term);
-    divSurfactant = s.Div(bWvSft);
+    vSft   = op.faceUpstr(upcw, c).*vW;
+    bWvSft = op.faceUpstr(upcw, bW).*vSft;
+    surfactant = (1/dt)*((pv.*bW.*sW.*c - pv0.*bW0.*sW0.*c0) + ads_term);
+    divSurfactant = op.Div(bWvSft);
     
     if model.extraStateOutput
         sigma = fluid.ift(c);
     end
 
-    eqs        = {water, oil, gas, surfactant};
+    eqs        = {water   , oil   , surfactant};
     divTerms   = {divWater, divOil, divSurfactant};
-    names      = {'water', 'oil', 'surfactant'};
-    types      = {'cell', 'cell', 'cell'};
+    names      = {'water' , 'oil' , 'surfactant'};
+    types      = {'cell'  , 'cell', 'cell'};
     components = {c};
     
     [eqs, state] = addBoundaryConditionsAndSources(model, eqs, names, types, ...
