@@ -435,9 +435,6 @@ methods
                         end
                         s = 1./bO;
                         if isMass
-                            s = s./rhoS(1, isg);
-                        end
-                        if isMass
                             s = s./rhoS(1, iso);
                         end
                     case 'water'
