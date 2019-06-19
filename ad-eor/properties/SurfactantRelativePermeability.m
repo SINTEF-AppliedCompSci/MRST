@@ -1,4 +1,4 @@
-classdef SurfactantRelativePermeability < StateFunction
+classdef SurfactantRelativePermeability < BaseRelativePermeability
 
     properties
         zeroSurf
@@ -7,13 +7,11 @@ classdef SurfactantRelativePermeability < StateFunction
     
         
     methods
-        function gp = SurfactantRelativePermeability(model, varargin)
-            gp@StateFunction(model, varargin{:});
-            gp = gp.dependsOn({'sat', 'c', 'capillaryNumber'}, 'state');
-            satreg  = model.rock.regions.saturation; 
-            surfreg = model.rock.regions.surfactant;
-            gp.zeroSurf = StateFunction(model, satreg);
-            gp.fullSurf = StateFunction(model, surfreg);
+        function prop = SurfactantRelativePermeability(model, satreg, surfreg, varargin)
+            prop@BaseRelativePermeability(model, varargin{:});
+            prop = prop.dependsOn({'sat', 'c', 'capillaryNumber'}, 'state');
+            prop.zeroSurf = StateFunction(model, satreg);
+            prop.fullSurf = StateFunction(model, surfreg);
         end
         
         function kr = evaluateOnDomain(prop, model, state)
@@ -51,12 +49,12 @@ classdef SurfactantRelativePermeability < StateFunction
             sW_noSft  = (1 - sWcon_noSft - sOres_noSft).*sNcWEff + sWcon_noSft;
             sO_noSft  = (1 - sWcon_noSft - sOres_noSft).*sNcOEff + sOres_noSft;
             % Compute rel perm - without surfactant
-            krW_noSft = prop.zeroSurf.evaluateFunctionOnGrid(fluid.krW, state);
+            krW_noSft = prop.zeroSurf.evaluateFunctionOnDomainWithArguments(fluid.krW, sW_noSft);
             if isfield(fluid, 'krO')
-                krO_noSft = prop.zeroSurf.evaluateFunctionOnGrid(fluid.krO, ...
+                krO_noSft = prop.zeroSurf.evaluateFunctionOnDomainWithArguments(fluid.krO, ...
                                                                  sO_noSft);
             else
-                krO_noSft = prop.zeroSurf.evaluateFunctionOnGrid(fluid.krOW, ...
+                krO_noSft = prop.zeroSurf.evaluateFunctionOnDomainWithArguments(fluid.krOW, ...
                                                                  sO_noSft);
             end
             
@@ -64,12 +62,12 @@ classdef SurfactantRelativePermeability < StateFunction
             sW_Sft  = (1 - sWcon_Sft - sOres_Sft).*sNcWEff + sWcon_Sft;
             sO_Sft  = (1 - sWcon_Sft - sOres_Sft).*sNcOEff + sOres_Sft;
             % Compute rel perm - with surfactant
-            krW_Sft = prop.zeroSurf.evaluateFunctionOnGrid(fluid.krW, sW_Sft);
+            krW_Sft = prop.zeroSurf.evaluateFunctionOnDomainWithArguments(fluid.krW, sW_Sft);
             if isfield(fluid, 'krO')
-                krO_Sft = prop.fullSurf.evaluateFunctionOnGrid(fluid.krO, ...
+                krO_Sft = prop.fullSurf.evaluateFunctionOnDomainWithArguments(fluid.krO, ...
                                                                sO_Sft);
             else
-                krO_Sft = prop.fullSurf.evaluateFunctionOnGrid(fluid.krOW, ...
+                krO_Sft = prop.fullSurf.evaluateFunctionOnDomainWithArguments(fluid.krOW, ...
                                                                sO_Sft);
             end
 

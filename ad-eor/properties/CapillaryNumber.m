@@ -4,8 +4,8 @@ classdef CapillaryNumber < StateFunction
     end
     
     methods
-        function gp = CapillaryNumber(varargin)
-            gp@StateFunction(varargin{:});
+        function prop = CapillaryNumber(varargin)
+            prop@StateFunction(varargin{:});
         end
         function Nc = evaluateOnDomain(prop, model, state)
         % For this grid property, it is expected that it has been set before.

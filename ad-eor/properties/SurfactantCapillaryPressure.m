@@ -1,22 +1,27 @@
-classdef SurfactantCapillaryPressure < StateFunction
+classdef SurfactantCapillaryPressure < BlackOilCapillaryPressure
+% Implementation only for 2 phases oil-water
     properties
     end
     
     methods
-        function gp = SurfactantCapillaryPressure(varargin)
-            gp@StateFunction(varargin{:});
-            gp = gp.dependsOn({'CapillaryPressure'});
-            gp = gp.dependsOn({'pressure'}, 'state');
-            gp = gp.dependsOn({'surfactant'}, 'state');
+        function prop = SurfactantCapillaryPressure(varargin)
+            prop@BlackOilCapillaryPressure(varargin{:});
+            prop = prop.dependsOn({'sW', 'surfactant'}, 'state');
         end
         
-        function p_phase = evaluateOnDomain(prop, model, state)
+        function pc = evaluateOnDomain(prop, model, state)
+            [act, phInd] = model.getActivePhases();
+            nph = sum(act);
+            pc = cell(1, nph);
+            
             fluid = model.fluid;
             c = model.getProps(state, 'surfactant');
-            p = model.getProps(state, 'Pressure');
+            sW = model.getProps(state, 'sW');
             pcow = prop.evaluateFunctionOnDomainWithArguments(fluid.pcOW, sW);
             pcow = pcow.*fluid.ift(c)/fluid.ift(0);
-            pc_phase = pc;
+            % Note sign! Water is always first
+            pc{phInd == 1} = -pcow;
+            
         end
     end
 end
