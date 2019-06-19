@@ -72,10 +72,10 @@ classdef OilWaterSurfactantModel < TwoPhaseOilWaterModel
         % --------------------------------------------------------------------%
         function model = validateModel(model, varargin)
             if isempty(model.FlowPropertyFunctions)
-                model.FlowPropertyFunctions = SurfactantPolymerFlowPropertyFunctions(model);
+                model.FlowPropertyFunctions = SurfactantFlowPropertyFunctions(model);
             end
             if isempty(model.FluxDiscretization)
-                model.FluxDiscretization = PolymerFluxDiscretization(model);
+                model.FluxDiscretization = FluxDiscretization(model);
             end
             model = validateModel@ThreePhaseBlackOilModel(model, varargin{:});
         end
