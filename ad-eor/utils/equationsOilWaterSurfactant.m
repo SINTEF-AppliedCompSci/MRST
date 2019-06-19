@@ -51,16 +51,17 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    opt = struct('Verbose', mrstVerbose, ...
-                 'reverseMode', false, ...
-                 'resOnly', false, ...
-                 'iteration', -1 );
+    opt = struct('Verbose'        , mrstVerbose, ...
+                 'reverseMode'    , false      , ...
+                 'velocCompMethod', 'square'   , ...
+                 'resOnly'        , false      , ...
+                 'iteration'      , -1 );
     opt = merge_options(opt, varargin{:});
 
-    W     = drivingForces.W;
-    fluid = model.fluid;
-    op    = model.operators;
     G     = model.G;
+    op    = model.operators;
+    fluid = model.fluid;
+    W     = drivingForces.W;
 
     % Properties at current timestep
     [p, sW, c, cmax, wellSol] = model.getProps(state, 'pressure', 'water', ...
@@ -99,11 +100,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     sO  = 1 - sW;
     sO0 = 1 - sW0;
-    sat = {sW, sO};
-
+    sat  = {sW, sO};
+    sat0 = {sW0, sO0};
+    
+    % Update state with AD-variables
+    state = model.setProps(state  , {'s', 'pressure', 'surfactant'}, {sat , p , c});
+    state0 = model.setProps(state0, {'s', 'pressure', 'surfactant'}, {sat0, p0, c0});
+    % Set up properties
+    state = model.initPropertyContainers(state);
+    
     % EQUATIONS ---------------------------------------------------------------
     pBH = wellVars{wellMap.isBHP};
-    Nc = computeCapillaryNumber(p, c, pBH, W, fluid, G, s, 'velocCompMethod', ...
+    Nc = computeCapillaryNumber(p, c, pBH, W, fluid, G, op, 'velocCompMethod', ...
                                 opt.velocCompMethod);
     state.CapillaryNumber = Nc;
 

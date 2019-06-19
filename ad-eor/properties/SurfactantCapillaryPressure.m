@@ -3,7 +3,7 @@ classdef SurfactantCapillaryPressure < StateFunction
     end
     
     methods
-        function gp = SurfactantPhasePressures(varargin)
+        function gp = SurfactantCapillaryPressure(varargin)
             gp@StateFunction(varargin{:});
             gp = gp.dependsOn({'CapillaryPressure'});
             gp = gp.dependsOn({'pressure'}, 'state');
