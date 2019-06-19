@@ -1,4 +1,4 @@
-classdef SurfactantPhasePressures < StateFunction
+classdef SurfactantCapillaryPressure < StateFunction
     properties
     end
     
@@ -12,10 +12,10 @@ classdef SurfactantPhasePressures < StateFunction
         
         function p_phase = evaluateOnDomain(prop, model, state)
             fluid = model.fluid;
-            cs = model.getProps(state, 'surfactant');
+            c = model.getProps(state, 'surfactant');
             p = model.getProps(state, 'Pressure');
-            pc = prop.getEvaluatedDependencies(state, 'CapillaryPressure');
-            pc{1} = pc{1}.*fluid.ift(cs)/fluid.ift(0);
+            pcow = prop.evaluateFunctionOnDomainWithArguments(fluid.pcOW, sW);
+            pcow = pcow.*fluid.ift(c)/fluid.ift(0);
             pc_phase = pc;
         end
     end

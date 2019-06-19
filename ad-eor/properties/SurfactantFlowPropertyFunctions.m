@@ -7,6 +7,7 @@ classdef SurfactantFlowPropertyFunctions < FlowPropertyFunctions
         function props = SurfactantFlowPropertyFunctions(model)
             props = props@FlowPropertyFunctions(model);
             props.RelativePermeability = SurfactantRelativePermeability(model);
+            props.CapillaryPressure = SurfactantCapillaryPressure(model);
             props.CapillaryNumber = CapillaryNumber(model);
         end
     end
