@@ -73,8 +73,8 @@ classdef KazemiTwoPhaseTransferFunction < TransferFunction
             
             %% This flags equals 1 for each cell if flow is coming from 
             % the fractures and zero otherwise. 
-            dpw = (double(pwm-pW)<=0);
-            dpo = (double(pom-pO)<=0);
+            dpw = (value(pwm-pW)<=0);
+            dpo = (value(pom-pO)<=0);
             
             krwt = krW.*dpw + krWm.*(~dpw);
             krot = krO.*dpo + krOm.*(~dpo);

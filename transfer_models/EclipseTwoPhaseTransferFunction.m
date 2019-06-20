@@ -131,8 +131,8 @@ classdef EclipseTwoPhaseTransferFunction < TransferFunction
             psi_om = pom + rhon*g*hnm;
             psi_wm = pwm + rhow*g*hwm;
 
-            dpsiw = (double(psi_wm-psi_wf)<=0);
-            dpsio = (double(psi_om-psi_of)<=0);
+            dpsiw = (value(psi_wm-psi_wf)<=0);
+            dpsio = (value(psi_om-psi_of)<=0);
 
             krwt = krW.*dpsiw + krWm.*(~dpsiw);
             krot = krO.*dpsio + krOm.*(~dpsio);
