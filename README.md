@@ -21,7 +21,7 @@ Toolbox (MRST) provided by SINTEF ICT: http://www.sintef.no/projectweb/mrst/
 In particular, the grid data structure is that of MRST, and it is assumed that 
 MRST is in the MATLAB path.
 
-Also, it is assumed that the [fvbiot package][https://github.com/pmgbergen/fvbiot] (freely available) which provides the discretization of the flux is in the MATLAB path as well. The fvbiot package was developed by [Eirik Keilevgalen][https://www.uib.no/personer/Eirik.Keilegavlen] at the Porous Media Group of the University of Bergen. 
+Also, it is assumed that the [fvbiot package](https://github.com/pmgbergen/fvbiot)(freely available) which provides the discretization of the flux is in the MATLAB path as well. The fvbiot package was developed by [Eirik Keilevgalen](https://www.uib.no/personer/Eirik.Keilegavlen) from the [Porous Media Group](https://pmg.w.uib.no/) of the University of Bergen. 
 
 The code has been tested with Matlab R2017b and mrst-2016a.
 
