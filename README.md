@@ -1,3 +1,7 @@
+# RE-MPFA
+
+<img src="honey-gif.gif" width="350" height="350">
+
 ## Description
 This module implements a discretization of the (three-dimensional) incompressible Richards' equation using 
 cell centered finite volume methods, specifically Multi-Point Flux Approximation. 
