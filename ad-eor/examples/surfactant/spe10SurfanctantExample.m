@@ -21,6 +21,11 @@ fluid = model.fluid;
 % surfactant and saturated with surfactant
 %
 
+krWs  = cell(2, 1);
+krOWs = cell(2, 1);
+wpts  = NaN(2, 4);
+owpts = NaN(2, 4);
+
 % Relative permeabilities - without surfactant
 n      = 3;   % Corey coefficient
 sWcon  = 0.2; % Residual water saturation
@@ -28,13 +33,23 @@ sOres  = 0.2; % Residual oil saturation
 krWres = 0.6; % Endpoint relperm for water
 krOres = 0.5; % Endpoint relperm for oil
 
-krW = coreyPhaseRelpermAD(n, sWcon, krWres, sWcon + sOres);
+krW  = coreyPhaseRelpermAD(n, sWcon, krWres, sWcon + sOres);
 krOW = coreyPhaseRelpermAD(n, sOres, krOres, sWcon + sOres);
 
-fluid.krW = krW;
-fluid.krOW = krOW;
-fluid.sWcon = sWcon;
-fluid.sOres = sOres;
+% see function assignSWOF for specification of the end points
+wpts(1, 1) = 0;
+wpts(1, 2) = sWcon;
+wpts(1, 3) = 1 - sOres;
+wpts(1, 4) = krWres; 
+owpts(1, 1) = 0;
+owpts(1, 2) = sOres;
+owpts(1, 3) = 1 - sWcon;
+owpts(1, 4) = krOres; 
+
+krWs{1}    = krW;
+krOWs{1}   = krOW;
+krPts{1}.w = wpts;
+krPts{1}.o = owpts;
 
 % Relative permeabilities - with surfactant
 n         = 1.5;
@@ -43,13 +58,34 @@ sOresSft  = 0.05;
 krWresSft = 1;
 krOresSft = 1;
 
-krWSft = coreyPhaseRelpermAD(n, sWconSft, krWresSft, sWconSft + sOresSft);
+krWSft  = coreyPhaseRelpermAD(n, sWconSft, krWresSft, sWconSft + sOresSft);
 krOWSft = coreyPhaseRelpermAD(n, sOresSft, krOresSft, sWconSft + sOresSft);
-fluid.krWSft = krWSft;
-fluid.krOWSft = krOWSft;
 
-fluid.sWconSft   = sWconSft;
-fluid.sOresSft   = sOresSft;
+wpts(2, 1)  = 0;
+wpts(2, 2)  = sWconSft;
+wpts(2, 3)  = 1 - sOresSft;
+wpts(2, 4)  = krWresSft; 
+owpts(2, 1) = 0;
+owpts(2, 2) = sOresSft;
+owpts(2, 3) = 1 - sWconSft;
+owpts(2, 4) = krOresSft; 
+
+krWs{2}    = krW;
+krOWs{2}   = krOW;
+
+fluid.krW      = krWs;
+fluid.krOW     = krOWs;
+fluid.krPts.w  = wpts;
+fluid.krPts.ow = owpts;
+
+% we setup the different regions for the rock parameters
+% region 1 -> rel perm with no surfactant
+% region 2 -> rel perm with surfactant
+nc = G.cells.num;
+regions.saturation = ones(nc, 1);
+regions.surfactant = ones(nc, 1);
+rock.regions = regions;
+model.rock = rock;
 
 % Remaining fluid parameters
 pRef = 234*barsa;                                        % Reference pressure
@@ -72,7 +108,7 @@ fluid.cR = cR;
 fluid.pvMultR = @(p)(1 + cR.*(p-pRef));
 
 
-%% Setup the Surfactant Properties
+%% Setup the remaining Surfactant Properties
 % We use tabulated values. The surfactant parameters are the same as in the
 % surfactant tutorials.
 %
@@ -188,7 +224,7 @@ state0.cmax   = state0.c;
 %% visualize the model properties
 %
 example_name = 'spe10';
-vizSurfactantModel();
+% vizSurfactantModel();
 
 %% Run the simulation
 %
