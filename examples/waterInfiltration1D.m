@@ -159,8 +159,11 @@
 % * $\psi = -1000 \; [cm]$
 %
 
-%% Clearing and cleaning workspace
+%% Clearing workspace and cleaning console
 clear; clc();
+
+%% Importing modules
+mrstModule add re-mpfa fvbiot
 
 %% Setting up the Grid
 nx = 1;               % Cells in x-direction

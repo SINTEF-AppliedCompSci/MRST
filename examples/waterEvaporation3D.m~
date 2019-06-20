@@ -158,11 +158,9 @@
 % * $\psi = -1 \; [cm]$
 %
 
-%% Clearing workspace and cleaning console
-clear; clc();
-
 %% Importing modules
-mrstModule add re-mpfa fvbiot
+mrsModule add 
+mrstModule add re-mpfa
 
 %% Setting up the Grid
 nx = 20;              % Cells in x-direction
@@ -187,8 +185,7 @@ g = 980.6650;               % [cm/s^2] gravity acceleration
 %% Rock Properties
 K_sat = 0.00922;            % [cm/s] saturated hydraulic conductivity
 k = (K_sat*mu)/(rho*g);     % [cm^2] intrinsic permeability
-rock.perm = repmat([k, k, k], [G.cells.num, 1]); % creating perm structure
-
+     
 %% Van Genuchten Parameters
 alpha = 0.0335;       % [1/cm] Equation parameter
 nVan = 2;             % [-]    Equation parameter
@@ -224,7 +221,7 @@ fluxS = 0;                                   % [cm^3/s] South boundary
 fluxN = 0;                                   % [cm^3/s] North boundary
 topCellsNum = G.cells.num/nz;                % number of cells of the top boundary
 topArea = sum(G.faces.areas(z_min));         % [cm^2] total area of the top boundary
-evapVel  = -0.75 * (1/3600);                 % [cm/s] evaporation velocity
+evapVel  = -0.75 * (1/3600);                    % [cm/s] evaporation velocity
 evapFlux = evapVel * topArea;                % [cm^3/s] evaporation flux
 % fluxTop_flux is the "artificial flux" that we have to pass to the
 % bcFlow_flux structure. In this case we applied a constant flux that leaves
@@ -251,8 +248,8 @@ bc_val(z_min) = fluxT;                      % assigning Top boundary
 bc_val(z_max) = fluxB;                      % assigning Bottom boundary
 
 % Initial Condition
-psi_init = -1;                              % [cm] Pressure head initial cond. 
-h_init = psi_init + zetaCentr;              % [cm] Hydraulic head initial cond.
+psi_init = -1;                             % [cm] Pressure head initial cond. 
+h_init = psi_init + zetaCentr;                  % [cm] Hydraulic head initial cond.
 
 %% Calling MPFA routine
 mpfa_discr = mpfa(G,rock,[],'bc',bc,'invertBlocks','matlab');
