@@ -33,10 +33,10 @@ classdef SurfactantRelativePermeability < BaseRelativePermeability
             satreg  = model.rock.regions.saturation; 
             surfreg = model.rock.regions.surfactant;
 
-            sWcon_noSft = fluid.krPts.w(satreg, 2);  % Residual water saturation   without surfactant
-            sOres_noSft = fluid.krPts.w(satreg, 2);  % Residual oil saturation     without surfactant
-            sWcon_Sft   = fluid.krPts.w(surfreg, 2); % Residual water saturation   with    surfactant
-            sOres_Sft   = fluid.krPts.w(surfreg, 2); % Residual oil saturation     with    surfactant
+            sWcon_noSft = fluid.krPts.w(satreg  , 2); % Residual water saturation   without surfactant
+            sOres_noSft = fluid.krPts.ow(satreg , 2); % Residual oil saturation     without surfactant
+            sWcon_Sft   = fluid.krPts.w(surfreg , 2); % Residual water saturation   with    surfactant
+            sOres_Sft   = fluid.krPts.ow(surfreg, 2); % Residual oil saturation     with    surfactant
 
             % Interpolated water/oil residual saturations
             sNcWcon = m.*sWcon_Sft + (1 - m).*sWcon_noSft;
