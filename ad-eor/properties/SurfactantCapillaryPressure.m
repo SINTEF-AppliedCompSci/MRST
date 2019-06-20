@@ -10,18 +10,22 @@ classdef SurfactantCapillaryPressure < BlackOilCapillaryPressure
         end
         
         function pc = evaluateOnDomain(prop, model, state)
-            [act, phInd] = model.getActivePhases();
-            nph = sum(act);
-            pc = cell(1, nph);
             
             fluid = model.fluid;
-            c = model.getProps(state, 'surfactant');
-            sW = model.getProps(state, 'sW');
-            pcow = prop.evaluateFunctionOnDomainWithArguments(fluid.pcOW, sW);
-            pcow = pcow.*fluid.ift(c)/fluid.ift(0);
-            % Note sign! Water is always first
-            pc{phInd == 1} = -pcow;
-            
+            if ~isfield(fluid, 'pcOW')
+                pc = evaluateOnDomain@BlackOilCapillaryPressure(prop, model, ...
+                                                                state);
+            else
+                [act, phInd] = model.getActivePhases();
+                nph = sum(act);
+                pc = cell(1, nph);
+                c = model.getProps(state, 'surfactant');
+                sW = model.getProps(state, 'sW');
+                pcow = prop.evaluateFunctionOnDomainWithArguments(fluid.pcOW, sW);
+                pcow = pcow.*fluid.ift(c)/fluid.ift(0);
+                % Note sign! Water is always first
+                pc{phInd == 1} = -pcow;
+            end
         end
     end
 end
