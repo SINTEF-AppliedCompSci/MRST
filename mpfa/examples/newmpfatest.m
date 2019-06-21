@@ -58,33 +58,6 @@ titles{caseno}    = 'mpfa - jostein';
 fprintf('Done with %s in %g sec\n', titles{caseno}, texec);
 caseno = caseno + 1;
 
-% mpfa - standard
-tic
-mpfastructs{caseno} = computeMultiPointTrans2(G, rock, 'eta', eta, 'verbose', ...
-                                              isverbose);
-texec = toc;
-states{caseno}    = incompMPFA2(G, mpfastructs{caseno}, 'wells', W, 'outputFlux', ...
-                             true);
-pressures{caseno} = states{caseno}.pressure;
-fluxes{caseno}    = states{caseno}.flux;
-titles{caseno}    = 'mpfa - standard';
-fprintf('Done with %s in %g sec\n', titles{caseno}, texec);
-caseno = caseno + 1;
-
-
-% mpfa - block
-tic
-mpfastructs{caseno} = blockComputeMultiPointTrans(G, rock, 'eta', eta, 'blocksize', ...
-                                              blocksize, 'verbose', isverbose);
-texec = toc;
-states{caseno}    = incompMPFA2(G, mpfastructs{caseno}, 'wells', W, 'outputFlux', ...
-                                true);
-pressures{caseno} = states{caseno}.pressure;
-fluxes{caseno}    = states{caseno}.flux;
-titles{caseno}    = 'mpfa - block';
-fprintf('Done with %s in %g sec\n', titles{caseno}, texec);
-caseno = caseno + 1;
-
 % mpfa - well
 tic
 mpfastructs{caseno} = computeNeumannMultiPointTrans(G, rock, 'eta', eta, 'verbose', isverbose);

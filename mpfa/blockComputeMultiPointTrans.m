@@ -62,7 +62,7 @@ function mpfastruct = blockComputeMultiPointTrans(G, rock, varargin)
 %   PLEASE NOTE: Face normals have length equal to face areas.
 %
 % SEE ALSO:
-%   `incompMPFA2`, `mrstVerbose`.
+%   `incompMPFAbc`, `mrstVerbose`.
 
 %{
 Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
