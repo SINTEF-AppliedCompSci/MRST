@@ -30,6 +30,26 @@ function dist = computeRTD(state, G, pv, D, WP, W, varargin)
 %
 % SEE ALSO
 %  estimateRTD
+%{
+Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
+
 opt = struct('injectorIx', [], ...
              'producerIx', [], ...
              'nsteps',     50, ...
@@ -88,6 +108,7 @@ sub = sum(D.itracer(:, iix), 2) > 1e-5;
 
 % only check allocations > total*10^-3
 checkIx = dist.allocations > 1e-3*sum(dist.allocations);
+
 t1 = min(dist.volumes(checkIx)./dist.allocations(checkIx));
 % total pvi
 pvi = sum(dist.volumes)/sum(dist.allocations);

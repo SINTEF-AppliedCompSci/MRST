@@ -1,4 +1,60 @@
 classdef PostProcessDiagnostics < handle
+%PostProcessDiagnostics handle class
+%
+% SYNOPSIS:
+%   d = PostProcessDiagnostics(dinput, precomp, varargin)
+%
+% DESCRIPTION:
+%   Class definition for PostProcessDiagnostics GUI object. Takes a
+%   information from a previously run simulation and displays accompanying
+%   flow diagnostics and simulation results in an interactive GUI.
+%   If no precomputed diagnostics are passed in, diagnostics are calculated
+%   internally. Simulations should be processed first using either
+%   PostProcessDiagnosticsECLIPSE or PostProcessDiagnosticsMRST.
+%
+% REQUIRED PARAMETERS:
+%   dinput - Structure containing the following fields:
+%               .maxTOF - Maximum TOF value.
+%               .G      - MRST Grid structure with G.cells.PORV field
+%               .Gs     - Simulation Grid (for MRST simulations Gs = G)
+%               .Data   - Data structure containing static, dynamic, 
+%                            and computed properties.
+%
+%   precomp - Structure optionally containing array of precomputed
+%               diagnostics data for each timestep required. 
+%               If empty, diagnostics will be calculated when the GUI is 
+%               run.
+%
+% OPTIONAL PARAMETERS:
+%   style - Optional gui style. Only default has been implemented.
+%
+% RETURNS:
+%   d     - Handle to PostProcessDiagnostics object.
+%
+% SEE ALSO:
+%   PostProcessDiagnosticsMRST, PostProcessDiagnosticsECLIPSE
+
+%{
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
+    
+    
     properties
         Figure
         Axes3D

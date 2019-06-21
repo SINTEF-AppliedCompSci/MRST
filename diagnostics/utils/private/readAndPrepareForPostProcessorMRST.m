@@ -1,4 +1,65 @@
 function [G, data, Gs, valid_ix] = readAndPrepareForPostProcessorMRST(problem, steps, info, precomp)
+% Utility function to create input data for flow diagnostics postprocessor 
+% GUI from MRST simulation output.
+%
+% SYNOPSIS:
+%  [G, data, Gs, valid_ix] = ...
+%        readAndPrepareForPostProcessorMRST(problem, steps, info, precomp)
+%
+% DESCRIPTION:
+%   Takes an MRST simulation packed problem and outputs the relevant data 
+%   structures required as input to PostProcessDiagnostics flow diagnostics
+%   viewer. 
+%
+% REQUIRED PARAMETERS:
+%
+%   problem - Simulation problem created using packSimulationProblem(). The
+%               simulation should already have been run.
+%
+%   steps   - Timesteps which are to be displayed in the interactive gui
+%
+%   info    - structure containing the following fields:
+%               .date - start date of the format 
+%                [day month year] e.g. [1 1 2000] for the 1st January
+%                2000.
+%               .time - array of cumulative time for all timesteps in days
+%   
+%   precomp - Structure optionally containing array of precomputed
+%               diagnostics data for each timestep to pass to the GUI. 
+%               If empty, diagnostics will be calculated when the GUI is 
+%               run.
+%
+% RETURNS:
+%
+%   G       - Grid structure with additional .cells.PORV field
+%   data    - Data structure containing static, dynamic and computed
+%                properties. (Computed properties not yet implemented.)
+%   Gs      - Same as G for compatibility with other functions. 
+%   valid_ix - index of states which are valid for flow diagnostics
+%               calculations.
+%   
+% SEE ALSO:
+%   PostProcessDiagnosticsMRST.m
+
+%{
+Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
 
 model = problem.SimulatorSetup.model;
 schedule = problem.SimulatorSetup.schedule;
@@ -37,16 +98,11 @@ for i = 1:numel(steps)
 end
 data.wells = data.wells';
 
-
-
 if isempty(precomp)
     data.states = states;
 else
     data.states = cellfun(@(x)x.states{1}, precomp, 'UniformOutput', false);
 end
-
-
-
 
 valid_ix = isValidState(data.states);
 if ~all(valid_ix)
@@ -57,13 +113,6 @@ if ~all(valid_ix)
     data.states    = data.states(valid_ix);
     data.wells     = data.wells(valid_ix);
 end
-
-% % add cells to states.wellSol
-% for i = 1:numel(data.states)
-%     for j = 1:numel(data.states{i}.wellSol)
-%         data.states{i}.wellSol(j).cells = data.wells{i}.cells(j);
-%     end
-% end
 
 % include some more fields from restart later on
 data = setDynamic(G, data, valid_ix);
@@ -106,24 +155,7 @@ else
             'limits' , [minv, maxv]);
     end
     
-%     % additional fields of size corressponding to G.cells.num
-%     ix = structfun(@(fld)all(cellfun(@numel, fld)==G.cells.num), rstrt);
-%     fn = fieldnames(rstrt);
-%     % dont include sats, pressure, flux
-%     for pat = [flds, {'FLR', 'FLO'}]
-%         ix = and(ix, ~strncmp(fn, pat, numel(pat{1})));
-%     end
-%     ix = find(ix);
-%     k0 = numel(data.dynamic);
-%     for k = 1:numel(ix)
-%         nm = fn{ix(k)};
-%         vals = horzcat(rstrt.(nm){:});
-%         vals = vals(:, valid_ix);
-%         [minv, maxv] = deal(min(min(vals)), max(max(vals)));
-%         data.dynamic(k0+k) = struct('name', nm, ...
-%             'values' , vals, ...
-%             'limits' , [minv, maxv]);
-%     end
+
 end
 end
 
@@ -137,59 +169,4 @@ for k = 1:numel(states)
     flag(k) = openPrd || openInj;
 end
 end
-
-function states = addConnectionPhaseFluxes(states, fluid, runspec)
-% from output we typically only have total volume connection fluxes. 
-% Approx water flux by using bW at bhp 
-
-assert(runspec.OIL && runspec.WATER, 'Current code assumes both oil and water present')
-for sk = 1:numel(states)
-    ws = states{sk}.wellSol;
-    for wk = 1:numel(ws)
-        if size(ws(wk).flux, 2) == 1
-            c = ws(wk).cells;
-            resflux = ws(wk).flux;
-            qwr = ws(wk).cqs(:,1)./states{sk}.b(c,1);
-            qor = ws(wk).cqs(:,2)./states{sk}.b(c,2);
-            if runspec.VAPOIL
-                qor = qor - ws(wk).cqs(:,3).*states{sk}.rv(c)./states{sk}.b(c,2);
-            end
-            if ~runspec.GAS
-                ws(wk).flux = [qwr, qor];
-            else
-                qgr = ws(wk).cqs(:,3)./states{sk}.b(c,3);
-                if runspec.DISGAS
-                    qgr = qgr - ws(wk).cqs(:,2).*states{sk}.rs(c)./states{sk}.b(c,3);
-                    if runspec.DISGAS && runspec.VAPOIL
-                        r = 1-states{sk}.rs(c).*states{sk}.rv(c);
-                        [qor, qgr] = deal(qor./r, qgr./r);
-                    end
-                end
-                ws(wk).flux = [qwr, qor, qgr];
-            end
-            % if remove crossflow ...
-            %ws(wk).flux(resflux==0,:) = 0;
-        end
-    end
-    states{sk}.wellSol = ws;
-end
-end
-
-% function m = getModelDetails(init)
-% [ih, lg] = deal(init.INTEHEAD.values, init.LOGIHEAD.values);
-% unms = {'metric', 'field', 'lab'};
-% m.units = unms{ih(3)};
-% phnms = {'oil', 'water', 'gas'};
-% phM   = [1 0 1 0 0 1 1
-%          0 1 1 0 1 0 1
-%          0 0 0 1 1 1 1];
-% actPh = phM(:, ih(15));
-% for k =1:3
-%     m.(phnms{k}) = logical(actPh(k));
-% end
-% m.disgas = 
-% m = 1;
-% end
-        
-    
 

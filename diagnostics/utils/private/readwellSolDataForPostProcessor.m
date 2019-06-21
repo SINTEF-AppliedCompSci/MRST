@@ -1,5 +1,7 @@
 function [wsdata] = readwellSolDataForPostProcessor(problem, varargin)
-%Undocumented utility function
+% Utility function to read wellSol data from simulated MRST packed problem 
+% and return a structure in the correct format to be read into
+% PostProcessDiagnostics.m
 
 %{
 Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
@@ -94,46 +96,7 @@ wsdata.timesteps = timesteps;
 wsdata.units = nm;
 
 end
-%--------------------------------------------------------------------------
-% 
-% function smry = addSmryFuncs(smry)
-% smry.get    = @(nm,kw,ms)getData(smry, nm, kw, ms);
-% smry.getKws = @(nm)getKeywords(smry, nm);
-% smry.getUnit= @(nm,kw)getUnit(smry, nm, kw);
-% end
-% 
-% 
-% function kws = getKeywords(smry,~)
-% kws = smry.KEYWORDS;
-% end
-% 
-% function s = getData(smry, nm, kw, ms)
-% 
-% nInx = find(strcmp(smry.WGNAMES, nm));  
-% 
-% switch kw 
-%     case 'bhp'
-%         kInx = 1;  
-%         s = smry.data(kInx*nInx,:);        
-%     case 'qWs'
-%         kInx = 2; 
-%         s = smry.data(kInx*nInx,:);
-%     case 'qOs'
-%         kInx = 3;
-%         s = smry.data(kInx*nInx,:);
-%     case 'qGs'
-%         kInx = 4;
-%         nInx = find(strcmp(smry.WGNAMES, nm));    
-%         s = smry.data(kInx*nInx,:);
-%     case 'TIME'
-%         s = smry.data(4*numel(smry.WGNAMES)+1,:);
-%     case 'TIMESTEPS'
-%         s = smry.data(4*numel(smry.WGNAMES)+2,:);       
-% end
-% 
-% end
-% 
-% 
+
 function [nm,u] = getUnit(kw)
 switch kw 
     case 'bhp'

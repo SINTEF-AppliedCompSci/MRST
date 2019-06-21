@@ -116,7 +116,7 @@ end
 
 d.Data.wsdata = readwellSolDataForPostProcessor(problem, 'wellSolFields',{'bhp','qWs','qGs','qOs'}', ...
     'startdate', opt.startdate);
-% d.Data.wsdata = readwellSolDataForPostProcessor(problem, 'startdate', opt.startdate);
+
 d.Data.ws = wsHandler(:);
 
 d = PostProcessDiagnostics(d,precomp,'style',opt.style);

@@ -1,4 +1,7 @@
 function [G, data, Gs, valid_ix] = readAndPrepareForPostProcessor(casenm, steps, info, precomp)
+% Utility function to create input data for flow diagnostics postprocessor 
+% GUI from ECLIPSE simulation output.
+
 %if nargin < 4
 %    precomp = [];
 %end
