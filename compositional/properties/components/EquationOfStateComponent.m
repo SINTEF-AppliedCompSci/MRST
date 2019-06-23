@@ -49,7 +49,7 @@ classdef EquationOfStateComponent < ComponentImplementation
             % Ideal gas scaling
             scale = (pressure./component.pressure).*(component.T./temperature);
             rho = bsxfun(@times, rho, scale);
-            c = arrafyn(@(x) x, rho, 'UniformOutput', false);
+            c = arrayfun(@(x) x, rho, 'UniformOutput', false);
         end
 
         function c = getPhaseComponentFractionWell(component, model, state, W)
