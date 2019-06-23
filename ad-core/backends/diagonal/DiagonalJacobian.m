@@ -272,6 +272,10 @@ classdef DiagonalJacobian
                             
                             if allowDiag
                                 u.diagonal(s.subs{1}, :) = v.diagonal;
+                                if ~isempty(u.subset) && ~isempty(v.subset)
+                                    % Handle zero (wild card) subsets
+                                    u.subset(s.subs{1}) = max(u.subset(s.subs{1}), v.subset);
+                                end
                             else
                                 u = u.sparse();
                                 v = v.sparse();
@@ -531,7 +535,7 @@ classdef DiagonalJacobian
             elseif islogical(u_subset)
                 u_subset = find(u_subset);
             end
-            eq = all(u_subset(:) == b_subset(:));
+            eq = all(u_subset(:) == b_subset(:) | u_subset(:) == 0 | b_subset(:) == 0);
         end
 
         function isZ = isAllZeros(v)
