@@ -96,7 +96,6 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Ext
             if isempty(model.Components)
                 f = model.EOSModel.fluid;
                 names_hc = f.names;
-                n_hc = numel(names_hc);
                 if model.water
                     names = ['water', names_hc];
                 else
@@ -106,25 +105,13 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Ext
                 model.Components = cell(1, nc);
                 p = model.FacilityModel.pressure;
                 T = model.FacilityModel.T;
-                mw = f.molarMass;
                 for ci = 1:nc
                     name = names{ci};
                     switch name
                         case 'water'
                             c = ImmiscibleComponent('water', 1);
                         otherwise
-                            hcpos = strcmp(names_hc, name);
-                            z = zeros(1, n_hc);
-                            z(hcpos) = 1;
-                            [L, ~, ~, ~, ~, rhoL, rhoV] = standaloneFlash(p, T, z, model.EOSModel);
-                            if model.water
-                                frac = [0, L, 1-L];
-                                rho = [model.fluid.rhoWS, rhoL, rhoV];
-                            else
-                                frac = [L, 1-L];
-                                rho = [rhoL, rhoV];
-                            end
-                            c = EquationOfStateComponent(names{ci}, p, T, ci, frac, rho, mw(hcpos));
+                            c = getEOSComponent(model, p, T, name, ci);
                     end
                     model.Components{ci} = c;
                 end
