@@ -8,13 +8,14 @@ classdef EquationOfStateComponent < ComponentImplementation
     end
     
     methods
-        function c = EquationOfStateComponent(name, p, T, cindex, surfaceMassFractions, density)
+        function c = EquationOfStateComponent(name, p, T, cindex, surfaceMassFractions, density, mw)
             c@ComponentImplementation(name);
             c.componentIndex = cindex;
             c.pressure = p;
             c.T = T;
             c.surfacePhaseMassFractions = surfaceMassFractions;
             c.surfacePhaseDensityPure = density;
+            c.molarMass = mw;
             c = c.dependsOn({'Density', 'ComponentPhaseMassFractions'});
         end
         

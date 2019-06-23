@@ -31,6 +31,10 @@ classdef ExtendedFacilityModel < FacilityModel
         function [surfaceRates, surfaceDensity] = getSurfaceRates(facility, state)
             [cflux, map] = facility.getProps(state, 'ComponentTotalFlux', 'FacilityWellMapping');
             model = facility.ReservoirModel;
+            for c = 1:numel(cflux)
+                % Sum over each well
+                cflux{c} = map.perforationSum*cflux{c};
+            end
             if isempty(facility.SeparatorGroup)
                 % We use a simple, but fast approach based on the
                 % individual components' preference at different conditions
@@ -39,13 +43,11 @@ classdef ExtendedFacilityModel < FacilityModel
                 phaseMassRates = cell(1, nph);
                 [phaseMassRates{:}] = deal(0);
                 surfaceDensity = cell(1, nph);
-                %if rhoS isnan, calculate it
-                wsum = map.perforationSum;
                 for c = 1:numel(cflux)
                     composition = model.Components{c}.getPhaseCompositionSurface(model, state, p, temp);
                     for ph = 1:nph
                         if ~isempty(composition{ph})
-                            phaseMassRates{ph} = phaseMassRates{ph} + composition{ph}.*(wsum*cflux{c});
+                            phaseMassRates{ph} = phaseMassRates{ph} + composition{ph}.*cflux{c};
                         end
                     end
                 end
@@ -69,7 +71,8 @@ classdef ExtendedFacilityModel < FacilityModel
                     surfaceDensity{ph} = rhoPhase;
                 end
             else
-                [surfaceRates, surfaceDensity] = facility.SeparatorGroup.getSurfaceRates(cflux);
+                % Outsource this work to separator group
+                [surfaceRates, surfaceDensity] = facility.SeparatorGroup.getSurfaceRates(model, cflux);
             end
         end
         
