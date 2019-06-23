@@ -4,6 +4,7 @@ classdef SeparatorGroup
         separators
         topologicalOrder
         surfaceSeparator
+        mode = 'mass'
     end
     
     properties (Access = protected)
@@ -40,72 +41,90 @@ classdef SeparatorGroup
             end
         end
         
-        function [surfaceRates, rhoS] = getSurfaceRates(sg, model, componentMassRates)
-            mw = cellfun(@(x) x.molarMass, model.Components);
-            streamMole = reshape(componentMassRates, 1, []);
-            moleConvert = any(mw ~= 1);
-            hasWater = model.water;
-            if moleConvert
-                for i = 1:numel(componentMassRates)
-                    streamMole{i} = streamMole{i}./mw(i);
-                end
-            end
-            if hasWater
-                waterMass = componentMassRates{1};
-                streamMole = streamMole(2:end);
-            end
-
-            [surfaceRates, ~, phaseMoleFractions, molarDensity] = sg.computeSurfaceRatesFromMoleRates(model, streamMole);
-            rhoS = molarDensity;
-            if moleConvert
-                for ph = 1:numel(rhoS)
-                    w = 0;
-                    xy = phaseMoleFractions{ph};
-                    for c = 1:numel(xy)
-                        w = w + xy{c}.*mw(c);
+        function [surfaceRates, rhoS, phaseMoleFractions] = getSurfaceRates(sg, model, componentMassRates)
+            switch lower(sg.mode)
+                case 'mass'
+                    streamMass = reshape(componentMassRates, 1, []);
+                    [surfaceRates, ~, phaseMoleFractions, rhoS] = sg.computeSurfaceRates(model, streamMass);
+                case 'moles'
+                    mw = cellfun(@(x) x.molarMass, model.Components);
+                    streamMole = reshape(componentMassRates, 1, []);
+                    moleConvert = any(mw ~= 1);
+                    hasWater = model.water;
+                    if moleConvert
+                        for i = 1:numel(componentMassRates)
+                            streamMole{i} = streamMole{i}./mw(i);
+                        end
                     end
-                    rhoS{ph} = rhoS{ph}.*w;
-                end
-            end
-            if hasWater
-                rhoW = model.fluid.rhoWS(1);
-                rhoS = [repmat(rhoW, numelValue(surfaceRates{1}), 1), rhoS];
-                surfaceRates = [{waterMass./rhoW}, surfaceRates];
+                    if hasWater
+                        waterMass = componentMassRates{1};
+                        streamMole = streamMole(2:end);
+                    end
+
+                    [surfaceRates, ~, phaseMoleFractions, molarDensity] = sg.computeSurfaceRates(model, streamMole);
+                    rhoS = molarDensity;
+                    if moleConvert
+                        for ph = 1:numel(rhoS)
+                            w = 0;
+                            xy = phaseMoleFractions{ph};
+                            for c = 1:numel(xy)
+                                w = w + xy{c}.*mw(c);
+                            end
+                            rhoS{ph} = rhoS{ph}.*w;
+                        end
+                    end
+                    if hasWater
+                        rhoW = model.fluid.rhoWS(1);
+                        rhoS = [repmat(rhoW, numelValue(surfaceRates{1}), 1), rhoS];
+                        surfaceRates = [{waterMass./rhoW}, surfaceRates];
+                    end
+                otherwise
+                    error('Unknowm mode %s', sg.mode);
             end
         end
         
-        function [phaseVolumeStream, phaseMoleStream, phaseMoleFractions, molarDensity] = computeSurfaceRatesFromMoleRates(sg, model, stream_mole, varargin)
+        function [phaseVolumeStream, phaseStream, phaseFractions, density] = computeSurfaceRates(sg, model, stream, varargin)
             n = numel(sg.separators);
             sep = sg.surfaceSeparator;
             if n == 0
                 % We have no separator, just the surface conditions
-                [phaseMoleStream, phaseMoleFractions, molarDensity] = sep.separateComponentMoleStream(model, stream_mole);
-                phaseVolumeStream = phaseMoleStream;
+                switch lower(sg.mode)
+                    case 'mass'
+                        [phaseStream, phaseFractions, density] = sep.separateComponentMassStream(model, stream);
+                    case 'moles'
+                        [phaseStream, phaseFractions, density] = sep.separateComponentMoleStream(model, stream);
+                end
+                phaseVolumeStream = phaseStream;
                 for i = 1:numel(phaseVolumeStream)
-                    phaseVolumeStream{i} = phaseVolumeStream{i}./molarDensity{i};
+                    phaseVolumeStream{i} = phaseVolumeStream{i}./density{i};
                 end
             else
                 % We have one or more separators, perform full traversal
-                surfaceMoleRate = sg.computeSurfaceMoleRates(model, stream_mole, varargin{:});
+                surfaceMoleRate = sg.computeSurfaceMoleRates(model, stream, varargin{:});
                 nph = numel(surfaceMoleRate);
                 
-                phaseMoleFractions = surfaceMoleRate;
-                phaseMoleStream = cell(1, nph);
+                phaseFractions = surfaceMoleRate;
+                phaseStream = cell(1, nph);
                 phaseVolumeStream = cell(1, nph);
-                molarDensity = cell(1, nph);
-                ncomp = numel(phaseMoleFractions{1});
+                density = cell(1, nph);
+                ncomp = numel(phaseFractions{1});
                 % Flash the final stream and take the total volume
                 for ph = 1:nph
                     total = 0;
                     for c = 1:ncomp
-                        total = total + phaseMoleFractions{ph}{c};
+                        total = total + phaseFractions{ph}{c};
                     end
-                    phaseMoleStream{ph} = total;
+                    phaseStream{ph} = total;
                     for c = 1:ncomp
-                        phaseMoleFractions{ph}{c} = phaseMoleFractions{ph}{c}./total;
+                        phaseFractions{ph}{c} = phaseFractions{ph}{c}./total;
                     end
-                    [stream, ~, localdensity] = sep.separateComponentMoleStream(model, surfaceMoleRate{ph});
-                    molarDensity{ph} = localdensity{ph};
+                    switch lower(sg.mode)
+                        case 'mass'
+                            [stream, ~, localdensity] = sep.separateComponentMassStream(model, surfaceMoleRate{ph});
+                        case 'moles'
+                            [stream, ~, localdensity] = sep.separateComponentMoleStream(model, surfaceMoleRate{ph});
+                    end
+                    density{ph} = localdensity{ph};
                     tmp = 0;
                     for i = 1:nph
                         tmp = tmp + stream{i}./localdensity{i};

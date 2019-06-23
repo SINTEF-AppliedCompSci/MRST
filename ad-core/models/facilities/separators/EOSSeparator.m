@@ -1,13 +1,15 @@
-classdef EOSSeparator
+classdef EOSSeparator < BasicSeparator
     properties
-        pressure
-        T
         EOSModel
     end
     
     methods
         function sep = EOSSeparator(varargin)
             sep = merge_options(sep, varargin{:});
+        end
+        
+        function [massstreams, massfractions, densities] = separateComponentMassStream(sep, model, molestream)
+            assert(false, 'Use "moles" as mode for EOSSeparator');
         end
         
         function [molestreams, molefractions, densities] = separateComponentMoleStream(sep, model, molestream)
