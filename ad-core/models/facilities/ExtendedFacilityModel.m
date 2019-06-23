@@ -51,7 +51,7 @@ classdef ExtendedFacilityModel < FacilityModel
                         end
                     end
                 end
-                W = facility.getWellStruct(map.active);
+                W = map.W;
                 rhoS = model.getSurfaceDensities();
                 % We take the surface density for the first well cell,
                 % regardless of active or inactive status for that
