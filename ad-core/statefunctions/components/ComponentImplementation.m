@@ -32,6 +32,12 @@ classdef ComponentImplementation
             nph = model.getNumberOfPhases();
             c = cell(nph, 1);
         end
+        
+        function c = getPurePhaseDensitySurface(component, model, state, pressure, temperature)
+            % Surface density, for a pure component
+            nph = model.getNumberOfPhases();
+            c = cell(nph, 1);
+        end
 
         function c = getPhaseComposition(component, model, state)
             % Density of component in each phase. Default implementation

@@ -100,13 +100,15 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
                         otherwise
                             z = zeros(1, n_hc);
                             z(strcmp(names_hc, name)) = 1;
-                            L = standaloneFlash(p, T, z, model.EOSModel);
+                            [L, ~, ~, ~, ~, rhoL, rhoV] = standaloneFlash(p, T, z, model.EOSModel);
                             if model.water
                                 frac = [0, L, 1-L];
+                                rho = [model.fluid.rhoWS, rhoL, rhoV];
                             else
                                 frac = [L, 1-L];
+                                rho = [rhoL, rhoV];
                             end
-                            c = EquationOfStateComponent(names{ci}, ci, frac);
+                            c = EquationOfStateComponent(names{ci}, p, T, ci, frac, rho);
                     end
                     model.Components{ci} = c;
                 end
