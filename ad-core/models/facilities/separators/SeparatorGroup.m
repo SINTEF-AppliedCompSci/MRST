@@ -1,0 +1,208 @@
+classdef SeparatorGroup
+    properties
+        phaseDestination
+        separators
+        topologicalOrder
+        surfaceSeparator
+    end
+    
+    properties (Access = protected)
+    end
+    
+    methods
+        function g = SeparatorGroup(separator, pressure, T, phaseDestination, varargin)
+            if nargin == 1
+                [pressure, T, phaseDestination] = deal([]);
+            end
+            nsep = numel(pressure);
+            g.separators = cell(nsep, 1);
+            for i = 1:nsep
+                sep = separator;
+                sep.pressure = pressure(i);
+                sep.T = T(i);
+                g.separators{i} = sep;
+            end
+            if size(phaseDestination, 1) > 0
+                toNext = find(phaseDestination(:, 1) == 0);
+                % Zero for liquid indicates to the next stage
+                phaseDestination(toNext, 1) = toNext+1;
+                % Final always goes to tank
+                phaseDestination(end, 1) = 0;
+                % Finally -1 means also goes to tank
+                phaseDestination(phaseDestination(:, 1) == -1, 1) = 0;
+                g.phaseDestination = phaseDestination;
+                g.topologicalOrder = getTopologicalSort(g);
+            end
+            g = merge_options(g, varargin{:});
+            if isempty(g.surfaceSeparator)
+                % Standard conditions
+                g.surfaceSeparator = separator;
+            end
+        end
+        
+        function [surfaceRates, rhoS] = getSurfaceRates(sg, model, componentMassRates)
+            mw = cellfun(@(x) x.molarMass, model.Components);
+            streamMole = reshape(componentMassRates, 1, []);
+            moleConvert = any(mw ~= 1);
+            hasWater = model.water;
+            if moleConvert
+                for i = 1:numel(componentMassRates)
+                    streamMole{i} = streamMole{i}./mw(i);
+                end
+            end
+            if hasWater
+                waterMass = componentMassRates{1};
+                streamMole = streamMole(2:end);
+            end
+
+            [surfaceRates, ~, phaseMoleFractions, molarDensity] = sg.computeSurfaceRatesFromMoleRates(model, streamMole);
+            rhoS = molarDensity;
+            if moleConvert
+                for ph = 1:numel(rhoS)
+                    w = 0;
+                    xy = phaseMoleFractions{ph};
+                    for c = 1:numel(xy)
+                        w = w + xy{c}.*mw(c);
+                    end
+                    rhoS{ph} = rhoS{ph}.*w;
+                end
+            end
+            if hasWater
+                rhoW = model.fluid.rhoWS(1);
+                rhoS = [repmat(rhoW, numelValue(surfaceRates{1}), 1), rhoS];
+                surfaceRates = [{waterMass./rhoW}, surfaceRates];
+            end
+        end
+        
+        function [phaseVolumeStream, phaseMoleStream, phaseMoleFractions, molarDensity] = computeSurfaceRatesFromMoleRates(sg, model, stream_mole, varargin)
+            n = numel(sg.separators);
+            sep = sg.surfaceSeparator;
+            if n == 0
+                % We have no separator, just the surface conditions
+                [phaseMoleStream, phaseMoleFractions, molarDensity] = sep.separateComponentMoleStream(model, stream_mole);
+                phaseVolumeStream = phaseMoleStream;
+                for i = 1:numel(phaseVolumeStream)
+                    phaseVolumeStream{i} = phaseVolumeStream{i}./molarDensity{i};
+                end
+            else
+                % We have one or more separators, perform full traversal
+                surfaceMoleRate = sg.computeSurfaceMoleRates(model, stream_mole, varargin{:});
+                nph = numel(surfaceMoleRate);
+                
+                phaseMoleFractions = surfaceMoleRate;
+                phaseMoleStream = cell(1, nph);
+                phaseVolumeStream = cell(1, nph);
+                molarDensity = cell(1, nph);
+                ncomp = numel(phaseMoleFractions{1});
+                % Flash the final stream and take the total volume
+                for ph = 1:nph
+                    total = 0;
+                    for c = 1:ncomp
+                        total = total + phaseMoleFractions{ph}{c};
+                    end
+                    phaseMoleStream{ph} = total;
+                    for c = 1:ncomp
+                        phaseMoleFractions{ph}{c} = phaseMoleFractions{ph}{c}./total;
+                    end
+                    [stream, ~, localdensity] = sep.separateComponentMoleStream(model, surfaceMoleRate{ph});
+                    molarDensity{ph} = localdensity{ph};
+                    tmp = 0;
+                    for i = 1:nph
+                        tmp = tmp + stream{i}./localdensity{i};
+                    end
+                    phaseVolumeStream{ph} = tmp;
+                end
+            end
+        end
+
+        
+        function [surfaceStreams, separatorStreams] = computeSurfaceMoleRates(sg, model, stream_mole, start)
+            if nargin < 4
+                % Starting separator, defaults to one
+                start = 1;
+            end
+            assert(iscell(stream_mole));
+            ncomp = numel(stream_mole);
+            order = sg.topologicalOrder;
+            % Number of stages
+            n = numel(sg.separators);
+            % Phase molefractions out from each separator
+            out_fractions = cell(n, 1);
+            % Phase mole streams
+            out_molestreams = cell(n, 1);
+            % Phase molar densities
+            out_densities = cell(n, 1);
+            
+            dest = sg.phaseDestination;
+            nph = size(dest, 2);
+            % Total stream into each separator
+            in_streams = cell(n, 1);
+            % Initialize
+            in_streams{start} = stream_mole;
+            stream = cell(1, ncomp);
+            [stream{:}] = deal(0);
+            surfaceStreams = cell(1, nph);
+            [surfaceStreams{:}] = deal(stream);
+            for index = find(order==start):n
+                sepNo = order(index);
+                % Get separator and in-stream (will be correct since we are
+                % following the topological order
+                sep = sg.separators{sepNo};
+                s = in_streams{sepNo};
+                if isempty(s)
+                    % Not active
+                    continue
+                end
+                [ms, frac, dens] = sep.separateComponentMoleStream(model, s);
+                % Send to liquid/vapor separators
+                for ph = 1:nph
+                    target = dest(sepNo, ph);
+                    val = cell(1, ncomp);
+                    for c = 1:ncomp
+                        val{c} = frac{ph}{c}.*ms{ph};
+                    end
+                    if target == 0
+                        % Accumulate into surface streams
+                        for c = 1:ncomp
+                            surfaceStreams{ph}{c} = surfaceStreams{ph}{c} + val{c};
+                        end
+                    else
+                        % Otherwise accumulate into moles for target stream
+                        if isempty(in_streams{target})
+                            in_streams{target} = val;
+                        else
+                            for c = 1:ncomp
+                                in_streams{target}{c} = in_streams{target}{c} + val{c};
+                            end
+                        end
+                    end
+                end
+                % Store outputs
+                out_molestreams{sepNo} = ms;
+                out_fractions{sepNo} = frac;
+                out_densities{sepNo} = dens;
+            end
+            if nargout > 1
+                separatorStreams = struct('molestreams',    {out_molestreams},...
+                                          'densities',      {out_densities}, ...
+                                          'molefractions',  {out_fractions});
+            end
+        end
+        
+        function sorting = getTopologicalSort(sg)
+            N = sg.phaseDestination;
+            n = numel(sg.separators);
+            % Final node -> surface conditions
+            N(N == 0) = n+1;
+            start = (1:n)';
+            A = sparse([start, start], N, 1, n+1, n+1);
+            if exist('digraph', 'file')
+                G = digraph(A);
+                sorting = toposort(G)';
+            else
+                require matlab_bgl
+                sorting = topological_order(A);
+            end
+        end
+    end
+end
