@@ -22,7 +22,7 @@ classdef ComponentImplementation
             c = cell(nph, 1);
         end
 
-        function c = getPhaseCompositionWell(component, model, state, W)
+        function c = getPhaseComponentFractionWell(component, model, state, W)
             % Get composition of phases in well (on injection)
             nph = model.getNumberOfPhases();
             c = cell(nph, 1);
