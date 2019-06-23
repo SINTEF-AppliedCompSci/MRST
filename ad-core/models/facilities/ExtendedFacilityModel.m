@@ -35,44 +35,51 @@ classdef ExtendedFacilityModel < FacilityModel
                 % Sum over each well
                 cflux{c} = map.perforationSum*cflux{c};
             end
-            if isempty(facility.SeparatorGroup)
-                % We use a simple, but fast approach based on the
-                % individual components' preference at different conditions
-                [p, temp] = facility.getSurfaceConditions();
-                nph = model.getNumberOfPhases();
-                phaseMassRates = cell(1, nph);
-                [phaseMassRates{:}] = deal(0);
-                surfaceDensity = cell(1, nph);
-                for c = 1:numel(cflux)
-                    composition = model.Components{c}.getPhaseCompositionSurface(model, state, p, temp);
-                    for ph = 1:nph
-                        if ~isempty(composition{ph})
-                            phaseMassRates{ph} = phaseMassRates{ph} + composition{ph}.*cflux{c};
-                        end
+            % We use a simple, but fast approach based on the
+            % individual components' preference at different conditions
+            [p, temp] = facility.getSurfaceConditions();
+            nph = model.getNumberOfPhases();
+            phaseMassRates = cell(1, nph);
+            [phaseMassRates{:}] = deal(0);
+            surfaceDensity = cell(1, nph);
+            for c = 1:numel(cflux)
+                composition = model.Components{c}.getPhaseCompositionSurface(model, state, p, temp);
+                for ph = 1:nph
+                    if ~isempty(composition{ph})
+                        phaseMassRates{ph} = phaseMassRates{ph} + composition{ph}.*cflux{c};
                     end
                 end
-                W = map.W;
-                rhoS = model.getSurfaceDensities();
-                % We take the surface density for the first well cell,
-                % regardless of active or inactive status for that
-                % perforation.
-                topcell = arrayfun(@(x) x.cells(1), W);
-                reg = model.FlowPropertyFunctions.Density.regions;
-                rhoS = rhoS(reg(topcell), :);
-                if isfield(W, 'rhoS')
-                    % Surface density is given on a per-well-basis for the
-                    % injectors
-                    rhoS(map.isInjector, :) = vertcat(W(map.isInjector).rhoS);
-                end
-                surfaceRates = cell(1, nph);
+            end
+            W = map.W;
+            rhoS = model.getSurfaceDensities();
+            % We take the surface density for the first well cell,
+            % regardless of active or inactive status for that
+            % perforation.
+            topcell = arrayfun(@(x) x.cells(1), W);
+            reg = model.FlowPropertyFunctions.Density.regions;
+            rhoS = rhoS(reg(topcell), :);
+            if isfield(W, 'rhoS')
+                % Surface density is given on a per-well-basis for the
+                % injectors
+                rhoS(map.isInjector, :) = vertcat(W(map.isInjector).rhoS);
+            end
+            surfaceRates = cell(1, nph);
+            for ph = 1:nph
+                rhoPhase = rhoS(:, ph);
+                surfaceRates{ph} = phaseMassRates{ph}./rhoPhase;
+                rhoPhase = model.AutoDiffBackend.convertToAD(rhoPhase, cflux{1});
+                surfaceDensity{ph} = rhoPhase;
+            end
+            isProd = ~map.isInjector;
+            if ~isempty(facility.SeparatorGroup) && any(isProd)
+                % We have separators for the producers. Perform a
+                % potentially costly separation to figure out phase rates.
+                cfluxProd = cellfun(@(x) x(isProd), cflux, 'UniformOutput', false);
+                [surfaceRatesProd, surfaceDensityProd] = facility.SeparatorGroup.getSurfaceRates(model, cfluxProd);
                 for ph = 1:nph
-                    rhoPhase = rhoS(:, ph);
-                    surfaceRates{ph} = phaseMassRates{ph}./rhoPhase;
-                    surfaceDensity{ph} = rhoPhase;
+                    surfaceRates{ph}(isProd) = surfaceRatesProd{ph};
+                    surfaceDensity{ph}(isProd) = surfaceDensityProd{ph};
                 end
-            else
-                % Outsource this work to separator group
-                [surfaceRates, surfaceDensity] = facility.SeparatorGroup.getSurfaceRates(model, cflux);
             end
         end
         
@@ -95,7 +102,7 @@ classdef ExtendedFacilityModel < FacilityModel
             % reservoir rates. Otherwise, e.g. gas phases may be very
             % differently scaled.
             rhoR = value(model.getProps(state0, 'Density'));
-            rhoScale = mean(value(rhoS), 1)./mean(rhoR, 1);
+            rhoScale = bsxfun(@rdivide, value(rhoS), mean(rhoR, 1));
             % One equation for each phase corresponding to the volumetric
             % rate at surface conditions
             for ph = 1:nph
