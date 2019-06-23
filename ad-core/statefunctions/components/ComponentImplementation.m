@@ -4,6 +4,7 @@ classdef ComponentImplementation
         name
         dependencies = {};
         externals = [];
+        molarMass = 1;
     end
     
     methods
