@@ -531,7 +531,7 @@ classdef DiagonalJacobian
             elseif islogical(u_subset)
                 u_subset = find(u_subset);
             end
-            eq = all(u_subset(:) == b_subset(:));
+            eq = all(u_subset(:) == b_subset(:) | b_subset(:) == 0 | u_subset(:) == 0);
         end
 
         function isZ = isAllZeros(v)
