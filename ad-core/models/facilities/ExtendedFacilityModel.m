@@ -28,14 +28,17 @@ classdef ExtendedFacilityModel < FacilityModel
             src = struct('value', {val}, 'cells', map.cells);
         end
         
-        function [surfaceRates, rhoS] = getSurfaceRates(facility, state)
+        function [surfaceRates, surfaceDensity] = getSurfaceRates(facility, state)
             [cflux, map] = facility.getProps(state, 'ComponentTotalFlux', 'FacilityWellMapping');
             model = facility.ReservoirModel;
             if isempty(facility.SeparatorGroup)
+                % We use a simple, but fast approach based on the
+                % individual components' preference at different conditions
                 [p, temp] = facility.getSurfaceConditions();
                 nph = model.getNumberOfPhases();
                 phaseMassRates = cell(1, nph);
                 [phaseMassRates{:}] = deal(0);
+                surfaceDensity = cell(1, nph);
                 %if rhoS isnan, calculate it
                 wsum = map.perforationSum;
                 for c = 1:numel(cflux)
@@ -47,24 +50,26 @@ classdef ExtendedFacilityModel < FacilityModel
                     end
                 end
                 W = facility.getWellStruct(map.active);
+                rhoS = model.getSurfaceDensities();
+                % We take the surface density for the first well cell,
+                % regardless of active or inactive status for that
+                % perforation.
+                topcell = arrayfun(@(x) x.cells(1), W);
+                reg = model.FlowPropertyFunctions.Density.regions;
+                rhoS = rhoS(reg(topcell), :);
                 if isfield(W, 'rhoS')
-                    % Surface density is given on a per-well-basis
-                    rhoS = vertcat(W.rhoS);
-                else
-                    % We take the surface density for the first well cell,
-                    % regardless of active or inactive status for that
-                    % perforation.
-                    topcell = arrayfun(@(x) x.cells(1), W);
-                    reg = model.FlowPropertyFunctions.Density.regions;
-                    rhoS = model.getSurfaceDensities();
-                    rhoS = rhoS(reg(topcell), :);
+                    % Surface density is given on a per-well-basis for the
+                    % injectors
+                    rhoS(map.isInjector, :) = vertcat(W(map.isInjector).rhoS);
                 end
                 surfaceRates = cell(1, nph);
                 for ph = 1:nph
-                    surfaceRates{ph} = phaseMassRates{ph}./rhoS(:, ph);
+                    rhoPhase = rhoS(:, ph);
+                    surfaceRates{ph} = phaseMassRates{ph}./rhoPhase;
+                    surfaceDensity{ph} = rhoPhase;
                 end
             else
-                [surfaceRates, rhoS] = facility.SeparatorGroup.getSurfaceRates(cflux);
+                [surfaceRates, surfaceDensity] = facility.SeparatorGroup.getSurfaceRates(cflux);
             end
         end
         
