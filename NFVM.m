@@ -573,7 +573,12 @@ classdef NFVM < PermeabilityGradientDiscretization
                 a = a.*Kn_norm./tABC_norm;
                 keyboard
             end
-            assert(faces_found, ['decomposition failed for cell ',num2str(c)]);
+            %assert(faces_found, ['decomposition failed for cell
+            %',num2str(c)]);
+            if ~faces_found
+                error(['decomposition failed for cell ', ...
+                       num2str(c)]);
+            end
         
             faceA = facesABC(1);
             faceB = facesABC(2);
