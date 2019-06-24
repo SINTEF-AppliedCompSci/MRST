@@ -2,48 +2,6 @@
 clear;close all;clc
 mrstModule add incomp mimetic  ad-blackoil ad-core glpk ntpfa_glpk ...
     ad-props mpfa eni
-
-% %% Grid and rock
-% %grdecl=readGRDECL('NORNE.grdecl');
-% grdecl = readGRDECL(fullfile(getDatasetPath('norne'), 'NORNE.GRDECL'));
-% usys=getUnitSystem('METRIC');
-% grdecl=convertInputUnits(grdecl,usys);
-% G=processGRDECL(grdecl,'Tolerance',0.05);G=G(1);G=computeGeometry(G);
-% rock=grdecl2Rock(grdecl,G.cells.indexMap);
-% is_pos=rock.perm(:,3)>0;rock.perm(~is_pos,3)=1e-6*min(rock.perm(is_pos,3));
-% is_pos=rock.perm(:,2)>0;rock.perm(~is_pos,2)=1e-6*min(rock.perm(is_pos,2));
-% is_pos=rock.perm(:,1)>0;rock.perm(~is_pos,1)=1e-6*min(rock.perm(is_pos,1));
-% figure, plotGrid(G);view(3);clear grdecl usys GG is_pos
-% % ----------------------------------------------------------------------
-% x=G.cells.centroids(:,1);y=G.cells.centroids(:,2);
-% ind=x>4.59e5|y>7.324e6;[~,~,K]=ind2sub(G.cartDims,G.cells.indexMap);
-% ind=ind|K<4;cells=find(ind);G=removeCells(G,cells);clear cells K
-% rock.perm=rock.perm(~ind,:);rock.poro=rock.poro(~ind);rock.ntg=rock.ntg(~ind);
-% % -------------------------------------------------------------------------------
-% figure,subplot(1,2,1);
-% plotCellData(G,log10(rock.perm(:,1)),'edgecolor','none');view(3);
-% c=colorbar('southoutside');c.Label.String='log_{10}(\itk_{\rmH})';
-% subplot(1,2,2);
-% plotCellData(G,log10(rock.perm(:,3)),'edgecolor','none');view(3)
-% c=colorbar('southoutside');c.Label.String='log_{10}(\itk_{\rmV})';clear c;
-% % ----------------------------------------------------------------
-% x=4.562e5;y=7.3205e6;
-% d=bsxfun(@minus,G.cells.centroids(:,1:2),[x y]);
-% d=sqrt(dot(d,d,2));[~,inj]=min(d);
-% x=4.583e5;y=7.3234e6;
-% d=bsxfun(@minus,G.cells.centroids(:,1:2),[x y]);
-% d=sqrt(dot(d,d,2));[~,pro]=min(d);
-% nz=G.cartDims(3);
-% [I,J,~]=ind2sub(G.cartDims,G.cells.indexMap(inj));
-% Wtp=verticalWell([],G,rock,I,J,1:nz,'type','bhp','val',20e6,'name','I','Comp_i', 1,'refDepth',min(G.cells.centroids(:,end)));
-% Wm=verticalWell([],G,rock,I,J,1:nz,'type','bhp','val',20e6,'name','I','Comp_i', 1,'innerproduct','ip_quasirt','refDepth',min(G.cells.centroids(:,end)));
-% [I,J,~]=ind2sub(G.cartDims,G.cells.indexMap(pro));
-% Wtp=verticalWell(Wtp,G,rock,I,J,1:nz,'type','bhp','val',10e6,'name','P','Comp_i', 1,'refDepth',min(G.cells.centroids(:,end)));
-% Wm=verticalWell(Wm,G,rock,I,J,1:nz,'type','bhp','val',10e6,'name','P','Comp_i', 1,'innerproduct','ip_quasirt','refDepth',min(G.cells.centroids(:,end)));
-% clear x y d ind inj pro I J nz
-
-
-
 nx = 10;
 ny = 10;
 nz = 5;
@@ -51,41 +9,41 @@ G = cartGrid([nx, ny, nz]);
 %G = twister(G, 0.1);
 G = computeGeometry(G);
 
-
-
-%     parentdir = 'data/two_faults_small/HYBRID_GRID/MATFILE';
-%     workdatadir = fullfile(parentdir, 'working_data');
-%     filename = fullfile(parentdir, 'HG_MRSTGrid.mat');
-%     load(filename);
-%     G = G_2;
-% %     volume_hmin = min(G.cells.volumes.^(1/3));
-% %     area_hmin = min(sqrt(G.faces.areas));
-% %     hmin = min(volume_hmin, area_hmin);
-% %     G = removePinch(G, max(eps, 1e-6*hmin));
-%     G = computeGeometry(G);
-
-%     % G = createHexTetGrid(nx, ny, nz, [nx, 0, 0]);
-%     G = tetrahedralGrid(G.nodes.coords);
-%     G = computeGeometry(G);
-
 rock = makeRock(G, 100*milli*darcy, 1);
 
+% val1 = 20e6;
+% val2 = 10e6;
+% radius = 0.01;
+% cellsWell1 = well_cells(G, '1');
+% Wtp = addWell([], G, rock, cellsWell1, 'Type', 'bhp', ...
+%               'InnerProduct', 'ip_quasirt', ...
+%               'comp_i', [1], ...
+%               'Val', val1, 'Radius', radius, 'name', 'I');
+% cellsWell2 = well_cells(G, '2');
+% Wtp = addWell(Wtp, G, rock, cellsWell2, 'Type', 'bhp', ...
+%             'InnerProduct', 'ip_quasirt', ...
+%             'comp_i', [1], ...
+%             'Val', val2, 'Radius', radius, 'Dir', 'y', 'name', 'P');
 
-val1 = 20e6;
-val2 = 10e6;
-radius = 0.01;
-cellsWell1 = well_cells(G, '1');
-Wtp = addWell([], G, rock, cellsWell1, 'Type', 'bhp', ...
-              'InnerProduct', 'ip_quasirt', ...
-              'comp_i', [1], ...
-              'Val', val1, 'Radius', radius, 'name', 'I');
-cellsWell2 = well_cells(G, '2');
-Wtp = addWell(Wtp, G, rock, cellsWell2, 'Type', 'bhp', ...
-            'InnerProduct', 'ip_quasirt', ...
+
+% Wells
+cellsWell1 = 1:nx*ny:nx*ny*nz;
+cellsWell2 = nx:ny:nx*ny;
+
+% Wells in corner
+% cellsWell1 = 1;
+% cellsWell2 = G.cells.num;
+radius = 0.1;
+Wtp = addWell([], G, rock, cellsWell1, 'Type', 'rate', ...
+            'InnerProduct', 'ip_tpf', ...
             'comp_i', [1], ...
-            'Val', val2, 'Radius', radius, 'Dir', 'y', 'name', 'P');
-
-
+            'Val', 1.0/day(), 'Radius', radius, 'name', 'I');
+%disp('Well #1: '); display(W(1));
+Wtp = addWell(Wtp, G, rock, cellsWell2, 'Type', 'bhp', ...
+            'InnerProduct', 'ip_tpf', ...
+            'comp_i', [1], ...
+            'Val', 1.0e5, 'Radius', radius, 'Dir', 'y', 'name', 'P');
+%disp('Well #2: '); display(W(2));
 
 
 pv=sum(poreVolume(G,rock));
@@ -93,26 +51,25 @@ bc.face=boundaryFaces(G);
 bc.type=repmat({'flux'},[numel(bc.face),1]);
 bc.value=repmat({@(x)0},[numel(bc.face),1]);
 
-% load fieldModel;
-% figure, subplot(2,2,1),plotGrid(G);view(-5,55);plotWell(G,Wtp,'height',100);axis tight off
-% subplot(2,2,3),plotCellData(G,log10(convertTo(rock.perm(:,1),milli*darcy)),'edgecolor','none');
-% view(-5,55);h=colorbar;h.Label.String='log_{10}(\itk_{\rmH})';axis tight off;set(h,'fontsize',12)
-% subplot(2,2,4),plotCellData(G,log10(convertTo(rock.perm(:,end),milli*darcy)),'edgecolor','none');
-% view(-5,55);h=colorbar;h.Label.String='log_{10}(\itk_{\rmV})';axis tight off;set(h,'fontsize',12)
-% subplot(2,2,2),plotCellData(G,rock.poro,'edgecolor','none');
-% view(-5,55);h=colorbar;h.Label.String='\phi';axis tight off;set(h,'fontsize',12)
-% drawnow
-
 mu_value = 1;
 rho_value = 1;
-fluid=initSingleFluid('mu',mu_value,'rho',rho_value);
+fluid = initSingleFluid('mu',mu_value,'rho',rho_value);
 fluidad = initSimpleADIFluid('phases', 'W', 'mu' , mu_value, 'rho', rho_value);
 p0 = 15e6; % from FlowNTPFA call below
 s0 = 1.0;
-state0 = initState(G, Wtp, p0);
+
+%state0 = initState(G, Wtp, p0);
+%state0 = initResSol(G, p0, 1);
+% mfd:
+state0 = initState(G, Wtp, p0, s0)
+
+% Schdule with dummy dt
+schedule = simpleSchedule(1, 'W', Wtp); % include wells here as well?
 
 solvers = {};
 results = {};
+
+
 
 % %% MPFA Xavier style
 % solvers{end+1} = 'mpfa-x';
@@ -167,7 +124,7 @@ results = {};
 % view(3);colorbar;title(['Concentration ', solvers{end}]);
 % drawnow
 % results{end+1} = state;
-
+% 
 
 
 %% nonlinear NFVM in new framework
@@ -176,23 +133,19 @@ disp(solvers{end});
 model = GenericBlackOilModel(G, rock, fluidad,'water', true, 'oil', false, 'gas', false);
 model = model.validateModel();
 model.FluxDiscretization.PermeabilityPotentialGradient.PermeabilityGradientDiscretization ...
-    = NFVM(model); %, bc);
+    = NFVM(model, bc);
 model.FacilityModel = model.FacilityModel.setupWells(Wtp);
-dt = 1; % dummy dt
-schedule = simpleSchedule(dt, 'W', Wtp);
 [wellSols, states] = simulateScheduleAD(state0, model, schedule);
-state = states{1};
-figure,plotCellData(G,state.pressure/1e6);plotWell(G,Wtp);view(3)
+figure,plotCellData(G,states{1}.pressure/1e6);plotWell(G,Wtp);view(3)
 title(['Pressure ', solvers{end}]);h=colorbar;h.Label.String='Pressure[MPa]';clear h;
-Qinj=sum(state.wellSol(1).flux);tt=pv/Qinj;nstep=100;dt=tt/nstep;
-state = tracerTransport_implicit(G,rock,Wtp,state,dt,nstep);
-figure, plotCellData(G,state.cres(:,end));plotWell(G,Wtp);
+Qinj = sum(states{1}.wellSol(1).flux);tt=pv/Qinj;nstep=100;dt=tt/nstep;
+state = tracerTransport_implicit(G,rock,Wtp,states{1},dt,nstep);
+figure,plotCellData(G,state.cres(:,end));plotWell(G,Wtp);
 view(3);colorbar;title(['Concentration ', solvers{end}]);
 results{end+1} = state;
 
 
-
-% %% NTPFA from new framework doesn't converge
+% % NTPFA glpk doesn't converge. Very strange?
 % solvers{end+1} = 'NTPFA-glpk';
 % disp(solvers{end});
 % mrstVerbose off
@@ -201,12 +154,29 @@ results{end+1} = state;
 % model = model.validateModel();
 % model.FluxDiscretization.PermeabilityPotentialGradient.PermeabilityGradientDiscretization = NonlinearTwoPointFluxApproximation(model);
 % model.FacilityModel = model.FacilityModel.setupWells(Wtp);
-% schedule = simpleSchedule(dt, 'W', Wtp);
 % [wellSols, states] = simulateScheduleAD(state0, model, schedule);
 % state = states{1};
 % state = tracerTransport_implicit(G,rock,Wtp,state,dt,nstep);
 % results{end+1} = state;
 
+% %% TPFA new framework
+% solvers{end+1} = 'TPFA new';
+% disp(solvers{end});
+% model = GenericBlackOilModel(G, rock, fluidad,'water', true, 'oil', false, 'gas', false);
+% model = model.validateModel();
+% model.FluxDiscretization.PermeabilityPotentialGradient.PermeabilityGradientDiscretization ...
+%     = TwoPointFluxApproximation(model);
+% %model.FacilityModel = model.FacilityModel.setupWells(Wtp);
+% [wellSols, states] = simulateScheduleAD(state0, model, schedule);
+% state = states{1};
+% figure,plotCellData(G,state.pressure/1e6);plotWell(G,Wtp);view(3)
+% title(['Pressure ', solvers{end}]);h=colorbar;h.Label.String='Pressure[MPa]';clear h;
+% Qinj=sum(state.wellSol(1).flux);tt=pv/Qinj;nstep=100;dt=tt/nstep;
+% state = tracerTransport_implicit(G,rock,Wtp,state,dt,nstep);
+% figure, plotCellData(G,state.cres(:,end));plotWell(G,Wtp);
+% view(3);colorbar;title(['Concentration ', solvers{end}]);
+% results{end+1} = state;
+% 
 
 
 % %% nonlinear MPFA (slow and not accurate?)
@@ -226,7 +196,7 @@ results{end+1} = state;
 %% MFD
 solvers{end+1} = 'mfd';
 disp(solvers{end});
-state=incompMimetic(initState(G,Wtp,0),G,computeMimeticIP(G,rock),fluid,'wells',Wtp);
+state=incompMimetic(state0,G,computeMimeticIP(G,rock),fluid,'wells',Wtp);
 figure, plotCellData(G,state.pressure/1e6);plotWell(G,Wtp);view(3);
 title(['Pressure ', solvers{end}]);h=colorbar;h.Label.String='Pressure[MPa]';clear h;
 Qinj=sum(state.wellSol(1).flux);tt=pv/Qinj;nstep=100;dt=tt/nstep;
