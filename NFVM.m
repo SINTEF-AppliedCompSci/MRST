@@ -32,6 +32,7 @@ classdef NFVM < PermeabilityGradientDiscretization
     methods (Access = private)
         
         function T = TransNTPFA(nfvm, model, u)
+            dispif(mrstVerbose, 'TransNTPFA\n');
             
             G = model.G;
             OSflux = nfvm.OSflux;
@@ -83,6 +84,7 @@ classdef NFVM < PermeabilityGradientDiscretization
         end
         
         function [flux,wellsol]=computeFlux(nfvm,u,T,model)
+            dispif(mrstVerbose, 'computeFlux\n');
             
             G = model.G;
             
@@ -113,6 +115,8 @@ classdef NFVM < PermeabilityGradientDiscretization
 %         end
         
         function interpFace=findHAP(nfvm,G,rock)
+            dispif(mrstVerbose, 'findHAP\n');
+            
             %find harmonic averaging points for 2D and 3D grids. Considering both
             %Dirichelt and Neumann boundary conditions
             
@@ -184,6 +188,8 @@ classdef NFVM < PermeabilityGradientDiscretization
         end
         
         function [interpFace]=correctHAP(nfvm,G,myRatio)
+            dispif(mrstVerbose, 'correctHAP\n');
+            
             %Correct ill-placed harmonic averaging points. If the number of input
             %arguments is 2, then the correction algorithm is applied only when some
             %cell centroids lie outside their associated convex hull; if the number of
@@ -290,6 +296,8 @@ classdef NFVM < PermeabilityGradientDiscretization
         end
         
         function OSflux=findOSflux(nfvm,G,rock,interpFace)
+            dispif(mrstVerbose, 'findOSflux\n');
+            
             %Construct one-side fluxes for 2D and 3D grids. Considering general
             %boundary conditions, appending a constant at the last row of
             %transmissibility matrix
@@ -521,30 +529,23 @@ classdef NFVM < PermeabilityGradientDiscretization
             myNorm=myNorm(I);
             nf=numel(theFaces);
             flag=0;
+            faces_found = false;
             
             myIndex=zeros(nf*(nf-1)*(nf-2)/6,3);
             myCoeff=myIndex;counter=1;
             for i=1:nf-2
-                tA=myBases(i,:)';
-                tA_norm=myNorm(i);
                 for j=i+1:nf-1
-                    tB=myBases(j,:)';
-                    tB_norm=myNorm(j);
                     for k=j+1:nf
-                        tC=myBases(k,:)';
-                        tC_norm=myNorm(k);
-                        if(abs(det([tA tB tC]))>1e-9)
-                            temp_a=[tA tB tC]\(Kn_unit);
+                        if (abs(det(myBases([i, j, k], :))) > 1e-9)
+                            temp_a = myBases([i, j, k], :).' \ Kn_unit;
                             temp_a(abs(temp_a)<1e-9)=0;
                             if(all(temp_a>=0))
                                 if(all(temp_a<=1))
-                                    faceA=theFaces(i);
-                                    faceB=theFaces(j);
-                                    faceC=theFaces(k);
+                                    facesABC = theFaces([i, j, k]);
+                                    faces_found = true;
                                     a=temp_a;
-                                    a(1)=a(1)*Kn_norm/tA_norm;
-                                    a(2)=a(2)*Kn_norm/tB_norm;
-                                    a(3)=a(3)*Kn_norm/tC_norm;
+                                    tABC_norm = myNorm([i, j, k]);
+                                    a = a.*Kn_norm./tABC_norm;
                                     flag=1;break;
                                 else
                                     myIndex(counter,:)=[i,j,k];
@@ -562,18 +563,21 @@ classdef NFVM < PermeabilityGradientDiscretization
                 myIndex(counter:end,:)=[];myCoeff(counter:end,:)=[];
                 maxCoeff=max(myCoeff,[],2);
                 [~,ind]=min(maxCoeff);
-                i=myIndex(ind,1);j=myIndex(ind,2);k=myIndex(ind,3);
+                i=myIndex(ind,1);
+                j=myIndex(ind,2);
+                k=myIndex(ind,3);
                 a=myCoeff(ind,:);
-                faceA=theFaces(i);faceB=theFaces(j);faceC=theFaces(k);
-                tA_norm=myNorm(i);
-                tB_norm=myNorm(j);
-                tC_norm=myNorm(k);
-                a(1)=a(1)*Kn_norm/tA_norm;
-                a(2)=a(2)*Kn_norm/tB_norm;
-                a(3)=a(3)*Kn_norm/tC_norm;
+                facesABC = theFaces([i, j, k]);
+                faces_found = true;
+                tABC_norm = myNorm([i, j, k]);
+                a = a.*Kn_norm./tABC_norm;
+                keyboard
             end
-            assert(logical(exist('faceA','var')),...
-                ['decomposition failed for cell ',num2str(c)]);
+            assert(faces_found, ['decomposition failed for cell ',num2str(c)]);
+        
+            faceA = facesABC(1);
+            faceB = facesABC(2);
+            faceC = facesABC(3);
         end
         
         function [a,xD]=findDnode(nfvm,G,mycell,myface,Kn)
