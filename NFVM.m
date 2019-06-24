@@ -12,7 +12,7 @@ classdef NFVM < PermeabilityGradientDiscretization
             % Setup nfvm members
             %nfvm.bc = bc;
             nfvm.interpFace = nfvm.findHAP(model.G, model.rock);
-            disp(['fraction of faces with centroids outside convex hull ', num2str(nfvm.interpFace.percentage)]);
+            disp(['fraction of faces with centroids outside convex hull ', num2str(nfvm.interpFace.fraction)]);
             nfvm.interpFace = nfvm.correctHAP(model.G);
             nfvm.OSflux = nfvm.findOSflux(model.G, model.rock, nfvm.interpFace);
         end
@@ -122,14 +122,14 @@ classdef NFVM < PermeabilityGradientDiscretization
             
             %   interpFace.coords: coordinates of interpolating points
             %   interpFace.weights: interpolating weights
-            %   interpFace.percentage: the percentage of cells whose centroid is
+            %   interpFace.fraction: the fraction of cells whose centroid is
             %   outside the convex hull
             
             K=permTensor(rock,G.griddim);
             K=reshape(K',G.griddim,G.griddim,[]);
             interpFace.coords=zeros(G.faces.num,G.griddim);
             interpFace.weights=zeros(G.faces.num,2);
-            interpFace.percentage=0;
+            interpFace.fraction=0;
             % find harmoinc averaging point--------------------------------------------
             for i_face=1:G.faces.num
                 c1=G.faces.neighbors(i_face,1);
@@ -184,7 +184,7 @@ classdef NFVM < PermeabilityGradientDiscretization
                         counter(i)=nfvm.inhull(xc,hap,ind,-1e-5);
                 end
             end
-            interpFace.percentage=1-sum(counter)/G.cells.num;
+            interpFace.fraction=1-sum(counter)/G.cells.num;
         end
         
         function [interpFace]=correctHAP(nfvm,G,myRatio)
@@ -204,7 +204,7 @@ classdef NFVM < PermeabilityGradientDiscretization
             
             HAP=interpFace.coords; % store the locations of the original harmonic averaging points;
             if(nargin==2)
-                if(interpFace.percentage>0)
+                if(interpFace.fraction>0)
                     if(G.griddim==2)
                         R=0.5*G.faces.areas;
                     else
