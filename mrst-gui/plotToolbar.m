@@ -494,7 +494,9 @@ function resetSelection(varargin)
     minmax.active = true(G.cells.num, 1);
     mainFig = gcf;
     histsubset = nan;
-
+    
+    deleteHandle(sliceoutlineh);
+    
     replotPatch(varargin{:});
 end
 

@@ -73,6 +73,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     addlistener(selecttype, 'Value', 'PostSet', @plotPlane);
 
     plotPlane(0, [])
+    
     function plotPlane(src, event)
         if isempty(opt.Callback)
             figure(fig0)
@@ -110,10 +111,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         else
             opt.Callback(subset, outlinepts);
         end
+        
         if doSurf
             plotSurf(src, event, subset, N, outlinepts, pt0.*crange + mgc, pt1.*crange + mgc, pt2.*crange + mgc);
         end
     end
+    
     function plotSurf(src, event, subset, N, outlinepts, pt0, pt1, pt2)
         set(0, 'CurrentFigure', fig1);
         deleteHandle(surfh);
