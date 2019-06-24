@@ -12,7 +12,7 @@ classdef NFVM < PermeabilityGradientDiscretization
             % Setup nfvm members
             %nfvm.bc = bc;
             nfvm.interpFace = nfvm.findHAP(model.G, model.rock);
-            disp(['fraction of faces with centroids outside convex hull ', num2str(nfvm.interpFace.fraction)]);
+            disp(['fraction of faces with centroids outside convex hull: ', num2str(nfvm.interpFace.fraction)]);
             nfvm.interpFace = nfvm.correctHAP(model.G);
             nfvm.OSflux = nfvm.findOSflux(model.G, model.rock, nfvm.interpFace);
         end
@@ -40,7 +40,7 @@ classdef NFVM < PermeabilityGradientDiscretization
             
             T=zeros(G.faces.num,2);
             for i_face=1:G.faces.num
-                if(all(G.faces.neighbors(i_face,:)~=0))
+                if(all(G.faces.neighbors(i_face,:)~=0)) % internal face
                     t1=OSflux{i_face,1};
                     t2=OSflux{i_face,2};
                     r1=t1(3:end-1,2)'*u(t1(3:end-1,1))+t1(end,2);
@@ -77,8 +77,8 @@ classdef NFVM < PermeabilityGradientDiscretization
                     % else
                         T(i_face,2)=-G.faces.areas(i_face)*...
                             0;
-                        %bc.value{ind}(G.faces.centroids(i_face,:));
-                    %end
+                    % bc.value{ind}(G.faces.centroids(i_face,:));
+                    % end
                 end
             end
         end
@@ -135,7 +135,7 @@ classdef NFVM < PermeabilityGradientDiscretization
                 c1=G.faces.neighbors(i_face,1);
                 c2=G.faces.neighbors(i_face,2);
                 xf=G.faces.centroids(i_face,:)';
-                if(all([c1 c2]~=0))
+                if(all([c1 c2]~=0)) % internal face
                     K1=K(:,:,c1);K2=K(:,:,c2);
                     fn=G.faces.normals(i_face,:)';
                     w1=K1*fn;w2=K2*fn;
@@ -161,11 +161,11 @@ classdef NFVM < PermeabilityGradientDiscretization
                         xA=x1+dot(xf-x1,fn)/dot(w1,fn)*w1;
                         interpFace.coords(i_face,:)=xA';
                         a=norm(w1)/norm(x1-xA);
-                        %gN=nfvm.bc.value{ind}(xf)*G.faces.areas(i_face);
+                        % gN=nfvm.bc.value{ind}(xf)*G.faces.areas(i_face);
                         gN=0;
                         interpFace.weights(i_face,(c1==0)+1)=1;
                         interpFace.weights(i_face,(c2==0)+1)=-gN/a;
-                    %end
+                    % end
                 end
             end
             
@@ -220,7 +220,7 @@ classdef NFVM < PermeabilityGradientDiscretization
                         while(flag)
                             d=interpFace.coords(theFaces,:)-G.faces.centroids(theFaces,:);
                             %d=sqrt(dot(d,d,2));
-                            d = vecnorm(A,2,2);
+                            d = vecnorm(d,2,2);
                             [maxRatio,ind]=max(d./R(theFaces));
                             y_sigma=HAP(theFaces(ind),:)';
                             interpFace=nfvm.correctHAP_local(G,theFaces(ind),interpFace,y_sigma,0.9*maxRatio);
@@ -401,7 +401,7 @@ classdef NFVM < PermeabilityGradientDiscretization
                             %     if(c1~=G.faces.neighbors(i_face,1)),fn=-fn;end
                             %     w1=K1*fn;
                                 
-                            %     [a,faceA,faceB,faceC]=nfvm.findABC(G,interpFace,c1,w1);
+                            %     [a,faceA,faceB,faceC]=nfvm.findABC(G,interpFace,c1,w1);keyboard
                             %     if(faceA==i_face)
                             %         interpB=G.faces.neighbors(faceB,:)';weightB=-a(2).*interpFace.weights(faceB,:)';
                             %         interpC=G.faces.neighbors(faceC,:)';weightC=-a(3).*interpFace.weights(faceC,:)';
@@ -566,18 +566,16 @@ classdef NFVM < PermeabilityGradientDiscretization
                 myIndex(counter:end,:)=[];myCoeff(counter:end,:)=[];
                 maxCoeff=max(myCoeff,[],2);
                 [~,ind]=min(maxCoeff);
-                i=myIndex(ind,1);
-                j=myIndex(ind,2);
-                k=myIndex(ind,3);
-                a=myCoeff(ind,:);
-                facesABC = theFaces([i, j, k]);
+                a=myCoeff(ind,:).';
+                ijk=myIndex(ind,:);
+                facesABC = theFaces(ijk);
                 faces_found = true;
-                tABC_norm = myNorm([i, j, k]);
+                tABC_norm = myNorm(ijk);
                 a = a.*Kn_norm./tABC_norm;
-                keyboard
             end
             %assert(faces_found, ['decomposition failed for cell
             %',num2str(c)]);
+            
             if ~faces_found
                 error(['decomposition failed for cell ', ...
                        num2str(c)]);
