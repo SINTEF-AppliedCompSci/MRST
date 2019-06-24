@@ -46,7 +46,19 @@ classdef WellComponentTotalFlux < StateFunction
             crossflow = (injection & ~isInjector) | ...
                         (production & isInjector);
             if any(injection)
-                compi = vertcat(W.compi);
+                nw = numel(W);
+                surfaceComposition = cell(ncomp, nph);
+                for c = 1:ncomp
+                    % Store well injector composition
+                    surfaceComposition(c, :) = model.ReservoirModel.Components{c}.getPhaseComponentFractionWell(model.ReservoirModel, state, W);
+                end
+                rem = cellfun(@isempty, surfaceComposition);
+                [surfaceComposition{rem}] = deal(zeros(nw, 1));
+                compi = zeros(nw, ncomp);
+                Wcomp = vertcat(W.compi);
+                for ph = 1:nph
+                    compi = compi + Wcomp(:, ph).*[surfaceComposition{:, ph}];
+                end
                 if any(crossflow)
                     % allready been disp'ed in WellPhaseFlux
                     compi = crossFlowMixture(vd, compi, map, true);
