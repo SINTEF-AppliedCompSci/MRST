@@ -109,6 +109,10 @@ sub = sum(D.itracer(:, iix), 2) > 1e-5;
 % only check allocations > total*10^-3
 checkIx = dist.allocations > 1e-3*sum(dist.allocations);
 
+if ~checkIx
+    return
+end
+
 t1 = min(dist.volumes(checkIx)./dist.allocations(checkIx));
 % total pvi
 pvi = sum(dist.volumes)/sum(dist.allocations);
