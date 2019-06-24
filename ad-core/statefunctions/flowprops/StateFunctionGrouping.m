@@ -206,7 +206,7 @@ classdef StateFunctionGrouping
                 if ~isempty(prop)
                     prop = prop.subset(subset);
                 end
-                props.setStateFunction(name, prop);
+                props = props.setStateFunction(name, prop);
             end
         end
         
