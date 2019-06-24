@@ -219,7 +219,8 @@ classdef NFVM < PermeabilityGradientDiscretization
                         neighbors(neighbors==0)=[];
                         while(flag)
                             d=interpFace.coords(theFaces,:)-G.faces.centroids(theFaces,:);
-                            d=sqrt(dot(d,d,2));
+                            %d=sqrt(dot(d,d,2));
+                            d = vecnorm(A,2,2);
                             [maxRatio,ind]=max(d./R(theFaces));
                             y_sigma=HAP(theFaces(ind),:)';
                             interpFace=nfvm.correctHAP_local(G,theFaces(ind),interpFace,y_sigma,0.9*maxRatio);
@@ -238,7 +239,8 @@ classdef NFVM < PermeabilityGradientDiscretization
                 xf=G.faces.centroids;
                 hap=interpFace.coords;
                 d=hap-xf;
-                d=sqrt(dot(d,d,2));
+                %d=sqrt(dot(d,d,2));
+                d = vecnorm(d,2,2);
                 ind=find(d>R);
                 for i=1:numel(ind)
                     interpFace=correctHAP_local(G,ind(i),interpFace,HAP(ind(i),:)',myRatio);
@@ -380,27 +382,16 @@ classdef NFVM < PermeabilityGradientDiscretization
                         if(all(G.faces.neighbors(i_face,:)~=0)) %--------------internal face
                             c1=G.faces.neighbors(i_face,1);
                             c2=G.faces.neighbors(i_face,2);
-                            K1=K(:,:,c1);K2=K(:,:,c2);
+
+                            K1=K(:,:,c1);
                             w1=K1*G.faces.normals(i_face,:)';
+                            [a,facesABC]=nfvm.findABC(G,interpFace,c1,w1);
+                            OSflux(i_face,1)={nfvm.localOSflux(c1,c2,G.faces.neighbors,a,facesABC,interpFace.weights)};
+                                         
+                            K2=K(:,:,c2);
                             w2=-K2*G.faces.normals(i_face,:)';
-                            
-                            [a,faceA,faceB,faceC]=nfvm.findABC(G,interpFace,c1,w1);
-                            interpA=[G.faces.neighbors(faceA,:)' -a(1).*interpFace.weights(faceA,:)'];
-                            interpB=[G.faces.neighbors(faceB,:)' -a(2).*interpFace.weights(faceB,:)'];
-                            interpC=[G.faces.neighbors(faceC,:)' -a(3).*interpFace.weights(faceC,:)'];
-                            container=[c1;c2;interpA(:,1);interpB(:,1);interpC(:,1);0];
-                            container(:,2)=[sum(a);0;interpA(:,2);interpB(:,2);interpC(:,2);0];
-                            trans=nfvm.uniqueTrans(container);
-                            OSflux(i_face,1)={trans};clear trans;
-                            
-                            [a,faceA,faceB,faceC]=nfvm.findABC(G,interpFace,c2,w2);
-                            interpA=[G.faces.neighbors(faceA,:)' -a(1).*interpFace.weights(faceA,:)'];
-                            interpB=[G.faces.neighbors(faceB,:)' -a(2).*interpFace.weights(faceB,:)'];
-                            interpC=[G.faces.neighbors(faceC,:)' -a(3).*interpFace.weights(faceC,:)'];
-                            container=[c2;c1;interpA(:,1);interpB(:,1);interpC(:,1);0];
-                            container(:,2)=[sum(a);0;interpA(:,2);interpB(:,2);interpC(:,2);0];
-                            trans=nfvm.uniqueTrans(container);
-                            OSflux(i_face,2)={trans};clear trans;
+                            [a,facesABC]=nfvm.findABC(G,interpFace,c2,w2);
+                            OSflux(i_face,2)={nfvm.localOSflux(c2,c1,G.faces.neighbors,a,facesABC,interpFace.weights)};
                         else  %----------------------------------------------------boundary face
                             % ind=find(nfvm.bc.face==i_face,1);
                             % if(strcmpi(nfvm.bc.type{ind},'pressure'))
@@ -447,12 +438,22 @@ classdef NFVM < PermeabilityGradientDiscretization
             end
         end
         
+        function trans = localOSflux(nfvm,c1,c2,neighbors,a,faces,weights)
+            interpA=[neighbors(faces(1),:)' -a(1).*weights(faces(1),:)'];
+            interpB=[neighbors(faces(2),:)' -a(2).*weights(faces(2),:)'];
+            interpC=[neighbors(faces(3),:)' -a(3).*weights(faces(3),:)'];
+            container=[c1;c2;interpA(:,1);interpB(:,1);interpC(:,1);0];
+            container(:,2)=[sum(a);0;interpA(:,2);interpB(:,2);interpC(:,2);0];
+            trans=nfvm.uniqueTrans(container);
+        end
+        
         function [a,faceA,faceB]=findAB(nfvm,G,interpFace,c,Kn)
             x1=G.cells.centroids(c,:)';
             theFaces=G.cells.faces(G.cells.facePos(c):G.cells.facePos(c+1)-1,1);
             myBases=interpFace.coords(theFaces,:);
             myBases=bsxfun(@minus,myBases,x1');
-            myNorm=sqrt(dot(myBases,myBases,2));
+            %myNorm=sqrt(dot(myBases,myBases,2));
+            myNorm=vecnorm(myBases,2,2);
             myBases=bsxfun(@rdivide,myBases,myNorm);
             Kn_norm=norm(Kn);
             Kn_unit=Kn/Kn_norm;
@@ -511,12 +512,13 @@ classdef NFVM < PermeabilityGradientDiscretization
                 ['decomposition failed for cell ',num2str(c)]);
         end
         
-        function [a,faceA,faceB,faceC]=findABC(nfvm,G,interpFace,c,Kn)
+        function [a,facesABC]=findABC(nfvm,G,interpFace,c,Kn)
             x1=G.cells.centroids(c,:)';
             theFaces=G.cells.faces(G.cells.facePos(c):G.cells.facePos(c+1)-1,1);
             myBases=interpFace.coords(theFaces,:);
             myBases=bsxfun(@minus,myBases,x1');
-            myNorm=sqrt(dot(myBases,myBases,2));
+            %myNorm=sqrt(dot(myBases,myBases,2));
+            myNorm=vecnorm(myBases,2,2);
             myBases=bsxfun(@rdivide,myBases,myNorm);
             Kn_norm=norm(Kn);
             Kn_unit=Kn/Kn_norm;
@@ -536,8 +538,9 @@ classdef NFVM < PermeabilityGradientDiscretization
             for i=1:nf-2
                 for j=i+1:nf-1
                     for k=j+1:nf
-                        if (abs(det(myBases([i, j, k], :))) > 1e-9)
-                            temp_a = myBases([i, j, k], :).' \ Kn_unit;
+                        myB = myBases([i, j, k], :).';
+                        if (abs(det(myB)) > 1e-9)
+                            temp_a = myB \ Kn_unit;
                             temp_a(abs(temp_a)<1e-9)=0;
                             if(all(temp_a>=0))
                                 if(all(temp_a<=1))
@@ -579,10 +582,6 @@ classdef NFVM < PermeabilityGradientDiscretization
                 error(['decomposition failed for cell ', ...
                        num2str(c)]);
             end
-        
-            faceA = facesABC(1);
-            faceB = facesABC(2);
-            faceC = facesABC(3);
         end
         
         function [a,xD]=findDnode(nfvm,G,mycell,myface,Kn)
