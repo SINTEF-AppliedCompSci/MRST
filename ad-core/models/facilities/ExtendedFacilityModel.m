@@ -92,7 +92,7 @@ classdef ExtendedFacilityModel < FacilityModel
             end
             nph = model.getNumberOfPhases();
             [eqs, names, types] = deal(cell(1, nph+1));
-            
+            wsum = map.perforationSum;
             % This is a temporary hack!
             q_s = state.FacilityState.primaryVariables(1:nph);
             % Get surface rate equations
