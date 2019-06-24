@@ -1,4 +1,4 @@
-function compi = crossFlowMixture(flux, compi, map, conserveMass)
+function compi = crossFlowMixture(flux, compi, map, conserveMass, is_zero)
     if nargin < 4
         conserveMass = false;
     end
@@ -12,6 +12,9 @@ function compi = crossFlowMixture(flux, compi, map, conserveMass)
     % surface connection with the top composition
     net_flux = sum_perf(sum(flux, 2), map);
     net_injection = max(net_flux, 0);
+    if nargin > 4
+        net_injection(is_zero) = 0;
+    end
     % Flux into well-bore plus net injection weighted with topside
     % composition
     sum_in = sum_perf(flux_in, map);

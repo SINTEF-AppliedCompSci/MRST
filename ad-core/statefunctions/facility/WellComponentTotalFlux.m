@@ -46,6 +46,10 @@ classdef WellComponentTotalFlux < StateFunction
             crossflow = (injection & ~isInjector) | ...
                         (production & isInjector);
             if any(injection)
+                ws = state.wellSol(map.active);
+                targets = arrayfun(@(x) x.type, W, 'UniformOutput', false);
+                val = vertcat(ws.val);
+                isZero = ~strcmpi(targets, 'bhp') & val == 0;
                 nw = numel(W);
                 surfaceComposition = cell(ncomp, nph);
                 for c = 1:ncomp
@@ -61,7 +65,7 @@ classdef WellComponentTotalFlux < StateFunction
                 end
                 if any(crossflow)
                     % allready been disp'ed in WellPhaseFlux
-                    compi = crossFlowMixture(vd, compi, map, true);
+                    compi = crossFlowMixture(vd, compi, map, true, isZero);
                 end
                 compi_perf = compi(map.perf2well, :);
                 vt = zeros(sum(injection), 1);
