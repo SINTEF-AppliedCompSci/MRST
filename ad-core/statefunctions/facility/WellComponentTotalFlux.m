@@ -68,7 +68,7 @@ classdef WellComponentTotalFlux < StateFunction
                 for i = 1:nph
                     vt = vt + v{i}(injection);
                 end    
-                for i = 1:nph
+                for i = 1:ncomp
                     v{i}(injection) = vt.*compi_perf(injection, i);
                 end
             end
