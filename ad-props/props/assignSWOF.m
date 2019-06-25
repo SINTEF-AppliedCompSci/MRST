@@ -1,17 +1,6 @@
 function f = assignSWOF(f, swof, reg)
-[f.krW, f.krOW, f.pcOW, f.krPts.w, f.krPts.ow] = getFunctions(swof, reg);
+    [f.krW, f.krOW, f.pcOW, f.krPts.w, f.krPts.ow] = getFunctions(swof, reg);
 
-if isfield(reg, 'SURFNUM')
-   % Assign miscible relperm for surfactant
-   f.krWSft  = @(sw, varargin)krWSft(sw, swof, reg, varargin{:});
-   f.krOWSft  = @(so, varargin)krOWSft(so, swof, reg, varargin{:});
-   % Assign residual water saturation for surfactant
-   f.sWconSft = f.krPts.w(reg.SURFNUM, 1);
-   % Assign residual oil saturation
-   sOres  = cellfun(@(x)x(end, 1), swof);
-   f.sOres = 1 - sOres(reg.SATNUM);
-   f.sOresSft = 1 - sOres(reg.SURFNUM);
-end
 end
 
 function [krW, krOW, pcOW, pts_w, pts_ow] = getFunctions(SWOF, reg)
@@ -31,19 +20,6 @@ function [krW, krOW, pcOW, pts_w, pts_ow] = getFunctions(SWOF, reg)
     end
 end
 
-function v = krWSft(sw, swof, reg, varargin)
-surfinx = getRegMap(sw, reg.SURFNUM, reg.SURFINX, varargin{:});
-T = cellfun(@(x)x(:,[1,2]), swof, 'UniformOutput', false);
-T = extendTab(T);
-v = interpReg(T, sw, surfinx);
-end
-
-function v = krOWSft(so, swof, reg, varargin)
-surfinx = getRegMap(so, reg.SURFNUM, reg.SURFINX, varargin{:});
-T = cellfun(@(x)x(:,[1,3]), swof, 'UniformOutput', false);
-T = extendTab(T);
-v = interpReg(T, 1 - so, surfinx);
-end
 
 function [pts, pts_o] = getPoints(swof)
     pts = zeros(1, 4);

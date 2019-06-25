@@ -66,9 +66,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        scheduleDeck = scheduleDeck.SCHEDULE;
     end
     scheduleMRST = struct('step', scheduleDeck.step);
-    
+    isCompostional = isa(model, 'ThreePhaseCompositionalModel');
+    if isCompostional
+        n_hc = model.EOSModel.fluid.getNumberOfComponents();
+    end
     nc = numel(scheduleDeck.control);
-    
     tmp = cell(nc, 1);
     scheduleMRST.control = struct('W', tmp, 'bc', tmp, 'src', tmp);
     
@@ -106,6 +108,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             end
             ci = c(map);
             W(j).compi = ci/sum(ci);
+            if isCompostional
+                W(j).components = ones(1, n_hc)/n_hc;
+            end
         end
         
         if isfield(W, 'solventFrac')

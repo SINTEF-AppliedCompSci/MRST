@@ -38,14 +38,6 @@ W = drivingForces.W;
 fluid = model.fluid;
 compFluid = model.EOSModel.fluid;
 
-if isempty(opt.propsPressure)
-    if model.EOSModel.fastDerivatives
-        state.eos.packed = model.EOSModel.getPropertiesFastAD(state.pressure, state.T, state.x, state.y, state.components);
-    else
-        state.eos.packed = struct();
-    end
-end
-
 % Properties at current timestep
 [p, sW, z, temp, wellSol] = model.getProps(state, ...
     'pressure', 'water', 'z', 'T', 'wellSol');
@@ -61,11 +53,13 @@ z0 = expandMatrixToCell(z0);
 
 ncomp = numel(z);
 cnames = model.EOSModel.fluid.names;
+
+nwellvar = sum(cellfun(@numel, wellVars));
 if model.water
-    [p, z{1:ncomp-1}, sW, wellVars{:}] = initVariablesADI(p, z{1:ncomp-1}, sW, wellVars{:});
+    [p, z{1:ncomp-1}, sW, wellVars{:}] = model.AutoDiffBackend.initVariablesAD(p, z{1:ncomp-1}, sW, wellVars{:});
     primaryVars = {'pressure', cnames{1:end-1}, 'sW', wellVarNames{:}};
 else
-    [p, z{1:ncomp-1}, wellVars{:}] = initVariablesADI(p, z{1:ncomp-1}, wellVars{:});
+    [p, z{1:ncomp-1}, wellVars{:}] = model.AutoDiffBackend.initVariablesAD(p, z{1:ncomp-1}, wellVars{:});
     primaryVars = {'pressure', cnames{1:end-1}, wellVarNames{:}};
 end
 % Property pressure different from flow potential
@@ -135,6 +129,10 @@ rGvG = s.faceUpstr(upcg, rhoG).*vG;
 bO = rhoO./fluid.rhoOS;
 bG = rhoG./fluid.rhoGS;
 % EQUATIONS -----------------------------------------------------------
+% water equation + n component equations
+[eqs, fluxes, types, names] = deal(cell(1, ncomp + model.water));
+
+woffset = model.water;
 if model.water
     % Water flux
     muW = f.muW(p_prop);
@@ -154,10 +152,15 @@ if model.water
     upcw  = (value(dpW)<=0);
     vW = -s.faceUpstr(upcw, mobW).*T.*dpW;
     rWvW = s.faceUpstr(upcw, bW).*vW;
-    water = (s.pv/dt).*( bW.*pvMult.*sW - bW0.*pvMult0.*sW0 ) + s.Div(rWvW);
+    
+    eqs{1} = (s.pv/dt).*( bW.*pvMult.*sW - bW0.*pvMult0.*sW0);
+    names{1} = 'water';
+    types{1} = 'cell';
+    fluxes{1} = rWvW;
 else
     [vW, mobW, upcw, bW, rhoW] = deal([]);
 end
+
 if model.outputFluxes
     state = model.storeFluxes(state, vW, vO, vG);
 end
@@ -168,37 +171,17 @@ if model.extraStateOutput
     state = model.storeDensities(state, rhoW, rhoO, rhoG);
 end
 
-
-% water equation + n component equations
-[eqs, types, names] = deal(cell(1, ncomp + model.water));
-
-woffset = model.water;
-acc = cell(1, ncomp+woffset);
 if woffset
-    eqs{1} = water;
-    names{1} = 'water';
-    types{1} = 'cell';
-    acc{1} = (s.pv/dt).*( bW.*pvMult.*sW - bW0.*pvMult0.*sW0 );
 end
 
 for i = 1:ncomp
     names{i+woffset} = compFluid.names{i};
     types{i+woffset} = 'cell';
 
-    acc{i+woffset} = (s.pv/dt).*( ...
+    eqs{i+woffset} = (s.pv/dt).*( ...
                     rhoO.*pvMult.*sO.*xM{i} - rhoO0.*pvMult0.*sO0.*xM0{i} + ...
                     rhoG.*pvMult.*sG.*yM{i} - rhoG0.*pvMult0.*sG0.*yM0{i});
-    eqs{i+woffset} = acc{i+woffset} ...
-          + s.Div(rOvO.*s.faceUpstr(upco, xM{i}) + rGvG.*s.faceUpstr(upcg, yM{i}));
-    if model.water
-        pureWater = value(sW) == 1;
-        if any(pureWater)
-            % Cells with pure water should just retain their composition to
-            % avoid singular systems
-            eqs{i+woffset}(pureWater) = eqs{i+woffset}(pureWater) + ...
-                            1e-3*(z{i}(pureWater) - value(z{i}(pureWater)));
-        end
-    end
+    fluxes{i+woffset} = rOvO.*s.faceUpstr(upco, xM{i}) + rGvG.*s.faceUpstr(upcg, yM{i});
 end
 
 
@@ -235,6 +218,21 @@ else
                                                      dt, opt);
 end
 
+conservationindices = 1:(ncomp+woffset);
+acc = eqs(conservationindices);
+for i = conservationindices
+    eqs{i} = s.AccDiv(eqs{i}, fluxes{i});
+    if model.water && i > woffset
+        pureWater = value(sW) == 1;
+        if any(pureWater)
+            % Cells with pure water should just retain their composition to
+            % avoid singular systems
+            eqs{i}(pureWater) = eqs{i}(pureWater) + ...
+                            1e-3*(z{i}(pureWater) - value(z{i}(pureWater)));
+        end
+    end
+end
+
 if ~opt.pressure
     if model.water
         wscale = dt./(s.pv*mean(value(bW)));
@@ -254,50 +252,33 @@ if opt.pressure
         [weights{:}] = deal(1);
     else
         state = model.storeDensities(state, rhoW, rhoO, rhoG);
-        [ncell, ncomp] = size(state.components);
-        analyticalWeights = isprop(model, 'usePartialVolumeWeights') && ...
-                                   model.usePartialVolumeWeights;
-        weights = cell(ncomp, 1);
-        if analyticalWeights
-            assert(~model.water)
-            [part_vol, dwdp] = getPartialVolumes(model, state);
-            for i = 1:ncomp
-                w = double2ADI(part_vol(:, i), p);
-                w.jac{1} = sparse((1:ncell)', (1:ncell)', dwdp(:, i), ncell, ncell);
-                weights{i} = w;
-            end
-        else
-            e = vertcat(acc{:});
-            e.jac = e.jac(1:ncomp+wat);
-            c = cat(e);
-            A = c.jac{1};
-            ndof = ncell*(ncomp+wat);
+        ncell = model.G.cells.num;
+        ndof = ncell*(ncomp+wat);
+        wellVarIndices = (ndof+1):(ndof+nwellvar);
+        
+        [w, dwdp] = getPartialVolumes(model, state, acc, ...
+            'iteration',                  opt.iteration, ...
+            'wellVarIndices',             wellVarIndices, ...
+            'singlePhaseStrategy',        model.singlePhaseStrategy, ...
+            'twoPhaseStrategy',           model.twoPhaseStrategy, ...
+            'singlePhaseDifferentiation', model.singlePhaseDifferentiation, ...
+            'twoPhaseDifferentiation',    model.twoPhaseDifferentiation);
 
-            b = zeros(ndof, 1);
-            b(1:ncell) = 1/barsa;
-
-            Ap = A';
-            w = Ap\b;
-            w = reshape(w, [], ncomp+woffset);
-            w = w./sum(abs(w), 2);
-            w = w./sum(state.rho.*state.s, 2);
-            for i = 1:ncomp+wat
-                wi = w(:, i);
-                if opt.iteration == 1 || isa(p, 'value') 
-                    Wp = wi;
-                else
-                    ddp = (state.pressure - state.pressurePrev);
-                    dwdp = (wi - state.w(:, i))./ddp;
-                    dwdp(~isfinite(dwdp)) = 0;
-                    Wp = double2ADI(wi, p);
-                    Wp.jac{1} = sparse(1:ncell, 1:ncell, dwdp, ncell, ncell);
-                end
-                weights{i} = Wp;
+        weights = cell(ncomp+wat, 1);
+        for i = 1:ncomp+wat
+            wi = w(:, i);
+            if any(dwdp)
+                Wp = double2ADI(wi, p);
+                Wp.jac{1} = sparse(1:ncell, 1:ncell, dwdp(:, i), ncell, ncell);
+            else
+                Wp = wi;
             end
-            state.w = w;
-            state.pressurePrev = state.pressure;
+            weights{i} = Wp;
         end
     end
+    state.w = w;
+    state.w_p = state.pressure;
+    
     peq = 0;
     for i = 1:ncomp
         peq = peq + weights{i}.*eqs{i};
@@ -312,10 +293,7 @@ if opt.pressure
     for i = 1:numel(eqs)
         eqs{i}.jac = eqs{i}.jac(active);
     end
-    
     names{1} = 'pressure';
-
-
     primaryVars = primaryVars(active);
     names = names(active);
     types = types(active);

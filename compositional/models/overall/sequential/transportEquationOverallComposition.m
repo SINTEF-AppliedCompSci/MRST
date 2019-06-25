@@ -29,19 +29,6 @@ z0 = expandMatrixToCell(z0);
 ncomp = numel(z);
 cnames = model.EOSModel.fluid.names;
 
-% if isfield(state, 'timestep') && opt.iteration == 1
-%     p = state.pressure_full;
-%     dt_frac = dt/state.timestep;
-%     state.pressure = p.*dt_frac + p0.*(1-dt_frac);
-% end
-
-if model.EOSModel.fastDerivatives
-    state.eos.packed = model.EOSModel.getPropertiesFastAD(state.pressure, state.T, state.x, state.y, state.components);
-else
-    state.eos.packed = struct();
-end
-
-
 if model.water
     [sT, z{1:ncomp-1}, sW] = initVariablesADI(sT, z{1:ncomp-1}, sW);
     primaryVars = {'sT', cnames{1:end-1}, 'sW'};
@@ -149,12 +136,8 @@ pv0 = pvMult0.*model.operators.pv;
 for i = 1:ncomp
     names{i} = compFluid.names{i};
     types{i} = 'cell';
-    vi = q_components{i};
-    eqs{i} = (1/dt).*( ...
-                    pv.*rhoO.*sO.*xM{i} - pv0.*rhoO0.*sO0.*xM0{i} + ...
-                    pv.*rhoG.*sG.*yM{i} - pv0.*rhoG0.*sG0.*yM0{i}) ...
-          + s.Div(vi);
-      
+    eqs{i} = (1/dt).*(pv.*rhoO.*sO.*xM{i} - pv0.*rhoO0.*sO0.*xM0{i} + ...
+                      pv.*rhoG.*sG.*yM{i} - pv0.*rhoG0.*sG0.*yM0{i});
     if model.water
         pureWater = value(sG) == 0 & value(sO) == 0;
         if any(pureWater)
@@ -167,8 +150,7 @@ for i = 1:ncomp
 end
 if model.water
     wix = ncomp+1;
-    vw = q_components{ncomp+1};
-    eqs{wix} = (1/dt).*(pv.*rhoW.*sW.*sT - pv0.*rhoW0.*sW0.*sW) + s.Div(vw);
+    eqs{wix} = (1/dt).*(pv.*rhoW.*sW.*sT - pv0.*rhoW0.*sW0.*sW);
     names{wix} = 'water';
     types{wix} = 'cell';
     state = model.storeFluxes(state, q_phase{:});
@@ -267,19 +249,19 @@ if ~isempty(W)
         state.wellSol(i).val = W(i).val;
     end
 end
-
-if model.water
-    wscale = dt./(s.pv*mean(value(rhoW0)));
-    eqs{wix} = eqs{wix}.*wscale;
-end
-
+% Apply scaling and assemble transport equations
 massT = model.getComponentScaling(state0);
 scale = (dt./s.pv)./massT;
-
-for i = 1:ncomp
-    eqs{i} = eqs{i}.*scale;
+for i = 1:(ncomp + model.water)
+    vi = q_components{i};
+    eqs{i} = s.AccDiv(eqs{i}, vi);
+    if i <= ncomp
+        eqs{i} = eqs{i}.*scale;
+    else
+        wscale = dt./(s.pv*mean(value(rhoW0)));
+        eqs{i} = eqs{i}.*wscale;
+    end
 end
-
 
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 end

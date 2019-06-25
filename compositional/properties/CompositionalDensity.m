@@ -1,10 +1,11 @@
-classdef CompositionalDensity < GridProperty
+classdef CompositionalDensity < StateFunction
     properties
+        useCompactEvaluation = true;
     end
     
     methods
         function gp = CompositionalDensity(model, varargin)
-            gp@GridProperty(model, varargin{:});
+            gp@StateFunction(model, varargin{:});
             gp = gp.dependsOn({'PhasePressures', 'PhaseCompressibilityFactors', 'ComponentPhaseMoleFractions'});
         end
 
@@ -19,13 +20,26 @@ classdef CompositionalDensity < GridProperty
             
             x = mf((1+model.water):end, L_ix);
             y = mf((1+model.water):end, V_ix);
-
-            rhoL = model.EOSModel.PropertyModel.computeDensity(p, x, Z{L_ix}, T, true);
-            rhoV = model.EOSModel.PropertyModel.computeDensity(p, y, Z{V_ix}, T, false);
+            pm = model.EOSModel.PropertyModel;
+            rhoL = pm.computeDensity(p, x, Z{L_ix}, T, true);
+            if prop.useCompactEvaluation
+                [~, ~, twoPhase] = model.getFlag(state);
+                if all(twoPhase)
+                    rhoV = pm.computeDensity(p, y, Z{V_ix}, T, false);
+                else
+                    rhoV = rhoL;
+                    if any(twoPhase)
+                        y2ph = cellfun(@(x) x(twoPhase), y, 'UniformOutput', false);
+                        rhoV(twoPhase) = pm.computeDensity(p(twoPhase), y2ph, Z{V_ix}(twoPhase), T(twoPhase), false);
+                    end
+                end
+            else
+                rhoV = pm.computeDensity(p, y, Z{V_ix}, T, false);
+            end
             
             if hasWater
                 f = model.fluid;
-                bW = prop.evaluateFunctionOnGrid(f.bW, p_phase{1});
+                bW = prop.evaluateFunctionOnDomainWithArguments(f.bW, p_phase{1});
                 rhoW = f.rhoWS.*bW;
                 rho = {rhoW, rhoL, rhoV};
             else

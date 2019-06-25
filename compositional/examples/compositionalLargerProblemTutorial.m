@@ -6,7 +6,7 @@
 mrstModule add compositional ad-core linearsolvers ad-props
 useBC = false; % Use BC instead of wells
 includeWater = false; % Include aqueous phase
-
+useNatural = true; % Use natural variables formulation
 % Define a problem
 gravity reset on
 nx = 30;
@@ -38,10 +38,10 @@ if useBC
 
     bc.components = repmat(info.injection, numel(bc.face), 1);
 else
-    W = verticalWell(W, G, rock, 1, 1, [], 'comp_i', [0, 1, 0], ...
+    W = verticalWell(W, G, rock, 1, 1, 1, 'comp_i', [0, 1, 0], ...
         'Type', 'rate', 'name', 'Inj', 'Val', sum(pv)/totTime, 'sign', 1);
 
-    W = verticalWell(W, G, rock, nx, ny, [], ...
+    W = verticalWell(W, G, rock, nx, ny, nz, ...
         'comp_i', [0, 0.5, 0.5], 'Name', 'Prod', 'Val', minP, 'sign', -1);
 
 
@@ -57,14 +57,30 @@ flowfluid = initSimpleADIFluid('rho', [1000, 500, 500], ...
 % We initialize two models: The first uses the standard constructor, and
 % uses the Sparse backend for AD. The second example uses the Diagonal AD
 % backend instead, which is faster for problems with a moderate to many
-% degrees of freedom and several components.
+% degrees of freedom and several components. The third option is to
+% extended the diagonal backend with C++-acceleration through a mex
+% interface. A compiler must be available (see mex -setup) for this to
+% work. Note that the first simulation with diagonal+mex will occasionally
+% stop to compile subroutines, so the user is encouraged to repeat the
+% benchmark if this is the case.
 %
 % The performance of the backends varies from configuration to
 % configuration, so the user is encouraged to test different versions until
 % the best speed is found.
 arg = {G, rock, flowfluid, fluid, 'water', includeWater};
-modelSparseAD = NaturalVariablesCompositionalModel(arg{:});
-modelDiagonalAD = NaturalVariablesCompositionalModel(arg{:}, 'AutoDiffBackend', DiagonalAutoDiffBackend('modifyOperators', true));
+diagonal_backend = DiagonalAutoDiffBackend('modifyOperators', true);
+mex_backend = DiagonalAutoDiffBackend('modifyOperators', true, 'useMex', true);
+sparse_backend = SparseAutoDiffBackend();
+
+if useNatural
+    constructor = @GenericNaturalVariablesModel;
+else
+    constructor = @GenericOverallCompositionModel;
+end
+
+modelSparseAD = constructor(arg{:}, 'AutoDiffBackend', sparse_backend);
+modelDiagonalAD = constructor(arg{:}, 'AutoDiffBackend', diagonal_backend);
+modelMexDiagonalAD = constructor(arg{:}, 'AutoDiffBackend', mex_backend);
 
 %% Set up driving forces and initial state
 ncomp = fluid.getNumberOfComponents();
@@ -83,33 +99,21 @@ state0 = initCompositionalState(G, info.pressure, info.temp, s0, info.initial, m
 %% Pick linear solver
 % The AMGCL library is one possible solver option for MRST. It is fairly
 % easy to write interfaces to other solvers using MEX files and/or the
-% LinearSolverAD class.
-useAMGCL = true;
-if useAMGCL
-    mrstModule add linearsolvers
-    linsolve = AMGCLSolverAD('preconditioner', 'relaxation', ...
-                             'relaxation', 'ilu0', ...
-                             'solver', 'bicgstab', ...
-                             'maxIterations', 100, ...
-                             'tolerance', 1e-3);
-else
-    linsolve = GMRES_ILUSolverAD('tolerance', 1e-3, 'maxIterations', 100);
-end
-% The natural variables solver reduces linear systems internally, so we
-% cannot use the reduceToCell option.
-linsolve.reduceToCell = false;
-% Instead, we only keep the cell variables using the low-level interface.
-linsolve.keepNumber = (ncomp+modelDiagonalAD.water)*G.cells.num;
-% Right diagonal scaling helps with the condition number of the system due
-% to mixed derivatives
-linsolve.applyRightDiagonalScaling = true;
-
+% LinearSolverAD class. We call the routine for automatically selecting a
+% reasonable linear solver for the specific model.
+linsolve = selectLinearSolverAD(modelDiagonalAD);
+disp(linsolve)
 %% Solve a single short step to benchmark assembly and solve time
 shortSchedule = simpleSchedule(0.1*day, 'bc', bc, 'W', W);
 
 nls = NonLinearSolver('LinearSolver', linsolve);
 [~, statesSparse, reportSparse] = simulateScheduleAD(state0, modelSparseAD, shortSchedule, 'nonlinearsolver', nls);
 [~, statesDiagonal, reportDiagonal] = simulateScheduleAD(state0, modelDiagonalAD, shortSchedule, 'nonlinearsolver', nls);
+try
+    [~, statesMexDiagonal, reportMexDiagonal] = simulateScheduleAD(state0, modelMexDiagonalAD, shortSchedule, 'nonlinearsolver', nls);
+catch
+    [statesMexDiagonal, reportMexDiagonal] = deal([]);
+end
 
 %% Solve using direct solver
 % This system is too large for the standard direct solver in Matlab. This
@@ -117,7 +121,7 @@ nls = NonLinearSolver('LinearSolver', linsolve);
 [~, ~, reportDirect] = simulateScheduleAD(state0, modelSparseAD, shortSchedule);
 
 %% Plot the time taken to solve a single step
-figure(1); clf
+figure(1 + useNatural); clf
 
 getTime = @(report) [sum(cellfun(@(x) x.AssemblyTime, report.ControlstepReports{1}.StepReports{1}.NonlinearReport)), ... % Assembly
                      sum(cellfun(@(x) x.LinearSolver.SolverTime, report.ControlstepReports{1}.StepReports{1}.NonlinearReport(1:end-1))),... % Linear solver
@@ -126,9 +130,17 @@ getTime = @(report) [sum(cellfun(@(x) x.AssemblyTime, report.ControlstepReports{
 time_sparse = getTime(reportSparse);
 time_diagonal = getTime(reportDiagonal);
 time_direct = getTime(reportDirect);
-
-
-bar([time_sparse; time_diagonal; time_direct])
-set(gca, 'XTickLabel', {'Sparse', 'Diagonal', 'Sparse+Direct solver'});
+if isempty(reportMexDiagonal)
+    time = [time_sparse; time_diagonal; time_direct];
+    bar(time)
+    set(gca, 'XTickLabel', {'Sparse', 'Diagonal', 'Sparse+Direct solver'});
+else
+    time_mex = getTime(reportMexDiagonal);
+    time = [time_sparse; time_diagonal; time_mex; time_direct];
+    bar(time)
+    set(gca, 'XTickLabel', {'Sparse', 'Diagonal', 'Diagonal with Mex', 'Sparse+Direct solver'});
+end
 legend('Equation assembly', 'Linear solver', 'Total time', 'Location', 'NorthWest')
-
+%% Zoom in on assembly time
+assembly_time = time(:, 1);
+ylim([0, 1.2*max(assembly_time)]);

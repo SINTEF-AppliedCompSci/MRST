@@ -122,6 +122,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             if isempty(model.FacilityModel)
                 warning('The MechFluidModel has an empty FacilityModel');
             end
+            model.fluidModel = model.fluidModel.validateModel();
             model.fluidModel.FacilityModel = model.FacilityModel;
             return
         end

@@ -21,8 +21,9 @@ classdef CompositionalFluid
             
             for i = 1:numel(names)
                 cts = sum(strcmp(names{i}, names));
-                assert(cts == 1, ...
-                    ['Component ', num2str(i), ': ', names{i}, ' occurs multiple times. Components must be unique.']);
+                if cts > 1
+                    warning(['Component ', num2str(i), ': ', names{i}, ' occurs multiple times.']);
+                end
             end
             fluid.names = names;
             fluid.Tcrit = Tcrit;

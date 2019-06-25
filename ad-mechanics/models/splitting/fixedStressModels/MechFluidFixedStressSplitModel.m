@@ -72,6 +72,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
               otherwise
                 error('fluidModelType not recognized.');
             end
+            % Validate model for simulation
+            fluidModel = fluidModel.validateModel();
         end
 
 

@@ -37,13 +37,18 @@ classdef DiagonalJacobian
 
         function u = toZero(u, n)
             if nargin == 1
+                % The function is not taking a subset, just converting an
+                % existing subset to zero type if present.
                 n = size(u.diagonal, 1);
-            end
-            u.diagonal = zeros(n, 0);
-            % Unsure if this is the best idea.
-            if ~isempty(u.subset)
+                if ~isempty(u.subset)
+                    u.subset = zeros(n, 1);
+                end
+            else
+                % We recieved a subset - set it to zeros to indicate that
+                % it is arbitrary, but present.
                 u.subset = zeros(n, 1);
             end
+            u.diagonal = zeros(n, 0);
         end
 
         function u = expandZero(u)
@@ -99,7 +104,7 @@ classdef DiagonalJacobian
         end
         
         function s = sparse(D)
-            if D.useMex && isempty(D.subset)
+            if D.useMex && isempty(D.subset) && ~isempty(D.diagonal)
                 s = mexDiagonalSparse(D.diagonal, D.subset, D.dim);
             else
                 [I, J, V, n, m] = D.getSparseArguments();
@@ -267,6 +272,10 @@ classdef DiagonalJacobian
                             
                             if allowDiag
                                 u.diagonal(s.subs{1}, :) = v.diagonal;
+                                if ~isempty(u.subset) && ~isempty(v.subset)
+                                    % Handle zero (wild card) subsets
+                                    u.subset(s.subs{1}) = max(u.subset(s.subs{1}), v.subset);
+                                end
                             else
                                 u = u.sparse();
                                 v = v.sparse();
@@ -526,7 +535,7 @@ classdef DiagonalJacobian
             elseif islogical(u_subset)
                 u_subset = find(u_subset);
             end
-            eq = all(u_subset(:) == b_subset(:));
+            eq = all(u_subset(:) == b_subset(:) | u_subset(:) == 0 | b_subset(:) == 0);
         end
 
         function isZ = isAllZeros(v)

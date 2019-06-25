@@ -6,7 +6,7 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
     methods
         function model = GenericOverallCompositionModel(varargin)
             model = model@OverallCompositionCompositionalModel(varargin{:});
-            model.OutputProperties = {'ComponentTotalMass'};
+            model.OutputStateFunctions = {'ComponentTotalMass'};
         end
         
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
@@ -22,6 +22,16 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
             ncomp = numel(names);
             n_hc = ncomp - wat;
             % Assemble equations and add in sources
+            
+            [pressures, sat, mob, rho, X] = model.getProps(state, 'PhasePressures', 's', 'Mobility', 'Density', 'ComponentPhaseMassFractions');
+            comps = cellfun(@(x, y) {x, y}, X(:, 1+model.water), X(:, 2+model.water), 'UniformOutput', false);
+            
+            
+            eqs = model.addBoundaryConditionsAndSources(eqs, names, types, state, ...
+                                                             pressures, sat, mob, rho, ...
+                                                             {}, comps, ...
+                                                             drivingForces);
+            
             for i = 1:numel(eqs)
                 if ~isempty(src.cells)
                     eqs{i}(src.cells) = eqs{i}(src.cells) - src.value{i};
@@ -72,7 +82,6 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
             if isempty(model.Components)
                 f = model.EOSModel.fluid;
                 names_hc = f.names;
-                n_hc = numel(names_hc);
                 if model.water
                     names = ['water', names_hc];
                 else
@@ -88,15 +97,7 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
                         case 'water'
                             c = ImmiscibleComponent('water', 1);
                         otherwise
-                            z = zeros(1, n_hc);
-                            z(strcmp(names_hc, name)) = 1;
-                            L = standaloneFlash(p, T, z, model.EOSModel);
-                            if model.water
-                                frac = [0, L, 1-L];
-                            else
-                                frac = [L, 1-L];
-                            end
-                            c = EquationOfStateComponent(names{ci}, ci, frac);
+                            c = getEOSComponent(model, p, T, name, ci);
                     end
                     model.Components{ci} = c;
                 end
@@ -199,84 +200,22 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
             sV = volV./volT;
             
             if model.water
+                [pureLiquid, pureVapor] = model.getFlag(state);
                 void = 1 - sW;
                 sL = sL.*void;
                 sV = sV.*void;
+                [sL, sV] = model.setMinimumTwoPhaseSaturations(state, sW, sL, sV, pureVapor, pureLiquid);
+
                 s = {sW, sL, sV};
             else
                 s = {sL, sV};
             end
             state = model.setProp(state, 's', s);
         end
-        
-        
-        function [sO, sG] = setMinimumTwoPhaseSaturations(model, state, sW, sO, sG, pureVapor, pureLiquid)
-            stol = 1e-8;
-            if model.water
-                sT = sum(state.s, 2);
-                if any(pureVapor)
-                    sG(pureVapor) = sT(pureVapor) - sW(pureVapor);
-                    if isa(sG, 'ADI')
-                        sG.val(pureVapor) = max(sG.val(pureVapor), stol);
-                    else
-                        sG(pureVapor) = max(sG(pureVapor), stol);
-                    end
-                end
-
-                if any(pureLiquid)
-                    sO(pureLiquid) = sT(pureLiquid) - sW(pureLiquid);
-                    if isa(sO, 'ADI')
-                        sO.val(pureLiquid) = max(sO.val(pureLiquid), stol);
-                    else
-                        sO(pureLiquid) = max(sO(pureLiquid), stol);
-                    end
-                end
-            end
-        end
-        
+      
         function forces = validateDrivingForces(model, forces)
             forces = validateDrivingForces@OverallCompositionCompositionalModel(model, forces);
-            if ~isempty(forces.W) && numel(forces.W) > 0
-                assert(~isempty(model.FacilityModel), ...
-                    'FacilityModel must be set up before validating driving forces for a compositional problem with wells!');
-                T = model.FacilityModel.T;
-                p = model.FacilityModel.pressure;
-                wat = model.water;
-                assert(isfield(forces.W, 'components'), ...
-                    'Wells must have field .components for a compositional model.');
-                eos = model.EOSModel;
-                for i = 1:numel(forces.W)
-                    z = forces.W(i).components;
-                    [L, x, y, Z_L, Z_V, rhoL, rhoV] = standaloneFlash(p, T, z, eos);
-                    if false
-                        % Use flash
-                        [sL, sV] = eos.computeSaturations(rhoL, rhoV, x, y, L, Z_L, Z_V);
-                        % compi is a mass-fraction in practice
-                        L_mass = sL.*rhoL./(sL.*rhoL + sV.*rhoV);
-                        comp = [L_mass, 1-L_mass];
-                    else
-                        % Use the pre-computed definition of light/heavy
-                        % components to determine "compi"
-                        Z = eos.getMassFraction(z);
-                        isEOS = cellfun(@(x) isa(x, 'EquationOfStateComponent'), model.Components);
-                        val = cellfun(@(x) x.surfacePhaseMassFractions, model.Components(isEOS), 'UniformOutput', false)';
-                        val = vertcat(val{:});
-                        val = val(:, (1+wat):end);
-                        comp = sum(bsxfun(@times, val, Z'), 1);
-                    end
-                    if wat
-                        assert(~isempty(forces.W(i).compi), ...
-                            'W.compi must be present for compositional flow with water phase.');
-                        sW = forces.W(i).compi(1);
-                        comp = [sW, comp.*(1-sW)];
-                        rho = [model.fluid.rhoWS, rhoL, rhoV];
-                    else
-                        rho = [rhoL, rhoV];
-                    end
-                    forces.W(i).compi = comp;
-                    forces.W(i).rhoS = rho;
-                end
-            end
+            forces = validateCompositionalForces(model, forces);
         end
     end
 end

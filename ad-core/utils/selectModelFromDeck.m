@@ -59,9 +59,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     haswat  = check('water');
     haspoly = check('polymer');
     hassurf = check('surfact');
+    hascomp = check('comps');
     
-    arg = {G, [], fluid, varargin{:}};
-    if haspoly
+    arg = [{G, [], fluid}, varargin];
+    if hascomp
+        assert(~hassurf, 'Compositional model does not support surfactant');
+        assert(~haspoly, 'Compositional model does not support polymer');
+        eos = initDeckEOSModel(deck);
+        model = GenericNaturalVariablesModel(arg{:}, eos, 'water', haswat);
+    elseif haspoly
         % Polymer EOR
         mrstModule add ad-eor
         assert(~hassurf, 'Polymer model does not support surfactant');

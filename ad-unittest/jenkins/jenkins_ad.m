@@ -30,12 +30,21 @@ end
 
 
 % Remove previous tests
-tap_folder = fullfile(mrstPath('query', 'ad-unittest'), 'output', 'TAP');
+jfolder = fullfile(mrstPath('query', 'ad-unittest'), 'output', 'XML');
+if exist(jfolder, 'dir')
+    rmdir(jfolder, 's')
+end
+
+tap_folder = fullfile(mrstPath('query', 'ad-unittest'), 'output', 'JUnit');
 if exist(tap_folder, 'dir')
     rmdir(tap_folder, 's')
 end
 
 mrstModule add ad-unittest ad-core ad-blackoil
-runTestsAD('runIntegration', true, 'runUnit', true, 'runExamples', true, 'writeToDisk', true)
+runTestsAD('runIntegration',    true, ...
+            'runUnit',          true, ...
+            'runExamples',      true, ...
+            'writeToDisk',      true, ...
+            'writeXML',         true);
 % Disable matlab
 exit();

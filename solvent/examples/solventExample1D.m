@@ -123,14 +123,14 @@ pargs  = @(phNo, mNo) {mrk{mNo}, 'color', clr(phNo,:), 'lineWidth', 2};
 step   = [15, 25, 45];
 pv     = model_fm.operators.pv;
 gray   = [1,1,1]*0.9;
-times  = cumsum(schedule.step.val);
+time   = cumsum(schedule.step.val);
 
 % Residual oil mass in the immiscible and miscible case
 massr_i = pv.*sOr_i*fluid.rhoOS;
 massr_m = pv.*sOr_m*fluid.rhoSS;
 
 % Mass of solvent and gas phase for each time step
-getMass = @(states) cellfun(@(state) pv.*state.s(:,phases).*state.rho(:,phases), ...
+getMass = @(states) cellfun(@(state) bsxfun(@times, pv, state.s(:,phases).*state.rho(:,phases)), ...
                                            states, 'uniformOutput', false);
 mass = {getMass(states_fm); getMass(states_mm)};
 
@@ -161,7 +161,7 @@ for sNo = 1:numel(step)
         legend(hm, {'Full mixing', 'Moderate mixing'}, 'Location', 'NorthWest')
     end
     ylim([0,650]);
-    title([num2str(times(step(sNo))/day), ' days'])
+    title([num2str(time(step(sNo))/day), ' days'])
 end
 
 %{

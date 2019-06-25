@@ -21,5 +21,16 @@ classdef CompositionalFlowPropertyFunctions < FlowPropertyFunctions
             props.ComponentPhaseMoleFractions = ComponentPhaseMoleFractionsLV(model);
             props.Viscosity = CompositionalViscosityLV(model);
         end
+        
+        function props = setCompactEvaluation(props, val)
+            for i = 1:numel(props.propertyNames)
+                name = props.propertyNames{i};
+                fn = props.getStateFunction(name);
+                if isprop(fn, 'useCompactEvaluation')
+                    fn.useCompactEvaluation = val;
+                    props = props.setStateFunction(name, fn);
+                end
+            end
+        end
     end
 end

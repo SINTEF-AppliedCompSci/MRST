@@ -3,7 +3,7 @@
 mrstModule add ad-props  ad-core ad-blackoil
 
 % Create grid
-%G=cartGrid([100 10 1],[1000 100 10])
+% G=cartGrid([100 10 1],[1000 100 10])
 G=cartGrid([100 100],[1000 100]);
 % For faster 2D plotting
 G.cells.sortedCellNodes=getSortedCellNodes(G);
@@ -83,14 +83,13 @@ grav=zeros(1,G.griddim);%grav(G.griddim)=-10;
 
 % make model
 wModel = WaterThermalModel(G, rock, fluid,'gravity',grav);%, 'deck', deck);
-state.wellSols= initWellSolAD(W, wModel, state);
 
 
 % define boundary conditions
-bc=pside([],G,'Right',p_res,'sat',1);
-bc=pside(bc,G,'Left',p_res,'sat',1);
-bc.hW=ones(size(bc.face)).*fluid.hW(p_res,T_res);
-bcT=addBCT([],vertcat(bc.face),'temperature',T_res)
+bc = pside([],G,'Right',p_res,'sat',1);
+bc = pside(bc,G,'Left',p_res,'sat',1);
+bc.hW = ones(size(bc.face)).*fluid.hW(p_res,T_res);
+bcT = addBCT([],vertcat(bc.face),'temperature',T_res);
 for i=1:numel(schedule.control)
     schedule.control(i).bc = bc;
     schedule.control(i).bcT=bcT;

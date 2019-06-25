@@ -1,14 +1,20 @@
-classdef PhaseCompressibilityFactorsLV < GridProperty
+classdef PhaseCompressibilityFactorsLV < StateFunction
     properties
+        useCompactEvaluation = true;
     end
     
     methods
         function gp = PhaseCompressibilityFactorsLV(model, varargin)
-            gp@GridProperty(model, varargin{:});
+            gp@StateFunction(model, varargin{:});
             gp = gp.dependsOn({'PhaseMixingCoefficients', 'ComponentPhaseMoleFractions'});
         end
 
         function v = evaluateOnDomain(prop, model, state)
+            if isfield(state, 'cellJacMap')
+                arg = {state.cellJacMap};
+            else
+                arg = {};
+            end
             nph = model.getNumberOfPhases();
             eos = model.EOSModel;
             p = model.getProps(state, 'pressure');
@@ -21,28 +27,42 @@ classdef PhaseCompressibilityFactorsLV < GridProperty
             
             L_mix = mix{L_ix};
             V_mix = mix{V_ix};
-            
-            Z_L = eos.computeCompressibilityZ(p, x, L_mix.A, L_mix.B, L_mix.Si, L_mix.Bi, true);
-            Z_V = eos.computeCompressibilityZ(p, y, V_mix.A, V_mix.B, V_mix.Si, V_mix.Bi, false);
-            
             s = getSampleAD(p, x{:}, y{:});
             
+            Z_L = eos.computeCompressibilityZ(p, x, L_mix.A, L_mix.B, L_mix.Si, L_mix.Bi, true);
             Z_L = model.AutoDiffBackend.convertToAD(Z_L, s);
-            Z_V = model.AutoDiffBackend.convertToAD(Z_V, s);
-
-            if isfield(state, 'cellJacMap')
-                arg = {state.cellJacMap};
-            else
-                arg = {};
-            end
             Z_L = eos.setZDerivatives(Z_L, L_mix.A, L_mix.B, arg{:});
-            Z_V = eos.setZDerivatives(Z_V, V_mix.A, V_mix.B, arg{:});
+            twoPhase = model.getTwoPhaseFlag(state);
+            if prop.useCompactEvaluation && ~all(twoPhase) 
+                Z_V = Z_L;
+                if any(twoPhase)
+                    p = p(twoPhase);
+                    if iscell(y)
+                        y = cellfun(@(x) x(twoPhase), y, 'UniformOutput', false);
+                    else
+                        y = y(twoPhase, :);
+                    end
+                    if iscell(V_mix.Si)
+                        Si = cellfun(@(x) x(twoPhase), V_mix.Si, 'UniformOutput', false);
+                        Bi = cellfun(@(x) x(twoPhase), V_mix.Bi, 'UniformOutput', false);
+                    else
+                        Si = V_mix.Si(twoPhase, :);
+                        Bi = V_mix.Bi(twoPhase, :);
+                    end
+                    Z_V(twoPhase) = eos.computeCompressibilityZ(p, y, V_mix.A(twoPhase), V_mix.B(twoPhase), Si, Bi, false);
+                    Z_V(twoPhase) = eos.setZDerivatives(Z_V(twoPhase), V_mix.A(twoPhase), V_mix.B(twoPhase));
+                end
+            else
+                Z_V = eos.computeCompressibilityZ(p, y, V_mix.A, V_mix.B, V_mix.Si, V_mix.Bi, false);
+                Z_V = model.AutoDiffBackend.convertToAD(Z_V, s);
+                Z_V = eos.setZDerivatives(Z_V, V_mix.A, V_mix.B, arg{:});
+            end
             
             v = cell(1, nph);
             v{L_ix} = Z_L;
             v{V_ix} = Z_V;
             if model.water
-                v{1} = ones(numelValue(Z_L));
+                v{1} = ones(numelValue(Z_L), 1);
             end
         end
     end

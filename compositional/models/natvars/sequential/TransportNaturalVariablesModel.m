@@ -11,7 +11,6 @@ classdef TransportNaturalVariablesModel < NaturalVariablesCompositionalModel
             model.staticUpwind = false;
             model.upwindType  = 'potential';
             model = merge_options(model, varargin{:});
-            model.EOSModel.fastDerivatives = false;
             model.allowLargeSaturations = true;
             model.maxPhaseChangesNonLinear = inf;
         end

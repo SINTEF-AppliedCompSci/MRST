@@ -5,6 +5,7 @@ function [substate0, substate, submodel, subforces, mappings] = getSubsetProblem
     % Create subproblem defined by subs
     isComp = isa(model, 'ThreePhaseCompositionalModel');
     assert(islogical(subs));
+    state = value(state);
     if all(subs)
        substate0 = state0;
        substate = state;
@@ -77,14 +78,17 @@ function [substate0, substate, submodel, subforces, mappings] = getSubsetProblem
         op.M = M;
         upstr =  @(flag, x) faceUpstr(flag, x, N, [nf, nc]);
         op.faceUpstr = upstr;
-        if nc == 1
-            % Some kind of bug in AD?
-            op.Div = @(x) 0;
-        else
-            op.Div = @(x) C'*x;
-        end
         op.Grad = @(x) -C*x;
         op.faceAvg = @(x) M*x;
+        if nf == 0
+            % We have zero faces. Account for Matlab's preference for
+            % reducing expressions of type a + [] to [].
+            op.AccDiv = @(acc, flux) acc;
+            op.Div = @(x) zeros(nc, 1);
+        else
+            op.AccDiv = @(acc, flux) acc + C'*flux;
+            op.Div = @(x) C'*x;
+        end
         op.splitFaceCellValue = @(operators, flag, x) splitFaceCellValue(operators, flag, x, [nf, nc]);
         if isfield(op, 'diag_updated')
             op = rmfield(op, 'diag_updated');
@@ -126,7 +130,7 @@ function [substate0, substate, submodel, subforces, mappings] = getSubsetProblem
         % Face average
         propstate = state;
         propstate.s = propstate.s./sum(propstate.s, 2);
-        propstate = model.initPropertyContainers(propstate);
+        propstate = model.initStateFunctionContainers(propstate);
         p_phase = model.getProp(propstate, 'PhasePressures');
         p_phase = value(p_phase);
         src_pressure = p_phase(global_cells, :);

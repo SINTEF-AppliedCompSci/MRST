@@ -205,8 +205,6 @@ if isfield(fluid, 'pcOG')
 end
 
 vT = sum(state.flux(model.operators.internalConn, :), 2);
-
-
 if model.water
     pW = p;
     pW0 = p0;
@@ -262,10 +260,9 @@ compFlux = zeros(model.G.faces.num, ncomp);
 for i = 1:ncomp
     names{i} = compFluid.names{i};
     types{i} = 'cell';
-    vi = q_components{i};
     eqs{i} = (1/dt).*( ...
                     pv.*rhoO.*sO.*xM{i} - pv0.*rhoO0.*sO0.*xM0{i} + ...
-                    pv.*rhoG.*sG.*yM{i} - pv0.*rhoG0.*sG0.*yM0{i}) + s.Div(vi);
+                    pv.*rhoG.*sG.*yM{i} - pv0.*rhoG0.*sG0.*yM0{i});
       
    compFlux(model.operators.internalConn, i) = value(vi);
 end
@@ -276,8 +273,7 @@ end
 
 if model.water
     wix = ncomp+1;
-    vw = q_components{ncomp+1};
-    eqs{wix} = (1/dt).*(pv.*rhoW.*sW.*sT - pv0.*rhoW0.*sW0.*sT0) + s.Div(vw);
+    eqs{wix} = (1/dt).*(pv.*rhoW.*sW.*sT - pv0.*rhoW0.*sW0.*sT0);
     names{wix} = 'water';
     types{wix} = 'cell';
     state = model.storeFluxes(state, q_phase{:});
@@ -388,17 +384,19 @@ for i = 1:ncomp
         eqs{ix}.val(absent) = 0;
     end    
 end
+% Apply scaling and assemble transport equations
 massT = model.getComponentScaling(state0);
 scale = (dt./s.pv)./massT;
-if model.water
-    wscale = dt./(s.pv*mean(value(rhoW0)));
-    eqs{wix} = eqs{wix}.*wscale;
+for i = 1:(ncomp + model.water)
+    vi = q_components{i};
+    eqs{i} = s.AccDiv(eqs{i}, vi);
+    if i <= ncomp
+        eqs{i} = eqs{i}.*scale;
+    else
+        wscale = dt./(s.pv*mean(value(rhoW0)));
+        eqs{i} = eqs{i}.*wscale;
+    end
 end
-
-for i = 1:ncomp
-    eqs{i} = eqs{i}.*scale;
-end
-
 
 if model.reduceLinearSystem
     problem = ReducedLinearizedSystem(eqs, types, names, primaryVars, state, dt);

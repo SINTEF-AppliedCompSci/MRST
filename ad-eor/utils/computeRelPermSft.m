@@ -42,7 +42,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-    isSft = (double(c) > 0);
+    isSft = value(c) > 0;
     m = 0*c;
     if nnz(isSft) > 0
        logNc = log(Nc(isSft))/log(10);

@@ -77,7 +77,7 @@ schedule = convertDeckScheduleToMRST(model, deck);
 
 % We gathered visualizing command for this tutorial in the following script
 example_name = '2D';
-vizSurfactantModel;
+% vizSurfactantModel;
 
 
 
@@ -95,7 +95,7 @@ resulthandler = ResultHandler('dataDirectory', pwd, 'dataFolder', 'cache', 'clea
                                                   schedule, 'OutputHandler', ...
                                                   resulthandler);
 plotToolbar(G,statesSurfactant,'field','s:1');
-W = schedule.control(1).W
+W = schedule.control(1).W;
 view(70,30), plotWell(G, W), axis tight off
 
 %% Copyright notice

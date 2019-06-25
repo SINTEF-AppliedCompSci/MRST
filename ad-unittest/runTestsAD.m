@@ -3,12 +3,19 @@ function results = runTestsAD(varargin)
         'runUnit', true, ...
         'runIntegration', true, ...
         'runExamples', true, ...
+        'writeXML',   false, ...
         'writeToDisk',  false ...
         );
     opt = merge_options(opt, varargin{:});
     
     import matlab.unittest.TestRunner;
-
+    if opt.writeXML
+        import matlab.unittest.plugins.XMLPlugin;
+        out_xml = fullfile(mrstPath('query', 'ad-unittest'), 'output', 'XML');
+        if exist(out_xml, 'dir') == 0
+            mkdir(out_xml);
+        end
+    end
     ix = 1;
     [names, suites] = deal(cell(opt.runUnit + opt.runIntegration, 1));
     if opt.runUnit
@@ -33,6 +40,11 @@ function results = runTestsAD(varargin)
     for i = 1:numel(suites)
         fprintf('Running test suite %d of %d: %s\n', i, numel(suites), names{i});
         runner = TestRunner.withTextOutput;
+        if opt.writeXML
+            jFile = fullfile(out_xml, [names{i}, '.xml']);
+            p = XMLPlugin.producingJUnitFormat(jFile);
+            runner.addPlugin(p);
+        end
         res = runner.run(suites{i});
         results = [results, res]; %#ok
         if opt.writeToDisk

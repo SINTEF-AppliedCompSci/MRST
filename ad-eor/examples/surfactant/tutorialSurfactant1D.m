@@ -67,7 +67,7 @@ schedule = convertDeckScheduleToMRST(model, deck);
 
 % We gathered visualizing command for this tutorial in the following script
 example_name = '1D';
-vizSurfactantModel;
+% vizSurfactantModel;
 
 
 

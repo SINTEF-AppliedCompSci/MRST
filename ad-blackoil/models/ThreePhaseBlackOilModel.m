@@ -53,7 +53,7 @@ methods
             end
         end
         % Needed for model equations
-        model.OutputProperties = {'PoreVolume', 'ShrinkageFactors'};
+        model.OutputStateFunctions = {'PoreVolume', 'ShrinkageFactors'};
     end
 
     % --------------------------------------------------------------------%
@@ -64,7 +64,7 @@ methods
         %   :meth:`ad_core.models.PhysicalModel.validateModel`
 
         if isempty(model.FlowPropertyFunctions)
-            model.FlowPropertyFunctions = BlackOilFlowPropertyFunctions(model);
+            model.FlowPropertyFunctions = FlowPropertyFunctions(model);
         end
         model = validateModel@ReservoirModel(model, varargin{:});
     end
@@ -75,7 +75,7 @@ methods
                 % RS and RV for gas dissolving into the oil phase and oil
                 % components vaporizing into the gas phase respectively.
                 fn = lower(name);
-                index = 1;
+                index = ':';
             otherwise
                 % Basic phases are known to the base class
                 [fn, index] = getVariableField@ReservoirModel(model, name, varargin{:});
@@ -270,7 +270,7 @@ methods
             % The VO model is a bit complicated, handle this part
             % explicitly.
             state0 = state;
-            state = model.initPropertyContainers(state);
+            state = model.initStateFunctionContainers(state);
 
             state = model.updateStateFromIncrement(state, dx, problem, 'pressure', model.dpMaxRel, model.dpMaxAbs);
             state = model.capProperty(state, 'pressure', model.minimumPressure, model.maximumPressure);
@@ -434,9 +434,6 @@ methods
                            bO = call(fluid.bO,p);
                         end
                         s = 1./bO;
-                        if isMass
-                            s = s./rhoS(1, isg);
-                        end
                         if isMass
                             s = s./rhoS(1, iso);
                         end

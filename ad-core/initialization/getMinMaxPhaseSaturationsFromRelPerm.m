@@ -3,7 +3,7 @@ function [s_min, s_max] = getMinMaxPhaseSaturationsFromRelPerm(model, tol, reg)
         tol = 1e-6;
     end
     relPerm = model.FlowPropertyFunctions.RelativePermeability;
-    getKr = @(name, s) relPerm.evaluateFunctionSingleRegion(model.fluid.(['kr', name]), reg, s);
+    getKr = @(name, s) relPerm.evaluateFunctionSingleRegionWithArguments(model.fluid.(['kr', name]), reg, s);
     nph = sum(model.getActivePhases());
     s = (0:tol:1)';
     

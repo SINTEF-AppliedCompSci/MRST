@@ -2,13 +2,20 @@ classdef EquationOfStateComponent < ComponentImplementation
     properties
         componentIndex % Global component numbering
         surfacePhaseMassFractions % Mass fraction for each phase
+        surfacePhaseDensityPure % Density
+        pressure % pressure
+        T % Temp
     end
     
     methods
-        function c = EquationOfStateComponent(name, cindex, surfaceMassFractions)
+        function c = EquationOfStateComponent(name, p, T, cindex, surfaceMassFractions, density, mw)
             c@ComponentImplementation(name);
             c.componentIndex = cindex;
+            c.pressure = p;
+            c.T = T;
             c.surfacePhaseMassFractions = surfaceMassFractions;
+            c.surfacePhaseDensityPure = density;
+            c.molarMass = mw;
             c = c.dependsOn({'Density', 'ComponentPhaseMassFractions'});
         end
         
@@ -25,11 +32,8 @@ classdef EquationOfStateComponent < ComponentImplementation
         end
         
         function c = getPhaseComposition(component, model, state, varargin)
-            mw = model.EOSModel.fluid.molarMass;
             nph = model.getNumberOfPhases();
-            wat = model.water;
             c = cell(nph, 1);
-            ix = component.componentIndex - model.water;
             for i = 1:nph
                 c{i} = component.surfacePhaseMassFractions(i);
             end
@@ -38,7 +42,16 @@ classdef EquationOfStateComponent < ComponentImplementation
         function c = getPhaseCompositionSurface(component, model, state, pressure, temperature)
             c = component.getPhaseComposition(model, state);
         end
-        
+
+        function c = getPurePhaseDensitySurface(component, model, state, pressure, temperature)
+            % Surface density, for a pure component
+            rho = component.surfacePhaseDensityPure;
+            % Ideal gas scaling
+            scale = (pressure./component.pressure).*(component.T./temperature);
+            rho = bsxfun(@times, rho, scale);
+            c = arrayfun(@(x) x, rho, 'UniformOutput', false);
+        end
+
         function c = getPhaseComponentFractionWell(component, model, state, W)
             nph = model.getNumberOfPhases();
             c = cell(nph, 1);

@@ -124,11 +124,13 @@ function model = initializeModel(deck, opt)
     else
         G = opt.G;
     end
-    if opt.useMexGeometry
-        mrstModule add libgeometry
-        G = mcomputeGeometry(G);
-    else
-        G = computeGeometry(G);
+    if ~isfield(G.cells, 'centroids')
+        if opt.useMexGeometry
+            mrstModule add libgeometry
+            G = mcomputeGeometry(G);
+        else
+            G = computeGeometry(G);
+        end
     end
     fluid = initDeckADIFluid(deck, 'G', G);
     gravity reset on;

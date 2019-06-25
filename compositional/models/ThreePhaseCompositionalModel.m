@@ -122,6 +122,9 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                     % Vapor compressibility
                     fn = 'Z_V';
                     index = 1;
+                case {'k', 'equilibriumconstants'}
+                    fn = 'K';
+                    index = ':';
                 otherwise
                     sub = strcmpi(model.EOSModel.fluid.names, name);
                     if any(sub)
@@ -323,8 +326,6 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                     if isfield(force, 'xM')
                         assert(isfield(force, 'yM'))
                         massFractions = {force.xM, force.yM};
-%                         sum(force.xM, 2)
-% 
                     elseif isfield(force, 'x')
                         assert(isfield(force, 'y'))
                         [x_bc, y_bc] = model.getProps(force, 'x', 'y');
@@ -392,6 +393,10 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             [isLiquid, isVapor, is2ph] = model.EOSModel.getFlag(state);
         end
         
+        function is2ph = getTwoPhaseFlag(model, state)
+            is2ph = model.EOSModel.getTwoPhaseFlag(state);
+        end
+        
         function m = PropertyModel(model)
             m = model.EOSModel.PropertyModel;
         end
@@ -428,10 +433,36 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
 %             end
         end
 
+        function [sO, sG] = setMinimumTwoPhaseSaturations(model, state, sW, sO, sG, pureVapor, pureLiquid)
+            stol = 1e-8;
+            if model.water
+                sT = sum(state.s, 2);
+                if any(pureVapor)
+                    sG(pureVapor) = sT(pureVapor) - sW(pureVapor);
+                    if isa(sG, 'ADI')
+                        sG.val(pureVapor) = max(sG.val(pureVapor), stol);
+                    else
+                        sG(pureVapor) = max(sG(pureVapor), stol);
+                    end
+                end
+
+                if any(pureLiquid)
+                    sO(pureLiquid) = sT(pureLiquid) - sW(pureLiquid);
+                    if isa(sO, 'ADI')
+                        sO.val(pureLiquid) = max(sO.val(pureLiquid), stol);
+                    else
+                        sO(pureLiquid) = max(sO(pureLiquid), stol);
+                    end
+                end
+            end
+        end
+
         function model = validateModel(model, varargin)
             if isempty(model.FlowPropertyFunctions)
                 model.FlowPropertyFunctions = CompositionalFlowPropertyFunctions(model);
             end
+            % Use matching AD backends for EOS and for flow model
+            model.EOSModel.AutoDiffBackend = model.AutoDiffBackend;
             model = validateModel@ReservoirModel(model, varargin{:});
         end
     end

@@ -1,10 +1,11 @@
-classdef CompositionalViscosityLV < GridProperty
+classdef CompositionalViscosityLV < StateFunction
     properties
+        useCompactEvaluation = true;
     end
     
     methods
         function gp = CompositionalViscosityLV(model, varargin)
-            gp@GridProperty(model, varargin{:});
+            gp@StateFunction(model, varargin{:});
             gp = gp.dependsOn({'PhasePressures', 'PhaseCompressibilityFactors'});
         end
         
@@ -20,13 +21,28 @@ classdef CompositionalViscosityLV < GridProperty
                 f = model.fluid;
                 wix = phInd == 1;
                 pw = p_phase{wix};
-                mu{wix} = prop.evaluateFunctionOnGrid(f.muW, pw);
+                mu{wix} = prop.evaluateFunctionOnDomainWithArguments(f.muW, pw);
             end
             pm = model.EOSModel.PropertyModel;
             oix = phInd == 2;
-            mu{oix} = pm.computeViscosity(p, x, Z{oix}, T, true);
+            mu{oix} = pm.computeViscosity(p, x, Z{oix}, T, nan);
             gix = phInd == 3;
-            mu{gix} = pm.computeViscosity(p, y, Z{gix}, T, false);
+            
+            twoPhase = model.getTwoPhaseFlag(state);
+            if prop.useCompactEvaluation && ~all(twoPhase)
+                muV = mu{oix};
+                if any(twoPhase)
+                    if iscell(y)
+                        y = cellfun(@(x) x(twoPhase), y, 'uniformoutput', false);
+                    else
+                        y = y(twoPhase, :);
+                    end
+                    muV(twoPhase) = pm.computeViscosity(p(twoPhase), y, Z{gix}(twoPhase), T(twoPhase), nan);
+                end
+            else
+                muV = pm.computeViscosity(p, y, Z{gix}, T, nan);
+            end
+            mu{gix} = muV;
         end
     end
 end

@@ -9,10 +9,9 @@ classdef EquilibriumConstantModel < EquationOfStateModel
         function model = EquilibriumConstantModel(G, fluid, k_values)
             model = model@EquationOfStateModel(G, fluid);
             model.equilibriumConstantFunctions = k_values;
-            model.fastDerivatives = false; % Not implemented
         end
         
-        function [Z_L, Z_V, f_L, f_V] = getProperties(model, P, T, x, y, z, sO, sG, varargin)
+        function [Z_L, Z_V, f_L, f_V] = getCompressibilityAndFugacity(model, P, T, x, y, z, Z_L, Z_V, varargin)
             R = 8.3144598;
             rhoL = model.PropertyModel.computeMolarDensity(P, x, nan, T, true);
             rhoV = model.PropertyModel.computeMolarDensity(P, y, nan, T, false);
@@ -21,20 +20,6 @@ classdef EquilibriumConstantModel < EquationOfStateModel
             Z_V = P./(rhoV.*R.*T);
             if nargout < 3
                 return
-            end
-            if isa(sO, 'ADI') || isa(sG, 'ADI') && ~isempty(sO)
-                sO = sO./(sO + sG);
-                sG = sG./(sO + sG);
-                L = rhoL.*sO./(rhoL.*sO + rhoV.*sG);
-                V = 1 - L;
-                if iscell(x)
-                    z = cell(size(x));
-                    for i = 1:numel(z)
-                        z{i} = L.*x{i} + V.*y{i};
-                    end
-                else
-                    z = x.*L + y.*(1-L);
-                end
             end
             K =  model.evaluateEquilibriumConstants(P, T, z);
             if iscell(x)
@@ -47,31 +32,6 @@ classdef EquilibriumConstantModel < EquationOfStateModel
                 f_V = y;
                 f_L = x.*K;
             end
-        end
-
-        function eosdata = getPropertiesFastAD(model, P, T, x, y, z, Z_L, Z_V)
-            % Get packed properties (fugacity, Z-factors) with FastAD type
-            % to easily get derivatives
-            P = double(P);
-            T = double(T);
-            if iscell(x)
-                assert(iscell(y))
-                x = cellfun(@double, x, 'UniformOutput', false);
-                y = cellfun(@double, y, 'UniformOutput', false);
-            else
-                x = expandMatrixToCell(x);
-                y = expandMatrixToCell(y);
-            end
-            
-            
-            [P, x{:}, y{:}] = initVariablesFastAD(P, x{:}, y{:});
-            [Z_L, Z_V, f_L, f_V] = model.getProperties(P, T, x, y, z, [], []);
-            
-            eosdata = struct();
-            eosdata.Z_L = Z_L;
-            eosdata.Z_V = Z_V;
-            eosdata.f_L = f_L;
-            eosdata.f_V = f_V;
         end
 
         function [stable, x, y, L] = performPhaseStabilityTest(model, P, T, z, varargin)
@@ -136,7 +96,7 @@ classdef EquilibriumConstantModel < EquationOfStateModel
             [pureLiquid, pureVapor] = model.getFlag(state);
             state.x(pureVapor, :) = state.components(pureVapor, :);
             state.y(pureLiquid, :) = state.components(pureLiquid, :);
-            [state.Z_L, state.Z_V] = model.getProperties(state.pressure, state.T, state.x, state.y);
+            [state.Z_L, state.Z_V] = model.getCompressibilityAndFugacity(state.pressure, state.T, state.x, state.y);
         end
     end
 end

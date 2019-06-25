@@ -6,7 +6,7 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Ext
     methods
         function model = GenericNaturalVariablesModel(varargin)
             model = model@NaturalVariablesCompositionalModel(varargin{:});
-            model.OutputProperties = {'ComponentTotalMass'};
+            model.OutputStateFunctions = {'ComponentTotalMass'};
         end
         
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
@@ -21,6 +21,16 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Ext
             wat = model.water;
             ncomp = numel(names);
             n_hc = ncomp - wat;
+            
+            [pressures, sat, mob, rho, X] = model.getProps(state, 'PhasePressures', 's', 'Mobility', 'Density', 'ComponentPhaseMassFractions');
+            comps = cellfun(@(x, y) {x, y}, X(:, 1+model.water), X(:, 2+model.water), 'UniformOutput', false);
+            
+            
+            eqs = model.addBoundaryConditionsAndSources(eqs, names, types, state, ...
+                                                             pressures, sat, mob, rho, ...
+                                                             {}, comps, ...
+                                                             drivingForces);
+            
             % Assemble equations and add in sources
             for i = 1:numel(eqs)
                 if ~isempty(src.cells)
@@ -28,22 +38,14 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Ext
                 end
                 eqs{i} = model.operators.AccDiv(eqs{i}, flux{i});
             end
-            if false
-                cMass = value(model.getProp(state0, 'ComponentTotalMass')');
-                massT = sum(cMass, 2);
-                scale = (dt./massT);
-                for i = 1:ncomp
-                    eqs{i} = eqs{i}.*scale;
-                end
-            else
-                massT = model.getComponentScaling(state0);
-                scale = (dt./model.operators.pv)./massT;
-                for i = 1:ncomp
-                    eqs{i} = eqs{i}.*scale;
-                end
+            % Apply scaling for convergence testing
+            massT = model.getComponentScaling(state0);
+            scale = (dt./model.operators.pv)./massT;
+            for i = 1:ncomp
+                eqs{i} = eqs{i}.*scale;
             end
             % Natural variables part
-            [pureLiquid, pureVapor, twoPhase] = model.getFlag(state);
+            twoPhase = model.getTwoPhaseFlag(state);
             cnames = model.EOSModel.fluid.names;
             f = model.getProps(state, 'Fugacity');
             f_eqs = cell(1, n_hc);
@@ -51,16 +53,17 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Ext
             f_types = cell(1, n_hc);
             
             s_closure = [];
-            if any(twoPhase)
-                for i = 1:n_hc
+            
+            for i = 1:n_hc
+                if any(twoPhase)
                     f_eqs{i} = (f{i, 1}(twoPhase) - f{i, 2}(twoPhase))/barsa;
-                    f_names{i} = ['f_', cnames{i}];
-                    f_types{i} = 'fugacity';
                 end
+                f_names{i} = ['f_', cnames{i}];
+                f_types{i} = 'fugacity';
                 s = model.getProp(state, 's');
-                s_closure = 1;
-                for i = 1:numel(s)
-                    s_closure = s_closure - s{i}(twoPhase);
+                s_closure = ones(sum(twoPhase), 1);
+                for phNo = 1:numel(s)
+                    s_closure = s_closure - s{phNo}(twoPhase);
                 end
             end
             % Get facility equations
@@ -93,7 +96,6 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Ext
             if isempty(model.Components)
                 f = model.EOSModel.fluid;
                 names_hc = f.names;
-                n_hc = numel(names_hc);
                 if model.water
                     names = ['water', names_hc];
                 else
@@ -109,15 +111,7 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Ext
                         case 'water'
                             c = ImmiscibleComponent('water', 1);
                         otherwise
-                            z = zeros(1, n_hc);
-                            z(strcmp(names_hc, name)) = 1;
-                            L = standaloneFlash(p, T, z, model.EOSModel);
-                            if model.water
-                                frac = [0, L, 1-L];
-                            else
-                                frac = [L, 1-L];
-                            end
-                            c = EquationOfStateComponent(names{ci}, ci, frac);
+                            c = getEOSComponent(model, p, T, name, ci);
                     end
                     model.Components{ci} = c;
                 end
@@ -209,42 +203,16 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Ext
 
         function state = initStateAD(model, state, vars, names, origin)
             [pureLiquid, pureVapor, twoPhase] = model.getFlag(state);
+            singlePhase = pureLiquid | pureVapor;
             twoPhaseIx = find(twoPhase);
             nvar = numel(vars);
             removed = false(size(vars));
             cellJacMap = cell(nvar, 1);
+            s = getSampleAD(vars{:});
             
             is_so = strcmp(names, 'sato');
             is_sg = strcmp(names, 'satg');
-            
-            % Deal with saturations
-            [sO, sG] = model.getProps(state, 'sO', 'sG');
-            if any(twoPhase)
-                % Set oil/liquid saturation in two-phase cells
-                so = vars{is_so};
-                sO = model.AutoDiffBackend.convertToAD(sO, so);
-                sO(twoPhase) = so;
-                % Set gas/vapor saturation in two-phase cells
-                sg = vars{is_sg};
-                sG = model.AutoDiffBackend.convertToAD(sG, sg);
-                sG(twoPhase) = sg;
-                cellJacMap{is_sg} = twoPhaseIx;
-                cellJacMap{is_so} = twoPhaseIx;
-            end
-            removed(is_sg | is_so) = true;
-            
-            if model.water
-                is_sw = strcmp(names, 'satw');
-                sW = vars{is_sw};
-                
-                [sO, sG] = setMinimumTwoPhaseSaturations(model, state, sW, sO, sG, pureVapor, pureLiquid);
-                removed(is_sw) = true;
-                sat = {sW, sO, sG};
-            else
-                sat = {sO, sG};
-            end
-            state = model.setProp(state, 's', sat);
-            
+                        
             cnames = model.EOSModel.fluid.names;
             ncomp = numel(cnames);
             x = cell(1, ncomp);
@@ -269,15 +237,41 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Ext
             end
 
             for i = 1:ncomp
-                y{i} = ~pureLiquid.*x{i} + value(x{i}).*pureLiquid;
+                y{i} = singlePhase.*x{i};
                 if any(twoPhase)
                     y{i}(twoPhase) = w{i};
                 end
-                x{i}(pureVapor) = value(x{i}(pureVapor));
             end
             state = model.setProps(state, ...
                 {'liquidMoleFractions', 'vaporMoleFractions'}, {x, y});
+            % Deal with saturations
+            [sO, sG] = model.getProps(state, 'sO', 'sG');
+            sO = model.AutoDiffBackend.convertToAD(sO, s);
+            sG = model.AutoDiffBackend.convertToAD(sG, s);
+            if any(twoPhase)
+                % Set oil/liquid saturation in two-phase cells
+                so = vars{is_so};
+                sO(twoPhase) = so;
+                % Set gas/vapor saturation in two-phase cells
+                sg = vars{is_sg};
+                sG(twoPhase) = sg;
+                cellJacMap{is_sg} = twoPhaseIx;
+                cellJacMap{is_so} = twoPhaseIx;
+            end
+            removed(is_sg | is_so) = true;
             
+            if model.water
+                is_sw = strcmp(names, 'satw');
+                sW = vars{is_sw};
+                
+                [sO, sG] = setMinimumTwoPhaseSaturations(model, state, sW, sO, sG, pureVapor, pureLiquid);
+                removed(is_sw) = true;
+                sat = {sW, sO, sG};
+            else
+                sat = {sO, sG};
+            end
+            state = model.setProp(state, 's', sat);
+
             if ~isempty(model.FacilityModel)
                 % Select facility model variables and pass them off to attached
                 % class.
@@ -290,74 +284,34 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Ext
             % Set up state with remaining variables
             state = initStateAD@ReservoirModel(model, state, vars(~removed), names(~removed), origin(~removed));
         end
-        
-        
-        function [sO, sG] = setMinimumTwoPhaseSaturations(model, state, sW, sO, sG, pureVapor, pureLiquid)
-            stol = 1e-8;
-            if model.water
-                sT = sum(state.s, 2);
-                if any(pureVapor)
-                    sG(pureVapor) = sT(pureVapor) - sW(pureVapor);
-                    if isa(sG, 'ADI')
-                        sG.val(pureVapor) = max(sG.val(pureVapor), stol);
-                    else
-                        sG(pureVapor) = max(sG(pureVapor), stol);
-                    end
-                end
 
-                if any(pureLiquid)
-                    sO(pureLiquid) = sT(pureLiquid) - sW(pureLiquid);
-                    if isa(sO, 'ADI')
-                        sO.val(pureLiquid) = max(sO.val(pureLiquid), stol);
-                    else
-                        sO(pureLiquid) = max(sO(pureLiquid), stol);
-                    end
-                end
-            end
-        end
-        
         function forces = validateDrivingForces(model, forces)
             forces = validateDrivingForces@NaturalVariablesCompositionalModel(model, forces);
-            if ~isempty(forces.W) && numel(forces.W) > 0
-                assert(~isempty(model.FacilityModel), ...
-                    'FacilityModel must be set up before validating driving forces for a compositional problem with wells!');
-                T = model.FacilityModel.T;
-                p = model.FacilityModel.pressure;
-                wat = model.water;
-                assert(isfield(forces.W, 'components'), ...
-                    'Wells must have field .components for a compositional model.');
-                eos = model.EOSModel;
-                for i = 1:numel(forces.W)
-                    z = forces.W(i).components;
-                    [L, x, y, Z_L, Z_V, rhoL, rhoV] = standaloneFlash(p, T, z, eos);
-                    if false
-                        % Use flash
-                        [sL, sV] = eos.computeSaturations(rhoL, rhoV, x, y, L, Z_L, Z_V);
-                        % compi is a mass-fraction in practice
-                        L_mass = sL.*rhoL./(sL.*rhoL + sV.*rhoV);
-                        comp = [L_mass, 1-L_mass];
-                    else
-                        % Use the pre-computed definition of light/heavy
-                        % components to determine "compi"
-                        Z = eos.getMassFraction(z);
-                        isEOS = cellfun(@(x) isa(x, 'EquationOfStateComponent'), model.Components);
-                        val = cellfun(@(x) x.surfacePhaseMassFractions, model.Components(isEOS), 'UniformOutput', false)';
-                        val = vertcat(val{:});
-                        val = val(:, (1+wat):end);
-                        comp = sum(bsxfun(@times, val, Z'), 1);
-                    end
-                    if wat
-                        assert(~isempty(forces.W(i).compi), ...
-                            'W.compi must be present for compositional flow with water phase.');
-                        sW = forces.W(i).compi(1);
-                        comp = [sW, comp.*(1-sW)];
-                        rho = [model.fluid.rhoWS, rhoL, rhoV];
-                    else
-                        rho = [rhoL, rhoV];
-                    end
-                    forces.W(i).compi = comp;
-                    forces.W(i).rhoS = rho;
-                end
+            forces = validateCompositionalForces(model, forces);
+        end
+        
+        function problem = setupLinearizedProblem(model, eqs, types, names, primaryVars, state, dt)
+            s = eqs{1};
+            if model.reduceLinearSystem && isa(s, 'ADI')
+                problem = ReducedLinearizedSystem(eqs, types, names, primaryVars, state, dt);
+                [~, ~, twoPhase] = model.getFlag(state);
+                % Switch first composition and first saturation in
+                % two-phase region to ensure invertible
+                % Schur-complement
+                twoPhaseIx = find(twoPhase);
+                cn = model.EOSModel.fluid.names;
+                xInd = strcmpi(primaryVars, ['v_', cn{1}]);
+                sInd = strcmpi(primaryVars, 'sato');
+                offsets = cumsum([0; s.getNumVars()]);
+                reorder = 1:offsets(end);
+                start = offsets(xInd) + twoPhaseIx;
+                stop = offsets(sInd) + (1:sum(twoPhase));
+                reorder(start) = stop;
+                reorder(stop) = start;
+                problem.reorder = reorder;
+                problem.keepNum = offsets(sInd);
+            else
+                problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
             end
         end
     end

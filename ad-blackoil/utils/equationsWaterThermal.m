@@ -25,8 +25,8 @@ f = model.fluid;
 %Initialization of independent variables ----------------------------------
 [wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
 
-if ~opt.resOnly,
-    if ~opt.reverseMode,
+if ~opt.resOnly
+    if ~opt.reverseMode
         % define primary varible x and initialize
         [p, T, wellVars{:}] = initVariablesADI(p, T, wellVars{:});
     else
@@ -61,7 +61,7 @@ rhoWf  = s.faceAvg(rhoW);
 mobW   = trMult./f.muW(p,T);
 dpW     = s.Grad(p) - rhoWf.*gdz;
 % water upstream-index
-upcw = (double(dpW)<=0);
+upcw = (value(dpW)<=0);
 vW = - s.faceUpstr(upcw, mobW).*trans.*dpW;
 bWvW = s.faceUpstr(upcw, bW).*vW;
 

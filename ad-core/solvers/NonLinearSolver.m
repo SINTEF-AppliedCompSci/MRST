@@ -310,7 +310,9 @@ classdef NonLinearSolver < handle
                     else
                         if solver.verbose >= 0
                             % Beat timestep with a hammer
-                            warning([solver.getId(), 'Solver did not converge, cutting timestep'])
+                            fprintf(['%sSolver did not converge in %d iterations',...
+                                    ' for timestep of length %s. Cutting timestep.\n'],...
+                                    solver.getId(), its, formatTimeRange(dt));
                         end
                         timestepFailure = true;
                         cuttingCount = cuttingCount + 1;

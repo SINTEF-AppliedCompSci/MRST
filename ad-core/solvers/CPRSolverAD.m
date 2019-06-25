@@ -37,7 +37,7 @@ classdef CPRSolverAD < LinearSolverAD
             solver.relativeTolerance = 1e-4;
             solver.pressureScaling = 1/(200*barsa);
             solver.diagonalTol = 1e-2;
-            solver.trueIMPES = true;
+            solver.trueIMPES = false;
             solver.ellipticVarName = 'pressure';
             solver.reduceToCell = true;
             

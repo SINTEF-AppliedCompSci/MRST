@@ -1,4 +1,49 @@
 function [ws, states, reports] = getPackedSimulatorOutput(problem, varargin)
+%Get output from a packed simulation problem
+%
+% SYNOPSIS:
+%   [ws, states, reports] = getPackedSimulatorOutput(problem)
+%
+% REQUIRED PARAMETERS:
+%   problem - Problem generated using 'packSimulationProblem'.
+%
+% OPTIONAL PARAMETERS:
+%   readFromDisk - Indicating if states and reporst will be read from disk,
+%                  or returned as OutputHandler instances. Reading from
+%                  disk can take some time and is recommended when further
+%                  changes to output is desired.
+%   readWellSolsFromDisk - See above. Applies for wellSols only.
+%
+% RETURNS:
+%   ws      - Well output.
+%   states  - States for each simulated step.
+%   reports - Report for each of the time-steps.
+% 
+% EXAMPLE:
+%   demoPackedProblems
+%
+% SEE ALSO:
+%   packSimulationProblem, getMultiplePackedSimulatorOutputs
+
+%{
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
     opt = struct('readFromDisk', true, 'readWellSolsFromDisk', true);
     opt = merge_options(opt, varargin{:});
     

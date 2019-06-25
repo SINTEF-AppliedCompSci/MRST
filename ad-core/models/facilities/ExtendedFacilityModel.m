@@ -2,6 +2,7 @@ classdef ExtendedFacilityModel < FacilityModel
     properties
         T = 288.15; % Metric standard conditions
         pressure = 101.325*kilo*Pascal; % Metric standard pressure
+        SeparatorGroup
     end
     
     methods
@@ -27,6 +28,61 @@ classdef ExtendedFacilityModel < FacilityModel
             src = struct('value', {val}, 'cells', map.cells);
         end
         
+        function [surfaceRates, surfaceDensity] = getSurfaceRates(facility, state)
+            [cflux, map] = facility.getProps(state, 'ComponentTotalFlux', 'FacilityWellMapping');
+            model = facility.ReservoirModel;
+            for c = 1:numel(cflux)
+                % Sum over each well
+                cflux{c} = map.perforationSum*cflux{c};
+            end
+            % We use a simple, but fast approach based on the
+            % individual components' preference at different conditions
+            [p, temp] = facility.getSurfaceConditions();
+            nph = model.getNumberOfPhases();
+            phaseMassRates = cell(1, nph);
+            [phaseMassRates{:}] = deal(0);
+            surfaceDensity = cell(1, nph);
+            for c = 1:numel(cflux)
+                composition = model.Components{c}.getPhaseCompositionSurface(model, state, p, temp);
+                for ph = 1:nph
+                    if ~isempty(composition{ph})
+                        phaseMassRates{ph} = phaseMassRates{ph} + composition{ph}.*cflux{c};
+                    end
+                end
+            end
+            W = map.W;
+            rhoS = model.getSurfaceDensities();
+            % We take the surface density for the first well cell,
+            % regardless of active or inactive status for that
+            % perforation.
+            topcell = arrayfun(@(x) x.cells(1), W);
+            reg = model.FlowPropertyFunctions.Density.regions;
+            rhoS = rhoS(reg(topcell), :);
+            if isfield(W, 'rhoS')
+                % Surface density is given on a per-well-basis for the
+                % injectors
+                rhoS(map.isInjector, :) = vertcat(W(map.isInjector).rhoS);
+            end
+            surfaceRates = cell(1, nph);
+            for ph = 1:nph
+                rhoPhase = rhoS(:, ph);
+                surfaceRates{ph} = phaseMassRates{ph}./rhoPhase;
+                rhoPhase = model.AutoDiffBackend.convertToAD(rhoPhase, cflux{1});
+                surfaceDensity{ph} = rhoPhase;
+            end
+            isProd = ~map.isInjector;
+            if ~isempty(facility.SeparatorGroup) && any(isProd)
+                % We have separators for the producers. Perform a
+                % potentially costly separation to figure out phase rates.
+                cfluxProd = cellfun(@(x) x(isProd), cflux, 'UniformOutput', false);
+                [surfaceRatesProd, surfaceDensityProd] = facility.SeparatorGroup.getSurfaceRates(model, cfluxProd);
+                for ph = 1:nph
+                    surfaceRates{ph}(isProd) = surfaceRatesProd{ph};
+                    surfaceDensity{ph}(isProd) = surfaceDensityProd{ph};
+                end
+            end
+        end
+        
         function [eqs, names, types, state] = getModelEquations(facility, state0, state, dt, drivingForces)
             model = facility.ReservoirModel;
             map = facility.getProps(state, 'FacilityWellMapping');
@@ -34,58 +90,42 @@ classdef ExtendedFacilityModel < FacilityModel
                 [eqs, names, types] = deal({});
                 return
             end
-            cflux = facility.getProps(state, 'ComponentTotalFlux');
-            
-            [p, T] = facility.getSurfaceConditions();
             nph = model.getNumberOfPhases();
-            surfaceRates = cell(1, nph);
-            [surfaceRates{:}] = deal(0);
-            
-            wsum = map.perforationSum;
-            for c = 1:numel(cflux)
-                composition = model.Components{c}.getPhaseCompositionSurface(model, state, p, T);
-                for ph = 1:nph
-                    if ~isempty(composition{ph})
-                        surfaceRates{ph} = surfaceRates{ph} + composition{ph}.*(wsum*cflux{c});
-                    end
-                end
-            end
-            W = facility.getWellStruct(map.active);
-            if isfield(W, 'rhoS')
-                rhoS = vertcat(W.rhoS);
-            else
-                rhoS = model.getSurfaceDensities();
-                rhoS = repmat(rhoS, numel(W), 1);
-            end
             [eqs, names, types] = deal(cell(1, nph+1));
-            
+            wsum = map.perforationSum;
             % This is a temporary hack!
             q_s = state.FacilityState.primaryVariables(1:nph);
-            bhp = state.FacilityState.primaryVariables{nph+1};
+            % Get surface rate equations
             [sn, phnames] = model.getPhaseNames();
-            % Approximate scaling to get the 
-            rhoScale = mean(rhoS, 1)./mean(value(model.getProps(state0, 'Density')), 1);
+            [surfaceRates, rhoS] = facility.getSurfaceRates(state);
+            % Approximate scaling to get the tolerance in terms of
+            % reservoir rates. Otherwise, e.g. gas phases may be very
+            % differently scaled.
+            rhoR = value(model.getProps(state0, 'Density'));
+            rhoScale = bsxfun(@rdivide, value(rhoS), mean(rhoR, 1));
+            % One equation for each phase corresponding to the volumetric
+            % rate at surface conditions
             for ph = 1:nph
-                surfaceRates{ph} = surfaceRates{ph}./rhoS(:, ph);
                 eqs{ph} = (q_s{ph} - surfaceRates{ph}).*rhoScale(ph);
                 names{ph} = [phnames{ph}, 'Wells'];
                 types{ph} = 'perf';
             end
+            % Set up AD for control equations
             nact = numel(map.active);
-
+            bhp = state.FacilityState.primaryVariables{strcmpi(state.FacilityState.names, 'bhp')};
             backend = model.AutoDiffBackend;
+            % Equation for well matching correct control
             ctrl_eq = backend.convertToAD(zeros(nact, 1), bhp);
-            wrates = backend.convertToAD(zeros(nact, 1), bhp);
-            
+            % Current control types (strings)
             well_controls = {state.wellSol(map.active).type}';
+            % Current targets (numerical values)
             targets = vertcat(state.wellSol(map.active).val);
 
             % Handle bhp
             is_bhp = strcmp(well_controls, 'bhp');
             ctrl_eq(is_bhp) = bhp(is_bhp) - targets(is_bhp);
 
-            % Different types of rate controls
-
+            % Following: Different types of rate controls.
             % Surface total rates
             is_rate = strcmp(well_controls, 'rate') | strcmpi(well_controls, 'vrat');
             % Surface oil rates
@@ -103,7 +143,7 @@ classdef ExtendedFacilityModel < FacilityModel
 
             phases = model.getPhaseNames();
             is_surface_control = false(nact, 1);
-
+            wrates = backend.convertToAD(zeros(nact, 1), bhp);
             % qs_t = zeros(nact, 1);
             for i = 1:nph
                 switch phases(i)
@@ -119,6 +159,7 @@ classdef ExtendedFacilityModel < FacilityModel
                 % qs_t(act) = qs_t(act) + mixs(act, i);
             end
             ctrl_eq(is_surface_control) = wrates(is_surface_control) - targets(is_surface_control);
+            % RESV controls are special
             if any(is_resv)
                 map = facility.getProp(state, 'FacilityWellMapping');
                 rho = cellfun(@(x) x.ControlDensity, facility.WellModels(map.active), 'UniformOutput', false);
@@ -151,7 +192,6 @@ classdef ExtendedFacilityModel < FacilityModel
                 end
                 ctrl_eq(zeroRates) = q_t;
             end
-
 
             if any(is_volume)
                 phase_flux = facility.getProps(state, 'PhaseFlux');
@@ -231,8 +271,8 @@ classdef ExtendedFacilityModel < FacilityModel
             end
         end
         
-        function containers = getPropertyFunctions(model)
-            containers = getPropertyFunctions@PhysicalModel(model);
+        function containers = getStateFunctionGroupings(model)
+            containers = getStateFunctionGroupings@PhysicalModel(model);
             assert(not(isempty(model.FacilityFluxDiscretization)), ...
                 'FacilityFluxDiscretization not initialized - did you call "validateModel"?');
             containers = [containers, {model.FacilityFluxDiscretization}];
@@ -431,7 +471,7 @@ classdef ExtendedFacilityModel < FacilityModel
                 flowProps = model.ReservoirModel.FlowPropertyFunctions.subset(cells);
                 % Avoid using flag for interpolation
                 flowProps.ShrinkageFactors.useSaturatedFlag = true;
-                substate = flowProps.evaluatePropertyWithDependencies(model.ReservoirModel, substate, 'Density');
+                substate = flowProps.evaluateStateFunctionWithDependencies(model.ReservoirModel, substate, 'Density');
                 rho = substate.FlowProps.Density;
                 rho = [rho{:}];
                 if false
