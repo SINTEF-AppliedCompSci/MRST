@@ -7,20 +7,16 @@ classdef NFVM < PermeabilityGradientDiscretization
     
     methods
         
-        function nfvm = NFVM(model, bc)
+        function nfvm = NFVM(model, bc, varargin)
             
-            % If no BC provided, use homogeneous Neumann
-            if nargin == 1
-                bc.face = boundaryFaces(model.G);
-                bc.type = repmat({'flux'},[numel(bc.face),1]);
-                bc.value = repmat({@(x)0},[numel(bc.face),1]);
-            end
+            opt = struct('myRatio', []);% tolerable ratio of harmonic average point and diameter of cell
+            opt = merge_options(opt, varargin{:});
             
             % Setup nfvm members
             nfvm.bc = bc;
             nfvm.interpFace = nfvm.findHAP(model.G, model.rock);
             disp(['fraction of faces with centroids outside convex hull: ', num2str(nfvm.interpFace.fraction)]);
-            nfvm.interpFace = nfvm.correctHAP(model.G);
+            nfvm.interpFace = nfvm.correctHAP(model.G, opt.myRatio);
             nfvm.OSflux = nfvm.findOSflux(model.G, model.rock, nfvm.interpFace);
         end
         
@@ -102,7 +98,7 @@ classdef NFVM < PermeabilityGradientDiscretization
             c1=max(G.faces.neighbors(~ind,:),[],2);
             flux(~ind)=T(~ind,1).*u(c1)-T(~ind,2);
             ind=G.faces.neighbors(:,1)==0;
-            flux(ind)=-flux(ind);
+            %flux(ind)=-flux(ind);
         end
         
         function interpFace=findHAP(nfvm,G,rock)
@@ -153,7 +149,6 @@ classdef NFVM < PermeabilityGradientDiscretization
                         interpFace.coords(i_face,:)=xA';
                         a=norm(w1)/norm(x1-xA);
                         gN=nfvm.bc.value{ind}(xf)*G.faces.areas(i_face);
-                        %gN=0;
                         interpFace.weights(i_face,(c1==0)+1)=1;
                         interpFace.weights(i_face,(c2==0)+1)=-gN/a;
                     end
@@ -194,7 +189,7 @@ classdef NFVM < PermeabilityGradientDiscretization
             interpFace = nfvm.interpFace;
             
             HAP=interpFace.coords; % store the locations of the original harmonic averaging points;
-            if(nargin==2)
+            if(nargin==2 || isempty(myRatio))
                 if(interpFace.fraction>0)
                     if(G.griddim==2)
                         R=0.5*G.faces.areas;
@@ -568,8 +563,12 @@ classdef NFVM < PermeabilityGradientDiscretization
             %',num2str(c)]);
             
             if ~faces_found
-                error(['decomposition failed for cell ', ...
-                       num2str(c)]);
+                figure, hold on
+                plotGrid(G, c)
+                p=interpFace.coords(theFaces,:);
+                plot3(p(:,1),p(:,2),p(:,3),'.')
+                error(['decomposition failed for cell ', num2str(c)]);
+        
             end
         end
         
