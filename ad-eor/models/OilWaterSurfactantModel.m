@@ -94,10 +94,10 @@ classdef OilWaterSurfactantModel < TwoPhaseOilWaterModel
             switch(lower(name))
                 case {'surfactant'}
                     index = 1;
-                    fn = 'c';
+                    fn = 'cs';
                 case {'surfactantmax'}
                     index = ':';
-                    fn = 'cmax';
+                    fn = 'csmax';
                 case 'qwsft'
                     index = ':';
                     fn = 'qWSft';

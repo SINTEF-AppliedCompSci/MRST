@@ -23,7 +23,9 @@ mrstModule add ad-core ad-blackoil ad-eor ad-props deckformat mrst-gui
 % 
 
 current_dir = fileparts(mfilename('fullpath'));
-fn = fullfile(current_dir, 'SURFACTANT1D.DATA');
+% fn = fullfile(current_dir, 'SURFACTANT1D.DATA');
+fn = fullfile(current_dir, 'DZ_CASE_2P.DATA');
+
 gravity off
 
 deck = readEclipseDeck(fn);
@@ -42,8 +44,8 @@ rock  = compressRock(rock, G.cells.indexMap);
 
 nc = G.cells.num;
 state0 = initResSol(G, 300*barsa, [ .2, .8]); % residual water saturation is 0.2
-state0.c    = zeros(G.cells.num, 1);
-state0.cmax = state0.c;
+state0.cs    = zeros(G.cells.num, 1);
+state0.csmax = state0.cs;
 
 %% Set up the model
 % 
