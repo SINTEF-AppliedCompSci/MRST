@@ -9,6 +9,13 @@ classdef NFVM < PermeabilityGradientDiscretization
         
         function nfvm = NFVM(model, bc)
             
+            % If no BC provided, use homogeneous Neumann
+            if nargin == 1
+                bc.face = boundaryFaces(model.G);
+                bc.type = repmat({'flux'},[numel(bc.face),1]);
+                bc.value = repmat({@(x)0},[numel(bc.face),1]);
+            end
+            
             % Setup nfvm members
             nfvm.bc = bc;
             nfvm.interpFace = nfvm.findHAP(model.G, model.rock);
@@ -76,8 +83,7 @@ classdef NFVM < PermeabilityGradientDiscretization
                         T(i_face,2)=(mu1*t12+mu2*t22)*bc.value{ind}(G.faces.centroids(i_face,:));
                     else
                         T(i_face,2)=-G.faces.areas(i_face)*...
-                            0;
-                    bc.value{ind}(G.faces.centroids(i_face,:));
+                            bc.value{ind}(G.faces.centroids(i_face,:));
                     end
                 end
             end
