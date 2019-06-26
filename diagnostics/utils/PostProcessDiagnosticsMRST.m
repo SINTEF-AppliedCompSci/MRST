@@ -1,5 +1,5 @@
 function [d] = PostProcessDiagnosticsMRST(problem,varargin)
-% Launch flow diagnostics postprocessor GUI for MRST simulation output.
+%Launch flow diagnostics postprocessor GUI for MRST simulation output.
 %
 % SYNOPSIS:
 %   [d] = PostProcessDiagnosticsMRST(problem,varargin)

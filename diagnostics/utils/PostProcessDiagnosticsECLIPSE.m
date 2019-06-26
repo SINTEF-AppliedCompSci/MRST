@@ -1,5 +1,5 @@
 function [d] = PostProcessDiagnosticsECLIPSE(varargin)
-% Launch flow diagnostics postprocessor GUI for ECLIPSE simulation output.
+%Launch flow diagnostics postprocessor GUI for ECLIPSE simulation output.
 %
 % SYNOPSIS:
 %   [d] = PostProcessDiagnosticsECLIPSE(varargin)

@@ -1,5 +1,6 @@
 function [dist] = estimateRTD(pv, D, WP, varargin)
-% Estimate residence time distributions based on computed tof-values
+%Estimate residence time distributions based on computed tof-values
+%
 % SYNOPSIS:
 %   dist = estimateRTD(pv, D, WP, 'pn1', pv1, ...)
 % 

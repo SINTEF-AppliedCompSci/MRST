@@ -1,5 +1,5 @@
 function varargout = plotWellPairConnections(G, WP, D, W, pv, minAlloc)
-% Plot lines between wells to show relative flux allocation
+%Plot lines between wells to show relative flux allocation
 %
 % SYNOPSIS
 %   plotWellPairConnections(G, WP, D, W, pv)
