@@ -23,6 +23,8 @@ function compi = crossFlowMixture(flux, compi, map, conserveMass, is_zero)
     compT = sum(comp, 2);
     % Normalize to get fractions
     comp = bsxfun(@rdivide, comp, compT);
+    active = compT > 0;
+    compi(active, :) = comp(active, :);
     if conserveMass
         % Ensure exact re-injection with "fractions" which are not in unit
         % range for injectors
@@ -32,8 +34,6 @@ function compi = crossFlowMixture(flux, compi, map, conserveMass, is_zero)
         tmp = (top_in(act, :) + sum_in(act, :))./sum(max(net_flux(act, :), 0), 2);
         compi(act, :) = tmp;
     end
-    active = compT > 0;
-    compi(active, :) = comp(active, :);
 end
 
 function out = sum_perf(v, map)
