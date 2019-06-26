@@ -122,7 +122,7 @@ classdef ExtendedFacilityModel < FacilityModel
                 qSurf = value(surfaceRates);
                 for ph = 1:numel(sn)
                     fld = ['q', sn(ph), 's'];
-                    for i = 1:map.active
+                    for i = 1:numel(map.active)
                         ix = map.active(i);
                         state.wellSol(ix).(fld) = qSurf(i, ph);
                     end
