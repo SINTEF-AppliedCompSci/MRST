@@ -205,7 +205,7 @@ classdef ExtendedFacilityModel < FacilityModel
             if any(zeroRates)
                 q_t = 0;
                 for i = 1:nph
-                    q_t = q_t + q_s{i}(zeroRates);
+                    q_t = q_t + targetRates{i}(zeroRates);
                 end
                 ctrl_eq(zeroRates) = q_t;
             end
