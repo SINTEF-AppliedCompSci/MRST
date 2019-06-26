@@ -28,7 +28,7 @@ classdef NFVM < PermeabilityGradientDiscretization
             
             % Reduce to interior
             ii = sum(model.G.faces.neighbors ~= 0, 2) == 2;
-            v = v(ii);
+            v = -v(ii);
         end
     end
     
@@ -98,7 +98,7 @@ classdef NFVM < PermeabilityGradientDiscretization
             c1=max(G.faces.neighbors(~ind,:),[],2);
             flux(~ind)=T(~ind,1).*u(c1)-T(~ind,2);
             ind=G.faces.neighbors(:,1)==0;
-            %flux(ind)=-flux(ind);
+            flux(ind)=-flux(ind);
         end
         
         function interpFace=findHAP(nfvm,G,rock)
