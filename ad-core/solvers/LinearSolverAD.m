@@ -325,16 +325,6 @@ classdef LinearSolverAD < handle
             end
             
             if solver.useSparseReduction
-                start = 1:nk;
-                stop = (nk+1):size(A, 2);
-                sys.B = A(start, start);
-                sys.C = A(start, stop);
-                sys.D = A(stop, start);
-                sys.E = A(stop, stop);
-                
-                sys.f = b(start);
-                sys.h = b(stop);
-            else
                 n = size(A, 2);
                 keep = false(n, 1);
                 keep(start) = true;
@@ -353,6 +343,16 @@ classdef LinearSolverAD < handle
                 sys.E = sparse(ix(ke) - nk, jx(ke) - nk, vx(ke), n - nk, n - nk);
                 sys.f = b(keep);
                 sys.h = b(~keep);
+            else
+                start = 1:nk;
+                stop = (nk+1):size(A, 2);
+                sys.B = A(start, start);
+                sys.C = A(start, stop);
+                sys.D = A(stop, start);
+                sys.E = A(stop, stop);
+                
+                sys.f = b(start);
+                sys.h = b(stop);
             end
             [sys.E_L, sys.E_U] = lu(sys.E);
             A = sys.B - sys.C*(sys.E_U\(sys.E_L\sys.D));
