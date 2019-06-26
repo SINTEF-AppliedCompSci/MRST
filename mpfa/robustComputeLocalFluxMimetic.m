@@ -87,7 +87,8 @@ function [B, tbls] = robustComputeLocalFluxMimetic(G, rock, opt)
     
     [~, cellnodefacecolrowtbl] = setupTableMapping(cellcolrowtbl, cellnodefacetbl, ...
                                                                  {'cells'});
-    op = reduceDispatchMapping(cellcolrowtbl, cellnodefacecolrowtbl, 'ccrind');
+    op = setupTableMapping(cellcolrowtbl, cellnodefacecolrowtbl, {'ccrind'}, ...
+                                         'fastunstable', true);
     perm = op*perm;
     % Multiply perm with facetNormals
     map1 = setupTableMapping(cellnodefacecoltbl, cellnodefacecolrowtbl, ...
@@ -101,10 +102,12 @@ function [B, tbls] = robustComputeLocalFluxMimetic(G, rock, opt)
     Kn = map2*Kn;
     
     % store Kn in matrix form in facePermNormals.
-    op = reduceDispatchMapping(cellnodefacetbl, cellnodefacecoltbl, 'cnfind');
+    op = setupTableMapping(cellnodefacetbl, cellnodefacecoltbl, {'cnfind'}, ...
+                                         'fastunstable', true);
     ind1 = cellnodefacetbl.cnfind;
     ind1 = op*ind1;
-    op = reduceDispatchMapping(coltbl, cellnodefacecoltbl, 'coldim');
+    op = setupTableMapping(coltbl, cellnodefacecoltbl, {'coldim'}, 'fastunstable', ...
+                                   true);
     ind2 = (1 : coltbl.num)';
     ind2 = op*ind2;    
     facePermNormals = sparse(ind1, ind2, Kn, cellnodefacetbl.num, coltbl.num);

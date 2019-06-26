@@ -116,7 +116,8 @@ function [B, tbls] = blockLocalFluxMimeticAssembly(G, rock, globtbls, nodes, var
     % Dispatch permeability tensor on cellnodeface
     [~, cellnodefacecolrowtbl] = setupTableMapping(cellcolrowtbl, cellfacenodetbl, ...
                                                                  {'cells'});
-    op = reduceDispatchMapping(cellcolrowtbl, cellnodefacecolrowtbl, 'ccrind');
+    op = setupTableMapping(cellcolrowtbl, cellnodefacecolrowtbl, {'ccrind'}, ...
+                                         'fastunstable', true);
     perm = op*perm;
     % Multiply permeability tensor with facetNormals
     map1 = setupTableMapping(cellnodefacecoltbl, cellnodefacecolrowtbl, ...
@@ -130,10 +131,11 @@ function [B, tbls] = blockLocalFluxMimeticAssembly(G, rock, globtbls, nodes, var
     Kn = map2*Kn;
 
     % store Kn in matrix form in facePermNormals.
-    op = reduceDispatchMapping(cellfacenodetbl, cellnodefacecoltbl, 'cnfind');
+    op = setupTableMapping(cellfacenodetbl, cellnodefacecoltbl, {'cnfind'}, 'fastunstable', true);
     ind1 = cellfacenodetbl.cnfind;
     ind1 = op*ind1;
-    op = reduceDispatchMapping(coltbl, cellnodefacecoltbl, 'coldim');
+    op = setupTableMapping(coltbl, cellnodefacecoltbl, {'coldim'}, 'fastunstable', ...
+                                   true);
     ind2 = (1 : coltbl.num)';
     ind2 = op*ind2;
     facePermNormals = sparse(ind1, ind2, Kn, cellfacenodetbl.num, coltbl.num);
