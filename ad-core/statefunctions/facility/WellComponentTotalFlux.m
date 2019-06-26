@@ -63,6 +63,7 @@ classdef WellComponentTotalFlux < StateFunction
                 for ph = 1:nph
                     compi = compi + Wcomp(:, ph).*[surfaceComposition{:, ph}];
                 end
+                compi = bsxfun(@rdivide, compi, sum(compi, 2));
                 if any(crossflow)
                     % allready been disp'ed in WellPhaseFlux
                     compi = crossFlowMixture(vd, compi, map, true, isZero);
