@@ -1,4 +1,7 @@
-function [A, operators] = setupSystem(Atrans, cellnode2tbl, G)
+function [A, operators] = setupSystem(vagstruct, G)
+    
+    Atrans = vagstruct.A;
+    cellnode2tbl = vagstruct.cellnode2tbl;
     
     nc = G.cells.num;
     clear celltbl;
@@ -22,7 +25,7 @@ function [A, operators] = setupSystem(Atrans, cellnode2tbl, G)
     map = setupTableMapping(cellnode2tbl, node2tbl, {'nodes1', 'nodes2'});
     A11 = map*Atrans;
     tbl = node2tbl;
-    A11 = sparse(tbl.nind1, tbl.nind2, A11, nodetbl.num, nodetbl.num);
+    A11m = sparse(tbl.nind1, tbl.nind2, A11, nodetbl.num, nodetbl.num);
 
     %% Assembly of A12
     cellnodetbl = projTable(cellnode2tbl, {'cells', 'nodes1'});
@@ -32,15 +35,16 @@ function [A, operators] = setupSystem(Atrans, cellnode2tbl, G)
     map = setupTableMapping(cellnode2tbl, cellnodetbl, {'cells', 'nodes1'});
     A12 = map*Atrans;
     tbl = cellnodetbl;
-    A12 = -sparse(tbl.nind1, tbl.cells, A12, nodetbl.num, celltbl.num);
+    A12m = -sparse(tbl.nind1, tbl.cells, A12, nodetbl.num, celltbl.num);
 
     %% Assembly of A12
 
-    map = setupTableMapping(cellnode2tbl, celltbl, {'cells'});
+    cell2tbl = duplicatefield(celltbl, {'cells', {'cells1', 'cells2'}});
+    map = setupTableMapping(cellnode2tbl, cell2tbl, {{'cells', 'cells1'}});
     A22 = map*Atrans;
     invA22 = 1./A22;
-    tbl = celltbl;
-    invA22 = sparse(tbl.cells, tbl.cells, invA22, tbl.num, tbl.num);
+    tbl = cell2tbl;
+    invA22m = sparse(tbl.cells1, tbl.cells2, invA22, tbl.num, tbl.num);
 
     % We have
     %
@@ -65,14 +69,30 @@ function [A, operators] = setupSystem(Atrans, cellnode2tbl, G)
     %
     
     % system matrix:
-    A = A11 - A12*invA22*A12';
+    A = A11m - A12m*invA22m*A12m';
 
-    rhsfun = @(f, g) assembleRHS(f, g, A12, invA22);
-    computeCellPressure = @(pn, g) assembleCellPressure(pn, g, A12, invA22);
+    rhsfun = @(f, g) assembleRHS(f, g, A12m, invA22m);
+    computeCellPressure = @(pn, g) assembleCellPressure(pn, g, A12m, invA22m);
+   
+    matrices = struct('A11', A11, ...
+                      'A12', A12, ...
+                      'A22', A22);
+
+    % cleaning the tables before exporting
+    cellnodetbl = rmfield(cellnodetbl, 'nind1');
+    cellnodetbl = replacefield(cellnodetbl, {'nodes1', 'nodes'});
+    node2tbl = rmfield(node2tbl, 'nind1');
+    node2tbl = rmfield(node2tbl, 'nind2');
     
-    operators.rhsfun = rhsfun;
+    tbls = struct('node2tbl'   , node2tbl   , ...
+                  'cellnodetbl', cellnodetbl, ...
+                  'cell2tbl'   , cell2tbl);
+    
+    operators.rhsfun   = rhsfun;
+    operators.matrices = matrices;
+    operators.tbls     = tbls;
     operators.computeCellPressure = computeCellPressure;
-    
+   
 end
 
 
