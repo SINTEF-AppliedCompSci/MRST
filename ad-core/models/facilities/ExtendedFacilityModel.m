@@ -113,11 +113,33 @@ classdef ExtendedFacilityModel < FacilityModel
                     types{ph} = 'perf';
                 end
                 targetRates = q_s;
+                ctrl_index = nph+1;
             else
-                assert(strcmpi(facility.primaryVariableSet, 'bhp'));
+                varBHP = strcmpi(facility.primaryVariableSet, 'bhp');
+                varMF = strcmpi(facility.primaryVariableSet, 'bhp_massfractions');
+                assert(varBHP || varMF);
                 % We need to actually store the surface rates in wellSol
                 % here, since there are no corresponding primary variables
-                [eqs, names, types] = deal(cell(1, 1));
+                if varMF
+                    massFractions = state.FacilityState.massfractions;
+                    cnames = model.getComponentNames();
+                    componentSources = facility.getProps(state, 'ComponentTotalFlux');
+                    ncomp = model.getNumberOfComponents();
+                    [eqs, names, types] = deal(cell(1, ncomp));
+                    total = 0;
+                    for i = 1:ncomp
+                        componentSources{i} = map.perforationSum*componentSources{i};
+                        total = total + componentSources{i};
+                    end
+                    for i = 1:ncomp-1
+                        eqs{i+1} = massFractions{i} - 0*componentSources{i}./total;
+                        names{i+1} = ['well_', cnames{i}];
+                        types{i+1} = 'wellcomposition';
+                    end
+                else
+                    [eqs, names, types] = deal(cell(1, 1));
+                end
+                ctrl_index = 1;
                 targetRates = surfaceRates;
                 qSurf = value(surfaceRates);
                 for ph = 1:numel(sn)
@@ -222,9 +244,9 @@ classdef ExtendedFacilityModel < FacilityModel
 
             assert(all(is_surface_control | is_bhp | is_volume | is_resv));
 
-            eqs{end} = ctrl_eq;
-            names{end} = 'closureWells';
-            types{end} = 'well';
+            eqs{ctrl_index} = ctrl_eq;
+            names{ctrl_index} = 'closureWells';
+            types{ctrl_index} = 'well';
         end
         
         function state = applyWellLimits(fm, state)

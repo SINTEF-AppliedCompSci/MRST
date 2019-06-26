@@ -241,7 +241,26 @@ classdef FacilityModel < PhysicalModel
         end
 
         function state = initStateAD(model, state, vars, names, origin)
+            isComp = strcmp(names, 'well_massfractions');
+            if any(isComp)
+                mf = vars{isComp};
+                vars = vars(~isComp);
+                names = names(~isComp);
+            end
             state.FacilityState = struct('primaryVariables', {vars}, 'names', {names});
+            if any(isComp)
+                ncomp = model.ReservoirModel.getNumberOfComponents();
+                state.FacilityState.massfractions = cell(1, ncomp);
+                len = numelValue(mf)/(ncomp-1);
+                fill = 1;
+                for i = 0:ncomp-2
+                    index = len*i + (1:len);
+                    v = mf(index);
+                    fill = fill - v;
+                    state.FacilityState.massfractions{i+1} = v;
+                end
+                state.FacilityState.massfractions{end} = fill;
+            end
             state = initStateAD@PhysicalModel(model, state, {}, {}, {});
         end
 
@@ -298,13 +317,16 @@ classdef FacilityModel < PhysicalModel
             %   names  - Cell array of the names of the basic primary
             %            variables.
             %
-            if strcmpi(model.primaryVariableSet, 'standard')
-                phNames = model.ReservoirModel.getPhaseNames();
-                names = arrayfun(@(x) ['q', x, 's'], phNames, 'UniformOutput', false);
-            else
-                names = {};
+            switch lower(model.primaryVariableSet)
+                case 'standard'
+                    phNames = model.ReservoirModel.getPhaseNames();
+                    names = arrayfun(@(x) ['q', x, 's'], phNames, 'UniformOutput', false);
+                    names = [names, 'bhp'];
+                case 'bhp'
+                    names = {'bhp'};
+                case 'bhp_massfractions'
+                    names = {'bhp', 'well_massfractions'};
             end
-            names = [names, 'bhp'];
         end
 
         function [variables, names, map] = getBasicPrimaryVariables(model, wellSol)
@@ -345,13 +367,20 @@ classdef FacilityModel < PhysicalModel
                 wellSol = wellSol(active);
                 names = model.getBasicPrimaryVariableNames();
                 variables = cell(size(names));
+                isCOMP = false(size(variables));
                 for i = 1:numel(variables)
-                    variables{i} = vertcat(wellSol.(names{i}));
+                    if strcmp(names{i}, 'well_massfractions')
+                        comp = vertcat(wellSol.massfractions);
+                        isCOMP(i) = true;
+                        variables{i} = reshape(comp(:, 1:end-1), [], 1);
+                    else
+                        variables{i} = vertcat(wellSol.(names{i}));
+                    end
                 end
                 
                 isBHP = false(size(variables));
                 isBHP(end) = true;
-                isRate = ~isBHP;
+                isRate = ~isBHP;% & ~isCOMP;
             end
             map = struct('isBHP', isBHP, 'isRate', isRate);
         end
@@ -1017,6 +1046,13 @@ classdef FacilityModel < PhysicalModel
                 end
                 W = model.getWellStruct();
                 state.wellSol = initWellSolAD(W, model.ReservoirModel, state);
+            end
+            
+            if strcmpi(model.primaryVariableSet, 'bhp_massfractions')
+                ncomp = model.ReservoirModel.getNumberOfComponents();
+                for i = 1:numel(state.wellSol)
+                    state.wellSol(i).massfractions = ones(1, ncomp)/ncomp;
+                end
             end
 
             for wno = 1:numel(model.WellModels)
