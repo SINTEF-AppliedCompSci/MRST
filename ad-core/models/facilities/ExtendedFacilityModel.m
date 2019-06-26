@@ -91,12 +91,8 @@ classdef ExtendedFacilityModel < FacilityModel
                 return
             end
             nph = model.getNumberOfPhases();
-            [eqs, names, types] = deal(cell(1, nph+1));
             wsum = map.perforationSum;
-            % This is a temporary hack!
-            q_s = state.FacilityState.primaryVariables(1:nph);
             % Get surface rate equations
-            [sn, phnames] = model.getPhaseNames();
             [surfaceRates, rhoS] = facility.getSurfaceRates(state);
             % Approximate scaling to get the tolerance in terms of
             % reservoir rates. Otherwise, e.g. gas phases may be very
@@ -105,10 +101,21 @@ classdef ExtendedFacilityModel < FacilityModel
             rhoScale = bsxfun(@rdivide, value(rhoS), mean(rhoR, 1));
             % One equation for each phase corresponding to the volumetric
             % rate at surface conditions
-            for ph = 1:nph
-                eqs{ph} = (q_s{ph} - surfaceRates{ph}).*rhoScale(ph);
-                names{ph} = [phnames{ph}, 'Wells'];
-                types{ph} = 'perf';
+            separateRates = strcmpi(facility.primaryVariableSet, 'standard');
+            if separateRates
+                % This is a temporary hack!
+                q_s = state.FacilityState.primaryVariables(1:nph);
+                [sn, phnames] = model.getPhaseNames();
+                [eqs, names, types] = deal(cell(1, nph+1));
+                for ph = 1:nph
+                    eqs{ph} = (q_s{ph} - surfaceRates{ph}).*rhoScale(ph);
+                    names{ph} = [phnames{ph}, 'Wells'];
+                    types{ph} = 'perf';
+                end
+                targetRates = q_s;
+            else
+                [eqs, names, types] = deal(cell(1, 1));
+                targetRates = surfaceRates;
             end
             % Set up AD for control equations
             nact = numel(map.active);
@@ -144,7 +151,6 @@ classdef ExtendedFacilityModel < FacilityModel
             phases = model.getPhaseNames();
             is_surface_control = false(nact, 1);
             wrates = backend.convertToAD(zeros(nact, 1), bhp);
-            % qs_t = zeros(nact, 1);
             for i = 1:nph
                 switch phases(i)
                     case 'W'
@@ -155,8 +161,7 @@ classdef ExtendedFacilityModel < FacilityModel
                         act = is_rate | is_grat;
                 end
                 is_surface_control(act) = true;
-                wrates(act) = wrates(act) + q_s{i}(act);
-                % qs_t(act) = qs_t(act) + mixs(act, i);
+                wrates(act) = wrates(act) + targetRates{i}(act);
             end
             ctrl_eq(is_surface_control) = wrates(is_surface_control) - targets(is_surface_control);
             % RESV controls are special

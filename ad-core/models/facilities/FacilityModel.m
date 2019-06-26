@@ -40,6 +40,7 @@ classdef FacilityModel < PhysicalModel
 
         VFPTablesInjector % Injector VFP Tables. EXPERIMENTAL.
         VFPTablesProducer % Producer VFP Tables. EXPERIMENTAL.
+        primaryVariableSet = 'standard';
     end
 
     properties (SetAccess = protected)
@@ -297,8 +298,12 @@ classdef FacilityModel < PhysicalModel
             %   names  - Cell array of the names of the basic primary
             %            variables.
             %
-            phNames = model.ReservoirModel.getPhaseNames();
-            names = arrayfun(@(x) ['q', x, 's'], phNames, 'UniformOutput', false);
+            if strcmpi(model.primaryVariableSet, 'standard')
+                phNames = model.ReservoirModel.getPhaseNames();
+                names = arrayfun(@(x) ['q', x, 's'], phNames, 'UniformOutput', false);
+            else
+                names = {};
+            end
             names = [names, 'bhp'];
         end
 
