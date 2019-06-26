@@ -22,10 +22,11 @@ rock = makeRock(G, perm*ones(nc, 1), 0.1*ones(nc, 1));
 
 %% Compute the VAG transmissibilities
 
-[Atrans, tbls] = computeVagTrans(G, rock);
+vagstruct = computeVagTrans(G, rock);
 
-cellnode2tbl = tbls.cellnode2tbl;
-cellnodetbl = tbls.cellnodetbl;
+A       = vagstruct.A;
+cellnode2tbl = vagstruct.cellnode2tbl;
+cellnodetbl  = vagstruct.cellnodetbl;
 
 cellnodetbl = addLocInd(cellnodetbl, 'cnind');
 
@@ -37,7 +38,7 @@ cellnode2tbl = replacefield(cellnode2tbl, {'cnind', 'cnind1'});
 cellnode2tbl = replacefield(cellnode2tbl, {'cnind', 'cnind2'});
 
 tbl = cellnode2tbl; %alias
-A = sparse(tbl.cnind1, tbl.cnind2, Atrans, cellnodetbl.num, cellnodetbl.num);
+A = sparse(tbl.cnind1, tbl.cnind2, A, cellnodetbl.num, cellnodetbl.num);
 
 nnc = cellnodetbl.num;
 R1 = sparse(cellnodetbl.cnind, cellnodetbl.cells, ones(nnc, 1), nnc, nc);

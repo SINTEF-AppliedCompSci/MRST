@@ -1,4 +1,4 @@
-function [Atrans, tbls] = computeVagTrans(G, rock)
+function vagstruct = computeVagTrans(G, rock)
 
 
     %% Setup cell, face, node and vertices tables
@@ -509,7 +509,7 @@ function [Atrans, tbls] = computeVagTrans(G, rock)
 
     map = setupTableMapping(cellcnvert2tbl, cellnvert2tbl, {'cells', {'cnvertices1', ...
                         'nvertices1'}, {'cnvertices2', 'nvertices2'}});
-    Atrans = map*Amat;
+    A = map*Amat;
 
     cellnode2tbl = cellnvert2tbl;
     cellnode2tbl = rmfield(cellnode2tbl, 'nvertices1');
@@ -518,6 +518,8 @@ function [Atrans, tbls] = computeVagTrans(G, rock)
     cellnodetbl = cellnverttbl;
     cellnodetbl = rmfield(cellnodetbl, 'nvertices');
     
-    tbls = struct('cellnode2tbl', cellnode2tbl, ...
-                  'cellnodetbl' , cellnodetbl);
+    vagstruct = struct('A'           , A           , ...
+                       'cellnode2tbl', cellnode2tbl, ...
+                       'cellnodetbl' , cellnodetbl);
+    
 end

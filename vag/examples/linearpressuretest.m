@@ -34,12 +34,13 @@ rock = makeRock(G, perm*ones(nc, 1), 0.1*ones(nc, 1));
 
 %% Compute the VAG transmissibilities
 
-[Atrans, tbls] = computeVagTrans(G, rock);
-cellnode2tbl = tbls.cellnode2tbl;
+vagstruct = computeVagTrans(G, rock);
+A            = vagstruct.A;
+cellnode2tbl = vagstruct.cellnode2tbl;
 
 %% Setup system matrix
 
-[A, op] = setupSystem(Atrans, cellnode2tbl, G);
+[A, op] = setupSystem(A, cellnode2tbl, G);
 
 rhsfun = op.rhsfun;
 computeCellPressure = op.computeCellPressure;
