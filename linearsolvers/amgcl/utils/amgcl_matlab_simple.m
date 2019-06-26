@@ -1,4 +1,4 @@
-function varargout = amgcl_matlab(varargin)
+function varargout = amgcl_matlab_simple(varargin)
 %MEX-gateway to AMGCL Linear Solver Software
 %
 % For more information about AMGCL, please see:
@@ -107,14 +107,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    OPTS = { '-O' };
 
-   SRC = {'amgcl_matlab.cpp'};
+   SRC = {'amgcl_matlab_simple.cpp'};
 
    [CXXFLAGS, LINK, LIBS] = setup_machdep_build_params();
 
    buildmex(OPTS{:}, INCLUDE{:}, CXXFLAGS{:}, SRC{:}, LINK{:}, LIBS{:});
 
    % Call MEX'ed edition.
-   [varargout{1:nargout}] = amgcl_matlab(varargin{:});
+   [varargout{1:nargout}] = amgcl_matlab_simple(varargin{:});
 end
 
 %--------------------------------------------------------------------------
@@ -129,8 +129,7 @@ function [CXXFLAGS, LINK, LIBS] = setup_machdep_build_params
                   'microsoft', ['libmw', lib, '.lib']);
 
       % Note explicit /EHsc to enable C++ exception handling
-      CXXFLAGS  = { ['COMPFLAGS=/EHsc /MD /DAMGCL_ASYNC_SETUP ', ...
-                     '/openmp /wd4715 /fp:fast /bigobj'] };
+      CXXFLAGS  = { 'COMPFLAGS=/EHsc /MD /DAMGCL_ASYNC_SETUP /openmp /wd4715 /fp:fast /bigobj' };
       LINK      = { ['-L', fullfile(matlabroot, 'bin', a) ]};
       iomp5     = { ['LINKFLAGS=$LINKFLAGS ', ...
                      '/nodefaultlib:vcomp libiomp5md.lib' ]};
@@ -141,12 +140,12 @@ function [CXXFLAGS, LINK, LIBS] = setup_machdep_build_params
        mwlib = @(lib) ['-lmw', lib];
 
        CXXFLAGS = ...
-          { ['CXXFLAGS=$CXXFLAGS -D_GNU_SOURCE -DAMGCL_ASYNC_SETUP ', ...
-             '-fPIC -O3 -std=c++11 -ffast-math -march=native -fopenmp'] };
+          { ['CXXFLAGS=$CXXFLAGS -D_GNU_SOURCE -DAMGCL_ASYNC_SETUP -fPIC -O3 ', ...
+             '-std=c++11 -ffast-math -march=native -fopenmp'] };
 
        LINK = { ['-L', fullfile(matlabroot, 'sys', 'os', a)] };
 
-       iomp5     = { '-liomp5' };
+       iomp5     = { '-liomp5', 'LDFLAGS=$LDFLAGS -fopenmp' };
        libstdcpp = { '-lstdc++' };
 
    else

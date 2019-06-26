@@ -24,7 +24,7 @@ function state = incompMimetic(state, g, s, fluid, varargin)
 %   fluid  - Fluid data structure as described by 'fluid_structure'.
 %
 % OPTIONAL PARAMETERS:
-%   wells  - Well structure as defined by function 'addWell'.  May be empty
+%   W      - Well structure as defined by function 'addWell'.  May be empty
 %            (i.e., W = []) which is interpreted as a model without any
 %            wells.
 %
@@ -156,7 +156,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
    require incomp
-   opt = struct('bc', [], 'src', [], 'wells', [], 'rhs', [], ...
+   opt = struct('bc', [], 'src', [], 'wells', [], 'W', [], ...
+                'rhs'         , [],                          ...
                 'bcp'         , []         ,                 ...
                 'Solver'      , 'hybrid'   ,                 ...
                 'LinSolve'    , @mldivide  ,                 ...
@@ -164,6 +165,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 'MatrixOutput', false      ,                 ...
                 'pc_form'     , 'nonwetting');
    opt = merge_options(opt, varargin{:});
+   opt = treatLegacyForceOptions(opt);
 
    % Check opt.Solver
    known_solvers = { 'mixed', 'hybrid', 'tpfa' };

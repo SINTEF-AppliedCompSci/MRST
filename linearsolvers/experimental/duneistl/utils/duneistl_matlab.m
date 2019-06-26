@@ -1,30 +1,26 @@
-function varargout = amgcl_matlab(varargin)
-%MEX-gateway to AMGCL Linear Solver Software
+function varargout = duneistl_matlab(varargin)
+%MEX-gateway to dune istl Linear Solver Software
 %
-% For more information about AMGCL, please see:
-% Documentation: http://amgcl.readthedocs.io/en/latest/
-% GitHub repository: https://github.com/ddemidov/amgcl/tree/master/examples
+% For more information about duneistl, please see:
+% Documentation: ??
+% GitHub repository: ??
 %
 % SYNOPSIS:
-%    x              = amgcl_matlab(A, b, amg_opt, tol, maxIter, id)
-%   [x, err]        = amgcl_matlab(...)
-%   [x, err, nIter] = amgcl_matlab(...)
+%    x              = duneistl_matlab(i, j, val, b,  tol, maxIter)
+%   [x, err]        = duneistl_matlab(...)
+%   [x, err, nIter] = dunestl_matlab(...)
 %
 % PARAMETERS:
-%   A       - Sparse coefficient matrix of system of simultaneous linear
+%   [i,j,val] = sparse(A)       - Sparse coefficient matrix of system of simultaneous linear
 %             equations.
 %
 %   b       - System right-hand side.
 %
-%   amg_opt - AMGCL options structure as defined by function
-%             `getAMGCLMexStruct`.
 %
 %   tol     - Relative residual reduction tolerance.  Positive scalar.
 %
 %   maxIter - Maximum number of linear iterations.
 %
-%   id      - Solver method ID.  Integer.  Supported values are `1` for the
-%             regular solver and `2` for the CPR solver.
 %
 % RETURNS:
 %   x     - Solution vector.
@@ -105,16 +101,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    INCLUDE = strcat('-I', { BOOSTPATH, AMGCLPATH });
 
-   OPTS = { '-O' };
+   OPTS = { '-O'};
 
-   SRC = {'amgcl_matlab.cpp'};
+   SRC = {'duneistl_matlab.cpp'};
 
    [CXXFLAGS, LINK, LIBS] = setup_machdep_build_params();
 
    buildmex(OPTS{:}, INCLUDE{:}, CXXFLAGS{:}, SRC{:}, LINK{:}, LIBS{:});
 
    % Call MEX'ed edition.
-   [varargout{1:nargout}] = amgcl_matlab(varargin{:});
+   [varargout{1:nargout}] = duneistl_matlab(varargin{:});
 end
 
 %--------------------------------------------------------------------------
@@ -129,8 +125,7 @@ function [CXXFLAGS, LINK, LIBS] = setup_machdep_build_params
                   'microsoft', ['libmw', lib, '.lib']);
 
       % Note explicit /EHsc to enable C++ exception handling
-      CXXFLAGS  = { ['COMPFLAGS=/EHsc /MD /DAMGCL_ASYNC_SETUP ', ...
-                     '/openmp /wd4715 /fp:fast /bigobj'] };
+      CXXFLAGS  = { 'COMPFLAGS=/EHsc /MD /openmp /wd4715 /fp:fast /bigobj' };
       LINK      = { ['-L', fullfile(matlabroot, 'bin', a) ]};
       iomp5     = { ['LINKFLAGS=$LINKFLAGS ', ...
                      '/nodefaultlib:vcomp libiomp5md.lib' ]};
@@ -141,13 +136,13 @@ function [CXXFLAGS, LINK, LIBS] = setup_machdep_build_params
        mwlib = @(lib) ['-lmw', lib];
 
        CXXFLAGS = ...
-          { ['CXXFLAGS=$CXXFLAGS -D_GNU_SOURCE -DAMGCL_ASYNC_SETUP ', ...
-             '-fPIC -O3 -std=c++11 -ffast-math -march=native -fopenmp'] };
+          { ['CXXFLAGS=$CXXFLAGS -D_GNU_SOURCE -fPIC -O3 ', ...
+             '-std=c++14 -ffast-math -march=native -fopenmp'] };
 
        LINK = { ['-L', fullfile(matlabroot, 'sys', 'os', a)] };
 
-       iomp5     = { '-liomp5' };
-       libstdcpp = { '-lstdc++' };
+       iomp5     = { '-liomp5', 'LDFLAGS=$LDFLAGS -fopenmp' };
+       libstdcpp = { '-lstdc++','-ldunecommon' };
 
    else
 

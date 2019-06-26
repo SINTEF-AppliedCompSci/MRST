@@ -34,7 +34,7 @@
 #include <boost/range/iterator_range_core.hpp>
 
 /* MEX interfaces */
-#include "amgcl_mex_utils.cpp"
+//#include "amgcl_mex_utils.cpp"
 
 /* Block system support */
 #ifndef AMGCL_BLOCK_SIZES
@@ -52,20 +52,11 @@
 
 typedef amgcl::backend::builtin<double> Backend;
 
-void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries, const mxArray * pa,
-        std::vector<double> b, std::vector<double> & x, double tolerance,
-        int maxiter, int & iters, double & error){
+void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries,
+	       std::vector<double> b, std::vector<double> & x, double tolerance,
+	       int maxiter, int & iters, double & error, boost::property_tree::ptree prm){
+  
 
-    int block_size = mxGetScalar(mxGetField(pa, 0, "block_size"));
-    int active_rows = mxGetScalar(mxGetField(pa, 0, "active_rows"));
-    bool use_drs = mxGetScalar(mxGetField(pa, 0, "use_drs"));
-
-
-    int relax_p_id = mxGetScalar(mxGetField(pa, 0, "relaxation"));
-    int relax_s_id = mxGetScalar(mxGetField(pa, 0, "s_relaxation"));
-
-    bool verbose = mxGetScalar(mxGetField(pa, 0, "verbose"));
-    bool write_params = mxGetScalar(mxGetField(pa, 0, "write_params"));
 
 
     /***************************************
@@ -79,65 +70,30 @@ void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries, const mx
     typedef
     amgcl::relaxation::as_preconditioner<Backend, amgcl::runtime::relaxation::wrapper>
             SPrecond;
-    boost::property_tree::ptree prm;
+    //boost::property_tree::ptree prm;
     /* Set tolerance */
-    prm.put("solver.tol", tolerance);
-    if(maxiter > 0){
-        prm.put("solver.maxiter", maxiter);
-    }
-    prm.put("precond.block_size", block_size);
-    prm.put("precond.active_rows", active_rows);
-    /* Select coarsening strategy */
-    amg_opts c_opt;
-    setCoarseningStructMex(c_opt, pa);
-    setCoarseningAMGCL(prm, "precond.pprecond.", c_opt);
-
-    /* Select relaxation strategy for pressure solver */
-    relax_opts pr_opt;
-    // pr_opt.relax_id = relax_p_id;
-    setRelaxationStructMex(pr_opt, pa, "");
-    setRelaxationAMGCL(prm, "precond.pprecond.relax.", pr_opt);
-    /* Select relaxation strategy for second stage solver */
-    relax_opts ps_opt;
-    // ps_opt.relax_id = relax_s_id;
-    setRelaxationStructMex(ps_opt, pa, "s_");
-    setRelaxationAMGCL(prm, "precond.sprecond.", ps_opt);
-
-    /* Select solver */
-    solver_opts sol_opt;
-    setSolverStructMex(sol_opt, pa);
-    setSolverAMGCL(prm, "solver.", sol_opt);
-
+      
     /***************************************
      *        Solve problem                *
      ***************************************/
     auto t1 = std::chrono::high_resolution_clock::now();
     const auto matrix = amgcl::adapter::zero_copy(n, &cols[0], &rows[0], &entries[0]);
+    bool use_drs = prm.get<bool>("use_drs");
+    bool verbose = prm.get<int>("verbosity")>0;
+    bool write_params = prm.get<bool>("write_params");
     if(use_drs){
-        double dd = mxGetScalar(mxGetField(pa, 0, "drs_eps_dd"));
-        double ps = mxGetScalar(mxGetField(pa, 0, "drs_eps_ps"));
-        prm.put("precond.eps_dd", dd);
-        prm.put("precond.eps_ps", ps);
-
-        mxArray * drs_weights_mx = mxGetField(pa, 0, "drs_row_weights");
-        size_t drs_weights_n = mxGetM(drs_weights_mx);
-
-        if(drs_weights_n>0){
-            double * drs_weights = mxGetPr(drs_weights_mx);
-            prm.put("precond.weights", drs_weights);
-            prm.put("precond.weights_size", drs_weights_n);
-        }
-        if(write_params){
+    
+        if(prm.get<int>("verbosity")>10){
             std::cout << "Writing amgcl setup file to mrst_amgcl_cpr_drs_setup.json" << std::endl;
             std::ofstream file("mrst_amgcl_drs_setup.json");
             boost::property_tree::json_parser::write_json(file, prm);
         }
         amgcl::make_solver<
-            amgcl::preconditioner::cpr_drs<PPrecond, SPrecond>,
-            amgcl::runtime::solver::wrapper<Backend>
-            > solve(matrix, prm);
+	  amgcl::preconditioner::cpr_drs<PPrecond, SPrecond>,
+	  amgcl::runtime::solver::wrapper<Backend>
+	  > solve(matrix, prm);
         auto t2 = std::chrono::high_resolution_clock::now();
-
+	
         if(verbose){
             std::cout << "CPR setup took "
                       << (double)std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count()/1000.0
@@ -149,6 +105,7 @@ void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries, const mx
             std::cout << solve << std::endl;
         }
     }else{
+         bool write_params = prm.get<bool>("write_params");
          if(write_params){
             std::cout << "Writing amgcl setup file to mrst_amgcl_cpr_setup.json" << std::endl;
             std::ofstream file("mrst_amgcl_setup.json");
@@ -177,11 +134,11 @@ void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries, const mx
 #define AMGCL_BLOCK_SOLVER(z, data, B)                                           \
   case B:                                                                        \
   {                                                                              \
-  Backend::params bprm;                                                          \
+  Backend::params bprm;							         \
   typedef amgcl::backend::builtin<amgcl::static_matrix<double, B, B> > BBackend; \
-  amgcl::make_block_solver<                                                      \
-      amgcl::runtime::preconditioner<BBackend>,                                  \
-      amgcl::runtime::solver::wrapper<BBackend>                                  \
+  amgcl::make_block_solver<						         \
+  amgcl::runtime::preconditioner<BBackend>,                                      \
+  amgcl::runtime::solver::wrapper<BBackend>                                      \
   > solve(*matrix, prm, bprm);                                                   \
   auto t2 = std::chrono::high_resolution_clock::now();                           \
   if(verbose){                                                                   \
@@ -189,21 +146,17 @@ void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries, const mx
                 << (double)std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count()/1000.0 \
                 << " seconds\n";                                                 \
   }                                                                              \
-  std::tie(iters, error) = solve(b, x);                                          \
+  std::tie(iters, error) = solve(b, x);                                          \    
   if(verbose){                                                                   \
       std::cout << solve << std::endl;                                           \
   }                                                                              \
-} break;
+  } break;
 
 
-void solve_regular(int n, const mwIndex * cols, mwIndex const * rows, const double * entries, const mxArray * pa,
+void solve_regular(int n, const mwIndex * cols, mwIndex const * rows, const double * entries, 
         const std::vector<double> & b, std::vector<double> & x, double tolerance,
-        int maxiter, int & iters, double & error){
+		   int maxiter, int & iters, double & error, boost::property_tree::ptree prm){
 
-    int relax_id = mxGetScalar(mxGetField(pa, 0, "relaxation"));
-    bool verbose = mxGetScalar(mxGetField(pa, 0, "verbose"));
-    bool write_params = mxGetScalar(mxGetField(pa, 0, "write_params"));
-    int precond_id = mxGetScalar(mxGetField(pa, 0, "preconditioner"));
     std::string relaxParam;
     /***************************************
      * Start AMGCL-link and select options *
@@ -218,56 +171,26 @@ void solve_regular(int n, const mwIndex * cols, mwIndex const * rows, const doub
     amgcl::relaxation::as_preconditioner<Backend, amgcl::runtime::relaxation::wrapper>
             SPrecond;
 
-    boost::property_tree::ptree prm;
+    //boost::property_tree::ptree prm;
     /* Set tolerance */
     prm.put("solver.tol", tolerance);
     if(maxiter > 0){
         prm.put("solver.maxiter", maxiter);
     }
-    switch(precond_id) {
-        case 1:
-            relaxParam = "precond.relax.";
-            prm.put("precond.class", amgcl::runtime::precond_class::amg);
-            break;
-        case 2:
-            relaxParam = "precond.";
-            prm.put("precond.class", amgcl::runtime::precond_class::relaxation);
-            break;
-        case 3:
-            relaxParam = "precond.relax.";
-            prm.put("precond.class", amgcl::runtime::precond_class::dummy);
-            break;
-        default : mexErrMsgTxt("Unknown precond_id.");
-    }
-
-    if(precond_id == 1){
-        /* Select coarsening strategy */
-        amg_opts c_opt;
-        setCoarseningStructMex(c_opt, pa);
-        setCoarseningAMGCL(prm, "precond.", c_opt);
-    }
-    /* Select relaxation strategy for solver */
-    relax_opts pr_opt;
-    // pr_opt.relax_id = relax_id;
-    setRelaxationStructMex(pr_opt, pa, "");
-    setRelaxationAMGCL(prm, relaxParam, pr_opt);
-
-    /* Select solver */
-    solver_opts sol_opt;
-    setSolverStructMex(sol_opt, pa);
-    setSolverAMGCL(prm, "solver.", sol_opt);
-
+       
     /***************************************
      *        Solve problem                *
      ***************************************/
     auto t1 = std::chrono::high_resolution_clock::now();
+    bool write_params = prm.get<bool>("write_params");
     if(write_params){
-      std::cout << "Writing amgcl setup file to mrst_amgcl_cpr_setup.json" << std::endl;
+      std::cout << "Writing amgcl setup file to mrst_amgcl_cpr_setup.json xx" << std::endl;
       std::ofstream file("mrst_regular_setup.json");
       boost::property_tree::json_parser::write_json(file, prm);
     }
-    int block_size = mxGetScalar(mxGetField(pa, 0, "block_size"));
+    int block_size = prm.get<int>("block_size");
     const auto matrix = amgcl::adapter::zero_copy(n, &cols[0], &rows[0], &entries[0]);
+    bool verbose = prm.get<bool>("verbose");
     switch(block_size){
       case 0:
       case 1:
@@ -290,10 +213,14 @@ void solve_regular(int n, const mwIndex * cols, mwIndex const * rows, const doub
         }
       } break;
 #if defined(SOLVER_BACKEND_BUILTIN)
-        BOOST_PP_SEQ_FOR_EACH(AMGCL_BLOCK_SOLVER, ~, AMGCL_BLOCK_SIZES)
+      BOOST_PP_SEQ_FOR_EACH(AMGCL_BLOCK_SOLVER, ~, AMGCL_BLOCK_SIZES)
 #endif
-        default:
-            mexErrMsgIdAndTxt("AMGCL:UndefBlockSize", "Failure: Block size not supported.");
+      default:
+       {
+	 std::cout << "Block size is :" << block_size << std::endl;
+	 std::string msg("AMGCL:UndefBlockSize", "Failure: Block size not supported. xxx");	     
+	 mexErrMsgIdAndTxt("AMGCL:UndefBlockSize",msg.c_str());
+       }
     }
 }
 
@@ -310,16 +237,18 @@ void mexFunction( int nlhs, mxArray *plhs[],
     mwSize m,n,nnz;
     mwIndex * cols;
     mwIndex * rows;
-    const mxArray * pa;
+ 
 
     double * entries;
     std::string relaxParam;
     std::string coarsenParam;
 
-    if (nrhs != 6) {
-	    mexErrMsgTxt("6 input arguments required.");
+    if (nrhs != 5) {
+      std::string msg("5 input arguments required. input is:");
+      std::cout << "Given input " << nrhs << std::endl;
+      mexErrMsgTxt(msg.c_str());
     } else if (nlhs > 3) {
-	    mexErrMsgTxt("Wrong number of output arguments.");
+      mexErrMsgTxt("Wrong number of output arguments.");
     }
 
     m = mxGetM(prhs[0]);
@@ -348,11 +277,18 @@ void mexFunction( int nlhs, mxArray *plhs[],
     entries = mxGetPr(prhs[0]);
     nnz  = mxGetNzmax(prhs[0]);
     rhs     = mxGetPr(prhs[1]);
-    pa = prhs[2];
-    double tolerance = mxGetScalar(prhs[3]);
-    int maxiter = mxGetScalar(prhs[4]);
-    int solver_strategy_id = mxGetScalar(prhs[5]);
-
+    double tolerance = mxGetScalar(prhs[2]);
+    int maxiter = mxGetScalar(prhs[3]);
+    boost::property_tree::ptree prm;
+    {
+      char *chopt = mxArrayToString(prhs[4]);  
+      std::istringstream str(chopt);
+      boost::property_tree::read_json(str, prm);
+      std::cout << "options in prm" << std::endl;
+      std::ofstream file("options_amgcl.json");
+      //pt::write_json(std::cout, prm);
+      boost::property_tree::write_json(file, prm);
+    }
 
     std::vector<double> b(n);
     for(int ix = 0; ix < n; ix++){
@@ -361,16 +297,16 @@ void mexFunction( int nlhs, mxArray *plhs[],
     int    iters;
     double error;
     std::vector<double> x(M, 0.0);
-    switch(solver_strategy_id) {
-        case 1:
-            solve_regular(M, cols, rows, entries, pa, b, x, tolerance, maxiter, iters, error);
-            break;
-        case 2:
-            solve_cpr(M, cols, rows, entries, pa, b, x, tolerance, maxiter, iters, error);
-            break;
-        default : mexErrMsgTxt("Unknown solver_strategy_id.");
+    std::string solver_type = prm.get<std::string>("solver_type");
+    if( solver_type == "regular"){
+      solve_regular(M, cols, rows, entries, b, x, tolerance, maxiter, iters, error, prm);
+    }else if(solver_type == "cpr"){
+      solve_cpr(M, cols, rows, entries, b, x, tolerance, maxiter, iters, error, prm);
+    }else{
+      std::string msg("Unknown solver_type ");
+      msg += solver_type;
+      mexErrMsgTxt(msg.c_str());
     }
-
     for(int ix=0; ix < M; ix++){
         result[ix] = x[ix];
     }

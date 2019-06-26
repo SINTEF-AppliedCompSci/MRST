@@ -1,5 +1,5 @@
 function [T, flux] = computeNonLinearTrans(G, coSet, cellPressure) 
-    if min(double(cellPressure)) < 0
+    if min(cellPressure.value) < 0
         warning('Negative pressure in cells. Will fall back to linear TPFA.');
     end
     flux = nan;
@@ -157,8 +157,8 @@ function T = computeJumpTransmissibilities(G, coSet, cellPressure)
         end
     end
     assert(all(N_f >= 0));
-    assert(all(double(T{1})>=0))
-    assert(all(double(T{2})>=0))
+    assert(all(T{1}.value>=0))
+    assert(all(T{2}.value>=0))
 end
 
 

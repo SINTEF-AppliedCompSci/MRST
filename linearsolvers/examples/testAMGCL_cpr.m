@@ -83,8 +83,7 @@ t_wrapper = toc();
 %% Setup SPE9 black-oil case
 [G, rock, fluid, deck, state] = setupSPE9();
 model = selectModelFromDeck(G, rock, fluid, deck);
-model.AutoDiffBackend = DiagonalAutoDiffBackend();
-model.FacilityModel = UniformFacilityModel(model);
+model.AutoDiffBackend = DiagonalAutoDiffBackend('useMex', true);
 schedule = convertDeckScheduleToMRST(model, deck);
 %% Solve the schedule with AMGCL-CPR as the linear solver
 lsolve = AMGCL_CPRSolverAD('maxIterations', 200, 'tolerance', 1e-3);
@@ -104,7 +103,9 @@ for i = 1:nstep
         if rrr.Converged
             continue
         end
-        ls_time(i) = ls_time(i) + rrr.LinearSolver.SolverTime;
+        if isfield(rrr.LinearSolver, 'SolverTime')
+            ls_time(i) = ls_time(i) + rrr.LinearSolver.SolverTime;
+        end
     end
 end
 % Plot per-step breakdown
