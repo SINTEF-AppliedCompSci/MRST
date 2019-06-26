@@ -102,10 +102,10 @@ classdef ExtendedFacilityModel < FacilityModel
             % One equation for each phase corresponding to the volumetric
             % rate at surface conditions
             separateRates = strcmpi(facility.primaryVariableSet, 'standard');
+            [sn, phnames] = model.getPhaseNames();
             if separateRates
                 % This is a temporary hack!
                 q_s = state.FacilityState.primaryVariables(1:nph);
-                [sn, phnames] = model.getPhaseNames();
                 [eqs, names, types] = deal(cell(1, nph+1));
                 for ph = 1:nph
                     eqs{ph} = (q_s{ph} - surfaceRates{ph}).*rhoScale(ph);
@@ -114,8 +114,20 @@ classdef ExtendedFacilityModel < FacilityModel
                 end
                 targetRates = q_s;
             else
+                assert(strcmpi(facility.primaryVariableSet, 'bhp'));
+                % We need to actually store the surface rates in wellSol
+                % here, since there are no corresponding primary variables
                 [eqs, names, types] = deal(cell(1, 1));
                 targetRates = surfaceRates;
+                qSurf = value(surfaceRates);
+                for ph = 1:numel(sn)
+                    fld = ['q', sn(ph), 's'];
+                    for i = 1:map.active
+                        ix = map.active(i);
+                        state.wellSol(ix).(fld) = qSurf(i, ph);
+                    end
+                end
+                clear qSurf;
             end
             % Set up AD for control equations
             nact = numel(map.active);
