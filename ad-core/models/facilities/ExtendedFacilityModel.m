@@ -132,7 +132,7 @@ classdef ExtendedFacilityModel < FacilityModel
                         total = total + componentSources{i};
                     end
                     for i = 1:ncomp-1
-                        eqs{i+1} = massFractions{i} - 0*componentSources{i}./total;
+                        eqs{i+1} = massFractions{i} - componentSources{i}./total;
                         names{i+1} = ['well_', cnames{i}];
                         types{i+1} = 'wellcomposition';
                     end

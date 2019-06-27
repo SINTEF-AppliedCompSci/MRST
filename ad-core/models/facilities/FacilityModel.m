@@ -871,7 +871,17 @@ classdef FacilityModel < PhysicalModel
             % Loop over all possible well variables
             for varNo = 1:nVars
                 wf = wellVars{varNo};
-                if any(strcmp(restVars, wf))
+                if strcmp(wf, 'well_massfractions')
+                    % Special case
+                    c = dx{varNo};
+                    c = reshape(c, nW, []);
+                    c = [c, -sum(c, 2)];
+                    activeVars(:, varNo) = true;
+                    restVars = model.stripVars(restVars, wf);
+                    for i = 1:nW
+                        dx_well{i, varNo} = c(i, :);
+                    end
+                elseif any(strcmp(restVars, wf))
                     dv = model.getIncrement(dx, problem, wf);
 
                     isVarWell = model.getWellVariableMap(wf, wellSol);
