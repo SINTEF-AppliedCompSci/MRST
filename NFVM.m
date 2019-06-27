@@ -563,10 +563,16 @@ classdef NFVM < PermeabilityGradientDiscretization
             %',num2str(c)]);
             
             if ~faces_found
-                figure, hold on
-                plotGrid(G, c)
-                p=interpFace.coords(theFaces,:);
-                plot3(p(:,1),p(:,2),p(:,3),'.')
+               
+                figure,hold on
+                plotGrid(G,c,'facealpha',0.3)
+                hap=interpFace.coords(theFaces,:);
+                plot3(hap(:,1),hap(:,2),hap(:,3),'.','markersize',14)
+                xc=G.cells.centroids(c,:);
+                plot3(xc(1),xc(2),xc(3),'o','markersize',14)
+                ind=convhull(hap);
+                trisurf(ind,hap(:,1),hap(:,2),hap(:,3), 'Facecolor','cyan')
+                
                 error(['decomposition failed for cell ', num2str(c)]);
         
             end
