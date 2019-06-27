@@ -387,7 +387,10 @@ classdef NFVM < PermeabilityGradientDiscretization
                                 if(c1~=G.faces.neighbors(i_face,1)),fn=-fn;end
                                 w1=K1*fn;
                                 
-                                [a,faceA,faceB,faceC]=nfvm.findABC(G,interpFace,c1,w1);keyboard
+                                [a,faceABC]=nfvm.findABC(G,interpFace,c1,w1);keyboard
+                                faceA=faceABC(1);
+                                faceB=faceABC(2);
+                                faceC=faceABC(3);
                                 if(faceA==i_face)
                                     interpB=G.faces.neighbors(faceB,:)';weightB=-a(2).*interpFace.weights(faceB,:)';
                                     interpC=G.faces.neighbors(faceC,:)';weightC=-a(3).*interpFace.weights(faceC,:)';
