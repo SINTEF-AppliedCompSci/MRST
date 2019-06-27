@@ -40,8 +40,6 @@ classdef WellComponentPhaseFlux < StateFunction
 
             
             % Get phase density if we are injecting
-            if any(perfIsInjector)
-            end
             surfaceComposition = cell(ncomp, nph);
             componentPhaseFlux = cell(ncomp, nph);
             for c = 1:ncomp
