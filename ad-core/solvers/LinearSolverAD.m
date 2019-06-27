@@ -144,7 +144,7 @@ classdef LinearSolverAD < handle
                 % Reduce system (if requested)
                 [A, b, lsys] = solver.reduceLinearSystemAdjoint(A, b);
                 % Reorder linear system
-                [A, b] = solver.reorderLinearSystem(A, b);
+                [A, b, ordering] = solver.reorderLinearSystem(A, b);
                 % Apply scaling
                 [A, b, scaling] = solver.applyScaling(A, b);
                 % Apply transpose
@@ -156,7 +156,7 @@ classdef LinearSolverAD < handle
                 % Undo scaling
                 result = solver.undoScalingAdjoint(result, scaling);
                 % Permute system back
-                result = solver.deorderLinearSystemAdjoint(result);
+                result = solver.deorderLinearSystemAdjoint(result, ordering);
                 % Recover eliminated variables on linear level
                 result = solver.recoverLinearSystemAdjoint(result, lsys);
             end
@@ -243,7 +243,7 @@ classdef LinearSolverAD < handle
                 [A, b, lsys] = solver.reduceLinearSystem(A, b);
             end
             % Reorder linear system
-            [A, b] = solver.reorderLinearSystem(A, b);
+            [A, b, ordering] = solver.reorderLinearSystem(A, b);
             % Apply scaling
             [A, b, scaling] = solver.applyScaling(A, b);
 
@@ -254,7 +254,7 @@ classdef LinearSolverAD < handle
             % Undo scaling
             result = solver.undoScaling(result, scaling);
             % Permute system back
-            result = solver.deorderLinearSystem(result);
+            result = solver.deorderLinearSystem(result, ordering);
             % Recover eliminated variables on linear level
             result = solver.recoverLinearSystem(result, lsys);
             
@@ -434,26 +434,35 @@ classdef LinearSolverAD < handle
             end
         end
         
-        function [A, b] = reorderLinearSystem(solver, A, b)
+        function [A, b, order] = reorderLinearSystem(solver, A, b, order)
             vo = solver.variableOrdering;
             eo = solver.equationOrdering;
             hasVar = ~isempty(vo);
             hasEq = ~isempty(eo);
-            
-            nv = numel(vo);
-            ne = numel(eo);
+
             n = size(A, 1);
-            
             if hasVar
-                assert(nv <= n);
+                if isa(vo, 'function_handle')
+                    vo = vo(A, b);
+                end
+                nv = numel(vo);
                 if nv < n
                     vo = [vo; (nv+1:n)'];
+                elseif nv > n
+                    vo = vo(1:n);
                 end
             end
-            if hasEq 
-                assert(ne <= n);
+            if hasEq
+                if isa(eo, 'function_handle')
+                    eo = eo(A, b);
+                elseif isnan(eo)
+                    eo = vo;
+                end
+                ne = numel(eo);
                 if ne < n
                     eo = [eo; (ne+1:n)'];
+                elseif ne > n
+                    eo = eo(1:n);
                 end
             end
             if hasVar && hasEq
@@ -465,17 +474,28 @@ classdef LinearSolverAD < handle
                 A = A(eo, :);
                 b = b(eo);
             end
+            order = struct('variableOrdering', vo, 'equationOrdering', eo);
         end
         
-        function x = deorderLinearSystem(solver, x)
+        function x = deorderLinearSystem(solver, x, order)
+            if nargin < 3
+                tmp = solver;
+            else
+                tmp = order;
+            end
             if ~isempty(solver.variableOrdering)
-                x(solver.variableOrdering) = x(1:numel(solver.variableOrdering));
+                x(tmp.variableOrdering) = x(1:numel(tmp.variableOrdering));
             end
         end
 
-        function x = deorderLinearSystemAdjoint(solver, x)
+        function x = deorderLinearSystemAdjoint(solver, x, order)
+            if nargin < 3
+                tmp = solver;
+            else
+                tmp = order;
+            end
             if ~isempty(solver.equationOrdering)
-                x(solver.equationOrdering) = x(1:numel(solver.equationOrdering));
+                x(tmp.equationOrdering) = x(1:numel(tmp.equationOrdering));
             end
         end
 
