@@ -100,5 +100,5 @@ eos = getCompositionalFluidCase('simple');
 cmodel = GenericNaturalVariablesModel(model.G, model.rock, model.fluid, eos, 'water', true);
 cmodel = cmodel.validateModel();
 
-figure;
+clf;
 plotStateFunctionGroupings(cmodel.FlowPropertyFunctions);
