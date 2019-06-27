@@ -1,5 +1,5 @@
 
-mrstModule add vag vem
+mrstModule add vag vem vemmech
 
 isverbose = true;
 
@@ -16,7 +16,7 @@ nc = G.cells.num;
 % permeability $K$, which here is homogeneous, isotropic and equal 100 mD.
 % The fluid has density 1000 kg/m^3 and viscosity 1 cP.
 % We make a non diagonal rock tensor
-rock = makeRock(G, 1e-3*darcy, 1);
+rock = makeRock(G, 1, 1);
 
 % injcells  =  1 : 3;
 % prodcells =  nc : -1 : (nc - 3);
@@ -24,8 +24,8 @@ injcells  =  1 : 3;
 prodcells =  nc : -1 : (nc - 2);
 radius    = 0.1;
 
-rate = 1e-4*meter^3/day;
-bhp  = 1*barsa;
+rate = 1;
+bhp  = 1;
 
 W = addWell([], G, rock, injcells, 'Comp_i', 1, 'Type', 'rate', 'Val', rate, ...
             'sign', 1, 'Radius', radius);

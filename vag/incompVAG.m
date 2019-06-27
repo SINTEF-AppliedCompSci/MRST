@@ -157,14 +157,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     map3 = setupTableMapping(cell_2node_2well_2tbl, prodtbl, {'cells2', 'nodes2', ...
                         'wells2'});
     d = (map1*invb).*(map2*a).*(map3*a);
-    e = (map1*b).*(map2*a).*(map3*a);
     
     prod_node2tbl = projTable(prodtbl, {'nodes1', 'nodes2'});
     map = setupTableMapping(prodtbl, prod_node2tbl, {'nodes1', 'nodes2'});
     d = map*d; % d belongs to prod_node2tbl
-    prod_well2tbl = projTable(prodtbl, {'wells1', 'wells2'});
-    map = setupTableMapping(prodtbl, prod_well2tbl, {'wells1', 'wells2'});
-    e = map*e; % e belongs to prod_well2tbl
+
+    well2tbl = projTable(cell2well2tbl, {'wells1', 'wells2'});
+    map = setupTableMapping(cell2well2tbl, well2tbl, {'wells1', 'wells2'});
+    e = map*b;
     
 
     tbl = prod_node2tbl; % alias
@@ -172,7 +172,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     tbl = nodewelltbl; % alias    
     Anw = sparse(tbl.nodes, tbl.wells, c, nn, nw);
     Awn = Anw';
-    tbl = prod_well2tbl; % alias
+    tbl = well2tbl; %alias
     Aww = sparse(tbl.wells1, tbl.wells2, e, nw, nw);
     
     Awq = speye(nw);
