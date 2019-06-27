@@ -35,10 +35,14 @@ classdef PerforationPressureGradient < StateFunction
                 sgn = vertcat(map.W.sign);
                 perfAllowXFlow = allowXFlow(map.perf2well);
                 psgn = sgn(map.perf2well);
-                % Multiply pressure drop to cut of cross-flowing
+                % Set pressure drop to zero to cut of cross-flowing
                 % connections. Note that sign == 0 is ambigious here.
                 keep = perfAllowXFlow | (psgn == 1 & vdp <= 0) | (psgn == -1 & vdp >= 0);
-                dp = dp.*keep;
+                if isa(dp, 'ADI')
+                    dp.val(~keep) = 0;
+                else
+                    dp(~keep) = 0;
+                end
             end
         end
     end
