@@ -1,4 +1,4 @@
-function state = incompVAG(G, vagstruct, W, varargin)
+function pn = incompVAG(G, vagstruct, W, varargin)
 % Solve incompressible flow problem (fluxes/pressures) using VAG method.
 % Only Neumann bc and well input.
 %
@@ -91,16 +91,22 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     welltbl.num = nw;
     
     wellcells = W(1).cells;
-    wellind = repmat(1, numel(wellcells), 1);
+    wellind   = repmat(1, numel(wellcells), 1);
+    welltypes = getWellControlType(W(1));
+    wellvals  = W(1).val;
     
     for iw = 2 : nw
         
         wcells = W(iw).cells;
         nwc = numel(wcells);
         wind = repmat(iw, numel(wcells), 1);
+        wtype = getWellControlType(W(iw));
+        wval = W(iw).val;
         
         wellcells = [wellcells; wcells];
         wellind   = [wellind; wind];
+        welltypes = [welltypes; wtype];
+        wellvals  = [wellvals; wval];
         
     end
     
@@ -120,14 +126,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     c = map*a; % c belongs to nodewelltbl;
     
     b = A22;
-    [~, cellwell2tbl] = setupTableMapping(cell2tbl, cellwelltbl, {{'cells1', ...
+    [~, cell2well2tbl] = setupTableMapping(cell2tbl, cellwelltbl, {{'cells1', ...
                         'cells'}});
-    cellwell2tbl = replacefield(cellwell2tbl, {'wells', 'wells1'});
-    [~, cellwell2tbl] = setupTableMapping(cellwell2tbl, cellwelltbl, {{'cells2', ...
+    cell2well2tbl = replacefield(cell2well2tbl, {'wells', 'wells1'});
+    [~, cell2well2tbl] = setupTableMapping(cell2well2tbl, cellwelltbl, {{'cells2', ...
                         'cells'}});
-    cellwell2tbl = replacefield(cellwell2tbl, {'wells', 'wells2'});
-    map = setupTableMapping(cell2tbl, cellwell2tbl, {'cells1', 'cells2'});
-    b = map*b; % b belongs to cellwell2tbl
+    cell2well2tbl = replacefield(cell2well2tbl, {'wells', 'wells2'});
+    map = setupTableMapping(cell2tbl, cell2well2tbl, {'cells1', 'cells2'});
+    b = map*b; % b belongs to cell2well2tbl
     
     invb = 1./b;
     
@@ -140,11 +146,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
               {'wells', 'wells2'}};
     cell_2node_2well_2tbl = replacefield(cellnodewelltbl, repfds);
     
-    [~, prodtbl] = setupTableMapping(cellwell2tbl, cell_1node_1well_1tbl, ...
+    [~, prodtbl] = setupTableMapping(cell2well2tbl, cell_1node_1well_1tbl, ...
                                                    {'cells1', 'wells1'});
     [~, prodtbl] = setupTableMapping(prodtbl, cell_2node_2well_2tbl, ...
                                                    {'cells2', 'wells2'});
-    map1 = setupTableMapping(cellwell2tbl, prodtbl, {'cells1', 'cells2', ...
+    map1 = setupTableMapping(cell2well2tbl, prodtbl, {'cells1', 'cells2', ...
                         'wells1', 'wells2'});
     map2 = setupTableMapping(cell_1node_1well_1tbl, prodtbl, {'cells1', 'nodes1', ...
                         'wells1'});    
@@ -175,9 +181,42 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             [    Awn, Aww, -Awq];
            ];
     
+    % Setup control
+    ctypetbl.ctypes = (1 : 2)';
+    ctypetbl.num    = 2;
+    [~, allwellctypetbl] = setupTableMapping(ctypetbl, welltbl, []);
+    allwellctypetbl = sortTable(allwellctypetbl, {'ctypes', 'wells'});
+    allwellctypetbl = addLocInd(allwellctypetbl, 'wcind');
+    
+    wellctypetbl.wells = (1 : nw)';
+    wellctypetbl.ctypes = welltypes;
+    wellctypetbl.num = nw;
+    [~, wellctypetbl] = setupTableMapping(allwellctypetbl, wellctypetbl, ...
+                                                        {'wells', 'ctypes'});
 
-    state = [];
+    tbl = wellctypetbl; %alias
+    Acw = sparse(tbl.wells, tbl.wcind, 1, nw, allwellctypetbl.num);
+
+    Aext = [Aext;
+           [zeros(nw, nn), Acw]];
+
+    rhs = [zeros(nn + nw, 1); ...
+           wellvals];
+    
+    x = Aext\rhs;
+    
+    pn = x(1 : nn);
     
 end
 
 
+function c = getWellControlType(W)
+    switch W.type
+      case 'rate'
+        c = 2;
+      case 'bhp'
+        c = 1;
+      otherwise
+        error('well type not recognized.');
+    end
+end
