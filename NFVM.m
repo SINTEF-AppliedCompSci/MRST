@@ -38,14 +38,13 @@ classdef NFVM < PermeabilityGradientDiscretization
             dispif(mrstVerbose, 'TransNTPFA\n');
             
             G = model.G;
-            OSflux = nfvm.OSflux;
-            bc = nfvm.bc;
-            
+            % FIXME: Choose correct viscosity
+            mu = model.fluid.muW(u(1));
             T=zeros(G.faces.num,2);
             for i_face=1:G.faces.num
                 if(all(G.faces.neighbors(i_face,:)~=0)) % internal face
-                    t1=OSflux{i_face,1};
-                    t2=OSflux{i_face,2};
+                    t1=nfvm.OSflux{i_face,1};
+                    t2=nfvm.OSflux{i_face,2};
                     r1=t1(3:end-1,2)'*u(t1(3:end-1,1))+t1(end,2);
                     r2=t2(3:end-1,2)'*u(t2(3:end-1,1))+t2(end,2);
                     eps=1e-12*max(abs([t1(:,end);t2(:,end)]));
@@ -57,12 +56,12 @@ classdef NFVM < PermeabilityGradientDiscretization
                     else
                         mu1=0.5;mu2=0.5;
                     end
-                    T(i_face,1)=mu1*t1(1,2)+mu2*t2(2,2);
-                    T(i_face,2)=mu1*t1(2,2)+mu2*t2(1,2);
+                    T(i_face,1)=(mu1*t1(1,2)+mu2*t2(2,2))/mu;
+                    T(i_face,2)=(mu1*t1(2,2)+mu2*t2(1,2))/mu;
                 else
-                    ind=find(bc.face==i_face,1);
-                    if(strcmpi(bc.type{ind},'pressure'))
-                        t1=OSflux{i_face,1};t2=OSflux{i_face,2};
+                    ind=find(nfvm.bc.face==i_face,1);
+                    if(strcmpi(nfvm.bc.type{ind},'pressure'))
+                        t1=nfvm.OSflux{i_face,1};t2=nfvm.OSflux{i_face,2};
                         t11=t1(1,2);t12=t1(2,2);
                         t22=t2(1,2);t21=t2(2,2);
                         r1=t1(3:end-1,2)'*u(t1(3:end-1,1))+t1(end,2);
@@ -76,16 +75,16 @@ classdef NFVM < PermeabilityGradientDiscretization
                             mu1=0.5;mu2=0.5;
                         end
                         T(i_face,1)=mu1*t11+mu2*t21;
-                        T(i_face,2)=(mu1*t12+mu2*t22)*bc.value{ind}(G.faces.centroids(i_face,:));
+                        T(i_face,2)=(mu1*t12+mu2*t22)*nfvm.bc.value{ind}(G.faces.centroids(i_face,:));
                     else
                         T(i_face,2)=-G.faces.areas(i_face)*...
-                            bc.value{ind}(G.faces.centroids(i_face,:));
+                            nfvm.bc.value{ind}(G.faces.centroids(i_face,:));
                     end
                 end
             end
         end
         
-        function [flux,wellsol]=computeFlux(nfvm,u,T,model)
+        function flux=computeFlux(nfvm,u,T,model)
             dispif(mrstVerbose, 'computeFlux\n');
             
             G = model.G;
