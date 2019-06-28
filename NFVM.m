@@ -356,7 +356,7 @@ classdef NFVM < PermeabilityGradientDiscretization
                                 trans=nfvm.uniqueTrans(container);
                                 OSflux(i_face,1)={trans};clear trans
                                 
-                                [a,xD]=findDnode(G,c1,i_face,-w1);
+                                [a,xD]=nfvm.findDnode(G,c1,i_face,-w1);
                                 uD=nfvm.bc.value{ind}(xD);
                                 temp=[cf sum(a);c1 a(1);0 a(2)*uD];
                                 OSflux(i_face,2)={temp};clear temp;
@@ -387,7 +387,7 @@ classdef NFVM < PermeabilityGradientDiscretization
                                 if(c1~=G.faces.neighbors(i_face,1)),fn=-fn;end
                                 w1=K1*fn;
                                 
-                                [a,faceABC]=nfvm.findABC(G,interpFace,c1,w1);keyboard
+                                [a,faceABC]=nfvm.findABC(G,interpFace,c1,w1);%keyboard
                                 faceA=faceABC(1);
                                 faceB=faceABC(2);
                                 faceC=faceABC(3);
@@ -416,7 +416,7 @@ classdef NFVM < PermeabilityGradientDiscretization
                                 trans=nfvm.uniqueTrans(container);
                                 OSflux(i_face,1)={trans};clear trans;
                                 
-                                [a,xA,xB]=findDnodes(G,c1,i_face,-w1);
+                                [a,xA,xB]=nfvm.findDnodes(G,c1,i_face,-w1);
                                 uA=nfvm.bc.value{ind}(xA);
                                 uB=nfvm.bc.value{ind}(xB);
                                 temp=[cf sum(a);c1 a(1);0 a(2)*uA+a(3)*uB];
