@@ -2,48 +2,33 @@
 clear;close all;clc
 mrstModule add incomp mimetic  ad-blackoil ad-core glpk ntpfa_glpk ...
     ad-props mpfa eni
-nx = 10;
-ny = 10;
-nz = 5;
-G = cartGrid([nx, ny, nz]);
-%G = twister(G, 0.1);
+% nx = 10;
+% ny = 10;
+% nz = 5;
+% G = cartGrid([nx, ny, nz]);
+% %G = twister(G, 0.1);
+% G = computeGeometry(G);
+%cellsWell1 = 1:nx*ny:nx*ny*nz;
+%cellsWell2 = nx:ny:nx*ny;
+
+myfile = 'grid_data/tet2.dat';
+G=importGrid(myfile,'tetBench');
 G = computeGeometry(G);
+cellsWell1 = well_cells(G, '1');
+cellsWell2 = well_cells(G, '2');
 
 rock = makeRock(G, 100*milli*darcy, 1);
 
-% val1 = 20e6;
-% val2 = 10e6;
-% radius = 0.01;
-% cellsWell1 = well_cells(G, '1');
-% Wtp = addWell([], G, rock, cellsWell1, 'Type', 'bhp', ...
-%               'InnerProduct', 'ip_quasirt', ...
-%               'comp_i', [1], ...
-%               'Val', val1, 'Radius', radius, 'name', 'I');
-% cellsWell2 = well_cells(G, '2');
-% Wtp = addWell(Wtp, G, rock, cellsWell2, 'Type', 'bhp', ...
-%             'InnerProduct', 'ip_quasirt', ...
-%             'comp_i', [1], ...
-%             'Val', val2, 'Radius', radius, 'Dir', 'y', 'name', 'P');
-
-
 % Wells
-cellsWell1 = 1:nx*ny:nx*ny*nz;
-cellsWell2 = nx:ny:nx*ny;
-
-% Wells in corner
-% cellsWell1 = 1;
-% cellsWell2 = G.cells.num;
-radius = 0.1;
+radius = 0.05/10;
 Wtp = addWell([], G, rock, cellsWell1, 'Type', 'rate', ...
             'InnerProduct', 'ip_tpf', ...
             'comp_i', [1], ...
             'Val', 1.0/day(), 'Radius', radius, 'name', 'I');
-%disp('Well #1: '); display(W(1));
 Wtp = addWell(Wtp, G, rock, cellsWell2, 'Type', 'bhp', ...
             'InnerProduct', 'ip_tpf', ...
             'comp_i', [1], ...
             'Val', 1.0e5, 'Radius', radius, 'Dir', 'y', 'name', 'P');
-%disp('Well #2: '); display(W(2));
 
 
 pv=sum(poreVolume(G,rock));
@@ -61,7 +46,7 @@ s0 = 1.0;
 %state0 = initState(G, Wtp, p0);
 %state0 = initResSol(G, p0, 1);
 % mfd:
-state0 = initState(G, Wtp, p0, s0)
+state0 = initState(G, Wtp, p0, s0);
 
 % Schdule with dummy dt
 schedule = simpleSchedule(1, 'W', Wtp); % include wells here as well?
@@ -71,19 +56,19 @@ results = {};
 
 
 
-% %% MPFA Xavier style
-% solvers{end+1} = 'mpfa-x';
-% disp(solvers{end});
-% mpfastruct = computeNeumannMultiPointTrans(G, rock);
-% state = incompMPFA3(G, mpfastruct, Wtp, 'outputFlux', true);
-% figure,plotCellData(G,state.pressure/1e6);plotWell(G,Wtp);view(3)
-% title(['Pressure ', solvers{end}]);h=colorbar;h.Label.String='Pressure[MPa]';clear h;
-% Qinj=sum(state.wellSol(1).flux);tt=pv/Qinj;nstep=100;dt=tt/nstep;
-% state = tracerTransport_implicit(G,rock,Wtp,state,dt,nstep);
-% figure, plotCellData(G,state.cres(:,end));plotWell(G,Wtp);
-% view(3);colorbar;title(['Concentration ', solvers{end}]);
-% drawnow
-% results{end+1} = state;
+%% MPFA Xavier style
+solvers{end+1} = 'mpfa-x';
+disp(solvers{end});
+mpfastruct = computeNeumannMultiPointTrans(G, rock);
+state = incompMPFA3(G, mpfastruct, Wtp, 'outputFlux', true);
+figure,plotCellData(G,state.pressure/1e6);plotWell(G,Wtp);view(3)
+title(['Pressure ', solvers{end}]);h=colorbar;h.Label.String='Pressure[MPa]';clear h;
+Qinj=sum(state.wellSol(1).flux);tt=pv/Qinj;nstep=100;dt=tt/nstep;
+state = tracerTransport_implicit(G,rock,Wtp,state,dt,nstep);
+figure, plotCellData(G,state.cres(:,end));plotWell(G,Wtp);
+view(3);colorbar;title(['Concentration ', solvers{end}]);
+drawnow
+results{end+1} = state;
 
 
 % %% TPFA from NFVM
@@ -99,13 +84,13 @@ results = {};
 % drawnow
 % results{end+1} = state;
 
-% %% TPFA mrst version (don't plot)
-% solvers{end+1} = 'mrst tpfa';
-% disp(solvers{end});
-% T = computeTrans(G,rock);
-% state = incompTPFA(state0, G, T, fluid, 'wells', Wtp);
-% state = tracerTransport_implicit(G,rock,Wtp,state,dt,nstep);
-% results{end+1} = state;
+%% TPFA mrst version (don't plot)
+solvers{end+1} = 'mrst tpfa';
+disp(solvers{end});
+T = computeTrans(G,rock);
+state = incompTPFA(state0, G, T, fluid, 'wells', Wtp);
+state = tracerTransport_implicit(G,rock,Wtp,state,dt,nstep);
+results{end+1} = state;
 
 
 % %% nonlinear TPFA
@@ -159,24 +144,23 @@ results{end+1} = state;
 % state = tracerTransport_implicit(G,rock,Wtp,state,dt,nstep);
 % results{end+1} = state;
 
-% %% TPFA new framework
-% solvers{end+1} = 'TPFA new';
-% disp(solvers{end});
-% model = GenericBlackOilModel(G, rock, fluidad,'water', true, 'oil', false, 'gas', false);
-% model = model.validateModel();
-% model.FluxDiscretization.PermeabilityPotentialGradient.PermeabilityGradientDiscretization ...
-%     = TwoPointFluxApproximation(model);
-% %model.FacilityModel = model.FacilityModel.setupWells(Wtp);
-% [wellSols, states] = simulateScheduleAD(state0, model, schedule);
-% state = states{1};
-% figure,plotCellData(G,state.pressure/1e6);plotWell(G,Wtp);view(3)
-% title(['Pressure ', solvers{end}]);h=colorbar;h.Label.String='Pressure[MPa]';clear h;
-% Qinj=sum(state.wellSol(1).flux);tt=pv/Qinj;nstep=100;dt=tt/nstep;
-% state = tracerTransport_implicit(G,rock,Wtp,state,dt,nstep);
-% figure, plotCellData(G,state.cres(:,end));plotWell(G,Wtp);
-% view(3);colorbar;title(['Concentration ', solvers{end}]);
-% results{end+1} = state;
-% 
+%% TPFA new framework
+solvers{end+1} = 'TPFA new';
+disp(solvers{end});
+model = GenericBlackOilModel(G, rock, fluidad,'water', true, 'oil', false, 'gas', false);
+model = model.validateModel();
+model.FluxDiscretization.PermeabilityPotentialGradient.PermeabilityGradientDiscretization ...
+    = TwoPointFluxApproximation(model);
+%model.FacilityModel = model.FacilityModel.setupWells(Wtp);
+[wellSols, states] = simulateScheduleAD(state0, model, schedule);
+figure,plotCellData(G,states{1}.pressure/1e6);plotWell(G,Wtp);view(3)
+title(['Pressure ', solvers{end}]);h=colorbar;h.Label.String='Pressure[MPa]';clear h;
+Qinj=sum(states{1}.wellSol(1).flux);tt=pv/Qinj;nstep=100;dt=tt/nstep;
+state = tracerTransport_implicit(G,rock,Wtp,states{1},dt,nstep);
+figure, plotCellData(G,state.cres(:,end));plotWell(G,Wtp);
+view(3);colorbar;title(['Concentration ', solvers{end}]);
+results{end+1} = state;
+
 
 
 % %% nonlinear MPFA (slow and not accurate?)
