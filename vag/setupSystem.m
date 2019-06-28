@@ -33,9 +33,9 @@ function [A, operators] = setupSystem(vagstruct, G)
     cellnodetbl = replacefield(cellnodetbl, {'nind', 'nind1'});
 
     map = setupTableMapping(cellnode2tbl, cellnodetbl, {'cells', 'nodes1'});
-    A12 = map*Atrans;
+    A12 = -map*Atrans;
     tbl = cellnodetbl;
-    A12m = -sparse(tbl.nind1, tbl.cells, A12, nodetbl.num, celltbl.num);
+    A12m = sparse(tbl.nind1, tbl.cells, A12, nodetbl.num, celltbl.num);
 
     %% Assembly of A12
 
