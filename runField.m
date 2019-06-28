@@ -14,9 +14,9 @@ plotconc = false;
 % G = importGrid(myfile,'tetBench');
 % G = computeGeometry(G);
 
-nx = 3%10;
-ny = 3%10;
-nz = 2%5;
+nx = 10;
+ny = 10;
+nz = 5;
 G = cartGrid([nx, ny, nz]);
 %G = twister(G, 0.1);
 G = computeGeometry(G);
@@ -64,23 +64,20 @@ Wtp = [];
 % bc_nfvm.type=repmat({'pressure'},[numel(bc_nfvm.face),1]);
 % bc_nfvm.value=repmat({@(x)0},[numel(bc_nfvm.face),1]);
 
-bc_std = [];
-bc_std = pside(bc_std, G, 'xmin', 1);
-bc_std = pside(bc_std, G, 'xmax', 1);
-bc_std = pside(bc_std, G, 'ymin', 1);
-bc_std = pside(bc_std, G, 'ymax', 1);
-bc_std = pside(bc_std, G, 'zmin', 1);
-bc_std = pside(bc_std, G, 'zmax', 1);
-
-% Set saturation manually
-bc_std.sat = s0*ones(numel(bc_std.face), 1);
+% bc_std = [];
+% bc_std = pside(bc_std, G, 'xmin', 1);
+% bc_std = pside(bc_std, G, 'xmax', 1);
+% bc_std = pside(bc_std, G, 'ymin', 1);
+% bc_std = pside(bc_std, G, 'ymax', 1);
+% bc_std = pside(bc_std, G, 'zmin', 1);
+% bc_std = pside(bc_std, G, 'zmax', 1);
 
 % Must hard code these?
-%neumann_val = 1;
-%dirichlet_val = 0;
-%bc_std = [];
-%bc_std = fluxside(bc_std, G, 'LEFT',  1); % flux value is 1
-%bc_std = pside(bc_std, G, 'RIGHT', 0); % pressure value is 0
+neumann_val = 1;
+dirichlet_val = 0;
+bc_std = [];
+bc_std = fluxside(bc_std, G, 'LEFT',  neumann_val); 
+bc_std = pside(bc_std, G, 'RIGHT', dirichlet_val); 
 
 % Fill the bc_nfvm by setting default homogeneous Neumann conditions,
 % then copy from bc_std. We should set BC explicitly on all boundary
@@ -96,6 +93,8 @@ bc_nfvm = bc_std;
 state0 = initState(G, Wtp, p0, s0);
 
 % Schedule with dummy dt
+% Set saturation manually
+bc_std.sat = s0*ones(numel(bc_std.face), 1);
 schedule = simpleSchedule(1, 'W', Wtp, 'bc', bc_std);
 
 solvers = {};
