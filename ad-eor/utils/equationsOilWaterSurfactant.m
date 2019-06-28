@@ -150,7 +150,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % Conservation of surfactant in water:
     vSft   = op.faceUpstr(upcw, c).*vW;
     bWvSft = op.faceUpstr(upcw, bW).*vSft;
-    surfactant    = (1/dt)*((pv.*bW.*sW.*c - pv0.*bW0.*sW0.*c0) + ads_term);
+    surfactant    = (1/dt).*((pv.*bW.*sW.*c - pv0.*bW0.*sW0.*c0)) + (op.pv/dt).*ads_term;
     divSurfactant = op.Div(bWvSft);
     surfactant = surfactant + divSurfactant;
     
