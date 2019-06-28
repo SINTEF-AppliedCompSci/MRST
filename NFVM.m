@@ -75,10 +75,10 @@ classdef NFVM < PermeabilityGradientDiscretization
                             mu1=0.5;mu2=0.5;
                         end
                         T(i_face,1)=mu1*t11+mu2*t21;
-                        T(i_face,2)=(mu1*t12+mu2*t22)*nfvm.bc.value{ind}(G.faces.centroids(i_face,:));
+                        T(i_face,2)=(mu1*t12+mu2*t22)*nfvm.bc.value(ind);
                     else
                         T(i_face,2)=-G.faces.areas(i_face)*...
-                            nfvm.bc.value{ind}(G.faces.centroids(i_face,:));
+                            nfvm.bc.value(ind);
                     end
                 end
             end
@@ -137,7 +137,7 @@ classdef NFVM < PermeabilityGradientDiscretization
                     ind=find(nfvm.bc.face==i_face,1);
                     if(strcmpi(nfvm.bc.type{ind},'pressure'))
                         interpFace.coords(i_face,:)=xf';
-                        interpFace.weights(i_face,(c2==0)+1)=nfvm.bc.value{ind}(xf);
+                        interpFace.weights(i_face,(c2==0)+1)=nfvm.bc.value(ind);
                     else
                         c=max(c1,c2);
                         K1=K(:,:,c);
@@ -147,7 +147,7 @@ classdef NFVM < PermeabilityGradientDiscretization
                         xA=x1+dot(xf-x1,fn)/dot(w1,fn)*w1;
                         interpFace.coords(i_face,:)=xA';
                         a=norm(w1)/norm(x1-xA);
-                        gN=nfvm.bc.value{ind}(xf)*G.faces.areas(i_face);
+                        gN=nfvm.bc.value(ind);
                         interpFace.weights(i_face,(c1==0)+1)=1;
                         interpFace.weights(i_face,(c2==0)+1)=-gN/a;
                     end
@@ -356,7 +356,7 @@ classdef NFVM < PermeabilityGradientDiscretization
                                 OSflux(i_face,1)={trans};clear trans
                                 
                                 [a,xD]=nfvm.findDnode(G,c1,i_face,-w1);
-                                uD=nfvm.bc.value{ind}(xD);
+                                uD=nfvm.bc.value(ind);
                                 temp=[cf sum(a);c1 a(1);0 a(2)*uD];
                                 OSflux(i_face,2)={temp};clear temp;
                             end
@@ -416,8 +416,10 @@ classdef NFVM < PermeabilityGradientDiscretization
                                 OSflux(i_face,1)={trans};clear trans;
                                 
                                 [a,xA,xB]=nfvm.findDnodes(G,c1,i_face,-w1);
-                                uA=nfvm.bc.value{ind}(xA);
-                                uB=nfvm.bc.value{ind}(xB);
+                                %uA=nfvm.bc.value{ind}(xA);
+                                %uB=nfvm.bc.value{ind}(xB);
+                                uA = nfvm.bc.value(ind);
+                                uB = uA; % FIXME
                                 temp=[cf sum(a);c1 a(1);0 a(2)*uA+a(3)*uB];
                                 OSflux(i_face,2)={temp};clear temp;
                             end
