@@ -8,18 +8,30 @@ mrstModule add incomp mimetic  ad-blackoil ad-core glpk ntpfa_glpk ...
 % G = cartGrid([nx, ny, nz]);
 % %G = twister(G, 0.1);
 % G = computeGeometry(G);
-%cellsWell1 = 1:nx*ny:nx*ny*nz;
-%cellsWell2 = nx:ny:nx*ny;
 
-myfile = 'grid_data/tet2.dat';
-G=importGrid(myfile,'tetBench');
+% myfile = 'grid_data/tet2.dat';
+% G=importGrid(myfile,'tetBench');
+% G = computeGeometry(G);
+
+% nx = 10;
+% ny = 10;
+% nz = 5;
+% G = cartGrid([nx, ny, nz]);
+% %G = twister(G, 0.1);
+% G = computeGeometry(G);
+
+nx = 10;
+ny = 10;
+nz = 5;
+G = cartGrid([nx, ny, nz]);
+G = tetrahedralGrid(G.nodes.coords);
 G = computeGeometry(G);
-cellsWell1 = well_cells(G, '1');
-cellsWell2 = well_cells(G, '2');
 
 rock = makeRock(G, 100*milli*darcy, 1);
 
 % Wells
+cellsWell1 = well_cells(G, '1');
+cellsWell2 = well_cells(G, '2');
 radius = 0.05/10;
 Wtp = addWell([], G, rock, cellsWell1, 'Type', 'rate', ...
             'InnerProduct', 'ip_tpf', ...
