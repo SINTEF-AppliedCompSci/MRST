@@ -233,6 +233,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         step_header(i);
         state0 = state;
         
+        if i == 11
+            1;
+        end
+        
+        if i == 81
+            1;
+        end
+        
         currControl = schedule.step.control(i);
         if prevControl ~= currControl
             [forces, fstruct] = model.getDrivingForces(schedule.control(currControl));

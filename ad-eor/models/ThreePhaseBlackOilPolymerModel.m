@@ -97,9 +97,9 @@ classdef ThreePhaseBlackOilPolymerModel < ThreePhaseBlackOilModel
                     c = model.getComponentNames();
                     index = find(strcmpi(c, 'polymer'));
                     if strcmpi(name, 'polymer')
-                        fn = 'c';
+                        fn = 'cp';
                     else
-                        fn = 'cmax';
+                        fn = 'cpmax';
                     end
                 case 'qwpoly'
                     fn = 'qWPoly';

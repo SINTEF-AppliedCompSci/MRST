@@ -109,7 +109,7 @@ ROCK
      300        3.0e-5       /
 
 INCLUDE
-  'surfact.inc'  /
+  'DZ_CASE_2P_surfact.inc'  /
 
 
 REGIONS ===============================================================

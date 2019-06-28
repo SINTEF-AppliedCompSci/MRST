@@ -43,7 +43,8 @@ rock  = compressRock(rock, G.cells.indexMap);
 %
 
 nc = G.cells.num;
-state0 = initResSol(G, 300*barsa, [ .2, .8]); % residual water saturation is 0.2
+% state0 = initResSol(G, 300*barsa, [ .2, .8]); % residual water saturation is 0.2
+state0 = initResSol(G, 280*barsa, [ .2, .8]); % residual water saturation is 0.2
 state0.cs    = zeros(G.cells.num, 1);
 state0.csmax = state0.cs;
 
