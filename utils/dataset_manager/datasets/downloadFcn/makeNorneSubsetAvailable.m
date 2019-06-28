@@ -11,7 +11,7 @@ function ok = makeNorneSubsetAvailable
 %
 %   then this function will attempt to download a subset of the simulation
 %   model from the OPM project's public dataset collection on GitHub
-%   (https://github.com/OPM/opm-data/tree/master/norne).
+%   (https://github.com/OPM/opm-tests/tree/master/norne).
 %
 % PARAMETERS:
 %   None.  This function operates on constant data.
@@ -52,7 +52,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    ok = available();
 
-   if ~ ok,
+   if ~ ok
       ok = download(repo, rev, coll, files, idir) && available();
    end
 end
@@ -60,8 +60,8 @@ end
 %--------------------------------------------------------------------------
 
 function [repo, rev, coll, files] = define_subset
-   repo = 'OPM/opm-data';
-   rev  = '2198d5b';
+   repo = 'OPM/opm-tests';
+   rev  = '5969ec63b';
    coll = 'norne/INCLUDE';
 
    files = [ strcat('GRID/', { 'IRAP_1005.GRDECL' , ...
