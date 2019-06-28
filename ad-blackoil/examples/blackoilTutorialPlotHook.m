@@ -4,7 +4,7 @@
 % panel showing simulation progress.
 %
 % We first set up a simulation model of SPE1 in the standard manner.
-mrstModule add ad-core ad-blackoil ad-props ad-fi mrst-gui deckformat
+mrstModule add ad-core ad-blackoil ad-props mrst-gui deckformat
 
 [G, rock, fluid, deck, state0] = setupSPE1();
 model = selectModelFromDeck(G, rock, fluid, deck);
@@ -19,6 +19,7 @@ close all
 fn = getPlotAfterStep(state0, model, schedule, 'plotWell', true,...
                                                'plotReservoir', false);
 disp(fn)
+
 %% Run the simulation with plotting function
 linsolve = selectLinearSolverAD(model);
 [wellSols, states, report] = simulateScheduleAD(state0, model, schedule, ...

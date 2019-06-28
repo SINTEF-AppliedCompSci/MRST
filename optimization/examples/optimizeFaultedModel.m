@@ -3,7 +3,7 @@
 % optimization problem.
 
 %% Construct faulted grid, and populate with layered permeability field  
-mrstModule add ad-core ad-blackoil ad-props ad-fi optimization
+mrstModule add ad-core ad-blackoil ad-props optimization
 
 grdecl = makeModel3([20, 20, 4], [500, 500, 8]*meter);
 G = processGRDECL(grdecl);

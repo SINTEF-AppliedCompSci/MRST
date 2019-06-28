@@ -14,8 +14,7 @@
 % control with target bottom-home pressure 260 bar.
 
 mrstModule add ad-core ad-blackoil ad-eor ad-props ...
-               deckformat mrst-gui ...
-               ad-fi  % Summary plotting
+               deckformat mrst-gui
 
 %% Set up model and initial conditions
 % The data required for the example
