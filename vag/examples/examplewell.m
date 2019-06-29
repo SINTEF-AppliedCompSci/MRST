@@ -1,8 +1,6 @@
 
 mrstModule add vag vem vemmech
 
-isverbose = true;
-
 %% Define and process geometry
 % Construct a Cartesian grid of size 10-by-10
 nx = 10; ny = 10; nz = 1;
@@ -14,8 +12,6 @@ nc = G.cells.num;
 %% Set rock and fluid data
 % The only parameters in the single-phase pressure equation are the
 % permeability $K$, which here is homogeneous, isotropic and equal 100 mD.
-% The fluid has density 1000 kg/m^3 and viscosity 1 cP.
-% We make a non diagonal rock tensor
 rock = makeRock(G, 1e-3*darcy, 1);
 
 % injcells  =  1 : 3;
