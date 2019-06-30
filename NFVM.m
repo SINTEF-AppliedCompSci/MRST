@@ -53,6 +53,15 @@ classdef NFVM < PermeabilityGradientDiscretization
             bc2.face = bc2.face(ii);
             bc2.type = bc2.type(ii);
             bc2.value = bc2.value(ii);
+            
+            % Plot nonzero bc
+            f = zeros(G.faces.num,1);
+            f(bc2.face) = bc2.value;
+            plotGrid(G,'facealpha',0)
+            plotFaces(G,f>0);
+            xlabel 'x'
+            ylabel 'y'
+            view(3)
         end
         
         function T = TransNTPFA(nfvm, model, u)
