@@ -78,14 +78,20 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     fprintf(' - Display this message:             ');
     printMatlabLink(isDesktop, 'mrstStartupMessage()');
     
-    fprintf('\nFor assistance and discussions about MRST, please visit our mailing list at\n');
+    fprintf(['\nFor assistance and discussions about MRST, ', ...
+             'please visit our mailing list at\n']);
     fprintf('\t');
-    printLink(isDesktop, 'www.sintef.no/projectweb/mrst/forum/', 'http://www.sintef.no/projectweb/mrst/forum/');
+    printLink(isDesktop, 'www.sintef.no/projectweb/mrst/forum/', ...
+              'http://www.sintef.no/projectweb/mrst/forum/');
+
     fprintf(' (');
-    printLink(isDesktop, 'sintef-mrst@googlegroups.com', 'mailto:sintef-mrst@googlegroups.com');
+    printLink(isDesktop, 'sintef-mrst@googlegroups.com', ...
+              'mailto:sintef-mrst@googlegroups.com');
     fprintf(')\n');
+
     fprintf('For some common queries, see our FAQ: ')
-    printLink(isDesktop, 'www.sintef.no/projectweb/mrst/faq/', 'http://www.sintef.no/projectweb/mrst/faq/');
+    printLink(isDesktop, 'www.sintef.no/projectweb/mrst/faq/', ...
+              'http://www.sintef.no/projectweb/mrst/faq/');
     fprintf('\n');
 end
 
