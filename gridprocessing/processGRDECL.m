@@ -162,7 +162,6 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
 % Relies on buildCornerPtNodes, rlencode, rldecode, removeCells, dispif,
 % tocif
 opt = struct('CheckGrid'        , true       , ...
@@ -291,10 +290,10 @@ if mod(sum(reverseaxis), 2),
    G = reverseFaceNodes(G, 1:G.faces.num);
 end
 
-if isfield(grdecl, 'PINCH'),
+if isfield(grdecl, 'PINCH')
    nnc = processPINCH(grdecl, G);
 
-   if ~ isempty(nnc),
+   if ~ isempty(nnc)
       G.nnc = nnc;
    end
 end
@@ -304,10 +303,8 @@ if opt.SplitDisconnected,
    G = splitDisconnectedGrid(G, 'verbose', opt.Verbose);
 end
 
-for i = 1 : numel(G),
-   G(i).type = { mfilename };
-   G(i).griddim = 3;
-end
+[G.type]    = deal({ mfilename });
+[G.griddim] = deal(3);
 end
 
 %==========================================================================
@@ -460,8 +457,6 @@ end
 %--------------------------------------------------------------------------
 
 function G = reverseFaceNodes(G, f)
-%-------------------------------------------------------------------------
-   %
    ix1 = mcolon(G.faces.nodePos(f),     G.faces.nodePos(f+1)-1);
    ix2 = mcolon(G.faces.nodePos(f+1)-1, G.faces.nodePos(f)    , -1);
    G.faces.nodes(ix1) = G.faces.nodes(ix2);
@@ -470,32 +465,18 @@ end
 %--------------------------------------------------------------------------
 
 function k = index(i, j, k, sz)
-%-------------------------------------------------------------------------
 [I,J,K] = ndgrid(i, j, k);
 k       = reshape(sub2ind(sz, I, J, K), [], 1);
-%{
-function k = index(sz, varargin)
-   assert(numel(sz) == numel(varargin));
-   assert(all(cellfun(@min, varargin) > 0));
-   assert(all(cellfun(@max, varargin)<= sz));
-
-   r       = cell(size(varargin));
-   [r{:}]  = ndgrid(varargin{:});
-   k       = reshape(sub2ind(sz, r{:}), [], 1);
-%}
 end
 
 %--------------------------------------------------------------------------
 
 function G = buildCellFaces(G, cellTags)
-%-------------------------------------------------------------------------
-
 nf              = size(G.faces.neighbors, 1);
 G.faces.num     = nf;
 G.nodes.num     = size(G.nodes.coords, 1);
 numFaces        = accumarray(G.faces.neighbors(:)+1, 1, [G.cells.num+1, 1]);
 G.cells.facePos = cumsum([1; numFaces(2:end)]);
-
 
 cellTags = fliplr(cellTags);
 
@@ -514,13 +495,6 @@ G.cells.faces = [mod(vec-1, nf) + 1, cellTags(hf(ind))];
 % ind                 = G.cells.faces(:,1)==0;
 % G.cells.faces(ind,:)  = [];
 % G.cells.faces         = int32(G.cells.faces(:,[2,4]));
-
-
-
-
-
-
-
 end
 
 %--------------------------------------------------------------------------
@@ -592,12 +566,6 @@ function G = findFaces(G, P, B, actnum, tags, opt)
 %             .
 %              .
 %              .
-%
-%
-%
-%
-%
-
 
 sz   = size(P);
 szB  = size(B);
@@ -674,9 +642,6 @@ G.faces.neighbors  = [G.faces.neighbors; [c1(:), c2(:)]];
 G.faces.nodePos    = cumsum([1; double(diff(G.faces.nodePos)); nF]);
 G.faces.tag        = [G.faces.tag;        zeros(n, 1)];
 G.faces.cellTags   = [G.faces.cellTags;   repmat(tags, [numel(c1), 1])];
-
-
-
 end
 
 %--------------------------------------------------------------------------
@@ -1000,7 +965,7 @@ pa = [a(C(:,1), :), a(C(:,1)+1, :)];
 pb = [b(C(:,2), :), b(C(:,2)+1, :)];
 
 n = size(pa, 1);
-if n < 1,
+if n < 1
    numNodes = [];
    Corners  = [];
    return
