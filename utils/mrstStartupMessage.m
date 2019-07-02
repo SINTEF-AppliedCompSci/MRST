@@ -38,21 +38,11 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+
     isDesktop = usejava('desktop');
-    fprintf('Welcome to the Matlab Reservoir Simulation Toolbox (MRST)!\nYou are using ')
-    githead = fullfile(ROOTDIR, '.git', 'refs', 'heads', 'master');
-    if exist(githead, 'file')
-        % User is using the git-version.
-        f = fopen(githead, 'r');
-        fprintf('the development version at commit %s\n', fgetl(f));
-        fclose(f);
-    else
-        % User is using a specific release. Give a bit of extra output.
-        fprintf(['the release version 2019a. To download other versions of MRST\n',...
-            'and view examples and relevant publications, please visit ']);
-        printLink(isDesktop, 'www.mrst.no', 'www.mrst.no');
-        fprintf('\n');
-    end
+
+    printHeader(isDesktop)
+
     fprintf('\nUseful commands for getting started:\n');
     fprintf(' - List all introductory examples:   ');
     printMatlabLink(isDesktop, 'mrstExamples()');
@@ -95,6 +85,32 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     fprintf('\n');
 end
 
+%--------------------------------------------------------------------------
+
+function printHeader(isDesktop)
+    fprintf(['Welcome to the Matlab Reservoir Simulation ', ...
+             'Toolbox (MRST)!\nYou are using '])
+
+    githead = fullfile(ROOTDIR, '.git', 'refs', 'heads', 'master');
+    if exist(githead, 'file')
+        % User is using the git-version.
+        f = fopen(githead, 'r');
+        fprintf('the development version at commit %s\n', fgetl(f));
+        fclose(f);
+    else
+        % User is using a specific release. Give a bit of extra output.
+        fprintf(['the release version 2019a. To download other ', ...
+                 'versions of MRST\n', ...
+                 'and view examples and relevant publications, ', ...
+                 'please visit ']);
+
+        printLink(isDesktop, 'www.mrst.no', 'www.mrst.no');
+        fprintf('\n');
+    end
+end
+
+%--------------------------------------------------------------------------
+
 function printMatlabLink(isDesktop, text, endl)
     if nargin == 2
         endl = true;
@@ -105,6 +121,7 @@ function printMatlabLink(isDesktop, text, endl)
     end
 end
 
+%--------------------------------------------------------------------------
 
 function printLink(isDesktop, text, link)
     if isDesktop
