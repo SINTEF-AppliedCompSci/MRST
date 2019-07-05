@@ -8,7 +8,7 @@ classdef FixedTotalFlux < StateFunction
             gp = gp.dependsOn({'flux'}, 'state');
         end
         function vT = evaluateOnDomain(prop, model, state)
-            vT = sum(state.flux(model.operators.internalConn), 2);
+            vT = sum(state.flux(model.operators.internalConn, :), 2);
         end
     end
 end
