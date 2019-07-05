@@ -1,6 +1,6 @@
 classdef TransportModel < WrapperModel
     properties
-        
+        formulation = 'totalSaturation'
     end
     
     methods
@@ -36,7 +36,8 @@ classdef TransportModel < WrapperModel
             isP = strcmp(basenames, 'pressure');
             vars = basevars;
             names = basenames;
-            useTotalSaturation = sum(isS) == nph - 1;
+            useTotalSaturation = strcmpi(model.formulation, 'totalSaturation') ...
+                                    && sum(isS) == nph - 1;
             if useTotalSaturation
                 % Replace pressure with total saturation
                 replacement = 'sT';
@@ -56,8 +57,12 @@ classdef TransportModel < WrapperModel
             if init
                 [vars{:}] = model.AutoDiffBackend.initVariablesAD(vars{:});
             end
-            keep = ~(isS | isP);
-            basevars(keep) = vars(keep);
+            if useTotalSaturation
+                initialized =  ~(isS | isP);
+            else
+                initialized = ~isP;
+            end
+            basevars(initialized) = vars;
             state = model.initStateAD(state, basevars, basenames, origin);
             if useTotalSaturation
                 % Not all were AD-initialized
@@ -85,6 +90,14 @@ classdef TransportModel < WrapperModel
             [eqs, flux, names, types] = model.FluxDiscretization.componentConservationEquations(model, state, state0, dt);
             src = model.FacilityModel.getComponentSources(state);
             % Assemble equations and add in sources
+            if strcmpi(tmodel.formulation, 'missingPhase')
+                % Skip the last phase! Only mass-conservative for
+                % incompressible problems
+                eqs = eqs(1:end-1);
+                flux = flux(1:end-1);
+                names = names(1:end-1);
+                types = types(1:end-1);
+            end
             for i = 1:numel(eqs)
                 if ~isempty(src.cells)
                     eqs{i}(src.cells) = eqs{i}(src.cells) - src.value{i};
@@ -133,9 +146,11 @@ classdef TransportModel < WrapperModel
         
         function [state, report] = updateState(model, state, problem, dx, drivingForces)
             isS = strcmpi(problem.primaryVariables, 'sT');
-            state = model.updateStateFromIncrement(state, dx, problem, 'sT', inf, inf);
-            state = model.capProperty(state, 'sT', 1e-8);
-            dx = dx(~isS);
+            if any(isS)
+                state = model.updateStateFromIncrement(state, dx, problem, 'sT', inf, inf);
+                state = model.capProperty(state, 'sT', 1e-8);
+                dx = dx(~isS);
+            end
             problem.primaryVariables = problem.primaryVariables(~isS);
             
             [state, report] = model.parentModel.updateState(state, problem, dx, drivingForces);
