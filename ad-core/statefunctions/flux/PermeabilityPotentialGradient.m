@@ -4,8 +4,8 @@ classdef PermeabilityPotentialGradient < StateFunction
     end
     
     methods
-        function pp = PermeabilityPotentialGradient(backend, kgrad)
-            pp@StateFunction(backend);
+        function pp = PermeabilityPotentialGradient(model, kgrad)
+            pp@StateFunction(model);
             pp.PermeabilityGradientDiscretization = kgrad;
             pp = pp.dependsOn('PhasePotentialDifference');
             if isa(kgrad, 'TwoPointFluxApproximation')
