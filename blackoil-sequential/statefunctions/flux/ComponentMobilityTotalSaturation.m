@@ -7,19 +7,14 @@ classdef ComponentMobilityTotalSaturation < ComponentMobility
     methods
         function gp = ComponentMobilityTotalSaturation(model, varargin)
             gp@ComponentMobility(model, varargin{:});
-            gp = gp.dependsOn('s', 'state');
+            gp = gp.dependsOn('TotalSaturation');
         end
         function v = evaluateOnDomain(prop, model, state)
             v = evaluateOnDomain@ComponentMobility(prop, model, state);
-            s = model.getProp(state, 's');
-            nph = numel(s);
-            sT = 0;
-            for i = 1:nph
-                sT = sT + s{i};
-            end
-            for ph = 1:nph
-                for i = 1:size(v, 1)
-                    v{i, ph} = v{i, ph}.*sT;
+            sT = prop.getEvaluatedDependencies(state, 'TotalSaturation');
+            for i = 1:numel(v)
+                if ~isempty(v{i})
+                    v{i} = v{i}.*sT;
                 end
             end
         end
