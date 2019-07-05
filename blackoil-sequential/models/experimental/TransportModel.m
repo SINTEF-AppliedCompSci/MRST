@@ -129,9 +129,11 @@ classdef TransportModel < WrapperModel
                 fd = fd.setStateFunction('TotalFlux', FixedTotalFlux(pmodel));
                 fd = fd.setStateFunction('FaceTotalMobility', FaceTotalMobility(pmodel));
                 % Set flow properties
-                fp = fp.setStateFunction('TotalSaturation', TotalSaturation(pmodel));
-                fp = fp.setStateFunction('ComponentMobility', ComponentMobilityTotalSaturation(pmodel));
-                fp = fp.setStateFunction('ComponentPhaseDensity', ComponentPhaseDensityTotalSaturation(pmodel));
+                if strcmpi(model.formulation, 'totalSaturation')
+                    fp = fp.setStateFunction('TotalSaturation', TotalSaturation(pmodel));
+                    fp = fp.setStateFunction('ComponentMobility', ComponentMobilityTotalSaturation(pmodel));
+                    fp = fp.setStateFunction('ComponentPhaseDensity', ComponentPhaseDensityTotalSaturation(pmodel));
+                end
                 % Replace object
                 model.parentModel.FluxDiscretization = fd;
                 model.parentModel.FlowPropertyFunctions = fp;
