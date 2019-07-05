@@ -125,7 +125,6 @@ classdef TransportModel < WrapperModel
                 fd = fd.setStateFunction('PhaseUpwindFlag', PhasePotentialUpwindFlag(pmodel));
                 fd = fd.setStateFunction('ComponentPhaseFlux', ComponentPhaseFluxFractionalFlow(pmodel));
                 % Set extra props
-                fd = fd.setStateFunction('FractionalFlow', FractionalFlow(pmodel));
                 fd = fd.setStateFunction('PhaseInterfacePressureDifferences', PhaseInterfacePressureDifferences(pmodel));
                 fd = fd.setStateFunction('TotalFlux', FixedTotalFlux(pmodel));
                 fd = fd.setStateFunction('FaceTotalMobility', FaceTotalMobility(pmodel));
