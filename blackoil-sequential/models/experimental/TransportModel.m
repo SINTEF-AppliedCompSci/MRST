@@ -58,11 +58,10 @@ classdef TransportModel < WrapperModel
                 [vars{:}] = model.AutoDiffBackend.initVariablesAD(vars{:});
             end
             if useTotalSaturation
-                initialized =  ~(isS | isP);
+                basevars(~isP) = vars(~isP);
             else
-                initialized = ~isP;
+                basevars(~isP) = vars;
             end
-            basevars(initialized) = vars;
             state = model.initStateAD(state, basevars, basenames, origin);
             if useTotalSaturation
                 % Not all were AD-initialized

@@ -3,16 +3,24 @@ classdef PhaseFluxFixedTotalVelocity < StateFunction
     end
     
     methods
-        function gp = PhaseFluxFixedTotalVelocity(varargin)
-            gp@StateFunction(varargin{:});
-            gp = gp.dependsOn('Mobility', 'FlowPropertyFunctions');
-            gp = gp.dependsOn({'FractionalFlow', 'PhaseInterfacePressureDifferences'});
-            gp = gp.dependsOn({'flux'}, 'state');
+        function pf = PhaseFluxFixedTotalVelocity(varargin)
+            pf@StateFunction(varargin{:});
+            pf = pf.dependsOn({'TotalFlux', 'PhaseInterfacePressureDifferences', 'Transmissibility', 'FaceMobility', 'FaceTotalMobility'});
         end
         function f = evaluateOnDomain(prop, model, state)
-            [f, G] = prop.getEvaluatedDependencies(state, 'FractionalFlow', 'PhaseInterfacePressureDifferences');
-            [mob, flux] = model.getProps(state, 'Mobility', 'flux');
-            vT = sum(flux(model.operators.internalConn), 2);
+            [vT, G, T, fmob, mobT] = prop.getEvaluatedDependencies(state,...
+                 'TotalFlux', 'PhaseInterfacePressureDifferences', 'Transmissibility', 'FaceMobility', 'FaceTotalMobility');
+            nph = numel(fmob);
+            f = cell(1, nph);
+            for i = 1:nph
+                mobG = 0;
+                for j = 1:nph
+                    if i ~= j
+                        mobG = mobG + fmob{j}.*(G{i} - G{j});
+                    end
+                end
+                f{i} = (fmob{i}./mobT).*(vT + T.*mobG);
+            end
         end
     end
 end
