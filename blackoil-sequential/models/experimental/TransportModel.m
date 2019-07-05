@@ -100,6 +100,31 @@ classdef TransportModel < WrapperModel
                 state = model.setProp(state, 'sT', sum(state.s, 2));
             end
         end
+        
+        function model = validateModel(model, varargin)
+            defaultedDiscretization = isempty(model.parentModel.FluxDiscretization);
+            model = validateModel@WrapperModel(model, varargin{:});
+            if defaultedDiscretization
+                pmodel = model.parentModel;
+                fd = pmodel.FluxDiscretization;
+                fp = pmodel.FlowPropertyFunctions;
+                % Replace existing properties with total flux variants
+                fd = fd.setStateFunction('PhaseFlux', PhaseFluxFixedTotalVelocity(pmodel));
+                fd = fd.setStateFunction('PhaseUpwindFlag', PhasePotentialUpwindFlag(pmodel));
+                fd = fd.setStateFunction('ComponentPhaseFlux', ComponentPhaseFluxFractionalFlow(pmodel));
+                % Set extra props
+                fd = fd.setStateFunction('FractionalFlow', FractionalFlow(pmodel));
+                fd = fd.setStateFunction('PhaseInterfacePressureDifferences', PhaseInterfacePressureDifferences(pmodel));
+                fd = fd.setStateFunction('TotalFlux', FixedTotalFlux(pmodel));
+                fd = fd.setStateFunction('FaceTotalMobility', FaceTotalMobility(pmodel));
+                % Set flow properties
+%                 fp = fp.setStateFunction('ComponentMobility', ComponentMobilityTotalSaturation(pmodel));
+                % Replace object
+                model.parentModel.FluxDiscretization = fd;
+                model.parentModel.FlowPropertyFunctions = fp;
+            end
+        end
+        
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
             [problem, state] = getEquations@PhysicalModel(model, state0, state, dt, drivingForces, varargin{:});
         end
