@@ -93,7 +93,7 @@ classdef BaseRelativePermeability < StateFunction
     function kr = relPermUnified(prop, model, state)
         % Rel.perm without special oil treatment
         phases = model.getPhaseNames();
-        snames = arrayfun(@(x) ['s', x], phases);
+        snames = arrayfun(@(x) ['s', x], phases, 'UniformOutput', false);
         nph = numel(phases);
         s = cell(1, nph);
         kr = cell(1, nph);
