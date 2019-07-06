@@ -10,7 +10,7 @@ classdef ComponentPhaseDensityTotalSaturation < ComponentPhaseDensity
         end
         function v = evaluateOnDomain(prop, model, state)
             v = evaluateOnDomain@ComponentPhaseDensity(prop, model, state);
-            sT = prop.getEvaluatedDependencies('TotalSaturation');
+            sT = prop.getEvaluatedDependencies(state, 'TotalSaturation');
             for i = 1:numel(v)
                 if ~isempty(v{i})
                     v{i} = v{i}.*sT;
