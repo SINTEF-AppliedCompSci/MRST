@@ -9,11 +9,7 @@ classdef TotalSaturation < StateFunction
             gp = gp.dependsOn('s', 'state');
         end
         function sT = evaluateOnDomain(prop, model, state)
-            sT = 0;
-            s = model.getProp(state, 's');
-            for i = 1:numel(s)
-                sT = sT + s{i};
-            end
+            sT = state.sT;
         end
     end
 end

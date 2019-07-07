@@ -52,8 +52,6 @@ classdef TransportModel < WrapperModel
                 names = names(~isP);
                 origin = origin(~isP);
             end
-            
-
             if init
                 [vars{:}] = model.AutoDiffBackend.initVariablesAD(vars{:});
             end
@@ -64,22 +62,9 @@ classdef TransportModel < WrapperModel
             end
             state = model.initStateAD(state, basevars, basenames, origin);
             if useTotalSaturation
-                % Not all were AD-initialized
+                % Set total saturation as well
                 sT = vars{isP};
                 state = model.setProp(state, replacement, sT);
-                fill = phase_variable_index == 0;
-                
-                s = cell(1, nph);
-                s_rem = sT;
-                for i = 1:nph
-                    ix = phase_variable_index(i);
-                    if ix > 0
-                        s_rem = s_rem - vars{ix};
-                        s{i} = vars{ix};
-                    end
-                end
-                s{fill} = s_rem;
-                state = model.setProp(state, 's', s);
             end
         end
         
@@ -132,7 +117,7 @@ classdef TransportModel < WrapperModel
                 if strcmpi(model.formulation, 'totalSaturation')
                     fp = fp.setStateFunction('TotalSaturation', TotalSaturation(pmodel));
                     fp = fp.setStateFunction('ComponentMobility', ComponentMobilityTotalSaturation(pmodel));
-                    fp = fp.setStateFunction('ComponentPhaseDensity', ComponentPhaseDensityTotalSaturation(pmodel));
+                    fp = fp.setStateFunction('ComponentPhaseMass', ComponentPhaseMassTotalSaturation(pmodel));
                 end
                 % Replace object
                 model.parentModel.FluxDiscretization = fd;
@@ -166,6 +151,19 @@ classdef TransportModel < WrapperModel
                 index = ':';
             else
                 [fn, index] = model.parentModel.getVariableField(name, varargin{:});
+            end
+        end
+        
+        function [model, state] = prepareTimestep(model, state, state0, dt, drivingForces)
+            % Prepare state and model (temporarily) before solving a time-step
+            [model, state] = prepareTimestep@WrapperModel(model, state, state0, dt, drivingForces);
+            state.statePressure = state;
+        end
+
+        function [state, report] = updateAfterConvergence(model, varargin)
+            [state, report] = updateAfterConvergence@WrapperModel(model, varargin{:});
+            if isfield(state, 'statePressure')
+                state = rmfield(state, 'statePressure');
             end
         end
     end
