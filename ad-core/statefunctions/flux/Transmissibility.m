@@ -11,11 +11,11 @@ classdef Transmissibility < StateFunction
             end
         end
         
-        function v = evaluateOnDomain(prop, model, state)
-            v = model.operators.T;
+        function T = evaluateOnDomain(prop, model, state)
+            T = model.operators.T;
             if isfield(model.fluid, 'transMult')
                 p = model.getProps(state, 'pressure');
-                v = model.fluid.transMult(p).*T;
+                T = model.fluid.transMult(p).*T;
             end
         end
     end
