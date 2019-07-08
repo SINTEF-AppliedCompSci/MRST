@@ -1,4 +1,4 @@
-%% Three-dimensional water evaporation process
+dwfsafadg%% Three-dimensional water evaporation process
 % 
 % This code is an implementation of the mixed-based form of the Richards' 
 % Equation in a three-dimensional domain using Automatic Differentiation 
@@ -288,7 +288,7 @@ krw= @(x)       isUnsat(x) .* ((1 - (alpha .* abs(x)).^(nVan-1) .* ...
                 ~isUnsat(x) .* 1;
 
 %% Time parameters
-simTime = 3600;         % [s]    final simulation time
+simTime = 3250;         % [s]    final simulation time
 dt_init = 0.01;         % [s]    initial time step
 dt_min = 0.01;          % [s]    minimum time step 
 dt_max = 1000;          % [s]    maximum time step
