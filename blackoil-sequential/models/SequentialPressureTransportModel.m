@@ -125,7 +125,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
            % Solve pressure and transport sequentially
             psolver = model.pressureNonLinearSolver;
             tsolver = model.transportNonLinearSolver;
-            if iteration > 1
+            if iteration > 1 && isprop(model.pressureModel, 'FacilityModel')
                 for i = 1:numel(model.pressureModel.FacilityModel.WellModels)
                     model.pressureModel.FacilityModel.WellModels{i}.doUpdatePressureDrop = false;
                 end

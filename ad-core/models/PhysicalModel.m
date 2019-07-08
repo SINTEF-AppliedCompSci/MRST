@@ -500,7 +500,9 @@ methods
                     % normalized with missing values.
                     for j = 1:numel(names)
                         name = names{j};
-                        if ~any(strcmp(name, current))
+                        if any(strcmp(name, current))
+                            state.(struct_name).(name) = model.getProp(state, name);
+                        else
                             % Remove unkept variables
                             state.(struct_name).(name) = [];
                         end

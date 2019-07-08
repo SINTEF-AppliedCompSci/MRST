@@ -54,5 +54,9 @@ classdef WrapperModel < PhysicalModel
             % Prepare state and model (temporarily) before solving a report-step
             [model.parentModel, state] = model.parentModel.prepareReportstep(state, state0, dt, drivingForces);
         end
+        
+        function [state, report] = updateAfterConvergence(model, varargin)
+            [state, report] = model.parentModel.updateAfterConvergence(varargin{:});
+        end
     end
 end
