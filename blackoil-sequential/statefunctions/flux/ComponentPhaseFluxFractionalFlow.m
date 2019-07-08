@@ -6,7 +6,6 @@ classdef ComponentPhaseFluxFractionalFlow < StateFunction
         function cf = ComponentPhaseFluxFractionalFlow(backend, upwinding)
             cf@StateFunction(backend);
             cf = cf.dependsOn({'FaceComponentMobility', 'TotalFlux', 'PhaseInterfacePressureDifferences', 'Transmissibility', 'FaceMobility', 'FaceTotalMobility'});
-            cf = cf.dependsOn('TotalMobility', 'FlowPropertyFunctions');
         end
 
         function v = evaluateOnDomain(prop, model, state)
