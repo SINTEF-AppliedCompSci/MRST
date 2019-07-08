@@ -87,5 +87,13 @@ classdef PressureModel < WrapperModel
                 names{1} = 'Delta P';
             end
         end
+
+        function [state, report] = updateAfterConvergence(model, varargin)
+            [state, report] = updateAfterConvergence@WrapperModel(model, varargin{:});
+            if isfield(state, 'statePressure')
+                state = rmfield(state, 'statePressure');
+            end
+            state.statePressure = state;
+        end
     end
 end

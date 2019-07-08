@@ -157,14 +157,10 @@ classdef TransportModel < WrapperModel
         function [model, state] = prepareTimestep(model, state, state0, dt, drivingForces)
             % Prepare state and model (temporarily) before solving a time-step
             [model, state] = prepareTimestep@WrapperModel(model, state, state0, dt, drivingForces);
-            state.statePressure = state;
         end
 
         function [state, report] = updateAfterConvergence(model, varargin)
             [state, report] = updateAfterConvergence@WrapperModel(model, varargin{:});
-            if isfield(state, 'statePressure')
-                state = rmfield(state, 'statePressure');
-            end
         end
     end
 end
