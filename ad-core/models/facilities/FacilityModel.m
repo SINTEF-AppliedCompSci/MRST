@@ -247,7 +247,22 @@ classdef FacilityModel < PhysicalModel
                 vars = vars(~isComp);
                 names = names(~isComp);
             end
-            state.FacilityState = struct('primaryVariables', {vars}, 'names', {names});
+            phnames = model.ReservoirModel.getPhaseNames();
+            nph = numel(phnames);
+            surfaceRates = cell(1, nph);
+            act = vertcat(state.wellSol.status);
+            for i = 1:nph
+                fn = ['q', phnames(i), 's'];
+                sub = strcmp(names, fn);
+                if any(sub)
+                    surfaceRates{i} = vars{sub};
+                else
+                    surfaceRates{i} = vertcat(state.wellSol(act).(fn));
+                end
+            end
+            state.FacilityState = struct('primaryVariables', {vars}, ...
+                                         'surfacePhaseRates', {surfaceRates}, ...
+                                         'names', {names});
             if any(isComp)
                 ncomp = model.ReservoirModel.getNumberOfComponents();
                 state.FacilityState.massfractions = cell(1, ncomp);

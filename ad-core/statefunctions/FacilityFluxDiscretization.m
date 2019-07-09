@@ -6,6 +6,7 @@ classdef FacilityFluxDiscretization < StateFunctionGrouping
         PerforationPressureGradient
         WellIndex
         FacilityWellMapping
+        InjectionSurfaceDensity
     end
     
     methods
@@ -18,6 +19,7 @@ classdef FacilityFluxDiscretization < StateFunctionGrouping
             props.PerforationPressureGradient = PerforationPressureGradient(model);
             props.WellIndex = WellIndex(model);
             props.FacilityWellMapping = FacilityWellMapping(model);
+            props.InjectionSurfaceDensity = InjectionSurfaceDensity(model);
         end
     end
 end
