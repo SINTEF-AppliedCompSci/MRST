@@ -27,14 +27,14 @@ classdef FluxDiscretization < StateFunctionGrouping
 
             props@StateFunctionGrouping();
             % Darcy flux
-            if ~isempty(model.inputdata) && isfield(model.inputdata.SOLUTION, 'THPRES')
-                trans = ThresholdedTransmissibility(model, model);
-            else
-                trans = Transmissibility(model);
-            end
-            props.Transmissibility = trans;
+            props.Transmissibility = Transmissibility(model);
             props.PermeabilityPotentialGradient = PermeabilityPotentialGradient(model, tpfa);
-            props.PressureGradient = PressureGradient(model);
+            if ~isempty(model.inputdata) && isfield(model.inputdata.SOLUTION, 'THPRES')
+                pgrad = PressureGradientWithThresholdPressure(model, model);
+            else
+                pgrad = PressureGradient(model);
+            end
+            props.PressureGradient = pgrad;
             props.GravityPotentialDifference = GravityPotentialDifference(model);
             
             % Phase flux
