@@ -10,7 +10,7 @@ function fn = getMultiDimInterpolator(x, Y, extrap)
 %             in Y.
 %
 %   Y       - A matrix of dimension equal to x, representing a structured
-%             dataset for multdimensional itnerpolation
+%             dataset for multdimensional interpolation
 %
 % RETURNS:
 %   fn      - A function for interpolation with variable arguments equal to
