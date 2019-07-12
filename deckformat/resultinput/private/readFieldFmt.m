@@ -78,7 +78,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       a      = regexp(strtrim(lin), '\s+', 'split');
       name   =        a{1}       ;
       number = sscanf(a{2}, '%f');
-      ttype  =        a{3}       ;
+
+      [ttype, nchar] = parse_type(a{3});
 
       if number == 0
 
@@ -114,21 +115,23 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
          case 'char'
 
-            % Read strings as sequence of eight-character arrays, delimited
-            % by single quote (') characters (which are omitted in result).
-            % This method preserves white-space (blanks) within each string
-            % and guarantees that the number of elements in 'values' is a
-            % multiple of eight.  Note format's leading blank with standard
-            % semantics: Skip blanks between strings.
-            values = fscanf(fid, ' %*c%8c%*c', number);
+            % Read strings as sequence of 'nchar' fixed-width character
+            % arrays, delimited by single quote (') characters (which are
+            % omitted in result).  This method preserves white-space
+            % (blanks) within each string and guarantees that the number of
+            % elements in 'values' is a multiple of 'nchar' (usually 8).
+            % Note format's leading blank with standard semantics: Skip
+            % blanks between strings.
+            fmt    = sprintf('%dc', nchar);
+            values = fscanf(fid, [' %*c%', fmt, '%*c'], number);
 
-            assert (numel(values) == 8 * number, ...
+            assert (numel(values) == nchar * number, ...
                    ['Internal error in ''CHAR'' handling ', ...
                     'for keyword ''%s''.'], name);
 
             % Convert to cell-array of strings by placing each sequence of
-            % eight characters into a separate row in a CHAR array.
-            values = cellstr(reshape(values, 8, []) .');
+            % 'nchar' characters into a separate row in a CHAR array.
+            values = cellstr(reshape(values, nchar, []) .');
 
             % Wrap cellstring in CELL (producing single-element cell array)
             % to account for STRUCT's treatment of CELL array input (i.e.,
@@ -165,4 +168,23 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    end
 
    output = struct('type', ttype, 'values', values);
+end
+
+%--------------------------------------------------------------------------
+
+function [ttype, nchar] = parse_type(ttype)
+   if any(strcmpi(ttype, { 'INTE', 'LOGI', 'DOUB', 'REAL' }))
+      nchar = NaN; % Should not be used
+
+   elseif strcmpi(ttype, 'CHAR')
+      nchar = 8; % Traditional 8-character fixed width string
+
+   elseif ~isempty(regexp(ttype, '^C\d+$', 'once'))
+      nchar = sscanf(ttype, 'C%d');
+      ttype = 'CHAR';  % Treat C0nn as CHAR for remainder of processing
+
+   else
+      error('ElmType:Unsupp', ...
+            'Field Element Type ''%s'' is Not Supported', ttype);
+   end
 end
