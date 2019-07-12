@@ -67,11 +67,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    opt = merge_options(opt, varargin{:});
 
    lin = fgetl(fid);
-   while isempty(lin) && ischar(lin),
+   while isempty(lin) && ischar(lin)
       lin = fgetl(fid);
    end
 
-   if ischar(lin),
+   if ischar(lin)
 
       lin(lin == '''') = '';
 
@@ -80,7 +80,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       number = sscanf(a{2}, '%f');
       ttype  =        a{3}       ;
 
-      if number == 0,
+      if number == 0
 
          dispif(opt.Verbose, ...
                 'Keyword ''%s'' with no associated data.\n', name);
@@ -88,7 +88,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          output = struct('type', ttype, 'values', {});
          return
 
-      elseif number < 0,
+      elseif number < 0
 
          error(msgid('Negative:ItemCount'), ...
               ['Don''t know how to deal with negative (=%d) item ', ...
@@ -97,22 +97,22 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       end
 
       % If we get here, number > 0.
-      switch lower(ttype),
-         case {'inte', 'doub', 'real'},
+      switch lower(ttype)
+         case {'inte', 'doub', 'real'}
 
             values = textscan(fid, '%f', number);
             values = values{1};
 
-            if any(strcmpi(ttype, {'DOUB', 'REAL'})),
+            if any(strcmpi(ttype, {'DOUB', 'REAL'}))
                ttype = 'REAL';
             end
 
-         case 'logi',
+         case 'logi'
 
             values = textscan(fid, '%s', number);
             values = cellfun(@(s) s == 'T', values{1});    % -> LOGICAL
 
-         case 'char',
+         case 'char'
 
             % Read strings as sequence of eight-character arrays, delimited
             % by single quote (') characters (which are omitted in result).
@@ -136,7 +136,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             % array element for each cell array element).
             values = { values };
 
-         otherwise,
+         otherwise
             error(msgid('Type:Unknown'), ...
                  ['Variable type ''%s'' is unexpected ', ...
                   'at this time.'], ttype);
@@ -150,7 +150,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
       name = 'Input Failure: ';
 
-      if feof(fid),
+      if feof(fid)
          name = [name, 'End-of-file.'];
       else
          err = ferror(fid);
