@@ -114,7 +114,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     error(msg); %#ok
                 end
             end
-            state0 = state_handler{restartStep-1};
+            if restartStep > 1
+                state0 = state_handler{restartStep-1};
+            end
         elseif ndata == nstep
             fprintf('-> Complete output found, nothing to do here.\n');
             % Already run!
