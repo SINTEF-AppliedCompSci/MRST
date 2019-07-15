@@ -17,7 +17,7 @@ function opt = treatLegacyForceOptions(opt)
     if ~isempty(W)
         assert(isempty(Wells), ...
             'Solver cannot have both legacy ''wells'' argument and ''W'' argument at the same time');
-        opt.Wells = W;
+        opt.wells = W;
     end
     if ~isempty(Wells)
         assert(isempty(W), ...
