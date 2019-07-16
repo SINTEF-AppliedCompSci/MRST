@@ -23,9 +23,7 @@ mrstModule add ad-core ad-blackoil ad-eor ad-props deckformat mrst-gui
 % 
 
 current_dir = fileparts(mfilename('fullpath'));
-% fn = fullfile(current_dir, 'SURFACTANT1D.DATA');
-fn = fullfile(current_dir, 'DZ_CASE_2P.DATA');
-
+fn = fullfile(current_dir, 'SURFACTANT1D.DATA');
 gravity off
 
 deck = readEclipseDeck(fn);
@@ -43,7 +41,6 @@ rock  = compressRock(rock, G.cells.indexMap);
 %
 
 nc = G.cells.num;
-% state0 = initResSol(G, 300*barsa, [ .2, .8]); % residual water saturation is 0.2
 state0 = initResSol(G, 280*barsa, [ .2, .8]); % residual water saturation is 0.2
 state0.cs    = zeros(G.cells.num, 1);
 state0.csmax = state0.cs;
@@ -57,7 +54,7 @@ state0.csmax = state0.cs;
 
 model = OilWaterSurfactantModel(G, rock, fluid, ...
                                                   'inputdata', deck, ...
-                                                  'extraStateOutput', true);
+                                                  'extraStateOutput', true);                                      
 
 %% Convert the deck schedule into a MRST schedule by parsing the wells
 %
@@ -83,8 +80,17 @@ example_name = '1D';
 [wellSolsSurfactant, statesSurfactant] = simulateScheduleAD(state0, model, ...
                                                   schedule);
 
+scheduleOW = schedule;
+scheduleOW.control(2).W(1).cs = 0;
+scheduleOW.control(2).W(2).cs = 0;
+                                              
+[wellSolsOW, statesOW] = simulateScheduleAD(state0, model, ...
+                                                  scheduleOW);
+
 figure()
 plotToolbar(G, statesSurfactant, 'startplayback', true, 'plot1d', true, 'field', 's:1');
+
+plotWellSols({wellSolsSurfactant,wellSolsOW},cumsum(schedule.step.val));
 
 %% Copyright notice
 

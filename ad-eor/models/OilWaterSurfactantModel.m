@@ -191,20 +191,21 @@ classdef OilWaterSurfactantModel < TwoPhaseOilWaterModel
                 %
                 assert(model.water, 'Surfactant injection requires a water phase.');
                 f = model.fluid;
-                if well.isInjector()
-                    concWell = model.getProp(well.W, 'surfactant');
-                else
-                    pix = strcmpi(model.getComponentNames(), 'surfactant');
-                    concWell = packed.components{pix};
-                end
-                qwsft = packed.extravars{strcmpi(packed.extravars_names, 'qwsft')};
+                
                 % Water is always first
                 wix = 1;
                 cqWs = qMass{wix}./f.rhoWS; % get volume rate, at
                                             % surface condition.
-                cqS = concWell.*cqWs;
-
-                compEqs{end+1} = qwsft - sum(cqWs);
+                if well.isInjector()
+                    concWell = model.getProp(well.W, 'surfactant');
+                    cqS = concWell.*cqWs;
+                else
+                    pix = strcmpi(model.getComponentNames(), 'surfactant');
+                    concWell = packed.components{pix};
+                    cqS = concWell.*cqWs;
+                end
+                qwsft = packed.extravars{strcmpi(packed.extravars_names, 'qwsft')};
+                compEqs{end+1} = qwsft - sum(concWell.*cqWs);
                 compSrc{end+1} = cqS;
                 compNames{end+1} = 'surfactantWells';
             end

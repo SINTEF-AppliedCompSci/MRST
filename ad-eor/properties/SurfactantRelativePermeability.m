@@ -62,7 +62,7 @@ classdef SurfactantRelativePermeability < BaseRelativePermeability
             sW_Sft  = (1 - sWcon_Sft - sOres_Sft).*sNcWEff + sWcon_Sft;
             sO_Sft  = (1 - sWcon_Sft - sOres_Sft).*sNcOEff + sOres_Sft;
             % Compute rel perm - with surfactant
-            krW_Sft = prop.zeroSurf.evaluateFunctionOnDomainWithArguments(fluid.krW, sW_Sft);
+            krW_Sft = prop.fullSurf.evaluateFunctionOnDomainWithArguments(fluid.krW, sW_Sft);
             if isfield(fluid, 'krO')
                 krO_Sft = prop.fullSurf.evaluateFunctionOnDomainWithArguments(fluid.krO, ...
                                                                sO_Sft);

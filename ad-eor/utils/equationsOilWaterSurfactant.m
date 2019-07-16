@@ -119,6 +119,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     [b0, pv0]             = model.getProps(state0, 'ShrinkageFactors', 'PoreVolume');
     [phaseFlux, flags]    = model.getProps(state, 'PhaseFlux', 'PhaseUpwindFlag');
     [pressures, mob, rho] = model.getProps(state, 'PhasePressures', 'Mobility', 'Density');
+    [kr] = model.getProps(state, 'RelativePermeability');
+    state.RelativePermeability = kr;
+    
+    if isfield(fluid, 'pvMultR')
+        pvMult =  fluid.pvMultR(p);
+        pvMult0 = fluid.pvMultR(p0);
+    end
+    pv = pv.*pvMult;
+    pv0 = pv0.*pvMult0;
 
     [bW, bO]     = deal(b{:});
     [bW0, bO0]   = deal(b0{:});
@@ -150,12 +159,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % Conservation of surfactant in water:
     vSft   = op.faceUpstr(upcw, c).*vW;
     bWvSft = op.faceUpstr(upcw, bW).*vSft;
-    surfactant    = (1/dt).*((pv.*bW.*sW.*c - pv0.*bW0.*sW0.*c0)) + (op.pv/dt).*ads_term;
+    surfactant    = (1/dt).*(pv.*bW.*sW.*c - pv0.*bW0.*sW0.*c0) + (op.pv/dt).*ads_term;
     divSurfactant = op.Div(bWvSft);
     surfactant = surfactant + divSurfactant;
     
     if model.extraStateOutput
         sigma = fluid.ift(c);
+        CapillaryNumber = Nc;
     end
 
     eqs      = {water   , oil   , surfactant};
