@@ -67,6 +67,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                      cumsum([0; reshape(deck.GRID.DZV, [], 1)]), ...
                      'depthz', depthz);
 
+      if isfield(deck.GRID, 'ACTNUM')
+         G = extractSubgrid(G, deck.GRID.ACTNUM > 0);
+      end
 
    % -- Curvilinear logically Cartesian grid ------------------------------
    % -- FrontSim ----------------------------------------------------------
@@ -120,6 +123,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                      cumsum([0; reshape(dyv, [], 1)]), ...
                      cumsum([0; reshape(dzv, [], 1)]), ...
                      'depthz', depthz);
+
+      if isfield(deck.GRID, 'ACTNUM')
+         G = extractSubgrid(G, deck.GRID.ACTNUM > 0);
+      end
+
    else
       error('Grid not implemented')
    end
