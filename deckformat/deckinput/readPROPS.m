@@ -199,6 +199,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             data     = readDefaultedKW(fid, tmpl, 'NRec', ntpvt);
             prp.(kw) = to_double(data);   clear tmpl
 
+         case 'STCOND'
+             tmpl = {'NaN', 'NaN'};
+             prp.(kw) = to_double(readDefaultedKW(fid, tmpl, 'NRec', 1));
+
          case 'SSHIFT'
             prp.(kw) = readVector(fid, kw, inf);
 
@@ -367,10 +371,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             gridBox(defaultBox);
 
             deck = readSOLUTION(fid, dirname, deck);
-
-         case 'STCOND'
-             tmpl = {'NaN', 'NaN'};
-             prp.(kw) = to_double(readDefaultedKW(fid, tmpl, 'NRec', 1));
 
          case 'INCLUDE'
             % Handle 'INCLUDE' (recursion).
