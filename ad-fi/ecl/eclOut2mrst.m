@@ -16,13 +16,11 @@ else
     zcorn  = grid.ZCORN.values;
 end
 
-actNum   = int32(and(anGrid, init.PORV.values > 0));
-
-
+actNum = and(anGrid, init.PORV.values > 0);
 grdecl = struct('cartDims', cartDims, ...
                 'COORD'   , convertFrom(coord, u.length), ...
                 'ZCORN'   , convertFrom(zcorn, u.length), ...
-                'ACTNUM'  , actNum );
+                'ACTNUM'  , int32(actNum));
 try 
     mrstModule add libgeometry mex opm_gridprocessing
     G = mprocessGRDECL(grdecl, 'SplitDisconnected', false);
