@@ -379,6 +379,15 @@ function w = readWelOpen(fid, w)
              data(ix, :) = [];
           end
        end
+
+       if ~isempty(data)
+          pl = ''; if size(data, 1) ~= 1, pl = 's'; end
+          uwells = sprintf('  * %s\n', data{:,1});
+          warning('WELOPEN:Unusued', ...
+                  'Unused WELOPEN Specifications for Well%s\n%s', ...
+                  pl, uwells)
+          data = [];
+       end
    else
        for recNo = 1:size(data, 1)
            well_name = data{recNo, 1};
