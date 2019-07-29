@@ -18,7 +18,7 @@ classdef PhaseInterfacePressureDifferences < StateFunction
             for i = 1:numel(G)
                 G{i} = -pot{i};
                 if ~isempty(pc{i})
-                    G{i} = G{i} + model.operators.Grad(pc{i});
+                    G{i} = G{i} - model.operators.Grad(pc{i});
                 end
             end
         end
