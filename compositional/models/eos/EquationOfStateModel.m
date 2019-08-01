@@ -207,6 +207,8 @@ classdef EquationOfStateModel < PhysicalModel
                 initSingle = ~twoPhase;
                 stable = initSingle;
                 [stable(initSingle), x0(initSingle, :), y0(initSingle, :)] = model.performPhaseStabilityTest(state.pressure(initSingle), state.T(initSingle), state.components(initSingle, :), state.K(initSingle, :));
+                updatedSingle = initSingle & ~stable;
+                K0(updatedSingle, :) = y0(updatedSingle, :)./x0(updatedSingle, :);
                 acf = model.fluid.acentricFactors;
                 [Si_L, Si_V, A_L, A_V, B_L, B_V, Bi] = model.getMixtureFugacityCoefficients(P, T, x0, y0, acf);
                 % Solve EOS for each phase
@@ -291,13 +293,8 @@ classdef EquationOfStateModel < PhysicalModel
             % Vapor component fraction
             y = model.computeVapor(L, K, z);
             [Z_L, Z_V, f_L, f_V] = model.getCompressibilityAndFugacity(P, T, x, y, z, [], []);
-            
-            % Pure liquid / pure vapor is converged
-            ok = L == 1 | L == 0;
             % Compute fugacity ratios
             f_r = bsxfun(@times, sx, f_L./f_V);
-            f_r(ok, :) = 1;
-            f_r(z == 0) = 1;
             % Update equilibrium constant estimates based on fugacity ratio
             values = abs(f_r - 1);
             K = max(K.*abs(f_r), 1e-12);
@@ -329,7 +326,12 @@ classdef EquationOfStateModel < PhysicalModel
             end
 
             if ~isfield(state, 'K')
-                state.K = estimateEquilibriumWilson(model, state.pressure, state.T);
+                if isfield(state, 'x') && isfield(state, 'y')
+                    K = state.y./state.x;
+                else
+                    K = estimateEquilibriumWilson(model, state.pressure, state.T);
+                end
+                state.K = K;
             end
             
             if ~isfield(state, 'Z_V')
