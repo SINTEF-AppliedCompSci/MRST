@@ -50,7 +50,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     z = expandMatrixToCell(z);
     
     [xAD, yAD] = deal(cell(1, ncomp));
-    [xAD{:}, yAD{:}, L_ad] = initVariablesADI(x{:}, y{:}, L);
+    [xAD{:}, yAD{:}, L_ad] = model.AutoDiffBackend.initVariablesAD(x{:}, y{:}, L);
     [eqs, f_L, f_V, Z_L, Z_V] = model.equationsEquilibrium(P, T, xAD, yAD, z, L_ad, [], []);
 
     eq = combineEquations(eqs{:});
