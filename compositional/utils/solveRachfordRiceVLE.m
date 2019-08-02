@@ -12,14 +12,21 @@ function L = solveRachfordRiceVLE(L, K, z, varargin)
         warning('off','MATLAB:nearlySingularMatrix')
         warning('off','MATLAB:singularMatrix')
     end
-    K(~isfinite(K)) = 1e6;
+    % Ensure minimum value - equations degenerate when any component = 0.
+    z = max(z, opt.min_z);
+    % Lowest bound for solution
     V_min = 1./(1 - max(K, [], 2));
+    % Largest bound for solution
     V_max = 1./(1 - min(K, [], 2));
     if isempty(L)
+        % Initial guess is the middle of the interval
         V = (V_min + V_max)/2;
     else
         V = 1 - L;
     end
+    sz = [size(V, 1), size(K, 1), size(z, 1)];
+    assert(all(sz == max(sz)), ...
+        'K, L (if not empty) and z inputs must all have equal number of rows.');
     n_V = numel(V);
     V_final = V;
     active = true(n_V, 1);
@@ -35,7 +42,6 @@ function L = solveRachfordRiceVLE(L, K, z, varargin)
         % Converged values do not need to be updated
         convResidual = vNorm < opt.tolerance;
         dV = ~convResidual.*dV;
-        % dL = sign(dL).*min(abs(dL), 0.2);
         V = double(V) + dV;
         dLNorm = abs(V - V0);
 
@@ -49,7 +55,8 @@ function L = solveRachfordRiceVLE(L, K, z, varargin)
             % switch to a bisection, which is unconditionally convergent in
             % this internal (the objective function is monotone between the
             % singularities)
-            V(bad) = bisection(V_max(bad), V_min(bad), K_local(bad, :), z_local(bad, :), opt);
+            V(bad) = bisection(V_max(bad), V_min(bad), K_local(bad, :),...
+                               z_local(bad, :), opt);
             conv(bad) = true;
         end
         V = max(V, V_min);
@@ -80,7 +87,7 @@ function L = solveRachfordRiceVLE(L, K, z, varargin)
 end
 
 function V = bisection(V_max0, V_min0, K, z, opt)
-    fn = @(V) sum(((K - 1).*z)./(1 + V.*(K - 1)).*(z>opt.min_z), 2);
+    fn = @(V) sum(((K - 1).*z)./(1 + V.*(K - 1)), 2);
     left0 = fn(V_min0);
     right0 = fn(V_max0);
     [left, right, V_max, V_min] = deal(left0, right0, V_max0, V_min0);
@@ -118,9 +125,7 @@ function [dV, r] = getIncrement(V, K, z, opt)
         for i = 1:ncomp
             Ki = K(:, i);
             zi = z(:, i);
-            v = ((Ki - 1).*zi)./(1 + V.*(Ki - 1));
-            present = zi > opt.min_z;
-            eq = eq + v.*present;
+            eq = eq + ((Ki - 1).*zi)./(1 + V.*(Ki - 1));
         end                
 
         r = value(eq);
@@ -135,9 +140,8 @@ function [dV, r] = getIncrement(V, K, z, opt)
         % Manual jacobian, faster
         if 1
             % Vectorized version
-            present = z > opt.min_z;
-            enum = sum(present.*(z.*(K - 1))./(1 + V.*(K-1)), 2);
-            denom = sum(present.*(z.*(K - 1).^2)./(1 + V.*(K-1)).^2, 2);
+            enum = sum((z.*(K - 1))./(1 + V.*(K-1)), 2);
+            denom = sum((z.*(K - 1).^2)./(1 + V.*(K-1)).^2, 2);
         else
             ncomp = size(K, 2);
             % Partially vectorized version 
@@ -146,10 +150,8 @@ function [dV, r] = getIncrement(V, K, z, opt)
             for i = 1:ncomp
                 Ki = K(:, i);
                 zi = z(:, i);
-                present = zi > opt.min_z;
-
-                enum = enum + present.*(zi.*(Ki - 1))./(1 + V.*(Ki-1));
-                denom = denom + present.*(zi.*(Ki - 1).^2)./(1 + V.*(Ki-1)).^2;
+                enum = enum + (zi.*(Ki - 1))./(1 + V.*(Ki-1));
+                denom = denom + (zi.*(Ki - 1).^2)./(1 + V.*(Ki-1)).^2;
             end
         end
         dV = enum./denom;
