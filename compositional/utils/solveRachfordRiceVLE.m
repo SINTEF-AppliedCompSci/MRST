@@ -29,7 +29,7 @@ function L = solveRachfordRiceVLE(L, K, z, varargin)
         K_local = K(active, :);
         z_local = z(active, :);
         
-        [dV, r] = getIncrement(L, K_local, z_local, opt);
+        [dV, r] = getIncrement(V, K_local, z_local, opt);
 
         vNorm = abs(r);
         % Converged values do not need to be updated
