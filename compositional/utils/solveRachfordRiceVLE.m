@@ -13,11 +13,8 @@ function L = solveRachfordRiceVLE(L, K, z, varargin)
     maxit = 100;
     K(~isfinite(K)) = 1e6;
     
-    singularities = 1./(1 - K);
-    singularities = min(max(singularities, 0), 1);
-    
-    L_min = min(singularities, [], 2);
-    L_max = max(singularities, [], 2);
+    L_min = 1./(1 - max(K, [], 2));
+    L_max = 1./(1 - min(K, [], 2));
     if isempty(L)
         L = (L_min + L_max)/2;
     end
@@ -46,7 +43,10 @@ function L = solveRachfordRiceVLE(L, K, z, varargin)
 
         bad = (L < L_min | L > L_max);
         if any(bad)
-            % Perform bisection
+            % We are outside the bounds. Newton's method has failed. We
+            % switch to a bisection, which is unconditionally convergent in
+            % this internal (the objective function is monotone between the
+            % singularities)
             L(bad) = bisection(L_max(bad), L_min(bad), K_local(bad, :), z_local(bad, :), opt);
             conv(bad) = true;
         end
@@ -59,8 +59,6 @@ function L = solveRachfordRiceVLE(L, K, z, varargin)
         end
         update = false(n_L, 1);
         update(active) = conv;
-
-
         L_final(update) = L(conv);
         active(update) = false;
         L = L(~conv);
@@ -71,7 +69,7 @@ function L = solveRachfordRiceVLE(L, K, z, varargin)
             break
         end
     end
-    L = L_final;
+    L = min(max(L_final, 0), 1);
     warning(tmp1.state,'MATLAB:nearlySingularMatrix')
     warning(tmp2.state,'MATLAB:singularMatrix')
 end

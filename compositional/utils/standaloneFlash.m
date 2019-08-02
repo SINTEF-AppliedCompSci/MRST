@@ -38,6 +38,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     state = struct();
 
+    z = max(z, EOSModel.minimumComposition);
+    z = bsxfun(@rdivide, z, sum(z, 2));
     state.pressure = p;
     state.T = T;
     state.components = z;

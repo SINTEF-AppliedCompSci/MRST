@@ -217,7 +217,6 @@ classdef EquationOfStateModel < PhysicalModel
                 L0 = model.solveRachfordRice(L0, K0, z);
                 L0(stable & L0 >  0.5) = 1;
                 L0(stable & L0 <= 0.5) = 0;
-                % L0 = model.estimateSinglePhaseState(state.pressure, state.T, state.components, L0, stable);
                 active = ~stable;
             else
                 Z0_L = state.Z_L;
@@ -229,9 +228,10 @@ classdef EquationOfStateModel < PhysicalModel
             
             if any(active)
                 state.eos.itCount(active) = state.eos.itCount(active) + 1;
+                K_init = K0(active, :);
+                K = K_init;
                 L = L0(active);
                 z = z(active, :);
-                K = K0(active, :);
                 P = P(active);
                 T = T(active);
 
@@ -242,15 +242,18 @@ classdef EquationOfStateModel < PhysicalModel
                     % Successive substitution solver for equilibrium
                     [x, y, K, Z_L, Z_V, L, equilvals] = model.substitutionCompositionUpdate(P, T, z, K, L);
                 end
-
+                singlePhase = L == 0 | L == 1;
+                % Single phase cells are converged
+                equilvals(singlePhase, :) = 0;
                 values = max(equilvals, [], 1);
-                valconv = values <= model.nonlinearTolerance;
                 conv = max(equilvals, [], 2) <= model.nonlinearTolerance;
                 conv = conv & iteration > nonlinsolve.minIterations;
                 resConv = values <= model.nonlinearTolerance & iteration > nonlinsolve.minIterations;
                 % Insert back the local values into global arrays
                 state.eos.converged(active) = conv;
                 % Insert updated values in active cells
+                % Just single-phase state
+                K(singlePhase, :) = K_init(singlePhase, :);
                 L0(active) = L;
 
                 Z0_L(active) = Z_L;
@@ -259,7 +262,6 @@ classdef EquationOfStateModel < PhysicalModel
                 x0(active, :) = x;
                 y0(active, :) = y;
             else
-                valconv = true(1, ncomp);
                 values = zeros(1, ncomp);
                 resConv = true(1, ncomp);
             end
@@ -272,14 +274,14 @@ classdef EquationOfStateModel < PhysicalModel
 
             failure = false;
             failureMsg = '';
-            
+            values_converged = values <= model.nonlinearTolerance;
             if model.verbose
-                printConvergenceReport(model.fluid.names, values, valconv, iteration);
+                printConvergenceReport(model.fluid.names, values, values_converged, iteration);
             end
             report = model.makeStepReport(...
                             'Failure',      failure, ...
                             'FailureMsg',   failureMsg, ...
-                            'Converged',    all(valconv), ...
+                            'Converged',    all(values_converged), ...
                             'ResidualsConverged', resConv, ...
                             'Residuals',    values);
             report.ActiveCells = sum(active);
