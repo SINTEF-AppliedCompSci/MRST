@@ -203,9 +203,17 @@ classdef EquationOfStateModel < PhysicalModel
             if iteration == 1
                 x0 = state.x;
                 y0 = state.y;
-                [~, ~, twoPhase] = model.getFlag(state);
+                % Cells which are two-phase can be flashed directly. For
+                % single-phase cells, we perform a stability test in order
+                % to check if the single-phase state is still stable.
+                twoPhase = model.getTwoPhaseFlag(state);
+                % NaN means that L was not initialized. We then start with
+                % a phase stability test to get good estimates for the
+                % K-values.
+                twoPhase(isnan(L0)) = false;
                 initSingle = ~twoPhase;
                 stable = initSingle;
+                % Call stability test.
                 [stable(initSingle), x0(initSingle, :), y0(initSingle, :)] = model.performPhaseStabilityTest(state.pressure(initSingle), state.T(initSingle), state.components(initSingle, :), state.K(initSingle, :));
                 updatedSingle = initSingle & ~stable;
                 K0(updatedSingle, :) = y0(updatedSingle, :)./x0(updatedSingle, :);
@@ -323,8 +331,10 @@ classdef EquationOfStateModel < PhysicalModel
         function state = validateState(model, state)
             n_cell = size(state.pressure, 1);
             if ~isfield(state, 'L') 
-                % Initial guess of 0.5
-                state.L = repmat(0.5, n_cell, 1);
+                % Add empty L to indicate that we do not know. The flash
+                % routine will then perform the stability test for all
+                % cells.
+                state.L = nan(n_cell, 1);
             end
 
             if ~isfield(state, 'K')

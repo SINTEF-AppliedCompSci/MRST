@@ -23,6 +23,11 @@ function L = solveRachfordRiceVLE(L, K, z, varargin)
         V = (V_min + V_max)/2;
     else
         V = 1 - L;
+        bad_init = isnan(V);
+        if any(bad_init)
+            % NaN means that we do not know. Initialize to midpoint.
+            V(bad_init) = (V_min(bad_init) + V_max(bad_init))/2;
+        end
     end
     sz = [size(V, 1), size(K, 1), size(z, 1)];
     assert(all(sz == max(sz)), ...
