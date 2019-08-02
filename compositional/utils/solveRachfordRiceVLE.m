@@ -3,13 +3,15 @@ function L = solveRachfordRiceVLE(L, K, z, varargin)
 % distribution.
     opt = struct('tolerance', 1e-12, ...
                  'min_z', 1e-10,...
+                 'useAD', false, ...
                  'maxIterations', 1000);
     opt = merge_options(opt, varargin{:});
-    tmp1 = warning('query','MATLAB:nearlySingularMatrix');
-    tmp2 = warning('query','MATLAB:singularMatrix');
-    warning('off','MATLAB:nearlySingularMatrix')
-    warning('off','MATLAB:singularMatrix')
-
+    if opt.useAD
+        tmp1 = warning('query','MATLAB:nearlySingularMatrix');
+        tmp2 = warning('query','MATLAB:singularMatrix');
+        warning('off','MATLAB:nearlySingularMatrix')
+        warning('off','MATLAB:singularMatrix')
+    end
     K(~isfinite(K)) = 1e6;
     V_min = 1./(1 - max(K, [], 2));
     V_max = 1./(1 - min(K, [], 2));
@@ -54,7 +56,7 @@ function L = solveRachfordRiceVLE(L, K, z, varargin)
         V = min(V, V_max);
 
         if it == opt.maxIterations
-            disp('Reached max iterations in Rachford rice')
+            warning('Reached max iterations in Rachford-Rice VLE calculation.')
             conv = conv | true;
         end
         update = false(n_V, 1);
@@ -71,8 +73,10 @@ function L = solveRachfordRiceVLE(L, K, z, varargin)
     end
     V = min(max(V_final, 0), 1);
     L = 1 - V;
-    warning(tmp1.state,'MATLAB:nearlySingularMatrix')
-    warning(tmp2.state,'MATLAB:singularMatrix')
+    if opt.useAD
+        warning(tmp1.state,'MATLAB:nearlySingularMatrix')
+        warning(tmp2.state,'MATLAB:singularMatrix')
+    end
 end
 
 function V = bisection(V_max0, V_min0, K, z, opt)
@@ -105,10 +109,11 @@ end
 
 
 function [dV, r] = getIncrement(V, K, z, opt)
-    ncomp = size(K, 2);
-    if 0
+    if opt.useAD
+        ncomp = size(K, 2);
         % Old AD version
-        V = initVariablesADI(V);
+        % V = initVariablesADI(V);
+        V = initVariablesAD_diagonal(V);
         eq = 0;
         for i = 1:ncomp
             Ki = K(:, i);
@@ -118,24 +123,34 @@ function [dV, r] = getIncrement(V, K, z, opt)
             eq = eq + v.*present;
         end                
 
-        r = double(eq);
+        r = value(eq);
         if isa(eq, 'ADI')
-            J = -eq.jac{1};
-            dV = mldivide(J, r);
+            dV = -r./eq.jac{1}.diagonal;
+            % J = -eq.jac{1};
+            % dV = mldivide(J, r);
         else
             dV = 0*r;
         end
     else
         % Manual jacobian, faster
-        enum = 0;
-        denom = 0;
-        for i = 1:ncomp
-            Ki = K(:, i);
-            zi = z(:, i);
-            present = zi > opt.min_z;
+        if 1
+            % Vectorized version
+            present = z > opt.min_z;
+            enum = sum(present.*(z.*(K - 1))./(1 + V.*(K-1)), 2);
+            denom = sum(present.*(z.*(K - 1).^2)./(1 + V.*(K-1)).^2, 2);
+        else
+            ncomp = size(K, 2);
+            % Partially vectorized version 
+            enum = 0;
+            denom = 0;
+            for i = 1:ncomp
+                Ki = K(:, i);
+                zi = z(:, i);
+                present = zi > opt.min_z;
 
-            enum = enum + present.*(zi.*(Ki - 1))./(1 + V.*(Ki-1));
-            denom = denom + present.*(zi.*(Ki - 1).^2)./(1 + V.*(Ki-1)).^2;
+                enum = enum + present.*(zi.*(Ki - 1))./(1 + V.*(Ki-1));
+                denom = denom + present.*(zi.*(Ki - 1).^2)./(1 + V.*(Ki-1)).^2;
+            end
         end
         dV = enum./denom;
         r = enum;
