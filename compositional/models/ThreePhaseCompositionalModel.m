@@ -75,20 +75,27 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
         end
         
         function scaling = getComponentScaling(model, state)
-            wL = state.s(:, 1+model.water);
-            wV = state.s(:, 2+model.water);
+            oix = model.getPhaseIndex('O');
+            gix = model.getPhaseIndex('G');
+            wL = state.s(:, oix);
+            wV = state.s(:, gix);
             wT = wL + wV;
 
             wL = wL./wT;
             wV = wV./wT;
             
-            if isfield(state, 'rho')
-                rhoO = state.rho(:, 1+model.water);
-                rhoG = state.rho(:, 2+model.water);
+            if isa(model, 'ExtendedReservoirModel')
+                rho = model.getProp(state, 'Density');
+                rho = value(rho);
+            elseif isfield(state, 'rho')
+                rho = state.rho;
             else
-                rhoO = model.fluid.rhoOS;
-                rhoG = model.fluid.rhoGS;
+                rho = model.getSurfaceDensities();
+                % Take first region
+                rho = rho(1, :);
             end
+            rhoO = rho(:, oix);
+            rhoG = rho(:, gix);
             wL(wT == 0) = state.L(wT == 0);
             wV(wT == 0) = 1 - state.L(wT == 0);
 

@@ -17,12 +17,12 @@ function cfl = estimateCompositionCFL(model, state, dt, varargin)
     oix = 1+model.water;
     gix = oix+1;
     
-    q = state.componentFluxes(internal, :);
-    so = state.s(:, oix);
-    sg = state.s(:, gix);
+    model = model.validateModel();
+    [q, so, sg, rho] = model.getProps(state, 'ComponentTotalFlux', 'sO', 'sG', 'Density');
+    q = value(reshape(q, 1, []));
     
-    rhoo = state.rho(:, oix);
-    rhog = state.rho(:, gix);
+    rhoo = rho{oix};
+    rhog = rho{gix};
     
     X = model.EOSModel.getMassFraction(state.x);
     Y = model.EOSModel.getMassFraction(state.y);
