@@ -157,9 +157,10 @@ classdef OverallCompositionCompositionalModel < ThreePhaseCompositionalModel
             dispif(model.verbose > 1, '%d gas, %d oil, %d two-phase\n', nnz(state.L == 0), nnz(state.L == 1), nnz(twoPhase));
             state.switchCount = state.switchCount + double(switched);
             
-            state.components = ensureMinimumFraction(state.components);
-            state.x = ensureMinimumFraction(state.x);
-            state.y = ensureMinimumFraction(state.y);
+            minz = model.EOSModel.minimumComposition;
+            state.components = ensureMinimumFraction(state.components, minz);
+            state.x = ensureMinimumFraction(state.x, minz);
+            state.y = ensureMinimumFraction(state.y, minz);
         end
     end
 end

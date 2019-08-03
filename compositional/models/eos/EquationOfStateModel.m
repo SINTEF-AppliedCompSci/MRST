@@ -264,8 +264,8 @@ classdef EquationOfStateModel < PhysicalModel
                 K(singlePhase, :) = K_init(singlePhase, :);
                 L0(active) = L;
 
-                Z0_L(active) = Z_L;
-                Z0_V(active) = Z_V;
+                Z0_L(active) = value(Z_L);
+                Z0_V(active) = value(Z_V);
                 K0(active, :) = K;
                 x0(active, :) = x;
                 y0(active, :) = y;
@@ -713,8 +713,8 @@ classdef EquationOfStateModel < PhysicalModel
             end
         end
         
-        function L = solveRachfordRice(model, L, K, z) %#ok
-            L = solveRachfordRiceVLE(L, K, z);
+        function L = solveRachfordRice(model, L, K, z)
+            L = solveRachfordRiceVLE(L, K, z, 'min_z', model.minimumComposition);
         end
 
         function y = computeVapor(model, L, K, z)

@@ -93,7 +93,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         x{i}(pure) = z{i}(pure);
         y{i}(pure) = z{i}(pure);
         
-        f_r{i} = double(f_L{i})./double(f_V{i});
+        f_r{i} = value(f_L{i})./value(f_V{i});
         f_r{i}(pure | zmissing) = 1;
         
         K{i} = y{i}./x{i};
