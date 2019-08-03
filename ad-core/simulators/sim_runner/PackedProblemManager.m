@@ -10,12 +10,12 @@ classdef PackedProblemManager < handle
     end
     
     properties (Access = protected)
-        packedProblems = {};
-        ncomplete = [];
-        nsteps = [];
-        problem_is_executing = [];
-        N
-        handle = struct('figure', [], 'text', []);
+        packedProblems = {}; % Cell array of packed problems
+        ncomplete = []; % Number of completed step
+        nsteps = []; % Number of timesteps in schedule
+        problem_is_executing = []; % Indicator if active
+        N % Number of problems
+        handle = struct('figure', [], 'text', [], 'iteration', 0); % Handle for monitorProgress
     end
     
     methods
@@ -38,7 +38,9 @@ classdef PackedProblemManager < handle
         end
         % --- Simulator gateways
         function simulateProblemsBatch(ppm, index)
-            ppm.handle = struct('figure', [], 'text', []);
+            % Simulate a number of problems in the background (index
+            % optional)
+            ppm.handle = struct('figure', [], 'text', [], 'iteration', 0);
             if nargin == 1
                 index = ':';
             end
@@ -57,6 +59,7 @@ classdef PackedProblemManager < handle
         end
         
         function monitorProgress(ppm, single_update, index)
+            % Show progress indicator for background simulation of problems
             problems = ppm.packedProblems;
             if nargin > 2
                 problems = ppm.packedProblems(index);
@@ -76,6 +79,9 @@ classdef PackedProblemManager < handle
         end
         
         function [launched, done] = launchBatchSimulations(ppm, index)
+            % For a given index set, try to launch background simulations.
+            % Will only launch simulators within capacity dictated by
+            % maxSimultaneousSimulations property
             if nargin == 1 || ischar(index)
                 index = (1:ppm.N)';
             end
@@ -91,7 +97,7 @@ classdef PackedProblemManager < handle
                 candidates = index(~done & ~ppm.problem_is_executing(index));
                 next = candidates(1:min(capacity, numel(candidates)));
                 for i = 1:numel(next)
-                    ppm.launchBatchSimulation(next(i));
+                    ppm.launchBatchSimulationNoCapacityCheck(next(i));
                 end
             else
                 next = [];
@@ -99,7 +105,9 @@ classdef PackedProblemManager < handle
             launched = next;
         end
         
-        function launchBatchSimulation(ppm, index)
+        function launchBatchSimulationNoCapacityCheck(ppm, index)
+            % Launch a single simulation in the background (no check for
+            % capacity! Use launchBatchSimulations for capacity check)
             if islogical(index)
                 index = find(index);
             end
@@ -116,16 +124,20 @@ classdef PackedProblemManager < handle
         end
         
         function n = getNumberOfRunningSimulations(ppm)
+            % Get the number of current running simulations
             ppm.updateNumberOfRunningSimulations();
             n = sum(ppm.problem_is_executing);
         end
         
         function updateNumberOfRunningSimulations(ppm)
+            % Update the currently running simulations (include checking if
+            % the currently running simulations have completed)
             n = ppm.getNumberOfCompleteSteps(true);
             ppm.problem_is_executing = ppm.problem_is_executing & ~(n >= ppm.nsteps);
         end
         
         function simulateProblem(ppm, varargin)
+            % Simulate a problem (directly in current session)
             if mod(nargin - 1, 2) == 1
                 index = varargin{1};
                 varargin = varargin(2:end);
@@ -136,6 +148,8 @@ classdef PackedProblemManager < handle
         end
 
         function simulateProblemBackground(ppm, varargin)
+            % Simulate a problem in background (without interacting with
+            % the capacity of the manager at all)
             if mod(nargin - 1, 2) == 1
                 index = varargin{1};
                 varargin = varargin(2:end);
@@ -167,6 +181,13 @@ classdef PackedProblemManager < handle
 
         function updateNumberOfCompletedSteps(ppm)
             ppm.ncomplete = ppm.problemfun(@(x) numelData(x.OutputHandlers.states));
+        end
+        
+        function problems = getPackedProblems(ppm, index)
+            problems = ppm.packedProblems;
+            if nargin > 1
+                problems = problems(index);
+            end
         end
     end
 end

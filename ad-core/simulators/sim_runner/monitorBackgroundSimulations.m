@@ -36,7 +36,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
     opt = struct('pause', 0.25, 'useFigure', [], ...
-                 'handle', struct('figure', [], 'text', []),...
+                 'handle', struct('figure', [], 'text', [], 'iteration', 0),...
                  'singleUpdate', false);
     opt = merge_options(opt, varargin{:});
     if ~iscell(problems)
@@ -58,14 +58,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if ~opt.useFigure
         fprintf('\n');
         if ~isempty(h.text)
-            dispstr = [h.text, '\n'];
+            dispstr = h.text;
         end
     end
-    
-    
     height = 0.9/np;
     descriptions = cellfun(@getDescription, problems, 'UniformOutput', false);
     while simulating
+        h.iteration = h.iteration + 1;
         n_prev = numel(dispstr);
         dispstr = '';
         if opt.useFigure
@@ -79,8 +78,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             if opt.useFigure
                 simpleUIbar(h.figure, num/n, (i-1)*height, height, descr)
             else
-                nextstr = sprintf('%d) %s\n-> %d of %d steps simulated (%2.2f%% done).', ...
-                                  i, descr, num, n, 100*num/n);
+                bar_width = 50;
+                low = floor(bar_width*num/n);
+                if n == num
+                    mystr = 'Complete!';
+                elseif num > 0
+                    mystr = sprintf('%1.2f%% %s', 100*num/n, getSpinner(h.iteration));
+                else
+                    mystr = 'Not started.';
+                end
+                pbar = [repmat('#', 1, low), repmat(' ', 1, bar_width - low)];
+                nextstr = sprintf('%3d) %s\n    -> %3d of %3d steps simulated [%s] %s', ...
+                                  i, descr, num, n, pbar, mystr);
                if i == 1
                    dispstr = nextstr;
                else
@@ -114,4 +123,18 @@ function descr = getDescription(p)
     else
         descr = [p.Name, ': ', p.Description];
     end
+end
+
+function s = getSpinner(it)
+    switch mod(it, 4)
+        case 0
+            v = '|';
+        case 1
+            v = '/';
+        case 2
+            v = '-';
+        case 3
+            v = '\';
+    end
+    s = sprintf('[%s]', v);
 end
