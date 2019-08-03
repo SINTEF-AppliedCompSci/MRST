@@ -69,14 +69,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if numel(varargin)
         opt = merge_options(opt, varargin{:});
     end
+    mc = eos.minimumComposition;
     if isempty(K)
         K = estimateEquilibriumWilson(eos, p, T);
     end
+
     S_tol = opt.tol_trivial;
     nc = numel(p);
     active = true(nc, 1);
     
-    z = ensureMinimumFraction(z);
+    z = ensureMinimumFraction(z, mc);
     [y, S_V, isTrivialV] = checkStability(eos, z, K, p, T, true, active, opt);
     V_stable = S_V <= 1 + S_tol | isTrivialV;
     

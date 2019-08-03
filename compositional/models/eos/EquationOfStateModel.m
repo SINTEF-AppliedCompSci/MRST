@@ -306,6 +306,10 @@ classdef EquationOfStateModel < PhysicalModel
             % Compute fugacity ratios
             f_r = bsxfun(@times, sx, f_L./f_V);
             % Update equilibrium constant estimates based on fugacity ratio
+            mc = model.minimumComposition;
+            % Ignore tiny compositions for the purpose of updating K-values
+            % and estimating convergence.
+            f_r(z <= mc) = 1;
             values = abs(f_r - 1);
             K = max(K.*abs(f_r), 1e-12);
             K(~isfinite(K)) = 1;
