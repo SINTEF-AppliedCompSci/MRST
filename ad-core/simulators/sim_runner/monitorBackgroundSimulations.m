@@ -1,4 +1,4 @@
-function monitorBackgroundSimulations(problems, varargin)
+function h = monitorBackgroundSimulations(problems, varargin)
 % Monitor simulations running in the background or another session
 %
 % SYNOPSIS:
@@ -35,7 +35,9 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    opt = struct('pause', 0.25, 'useFigure', []);
+    opt = struct('pause', 0.25, 'useFigure', [], ...
+                 'handle', struct('figure', [], 'text', []),...
+                 'singleUpdate', false);
     opt = merge_options(opt, varargin{:});
     if ~iscell(problems)
         problems = {problems};
@@ -45,23 +47,29 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     basenames = unique(cellfun(@(x) x.BaseName, problems, 'UniformOutput', false));
     bn = join(basenames, ',');
     fn = sprintf('Simulating: %s', bn{1});
+    h = opt.handle;
     if isempty(opt.useFigure) || opt.useFigure
-        f = figure('Name', fn, 'ToolBar', 'none', 'NumberTitle', 'off', 'MenuBar', 'none');
-        opt.useFigure = isgraphics(f);
+        if isempty(h.figure)
+            h.figure = figure('Name', fn, 'ToolBar', 'none', 'NumberTitle', 'off', 'MenuBar', 'none');
+        end
+        opt.useFigure = isgraphics(h.figure);
     end
     dispstr = '';
     if ~opt.useFigure
         fprintf('\n');
+        if ~isempty(h.text)
+            dispstr = [h.text, '\n'];
+        end
     end
     
     
-    h = 0.9/np;
+    height = 0.9/np;
     descriptions = cellfun(@getDescription, problems, 'UniformOutput', false);
     while simulating
         n_prev = numel(dispstr);
         dispstr = '';
         if opt.useFigure
-            clf(f);
+            clf(h.figure);
         end
         active = false(np, 1);
         for i = 1:np
@@ -69,7 +77,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             [n, num, active(i)] = getStatus(p);
             descr = descriptions{i};
             if opt.useFigure
-                simpleUIbar(f, num/n, (i-1)*h, h, descr)
+                simpleUIbar(h.figure, num/n, (i-1)*height, height, descr)
             else
                 nextstr = sprintf('%d) %s\n-> %d of %d steps simulated (%2.2f%% done).', ...
                                   i, descr, num, n, 100*num/n);
@@ -82,10 +90,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
         simulating = any(active);
         if ~opt.useFigure
-            fprintf(repmat('\b', 1, n_prev+1));
-            disp(dispstr)
+            remstr = sprintf(repmat('\b', 1, n_prev+1));
+            h.text = dispstr;
+            disp([remstr, dispstr])
         end
-        pause(opt.pause);
+        if opt.singleUpdate
+            break
+        else
+            pause(opt.pause);
+        end
     end
 end
 

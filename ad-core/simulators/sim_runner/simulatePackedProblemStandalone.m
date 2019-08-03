@@ -42,7 +42,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     tmp = load(p_path, 'modlist');
     mrstModule('reset', tmp.modlist{:});
     % Now we can load the whole problem
-    tmp = load(p_path, 'problem');
+    tmp = load(p_path, 'problem', 'opt');
+    nthread = tmp.opt.maxNumCompThreads;
+    if isfinite(nthread) && maxNumCompThreads() ~= nthread
+        maxNumCompThreads(nthread);
+    end
     lockpath = fullfile(pth, 'lock.mrst');
     if exist(lockpath, 'dir')
         error('This simulation is already running!')
