@@ -36,6 +36,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
     opt = struct('pause', 0.25, 'useFigure', [], ...
+                 'indices', (1:numel(problems))', ...
                  'handle', struct('figure', [], 'text', [], 'iteration', 0),...
                  'singleUpdate', false);
     opt = merge_options(opt, varargin{:});
@@ -89,7 +90,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 end
                 pbar = [repmat('#', 1, low), repmat(' ', 1, bar_width - low)];
                 nextstr = sprintf('%3d) %s\n    -> %3d of %3d steps simulated [%s] %s', ...
-                                  i, descr, num, n, pbar, mystr);
+                                  opt.indices(i), descr, num, n, pbar, mystr);
                if i == 1
                    dispstr = nextstr;
                else

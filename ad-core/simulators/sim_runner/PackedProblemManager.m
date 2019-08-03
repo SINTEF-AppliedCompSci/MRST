@@ -7,6 +7,7 @@ classdef PackedProblemManager < handle
         verbose = mrstVerbose(); % Verbosity
         displayProgressType % Type of progress update
         delay = 1; % Delay between polling (in seconds)
+        showOnlyActive = []; % Show only active simulations in progress output
     end
     
     properties (Access = protected)
@@ -33,6 +34,9 @@ classdef PackedProblemManager < handle
             end
             ppm.packedProblems = reshape(problems, [], 1);
             ppm.N = numel(problems);
+            if isempty(ppm.showOnlyActive)
+                ppm.showOnlyActive = ppm.N > 20;
+            end
             ppm.nsteps = ppm.problemfun(@(x) numel(x.SimulatorSetup.schedule.step.val));
             ppm.problem_is_executing = false(ppm.N, 1);
         end
@@ -60,19 +64,30 @@ classdef PackedProblemManager < handle
         
         function monitorProgress(ppm, single_update, index)
             % Show progress indicator for background simulation of problems
-            problems = ppm.packedProblems;
-            if nargin > 2
-                problems = ppm.packedProblems(index);
+            if nargin < 3
+                index = ':';
             end
+            problems = ppm.packedProblems(index);
             if nargin == 1
                 single_update = false;
             end
-            
+            indices = (1:ppm.N)';
+            if ppm.showOnlyActive
+                active = ppm.problem_is_executing(index);
+                if ~any(active)
+                    % Display everything, for an overview
+                    active = ':';
+                end
+            else
+                active = ':';
+            end
+            indices = indices(active);
             switch lower(ppm.displayProgressType)
                 case {'graphical', 'text'}
                     useFigure = strcmpi(ppm.displayProgressType, 'graphical');
-                    ppm.handle = monitorBackgroundSimulations(problems, ...
-                        'useFigure', useFigure, 'handle', ppm.handle, 'singleUpdate', single_update);
+                    ppm.handle = monitorBackgroundSimulations(problems(active), ...
+                        'useFigure', useFigure, 'handle', ppm.handle, ...
+                        'singleUpdate', single_update, 'indices', indices);
                 otherwise
 
             end
