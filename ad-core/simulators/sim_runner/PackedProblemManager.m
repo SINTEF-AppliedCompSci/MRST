@@ -83,10 +83,11 @@ classdef PackedProblemManager < handle
             end
             indices = indices(active);
             switch lower(ppm.displayProgressType)
-                case {'graphical', 'text'}
+                case {'graphical', 'text', 'text-scrolling'}
                     useFigure = strcmpi(ppm.displayProgressType, 'graphical');
                     ppm.handle = monitorBackgroundSimulations(problems(active), ...
                         'useFigure', useFigure, 'handle', ppm.handle, ...
+                        'dynamicText', ~strcmpi(ppm.displayProgressType, 'text-scrolling'), ...
                         'singleUpdate', single_update, 'indices', indices);
                 otherwise
 

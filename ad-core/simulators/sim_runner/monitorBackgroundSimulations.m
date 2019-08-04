@@ -37,6 +37,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     opt = struct('pause', 0.25, 'useFigure', [], ...
                  'indices', (1:numel(problems))', ...
+                 'dynamicText', true, ...
                  'handle', struct('figure', [], 'text', [], 'iteration', 0),...
                  'singleUpdate', false);
     opt = merge_options(opt, varargin{:});
@@ -51,7 +52,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     h = opt.handle;
     if isempty(opt.useFigure) || opt.useFigure
         if isempty(h.figure)
-            h.figure = figure('Name', fn, 'ToolBar', 'none', 'NumberTitle', 'off', 'MenuBar', 'none');
+            h.figure = figure('Name', fn, 'ToolBar', 'none',...
+                              'NumberTitle', 'off', 'MenuBar', 'none');
         end
         opt.useFigure = isgraphics(h.figure);
     end
@@ -80,15 +82,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 simpleUIbar(h.figure, num/n, (i-1)*height, height, descr)
             else
                 bar_width = 50;
-                low = floor(bar_width*num/n);
+                perc = min(num/n, 1);
                 if n == num
                     mystr = 'Complete!';
+                elseif num > n
+                    mystr = 'Complete (??)';
                 elseif num > 0
-                    mystr = sprintf('%1.2f%% %s', 100*num/n, getSpinner(h.iteration));
+                    mystr = sprintf('%1.2f%% %s', 100*perc, getSpinner(h.iteration));
                 else
                     mystr = 'Not started.';
                 end
-                pbar = [repmat('#', 1, low), repmat(' ', 1, bar_width - low)];
+                pbar = [repmat('#', 1, ceil(bar_width*perc)), repmat(' ', 1, floor(bar_width*(1-perc)))];
                 nextstr = sprintf('%3d) %s\n    -> %3d of %3d steps simulated [%s] %s', ...
                                   opt.indices(i), descr, num, n, pbar, mystr);
                if i == 1
@@ -100,7 +104,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
         simulating = any(active);
         if ~opt.useFigure
-            remstr = sprintf(repmat('\b', 1, n_prev+1));
+            if opt.dynamicText
+                remstr = sprintf(repmat('\b', 1, n_prev+1));
+            else
+                remstr = '';
+            end
             h.text = dispstr;
             disp([remstr, dispstr])
         end
