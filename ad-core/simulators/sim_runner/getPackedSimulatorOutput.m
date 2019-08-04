@@ -67,6 +67,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     sn = sprintf('%s (%s)', problem.BaseName, problem.Name);
     if nstep == ndata
         fprintf('Found complete data for %s: %d steps present\n', sn, ndata);
+    elseif ndata > nstep
+        warning('Found too much data for %s: %d of %d steps present. Case may have been redefined!\n', sn, ndata, nstep);
     elseif ndata > 0
         fprintf('Found partial data for %s: %d of %d steps present\n', sn, ndata, nstep);
     else
