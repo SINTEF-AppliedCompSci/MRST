@@ -92,11 +92,12 @@ classdef SurfactantRelativePermeability < BaseRelativePermeability
                 sG_noSft  = (1 - sGres_noSft - sOGres_noSft).*sNcGEff + sGres_noSft;
                 sOG_noSft  = (1 - sGres_noSft - sOGres_noSft).*sNcOGEff + sOGres_noSft;
                 
-                krOG_noSft = prop.zeroSurf.evaluateFunctionOnGrid(fluid.krOG, ...
+                krOG_noSft = prop.zeroSurf.evaluateFunctionOnDomainWithArguments(fluid.krOG, ...
                                                               sOG_noSft);
-                krG_noSft = prop.zeroSurf.evaluateFunctionOnGrid(fluid.krG, ...
+                krG_noSft = prop.zeroSurf.evaluateFunctionOnDomainWithArguments(fluid.krG, ...
                                                               sG_noSft);
-                
+                                                          
+                sWcon_noSft = min(sWcon_noSft, value(sW_noSft)-1e-5);
                 d  = (sG_noSft - sGres_noSft + sW_noSft - sWcon_noSft);
                 ww = (sW_noSft - sWcon_noSft)./d;
                 wg = 1 - ww;
@@ -105,11 +106,12 @@ classdef SurfactantRelativePermeability < BaseRelativePermeability
                 sOG_Sft  = (1 - sGres_Sft - sOGres_Sft).*sNcOGEff + sOGres_Sft;
                 sG_Sft  = (1 - sGres_Sft - sOGres_Sft).*sNcGEff + sGres_Sft;
                 
-                krOG_Sft = prop.fullSurf.evaluateFunctionOnGrid(fluid.krOG, ...
+                krOG_Sft = prop.fullSurf.evaluateFunctionOnDomainWithArguments(fluid.krOG, ...
                                                               sOG_Sft);
-                krG_Sft = prop.fullSurf.evaluateFunctionOnGrid(fluid.krG, ...
+                krG_Sft = prop.fullSurf.evaluateFunctionOnDomainWithArguments(fluid.krG, ...
                                                               sG_Sft);
                 
+                sWcon_Sft = min(sWcon_Sft, value(sW_Sft)-1e-5);
                 d  = (sG_Sft - sGres_Sft + sW_Sft - sWcon_Sft);
                 ww = (sW_Sft - sWcon_Sft)./d;
                 wg = 1 - ww;

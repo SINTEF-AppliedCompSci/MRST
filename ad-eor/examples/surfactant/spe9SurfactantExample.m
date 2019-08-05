@@ -44,15 +44,15 @@ model = ThreePhaseBlackOilSurfactantModel(G, rock, fluid, ...
 
 schedule = convertDeckScheduleToMRST(model, deck);
 state0 = initStateDeck(model,deck);
-state0.c    = zeros(G.cells.num, 1);
-state0.cmax = state0.c;
+state0.cs    = zeros(G.cells.num, 1);
+state0.csmax = state0.cs;
 
 %% Visualize some properties of the model we have setup
 %
 % We gathered visualizing command for this tutorial in the following script
 
-example_name = 'spe9';
-vizSurfactantModel;
+% example_name = 'spe9';
+% vizSurfactantModel;
 % close all;
 
 %% Run the schedule

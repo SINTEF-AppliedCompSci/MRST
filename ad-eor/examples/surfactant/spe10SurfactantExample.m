@@ -218,8 +218,8 @@ schedule = refineSchedule(0, day*ones(10, 1), schedule);
 %% Setup the initial state
 %
 state0 = initResSol(G, bhp, [sWcon, 1 - sWcon]);
-state0.c      = zeros(G.cells.num, 1);
-state0.cmax   = state0.c;
+state0.cs      = zeros(G.cells.num, 1);
+state0.csmax   = state0.cs;
 
 %% visualize the model properties
 %

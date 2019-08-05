@@ -173,14 +173,14 @@
     % Upstream weight b factors and multiply by interface fluxes to obtain the
     % fluxes at standard conditions.
 
-    bWvW = s.faceUpstr(upcw, bW).*vW;
-    bOvO = s.faceUpstr(upco, bO).*vO;
-    bGvG = s.faceUpstr(upcg, bG).*vG;
+    bWvW = op.faceUpstr(upcw, bW).*vW;
+    bOvO = op.faceUpstr(upco, bO).*vO;
+    bGvG = op.faceUpstr(upcg, bG).*vG;
     % The first equation is the conservation of the water phase. This equation is
     % straightforward, as water is assumed to remain in the aqua phase in the
     % black oil model.
     water = (1/dt).*(pv.*bW.*sW - pv0.*bW0.*sW0);
-    divWater = s.Div(bWvW);
+    divWater = op.Div(bWvW);
 
     % Second equation: mass conservation equation for the oil phase at surface
     % conditions. This is any liquid oil at reservoir conditions, as well as
@@ -189,33 +189,33 @@
         % The model allows oil to vaporize into the gas phase. The conservation
         % equation for oil must then include the fraction present in the gas
         % phase.
-        rvbGvG = s.faceUpstr(upcg, rv).*bGvG;
+        rvbGvG = op.faceUpstr(upcg, rv).*bGvG;
         % Final equation
         oil = (1/dt).*( pv .*(bO.* sO  + rv.* bG.* sG) - ...
                         pv0.*(bO0.*sO0 + rv0.*bG0.*sG0));
-        divOil = s.Div(bOvO + rvbGvG);
+        divOil = op.Div(bOvO + rvbGvG);
     else
         oil = (1/dt).*(pv.*bO.*sO - pv0.*bO0.*sO0 );
-        divOil = s.Div(bOvO);
+        divOil = op.Div(bOvO);
     end
 
     % Conservation of mass for gas. Again, we have two cases depending on
     % whether the model allows us to dissolve the gas phase into the oil phase.
     if model.disgas
         % The gas transported in the oil phase.
-        rsbOvO = s.faceUpstr(upco, rs).*bOvO;
+        rsbOvO = op.faceUpstr(upco, rs).*bOvO;
         
         gas = (1/dt).*(pv.* (bG.* sG  + rs.* bO.* sO) - ...
                        pv0.*(bG0.*sG0 + rs0.*bO0.*sO0 ));
-        divGas = s.Div(bGvG + rsbOvO);
+        divGas = op.Div(bGvG + rsbOvO);
     else
         gas = (1/dt).*(pv.*bG.*sG - pv0.*bG0.*sG0 );
-        divGas = s.Div(bGvG);
+        divGas = op.Div(bGvG);
     end
 
     % Computation of surfactant flux
-    vSft   = s.faceUpstr(upcw, cs).*vW;
-    bWvSft = s.faceUpstr(upcw, bW).*vSft;
+    vSft   = op.faceUpstr(upcw, cs).*vW;
+    bWvSft = op.faceUpstr(upcw, bW).*vSft;
 
     % Computation of adsoprtion term
     poro = model.rock.poro;
@@ -224,8 +224,8 @@
     ads_term = fluid.rhoRSft.*((1-poro)./poro).*(ads - ads0);
 
     % Conservation of surfactant in water:
-    surfactant = (1/dt).*((pv.*bW.*sW.*cs - pv0.*bW0.*sW0.*cs0)) + (s.pv/dt).*ads_term;
-    divSurfactant = s.Div(bWvSft);
+    surfactant = (1/dt).*((pv.*bW.*sW.*cs - pv0.*bW0.*sW0.*cs0)) + (op.pv/dt).*ads_term;
+    divSurfactant = op.Div(bWvSft);
     
     if ~opt.resOnly
         epsilon = 1.e-8;

@@ -51,14 +51,6 @@ state0 = initStateDeck(model,deck);
 state0.cs    = zeros(G.cells.num, 1);
 state0.csmax = state0.cs;
 
-%% Visualize some properties of the model we have setup
-%
-% We gathered visualizing command for this tutorial in the following script
-
-% example_name = '2D';
-% vizSurfactantModel;
-% close all;
-
 %% Run the schedule and set up the initial state
 %
 % We use the function simulateScheduleAD to run the simulation
@@ -77,41 +69,7 @@ scheduleW.control(2).W(1).cs = 0;
 scheduleW.control(2).W(2).cs = 0;
 scheduleW.control(3).W(1).cs = 0;
 scheduleW.control(3).W(2).cs = 0;
-[wellSols, states, report] = simulateScheduleAD(state0, model, scheduleW, 'afterStepFn', fn);
-                                       
-%% Plot cell oil saturation in different tsteps of surfactant flooding and water flooding
-
-% T = (60:30:300);
-% 
-% min( cellfun(@(x)min(x.s(:,2)), statesSurfactant) );
-% max( cellfun(@(x)max(x.s(:,2)), statesSurfactant) );
-% 
-% figure
-% for i = 1 : length(T)
-%     subplot(3,3,i)
-%     plotCellData(G, statesSurfactant{T(i)}.s(:,2))
-%     plotWell(G, schedule.control(1).W)
-%     axis tight
-%     colormap(jet)
-%     view(3)
-%     caxis([0, 0.79])
-%     title(['T = ', num2str(T(i))])
-% end
-% 
-% min( cellfun(@(x)min(x.s(:,2)), states) );
-% max( cellfun(@(x)max(x.s(:,2)), states) );
-% 
-% figure
-% for i = 1 : length(T)
-%     subplot(3,3,i)
-%     plotCellData(G, states{T(i)}.s(:,2))
-%     plotWell(G, schedule.control(1).W)
-%     axis tight
-%     colormap(jet)
-%     view(3)
-%     caxis([0, 0.79])
-%     title(['T = ', num2str(T(i))])
-% end
+[wellSols, states, report] = simulateScheduleAD(state0, model, scheduleW, 'afterStepFn', fn);                                       
 
 %% Plot well solutions
 
