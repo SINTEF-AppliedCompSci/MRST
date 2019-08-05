@@ -91,12 +91,8 @@ classdef ExtendedFacilityModel < FacilityModel
                 return
             end
             nph = model.getNumberOfPhases();
-            [eqs, names, types] = deal(cell(1, nph+1));
             wsum = map.perforationSum;
-            % This is a temporary hack!
-            q_s = state.FacilityState.primaryVariables(1:nph);
             % Get surface rate equations
-            [sn, phnames] = model.getPhaseNames();
             [surfaceRates, rhoS] = facility.getSurfaceRates(state);
             % Approximate scaling to get the tolerance in terms of
             % reservoir rates. Otherwise, e.g. gas phases may be very
@@ -105,10 +101,55 @@ classdef ExtendedFacilityModel < FacilityModel
             rhoScale = bsxfun(@rdivide, value(rhoS), mean(rhoR, 1));
             % One equation for each phase corresponding to the volumetric
             % rate at surface conditions
-            for ph = 1:nph
-                eqs{ph} = (q_s{ph} - surfaceRates{ph}).*rhoScale(ph);
-                names{ph} = [phnames{ph}, 'Wells'];
-                types{ph} = 'perf';
+            separateRates = strcmpi(facility.primaryVariableSet, 'standard');
+            [sn, phnames] = model.getPhaseNames();
+            if separateRates
+                % This is a temporary hack!
+                q_s = state.FacilityState.primaryVariables(1:nph);
+                [eqs, names, types] = deal(cell(1, nph+1));
+                for ph = 1:nph
+                    eqs{ph} = (q_s{ph} - surfaceRates{ph}).*rhoScale(ph);
+                    names{ph} = [phnames{ph}, 'Wells'];
+                    types{ph} = 'perf';
+                end
+                targetRates = q_s;
+                ctrl_index = nph+1;
+            else
+                varBHP = strcmpi(facility.primaryVariableSet, 'bhp');
+                varMF = strcmpi(facility.primaryVariableSet, 'bhp_massfractions');
+                assert(varBHP || varMF);
+                % We need to actually store the surface rates in wellSol
+                % here, since there are no corresponding primary variables
+                if varMF
+                    massFractions = state.FacilityState.massfractions;
+                    cnames = model.getComponentNames();
+                    componentSources = facility.getProps(state, 'ComponentTotalFlux');
+                    ncomp = model.getNumberOfComponents();
+                    [eqs, names, types] = deal(cell(1, ncomp));
+                    total = 0;
+                    for i = 1:ncomp
+                        componentSources{i} = map.perforationSum*componentSources{i};
+                        total = total + componentSources{i};
+                    end
+                    for i = 1:ncomp-1
+                        eqs{i+1} = massFractions{i} - componentSources{i}./total;
+                        names{i+1} = ['well_', cnames{i}];
+                        types{i+1} = 'wellcomposition';
+                    end
+                else
+                    [eqs, names, types] = deal(cell(1, 1));
+                end
+                ctrl_index = 1;
+                targetRates = surfaceRates;
+                qSurf = value(surfaceRates);
+                for ph = 1:numel(sn)
+                    fld = ['q', sn(ph), 's'];
+                    for i = 1:numel(map.active)
+                        ix = map.active(i);
+                        state.wellSol(ix).(fld) = qSurf(i, ph);
+                    end
+                end
+                clear qSurf;
             end
             % Set up AD for control equations
             nact = numel(map.active);
@@ -144,7 +185,6 @@ classdef ExtendedFacilityModel < FacilityModel
             phases = model.getPhaseNames();
             is_surface_control = false(nact, 1);
             wrates = backend.convertToAD(zeros(nact, 1), bhp);
-            % qs_t = zeros(nact, 1);
             for i = 1:nph
                 switch phases(i)
                     case 'W'
@@ -155,8 +195,7 @@ classdef ExtendedFacilityModel < FacilityModel
                         act = is_rate | is_grat;
                 end
                 is_surface_control(act) = true;
-                wrates(act) = wrates(act) + q_s{i}(act);
-                % qs_t(act) = qs_t(act) + mixs(act, i);
+                wrates(act) = wrates(act) + targetRates{i}(act);
             end
             ctrl_eq(is_surface_control) = wrates(is_surface_control) - targets(is_surface_control);
             % RESV controls are special
@@ -188,7 +227,7 @@ classdef ExtendedFacilityModel < FacilityModel
             if any(zeroRates)
                 q_t = 0;
                 for i = 1:nph
-                    q_t = q_t + q_s{i}(zeroRates);
+                    q_t = q_t + targetRates{i}(zeroRates);
                 end
                 ctrl_eq(zeroRates) = q_t;
             end
@@ -205,9 +244,9 @@ classdef ExtendedFacilityModel < FacilityModel
 
             assert(all(is_surface_control | is_bhp | is_volume | is_resv));
 
-            eqs{end} = ctrl_eq;
-            names{end} = 'closureWells';
-            types{end} = 'well';
+            eqs{ctrl_index} = ctrl_eq;
+            names{ctrl_index} = 'closureWells';
+            types{ctrl_index} = 'well';
         end
         
         function state = applyWellLimits(fm, state)

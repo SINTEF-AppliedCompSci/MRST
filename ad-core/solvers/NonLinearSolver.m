@@ -312,7 +312,7 @@ classdef NonLinearSolver < handle
                             % Beat timestep with a hammer
                             fprintf(['%sSolver did not converge in %d iterations',...
                                     ' for timestep of length %s. Cutting timestep.\n'],...
-                                    solver.getId(), its, formatTimeRange(dt));
+                                    solver.getId(), its - 1, formatTimeRange(dt));
                         end
                         timestepFailure = true;
                         cuttingCount = cuttingCount + 1;

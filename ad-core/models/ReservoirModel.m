@@ -373,6 +373,9 @@ methods
             case {'pressure', 'p'}
                 index = ':';
                 fn = 'pressure';
+            case 'flux'
+                index = ':';
+                fn = 'flux';
             case 'wellsol'
                 % Use colon to get all variables, since the wellsol may
                 % be empty

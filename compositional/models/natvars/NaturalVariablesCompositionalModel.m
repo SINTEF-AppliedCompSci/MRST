@@ -164,8 +164,10 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
                 state.y = bsxfun(@rdivide, state.y, sum(state.y, 2));
                 % Update K-values
                 isTwoPhase = model.getTwoPhaseFlag(state);
-                state.K(isTwoPhase, :) = state.y(isTwoPhase, :)./state.x(isTwoPhase, :);
+                state.x = ensureMinimumFraction(state.x, model.EOSModel.minimumComposition);
+                state.y = ensureMinimumFraction(state.y, model.EOSModel.minimumComposition);
 
+                state.K(isTwoPhase, :) = state.y(isTwoPhase, :)./state.x(isTwoPhase, :);
                 xyUpdated = true;
             else
                 xyUpdated = false;

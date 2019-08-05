@@ -203,10 +203,20 @@ classdef EquationOfStateModel < PhysicalModel
             if iteration == 1
                 x0 = state.x;
                 y0 = state.y;
-                [~, ~, twoPhase] = model.getFlag(state);
+                % Cells which are two-phase can be flashed directly. For
+                % single-phase cells, we perform a stability test in order
+                % to check if the single-phase state is still stable.
+                twoPhase = model.getTwoPhaseFlag(state);
+                % NaN means that L was not initialized. We then start with
+                % a phase stability test to get good estimates for the
+                % K-values.
+                twoPhase(isnan(L0)) = false;
                 initSingle = ~twoPhase;
                 stable = initSingle;
+                % Call stability test.
                 [stable(initSingle), x0(initSingle, :), y0(initSingle, :)] = model.performPhaseStabilityTest(state.pressure(initSingle), state.T(initSingle), state.components(initSingle, :), state.K(initSingle, :));
+                updatedSingle = initSingle & ~stable;
+                K0(updatedSingle, :) = y0(updatedSingle, :)./x0(updatedSingle, :);
                 acf = model.fluid.acentricFactors;
                 [Si_L, Si_V, A_L, A_V, B_L, B_V, Bi] = model.getMixtureFugacityCoefficients(P, T, x0, y0, acf);
                 % Solve EOS for each phase
@@ -215,7 +225,6 @@ classdef EquationOfStateModel < PhysicalModel
                 L0 = model.solveRachfordRice(L0, K0, z);
                 L0(stable & L0 >  0.5) = 1;
                 L0(stable & L0 <= 0.5) = 0;
-                % L0 = model.estimateSinglePhaseState(state.pressure, state.T, state.components, L0, stable);
                 active = ~stable;
             else
                 Z0_L = state.Z_L;
@@ -227,9 +236,10 @@ classdef EquationOfStateModel < PhysicalModel
             
             if any(active)
                 state.eos.itCount(active) = state.eos.itCount(active) + 1;
+                K_init = K0(active, :);
+                K = K_init;
                 L = L0(active);
                 z = z(active, :);
-                K = K0(active, :);
                 P = P(active);
                 T = T(active);
 
@@ -240,24 +250,26 @@ classdef EquationOfStateModel < PhysicalModel
                     % Successive substitution solver for equilibrium
                     [x, y, K, Z_L, Z_V, L, equilvals] = model.substitutionCompositionUpdate(P, T, z, K, L);
                 end
-
+                singlePhase = L == 0 | L == 1;
+                % Single phase cells are converged
+                equilvals(singlePhase, :) = 0;
                 values = max(equilvals, [], 1);
-                valconv = values <= model.nonlinearTolerance;
                 conv = max(equilvals, [], 2) <= model.nonlinearTolerance;
                 conv = conv & iteration > nonlinsolve.minIterations;
                 resConv = values <= model.nonlinearTolerance & iteration > nonlinsolve.minIterations;
                 % Insert back the local values into global arrays
                 state.eos.converged(active) = conv;
                 % Insert updated values in active cells
+                % Just single-phase state
+                K(singlePhase, :) = K_init(singlePhase, :);
                 L0(active) = L;
 
-                Z0_L(active) = Z_L;
-                Z0_V(active) = Z_V;
+                Z0_L(active) = value(Z_L);
+                Z0_V(active) = value(Z_V);
                 K0(active, :) = K;
                 x0(active, :) = x;
                 y0(active, :) = y;
             else
-                valconv = true(1, ncomp);
                 values = zeros(1, ncomp);
                 resConv = true(1, ncomp);
             end
@@ -270,14 +282,14 @@ classdef EquationOfStateModel < PhysicalModel
 
             failure = false;
             failureMsg = '';
-            
+            values_converged = values <= model.nonlinearTolerance;
             if model.verbose
-                printConvergenceReport(model.fluid.names, values, valconv, iteration);
+                printConvergenceReport(model.fluid.names, values, values_converged, iteration);
             end
             report = model.makeStepReport(...
                             'Failure',      failure, ...
                             'FailureMsg',   failureMsg, ...
-                            'Converged',    all(valconv), ...
+                            'Converged',    all(values_converged), ...
                             'ResidualsConverged', resConv, ...
                             'Residuals',    values);
             report.ActiveCells = sum(active);
@@ -291,14 +303,13 @@ classdef EquationOfStateModel < PhysicalModel
             % Vapor component fraction
             y = model.computeVapor(L, K, z);
             [Z_L, Z_V, f_L, f_V] = model.getCompressibilityAndFugacity(P, T, x, y, z, [], []);
-            
-            % Pure liquid / pure vapor is converged
-            ok = L == 1 | L == 0;
             % Compute fugacity ratios
             f_r = bsxfun(@times, sx, f_L./f_V);
-            f_r(ok, :) = 1;
-            f_r(z == 0) = 1;
             % Update equilibrium constant estimates based on fugacity ratio
+            mc = model.minimumComposition;
+            % Ignore tiny compositions for the purpose of updating K-values
+            % and estimating convergence.
+            f_r(z <= mc) = 1;
             values = abs(f_r - 1);
             K = max(K.*abs(f_r), 1e-12);
             K(~isfinite(K)) = 1;
@@ -324,12 +335,19 @@ classdef EquationOfStateModel < PhysicalModel
         function state = validateState(model, state)
             n_cell = size(state.pressure, 1);
             if ~isfield(state, 'L') 
-                % Initial guess of 0.5
-                state.L = repmat(0.5, n_cell, 1);
+                % Add empty L to indicate that we do not know. The flash
+                % routine will then perform the stability test for all
+                % cells.
+                state.L = nan(n_cell, 1);
             end
 
             if ~isfield(state, 'K')
-                state.K = estimateEquilibriumWilson(model, state.pressure, state.T);
+                if isfield(state, 'x') && isfield(state, 'y')
+                    K = state.y./state.x;
+                else
+                    K = estimateEquilibriumWilson(model, state.pressure, state.T);
+                end
+                state.K = K;
             end
             
             if ~isfield(state, 'Z_V')
@@ -699,8 +717,8 @@ classdef EquationOfStateModel < PhysicalModel
             end
         end
         
-        function L = solveRachfordRice(model, L, K, z) %#ok
-            L = solveRachfordRiceVLE(L, K, z);
+        function L = solveRachfordRice(model, L, K, z)
+            L = solveRachfordRiceVLE(L, K, z, 'min_z', model.minimumComposition);
         end
 
         function y = computeVapor(model, L, K, z)

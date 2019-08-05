@@ -1,6 +1,6 @@
 classdef TransportModel < WrapperModel
     properties
-        
+        formulation = 'totalSaturation'
     end
     
     methods
@@ -36,7 +36,8 @@ classdef TransportModel < WrapperModel
             isP = strcmp(basenames, 'pressure');
             vars = basevars;
             names = basenames;
-            useTotalSaturation = sum(isS) == nph - 1;
+            useTotalSaturation = strcmpi(model.formulation, 'totalSaturation') ...
+                                    && sum(isS) == nph - 1;
             if useTotalSaturation
                 % Replace pressure with total saturation
                 replacement = 'sT';
@@ -51,31 +52,19 @@ classdef TransportModel < WrapperModel
                 names = names(~isP);
                 origin = origin(~isP);
             end
-            
-
             if init
                 [vars{:}] = model.AutoDiffBackend.initVariablesAD(vars{:});
             end
-            keep = ~(isS | isP);
-            basevars(keep) = vars(keep);
+            if useTotalSaturation
+                basevars(~isP) = vars(~isP);
+            else
+                basevars(~isP) = vars;
+            end
             state = model.initStateAD(state, basevars, basenames, origin);
             if useTotalSaturation
-                % Not all were AD-initialized
+                % Set total saturation as well
                 sT = vars{isP};
                 state = model.setProp(state, replacement, sT);
-                fill = phase_variable_index == 0;
-                
-                s = cell(1, nph);
-                s_rem = sT;
-                for i = 1:nph
-                    ix = phase_variable_index(i);
-                    if ix > 0
-                        s_rem = s_rem - vars{ix};
-                        s{i} = vars{ix};
-                    end
-                end
-                s{fill} = s_rem;
-                state = model.setProp(state, 's', s);
             end
         end
         
@@ -85,6 +74,14 @@ classdef TransportModel < WrapperModel
             [eqs, flux, names, types] = model.FluxDiscretization.componentConservationEquations(model, state, state0, dt);
             src = model.FacilityModel.getComponentSources(state);
             % Assemble equations and add in sources
+            if strcmpi(tmodel.formulation, 'missingPhase')
+                % Skip the last phase! Only mass-conservative for
+                % incompressible problems
+                eqs = eqs(1:end-1);
+                flux = flux(1:end-1);
+                names = names(1:end-1);
+                types = types(1:end-1);
+            end
             for i = 1:numel(eqs)
                 if ~isempty(src.cells)
                     eqs{i}(src.cells) = eqs{i}(src.cells) - src.value{i};
@@ -100,15 +97,45 @@ classdef TransportModel < WrapperModel
                 state = model.setProp(state, 'sT', sum(state.s, 2));
             end
         end
+        
+        function model = validateModel(model, varargin)
+            defaultedDiscretization = isempty(model.parentModel.FluxDiscretization);
+            model = validateModel@WrapperModel(model, varargin{:});
+            if defaultedDiscretization
+                pmodel = model.parentModel;
+                fd = pmodel.FluxDiscretization;
+                fp = pmodel.FlowPropertyFunctions;
+                % Replace existing properties with total flux variants
+                fd = fd.setStateFunction('PhaseFlux', PhaseFluxFixedTotalVelocity(pmodel));
+                fd = fd.setStateFunction('PhaseUpwindFlag', PhasePotentialUpwindFlag(pmodel));
+                fd = fd.setStateFunction('ComponentPhaseFlux', ComponentPhaseFluxFractionalFlow(pmodel));
+                % Set extra props
+                fd = fd.setStateFunction('PhaseInterfacePressureDifferences', PhaseInterfacePressureDifferences(pmodel));
+                fd = fd.setStateFunction('TotalFlux', FixedTotalFlux(pmodel));
+                fd = fd.setStateFunction('FaceTotalMobility', FaceTotalMobility(pmodel));
+                % Set flow properties
+                if strcmpi(model.formulation, 'totalSaturation')
+                    fp = fp.setStateFunction('TotalSaturation', TotalSaturation(pmodel));
+                    fp = fp.setStateFunction('ComponentMobility', ComponentMobilityTotalSaturation(pmodel));
+                    fp = fp.setStateFunction('ComponentPhaseMass', ComponentPhaseMassTotalSaturation(pmodel));
+                end
+                % Replace object
+                model.parentModel.FluxDiscretization = fd;
+                model.parentModel.FlowPropertyFunctions = fp;
+            end
+        end
+        
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
             [problem, state] = getEquations@PhysicalModel(model, state0, state, dt, drivingForces, varargin{:});
         end
         
         function [state, report] = updateState(model, state, problem, dx, drivingForces)
             isS = strcmpi(problem.primaryVariables, 'sT');
-            state = model.updateStateFromIncrement(state, dx, problem, 'sT', inf, inf);
-            state = model.capProperty(state, 'sT', 1e-8);
-            dx = dx(~isS);
+            if any(isS)
+                state = model.updateStateFromIncrement(state, dx, problem, 'sT', inf, inf);
+                state = model.capProperty(state, 'sT', 1e-8);
+                dx = dx(~isS);
+            end
             problem.primaryVariables = problem.primaryVariables(~isS);
             
             [state, report] = model.parentModel.updateState(state, problem, dx, drivingForces);
@@ -125,6 +152,15 @@ classdef TransportModel < WrapperModel
             else
                 [fn, index] = model.parentModel.getVariableField(name, varargin{:});
             end
+        end
+        
+        function [model, state] = prepareTimestep(model, state, state0, dt, drivingForces)
+            % Prepare state and model (temporarily) before solving a time-step
+            [model, state] = prepareTimestep@WrapperModel(model, state, state0, dt, drivingForces);
+        end
+
+        function [state, report] = updateAfterConvergence(model, varargin)
+            [state, report] = updateAfterConvergence@WrapperModel(model, varargin{:});
         end
     end
 end

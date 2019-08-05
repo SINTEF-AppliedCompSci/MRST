@@ -28,6 +28,22 @@ classdef PerforationPressureGradient < StateFunction
             end
             cp = bhp + vertcat(wellSol(map.active).cdp);
             dp = p(map.cells) - cp;
+            allowXFlow = cellfun(@(x) x.allowCrossflow, model.WellModels(map.active));
+            if ~all(allowXFlow)
+                % We have cross-flow, potentially
+                vdp = value(dp);
+                sgn = vertcat(map.W.sign);
+                perfAllowXFlow = allowXFlow(map.perf2well);
+                psgn = sgn(map.perf2well);
+                % Set pressure drop to zero to cut of cross-flowing
+                % connections. Note that sign == 0 is ambigious here.
+                keep = perfAllowXFlow | (psgn == 1 & vdp <= 0) | (psgn == -1 & vdp >= 0);
+                if isa(dp, 'ADI')
+                    dp.val(~keep) = 0;
+                else
+                    dp(~keep) = 0;
+                end
+            end
         end
     end
 end

@@ -6,7 +6,7 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
     methods
         function model = GenericOverallCompositionModel(varargin)
             model = model@OverallCompositionCompositionalModel(varargin{:});
-            model.OutputStateFunctions = {'ComponentTotalMass'};
+            model.OutputStateFunctions = {'ComponentTotalMass', 'Density'};
         end
         
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)

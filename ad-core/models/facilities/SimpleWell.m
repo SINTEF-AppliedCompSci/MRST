@@ -544,6 +544,16 @@ classdef SimpleWell < PhysicalModel
                 variables = variables(~isBHP);
                 dx = dx(~isBHP);
             end
+            isMF = strcmpi(variables, 'well_massfractions');
+            if any(isMF)
+                f = 'well_massfractions';
+                dv = dx{isMF};
+                wellSol = well.updateStateFromIncrement(wellSol, dv, [], f);
+                wellSol = well.capProperty(wellSol, f, 0, 1);
+                wellSol.massfractions = wellSol.massfractions./sum(wellSol.massfractions);
+                variables = variables(~isMF);
+                dx = dx(~isMF);
+            end
             [names, fromResModel] = well.getExtraPrimaryVariableNames(resmodel);
             for i = 1:numel(dx)
                 vname = variables{i};
@@ -604,6 +614,9 @@ classdef SimpleWell < PhysicalModel
                     fn = 'qWs';
                 case 'qss'
                     fn = 'qSs';
+                case 'well_massfractions'
+                    fn = 'massfractions';
+                    index = ':';
                 otherwise
                     % This will throw an error for us
                     [fn, index] = getVariableField@PhysicalModel(model, name, varargin{:});

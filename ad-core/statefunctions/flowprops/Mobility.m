@@ -17,7 +17,7 @@ classdef Mobility < StateFunction
                 mob = cellfun(@(x) x.*mult, mob, 'UniformOutput', false);
             end
             mv = cellfun(@(x) min(value(x)), mob);
-            if any(mv < 0)
+            if model.verbose > 1 && any(mv < 0)
             	warning('Negative mobilities detected! Capping to zero.')
                 mob = cellfun(@(x) max(x, 0), mob, 'UniformOutput', false);
             end

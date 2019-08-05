@@ -53,7 +53,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'matlab_arg', '-nosplash -noFigureWindows -nodesktop', ...
                  'extra_arg', '', ...
                  'verbose', mrstVerbose(), ...
-                 'numCompThreads', -1);
+                 'maxNumCompThreads', inf);
     opt = merge_options(opt, varargin{:});
     basepath = fullfile(opt.workdir, [problem.BaseName, '_', problem.Name]);
     dispif(opt.verbose, 'Storing problem %s: %s to %s...', problem.BaseName, problem.Name, basepath);
@@ -63,7 +63,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     fn = makepath(basepath);
     logfile = makepath(fn, 'simulation.log');
     modlist = problem.Modules;
-    save(makepath(fn, 'problem'), 'problem', 'modlist');
+    save(makepath(fn, 'problem'), 'problem', 'modlist', 'opt');
     matlab_options = build_matlab_options(opt);
     dispif(opt.verbose, 'Ok!\n');
     dispif(opt.verbose, 'Initializing background Matlab session...');

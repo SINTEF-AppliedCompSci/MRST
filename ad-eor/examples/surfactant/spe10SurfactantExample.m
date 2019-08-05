@@ -1,7 +1,7 @@
 %% Oil-Water-Surfactant System for a Layer of the SPE10 Model
 %
 mrstModule add ad-core ad-blackoil ad-eor ad-props ...
-    deckformat mrst-gui spe10 ad-fi
+               deckformat mrst-gui spe10
 
 %% Use setupSPE10_AD to Fetch an Oil-Water Model
 % We pick up only one layer

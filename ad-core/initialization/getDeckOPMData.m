@@ -1,5 +1,6 @@
 function [deck, output] = getDeckOPMData(name, caseName)
     opm = mrstPath('opm-data');
+    opm_tests = mrstPath('opm-tests');
     fn = fullfile(opm, name, [caseName, '.DATA']);
     deck = readEclipseDeck(fn);
     
@@ -14,7 +15,7 @@ function [deck, output] = getDeckOPMData(name, caseName)
     end
     
     deck = convertDeckUnits(deck);
-    fldr = fullfile(opm, name);
+    fldr = fullfile(opm_tests, name);
     output = struct('opm', [], 'ecl', []);
     try
         output.opm = getOutputOPM(deck, fldr, caseName, unit);

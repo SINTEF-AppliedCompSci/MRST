@@ -1,5 +1,9 @@
 function [state0, model, schedule, nonlinear] = initEclipseProblemAD(deck, varargin)
     mrstModule add deckformat ad-core ad-blackoil ad-props
+    if ischar(deck)
+        % Path to some deck?
+        deck = readEclipseDeck(deck);
+    end
     deck = convertDeckUnits(deck);
 
     opt = struct('useMexGeometry', false, ...

@@ -18,6 +18,10 @@ function [ok, status] = simulatePackedProblem(problems, varargin)
 %                     result in an error. Useful when trying to simulate
 %                     multiple problems in sequence.
 %
+%   restartStep  - Explicitly specify the restart step, potentially
+%                  overwriting any previously simulated results from that
+%                  step on.
+%
 % RETURNS:
 %   ok     - Flag for each case indicating a successful run.
 %   status - Structs containing some information about each case (possible
@@ -47,8 +51,9 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    opt = struct('checkTooMany', true, ...
-                 'continueOnError', true);
+    opt = struct('checkTooMany',    true, ...
+                 'continueOnError', true, ...
+                 'restartStep',     nan);
     opt = merge_options(opt, varargin{:});
     if isstruct(problems)
         problems = {problems};
@@ -100,7 +105,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         fprintf(printstr, firstLine);
         fprintf(printstr, secondLine);
         fprintf(lim);
-        if ndata == nstep
+        if ~isnan(opt.restartStep)
+            restartStep = opt.restartStep;
+            if ndata < restartStep - 1
+                msg = sprintf('Restart step %d was specified, but step %d is not complete! Aborting.', restartStep, restartStep-1);
+                doSim = false;
+                if ~opt.continueOnError
+                    error(msg); %#ok
+                end
+            end
+            if restartStep > 1
+                state0 = state_handler{restartStep-1};
+            end
+        elseif ndata == nstep
             fprintf('-> Complete output found, nothing to do here.\n');
             % Already run!
             doSim = false;

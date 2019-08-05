@@ -209,7 +209,7 @@ classdef StateFunctionGrouping
                 props = props.setStateFunction(name, prop);
             end
         end
-        
+        % ----- Display, plotting etc ------------------------------------%
         function disp(props)
             % Custom display function
             fprintf('  ');

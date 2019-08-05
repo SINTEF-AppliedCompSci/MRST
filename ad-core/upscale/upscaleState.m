@@ -63,18 +63,22 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         
         rhoL = model.PropertyModel.computeMolarDensity(state.pressure, state_f.x, state_f.Z_L, state.T, true);
         rhoV = model.PropertyModel.computeMolarDensity(state.pressure, state_f.y, state_f.Z_V, state.T, false);
-        L = state_f.L;
-        
-        N = L.*rhoL.*state_f.x + (1-L).*rhoV.*state_f.y;
+        % Get saturations for hydrocarbon-like phases
+        [sL, sV] = model.getProps(state_f, 'so', 'sg');
+        % Calculate total molar density
+        N = rhoL.*state_f.x.*sL + rhoV.*state_f.y.*sV;
+        % Fine number of moles
         N_f = bsxfun(@times, N, pvf);
         ncomp = size(state.components, 2);
-        state.components = zeros(CG.cells.num, ncomp);
+        % Compute coarse moles
+        N_c = zeros(CG.cells.num, ncomp);
+        % Coarse molar density
         for i = 1:ncomp
-            state.components(:, i) = accumarray(p, N_f(:, i))./pvc;
+            N_c(:, i) = accumarray(p, N_f(:, i))./pvc;
         end
-        state.components = bsxfun(@rdivide, state.components, sum(state.components, 2));
+        state.components = bsxfun(@rdivide, N_c, sum(N_c, 2));
         
-        flds = {'L', 'x', 'y', 'K', 'K', 'Z_L', 'Z_V', 'mising', 'flag', 'eos'};
+        flds = {'L', 'x', 'y', 'K', 'K', 'Z_L', 'Z_V', 'mixing', 'flag', 'eos'};
         for i = 1:numel(flds)
             f = flds{i};
             if isfield(state, f)
