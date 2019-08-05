@@ -5,5 +5,3 @@ optimization/examples/model2D/schedule_opt.mat
 *.m~
 *.mexw64
 *.mexa64
-*.orig
-*.m
