@@ -15,7 +15,8 @@ classdef SurfactantFlowPropertyFunctions < FlowPropertyFunctions
             props.CapillaryPressure    = SurfactantCapillaryPressure(model, satreg);
             props.CapillaryNumber      = CapillaryNumber(model);
             props.SurfactantAdsorption = SurfactantAdsorption(model);
-%             props.Viscosity = BlackOilSurfactantViscosity(model);
+            props.Viscosity = BlackOilSurfactantViscosity(model, satreg);
+            props.PhasePressures = SurfactantPhasePressures(model, satreg);
         end
         
         function sat = getRegionSurfactant(props, model)
