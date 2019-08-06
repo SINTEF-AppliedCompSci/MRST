@@ -3,8 +3,8 @@ classdef SurfactantPolymerViscosity < BlackOilViscosity
         function gp = SurfactantPolymerViscosity(prop, varargin)
             gp@BlackOilViscosity(prop, varargin{:});
             gp = addPropertyDependence(gp, {'PolymerViscMultiplier'});
-            gp = addPropertyDependence(gp, {'SurfactantViscMultiplier'});
-            gp = gp.dependsOn('pressure', 'surfactant', 'state');
+            gp = gp.dependsOn('surfactant', 'state');
+            gp = gp.dependsOn('pressure', 'state');
         end
         
         function mu = evaluateOnDomain(prop, model, state)

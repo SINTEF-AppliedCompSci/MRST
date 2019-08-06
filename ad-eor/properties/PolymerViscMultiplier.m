@@ -1,10 +1,10 @@
-classdef PolymerViscMultiplier < GridProperty
+classdef PolymerViscMultiplier < StateFunction
     properties
     end
 
     methods
         function gp = PolymerViscMultiplier(model, varargin)
-            gp@GridProperty(model, varargin{:});
+            gp@StateFunction(model, varargin{:});
             gp = gp.dependsOn({'PolymerAdsorption'});
             gp = gp.dependsOn({'EffectiveMixturePolymerViscMultiplier'});
         end

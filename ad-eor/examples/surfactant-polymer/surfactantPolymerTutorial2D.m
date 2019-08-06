@@ -73,58 +73,20 @@ nonlinearsolver.useRelaxation = true;
 % curves, and the a panel showing simulation progress. You can customize
 % the function based on your own preference.
 close all
-% fn = getPlotAfterStep(state0, model, schedule, ...
-%     'plotWell', true, 'plotReservoir', true, 'view', [20, 8], ...
-%     'field', 's:2');
 fn = getPlotAfterStep(state0, model, schedule, ...
     'plotWell', true, 'plot1d', true,'axis tight', false, ...
     'field', 's:2');
 [wellSolsSP, statesSP, reportsSP] = ...
     simulateScheduleAD(state0, model, schedule, ...
                     'NonLinearSolver', nonlinearsolver, 'afterStepFn', fn);
-% return
 % we use schedulew to run the three phase black oil water flooding simulation.
 scheduleW = schedule;
 scheduleW.control(2).W(1).cs = 0;
-scheduleW.control(2).W(2).cs = 0;
+scheduleW.control(2).W(1).cp = 0;
 fn1 = getPlotAfterStep(state0, model, schedule, ...
     'plotWell', true, 'plot1d', true,'axis tight', false, ...
     'field', 's:2');
 [wellSolsW, statesW, reportW] = simulateScheduleAD(state0, model, scheduleW, 'afterStepFn', fn1);
-
-%% Plot cell oil saturation in different tsteps of surfactant flooding and water flooding
-
-% T = (60:30:300);
-% 
-% min( cellfun(@(x)min(x.s(:,2)), statesSP) );
-% max( cellfun(@(x)max(x.s(:,2)), statesSP) );
-% 
-% figure
-% for i = 1 : length(T)
-%     subplot(3,3,i)
-%     plotCellData(G, statesSP{T(i)}.s(:,2))
-%     plotWell(G, schedule.control(1).W)
-%     axis tight
-%     colormap(jet)
-%     view(3)
-%     caxis([0, 0.79])
-%     title(['T = ', num2str(T(i))])
-% end
-% 
-% min( cellfun(@(x)min(x.s(:,2)), statesW) );
-% max( cellfun(@(x)max(x.s(:,2)), statesW) );
-% 
-% figure
-% for i = 1 : length(T)
-%     subplot(3,3,i)
-%     plotCellData(G, statesW{T(i)}.s(:,2))
-%     plotWell(G, schedule.control(1).W)
-%     axis tight
-%     colormap(jet)
-%     view(3)
-%     caxis([0, 0.79])
-%     title(['T = ', num2str(T(i))])
-% end
 
 %% Plot well solutions
 

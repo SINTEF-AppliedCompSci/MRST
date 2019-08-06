@@ -34,9 +34,6 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
             % This is the model parameters for oil/water/gas/surfactant/polymer system
             model.polymer = true;
             model.surfactant = true;
-%           Add veloc calculation
-%             model = model.setupOperators(G, rock, varargin{:});
-%             model = merge_options(model, varargin{:});
         end
 
         % --------------------------------------------------------------------%
@@ -143,14 +140,8 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
         function names = getComponentNames(model)
             names = getComponentNames@ThreePhaseBlackOilModel(model);
             if model.polymer && model.surfactant
-%                 switch(lower(name))
-%                 case {'polymer', 'polymermax'}
                     names{end+1} = 'polymer';
-%                 case {'surfactant', 'surfactantmax'}
                     names{end+1} = 'surfactant';
-%                 end
-%                 names{end+1} = 'polymer';
-%                 names{end+1} = 'surfactant';
             elseif model.polymer && ~model.surfactant
                 names{end+1} = 'polymer';
             elseif model.surfactant

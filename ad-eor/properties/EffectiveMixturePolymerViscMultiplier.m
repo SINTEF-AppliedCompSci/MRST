@@ -1,10 +1,10 @@
-classdef EffectiveMixturePolymerViscMultiplier < GridProperty
+classdef EffectiveMixturePolymerViscMultiplier < StateFunction
     properties
     end
 
     methods
         function gp = EffectiveMixturePolymerViscMultiplier(varargin)
-            gp@GridProperty(varargin{:});
+            gp@StateFunction(varargin{:});
             gp = gp.dependsOn({'polymer'}, 'state'); % check mechanism
         end
 

@@ -1099,7 +1099,7 @@ SOLUTION
 
 EQUIL
 -- Datum    P     woc     Pc   goc    Pc  Rsvd  Rvvd
-   2525.  270  2600   0.0 2525.0  0.0   1*   0   0/   E: Garn
+   2525.  270  2625   0.0 2525.0  0.0   1*   0   0/   E: Garn
 
 
 RPTRST

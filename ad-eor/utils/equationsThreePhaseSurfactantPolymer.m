@@ -103,7 +103,6 @@ function [problem, state] = equationsThreePhaseSurfactantPolymer(state0, state, 
             % Set initial gradient to zero
             wellVars0 = model.FacilityModel.getAllPrimaryVariables(wellSol0);
             [p0, sW0, x0, cp0, cs0, wellVars0{:}] = initVariablesADI(p0, sW0, x0, cp0, cs0, wellVars0{:});
-            %         clear zw;
             [sG0, rs0, rv0] = calculateHydrocarbonsFromStatusBO(model, st0, 1-sW0, x0, rs0, rv0, p0);
         end
     end
@@ -136,7 +135,7 @@ function [problem, state] = equationsThreePhaseSurfactantPolymer(state0, state, 
     state = model.setProps(state  , {'s', 'pressure', 'rs', 'rv', 'polymer', 'surfactant'}, {sat , p , rs , rv, cp, cs});
     state0 = model.setProps(state0, {'s', 'pressure', 'rs', 'rv', 'polymer', 'surfactant'}, {sat0, p0, rs0, rv0, cp0, cs0});
     % Set up properties
-    state = model.initPropertyContainers(state);
+    state = model.initStateFunctionContainers(state);
 
     % EQUATIONS ---------------------------------------------------------------
     pBH = wellVars{wellMap.isBHP};
@@ -154,6 +153,13 @@ function [problem, state] = equationsThreePhaseSurfactantPolymer(state0, state, 
     [vW, vO, vG, vP]       = deal(phaseFlux{:});
     [upcw, upco, upcg] = deal(flags{:});
     [mobW, mobO, mobG] = deal(mob{:});
+    
+    if isfield(fluid, 'pvMultR')
+        pvMult =  fluid.pvMultR(p);
+        pvMult0 = fluid.pvMultR(p0);
+    end
+    pv = pv.*pvMult;
+    pv0 = pv0.*pvMult0;
     
     muWeffMult = model.getProp(state, 'EffectiveMixturePolymerViscMultiplier');
 
@@ -218,16 +224,16 @@ function [problem, state] = equationsThreePhaseSurfactantPolymer(state0, state, 
     adsp0 = model.getProp(state0, 'PolymerAdsorption');
     adss  = model.getProp(state, 'SurfactantAdsorption');
     adss0 = model.getProp(state0, 'SurfactantAdsorption');
+    adsp_term = fluid.rhoR.*((1-poro)./poro).*(adsp - adsp0);
     adss_term = fluid.rhoRSft.*((1-poro)./poro).*(adss - adss0);
 
     % Conservation of polymer in polymer phase:
     polymer = ((1-fluid.dps)/dt).*(pv.*bW.*sW.*cp - ...
-                                     pv0.*fluid.bW(p0).*sW0.*cp0) + (s.pv/dt).* ...
-              ( fluid.rhoR.*((1-poro)./poro).*(adsp - adsp0));
+                                     pv0.*fluid.bW(p0).*sW0.*cp0) + (s.pv/dt).* adsp_term;
     divPolymer = s.Div(bWvP);
     
     % Conservation of surfactant in water:
-    surfactant = (1/dt)*((pv.*bW.*sW.*cs - pv0.*bW0.*sW0.*cs0) + adss_term);
+    surfactant = (1/dt).*(pv.*bW.*sW.*cs - pv0.*bW0.*sW0.*cs0) + (s.pv/dt).*adss_term;
     divSurfactant = s.Div(bWvSft);
     
     % Applying correction to the surfactant and polymer equation when the Jacobian is
@@ -247,7 +253,7 @@ function [problem, state] = equationsThreePhaseSurfactantPolymer(state0, state, 
             epsS = epsilon;
         end
         % bad marks the cells prolematic in evaluating Jacobian
-        badP = abs(diag(surfactant.jac{4})) < epsP;
+        badP = abs(diag(polymer.jac{4})) < epsP;
         badS = abs(diag(surfactant.jac{5})) < epsS;
         % the other way is to choose based on the water saturation
         polymer(badP) = cp(badP);
@@ -276,7 +282,6 @@ function [problem, state] = equationsThreePhaseSurfactantPolymer(state0, state, 
     cpw     = cp(wc_inj);
 
     % remove the old viscosity and applying the fully mixed viscosity
-    %     muWMultW = muWMult(wc_inj);
     muWMultW = muWeffMult(wc_inj);
     
     muWFullyMixed = model.fluid.muWMult(cpw);
@@ -296,8 +301,5 @@ function [problem, state] = equationsThreePhaseSurfactantPolymer(state0, state, 
     end
     
     problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
-
-
-
 
 end

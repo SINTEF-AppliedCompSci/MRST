@@ -1,10 +1,10 @@
-classdef PolymerAdsorption < GridProperty
+classdef PolymerAdsorption < StateFunction
     properties
     end
 
     methods
         function gp = PolymerAdsorption(model, varargin)
-            gp@GridProperty(model, varargin{:});
+            gp@StateFunction(model, varargin{:});
             gp = gp.dependsOn({'polymer', 'polymermax'}, 'state'); % check mechanism
         end
 

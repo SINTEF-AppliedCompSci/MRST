@@ -50,11 +50,11 @@
     along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     %}
 
-        opt = struct('Verbose'        , mrstVerbose, ...
-                     'reverseMode'    , false      , ...
-                     'velocCompMethod', 'square'   , ...
-                     'resOnly'        , false      , ...
-                     'iteration'      , -1 );
+    opt = struct('Verbose'        , mrstVerbose, ...
+                 'reverseMode'    , false      , ...
+                 'velocCompMethod', 'square'   , ...
+                 'resOnly'        , false      , ...
+                 'iteration'      , -1 );
     opt = merge_options(opt, varargin{:});
 
     % Shorter names for some commonly used parts of the model and forces.
@@ -101,7 +101,6 @@
             % Set initial gradient to zero
             wellVars0 = model.FacilityModel.getAllPrimaryVariables(wellSol0);
             [p0, sW0, x0, cs0, wellVars0{:}] = initVariablesADI(p0, sW0, x0, cs0, wellVars0{:});
-    %         clear zw;
             [sG0, rs0, rv0] = calculateHydrocarbonsFromStatusBO(model, st0, 1-sW0, x0, rs0, rv0, p0);
         end
     end
@@ -224,7 +223,7 @@
     ads_term = fluid.rhoRSft.*((1-poro)./poro).*(ads - ads0);
 
     % Conservation of surfactant in water:
-    surfactant = (1/dt).*((pv.*bW.*sW.*cs - pv0.*bW0.*sW0.*cs0)) + (op.pv/dt).*ads_term;
+    surfactant = (1/dt).*(pv.*bW.*sW.*cs - pv0.*bW0.*sW0.*cs0) + (op.pv/dt).*ads_term;
     divSurfactant = op.Div(bWvSft);
     
     if ~opt.resOnly
