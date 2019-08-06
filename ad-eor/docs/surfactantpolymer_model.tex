@@ -1,0 +1,286 @@
+\documentclass[11pt]{amsart}
+\usepackage{amsmath, amsfonts, amssymb, amsthm, graphicx}
+
+\usepackage[backend=biber,style=authoryear]{biblatex}
+\addbibresource{sprefs.bib}
+
+\usepackage{xspace}
+\usepackage{tikz}
+\usepackage{color}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{latexsym}
+\usepackage{graphicx}
+\usepackage{bm}
+
+% 
+% =======================================================================
+% Formatting tools
+% =======================================================================
+% Gentle spacing after macros
+% Reference: The LaTeX Companion, p.50
+\newcommand{\Real}{\mathbb R}
+\newcommand{\eg}{e.g.,\xspace}
+\newcommand{\ie}{i.e.,\xspace}
+\newcommand{\etc}{etc.\@\xspace}
+\newcommand{\etal}{et~al.\@\xspace}
+% 
+% 
+% =======================================================================
+% Common Mathematics
+% =======================================================================
+\newcommand{\vect}[1]{\boldsymbol{#1}}
+\newcommand{\mat}[1]{\boldsymbol{#1}}
+\newcommand{\transp}[1]{{#1}^{\ensuremath{\mathsf{T}}}}
+% 
+% =======================================================================
+% Math Operators
+% =======================================================================
+\DeclareMathOperator{\erfc}{erfc}
+\DeclareMathOperator{\spanop}{span}
+\DeclareMathOperator{\rank}{rank}
+\DeclareMathOperator{\tr}{tr}
+\DeclareMathOperator{\diag}{diag}
+\DeclareMathOperator{\Grad}{Grad}
+\DeclareMathOperator{\Dive}{Div}
+% 
+\DeclareMathOperator{\GRAD}{\scshape Grad}
+\DeclareMathOperator{\DIVE}{\scshape Div}
+% 
+\newcommand{\grad}{\nabla}
+\newcommand{\dive}{\nabla\cdot}
+\newcommand{\curl}{\nabla\times}
+
+
+\newcommand{\cads}{c^a}
+\newcommand{\cpads}{c_p^a}
+\newcommand{\csads}{c_s^a}
+\newcommand{\chatads}{\hat{c}^a}
+\newcommand{\eff}{\mathrm{eff}}
+\newcommand{\cpmax}{c_{p,\max}}
+\newcommand{\Sb}{{\bm{S}}}
+\newcommand{\cb}{{\bm{c}}}
+\newcommand{\Kb}{{\bm{K}}}
+\newcommand{\kb}{{\bm{k}}}
+\newcommand{\nb}{{\bm{n}}}
+\newcommand{\ub}{{\bm{u}}}
+\newcommand{\ubmax}{\ub_{\max}}
+\newcommand{\abs}[1]{\left| #1\right|}
+\newcommand{\norm}[1]{\left\| #1\right\|}
+
+\newcommand{\fracpar}[2]{\frac{\partial #1}{\partial #2}}
+\newcommand{\pref}{p_\text{ref}}
+\newcommand{\surf}{\text{surf}}
+\newcommand{\nosurf}{\text{nosurf}}
+
+\usepackage{soul}
+% Fix found for highlighting support (when adding comments)
+\soulregister\cite7
+\soulregister\ref7
+\soulregister\eqref7
+\soulregister\num7
+\soulregister\pageref7
+
+\setul{0mm}{1mm}
+\setstcolor{red}
+\sethlcolor{yellow}
+
+\def\mytilde{\hspace*{-2pt}
+  \begin{tikzpicture}
+    \draw[red] (0, 0) .. controls (1pt, 1pt) .. (2pt, 0) .. controls +(1pt, -1pt) .. +(2pt, 0);
+  \end{tikzpicture}
+}
+\newbox\mybox
+\setbox\mybox\hbox{\mytilde}
+\makeatletter
+\def\xavierul #1{\begingroup\def\SOUL@ulleaders{\leaders\hbox{\raisebox{-4pt}[0pt][0pt]{\hbox to 5pt {\copy\mybox}}}\relax}\ul{#1}\endgroup}
+\makeatother
+\colorlet{softblue}{blue!20!yellow!30!white}
+
+\def\xaviercom #1{\begingroup\protect\sethlcolor{softblue}\hl{#1}\endgroup}
+\def\xavieradd #1{\begingroup\protect\sethlcolor{softblue}\textcolor{red!40!black}{\hl{#1}}\endgroup}
+\def\xavierst #1{\st{#1}}
+
+\def\xavierrep #1#2{\st{#1} \xavieradd{#2}}
+\def\xavierulcom #1#2{\xavierul{#1} \xaviercom{#2}}
+
+\setlength{\parindent}{0cm}
+\setlength{\parskip}{5mm}
+
+\begin{document}
+
+\title[Surfactant Polymer model]{Surfactant Polymer model}
+\author{Xavier Raynaud and Xin Sun}
+
+\maketitle
+
+
+We consider a general system with $n_c$ components and $n_p$ fluid phases and one solid phase, which is used to account for the adsorption processes. We denote by $x_{i,\alpha}$ the mass fraction of component $i$ in the phase $\alpha$. We denote by $v_\alpha$, $\rho_\alpha$, and $s_\alpha$ the velocity, density and saturation of the phase $\alpha$. The mass conservation for the component $i$ is given by
+\begin{equation}
+  \label{eq:massconsgen}
+  \fracpar{}{t}(\phi \sum_{\alpha = 1}^{n_p}(\rho_\alpha x_{i,\alpha}s_\alpha) + \rho_s(1 - \phi)x_{i,s}) + \dive(\sum_{\alpha = 1}^{n_p}\rho_\alpha x_{i,\alpha}v_\alpha) = q_i
+\end{equation}
+In the case of the surfactant-polymer model, we have five components, $i\in\{O, G, W, P, S\}$, and
+four phases, $\alpha\in\{o, g, ww, wp\}$. We assume $\rho_{ww}=\rho_{wp}=\rho_{w}$. We denote
+\begin{equation*}
+  s_w = s_{ww} + s_{wp}.
+\end{equation*}
+To model the viscosity change of the mixture, we firstly consider the impact of
+surfactant. The change in viscosity by surfactant is only modeled for the water
+phase by introducing a multiplier, which is a function of the surfactant
+concentration. The viscosibility, that is, the dependence of the viscosity with
+respect to pressure, is introduced as a multiplier $\gamma(p)$,
+\begin{equation}
+  \label{eq:defmuw}
+  \frac{\mu_w(p)}{\mu_w^0} = \gamma(p),
+\end{equation}
+The effect of surfactant on viscosity is also introduced as a multiplier
+function, $\gamma_s(c_s)$.  At reference pressure condition, we have
+\begin{equation}
+  \label{eq:defmuw}
+  \frac{\mu_w(c_s)}{\mu_w^0} = \gamma_{s}(c_s),
+\end{equation}
+After that, we use the Todd--Longstaff model \cite{TL72:jpt} to model the
+viscosity change by polymer. This model introduces a mixing parameter
+$\omega\in[0, 1]$ that takes into account the degree of mixing of polymer into
+water. The polymer effect on the viscosity is included in the model as a
+multiplier. For a solution without surfactant and at reference pressure
+condition, we have
+\begin{equation*}
+  \frac{\mu_w(c_p)}{\mu_w^0} = \gamma_p(c_p)
+\end{equation*}
+for some given multiplier function $\gamma$. Still in absence of the surfactant
+and at reference pressure condition, the viscosity of the phase $ww$ and $wp$ are given by
+\begin{equation*}
+  \frac{\mu_{ww}(c_p)}{\mu_w^0} = \gamma_p(c_p)^\omega\gamma_p(\cpmax)^{1-\omega}
+\end{equation*}
+and
+\begin{equation*}
+  \frac{\mu_{wp}(c_p)}{\mu_w^0} = \gamma_p(c_p)^\omega\gamma_p(0)^{1-\omega},
+\end{equation*}
+or
+\begin{equation*}
+  \frac{\mu_{wp}(c_p)}{\mu_w^0} = \gamma_p(c_p)^\omega,
+\end{equation*}
+because $\gamma_p(0)=1$. When we consider the system including all effects
+(surfactant, polymer and reservoir pressure conditions), these expressions
+become
+\begin{equation}
+  \label{eq:defmuwp}
+  \frac{\mu_{wp}(p, c_p, c_s)}{\mu_w^0} = \gamma(p)\cdot\gamma_s(c_s)\cdot\gamma_p(c_p)^\omega\cdot\gamma_p^{1-\omega}(\cpmax).
+\end{equation}
+and
+\begin{equation}
+  \label{eq:defmuww}
+  \frac{\mu_{ww}(p, c_p, c_s)}{\mu_w^0} = \gamma(p)\cdot\gamma_s(c_s)\cdot\gamma_p(c_p)^\omega.
+\end{equation}
+For the Todd-Longstaff model, we assume that the volume of the two water-polymer
+phases split with the ratio given by $\frac{c_p}{\cpmax}$, that is
+\begin{equation*}
+  s_{ww} = \left(1 - \frac{c_p}{\cpmax}\right)s_w \quad\text{ and }\quad s_{wp} = \frac{c_p}{\cpmax}s_w 
+\end{equation*}
+Then, the model uses the following expressions for the mass ratios and the velocities,
+\begin{align*}
+  x_{O,o} &= s_o,    & x_{O,g} &= s_g r_v & x_{O,ww} &= 0,      & x_{O,wp} &= 0,     & x_{O,s} &= 0,  \\
+  x_{G,o} &= s_or_s, & x_{G,g} &= s_g,    & x_{G,ww} &= 0,      & x_{G,wp} &= 0,     & x_{G,s} &= 0,  \\
+  x_{W,o} &= 0,      & x_{W,g} &= 0,      & x_{W,ww} &= s_{ww}, & x_{W,wp} &= s_{wp},& x_{W,s} &= 0, \\
+  x_{P,o} &= 0,      & x_{P,g} &= 0,      & x_{P,ww} &= 0,      & x_{P,wp} &= c_ps_{w},& x_{P,s} &= c_p^a(c_p), \\
+  x_{S,o} &= 0,      & x_{S,g} &= 0,      & x_{S,ww} &= c_ss_{ww}, & x_{S,wp} &= c_ss_{wp},& x_{S,s} &= c_s^a(c_s),
+\end{align*}
+and
+\begin{align*}
+  &v_o = -\frac{k_{ro}(s_o,c_s)}{s_o\mu_o}K(\grad p - \rho_o g \grad z),\\ 
+  &v_g = -\frac{k_{rg}(s_g)}{s_g\mu_g}K(\grad p - \rho_g g \grad z),\\
+  &v_{ww} = -\frac{k_{rw}(s_w,c_s)}{s_w\mu_{ww}(p, c_s, c_p)R_k(\cpads)}K(\grad p - \rho_w g \grad z),\\
+  &v_{wp} = -\frac{k_{rw}(s_w,c_s)}{s_w\mu_{wp}(p, c_s, c_p)R_k(\cpads)}K(\grad p - \rho_w g \grad z).
+\end{align*}
+The function $R_k(\cpads)$ denotes the actual resistance factor and is a
+non-decreasing function which models the reduction of the permeability of the
+rock to the water phase due to the presence of absorbed polymer. The
+concentration of absorbed polymer is denoted by $\cpads$. From these modeling
+assumptions and \eqref{eq:massconsgen}, we obtain the following governing
+equations,
+\begin{subequations}
+\begin{multline}
+  \fracpar{}{t}(\phi(\rho_o s_o + \rho_g s_g r_v)) - \\ \dive\left(\rho_o\frac{k_{ro}(s_o,c_s)}{\mu_o}K(\grad p - \rho_o g \grad z) + \rho_gr_v\frac{k_{rg}(s_g)}{\mu_g}K(\grad p - \rho_g g \grad z)\right) = q_o,
+\end{multline}
+\begin{multline}
+  \fracpar{}{t}(\phi(\rho_g s_g + \rho_o s_o r_s)) - \\ \dive\left(\rho_g\frac{k_{rg}(s_g)}{\mu_g}K(\grad p - \rho_g g \grad z) + \rho_or_s\frac{k_{ro}(s_o,c_s)}{\mu_o}K(\grad p - \rho_o g \grad z)\right) = q_g,
+\end{multline}
+\begin{multline}
+  \fracpar{}{t}(\phi\rho_w s_w ) -
+  \dive\left(\rho_w\frac{k_{rw}(s_w,c_s)}{\mu_{w,\eff}(p, c_s, c_p)R_k(\cpads)}K(\grad p -
+    \rho_w g \grad z)\right) = q_w,
+\end{multline}
+\begin{multline}
+  \fracpar{}{t}\left(\phi\rho_w s_w c_p + (1 - \phi)\rho_s c_p^a(c_p)\right) - \\ 
+  \dive\left(\rho_w c_p\frac{k_{rw}(s_w,c_s)}{\mu_{wp}(p, c_s, c_p)R_k(\cpads)}K(\grad p -
+    \rho_w g \grad z)\right) = q_p,
+\end{multline}
+\begin{multline}
+  \fracpar{}{t}\left(\phi\rho_w s_w c_s + (1 - \phi)\rho_s c_s^a(c_s)\right) - \\ \dive\left(\rho_w c_s\frac{k_{rw}(s_w,c_s)}{\mu_{w,\eff}(p, c_s, c_p)R_k(\cpads)}K(\grad p - \rho_w g \grad z)\right) = q_s
+\end{multline}
+\end{subequations}
+where $\mu_{w,\eff}$ is defined by
+\begin{equation}
+  \label{eq:defmuweff}
+  \frac{1}{\mu_{w,\eff}}=\frac{1-c_p/\cpmax}{\mu_{ww}}+\frac{c_p/\cpmax}{\mu_{wp}}.
+\end{equation}
+Here, the relative permeabilities $k_{r\alpha}$ depends on the saturations and the surfactant concentrations except for the gas phase which is only related to the saturation. The phase pressures are given by the relation
+\begin{equation}
+  \label{eq:pressurerelationship}
+  p_o = p_w + p_c(s_w, c_s) 
+\end{equation}
+where the capillary pressure function $p_c$ depends on the water saturation and surfactant concentration. The model for relative permeability follow Eclipse's implementation, see \cite{eclipse, Jorgensen}. First, we introduce the interfacial tension $\sigma$. At the pore level, the effect of surfactant is to modify the interfacial tension so that $\sigma$ is a function of the surfactant concentration, $\sigma(c_s)$. At the upscaled level, the change in relative permeability depends on the capillary number $N_c$ which measures the ratio between the viscous and capillary forces and is defined as
+\begin{equation}
+  \label{eq:defNc}
+  N_c = \frac{\abs{K\grad p}}{\sigma}.
+\end{equation}
+Thus, the relative permeability is given as $k_{r\alpha}(s_\alpha, N_c)$. The values of $k_{r\alpha}(s_\alpha, N_c)$ are computed by interpolating the relative permeability curves for minimal and maximal $N_c$, in the following way. Let $N_c^{\nosurf}$ and $N_c^{\surf}$ denote the minimal and maximal values of the capillary numbers for which the relative permeability curves are given as
+\begin{equation*}
+  k_{r\alpha}^{\nosurf}(s_\alpha)\quad\text{and}\quad k_{r\alpha}^{\surf}(s_\alpha).
+\end{equation*}
+We denote the residual saturation values, for each phase, as $s_{\alpha. res}^{\nosurf}$ and $s_{\alpha. res}^{\surf}$. We use a logarithmic interpolation and we define the interpolation factor
+$m$ as
+\begin{equation} 
+  \label{eq:defm}
+  m(N_c) = \frac{\log_{10}(N_c) - \log_{10}(N_c^{\nosurf})}{\log_{10}(N_c^{\surf}) - \log_{10}(N_c^{\nosurf})},
+\end{equation}
+which belongs to $[0,1]$. The residual saturation values for the relative permeabilities $k_{r\alpha}(s_\alpha, N_c)$ is obtained by interpolation
+\begin{equation}
+  \label{eq:srhat}
+  s_{\alpha,res}^{N_c} = m(N_c)\,s_{\alpha,res}^{\surf} + (1 - m(N_c))\,s_{\alpha,res}^{\nosurf}.
+\end{equation}
+The relative permeabilities $k_{r\alpha}^{\surf}$ and $k_{r\alpha}^{\nosurf}$
+are rescaled to match these endpoints. We detail the construction only for
+$k_{r\alpha}^{\surf}$ as the construction for $k_{r\alpha}^{\nosurf}$ is
+completely similar. We define the function $k_{r\alpha}^{\surf}$ as
+\begin{equation}
+\label{eq:rescaledkr}
+k_{r\alpha}^{\surf}(s_\alpha, N_c) = k_{r\alpha}^{\surf}(s_\alpha^{\surf}(N_c)),
+\end{equation}
+where $k_{r\alpha}^{\surf}$ is a given function (see above) and $s_\alpha^{\surf}(N_c)$ is defined through the relation
+\begin{equation}
+  \label{eq:defsnc}
+  \frac{s_\alpha^{\surf}(N_c) - s_{\alpha,res}^{\surf}}{1 - s_{\alpha,res}^{\surf} - s_{\alpha',res}^{\surf}} =   \frac{s_\alpha - s_{\alpha,res}^{N_c}}{1 - s_{\alpha,res}^{N_c} - s_{\alpha',res}^{N_c}}.
+\end{equation}
+In \eqref{eq:defsnc}, $\alpha'$ denotes the phase which is not the phase $\alpha$. Similarly we define $k_{r\alpha}^{\nosurf}$. Finally, we define the relative permeability $k_{r\alpha}$ by interpolation using the coefficient $m(N_c)$, that is,
+\begin{equation}
+  \label{eq:defkralpha}
+  k_{r\alpha}(s, N_c) = m(N_c)\,k_{r\alpha}^{\surf}(s_\alpha, N_c) + (1 - m(N_c))\,k_{r\alpha}^{\nosurf}(s_\alpha, N_c).
+\end{equation}
+For the adsorption term, we use an approach based on Langmuir isotherm so that the adsorbed concentration is a function of the surfactant/polymer concentration, that is of the from $\cads(c)$. We consider the reversible case and the case without desorption where the term $\cads$ is replaced by
+$\hat\cads$ which denotes the maximum value that the adsorption concentration has reached. More precisely, if we define
+\begin{equation}
+  \label{eq:chatadsmax}
+  \chatads_{\max}(t,x) = \max_{t'<t}(\chatads(t',x)),
+\end{equation}
+then we have defined as
+\begin{equation}
+  \label{eq:defchatads}
+  \chatads(t, x) = \max(\cads(c(t,x)), \chatads_{\max}(t,x)).
+\end{equation}
+
+\printbibliography
+
+\end{document}
