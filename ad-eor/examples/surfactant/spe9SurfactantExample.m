@@ -67,8 +67,8 @@ fn = getPlotAfterStep(state0, model, schedule, 'plotWell', true, ...
 
 % we use schedulew to run the three phase black oil water flooding simulation.
 scheduleW = schedule;
-scheduleW.control(2).W(1).c = 0;
-scheduleW.control(2).W(2).c = 0;
+scheduleW.control(2).W(1).cs = 0;
+scheduleW.control(3).W(1).cs = 0;
 [wellSols, states, report] = simulateScheduleAD(state0, model, scheduleW, 'afterStepFn', fn);                                              
 %%
 figure()
@@ -109,7 +109,7 @@ for i = 1 : length(T)
 end
 %% Plot well solutions
 
-plotWellSols({wellSolsSurfactant, wellSols})
+plotWellSols({wellSolsSurfactant, wellSols},cumsum(schedule.step.val))
 
 %% Copyright notice
 
