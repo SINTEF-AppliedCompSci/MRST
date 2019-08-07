@@ -27,7 +27,7 @@ mrstModule add ad-core ad-blackoil ad-eor ad-props ...
 % effect. The second two fils are the data for a simulation without shear
 % effect. The last two are the reference results from Eclipse.
 current_dir = fileparts(mfilename('fullpath'));
-fn = fullfile(current_dir, 'SURFACTANTPOLYMER2D_NOSHEAR.DATA');
+fn = fullfile(current_dir, 'SURFACTANTPOLYMER2D.DATA');
 gravity reset on;
 
 deck = readEclipseDeck(fn);
