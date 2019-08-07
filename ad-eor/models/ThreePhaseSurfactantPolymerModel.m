@@ -184,9 +184,8 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
                 [scaling{~handled}] = other{:};
             end
         end
-
-        %% TODO CHECK WHAT IS THIS AND HOW TO CHANGE IT
         
+        % --------------------------------------------------------------------%
         function [eq, src] = addComponentContributions(model, cname, eq, component, src, force)
         % For a given component conservation equation, compute and add in
         % source terms for a specific source/bc where the fluxes have
