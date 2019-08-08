@@ -40,9 +40,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     deck = getDeckEGG(extra{:});
     G = initEclipseGrid(deck);
 
-    if opt.useACTNUM
-        G = extractSubgrid(G, logical(deck.GRID.ACTNUM));
-    end
     G = computeGeometry(G);
     
     rock  = initEclipseRock(deck);
