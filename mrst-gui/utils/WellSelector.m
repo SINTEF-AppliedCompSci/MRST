@@ -166,10 +166,13 @@ classdef WellSelector < UIItem
         end
         
         function set.communicationLimit(s, val)
-           s.autoEdit.Value = val;
+           val = capValue(val, [0 100]);
+           if isfinite(val)
+               s.autoEdit.String = num2str(val);
+           end
         end
         function val = get.communicationLimit(s)
-           val = s.autoEdit.Value;
+           val = str2double(s.autoEdit.String);
         end
            
         function selectAllInjectors(s, src, event)
@@ -251,4 +254,12 @@ classdef WellSelector < UIItem
             end
         end
     end
+end
+
+function v = capValue(v, lims)
+if ischar(v)
+    v = str2double(v);
+end
+assert(isnumeric(v), 'Non-numeric value...')
+v = min(lims(2), max(lims(1), v));
 end
