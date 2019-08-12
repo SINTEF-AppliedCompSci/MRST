@@ -119,8 +119,6 @@ if (~opt.flat && ~opt.undisturbed),
    Z = sort(Z, 3);
 end
 
-Z = Z .* physDims(3);
-
 % Make pillars
 n = prod(dims(1:2) + 1);
 lines = zeros([n, 6]);
