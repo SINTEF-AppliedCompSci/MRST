@@ -39,6 +39,9 @@ function [qOs, qWs, qGs, bhp, wns, time] = extract_quantities(smry, u)
 
    [qOs, qWs, qGs, bhp] = deal(zeros([nt, nw]));
 
+   foundOil = true;
+   foundGas = true;
+   foundWat = true;
    for k = 1 : nw
       wn  = wns{k};
       akw = smry.getKws(wn);
@@ -49,10 +52,26 @@ function [qOs, qWs, qGs, bhp, wns, time] = extract_quantities(smry, u)
 
       if ismember('WOPR', akw)
          qOs(:,k) = - convertFrom(smry.get(wn, 'WOPR', ':'), u.ql);
+      else
+         foundOil = false;
+      end
+
+      if ismember('WGPR', akw)
+         qGs(:,k) = - convertFrom(smry.get(wn, 'WGPR', ':'), u.qg);
+      elseif ismember('WGOR', akw)
+          % We got gas-oil surface ratio, recompute gas-rate from that
+         qGs(:,k) = qOs(:,k).*reshape(smry.get(wn, 'WGOR', ':'), [], 1);
+      else
+         foundGas = false;
       end
 
       if ismember('WWPR', akw)
          qWs(:,k) = - convertFrom(smry.get(wn, 'WWPR', ':'), u.ql);
+      elseif ismember('WWCT', akw)
+         wcut = reshape(smry.get(wn, 'WWCT', ':'), [], 1);
+         qWs(:,k) = wcut.*qOs(:,k)./(1-wcut);
+      else
+          foundWat = false;
       end
 
       if ismember('WWIR', akw)
@@ -60,15 +79,23 @@ function [qOs, qWs, qGs, bhp, wns, time] = extract_quantities(smry, u)
             reshape(convertFrom(smry.get(wn, 'WWIR', ':'), u.ql), [], 1);
       end
 
-      if ismember('WGPR', akw)
-         qGs(:,k) = - convertFrom(smry.get(wn, 'WGPR', ':'), u.qg);
-      end
-
       if ismember('WGIR', akw)
          qGs(:,k) = qGs(:,k) + ...
             reshape(convertFrom(smry.get(wn, 'WGIR', ':'), u.qg), [], 1);
       end
+      if mrstVerbose()
+          if ~foundWat
+              fprintf('I was not able to reconstruct water surface rate for well %d. Will return zeros.\n', k);
+          end
+          if ~foundOil
+              fprintf('I was not able to reconstruct oil surface rate for well %d. Will return zeros.\n', k);
+          end
+          if ~foundGas
+              fprintf('I was not able to reconstruct gas surface rate for well %d. Will return zeros.\n', k);
+          end
+      end
    end
+
 end
 
 %--------------------------------------------------------------------------

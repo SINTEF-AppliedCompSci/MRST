@@ -93,6 +93,7 @@ function u = unit_system(rspec)
                  'density'     , kilogram / meter^3  , ...
                  'press'       , barsa               , ...
                  'temp'        , Kelvin              , ... % Abs. temp
+                 'tempoffset'  , 273.15              , ... % Rel. Temp
                  'mol'         , kilo                , ...
                  'mass'        , kilogram            , ...
                  'concentr'    , kilogram / meter^3  , ... % Concentration
@@ -118,6 +119,7 @@ function u = unit_system(rspec)
                  'density'     , pound / ft^3, ...
                  'press'       , psia        , ...
                  'temp'        , Rankine     , ...
+                 'tempoffset'  , 459.67      , ... % Rel. Temp
                  'mol'         , pound*kilo  , ...
                  'mass'        , pound       , ...
                  'concentr'    , pound / stb , ... % Concentration
@@ -143,6 +145,7 @@ function u = unit_system(rspec)
                  'density'     , gram / (centi*meter)^3, ...
                  'press'       , atm                   , ...
                  'temp'        , Kelvin                , ...
+                 'tempoffset'  , 273.15              , ... % Rel. Temp
                  'mol'         , 1                     , ...
                  'mass'        , gram*kilo             , ...
                  'concentr'    , gram / (centi*meter)^3, ...
@@ -168,6 +171,7 @@ function u = unit_system(rspec)
                  'density'     , kilogram / meter^3  , ...
                  'press'       , atm                 , ...
                  'temp'        , Kelvin              , ... % Abs. temp
+                 'tempoffset'  , 273.15              , ... % Rel. Temp
                  'mol'         , kilo                , ...
                  'mass'        , kilogram            , ...
                  'concentr'    , kilogram / meter^3  , ... % Concentration
@@ -194,6 +198,7 @@ function u = unit_system(rspec)
                  'density'     , 1, ...
                  'press'       , 1, ...
                  'temp'        , 1, ...
+                 'tempoffset'  , 0, ... % Always Kelvin
                  'mol'         , 1, ...
                  'mass'        , 1, ...
                  'concentr'    , 1, ...
@@ -386,6 +391,11 @@ function props = convertPROPS(props, u)
             unt         = [u.concentr, u.concentr];
             props.(key) = convertFrom(props.(key), unt);
 
+         case 'PARACHOR'
+            % Always the same units
+            unt         = (((centi*meter)^3)/mol)*(dyne/(centi*meter)).^(-1/4);
+            props.(key) = convertFrom(props.(key), unt);
+
          case 'PLYROCK'
             unt         = [1, 1, u.concentr, 1, 1];
             props.(key) = convertFrom(props.(key), unt);
@@ -468,6 +478,14 @@ function props = convertPROPS(props, u)
             unt         = [u.gasvol_s/u.liqvol_s, u.press];
             props.(key) = convertFrom(props.(key), unt);
 
+         case 'STCOND'
+            d = props.(key);
+            d(1) = convertFrom(d(1) + u.tempoffset, u.temp);
+            d(2) = convertFrom(d(2), u.press);
+            def = [288.7100, 1.01325*barsa];
+            d(isnan(d)) = def(isnan(d));
+            props.(key) = d;
+
          case {'SGFN', 'SWFN'}
             unt = [1, 1, u.press];
 
@@ -493,6 +511,16 @@ function props = convertPROPS(props, u)
          case 'TCRIT'
             unt         = u.temp;
             props.(key) = convertFrom(props.(key), unt);
+            
+         case {'TEMPVD', 'ZMFVD'}
+            for i = 1:numel(props.(key))
+                d = props.(key){i};
+                if strcmp(key, 'TEMPVD')
+                    d(:, 2) = convertFrom(d(:, 2) + u.tempoffset, u.temp);
+                end
+                d(:, 1) = convertFrom(d(:, 1), u.length);
+                props.(key){i} = d;
+            end
 
          case 'VCRIT'
             unt         = u.density / (u.mass*u.mol);
@@ -593,6 +621,7 @@ function props = convertPROPS(props, u)
                'SURFCAPD', ...
                ...
                'ACF', 'BIC', 'CNAMES', 'ROCKOPTS', 'EOS', 'PRCORR', ...
+               'SSHIFT',...
                ...
                'MISC', 'MSFN', 'SSFN', 'SCALECRS', ...
                ...
@@ -637,6 +666,20 @@ function soln = convertSOLUTION(soln, u)
 
             unt        = unt(1 : size(soln.(key), 2));
             soln.(key) = convertFrom(soln.(key), unt);
+
+         case 'FIELDSEP'
+            unt = [1, u.temp, u.press, 1, 1, 1, 1, 1, u.temp, u.press];
+            off = [0, u.tempoffset, 0, 0, 0, 0, 0, 0, u.tempoffset, 0];
+            def = [nan, 288.71, 1*atm];
+            ncol = size(soln.(key), 2);
+            act = 1:ncol;
+            unt = unt(act);
+            off = off(act);
+            soln.(key) = convertFrom(soln.(key) + off, unt);
+            for i = 1:min(ncol, 3)
+                defaulted = isnan(soln.(key)(:, i));
+                soln.(key)(defaulted, i) = def(i);
+            end
 
          case 'DATUM'
             soln.(key) = convertFrom(soln.(key), u.length);

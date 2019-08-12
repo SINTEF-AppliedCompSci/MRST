@@ -48,7 +48,6 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
    % An ECLIPSE keyword consists of at least one, and at most eight,
    % upper-case English (ASCII) characters at the beginning of a line.  Any
    % file data from column 9 up to (and including) the newline are
@@ -66,16 +65,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    matches_kw = @(s) ~isempty(regexp(s, '^[A-Z][A-Z0-9]{0,7}(|/)', 'once'));
 
    kw = fgetl(fid);
-   while ischar(kw) && ~matches_kw(kw),
+   while ischar(kw) && ~matches_kw(kw)
       kw = fgetl(fid);
    end
 
-   if ischar(kw) && kw(end) == '/',
+   if ischar(kw) && kw(end) == '/'
       % Found valid keyword, but the kw string ends in '/'.  Remove slash.
       kw = kw(1:end-1);
    end
 
-   if ischar(kw),
+   if ischar(kw)
       % The keyword consists solely of upper case English characters and
       % digits.  The following is usually, but not always, an expensive
       % no-op.

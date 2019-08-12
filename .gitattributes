@@ -1,4 +1,5 @@
 experimental   export-ignore
+octave         export-ignore
 .gitignore     export-ignore
 .gitattributes export-ignore
 

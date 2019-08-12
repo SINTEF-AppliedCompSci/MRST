@@ -22,7 +22,7 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-   [dims, ntsfun, ntpvt, ntmisc, ntrocc, ncomp, nmeosr] = ...
+   [dims, ntsfun, ntpvt, ntmisc, ntrocc, ncomp, nequil, nmeosr] = ...
       get_dimensions(deck);
 
    [prp, miss_kw] = get_state(deck);
@@ -101,7 +101,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          case 'MSFN'
             prp.(kw) = readRelPermTable(fid, kw, ntsfun, 3);
 
-         case {'MW', 'PCRIT', 'TCRIT', 'VCRIT', 'ZCRIT'}
+         case {'MW', 'PCRIT', 'TCRIT', 'VCRIT', 'ZCRIT', 'PARACHOR'}
             prp.(kw) = readVector(fid, kw, ncomp);
 
          case 'PLYADS'
@@ -198,6 +198,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             tmpl     = { '-1.0', '-1.0' };
             data     = readDefaultedKW(fid, tmpl, 'NRec', ntpvt);
             prp.(kw) = to_double(data);   clear tmpl
+
+         case 'STCOND'
+             tmpl = {'NaN', 'NaN'};
+             prp.(kw) = to_double(readDefaultedKW(fid, tmpl, 'NRec', 1));
+
+         case 'SSHIFT'
+            prp.(kw) = readVector(fid, kw, inf);
 
          case 'SOF2'
             prp.(kw) = readRelPermTable(fid, kw, ntsfun, 2);
@@ -309,6 +316,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             data      = readDefaultedKW(fid, tmpl, 'NRec', ntmisc);
             prp.(kw)  = to_double(data);  clear tmpl
 
+         case {'TEMPVD', 'ZMFVD'}
+             % Temperature vs depth
+            if strcmp(kw, 'TEMPVD')
+                dim = 2;
+            else
+                dim = ncomp + 1;
+            end
+            data = cell(nequil, 1);
+            for i = 1:nequil
+                data{i} = reshape(readVector(fid, kw, inf), dim, [])';
+            end
+            prp.(kw) = data;
+            
          case {'ADD', 'COPY', 'EQUALS', 'MAXVALUE', ...
                'MINVALUE', 'MULTIPLY'}
             prp = applyOperator(prp, fid, kw);
@@ -378,14 +398,14 @@ end
 
 %--------------------------------------------------------------------------
 
-function [dims, ntsfun, ntpvt, ntmisc, ntrocc, ncomp, nmeosr] = ...
+function [dims, ntsfun, ntpvt, ntmisc, ntrocc, ncomp, nequil, nmeosr] = ...
       get_dimensions(deck)
    assert (isstruct(deck) && isfield(deck, 'RUNSPEC') && ...
            isstruct(deck.RUNSPEC));
 
    dims = reshape(deck.RUNSPEC.cartDims, 1, []);
 
-   [ntsfun, ntpvt, ntmisc, ncomp, nmeosr] = deal(1);
+   [ntsfun, ntpvt, ntmisc, ncomp, nequil, nmeosr] = deal(1);
    ntrocc = -1;
 
    if isfield(deck.RUNSPEC, 'TABDIMS')
@@ -406,6 +426,9 @@ function [dims, ntsfun, ntpvt, ntmisc, ntrocc, ncomp, nmeosr] = ...
 
    if isfield(deck.RUNSPEC, 'COMPS')
       ncomp = deck.RUNSPEC.COMPS;
+   end
+   if isfield(deck.RUNSPEC, 'EQLDIMS')
+      nequil = deck.RUNSPEC.EQLDIMS(1);
    end
 end
 
