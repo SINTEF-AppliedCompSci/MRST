@@ -14,7 +14,7 @@
 % control with target bottom-home pressure 260 bar.
 
 clc
-clear
+% clear
 
 mrstModule add ad-core ad-blackoil ad-eor ad-props ...
                deckformat mrst-gui
@@ -88,6 +88,21 @@ fn1 = getPlotAfterStep(state0, model, schedule, ...
     'field', 's:2');
 [wellSolsW, statesW, reportW] = simulateScheduleAD(state0, model, scheduleW, 'afterStepFn', fn1);
 
+% we use schedulew to run the three phase black oil water flooding simulation.
+scheduleP = schedule;
+scheduleP.control(2).W(1).cs = 0;
+fn1 = getPlotAfterStep(state0, model, schedule, ...
+    'plotWell', true, 'plot1d', true,'axis tight', false, ...
+    'field', 's:2');
+[wellSolsP, statesP, reportP] = simulateScheduleAD(state0, model, scheduleP, 'afterStepFn', fn1);
+
+% we use schedulew to run the three phase black oil water flooding simulation.
+scheduleS = schedule;
+scheduleS.control(2).W(1).cp = 0;
+fn1 = getPlotAfterStep(state0, model, schedule, ...
+    'plotWell', true, 'plot1d', true,'axis tight', false, ...
+    'field', 's:2');
+[wellSolsS, statesS, reportS] = simulateScheduleAD(state0, model, scheduleS, 'afterStepFn', fn1);
 %% Plot well solutions
 
 plotWellSols({wellSolsSP, wellSolsW},cumsum(schedule.step.val))
