@@ -69,7 +69,8 @@ classdef VFPTable
                         warning('No ALQ field specified -- but table was provided! Selecting first table.')
                         T = squeeze(T(:, :, :, :, 1));
                     else
-                        extra = [extra, d.ALQID];
+                        pval{end+1} = d.ALQ;
+                        pname{end+1} = 'ALQ';
                     end
                 end
             else
