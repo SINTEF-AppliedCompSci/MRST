@@ -79,7 +79,7 @@ para_Ecl = cellfun(@(y) cellfun(@(x)x(w).(field)/ unit, y),  wellSols_Ecl, 'Unif
 %%
 figure, hold on
 cols = {'r', 'g', 'b', 'k'};
-xx = 4;
+xx = [1,2,3,4];
 arrayfun(@(x)plot(T{x}, para{x}, '-', 'color', cols{x}), xx)
 arrayfun(@(x)plot(T_Ecl{x}, para_Ecl{x}, '--', 'color', cols{x}), xx)
 %%
@@ -89,3 +89,12 @@ plot(T{5}, para{5}, 'g-')
 plot(T_Ecl{1}, para_Ecl{1}, 'b-')
 
 
+%%
+figure, hold on
+s_Ecl = states_Ecl(4);
+plot(statesSP{228,1}.s(:,1), 'r-')
+plot(s_Ecl{1,1}{229,1}.s(:,1), 'ro-')
+plot(statesSP{228,1}.s(:,2), 'g-')
+plot(s_Ecl{1,1}{229,1}.s(:,2), 'go-')
+plot(statesSP{228,1}.s(:,3), 'b-')
+plot(s_Ecl{1,1}{229,1}.s(:,3), 'bo-')
