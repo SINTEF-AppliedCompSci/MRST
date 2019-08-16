@@ -56,7 +56,7 @@ T = cellfun(@(x)x.ReservoirTime / day, report, 'UniformOutput', false);
 casenanme = {'SURFACTANTPOLYMER2D_NOSP',  ...
     'SURFACTANTPOLYMER2D_P', 'SURFACTANTPOLYMER2D_S', 'SURFACTANTPOLYMER2D'};
 
-prefixs = cellfun(@(x)['/home/linzhao/Desktop/1/', x], casenanme, 'UniformOutput', false);
+prefixs = cellfun(@(x)['/home/xinsun/Desktop/Eclipse SP results/', x], casenanme, 'UniformOutput', false);
 
 states_Ecl = cellfun(@(x)convertRestartToStates(x, G), prefixs, 'UniformOutput', false);
 

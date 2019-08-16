@@ -153,14 +153,7 @@ function [problem, state] = equationsThreePhaseSurfactantPolymer(state0, state, 
     [vW, vO, vG, vP]       = deal(phaseFlux{:});
     [upcw, upco, upcg] = deal(flags{:});
     [mobW, mobO, mobG] = deal(mob{:});
-    
-    if isfield(fluid, 'pvMultR')
-        pvMult =  fluid.pvMultR(p);
-        pvMult0 = fluid.pvMultR(p0);
-    end
-    pv = pv.*pvMult;
-    pv0 = pv0.*pvMult0;
-    
+
     muWeffMult = model.getProp(state, 'EffectiveMixturePolymerViscMultiplier');
 
     if model.usingShear || model.usingShearLog || model.usingShearLogshrate

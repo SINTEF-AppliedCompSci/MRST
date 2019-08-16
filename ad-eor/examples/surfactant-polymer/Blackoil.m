@@ -1,3 +1,10 @@
+
+% clc
+% clear
+
+mrstModule add ad-core ad-blackoil ad-eor ad-props ...
+               deckformat mrst-gui
+
 current_dir = fileparts(mfilename('fullpath'));
 fn = fullfile(current_dir, 'Blackoil.DATA');
 % gravity reset on;
