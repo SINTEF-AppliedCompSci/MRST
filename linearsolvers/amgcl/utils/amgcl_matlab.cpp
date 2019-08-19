@@ -114,7 +114,7 @@ void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries, const mx
 
     bool verbose = mxGetScalar(mxGetField(pa, 0, "verbose"));
     bool write_params = mxGetScalar(mxGetField(pa, 0, "write_params"));
-
+    bool update_s = mxGetScalar(mxGetField(pa, 0, "update_sprecond"));
     /***************************************
      * Start AMGCL-link and select options *
      ***************************************/
@@ -172,14 +172,14 @@ void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries, const mx
             std::ofstream file("mrst_amgcl_drs_setup.json");
             boost::property_tree::json_parser::write_json(file, prm);
         }
-        std::tie(iters, error) = solve_shared(cpr_drs_solve_ptr, matrix, b, x, prm, verbose);
+        std::tie(iters, error) = solve_shared_cpr(cpr_drs_solve_ptr, matrix, b, x, prm, update_s, verbose);
     }else{
          if(write_params){
             std::cout << "Writing amgcl setup file to mrst_amgcl_cpr_setup.json" << std::endl;
             std::ofstream file("mrst_amgcl_setup.json");
             boost::property_tree::json_parser::write_json(file, prm);
         }
-        std::tie(iters, error) = solve_shared(cpr_solve_ptr, matrix, b, x, prm, verbose);
+        std::tie(iters, error) = solve_shared_cpr(cpr_solve_ptr, matrix, b, x, prm, update_s, verbose);
     }
 }
 
@@ -238,7 +238,6 @@ void solve_regular(int n, const mwIndex * cols, mwIndex const * rows, const doub
     /***************************************
      *        Solve problem                *
      ***************************************/
-    auto t1 = std::chrono::high_resolution_clock::now();
     if(write_params){
       std::cout << "Writing amgcl setup file to mrst_amgcl_cpr_setup.json" << std::endl;
       std::ofstream file("mrst_regular_setup.json");

@@ -2,7 +2,7 @@
   case B:                                                                       \
   {                                                                             \
   std::tie(iters, error) =                                                      \
-  solve_shared(BOOST_PP_CAT(data, B), matrix, b, x, prm, verbose);                   \
+  solve_shared(BOOST_PP_CAT(data, B), matrix, b, x, prm, verbose);              \
 } break;
 
 #define AMGCL_DEFINE_BLOCK_SOLVER(z, data, B)                                                       \
