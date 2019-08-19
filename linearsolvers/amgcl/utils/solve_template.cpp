@@ -6,7 +6,23 @@ std::tuple<size_t, double> solve_shared(std::shared_ptr<T> & solve_ptr,
                           boost::property_tree::ptree & prm,
                           bool verbose){
       auto t1 = std::chrono::high_resolution_clock::now();
-      if(solve_ptr == nullptr){
+      bool initialized = solve_ptr != nullptr;
+      bool do_setup;
+
+      std::cout << matrix->nrows << std::endl;
+      if(initialized){
+        size_t nrows_precond = (*solve_ptr).system_matrix_ptr()->nrows;
+        size_t nrows = matrix -> nrows;
+        std::cout << "Matrix: " << nrows << " Precond: " << nrows_precond << std::endl;
+        // std::cout << (*solve_ptr).system_matrix_ptr()->nrows;
+        // do_setup = matrix->nrows ==
+        do_setup = nrows_precond != nrows;
+      }else{
+        do_setup = true;
+      }
+
+
+      if(do_setup){
         std::cout << "Initializing solver!" << std::endl;
         solve_ptr = std::make_shared<T>(*matrix, prm);
       }
