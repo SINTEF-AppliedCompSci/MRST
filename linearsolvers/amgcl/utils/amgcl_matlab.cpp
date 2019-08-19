@@ -196,12 +196,11 @@ void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries, const mx
 #define AMGCL_BLOCK_SOLVER(z, data, B)                                           \
   case B:                                                                        \
   {                                                                              \
-  Backend::params bprm;                                                          \
   typedef amgcl::backend::builtin<amgcl::static_matrix<double, B, B> > BBackend; \
   amgcl::make_block_solver<                                                      \
       amgcl::runtime::preconditioner<BBackend>,                                  \
       amgcl::runtime::solver::wrapper<BBackend>                                  \
-  > solve(*matrix, prm, bprm);                                                   \
+  > solve(*matrix, prm);                                                   \
   auto t2 = std::chrono::high_resolution_clock::now();                           \
   if(verbose){                                                                   \
       std::cout << "Solver setup took "                                          \
