@@ -85,10 +85,9 @@ typedef amgcl::make_solver<
 
 BOOST_PP_SEQ_FOR_EACH(AMGCL_DEFINE_BLOCK_SOLVER, BlockSolverSize, AMGCL_BLOCK_SIZES)
 
-
-
 static void reset_solvers(void){
     scalar_solve_ptr.reset();
+    BOOST_PP_SEQ_FOR_EACH(AMGCL_RESET_BLOCK_SOLVER, ~, AMGCL_BLOCK_SIZES)
 }
 // CPR Gateway
 void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries, const mxArray * pa,
@@ -266,9 +265,7 @@ void solve_regular(int n, const mwIndex * cols, mwIndex const * rows, const doub
       {
         std::tie(iters, error) = solve_shared(scalar_solve_ptr, matrix, b, x, prm, verbose);
       } break;
-#if defined(SOLVER_BACKEND_BUILTIN)
-        BOOST_PP_SEQ_FOR_EACH(AMGCL_BLOCK_SOLVER, ~, AMGCL_BLOCK_SIZES)
-#endif
+      BOOST_PP_SEQ_FOR_EACH(AMGCL_BLOCK_SOLVER, BlockSolverSize, AMGCL_BLOCK_SIZES)
         default:
             mexErrMsgIdAndTxt("AMGCL:UndefBlockSize", "Failure: Block size not supported.");
     }
