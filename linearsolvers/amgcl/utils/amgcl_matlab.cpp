@@ -34,6 +34,7 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/preprocessor/seq/for_each.hpp>
+#include <boost/preprocessor/cat.hpp>
 #include <boost/range/iterator_range_core.hpp>
 
 /* MEX interfaces */
@@ -44,6 +45,7 @@
 #ifndef AMGCL_BLOCK_SIZES
 #  define AMGCL_BLOCK_SIZES (2)
 #endif
+#include "amgcl_block_macros.cpp"
 
 #ifndef SOLVER_BACKEND_BUILTIN
 #  define SOLVER_BACKEND_BUILTIN
@@ -80,6 +82,9 @@ typedef amgcl::make_solver<
             amgcl::preconditioner::cpr_drs<PPrecond, SPrecond>,
             amgcl::runtime::solver::wrapper<Backend>
             > CPRSolverDRS;
+
+BOOST_PP_SEQ_FOR_EACH(AMGCL_DEFINE_BLOCK_SOLVER, BlockSolverSize, AMGCL_BLOCK_SIZES)
+
 
 
 static void reset_solvers(void){
@@ -191,28 +196,6 @@ void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries, const mx
         }
     }
 }
-
-
-#define AMGCL_BLOCK_SOLVER(z, data, B)                                           \
-  case B:                                                                        \
-  {                                                                              \
-  typedef amgcl::backend::builtin<amgcl::static_matrix<double, B, B> > BBackend; \
-  amgcl::make_block_solver<                                                      \
-      amgcl::runtime::preconditioner<BBackend>,                                  \
-      amgcl::runtime::solver::wrapper<BBackend>                                  \
-  > solve(*matrix, prm);                                                   \
-  auto t2 = std::chrono::high_resolution_clock::now();                           \
-  if(verbose){                                                                   \
-      std::cout << "Solver setup took "                                          \
-                << (double)std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count()/1000.0 \
-                << " seconds\n";                                                 \
-  }                                                                              \
-  std::tie(iters, error) = solve(b, x);                                          \
-  if(verbose){                                                                   \
-      std::cout << solve << std::endl;                                           \
-  }                                                                              \
-} break;
-
 
 void solve_regular(int n, const mwIndex * cols, mwIndex const * rows, const double * entries, const mxArray * pa,
         const std::vector<double> & b, std::vector<double> & x, double tolerance,
