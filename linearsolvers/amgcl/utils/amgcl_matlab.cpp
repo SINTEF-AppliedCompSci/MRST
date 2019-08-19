@@ -2,32 +2,35 @@
 // include necessary system headers
 //
 #define _USE_MATH_DEFINES
+#include "matrix.h"
+
 #include <cmath>
 #include <mex.h>
 #include <array>
-#include "matrix.h"
 #include <memory>
-
+#include <string>
+#include <chrono>
 #include <iostream>
-#include <amgcl/make_solver.hpp>
-#include <amgcl/solver/runtime.hpp>
 
+#include <amgcl/make_solver.hpp>
+#include <amgcl/backend/builtin.hpp>
+// AMG, relaxation etc
 #include <amgcl/amg.hpp>
+#include <amgcl/relaxation/as_preconditioner.hpp>
+// Matrix adapters
 #include <amgcl/adapter/crs_tuple.hpp>
 #include <amgcl/backend/block_crs.hpp>
 #include <amgcl/adapter/zero_copy.hpp>
-#include <amgcl/backend/builtin.hpp>
+// Include runtime parameters
 #include <amgcl/coarsening/runtime.hpp>
 #include <amgcl/relaxation/runtime.hpp>
-#include <amgcl/relaxation/as_preconditioner.hpp>
-#include <string>
-#include <chrono>
+#include <amgcl/solver/runtime.hpp>
 #include <amgcl/preconditioner/runtime.hpp>
 
+// CPR
 #include <amgcl/preconditioner/cpr.hpp>
 #include <amgcl/preconditioner/cpr_drs.hpp>
-#include <boost/property_tree/json_parser.hpp>
-
+// Utilities etc
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/preprocessor/seq/for_each.hpp>
@@ -345,6 +348,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     double tolerance = mxGetScalar(prhs[3]);
     int maxiter = mxGetScalar(prhs[4]);
     int solver_strategy_id = mxGetScalar(prhs[5]);
+    bool verbose = mxGetScalar(mxGetField(pa, 0, "verbose"));
     int reuse_mode;
     if(nrhs > 6){
         reuse_mode = mxGetScalar(prhs[6]);
@@ -376,7 +380,9 @@ void mexFunction( int nlhs, mxArray *plhs[],
             break;
         case 1000:
             // Remove shared pointers
-            std::cout << "Resetting all solvers." << std::endl;
+            if(verbose){
+                std::cout << "Resetting all solvers." << std::endl;
+            }
             reset_solvers();
             break;
         default : mexErrMsgTxt("Unknown solver_strategy_id.");
