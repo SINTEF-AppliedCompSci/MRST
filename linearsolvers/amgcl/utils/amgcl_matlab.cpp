@@ -265,7 +265,7 @@ void solve_regular(int n, const mwIndex * cols, mwIndex const * rows, const doub
       {
         std::tie(iters, error) = solve_shared(scalar_solve_ptr, matrix, b, x, prm, verbose);
       } break;
-      BOOST_PP_SEQ_FOR_EACH(AMGCL_BLOCK_SOLVER, BlockSolverSize, AMGCL_BLOCK_SIZES)
+      BOOST_PP_SEQ_FOR_EACH(AMGCL_BLOCK_SOLVER, block_solve_ptr, AMGCL_BLOCK_SIZES)
         default:
             mexErrMsgIdAndTxt("AMGCL:UndefBlockSize", "Failure: Block size not supported.");
     }
