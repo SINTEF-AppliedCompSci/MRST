@@ -63,7 +63,7 @@ typedef amgcl::make_solver<
     amgcl::runtime::solver::wrapper<Backend>
 > ScalarSolver;
 
-// ScalarSolver scalar_solve;
+// Shared pointer for scalar solver
 static std::shared_ptr<ScalarSolver> scalar_solve_ptr(nullptr);
 
 // Pressure solver for CPR
@@ -77,16 +77,27 @@ typedef amgcl::make_solver<
             amgcl::preconditioner::cpr<PPrecond, SPrecond>,
             amgcl::runtime::solver::wrapper<Backend>
             > CPRSolver;
+
+static std::shared_ptr<CPRSolver> cpr_solve_ptr(nullptr);
+
 // CPR with dynamic row sum
 typedef amgcl::make_solver<
             amgcl::preconditioner::cpr_drs<PPrecond, SPrecond>,
             amgcl::runtime::solver::wrapper<Backend>
             > CPRSolverDRS;
 
+static std::shared_ptr<CPRSolverDRS> cpr_drs_solve_ptr(nullptr);
+
 BOOST_PP_SEQ_FOR_EACH(AMGCL_DEFINE_BLOCK_SOLVER, BlockSolverSize, AMGCL_BLOCK_SIZES)
 
 static void reset_solvers(void){
+    // Reset scalar solver
     scalar_solve_ptr.reset();
+    // Reset CPR
+    cpr_solve_ptr.reset();
+    // Reset CPR-DRS
+    cpr_drs_solve_ptr.reset();
+    // Reset basic block solvers
     BOOST_PP_SEQ_FOR_EACH(AMGCL_RESET_BLOCK_SOLVER, ~, AMGCL_BLOCK_SIZES)
 }
 // CPR Gateway
@@ -161,38 +172,14 @@ void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries, const mx
             std::ofstream file("mrst_amgcl_drs_setup.json");
             boost::property_tree::json_parser::write_json(file, prm);
         }
-        CPRSolverDRS solve(matrix, prm);
-        auto t2 = std::chrono::high_resolution_clock::now();
-
-        if(verbose){
-            std::cout << "CPR setup took "
-                      << (double)std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count()/1000.0
-                      << " seconds\n";
-        }
-        std::tie(iters, error) = solve(b, x);
-
-        if(verbose){
-            std::cout << solve << std::endl;
-        }
+        std::tie(iters, error) = solve_shared(cpr_drs_solve_ptr, matrix, b, x, prm, verbose);
     }else{
          if(write_params){
             std::cout << "Writing amgcl setup file to mrst_amgcl_cpr_setup.json" << std::endl;
             std::ofstream file("mrst_amgcl_setup.json");
             boost::property_tree::json_parser::write_json(file, prm);
         }
-        CPRSolver solve(matrix, prm);
-
-        auto t2 = std::chrono::high_resolution_clock::now();
-        if(verbose){
-            std::cout << "CPR setup took "
-                      << (double)std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count()/1000.0
-                      << " seconds\n";
-        }
-        std::tie(iters, error) = solve(b, x);
-
-        if(verbose){
-            std::cout << solve << std::endl;
-        }
+        std::tie(iters, error) = solve_shared(cpr_solve_ptr, matrix, b, x, prm, verbose);
     }
 }
 
