@@ -78,6 +78,10 @@ typedef amgcl::make_solver<
             amgcl::runtime::solver::wrapper<Backend>
             > CPRSolverDRS;
 
+
+void reset_solvers(){
+    scalar_solve_ptr.reset();
+}
 // CPR Gateway
 void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries, const mxArray * pa,
         std::vector<double> b, std::vector<double> & x, double tolerance,
@@ -305,8 +309,8 @@ void mexFunction( int nlhs, mxArray *plhs[],
     std::string relaxParam;
     std::string coarsenParam;
 
-    if (nrhs != 6) {
-	    mexErrMsgTxt("6 input arguments required.");
+    if (nrhs != 6 && nrhs != 7) {
+	    mexErrMsgTxt("6 or 7 input arguments required.");
     } else if (nlhs > 3) {
 	    mexErrMsgTxt("Wrong number of output arguments.");
     }
@@ -341,7 +345,10 @@ void mexFunction( int nlhs, mxArray *plhs[],
     double tolerance = mxGetScalar(prhs[3]);
     int maxiter = mxGetScalar(prhs[4]);
     int solver_strategy_id = mxGetScalar(prhs[5]);
-
+    int reuse_mode;
+    if(nrhs > 6){
+        reuse_mode = mxGetScalar(prhs[6]);
+    }
 
     std::vector<double> b(n);
     for(int ix = 0; ix < n; ix++){
@@ -350,6 +357,16 @@ void mexFunction( int nlhs, mxArray *plhs[],
     int    iters;
     double error;
     std::vector<double> x(M, 0.0);
+    switch(reuse_mode){
+      case 1:
+          // Default: No reuse, delete all if present
+          reset_solvers();
+          break;
+      case 2:
+          // Perform reuse
+          break;
+    }
+
     switch(solver_strategy_id) {
         case 1:
             solve_regular(M, cols, rows, entries, pa, b, x, tolerance, maxiter, iters, error);
@@ -358,13 +375,15 @@ void mexFunction( int nlhs, mxArray *plhs[],
             solve_cpr(M, cols, rows, entries, pa, b, x, tolerance, maxiter, iters, error);
             break;
         case 1000:
-            // Remove shared pointer
-            std::cout << "Resetting scalar solver." << std::endl;
-            scalar_solve_ptr.reset();
+            // Remove shared pointers
+            std::cout << "Resetting all solvers." << std::endl;
+            reset_solvers();
             break;
         default : mexErrMsgTxt("Unknown solver_strategy_id.");
     }
-
+    if(reuse_mode == 1){
+      reset_solvers();
+    }
     for(int ix=0; ix < M; ix++){
         result[ix] = x[ix];
     }

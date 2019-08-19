@@ -11,16 +11,10 @@ std::tuple<size_t, double> solve_shared(std::shared_ptr<T> & solve_ptr,
 
       std::cout << matrix->nrows << std::endl;
       if(initialized){
-        size_t nrows_precond = (*solve_ptr).system_matrix_ptr()->nrows;
-        size_t nrows = matrix -> nrows;
-        std::cout << "Matrix: " << nrows << " Precond: " << nrows_precond << std::endl;
-        // std::cout << (*solve_ptr).system_matrix_ptr()->nrows;
-        // do_setup = matrix->nrows ==
-        do_setup = nrows_precond != nrows;
+        do_setup = check_preconditioner_validity(solve_ptr, matrix);
       }else{
         do_setup = true;
       }
-
 
       if(do_setup){
         std::cout << "Initializing solver!" << std::endl;
@@ -40,3 +34,13 @@ std::tuple<size_t, double> solve_shared(std::shared_ptr<T> & solve_ptr,
       }
       return result;
 };
+template <class T, typename M>
+bool check_preconditioner_validity(std::shared_ptr<T> & solve_ptr, const M matrix){
+  size_t nrows_precond = (*solve_ptr).system_matrix_ptr()->nrows;
+  size_t nrows = matrix -> nrows;
+  std::cout << "Matrix: " << nrows << " Precond: " << nrows_precond << std::endl;
+  // std::cout << (*solve_ptr).system_matrix_ptr()->nrows;
+  // do_setup = matrix->nrows ==
+  bool do_setup = nrows_precond != nrows;
+  return do_setup;
+}
