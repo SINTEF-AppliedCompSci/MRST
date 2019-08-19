@@ -60,18 +60,15 @@ void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries, const mx
     int active_rows = mxGetScalar(mxGetField(pa, 0, "active_rows"));
     bool use_drs = mxGetScalar(mxGetField(pa, 0, "use_drs"));
 
-
     int relax_p_id = mxGetScalar(mxGetField(pa, 0, "relaxation"));
     int relax_s_id = mxGetScalar(mxGetField(pa, 0, "s_relaxation"));
 
     bool verbose = mxGetScalar(mxGetField(pa, 0, "verbose"));
     bool write_params = mxGetScalar(mxGetField(pa, 0, "write_params"));
 
-
     /***************************************
      * Start AMGCL-link and select options *
      ***************************************/
-
     typedef
     amgcl::amg<Backend, amgcl::runtime::coarsening::wrapper, amgcl::runtime::relaxation::wrapper>
         PPrecond;
@@ -208,15 +205,6 @@ void solve_regular(int n, const mwIndex * cols, mwIndex const * rows, const doub
     /***************************************
      * Start AMGCL-link and select options *
      ***************************************/
-    typedef amgcl::backend::builtin<double> Backend;
-
-    typedef
-    amgcl::amg<Backend, amgcl::runtime::coarsening::wrapper, amgcl::runtime::relaxation::wrapper>
-        PPrecond;
-
-    typedef
-    amgcl::relaxation::as_preconditioner<Backend, amgcl::runtime::relaxation::wrapper>
-            SPrecond;
 
     boost::property_tree::ptree prm;
     /* Set tolerance */
