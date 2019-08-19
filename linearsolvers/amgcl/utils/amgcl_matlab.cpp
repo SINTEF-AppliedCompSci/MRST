@@ -35,6 +35,7 @@
 
 /* MEX interfaces */
 #include "amgcl_mex_utils.cpp"
+#include "solve_template.cpp"
 
 /* Block system support */
 #ifndef AMGCL_BLOCK_SIZES
@@ -274,21 +275,7 @@ void solve_regular(int n, const mwIndex * cols, mwIndex const * rows, const doub
       case 0:
       case 1:
       {
-        if(scalar_solve_ptr == nullptr){
-          std::cout << "Initializing solver!" << std::endl;
-          scalar_solve_ptr = std::make_shared<ScalarSolver>(*matrix, prm);
-        }
-        auto t2 = std::chrono::high_resolution_clock::now();
-        if(verbose){
-            std::cout << "Solver setup took "
-                      << (double)std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count()/1000.0
-                      << " seconds\n";
-        }
-        std::tie(iters, error) = (*scalar_solve_ptr)(b, x);
-
-        if(verbose){
-            std::cout << (*scalar_solve_ptr) << std::endl;
-        }
+        std::tie(iters, error) = solve_shared(scalar_solve_ptr, matrix, b, x, prm, verbose);
       } break;
 #if defined(SOLVER_BACKEND_BUILTIN)
         BOOST_PP_SEQ_FOR_EACH(AMGCL_BLOCK_SOLVER, ~, AMGCL_BLOCK_SIZES)
@@ -297,6 +284,7 @@ void solve_regular(int n, const mwIndex * cols, mwIndex const * rows, const doub
             mexErrMsgIdAndTxt("AMGCL:UndefBlockSize", "Failure: Block size not supported.");
     }
 }
+
 
 /* MEX gateway */
 
