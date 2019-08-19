@@ -38,7 +38,7 @@
 
 /* Block system support */
 #ifndef AMGCL_BLOCK_SIZES
-#  define AMGCL_BLOCK_SIZES (2)(3)(4)(5)(6)(7)(8)(9)(10)
+#  define AMGCL_BLOCK_SIZES (2)
 #endif
 
 #ifndef SOLVER_BACKEND_BUILTIN
@@ -51,6 +51,29 @@
 #include <amgcl/adapter/crs_tuple.hpp>
 
 typedef amgcl::backend::builtin<double> Backend;
+// Scalar solver
+typedef amgcl::make_solver<
+    amgcl::runtime::preconditioner<Backend>,
+    amgcl::runtime::solver::wrapper<Backend>
+> ScalarSolver;
+// Pressure solver for CPR
+typedef
+amgcl::amg<Backend, amgcl::runtime::coarsening::wrapper, amgcl::runtime::relaxation::wrapper>
+    PPrecond;
+// Second-stage solver for CPR
+typedef
+amgcl::relaxation::as_preconditioner<Backend, amgcl::runtime::relaxation::wrapper>
+        SPrecond;
+
+typedef amgcl::make_solver<
+            amgcl::preconditioner::cpr<PPrecond, SPrecond>,
+            amgcl::runtime::solver::wrapper<Backend>
+            > CPRSolve;
+
+typedef amgcl::make_solver<
+            amgcl::preconditioner::cpr_drs<PPrecond, SPrecond>,
+            amgcl::runtime::solver::wrapper<Backend>
+            > CPRSolveDRS;
 
 void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries, const mxArray * pa,
         std::vector<double> b, std::vector<double> & x, double tolerance,
@@ -69,13 +92,7 @@ void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries, const mx
     /***************************************
      * Start AMGCL-link and select options *
      ***************************************/
-    typedef
-    amgcl::amg<Backend, amgcl::runtime::coarsening::wrapper, amgcl::runtime::relaxation::wrapper>
-        PPrecond;
 
-    typedef
-    amgcl::relaxation::as_preconditioner<Backend, amgcl::runtime::relaxation::wrapper>
-            SPrecond;
     boost::property_tree::ptree prm;
     /* Set tolerance */
     prm.put("solver.tol", tolerance);
@@ -129,10 +146,7 @@ void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries, const mx
             std::ofstream file("mrst_amgcl_drs_setup.json");
             boost::property_tree::json_parser::write_json(file, prm);
         }
-        amgcl::make_solver<
-            amgcl::preconditioner::cpr_drs<PPrecond, SPrecond>,
-            amgcl::runtime::solver::wrapper<Backend>
-            > solve(matrix, prm);
+        CPRSolveDRS solve(matrix, prm);
         auto t2 = std::chrono::high_resolution_clock::now();
 
         if(verbose){
@@ -151,10 +165,7 @@ void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries, const mx
             std::ofstream file("mrst_amgcl_setup.json");
             boost::property_tree::json_parser::write_json(file, prm);
         }
-        amgcl::make_solver<
-            amgcl::preconditioner::cpr<PPrecond, SPrecond>,
-            amgcl::runtime::solver::wrapper<Backend>
-            > solve(matrix, prm);
+        CPRSolve solve(matrix, prm);
 
         auto t2 = std::chrono::high_resolution_clock::now();
         if(verbose){
@@ -260,10 +271,7 @@ void solve_regular(int n, const mwIndex * cols, mwIndex const * rows, const doub
       case 0:
       case 1:
       {
-        amgcl::make_solver<
-            amgcl::runtime::preconditioner<Backend>,
-            amgcl::runtime::solver::wrapper<Backend>
-        > solve(* matrix, prm);
+        ScalarSolver solve(* matrix, prm);
 
         auto t2 = std::chrono::high_resolution_clock::now();
         if(verbose){
@@ -334,7 +342,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     cols    = mxGetJc(prhs[0]);
     rows    = mxGetIr(prhs[0]);
     entries = mxGetPr(prhs[0]);
-    nnz  = mxGetNzmax(prhs[0]);
+    nnz     = mxGetNzmax(prhs[0]);
     rhs     = mxGetPr(prhs[1]);
     pa = prhs[2];
     double tolerance = mxGetScalar(prhs[3]);
