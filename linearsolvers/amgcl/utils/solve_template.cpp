@@ -1,5 +1,5 @@
 template <class T, typename M>
-std::tuple<size_t, double> solve_shared(std::shared_ptr<T> solve_ptr,
+std::tuple<size_t, double> solve_shared(std::shared_ptr<T> & solve_ptr,
                           const M matrix,
                           const std::vector<double> & b,
                           std::vector<double> & x,
