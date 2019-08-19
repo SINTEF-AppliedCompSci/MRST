@@ -6,7 +6,7 @@
 #include <mex.h>
 #include <array>
 #include "matrix.h"
-
+#include <memory>
 
 #include <iostream>
 #include <amgcl/make_solver.hpp>
@@ -56,25 +56,28 @@ typedef amgcl::make_solver<
     amgcl::runtime::preconditioner<Backend>,
     amgcl::runtime::solver::wrapper<Backend>
 > ScalarSolver;
+
+// ScalarSolver scalar_solve;
+std::shared_ptr<ScalarSolver> scalar_solve_ptr(nullptr);
+
 // Pressure solver for CPR
-typedef
-amgcl::amg<Backend, amgcl::runtime::coarsening::wrapper, amgcl::runtime::relaxation::wrapper>
+typedef amgcl::amg<Backend, amgcl::runtime::coarsening::wrapper, amgcl::runtime::relaxation::wrapper>
     PPrecond;
 // Second-stage solver for CPR
-typedef
-amgcl::relaxation::as_preconditioner<Backend, amgcl::runtime::relaxation::wrapper>
+typedef amgcl::relaxation::as_preconditioner<Backend, amgcl::runtime::relaxation::wrapper>
         SPrecond;
-
+// Regular CPR
 typedef amgcl::make_solver<
             amgcl::preconditioner::cpr<PPrecond, SPrecond>,
             amgcl::runtime::solver::wrapper<Backend>
-            > CPRSolve;
-
+            > CPRSolver;
+// CPR with dynamic row sum
 typedef amgcl::make_solver<
             amgcl::preconditioner::cpr_drs<PPrecond, SPrecond>,
             amgcl::runtime::solver::wrapper<Backend>
-            > CPRSolveDRS;
+            > CPRSolverDRS;
 
+// CPR Gateway
 void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries, const mxArray * pa,
         std::vector<double> b, std::vector<double> & x, double tolerance,
         int maxiter, int & iters, double & error){
@@ -146,7 +149,7 @@ void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries, const mx
             std::ofstream file("mrst_amgcl_drs_setup.json");
             boost::property_tree::json_parser::write_json(file, prm);
         }
-        CPRSolveDRS solve(matrix, prm);
+        CPRSolverDRS solve(matrix, prm);
         auto t2 = std::chrono::high_resolution_clock::now();
 
         if(verbose){
@@ -165,7 +168,7 @@ void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries, const mx
             std::ofstream file("mrst_amgcl_setup.json");
             boost::property_tree::json_parser::write_json(file, prm);
         }
-        CPRSolve solve(matrix, prm);
+        CPRSolver solve(matrix, prm);
 
         auto t2 = std::chrono::high_resolution_clock::now();
         if(verbose){
@@ -271,18 +274,17 @@ void solve_regular(int n, const mwIndex * cols, mwIndex const * rows, const doub
       case 0:
       case 1:
       {
-        ScalarSolver solve(* matrix, prm);
-
+        scalar_solve_ptr = std::make_shared<ScalarSolver>(*matrix, prm);
         auto t2 = std::chrono::high_resolution_clock::now();
         if(verbose){
             std::cout << "Solver setup took "
                       << (double)std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count()/1000.0
                       << " seconds\n";
         }
-        std::tie(iters, error) = solve(b, x);
+        std::tie(iters, error) = (*scalar_solve_ptr)(b, x);
 
         if(verbose){
-            std::cout << solve << std::endl;
+            std::cout << (*scalar_solve_ptr) << std::endl;
         }
       } break;
 #if defined(SOLVER_BACKEND_BUILTIN)
