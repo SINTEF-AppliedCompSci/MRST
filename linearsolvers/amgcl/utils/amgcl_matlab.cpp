@@ -79,7 +79,7 @@ typedef amgcl::make_solver<
             > CPRSolverDRS;
 
 
-void reset_solvers(){
+static void reset_solvers(void){
     scalar_solve_ptr.reset();
 }
 // CPR Gateway
@@ -391,5 +391,6 @@ void mexFunction( int nlhs, mxArray *plhs[],
     b.clear();
     err[0] = error;
     it_count[0] = iters;
+    mexAtExit(reset_solvers);
     return;
 }
