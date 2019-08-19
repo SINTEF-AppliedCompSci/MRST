@@ -68,7 +68,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     opt = struct('isTransposed',  false, ...
                  'tolerance',     1e-6, ...
-                 'maxIterations',  0);
+                 'maxIterations',  0, ...
+                 'reset', false);
 
     [opt, cl_opts] = merge_options(opt, varargin{:});
 
@@ -80,7 +81,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     t = tic();
     [x, err, nIter] = ...
-       amgcl_matlab(A, b, amg_opt, opt.tolerance, opt.maxIterations, 1);
+       amgcl_matlab(A, b, amg_opt, opt.tolerance, opt.maxIterations, 1 + 999*opt.reset);
     t_solve = toc(t);
     if nargout == 1
         if err > opt.tolerance

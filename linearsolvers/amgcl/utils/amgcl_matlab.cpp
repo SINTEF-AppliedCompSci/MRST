@@ -58,7 +58,7 @@ typedef amgcl::make_solver<
 > ScalarSolver;
 
 // ScalarSolver scalar_solve;
-std::shared_ptr<ScalarSolver> scalar_solve_ptr(nullptr);
+static std::shared_ptr<ScalarSolver> scalar_solve_ptr(nullptr);
 
 // Pressure solver for CPR
 typedef amgcl::amg<Backend, amgcl::runtime::coarsening::wrapper, amgcl::runtime::relaxation::wrapper>
@@ -274,7 +274,10 @@ void solve_regular(int n, const mwIndex * cols, mwIndex const * rows, const doub
       case 0:
       case 1:
       {
-        scalar_solve_ptr = std::make_shared<ScalarSolver>(*matrix, prm);
+        if(scalar_solve_ptr == nullptr){
+          std::cout << "Initializing solver!" << std::endl;
+          scalar_solve_ptr = std::make_shared<ScalarSolver>(*matrix, prm);
+        }
         auto t2 = std::chrono::high_resolution_clock::now();
         if(verbose){
             std::cout << "Solver setup took "
@@ -365,6 +368,11 @@ void mexFunction( int nlhs, mxArray *plhs[],
             break;
         case 2:
             solve_cpr(M, cols, rows, entries, pa, b, x, tolerance, maxiter, iters, error);
+            break;
+        case 1000:
+            // Remove shared pointer
+            std::cout << "Resetting scalar solver." << std::endl;
+            scalar_solve_ptr.reset();
             break;
         default : mexErrMsgTxt("Unknown solver_strategy_id.");
     }
