@@ -88,6 +88,7 @@ typedef amgcl::make_solver<
 
 static std::shared_ptr<CPRSolverDRS> cpr_drs_solve_ptr(nullptr);
 
+BOOST_PP_SEQ_FOR_EACH(AMGCL_DEFINE_BLOCK_TYPES, ~, AMGCL_BLOCK_SIZES)
 BOOST_PP_SEQ_FOR_EACH(AMGCL_DEFINE_BLOCK_SOLVER, BlockSolverSize, AMGCL_BLOCK_SIZES)
 
 static void reset_solvers(void){
