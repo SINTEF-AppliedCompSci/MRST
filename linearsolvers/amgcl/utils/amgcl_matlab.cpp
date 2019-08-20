@@ -103,6 +103,9 @@ static void reset_solvers(void){
     cpr_drs_solve_ptr.reset();
     // Reset basic block solvers
     BOOST_PP_SEQ_FOR_EACH(AMGCL_RESET_BLOCK_SOLVER, block_solve_ptr, AMGCL_BLOCK_SIZES)
+    // Reset CPR variants
+    BOOST_PP_SEQ_FOR_EACH(AMGCL_RESET_BLOCK_SOLVER, cpr_block_solve_ptr, AMGCL_BLOCK_SIZES)
+    BOOST_PP_SEQ_FOR_EACH(AMGCL_RESET_BLOCK_SOLVER, cpr_drs_block_solve_ptr, AMGCL_BLOCK_SIZES)
 }
 // CPR Gateway
 void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries, const mxArray * pa,
@@ -119,6 +122,7 @@ void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries, const mx
     bool verbose = mxGetScalar(mxGetField(pa, 0, "verbose"));
     bool write_params = mxGetScalar(mxGetField(pa, 0, "write_params"));
     bool update_s = mxGetScalar(mxGetField(pa, 0, "update_sprecond"));
+    bool use_blocks = mxGetScalar(mxGetField(pa, 0, "cpr_blocksolver"));
     /***************************************
      * Start AMGCL-link and select options *
      ***************************************/
@@ -176,15 +180,22 @@ void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries, const mx
             std::ofstream file("mrst_amgcl_drs_setup.json");
             boost::property_tree::json_parser::write_json(file, prm);
         }
-        std::tie(iters, error) = solve_shared_cpr(cpr_drs_solve_ptr, matrix, b, x, prm, matrix->nrows, update_s, verbose);
+        if(!use_blocks){
+          std::tie(iters, error) = solve_shared_cpr(cpr_drs_solve_ptr, matrix, b, x, prm, matrix->nrows, update_s, verbose);
+        }else{
+          switch(block_size){
+            BOOST_PP_SEQ_FOR_EACH(AMGCL_BLOCK_CPR_SOLVER, cpr_drs_block_solve_ptr, AMGCL_BLOCK_SIZES)
+            default:
+                mexErrMsgIdAndTxt("AMGCL:UndefBlockSize", "Failure: Block size not supported.");
+          }
+        }
     }else{
          if(write_params){
             std::cout << "Writing amgcl setup file to mrst_amgcl_cpr_setup.json" << std::endl;
             std::ofstream file("mrst_amgcl_setup.json");
             boost::property_tree::json_parser::write_json(file, prm);
         }
-        bool runtime_blocks = false;
-        if(runtime_blocks){
+        if(!use_blocks){
           std::tie(iters, error) = solve_shared_cpr(cpr_solve_ptr, matrix, b, x, prm, matrix->nrows, update_s, verbose);
         }else{
           switch(block_size){
