@@ -67,11 +67,13 @@ typedef amgcl::make_solver<
 static std::shared_ptr<ScalarSolver> scalar_solve_ptr(nullptr);
 
 // Pressure solver for CPR
-typedef amgcl::amg<Backend, amgcl::runtime::coarsening::wrapper, amgcl::runtime::relaxation::wrapper>
-    PPrecond;
+typedef amgcl::amg<Backend,
+    amgcl::runtime::coarsening::wrapper,
+    amgcl::runtime::relaxation::wrapper
+> PPrecond;
 // Second-stage solver for CPR
 typedef amgcl::relaxation::as_preconditioner<Backend, amgcl::runtime::relaxation::wrapper>
-        SPrecond;
+    SPrecond;
 // Regular CPR
 typedef amgcl::make_solver<
             amgcl::preconditioner::cpr<PPrecond, SPrecond>,
@@ -90,6 +92,7 @@ static std::shared_ptr<CPRSolverDRS> cpr_drs_solve_ptr(nullptr);
 
 BOOST_PP_SEQ_FOR_EACH(AMGCL_DEFINE_BLOCK_TYPES, ~, AMGCL_BLOCK_SIZES)
 BOOST_PP_SEQ_FOR_EACH(AMGCL_DEFINE_BLOCK_SOLVER, BlockSolverSize, AMGCL_BLOCK_SIZES)
+BOOST_PP_SEQ_FOR_EACH(AMGCL_DEFINE_BLOCK_CPR_SOLVERS, ~, AMGCL_BLOCK_SIZES)
 
 static void reset_solvers(void){
     // Reset scalar solver
@@ -99,7 +102,7 @@ static void reset_solvers(void){
     // Reset CPR-DRS
     cpr_drs_solve_ptr.reset();
     // Reset basic block solvers
-    BOOST_PP_SEQ_FOR_EACH(AMGCL_RESET_BLOCK_SOLVER, ~, AMGCL_BLOCK_SIZES)
+    BOOST_PP_SEQ_FOR_EACH(AMGCL_RESET_BLOCK_SOLVER, block_solve_ptr, AMGCL_BLOCK_SIZES)
 }
 // CPR Gateway
 void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries, const mxArray * pa,
