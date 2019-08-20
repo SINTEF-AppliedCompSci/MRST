@@ -43,7 +43,7 @@
 
 /* Block system support */
 #ifndef AMGCL_BLOCK_SIZES
-#  define AMGCL_BLOCK_SIZES (2)
+#  define AMGCL_BLOCK_SIZES (2)(3)(4)(5)(6)(7)(8)(9)(10)
 #endif
 #include "amgcl_block_macros.cpp"
 
