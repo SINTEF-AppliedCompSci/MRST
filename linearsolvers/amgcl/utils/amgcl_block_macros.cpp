@@ -46,6 +46,10 @@
   auto b_local = amgcl::make_iterator_range(b_ptr, b_ptr + n); \
   std::tie(iters, error) =                                                      \
   solve_shared_cpr(BOOST_PP_CAT(solver_name, B), M, b_local, x_local, prm, matrix->nrows, update_s, verbose);              \
+  auto x_data = x_local.data(); \
+  for(int i = 0; i < matrix->nrows; i++){ \
+    x[i] = x_data[i / B](i % B); \
+  } \
 } break;
 
 // Define reset of named block solver
