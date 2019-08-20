@@ -339,8 +339,10 @@ void mexFunction( int nlhs, mxArray *plhs[],
     int solver_strategy_id = mxGetScalar(prhs[5]);
     bool verbose = mxGetScalar(mxGetField(pa, 0, "verbose"));
     int reuse_mode;
-    if(nrhs > 6){
-        reuse_mode = mxGetScalar(prhs[6]);
+    if(nrhs == 7){
+      reuse_mode = mxGetScalar(prhs[6]);
+    }else{
+      reuse_mode = 1;
     }
 
     std::vector<double> b(n);
@@ -358,6 +360,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
       case 2:
           // Perform reuse
           break;
+      default : mexErrMsgTxt("Unknown reuse mode: Must be 1 for no reuse or 2 for reuse.");
     }
 
     switch(solver_strategy_id) {
