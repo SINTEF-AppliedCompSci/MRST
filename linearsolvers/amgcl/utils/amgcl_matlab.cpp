@@ -176,14 +176,23 @@ void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries, const mx
             std::ofstream file("mrst_amgcl_drs_setup.json");
             boost::property_tree::json_parser::write_json(file, prm);
         }
-        std::tie(iters, error) = solve_shared_cpr(cpr_drs_solve_ptr, matrix, b, x, prm, update_s, verbose);
+        std::tie(iters, error) = solve_shared_cpr(cpr_drs_solve_ptr, matrix, b, x, prm, matrix->nrows, update_s, verbose);
     }else{
          if(write_params){
             std::cout << "Writing amgcl setup file to mrst_amgcl_cpr_setup.json" << std::endl;
             std::ofstream file("mrst_amgcl_setup.json");
             boost::property_tree::json_parser::write_json(file, prm);
         }
-        std::tie(iters, error) = solve_shared_cpr(cpr_solve_ptr, matrix, b, x, prm, update_s, verbose);
+        bool runtime_blocks = false;
+        if(runtime_blocks){
+          std::tie(iters, error) = solve_shared_cpr(cpr_solve_ptr, matrix, b, x, prm, matrix->nrows, update_s, verbose);
+        }else{
+          switch(block_size){
+            BOOST_PP_SEQ_FOR_EACH(AMGCL_BLOCK_CPR_SOLVER, cpr_block_solve_ptr, AMGCL_BLOCK_SIZES)
+            default:
+                mexErrMsgIdAndTxt("AMGCL:UndefBlockSize", "Failure: Block size not supported.");
+          }
+        }
     }
 }
 
