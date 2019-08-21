@@ -108,7 +108,8 @@ static void reset_solvers(void){
     BOOST_PP_SEQ_FOR_EACH(AMGCL_RESET_BLOCK_SOLVER, cpr_drs_block_solve_ptr, AMGCL_BLOCK_SIZES)
 }
 // CPR Gateway
-void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries, const mxArray * pa,
+template <class M>
+void solve_cpr(int n, const M matrix, const mxArray * pa,
         std::vector<double> b, std::vector<double> & x, double tolerance,
         int maxiter, int & iters, double & error){
 
@@ -160,7 +161,6 @@ void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries, const mx
      *        Solve problem                *
      ***************************************/
     auto t1 = std::chrono::high_resolution_clock::now();
-    const auto matrix = amgcl::adapter::zero_copy(n, &cols[0], &rows[0], &entries[0]);
     if(use_drs){
         double dd = mxGetScalar(mxGetField(pa, 0, "drs_eps_dd"));
         double ps = mxGetScalar(mxGetField(pa, 0, "drs_eps_ps"));
@@ -207,7 +207,8 @@ void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries, const mx
     }
 }
 
-void solve_regular(int n, const mwIndex * cols, mwIndex const * rows, const double * entries, const mxArray * pa,
+template <class M>
+void solve_regular(int n, const M matrix, const mxArray * pa,
         const std::vector<double> & b, std::vector<double> & x, double tolerance,
         int maxiter, int & iters, double & error){
 
@@ -268,7 +269,6 @@ void solve_regular(int n, const mwIndex * cols, mwIndex const * rows, const doub
       boost::property_tree::json_parser::write_json(file, prm);
     }
     int block_size = mxGetScalar(mxGetField(pa, 0, "block_size"));
-    const auto matrix = amgcl::adapter::zero_copy(n, &cols[0], &rows[0], &entries[0]);
     switch(block_size){
       case 0:
       case 1:
@@ -362,13 +362,13 @@ void mexFunction( int nlhs, mxArray *plhs[],
           break;
       default : mexErrMsgTxt("Unknown reuse mode: Must be 1 for no reuse or 2 for reuse.");
     }
-
+    const auto matrix = amgcl::adapter::zero_copy(n, &cols[0], &rows[0], &entries[0]);
     switch(solver_strategy_id) {
         case 1:
-            solve_regular(M, cols, rows, entries, pa, b, x, tolerance, maxiter, iters, error);
+            solve_regular(M, matrix, pa, b, x, tolerance, maxiter, iters, error);
             break;
         case 2:
-            solve_cpr(M, cols, rows, entries, pa, b, x, tolerance, maxiter, iters, error);
+            solve_cpr(M, matrix, pa, b, x, tolerance, maxiter, iters, error);
             break;
         case 1000:
             // Remove shared pointers
