@@ -32,7 +32,14 @@ std::tuple<size_t, double> solve_shared(std::shared_ptr<T> & solve_ptr,
                     << (double)std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count()/1000.0
                     << " seconds\n";
       }
-      std::tuple<size_t, double> result  = (*solve_ptr)(b, x);
+      std::tuple<size_t, double> result;
+      if(do_setup){
+        // Preconditioner matches system matrix
+        result = (*solve_ptr)(b, x);
+      }else{
+        // We are re-using the preconditioner, pass matrix along
+        result = (*solve_ptr)(*matrix, b, x);
+      }
 
       if(verbose){
           std::cout << (*solve_ptr) << std::endl;
@@ -82,7 +89,12 @@ std::tuple<size_t, double> solve_shared_cpr(std::shared_ptr<T> & solve_ptr,
                     << (double)std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count()/1000.0
                     << " seconds\n";
       }
-      std::tuple<size_t, double> result  = (*solve_ptr)(b, x);
+      std::tuple<size_t, double> result;
+      if(do_setup){
+        result = (*solve_ptr)(b, x);
+      }else{
+        result = (*solve_ptr)(matrix, b, x);
+      }
 
       if(verbose){
           std::cout << (*solve_ptr) << std::endl;
