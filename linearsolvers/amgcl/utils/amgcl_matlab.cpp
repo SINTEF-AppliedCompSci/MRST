@@ -113,21 +113,21 @@ void solve_cpr(int n, const M matrix, const mxArray * pa,
         std::vector<double> b, std::vector<double> & x, double tolerance,
         int maxiter, int & iters, double & error){
 
-    int block_size = mxGetScalar(mxGetField(pa, 0, "block_size"));
-    int active_rows = mxGetScalar(mxGetField(pa, 0, "active_rows"));
-    bool use_drs = mxGetScalar(mxGetField(pa, 0, "use_drs"));
-
-    int relax_p_id = mxGetScalar(mxGetField(pa, 0, "relaxation"));
-    int relax_s_id = mxGetScalar(mxGetField(pa, 0, "s_relaxation"));
-
-    bool verbose = mxGetScalar(mxGetField(pa, 0, "verbose"));
-    bool write_params = mxGetScalar(mxGetField(pa, 0, "write_params"));
-    bool update_s = mxGetScalar(mxGetField(pa, 0, "update_sprecond"));
+    // CPR settings
+    bool update_s   = mxGetScalar(mxGetField(pa, 0, "update_sprecond"));
     bool use_blocks = mxGetScalar(mxGetField(pa, 0, "cpr_blocksolver"));
-    /***************************************
-     * Start AMGCL-link and select options *
-     ***************************************/
-
+    int block_size  = mxGetScalar(mxGetField(pa, 0, "block_size"));
+    int active_rows = mxGetScalar(mxGetField(pa, 0, "active_rows"));
+    bool use_drs    = mxGetScalar(mxGetField(pa, 0, "use_drs"));
+    // Pressure and global relaxation choices
+    int relax_p_id  = mxGetScalar(mxGetField(pa, 0, "relaxation"));
+    int relax_s_id  = mxGetScalar(mxGetField(pa, 0, "s_relaxation"));
+    // Various settings
+    bool verbose      = mxGetScalar(mxGetField(pa, 0, "verbose"));
+    bool write_params = mxGetScalar(mxGetField(pa, 0, "write_params"));
+    /*****************************************
+     * Begin building parameter tree for CPR *
+     ****************************************/
     boost::property_tree::ptree prm;
     /* Set tolerance */
     prm.put("solver.tol", tolerance);
@@ -160,7 +160,6 @@ void solve_cpr(int n, const M matrix, const mxArray * pa,
     /***************************************
      *        Solve problem                *
      ***************************************/
-    auto t1 = std::chrono::high_resolution_clock::now();
     if(use_drs){
         double dd = mxGetScalar(mxGetField(pa, 0, "drs_eps_dd"));
         double ps = mxGetScalar(mxGetField(pa, 0, "drs_eps_ps"));
@@ -211,18 +210,18 @@ template <class M>
 void solve_regular(int n, const M matrix, const mxArray * pa,
         const std::vector<double> & b, std::vector<double> & x, double tolerance,
         int maxiter, int & iters, double & error){
-
-    int relax_id = mxGetScalar(mxGetField(pa, 0, "relaxation"));
-    bool verbose = mxGetScalar(mxGetField(pa, 0, "verbose"));
+    // Get parameters from struct
+    int relax_id      = mxGetScalar(mxGetField(pa, 0, "relaxation"));
+    bool verbose      = mxGetScalar(mxGetField(pa, 0, "verbose"));
     bool write_params = mxGetScalar(mxGetField(pa, 0, "write_params"));
-    int precond_id = mxGetScalar(mxGetField(pa, 0, "preconditioner"));
+    int precond_id    = mxGetScalar(mxGetField(pa, 0, "preconditioner"));
     std::string relaxParam;
     /***************************************
-     * Start AMGCL-link and select options *
+     *   Build parameter tree for solver   *
      ***************************************/
 
     boost::property_tree::ptree prm;
-    /* Set tolerance */
+    /* Set tolerance, max iterations and select preconditioner style */
     prm.put("solver.tol", tolerance);
     if(maxiter > 0){
         prm.put("solver.maxiter", maxiter);
@@ -302,9 +301,9 @@ void mexFunction( int nlhs, mxArray *plhs[],
     std::string coarsenParam;
 
     if (nrhs != 6 && nrhs != 7) {
-	    mexErrMsgTxt("6 or 7 input arguments required.");
+	    mexErrMsgTxt("6 or 7 input arguments required.\nSyntax: amgcl_matlab(A, b, opts, tol, maxit, solver_id, reuse_id)");
     } else if (nlhs > 3) {
-	    mexErrMsgTxt("Wrong number of output arguments.");
+	    mexErrMsgTxt("More than three outputs requested!");
     }
 
     m = mxGetM(prhs[0]);
@@ -319,13 +318,17 @@ void mexFunction( int nlhs, mxArray *plhs[],
 	    mexErrMsgTxt("Right hand side must be real double column vector.");
         return;
     }
-    // main();
+    // First output: Solution column vector
     plhs[0] = mxCreateDoubleMatrix(m, 1, mxREAL);
+    // Second output: Residual error
     plhs[1] = mxCreateDoubleMatrix(1, 1, mxREAL);
+    // Third output: Number of iterations
     plhs[2] = mxCreateDoubleMatrix(1, 1, mxREAL);
+    // Build system matrix
+    const auto matrix = amgcl::adapter::zero_copy(n, &cols[0], &rows[0], &entries[0]);
 
-    result = mxGetPr(plhs[0]);
-    err = mxGetPr(plhs[1]);
+    result   = mxGetPr(plhs[0]);
+    err      = mxGetPr(plhs[1]);
     it_count = mxGetPr(plhs[2]);
 
     cols    = mxGetJc(prhs[0]);
@@ -334,13 +337,13 @@ void mexFunction( int nlhs, mxArray *plhs[],
     nnz     = mxGetNzmax(prhs[0]);
     rhs     = mxGetPr(prhs[1]);
     pa = prhs[2];
-    double tolerance = mxGetScalar(prhs[3]);
-    int maxiter = mxGetScalar(prhs[4]);
-    int solver_strategy_id = mxGetScalar(prhs[5]);
-    bool verbose = mxGetScalar(mxGetField(pa, 0, "verbose"));
+    double tolerance       = mxGetScalar(prhs[3]);
+    int maxiter            = (int)mxGetScalar(prhs[4]);
+    int solver_strategy_id = (int)mxGetScalar(prhs[5]);
+    bool verbose           = mxGetScalar(mxGetField(pa, 0, "verbose"));
     int reuse_mode;
     if(nrhs == 7){
-      reuse_mode = mxGetScalar(prhs[6]);
+      reuse_mode = (int)mxGetScalar(prhs[6]);
     }else{
       reuse_mode = 1;
     }
@@ -362,7 +365,6 @@ void mexFunction( int nlhs, mxArray *plhs[],
           break;
       default : mexErrMsgTxt("Unknown reuse mode: Must be 1 for no reuse or 2 for reuse.");
     }
-    const auto matrix = amgcl::adapter::zero_copy(n, &cols[0], &rows[0], &entries[0]);
     switch(solver_strategy_id) {
         case 1:
             solve_regular(M, matrix, pa, b, x, tolerance, maxiter, iters, error);
