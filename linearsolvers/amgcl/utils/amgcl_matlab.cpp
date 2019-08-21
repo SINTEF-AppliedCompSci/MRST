@@ -324,8 +324,6 @@ void mexFunction( int nlhs, mxArray *plhs[],
     plhs[1] = mxCreateDoubleMatrix(1, 1, mxREAL);
     // Third output: Number of iterations
     plhs[2] = mxCreateDoubleMatrix(1, 1, mxREAL);
-    // Build system matrix
-    const auto matrix = amgcl::adapter::zero_copy(n, &cols[0], &rows[0], &entries[0]);
 
     result   = mxGetPr(plhs[0]);
     err      = mxGetPr(plhs[1]);
@@ -336,6 +334,10 @@ void mexFunction( int nlhs, mxArray *plhs[],
     entries = mxGetPr(prhs[0]);
     nnz     = mxGetNzmax(prhs[0]);
     rhs     = mxGetPr(prhs[1]);
+
+    // Build system matrix
+    const auto matrix = amgcl::adapter::zero_copy(n, &cols[0], &rows[0], &entries[0]);
+    // Get struct with options
     pa = prhs[2];
     double tolerance       = mxGetScalar(prhs[3]);
     int maxiter            = (int)mxGetScalar(prhs[4]);
