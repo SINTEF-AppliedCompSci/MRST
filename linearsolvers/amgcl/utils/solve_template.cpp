@@ -6,13 +6,15 @@ std::tuple<size_t, double> solve_shared(std::shared_ptr<T> & solve_ptr,
                           boost::property_tree::ptree & prm,
                           bool verbose){
       auto t1 = std::chrono::high_resolution_clock::now();
-      bool initialized = solve_ptr != nullptr;
       bool do_setup;
 
-      if(initialized){
+      if(solve_ptr){
         do_setup = check_preconditioner_validity(solve_ptr, matrix, matrix->nrows);
-        if(verbose && do_setup){
-          std::cout << "Attempted to reuse preconditioner, but dimensions did not match." << std::endl;
+        if(do_setup){
+          solve_ptr.reset();
+          if(verbose){
+            std::cout << "Attempted to reuse preconditioner, but dimensions did not match." << std::endl;
+          }
         }
       }else{
         do_setup = true;
@@ -48,9 +50,8 @@ std::tuple<size_t, double> solve_shared_cpr(std::shared_ptr<T> & solve_ptr,
                           bool update_sprecond,
                           bool verbose){
       auto t1 = std::chrono::high_resolution_clock::now();
-      bool initialized = solve_ptr != nullptr;
       bool do_setup;
-      if(initialized){
+      if(solve_ptr){
         do_setup = check_preconditioner_validity(solve_ptr, matrix, nrows);
         if(!do_setup && update_sprecond){
           if(verbose){
@@ -59,8 +60,11 @@ std::tuple<size_t, double> solve_shared_cpr(std::shared_ptr<T> & solve_ptr,
             cpr.update_sprecond(matrix);
           }
         }
-        if(verbose && do_setup){
-          std::cout << "Attempted to reuse preconditioner, but dimensions did not match." << std::endl;
+        if(do_setup){
+          solve_ptr.reset();
+          if(verbose){
+            std::cout << "Attempted to reuse preconditioner, but dimensions did not match." << std::endl;
+          }
         }
       }else{
         do_setup = true;
