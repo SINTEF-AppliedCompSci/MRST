@@ -62,16 +62,27 @@ std::tuple<size_t, double> solve_shared_cpr(std::shared_ptr<T> & solve_ptr,
                           boost::property_tree::ptree & prm,
                           size_t nrows,
                           bool update_sprecond,
+                          bool update_ptransfer,
                           bool verbose){
       auto t1 = std::chrono::high_resolution_clock::now();
       bool do_setup;
       if(solve_ptr){
         do_setup = check_preconditioner_validity(solve_ptr, matrix, nrows);
-        if(!do_setup && update_sprecond){
-          if(verbose){
-            std::cout << "Updating second-stage preconditioner only." << std::endl;
+
+        if(!do_setup){
+          auto & cpr = solve_ptr->precond();
+          if(update_sprecond){
+            if(verbose){
+              std::cout << "Updating second-stage preconditioner." << std::endl;
+            }
+            cpr.update_sprecond(matrix);
           }
-          solve_ptr->precond().update_sprecond(matrix);
+          if(update_ptransfer){
+            if(verbose){
+              std::cout << "Updating matrix transfer operators." << std::endl;
+            }
+            cpr.update_pressure_system(matrix);
+          }
         }
         if(do_setup){
           solve_ptr.reset();

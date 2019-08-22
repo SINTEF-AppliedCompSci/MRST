@@ -115,6 +115,7 @@ void solve_cpr(int n, const M matrix, const mxArray * pa,
 
     // CPR settings
     bool update_s   = mxGetScalar(mxGetField(pa, 0, "update_sprecond"));
+    bool update_p   = mxGetScalar(mxGetField(pa, 0, "update_ptransfer"));
     bool use_blocks = mxGetScalar(mxGetField(pa, 0, "cpr_blocksolver"));
     int block_size  = mxGetScalar(mxGetField(pa, 0, "block_size"));
     int active_rows = mxGetScalar(mxGetField(pa, 0, "active_rows"));
@@ -179,6 +180,7 @@ void solve_cpr(int n, const M matrix, const mxArray * pa,
             std::ofstream file("mrst_amgcl_drs_setup.json");
             boost::property_tree::json_parser::write_json(file, prm);
         }
+        /*
         if(!use_blocks){
           std::tie(iters, error) = solve_shared_cpr(cpr_drs_solve_ptr, *matrix, b, x, prm, matrix->nrows, update_s, verbose);
         }else{
@@ -188,6 +190,7 @@ void solve_cpr(int n, const M matrix, const mxArray * pa,
                 mexErrMsgIdAndTxt("AMGCL:UndefBlockSize", "Failure: Block size not supported.");
           }
         }
+        */
     }else{
          if(write_params){
             std::cout << "Writing amgcl setup file to mrst_amgcl_cpr_setup.json" << std::endl;
@@ -195,7 +198,7 @@ void solve_cpr(int n, const M matrix, const mxArray * pa,
             boost::property_tree::json_parser::write_json(file, prm);
         }
         if(!use_blocks){
-          std::tie(iters, error) = solve_shared_cpr(cpr_solve_ptr, *matrix, b, x, prm, matrix->nrows, update_s, verbose);
+          std::tie(iters, error) = solve_shared_cpr(cpr_solve_ptr, *matrix, b, x, prm, matrix->nrows, update_s, update_p, verbose);
         }else{
           switch(block_size){
             BOOST_PP_SEQ_FOR_EACH(AMGCL_BLOCK_CPR_SOLVER, cpr_block_solve_ptr, AMGCL_BLOCK_SIZES)
