@@ -64,8 +64,7 @@ std::tuple<size_t, double> solve_shared_cpr(std::shared_ptr<T> & solve_ptr,
           if(verbose){
             std::cout << "Updating second-stage preconditioner only." << std::endl;
           }
-          auto cpr = solve_ptr->precond();
-          cpr.update_sprecond(matrix);
+          solve_ptr->precond().update_sprecond(matrix);
         }
         if(do_setup){
           solve_ptr.reset();
