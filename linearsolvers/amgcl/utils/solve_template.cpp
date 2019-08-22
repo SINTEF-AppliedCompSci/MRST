@@ -1,4 +1,11 @@
 template <class T, typename M>
+bool check_preconditioner_validity(std::shared_ptr<T> & solve_ptr, const M matrix, size_t nrows){
+  size_t nrows_precond = solve_ptr->system_matrix_ptr()->nrows;
+  bool do_setup = nrows_precond != nrows;
+  return do_setup;
+}
+
+template <class T, typename M>
 std::tuple<size_t, double> solve_shared(std::shared_ptr<T> & solve_ptr,
                           const M matrix,
                           const std::vector<double> & b,
@@ -100,10 +107,3 @@ std::tuple<size_t, double> solve_shared_cpr(std::shared_ptr<T> & solve_ptr,
       }
       return result;
 };
-
-template <class T, typename M>
-bool check_preconditioner_validity(std::shared_ptr<T> & solve_ptr, const M matrix, size_t nrows){
-  size_t nrows_precond = solve_ptr->system_matrix_ptr()->nrows;
-  bool do_setup = nrows_precond != nrows;
-  return do_setup;
-}
