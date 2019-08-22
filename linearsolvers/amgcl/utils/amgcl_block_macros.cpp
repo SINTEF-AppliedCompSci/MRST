@@ -47,12 +47,12 @@
   typedef BOOST_PP_CAT(BlockVec, B) bvec;                                       \
   typedef BOOST_PP_CAT(BlockMat, B) bmat;                                       \
   size_t n = matrix->nrows / B;                                                 \
-  auto M = amgcl::adapter::block_matrix<bmat>(*matrix);                         \
+  auto BM = amgcl::adapter::block_matrix<bmat>(*matrix);                         \
   std::vector<bvec> x_local(b.size(), amgcl::math::zero<bvec>());               \
   auto b_ptr = reinterpret_cast<const bvec*>(b.data());                         \
   auto b_local = amgcl::make_iterator_range(b_ptr, b_ptr + n);                  \
   std::tie(iters, error) =                                                      \
-  solve_shared_cpr(BOOST_PP_CAT(solver_name, B), M, b_local, x_local, prm, n, update_s, verbose); \
+  solve_shared_cpr(BOOST_PP_CAT(solver_name, B), BM, b_local, x_local, prm, n, update_s, verbose); \
   auto x_data = x_local.data();                                                 \
   for(int i = 0; i < matrix->nrows; i++){                                       \
     x[i] = x_data[i / B](i % B);                                                \
