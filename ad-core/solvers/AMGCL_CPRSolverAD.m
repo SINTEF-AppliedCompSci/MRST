@@ -62,6 +62,13 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
        function problem = prepareProblemCPR(solver, problem, model)
            n = model.G.cells.num;
            solver.pressureScaling = mean(value(problem.state.pressure));
+           if solver.amgcl_setup.update_sprecond
+               % Reuse AMG hierarchy
+               solver.reuseMode = 2;
+               if problem.iterationNo == 1
+                   resetAMGCL();
+               end
+           end
            if solver.amgcl_setup.block_size == 0
                % Solver has not been told about block size, try to compute
                % it from what we are given.

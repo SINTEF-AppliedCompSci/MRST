@@ -14,8 +14,10 @@ classdef AMGCLSolverAD < LinearSolverAD
     %   `BackslashSolverAD`
 
    properties
-        amgcl_setup
+       amgcl_setup
+       reuseMode = 1;
    end
+
    methods
        function solver = AMGCLSolverAD(varargin)
             require linearsolvers
@@ -26,7 +28,6 @@ classdef AMGCLSolverAD < LinearSolverAD
             
             [solver, extra] = merge_options(solver, varargin{:});
             solver.amgcl_setup = getAMGCLMexStruct(extra{:});
-
        end
        
        function [result, report] = solveLinearSystem(solver, A, b)
@@ -51,12 +52,13 @@ classdef AMGCLSolverAD < LinearSolverAD
        
        function [result, report] = callAMGCL_MEX(solver, A, b, id)
             timer = tic();
-            [result, res, its] = amgcl_matlab(A', b, solver.amgcl_setup, solver.tolerance, solver.maxIterations, id);
+            [result, res, its] = amgcl_matlab(A', b, solver.amgcl_setup, solver.tolerance, solver.maxIterations, id, solver.reuseMode);
             t_solve = toc(timer);
             if res > solver.tolerance
-                warning('Solver did not converge to specified tolerance of %g in %d iterations. Reported residual estimate was %g after %2.2f seconds', solver.tolerance, its, res, t_solve);
+                warning(['Solver did not converge to specified tolerance of %1.3e in %d iterations. ', ...
+                    'Reported residual estimate was %1.3e after %2.2f seconds'], solver.tolerance, its, res, t_solve);
             elseif solver.verbose
-                fprintf('AMGCL solver converged to %g in %2d iterations after %2.2f seconds.\n', res, its, t_solve);
+                fprintf('AMGCL solver converged to %1.3e in %2d iterations after %2.2f seconds.\n', res, its, t_solve);
             end
             report = struct('converged',  res <= solver.tolerance, ...
                             'residual',   res,...
