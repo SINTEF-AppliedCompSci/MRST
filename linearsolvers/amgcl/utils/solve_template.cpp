@@ -68,26 +68,22 @@ std::tuple<size_t, double> solve_shared_cpr(std::shared_ptr<T> & solve_ptr,
       bool do_setup;
       if(solve_ptr){
         do_setup = check_preconditioner_validity(solve_ptr, matrix, nrows);
-
-        if(!do_setup){
-          auto & cpr = solve_ptr->precond();
-          if(update_sprecond){
-            if(verbose){
-              std::cout << "Updating second-stage preconditioner." << std::endl;
-            }
-            cpr.update_sprecond(matrix);
-          }
-          if(update_ptransfer){
-            if(verbose){
-              std::cout << "Updating matrix transfer operators." << std::endl;
-            }
-            cpr.update_pressure_system(matrix);
-          }
-        }
         if(do_setup){
           solve_ptr.reset();
           if(verbose){
             std::cout << "Attempted to reuse preconditioner, but dimensions did not match." << std::endl;
+          }
+        }else{
+          auto & cpr = solve_ptr->precond();
+          if(update_sprecond){
+            if(verbose){
+              std::cout << "Updating second-stage preconditioner";
+              if(update_ptransfer){
+                std::cout << " and transfer operators";
+              }
+              std::cout << "." << std::endl;
+            }
+            cpr.partial_update(matrix, update_ptransfer);
           }
         }
       }else{
