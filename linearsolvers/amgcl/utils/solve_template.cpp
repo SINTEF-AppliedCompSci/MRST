@@ -33,11 +33,11 @@ std::tuple<size_t, double> solve_shared(std::shared_ptr<T> & solve_ptr,
         }
         solve_ptr = std::make_shared<T>(*matrix, prm);
       }
-      auto t2 = std::chrono::high_resolution_clock::now();
-      if(verbose){
+      if(verbose && do_setup){
+          auto t2 = std::chrono::high_resolution_clock::now();
           std::cout << "Solver setup took "
                     << (double)std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count()/1000.0
-                    << " seconds\n";
+                    << " seconds." << std::endl;
       }
       std::tuple<size_t, double> result;
       if(do_setup){
@@ -96,8 +96,8 @@ std::tuple<size_t, double> solve_shared_cpr(std::shared_ptr<T> & solve_ptr,
         }
         solve_ptr = std::make_shared<T>(matrix, prm);
       }
-      auto t2 = std::chrono::high_resolution_clock::now();
-      if(verbose){
+      if(verbose && do_setup){
+          auto t2 = std::chrono::high_resolution_clock::now();
           std::cout << "Solver setup took "
                     << (double)std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count()/1000.0
                     << " seconds\n";

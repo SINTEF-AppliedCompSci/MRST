@@ -56,6 +56,12 @@
 #include <amgcl/make_block_solver.hpp>
 #include <amgcl/adapter/crs_tuple.hpp>
 
+#ifdef _OPENMP
+   #include <omp.h>
+#else
+   #define omp_get_max_threads() 1
+#endif
+
 typedef amgcl::backend::builtin<double> Backend;
 // Scalar solver
 typedef amgcl::make_solver<
@@ -350,8 +356,20 @@ void mexFunction( int nlhs, mxArray *plhs[],
     }else{
       reuse_mode = 1;
     }
+    if(verbose){
+      std::cout << "AMGCL solver recieved problem with " << n << " degrees of freedom. ";
+      int nthreads = omp_get_max_threads();
+      if(nthreads == 1){
+        std::cout << "Solving in serial.";
+      }
+      else{
+        std::cout << "Solving with " << nthreads << " threads using OpenMP.";
+      }
+      std::cout << std::endl;
+    }
 
     std::vector<double> b(n);
+    #pragma omp parallel for
     for(int ix = 0; ix < n; ix++){
         b[ix] = rhs[ix];
     }
@@ -387,6 +405,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     if(reuse_mode == 1){
       reset_solvers();
     }
+    #pragma omp parallel for
     for(int ix=0; ix < M; ix++){
         result[ix] = x[ix];
     }
