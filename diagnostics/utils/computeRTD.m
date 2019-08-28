@@ -53,7 +53,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 opt = struct('injectorIx', [], ...
              'producerIx', [], ...
              'nsteps',     50, ...
-             'nbase',       5);
+             'nbase',       5, ...
+             'computeSaturation', true);
 opt = merge_options(opt, varargin{:});
 
 [pix, iix] = deal(opt.producerIx, opt.injectorIx);         
@@ -172,6 +173,28 @@ for ik = 1:numel(iix)
         dist.values(:, ix)    = vals{ik}(:, pk);
     end
 end
+% saturation values
+if opt.computeSaturation
+    dist.sw_cum   = nan(size(dist.values));
+    dist.volumesW = nan(size(dist.volumes));
+    ix = 0;
+    for ik = 1:numel(iix)
+        for pk = 1:numel(pix)
+            ix = ix +1;
+            V_ip  = D.itracer(:,ik).*D.ptracer(:,pk).*pv;
+            Vw_ip = V_ip.*state.s(:, 1);
+            tof_i = D.itof(:, ik);
+            [tof_i, order] = sort(tof_i);
+            [tof_i, uix] = unique(tof_i);  
+            sw_cum = cumsum(Vw_ip(order(uix)))./cumsum(V_ip(order(uix)));
+            dist.sw_cum(:, ix) = interp1(tof_i, sw_cum, t, 'linear', 1);
+            %
+            dist.volumesW(ix) = sum(Vw_ip);
+        end
+    end
+end
+
+
 dist.creator = mfilename;
 end
     
