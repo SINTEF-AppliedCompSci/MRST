@@ -945,9 +945,22 @@ classdef EquationOfStateModel < PhysicalModel
 
         function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
             [state, report] = updateAfterConvergence@PhysicalModel(model, state0, state, dt, drivingForces);
+            changed = false;
             state = model.setFlag(state);
-            state.x = model.computeLiquid(state);
-            state.y = model.computeVapor(state);
+            if ~isfield(state, 'x')
+                state.x = model.computeLiquid(state);
+                changed = true;
+            end
+            if ~isfield(state, 'y')
+                state.y = model.computeVapor(state);
+                changed = true;
+            end
+            if changed
+                singlePhase = state.L == 1 | state.L == 0;
+                z_1ph = state.components(singlePhase, :);
+                state.x(singlePhase, :) = z_1ph;
+                state.y(singlePhase, :) = z_1ph;
+            end
         end
 
         function state = setFlag(model, state, pureLiquid, pureVapor)
