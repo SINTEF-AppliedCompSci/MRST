@@ -14,18 +14,15 @@
 % control with target bottom-home pressure 260 bar.
 
 clc
-% clear
+clear
 
 mrstModule add ad-core ad-blackoil ad-eor ad-props ...
                deckformat mrst-gui
 
 %% Set up model and initial conditions
 % The data required for the example
-% If the data does not exist locally, download it automatically
 % The following are all the files needed for this tutorial
-% The first two files are the data for a simulation with shear-thinning
-% effect. The second two fils are the data for a simulation without shear
-% effect. The last two are the reference results from Eclipse.
+% Two files are the data for the simulation of surfactant polymer flooding.
 current_dir = fileparts(mfilename('fullpath'));
 fn = fullfile(current_dir, 'SURFACTANTPOLYMER2D.DATA');
 gravity reset on;
@@ -37,10 +34,10 @@ deck = convertDeckUnits(deck);
 % Construct physical model, initial state and dynamic well controls.
 [state0, model, schedule] = initEclipseProblemAD(deck);
 
-% Add surfactant & polymer concentration
+% Add initial surfactant & polymer concentration
 state0.cp   = zeros([model.G.cells.num, 1]);
 state0.cs   = zeros([model.G.cells.num, 1]);
-% maximum surfactant & polymer concentration, used to handle the polymer adsorption
+% maximum surfactant & polymer concentration, used to handle the adsorption
 state0.cpmax= zeros([model.G.cells.num, 1]);
 state0.csmax= zeros([model.G.cells.num, 1]);
 
@@ -74,8 +71,8 @@ nonlinearsolver.useRelaxation = true;
 % the function based on your own preference.
 close all
 fn = getPlotAfterStep(state0, model, schedule, ...
-    'plotWell', true, 'plot1d', true,'axis tight', false, ...
-    'field', 's:2');
+    'plotWell', true, 'plotReservoir', true, 'view', [20, 8], ...
+                      'field', 's:2');
 [wellSolsSP, statesSP, reportsSP] = ...
     simulateScheduleAD(state0, model, schedule, ...
                     'NonLinearSolver', nonlinearsolver, 'afterStepFn', fn);
@@ -84,25 +81,44 @@ scheduleW = schedule;
 scheduleW.control(2).W(1).cs = 0;
 scheduleW.control(2).W(1).cp = 0;
 fn1 = getPlotAfterStep(state0, model, schedule, ...
-    'plotWell', true, 'plot1d', true,'axis tight', false, ...
-    'field', 's:2');
+    'plotWell', true, 'plotReservoir', true, 'view', [20, 8], ...
+                      'field', 's:2');
 [wellSolsW, statesW, reportW] = simulateScheduleAD(state0, model, scheduleW, 'afterStepFn', fn1);
 
-% we use schedulew to run the three phase black oil water flooding simulation.
-scheduleP = schedule;
-scheduleP.control(2).W(1).cs = 0;
-fn1 = getPlotAfterStep(state0, model, schedule, ...
-    'plotWell', true, 'plot1d', true,'axis tight', false, ...
-    'field', 's:2');
-[wellSolsP, statesP, reportP] = simulateScheduleAD(state0, model, scheduleP, 'afterStepFn', fn1);
+%% Plot cell oil saturation in different tsteps of surfactant flooding and water flooding
 
-% we use schedulew to run the three phase black oil water flooding simulation.
-scheduleS = schedule;
-scheduleS.control(2).W(1).cp = 0;
-fn1 = getPlotAfterStep(state0, model, schedule, ...
-    'plotWell', true, 'plot1d', true,'axis tight', false, ...
-    'field', 's:2');
-[wellSolsS, statesS, reportS] = simulateScheduleAD(state0, model, scheduleS, 'afterStepFn', fn1);
+T = (80:23:268);
+
+sOmin = min( cellfun(@(x)min(x.s(:,2)), statesSP) );
+sOmax = max( cellfun(@(x)max(x.s(:,2)), statesSP) );
+
+figure
+for i = 1 : length(T)
+    subplot(3,3,i)
+    plotCellData(model.G, statesSP{T(i)}.s(:,2))
+    plotWell(model.G, schedule.control(1).W)
+    axis tight
+    colormap(jet)
+    view(3)
+    caxis([sOmin, sOmax])
+    title(['T = ', num2str(T(i))])
+end
+
+sOmin = min( cellfun(@(x)min(x.s(:,2)), statesW) );
+sOmax = max( cellfun(@(x)max(x.s(:,2)), statesW) );
+
+figure
+for i = 1 : length(T)
+    subplot(3,3,i)
+    plotCellData(model.G, statesW{T(i)}.s(:,2))
+    plotWell(model.G, schedule.control(1).W)
+    axis tight
+    colormap(jet)
+    view(3)
+    caxis([sOmin, sOmax])
+    title(['T = ', num2str(T(i))])
+end
+
 %% Plot well solutions
 
 plotWellSols({wellSolsSP, wellSolsW},cumsum(schedule.step.val))

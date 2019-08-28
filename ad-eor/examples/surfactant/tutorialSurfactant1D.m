@@ -61,16 +61,6 @@ model = OilWaterSurfactantModel(G, rock, fluid, ...
 
 schedule = convertDeckScheduleToMRST(model, deck);
 
-
-%% Visualize some properties of the model we have setup
-%
-
-% We gathered visualizing command for this tutorial in the following script
-example_name = '1D';
-% vizSurfactantModel;
-
-
-
 %% Run the schedule
 %
 % We use the function simulateScheduleAD to run the simulation

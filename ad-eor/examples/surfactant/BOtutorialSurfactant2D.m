@@ -57,7 +57,8 @@ state0.csmax = state0.cs;
 % Options such as maximum non-linear iterations and tolerance can be set in
 % the system struct.
 fn = getPlotAfterStep(state0, model, schedule, 'plotWell', true, ...
-                      'plotReservoir', false);
+                      'plotReservoir', true, 'view', [20, 8], ...
+                      'field', 's:2');
 
 [wellSolsSurfactant, statesSurfactant, reportSurfactant] = simulateScheduleAD(state0, model, schedule, 'afterStepFn', fn);
 
@@ -69,7 +70,41 @@ scheduleW.control(2).W(1).cs = 0;
 scheduleW.control(2).W(2).cs = 0;
 scheduleW.control(3).W(1).cs = 0;
 scheduleW.control(3).W(2).cs = 0;
-[wellSols, states, report] = simulateScheduleAD(state0, model, scheduleW, 'afterStepFn', fn);                                       
+[wellSols, states, report] = simulateScheduleAD(state0, model, scheduleW, 'afterStepFn', fn);    
+
+%% Plot cell oil saturation in different tsteps of surfactant flooding and water flooding
+
+T = (80:23:268);
+
+sOmin = min( cellfun(@(x)min(x.s(:,2)), statesSurfactant) );
+sOmax = max( cellfun(@(x)max(x.s(:,2)), statesSurfactant) );
+
+figure
+for i = 1 : length(T)
+    subplot(3,3,i)
+    plotCellData(G, statesSurfactant{T(i)}.s(:,2))
+    plotWell(G, schedule.control(1).W)
+    axis tight
+    colormap(jet)
+    view(3)
+    caxis([sOmin, sOmax])
+    title(['T = ', num2str(T(i))])
+end
+
+sOmin = min( cellfun(@(x)min(x.s(:,2)), states) );
+sOmax = max( cellfun(@(x)max(x.s(:,2)), states) );
+
+figure
+for i = 1 : length(T)
+    subplot(3,3,i)
+    plotCellData(G, states{T(i)}.s(:,2))
+    plotWell(G, schedule.control(1).W)
+    axis tight
+    colormap(jet)
+    view(3)
+    caxis([sOmin, sOmax])
+    title(['T = ', num2str(T(i))])
+end
 
 %% Plot well solutions
 
