@@ -1,9 +1,9 @@
-function bc_nfvm = convertBC(G, bc)
+function bc_nfvm = convertBC2FlowNTPFA(G, bc)
 
 %{
-Convert a std mrst bc structure to bc_nfvm for the _original_ NFVM code
-(e.g. FlowNTPFA.m). The "new" class-based NFVM.m may have some
-other numbering.
+
+Convert a std mrst bc structure to bc_nfvm for the _original_
+FlowNTPFA.m. 
 
 The bc must be such that we can loop over all faces:
 
