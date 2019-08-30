@@ -7,13 +7,14 @@ classdef NFVM < PermeabilityGradientDiscretization
     
     methods
         
-        function nfvm = NFVM(model, bc, varargin)
+        function nfvm = NFVM(model, bc, varargin) % NB BC is not optional
             
             opt = struct('myRatio', []);% tolerable ratio of harmonic average point and diameter of cell
             opt = merge_options(opt, varargin{:});
             
             % Setup nfvm members
-            nfvm.bc = expandBC(nfvm, model.G, bc);
+            %nfvm.bc = expandBC(nfvm, model.G, bc);
+            nfvm.bc = bc;
             nfvm.interpFace = nfvm.findHAP(model.G, model.rock);
             disp(['fraction of faces with centroids outside convex hull: ', num2str(nfvm.interpFace.fraction)]);
             nfvm.interpFace = nfvm.correctHAP(model.G, opt.myRatio);
@@ -21,7 +22,7 @@ classdef NFVM < PermeabilityGradientDiscretization
         end
         
         function v = getPermeabilityGradient(nfvm, model, state, ~)
-            
+  
             u0 = state.pressure; 
             T = nfvm.TransNTPFA(model, value(u0)); 
             v = nfvm.computeFlux(u0, T, model);
@@ -34,35 +35,35 @@ classdef NFVM < PermeabilityGradientDiscretization
     
     methods (Access = private)
         
-        function bc2 = expandBC(nfvm, G, bc)
-            % Need to expand mrst's bc struct to get some value for _all_
-            % boundary faces. Assume the non-set bcs are homogeneous
-            % Neumann.
-            bc2.face = zeros(G.faces.num, 1);
-            bf = boundaryFaces(G);
-            bc2.face(bf) = bf;
-            bc2.type = repmat({'flux'}, [G.faces.num, 1]);
-            bc2.value = zeros(G.faces.num, 1);
-            
-            % Fill
-            bc2.type(bc.face) = bc.type;
-            bc2.value(bc.face) = bc.value;
-            
-            % Shrink
-            ii = bc2.face ~= 0;
-            bc2.face = bc2.face(ii);
-            bc2.type = bc2.type(ii);
-            bc2.value = bc2.value(ii);
-            
-            % Plot nonzero bc
-            f = zeros(G.faces.num,1);
-            f(bc2.face) = bc2.value;
-            plotGrid(G,'facealpha',0)
-            plotFaces(G,f>0);
-            xlabel 'x'
-            ylabel 'y'
-            view(3)
-        end
+%         function bc2 = expandBC(nfvm, G, bc)
+%             % Need to expand mrst's bc struct to get some value for _all_
+%             % boundary faces. Assume the non-set bcs are homogeneous
+%             % Neumann.
+%             bc2.face = zeros(G.faces.num, 1);
+%             bf = boundaryFaces(G);
+%             bc2.face(bf) = bf;
+%             bc2.type = repmat({'flux'}, [G.faces.num, 1]);
+%             bc2.value = zeros(G.faces.num, 1);
+%             
+%             % Fill
+%             bc2.type(bc.face) = bc.type;
+%             bc2.value(bc.face) = bc.value;
+%             
+%             % Shrink
+%             ii = bc2.face ~= 0;
+%             bc2.face = bc2.face(ii);
+%             bc2.type = bc2.type(ii);
+%             bc2.value = bc2.value(ii);
+%             
+%             % Plot nonzero bc
+%             f = zeros(G.faces.num,1);
+%             f(bc2.face) = bc2.value;
+%             plotGrid(G,'facealpha',0)
+%             plotFaces(G,f>0);
+%             xlabel 'x'
+%             ylabel 'y'
+%             view(3)
+%         end
         
         function T = TransNTPFA(nfvm, model, u)
             dispif(mrstVerbose, 'TransNTPFA\n');
