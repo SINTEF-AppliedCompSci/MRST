@@ -50,6 +50,7 @@ schedule = simpleSchedule(repmat(dT,1,n), 'W', W);
 %   if no pressure is present in state) to obtain the densities.
 %   - The explicit transport solver does not handle spatial changes in
 %   phase viscosity when estimating CFL.
+%   - Fluid regions are not supported by the incomp solvers.
 
 mrstModule add incomp
 % Choices for pressure
