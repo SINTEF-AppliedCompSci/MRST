@@ -10,7 +10,7 @@
 #include <algorithm>
 
 #include <omp.h>
-#include "main.h"
+#include "mex_basis_solver.h"
 
 #ifdef USEMEX
 #include <mex.h>

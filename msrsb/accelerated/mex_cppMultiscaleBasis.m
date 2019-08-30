@@ -27,7 +27,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    OPTS = { '-O', '-largeArrayDims', '-DUSEMEX=""'};
 
-   SRC = {'main.cpp', 'basis_solver.cpp'};
+   SRC = {'mex_basis_solver.cpp', 'basis_solver.cpp'};
 
    [CXXFLAGS, LINK, LIBS] = setup_machdep_build_params;
 
