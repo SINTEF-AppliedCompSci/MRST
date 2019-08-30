@@ -56,7 +56,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 opt.iterations = 5;
             end
             fn = @(A, b) getJacobiSmoother(A, b, opt.iterations);
-        case 'ilu'
+        case {'ilu', 'ilu0'}
             if isnan(opt.iterations)
                 opt.iterations = 1;
             end

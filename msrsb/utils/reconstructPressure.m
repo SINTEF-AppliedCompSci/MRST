@@ -21,7 +21,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
     D = formReconstructionMatrix(A, partition);
     n = size(A, 1);
-    % Add a tiny bit of noise to overcome a Matlab UMFPACK issue in MRST
+    % Add a tiny bit of noise to overcome a Matlab UMFPACK issue in MATLAB
     % 2018b and onwards
     d = diag(A);
     D = D - sparse(1:n, 1:n, min(d)*1e-8, n, n);

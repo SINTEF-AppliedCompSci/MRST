@@ -58,7 +58,8 @@ CG = generateCoarseGrid(G, p);
 CG = coarsenGeometry(CG);
 % Store the support of each cell (used by multiscale basis construction)
 CG = storeInteractionRegionCart(CG);
-
+%% Create dual grid and add to the coarse grid 
+% Required for MsFV/MsFE basis functions based on localization
 mrstModule add msfvm matlab_bgl
 DG = partitionUIdual(CG, coarsedims);
 DG = makeExplicitDual(CG, DG);
@@ -69,7 +70,7 @@ A = getIncomp1PhMatrix(G, T);
 % B = iteratedJacobiBasis(A, CG);
 % R = controlVolumeRestriction(CG.partition);
 % basis = struct('B', B, 'R', R);
-basis_sb = getMultiscaleBasis(CG, A, 'type', 'rsb');
+basis_sb = getMultiscaleBasis(CG, A, 'type', 'msrsb');
 basis_fv = getMultiscaleBasis(CG, A, 'type', 'msfv');
 
 basises = {basis_sb, basis_fv};
