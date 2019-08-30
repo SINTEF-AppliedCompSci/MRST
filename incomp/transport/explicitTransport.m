@@ -228,11 +228,10 @@ end
 %--------------------------------------------------------------------------
 
 function dt = estimate_dt(G, state, rock, fluid, flux, gflux, sources)
-   [mu, rho] = fluid.properties();
+   [rho, kr, mu, dkr] = getIncompProps(state, fluid);
 
    % Compute cell mobility and its derivative
    sat       = state.s;
-   [kr, dkr] = fluid.relperm(sat,state);
    mob       = bsxfun(@rdivide, kr, mu);
 
    % dkr is Jacobian of kr.  We need derivatives with respect to s(:,1),
@@ -256,10 +255,11 @@ function dt = estimate_dt(G, state, rock, fluid, flux, gflux, sources)
    g      = @(mob) mob(:,1).*mob(:,2)./sum(mob, 2);
    s      = linspace(0,1, 101)';
    ss     = struct('s',[s,1-s]);
-   m      = bsxfun(@rdivide, fluid.relperm([s, 1-s],ss), min(mu));
+   [rho_loc, kr_loc, mu_loc] = getIncompProps(ss, fluid); %#ok<ASGLU>
+   m      = bsxfun(@rdivide, kr_loc, min(mu_loc, [], 2));
    dg     = max(abs(diff(g(m)))./diff(s));
 
-   wavespeed  = max([wavespeed; abs(dg.*gflux(i).*diff(rho, 1, 2))]  );
+   wavespeed  = max([wavespeed; abs(dg.*gflux(i).*max(diff(rho_loc, 1, 2), [], 1))]  );
 
    % Find max wave speed from advective term for positive sources in
    % interval [s, 1],
@@ -268,8 +268,8 @@ function dt = estimate_dt(G, state, rock, fluid, flux, gflux, sources)
       s     = (min(sat(i)) : 0.05 : 1.0)';
       ss    = struct('s',[s,1-s]);
       if numel(s) > 1
-         kr    = fluid.relperm([s, 1-s],ss);
-         mob   = bsxfun(@rdivide,  kr, mu);
+         [tmp, kr, mu_w] = getIncompProps(ss, fluid); %#ok<ASGLU>
+         mob   = bsxfun(@rdivide,  kr, mu_w);
          f     = bsxfun(@rdivide, mob(:,1), sum(mob, 2));
          maxdf = max(diff(f)./diff(s));
          wavespeed  = max(wavespeed, max(abs(sources(i) .* maxdf)));
@@ -283,7 +283,7 @@ function dt = estimate_dt(G, state, rock, fluid, flux, gflux, sources)
       s     = (max(sat(i)) : -0.05 : 0.0)';
       ss=struct('s',[s,1-s]);
       if numel(s) > 1
-         kr    = fluid.relperm([s, 1-s],ss);
+         [kr, mu] = getIncompProps(ss, fluid);
          mob   = bsxfun(@rdivide,  kr, mu);
          f     = bsxfun(@rdivide, mob(:,1), sum(mob, 2));
          maxdf = max(diff(f)./diff(s));

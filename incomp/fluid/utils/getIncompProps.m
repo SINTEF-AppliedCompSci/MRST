@@ -1,4 +1,4 @@
-function varargout = getIncompProps(state, fluid, varargin)
+function varargout = getIncompProps(state, fluid)
     varargout = cell(1, nargout);
     if isfield(fluid, 'properties')
         [varargout{:}] = getPropsLegacy(state, fluid);
@@ -17,15 +17,16 @@ function [rho, kr, mu, dkr] = getPropsLegacy(state, fluid)
     end
 end
 
-function [rho, kr, mu, dkr] = getPropsAD(state, fluid, varargin)
-    nc = size(state.pressure, 1);
-    opt = struct('pressure', repmat(1*atm, nc, 1));
-    opt = merge_options(opt, varargin{:});
-    
-    rho = [fluid.rhoWS.*fluid.bW(opt.pressure), ...
-           fluid.rhoOS.*fluid.bO(opt.pressure)];
-    mu = [fluid.muW(opt.pressure), ...
-           fluid.muO(opt.pressure)];
+function [rho, kr, mu, dkr] = getPropsAD(state, fluid)
+    if isfield(state, 'pressure')
+        p = state.pressure;
+    else
+        p = repmat(1*atm, size(state.s, 1), 1);
+    end
+    rho = [fluid.rhoWS.*fluid.bW(p), ...
+           fluid.rhoOS.*fluid.bO(p)];
+    mu = [fluid.muW(p), ...
+           fluid.muO(p)];
     getDer = nargout > 3;
     s = state.s(:, 1);
     if getDer

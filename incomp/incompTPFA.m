@@ -161,7 +161,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 'reduce',false,...
                 'use_trans',false);
 
-   [opt, extraarg] = merge_options(opt, varargin{:});
+   opt = merge_options(opt, varargin{:});
    opt = treatLegacyForceOptions(opt);
    do_solve = checkDrivingForcesIncomp(G, opt);
    if ~do_solve
@@ -177,7 +177,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
            isempty(opt.bc)   , ...
            isempty(opt.src)  , ...
            isempty(opt.bcp)  , ...
-           isempty(opt.wells), ~grav]),
+           isempty(opt.wells), ~grav])
       warning(msgid('DrivingForce:Missing'),                   ...
              ['No external driving forces present in model--', ...
               'state remains unchanged.\n']);
@@ -196,7 +196,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    nw     = length(opt.wells);
    n      = nc + nw;
 
-   [mob, omega, rho] = dynamic_quantities(state, fluid, extraarg{:});
+   [mob, omega, rho] = dynamic_quantities(state, fluid);
    totmob = sum(mob, 2);
 
    % Compute effective (mobility-weighted) transmissibilities.
@@ -386,7 +386,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    state.flux(:)          = flux;
    state.facePressure     = fpress;
 
-   for k = 1 : nw,
+   for k = 1 : nw
       wc = W(k).cells;
       dp = state.wellSol(k).cdp;
       state.wellSol(k).flux     = W(k).WI.*totmob(wc).*(p(nc+k) + dp - p(wc));
@@ -398,7 +398,7 @@ end
 
 %--------------------------------------------------------------------------
 
-function [mob, omega, rho] = dynamic_quantities(state, fluid, varargin)
+function [mob, omega, rho] = dynamic_quantities(state, fluid)
    [rho, kr, mu] = getIncompProps(state, fluid);
    mob    = bsxfun(@rdivide, kr, mu);
    totmob = sum(mob, 2);
@@ -407,7 +407,7 @@ end
 
 %--------------------------------------------------------------------------
 
-function [T, ft] = compute_trans(G, T, cellNo, cellFaces, neighborship, totmob, opt)
+function [T, ft] = compute_trans(G, T, cellNo, cellFaces, neighborship, totmob, opt) %#ok
     niface = size(neighborship, 1);
     if opt.use_trans
       neighborcount = sum(neighborship > 0, 2);
