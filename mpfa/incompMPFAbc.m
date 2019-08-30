@@ -90,7 +90,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     rhs = zeros(size(A, 1), 1);
     
-    
     extfacenodetbl = tbls.extfacenodetbl;
     extfacenodetbl = addLocInd(extfacenodetbl, 'efnind');
     
@@ -137,15 +136,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     is_flux = strcmpi('flux', bc.type);
     if any(is_flux)
         facenodetbl = tbls.facenodetbl;
-        bcfluxtbl.faces = bc.faces(is_flux);
+        bcfluxtbl.faces = bc.face(is_flux);
         bcfluxtbl.num   = numel(bcfluxtbl.faces);
         fluxvals = bc.value(is_flux);
         map = setupTableMapping(bcfluxtbl, bctbl, {'faces'});
         nfluxperface = diag(map'*map);
-        fluxvals = (1/nfluxperface).*fluxvals
+        fluxvals = (1./nfluxperface).*fluxvals;
         fluxvals = map*fluxvals;
         ind = nc + bctbl.bcind;
-        rhs(ind) = rhs(ind) - fluxvals;
+        rhs(ind) = rhs(ind) + fluxvals;
     end
 
     nnp = length(rhs); 
@@ -159,8 +158,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % --------------------------------------------------------------------- 
     dispif(opt.Verbose, 'Computing fluxes, face pressures etc...\t\t'); 
     pressure = x(1 : nc); 
-    state.pressure    = pressure;
-
+    state.pressure = pressure;
 
     bc_pressure = zeros(extfacenodetbl.num, 1);
     
