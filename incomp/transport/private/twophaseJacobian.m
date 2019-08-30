@@ -341,7 +341,7 @@ function F = Residual (resSol, resSol_0, dt, fluid, ...
    % For each face k, iw(k) and io(k) is the cell index in which we
    % must evaluate the water and oil mobilities, respectively.
    [iw, io] = findPhaseUpwindCells(m, resSol);
-   if ~any(gflux) && ~isfield(fluid, 'pc'),
+   if ~any(gflux) && ~isfield(fluid, 'pc')
       assert(all(iw == io));
    end
    m_face  = [m(iw, 1) m(io,2)];
@@ -386,8 +386,8 @@ function [gflux, pc_flux, pcJac]  = getFlux(G, cellNo, cellFace, rock, rho, flui
       end
    end
 
-   if norm(g) > 0,
-      if isempty(opt.Trans),
+   if norm(g) > 0
+      if isempty(opt.Trans)
         % nKg == n' * K * g *(rho1 - rho2) for all cellfaces.
         nKg    = sum(G.faces.normals(G.cells.faces(:,1), r) .* ...
                    bsxfun(@times, K(cellNo,:), g(c)), 2);
@@ -516,7 +516,7 @@ function [iw, io] = upwindIndices(G, dflux, gflux, pcflux, mob)
    io(c)   = N(c, 1);
    clear a b c N
 
-   if any(any(isnan([iw, io]))),
+   if any(any(isnan([iw, io])))
       mw = nan(size(iw));
       mo = mw;
 

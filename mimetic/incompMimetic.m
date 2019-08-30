@@ -522,10 +522,10 @@ function [mob, totmob, omega, rho, cappress] = ...
    totmob = sum(mob, 2);
    omega  = sum(bsxfun(@times, mob, rho), 2) ./ totmob;
 
-   if isfield(fluid, 'pc'),
+   if isfield(fluid, 'pc')
       pc = fluid.pc(state);
 
-      if any(abs(pc) > 0),
+      if any(abs(pc) > 0)
          cappress = capPressureRHS(g, mob, pc, opt.pc_form);
       else
          cappress = [];

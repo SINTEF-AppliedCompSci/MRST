@@ -255,7 +255,7 @@ function dt = estimate_dt(G, state, rock, fluid, flux, gflux, sources)
    % Find max wave speed from segregation term
    g      = @(mob) mob(:,1).*mob(:,2)./sum(mob, 2);
    s      = linspace(0,1, 101)';
-   ss=struct('s',[s,1-s]);
+   ss     = struct('s',[s,1-s]);
    m      = bsxfun(@rdivide, fluid.relperm([s, 1-s],ss), min(mu));
    dg     = max(abs(diff(g(m)))./diff(s));
 
@@ -266,7 +266,7 @@ function dt = estimate_dt(G, state, rock, fluid, flux, gflux, sources)
    i      = sources > 0;
    if any(i)
       s     = (min(sat(i)) : 0.05 : 1.0)';
-      ss=struct('s',[s,1-s]);
+      ss    = struct('s',[s,1-s]);
       if numel(s) > 1
          kr    = fluid.relperm([s, 1-s],ss);
          mob   = bsxfun(@rdivide,  kr, mu);

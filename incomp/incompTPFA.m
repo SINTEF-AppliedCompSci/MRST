@@ -218,24 +218,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    if isfield(fluid, 'pc')
       pc = fluid.pc(state);
 
-%{
-      gpc = zeros(size(totmob));
-
-      if isfield(fluid,'gpc') && strcmp(opt.pc_form, 'global'),
-         gpc = fluid.gpc(state);
-      end
-%}
-
       if any(abs(pc) > 0)
-
-%{
-         if isfield(fluid, 'gpc') && strcmp(opt.pc_form, 'global'),
-            cc = capPressureRHS(G, mob, pc, gpc, opt.pc_form); % ERROR HERE
-         else
-%}
-            cc = capPressureRHS(G, mob, pc, opt.pc_form);
-         %end
-
+         cc = capPressureRHS(G, mob, pc, opt.pc_form);
          grav = grav + cc;
       end
    end
@@ -243,13 +227,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    sgn = 2*(neighborship(cf, 1) == cellNo) - 1;
    j   = i(cf) | dF(cf);
    fg  = accumarray(cf(j), grav(j).*sgn(j), [nif, 1]);
-   if ~isempty(opt.bcp),
+   if ~isempty(opt.bcp)
       fg(opt.bcp.face) = fg(opt.bcp.face) + opt.bcp.value;
       warning('mrst:periodic_bc', ...
              ['Face pressures are not well defined for ', ...
               'periodic boundary faces']);
 
-      if any(G.faces.neighbors(:,1) == G.faces.neighbors(:,2)),
+      if any(G.faces.neighbors(:,1) == G.faces.neighbors(:,2))
          error(['Periodic boundary: This code do not work ', ...
                 'if a face is in and outflow']);
       end
@@ -268,7 +252,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    D    = zeros(nw, 1);
    W    = opt.wells;
 
-   for k = 1 : nw,
+   for k = 1 : nw
       wc       = W(k).cells;
       nwc      = numel(wc);
       w        = k + nc;
@@ -277,14 +261,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       dp       = computeIncompWellPressureDrop(W(k), mob, rho, norm(gravity));
       d   (wc) = d   (wc) + wi;
       state.wellSol(k).cdp = dp;
-      if     strcmpi(W(k).type, 'bhp'),
+      if     strcmpi(W(k).type, 'bhp')
          ww=max(wi);
          rhs (w)  = rhs (w)  + ww*W(k).val;
          rhs (wc) = rhs (wc) + wi.*(W(k).val + dp);
          C{k}     = -sparse(1, nc);
          D(k)     = ww;
 
-      elseif strcmpi(W(k).type, 'rate'),
+      elseif strcmpi(W(k).type, 'rate')
          rhs (w)  = rhs (w)  + W(k).val;
          rhs (wc) = rhs (wc) + wi.*dp;
 
@@ -330,8 +314,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    dispif(opt.Verbose, 'Solving linear system...\t\t\t');
    t0 = ticif (opt.Verbose);
 
-   if ~any(dF) && (isempty(W) || ~any(strcmpi({ W.type }, 'bhp'))),
-      if A(1) > 0,
+   if ~any(dF) && (isempty(W) || ~any(strcmpi({ W.type }, 'bhp')))
+      if A(1) > 0
          A(1) = 2*A(1);
       else
          [j, j] = max(diag(A));  %#ok
@@ -339,12 +323,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       end
    end
 
-   if opt.condition_number,
+   if opt.condition_number
       disp('***************************************');
       disp(['Conditon number is :   ', num2str(condest(A))]);
       disp('***************************************');
    end
-   if opt.MatrixOutput,
+   if opt.MatrixOutput
       state.A   = A;
       state.rhs = rhs;
    end
