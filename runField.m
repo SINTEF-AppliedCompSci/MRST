@@ -14,19 +14,20 @@ plotconc = false;
 % G = importGrid(myfile,'tetBench');
 % G = computeGeometry(G);
 
-nx = 10;
-ny = 10;
-nz = 5;
-G = cartGrid([nx, ny, nz]);
-%G = twister(G, 0.1);
-G = computeGeometry(G);
-
 % nx = 10;
 % ny = 10;
 % nz = 5;
 % G = cartGrid([nx, ny, nz]);
-% G = tetrahedralGrid(G.nodes.coords);
+% %G = twister(G, 0.1);
 % G = computeGeometry(G);
+
+nx = 7;
+ny = 5%10;
+nz = 3;
+G = cartGrid([nx, ny, nz]);
+G = tetrahedralGrid(G.nodes.coords);
+G = twister(G, 0.1);
+G = computeGeometry(G);
 
 rock = makeRock(G, 100*milli*darcy, 1);
 pv=sum(poreVolume(G,rock));
@@ -35,7 +36,7 @@ mu_value = 1;
 rho_value = 1;
 fluid = initSingleFluid('mu',mu_value,'rho',rho_value);
 fluidad = initSimpleADIFluid('phases', 'W', 'mu' , mu_value, 'rho', rho_value);
-p0 = 0.0 %15e6; % from FlowNTPFA call below
+p0 = 0.0; %15e6; % from FlowNTPFA call below
 s0 = 1.0;
 
 % Wells
@@ -72,20 +73,41 @@ Wtp = [];
 % bc_std = pside(bc_std, G, 'zmin', 1);
 % bc_std = pside(bc_std, G, 'zmax', 1);
 
-% Must hard code these?
+% % Must hard code these?
 neumann_val = 1;
 dirichlet_val = 0;
 bc_std = [];
-bc_std = fluxside(bc_std, G, 'LEFT',  neumann_val); 
-bc_std = pside(bc_std, G, 'RIGHT', dirichlet_val); 
+istet = false;
+for t = 1:numel(G.type)
+    if contains(G.type{t}, 'tetra')
+        istet = true;
+        break;
+    end
+end
+if istet
+    bf = boundaryFaces(G);
+    %isbdry = zeros(G.faces.num,1);
+    %isbdry(bf) = 1;
+    isbdry = (1:G.faces.num)';
+    tol = 1e-5;
+    xmin = min(G.nodes.coords(:,1));
+    xmax = max(G.nodes.coords(:,1));
+    imin = G.faces.centroids(:,1) < xmin+tol;
+    imax = G.faces.centroids(:,1) > xmax-tol;
+    neumann_ix = isbdry(imin);
+    bc_std = addBC(bc_std, neumann_ix, 'flux', neumann_val.*G.faces.areas(neumann_ix));
+    dirichlet_ix = isbdry(imax);
+    bc_std = addBC(bc_std, dirichlet_ix, 'pressure', dirichlet_val);
+else
+    bc_std = fluxside(bc_std, G, 'LEFT',  neumann_val); 
+    bc_std = pside(bc_std, G, 'RIGHT', dirichlet_val); 
+end
 
 % Fill the bc_nfvm by setting default homogeneous Neumann conditions,
 % then copy from bc_std. We should set BC explicitly on all boundary
 % faces, which means that bc_nfvm members should be of size
 % numel(boundaryFaces(G)).
-%bc_nfvm = convertBC(G, bc_std);
-bc_nfvm = bc_std;
-
+bc_nfvm = convertBC(G, bc_std);
 
 %state0 = initState(G, Wtp, p0);
 %state0 = initResSol(G, p0, 1);
@@ -139,48 +161,48 @@ results = {};
 % results{end+1} = state;
 
 
-% %% nonlinear TPFA
-% solvers{end+1} = 'NFVM std';
-% disp(solvers{end});
-% interpFace=findHAP(G,rock,bc_nfvm);
-% disp(['fraction of faces with centroids outside convex hull ', num2str(interpFace.percentage)]);
-% interpFace=correctHAP(G,interpFace);
-% OSflux=findOSflux(G,rock,bc_nfvm,interpFace);
-% state=FlowNTPFA(G,bc_nfvm,fluid,Wtp,OSflux,p0*ones(G.cells.num,1),1e-7,1000);
-% %figure,plotCellData(G,state.pressure/1e6);plotWell(G,Wtp);view(3)
-% figure,plotToolbar(G,state);plotWell(G,Wtp);view(3)
-% title(['Pressure ', solvers{end}]);h=colorbar;h.Label.String='Pressure[MPa]';clear h;
-% if plotconc
-%     Qinj=sum(state.wellSol(1).flux);tt=pv/Qinj;nstep=100;dt=tt/nstep;
-%     state=tracerTransport_implicit(G,rock,Wtp,state,dt,nstep);
-%     figure, plotCellData(G,state.cres(:,end));plotWell(G,Wtp);
-%     view(3);colorbar;title(['Concentration ', solvers{end}]);
-%     drawnow
-% end
-% results{end+1} = state;
-
-
-
-%% nonlinear NFVM in new framework
-solvers{end+1} = 'NFVM new';
+%% nonlinear TPFA
+solvers{end+1} = 'NFVM std';
 disp(solvers{end});
-%model = GenericBlackOilModel(G, rock, fluidad,'water', true, 'oil', false, 'gas', false);
-model = WaterModel(G, rock, fluidad);
-model = model.validateModel();
-model.FluxDiscretization.PermeabilityPotentialGradient.PermeabilityGradientDiscretization ...
-    = NFVM(model, bc_nfvm);
-model.FacilityModel = model.FacilityModel.setupWells(Wtp);
-[wellSols, states] = simulateScheduleAD(state0, model, schedule);
-%figure,plotCellData(G,states{1}.pressure/1e6);plotWell(G,Wtp);view(3)
-figure,plotToolbar(G,states);plotWell(G,Wtp);view(3)
+interpFace=findHAP(G,rock,bc_nfvm);
+disp(['fraction of faces with centroids outside convex hull ', num2str(interpFace.percentage)]);
+interpFace=correctHAP(G,interpFace);
+OSflux=findOSflux(G,rock,bc_nfvm,interpFace);
+state=FlowNTPFA(G,bc_nfvm,fluid,Wtp,OSflux,p0*ones(G.cells.num,1),1e-7,1000);
+%figure,plotCellData(G,state.pressure/1e6);plotWell(G,Wtp);view(3)
+figure,plotToolbar(G,state);plotWell(G,Wtp);view(3)
 title(['Pressure ', solvers{end}]);h=colorbar;h.Label.String='Pressure[MPa]';clear h;
 if plotconc
-    Qinj = sum(states{1}.wellSol(1).flux);tt=pv/Qinj;nstep=100;dt=tt/nstep;
-    state = tracerTransport_implicit(G,rock,Wtp,states{1},dt,nstep);
-    figure,plotCellData(G,state.cres(:,end));plotWell(G,Wtp);
+    Qinj=sum(state.wellSol(1).flux);tt=pv/Qinj;nstep=100;dt=tt/nstep;
+    state=tracerTransport_implicit(G,rock,Wtp,state,dt,nstep);
+    figure, plotCellData(G,state.cres(:,end));plotWell(G,Wtp);
     view(3);colorbar;title(['Concentration ', solvers{end}]);
+    drawnow
 end
-results{end+1} = states{1};
+results{end+1} = state;
+
+
+
+% %% nonlinear NFVM in new framework
+% solvers{end+1} = 'NFVM new';
+% disp(solvers{end});
+% %model = GenericBlackOilModel(G, rock, fluidad,'water', true, 'oil', false, 'gas', false);
+% model = WaterModel(G, rock, fluidad);
+% model = model.validateModel();
+% model.FluxDiscretization.PermeabilityPotentialGradient.PermeabilityGradientDiscretization ...
+%     = NFVM(model, bc_nfvm);
+% model.FacilityModel = model.FacilityModel.setupWells(Wtp);
+% [wellSols, states] = simulateScheduleAD(state0, model, schedule);
+% %figure,plotCellData(G,states{1}.pressure/1e6);plotWell(G,Wtp);view(3)
+% figure,plotToolbar(G,states);plotWell(G,Wtp);view(3)
+% title(['Pressure ', solvers{end}]);h=colorbar;h.Label.String='Pressure[MPa]';clear h;
+% if plotconc
+%     Qinj = sum(states{1}.wellSol(1).flux);tt=pv/Qinj;nstep=100;dt=tt/nstep;
+%     state = tracerTransport_implicit(G,rock,Wtp,states{1},dt,nstep);
+%     figure,plotCellData(G,state.cres(:,end));plotWell(G,Wtp);
+%     view(3);colorbar;title(['Concentration ', solvers{end}]);
+% end
+% results{end+1} = states{1};
 
 
 % % NTPFA glpk doesn't converge. Very strange?
