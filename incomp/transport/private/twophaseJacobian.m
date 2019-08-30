@@ -119,7 +119,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    q = assembleTransportSource(state, fluid, q, G.cells.num, compi{:});
    assert(all(isfinite(q)))
    % Extract (constant) fluid densities.
-   [rho, rho] = fluid.properties(state); %#ok<ASGLU>
+   rho = getIncompProps(state, fluid);
 
    % Compute the gravitational potential (rho_w - rho_o)n·Kg across each
    % face in the grid.
@@ -175,17 +175,14 @@ function J = Jacobian (resSol, resSol_0, dt, fluid, ...
 %  respectively, then the respective (matrix) contributions of each
 %  term is added to elements (i, iw) and (i, io) of the Jacobian matrix.
 
-   if isfield(resSol, 'extSat'),
+   if isfield(resSol, 'extSat')
       % Save extremal values of saturation for hysteresis purposes
       % First column contains minima, second maxima
       resSol.extSat(:,1) = min(resSol.s(:,1), resSol_0.extSat(:,1));
       resSol.extSat(:,2) = max(resSol.s(:,1), resSol_0.extSat(:,2));
    end
-
-   mu        = fluid.properties(resSol);     % viscosity
-   sat       = fluid.saturation(resSol);     % cell saturation
-   [kr, dkr] = fluid.relperm(sat, resSol);
-   m         = bsxfun(@rdivide, kr,  mu);    % mobility in each cell
+   [tmp, kr, mu, dkr]  = getIncompProps(resSol, fluid); %#ok<ASGLU>
+   m = bsxfun(@rdivide, kr,  mu);    % mobility in each cell
 
    % We need derivatives with respect to s(:,1) only.
    dkr(:,end) = -dkr(:,end);
@@ -319,12 +316,13 @@ function F = Residual (resSol, resSol_0, dt, fluid, ...
       resSol.extSat(:,1) = min(resSol.s(:,1), resSol_0.extSat(:,1));
       resSol.extSat(:,2) = max(resSol.s(:,1), resSol_0.extSat(:,2));
    end
-
-   mu  = fluid.properties(resSol);
-   sat = fluid.saturation(resSol);
-   kr  = fluid.relperm(sat, resSol);
+   [tmp, kr, mu]  = getIncompProps(resSol, fluid); %#ok<ASGLU>
+   
+%    mu  = fluid.properties(resSol);
+%    sat = fluid.saturation(resSol);
+%    kr  = fluid.relperm(sat, resSol);
    m   = bsxfun(@rdivide, kr, mu);
-   clear mu sat kr
+   clear mu sat kr tmp
 
    neighbors = getNeighbourship(G, 'Topological', true);
    internal = all(neighbors~=0, 2);

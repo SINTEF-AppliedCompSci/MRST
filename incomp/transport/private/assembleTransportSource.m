@@ -41,14 +41,16 @@ function q = assembleTransportSource(state, fluid, q, nc, varargin)
 
    check_input(q, nc, opt)
 
-   if opt.use_compi && ~all(structfun(@isempty, q)),
+   if opt.use_compi && ~all(structfun(@isempty, q))
       % This problem features source terms (i.e., not a purely
       % gravity-driven problem) and the caller requests scaling injection
       % sources by "water" saturations.
 
       i   = q.flux > 0;
-      mu  = fluid.properties(state);
-      kr  = fluid.relperm(q.compi, state);
+      tmpstate = struct('pressure', state.pressure(q.cell), ...
+                        's', q.compi);
+      [tmp, kr, mu]= getIncompProps(tmpstate, fluid); %#ok<ASGLU>
+      clear tmp
       m   = bsxfun(@rdivide, kr, mu);
       f   = m(:,1) ./ sum(m,2);
       q.flux(i) = q.flux(i) .* f(i);

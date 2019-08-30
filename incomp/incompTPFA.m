@@ -161,7 +161,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 'reduce',false,...
                 'use_trans',false);
 
-   opt = merge_options(opt, varargin{:});
+   [opt, extraarg] = merge_options(opt, varargin{:});
    opt = treatLegacyForceOptions(opt);
    do_solve = checkDrivingForcesIncomp(G, opt);
    if ~do_solve
@@ -196,7 +196,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    nw     = length(opt.wells);
    n      = nc + nw;
 
-   [mob, omega, rho] = dynamic_quantities(state, fluid);
+   [mob, omega, rho] = dynamic_quantities(state, fluid, extraarg{:});
    totmob = sum(mob, 2);
 
    % Compute effective (mobility-weighted) transmissibilities.
@@ -399,11 +399,12 @@ end
 
 %--------------------------------------------------------------------------
 
-function [mob, omega, rho] = dynamic_quantities(state, fluid)
-   [mu, rho] = fluid.properties(state);
-   s         = fluid.saturation(state);
-   kr        = fluid.relperm(s, state);
-
+function [mob, omega, rho] = dynamic_quantities(state, fluid, varargin)
+    [rho, kr, mu] = getIncompProps(state, fluid);
+%    [mu, rho] = fluid.properties(state);
+%    s         = fluid.saturation(state);
+%    kr        = fluid.relperm(s, state);
+% 
    mob    = bsxfun(@rdivide, kr, mu);
    totmob = sum(mob, 2);
    omega  = sum(bsxfun(@times, mob, rho), 2) ./ totmob;
