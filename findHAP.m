@@ -31,6 +31,7 @@ for i_face=1:G.faces.num
         interpFace.weights(i_face,2)=w2/(w1+w2);
     else
         ind=find(bc.face==i_face,1);
+        %ind,bc.type{ind}
         if(strcmpi(bc.type{ind},'pressure'))
             interpFace.coords(i_face,:)=xf';
             interpFace.weights(i_face,(c2==0)+1)=bc.value{ind}(xf);
