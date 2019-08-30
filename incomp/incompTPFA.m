@@ -215,9 +215,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       computePressureRHS(G, omega, opt.bc, opt.src);
 
    % made to add capillary pressure
-   if isfield(fluid, 'pc')
-      pc = fluid.pc(state);
-
+   pc = getIncompCapillaryPressure(state, fluid);
+   if ~isempty(pc)
       if any(abs(pc) > 0)
          cc = capPressureRHS(G, mob, pc, opt.pc_form);
          grav = grav + cc;
@@ -400,11 +399,7 @@ end
 %--------------------------------------------------------------------------
 
 function [mob, omega, rho] = dynamic_quantities(state, fluid, varargin)
-    [rho, kr, mu] = getIncompProps(state, fluid);
-%    [mu, rho] = fluid.properties(state);
-%    s         = fluid.saturation(state);
-%    kr        = fluid.relperm(s, state);
-% 
+   [rho, kr, mu] = getIncompProps(state, fluid);
    mob    = bsxfun(@rdivide, kr, mu);
    totmob = sum(mob, 2);
    omega  = sum(bsxfun(@times, mob, rho), 2) ./ totmob;
@@ -414,7 +409,7 @@ end
 
 function [T, ft] = compute_trans(G, T, cellNo, cellFaces, neighborship, totmob, opt)
     niface = size(neighborship, 1);
-    if opt.use_trans,  
+    if opt.use_trans
       neighborcount = sum(neighborship > 0, 2);
       assert (numel(T) == niface, ...
              ['Expected one transmissibility for each interface ', ...

@@ -245,11 +245,9 @@ function J = Jacobian (resSol, resSol_0, dt, fluid, ...
       [id;         iw;       iw;         io;       io], ... %column
       [d;     dFdSiw1; -dFdSiw2;    dFdSio1; -dFdSio2], ... %value
       G.cells.num, G.cells.num);
-
-  if isfield(fluid, 'pc')
-      % added:
-      [dpc, dpc]       = fluid.pc(resSol); %#ok<ASGLU>
-
+  % Get capillary pressure
+  [pc, dpc] = getIncompCapillaryPressure(resSol, fluid);
+  if ~isempty(pc)
       d_p  =      dt.* f_face(:,1).*m_face(:,2).*pcJac(internal);
 
       % d pcflux
@@ -269,7 +267,6 @@ function J = Jacobian (resSol, resSol_0, dt, fluid, ...
          [dFdSipc1_1; -dFdSipc1_2;  -dFdSipc2_1; dFdSipc2_2], ... %value
          G.cells.num, G.cells.num);
    end
-
 
 end
 
@@ -445,7 +442,7 @@ function [gflux, pc_flux, pcJac]  = getFlux(G, cellNo, cellFace, rock, rho, flui
          % Flux contribution of capillary pressure for internal faces
          % pc_flux_ij = A_ij*K_avg*(pc(s_i)-pc(s_j))/nC = harm_c*d_pc,
          % A_ij = area of face.
-         pc_flux = @(rSol) harm_c(~i) .* d_pc(fluid.pc(rSol));
+         pc_flux = @(rSol) harm_c(~i) .* d_pc(getIncompCapillaryPressure(rSol, fluid));
 
          % The constant contribution to the Jacobian from the term
          % d/ds( K grad pc) which in flux formulation is

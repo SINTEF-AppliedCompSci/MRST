@@ -322,10 +322,7 @@ end
 %--------------------------------------------------------------------------
 
 function [mob, totmob, omega, rho] = dynamic_quantities(state, fluid)
-   [mu, rho] = fluid.properties(state);
-   s         = fluid.saturation(state);
-   kr        = fluid.relperm(s, state);
-
+   [rho, kr, mu] = getIncompProps(state, fluid);
    mob    = bsxfun(@rdivide, kr, mu);
    totmob = sum(mob, 2);
    omega  = sum(bsxfun(@times, mob, rho), 2) ./ totmob;
