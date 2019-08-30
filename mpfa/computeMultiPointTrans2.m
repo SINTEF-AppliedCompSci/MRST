@@ -53,7 +53,8 @@ function mpfastruct = computeMultiPointTrans2(G, rock, varargin)
 %
 %               'iB'  : inverse of scalar product (facenode degrees of freedom)
 %               'div' : divergence operator (facenode values to cell values)
-%               'Pext': projection operator on external facenode values
+%               'Pext': projection operator on external facenode values. It
+%                       is signed and return boundary outfluxes (positive if exiting).
 %               'F'   : flux operator (from cell and external facenode values to facenode values)
 %               'A'   : system matrix (cell and external facenode degrees of freedom)
 %               'tbls': table structure
@@ -201,12 +202,22 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    
    %% Assemble the system matrix operaror: The degrees of freedom are the pressure
    % values at the cell center and at the external facenode.
+   %
+   % We have u = iB*div'*p - iB*Pext'*pe
+   % where pe is pressure at external facenode.
+   %
+   
    A11 = div*iB*div';
    A12 = -div*iB*Pext';
    A21 = -Pext*iB*div';
    A22 = Pext*iB*Pext';
    A = [[A11, A12]; [A21, A22]];
 
+   % The first equation row (that is [A11, A12]) corresponds to mass conservation and
+   % should equal to source term.
+   % The second equation row (that is [A11, A12]) corresponds to definition of external
+   % flux and should equal -Pext*u, that is boundary facenode fluxes in
+   % inward direction (see definition on Pext: Pext*u returns outward fluxes).
    mpfastruct = struct('div' , div , ...
                        'F'   , F   , ...
                        'A'   , A   , ...
