@@ -47,7 +47,12 @@ function q = assembleTransportSource(state, fluid, q, nc, varargin)
       % sources by "water" saturations.
 
       i   = q.flux > 0;
-      tmpstate = struct('pressure', state.pressure(q.cell), ...
+      if isfield(state, 'pressure')
+          p_cell = state.pressure(q.cell);
+      else
+          p_cell = repmat(1*atm, numel(q.cell));
+      end
+      tmpstate = struct('pressure', p_cell, ...
                         's', q.compi);
       [tmp, kr, mu]= getIncompProps(tmpstate, fluid); %#ok<ASGLU>
       clear tmp
@@ -76,7 +81,7 @@ function check_input(q, nc, opt)
    assert (numel(q.cell) == numel(q.flux), ...
            'There must be one rate for each transport source term');
 
-   if opt.use_compi,
+   if opt.use_compi
       assert (size(q.compi, 1) == numel(q.cell), ...
              ['There must be one injection composition for each ', ...
               'source term when solving transport']);
