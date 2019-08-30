@@ -70,45 +70,47 @@ scheduleW.control(2).W(1).cs = 0;
 scheduleW.control(2).W(2).cs = 0;
 scheduleW.control(3).W(1).cs = 0;
 scheduleW.control(3).W(2).cs = 0;
-[wellSols, states, report] = simulateScheduleAD(state0, model, scheduleW, 'afterStepFn', fn);    
+[wellSolsW, statesW, reportW] = simulateScheduleAD(state0, model, scheduleW, 'afterStepFn', fn);    
 
-%% Plot cell oil saturation in different tsteps of surfactant flooding and water flooding
-
+%% Plot cell oil saturation in different tsteps of water flooding and surfactant flooding
 T = (80:23:268);
 
+% Plot cell oil saturation in different tsteps of pure water flooding
+sOmin = min( cellfun(@(x)min(x.s(:,2)), statesW) );
+sOmax = max( cellfun(@(x)max(x.s(:,2)), statesW) );
+figure
+for i = 1 : length(T)
+    subplot(3,3,i)
+    plotCellData(model.G, statesW{T(i)}.s(:,2))
+    plotWell(model.G, schedule.control(1).W, 'fontsize', 10)
+    axis tight
+    colormap(jet)
+    view(3)
+    caxis([sOmin, sOmax])
+    title(['T = ', num2str(T(i))])
+end
+sgtitle('Oil saturation for water flooding')
+
+% Plot cell oil saturation in different tsteps of surfactant flooding
 sOmin = min( cellfun(@(x)min(x.s(:,2)), statesSurfactant) );
 sOmax = max( cellfun(@(x)max(x.s(:,2)), statesSurfactant) );
-
 figure
 for i = 1 : length(T)
     subplot(3,3,i)
-    plotCellData(G, statesSurfactant{T(i)}.s(:,2))
-    plotWell(G, schedule.control(1).W)
+    plotCellData(model.G, statesSurfactant{T(i)}.s(:,2))
+    plotWell(model.G, schedule.control(1).W, 'fontsize', 10)
     axis tight
     colormap(jet)
     view(3)
     caxis([sOmin, sOmax])
     title(['T = ', num2str(T(i))])
 end
-
-sOmin = min( cellfun(@(x)min(x.s(:,2)), states) );
-sOmax = max( cellfun(@(x)max(x.s(:,2)), states) );
-
-figure
-for i = 1 : length(T)
-    subplot(3,3,i)
-    plotCellData(G, states{T(i)}.s(:,2))
-    plotWell(G, schedule.control(1).W)
-    axis tight
-    colormap(jet)
-    view(3)
-    caxis([sOmin, sOmax])
-    title(['T = ', num2str(T(i))])
-end
+sgtitle('Oil saturation for surfactant flooding')
 
 %% Plot well solutions
-
-plotWellSols({wellSolsSurfactant, wellSols}, cumsum(schedule.step.val))
+% The orange line denotes pure water flooding while the blue line denotes
+% surfactant flooing
+plotWellSols({wellSolsSurfactant, wellSolsW}, cumsum(schedule.step.val))
 
 %% Copyright notice
 

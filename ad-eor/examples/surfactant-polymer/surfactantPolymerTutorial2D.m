@@ -76,50 +76,101 @@ fn = getPlotAfterStep(state0, model, schedule, ...
 [wellSolsSP, statesSP, reportsSP] = ...
     simulateScheduleAD(state0, model, schedule, ...
                     'NonLinearSolver', nonlinearsolver, 'afterStepFn', fn);
-% we use schedulew to run the three phase black oil water flooding simulation.
+
+% we use scheduleP to run the three phase black oil polymer flooding simulation.
+scheduleP = schedule;
+scheduleP.control(2).W(1).cs = 0;
+fn1 = getPlotAfterStep(state0, model, scheduleP, ...
+    'plotWell', true, 'plotReservoir', true, 'view', [20, 8], ...
+                      'field', 's:2');
+[wellSolsP, statesP, reportP] = simulateScheduleAD(state0, model, scheduleP, 'afterStepFn', fn1);
+
+% we use scheduleS to run the three phase black oil surfactant flooding simulation.
+scheduleS = schedule;
+scheduleS.control(2).W(1).cp = 0;
+fn2 = getPlotAfterStep(state0, model, scheduleS, ...
+    'plotWell', true, 'plotReservoir', true, 'view', [20, 8], ...
+                      'field', 's:2');
+[wellSolsS, statesS, reportS] = simulateScheduleAD(state0, model, scheduleS, 'afterStepFn', fn2);
+
+% we use scheduleW to run the three phase black oil water flooding simulation.
 scheduleW = schedule;
 scheduleW.control(2).W(1).cs = 0;
 scheduleW.control(2).W(1).cp = 0;
-fn1 = getPlotAfterStep(state0, model, schedule, ...
+fn3 = getPlotAfterStep(state0, model, scheduleW, ...
     'plotWell', true, 'plotReservoir', true, 'view', [20, 8], ...
                       'field', 's:2');
-[wellSolsW, statesW, reportW] = simulateScheduleAD(state0, model, scheduleW, 'afterStepFn', fn1);
-
-%% Plot cell oil saturation in different tsteps of surfactant flooding and water flooding
+[wellSolsW, statesW, reportW] = simulateScheduleAD(state0, model, scheduleW, 'afterStepFn', fn3);
+%% Plot cell oil saturation in different tsteps of differnt kinds of flooding
 
 T = (80:23:268);
 
-sOmin = min( cellfun(@(x)min(x.s(:,2)), statesSP) );
-sOmax = max( cellfun(@(x)max(x.s(:,2)), statesSP) );
-
-figure
-for i = 1 : length(T)
-    subplot(3,3,i)
-    plotCellData(model.G, statesSP{T(i)}.s(:,2))
-    plotWell(model.G, schedule.control(1).W)
-    axis tight
-    colormap(jet)
-    view(3)
-    caxis([sOmin, sOmax])
-    title(['T = ', num2str(T(i))])
-end
-
+% Plot cell oil saturation in different tsteps of pure water flooding
 sOmin = min( cellfun(@(x)min(x.s(:,2)), statesW) );
 sOmax = max( cellfun(@(x)max(x.s(:,2)), statesW) );
-
 figure
 for i = 1 : length(T)
     subplot(3,3,i)
     plotCellData(model.G, statesW{T(i)}.s(:,2))
-    plotWell(model.G, schedule.control(1).W)
+    plotWell(model.G, schedule.control(1).W, 'fontsize', 10)
     axis tight
     colormap(jet)
     view(3)
     caxis([sOmin, sOmax])
     title(['T = ', num2str(T(i))])
 end
+sgtitle('Oil saturation for water flooding')
 
-%% Plot well solutions
+% Plot cell oil saturation in different tsteps of polymer flooding
+sOmin = min( cellfun(@(x)min(x.s(:,2)), statesP) );
+sOmax = max( cellfun(@(x)max(x.s(:,2)), statesP) );
+figure
+for i = 1 : length(T)
+    subplot(3,3,i)
+    plotCellData(model.G, statesP{T(i)}.s(:,2))
+    plotWell(model.G, schedule.control(1).W, 'fontsize', 10)
+    axis tight
+    colormap(jet)
+    view(3)
+    caxis([sOmin, sOmax])
+    title(['T = ', num2str(T(i))])
+end
+sgtitle('Oil saturation for polymer flooding')
+
+% Plot cell oil saturation in different tsteps of surfactant flooding
+sOmin = min( cellfun(@(x)min(x.s(:,2)), statesS) );
+sOmax = max( cellfun(@(x)max(x.s(:,2)), statesS) );
+figure
+for i = 1 : length(T)
+    subplot(3,3,i)
+    plotCellData(model.G, statesS{T(i)}.s(:,2))
+    plotWell(model.G, schedule.control(1).W, 'fontsize', 10)
+    axis tight
+    colormap(jet)
+    view(3)
+    caxis([sOmin, sOmax])
+    title(['T = ', num2str(T(i))])
+end
+sgtitle('Oil saturation for surfactant flooding')
+
+% Plot cell oil saturation in different tsteps of surfactant-polymer flooding
+sOmin = min( cellfun(@(x)min(x.s(:,2)), statesSP) );
+sOmax = max( cellfun(@(x)max(x.s(:,2)), statesSP) );
+figure
+for i = 1 : length(T)
+    subplot(3,3,i)
+    plotCellData(model.G, statesSP{T(i)}.s(:,2))
+    plotWell(model.G, schedule.control(1).W, 'fontsize', 10)
+    axis tight
+    colormap(jet)
+    view(3)
+    caxis([sOmin, sOmax])
+    title(['T = ', num2str(T(i))])
+end
+sgtitle('Oil saturation for surfactant-polymer flooding')
+%% Plot well solutions of water flooding and surfactant-polymer flooding
+% The orange line denotes pure water flooding while the blue line denotes SP
+% flooing
 
 plotWellSols({wellSolsSP, wellSolsW},cumsum(schedule.step.val))
 
