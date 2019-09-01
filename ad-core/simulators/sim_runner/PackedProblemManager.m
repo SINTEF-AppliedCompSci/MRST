@@ -57,7 +57,7 @@ classdef PackedProblemManager < handle
                     pause(ppm.delay);
                 end
                 if any(launched) && ppm.verbose > 0
-                    fprintf('Launched %d new sessions...\n', sum(launched));
+                    fprintf('Launched %d new sessions...\n', numel(launched));
                 end
             end
         end
