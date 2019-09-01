@@ -92,6 +92,15 @@ classdef SequentialPressureTransportModel < ReservoirModel
             converged = pressure_ok && transport_ok;
             if converged && ~model.stepFunctionIsLinear
                 [converged, values, state] = checkOuterConvergence(model, state, state0, dt, drivingForces, iteration);
+                if transportReport.Iterations == 0
+                    % If the transport did not do anything, we are
+                    % effectively converged, even if the values of the
+                    % outer residual are not converged. This must be
+                    % specifically enabled by allowing zero iterations for
+                    % the transport solver and is primarily useful when
+                    % there is no reasonable outer convergence criterion.
+                    converged = converged | true;
+                end
             else
                 % Need to have some value in the report
                 values = pressureReport.StepReports{end}.NonlinearReport{end}.Residuals(1);
