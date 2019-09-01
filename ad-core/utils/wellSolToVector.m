@@ -59,7 +59,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    sgn =        extract('sign');
    bhp =        extract('bhp');
-   qWs = sgn .* extract('qWs');
-   qGs = sgn .* extract('qGs');
-   qOs = sgn .* extract('qOs');
+   
+   qWs = extract('qWs');
+   qOs = extract('qOs');
+   qGs = extract('qGs');
+   if ~isempty(qWs), qWs = sgn .* qWs; end
+   if ~isempty(qOs), qOs = sgn .* qOs; end
+   if ~isempty(qGs), qGs = sgn .* qGs; end
 end
