@@ -281,6 +281,15 @@ if(~flag&&counter>1)
     a(2)=a(2)*Kn_norm/tB_norm;
     a(3)=a(3)*Kn_norm/tC_norm;
 end
+
+if ~exist('faceA','var')
+    figure
+    plotGrid(G, 'facealpha', 0.1);
+    hold on
+    plotGrid(G, c)
+    keyboard
+end
+
 assert(logical(exist('faceA','var')),...
     ['decomposition failed for cell ',num2str(c)]);
 end
