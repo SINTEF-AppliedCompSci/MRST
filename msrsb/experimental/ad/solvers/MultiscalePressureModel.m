@@ -69,12 +69,7 @@ classdef MultiscalePressureModel < ReservoirModel
             [state, varargout{:}] = model.pressureModel.updateState(state, varargin{:});
             if model.coarseScaleConvergence
                 part = model.multiscaleSolver.coarsegrid.partition;
-%                 dp0 = state.dpRel;
-%                 state.dpRel = accumarray(part, state.pressure - p0)./accumarray(part, p0);
                 state.dpRel = accumarray(part, abs(state.dpRel))./accumarray(part, 1);
-%                 fprintf('Average: %2.4g, Point: %2.4g\n', norm(state.dpRel, inf), norm(dp0, inf));
-%                 c = model.multiscaleSolver.coarsegrid.cells.centers;
-%                 state.dpRel = state.dpRel(c);
             end
         end
         
@@ -103,8 +98,8 @@ classdef MultiscalePressureModel < ReservoirModel
                 A = problem.A;
                 b = problem.b;
             else
-                A = -problem.equations{1}.jac{1};
-                b =  problem.equations{1}.val;
+                A = problem.equations{1}.jac{1};
+                b = -problem.equations{1}.val;
             end
             % Single pass of multiscale solver
             solver = model.multiscaleSolver;
@@ -130,6 +125,8 @@ classdef MultiscalePressureModel < ReservoirModel
             flux(CG.faces.fconn, :) = stateCoarse.flux(CG.faces.fconn, :);
             
             state = stateConverged;
+            % Take fluxes from wellSol in reconstructed state
+            state.wellSol = stateFlux.wellSol;
             state.flux = flux;
             
             % Use property pressure for transport
@@ -137,16 +134,6 @@ classdef MultiscalePressureModel < ReservoirModel
 
             report.reconstructionTime = toc(timer);
             report.reconstructionSolver = t_solve;
-            
-            if 0
-                BHPix = find(arrayfun(@(x) strcmpi(x.type, 'bhp'), state.wellSol));
-                for i = 1:numel(BHPix)
-                    ix = BHPix(i);
-%                     state.wellSol(ix) = stateFlux.wellSol(ix);
-                    state.wellSol(ix).flux = stateFlux.wellSol(ix).flux;
-                end
-            end
-
         end
         
         function state_flux = setFluxes(model, state0, state, dt, forces, propsPressure)

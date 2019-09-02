@@ -38,6 +38,7 @@ fluid = initSimpleADIFluid('mu', [1, 5, 1]*centi*poise, 'rho', [1000, 700, 1], '
 modelfi = TwoPhaseOilWaterModel(G, rock, fluid);
 % Sequential pressure-transport model with same type
 model = getSequentialModelFromFI(modelfi);
+model.transportModel.useCNVConvergence = modelfi.useCNVConvergence;
 
 
 figure;
