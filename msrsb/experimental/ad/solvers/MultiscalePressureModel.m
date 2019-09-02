@@ -164,6 +164,13 @@ classdef MultiscalePressureModel < ReservoirModel
             [model.pressureModel, state] = model.pressureModel.updateForChangedControls(state, forces);
         end
         
+        function [model, state] = prepareReportstep(model, varargin)
+            [model.pressureModel, state] = model.pressureModel.prepareReportstep(varargin{:});
+        end
+
+        function [model, state] = prepareTimestep(model, varargin)
+            [model.pressureModel, state] = model.pressureModel.prepareTimestep(varargin{:});
+        end
         function model = validateModel(model, varargin)
             model.pressureModel = model.pressureModel.validateModel(varargin{:});
         end
