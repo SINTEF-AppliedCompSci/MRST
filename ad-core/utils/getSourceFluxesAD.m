@@ -2,7 +2,7 @@ function [qSurf, BCTocellMap, cells] = getSourceFluxesAD(model, mob, s, src)
 %Short description
 %
 % SYNOPSIS:
-%   [qSurf, cells] = getSourceFluxesAD(model, mob, b, s, src)
+%   [qSurf, BCTocellMap, cells] = getSourceFluxesAD(model, mob, b, s, src)
 %
 % DESCRIPTION:
 %   
