@@ -28,7 +28,7 @@ classdef MultiscaleVolumeSolverAD < LinearSolverAD
            dim = coarsegrid.parent.griddim;
            
            % Default options
-           solver.prolongationType = 'smoothed';
+           solver.prolongationType = 'msrsb';
            solver.controlVolumeRestriction = true;
            solver.updateBasis = false;
            solver.maxIterations = 0;
@@ -83,7 +83,7 @@ classdef MultiscaleVolumeSolverAD < LinearSolverAD
                [problem, eliminated] = problem0.reduceToSingleVariableType('cell');
            end
            problem = problem.assembleSystem();
-           [A, b]= problem.getLinearSystem;
+           [A, b] = problem.getLinearSystem;
            
            nc = solver.coarsegrid.parent.cells.num;
            doReduce = size(b, 1) > nc;
