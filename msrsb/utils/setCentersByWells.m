@@ -1,4 +1,4 @@
-function CG = setCentersByWells(CG, W)
+function CG = setCentersByWells(CG, W, varargin)
 % Small utility to set centers of coarse blocks to one of the well cells.
 
 %{
@@ -19,6 +19,9 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+    if ~isfield(CG.cells, 'centers')
+        CG = addCoarseCenterPoints(CG, varargin{:});
+    end
     for i = 1:numel(W)
         c = W(i).cells;
         local = unique(CG.partition(c));
