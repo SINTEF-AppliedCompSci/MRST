@@ -31,18 +31,23 @@ modelDG = modelFV;
 time = 2*year;
 rate = 2*sum(poreVolume(G, rock))/time;
 W = [];
-W = addWell(W, G, rock, 1          , 'type', 'rate', 'val', rate    , 'comp_i', [1,0]);
-W = addWell(W, G, rock, G.cells.num, 'type', 'bhp' , 'val', 50*barsa, 'comp_i', [1,0]);
 
+[bc, src, W] = deal([]);
 if 0
-    src = addSource([], 20, rate/3, 'sat', [1,0]);
-else
-    src = [];
+    src = addSource(src, 20, rate/3, 'sat', [1,0]);
 end
+if 1
+    [f, c] = boundaryFaces(G);
+    f = f(c == 1);
+    bc = addBC(bc, f, 'flux', rate/2, 'sat', [1,0]);
+else
+    W = addWell(W, G, rock, 1, 'type', 'rate' , 'val', rate, 'comp_i', [1,0]);
+end
+W = addWell(W, G, rock, G.cells.num, 'type', 'bhp' , 'val', 50*barsa, 'comp_i', [1,0]);
 
 dt    = 30*day;
 dtvec = rampupTimesteps(time, dt, 0);
-schedule = simpleSchedule(dtvec, 'W', W, 'src', src);
+schedule = simpleSchedule(dtvec, 'W', W, 'src', src, 'bc', bc);
 
 sW     = 0.0;
 state0 = initResSol(G, 100*barsa, [sW,1-sW]);

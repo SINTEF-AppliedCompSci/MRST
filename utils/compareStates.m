@@ -7,7 +7,7 @@ function stateDiff = compareStates(state1, state2)
         if isfield(state2, v)    && ...
            isnumeric(state2.(v)) && ...
            all(size(state2.(v)) == size(state1.(v)))
-            stateDiff.(v) = abs(state1.(v) - state2.(v));
+           stateDiff.(v) = abs(state1.(v) - state2.(v));
         end
     end
        

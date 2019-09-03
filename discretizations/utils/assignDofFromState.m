@@ -12,7 +12,7 @@ function state = assignDofFromState(disc, state)
     % Loop trough possible fields and initialise constant dof
     flds = getDofFields();
     for f = flds
-        if isfield(state, f)            
+        if isfield(state, f)
             dof       = zeros(sum(state.nDof), size(state.(f{1}),2));
             dof(ix,:) = state.(f{1});
             state.([f{1}, 'dof']) = dof;
@@ -22,5 +22,5 @@ function state = assignDofFromState(disc, state)
 end
 
 function flds = getDofFields()
-    flds = {'s', 'rs', 'rv', 'x', 'y', 'components'};
+    flds = {'s', 'rs', 'rv', 'x', 'y', 'components', 'c'};
 end
