@@ -75,6 +75,7 @@ for mNo = 2
         st  = states{mNo}{tNo}; 
         st0 = states{mNo}{tNo-1}; 
         
+        st = model.initStateFunctionContainers(st);
         p = model.getEquations(st0, st, dt, drivingForces, ...
                       'iteration', 0, 'resOnly', false);
         A = p.getLinearSystem();
