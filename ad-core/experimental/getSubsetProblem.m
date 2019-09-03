@@ -78,7 +78,7 @@ function [substate0, substate, submodel, subforces, mappings] = getSubsetProblem
         % keepFaces(opt.internalBoundary) = false;
 
 
-        faceMap = [ifaceList(activeConn); ifaceList(isBnd); ifaceList(remove_interior); ifaceList(remove_interior)];
+        faceMap = [ifaceList(activeConn); ifaceList(isBnd)];
 
         % Dims
         nf = nnz(activeConn);
