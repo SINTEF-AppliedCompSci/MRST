@@ -1,6 +1,16 @@
-mrstModule add dg vem vemmech ad-props ad-core ad-blackoil blackoil-sequential gasinjection mrst-gui reorder matlab_bgl
+mrstModule add dg ad-props ad-core ad-blackoil blackoil-sequential ...
+    mrst-gui matlab_bgl vemmech vista
 
 %%
+
+setup = getDGTestCase('simple1d');
+
+%%
+
+[ws, st, rep] = simulateScheduleAD(setup.state0, setup.modelDG{1}, setup.schedule);
+
+%%
+
 
 gravity reset off
 % gravity reset on; gravity([0,-9.81]);
@@ -51,7 +61,7 @@ ot = 0.01;
 
 [wsDG, statesDG] = deal(cell(numel(degree),1));
 for dNo = 1:numel(degree)
-    disc = DGDiscretization(modelDG.transportModel, ...
+    disc = DGDiscretization(G, rock, ...
                                     'degree', degree(dNo), ...
                                     'basis'              , 'legendre', ...
                                     'useUnstructCubature', false, ...
@@ -81,5 +91,3 @@ for sNo = stateNo
     end
     hold off
 end
-
-% lgnd = 
