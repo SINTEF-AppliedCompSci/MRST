@@ -1,12 +1,14 @@
 function [substate0, substate, submodel, subforces, mappings] = getSubsetProblem(model, state, state0, forces, subs, varargin)
     opt = struct('inflowTreatment', 'pressure', ...
-                 'outflowTreatment', 'pressure');
+                 'outflowTreatment', 'pressure', ...
+                 'internalBoundary', []);
     opt = merge_options(opt, varargin{:});
     % Create subproblem defined by subs
     isComp = isa(model, 'ThreePhaseCompositionalModel');
     assert(islogical(subs));
     state = value(state);
-    if all(subs)
+    model0 = model;
+    if all(subs) && isempty(opt.internalBoundary)
        substate0 = state0;
        substate = state;
        submodel = model;
@@ -26,6 +28,12 @@ function [substate0, substate, submodel, subforces, mappings] = getSubsetProblem
         [substate, substate0, cellFields] = mapCellFields(model, state, state0, subs);
 
         % Coarsen model
+        if isa(model, 'ReservoirModel')
+            hasParent = false;
+        else
+            hasParent = true;
+            model = model.parentModel;
+        end
         op0 = model.operators;
         G = model.G;
         isSeq = isa(model, 'SequentialPressureTransportModel');
@@ -49,18 +57,28 @@ function [substate0, substate, submodel, subforces, mappings] = getSubsetProblem
         Nc = size(state.pressure, 1);
         keep = false(Nc, 1);
         keep(subs) = true;
-
-        faceList = (1:G.faces.num)';
-        ifaceList = faceList(op0.internalConn);
-
-        activeConn = all(keep(op0.N), 2);
-        keepFaces = op0.internalConn;
-        keepFaces(keepFaces) = activeConn;
-
+        
         bndKeep = keep(op0.N);
         isBnd = sum(bndKeep, 2) == 1;
 
-        faceMap = [ifaceList(activeConn); ifaceList(isBnd)];
+        faceList = (1:G.faces.num)';
+        ifaceList = faceList(op0.internalConn);
+        % Boolean for interior faces
+        activeConn = all(keep(op0.N), 2);
+        if isempty(opt.internalBoundary)
+            remove_interior = false(size(op0.N, 1), 1);
+        else
+            int_bnd = false(G.faces.num, 1);
+            int_bnd(opt.internalBoundary) = true;
+            remove_interior = ~int_bnd(op0.internalConn);
+            activeConn = activeConn & remove_interior;
+        end
+        keepFaces = op0.internalConn;
+        keepFaces(keepFaces) = activeConn;
+        % keepFaces(opt.internalBoundary) = false;
+
+
+        faceMap = [ifaceList(activeConn); ifaceList(isBnd); ifaceList(remove_interior); ifaceList(remove_interior)];
 
         % Dims
         nf = nnz(activeConn);
@@ -115,18 +133,26 @@ function [substate0, substate, submodel, subforces, mappings] = getSubsetProblem
         substate.flux = state.flux(keepFaces, :);
 
 
-        sgn = 1 - 2*keep(op0.N(isBnd, 1));
-        volFluxRes = sgn.*V(isBnd, :);
-
-        isProd = sum(volFluxRes, 2) < 0 ;
-        isInj = ~isProd;
         
         left_c = op0.N(isBnd, 1);
         right_c = op0.N(isBnd, 2);
         left = ~keep(left_c);
         global_cells = left.*left_c + ~left.*right_c;
-
         assert(~any(keep(global_cells)))
+        if any(remove_interior)
+            global_cells = [global_cells, op0.N(remove_interior, 1); ...
+                                          op0.N(remove_interior, 2)];
+            brg = find(remove_interior);
+            faces_bc = [find(isBnd); brg; brg];
+        else
+            faces_bc = isBnd;
+        end
+        sgn = 1 - 2*keep(op0.N(faces_bc, 1));
+        volFluxRes = sgn.*V(faces_bc, :);
+
+        isProd = sum(volFluxRes, 2) < 0 ;
+        isInj = ~isProd;
+
         % Face average
         propstate = state;
         propstate.s = propstate.s./sum(propstate.s, 2);
@@ -147,14 +173,14 @@ function [substate0, substate, submodel, subforces, mappings] = getSubsetProblem
         sT = sum(state.s(global_cells, :), 2);
         if isfield(state, 'massFlux')
             mf = state.massFlux(model.operators.internalConn, :);
-            massFlux = sgn.*mf(isBnd, :);
+            massFlux = sgn.*mf(faces_bc, :);
         else
             massFlux = volFluxRes.*rho.*sT;
         end
 
         if isComp
             cflux = state.componentFluxes(op0.internalConn, :);
-            comp_mass_fraction_flux = cflux(isBnd, :);
+            comp_mass_fraction_flux = cflux(faces_bc, :);
             comp_mass_fraction_flux = nan*comp_mass_fraction_flux;
             comp_mass_fraction_flux = comp_mass_fraction_flux./sum(comp_mass_fraction_flux, 2);
             src_comp = eos.getMoleFraction(comp_mass_fraction_flux);
@@ -181,7 +207,7 @@ function [substate0, substate, submodel, subforces, mappings] = getSubsetProblem
         substate.wellSol = substate.wellSol(keepWells);
         substate0.wellSol = substate0.wellSol(keepWells);
 
-        faces = nf + (1:nnz(isBnd))';
+        faces = nf + (1:size(volFluxSurf, 1))';
         nf = numel(faces);
 
         src_sat = nan(nf, numel(rhoS));
@@ -248,6 +274,10 @@ function [substate0, substate, submodel, subforces, mappings] = getSubsetProblem
             submodel.AutoDiffBackend.useMex = false;
         end
         submodel = submodel.validateModel();
+        if hasParent
+            model0.parentModel = submodel;
+            submodel = model0;
+        end
         
         substate = submodel.reduceState(substate, true);
         substate0 = submodel.reduceState(substate0, true);
