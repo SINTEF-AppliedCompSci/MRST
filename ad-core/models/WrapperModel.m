@@ -33,6 +33,14 @@ classdef WrapperModel < PhysicalModel
             state = model.parentModel.validateState(state);
         end
 
+        function [state, report] = updateState(model, varargin)
+            [state, report] = model.parentModel.updateState(varargin{:});
+        end
+        
+        function [convergence, values, names] = checkConvergence(model, varargin)
+            [convergence, values, names] = model.parentModel.checkConvergence(varargin{:});
+        end
+        
         function [model, state] = updateForChangedControls(model, state, forces)
             [model.parentModel, state] = model.parentModel.updateForChangedControls(state, forces);
         end

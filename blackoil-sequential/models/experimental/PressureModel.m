@@ -95,5 +95,9 @@ classdef PressureModel < WrapperModel
             end
             state.statePressure = state;
         end
+        
+        function rhoS = getSurfaceDensities(model)
+            rhoS = model.parentModel.getSurfaceDensities();
+        end
     end
 end
