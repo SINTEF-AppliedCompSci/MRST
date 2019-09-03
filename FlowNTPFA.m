@@ -56,8 +56,9 @@ state.iter=iter;state.res=res(1:iter+1);
                     T(i_face,1)=mu1*t11+mu2*t21;
                     T(i_face,2)=(mu1*t12+mu2*t22)*bc.value{ind}(G.faces.centroids(i_face,:));
                 else
-                    T(i_face,2)=-G.faces.areas(i_face)*...
-                        bc.value{ind}(G.faces.centroids(i_face,:));
+                    %T(i_face,2)=-G.faces.areas(i_face)*...
+                    %    bc.value{ind}(G.faces.centroids(i_face,:));
+                    T(i_face,2) = bc.value{ind}(G.faces.centroids(i_face,:));
                 end
             end
         end

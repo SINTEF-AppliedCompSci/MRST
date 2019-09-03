@@ -32,11 +32,14 @@ bc_nfvm.value=repmat({@(x)0},[numel(bc_nfvm.face),1]);
         j = find(bc.face(i) == bc_nfvm.face);
         bc_nfvm.type(j) = bc.type(i);
         if strcmpi(bc.type(i), 'flux')
-            bc_nfvm.value(j) = {@(x) -1}; % Neumann
+            %[G.faces.areas(i) G.faces.areas(j)]
+            %bc_nfvm.value(j) = {@(x) -1*G.faces.areas(i)}; % Neumann
+            bc_nfvm.value(j) = {@(x) bc.value(i)}; % Neumann
         else
             bc_nfvm.value(j) = {@(x) 0}; % hom Dirichlet pressure
         end
     end
+
 end
 
     

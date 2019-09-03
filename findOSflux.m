@@ -231,6 +231,8 @@ myNorm=myNorm(I);
 nf=numel(theFaces);
 flag=0;
 
+%faces_found = false;
+
 myIndex=zeros(nf*(nf-1)*(nf-2)/6,3);
 myCoeff=myIndex;counter=1;
 for i=1:nf-2
@@ -242,9 +244,11 @@ for i=1:nf-2
         for k=j+1:nf
             tC=myBases(k,:)';
             tC_norm=myNorm(k);
+            %det([tA tB tC])
             if(abs(det([tA tB tC]))>1e-9)
                 temp_a=[tA tB tC]\(Kn_unit);
                 temp_a(abs(temp_a)<1e-9)=0;
+                %temp_a
                 if(all(temp_a>=0))
                     if(all(temp_a<=1))
                         faceA=theFaces(i);
@@ -280,18 +284,54 @@ if(~flag&&counter>1)
     a(1)=a(1)*Kn_norm/tA_norm;
     a(2)=a(2)*Kn_norm/tB_norm;
     a(3)=a(3)*Kn_norm/tC_norm;
+    
+    %faces_found = true;
 end
 
-if ~exist('faceA','var')
-    figure
+% if ~faces_found
+%     
+%     figure,hold on
+%     plotGrid(G,c,'facealpha',0.3)
+%     hap=interpFace.coords(theFaces,:);
+%     plot3(hap(:,1),hap(:,2),hap(:,3),'.','markersize',14)
+%     xc=G.cells.centroids(c,:);
+%     plot3(xc(1),xc(2),xc(3),'o','markersize',14)
+%     ind=convhull(hap);
+%     trisurf(ind,hap(:,1),hap(:,2),hap(:,3), 'Facecolor','cyan')
+%     
+%     figure
+%     plotGrid(G, 'facealpha', 0.1);
+%     hold on
+%     plotGrid(G, c)
+% 
+%     keyboard
+% 
+%     disp(['decomposition failed for cell ', num2str(c)]);
+%     %error(['decomposition failed for cell ', num2str(c)]);
+%     
+% end
+
+if ~exist('faceA','var') %|| nf == 4
+    
+    figure,hold on
+    plotGrid(G,c,'facealpha',0.3)
+    hap=interpFace.coords(theFaces,:);
+    plot3(hap(:,1),hap(:,2),hap(:,3),'.','markersize',14)
+    xc=G.cells.centroids(c,:);
+    plot3(xc(1),xc(2),xc(3),'ko','markersize',14)
+    ind=convhull(hap);
+    trisurf(ind,hap(:,1),hap(:,2),hap(:,3), 'Facecolor','cyan','facealpha',0.5)
+    
+    figure, hold on
     plotGrid(G, 'facealpha', 0.1);
-    hold on
     plotGrid(G, c)
+    
     keyboard
+    
+    assert(logical(exist('faceA','var')),...
+       ['decomposition failed for cell ',num2str(c)]);
 end
 
-assert(logical(exist('faceA','var')),...
-    ['decomposition failed for cell ',num2str(c)]);
 end
 
 function [a,xD]=findDnode(G,mycell,myface,Kn)

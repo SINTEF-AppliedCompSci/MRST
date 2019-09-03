@@ -1,7 +1,7 @@
 %% run field model
 clear;close all;clc
 mrstModule add incomp mimetic  ad-blackoil ad-core glpk ntpfa_glpk ...
-    ad-props mpfa eni mrst-gui
+    ad-props mpfa eni mrst-gui nfvm ntpfa blackoil-sequential
 plotconc = false;
 
 % myfile = 'grid_data/tet2.dat';
@@ -17,23 +17,25 @@ plotconc = false;
 % G = computeGeometry(G);
 
 nx = 7;
-ny = 5%10;
+ny = 5;
 nz = 3;
-G = cartGrid([nx, ny, nz]);
-%G = tetrahedralGrid(G.nodes.coords);
-%G = twister(G, 0.1);
+G = cartGrid([nx, ny, nz], [1 1 1]);
+G = tetrahedralGrid(G.nodes.coords);
+G = twister(G, 0.1);
 G = computeGeometry(G);
 
 figure
 plotGrid(G)
 
 rock = makeRock(G, 100*milli*darcy, 1);
-pv=sum(poreVolume(G,rock));
+pv = sum(poreVolume(G,rock));
 
 mu_value = 1;
 rho_value = 1;
 fluid = initSingleFluid('mu',mu_value,'rho',rho_value);
-fluidad = initSimpleADIFluid('phases', 'W', 'mu' , mu_value, 'rho', rho_value);
+fluidad = initSimpleADIFluid('phases', 'W', 'mu' , mu_value, 'rho', ...
+                             rho_value);
+fluid_glpk = initSimpleADIFluid();
 p0 = 15e6; % from FlowNTPFA call below
 s0 = 1.0;
 
@@ -86,30 +88,35 @@ imin = G.faces.centroids(:,1) < xmin+tol;
 imax = G.faces.centroids(:,1) > xmax-tol;
 neumann_ix = isbdry(imin);
 area = G.faces.areas(neumann_ix);
-sum(area)
-bc_std = addBC(bc_std, neumann_ix, 'flux', neumann_val.*area);
+bc_std = addBC(bc_std, neumann_ix, 'flux', neumann_val.*area, 'sat', []);
 dirichlet_ix = isbdry(imax);
-bc_std = addBC(bc_std, dirichlet_ix, 'pressure', dirichlet_val);
+bc_std = addBC(bc_std, dirichlet_ix, 'pressure', dirichlet_val, ...
+               'sat', []);
 % Set the rest as hom Neumann
 bc_std = addBC(bc_std, setdiff(bf, union(neumann_ix, dirichlet_ix)), ...
-               'flux', 0.0);
+               'flux', 0.0, 'sat', []);
 
 
-% Convert the traditional BC struct to useful format for ntpfa code(s).
-bc_flowntpfa = convertBC2FlowNTPFA(G, bc_std);
+% Convert the traditional BC struct to useful format for ntpfa codes
+bc_flow_ntpfa = convertBC2FlowNTPFA(G, bc_std);
 bc_nfvm_new = bc_std;
+bc_glpk = bc_std;
+bc_glpk.sat = [1, 0];
 
 %state0 = initState(G, Wtp, p0);
 %state0 = initResSol(G, p0, 1);
 % mfd:
 state0 = initState(G, Wtp, p0, s0);
+state0_glpk = initResSol(G, p0, [0 s0]);
 
 % Schedule with dummy dt
 dt = 1;
 schedule = simpleSchedule(dt, 'W', Wtp, 'bc', bc_std);
 
 % Set saturation manually
-bc_std.sat = s0*ones(numel(bc_std.face), 1);
+%bc_std.sat = s0*ones(numel(bc_std.face), 1);
+%bc_glpk.sat = [ones(numel(bc_glpk.face), 1), ...
+%               zeros(numel(bc_glpk.face), 1)];
 
 solvers = {};
 results = {};
@@ -124,7 +131,7 @@ results = {};
 % mpfastruct = computeMultiPointTrans2(G, rock);
 % state = incompMPFAbc(G, mpfastruct, bc_std, 'outputFlux', true);
 % figure,plotCellData(G,state.pressure/1e6);plotWell(G,Wtp);view(3)
-% title(['Pressure ', solvers{end}]);h=colorbar;h.Label.String='Pressure[MPa]';clear h;
+% title(['Pressure ', solvers{end}]);h=colorbar;h.Label.String='Pressure [Pa]';clear h;
 % if plotconc
 %     Qinj=sum(state.wellSol(1).flux);tt=pv/Qinj;nstep=100;dt=tt/nstep;
 %     state = tracerTransport_implicit(G,rock,Wtp,state,dt,nstep);
@@ -138,9 +145,9 @@ results = {};
 % %% TPFA from NFVM
 % solvers{end+1} = 'tpfa';
 % disp(solvers{end});
-% state=FlowTPFA(G,TransTPFA(G,rock,bc_flowntpfa),fluid,Wtp);
+% state=FlowTPFA(G,TransTPFA(G,rock,bc_flow_ntpfa),fluid,Wtp);
 % figure,plotCellData(G,state.pressure/1e6);plotWell(G,Wtp);view(3)
-% title(['Pressure ', solvers{end}]);h=colorbar;h.Label.String='Pressure[MPa]';clear h;
+% title(['Pressure ', solvers{end}]);h=colorbar;h.Label.String='Pressure [Pa]';clear h;
 % Qinj=sum(state.wellSol(1).flux);tt=pv/Qinj;nstep=100;dt=tt/nstep;
 % state=tracerTransport_implicit(G,rock,Wtp,state,dt,nstep);
 % figure, plotCellData(G,state.cres(:,end));plotWell(G,Wtp);
@@ -148,28 +155,28 @@ results = {};
 % drawnow
 % results{end+1} = state;
 
-%% TPFA mrst version (don't plot)
-solvers{end+1} = 'mrst tpfa';
-disp(solvers{end});
-T = computeTrans(G,rock);
-state = incompTPFA(state0, G, T, fluid, 'wells', Wtp, 'bc', bc_std);
-%state = tracerTransport_implicit(G,rock,Wtp,state,dt,nstep);
-results{end+1} = state;
-figure,plotToolbar(G,state);plotWell(G,Wtp);view(3)
-title(['Pressure ', solvers{end}]);h=colorbar;h.Label.String='Pressure[MPa]';clear h;
+% %% TPFA mrst version (don't plot)
+% solvers{end+1} = 'mrst tpfa';
+% disp(solvers{end});
+% T = computeTrans(G,rock);
+% state = incompTPFA(state0, G, T, fluid, 'wells', Wtp, 'bc', bc_std);
+% %state = tracerTransport_implicit(G,rock,Wtp,state,dt,nstep);
+% results{end+1} = state;
+% figure,plotToolbar(G,state);plotWell(G,Wtp);view(3)
+% title(['Pressure ', solvers{end}]);h=colorbar;h.Label.String='Pressure [Pa]';clear h;
 
 
 %% nonlinear TPFA
-solvers{end+1} = 'NFVM std';
+solvers{end+1} = 'NFVM Kobaisi';
 disp(solvers{end});
-interpFace=findHAP(G,rock,bc_flowntpfa);
+interpFace=findHAP(G,rock,bc_flow_ntpfa);
 disp(['fraction of faces with centroids outside convex hull ', num2str(interpFace.percentage)]);
 interpFace=correctHAP(G,interpFace);
-OSflux=findOSflux(G,rock,bc_flowntpfa,interpFace);
-state=FlowNTPFA(G,bc_flowntpfa,fluid,Wtp,OSflux,p0*ones(G.cells.num,1),1e-7,1000);
+OSflux=findOSflux(G,rock,bc_flow_ntpfa,interpFace);
+state=FlowNTPFA(G,bc_flow_ntpfa,fluid,Wtp,OSflux,p0*ones(G.cells.num,1),1e-7,1000);
 %figure,plotCellData(G,state.pressure/1e6);plotWell(G,Wtp);view(3)
 figure,plotToolbar(G,state);plotWell(G,Wtp);view(3)
-title(['Pressure ', solvers{end}]);h=colorbar;h.Label.String='Pressure[MPa]';clear h;
+title(['Pressure ', solvers{end}]);h=colorbar;h.Label.String='Pressure [Pa]';clear h;
 if plotconc
     Qinj=sum(state.wellSol(1).flux);tt=pv/Qinj;nstep=100;dt=tt/nstep;
     state=tracerTransport_implicit(G,rock,Wtp,state,dt,nstep);
@@ -181,40 +188,47 @@ results{end+1} = state;
 
 
 
-%% nonlinear NFVM in new framework
-solvers{end+1} = 'NFVM new';
-disp(solvers{end});
-model = GenericBlackOilModel(G, rock, fluidad,'water', true, 'oil', false, 'gas', false);
-%model = WaterModel(G, rock, fluidad);
-model = model.validateModel();
-model.FluxDiscretization.PermeabilityPotentialGradient.PermeabilityGradientDiscretization = NFVM(model, bc_nfvm_new);
-model.FacilityModel = model.FacilityModel.setupWells(Wtp);
-[wellSols, states] = simulateScheduleAD(state0, model, schedule);
-%figure,plotCellData(G,states{1}.pressure/1e6);plotWell(G,Wtp);view(3)
-figure,plotToolbar(G,states);plotWell(G,Wtp);view(3)
-title(['Pressure ', solvers{end}]);h=colorbar;h.Label.String='Pressure[MPa]';clear h;
-if plotconc
-    Qinj = sum(states{1}.wellSol(1).flux);tt=pv/Qinj;nstep=100;dt=tt/nstep;
-    state = tracerTransport_implicit(G,rock,Wtp,states{1},dt,nstep);
-    figure,plotCellData(G,state.cres(:,end));plotWell(G,Wtp);
-    view(3);colorbar;title(['Concentration ', solvers{end}]);
-end
-results{end+1} = states{1};
+% %% nonlinear NFVM in new framework
+% solvers{end+1} = 'NFVM new';
+% disp(solvers{end});
+% model = GenericBlackOilModel(G, rock, fluidad,'water', true, 'oil', false, 'gas', false);
+% %model = WaterModel(G, rock, fluidad);
+% model = model.validateModel();
+% model.FluxDiscretization.PermeabilityPotentialGradient.PermeabilityGradientDiscretization = NFVM(model, bc_nfvm_new);
+% model.FacilityModel = model.FacilityModel.setupWells(Wtp);
+% [wellSols, states] = simulateScheduleAD(state0, model, schedule);
+% %figure,plotCellData(G,states{1}.pressure/1e6);plotWell(G,Wtp);view(3)
+% figure,plotToolbar(G,states);plotWell(G,Wtp);view(3)
+% title(['Pressure ', solvers{end}]);h=colorbar;h.Label.String='Pressure [Pa]';clear h;
+% if plotconc
+%     Qinj = sum(states{1}.wellSol(1).flux);tt=pv/Qinj;nstep=100;dt=tt/nstep;
+%     state = tracerTransport_implicit(G,rock,Wtp,states{1},dt,nstep);
+%     figure,plotCellData(G,state.cres(:,end));plotWell(G,Wtp);
+%     view(3);colorbar;title(['Concentration ', solvers{end}]);
+% end
+% results{end+1} = states{1};
 
 
-% % NTPFA glpk doesn't converge. Very strange?
+% % NTPFA glpk
 % solvers{end+1} = 'NTPFA-glpk';
 % disp(solvers{end});
 % mrstVerbose off
 % mrstDebug on
-% model = GenericBlackOilModel(G, rock, fluidad, 'water', true, 'oil', false, 'gas', false);
-% model = model.validateModel();
-% model.FluxDiscretization.PermeabilityPotentialGradient.PermeabilityGradientDiscretization = NonlinearTwoPointFluxApproximation(model);
-% model.FacilityModel = model.FacilityModel.setupWells(Wtp);
-% [wellSols, states] = simulateScheduleAD(state0, model, schedule);
-% state = states{1};
-% state = tracerTransport_implicit(G,rock,Wtp,state,dt,nstep);
+% model = PressureOilWaterModelNTPFAopt(G,rock,fluid_glpk);
+% state = incompSinglePhaseNTPFA(model,state0_glpk,'bc', bc_glpk,'src', []);
+% figure,plotToolbar(G,state);plotWell(G,Wtp);view(3)
+% title(['Pressure ', solvers{end}]);h=colorbar;h.Label.String='Pressure [Pa]';clear h;
+% if plotconc
+%     Qinj=sum(state.wellSol(1).flux);tt=pv/Qinj;nstep=100;dt=tt/nstep;
+%     state = tracerTransport_implicit(G,rock,Wtp,state,dt,nstep);
+%     figure, plotCellData(G,state.cres(:,end));plotWell(G,Wtp);
+%     view(3);colorbar;title(['Concentration ', solvers{end}]);
+%     drawnow
+% end
 % results{end+1} = state;
+
+
+
 
 % %% TPFA new framework
 % solvers{end+1} = 'TPFA new';
@@ -227,7 +241,7 @@ results{end+1} = states{1};
 % [wellSols, states] = simulateScheduleAD(state0, model, schedule);
 % %figure,plotCellData(G,states{1}.pressure/1e6);plotWell(G,Wtp);view(3)
 % figure,plotToolbar(G,states);plotWell(G,Wtp);view(3)
-% title(['Pressure ', solvers{end}]);h=colorbar;h.Label.String='Pressure[MPa]';clear h;
+% title(['Pressure ', solvers{end}]);h=colorbar;h.Label.String='Pressure [Pa]';clear h;
 % Qinj=sum(states{1}.wellSol(1).flux);tt=pv/Qinj;nstep=100;dt=tt/nstep;
 % state = tracerTransport_implicit(G,rock,Wtp,states{1},dt,nstep);
 % figure, plotCellData(G,state.cres(:,end));plotWell(G,Wtp);
@@ -240,9 +254,9 @@ results{end+1} = states{1};
 % solvers{end+1} = 'nonlinear MPFA';
 % disp(solvers{end});
 % %state=NewtonMPFA(G,fluid,Wtp,OSflux,1e-9,100);
-% state=FlowNMPFA(G,bc_flowntpfa,fluid,Wtp,OSflux,1e-9,10000);
+% state=FlowNMPFA(G,bc_flow_ntpfa,fluid,Wtp,OSflux,1e-9,10000);
 % figure,plotCellData(G,state.pressure/1e6);plotWell(G,Wtp);axis image;view(3)
-% title('Pressure-NMPFA');h=colorbar;h.Label.String='Pressure[MPa]';clear h;
+% title('Pressure-NMPFA');h=colorbar;h.Label.String='Pressure [Pa]';clear h;
 % Qinj=sum(state.wellSol(1).flux);tt=1.5*pv/Qinj;nstep=100;dt=tt/nstep;
 % state=tracerTransport_implicit(G,rock,Wtp,state,dt,nstep);
 % figure, plotCellData(G,state.cres(:,end));plotWell(G,Wtp);
@@ -256,7 +270,7 @@ disp(solvers{end});
 state=incompMimetic(state0,G,computeMimeticIP(G,rock),fluid,'wells',Wtp,'bc',bc_std);
 %figure, plotCellData(G,state.pressure/1e6);plotWell(G,Wtp);view(3);
 figure,plotToolbar(G,state);plotWell(G,Wtp);view(3)
-title(['Pressure ', solvers{end}]);h=colorbar;h.Label.String='Pressure[MPa]';clear h;
+title(['Pressure ', solvers{end}]);h=colorbar;h.Label.String='Pressure [Pa]';clear h;
 if plotconc
     Qinj=sum(state.wellSol(1).flux);tt=pv/Qinj;nstep=100;dt=tt/nstep;
     state=tracerTransport_implicit(G,rock,Wtp,state,dt,nstep);
@@ -273,10 +287,10 @@ results{end+1} = state;
 % xmin=min([data1;data2]);xmax=max([data1;data2]);
 % figure,subplot(1,2,1);
 % plotCellData(G,data1,'edgealpha',0.2);view(-80,50);axis tight off;
-% h=colorbar('horiz');h.Label.String='Pressure[MPa]';h.Label.FontSize=15;
+% h=colorbar('horiz');h.Label.String='Pressure [Pa]';h.Label.FontSize=15;
 % title('\mid\itp_{\rmtpfa}-\itp_{\rmmfd}\rm\mid','fontsize',20);caxis([xmin xmax]);
 % subplot(1,2,2),plotCellData(G,data2,'edgealpha',0.2);view(-80,50);axis tight off;
-% h=colorbar('horiz');h.Label.String='Pressure[MPa]';h.Label.FontSize=15;
+% h=colorbar('horiz');h.Label.String='Pressure [Pa]';h.Label.FontSize=15;
 % title('\mid\it{p}_{\rmntpfa}-\it{p}_{\rmmfd}\rm\mid','fontsize',20);caxis([xmin xmax]);
 % clear data1 data2 xmin xmax h
 % 

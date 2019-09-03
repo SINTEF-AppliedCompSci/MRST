@@ -47,6 +47,7 @@ for i_face=1:G.faces.num
             gN=bc.value{ind}(xf)*G.faces.areas(i_face);
             interpFace.weights(i_face,(c1==0)+1)=1;
             interpFace.weights(i_face,(c2==0)+1)=-gN/a;
+            %interpFace.weights(i_face,(c2==0)+1)=bc.value{ind}(xf); %-gN/a;
         end
     end
 end
