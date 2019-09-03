@@ -13,6 +13,7 @@ function [ws, states, reports] = getPackedSimulatorOutput(problem, varargin)
 %                  disk can take some time and is recommended when further
 %                  changes to output is desired.
 %   readWellSolsFromDisk - See above. Applies for wellSols only.
+%   readReportsFromDisk  - See above. Applies for reports only.
 %
 % RETURNS:
 %   ws      - Well output.
@@ -44,9 +45,17 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    opt = struct('readFromDisk', true, 'readWellSolsFromDisk', true);
+    opt = struct('readFromDisk', true, ...
+                 'readWellSolsFromDisk', [], ...
+                 'readReportsFromDisk', []);
     opt = merge_options(opt, varargin{:});
     
+    if isempty(opt.readWellSolsFromDisk)
+        opt.readWellSolsFromDisk = opt.readFromDisk;
+    end
+    if isempty(opt.readReportsFromDisk)
+        opt.readReportsFromDisk = opt.readFromDisk;
+    end
     nstep = numel(problem.SimulatorSetup.schedule.step.val);
     
     sh = problem.OutputHandlers.states;
