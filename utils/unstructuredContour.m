@@ -1,4 +1,4 @@
-function unstructuredContour(G, val, nl, varargin)
+function [c, h] = unstructuredContour(G, val, nl, varargin)
 
     opt = struct('useNodeMax', false);
     [opt, extra] = merge_options(opt, varargin{:});
@@ -15,10 +15,11 @@ function unstructuredContour(G, val, nl, varargin)
         xMin = min(G.cells.centroids);
     end
     n = 100;
+    n = 20;
     [x, y] = ndgrid(linspace(xMin(1), xMax(1), n), linspace(xMin(2), xMax(2), n));
     val = fun(x, y);
     
-    contour(x, y, val, nl, extra{:});
+    [c, h] = contour(x, y, val, nl, extra{:});
     
 end
     
