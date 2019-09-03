@@ -103,7 +103,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 end
             end
         end
-        if nargout > 2 && opt.readFromDisk
+        if nargout > 2 && opt.readReportsFromDisk
             try
                 reports{i} = rh{i};
             catch
@@ -115,9 +115,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if ~opt.readFromDisk
         % Just return handlers instead
         states = sh;
+    end
+    if ~opt.readReportsFromDisk
         reports = rh;
     end
-    
     if ~opt.readWellSolsFromDisk
         ws = wh;
     end
