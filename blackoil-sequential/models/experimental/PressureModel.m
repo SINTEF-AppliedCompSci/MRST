@@ -83,7 +83,7 @@ classdef PressureModel < WrapperModel
                 else
                     values(1) = inf;
                 end
-                convergence = [values(1) < model.incTolPressure, values(2:end) < model.nonlinearTolerance];
+                convergence = [values(1) < model.incTolPressure, convergence(2:end)];
                 names{1} = 'Delta P';
             end
         end
