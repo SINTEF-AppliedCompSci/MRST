@@ -1,5 +1,8 @@
 function [state]=FlowNTPFA(G,bc,fluid,W,OSflux,u0,tol,maxiter)
 [mu,rho]=fluid.properties();
+mu = mu(1);
+rho = rho(1);
+
 T=TransNTPFA(u0);
 [A,b]=AssemAb(T);
 iter=0;
@@ -7,7 +10,7 @@ res=zeros(maxiter+1,1);
 res(1)=norm(A*u0-b,inf);
 u=u0;
 while(res(iter+1)>tol*res(1)&&iter<maxiter)
-    dispif(mrstVerbose, [num2str(iter), ' ', num2str(res(iter+1)), '\n'])
+    dispif(mrstVerbose, ['iter=',num2str(iter), ' res=', num2str(res(iter+1)/res(1)), '\n'])
     u=A\b;
     T=TransNTPFA(u);
     [A,b]=AssemAb(T);
