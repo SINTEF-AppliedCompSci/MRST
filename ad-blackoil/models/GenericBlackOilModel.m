@@ -83,7 +83,8 @@ classdef GenericBlackOilModel < ThreePhaseBlackOilModel & ExtendedReservoirModel
         function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
             [state, report] = updateAfterConvergence@ReservoirModel(model, state0, state, dt, drivingForces);
             if model.outputFluxes
-                f = model.getProp(state, 'PhaseFlux');
+                state_flow = model.FluxDiscretization.buildFlowState(model, state, state0, dt);
+                f = model.getProp(state_flow, 'PhaseFlux');
                 nph = numel(f);
                 state.flux = zeros(model.G.faces.num, nph);
                 state.flux(model.operators.internalConn, :) = [f{:}];
