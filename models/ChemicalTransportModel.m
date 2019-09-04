@@ -380,11 +380,11 @@ classdef ChemicalTransportModel < WaterModel
             names = model.chemicalModel.elementNames;
         end
 
-        function [fn, index] = getVariableField(model, name)
+        function [fn, index] = getVariableField(model, name, varargin)
             if ismember(name, model.chemical_fds)
-                [fn, index] = model.chemicalModel.getVariableField(name);
+                [fn, index] = model.chemicalModel.getVariableField(name, varargin{:});
             else
-                [fn, index] = getVariableField@WaterModel(model, name);
+                [fn, index] = getVariableField@WaterModel(model, name, varargin{:});
             end
         end
 
