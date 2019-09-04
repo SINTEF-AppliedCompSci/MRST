@@ -531,7 +531,7 @@ classdef ChemicalModel < PhysicalModel
 
 
         %%
-        function [fn, index] = getVariableField(model, name)
+        function [fn, index] = getVariableField(model, name, varargin)
 
             varfound = false;
 
@@ -839,7 +839,7 @@ classdef ChemicalModel < PhysicalModel
                     break
                 end
                 
-                [fn, index] = getVariableField@PhysicalModel(model, name);
+                [fn, index] = getVariableField@PhysicalModel(model, name, varargin{:});
                 varfound = true;
             end
 

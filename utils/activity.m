@@ -37,10 +37,11 @@ function [state, model] = activity(model, state)
 
     % Reaction matrix, activities only apply to laws of mass action
 
+    activities = cell(1, nC);
     for k = 1 : nC
         activities{k} =  (exp(pg{k}) .* components{k});
-        state = model.setProp(state, model.activityNames{k}, activities{k});
     end
+    state = model.setProp(state, 'activities', activities);
 
 
 
