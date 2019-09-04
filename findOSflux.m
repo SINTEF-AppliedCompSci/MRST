@@ -231,6 +231,22 @@ myNorm=myNorm(I);
 nf=numel(theFaces);
 flag=0;
 
+% if mrstDebug
+%     figure, hold on
+%     plotGrid(G,c,'facealpha',0.1);
+%     [Gc,~,~,gn] = extractSubgrid(G,c);
+%     xmin = min(G.nodes.coords(gn,:));
+%     xmax = max(G.nodes.coords(gn,:));
+%     h = xmax-xmin;
+%     plot3(x1(1),x1(2),x1(3),'.','markersize',15);
+%     for i = 1:numel(theFaces)
+%         X = [x1(1); x1(1)+myBases(i,1)*h(1)];
+%         Y = [x1(2); x1(2)+myBases(i,2)*h(2)];
+%         Z = [x1(3); x1(3)+myBases(i,3)*h(3)];
+%         line(X,Y,Z);
+%     end
+%     keyboard
+% end
 %faces_found = false;
 
 myIndex=zeros(nf*(nf-1)*(nf-2)/6,3);
@@ -271,6 +287,7 @@ for i=1:nf-2
     end
     if(flag),break;end
 end
+
 if(~flag&&counter>1)
     myIndex(counter:end,:)=[];myCoeff(counter:end,:)=[];
     maxCoeff=max(myCoeff,[],2);
@@ -284,6 +301,8 @@ if(~flag&&counter>1)
     a(1)=a(1)*Kn_norm/tA_norm;
     a(2)=a(2)*Kn_norm/tB_norm;
     a(3)=a(3)*Kn_norm/tC_norm;
+        
+    %keyboard
     
     %faces_found = true;
 end
@@ -313,23 +332,47 @@ end
 
 if ~exist('faceA','var') %|| nf == 4
     
-    figure,hold on
-    plotGrid(G,c,'facealpha',0.3)
-    hap=interpFace.coords(theFaces,:);
-    plot3(hap(:,1),hap(:,2),hap(:,3),'.','markersize',14)
-    xc=G.cells.centroids(c,:);
-    plot3(xc(1),xc(2),xc(3),'ko','markersize',14)
-    ind=convhull(hap);
-    trisurf(ind,hap(:,1),hap(:,2),hap(:,3), 'Facecolor','cyan','facealpha',0.5)
-    
-    figure, hold on
-    plotGrid(G, 'facealpha', 0.1);
-    plotGrid(G, c)
-    
-    keyboard
-    
-    assert(logical(exist('faceA','var')),...
-       ['decomposition failed for cell ',num2str(c)]);
+%     figure, hold on
+%     plotGrid(G, 'facealpha', 0.1);
+%     plotGrid(G, c)
+% 
+%     figure,hold on
+%     plotGrid(G,c,'facealpha',0.3)
+%     hap=interpFace.coords(theFaces,:);
+%     plot3(hap(:,1),hap(:,2),hap(:,3),'.','markersize',14)
+%     xc=G.cells.centroids(c,:);
+%     plot3(xc(1),xc(2),xc(3),'ko','markersize',14)
+%     ind=convhull(hap);
+%     trisurf(ind,hap(:,1),hap(:,2),hap(:,3), 'Facecolor','cyan','facealpha',0.5)
+%     in_convex_hull=inhull(xc,hap,ind,1e-5)
+%     
+%     % Plot Kn. 
+%     Gc = extractSubgrid(G,c);
+%     xmin = min(Gc.nodes.coords);
+%     xmax = max(Gc.nodes.coords);
+%     h = xmax-xmin;
+%     vec = [xc; xc+Kn_unit'.*h];
+%     line(vec(:,1),vec(:,2),vec(:,3))
+%     
+%     keyboard
+%     assert(logical(exist('faceA','var')),...
+%        ['decomposition failed for cell ',num2str(c)]);
+   
+   % Take three faces with largest alignment with Kn. If we end up here,
+   % they're typically not all positive.
+   disp(['fix faceA,B,C ', num2str(c), ' ', num2str(G.cells.num)])
+   dotp = sum(myBases.*Kn', 2);
+   [dotp, ii] = sort(dotp);
+   faceA = theFaces(ii(1));
+   faceB = theFaces(ii(2));
+   faceC = theFaces(ii(3));
+   tA = myBases(ii(1),:)';
+   tB = myBases(ii(2),:)';
+   tC = myBases(ii(3),:)';
+   a=[tA tB tC]\(Kn_unit);
+   a(1)=a(1)*Kn_norm/norm(tA);
+   a(2)=a(2)*Kn_norm/norm(tB);
+   a(3)=a(3)*Kn_norm/norm(tC);
 end
 
 end
