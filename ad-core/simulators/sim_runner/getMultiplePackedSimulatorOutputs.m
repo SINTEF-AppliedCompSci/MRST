@@ -66,7 +66,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         problem = problems{i};
         [all_ws{i}, all_states{i}, all_reports{i}] = getPackedSimulatorOutput(problem, arg{:});
         names{i} = problem.Name;
-        counts(i) = numel(all_ws{i});
+        counts(i) = numelData(all_ws{i});
         T{i} = cumsum(problem.SimulatorSetup.schedule.step.val(1:counts(i)));
         grids{i} = problem.SimulatorSetup.model.G;
     end
