@@ -38,19 +38,19 @@ function [flagV, flagG, upCellsV, upCellsG, s_v, s_G] = getSaturationUpwindDG(di
     [sL, sR] = deal(zeros(size(x,1),nPh));
     [rL, rR] = deal(zeros(size(x,1),nPh));
     for phNo = 1:nPh
-        sL(:, phNo) = disc.evaluateDGVariable(x, cL, state, double(sdof{phNo}));
-        sR(:, phNo) = disc.evaluateDGVariable(x, cR, state, double(sdof{phNo}));
+        sL(:, phNo) = disc.evaluateDGVariable(x, cL, state, value(sdof{phNo}));
+        sR(:, phNo) = disc.evaluateDGVariable(x, cR, state, value(sdof{phNo}));
     end
     if ~isempty(rdof)
         for phNo = 1:nPh
-            rL(:, phNo) = disc.evaluateDGVariable(x, cL, state, double(rdof{phNo}));
-            rR(:, phNo) = disc.evaluateDGVariable(x, cR, state, double(rdof{phNo}));
+            rL(:, phNo) = disc.evaluateDGVariable(x, cL, state, value(rdof{phNo}));
+            rR(:, phNo) = disc.evaluateDGVariable(x, cR, state, value(rdof{phNo}));
         end
     end
     [xL, xR] = deal(zeros(size(x,1),1));
     if ~isempty(xdof)
-        xL = disc.evaluateDGVariable(x, cL, state, double(xdof));
-        xR = disc.evaluateDGVariable(x, cR, state, double(xdof));
+        xL = disc.evaluateDGVariable(x, cL, state, value(xdof));
+        xR = disc.evaluateDGVariable(x, cR, state, value(xdof));
     end
     s = [sL; sR];
     sT = sum(s,2);
