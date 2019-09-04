@@ -209,23 +209,23 @@ results{end+1} = state;
 % results{end+1} = states{1};
 
 
-% % NTPFA glpk
-% solvers{end+1} = 'NTPFA-glpk';
-% disp(solvers{end});
-% mrstVerbose off
-% mrstDebug on
-% model = PressureOilWaterModelNTPFAopt(G,rock,fluid_glpk);
-% state = incompSinglePhaseNTPFA(model,state0_glpk,'bc', bc_glpk,'src', []);
-% figure,plotToolbar(G,state);plotWell(G,Wtp);view(3)
-% title(['Pressure ', solvers{end}]);h=colorbar;h.Label.String='Pressure [Pa]';clear h;
-% if plotconc
-%     Qinj=sum(state.wellSol(1).flux);tt=pv/Qinj;nstep=100;dt=tt/nstep;
-%     state = tracerTransport_implicit(G,rock,Wtp,state,dt,nstep);
-%     figure, plotCellData(G,state.cres(:,end));plotWell(G,Wtp);
-%     view(3);colorbar;title(['Concentration ', solvers{end}]);
-%     drawnow
-% end
-% results{end+1} = state;
+% NTPFA glpk
+solvers{end+1} = 'NTPFA-glpk';
+disp(solvers{end});
+mrstVerbose on
+mrstDebug on
+model = PressureOilWaterModelNTPFAopt(G,rock,fluid_glpk);
+state = incompSinglePhaseNTPFA(model,state0_glpk,'bc', bc_glpk,'src', []);
+figure,plotToolbar(G,state);plotWell(G,Wtp);view(3)
+title(['Pressure ', solvers{end}]);h=colorbar;h.Label.String='Pressure [Pa]';clear h;
+if plotconc
+    Qinj=sum(state.wellSol(1).flux);tt=pv/Qinj;nstep=100;dt=tt/nstep;
+    state = tracerTransport_implicit(G,rock,Wtp,state,dt,nstep);
+    figure, plotCellData(G,state.cres(:,end));plotWell(G,Wtp);
+    view(3);colorbar;title(['Concentration ', solvers{end}]);
+    drawnow
+end
+results{end+1} = state;
 
 
 
