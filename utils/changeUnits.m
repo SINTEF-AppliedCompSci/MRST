@@ -66,13 +66,15 @@ if numel(states) == 1
         states.(fields) = states.(fields)*unit_conv;
     else
         assert(numel(fields) == numel(unit_conv) | numel(unit_conv) == 1, 'The number of elements in unit_conv must be 1 or equal to the number of cells in fieldss.');
-        if numel(unit_conv) == numel(fields)
-            for i = 1 : numel(fields)
-                states.(fields{i}) = states.(fields{i})*unit_conv(i);
-            end
-        else
-            for i = 1 : numel(fields)
-                states.(fields{i}) = states.(fields{i})*unit_conv;
+        if numel(unit_conv) == 1
+            unit_conv = repmat(unit_conv, numel(fields), 1);
+        end
+        for i = 1 : numel(fields)
+            f = fields{i};
+            if iscell(states.(f))
+                states.(f) = cellfun(@(x) x*unit_conv(i), states.(f), 'UniformOutput', false);
+            else
+                states.(f) = states.(f)*unit_conv(i);
             end
         end
     end
