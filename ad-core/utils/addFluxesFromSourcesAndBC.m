@@ -89,7 +89,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     if ~isempty(forces.src)
         % Fluxes from source terms
-        [qSRC, srcCells] = getSourceFluxesAD(model, mob, s, forces.src);
+        [qSRC, ~, srcCells] = getSourceFluxesAD(model, mob, s, forces.src);
         for i = 1:numel(qSRC)
             if isempty(eqs{i})
                 continue

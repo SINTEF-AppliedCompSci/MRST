@@ -83,7 +83,7 @@ classdef PressureModel < WrapperModel
                 else
                     values(1) = inf;
                 end
-                convergence = [values(1) < model.incTolPressure, values(2:end) < model.nonlinearTolerance];
+                convergence = [values(1) < model.incTolPressure, convergence(2:end)];
                 names{1} = 'Delta P';
             end
         end
@@ -94,6 +94,10 @@ classdef PressureModel < WrapperModel
                 state = rmfield(state, 'statePressure');
             end
             state.statePressure = state;
+        end
+        
+        function rhoS = getSurfaceDensities(model)
+            rhoS = model.parentModel.getSurfaceDensities();
         end
     end
 end
