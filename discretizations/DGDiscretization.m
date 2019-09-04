@@ -1,4 +1,4 @@
-classdef DGDiscretization < HyperbolicDiscretization
+classdef DGDiscretization < SpatialDiscretization
     
     properties
 
@@ -45,7 +45,7 @@ classdef DGDiscretization < HyperbolicDiscretization
         function disc = DGDiscretization(model, varargin)
             
 %             disc = disc@WENODiscretization(model, model.G.griddim, 'includeBoundary', true);
-            disc = disc@HyperbolicDiscretization(model);
+            disc = disc@SpatialDiscretization(model);
             
             G = disc.G;
             
@@ -57,9 +57,9 @@ classdef DGDiscretization < HyperbolicDiscretization
             % Limiter tolerances
             disc.jumpTolerance = 0.2;
             disc.jumpLimiter   = 'kill';
-            disc.outTolerance  = 0.0;
+            disc.outTolerance  = Inf;
             disc.outLimiter    = 'kill';
-            disc.meanTolerance = 0.0;
+            disc.meanTolerance = Inf;
             disc.limitAfterNewtonStep  = true;
             disc.limitAfterConvergence = false;
             disc.plotLimiterProgress   = false;
@@ -308,17 +308,17 @@ classdef DGDiscretization < HyperbolicDiscretization
             for vNo = 1:n
                 val = varargin{vNo};
                 if ~isempty(val)
-                val = val(cells)*0;
-                
-                for dofNo = 1:nDofMax
-                    keep = nDof(cells) >= dofNo;
-                    ix = disc.getDofIx(state, dofNo, cells(keep));
-                    if all(keep)
-                        val = val + varargin{vNo}(ix,:).*psi{dofNo}(x(keep,:));
-                    else
-                        val(keep, :) = val(keep, :) + varargin{vNo}(ix,:).*psi{dofNo}(x(keep,:));
+                    val = val(cells)*0;
+
+                    for dofNo = 1:nDofMax
+                        keep = nDof(cells) >= dofNo;
+                        ix = disc.getDofIx(state, dofNo, cells(keep));
+                        if all(keep)
+                            val = val + varargin{vNo}(ix,:).*psi{dofNo}(x(keep,:));
+                        else
+                            val(keep, :) = val(keep, :) + varargin{vNo}(ix,:).*psi{dofNo}(x(keep,:));
+                        end
                     end
-                end
                 end
                 varargout{vNo} = val;
             end
@@ -511,7 +511,7 @@ classdef DGDiscretization < HyperbolicDiscretization
             globCell2BCcell(cells) = 1:numel(cells);
             S = sparse(globCell2BCcell(cells), 1:numel(faces), 1);
             % Evaluate integrals
-            I = disc.sample;
+            I = disc.sample*0;
             for dofNo = 1:nDofMax
                 keepCells = disc.nDof(cells) >= dofNo;
                 if any(keepCells)
