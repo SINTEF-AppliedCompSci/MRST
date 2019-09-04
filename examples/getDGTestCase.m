@@ -24,13 +24,13 @@ function setup = simple1d(args) %#ok
     modelDG = cell(numel(opt.degree), 1);
     
     for dNo = 1:numel(opt.degree)
-        disc         = DGDiscretization(G, rock, ...
+        disc         = DGDiscretization(modelFV, ...
                                    'degree', opt.degree(dNo), discArgs{:});
         modelDG{dNo} = TransportOilWaterModelDG(G, rock, fluid, 'disc', disc);
     end
 
     time  = opt.n;
-    dt    = opt.n/10;
+    dt    = opt.n/100;
     dtvec = rampupTimesteps(time, dt, 0);
     bc    = [];
     bc = fluxside(bc, G, 'left' ,  1, 'sat', [1,0]);
@@ -42,6 +42,7 @@ function setup = simple1d(args) %#ok
     state0 = initResSol(G, 100*barsa, [sW,1-sW]);
     state0.flux = zeros(G.faces.num,1);
     state0.flux(modelFV.operators.internalConn) = 1;
+    state0.flux(bc.face) = 1;
     
     setup = packSetup(state0, schedule, [], modelFV, {modelDG});
    
