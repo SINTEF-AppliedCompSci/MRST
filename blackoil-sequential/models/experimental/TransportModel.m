@@ -87,6 +87,10 @@ classdef TransportModel < WrapperModel
                     eqs{i}(src.cells) = eqs{i}(src.cells) - src.value{i};
                 end
                 eqs{i} = model.operators.AccDiv(eqs{i}, flux{i});
+                 if ~model.useCNVConvergence
+                    pv     = model.operators.pv;
+                    eqs{i} = eqs{i}.*(dt./pv);
+                 end    
             end
         end
 
