@@ -106,15 +106,15 @@ function [out, out_sparse, results] = testFunction(fn_mex, fn_mat, fn_sparse, sh
         for i = 1:its
             out_sparse = fn_sparse();
         end
-        t_s = toc();
+        t_s = toc(timer);
     else
         out_sparse = nan;
         t_s = nan;
     end
     fprintf('********************************************************\n');
-    fprintf('* %s\n* Diagonal: %1.2gs, Diagonal-MEX: %1.2gs (%1.2f speedup)\n', name, t_m/its, t_c/its, t_m/t_c);
+    fprintf('* %s\n* Diagonal: %4fs, Diagonal-MEX: %4fs (%1.2f speedup)\n', name, t_m/its, t_c/its, t_m/t_c);
     if opt.testSparse
-        fprintf('*   Sparse: %1.2gs, Diagonal-MEX: %1.2gs (%1.2f speedup)\n', t_s/its, t_c/its, t_s/t_c);
+        fprintf('*   Sparse: %4fs, Diagonal-MEX: %4fs (%1.2f speedup)\n', t_s/its, t_c/its, t_s/t_c);
     end
     fprintf('Value error %1.2g, Jacobian error %1.2g\n', v_error, j_error)
     fprintf('********************************************************\n');
