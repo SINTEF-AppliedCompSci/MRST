@@ -2,7 +2,7 @@ function results = testMexDiagonalOperators(model, varargin)
     N = model.operators.N;
     G = model.G;
 
-    opt = struct('block_size', 5, 'iterations', 5, 'nc', max(N(:)), 'testSparse', true);
+    opt = struct('print', nargout == 0, 'block_size', 5, 'iterations', 5, 'nc', max(N(:)), 'testSparse', true);
     opt = merge_options(opt, varargin{:});
     
     results = opt;
@@ -46,10 +46,31 @@ function results = testMexDiagonalOperators(model, varargin)
     [f_mex, f_matlab] = genFunctions(grad);
     f_sparse = @(varargin) ops_sparse.Grad(cell_value_sparse);
     [gradient, gradient_sparse, results] = testFunction(f_mex, f_matlab, f_sparse, 'gradient', 'Two-point gradient', opt, results);
+    
+    
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %       Test diagonal mult    %
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    fn = @(x, y, z) x.*y + z;
+    cell_mult = @(useMex) fn(cell_value, 2*cell_value, 3*cell_value);
+    [f_mex, f_matlab] = genFunctions(cell_mult);
+    f_sparse = @(varargin) fn(cell_value_sparse, 2*cell_value_sparse, 3*cell_value_sparse);
+    [cellmultval, cellmultval_sparse, results] = testFunction(f_mex, f_matlab, f_sparse, 'cellmult', 'Multiply and add (cell)', opt, results);
+
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %  Test face diagonal mult    %
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    cell_mult = @(useMex) fn(face_value, 2*face_value, 3*face_value);
+    [f_mex, f_matlab] = genFunctions(cell_mult);
+    f_sparse = @(varargin) fn(face_value_sparse, 2*face_value_sparse, 3*face_value_sparse);
+    [facemultval, facemultval_sparse, results] = testFunction(f_mex, f_matlab, f_sparse, 'facemult', 'Multiply and add (face)', opt, results);
+    
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %      Prep divergence        %
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    tic();
+    if opt.print
+        tic();
+    end
     prelim = getMexDiscreteDivergenceJacPrecomputes(model);
     
     n1 = N(:, 1);
@@ -60,7 +81,9 @@ function results = testMexDiagonalOperators(model, varargin)
     I_base = [N(:, 1); N(:, 1); N(:, 2); N(:, 2)];
 
     sortIx = struct('C', C, 'J_sorted_index', sortedN, 'I_base', I_base);
-    toc()
+    if opt.print
+        toc()
+    end
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %      Test divergence        %
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -111,14 +134,15 @@ function [out, out_sparse, results] = testFunction(fn_mex, fn_mat, fn_sparse, sh
         out_sparse = nan;
         t_s = nan;
     end
-    fprintf('********************************************************\n');
-    fprintf('* %s\n* Diagonal: %4fs, Diagonal-MEX: %4fs (%1.2f speedup)\n', name, t_m/its, t_c/its, t_m/t_c);
-    if opt.testSparse
-        fprintf('*   Sparse: %4fs, Diagonal-MEX: %4fs (%1.2f speedup)\n', t_s/its, t_c/its, t_s/t_c);
+    if opt.print
+        fprintf('********************************************************\n');
+        fprintf('* %s\n* Diagonal: %4fs, Diagonal-MEX: %4fs (%1.2f speedup)\n', name, t_m/its, t_c/its, t_m/t_c);
+        if opt.testSparse
+            fprintf('*   Sparse: %4fs, Diagonal-MEX: %4fs (%1.2f speedup)\n', t_s/its, t_c/its, t_s/t_c);
+        end
+        fprintf('Value error %1.2g, Jacobian error %1.2g\n', v_error, j_error)
+        fprintf('********************************************************\n');
     end
-    fprintf('Value error %1.2g, Jacobian error %1.2g\n', v_error, j_error)
-    fprintf('********************************************************\n');
-    
     if nargout > 1
         results.(shortname) = struct('t_matlab', t_m/its, 't_mex', t_c/its, 't_sparse', t_s/its, 'description', name);
     end
