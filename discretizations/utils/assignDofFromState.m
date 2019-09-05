@@ -10,17 +10,26 @@ function state = assignDofFromState(disc, state)
     state.nDof  = disc.getnDof(state);
     ix          = disc.getDofIx(state, 1);
     % Loop trough possible fields and initialise constant dof
-    flds = getDofFields();
-    for f = flds
-        if isfield(state, f)
-            dof       = zeros(sum(state.nDof), size(state.(f{1}),2));
-            dof(ix,:) = state.(f{1});
-            state.([f{1}, 'dof']) = dof;
+%     flds = getDofFields();
+    flds   = fieldnames(state);
+    except = exceptions();
+    for fNo = 1:numel(flds)
+        f = flds{fNo};
+        if isfield(state, f)                ...
+                && ~any(strcmpi(f, except)) ...
+                && size(state.(f),1) == disc.G.cells.num
+            dof       = zeros(sum(state.nDof), size(state.(f),2));
+            dof(ix,:) = state.(f);
+            state.([f, 'dof']) = dof;
         end
     end
 
 end
 
-function flds = getDofFields()
-    flds = {'s', 'rs', 'rv', 'x', 'y', 'components', 'c'};
+function flds = exceptions()
+    flds = {'nDof', 'degree', 'wellSol', 'flux'};
 end
+
+% function flds = getDofFields()
+%     flds = {'pressure', 's', 'rs', 'rv', 'x', 'y', 'components', 'c'};
+% end
