@@ -17,7 +17,9 @@ function results = testMexDiagonalOperators(model, varargin)
     % Make sparse version
     J = cell(1, opt.block_size);
     for i = 1:opt.block_size
-        J{i} = spdiags(cell_value.jac{1}.diagonal(:, i), nc, nc);
+        d = cell_value.jac{1}.diagonal(:, i);
+        ix = (1:nc)';
+        J{i} = sparse(ix, ix, d, nc, nc);
     end
     ops_sparse = setupOperatorsTPFA(G, makeRock(G, 1, 1));
     cell_value_sparse = ADI(value(cell_value), J);
