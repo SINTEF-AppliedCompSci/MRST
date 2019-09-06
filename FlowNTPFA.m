@@ -20,8 +20,8 @@ while(res(iter+1)>tol*res(1)&&iter<maxiter)
     res(iter+1)=norm(A*u-b,inf);
 end
 
-%[flux,wellsol]=computeFlux(u,T);
-state.pressure=u(1:G.cells.num);%state.flux=flux;state.wellSol=wellsol;
+[flux,wellsol]=computeFlux(u,T);
+state.pressure=u(1:G.cells.num);state.flux=flux;state.wellSol=wellsol;
 state.iter=iter;state.res=res(1:iter+1);
 %--------------------------------------------------------------------------
     function T=TransNTPFA(u)
@@ -145,10 +145,10 @@ state.iter=iter;state.res=res(1:iter+1);
                 pbh=W(i).val;dZ=W(i).dZ;
                 wellsol(i).pressure=pbh+rho*9.81*dZ;
                 wellsol(i).flux=W(i).WI./mu.*(wellsol(i).pressure-u(W(i).cells));
-            % elseif(strcmpi(W(i).type,'rate'))
-            %     rate=W(i).val;dZ=W(i).dZ;
-            %     wellsol(i).pressure=u(G.cells.num+i);
-            %     wellsol(i).flux=W(i).WI./mu.*(wellsol(i).pressure-u(W(i).cells)+rate);
+            elseif(strcmpi(W(i).type,'rate'))
+                rate=W(i).val;dZ=W(i).dZ;
+                wellsol(i).pressure=u(G.cells.num+i);
+                wellsol(i).flux=W(i).WI./mu.*(wellsol(i).pressure-u(W(i).cells)+rate);
             else
                 error('code under development!');
                 % write code here babbabababaababababababababababababababababababab
