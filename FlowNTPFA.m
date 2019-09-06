@@ -1,4 +1,5 @@
 function [state]=FlowNTPFA(G,bc,fluid,W,OSflux,u0,tol,maxiter)
+dispif(mrstVerbose, 'FlowNTPFA\n');
 [mu,rho]=fluid.properties();
 mu = mu(1);
 rho = rho(1);
@@ -7,7 +8,8 @@ T=TransNTPFA(u0);
 [A,b]=AssemAb(T);
 iter=0;
 res=zeros(maxiter+1,1);
-res(1)=norm(A*u0-b,inf);
+%res(1)=norm(A*u0-b,inf);
+res(1)=tol+1;
 u=u0;
 while(res(iter+1)>tol*res(1)&&iter<maxiter)
     dispif(mrstVerbose, ['iter=',num2str(iter), ' res=', num2str(res(iter+1)/res(1)), '\n'])
@@ -17,8 +19,9 @@ while(res(iter+1)>tol*res(1)&&iter<maxiter)
     iter=iter+1;
     res(iter+1)=norm(A*u-b,inf);
 end
-[flux,wellsol]=computeFlux(u,T);
-state.pressure=u;state.flux=flux;state.wellSol=wellsol;
+
+%[flux,wellsol]=computeFlux(u,T);
+state.pressure=u(1:G.cells.num);%state.flux=flux;state.wellSol=wellsol;
 state.iter=iter;state.res=res(1:iter+1);
 %--------------------------------------------------------------------------
     function T=TransNTPFA(u)
@@ -70,6 +73,14 @@ state.iter=iter;state.res=res(1:iter+1);
     function [A,b]=AssemAb(T)
         ncf=max(diff(G.cells.facePos));
         nc=G.cells.num;
+        
+        num_W_rate = 0;
+        for i=1:numel(W)
+            if(strcmpi(W(i).type,'rate'))
+                num_W_rate = num_W_rate+1;
+            end
+        end
+        nc = nc + num_W_rate;
         b=zeros(nc,1);
         [I,J,V]=deal(zeros(ncf*nc,1));k=1;
         for i_face=1:G.faces.num
@@ -86,6 +97,7 @@ state.iter=iter;state.res=res(1:iter+1);
                 b(c1)=b(c1)+T(i_face,2);
             end
         end
+        
         %----------------------------------------------------------
         for i=1:numel(W)
             if(strcmpi(W(i).type,'bhp'))
@@ -95,6 +107,18 @@ state.iter=iter;state.res=res(1:iter+1);
                     I(k)=mycell;J(k)=mycell;V(k)=W(i).WI(j)/mu;k=k+1;
                     b(mycell)=b(mycell)+W(i).WI(j)/mu*(pbh+rho*9.81*dZ(j));
                 end
+            elseif(strcmpi(W(i).type,'rate'))
+                rate=W(i).val;dZ=W(i).dZ;
+                for j=1:numel(W(i).cells)
+                    mycell=W(i).cells(j);
+                    I(k)=mycell;J(k)=mycell;V(k)=W(i).WI(j)/mu;k=k+1;
+                    I(k)=mycell;J(k)=G.cells.num+i;V(k)=-W(i).WI(j)/mu;k=k+1;
+                    I(k)=G.cells.num+i;J(k)=G.cells.num+i;V(k)=W(i).WI(j)/mu;k=k+1;
+                    I(k)=G.cells.num+i;J(k)=mycell;V(k)=-W(i).WI(j)/mu;k=k+1;
+                    b(mycell)=b(mycell)+W(i).WI(j)/mu*(rho*9.81*dZ(j));
+                    b(G.cells.num+i)=b(G.cells.num+i)+W(i).WI(j)/mu*(rho*9.81*dZ(j));
+                end
+                b(G.cells.num+i)=b(G.cells.num+i)+rate;
             else
                 % write code here bababababababbababaabababababababababababababba
                 error('code under development!')
@@ -121,6 +145,10 @@ state.iter=iter;state.res=res(1:iter+1);
                 pbh=W(i).val;dZ=W(i).dZ;
                 wellsol(i).pressure=pbh+rho*9.81*dZ;
                 wellsol(i).flux=W(i).WI./mu.*(wellsol(i).pressure-u(W(i).cells));
+            % elseif(strcmpi(W(i).type,'rate'))
+            %     rate=W(i).val;dZ=W(i).dZ;
+            %     wellsol(i).pressure=u(G.cells.num+i);
+            %     wellsol(i).flux=W(i).WI./mu.*(wellsol(i).pressure-u(W(i).cells)+rate);
             else
                 error('code under development!');
                 % write code here babbabababaababababababababababababababababababab
