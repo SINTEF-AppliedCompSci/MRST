@@ -2,7 +2,7 @@
 clear;close all;clc
 mrstModule add incomp mimetic  ad-blackoil ad-core glpk ntpfa_glpk ...
     ad-props mpfa eni mrst-gui nfvm ntpfa blackoil-sequential
-plotconc = false;
+plotconc = true;
 
 % myfile = 'grid_data/tet2.dat';
 % G = importGrid(myfile,'tetBench');
@@ -20,8 +20,8 @@ nx = 7;
 ny = 5;
 nz = 3;
 G = cartGrid([nx, ny, nz], [1 1 1]);
-G = tetrahedralGrid(G.nodes.coords);
-G = twister(G, 0.1);
+%G = tetrahedralGrid(G.nodes.coords);
+%G = twister(G, 0.1);
 G = computeGeometry(G);
 
 figure
@@ -41,17 +41,17 @@ s0 = 1.0;
 
 % Wells
 Wtp = [];
-% cellsWell1 = well_cells(G, '1');
-% cellsWell2 = well_cells(G, '2');
-% radius = 0.05/10;
-% % Wtp = addWell([], G, rock, cellsWell1, 'Type', 'rate', ...
-% %             'InnerProduct', 'ip_tpf', ...
-% %             'comp_i', [1], ...
-% %             'Val', 1.0/day(), 'Radius', radius, 'name', 'I');
-% Wtp = addWell(Wtp, G, rock, cellsWell2, 'Type', 'bhp', ...
-%             'InnerProduct', 'ip_tpf', ...
-%             'comp_i', [1], ...
-%             'Val', 1.0e5, 'Radius', radius, 'Dir', 'y', 'name', 'P');
+cellsWell1 = well_cells(G, '1');
+cellsWell2 = well_cells(G, '2');
+radius = 0.05/10;
+Wtp = addWell(Wtp, G, rock, cellsWell1, 'Type', 'rate', ...
+            'InnerProduct', 'ip_tpf', ...
+            'comp_i', [1], ...
+            'Val', 1.0/day(), 'Radius', radius, 'name', 'I');
+Wtp = addWell(Wtp, G, rock, cellsWell2, 'Type', 'bhp', ...
+            'InnerProduct', 'ip_tpf', ...
+            'comp_i', [1], ...
+            'Val', 1.0e5, 'Radius', radius, 'Dir', 'y', 'name', 'P');
 % Wtp = addWell(Wtp, G, rock, cellsWell1, 'Type', 'bhp', ...
 %             'InnerProduct', 'ip_tpf', ...
 %             'comp_i', [1], ...
@@ -155,15 +155,21 @@ results = {};
 % drawnow
 % results{end+1} = state;
 
-% %% TPFA mrst version (don't plot)
-% solvers{end+1} = 'mrst tpfa';
-% disp(solvers{end});
-% T = computeTrans(G,rock);
-% state = incompTPFA(state0, G, T, fluid, 'wells', Wtp, 'bc', bc_std);
-% %state = tracerTransport_implicit(G,rock,Wtp,state,dt,nstep);
-% results{end+1} = state;
-% figure,plotToolbar(G,state);plotWell(G,Wtp);view(3)
-% title(['Pressure ', solvers{end}]);h=colorbar;h.Label.String='Pressure [Pa]';clear h;
+%% TPFA mrst version (don't plot)
+solvers{end+1} = 'mrst tpfa';
+disp(solvers{end});
+T = computeTrans(G,rock);
+state = incompTPFA(state0, G, T, fluid, 'wells', Wtp, 'bc', bc_std);
+figure,plotToolbar(G,state);plotWell(G,Wtp);view(3)
+title(['Pressure ', solvers{end}]);h=colorbar;h.Label.String='Pressure [Pa]';clear h;
+if plotconc
+    Qinj=sum(state.wellSol(1).flux);tt=pv/Qinj;nstep=100;dt=tt/nstep;
+    state = tracerTransport_implicit(G,rock,Wtp,state,dt,nstep);
+    figure, plotCellData(G,state.cres(:,end));plotWell(G,Wtp);
+    view(3);colorbar;title(['Concentration ', solvers{end}]);
+drawnow
+end
+results{end+1} = state;
 
 
 %% nonlinear TPFA
@@ -174,7 +180,7 @@ disp(['fraction of faces with centroids outside convex hull ', num2str(interpFac
 interpFace=correctHAP(G,interpFace);
 OSflux=findOSflux(G,rock,bc_flow_ntpfa,interpFace);
 state=FlowNTPFA(G,bc_flow_ntpfa,fluid,Wtp,OSflux,p0*ones(G.cells.num,1),1e-7,1000);
-%figure,plotCellData(G,state.pressure/1e6);plotWell(G,Wtp);view(3)
+%figure,plotCellData(G,state.pressure/1e6);view(3)
 figure,plotToolbar(G,state);plotWell(G,Wtp);view(3)
 title(['Pressure ', solvers{end}]);h=colorbar;h.Label.String='Pressure [Pa]';clear h;
 if plotconc
@@ -209,23 +215,23 @@ results{end+1} = state;
 % results{end+1} = states{1};
 
 
-% NTPFA glpk
-solvers{end+1} = 'NTPFA-glpk';
-disp(solvers{end});
-mrstVerbose on
-mrstDebug on
-model = PressureOilWaterModelNTPFAopt(G,rock,fluid_glpk);
-state = incompSinglePhaseNTPFA(model,state0_glpk,'bc', bc_glpk,'src', []);
-figure,plotToolbar(G,state);plotWell(G,Wtp);view(3)
-title(['Pressure ', solvers{end}]);h=colorbar;h.Label.String='Pressure [Pa]';clear h;
-if plotconc
-    Qinj=sum(state.wellSol(1).flux);tt=pv/Qinj;nstep=100;dt=tt/nstep;
-    state = tracerTransport_implicit(G,rock,Wtp,state,dt,nstep);
-    figure, plotCellData(G,state.cres(:,end));plotWell(G,Wtp);
-    view(3);colorbar;title(['Concentration ', solvers{end}]);
-    drawnow
-end
-results{end+1} = state;
+% % NTPFA glpk
+% solvers{end+1} = 'NTPFA-glpk';
+% disp(solvers{end});
+% mrstVerbose on
+% mrstDebug on
+% model = PressureOilWaterModelNTPFAopt(G,rock,fluid_glpk);
+% state = incompSinglePhaseNTPFA(model,state0_glpk,'bc', bc_glpk,'src', []);
+% figure,plotToolbar(G,state);plotWell(G,Wtp);view(3)
+% title(['Pressure ', solvers{end}]);h=colorbar;h.Label.String='Pressure [Pa]';clear h;
+% if plotconc
+%     Qinj=sum(state.wellSol(1).flux);tt=pv/Qinj;nstep=100;dt=tt/nstep;
+%     state = tracerTransport_implicit(G,rock,Wtp,state,dt,nstep);
+%     figure, plotCellData(G,state.cres(:,end));plotWell(G,Wtp);
+%     view(3);colorbar;title(['Concentration ', solvers{end}]);
+%     drawnow
+% end
+% results{end+1} = state;
 
 
 
@@ -268,7 +274,7 @@ results{end+1} = state;
 solvers{end+1} = 'mfd';
 disp(solvers{end});
 state=incompMimetic(state0,G,computeMimeticIP(G,rock),fluid,'wells',Wtp,'bc',bc_std);
-%figure, plotCellData(G,state.pressure/1e6);plotWell(G,Wtp);view(3);
+%figure, plotCellData(G,state.pressure/1e6);view(3);
 figure,plotToolbar(G,state);plotWell(G,Wtp);view(3)
 title(['Pressure ', solvers{end}]);h=colorbar;h.Label.String='Pressure [Pa]';clear h;
 if plotconc
@@ -279,6 +285,29 @@ if plotconc
     drawnow
 end
 results{end+1} = state;
+
+
+% % primitive comparison of mfd and ntpfa_kobaisi
+% figure
+% plotCellData(G,abs(results{1}.pressure - results{2}.pressure)./results{2}.pressure); 
+% colorbar 
+% view(3)
+% title('relative error pressure')
+% disp(['max pressures ', num2str(max(results{1}.pressure),'%1.2e'), ' ', ...
+%       num2str(max(results{2}.pressure), '%1.2e')]) 
+
+% if plotconc
+%     figure
+%     plotFaceData(G,abs(results{1}.flux - results{2}.flux)./results{2}.flux);
+%     colorbar 
+%     view(3)
+%     title('relative error flux')
+%     disp(['max flux ', num2str(max(results{1}.flux),'%1.2e'), ' ', ...
+%           num2str(max(results{2}.flux), '%1.2e')]) 
+% end
+
+
+
 
 
 %%
