@@ -6,12 +6,12 @@ mrstVerbose on
 
 setup   = getDGTestCase('simple1d', 'n', 20);
 
-modelDG = TransportOilWaterDGModel(setup.modelFV);
-
 %%
 
 [wsFV, stFV, repFV] = simulateScheduleAD(setup.state0, setup.modelFV, setup.schedule);
 
 %%
 
-[wsDG, stDG, repDG] = simulateScheduleAD(setup.state0, modelDG, setup.schedule);
+for dNo = 2:numel(setup.modelDG)
+    [wsDG, stDG, repDG] = simulateScheduleAD(setup.state0, setup.modelDG{dNo}, setup.schedule);
+end
