@@ -55,7 +55,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    if is_injector(W)
       % We compute a simple mixture of the injected fluids
-      i = 1 : min(np, size(W.compi));
+      i = 1 : min(np, size(W.compi, 2));
 
       rhoMix = rho(i) * W.compi(i)';
    else
