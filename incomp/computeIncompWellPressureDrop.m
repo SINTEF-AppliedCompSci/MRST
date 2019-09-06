@@ -67,7 +67,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       mobw = mob(W.cells, :);
       f    = bsxfun(@rdivide, mobw, sum(mobw, 2));
 
-      rhoMix = sum(W.WI .* (f(i) * rho(i)')) ./ sum(W.WI);
+      rhoMix = sum(W.WI .* (f(:, i) * rho(i)')) ./ sum(W.WI);
    end
 
    dp = g * (W.dZ * rhoMix);
