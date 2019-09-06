@@ -6,7 +6,7 @@ function interpFace=findHAP(G,rock,bc)
 %   interpFace.weights: interpolating weights
 %   interpFace.percentage: the percentage of cells whose centroid is
 %   outside the convex hull
-
+dispif(mrstVerbose, 'findHAP\n');
 K=permTensor(rock,G.griddim);
 K=reshape(K',G.griddim,G.griddim,[]);
 interpFace.coords=zeros(G.faces.num,G.griddim);

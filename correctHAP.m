@@ -8,6 +8,7 @@ function [interpFace]=correctHAP(G,interpFace,myRatio)
 %   G - Grid structure of MRST
 %   interpFace - harmonic averaging point interplation without correction
 %   myRatio - user specified ratio
+dispif(mrstVerbose, 'correctHAP\n');
 
 HAP=interpFace.coords; % store the locations of the original harmonic averaging points;
 if(nargin==2)

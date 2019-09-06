@@ -4,6 +4,7 @@ function OSflux=findOSflux(G,rock,bc,interpFace)
 %transmissibility matrix
 % Dirichlet boundary faces are treated as zero volume cells to derive
 % nonlinear two-point flux approximation for Dirichlet boundary faces
+dispif(mrstVerbose, 'findOSflux\n');
 
 K=permTensor(rock,G.griddim);
 K=reshape(K',G.griddim,G.griddim,[]);
@@ -332,47 +333,49 @@ end
 
 if ~exist('faceA','var') %|| nf == 4
     
-%     figure, hold on
-%     plotGrid(G, 'facealpha', 0.1);
-%     plotGrid(G, c)
-% 
-%     figure,hold on
-%     plotGrid(G,c,'facealpha',0.3)
-%     hap=interpFace.coords(theFaces,:);
-%     plot3(hap(:,1),hap(:,2),hap(:,3),'.','markersize',14)
-%     xc=G.cells.centroids(c,:);
-%     plot3(xc(1),xc(2),xc(3),'ko','markersize',14)
-%     ind=convhull(hap);
-%     trisurf(ind,hap(:,1),hap(:,2),hap(:,3), 'Facecolor','cyan','facealpha',0.5)
-%     in_convex_hull=inhull(xc,hap,ind,1e-5)
-%     
-%     % Plot Kn. 
-%     Gc = extractSubgrid(G,c);
-%     xmin = min(Gc.nodes.coords);
-%     xmax = max(Gc.nodes.coords);
-%     h = xmax-xmin;
-%     vec = [xc; xc+Kn_unit'.*h];
-%     line(vec(:,1),vec(:,2),vec(:,3))
-%     
-%     keyboard
-%     assert(logical(exist('faceA','var')),...
-%        ['decomposition failed for cell ',num2str(c)]);
+    figure, hold on
+    plotGrid(G, 'facealpha', 0.1);
+    plotGrid(G, c)
+
+    figure,hold on
+    plotGrid(G,c,'facealpha',0.3)
+    hap=interpFace.coords(theFaces,:);
+    plot3(hap(:,1),hap(:,2),hap(:,3),'.','markersize',14)
+    xc=G.cells.centroids(c,:);
+    plot3(xc(1),xc(2),xc(3),'ko','markersize',14)
+    ind=convhull(hap);
+    trisurf(ind,hap(:,1),hap(:,2),hap(:,3), 'Facecolor','cyan','facealpha',0.5)
+    in_convex_hull=inhull(xc,hap,ind,1e-5)
+    
+    % Plot Kn. 
+    Gc = extractSubgrid(G,c);
+    xmin = min(Gc.nodes.coords);
+    xmax = max(Gc.nodes.coords);
+    h = xmax-xmin;
+    vec = [xc; xc+Kn_unit'.*h];
+    line(vec(:,1),vec(:,2),vec(:,3))
+    
+    keyboard
+    assert(logical(exist('faceA','var')),...
+       ['decomposition failed for cell ',num2str(c)]);
    
-   % Take three faces with largest alignment with Kn. If we end up here,
-   % they're typically not all positive.
-   disp(['fix faceA,B,C ', num2str(c), ' ', num2str(G.cells.num)])
-   dotp = sum(myBases.*Kn', 2);
-   [dotp, ii] = sort(dotp);
-   faceA = theFaces(ii(1));
-   faceB = theFaces(ii(2));
-   faceC = theFaces(ii(3));
-   tA = myBases(ii(1),:)';
-   tB = myBases(ii(2),:)';
-   tC = myBases(ii(3),:)';
-   a=[tA tB tC]\(Kn_unit);
-   a(1)=a(1)*Kn_norm/norm(tA);
-   a(2)=a(2)*Kn_norm/norm(tB);
-   a(3)=a(3)*Kn_norm/norm(tC);
+%    % Take three faces with largest alignment with Kn. If we end up here,
+%    % they're typically not all positive.
+%    disp(['fix faceA,B,C ', num2str(c), ' ', num2str(G.cells.num)])
+%    dotp = sum(myBases.*Kn', 2);
+%    [dotp, ii] = sort(dotp);
+%    faceA = theFaces(ii(1));
+%    faceB = theFaces(ii(2));
+%    faceC = theFaces(ii(3));
+%    tA = myBases(ii(1),:)';
+%    tB = myBases(ii(2),:)';
+%    tC = myBases(ii(3),:)';
+%    a=[tA tB tC]\(Kn_unit);
+%    a(1)=a(1)*Kn_norm/norm(tA);
+%    a(2)=a(2)*Kn_norm/norm(tB);
+%    a(3)=a(3)*Kn_norm/norm(tC);
+%    %keyboard
+    
 end
 
 end
