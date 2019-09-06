@@ -296,32 +296,72 @@ classdef DGDiscretization < SpatialDiscretization
         end
         
         %-----------------------------------------------------------------%
-        function varargout = evaluateDGVariable(disc, x, cells, state, varargin)
+        function p = evaluateDGVariable(disc, x, cells, state, pdof)
             
             psi     = disc.basis.psi;
-            nDof    = state.nDof;
+            nDof    = state.nDof; %#ok
             nDofMax = disc.basis.nDof;
             
             x = disc.transformCoords(x, cells);
-            n = nargout;
-            varargout = cell([1,n]);
-            for vNo = 1:n
-                val = varargin{vNo};
-                if ~isempty(val)
-                    val = val(cells)*0;
-
-                    for dofNo = 1:nDofMax
-                        keep = nDof(cells) >= dofNo;
-                        ix = disc.getDofIx(state, dofNo, cells(keep));
-                        if all(keep)
-                            val = val + varargin{vNo}(ix,:).*psi{dofNo}(x(keep,:));
-                        else
-                            val(keep, :) = val(keep, :) + varargin{vNo}(ix,:).*psi{dofNo}(x(keep,:));
-                        end
+            if isempty(pdof)
+                return
+            else                
+                p = pdof(cells)*0;
+                for dofNo = 1:nDofMax
+                    keep = nDof(cells) >= dofNo; %#ok
+                    ix = disc.getDofIx(state, dofNo, cells(keep));
+                    if all(keep)
+                        p = p + pdof(ix,:).*psi{dofNo}(x(keep,:));
+                    else
+                        p(keep, :) = p(keep, :) + pdof(ix,:).*psi{dofNo}(x(keep,:));
                     end
                 end
-                varargout{vNo} = val;
             end
+
+        end
+        
+        %-----------------------------------------------------------------%
+        function p = evaluateProp(disc, name, inx, state)
+            dname = [name, 'dof'];
+            cells = (1:disc.G.cells.num)';
+            [W , x, cellNo] = disc.getCubature(cells, 'volume');
+            if isfield(state, dname)
+                pdof  = state.(dname);
+                if iscell(pdof)
+                    p = cell(numel(pdof),1);
+                    for i = 1:numel(pdof)
+                        p{i} = disc.evaluateDGVariable(x, cellNo, state, pdof{i});
+                    end
+                else
+                    p = disc.evaluateDGVariable(x, cellNo, state, pdof(:,inx));
+                end
+            else
+                pdof = state.(name);
+                if iscell(pdof)
+                    p = cell(numel(pdof),1);
+                    for i = 1:numel(pdof)
+                        p{i} = pdof{i}(cellNo,:);
+                    end
+                else
+                    if size(pdof, 1) == 1
+                        p = pdof;
+                    else
+                        p = pdof(cellNo,:);
+                    end
+                end
+            end
+        end
+        
+        function fill = getFillSat(disc, state)
+            fill = zeros(sum(state.nDof),1);
+            ix   = disc.getDofIx(state, 1);
+            fill(ix) = 1;
+        end
+        
+        %-----------------------------------------------------------------%
+        function varargout = evaluateDGVariables(disc, x, cells, state, varargin)
+            varargout = cellfun(@(v) disc.evaluateDGVariable(x, cells, state, v), ...
+                                               varargin, 'UniformOutput', false);
         end
         
         %-----------------------------------------------------------------%
