@@ -1,4 +1,4 @@
-function state = assignDofFromState(disc, state)
+function state = assignDofFromState(disc, state, names)
     % Assign dofs from state (typically initial state). All dofs
     % for dofNo > 0 are set to zero.
 
@@ -11,10 +11,12 @@ function state = assignDofFromState(disc, state)
     ix          = disc.getDofIx(state, 1);
     % Loop trough possible fields and initialise constant dof
 %     flds = getDofFields();
-    flds   = fieldnames(state);
+    if nargin < 3
+        names = fieldnames(state);
+    end
     except = exceptions();
-    for fNo = 1:numel(flds)
-        f = flds{fNo};
+    for fNo = 1:numel(names)
+        f = names{fNo};
         if isfield(state, f)                ...
                 && ~any(strcmpi(f, except)) ...
                 && size(state.(f),1) == disc.G.cells.num
