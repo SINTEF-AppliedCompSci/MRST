@@ -205,11 +205,9 @@ cstate = incompTPFA(cstate, CG, chT, fluid, 'MatrixOutput', true, 'bc', cbc);
 % unit values, each entry of $B$ takes on values in $[0, 1]$. The
 % restriction function can be defined in two different ways. First of all,
 % we could set R as the transpose of P, which would give us a Galerkin
-% formulation. This means that the restriction operator $R$ represents an
-% integration of boundary fluxes, and therefore the entries are either one
-% or zero. Herein, we will instead use a finite-volume restriction that
+% formulation. Herein, we will instead use a finite-volume restriction that
 % simply sums the rows corresponding to all cells that make up each coarse
-% block. Thus R takes values in {0,1} signifying.
+% block. Thus R takes values in {0,1}.
 %
 % We next generate basis functions, create a coarse system, and visualize
 % it. The intentionally small problem allows us to easily visualize the
