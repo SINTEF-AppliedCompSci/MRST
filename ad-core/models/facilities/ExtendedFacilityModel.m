@@ -277,7 +277,9 @@ classdef ExtendedFacilityModel < FacilityModel
                 rho = [rho{:}];
                 [wc, perf2well] = model.getActiveWellCells(wellSol);
                 rho = rho(wc, :);
-                if ~isfield(wellSol, 'ComponentTotalFlux') || isempty(wellSol.ComponentTotalFlux)
+                % Use mobility in well-cells if no connection fluxes are
+                % available (typically first step for well)
+                if ~isfield(wellSol(1), 'ComponentTotalFlux') || any(arrayfun(@(x)isempty(x.ComponentTotalFlux), wellSol))
                     mob = model.ReservoirModel.getProps(state, 'Mobility');
                     mob = [mob{:}];
                     mob = mob(wc,:);
