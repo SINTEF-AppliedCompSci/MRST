@@ -353,7 +353,7 @@ classdef SimpleWell < PhysicalModel
             wellSol.cdp = cdp;
         end
         
-        function wellSol = updateConnectionPressureDropState(well, model, wellSol, rho_res, rho_well, mob)
+        function wellSol = updateConnectionPressureDropState(well, model, wellSol, rho_res, rho_well, mob_res)
             % Simpler version
             if ~well.doUpdatePressureDrop
                 return
@@ -373,22 +373,17 @@ classdef SimpleWell < PhysicalModel
 %                     qMass = qMass.*w.compi;
 %                     qVol = qVol.*w.compi;
                 end
-            else % typically initial step, assume uniform drawdown and use compi/mobility accordingly
+            else
+                % typically initial step, assume uniform drawdown and use compi/mobility accordingly
                 sgn = w.sign;
                 if sgn == 0
                     sgn = 1;
                 end
-                if sgn == 1 
-                    qVol = ones(size(rho_res,1), 1)*w.compi;
-                    qMass = bsxfun(@times, qVol, rho_well);
-                else
-                    qVol = mob;
-                    qMass = bsxfun(@times, qVol, rho_res);
+                qVol  = w.WI*w.compi;
+                if sgn == -1 && nargin == 6 && ~isempty(mob_res)
+                    qVol  = bsxfun(@times, w.WI,  mob_res);
                 end
-                %qVol = sgn*ones(size(rho_res));
-                %in = qVol > 0;
-                %qMass = bsxfun(@times, qVol, rho_well).*in + bsxfun(@times, qVol, rho_res).*~in;
-                
+                qMass = qVol.*rho_res; 
             end
             C = well.wb2in(w);      % mapping wb-flux to in-flux
             wbMassFlux  = abs(C\qMass);  % solve to get well-bore mass flux
