@@ -101,7 +101,7 @@ CG.dual = DG;
 A = getIncomp1PhMatrix(G, T);
 basisfv = getMultiscaleBasis(CG, A, 'type', 'msfvm');
 msfv = incompMultiscale(state0, CG, T, fluid, basisfv, 'wells', W);
-basis = getMultiscaleBasis(CG, A, 'type', 'rsb', 'useMex', true, ...
+basis = getMultiscaleBasis(CG, A, 'type', 'msrsb', 'useMex', true, ...
                                   'iterations', 1000,'tolerance', 1e-4);
 % Create a second coarse grid that adapts to the already computed basis
 % functions (see paper for more details).
