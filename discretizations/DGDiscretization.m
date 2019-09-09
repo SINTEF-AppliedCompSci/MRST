@@ -321,19 +321,23 @@ classdef DGDiscretization < SpatialDiscretization
         end
         
         %-----------------------------------------------------------------%
-        function p = evaluateProp(disc, name, inx, state)
+        function p = evaluateProp(disc, name, index, state)
             dname = [name, 'dof'];
             cells = (1:disc.G.cells.num)';
             [W , x, cellNo] = disc.getCubature(cells, 'volume');
             if isfield(state, dname)
                 pdof  = state.(dname);
                 if iscell(pdof)
-                    p = cell(numel(pdof),1);
-                    for i = 1:numel(pdof)
-                        p{i} = disc.evaluateDGVariable(x, cellNo, state, pdof{i});
+                    if ischar(index)
+                        p = cell(numel(pdof),1);
+                        for i = 1:numel(pdof)
+                            p{i} = disc.evaluateDGVariable(x, cellNo, state, pdof{i});
+                        end
+                    else
+                        p = disc.evaluateDGVariable(x, cellNo, state, pdof{index});
                     end
                 else
-                    p = disc.evaluateDGVariable(x, cellNo, state, pdof(:,inx));
+                    p = disc.evaluateDGVariable(x, cellNo, state, pdof(:,index));
                 end
             else
                 pdof = state.(name);
