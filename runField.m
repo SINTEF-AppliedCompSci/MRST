@@ -1,8 +1,9 @@
 %% run field model
 clear;close all;clc
 mrstModule add incomp mimetic  ad-blackoil ad-core glpk ntpfa_glpk ...
-    ad-props mpfa eni mrst-gui nfvm ntpfa blackoil-sequential
-plotconc = true;
+    ad-props mpfa eni mrst-gui nfvm ntpfa blackoil-sequential ...
+    wellpaths
+plotconc = false;
 
 % myfile = 'grid_data/tet2.dat';
 % G = importGrid(myfile,'tetBench');
@@ -25,7 +26,16 @@ G = cartGrid([nx, ny, nz], [1 1 1]);
 G = computeGeometry(G);
 
 figure
-plotGrid(G)
+plotGrid(G,'facealpha', 0.5)
+
+% Extract faces in x direction
+tol = 1e-5;
+pts = [tol, 0.5+tol, 0.5+tol;
+       1-tol, 0.5+tol, 0.5+tol];
+wellpath = makeSingleWellpath(pts);
+%plotWellPath(wellpath);
+cells_xdir = findWellPathCells(G, wellpath);
+[Gsub,~,subgf] = extractSubgrid(G, cells_xdir);
 
 rock = makeRock(G, 100*milli*darcy, 1);
 pv = sum(poreVolume(G,rock));
@@ -43,15 +53,17 @@ s0 = 1.0;
 Wtp = [];
 cellsWell1 = well_cells(G, '1');
 cellsWell2 = well_cells(G, '2');
+
 radius = 0.05/10;
-Wtp = addWell(Wtp, G, rock, cellsWell1, 'Type', 'rate', ...
-            'InnerProduct', 'ip_tpf', ...
-            'comp_i', [1], ...
-            'Val', 1.0/day(), 'Radius', radius, 'name', 'I');
-Wtp = addWell(Wtp, G, rock, cellsWell2, 'Type', 'bhp', ...
-            'InnerProduct', 'ip_tpf', ...
-            'comp_i', [1], ...
-            'Val', 1.0e5, 'Radius', radius, 'Dir', 'y', 'name', 'P');
+% Wtp = addWell(Wtp, G, rock, cellsWell1, 'Type', 'rate', ...
+%             'InnerProduct', 'ip_tpf', ...
+%             'comp_i', [1], ...
+%             'Val', 1.0/day(), 'Radius', radius, 'Name', 'I');
+% Wtp = addWell(Wtp, G, rock, cellsWell2, 'Type', 'bhp', ...
+%             'InnerProduct', 'ip_tpf', ...
+%             'comp_i', [1], ...
+%             'Val', 1.0e5, 'Radius', radius, 'Dir', 'y', 'name', 'P');
+
 % Wtp = addWell(Wtp, G, rock, cellsWell1, 'Type', 'bhp', ...
 %             'InnerProduct', 'ip_tpf', ...
 %             'comp_i', [1], ...
@@ -155,13 +167,15 @@ results = {};
 % drawnow
 % results{end+1} = state;
 
-%% TPFA mrst version (don't plot)
+%% TPFA mrst version
 solvers{end+1} = 'mrst tpfa';
 disp(solvers{end});
 T = computeTrans(G,rock);
 state = incompTPFA(state0, G, T, fluid, 'wells', Wtp, 'bc', bc_std);
 figure,plotToolbar(G,state);plotWell(G,Wtp);view(3)
 title(['Pressure ', solvers{end}]);h=colorbar;h.Label.String='Pressure [Pa]';clear h;
+figure,plotFaceData(G,cells_xdir, state.flux);colorbar,view(3)
+title(['flux ', solvers{end}])
 if plotconc
     Qinj=sum(state.wellSol(1).flux);tt=pv/Qinj;nstep=100;dt=tt/nstep;
     state = tracerTransport_implicit(G,rock,Wtp,state,dt,nstep);
@@ -183,6 +197,8 @@ state=FlowNTPFA(G,bc_flow_ntpfa,fluid,Wtp,OSflux,p0*ones(G.cells.num,1),1e-7,100
 %figure,plotCellData(G,state.pressure/1e6);view(3)
 figure,plotToolbar(G,state);plotWell(G,Wtp);view(3)
 title(['Pressure ', solvers{end}]);h=colorbar;h.Label.String='Pressure [Pa]';clear h;
+figure,plotFaceData(G,cells_xdir, state.flux);colorbar,view(3)
+title(['flux ', solvers{end}])
 if plotconc
     Qinj=sum(state.wellSol(1).flux);tt=pv/Qinj;nstep=100;dt=tt/nstep;
     state=tracerTransport_implicit(G,rock,Wtp,state,dt,nstep);
@@ -277,6 +293,8 @@ state=incompMimetic(state0,G,computeMimeticIP(G,rock),fluid,'wells',Wtp,'bc',bc_
 %figure, plotCellData(G,state.pressure/1e6);view(3);
 figure,plotToolbar(G,state);plotWell(G,Wtp);view(3)
 title(['Pressure ', solvers{end}]);h=colorbar;h.Label.String='Pressure [Pa]';clear h;
+figure,plotFaceData(G,cells_xdir, state.flux);colorbar,view(3)
+title(['flux ', solvers{end}])
 if plotconc
     Qinj=sum(state.wellSol(1).flux);tt=pv/Qinj;nstep=100;dt=tt/nstep;
     state=tracerTransport_implicit(G,rock,Wtp,state,dt,nstep);
