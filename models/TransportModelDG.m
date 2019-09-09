@@ -34,6 +34,7 @@ classdef TransportModelDG < TransportModel
         function state = validateState(model, state)
             state    = assignDofFromState(model.disc, state);    
             state    = validateState@TransportModel(model, state);
+            state = rmfield(state, 'sTdof');
             state.sT = sum(state.s,2);
             state    = assignDofFromState(model.disc, state);
         end
@@ -48,7 +49,7 @@ classdef TransportModelDG < TransportModel
             isParent = strcmp(origin, class(parent));
             basenames = basenames(isParent);
             origin = origin(isParent);
-            basevars = cell(numel(basenames),1);
+            basevars = cell(1, numel(basenames));
             for bNo = 1:numel(basenames)
                 basevars{bNo} = model.getProp(state, basenames{bNo}, false);
             end
@@ -72,9 +73,10 @@ classdef TransportModelDG < TransportModel
             if useTotalSaturation
                 % Replace pressure with total saturation
                 replacement = 'sT';
-                sT = model.getProp(state, replacement, false);
+                sTdof = state.sTdof;
+%                 sT = model.getProp(state, [replacement, 'dof'], false);
                 % Replacing
-                vars{isP} = sT;
+                vars{isP} = sTdof;
                 names{isP} = replacement;
                 origin{isP} = class(model);
             else
