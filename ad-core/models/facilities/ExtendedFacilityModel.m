@@ -277,13 +277,26 @@ classdef ExtendedFacilityModel < FacilityModel
                 rho = [rho{:}];
                 [wc, perf2well] = model.getActiveWellCells(wellSol);
                 rho = rho(wc, :);
+                % Use mobility in well-cells if no connection fluxes are
+                % available (typically first step for well)
+                if ~isfield(wellSol(1), 'ComponentTotalFlux') || any(arrayfun(@(x)isempty(x.ComponentTotalFlux), wellSol))
+                    mob = model.ReservoirModel.getProps(state, 'Mobility');
+                    mob = [mob{:}];
+                    mob = mob(wc,:);
+                else
+                    [mob, mob_i] = deal([]); % not used
+                end
+                    
                 for i = 1:nw
                     wellNo = actWellIx(i);
                     wm = model.WellModels{wellNo};
                     % Possible index error for i here - should it be
                     % wellno?
                     rho_i = rho(perf2well == wellNo, :);
-                    wellSol(wellNo) = wm.updateConnectionPressureDropState(model.ReservoirModel, wellSol(wellNo), rho_i, rho_i);
+                    if ~isempty(mob)
+                        mob_i = mob(perf2well == wellNo, :);
+                    end
+                    wellSol(wellNo) = wm.updateConnectionPressureDropState(model.ReservoirModel, wellSol(wellNo), rho_i, rho_i, mob_i);
                 end
             end
             state.wellSol = wellSol;
