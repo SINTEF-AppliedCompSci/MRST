@@ -1,24 +1,49 @@
-%% Introduction to finite-volume multiscale methods
-% We will consider a simple single-phase flow problem for a heterogeneous
-% permeability distribution,
+%% Introduction to multiscale finite-volume methods
+% This examples introduces you to the basic concept of multiscale
+% finite-volume methods. To this end, we consider a single-phase
+% flow problem written in terms of conservation of mass and Darcy's law
 %
 % $$ \nabla \cdot \vec{v} = q, \quad \vec{v} = - \mathbf{K} \nabla p$$
 %
-% In this example, we compare three different approaches for
-% solving this system: 
-% 
-% * A fine-scale solution using a TPFA-type discretization
-% * A solution based on a flow-based upscaling, which gives a solution on a
-% coarse grid with the same type of TPFA-discretization.
-% * A finite-volume multiscale solver, which gives both a coarse-scale and
-% a fine-scale approximation, together with a fine-scale velocity field
-% admissible for transport.
+% Alternatively, we could write this as a variable-coefficient Poisson
+% equation, which is one of the primary examples of a second-order elliptic
+% partial differential equation. The multiscale behavior of this problem
+% comes from the coefficient K, which represents permeability and usually
+% has large local changes and spatial correlation structures that span a
+% wide variety of scales.
 %
+% To discretize the problem, we use a standard finite-volume method with a
+% two-point flux approximation. In a standard upscaling method, one first
+% constructs a coarse grid and then computes effective permeability values
+% that attempt to represent the flow equation in an averaged sense on this
+% grid. With this, one can solve the flow problem approximately using fewer
+% unknowns.
+%
+% In a multiscale method, one also tries to solve the flow problem using
+% fewer unknowns, but instead of using effective coarse-scale
+% permeabilities, we define a set of multiscale basis functions that
+% represent how the pressure with distribute itself locally, given a unit
+% pressure drop between the center of one coarse grid block and the centers
+% of all the surrounding grid blocks. Using these basis functions, we can
+% reduce the fine-scale discretization matrix to a much smaller matrix and
+% solve this to construct an approximate solution on the coarse grid as
+% well as on the fine grid. We can also reconstruct mass-conservative
+% fluxes on the fine grid or on any partition thereof.
+%
+% The example compares three different approximate solutions to this flow
+% problem:
+% 
+% * A fine-scale solution 
+% * A coarse-scale solution computed using flow-based upscaling
+% * A multiscale solution computed with the MsRSB multiscale method
+
 % This example uses several different modules.
 mrstModule add coarsegrid spe10 msrsb incomp upscaling ad-core streamlines
+
 %% Define grid and rock
-% We take a small subset of the SPE 10, model 2 upscaling benchmark. We
-% pick a small subset since we are interested in examining the fine-scale
+% As an example of a strongly heterogeneous problem, we consider
+% permeability sampled from Model 2 of the SPE10 upscaling benchmark. We
+% pick a small subset, since we are interested in examining the fine-scale
 % linear system, which quickly becomes large as more cells are included.
 dims = [20, 20];
 physDims = dims .*[20, 10]*ft;
@@ -45,6 +70,7 @@ figure('units', 'normalized', 'position', [0.1, .1, .8, 0.8]);
 plotCellData(G, log10(rock.perm(:, 1)), 'edgec', 'none')
 axis tight
 plotGrid(CG,'FaceColor','none','LineWidth',2);
+
 %% Define and solve the fine-scale flow problem
 % Set up a pressure drop along the x-axis.
 bc = pside([], G, 'West', 100*barsa);
@@ -54,18 +80,19 @@ state0 = initResSol(G, 0);
 % Call solver, with matrix output in state enabled
 state = incompTPFA(state0, G, hT, fluid, 'MatrixOutput', true, 'bc', bc);
 n = G.cells.num;
+
 %% Show the fine-scale discretization
 % We plot the system matrix for the fine-scale system. We used a two-point
-% flux approximation (TPFA) to solve the problem and consequently the
+% flux approximation (TPFA) to solve the problem, and consequently the
 % matrix has a banded structure for this structured grid. As each cell in
 % a Cartesian grid has four neighbors, we get four off-diagonals bands plus
-% the main diagonal. As the incompressible pressure equation is linear, we
-% can fully translate the governing equations into the form
+% the main diagonal. The incompressible pressure equation is linear, and we
+% can thus fully translate the governing equations into the form
 % $$ A\mathbf{p} = \mathbf{q} $$
 %
-% In order to show this, we plot both the full system matrix and a
-% zoomed-in view around the degrees of freedom corresponding to a cell in
-% the middle of the domain.
+% To show this, we plot both the full system matrix and a zoomed-in view
+% around the degrees of freedom corresponding to a cell in the middle of
+% the domain.
 drawSquare = @(x, y) patch(x([1, 1, 2, 2]), y([1, 2, 2, 1]), 0, ...
                             'EdgeColor', 'k', 'FaceColor', 'none');
 % Get system matrix from state
@@ -94,10 +121,11 @@ xlim(y);
 axis square
 colormap([1 1 1; parula(255)]);
 title('Local five-point structure');
+
 %% Plot the fine-scale solution together with streamlines
 % We plot the pressure field and trace five streamlines from each of the
 % cells on the left boundary. Heterogeneities in the permeability field and
-% variation in the underlying porosity results in deviation from linear
+% variation in the underlying porosity result in deviation from linear
 % flow, even with a linear pressure drop over the domain.
 ijk = gridLogicalIndices(G);
 cells = find(ijk{1} == 1);
@@ -122,7 +150,7 @@ title('Fine-scale solution');
 colorbar('horiz')
 
 %% Perform upscaling of the permeability field
-% We create a upscaled permeability field with a flow-based upscaler from
+% We create an upscaled permeability field with a flow-based upscaler from
 % the 'upscale' module. In this routine, a series of local flow problem are
 % used to get an effective coarse-scale permeability.
 clf;
@@ -141,6 +169,7 @@ plotCellData(CG, Kc, 'edgec', 'none')
 axis equal tight
 caxis(c);
 title('Coarse permeability')
+
 %% Solve the coarse problem
 % The coarse problem is essentially the same governing equation as the
 % fine-scale problem, but with an upscaled permeability field
@@ -155,31 +184,38 @@ chT = computeTrans(CG, crock);
 cbc = coarsenBC(CG, bc);
 cstate = initResSol(CG, 0);
 cstate = incompTPFA(cstate, CG, chT, fluid, 'MatrixOutput', true, 'bc', cbc);
+
 %% Solve with a multiscale solver
-% We now solve the problem with a multiscale solver. We do this by
+% We now solve the problem with a multiscale solver. We do this by first
 % generating a set of basis functions $B$ from the system matrix. We can
-% then solve the effective coarse scale problem to get the coarse
-% multiscale pressure solution,
+% then form and solve a reduced problem to get the coarse multiscale
+% pressure solution,
 %
 % $$ A_c \mathbf{p}_c = \mathbf{q}_c, \quad A_c = RAP, \, \mathbf{q}_c = R q $$
 %
 % where $R$ is the restriction operator and $B$ is a matrix representation
-% of the basis functions. For a problem with $n$ fine cells and $n\times n$
-% fine-scale system and a coarse grid with $m$ blocks, the basis functions
-% and restriction operators take the form of rectangular matrices, 
+% of the basis functions. For a problem with $n$ fine cells, giving a
+% $n\times n$ fine-scale system, and a coarse grid with $m$ blocks, the
+% basis functions and restriction operators take the form of rectangular
+% matrices,
 %
 % $$ B \in \mathbf{R}^n \times \mathbf{R}^m, \mathbf{R}^m \times {R}^n $$
 %
 % Due to the interpretation of the basis functions as interpolators from
 % unit values, each entry of $B$ takes on values in $[0, 1]$. The
-% restriction operator $R$ represents a integration of boundary fluxes and
-% therefore the entries are either one or zero.
+% restriction function can be defined in two different ways. First of all,
+% we could set R as the transpose of P, which would give us a Galerkin
+% formulation. This means that the restriction operator $R$ represents an
+% integration of boundary fluxes, and therefore the entries are either one
+% or zero. Herein, we will instead use a finite-volume restriction that
+% simply sums the rows corresponding to all cells that make up each coarse
+% block. Thus R takes values in {0,1} signifying.
 %
-% We next generate basis functions, create a coarse system and visualize
+% We next generate basis functions, create a coarse system, and visualize
 % it. The intentionally small problem allows us to easily visualize the
 % systems used to construct the coarse approximation. Note that we normally
 % use functions such as 'incompMultiscale' to form this coarse system, but
-% we explicitly write out the expressions here for pedagogical reasons.
+% here we explicitly write out the expressions for pedagogical reasons.
 
 basis = getMultiscaleBasis(CG, A);
 Am = basis.R*state.A*basis.B;
@@ -205,16 +241,17 @@ subplot(4, 4, [6:8, 10:12, 14:16]);
 imagesc(full(abs(Am))); colormap([1 1 1; parula(255)]);
 axis equal tight
 th = text(dims(1), 3, 'A_c = RAP', 'FontSize', 18, 'HorizontalAlignment', 'right');
+
 %% Compare the upscaled and multiscale coarse systems
-% Fundamentally these two approaches are similar in that they, from
-% fine-scale information, produce coarse scale discretizations which seek
-% to account for the known fine-scale structure. We observe that the
-% upscaled system has five major diagonals, just like the original system,
-% while the multiscale solver has a more irregular pattern similar to
-% what we would get if we discretized the coarse system with a multi-point
-% scheme. As the system is formed numerically, all nine diagonals are not
-% fully filled in, since the magnitude of the entries are dependent on the
-% basis functions.
+% Fundamentally, these two approaches are similar in that they, from
+% fine-scale information, produce coarse-scale discretizations that seek to
+% account for the known fine-scale structure. We observe that the upscaled
+% system has five major diagonals, just like the original system, whereas
+% the multiscale solver has a more irregular pattern similar to what we
+% would get if we discretized the coarse system with a multipoint scheme.
+% As the system is formed numerically, all nine diagonals are not fully
+% filled in, since the magnitude of the entries depende on the basis
+% functions.
 clf;
 subplot(1, 2, 1);
 imagesc(full(abs(cstate.A))); colormap([1 1 1; parula(255)]);
@@ -265,11 +302,12 @@ plotCellData(G, p_prolongated);
 axis equal tight;
 caxis(ca);
 title('Fine MS');
+
 %% Plot the error in the fine-scale multiscale solution
 % The multiscale solution has two sources of error: The approximations made
-% to the basis functions to ensure local support, and the error in the
-% coarse scale system. In this case, however, the error is fairly low. We
-% plot the scaled point-wise error
+% to ensure that the basis functions have local support, and the error in
+% the coarse-scale system. In this case, however, the error is fairly low.
+% We plot the scaled point-wise error
 %  $$ e = \frac{|\mathbf{p} - \mathbf{p}_{ref}|}{\max p_{ref}} $$
 clf;
 plotCellData(G, abs(p_prolongated - p_fine)/max(p_fine));
@@ -277,6 +315,7 @@ axis equal tight;
 caxis auto;
 colorbar
 title('Error, MS');
+
 %% Reconstructed velocity field
 % A fine-scale pressure approximation is generally of limited use for
 % multiphase flow. We typically are interested in the solution of a
@@ -334,6 +373,7 @@ caxis(ca);
 axis equal tight
 colorbar('horiz')
 title('Divergence (only multiscale)')
+
 %% Plot fine-scale pressures side by side - together with streamlines
 % We have excellent agreement between the fine-scale pressures and the
 % velocity field when visualized as streamlines.
