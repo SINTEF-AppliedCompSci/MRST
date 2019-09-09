@@ -4,11 +4,11 @@ classdef FaceComponentMobility < StateFunction & UpwindProperty
     end
     
     methods
-        function fm = FaceComponentMobility(backend, upwinding, upwind_name)
+        function fm = FaceComponentMobility(model, upwinding, upwind_name)
             if nargin < 3
                 upwind_name = 'PhaseUpwindFlag';
             end
-            fm@StateFunction(backend);
+            fm@StateFunction(model);
             fm@UpwindProperty(upwinding)
             fm.upwind_name = upwind_name;
             fm = fm.dependsOn(upwind_name);
