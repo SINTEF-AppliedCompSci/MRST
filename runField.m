@@ -20,8 +20,8 @@ plotconc = false;
 nx = 7;
 ny = 5;
 nz = 3;
-G = cartGrid([nx, ny, nz], [1 1 1]);
-%G = tetrahedralGrid(G.nodes.coords);
+G = cartGrid([nx, ny, nz]*3, [1 1 1]);
+G = tetrahedralGrid(G.nodes.coords);
 %G = twister(G, 0.1);
 G = computeGeometry(G);
 
@@ -55,14 +55,14 @@ cellsWell1 = well_cells(G, '1');
 cellsWell2 = well_cells(G, '2');
 
 radius = 0.05/10;
-% Wtp = addWell(Wtp, G, rock, cellsWell1, 'Type', 'rate', ...
-%             'InnerProduct', 'ip_tpf', ...
-%             'comp_i', [1], ...
-%             'Val', 1.0/day(), 'Radius', radius, 'Name', 'I');
-% Wtp = addWell(Wtp, G, rock, cellsWell2, 'Type', 'bhp', ...
-%             'InnerProduct', 'ip_tpf', ...
-%             'comp_i', [1], ...
-%             'Val', 1.0e5, 'Radius', radius, 'Dir', 'y', 'name', 'P');
+Wtp = addWell(Wtp, G, rock, cellsWell1, 'Type', 'rate', ...
+            'InnerProduct', 'ip_tpf', ...
+            'comp_i', [1], ...
+            'Val', 1.0/day(), 'Radius', radius, 'Name', 'I');
+Wtp = addWell(Wtp, G, rock, cellsWell2, 'Type', 'bhp', ...
+            'InnerProduct', 'ip_tpf', ...
+            'comp_i', [1], ...
+            'Val', 1.0e5, 'Radius', radius, 'Dir', 'y', 'name', 'P');
 
 % Wtp = addWell(Wtp, G, rock, cellsWell1, 'Type', 'bhp', ...
 %             'InnerProduct', 'ip_tpf', ...
@@ -84,30 +84,13 @@ radius = 0.05/10;
 % bc_std = pside(bc_std, G, 'zmin', 1);
 % bc_std = pside(bc_std, G, 'zmax', 1);
 
-% % Must hard code these?
-neumann_val = 1; % Hard coded in convertBC
-dirichlet_val = 0; % Hard coded in convertBC
 
-% Don't use fluxside / pside but set manually to get correct
-% scaling. 
-bf = boundaryFaces(G);
-bc_std = [];
-isbdry = (1:G.faces.num)';
-tol = 1e-5;
-xmin = min(G.nodes.coords(:,1));
-xmax = max(G.nodes.coords(:,1));
-imin = G.faces.centroids(:,1) < xmin+tol;
-imax = G.faces.centroids(:,1) > xmax-tol;
-neumann_ix = isbdry(imin);
-area = G.faces.areas(neumann_ix);
-bc_std = addBC(bc_std, neumann_ix, 'flux', neumann_val.*area, 'sat', []);
-dirichlet_ix = isbdry(imax);
-bc_std = addBC(bc_std, dirichlet_ix, 'pressure', dirichlet_val, ...
-               'sat', []);
-% Set the rest as hom Neumann
-bc_std = addBC(bc_std, setdiff(bf, union(neumann_ix, dirichlet_ix)), ...
-               'flux', 0.0, 'sat', []);
+% Case with Neumann on xmin and Dirichlet on xmax. Hom Neumann
+% otherwise. 
+%bc_std = bc_neumann_and_dirichlet(G);
 
+% Case with only hom Neumann
+bc_std = bc_hom_neumann(G);
 
 % Convert the traditional BC struct to useful format for ntpfa codes
 bc_flow_ntpfa = convertBC2FlowNTPFA(G, bc_std);
@@ -188,6 +171,8 @@ results{end+1} = state;
 
 %% nonlinear TPFA
 solvers{end+1} = 'NFVM Kobaisi';
+mrstverbosestatus=mrstVerbose;
+mrstVerbose on
 disp(solvers{end});
 interpFace=findHAP(G,rock,bc_flow_ntpfa);
 disp(['fraction of faces with centroids outside convex hull ', num2str(interpFace.percentage)]);
@@ -207,7 +192,7 @@ if plotconc
     drawnow
 end
 results{end+1} = state;
-
+mrstVerbose(mrstverbosestatus);
 
 
 % %% nonlinear NFVM in new framework
