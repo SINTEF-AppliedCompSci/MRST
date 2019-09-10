@@ -47,6 +47,8 @@ function state = incompMPFAbc(G, mpfastruct, bc, varargin)
 %                  in order to solve a system Ax=b of linear equations.
 %                  Default value: LinSolve = @mldivide (backslash).
 %
+%   MatrixOutput - Save system matrix A as state.A.
+%
 
 %
 % RETURNS:
@@ -76,7 +78,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     opt = struct('LinSolve'  , @mldivide  , ...
                  'Verbose'   , mrstVerbose, ...
-                 'outputFlux', false);
+                 'outputFlux', false, ...
+                 'MatrixOutput', false);
     
     opt = merge_options(opt, varargin{:}); 
 
@@ -178,6 +181,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         state.flux = flux;
     end
 
+    if opt.MatrixOutput
+        state.A = A;
+    end
+    
 end
 
 % -------------------------------------------------------------------------- 

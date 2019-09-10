@@ -38,6 +38,8 @@ function state = incompMPFA3(G, mpfastruct, W, varargin)
 %                  in order to solve a system Ax=b of linear equations.
 %                  Default value: LinSolve = @mldivide (backslash).
 %
+%   MatrixOutput - Save system matrix A as state.A.
+%
 
 %
 % RETURNS:
@@ -67,7 +69,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     opt = struct('LinSolve', @mldivide,...
                  'Verbose', mrstVerbose, ...
-                 'outputFlux', false); 
+                 'outputFlux', false, ...
+                 'MatrixOutput', false); 
     opt = merge_options(opt, varargin{:}); 
 
     is_well_posed = false; % changed to true if pressure is set through well
@@ -152,6 +155,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         wi = W(k).WI;
         state.wellSol(k).flux = wi.*(pw - pressure(wc));
         state.wellSol(k).pressure = pw;
+    end
+    
+    if opt.MatrixOutput
+        state.A = A;
     end
 end
 
