@@ -140,24 +140,23 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 % Written by Jostein R. Natvig, SINTEF ICT, 2009.
 
     opt = struct('bc', [], 'src', [], 'wells', [],...
-                'W', [], ...
+                 'W', [], ...
                  'LinSolve', @mldivide,...
                  'MatrixOutput', false,...
                  'Verbose', mrstVerbose); 
-    opt = merge_options(opt, varargin{:}); 
-   opt = treatLegacyForceOptions(opt);
+    opt = merge_options(opt, varargin{:});
+    opt = treatLegacyForceOptions(opt);
 
     g_vec = gravity(); 
     no_grav =~ (norm(g_vec) > 0); % (1 : size(g.nodes.coords, 2))) > 0); 
     if all([isempty(opt.bc),...
             isempty(opt.src),...
-           isempty(opt.wells), no_grav]) && ~opt.MatrixOutput
+            isempty(opt.wells), no_grav])
         warning(id('DrivingForce:Missing'),...
                 ['No external driving forces present in model -- ',...
                  'state remains unchanged.\n']); 
     end
     
-   
     nc = g.cells.num; 
     nw = length(opt.wells); 
 
@@ -173,9 +172,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     tothface_mob_mat = sparse(1:n, 1:n, TT.d1 * totFace_mob); 
     % Tg = Tg * totmob_mat; 
 
-   % identify internal faces
-   
-
     % Boundary conditions and source terms.
     % Note: Function 'computeRHS' is a modified version of function
     % 'computePressureRHS' which was originally written to support the
@@ -190,21 +186,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     grav = -omega(TT.cno) .* (TT.R * reshape(g_vec(1:g.griddim), [], 1)); 
     
     b = any(g.faces.neighbors == 0, 2); 
-   %D  = sparse(1:size(g.cells.faces,1), double(g.cells.faces(:,1)), 1);
-   %D=TT.D;
-   % find outer boundary mpfa faces (two times the normal number of faces
-   % in 2D)
-   %sb = full(sum(TT.D, 1)) == 1;
-   %cf_mtrans=TT.Do'*TT.hfhf*[TT.C, -TT.D(:,sb)];
     cf_mtrans = TT.cf_trans; 
-   % define div operaor form mfpa sides to celle values in addtion to the
-   % fluxes out of boundary.
-   %e_div =  [TT.C, -TT.D(:,sb)]'*TT.Do;
+    % Define div operaor form mpfa sides to cell values in addtion to the fluxes
+    % out of boundary.  e_div = [TT.C,- TT.D(:, sb)]' * TT.Do;
     e_div = TT.e_div; 
-   % multiply fluxes with harmonic mean of mobility
-   % this to avid for re asssembly
-   % to be equivalent coupled reservoir simulation the value of
-   % sum of upwind mobility should be used.
+    % Multiply fluxes with harmonic mean of mobility in order to avoid for
+    % re-asssembly. For coupled reservoir simulation the value of
+    % the sum of upwind mobility should be used.
     A = e_div * tothface_mob_mat * cf_mtrans; 
     dghf = TT.cf_trans_g * grav; 
     rhs_g = e_div * tothface_mob_mat * dghf; 
@@ -212,9 +200,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     hh_tmp = TT.d1 * hh; 
     rhs = [gg;- hh_tmp(TT.sb)]; 
     rhs = rhs + rhs_g; 
-   % Dirichlet condition
-   % If there are Dirichlet conditions, move contribution to rhs.  Replace
-   % equations for the unknowns by speye(*)*x(dF) = dC.
+    % Dirichlet condition. If there are Dirichlet conditions, move contribution to
+    % rhs.  Replace equations for the unknowns by speye( * ) * x(dF) = dC.
 
     factor = A(1, 1); 
     assert (factor > 0)
@@ -276,9 +263,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     A = [A, C'; C D]; 
     A = A + sparse(1:nc, 1:nc, d, size(A, 1), size(A, 2)); 
 
-  
     if ~any(dF) && (isempty(W) || ~any(strcmpi({W.type }, 'bhp')))
-      A(1) = A(1)*2;
+        A(1) = 2*A(1); 
     end
     ticif(opt.Verbose); 
     p = opt.LinSolve(A, rhs); 
