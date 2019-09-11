@@ -35,41 +35,14 @@ bc_nfvm.value=repmat({@(x)0},[numel(bc_nfvm.face),1]);
             %[G.faces.areas(i) G.faces.areas(j)]
             %bc_nfvm.value(j) = {@(x) -1*G.faces.areas(i)}; % Neumann
             bc_nfvm.value(j) = {@(x) bc.value(i)}; % Neumann
+        elseif strcmpi(bc.type(i), 'pressure')
+            bc_nfvm.value(j) = {@(x) bc.value(i)}; % Dirichlet pressure
         else
-            bc_nfvm.value(j) = {@(x) 0}; % hom Dirichlet pressure
+            warning('unknown bc.type')
+            bc.type(i)
+            keyboard
         end
     end
 
 end
 
-    
-    
-    
-% % Convert a std mrst bc structure to bc_nfvm.
-% % Fill the bc_nfvm by setting default homogeneous Neumann conditions,
-% % then copy from bc_std. We should set BC explicitly on all boundary
-% % faces, which means that bc_nfvm members should be of size
-% % numel(boundaryFaces(G)).
-% bf = boundaryFaces(G);
-% nf = numel(bf);
-% bc_nfvm.face = zeros(nf, 1);
-% bc_nfvm.type = repmat({'flux'}, [nf, 1]);
-% bc_nfvm.value = repmat({@(x) 0},[nf, 1]);
-
-% for i = 1:nf
-%     faceno = bc.face(i);
-%     bc_nfvm.face(faceno) = faceno;
-%     bc_nfvm.type(faceno) = bc.type(i);
-
-%     % Can't do this with @(x) since the value is not evaluated
-%     %bc_nfvm.value(faceno) = {@(x) bc_std.value(i)};
-    
-%     if strcmpi(bc.type(i), 'flux')
-%         bc_nfvm.value(faceno) = {@(x) apa}; % flux value is 1
-%     else
-%         bc_nfvm.value(faceno) = {@(x) 0}; % pressure value is 0
-%         disp([i,faceno,bc_nfvm.type(faceno),bc_nfvm.value(faceno)])
-%     end
-% end
-
-% end
