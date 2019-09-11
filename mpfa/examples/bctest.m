@@ -105,7 +105,7 @@ caseno         = caseno + 1;
 close all
 for i = 1 : numel(vecs)
     figure
-    plot(vecs{i}(:, 1), vecs{i}(:, 2));
+    plot(vecs{i}(:, 1), vecs{i}(:, 2), '*-');
     xlabel('z');
     ylabel('pressure');
     title(titles{i});
