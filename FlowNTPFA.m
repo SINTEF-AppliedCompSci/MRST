@@ -1,11 +1,15 @@
-function [state]=FlowNTPFA(G,bc,fluid,W,OSflux,u0,tol,maxiter)
+function [state]=FlowNTPFA(G,bc,fluid,W,OSflux,u0,tol,maxiter,varargin)
+
+opt = struct('MatrixOutput', false);
+opt = merge_options(opt, varargin{:});
+
 dispif(mrstVerbose, 'FlowNTPFA\n');
 [mu,rho]=fluid.properties();
 mu = mu(1);
 rho = rho(1);
 
 T=TransNTPFA(u0);
-[A,b]=AssemAb(T);
+[A,b]=AssemAb(T); 
 iter=0;
 res=zeros(maxiter+1,1);
 %res(1)=norm(A*u0-b,inf);
@@ -23,6 +27,11 @@ end
 [flux,wellsol]=computeFlux(u,T);
 state.pressure=u(1:G.cells.num);state.flux=flux;state.wellSol=wellsol;
 state.iter=iter;state.res=res(1:iter+1);
+
+if opt.MatrixOutput
+    state.A = A;
+end
+    
 %--------------------------------------------------------------------------
     function T=TransNTPFA(u)
         T=zeros(G.faces.num,2);
@@ -155,4 +164,4 @@ state.iter=iter;state.res=res(1:iter+1);
             end
         end
     end
-end
+end 
