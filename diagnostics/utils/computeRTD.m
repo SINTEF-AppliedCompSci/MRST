@@ -54,7 +54,9 @@ opt = struct('injectorIx', [], ...
              'producerIx', [], ...
              'nsteps',     50, ...
              'nbase',       5, ...
-             'computeSaturation', true);
+             'computeSaturation', true, ...
+             'wbHandle',   []);
+
 opt = merge_options(opt, varargin{:});
 
 [pix, iix] = deal(opt.producerIx, opt.injectorIx);         
@@ -147,7 +149,11 @@ vals = cell(1, numel(iix));
 for k = 1:numel(vals)
     vals{k} = zeros((n+1)*opt.nsteps+1, numel(pix));
 end
-h = waitbar(0, 'Computing distribution(s) ...');
+if isempty (opt.wbHandle)
+   h = waitbar(0, 'Computing distribution(s) ...');
+else
+   h = waitbar(0, opt.wbHandle, 'Computing distribution(s) ...');
+end
 cnt = 0;
 for ti = 1:numel(dt)
     A = sysmat(dt(ti));
@@ -162,7 +168,8 @@ for ti = 1:numel(dt)
         end
     end
 end
-close(h);
+if isempty(opt.wbHandle), close(h); end
+
 t = arrayfun(@(x)repmat(x, [opt.nsteps, 1]), dt, 'UniformOutput', false);
 t = cumsum([0; vertcat(t{:})]);
 dist.t = repmat(t, [1, nreg]);
