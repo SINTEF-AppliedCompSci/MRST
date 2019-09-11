@@ -28,7 +28,7 @@ mrstModule add incomp
 % We use MATLAB(R)'s built-in <matlab:doc('mldivide') |mldivide|>
 % ("backslash") linear solver software to resolve all systems of linear
 % equations that arise in the various discretzations.  In many cases, a
-% multigrid solver such as Notay's AGMG package may be prefereble.  We
+% multigrid solver such as Notay's AGMG package may be preferable.  We
 % refer the reader to Notay's home page at
 % http://homepages.ulb.ac.be/~ynotay/AGMG/ for additional details on this
 % package.
