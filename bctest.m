@@ -1,3 +1,6 @@
+clear all
+close all
+
 mrstModule add ad-core ad-props incomp mrst-gui postprocessing ...
     nfvm
 
@@ -30,7 +33,6 @@ rock = makeRock(G, 1e-3*darcy, 1);
 fluid = initSingleFluid('mu' , 1, ...
                         'rho', 1);
 Wtp = [];
-p0 = 1;
 
 gravity off
 
@@ -52,7 +54,6 @@ value(1 : nbf) = 1*barsa;
 bc2.value = value;
 bc = convertBC2FlowNTPFA(G, bc2);
 
-
 %% Pressure run
 titles = {};
 z = G.cells.centroids(:, dim);
@@ -62,12 +63,29 @@ blocksize = 10;
 clear vecs fluxes
 caseno = 1;
 
+%% TPFA (also used for initial guess to NTPFA)
+state0 = initResSol(G, 0, 1);
+T = computeTrans(G, rock);
+state = incompTPFA(state0, G, T, fluid, 'bc', bc2);
+p0 = state.pressure;
+%p0 = barsa*ones(G.cells.num, 1);
+%rng(1)
+%p0 = barsa*rand(G.cells.num, 1);
+p              = state.pressure;
+vec            = [z, p];
+vecs{caseno}   = sortrows(vec);
+fluxes{caseno} = state.flux;
+titles{caseno} = 'tpfa';
+caseno         = caseno + 1;
+
+
+
 % ntpfa kobaisi
-tol = 1e-12;
+tol = 1e-15;
 mrstVerbose on
 interpFace=findHAP(G,rock,bc);
 OSflux=findOSflux(G,rock,bc,interpFace);
-state=FlowNTPFA(G,bc,fluid,Wtp,OSflux,p0*ones(G.cells.num,1),tol,1000);
+state=FlowNTPFA(G,bc,fluid,Wtp,OSflux,p0,tol,1000);
 mrstVerbose off
 p              = state.pressure;
 vec            = [z, p];
