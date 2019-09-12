@@ -53,6 +53,7 @@ classdef DGDiscretization < SpatialDiscretization
             disc.degree = 1;
             disc.basis  = 'legendre';
             disc.dim    = G.griddim;
+            disc.suffix = 'dof';
             
             % Limiter tolerances
             disc.jumpTolerance = 0.2;
@@ -321,39 +322,44 @@ classdef DGDiscretization < SpatialDiscretization
         end
         
         %-----------------------------------------------------------------%
-        function p = evaluateProp(disc, name, index, state)
-            dname = [name, 'dof'];
-            cells = (1:disc.G.cells.num)';
-            [W , x, cellNo] = disc.getCubature(cells, 'volume');
-            if isfield(state, dname)
-                pdof  = state.(dname);
-                if iscell(pdof)
-                    if ischar(index)
-                        p = cell(numel(pdof),1);
-                        for i = 1:numel(pdof)
-                            p{i} = disc.evaluateDGVariable(x, cellNo, state, pdof{i});
-                        end
-                    else
-                        p = disc.evaluateDGVariable(x, cellNo, state, pdof{index});
-                    end
-                else
-                    p = disc.evaluateDGVariable(x, cellNo, state, pdof(:,index));
-                end
-            else
-                pdof = state.(name);
-                if iscell(pdof)
-                    p = cell(numel(pdof),1);
-                    for i = 1:numel(pdof)
-                        p{i} = pdof{i}(cellNo,:);
-                    end
-                else
-                    if size(pdof, 1) == 1
-                        p = pdof;
-                    else
-                        p = pdof(cellNo,:);
-                    end
-                end
+        function p = evaluateProp(disc, state, dof, type)
+            switch type
+                case 'cell'
+                    elements = (1:disc.G.cells.num)';
+                    [W , x, cNo] = disc.getCubature(elements, 'volume');
+                case 'face'
+                    elements = find(disc.internalConn);
+                    [W , x, ~, fNo] = disc.getCubature(elements, 'face'); %#ok
+                    x = repmat(x, 2, 1);
+                    N = disc.G.faces.neighbors;
+                    cNo = [N(fNo,1); N(fNo,2)];
             end
+                
+%             if isfield(state, dname)
+%                 dof  = state.(dname);
+                if iscell(dof)
+                    p = cell(numel(dof),1);
+                    for i = 1:numel(dof)
+                        p{i} = disc.evaluateDGVariable(x, cNo, state, dof{i});
+                    end
+                else
+                    p = disc.evaluateDGVariable(x, cNo, state, dof);
+                end
+%             else
+% %                 dof = state.(name);
+%                 if iscell(dof)
+%                     p = cell(numel(dof),1);
+%                     for i = 1:numel(dof)
+%                         p{i} = dof{i}(eNo,:);
+%                     end
+%                 else
+%                     if size(dof, 1) == 1
+%                         p = dof;
+%                     else
+%                         p = dof(eNo,:);
+%                     end
+%                 end
+%             end
         end
         
         function fill = getFillSat(disc, state)
@@ -723,6 +729,26 @@ classdef DGDiscretization < SpatialDiscretization
             % Explicit calculation of upstream cells. See getSaturationUpwindDG
             [flag_v, flag_G, upCells_v, upCells_G, s_v, s_G] ...
                 = getSaturationUpwindDG(disc, faces, x, T, vT, state, g, mob, sdof, rdof, cdof);
+        end
+        
+        %-----------------------------------------------------------------%
+        function flag = multiphaseUpwindIndices(disc, G, v, T, mob, upstr)
+            % Explicit calculation of upstream cells. See getSaturationUpwindDG
+            
+            [~, ~, ~, faces] = disc.getCubature(find(disc.internalConn), 'face');
+            nf = numel(faces);
+            % Mapping from all faces to internal connections
+            all2int = zeros(disc.G.faces.num,1);
+            all2int(disc.internalConn) = 1:nnz(disc.internalConn);
+            ix = all2int(faces);
+            
+            T  = T(ix);
+            v  = v(ix);
+            
+            % Make fake faceUpstr function
+            upw = @(flag, x)faceUpstr(flag, x, [1:nf; nf+1:2*nf]', [nf, 2*nf]);
+
+            flag = multiphaseUpwindIndices(G, v, T, mob, upw);
         end
         
         %-----------------------------------------------------------------%
