@@ -9,20 +9,22 @@ close all;
 
 %% 2D test: rotating anisotropic permeability, u=sin(pi*x)*sin(pi*y)+1
 Lx=1;Ly=1;
-kesi=1e-1;
+kesi=1e-3; % anisotropy ratio mild 1e-1, strong 1e-3
 GG=4;
-n=[8 16 32 64 128 256]';
+%n=[8 16 32]'% 64]'% 128 256]';
+n=2.^[3:7];
 nc=zeros(numel(n),1);
 ep=zeros(numel(n),2);
 ef=zeros(numel(n),2);
-picard=zeros(numel(n),1);
+picard=zeros(numel(n),2);
 hap=zeros(numel(n),1);
 
-tols = [1e-7, 1e-15];
+tols = [1e-7, 1e-12];
 
-uexact=@(xy)sin(pi*xy(1))*sin(pi*xy(2))+1;
-uxexact=@(xy)pi*cos(pi*xy(1,:)).*sin(pi*xy(2,:));
-uyexact=@(xy)pi*sin(pi*xy(1,:)).*cos(pi*xy(2,:));
+uexact=@(xy) sin(pi*xy(1))*sin(pi*xy(2))+1; %scalar input
+uxexact=@(xy) pi*cos(pi*xy(1,:)).*sin(pi*xy(2,:));
+uyexact=@(xy) pi*sin(pi*xy(1,:)).*cos(pi*xy(2,:));
+fluid=initSingleFluid('mu',1,'rho',1);
 
 for t = 1:numel(tols)
     tol = tols(t);
@@ -35,16 +37,23 @@ for t = 1:numel(tols)
             myfile=['./grid_data/tri',num2str(i_con),'.dat'];
             G=importGrid(myfile,'tri');
             G=computeGeometry(G);
-          case 3 % w/o twister: pressure 2. flux mfd 2, ntpfa 1.5. Almost exact
-                 % rates for different tols
-                 % with twister: mfd 2 for both pressure and
-                 % flux. ntpfa approaches 2 for both pressure and flux
-                 % Twister doesn't give any centroids outside
+          case 3 
+            % Mild kesi
+            % w/o twister: pressure 2. flux mfd 2, ntpfa 1.5. Almost exact
+            % rates for different tols
+            % with twister: mfd 2 for both pressure and
+            % flux. ntpfa approaches 2 for both pressure and flux
+            % Twister doesn't give any centroids outside
             % Cart grid
             G = cartGrid([nx,ny], [Lx,Ly]);
             G = twister(G, 0.1);
             G = computeGeometry(G);
+            % Strong kesi: same. pressure and flux -> 2. Lots of
+            % picard iterations to reach 1e-12. # iterations
+            % basically double with mesh size, starting from 50 => {50,100,200,400,800}
+            
           case 4
+            % Mild kesi
             % Triangle grid
             % Only first grid has centroids outside convex hull
             % Both pressure and flux approaches 2 for both mfd and ntpfa.
@@ -53,6 +62,14 @@ for t = 1:numel(tols)
             G = triangleGrid(G.nodes.coords);
             G = twister(G, 0.1);
             G = computeGeometry(G);
+            % Strong kesi
+            % All grids have fraction outside
+            % MFD and ntpfa perform similarly bad.
+            % MFD increases up to rate 1.7 for pressure
+            % ntpfa increases up to rate 1.4 for pressure
+            % MFD increases up to rate 1.12 for flux
+            % ntpfa increases up to rate 1.3 for flux
+            % Maybe indication of reduced conv rate for ntpfa
         end
         %figure,plotGrid(G,'facecolor','none');axis image;
         nc(i_con)=G.cells.num; clear nx ny
@@ -93,7 +110,6 @@ for t = 1:numel(tols)
         %uexact_faces=arrayfun(uexact, xy_faces);
         bc_std=addBC([],boundaryFaces(G),'pressure',uexact_faces);
         state0=initResSol(G,1);
-        fluid=initSingleFluid('mu',1,'rho',1);
         s1=incompMimetic(state0,G,computeMimeticIP(G,rock),fluid,'bc',bc_std,'src',src);
 
         % NTPFA
@@ -104,9 +120,11 @@ for t = 1:numel(tols)
         interpFace=correctHAP(G,interpFace);
         OSflux=findOSflux(G,rock,bc,interpFace);
         u0=ones(G.cells.num,1);
-        s2=PicardNTPFA(G,bc,src,OSflux,u0,tol,500);
+        s2=FlowNTPFA(G,bc,fluid,[],OSflux,u0,tol,1000,'src',src);
+        %s3=PicardNTPFA(G,bc,src,OSflux,u0,tol,500);
         %s3=PicardNMPFA(G,bc,src,OSflux,u0,1e-7,500);
-        picard(i_con,:)=[s2.iter];% s3.iter];
+        %picard(i_con,:)=[s2.iter, s3.iter];
+        picard(i_con,1)=s2.iter;
         clear u0 OSflux interpFace src bc rock q
         mrstVerbose off
         
@@ -124,15 +142,16 @@ for t = 1:numel(tols)
     end
     disp(tol)
     %plotConvergence(ep,ef,nc,{'MPFA-O','NTPFA','NMPFA'});
-    titles = {'MFD',['NTPFA ', num2str(tol)]};
+    titles = {'MFD',['NTPFA ', num2str(tol)]}
     plotConvergence(ep,ef,nc,titles);
+    picard
     %clear fa GG i_con Lx Ly myfile n 
     titles
     disp('Convergence order of pressure solutions:')
     disp(convOrder(nc,ep,2))
     disp('Convergence order of flux solutions:')
     disp(convOrder(nc,ef,2))
-
+    drawnow
 end
 
 % %% 3D test with mild anistropy: u(x,y,z)=1+sin(pi*x)*sin(pi*(y+0.5))*sin(pi*(z+1/3))
