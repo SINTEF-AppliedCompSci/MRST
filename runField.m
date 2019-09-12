@@ -1,7 +1,7 @@
 %% run field model
-clear;close all;clc
+clear all;close all;clc
 mrstModule add incomp mimetic  ad-blackoil ad-core glpk ntpfa_glpk ...
-    ad-props mpfa eni mrst-gui nfvm ntpfa blackoil-sequential ...
+    ad-props mpfa eni mrst-gui ntpfa-kobaisi ntpfa blackoil-sequential ...
     wellpaths
 plotconc = false;
 
@@ -20,8 +20,9 @@ plotconc = false;
 nx = 7;
 ny = 5;
 nz = 3;
-G = cartGrid([nx, ny, nz]*3, [1 1 1]);
-G = tetrahedralGrid(G.nodes.coords);
+refine = 3;
+G = cartGrid([nx, ny, nz]*refine, [10 20 30]);
+%G = tetrahedralGrid(G.nodes.coords);
 %G = twister(G, 0.1);
 G = computeGeometry(G);
 
@@ -271,7 +272,7 @@ mrstVerbose(mrstverbosestatus);
 % results{end+1} = state;
 
 
-%% MFD
+%% MFD (Must be at the end)
 solvers{end+1} = 'mfd';
 disp(solvers{end});
 state=incompMimetic(state0,G,computeMimeticIP(G,rock),fluid,'wells',Wtp,'bc',bc_std);
@@ -289,15 +290,35 @@ if plotconc
 end
 results{end+1} = state;
 
+L2err = @(uh,u,vol) num2str(sqrt(sum((uh-u).^2.*vol))); % ./ sqrt(sum(u.^2.*vol)));
 
-% % primitive comparison of mfd and ntpfa_kobaisi
-% figure
-% plotCellData(G,abs(results{1}.pressure - results{2}.pressure)./results{2}.pressure); 
-% colorbar 
-% view(3)
-% title('relative error pressure')
-% disp(['max pressures ', num2str(max(results{1}.pressure),'%1.2e'), ' ', ...
-%       num2str(max(results{2}.pressure), '%1.2e')]) 
+% primitive comparison of mfd and ntpfa_kobaisi
+for i = 1:numel(results)-1 % last is mfd
+    disp(' ')
+    disp(solvers{i})
+    figure
+    diff_pressure = abs(results{i}.pressure - results{end}.pressure)./abs(results{end}.pressure);
+    plotCellData(G, diff_pressure); colorbar; view(3)
+    titlename = ['relative error pressure ', solvers{i}, ' vs ', solvers{end}];
+    title(titlename)
+    disp(titlename)
+    disp(['diff p max mean L2: ', ...
+          num2str(max(diff_pressure)), ' ', ...
+          num2str(mean(diff_pressure)), ' ', ...
+          L2err(results{i}.pressure, results{end}.pressure, G.cells.volumes)])
+
+    figure
+    diff_flux = abs(results{i}.flux - results{end}.flux); %./abs(results{2}.flux);
+    plotFaceData(G, diff_flux);colorbar; view(3)
+    titlename = ['absolute error flux ', solvers{i}, ' vs ', solvers{end}];
+    title(titlename)
+    disp(titlename)
+    disp(['diff flux max mean L2: ', ...
+          num2str(max(diff_flux)), ' ', ...
+          num2str(mean(diff_flux)), ' ', ...
+          L2err(results{i}.flux, results{end}.flux, G.faces.areas)])
+end
+
 
 % if plotconc
 %     figure
