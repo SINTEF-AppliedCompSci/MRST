@@ -8,13 +8,16 @@ classdef TransportModelDG < TransportModel
         function model = TransportModelDG(parent, varargin)
            
             model = model@TransportModel(parent);
-            
+            model.disc = [];
             [model, discArgs] = merge_options(model, varargin{:});
             % Construct discretization
             if isempty(model.disc)
                 model.disc = DGDiscretization(model, discArgs{:});
             end
             model.parentModel.disc = model.disc;
+            
+            model.parentModel.operators = setupOperatorsDG(model.disc, model.parentModel.G, model.parentModel.rock);
+            
         end
         
         %-----------------------------------------------------------------%
@@ -39,6 +42,7 @@ classdef TransportModelDG < TransportModel
             state    = assignDofFromState(model.disc, state);
         end
         
+        %-----------------------------------------------------------------%
         function [state, names, origin] = getStateAD(model, state, init)
             if nargin < 3
                 init = true;
@@ -103,13 +107,38 @@ classdef TransportModelDG < TransportModel
             end
         end
         
+        function model = validateModel(model, varargin)
+            defaultedDiscretization = isempty(model.parentModel.FluxDiscretization);
+            model = validateModel@TransportModel(model, varargin{:});
+            if defaultedDiscretization
+                pmodel = model.parentModel;
+                fd = pmodel.FluxDiscretization;
+                % Set flow state builder
+                fd = fd.setFlowStateBuilder(FlowStateBuilderDG());
+                % Replace some existing properties with DG variants
+                fd = fd.setStateFunction('Pressure', PrimaryVariableDG(fd.Pressure));
+                fd = fd.setStateFunction('GravityPotentialDifference', GravityPotentialDifferenceDG(pmodel));
+                fd = fd.setStateFunction('TotalFlux', FixedTotalFluxDG(pmodel));
+                
+                
+                fp = pmodel.FlowPropertyFunctions;
+                % Replace some existing properties with DG variants
+                fp = fp.setStateFunction('PhaseSaturations', PrimaryVariableDG(fp.PhaseSaturations));
+                fp = fp.setStateFunction('Pressure', PrimaryVariableDG(fp.Pressure));
+                
+                % Replace object
+                model.parentModel.FluxDiscretization    = fd;
+                model.parentModel.FlowPropertyFunctions = fp;
+            end
+        end
+        
         %-----------------------------------------------------------------%
-        function [eqs, names, types, state] = getModelEquations(model, state0, state, dt, drivingForces)
-            tmodel = model.parentModel;
-            [eqs, flux, names, types] = tmodel.FluxDiscretization.componentConservationEquations(tmodel, state, state0, dt);
+        function [eqs, names, types, state] = getModelEquations(tmodel, state0, state, dt, drivingForces)
+            model = tmodel.parentModel;
+            [eqs, flux, names, types] = model.FluxDiscretization.componentConservationEquations(model, state, state0, dt);
             src = model.FacilityModel.getComponentSources(state);
             % Assemble equations and add in sources
-            if strcmpi(model.formulation, 'missingPhase')
+            if strcmpi(tmodel.formulation, 'missingPhase')
                 % Skip the last phase! Only mass-conservative for
                 % incompressible problems
                 eqs = eqs(1:end-1);
@@ -129,86 +158,127 @@ classdef TransportModelDG < TransportModel
             end
         end
         
-%         %-----------------------------------------------------------------%
-%         function state = initStateAD(model, state, vars, names, origin)
-%             removed = false(size(vars));
-%             if model.disgas || model.vapoil
-%                 % Black-oil specific variable switching
-%                 if model.water
-%                     isw = strcmpi(names, 'sw');
-%                     sW = vars{isw};
-%                     removed = removed | isw;
-%                 else
-%                     sW = 0;
-%                 end
-% 
-%                 isx = strcmpi(names, 'x');
-%                 x = vars{isx};
-%                 sG = model.getProps(state, 'sg');
-%                 st  = model.getCellStatusVO(state, 1-sW-sG, sW, sG);
-%                 sG = st{2}.*(1-sW) + st{3}.*x;
-%                 sO = st{1}.*(1-sW) + ~st{1}.*(1 - sW - sG);
-%                 if model.water
-%                     sat = {sW, sO, sG};
-%                 else
-%                     sat = {sO, sG};
-%                 end
-%                 removed(isx) = true;
-%             else
-%                 % Without variable switching
-%                 phases = model.getPhaseNames();
-%                 nph = numel(phases);
-%                 sat = cell(1, nph);
-%                 fill = ones(model.G.cells.num, 1);
-%                 removed_sat = false(1, nph);
-%                 for i = 1:numel(phases)
-%                     sub = strcmpi(names, ['s', phases(i)]);
-%                     if any(sub)
-%                         fill = fill - vars{sub};
-%                         removed = removed | sub;
-%                         removed_sat(i) = true;
-%                         sat{i} = vars{sub};
-%                     end
-%                 end
-%                 if any(~removed_sat)
-%                     sat{~removed_sat} = fill;
-%                 end
-%             end
-%             state = model.setProp(state, 's', sat);
-% 
-%             if not(isempty(model.FacilityModel))
-%                 % Select facility model variables and pass them off to attached
-%                 % class.
-%                 fm = class(model.FacilityModel);
-%                 isF = strcmp(origin, fm);
-%                 state = model.FacilityModel.initStateAD(state, vars(isF), names(isF), origin(isF));
-%                 removed = removed | isF;
-%             end
-% 
-%             % Set up state with remaining variables
-%             state = initStateAD@ReservoirModel(model, state, vars(~removed), names(~removed), origin(~removed));
-%             % Account for dissolution changing variables
-%             if model.disgas
-%                 rsSat = model.getProp(state, 'RsMax');
-%                 rs = ~st{1}.*rsSat + st{1}.*x;
-%                 % rs = rs.*(value(sO) > 0);
-%                 state = model.setProp(state, 'rs', rs);
-%             end
-% 
-%             if model.vapoil
-%                 rvSat = model.getProp(state, 'RvMax');
-%                 rv = ~st{2}.*rvSat + st{2}.*x;
-%                 % rv = rv.*(value(sG) > 0);
-%                 state = model.setProp(state, 'rv', rv);
-%                 % No rv, no so -> zero on diagonal in matrix
-%                 bad_oil = value(sO) == 0 & value(rv) == 0;
-%                 if any(bad_oil)
-%                     sO(bad_oil) = 1 - sW(bad_oil) - value(sG(bad_oil));
-%                     state = model.setProp(state, 'sO', sO);
-%                 end
-%             end
-%         end
+        %-----------------------------------------------------------------%
+        function [model, state] = prepareTimestep(model, state, state0, dt, drivingForces)
+            [model, state] = prepareTimestep@TransportModel(model, state, state0, dt, drivingForces);
+            state = assignDofFromState(model.disc, state, {'pressure'});
+        end
+
+        %-----------------------------------------------------------------%
+        function [state, report] = updateState(model, state, problem, dx, drivingForces)
+            state_dof   = state;
+            state_dof.s = state.sdof;
+            [state_dof, report] = updateState@TransportModel(model, state_dof, problem, dx, drivingForces);
+            state.sdof = state_dof.s;
+            state.s = model.disc.getCellMean(state, state.sdof);
+        end
+        
+        % ----------------------------------------------------------------%
+        function state = updateSaturations(model, state, dx, problem, satDofVars)
+
+            if nargin < 5
+                % Get the saturation names directly from the problem
+                [~, satDofVars] = ...
+                    splitPrimaryVariables(model, problem.primaryVariables);
+            end
+            if isempty(satDofVars)
+                % No saturations passed, nothing to do here.
+                return
+            end
+            % Solution variables should be saturations directly, find the missing
+            % link
+            saturations = lower(model.getDGDofVarNames);
             
+            fillsat = setdiff(saturations, lower(satDofVars));
+            nFill = numel(fillsat);
+            assert(nFill == 0 || nFill == 1)
+            if nFill == 1
+                % Fill component is whichever saturation is assumed to fill
+                % up the rest of the pores. This is done by setting that
+                % increment equal to the negation of all others so that
+                % sum(s) == 0 at end of update
+                fillsat = fillsat{1};
+                solvedFor = ~strcmpi(saturations, fillsat);
+            else
+                % All saturations are primary variables. Sum of saturations is
+                % assumed to be enforced from the equation setup
+                solvedFor = true(numel(saturations), 1);
+            end
+            ds = zeros(sum(state.nDof), numel(saturations));
+            
+            tmp = 0;
+            active = ~model.G.cells.ghost;
+            ix = model.disc.getDofIx(state, Inf, active);
+            for phNo = 1:numel(saturations)
+                if solvedFor(phNo)
+                    v = model.getIncrement(dx, problem, saturations{phNo});
+                    ds(ix, phNo) = v;
+                    if nFill > 0
+                        % Saturations added for active variables must be subtracted
+                        % from the last phase
+                        tmp = tmp - v;
+                    end
+                end
+            end
+            ds(ix, ~solvedFor) = tmp;
+            % We update all saturations simultanously, since this does not bias the
+            % increment towards one phase in particular.
+            state   = model.updateStateFromIncrement(state, ds, problem, 'sdof', Inf, model.dsMaxAbs);
+            state.s = model.disc.getCellSaturation(state);
+
+%             ix = any(abs(ds)>model.dsMaxAbs,2);
+%             alph = model.dsMaxAbs./max(abs(ds(ix,:)), [], 2);
+%             
+%             ds(ix,:) = alph.*ds(ix,:);
+%             state   = model.updateStateFromIncrement(state, ds, problem, 'sdof', Inf, Inf);
+%             state.s = model.disc.getCellSaturation(state);            
+            
+            if nFill == 1
+                
+                if 1
+                bad = any((state.s > 1 + model.disc.meanTolerance) ...
+                        | (state.s < 0 - model.disc.meanTolerance), 2);
+                
+                else
+                [smin, smax] = model.disc.getMinMaxSaturation(state);
+                over  = smax > 1 + model.disc.meanTolerance;
+                under = smin < 0 - model.disc.meanTolerance;
+                bad = over | under;
+                end
+                    
+                    
+                if any(bad)
+                    state.s(bad, :) = min(state.s(bad, :), 1);
+                    state.s(bad, :) = max(state.s(bad, :), 0);
+                    state.s(bad, :) = bsxfun(@rdivide, state.s(bad, :), ...
+                                                  sum(state.s(bad, :), 2));
+                    state = dgLimiter(model.disc, state, bad, 's', 'kill');
+                end
+            else
+                bad = any(state.s < 0 - model.disc.meanTolerance, 2);
+                 if any(bad)
+                    state.s(bad, :) = max(state.s(bad, :), 0);
+                    state = dgLimiter(model.disc, state, bad, 's', 'kill');
+                 end
+            end
+
+            if model.disc.limitAfterNewtonStep
+                % Limit solution
+                state = model.disc.limiter(model, state, [], true);
+            end
+        end
+        
     end
     
+end
+
+% --------------------------------------------------------------------%
+function [fn, index] = getVariableField(model, name, varargin)
+
+    if strcmpi(name(end-2:end), 'dof')
+        nm = name(1:end-3);
+    end
+    [fn, index] = model.getVariableField(nm, varargin{:});
+    fn = [fn, 'dof'];
+
 end
