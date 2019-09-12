@@ -52,10 +52,10 @@ deck = convertDeckUnits(deck);
 [state0, model, schedule] = initEclipseProblemAD(deck);
 
 % Add polymer concentration
-state0.c   = zeros([model.G.cells.num, 1]);
+state0.cp   = zeros([model.G.cells.num, 1]);
 
 % maximum polymer concentration, used to handle the polymer adsorption
-state0.cmax= zeros([model.G.cells.num, 1]);
+state0.cpmax= zeros([model.G.cells.num, 1]);
 
 %% Select nonlinear and linear solvers
 

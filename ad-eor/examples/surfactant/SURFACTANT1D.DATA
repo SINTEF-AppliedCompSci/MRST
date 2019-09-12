@@ -197,7 +197,7 @@ WSURFACT
 /
 
 TSTEP
-40*0.5
+40*3
 /
 
 ---------------------------------------------------------------------------
@@ -220,8 +220,31 @@ WSURFACT
 /
 
 TSTEP
-80*0.5
+80*3
 /
 
+
+---------------------------------------------------------------------------
+
+
+WCONPROD
+--      WELL     OPEN/  CNTL   OIL  WATER   GAS  LIQU   RES   BHP
+--      NAME     SHUT   MODE  RATE   RATE  RATE  RATE  RATE
+       'PROD'   'OPEN'  'BHP'   5*                            280/
+/
+
+WCONINJE
+--      WELL     INJ   OPEN/   CNTL    FLOW   RESV   BHP
+--      NAME    TYPE   SHUT    MODE    RATE   RATE   LIMIT
+       'INJ'  'WATER'  'OPEN'  'BHP'     2*           320 /
+/
+
+WSURFACT
+  'INJ'  0.0  /
+/
+
+TSTEP
+40*3
+/
 
 END     ================================================================
