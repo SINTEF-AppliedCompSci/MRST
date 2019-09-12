@@ -85,7 +85,7 @@ function T=TransNTPFA(u)
                     mu1=0.5;
                     mu2=0.5;
                 end
-                T(i_face,1)=mu1*t11+mu2*t21; % Divide my mu?
+                T(i_face,1)=mu1*t11+mu2*t21; % Divide my mu as above?
                 T(i_face,2)=(mu1*t12+mu2*t22)*bc.value{ind}(G.faces.centroids(i_face,:));
             else
                 %T(i_face,2)=-G.faces.areas(i_face)*...
@@ -122,21 +122,23 @@ function [A,b]=AssemAb(T, src)
     %----------------------------------------------------------
     for i=1:numel(W)
         if(strcmpi(W(i).type,'bhp'))
-            pbh=W(i).val;dZ=W(i).dZ;
+            pbh=W(i).val;
+            dZ=W(i).dZ;
             for j=1:numel(W(i).cells)
                 mycell=W(i).cells(j);
                 I(k)=mycell;J(k)=mycell;V(k)=W(i).WI(j)/mu;k=k+1;
                 b(mycell)=b(mycell)+W(i).WI(j)/mu*(pbh+rho*9.81*dZ(j));
             end
         elseif(strcmpi(W(i).type,'rate'))
-            rate=W(i).val;dZ=W(i).dZ;
+            rate=W(i).val;
+            dZ=W(i).dZ;
             for j=1:numel(W(i).cells)
                 mycell=W(i).cells(j);
-                I(k)=mycell;J(k)=mycell;V(k)=W(i).WI(j)/mu;k=k+1;
-                I(k)=mycell;J(k)=G.cells.num+i;V(k)=-W(i).WI(j)/mu;k=k+1;
+                I(k)=mycell;       J(k)=mycell;       V(k)=W(i).WI(j)/mu;k=k+1;
+                I(k)=mycell;       J(k)=G.cells.num+i;V(k)=-W(i).WI(j)/mu;k=k+1;
                 I(k)=G.cells.num+i;J(k)=G.cells.num+i;V(k)=W(i).WI(j)/mu;k=k+1;
-                I(k)=G.cells.num+i;J(k)=mycell;V(k)=-W(i).WI(j)/mu;k=k+1;
-                b(mycell)=b(mycell)+W(i).WI(j)/mu*(rho*9.81*dZ(j));
+                I(k)=G.cells.num+i;J(k)=mycell;       V(k)=-W(i).WI(j)/mu;k=k+1;
+                b(mycell)       =b(mycell)+W(i).WI(j)/mu*(rho*9.81*dZ(j));
                 b(G.cells.num+i)=b(G.cells.num+i)+W(i).WI(j)/mu*(rho*9.81*dZ(j));
             end
             b(G.cells.num+i)=b(G.cells.num+i)+rate;
