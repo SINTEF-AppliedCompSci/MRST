@@ -305,19 +305,19 @@ function W = process_wpolymer(W, control, varargin)
 
    if npoly == 0, return, end
 
-   if ~isfield(W, 'c')
-       [W.c] = deal([]);
+   if ~isfield(W, 'cp')
+       [W.cp] = deal([]);
    end
 
    for i = 1:numel(W)
        % Add zeros for polymer
-       W(i).c = [W(i).c, 0];
+       W(i).cp = [W(i).cp, 0];
    end
 
    for i = 1 : npoly
       for j = 1:size(W,1)
          if strcmp(W(j).name, control.WPOLYMER{i,1})
-            W(j).c(end) = control.WPOLYMER{i,2};
+            W(j).cp(end) = control.WPOLYMER{i,2};
          end
       end
    end
@@ -330,13 +330,13 @@ function W = process_wsurfact(W, control, varargin)
 
    if nsurf == 0, return, end
 
-   if ~isfield(W, 'c')
-       [W.c] = deal([]);
+   if ~isfield(W, 'cs')
+       [W.cs] = deal([]);
    end
 
    for i = 1:numel(W)
        % Add zeros for surfactant
-       W(i).c = [W(i).c, 0];
+       W(i).cs = [W(i).cs, 0];
    end
 
    if ~isempty(W),
@@ -346,7 +346,7 @@ function W = process_wsurfact(W, control, varargin)
          j = find(strcmp(Wn, control.WSURFACT{i,1}));
 
          if ~isempty(j),
-            [ W(j).c(end) ] = deal(control.WSURFACT{i,2});
+            [ W(j).cs(end) ] = deal(control.WSURFACT{i,2});
          end
       end
    end
