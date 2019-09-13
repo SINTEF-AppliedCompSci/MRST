@@ -3,7 +3,9 @@ function state = assignDofFromState(disc, state, names)
     % for dofNo > 0 are set to zero.
 
     % Set degree to disc.degree in all cells
-    state.degree = repmat(disc.degree, disc.G.cells.num, 1);
+    if ~isfield(state, 'degree')
+        state.degree = repmat(disc.degree, disc.G.cells.num, 1);
+    end
 
     % Create vector dofPos for position of dofs in state.sdof
     state       = disc.updateDofPos(state);
