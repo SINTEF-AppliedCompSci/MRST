@@ -5,8 +5,7 @@ classdef FixedTotalFluxDG < FixedTotalFlux
     methods
         function vT = evaluateOnDomain(prop, model, state)
             vT = sum(state.flux, 2);
-            [~, ~, ~, f] = model.disc.getCubature(find(model.operators.internalConn), 'face');
-            vT = vT(f);
+            vT = vT(state.faces);
         end
     end
 end
