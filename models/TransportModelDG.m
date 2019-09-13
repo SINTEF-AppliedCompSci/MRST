@@ -1,6 +1,7 @@
 classdef TransportModelDG < TransportModel
     
     properties
+        disc
     end
     
     methods
@@ -14,7 +15,7 @@ classdef TransportModelDG < TransportModel
             if isempty(model.disc)
                 model.disc = DGDiscretization(model, discArgs{:});
             end
-            model.parentModel.disc = model.disc;
+%             model.parentModel.disc = model.disc;
             
             model.parentModel.operators = setupOperatorsDG(model.disc, model.parentModel.G, model.parentModel.rock);
             
@@ -35,11 +36,16 @@ classdef TransportModelDG < TransportModel
         
         %-----------------------------------------------------------------%
         function state = validateState(model, state)
-            state    = assignDofFromState(model.disc, state);    
-            state    = validateState@TransportModel(model, state);
-            state = rmfield(state, 'sTdof');
-            state.sT = sum(state.s,2);
+            
+            state.degree = repmat(model.disc.degree, model.G.cells.num, 1);
+            wm = model.parentModel.FacilityModel.WellModels;
+            for i = 1:numel(wm)
+                state.degree(wm{i}.W.cells) = 0;
+            end
             state    = assignDofFromState(model.disc, state);
+            state    = validateState@TransportModel(model, state);
+            state.sT = model.disc.getCellMean(state, state.sTdof);
+            % TODO: Validate DG state props
         end
         
         %-----------------------------------------------------------------%
@@ -55,7 +61,7 @@ classdef TransportModelDG < TransportModel
             origin = origin(isParent);
             basevars = cell(1, numel(basenames));
             for bNo = 1:numel(basenames)
-                basevars{bNo} = model.getProp(state, basenames{bNo}, false);
+                basevars{bNo} = model.getProp(state, basenames{bNo});
             end
             % Find saturations
             isS = false(size(basevars));
@@ -74,11 +80,11 @@ classdef TransportModelDG < TransportModel
             names = basenames;
             useTotalSaturation = strcmpi(model.formulation, 'totalSaturation') ...
                                     && sum(isS) == nph - 1;
+            assert(useTotalSaturation, 'DG currently only supports total saturation formulation!');
             if useTotalSaturation
                 % Replace pressure with total saturation
                 replacement = 'sT';
-                sTdof = state.sTdof;
-%                 sT = model.getProp(state, [replacement, 'dof'], false);
+                sTdof = model.getProp(state, replacement);
                 % Replacing
                 vars{isP} = sTdof;
                 names{isP} = replacement;
@@ -98,42 +104,88 @@ classdef TransportModelDG < TransportModel
                 basevars(~isP) = vars;
             end
             state = model.initStateAD(state, basevars, basenames, origin);
-            state.sdof = state.s;
             state.s = model.disc.getCellMean(state, value(state.sdof));
             if useTotalSaturation
                 % Set total saturation as well
-                sT = vars{isP};
-                state = model.setProp(state, replacement, sT);
+                sTdof = vars{isP};
+                % Evaluate at cell cubature points
+                cellValue = model.disc.evaluateProp(state, sTdof, 'cell');
+                state.cellStateDG.sT = cellValue;
+                state.wellStateDG.sT = cellValue;
+                % Evaluate at face cubature points
+                faceValue = model.disc.evaluateProp(state, sTdof, 'face');
+                state.faceStateDG.sT = faceValue;
+                state.sT = model.disc.getCellMean(state, value(state.sTdof));
             end
         end
         
-        function model = validateModel(model, varargin)
-            defaultedDiscretization = isempty(model.parentModel.FluxDiscretization);
-            model = validateModel@TransportModel(model, varargin{:});
-            if defaultedDiscretization
-                pmodel = model.parentModel;
-                fd = pmodel.FluxDiscretization;
-                % Set flow state builder
-                fd = fd.setFlowStateBuilder(FlowStateBuilderDG());
-                % Replace some existing properties with DG variants
-                fd = fd.setStateFunction('Pressure', PrimaryVariableDG(fd.Pressure));
-                fd = fd.setStateFunction('GravityPotentialDifference', GravityPotentialDifferenceDG(pmodel));
-                fd = fd.setStateFunction('TotalFlux', FixedTotalFluxDG(pmodel));
-                
-                
-                fp = pmodel.FlowPropertyFunctions;
-                % Replace some existing properties with DG variants
-                fp = fp.setStateFunction('PhaseSaturations', PrimaryVariableDG(fp.PhaseSaturations));
-                fp = fp.setStateFunction('Pressure', PrimaryVariableDG(fp.Pressure));
-                
-                % Replace object
-                model.parentModel.FluxDiscretization    = fd;
-                model.parentModel.FlowPropertyFunctions = fp;
+        function state = initStateAD(model, state, vars, names, origin)
+              
+            model.parentModel.G.cells.num = sum(state.nDof);
+            state = initStateAD@TransportModel(model, state, vars, names, origin);
+            state.sdof = state.s;
+            state = model.evaluateBaseVariables(state);
+            
+        end
+        
+        function state = evaluateBaseVariables(model, state)
+            [cellStateDG, faceStateDG, wellStateDG] = deal(state);
+            
+            names = {'pressure', 's'};
+            for k = 1:numel(names)
+                name = names{k};
+                if isfield(state, [name, 'dof'])
+                    % Get dofs
+                    dof = model.getProp(state, name);
+                    % Evaluate at cell cubature points
+                    cellValue = model.disc.evaluateProp(state, dof, 'cell');
+                    cellStateDG = model.parentModel.setProp(cellStateDG, name, cellValue);
+                    wellStateDG = model.parentModel.setProp(wellStateDG, name, cellValue);
+                    % Evaluate at face cubature points
+                    faceValue = model.disc.evaluateProp(state, dof, 'face');
+                    faceStateDG = model.parentModel.setProp(faceStateDG, name, faceValue);
+                end
             end
+            
+            cellStateDG.sT = getTotalSaturation(cellStateDG.s);
+            wellStateDG.sT = getTotalSaturation(wellStateDG.s);
+            faceStateDG.sT = getTotalSaturation(faceStateDG.s);
+            
+            
+            [~, ~, cells] = model.disc.getCubature((1:model.G.cells.num)', 'volume');
+            [~, ~, ~, faces] = model.disc.getCubature(find(model.parentModel.operators.internalConn), 'face');
+            fcells = [model.G.faces.neighbors(faces,1); model.G.faces.neighbors(faces,2)];
+            cellStateDG.type  = 'cell';
+            cellStateDG.cells = cells;
+            cellStateDG.fcells = fcells;
+            cellStateDG.faces = faces;
+            wellStateDG.type  = 'cell';
+            cellStateDG.cells = cells;
+            faceStateDG.type  = 'face';
+            faceStateDG.cells = fcells;
+            faceStateDG.faces = faces;
+            
+            state.cellStateDG = cellStateDG;
+            state.wellStateDG = wellStateDG;
+            state.faceStateDG = faceStateDG;
+            
+        end 
+        
+        function model = validateModel(model, varargin)
+            model = validateModel@TransportModel(model, varargin{:});
+                        
+            model.parentModel.FluxDiscretization = FluxDiscretizationDG(model.parentModel);
+            fp = model.parentModel.FlowPropertyFunctions;
+            pvt = fp.getRegionPVT(model.parentModel);
+            fp = fp.setStateFunction('PoreVolume', MultipliedPoreVolumeDG(model.parentModel, pvt));
+            fp = fp.setStateFunction('GravityPermeabilityGradient', GravityPermeabilityGradientDG(model.parentModel));
+            model.parentModel.FlowPropertyFunctions = fp;
+            
         end
         
         %-----------------------------------------------------------------%
         function [eqs, names, types, state] = getModelEquations(tmodel, state0, state, dt, drivingForces)
+            state0 = tmodel.evaluateBaseVariables(state0);
             model = tmodel.parentModel;
             [eqs, flux, names, types] = model.FluxDiscretization.componentConservationEquations(model, state, state0, dt);
             src = model.FacilityModel.getComponentSources(state);
@@ -150,6 +202,9 @@ classdef TransportModelDG < TransportModel
                 if ~isempty(src.cells)
                     eqs{i}(src.cells) = eqs{i}(src.cells) - src.value{i};
                 end
+                
+                
+                
                 eqs{i} = model.operators.AccDiv(eqs{i}, flux{i});
                  if ~model.useCNVConvergence
                     pv     = model.operators.pv;
@@ -268,17 +323,25 @@ classdef TransportModelDG < TransportModel
             end
         end
         
+        function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
+            [state, report] = updateAfterConvergence@TransportModel(model, state0, state, dt, drivingForces);
+            state = rmfield(state, 'cellStateDG');
+            state = rmfield(state, 'faceStateDG');
+            state = rmfield(state, 'wellStateDG');
+        end
+        
     end
     
 end
 
-% --------------------------------------------------------------------%
-function [fn, index] = getVariableField(model, name, varargin)
-
-    if strcmpi(name(end-2:end), 'dof')
-        nm = name(1:end-3);
+function sT = getTotalSaturation(s)
+    if iscell(s)
+        sT  = 0;
+        nph = numel(s);
+        for i = 1:nph
+            sT = sT + s{i};
+        end
+    else
+        sT = sum(s,2);
     end
-    [fn, index] = model.getVariableField(nm, varargin{:});
-    fn = [fn, 'dof'];
-
 end
