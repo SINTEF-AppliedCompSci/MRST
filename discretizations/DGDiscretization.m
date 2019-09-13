@@ -751,6 +751,15 @@ classdef DGDiscretization < SpatialDiscretization
             flag = multiphaseUpwindIndices(G, v, T, mob, upw);
         end
         
+        % --------------------------------------------------------------------%
+        function gdxyz = getGravityGradient(disc, model)
+            
+            x = model.G.cells.centroids;
+            [~, ~, ~, faces] = disc.getCubature(find(model.operators.internalConn), 'face');
+            cells = [model.G.faces.neighbors(faces,1); model.G.faces.neighbors(faces,2)];
+            gdxyz = model.operators.Grad(model.G.cells.centroids) * g';
+        end
+        
         %-----------------------------------------------------------------%
         function [W, x, cellNo, faceNo] = getCubature(disc, elements, type, varargin)
             % Get cubature for elements. Wrapper for cubature class
