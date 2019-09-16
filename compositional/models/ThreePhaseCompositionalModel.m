@@ -186,6 +186,9 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             if nargin < 4
                 iteration = 1;
             end
+            if nargin < 3
+                dt = inf;
+            end
             state0 = state;
             if iteration == 1
                 state.eos.iterations = 0;

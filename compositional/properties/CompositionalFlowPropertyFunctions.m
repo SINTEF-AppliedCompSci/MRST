@@ -1,25 +1,23 @@
 classdef CompositionalFlowPropertyFunctions < FlowPropertyFunctions
     properties
-        PhaseMixingCoefficients
         ComponentPhaseMassFractions
         ComponentPhaseMoleFractions
-        PhaseCompressibilityFactors
-        Fugacity
     end
     
     methods
         function props = CompositionalFlowPropertyFunctions(model)
             props@FlowPropertyFunctions(model);
             pvt = props.getRegionPVT(model);
-            props.ShrinkageFactors = DensityDerivedShrinkageFactors(model, pvt);
-            props.Density = CompositionalDensity(model, pvt);
+            props = props.setStateFunction('ShrinkageFactors', DensityDerivedShrinkageFactors(model, pvt));
+            props = props.setStateFunction('Density', CompositionalDensity(model, pvt));
             
-            props.PhaseMixingCoefficients = PhaseMixingCoefficientsLV(model);
-            props.Fugacity = FugacityLV(model);
-            props.PhaseCompressibilityFactors = PhaseCompressibilityFactorsLV(model);
-            props.ComponentPhaseMassFractions = ComponentPhaseMassFractionsLV(model);
-            props.ComponentPhaseMoleFractions = ComponentPhaseMoleFractionsLV(model);
-            props.Viscosity = CompositionalViscosityLV(model);
+            props = props.setStateFunction('ComponentPhaseMassFractions', ComponentPhaseMassFractionsLV(model));
+            props = props.setStateFunction('ComponentPhaseMoleFractions', ComponentPhaseMoleFractionsLV(model));
+
+            props = props.setStateFunction('PhaseMixingCoefficients', PhaseMixingCoefficientsLV(model));
+            props = props.setStateFunction('Fugacity', FugacityLV(model));
+            props = props.setStateFunction('PhaseCompressibilityFactors', PhaseCompressibilityFactorsLV(model));
+            props = props.setStateFunction('Viscosity', CompositionalViscosityLV(model));
         end
         
         function props = setCompactEvaluation(props, val)

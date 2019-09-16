@@ -11,6 +11,7 @@ classdef EquationOfStateModel < PhysicalModel
         selectGibbsMinimum = true; % Use minimum Gibbs energy to select Z
         alpha = [];
         minimumComposition = 1e-8; % Minimum composition value (for numerical stability)
+        equilibriumConstantFunctions = {};
     end
 
     properties (Access = private)
@@ -190,13 +191,17 @@ classdef EquationOfStateModel < PhysicalModel
             assert(all(sum(z, 2) > 0.999), ...
                                 'Molar fractions must sum up to unity.')
             assert(iteration > 0);
-            
+
+            % If we get here, we are using a proper flash
             if iteration == 1
                 % Book-keeping
                 state.eos.itCount = zeros(nc, 1);
                 state.eos.converged = false(nc, 1);
             end
-
+            hasKvalues = ~isempty(model.equilibriumConstantFunctions);
+            if hasKvalues
+                state.K = model.evaluateEquilibriumConstants(P, T, z);
+            end
             L0 = state.L;
             K0 = state.K;
             % Only apply calculations for cells that have not converged yet
@@ -233,8 +238,12 @@ classdef EquationOfStateModel < PhysicalModel
                 y0 = state.y;
                 active = ~state.eos.converged;
             end
-            
-            if any(active)
+            if hasKvalues
+                % All cells have been solved already - we are done.
+                active = active | false;
+                values = zeros(1, ncomp);
+                resConv = true(1, ncomp);
+            elseif any(active)
                 state.eos.itCount(active) = state.eos.itCount(active) + 1;
                 K_init = K0(active, :);
                 K = K_init;
@@ -323,11 +332,48 @@ classdef EquationOfStateModel < PhysicalModel
                 stable = [];
                 [x, y] = deal(zeros(0, size(z, 2)));
             else
-                z = ensureMinimumFraction(z, model.minimumComposition);
-                [stable, x, y] = phaseStabilityTest(model, z, P, T, K);
+                if isempty(model.equilibriumConstantFunctions)
+                    % Use fugacity-based stability test
+                    z = ensureMinimumFraction(z, model.minimumComposition);
+                    [stable, x, y] = phaseStabilityTest(model, z, P, T, K);
+                else
+                    % We have K-values, use that instead
+                    K = model.evaluateEquilibriumConstants(P, T, z);
+                    hasStabFn = isprop(model.PropertyModel, 'checkStabilityFunction') && ...
+                                ~isempty(model.PropertyModel.checkStabilityFunction);
+                    if hasStabFn
+                        [stable, L] = model.PropertyModel.checkStabilityFunction(P, T, expandMatrixToCell(z));
+                    else
+                        L = model.solveRachfordRice([], K, z);
+                        L_tol = 1e-10;
+                        stable = abs(L - 1) <= L_tol | L <= L_tol;
+                    end
+                    x = model.computeLiquid(L, K, z);
+                    y = model.computeVapor(L, K, z);
+                end
             end
         end
 
+        function K = evaluateEquilibriumConstants(model, P, T, z)
+            assert(~isempty(model.equilibriumConstantFunctions), ...
+                'Equilibrium constants not defined. This function is only valid when using K-value formulation.');
+            isCellInput = iscell(z);
+            if ~isCellInput
+                z = expandMatrixToCell(z);
+            end
+            K = cellfun(@(fn) fn(P, T, z), model.equilibriumConstantFunctions, 'UniformOutput', false);
+            
+            mv = 1e16;
+            for i = 1:numel(K)
+                K{i}(K{i} > mv) = mv;
+                K{i}(K{i} < 1/mv) = 1/mv;
+            end
+            if ~isCellInput
+                K = value(K);
+            end
+        end
+
+        
         function [x, y, K, Z_L, Z_V, L, vals] = newtonCompositionUpdate(model, P, T, z, K, L)
             [x, y, K, Z_L, Z_V, L, vals] = newtonFugacityEquilibrium(model, P, T, z, K, L);
         end
@@ -557,8 +603,20 @@ classdef EquationOfStateModel < PhysicalModel
         end
 
         function [eqs, f_L, f_V, Z_L, Z_V] = equationsEquilibrium(model, P, T, x, y, z, L, Z_L, Z_V)
-            [Z_L, Z_V, f_L, f_V] = model.getCompressibilityAndFugacity(P, T, x, y, z, Z_L, Z_V);
+            useFugacity = isempty(model.equilibriumConstantFunctions);
             ncomp = numel(x);
+            if useFugacity
+                [Z_L, Z_V, f_L, f_V] = model.getCompressibilityAndFugacity(P, T, x, y, z, Z_L, Z_V);
+            else
+                [Z_L, Z_V] = model.getCompressibilityAndFugacity(P, T, x, y, z, Z_L, Z_V);
+                f_L = cell(1, ncomp);
+                f_V = cell(1, ncomp);
+                for i = 1:ncomp
+                    K = model.equilibriumConstantFunctions{i}(P, T, z);
+                    f_L{i} = K.*x{i};
+                    f_V{i} = y{i};
+                end
+            end
             eqs = cell(1, 2*ncomp + 1);
             isLiq = value(L) == 1;
             isVap = value(L) == 0;
