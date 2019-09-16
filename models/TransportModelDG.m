@@ -1,7 +1,6 @@
 classdef TransportModelDG < TransportModel
     
     properties
-        disc
     end
     
     methods
@@ -15,7 +14,7 @@ classdef TransportModelDG < TransportModel
             if isempty(model.disc)
                 model.disc = DGDiscretization(model, discArgs{:});
             end
-%             model.parentModel.disc = model.disc;
+            model.parentModel.disc = model.disc;
             
             model.parentModel.operators = setupOperatorsDG(model.disc, model.parentModel.G, model.parentModel.rock);
             
@@ -105,6 +104,7 @@ classdef TransportModelDG < TransportModel
             end
             state = model.initStateAD(state, basevars, basenames, origin);
             state.s = model.disc.getCellMean(state, value(state.sdof));
+            state.pressure = model.disc.getCellMean(state, value(state.pressuredof));
             if useTotalSaturation
                 % Set total saturation as well
                 sTdof = vars{isP};
@@ -184,30 +184,38 @@ classdef TransportModelDG < TransportModel
         end
         
         %-----------------------------------------------------------------%
-        function [eqs, names, types, state] = getModelEquations(tmodel, state0, state, dt, drivingForces)
+        function [acc, names, types, state] = getModelEquations(tmodel, state0, state, dt, drivingForces)
             state0 = tmodel.evaluateBaseVariables(state0);
             model = tmodel.parentModel;
-            [eqs, flux, names, types] = model.FluxDiscretization.componentConservationEquations(model, state, state0, dt);
+            [acc, flux, cellflux, names, types] = model.FluxDiscretization.componentConservationEquations(model, state, state0, dt);
             src = model.FacilityModel.getComponentSources(state);
             % Assemble equations and add in sources
             if strcmpi(tmodel.formulation, 'missingPhase')
                 % Skip the last phase! Only mass-conservative for
                 % incompressible problems
-                eqs = eqs(1:end-1);
+                acc = acc(1:end-1);
                 flux = flux(1:end-1);
                 names = names(1:end-1);
                 types = types(1:end-1);
             end
-            for i = 1:numel(eqs)
+            d        = tmodel.disc;
+            d.nDof   = state.nDof;
+            d.dofPos = state.dofPos;
+            psi = d.basis.psi;
+            grad_psi = d.basis.grad_psi;
+            ix    = d.getDofIx(state, 1, src.cells);
+            cells = rldecode((1:model.G.cells.num)', d.nDof, 1);
+            d.sample = acc{1}(d.getDofIx(state, Inf));
+            eqs = cell(1, numel(acc));
+            for i = 1:numel(acc)
                 if ~isempty(src.cells)
-                    eqs{i}(src.cells) = eqs{i}(src.cells) - src.value{i};
+                    acc{i}(ix) = acc{i}(ix) - src.value{i};
                 end
-                
-                
-                
-                eqs{i} = model.operators.AccDiv(eqs{i}, flux{i});
+                eqs{i} = d.inner(acc{i}     , psi     , 'dV') ...
+                       - d.inner(cellflux{i}, grad_psi, 'dV') ...
+                       + d.inner(flux{i}    , psi     , 'dS');
                  if ~model.useCNVConvergence
-                    pv     = model.operators.pv;
+                    pv     = model.operators.pv(cells);
                     eqs{i} = eqs{i}.*(dt./pv);
                  end    
             end
@@ -223,9 +231,13 @@ classdef TransportModelDG < TransportModel
         function [state, report] = updateState(model, state, problem, dx, drivingForces)
             state_dof   = state;
             state_dof.s = state.sdof;
+            model.parentModel.G.cells.num = sum(state.nDof);
             [state_dof, report] = updateState@TransportModel(model, state_dof, problem, dx, drivingForces);
             state.sdof = state_dof.s;
             state.s = model.disc.getCellMean(state, state.sdof);
+            state = rmfield(state, 'cellStateDG');
+            state = rmfield(state, 'faceStateDG');
+            state = rmfield(state, 'wellStateDG');
         end
         
         % ----------------------------------------------------------------%

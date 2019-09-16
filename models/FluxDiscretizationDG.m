@@ -4,30 +4,34 @@ classdef FluxDiscretizationDG < FluxDiscretization
         parent
         ComponentTotalVelocity
         ComponentPhaseVelocity
+        TotalVelocity
     end
     
     methods
         function fd = FluxDiscretizationDG(model)
  
             fd = fd@FluxDiscretization(model);
-            fd = fd.setStateFunction('Transmissibility', TransmissibilityDG(model));
+            
             fd = fd.setStateFunction('PhaseFlux', PhaseFluxFixedTotalVelocity(model));
             fd = fd.setStateFunction('PhaseUpwindFlag', PhasePotentialUpwindFlag(model));
             fd = fd.setStateFunction('ComponentPhaseFlux', ComponentPhaseFluxFractionalFlow(model));
-            fd = fd.setStateFunction('PhaseInterfacePressureDifferences', PhaseInterfacePressureDifferences(model));
             
+            fd = fd.setStateFunction('PhaseInterfacePressureDifferences', PhaseInterfacePressureDifferences(model));
+            fd = fd.setStateFunction('TotalFlux', FixedTotalFluxDG(model));
             fd = fd.setStateFunction('FaceTotalMobility', FaceTotalMobility(model));
+            
+            fd = fd.setStateFunction('Transmissibility', TransmissibilityDG(model));
             fd = fd.setStateFunction('GravityPotentialDifference', GravityPotentialDifferenceDG(model));
             fd = fd.setStateFunction('PhaseUpwindFlag', PhasePotentialUpwindFlagDG(model));
-            fd = fd.setStateFunction('TotalFlux', FixedTotalFluxDG(model));
             
             fd.ComponentTotalVelocity = ComponentTotalVelocityDG(model);
-            fd.ComponentPhaseVelocity = ComponentPhaseVelocityDG(model);
+            fd.ComponentPhaseVelocity = ComponentPhaseVelocityFractionalFlowDG(model);
+            fd.TotalVelocity = FixedTotalVelocityDG(model);
             
             fd = fd.setFlowStateBuilder(FlowStateBuilderDG);
         end
         
-        function [acc, v, names, types] = componentConservationEquations(fd, model, state, state0, dt)
+        function [acc, v, vc, names, types] = componentConservationEquations(fd, model, state, state0, dt)
             % Compute discretized conservation equations in the interior of the domain.
             % REQUIRED PARAMETERS:
             %   model  - ReservoirModel derived class
