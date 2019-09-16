@@ -5,8 +5,9 @@
 % recommend that you first go through the introMultiscale example before
 % running this example, as we here do not detail the basic interfaces.
 mrstModule add coarsegrid spe10 msrsb incomp ad-core
+
 %% Define grid and rock
-dims = [60, 220];
+dims = [30, 110];
 physDims = dims .*[20, 10]*ft;
 % Create grid
 G = cartGrid(dims, physDims);
@@ -26,6 +27,7 @@ CG = generateCoarseGrid(G, p);
 % Add coarse geometry (centroids, normals, etc)
 CG = coarsenGeometry(CG);
 CG = storeInteractionRegion(CG);
+
 %% Set up a problem with two wells
 % We here set up a problem where wells are the driving force. Wells are
 % the most common driving forces for field-scale simulation, and can be
@@ -39,6 +41,7 @@ fluid = initSingleFluid('rho', 1, 'mu', 1);
 state0 = initResSol(G, 0);
 % Call fine-scale solver, with matrix output in state enabled
 state = incompTPFA(state0, G, hT, fluid, 'MatrixOutput', true, 'W', W);
+
 %% Get the linear system from the report
 % We perform a Schur complement to remove the well equations. We are doing
 % this since we are going to use the low-level iterative solver interface,
@@ -49,9 +52,11 @@ b = state.rhs;
 [A, b, A_ww, A_wp, q_w] = eliminateWellEquations(A, b, n);
 % To recover the extra equations, for some solution p, you can use
 % p = recoverWellSolution(A_ww, A_wp, q_w, p)
+
 %% Create multiscale basis
 % Build MsRSB basis functions
 basis = getMultiscaleBasis(CG, A);
+
 %% Set solver parameters
 % Solver handle for the coarse scale solver
 coarse_solver = @(A_c, b_c) mldivide(A_c, b_c);
@@ -63,6 +68,7 @@ verb = true;
 tol = 1e-8;
 % Set the maximum number of cycles
 maxIterations = 100;
+
 %% Get second-stage relaxation
 % We select a single cycle of ILU(0) as our second stage smoother. This
 % routine provides us a function interface @(A, b) which itself returns a
@@ -75,6 +81,7 @@ fn = getSmootherFunction('type', 'ilu0', 'iterations', 1);
 % Perform ILU0 factorization (using Matlab's builtin routines)
 prec = fn(A, b);
 p_approx = prec(b);
+
 %% Plot the action of the preconditioner
 % We plot the result of a single application of ILU(0). We observe that the
 % preconditioner only modifies the solution very close to the wells. By
@@ -86,27 +93,24 @@ p_approx = prec(b);
 % removing local (or high-frequency) errors, but not quite accurate when it
 % comes to global (or low-frequency) errors.
 clf;
-subplot(1, 2, 1)
-plotCellData(G, p_approx, 'EdgeColor', 'none');
-axis equal tight
-title('One pass of ILU(0)');
 subplot(1, 2, 2)
 plotCellData(G, state.pressure, 'EdgeColor', 'none');
-axis equal tight
+axis equal tight, cax=caxis();
 title('Solution');
+subplot(1, 2, 1)
+plotCellData(G, p_approx, 'EdgeColor', 'none');
+axis equal tight, caxis(cax);
+title('One pass of ILU(0)');
+
 %% Solve and plot a regular multiscale solution
 % We compute a simple non-iterative multiscale approximation of the
 % pressure field. We plot the solution together with the reference.
 state_ms = incompMultiscale(state, CG, hT, fluid, basis, 'W', W);
-clf;
-subplot(1, 2, 1)
+subplot(1, 2, 1), cla
 plotCellData(G, state_ms.pressure, 'EdgeColor', 'none');
-axis equal tight
-title('One pass of ILU(0)');
-subplot(1, 2, 2)
-plotCellData(G, state.pressure, 'EdgeColor', 'none');
-axis equal tight
-title('Solution');
+axis equal tight, caxis(cax);
+title('Regular multiscale solution');
+
 %% Plot residual error in the multiscale solution
 % We plot the cell-wise absolute residual error,
 % $$ |A \mathbf{p} - b| $$
@@ -121,6 +125,7 @@ plotGrid(CG, 'EdgeColor', 'w', 'linewidth', 1, 'FaceColor', 'none')
 caxis([0, 1e-10])
 axis equal tight
 title('Residual error, MS');
+
 %% Perform two solutions: One without GMRES and one with GMRES.
 % The interplay between local smoothers and coarse-grid corrections is
 % widely studied for multi-level solvers. The central idea is to use the
@@ -133,20 +138,24 @@ title('Residual error, MS');
 % performed. This problem is highly amenable to Krylov acceleration, since
 % the error modes span multiple scales.
 useGMRES = false;
-[p_ms, report] = solveMultiscaleIteratively(A, b, p0, basis, fn, tol, maxIterations, coarse_solver, useGMRES, verb);
+[p_ms, report] = solveMultiscaleIteratively(A, b, p0, basis, fn, tol, ....
+    maxIterations, coarse_solver, useGMRES, verb);
 % Solve with GMRES
 useGMRES = true;
-[~, report_gmres] = solveMultiscaleIteratively(A, b, p0, basis, fn, tol, maxIterations, coarse_solver, useGMRES, verb);
+[~, report_gmres] = solveMultiscaleIteratively(A, b, p0, basis, fn, tol, ...
+    maxIterations, coarse_solver, useGMRES, verb);
+
 %% Plot the residual evolution throughout the iterative solver
 % We clearly observe that GMRES is much more efficient than the simple
 % Richardson solver when measured in the number of iterations.
 clf; hold on;
-plot(report.resvec);
-plot(report_gmres.resvec);
+plot(report.resvec,'-or','MarkerFaceColor',[.8 .8 .8]);
+plot(report_gmres.resvec,'-ob','MarkerFaceColor',[.8 .8 .8]);
 set(gca, 'YScale', 'log')
 legend('MS+ILU(0)', 'MS+ILU0, GMRES');
 xlabel('Iterations');
 ylabel('Residual')
+
 %% We can also achieve the same result through the incompMultiscale interface
 % This is the easiest way of improving a multiscale solution. Here, we
 % solve only five iterations in order to inexpensively improve upon the
@@ -172,6 +181,7 @@ clf; hold on
 plot(df, '.');
 plot(dms, 'o');
 legend('Divergence (reference)', 'Divergence MS')
+
 %% Use the class-based linear solver
 % There is also a multiscale linear solver class for use with the ad-core
 % framework, which uses the same internal interface.
@@ -180,6 +190,7 @@ solver = MultiscaleVolumeSolverAD(CG, 'getSmoother', fn, ...
                                       'maxIterations', maxIterations,...
                                       'tolerance', tol, ...
                                       'useGMRES', true);
+
 %% Solve a system
 % We solve a linear system with the solveLinearSystem interface. Note that
 % this generates a basis from A, which can then be reused for subsequent
