@@ -179,6 +179,7 @@ classdef DGDiscretization < SpatialDiscretization
             if nargin < 3 || (numel(dofNo) == 1 && dofNo == Inf)
                 % dofNo not given, return ix for all dofs
                 dofNo = 1:disc.basis.nDof;
+                cells = 1:G.cells.num;
             elseif nargin < 4 || (numel(cells) == 1 && cells == Inf)
                 % Cells not given, return ix for all cells
                 cells = 1:G.cells.num;
@@ -416,13 +417,14 @@ classdef DGDiscretization < SpatialDiscretization
             
             if nargin < 5
                 cells = (1:disc.G.cells.num)';
+                faces = find(disc.internalConn);
             end
                 
             switch differential
                 case 'dV'
                     ip = disc.cellInt2(u, v, cells);
                 case 'dS'
-                    ip = disc.faceFluxInt2(u, v, cells);
+                    ip = disc.faceFluxInt2(u, v, faces); %#ok
                 case 'dSbc'
                     ip = disc.faceFluxIntBC2(u, v, bc);
             end
@@ -475,11 +477,11 @@ classdef DGDiscretization < SpatialDiscretization
                     warning('No cells with %d dofs', dofNo);
                 end
             end
-            I = disc.trimValues(I);
+            %I = disc.trimValues(I);
         end
         
-                %-----------------------------------------------------------------%
-        function I = faceFluxInt2(disc, u, v, cells)
+        %-----------------------------------------------------------------%
+        function I = faceFluxInt2(disc, u, v, faces)
             % Integrate integrand over all internal faces of each cell in
             % cells
             %
@@ -499,30 +501,40 @@ classdef DGDiscretization < SpatialDiscretization
             
             nDofMax = disc.basis.nDof; % maximum number of dofs
             % Empty cells means all cells in grid
-            if isempty(cells)
-                cells = (1:disc.G.cells.num)';
+            if isempty(faces)
+                faces = find(disc.operators.internalConn)';
             end
             % Get cubature for all cells, transform coordinates to ref space
-            [W, x, cellNo, faceNo] = disc.getCubature(cells, 'surface');
-            [xc, ~, ~] = disc.transformCoords(x, cellNo);
-            if isempty(faceNo)
-                I = 0;
-                return
-            end
-            % Evaluate integrals
-%             I = dof*0;
-            I = disc.sample;
-            for dofNo = 1:nDofMax                
-                keepCells = disc.nDof(cells) >= dofNo;
-                if any(keepCells)
-                    ix = disc.getDofIx(disc, dofNo, cells(keepCells)');
-                    i  = W*(u.*v{dofNo}(xc));
-                    I(ix) = i(keepCells);
-                elseif numel(cells) == disc.G.cells.num
-                    warning('No cells with %d dofs', dofNo);
+            
+            [W, x, ~, faceNo] = disc.getCubature(faces, 'face');
+            N = disc.G.faces.neighbors;
+            
+            I = disc.sample*0;
+            for side = 1:2
+                cells  = N(faces,side);
+                cellNo = N(faceNo,side);
+                f2c = sparse(cells, (1:numel(faces))', 1, disc.G.cells.num, numel(faces));
+                [xf, ~, ~] = disc.transformCoords(x, cellNo);
+                if isempty(faceNo)
+                    I = 0;
+                    return
                 end
+                % Evaluate integrals
+    %             I = dof*0;
+                sgn = (-1).^(side-1);
+                for dofNo = 1:nDofMax                
+                    keepCells = disc.nDof(cells) >= dofNo;
+                    kc = f2c*keepCells > 0;
+                    if any(keepCells)
+                        ix = disc.getDofIx(disc, dofNo, cells(keepCells)');
+                        i  = f2c*(sgn.*W*(u.*v{dofNo}(xf)));
+                        I(ix) = I(ix) + i(kc);
+                    elseif numel(faces) == disc.G.cells.num
+                        warning('No cells with %d dofs', dofNo);
+                    end
+                end
+                %I = disc.trimValues(I);
             end
-            I = disc.trimValues(I);
         end
         
          %-----------------------------------------------------------------%
@@ -571,7 +583,7 @@ classdef DGDiscretization < SpatialDiscretization
                     I(ix) = i(keepCells);
                 end
             end
-            I = disc.trimValues(I);
+            %I = disc.trimValues(I);
             
         end
         
