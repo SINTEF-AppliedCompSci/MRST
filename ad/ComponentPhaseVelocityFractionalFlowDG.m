@@ -6,7 +6,6 @@ classdef ComponentPhaseVelocityFractionalFlowDG < StateFunction
         function cf = ComponentPhaseVelocityFractionalFlowDG(backend, upwinding)
             cf@StateFunction(backend);
             cf = cf.dependsOn({'TotalVelocity'});
-%             cf = cf.dependsOn({'TotalVelocity', 'PhaseInterfacePressureDifferences', 'Transmissibility', 'Mobility', 'TotalMobility'});
             cf = cf.dependsOn({'ComponentMobility', 'Mobility', 'TotalMobility', 'GravityPermeabilityGradient'}, 'FlowPropertyFunctions');
         end
 
@@ -22,26 +21,26 @@ classdef ComponentPhaseVelocityFractionalFlowDG < StateFunction
             mob     = model.getProp(state, 'Mobility');
             
             mobT = 0;
-            for i = 1:nph
-                mobT = mobT + mob{i};
+            for ph = 1:nph
+                mobT = mobT + mob{ph};
             end
             w = 1./mobT;
             kgrad = cell(1, nph);
-            for i = 1:nph
+            for ph = 1:nph
                 mobG = 0;
                 for j = 1:nph
-                    if i ~= j
-                        mobG = mobG + mob{j}.*(gRhoKdz{i} - gRhoKdz{j});
+                    if ph ~= j
+                        mobG = mobG + mob{j}.*(gRhoKdz{ph} - gRhoKdz{j});
                     end
                 end
-                kgrad{i} = w.*(vT + mobG);
+                kgrad{ph} = w.*(vT + mobG);
             end
             v = cell(ncomp, nph);
             for c = 1:ncomp
                 for ph = 1:nph
-                    mob = compMob{c, ph};
-                    if ~isempty(mob)
-                        v{c, ph} = mob.*kgrad{ph};
+                    cmob = compMob{c, ph};
+                    if ~isempty(cmob)
+                        v{c, ph} = cmob.*kgrad{ph};
                     end
                 end
             end
