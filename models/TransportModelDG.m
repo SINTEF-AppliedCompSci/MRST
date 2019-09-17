@@ -184,7 +184,7 @@ classdef TransportModelDG < TransportModel
         end
         
         %-----------------------------------------------------------------%
-        function [acc, names, types, state] = getModelEquations(tmodel, state0, state, dt, drivingForces)
+        function [eqs, names, types, state] = getModelEquations(tmodel, state0, state, dt, drivingForces)
             state0 = tmodel.evaluateBaseVariables(state0);
             model = tmodel.parentModel;
             [acc, flux, cellflux, names, types] = model.FluxDiscretization.componentConservationEquations(model, state, state0, dt);
@@ -231,6 +231,7 @@ classdef TransportModelDG < TransportModel
         function [state, report] = updateState(model, state, problem, dx, drivingForces)
             state_dof   = state;
             state_dof.s = state.sdof;
+            state_dof.sT = state.sTdof;
             model.parentModel.G.cells.num = sum(state.nDof);
             [state_dof, report] = updateState@TransportModel(model, state_dof, problem, dx, drivingForces);
             state.sdof = state_dof.s;
