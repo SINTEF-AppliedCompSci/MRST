@@ -66,7 +66,7 @@ function [flagV, flagG, upCellsV, upCellsG, s_v, s_G] = getSaturationUpwindDG(di
     N = [1:numel(ix); numel(ix)+1:2*numel(ix)]';
     upw = @(flag, x)faceUpstr(flag, x, N, [size(N,1), max(max(N))]);
 
-    % Use standard MRST function to compute upstraeam flags
+    % Use standard MRST function to compute upstream flags
     [flagV, flagG] = getSaturationUpwind(disc.upwindType, state, g, flux, T, mob, upw);
 
     % For each phase, assign upstram cell and corresponding
