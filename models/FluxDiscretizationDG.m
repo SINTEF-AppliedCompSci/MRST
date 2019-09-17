@@ -20,7 +20,6 @@ classdef FluxDiscretizationDG < FluxDiscretization
             fd = fd.setStateFunction('TotalFlux', FixedTotalFluxDG(model));
             fd = fd.setStateFunction('FaceTotalMobility', FaceTotalMobility(model));
             
-            fd = fd.setStateFunction('Transmissibility', TransmissibilityDG(model));
             fd = fd.setStateFunction('GravityPotentialDifference', GravityPotentialDifferenceDG(model));
             fd = fd.setStateFunction('PhaseUpwindFlag', PhasePotentialUpwindFlagDG(model));
             
