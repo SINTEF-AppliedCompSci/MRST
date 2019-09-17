@@ -11,7 +11,8 @@ function vi = velocityInterpolation(G, type)
 
             D = cell(1,G.griddim);
             for dNo = 1:G.griddim
-                D{dNo} = sparse(cellNo, faceNo, X(:,dNo).*sgn, G.cells.num, G.faces.num)./G.cells.volumes;
+%                 D{dNo} = sparse(cellNo, faceNo, X(:,dNo).*sgn, G.cells.num, G.faces.num)./G.cells.volumes;
+                D{dNo} = sparse(cellNo, faceNo, X(:,dNo).*sgn, G.cells.num, G.faces.num);
             end
 
             f2c = @(v) faceFlux2cellVelocity(D,v);
