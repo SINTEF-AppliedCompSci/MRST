@@ -10,13 +10,10 @@ classdef GravityPotentialDifferenceDG < GravityPotentialDifference
             
             gRhoDz = cell(1, nph);
             
-            nf = model.G.faces.num;
-            gdz = zeros(nf,1);
-            gdz(model.operators.internalConn) = model.getGravityGradient();
-%             [W, x, cellNo, faceNo] = model.disc.getCubature((1:model.G.cells.num)', 'surface');
-            [W, x, cellNo, faceNo] = model.disc.getCubature(find(model.operators.internalConn), 'face');
-            gdz = gdz(faceNo);
-            
+            g = model.getGravityVector();
+            x = model.G.cells.centroids(state.cells,:);
+            gdz = model.operators.Grad(x)*g';
+                
             if norm(model.gravity) > 0
                 nm = model.getPhaseNames();
                 rho = model.getProp(state, 'Density');
