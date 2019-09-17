@@ -9,11 +9,17 @@ dispif(mrstVerbose, 'FlowNTPFA\n');
 mu = mu(1);
 rho = rho(1);
 
-% Expand u0 if there are rate wells
+% Fix pressure if there are only hom Neumann BC (i.e. no pressure bc)
+% and no bhp wells
 numWR = getNoRateWells(W);
+is_bhp_wells = numel(W) > numWR;
+is_pressure_bc = any(strcmpi(bc.type, 'pressure'));
+well_posed = is_pressure_bc || is_bhp_wells
+
+% Expand u0 if there are rate wells
 u0 = [u0; ones(numWR, 1)];
 T=TransNTPFA(u0);
-[A,b]=AssemAb(T,opt.src); 
+[A,b]=AssemAb(T,opt.src,well_posed); 
 iter=0;
 res=zeros(maxiter+1,1);
 bnorm=norm(b,inf);
@@ -21,10 +27,10 @@ res(1)=norm(A*u0-b,inf)/bnorm;
 %res(1)=tol+1;
 u=u0;
 while(res(iter+1)>tol && iter<maxiter)
-    dispif(mrstVerbose & mod(iter,10)==0, ['iter=',num2str(iter), ' res=', num2str(res(iter+1)), '\n'])
+    dispif(mrstVerbose & mod(iter,1)==0, ['iter=',num2str(iter), ' res=', num2str(res(iter+1)), '\n'])
     u=A\b;
     T=TransNTPFA(u);
-    [A,b]=AssemAb(T,opt.src);
+    [A,b]=AssemAb(T,opt.src,well_posed);
     iter=iter+1;
     res(iter+1)=norm(A*u-b,inf)/bnorm;
 end
@@ -47,6 +53,7 @@ end
     
 %--------------------------------------------------------------------------
 function T=TransNTPFA(u)
+    dispif(mrstVerbose, 'TransNTPFA\n');
     T=zeros(G.faces.num,2);
     for i_face=1:G.faces.num
         if(all(G.faces.neighbors(i_face,:)~=0))
@@ -96,7 +103,8 @@ function T=TransNTPFA(u)
     end
 end
 %--------------------------------------------------------------------------
-function [A,b]=AssemAb(T, src)
+function [A,b]=AssemAb(T, src, well_posed)
+    dispif(mrstVerbose, 'AssemAb\n');
     ncf=max(diff(G.cells.facePos));
     nc=G.cells.num;
     
@@ -153,9 +161,15 @@ function [A,b]=AssemAb(T, src)
     if ~isempty(src)
         b(src.cell(:))=b(src.cell(:))+src.rate(:);
     end
+    
+    % Fix well-posedness similar to incompTPFA
+    if ~well_posed
+        A(1) = 2*A(1);
+    end
 end
 %--------------------------------------------------------------------------
 function [flux,wellsol]=computeFlux(u,T)
+    dispif(mrstVerbose, 'computeFlux\n');
     flux=zeros(G.faces.num,1);
     ind=all(G.faces.neighbors~=0,2);
     c1=G.faces.neighbors(ind,1);c2=G.faces.neighbors(ind,2);
