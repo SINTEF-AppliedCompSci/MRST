@@ -17,6 +17,7 @@ classdef TransportModelDG < TransportModel
             model.parentModel.disc = model.disc;
             
             model.parentModel.operators = setupOperatorsDG(model.disc, model.parentModel.G, model.parentModel.rock);
+            model.parentModel.outputFluxes = false;
             
         end
         
@@ -25,12 +26,40 @@ classdef TransportModelDG < TransportModel
             id = numel(name) > 3 && strcmp(name(end-2:end), 'dof');
         end
         
+        
+        
         %-----------------------------------------------------------------%
         function [fn, index] = getVariableField(model, name, varargin)
-            [fn, index] = getVariableField@TransportModel(model, name, varargin{:});
-            if ~isempty(fn)
-                fn = [fn, 'dof'];
+            switch(lower(name))
+                case {'swdof'}
+                    index = model.satVarIndex('sw');
+                    fn = 'sdof';
+                case {'sodof'}
+                    index = model.satVarIndex('so');
+                    fn = 'sdof';
+                case {'sgdof'}
+                    index = model.satVarIndex('sg');
+                    fn = 'sdof';
+                case {'sdof'}
+                    index = ':';
+                    fn = 'sdof';
+                case {'stdof'}
+                    index = ':';
+                    fn = 'sTdof';
+                case {'pressuredof'}
+                    index = ':';
+                    fn = 'pressuredof';
+                otherwise
+                    [fn, index] = getVariableField@TransportModel(model, name, varargin{:});
             end
+%             if ~isempty(fn)
+%                 fn = [fn, 'dof'];
+%             end
+        end
+        
+        %-----------------------------------------------------------------%
+        function index = satVarIndex(model, name)
+            index = model.parentModel.satVarIndex(name);
         end
         
         %-----------------------------------------------------------------%
@@ -41,9 +70,9 @@ classdef TransportModelDG < TransportModel
             for i = 1:numel(wm)
                 state.degree(wm{i}.W.cells) = 0;
             end
-            state    = assignDofFromState(model.disc, state);
-            state    = validateState@TransportModel(model, state);
-            state.sT = model.disc.getCellMean(state, state.sTdof);
+            state = validateState@TransportModel(model, state);
+            state = assignDofFromState(model.disc, state);
+%             state = model.disc.getCellMean(state, state.sT);
             % TODO: Validate DG state props
         end
         
@@ -56,7 +85,9 @@ classdef TransportModelDG < TransportModel
             % Get the AD state for this model
             [~, basenames, origin] = model.getPrimaryVariables(state);
             isParent = strcmp(origin, class(parent));
-            basenames = basenames(isParent);
+            
+            basenames0 = basenames(isParent);
+            basenames = cellfun(@(bn) [bn, 'dof'], basenames0, 'UniformOutput', false);
             origin = origin(isParent);
             basevars = cell(1, numel(basenames));
             for bNo = 1:numel(basenames)
@@ -74,7 +105,7 @@ classdef TransportModelDG < TransportModel
                 end
             end
             % Figure out saturation logic
-            isP = strcmp(basenames, 'pressure');
+            isP = strcmp(basenames, 'pressuredof');
             vars = basevars;
             names = basenames;
             useTotalSaturation = strcmpi(model.formulation, 'totalSaturation') ...
@@ -82,7 +113,7 @@ classdef TransportModelDG < TransportModel
             assert(useTotalSaturation, 'DG currently only supports total saturation formulation!');
             if useTotalSaturation
                 % Replace pressure with total saturation
-                replacement = 'sT';
+                replacement = 'sTdof';
                 sTdof = model.getProp(state, replacement);
                 % Replacing
                 vars{isP} = sTdof;
@@ -102,12 +133,23 @@ classdef TransportModelDG < TransportModel
             else
                 basevars(~isP) = vars;
             end
-            state = model.initStateAD(state, basevars, basenames, origin);
-            state.s = model.disc.getCellMean(state, value(state.sdof));
-            state.pressure = model.disc.getCellMean(state, value(state.pressuredof));
+            % Let parent model handle state initialization
+            state = model.initStateAD(state, basevars, basenames0, origin);
+            
+            for i = 1:numel(basenames)
+                if any(strcmpi(basenames0{i}, {'sw', 'so', 'sg'}));
+                   basenames0{i} = 's';
+                   basenames{i}  = 'sdof';
+                end
+                v     = model.getProp(state, basenames0{i});
+                state = model.setProp(state, basenames{i}, v);
+                vm    = model.disc.getCellMean(state, value(v));
+                state = model.setProp(state, basenames0{i}, vm); 
+            end
             if useTotalSaturation
                 % Set total saturation as well
                 sTdof = vars{isP};
+                state.sTdof = sTdof;
                 % Evaluate at cell cubature points
                 cellValue = model.disc.evaluateProp(state, sTdof, 'cell');
                 state.cellStateDG.sT = cellValue;
@@ -129,21 +171,22 @@ classdef TransportModelDG < TransportModel
         end
         
         function state = evaluateBaseVariables(model, state)
+            
             [cellStateDG, faceStateDG, wellStateDG] = deal(state);
             
             names = {'pressure', 's'};
             for k = 1:numel(names)
                 name = names{k};
-                if isfield(state, [name, 'dof'])
+                if isfield(state, name)
                     % Get dofs
-                    dof = model.getProp(state, name);
+                    dof = model.getProp(state, [name, 'dof']);
                     % Evaluate at cell cubature points
                     cellValue = model.disc.evaluateProp(state, dof, 'cell');
-                    cellStateDG = model.parentModel.setProp(cellStateDG, name, cellValue);
-                    wellStateDG = model.parentModel.setProp(wellStateDG, name, cellValue);
+                    cellStateDG = model.setProp(cellStateDG, name, cellValue);
+                    wellStateDG = model.setProp(wellStateDG, name, cellValue);
                     % Evaluate at face cubature points
                     faceValue = model.disc.evaluateProp(state, dof, 'face');
-                    faceStateDG = model.parentModel.setProp(faceStateDG, name, faceValue);
+                    faceStateDG = model.setProp(faceStateDG, name, faceValue);
                 end
             end
             
@@ -169,7 +212,28 @@ classdef TransportModelDG < TransportModel
             state.wellStateDG = wellStateDG;
             state.faceStateDG = faceStateDG;
             
-        end 
+        end
+        
+        function state = assignBaseVariables(model, state)
+            
+            names = {'s'};
+            for name = names
+                if isfield(state, name{1}) && isfield(state, [name{1}, 'dof'])
+                    dof = model.getProp(state, [name{1}, 'dof']);
+                    v   = model.disc.getCellMean(state, dof);
+                    state.(name{1}) = v;
+                end
+            end
+             
+            if strcmpi(model.formulation, 'totalSaturation')
+                if isfield(state, 'sT') && isfield(state, 'sTdof')
+                    dof = model.getProp(state, 'stdof');
+                    v   = model.disc.getCellMean(state, dof);
+                    state.sT = v;
+                end
+            end
+             
+        end
         
         function model = validateModel(model, varargin)
             model = validateModel@TransportModel(model, varargin{:});
@@ -208,16 +272,16 @@ classdef TransportModelDG < TransportModel
             d.sample = acc{1}(d.getDofIx(state, Inf));
             eqs = cell(1, numel(acc));
             for i = 1:numel(acc)
-                if ~isempty(src.cells)
-                    acc{i}(ix) = acc{i}(ix) - src.value{i};
-                end
                 eqs{i} = d.inner(acc{i}     , psi     , 'dV') ...
                        - d.inner(cellflux{i}, grad_psi, 'dV') ...
                        + d.inner(flux{i}    , psi     , 'dS');
-                 if ~model.useCNVConvergence
+                if ~isempty(src.cells)
+                    eqs{i}(ix) = eqs{i}(ix) - src.value{i};
+                end
+                if ~model.useCNVConvergence
                     pv     = model.operators.pv(cells);
                     eqs{i} = eqs{i}.*(dt./pv);
-                 end    
+                end    
             end
         end
         
@@ -226,38 +290,94 @@ classdef TransportModelDG < TransportModel
             [model, state] = prepareTimestep@TransportModel(model, state, state0, dt, drivingForces);
             state = assignDofFromState(model.disc, state, {'pressure'});
         end
-
+        
+        %-----------------------------------------------------------------%
+        function [restVars, satVars, wellVars] = splitPrimaryVariables(model, vars)
+            vars = cellfun(@(n) n(1:end-3), vars, 'UniformOutput', false);
+            [restVars, satVars, wellVars] = model.parentModel.splitPrimaryVariables(vars);
+            restVars = cellfun(@(n) [n, 'dof'], restVars, 'UniformOutput', false);
+            satVars = cellfun(@(n) [n, 'dof'], satVars, 'UniformOutput', false);
+        end
+        
         %-----------------------------------------------------------------%
         function [state, report] = updateState(model, state, problem, dx, drivingForces)
-            state_dof   = state;
-            state_dof.s = state.sdof;
-            state_dof.sT = state.sTdof;
-            model.parentModel.G.cells.num = sum(state.nDof);
-            [state_dof, report] = updateState@TransportModel(model, state_dof, problem, dx, drivingForces);
-            state.sdof = state_dof.s;
-            state.s = model.disc.getCellMean(state, state.sdof);
+
             state = rmfield(state, 'cellStateDG');
             state = rmfield(state, 'faceStateDG');
             state = rmfield(state, 'wellStateDG');
+
+            [restVars, satVars] = model.splitPrimaryVariables(problem.primaryVariables);
+            
+            % Update saturation dofs
+            state = model.updateSaturations(state, dx, problem, satVars);
+            % Update remaining non-saturation dofs
+            state = model.updateDofs(state, dx, problem, restVars);
+            % Update cell averages from dofs
+            state0 = state;
+            state  = model.assignBaseVariables(state);
+            
+            dx0 = model.getMeanIncrement(state, state0, problem);
+
+            problem0 = problem;
+            problem0.primaryVariables = cellfun(@(n) n(1:end-3), problem0.primaryVariables, 'UniformOutput', false);
+            [state_tmp, report] = updateState@TransportModel(model, state0, problem0, dx0, drivingForces);
+            dx_tmp = model.getMeanIncrement(state_tmp, state0, problem);
+            
+            frac = cellfun(@(x,y) x./y, dx_tmp, dx0, 'UniformOutput', false);
+            cells = rldecode((1:model.G.cells.num)', state.nDof, 1);
+            
+%             vars = problem.primaryVariables;
+%             for i = 1:numel(vars)
+%                 f = frac{i};
+%                 f(isnan(f)) = 1;
+%                 f = f(cells);
+%                 s     = model.getProp(state, vars{i});
+%                 state = model.setProp(state, vars{i}, s.*f);
+%             end
+            
+            
+        end
+        
+        %-----------------------------------------------------------------%
+        function dx = getMeanIncrement(model, state, state0, problem)
+            
+            vars = problem.primaryVariables;
+            dx   = cell(1, numel(vars));
+            for i = 1:numel(vars)
+                vn = vars{i}(1:end-3);
+                v  = model.getProp(state, vn);
+                v0 = model.getProp(state0, vn);
+                dx{i} = v - v0;
+            end
+
         end
         
         % ----------------------------------------------------------------%
-        function state = updateSaturations(model, state, dx, problem, satDofVars)
+        function state = updateDofs(model, state, dx, problem, dofVars)
+            
+            for i = 1:numel(dofVars)
+                state = updateStateFromIncrement(model, state, dx{i}, problem, dofVars{i}, inf, inf);
+            end
+            
+        end
+        
+        % ----------------------------------------------------------------%
+        function state = updateSaturations(model, state, dx, problem, satVars)
 
             if nargin < 5
                 % Get the saturation names directly from the problem
-                [~, satDofVars] = ...
+                [~, satVars] = ...
                     splitPrimaryVariables(model, problem.primaryVariables);
             end
-            if isempty(satDofVars)
+            if isempty(satVars)
                 % No saturations passed, nothing to do here.
                 return
             end
-            % Solution variables should be saturations directly, find the missing
-            % link
-            saturations = lower(model.getDGDofVarNames);
-            
-            fillsat = setdiff(saturations, lower(satDofVars));
+            % Solution variables should be saturations directly, find the
+            % missing link
+            saturations0 = lower(model.parentModel.getSaturationVarNames);
+            saturations  = cellfun(@(n) [n, 'dof'], saturations0, 'uniformOutput', false);
+            fillsat = setdiff(saturations, lower(satVars));
             nFill = numel(fillsat);
             assert(nFill == 0 || nFill == 1)
             if nFill == 1
@@ -275,8 +395,8 @@ classdef TransportModelDG < TransportModel
             ds = zeros(sum(state.nDof), numel(saturations));
             
             tmp = 0;
-            active = ~model.G.cells.ghost;
-            ix = model.disc.getDofIx(state, Inf, active);
+%             active = ~model.G.cells.ghost;
+            ix = model.disc.getDofIx(state, Inf);
             for phNo = 1:numel(saturations)
                 if solvedFor(phNo)
                     v = model.getIncrement(dx, problem, saturations{phNo});
@@ -291,49 +411,8 @@ classdef TransportModelDG < TransportModel
             ds(ix, ~solvedFor) = tmp;
             % We update all saturations simultanously, since this does not bias the
             % increment towards one phase in particular.
-            state   = model.updateStateFromIncrement(state, ds, problem, 'sdof', Inf, model.dsMaxAbs);
-            state.s = model.disc.getCellSaturation(state);
-
-%             ix = any(abs(ds)>model.dsMaxAbs,2);
-%             alph = model.dsMaxAbs./max(abs(ds(ix,:)), [], 2);
-%             
-%             ds(ix,:) = alph.*ds(ix,:);
-%             state   = model.updateStateFromIncrement(state, ds, problem, 'sdof', Inf, Inf);
-%             state.s = model.disc.getCellSaturation(state);            
+            state   = model.updateStateFromIncrement(state, ds, problem, 'sdof', Inf, Inf);
             
-            if nFill == 1
-                
-                if 1
-                bad = any((state.s > 1 + model.disc.meanTolerance) ...
-                        | (state.s < 0 - model.disc.meanTolerance), 2);
-                
-                else
-                [smin, smax] = model.disc.getMinMaxSaturation(state);
-                over  = smax > 1 + model.disc.meanTolerance;
-                under = smin < 0 - model.disc.meanTolerance;
-                bad = over | under;
-                end
-                    
-                    
-                if any(bad)
-                    state.s(bad, :) = min(state.s(bad, :), 1);
-                    state.s(bad, :) = max(state.s(bad, :), 0);
-                    state.s(bad, :) = bsxfun(@rdivide, state.s(bad, :), ...
-                                                  sum(state.s(bad, :), 2));
-                    state = dgLimiter(model.disc, state, bad, 's', 'kill');
-                end
-            else
-                bad = any(state.s < 0 - model.disc.meanTolerance, 2);
-                 if any(bad)
-                    state.s(bad, :) = max(state.s(bad, :), 0);
-                    state = dgLimiter(model.disc, state, bad, 's', 'kill');
-                 end
-            end
-
-            if model.disc.limitAfterNewtonStep
-                % Limit solution
-                state = model.disc.limiter(model, state, [], true);
-            end
         end
         
         function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
@@ -341,6 +420,34 @@ classdef TransportModelDG < TransportModel
             state = rmfield(state, 'cellStateDG');
             state = rmfield(state, 'faceStateDG');
             state = rmfield(state, 'wellStateDG');
+            
+            propfn = model.parentModel.getStateFunctionGroupings();
+            d = model.disc;
+            d.nDof = state.nDof;
+            d.dofPos = state.dofPos;
+            ix = d.getDofIx(state, 1, Inf);
+            psi    = model.disc.basis.psi(1);
+            d.sample = state.sdof(:,1);
+            for i = 1:numel(propfn)
+                p = propfn{i};
+                struct_name = p.getStateFunctionContainerName();
+                names = p.getNamesOfStateFunctions();
+                if isfield(state, struct_name)
+                    for j = 1:numel(names)
+                        name = names{j};
+                        if ~isempty(state.(struct_name).(name))
+                            v = state.(struct_name).(name);
+                            nph = numel(v);
+                            for ph = 1:nph
+                                v{ph} = d.inner(v{ph}, psi, 'dV');
+                                v{ph} = v{ph}(ix);
+                            end
+                            state.(struct_name).(name) = v;
+                        end
+                    end
+                end
+            end
+            
         end
         
     end
