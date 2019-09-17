@@ -452,7 +452,7 @@ classdef DGDiscretization < SpatialDiscretization
             
 %             psi      = disc.basis.psi;      % Basis functions
 %             gradPsi  = disc.basis.grad_psi; % Gradient of basis functions
-            nDofMax  = disc.basis.nDof;     % Maximum number of dofs
+            nDofMax  = numel(v);     % Maximum number of dofs
             % Empty cells means all cells in grid
             if isempty(cells)
                 cells = (1:disc.G.cells.num)';
@@ -508,17 +508,16 @@ classdef DGDiscretization < SpatialDiscretization
             
             [W, x, ~, faceNo] = disc.getCubature(faces, 'face');
             N = disc.G.faces.neighbors;
-            
+            if isempty(faceNo)
+                I = 0;
+                return
+            end
             I = disc.sample*0;
             for side = 1:2
                 cells  = N(faces,side);
                 cellNo = N(faceNo,side);
                 f2c = sparse(cells, (1:numel(faces))', 1, disc.G.cells.num, numel(faces));
                 [xf, ~, ~] = disc.transformCoords(x, cellNo);
-                if isempty(faceNo)
-                    I = 0;
-                    return
-                end
                 % Evaluate integrals
     %             I = dof*0;
                 sgn = (-1).^(side-1);
