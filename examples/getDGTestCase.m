@@ -24,6 +24,7 @@ function setup = simple1d(args) %#ok
     pmodel = PressureModel(model);
     tmodel = TransportModel(model);
     tmodel.parentModel.useCNVConvergence = false;
+    tmodel.parentModel.nonlinearTolerance = 1e-3;
     
     modelFV = SequentialPressureTransportModel(pmodel, tmodel, 'parentModel', model);
     
@@ -33,10 +34,12 @@ function setup = simple1d(args) %#ok
                                    'degree', opt.degree(dNo), discArgs{:});
         tmodelDG     = TransportModelDG(model, 'disc', disc);
         tmodelDG.parentModel.useCNVConvergence = false;
+        tmodelDG.parentModel.nonlinearTolerance = 1e-3;
+        tmodelDG.parentModel.OutputStateFunctions = {};
         modelDG{dNo} = SequentialPressureTransportModel(pmodel, tmodelDG, 'parentModel', model);
     end
 
-    time  = opt.n;
+    time  = 2*opt.n;
     dt    = opt.n/100;
     dtvec = rampupTimesteps(time, dt, 0);
     
@@ -50,7 +53,7 @@ function setup = simple1d(args) %#ok
     schedule = simpleSchedule(dtvec, 'W', W);
 
     sW     = 0.0;
-    state0 = initResSol(G, 100*barsa, [sW,1-sW]);
+    state0 = initResSol(G, 1, [sW,1-sW]);
 %     state0.flux = zeros(G.faces.num,1);
 %     state0.flux(modelFV.parentModel.operators.internalConn) = 1;
 %     state0.flux(modelFV.transportModel.operators.internalConn) = 1;
