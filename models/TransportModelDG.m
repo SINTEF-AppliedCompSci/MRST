@@ -26,8 +26,6 @@ classdef TransportModelDG < TransportModel
             id = numel(name) > 3 && strcmp(name(end-2:end), 'dof');
         end
         
-        
-        
         %-----------------------------------------------------------------%
         function [fn, index] = getVariableField(model, name, varargin)
             switch(lower(name))
@@ -52,9 +50,6 @@ classdef TransportModelDG < TransportModel
                 otherwise
                     [fn, index] = getVariableField@TransportModel(model, name, varargin{:});
             end
-%             if ~isempty(fn)
-%                 fn = [fn, 'dof'];
-%             end
         end
         
         %-----------------------------------------------------------------%
@@ -72,8 +67,6 @@ classdef TransportModelDG < TransportModel
             end
             state = validateState@TransportModel(model, state);
             state = assignDofFromState(model.disc, state);
-%             state = model.disc.getCellMean(state, state.sT);
-            % TODO: Validate DG state props
         end
         
         %-----------------------------------------------------------------%
@@ -344,6 +337,7 @@ classdef TransportModelDG < TransportModel
             % Update cell averages from dofs
             state = model.assignBaseVariables(state);
             end
+            
         end
         
         %-----------------------------------------------------------------%
@@ -403,7 +397,6 @@ classdef TransportModelDG < TransportModel
             ds = zeros(sum(state.nDof), numel(saturations));
             
             tmp = 0;
-%             active = ~model.G.cells.ghost;
             ix = model.disc.getDofIx(state, Inf);
             for phNo = 1:numel(saturations)
                 if solvedFor(phNo)
@@ -456,6 +449,29 @@ classdef TransportModelDG < TransportModel
                 end
             end
             
+            if 1
+                 state = model.disc.limiter(state, 's');
+            else
+                d = model.disc;
+                d.jumpTolerance = 1e-3;
+                d.jumpLimiter = 'tvb';
+                d.plotLimiterProgress = true;
+                w = WENOUpwindDiscretization(model.parentModel, model.G.griddim);
+                [C, pts, cells, basis, supports, linear_weights, scaling] = w.getTriangulation(model.parentModel);
+
+                interp_setup.tri_cells = cells;
+                interp_setup.tri_basis = basis;
+                interp_setup.tri_points = pts;
+                interp_setup.linear_weights = linear_weights;
+                interp_setup.cell_support = supports;
+                interp_setup.scaling = scaling;
+                interp_setup.C = C;
+                interp_setup.cell_support_count = cellfun(@numel, interp_setup.cell_support);
+
+                d.interp_setup = interp_setup;
+                state = d.limiters(model, state, state, false);
+            end
+
         end
         
     end

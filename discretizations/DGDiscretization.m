@@ -33,9 +33,13 @@ classdef DGDiscretization < SpatialDiscretization
                             % must keep tract of internal connections in 
                             % the full grid.
                             
+        limiter
+                            
         nDof
         dofPos
         sample
+        
+        interp_setup
         
     end
     
@@ -887,7 +891,7 @@ classdef DGDiscretization < SpatialDiscretization
         end
         
         %-----------------------------------------------------------------%
-        function state = limiter(disc, model, state, state0, before)
+        function state = limiters(disc, model, state, state0, before)
             % Limiters applied after each Newton iteration if
             % disc.limitAfterNewtonStep = true and before = true, and after
             % convergence if disc.limitAfterConvergence = true and before =
@@ -948,7 +952,7 @@ classdef DGDiscretization < SpatialDiscretization
                 % Limiters to be applied after convergence
                 if disc.degree > 0
                     % Scale solutions so that 0 <= s <= 1
-                    state = dgLimiter(disc, state, check, 's', 'scale', 'plot', disc.plotLimiterProgress);
+%                     state = dgLimiter(disc, state, check, 's', 'scale', 'plot', disc.plotLimiterProgress);
                     if disc.jumpTolerance < Inf
                         % Limit saturation slope in cells with interface jumps
                         % larger than threshold
@@ -959,7 +963,7 @@ classdef DGDiscretization < SpatialDiscretization
                         jump(state.degree == 0) = false;
                         bad = jump & check & state.degree > 0;
                         if any(bad)
-                            state = dgLimiter(disc, state, bad, 'tvb', 'plot', disc.plotLimiterProgress);
+                            state = dgLimiter(disc, state, bad, 's', 'tvb', 'plot', disc.plotLimiterProgress);
                         end
                     end
                 end
