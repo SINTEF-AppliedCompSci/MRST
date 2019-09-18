@@ -401,8 +401,23 @@ classdef DGDiscretization < SpatialDiscretization
             % Get cubature for all cells
             [W, x, cellNo, ~] = disc.getCubature((1:disc.G.cells.num)', 'volume');
             val = cell(numel(varargin),1);
-            [val{:}] = disc.evaluateDGVariable(x, cellNo, state, varargin{:});
-            val = cellfun(@(v) W*v./disc.G.cells.volumes, val, 'unif', false);
+            
+            for i = 1:nargin-2
+                dof = varargin{i};
+                if iscell(dof)
+                    v = cell(1,numel(dof));
+                    for j = 1:numel(dof)
+                        v{j} = disc.evaluateDGVariable(x, cellNo, state, dof{j});
+                        v{j} = W*v{j}./disc.G.cells.volumes;
+                    end
+                else
+                    v = disc.evaluateDGVariable(x, cellNo, state, dof);
+                    v = W*v./disc.G.cells.volumes;
+                end
+                val{i} = v;
+            end
+%             [val{:}] = disc.evaluateDGVariable(x, cellNo, state, varargin{:});
+%             val = cellfun(@(v) W*v./disc.G.cells.volumes, val, 'unif', false);
             varargout = val;
             
         end
