@@ -14,8 +14,7 @@ clear all
 close all
 
 mrstModule add incomp mimetic  ad-blackoil ad-core postprocessing ...
-    ad-props mpfa ntpfa-kobaisi ntpfa ...
-    wellpaths
+    ad-props mpfa ntpfa-kobaisi ntpfa mrst-gui wellpaths
 
 % Grid (twist later)
 nx = 7;
@@ -23,16 +22,18 @@ ny = 5;
 nz = 3;
 N = [nx, ny, nz];
 L = [10, 20, 30];
-refine = 3;
+refine = 2;
 G = cartGrid(N*refine, L);
 %G = tetrahedralGrid(G.nodes.coords);
 G = computeGeometry(G);
-h = (max(G.nodes.coords) - min(G.nodes.coords))./N;
+xyzmax = max(G.nodes.coords);
+xyzmin = min(G.nodes.coords);
+h = (xyzmax - xyzmin)./N;
 
 % Rock has one layer with high perm
 dim = 1;
 zmean = mean(G.nodes.coords(:,dim));
-dz = max(G.nodes.coords(:,dim)) - min(G.nodes.coords(:,dim));
+dz = xyzmax(:,dim) - xyzmin(:,dim);
 cells = (1:G.cells.num)';
 zcells_ii = cells(abs(G.cells.centroids(:,dim) - zmean) < 0.2*dz);
 perm_low = 1*milli*darcy;
@@ -43,17 +44,19 @@ pv = sum(poreVolume(G,rock));
 
 % Wells
 W = [];
-rate_val = 1.0; %/day();
-%bhp_val = 1.0;
 W = addWell(W, G, rock, well_cells(G, '1'), 'Type', 'rate', ...
             'comp_i', 1, ...
-            'Val', rate_val, 'Name', 'I1');
+            'Val', 10, 'Name', 'I1');
 W = addWell(W, G, rock, well_cells(G, '5'), 'Type', 'rate', ...
             'comp_i', 1, ...
-            'Val', -rate_val, 'Name', 'I2');
+            'Val', 1, 'Name', 'I2');
+% bhp_val = 10.0;
 % W = addWell(W, G, rock, well_cells(G, '1'), 'Type', 'bhp', ...
-%             'comp_i', [1], ...
-%             'Val', bhp_val, 'Name', 'I2');
+%             'comp_i', 1, ...
+%             'Val', bhp_val, 'Name', 'I1');
+% W = addWell(W, G, rock, well_cells(G, '5'), 'Type', 'bhp', ...
+%             'comp_i', 1, ...
+%             'Val', -bhp_val, 'Name', 'I2');
 
 % Optional twist
 %G = twister(G, 0.1);
@@ -64,24 +67,25 @@ plotWell(G,W)
 view(3)
 
 % Simulation setup
-bc_std = bc_hom_neumann(G);
 p0 = 1;
-%bc_std = bc_dirichlet_side_pairs(G, 1, p0);
-bc_flow_ntpfa = convertBC2FlowNTPFA(G, bc_std);
 s0 = 1;
 state0 = initState(G, W, p0, s0);
-dt = 1*day();
+%bc_std = bc_hom_neumann(G);
+bc_std = bc_dirichlet_side_pairs(G, 1);
+bc_flow_ntpfa = convertBC2FlowNTPFA(G, bc_std);
 %schedule = simpleSchedule(dt, 'W', W, 'bc', bc_std);
 mu_value = 1;
 rho_value = 1;
 fluid = initSingleFluid('mu',mu_value,'rho',rho_value);
 gravity off
 
-tol = 1e-3*h;
-refpt = [max(G.nodes.coords(:,1)), max(G.nodes.coords(:,2)), min(G.nodes.coords(:,3))]+tol.*[-1,-1,1];
+refpt = [xyzmax(:,1:2), 0.5*(xyzmax(:,3)+xyzmin(:,3))] + h.*[-1.5,-1.5,-0.1];
+%tol = 1e-3*h;
+%refpt = [max(G.nodes.coords(:,1)), max(G.nodes.coords(:,2)), 0.5*(max(G.coodrdsmin(G.nodes.coords(:,3))] + tol.*[-1,-1,1];
 %refpt = max(G.nodes.coords) - 2.5*h;
 %refpt = mean(G.nodes.coords) - 1e-3*h;
 refcell = findEnclosingCell(G, refpt);
+assert(refcell > 0);
 
 plotconc = false;
 tracer = true;
@@ -131,6 +135,7 @@ end
 results{end}.state = state;
 mrstVerbose(mrstverbosestatus);
 
+
 %% MFD (Must be at the end)
 results{end+1}.name = 'mfd';
 disp(results{end}.name);
@@ -148,7 +153,7 @@ if plotconc
     drawnow
 end
 results{end}.state = state;
-
+keyboard
 if tracer
     refsols = cell(numel(results), 1);
     Ws = cell(1,2);
@@ -160,7 +165,7 @@ if tracer
     Ws{2}(2).tracer = 0;
     
     time  = 1e4;
-    dt = time/100;
+    dt = time/1000;
     dtvec = rampupTimesteps(time, dt);
     schedule = simpleSchedule(dtvec, 'W', W);
     schedule.step.control(2 : end) = 2;
@@ -176,6 +181,8 @@ if tracer
         [wellsols, states] = simulateScheduleAD(results{i}.state, tracermodel, schedule);
         figure
         plotToolbar(G,states);colorbar,view(3)
+        hold on
+        plotGrid(G, refcell, 'facecolor', 'k');
         title(results{i}.name)
        
         refsol = zeros(numel(dtvec),1);
@@ -188,7 +195,7 @@ if tracer
     figure, hold on
     names = cell(numel(results), 1);
     for i = 1:numel(results)
-        plot(cumsum(dtvec),refsols{i},'.-')
+        plot(cumsum(dtvec),refsols{i},'-')
         names{i} = results{i}.name;
     end
     legend(names)
