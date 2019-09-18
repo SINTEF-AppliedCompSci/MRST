@@ -11,13 +11,13 @@ rho = rho(1);
 
 % Fix pressure if there are only hom Neumann BC (i.e. no pressure bc)
 % and no bhp wells
-numWR = getNoRateWells(W);
-is_bhp_wells = numel(W) > numWR;
+num_W_rate = getNoRateWells(W);
+is_bhp_wells = numel(W) > num_W_rate;
 is_pressure_bc = any(strcmpi(bc.type, 'pressure'));
 well_posed = is_pressure_bc || is_bhp_wells
 
 % Expand u0 if there are rate wells
-u0 = [u0; ones(numWR, 1)];
+u0 = [u0; ones(num_W_rate, 1)];
 T=TransNTPFA(u0);
 [A,b]=AssemAb(T,opt.src,well_posed); 
 iter=0;
@@ -128,6 +128,7 @@ function [A,b]=AssemAb(T, src, well_posed)
     end
     
     %----------------------------------------------------------
+    g = gravity();
     for i=1:numel(W)
         if(strcmpi(W(i).type,'bhp'))
             pbh=W(i).val;
@@ -135,7 +136,7 @@ function [A,b]=AssemAb(T, src, well_posed)
             for j=1:numel(W(i).cells)
                 mycell=W(i).cells(j);
                 I(k)=mycell;J(k)=mycell;V(k)=W(i).WI(j)/mu;k=k+1;
-                b(mycell)=b(mycell)+W(i).WI(j)/mu*(pbh+rho*9.81*dZ(j));
+                b(mycell)=b(mycell)+W(i).WI(j)/mu*(pbh+rho*g(3)*dZ(j));
             end
         elseif(strcmpi(W(i).type,'rate'))
             rate=W(i).val;
@@ -146,8 +147,8 @@ function [A,b]=AssemAb(T, src, well_posed)
                 I(k)=mycell;       J(k)=G.cells.num+i;V(k)=-W(i).WI(j)/mu;k=k+1;
                 I(k)=G.cells.num+i;J(k)=G.cells.num+i;V(k)=W(i).WI(j)/mu;k=k+1;
                 I(k)=G.cells.num+i;J(k)=mycell;       V(k)=-W(i).WI(j)/mu;k=k+1;
-                b(mycell)       =b(mycell)+W(i).WI(j)/mu*(rho*9.81*dZ(j));
-                b(G.cells.num+i)=b(G.cells.num+i)+W(i).WI(j)/mu*(rho*9.81*dZ(j));
+                b(mycell)       =b(mycell)+W(i).WI(j)/mu*(rho*g(3)*dZ(j));
+                b(G.cells.num+i)=b(G.cells.num+i)+W(i).WI(j)/mu*(rho*g(3)*dZ(j));
             end
             b(G.cells.num+i)=b(G.cells.num+i)+rate;
         else
@@ -184,7 +185,7 @@ function [flux,wellsol]=computeFlux(u,T)
         if(strcmpi(W(i).type,'bhp'))
             pbh=W(i).val;
             dZ=W(i).dZ;
-            wellsol(i).pressure=pbh+rho*9.81*dZ;
+            wellsol(i).pressure=pbh+rho*g(3)*dZ;
             wellsol(i).flux=W(i).WI./mu.*(wellsol(i).pressure-u(W(i).cells));
         elseif(strcmpi(W(i).type,'rate'))
             rate=W(i).val;
