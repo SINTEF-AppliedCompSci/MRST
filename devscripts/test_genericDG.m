@@ -4,12 +4,7 @@ mrstVerbose on
 
 %%
 
-gravity reset off
-gravity([1,0]);
-setup   = getDGTestCase('simple1d', 'n', 3);
-
-setup.modelFV.transportModel.parentModel.fluid.transMult = @(p) 0*p + 1;
-setup.modelDG{2}.transportModel.parentModel.fluid.transMult = @(p) 0*p + 1;
+setup   = getDGTestCase('simple1d', 'n', 20);
 
 %%
 
@@ -18,10 +13,29 @@ setup.modelDG{2}.transportModel.parentModel.fluid.transMult = @(p) 0*p + 1;
 
 %%
 
-for dNo = 1:numel(setup.modelDG)
-%     setup.modelDG{dNo}.transportModel.formulation = 'missingPhase';
-    [wsDG, stDG, repDG] = simulateScheduleAD(setup.state0,setup.modelDG{dNo}, setup.schedule);
-end
+[wsDG, stDG, repDG] = deal(cell(numel(setup.modelDG),1));
+
 %%
 
-plotWellSols({wsFV, wsDG})
+ix = 1:3;
+for i = ix
+    [wsDG{i}, stDG{i}, repDG{i}] = simulateScheduleAD(setup.state0, setup.modelDG{i}, setup.schedule);
+end
+
+%%
+
+ws = vertcat({wsFV}, wsDG(ix));
+datasetNames = horzcat({'FV'}, cellfun(@(ix) ['dG(', num2str(ix-1), ')'], num2cell(ix), 'UniformOutput', false));
+plotWellSols(ws, setup.schedule.step.val, 'datasetnames', datasetNames)
+
+%%
+
+close all
+
+t = 50;
+figure, hold on
+for i = ix
+    plotSaturationDG(setup.modelDG{i}.transportModel.disc, stDG{i}{t}, 'plot1d', true, 'n', 500);
+end
+
+%%
