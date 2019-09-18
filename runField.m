@@ -29,7 +29,7 @@ G = computeGeometry(G);
 figure
 plotGrid(G,'facealpha', 0.5)
 
-% Extract faces in x direction
+% Extract faces in x direction for plotting fluxes
 tol = 1e-5;
 pts = [tol, 0.5+tol, 0.5+tol;
        1-tol, 0.5+tol, 0.5+tol];
