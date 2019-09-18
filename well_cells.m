@@ -37,6 +37,10 @@ function cells = well_cells(G, type)
             xyz0 = [xmax-2*offset, ymin+offset, zmin+offset];
             xyz1 = [xmax-2*offset, ymin+offset, zmax-offset];
             
+      case '5' % diagonally across 1
+        xyz0 = [xmax-offset, ymax-offset, zmin+offset];
+        xyz1 = [xmax-offset, ymax-offset, zmax-offset];
+            
         otherwise
             disp('unknown case');
         keyboard;
