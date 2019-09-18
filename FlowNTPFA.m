@@ -166,7 +166,11 @@ function [A,b]=AssemAb(T, src, well_posed)
     
     % Fix well-posedness similar to incompTPFA
     if ~well_posed
-        A(1) = 2*A(1);
+        if A(1) > 0
+            A(1) = 2*A(1);
+        else
+            keyboard
+        end
     end
 end
 %--------------------------------------------------------------------------
@@ -181,6 +185,7 @@ function [flux,wellsol]=computeFlux(u,T)
     ind=G.faces.neighbors(:,1)==0;
     flux(ind)=-flux(ind);
     
+    g = gravity();
     wellsol=repmat(struct('pressure',[],'flux',[]),[numel(W) 1]);
     for i=1:numel(W)
         if(strcmpi(W(i).type,'bhp'))
