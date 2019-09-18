@@ -14,7 +14,8 @@ rho = rho(1);
 num_W_rate = getNoRateWells(W);
 is_bhp_wells = numel(W) > num_W_rate;
 is_pressure_bc = any(strcmpi(bc.type, 'pressure'));
-well_posed = is_pressure_bc || is_bhp_wells
+well_posed = is_pressure_bc || is_bhp_wells;
+dispif(mrstVerbose, ['FlowNTPFA problem is well posed ', num2str(well_posed),'\n']);
 
 % Expand u0 if there are rate wells
 u0 = [u0; ones(num_W_rate, 1)];
