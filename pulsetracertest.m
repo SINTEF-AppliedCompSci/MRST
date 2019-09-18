@@ -5,13 +5,15 @@
 
 %{
 summary
-cart grid: tpfa=ntpfa, mfd different
-cart grid + rotation: same
-tet grid: tpfa zero, mfd ok. ntpfa doesn't converge
+cart grid: tpfa=ntpfa, mfd a bit different
+cart grid + twist: same as w/o twister
+tet grid: tpfa zero, mfd ok. ntpfa so-so
+tet grid + twist: tpfa zero, ntpfa pretty bad (conv problems on refine=4), mfd great but not equal to cart grid case (but it probably converges)
+tet grid + twist low tol: same bad ntpfa
 %}
 
 clear all
-close all
+%close all
 
 mrstModule add incomp mimetic  ad-blackoil ad-core postprocessing ...
     ad-props mpfa ntpfa-kobaisi ntpfa mrst-gui wellpaths
@@ -22,9 +24,9 @@ ny = 5;
 nz = 3;
 N = [nx, ny, nz];
 L = [10, 20, 30];
-refine = 2;
+refine = 4;
 G = cartGrid(N*refine, L);
-%G = tetrahedralGrid(G.nodes.coords);
+G = tetrahedralGrid(G.nodes.coords);
 G = computeGeometry(G);
 xyzmax = max(G.nodes.coords);
 xyzmin = min(G.nodes.coords);
@@ -45,10 +47,10 @@ pv = sum(poreVolume(G,rock));
 % Wells
 W = [];
 W = addWell(W, G, rock, well_cells(G, '1'), 'Type', 'rate', ...
-            'comp_i', 1, ...
+            'comp_i', 1, 'radius', 0.01, ...
             'Val', 10, 'Name', 'I1');
 W = addWell(W, G, rock, well_cells(G, '5'), 'Type', 'rate', ...
-            'comp_i', 1, ...
+            'comp_i', 1, 'radius', 0.01, ...
             'Val', 1, 'Name', 'I2');
 % bhp_val = 10.0;
 % W = addWell(W, G, rock, well_cells(G, '1'), 'Type', 'bhp', ...
@@ -59,8 +61,9 @@ W = addWell(W, G, rock, well_cells(G, '5'), 'Type', 'rate', ...
 %             'Val', -bhp_val, 'Name', 'I2');
 
 % Optional twist
-%G = twister(G, 0.1);
+G = twister(G, 0.1);
 
+figure
 plotCellData(G,rock.perm)
 hold on
 plotWell(G,W)
@@ -96,8 +99,8 @@ results{end+1}.name = 'mrst tpfa';
 disp(results{end}.name);
 T = computeTrans(G,rock);
 state = incompTPFA(state0, G, T, fluid, 'wells', W, 'bc', bc_std);
-figure,plotToolbar(G,state);plotWell(G,W);view(3)
-title(['Pressure ', results{end}.name]);h=colorbar;h.Label.String='Pressure [Pa]';clear h;
+%figure,plotToolbar(G,state);plotWell(G,W);view(3)
+%title(['Pressure ', results{end}.name]);h=colorbar;h.Label.String='Pressure [Pa]';clear h;
 %figure,plotFaceData(G,cells_xdir, state.flux);colorbar,view(3)
 %title(['flux ', results{end}.name])
 if plotconc
@@ -119,10 +122,12 @@ interpFace=findHAP(G,rock,bc_flow_ntpfa);
 disp(['fraction of faces with centroids outside convex hull ', num2str(interpFace.percentage)]);
 interpFace=correctHAP(G,interpFace);
 OSflux=findOSflux(G,rock,bc_flow_ntpfa,interpFace);
-state=FlowNTPFA(G,bc_flow_ntpfa,fluid,W,OSflux,p0*ones(G.cells.num,1),1e-7,100);
+%state=FlowNTPFA(G,bc_flow_ntpfa,fluid,W,OSflux,p0*ones(G.cells.num, ...
+%                                                  1),1e-7,1000);
+state=FlowNTPFA(G,bc_flow_ntpfa,fluid,W,OSflux,results{1}.state.pressure,1e-7,1000);
 %figure,plotCellData(G,state.pressure/1e6);view(3)
-figure,plotToolbar(G,state);plotWell(G,W);view(3)
-title(['Pressure ', results{end}.name]);h=colorbar;h.Label.String='Pressure [Pa]';clear h;
+%figure,plotToolbar(G,state);plotWell(G,W);view(3)
+%title(['Pressure ', results{end}.name]);h=colorbar;h.Label.String='Pressure [Pa]';clear h;
 %figure,plotFaceData(G,cells_xdir, state.flux);colorbar,view(3)
 %title(['flux ', results{end}.name])
 if plotconc
@@ -141,8 +146,8 @@ results{end+1}.name = 'mfd';
 disp(results{end}.name);
 state=incompMimetic(state0,G,computeMimeticIP(G,rock),fluid,'wells',W,'bc',bc_std);
 %figure, plotCellData(G,state.pressure/1e6);view(3);
-figure,plotToolbar(G,state);plotWell(G,W);view(3)
-title(['Pressure ', results{end}.name]);h=colorbar;h.Label.String='Pressure [Pa]';clear h;
+%figure,plotToolbar(G,state);plotWell(G,W);view(3)
+%title(['Pressure ', results{end}.name]);h=colorbar;h.Label.String='Pressure [Pa]';clear h;
 %figure,plotFaceData(G,cells_xdir, state.flux);colorbar,view(3)
 %title(['flux ', results{end}.name])
 if plotconc
@@ -153,7 +158,7 @@ if plotconc
     drawnow
 end
 results{end}.state = state;
-keyboard
+
 if tracer
     refsols = cell(numel(results), 1);
     Ws = cell(1,2);
@@ -165,7 +170,7 @@ if tracer
     Ws{2}(2).tracer = 0;
     
     time  = 1e4;
-    dt = time/1000;
+    dt = time/100;
     dtvec = rampupTimesteps(time, dt);
     schedule = simpleSchedule(dtvec, 'W', W);
     schedule.step.control(2 : end) = 2;
