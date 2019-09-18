@@ -1,3 +1,15 @@
+% Setup pulse tracer case since NTPFA performed surprisingly bad on
+% the notes/slides2/scripts/plotPulseAtPos using rate wells, homogeneous Neumann bc
+% datacases   = {'small-perm', 'small-perm2', 'small-perm3', 'small-perm4'};
+% datacase = datacases{1}
+
+%{
+summary
+cart grid: tpfa=ntpfa, mfd different
+cart grid + rotation: same
+tet grid: tpfa zero, mfd ok. ntpfa doesn't converge
+%}
+
 clear all
 close all
 
@@ -12,9 +24,8 @@ nz = 3;
 N = [nx, ny, nz];
 L = [10, 20, 30];
 refine = 2;
-%G = cartGrid(N*refine, L, 'cellnodes', true);
 G = cartGrid(N*refine, L);
-G = tetrahedralGrid(G.nodes.coords);
+%G = tetrahedralGrid(G.nodes.coords);
 G = computeGeometry(G);
 h = (max(G.nodes.coords) - min(G.nodes.coords))./N;
 
@@ -23,7 +34,6 @@ dim = 1;
 zmean = mean(G.nodes.coords(:,dim));
 dz = max(G.nodes.coords(:,dim)) - min(G.nodes.coords(:,dim));
 cells = (1:G.cells.num)';
-%zcells_ii = cells(abs(G.nodes.coords(G.cellNodes(:,1),dim) - zmean) < 0.1*dz);
 zcells_ii = cells(abs(G.cells.centroids(:,dim) - zmean) < 0.1*dz);
 perm_low = 1*milli*darcy;
 perm_high = 100*milli*darcy;
@@ -33,13 +43,13 @@ pv = sum(poreVolume(G,rock));
 
 % Wells
 W = [];
-rate_val = 1.0e6/day();
+rate_val = 1.0/day();
 bhp_val = 1.0;
 W = addWell(W, G, rock, well_cells(G, '1'), 'Type', 'rate', ...
-            'comp_i', [1], ...
+            'comp_i', 1, ...
             'Val', rate_val, 'Name', 'I1');
 W = addWell(W, G, rock, well_cells(G, '5'), 'Type', 'rate', ...
-            'comp_i', [1], ...
+            'comp_i', 1, ...
             'Val', -rate_val, 'Name', 'I2');
 % W = addWell(W, G, rock, well_cells(G, '1'), 'Type', 'bhp', ...
 %             'comp_i', [1], ...
@@ -60,14 +70,17 @@ p0 = 1;
 s0 = 1;
 state0 = initState(G, W, p0, s0);
 dt = 1*day();
-schedule = simpleSchedule(dt, 'W', W, 'bc', bc_std);
+%schedule = simpleSchedule(dt, 'W', W, 'bc', bc_std);
 mu_value = 1;
 rho_value = 1;
 fluid = initSingleFluid('mu',mu_value,'rho',rho_value);
+gravity off
 
-tol = 1e-3*h;
-refpt = [max(G.nodes.coords(:,1)), max(G.nodes.coords(:,2)), min(G.nodes.coords(:,3))];
-refcell = findEnclosingCell(G, refpt+tol.*[-1,-1,1]);
+%tol = 1e-3*h;
+%refpt = [max(G.nodes.coords(:,1)), max(G.nodes.coords(:,2)), min(G.nodes.coords(:,3))]+tol.*[-1,-1,1];
+%refpt = max(G.nodes.coords) - 2.5*h;
+refpt = mean(G.nodes.coords) - 1e-3*h;
+refcell = findEnclosingCell(G, refpt);
 
 plotconc = false;
 tracer = true;
@@ -145,8 +158,9 @@ if tracer
     Ws{2}(1).tracer = 0;
     Ws{2}(2).tracer = 0;
     
-    time  = 1*day;
-    dtvec = rampupTimesteps(time, dt, 50);
+    time  = 2*day;
+    dt = 0.01*day;
+    dtvec = linspace(time, dt);
     schedule = simpleSchedule(dtvec, 'W', W);
     schedule.step.control(2 : end) = 2;
     control(1) = schedule.control;
@@ -173,7 +187,7 @@ if tracer
     figure, hold on
     names = cell(numel(results), 1);
     for i = 1:numel(results)
-        plot(refsols{i})
+        plot(dtvec,refsols{i})
         names{i} = results{i}.name;
     end
     legend(names)
