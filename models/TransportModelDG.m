@@ -70,37 +70,45 @@ classdef TransportModelDG < TransportModel
         end
         
         %-----------------------------------------------------------------%
+        function [dofvars, dofnames, names, origin] = getPrimaryVariables(model, state)
+            [vars, names, origin] = model.parentModel.getPrimaryVariables(state);
+            isParent = strcmp(origin, class(model.parentModel));
+            vars = vars(isParent);
+            names = names(isParent);
+            dofnames = cellfun(@(bn) [bn, 'dof'], names, 'UniformOutput', false);
+            origin = origin(isParent);
+            dofvars = cell(1, numel(vars));
+            for i = 1:numel(dofnames)
+                [fn, ~] = model.getVariableField(dofnames{i}, false);
+                if ~isempty(fn)
+                    dofvars{i} = model.getProp(state, dofnames{i});
+                end
+            end
+        end
+        
+        %-----------------------------------------------------------------%
         function [state, names, origin] = getStateAD(model, state, init)
             if nargin < 3
                 init = true;
             end
             parent = model.parentModel;
             % Get the AD state for this model
-            [~, basenames, origin] = model.getPrimaryVariables(state);
-            isParent = strcmp(origin, class(parent));
-            
-            basenames0 = basenames(isParent);
-            basenames = cellfun(@(bn) [bn, 'dof'], basenames0, 'UniformOutput', false);
-            origin = origin(isParent);
-            basevars = cell(1, numel(basenames));
-            for bNo = 1:numel(basenames)
-                basevars{bNo} = model.getProp(state, basenames{bNo});
-            end
+            [basevars, dofbasenames, basenames, baseorigin] = model.getPrimaryVariables(state);
             % Find saturations
             isS = false(size(basevars));
             nph = parent.getNumberOfPhases();
             phase_variable_index = zeros(nph, 1);
             for i = 1:numel(basevars)
-                [f, ix] = model.getVariableField(basenames{i});
+                [f, ix] = model.getVariableField(dofbasenames{i});
                 if strcmp(f, 'sdof')
                     isS(i) = true;
                     phase_variable_index(ix) = i;
                 end
             end
             % Figure out saturation logic
-            isP = strcmp(basenames, 'pressuredof');
+            isP = strcmp(dofbasenames, 'pressuredof');
             vars = basevars;
-            names = basenames;
+            names = dofbasenames;
             useTotalSaturation = strcmpi(model.formulation, 'totalSaturation') ...
                                     && sum(isS) == nph - 1;
             assert(useTotalSaturation, 'DG currently only supports total saturation formulation!');
@@ -127,17 +135,17 @@ classdef TransportModelDG < TransportModel
                 basevars(~isP) = vars;
             end
             % Let parent model handle state initialization
-            state = model.initStateAD(state, basevars, basenames0, origin);
+            state = model.initStateAD(state, basevars, basenames, baseorigin);
             
-            for i = 1:numel(basenames)
-                if any(strcmpi(basenames0{i}, {'sw', 'so', 'sg'}))
-                   basenames0{i} = 's';
-                   basenames{i}  = 'sdof';
+            for i = 1:numel(dofbasenames)
+                if any(strcmpi(basenames{i}, {'sw', 'so', 'sg'}))
+                   basenames{i} = 's';
+                   dofbasenames{i}  = 'sdof';
                 end
-                v     = model.getProp(state, basenames0{i});
-                state = model.setProp(state, basenames{i}, v);
+                v     = model.getProp(state, basenames{i});
+                state = model.setProp(state, dofbasenames{i}, v);
                 vm    = model.disc.getCellMean(state, value(v));
-                state = model.setProp(state, basenames0{i}, vm); 
+                state = model.setProp(state, basenames{i}, vm); 
             end
             if useTotalSaturation
                 % Set total saturation as well
