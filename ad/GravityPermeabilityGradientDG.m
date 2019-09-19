@@ -1,20 +1,26 @@
 classdef GravityPermeabilityGradientDG < StateFunction
    
+    properties
+        S
+    end
+    
     methods
         function gp = GravityPermeabilityGradientDG(varargin)
             gp@StateFunction(varargin{:});
-            gp = gp.dependsOn({'Density'}); 
+            gp = gp.dependsOn({'Density'});
+            model = varargin{1};
+            dim = model.G.griddim;
+            [ii, jj] = blockDiagIndex(dim*ones(dim,1), ones(dim,1));
+            gp.S = sparse(ii, jj, 1);
         end
         
-        function gRhoKdz = evaluateOnDomain(prop, model, state)
+        function gRhoKdz = evaluateOnDomain(gp, model, state)
             
-            rho = prop.getEvaluatedDependencies(state, 'Density');
+            rho = gp.getEvaluatedDependencies(state, 'Density');
             
             g = model.getGravityVector;
-            [K, r, c] = permTensor(model.rock, model.G.griddim);
-            % FIX for n dimensions.
-            assert(model.G.griddim == 2)
-            gKdz = [sum(K(:,[1,2]).*g(c([1,2])),2),sum(K(:,[3,4]).*g(c([3,4])),2)];
+            [K, ~, c] = permTensor(model.rock, model.G.griddim);
+            gKdz = (K.*g(c))*gp.S;
             gKdz = mat2cell(gKdz, model.G.cells.num, ones(1,model.G.griddim));
             gKdz = SpatialVector(gKdz{:});
             gKdz = gKdz(state.cells,:);
